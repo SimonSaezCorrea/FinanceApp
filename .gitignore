@@ -1,11 +1,17 @@
 # deps
-/node_modules
+node_modules
 /.pnp
 .pnp.js
 
 # build
 /.next/
 /out/
+apps/*/dist
+packages/*/dist
+apps/web/.vite
+
+# turbo
+.turbo
 
 # env
 .env

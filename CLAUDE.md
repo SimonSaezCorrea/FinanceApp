@@ -4,44 +4,47 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Canonical reference
 
-`docs/APP_CONTEXT_AND_HISTORY.md` is the in-depth, maintained spec (architecture, data model, business rules, env vars, extension guides). Read it for anything beyond the summary below. Code is the source of truth; that doc explains intent.
+`docs/{english,spanish}/APP_CONTEXT_AND_HISTORY.md` documents the product vision, data model, and business rules
+(written for the original Next.js app — predates the monorepo migration; treat its stack/routing
+details as historical, the domain/business rules still apply). `docs/english/ARCHITECTURE.md`
+(+ `docs/spanish/`) and `specs/001-api-frontend-monorepo/` are authoritative for the current
+monorepo structure. Code is the source of truth.
 
 ## Commands
 
-Package manager is **pnpm** (lockfile `package-lock.json` exists but the project runs with pnpm — see dev logs).
+Package manager is **pnpm**; the monorepo is orchestrated by **Turborepo** (root scripts delegate to `turbo`).
 
-- `pnpm run dev` — Next dev server (`next dev --turbo`, Turbopack)
-- `pnpm run build` / `pnpm start` — production build / serve
-- `pnpm run lint` — ESLint (`eslint-config-next`)
-- `pnpm run db:migrate` — Prisma migrate dev (local schema changes)
-- `pnpm run db:migrate:deploy` — apply migrations in CI/prod
-- `pnpm run db:push` — push schema without migration (prototyping)
-- `pnpm run db:seed` — seed demo data (`tsx prisma/seed.ts`); only touches demo users `demo@finance.local` / `partner@finance.local`
-- `pnpm run db:studio` — Prisma Studio
+- `pnpm install` — install all workspaces (`apps/*`, `packages/*`)
+- `pnpm dev` — run all apps (`turbo run dev`); or one: `pnpm --filter @finance/api dev` / `@finance/web`
+- `pnpm build` — build everything (`turbo run build`); per app: `pnpm --filter @finance/web build`
+- `pnpm test` — Vitest across all workspaces; one: `pnpm --filter @finance/api test`
+- `pnpm typecheck` — `tsc --noEmit` per package
+- `pnpm check:boundaries` — enforce import boundaries (`scripts/check-boundaries.mjs`)
+- `pnpm db:migrate` / `pnpm db:seed` — Prisma migrate/seed in `apps/api` (the sole DB owner)
 
-No test runner is configured.
-
-Setup: copy `.env.example` → `.env`, fill `DATABASE_URL` (Postgres/Supabase), `NEXTAUTH_URL`, `NEXTAUTH_SECRET`; `GOOGLE_CLIENT_*` and `ALPHA_VANTAGE_API_KEY` optional. `postinstall` runs `prisma generate`.
+Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, optional `ALPHA_VANTAGE_API_KEY`); `apps/web/.env` (`VITE_API_URL`). See each app's `.env.example`. After install, generate the Prisma client: `pnpm --filter @finance/api exec prisma generate`.
 
 ## Architecture (big picture)
 
-Next.js 14 App Router + React 18, Prisma 6 / PostgreSQL, NextAuth v5 (beta, JWT sessions), next-intl, Tailwind + Radix.
+**pnpm + Turborepo monorepo** with two separately-deployable apps + shared packages. TypeScript, Node 20. Migrated from the legacy single Next.js app via specs/001.
 
-- **Routing & i18n:** all pages under `app/[locale]/` with `localePrefix: "always"`, default `es`. Locales defined in `lib/i18n/routing.ts`. Route groups: `(auth)` (login/register, public) and `(dashboard)` (authenticated screens: dashboard, accounts, transactions, installments, debts, savings, investments, import).
-- **`middleware.ts`:** runs next-intl middleware first, then wraps with NextAuth `auth()`; redirects to `/{locale}/login` when no `req.auth` and route isn't public. `matcher` **excludes** `api`, `_next`, `_vercel`, static files — so API routes do NOT go through this auth/i18n chain.
-- **API routes (`app/api/*/route.ts`):** plain REST handlers. Each must call `auth()` from `@/auth` itself and return 401 if no session (middleware does not protect them). Always filter queries by `session.user.id` — never leak one user's data to another.
-- **Auth (`auth.ts`):** `PrismaAdapter`, JWT strategy. Google provider only if env set. `dev-credentials` provider (email-only `upsert`, **dev only**, `NODE_ENV !== "production"`) for working against seed data. `auth.ts` exports `{ handlers, auth, signIn, signOut }`.
-- **Providers (`components/providers.tsx`):** client `SessionProvider` + `ThemeProvider`. Root `app/layout.tsx` is async, calls `auth()` server-side and passes `session` down so the client doesn't refetch on mount; `refetchOnWindowFocus`/`refetchInterval` are disabled.
-- **`lib/finance/`:** money logic in `decimal.js`. `installments.ts` = equal-principal amortization; `interest.ts` = simple/compound rates; `etf.ts` = Alpha Vantage quotes cached in `EtfPriceCache` (24h TTL constant `TTL_MS`).
-- **`lib/utils/excel-parser.ts`:** zod-validated column `mapping` → normalized transaction rows. Note: `POST app/api/import` is still a stub (`imported: 0`); the parser is ready to wire in.
+- **`apps/api`** — **NestJS 10**, the **sole owner of the database** (Prisma 6 / PostgreSQL). Domain-first: `src/domains/<domain>/` each with `*.module/.controller/.service/.repository.ts` (+ `*.spec.ts`). The 8 domains: auth, accounts, transactions, installments, debts, savings, investments, import. Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`). Global prefix `/api/v1`.
+- **`apps/web`** — **Vite + React 18 SPA**, consumes the API over HTTP only (`shared/lib/apiClient.ts`, `VITE_API_URL`). Domain-first: `src/domains/<domain>/{api,hooks,components,routes}`. Routing react-router, data via TanStack Query, **owns the es/en i18n catalogs** (`src/i18n`). No DB access, never imports backend internals.
+- **`packages/`** — `contracts` (zod schemas + inferred types = the API contract; one module per domain; built to dist CJS + `import` condition → src for Vite), `money` (`decimal.js`: money helpers, `equalPrincipalSchedule`, interest), `config` (shared `tsconfig.base.json`). One-way deps: `apps → packages`; `api ↛ web`; `packages ↛ apps` (enforced by `check:boundaries`).
+- **Auth:** backend issues **JWT access+refresh tokens in httpOnly cookies** (`domains/auth`); `JwtAuthGuard` validates the access cookie and every endpoint is scoped to the authenticated `userId`. The frontend `AuthProvider`/`useAuth` + `RequireAuth` gate routes.
+- **Errors:** the API returns **language-agnostic codes** `{ error: { code, field? } }` (never localized prose); the frontend maps `code` → `errors.<CODE>` in es/en.
 
 ## Conventions
 
-- **Money:** use `decimal.js` / `Prisma.Decimal`, matching schema precisions (`Decimal(18,4)` amounts etc.). Don't use floats.
-- **i18n:** every UI string goes in BOTH `messages/en.json` and `messages/es.json`. Use `@/i18n/navigation` (`Link`, `redirect`) for locale-aware links, not bare `next/link`.
-- **Scoped edits:** minimal changes to the target; mirror existing imports/naming/structure in the file you touch. No unsolicited mass refactors.
+- **Money:** never floats. Cross the boundary as **decimal strings** (zod `moneyString` in contracts); compute with `@finance/money` (`decimal.js`) / `Prisma.Decimal` at schema precision.
+- **Validation:** request bodies/queries validated with **zod** schemas from `@finance/contracts` via `ZodValidationPipe` (NOT Nest's class-validator).
+- **Per-user isolation:** every repository query is scoped by `userId`; controllers use `@CurrentUser`.
+- **i18n:** every UI string in BOTH `apps/web/src/i18n/es.json` and `en.json` (identical keys); the API never returns localized text.
+- **Boundaries:** keep the one-way dep rule; run `pnpm check:boundaries`. New domain → mirror an existing one (see `apps/api/README.md` / `apps/web/README.md` skeletons).
 - **Commits:** only when the user explicitly asks.
 - **Markdown:** don't add `.md` files unless requested.
+
+**Deferred (not yet implemented):** investments live ETF quote (Alpha Vantage + `EtfPriceCache`); `import` multipart/xlsx file upload (the endpoint accepts pre-parsed JSON rows for now).
 
 ## Spec-Driven Development (SDD / Spec Kit)
 
@@ -54,8 +57,12 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md`. It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (v1.2.0). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
+- **Architecture migration (specs/001):** the monorepo above was implemented on branch
+  `001-api-frontend-monorepo` (the legacy single Next.js app was removed). `main` still holds the
+  legacy app until this branch is merged. Constitution is `v1.2.0`; bump it to reflect the merge
+  when it lands. See specs/001-api-frontend-monorepo/{plan,tasks}.md.
 - **Keep memory in sync (mandatory):** on ANY relevant change — new dependency,
   convention, data-model/schema change, env var, command, routing/auth change, or
   new principle — update BOTH `.specify/memory/constitution.md` (principle-level,
@@ -63,6 +70,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   same session. These are the canonical, living memory; stale docs are a defect.
 
 <!-- SPECKIT START -->
-For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan
+Active plan: specs/001-api-frontend-monorepo/plan.md
+(target architecture: pnpm+Turborepo monorepo — apps/api NestJS + apps/web Vite/React +
+packages/* shared contracts/money; see plan.md, research.md, data-model.md, contracts/).
 <!-- SPECKIT END -->

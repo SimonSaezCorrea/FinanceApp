@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # needed for turbo affected detection
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Architecture boundaries: web↛api/db, api↛web, packages↛apps (SC-004/SC-007).
+      - run: pnpm check:boundaries
+
+      # Build shared packages + apps. Turbo only rebuilds what changed; on PRs we
+      # scope to the apps affected since origin/main so api/web build independently.
+      - run: pnpm exec turbo run typecheck test build --filter="...[origin/main]"
+        if: github.event_name == 'pull_request'
+
+      - run: pnpm exec turbo run typecheck test build
+        if: github.event_name != 'pull_request'
