@@ -1,0 +1,263 @@
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Auth.js / NextAuth (Prisma adapter) ---
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  accounts         Account[]
+  sessions         Session[]
+  bankAccounts     BankAccount[]
+  transactions     Transaction[]
+  installmentPlans InstallmentPlan[]
+  debts            Debt[]
+  savingsGoals     SavingsGoal[]
+  savingsEntries   SavingsEntry[]
+  investments      Investment[]
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+model BankAccount {
+  id             String   @id @default(cuid())
+  userId         String
+  name           String
+  currency       String   @default("USD")
+  institution    String?
+  /// Cached balance; reconcile via transactions in app logic.
+  currentBalance Decimal  @default(0) @db.Decimal(18, 4)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  investments  Investment[]
+
+  @@index([userId])
+}
+
+model Transaction {
+  id                String          @id @default(cuid())
+  userId            String
+  bankAccountId     String?
+  type              TransactionType
+  amount            Decimal         @db.Decimal(18, 4)
+  currency          String          @default("USD")
+  occurredAt        DateTime
+  category          String?
+  description       String?
+  installmentPlanId String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount     BankAccount?     @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  installmentPlan InstallmentPlan? @relation(fields: [installmentPlanId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([bankAccountId])
+  @@index([occurredAt])
+  @@index([installmentPlanId])
+  @@index([category])
+}
+
+model InstallmentPlan {
+  id               String   @id @default(cuid())
+  userId           String
+  title            String
+  totalPrincipal   Decimal  @db.Decimal(18, 4)
+  installmentCount Int
+  startDate        DateTime
+  currency         String   @default("USD")
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments     InstallmentPayment[]
+  transactions Transaction[]
+
+  @@index([userId])
+  @@index([startDate])
+}
+
+model InstallmentPayment {
+  id                String    @id @default(cuid())
+  installmentPlanId String
+  sequence          Int
+  dueDate           DateTime
+  amount            Decimal   @db.Decimal(18, 4)
+  paidAt            DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  plan InstallmentPlan @relation(fields: [installmentPlanId], references: [id], onDelete: Cascade)
+
+  @@unique([installmentPlanId, sequence])
+  @@index([installmentPlanId])
+  @@index([dueDate])
+}
+
+enum DebtDirection {
+  OWED_TO_YOU
+  YOU_OWE
+}
+
+model Debt {
+  id           String        @id @default(cuid())
+  userId       String
+  direction    DebtDirection
+  counterparty String
+  principal    Decimal       @db.Decimal(18, 4)
+  currency     String        @default("USD")
+  openedAt     DateTime
+  dueAt        DateTime?
+  interestApr  Decimal?      @db.Decimal(8, 4)
+  notes        String?
+  settledAt    DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([openedAt])
+  @@index([dueAt])
+}
+
+model SavingsGoal {
+  id           String    @id @default(cuid())
+  userId       String
+  title        String
+  targetAmount Decimal   @db.Decimal(18, 4)
+  currency     String    @default("USD")
+  deadline     DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries SavingsEntry[]
+
+  @@index([userId])
+  @@index([deadline])
+}
+
+model SavingsEntry {
+  id            String   @id @default(cuid())
+  userId        String
+  savingsGoalId String?
+  amount        Decimal  @db.Decimal(18, 4)
+  currency      String   @default("USD")
+  contributedAt DateTime
+  note          String?
+  createdAt     DateTime @default(now())
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal SavingsGoal? @relation(fields: [savingsGoalId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([savingsGoalId])
+  @@index([contributedAt])
+}
+
+enum InvestmentKind {
+  ETF
+  REMUNERATED_ACCOUNT
+}
+
+model Investment {
+  id            String         @id @default(cuid())
+  userId        String
+  kind          InvestmentKind
+  label         String
+  currency      String         @default("USD")
+  /// ETF: ticker symbol (e.g. VTI). Ignored for remunerated accounts.
+  symbol        String?
+  shares        Decimal?       @db.Decimal(24, 8)
+  /// Remunerated / interest-bearing: nominal annual rate (e.g. 0.05 for 5%).
+  annualRate    Decimal?       @db.Decimal(8, 6)
+  principal     Decimal?       @db.Decimal(18, 4)
+  bankAccountId String?
+  openedAt      DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([kind])
+  @@index([symbol])
+  @@index([bankAccountId])
+}
+
+/// Alpha Vantage quote cache.
+/// TTL (~24h): application treats rows with fetchedAt older than 24 hours as stale,
+/// refetches from the API, then upserts by symbol.
+model EtfPriceCache {
+  id        String   @id @default(cuid())
+  symbol    String   @unique
+  fetchedAt DateTime
+  open      Decimal  @db.Decimal(18, 6)
+  high      Decimal  @db.Decimal(18, 6)
+  low       Decimal  @db.Decimal(18, 6)
+  close     Decimal  @db.Decimal(18, 6)
+  volume    Decimal? @db.Decimal(24, 4)
+  rawJson   Json?
+
+  @@index([fetchedAt])
+}
