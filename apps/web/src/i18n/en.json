@@ -4,6 +4,9 @@
     "loading": "Loading…",
     "welcome": "Personal finance dashboard"
   },
+  "nav": {
+    "dashboard": "Dashboard"
+  },
   "accounts": {
     "title": "Accounts",
     "empty": "You don't have any accounts yet."
@@ -44,7 +47,8 @@
     "email": "Email",
     "password": "Password",
     "needAccount": "Need an account?",
-    "haveAccount": "Already have an account?"
+    "haveAccount": "Already have an account?",
+    "logout": "Log out"
   },
   "errors": {
     "INTERNAL_ERROR": "Something went wrong. Please try again.",

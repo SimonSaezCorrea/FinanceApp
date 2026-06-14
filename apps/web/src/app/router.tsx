@@ -11,9 +11,14 @@ import { InstallmentsRoute } from "../domains/installments/routes/InstallmentsRo
 import { InvestmentsRoute } from "../domains/investments/routes/InvestmentsRoute";
 import { SavingsRoute } from "../domains/savings/routes/SavingsRoute";
 import { TransactionsRoute } from "../domains/transactions/routes/TransactionsRoute";
+import { AppLayout } from "./AppLayout";
 import { DashboardPage } from "./DashboardPage";
 
-const protect = (element: ReactElement) => <RequireAuth>{element}</RequireAuth>;
+const protect = (element: ReactElement) => (
+  <RequireAuth>
+    <AppLayout>{element}</AppLayout>
+  </RequireAuth>
+);
 
 export const router = createBrowserRouter([
   { path: "/login", element: <LoginRoute /> },

@@ -4,6 +4,9 @@
     "loading": "Cargando…",
     "welcome": "Panel de finanzas personales"
   },
+  "nav": {
+    "dashboard": "Panel"
+  },
   "accounts": {
     "title": "Cuentas",
     "empty": "Aún no tienes cuentas."
@@ -44,7 +47,8 @@
     "email": "Correo",
     "password": "Contraseña",
     "needAccount": "¿No tienes cuenta?",
-    "haveAccount": "¿Ya tienes cuenta?"
+    "haveAccount": "¿Ya tienes cuenta?",
+    "logout": "Salir"
   },
   "errors": {
     "INTERNAL_ERROR": "Ocurrió un error. Inténtalo de nuevo.",

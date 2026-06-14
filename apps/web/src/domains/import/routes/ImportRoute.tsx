@@ -4,9 +4,9 @@ export function ImportRoute() {
   const { t } = useTranslation();
 
   return (
-    <main style={{ fontFamily: "system-ui", padding: "2rem" }}>
-      <h1>{t("import.title")}</h1>
-      <p>{t("import.info")}</p>
-    </main>
+    <div>
+      <h1 className="mb-6 text-2xl font-semibold tracking-tight">{t("import.title")}</h1>
+      <p className="text-muted-foreground">{t("import.info")}</p>
+    </div>
   );
 }

@@ -3,6 +3,9 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
 import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { Button } from "../../../shared/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card";
+import { Input } from "../../../shared/ui/input";
 import { useAuth } from "../hooks/useAuth";
 
 export function LoginRoute() {
@@ -30,19 +33,46 @@ export function LoginRoute() {
   }
 
   return (
-    <main style={{ fontFamily: "system-ui", maxWidth: 360, margin: "4rem auto" }}>
-      <h1>{t("auth.signIn")}</h1>
-      <form onSubmit={onSubmit}>
-        <input type="email" placeholder={t("auth.email")} value={email} required
-          onChange={(e) => setEmail(e.target.value)} />
-        <input type="password" placeholder={t("auth.password")} value={password} required
-          onChange={(e) => setPassword(e.target.value)} />
-        {error ? <p role="alert">{error}</p> : null}
-        <button type="submit" disabled={busy}>{t("auth.signIn")}</button>
-      </form>
-      <p>
-        {t("auth.needAccount")} <Link to="/register">{t("auth.register")}</Link>
-      </p>
+    <main className="flex min-h-dvh items-center justify-center bg-muted/30 p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>{t("auth.signIn")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="flex flex-col gap-3" onSubmit={onSubmit}>
+            <Input
+              type="email"
+              placeholder={t("auth.email")}
+              value={email}
+              required
+              autoComplete="email"
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Input
+              type="password"
+              placeholder={t("auth.password")}
+              value={password}
+              required
+              autoComplete="current-password"
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {error ? (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
+            <Button type="submit" disabled={busy} className="w-full">
+              {t("auth.signIn")}
+            </Button>
+          </form>
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            {t("auth.needAccount")}{" "}
+            <Link to="/register" className="font-medium text-primary hover:underline">
+              {t("auth.register")}
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
     </main>
   );
 }

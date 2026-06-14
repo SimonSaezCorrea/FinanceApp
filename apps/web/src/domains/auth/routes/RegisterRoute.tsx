@@ -3,6 +3,9 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
 
 import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { Button } from "../../../shared/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card";
+import { Input } from "../../../shared/ui/input";
 import { useAuth } from "../hooks/useAuth";
 
 export function RegisterRoute() {
@@ -31,21 +34,54 @@ export function RegisterRoute() {
   }
 
   return (
-    <main style={{ fontFamily: "system-ui", maxWidth: 360, margin: "4rem auto" }}>
-      <h1>{t("auth.createAccount")}</h1>
-      <form onSubmit={onSubmit}>
-        <input type="text" placeholder={t("auth.name")} value={name}
-          onChange={(e) => setName(e.target.value)} />
-        <input type="email" placeholder={t("auth.email")} value={email} required
-          onChange={(e) => setEmail(e.target.value)} />
-        <input type="password" placeholder={t("auth.password")} value={password} required minLength={8}
-          onChange={(e) => setPassword(e.target.value)} />
-        {error ? <p role="alert">{error}</p> : null}
-        <button type="submit" disabled={busy}>{t("auth.createAccount")}</button>
-      </form>
-      <p>
-        {t("auth.haveAccount")} <Link to="/login">{t("auth.signIn")}</Link>
-      </p>
+    <main className="flex min-h-dvh items-center justify-center bg-muted/30 p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle>{t("auth.createAccount")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form className="flex flex-col gap-3" onSubmit={onSubmit}>
+            <Input
+              type="text"
+              placeholder={t("auth.name")}
+              value={name}
+              autoComplete="name"
+              onChange={(e) => setName(e.target.value)}
+            />
+            <Input
+              type="email"
+              placeholder={t("auth.email")}
+              value={email}
+              required
+              autoComplete="email"
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <Input
+              type="password"
+              placeholder={t("auth.password")}
+              value={password}
+              required
+              minLength={8}
+              autoComplete="new-password"
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            {error ? (
+              <p role="alert" className="text-sm text-destructive">
+                {error}
+              </p>
+            ) : null}
+            <Button type="submit" disabled={busy} className="w-full">
+              {t("auth.createAccount")}
+            </Button>
+          </form>
+          <p className="mt-4 text-center text-sm text-muted-foreground">
+            {t("auth.haveAccount")}{" "}
+            <Link to="/login" className="font-medium text-primary hover:underline">
+              {t("auth.signIn")}
+            </Link>
+          </p>
+        </CardContent>
+      </Card>
     </main>
   );
 }
