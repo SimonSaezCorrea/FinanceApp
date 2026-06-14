@@ -1,5 +1,21 @@
 <!--
-Sync Impact Report
+Sync Impact Report — 2026-06-14 (amendment 1.2.0)
+- Version change: 1.1.0 → 1.2.0 (MINOR: added explicit, enforced Architecture norms — domain-first,
+  one-source-of-truth shapes, one-way deps via check:boundaries, zod validation; updated Definition
+  of Done to the real gates; migration now implemented on branch 001, pending merge). Principles unchanged.
+
+Sync Impact Report — 2026-06-14 (amendment 1.1.0)
+- Version change: 1.0.0 → 1.1.0 (MINOR: redefined Technology & Operational Constraints to the
+  ratified target architecture; recorded Vitest as the chosen test runner). Core Principles
+  unchanged. Driven by specs/001-api-frontend-monorepo (plan approved).
+- Technology & Operational Constraints: now describes the target monorepo (apps/api NestJS +
+  apps/web Vite/React + packages/* shared) with pnpm+Turborepo and backend-issued JWT (httpOnly).
+  Migration is tracked by specs/001 and performed on a dedicated branch; the pre-migration single
+  Next.js app remains on `main` until that branch passes its done-state and merges.
+- Principle IV: Vitest selected as the single runner — the chosen means to close TODO(TEST_RUNNER)
+  (still open until set up during the migration).
+
+Sync Impact Report — initial ratification
 - Version change: (template) → 1.0.0
 - Ratification: initial adoption (first ratification)
 - Principles defined:
@@ -68,9 +84,9 @@ make it pass, refactor. Financial logic (`lib/finance/**`) MUST have unit tests 
 money rules in Principle I.
 
 Current-state note (MUST be closed): the repository has **no test runner configured yet**.
-Until one exists, this principle is the mandated standard but is **not yet satisfied** —
-see `TODO(TEST_RUNNER)` in the Sync Impact Report. Setting up a test runner is a required
-task of the next feature cycle.
+**Vitest** is the chosen runner (ratified with specs/001); until it is set up during the
+monorepo migration, this principle is the mandated standard but is **not yet satisfied** — see
+`TODO(TEST_RUNNER)` in the Sync Impact Report.
 
 Rationale: correctness in money math cannot be verified by eye. TDD makes the intended
 behavior executable and prevents regressions in the most consequential code.
@@ -92,24 +108,41 @@ reality, every future decision is made on false information.
 
 ## Technology & Operational Constraints
 
-- **Stack (pinned):** Next.js 14 (App Router) + React 18; Prisma 6 / PostgreSQL; NextAuth v5
-  (JWT sessions) with email+password (bcrypt) and optional Google OAuth; next-intl (es/en);
-  Tailwind CSS + Radix UI. Package manager is **pnpm**.
-- **Commands:** dev runs `next dev --turbo`; database via `prisma migrate` / `prisma db seed`
-  (`pnpm run db:*`). See `CLAUDE.md` for the full command list.
-- **Environment:** configured per `.env.example` — `DATABASE_URL`, `NEXTAUTH_URL`,
-  `NEXTAUTH_SECRET`, optional `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`, `ALPHA_VANTAGE_API_KEY`.
-  Secrets MUST NOT be committed; `.env` stays out of version control.
-- **Major stack changes** (framework, ORM, auth strategy, package manager) are governance
-  amendments and require a version bump here plus a `CLAUDE.md` update.
+- **Target architecture (ratified — specs/001):** a **pnpm + Turborepo monorepo** with two
+  separately deployable apps and shared packages:
+  - `apps/api` — **NestJS** backend, **Prisma 6 / PostgreSQL** (sole DB owner), domain-first
+    modules; auth issues **JWT access+refresh tokens in httpOnly cookies**.
+  - `apps/web` — **Vite + React 18 SPA**, domain-first features, consumes the API over HTTP only;
+    **owns the es/en i18n catalogs** (the API returns data + language-agnostic error codes).
+  - `packages/*` — shared **contracts** (zod schemas + types), **money** (`decimal.js`),
+    config. One-way deps: apps → packages; `api ↛ web`.
+  - **Testing:** **Vitest** across apps and packages.
+- **Architecture norms (NON-NEGOTIABLE, enforced):**
+  - **Domain-first:** both apps organize code under `src/domains/<domain>/`; the backend follows the
+    `module → controller → service → repository` skeleton (the repository is the only Prisma touchpoint
+    and always scopes by `userId`). New domains mirror this skeleton.
+  - **One source of truth for shapes:** request/response models are zod schemas in
+    `@finance/contracts` (flat interfaces via `@finance/contracts/models`); money math lives in
+    `@finance/money`. The Prisma schema (`apps/api/prisma`) is the only persistence model.
+  - **One-way dependencies:** `apps → packages`; `packages ↛ apps`; `api ↛ web`. Enforced by
+    `pnpm check:boundaries` (the frontend must not import backend internals or any DB client).
+  - **Validation with zod** (`ZodValidationPipe`), not class-validator.
+- **Migration status:** the monorepo above was implemented on branch `001-api-frontend-monorepo`
+  (legacy Next.js app removed there). `main` holds the legacy app until that branch is merged; bump
+  this constitution to drop the migration note once the merge lands.
+- **Environment:** per `.env.example` — `DATABASE_URL`, JWT secrets, CORS origin (api), and
+  `VITE_API_URL` (web); optional `GOOGLE_CLIENT_*`, `ALPHA_VANTAGE_API_KEY`. Secrets MUST NOT be
+  committed; `.env` stays out of version control.
+- **Major stack changes** (framework, ORM, auth strategy, package manager, monorepo tooling) are
+  governance amendments and require a version bump here plus a `CLAUDE.md` update.
 
 ## Development Workflow & Quality Gates
 
 - **SDD review gates:** the spec is reviewed and approved before planning; the plan is
   reviewed and approved before tasks; `/speckit-analyze` runs and its findings are resolved
   before `/speckit-implement`.
-- **Definition of done:** `pnpm exec tsc --noEmit` (typecheck) and `pnpm run lint` MUST pass;
-  for changes touching `lib/finance/**`, the relevant tests pass (once the runner exists).
+- **Definition of done:** `pnpm check:boundaries`, `pnpm typecheck`, `pnpm test`, and `pnpm build`
+  MUST pass; money/finance logic in `packages/money` is covered by tests.
 - **Ambiguity:** when scope, a tech choice, or acceptance criteria are unknown, STOP and ask
   the user — do not guess. (Enforced by the `/sdd` orchestrator.)
 - **Memory sync:** every cycle ends by reconciling this constitution and `CLAUDE.md` with what
@@ -129,4 +162,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.0.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-06-14
+**Version**: 1.2.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-06-14

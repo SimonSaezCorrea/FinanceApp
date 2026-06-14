@@ -1,0 +1,57 @@
+{
+  "brand": { "name": "FinanceApp" },
+  "app": {
+    "loading": "Loading…",
+    "welcome": "Personal finance dashboard"
+  },
+  "accounts": {
+    "title": "Accounts",
+    "empty": "You don't have any accounts yet."
+  },
+  "transactions": {
+    "title": "Transactions",
+    "empty": "You don't have any transactions yet.",
+    "type": { "INCOME": "Income", "EXPENSE": "Expense" }
+  },
+  "installments": {
+    "title": "Installments",
+    "empty": "You don't have any installment plans yet.",
+    "progress": "{{paid}}/{{total}} paid"
+  },
+  "debts": {
+    "title": "Debts",
+    "empty": "You don't have any debts yet.",
+    "direction": { "OWED_TO_YOU": "Owed to you", "YOU_OWE": "You owe" }
+  },
+  "savings": {
+    "title": "Savings",
+    "empty": "You don't have any savings goals yet."
+  },
+  "investments": {
+    "title": "Investments",
+    "empty": "You don't have any investments yet.",
+    "kind": { "ETF": "ETF", "REMUNERATED_ACCOUNT": "Remunerated account" }
+  },
+  "import": {
+    "title": "Import",
+    "info": "Upload transactions from Excel (file upload coming soon)."
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "createAccount": "Create account",
+    "register": "Register",
+    "name": "Name (optional)",
+    "email": "Email",
+    "password": "Password",
+    "needAccount": "Need an account?",
+    "haveAccount": "Already have an account?"
+  },
+  "errors": {
+    "INTERNAL_ERROR": "Something went wrong. Please try again.",
+    "UNAUTHORIZED": "Sign in to continue.",
+    "NOT_FOUND": "Resource not found.",
+    "INVALID_CREDENTIALS": "Incorrect email or password.",
+    "EMAIL_TAKEN": "That email is already registered.",
+    "VALIDATION_FAILED": "Please check the submitted data."
+  }
+}

@@ -1,0 +1,57 @@
+{
+  "brand": { "name": "FinanceApp" },
+  "app": {
+    "loading": "Cargando…",
+    "welcome": "Panel de finanzas personales"
+  },
+  "accounts": {
+    "title": "Cuentas",
+    "empty": "Aún no tienes cuentas."
+  },
+  "transactions": {
+    "title": "Movimientos",
+    "empty": "Aún no tienes movimientos.",
+    "type": { "INCOME": "Ingreso", "EXPENSE": "Gasto" }
+  },
+  "installments": {
+    "title": "Cuotas",
+    "empty": "Aún no tienes planes de cuotas.",
+    "progress": "{{paid}}/{{total}} pagadas"
+  },
+  "debts": {
+    "title": "Deudas",
+    "empty": "Aún no tienes deudas.",
+    "direction": { "OWED_TO_YOU": "Te deben", "YOU_OWE": "Debes" }
+  },
+  "savings": {
+    "title": "Ahorros",
+    "empty": "Aún no tienes metas de ahorro."
+  },
+  "investments": {
+    "title": "Inversiones",
+    "empty": "Aún no tienes inversiones.",
+    "kind": { "ETF": "ETF", "REMUNERATED_ACCOUNT": "Cuenta remunerada" }
+  },
+  "import": {
+    "title": "Importar",
+    "info": "Sube movimientos desde Excel (carga de archivo próximamente)."
+  },
+  "auth": {
+    "signIn": "Iniciar sesión",
+    "createAccount": "Crear cuenta",
+    "register": "Registrarse",
+    "name": "Nombre (opcional)",
+    "email": "Correo",
+    "password": "Contraseña",
+    "needAccount": "¿No tienes cuenta?",
+    "haveAccount": "¿Ya tienes cuenta?"
+  },
+  "errors": {
+    "INTERNAL_ERROR": "Ocurrió un error. Inténtalo de nuevo.",
+    "UNAUTHORIZED": "Inicia sesión para continuar.",
+    "NOT_FOUND": "No se encontró el recurso.",
+    "INVALID_CREDENTIALS": "Correo o contraseña incorrectos.",
+    "EMAIL_TAKEN": "Ese correo ya está registrado.",
+    "VALIDATION_FAILED": "Revisa los datos ingresados."
+  }
+}

@@ -1,0 +1,261 @@
+# FinanceApp — Arquitectura
+
+Estado: **vigente** (monorepo, rama `001-api-frontend-monorepo`). Autoritativo para la estructura.
+El contexto de producto/dominio está en [APP_CONTEXT_AND_HISTORY.md](./APP_CONTEXT_AND_HISTORY.md)
+(sus detalles de stack/routing son anteriores a esta migración y son históricos). La especificación
+formal está en [specs/001-api-frontend-monorepo/](../../specs/001-api-frontend-monorepo/).
+
+> Versión en inglés: [../english/ARCHITECTURE.md](../english/ARCHITECTURE.md)
+
+---
+
+## 1. Visión general
+
+FinanceApp es un gestor de finanzas personales construido como un **monorepo pnpm + Turborepo** con
+dos aplicaciones **desplegables por separado** y paquetes compartidos:
+
+- **`apps/api`** — backend NestJS, **único dueño de la base de datos**, expone una API HTTP versionada.
+- **`apps/web`** — SPA Vite + React, consume la API solo por HTTP, dueña de la UI y las traducciones.
+- **`packages/*`** — contratos compartidos (zod), matemática de dinero (decimal.js) y config de TS.
+
+Las dos apps comparten un repositorio pero **ningún acoplamiento en runtime**: se comunican solo a
+través de un contrato HTTP publicado. Esto maximiza mantenibilidad (organización por dominio),
+escalabilidad (build/deploy/escalado independientes) y descubribilidad (todo lo de un dominio junto).
+
+```
+┌─────────────┐      HTTP /api/v1 (JSON, cookies httpOnly)      ┌──────────────┐
+│  apps/web   │ ───────────────────────────────────────────────▶│   apps/api   │
+│ Vite + React│ ◀───────────────────────────────────────────────│   NestJS     │
+│  (SPA)      │           datos + códigos sin idioma             │ (único dueño │
+└─────────────┘                                                  │   de la DB)  │
+        │                                                        └──────┬───────┘
+        │ imports (tipos/valores)     imports (tipos/valores)           │ Prisma
+        ▼                                                               ▼
+   ┌──────────────────────── packages/* ───────────────────┐    ┌────────────┐
+   │  contracts (zod+tipos) · money (decimal.js) · config   │    │ PostgreSQL │
+   └────────────────────────────────────────────────────────┘    └────────────┘
+```
+
+### Por qué estas decisiones (justificación)
+
+- **Por qué separar frontend y backend (por servicio):** dueño y seguridad claros — el backend posee
+  datos, reglas de negocio y secretos; el navegador solo ve el contrato HTTP publicado (la DB y las
+  credenciales nunca llegan al cliente). Además tienen runtimes y perfiles de escalado distintos
+  (una API Node con estado cerca de la DB vs. estáticos en un CDN), así cada uno buildea, despliega y
+  escala por su cuenta — un fix de frontend no redeploya la API. El contrato es el único acople, así
+  que cualquier lado puede reescribirse o sumar otro cliente (móvil/CLI); la lógica se testea sin
+  navegador y la UI sin base de datos.
+- **Por qué un monorepo (no dos repos):** el contrato compartido (`@finance/contracts`) y la
+  matemática de dinero (`@finance/money`) viven en un solo lugar (sin drift de versiones), un cambio
+  de contrato más ambos consumidores entran en un PR (atómico), y hay una sola toolchain + CI —
+  manteniendo el runtime totalmente desacoplado. La regla de dependencias unidireccional deja a
+  `apps/api` + `packages/*` autocontenidos, así que extraer el backend a su propio repo después es
+  mecánico.
+- **Por qué primero-por-dominio (no por capa):** todo lo de un dominio (p. ej. *debts*) vive en una
+  carpeta — navegas por feature, no por una capa técnica dispersa por el árbol. Agregar o quitar un
+  dominio completo es local; la app escala por *cantidad de dominios* en vez de hacer crecer sin
+  límite carpetas globales `controllers/`/`services/`.
+- **Por qué el formato module/controller/service/repository:** es el layering estándar de NestJS, un
+  skeleton repetible por dominio — **controller** = borde HTTP (parsea/valida/devuelve), **service** =
+  lógica de negocio, **repository** = único lugar que toca Prisma. Eso mantiene el acotado por usuario
+  auditable en un solo punto, hace cada capa testeable por unidad, y vuelve mecánico agregar un
+  dominio (copiar el skeleton). Las formas se describen una vez como zod (seguridad en compilación en
+  ambos lados); el dinero cruza como strings por precisión.
+
+## 2. Estructura del repositorio
+
+```
+finance-app/
+├── apps/
+│   ├── api/                       # Backend NestJS
+│   │   ├── src/
+│   │   │   ├── main.ts            # bootstrap: prefijo /api/v1, cookies, CORS(credentials), filtro de errores
+│   │   │   ├── app.module.ts      # conecta infra + todos los módulos de dominio
+│   │   │   ├── domains/<dominio>/ # auth, accounts, transactions, installments, debts, savings, investments, import, health
+│   │   │   │   ├── <d>.module.ts
+│   │   │   │   ├── <d>.controller.ts
+│   │   │   │   ├── <d>.service.ts
+│   │   │   │   ├── <d>.repository.ts
+│   │   │   │   └── <d>.service.spec.ts
+│   │   │   └── infra/             # prisma (cliente único), auth (guard + @CurrentUser), http (filtro + ZodValidationPipe), config
+│   │   ├── prisma/                # schema.prisma + seed.ts  (la DB vive con la API)
+│   │   ├── test/                  # e2e (health)
+│   │   └── Dockerfile
+│   └── web/                       # SPA Vite + React
+│       ├── src/
+│       │   ├── main.tsx
+│       │   ├── app/               # providers (Query, i18n, Auth), router
+│       │   ├── domains/<dominio>/ # api/ hooks/ components/ routes/ (+ tests)
+│       │   ├── shared/lib/        # apiClient
+│       │   └── i18n/              # es.json / en.json (el frontend es dueño de las traducciones)
+│       ├── Dockerfile + nginx.conf
+│       └── vite.config.ts
+├── packages/
+│   ├── contracts/                # esquemas zod + tipos inferidos, un módulo por dominio
+│   ├── money/                    # helpers de dinero decimal.js, cronograma de cuotas, interés
+│   └── config/                   # tsconfig.base.json compartido
+├── scripts/check-boundaries.mjs  # hace cumplir los límites de imports
+├── .github/workflows/ci.yml
+├── turbo.json · pnpm-workspace.yaml · package.json (raíz del workspace)
+└── specs/001-api-frontend-monorepo/   # spec, plan, contratos, tareas
+```
+
+### Qué contiene cada carpeta
+
+**Backend `apps/api/src/`**
+- `main.ts` — bootstrap del proceso: prefijo global `/api/v1`, parser de cookies, CORS (credenciales),
+  filtro de errores global, y luego `listen`.
+- `app.module.ts` — raíz de composición: importa los módulos de infra + cada módulo de dominio.
+- `domains/<dominio>/` — un dominio de negocio. `*.module.ts` (cableado), `*.controller.ts` (rutas
+  HTTP, guard, validación zod), `*.service.ts` (lógica; dinero vía `@finance/money`),
+  `*.repository.ts` (el **único** acceso a Prisma de ese dominio, siempre acotado por `userId`),
+  `*.service.spec.ts` (tests), opcional `dto/`.
+- `infra/` — transversal, **no** es un dominio de negocio: `prisma/` (el único `PrismaService`),
+  `auth/` (`JwtAuthGuard` + `@CurrentUser`), `http/` (`AllExceptionsFilter` + `ZodValidationPipe`),
+  `config/` (env).
+- `common/` — utilidades pequeñas de Nest compartidas por varios dominios (pipes/interceptors).
+- `prisma/` — `schema.prisma`, migraciones, `seed.ts` (la definición de la base de datos — ver abajo).
+- `test/` — tests e2e que levantan la app Nest.
+
+**Frontend `apps/web/src/`**
+- `main.tsx` — monta React dentro de `Providers` + `RouterProvider`.
+- `app/` — shell de la app: `providers.tsx` (Query, i18n, Auth), `router.tsx` (tabla de rutas), páginas de nivel superior.
+- `domains/<dominio>/` — un dominio de negocio en el cliente: `api/` (llamadas tipadas vía el
+  `apiClient` compartido + contracts), `hooks/` (hooks de TanStack Query / contexto), `components/`
+  (presentacional), `routes/` (pantallas), más `*.test.tsx`.
+- `shared/` — código reutilizable no-dominio: `lib/` (apiClient, helpers) y primitivos de UI.
+- `i18n/` — los catálogos es/en (el frontend es dueño de las traducciones) + setup.
+- `styles/` — estilos globales.
+
+**`packages/`**
+- `contracts/` — esquemas zod + tipos inferidos; un módulo por dominio + `common`. El contrato de la API.
+- `money/` — helpers decimal.js, cronograma de cuotas, interés. Matemática financiera en runtime.
+- `config/` — `tsconfig.base.json` compartido.
+
+**Raíz del repo** — `scripts/` (p. ej. `check-boundaries.mjs`), `.github/workflows/` (CI),
+`turbo.json` / `pnpm-workspace.yaml` / `package.json` (orquestación del workspace), `specs/`, `docs/`,
+`.specify/`.
+
+### Dónde viven los modelos de la base de datos
+
+- **Modelo de persistencia (la base de datos):** `apps/api/prisma/schema.prisma` — los modelos
+  Prisma, enums e índices. Es la **única fuente de verdad de la DB**, dueño exclusivo el backend; las
+  migraciones y `seed.ts` van al lado. El cliente Prisma generado y sus tipos de fila se usan **solo
+  dentro de `apps/api`** (en los repositories). El frontend no tiene acceso a ellos.
+- **Modelo de API / contrato (lo que ve el frontend):** los **esquemas zod en `packages/contracts`** —
+  las formas de request/response que ambas apps comparten. A propósito **no** son los modelos Prisma;
+  los services mapean una fila Prisma → un DTO de contrato (p. ej. `Decimal` → string de dinero,
+  `Date` → string ISO), así la DB puede evolucionar sin romper la API mientras se actualice el mapeo.
+- **Punto único para importar las interfaces de modelos:** `packages/contracts/src/models.ts`
+  re-exporta cada tipo de entidad (+ sus inputs create/update y enums) en un solo lugar plano, así
+  cualquier código puede hacer `import type { BankAccount, Transaction, Debt } from "@finance/contracts/models"`.
+  Es la forma ergonómica y consistente de referenciar las formas de modelo (los esquemas/namespaces
+  zod por dominio siguen disponibles desde la raíz del paquete). Al agregar un dominio, añade sus
+  tipos ahí también.
+- **Regla práctica:** cambiar la DB → editar `apps/api/prisma/schema.prisma` + agregar una migración;
+  cambiar lo que recibe el cliente → editar `packages/contracts` + el mapeo del service.
+
+## 3. Backend (`apps/api`)
+
+- **Framework:** NestJS 10 (TypeScript, CommonJS). Los módulos de dominio mapean 1:1 con los dominios de negocio.
+- **Skeleton por dominio:** `controller` (HTTP) → `service` (lógica de negocio) → `repository` (el
+  único lugar que toca Prisma para ese dominio). Las formas (DTO) vienen de `@finance/contracts`.
+- **Dueño de la DB:** un único `PrismaService` (`infra/prisma`, `@Global`) es el único cliente de DB.
+  El schema, las migraciones y el seed de Prisma viven en `apps/api/prisma`. Ninguna otra app accede a la DB.
+- **Validación:** `ZodValidationPipe` valida cuerpos/queries contra esquemas zod de
+  `@finance/contracts`. (No se usa class-validator de Nest, a propósito.)
+- **Errores:** un `AllExceptionsFilter` global mapea todo a `{ error: { code, field? } }` con un
+  `code` estable en SCREAMING_SNAKE — **nunca texto en idioma**. Se preserva el status HTTP.
+- **Superficie de la API:** REST bajo `/api/v1`, por dominio (`/api/v1/accounts`, `/transactions`,
+  `/installments`, `/debts`, `/savings`, `/investments`, `/import`, `/auth`). Ver
+  [contracts/api-conventions.md](../../specs/001-api-frontend-monorepo/contracts/api-conventions.md).
+
+## 4. Frontend (`apps/web`)
+
+- **Framework:** SPA Vite + React 18. Compila a un bundle estático desplegable en cualquier CDN/host estático.
+- **Acceso a la API:** solo a través de `shared/lib/apiClient.ts`, que apunta a `VITE_API_URL`, envía
+  `credentials: "include"` (cookies de auth httpOnly), y convierte respuestas no-2xx en
+  `ApiRequestError(code, status, field)`.
+- **Organización por dominio:** `domains/<dominio>/{api,hooks,components,routes}`. Data fetching con
+  TanStack Query; routing con react-router; auth con `AuthProvider`/`useAuth` + `RequireAuth`.
+- **i18n:** el frontend es **dueño** de los catálogos es/en (`src/i18n`). Los `code` de error de la API
+  se mapean a mensajes `errors.<CODE>` en el cliente. Las claves deben mantener paridad es/en.
+
+## 5. Paquetes compartidos (`packages/*`)
+
+- **`@finance/contracts`** — esquemas zod + tipos TS inferidos; única fuente de verdad del contrato
+  de la API. Un módulo por dominio (`accounts`, `transactions`, …) más `common` (`moneyString`,
+  `apiError`). Se compila a `dist` (CJS) para Node/Nest; una condición de export `import` apunta al
+  `src` para que Vite empaquete el TypeScript directamente.
+- **`@finance/money`** — toda la matemática monetaria sobre `decimal.js`: parse/format/suma,
+  `equalPrincipalSchedule` (amortización de capital constante; la última cuota absorbe el remanente de
+  redondeo) y helpers de interés (`simpleFutureValue`, `compoundFutureValue`, `simpleInterestAccrued`,
+  `nominalAnnualToMonthlyRate`). Devuelve strings decimales de escala fija (4 decimales).
+- **`@finance/config`** — `tsconfig.base.json` compartido.
+
+**Dirección de dependencias (unidireccional):** `apps → packages`; los `packages` no dependen de nada
+del repo; `api ↛ web` y `web ↛ api`. Esto mantiene a `apps/api` + `packages/*` como un subconjunto
+autocontenido, de modo que el backend podría extraerse a su propio repositorio de forma mecánica.
+
+## 6. Autenticación
+
+- El backend emite **JWT de acceso + refresh entregados como cookies httpOnly** (`domains/auth`):
+  `POST /auth/register|login|refresh|logout`, `GET /auth/me`. El refresh rota el par.
+- `JwtAuthGuard` valida la cookie de acceso y adjunta el usuario; `@CurrentUser` lo inyecta.
+  Cada endpoint de dominio está acotado al `userId` autenticado (aislamiento de datos por usuario).
+- El `AuthProvider` del frontend hidrata desde `/auth/me`, expone `login/register/logout`, y
+  `RequireAuth` protege las rutas.
+- CORS permite el origen web con credenciales. (La protección CSRF para auth por cookies es endurecimiento planificado.)
+
+## 7. Dinero y precisión
+
+El dinero nunca usa floats de JS. Cruza el límite como **strings decimales** (zod `moneyString`),
+se calcula con `@finance/money` (`decimal.js`), y se persiste como `Prisma.Decimal` a la precisión
+del schema (`Decimal(18,4)` para montos). El redondeo es explícito (banquero, 4 decimales).
+
+## 8. Tooling, quality gates y límites
+
+- **Turborepo** pipelines: `build`, `dev`, `test`, `lint`, `typecheck` (`turbo.json`); los scripts de
+  la raíz delegan a turbo, `--filter` corre una sola app.
+- **Tests:** Vitest en apps y paquetes (e2e de NestJS vía plugin SWC para metadata de decoradores;
+  React vía Testing Library + jsdom).
+- **Límites:** `pnpm check:boundaries` (`scripts/check-boundaries.mjs`) falla el build si `apps/web`
+  importa el backend o un cliente de DB, si `apps/api` importa el frontend, o si algún `packages/*`
+  importa una app.
+- **CI** (`.github/workflows/ci.yml`): install → `check:boundaries` → `turbo typecheck test build`
+  (filtrado por afectados en PRs, para que cada app se construya/pruebe independientemente).
+- **Definición de listo:** `check:boundaries`, typecheck, tests y build pasan.
+
+## 9. Despliegue
+
+- **`apps/api`** → contenedor Node (`apps/api/Dockerfile`, construido desde la raíz); sirve `/api/v1`.
+- **`apps/web`** → bundle estático tras nginx (`apps/web/Dockerfile` + `nginx.conf`, fallback SPA);
+  configurado en build con `VITE_API_URL`.
+- Cada app tiene su propio ciclo de build/deploy (desplegables por separado).
+
+## 10. Entorno
+
+- `apps/api/.env`: `DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`,
+  opcional `ALPHA_VANTAGE_API_KEY`.
+- `apps/web/.env`: `VITE_API_URL`.
+- Los secretos nunca se commitean; ver el `.env.example` de cada app.
+
+## 11. Pendientes conocidos (diferidos)
+
+- **Cotización ETF en vivo de inversiones** (Alpha Vantage + `EtfPriceCache` TTL 24h) — no implementado;
+  el dominio investments es solo CRUD.
+- **Carga de archivo en import** — `POST /api/v1/import/transactions` acepta filas JSON ya parseadas;
+  la carga multipart/xlsx + parseo de Excel en el servidor está diferida.
+- **Endurecimiento CSRF** para auth basada en cookies.
+
+## 12. Agregar un dominio nuevo (resumen)
+
+1. Agrega esquemas zod + tipos en `packages/contracts/src/<dominio>/` y expórtalos desde `src/index.ts`.
+2. Backend: crea `apps/api/src/domains/<dominio>/{module,controller,service,repository,spec}` y
+   registra el módulo en `app.module.ts`. Acota cada query por `userId`; valida con `ZodValidationPipe`.
+3. Frontend: crea `apps/web/src/domains/<dominio>/{api,hooks,routes}`, agrega la ruta a
+   `app/router.tsx`, y agrega claves i18n es/en.
+4. Corre `pnpm check:boundaries && pnpm typecheck && pnpm test && pnpm build`.
+
+Ver los skeletons por app en [apps/api/README.md](../../apps/api/README.md) y
+[apps/web/README.md](../../apps/web/README.md).

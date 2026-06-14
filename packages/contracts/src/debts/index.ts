@@ -1,0 +1,39 @@
+import { z } from "zod";
+
+import { moneyString } from "../common/money";
+
+/** Debts domain contracts (Debt). Money as decimal strings. */
+
+export const debtDirection = z.enum(["OWED_TO_YOU", "YOU_OWE"]);
+export type DebtDirection = z.infer<typeof debtDirection>;
+
+export const debtSchema = z.object({
+  id: z.string(),
+  direction: debtDirection,
+  counterparty: z.string(),
+  principal: moneyString,
+  currency: z.string(),
+  openedAt: z.string(),
+  dueAt: z.string().nullable(),
+  interestApr: moneyString.nullable(),
+  notes: z.string().nullable(),
+  settledAt: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type Debt = z.infer<typeof debtSchema>;
+
+export const createDebtSchema = z.object({
+  direction: debtDirection,
+  counterparty: z.string().trim().min(1).max(160),
+  principal: moneyString,
+  currency: z.string().trim().length(3).default("USD"),
+  openedAt: z.string().datetime(),
+  dueAt: z.string().datetime().optional(),
+  interestApr: moneyString.optional(),
+  notes: z.string().trim().max(500).optional(),
+});
+export type CreateDebt = z.infer<typeof createDebtSchema>;
+
+export const updateDebtSchema = createDebtSchema.partial();
+export type UpdateDebt = z.infer<typeof updateDebtSchema>;
