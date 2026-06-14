@@ -74,23 +74,35 @@
   "auth": {
     "login": {
       "title": "Sign in",
-      "subtitle": "Configure Google OAuth or use development credentials locally.",
+      "subtitle": "Sign in with your email and password, or with Google.",
       "needAccount": "Need an account?",
       "registerLink": "Register"
     },
     "register": {
       "title": "Create account",
-      "subtitle": "OAuth providers create users on first sign-in. Extend this scaffold for email/password when needed.",
+      "subtitle": "Sign up with your email and a password.",
+      "haveAccount": "Already have an account?",
       "backToSignIn": "Back to sign in"
     },
     "loginForm": {
       "continueGoogle": "Continue with Google",
       "redirecting": "Redirecting…",
-      "googleEnvHint": "Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET for Google sign-in.",
-      "devOnly": "Development only",
+      "or": "or",
       "emailLabel": "Email",
-      "devSignIn": "Dev sign-in",
-      "signingIn": "Signing in…"
+      "passwordLabel": "Password",
+      "signIn": "Sign in",
+      "signingIn": "Signing in…",
+      "invalidCredentials": "Incorrect email or password."
+    },
+    "registerForm": {
+      "nameLabel": "Name (optional)",
+      "emailLabel": "Email",
+      "passwordLabel": "Password",
+      "passwordHint": "At least 8 characters.",
+      "createAccount": "Create account",
+      "creating": "Creating…",
+      "emailTaken": "That email is already registered.",
+      "genericError": "Could not create the account. Please try again."
     },
     "userMenu": {
       "signOut": "Sign out"

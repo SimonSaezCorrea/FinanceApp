@@ -1,11 +1,14 @@
 import { PrismaClient, Prisma } from "@prisma/client";
+import { hash } from "bcryptjs";
 
 const prisma = new PrismaClient();
 
 const dec = (s: string) => new Prisma.Decimal(s);
 
-/** Demo emails: seed deletes and recreates these rows only (see auth.ts dev-credentials). */
+/** Demo emails: seed deletes and recreates these rows only. */
 const DEMO_EMAILS = ["demo@finance.local", "partner@finance.local"] as const;
+/** Plain password for the demo accounts (email + password login). */
+const DEMO_PASSWORD = "demo1234";
 
 async function main() {
   await prisma.user.deleteMany({
@@ -16,10 +19,13 @@ async function main() {
     where: { symbol: "VTI" },
   });
 
+  const passwordHash = await hash(DEMO_PASSWORD, 12);
+
   const alice = await prisma.user.create({
     data: {
       email: DEMO_EMAILS[0],
       name: "Demo User",
+      passwordHash,
     },
   });
 
@@ -27,6 +33,7 @@ async function main() {
     data: {
       email: DEMO_EMAILS[1],
       name: "Partner User",
+      passwordHash,
     },
   });
 

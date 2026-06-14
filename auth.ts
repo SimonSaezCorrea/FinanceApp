@@ -21,27 +21,39 @@ if (googleConfigured) {
   );
 }
 
-if (process.env.NODE_ENV !== "production") {
-  providers.push(
-    Credentials({
-      id: "dev-credentials",
-      name: "Development login",
-      credentials: {
-        email: { label: "Email", type: "email" },
-      },
-      async authorize(credentials) {
-        const email = credentials?.email;
-        if (!email || typeof email !== "string") return null;
-        const user = await prisma.user.upsert({
-          where: { email },
-          update: {},
-          create: { email },
-        });
-        return user;
-      },
-    }),
-  );
-}
+providers.push(
+  Credentials({
+    id: "credentials",
+    name: "Email & password",
+    credentials: {
+      email: { label: "Email", type: "email" },
+      password: { label: "Password", type: "password" },
+    },
+    async authorize(credentials) {
+      const email = credentials?.email;
+      const password = credentials?.password;
+      if (
+        !email ||
+        typeof email !== "string" ||
+        !password ||
+        typeof password !== "string"
+      ) {
+        return null;
+      }
+
+      const user = await prisma.user.findUnique({
+        where: { email: email.toLowerCase() },
+      });
+      if (!user?.passwordHash) return null;
+
+      const { compare } = await import("bcryptjs");
+      const valid = await compare(password, user.passwordHash);
+      if (!valid) return null;
+
+      return user;
+    },
+  }),
+);
 
 export const authConfig = {
   adapter: PrismaAdapter(prisma),
@@ -55,7 +67,7 @@ export const authConfig = {
       if (user) {
         token.sub = user.id;
       }
-      if (account?.provider === "dev-credentials" && user?.email) {
+      if (account?.provider === "credentials" && user?.email) {
         token.email = user.email;
       }
       return token;

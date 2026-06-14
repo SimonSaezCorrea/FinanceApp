@@ -74,23 +74,35 @@
   "auth": {
     "login": {
       "title": "Iniciar sesión",
-      "subtitle": "Configura Google OAuth o usa credenciales de desarrollo en local.",
+      "subtitle": "Entra con tu correo y contraseña o con Google.",
       "needAccount": "¿No tienes cuenta?",
       "registerLink": "Registrarse"
     },
     "register": {
       "title": "Crear cuenta",
-      "subtitle": "Los proveedores OAuth crean usuarios en el primer inicio de sesión. Amplía este scaffold si necesitas email/contraseña.",
+      "subtitle": "Regístrate con tu correo y una contraseña.",
+      "haveAccount": "¿Ya tienes cuenta?",
       "backToSignIn": "Volver a iniciar sesión"
     },
     "loginForm": {
       "continueGoogle": "Continuar con Google",
       "redirecting": "Redirigiendo…",
-      "googleEnvHint": "Define GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET para el inicio con Google.",
-      "devOnly": "Solo desarrollo",
+      "or": "o",
       "emailLabel": "Correo",
-      "devSignIn": "Entrar (dev)",
-      "signingIn": "Entrando…"
+      "passwordLabel": "Contraseña",
+      "signIn": "Entrar",
+      "signingIn": "Entrando…",
+      "invalidCredentials": "Correo o contraseña incorrectos."
+    },
+    "registerForm": {
+      "nameLabel": "Nombre (opcional)",
+      "emailLabel": "Correo",
+      "passwordLabel": "Contraseña",
+      "passwordHint": "Mínimo 8 caracteres.",
+      "createAccount": "Crear cuenta",
+      "creating": "Creando…",
+      "emailTaken": "Ese correo ya está registrado.",
+      "genericError": "No se pudo crear la cuenta. Inténtalo de nuevo."
     },
     "userMenu": {
       "signOut": "Salir"
