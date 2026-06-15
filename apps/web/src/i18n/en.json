@@ -7,6 +7,12 @@
   "nav": {
     "dashboard": "Dashboard"
   },
+  "theme": {
+    "label": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
   "accounts": {
     "title": "Accounts",
     "empty": "You don't have any accounts yet."

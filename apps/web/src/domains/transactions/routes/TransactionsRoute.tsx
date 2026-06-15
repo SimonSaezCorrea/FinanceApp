@@ -3,22 +3,24 @@ import { useTranslation } from "react-i18next";
 import { formatMoney } from "@finance/money";
 
 import { Card } from "../../../shared/ui/card";
+import { PageHeader } from "../../../shared/ui/page-header";
+import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
 import { useTransactions } from "../hooks/useTransactions";
 
 export function TransactionsRoute() {
   const { t, i18n } = useTranslation();
   const { data, isLoading, isError } = useTransactions();
-
-  if (isLoading) return <p className="text-muted-foreground">{t("app.loading")}</p>;
-  if (isError) return <p role="alert" className="text-destructive">{t("errors.INTERNAL_ERROR")}</p>;
-
   const list = data ?? [];
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">{t("transactions.title")}</h1>
-      {list.length === 0 ? (
-        <p className="text-muted-foreground">{t("transactions.empty")}</p>
+      <PageHeader title={t("transactions.title")} />
+      {isLoading ? (
+        <LoadingState title={t("app.loading")} />
+      ) : isError ? (
+        <ErrorState title={t("errors.INTERNAL_ERROR")} />
+      ) : list.length === 0 ? (
+        <EmptyState title={t("transactions.empty")} />
       ) : (
         <Card>
           <ul className="divide-y">
@@ -26,7 +28,9 @@ export function TransactionsRoute() {
               <li key={tx.id} className="flex items-center justify-between px-6 py-3">
                 <span>
                   <span className="font-medium">{t(`transactions.type.${tx.type}`)}</span>
-                  {tx.category ? <span className="text-muted-foreground"> · {tx.category}</span> : null}
+                  {tx.category ? (
+                    <span className="text-muted-foreground"> · {tx.category}</span>
+                  ) : null}
                 </span>
                 <span className="tabular-nums text-muted-foreground">
                   {formatMoney(tx.amount, { locale: i18n.language, currency: tx.currency })}

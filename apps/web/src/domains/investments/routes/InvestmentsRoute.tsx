@@ -1,22 +1,24 @@
 import { useTranslation } from "react-i18next";
 
 import { Card } from "../../../shared/ui/card";
+import { PageHeader } from "../../../shared/ui/page-header";
+import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
 import { useInvestments } from "../hooks/useInvestments";
 
 export function InvestmentsRoute() {
   const { t } = useTranslation();
   const { data, isLoading, isError } = useInvestments();
-
-  if (isLoading) return <p className="text-muted-foreground">{t("app.loading")}</p>;
-  if (isError) return <p role="alert" className="text-destructive">{t("errors.INTERNAL_ERROR")}</p>;
-
   const list = data ?? [];
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">{t("investments.title")}</h1>
-      {list.length === 0 ? (
-        <p className="text-muted-foreground">{t("investments.empty")}</p>
+      <PageHeader title={t("investments.title")} />
+      {isLoading ? (
+        <LoadingState title={t("app.loading")} />
+      ) : isError ? (
+        <ErrorState title={t("errors.INTERNAL_ERROR")} />
+      ) : list.length === 0 ? (
+        <EmptyState title={t("investments.empty")} />
       ) : (
         <Card>
           <ul className="divide-y">

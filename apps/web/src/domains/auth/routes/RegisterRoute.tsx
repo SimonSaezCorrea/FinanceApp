@@ -6,6 +6,7 @@ import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card";
 import { Input } from "../../../shared/ui/input";
+import { ThemeToggle } from "../../../shared/ui/theme-toggle";
 import { useAuth } from "../hooks/useAuth";
 
 export function RegisterRoute() {
@@ -34,7 +35,10 @@ export function RegisterRoute() {
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-muted/30 p-4">
+    <main className="relative flex min-h-dvh items-center justify-center bg-muted/30 p-4">
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
+      </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
           <CardTitle>{t("auth.createAccount")}</CardTitle>

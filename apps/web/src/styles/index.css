@@ -2,43 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design tokens (HSL channels). Swap these to re-theme the whole app. */
+/*
+ * Design tokens (HSL channels). The whole theme swaps via the `data-theme`
+ * attribute on <html>. Dark is the DEFAULT (:root); light overrides it.
+ * `--brand` is fixed in both themes; `--primary` adapts for legibility.
+ */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 221 83% 53%;
+    /* ---- DARK (default) ---- */
+    --background: 192 30% 8%;
+    --foreground: 190 14% 92%;
+    --card: 192 24% 12%;
+    --card-foreground: 190 14% 92%;
+    --primary: 187 28% 54%; /* #66A5AD */
+    --primary-foreground: 192 45% 10%;
+    --secondary: 195 18% 18%;
+    --secondary-foreground: 190 14% 92%;
+    --muted: 195 18% 16%;
+    --muted-foreground: 190 12% 66%;
+    --border: 195 16% 22%;
+    --input: 195 16% 22%;
+    --ring: 187 34% 60%;
+
+    --success: 152 45% 45%;
+    --success-foreground: 152 45% 8%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 38 92% 10%;
+    --destructive: 0 70% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --info: 200 75% 55%;
+    --info-foreground: 200 75% 10%;
+
+    --brand: 184 86% 19%; /* #07575B (fixed identity) */
     --radius: 0.6rem;
   }
 
-  .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 13%;
-    --card-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 18%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 18%;
-    --muted-foreground: 215 20% 65%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 20%;
-    --input: 217 33% 20%;
-    --ring: 224 76% 60%;
+  [data-theme="light"] {
+    --background: 0 0% 100%;
+    --foreground: 192 40% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 192 40% 12%;
+    --primary: 184 86% 19%; /* #07575B */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 190 30% 96%;
+    --secondary-foreground: 192 40% 12%;
+    --muted: 190 30% 96%;
+    --muted-foreground: 195 12% 38%;
+    --border: 190 24% 88%;
+    --input: 190 24% 88%;
+    --ring: 184 60% 30%;
+
+    --success: 152 55% 32%;
+    --success-foreground: 0 0% 100%;
+    --warning: 35 92% 40%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --info: 200 80% 38%;
+    --info-foreground: 0 0% 100%;
+
+    --brand: 184 86% 19%;
   }
 
   * {
@@ -48,6 +71,7 @@
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
   }
 }

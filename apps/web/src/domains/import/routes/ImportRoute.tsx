@@ -1,12 +1,17 @@
 import { useTranslation } from "react-i18next";
 
+import { Card, CardContent } from "../../../shared/ui/card";
+import { PageHeader } from "../../../shared/ui/page-header";
+
 export function ImportRoute() {
   const { t } = useTranslation();
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">{t("import.title")}</h1>
-      <p className="text-muted-foreground">{t("import.info")}</p>
+      <PageHeader title={t("import.title")} />
+      <Card>
+        <CardContent className="pt-6 text-muted-foreground">{t("import.info")}</CardContent>
+      </Card>
     </div>
   );
 }

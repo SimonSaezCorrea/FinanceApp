@@ -1,11 +1,16 @@
 import { useTranslation } from "react-i18next";
 
+import { Card, CardContent } from "../shared/ui/card";
+import { PageHeader } from "../shared/ui/page-header";
+
 export function DashboardPage() {
   const { t } = useTranslation();
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight">{t("brand.name")}</h1>
-      <p className="mt-1 text-muted-foreground">{t("app.welcome")}</p>
+      <PageHeader title={t("brand.name")} />
+      <Card>
+        <CardContent className="pt-6 text-muted-foreground">{t("app.welcome")}</CardContent>
+      </Card>
     </div>
   );
 }

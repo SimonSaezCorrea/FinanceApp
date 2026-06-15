@@ -40,7 +40,7 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
 - **Validation:** request bodies/queries validated with **zod** schemas from `@finance/contracts` via `ZodValidationPipe` (NOT Nest's class-validator).
 - **Per-user isolation:** every repository query is scoped by `userId`; controllers use `@CurrentUser`.
 - **i18n:** every UI string in BOTH `apps/web/src/i18n/es.json` and `en.json` (identical keys); the API never returns localized text.
-- **Styling:** Tailwind utility classes + the `src/shared/ui` primitives; theme via the CSS-variable tokens (don't hardcode colors — use `bg-background`, `text-muted-foreground`, etc.); compose classes with `cn`.
+- **Styling / design system:** Tailwind utility classes + `src/shared/ui` primitives (button, input, label, field, card, badge, table, page-header, states, theme-toggle). **Tokens are the only source** of color/size (CSS variables in `src/styles/index.css`); never hardcode `#hex`/`rgb()` — use token classes (`bg-background`, `text-muted-foreground`, `text-brand`, …). Theming via `data-theme` on `<html>` (**dark default**, light, system) through `src/theme/ThemeProvider`; icons from **Lucide**, font **Inter**. Full guide: `docs/{english,spanish}/DESIGN_SYSTEM.md`.
 - **Boundaries:** keep the one-way dep rule; run `pnpm check:boundaries`. New domain → mirror an existing one (see `apps/api/README.md` / `apps/web/README.md` skeletons).
 - **Commits:** only when the user explicitly asks.
 - **Markdown:** don't add `.md` files unless requested.
@@ -71,7 +71,8 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   same session. These are the canonical, living memory; stale docs are a defect.
 
 <!-- SPECKIT START -->
-Active plan: specs/001-api-frontend-monorepo/plan.md
-(target architecture: pnpm+Turborepo monorepo — apps/api NestJS + apps/web Vite/React +
-packages/* shared contracts/money; see plan.md, research.md, data-model.md, contracts/).
+Active plan: specs/002-frontend-design-system/plan.md
+(frontend design system: CSS-variable tokens, teal brand, dark-default theming + light/system,
+Inter + Lucide, shared/ui primitives + patterns; see plan.md, research.md, data-model.md, contracts/).
+Prior: specs/001-api-frontend-monorepo (monorepo migration).
 <!-- SPECKIT END -->

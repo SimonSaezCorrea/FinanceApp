@@ -3,22 +3,24 @@ import { useTranslation } from "react-i18next";
 import { formatMoney } from "@finance/money";
 
 import { Card } from "../../../shared/ui/card";
+import { PageHeader } from "../../../shared/ui/page-header";
+import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
 import { useDebts } from "../hooks/useDebts";
 
 export function DebtsRoute() {
   const { t, i18n } = useTranslation();
   const { data, isLoading, isError } = useDebts();
-
-  if (isLoading) return <p className="text-muted-foreground">{t("app.loading")}</p>;
-  if (isError) return <p role="alert" className="text-destructive">{t("errors.INTERNAL_ERROR")}</p>;
-
   const list = data ?? [];
 
   return (
     <div>
-      <h1 className="mb-6 text-2xl font-semibold tracking-tight">{t("debts.title")}</h1>
-      {list.length === 0 ? (
-        <p className="text-muted-foreground">{t("debts.empty")}</p>
+      <PageHeader title={t("debts.title")} />
+      {isLoading ? (
+        <LoadingState title={t("app.loading")} />
+      ) : isError ? (
+        <ErrorState title={t("errors.INTERNAL_ERROR")} />
+      ) : list.length === 0 ? (
+        <EmptyState title={t("debts.empty")} />
       ) : (
         <Card>
           <ul className="divide-y">

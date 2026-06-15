@@ -7,6 +7,12 @@
   "nav": {
     "dashboard": "Panel"
   },
+  "theme": {
+    "label": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
+  },
   "accounts": {
     "title": "Cuentas",
     "empty": "Aún no tienes cuentas."
