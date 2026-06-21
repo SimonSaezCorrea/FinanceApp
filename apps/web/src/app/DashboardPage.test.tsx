@@ -1,17 +1,34 @@
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
+import { describe, expect, it, vi } from "vitest";
 
+import i18n from "../i18n";
 import { Providers } from "./providers";
 import { DashboardPage } from "./DashboardPage";
 
+vi.mock("../domains/accounts/api/accountsApi", () => ({
+  accountsApi: { list: vi.fn().mockResolvedValue([]) },
+}));
+vi.mock("../domains/transactions/api/transactionsApi", () => ({
+  transactionsApi: { list: vi.fn().mockResolvedValue([]) },
+}));
+vi.mock("../domains/installments/api/installmentsApi", () => ({
+  installmentsApi: { list: vi.fn().mockResolvedValue([]) },
+}));
+vi.mock("../domains/debts/api/debtsApi", () => ({
+  debtsApi: { list: vi.fn().mockResolvedValue([]) },
+}));
+
 describe("DashboardPage", () => {
-  it("renders the brand and welcome copy via i18n", () => {
+  it("renders the panel with the net-worth summary", async () => {
     render(
       <Providers>
-        <DashboardPage />
+        <MemoryRouter>
+          <DashboardPage />
+        </MemoryRouter>
       </Providers>,
     );
-    expect(screen.getByRole("heading", { name: "FinanceApp" })).toBeDefined();
-    expect(screen.getByText("Panel de finanzas personales")).toBeDefined();
+    expect(screen.getByRole("heading", { name: i18n.t("dashboard.title") })).toBeDefined();
+    await waitFor(() => expect(screen.getByText(i18n.t("dashboard.netWorth"))).toBeDefined());
   });
 });

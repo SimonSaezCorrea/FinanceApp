@@ -4,6 +4,7 @@
     "loading": "Cargando…",
     "welcome": "Panel de finanzas personales"
   },
+  "common": { "cancel": "Cancelar" },
   "nav": {
     "dashboard": "Panel"
   },
@@ -15,12 +16,122 @@
   },
   "accounts": {
     "title": "Cuentas",
-    "empty": "Aún no tienes cuentas."
+    "empty": "Aún no tienes cuentas.",
+    "new": "Nueva cuenta",
+    "currentBalance": "Saldo actual",
+    "summary": "{{accounts}} cuentas · {{currencies}} monedas",
+    "countLabel": "{{count}} cuenta(s)",
+    "type": {
+      "CHECKING": "Corriente",
+      "SAVINGS": "Ahorro",
+      "VISTA": "Vista",
+      "CREDIT_CARD": "Tarjeta de crédito",
+      "DEBIT_CARD": "Tarjeta de débito",
+      "CASH": "Efectivo",
+      "OTHER": "Otra"
+    },
+    "status": { "label": "Estado", "ACTIVE": "Activa", "INACTIVE": "Inactiva" },
+    "card": { "usage": "{{pct}}% cupo", "creditUsed": "Cupo usado" },
+    "balanceLabel": "Saldo",
+    "detail": {
+      "info": "Información",
+      "created": "Creada",
+      "updated": "Actualizada",
+      "change": "Variación"
+    },
+    "filter": {
+      "label": "Filtrar por estado",
+      "all": "Todas",
+      "active": "Activas",
+      "inactive": "Inactivas"
+    },
+    "form": {
+      "name": "Nombre",
+      "type": "Tipo",
+      "status": "Estado",
+      "institution": "Institución",
+      "currency": "Moneda",
+      "initialBalance": "Saldo inicial"
+    },
+    "actions": {
+      "edit": "Editar",
+      "save": "Guardar",
+      "delete": "Eliminar",
+      "reconcile": "Reconciliar saldo",
+      "activate": "Activar",
+      "deactivate": "Desactivar"
+    }
+  },
+  "cards": {
+    "title": "Tarjetas",
+    "add": "Añadir tarjeta",
+    "empty": "Sin tarjetas.",
+    "count": "{{count}} tarjeta(s)",
+    "expires": "Vence {{date}}",
+    "kind": { "CREDIT": "Crédito", "DEBIT": "Débito" },
+    "form": {
+      "name": "Nombre de la tarjeta",
+      "kind": "Tipo",
+      "number": "Número de tarjeta",
+      "numberHint": "Solo se guardan los últimos 4 dígitos; el resto nunca se almacena.",
+      "expiryMonth": "Mes",
+      "expiryYear": "Año",
+      "limits": "Topes por moneda",
+      "currency": "Moneda",
+      "limit": "Tope",
+      "used": "Usado",
+      "addLimit": "Añadir tope"
+    },
+    "errors": { "last4": "Ingresa un número válido (al menos 4 dígitos)." }
+  },
+  "dashboard": {
+    "title": "Panel",
+    "netWorth": "Patrimonio neto",
+    "wallet": "Tu cartera",
+    "monthFlow": "Flujo del mes",
+    "savingsRate": "Tasa de ahorro",
+    "spendByCategory": "Gasto por categoría",
+    "total": "Total",
+    "otherCategory": "Otros",
+    "noSpend": "Sin gastos este mes.",
+    "upcoming": "Próximos pagos",
+    "upcomingEmpty": "Sin pagos próximos.",
+    "seeAll": "Ver todos",
+    "upcomingKind": {
+      "installment": "Plan en cuotas",
+      "debt": "Deuda",
+      "recurring": "Gasto recurrente"
+    }
+  },
+  "wallet": {
+    "add": "Añadir",
+    "addTitle": "Añadir a la cartera",
+    "addEmpty": "No hay tarjetas ni cuentas para añadir.",
+    "added": "Añadido a la cartera",
+    "removed": "Quitado de la cartera",
+    "remove": "Quitar de la cartera",
+    "organize": "Organizar",
+    "done": "Listo",
+    "moveLeft": "Mover a la izquierda",
+    "moveRight": "Mover a la derecha",
+    "accountItem": "Cuenta"
   },
   "transactions": {
     "title": "Movimientos",
+    "new": "Nuevo movimiento",
+    "created": "Movimiento creado",
     "empty": "Aún no tienes movimientos.",
-    "type": { "INCOME": "Ingreso", "EXPENSE": "Gasto" }
+    "uncategorized": "Sin categoría",
+    "type": { "INCOME": "Ingreso", "EXPENSE": "Gasto" },
+    "form": {
+      "type": "Tipo",
+      "amount": "Monto",
+      "account": "Cuenta",
+      "noAccount": "Sin cuenta",
+      "category": "Categoría",
+      "date": "Fecha",
+      "description": "Descripción"
+    }
   },
   "installments": {
     "title": "Cuotas",
@@ -31,6 +142,26 @@
     "title": "Deudas",
     "empty": "Aún no tienes deudas.",
     "direction": { "OWED_TO_YOU": "Te deben", "YOU_OWE": "Debes" }
+  },
+  "recurring": {
+    "title": "Recurrentes",
+    "new": "Nuevo recurrente",
+    "edit": "Editar recurrente",
+    "empty": "Aún no tienes gastos recurrentes.",
+    "created": "Gasto recurrente creado",
+    "updated": "Gasto recurrente actualizado",
+    "deleted": "Gasto recurrente eliminado",
+    "inactive": "Inactivo",
+    "next": "Próximo: {{date}}",
+    "frequency": { "WEEKLY": "Semanal", "MONTHLY": "Mensual", "YEARLY": "Anual" },
+    "form": {
+      "label": "Nombre",
+      "amount": "Monto",
+      "frequency": "Frecuencia",
+      "interval": "Cada",
+      "anchorDate": "Primer cobro",
+      "notes": "Nota"
+    }
   },
   "savings": {
     "title": "Ahorros",

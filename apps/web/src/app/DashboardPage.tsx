@@ -1,16 +1,97 @@
+import { Plus } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Card, CardContent } from "../shared/ui/card";
+import { useAccounts } from "../domains/accounts/hooks/useAccounts";
+import { useAuth } from "../domains/auth/hooks/useAuth";
+import { CategoryDonut } from "../domains/dashboard/components/CategoryDonut";
+import { MonthFlowCard } from "../domains/dashboard/components/MonthFlowCard";
+import { NetWorthCard } from "../domains/dashboard/components/NetWorthCard";
+import { UpcomingPaymentsCard } from "../domains/dashboard/components/UpcomingPaymentsCard";
+import { WalletCards } from "../domains/dashboard/components/WalletCards";
+import {
+  expensesByCategory,
+  monthFlow,
+  netWorth,
+  secondaryTotals,
+  startOfMonthISO,
+  upcomingPayments,
+} from "../domains/dashboard/lib/metrics";
+import { useDebts } from "../domains/debts/hooks/useDebts";
+import { useInstallments } from "../domains/installments/hooks/useInstallments";
+import { useRecurring } from "../domains/recurring/hooks/useRecurring";
+import { TransactionCreateModal } from "../domains/transactions/components/TransactionCreateModal";
+import { useTransactions } from "../domains/transactions/hooks/useTransactions";
+import { Button } from "../shared/ui/button";
 import { PageHeader } from "../shared/ui/page-header";
+import { ErrorState, LoadingState } from "../shared/ui/states";
 
 export function DashboardPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { user } = useAuth();
+  const [modalOpen, setModalOpen] = useState(false);
+  const now = useMemo(() => new Date(), []);
+
+  const accountsQuery = useAccounts();
+  const txQuery = useTransactions({ from: startOfMonthISO(now) });
+  const installmentsQuery = useInstallments();
+  const debtsQuery = useDebts();
+  const recurringQuery = useRecurring();
+
+  const accountList = accountsQuery.data ?? [];
+  const txs = txQuery.data ?? [];
+
+  const worth = useMemo(() => netWorth(accountList), [accountList]);
+  const secondary = useMemo(() => secondaryTotals(accountList), [accountList]);
+  const flow = useMemo(() => monthFlow(txs), [txs]);
+  const categories = useMemo(() => expensesByCategory(txs), [txs]);
+  const upcoming = useMemo(
+    () =>
+      upcomingPayments(
+        installmentsQuery.data ?? [],
+        debtsQuery.data ?? [],
+        recurringQuery.data ?? [],
+        now,
+      ),
+    [installmentsQuery.data, debtsQuery.data, recurringQuery.data, now],
+  );
+
+  const period = now.toLocaleDateString(i18n.language, { month: "long", year: "numeric" });
+
   return (
-    <div>
-      <PageHeader title={t("brand.name")} />
-      <Card>
-        <CardContent className="pt-6 text-muted-foreground">{t("app.welcome")}</CardContent>
-      </Card>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title={t("dashboard.title")}
+        actions={
+          <>
+            <span className="hidden text-sm capitalize text-muted-foreground sm:inline">{period}</span>
+            <Button variant="accent" onClick={() => setModalOpen(true)}>
+              <Plus className="h-4 w-4" aria-hidden />
+              {t("transactions.new")}
+            </Button>
+          </>
+        }
+      />
+
+      <TransactionCreateModal open={modalOpen} onOpenChange={setModalOpen} />
+
+      {accountsQuery.isLoading ? (
+        <LoadingState title={t("app.loading")} />
+      ) : accountsQuery.isError ? (
+        <ErrorState title={t("errors.INTERNAL_ERROR")} />
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-[1.25fr_1fr]">
+          <div className="flex flex-col gap-6">
+            <NetWorthCard worth={worth} secondary={secondary} />
+            <WalletCards accountList={accountList} holder={user?.name ?? undefined} />
+          </div>
+          <div className="flex flex-col gap-6">
+            <MonthFlowCard flow={flow} />
+            <CategoryDonut slices={categories} />
+            <UpcomingPaymentsCard items={upcoming} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

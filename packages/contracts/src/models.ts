@@ -14,7 +14,18 @@
 export type { CurrentUser, LoginRequest, RegisterRequest } from "./auth/index";
 
 // accounts
-export type { BankAccount, CreateBankAccount, UpdateBankAccount } from "./accounts/index";
+export type {
+  BankAccount,
+  CreateBankAccount,
+  UpdateBankAccount,
+  AccountType,
+  AccountStatus,
+  AccountFilters,
+  Card,
+  CreateCard,
+  CardKind,
+  CardLimit,
+} from "./accounts/index";
 
 // transactions
 export type {

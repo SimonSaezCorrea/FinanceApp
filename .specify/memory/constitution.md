@@ -1,4 +1,21 @@
 <!--
+Sync Impact Report — 2026-06-21 (amendment 1.3.0)
+- Version change: 1.2.0 → 1.3.0 (MINOR: recorded post-merge reality — monorepo merged to `main`;
+  two new business domains (recurring, wallet); the design-system redesign and its approved
+  frontend libraries). Core Principles unchanged in intent.
+- Technology & Operational Constraints:
+  - Business domains expanded from 8 to 10: added **recurring** (RecurringExpense — subscriptions/
+    rent/periodic payments, next-due computed) and **wallet** (WalletItem — user-curated dashboard
+    cards/accounts, drag-reorder). accounts now also exposes a per-day `balanceSeries` + `balanceChangePct`.
+  - Approved frontend libraries recorded: **Recharts** (charts), **sonner** (toasts), **@dnd-kit**
+    (drag-and-drop), **Geist** via `@fontsource-variable/geist` (typography). Design tokens gained the
+    **clay `--accent`** channel.
+  - Migration status: specs/001 monorepo **merged to `main`** (PR #1); legacy Next.js app removed.
+- Known drift (pending wording refresh, not a behavior change): Principles II and III still cite
+  legacy Next.js specifics (`app/api/**/route.ts`, `auth()`, `messages/*.json`, `next/link`,
+  `@/i18n/navigation`). Intent holds; the mechanisms are now NestJS `JwtAuthGuard`/`@CurrentUser`
+  and the web app's `src/i18n` es/en catalogs.
+
 Sync Impact Report — 2026-06-14 (amendment 1.2.0)
 - Version change: 1.1.0 → 1.2.0 (MINOR: added explicit, enforced Architecture norms — domain-first,
   one-source-of-truth shapes, one-way deps via check:boundaries, zod validation; updated Definition
@@ -127,9 +144,19 @@ reality, every future decision is made on false information.
   - **One-way dependencies:** `apps → packages`; `packages ↛ apps`; `api ↛ web`. Enforced by
     `pnpm check:boundaries` (the frontend must not import backend internals or any DB client).
   - **Validation with zod** (`ZodValidationPipe`), not class-validator.
-- **Migration status:** the monorepo above was implemented on branch `001-api-frontend-monorepo`
-  (legacy Next.js app removed there). `main` holds the legacy app until that branch is merged; bump
-  this constitution to drop the migration note once the merge lands.
+- **Business domains (current — 10):** backend `apps/api/src/domains/*`: `auth`, `accounts`
+  (incl. `cards` + a per-day `balanceSeries`/`balanceChangePct`), `transactions`, `installments`,
+  `debts`, `recurring` (recurring expenses — subscriptions/rent/periodic payments; next-due computed
+  from anchor + frequency × interval), `savings`, `investments`, `import`, `wallet` (user-curated set
+  of pinned cards/accounts shown on the dashboard, manually ordered). The dashboard (Panel) is a
+  frontend-only aggregation over these domains. New domains mirror the module skeleton.
+- **Approved frontend libraries:** charts via **Recharts**; toasts via **sonner**; drag-and-drop via
+  **@dnd-kit** (`core`/`sortable`/`utilities`); typography **Geist** (`@fontsource-variable/geist`).
+  Design tokens include the **clay `--accent`** channel (HSL, dark/light). Adding a new runtime
+  dependency is a Principle V change (record it here and in `CLAUDE.md` the same session).
+- **Migration status:** the specs/001 monorepo migration has **merged to `main`** (PR #1); the legacy
+  single Next.js app is removed. (Principles II–III still use legacy Next.js phrasing — see the latest
+  Sync Impact Report; intent is unchanged, mechanisms are now NestJS guard + the web `src/i18n` catalogs.)
 - **Environment:** per `.env.example` — `DATABASE_URL`, JWT secrets, CORS origin (api), and
   `VITE_API_URL` (web); optional `GOOGLE_CLIENT_*`, `ALPHA_VANTAGE_API_KEY`. Secrets MUST NOT be
   committed; `.env` stays out of version control.
@@ -162,4 +189,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.2.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-06-14
+**Version**: 1.3.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-06-21

@@ -59,13 +59,15 @@ model User {
 
   accounts         Account[]
   sessions         Session[]
-  bankAccounts     BankAccount[]
-  transactions     Transaction[]
-  installmentPlans InstallmentPlan[]
-  debts            Debt[]
-  savingsGoals     SavingsGoal[]
-  savingsEntries   SavingsEntry[]
-  investments      Investment[]
+  bankAccounts      BankAccount[]
+  transactions      Transaction[]
+  installmentPlans  InstallmentPlan[]
+  debts             Debt[]
+  savingsGoals      SavingsGoal[]
+  savingsEntries    SavingsEntry[]
+  investments       Investment[]
+  recurringExpenses RecurringExpense[]
+  walletItems       WalletItem[]
 }
 
 enum TransactionType {
@@ -73,22 +75,104 @@ enum TransactionType {
   EXPENSE
 }
 
+enum AccountType {
+  CHECKING
+  SAVINGS
+  VISTA
+  CREDIT_CARD
+  DEBIT_CARD
+  CASH
+  OTHER
+}
+
+enum AccountStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CardKind {
+  CREDIT
+  DEBIT
+}
+
 model BankAccount {
-  id             String   @id @default(cuid())
+  id             String        @id @default(cuid())
   userId         String
   name           String
-  currency       String   @default("USD")
+  type           AccountType   @default(OTHER)
+  status         AccountStatus @default(ACTIVE)
+  currency       String        @default("USD")
   institution    String?
-  /// Cached balance; reconcile via transactions in app logic.
-  currentBalance Decimal  @default(0) @db.Decimal(18, 4)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  /// User-set seed balance.
+  initialBalance Decimal       @default(0) @db.Decimal(18, 4)
+  /// Reconciled/cached balance = initialBalance + Σincome − Σexpense.
+  currentBalance Decimal       @default(0) @db.Decimal(18, 4)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
-  investments  Investment[]
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions      Transaction[]
+  investments       Investment[]
+  cards             Card[]
+  recurringExpenses RecurringExpense[]
+  walletItems       WalletItem[]
 
   @@index([userId])
+  @@index([status])
+}
+
+model Card {
+  id          String   @id @default(cuid())
+  accountId   String
+  userId      String
+  name        String
+  kind        CardKind
+  /// Only the last 4 digits are ever stored. Full PAN never transmitted/persisted.
+  last4       String
+  expiryMonth Int
+  expiryYear  Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  account     BankAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  limits      CardLimit[]
+  walletItems WalletItem[]
+
+  @@index([accountId])
+  @@index([userId])
+}
+
+/// User-curated "wallet" on the dashboard. Each item pins EITHER a card or an
+/// account (exactly one of cardId/accountId; enforced in the service). `order`
+/// is the manual drag-and-drop position.
+model WalletItem {
+  id        String   @id @default(cuid())
+  userId    String
+  accountId String?
+  cardId    String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user    User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account BankAccount? @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  card    Card?        @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, accountId])
+  @@unique([userId, cardId])
+  @@index([userId])
+}
+
+model CardLimit {
+  id       String  @id @default(cuid())
+  cardId   String
+  currency String
+  limit    Decimal @db.Decimal(18, 4)
+  used     Decimal @default(0) @db.Decimal(18, 4)
+
+  card Card @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, currency])
+  @@index([cardId])
 }
 
 model Transaction {
@@ -213,6 +297,40 @@ model SavingsEntry {
   @@index([userId])
   @@index([savingsGoalId])
   @@index([contributedAt])
+}
+
+enum RecurrenceFrequency {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
+/// Recurring expense (subscriptions, rent, periodic payments to people).
+/// The next due date is computed from `anchorDate` + frequency × interval.
+model RecurringExpense {
+  id            String              @id @default(cuid())
+  userId        String
+  label         String
+  amount        Decimal             @db.Decimal(18, 4)
+  currency      String              @default("USD")
+  category      String?
+  frequency     RecurrenceFrequency
+  /// Every N periods (1 = every week/month/year).
+  interval      Int                 @default(1)
+  /// First occurrence; later due dates step forward from here.
+  anchorDate    DateTime
+  bankAccountId String?
+  active        Boolean             @default(true)
+  notes         String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([bankAccountId])
+  @@index([active])
 }
 
 enum InvestmentKind {

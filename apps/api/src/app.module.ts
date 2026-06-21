@@ -8,8 +8,10 @@ import { HealthModule } from "./domains/health/health.module";
 import { ImportModule } from "./domains/import/import.module";
 import { InstallmentsModule } from "./domains/installments/installments.module";
 import { InvestmentsModule } from "./domains/investments/investments.module";
+import { RecurringModule } from "./domains/recurring/recurring.module";
 import { SavingsModule } from "./domains/savings/savings.module";
 import { TransactionsModule } from "./domains/transactions/transactions.module";
+import { WalletModule } from "./domains/wallet/wallet.module";
 import { PrismaModule } from "./infra/prisma/prisma.module";
 
 @Module({
@@ -25,7 +27,8 @@ import { PrismaModule } from "./infra/prisma/prisma.module";
     SavingsModule,
     InvestmentsModule,
     ImportModule,
-    // All 8 business domains migrated (US2 complete).
+    RecurringModule,
+    WalletModule,
   ],
 })
 export class AppModule {}

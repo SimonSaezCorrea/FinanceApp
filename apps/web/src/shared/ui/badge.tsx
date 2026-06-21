@@ -2,7 +2,7 @@ import type { HTMLAttributes } from "react";
 
 import { cn } from "../lib/cn";
 
-type Variant = "neutral" | "success" | "warning" | "danger" | "info";
+type Variant = "neutral" | "success" | "warning" | "danger" | "info" | "accent";
 
 const variants: Record<Variant, string> = {
   neutral: "bg-muted text-muted-foreground",
@@ -10,6 +10,7 @@ const variants: Record<Variant, string> = {
   warning: "bg-warning/15 text-warning",
   danger: "bg-destructive/15 text-destructive",
   info: "bg-info/15 text-info",
+  accent: "bg-accent/15 text-accent",
 };
 
 export interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {

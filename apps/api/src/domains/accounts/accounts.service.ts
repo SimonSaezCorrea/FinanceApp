@@ -1,34 +1,122 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import type { BankAccount as BankAccountRow } from "@prisma/client";
+import type {
+  BankAccount as BankAccountRow,
+  Card as CardRow,
+  CardLimit as CardLimitRow,
+} from "@prisma/client";
+import { AccountStatus, TransactionType } from "@prisma/client";
 
 import { accounts } from "@finance/contracts";
-import { moneyToString } from "@finance/money";
+import { addMoney, moneyToString, subtractMoney, toMoney } from "@finance/money";
 
 import { AccountsRepository } from "./accounts.repository";
+import { toContract as cardToContract } from "./cards.service";
+
+type AccountWithCards = BankAccountRow & { cards: (CardRow & { limits: CardLimitRow[] })[] };
+
+type WindowTx = { bankAccountId: string | null; type: TransactionType; amount: { toString(): string }; occurredAt: Date };
+
+const SERIES_DAYS = 30;
+const DAY_MS = 86_400_000;
+
+/** Reconciled balance, one point per day (oldest→newest, ends at currentBalance), + % change. */
+function computeSeries(
+  currentBalance: string,
+  txs: WindowTx[],
+  now: Date,
+): { series: string[]; balanceChangePct: string | null } {
+  const endOfToday = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) + DAY_MS;
+  const series: string[] = [];
+  for (let i = SERIES_DAYS - 1; i >= 0; i--) {
+    const boundary = endOfToday - i * DAY_MS;
+    // Balance at this point = currentBalance minus the net effect of every later transaction.
+    let bal = currentBalance;
+    for (const t of txs) {
+      if (t.occurredAt.getTime() >= boundary) {
+        const amt = t.amount.toString();
+        bal = t.type === TransactionType.INCOME ? subtractMoney(bal, amt) : addMoney(bal, amt);
+      }
+    }
+    series.push(moneyToString(bal));
+  }
+  const first = toMoney(series[0]);
+  const last = toMoney(series[series.length - 1]);
+  const balanceChangePct = first.isZero() ? null : last.minus(first).div(first.abs()).times(100).toFixed(1);
+  return { series, balanceChangePct };
+}
 
 @Injectable()
 export class AccountsService {
   constructor(private readonly repo: AccountsRepository) {}
 
-  async list(userId: string): Promise<accounts.BankAccount[]> {
-    const rows = await this.repo.list(userId);
-    return rows.map(toContract);
+  async list(userId: string, filters: accounts.AccountFilters): Promise<accounts.BankAccount[]> {
+    const where = filters.status
+      ? { status: filters.status === "active" ? AccountStatus.ACTIVE : AccountStatus.INACTIVE }
+      : {};
+    const rows = await this.repo.list(userId, where);
+    return this.attachSeries(userId, rows);
   }
 
   async get(userId: string, id: string): Promise<accounts.BankAccount> {
     const row = await this.repo.findOne(userId, id);
     if (!row) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
-    return toContract(row);
+    return this.withSeries(userId, row);
+  }
+
+  /** Attach a per-day balance series + % change to each account (one windowed tx query). */
+  private async attachSeries(
+    userId: string,
+    rows: AccountWithCards[],
+  ): Promise<accounts.BankAccount[]> {
+    if (rows.length === 0) return [];
+    const now = new Date();
+    const since = new Date(now.getTime() - SERIES_DAYS * DAY_MS);
+    const txs = (await this.repo.txWindow(
+      userId,
+      rows.map((r) => r.id),
+      since,
+    )) as WindowTx[];
+    const byAccount = new Map<string, WindowTx[]>();
+    for (const t of txs) {
+      if (t.bankAccountId === null) continue;
+      const bucket = byAccount.get(t.bankAccountId) ?? [];
+      bucket.push(t);
+      byAccount.set(t.bankAccountId, bucket);
+    }
+    return rows.map((row) =>
+      toContract(row, computeSeries(row.currentBalance.toString(), byAccount.get(row.id) ?? [], now)),
+    );
+  }
+
+  private async withSeries(userId: string, row: AccountWithCards): Promise<accounts.BankAccount> {
+    const [acc] = await this.attachSeries(userId, [row]);
+    return acc;
   }
 
   async create(userId: string, input: accounts.CreateBankAccount): Promise<accounts.BankAccount> {
+    const initialBalance = input.initialBalance ?? "0";
+    const cards = (input.cards ?? []).map((c) => ({
+      userId,
+      name: c.name,
+      kind: c.kind,
+      last4: c.last4,
+      expiryMonth: c.expiryMonth,
+      expiryYear: c.expiryYear,
+      limits: {
+        create: c.kind === "CREDIT" ? (c.limits ?? []) : [],
+      },
+    }));
     const row = await this.repo.create(userId, {
       name: input.name,
+      type: input.type,
+      status: input.status,
       currency: input.currency,
       institution: input.institution,
-      currentBalance: input.currentBalance ?? "0",
+      initialBalance,
+      currentBalance: initialBalance,
+      ...(cards.length > 0 ? { cards: { create: cards } } : {}),
     });
-    return toContract(row);
+    return this.withSeries(userId, row);
   }
 
   async update(
@@ -38,12 +126,34 @@ export class AccountsService {
   ): Promise<accounts.BankAccount> {
     const row = await this.repo.update(userId, id, {
       ...(input.name !== undefined ? { name: input.name } : {}),
+      ...(input.type !== undefined ? { type: input.type } : {}),
+      ...(input.status !== undefined ? { status: input.status } : {}),
       ...(input.currency !== undefined ? { currency: input.currency } : {}),
       ...(input.institution !== undefined ? { institution: input.institution } : {}),
-      ...(input.currentBalance !== undefined ? { currentBalance: input.currentBalance } : {}),
+      ...(input.initialBalance !== undefined ? { initialBalance: input.initialBalance } : {}),
     });
     if (!row) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
-    return toContract(row);
+    return this.withSeries(userId, row);
+  }
+
+  async setStatus(
+    userId: string,
+    id: string,
+    status: accounts.AccountStatus,
+  ): Promise<accounts.BankAccount> {
+    const row = await this.repo.update(userId, id, { status });
+    if (!row) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
+    return this.withSeries(userId, row);
+  }
+
+  /** currentBalance = initialBalance + Σincome − Σexpense (scoped to user + account). */
+  async reconcile(userId: string, id: string): Promise<accounts.BankAccount> {
+    const account = await this.repo.findOne(userId, id);
+    if (!account) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
+    const { income, expense } = await this.repo.sumByType(userId, id);
+    const reconciled = subtractMoney(addMoney(account.initialBalance.toString(), income), expense);
+    const row = await this.repo.update(userId, id, { currentBalance: reconciled });
+    return this.withSeries(userId, row ?? account);
   }
 
   async remove(userId: string, id: string): Promise<void> {
@@ -52,13 +162,22 @@ export class AccountsService {
   }
 }
 
-function toContract(row: BankAccountRow): accounts.BankAccount {
+function toContract(
+  row: AccountWithCards,
+  series: { series: string[]; balanceChangePct: string | null },
+): accounts.BankAccount {
   return {
     id: row.id,
     name: row.name,
+    type: row.type,
+    status: row.status,
     currency: row.currency,
     institution: row.institution,
+    initialBalance: moneyToString(row.initialBalance.toString()),
     currentBalance: moneyToString(row.currentBalance.toString()),
+    balanceSeries: series.series,
+    balanceChangePct: series.balanceChangePct,
+    cards: (row.cards ?? []).map(cardToContract),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

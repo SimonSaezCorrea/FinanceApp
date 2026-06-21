@@ -16,6 +16,8 @@
     --card-foreground: 190 14% 92%;
     --primary: 187 28% 54%; /* #66A5AD */
     --primary-foreground: 192 45% 10%;
+    --accent: 27 87% 67%; /* #F4A261 clay — featured action, expenses */
+    --accent-foreground: 29 69% 10%; /* #2b1908 */
     --secondary: 195 18% 18%;
     --secondary-foreground: 190 14% 92%;
     --muted: 195 18% 16%;
@@ -44,6 +46,8 @@
     --card-foreground: 192 40% 12%;
     --primary: 184 86% 19%; /* #07575B */
     --primary-foreground: 0 0% 100%;
+    --accent: 12 76% 61%; /* #E76F51 clay */
+    --accent-foreground: 0 0% 100%;
     --secondary: 190 30% 96%;
     --secondary-foreground: 192 40% 12%;
     --muted: 190 30% 96%;
@@ -71,7 +75,7 @@
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    font-family: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-family: "Geist Variable", "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 }

@@ -4,6 +4,7 @@
     "loading": "Loading…",
     "welcome": "Personal finance dashboard"
   },
+  "common": { "cancel": "Cancel" },
   "nav": {
     "dashboard": "Dashboard"
   },
@@ -15,12 +16,122 @@
   },
   "accounts": {
     "title": "Accounts",
-    "empty": "You don't have any accounts yet."
+    "empty": "You don't have any accounts yet.",
+    "new": "New account",
+    "currentBalance": "Current balance",
+    "summary": "{{accounts}} accounts · {{currencies}} currencies",
+    "countLabel": "{{count}} account(s)",
+    "type": {
+      "CHECKING": "Checking",
+      "SAVINGS": "Savings",
+      "VISTA": "Sight",
+      "CREDIT_CARD": "Credit card",
+      "DEBIT_CARD": "Debit card",
+      "CASH": "Cash",
+      "OTHER": "Other"
+    },
+    "status": { "label": "Status", "ACTIVE": "Active", "INACTIVE": "Inactive" },
+    "card": { "usage": "{{pct}}% used", "creditUsed": "Credit used" },
+    "balanceLabel": "Balance",
+    "detail": {
+      "info": "Information",
+      "created": "Created",
+      "updated": "Updated",
+      "change": "Change"
+    },
+    "filter": {
+      "label": "Filter by status",
+      "all": "All",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "form": {
+      "name": "Name",
+      "type": "Type",
+      "status": "Status",
+      "institution": "Institution",
+      "currency": "Currency",
+      "initialBalance": "Initial balance"
+    },
+    "actions": {
+      "edit": "Edit",
+      "save": "Save",
+      "delete": "Delete",
+      "reconcile": "Reconcile balance",
+      "activate": "Activate",
+      "deactivate": "Deactivate"
+    }
+  },
+  "cards": {
+    "title": "Cards",
+    "add": "Add card",
+    "empty": "No cards.",
+    "count": "{{count}} card(s)",
+    "expires": "Expires {{date}}",
+    "kind": { "CREDIT": "Credit", "DEBIT": "Debit" },
+    "form": {
+      "name": "Card name",
+      "kind": "Kind",
+      "number": "Card number",
+      "numberHint": "Only the last 4 digits are stored; the rest is never saved.",
+      "expiryMonth": "Month",
+      "expiryYear": "Year",
+      "limits": "Limits per currency",
+      "currency": "Currency",
+      "limit": "Limit",
+      "used": "Used",
+      "addLimit": "Add limit"
+    },
+    "errors": { "last4": "Enter a valid number (at least 4 digits)." }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "netWorth": "Net worth",
+    "wallet": "Your wallet",
+    "monthFlow": "This month's flow",
+    "savingsRate": "Savings rate",
+    "spendByCategory": "Spending by category",
+    "total": "Total",
+    "otherCategory": "Other",
+    "noSpend": "No spending this month.",
+    "upcoming": "Upcoming payments",
+    "upcomingEmpty": "No upcoming payments.",
+    "seeAll": "See all",
+    "upcomingKind": {
+      "installment": "Installment plan",
+      "debt": "Debt",
+      "recurring": "Recurring expense"
+    }
+  },
+  "wallet": {
+    "add": "Add",
+    "addTitle": "Add to wallet",
+    "addEmpty": "No cards or accounts left to add.",
+    "added": "Added to wallet",
+    "removed": "Removed from wallet",
+    "remove": "Remove from wallet",
+    "organize": "Organize",
+    "done": "Done",
+    "moveLeft": "Move left",
+    "moveRight": "Move right",
+    "accountItem": "Account"
   },
   "transactions": {
     "title": "Transactions",
+    "new": "New transaction",
+    "created": "Transaction created",
     "empty": "You don't have any transactions yet.",
-    "type": { "INCOME": "Income", "EXPENSE": "Expense" }
+    "uncategorized": "Uncategorized",
+    "type": { "INCOME": "Income", "EXPENSE": "Expense" },
+    "form": {
+      "type": "Type",
+      "amount": "Amount",
+      "account": "Account",
+      "noAccount": "No account",
+      "category": "Category",
+      "date": "Date",
+      "description": "Description"
+    }
   },
   "installments": {
     "title": "Installments",
@@ -31,6 +142,26 @@
     "title": "Debts",
     "empty": "You don't have any debts yet.",
     "direction": { "OWED_TO_YOU": "Owed to you", "YOU_OWE": "You owe" }
+  },
+  "recurring": {
+    "title": "Recurring",
+    "new": "New recurring",
+    "edit": "Edit recurring",
+    "empty": "You don't have any recurring expenses yet.",
+    "created": "Recurring expense created",
+    "updated": "Recurring expense updated",
+    "deleted": "Recurring expense deleted",
+    "inactive": "Inactive",
+    "next": "Next: {{date}}",
+    "frequency": { "WEEKLY": "Weekly", "MONTHLY": "Monthly", "YEARLY": "Yearly" },
+    "form": {
+      "label": "Name",
+      "amount": "Amount",
+      "frequency": "Frequency",
+      "interval": "Every",
+      "anchorDate": "First charge",
+      "notes": "Note"
+    }
   },
   "savings": {
     "title": "Savings",

@@ -11,9 +11,9 @@ describe("money boundary", () => {
     const parsed = accounts.createBankAccountSchema.parse({
       name: "Checking",
       currency: "USD",
-      currentBalance: "1240.5000",
+      initialBalance: "1240.5000",
     });
-    expect(parsed.currentBalance).toBe("1240.5000");
+    expect(parsed.initialBalance).toBe("1240.5000");
   });
 
   it("rejects money provided as a JS number", () => {
@@ -21,7 +21,7 @@ describe("money boundary", () => {
       accounts.createBankAccountSchema.parse({
         name: "Checking",
         currency: "USD",
-        currentBalance: 1240.5 as unknown as string,
+        initialBalance: 1240.5 as unknown as string,
       }),
     ).toThrow();
   });

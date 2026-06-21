@@ -9,9 +9,11 @@ export * as accounts from "./accounts/index";
 export * as transactions from "./transactions/index";
 export * as installments from "./installments/index";
 export * as debts from "./debts/index";
+export * as recurring from "./recurring/index";
 export * as savings from "./savings/index";
 export * as investments from "./investments/index";
 export * as imports from "./import/index";
+export * as wallet from "./wallet/index";
 
 export const API_VERSION = "v1";
 export const API_BASE_PATH = `/api/${API_VERSION}`;

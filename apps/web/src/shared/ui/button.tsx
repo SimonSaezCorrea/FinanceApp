@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes } from "react";
 
 import { cn } from "../lib/cn";
 
-type Variant = "primary" | "secondary" | "outline" | "ghost" | "destructive";
+type Variant = "primary" | "secondary" | "outline" | "ghost" | "destructive" | "accent";
 type Size = "sm" | "md" | "lg";
 
 const variants: Record<Variant, string> = {
@@ -11,6 +11,7 @@ const variants: Record<Variant, string> = {
   outline: "border border-input bg-background hover:bg-muted",
   ghost: "hover:bg-muted",
   destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
+  accent: "bg-accent text-accent-foreground hover:bg-accent/90",
 };
 
 const sizes: Record<Size, string> = {
