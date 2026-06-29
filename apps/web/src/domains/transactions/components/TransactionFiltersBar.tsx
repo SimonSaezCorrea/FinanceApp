@@ -88,30 +88,23 @@ export function TransactionFiltersBar({ filters, onChange, accounts }: Transacti
         >
           <option value="">{t("transactions.filters.allAccounts")}</option>
 
-          {activeAccounts.length > 0 && (
-            <optgroup label={t("accounts.filter.active")}>
-              {activeAccounts.map((a) => (
-                <optgroup key={a.id} label={`  ${a.name}`}>
-                  <option value={a.id}>{a.name}</option>
-                  {a.cards.map((c) => (
-                    <option key={c.id} value={`card:${c.id}`}>
-                      {`${a.name} · ••••${c.last4}`}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </optgroup>
-          )}
-
-          {filters.showInactiveAccounts && inactiveAccounts.length > 0 && (
-            <optgroup label={t("accounts.filter.inactive")}>
-              {inactiveAccounts.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.name}
+          {activeAccounts.map((a) => (
+            <optgroup key={a.id} label={a.name}>
+              <option value={a.id}>{a.name}</option>
+              {a.cards.map((c) => (
+                <option key={c.id} value={`card:${c.id}`}>
+                  {`••••${c.last4} · ${c.name}`}
                 </option>
               ))}
             </optgroup>
-          )}
+          ))}
+
+          {filters.showInactiveAccounts &&
+            inactiveAccounts.map((a) => (
+              <optgroup key={a.id} label={`${a.name} (${t("accounts.status.INACTIVE")})`}>
+                <option value={a.id}>{a.name}</option>
+              </optgroup>
+            ))}
         </select>
       </div>
 
