@@ -55,6 +55,16 @@ export class InstallmentsController {
     return this.service.pay(user.id, id, seq);
   }
 
+  @Post(":id/payments/:seq/unpay")
+  @HttpCode(204)
+  unpay(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+    @Param("seq", ParseIntPipe) seq: number,
+  ): Promise<void> {
+    return this.service.unpay(user.id, id, seq);
+  }
+
   @Patch(":id")
   update(
     @CurrentUser() user: AuthUser,

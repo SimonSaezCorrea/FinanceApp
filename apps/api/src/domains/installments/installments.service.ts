@@ -85,6 +85,11 @@ export class InstallmentsService {
     if (!ok) throw new NotFoundException({ code: "INSTALLMENT_PAYMENT_NOT_FOUND" });
   }
 
+  async unpay(userId: string, planId: string, sequence: number): Promise<void> {
+    const ok = await this.repo.markUnpaid(userId, planId, sequence);
+    if (!ok) throw new NotFoundException({ code: "INSTALLMENT_PAYMENT_NOT_FOUND" });
+  }
+
   async remove(userId: string, id: string): Promise<void> {
     const ok = await this.repo.remove(userId, id);
     if (!ok) throw new NotFoundException({ code: "INSTALLMENT_PLAN_NOT_FOUND" });

@@ -14,5 +14,15 @@ export function useInstallmentMutations() {
       onSuccess: invalidate,
     }),
     remove: useMutation({ mutationFn: installmentsApi.remove, onSuccess: invalidate }),
+    pay: useMutation({
+      mutationFn: ({ planId, sequence }: { planId: string; sequence: number }) =>
+        installmentsApi.pay(planId, sequence),
+      onSuccess: invalidate,
+    }),
+    unpay: useMutation({
+      mutationFn: ({ planId, sequence }: { planId: string; sequence: number }) =>
+        installmentsApi.unpay(planId, sequence),
+      onSuccess: invalidate,
+    }),
   };
 }

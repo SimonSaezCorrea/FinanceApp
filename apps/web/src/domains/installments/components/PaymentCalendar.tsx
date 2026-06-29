@@ -19,11 +19,24 @@ const statusVariant = {
 export function PaymentCalendar({ plan }: PaymentCalendarProps) {
   const { t, i18n } = useTranslation();
 
+  const startLabel = new Date(plan.startDate).toLocaleDateString(i18n.language, {
+    month: "short",
+    year: "numeric",
+  });
+
   return (
     <div className="overflow-x-auto rounded-lg border">
+      <div className="flex items-center justify-between border-b bg-muted/50 px-4 py-3">
+        <span className="text-sm font-medium">
+          {t("installments.calendar.header")} · {plan.title}
+        </span>
+        <span className="text-sm text-muted-foreground">
+          {t("installments.calendar.startDate", { date: startLabel })}
+        </span>
+      </div>
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b bg-muted/50">
+          <tr className="border-b">
             <th className="px-4 py-2 text-left font-medium text-muted-foreground">
               {t("installments.calendar.seq")}
             </th>
@@ -43,7 +56,12 @@ export function PaymentCalendar({ plan }: PaymentCalendarProps) {
             const status = paymentStatus(p, plan.payments);
             return (
               <tr key={p.id} className="border-b last:border-0 hover:bg-muted/30">
-                <td className="px-4 py-2 tabular-nums text-muted-foreground">{p.sequence}</td>
+                <td className="px-4 py-2 tabular-nums text-muted-foreground">
+                  {t("installments.calendar.seqFmt", {
+                    seq: p.sequence,
+                    total: plan.installmentCount,
+                  })}
+                </td>
                 <td className="px-4 py-2">
                   {new Date(p.dueDate).toLocaleDateString(i18n.language)}
                 </td>

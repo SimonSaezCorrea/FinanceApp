@@ -43,6 +43,15 @@ export class InstallmentsRepository {
     return result.count > 0;
   }
 
+  /** Clears paidAt for a payment, but only if its plan belongs to the user. */
+  async markUnpaid(userId: string, planId: string, sequence: number): Promise<boolean> {
+    const result = await this.prisma.installmentPayment.updateMany({
+      where: { installmentPlanId: planId, sequence, plan: { userId } },
+      data: { paidAt: null },
+    });
+    return result.count > 0;
+  }
+
   update(userId: string, id: string, data: Prisma.InstallmentPlanUpdateInput) {
     return this.prisma.installmentPlan.findFirst({ where: { id, userId } }).then((existing) => {
       if (!existing) return null;

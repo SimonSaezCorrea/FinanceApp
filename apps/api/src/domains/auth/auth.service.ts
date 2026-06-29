@@ -54,14 +54,14 @@ export class AuthService {
       { sub: user.id, email: user.email },
       {
         secret: this.config.getOrThrow<string>("JWT_ACCESS_SECRET"),
-        expiresIn: "15m",
+        expiresIn: this.config.get<string>("JWT_ACCESS_EXPIRES") ?? "15m",
       },
     );
     const refreshToken = this.jwt.sign(
       { sub: user.id },
       {
         secret: this.config.getOrThrow<string>("JWT_REFRESH_SECRET"),
-        expiresIn: "7d",
+        expiresIn: this.config.get<string>("JWT_REFRESH_EXPIRES") ?? "7d",
       },
     );
     return { accessToken, refreshToken };

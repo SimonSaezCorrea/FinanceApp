@@ -14,6 +14,17 @@ import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states"
 import { RecurringFormModal } from "../components/RecurringFormModal";
 import { useRecurring, useRecurringMutations } from "../hooks/useRecurring";
 
+function recurringDateClass(nextDueAt: string): string {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const due = new Date(nextDueAt);
+  due.setHours(0, 0, 0, 0);
+  const days = Math.round((due.getTime() - today.getTime()) / 86_400_000);
+  if (days < 0) return "font-medium text-destructive";
+  if (days <= 7) return "text-destructive";
+  return "";
+}
+
 export function RecurringRoute() {
   const { t, i18n } = useTranslation();
   const { data, isLoading, isError } = useRecurring();
@@ -61,9 +72,11 @@ export function RecurringRoute() {
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {r.category ?? t("transactions.uncategorized")} ·{" "}
-                    {t("recurring.next", {
-                      date: new Date(r.nextDueAt).toLocaleDateString(i18n.language),
-                    })}
+                    <span className={recurringDateClass(r.nextDueAt)}>
+                      {t("recurring.next", {
+                        date: new Date(r.nextDueAt).toLocaleDateString(i18n.language),
+                      })}
+                    </span>
                   </span>
                 </span>
                 <span className="flex items-center gap-3">

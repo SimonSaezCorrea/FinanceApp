@@ -187,12 +187,53 @@
     },
     "planCard": {
       "installmentAmount": "Cuota",
-      "nextDue": "Próximo: {{date}}",
-      "progress": "{{paid}}/{{total}} pagadas"
+      "installments": "cuotas",
+      "nextDue": "Vence {{date}}",
+      "progress": "{{paid}}/{{total}} pagadas",
+      "perMonth": "/mes"
     },
+    "table": {
+      "plan": "Plan",
+      "progress": "Progreso",
+      "nextDue": "Próximo pago",
+      "total": "Total",
+      "monthly": "/mes",
+      "product": "Producto",
+      "payment": "Cuota",
+      "dueDate": "Vencimiento",
+      "status": "Estado",
+      "amount": "Monto"
+    },
+    "kpi": {
+      "monthly": "Pago mensual",
+      "pending": "Pendiente total",
+      "nextDueDate": "Próximo pago"
+    },
+    "filters": {
+      "all": "Todas",
+      "upcoming": "Por vencer",
+      "paid": "Pagadas",
+      "allPlans": "Todos los planes",
+      "next3months": "Próx. 3 meses"
+    },
+    "status": {
+      "upcoming": "Próxima",
+      "last": "Última",
+      "pending": "Pendiente",
+      "paid": "Pagada"
+    },
+    "payment": {
+      "pay": "Confirmar pago",
+      "unpay": "Deshacer pago"
+    },
+    "subtitle": "{{count}} planes activos · próximo pago {{date}}",
+    "subtitleNoNextDue": "{{count}} planes activos",
     "calendar": {
-      "seq": "#",
-      "date": "Fecha",
+      "seq": "Cuota",
+      "seqFmt": "{{seq}} de {{total}}",
+      "header": "Calendario",
+      "startDate": "Inicio {{date}}",
+      "date": "Vencimiento",
       "amount": "Monto",
       "status": "Estado",
       "paid": "Pagada",
@@ -205,6 +246,7 @@
     "empty": "Aún no tienes deudas.",
     "new": "Nueva deuda",
     "created": "Deuda creada",
+    "subtitle": "{{count}} deudas activas · {{people}} personas",
     "direction": { "OWED_TO_YOU": "Te deben", "YOU_OWE": "Debes" },
     "kpi": {
       "owedToYou": "Te deben",
@@ -215,7 +257,26 @@
       "installments": "{{paid}}/{{total}} pagadas",
       "remaining": "${{amount}} restante",
       "markPaid": "Marcar pagada",
-      "registerPayment": "Registrar pago"
+      "registerPayment": "Registrar pago",
+      "undoPayment": "Deshacer pago",
+      "unsettle": "Reabrir",
+      "settledOn": "Pagada el {{date}}"
+    },
+    "history": "Historial",
+    "table": {
+      "person": "Persona",
+      "concept": "Concepto",
+      "type": "Tipo",
+      "due": "Vence",
+      "amount": "Monto",
+      "noDue": "Sin fecha"
+    },
+    "filters": {
+      "all": "Todas",
+      "active": "Activas",
+      "settled": "Pagadas",
+      "allStatus": "Todas",
+      "sortByDue": "Por vencimiento"
     },
     "updated": "Deuda actualizada",
     "deleted": "Deuda eliminada",

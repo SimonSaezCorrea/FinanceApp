@@ -81,6 +81,31 @@ export class DebtsService {
     return toContract(row);
   }
 
+  async unsettle(userId: string, id: string): Promise<debts.Debt> {
+    const existing = await this.repo.findOne(userId, id);
+    if (!existing) throw new NotFoundException({ code: "DEBT_NOT_FOUND" });
+    if (existing.settledAt === null) {
+      throw new ConflictException({ code: "DEBT_NOT_SETTLED" });
+    }
+    const row = await this.repo.update(userId, id, { settledAt: null });
+    if (!row) throw new NotFoundException({ code: "DEBT_NOT_FOUND" });
+    return toContract(row);
+  }
+
+  async undoPayment(userId: string, id: string): Promise<debts.Debt> {
+    const existing = await this.repo.findOne(userId, id);
+    if (!existing) throw new NotFoundException({ code: "DEBT_NOT_FOUND" });
+    if (existing.paidInstallments === 0) {
+      throw new ConflictException({ code: "NO_PAYMENTS_TO_UNDO" });
+    }
+    const newPaid = existing.paidInstallments - 1;
+    const data: Record<string, unknown> = { paidInstallments: newPaid };
+    if (existing.settledAt !== null) data["settledAt"] = null;
+    const row = await this.repo.update(userId, id, data);
+    if (!row) throw new NotFoundException({ code: "DEBT_NOT_FOUND" });
+    return toContract(row);
+  }
+
   async remove(userId: string, id: string): Promise<void> {
     const ok = await this.repo.remove(userId, id);
     if (!ok) throw new NotFoundException({ code: "DEBT_NOT_FOUND" });

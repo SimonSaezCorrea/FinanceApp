@@ -14,7 +14,9 @@ export function useDebtMutations() {
       onSuccess: invalidate,
     }),
     settle: useMutation({ mutationFn: debtsApi.settle, onSuccess: invalidate }),
+    unsettle: useMutation({ mutationFn: debtsApi.unsettle, onSuccess: invalidate }),
     registerPayment: useMutation({ mutationFn: debtsApi.registerPayment, onSuccess: invalidate }),
+    undoPayment: useMutation({ mutationFn: debtsApi.undoPayment, onSuccess: invalidate }),
     remove: useMutation({ mutationFn: debtsApi.remove, onSuccess: invalidate }),
   };
 }

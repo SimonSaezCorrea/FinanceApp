@@ -187,12 +187,53 @@
     },
     "planCard": {
       "installmentAmount": "Payment",
-      "nextDue": "Next: {{date}}",
-      "progress": "{{paid}}/{{total}} paid"
+      "installments": "installments",
+      "nextDue": "Due {{date}}",
+      "progress": "{{paid}}/{{total}} paid",
+      "perMonth": "/mo"
     },
+    "table": {
+      "plan": "Plan",
+      "progress": "Progress",
+      "nextDue": "Next payment",
+      "total": "Total",
+      "monthly": "/mo",
+      "product": "Product",
+      "payment": "Payment",
+      "dueDate": "Due date",
+      "status": "Status",
+      "amount": "Amount"
+    },
+    "kpi": {
+      "monthly": "Monthly payment",
+      "pending": "Total pending",
+      "nextDueDate": "Next payment"
+    },
+    "filters": {
+      "all": "All",
+      "upcoming": "Upcoming",
+      "paid": "Paid",
+      "allPlans": "All plans",
+      "next3months": "Next 3 months"
+    },
+    "status": {
+      "upcoming": "Upcoming",
+      "last": "Last",
+      "pending": "Pending",
+      "paid": "Paid"
+    },
+    "payment": {
+      "pay": "Confirm payment",
+      "unpay": "Undo payment"
+    },
+    "subtitle": "{{count}} active plans · next payment {{date}}",
+    "subtitleNoNextDue": "{{count}} active plans",
     "calendar": {
-      "seq": "#",
-      "date": "Date",
+      "seq": "Payment",
+      "seqFmt": "{{seq}} of {{total}}",
+      "header": "Calendar",
+      "startDate": "Started {{date}}",
+      "date": "Due date",
       "amount": "Amount",
       "status": "Status",
       "paid": "Paid",
@@ -205,6 +246,7 @@
     "empty": "You don't have any debts yet.",
     "new": "New debt",
     "created": "Debt created",
+    "subtitle": "{{count}} active debts · {{people}} people",
     "direction": { "OWED_TO_YOU": "Owed to you", "YOU_OWE": "You owe" },
     "kpi": {
       "owedToYou": "Owed to you",
@@ -215,7 +257,26 @@
       "installments": "{{paid}}/{{total}} paid",
       "remaining": "${{amount}} remaining",
       "markPaid": "Mark as paid",
-      "registerPayment": "Register payment"
+      "registerPayment": "Register payment",
+      "undoPayment": "Undo payment",
+      "unsettle": "Reopen",
+      "settledOn": "Paid on {{date}}"
+    },
+    "history": "History",
+    "table": {
+      "person": "Person",
+      "concept": "Concept",
+      "type": "Type",
+      "due": "Due",
+      "amount": "Amount",
+      "noDue": "No date"
+    },
+    "filters": {
+      "all": "All",
+      "active": "Active",
+      "settled": "Paid",
+      "allStatus": "All",
+      "sortByDue": "By due date"
     },
     "updated": "Debt updated",
     "deleted": "Debt deleted",

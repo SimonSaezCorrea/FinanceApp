@@ -22,6 +22,16 @@ import { CurrentUser, type AuthUser } from "../../infra/auth/current-user.decora
 import { ZodValidationPipe } from "../../infra/http/zod-validation.pipe";
 import { AuthService, type TokenPair } from "./auth.service";
 
+function parseDurationMs(s: string): number {
+  const match = /^(\d+)([smhd])$/.exec(s);
+  if (!match?.[1] || !match[2]) {
+    throw new Error(`Invalid token duration format: "${s}". Use a number followed by s/m/h/d.`);
+  }
+  const n = Number.parseInt(match[1], 10);
+  const units: Record<string, number> = { s: 1_000, m: 60_000, h: 3_600_000, d: 86_400_000 };
+  return n * (units[match[2]] ?? 0);
+}
+
 @Controller("auth")
 export class AuthController {
   constructor(
@@ -81,13 +91,19 @@ export class AuthController {
   }
 
   private setAuthCookies(res: Response, tokens: TokenPair): void {
+    const accessMs = parseDurationMs(
+      this.config.get<string>("JWT_ACCESS_EXPIRES") ?? "15m",
+    );
+    const refreshMs = parseDurationMs(
+      this.config.get<string>("JWT_REFRESH_EXPIRES") ?? "7d",
+    );
     res.cookie(ACCESS_COOKIE, tokens.accessToken, {
       ...this.cookieBase(),
-      maxAge: 15 * 60 * 1000,
+      maxAge: accessMs,
     });
     res.cookie(REFRESH_COOKIE, tokens.refreshToken, {
       ...this.cookieBase(),
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      maxAge: refreshMs,
     });
   }
 }

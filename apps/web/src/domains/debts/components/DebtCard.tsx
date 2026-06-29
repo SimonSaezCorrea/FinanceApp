@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Undo2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { debts } from "@finance/contracts";
@@ -10,8 +10,10 @@ import { calcRemaining } from "../lib/debtMetrics";
 
 interface DebtCardProps {
   readonly debt: debts.Debt;
-  readonly onSettle: () => void;
-  readonly onRegisterPayment: () => void;
+  readonly onSettle?: () => void;
+  readonly onRegisterPayment?: () => void;
+  readonly onUndoPayment?: () => void;
+  readonly onUnsettle?: () => void;
   readonly onEdit: () => void;
   readonly onDelete: () => void;
 }
@@ -20,6 +22,8 @@ export function DebtCard({
   debt,
   onSettle,
   onRegisterPayment,
+  onUndoPayment,
+  onUnsettle,
   onEdit,
   onDelete,
 }: DebtCardProps) {
@@ -100,15 +104,38 @@ export function DebtCard({
         </div>
       ) : null}
 
+      {debt.settledAt ? (
+        <p className="text-xs text-muted-foreground">
+          {t("debts.card.settledOn", {
+            date: new Date(debt.settledAt).toLocaleDateString(i18n.language),
+          })}
+        </p>
+      ) : null}
+
       <div className="flex gap-2">
-        {!hasInstallments && !debt.settledAt ? (
+        {!debt.settledAt && !hasInstallments && onSettle ? (
           <Button size="sm" variant="outline" onClick={onSettle} className="flex-1">
             {t("debts.card.markPaid")}
           </Button>
         ) : null}
-        {hasInstallments && !allPaid ? (
+        {!debt.settledAt && hasInstallments && !allPaid && onRegisterPayment ? (
           <Button size="sm" variant="outline" onClick={onRegisterPayment} className="flex-1">
             {t("debts.card.registerPayment")}
+          </Button>
+        ) : null}
+        {!debt.settledAt && hasInstallments && debt.paidInstallments > 0 && onUndoPayment ? (
+          <button
+            type="button"
+            onClick={onUndoPayment}
+            aria-label={t("debts.card.undoPayment")}
+            className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <Undo2 className="h-4 w-4" />
+          </button>
+        ) : null}
+        {debt.settledAt && onUnsettle ? (
+          <Button size="sm" variant="ghost" onClick={onUnsettle} className="flex-1">
+            {t("debts.card.unsettle")}
           </Button>
         ) : null}
       </div>

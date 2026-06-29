@@ -14,6 +14,9 @@ export const installmentsApi = {
   pay: (planId: string, sequence: number) =>
     apiFetch<void>(`/installments/${planId}/payments/${sequence}/pay`, { method: "POST" }),
 
+  unpay: (planId: string, sequence: number) =>
+    apiFetch<void>(`/installments/${planId}/payments/${sequence}/unpay`, { method: "POST" }),
+
   update: (id: string, body: installments.UpdateInstallmentPlan) =>
     apiFetch<installments.InstallmentPlan>(`/installments/${id}`, {
       method: "PATCH",

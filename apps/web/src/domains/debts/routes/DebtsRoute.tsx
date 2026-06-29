@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -8,25 +8,52 @@ import type { debts } from "@finance/contracts";
 import { Button } from "../../../shared/ui/button";
 import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
 import { PageHeader } from "../../../shared/ui/page-header";
-import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
-import { DebtCard } from "../components/DebtCard";
+import { Segmented } from "../../../shared/ui/segmented";
+import { ErrorState, LoadingState } from "../../../shared/ui/states";
 import { DebtCreateModal } from "../components/DebtCreateModal";
 import { DebtKpiStrip } from "../components/DebtKpiStrip";
+import { DebtTable } from "../components/DebtTable";
 import { useDebtMutations } from "../hooks/useDebtMutations";
 import { useDebts } from "../hooks/useDebts";
+
+type DirectionFilter = "ALL" | "OWED_TO_YOU" | "YOU_OWE";
+type StatusFilter = "active" | "settled" | "all";
 
 export function DebtsRoute() {
   const { t } = useTranslation();
   const { data, isLoading, isError } = useDebts();
-  const { settle, registerPayment, remove } = useDebtMutations();
+  const { settle, unsettle, registerPayment, undoPayment, remove } = useDebtMutations();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDebt, setEditingDebt] = useState<debts.Debt | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [directionFilter, setDirectionFilter] = useState<DirectionFilter>("ALL");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
 
   const list = data ?? [];
   const activeDebts = list.filter((d) => d.settledAt === null);
-  const owedToYou = activeDebts.filter((d) => d.direction === "OWED_TO_YOU");
-  const youOwe = activeDebts.filter((d) => d.direction === "YOU_OWE");
+  const uniquePeople = new Set(activeDebts.map((d) => d.counterparty)).size;
+
+  const filtered = useMemo(() => {
+    return list
+      .filter((d) => directionFilter === "ALL" || d.direction === directionFilter)
+      .filter((d) => {
+        if (statusFilter === "active") return d.settledAt === null;
+        if (statusFilter === "settled") return d.settledAt !== null;
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.dueAt && b.dueAt) return new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime();
+        if (a.dueAt) return -1;
+        if (b.dueAt) return 1;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+  }, [list, directionFilter, statusFilter]);
+
+  const directionOptions: { value: DirectionFilter; label: string }[] = [
+    { value: "ALL", label: t("debts.filters.all") },
+    { value: "OWED_TO_YOU", label: t("debts.direction.OWED_TO_YOU") },
+    { value: "YOU_OWE", label: t("debts.direction.YOU_OWE") },
+  ];
 
   function handleSettle(id: string) {
     settle.mutate(id, {
@@ -35,9 +62,23 @@ export function DebtsRoute() {
     });
   }
 
+  function handleUnsettle(id: string) {
+    unsettle.mutate(id, {
+      onSuccess: () => toast.success(t("debts.updated")),
+      onError: () => toast.error(t("errors.INTERNAL_ERROR")),
+    });
+  }
+
   function handleRegisterPayment(id: string) {
     registerPayment.mutate(id, {
       onSuccess: () => toast.success(t("debts.card.registerPayment")),
+      onError: () => toast.error(t("errors.INTERNAL_ERROR")),
+    });
+  }
+
+  function handleUndoPayment(id: string) {
+    undoPayment.mutate(id, {
+      onSuccess: () => toast.success(t("debts.card.undoPayment")),
       onError: () => toast.error(t("errors.INTERNAL_ERROR")),
     });
   }
@@ -67,10 +108,16 @@ export function DebtsRoute() {
     if (!open) setEditingDebt(null);
   }
 
+  const subtitle =
+    activeDebts.length > 0
+      ? t("debts.subtitle", { count: activeDebts.length, people: uniquePeople })
+      : undefined;
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t("debts.title")}
+        description={subtitle}
         actions={
           <Button onClick={() => setModalOpen(true)}>
             <Plus className="h-4 w-4" aria-hidden />
@@ -81,54 +128,40 @@ export function DebtsRoute() {
 
       {isLoading && <LoadingState title={t("app.loading")} />}
       {!isLoading && isError && <ErrorState title={t("errors.INTERNAL_ERROR")} />}
-      {!isLoading && !isError && activeDebts.length === 0 && (
-        <EmptyState title={t("debts.empty")} />
-      )}
-      {!isLoading && !isError && activeDebts.length > 0 && (
+
+      {!isLoading && !isError && (
         <>
-          <DebtKpiStrip debts={activeDebts} />
+          {activeDebts.length > 0 && <DebtKpiStrip debts={activeDebts} />}
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div className="flex flex-col gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-success">
-                {t("debts.direction.OWED_TO_YOU")}
-              </h2>
-              {owedToYou.length === 0 ? (
-                <p className="text-sm text-muted-foreground">—</p>
-              ) : (
-                owedToYou.map((d) => (
-                  <DebtCard
-                    key={d.id}
-                    debt={d}
-                    onSettle={() => handleSettle(d.id)}
-                    onRegisterPayment={() => handleRegisterPayment(d.id)}
-                    onEdit={() => handleEdit(d)}
-                    onDelete={() => handleDelete(d.id)}
-                  />
-                ))
-              )}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Segmented
+                value={directionFilter}
+                onChange={setDirectionFilter}
+                options={directionOptions}
+              />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                className="rounded-md border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="active">{t("debts.filters.active")}</option>
+                <option value="settled">{t("debts.filters.settled")}</option>
+                <option value="all">{t("debts.filters.allStatus")}</option>
+              </select>
             </div>
-
-            <div className="flex flex-col gap-3">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-accent">
-                {t("debts.direction.YOU_OWE")}
-              </h2>
-              {youOwe.length === 0 ? (
-                <p className="text-sm text-muted-foreground">—</p>
-              ) : (
-                youOwe.map((d) => (
-                  <DebtCard
-                    key={d.id}
-                    debt={d}
-                    onSettle={() => handleSettle(d.id)}
-                    onRegisterPayment={() => handleRegisterPayment(d.id)}
-                    onEdit={() => handleEdit(d)}
-                    onDelete={() => handleDelete(d.id)}
-                  />
-                ))
-              )}
-            </div>
+            <span className="text-sm text-muted-foreground">{t("debts.filters.sortByDue")}</span>
           </div>
+
+          <DebtTable
+            debts={filtered}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onSettle={handleSettle}
+            onUnsettle={handleUnsettle}
+            onRegisterPayment={handleRegisterPayment}
+            onUndoPayment={handleUndoPayment}
+          />
         </>
       )}
 
@@ -140,7 +173,9 @@ export function DebtsRoute() {
 
       <ConfirmDialog
         open={deleteId !== null}
-        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        onOpenChange={(open) => {
+          if (!open) setDeleteId(null);
+        }}
         onConfirm={confirmDelete}
         title={t("common.confirmDeleteTitle")}
         description={t("common.confirmDelete")}
