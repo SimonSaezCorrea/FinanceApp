@@ -130,7 +130,33 @@
       "noAccount": "No account",
       "category": "Category",
       "date": "Date",
-      "description": "Description"
+      "description": "Description",
+      "observation": "Observation",
+      "emisor": "Sender",
+      "receptor": "Recipient",
+      "lugar": "Location"
+    },
+    "kpi": {
+      "income": "Income",
+      "expense": "Expenses",
+      "balance": "Net balance"
+    },
+    "filters": {
+      "all": "All",
+      "income": "Income",
+      "expense": "Expenses",
+      "account": "Account / Card",
+      "allAccounts": "All accounts",
+      "category": "Category",
+      "categoryPlaceholder": "Search category…",
+      "from": "From",
+      "to": "To",
+      "showInactive": "Include inactive"
+    },
+    "table": {
+      "noCategory": "Uncategorized",
+      "noAccount": "No account",
+      "import": "Import"
     }
   },
   "installments": {

@@ -44,6 +44,10 @@ export class TransactionsService {
       occurredAt: new Date(input.occurredAt),
       category: input.category,
       description: input.description,
+      observation: input.observation,
+      emisor: input.emisor,
+      receptor: input.receptor,
+      lugar: input.lugar,
       bankAccountId: input.bankAccountId,
     });
     return toContract(row);
@@ -54,14 +58,18 @@ export class TransactionsService {
     id: string,
     input: transactions.UpdateTransaction,
   ): Promise<transactions.Transaction> {
-    const row = await this.repo.update(userId, id, {
-      ...(input.type !== undefined ? { type: input.type } : {}),
-      ...(input.amount !== undefined ? { amount: input.amount } : {}),
-      ...(input.currency !== undefined ? { currency: input.currency } : {}),
-      ...(input.occurredAt !== undefined ? { occurredAt: new Date(input.occurredAt) } : {}),
-      ...(input.category !== undefined ? { category: input.category } : {}),
-      ...(input.description !== undefined ? { description: input.description } : {}),
-    });
+    const data: Record<string, unknown> = {};
+    if (input.type !== undefined) data["type"] = input.type;
+    if (input.amount !== undefined) data["amount"] = input.amount;
+    if (input.currency !== undefined) data["currency"] = input.currency;
+    if (input.occurredAt !== undefined) data["occurredAt"] = new Date(input.occurredAt);
+    if (input.category !== undefined) data["category"] = input.category;
+    if (input.description !== undefined) data["description"] = input.description;
+    if (input.observation !== undefined) data["observation"] = input.observation;
+    if (input.emisor !== undefined) data["emisor"] = input.emisor;
+    if (input.receptor !== undefined) data["receptor"] = input.receptor;
+    if (input.lugar !== undefined) data["lugar"] = input.lugar;
+    const row = await this.repo.update(userId, id, data);
     if (!row) throw new NotFoundException({ code: "TRANSACTION_NOT_FOUND" });
     return toContract(row);
   }
@@ -81,6 +89,10 @@ function toContract(row: TransactionRow): transactions.Transaction {
     occurredAt: row.occurredAt.toISOString(),
     category: row.category,
     description: row.description,
+    observation: row.observation,
+    emisor: row.emisor,
+    receptor: row.receptor,
+    lugar: row.lugar,
     bankAccountId: row.bankAccountId,
     installmentPlanId: row.installmentPlanId,
     createdAt: row.createdAt.toISOString(),

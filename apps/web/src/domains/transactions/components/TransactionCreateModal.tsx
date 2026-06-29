@@ -34,6 +34,10 @@ export function TransactionCreateModal({
   const [bankAccountId, setBankAccountId] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
+  const [observation, setObservation] = useState("");
+  const [emisor, setEmisor] = useState("");
+  const [receptor, setReceptor] = useState("");
+  const [lugar, setLugar] = useState("");
   const [date, setDate] = useState(todayInput());
 
   function reset() {
@@ -43,6 +47,10 @@ export function TransactionCreateModal({
     setBankAccountId("");
     setCategory("");
     setDescription("");
+    setObservation("");
+    setEmisor("");
+    setReceptor("");
+    setLugar("");
     setDate(todayInput());
   }
 
@@ -56,6 +64,10 @@ export function TransactionCreateModal({
         bankAccountId: bankAccountId || undefined,
         category: category || undefined,
         description: description || undefined,
+        observation: observation || undefined,
+        emisor: emisor || undefined,
+        receptor: receptor || undefined,
+        lugar: lugar || undefined,
       },
       {
         onSuccess: () => {
@@ -127,6 +139,23 @@ export function TransactionCreateModal({
 
         <Field label={t("transactions.form.description")} htmlFor="tx-desc">
           <Input id="tx-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+        </Field>
+
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t("transactions.form.emisor")} htmlFor="tx-emisor">
+            <Input id="tx-emisor" value={emisor} onChange={(e) => setEmisor(e.target.value)} />
+          </Field>
+          <Field label={t("transactions.form.receptor")} htmlFor="tx-receptor">
+            <Input id="tx-receptor" value={receptor} onChange={(e) => setReceptor(e.target.value)} />
+          </Field>
+        </div>
+
+        <Field label={t("transactions.form.lugar")} htmlFor="tx-lugar">
+          <Input id="tx-lugar" value={lugar} onChange={(e) => setLugar(e.target.value)} />
+        </Field>
+
+        <Field label={t("transactions.form.observation")} htmlFor="tx-obs">
+          <Input id="tx-obs" value={observation} onChange={(e) => setObservation(e.target.value)} />
         </Field>
       </div>
 

@@ -75,7 +75,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   same session. These are the canonical, living memory; stale docs are a defect.
 
 <!-- SPECKIT START -->
-Active plan: specs/004-account-cards-modal/plan.md
-(account create modal + card-preview; Card + CardLimit entities, last4-only PAN handling, VISTA type).
-Prior: 001 (monorepo), 002 (design system), 003 (accounts mgmt).
+Active plan: specs/005-transactions-redesign/plan.md
+(Transactions view redesign — multi-currency KPI strip, segmented filter, account/card selector, category search, date range, table with category icons, +Movimiento modal, deferred Importar. Pure frontend, no API changes.)
+Prior plans: 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
 <!-- SPECKIT END -->

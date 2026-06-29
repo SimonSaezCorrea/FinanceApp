@@ -15,6 +15,10 @@ export const transactionSchema = z.object({
   occurredAt: z.string(),
   category: z.string().nullable(),
   description: z.string().nullable(),
+  observation: z.string().nullable(),
+  emisor: z.string().nullable(),
+  receptor: z.string().nullable(),
+  lugar: z.string().nullable(),
   bankAccountId: z.string().nullable(),
   installmentPlanId: z.string().nullable(),
   createdAt: z.string(),
@@ -29,6 +33,10 @@ export const createTransactionSchema = z.object({
   occurredAt: z.string().datetime(),
   category: z.string().trim().max(120).optional(),
   description: z.string().trim().max(500).optional(),
+  observation: z.string().trim().max(500).optional(),
+  emisor: z.string().trim().max(200).optional(),
+  receptor: z.string().trim().max(200).optional(),
+  lugar: z.string().trim().max(200).optional(),
   bankAccountId: z.string().optional(),
 });
 export type CreateTransaction = z.infer<typeof createTransactionSchema>;

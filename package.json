@@ -5,6 +5,8 @@
   "packageManager": "pnpm@10.15.1",
   "scripts": {
     "dev": "turbo run dev",
+    "dev:api": "pnpm --filter @finance/api dev",
+    "dev:web": "pnpm --filter @finance/web dev",
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",

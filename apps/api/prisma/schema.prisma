@@ -185,6 +185,10 @@ model Transaction {
   occurredAt        DateTime
   category          String?
   description       String?
+  observation       String?
+  emisor            String?
+  receptor          String?
+  lugar             String?
   installmentPlanId String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
