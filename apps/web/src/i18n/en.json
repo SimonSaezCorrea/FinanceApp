@@ -9,7 +9,8 @@
     "save": "Save",
     "edit": "Edit",
     "delete": "Delete",
-    "confirmDelete": "Delete this item? This action cannot be undone.",
+    "confirmDeleteTitle": "Delete item?",
+    "confirmDelete": "This action cannot be undone.",
     "frequency": {
       "DAILY": "Daily",
       "WEEKLY": "Weekly",

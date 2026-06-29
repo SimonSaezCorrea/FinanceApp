@@ -9,7 +9,8 @@
     "save": "Guardar",
     "edit": "Editar",
     "delete": "Eliminar",
-    "confirmDelete": "¿Eliminar este elemento? Esta acción no se puede deshacer.",
+    "confirmDeleteTitle": "¿Eliminar elemento?",
+    "confirmDelete": "Esta acción no se puede deshacer.",
     "frequency": {
       "DAILY": "Diaria",
       "WEEKLY": "Semanal",

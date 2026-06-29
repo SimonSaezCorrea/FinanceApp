@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { debts } from "@finance/contracts";
 
 import { Button } from "../../../shared/ui/button";
+import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
 import { DebtCard } from "../components/DebtCard";
@@ -20,6 +21,7 @@ export function DebtsRoute() {
   const { settle, registerPayment, remove } = useDebtMutations();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDebt, setEditingDebt] = useState<debts.Debt | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const list = data ?? [];
   const activeDebts = list.filter((d) => d.settledAt === null);
@@ -46,9 +48,16 @@ export function DebtsRoute() {
   }
 
   function handleDelete(id: string) {
-    if (!globalThis.confirm(t("common.confirmDelete"))) return;
-    remove.mutate(id, {
-      onSuccess: () => toast.success(t("debts.deleted")),
+    setDeleteId(id);
+  }
+
+  function confirmDelete() {
+    if (!deleteId) return;
+    remove.mutate(deleteId, {
+      onSuccess: () => {
+        toast.success(t("debts.deleted"));
+        setDeleteId(null);
+      },
       onError: () => toast.error(t("errors.INTERNAL_ERROR")),
     });
   }
@@ -127,6 +136,15 @@ export function DebtsRoute() {
         open={modalOpen}
         onOpenChange={handleModalChange}
         initialData={editingDebt ?? undefined}
+      />
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        onConfirm={confirmDelete}
+        title={t("common.confirmDeleteTitle")}
+        description={t("common.confirmDelete")}
+        loading={remove.isPending}
       />
     </div>
   );

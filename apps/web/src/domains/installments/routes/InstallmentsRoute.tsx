@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import type { installments } from "@finance/contracts";
 
 import { Button } from "../../../shared/ui/button";
+import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
 import { InstallmentCreateModal } from "../components/InstallmentCreateModal";
@@ -21,6 +22,7 @@ export function InstallmentsRoute() {
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingPlan, setEditingPlan] = useState<installments.InstallmentPlan | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const list = data ?? [];
   const selectedPlan = list.find((p) => p.id === selectedPlanId) ?? null;
@@ -31,11 +33,16 @@ export function InstallmentsRoute() {
   }
 
   function handleDelete(id: string) {
-    if (!globalThis.confirm(t("common.confirmDelete"))) return;
-    remove.mutate(id, {
+    setDeleteId(id);
+  }
+
+  function confirmDelete() {
+    if (!deleteId) return;
+    remove.mutate(deleteId, {
       onSuccess: () => {
         toast.success(t("installments.deleted"));
-        if (selectedPlanId === id) setSelectedPlanId(null);
+        if (selectedPlanId === deleteId) setSelectedPlanId(null);
+        setDeleteId(null);
       },
       onError: () => toast.error(t("errors.INTERNAL_ERROR")),
     });
@@ -88,6 +95,15 @@ export function InstallmentsRoute() {
         open={modalOpen}
         onOpenChange={handleModalChange}
         initialData={editingPlan ?? undefined}
+      />
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+        onConfirm={confirmDelete}
+        title={t("common.confirmDeleteTitle")}
+        description={t("common.confirmDelete")}
+        loading={remove.isPending}
       />
     </div>
   );
