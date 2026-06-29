@@ -31,8 +31,10 @@ async function seedFullUser(passwordHash: string) {
   };
 
   // Transactions keyed by account (ids resolved after accounts are created).
+  type CardKey = "debit" | "credit";
   type Tx = {
     acct: AcctKey;
+    card?: CardKey;
     type: "INCOME" | "EXPENSE";
     amount: number;
     at: string;
@@ -41,44 +43,44 @@ async function seedFullUser(passwordHash: string) {
   };
   const TX: Tx[] = [
     // --- Checking: salary + everyday spend (June 2026) ---
-    { acct: "checking", type: "INCOME", amount: 2_150_000, at: "2026-06-01T09:00:00Z", category: "Sueldo", description: "Sueldo junio" },
-    { acct: "checking", type: "INCOME", amount: 45_000, at: "2026-06-12T18:00:00Z", category: "Otros", description: "Reembolso colega" },
-    { acct: "checking", type: "EXPENSE", amount: 67_430, at: "2026-06-03T20:00:00Z", category: "Supermercado", description: "Jumbo Costanera" },
-    { acct: "checking", type: "EXPENSE", amount: 38_900, at: "2026-06-05T12:00:00Z", category: "Servicios", description: "Cuenta de luz · Enel" },
-    { acct: "checking", type: "EXPENSE", amount: 22_100, at: "2026-06-05T12:05:00Z", category: "Servicios", description: "Cuenta de agua · Aguas Andinas" },
-    { acct: "checking", type: "EXPENSE", amount: 29_990, at: "2026-06-06T10:00:00Z", category: "Servicios", description: "Internet · VTR" },
-    { acct: "checking", type: "EXPENSE", amount: 45_000, at: "2026-06-07T08:30:00Z", category: "Transporte", description: "Bencina · Copec" },
-    { acct: "checking", type: "EXPENSE", amount: 28_500, at: "2026-06-08T21:00:00Z", category: "Restaurantes", description: "Cena Ñuñoa" },
-    { acct: "checking", type: "EXPENSE", amount: 15_300, at: "2026-06-09T17:00:00Z", category: "Salud", description: "Farmacia Cruz Verde" },
-    { acct: "checking", type: "EXPENSE", amount: 9_990, at: "2026-06-10T07:00:00Z", category: "Entretenimiento", description: "Netflix" },
-    { acct: "checking", type: "EXPENSE", amount: 5_990, at: "2026-06-10T07:01:00Z", category: "Entretenimiento", description: "Spotify" },
-    { acct: "checking", type: "EXPENSE", amount: 120_000, at: "2026-06-11T16:00:00Z", category: "Transferencias", description: "Transferencia a María" },
-    { acct: "checking", type: "EXPENSE", amount: 20_000, at: "2026-06-13T08:00:00Z", category: "Transporte", description: "Carga Bip!" },
-    { acct: "checking", type: "EXPENSE", amount: 54_200, at: "2026-06-15T19:00:00Z", category: "Supermercado", description: "Líder Express" },
-    { acct: "checking", type: "EXPENSE", amount: 6_800, at: "2026-06-16T11:00:00Z", category: "Restaurantes", description: "Café Starbucks" },
-    { acct: "checking", type: "EXPENSE", amount: 32_000, at: "2026-06-17T07:30:00Z", category: "Salud", description: "Gimnasio Smart Fit" },
+    { acct: "checking", type: "INCOME",  amount: 2_150_000, at: "2026-06-01T09:00:00Z", category: "Sueldo",         description: "Sueldo junio" },
+    { acct: "checking", type: "INCOME",  amount: 45_000,    at: "2026-06-12T18:00:00Z", category: "Otros",          description: "Reembolso colega" },
+    { acct: "checking", card: "debit",   type: "EXPENSE", amount: 67_430,  at: "2026-06-03T20:00:00Z", category: "Supermercado",   description: "Jumbo Costanera" },
+    { acct: "checking", type: "EXPENSE", amount: 38_900,    at: "2026-06-05T12:00:00Z", category: "Servicios",      description: "Cuenta de luz · Enel" },
+    { acct: "checking", type: "EXPENSE", amount: 22_100,    at: "2026-06-05T12:05:00Z", category: "Servicios",      description: "Cuenta de agua · Aguas Andinas" },
+    { acct: "checking", type: "EXPENSE", amount: 29_990,    at: "2026-06-06T10:00:00Z", category: "Servicios",      description: "Internet · VTR" },
+    { acct: "checking", card: "debit",   type: "EXPENSE", amount: 45_000,  at: "2026-06-07T08:30:00Z", category: "Transporte",     description: "Bencina · Copec" },
+    { acct: "checking", card: "debit",   type: "EXPENSE", amount: 28_500,  at: "2026-06-08T21:00:00Z", category: "Restaurantes",   description: "Cena Ñuñoa" },
+    { acct: "checking", card: "debit",   type: "EXPENSE", amount: 15_300,  at: "2026-06-09T17:00:00Z", category: "Salud",          description: "Farmacia Cruz Verde" },
+    { acct: "checking", type: "EXPENSE", amount: 9_990,     at: "2026-06-10T07:00:00Z", category: "Entretenimiento", description: "Netflix" },
+    { acct: "checking", type: "EXPENSE", amount: 5_990,     at: "2026-06-10T07:01:00Z", category: "Entretenimiento", description: "Spotify" },
+    { acct: "checking", type: "EXPENSE", amount: 120_000,   at: "2026-06-11T16:00:00Z", category: "Transferencias", description: "Transferencia a María" },
+    { acct: "checking", type: "EXPENSE", amount: 20_000,    at: "2026-06-13T08:00:00Z", category: "Transporte",     description: "Carga Bip!" },
+    { acct: "checking", card: "debit",   type: "EXPENSE", amount: 54_200,  at: "2026-06-15T19:00:00Z", category: "Supermercado",   description: "Líder Express" },
+    { acct: "checking", card: "debit",   type: "EXPENSE", amount: 6_800,   at: "2026-06-16T11:00:00Z", category: "Restaurantes",   description: "Café Starbucks" },
+    { acct: "checking", type: "EXPENSE", amount: 32_000,    at: "2026-06-17T07:30:00Z", category: "Salud",          description: "Gimnasio Smart Fit" },
     // Late May (inside the 30-day window for sparklines)
-    { acct: "checking", type: "INCOME", amount: 60_000, at: "2026-05-28T15:00:00Z", category: "Otros", description: "Venta usados" },
-    { acct: "checking", type: "EXPENSE", amount: 48_000, at: "2026-05-24T19:00:00Z", category: "Supermercado", description: "Unimarc" },
-    { acct: "checking", type: "EXPENSE", amount: 40_000, at: "2026-05-26T09:00:00Z", category: "Transporte", description: "Bencina · Shell" },
-    { acct: "checking", type: "EXPENSE", amount: 25_000, at: "2026-05-30T21:00:00Z", category: "Restaurantes", description: "Pizzería" },
+    { acct: "checking", type: "INCOME",  amount: 60_000,    at: "2026-05-28T15:00:00Z", category: "Otros",          description: "Venta usados" },
+    { acct: "checking", card: "debit",   type: "EXPENSE", amount: 48_000,  at: "2026-05-24T19:00:00Z", category: "Supermercado",   description: "Unimarc" },
+    { acct: "checking", card: "debit",   type: "EXPENSE", amount: 40_000,  at: "2026-05-26T09:00:00Z", category: "Transporte",     description: "Bencina · Shell" },
+    { acct: "checking", card: "debit",   type: "EXPENSE", amount: 25_000,  at: "2026-05-30T21:00:00Z", category: "Restaurantes",   description: "Pizzería" },
 
-    // --- Vista (BancoEstado): small spends ---
-    { acct: "vista", type: "EXPENSE", amount: 8_900, at: "2026-06-14T13:00:00Z", category: "Transporte", description: "Uber" },
+    // --- Vista (BancoEstado): small spends — no card linked to this account ---
+    { acct: "vista", type: "EXPENSE", amount: 8_900,  at: "2026-06-14T13:00:00Z", category: "Transporte",   description: "Uber" },
     { acct: "vista", type: "EXPENSE", amount: 17_400, at: "2026-06-18T20:30:00Z", category: "Restaurantes", description: "PedidosYa" },
 
-    // --- Credit (CMR Falabella): card purchases ---
-    { acct: "credit", type: "EXPENSE", amount: 89_990, at: "2026-06-02T18:00:00Z", category: "Compras", description: "Ropa · Falabella" },
-    { acct: "credit", type: "EXPENSE", amount: 350_000, at: "2026-06-04T16:00:00Z", category: "Hogar", description: "Microondas · Sodimac" },
-    { acct: "credit", type: "EXPENSE", amount: 45_000, at: "2026-06-09T15:00:00Z", category: "Compras", description: "Zapatillas" },
-    { acct: "credit", type: "EXPENSE", amount: 38_000, at: "2026-06-12T21:00:00Z", category: "Restaurantes", description: "Restaurante Las Condes" },
-    { acct: "credit", type: "EXPENSE", amount: 72_000, at: "2026-06-16T19:00:00Z", category: "Supermercado", description: "Tottus" },
-    { acct: "credit", type: "EXPENSE", amount: 150_000, at: "2026-05-23T12:00:00Z", category: "Compras", description: "Compras varias" },
-    { acct: "credit", type: "EXPENSE", amount: 280_000, at: "2026-05-25T10:00:00Z", category: "Viajes", description: "Pasajes LATAM" },
+    // --- Credit (CMR Falabella): all purchases via creditCard ---
+    { acct: "credit", card: "credit", type: "EXPENSE", amount: 89_990,  at: "2026-06-02T18:00:00Z", category: "Compras",      description: "Ropa · Falabella" },
+    { acct: "credit", card: "credit", type: "EXPENSE", amount: 350_000, at: "2026-06-04T16:00:00Z", category: "Hogar",        description: "Microondas · Sodimac" },
+    { acct: "credit", card: "credit", type: "EXPENSE", amount: 45_000,  at: "2026-06-09T15:00:00Z", category: "Compras",      description: "Zapatillas" },
+    { acct: "credit", card: "credit", type: "EXPENSE", amount: 38_000,  at: "2026-06-12T21:00:00Z", category: "Restaurantes", description: "Restaurante Las Condes" },
+    { acct: "credit", card: "credit", type: "EXPENSE", amount: 72_000,  at: "2026-06-16T19:00:00Z", category: "Supermercado", description: "Tottus" },
+    { acct: "credit", card: "credit", type: "EXPENSE", amount: 150_000, at: "2026-05-23T12:00:00Z", category: "Compras",      description: "Compras varias" },
+    { acct: "credit", card: "credit", type: "EXPENSE", amount: 280_000, at: "2026-05-25T10:00:00Z", category: "Viajes",       description: "Pasajes LATAM" },
 
     // --- Cash ---
     { acct: "cash", type: "EXPENSE", amount: 12_000, at: "2026-06-06T10:30:00Z", category: "Supermercado", description: "Feria libre" },
-    { acct: "cash", type: "EXPENSE", amount: 3_000, at: "2026-06-13T14:00:00Z", category: "Transporte", description: "Estacionamiento" },
+    { acct: "cash", type: "EXPENSE", amount: 3_000,  at: "2026-06-13T14:00:00Z", category: "Transporte",   description: "Estacionamiento" },
   ];
 
   // Net movement per account → reconciled currentBalance.
@@ -147,10 +149,13 @@ async function seedFullUser(passwordHash: string) {
     ],
   });
 
+  const cardIdMap: Record<CardKey, string> = { debit: debitCard.id, credit: creditCard.id };
+
   await prisma.transaction.createMany({
     data: TX.map((t) => ({
       userId: javier.id,
       bankAccountId: accId[t.acct],
+      cardId: t.card ? cardIdMap[t.card] : undefined,
       type: t.type,
       amount: dec(String(t.amount)),
       currency: "CLP",

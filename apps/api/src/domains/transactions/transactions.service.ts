@@ -17,6 +17,7 @@ export class TransactionsService {
     const where: Omit<Prisma.TransactionWhereInput, "userId"> = {};
     if (filters.type) where.type = filters.type;
     if (filters.bankAccountId) where.bankAccountId = filters.bankAccountId;
+    if (filters.cardId) where.cardId = filters.cardId;
     if (filters.from || filters.to) {
       where.occurredAt = {
         ...(filters.from ? { gte: new Date(filters.from) } : {}),
@@ -49,6 +50,7 @@ export class TransactionsService {
       receptor: input.receptor,
       lugar: input.lugar,
       bankAccountId: input.bankAccountId,
+      cardId: input.cardId,
     });
     return toContract(row);
   }
@@ -69,6 +71,7 @@ export class TransactionsService {
     if (input.emisor !== undefined) data["emisor"] = input.emisor;
     if (input.receptor !== undefined) data["receptor"] = input.receptor;
     if (input.lugar !== undefined) data["lugar"] = input.lugar;
+    if (input.cardId !== undefined) data["cardId"] = input.cardId;
     const row = await this.repo.update(userId, id, data);
     if (!row) throw new NotFoundException({ code: "TRANSACTION_NOT_FOUND" });
     return toContract(row);
@@ -94,6 +97,7 @@ function toContract(row: TransactionRow): transactions.Transaction {
     receptor: row.receptor,
     lugar: row.lugar,
     bankAccountId: row.bankAccountId,
+    cardId: row.cardId,
     installmentPlanId: row.installmentPlanId,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

@@ -134,9 +134,10 @@ model Card {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  account     BankAccount  @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  limits      CardLimit[]
-  walletItems WalletItem[]
+  account      BankAccount   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  limits       CardLimit[]
+  walletItems  WalletItem[]
+  transactions Transaction[]
 
   @@index([accountId])
   @@index([userId])
@@ -179,6 +180,7 @@ model Transaction {
   id                String          @id @default(cuid())
   userId            String
   bankAccountId     String?
+  cardId            String?
   type              TransactionType
   amount            Decimal         @db.Decimal(18, 4)
   currency          String          @default("USD")
@@ -195,10 +197,12 @@ model Transaction {
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   bankAccount     BankAccount?     @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  card            Card?            @relation(fields: [cardId], references: [id], onDelete: SetNull)
   installmentPlan InstallmentPlan? @relation(fields: [installmentPlanId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([bankAccountId])
+  @@index([cardId])
   @@index([occurredAt])
   @@index([installmentPlanId])
   @@index([category])

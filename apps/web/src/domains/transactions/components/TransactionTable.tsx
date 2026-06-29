@@ -29,6 +29,7 @@ export function TransactionTable({ transactions: txs, accounts }: TransactionTab
   }
 
   const accountMap = new Map(accounts.map((a) => [a.id, a.name]));
+  const cardMap = new Map(accounts.flatMap((a) => a.cards.map((c) => [c.id, c])));
 
   const sorted = [...txs].sort(
     (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
@@ -42,6 +43,7 @@ export function TransactionTable({ transactions: txs, accounts }: TransactionTab
           <TH>{t("transactions.form.category")}</TH>
           <TH>{t("transactions.form.type")}</TH>
           <TH>{t("transactions.form.account")}</TH>
+          <TH>{t("transactions.form.card")}</TH>
           <TH>{t("transactions.form.date")}</TH>
           <TH numeric>{t("transactions.form.amount")}</TH>
         </TR>
@@ -52,6 +54,7 @@ export function TransactionTable({ transactions: txs, accounts }: TransactionTab
           const accountName = tx.bankAccountId
             ? (accountMap.get(tx.bankAccountId) ?? t("transactions.table.noAccount"))
             : t("transactions.table.noAccount");
+          const card = tx.cardId ? cardMap.get(tx.cardId) : undefined;
           const isIncome = tx.type === "INCOME";
           const amountColor = isIncome ? "text-success" : "text-destructive";
 
@@ -73,6 +76,9 @@ export function TransactionTable({ transactions: txs, accounts }: TransactionTab
                 </Badge>
               </TD>
               <TD className="text-muted-foreground">{accountName}</TD>
+              <TD className="text-muted-foreground tabular-nums">
+                {card ? `••••${card.last4}` : <span className="opacity-40">—</span>}
+              </TD>
               <TD className="text-muted-foreground">{formatDate(tx.occurredAt, i18n.language)}</TD>
               <TD numeric className={amountColor}>
                 {isIncome ? "+" : "−"}

@@ -33,9 +33,11 @@ export function TransactionsRoute() {
   const accountsQuery = useAccounts();
   const accounts = accountsQuery.data ?? [];
 
+  const apiAccountId = filters.selectedCardId ? undefined : filters.bankAccountId;
   const apiFilters = {
     type: filters.type,
-    bankAccountId: filters.bankAccountId,
+    bankAccountId: apiAccountId,
+    cardId: filters.selectedCardId,
     from: filters.from,
     to: filters.to,
   };

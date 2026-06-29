@@ -141,6 +141,8 @@
       "amount": "Monto",
       "account": "Cuenta",
       "noAccount": "Sin cuenta",
+      "card": "Tarjeta",
+      "noCard": "Sin tarjeta",
       "category": "Categoría",
       "date": "Fecha",
       "description": "Descripción",

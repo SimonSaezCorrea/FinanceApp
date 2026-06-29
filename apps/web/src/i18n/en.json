@@ -141,6 +141,8 @@
       "amount": "Amount",
       "account": "Account",
       "noAccount": "No account",
+      "card": "Card",
+      "noCard": "No card",
       "category": "Category",
       "date": "Date",
       "description": "Description",

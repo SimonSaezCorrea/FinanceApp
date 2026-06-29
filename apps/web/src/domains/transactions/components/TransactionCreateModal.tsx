@@ -32,6 +32,7 @@ export function TransactionCreateModal({
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("CLP");
   const [bankAccountId, setBankAccountId] = useState("");
+  const [cardId, setCardId] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
   const [observation, setObservation] = useState("");
@@ -45,6 +46,7 @@ export function TransactionCreateModal({
     setAmount("");
     setCurrency("CLP");
     setBankAccountId("");
+    setCardId("");
     setCategory("");
     setDescription("");
     setObservation("");
@@ -62,6 +64,7 @@ export function TransactionCreateModal({
         currency,
         occurredAt: new Date(`${date}T00:00:00`).toISOString(),
         bankAccountId: bankAccountId || undefined,
+        cardId: cardId || undefined,
         category: category || undefined,
         description: description || undefined,
         observation: observation || undefined,
@@ -80,9 +83,18 @@ export function TransactionCreateModal({
     );
   }
 
+  const activeAccounts = (accountList ?? []).filter((a) => a.status === "ACTIVE");
   const accountOptions = [
     { value: "", label: t("transactions.form.noAccount") },
-    ...(accountList ?? []).map((a) => ({ value: a.id, label: a.name })),
+    ...activeAccounts.map((a) => ({ value: a.id, label: a.name })),
+  ];
+  const selectedAccount = activeAccounts.find((a) => a.id === bankAccountId);
+  const cardOptions = [
+    { value: "", label: t("transactions.form.noCard") },
+    ...(selectedAccount?.cards ?? []).map((c) => ({
+      value: c.id,
+      label: `••••${c.last4} · ${c.name}`,
+    })),
   ];
 
   return (
@@ -119,14 +131,25 @@ export function TransactionCreateModal({
           </Field>
         </div>
 
-        <Field label={t("transactions.form.account")} htmlFor="tx-acc">
-          <Select
-            id="tx-acc"
-            value={bankAccountId}
-            onChange={(e) => setBankAccountId(e.target.value)}
-            options={accountOptions}
-          />
-        </Field>
+        <div className="grid grid-cols-2 gap-3">
+          <Field label={t("transactions.form.account")} htmlFor="tx-acc">
+            <Select
+              id="tx-acc"
+              value={bankAccountId}
+              onChange={(e) => { setBankAccountId(e.target.value); setCardId(""); }}
+              options={accountOptions}
+            />
+          </Field>
+          <Field label={t("transactions.form.card")} htmlFor="tx-card">
+            <Select
+              id="tx-card"
+              value={cardId}
+              onChange={(e) => setCardId(e.target.value)}
+              options={cardOptions}
+              disabled={!bankAccountId || cardOptions.length <= 1}
+            />
+          </Field>
+        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("transactions.form.category")} htmlFor="tx-cat">

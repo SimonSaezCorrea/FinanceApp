@@ -20,6 +20,7 @@ export const transactionSchema = z.object({
   receptor: z.string().nullable(),
   lugar: z.string().nullable(),
   bankAccountId: z.string().nullable(),
+  cardId: z.string().nullable(),
   installmentPlanId: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -38,6 +39,7 @@ export const createTransactionSchema = z.object({
   receptor: z.string().trim().max(200).optional(),
   lugar: z.string().trim().max(200).optional(),
   bankAccountId: z.string().optional(),
+  cardId: z.string().optional(),
 });
 export type CreateTransaction = z.infer<typeof createTransactionSchema>;
 
@@ -48,6 +50,7 @@ export type UpdateTransaction = z.infer<typeof updateTransactionSchema>;
 export const transactionFiltersSchema = z.object({
   type: transactionType.optional(),
   bankAccountId: z.string().optional(),
+  cardId: z.string().optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
 });
