@@ -4,7 +4,19 @@
     "loading": "Loading…",
     "welcome": "Personal finance dashboard"
   },
-  "common": { "cancel": "Cancel" },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "confirmDelete": "Delete this item? This action cannot be undone.",
+    "frequency": {
+      "DAILY": "Daily",
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly",
+      "YEARLY": "Yearly"
+    }
+  },
   "nav": {
     "dashboard": "Dashboard"
   },
@@ -162,12 +174,67 @@
   "installments": {
     "title": "Installments",
     "empty": "You don't have any installment plans yet.",
-    "progress": "{{paid}}/{{total}} paid"
+    "progress": "{{paid}}/{{total}} paid",
+    "new": "New plan",
+    "created": "Installment plan created",
+    "updated": "Plan updated",
+    "deleted": "Plan deleted",
+    "form": {
+      "title": "Title",
+      "frequency": "Frequency",
+      "frequencyInterval": "Every (number)"
+    },
+    "planCard": {
+      "installmentAmount": "Payment",
+      "nextDue": "Next: {{date}}",
+      "progress": "{{paid}}/{{total}} paid"
+    },
+    "calendar": {
+      "seq": "#",
+      "date": "Date",
+      "amount": "Amount",
+      "status": "Status",
+      "paid": "Paid",
+      "upcoming": "Upcoming",
+      "pending": "Pending"
+    }
   },
   "debts": {
     "title": "Debts",
     "empty": "You don't have any debts yet.",
-    "direction": { "OWED_TO_YOU": "Owed to you", "YOU_OWE": "You owe" }
+    "new": "New debt",
+    "created": "Debt created",
+    "direction": { "OWED_TO_YOU": "Owed to you", "YOU_OWE": "You owe" },
+    "kpi": {
+      "owedToYou": "Owed to you",
+      "youOwe": "You owe",
+      "balance": "Net balance"
+    },
+    "card": {
+      "installments": "{{paid}}/{{total}} paid",
+      "remaining": "${{amount}} remaining",
+      "markPaid": "Mark as paid",
+      "registerPayment": "Register payment"
+    },
+    "updated": "Debt updated",
+    "deleted": "Debt deleted",
+    "form": {
+      "direction": "Direction",
+      "counterparty": "Counterparty",
+      "amount": "Amount",
+      "currency": "Currency",
+      "openedAt": "Opened on",
+      "dueAt": "Due date (optional)",
+      "installments": "Number of installments",
+      "installmentAmount": "Amount per installment (optional)",
+      "frequency": "Frequency",
+      "frequencyInterval": "Every (number)",
+      "notes": "Notes",
+      "directionOptions": {
+        "OWED_TO_YOU": "Owed to me",
+        "YOU_OWE": "I owe"
+      }
+    }
   },
   "recurring": {
     "title": "Recurring",

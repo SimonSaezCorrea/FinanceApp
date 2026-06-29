@@ -8,7 +8,7 @@ import { debtsApi } from "../api/debtsApi";
 import { DebtsRoute } from "./DebtsRoute";
 
 vi.mock("../api/debtsApi", () => ({
-  debtsApi: { list: vi.fn() },
+  debtsApi: { list: vi.fn(), settle: vi.fn(), registerPayment: vi.fn(), create: vi.fn() },
 }));
 
 function renderRoute() {
@@ -38,6 +38,9 @@ describe("DebtsRoute", () => {
         interestApr: null,
         notes: null,
         settledAt: null,
+        totalInstallments: 1,
+        paidInstallments: 0,
+        installmentAmount: null,
         createdAt: "2026-01-01T00:00:00.000Z",
         updatedAt: "2026-01-01T00:00:00.000Z",
       },

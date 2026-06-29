@@ -55,6 +55,14 @@ export class DebtsController {
     await this.service.settle(user.id, id);
   }
 
+  @Post(":id/register-payment")
+  registerPayment(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+  ): Promise<debts.Debt> {
+    return this.service.registerPayment(user.id, id);
+  }
+
   @Delete(":id")
   @HttpCode(204)
   remove(@CurrentUser() user: AuthUser, @Param("id") id: string): Promise<void> {

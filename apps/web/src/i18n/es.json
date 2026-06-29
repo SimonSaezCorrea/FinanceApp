@@ -4,7 +4,19 @@
     "loading": "Cargando…",
     "welcome": "Panel de finanzas personales"
   },
-  "common": { "cancel": "Cancelar" },
+  "common": {
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "confirmDelete": "¿Eliminar este elemento? Esta acción no se puede deshacer.",
+    "frequency": {
+      "DAILY": "Diaria",
+      "WEEKLY": "Semanal",
+      "MONTHLY": "Mensual",
+      "YEARLY": "Anual"
+    }
+  },
   "nav": {
     "dashboard": "Panel"
   },
@@ -162,12 +174,67 @@
   "installments": {
     "title": "Cuotas",
     "empty": "Aún no tienes planes de cuotas.",
-    "progress": "{{paid}}/{{total}} pagadas"
+    "progress": "{{paid}}/{{total}} pagadas",
+    "new": "Nuevo plan",
+    "created": "Plan de cuotas creado",
+    "updated": "Plan actualizado",
+    "deleted": "Plan eliminado",
+    "form": {
+      "title": "Título",
+      "frequency": "Periodicidad",
+      "frequencyInterval": "Cada (número)"
+    },
+    "planCard": {
+      "installmentAmount": "Cuota",
+      "nextDue": "Próximo: {{date}}",
+      "progress": "{{paid}}/{{total}} pagadas"
+    },
+    "calendar": {
+      "seq": "#",
+      "date": "Fecha",
+      "amount": "Monto",
+      "status": "Estado",
+      "paid": "Pagada",
+      "upcoming": "Próxima",
+      "pending": "Pendiente"
+    }
   },
   "debts": {
     "title": "Deudas",
     "empty": "Aún no tienes deudas.",
-    "direction": { "OWED_TO_YOU": "Te deben", "YOU_OWE": "Debes" }
+    "new": "Nueva deuda",
+    "created": "Deuda creada",
+    "direction": { "OWED_TO_YOU": "Te deben", "YOU_OWE": "Debes" },
+    "kpi": {
+      "owedToYou": "Te deben",
+      "youOwe": "Debes",
+      "balance": "Balance neto"
+    },
+    "card": {
+      "installments": "{{paid}}/{{total}} pagadas",
+      "remaining": "${{amount}} restante",
+      "markPaid": "Marcar pagada",
+      "registerPayment": "Registrar pago"
+    },
+    "updated": "Deuda actualizada",
+    "deleted": "Deuda eliminada",
+    "form": {
+      "direction": "Dirección",
+      "counterparty": "Contraparte",
+      "amount": "Monto",
+      "currency": "Moneda",
+      "openedAt": "Fecha de apertura",
+      "dueAt": "Vencimiento (opcional)",
+      "installments": "Número de cuotas",
+      "installmentAmount": "Monto por cuota (opcional)",
+      "frequency": "Periodicidad",
+      "frequencyInterval": "Cada (número)",
+      "notes": "Notas",
+      "directionOptions": {
+        "OWED_TO_YOU": "Te deben",
+        "YOU_OWE": "Debes"
+      }
+    }
   },
   "recurring": {
     "title": "Recurrentes",

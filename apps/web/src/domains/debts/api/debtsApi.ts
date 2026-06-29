@@ -19,5 +19,8 @@ export const debtsApi = {
 
   settle: (id: string) => apiFetch<void>(`/debts/${id}/settle`, { method: "POST" }),
 
+  registerPayment: (id: string) =>
+    apiFetch<debts.Debt>(`/debts/${id}/register-payment`, { method: "POST" }),
+
   remove: (id: string) => apiFetch<void>(`/debts/${id}`, { method: "DELETE" }),
 };

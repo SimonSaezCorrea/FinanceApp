@@ -211,10 +211,12 @@ model InstallmentPlan {
   totalPrincipal   Decimal  @db.Decimal(18, 4)
   installmentCount Int
   startDate        DateTime
-  currency         String   @default("USD")
-  notes            String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  currency          String               @default("USD")
+  frequency         InstallmentFrequency @default(MONTHLY)
+  frequencyInterval Int                  @default(1)
+  notes             String?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 
   user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments     InstallmentPayment[]
@@ -241,6 +243,13 @@ model InstallmentPayment {
   @@index([dueDate])
 }
 
+enum InstallmentFrequency {
+  DAILY
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
 enum DebtDirection {
   OWED_TO_YOU
   YOU_OWE
@@ -257,9 +266,14 @@ model Debt {
   dueAt        DateTime?
   interestApr  Decimal?      @db.Decimal(8, 4)
   notes        String?
-  settledAt    DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  settledAt         DateTime?
+  totalInstallments Int                  @default(1)
+  paidInstallments  Int                  @default(0)
+  installmentAmount Decimal?             @db.Decimal(18, 4)
+  frequency         InstallmentFrequency @default(MONTHLY)
+  frequencyInterval Int                  @default(1)
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -6,6 +6,7 @@ import {
   HttpCode,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   UseGuards,
 } from "@nestjs/common";
@@ -52,6 +53,16 @@ export class InstallmentsController {
     @Param("seq", ParseIntPipe) seq: number,
   ): Promise<void> {
     return this.service.pay(user.id, id, seq);
+  }
+
+  @Patch(":id")
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+    @Body(new ZodValidationPipe(installments.updateInstallmentPlanSchema))
+    body: installments.UpdateInstallmentPlan,
+  ): Promise<installments.InstallmentPlan> {
+    return this.service.update(user.id, id, body);
   }
 
   @Delete(":id")

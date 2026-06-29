@@ -1,4 +1,4 @@
-import { NotFoundException } from "@nestjs/common";
+import { ConflictException, NotFoundException } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 
 import { DebtsService } from "./debts.service";
@@ -16,6 +16,9 @@ const row = {
   interestApr: { toString: () => "5.25" },
   notes: null,
   settledAt: null,
+  totalInstallments: 1,
+  paidInstallments: 0,
+  installmentAmount: null,
   createdAt: new Date("2026-01-01T00:00:00Z"),
   updatedAt: new Date("2026-01-02T00:00:00Z"),
 };
@@ -39,6 +42,9 @@ describe("DebtsService", () => {
       interestApr: "5.2500",
       notes: null,
       settledAt: null,
+      totalInstallments: 1,
+      paidInstallments: 0,
+      installmentAmount: null,
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-02T00:00:00.000Z",
     });
@@ -53,6 +59,7 @@ describe("DebtsService", () => {
       principal: "1240.5",
       currency: "USD",
       openedAt: "2026-01-01T00:00:00.000Z",
+      totalInstallments: 1,
     });
     expect(create.mock.calls[0]![1]).toMatchObject({ currency: "USD" });
   });
@@ -77,5 +84,54 @@ describe("DebtsService", () => {
   it("throws NotFound when removing a missing debt", async () => {
     const svc = makeService({ remove: vi.fn().mockResolvedValue(false) });
     await expect(svc.remove("u1", "nope")).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  describe("registerPayment", () => {
+    it("increments paidInstallments by 1", async () => {
+      const installmentRow = { ...row, totalInstallments: 3, paidInstallments: 1 };
+      const updatedRow = { ...installmentRow, paidInstallments: 2 };
+      const svc = makeService({
+        findOne: vi.fn().mockResolvedValue(installmentRow),
+        update: vi.fn().mockResolvedValue(updatedRow),
+      });
+      const result = await svc.registerPayment("u1", "d1");
+      expect(result.paidInstallments).toBe(2);
+    });
+
+    it("auto-settles when last payment is registered", async () => {
+      const installmentRow = { ...row, totalInstallments: 3, paidInstallments: 2 };
+      const settledRow = {
+        ...installmentRow,
+        paidInstallments: 3,
+        settledAt: new Date(),
+      };
+      const update = vi.fn().mockResolvedValue(settledRow);
+      const svc = makeService({
+        findOne: vi.fn().mockResolvedValue(installmentRow),
+        update,
+      });
+      await svc.registerPayment("u1", "d1");
+      expect(update.mock.calls[0]?.[2]).toMatchObject({
+        paidInstallments: 3,
+        settledAt: expect.any(Date),
+      });
+    });
+
+    it("throws ConflictException if debt already settled", async () => {
+      const settledRow = { ...row, settledAt: new Date() };
+      const svc = makeService({ findOne: vi.fn().mockResolvedValue(settledRow) });
+      await expect(svc.registerPayment("u1", "d1")).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it("throws ConflictException if all installments already paid", async () => {
+      const fullPaidRow = { ...row, totalInstallments: 3, paidInstallments: 3 };
+      const svc = makeService({ findOne: vi.fn().mockResolvedValue(fullPaidRow) });
+      await expect(svc.registerPayment("u1", "d1")).rejects.toBeInstanceOf(ConflictException);
+    });
+
+    it("throws NotFound if debt does not exist", async () => {
+      const svc = makeService({ findOne: vi.fn().mockResolvedValue(null) });
+      await expect(svc.registerPayment("u1", "nope")).rejects.toBeInstanceOf(NotFoundException);
+    });
   });
 });

@@ -43,6 +43,17 @@ export class InstallmentsRepository {
     return result.count > 0;
   }
 
+  update(userId: string, id: string, data: Prisma.InstallmentPlanUpdateInput) {
+    return this.prisma.installmentPlan.findFirst({ where: { id, userId } }).then((existing) => {
+      if (!existing) return null;
+      return this.prisma.installmentPlan.update({
+        where: { id },
+        data,
+        include: { payments: { orderBy: { sequence: "asc" } } },
+      });
+    });
+  }
+
   async remove(userId: string, id: string): Promise<boolean> {
     const result = await this.prisma.installmentPlan.deleteMany({ where: { id, userId } });
     return result.count > 0;

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { moneyString } from "../common/money";
+import { installmentFrequency } from "../installments";
 
 /** Debts domain contracts (Debt). Money as decimal strings. */
 
@@ -18,6 +19,11 @@ export const debtSchema = z.object({
   interestApr: moneyString.nullable(),
   notes: z.string().nullable(),
   settledAt: z.string().nullable(),
+  totalInstallments: z.number().int().min(1),
+  paidInstallments: z.number().int().min(0),
+  installmentAmount: moneyString.nullable(),
+  frequency: installmentFrequency,
+  frequencyInterval: z.number().int().positive(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -32,6 +38,10 @@ export const createDebtSchema = z.object({
   dueAt: z.string().datetime().optional(),
   interestApr: moneyString.optional(),
   notes: z.string().trim().max(500).optional(),
+  totalInstallments: z.number().int().min(1).default(1),
+  installmentAmount: moneyString.optional(),
+  frequency: installmentFrequency.default("MONTHLY"),
+  frequencyInterval: z.number().int().min(1).max(999).default(1),
 });
 export type CreateDebt = z.infer<typeof createDebtSchema>;
 
