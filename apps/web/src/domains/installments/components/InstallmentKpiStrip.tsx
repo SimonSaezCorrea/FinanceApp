@@ -57,33 +57,19 @@ export function InstallmentKpiStrip({ plans }: InstallmentKpiStripProps) {
   return (
     <div className="flex flex-col gap-4">
       {kpis.map((kpi) => (
-        <div key={kpi.currency} className="grid grid-cols-3 gap-3">
+        <div key={kpi.currency} className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1 rounded-lg border bg-card p-4">
             <span className="text-xs text-muted-foreground">{t("installments.kpi.monthly")}</span>
-            <span className="text-xl font-semibold tabular-nums tracking-tight">
+            <span className="text-xl font-semibold tabular-nums tracking-tight text-destructive">
               {formatMoney(kpi.monthly, { locale: i18n.language, currency: kpi.currency })}
             </span>
           </div>
 
           <div className="flex flex-col gap-1 rounded-lg border bg-card p-4">
             <span className="text-xs text-muted-foreground">{t("installments.kpi.pending")}</span>
-            <span className="text-xl font-semibold tabular-nums tracking-tight">
+            <span className="text-xl font-semibold tabular-nums tracking-tight text-destructive">
               {formatMoney(kpi.pending, { locale: i18n.language, currency: kpi.currency })}
             </span>
-          </div>
-
-          <div className="flex flex-col gap-1 rounded-lg border bg-card p-4">
-            <span className="text-xs text-muted-foreground">{t("installments.kpi.nextDueDate")}</span>
-            {kpi.nextDueDate ? (
-              <span className="text-xl font-semibold tabular-nums tracking-tight text-accent">
-                {new Date(kpi.nextDueDate).toLocaleDateString(i18n.language, {
-                  day: "numeric",
-                  month: "short",
-                })}
-              </span>
-            ) : (
-              <span className="text-xl font-semibold text-muted-foreground">—</span>
-            )}
           </div>
         </div>
       ))}

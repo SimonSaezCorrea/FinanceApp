@@ -53,7 +53,7 @@ export function TransactionTable({ transactions: txs, accounts }: TransactionTab
             ? (accountMap.get(tx.bankAccountId) ?? t("transactions.table.noAccount"))
             : t("transactions.table.noAccount");
           const isIncome = tx.type === "INCOME";
-          const amountColor = isIncome ? "text-success" : "text-accent";
+          const amountColor = isIncome ? "text-success" : "text-destructive";
 
           return (
             <TR key={tx.id}>
@@ -68,7 +68,7 @@ export function TransactionTable({ transactions: txs, accounts }: TransactionTab
                 </span>
               </TD>
               <TD>
-                <Badge variant={isIncome ? "success" : "accent"}>
+                <Badge variant={isIncome ? "success" : "danger"}>
                   {t(`transactions.type.${tx.type}`)}
                 </Badge>
               </TD>

@@ -53,7 +53,6 @@ export function InstallmentsRoute() {
   const [editingPlan, setEditingPlan] = useState<installments.InstallmentPlan | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [planFilter, setPlanFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState(true);
 
   const list = data ?? [];
@@ -86,10 +85,9 @@ export function InstallmentsRoute() {
         if (statusFilter === "paid") return p.paidAt !== null;
         return true;
       })
-      .filter((p) => planFilter === "all" || p.planId === planFilter)
       .filter((p) => !dateFilter || new Date(p.dueDate) <= threeMonths)
       .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime());
-  }, [allFlat, statusFilter, planFilter, dateFilter]);
+  }, [allFlat, statusFilter, dateFilter]);
 
   const statusOptions: { value: StatusFilter; label: string }[] = [
     { value: "all", label: t("installments.filters.all") },
@@ -152,18 +150,6 @@ export function InstallmentsRoute() {
                 onChange={setStatusFilter}
                 options={statusOptions}
               />
-              <select
-                value={planFilter}
-                onChange={(e) => setPlanFilter(e.target.value)}
-                className="rounded-md border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="all">{t("installments.filters.allPlans")}</option>
-                {list.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                  </option>
-                ))}
-              </select>
             </div>
             <button
               type="button"

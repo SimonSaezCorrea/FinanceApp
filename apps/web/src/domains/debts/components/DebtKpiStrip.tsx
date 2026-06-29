@@ -36,7 +36,7 @@ export function DebtKpiStrip({ debts: list }: DebtKpiStripProps) {
             </div>
             <div className="flex flex-col gap-1">
               <span className="text-xs text-muted-foreground">{t("debts.kpi.youOwe")}</span>
-              <span className="text-lg font-semibold tabular-nums text-accent">
+              <span className="text-lg font-semibold tabular-nums text-destructive">
                 {kpi.totalYouOwe === "0.0000"
                   ? "—"
                   : formatMoney(kpi.totalYouOwe, { locale: i18n.language, currency: kpi.currency })}
@@ -47,7 +47,7 @@ export function DebtKpiStrip({ debts: list }: DebtKpiStripProps) {
               <span
                 className={[
                   "text-lg font-semibold tabular-nums",
-                  Number.parseFloat(kpi.netBalance) >= 0 ? "text-success" : "text-accent",
+                  Number.parseFloat(kpi.netBalance) >= 0 ? "text-success" : "text-destructive",
                 ].join(" ")}
               >
                 {formatMoney(kpi.netBalance, { locale: i18n.language, currency: kpi.currency })}

@@ -65,14 +65,14 @@ export function TransactionKpiStrip({ transactions: txs }: TransactionKpiStripPr
               label={t("transactions.kpi.expense")}
               value={g.totalExpense}
               currency={g.currency}
-              colorClass="text-accent"
+              colorClass="text-destructive"
             />
             <KpiCard
               label={t("transactions.kpi.balance")}
               value={g.netBalance}
               currency={g.currency}
               colorClass={
-                parseFloat(g.netBalance) < 0 ? "text-accent" : "text-success"
+                parseFloat(g.netBalance) < 0 ? "text-destructive" : "text-success"
               }
             />
           </div>

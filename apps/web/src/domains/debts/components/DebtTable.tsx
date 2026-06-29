@@ -119,7 +119,7 @@ export function DebtTable({
                     : t("debts.table.noDue")}
               </TD>
 
-              <TD numeric className={isOwedToYou ? "text-success" : "text-accent"}>
+              <TD numeric className={isOwedToYou ? "text-success" : "text-destructive"}>
                 {isOwedToYou ? "+" : "−"}
                 {formatMoney(debt.principal, {
                   currency: debt.currency,

@@ -28,7 +28,7 @@ export function MonthFlowCard({ flow }: { flow: MonthFlow }) {
             <ArrowDownLeft className="h-3.5 w-3.5 text-destructive" aria-hidden />
             {t("transactions.type.EXPENSE")}
           </span>
-          <span className="tabular-nums text-lg font-semibold">{fmt(flow.expense)}</span>
+          <span className="tabular-nums text-lg font-semibold text-destructive">{fmt(flow.expense)}</span>
         </div>
       </div>
 

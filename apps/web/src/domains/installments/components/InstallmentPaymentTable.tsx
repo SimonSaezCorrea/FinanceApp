@@ -82,16 +82,15 @@ function paymentDateClass(dueDate: string, paidAt: string | null): string {
   if (paidAt !== null) return "text-muted-foreground";
   const p = proximity(dueDate);
   if (p === "overdue") return "font-medium text-destructive";
-  if (p === "soon") return "font-medium text-accent";
+  if (p === "soon") return "font-medium text-destructive";
   return "text-success";
 }
 
-type BadgeVariant = "success" | "accent" | "danger";
+type BadgeVariant = "success" | "danger";
 
 function planBadgeVariant(nextDueDate: string): BadgeVariant {
   const p = proximity(nextDueDate);
-  if (p === "overdue") return "danger";
-  if (p === "soon") return "accent";
+  if (p === "overdue" || p === "soon") return "danger";
   return "success";
 }
 
