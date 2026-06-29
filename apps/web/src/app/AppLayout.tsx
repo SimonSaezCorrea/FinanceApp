@@ -38,7 +38,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh">
-      <aside className="hidden w-60 shrink-0 flex-col border-r bg-card p-4 md:flex">
+      <aside className="hidden w-60 shrink-0 flex-col border-r bg-card p-4 md:flex sticky top-0 h-dvh overflow-y-auto">
         <div className="flex items-center gap-2 px-2 py-3">
           <Receipt className="h-5 w-5 text-brand" aria-hidden />
           <span className="text-lg font-semibold">{t("brand.name")}</span>
