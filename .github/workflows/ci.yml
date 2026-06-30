@@ -27,6 +27,8 @@ jobs:
       # Architecture boundaries: web↛api/db, api↛web, packages↛apps (SC-004/SC-007).
       - run: pnpm check:boundaries
 
+      - run: pnpm exec turbo run lint
+
       # Build shared packages + apps. Turbo only rebuilds what changed; on PRs we
       # scope to the apps affected since origin/main so api/web build independently.
       - run: pnpm exec turbo run typecheck test build --filter="...[origin/main]"
