@@ -33,9 +33,9 @@ describe("AuthService", () => {
 
   it("register throws ConflictException when email exists", async () => {
     const svc = makeService({ findByEmail: vi.fn().mockResolvedValue({ id: "x" }) });
-    await expect(svc.register({ email: "a@b.com", password: "password123" })).rejects.toBeInstanceOf(
-      ConflictException,
-    );
+    await expect(
+      svc.register({ email: "a@b.com", password: "password123" }),
+    ).rejects.toBeInstanceOf(ConflictException);
   });
 
   it("validateCredentials accepts a correct password and rejects a wrong one", async () => {
@@ -44,9 +44,9 @@ describe("AuthService", () => {
       findByEmail: vi.fn().mockResolvedValue({ id: "u1", email: "a@b.com", passwordHash }),
     });
 
-    await expect(svc.validateCredentials({ email: "a@b.com", password: "secret123" })).resolves.toEqual(
-      { id: "u1", email: "a@b.com" },
-    );
+    await expect(
+      svc.validateCredentials({ email: "a@b.com", password: "secret123" }),
+    ).resolves.toEqual({ id: "u1", email: "a@b.com" });
     await expect(
       svc.validateCredentials({ email: "a@b.com", password: "wrong" }),
     ).rejects.toBeInstanceOf(UnauthorizedException);

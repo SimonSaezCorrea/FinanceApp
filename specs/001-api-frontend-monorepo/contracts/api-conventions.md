@@ -34,16 +34,16 @@ The API never returns localized prose. Error body:
 
 ## Per-domain endpoint map (CRUD baseline)
 
-| Domain | Endpoints (under `/api/v1`) |
-|--------|------------------------------|
-| accounts | `GET/POST /accounts`, `GET/PATCH/DELETE /accounts/:id` |
-| transactions | `GET/POST /transactions`, `GET/PATCH/DELETE /transactions/:id` (filter by date/account/type) |
+| Domain       | Endpoints (under `/api/v1`)                                                                                |
+| ------------ | ---------------------------------------------------------------------------------------------------------- |
+| accounts     | `GET/POST /accounts`, `GET/PATCH/DELETE /accounts/:id`                                                     |
+| transactions | `GET/POST /transactions`, `GET/PATCH/DELETE /transactions/:id` (filter by date/account/type)               |
 | installments | `GET/POST /installments`, `GET/PATCH/DELETE /installments/:id`, `POST /installments/:id/payments/:seq/pay` |
-| debts | `GET/POST /debts`, `GET/PATCH/DELETE /debts/:id`, `POST /debts/:id/settle` |
-| savings | `GET/POST /savings/goals`, `GET/PATCH/DELETE /savings/goals/:id`, `POST /savings/entries` |
-| investments | `GET/POST /investments`, `GET/PATCH/DELETE /investments/:id`, `GET /investments/etf/:symbol/quote` |
-| import | `POST /import/transactions` (multipart Excel; parsed server-side) |
-| auth | see Auth section |
+| debts        | `GET/POST /debts`, `GET/PATCH/DELETE /debts/:id`, `POST /debts/:id/settle`                                 |
+| savings      | `GET/POST /savings/goals`, `GET/PATCH/DELETE /savings/goals/:id`, `POST /savings/entries`                  |
+| investments  | `GET/POST /investments`, `GET/PATCH/DELETE /investments/:id`, `GET /investments/etf/:symbol/quote`         |
+| import       | `POST /import/transactions` (multipart Excel; parsed server-side)                                          |
+| auth         | see Auth section                                                                                           |
 
 ## Versioning
 

@@ -105,10 +105,7 @@ export function DebtTable({
               </TD>
 
               <TD
-                className={cn(
-                  "text-muted-foreground",
-                  isOverdue && "font-medium text-destructive",
-                )}
+                className={cn("text-muted-foreground", isOverdue && "font-medium text-destructive")}
               >
                 {isSettled
                   ? t("debts.card.settledOn", {

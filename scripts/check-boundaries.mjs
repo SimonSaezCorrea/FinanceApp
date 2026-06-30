@@ -17,7 +17,13 @@ const RULES = [
   {
     name: "web ↛ backend / DB",
     root: "apps/web/src",
-    forbidden: [/@finance\/api/, /apps\/api/, /["']@prisma\/client["']/, /["']\.?\.?\/?prisma["']/, /from ["']@finance\/api/],
+    forbidden: [
+      /@finance\/api/,
+      /apps\/api/,
+      /["']@prisma\/client["']/,
+      /["']\.?\.?\/?prisma["']/,
+      /from ["']@finance\/api/,
+    ],
   },
   {
     name: "api ↛ frontend",
@@ -51,7 +57,8 @@ function walk(dir) {
   return out;
 }
 
-const IMPORT_RE = /\b(?:import|export)\b[^;]*?\bfrom\s*["']([^"']+)["']|\brequire\(\s*["']([^"']+)["']\s*\)/g;
+const IMPORT_RE =
+  /\b(?:import|export)\b[^;]*?\bfrom\s*["']([^"']+)["']|\brequire\(\s*["']([^"']+)["']\s*\)/g;
 
 const violations = [];
 for (const rule of RULES) {

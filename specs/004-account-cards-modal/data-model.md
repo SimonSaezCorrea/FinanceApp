@@ -7,31 +7,31 @@
 
 ## Card (new)
 
-| Field | Type | Notes |
-|-------|------|-------|
-| id | String (cuid) | |
-| accountId | String | FK → BankAccount, `onDelete: Cascade` |
-| userId | String | owner; scoping (denormalized for direct scoped queries) |
-| name | String | |
-| kind | `CardKind` | CREDIT or DEBIT |
-| last4 | String | **exactly 4 digits** — the only PAN data stored |
-| expiryMonth | Int | 1–12 |
-| expiryYear | Int | e.g. 2028 |
-| createdAt / updatedAt | DateTime | |
-| limits | CardLimit[] | only for credit cards |
+| Field                 | Type          | Notes                                                   |
+| --------------------- | ------------- | ------------------------------------------------------- |
+| id                    | String (cuid) |                                                         |
+| accountId             | String        | FK → BankAccount, `onDelete: Cascade`                   |
+| userId                | String        | owner; scoping (denormalized for direct scoped queries) |
+| name                  | String        |                                                         |
+| kind                  | `CardKind`    | CREDIT or DEBIT                                         |
+| last4                 | String        | **exactly 4 digits** — the only PAN data stored         |
+| expiryMonth           | Int           | 1–12                                                    |
+| expiryYear            | Int           | e.g. 2028                                               |
+| createdAt / updatedAt | DateTime      |                                                         |
+| limits                | CardLimit[]   | only for credit cards                                   |
 
 Indexes: `@@index([accountId])`, `@@index([userId])`.
 
 ## CardLimit (new)
 
-| Field | Type | Notes |
-|-------|------|-------|
-| id | String (cuid) | |
-| cardId | String | FK → Card, `onDelete: Cascade` |
-| currency | String | ISO code |
-| limit | Decimal(18,4) | credit limit |
-| used | Decimal(18,4) | used amount |
-| | | `@@unique([cardId, currency])` |
+| Field    | Type          | Notes                          |
+| -------- | ------------- | ------------------------------ |
+| id       | String (cuid) |                                |
+| cardId   | String        | FK → Card, `onDelete: Cascade` |
+| currency | String        | ISO code                       |
+| limit    | Decimal(18,4) | credit limit                   |
+| used     | Decimal(18,4) | used amount                    |
+|          |               | `@@unique([cardId, currency])` |
 
 ## Validation rules
 

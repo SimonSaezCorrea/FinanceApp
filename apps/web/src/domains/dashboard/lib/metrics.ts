@@ -23,7 +23,9 @@ export function netWorth(list: accounts.BankAccount[]): {
 }
 
 /** Other-currency balances (chips alongside the primary hero). */
-export function secondaryTotals(list: accounts.BankAccount[]): { currency: string; total: string }[] {
+export function secondaryTotals(
+  list: accounts.BankAccount[],
+): { currency: string; total: string }[] {
   const map = new Map<string, string[]>();
   for (const a of list) {
     if (a.currency === PRIMARY_CURRENCY) continue;
@@ -140,5 +142,7 @@ export function upcomingPayments(
     });
   }
 
-  return out.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, limit);
+  return out
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, limit);
 }

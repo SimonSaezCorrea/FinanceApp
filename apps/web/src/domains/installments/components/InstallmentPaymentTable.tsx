@@ -1,5 +1,15 @@
 import { Fragment, useMemo, useState } from "react";
-import { ChevronRight, CircleCheck, Monitor, Package, Pencil, Smartphone, Trash2, Tv, Undo2 } from "lucide-react";
+import {
+  ChevronRight,
+  CircleCheck,
+  Monitor,
+  Package,
+  Pencil,
+  Smartphone,
+  Trash2,
+  Tv,
+  Undo2,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -198,8 +208,7 @@ export function InstallmentPaymentTable({
                   <div className="flex flex-col gap-0.5">
                     <span className="font-semibold">{group.planTitle}</span>
                     <span className="text-xs text-muted-foreground">
-                      {group.planInstallmentCount}{" "}
-                      {t("installments.planCard.installments")} ·{" "}
+                      {group.planInstallmentCount} {t("installments.planCard.installments")} ·{" "}
                       {formatMoney(group.monthlyAmount, { locale, currency: group.currency })}
                       {t("installments.planCard.perMonth")}
                     </span>
@@ -235,7 +244,10 @@ export function InstallmentPaymentTable({
                   <div className="flex items-center justify-end gap-0.5">
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); onEditPlan(group.planId); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditPlan(group.planId);
+                      }}
                       aria-label={t("common.edit")}
                       className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     >
@@ -243,7 +255,10 @@ export function InstallmentPaymentTable({
                     </button>
                     <button
                       type="button"
-                      onClick={(e) => { e.stopPropagation(); onDeletePlan(group.planId); }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDeletePlan(group.planId);
+                      }}
                       aria-label={t("common.delete")}
                       className="rounded p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
                     >
@@ -267,7 +282,12 @@ export function InstallmentPaymentTable({
                           total: p.planInstallmentCount,
                         })}
                       </TD>
-                      <TD className={cn("py-2 text-sm tabular-nums", paymentDateClass(p.dueDate, p.paidAt))}>
+                      <TD
+                        className={cn(
+                          "py-2 text-sm tabular-nums",
+                          paymentDateClass(p.dueDate, p.paidAt),
+                        )}
+                      >
                         {fmtDate(p.dueDate, locale)}
                       </TD>
                       <TD className="py-2">

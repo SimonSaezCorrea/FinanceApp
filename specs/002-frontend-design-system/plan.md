@@ -38,16 +38,16 @@ styling source; `pnpm check:boundaries` stays green (web remains HTTP-only, no b
 
 ## Constitution Check
 
-*GATE: pass before Phase 0; re-check after design.*
+_GATE: pass before Phase 0; re-check after design._
 
-| Principle | Impact | Verdict |
-|-----------|--------|---------|
-| I. Money Precision | Adds numeric/tabular **presentation** only; computation/transport unchanged | ✅ Unaffected |
-| II. Per-User Isolation | UI-only; no data access change | ✅ Unaffected |
-| III. i18n Parity | New UI strings (theme labels) added to es+en | ✅ Honored |
-| IV. Test-First | Vitest tests for theme + primitives | ✅ Honored |
-| V. SDD & Living Memory | This is the SDD artifact; CLAUDE.md gains a design-system note on approval | ✅ Honored |
-| Architecture norms | Stays domain-first; shared UI in `apps/web/src/shared/ui`; boundaries unaffected | ✅ Honored |
+| Principle              | Impact                                                                           | Verdict       |
+| ---------------------- | -------------------------------------------------------------------------------- | ------------- |
+| I. Money Precision     | Adds numeric/tabular **presentation** only; computation/transport unchanged      | ✅ Unaffected |
+| II. Per-User Isolation | UI-only; no data access change                                                   | ✅ Unaffected |
+| III. i18n Parity       | New UI strings (theme labels) added to es+en                                     | ✅ Honored    |
+| IV. Test-First         | Vitest tests for theme + primitives                                              | ✅ Honored    |
+| V. SDD & Living Memory | This is the SDD artifact; CLAUDE.md gains a design-system note on approval       | ✅ Honored    |
+| Architecture norms     | Stays domain-first; shared UI in `apps/web/src/shared/ui`; boundaries unaffected | ✅ Honored    |
 
 New deps (`lucide-react`, `@fontsource-variable/inter`) + a styling convention → CLAUDE.md update at
 memory-sync (no constitution bump; frontend convention, not a principle change).
@@ -106,9 +106,9 @@ a pure variable swap (no `dark:` variants in component classes).
 
 ## Complexity Tracking
 
-| Decision | Why | Rejected alternative |
-|----------|-----|----------------------|
-| Custom ThemeProvider (not next-themes) | SPA/Vite; tiny scope; avoids Next coupling | next-themes is Next-oriented, extra dep |
-| CSS-variable tokens (not Tailwind `dark:` variants) | One swap re-themes everything; components stay theme-agnostic | `dark:` duplicates every color in markup |
-| Inter + Lucide | Proven, legible, tree-shakeable, self-hostable | Icon font / multiple type families add weight + inconsistency |
-| App-local UI (no `packages/ui`) | Only `apps/web` consumes it; keeps boundaries simple | A shared UI package adds indirection with no second consumer |
+| Decision                                            | Why                                                           | Rejected alternative                                          |
+| --------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- |
+| Custom ThemeProvider (not next-themes)              | SPA/Vite; tiny scope; avoids Next coupling                    | next-themes is Next-oriented, extra dep                       |
+| CSS-variable tokens (not Tailwind `dark:` variants) | One swap re-themes everything; components stay theme-agnostic | `dark:` duplicates every color in markup                      |
+| Inter + Lucide                                      | Proven, legible, tree-shakeable, self-hostable                | Icon font / multiple type families add weight + inconsistency |
+| App-local UI (no `packages/ui`)                     | Only `apps/web` consumes it; keeps boundaries simple          | A shared UI package adds indirection with no second consumer  |

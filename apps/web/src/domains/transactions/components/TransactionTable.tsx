@@ -66,7 +66,9 @@ export function TransactionTable({ transactions: txs, accounts }: TransactionTab
               <TD>
                 <span className="text-sm">
                   {tx.category ?? (
-                    <span className="text-muted-foreground">{t("transactions.table.noCategory")}</span>
+                    <span className="text-muted-foreground">
+                      {t("transactions.table.noCategory")}
+                    </span>
                   )}
                 </span>
               </TD>

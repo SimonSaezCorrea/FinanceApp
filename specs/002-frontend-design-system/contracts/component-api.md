@@ -14,18 +14,18 @@ Every primitive in `apps/web/src/shared/ui` follows these rules so the library s
 
 ## Primitives & their contracts
 
-| Component | Key props | Notes |
-|-----------|-----------|-------|
-| `Button` | `variant: primary\|secondary\|outline\|ghost\|destructive`, `size: sm\|md\|lg`, `disabled` | default `primary`/`md` |
-| `Input` | native input props | token border/ring; error styling via `aria-invalid` |
-| `Label` | `htmlFor` | pairs with a control |
-| `Field` | `label`, `error?`, `htmlFor` | composes Label + control slot + error text (`text-destructive`) |
-| `Card` (+ `Header/Title/Content`) | `className` | raised `bg-card` surface |
-| `Badge` | `variant: neutral\|success\|warning\|danger\|info` | status pills (semantic tokens) |
-| `Table` (+ `THead/TR/TH/TD`) | `className` | numeric cells `text-right tabular-nums` |
-| `PageHeader` | `title`, `actions?` | consistent screen heading + action slot |
-| `EmptyState` / `LoadingState` / `ErrorState` | `title`/`message`/`icon?` | standard data-state patterns |
-| `ThemeToggle` | — | cycles/sets dark·light·system via `useTheme` |
+| Component                                    | Key props                                                                                  | Notes                                                           |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------- |
+| `Button`                                     | `variant: primary\|secondary\|outline\|ghost\|destructive`, `size: sm\|md\|lg`, `disabled` | default `primary`/`md`                                          |
+| `Input`                                      | native input props                                                                         | token border/ring; error styling via `aria-invalid`             |
+| `Label`                                      | `htmlFor`                                                                                  | pairs with a control                                            |
+| `Field`                                      | `label`, `error?`, `htmlFor`                                                               | composes Label + control slot + error text (`text-destructive`) |
+| `Card` (+ `Header/Title/Content`)            | `className`                                                                                | raised `bg-card` surface                                        |
+| `Badge`                                      | `variant: neutral\|success\|warning\|danger\|info`                                         | status pills (semantic tokens)                                  |
+| `Table` (+ `THead/TR/TH/TD`)                 | `className`                                                                                | numeric cells `text-right tabular-nums`                         |
+| `PageHeader`                                 | `title`, `actions?`                                                                        | consistent screen heading + action slot                         |
+| `EmptyState` / `LoadingState` / `ErrorState` | `title`/`message`/`icon?`                                                                  | standard data-state patterns                                    |
+| `ThemeToggle`                                | —                                                                                          | cycles/sets dark·light·system via `useTheme`                    |
 
 ## Theming contract
 

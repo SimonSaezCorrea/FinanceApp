@@ -28,14 +28,14 @@ Replace the bare `TransactionsRoute.tsx` list with a production-ready Transactio
 
 ## Constitution Check
 
-| Principle | Impact | Verdict |
-|-----------|--------|---------|
-| I. Money Precision | KPI sums use `Decimal` from `@finance/money`; amounts displayed via `formatMoney` | ✅ |
-| II. Per-User Isolation | All data fetched via existing scoped hooks (`useTransactions`, `useAccounts`); no unscoped queries | ✅ |
-| III. i18n Parity | All new labels added to both `es.json` and `en.json` under `transactions.*` | ✅ |
-| IV. Test-First | `summarizeByCurrency` and `categoryIcon` tested before implementation; component tests for key renders | ✅ |
-| V. SDD & Living Memory | This plan → tasks → implement chain; CLAUDE.md updated with context | ✅ |
-| Architecture norms | Stays in `domains/transactions`; imports only from `shared/ui` and `@finance/contracts`; no circular deps | ✅ |
+| Principle              | Impact                                                                                                    | Verdict |
+| ---------------------- | --------------------------------------------------------------------------------------------------------- | ------- |
+| I. Money Precision     | KPI sums use `Decimal` from `@finance/money`; amounts displayed via `formatMoney`                         | ✅      |
+| II. Per-User Isolation | All data fetched via existing scoped hooks (`useTransactions`, `useAccounts`); no unscoped queries        | ✅      |
+| III. i18n Parity       | All new labels added to both `es.json` and `en.json` under `transactions.*`                               | ✅      |
+| IV. Test-First         | `summarizeByCurrency` and `categoryIcon` tested before implementation; component tests for key renders    | ✅      |
+| V. SDD & Living Memory | This plan → tasks → implement chain; CLAUDE.md updated with context                                       | ✅      |
+| Architecture norms     | Stays in `domains/transactions`; imports only from `shared/ui` and `@finance/contracts`; no circular deps | ✅      |
 
 ## Project Structure
 
@@ -79,9 +79,9 @@ apps/web/src/i18n/
 
 ## Complexity Tracking
 
-| Decision | Why | Rejected |
-|----------|-----|----------|
-| Card filter resolves to parent `bankAccountId` | No API change needed; all card txs booked to parent account | Add `cardId` to transactions contract (scope creep) |
-| KPI computation client-side | Zero extra API calls; data already fetched for the filtered period | New aggregation endpoint (unnecessary round-trip) |
-| "Convert currency" toggle deferred | No exchange-rate source in system today | Implement with hardcoded rates (unreliable, misleading) |
-| Static category icon map | Lucide already installed; zero new deps | Dynamic icon registry (over-engineering for free-text slugs) |
+| Decision                                       | Why                                                                | Rejected                                                     |
+| ---------------------------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------ |
+| Card filter resolves to parent `bankAccountId` | No API change needed; all card txs booked to parent account        | Add `cardId` to transactions contract (scope creep)          |
+| KPI computation client-side                    | Zero extra API calls; data already fetched for the filtered period | New aggregation endpoint (unnecessary round-trip)            |
+| "Convert currency" toggle deferred             | No exchange-rate source in system today                            | Implement with hardcoded rates (unreliable, misleading)      |
+| Static category icon map                       | Lucide already installed; zero new deps                            | Dynamic icon registry (over-engineering for free-text slugs) |

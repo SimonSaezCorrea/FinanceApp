@@ -7,18 +7,18 @@
 
 ## BankAccount (extended)
 
-| Field | Type | Notes |
-|-------|------|-------|
-| id | String (cuid) | |
-| userId | String | owner; all queries scoped by it |
-| name | String | |
-| type | `AccountType` | **new**, default `OTHER` |
-| status | `AccountStatus` | **new**, default `ACTIVE` |
-| institution | String? | optional |
-| currency | String | default `USD` |
-| initialBalance | Decimal(18,4) | **new**, default 0 — user-set seed |
-| currentBalance | Decimal(18,4) | reconciled/cached = initialBalance + Σincome − Σexpense |
-| createdAt / updatedAt | DateTime | |
+| Field                 | Type            | Notes                                                   |
+| --------------------- | --------------- | ------------------------------------------------------- |
+| id                    | String (cuid)   |                                                         |
+| userId                | String          | owner; all queries scoped by it                         |
+| name                  | String          |                                                         |
+| type                  | `AccountType`   | **new**, default `OTHER`                                |
+| status                | `AccountStatus` | **new**, default `ACTIVE`                               |
+| institution           | String?         | optional                                                |
+| currency              | String          | default `USD`                                           |
+| initialBalance        | Decimal(18,4)   | **new**, default 0 — user-set seed                      |
+| currentBalance        | Decimal(18,4)   | reconciled/cached = initialBalance + Σincome − Σexpense |
+| createdAt / updatedAt | DateTime        |                                                         |
 
 Relations (unchanged): `transactions Transaction[]` (a transaction links via nullable
 `bankAccountId`, `onDelete: SetNull` → deleting an account unlinks, never deletes, transactions).
@@ -30,6 +30,7 @@ currentBalance = initialBalance
               + Σ(amount where bankAccountId = id AND userId = u AND type = INCOME)
               − Σ(amount where bankAccountId = id AND userId = u AND type = EXPENSE)
 ```
+
 Computed with decimal precision; persisted to `currentBalance` on reconcile.
 
 ## State transitions

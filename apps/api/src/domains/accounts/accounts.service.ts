@@ -14,7 +14,12 @@ import { toContract as cardToContract } from "./cards.service";
 
 type AccountWithCards = BankAccountRow & { cards: (CardRow & { limits: CardLimitRow[] })[] };
 
-type WindowTx = { bankAccountId: string | null; type: TransactionType; amount: { toString(): string }; occurredAt: Date };
+type WindowTx = {
+  bankAccountId: string | null;
+  type: TransactionType;
+  amount: { toString(): string };
+  occurredAt: Date;
+};
 
 const SERIES_DAYS = 30;
 const DAY_MS = 86_400_000;
@@ -41,7 +46,9 @@ function computeSeries(
   }
   const first = toMoney(series[0]);
   const last = toMoney(series[series.length - 1]);
-  const balanceChangePct = first.isZero() ? null : last.minus(first).div(first.abs()).times(100).toFixed(1);
+  const balanceChangePct = first.isZero()
+    ? null
+    : last.minus(first).div(first.abs()).times(100).toFixed(1);
   return { series, balanceChangePct };
 }
 
@@ -84,7 +91,10 @@ export class AccountsService {
       byAccount.set(t.bankAccountId, bucket);
     }
     return rows.map((row) =>
-      toContract(row, computeSeries(row.currentBalance.toString(), byAccount.get(row.id) ?? [], now)),
+      toContract(
+        row,
+        computeSeries(row.currentBalance.toString(), byAccount.get(row.id) ?? [], now),
+      ),
     );
   }
 

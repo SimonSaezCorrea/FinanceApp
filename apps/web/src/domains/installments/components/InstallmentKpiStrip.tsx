@@ -22,7 +22,11 @@ function summarize(plans: installments.InstallmentPlan[]): CurrencyKpi[] {
 
   for (const plan of plans) {
     const curr = plan.currency;
-    const entry = map.get(curr) ?? { monthly: new Decimal(0), pending: new Decimal(0), nextDate: null };
+    const entry = map.get(curr) ?? {
+      monthly: new Decimal(0),
+      pending: new Decimal(0),
+      nextDate: null,
+    };
 
     const hasUnpaid = plan.payments.some((p) => p.paidAt === null);
     if (hasUnpaid) {

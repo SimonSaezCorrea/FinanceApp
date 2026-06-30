@@ -23,25 +23,26 @@ function flattenPayments(plans: installments.InstallmentPlan[]): FlatPayment[] {
   return plans.flatMap((plan) => {
     const paidCount = plan.payments.filter((p) => p.paidAt !== null).length;
     const nextPayment =
-      plan.payments
-        .filter((p) => p.paidAt === null)
-        .sort((a, b) => a.sequence - b.sequence)[0] ?? null;
+      plan.payments.filter((p) => p.paidAt === null).sort((a, b) => a.sequence - b.sequence)[0] ??
+      null;
 
-    return plan.payments.map((p): FlatPayment => ({
-      paymentId: p.id,
-      planId: plan.id,
-      planTitle: plan.title,
-      planInstallmentCount: plan.installmentCount,
-      planTotalPrincipal: plan.totalPrincipal,
-      planPaidCount: paidCount,
-      planNextDueDate: nextPayment?.dueDate ?? null,
-      currency: plan.currency,
-      sequence: p.sequence,
-      dueDate: p.dueDate,
-      amount: p.amount,
-      paidAt: p.paidAt,
-      isNextForPlan: p.sequence === (nextPayment?.sequence ?? null),
-    }));
+    return plan.payments.map(
+      (p): FlatPayment => ({
+        paymentId: p.id,
+        planId: plan.id,
+        planTitle: plan.title,
+        planInstallmentCount: plan.installmentCount,
+        planTotalPrincipal: plan.totalPrincipal,
+        planPaidCount: paidCount,
+        planNextDueDate: nextPayment?.dueDate ?? null,
+        currency: plan.currency,
+        sequence: p.sequence,
+        dueDate: p.dueDate,
+        amount: p.amount,
+        paidAt: p.paidAt,
+        isNextForPlan: p.sequence === (nextPayment?.sequence ?? null),
+      }),
+    );
   });
 }
 
@@ -145,11 +146,7 @@ export function InstallmentsRoute() {
 
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
-              <Segmented
-                value={statusFilter}
-                onChange={setStatusFilter}
-                options={statusOptions}
-              />
+              <Segmented value={statusFilter} onChange={setStatusFilter} options={statusOptions} />
             </div>
             <button
               type="button"
@@ -171,10 +168,16 @@ export function InstallmentsRoute() {
             onEditPlan={handleEditPlan}
             onDeletePlan={handleDeletePlan}
             onPayPayment={(planId, sequence) =>
-              pay.mutate({ planId, sequence }, { onError: () => toast.error(t("errors.INTERNAL_ERROR")) })
+              pay.mutate(
+                { planId, sequence },
+                { onError: () => toast.error(t("errors.INTERNAL_ERROR")) },
+              )
             }
             onUnpayPayment={(planId, sequence) =>
-              unpay.mutate({ planId, sequence }, { onError: () => toast.error(t("errors.INTERNAL_ERROR")) })
+              unpay.mutate(
+                { planId, sequence },
+                { onError: () => toast.error(t("errors.INTERNAL_ERROR")) },
+              )
             }
           />
         </>

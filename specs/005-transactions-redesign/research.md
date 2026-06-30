@@ -7,6 +7,7 @@
 **Rationale**: The transactions contract already carries `currency` per row. Client-side `reduce` over the filtered array produces the groups with zero API changes. A "convert to base currency" toggle is recorded in the spec as optional; it requires an exchange-rate source (none exists in the system today) and is deferred to a follow-up feature — the UI will reserve the toggle slot but leave it disabled.
 
 **Alternatives considered**:
+
 - Single-currency KPIs (sum everything, ignore currency) — rejected: silently mixes CLP/USD/EUR into a meaningless total.
 - Backend-computed aggregation endpoint — rejected: unnecessary round-trip; the frontend already fetches all rows for the filtered period.
 
@@ -19,6 +20,7 @@
 **Rationale**: Categories are free-text; there is no enum. The dashboard uses a similar pattern for the donut chart. Lucide is already installed and tree-shaken per import. The table is small (<20 entries) and zero-runtime-cost.
 
 **Alternatives considered**:
+
 - Dynamic icon from category metadata — rejected: no category management system exists.
 - Emoji avatar — rejected: inconsistent with the design system (Lucide everywhere).
 - Colored circle only — rejected: less informative than an icon.
@@ -46,6 +48,7 @@
 ## Account/card selector
 
 **Decision**: A grouped `<Select>` (or custom dropdown) renders:
+
 - Group "Cuentas activas" — all active accounts by name.
 - Group "Tarjetas" — all cards nested under those accounts, displayed as `account.name · ••••last4`.
 - When "incluir inactivas" toggle is on, a second group "Cuentas inactivas" appears.
@@ -55,6 +58,7 @@ Selecting a **card** resolves to the card's `account.bankAccountId` as the `bank
 **Rationale**: `BankAccount` response already includes `cards[]` (from spec 004). No new endpoint needed. The `transactionsApi` only accepts `bankAccountId`, which is sufficient since all of a card's transactions are booked to the parent account.
 
 **Alternatives considered**:
+
 - New `cardId` filter on transactions API — rejected: out of scope; the plan notes this as a potential future enhancement.
 - Flat list mixing accounts and cards — rejected: harder to read and navigate.
 

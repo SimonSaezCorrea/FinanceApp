@@ -18,7 +18,11 @@ export function TR({ className, ...props }: HTMLAttributes<HTMLTableRowElement>)
   return <tr className={cn("border-b last:border-0", className)} {...props} />;
 }
 
-export function TH({ className, numeric, ...props }: ThHTMLAttributes<HTMLTableCellElement> & { numeric?: boolean }) {
+export function TH({
+  className,
+  numeric,
+  ...props
+}: ThHTMLAttributes<HTMLTableCellElement> & { numeric?: boolean }) {
   return (
     <th
       className={cn(
@@ -31,11 +35,12 @@ export function TH({ className, numeric, ...props }: ThHTMLAttributes<HTMLTableC
   );
 }
 
-export function TD({ className, numeric, ...props }: TdHTMLAttributes<HTMLTableCellElement> & { numeric?: boolean }) {
+export function TD({
+  className,
+  numeric,
+  ...props
+}: TdHTMLAttributes<HTMLTableCellElement> & { numeric?: boolean }) {
   return (
-    <td
-      className={cn("px-4 py-3", numeric && "text-right tabular-nums", className)}
-      {...props}
-    />
+    <td className={cn("px-4 py-3", numeric && "text-right tabular-nums", className)} {...props} />
   );
 }

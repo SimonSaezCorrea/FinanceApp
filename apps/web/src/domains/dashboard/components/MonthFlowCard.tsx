@@ -21,14 +21,18 @@ export function MonthFlowCard({ flow }: { flow: MonthFlow }) {
             <ArrowUpRight className="h-3.5 w-3.5 text-success" aria-hidden />
             {t("transactions.type.INCOME")}
           </span>
-          <span className="tabular-nums text-lg font-semibold text-success">{fmt(flow.income)}</span>
+          <span className="tabular-nums text-lg font-semibold text-success">
+            {fmt(flow.income)}
+          </span>
         </div>
         <div className="flex flex-col gap-1">
           <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
             <ArrowDownLeft className="h-3.5 w-3.5 text-destructive" aria-hidden />
             {t("transactions.type.EXPENSE")}
           </span>
-          <span className="tabular-nums text-lg font-semibold text-destructive">{fmt(flow.expense)}</span>
+          <span className="tabular-nums text-lg font-semibold text-destructive">
+            {fmt(flow.expense)}
+          </span>
         </div>
       </div>
 

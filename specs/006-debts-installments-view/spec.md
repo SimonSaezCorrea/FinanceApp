@@ -166,13 +166,13 @@ El usuario crea un plan de cuotas comercial a través de un modal.
 
 ## Key Entities
 
-| Entidad | Campo | Tipo | Regla |
-|---|---|---|---|
-| `Debt` | `totalInstallments` | Int, default 1 | ≥ 1 |
-| `Debt` | `paidInstallments` | Int, default 0 | 0 ≤ paidInstallments ≤ totalInstallments |
-| `Debt` | `installmentAmount` | Decimal?, nullable | Si null → calcular como `principal / totalInstallments` en frontend |
-| `InstallmentPlan` | (sin cambios) | — | Ya existe |
-| `InstallmentPayment` | (sin cambios) | — | Ya existe |
+| Entidad              | Campo               | Tipo               | Regla                                                               |
+| -------------------- | ------------------- | ------------------ | ------------------------------------------------------------------- |
+| `Debt`               | `totalInstallments` | Int, default 1     | ≥ 1                                                                 |
+| `Debt`               | `paidInstallments`  | Int, default 0     | 0 ≤ paidInstallments ≤ totalInstallments                            |
+| `Debt`               | `installmentAmount` | Decimal?, nullable | Si null → calcular como `principal / totalInstallments` en frontend |
+| `InstallmentPlan`    | (sin cambios)       | —                  | Ya existe                                                           |
+| `InstallmentPayment` | (sin cambios)       | —                  | Ya existe                                                           |
 
 ---
 

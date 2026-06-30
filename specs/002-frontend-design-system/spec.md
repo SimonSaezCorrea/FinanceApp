@@ -15,7 +15,7 @@ every screen looks and behaves consistently and scales without drift. Audience i
 users** (a coherent, legible, trustworthy-yet-friendly experience) and **developers** (a single
 source of tokens + reusable components so building UI is fast and consistent).
 
-**Agreed direction:** fintech-professional *and* friendly/approachable; **teal** brand
+**Agreed direction:** fintech-professional _and_ friendly/approachable; **teal** brand
 (`#07575B`); **dark theme as the default** (primary `#66A5AD`), plus **light** (primary `#07575B`)
 and **follow-system**, with a persisted user toggle; **comfortable** density, **rounded** corners.
 
@@ -31,7 +31,7 @@ adoption rules). Implementation is phased later.
 - Q: Theme mechanism? → A: CSS-variable tokens swapped by a `data-theme` attribute on the document root; **dark is `:root` (default)**, light via `[data-theme="light"]`; a theme provider persists the choice (local storage) and resolves "system" from the OS preference; an inline pre-paint script prevents flash.
 - Q: Tables / data grids? → A: a reusable **Table** primitive is in scope for tabular domains; advanced data-grid features (sort, filter, pagination) are **deferred** — lists use the card-list pattern for now.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - One coherent visual language across the app (Priority: P1)
 
@@ -139,7 +139,7 @@ and confirm visible focus and operability.
 - **Money/number formatting:** numeric/tabular data must align and read consistently (a presentation
   concern of the system, distinct from money precision which the API/contracts own).
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -171,7 +171,7 @@ and confirm visible focus and operability.
 - **FR-012**: This cycle is **spec + plan only** — no implementation; exact token values, font
   choice, and tooling are decided in the plan.
 
-### Key Entities *(design-system elements)*
+### Key Entities _(design-system elements)_
 
 - **Design token**: a named visual value (e.g. color role, spacing step) — the atomic unit; one source.
 - **Theme**: a coherent set of token values (dark / light); "system" resolves to one of them.
@@ -181,7 +181,7 @@ and confirm visible focus and operability.
 - **Pattern**: a composed layout recipe (page header, list, form, app shell, empty/loading/error).
 - **Usage reference**: the document describing tokens, components, patterns, and theming rules.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

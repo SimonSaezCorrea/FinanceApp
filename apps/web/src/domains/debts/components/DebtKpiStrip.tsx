@@ -31,7 +31,10 @@ export function DebtKpiStrip({ debts: list }: DebtKpiStripProps) {
               <span className="text-lg font-semibold tabular-nums text-success">
                 {kpi.totalOwedToYou === "0.0000"
                   ? "—"
-                  : formatMoney(kpi.totalOwedToYou, { locale: i18n.language, currency: kpi.currency })}
+                  : formatMoney(kpi.totalOwedToYou, {
+                      locale: i18n.language,
+                      currency: kpi.currency,
+                    })}
               </span>
             </div>
             <div className="flex flex-col gap-1">

@@ -42,7 +42,13 @@ export function NetWorthCard({
       </div>
 
       {worth.series.length >= 2 ? (
-        <Sparkline data={worth.series} tone={up ? "success" : "danger"} width={320} height={48} className="w-full" />
+        <Sparkline
+          data={worth.series}
+          tone={up ? "success" : "danger"}
+          width={320}
+          height={48}
+          className="w-full"
+        />
       ) : null}
 
       {secondary.length > 0 ? (

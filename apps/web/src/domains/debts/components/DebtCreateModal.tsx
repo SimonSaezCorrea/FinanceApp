@@ -57,10 +57,11 @@ export function DebtCreateModal({ open, onOpenChange, initialData }: DebtCreateM
     } else {
       reset();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
-  const isValid = counterparty.trim().length > 0 && amount.trim().length > 0 && frequencyInterval >= 1;
+  const isValid =
+    counterparty.trim().length > 0 && amount.trim().length > 0 && frequencyInterval >= 1;
 
   function reset() {
     setDirection("YOU_OWE");
@@ -169,18 +170,10 @@ export function DebtCreateModal({ open, onOpenChange, initialData }: DebtCreateM
 
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("debts.form.openedAt")}>
-            <Input
-              type="date"
-              value={openedAt}
-              onChange={(e) => setOpenedAt(e.target.value)}
-            />
+            <Input type="date" value={openedAt} onChange={(e) => setOpenedAt(e.target.value)} />
           </Field>
           <Field label={t("debts.form.dueAt")}>
-            <Input
-              type="date"
-              value={dueAt}
-              onChange={(e) => setDueAt(e.target.value)}
-            />
+            <Input type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} />
           </Field>
         </div>
 

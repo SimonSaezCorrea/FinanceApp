@@ -1,23 +1,10 @@
-import {
-  Body,
-  Controller,
-  Get,
-  HttpCode,
-  Post,
-  Req,
-  Res,
-  UseGuards,
-} from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { Request, Response } from "express";
 
 import { auth } from "@finance/contracts";
 
-import {
-  ACCESS_COOKIE,
-  JwtAuthGuard,
-  REFRESH_COOKIE,
-} from "../../infra/auth/jwt-auth.guard";
+import { ACCESS_COOKIE, JwtAuthGuard, REFRESH_COOKIE } from "../../infra/auth/jwt-auth.guard";
 import { CurrentUser, type AuthUser } from "../../infra/auth/current-user.decorator";
 import { ZodValidationPipe } from "../../infra/http/zod-validation.pipe";
 import { AuthService, type TokenPair } from "./auth.service";
@@ -91,12 +78,8 @@ export class AuthController {
   }
 
   private setAuthCookies(res: Response, tokens: TokenPair): void {
-    const accessMs = parseDurationMs(
-      this.config.get<string>("JWT_ACCESS_EXPIRES") ?? "15m",
-    );
-    const refreshMs = parseDurationMs(
-      this.config.get<string>("JWT_REFRESH_EXPIRES") ?? "7d",
-    );
+    const accessMs = parseDurationMs(this.config.get<string>("JWT_ACCESS_EXPIRES") ?? "15m");
+    const refreshMs = parseDurationMs(this.config.get<string>("JWT_REFRESH_EXPIRES") ?? "7d");
     res.cookie(ACCESS_COOKIE, tokens.accessToken, {
       ...this.cookieBase(),
       maxAge: accessMs,

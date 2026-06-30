@@ -29,7 +29,7 @@ Extends the `accounts` domain and introduces a **Card** entity (with per-currenc
 - Q: Modal scope? → A: the create flow is a **modal with a live card preview** and inline add/remove
   of cards; cards are also manageable (add/edit/remove) from the account detail.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Create an account via a modal with live preview (Priority: P1)
 
@@ -118,7 +118,7 @@ the create flow.
   not delete transactions (those unlink, per the existing rule).
 - **Expiry:** stored as month + year; past dates allowed (historical), UI may warn.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -153,7 +153,7 @@ the create flow.
 - **Card limit** (new): belongs to a Card; `{ currency, limit (decimal), used (decimal) }`; only for
   credit cards; unique per currency within a card.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

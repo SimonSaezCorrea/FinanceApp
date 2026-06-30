@@ -34,16 +34,16 @@ Usa las clases de token — p. ej. `bg-background`, `text-muted-foreground`, `bo
 
 ## Componentes y patrones (`src/shared/ui`)
 
-| Componente | Propósito |
-|------------|-----------|
-| `Button` | acciones — `variant: primary\|secondary\|outline\|ghost\|destructive`, `size: sm\|md\|lg` |
-| `Input`, `Label`, `Field` | controles de formulario; `Field` = label + control + error |
-| `Card` (+ `Header/Title/Content`) | superficies elevadas |
-| `Badge` | etiquetas de estado — `variant: neutral\|success\|warning\|danger\|info` |
-| `Table` (+ `THead/TR/TH/TD`) | datos tabulares; celdas numéricas a la derecha + `tabular-nums` |
-| `PageHeader` | título de pantalla + slot de acciones |
-| `EmptyState` / `LoadingState` / `ErrorState` | estados de datos estándar (iconos Lucide) |
-| `ThemeToggle` | interruptor oscuro · claro · sistema |
+| Componente                                   | Propósito                                                                                 |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `Button`                                     | acciones — `variant: primary\|secondary\|outline\|ghost\|destructive`, `size: sm\|md\|lg` |
+| `Input`, `Label`, `Field`                    | controles de formulario; `Field` = label + control + error                                |
+| `Card` (+ `Header/Title/Content`)            | superficies elevadas                                                                      |
+| `Badge`                                      | etiquetas de estado — `variant: neutral\|success\|warning\|danger\|info`                  |
+| `Table` (+ `THead/TR/TH/TD`)                 | datos tabulares; celdas numéricas a la derecha + `tabular-nums`                           |
+| `PageHeader`                                 | título de pantalla + slot de acciones                                                     |
+| `EmptyState` / `LoadingState` / `ErrorState` | estados de datos estándar (iconos Lucide)                                                 |
+| `ThemeToggle`                                | interruptor oscuro · claro · sistema                                                      |
 
 Convenciones: aceptar `className` (mezclado con `cn`), reenviar props nativas, variantes como uniones
 de strings, HTML semántico, `focus-visible:ring-2 ring-ring` visible, botones de solo-icono con

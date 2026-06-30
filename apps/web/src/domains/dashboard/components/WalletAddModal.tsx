@@ -35,9 +35,11 @@ export function WalletAddModal({
     const list: Candidate[] = [];
     for (const account of accountList ?? []) {
       for (const card of account.cards) {
-        if (!pinnedCards.has(card.id)) list.push({ key: `c:${card.id}`, kind: "card", account, card });
+        if (!pinnedCards.has(card.id))
+          list.push({ key: `c:${card.id}`, kind: "card", account, card });
       }
-      if (!pinnedAccounts.has(account.id)) list.push({ key: `a:${account.id}`, kind: "account", account });
+      if (!pinnedAccounts.has(account.id))
+        list.push({ key: `a:${account.id}`, kind: "account", account });
     }
     return list;
   }, [accountList, pinned]);
@@ -51,7 +53,12 @@ export function WalletAddModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={t("wallet.addTitle")} className="max-w-md">
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t("wallet.addTitle")}
+      className="max-w-md"
+    >
       {candidates.length === 0 ? (
         <EmptyState title={t("wallet.addEmpty")} />
       ) : (
@@ -85,7 +92,12 @@ export function WalletAddModal({
                   </span>
                 </span>
               </span>
-              <Button size="sm" variant="outline" disabled={add.isPending} onClick={() => addItem(c)}>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={add.isPending}
+                onClick={() => addItem(c)}
+              >
                 <Plus className="h-4 w-4" aria-hidden />
                 {t("wallet.add")}
               </Button>

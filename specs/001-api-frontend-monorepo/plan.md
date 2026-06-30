@@ -20,6 +20,7 @@ language-agnostic error codes. This cycle delivers the **blueprint + one-shot mi
 **Language/Version**: TypeScript 5.x on Node.js 20 LTS (both apps).
 
 **Primary Dependencies**:
+
 - Backend: **NestJS 10**, **Prisma 6** (owns DB access), **zod** (validation, shared), `decimal.js`,
   `bcryptjs`, JWT (`@nestjs/jwt` / `jose`).
 - Frontend: **Vite 5**, **React 18**, **react-router** (routing), a data-fetching layer
@@ -48,15 +49,15 @@ investments, accounts, import, auth). New domains follow one repeatable per-doma
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+_GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-| Principle | Impact of this plan | Verdict |
-|-----------|--------------------|---------|
-| I. Money Precision | `decimal.js`/`Prisma.Decimal` retained; money utils centralized in `packages/money` (one source of truth) | ✅ Strengthened |
-| II. Per-User Data Isolation | Backend owns all DB access; every endpoint scoped by authenticated `userId`; frontend has no DB path | ✅ Strengthened |
-| III. i18n Parity | Frontend owns es/en catalogs with identical keys; API returns codes only | ✅ Preserved |
-| IV. Test-First / TDD | Vitest adopted as runner — **closes the `TODO(TEST_RUNNER)` gap**; tests precede domain migration | ✅ Resolves known gap |
-| V. SDD & Living Memory | This plan is the SDD artifact; constitution + CLAUDE.md amended at approval | ⚠ Amendment required (see below) |
+| Principle                   | Impact of this plan                                                                                       | Verdict                           |
+| --------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------- |
+| I. Money Precision          | `decimal.js`/`Prisma.Decimal` retained; money utils centralized in `packages/money` (one source of truth) | ✅ Strengthened                   |
+| II. Per-User Data Isolation | Backend owns all DB access; every endpoint scoped by authenticated `userId`; frontend has no DB path      | ✅ Strengthened                   |
+| III. i18n Parity            | Frontend owns es/en catalogs with identical keys; API returns codes only                                  | ✅ Preserved                      |
+| IV. Test-First / TDD        | Vitest adopted as runner — **closes the `TODO(TEST_RUNNER)` gap**; tests precede domain migration         | ✅ Resolves known gap             |
+| V. SDD & Living Memory      | This plan is the SDD artifact; constitution + CLAUDE.md amended at approval                               | ⚠ Amendment required (see below) |
 
 **Amendment required (Principle V / Governance):** the constitution currently pins a "single
 fullstack Next.js" stack. Approving this plan amends the **Technology & Operational Constraints**
@@ -157,9 +158,9 @@ making the backend + `packages/*` a self-contained subset (trivial future extrac
 
 > The plan adds structure that the constitution's "simplicity" expectation requires us to justify.
 
-| Decision | Why Needed | Simpler Alternative Rejected Because |
-|----------|------------|--------------------------------------|
-| Monorepo (3+ packages) vs single app | Independent build/deploy + clean boundary + future repo extraction (FR-001/002/011) | Single Next app is the current coupling the spec exists to remove |
-| NestJS (opinionated) vs minimal Express | Modules map 1:1 to domains; DI + testability serve scalability/maintainability goals | Express/Fastify push domain structure + wiring to hand-rolled conventions that drift |
-| Repository layer per domain | Keeps Principle II (per-user scoping) and DB access auditable in one place per domain | Direct Prisma in controllers scatters isolation logic and weakens testability |
-| Backend JWT (access+refresh, httpOnly) | Stateless auth fits a separately deployed API; httpOnly mitigates token theft | Coupled NextAuth keeps auth in the frontend, contradicting the separation goal |
+| Decision                                | Why Needed                                                                            | Simpler Alternative Rejected Because                                                 |
+| --------------------------------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Monorepo (3+ packages) vs single app    | Independent build/deploy + clean boundary + future repo extraction (FR-001/002/011)   | Single Next app is the current coupling the spec exists to remove                    |
+| NestJS (opinionated) vs minimal Express | Modules map 1:1 to domains; DI + testability serve scalability/maintainability goals  | Express/Fastify push domain structure + wiring to hand-rolled conventions that drift |
+| Repository layer per domain             | Keeps Principle II (per-user scoping) and DB access auditable in one place per domain | Direct Prisma in controllers scatters isolation logic and weakens testability        |
+| Backend JWT (access+refresh, httpOnly)  | Stateless auth fits a separately deployed API; httpOnly mitigates token theft         | Coupled NextAuth keeps auth in the frontend, contradicting the separation goal       |

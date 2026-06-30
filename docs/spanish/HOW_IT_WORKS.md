@@ -1,7 +1,7 @@
 # FinanceApp — Cómo funciona y cómo ejecutarlo
 
-Complemento práctico de [ARCHITECTURE.md](./ARCHITECTURE.md). Ese documento dice *qué son las piezas*;
-este dice *cómo se ejecutan y cómo fluye un request de punta a punta*.
+Complemento práctico de [ARCHITECTURE.md](./ARCHITECTURE.md). Ese documento dice _qué son las piezas_;
+este dice _cómo se ejecutan y cómo fluye un request de punta a punta_.
 
 > Versión en inglés: [../english/HOW_IT_WORKS.md](../english/HOW_IT_WORKS.md)
 
@@ -18,11 +18,11 @@ dinero). Puedes arrancar, detener, construir y desplegar cada uno por su cuenta.
 
 ## 2. Qué corre dónde
 
-| Proceso | Qué es | URL por defecto | Dueño de |
-|---------|--------|-----------------|----------|
-| `apps/api` | Server Node/NestJS de larga vida | `http://localhost:3001` | La base de datos (Prisma), lógica de negocio, auth |
-| `apps/web` | Dev server de Vite (dev) / estáticos tras nginx (prod) | `http://localhost:5173` | La UI, el routing, las traducciones |
-| PostgreSQL | La base de datos | `:5432` | Datos persistidos — accedida **solo** por `apps/api` |
+| Proceso    | Qué es                                                 | URL por defecto         | Dueño de                                             |
+| ---------- | ------------------------------------------------------ | ----------------------- | ---------------------------------------------------- |
+| `apps/api` | Server Node/NestJS de larga vida                       | `http://localhost:3001` | La base de datos (Prisma), lógica de negocio, auth   |
+| `apps/web` | Dev server de Vite (dev) / estáticos tras nginx (prod) | `http://localhost:5173` | La UI, el routing, las traducciones                  |
+| PostgreSQL | La base de datos                                       | `:5432`                 | Datos persistidos — accedida **solo** por `apps/api` |
 
 El navegador descarga la SPA de `apps/web`, y luego cada acción de datos es un `fetch()` a `apps/api`.
 
@@ -103,6 +103,7 @@ Navegador (useAccounts → apiClient)      apps/api
 ```
 
 Aquí siempre se cumplen dos reglas:
+
 - **Aislamiento por usuario:** la query del repositorio se filtra por el `userId` del token — un
   usuario nunca puede ver datos de otro.
 - **Dinero como strings:** los montos cruzan como strings decimales (p. ej. `"1240.5000"`), parseados
@@ -149,6 +150,7 @@ pnpm build             # Turborepo construye paquetes y luego ambas apps
 ```
 
 El CI (`.github/workflows/ci.yml`) corre los mismos gates en cada PR. Salidas de build:
+
 - `apps/api` → app Node compilada (`dist/main.js`), enviada como contenedor Node (`apps/api/Dockerfile`).
 - `apps/web` → bundle estático (`dist/`), servido por nginx (`apps/web/Dockerfile` + `nginx.conf`),
   horneado con `VITE_API_URL` en build.
@@ -158,12 +160,12 @@ escalar la API independientemente del frontend estático.
 
 ## 9. Dónde mirar cuando…
 
-| Quieres… | Ve a |
-|----------|------|
-| Cambiar la forma de un endpoint | `packages/contracts/src/<dominio>/` (luego ambas apps siguen) |
-| Agregar lógica de negocio / una query | `apps/api/src/domains/<dominio>/{service,repository}.ts` |
-| Cambiar una pantalla | `apps/web/src/domains/<dominio>/routes/` |
-| Tocar auth | `apps/api/src/domains/auth/` + `apps/api/src/infra/auth/` |
-| Agregar una traducción | `apps/web/src/i18n/{es,en}.json` |
-| Matemática de dinero | `packages/money/src/` |
-| Agregar un dominio completo | el resumen en [ARCHITECTURE.md §12](./ARCHITECTURE.md) |
+| Quieres…                              | Ve a                                                          |
+| ------------------------------------- | ------------------------------------------------------------- |
+| Cambiar la forma de un endpoint       | `packages/contracts/src/<dominio>/` (luego ambas apps siguen) |
+| Agregar lógica de negocio / una query | `apps/api/src/domains/<dominio>/{service,repository}.ts`      |
+| Cambiar una pantalla                  | `apps/web/src/domains/<dominio>/routes/`                      |
+| Tocar auth                            | `apps/api/src/domains/auth/` + `apps/api/src/infra/auth/`     |
+| Agregar una traducción                | `apps/web/src/i18n/{es,en}.json`                              |
+| Matemática de dinero                  | `packages/money/src/`                                         |
+| Agregar un dominio completo           | el resumen en [ARCHITECTURE.md §12](./ARCHITECTURE.md)        |

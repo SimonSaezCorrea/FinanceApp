@@ -20,7 +20,10 @@ export class InvestmentsService {
     return toContract(row);
   }
 
-  async create(userId: string, input: investments.CreateInvestment): Promise<investments.Investment> {
+  async create(
+    userId: string,
+    input: investments.CreateInvestment,
+  ): Promise<investments.Investment> {
     const row = await this.repo.create(userId, {
       kind: input.kind,
       label: input.label,

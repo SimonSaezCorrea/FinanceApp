@@ -98,7 +98,12 @@ export function TransactionCreateModal({
   ];
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={t("transactions.new")} className="max-w-md">
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t("transactions.new")}
+      className="max-w-md"
+    >
       <div className="flex flex-col gap-3">
         <Segmented
           aria-label={t("transactions.form.type")}
@@ -136,7 +141,10 @@ export function TransactionCreateModal({
             <Select
               id="tx-acc"
               value={bankAccountId}
-              onChange={(e) => { setBankAccountId(e.target.value); setCardId(""); }}
+              onChange={(e) => {
+                setBankAccountId(e.target.value);
+                setCardId("");
+              }}
               options={accountOptions}
             />
           </Field>
@@ -156,12 +164,21 @@ export function TransactionCreateModal({
             <Input id="tx-cat" value={category} onChange={(e) => setCategory(e.target.value)} />
           </Field>
           <Field label={t("transactions.form.date")} htmlFor="tx-date">
-            <Input id="tx-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            <Input
+              id="tx-date"
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+            />
           </Field>
         </div>
 
         <Field label={t("transactions.form.description")} htmlFor="tx-desc">
-          <Input id="tx-desc" value={description} onChange={(e) => setDescription(e.target.value)} />
+          <Input
+            id="tx-desc"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+          />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
@@ -169,7 +186,11 @@ export function TransactionCreateModal({
             <Input id="tx-emisor" value={emisor} onChange={(e) => setEmisor(e.target.value)} />
           </Field>
           <Field label={t("transactions.form.receptor")} htmlFor="tx-receptor">
-            <Input id="tx-receptor" value={receptor} onChange={(e) => setReceptor(e.target.value)} />
+            <Input
+              id="tx-receptor"
+              value={receptor}
+              onChange={(e) => setReceptor(e.target.value)}
+            />
           </Field>
         </div>
 

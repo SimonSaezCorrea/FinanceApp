@@ -83,14 +83,20 @@ export function RecurringRoute() {
                   <span className="tabular-nums text-sm font-medium">
                     {formatMoney(r.amount, { locale: i18n.language, currency: r.currency })}
                   </span>
-                  <Button variant="ghost" size="sm" onClick={() => setModal({ open: true, initial: r })}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setModal({ open: true, initial: r })}
+                  >
                     <Pencil className="h-4 w-4" aria-hidden />
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() =>
-                      remove.mutate(r.id, { onSuccess: () => toast.success(t("recurring.deleted")) })
+                      remove.mutate(r.id, {
+                        onSuccess: () => toast.success(t("recurring.deleted")),
+                      })
                     }
                   >
                     <Trash2 className="h-4 w-4" aria-hidden />

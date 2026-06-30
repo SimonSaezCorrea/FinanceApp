@@ -28,7 +28,10 @@ export function SavingsRoute() {
               <li key={goal.id} className="flex items-center justify-between px-6 py-3">
                 <span className="font-medium">{goal.title}</span>
                 <span className="tabular-nums text-muted-foreground">
-                  {formatMoney(goal.targetAmount, { locale: i18n.language, currency: goal.currency })}
+                  {formatMoney(goal.targetAmount, {
+                    locale: i18n.language,
+                    currency: goal.currency,
+                  })}
                 </span>
               </li>
             ))}

@@ -37,7 +37,11 @@ export function TransactionKpiStrip({ transactions: txs }: TransactionKpiStripPr
   if (groups.length === 0) {
     return (
       <div className="grid grid-cols-3 gap-3">
-        {[t("transactions.kpi.income"), t("transactions.kpi.expense"), t("transactions.kpi.balance")].map((label) => (
+        {[
+          t("transactions.kpi.income"),
+          t("transactions.kpi.expense"),
+          t("transactions.kpi.balance"),
+        ].map((label) => (
           <div key={label} className="flex flex-col gap-0.5 rounded-lg border bg-card p-4">
             <span className="text-xs text-muted-foreground">{label}</span>
             <span className="text-lg font-semibold tabular-nums text-muted-foreground">—</span>
@@ -71,9 +75,7 @@ export function TransactionKpiStrip({ transactions: txs }: TransactionKpiStripPr
               label={t("transactions.kpi.balance")}
               value={g.netBalance}
               currency={g.currency}
-              colorClass={
-                parseFloat(g.netBalance) < 0 ? "text-destructive" : "text-success"
-              }
+              colorClass={parseFloat(g.netBalance) < 0 ? "text-destructive" : "text-success"}
             />
           </div>
         </div>

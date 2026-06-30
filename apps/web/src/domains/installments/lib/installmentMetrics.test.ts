@@ -4,7 +4,9 @@ import type { installments } from "@finance/contracts";
 
 import { monthlyAmount, nextDuePayment, paymentStatus } from "./installmentMetrics";
 
-function makePayment(overrides: Partial<installments.InstallmentPayment> = {}): installments.InstallmentPayment {
+function makePayment(
+  overrides: Partial<installments.InstallmentPayment> = {},
+): installments.InstallmentPayment {
   return {
     id: "p1",
     sequence: 1,
@@ -15,7 +17,9 @@ function makePayment(overrides: Partial<installments.InstallmentPayment> = {}): 
   };
 }
 
-function makePlan(overrides: Partial<installments.InstallmentPlan> = {}): installments.InstallmentPlan {
+function makePlan(
+  overrides: Partial<installments.InstallmentPlan> = {},
+): installments.InstallmentPlan {
   return {
     id: "plan1",
     title: "Laptop",

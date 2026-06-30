@@ -67,10 +67,7 @@ export class AccountsController {
   }
 
   @Post(":id/reconcile")
-  reconcile(
-    @CurrentUser() user: AuthUser,
-    @Param("id") id: string,
-  ): Promise<accounts.BankAccount> {
+  reconcile(@CurrentUser() user: AuthUser, @Param("id") id: string): Promise<accounts.BankAccount> {
     return this.service.reconcile(user.id, id);
   }
 

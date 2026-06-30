@@ -35,16 +35,16 @@ turbo run build --filter=...[origin/main]   # build only affected app in CI
 
 ## Validation scenarios
 
-| # | Scenario | Expected | Maps to |
-|---|----------|----------|---------|
-| 1 | Start API with web stopped; `GET /api/v1/health` | 200; domain endpoint works | SC-001 |
-| 2 | Build web; serve static bundle pointing at API URL | UI loads, talks to API over HTTP only | SC-002 |
-| 3 | Open `apps/api/src/domains/debts/` | routes + service + repository + dto co-located | SC-003 |
-| 4 | Grep web for imports of `apps/api/**` or Prisma | 0 matches | SC-004 |
-| 5 | Change a contract type in `packages/contracts` | both apps reference the single definition | SC-005 |
-| 6 | Inspect dependency graph | api imports no web code; packages import neither app | SC-007 |
-| 7 | New dev locates all code for one domain | < 2 min using documented conventions | SC-008 |
-| 8 | Run `pnpm test` | Vitest runs across apps + packages | Principle IV |
+| #   | Scenario                                           | Expected                                             | Maps to      |
+| --- | -------------------------------------------------- | ---------------------------------------------------- | ------------ |
+| 1   | Start API with web stopped; `GET /api/v1/health`   | 200; domain endpoint works                           | SC-001       |
+| 2   | Build web; serve static bundle pointing at API URL | UI loads, talks to API over HTTP only                | SC-002       |
+| 3   | Open `apps/api/src/domains/debts/`                 | routes + service + repository + dto co-located       | SC-003       |
+| 4   | Grep web for imports of `apps/api/**` or Prisma    | 0 matches                                            | SC-004       |
+| 5   | Change a contract type in `packages/contracts`     | both apps reference the single definition            | SC-005       |
+| 6   | Inspect dependency graph                           | api imports no web code; packages import neither app | SC-007       |
+| 7   | New dev locates all code for one domain            | < 2 min using documented conventions                 | SC-008       |
+| 8   | Run `pnpm test`                                    | Vitest runs across apps + packages                   | Principle IV |
 
 ## Boundary checks (validates FR-006, FR-011)
 

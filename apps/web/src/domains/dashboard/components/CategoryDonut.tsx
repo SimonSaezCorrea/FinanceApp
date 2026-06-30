@@ -23,12 +23,16 @@ const MAX_SLICES = 5;
 export function CategoryDonut({ slices }: { slices: CategorySlice[] }) {
   const { t, i18n } = useTranslation();
   const [active, setActive] = useState<number | null>(null);
-  const fmt = (v: number) => formatMoney(String(v), { locale: i18n.language, currency: PRIMARY_CURRENCY });
+  const fmt = (v: number) =>
+    formatMoney(String(v), { locale: i18n.language, currency: PRIMARY_CURRENCY });
 
   const label = (c: string | null) => c ?? t("transactions.uncategorized");
-  const top = slices.slice(0, MAX_SLICES).map((s) => ({ name: label(s.category), value: Number(s.total) }));
+  const top = slices
+    .slice(0, MAX_SLICES)
+    .map((s) => ({ name: label(s.category), value: Number(s.total) }));
   const restTotal = slices.slice(MAX_SLICES).reduce((sum, s) => sum + Number(s.total), 0);
-  const data = restTotal > 0 ? [...top, { name: t("dashboard.otherCategory"), value: restTotal }] : top;
+  const data =
+    restTotal > 0 ? [...top, { name: t("dashboard.otherCategory"), value: restTotal }] : top;
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const hovered = active !== null ? data[active] : null;
 
@@ -67,7 +71,9 @@ export function CategoryDonut({ slices }: { slices: CategorySlice[] }) {
             </ResponsiveContainer>
             {hovered ? (
               <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
-                <span className="max-w-full truncate text-xs text-muted-foreground">{hovered.name}</span>
+                <span className="max-w-full truncate text-xs text-muted-foreground">
+                  {hovered.name}
+                </span>
                 <span className="text-sm font-semibold tabular-nums">{fmt(hovered.value)}</span>
               </div>
             ) : null}

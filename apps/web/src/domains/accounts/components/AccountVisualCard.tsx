@@ -29,9 +29,13 @@ export function AccountVisualCard({
   const card = cardProp ?? account.cards[0];
   const credit = card ? card.kind === "CREDIT" : isCreditType(account.type);
   const last4 = card?.last4 ?? "••••";
-  const expiry = card ? `${String(card.expiryMonth).padStart(2, "0")}/${String(card.expiryYear).slice(-2)}` : null;
+  const expiry = card
+    ? `${String(card.expiryMonth).padStart(2, "0")}/${String(card.expiryYear).slice(-2)}`
+    : null;
 
-  const limits = card ? card.limits : account.cards.flatMap((c) => (c.kind === "CREDIT" ? c.limits : []));
+  const limits = card
+    ? card.limits
+    : account.cards.flatMap((c) => (c.kind === "CREDIT" ? c.limits : []));
   const creditLimit = credit ? pickLimit(limits, account.currency) : undefined;
   const usagePct = creditLimit
     ? Math.min(100, Math.round((Number(creditLimit.used) / Number(creditLimit.limit)) * 100))
@@ -51,7 +55,9 @@ export function AccountVisualCard({
       <div className="flex h-full flex-col justify-between">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-sm font-semibold leading-tight">{account.institution ?? account.name}</p>
+            <p className="text-sm font-semibold leading-tight">
+              {account.institution ?? account.name}
+            </p>
             <p className="text-xs opacity-80">
               {t(`accounts.type.${account.type}`)} · {account.currency}
             </p>
@@ -74,7 +80,10 @@ export function AccountVisualCard({
                 <span className="text-xs opacity-70"> / {fmt(creditLimit.limit)}</span>
               </p>
               <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-white/25">
-                <div className="h-full rounded-full bg-white/90" style={{ width: `${usagePct}%` }} />
+                <div
+                  className="h-full rounded-full bg-white/90"
+                  style={{ width: `${usagePct}%` }}
+                />
               </div>
             </div>
           ) : (

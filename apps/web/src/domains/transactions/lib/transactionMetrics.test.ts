@@ -5,7 +5,11 @@ import type { transactions } from "@finance/contracts";
 import { clientFilter, endOfMonth, startOfMonth, summarizeByCurrency } from "./transactionMetrics";
 
 function tx(
-  overrides: Partial<transactions.Transaction> & { type: transactions.TransactionType; amount: string; currency: string },
+  overrides: Partial<transactions.Transaction> & {
+    type: transactions.TransactionType;
+    amount: string;
+    currency: string;
+  },
 ): transactions.Transaction {
   return {
     id: "t1",

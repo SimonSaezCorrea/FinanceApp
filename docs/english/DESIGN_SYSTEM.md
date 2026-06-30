@@ -34,16 +34,16 @@ Use the token classes — e.g. `bg-background`, `text-muted-foreground`, `border
 
 ## Components & patterns (`src/shared/ui`)
 
-| Component | Purpose |
-|-----------|---------|
-| `Button` | actions — `variant: primary\|secondary\|outline\|ghost\|destructive`, `size: sm\|md\|lg` |
-| `Input`, `Label`, `Field` | form controls; `Field` = label + control + error |
-| `Card` (+ `Header/Title/Content`) | raised surfaces |
-| `Badge` | status pills — `variant: neutral\|success\|warning\|danger\|info` |
-| `Table` (+ `THead/TR/TH/TD`) | tabular data; numeric cells right-aligned + `tabular-nums` |
-| `PageHeader` | screen title + actions slot |
-| `EmptyState` / `LoadingState` / `ErrorState` | standard data states (Lucide icons) |
-| `ThemeToggle` | dark · light · system switch |
+| Component                                    | Purpose                                                                                  |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `Button`                                     | actions — `variant: primary\|secondary\|outline\|ghost\|destructive`, `size: sm\|md\|lg` |
+| `Input`, `Label`, `Field`                    | form controls; `Field` = label + control + error                                         |
+| `Card` (+ `Header/Title/Content`)            | raised surfaces                                                                          |
+| `Badge`                                      | status pills — `variant: neutral\|success\|warning\|danger\|info`                        |
+| `Table` (+ `THead/TR/TH/TD`)                 | tabular data; numeric cells right-aligned + `tabular-nums`                               |
+| `PageHeader`                                 | screen title + actions slot                                                              |
+| `EmptyState` / `LoadingState` / `ErrorState` | standard data states (Lucide icons)                                                      |
+| `ThemeToggle`                                | dark · light · system switch                                                             |
 
 Conventions: accept `className` (merged via `cn`), forward native props, expose variants as string
 unions, semantic HTML, visible `focus-visible:ring-2 ring-ring`, icon-only buttons need `aria-label`.

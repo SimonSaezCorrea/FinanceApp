@@ -64,7 +64,9 @@ export function DashboardPage() {
         title={t("dashboard.title")}
         actions={
           <>
-            <span className="hidden text-sm capitalize text-muted-foreground sm:inline">{period}</span>
+            <span className="hidden text-sm capitalize text-muted-foreground sm:inline">
+              {period}
+            </span>
             <Button variant="accent" onClick={() => setModalOpen(true)}>
               <Plus className="h-4 w-4" aria-hidden />
               {t("transactions.new")}

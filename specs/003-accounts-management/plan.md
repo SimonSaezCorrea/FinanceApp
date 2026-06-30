@@ -19,6 +19,7 @@ es/en, on the design system. Requires a Prisma schema change (migration) → mem
 Query, react-router, design-system primitives. No new deps.
 
 **Storage**: PostgreSQL via Prisma. **Schema change** on `BankAccount`:
+
 - add `type` enum `AccountType` (CHECKING, SAVINGS, CREDIT_CARD, DEBIT_CARD, CASH, OTHER), default `OTHER`.
 - add `status` enum `AccountStatus` (ACTIVE, INACTIVE), default `ACTIVE`.
 - add `initialBalance Decimal(18,4)` default 0 (user-set); keep `currentBalance Decimal(18,4)` as the
@@ -40,16 +41,16 @@ on every query; es/en parity; design system; `pnpm check:boundaries` stays green
 
 ## Constitution Check
 
-*GATE: pass before Phase 0; re-check after design.*
+_GATE: pass before Phase 0; re-check after design._
 
-| Principle | Impact | Verdict |
-|-----------|--------|---------|
-| I. Money Precision | initialBalance/currentBalance are `Decimal`; reconciliation sums via `@finance/money` strings | ✅ Honored |
+| Principle              | Impact                                                                                            | Verdict    |
+| ---------------------- | ------------------------------------------------------------------------------------------------- | ---------- |
+| I. Money Precision     | initialBalance/currentBalance are `Decimal`; reconciliation sums via `@finance/money` strings     | ✅ Honored |
 | II. Per-User Isolation | every account query scoped by `userId`; reconciliation filters transactions by `userId` + account | ✅ Honored |
-| III. i18n Parity | new labels (types, statuses, actions, filter) added to es+en | ✅ Honored |
-| IV. Test-First | Vitest for reconciliation + service; web tests for list/form | ✅ Honored |
-| V. SDD & Living Memory | this plan is the artifact; **schema change** → CLAUDE.md (data model) at memory-sync | ✅ Honored |
-| Architecture norms | stays in `domains/accounts`; repo scoped; zod contracts; tokens-only UI | ✅ Honored |
+| III. i18n Parity       | new labels (types, statuses, actions, filter) added to es+en                                      | ✅ Honored |
+| IV. Test-First         | Vitest for reconciliation + service; web tests for list/form                                      | ✅ Honored |
+| V. SDD & Living Memory | this plan is the artifact; **schema change** → CLAUDE.md (data model) at memory-sync              | ✅ Honored |
+| Architecture norms     | stays in `domains/accounts`; repo scoped; zod contracts; tokens-only UI                           | ✅ Honored |
 
 **Data-model change** (new enums + `initialBalance`) → Prisma migration; record in CLAUDE.md
 (data model) at memory-sync. No constitution version bump (no principle change).
@@ -99,8 +100,8 @@ primitive to `shared/ui` for the type/status dropdowns (design-system addition).
 
 ## Complexity Tracking
 
-| Decision | Why | Rejected alternative |
-|----------|-----|----------------------|
+| Decision                                       | Why                                                                                            | Rejected alternative                                                          |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
 | `initialBalance` + reconciled `currentBalance` | satisfies "manual balance" AND "reconcile from transactions" without losing the starting point | single editable balance (can't reconcile) / fully derived (loses manual seed) |
-| Reconcile on demand (endpoint) + on read | predictable, cheap; avoids write-amplification on every transaction change | recompute on every transaction mutation (cross-domain coupling now) |
-| Status as enum + query filter | matches "visual badge + filter", keeps history | boolean isActive (less explicit) / soft-delete (hides data) |
+| Reconcile on demand (endpoint) + on read       | predictable, cheap; avoids write-amplification on every transaction change                     | recompute on every transaction mutation (cross-domain coupling now)           |
+| Status as enum + query filter                  | matches "visual badge + filter", keeps history                                                 | boolean isActive (less explicit) / soft-delete (hides data)                   |

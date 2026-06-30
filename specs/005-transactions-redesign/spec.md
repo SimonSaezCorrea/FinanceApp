@@ -8,7 +8,7 @@
 
 **Input**: Redesign the Transactions view (apps/web) to match the high-fidelity design handoff in design_handoff_financeapp/README.md (section "5. Movimientos"). The current TransactionsRoute.tsx is a bare list with no filters, no KPIs, and no actions.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 — View and filter transactions at a glance (Priority: P1)
 
@@ -82,7 +82,7 @@ The "Importar" button is visible on the screen so users know the feature exists,
 - What if the net balance is negative? → Net balance KPI displays in accent-red (same as expense color).
 - What if date "from" is after "to"? → The "to" selector enforces a minimum equal to "from" (or vice versa) to prevent invalid ranges.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -105,7 +105,7 @@ The "Importar" button is visible on the screen so users know the feature exists,
 - **TransactionFilters**: the active combination of type, bankAccountId, from-date, and to-date used to query the data source.
 - **KPI summary**: a derived, read-only triple (totalIncome, totalExpense, netBalance) computed from the visible transaction list.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

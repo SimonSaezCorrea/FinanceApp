@@ -15,7 +15,15 @@ const cardRow = {
   expiryYear: 2028,
   createdAt: new Date(),
   updatedAt: new Date(),
-  limits: [{ id: "l1", cardId: "c1", currency: "USD", limit: { toString: () => "1000" }, used: { toString: () => "250" } }],
+  limits: [
+    {
+      id: "l1",
+      cardId: "c1",
+      currency: "USD",
+      limit: { toString: () => "1000" },
+      used: { toString: () => "250" },
+    },
+  ],
 };
 
 function make(repo: Partial<CardsRepository>) {
@@ -57,7 +65,13 @@ describe("CardsService", () => {
   it("throws when the account is not the user's", async () => {
     const svc = make({ accountExists: vi.fn().mockResolvedValue(null) });
     await expect(
-      svc.create("u1", "nope", { name: "x", kind: "DEBIT", last4: "1234", expiryMonth: 1, expiryYear: 2027 }),
+      svc.create("u1", "nope", {
+        name: "x",
+        kind: "DEBIT",
+        last4: "1234",
+        expiryMonth: 1,
+        expiryYear: 2027,
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 

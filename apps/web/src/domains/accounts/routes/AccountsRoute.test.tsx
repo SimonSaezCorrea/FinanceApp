@@ -54,9 +54,7 @@ describe("AccountsRoute", () => {
   it("flags an inactive account on its tile", async () => {
     vi.mocked(accountsApi.list).mockResolvedValue([{ ...account, status: "INACTIVE" as const }]);
     renderRoute();
-    await waitFor(() =>
-      expect(screen.getByText(i18n.t("accounts.status.INACTIVE"))).toBeDefined(),
-    );
+    await waitFor(() => expect(screen.getByText(i18n.t("accounts.status.INACTIVE"))).toBeDefined());
   });
 
   it("shows the empty state when there are no accounts", async () => {

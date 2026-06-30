@@ -9,8 +9,13 @@ export function useInstallmentMutations() {
   return {
     create: useMutation({ mutationFn: installmentsApi.create, onSuccess: invalidate }),
     update: useMutation({
-      mutationFn: ({ id, body }: { id: string; body: Parameters<typeof installmentsApi.update>[1] }) =>
-        installmentsApi.update(id, body),
+      mutationFn: ({
+        id,
+        body,
+      }: {
+        id: string;
+        body: Parameters<typeof installmentsApi.update>[1];
+      }) => installmentsApi.update(id, body),
       onSuccess: invalidate,
     }),
     remove: useMutation({ mutationFn: installmentsApi.remove, onSuccess: invalidate }),

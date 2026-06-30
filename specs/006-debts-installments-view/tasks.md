@@ -8,7 +8,7 @@
 
 **Propósito**: Todos los prerrequisitos que no tienen dependencias entre sí.
 
-- [ ] T001 [P] Añadir claves i18n de Deudas y Cuotas a `apps/web/src/i18n/es.json`: `debts.kpi.*` (owedToYou, youOwe, balance), `debts.card.*` (installments, paid, remaining, markPaid, registerPayment), `debts.form.*` (direction, counterparty, amount, currency, openedAt, dueAt, installments, installmentAmount, notes, directionOptions.*), `debts.new`, `debts.created`, `debts.empty`, `installments.planCard.*` (monthlyAmount, nextDue, progress), `installments.calendar.*` (seq, date, amount, status, paid, upcoming, pending), `installments.new`, `installments.created`, `installments.empty`
+- [ ] T001 [P] Añadir claves i18n de Deudas y Cuotas a `apps/web/src/i18n/es.json`: `debts.kpi.*` (owedToYou, youOwe, balance), `debts.card.*` (installments, paid, remaining, markPaid, registerPayment), `debts.form.*` (direction, counterparty, amount, currency, openedAt, dueAt, installments, installmentAmount, notes, directionOptions._), `debts.new`, `debts.created`, `debts.empty`, `installments.planCard._`(monthlyAmount, nextDue, progress),`installments.calendar.\*`(seq, date, amount, status, paid, upcoming, pending),`installments.new`, `installments.created`, `installments.empty`
 - [ ] T002 [P] Copiar exactamente las mismas claves de T001 a `apps/web/src/i18n/en.json` con valores en inglés
 - [ ] T003 [P] Añadir 3 campos a `Debt` en `apps/api/prisma/schema.prisma`: `totalInstallments Int @default(1)`, `paidInstallments Int @default(0)`, `installmentAmount Decimal? @db.Decimal(18,4)`. Luego ejecutar `cd apps/api && npx prisma db push`
 - [ ] T004 [P] Extender contratos en `packages/contracts/src/debts/index.ts`: añadir `totalInstallments: z.number().int().min(1)`, `paidInstallments: z.number().int().min(0)`, `installmentAmount: moneyString.nullable()` a `debtSchema`; añadir `totalInstallments: z.number().int().min(1).default(1)`, `installmentAmount: moneyString.optional()` a `createDebtSchema` (`updateDebtSchema` hereda via `.partial()`)
@@ -59,7 +59,7 @@
 
 **Independent Test**: `paidInstallments` incrementa al hacer clic; barra actualiza; deuda desaparece al completar.
 
-*(Cubierto por T012 [mutaciones] y T014 [botones en DebtCard]; el test independiente se valida manualmente con el quickstart.)*
+_(Cubierto por T012 [mutaciones] y T014 [botones en DebtCard]; el test independiente se valida manualmente con el quickstart.)_
 
 - [ ] T018 [P] [US3] Actualizar tests en `apps/web/src/domains/debts/routes/DebtsRoute.test.tsx`: añadir `totalInstallments:1, paidInstallments:0, installmentAmount:null` a todos los mocks de `Debt` en el archivo (parity con nuevo schema)
 
@@ -127,6 +127,7 @@ T027, T028, T029, T030, T031   (polish — tras completar todo)
 **MVP scope**: T001–T015 → Vista Deudas operativa con KPIs, tarjetas, progreso de cuotas y acciones de pago.
 
 **Totales**: 31 tareas · 8 fases
+
 - Phase 1 Setup: 5 tareas
 - Phase 2 Backend: 3 tareas
 - Phase 3 US1 (ver deudas): 7 tareas

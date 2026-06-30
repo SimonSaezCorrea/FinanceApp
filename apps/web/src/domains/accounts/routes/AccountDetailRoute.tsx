@@ -134,7 +134,9 @@ export function AccountDetailRoute() {
                     { value: "info", label: t("accounts.detail.info") },
                   ]}
                 />
-                {tab === "transactions" ? <TransactionsTab accountId={id} currency={acc.currency} /> : null}
+                {tab === "transactions" ? (
+                  <TransactionsTab accountId={id} currency={acc.currency} />
+                ) : null}
                 {tab === "cards" ? <CardsTab account={acc} /> : null}
                 {tab === "info" ? <InfoTab account={acc} /> : null}
               </div>
@@ -163,7 +165,10 @@ export function AccountDetailRoute() {
             ) : (
               <ul className="flex flex-col gap-2">
                 {acc.cards.map((card) => (
-                  <li key={card.id} className="flex items-center justify-between rounded-md border px-3 py-2">
+                  <li
+                    key={card.id}
+                    className="flex items-center justify-between rounded-md border px-3 py-2"
+                  >
                     <span className="flex flex-col">
                       <span className="text-sm font-medium">
                         {card.name} <span className="text-muted-foreground">···· {card.last4}</span>
@@ -292,7 +297,9 @@ function TransactionsTab({ accountId, currency }: { accountId: string; currency:
                 {new Date(tx.occurredAt).toLocaleDateString(i18n.language)}
               </span>
             </span>
-            <span className={cn("shrink-0 tabular-nums text-sm font-medium", income && "text-success")}>
+            <span
+              className={cn("shrink-0 tabular-nums text-sm font-medium", income && "text-success")}
+            >
               {income ? "+" : "−"}
               {formatMoney(tx.amount, { locale: i18n.language, currency: tx.currency || currency })}
             </span>
@@ -395,7 +402,10 @@ function InfoTab({ account }: { account: accounts.BankAccount }) {
         <DetailRow label={t("accounts.form.currency")} value={account.currency} />
         <DetailRow label={t("accounts.form.institution")} value={account.institution ?? "—"} />
         <DetailRow label={t("accounts.form.type")} value={t(`accounts.type.${account.type}`)} />
-        <DetailRow label={t("accounts.status.label")} value={t(`accounts.status.${account.status}`)} />
+        <DetailRow
+          label={t("accounts.status.label")}
+          value={t(`accounts.status.${account.status}`)}
+        />
         <DetailRow
           label={t("accounts.detail.created")}
           value={new Date(account.createdAt).toLocaleDateString(i18n.language)}

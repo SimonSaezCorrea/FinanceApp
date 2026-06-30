@@ -3,10 +3,12 @@
 **Feature**: specs/004-account-cards-modal | **Plan**: [plan.md](./plan.md)
 
 ## Phase 1: Schema & contracts
+
 - [x] T001 Prisma: `AccountType += VISTA`; add `CardKind` enum, `Card`, `CardLimit` models (Card `onDelete: Cascade` from account; CardLimit `@@unique([cardId,currency])`) in `apps/api/prisma/schema.prisma`; db push + generate
 - [x] T002 Contracts (`packages/contracts/src/accounts/index.ts`): `cardKind`, `cardLimitSchema`, `cardSchema`, `createCardSchema` (last4 `^\d{4}$`), add `cards?` to create + `cards` to response; +VISTA; rebuild
 
 ## Phase 2: Backend
+
 - [x] T003 `cards.repository.ts`: create/update/remove scoped via account+userId; include limits
 - [x] T004 `accounts.repository.ts`: include `cards.limits` on findOne/list; support nested create-with-cards
 - [x] T005 `cards.service.ts`: validate last4 (4 digits), DEBIT⇒no limits, unique currency; CRUD; toContract
@@ -16,6 +18,7 @@
 - [x] T009 Register `CardsService`/`CardsRepository` in `accounts.module.ts`
 
 ## Phase 3: Frontend
+
 - [x] T010 Add `@radix-ui/react-dialog`; `shared/ui/dialog.tsx` primitive (tokens, a11y)
 - [x] T011 [P] `domains/accounts/api/cardsApi.ts` + `hooks/useCards.ts` (create/update/remove, invalidate account)
 - [x] T012 [P] `components/CardPreview.tsx` — card-style visual from form state (masked `•••• last4`)
@@ -27,6 +30,7 @@
 - [x] T018 [P] Web tests: modal opens + preview; CardForm sends only last4 (mask); detail card list
 
 ## Phase 4: Polish & verify
+
 - [x] T019 Memory sync: CLAUDE.md data-model (Card/CardLimit, VISTA) + dep `@radix-ui/react-dialog` + `dialog` primitive
 - [x] T020 Verify: api+web tests, `pnpm build`, `pnpm check:boundaries`; security check (payload shows only last4)
 

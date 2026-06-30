@@ -12,14 +12,22 @@
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "check:boundaries": "node scripts/check-boundaries.mjs",
+    "format:check": "prettier --check .",
     "db:migrate": "pnpm --filter @finance/api prisma:migrate",
     "db:seed": "pnpm --filter @finance/api prisma:seed"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild", "@swc/core", "@prisma/client", "prisma", "@nestjs/core"]
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "@swc/core",
+      "@prisma/client",
+      "prisma",
+      "@nestjs/core"
+    ]
   },
   "devDependencies": {
     "turbo": "^2.3.3",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "prettier": "^3.4.2"
   }
 }

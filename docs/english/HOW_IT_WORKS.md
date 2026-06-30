@@ -1,7 +1,7 @@
 # FinanceApp — How it works & how to run it
 
-A practical companion to [ARCHITECTURE.md](./ARCHITECTURE.md). That doc says *what the pieces are*;
-this one says *how they run and how a request flows end to end*.
+A practical companion to [ARCHITECTURE.md](./ARCHITECTURE.md). That doc says _what the pieces are_;
+this one says _how they run and how a request flows end to end_.
 
 ---
 
@@ -16,11 +16,11 @@ start, stop, build, and deploy each one on its own.
 
 ## 2. What runs where
 
-| Process | What it is | Default URL | Owns |
-|---------|------------|-------------|------|
-| `apps/api` | A long-running Node/NestJS server | `http://localhost:3001` | The database (Prisma), business logic, auth |
-| `apps/web` | A Vite dev server (dev) / static files behind nginx (prod) | `http://localhost:5173` | The UI, routing, translations |
-| PostgreSQL | The database | `:5432` | Persisted data — reached **only** by `apps/api` |
+| Process    | What it is                                                 | Default URL             | Owns                                            |
+| ---------- | ---------------------------------------------------------- | ----------------------- | ----------------------------------------------- |
+| `apps/api` | A long-running Node/NestJS server                          | `http://localhost:3001` | The database (Prisma), business logic, auth     |
+| `apps/web` | A Vite dev server (dev) / static files behind nginx (prod) | `http://localhost:5173` | The UI, routing, translations                   |
+| PostgreSQL | The database                                               | `:5432`                 | Persisted data — reached **only** by `apps/api` |
 
 The browser downloads the SPA from `apps/web`, then every data action is a `fetch()` to `apps/api`.
 
@@ -101,6 +101,7 @@ Browser (useAccounts → apiClient)        apps/api
 ```
 
 Two rules are always enforced here:
+
 - **Per-user isolation:** the repository query is filtered by the `userId` from the token — a user
   can never see another's data.
 - **Money as strings:** amounts cross the wire as decimal strings (e.g. `"1240.5000"`), parsed with
@@ -147,6 +148,7 @@ pnpm build             # Turborepo builds packages, then both apps
 ```
 
 CI (`.github/workflows/ci.yml`) runs the same gates on every PR. Build outputs:
+
 - `apps/api` → compiled Node app (`dist/main.js`), shipped as a Node container (`apps/api/Dockerfile`).
 - `apps/web` → static bundle (`dist/`), served by nginx (`apps/web/Dockerfile` + `nginx.conf`),
   baked with `VITE_API_URL` at build time.
@@ -156,12 +158,12 @@ and scale the API independently of the static frontend.
 
 ## 9. Where to look when…
 
-| You want to… | Go to |
-|--------------|-------|
-| Change an endpoint's shape | `packages/contracts/src/<domain>/` (then both apps follow) |
-| Add business logic / a query | `apps/api/src/domains/<domain>/{service,repository}.ts` |
-| Change a screen | `apps/web/src/domains/<domain>/routes/` |
-| Touch auth | `apps/api/src/domains/auth/` + `apps/api/src/infra/auth/` |
-| Add a translation | `apps/web/src/i18n/{es,en}.json` |
-| Money math | `packages/money/src/` |
-| Add a whole new domain | the recap in [ARCHITECTURE.md §12](./ARCHITECTURE.md) |
+| You want to…                 | Go to                                                      |
+| ---------------------------- | ---------------------------------------------------------- |
+| Change an endpoint's shape   | `packages/contracts/src/<domain>/` (then both apps follow) |
+| Add business logic / a query | `apps/api/src/domains/<domain>/{service,repository}.ts`    |
+| Change a screen              | `apps/web/src/domains/<domain>/routes/`                    |
+| Touch auth                   | `apps/api/src/domains/auth/` + `apps/api/src/infra/auth/`  |
+| Add a translation            | `apps/web/src/i18n/{es,en}.json`                           |
+| Money math                   | `packages/money/src/`                                      |
+| Add a whole new domain       | the recap in [ARCHITECTURE.md §12](./ARCHITECTURE.md)      |

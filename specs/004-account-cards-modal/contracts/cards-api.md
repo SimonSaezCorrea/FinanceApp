@@ -11,11 +11,11 @@ carry only `last4` — never a full PAN; no CVV field exists.**
 
 ## Card sub-resource
 
-| Method | Path | Body | Returns |
-|--------|------|------|---------|
-| POST | `/accounts/:id/cards` | `createCard` | `Card` (201) |
-| PATCH | `/accounts/:id/cards/:cardId` | partial `createCard` | `Card` |
-| DELETE | `/accounts/:id/cards/:cardId` | — | 204 |
+| Method | Path                          | Body                 | Returns      |
+| ------ | ----------------------------- | -------------------- | ------------ |
+| POST   | `/accounts/:id/cards`         | `createCard`         | `Card` (201) |
+| PATCH  | `/accounts/:id/cards/:cardId` | partial `createCard` | `Card`       |
+| DELETE | `/accounts/:id/cards/:cardId` | —                    | 204          |
 
 ## Shapes
 

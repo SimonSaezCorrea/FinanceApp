@@ -85,10 +85,20 @@ export function CardForm({ submitLabel, submitting, initial, onSubmit }: Props) 
       <p className="-mt-1 text-xs text-muted-foreground">{t("cards.form.numberHint")}</p>
       <div className="grid grid-cols-2 gap-3">
         <Field label={t("cards.form.expiryMonth")} htmlFor="card-mm">
-          <Input id="card-mm" inputMode="numeric" value={month} onChange={(e) => setMonth(e.target.value)} />
+          <Input
+            id="card-mm"
+            inputMode="numeric"
+            value={month}
+            onChange={(e) => setMonth(e.target.value)}
+          />
         </Field>
         <Field label={t("cards.form.expiryYear")} htmlFor="card-yy">
-          <Input id="card-yy" inputMode="numeric" value={year} onChange={(e) => setYear(e.target.value)} />
+          <Input
+            id="card-yy"
+            inputMode="numeric"
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+          />
         </Field>
       </div>
 
@@ -103,23 +113,46 @@ export function CardForm({ submitLabel, submitting, initial, onSubmit }: Props) 
           </div>
           {limits.map((l, i) => (
             <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-2">
-              <Input aria-label={t("cards.form.currency")} placeholder={t("cards.form.currency")}
-                value={l.currency} maxLength={3}
-                onChange={(e) => updateLimit(setLimits, i, { currency: e.target.value.toUpperCase() })} />
-              <Input aria-label={t("cards.form.limit")} placeholder={t("cards.form.limit")}
-                inputMode="decimal" value={l.limit}
-                onChange={(e) => updateLimit(setLimits, i, { limit: e.target.value })} />
-              <Input aria-label={t("cards.form.used")} placeholder={t("cards.form.used")}
-                inputMode="decimal" value={l.used}
-                onChange={(e) => updateLimit(setLimits, i, { used: e.target.value })} />
-              <Button type="button" variant="ghost" size="sm" aria-label={t("common.cancel")}
-                onClick={() => setLimits((p) => p.filter((_, j) => j !== i))}>
+              <Input
+                aria-label={t("cards.form.currency")}
+                placeholder={t("cards.form.currency")}
+                value={l.currency}
+                maxLength={3}
+                onChange={(e) =>
+                  updateLimit(setLimits, i, { currency: e.target.value.toUpperCase() })
+                }
+              />
+              <Input
+                aria-label={t("cards.form.limit")}
+                placeholder={t("cards.form.limit")}
+                inputMode="decimal"
+                value={l.limit}
+                onChange={(e) => updateLimit(setLimits, i, { limit: e.target.value })}
+              />
+              <Input
+                aria-label={t("cards.form.used")}
+                placeholder={t("cards.form.used")}
+                inputMode="decimal"
+                value={l.used}
+                onChange={(e) => updateLimit(setLimits, i, { used: e.target.value })}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                aria-label={t("common.cancel")}
+                onClick={() => setLimits((p) => p.filter((_, j) => j !== i))}
+              >
                 ✕
               </Button>
             </div>
           ))}
-          <Button type="button" variant="outline" size="sm"
-            onClick={() => setLimits((p) => [...p, { currency: "USD", limit: "0", used: "0" }])}>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setLimits((p) => [...p, { currency: "USD", limit: "0", used: "0" }])}
+          >
             {t("cards.form.addLimit")}
           </Button>
         </div>

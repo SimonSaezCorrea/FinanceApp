@@ -20,6 +20,7 @@ the design system (a Dialog primitive). Prisma schema change → memory sync.
 backend deps. zod (`@finance/contracts`), `@finance/money`, TanStack Query.
 
 **Storage**: PostgreSQL/Prisma. **Schema change**:
+
 - `AccountType` += `VISTA`.
 - new `Card` { id, accountId, userId, name, kind `CardKind`(CREDIT|DEBIT), last4 (String, exactly 4
   digits), expiryMonth Int, expiryYear Int, createdAt, updatedAt } — `onDelete: Cascade` from account.
@@ -35,15 +36,15 @@ decimal money; per-user scoping; es/en; design system; `pnpm check:boundaries` g
 
 ## Constitution Check
 
-| Principle | Impact | Verdict |
-|-----------|--------|---------|
-| I. Money Precision | limits/used `Decimal` via `@finance/money` strings | ✅ |
-| II. Per-User Isolation | cards reached via owner's account; every query scoped by userId | ✅ |
-| III. i18n Parity | new labels es+en | ✅ |
-| IV. Test-First | Vitest for last4 rule, limits, scoping | ✅ |
-| V. SDD & Living Memory | schema change → CLAUDE.md data-model at memory-sync | ✅ |
+| Principle                 | Impact                                                          | Verdict         |
+| ------------------------- | --------------------------------------------------------------- | --------------- |
+| I. Money Precision        | limits/used `Decimal` via `@finance/money` strings              | ✅              |
+| II. Per-User Isolation    | cards reached via owner's account; every query scoped by userId | ✅              |
+| III. i18n Parity          | new labels es+en                                                | ✅              |
+| IV. Test-First            | Vitest for last4 rule, limits, scoping                          | ✅              |
+| V. SDD & Living Memory    | schema change → CLAUDE.md data-model at memory-sync             | ✅              |
 | Security (sensitive data) | only last4 transmitted/stored; no CVV; backend defense-in-depth | ✅ strengthened |
-| Architecture norms | stays in `domains/accounts`; zod contracts; tokens-only UI | ✅ |
+| Architecture norms        | stays in `domains/accounts`; zod contracts; tokens-only UI      | ✅              |
 
 New dep (`@radix-ui/react-dialog`) + schema change → record in CLAUDE.md. No constitution bump.
 
@@ -87,9 +88,9 @@ apps/web/src/i18n/{es,en}.json
 
 ## Complexity Tracking
 
-| Decision | Why | Rejected |
-|----------|-----|----------|
-| last4 derived client-side, backend rejects >4 | strongest privacy: full PAN never transmitted/stored | send full + trim server-side (PAN on the wire/logs) |
-| CardLimit table (per currency) | multi-currency limits with per-currency used | JSON blob (no integrity/uniqueness) |
-| Cards nested under accounts | cards belong to an account; lifecycle + scoping via the account | top-level cards domain (extra cross-checks) |
-| Radix dialog | accessible modal, matches shadcn base | hand-rolled modal (focus trap/a11y burden) |
+| Decision                                      | Why                                                             | Rejected                                            |
+| --------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------- |
+| last4 derived client-side, backend rejects >4 | strongest privacy: full PAN never transmitted/stored            | send full + trim server-side (PAN on the wire/logs) |
+| CardLimit table (per currency)                | multi-currency limits with per-currency used                    | JSON blob (no integrity/uniqueness)                 |
+| Cards nested under accounts                   | cards belong to an account; lifecycle + scoping via the account | top-level cards domain (extra cross-checks)         |
+| Radix dialog                                  | accessible modal, matches shadcn base                           | hand-rolled modal (focus trap/a11y burden)          |

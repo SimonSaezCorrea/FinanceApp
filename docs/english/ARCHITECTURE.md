@@ -48,9 +48,9 @@ published HTTP contract. This maximizes maintainability (domain-first layout), s
   land in one PR (atomic), and there's one toolchain + CI — while runtime stays fully decoupled. The
   one-way dependency rule keeps `apps/api` + `packages/*` self-contained, so extracting the backend
   to its own repo later is mechanical.
-- **Why domain-first (not layer-first):** everything about a domain (e.g. *debts*) lives in one
+- **Why domain-first (not layer-first):** everything about a domain (e.g. _debts_) lives in one
   folder — you navigate by feature, not by a technical layer scattered across the tree. Adding or
-  removing a whole domain is local; the app scales by *number of domains* instead of growing
+  removing a whole domain is local; the app scales by _number of domains_ instead of growing
   unbounded global `controllers/`/`services/` folders.
 - **Why the module/controller/service/repository format:** it's the standard NestJS layering, one
   repeatable skeleton per domain — **controller** = HTTP edge (parse/validate/return), **service** =
@@ -100,6 +100,7 @@ finance-app/
 ### What each folder contains
 
 **Backend `apps/api/src/`**
+
 - `main.ts` — process bootstrap: global prefix `/api/v1`, cookie parser, CORS (credentials), global
   error filter, then `listen`.
 - `app.module.ts` — composition root: imports infra modules + every domain module.
@@ -115,6 +116,7 @@ finance-app/
 - `test/` — e2e tests that bootstrap the Nest app.
 
 **Frontend `apps/web/src/`**
+
 - `main.tsx` — mounts React inside `Providers` + `RouterProvider`.
 - `app/` — app shell: `providers.tsx` (Query, i18n, Auth), `router.tsx` (route table), top-level pages.
 - `domains/<domain>/` — one business domain on the client: `api/` (typed calls via the shared
@@ -125,6 +127,7 @@ finance-app/
 - `styles/` — global styles.
 
 **`packages/`**
+
 - `contracts/` — zod schemas + inferred types; one module per domain + `common`. The API contract.
 - `money/` — decimal.js helpers, installment schedule, interest. Runtime financial math.
 - `config/` — shared `tsconfig.base.json`.

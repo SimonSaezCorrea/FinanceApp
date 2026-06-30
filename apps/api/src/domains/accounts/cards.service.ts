@@ -15,10 +15,18 @@ export class CardsService {
   private limitsFor(input: accounts.CreateCard) {
     // DEBIT cards never carry limits (contract also enforces this).
     if (input.kind !== "CREDIT") return [];
-    return (input.limits ?? []).map((l) => ({ currency: l.currency, limit: l.limit, used: l.used }));
+    return (input.limits ?? []).map((l) => ({
+      currency: l.currency,
+      limit: l.limit,
+      used: l.used,
+    }));
   }
 
-  async create(userId: string, accountId: string, input: accounts.CreateCard): Promise<accounts.Card> {
+  async create(
+    userId: string,
+    accountId: string,
+    input: accounts.CreateCard,
+  ): Promise<accounts.Card> {
     const account = await this.repo.accountExists(userId, accountId);
     if (!account) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
     const row = await this.repo.create(

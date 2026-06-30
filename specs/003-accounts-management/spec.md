@@ -27,7 +27,7 @@ transactions. Builds on the existing `accounts` domain (backend + frontend) and 
   balance is reconciled** = initial balance + net of linked transactions (income − expense).
 - Q: Scope? → A: full CRUD + status toggle + **balance reconciliation** from transactions.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Create & list accounts (Priority: P1)
 
@@ -114,7 +114,7 @@ trigger reconciliation → the current balance equals initial + income − expen
 - **Per-user:** a user can only see/edit/delete/reconcile their own accounts; others' IDs return not-found.
 - **Inactive accounts:** still reconcilable and editable; "inactive" is status only.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -149,7 +149,7 @@ trigger reconciliation → the current balance equals initial + income − expen
 - **Transaction** (existing, read-only here): contributes INCOME/EXPENSE amounts to reconciliation
   via its `bankAccountId` link.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

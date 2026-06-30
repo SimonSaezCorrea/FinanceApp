@@ -3,15 +3,15 @@
 Base: `/api/v1/accounts` (JwtAuthGuard; every op scoped to the authenticated `userId`).
 Money fields are decimal strings. Shapes defined in `@finance/contracts` (`accounts`).
 
-| Method | Path | Body / Query | Returns |
-|--------|------|--------------|---------|
-| GET | `/accounts` | `?status=active\|inactive` (optional) | `BankAccount[]` |
-| GET | `/accounts/:id` | — | `BankAccount` (404 if not owner) |
-| POST | `/accounts` | `createBankAccount` | `BankAccount` (201) |
-| PATCH | `/accounts/:id` | `updateBankAccount` (partial) | `BankAccount` |
-| POST | `/accounts/:id/status` | `{ status: "ACTIVE" \| "INACTIVE" }` | `BankAccount` |
-| POST | `/accounts/:id/reconcile` | — | `BankAccount` (currentBalance recomputed) |
-| DELETE | `/accounts/:id` | — | 204 (transactions unlinked) |
+| Method | Path                      | Body / Query                          | Returns                                   |
+| ------ | ------------------------- | ------------------------------------- | ----------------------------------------- |
+| GET    | `/accounts`               | `?status=active\|inactive` (optional) | `BankAccount[]`                           |
+| GET    | `/accounts/:id`           | —                                     | `BankAccount` (404 if not owner)          |
+| POST   | `/accounts`               | `createBankAccount`                   | `BankAccount` (201)                       |
+| PATCH  | `/accounts/:id`           | `updateBankAccount` (partial)         | `BankAccount`                             |
+| POST   | `/accounts/:id/status`    | `{ status: "ACTIVE" \| "INACTIVE" }`  | `BankAccount`                             |
+| POST   | `/accounts/:id/reconcile` | —                                     | `BankAccount` (currentBalance recomputed) |
+| DELETE | `/accounts/:id`           | —                                     | 204 (transactions unlinked)               |
 
 ## Shapes
 

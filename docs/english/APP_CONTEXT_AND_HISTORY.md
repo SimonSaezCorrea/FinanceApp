@@ -25,19 +25,19 @@ deployment (e.g. **Vercel**, aligned with Next.js).
 
 **Tech stack (original repo state, `package.json`):**
 
-| Area | Technology |
-|------|------------|
-| UI framework | **Next.js** 14.x (App Router), **React** 18 |
-| Database | **PostgreSQL** (documented in `.env.example` as **Supabase** Postgres) |
-| ORM | **Prisma** 6.x, `@prisma/client` |
-| Auth | **NextAuth** v5 (`next-auth` beta), **Prisma adapter**, JWT sessions |
-| i18n | **next-intl** 4.x, routes under `/[locale]` |
-| UI / styling | **Tailwind CSS**, **Radix UI**, **next-themes** (light/dark/system) |
-| Numbers / money | **decimal.js** in financial utilities; **Prisma `Decimal`** in the schema |
-| Charts | **recharts** |
-| Excel | **xlsx** (SheetJS) |
-| Validation | **zod** |
-| ETF quotes | **Alpha Vantage** (`ALPHA_VANTAGE_API_KEY`; client in `lib/finance/etf.ts`) |
+| Area            | Technology                                                                  |
+| --------------- | --------------------------------------------------------------------------- |
+| UI framework    | **Next.js** 14.x (App Router), **React** 18                                 |
+| Database        | **PostgreSQL** (documented in `.env.example` as **Supabase** Postgres)      |
+| ORM             | **Prisma** 6.x, `@prisma/client`                                            |
+| Auth            | **NextAuth** v5 (`next-auth` beta), **Prisma adapter**, JWT sessions        |
+| i18n            | **next-intl** 4.x, routes under `/[locale]`                                 |
+| UI / styling    | **Tailwind CSS**, **Radix UI**, **next-themes** (light/dark/system)         |
+| Numbers / money | **decimal.js** in financial utilities; **Prisma `Decimal`** in the schema   |
+| Charts          | **recharts**                                                                |
+| Excel           | **xlsx** (SheetJS)                                                          |
+| Validation      | **zod**                                                                     |
+| ETF quotes      | **Alpha Vantage** (`ALPHA_VANTAGE_API_KEY`; client in `lib/finance/etf.ts`) |
 
 ---
 
@@ -59,6 +59,7 @@ narrative.
    `Investment`, `EtfPriceCache`), with indexes per the schema.
 
 4. **Seed (`prisma/seed.ts`, command `npm run db:seed`):**
+
    - Deletes and recreates only users with the demo emails `demo@finance.local` and
      `partner@finance.local` (aligned with the dev login in `auth.ts`).
    - Does not use **bcrypt** or persisted passwords: the dev credentials flow does an **upsert** of
@@ -97,16 +98,16 @@ pages do: the `matcher` in `middleware.ts` **excludes** `api`. Each handler uses
 
 ### 3.3 `lib/` — layers
 
-| Path | Role |
-|------|------|
-| `lib/prisma.ts` | `PrismaClient` singleton with logs in development |
-| `lib/i18n/routing.ts` | Supported locales and `defineRouting` (default `es`) |
-| `lib/i18n/pathname.ts` | Utility used in middleware to extract the locale from the pathname |
-| `lib/finance/installments.ts` | Installments: **equal-principal** amortization + optional simple interest per period (`decimal.js`) |
-| `lib/finance/interest.ts` | Compound / simple interest and rate utilities (`decimal.js`) |
-| `lib/finance/etf.ts` | Alpha Vantage quote + `EtfPriceCache` with a **24h** TTL in code |
-| `lib/utils/excel-parser.ts` | Excel parsing → normalized rows for transactions |
-| `lib/utils/currency.ts`, `formatters.ts`, `cn.ts` | Formatting and UI utilities |
+| Path                                              | Role                                                                                                |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `lib/prisma.ts`                                   | `PrismaClient` singleton with logs in development                                                   |
+| `lib/i18n/routing.ts`                             | Supported locales and `defineRouting` (default `es`)                                                |
+| `lib/i18n/pathname.ts`                            | Utility used in middleware to extract the locale from the pathname                                  |
+| `lib/finance/installments.ts`                     | Installments: **equal-principal** amortization + optional simple interest per period (`decimal.js`) |
+| `lib/finance/interest.ts`                         | Compound / simple interest and rate utilities (`decimal.js`)                                        |
+| `lib/finance/etf.ts`                              | Alpha Vantage quote + `EtfPriceCache` with a **24h** TTL in code                                    |
+| `lib/utils/excel-parser.ts`                       | Excel parsing → normalized rows for transactions                                                    |
+| `lib/utils/currency.ts`, `formatters.ts`, `cn.ts` | Formatting and UI utilities                                                                         |
 
 ### 3.4 Components
 
@@ -185,15 +186,15 @@ Source: `prisma/schema.prisma` and modules in `lib/finance/`.
 The parser expects a **`mapping`** object (validated with zod) relating **Excel column names** to
 logical fields:
 
-| Logical field | Mapping key | Notes |
-|---------------|-------------|-------|
-| Date | `date` | Prefer ISO `yyyy-mm-dd` in sheets |
-| Amount | `amount` | Positive; a negative sign can force an expense |
-| Description | `description` | Optional |
-| Category | `category` | Optional |
-| Type | `type` | Optional: INCOME/EXPENSE synonyms (en/es) or the amount's sign |
-| Currency | `currency` | Optional |
-| Account | `account` | Optional (text) |
+| Logical field | Mapping key   | Notes                                                          |
+| ------------- | ------------- | -------------------------------------------------------------- |
+| Date          | `date`        | Prefer ISO `yyyy-mm-dd` in sheets                              |
+| Amount        | `amount`      | Positive; a negative sign can force an expense                 |
+| Description   | `description` | Optional                                                       |
+| Category      | `category`    | Optional                                                       |
+| Type          | `type`        | Optional: INCOME/EXPENSE synonyms (en/es) or the amount's sign |
+| Currency      | `currency`    | Optional                                                       |
+| Account       | `account`     | Optional (text)                                                |
 
 The **`POST app/api/import`** route exists but as of 2026-05-15 returns a **stub** (`imported: 0`,
 a note to wire up SheetJS + parser); the parser in `lib` is **ready** to integrate.
@@ -281,16 +282,16 @@ Connect in **`app/api/import/route.ts`**: multipart `file`, `parseExcelTransacti
 
 ## Quick code-path references
 
-| Concept | Location |
-|---------|----------|
-| NextAuth auth | `auth.ts`, `app/api/auth/[...nextauth]/route.ts` |
-| i18n + auth middleware | `middleware.ts` |
-| Locale routing | `lib/i18n/routing.ts` |
-| ETF quotes + 24h cache | `lib/finance/etf.ts`, `EtfPriceCache` model |
-| Installments (equal-principal logic) | `lib/finance/installments.ts` |
-| Excel | `lib/utils/excel-parser.ts` |
-| Env example | `.env.example` |
+| Concept                              | Location                                         |
+| ------------------------------------ | ------------------------------------------------ |
+| NextAuth auth                        | `auth.ts`, `app/api/auth/[...nextauth]/route.ts` |
+| i18n + auth middleware               | `middleware.ts`                                  |
+| Locale routing                       | `lib/i18n/routing.ts`                            |
+| ETF quotes + 24h cache               | `lib/finance/etf.ts`, `EtfPriceCache` model      |
+| Installments (equal-principal logic) | `lib/finance/installments.ts`                    |
+| Excel                                | `lib/utils/excel-parser.ts`                      |
+| Env example                          | `.env.example`                                   |
 
 ---
 
-*End of canonical document.*
+_End of canonical document._

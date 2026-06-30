@@ -19,7 +19,13 @@ const TONES: Record<NonNullable<SparklineProps["tone"]>, string> = {
 };
 
 /** Tiny inline trend chart drawn from a balance series. No chart library. */
-export function Sparkline({ data, width = 96, height = 28, tone = "muted", className }: SparklineProps) {
+export function Sparkline({
+  data,
+  width = 96,
+  height = 28,
+  tone = "muted",
+  className,
+}: SparklineProps) {
   const gradientId = useId();
   const nums = data.map(Number).filter((n) => Number.isFinite(n));
   if (nums.length < 2) return <div style={{ width, height }} className={className} aria-hidden />;

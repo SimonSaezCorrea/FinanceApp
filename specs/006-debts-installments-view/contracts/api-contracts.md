@@ -17,9 +17,9 @@
   "interestApr": "decimal-string | null",
   "notes": "string | null",
   "settledAt": "ISO-datetime | null",
-  "totalInstallments": 6,        // * nuevo, default 1
-  "paidInstallments": 2,         // * nuevo, default 0
-  "installmentAmount": "45000.0000 | null",  // * nuevo, nullable
+  "totalInstallments": 6, // * nuevo, default 1
+  "paidInstallments": 2, // * nuevo, default 0
+  "installmentAmount": "45000.0000 | null", // * nuevo, nullable
   "createdAt": "ISO-datetime",
   "updatedAt": "ISO-datetime"
 }
@@ -36,8 +36,8 @@
   "currency": "CLP",
   "openedAt": "2026-07-01T00:00:00.000Z",
   "dueAt": null,
-  "totalInstallments": 6,        // opcional, default 1
-  "installmentAmount": "45000.0000",  // opcional, null si no se especifica
+  "totalInstallments": 6, // opcional, default 1
+  "installmentAmount": "45000.0000", // opcional, null si no se especifica
   "notes": "Deuda de viaje"
 }
 ```
@@ -50,14 +50,16 @@
 // Response: Debt actualizado
 {
   "id": "...",
-  "paidInstallments": 3,  // incrementado
-  "settledAt": null,       // o ISO-datetime si es el último pago
+  "paidInstallments": 3, // incrementado
+  "settledAt": null // o ISO-datetime si es el último pago
   // ... resto de campos
 }
 
 // Errores:
 // 404 { "error": { "code": "DEBT_NOT_FOUND" } }
 // 409 { "error": { "code": "DEBT_ALREADY_SETTLED" } }
+
+
 // 409 { "error": { "code": "ALL_INSTALLMENTS_PAID" } }
 ```
 
@@ -70,6 +72,7 @@ Sigue existiendo para deudas de 1 cuota (pago único).
 ## Installments API — sin cambios
 
 Todos los endpoints existentes son suficientes:
+
 - `GET /api/v1/installments` — lista de planes con pagos
 - `POST /api/v1/installments` — crear plan
 - `POST /api/v1/installments/:planId/pay/:sequence` — marcar cuota pagada (no usado en este scope desde UI, pero disponible)

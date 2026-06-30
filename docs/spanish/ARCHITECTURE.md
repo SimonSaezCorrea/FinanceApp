@@ -51,9 +51,9 @@ escalabilidad (build/deploy/escalado independientes) y descubribilidad (todo lo 
   manteniendo el runtime totalmente desacoplado. La regla de dependencias unidireccional deja a
   `apps/api` + `packages/*` autocontenidos, así que extraer el backend a su propio repo después es
   mecánico.
-- **Por qué primero-por-dominio (no por capa):** todo lo de un dominio (p. ej. *debts*) vive en una
+- **Por qué primero-por-dominio (no por capa):** todo lo de un dominio (p. ej. _debts_) vive en una
   carpeta — navegas por feature, no por una capa técnica dispersa por el árbol. Agregar o quitar un
-  dominio completo es local; la app escala por *cantidad de dominios* en vez de hacer crecer sin
+  dominio completo es local; la app escala por _cantidad de dominios_ en vez de hacer crecer sin
   límite carpetas globales `controllers/`/`services/`.
 - **Por qué el formato module/controller/service/repository:** es el layering estándar de NestJS, un
   skeleton repetible por dominio — **controller** = borde HTTP (parsea/valida/devuelve), **service** =
@@ -103,6 +103,7 @@ finance-app/
 ### Qué contiene cada carpeta
 
 **Backend `apps/api/src/`**
+
 - `main.ts` — bootstrap del proceso: prefijo global `/api/v1`, parser de cookies, CORS (credenciales),
   filtro de errores global, y luego `listen`.
 - `app.module.ts` — raíz de composición: importa los módulos de infra + cada módulo de dominio.
@@ -118,6 +119,7 @@ finance-app/
 - `test/` — tests e2e que levantan la app Nest.
 
 **Frontend `apps/web/src/`**
+
 - `main.tsx` — monta React dentro de `Providers` + `RouterProvider`.
 - `app/` — shell de la app: `providers.tsx` (Query, i18n, Auth), `router.tsx` (tabla de rutas), páginas de nivel superior.
 - `domains/<dominio>/` — un dominio de negocio en el cliente: `api/` (llamadas tipadas vía el
@@ -128,6 +130,7 @@ finance-app/
 - `styles/` — estilos globales.
 
 **`packages/`**
+
 - `contracts/` — esquemas zod + tipos inferidos; un módulo por dominio + `common`. El contrato de la API.
 - `money/` — helpers decimal.js, cronograma de cuotas, interés. Matemática financiera en runtime.
 - `config/` — `tsconfig.base.json` compartido.

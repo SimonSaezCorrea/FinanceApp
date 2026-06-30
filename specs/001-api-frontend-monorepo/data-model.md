@@ -7,16 +7,16 @@ scoped to a `userId` (Principle II).
 
 ## Domain → entity map
 
-| Domain (folder) | Owns entities |
-|-----------------|---------------|
-| `auth` | `User`, `Account`, `Session`, `VerificationToken` (NextAuth tables; `User.passwordHash` for credentials) |
-| `accounts` | `BankAccount` |
-| `transactions` | `Transaction` (+ enum `TransactionType`) |
-| `installments` | `InstallmentPlan`, `InstallmentPayment` |
-| `debts` | `Debt` (+ enum `DebtDirection`) |
-| `savings` | `SavingsGoal`, `SavingsEntry` |
-| `investments` | `Investment` (+ enum `InvestmentKind`), `EtfPriceCache` |
-| `import` | none (operates on `Transaction`; stateless Excel parsing) |
+| Domain (folder) | Owns entities                                                                                            |
+| --------------- | -------------------------------------------------------------------------------------------------------- |
+| `auth`          | `User`, `Account`, `Session`, `VerificationToken` (NextAuth tables; `User.passwordHash` for credentials) |
+| `accounts`      | `BankAccount`                                                                                            |
+| `transactions`  | `Transaction` (+ enum `TransactionType`)                                                                 |
+| `installments`  | `InstallmentPlan`, `InstallmentPayment`                                                                  |
+| `debts`         | `Debt` (+ enum `DebtDirection`)                                                                          |
+| `savings`       | `SavingsGoal`, `SavingsEntry`                                                                            |
+| `investments`   | `Investment` (+ enum `InvestmentKind`), `EtfPriceCache`                                                  |
+| `import`        | none (operates on `Transaction`; stateless Excel parsing)                                                |
 
 ## Entities (key fields & rules)
 

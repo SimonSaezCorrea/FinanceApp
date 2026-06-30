@@ -40,9 +40,27 @@ describe("InstallmentsRoute", () => {
         createdAt: "2026-01-15T00:00:00.000Z",
         updatedAt: "2026-01-15T00:00:00.000Z",
         payments: [
-          { id: "a", sequence: 1, dueDate: "2026-01-15T00:00:00.000Z", amount: "400.0000", paidAt: "2026-01-16T00:00:00.000Z" },
-          { id: "b", sequence: 2, dueDate: "2026-02-15T00:00:00.000Z", amount: "400.0000", paidAt: null },
-          { id: "c", sequence: 3, dueDate: "2026-03-15T00:00:00.000Z", amount: "400.0000", paidAt: null },
+          {
+            id: "a",
+            sequence: 1,
+            dueDate: "2026-01-15T00:00:00.000Z",
+            amount: "400.0000",
+            paidAt: "2026-01-16T00:00:00.000Z",
+          },
+          {
+            id: "b",
+            sequence: 2,
+            dueDate: "2026-02-15T00:00:00.000Z",
+            amount: "400.0000",
+            paidAt: null,
+          },
+          {
+            id: "c",
+            sequence: 3,
+            dueDate: "2026-03-15T00:00:00.000Z",
+            amount: "400.0000",
+            paidAt: null,
+          },
         ],
       },
     ]);

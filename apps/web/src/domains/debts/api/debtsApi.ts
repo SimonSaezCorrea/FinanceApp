@@ -19,8 +19,7 @@ export const debtsApi = {
 
   settle: (id: string) => apiFetch<void>(`/debts/${id}/settle`, { method: "POST" }),
 
-  unsettle: (id: string) =>
-    apiFetch<debts.Debt>(`/debts/${id}/unsettle`, { method: "POST" }),
+  unsettle: (id: string) => apiFetch<debts.Debt>(`/debts/${id}/unsettle`, { method: "POST" }),
 
   registerPayment: (id: string) =>
     apiFetch<debts.Debt>(`/debts/${id}/register-payment`, { method: "POST" }),

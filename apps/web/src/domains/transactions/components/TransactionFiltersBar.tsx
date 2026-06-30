@@ -120,12 +120,16 @@ export function TransactionFiltersBar({ filters, onChange, accounts }: Transacti
           <span className="absolute inset-0 rounded-full bg-muted transition-colors peer-checked:bg-primary" />
           <span className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-background shadow transition-[left] peer-checked:left-[18px]" />
         </span>
-        <span className="text-xs text-muted-foreground">{t("transactions.filters.showInactive")}</span>
+        <span className="text-xs text-muted-foreground">
+          {t("transactions.filters.showInactive")}
+        </span>
       </label>
 
       {/* Category search */}
       <div className="flex min-w-[160px] flex-1 flex-col gap-1">
-        <label className="text-xs text-muted-foreground">{t("transactions.filters.category")}</label>
+        <label className="text-xs text-muted-foreground">
+          {t("transactions.filters.category")}
+        </label>
         <Input
           value={localCategory}
           onChange={(e) => handleCategoryChange(e.target.value)}

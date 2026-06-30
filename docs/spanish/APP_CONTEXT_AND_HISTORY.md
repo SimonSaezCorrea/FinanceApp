@@ -19,18 +19,18 @@ Documento de referencia histórica y operativa para agentes y personas que manti
 
 **Stack tecnológico (estado actual del repo, `package.json`):**
 
-| Área | Tecnología |
-|------|------------|
-| Framework UI | **Next.js** 14.x (App Router), **React** 18 |
-| Base de datos | **PostgreSQL** (documentado en `.env.example` como **Supabase** Postgres) |
-| ORM | **Prisma** 6.x, `@prisma/client` |
-| Auth | **NextAuth** v5 (`next-auth` beta), **Prisma adapter**, JWT sessions |
-| i18n | **next-intl** 4.x, rutas bajo `/[locale]` |
-| UI / estilo | **Tailwind CSS**, **Radix UI**, **next-themes** (light/dark/system) |
-| Números / dinero | **decimal.js** en utilidades financieras; **Prisma `Decimal`** en esquema |
-| Gráficos | **recharts** |
-| Excel | **xlsx** (SheetJS) |
-| Validación | **zod** |
+| Área             | Tecnología                                                                   |
+| ---------------- | ---------------------------------------------------------------------------- |
+| Framework UI     | **Next.js** 14.x (App Router), **React** 18                                  |
+| Base de datos    | **PostgreSQL** (documentado en `.env.example` como **Supabase** Postgres)    |
+| ORM              | **Prisma** 6.x, `@prisma/client`                                             |
+| Auth             | **NextAuth** v5 (`next-auth` beta), **Prisma adapter**, JWT sessions         |
+| i18n             | **next-intl** 4.x, rutas bajo `/[locale]`                                    |
+| UI / estilo      | **Tailwind CSS**, **Radix UI**, **next-themes** (light/dark/system)          |
+| Números / dinero | **decimal.js** en utilidades financieras; **Prisma `Decimal`** en esquema    |
+| Gráficos         | **recharts**                                                                 |
+| Excel            | **xlsx** (SheetJS)                                                           |
+| Validación       | **zod**                                                                      |
 | Cotizaciones ETF | **Alpha Vantage** (`ALPHA_VANTAGE_API_KEY`; cliente en `lib/finance/etf.ts`) |
 
 ---
@@ -46,6 +46,7 @@ Lo siguiente se infiere del **estado del código**, no de una narrativa de contr
 3. **Migración inicial:** carpeta `prisma/migrations/20260515143000_init/` con `migration.sql` que crea ENUMs (`TransactionType`, `DebtDirection`, `InvestmentKind`), tablas de NextAuth (`User`, `Account`, `Session`, `VerificationToken`) y dominio financiero (`BankAccount`, `Transaction`, `InstallmentPlan`, `InstallmentPayment`, `Debt`, `SavingsGoal`, `SavingsEntry`, `Investment`, `EtfPriceCache`), con índices según el schema.
 
 4. **Seed (`prisma/seed.ts`, comando `npm run db:seed`):**
+
    - Elimina y recrea solo usuarios con emails demo `demo@finance.local` y `partner@finance.local` (alineado con login dev en `auth.ts`).
    - No usa **bcrypt** ni contraseñas persistidas: el flujo de credenciales en desarrollo hace **upsert** de `User` por email sin hash.
    - Carga datos de ejemplo: cuentas, plan de cuotas, transacciones, deudas, ahorros, inversiones ETF + remunerada, y una fila demo en `EtfPriceCache` para `VTI`.
@@ -72,16 +73,16 @@ Rutas REST bajo `app/api/.../route.ts` (accounts, transactions, installments, de
 
 ### 3.3 `lib/` — capas
 
-| Ruta | Rol |
-|------|-----|
-| `lib/prisma.ts` | Singleton `PrismaClient` con logs en desarrollo |
-| `lib/i18n/routing.ts` | Locales soportados y `defineRouting` (default `es`) |
-| `lib/i18n/pathname.ts` | Utilidad usada en middleware para extraer locale del pathname |
-| `lib/finance/installments.ts` | Cuotas: amortización a **capital constante** + interés simple opcional por periodo (`decimal.js`) |
-| `lib/finance/interest.ts` | Interés compuesto / simple y utilidades de tasas (`decimal.js`) |
-| `lib/finance/etf.ts` | Cotización Alpha Vantage + caché `EtfPriceCache` con TTL **24 h** en código |
-| `lib/utils/excel-parser.ts` | Parseo Excel → filas normalizadas para transacciones |
-| `lib/utils/currency.ts`, `formatters.ts`, `cn.ts` | Formato y utilidades UI |
+| Ruta                                              | Rol                                                                                               |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `lib/prisma.ts`                                   | Singleton `PrismaClient` con logs en desarrollo                                                   |
+| `lib/i18n/routing.ts`                             | Locales soportados y `defineRouting` (default `es`)                                               |
+| `lib/i18n/pathname.ts`                            | Utilidad usada en middleware para extraer locale del pathname                                     |
+| `lib/finance/installments.ts`                     | Cuotas: amortización a **capital constante** + interés simple opcional por periodo (`decimal.js`) |
+| `lib/finance/interest.ts`                         | Interés compuesto / simple y utilidades de tasas (`decimal.js`)                                   |
+| `lib/finance/etf.ts`                              | Cotización Alpha Vantage + caché `EtfPriceCache` con TTL **24 h** en código                       |
+| `lib/utils/excel-parser.ts`                       | Parseo Excel → filas normalizadas para transacciones                                              |
+| `lib/utils/currency.ts`, `formatters.ts`, `cn.ts` | Formato y utilidades UI                                                                           |
 
 ### 3.4 Componentes
 
@@ -145,15 +146,15 @@ Fuente: `prisma/schema.prisma` y módulos en `lib/finance/`.
 
 El parser espera un objeto **`mapping`** (validado con zod) que relaciona **nombres de columnas del Excel** con campos lógicos:
 
-| Campo lógico | Clave en mapping | Notas |
-|--------------|------------------|--------|
-| Fecha | `date` | Preferir ISO `yyyy-mm-dd` en hojas |
-| Monto | `amount` | Positivo; signo negativo puede forzar gasto |
-| Descripción | `description` | Opcional |
-| Categoría | `category` | Opcional |
-| Tipo | `type` | Opcional: sinónimos INCOME/EXPENSE (en/es) o signo del monto |
-| Moneda | `currency` | Opcional |
-| Cuenta | `account` | Opcional (texto) |
+| Campo lógico | Clave en mapping | Notas                                                        |
+| ------------ | ---------------- | ------------------------------------------------------------ |
+| Fecha        | `date`           | Preferir ISO `yyyy-mm-dd` en hojas                           |
+| Monto        | `amount`         | Positivo; signo negativo puede forzar gasto                  |
+| Descripción  | `description`    | Opcional                                                     |
+| Categoría    | `category`       | Opcional                                                     |
+| Tipo         | `type`           | Opcional: sinónimos INCOME/EXPENSE (en/es) o signo del monto |
+| Moneda       | `currency`       | Opcional                                                     |
+| Cuenta       | `account`        | Opcional (texto)                                             |
 
 La ruta **`POST app/api/import`** existe pero al 2026-05-15 devuelve un **stub** (`imported: 0`, nota de cablear SheetJS + parser); el parser en `lib` está **listo** para integrarse.
 
@@ -230,16 +231,16 @@ Conectar en **`app/api/import/route.ts`**: multipart `file`, `parseExcelTransact
 
 ## Referencias rápidas de rutas en código
 
-| Concepto | Ubicación |
-|----------|-----------|
-| Auth NextAuth | `auth.ts`, `app/api/auth/[...nextauth]/route.ts` |
-| Middleware i18n + auth | `middleware.ts` |
-| Routing locales | `lib/i18n/routing.ts` |
-| Cotizaciones ETF + caché 24h | `lib/finance/etf.ts`, modelo `EtfPriceCache` |
-| Cuotas (lógica capital constante) | `lib/finance/installments.ts` |
-| Excel | `lib/utils/excel-parser.ts` |
-| Env ejemplo | `.env.example` |
+| Concepto                          | Ubicación                                        |
+| --------------------------------- | ------------------------------------------------ |
+| Auth NextAuth                     | `auth.ts`, `app/api/auth/[...nextauth]/route.ts` |
+| Middleware i18n + auth            | `middleware.ts`                                  |
+| Routing locales                   | `lib/i18n/routing.ts`                            |
+| Cotizaciones ETF + caché 24h      | `lib/finance/etf.ts`, modelo `EtfPriceCache`     |
+| Cuotas (lógica capital constante) | `lib/finance/installments.ts`                    |
+| Excel                             | `lib/utils/excel-parser.ts`                      |
+| Env ejemplo                       | `.env.example`                                   |
 
 ---
 
-*Fin del documento canónico.*
+_Fin del documento canónico._

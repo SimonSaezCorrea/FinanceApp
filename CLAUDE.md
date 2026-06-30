@@ -75,7 +75,9 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   same session. These are the canonical, living memory; stale docs are a defect.
 
 <!-- SPECKIT START -->
+
 Active plan: specs/006-debts-installments-view/plan.md
 (Rediseño vistas Deudas e Installments — separadas, no tabs. Debt extiende con totalInstallments/paidInstallments/installmentAmount + endpoint POST /debts/:id/register-payment. Frontend: DebtKpiStrip, DebtCard con progreso, DebtCreateModal, InstallmentPlanCard, PaymentCalendar, InstallmentCreateModal. Backend + frontend.)
 Prior plans: 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
+
 <!-- SPECKIT END -->

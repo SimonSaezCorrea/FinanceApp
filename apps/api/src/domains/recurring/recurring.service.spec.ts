@@ -27,23 +27,43 @@ function makeService(repo: Partial<RecurringRepository>) {
 
 describe("nextDue", () => {
   it("returns the anchor when it is still in the future", () => {
-    const d = nextDue(new Date("2026-07-01T00:00:00Z"), "MONTHLY", 1, new Date("2026-06-21T00:00:00Z"));
+    const d = nextDue(
+      new Date("2026-07-01T00:00:00Z"),
+      "MONTHLY",
+      1,
+      new Date("2026-06-21T00:00:00Z"),
+    );
     expect(d.toISOString()).toBe("2026-07-01T00:00:00.000Z");
   });
 
   it("steps a monthly anchor forward to the next occurrence on/after today", () => {
-    const d = nextDue(new Date("2026-01-05T00:00:00Z"), "MONTHLY", 1, new Date("2026-06-21T00:00:00Z"));
+    const d = nextDue(
+      new Date("2026-01-05T00:00:00Z"),
+      "MONTHLY",
+      1,
+      new Date("2026-06-21T00:00:00Z"),
+    );
     expect(d.toISOString()).toBe("2026-07-05T00:00:00.000Z");
   });
 
   it("handles weekly intervals", () => {
-    const d = nextDue(new Date("2026-06-01T00:00:00Z"), "WEEKLY", 2, new Date("2026-06-21T00:00:00Z"));
+    const d = nextDue(
+      new Date("2026-06-01T00:00:00Z"),
+      "WEEKLY",
+      2,
+      new Date("2026-06-21T00:00:00Z"),
+    );
     // +2w = Jun 15 (< 21), +2w = Jun 29
     expect(d.toISOString()).toBe("2026-06-29T00:00:00.000Z");
   });
 
   it("handles yearly", () => {
-    const d = nextDue(new Date("2024-03-10T00:00:00Z"), "YEARLY", 1, new Date("2026-06-21T00:00:00Z"));
+    const d = nextDue(
+      new Date("2024-03-10T00:00:00Z"),
+      "YEARLY",
+      1,
+      new Date("2026-06-21T00:00:00Z"),
+    );
     expect(d.toISOString()).toBe("2027-03-10T00:00:00.000Z");
   });
 });

@@ -16,7 +16,11 @@ export function ThemeToggle() {
   const { t } = useTranslation();
 
   return (
-    <div className="inline-flex rounded-md border bg-background p-0.5" role="group" aria-label={t("theme.label")}>
+    <div
+      className="inline-flex rounded-md border bg-background p-0.5"
+      role="group"
+      aria-label={t("theme.label")}
+    >
       {OPTIONS.map(({ mode: m, icon: Icon, key }) => (
         <button
           key={m}
@@ -27,7 +31,9 @@ export function ThemeToggle() {
           className={cn(
             "inline-flex h-7 w-8 items-center justify-center rounded-sm transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            mode === m ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+            mode === m
+              ? "bg-primary text-primary-foreground"
+              : "text-muted-foreground hover:bg-muted",
           )}
         >
           <Icon className="h-4 w-4" aria-hidden />

@@ -56,26 +56,17 @@ export class DebtsController {
   }
 
   @Post(":id/unsettle")
-  unsettle(
-    @CurrentUser() user: AuthUser,
-    @Param("id") id: string,
-  ): Promise<debts.Debt> {
+  unsettle(@CurrentUser() user: AuthUser, @Param("id") id: string): Promise<debts.Debt> {
     return this.service.unsettle(user.id, id);
   }
 
   @Post(":id/register-payment")
-  registerPayment(
-    @CurrentUser() user: AuthUser,
-    @Param("id") id: string,
-  ): Promise<debts.Debt> {
+  registerPayment(@CurrentUser() user: AuthUser, @Param("id") id: string): Promise<debts.Debt> {
     return this.service.registerPayment(user.id, id);
   }
 
   @Post(":id/undo-payment")
-  undoPayment(
-    @CurrentUser() user: AuthUser,
-    @Param("id") id: string,
-  ): Promise<debts.Debt> {
+  undoPayment(@CurrentUser() user: AuthUser, @Param("id") id: string): Promise<debts.Debt> {
     return this.service.undoPayment(user.id, id);
   }
 

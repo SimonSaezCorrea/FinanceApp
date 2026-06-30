@@ -30,7 +30,7 @@ buildable, testable, and deployable, communicating only over a published HTTP AP
 - Q: How is `auth` treated in the new structure? → A: Auth is a backend domain module (issues/validates credentials over HTTP) plus a frontend auth domain (login/session UI); the concrete cross-boundary mechanism (JWT/session) is decided in planning.
 - Q: For the one-shot restructure, how is deployability protected during the change? → A: The restructure happens on a dedicated branch; `main` stays deployable until the new structure passes its done-state, then it is merged. Rollback = remain on `main`.
 
-## User Scenarios & Testing *(mandatory)*
+## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Separately runnable & deployable apps (Priority: P1)
 
@@ -136,7 +136,7 @@ packages (not on frontend code), so the backend + shared packages form a self-co
 - **Big-bang restructure risk**: the one-shot full restructure must define a verifiable
   "done" state and a rollback point, since the app is non-functional mid-move.
 
-## Requirements *(mandatory)*
+## Requirements _(mandatory)_
 
 ### Functional Requirements
 
@@ -179,7 +179,7 @@ packages (not on frontend code), so the backend + shared packages form a self-co
 - **FR-013**: This cycle MUST NOT move or rewrite production code; its outputs are the blueprint
   and roadmap only. (Framework/tooling selections are deferred to planning.)
 
-### Key Entities *(architecture elements, not data)*
+### Key Entities _(architecture elements, not data)_
 
 - **Backend API app**: the Node.js service owning business logic and the only database access;
   exposes the HTTP contract.
@@ -193,7 +193,7 @@ packages (not on frontend code), so the backend + shared packages form a self-co
 - **Migration roadmap**: the ordered plan (with done-state and rollback) for the one-shot
   restructure of the existing codebase.
 
-## Success Criteria *(mandatory)*
+## Success Criteria _(mandatory)_
 
 ### Measurable Outcomes
 

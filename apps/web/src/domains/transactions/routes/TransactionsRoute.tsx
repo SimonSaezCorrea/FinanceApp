@@ -67,9 +67,7 @@ export function TransactionsRoute() {
             <Button variant="ghost" disabled>
               {t("transactions.table.import")}
             </Button>
-            <Button onClick={() => setModalOpen(true)}>
-              + {t("transactions.new")}
-            </Button>
+            <Button onClick={() => setModalOpen(true)}>+ {t("transactions.new")}</Button>
           </div>
         }
       />
@@ -84,11 +82,7 @@ export function TransactionsRoute() {
 
       <TransactionKpiStrip transactions={visibleTxs} />
 
-      <TransactionFiltersBar
-        filters={filters}
-        onChange={setFilters}
-        accounts={accounts}
-      />
+      <TransactionFiltersBar filters={filters} onChange={setFilters} accounts={accounts} />
 
       {txQuery.isLoading ? (
         <LoadingState title={t("app.loading")} />

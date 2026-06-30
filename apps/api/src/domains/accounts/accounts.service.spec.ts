@@ -20,7 +20,10 @@ const row = {
 
 function makeService(repo: Partial<AccountsRepository>) {
   // Balance-series attach runs on every read/write; default it to "no window tx".
-  return new AccountsService({ txWindow: vi.fn().mockResolvedValue([]), ...repo } as AccountsRepository);
+  return new AccountsService({
+    txWindow: vi.fn().mockResolvedValue([]),
+    ...repo,
+  } as AccountsRepository);
 }
 
 describe("AccountsService", () => {
@@ -65,16 +68,17 @@ describe("AccountsService", () => {
       currency: "USD",
       initialBalance: "100",
     });
-    expect(create.mock.calls[0]![1]).toMatchObject({ initialBalance: "100", currentBalance: "100" });
+    expect(create.mock.calls[0]![1]).toMatchObject({
+      initialBalance: "100",
+      currentBalance: "100",
+    });
   });
 
   it("reconciles currentBalance = initial + income - expense (exact)", async () => {
-    const update = vi
-      .fn()
-      .mockImplementation((_u, _id, data) => ({
-        ...row,
-        currentBalance: { toString: () => data.currentBalance },
-      }));
+    const update = vi.fn().mockImplementation((_u, _id, data) => ({
+      ...row,
+      currentBalance: { toString: () => data.currentBalance },
+    }));
     const svc = makeService({
       findOne: vi.fn().mockResolvedValue(row),
       sumByType: vi.fn().mockResolvedValue({ income: "250.50", expense: "75.25" }),

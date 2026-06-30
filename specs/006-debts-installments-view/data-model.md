@@ -72,18 +72,20 @@ installmentAmount: moneyString.optional(),
 ```typescript
 interface DebtKpi {
   currency: string;
-  totalOwedToYou: string;  // decimal string
-  totalYouOwe: string;     // decimal string
-  netBalance: string;      // totalOwedToYou - totalYouOwe
+  totalOwedToYou: string; // decimal string
+  totalYouOwe: string; // decimal string
+  netBalance: string; // totalOwedToYou - totalYouOwe
 }
 ```
 
 ### `DebtRemainingAmount`
 
 Calculado en frontend:
+
 ```
 remaining = (totalInstallments - paidInstallments) × (installmentAmount ?? principal / totalInstallments)
 ```
+
 Todo con `Decimal`. Resultado formateado con `formatMoney`.
 
 ---

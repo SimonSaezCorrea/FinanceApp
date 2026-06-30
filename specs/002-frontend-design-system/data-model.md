@@ -6,16 +6,16 @@ Tokens are CSS variables; components reference them via Tailwind classes (`bg-ba
 
 ## Color roles (semantic slots)
 
-| Role | Tailwind class | Meaning |
-|------|----------------|---------|
-| `background` / `foreground` | `bg-background` / `text-foreground` | page base + body text |
-| `card` / `card-foreground` | `bg-card` / `text-card-foreground` | raised surfaces |
-| `muted` / `muted-foreground` | `bg-muted` / `text-muted-foreground` | subtle backgrounds + secondary text |
-| `primary` / `primary-foreground` | `bg-primary` / `text-primary-foreground` | main interactive (theme-adaptive teal) |
-| `secondary` / `secondary-foreground` | … | secondary actions |
-| `border` / `input` / `ring` | `border-border` / `ring-ring` | outlines + focus ring |
-| `success|warning|danger|info` (+ `-foreground`) | `bg-success` … | semantic status |
-| `brand` (fixed) | `text-brand` | identity accent (logo); same in both themes |
+| Role                                 | Tailwind class                           | Meaning                                     |
+| ------------------------------------ | ---------------------------------------- | ------------------------------------------- | --------------------- | -------------- | --------------- |
+| `background` / `foreground`          | `bg-background` / `text-foreground`      | page base + body text                       |
+| `card` / `card-foreground`           | `bg-card` / `text-card-foreground`       | raised surfaces                             |
+| `muted` / `muted-foreground`         | `bg-muted` / `text-muted-foreground`     | subtle backgrounds + secondary text         |
+| `primary` / `primary-foreground`     | `bg-primary` / `text-primary-foreground` | main interactive (theme-adaptive teal)      |
+| `secondary` / `secondary-foreground` | …                                        | secondary actions                           |
+| `border` / `input` / `ring`          | `border-border` / `ring-ring`            | outlines + focus ring                       |
+| `success                             | warning                                  | danger                                      | info`(+`-foreground`) | `bg-success` … | semantic status |
+| `brand` (fixed)                      | `text-brand`                             | identity accent (logo); same in both themes |
 
 Each role is one CSS variable per theme; switching `data-theme` swaps the set. `brand` is identical
 across themes; `primary` differs (dark `#66A5AD`, light `#07575B`).

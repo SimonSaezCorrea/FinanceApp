@@ -14,7 +14,14 @@ interface DialogProps {
 }
 
 /** Accessible modal (focus trap, escape, overlay) styled with tokens. */
-export function Dialog({ open, onOpenChange, title, description, children, className }: DialogProps) {
+export function Dialog({
+  open,
+  onOpenChange,
+  title,
+  description,
+  children,
+  className,
+}: DialogProps) {
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>

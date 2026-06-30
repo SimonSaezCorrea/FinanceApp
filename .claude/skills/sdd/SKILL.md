@@ -25,16 +25,16 @@ talks to you; you invoke each `/speckit-*` skill at the right time.
 
 The installed Spec Kit skills (invoke each via the Skill tool, in this order of the lifecycle):
 
-| Phase | Skill | Purpose | Required? |
-|-------|-------|---------|-----------|
-| 0 | `/speckit-constitution` | Establish/update project principles | First run, or when principles change |
-| 1 | `/speckit-specify` | Create the feature spec from a NL prompt | Always |
-| 2 | `/speckit-clarify` | Structured Q&A to de-risk ambiguity | Strongly recommended |
-| 3 | `/speckit-plan` | Technical implementation plan | Always |
-| 4 | `/speckit-checklist` | Quality checklist for the spec/plan | Optional |
-| 5 | `/speckit-tasks` | Break plan into actionable tasks | Always |
-| 6 | `/speckit-analyze` | Cross-artifact consistency report | Strongly recommended |
-| 7 | `/speckit-implement` | Execute the tasks | Always |
+| Phase | Skill                   | Purpose                                  | Required?                            |
+| ----- | ----------------------- | ---------------------------------------- | ------------------------------------ |
+| 0     | `/speckit-constitution` | Establish/update project principles      | First run, or when principles change |
+| 1     | `/speckit-specify`      | Create the feature spec from a NL prompt | Always                               |
+| 2     | `/speckit-clarify`      | Structured Q&A to de-risk ambiguity      | Strongly recommended                 |
+| 3     | `/speckit-plan`         | Technical implementation plan            | Always                               |
+| 4     | `/speckit-checklist`    | Quality checklist for the spec/plan      | Optional                             |
+| 5     | `/speckit-tasks`        | Break plan into actionable tasks         | Always                               |
+| 6     | `/speckit-analyze`      | Cross-artifact consistency report        | Strongly recommended                 |
+| 7     | `/speckit-implement`    | Execute the tasks                        | Always                               |
 
 ## Golden rules (never violate)
 

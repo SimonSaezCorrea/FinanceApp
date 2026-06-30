@@ -58,7 +58,12 @@ export function AccountForm({ initial, submitting, submitLabel, onSubmit }: Prop
   return (
     <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
       <Field label={t("accounts.form.name")} htmlFor="acc-name">
-        <Input id="acc-name" value={values.name} required onChange={(e) => set("name", e.target.value)} />
+        <Input
+          id="acc-name"
+          value={values.name}
+          required
+          onChange={(e) => set("name", e.target.value)}
+        />
       </Field>
       <Field label={t("accounts.form.type")} htmlFor="acc-type">
         <Select
@@ -77,16 +82,29 @@ export function AccountForm({ initial, submitting, submitLabel, onSubmit }: Prop
         />
       </Field>
       <Field label={t("accounts.form.institution")} htmlFor="acc-inst">
-        <Input id="acc-inst" value={values.institution} onChange={(e) => set("institution", e.target.value)} />
+        <Input
+          id="acc-inst"
+          value={values.institution}
+          onChange={(e) => set("institution", e.target.value)}
+        />
       </Field>
       <div className="grid grid-cols-2 gap-4">
         <Field label={t("accounts.form.currency")} htmlFor="acc-cur">
-          <Input id="acc-cur" value={values.currency} maxLength={3} required
-            onChange={(e) => set("currency", e.target.value.toUpperCase())} />
+          <Input
+            id="acc-cur"
+            value={values.currency}
+            maxLength={3}
+            required
+            onChange={(e) => set("currency", e.target.value.toUpperCase())}
+          />
         </Field>
         <Field label={t("accounts.form.initialBalance")} htmlFor="acc-bal">
-          <Input id="acc-bal" value={values.initialBalance} inputMode="decimal"
-            onChange={(e) => set("initialBalance", e.target.value)} />
+          <Input
+            id="acc-bal"
+            value={values.initialBalance}
+            inputMode="decimal"
+            onChange={(e) => set("initialBalance", e.target.value)}
+          />
         </Field>
       </div>
       <Button type="submit" disabled={submitting}>

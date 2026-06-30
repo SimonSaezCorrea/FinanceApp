@@ -23,13 +23,15 @@ describe("InstallmentsService", () => {
       notes: null,
       createdAt: plan.startDate,
       updatedAt: plan.startDate,
-      payments: payments.map((p: { sequence: number; dueDate: Date; amount: string }, i: number) => ({
-        id: `pay${i}`,
-        sequence: p.sequence,
-        dueDate: p.dueDate,
-        amount: { toString: () => p.amount },
-        paidAt: null,
-      })),
+      payments: payments.map(
+        (p: { sequence: number; dueDate: Date; amount: string }, i: number) => ({
+          id: `pay${i}`,
+          sequence: p.sequence,
+          dueDate: p.dueDate,
+          amount: { toString: () => p.amount },
+          paidAt: null,
+        }),
+      ),
     }));
     const svc = makeService({ createWithPayments });
 

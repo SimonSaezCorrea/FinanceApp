@@ -7,6 +7,7 @@
 **Rationale**: El registro de un pago en una deuda es una transición de estado con lógica de negocio (incrementar `paidInstallments`, auto-settle si llega al total). No es una actualización arbitraria de campos. El patrón ya existe: `POST /debts/:id/settle` (auto-settle) y `POST /installments/:planId/pay/:sequence` (marcar cuota pagada).
 
 **Alternatives considered**:
+
 - `PATCH /debts/:id` con `paidInstallments: paidInstallments + 1` — requiere que el frontend calcule el nuevo valor y abre la puerta a inconsistencias concurrentes.
 - Reutilizar `settle` — solo aplica para deudas de 1 cuota (totalInstallments=1); no es el caso general.
 

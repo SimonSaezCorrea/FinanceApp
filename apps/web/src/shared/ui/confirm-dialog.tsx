@@ -36,7 +36,12 @@ export function ConfirmDialog({
             </RadixDialog.Description>
           ) : null}
           <div className="mt-5 flex justify-end gap-2">
-            <Button variant="outline" size="sm" onClick={() => onOpenChange(false)} disabled={loading}>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onOpenChange(false)}
+              disabled={loading}
+            >
               {t("common.cancel")}
             </Button>
             <Button variant="destructive" size="sm" onClick={onConfirm} disabled={loading}>

@@ -15,7 +15,15 @@ import {
   useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowLeftRight, Check, ChevronLeft, ChevronRight, GripVertical, Plus, Trash2 } from "lucide-react";
+import {
+  ArrowLeftRight,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  GripVertical,
+  Plus,
+  Trash2,
+} from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
@@ -52,7 +60,13 @@ function resolve(item: wallet.WalletItem, list: accounts.BankAccount[]): Resolve
 }
 
 /** "Your wallet" — user-curated. Reorder/remove live behind an "Organize" mode (drag + arrows). */
-export function WalletCards({ accountList, holder }: { accountList: accounts.BankAccount[]; holder?: string }) {
+export function WalletCards({
+  accountList,
+  holder,
+}: {
+  accountList: accounts.BankAccount[];
+  holder?: string;
+}) {
   const { t } = useTranslation();
   const { data: walletItems } = useWallet();
   const { reorder, remove } = useWalletMutations();
@@ -60,7 +74,9 @@ export function WalletCards({ accountList, holder }: { accountList: accounts.Ban
   const [organizing, setOrganizing] = useState(false);
 
   const items = walletItems ?? [];
-  const resolved = items.map((i) => resolve(i, accountList)).filter((r): r is Resolved => r !== null);
+  const resolved = items
+    .map((i) => resolve(i, accountList))
+    .filter((r): r is Resolved => r !== null);
 
   function onRemove(id: string) {
     remove.mutate(id, { onSuccess: () => toast.success(t("wallet.removed")) });
@@ -203,7 +219,11 @@ function SortableCard({
         </span>
       </div>
       <div className="absolute inset-x-0 bottom-2 flex items-center justify-center gap-1">
-        <IconBtn label={t("wallet.moveLeft")} disabled={index === 0} onClick={() => onMove(index, -1)}>
+        <IconBtn
+          label={t("wallet.moveLeft")}
+          disabled={index === 0}
+          onClick={() => onMove(index, -1)}
+        >
           <ChevronLeft className="h-4 w-4" aria-hidden />
         </IconBtn>
         <IconBtn label={t("wallet.remove")} onClick={() => onRemove(resolved.item.id)}>

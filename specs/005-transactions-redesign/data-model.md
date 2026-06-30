@@ -48,8 +48,8 @@ Stored as a static `CATEGORY_ICON_MAP: CategoryIconEntry[]` array. Fallback: `Ta
 
 ## Existing entities consumed (no changes)
 
-| Entity | Source | Fields used |
-|--------|--------|-------------|
+| Entity        | Source               | Fields used                                                                   |
+| ------------- | -------------------- | ----------------------------------------------------------------------------- |
 | `Transaction` | `@finance/contracts` | `id`, `type`, `amount`, `currency`, `occurredAt`, `category`, `bankAccountId` |
-| `BankAccount` | `@finance/contracts` | `id`, `name`, `status`, `cards[]` |
-| `Card` | `@finance/contracts` | `id`, `last4`, `kind`, `bankAccountId` (via parent account) |
+| `BankAccount` | `@finance/contracts` | `id`, `name`, `status`, `cards[]`                                             |
+| `Card`        | `@finance/contracts` | `id`, `last4`, `kind`, `bankAccountId` (via parent account)                   |

@@ -53,7 +53,7 @@ export function InstallmentCreateModal({
     } else {
       reset();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const isValid =
@@ -174,11 +174,7 @@ export function InstallmentCreateModal({
             </Field>
 
             <Field label={t("debts.form.openedAt")}>
-              <Input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-              />
+              <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
             </Field>
           </>
         )}
