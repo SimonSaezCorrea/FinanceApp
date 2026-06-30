@@ -31,6 +31,8 @@ jobs:
             turbo-${{ runner.os }}-
 
       - run: pnpm --filter @finance/api exec prisma validate
+        env:
+          DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
 
       - run: pnpm --filter @finance/api exec prisma generate
 
