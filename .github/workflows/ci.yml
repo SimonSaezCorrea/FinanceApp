@@ -22,6 +22,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - run: pnpm --filter @finance/api exec prisma generate
+
       # Architecture boundaries: web↛api/db, api↛web, packages↛apps (SC-004/SC-007).
       - run: pnpm check:boundaries
 
