@@ -27,6 +27,12 @@ jobs:
       # Architecture boundaries: web↛api/db, api↛web, packages↛apps (SC-004/SC-007).
       - run: pnpm check:boundaries
 
+      - name: Audit (informational)
+        run: pnpm audit || true
+
+      - name: Audit (block on high/critical)
+        run: pnpm audit --audit-level=high
+
       - run: pnpm format:check
 
       - run: pnpm exec turbo run lint
