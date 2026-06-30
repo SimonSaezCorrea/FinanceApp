@@ -25,7 +25,7 @@
       "@nestjs/core"
     ],
     "auditConfig": {
-      "ignoreCves": [
+      "ignoreGhsas": [
         "GHSA-5j98-mcp5-4vw2",
         "GHSA-xf7r-hgr6-v32p",
         "GHSA-v52c-386h-88mc",
