@@ -1,0 +1,42 @@
+version: 2
+updates:
+  # pnpm workspace — apunta a la raíz, Dependabot resuelve todos los workspaces
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      nestjs:
+        patterns:
+          - "@nestjs/*"
+      vite-vitest:
+        patterns:
+          - "vite"
+          - "vitest"
+          - "vite-node"
+          - "@vitejs/*"
+      typescript-eslint:
+        patterns:
+          - "typescript"
+          - "eslint"
+          - "@typescript-eslint/*"
+          - "eslint-plugin-*"
+      react:
+        patterns:
+          - "react"
+          - "react-*"
+          - "@types/react*"
+      prisma:
+        patterns:
+          - "prisma"
+          - "@prisma/*"
+
+  # Mantiene actualizadas las GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3

@@ -22,6 +22,16 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Cache Turbo outputs
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
+      - run: pnpm --filter @finance/api exec prisma validate
+
       - run: pnpm --filter @finance/api exec prisma generate
 
       # Architecture boundaries: web↛api/db, api↛web, packages↛apps (SC-004/SC-007).
