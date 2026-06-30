@@ -51,12 +51,12 @@ investments, accounts, import, auth). New domains follow one repeatable per-doma
 
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-| Principle                   | Impact of this plan                                                                                       | Verdict                           |
-| --------------------------- | --------------------------------------------------------------------------------------------------------- | --------------------------------- |
-| I. Money Precision          | `decimal.js`/`Prisma.Decimal` retained; money utils centralized in `packages/money` (one source of truth) | ✅ Strengthened                   |
-| II. Per-User Data Isolation | Backend owns all DB access; every endpoint scoped by authenticated `userId`; frontend has no DB path      | ✅ Strengthened                   |
-| III. i18n Parity            | Frontend owns es/en catalogs with identical keys; API returns codes only                                  | ✅ Preserved                      |
-| IV. Test-First / TDD        | Vitest adopted as runner — **closes the `TODO(TEST_RUNNER)` gap**; tests precede domain migration         | ✅ Resolves known gap             |
+| Principle                   | Impact of this plan                                                                                       | Verdict                          |
+| --------------------------- | --------------------------------------------------------------------------------------------------------- | -------------------------------- |
+| I. Money Precision          | `decimal.js`/`Prisma.Decimal` retained; money utils centralized in `packages/money` (one source of truth) | ✅ Strengthened                  |
+| II. Per-User Data Isolation | Backend owns all DB access; every endpoint scoped by authenticated `userId`; frontend has no DB path      | ✅ Strengthened                  |
+| III. i18n Parity            | Frontend owns es/en catalogs with identical keys; API returns codes only                                  | ✅ Preserved                     |
+| IV. Test-First / TDD        | Vitest adopted as runner — **closes the `TODO(TEST_RUNNER)` gap**; tests precede domain migration         | ✅ Resolves known gap            |
 | V. SDD & Living Memory      | This plan is the SDD artifact; constitution + CLAUDE.md amended at approval                               | ⚠ Amendment required (see below) |
 
 **Amendment required (Principle V / Governance):** the constitution currently pins a "single

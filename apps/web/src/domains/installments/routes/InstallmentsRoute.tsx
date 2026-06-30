@@ -26,23 +26,21 @@ function flattenPayments(plans: installments.InstallmentPlan[]): FlatPayment[] {
       plan.payments.filter((p) => p.paidAt === null).sort((a, b) => a.sequence - b.sequence)[0] ??
       null;
 
-    return plan.payments.map(
-      (p): FlatPayment => ({
-        paymentId: p.id,
-        planId: plan.id,
-        planTitle: plan.title,
-        planInstallmentCount: plan.installmentCount,
-        planTotalPrincipal: plan.totalPrincipal,
-        planPaidCount: paidCount,
-        planNextDueDate: nextPayment?.dueDate ?? null,
-        currency: plan.currency,
-        sequence: p.sequence,
-        dueDate: p.dueDate,
-        amount: p.amount,
-        paidAt: p.paidAt,
-        isNextForPlan: p.sequence === (nextPayment?.sequence ?? null),
-      }),
-    );
+    return plan.payments.map((p): FlatPayment => ({
+      paymentId: p.id,
+      planId: plan.id,
+      planTitle: plan.title,
+      planInstallmentCount: plan.installmentCount,
+      planTotalPrincipal: plan.totalPrincipal,
+      planPaidCount: paidCount,
+      planNextDueDate: nextPayment?.dueDate ?? null,
+      currency: plan.currency,
+      sequence: p.sequence,
+      dueDate: p.dueDate,
+      amount: p.amount,
+      paidAt: p.paidAt,
+      isNextForPlan: p.sequence === (nextPayment?.sequence ?? null),
+    }));
   });
 }
 

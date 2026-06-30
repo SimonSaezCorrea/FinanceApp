@@ -59,7 +59,6 @@
 // 404 { "error": { "code": "DEBT_NOT_FOUND" } }
 // 409 { "error": { "code": "DEBT_ALREADY_SETTLED" } }
 
-
 // 409 { "error": { "code": "ALL_INSTALLMENTS_PAID" } }
 ```
 

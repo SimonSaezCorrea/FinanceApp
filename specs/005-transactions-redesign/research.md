@@ -26,22 +26,23 @@
 - Colored circle only — rejected: less informative than an icon.
 
 **Initial keyword map** (expandable):
-| Keyword | Icon |
-|---------|------|
-| super, mercado, almacén | `ShoppingCart` |
-| comida, restaurant, café, food | `UtensilsCrossed` |
-| transport, metro, uber, taxi, benci, gasolina | `Car` |
-| salud, médico, farmacia, doctor | `HeartPulse` |
-| arriendo, rent, alquiler | `Home` |
-| netflix, spotify, suscri, streaming | `Tv` |
-| sueldo, salario, ingreso | `Banknote` |
-| luz, agua, gas, electrici | `Zap` |
-| viaje, vuelo, hotel | `Plane` |
-| educación, colegio, universidad | `GraduationCap` |
-| gym, deporte | `Dumbbell` |
-| mascota | `PawPrint` |
-| regalo, gift | `Gift` |
-| (no match) | `Tag` |
+
+| Keyword                                       | Icon              |
+| --------------------------------------------- | ----------------- |
+| super, mercado, almacén                       | `ShoppingCart`    |
+| comida, restaurant, café, food                | `UtensilsCrossed` |
+| transport, metro, uber, taxi, benci, gasolina | `Car`             |
+| salud, médico, farmacia, doctor               | `HeartPulse`      |
+| arriendo, rent, alquiler                      | `Home`            |
+| netflix, spotify, suscri, streaming           | `Tv`              |
+| sueldo, salario, ingreso                      | `Banknote`        |
+| luz, agua, gas, electrici                     | `Zap`             |
+| viaje, vuelo, hotel                           | `Plane`           |
+| educación, colegio, universidad               | `GraduationCap`   |
+| gym, deporte                                  | `Dumbbell`        |
+| mascota                                       | `PawPrint`        |
+| regalo, gift                                  | `Gift`            |
+| (no match)                                    | `Tag`             |
 
 ---
 
