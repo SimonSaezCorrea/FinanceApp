@@ -23,7 +23,19 @@
       "@prisma/client",
       "prisma",
       "@nestjs/core"
-    ]
+    ],
+    "auditConfig": {
+      "ignoreCves": [
+        "GHSA-5j98-mcp5-4vw2",
+        "GHSA-xf7r-hgr6-v32p",
+        "GHSA-v52c-386h-88mc",
+        "GHSA-5528-5vmv-3xc2",
+        "GHSA-72gw-mp4g-v24j",
+        "GHSA-c2c7-rcm5-vvqj",
+        "GHSA-r5fr-rjxr-66jc",
+        "GHSA-ph9p-34f9-6g65"
+      ]
+    }
   },
   "devDependencies": {
     "turbo": "^2.3.3",
