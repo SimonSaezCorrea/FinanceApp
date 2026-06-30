@@ -39,7 +39,7 @@ describe("AuthService", () => {
   });
 
   it("validateCredentials accepts a correct password and rejects a wrong one", async () => {
-    const passwordHash = await hash("secret123", 12);
+    const passwordHash = await hash("secret123", 1);
     const svc = makeService({
       findByEmail: vi.fn().mockResolvedValue({ id: "u1", email: "a@b.com", passwordHash }),
     });
