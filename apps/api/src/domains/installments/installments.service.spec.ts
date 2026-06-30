@@ -18,6 +18,8 @@ describe("InstallmentsService", () => {
       installmentCount: plan.installmentCount,
       startDate: plan.startDate,
       currency: plan.currency,
+      frequency: plan.frequency,
+      frequencyInterval: plan.frequencyInterval,
       notes: null,
       createdAt: plan.startDate,
       updatedAt: plan.startDate,
@@ -37,6 +39,8 @@ describe("InstallmentsService", () => {
       installmentCount: 3,
       startDate: "2026-01-15T00:00:00.000Z",
       currency: "USD",
+      frequency: "MONTHLY",
+      frequencyInterval: 1,
     });
 
     expect(plan.payments).toHaveLength(3);

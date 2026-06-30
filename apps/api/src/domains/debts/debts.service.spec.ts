@@ -19,6 +19,8 @@ const row = {
   totalInstallments: 1,
   paidInstallments: 0,
   installmentAmount: null,
+  frequency: "MONTHLY" as const,
+  frequencyInterval: 1,
   createdAt: new Date("2026-01-01T00:00:00Z"),
   updatedAt: new Date("2026-01-02T00:00:00Z"),
 };
@@ -45,6 +47,8 @@ describe("DebtsService", () => {
       totalInstallments: 1,
       paidInstallments: 0,
       installmentAmount: null,
+      frequency: "MONTHLY",
+      frequencyInterval: 1,
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-02T00:00:00.000Z",
     });
@@ -60,6 +64,8 @@ describe("DebtsService", () => {
       currency: "USD",
       openedAt: "2026-01-01T00:00:00.000Z",
       totalInstallments: 1,
+      frequency: "MONTHLY",
+      frequencyInterval: 1,
     });
     expect(create.mock.calls[0]![1]).toMatchObject({ currency: "USD" });
   });
