@@ -31,7 +31,7 @@ interface TransactionKpiStripProps {
 }
 
 export function TransactionKpiStrip({ transactions: txs }: TransactionKpiStripProps) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const groups = summarizeByCurrency(txs);
 
   if (groups.length === 0) {
