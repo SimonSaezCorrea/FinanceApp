@@ -23,6 +23,8 @@ function makePlan(overrides: Partial<installments.InstallmentPlan> = {}): instal
     installmentCount: 12,
     startDate: "2026-01-01T00:00:00.000Z",
     currency: "CLP",
+    frequency: "MONTHLY",
+    frequencyInterval: 1,
     notes: null,
     payments: [],
     createdAt: "2026-01-01T00:00:00.000Z",
