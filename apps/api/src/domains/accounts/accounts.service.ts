@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import type {
   BankAccount as BankAccountRow,
-  Card as CardRow,
-  CardLimit as CardLimitRow,
+  CardAccount as CardRow,
+  FinancialInstitution as InstitutionRow,
 } from "@prisma/client";
 import { AccountStatus, TransactionType } from "@prisma/client";
 
@@ -12,7 +12,10 @@ import { addMoney, moneyToString, subtractMoney, toMoney } from "@finance/money"
 import { AccountsRepository } from "./accounts.repository";
 import { toContract as cardToContract } from "./cards.service";
 
-type AccountWithCards = BankAccountRow & { cards: (CardRow & { limits: CardLimitRow[] })[] };
+type AccountWithCards = BankAccountRow & {
+  cards: CardRow[];
+  financialInstitution?: InstitutionRow | null;
+};
 
 type WindowTx = {
   bankAccountId: string | null;
@@ -20,6 +23,9 @@ type WindowTx = {
   amount: { toString(): string };
   occurredAt: Date;
 };
+
+/** accountId -> { income, expense } all-time sums (decimal strings). */
+type AccountSums = Map<string, { income: string; expense: string }>;
 
 const SERIES_DAYS = 30;
 const DAY_MS = 86_400_000;
@@ -70,7 +76,7 @@ export class AccountsService {
     return this.withSeries(userId, row);
   }
 
-  /** Attach a per-day balance series + % change to each account (one windowed tx query). */
+  /** Attach a per-day balance series + derived credit `used` to each account. */
   private async attachSeries(
     userId: string,
     rows: AccountWithCards[],
@@ -78,11 +84,8 @@ export class AccountsService {
     if (rows.length === 0) return [];
     const now = new Date();
     const since = new Date(now.getTime() - SERIES_DAYS * DAY_MS);
-    const txs = (await this.repo.txWindow(
-      userId,
-      rows.map((r) => r.id),
-      since,
-    )) as WindowTx[];
+    const ids = rows.map((r) => r.id);
+    const txs = (await this.repo.txWindow(userId, ids, since)) as WindowTx[];
     const byAccount = new Map<string, WindowTx[]>();
     for (const t of txs) {
       if (t.bankAccountId === null) continue;
@@ -90,10 +93,20 @@ export class AccountsService {
       bucket.push(t);
       byAccount.set(t.bankAccountId, bucket);
     }
+    // Derived credit `used`: all-time income/expense sums per account, one grouped query.
+    const sums: AccountSums = new Map();
+    for (const s of await this.repo.sumsByAccount(userId, ids)) {
+      if (!s.bankAccountId) continue;
+      const entry = sums.get(s.bankAccountId) ?? { income: "0", expense: "0" };
+      if (s.type === TransactionType.INCOME) entry.income = s.sum;
+      else entry.expense = s.sum;
+      sums.set(s.bankAccountId, entry);
+    }
     return rows.map((row) =>
       toContract(
         row,
         computeSeries(row.currentBalance.toString(), byAccount.get(row.id) ?? [], now),
+        sums.get(row.id),
       ),
     );
   }
@@ -105,6 +118,10 @@ export class AccountsService {
 
   async create(userId: string, input: accounts.CreateBankAccount): Promise<accounts.BankAccount> {
     const initialBalance = input.initialBalance ?? "0";
+    // A linked institution drives the displayed institution name.
+    const institution = input.institutionId
+      ? ((await this.repo.institutionName(input.institutionId)) ?? input.institution)
+      : input.institution;
     const cards = (input.cards ?? []).map((c) => ({
       userId,
       name: c.name,
@@ -112,18 +129,20 @@ export class AccountsService {
       last4: c.last4,
       expiryMonth: c.expiryMonth,
       expiryYear: c.expiryYear,
-      limits: {
-        create: c.kind === "CREDIT" ? (c.limits ?? []) : [],
-      },
+      isActive: c.isActive ?? true,
     }));
     const row = await this.repo.create(userId, {
       name: input.name,
       type: input.type,
       status: input.status,
       currency: input.currency,
-      institution: input.institution,
+      institution,
+      institutionId: input.institutionId ?? null,
+      accountNumber: input.accountNumber,
       initialBalance,
       currentBalance: initialBalance,
+      creditLimit: input.creditLimit ?? "0",
+      creditUsedInitial: input.creditUsedInitial ?? "0",
       ...(cards.length > 0 ? { cards: { create: cards } } : {}),
     });
     return this.withSeries(userId, row);
@@ -134,13 +153,26 @@ export class AccountsService {
     id: string,
     input: accounts.UpdateBankAccount,
   ): Promise<accounts.BankAccount> {
+    // When an institution is (re)linked, mirror its name into `institution` for display.
+    const linkedName =
+      input.institutionId !== undefined && input.institutionId
+        ? await this.repo.institutionName(input.institutionId)
+        : undefined;
     const row = await this.repo.update(userId, id, {
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.type !== undefined ? { type: input.type } : {}),
       ...(input.status !== undefined ? { status: input.status } : {}),
       ...(input.currency !== undefined ? { currency: input.currency } : {}),
-      ...(input.institution !== undefined ? { institution: input.institution } : {}),
+      ...(input.institutionId !== undefined ? { institutionId: input.institutionId ?? null } : {}),
+      ...(linkedName !== undefined
+        ? { institution: linkedName }
+        : input.institution !== undefined
+          ? { institution: input.institution }
+          : {}),
+      ...(input.accountNumber !== undefined ? { accountNumber: input.accountNumber } : {}),
       ...(input.initialBalance !== undefined ? { initialBalance: input.initialBalance } : {}),
+      ...(input.creditLimit !== undefined ? { creditLimit: input.creditLimit } : {}),
+      ...(input.creditUsedInitial !== undefined ? { creditUsedInitial: input.creditUsedInitial } : {}),
     });
     if (!row) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
     return this.withSeries(userId, row);
@@ -175,7 +207,18 @@ export class AccountsService {
 function toContract(
   row: AccountWithCards,
   series: { series: string[]; balanceChangePct: string | null },
+  sums?: { income: string; expense: string },
 ): accounts.BankAccount {
+  // Credit used (derived) only for credit lines: seed + Σexpense − Σincome (payments reduce it).
+  const isCredit = row.type === "CREDIT_LINE";
+  const creditUsed = isCredit
+    ? moneyToString(
+        subtractMoney(
+          addMoney(row.creditUsedInitial.toString(), sums?.expense ?? "0"),
+          sums?.income ?? "0",
+        ),
+      )
+    : "0";
   return {
     id: row.id,
     name: row.name,
@@ -183,8 +226,13 @@ function toContract(
     status: row.status,
     currency: row.currency,
     institution: row.institution,
+    institutionId: row.institutionId ?? null,
+    institutionName: row.financialInstitution?.name ?? null,
+    accountNumber: row.accountNumber ?? null,
     initialBalance: moneyToString(row.initialBalance.toString()),
     currentBalance: moneyToString(row.currentBalance.toString()),
+    creditLimit: moneyToString(row.creditLimit.toString()),
+    creditUsed,
     balanceSeries: series.series,
     balanceChangePct: series.balanceChangePct,
     cards: (row.cards ?? []).map(cardToContract),

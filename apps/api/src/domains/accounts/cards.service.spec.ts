@@ -13,17 +13,9 @@ const cardRow = {
   last4: "1234",
   expiryMonth: 5,
   expiryYear: 2028,
+  isActive: true,
   createdAt: new Date(),
   updatedAt: new Date(),
-  limits: [
-    {
-      id: "l1",
-      cardId: "c1",
-      currency: "USD",
-      limit: { toString: () => "1000" },
-      used: { toString: () => "250" },
-    },
-  ],
 };
 
 function make(repo: Partial<CardsRepository>) {
@@ -31,7 +23,7 @@ function make(repo: Partial<CardsRepository>) {
 }
 
 describe("CardsService", () => {
-  it("creates a credit card with limits and maps last4 + limits", async () => {
+  it("creates a card mapping last4 + kind + isActive", async () => {
     const create = vi.fn().mockResolvedValue(cardRow);
     const svc = make({ accountExists: vi.fn().mockResolvedValue({ id: "a1" }), create });
     const card = await svc.create("u1", "a1", {
@@ -40,26 +32,27 @@ describe("CardsService", () => {
       last4: "1234",
       expiryMonth: 5,
       expiryYear: 2028,
-      limits: [{ currency: "USD", limit: "1000", used: "250" }],
+      isActive: true,
     });
     expect(card.last4).toBe("1234");
-    expect(card.limits[0]).toEqual({ currency: "USD", limit: "1000.0000", used: "250.0000" });
-    // limits forwarded to repo
-    expect(create.mock.calls[0]![3]).toHaveLength(1);
+    expect(card.kind).toBe("CREDIT");
+    expect(card.isActive).toBe(true);
+    // credit limits no longer live on the card (they moved to the CREDIT_LINE account)
+    expect(card).not.toHaveProperty("limits");
   });
 
-  it("drops limits for a debit card", async () => {
-    const create = vi.fn().mockResolvedValue({ ...cardRow, kind: "DEBIT", limits: [] });
+  it("creates a prepaid card", async () => {
+    const create = vi.fn().mockResolvedValue({ ...cardRow, kind: "PREPAID" });
     const svc = make({ accountExists: vi.fn().mockResolvedValue({ id: "a1" }), create });
-    await svc.create("u1", "a1", {
-      name: "Maestro",
-      kind: "DEBIT",
+    const card = await svc.create("u1", "a1", {
+      name: "Prepago",
+      kind: "PREPAID",
       last4: "9999",
       expiryMonth: 1,
       expiryYear: 2027,
-      limits: [{ currency: "USD", limit: "1000", used: "0" }],
+      isActive: true,
     });
-    expect(create.mock.calls[0]![3]).toEqual([]); // no limits persisted for debit
+    expect(card.kind).toBe("PREPAID");
   });
 
   it("throws when the account is not the user's", async () => {
@@ -71,6 +64,7 @@ describe("CardsService", () => {
         last4: "1234",
         expiryMonth: 1,
         expiryYear: 2027,
+        isActive: true,
       }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });

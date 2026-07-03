@@ -1,0 +1,24 @@
+# Local PostgreSQL for FinanceApp dev. Credentials match apps/api/.env
+# (postgres/simon789 @ localhost:5432, db "financeApp").
+# Reset from scratch with: pnpm db:reset  (see scripts/db-reset.mjs)
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: financeapp-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: simon789
+      POSTGRES_DB: financeApp
+    ports:
+      - "5432:5432"
+    volumes:
+      - financeapp-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d financeApp"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  financeapp-pgdata:

@@ -6,6 +6,7 @@ function toQuery(filters: transactions.TransactionFilters = {}): string {
   const params = new URLSearchParams();
   if (filters.type) params.set("type", filters.type);
   if (filters.bankAccountId) params.set("bankAccountId", filters.bankAccountId);
+  if (filters.cardId) params.set("cardId", filters.cardId);
   if (filters.from) params.set("from", filters.from);
   if (filters.to) params.set("to", filters.to);
   const qs = params.toString();

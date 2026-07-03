@@ -9,12 +9,6 @@ import { Input } from "../../../shared/ui/input";
 import { Select } from "../../../shared/ui/select";
 import { deriveLast4 } from "../api/cardsApi";
 
-interface LimitRow {
-  currency: string;
-  limit: string;
-  used: string;
-}
-
 interface Props {
   submitLabel: string;
   submitting?: boolean;
@@ -22,19 +16,17 @@ interface Props {
   onSubmit: (card: accounts.CreateCard) => void;
 }
 
-/** Collects a card. The full number is only used locally to derive last4 — never sent. */
-export function CardForm({ submitLabel, submitting, initial, onSubmit }: Props) {
+/**
+ * Collects a card (payment instrument). The full number is only used locally to
+ * derive last4 — never sent. Credit limits live on the CREDIT_LINE account, not here.
+ */
+export function CardForm({ submitLabel, submitting, initial, onSubmit }: Readonly<Props>) {
   const { t } = useTranslation();
   const [name, setName] = useState(initial?.name ?? "");
   const [kind, setKind] = useState<accounts.CardKind>(initial?.kind ?? "CREDIT");
   const [number, setNumber] = useState("");
   const [month, setMonth] = useState(String(initial?.expiryMonth ?? 1));
   const [year, setYear] = useState(String(initial?.expiryYear ?? new Date().getFullYear() + 3));
-  const [limits, setLimits] = useState<LimitRow[]>(
-    initial?.limits?.length
-      ? initial.limits.map((l) => ({ currency: l.currency, limit: l.limit, used: l.used }))
-      : [{ currency: "USD", limit: "0", used: "0" }],
-  );
   const [error, setError] = useState<string | null>(null);
 
   function submit(e: FormEvent) {
@@ -52,12 +44,12 @@ export function CardForm({ submitLabel, submitting, initial, onSubmit }: Props) 
       last4,
       expiryMonth: Number(month),
       expiryYear: Number(year),
-      limits: kind === "CREDIT" ? limits : undefined,
+      isActive: initial?.isActive ?? true,
     });
   }
 
   return (
-    <form className="flex flex-col gap-3 rounded-md border p-4" onSubmit={submit}>
+    <form className="flex flex-col gap-3" onSubmit={submit}>
       <Field label={t("cards.form.name")} htmlFor="card-name">
         <Input id="card-name" value={name} required onChange={(e) => setName(e.target.value)} />
       </Field>
@@ -69,6 +61,7 @@ export function CardForm({ submitLabel, submitting, initial, onSubmit }: Props) 
           options={[
             { value: "CREDIT", label: t("cards.kind.CREDIT") },
             { value: "DEBIT", label: t("cards.kind.DEBIT") },
+            { value: "PREPAID", label: t("cards.kind.PREPAID") },
           ]}
         />
       </Field>
@@ -102,73 +95,9 @@ export function CardForm({ submitLabel, submitting, initial, onSubmit }: Props) 
         </Field>
       </div>
 
-      {kind === "CREDIT" ? (
-        <div className="flex flex-col gap-2">
-          <span className="text-sm font-medium">{t("cards.form.limits")}</span>
-          <div className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 text-xs font-medium text-muted-foreground">
-            <span>{t("cards.form.currency")}</span>
-            <span>{t("cards.form.limit")}</span>
-            <span>{t("cards.form.used")}</span>
-            <span />
-          </div>
-          {limits.map((l, i) => (
-            <div key={i} className="grid grid-cols-[1fr_1fr_1fr_auto] items-center gap-2">
-              <Input
-                aria-label={t("cards.form.currency")}
-                placeholder={t("cards.form.currency")}
-                value={l.currency}
-                maxLength={3}
-                onChange={(e) =>
-                  updateLimit(setLimits, i, { currency: e.target.value.toUpperCase() })
-                }
-              />
-              <Input
-                aria-label={t("cards.form.limit")}
-                placeholder={t("cards.form.limit")}
-                inputMode="decimal"
-                value={l.limit}
-                onChange={(e) => updateLimit(setLimits, i, { limit: e.target.value })}
-              />
-              <Input
-                aria-label={t("cards.form.used")}
-                placeholder={t("cards.form.used")}
-                inputMode="decimal"
-                value={l.used}
-                onChange={(e) => updateLimit(setLimits, i, { used: e.target.value })}
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                aria-label={t("common.cancel")}
-                onClick={() => setLimits((p) => p.filter((_, j) => j !== i))}
-              >
-                ✕
-              </Button>
-            </div>
-          ))}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setLimits((p) => [...p, { currency: "USD", limit: "0", used: "0" }])}
-          >
-            {t("cards.form.addLimit")}
-          </Button>
-        </div>
-      ) : null}
-
       <Button type="submit" disabled={submitting}>
         {submitLabel}
       </Button>
     </form>
   );
-}
-
-function updateLimit(
-  setLimits: React.Dispatch<React.SetStateAction<LimitRow[]>>,
-  index: number,
-  patch: Partial<LimitRow>,
-) {
-  setLimits((prev) => prev.map((l, j) => (j === index ? { ...l, ...patch } : l)));
 }

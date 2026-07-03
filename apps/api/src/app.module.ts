@@ -9,6 +9,7 @@ import { ImportModule } from "./domains/import/import.module";
 import { InstallmentsModule } from "./domains/installments/installments.module";
 import { InvestmentsModule } from "./domains/investments/investments.module";
 import { RecurringModule } from "./domains/recurring/recurring.module";
+import { ReferenceModule } from "./domains/reference/reference.module";
 import { SavingsModule } from "./domains/savings/savings.module";
 import { TransactionsModule } from "./domains/transactions/transactions.module";
 import { WalletModule } from "./domains/wallet/wallet.module";
@@ -29,6 +30,7 @@ import { PrismaModule } from "./infra/prisma/prisma.module";
     ImportModule,
     RecurringModule,
     WalletModule,
+    ReferenceModule,
   ],
 })
 export class AppModule {}

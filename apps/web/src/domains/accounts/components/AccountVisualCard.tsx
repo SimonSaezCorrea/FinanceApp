@@ -6,15 +6,10 @@ import { formatMoney } from "@finance/money";
 import { cn } from "../../../shared/lib/cn";
 import { isCreditType } from "./accountVisuals";
 
-/** Credit-limit row matching the account currency (falls back to the first limit). */
-function pickLimit(limits: accounts.CardLimit[], currency: string): accounts.CardLimit | undefined {
-  return limits.find((l) => l.currency === currency) ?? limits[0];
-}
-
 /**
  * Visual "wallet" representation (gradient credit / muted debit).
  * Pass `card` to render a specific card; otherwise the account's first card is used.
- * Shows the account balance, or used/limit for credit.
+ * Credit info (cupo) lives on the account (CREDIT_LINE); every card shares it.
  */
 export function AccountVisualCard({
   account,
@@ -27,19 +22,15 @@ export function AccountVisualCard({
 }) {
   const { t, i18n } = useTranslation();
   const card = cardProp ?? account.cards[0];
-  const credit = card ? card.kind === "CREDIT" : isCreditType(account.type);
+  const credit = isCreditType(account.type);
   const last4 = card?.last4 ?? "••••";
   const expiry = card
     ? `${String(card.expiryMonth).padStart(2, "0")}/${String(card.expiryYear).slice(-2)}`
     : null;
 
-  const limits = card
-    ? card.limits
-    : account.cards.flatMap((c) => (c.kind === "CREDIT" ? c.limits : []));
-  const creditLimit = credit ? pickLimit(limits, account.currency) : undefined;
-  const usagePct = creditLimit
-    ? Math.min(100, Math.round((Number(creditLimit.used) / Number(creditLimit.limit)) * 100))
-    : null;
+  const limit = Number(account.creditLimit);
+  const used = Number(account.creditUsed);
+  const usagePct = credit && limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : null;
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
   const balance = Number(account.currentBalance);
 
@@ -61,8 +52,14 @@ export function AccountVisualCard({
             <p className="text-xs opacity-80">
               {t(`accounts.type.${account.type}`)} · {account.currency}
             </p>
+            {account.accountNumber ? (
+              <p className="mt-0.5 text-xs tabular-nums opacity-80">{account.accountNumber}</p>
+            ) : null}
           </div>
-          <span className="h-7 w-9 rounded-md bg-white/25" aria-hidden />
+          {/* Type chip, like the other cards' labels. */}
+          <span className="rounded-full bg-white/25 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+            {credit ? t("cards.title") : t(`accounts.type.${account.type}`)}
+          </span>
         </div>
 
         <div className="flex flex-col gap-1">
@@ -72,18 +69,23 @@ export function AccountVisualCard({
             </p>
           ) : null}
 
-          {creditLimit ? (
+          {credit ? (
             <div className="flex flex-col gap-1">
               <span className="text-xs opacity-70">{t("accounts.card.creditUsed")}</span>
               <p className="tabular-nums">
-                <span className="text-base font-semibold">{fmt(creditLimit.used)}</span>
-                <span className="text-xs opacity-70"> / {fmt(creditLimit.limit)}</span>
+                <span className="text-base font-semibold">{fmt(account.creditUsed)}</span>
+                <span className="text-xs opacity-70"> / {fmt(account.creditLimit)}</span>
               </p>
-              <div className="mt-0.5 h-1.5 w-full overflow-hidden rounded-full bg-white/25">
-                <div
-                  className="h-full rounded-full bg-white/90"
-                  style={{ width: `${usagePct}%` }}
-                />
+              <div className="mt-0.5 flex items-center gap-2">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/25">
+                  <div
+                    className="h-full rounded-full bg-white/90"
+                    style={{ width: `${usagePct ?? 0}%` }}
+                  />
+                </div>
+                {usagePct !== null ? (
+                  <span className="text-xs font-medium tabular-nums opacity-90">{usagePct}%</span>
+                ) : null}
               </div>
             </div>
           ) : (
@@ -92,7 +94,7 @@ export function AccountVisualCard({
               <p
                 className={cn(
                   "text-base font-semibold tabular-nums",
-                  balance < 0 && !credit && "text-destructive",
+                  balance < 0 && "text-destructive",
                 )}
               >
                 {fmt(account.currentBalance)}

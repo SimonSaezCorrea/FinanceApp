@@ -10,11 +10,19 @@ import { Dialog } from "../../../shared/ui/dialog";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Select } from "../../../shared/ui/select";
+import { useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { useAccountMutations } from "../hooks/useAccounts";
 import { CardForm } from "./CardForm";
 import { CardPreview } from "./CardPreview";
 
-const TYPES: accounts.AccountType[] = ["CHECKING", "SAVINGS", "VISTA"];
+const TYPES: accounts.AccountType[] = [
+  "CHECKING",
+  "SIGHT",
+  "SAVINGS",
+  "INVESTMENT",
+  "CREDIT_LINE",
+  "CASH",
+];
 
 export function AccountCreateModal({
   open,
@@ -25,22 +33,31 @@ export function AccountCreateModal({
 }) {
   const { t, i18n } = useTranslation();
   const { create } = useAccountMutations();
+  const { data: institutions } = useInstitutions("CL");
+  const { data: currencies } = useCurrencies();
   const [name, setName] = useState("");
   const [type, setType] = useState<accounts.AccountType>("CHECKING");
-  const [institution, setInstitution] = useState("");
+  const [institutionId, setInstitutionId] = useState("");
+  const [accountNumber, setAccountNumber] = useState("");
   const [status, setStatus] = useState<accounts.AccountStatus>("ACTIVE");
-  const [currency, setCurrency] = useState("USD");
+  const [currency, setCurrency] = useState("CLP");
   const [initialBalance, setInitialBalance] = useState("0");
+  const [creditLimit, setCreditLimit] = useState("0");
+  const [creditUsedInitial, setCreditUsedInitial] = useState("0");
   const [cards, setCards] = useState<accounts.CreateCard[]>([]);
   const [addingCard, setAddingCard] = useState(false);
+  const isCredit = type === "CREDIT_LINE";
 
   function reset() {
     setName("");
     setType("CHECKING");
-    setInstitution("");
+    setInstitutionId("");
+    setAccountNumber("");
     setStatus("ACTIVE");
-    setCurrency("USD");
+    setCurrency("CLP");
     setInitialBalance("0");
+    setCreditLimit("0");
+    setCreditUsedInitial("0");
     setCards([]);
     setAddingCard(false);
   }
@@ -52,8 +69,11 @@ export function AccountCreateModal({
         type,
         status,
         currency,
-        institution: institution || undefined,
-        initialBalance: initialBalance || "0",
+        institutionId: institutionId || undefined,
+        accountNumber: accountNumber || undefined,
+        initialBalance: isCredit ? "0" : initialBalance || "0",
+        creditLimit: isCredit ? creditLimit || "0" : undefined,
+        creditUsedInitial: isCredit ? creditUsedInitial || "0" : undefined,
         cards: cards.length > 0 ? cards : undefined,
       },
       {
@@ -63,6 +83,19 @@ export function AccountCreateModal({
         },
       },
     );
+  }
+
+  const institutionName = institutions?.find((b) => b.id === institutionId)?.name ?? "";
+  const institutionOptions = [
+    { value: "", label: t("accounts.form.institutionNone") },
+    ...(institutions ?? []).map((b) => ({ value: b.id, label: b.name })),
+  ];
+  const currencyOptions = (currencies ?? []).map((c) => ({
+    value: c.code,
+    label: `${c.code} · ${c.name}`,
+  }));
+  if (currency && !currencyOptions.some((o) => o.value === currency)) {
+    currencyOptions.unshift({ value: currency, label: currency });
   }
 
   const balancePreview = (() => {
@@ -89,10 +122,19 @@ export function AccountCreateModal({
             />
           </Field>
           <Field label={t("accounts.form.institution")} htmlFor="m-inst">
-            <Input
+            <Select
               id="m-inst"
-              value={institution}
-              onChange={(e) => setInstitution(e.target.value)}
+              value={institutionId}
+              onChange={(e) => setInstitutionId(e.target.value)}
+              options={institutionOptions}
+            />
+          </Field>
+          <Field label={t("accounts.form.accountNumber")} htmlFor="m-num">
+            <Input
+              id="m-num"
+              inputMode="numeric"
+              value={accountNumber}
+              onChange={(e) => setAccountNumber(e.target.value)}
             />
           </Field>
           <Field label={t("accounts.form.status")} htmlFor="m-status">
@@ -108,27 +150,48 @@ export function AccountCreateModal({
           </Field>
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("accounts.form.currency")} htmlFor="m-cur">
-              <Input
+              <Select
                 id="m-cur"
                 value={currency}
-                maxLength={3}
-                onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+                onChange={(e) => setCurrency(e.target.value)}
+                options={currencyOptions}
               />
             </Field>
-            <Field label={t("accounts.form.initialBalance")} htmlFor="m-bal">
-              <Input
-                id="m-bal"
-                inputMode="decimal"
-                value={initialBalance}
-                onChange={(e) => setInitialBalance(e.target.value)}
-              />
-            </Field>
+            {isCredit ? (
+              <Field label={t("accounts.form.creditLimit")} htmlFor="m-climit">
+                <Input
+                  id="m-climit"
+                  inputMode="decimal"
+                  value={creditLimit}
+                  onChange={(e) => setCreditLimit(e.target.value)}
+                />
+              </Field>
+            ) : (
+              <Field label={t("accounts.form.initialBalance")} htmlFor="m-bal">
+                <Input
+                  id="m-bal"
+                  inputMode="decimal"
+                  value={initialBalance}
+                  onChange={(e) => setInitialBalance(e.target.value)}
+                />
+              </Field>
+            )}
           </div>
+          {isCredit ? (
+            <Field label={t("accounts.form.creditUsedInitial")} htmlFor="m-cused">
+              <Input
+                id="m-cused"
+                inputMode="decimal"
+                value={creditUsedInitial}
+                onChange={(e) => setCreditUsedInitial(e.target.value)}
+              />
+            </Field>
+          ) : null}
         </div>
 
         <div className="flex flex-col gap-4">
           <CardPreview
-            brand={institution || t("accounts.title")}
+            brand={institutionName || t("accounts.title")}
             title={name}
             subtitle={t(`accounts.type.${type}`)}
             primary={balancePreview}

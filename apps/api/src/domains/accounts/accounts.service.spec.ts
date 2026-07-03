@@ -10,18 +10,23 @@ const row = {
   name: "Checking",
   type: "CHECKING" as const,
   status: "ACTIVE" as const,
-  currency: "USD",
+  currency: "CLP",
   institution: null,
+  accountNumber: null,
   initialBalance: { toString: () => "100" },
   currentBalance: { toString: () => "100" },
+  creditLimit: { toString: () => "0" },
+  creditUsedInitial: { toString: () => "0" },
+  cards: [],
   createdAt: new Date("2026-01-01T00:00:00Z"),
   updatedAt: new Date("2026-01-02T00:00:00Z"),
 };
 
 function makeService(repo: Partial<AccountsRepository>) {
-  // Balance-series attach runs on every read/write; default it to "no window tx".
+  // Balance-series + credit-usage attach run on every read/write; default both to empty.
   return new AccountsService({
     txWindow: vi.fn().mockResolvedValue([]),
+    sumsByAccount: vi.fn().mockResolvedValue([]),
     ...repo,
   } as AccountsRepository);
 }
@@ -36,6 +41,8 @@ describe("AccountsService", () => {
       status: "ACTIVE",
       initialBalance: "100.0000",
       currentBalance: "100.0000",
+      creditLimit: "0.0000",
+      creditUsed: "0",
     });
   });
 
@@ -47,7 +54,6 @@ describe("AccountsService", () => {
     const [acc] = await svc.list("u1", {});
     expect(acc.balanceSeries).toHaveLength(30);
     expect(acc.balanceSeries.at(-1)).toBe("100.0000");
-    // Flat history (no tx) => no change.
     expect(acc.balanceChangePct).toBe("0.0");
   });
 
@@ -65,7 +71,7 @@ describe("AccountsService", () => {
       name: "Checking",
       type: "CHECKING",
       status: "ACTIVE",
-      currency: "USD",
+      currency: "CLP",
       initialBalance: "100",
     });
     expect(create.mock.calls[0]![1]).toMatchObject({
@@ -85,7 +91,6 @@ describe("AccountsService", () => {
       update,
     });
     const acc = await svc.reconcile("u1", "a1");
-    // 100 + 250.50 - 75.25 = 275.25
     expect(update.mock.calls[0]![2]).toEqual({ currentBalance: "275.2500" });
     expect(acc.currentBalance).toBe("275.2500");
   });
@@ -93,5 +98,55 @@ describe("AccountsService", () => {
   it("throws NotFound reconciling a missing account", async () => {
     const svc = makeService({ findOne: vi.fn().mockResolvedValue(null) });
     await expect(svc.reconcile("u1", "nope")).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  // --- Derived credit `used` on a CREDIT_LINE account (standalone credit card) ---
+
+  describe("derived credit used (CREDIT_LINE account)", () => {
+    const creditRow = {
+      ...row,
+      id: "aC",
+      type: "CREDIT_LINE" as const,
+      creditLimit: { toString: () => "3000000" },
+      creditUsedInitial: { toString: () => "0" },
+    };
+
+    it("computes used = seed + expense − income and exposes creditLimit", async () => {
+      const svc = makeService({
+        list: vi.fn().mockResolvedValue([creditRow]),
+        sumsByAccount: vi.fn().mockResolvedValue([
+          { bankAccountId: "aC", type: "EXPENSE", sum: "1024990" },
+          { bankAccountId: "aC", type: "INCOME", sum: "24990" },
+        ]),
+      });
+      const [acc] = await svc.list("u1", {});
+      expect(acc.creditLimit).toBe("3000000.0000");
+      // 0 + 1,024,990 − 24,990 = 1,000,000
+      expect(acc.creditUsed).toBe("1000000.0000");
+    });
+
+    it("includes the creditUsedInitial seed", async () => {
+      const seeded = { ...creditRow, creditUsedInitial: { toString: () => "50000" } };
+      const svc = makeService({
+        list: vi.fn().mockResolvedValue([seeded]),
+        sumsByAccount: vi
+          .fn()
+          .mockResolvedValue([{ bankAccountId: "aC", type: "EXPENSE", sum: "100000" }]),
+      });
+      const [acc] = await svc.list("u1", {});
+      // 50,000 + 100,000 − 0 = 150,000
+      expect(acc.creditUsed).toBe("150000.0000");
+    });
+
+    it("reports creditUsed 0 for non-credit accounts", async () => {
+      const svc = makeService({
+        list: vi.fn().mockResolvedValue([row]),
+        sumsByAccount: vi
+          .fn()
+          .mockResolvedValue([{ bankAccountId: "a1", type: "EXPENSE", sum: "999" }]),
+      });
+      const [acc] = await svc.list("u1", {});
+      expect(acc.creditUsed).toBe("0");
+    });
   });
 });
