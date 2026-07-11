@@ -36,9 +36,14 @@ export function secondaryTotals(
   return [...map.entries()].map(([currency, vals]) => ({ currency, total: sumMoney(vals) }));
 }
 
-/** ISO timestamp for the first day of the current month (local). */
+/** ISO timestamp for the first day of the given month (local). */
 export function startOfMonthISO(now: Date): string {
   return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+}
+
+/** ISO timestamp for the last instant of the given month (local). */
+export function endOfMonthISO(now: Date): string {
+  return new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
 }
 
 export interface MonthFlow {

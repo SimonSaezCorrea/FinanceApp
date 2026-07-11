@@ -37,13 +37,13 @@ export function AccountVisualCard({
   return (
     <div
       className={cn(
-        "relative aspect-[16/10] w-full overflow-hidden rounded-2xl p-5 shadow-md",
+        "relative flex h-[12.5rem] w-full flex-col overflow-hidden rounded-2xl p-5 shadow-md",
         credit
           ? "bg-gradient-to-br from-brand to-primary text-white"
           : "bg-gradient-to-br from-secondary to-muted text-foreground",
       )}
     >
-      <div className="flex h-full flex-col justify-between">
+      <div className="flex h-full flex-col justify-between gap-3">
         <div className="flex items-start justify-between">
           <div>
             <p className="text-sm font-semibold leading-tight">
@@ -72,7 +72,7 @@ export function AccountVisualCard({
           {credit ? (
             <div className="flex flex-col gap-1">
               <span className="text-xs opacity-70">{t("accounts.card.creditUsed")}</span>
-              <p className="tabular-nums">
+              <p className="tabular-nums whitespace-nowrap">
                 <span className="text-base font-semibold">{fmt(account.creditUsed)}</span>
                 <span className="text-xs opacity-70"> / {fmt(account.creditLimit)}</span>
               </p>

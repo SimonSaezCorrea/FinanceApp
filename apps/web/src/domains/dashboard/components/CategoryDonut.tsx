@@ -18,8 +18,6 @@ const PALETTE = [
   "hsl(var(--muted-foreground))",
 ];
 
-const MAX_SLICES = 5;
-
 export function CategoryDonut({ slices }: { slices: CategorySlice[] }) {
   const { t, i18n } = useTranslation();
   const [active, setActive] = useState<number | null>(null);
@@ -27,32 +25,27 @@ export function CategoryDonut({ slices }: { slices: CategorySlice[] }) {
     formatMoney(String(v), { locale: i18n.language, currency: PRIMARY_CURRENCY });
 
   const label = (c: string | null) => c ?? t("transactions.uncategorized");
-  const top = slices
-    .slice(0, MAX_SLICES)
-    .map((s) => ({ name: label(s.category), value: Number(s.total) }));
-  const restTotal = slices.slice(MAX_SLICES).reduce((sum, s) => sum + Number(s.total), 0);
-  const data =
-    restTotal > 0 ? [...top, { name: t("dashboard.otherCategory"), value: restTotal }] : top;
+  const data = slices.map((s) => ({ name: label(s.category), value: Number(s.total) }));
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const hovered = active !== null ? data[active] : null;
 
   return (
-    <Card className="flex flex-col gap-4 p-5">
+    <Card className="flex flex-col gap-3 p-4">
       <span className="text-sm font-semibold">{t("dashboard.spendByCategory")}</span>
 
       {total === 0 ? (
         <p className="text-sm text-muted-foreground">{t("dashboard.noSpend")}</p>
       ) : (
         <div className="flex flex-wrap items-center gap-4">
-          <div className="relative h-[140px] w-[140px] shrink-0">
+          <div className="relative h-[120px] w-[120px] shrink-0">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={data}
                   dataKey="value"
                   nameKey="name"
-                  innerRadius={48}
-                  outerRadius={68}
+                  innerRadius={40}
+                  outerRadius={58}
                   paddingAngle={2}
                   stroke="none"
                   onMouseEnter={(_, i) => setActive(i)}
@@ -79,7 +72,7 @@ export function CategoryDonut({ slices }: { slices: CategorySlice[] }) {
             ) : null}
           </div>
 
-          <ul className="flex min-w-0 flex-1 flex-col gap-1.5">
+          <ul className="scrollbar-thin flex max-h-[120px] min-w-0 flex-1 flex-col gap-1 overflow-y-auto pr-1">
             {data.map((d, i) => (
               <li
                 key={d.name}

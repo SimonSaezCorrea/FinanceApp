@@ -1,9 +1,13 @@
 import {
   DndContext,
   type DragEndEvent,
+  DragOverlay,
+  type DragStartEvent,
+  type DropAnimation,
   KeyboardSensor,
   PointerSensor,
   closestCenter,
+  defaultDropAnimationSideEffects,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -37,7 +41,14 @@ import { AccountVisualCard } from "../../accounts/components/AccountVisualCard";
 import { useWallet, useWalletMutations } from "../hooks/useWallet";
 import { WalletAddModal } from "./WalletAddModal";
 
-const GRID = "grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3";
+const GRID = "grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3";
+
+/** Smoothly fly the overlay into its (already-reordered) final slot instead of popping out. */
+const dropAnimation: DropAnimation = {
+  duration: 220,
+  easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+  sideEffects: defaultDropAnimationSideEffects({ styles: { active: { opacity: "0" } } }),
+};
 
 interface Resolved {
   item: wallet.WalletItem;
@@ -105,30 +116,33 @@ export function WalletCards({
 
       <WalletAddModal open={addOpen} onOpenChange={setAddOpen} pinned={items} />
 
-      {organizing ? (
-        <WalletOrganizer
-          resolved={resolved}
-          holder={holder}
-          onReorder={(ids) => reorder.mutate(ids)}
-          onRemove={onRemove}
-        />
-      ) : (
-        <div className={GRID}>
-          {resolved.map((r) => (
-            <Link key={r.item.id} to={`/accounts/${r.account.id}`} className="block">
-              <AccountVisualCard account={r.account} card={r.card} holder={holder} />
-            </Link>
-          ))}
-          <button
-            type="button"
-            onClick={() => setAddOpen(true)}
-            className="flex aspect-[16/10] min-h-[120px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-          >
-            <Plus className="h-6 w-6" aria-hidden />
-            <span className="text-sm font-medium">{t("wallet.add")}</span>
-          </button>
-        </div>
-      )}
+      <div className="scrollbar-thin -m-1 max-h-[28rem] overflow-y-auto p-1">
+        {organizing ? (
+          <WalletOrganizer
+            resolved={resolved}
+            holder={holder}
+            onReorder={(ids) => reorder.mutate(ids)}
+            onRemove={onRemove}
+            reordering={reorder.isPending}
+          />
+        ) : (
+          <div className={GRID}>
+            {resolved.map((r) => (
+              <Link key={r.item.id} to={`/accounts/${r.account.id}`} className="block">
+                <AccountVisualCard account={r.account} card={r.card} holder={holder} />
+              </Link>
+            ))}
+            <button
+              type="button"
+              onClick={() => setAddOpen(true)}
+              className="flex h-[12.5rem] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+            >
+              <Plus className="h-6 w-6" aria-hidden />
+              <span className="text-sm font-medium">{t("wallet.add")}</span>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -139,48 +153,88 @@ function WalletOrganizer({
   holder,
   onReorder,
   onRemove,
+  reordering,
 }: {
   resolved: Resolved[];
   holder?: string;
   onReorder: (ids: string[]) => void;
   onRemove: (id: string) => void;
+  reordering: boolean;
 }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
   );
-  const ids = resolved.map((r) => r.item.id);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  // Order override applied synchronously on drop, so the grid re-sorts in the same
+  // tick the drag ends — otherwise it waits for the reorder mutation's optimistic
+  // cache update (a tick later) and briefly flashes the pre-drop order.
+  const [orderOverride, setOrderOverride] = useState<string[] | null>(null);
+  const baseIds = resolved.map((r) => r.item.id);
+  const overrideValid =
+    orderOverride !== null &&
+    orderOverride.length === baseIds.length &&
+    orderOverride.every((id) => baseIds.includes(id));
+  const ids = overrideValid ? (orderOverride as string[]) : baseIds;
+  const ordered = ids
+    .map((id) => resolved.find((r) => r.item.id === id))
+    .filter((r): r is Resolved => !!r);
+  const active = resolved.find((r) => r.item.id === activeId);
 
   function move(index: number, delta: number) {
     const target = index + delta;
     if (target < 0 || target >= ids.length) return;
-    onReorder(arrayMove(ids, index, target));
+    const next = arrayMove(ids, index, target);
+    setOrderOverride(next);
+    onReorder(next);
+  }
+
+  function onDragStart({ active }: DragStartEvent) {
+    setActiveId(String(active.id));
   }
 
   function onDragEnd({ active, over }: DragEndEvent) {
+    setActiveId(null);
     if (!over || active.id === over.id) return;
     const from = ids.indexOf(String(active.id));
     const to = ids.indexOf(String(over.id));
-    if (from >= 0 && to >= 0) onReorder(arrayMove(ids, from, to));
+    if (from < 0 || to < 0) return;
+    const next = arrayMove(ids, from, to);
+    setOrderOverride(next);
+    onReorder(next);
   }
 
   return (
-    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragStart={onDragStart}
+      onDragEnd={onDragEnd}
+      onDragCancel={() => setActiveId(null)}
+    >
       <SortableContext items={ids} strategy={rectSortingStrategy}>
         <div className={GRID}>
-          {resolved.map((r, i) => (
+          {ordered.map((r, i) => (
             <SortableCard
               key={r.item.id}
               resolved={r}
               index={i}
-              count={resolved.length}
+              count={ordered.length}
               holder={holder}
               onMove={move}
               onRemove={onRemove}
+              moveDisabled={reordering}
             />
           ))}
         </div>
       </SortableContext>
+      <DragOverlay dropAnimation={dropAnimation}>
+        {active ? (
+          <div className="rounded-2xl shadow-2xl ring-2 ring-primary">
+            <AccountVisualCard account={active.account} card={active.card} holder={holder} />
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }
@@ -192,6 +246,7 @@ function SortableCard({
   holder,
   onMove,
   onRemove,
+  moveDisabled,
 }: {
   resolved: Resolved;
   index: number;
@@ -199,6 +254,7 @@ function SortableCard({
   holder?: string;
   onMove: (index: number, delta: number) => void;
   onRemove: (id: string) => void;
+  moveDisabled: boolean;
 }) {
   const { t } = useTranslation();
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -207,7 +263,7 @@ function SortableCard({
   const style = { transform: CSS.Transform.toString(transform), transition };
 
   return (
-    <div ref={setNodeRef} style={style} className={cn("relative", isDragging && "z-10 opacity-60")}>
+    <div ref={setNodeRef} style={style} className={cn("relative", isDragging && "opacity-0")}>
       <div
         {...attributes}
         {...listeners}
@@ -221,7 +277,7 @@ function SortableCard({
       <div className="absolute inset-x-0 bottom-2 flex items-center justify-center gap-1">
         <IconBtn
           label={t("wallet.moveLeft")}
-          disabled={index === 0}
+          disabled={index === 0 || moveDisabled}
           onClick={() => onMove(index, -1)}
         >
           <ChevronLeft className="h-4 w-4" aria-hidden />
@@ -231,7 +287,7 @@ function SortableCard({
         </IconBtn>
         <IconBtn
           label={t("wallet.moveRight")}
-          disabled={index === count - 1}
+          disabled={index === count - 1 || moveDisabled}
           onClick={() => onMove(index, 1)}
         >
           <ChevronRight className="h-4 w-4" aria-hidden />

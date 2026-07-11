@@ -37,8 +37,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
 
   return (
-    <div className="flex min-h-dvh">
-      <aside className="hidden w-60 shrink-0 flex-col border-r bg-card p-4 md:flex sticky top-0 h-dvh overflow-y-auto">
+    <div className="flex h-dvh overflow-hidden">
+      <aside className="hidden w-60 shrink-0 flex-col overflow-y-auto border-r bg-card p-4 md:flex">
         <div className="flex items-center gap-2 px-2 py-3">
           <Receipt className="h-5 w-5 text-brand" aria-hidden />
           <span className="text-lg font-semibold">{t("brand.name")}</span>
@@ -72,16 +72,16 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between gap-3 border-b bg-card px-4 py-3 md:hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b bg-card px-4 py-3 md:hidden">
           <div className="flex items-center gap-2">
             <Receipt className="h-5 w-5 text-brand" aria-hidden />
             <span className="font-semibold">{t("brand.name")}</span>
           </div>
           <ThemeToggle />
         </header>
-        <main className="flex-1 overflow-x-hidden">
-          <div className="container py-8">{children}</div>
+        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="container py-6">{children}</div>
         </main>
       </div>
     </div>
