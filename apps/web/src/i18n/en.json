@@ -19,7 +19,12 @@
     }
   },
   "nav": {
-    "dashboard": "Dashboard"
+    "dashboard": "Dashboard",
+    "menu": "Menu",
+    "open": "Open menu",
+    "close": "Close menu",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar"
   },
   "theme": {
     "label": "Theme",

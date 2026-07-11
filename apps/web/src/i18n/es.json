@@ -19,7 +19,12 @@
     }
   },
   "nav": {
-    "dashboard": "Panel"
+    "dashboard": "Panel",
+    "menu": "Menú",
+    "open": "Abrir menú",
+    "close": "Cerrar menú",
+    "collapse": "Colapsar barra lateral",
+    "expand": "Expandir barra lateral"
   },
   "theme": {
     "label": "Tema",
