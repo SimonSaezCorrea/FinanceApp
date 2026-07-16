@@ -3,7 +3,7 @@ import { type Prisma, TransactionType } from "@prisma/client";
 
 import { PrismaService } from "../../infra/prisma/prisma.service";
 
-const withCards = { include: { cards: { include: { limits: true } } } } as const;
+const withCards = { include: { cards: true, financialInstitution: true } } as const;
 
 /** All access scoped by userId (Constitution Principle II). */
 @Injectable()
@@ -20,6 +20,14 @@ export class AccountsRepository {
 
   findOne(userId: string, id: string) {
     return this.prisma.bankAccount.findFirst({ where: { id, userId }, ...withCards });
+  }
+
+  async institutionName(id: string): Promise<string | null> {
+    const inst = await this.prisma.financialInstitution.findUnique({
+      where: { id },
+      select: { name: true },
+    });
+    return inst?.name ?? null;
   }
 
   create(userId: string, data: Omit<Prisma.BankAccountUncheckedCreateInput, "userId">) {
@@ -45,6 +53,24 @@ export class AccountsRepository {
       select: { bankAccountId: true, type: true, amount: true, occurredAt: true },
       orderBy: { occurredAt: "asc" },
     });
+  }
+
+  /** Σ amount by (account, type) for the given accounts, scoped to user. For derived credit `used`. */
+  async sumsByAccount(
+    userId: string,
+    accountIds: string[],
+  ): Promise<{ bankAccountId: string | null; type: TransactionType; sum: string }[]> {
+    if (accountIds.length === 0) return [];
+    const grouped = await this.prisma.transaction.groupBy({
+      by: ["bankAccountId", "type"],
+      where: { userId, bankAccountId: { in: accountIds } },
+      _sum: { amount: true },
+    });
+    return grouped.map((g) => ({
+      bankAccountId: g.bankAccountId,
+      type: g.type,
+      sum: g._sum.amount?.toString() ?? "0",
+    }));
   }
 
   /** Sum of linked transaction amounts by type, scoped to user + account. */

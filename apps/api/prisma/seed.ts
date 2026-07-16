@@ -22,10 +22,20 @@ async function seedFullUser(passwordHash: string) {
     data: { email: "test@finance.local", name: "Javier Torres", passwordHash },
   });
 
-  type AcctKey = "checking" | "vista" | "credit" | "cash";
+  // Resolve Chilean banks (seeded in seedReferenceData) by SBIF code, to link accounts.
+  const chile = await prisma.country.findUnique({ where: { alpha2: "CL" } });
+  const clBanks = chile
+    ? await prisma.financialInstitution.findMany({
+        where: { countryId: chile.id },
+        select: { id: true, code: true },
+      })
+    : [];
+  const bankId = (sbif: string) => clBanks.find((b) => b.code === sbif)?.id ?? null;
+
+  type AcctKey = "checking" | "sight" | "credit" | "cash";
   const initial: Record<AcctKey, number> = {
     checking: 2_800_000,
-    vista: 350_000,
+    sight: 350_000,
     credit: 0,
     cash: 85_000,
   };
@@ -216,7 +226,7 @@ async function seedFullUser(passwordHash: string) {
 
     // --- Vista (BancoEstado): small spends — no card linked to this account ---
     {
-      acct: "vista",
+      acct: "sight",
       type: "EXPENSE",
       amount: 8_900,
       at: "2026-06-14T13:00:00Z",
@@ -224,7 +234,7 @@ async function seedFullUser(passwordHash: string) {
       description: "Uber",
     },
     {
-      acct: "vista",
+      acct: "sight",
       type: "EXPENSE",
       amount: 17_400,
       at: "2026-06-18T20:30:00Z",
@@ -317,9 +327,8 @@ async function seedFullUser(passwordHash: string) {
   ];
 
   // Net movement per account → reconciled currentBalance.
-  const net: Record<AcctKey, number> = { checking: 0, vista: 0, credit: 0, cash: 0 };
+  const net: Record<AcctKey, number> = { checking: 0, sight: 0, credit: 0, cash: 0 };
   for (const t of TX) net[t.acct] += t.type === "INCOME" ? t.amount : -t.amount;
-  const creditUsed = -net.credit; // credit account only has expenses
 
   const mkAccount = (key: AcctKey, data: Prisma.BankAccountUncheckedCreateInput) =>
     prisma.bankAccount.create({
@@ -336,24 +345,32 @@ async function seedFullUser(passwordHash: string) {
     type: "CHECKING",
     currency: "CLP",
     institution: "Banco de Chile",
+    institutionId: bankId("001"),
+    accountNumber: "001-2345678-90",
     initialBalance: dec("0"),
     currentBalance: dec("0"),
   });
-  const vista = await mkAccount("vista", {
+  const sight = await mkAccount("sight", {
     userId: javier.id,
     name: "Cuenta Vista",
-    type: "VISTA",
+    type: "SIGHT",
     currency: "CLP",
     institution: "BancoEstado",
+    institutionId: bankId("012"),
+    accountNumber: "22345678", // Cuenta RUT ≈ RUT sin dígito verificador
     initialBalance: dec("0"),
     currentBalance: dec("0"),
   });
+  // Standalone credit card = a CREDIT_LINE account (the pool lives here) + its plastic.
   const credit = await mkAccount("credit", {
     userId: javier.id,
     name: "CMR Falabella",
-    type: "CREDIT_CARD",
+    type: "CREDIT_LINE",
     currency: "CLP",
     institution: "Falabella",
+    institutionId: bankId("051"),
+    creditLimit: dec("3000000.0000"),
+    creditUsedInitial: dec("0"),
     initialBalance: dec("0"),
     currentBalance: dec("0"),
   });
@@ -373,6 +390,8 @@ async function seedFullUser(passwordHash: string) {
       type: "SAVINGS",
       currency: "USD",
       institution: "Tenpo",
+      institutionId: bankId("063"),
+      accountNumber: "TP-99887766",
       initialBalance: dec("4200.0000"),
       currentBalance: dec("4200.0000"),
     },
@@ -381,7 +400,7 @@ async function seedFullUser(passwordHash: string) {
     data: {
       userId: javier.id,
       name: "Fintual Global",
-      type: "OTHER",
+      type: "INVESTMENT",
       currency: "EUR",
       institution: "Fintual",
       initialBalance: dec("6500.0000"),
@@ -391,13 +410,13 @@ async function seedFullUser(passwordHash: string) {
 
   const accId: Record<AcctKey, string> = {
     checking: checking.id,
-    vista: vista.id,
+    sight: sight.id,
     credit: credit.id,
     cash: cash.id,
   };
 
-  // Cards (only last4 stored).
-  const debitCard = await prisma.card.create({
+  // Cards (only last4 stored). The credit card belongs to the CREDIT_LINE account.
+  const debitCard = await prisma.cardAccount.create({
     data: {
       accountId: checking.id,
       userId: javier.id,
@@ -408,7 +427,7 @@ async function seedFullUser(passwordHash: string) {
       expiryYear: 2029,
     },
   });
-  const creditCard = await prisma.card.create({
+  const creditCard = await prisma.cardAccount.create({
     data: {
       accountId: credit.id,
       userId: javier.id,
@@ -417,14 +436,11 @@ async function seedFullUser(passwordHash: string) {
       last4: "4827",
       expiryMonth: 5,
       expiryYear: 2028,
-      limits: {
-        create: [{ currency: "CLP", limit: dec("3000000.0000"), used: dec(String(creditUsed)) }],
-      },
     },
   });
 
   // Curated wallet: two cards + one account (USD), to show both pin types.
-  await prisma.walletItem.createMany({
+  await prisma.walletItemDashboard.createMany({
     data: [
       { userId: javier.id, cardId: creditCard.id, order: 0 },
       { userId: javier.id, cardId: debitCard.id, order: 1 },
@@ -769,7 +785,359 @@ async function seedFullUser(passwordHash: string) {
   });
 }
 
+/** Reference data (countries + banks). Idempotent: upsert by natural keys. */
+async function seedReferenceData() {
+  const COUNTRIES = [
+    { alpha2: "AR", alpha3: "ARG", numeric: "032", name: "Argentina" },
+    { alpha2: "CL", alpha3: "CHL", numeric: "152", name: "Chile" },
+    { alpha2: "CO", alpha3: "COL", numeric: "170", name: "Colombia" },
+    { alpha2: "PY", alpha3: "PRY", numeric: "600", name: "Paraguay" },
+    { alpha2: "PE", alpha3: "PER", numeric: "604", name: "Perú" },
+    { alpha2: "PR", alpha3: "PRI", numeric: "630", name: "Puerto Rico" },
+  ] as const;
+
+  for (const c of COUNTRIES) {
+    await prisma.country.upsert({
+      where: { alpha2: c.alpha2 },
+      update: { alpha3: c.alpha3, numeric: c.numeric, name: c.name },
+      create: c,
+    });
+  }
+
+  const chile = await prisma.country.findUniqueOrThrow({ where: { alpha2: "CL" } });
+
+  type BankSeed = {
+    code: string;
+    name: string;
+    category: "ESTABLISHED" | "FOREIGN_BRANCH" | "STATE";
+    brands?: string[];
+    notes?: string;
+  };
+  const CHILE_BANKS: BankSeed[] = [
+    // Bancos establecidos
+    {
+      code: "001",
+      name: "Banco de Chile",
+      category: "ESTABLISHED",
+      brands: ["Banco Edwards | Citi", "Atlas", "CrediChile"],
+    },
+    { code: "009", name: "Banco Internacional", category: "ESTABLISHED" },
+    {
+      code: "014",
+      name: "Scotiabank Chile",
+      category: "ESTABLISHED",
+      brands: ["BancoDesarrollo"],
+    },
+    {
+      code: "016",
+      name: "Banco de Crédito e Inversiones",
+      category: "ESTABLISHED",
+      brands: ["TBanc", "Banco Nova"],
+    },
+    {
+      code: "028",
+      name: "Banco BICE",
+      category: "ESTABLISHED",
+      notes:
+        "Res. Exenta N°10940 (20-oct-2025): fusión por incorporación de Banco Security en Banco BICE (continuador legal).",
+    },
+    { code: "031", name: "HSBC Bank (Chile)", category: "ESTABLISHED" },
+    {
+      code: "037",
+      name: "Banco Santander-Chile",
+      category: "ESTABLISHED",
+      brands: ["Banefe"],
+    },
+    {
+      code: "039",
+      name: "Banco Itaú Chile",
+      category: "ESTABLISHED",
+      notes:
+        "01-abr-2016: fusión de Banco Corpbanca en Itaú Corpbanca. Res. N°2215 (28-mar-2023): renombrado a Banco Itaú Chile.",
+    },
+    { code: "051", name: "Banco Falabella", category: "ESTABLISHED" },
+    { code: "053", name: "Banco Ripley", category: "ESTABLISHED" },
+    { code: "055", name: "Banco Consorcio", category: "ESTABLISHED" },
+    { code: "059", name: "Banco BTG Pactual Chile", category: "ESTABLISHED" },
+    { code: "062", name: "Tanner Banco Digital", category: "ESTABLISHED" },
+    { code: "063", name: "Tenpo Bank Chile", category: "ESTABLISHED" },
+    // Sucursales de bancos extranjeros
+    { code: "041", name: "JP Morgan Chase Bank, N. A.", category: "FOREIGN_BRANCH" },
+    {
+      code: "060",
+      name: "China Construction Bank, Agencia en Chile",
+      category: "FOREIGN_BRANCH",
+    },
+    { code: "061", name: "Bank of China, Agencia en Chile", category: "FOREIGN_BRANCH" },
+    // Bancos estatales
+    { code: "012", name: "Banco del Estado de Chile", category: "STATE" },
+  ];
+
+  for (const b of CHILE_BANKS) {
+    await prisma.financialInstitution.upsert({
+      where: { countryId_code: { countryId: chile.id, code: b.code } },
+      update: {
+        kind: "BANK",
+        name: b.name,
+        category: b.category,
+        brands: b.brands ?? [],
+        notes: b.notes ?? null,
+      },
+      create: {
+        countryId: chile.id,
+        kind: "BANK",
+        code: b.code,
+        name: b.name,
+        category: b.category,
+        brands: b.brands ?? [],
+        notes: b.notes ?? null,
+      },
+    });
+  }
+
+  // Non-bank payment card issuers (emisores de tarjetas de pago con provisión de fondos).
+  const CHILE_ISSUERS: { code: string; name: string; rut: string }[] = [
+    { code: "741", name: "Compañía Emisora de Medios de Pago Digitales S.A.", rut: "77509915-1" },
+    { code: "764", name: "Fintoc Pagos S.A.", rut: "76639633-K" },
+    { code: "746", name: "Fintual Prepago S.A.", rut: "77535416-K" },
+    { code: "738", name: "Global Card S.A.", rut: "77096794-5" },
+    { code: "739", name: "Haulmer Prepago S.A.", rut: "77312496-5" },
+    { code: "697", name: "Inversiones LP S.A.", rut: "76265724-4" },
+    { code: "732", name: "Los Andes Tarjetas de Prepago S.A.", rut: "76965744-4" },
+    { code: "875", name: "Mercado Pago Emisora S.A.", rut: "77214066-5" },
+    { code: "747", name: "Metro Emisora de Medios de Pago S.A.", rut: "77057498-6" },
+    { code: "882", name: "Pomelo Tech Chile S.A.", rut: "76627434-K" },
+    { code: "743", name: "Prex Chile S.A.", rut: "77691219-0" },
+    { code: "729", name: "Sociedad Emisora de Tarjetas Los Héroes S.A.", rut: "76965737-1" },
+    { code: "744", name: "SumUp Chile Blue S.A.", rut: "77528384-K" },
+    { code: "730", name: "Tenpo Payments S.A.", rut: "76967692-9" },
+    { code: "699", name: "Tricard S.A.", rut: "96842380-0" },
+  ];
+  for (const e of CHILE_ISSUERS) {
+    await prisma.financialInstitution.upsert({
+      where: { countryId_code: { countryId: chile.id, code: e.code } },
+      update: { kind: "NON_BANK_ISSUER", name: e.name, rut: e.rut, category: null },
+      create: {
+        countryId: chile.id,
+        kind: "NON_BANK_ISSUER",
+        code: e.code,
+        name: e.name,
+        rut: e.rut,
+        category: null,
+      },
+    });
+  }
+
+  // --- Currencies (ISO 4217, deduplicated by alpha code) ---
+  const CURRENCIES: [code: string, numeric: string, name: string][] = [
+    ["AFN", "971", "Afgani afgano"],
+    ["ALL", "008", "Lek"],
+    ["EUR", "978", "Euro"],
+    ["DZD", "012", "Dinar argelino"],
+    ["AOA", "973", "Kwanza angoleño"],
+    ["XCD", "951", "Dólar del Caribe Oriental"],
+    ["SAR", "682", "Riyal saudí"],
+    ["ARS", "032", "Peso argentino"],
+    ["AMD", "051", "Dram armenio"],
+    ["AWG", "533", "Florín arubeño"],
+    ["AUD", "036", "Dólar australiano"],
+    ["AZN", "944", "Manat azerbaiyano"],
+    ["BSD", "044", "Dólar bahameño"],
+    ["BDT", "050", "Taka"],
+    ["BBD", "052", "Dólar de Barbados"],
+    ["BHD", "048", "Dinar bareiní"],
+    ["BZD", "084", "Dólar beliceño"],
+    ["XOF", "952", "Franco CFA de África Occidental"],
+    ["BMD", "060", "Dólar bermudeño"],
+    ["BYR", "974", "Rublo bielorruso"],
+    ["MMK", "104", "Kyat birmano"],
+    ["BOB", "068", "Boliviano"],
+    ["BOV", "984", "Mvdol"],
+    ["USD", "840", "Dólar estadounidense"],
+    ["BAM", "977", "Marco bosnioherzegovino"],
+    ["BWP", "072", "Pula"],
+    ["BRL", "986", "Real brasileño"],
+    ["BND", "096", "Dólar de Brunei"],
+    ["BGN", "975", "Lev"],
+    ["BIF", "108", "Franco burundés"],
+    ["BTN", "064", "Ngultrum butanés"],
+    ["INR", "356", "Rupia india"],
+    ["CVE", "132", "Escudo caboverdiano"],
+    ["KHR", "116", "Riel camboyano"],
+    ["XAF", "950", "Franco CFA de África Central"],
+    ["CAD", "124", "Dólar canadiense"],
+    ["CLF", "990", "Unidad de Fomento"],
+    ["CLP", "152", "Peso chileno"],
+    ["CNY", "156", "Renminbi"],
+    ["COP", "170", "Peso colombiano"],
+    ["COU", "970", "Unidad de valor real"],
+    ["KMF", "174", "Franco comorense"],
+    ["CDF", "976", "Franco congoleño"],
+    ["CRC", "188", "Colón costarricense"],
+    ["HRK", "191", "Kuna"],
+    ["CUC", "931", "Peso convertible"],
+    ["CUP", "192", "Peso cubano"],
+    ["ANG", "532", "Florín antillano neerlandés"],
+    ["DKK", "208", "Corona danesa"],
+    ["EGP", "818", "Libra egipcia"],
+    ["SVC", "222", "Colón salvadoreño"],
+    ["AED", "784", "Dírham de EAU"],
+    ["ERN", "232", "Nakfa"],
+    ["ETB", "230", "Birr etíope"],
+    ["FJD", "242", "Dólar fiyiano"],
+    ["PHP", "608", "Peso filipino"],
+    ["XDR", "960", "SDR (Derecho Especial de Giro)"],
+    ["GMD", "270", "Dalasi"],
+    ["GEL", "981", "Lari"],
+    ["GHS", "936", "Cedi"],
+    ["GIP", "292", "Libra gibraltareña"],
+    ["GTQ", "320", "Quetzal"],
+    ["GBP", "826", "Libra esterlina"],
+    ["GNF", "324", "Franco guineano"],
+    ["GYD", "328", "Dólar guyanés"],
+    ["HTG", "332", "Gourde"],
+    ["HNL", "340", "Lempira"],
+    ["HKD", "344", "Dólar de Hong Kong"],
+    ["HUF", "348", "Forinto húngaro"],
+    ["IDR", "360", "Rupia indonesia"],
+    ["IQD", "368", "Dinar iraquí"],
+    ["NOK", "578", "Corona noruega"],
+    ["ISK", "352", "Corona islandesa"],
+    ["KYD", "136", "Dólar de las Islas Caimán"],
+    ["NZD", "554", "Dólar neozelandés"],
+    ["FKP", "238", "Libra malvinense"],
+    ["SBD", "090", "Dólar de las Islas Salomón"],
+    ["ILS", "376", "Nuevo séquel israelí"],
+    ["JMD", "388", "Dólar jamaiquino"],
+    ["JPY", "392", "Yen"],
+    ["JOD", "400", "Dinar jordano"],
+    ["KZT", "398", "Tenge kazajo"],
+    ["KES", "404", "Chelín keniano"],
+    ["KGS", "417", "Som kirguís"],
+    ["KWD", "414", "Dinar kuwaití"],
+    ["LSL", "426", "Loti"],
+    ["ZAR", "710", "Rand"],
+    ["LRD", "430", "Dólar liberiano"],
+    ["LYD", "434", "Dinar libio"],
+    ["CHF", "756", "Franco suizo"],
+    ["LBP", "422", "Libra libanesa"],
+    ["MOP", "446", "Pataca"],
+    ["MKD", "807", "Dinar macedonio"],
+    ["MGA", "969", "Ariary malgache"],
+    ["MYR", "458", "Ringgit malayo"],
+    ["MWK", "454", "Kwacha malauí"],
+    ["MVR", "462", "Rufiyaa de Maldivas"],
+    ["MAD", "504", "Dírham marroquí"],
+    ["MUR", "480", "Rupia de Mauricio"],
+    ["MRO", "478", "Uguiya"],
+    ["MNT", "496", "Tugrik"],
+    ["MZN", "943", "Metical mozambiqueño"],
+    ["MXN", "484", "Peso mexicano"],
+    ["MXV", "979", "Unidad de Inversión Mexicana (UDI)"],
+    ["NAD", "516", "Dólar de Namibia"],
+    ["NPR", "524", "Rupia nepalí"],
+    ["NIO", "558", "Córdoba oro"],
+    ["NGN", "566", "Naira"],
+    ["XPF", "953", "Franco CFP"],
+    ["OMR", "512", "Rial omaní"],
+    ["XUA", "965", "BAD Unidad de Cuenta"],
+    ["PKR", "586", "Rupia pakistaní"],
+    ["PAB", "590", "Balboa"],
+    ["PGK", "598", "Kina"],
+    ["PYG", "600", "Guaraní"],
+    ["PEN", "604", "Sol"],
+    ["PLN", "985", "Zloty"],
+    ["QAR", "634", "Riyal catarí"],
+    ["LAK", "418", "Kip laosiano"],
+    ["VEF", "937", "Bolívar"],
+    ["CZK", "203", "Corona checa"],
+    ["KRW", "410", "Won surcoreano"],
+    ["MDL", "498", "Leu moldavo"],
+    ["KPW", "408", "Won norcoreano"],
+    ["DOP", "214", "Peso dominicano"],
+    ["IRR", "364", "Rial iraní"],
+    ["TZS", "834", "Chelín tanzano"],
+    ["SYP", "760", "Libra siria"],
+    ["RWF", "646", "Franco ruandés"],
+    ["RON", "946", "Leu rumano"],
+    ["RUB", "643", "Rublo ruso"],
+    ["WST", "882", "Tala"],
+    ["STD", "678", "Dobra"],
+    ["SHP", "654", "Libra de Santa Helena"],
+    ["RSD", "941", "Dinar serbio"],
+    ["SCR", "690", "Rupia de Seychelles"],
+    ["SLL", "694", "Leone"],
+    ["SGD", "702", "Dólar de Singapur"],
+    ["XSU", "994", "Sucre"],
+    ["SOS", "706", "Chelín somalí"],
+    ["LKR", "144", "Rupia de Sri Lanka"],
+    ["SZL", "748", "Lilangeni"],
+    ["SDG", "938", "Libra sudanesa"],
+    ["SSP", "728", "Libra sursudanesa"],
+    ["SEK", "752", "Corona sueca"],
+    ["CHE", "947", "WIR Euro"],
+    ["CHW", "948", "Franco WIR"],
+    ["SRD", "968", "Dólar surinamés"],
+    ["THB", "764", "Baht"],
+    ["TWD", "901", "Nuevo dólar taiwanés"],
+    ["TJS", "972", "Somoni"],
+    ["TOP", "776", "Pa'anga"],
+    ["TTD", "780", "Dólar de Trinidad y Tobago"],
+    ["TMT", "934", "Manat turcomano"],
+    ["TRY", "949", "Lira turca"],
+    ["TND", "788", "Dinar tunecino"],
+    ["UGX", "800", "Chelín ugandés"],
+    ["UAH", "980", "Grivna"],
+    ["UYI", "940", "Peso uruguayo en unidades indexadas"],
+    ["UYU", "858", "Peso uruguayo"],
+    ["UZS", "860", "Som uzbeko"],
+    ["VUV", "548", "Vatu"],
+    ["VND", "704", "Dong"],
+    ["YER", "886", "Rial yemení"],
+    ["DJF", "262", "Franco yibutiano"],
+    ["ZMW", "967", "Kwacha zambiano"],
+    ["ZWL", "932", "Dólar zimbabuense"],
+    ["USN", "997", "Dólar estadounidense (día siguiente)"],
+  ];
+
+  for (const [code, numeric, name] of CURRENCIES) {
+    await prisma.currency.upsert({
+      where: { code },
+      update: { numeric, name },
+      create: { code, numeric, name },
+    });
+  }
+
+  // Country ↔ currency links (only for the countries we track). isPrimary = main one.
+  const LINKS: [alpha2: string, code: string, isPrimary: boolean][] = [
+    ["AR", "ARS", true],
+    ["CL", "CLP", true],
+    ["CL", "CLF", false],
+    ["CO", "COP", true],
+    ["CO", "COU", false],
+    ["PY", "PYG", true],
+    ["PE", "PEN", true],
+    ["PR", "USD", true],
+  ];
+  for (const [alpha2, code, isPrimary] of LINKS) {
+    const country = await prisma.country.findUnique({ where: { alpha2 } });
+    const currency = await prisma.currency.findUnique({ where: { code } });
+    if (!country || !currency) continue;
+    await prisma.countryCurrency.upsert({
+      where: { countryId_currencyId: { countryId: country.id, currencyId: currency.id } },
+      update: { isPrimary },
+      create: { countryId: country.id, currencyId: currency.id, isPrimary },
+    });
+  }
+
+  console.log(
+    `Reference data OK: ${COUNTRIES.length} countries, ${CHILE_BANKS.length} banks + ${CHILE_ISSUERS.length} non-bank issuers (CL), ${CURRENCIES.length} currencies, ${LINKS.length} country-currency links`,
+  );
+}
+
 async function main() {
+  await seedReferenceData();
+
   await prisma.user.deleteMany({
     where: { email: { in: [...DEMO_EMAILS] } },
   });

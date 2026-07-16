@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import type { transactions } from "@finance/contracts";
 
 import { useAccounts } from "../../accounts/hooks/useAccounts";
+import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
 import { Dialog } from "../../../shared/ui/dialog";
 import { Field } from "../../../shared/ui/field";
@@ -18,20 +19,34 @@ function todayInput(): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+function dateInput(iso: string): string {
+  return iso.slice(0, 10);
+}
+
+/**
+ * Create OR edit a movement. Bank is required; a non-cash EXPENSE requires a
+ * card; INCOME and cash expenses never carry one (mirrors the server rules).
+ */
 export function TransactionCreateModal({
   open,
   onOpenChange,
+  initial,
+  defaultBankAccountId,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  initial?: transactions.Transaction;
+  defaultBankAccountId?: string;
 }) {
   const { t } = useTranslation();
-  const { create } = useTransactionMutations();
+  const { create, update } = useTransactionMutations();
   const { data: accountList } = useAccounts();
+  const editing = Boolean(initial);
+
   const [type, setType] = useState<transactions.TransactionType>("EXPENSE");
   const [amount, setAmount] = useState("");
   const [currency, setCurrency] = useState("CLP");
-  const [bankAccountId, setBankAccountId] = useState("");
+  const [bankAccountId, setBankAccountId] = useState(defaultBankAccountId ?? "");
   const [cardId, setCardId] = useState("");
   const [category, setCategory] = useState("");
   const [description, setDescription] = useState("");
@@ -41,74 +56,107 @@ export function TransactionCreateModal({
   const [lugar, setLugar] = useState("");
   const [date, setDate] = useState(todayInput());
 
-  function reset() {
-    setType("EXPENSE");
-    setAmount("");
-    setCurrency("CLP");
-    setBankAccountId("");
-    setCardId("");
-    setCategory("");
-    setDescription("");
-    setObservation("");
-    setEmisor("");
-    setReceptor("");
-    setLugar("");
-    setDate(todayInput());
-  }
+  // Sync form state whenever the modal opens (create defaults or edit prefill).
+  useEffect(() => {
+    if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
+    setType(initial?.type ?? "EXPENSE");
+    setAmount(initial?.amount ?? "");
+    setCurrency(initial?.currency ?? "CLP");
+    setBankAccountId(initial?.bankAccountId ?? defaultBankAccountId ?? "");
+    setCardId(initial?.cardId ?? "");
+    setCategory(initial?.category ?? "");
+    setDescription(initial?.description ?? "");
+    setObservation(initial?.observation ?? "");
+    setEmisor(initial?.emisor ?? "");
+    setReceptor(initial?.receptor ?? "");
+    setLugar(initial?.lugar ?? "");
+    setDate(initial ? dateInput(initial.occurredAt) : todayInput());
+  }, [open, initial, defaultBankAccountId]);
 
-  function submit() {
-    create.mutate(
-      {
-        type,
-        amount,
-        currency,
-        occurredAt: new Date(`${date}T00:00:00`).toISOString(),
-        bankAccountId: bankAccountId || undefined,
-        cardId: cardId || undefined,
-        category: category || undefined,
-        description: description || undefined,
-        observation: observation || undefined,
-        emisor: emisor || undefined,
-        receptor: receptor || undefined,
-        lugar: lugar || undefined,
-      },
-      {
-        onSuccess: () => {
-          toast.success(t("transactions.created"));
-          reset();
-          onOpenChange(false);
-        },
-        onError: () => toast.error(t("errors.INTERNAL_ERROR")),
-      },
-    );
-  }
+  const accounts = accountList ?? [];
+  // For a new movement, only active accounts; when editing, also keep the
+  // movement's own (possibly inactive) account selectable.
+  const selectable = editing
+    ? accounts.filter((a) => a.status === "ACTIVE" || a.id === initial?.bankAccountId)
+    : accounts.filter((a) => a.status === "ACTIVE");
+  const selectedAccount = accounts.find((a) => a.id === bankAccountId);
+  const isCash = selectedAccount?.type === "CASH";
+  const isCreditLine = selectedAccount?.type === "CREDIT_LINE";
+  // A card is REQUIRED only for credit-line expenses; optional for other non-cash accounts.
+  const needsCard = type === "EXPENSE" && isCreditLine;
+  const showCard = type === "EXPENSE" && !!selectedAccount && !isCash;
+  const noCardsAvailable = needsCard && (selectedAccount?.cards.length ?? 0) === 0;
 
-  const activeAccounts = (accountList ?? []).filter((a) => a.status === "ACTIVE");
   const accountOptions = [
-    { value: "", label: t("transactions.form.noAccount") },
-    ...activeAccounts.map((a) => ({ value: a.id, label: a.name })),
+    { value: "", label: t("transactions.form.selectAccount") },
+    ...selectable.map((a) => ({
+      value: a.id,
+      label: a.status === "ACTIVE" ? a.name : `${a.name} · ${t("accounts.status.INACTIVE")}`,
+    })),
   ];
-  const selectedAccount = activeAccounts.find((a) => a.id === bankAccountId);
   const cardOptions = [
-    { value: "", label: t("transactions.form.noCard") },
+    { value: "", label: t("transactions.form.selectCard") },
     ...(selectedAccount?.cards ?? []).map((c) => ({
       value: c.id,
       label: `••••${c.last4} · ${c.name}`,
     })),
   ];
 
+  function submit() {
+    const cleanCard = type === "INCOME" || isCash ? undefined : cardId || undefined;
+    const body = {
+      type,
+      amount,
+      currency,
+      occurredAt: new Date(`${date}T00:00:00`).toISOString(),
+      bankAccountId,
+      cardId: cleanCard,
+      category: category || undefined,
+      description: description || undefined,
+      observation: observation || undefined,
+      emisor: emisor || undefined,
+      receptor: receptor || undefined,
+      lugar: lugar || undefined,
+    } satisfies transactions.CreateTransaction;
+
+    const handlers = {
+      onSuccess: () => {
+        toast.success(editing ? t("transactions.updated") : t("transactions.created"));
+        onOpenChange(false);
+      },
+      onError: (err: unknown) => {
+        const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
+        toast.error(t(`errors.${code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
+      },
+    };
+
+    if (editing && initial) {
+      update.mutate({ id: initial.id, body }, handlers);
+    } else {
+      create.mutate(body, handlers);
+    }
+  }
+
+  const pending = create.isPending || update.isPending;
+  const canSubmit =
+    !!amount && !!bankAccountId && !(needsCard && !cardId) && !noCardsAvailable && !pending;
+
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
-      title={t("transactions.new")}
+      title={editing ? t("transactions.edit") : t("transactions.new")}
       className="max-w-md"
     >
       <div className="flex flex-col gap-3">
         <Segmented
           aria-label={t("transactions.form.type")}
           value={type}
-          onChange={setType}
+          onChange={(v) => {
+            setType(v);
+            if (v === "INCOME") setCardId("");
+          }}
           className="w-full"
           options={[
             { value: "EXPENSE", label: t("transactions.type.EXPENSE") },
@@ -148,16 +196,23 @@ export function TransactionCreateModal({
               options={accountOptions}
             />
           </Field>
-          <Field label={t("transactions.form.card")} htmlFor="tx-card">
-            <Select
-              id="tx-card"
-              value={cardId}
-              onChange={(e) => setCardId(e.target.value)}
-              options={cardOptions}
-              disabled={!bankAccountId || cardOptions.length <= 1}
-            />
-          </Field>
+          {showCard ? (
+            <Field label={t("transactions.form.card")} htmlFor="tx-card">
+              <Select
+                id="tx-card"
+                value={cardId}
+                onChange={(e) => setCardId(e.target.value)}
+                options={cardOptions}
+                disabled={noCardsAvailable}
+              />
+            </Field>
+          ) : (
+            <div />
+          )}
         </div>
+        {noCardsAvailable ? (
+          <p className="-mt-1 text-xs text-destructive">{t("transactions.form.noCardsHint")}</p>
+        ) : null}
 
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("transactions.form.category")} htmlFor="tx-cat">
@@ -207,8 +262,8 @@ export function TransactionCreateModal({
         <Button variant="outline" onClick={() => onOpenChange(false)}>
           {t("common.cancel")}
         </Button>
-        <Button variant="accent" onClick={submit} disabled={create.isPending || !amount}>
-          {t("transactions.new")}
+        <Button variant="accent" onClick={submit} disabled={!canSubmit}>
+          {editing ? t("accounts.actions.save") : t("transactions.new")}
         </Button>
       </div>
     </Dialog>

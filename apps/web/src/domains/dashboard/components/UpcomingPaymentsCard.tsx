@@ -18,7 +18,7 @@ export function UpcomingPaymentsCard({ items }: { items: UpcomingPayment[] }) {
   const { t, i18n } = useTranslation();
 
   return (
-    <Card className="flex flex-col gap-3 p-5">
+    <Card className="flex flex-col gap-2.5 p-4">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold">{t("dashboard.upcoming")}</span>
         <Link to="/transactions" className="text-xs font-medium text-primary hover:underline">
@@ -29,7 +29,7 @@ export function UpcomingPaymentsCard({ items }: { items: UpcomingPayment[] }) {
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">{t("dashboard.upcomingEmpty")}</p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-2">
           {items.map((p) => {
             const date = new Date(p.date);
             return (
@@ -37,7 +37,7 @@ export function UpcomingPaymentsCard({ items }: { items: UpcomingPayment[] }) {
                 <span className="flex min-w-0 items-center gap-3">
                   <span
                     className={cn(
-                      "flex h-10 w-11 shrink-0 flex-col items-center justify-center rounded-md text-center leading-none",
+                      "flex h-9 w-10 shrink-0 flex-col items-center justify-center rounded-md text-center leading-none",
                       KIND_CHIP[p.kind],
                     )}
                   >

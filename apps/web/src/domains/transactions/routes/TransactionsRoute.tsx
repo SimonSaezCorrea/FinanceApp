@@ -1,7 +1,10 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { toast } from "sonner";
+
 import { Button } from "../../../shared/ui/button";
+import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { ErrorState, LoadingState } from "../../../shared/ui/states";
 import { Segmented } from "../../../shared/ui/segmented";
@@ -11,6 +14,7 @@ import { TransactionKpiStrip } from "../components/TransactionKpiStrip";
 import { TransactionFiltersBar } from "../components/TransactionFiltersBar";
 import { TransactionTable } from "../components/TransactionTable";
 import { useTransactions } from "../hooks/useTransactions";
+import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { clientFilter, endOfMonth, startOfMonth } from "../lib/transactionMetrics";
 import type { TransactionViewFilters } from "../lib/transactionMetrics";
 import type { transactions } from "@finance/contracts";
@@ -27,7 +31,10 @@ const DEFAULT_FILTERS: TransactionViewFilters = {
 export function TransactionsRoute() {
   const { t } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
+  const [editTx, setEditTx] = useState<transactions.Transaction | null>(null);
+  const [deleteTx, setDeleteTx] = useState<transactions.Transaction | null>(null);
   const [filters, setFilters] = useState<TransactionViewFilters>(DEFAULT_FILTERS);
+  const { remove } = useTransactionMutations();
 
   // Fetch all accounts once; FiltersBar handles active/inactive grouping
   const accountsQuery = useAccounts();
@@ -67,7 +74,14 @@ export function TransactionsRoute() {
             <Button variant="ghost" disabled>
               {t("transactions.table.import")}
             </Button>
-            <Button onClick={() => setModalOpen(true)}>+ {t("transactions.new")}</Button>
+            <Button
+              onClick={() => {
+                setEditTx(null);
+                setModalOpen(true);
+              }}
+            >
+              + {t("transactions.new")}
+            </Button>
           </div>
         }
       />
@@ -89,10 +103,39 @@ export function TransactionsRoute() {
       ) : txQuery.isError ? (
         <ErrorState title={t("errors.INTERNAL_ERROR")} />
       ) : (
-        <TransactionTable transactions={visibleTxs} accounts={accounts} />
+        <TransactionTable
+          transactions={visibleTxs}
+          accounts={accounts}
+          onEdit={(tx) => {
+            setEditTx(tx);
+            setModalOpen(true);
+          }}
+          onDelete={(tx) => setDeleteTx(tx)}
+        />
       )}
 
-      <TransactionCreateModal open={modalOpen} onOpenChange={setModalOpen} />
+      <TransactionCreateModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        initial={editTx ?? undefined}
+      />
+
+      <ConfirmDialog
+        open={deleteTx !== null}
+        onOpenChange={(v) => !v && setDeleteTx(null)}
+        title={t("transactions.deleteConfirm")}
+        loading={remove.isPending}
+        onConfirm={() => {
+          if (!deleteTx) return;
+          remove.mutate(deleteTx.id, {
+            onSuccess: () => {
+              toast.success(t("transactions.deleted"));
+              setDeleteTx(null);
+            },
+            onError: () => toast.error(t("errors.INTERNAL_ERROR")),
+          });
+        }}
+      />
     </div>
   );
 }

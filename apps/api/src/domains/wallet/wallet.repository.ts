@@ -8,14 +8,14 @@ export class WalletRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   list(userId: string) {
-    return this.prisma.walletItem.findMany({
+    return this.prisma.walletItemDashboard.findMany({
       where: { userId },
       orderBy: { order: "asc" },
     });
   }
 
   count(userId: string) {
-    return this.prisma.walletItem.count({ where: { userId } });
+    return this.prisma.walletItemDashboard.count({ where: { userId } });
   }
 
   accountOwned(userId: string, accountId: string) {
@@ -23,17 +23,17 @@ export class WalletRepository {
   }
 
   cardOwned(userId: string, cardId: string) {
-    return this.prisma.card.findFirst({ where: { id: cardId, userId } });
+    return this.prisma.cardAccount.findFirst({ where: { id: cardId, userId } });
   }
 
   existing(userId: string, accountId?: string, cardId?: string) {
-    return this.prisma.walletItem.findFirst({
+    return this.prisma.walletItemDashboard.findFirst({
       where: { userId, ...(accountId ? { accountId } : {}), ...(cardId ? { cardId } : {}) },
     });
   }
 
   create(userId: string, data: { accountId?: string; cardId?: string; order: number }) {
-    return this.prisma.walletItem.create({
+    return this.prisma.walletItemDashboard.create({
       data: {
         userId,
         order: data.order,
@@ -44,7 +44,7 @@ export class WalletRepository {
   }
 
   async remove(userId: string, id: string): Promise<boolean> {
-    const result = await this.prisma.walletItem.deleteMany({ where: { id, userId } });
+    const result = await this.prisma.walletItemDashboard.deleteMany({ where: { id, userId } });
     return result.count > 0;
   }
 
@@ -52,7 +52,10 @@ export class WalletRepository {
   reorder(userId: string, ids: string[]): Promise<unknown> {
     return this.prisma.$transaction(
       ids.map((id, index) =>
-        this.prisma.walletItem.updateMany({ where: { id, userId }, data: { order: index } }),
+        this.prisma.walletItemDashboard.updateMany({
+          where: { id, userId },
+          data: { order: index },
+        }),
       ),
     );
   }

@@ -27,23 +27,39 @@ export const transactionSchema = z.object({
 });
 export type Transaction = z.infer<typeof transactionSchema>;
 
-export const createTransactionSchema = z.object({
-  type: transactionType,
-  amount: moneyString,
-  currency: z.string().trim().length(3).default("USD"),
-  occurredAt: z.string().datetime(),
-  category: z.string().trim().max(120).optional(),
-  description: z.string().trim().max(500).optional(),
-  observation: z.string().trim().max(500).optional(),
-  emisor: z.string().trim().max(200).optional(),
-  receptor: z.string().trim().max(200).optional(),
-  lugar: z.string().trim().max(200).optional(),
-  bankAccountId: z.string().optional(),
-  cardId: z.string().optional(),
-});
+export const createTransactionSchema = z
+  .object({
+    type: transactionType,
+    amount: moneyString,
+    currency: z.string().trim().length(3).default("USD"),
+    occurredAt: z.string().datetime(),
+    category: z.string().trim().max(120).optional(),
+    description: z.string().trim().max(500).optional(),
+    observation: z.string().trim().max(500).optional(),
+    emisor: z.string().trim().max(200).optional(),
+    receptor: z.string().trim().max(200).optional(),
+    lugar: z.string().trim().max(200).optional(),
+    // Bank is required for new movements; card rules are enforced server-side
+    // (needs the account type: EXPENSE on a non-cash account requires a card,
+    // cash/INCOME forbid one).
+    bankAccountId: z.string(),
+    cardId: z.string().optional(),
+  })
+  .refine((t) => t.type !== "INCOME" || !t.cardId, {
+    message: "income cannot be linked to a card",
+    path: ["cardId"],
+  });
 export type CreateTransaction = z.infer<typeof createTransactionSchema>;
 
-export const updateTransactionSchema = createTransactionSchema.partial();
+// `.partial()` isn't available on a ZodEffects (refined) schema, so derive the
+// update shape from the inner object and re-apply the income/card refinement.
+export const updateTransactionSchema = createTransactionSchema
+  .innerType()
+  .partial()
+  .refine((t) => t.type !== "INCOME" || !t.cardId, {
+    message: "income cannot be linked to a card",
+    path: ["cardId"],
+  });
 export type UpdateTransaction = z.infer<typeof updateTransactionSchema>;
 
 /** Optional list filters (query params). */

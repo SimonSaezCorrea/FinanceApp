@@ -21,7 +21,7 @@ export function NetWorthCard({
   const Trend = up ? TrendingUp : TrendingDown;
 
   return (
-    <Card className="flex flex-col gap-4 p-6">
+    <Card className="flex flex-col gap-3 p-5">
       <span className="text-sm font-medium text-muted-foreground">{t("dashboard.netWorth")}</span>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <span className="text-3xl font-semibold tabular-nums tracking-tight">
