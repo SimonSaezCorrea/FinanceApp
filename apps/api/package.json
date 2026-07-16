@@ -45,8 +45,8 @@
     "typescript": "^6.0.3",
     "unplugin-swc": "^1.5.1",
     "vitest": "^4.1.10",
-    "eslint": "^10.6.0",
-    "@typescript-eslint/eslint-plugin": "^8.63.0",
-    "@typescript-eslint/parser": "^8.63.0"
+    "eslint": "^10.7.0",
+    "@typescript-eslint/eslint-plugin": "^8.64.0",
+    "@typescript-eslint/parser": "^8.64.0"
   }
 }
