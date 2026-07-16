@@ -115,7 +115,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
               collapsed ? "items-center" : "items-stretch",
             )}
           >
-            {collapsed ? null : <ThemeToggle />}
+            <ThemeToggle collapsed={collapsed} />
             {collapsed ? null : (
               <span className="truncate px-1 text-xs text-muted-foreground">{user?.email}</span>
             )}
