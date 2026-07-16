@@ -21,6 +21,7 @@
     "@nestjs/core": "^10.4.15",
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/platform-express": "^10.4.15",
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "bcryptjs": "^3.0.3",
     "cookie-parser": "^1.4.7",

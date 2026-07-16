@@ -1,4 +1,17 @@
 <!--
+Sync Impact Report — 2026-07-16 (amendment 1.6.0)
+- Version change: 1.5.1 → 1.6.0 (MINOR: major stack-version bump — Prisma 6 → 7 — dependabot PR #9,
+  evaluated then implemented). Core Principles unchanged in intent.
+- **Prisma 7**: `datasource.url` in `schema.prisma` is no longer accepted (Prisma 7 breaking change).
+  `apps/api` now connects via the **`@prisma/adapter-pg`** driver adapter, constructed with
+  `DATABASE_URL` (read through `ConfigService`) and passed to the `PrismaClient`/`PrismaService`
+  constructor; the CLI (validate/generate/db push) reads the same `DATABASE_URL` via a new
+  `apps/api/prisma.config.ts` (`defineConfig` + `env()` from `prisma/config`). `apps/api/prisma/seed.ts`
+  constructs its own adapter identically. `prisma db push` no longer accepts `--skip-generate`
+  (removed in Prisma 7); `scripts/db-reset.mjs` updated accordingly. No schema/model changes — this is
+  a connection-mechanism migration only, verified against a real Postgres instance (db push + seed +
+  a live query), not just CI.
+
 Sync Impact Report — 2026-07-02 (amendment 1.5.0)
 - Version change: 1.4.0 → 1.5.0 (MINOR: revised accounts/cards model — supersedes the 1.4.0
   secondary-card sub-limit design before it shipped). Core Principles unchanged in intent.
@@ -169,8 +182,10 @@ reality, every future decision is made on false information.
 
 - **Target architecture (ratified — specs/001):** a **pnpm + Turborepo monorepo** with two
   separately deployable apps and shared packages:
-  - `apps/api` — **NestJS** backend, **Prisma 6 / PostgreSQL** (sole DB owner), domain-first
-    modules; auth issues **JWT access+refresh tokens in httpOnly cookies**.
+  - `apps/api` — **NestJS** backend, **Prisma 7 / PostgreSQL** (sole DB owner, connected via the
+    **`@prisma/adapter-pg` driver adapter** + `prisma.config.ts` — Prisma 7 no longer accepts a
+    `datasource.url` in `schema.prisma`), domain-first modules; auth issues **JWT access+refresh
+    tokens in httpOnly cookies**.
   - `apps/web` — **Vite + React 18 SPA**, domain-first features, consumes the API over HTTP only;
     **owns the es/en i18n catalogs** (the API returns data + language-agnostic error codes).
   - `packages/*` — shared **contracts** (zod schemas + types), **money** (`decimal.js`),
@@ -237,4 +252,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.5.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-02
+**Version**: 1.6.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-16
