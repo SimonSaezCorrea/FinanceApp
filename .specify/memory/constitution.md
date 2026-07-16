@@ -1,4 +1,15 @@
 <!--
+Sync Impact Report — 2026-07-16 (amendment 1.8.0)
+- Version change: 1.7.0 → 1.8.0 (MINOR: major stack-version bump — NestJS 10 → 11 (Express 5) —
+  dependabot PR #5, evaluated then implemented). Core Principles unchanged in intent.
+- **NestJS 11 / Express 5**: `@nestjs/jwt`'s `JwtSignOptions.expiresIn` is now `jsonwebtoken`'s own
+  `StringValue | number` (from the `ms` package) instead of a generic `string`, breaking
+  `AuthService.issueTokens` (`apps/api/src/domains/auth/auth.service.ts`) — fixed with a small
+  `expiresIn()` helper that types the env-sourced duration string as `StringValue`. Verified against
+  a real server, not just CI: login, `/auth/me`, a real nested `:id` route, and the refresh-token
+  rotation flow all worked end-to-end (JWT sign/verify, httpOnly cookies). No route in this codebase
+  uses wildcard or optional-segment patterns, so Express 5's path-to-regexp changes don't apply here.
+
 Sync Impact Report — 2026-07-16 (amendment 1.7.0)
 - Version change: 1.6.0 → 1.7.0 (MINOR: major stack-version bump — React 18 → 19, react-i18next 15 → 17
   — dependabot PR #8, evaluated then implemented). Core Principles unchanged in intent.
@@ -264,4 +275,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.7.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-16
+**Version**: 1.8.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-16
