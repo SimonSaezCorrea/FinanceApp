@@ -1,4 +1,16 @@
 <!--
+Sync Impact Report — 2026-07-16 (amendment 1.7.0)
+- Version change: 1.6.0 → 1.7.0 (MINOR: major stack-version bump — React 18 → 19, react-i18next 15 → 17
+  — dependabot PR #8, evaluated then implemented). Core Principles unchanged in intent.
+- **React 19**: `apps/web` bumped straight through — no compatibility shims needed (typecheck, all 67
+  unit/component tests, and build were clean with no source changes). Manually smoke-tested in a real
+  browser against the real API/DB: login, every domain route (Panel, Cuentas, Movimientos, Cuotas,
+  Deudas, Ahorros, Inversiones), and the sidebar theme toggle — all rendered and behaved correctly.
+- **i18next 26**: dependabot's `react-i18next` group bump (15 → 17) required `i18next >= 26.2.0` as a
+  peer, but the group didn't include `i18next` itself (left at 24.2.0) — a dependabot grouping gap, not
+  a real conflict. Bumped `i18next` to `^26.3.6` alongside it; resolves the `keyFromSelector` export
+  error that otherwise broke 10 test suites.
+
 Sync Impact Report — 2026-07-16 (amendment 1.6.0)
 - Version change: 1.5.1 → 1.6.0 (MINOR: major stack-version bump — Prisma 6 → 7 — dependabot PR #9,
   evaluated then implemented). Core Principles unchanged in intent.
@@ -186,7 +198,7 @@ reality, every future decision is made on false information.
     **`@prisma/adapter-pg` driver adapter** + `prisma.config.ts` — Prisma 7 no longer accepts a
     `datasource.url` in `schema.prisma`), domain-first modules; auth issues **JWT access+refresh
     tokens in httpOnly cookies**.
-  - `apps/web` — **Vite + React 18 SPA**, domain-first features, consumes the API over HTTP only;
+  - `apps/web` — **Vite + React 19 SPA**, domain-first features, consumes the API over HTTP only;
     **owns the es/en i18n catalogs** (the API returns data + language-agnostic error codes).
   - `packages/*` — shared **contracts** (zod schemas + types), **money** (`decimal.js`),
     config. One-way deps: apps → packages; `api ↛ web`.
@@ -252,4 +264,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.6.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-16
+**Version**: 1.7.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-16
