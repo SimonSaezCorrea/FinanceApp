@@ -16,9 +16,12 @@ export function ThemeToggle({ collapsed }: { collapsed?: boolean } = {}) {
   const { t } = useTranslation();
 
   if (collapsed) {
-    const index = OPTIONS.findIndex((o) => o.mode === mode);
-    const current = OPTIONS[index];
-    const next = OPTIONS[(index + 1) % OPTIONS.length];
+    const index = Math.max(
+      OPTIONS.findIndex((o) => o.mode === mode),
+      0,
+    );
+    const current = OPTIONS[index]!;
+    const next = OPTIONS[(index + 1) % OPTIONS.length]!;
     return (
       <button
         type="button"
