@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { cn } from "../../../shared/lib/cn";
 import { isCreditType } from "./accountVisuals";
 
@@ -73,8 +74,13 @@ export function AccountVisualCard({
             <div className="flex flex-col gap-1">
               <span className="text-xs opacity-70">{t("accounts.card.creditUsed")}</span>
               <p className="tabular-nums whitespace-nowrap">
-                <span className="text-base font-semibold">{fmt(account.creditUsed)}</span>
-                <span className="text-xs opacity-70"> / {fmt(account.creditLimit)}</span>
+                <span className="text-base font-semibold">
+                  <MaskedAmount>{fmt(account.creditUsed)}</MaskedAmount>
+                </span>
+                <span className="text-xs opacity-70">
+                  {" "}
+                  / <MaskedAmount>{fmt(account.creditLimit)}</MaskedAmount>
+                </span>
               </p>
               <div className="mt-0.5 flex items-center gap-2">
                 <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/25">
@@ -97,7 +103,7 @@ export function AccountVisualCard({
                   balance < 0 && "text-destructive",
                 )}
               >
-                {fmt(account.currentBalance)}
+                <MaskedAmount>{fmt(account.currentBalance)}</MaskedAmount>
               </p>
             </div>
           )}

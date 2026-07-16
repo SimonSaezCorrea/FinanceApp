@@ -18,12 +18,27 @@ const DEMO_PASSWORD = "demo1234";
  * Balances are derived from transactions so the dashboard stays internally consistent.
  */
 async function seedFullUser(passwordHash: string) {
+  // Resolved first so the profile fields below (countryId) can be set at creation time.
+  const chile = await prisma.country.findUnique({ where: { alpha2: "CL" } });
+
   const javier = await prisma.user.create({
-    data: { email: "test@finance.local", name: "Javier Torres", passwordHash },
+    data: {
+      email: "test@finance.local",
+      name: "Javier Torres",
+      passwordHash,
+      countryId: chile?.id ?? null,
+      addressStreet: "Av. Providencia 1208, depto 504",
+      addressCity: "Santiago",
+      addressRegion: "Región Metropolitana",
+      addressPostalCode: "7500000",
+      birthDate: new Date("1990-04-22T00:00:00Z"),
+      identifierType: "RUT",
+      identifierValue: "12.345.678-5",
+      phone: "+56 9 8765 4321",
+    },
   });
 
   // Resolve Chilean banks (seeded in seedReferenceData) by SBIF code, to link accounts.
-  const chile = await prisma.country.findUnique({ where: { alpha2: "CL" } });
   const clBanks = chile
     ? await prisma.financialInstitution.findMany({ where: { countryId: chile.id }, select: { id: true, code: true } })
     : [];
@@ -785,18 +800,18 @@ async function seedFullUser(passwordHash: string) {
 /** Reference data (countries + banks). Idempotent: upsert by natural keys. */
 async function seedReferenceData() {
   const COUNTRIES = [
-    { alpha2: "AR", alpha3: "ARG", numeric: "032", name: "Argentina" },
-    { alpha2: "CL", alpha3: "CHL", numeric: "152", name: "Chile" },
-    { alpha2: "CO", alpha3: "COL", numeric: "170", name: "Colombia" },
-    { alpha2: "PY", alpha3: "PRY", numeric: "600", name: "Paraguay" },
-    { alpha2: "PE", alpha3: "PER", numeric: "604", name: "Perú" },
-    { alpha2: "PR", alpha3: "PRI", numeric: "630", name: "Puerto Rico" },
+    { alpha2: "AR", alpha3: "ARG", numeric: "032", name: "Argentina", callingCode: "+54" },
+    { alpha2: "CL", alpha3: "CHL", numeric: "152", name: "Chile", callingCode: "+56" },
+    { alpha2: "CO", alpha3: "COL", numeric: "170", name: "Colombia", callingCode: "+57" },
+    { alpha2: "PY", alpha3: "PRY", numeric: "600", name: "Paraguay", callingCode: "+595" },
+    { alpha2: "PE", alpha3: "PER", numeric: "604", name: "Perú", callingCode: "+51" },
+    { alpha2: "PR", alpha3: "PRI", numeric: "630", name: "Puerto Rico", callingCode: "+1" },
   ] as const;
 
   for (const c of COUNTRIES) {
     await prisma.country.upsert({
       where: { alpha2: c.alpha2 },
-      update: { alpha3: c.alpha3, numeric: c.numeric, name: c.name },
+      update: { alpha3: c.alpha3, numeric: c.numeric, name: c.name, callingCode: c.callingCode },
       create: c,
     });
   }
@@ -1127,8 +1142,34 @@ async function seedReferenceData() {
     });
   }
 
+  // Country ↔ national-identity-document-type links. isPrimary = the country's default type.
+  // A country may support more than one (e.g. a national id + passport).
+  const IDENTIFIER_LINKS: [alpha2: string, type: "RUT" | "DNI" | "PASSPORT" | "OTHER", isPrimary: boolean][] = [
+    ["AR", "DNI", true],
+    ["AR", "PASSPORT", false],
+    ["CL", "RUT", true],
+    ["CL", "PASSPORT", false],
+    ["CO", "DNI", true],
+    ["CO", "PASSPORT", false],
+    ["PY", "DNI", true],
+    ["PY", "PASSPORT", false],
+    ["PE", "DNI", true],
+    ["PE", "PASSPORT", false],
+    ["PR", "PASSPORT", true],
+    ["PR", "OTHER", false],
+  ];
+  for (const [alpha2, identifierType, isPrimary] of IDENTIFIER_LINKS) {
+    const country = await prisma.country.findUnique({ where: { alpha2 } });
+    if (!country) continue;
+    await prisma.countryIdentifierType.upsert({
+      where: { countryId_identifierType: { countryId: country.id, identifierType } },
+      update: { isPrimary },
+      create: { countryId: country.id, identifierType, isPrimary },
+    });
+  }
+
   console.log(
-    `Reference data OK: ${COUNTRIES.length} countries, ${CHILE_BANKS.length} banks + ${CHILE_ISSUERS.length} non-bank issuers (CL), ${CURRENCIES.length} currencies, ${LINKS.length} country-currency links`,
+    `Reference data OK: ${COUNTRIES.length} countries, ${CHILE_BANKS.length} banks + ${CHILE_ISSUERS.length} non-bank issuers (CL), ${CURRENCIES.length} currencies, ${LINKS.length} country-currency links, ${IDENTIFIER_LINKS.length} country-identifier-type links`,
   );
 }
 

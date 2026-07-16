@@ -8,7 +8,10 @@ export class ReferenceRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   listCountries() {
-    return this.prisma.country.findMany({ orderBy: { name: "asc" } });
+    return this.prisma.country.findMany({
+      orderBy: { name: "asc" },
+      include: { identifierTypes: { orderBy: { isPrimary: "desc" } } },
+    });
   }
 
   listInstitutions(countryAlpha2?: string, kind?: "BANK" | "NON_BANK_ISSUER") {

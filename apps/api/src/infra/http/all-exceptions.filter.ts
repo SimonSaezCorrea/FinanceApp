@@ -22,13 +22,24 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let code = "INTERNAL_ERROR";
+    let field: string | undefined;
 
     if (exception instanceof HttpException) {
       status = exception.getStatus();
-      code = statusToCode(status);
+      const response = exception.getResponse();
+      const thrown =
+        typeof response === "object" && response !== null
+          ? (response as { code?: unknown; field?: unknown })
+          : undefined;
+      if (typeof thrown?.code === "string") {
+        code = thrown.code;
+        if (typeof thrown.field === "string") field = thrown.field;
+      } else {
+        code = statusToCode(status);
+      }
     }
 
-    const body: ApiError = { error: { code } };
+    const body: ApiError = { error: { code, ...(field ? { field } : {}) } };
     res.status(status).json(body);
   }
 }

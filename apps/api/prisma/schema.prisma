@@ -10,13 +10,41 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?
+  id                String          @id @default(cuid())
+  name              String?
+  email             String?         @unique
+  emailVerified     DateTime?
+  image             String?
+  passwordHash      String?
+  preferredCurrency String          @default("CLP")
+  locale            String          @default("es")
+  dateFormat        String          @default("DD/MM/YYYY")
+  theme             String          @default("dark")
+  status            UserStatus      @default(ACTIVE)
+  createdAt         DateTime        @default(now())
+  /// Optional link to the user's country of residence (reuses the reference `Country` table).
+  countryId         String?
+  addressStreet     String?
+  addressCity       String?
+  addressRegion     String?
+  addressPostalCode String?
+  birthDate         DateTime?
+  /// National identity document type (RUT is Chile-specific; DNI/PASSPORT/OTHER cover other countries).
+  identifierType    IdentifierType?
+  /// The identifier's value. Format is only validated when identifierType is RUT (Chilean check digit).
+  identifierValue   String?
+  phone             String?
+  /// Masks monetary amounts across the app when true (real effect — see PENDING.md for coverage scope).
+  hideBalances      Boolean               @default(false)
+  monthlyBudgetTarget  Decimal?           @db.Decimal(18, 4)
+  /// Day of month (1-28) the user's financial cycle starts. Stored, not yet wired into "this month" calculations (see PENDING.md).
+  billingCycleStartDay Int?
+  /// Extra currencies the user wants tracked, on top of preferredCurrency. Selection only — no live FX conversion.
+  extraCurrencies      String[]           @default([])
+  /// % of monthlyBudgetTarget at which to warn the user. Stored for the Notifications UI; no real alert is sent yet.
+  budgetAlertThreshold Int?               @default(80)
 
+  country           Country?              @relation(fields: [countryId], references: [id], onDelete: SetNull)
   bankAccounts      BankAccount[]
   transactions      Transaction[]
   installmentPlans  InstallmentPlan[]
@@ -27,7 +55,23 @@ model User {
   recurringExpenses RecurringExpense[]
   walletItems       WalletItemDashboard[]
 
+  @@index([countryId])
   @@map("user")
+}
+
+enum UserStatus {
+  ACTIVE
+  DISABLED
+}
+
+/// National identity document vocabulary. Which types a given country supports is data
+/// (`CountryIdentifierType`), not fixed per-enum-value — a country may support more than one
+/// (e.g. a national id + passport).
+enum IdentifierType {
+  RUT
+  DNI
+  PASSPORT
+  OTHER
 }
 
 enum TransactionType {
@@ -393,9 +437,14 @@ model Country {
   /// ISO 3166-1 numeric (e.g. "152").
   numeric String @unique
   name    String
+  /// International calling code, with leading "+" (e.g. "+56"). Used to prefix phone numbers so the
+  /// user never has to type it — derived from their selected country instead.
+  callingCode String?
 
-  institutions FinancialInstitution[]
-  currencies   CountryCurrency[]
+  institutions    FinancialInstitution[]
+  currencies      CountryCurrency[]
+  identifierTypes CountryIdentifierType[]
+  users           User[]
 
   @@map("country")
 }
@@ -430,6 +479,20 @@ model CountryCurrency {
   @@unique([countryId, currencyId])
   @@index([currencyId])
   @@map("country-currency")
+}
+
+/// Which national identity document types a country supports (a country may support more than
+/// one, e.g. a national id + passport). `isPrimary` marks the default/most common one.
+model CountryIdentifierType {
+  id             String         @id @default(cuid())
+  countryId      String
+  identifierType IdentifierType
+  isPrimary      Boolean        @default(false)
+
+  country Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  @@unique([countryId, identifierType])
+  @@map("country-identifier-type")
 }
 
 enum InstitutionKind {

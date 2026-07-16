@@ -10,6 +10,7 @@ import { DebtsRoute } from "../domains/debts/routes/DebtsRoute";
 import { ImportRoute } from "../domains/import/routes/ImportRoute";
 import { InstallmentsRoute } from "../domains/installments/routes/InstallmentsRoute";
 import { InvestmentsRoute } from "../domains/investments/routes/InvestmentsRoute";
+import { ProfileRoute } from "../domains/profile/routes/ProfileRoute";
 import { RecurringRoute } from "../domains/recurring/routes/RecurringRoute";
 import { SavingsRoute } from "../domains/savings/routes/SavingsRoute";
 import { TransactionsRoute } from "../domains/transactions/routes/TransactionsRoute";
@@ -35,4 +36,5 @@ export const router = createBrowserRouter([
   { path: "/savings", element: protect(<SavingsRoute />) },
   { path: "/investments", element: protect(<InvestmentsRoute />) },
   { path: "/import", element: protect(<ImportRoute />) },
+  { path: "/profile", element: protect(<ProfileRoute />) },
 ]);

@@ -10,30 +10,10 @@ const OPTIONS: { mode: ThemeMode; icon: typeof Sun; key: string }[] = [
   { mode: "system", icon: Monitor, key: "theme.system" },
 ];
 
-/** Segmented dark·light·system switch, or a single icon-only cycling button when `collapsed`. */
-export function ThemeToggle({ collapsed }: { collapsed?: boolean } = {}) {
+/** Segmented dark·light·system switch. */
+export function ThemeToggle() {
   const { mode, setMode } = useTheme();
   const { t } = useTranslation();
-
-  if (collapsed) {
-    const index = OPTIONS.findIndex((o) => o.mode === mode);
-    const current = OPTIONS[index];
-    const next = OPTIONS[(index + 1) % OPTIONS.length];
-    return (
-      <button
-        type="button"
-        title={t(current.key)}
-        aria-label={t("theme.label")}
-        onClick={() => setMode(next.mode)}
-        className={cn(
-          "inline-flex h-8 w-10 items-center justify-center rounded-md border bg-background text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-        )}
-      >
-        <current.icon className="h-4 w-4" aria-hidden />
-      </button>
-    );
-  }
 
   return (
     <div

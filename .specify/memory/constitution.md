@@ -1,4 +1,90 @@
 <!--
+Sync Impact Report — 2026-07-16 (amendment 1.9.0)
+- Version change: 1.8.0 → 1.9.0 (MINOR: full profile-page redesign from a definitive design file,
+  specs/008 "Perfil de Usuario"; also records a new durable workflow convention). Core Principles
+  unchanged in intent.
+- Technology & Operational Constraints:
+  - `User` gains `phone`, `hideBalances` (real, partial coverage), `monthlyBudgetTarget` (money),
+    `billingCycleStartDay`, `extraCurrencies` (`String[]`, selection only — no live FX), and
+    `budgetAlertThreshold` (%, UI-only threshold). New shared primitive `shared/ui/collapsible-
+    section.tsx` — Profile's configuration sections are now collapsible accordions, closed by default.
+  - New sections `PlanBillingSection` and `DataPrivacySection` are **intentionally pure placeholders**
+    (fixed example data, every action a no-op) — billing/plans, open-banking bank sync, data export,
+    and automated backups are out of scope; no infrastructure for any of them exists in this project.
+    `SecuritySection` similarly gained inert passkey/sessions rows.
+- **New Development Workflow convention (Principle V extension)**: when a feature ships a
+  visually-complete but non-functional/placeholder section, or a feature with only partial coverage
+  (e.g. a preference wired into some but not all applicable call sites), it MUST be catalogued in
+  **`docs/PENDING.md`** (a single project-wide living document, not one per feature — it's project
+  history, not spec content) — what looks real but isn't, and what "real" would require. This is not
+  optional documentation; silently shipping a convincing-looking no-op is a defect class this
+  constitution now explicitly guards against (see `docs/PENDING.md`'s "Perfil de usuario" section for
+  the reference example).
+
+Sync Impact Report — 2026-07-15 (amendment 1.8.0)
+- Version change: 1.7.0 → 1.8.0 (MINOR: corrects the 1.7.0 identifier-type design before it shipped
+  further — same specs/008 feature, not a new one). Core Principles unchanged in intent.
+- Technology & Operational Constraints:
+  - Which national-identity document type(s) a country supports is now **data**, not a fixed global
+    enum list assumed valid everywhere: new join `CountryIdentifierType` (mirrors `CountryCurrency`'s
+    `Country ↔ Currency` shape exactly — `countryId` + `identifierType` + `isPrimary`, unique pair).
+    A country may support more than one type (e.g. RUT + passport). `identifierTypeSchema` moved from
+    `auth` to `reference` (packages/contracts) — it's reference/lookup vocabulary shared by `Country`
+    and `User`, not auth-specific. `reference.Country` now exposes `identifierTypes` (primary first).
+  - The web edit form's identifier-type options now come from the selected country's own
+    `identifierTypes`, falling back to the full vocabulary only when no country is set (covers
+    pre-existing data saved before a country was chosen). Seeded via the same
+    country↔currency-link pattern in `prisma/seed.ts`.
+
+Sync Impact Report — 2026-07-15 (amendment 1.7.0)
+- Version change: 1.6.0 → 1.7.0 (MINOR: personal-info expansion of specs/008 "Perfil de Usuario" —
+  country/address/birth date/national identifier). Core Principles unchanged in intent.
+- Technology & Operational Constraints:
+  - `User` gains `countryId` (FK → `Country`, reusing the existing reference table), structured
+    address (`addressStreet`/`addressCity`/`addressRegion`/`addressPostalCode`, all free text),
+    `birthDate`, and a generalized national-identity pair `identifierType` (`IdentifierType`:
+    RUT/DNI/PASSPORT/OTHER) + `identifierValue` — not a Chile-only `rut` field, to support users
+    identifying with other countries' documents too. All optional; purely informational today (no
+    billing/KYC feature consumes them).
+  - **New validation rule**: `identifierValue` is check-digit validated (módulo 11) only when
+    `identifierType === "RUT"` (`packages/contracts/src/auth/rut.ts`, `isValidRut`). Other identifier
+    types have no universal format and are accepted as free text.
+  - **Contract exposes both a derived and a raw form of the same fact**: `birthDate` (ISO date string)
+    for edit-form hydration, and `age` (derived) for display. The Profile view only ever renders `age`
+    — precedent: hiding a sensitive exact value from the default view is a **UI** choice, the API
+    still returns the real data to the account's own authenticated owner (no server-side redaction of
+    a user's own data).
+  - **`packages/contracts` gained a Vitest suite** (`"test": "vitest run"`, `vitest` devDependency) —
+    it previously had none, unlike `apps/api`, `apps/web`, and `packages/money`. Closes that gap for
+    this package going forward; new contract-level validators (like `isValidRut`) belong here.
+
+Sync Impact Report — 2026-07-15 (amendment 1.6.0)
+- Version change: 1.5.1 → 1.6.0 (MINOR: new user-facing capability from specs/008 "Perfil de Usuario"
+  — data-model + auth-mechanism expansion). Core Principles unchanged in intent.
+- Technology & Operational Constraints:
+  - `User` gains `preferredCurrency`, `locale`, `dateFormat`, `theme`, `status` (`UserStatus`:
+    ACTIVE/DISABLED), `createdAt`. No new backend domain/module — folded into the existing `auth`
+    domain, since `User` already lives there and no other responsibility justifies a separate module.
+  - **Account deactivation is a real auth-mechanism change**: `JwtAuthGuard` now performs a per-request
+    DB check (`status === ACTIVE`) in addition to JWT signature verification, and `AuthService.
+    validateCredentials`/`rotateFromRefresh` reject `DISABLED` accounts (`ACCOUNT_DISABLED`). A prior
+    behavior where a disabled account could keep using an already-issued access token until its
+    natural ~15min expiry is explicitly rejected — deactivation must take effect on the account's next
+    authenticated request, not wait for token expiry.
+  - New endpoints on `auth`: `PATCH /auth/me`, `POST /auth/me/password`, `PATCH /auth/me/preferences`,
+    `POST /auth/me/deactivate` (soft-disable only — no data deletion; a defense-in-depth Prisma `P2002`
+    catch guards the email-uniqueness pre-check against a concurrent-write race). New error codes
+    `INVALID_CURRENT_PASSWORD`, `ACCOUNT_DISABLED`.
+  - **Bugfix recorded as a constraint going forward**: `AllExceptionsFilter` (`infra/http`) previously
+    discarded every domain-specific error `code` thrown on an exception, replacing it with a generic
+    status-derived code (e.g. a real `EMAIL_TAKEN` conflict reached the client as plain `CONFLICT`).
+    Fixed to preserve the thrown `{code, field}` when present, falling back to the generic mapping only
+    when none was thrown. This must not regress — it silently broke every specific error code app-wide,
+    not just this feature's.
+  - Frontend gains a new domain `apps/web/src/domains/profile` (route `/profile`) and a new shared
+    primitive `shared/ui/switch.tsx`. The theme preference (previously `localStorage`-only) is now also
+    persisted per-user server-side; `localStorage` remains the pre-auth/first-paint source of truth.
+
 Sync Impact Report — 2026-07-02 (amendment 1.5.0)
 - Version change: 1.4.0 → 1.5.0 (MINOR: revised accounts/cards model — supersedes the 1.4.0
   secondary-card sub-limit design before it shipped). Core Principles unchanged in intent.
@@ -222,6 +308,10 @@ reality, every future decision is made on false information.
   the user — do not guess. (Enforced by the `/sdd` orchestrator.)
 - **Memory sync:** every cycle ends by reconciling this constitution and `CLAUDE.md` with what
   actually changed.
+- **No silent placeholders:** a feature MAY ship a visually-complete but non-functional section, or a
+  preference wired into only some applicable call sites — but it MUST be catalogued in
+  **`docs/PENDING.md`** (project-wide, not per-feature) with what looks real but isn't, and what
+  "real" would require. Convincing-looking no-ops that aren't documented are a defect, not a shortcut.
 
 ## Governance
 
@@ -237,4 +327,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.5.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-02
+**Version**: 1.9.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-16

@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import type {
   Country as CountryRow,
+  CountryIdentifierType,
   Currency as CurrencyRow,
   FinancialInstitution as InstitutionRow,
 } from "@prisma/client";
@@ -30,8 +31,18 @@ export class ReferenceService {
   }
 }
 
-function countryToContract(r: CountryRow): reference.Country {
-  return { id: r.id, alpha2: r.alpha2, alpha3: r.alpha3, numeric: r.numeric, name: r.name };
+function countryToContract(
+  r: CountryRow & { identifierTypes: CountryIdentifierType[] },
+): reference.Country {
+  return {
+    id: r.id,
+    alpha2: r.alpha2,
+    alpha3: r.alpha3,
+    numeric: r.numeric,
+    name: r.name,
+    identifierTypes: r.identifierTypes.map((it) => it.identifierType),
+    callingCode: r.callingCode,
+  };
 }
 
 function institutionToContract(r: InstitutionRow): reference.Institution {

@@ -2,6 +2,11 @@ import { z } from "zod";
 
 /** Reference data contracts: countries, financial institutions, currencies (ISO 4217). Global, read-only. */
 
+/** National identity document vocabulary — which types a country supports is data (see
+ * `Country.identifierTypes` below), not fixed per value; a country may support more than one. */
+export const identifierTypeSchema = z.enum(["RUT", "DNI", "PASSPORT", "OTHER"]);
+export type IdentifierType = z.infer<typeof identifierTypeSchema>;
+
 export const countrySchema = z.object({
   id: z.string(),
   /** ISO 3166-1 alpha-2 (e.g. "CL"). */
@@ -11,6 +16,11 @@ export const countrySchema = z.object({
   /** ISO 3166-1 numeric (e.g. "152"). */
   numeric: z.string(),
   name: z.string(),
+  /** National identity document types this country supports, primary one first. */
+  identifierTypes: z.array(identifierTypeSchema),
+  /** International calling code with leading "+" (e.g. "+56"), or null if not seeded. Used to
+   * prefix phone numbers so the user never has to type it. */
+  callingCode: z.string().nullable(),
 });
 export type Country = z.infer<typeof countrySchema>;
 

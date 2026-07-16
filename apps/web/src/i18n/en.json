@@ -370,6 +370,156 @@
     "haveAccount": "Already have an account?",
     "logout": "Log out"
   },
+  "profile": {
+    "title": "Profile",
+    "ageYears": "{{age}} years old",
+    "plan": { "personal": "Personal plan" },
+    "stats": {
+      "accounts": "Accounts",
+      "monthlyMovements": "Mov./mo.",
+      "memberSince": "Member since"
+    },
+    "editButton": "Edit profile",
+    "personalInfo": {
+      "title": "Personal information",
+      "notSet": "Not specified"
+    },
+    "comingSoon": "Coming soon",
+    "accountStatus": {
+      "title": "Account status",
+      "complete": "complete",
+      "blurb": "Complete your profile to unlock SMS alerts and account recovery.",
+      "done": "Done",
+      "items": {
+        "email": "Email",
+        "identity": "Identity",
+        "phone": "Phone",
+        "photo": "Profile photo"
+      },
+      "action": {
+        "identity": "Complete",
+        "phone": "Add",
+        "photo": "Add"
+      }
+    },
+    "financial": {
+      "title": "Financial customization",
+      "cycleStart": "Monthly cycle start",
+      "cycleStartHint": "When your financial month begins",
+      "budgetTarget": "Monthly budget target",
+      "budgetTargetHint": "Base for the spending thermometer",
+      "extraCurrencies": "Extra currencies",
+      "extraCurrenciesHint": "Additional currencies you want to track, besides your primary one",
+      "addCurrencyPlaceholder": "Choose a currency…",
+      "addCurrency": "Add",
+      "removeCurrency": "Remove {{code}}",
+      "noExtraCurrencies": "No extra currencies added.",
+      "roundUp": "Round-up savings",
+      "roundUpHint": "Saves the difference on every expense",
+      "hideBalances": "Hide balances",
+      "hideBalancesHint": "Blurs amounts across the app"
+    },
+    "billing": {
+      "title": "Plan, usage & billing",
+      "planFree": "Personal plan · Free",
+      "usage": {
+        "accounts": "Accounts",
+        "categories": "Custom categories"
+      },
+      "upsellTitle": "Upgrade to Pro",
+      "upsellBody": "Unlimited accounts, bank sync, and reports.",
+      "upsellCta": "See Pro",
+      "paymentMethod": "Visa •••• 4242",
+      "change": "Change",
+      "invoiceHistory": "Invoice history",
+      "view": "View"
+    },
+    "dataPrivacy": {
+      "title": "Data, connections & privacy",
+      "linkedBanks": "Linked banks",
+      "synced": "Synced",
+      "paused": "Paused",
+      "linkAnother": "Link another bank",
+      "export": "Export transactions",
+      "autoBackup": "Automatic monthly backup",
+      "autoBackupHint": "Keeps a copy of your data"
+    },
+    "edit": {
+      "title": "Edit profile",
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "phoneNoCountryHint": "Pick your country to auto-prefix the calling code.",
+      "save": "Save",
+      "cancel": "Cancel",
+      "personalInfo": "Personal information",
+      "country": "Country",
+      "countryNone": "Not specified",
+      "birthDate": "Date of birth",
+      "identifierType": "ID type",
+      "identifierValue": "ID number",
+      "identifierTypes": {
+        "RUT": "RUT",
+        "DNI": "DNI",
+        "PASSPORT": "Passport",
+        "OTHER": "Other"
+      },
+      "addressStreet": "Address (street and number)",
+      "addressCity": "City",
+      "addressRegion": "Region / state",
+      "addressPostalCode": "Postal code"
+    },
+    "security": {
+      "title": "Security",
+      "password": {
+        "label": "Password",
+        "hint": "You can change it anytime.",
+        "change": "Change",
+        "current": "Current password",
+        "new": "New password",
+        "save": "Save"
+      },
+      "twoFactor": {
+        "label": "Two-factor verification",
+        "hint": "Coming soon"
+      },
+      "passkey": {
+        "label": "Passkey",
+        "hint": "Face ID · fingerprint · security key",
+        "configure": "Set up"
+      },
+      "sessions": {
+        "title": "Sessions & devices",
+        "closeAll": "Sign out all",
+        "thisDevice": "This device · active now",
+        "close": "Sign out"
+      }
+    },
+    "preferences": {
+      "title": "Preferences",
+      "darkTheme": "Dark theme",
+      "currency": "Primary currency",
+      "language": "Language",
+      "dateFormat": "Date format"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "budgetThreshold": "Alert me when reaching",
+      "budgetThresholdValue": "{{pct}}% of budget",
+      "installmentDue": "Installment due dates",
+      "monthlySummary": "Monthly summary",
+      "spendAlerts": "Spending alerts",
+      "hint": "Coming soon"
+    },
+    "danger": {
+      "logout": "Log out",
+      "deactivate": "Delete account",
+      "confirmTitle": "Delete your account?",
+      "confirmDescription": "Your account will be disabled and you won't be able to sign in again. Your financial data is not deleted.",
+      "passwordLabel": "Confirm your password",
+      "confirmButton": "Deactivate account"
+    }
+  },
   "errors": {
     "INTERNAL_ERROR": "Something went wrong. Please try again.",
     "UNAUTHORIZED": "Sign in to continue.",
@@ -382,6 +532,8 @@
     "CARD_ACCOUNT_MISMATCH": "The card does not belong to that account.",
     "CARD_LIMIT_EXCEEDED": "The expense exceeds the primary card's credit limit.",
     "CARD_SUBLIMIT_EXCEEDED": "The expense exceeds the secondary card's sub-limit.",
-    "PARENT_CARD_INVALID": "The selected primary card is invalid."
+    "PARENT_CARD_INVALID": "The selected primary card is invalid.",
+    "INVALID_CURRENT_PASSWORD": "Your current password is incorrect.",
+    "ACCOUNT_DISABLED": "This account is disabled."
   }
 }

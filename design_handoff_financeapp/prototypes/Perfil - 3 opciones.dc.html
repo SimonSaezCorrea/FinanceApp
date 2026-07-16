@@ -1,0 +1,1191 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="./support.js"></script>
+  </head>
+  <body>
+    <x-dc>
+      <helmet>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+        <style>
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            font-family:
+              "Geist",
+              ui-sans-serif,
+              system-ui,
+              -apple-system,
+              "Segoe UI",
+              Roboto,
+              sans-serif;
+            -webkit-font-smoothing: antialiased;
+          }
+          .nw {
+            font-variant-numeric: tabular-nums;
+          }
+          .scr {
+            --bg: #0b1518;
+            --surface: #0f1e21;
+            --surface-2: #13242a;
+            --border: #1e2e32;
+            --border-2: #283c41;
+            --text: #e6eded;
+            --text-mut: #8aa0a2;
+            --text-dim: #7d9295;
+            --primary: #66a5ad;
+            --primary-ink: #08181b;
+            --brand: #07575b;
+            --accent: #f4a261;
+            --accent-ink: #2b1908;
+            --success: #46b483;
+            --success-bg: rgba(70, 180, 131, 0.16);
+            --danger: #e08a8a;
+            --danger-bg: rgba(224, 90, 90, 0.14);
+            --chip: #1c2c30;
+            --track: #22343a;
+            background: var(--bg);
+            color: var(--text);
+          }
+          .frame {
+            background: var(--bg);
+            border-radius: 8px;
+            box-shadow: 0 14px 44px rgba(0, 0, 0, 0.32);
+            overflow: hidden;
+          }
+          .flbl {
+            font-size: 12px;
+            font-weight: 600;
+            color: #13242a;
+            margin-bottom: 9px;
+          }
+          /* switch */
+          .sw {
+            width: 38px;
+            height: 22px;
+            border-radius: 20px;
+            flex: none;
+            position: relative;
+            background: var(--track);
+          }
+          .sw.on {
+            background: var(--primary);
+          }
+          .sw i {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+          }
+          .sw.on i {
+            left: 19px;
+          }
+        </style>
+      </helmet>
+
+      <div
+        style="
+          width: max-content;
+          min-width: 100%;
+          min-height: 100vh;
+          box-sizing: border-box;
+          padding: 48px;
+          background: #e7e5df;
+          font-family: &quot;Geist&quot;, sans-serif;
+        "
+      >
+        <div style="margin-bottom: 34px; max-width: 920px">
+          <div
+            style="
+              font-size: 12px;
+              font-weight: 600;
+              letter-spacing: 0.12em;
+              text-transform: uppercase;
+              color: #07575b;
+              margin-bottom: 10px;
+            "
+          >
+            FinanceApp · Vista de Perfil
+          </div>
+          <h1
+            style="
+              font-size: 28px;
+              font-weight: 600;
+              color: #13242a;
+              letter-spacing: -0.02em;
+              margin-bottom: 10px;
+            "
+          >
+            Tres opciones para Perfil
+          </h1>
+          <p style="font-size: 15px; line-height: 1.6; color: #4a5e64">
+            Tres formas de organizar datos de la cuenta, preferencias, seguridad y notificaciones.
+            Mismo sistema de color, Geist y tema oscuro. Elige una y la integro al prototipo.
+          </p>
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 60px; align-items: flex-start">
+          <!-- ============================================================= -->
+          <!-- OPCIÓN A · AJUSTES CLÁSICO                                     -->
+          <!-- ============================================================= -->
+          <div style="flex: none; width: 1060px">
+            <div style="margin-bottom: 14px">
+              <div style="font-size: 14px; font-weight: 700; color: #13242a; margin-bottom: 3px">
+                Opción A · Ajustes clásico
+              </div>
+              <div style="font-size: 12.5px; color: #6a7c82">
+                Encabezado de perfil y secciones apiladas a una columna. Familiar y directo.
+              </div>
+            </div>
+            <div class="frame scr">
+              <div style="padding: 26px 30px; max-width: 760px">
+                <h2
+                  style="
+                    font-size: 20px;
+                    font-weight: 600;
+                    letter-spacing: -0.01em;
+                    margin-bottom: 18px;
+                  "
+                >
+                  Perfil
+                </h2>
+                <!-- header card -->
+                <div
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                    border: 1px solid var(--border);
+                    border-radius: 13px;
+                    background: var(--surface);
+                    padding: 18px 20px;
+                    margin-bottom: 16px;
+                  "
+                >
+                  <div
+                    style="
+                      width: 58px;
+                      height: 58px;
+                      border-radius: 50%;
+                      background: linear-gradient(135deg, var(--brand), var(--accent));
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      font-size: 20px;
+                      font-weight: 600;
+                      color: #fff;
+                      flex: none;
+                    "
+                  >
+                    JT
+                  </div>
+                  <div style="flex: 1; min-width: 0">
+                    <div style="font-size: 17px; font-weight: 600">Javier Torres</div>
+                    <div style="font-size: 12.5px; color: var(--text-mut)">javier@correo.cl</div>
+                    <div
+                      style="
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 5px;
+                        margin-top: 6px;
+                        font-size: 10.5px;
+                        padding: 2px 8px;
+                        border-radius: 20px;
+                        background: var(--chip);
+                        color: var(--primary);
+                        font-weight: 600;
+                      "
+                    >
+                      Plan personal
+                    </div>
+                  </div>
+                  <button
+                    style="
+                      height: 34px;
+                      padding: 0 14px;
+                      border-radius: 9px;
+                      border: 1px solid var(--border-2);
+                      background: transparent;
+                      color: var(--text);
+                      font-size: 12.5px;
+                      font-weight: 500;
+                      font-family: inherit;
+                    "
+                  >
+                    Editar perfil
+                  </button>
+                </div>
+                <!-- info personal -->
+                <div
+                  style="
+                    border: 1px solid var(--border);
+                    border-radius: 13px;
+                    background: var(--surface);
+                    padding: 18px 20px;
+                    margin-bottom: 16px;
+                  "
+                >
+                  <div style="font-size: 13.5px; font-weight: 600; margin-bottom: 14px">
+                    Información personal
+                  </div>
+                  <div style="display: flex; gap: 14px; margin-bottom: 13px">
+                    <div style="flex: 1">
+                      <div style="font-size: 11.5px; color: var(--text-mut); margin-bottom: 5px">
+                        Nombre
+                      </div>
+                      <div
+                        style="
+                          height: 38px;
+                          border: 1px solid var(--border-2);
+                          border-radius: 8px;
+                          background: var(--bg);
+                          display: flex;
+                          align-items: center;
+                          padding: 0 12px;
+                          font-size: 13px;
+                        "
+                      >
+                        Javier Torres
+                      </div>
+                    </div>
+                    <div style="flex: 1">
+                      <div style="font-size: 11.5px; color: var(--text-mut); margin-bottom: 5px">
+                        Teléfono
+                      </div>
+                      <div
+                        style="
+                          height: 38px;
+                          border: 1px solid var(--border-2);
+                          border-radius: 8px;
+                          background: var(--bg);
+                          display: flex;
+                          align-items: center;
+                          padding: 0 12px;
+                          font-size: 13px;
+                          color: var(--text-dim);
+                        "
+                      >
+                        +56 9 1234 5678
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div style="font-size: 11.5px; color: var(--text-mut); margin-bottom: 5px">
+                      Correo
+                    </div>
+                    <div
+                      style="
+                        height: 38px;
+                        border: 1px solid var(--border-2);
+                        border-radius: 8px;
+                        background: var(--bg);
+                        display: flex;
+                        align-items: center;
+                        padding: 0 12px;
+                        font-size: 13px;
+                      "
+                    >
+                      javier@correo.cl
+                    </div>
+                  </div>
+                </div>
+                <!-- preferencias -->
+                <div
+                  style="
+                    border: 1px solid var(--border);
+                    border-radius: 13px;
+                    background: var(--surface);
+                    padding: 18px 20px;
+                    margin-bottom: 16px;
+                  "
+                >
+                  <div style="font-size: 13.5px; font-weight: 600; margin-bottom: 6px">
+                    Preferencias
+                  </div>
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      padding: 12px 0;
+                      border-bottom: 1px solid var(--border);
+                    "
+                  >
+                    <div>
+                      <div style="font-size: 13px">Tema oscuro</div>
+                      <div style="font-size: 11px; color: var(--text-dim)">
+                        Apariencia de la aplicación
+                      </div>
+                    </div>
+                    <div class="sw on"><i></i></div>
+                  </div>
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      padding: 12px 0;
+                      border-bottom: 1px solid var(--border);
+                    "
+                  >
+                    <div>
+                      <div style="font-size: 13px">Moneda principal</div>
+                      <div style="font-size: 11px; color: var(--text-dim)">
+                        Para totales y resúmenes
+                      </div>
+                    </div>
+                    <div
+                      style="
+                        height: 34px;
+                        padding: 0 12px;
+                        border-radius: 8px;
+                        border: 1px solid var(--border-2);
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: 12.5px;
+                      "
+                    >
+                      CLP · Peso chileno
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      padding: 12px 0;
+                    "
+                  >
+                    <div>
+                      <div style="font-size: 13px">Idioma</div>
+                      <div style="font-size: 11px; color: var(--text-dim)">
+                        Idioma de la interfaz
+                      </div>
+                    </div>
+                    <div
+                      style="
+                        height: 34px;
+                        padding: 0 12px;
+                        border-radius: 8px;
+                        border: 1px solid var(--border-2);
+                        display: flex;
+                        align-items: center;
+                        gap: 8px;
+                        font-size: 12.5px;
+                      "
+                    >
+                      Español
+                      <svg
+                        width="13"
+                        height="13"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+                <!-- seguridad -->
+                <div
+                  style="
+                    border: 1px solid var(--border);
+                    border-radius: 13px;
+                    background: var(--surface);
+                    padding: 18px 20px;
+                    margin-bottom: 16px;
+                  "
+                >
+                  <div style="font-size: 13.5px; font-weight: 600; margin-bottom: 6px">
+                    Seguridad
+                  </div>
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      padding: 12px 0;
+                      border-bottom: 1px solid var(--border);
+                    "
+                  >
+                    <div>
+                      <div style="font-size: 13px">Contraseña</div>
+                      <div style="font-size: 11px; color: var(--text-dim)">
+                        Última actualización hace 3 meses
+                      </div>
+                    </div>
+                    <button
+                      style="
+                        height: 32px;
+                        padding: 0 13px;
+                        border-radius: 8px;
+                        border: 1px solid var(--border-2);
+                        background: transparent;
+                        color: var(--text);
+                        font-size: 12px;
+                        font-weight: 500;
+                        font-family: inherit;
+                      "
+                    >
+                      Cambiar
+                    </button>
+                  </div>
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: space-between;
+                      padding: 12px 0;
+                    "
+                  >
+                    <div>
+                      <div style="font-size: 13px">Verificación en dos pasos</div>
+                      <div style="font-size: 11px; color: var(--text-dim)">
+                        Capa extra de seguridad
+                      </div>
+                    </div>
+                    <div class="sw"><i></i></div>
+                  </div>
+                </div>
+                <!-- danger -->
+                <div style="display: flex; gap: 10px">
+                  <button
+                    style="
+                      flex: 1;
+                      height: 40px;
+                      border-radius: 9px;
+                      border: 1px solid var(--border-2);
+                      background: transparent;
+                      color: var(--text);
+                      font-size: 13px;
+                      font-weight: 500;
+                      font-family: inherit;
+                    "
+                  >
+                    Cerrar sesión
+                  </button>
+                  <button
+                    style="
+                      flex: 1;
+                      height: 40px;
+                      border-radius: 9px;
+                      border: 1px solid var(--danger-bg);
+                      background: var(--danger-bg);
+                      color: var(--danger);
+                      font-size: 13px;
+                      font-weight: 500;
+                      font-family: inherit;
+                    "
+                  >
+                    Eliminar cuenta
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================= -->
+          <!-- OPCIÓN B · DOS COLUMNAS                                        -->
+          <!-- ============================================================= -->
+          <div style="flex: none; width: 1060px">
+            <div style="margin-bottom: 14px">
+              <div style="font-size: 14px; font-weight: 700; color: #13242a; margin-bottom: 3px">
+                Opción B · Dos columnas
+              </div>
+              <div style="font-size: 12.5px; color: #6a7c82">
+                Tarjeta de perfil con resumen a la izquierda y ajustes a la derecha.
+              </div>
+            </div>
+            <div class="frame scr">
+              <div style="padding: 26px 30px">
+                <h2
+                  style="
+                    font-size: 20px;
+                    font-weight: 600;
+                    letter-spacing: -0.01em;
+                    margin-bottom: 18px;
+                  "
+                >
+                  Perfil
+                </h2>
+                <div
+                  style="
+                    display: grid;
+                    grid-template-columns: 320px 1fr;
+                    gap: 18px;
+                    align-items: start;
+                  "
+                >
+                  <!-- left profile card -->
+                  <div
+                    style="
+                      border: 1px solid var(--border);
+                      border-radius: 14px;
+                      background: var(--surface);
+                      padding: 22px;
+                      text-align: center;
+                    "
+                  >
+                    <div
+                      style="
+                        width: 76px;
+                        height: 76px;
+                        border-radius: 50%;
+                        background: linear-gradient(135deg, var(--brand), var(--accent));
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 26px;
+                        font-weight: 600;
+                        color: #fff;
+                        margin: 0 auto 14px;
+                      "
+                    >
+                      JT
+                    </div>
+                    <div style="font-size: 17px; font-weight: 600">Javier Torres</div>
+                    <div style="font-size: 12.5px; color: var(--text-mut); margin-top: 2px">
+                      javier@correo.cl
+                    </div>
+                    <div
+                      style="
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 5px;
+                        margin-top: 10px;
+                        font-size: 10.5px;
+                        padding: 3px 10px;
+                        border-radius: 20px;
+                        background: var(--chip);
+                        color: var(--primary);
+                        font-weight: 600;
+                      "
+                    >
+                      Plan personal
+                    </div>
+                    <button
+                      style="
+                        width: 100%;
+                        height: 36px;
+                        margin-top: 16px;
+                        border-radius: 9px;
+                        background: var(--primary);
+                        color: var(--primary-ink);
+                        font-size: 12.5px;
+                        font-weight: 600;
+                        border: none;
+                        font-family: inherit;
+                      "
+                    >
+                      Editar perfil
+                    </button>
+                    <div
+                      style="
+                        display: flex;
+                        border-top: 1px solid var(--border);
+                        margin-top: 18px;
+                        padding-top: 16px;
+                      "
+                    >
+                      <div style="flex: 1">
+                        <div class="nw" style="font-size: 18px; font-weight: 700">5</div>
+                        <div style="font-size: 10.5px; color: var(--text-mut); margin-top: 2px">
+                          Cuentas
+                        </div>
+                      </div>
+                      <div
+                        style="
+                          flex: 1;
+                          border-left: 1px solid var(--border);
+                          border-right: 1px solid var(--border);
+                        "
+                      >
+                        <div class="nw" style="font-size: 18px; font-weight: 700">38</div>
+                        <div style="font-size: 10.5px; color: var(--text-mut); margin-top: 2px">
+                          Mov./mes
+                        </div>
+                      </div>
+                      <div style="flex: 1">
+                        <div class="nw" style="font-size: 18px; font-weight: 700">2024</div>
+                        <div style="font-size: 10.5px; color: var(--text-mut); margin-top: 2px">
+                          Miembro
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- right settings -->
+                  <div style="display: flex; flex-direction: column; gap: 16px">
+                    <div
+                      style="
+                        border: 1px solid var(--border);
+                        border-radius: 14px;
+                        background: var(--surface);
+                        padding: 18px 20px;
+                      "
+                    >
+                      <div style="font-size: 13.5px; font-weight: 600; margin-bottom: 6px">
+                        Preferencias
+                      </div>
+                      <div
+                        style="
+                          display: flex;
+                          align-items: center;
+                          justify-content: space-between;
+                          padding: 11px 0;
+                          border-bottom: 1px solid var(--border);
+                        "
+                      >
+                        <span style="font-size: 13px">Tema oscuro</span>
+                        <div class="sw on"><i></i></div>
+                      </div>
+                      <div
+                        style="
+                          display: flex;
+                          align-items: center;
+                          justify-content: space-between;
+                          padding: 11px 0;
+                          border-bottom: 1px solid var(--border);
+                        "
+                      >
+                        <span style="font-size: 13px">Moneda principal</span
+                        ><span style="font-size: 12.5px; color: var(--text-mut)"
+                          >CLP · Peso chileno</span
+                        >
+                      </div>
+                      <div
+                        style="
+                          display: flex;
+                          align-items: center;
+                          justify-content: space-between;
+                          padding: 11px 0;
+                          border-bottom: 1px solid var(--border);
+                        "
+                      >
+                        <span style="font-size: 13px">Idioma</span
+                        ><span style="font-size: 12.5px; color: var(--text-mut)">Español</span>
+                      </div>
+                      <div
+                        style="
+                          display: flex;
+                          align-items: center;
+                          justify-content: space-between;
+                          padding: 11px 0;
+                        "
+                      >
+                        <span style="font-size: 13px">Formato de fecha</span
+                        ><span style="font-size: 12.5px; color: var(--text-mut)">DD/MM/AAAA</span>
+                      </div>
+                    </div>
+                    <div
+                      style="
+                        border: 1px solid var(--border);
+                        border-radius: 14px;
+                        background: var(--surface);
+                        padding: 18px 20px;
+                      "
+                    >
+                      <div style="font-size: 13.5px; font-weight: 600; margin-bottom: 6px">
+                        Seguridad
+                      </div>
+                      <div
+                        style="
+                          display: flex;
+                          align-items: center;
+                          justify-content: space-between;
+                          padding: 11px 0;
+                          border-bottom: 1px solid var(--border);
+                        "
+                      >
+                        <div>
+                          <div style="font-size: 13px">Contraseña</div>
+                          <div style="font-size: 11px; color: var(--text-dim)">
+                            Actualizada hace 3 meses
+                          </div>
+                        </div>
+                        <button
+                          style="
+                            height: 32px;
+                            padding: 0 13px;
+                            border-radius: 8px;
+                            border: 1px solid var(--border-2);
+                            background: transparent;
+                            color: var(--text);
+                            font-size: 12px;
+                            font-weight: 500;
+                            font-family: inherit;
+                          "
+                        >
+                          Cambiar
+                        </button>
+                      </div>
+                      <div
+                        style="
+                          display: flex;
+                          align-items: center;
+                          justify-content: space-between;
+                          padding: 11px 0;
+                        "
+                      >
+                        <div>
+                          <div style="font-size: 13px">Verificación en dos pasos</div>
+                          <div style="font-size: 11px; color: var(--text-dim)">Recomendado</div>
+                        </div>
+                        <div class="sw"><i></i></div>
+                      </div>
+                    </div>
+                    <div
+                      style="
+                        border: 1px solid var(--border);
+                        border-radius: 14px;
+                        background: var(--surface);
+                        padding: 18px 20px;
+                      "
+                    >
+                      <div style="font-size: 13.5px; font-weight: 600; margin-bottom: 6px">
+                        Notificaciones
+                      </div>
+                      <div
+                        style="
+                          display: flex;
+                          align-items: center;
+                          justify-content: space-between;
+                          padding: 11px 0;
+                          border-bottom: 1px solid var(--border);
+                        "
+                      >
+                        <span style="font-size: 13px">Vencimientos de cuotas</span>
+                        <div class="sw on"><i></i></div>
+                      </div>
+                      <div
+                        style="
+                          display: flex;
+                          align-items: center;
+                          justify-content: space-between;
+                          padding: 11px 0;
+                          border-bottom: 1px solid var(--border);
+                        "
+                      >
+                        <span style="font-size: 13px">Resumen mensual</span>
+                        <div class="sw on"><i></i></div>
+                      </div>
+                      <div
+                        style="
+                          display: flex;
+                          align-items: center;
+                          justify-content: space-between;
+                          padding: 11px 0;
+                        "
+                      >
+                        <span style="font-size: 13px">Alertas de gasto</span>
+                        <div class="sw"><i></i></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ============================================================= -->
+          <!-- OPCIÓN C · CENTRADO MINIMAL                                    -->
+          <!-- ============================================================= -->
+          <div style="flex: none; width: 1060px">
+            <div style="margin-bottom: 14px">
+              <div style="font-size: 14px; font-weight: 700; color: #13242a; margin-bottom: 3px">
+                Opción C · Centrado minimal
+              </div>
+              <div style="font-size: 12.5px; color: #6a7c82">
+                Perfil centrado con avatar grande y ajustes en mosaicos compactos.
+              </div>
+            </div>
+            <div class="frame scr">
+              <div style="padding: 32px 30px; max-width: 820px; margin: 0 auto">
+                <div style="text-align: center; margin-bottom: 26px">
+                  <div
+                    style="
+                      width: 88px;
+                      height: 88px;
+                      border-radius: 50%;
+                      background: linear-gradient(135deg, var(--brand), var(--accent));
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      font-size: 30px;
+                      font-weight: 600;
+                      color: #fff;
+                      margin: 0 auto 14px;
+                    "
+                  >
+                    JT
+                  </div>
+                  <div style="font-size: 21px; font-weight: 600; letter-spacing: -0.01em">
+                    Javier Torres
+                  </div>
+                  <div style="font-size: 13px; color: var(--text-mut); margin-top: 3px">
+                    javier@correo.cl
+                  </div>
+                  <div
+                    style="
+                      display: flex;
+                      align-items: center;
+                      justify-content: center;
+                      gap: 8px;
+                      margin-top: 12px;
+                    "
+                  >
+                    <span
+                      style="
+                        font-size: 11px;
+                        padding: 3px 11px;
+                        border-radius: 20px;
+                        background: var(--chip);
+                        color: var(--primary);
+                        font-weight: 600;
+                      "
+                      >Plan personal</span
+                    >
+                    <span
+                      style="
+                        font-size: 11px;
+                        padding: 3px 11px;
+                        border-radius: 20px;
+                        background: var(--chip);
+                        color: var(--text-mut);
+                      "
+                      >Miembro desde 2024</span
+                    >
+                  </div>
+                  <button
+                    style="
+                      height: 36px;
+                      padding: 0 20px;
+                      margin-top: 16px;
+                      border-radius: 9px;
+                      background: var(--primary);
+                      color: var(--primary-ink);
+                      font-size: 12.5px;
+                      font-weight: 600;
+                      border: none;
+                      font-family: inherit;
+                    "
+                  >
+                    Editar perfil
+                  </button>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px">
+                  <div
+                    style="
+                      border: 1px solid var(--border);
+                      border-radius: 13px;
+                      background: var(--surface);
+                      padding: 18px;
+                    "
+                  >
+                    <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 14px">
+                      <div
+                        style="
+                          width: 30px;
+                          height: 30px;
+                          border-radius: 8px;
+                          background: var(--chip);
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                        "
+                      >
+                        <svg
+                          width="15"
+                          height="15"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="var(--primary)"
+                          stroke-width="2"
+                        >
+                          <circle cx="12" cy="12" r="3" />
+                          <path
+                            d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"
+                          />
+                        </svg>
+                      </div>
+                      <span style="font-size: 13.5px; font-weight: 600">Preferencias</span>
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 9px 0;
+                        border-bottom: 1px solid var(--border);
+                      "
+                    >
+                      <span style="font-size: 12.5px">Tema oscuro</span>
+                      <div class="sw on"><i></i></div>
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 9px 0;
+                        border-bottom: 1px solid var(--border);
+                      "
+                    >
+                      <span style="font-size: 12.5px">Moneda</span
+                      ><span style="font-size: 12px; color: var(--text-mut)">CLP</span>
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 9px 0;
+                      "
+                    >
+                      <span style="font-size: 12.5px">Idioma</span
+                      ><span style="font-size: 12px; color: var(--text-mut)">Español</span>
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      border: 1px solid var(--border);
+                      border-radius: 13px;
+                      background: var(--surface);
+                      padding: 18px;
+                    "
+                  >
+                    <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 14px">
+                      <div
+                        style="
+                          width: 30px;
+                          height: 30px;
+                          border-radius: 8px;
+                          background: var(--chip);
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                        "
+                      >
+                        <svg
+                          width="15"
+                          height="15"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="var(--primary)"
+                          stroke-width="2"
+                        >
+                          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                        </svg>
+                      </div>
+                      <span style="font-size: 13.5px; font-weight: 600">Seguridad</span>
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 9px 0;
+                        border-bottom: 1px solid var(--border);
+                      "
+                    >
+                      <span style="font-size: 12.5px">Contraseña</span
+                      ><span style="font-size: 12px; color: var(--primary); font-weight: 500"
+                        >Cambiar</span
+                      >
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 9px 0;
+                      "
+                    >
+                      <span style="font-size: 12.5px">Dos pasos</span>
+                      <div class="sw"><i></i></div>
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      border: 1px solid var(--border);
+                      border-radius: 13px;
+                      background: var(--surface);
+                      padding: 18px;
+                    "
+                  >
+                    <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 14px">
+                      <div
+                        style="
+                          width: 30px;
+                          height: 30px;
+                          border-radius: 8px;
+                          background: var(--chip);
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                        "
+                      >
+                        <svg
+                          width="15"
+                          height="15"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="var(--primary)"
+                          stroke-width="2"
+                        >
+                          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                        </svg>
+                      </div>
+                      <span style="font-size: 13.5px; font-weight: 600">Notificaciones</span>
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 9px 0;
+                        border-bottom: 1px solid var(--border);
+                      "
+                    >
+                      <span style="font-size: 12.5px">Vencimientos</span>
+                      <div class="sw on"><i></i></div>
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 9px 0;
+                        border-bottom: 1px solid var(--border);
+                      "
+                    >
+                      <span style="font-size: 12.5px">Resumen mensual</span>
+                      <div class="sw on"><i></i></div>
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 9px 0;
+                      "
+                    >
+                      <span style="font-size: 12.5px">Alertas de gasto</span>
+                      <div class="sw"><i></i></div>
+                    </div>
+                  </div>
+                  <div
+                    style="
+                      border: 1px solid var(--border);
+                      border-radius: 13px;
+                      background: var(--surface);
+                      padding: 18px;
+                    "
+                  >
+                    <div style="display: flex; align-items: center; gap: 9px; margin-bottom: 14px">
+                      <div
+                        style="
+                          width: 30px;
+                          height: 30px;
+                          border-radius: 8px;
+                          background: var(--chip);
+                          display: flex;
+                          align-items: center;
+                          justify-content: center;
+                        "
+                      >
+                        <svg
+                          width="15"
+                          height="15"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="var(--primary)"
+                          stroke-width="2"
+                        >
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <path d="M7 10l5 5 5-5" />
+                          <path d="M12 15V3" />
+                        </svg>
+                      </div>
+                      <span style="font-size: 13.5px; font-weight: 600">Datos</span>
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 9px 0;
+                        border-bottom: 1px solid var(--border);
+                      "
+                    >
+                      <span style="font-size: 12.5px">Exportar movimientos</span
+                      ><span style="font-size: 12px; color: var(--primary); font-weight: 500"
+                        >Excel</span
+                      >
+                    </div>
+                    <div
+                      style="
+                        display: flex;
+                        align-items: center;
+                        justify-content: space-between;
+                        padding: 9px 0;
+                      "
+                    >
+                      <span style="font-size: 12.5px">Eliminar cuenta</span
+                      ><span style="font-size: 12px; color: var(--danger); font-weight: 500"
+                        >Eliminar</span
+                      >
+                    </div>
+                  </div>
+                </div>
+                <div style="text-align: center; margin-top: 22px">
+                  <button
+                    style="
+                      height: 38px;
+                      padding: 0 22px;
+                      border-radius: 9px;
+                      border: 1px solid var(--border-2);
+                      background: transparent;
+                      color: var(--text);
+                      font-size: 13px;
+                      font-weight: 500;
+                      font-family: inherit;
+                    "
+                  >
+                    Cerrar sesión
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </x-dc>
+  </body>
+</html>

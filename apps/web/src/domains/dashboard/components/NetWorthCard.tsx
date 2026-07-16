@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { formatMoney } from "@finance/money";
 
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { cn } from "../../../shared/lib/cn";
 import { Card } from "../../../shared/ui/card";
 import { Sparkline } from "../../../shared/ui/sparkline";
@@ -25,7 +26,9 @@ export function NetWorthCard({
       <span className="text-sm font-medium text-muted-foreground">{t("dashboard.netWorth")}</span>
       <div className="flex flex-wrap items-end justify-between gap-4">
         <span className="text-3xl font-semibold tabular-nums tracking-tight">
-          {formatMoney(worth.total, { locale: i18n.language, currency: PRIMARY_CURRENCY })}
+          <MaskedAmount>
+            {formatMoney(worth.total, { locale: i18n.language, currency: PRIMARY_CURRENCY })}
+          </MaskedAmount>
         </span>
         {pct !== null ? (
           <span
@@ -58,7 +61,8 @@ export function NetWorthCard({
               key={s.currency}
               className="rounded-full bg-muted px-3 py-1 text-xs font-medium tabular-nums text-muted-foreground"
             >
-              {s.currency} {formatMoney(s.total, { locale: i18n.language, currency: s.currency })}
+              {s.currency}{" "}
+              <MaskedAmount>{formatMoney(s.total, { locale: i18n.language, currency: s.currency })}</MaskedAmount>
             </span>
           ))}
         </div>

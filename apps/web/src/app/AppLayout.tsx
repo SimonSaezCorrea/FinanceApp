@@ -21,9 +21,32 @@ import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router-dom";
 
 import { useAuth } from "../domains/auth/hooks/useAuth";
-import { Button } from "../shared/ui/button";
+import { ThemeSync } from "../domains/profile/components/ThemeSync";
 import { ThemeToggle } from "../shared/ui/theme-toggle";
 import { cn } from "../shared/lib/cn";
+import { getInitials } from "../shared/lib/initials";
+
+function UserAvatar({
+  name,
+  email,
+  className,
+}: {
+  name: string | null | undefined;
+  email: string | null | undefined;
+  className?: string;
+}) {
+  return (
+    <span
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-brand to-accent font-semibold text-primary-foreground",
+        className,
+      )}
+      aria-hidden
+    >
+      {getInitials(name ?? null, email ?? null)}
+    </span>
+  );
+}
 
 const NAV: { to: string; key: string; icon: LucideIcon; end?: boolean }[] = [
   { to: "/", key: "nav.dashboard", icon: LayoutDashboard, end: true },
@@ -88,6 +111,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex h-dvh overflow-hidden">
+      <ThemeSync />
       <div
         className={cn(
           "relative hidden shrink-0 transition-[width] duration-300 ease-in-out md:block",
@@ -111,23 +135,42 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
           <div
             className={cn(
-              "mt-auto flex flex-col gap-3 border-t pt-3",
-              collapsed ? "items-center" : "items-stretch",
+              "mt-auto flex items-center border-t pt-3",
+              collapsed ? "flex-col gap-2" : "gap-1",
             )}
           >
-            <ThemeToggle collapsed={collapsed} />
-            {collapsed ? null : (
-              <span className="truncate px-1 text-xs text-muted-foreground">{user?.email}</span>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              title={collapsed ? t("auth.logout") : undefined}
-              onClick={() => void logout()}
-              className={collapsed ? "w-10 justify-center px-0" : undefined}
+            <NavLink
+              to="/profile"
+              title={collapsed ? t("profile.title") : undefined}
+              className={({ isActive }) =>
+                cn(
+                  "flex min-w-0 items-center gap-2 rounded-md text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                  collapsed ? "h-8 w-8 justify-center" : "flex-1 px-1 py-1",
+                  isActive && "text-foreground",
+                )
+              }
             >
-              {collapsed ? <LogOut className="h-4 w-4" aria-hidden /> : t("auth.logout")}
-            </Button>
+              <UserAvatar name={user?.name} email={user?.email} className="h-7 w-7 text-xs" />
+              {collapsed ? null : (
+                <span className="min-w-0 flex-1 text-left leading-tight">
+                  <span className="block truncate text-sm font-medium text-foreground">
+                    {user?.name || user?.email}
+                  </span>
+                  {user?.name ? (
+                    <span className="block truncate text-muted-foreground">{user?.email}</span>
+                  ) : null}
+                </span>
+              )}
+            </NavLink>
+            <button
+              type="button"
+              title={t("auth.logout")}
+              aria-label={t("auth.logout")}
+              onClick={() => void logout()}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <LogOut className="h-4 w-4" aria-hidden />
+            </button>
           </div>
         </aside>
 
@@ -164,12 +207,31 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
             <NavLinks collapsed={false} onNavigate={() => setMobileOpen(false)} />
 
-            <div className="mt-auto flex flex-col gap-3 border-t pt-3">
-              <ThemeToggle />
-              <span className="truncate px-1 text-xs text-muted-foreground">{user?.email}</span>
-              <Button variant="outline" size="sm" onClick={() => void logout()}>
-                {t("auth.logout")}
-              </Button>
+            <div className="mt-auto flex items-center gap-1 border-t pt-3">
+              <NavLink
+                to="/profile"
+                onClick={() => setMobileOpen(false)}
+                className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <UserAvatar name={user?.name} email={user?.email} className="h-7 w-7 text-xs" />
+                <span className="min-w-0 flex-1 text-left leading-tight">
+                  <span className="block truncate text-sm font-medium text-foreground">
+                    {user?.name || user?.email}
+                  </span>
+                  {user?.name ? (
+                    <span className="block truncate text-muted-foreground">{user?.email}</span>
+                  ) : null}
+                </span>
+              </NavLink>
+              <button
+                type="button"
+                title={t("auth.logout")}
+                aria-label={t("auth.logout")}
+                onClick={() => void logout()}
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <LogOut className="h-4 w-4" aria-hidden />
+              </button>
             </div>
           </RadixDialog.Content>
         </RadixDialog.Portal>

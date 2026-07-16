@@ -370,6 +370,156 @@
     "haveAccount": "¿Ya tienes cuenta?",
     "logout": "Salir"
   },
+  "profile": {
+    "title": "Perfil",
+    "ageYears": "{{age}} años",
+    "plan": { "personal": "Plan personal" },
+    "stats": {
+      "accounts": "Cuentas",
+      "monthlyMovements": "Mov./mes",
+      "memberSince": "Miembro"
+    },
+    "editButton": "Editar perfil",
+    "personalInfo": {
+      "title": "Información personal",
+      "notSet": "Sin especificar"
+    },
+    "comingSoon": "Próximamente",
+    "accountStatus": {
+      "title": "Estado de tu cuenta",
+      "complete": "completo",
+      "blurb": "Completa tu perfil para desbloquear alertas por SMS y recuperación de cuenta.",
+      "done": "Listo",
+      "items": {
+        "email": "Correo",
+        "identity": "Identidad",
+        "phone": "Teléfono",
+        "photo": "Foto de perfil"
+      },
+      "action": {
+        "identity": "Completar",
+        "phone": "Agregar",
+        "photo": "Añadir"
+      }
+    },
+    "financial": {
+      "title": "Personalización financiera",
+      "cycleStart": "Inicio del ciclo mensual",
+      "cycleStartHint": "Cuándo empieza tu mes financiero",
+      "budgetTarget": "Presupuesto mensual objetivo",
+      "budgetTargetHint": "Base del termómetro de gasto",
+      "extraCurrencies": "Monedas extra",
+      "extraCurrenciesHint": "Monedas adicionales que quieres seguir, además de tu moneda principal",
+      "addCurrencyPlaceholder": "Elige una moneda…",
+      "addCurrency": "Agregar",
+      "removeCurrency": "Quitar {{code}}",
+      "noExtraCurrencies": "Sin monedas extra agregadas.",
+      "roundUp": "Redondeo para ahorro",
+      "roundUpHint": "Guarda la diferencia de cada gasto",
+      "hideBalances": "Ocultar saldos",
+      "hideBalancesHint": "Difumina montos en toda la app"
+    },
+    "billing": {
+      "title": "Plan, uso y facturación",
+      "planFree": "Plan personal · Gratis",
+      "usage": {
+        "accounts": "Cuentas",
+        "categories": "Categorías personalizadas"
+      },
+      "upsellTitle": "Pásate a Pro",
+      "upsellBody": "Cuentas ilimitadas, sincronización bancaria y reportes.",
+      "upsellCta": "Ver Pro",
+      "paymentMethod": "Visa •••• 4242",
+      "change": "Cambiar",
+      "invoiceHistory": "Historial de facturas",
+      "view": "Ver"
+    },
+    "dataPrivacy": {
+      "title": "Datos, conexiones y privacidad",
+      "linkedBanks": "Bancos vinculados",
+      "synced": "Sincronizado",
+      "paused": "Pausado",
+      "linkAnother": "Vincular otro banco",
+      "export": "Exportar movimientos",
+      "autoBackup": "Respaldo automático mensual",
+      "autoBackupHint": "Guarda una copia de tus datos"
+    },
+    "edit": {
+      "title": "Editar perfil",
+      "name": "Nombre",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "phoneNoCountryHint": "Elige tu país para anteponer el código automáticamente.",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "personalInfo": "Información personal",
+      "country": "País",
+      "countryNone": "Sin especificar",
+      "birthDate": "Fecha de nacimiento",
+      "identifierType": "Tipo de identificador",
+      "identifierValue": "Número de identificador",
+      "identifierTypes": {
+        "RUT": "RUT",
+        "DNI": "DNI",
+        "PASSPORT": "Pasaporte",
+        "OTHER": "Otro"
+      },
+      "addressStreet": "Dirección (calle y número)",
+      "addressCity": "Ciudad / comuna",
+      "addressRegion": "Región / estado",
+      "addressPostalCode": "Código postal"
+    },
+    "security": {
+      "title": "Seguridad",
+      "password": {
+        "label": "Contraseña",
+        "hint": "Puedes cambiarla cuando quieras.",
+        "change": "Cambiar",
+        "current": "Contraseña actual",
+        "new": "Nueva contraseña",
+        "save": "Guardar"
+      },
+      "twoFactor": {
+        "label": "Verificación en dos pasos",
+        "hint": "Próximamente"
+      },
+      "passkey": {
+        "label": "Llave de acceso (passkey)",
+        "hint": "Face ID · huella · llave física",
+        "configure": "Configurar"
+      },
+      "sessions": {
+        "title": "Sesiones y dispositivos",
+        "closeAll": "Cerrar todas",
+        "thisDevice": "Este dispositivo · activo ahora",
+        "close": "Cerrar"
+      }
+    },
+    "preferences": {
+      "title": "Preferencias",
+      "darkTheme": "Tema oscuro",
+      "currency": "Moneda principal",
+      "language": "Idioma",
+      "dateFormat": "Formato de fecha"
+    },
+    "notifications": {
+      "title": "Notificaciones",
+      "budgetThreshold": "Avísame al alcanzar",
+      "budgetThresholdValue": "{{pct}}% del presupuesto",
+      "installmentDue": "Vencimientos de cuotas",
+      "monthlySummary": "Resumen mensual",
+      "spendAlerts": "Alertas de gasto",
+      "hint": "Próximamente"
+    },
+    "danger": {
+      "logout": "Cerrar sesión",
+      "deactivate": "Eliminar cuenta",
+      "confirmTitle": "¿Eliminar tu cuenta?",
+      "confirmDescription": "Tu cuenta quedará deshabilitada y no podrás volver a iniciar sesión. Tus datos financieros no se borran.",
+      "passwordLabel": "Confirma tu contraseña",
+      "confirmButton": "Desactivar cuenta"
+    }
+  },
   "errors": {
     "INTERNAL_ERROR": "Ocurrió un error. Inténtalo de nuevo.",
     "UNAUTHORIZED": "Inicia sesión para continuar.",
@@ -382,6 +532,8 @@
     "CARD_ACCOUNT_MISMATCH": "La tarjeta no pertenece a esa cuenta.",
     "CARD_LIMIT_EXCEEDED": "El gasto supera el cupo de la tarjeta principal.",
     "CARD_SUBLIMIT_EXCEEDED": "El gasto supera el sub-tope de la tarjeta secundaria.",
-    "PARENT_CARD_INVALID": "La tarjeta principal seleccionada no es válida."
+    "PARENT_CARD_INVALID": "La tarjeta principal seleccionada no es válida.",
+    "INVALID_CURRENT_PASSWORD": "La contraseña actual no es correcta.",
+    "ACCOUNT_DISABLED": "Esta cuenta está deshabilitada."
   }
 }
