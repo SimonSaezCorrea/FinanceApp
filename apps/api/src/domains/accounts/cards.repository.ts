@@ -30,14 +30,18 @@ export class CardsRepository {
     cardId: string,
     data: Prisma.CardAccountUncheckedUpdateInput,
   ) {
-    const existing = await this.prisma.cardAccount.findFirst({ where: { id: cardId, accountId, userId } });
+    const existing = await this.prisma.cardAccount.findFirst({
+      where: { id: cardId, accountId, userId },
+    });
     if (!existing) return null;
     await this.prisma.cardAccount.update({ where: { id: cardId }, data });
     return this.prisma.cardAccount.findFirst({ where: { id: cardId } });
   }
 
   async remove(userId: string, accountId: string, cardId: string): Promise<boolean> {
-    const result = await this.prisma.cardAccount.deleteMany({ where: { id: cardId, accountId, userId } });
+    const result = await this.prisma.cardAccount.deleteMany({
+      where: { id: cardId, accountId, userId },
+    });
     return result.count > 0;
   }
 }

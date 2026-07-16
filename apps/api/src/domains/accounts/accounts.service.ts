@@ -172,7 +172,9 @@ export class AccountsService {
       ...(input.accountNumber !== undefined ? { accountNumber: input.accountNumber } : {}),
       ...(input.initialBalance !== undefined ? { initialBalance: input.initialBalance } : {}),
       ...(input.creditLimit !== undefined ? { creditLimit: input.creditLimit } : {}),
-      ...(input.creditUsedInitial !== undefined ? { creditUsedInitial: input.creditUsedInitial } : {}),
+      ...(input.creditUsedInitial !== undefined
+        ? { creditUsedInitial: input.creditUsedInitial }
+        : {}),
     });
     if (!row) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
     return this.withSeries(userId, row);

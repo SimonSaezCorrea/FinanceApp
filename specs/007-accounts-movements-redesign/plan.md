@@ -26,13 +26,13 @@ Enfoque técnico: extender esquema Prisma + contratos zod, lógica en servicios 
 
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-| Principio | Cumplimiento en este plan |
-| --------- | ------------------------- |
-| I. Money Precision (NON-NEG) | `initialUsed`/`limit`/`used` en `Decimal(18,4)`; agregaciones con `@finance/money`; decimal strings en contrato. ✅ |
-| II. Per-User Data Isolation (NON-NEG) | Toda query nueva (groupBy gastos por tarjeta, validación de padre, enforcement) scoped por `userId`. ✅ |
-| III. i18n Parity (NON-NEG) | Nuevas cadenas (modal tarjeta, edit/delete movimiento, tag inactiva, número de cuenta, errores de cupo) en es.json y en.json con claves idénticas. ✅ |
-| IV. Test-First / TDD (NON-NEG) | Vitest: tests de la lógica de pool/sub-tope y reglas tarjeta/tipo antes de implementar; money rules cubiertas. ✅ |
-| V. SDD & Living Memory (NON-NEG) | Cambios de esquema/contrato/errores ⇒ actualizar `constitution.md` + `CLAUDE.md` en la fase de memory-sync del `/sdd`. ✅ |
+| Principio                             | Cumplimiento en este plan                                                                                                                             |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I. Money Precision (NON-NEG)          | `initialUsed`/`limit`/`used` en `Decimal(18,4)`; agregaciones con `@finance/money`; decimal strings en contrato. ✅                                   |
+| II. Per-User Data Isolation (NON-NEG) | Toda query nueva (groupBy gastos por tarjeta, validación de padre, enforcement) scoped por `userId`. ✅                                               |
+| III. i18n Parity (NON-NEG)            | Nuevas cadenas (modal tarjeta, edit/delete movimiento, tag inactiva, número de cuenta, errores de cupo) en es.json y en.json con claves idénticas. ✅ |
+| IV. Test-First / TDD (NON-NEG)        | Vitest: tests de la lógica de pool/sub-tope y reglas tarjeta/tipo antes de implementar; money rules cubiertas. ✅                                     |
+| V. SDD & Living Memory (NON-NEG)      | Cambios de esquema/contrato/errores ⇒ actualizar `constitution.md` + `CLAUDE.md` en la fase de memory-sync del `/sdd`. ✅                             |
 
 Arquitectura: se respeta domain-first (`accounts`, `transactions`), repository como único touchpoint Prisma, validación zod (`ZodValidationPipe`), one-way deps. **Sin violaciones** → Complexity Tracking vacío.
 
