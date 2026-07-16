@@ -25,7 +25,10 @@ async function seedFullUser(passwordHash: string) {
   // Resolve Chilean banks (seeded in seedReferenceData) by SBIF code, to link accounts.
   const chile = await prisma.country.findUnique({ where: { alpha2: "CL" } });
   const clBanks = chile
-    ? await prisma.financialInstitution.findMany({ where: { countryId: chile.id }, select: { id: true, code: true } })
+    ? await prisma.financialInstitution.findMany({
+        where: { countryId: chile.id },
+        select: { id: true, code: true },
+      })
     : [];
   const bankId = (sbif: string) => clBanks.find((b) => b.code === sbif)?.id ?? null;
 

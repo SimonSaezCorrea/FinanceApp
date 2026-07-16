@@ -66,14 +66,26 @@ describe("TransactionsService", () => {
       findAccount: vi.fn().mockResolvedValue({ id: "a1", type: "CHECKING" }),
     });
     await expect(
-      svc.create("u1", { ...base, type: "INCOME", amount: "1000", bankAccountId: "a1", cardId: "cP" }),
+      svc.create("u1", {
+        ...base,
+        type: "INCOME",
+        amount: "1000",
+        bankAccountId: "a1",
+        cardId: "cP",
+      }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it("rejects a card on a cash-account expense", async () => {
     const svc = makeService({ findAccount: vi.fn().mockResolvedValue({ id: "a1", type: "CASH" }) });
     await expect(
-      svc.create("u1", { ...base, type: "EXPENSE", amount: "1000", bankAccountId: "a1", cardId: "cP" }),
+      svc.create("u1", {
+        ...base,
+        type: "EXPENSE",
+        amount: "1000",
+        bankAccountId: "a1",
+        cardId: "cP",
+      }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -90,14 +102,26 @@ describe("TransactionsService", () => {
       cardBelongsToAccount: vi.fn().mockResolvedValue(false),
     });
     await expect(
-      svc.create("u1", { ...base, type: "EXPENSE", amount: "1000", bankAccountId: "aC", cardId: "cP" }),
+      svc.create("u1", {
+        ...base,
+        type: "EXPENSE",
+        amount: "1000",
+        bankAccountId: "aC",
+        cardId: "cP",
+      }),
     ).rejects.toMatchObject({ response: { code: "CARD_ACCOUNT_MISMATCH" } });
   });
 
   it("throws NotFound when the bank account is not the user's", async () => {
     const svc = makeService({ findAccount: vi.fn().mockResolvedValue(null) });
     await expect(
-      svc.create("u1", { ...base, type: "EXPENSE", amount: "1000", bankAccountId: "ghost", cardId: "cP" }),
+      svc.create("u1", {
+        ...base,
+        type: "EXPENSE",
+        amount: "1000",
+        bankAccountId: "ghost",
+        cardId: "cP",
+      }),
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
@@ -131,7 +155,13 @@ describe("TransactionsService", () => {
       sumsForAccount: vi.fn().mockResolvedValue({ income: "0", expense: "0" }),
       create,
     });
-    await svc.create("u1", { ...base, type: "EXPENSE", amount: "100000", bankAccountId: "aC", cardId: "cC" });
+    await svc.create("u1", {
+      ...base,
+      type: "EXPENSE",
+      amount: "100000",
+      bankAccountId: "aC",
+      cardId: "cC",
+    });
     expect(create).toHaveBeenCalled();
   });
 
@@ -143,7 +173,13 @@ describe("TransactionsService", () => {
       sumsForAccount: vi.fn().mockResolvedValue({ income: "0", expense: "2950000" }),
     });
     await expect(
-      svc.create("u1", { ...base, type: "EXPENSE", amount: "100000", bankAccountId: "aC", cardId: "cC" }),
+      svc.create("u1", {
+        ...base,
+        type: "EXPENSE",
+        amount: "100000",
+        bankAccountId: "aC",
+        cardId: "cC",
+      }),
     ).rejects.toMatchObject({ response: { code: "CARD_LIMIT_EXCEEDED" } });
   });
 
@@ -156,7 +192,13 @@ describe("TransactionsService", () => {
       sumsForAccount: vi.fn().mockResolvedValue({ income: "200000", expense: "2950000" }),
       create,
     });
-    await svc.create("u1", { ...base, type: "EXPENSE", amount: "100000", bankAccountId: "aC", cardId: "cC" });
+    await svc.create("u1", {
+      ...base,
+      type: "EXPENSE",
+      amount: "100000",
+      bankAccountId: "aC",
+      cardId: "cC",
+    });
     expect(create).toHaveBeenCalled();
   });
 
@@ -164,7 +206,9 @@ describe("TransactionsService", () => {
 
   it("throws NotFound updating a missing transaction", async () => {
     const svc = makeService({ findOne: vi.fn().mockResolvedValue(null) });
-    await expect(svc.update("u1", "nope", { amount: "10" })).rejects.toBeInstanceOf(NotFoundException);
+    await expect(svc.update("u1", "nope", { amount: "10" })).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
   });
 
   it("re-enforces on edit excluding the edited tx's own contribution", async () => {

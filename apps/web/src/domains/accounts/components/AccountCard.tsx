@@ -58,7 +58,10 @@ export function AccountCard({ account }: { account: accounts.BankAccount }) {
           {formatMoney(account.creditUsed, { locale: i18n.language, currency: account.currency })}
           <span className="text-sm font-normal text-muted-foreground">
             {" / "}
-            {formatMoney(account.creditLimit, { locale: i18n.language, currency: account.currency })}
+            {formatMoney(account.creditLimit, {
+              locale: i18n.language,
+              currency: account.currency,
+            })}
           </span>
         </p>
       ) : (

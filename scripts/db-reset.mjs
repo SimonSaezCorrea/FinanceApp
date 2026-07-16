@@ -24,7 +24,10 @@ const run = (cmd) => {
   console.log(`\n$ ${cmd}`);
   execSync(cmd, { cwd: root, stdio: "inherit" });
 };
-const capture = (cmd) => execSync(cmd, { cwd: root, stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+const capture = (cmd) =>
+  execSync(cmd, { cwd: root, stdio: ["ignore", "pipe", "ignore"] })
+    .toString()
+    .trim();
 /** Like run(), but never aborts — for idempotent teardown that may have nothing to remove. */
 const runSafe = (cmd) => {
   console.log(`\n$ ${cmd}`);
@@ -54,7 +57,9 @@ function waitForHealthy(container, timeoutMs = 90_000) {
       process.exit(1);
     }
     process.stdout.write(".");
-    execSync(process.platform === "win32" ? "ping -n 3 127.0.0.1 > NUL" : "sleep 2", { stdio: "ignore" });
+    execSync(process.platform === "win32" ? "ping -n 3 127.0.0.1 > NUL" : "sleep 2", {
+      stdio: "ignore",
+    });
   }
 }
 
@@ -64,7 +69,9 @@ console.log("⟲ Resetting FinanceApp database from scratch (Docker)…");
 try {
   capture("docker info");
 } catch {
-  console.error("\n✗ Docker no está disponible o el daemon no está corriendo. Inicia Docker y reintenta.");
+  console.error(
+    "\n✗ Docker no está disponible o el daemon no está corriendo. Inicia Docker y reintenta.",
+  );
   process.exit(1);
 }
 

@@ -10,6 +10,7 @@ Cambios sobre los schemas existentes. Money = decimal strings (`moneyString`).
   initialUsed: moneyString,   // NUEVO — semilla (deuda al alta)
   used: moneyString }          // ahora SALIDA derivada = initialUsed + Σ gastos crédito
 ```
+
 - En creación/edición, el cliente envía `currency`, `limit`, `initialUsed`. `used` es solo respuesta.
 
 ## cardSchema / createCardSchema

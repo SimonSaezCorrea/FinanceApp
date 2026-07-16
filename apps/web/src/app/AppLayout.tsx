@@ -138,7 +138,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
           className="absolute -right-3 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border bg-card text-muted-foreground shadow-sm transition-colors hover:bg-muted hover:text-foreground"
         >
           <ChevronLeft
-            className={cn("h-3.5 w-3.5 transition-transform duration-300", collapsed && "rotate-180")}
+            className={cn(
+              "h-3.5 w-3.5 transition-transform duration-300",
+              collapsed && "rotate-180",
+            )}
             aria-hidden
           />
         </button>
