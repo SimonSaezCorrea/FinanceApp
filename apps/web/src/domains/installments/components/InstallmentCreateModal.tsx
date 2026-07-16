@@ -41,6 +41,7 @@ export function InstallmentCreateModal({
   useEffect(() => {
     if (open) {
       if (initialData) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
         setTitle(initialData.title);
         setInstallmentCount(initialData.installmentCount);
         setTotalPrincipal(initialData.totalPrincipal);
