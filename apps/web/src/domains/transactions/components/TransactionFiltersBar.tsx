@@ -20,6 +20,7 @@ export function TransactionFiltersBar({ filters, onChange, accounts }: Transacti
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resync local echo when the external filter changes
     setLocalCategory(filters.categorySearch);
   }, [filters.categorySearch]);
 

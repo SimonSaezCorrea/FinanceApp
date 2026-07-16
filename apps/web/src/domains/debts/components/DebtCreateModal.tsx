@@ -42,6 +42,7 @@ export function DebtCreateModal({ open, onOpenChange, initialData }: DebtCreateM
   useEffect(() => {
     if (open) {
       if (initialData) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
         setDirection(initialData.direction);
         setCounterparty(initialData.counterparty);
         setAmount(initialData.principal);

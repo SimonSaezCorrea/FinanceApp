@@ -19,33 +19,31 @@ function apply(resolved: ResolvedTheme): void {
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<ThemeMode>(readStoredMode);
-  const [resolved, setResolved] = useState<ResolvedTheme>(() => resolveTheme(mode));
+  const [systemTheme, setSystemTheme] = useState<ResolvedTheme>(() => resolveTheme("system"));
 
   const setMode = useCallback((next: ThemeMode) => {
     globalThis.localStorage?.setItem(THEME_STORAGE_KEY, next);
     setModeState(next);
   }, []);
 
-  // Apply on mode change.
-  useEffect(() => {
-    const next = resolveTheme(mode);
-    setResolved(next);
-    apply(next);
-  }, [mode]);
+  const resolved = useMemo<ResolvedTheme>(
+    () => (mode === "system" ? systemTheme : mode),
+    [mode, systemTheme],
+  );
 
-  // Follow OS changes while in "system" mode.
+  // Apply to the DOM whenever the resolved theme changes.
   useEffect(() => {
-    if (mode !== "system") return;
+    apply(resolved);
+  }, [resolved]);
+
+  // Follow OS changes; only affects `resolved` while in "system" mode.
+  useEffect(() => {
     const mql = globalThis.matchMedia?.("(prefers-color-scheme: light)");
     if (!mql) return;
-    const onChange = () => {
-      const next = resolveTheme("system");
-      setResolved(next);
-      apply(next);
-    };
+    const onChange = () => setSystemTheme(resolveTheme("system"));
     mql.addEventListener("change", onChange);
     return () => mql.removeEventListener("change", onChange);
-  }, [mode]);
+  }, []);
 
   const value = useMemo(() => ({ mode, resolved, setMode }), [mode, resolved, setMode]);
 

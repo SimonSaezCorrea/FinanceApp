@@ -59,6 +59,7 @@ export function TransactionCreateModal({
   // Sync form state whenever the modal opens (create defaults or edit prefill).
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
     setType(initial?.type ?? "EXPENSE");
     setAmount(initial?.amount ?? "");
     setCurrency(initial?.currency ?? "CLP");
