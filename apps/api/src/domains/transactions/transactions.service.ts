@@ -160,7 +160,11 @@ export class TransactionsService {
     if (m.cardId) await this.assertCardBelongs(userId, m.cardId, m.bankAccountId);
   }
 
-  private async assertCardBelongs(userId: string, cardId: string, accountId: string): Promise<void> {
+  private async assertCardBelongs(
+    userId: string,
+    cardId: string,
+    accountId: string,
+  ): Promise<void> {
     if (!(await this.repo.cardBelongsToAccount(userId, cardId, accountId))) {
       throw new BadRequestException({ code: "CARD_ACCOUNT_MISMATCH" });
     }
@@ -173,7 +177,11 @@ export class TransactionsService {
     m: EffectiveMovement,
     excludeTxId?: string,
   ): Promise<void> {
-    const { income, expense } = await this.repo.sumsForAccount(userId, m.bankAccountId, excludeTxId);
+    const { income, expense } = await this.repo.sumsForAccount(
+      userId,
+      m.bankAccountId,
+      excludeTxId,
+    );
     const used = subtractMoney(addMoney(account.creditUsedInitial.toString(), expense), income);
     const projected = toMoney(used).plus(toMoney(m.amount));
     if (projected.greaterThan(toMoney(account.creditLimit.toString()))) {

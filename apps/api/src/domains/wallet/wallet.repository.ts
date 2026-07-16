@@ -52,7 +52,10 @@ export class WalletRepository {
   reorder(userId: string, ids: string[]): Promise<unknown> {
     return this.prisma.$transaction(
       ids.map((id, index) =>
-        this.prisma.walletItemDashboard.updateMany({ where: { id, userId }, data: { order: index } }),
+        this.prisma.walletItemDashboard.updateMany({
+          where: { id, userId },
+          data: { order: index },
+        }),
       ),
     );
   }

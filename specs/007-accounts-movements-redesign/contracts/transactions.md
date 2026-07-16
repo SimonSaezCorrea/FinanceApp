@@ -17,6 +17,7 @@
 ## Reglas de servicio (transactions.service)
 
 Al crear/editar un movimiento:
+
 1. Resolver `account = accounts.findOne(userId, bankAccountId)`.
 2. `INCOME` ⇒ `cardId` prohibido → `CARD_NOT_ALLOWED`.
 3. `EXPENSE` + `account.type === CASH` ⇒ `cardId` prohibido → `CARD_NOT_ALLOWED`.

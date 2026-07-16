@@ -53,7 +53,8 @@ export type CreateTransaction = z.infer<typeof createTransactionSchema>;
 
 // `.partial()` isn't available on a ZodEffects (refined) schema, so derive the
 // update shape from the inner object and re-apply the income/card refinement.
-export const updateTransactionSchema = createTransactionSchema.innerType()
+export const updateTransactionSchema = createTransactionSchema
+  .innerType()
   .partial()
   .refine((t) => t.type !== "INCOME" || !t.cardId, {
     message: "income cannot be linked to a card",

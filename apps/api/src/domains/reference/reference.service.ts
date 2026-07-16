@@ -17,9 +17,7 @@ export class ReferenceService {
     return (await this.repo.listCountries()).map(countryToContract);
   }
 
-  async listInstitutions(
-    filters: reference.InstitutionFilters,
-  ): Promise<reference.Institution[]> {
+  async listInstitutions(filters: reference.InstitutionFilters): Promise<reference.Institution[]> {
     return (await this.repo.listInstitutions(filters.country, filters.kind)).map(
       institutionToContract,
     );
