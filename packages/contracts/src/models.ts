@@ -24,7 +24,6 @@ export type {
   Card,
   CreateCard,
   CardKind,
-  CardLimit,
 } from "./accounts/index";
 
 // transactions

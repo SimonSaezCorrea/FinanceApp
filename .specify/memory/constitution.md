@@ -1,4 +1,46 @@
 <!--
+Sync Impact Report — 2026-07-02 (amendment 1.5.0)
+- Version change: 1.4.0 → 1.5.0 (MINOR: revised accounts/cards model — supersedes the 1.4.0
+  secondary-card sub-limit design before it shipped). Core Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards/transactions):
+  - `AccountType` enum redefined: **CHECKING, SIGHT, SAVINGS, INVESTMENT, CREDIT_LINE, CASH**
+    (removed VISTA→SIGHT, CREDIT_CARD/DEBIT_CARD/OTHER; added INVESTMENT, CREDIT_LINE).
+  - **A standalone credit card is modeled as a `CREDIT_LINE` account** (the credit line lives in the
+    account). The credit pool moved from the card to the account: `BankAccount.creditLimit` +
+    `creditUsedInitial` (seed); derived `creditUsed = creditUsedInitial + Σexpense − Σincome`.
+  - `Card` is now a pure payment instrument (plastic) that ALWAYS belongs to an account: `kind`
+    (`CardKind`: CREDIT/DEBIT/**PREPAID**), `isActive`; **`CardLimit` model removed**, and the 1.4.0
+    `parentCardId`/sub-limit secondary mechanism removed (secondaries = multiple cards on one
+    credit-line account sharing its pool). Error codes reduced to CARD_REQUIRED, CARD_NOT_ALLOWED,
+    CARD_ACCOUNT_MISMATCH, CARD_LIMIT_EXCEEDED (dropped CARD_SUBLIMIT_EXCEEDED, PARENT_CARD_INVALID).
+  - Transactions: EXPENSE on a CREDIT_LINE account requires a card and is enforced against the
+    account's credit pool; on other non-cash accounts the card is optional.
+  - **Docker dev DB + reset workflow:** added `docker-compose.yml` (Postgres) and `pnpm db:reset`
+    (`scripts/db-reset.mjs`) — destroy volume → recreate → `db push` → seed. Still no migrations folder.
+  - **Persistence naming rule (1.5.1):** DB tables are **kebab-case via `@@map`** (models stay
+    PascalCase). Renamed models `Card → CardAccount`, `WalletItem → WalletItemDashboard`. Removed the
+    dead NextAuth tables (`Account`/`Session`/`VerificationToken`) — auth is JWT email+password only.
+    Rule recorded under Architecture norms.
+
+Sync Impact Report — 2026-07-02 (amendment 1.4.0)
+- Version change: 1.3.0 → 1.4.0 (MINOR: data-model + business-rule expansion from specs/007
+  "Rediseño Cuentas y Movimientos con tarjetas secundarias"). Core Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards/transactions domains):
+  - `BankAccount` gains `accountNumber` (bank account number — free text, stored/shown in full; the
+    "only last-4 / no PAN/CVV" rule applies ONLY to `Card`).
+  - `Card` gains a self-relation `parentCardId` (secondary/additional cards, one level, onDelete Cascade).
+    A secondary CREDIT card shares its primary's credit pool with its own sub-limit; a secondary DEBIT
+    card is just another card on the same account (no pool).
+  - `CardLimit.used` (previously a stored, user-set value) is replaced by `initialUsed` (seed) + a
+    DERIVED reconciled `used = initialUsed + Σ credit EXPENSE`; a primary aggregates its secondaries.
+    Mirrors the account initialBalance/currentBalance pattern (Principle I still holds — decimal only).
+  - Transactions: bank required on new movements; non-cash EXPENSE requires a card, INCOME/cash forbid one;
+    credit expenses enforced against sub-limit + shared pool. New language-agnostic error codes: CARD_REQUIRED,
+    CARD_NOT_ALLOWED, CARD_ACCOUNT_MISMATCH, CARD_LIMIT_EXCEEDED, CARD_SUBLIMIT_EXCEEDED, PARENT_CARD_INVALID.
+  - DB workflow note: the repo currently has no `prisma/migrations` folder and syncs schema via
+    `prisma db push` ("Database schema is up to date"); the specs/007 schema change was applied with a
+    data-preserving SQL backfill (`initialUsed = used`) then `db push`.
+
 Sync Impact Report — 2026-06-21 (amendment 1.3.0)
 - Version change: 1.2.0 → 1.3.0 (MINOR: recorded post-merge reality — monorepo merged to `main`;
   two new business domains (recurring, wallet); the design-system redesign and its approved
@@ -144,7 +186,13 @@ reality, every future decision is made on false information.
   - **One-way dependencies:** `apps → packages`; `packages ↛ apps`; `api ↛ web`. Enforced by
     `pnpm check:boundaries` (the frontend must not import backend internals or any DB client).
   - **Validation with zod** (`ZodValidationPipe`), not class-validator.
-- **Business domains (current — 10):** backend `apps/api/src/domains/*`: `auth`, `accounts`
+  - **Persistence naming:** Prisma **model** names are PascalCase; the physical **DB table** name MUST
+    be **kebab-case via `@@map`** (e.g. `BankAccount` → `bank-account`, `CardAccount` → `card-account`,
+    `WalletItemDashboard` → `wallet-item-dashboard`). Every model carries an `@@map`. No unused/legacy
+    tables: auth is JWT email+password only (no NextAuth `Account`/`Session`/`VerificationToken`).
+- **Business domains (current — 11):** backend `apps/api/src/domains/*`: `reference` (global read-only
+  countries + financial institutions [banks + non-bank card issuers via `FinancialInstitution.kind`] +
+  currencies — ISO 3166-1 + ISO 4217; `BankAccount.institutionId` FK), `auth`, `accounts`
   (incl. `cards` + a per-day `balanceSeries`/`balanceChangePct`), `transactions`, `installments`,
   `debts`, `recurring` (recurring expenses — subscriptions/rent/periodic payments; next-due computed
   from anchor + frequency × interval), `savings`, `investments`, `import`, `wallet` (user-curated set
@@ -189,4 +237,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.3.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-06-21
+**Version**: 1.5.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-02

@@ -1,5 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from "@nestjs/common";
-import type { WalletItem as WalletItemRow } from "@prisma/client";
+import type { WalletItemDashboard as WalletItemRow } from "@prisma/client";
 
 import { wallet } from "@finance/contracts";
 

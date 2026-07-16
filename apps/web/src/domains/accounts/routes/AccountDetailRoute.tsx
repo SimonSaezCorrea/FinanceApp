@@ -2,26 +2,28 @@ import { ChevronRight, Pencil, Plus, Power, RefreshCw, Trash2 } from "lucide-rea
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { toast } from "sonner";
 
-import type { accounts } from "@finance/contracts";
+import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useTransactions } from "../../transactions/hooks/useTransactions";
+import { useTransactionMutations } from "../../transactions/hooks/useTransactionMutations";
+import { TransactionCreateModal } from "../../transactions/components/TransactionCreateModal";
+import { TransactionTable } from "../../transactions/components/TransactionTable";
 import { cn } from "../../../shared/lib/cn";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { Card, CardContent } from "../../../shared/ui/card";
-import { Tabs } from "../../../shared/ui/tabs";
+import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
 import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
 import { AccountForm } from "../components/AccountForm";
 import { AccountVisualCard } from "../components/AccountVisualCard";
-import { CardForm } from "../components/CardForm";
+import { CardCreateModal } from "../components/CardCreateModal";
 import { ACCOUNT_ICON } from "../components/accountVisuals";
 import { useAccount, useAccountMutations } from "../hooks/useAccounts";
 import { useCardMutations } from "../hooks/useCards";
-
-type Tab = "transactions" | "cards" | "info";
 
 export function AccountDetailRoute() {
   const { t, i18n } = useTranslation();
@@ -29,7 +31,6 @@ export function AccountDetailRoute() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
-  const [tab, setTab] = useState<Tab>("transactions");
   const { data: acc, isLoading, isError } = useAccount(id);
   const { update, setStatus, reconcile, remove } = useAccountMutations();
 
@@ -97,9 +98,12 @@ export function AccountDetailRoute() {
                     name: acc.name,
                     type: acc.type,
                     status: acc.status,
-                    institution: acc.institution ?? "",
+                    institutionId: acc.institutionId ?? "",
+                    accountNumber: acc.accountNumber ?? "",
                     currency: acc.currency,
                     initialBalance: acc.initialBalance,
+                    creditLimit: acc.creditLimit,
+                    creditUsedInitial: acc.creditUsed,
                   }}
                   onSubmit={(v) =>
                     update.mutate(
@@ -110,8 +114,11 @@ export function AccountDetailRoute() {
                           type: v.type,
                           status: v.status,
                           currency: v.currency,
-                          institution: v.institution || undefined,
+                          institutionId: v.institutionId || undefined,
+                          accountNumber: v.accountNumber || undefined,
                           initialBalance: v.initialBalance || "0",
+                          creditLimit: v.creditLimit || "0",
+                          creditUsedInitial: v.creditUsedInitial || "0",
                         },
                       },
                       { onSuccess: () => setEditing(false) },
@@ -123,77 +130,35 @@ export function AccountDetailRoute() {
           ) : (
             <>
               <KpiStrip account={acc} pct={pct} />
-
-              <div className="flex flex-col gap-4">
-                <Tabs
-                  value={tab}
-                  onChange={setTab}
-                  items={[
-                    { value: "transactions", label: t("transactions.title") },
-                    { value: "cards", label: t("cards.title") },
-                    { value: "info", label: t("accounts.detail.info") },
-                  ]}
-                />
-                {tab === "transactions" ? (
-                  <TransactionsTab accountId={id} currency={acc.currency} />
-                ) : null}
-                {tab === "cards" ? <CardsTab account={acc} /> : null}
-                {tab === "info" ? <InfoTab account={acc} /> : null}
-              </div>
+              <MovementsSection account={acc} />
             </>
           )}
         </div>
 
         {/* Side column */}
         <aside className="flex flex-col gap-4">
-          <AccountVisualCard account={acc} holder={user?.name ?? undefined} />
-
-          <Card className="p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-semibold">{t("cards.title")}</span>
-              <button
-                type="button"
-                onClick={() => setTab("cards")}
-                className="flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-              >
-                <Plus className="h-3.5 w-3.5" aria-hidden />
-                {t("cards.add")}
-              </button>
-            </div>
-            {acc.cards.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("cards.empty")}</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {acc.cards.map((card) => (
-                  <li
-                    key={card.id}
-                    className="flex items-center justify-between rounded-md border px-3 py-2"
-                  >
-                    <span className="flex flex-col">
-                      <span className="text-sm font-medium">
-                        {card.name} <span className="text-muted-foreground">···· {card.last4}</span>
-                      </span>
-                      <span className="text-xs text-muted-foreground">
-                        {t("cards.expires", {
-                          date: `${String(card.expiryMonth).padStart(2, "0")}/${card.expiryYear}`,
-                        })}
-                      </span>
-                    </span>
-                    <Badge variant="neutral">{t(`cards.kind.${card.kind}`)}</Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Card>
+          <CardsAside account={acc} holder={user?.name ?? undefined} />
 
           <Card className="p-4">
             <span className="mb-3 block text-sm font-semibold">{t("accounts.detail.info")}</span>
             <dl className="flex flex-col gap-2 text-sm">
+              {acc.accountNumber ? (
+                <DetailRow label={t("accounts.form.accountNumber")} value={acc.accountNumber} />
+              ) : null}
+              <DetailRow label={t("accounts.form.type")} value={t(`accounts.type.${acc.type}`)} />
               <DetailRow label={t("accounts.form.currency")} value={acc.currency} />
               <DetailRow label={t("accounts.form.institution")} value={acc.institution ?? "—"} />
               <DetailRow
+                label={t("accounts.status.label")}
+                value={t(`accounts.status.${acc.status}`)}
+              />
+              <DetailRow
                 label={t("accounts.detail.created")}
                 value={new Date(acc.createdAt).toLocaleDateString(i18n.language)}
+              />
+              <DetailRow
+                label={t("accounts.detail.updated")}
+                value={new Date(acc.updatedAt).toLocaleDateString(i18n.language)}
               />
             </dl>
           </Card>
@@ -273,149 +238,158 @@ function Kpi({
   );
 }
 
-function TransactionsTab({ accountId, currency }: { accountId: string; currency: string }) {
-  const { t, i18n } = useTranslation();
-  const { data, isLoading, isError } = useTransactions({ bankAccountId: accountId });
+/** Movements list for this account, sharing the global table format + full CRUD. */
+function MovementsSection({ account }: { account: accounts.BankAccount }) {
+  const { t } = useTranslation();
+  const { data, isLoading, isError } = useTransactions({ bankAccountId: account.id });
+  const { remove } = useTransactionMutations();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editTx, setEditTx] = useState<transactions.Transaction | null>(null);
+  const [deleteTx, setDeleteTx] = useState<transactions.Transaction | null>(null);
   const list = data ?? [];
-
-  if (isLoading) return <LoadingState title={t("app.loading")} />;
-  if (isError) return <ErrorState title={t("errors.INTERNAL_ERROR")} />;
-  if (list.length === 0) return <EmptyState title={t("transactions.empty")} />;
-
-  return (
-    <ul className="divide-y rounded-lg border">
-      {list.map((tx) => {
-        const income = tx.type === "INCOME";
-        return (
-          <li key={tx.id} className="flex items-center justify-between px-4 py-3">
-            <span className="flex min-w-0 flex-col">
-              <span className="truncate text-sm font-medium">
-                {tx.description ?? t(`transactions.type.${tx.type}`)}
-              </span>
-              <span className="text-xs text-muted-foreground">
-                {tx.category ?? t("transactions.uncategorized")} ·{" "}
-                {new Date(tx.occurredAt).toLocaleDateString(i18n.language)}
-              </span>
-            </span>
-            <span
-              className={cn("shrink-0 tabular-nums text-sm font-medium", income && "text-success")}
-            >
-              {income ? "+" : "−"}
-              {formatMoney(tx.amount, { locale: i18n.language, currency: tx.currency || currency })}
-            </span>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function CardsTab({ account }: { account: accounts.BankAccount }) {
-  const { t, i18n } = useTranslation();
-  const { add, update, remove } = useCardMutations(account.id);
-  const [mode, setMode] = useState<{ kind: "none" | "add" | "edit"; card?: accounts.Card }>({
-    kind: "none",
-  });
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">{t("transactions.title")}</h2>
         <Button
-          variant="outline"
           size="sm"
-          onClick={() => setMode(mode.kind === "add" ? { kind: "none" } : { kind: "add" })}
+          onClick={() => {
+            setEditTx(null);
+            setModalOpen(true);
+          }}
         >
-          {mode.kind === "add" ? t("common.cancel") : t("cards.add")}
+          <Plus className="h-4 w-4" aria-hidden />
+          {t("transactions.new")}
         </Button>
       </div>
 
-      {account.cards.length === 0 && mode.kind === "none" ? (
-        <p className="text-sm text-muted-foreground">{t("cards.empty")}</p>
-      ) : null}
-
-      {account.cards.map((card) => (
-        <div key={card.id} className="rounded-md border p-3">
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <span className="font-medium">{card.name}</span>
-              <Badge variant="neutral">{t(`cards.kind.${card.kind}`)}</Badge>
-              <span className="text-muted-foreground">···· {card.last4}</span>
-              <span className="text-xs text-muted-foreground">
-                {String(card.expiryMonth).padStart(2, "0")}/{card.expiryYear}
-              </span>
-            </span>
-            <span className="flex gap-1">
-              <Button variant="ghost" size="sm" onClick={() => setMode({ kind: "edit", card })}>
-                {t("accounts.actions.edit")}
-              </Button>
-              <Button variant="ghost" size="sm" onClick={() => remove.mutate(card.id)}>
-                {t("accounts.actions.delete")}
-              </Button>
-            </span>
-          </div>
-          {card.kind === "CREDIT" && card.limits.length > 0 ? (
-            <ul className="mt-2 flex flex-col gap-1 text-sm text-muted-foreground">
-              {card.limits.map((l) => (
-                <li key={l.currency} className="flex justify-between">
-                  <span>{l.currency}</span>
-                  <span className="tabular-nums">
-                    {formatMoney(l.used, { locale: i18n.language, currency: l.currency })} /{" "}
-                    {formatMoney(l.limit, { locale: i18n.language, currency: l.currency })}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ))}
-
-      {mode.kind === "add" ? (
-        <CardForm
-          submitLabel={t("cards.add")}
-          submitting={add.isPending}
-          onSubmit={(card) => add.mutate(card, { onSuccess: () => setMode({ kind: "none" }) })}
+      {isLoading ? (
+        <LoadingState title={t("app.loading")} />
+      ) : isError ? (
+        <ErrorState title={t("errors.INTERNAL_ERROR")} />
+      ) : list.length === 0 ? (
+        <EmptyState title={t("transactions.empty")} />
+      ) : (
+        <TransactionTable
+          transactions={list}
+          accounts={[account]}
+          onEdit={(tx) => {
+            setEditTx(tx);
+            setModalOpen(true);
+          }}
+          onDelete={(tx) => setDeleteTx(tx)}
         />
-      ) : null}
+      )}
 
-      {mode.kind === "edit" && mode.card ? (
-        <CardForm
-          submitLabel={t("accounts.actions.save")}
-          submitting={update.isPending}
-          initial={mode.card}
-          onSubmit={(card) =>
-            update.mutate(
-              { cardId: mode.card!.id, body: card },
-              { onSuccess: () => setMode({ kind: "none" }) },
-            )
-          }
-        />
-      ) : null}
+      <TransactionCreateModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        initial={editTx ?? undefined}
+        defaultBankAccountId={account.id}
+      />
+
+      <ConfirmDialog
+        open={deleteTx !== null}
+        onOpenChange={(v) => !v && setDeleteTx(null)}
+        title={t("transactions.deleteConfirm")}
+        loading={remove.isPending}
+        onConfirm={() => {
+          if (!deleteTx) return;
+          remove.mutate(deleteTx.id, {
+            onSuccess: () => {
+              toast.success(t("transactions.deleted"));
+              setDeleteTx(null);
+            },
+            onError: () => toast.error(t("errors.INTERNAL_ERROR")),
+          });
+        }}
+      />
     </div>
   );
 }
 
-function InfoTab({ account }: { account: accounts.BankAccount }) {
-  const { t, i18n } = useTranslation();
+/** Sidebar: every card of the account with a single uniform visual + CRUD. */
+function CardsAside({ account, holder }: { account: accounts.BankAccount; holder?: string }) {
+  const { t } = useTranslation();
+  const { remove } = useCardMutations(account.id);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editCard, setEditCard] = useState<accounts.Card | undefined>(undefined);
+  const [deleteCard, setDeleteCard] = useState<accounts.Card | null>(null);
+
   return (
-    <Card className="p-4">
-      <dl className="flex flex-col gap-2 text-sm">
-        <DetailRow label={t("accounts.form.currency")} value={account.currency} />
-        <DetailRow label={t("accounts.form.institution")} value={account.institution ?? "—"} />
-        <DetailRow label={t("accounts.form.type")} value={t(`accounts.type.${account.type}`)} />
-        <DetailRow
-          label={t("accounts.status.label")}
-          value={t(`accounts.status.${account.status}`)}
-        />
-        <DetailRow
-          label={t("accounts.detail.created")}
-          value={new Date(account.createdAt).toLocaleDateString(i18n.language)}
-        />
-        <DetailRow
-          label={t("accounts.detail.updated")}
-          value={new Date(account.updatedAt).toLocaleDateString(i18n.language)}
-        />
-      </dl>
-    </Card>
+    <div className="flex flex-col gap-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold">{t("cards.title")}</span>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            setEditCard(undefined);
+            setModalOpen(true);
+          }}
+        >
+          <Plus className="h-3.5 w-3.5" aria-hidden />
+          {t("cards.add")}
+        </Button>
+      </div>
+
+      {account.cards.length === 0 ? (
+        <AccountVisualCard account={account} holder={holder} />
+      ) : (
+        account.cards.map((card) => (
+          <div key={card.id} className="flex flex-col gap-1">
+            <AccountVisualCard account={account} card={card} holder={holder} />
+            <div className="flex justify-end gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setEditCard(card);
+                  setModalOpen(true);
+                }}
+              >
+                <Pencil className="h-3.5 w-3.5" aria-hidden />
+                {t("accounts.actions.edit")}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:bg-destructive/10"
+                onClick={() => setDeleteCard(card)}
+              >
+                <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                {t("accounts.actions.delete")}
+              </Button>
+            </div>
+          </div>
+        ))
+      )}
+
+      <CardCreateModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        accountId={account.id}
+        initial={editCard}
+      />
+
+      <ConfirmDialog
+        open={deleteCard !== null}
+        onOpenChange={(v) => !v && setDeleteCard(null)}
+        title={t("cards.deleteConfirm")}
+        loading={remove.isPending}
+        onConfirm={() => {
+          if (!deleteCard) return;
+          remove.mutate(deleteCard.id, {
+            onSuccess: () => {
+              toast.success(t("cards.deleted"));
+              setDeleteCard(null);
+            },
+            onError: () => toast.error(t("errors.INTERNAL_ERROR")),
+          });
+        }}
+      />
+    </div>
   );
 }
 

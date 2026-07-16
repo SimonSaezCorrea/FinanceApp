@@ -28,6 +28,18 @@ export function useWalletMutations() {
     }),
     reorder: useMutation({
       mutationFn: walletApi.reorder,
+      onMutate: async (ids) => {
+        await qc.cancelQueries({ queryKey: KEY });
+        const previous = qc.getQueryData<wallet.WalletItem[]>(KEY);
+        qc.setQueryData<wallet.WalletItem[]>(KEY, (old) => {
+          const byId = new Map((old ?? []).map((item) => [item.id, item]));
+          return ids.map((id) => byId.get(id)).filter((item): item is wallet.WalletItem => !!item);
+        });
+        return { previous };
+      },
+      onError: (_err, _ids, context) => {
+        if (context?.previous) qc.setQueryData<wallet.WalletItem[]>(KEY, context.previous);
+      },
       onSuccess: (list) => qc.setQueryData<wallet.WalletItem[]>(KEY, list),
     }),
     remove: useMutation({

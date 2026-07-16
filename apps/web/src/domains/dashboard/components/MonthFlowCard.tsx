@@ -12,7 +12,7 @@ export function MonthFlowCard({ flow }: { flow: MonthFlow }) {
   const ratePct = Math.round(flow.savingsRate * 100);
 
   return (
-    <Card className="flex flex-col gap-4 p-5">
+    <Card className="flex flex-col gap-3 p-4">
       <span className="text-sm font-semibold">{t("dashboard.monthFlow")}</span>
 
       <div className="grid grid-cols-2 gap-3">
