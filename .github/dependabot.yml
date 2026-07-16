@@ -28,6 +28,7 @@ updates:
           - "react"
           - "react-*"
           - "@types/react*"
+          - "i18next" # peer of react-i18next; not covered by the "react-*" pattern
       prisma:
         patterns:
           - "prisma"
