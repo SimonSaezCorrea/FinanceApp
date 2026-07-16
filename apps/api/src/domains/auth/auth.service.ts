@@ -2,6 +2,7 @@ import { ConflictException, Injectable, Logger, UnauthorizedException } from "@n
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { compare, hash } from "bcryptjs";
+import type { StringValue } from "ms";
 
 import type { auth } from "@finance/contracts";
 
@@ -44,19 +45,24 @@ export class AuthService {
     return { id: user.id, email: user.email };
   }
 
+  /** Reads a JWT lifetime env var (e.g. "15m", "7d" — see .env.example) as jsonwebtoken's expiresIn type. */
+  private expiresIn(key: string, fallback: StringValue): StringValue {
+    return (this.config.get<string>(key) as StringValue | undefined) ?? fallback;
+  }
+
   issueTokens(user: AuthUser): TokenPair {
     const accessToken = this.jwt.sign(
       { sub: user.id, email: user.email },
       {
         secret: this.config.getOrThrow<string>("JWT_ACCESS_SECRET"),
-        expiresIn: this.config.get<string>("JWT_ACCESS_EXPIRES") ?? "15m",
+        expiresIn: this.expiresIn("JWT_ACCESS_EXPIRES", "15m"),
       },
     );
     const refreshToken = this.jwt.sign(
       { sub: user.id },
       {
         secret: this.config.getOrThrow<string>("JWT_REFRESH_SECRET"),
-        expiresIn: this.config.get<string>("JWT_REFRESH_EXPIRES") ?? "7d",
+        expiresIn: this.expiresIn("JWT_REFRESH_EXPIRES", "7d"),
       },
     );
     return { accessToken, refreshToken };
