@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { toast } from "sonner";
 
+import { accounts as accountsContract } from "@finance/contracts";
 import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
@@ -316,22 +317,25 @@ function CardsAside({ account, holder }: { account: accounts.BankAccount; holder
   const [modalOpen, setModalOpen] = useState(false);
   const [editCard, setEditCard] = useState<accounts.Card | undefined>(undefined);
   const [deleteCard, setDeleteCard] = useState<accounts.Card | null>(null);
+  const cardable = accountsContract.isCardableAccountType(account.type);
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold">{t("cards.title")}</span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            setEditCard(undefined);
-            setModalOpen(true);
-          }}
-        >
-          <Plus className="h-3.5 w-3.5" aria-hidden />
-          {t("cards.add")}
-        </Button>
+        {cardable ? (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setEditCard(undefined);
+              setModalOpen(true);
+            }}
+          >
+            <Plus className="h-3.5 w-3.5" aria-hidden />
+            {t("cards.add")}
+          </Button>
+        ) : null}
       </div>
 
       {account.cards.length === 0 ? (

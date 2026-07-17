@@ -62,7 +62,7 @@ export function WalletAddModal({
       {candidates.length === 0 ? (
         <EmptyState title={t("wallet.addEmpty")} />
       ) : (
-        <ul className="flex max-h-[60vh] flex-col gap-2 overflow-y-auto">
+        <ul className="scrollbar-thin flex max-h-[60vh] flex-col gap-2 overflow-y-auto">
           {candidates.map((c) => (
             <li
               key={c.key}

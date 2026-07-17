@@ -1,36 +1,40 @@
 import { useState } from "react";
+import { Plus, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { accounts as accountsContract } from "@finance/contracts";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { Dialog } from "../../../shared/ui/dialog";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Select } from "../../../shared/ui/select";
+import { Switch } from "../../../shared/ui/switch";
 import { useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { useAccountMutations } from "../hooks/useAccounts";
+import { ACCOUNT_ICON } from "./accountVisuals";
+import { AccountTypeToggle } from "./AccountTypeToggle";
 import { CardForm } from "./CardForm";
 import { CardPreview } from "./CardPreview";
+import { DraftCardTile } from "./DraftCardTile";
 
-const TYPES: accounts.AccountType[] = [
-  "CHECKING",
-  "SIGHT",
-  "SAVINGS",
-  "INVESTMENT",
-  "CREDIT_LINE",
-  "CASH",
-];
+function SectionLabel({ children }: Readonly<{ children: string }>) {
+  return (
+    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      {children}
+    </span>
+  );
+}
 
 export function AccountCreateModal({
   open,
   onOpenChange,
-}: {
+}: Readonly<{
   open: boolean;
   onOpenChange: (v: boolean) => void;
-}) {
+}>) {
   const { t, i18n } = useTranslation();
   const { create } = useAccountMutations();
   const { data: institutions } = useInstitutions("CL");
@@ -47,6 +51,7 @@ export function AccountCreateModal({
   const [cards, setCards] = useState<accounts.CreateCard[]>([]);
   const [addingCard, setAddingCard] = useState(false);
   const isCredit = type === "CREDIT_LINE";
+  const cardable = accountsContract.isCardableAccountType(type);
 
   function reset() {
     setName("");
@@ -60,6 +65,18 @@ export function AccountCreateModal({
     setCreditUsedInitial("0");
     setCards([]);
     setAddingCard(false);
+  }
+
+  function handleTypeChange(next: accounts.AccountType) {
+    setType(next);
+    if (!accountsContract.isCardableAccountType(next)) {
+      setCards([]);
+      setAddingCard(false);
+    }
+    if (next === "CASH") {
+      setInstitutionId("");
+      setAccountNumber("");
+    }
   }
 
   function submit() {
@@ -107,47 +124,44 @@ export function AccountCreateModal({
   })();
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={t("accounts.new")}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t("accounts.new")}
+      description={t("accounts.newSubtitle")}
+      className="max-w-2xl"
+    >
       <div className="grid gap-6 md:grid-cols-2">
         <div className="flex flex-col gap-3">
+          <SectionLabel>{t("accounts.form.sectionAccountData")}</SectionLabel>
           <Field label={t("accounts.form.name")} htmlFor="m-name">
             <Input id="m-name" value={name} required onChange={(e) => setName(e.target.value)} />
           </Field>
           <Field label={t("accounts.form.type")} htmlFor="m-type">
-            <Select
-              id="m-type"
-              value={type}
-              onChange={(e) => setType(e.target.value as accounts.AccountType)}
-              options={TYPES.map((v) => ({ value: v, label: t(`accounts.type.${v}`) }))}
-            />
+            <AccountTypeToggle value={type} onChange={handleTypeChange} />
           </Field>
-          <Field label={t("accounts.form.institution")} htmlFor="m-inst">
-            <Select
-              id="m-inst"
-              value={institutionId}
-              onChange={(e) => setInstitutionId(e.target.value)}
-              options={institutionOptions}
-            />
-          </Field>
-          <Field label={t("accounts.form.accountNumber")} htmlFor="m-num">
-            <Input
-              id="m-num"
-              inputMode="numeric"
-              value={accountNumber}
-              onChange={(e) => setAccountNumber(e.target.value)}
-            />
-          </Field>
-          <Field label={t("accounts.form.status")} htmlFor="m-status">
-            <Select
-              id="m-status"
-              value={status}
-              onChange={(e) => setStatus(e.target.value as accounts.AccountStatus)}
-              options={[
-                { value: "ACTIVE", label: t("accounts.status.ACTIVE") },
-                { value: "INACTIVE", label: t("accounts.status.INACTIVE") },
-              ]}
-            />
-          </Field>
+          {type !== "CASH" ? (
+            <>
+              <Field label={t("accounts.form.institution")} htmlFor="m-inst">
+                <Select
+                  id="m-inst"
+                  value={institutionId}
+                  onChange={(e) => setInstitutionId(e.target.value)}
+                  options={institutionOptions}
+                />
+              </Field>
+              <Field label={t("accounts.form.accountNumber")} htmlFor="m-num">
+                <Input
+                  id="m-num"
+                  inputMode="numeric"
+                  value={accountNumber}
+                  onChange={(e) => setAccountNumber(e.target.value)}
+                />
+              </Field>
+            </>
+          ) : null}
+
+          <SectionLabel>{t("accounts.form.sectionBalanceCurrency")}</SectionLabel>
           <div className="grid grid-cols-2 gap-3">
             <Field label={t("accounts.form.currency")} htmlFor="m-cur">
               <Select
@@ -187,67 +201,102 @@ export function AccountCreateModal({
               />
             </Field>
           ) : null}
+
+          <label className="mt-1 flex items-center gap-2">
+            <Switch
+              checked={status === "ACTIVE"}
+              onCheckedChange={(checked) => setStatus(checked ? "ACTIVE" : "INACTIVE")}
+              aria-label={t("accounts.form.accountActive")}
+            />
+            <span className="text-sm">{t("accounts.form.accountActive")}</span>
+          </label>
         </div>
 
         <div className="flex flex-col gap-4">
+          <SectionLabel>{t("accounts.form.preview")}</SectionLabel>
           <CardPreview
             brand={institutionName || t("accounts.title")}
             title={name}
             subtitle={t(`accounts.type.${type}`)}
             primary={balancePreview}
             footerLeft={currency}
+            icon={ACCOUNT_ICON[type]}
           />
-          <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium">{t("cards.title")}</span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setAddingCard((v) => !v)}
-              >
-                {addingCard ? t("common.cancel") : t("cards.add")}
-              </Button>
-            </div>
-            {cards.map((c, i) => (
-              <div
-                key={i}
-                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-              >
-                <span className="flex items-center gap-2">
-                  {c.name} <Badge variant="neutral">{t(`cards.kind.${c.kind}`)}</Badge>
-                  <span className="text-muted-foreground">•••• {c.last4}</span>
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setCards((p) => p.filter((_, j) => j !== i))}
-                >
-                  ✕
-                </Button>
+          {cardable ? (
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <SectionLabel>
+                  {cards.length > 0 ? `${t("cards.title")} · ${cards.length}` : t("cards.title")}
+                </SectionLabel>
+                {!addingCard ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAddingCard(true)}
+                  >
+                    <Plus className="h-3.5 w-3.5" aria-hidden />
+                    {t("cards.addShort")}
+                  </Button>
+                ) : null}
               </div>
-            ))}
-            {addingCard ? (
-              <CardForm
-                submitLabel={t("cards.add")}
-                onSubmit={(card) => {
-                  setCards((p) => [...p, card]);
-                  setAddingCard(false);
-                }}
-              />
-            ) : null}
-          </div>
+
+              {cards.length === 0 && !addingCard ? (
+                <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+                  <p>{t("cards.empty")}</p>
+                  <p>{t("cards.emptyHint")}</p>
+                </div>
+              ) : null}
+
+              {cards.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {cards.map((c, i) => (
+                    <DraftCardTile
+                      key={i}
+                      card={c}
+                      onRemove={() => setCards((p) => p.filter((_, j) => j !== i))}
+                    />
+                  ))}
+                </div>
+              ) : null}
+
+              {addingCard ? (
+                <div className="flex flex-col gap-3 rounded-md border border-ring/60 p-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold">{t("cards.newTitle")}</span>
+                    <button
+                      type="button"
+                      onClick={() => setAddingCard(false)}
+                      className="rounded-md p-1 text-muted-foreground hover:bg-muted"
+                      aria-label={t("common.cancel")}
+                    >
+                      <X className="h-4 w-4" aria-hidden />
+                    </button>
+                  </div>
+                  <CardForm
+                    submitLabel={t("cards.add")}
+                    onSubmit={(card) => {
+                      setCards((p) => [...p, card]);
+                      setAddingCard(false);
+                    }}
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 
-      <div className="mt-6 flex justify-end gap-2">
-        <Button variant="outline" onClick={() => onOpenChange(false)}>
-          {t("common.cancel")}
-        </Button>
-        <Button onClick={submit} disabled={create.isPending || !name}>
-          {t("accounts.new")}
-        </Button>
+      <div className="mt-6 flex items-center justify-between gap-4">
+        <p className="text-xs text-muted-foreground">{t("accounts.form.editLaterHint")}</p>
+        <div className="flex shrink-0 gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          <Button onClick={submit} disabled={create.isPending || !name}>
+            {t("accounts.form.createSubmit")}
+          </Button>
+        </div>
       </div>
     </Dialog>
   );

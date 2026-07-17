@@ -1,4 +1,4 @@
-import { NotFoundException } from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 
 import { AccountsService } from "./accounts.service";
@@ -78,6 +78,28 @@ describe("AccountsService", () => {
       initialBalance: "100",
       currentBalance: "100",
     });
+  });
+
+  it("rejects inline cards[] on a non-cardable account type (SAVINGS/INVESTMENT/CASH)", async () => {
+    const svc = makeService({ create: vi.fn() });
+    await expect(
+      svc.create("u1", {
+        name: "Ahorro",
+        type: "SAVINGS",
+        status: "ACTIVE",
+        currency: "CLP",
+        cards: [
+          {
+            name: "x",
+            kind: "DEBIT",
+            last4: "1234",
+            expiryMonth: 1,
+            expiryYear: 2027,
+            isActive: true,
+          },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it("reconciles currentBalance = initial + income - expense (exact)", async () => {

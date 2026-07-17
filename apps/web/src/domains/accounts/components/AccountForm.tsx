@@ -8,16 +8,8 @@ import { Button } from "../../../shared/ui/button";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Select } from "../../../shared/ui/select";
-
-const TYPES: accounts.AccountType[] = [
-  "CHECKING",
-  "SIGHT",
-  "SAVINGS",
-  "INVESTMENT",
-  "CREDIT_LINE",
-  "CASH",
-];
-const STATUSES: accounts.AccountStatus[] = ["ACTIVE", "INACTIVE"];
+import { Switch } from "../../../shared/ui/switch";
+import { AccountTypeToggle } from "./AccountTypeToggle";
 
 export interface AccountFormValues {
   name: string;
@@ -88,37 +80,37 @@ export function AccountForm({ initial, submitting, submitLabel, onSubmit }: Read
         />
       </Field>
       <Field label={t("accounts.form.type")} htmlFor="acc-type">
-        <Select
-          id="acc-type"
+        <AccountTypeToggle
           value={values.type}
-          onChange={(e) => set("type", e.target.value as accounts.AccountType)}
-          options={TYPES.map((v) => ({ value: v, label: t(`accounts.type.${v}`) }))}
+          onChange={(next) =>
+            setValues((prev) => ({
+              ...prev,
+              type: next,
+              ...(next === "CASH" ? { institutionId: "", accountNumber: "" } : {}),
+            }))
+          }
         />
       </Field>
-      <Field label={t("accounts.form.status")} htmlFor="acc-status">
-        <Select
-          id="acc-status"
-          value={values.status}
-          onChange={(e) => set("status", e.target.value as accounts.AccountStatus)}
-          options={STATUSES.map((v) => ({ value: v, label: t(`accounts.status.${v}`) }))}
-        />
-      </Field>
-      <Field label={t("accounts.form.institution")} htmlFor="acc-inst">
-        <Select
-          id="acc-inst"
-          value={values.institutionId}
-          onChange={(e) => set("institutionId", e.target.value)}
-          options={institutionOptions}
-        />
-      </Field>
-      <Field label={t("accounts.form.accountNumber")} htmlFor="acc-num">
-        <Input
-          id="acc-num"
-          value={values.accountNumber}
-          inputMode="numeric"
-          onChange={(e) => set("accountNumber", e.target.value)}
-        />
-      </Field>
+      {values.type !== "CASH" ? (
+        <>
+          <Field label={t("accounts.form.institution")} htmlFor="acc-inst">
+            <Select
+              id="acc-inst"
+              value={values.institutionId}
+              onChange={(e) => set("institutionId", e.target.value)}
+              options={institutionOptions}
+            />
+          </Field>
+          <Field label={t("accounts.form.accountNumber")} htmlFor="acc-num">
+            <Input
+              id="acc-num"
+              value={values.accountNumber}
+              inputMode="numeric"
+              onChange={(e) => set("accountNumber", e.target.value)}
+            />
+          </Field>
+        </>
+      ) : null}
       <div className="grid grid-cols-2 gap-4">
         <Field label={t("accounts.form.currency")} htmlFor="acc-cur">
           <Select
@@ -158,6 +150,14 @@ export function AccountForm({ initial, submitting, submitLabel, onSubmit }: Read
           />
         </Field>
       ) : null}
+      <label className="flex items-center gap-2">
+        <Switch
+          checked={values.status === "ACTIVE"}
+          onCheckedChange={(checked) => set("status", checked ? "ACTIVE" : "INACTIVE")}
+          aria-label={t("accounts.form.accountActive")}
+        />
+        <span className="text-sm">{t("accounts.form.accountActive")}</span>
+      </label>
       <Button type="submit" disabled={submitting}>
         {submitLabel}
       </Button>

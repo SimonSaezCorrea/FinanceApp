@@ -9,63 +9,105 @@
  */
 @layer base {
   :root {
-    /* ---- DARK (default) ---- */
-    --background: 192 30% 8%;
-    --foreground: 190 14% 92%;
-    --card: 192 24% 12%;
-    --card-foreground: 190 14% 92%;
-    --primary: 187 28% 54%; /* #66A5AD */
-    --primary-foreground: 192 45% 10%;
+    /* ---- DARK (default) — exact hex from the design-system handoff ---- */
+    --background: 194 37% 7%; /* #0b1518 */
+    --foreground: 180 16% 92%; /* #e6eded */
+    --card: 190 38% 9%; /* #0f1e21 surface */
+    --card-foreground: 180 16% 92%;
+    --primary: 187 30% 54%; /* #66A5AD */
+    --primary-foreground: 189 54% 7%; /* #08181b primary-ink */
     --accent: 27 87% 67%; /* #F4A261 clay — featured action, expenses */
     --accent-foreground: 29 69% 10%; /* #2b1908 */
-    --secondary: 195 18% 18%;
-    --secondary-foreground: 190 14% 92%;
-    --muted: 195 18% 16%;
-    --muted-foreground: 190 12% 66%;
-    --border: 195 16% 22%;
-    --input: 195 16% 22%;
+    --secondary: 192 26% 15%; /* #1c2c30 chip */
+    --secondary-foreground: 180 16% 92%;
+    --muted: 195 26% 18%; /* #22343a track */
+    --muted-foreground: 185 11% 59%; /* #8aa0a2 text-mut */
+    --border: 192 25% 16%; /* #1e2e32 */
+    --input: 192 24% 21%; /* #283c41 border-2 */
     --ring: 187 34% 60%;
 
-    --success: 152 45% 45%;
-    --success-foreground: 152 45% 8%;
+    --success: 153 44% 49%; /* #46b483 */
+    --success-foreground: 153 45% 8%;
     --warning: 38 92% 55%;
     --warning-foreground: 38 92% 10%;
-    --destructive: 0 70% 55%;
-    --destructive-foreground: 0 0% 100%;
+    /* Danger is a light, readable-as-text red (#e08a8a) in this palette — paired
+       with a dark ink (not white) since it's too light for white text to read on,
+       mirroring how primary/accent pair a light brand color with a dark ink. */
+    --destructive: 0 58% 71%; /* #e08a8a */
+    --destructive-foreground: 0 45% 10%;
     --info: 200 75% 55%;
     --info-foreground: 200 75% 10%;
 
-    --brand: 184 86% 19%; /* #07575B (fixed identity) */
+    --brand: 183 86% 19%; /* #07575B (fixed identity) */
     --radius: 0.6rem;
+
+    /* Additional surface/text tiers from the handoff — defined for future use,
+       not yet consumed by every component (see CLAUDE.md before assuming otherwise). */
+    --surface-2: 196 38% 12%; /* #13242a elevated surface */
+    --chip: 192 26% 15%; /* #1c2c30 — same value as --secondary */
+    --track: 195 26% 18%; /* #22343a — same value as --muted */
+    --border-2: 192 24% 21%; /* #283c41 — same value as --input */
+    --text-dim: 188 10% 54%; /* #7d9295 — dimmer than --muted-foreground */
+    /* No dark-specific hex given for these two (handoff only specified them for
+       light); fall back to the closest already-defined dark surfaces so the
+       tokens are never undefined in the default theme. */
+    --panel-bg: 196 38% 12%; /* same as --surface-2 */
+    --viewer-bg: 190 38% 9%; /* same as --card */
+
+    /* Card-visual gradient end-stops (CardPreview/DraftCardTile). Fixed identity
+       across both themes, same reasoning as --brand: a card's "photograph"
+       shouldn't reflow when the app theme changes. */
+    --brand-deep: 184 67% 12%; /* #0a3033 — 2nd stop for the credit/preview gradient */
+    --credit-ink: 185 38% 94%; /* #e9f4f5 */
+    --debit-from: 30 54% 19%; /* #4a3016 muted clay */
+    --debit-to: 30 64% 9%; /* #241608 */
+    --debit-ink: 31 76% 82%; /* #f4d3b0 */
+    --prepaid-from: 196 21% 21%; /* #2a3a40 slate */
+    --prepaid-to: 196 27% 11%; /* #141f23 */
+    --prepaid-ink: 187 24% 86%; /* #d3e2e4 */
   }
 
   [data-theme="light"] {
-    --background: 0 0% 100%;
-    --foreground: 192 40% 12%;
-    --card: 0 0% 100%;
-    --card-foreground: 192 40% 12%;
-    --primary: 184 86% 19%; /* #07575B */
+    --background: 195 22% 96%; /* #F4F7F8 */
+    --foreground: 191 21% 10%; /* #151E20 */
+    --card: 0 0% 100%; /* #ffffff input/card surface */
+    --card-foreground: 191 21% 10%;
+    --primary: 183 86% 19%; /* #07575B */
     --primary-foreground: 0 0% 100%;
     --accent: 12 76% 61%; /* #E76F51 clay */
     --accent-foreground: 0 0% 100%;
     --secondary: 190 30% 96%;
-    --secondary-foreground: 192 40% 12%;
+    --secondary-foreground: 191 21% 10%;
     --muted: 190 30% 96%;
-    --muted-foreground: 195 12% 38%;
-    --border: 190 24% 88%;
-    --input: 190 24% 88%;
+    --muted-foreground: 189 100% 14%; /* #003B46 text-muted */
+    --border: 188 38% 68%; /* #8ec4cc */
+    --input: 188 38% 68%;
     --ring: 184 60% 30%;
 
     --success: 152 55% 32%;
     --success-foreground: 0 0% 100%;
     --warning: 35 92% 40%;
     --warning-foreground: 0 0% 100%;
-    --destructive: 0 72% 45%;
+    --destructive: 0 72% 51%; /* #dc2626 */
     --destructive-foreground: 0 0% 100%;
     --info: 200 80% 38%;
     --info-foreground: 0 0% 100%;
 
-    --brand: 184 86% 19%;
+    --brand: 183 86% 19%;
+
+    /* Additional tokens from the handoff — defined for future use. */
+    --panel-bg: 192 40% 84%; /* #C4DFE6 — sidebars/panels */
+    --viewer-bg: 192 27% 89%; /* #dce8eb — canvas/viewer surfaces */
+
+    /* Card-visual gradient end-stops — same fixed identity as dark (see :root). */
+    --brand-deep: 184 67% 12%;
+    --credit-ink: 185 38% 94%;
+    --debit-from: 30 54% 19%;
+    --debit-to: 30 64% 9%;
+    --debit-ink: 31 76% 82%;
+    --prepaid-from: 196 21% 21%;
+    --prepaid-to: 196 27% 11%;
+    --prepaid-ink: 187 24% 86%;
   }
 
   * {

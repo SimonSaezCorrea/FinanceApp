@@ -118,7 +118,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           collapsed ? "w-20" : "w-60",
         )}
       >
-        <aside className="flex h-full flex-col overflow-y-auto border-r bg-card p-4">
+        <aside className="scrollbar-thin flex h-full flex-col overflow-y-auto border-r bg-card p-4">
           <div className="flex items-center py-3 pl-[13.5px]">
             <Receipt className="h-5 w-5 shrink-0 text-brand" aria-hidden />
             <span
@@ -256,7 +256,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
           </div>
           <ThemeToggle />
         </header>
-        <main className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <main className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
           <div className="container py-6">{children}</div>
         </main>
       </div>

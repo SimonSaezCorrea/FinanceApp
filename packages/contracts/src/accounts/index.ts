@@ -14,6 +14,18 @@ export const accountType = z.enum([
 ]);
 export type AccountType = z.infer<typeof accountType>;
 
+/**
+ * Only these account types can carry a physical/digital card. A debit card is
+ * the mandatory instrument for CHECKING/SIGHT; a CREDIT_LINE's card(s) share
+ * its credit pool. SAVINGS, INVESTMENT and CASH never have their own card —
+ * moving their funds means transferring into a cardable account first.
+ */
+export const CARDABLE_ACCOUNT_TYPES: AccountType[] = ["CHECKING", "SIGHT", "CREDIT_LINE"];
+
+export function isCardableAccountType(type: AccountType): boolean {
+  return CARDABLE_ACCOUNT_TYPES.includes(type);
+}
+
 export const accountStatus = z.enum(["ACTIVE", "INACTIVE"]);
 export type AccountStatus = z.infer<typeof accountStatus>;
 

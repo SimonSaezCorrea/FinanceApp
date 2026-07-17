@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type { CardAccount as CardRow } from "@prisma/client";
 
 import { accounts } from "@finance/contracts";
@@ -16,6 +16,9 @@ export class CardsService {
   ): Promise<accounts.Card> {
     const account = await this.repo.accountExists(userId, accountId);
     if (!account) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
+    if (!accounts.isCardableAccountType(account.type)) {
+      throw new BadRequestException({ code: "ACCOUNT_CANNOT_HAVE_CARD" });
+    }
     const row = await this.repo.create(userId, accountId, {
       name: input.name,
       kind: input.kind,

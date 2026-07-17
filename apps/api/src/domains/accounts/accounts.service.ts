@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type {
   BankAccount as BankAccountRow,
   CardAccount as CardRow,
@@ -117,6 +117,9 @@ export class AccountsService {
   }
 
   async create(userId: string, input: accounts.CreateBankAccount): Promise<accounts.BankAccount> {
+    if ((input.cards?.length ?? 0) > 0 && !accounts.isCardableAccountType(input.type)) {
+      throw new BadRequestException({ code: "ACCOUNT_CANNOT_HAVE_CARD" });
+    }
     const initialBalance = input.initialBalance ?? "0";
     // A linked institution drives the displayed institution name.
     const institution = input.institutionId

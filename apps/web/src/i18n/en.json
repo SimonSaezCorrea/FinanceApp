@@ -36,6 +36,7 @@
     "title": "Accounts",
     "empty": "You don't have any accounts yet.",
     "new": "New account",
+    "newSubtitle": "Register a bank account, card, or cash",
     "currentBalance": "Current balance",
     "summary": "{{accounts}} accounts · {{currencies}} currencies",
     "countLabel": "{{count}} account(s)",
@@ -68,11 +69,17 @@
       "status": "Status",
       "institution": "Institution",
       "institutionNone": "No institution / manual",
-      "accountNumber": "Account number",
+      "accountNumber": "Account number (optional)",
       "currency": "Currency",
       "initialBalance": "Initial balance",
       "creditLimit": "Credit limit",
-      "creditUsedInitial": "Initial used credit"
+      "creditUsedInitial": "Initial used credit",
+      "accountActive": "Account active",
+      "sectionAccountData": "Account details",
+      "sectionBalanceCurrency": "Balance and currency",
+      "preview": "Preview",
+      "editLaterHint": "You'll be able to edit all this later.",
+      "createSubmit": "Create account"
     },
     "actions": {
       "edit": "Edit",
@@ -86,8 +93,11 @@
   "cards": {
     "title": "Cards",
     "add": "Add card",
+    "addShort": "Add",
+    "newTitle": "New card",
     "editTitle": "Edit card",
-    "empty": "No cards.",
+    "empty": "No cards yet.",
+    "emptyHint": "You can add them now or later.",
     "count": "{{count}} card(s)",
     "expires": "Expires {{date}}",
     "secondary": "Secondary",
@@ -97,14 +107,14 @@
     "deleteConfirm": "Delete this card?",
     "kind": { "CREDIT": "Credit", "DEBIT": "Debit", "PREPAID": "Prepaid" },
     "form": {
-      "name": "Card name",
+      "name": "Card name (optional)",
+      "namePlaceholder": "E.g. Main card",
       "kind": "Kind",
       "parent": "Primary card (secondary)",
       "parentNone": "None (primary)",
-      "number": "Card number",
-      "numberHint": "Only the last 4 digits are stored; the rest is never saved.",
-      "expiryMonth": "Month",
-      "expiryYear": "Year",
+      "expiry": "Expires",
+      "last4": "Last 4 digits",
+      "last4Hint": "Only the last 4 digits are stored.",
       "limits": "Limits per currency",
       "currency": "Currency",
       "limit": "Limit",
@@ -112,7 +122,10 @@
       "initialUsed": "Initial used",
       "addLimit": "Add limit"
     },
-    "errors": { "last4": "Enter a valid number (at least 4 digits)." }
+    "errors": {
+      "last4": "Enter the last 4 digits.",
+      "expiry": "Enter a valid expiry date (MM/YY)."
+    }
   },
   "dashboard": {
     "title": "Dashboard",
@@ -539,6 +552,7 @@
     "VALIDATION_FAILED": "Please check the submitted data.",
     "CARD_REQUIRED": "Select a card for this expense.",
     "CARD_NOT_ALLOWED": "This movement cannot be linked to a card.",
+    "ACCOUNT_CANNOT_HAVE_CARD": "This account type can't have cards.",
     "CARD_ACCOUNT_MISMATCH": "The card does not belong to that account.",
     "CARD_LIMIT_EXCEEDED": "The expense exceeds the primary card's credit limit.",
     "CARD_SUBLIMIT_EXCEEDED": "The expense exceeds the secondary card's sub-limit.",

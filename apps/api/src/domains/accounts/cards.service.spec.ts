@@ -1,4 +1,4 @@
-import { NotFoundException } from "@nestjs/common";
+import { BadRequestException, NotFoundException } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 
 import { CardsService } from "./cards.service";
@@ -25,7 +25,10 @@ function make(repo: Partial<CardsRepository>) {
 describe("CardsService", () => {
   it("creates a card mapping last4 + kind + isActive", async () => {
     const create = vi.fn().mockResolvedValue(cardRow);
-    const svc = make({ accountExists: vi.fn().mockResolvedValue({ id: "a1" }), create });
+    const svc = make({
+      accountExists: vi.fn().mockResolvedValue({ id: "a1", type: "CHECKING" }),
+      create,
+    });
     const card = await svc.create("u1", "a1", {
       name: "Visa",
       kind: "CREDIT",
@@ -43,7 +46,10 @@ describe("CardsService", () => {
 
   it("creates a prepaid card", async () => {
     const create = vi.fn().mockResolvedValue({ ...cardRow, kind: "PREPAID" });
-    const svc = make({ accountExists: vi.fn().mockResolvedValue({ id: "a1" }), create });
+    const svc = make({
+      accountExists: vi.fn().mockResolvedValue({ id: "a1", type: "CREDIT_LINE" }),
+      create,
+    });
     const card = await svc.create("u1", "a1", {
       name: "Prepago",
       kind: "PREPAID",
@@ -53,6 +59,22 @@ describe("CardsService", () => {
       isActive: true,
     });
     expect(card.kind).toBe("PREPAID");
+  });
+
+  it("throws when the account type cannot have cards (SAVINGS/INVESTMENT/CASH)", async () => {
+    const svc = make({
+      accountExists: vi.fn().mockResolvedValue({ id: "a1", type: "SAVINGS" }),
+    });
+    await expect(
+      svc.create("u1", "a1", {
+        name: "x",
+        kind: "DEBIT",
+        last4: "1234",
+        expiryMonth: 1,
+        expiryYear: 2027,
+        isActive: true,
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it("throws when the account is not the user's", async () => {

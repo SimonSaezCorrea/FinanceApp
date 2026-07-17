@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
+import { accounts as accountsContract } from "@finance/contracts";
 import type { transactions } from "@finance/contracts";
 
 import { useAccounts } from "../../accounts/hooks/useAccounts";
@@ -109,11 +110,12 @@ export function TransactionCreateModal({
     ? accounts.filter((a) => a.status === "ACTIVE" || a.id === initial?.bankAccountId)
     : accounts.filter((a) => a.status === "ACTIVE");
   const selectedAccount = accounts.find((a) => a.id === bankAccountId);
-  const isCash = selectedAccount?.type === "CASH";
   const isCreditLine = selectedAccount?.type === "CREDIT_LINE";
-  // A card is REQUIRED only for credit-line expenses; optional for other non-cash accounts.
+  const isCardable = !!selectedAccount && accountsContract.isCardableAccountType(selectedAccount.type);
+  // A card is REQUIRED only for credit-line expenses; optional for other cardable accounts
+  // (CHECKING/SIGHT). SAVINGS/INVESTMENT/CASH never carry a card of their own.
   const needsCard = type === "EXPENSE" && isCreditLine;
-  const showCard = type === "EXPENSE" && !!selectedAccount && !isCash;
+  const showCard = type === "EXPENSE" && isCardable;
   const noCardsAvailable = needsCard && (selectedAccount?.cards.length ?? 0) === 0;
 
   const accountOptions = [
@@ -143,7 +145,7 @@ export function TransactionCreateModal({
   }
 
   function submit() {
-    const cleanCard = type === "INCOME" || isCash ? undefined : cardId || undefined;
+    const cleanCard = type === "INCOME" || !isCardable ? undefined : cardId || undefined;
     const body = {
       type,
       amount,

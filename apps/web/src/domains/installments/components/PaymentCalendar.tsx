@@ -25,7 +25,7 @@ export function PaymentCalendar({ plan }: PaymentCalendarProps) {
   });
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
+    <div className="scrollbar-thin overflow-x-auto rounded-lg border">
       <div className="flex items-center justify-between border-b bg-muted/50 px-4 py-3">
         <span className="text-sm font-medium">
           {t("installments.calendar.header")} · {plan.title}

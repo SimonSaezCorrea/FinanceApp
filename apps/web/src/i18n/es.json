@@ -36,6 +36,7 @@
     "title": "Cuentas",
     "empty": "Aún no tienes cuentas.",
     "new": "Nueva cuenta",
+    "newSubtitle": "Registra una cuenta bancaria, tarjeta o efectivo",
     "currentBalance": "Saldo actual",
     "summary": "{{accounts}} cuentas · {{currencies}} monedas",
     "countLabel": "{{count}} cuenta(s)",
@@ -68,11 +69,17 @@
       "status": "Estado",
       "institution": "Institución",
       "institutionNone": "Sin institución / manual",
-      "accountNumber": "Número de cuenta",
+      "accountNumber": "Número de cuenta (opcional)",
       "currency": "Moneda",
       "initialBalance": "Saldo inicial",
       "creditLimit": "Cupo total",
-      "creditUsedInitial": "Cupo usado inicial"
+      "creditUsedInitial": "Cupo usado inicial",
+      "accountActive": "Cuenta activa",
+      "sectionAccountData": "Datos de la cuenta",
+      "sectionBalanceCurrency": "Saldo y moneda",
+      "preview": "Vista previa",
+      "editLaterHint": "Podrás editar todos estos datos después.",
+      "createSubmit": "Crear cuenta"
     },
     "actions": {
       "edit": "Editar",
@@ -86,8 +93,11 @@
   "cards": {
     "title": "Tarjetas",
     "add": "Añadir tarjeta",
+    "addShort": "Añadir",
+    "newTitle": "Nueva tarjeta",
     "editTitle": "Editar tarjeta",
-    "empty": "Sin tarjetas.",
+    "empty": "Sin tarjetas asociadas.",
+    "emptyHint": "Puedes añadirlas ahora o más tarde.",
     "count": "{{count}} tarjeta(s)",
     "expires": "Vence {{date}}",
     "secondary": "Secundaria",
@@ -97,14 +107,14 @@
     "deleteConfirm": "¿Eliminar esta tarjeta?",
     "kind": { "CREDIT": "Crédito", "DEBIT": "Débito", "PREPAID": "Prepago" },
     "form": {
-      "name": "Nombre de la tarjeta",
+      "name": "Nombre de la tarjeta (opcional)",
+      "namePlaceholder": "Ej. Tarjeta principal",
       "kind": "Tipo",
       "parent": "Tarjeta principal (secundaria)",
       "parentNone": "Ninguna (es principal)",
-      "number": "Número de tarjeta",
-      "numberHint": "Solo se guardan los últimos 4 dígitos; el resto nunca se almacena.",
-      "expiryMonth": "Mes",
-      "expiryYear": "Año",
+      "expiry": "Vence",
+      "last4": "Últimos 4 dígitos",
+      "last4Hint": "Solo se guardan los últimos 4 dígitos.",
       "limits": "Topes por moneda",
       "currency": "Moneda",
       "limit": "Tope",
@@ -112,7 +122,10 @@
       "initialUsed": "Usado inicial",
       "addLimit": "Añadir tope"
     },
-    "errors": { "last4": "Ingresa un número válido (al menos 4 dígitos)." }
+    "errors": {
+      "last4": "Ingresa los últimos 4 dígitos.",
+      "expiry": "Ingresa una fecha de vencimiento válida (MM/AA)."
+    }
   },
   "dashboard": {
     "title": "Panel",
@@ -539,6 +552,7 @@
     "VALIDATION_FAILED": "Revisa los datos ingresados.",
     "CARD_REQUIRED": "Selecciona una tarjeta para este gasto.",
     "CARD_NOT_ALLOWED": "Este movimiento no puede asociarse a una tarjeta.",
+    "ACCOUNT_CANNOT_HAVE_CARD": "Este tipo de cuenta no puede tener tarjetas asociadas.",
     "CARD_ACCOUNT_MISMATCH": "La tarjeta no pertenece a esa cuenta.",
     "CARD_LIMIT_EXCEEDED": "El gasto supera el cupo de la tarjeta principal.",
     "CARD_SUBLIMIT_EXCEEDED": "El gasto supera el sub-tope de la tarjeta secundaria.",
