@@ -49,6 +49,14 @@ export function summarizeByCurrency(txs: transactions.Transaction[]): CurrencyKp
   });
 }
 
+export function uniqueCategories(txs: transactions.Transaction[]): string[] {
+  const set = new Set<string>();
+  for (const tx of txs) {
+    if (tx.category) set.add(tx.category);
+  }
+  return Array.from(set).sort((a, b) => a.localeCompare(b));
+}
+
 export function clientFilter(
   txs: transactions.Transaction[],
   search: string,
@@ -56,6 +64,12 @@ export function clientFilter(
   if (!search.trim()) return txs;
   const lower = search.toLowerCase();
   return txs.filter((tx) => tx.category?.toLowerCase().includes(lower) ?? false);
+}
+
+export function isFullMonthRange(from: string | undefined, to: string | undefined): boolean {
+  if (!from || !to) return false;
+  const anchor = new Date(from);
+  return from === startOfMonth(anchor) && to === endOfMonth(anchor);
 }
 
 export function startOfMonth(date: Date): string {

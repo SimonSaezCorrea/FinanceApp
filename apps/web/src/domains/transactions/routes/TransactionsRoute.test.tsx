@@ -48,7 +48,7 @@ describe("TransactionsRoute", () => {
     ]);
 
     renderRoute();
-    await waitFor(() => expect(screen.getByText(/food/)).toBeDefined());
+    await waitFor(() => expect(screen.getAllByText(/food/).length).toBeGreaterThan(0));
   });
 
   it("shows the empty state when there are no transactions", async () => {

@@ -7,6 +7,7 @@ import type { transactions } from "@finance/contracts";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
+import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
 import { Dialog } from "../../../shared/ui/dialog";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
@@ -23,6 +24,33 @@ function dateInput(iso: string): string {
   return iso.slice(0, 10);
 }
 
+// Bare "es" (no region) only groups digits from 10,000 up (CLDR/Spain rule);
+// Chile groups from 1,000, so CLP amounts need "es-CL" specifically.
+function groupingLocaleFor(currency: string, uiLocale: string): string {
+  return currency === "CLP" ? "es-CL" : uiLocale;
+}
+
+function formatAmountDisplay(raw: string, locale: string): string {
+  if (!raw) return "";
+  const [intPart = "", decPart] = raw.split(".");
+  const n = Number(intPart || "0");
+  const grouped = Number.isFinite(n) ? n.toLocaleString(locale) : intPart;
+  return decPart !== undefined ? `${grouped}.${decPart}` : grouped;
+}
+
+function currencySymbol(currency: string, locale: string): string {
+  try {
+    const parts = new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency,
+      currencyDisplay: "narrowSymbol",
+    }).formatToParts(0);
+    return parts.find((p) => p.type === "currency")?.value ?? currency;
+  } catch {
+    return currency;
+  }
+}
+
 /**
  * Create OR edit a movement. Bank is required; a non-cash EXPENSE requires a
  * card; INCOME and cash expenses never carry one (mirrors the server rules).
@@ -32,13 +60,13 @@ export function TransactionCreateModal({
   onOpenChange,
   initial,
   defaultBankAccountId,
-}: {
+}: Readonly<{
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial?: transactions.Transaction;
   defaultBankAccountId?: string;
-}) {
-  const { t } = useTranslation();
+}>) {
+  const { t, i18n } = useTranslation();
   const { create, update } = useTransactionMutations();
   const { data: accountList } = useAccounts();
   const editing = Boolean(initial);
@@ -103,6 +131,17 @@ export function TransactionCreateModal({
     })),
   ];
 
+  function handleAccountChange(id: string) {
+    setBankAccountId(id);
+    setCardId("");
+    const acc = accounts.find((a) => a.id === id);
+    if (acc) setCurrency(acc.currency);
+  }
+
+  function handleAmountChange(raw: string) {
+    setAmount(raw.replace(/\D/g, ""));
+  }
+
   function submit() {
     const cleanCard = type === "INCOME" || isCash ? undefined : cardId || undefined;
     const body = {
@@ -149,7 +188,7 @@ export function TransactionCreateModal({
       title={editing ? t("transactions.edit") : t("transactions.new")}
       className="max-w-md"
     >
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-4">
         <Segmented
           aria-label={t("transactions.form.type")}
           value={type}
@@ -164,55 +203,32 @@ export function TransactionCreateModal({
           ]}
         />
 
-        <div className="grid grid-cols-[1fr_90px] gap-3">
-          <Field label={t("transactions.form.amount")} htmlFor="tx-amount">
-            <Input
-              id="tx-amount"
-              inputMode="decimal"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              required
+        <div className="flex flex-col items-center gap-1 py-2">
+          <span className="text-sm text-muted-foreground">{t("transactions.form.amount")}</span>
+          <div className="flex items-center gap-1 text-accent">
+            <span className="text-2xl font-semibold">
+              {currencySymbol(currency, groupingLocaleFor(currency, i18n.language))}
+            </span>
+            <input
+              inputMode="numeric"
+              value={formatAmountDisplay(amount, groupingLocaleFor(currency, i18n.language))}
+              onChange={(e) => handleAmountChange(e.target.value)}
+              placeholder="0"
+              size={Math.max(1, formatAmountDisplay(amount, groupingLocaleFor(currency, i18n.language)).length)}
+              className="bg-transparent text-center text-4xl font-bold tabular-nums text-accent focus-visible:outline-none"
+              aria-label={t("transactions.form.amount")}
             />
-          </Field>
-          <Field label={t("accounts.form.currency")} htmlFor="tx-cur">
-            <Input
-              id="tx-cur"
-              value={currency}
-              maxLength={3}
-              onChange={(e) => setCurrency(e.target.value.toUpperCase())}
-            />
-          </Field>
+          </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t("transactions.form.account")} htmlFor="tx-acc">
-            <Select
-              id="tx-acc"
-              value={bankAccountId}
-              onChange={(e) => {
-                setBankAccountId(e.target.value);
-                setCardId("");
-              }}
-              options={accountOptions}
-            />
-          </Field>
-          {showCard ? (
-            <Field label={t("transactions.form.card")} htmlFor="tx-card">
-              <Select
-                id="tx-card"
-                value={cardId}
-                onChange={(e) => setCardId(e.target.value)}
-                options={cardOptions}
-                disabled={noCardsAvailable}
-              />
-            </Field>
-          ) : (
-            <div />
-          )}
-        </div>
-        {noCardsAvailable ? (
-          <p className="-mt-1 text-xs text-destructive">{t("transactions.form.noCardsHint")}</p>
-        ) : null}
+        <Field label={t("transactions.form.description")} htmlFor="tx-desc">
+          <Input
+            id="tx-desc"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder={t("transactions.form.descriptionPlaceholder")}
+          />
+        </Field>
 
         <div className="grid grid-cols-2 gap-3">
           <Field label={t("transactions.form.category")} htmlFor="tx-cat">
@@ -228,34 +244,58 @@ export function TransactionCreateModal({
           </Field>
         </div>
 
-        <Field label={t("transactions.form.description")} htmlFor="tx-desc">
-          <Input
-            id="tx-desc"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
+        <Field label={t("transactions.form.account")} htmlFor="tx-acc">
+          <Select
+            id="tx-acc"
+            value={bankAccountId}
+            onChange={(e) => handleAccountChange(e.target.value)}
+            options={accountOptions}
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
-          <Field label={t("transactions.form.emisor")} htmlFor="tx-emisor">
-            <Input id="tx-emisor" value={emisor} onChange={(e) => setEmisor(e.target.value)} />
-          </Field>
-          <Field label={t("transactions.form.receptor")} htmlFor="tx-receptor">
-            <Input
-              id="tx-receptor"
-              value={receptor}
-              onChange={(e) => setReceptor(e.target.value)}
+        {showCard ? (
+          <Field label={t("transactions.form.card")} htmlFor="tx-card">
+            <Select
+              id="tx-card"
+              value={cardId}
+              onChange={(e) => setCardId(e.target.value)}
+              options={cardOptions}
+              disabled={noCardsAvailable}
             />
           </Field>
-        </div>
+        ) : null}
+        {noCardsAvailable ? (
+          <p className="-mt-2 text-xs text-destructive">{t("transactions.form.noCardsHint")}</p>
+        ) : null}
 
-        <Field label={t("transactions.form.lugar")} htmlFor="tx-lugar">
-          <Input id="tx-lugar" value={lugar} onChange={(e) => setLugar(e.target.value)} />
-        </Field>
+        <CollapsibleSection title={t("transactions.form.moreDetails")} className="p-3">
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("transactions.form.emisor")} htmlFor="tx-emisor">
+                <Input id="tx-emisor" value={emisor} onChange={(e) => setEmisor(e.target.value)} />
+              </Field>
+              <Field label={t("transactions.form.receptor")} htmlFor="tx-receptor">
+                <Input
+                  id="tx-receptor"
+                  value={receptor}
+                  onChange={(e) => setReceptor(e.target.value)}
+                />
+              </Field>
+            </div>
 
-        <Field label={t("transactions.form.observation")} htmlFor="tx-obs">
-          <Input id="tx-obs" value={observation} onChange={(e) => setObservation(e.target.value)} />
-        </Field>
+            <Field label={t("transactions.form.lugar")} htmlFor="tx-lugar">
+              <Input id="tx-lugar" value={lugar} onChange={(e) => setLugar(e.target.value)} />
+            </Field>
+
+            <Field label={t("transactions.form.observation")} htmlFor="tx-obs">
+              <Input
+                id="tx-obs"
+                value={observation}
+                onChange={(e) => setObservation(e.target.value)}
+              />
+            </Field>
+          </div>
+        </CollapsibleSection>
       </div>
 
       <div className="mt-6 flex justify-end gap-2">
@@ -263,7 +303,7 @@ export function TransactionCreateModal({
           {t("common.cancel")}
         </Button>
         <Button variant="accent" onClick={submit} disabled={!canSubmit}>
-          {editing ? t("accounts.actions.save") : t("transactions.new")}
+          {t("transactions.form.submit")}
         </Button>
       </div>
     </Dialog>

@@ -15,9 +15,16 @@ import { TransactionFiltersBar } from "../components/TransactionFiltersBar";
 import { TransactionTable } from "../components/TransactionTable";
 import { useTransactions } from "../hooks/useTransactions";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
-import { clientFilter, endOfMonth, startOfMonth } from "../lib/transactionMetrics";
+import {
+  clientFilter,
+  endOfMonth,
+  isFullMonthRange,
+  startOfMonth,
+  uniqueCategories,
+} from "../lib/transactionMetrics";
 import type { TransactionViewFilters } from "../lib/transactionMetrics";
 import type { transactions } from "@finance/contracts";
+import { formatDateRangeLabel } from "../components/DateRangeButton";
 
 const now = new Date();
 
@@ -29,7 +36,7 @@ const DEFAULT_FILTERS: TransactionViewFilters = {
 };
 
 export function TransactionsRoute() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
   const [editTx, setEditTx] = useState<transactions.Transaction | null>(null);
   const [deleteTx, setDeleteTx] = useState<transactions.Transaction | null>(null);
@@ -55,6 +62,25 @@ export function TransactionsRoute() {
     return clientFilter(fetched, filters.categorySearch);
   }, [txQuery.data, filters.categorySearch]);
 
+  const categories = useMemo(() => uniqueCategories(txQuery.data ?? []), [txQuery.data]);
+
+  const periodLabel = useMemo(() => {
+    const count = visibleTxs.length;
+    if (isFullMonthRange(filters.from, filters.to)) {
+      const month = new Date(filters.from!).toLocaleDateString(i18n.language, {
+        month: "long",
+        year: "numeric",
+        timeZone: "UTC",
+      });
+      return t("transactions.subtitle", { month, count });
+    }
+    if (filters.from || filters.to) {
+      const range = formatDateRangeLabel(filters.from, filters.to, i18n.language);
+      return t("transactions.subtitleRange", { range, count });
+    }
+    return t("transactions.subtitleAll", { count });
+  }, [filters.from, filters.to, visibleTxs.length, t, i18n.language]);
+
   const segmentedOptions: { value: transactions.TransactionType | "ALL"; label: string }[] = [
     { value: "ALL", label: t("transactions.filters.all") },
     { value: "INCOME", label: t("transactions.filters.income") },
@@ -69,6 +95,7 @@ export function TransactionsRoute() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t("transactions.title")}
+        description={periodLabel}
         actions={
           <div className="flex gap-2">
             <Button variant="ghost" disabled>
@@ -86,17 +113,23 @@ export function TransactionsRoute() {
         }
       />
 
-      <Segmented
-        value={filters.type ?? "ALL"}
-        onChange={handleSegment}
-        options={segmentedOptions}
-        aria-label={t("transactions.filters.all")}
-        className="self-start"
-      />
-
       <TransactionKpiStrip transactions={visibleTxs} />
 
-      <TransactionFiltersBar filters={filters} onChange={setFilters} accounts={accounts} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Segmented
+          value={filters.type ?? "ALL"}
+          onChange={handleSegment}
+          options={segmentedOptions}
+          aria-label={t("transactions.filters.all")}
+        />
+
+        <TransactionFiltersBar
+          filters={filters}
+          onChange={setFilters}
+          accounts={accounts}
+          categories={categories}
+        />
+      </div>
 
       {txQuery.isLoading ? (
         <LoadingState title={t("app.loading")} />
