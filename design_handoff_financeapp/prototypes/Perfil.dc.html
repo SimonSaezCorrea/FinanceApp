@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased}
+  .nw{font-variant-numeric:tabular-nums}
+  body{
+    --bg:#0b1518; --surface:#0f1e21; --surface-2:#13242a; --border:#1e2e32; --border-2:#283c41;
+    --text:#e6eded; --text-mut:#8aa0a2; --text-dim:#7d9295;
+    --primary:#66A5AD; --primary-ink:#08181b; --brand:#07575B; --accent:#F4A261; --accent-ink:#2b1908;
+    --success:#46b483; --success-bg:rgba(70,180,131,.16);
+    --danger:#e08a8a; --danger-bg:rgba(224,90,90,.14); --warning-bg:rgba(244,162,97,.14);
+    --info:#5aa9e6; --info-bg:rgba(90,169,230,.14);
+    --chip:#1c2c30; --track:#22343a; --shadow:0 8px 32px rgba(0,0,0,.35);
+    background:var(--bg);color:var(--text);min-height:100vh;
+  }
+  .sw{width:38px;height:22px;border-radius:20px;flex:none;position:relative;background:var(--track)}
+  .sw.on{background:var(--primary)}
+  .sw i{position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
+  .sw.on i{left:19px}
+  [data-chev][data-open="0"]{transform:rotate(-90deg)}
+</style>
+</helmet>
+
+<div style="max-width:1100px;margin:0 auto;padding:26px 32px">
+  <h1 style="font-size:22px;font-weight:600;letter-spacing:-.01em;margin-bottom:20px">Perfil</h1>
+  <div data-r="two" style="display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start">
+
+    <!-- ==================== IZQUIERDA (sticky) ==================== -->
+    <div style="display:flex;flex-direction:column;gap:16px;position:sticky;top:26px;align-self:start">
+      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:22px;text-align:center">
+        <div style="width:76px;height:76px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:600;color:#fff;margin:0 auto 14px">JT</div>
+        <div style="font-size:17px;font-weight:600">Javier Torres</div>
+        <div style="font-size:12.5px;color:var(--text-mut);margin-top:2px"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="b6dcd7c0dfd3c4f6d5d9c4c4d3d998d5da">[email&#160;protected]</a></div>
+        <div style="display:inline-flex;align-items:center;gap:5px;margin-top:10px;font-size:10.5px;padding:3px 10px;border-radius:20px;background:var(--chip);color:var(--primary);font-weight:600">Plan personal</div>
+        <button onClick="{{ openEdit }}" style="width:100%;height:36px;margin-top:16px;border-radius:9px;background:var(--primary);color:var(--primary-ink);font-size:12.5px;font-weight:600;border:none;font-family:inherit;cursor:pointer">Editar perfil</button>
+        <div style="display:flex;border-top:1px solid var(--border);margin-top:18px;padding-top:16px">
+          <div style="flex:1"><div class="nw" style="font-size:18px;font-weight:700">5</div><div style="font-size:10.5px;color:var(--text-mut);margin-top:2px">Cuentas</div></div>
+          <div style="flex:1;border-left:1px solid var(--border);border-right:1px solid var(--border)"><div class="nw" style="font-size:18px;font-weight:700">38</div><div style="font-size:10.5px;color:var(--text-mut);margin-top:2px">Mov./mes</div></div>
+          <div style="flex:1"><div class="nw" style="font-size:18px;font-weight:700">2024</div><div style="font-size:10.5px;color:var(--text-mut);margin-top:2px">Miembro</div></div>
+        </div>
+      </div>
+      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:20px">
+        <div style="font-size:13.5px;font-weight:600;margin-bottom:16px">Estado de tu cuenta</div>
+        <div style="display:flex;align-items:center;gap:18px;margin-bottom:16px">
+          <div style="width:82px;height:82px;border-radius:50%;flex:none;background:conic-gradient(var(--primary) 0turn .72turn, var(--track) .72turn 1turn);display:flex;align-items:center;justify-content:center">
+            <div style="width:62px;height:62px;border-radius:50%;background:var(--surface);display:flex;flex-direction:column;align-items:center;justify-content:center"><div class="nw" style="font-size:19px;font-weight:700;letter-spacing:-.02em">72%</div><div style="font-size:9px;color:var(--text-mut)">completo</div></div>
+          </div>
+          <div style="font-size:11.5px;color:var(--text-mut);line-height:1.5">Completa tu perfil para desbloquear alertas por SMS y recuperación de cuenta.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="display:flex;align-items:center;gap:8px;font-size:12px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Correo verificado</span><span style="font-size:10px;padding:2px 8px;border-radius:20px;background:var(--success-bg);color:var(--success);font-weight:600">Listo</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="display:flex;align-items:center;gap:8px;font-size:12px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Identidad (RUT)</span><span style="font-size:10px;padding:2px 8px;border-radius:20px;background:var(--success-bg);color:var(--success);font-weight:600">Verificada</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-mut)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>Teléfono</span><button onClick="{{ openEdit }}" style="font-size:10px;padding:2px 9px;border-radius:20px;background:var(--warning-bg);color:var(--accent);font-weight:600;border:none;font-family:inherit;cursor:pointer">Verificar</button></div>
+          <div style="display:flex;align-items:center;justify-content:space-between"><span style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-mut)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-dim)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 4-6 8-6s8 2 8 6"/></svg>Foto de perfil</span><button onClick="{{ openEdit }}" style="font-size:10px;padding:2px 9px;border-radius:20px;background:var(--chip);color:var(--text-mut);font-weight:600;border:none;font-family:inherit;cursor:pointer">Añadir</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== DERECHA (secciones colapsables) ==================== -->
+    <div style="display:flex;flex-direction:column;gap:16px">
+
+      <!-- Información personal -->
+      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:18px 20px">
+        <div onClick="{{ toggleSec.info }}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none"><span style="font-size:13.5px;font-weight:600">Información personal</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" data-chev data-open="{{ secO.info }}" style="transition:transform .18s"><path d="m6 9 6 6 6-6"/></svg></div>
+        <sc-if value="{{ secB.info }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text-mut)">Nombre completo</span><span style="font-size:12.5px">Javier Torres</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text-mut)">Correo</span><span style="font-size:12.5px"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="244e45524d415664474b5656414b0a4748">[email&#160;protected]</a></span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text-mut)">Teléfono</span><span style="font-size:12.5px;color:var(--text-dim)">Sin registrar</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text-mut)">RUT</span><span class="nw" style="font-size:12.5px">12.345.678-9</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text-mut)">Fecha de nacimiento</span><span class="nw" style="font-size:12.5px">14/03/1991</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px;color:var(--text-mut)">Dirección</span><span style="font-size:12.5px">Av. Providencia 1234, Santiago</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0"><span style="font-size:13px;color:var(--text-mut)">País</span><span style="font-size:12.5px">Chile</span></div>
+          <button onClick="{{ openEdit }}" style="width:100%;height:34px;margin-top:12px;border-radius:8px;border:1px solid var(--border-2);background:transparent;color:var(--text);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer">Editar información</button>
+        </div></sc-if>
+      </div>
+
+      <!-- Preferencias -->
+      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:18px 20px">
+        <div onClick="{{ toggleSec.pref }}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none"><span style="font-size:13.5px;font-weight:600">Preferencias</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" data-chev data-open="{{ secO.pref }}" style="transition:transform .18s"><path d="m6 9 6 6 6-6"/></svg></div>
+        <sc-if value="{{ secB.pref }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px">Tema oscuro</span><div onClick="{{ toggleTheme }}" class="sw on" style="cursor:pointer"><i></i></div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px">Moneda principal</span><span style="font-size:12.5px;color:var(--text-mut)">CLP · Peso chileno</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px">Idioma</span><span style="font-size:12.5px;color:var(--text-mut)">Español</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0"><span style="font-size:13px">Formato de fecha</span><span style="font-size:12.5px;color:var(--text-mut)">DD/MM/AAAA</span></div>
+        </div></sc-if>
+      </div>
+
+      <!-- Personalización financiera -->
+      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:18px 20px">
+        <div onClick="{{ toggleSec.custom }}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none"><span style="font-size:13.5px;font-weight:600">Personalización financiera</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" data-chev data-open="{{ secO.custom }}" style="transition:transform .18s"><path d="m6 9 6 6 6-6"/></svg></div>
+        <sc-if value="{{ secB.custom }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px">Inicio del ciclo mensual</div><div style="font-size:11px;color:var(--text-dim)">Cuándo empieza tu mes financiero</div></div><span style="height:30px;padding:0 11px;border-radius:8px;border:1px solid var(--border-2);display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-mut)">Día 1 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px">Presupuesto mensual objetivo</div><div style="font-size:11px;color:var(--text-dim)">Base del termómetro de gasto</div></div><span class="nw" style="height:30px;padding:0 11px;border-radius:8px;border:1px solid var(--border-2);display:flex;align-items:center;font-size:12px;color:var(--text-mut)">$1.200.000</span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px">Moneda secundaria</div><div style="font-size:11px;color:var(--text-dim)">Muestra montos convertidos</div></div><span style="height:30px;padding:0 11px;border-radius:8px;border:1px solid var(--border-2);display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-mut)">USD · 1=$960 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg></span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px">Redondeo para ahorro</div><div style="font-size:11px;color:var(--text-dim)">Guarda la diferencia de cada gasto</div></div><div class="sw on" style="cursor:pointer"><i></i></div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0"><div><div style="font-size:13px">Ocultar saldos</div><div style="font-size:11px;color:var(--text-dim)">Difumina montos al abrir la app</div></div><div class="sw" style="cursor:pointer"><i></i></div></div>
+        </div></sc-if>
+      </div>
+
+      <!-- Seguridad -->
+      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:18px 20px">
+        <div onClick="{{ toggleSec.seg }}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none"><span style="font-size:13.5px;font-weight:600">Seguridad</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" data-chev data-open="{{ secO.seg }}" style="transition:transform .18s"><path d="m6 9 6 6 6-6"/></svg></div>
+        <sc-if value="{{ secB.seg }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px">Contraseña</div><div style="font-size:11px;color:var(--text-dim)">Actualizada hace 3 meses</div></div><button style="height:32px;padding:0 13px;border-radius:8px;border:1px solid var(--border-2);background:transparent;color:var(--text);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer">Cambiar</button></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px">Verificación en dos pasos</div><div style="font-size:11px;color:var(--text-dim)">App autenticadora activa</div></div><div class="sw on" style="cursor:pointer"><i></i></div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><div><div style="font-size:13px">Llave de acceso (passkey)</div><div style="font-size:11px;color:var(--text-dim)">Face ID · huella · llave física</div></div><button style="height:32px;padding:0 13px;border-radius:8px;border:1px solid var(--border-2);background:transparent;color:var(--text);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer">Configurar</button></div>
+          <div style="padding:12px 0 4px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span style="font-size:12px;font-weight:500;color:var(--text-mut)">Sesiones y dispositivos</span><button style="font-size:11px;color:var(--danger);background:none;border:none;font-family:inherit;cursor:pointer;font-weight:500">Cerrar todas</button></div>
+            <div style="border:1px solid var(--border);border-radius:11px;overflow:hidden">
+              <div style="display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid var(--border)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">MacBook Pro · Santiago</div><div style="font-size:10px;color:var(--success)">Este dispositivo · activo ahora</div></div></div>
+              <div style="display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid var(--border)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">iPhone 15 · App móvil</div><div style="font-size:10px;color:var(--text-dim)">Hace 2 h · Santiago</div></div><button style="font-size:10.5px;color:var(--danger);background:none;border:none;font-family:inherit;cursor:pointer">Cerrar</button></div>
+              <div style="display:flex;align-items:center;gap:11px;padding:11px 14px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">Chrome · Windows</div><div style="font-size:10px;color:var(--text-dim)">Ayer · Valparaíso</div></div><button style="font-size:10.5px;color:var(--danger);background:none;border:none;font-family:inherit;cursor:pointer">Cerrar</button></div>
+            </div>
+          </div>
+        </div></sc-if>
+      </div>
+
+      <!-- Plan, uso y facturación -->
+      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:18px 20px">
+        <div onClick="{{ toggleSec.plan }}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none"><span style="display:flex;align-items:center;gap:10px"><span style="font-size:13.5px;font-weight:600">Plan, uso y facturación</span><span style="font-size:10.5px;padding:2px 9px;border-radius:20px;background:var(--chip);color:var(--primary);font-weight:600">Plan personal · Gratis</span></span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" data-chev data-open="{{ secO.plan }}" style="transition:transform .18s"><path d="m6 9 6 6 6-6"/></svg></div>
+        <sc-if value="{{ secB.plan }}" hint-placeholder-val="{{ false }}"><div style="margin-top:14px">
+          <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:16px">
+            <div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:5px"><span style="color:var(--text-mut)">Cuentas</span><span class="nw">6 / 10</span></div><div style="height:6px;border-radius:4px;background:var(--track)"><div style="width:60%;height:100%;border-radius:4px;background:var(--primary)"></div></div></div>
+            <div><div style="display:flex;justify-content:space-between;font-size:11.5px;margin-bottom:5px"><span style="color:var(--text-mut)">Categorías personalizadas</span><span class="nw">8 / 15</span></div><div style="height:6px;border-radius:4px;background:var(--track)"><div style="width:53%;height:100%;border-radius:4px;background:var(--primary)"></div></div></div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;border:1px solid var(--accent);border-radius:11px;background:linear-gradient(180deg,rgba(244,162,97,.08),transparent);padding:13px 15px;margin-bottom:14px"><div><div style="font-size:12.5px;font-weight:600">Pásate a Pro</div><div style="font-size:11px;color:var(--text-mut);margin-top:1px">Cuentas ilimitadas, sincronización bancaria y reportes.</div></div><button style="height:32px;padding:0 14px;border-radius:8px;background:var(--accent);color:var(--accent-ink);font-size:12px;font-weight:600;border:none;font-family:inherit;cursor:pointer;flex:none">Ver Pro</button></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-top:1px solid var(--border)"><span style="display:flex;align-items:center;gap:10px;font-size:13px"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>Visa •••• 4242</span><button style="height:30px;padding:0 12px;border-radius:8px;border:1px solid var(--border-2);background:transparent;color:var(--text);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer">Cambiar</button></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0"><span style="font-size:13px">Historial de facturas</span><button style="height:30px;padding:0 12px;border-radius:8px;border:1px solid var(--border-2);background:transparent;color:var(--text);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer">Ver</button></div>
+        </div></sc-if>
+      </div>
+
+      <!-- Notificaciones -->
+      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:18px 20px">
+        <div onClick="{{ toggleSec.notif }}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none"><span style="font-size:13.5px;font-weight:600">Notificaciones</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" data-chev data-open="{{ secO.notif }}" style="transition:transform .18s"><path d="m6 9 6 6 6-6"/></svg></div>
+        <sc-if value="{{ secB.notif }}" hint-placeholder-val="{{ false }}"><div style="margin-top:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px">Vencimientos de cuotas</span><div class="sw on" style="cursor:pointer"><i></i></div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px">Resumen mensual</span><div class="sw on" style="cursor:pointer"><i></i></div></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0 14px;border-bottom:1px solid var(--border)"><span style="font-size:13px">Alertas de gasto</span><div class="sw on" style="cursor:pointer"><i></i></div></div>
+          <div style="padding-top:14px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px"><span style="font-size:12px;color:var(--text-mut)">Avísame al alcanzar</span><span class="nw" style="font-size:12px;color:var(--accent);font-weight:600">80% del presupuesto</span></div>
+            <div style="position:relative;height:6px;border-radius:4px;background:var(--track)"><div style="width:80%;height:100%;border-radius:4px;background:var(--accent)"></div><div style="position:absolute;top:50%;left:80%;transform:translate(-50%,-50%);width:15px;height:15px;border-radius:50%;background:#fff;border:3px solid var(--accent)"></div></div>
+          </div>
+        </div></sc-if>
+      </div>
+
+      <!-- Datos, conexiones y privacidad -->
+      <div style="border:1px solid var(--border);border-radius:14px;background:var(--surface);padding:18px 20px">
+        <div onClick="{{ toggleSec.datos }}" style="display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none"><span style="font-size:13.5px;font-weight:600">Datos, conexiones y privacidad</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--text-mut)" stroke-width="2" data-chev data-open="{{ secO.datos }}" style="transition:transform .18s"><path d="m6 9 6 6 6-6"/></svg></div>
+        <sc-if value="{{ secB.datos }}" hint-placeholder-val="{{ false }}"><div style="margin-top:12px">
+          <div style="font-size:11.5px;color:var(--text-mut);margin-bottom:8px">Bancos vinculados</div>
+          <div style="border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:16px">
+            <div style="display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid var(--border)"><div style="width:28px;height:28px;border-radius:8px;background:var(--chip);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:var(--primary)">BE</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">Banco Estado</div><div style="font-size:10px;color:var(--success)">Sincronizado · hace 1 h</div></div><div class="sw on" style="cursor:pointer"><i></i></div></div>
+            <div style="display:flex;align-items:center;gap:11px;padding:11px 14px;border-bottom:1px solid var(--border)"><div style="width:28px;height:28px;border-radius:8px;background:var(--chip);display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;color:var(--primary)">FC</div><div style="flex:1;min-width:0"><div style="font-size:12px;font-weight:500">Falabella CMR</div><div style="font-size:10px;color:var(--text-dim)">Pausado</div></div><div class="sw" style="cursor:pointer"><i></i></div></div>
+            <button style="display:flex;align-items:center;gap:8px;width:100%;padding:11px 14px;background:none;border:none;font-family:inherit;cursor:pointer;color:var(--primary);font-size:12px;font-weight:500"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Vincular otro banco</button>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid var(--border)"><span style="font-size:13px">Exportar movimientos</span><span style="display:flex;gap:6px"><button style="font-size:10.5px;padding:3px 10px;border-radius:20px;background:var(--chip);color:var(--text);border:none;font-family:inherit;cursor:pointer">CSV</button><button style="font-size:10.5px;padding:3px 10px;border-radius:20px;background:var(--chip);color:var(--text);border:none;font-family:inherit;cursor:pointer">Excel</button><button style="font-size:10.5px;padding:3px 10px;border-radius:20px;background:var(--chip);color:var(--text);border:none;font-family:inherit;cursor:pointer">PDF</button></span></div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0"><div><div style="font-size:13px">Respaldo automático mensual</div><div style="font-size:11px;color:var(--text-dim)">Guarda una copia de tus datos</div></div><div class="sw on" style="cursor:pointer"><i></i></div></div>
+        </div></sc-if>
+      </div>
+
+      <div style="display:flex;gap:10px">
+        <button style="flex:1;height:40px;border-radius:9px;border:1px solid var(--border-2);background:transparent;color:var(--text);font-size:13px;font-weight:500;font-family:inherit;cursor:pointer">Cerrar sesión</button>
+        <button style="flex:1;height:40px;border-radius:9px;border:1px solid var(--danger-bg);background:var(--danger-bg);color:var(--danger);font-size:13px;font-weight:500;font-family:inherit;cursor:pointer">Eliminar cuenta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MODAL EDITAR PERFIL ==================== -->
+<sc-if value="{{ editOpen }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;inset:0;z-index:700;display:flex;align-items:center;justify-content:center;padding:20px;font-family:'Geist',sans-serif">
+  <div onClick="{{ closeEdit }}" style="position:absolute;inset:0;background:rgba(0,0,0,.5)"></div>
+  <div style="position:relative;width:500px;max-width:100%;max-height:90vh;overflow:auto;border:1px solid var(--border);border-radius:14px;background:var(--surface);box-shadow:var(--shadow)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid var(--border)"><h2 style="font-size:16px;font-weight:600">Editar perfil</h2><button onClick="{{ closeEdit }}" aria-label="Cerrar" style="width:30px;height:30px;border-radius:8px;border:none;background:transparent;color:var(--text-mut);font-size:17px;cursor:pointer">✕</button></div>
+    <div style="padding:20px">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+        <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--brand),var(--accent));display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:600;color:#fff;flex:none">JT</div>
+        <button style="height:32px;padding:0 13px;border-radius:8px;border:1px solid var(--border-2);background:transparent;color:var(--text);font-size:12px;font-weight:500;font-family:inherit;cursor:pointer">Cambiar foto</button>
+      </div>
+      <div style="margin-bottom:14px"><label style="font-size:12px;font-weight:500;color:var(--text-mut);margin-bottom:6px;display:block">Nombre completo</label><input value="Javier Torres" style="width:100%;height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--border-2);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box" /></div>
+      <div style="display:flex;gap:12px;margin-bottom:14px">
+        <div style="flex:1"><label style="font-size:12px;font-weight:500;color:var(--text-mut);margin-bottom:6px;display:block">Correo</label><input value="javier@correo.cl" style="width:100%;height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--border-2);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box" /></div>
+        <div style="flex:1"><label style="font-size:12px;font-weight:500;color:var(--text-mut);margin-bottom:6px;display:block">Teléfono</label><input placeholder="+56 9 ····" style="width:100%;height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--border-2);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box" /></div>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:14px">
+        <div style="flex:1"><label style="font-size:12px;font-weight:500;color:var(--text-mut);margin-bottom:6px;display:block">RUT</label><input value="12.345.678-9" style="width:100%;height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--border-2);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box" /></div>
+        <div style="flex:1"><label style="font-size:12px;font-weight:500;color:var(--text-mut);margin-bottom:6px;display:block">Fecha de nacimiento</label><input type="date" value="1991-03-14" style="width:100%;height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--border-2);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box" /></div>
+      </div>
+      <div style="margin-bottom:14px"><label style="font-size:12px;font-weight:500;color:var(--text-mut);margin-bottom:6px;display:block">Dirección</label><input value="Av. Providencia 1234, Santiago" style="width:100%;height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--border-2);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box" /></div>
+      <div><label style="font-size:12px;font-weight:500;color:var(--text-mut);margin-bottom:6px;display:block">País</label><select style="width:100%;height:40px;padding:0 10px;border-radius:8px;border:1px solid var(--border-2);background:var(--bg);color:var(--text);font-size:13px;font-family:inherit;outline:none;box-sizing:border-box"><option>Chile</option><option>Argentina</option><option>Perú</option><option>Colombia</option><option>México</option></select></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:9px;padding:14px 20px;border-top:1px solid var(--border)"><button onClick="{{ closeEdit }}" style="height:38px;padding:0 16px;border-radius:9px;border:1px solid var(--border-2);background:transparent;color:var(--text);font-size:13px;font-weight:500;font-family:inherit;cursor:pointer">Cancelar</button><button onClick="{{ saveEdit }}" style="height:38px;padding:0 18px;border-radius:9px;background:var(--primary);color:var(--primary-ink);font-size:13px;font-weight:600;border:none;font-family:inherit;cursor:pointer">Guardar cambios</button></div>
+  </div>
+</div>
+</sc-if>
+
+<!-- Toast -->
+<sc-if value="{{ toast }}" hint-placeholder-val="{{ false }}">
+<div style="position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:800;background:var(--surface-2);border:1px solid var(--border-2);color:var(--text);font-size:13px;font-weight:500;padding:11px 18px;border-radius:10px;box-shadow:var(--shadow);font-family:'Geist',sans-serif">{{ toast }}</div>
+</sc-if>
+</x-dc>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = {
+    theme: 'dark',
+    secOpen: { info: false, pref: false, custom: false, seg: false, plan: false, notif: false, datos: false },
+    editOpen: false,
+    toast: null,
+  };
+
+  tsec(key) {
+    return () => this.setState((st) => ({ secOpen: { ...st.secOpen, [key]: !st.secOpen[key] } }));
+  }
+
+  flash(msg) {
+    clearTimeout(this._t);
+    this.setState({ toast: msg });
+    this._t = setTimeout(() => this.setState({ toast: null }), 2200);
+  }
+
+  renderVals() {
+    const so = this.state.secOpen;
+    const b = (v) => (v ? "1" : "0");
+    return {
+      toggleTheme: () => this.setState((st) => ({ theme: st.theme === 'dark' ? 'light' : 'dark' })),
+      secO: {
+        info: b(so.info), pref: b(so.pref), custom: b(so.custom), seg: b(so.seg),
+        plan: b(so.plan), notif: b(so.notif), datos: b(so.datos),
+      },
+      secB: {
+        info: so.info, pref: so.pref, custom: so.custom, seg: so.seg,
+        plan: so.plan, notif: so.notif, datos: so.datos,
+      },
+      toggleSec: {
+        info: this.tsec('info'), pref: this.tsec('pref'), custom: this.tsec('custom'),
+        seg: this.tsec('seg'), plan: this.tsec('plan'), notif: this.tsec('notif'), datos: this.tsec('datos'),
+      },
+      editOpen: this.state.editOpen,
+      openEdit: () => this.setState({ editOpen: true }),
+      closeEdit: () => this.setState({ editOpen: false }),
+      saveEdit: () => { this.setState({ editOpen: false }); this.flash('Perfil actualizado'); },
+      toast: this.state.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>

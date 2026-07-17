@@ -1,4 +1,5 @@
 import * as RadixDialog from "@radix-ui/react-dialog";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "./button";
@@ -11,6 +12,8 @@ interface ConfirmDialogProps {
   description?: string;
   confirmLabel?: string;
   loading?: boolean;
+  /** Extra content rendered between the description and the action buttons (e.g. a confirmation field). */
+  children?: ReactNode;
 }
 
 export function ConfirmDialog({
@@ -21,6 +24,7 @@ export function ConfirmDialog({
   description,
   confirmLabel,
   loading,
+  children,
 }: ConfirmDialogProps) {
   const { t } = useTranslation();
 
@@ -35,6 +39,7 @@ export function ConfirmDialog({
               {description}
             </RadixDialog.Description>
           ) : null}
+          {children ? <div className="mt-4">{children}</div> : null}
           <div className="mt-5 flex justify-end gap-2">
             <Button
               variant="outline"

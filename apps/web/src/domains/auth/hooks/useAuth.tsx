@@ -10,6 +10,10 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (input: auth.RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
+  /** Re-fetches /auth/me and refreshes the cached user (after a profile/preferences edit). */
+  refreshUser: () => Promise<auth.CurrentUser | null>;
+  /** Clears the local user without calling the API (session already ended server-side, e.g. deactivate). */
+  clearUser: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -36,6 +40,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await authApi.logout();
         setUser(null);
       },
+      refreshUser: async () => {
+        const next = await authApi.me().catch(() => null);
+        setUser(next);
+        return next;
+      },
+      clearUser: () => setUser(null),
     }),
     [user, loading],
   );

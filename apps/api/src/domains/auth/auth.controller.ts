@@ -1,4 +1,4 @@
-import { Body, Controller, Get, HttpCode, Post, Req, Res, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, HttpCode, Patch, Post, Req, Res, UseGuards } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import type { Request, Response } from "express";
 
@@ -33,7 +33,7 @@ export class AuthController {
   ): Promise<auth.CurrentUser> {
     const user = await this.service.register(body);
     this.setAuthCookies(res, this.service.issueTokens(user));
-    return { id: user.id, email: user.email, name: body.name ?? null };
+    return this.service.getCurrentUser(user.id);
   }
 
   @Post("login")
@@ -65,6 +65,48 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: AuthUser): Promise<auth.CurrentUser> {
     return this.service.getCurrentUser(user.id);
+  }
+
+  @Patch("me")
+  @UseGuards(JwtAuthGuard)
+  updateProfile(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(auth.updateProfileRequestSchema)) body: auth.UpdateProfileRequest,
+  ): Promise<auth.CurrentUser> {
+    return this.service.updateProfile(user.id, body);
+  }
+
+  @Post("me/password")
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  changePassword(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(auth.changePasswordRequestSchema)) body: auth.ChangePasswordRequest,
+  ): Promise<void> {
+    return this.service.changePassword(user.id, body);
+  }
+
+  @Patch("me/preferences")
+  @UseGuards(JwtAuthGuard)
+  updatePreferences(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(auth.updatePreferencesRequestSchema))
+    body: auth.UpdatePreferencesRequest,
+  ): Promise<auth.CurrentUser> {
+    return this.service.updatePreferences(user.id, body);
+  }
+
+  @Post("me/deactivate")
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  async deactivate(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(auth.deactivateRequestSchema)) body: auth.DeactivateRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<void> {
+    await this.service.deactivate(user.id, body);
+    res.clearCookie(ACCESS_COOKIE, this.cookieBase());
+    res.clearCookie(REFRESH_COOKIE, this.cookieBase());
   }
 
   private cookieBase() {
