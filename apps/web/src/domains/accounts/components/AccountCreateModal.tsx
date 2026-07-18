@@ -143,28 +143,36 @@ export function AccountCreateModal({
       <div className="grid gap-6 md:grid-cols-2">
         <div className="flex flex-col gap-3">
           <SectionLabel>{t("accounts.form.sectionAccountData")}</SectionLabel>
-          <Field label={t("accounts.form.name")} htmlFor="m-name">
-            <Input id="m-name" value={name} required onChange={(e) => setName(e.target.value)} />
+          <Field label={t("accounts.form.name")}>
+            <Input
+              id="m-name"
+              value={name}
+              required
+              onChange={(e) => setName(e.target.value)}
+              aria-label={t("accounts.form.name")}
+            />
           </Field>
-          <Field label={t("accounts.form.type")} htmlFor="m-type">
+          <Field label={t("accounts.form.type")}>
             <AccountTypeToggle value={type} onChange={handleTypeChange} />
           </Field>
           {type !== "CASH" ? (
             <>
-              <Field label={t("accounts.form.institution")} htmlFor="m-inst">
+              <Field label={t("accounts.form.institution")}>
                 <Select
                   id="m-inst"
                   value={institutionId}
                   onChange={(e) => setInstitutionId(e.target.value)}
                   options={institutionOptions}
+                  aria-label={t("accounts.form.institution")}
                 />
               </Field>
-              <Field label={t("accounts.form.accountNumber")} htmlFor="m-num">
+              <Field label={t("accounts.form.accountNumber")}>
                 <Input
                   id="m-num"
                   inputMode="numeric"
                   value={accountNumber}
                   onChange={(e) => setAccountNumber(e.target.value)}
+                  aria-label={t("accounts.form.accountNumber")}
                 />
               </Field>
             </>
@@ -172,40 +180,44 @@ export function AccountCreateModal({
 
           <SectionLabel>{t("accounts.form.sectionBalanceCurrency")}</SectionLabel>
           <div className="grid grid-cols-2 gap-3">
-            <Field label={t("accounts.form.currency")} htmlFor="m-cur">
+            <Field label={t("accounts.form.currency")}>
               <Select
                 id="m-cur"
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value)}
                 options={currencyOptions}
+                aria-label={t("accounts.form.currency")}
               />
             </Field>
             {isCredit ? (
-              <Field label={t("accounts.form.creditLimit")} htmlFor="m-climit">
+              <Field label={t("accounts.form.creditLimit")}>
                 <Input
                   id="m-climit"
                   inputMode="decimal"
                   value={creditLimit}
                   onChange={(e) => setCreditLimit(e.target.value)}
+                  aria-label={t("accounts.form.creditLimit")}
                 />
               </Field>
             ) : (
-              <Field label={t("accounts.form.initialBalance")} htmlFor="m-bal">
+              <Field label={t("accounts.form.initialBalance")}>
                 <Input
                   id="m-bal"
                   inputMode="decimal"
                   value={initialBalance}
                   onChange={(e) => setInitialBalance(e.target.value)}
+                  aria-label={t("accounts.form.initialBalance")}
                 />
               </Field>
             )}
           </div>
           {isCredit ? (
-            <Field label={t("accounts.form.creditUsedInitial")} htmlFor="m-cused">
+            <Field label={t("accounts.form.creditUsedInitial")}>
               <Input
                 id="m-cused"
                 inputMode="decimal"
                 value={creditUsedInitial}
+                aria-label={t("accounts.form.creditUsedInitial")}
                 onChange={(e) => setCreditUsedInitial(e.target.value)}
               />
             </Field>

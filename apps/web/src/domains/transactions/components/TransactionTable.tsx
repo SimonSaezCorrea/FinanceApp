@@ -16,6 +16,7 @@ interface TransactionTableProps {
   accounts: accounts.BankAccount[];
   onEdit?: (tx: transactions.Transaction) => void;
   onDelete?: (tx: transactions.Transaction) => void;
+  onRowClick?: (tx: transactions.Transaction) => void;
 }
 
 function formatDate(iso: string, locale: string): string {
@@ -31,6 +32,7 @@ export function TransactionTable({
   accounts,
   onEdit,
   onDelete,
+  onRowClick,
 }: TransactionTableProps) {
   const { t, i18n } = useTranslation();
   const showActions = Boolean(onEdit || onDelete);
@@ -76,7 +78,11 @@ export function TransactionTable({
               : "bg-muted text-muted-foreground";
 
             return (
-              <TR key={tx.id} className="hover:bg-muted/40">
+              <TR
+                key={tx.id}
+                className={onRowClick ? "cursor-pointer hover:bg-muted/40" : "hover:bg-muted/40"}
+                onClick={() => onRowClick?.(tx)}
+              >
                 <TD>
                   <span
                     className={`flex h-8 w-8 items-center justify-center rounded-full ${iconWrapColor}`}
@@ -120,7 +126,10 @@ export function TransactionTable({
                           variant="ghost"
                           size="sm"
                           aria-label={t("accounts.actions.edit")}
-                          onClick={() => onEdit(tx)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEdit(tx);
+                          }}
                         >
                           <Pencil className="h-4 w-4" aria-hidden />
                         </Button>
@@ -131,7 +140,10 @@ export function TransactionTable({
                           size="sm"
                           aria-label={t("accounts.actions.delete")}
                           className="text-destructive hover:bg-destructive/10"
-                          onClick={() => onDelete(tx)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDelete(tx);
+                          }}
                         >
                           <Trash2 className="h-4 w-4" aria-hidden />
                         </Button>

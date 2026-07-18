@@ -12,6 +12,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { useTransactions } from "../../transactions/hooks/useTransactions";
 import { useTransactionMutations } from "../../transactions/hooks/useTransactionMutations";
 import { TransactionCreateModal } from "../../transactions/components/TransactionCreateModal";
+import { TransactionDetailModal } from "../../transactions/components/TransactionDetailModal";
 import { TransactionTable } from "../../transactions/components/TransactionTable";
 import { cn } from "../../../shared/lib/cn";
 import { Badge } from "../../../shared/ui/badge";
@@ -247,6 +248,7 @@ function MovementsSection({ account }: { account: accounts.BankAccount }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editTx, setEditTx] = useState<transactions.Transaction | null>(null);
   const [deleteTx, setDeleteTx] = useState<transactions.Transaction | null>(null);
+  const [detailTx, setDetailTx] = useState<transactions.Transaction | null>(null);
   const list = data ?? [];
 
   return (
@@ -280,6 +282,7 @@ function MovementsSection({ account }: { account: accounts.BankAccount }) {
             setModalOpen(true);
           }}
           onDelete={(tx) => setDeleteTx(tx)}
+          onRowClick={(tx) => setDetailTx(tx)}
         />
       )}
 
@@ -288,6 +291,18 @@ function MovementsSection({ account }: { account: accounts.BankAccount }) {
         onOpenChange={setModalOpen}
         initial={editTx ?? undefined}
         defaultBankAccountId={account.id}
+      />
+
+      <TransactionDetailModal
+        transaction={detailTx}
+        accounts={[account]}
+        open={detailTx !== null}
+        onOpenChange={(v) => !v && setDetailTx(null)}
+        onEdit={(tx) => {
+          setEditTx(tx);
+          setModalOpen(true);
+        }}
+        onDelete={(tx) => setDeleteTx(tx)}
       />
 
       <ConfirmDialog

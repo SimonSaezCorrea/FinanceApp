@@ -61,9 +61,12 @@ export class TransactionsRepository {
   }
 
   async update(userId: string, id: string, data: Prisma.TransactionUpdateInput) {
-    const result = await this.prisma.transaction.updateMany({ where: { id, userId }, data });
-    if (result.count === 0) return null;
-    return this.findOne(userId, id);
+    // `updateMany` can't take relational connect/disconnect writes (data.bankAccount,
+    // data.card) — only scalar fields. Re-check ownership, then do a single-record
+    // `update` by id (which does support them).
+    const owned = await this.prisma.transaction.findFirst({ where: { id, userId }, select: { id: true } });
+    if (!owned) return null;
+    return this.prisma.transaction.update({ where: { id }, data });
   }
 
   async remove(userId: string, id: string): Promise<boolean> {

@@ -113,3 +113,32 @@ Extender la cobertura es mecánico — envolver el monto con `<MaskedAmount>` do
 Todo lo anterior fue verificado en su forma actual (visual fiel al diseño, sin llamadas de red falsas,
 tests unitarios cubriendo el comportamiento real vs. el placeholder) — ver `specs/008-user-profile/`
 para el detalle de spec/plan/tasks.
+
+## Movimientos (Transacciones)
+
+### 1. Plantillas de movimientos
+
+No existe la posibilidad de crear, usar o editar una **plantilla de movimiento** reutilizable (cuenta,
+categoría, descripción, tarjeta, etc. predefinidos para crear movimientos similares rápido — ej.
+"Bencina", "Arriendo mensual"). Hoy la única "reutilización" es indirecta: el combobox de categoría en
+`TransactionCreateModal` sugiere valores ya usados en el historial (`uniqueCategories`), pero no hay
+modelo de plantilla ni acciones "Guardar como plantilla" / "Usar plantilla" en el formulario.
+
+**Para hacerlo real**: modelo `TransactionTemplate` (userId, nombre, y los mismos campos opcionales de
+una transacción salvo monto/fecha), endpoint CRUD, y en el formulario de creación un selector "Usar
+plantilla" que prellene los campos más un botón "Guardar como plantilla".
+
+### 2. Categorías personalizadas como entidad propia
+
+Las categorías son **texto libre** (`Transaction.category: String?`), no un modelo propio: no existe
+`Category` con id, ícono, color o presupuesto asociado. El combobox de categoría solo sugiere strings ya
+usados por el propio usuario en sus transacciones (`uniqueCategories`) — no hay pantalla para crear,
+renombrar, fusionar o eliminar categorías, y "renombrar" hoy implicaría editar transacción por
+transacción (no hay operación en lote). Esto es distinto del placeholder "Categorías personalizadas
+8/15" de Perfil → Plan y facturación (sección 5 más arriba), que es solo un número de ejemplo para un
+límite de plan que no existe.
+
+**Para hacerlo real**: modelo `Category` (userId, nombre, ícono, color, presupuesto opcional) con FK
+opcional desde `Transaction` (migrando el string libre existente), pantalla de gestión
+(crear/renombrar/fusionar/eliminar) y actualizar el combobox para listar categorías reales en vez de
+strings derivados del historial.

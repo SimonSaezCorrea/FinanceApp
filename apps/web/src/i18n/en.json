@@ -199,7 +199,8 @@
     "kpi": {
       "income": "Income",
       "expense": "Expenses",
-      "balance": "Net balance"
+      "balance": "Net balance",
+      "balanceOf": "Balance for {{month}}"
     },
     "filters": {
       "all": "All",
@@ -215,7 +216,7 @@
       "today": "Today",
       "from": "From",
       "to": "To",
-      "showInactive": "Include inactive"
+      "showInactive": "Include inactive accounts/cards"
     },
     "table": {
       "noCategory": "Uncategorized",

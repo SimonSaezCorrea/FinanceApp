@@ -38,7 +38,7 @@ function ChangePasswordDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title={t("profile.security.password.change")}>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <Field label={t("profile.security.password.current")} htmlFor="current-password">
+        <Field label={t("profile.security.password.current")}>
           <Input
             id="current-password"
             type="password"
@@ -46,9 +46,10 @@ function ChangePasswordDialog({
             value={currentPassword}
             required
             onChange={(e) => setCurrentPassword(e.target.value)}
+            aria-label={t("profile.security.password.current")}
           />
         </Field>
-        <Field label={t("profile.security.password.new")} htmlFor="new-password" error={error}>
+        <Field label={t("profile.security.password.new")} error={error}>
           <Input
             id="new-password"
             type="password"
@@ -57,6 +58,7 @@ function ChangePasswordDialog({
             required
             minLength={8}
             onChange={(e) => setNewPassword(e.target.value)}
+            aria-label={t("profile.security.password.new")}
           />
         </Field>
         <div className="flex justify-end gap-2">

@@ -87,75 +87,97 @@ export function RecurringFormModal({
       className="max-w-md"
     >
       <div className="flex flex-col gap-3">
-        <Field label={t("recurring.form.label")} htmlFor="rec-label">
-          <Input id="rec-label" value={label} required onChange={(e) => setLabel(e.target.value)} />
+        <Field label={t("recurring.form.label")}>
+          <Input
+            id="rec-label"
+            value={label}
+            required
+            onChange={(e) => setLabel(e.target.value)}
+            aria-label={t("recurring.form.label")}
+          />
         </Field>
 
         <div className="grid grid-cols-[1fr_90px] gap-3">
-          <Field label={t("recurring.form.amount")} htmlFor="rec-amount">
+          <Field label={t("recurring.form.amount")}>
             <Input
               id="rec-amount"
               inputMode="decimal"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               required
+              aria-label={t("recurring.form.amount")}
             />
           </Field>
-          <Field label={t("accounts.form.currency")} htmlFor="rec-cur">
+          <Field label={t("accounts.form.currency")}>
             <Input
               id="rec-cur"
               value={currency}
               maxLength={3}
               onChange={(e) => setCurrency(e.target.value.toUpperCase())}
+              aria-label={t("accounts.form.currency")}
             />
           </Field>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label={t("recurring.form.frequency")} htmlFor="rec-freq">
+          <Field label={t("recurring.form.frequency")}>
             <Select
               id="rec-freq"
               value={frequency}
               onChange={(e) => setFrequency(e.target.value as recurring.RecurrenceFrequency)}
               options={FREQUENCIES.map((f) => ({ value: f, label: t(`recurring.frequency.${f}`) }))}
+              aria-label={t("recurring.form.frequency")}
             />
           </Field>
-          <Field label={t("recurring.form.interval")} htmlFor="rec-int">
+          <Field label={t("recurring.form.interval")}>
             <Input
               id="rec-int"
               type="number"
               min={1}
               value={interval}
               onChange={(e) => setIntervalValue(e.target.value)}
+              aria-label={t("recurring.form.interval")}
             />
           </Field>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label={t("recurring.form.anchorDate")} htmlFor="rec-anchor">
+          <Field label={t("recurring.form.anchorDate")}>
             <Input
               id="rec-anchor"
               type="date"
               value={anchorDate}
               onChange={(e) => setAnchorDate(e.target.value)}
+              aria-label={t("recurring.form.anchorDate")}
             />
           </Field>
-          <Field label={t("transactions.form.category")} htmlFor="rec-cat">
-            <Input id="rec-cat" value={category} onChange={(e) => setCategory(e.target.value)} />
+          <Field label={t("transactions.form.category")}>
+            <Input
+              id="rec-cat"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              aria-label={t("transactions.form.category")}
+            />
           </Field>
         </div>
 
-        <Field label={t("transactions.form.account")} htmlFor="rec-acc">
+        <Field label={t("transactions.form.account")}>
           <Select
             id="rec-acc"
             value={bankAccountId}
             onChange={(e) => setBankAccountId(e.target.value)}
             options={accountOptions}
+            aria-label={t("transactions.form.account")}
           />
         </Field>
 
-        <Field label={t("recurring.form.notes")} htmlFor="rec-notes">
-          <Input id="rec-notes" value={notes} onChange={(e) => setNotes(e.target.value)} />
+        <Field label={t("recurring.form.notes")}>
+          <Input
+            id="rec-notes"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            aria-label={t("recurring.form.notes")}
+          />
         </Field>
       </div>
 

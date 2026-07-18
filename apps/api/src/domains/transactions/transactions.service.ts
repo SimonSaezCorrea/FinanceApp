@@ -81,10 +81,14 @@ export class TransactionsService {
 
     // Merge patch over current to get the effective movement, then re-validate
     // and enforce (excluding this tx's own contribution to the pool).
+    const effectiveType = input.type ?? current.type;
     const effective: EffectiveMovement = {
-      type: input.type ?? current.type,
+      type: effectiveType,
       bankAccountId: input.bankAccountId ?? current.bankAccountId ?? "",
-      cardId: input.cardId ?? current.cardId,
+      // Switching to INCOME always drops the card (mirrors the `data.card` write
+      // below) — otherwise a patch that only changes `type` would validate against
+      // the tx's *old* cardId and wrongly reject with CARD_NOT_ALLOWED.
+      cardId: effectiveType === "INCOME" ? undefined : (input.cardId ?? current.cardId),
       amount: input.amount ?? current.amount.toString(),
       currency: input.currency ?? current.currency,
     };

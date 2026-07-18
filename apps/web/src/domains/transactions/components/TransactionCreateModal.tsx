@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -9,12 +9,15 @@ import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
+import { Combobox } from "../../../shared/ui/combobox";
 import { Dialog } from "../../../shared/ui/dialog";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Segmented } from "../../../shared/ui/segmented";
 import { Select } from "../../../shared/ui/select";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
+import { useTransactions } from "../hooks/useTransactions";
+import { uniqueCategories } from "../lib/transactionMetrics";
 
 function todayInput(): string {
   const d = new Date();
@@ -70,7 +73,9 @@ export function TransactionCreateModal({
   const { t, i18n } = useTranslation();
   const { create, update } = useTransactionMutations();
   const { data: accountList } = useAccounts();
+  const { data: allTransactions } = useTransactions();
   const editing = Boolean(initial);
+  const categoryOptions = useMemo(() => uniqueCategories(allTransactions ?? []), [allTransactions]);
 
   const [type, setType] = useState<transactions.TransactionType>("EXPENSE");
   const [amount, setAmount] = useState("");
@@ -199,9 +204,18 @@ export function TransactionCreateModal({
             if (v === "INCOME") setCardId("");
           }}
           className="w-full"
+          variant="neutral"
           options={[
-            { value: "EXPENSE", label: t("transactions.type.EXPENSE") },
-            { value: "INCOME", label: t("transactions.type.INCOME") },
+            {
+              value: "EXPENSE",
+              label: t("transactions.type.EXPENSE"),
+              activeClassName: "bg-destructive/15 font-semibold text-destructive",
+            },
+            {
+              value: "INCOME",
+              label: t("transactions.type.INCOME"),
+              activeClassName: "bg-success/15 font-semibold text-success",
+            },
           ]}
         />
 
@@ -223,44 +237,55 @@ export function TransactionCreateModal({
           </div>
         </div>
 
-        <Field label={t("transactions.form.description")} htmlFor="tx-desc">
+        <Field label={t("transactions.form.description")}>
           <Input
             id="tx-desc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={t("transactions.form.descriptionPlaceholder")}
+            aria-label={t("transactions.form.description")}
           />
         </Field>
 
         <div className="grid grid-cols-2 gap-3">
-          <Field label={t("transactions.form.category")} htmlFor="tx-cat">
-            <Input id="tx-cat" value={category} onChange={(e) => setCategory(e.target.value)} />
+          <Field label={t("transactions.form.category")}>
+            <Combobox
+              id="tx-cat"
+              value={category}
+              onChange={setCategory}
+              options={categoryOptions}
+              placeholder={t("transactions.filters.categoryPlaceholder")}
+              aria-label={t("transactions.form.category")}
+            />
           </Field>
-          <Field label={t("transactions.form.date")} htmlFor="tx-date">
+          <Field label={t("transactions.form.date")}>
             <Input
               id="tx-date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              aria-label={t("transactions.form.date")}
             />
           </Field>
         </div>
 
-        <Field label={t("transactions.form.account")} htmlFor="tx-acc">
+        <Field label={t("transactions.form.account")}>
           <Select
             id="tx-acc"
             value={bankAccountId}
             onChange={(e) => handleAccountChange(e.target.value)}
             options={accountOptions}
+            aria-label={t("transactions.form.account")}
           />
         </Field>
 
         {showCard ? (
-          <Field label={t("transactions.form.card")} htmlFor="tx-card">
+          <Field label={t("transactions.form.card")}>
             <Select
               id="tx-card"
               value={cardId}
               onChange={(e) => setCardId(e.target.value)}
+              aria-label={t("transactions.form.card")}
               options={cardOptions}
               disabled={noCardsAvailable}
             />
@@ -273,27 +298,39 @@ export function TransactionCreateModal({
         <CollapsibleSection title={t("transactions.form.moreDetails")} className="p-3">
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-2 gap-3">
-              <Field label={t("transactions.form.emisor")} htmlFor="tx-emisor">
-                <Input id="tx-emisor" value={emisor} onChange={(e) => setEmisor(e.target.value)} />
+              <Field label={t("transactions.form.emisor")}>
+                <Input
+                  id="tx-emisor"
+                  value={emisor}
+                  onChange={(e) => setEmisor(e.target.value)}
+                  aria-label={t("transactions.form.emisor")}
+                />
               </Field>
-              <Field label={t("transactions.form.receptor")} htmlFor="tx-receptor">
+              <Field label={t("transactions.form.receptor")}>
                 <Input
                   id="tx-receptor"
                   value={receptor}
                   onChange={(e) => setReceptor(e.target.value)}
+                  aria-label={t("transactions.form.receptor")}
                 />
               </Field>
             </div>
 
-            <Field label={t("transactions.form.lugar")} htmlFor="tx-lugar">
-              <Input id="tx-lugar" value={lugar} onChange={(e) => setLugar(e.target.value)} />
+            <Field label={t("transactions.form.lugar")}>
+              <Input
+                id="tx-lugar"
+                value={lugar}
+                onChange={(e) => setLugar(e.target.value)}
+                aria-label={t("transactions.form.lugar")}
+              />
             </Field>
 
-            <Field label={t("transactions.form.observation")} htmlFor="tx-obs">
+            <Field label={t("transactions.form.observation")}>
               <Input
                 id="tx-obs"
                 value={observation}
                 onChange={(e) => setObservation(e.target.value)}
+                aria-label={t("transactions.form.observation")}
               />
             </Field>
           </div>

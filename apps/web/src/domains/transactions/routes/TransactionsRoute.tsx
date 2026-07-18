@@ -10,6 +10,7 @@ import { ErrorState, LoadingState } from "../../../shared/ui/states";
 import { Segmented } from "../../../shared/ui/segmented";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { TransactionCreateModal } from "../components/TransactionCreateModal";
+import { TransactionDetailModal } from "../components/TransactionDetailModal";
 import { TransactionKpiStrip } from "../components/TransactionKpiStrip";
 import { TransactionFiltersBar } from "../components/TransactionFiltersBar";
 import { TransactionTable } from "../components/TransactionTable";
@@ -40,6 +41,7 @@ export function TransactionsRoute() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editTx, setEditTx] = useState<transactions.Transaction | null>(null);
   const [deleteTx, setDeleteTx] = useState<transactions.Transaction | null>(null);
+  const [detailTx, setDetailTx] = useState<transactions.Transaction | null>(null);
   const [filters, setFilters] = useState<TransactionViewFilters>(DEFAULT_FILTERS);
   const { remove } = useTransactionMutations();
 
@@ -113,7 +115,7 @@ export function TransactionsRoute() {
         }
       />
 
-      <TransactionKpiStrip transactions={visibleTxs} />
+      <TransactionKpiStrip transactions={visibleTxs} from={filters.from} to={filters.to} />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Segmented
@@ -144,6 +146,7 @@ export function TransactionsRoute() {
             setModalOpen(true);
           }}
           onDelete={(tx) => setDeleteTx(tx)}
+          onRowClick={(tx) => setDetailTx(tx)}
         />
       )}
 
@@ -151,6 +154,18 @@ export function TransactionsRoute() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         initial={editTx ?? undefined}
+      />
+
+      <TransactionDetailModal
+        transaction={detailTx}
+        accounts={accounts}
+        open={detailTx !== null}
+        onOpenChange={(v) => !v && setDetailTx(null)}
+        onEdit={(tx) => {
+          setEditTx(tx);
+          setModalOpen(true);
+        }}
+        onDelete={(tx) => setDeleteTx(tx)}
       />
 
       <ConfirmDialog

@@ -20,17 +20,20 @@ function PillSelect({
   value,
   onChange,
   children,
+  disabled,
 }: Readonly<{
   value: string;
   onChange: (value: string) => void;
   children: ReactNode;
+  disabled?: boolean;
 }>) {
   return (
     <div className="relative">
       <select
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className="h-9 appearance-none rounded-md border bg-card py-0 pl-3 pr-8 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="h-9 appearance-none rounded-md border bg-card py-0 pl-3 pr-8 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
       >
         {children}
       </select>
@@ -80,16 +83,20 @@ export function TransactionFiltersBar({
           ))}
       </PillSelect>
 
-      {cardOptions.length > 0 ? (
-        <PillSelect value={filters.selectedCardId ?? ""} onChange={handleCardChange}>
-          <option value="">{t("transactions.form.selectCard")}</option>
-          {cardOptions.map((c) => (
-            <option key={c.id} value={c.id}>
-              {`••••${c.last4} · ${c.name}`}
-            </option>
-          ))}
-        </PillSelect>
-      ) : null}
+      {/* Always rendered (disabled when the selected account has no cards) so switching
+          between a cardable and a non-cardable account doesn't shift the rest of the bar. */}
+      <PillSelect
+        value={filters.selectedCardId ?? ""}
+        onChange={handleCardChange}
+        disabled={cardOptions.length === 0}
+      >
+        <option value="">{t("transactions.form.selectCard")}</option>
+        {cardOptions.map((c) => (
+          <option key={c.id} value={c.id}>
+            {`••••${c.last4} · ${c.name}`}
+          </option>
+        ))}
+      </PillSelect>
 
       <PillSelect
         value={filters.categorySearch}

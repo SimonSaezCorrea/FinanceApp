@@ -71,6 +71,7 @@ export function DangerZone() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            aria-label={t("profile.danger.passwordLabel")}
           />
         </Field>
       </ConfirmDialog>

@@ -70,16 +70,17 @@ export function CardForm({ submitLabel, submitting, initial, onSubmit }: Readonl
 
   return (
     <form className="flex flex-col gap-3" onSubmit={submit}>
-      <Field label={t("cards.form.name")} htmlFor="card-name">
+      <Field label={t("cards.form.name")}>
         <Input
           id="card-name"
           value={name}
           placeholder={t("cards.form.namePlaceholder")}
           onChange={(e) => setName(e.target.value)}
+          aria-label={t("cards.form.name")}
         />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label={t("cards.form.kind")} htmlFor="card-kind">
+        <Field label={t("cards.form.kind")}>
           <Select
             id="card-kind"
             value={kind}
@@ -89,19 +90,21 @@ export function CardForm({ submitLabel, submitting, initial, onSubmit }: Readonl
               { value: "DEBIT", label: t("cards.kind.DEBIT") },
               { value: "PREPAID", label: t("cards.kind.PREPAID") },
             ]}
+            aria-label={t("cards.form.kind")}
           />
         </Field>
-        <Field label={t("cards.form.expiry")} htmlFor="card-expiry" error={expiryError}>
+        <Field label={t("cards.form.expiry")} error={expiryError}>
           <Input
             id="card-expiry"
             inputMode="numeric"
             placeholder="MM/AA"
             value={expiry}
             onChange={(e) => setExpiry(cleanExpiryInput(e.target.value))}
+            aria-label={t("cards.form.expiry")}
           />
         </Field>
       </div>
-      <Field label={t("cards.form.last4")} htmlFor="card-last4" error={last4Error}>
+      <Field label={t("cards.form.last4")} error={last4Error}>
         <Input
           id="card-last4"
           inputMode="numeric"
@@ -110,6 +113,7 @@ export function CardForm({ submitLabel, submitting, initial, onSubmit }: Readonl
           maxLength={4}
           value={last4}
           onChange={(e) => setLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          aria-label={t("cards.form.last4")}
         />
       </Field>
       <p className="-mt-1 text-xs text-muted-foreground">{t("cards.form.last4Hint")}</p>
