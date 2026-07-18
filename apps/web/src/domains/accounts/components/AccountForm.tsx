@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { accounts as accountsContract } from "@finance/contracts";
 import type { accounts } from "@finance/contracts";
 
 import { useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
@@ -45,7 +46,10 @@ interface Props {
 export function AccountForm({ initial, submitting, submitLabel, onSubmit }: Readonly<Props>) {
   const { t } = useTranslation();
   const [values, setValues] = useState<AccountFormValues>({ ...EMPTY, ...initial });
-  const { data: institutions } = useInstitutions("CL");
+  const { data: institutions } = useInstitutions(
+    "CL",
+    accountsContract.institutionKindForAccountType(values.type),
+  );
   const { data: currencies } = useCurrencies();
 
   const set = <K extends keyof AccountFormValues>(k: K, v: AccountFormValues[K]) =>
@@ -83,11 +87,19 @@ export function AccountForm({ initial, submitting, submitLabel, onSubmit }: Read
         <AccountTypeToggle
           value={values.type}
           onChange={(next) =>
-            setValues((prev) => ({
-              ...prev,
-              type: next,
-              ...(next === "CASH" ? { institutionId: "", accountNumber: "" } : {}),
-            }))
+            setValues((prev) => {
+              if (next === "CASH") {
+                return { ...prev, type: next, institutionId: "", accountNumber: "" };
+              }
+              const requiredKind = accountsContract.institutionKindForAccountType(next);
+              const selected = institutions?.find((i) => i.id === prev.institutionId);
+              const keepInstitution = !requiredKind || !selected || selected.kind === requiredKind;
+              return {
+                ...prev,
+                type: next,
+                ...(keepInstitution ? {} : { institutionId: "" }),
+              };
+            })
           }
         />
       </Field>

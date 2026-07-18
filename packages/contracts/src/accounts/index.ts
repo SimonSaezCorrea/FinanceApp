@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { moneyString } from "../common/money";
+import type { InstitutionKind } from "../reference";
 
 /** Accounts domain contracts (BankAccount + cards). Money as decimal strings. */
 
@@ -24,6 +25,20 @@ export const CARDABLE_ACCOUNT_TYPES: AccountType[] = ["CHECKING", "SIGHT", "CRED
 
 export function isCardableAccountType(type: AccountType): boolean {
   return CARDABLE_ACCOUNT_TYPES.includes(type);
+}
+
+/**
+ * Deposit-taking account types (CHECKING/SIGHT/SAVINGS) can only be held at a bank,
+ * so the institution picker narrows to `kind: "BANK"`. INVESTMENT and CREDIT_LINE are
+ * left unfiltered: `kind` only distinguishes banks from non-bank *card* issuers, and
+ * neither bucket cleanly represents investment managers (e.g. Fintual is seeded as a
+ * NON_BANK_ISSUER for an unrelated prepaid-card entity, not because it's a card
+ * issuer as an investment platform) — CREDIT_LINE, meanwhile, can legitimately be
+ * issued by either kind. CASH has no institution field at all.
+ */
+export function institutionKindForAccountType(type: AccountType): InstitutionKind | undefined {
+  const bankOnlyTypes: AccountType[] = ["CHECKING", "SIGHT", "SAVINGS"];
+  return bankOnlyTypes.includes(type) ? "BANK" : undefined;
 }
 
 export const accountStatus = z.enum(["ACTIVE", "INACTIVE"]);

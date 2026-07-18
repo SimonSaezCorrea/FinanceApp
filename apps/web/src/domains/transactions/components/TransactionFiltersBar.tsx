@@ -51,54 +51,45 @@ export function TransactionFiltersBar({
   const { t } = useTranslation();
 
   function handleAccountChange(value: string) {
-    if (value === "") {
-      onChange({ ...filters, bankAccountId: undefined, selectedCardId: undefined });
-      return;
-    }
-    if (value.startsWith("card:")) {
-      const cardId = value.slice(5);
-      const parentAccount = accounts.find((a) => a.cards.some((c) => c.id === cardId));
-      onChange({
-        ...filters,
-        bankAccountId: parentAccount?.id,
-        selectedCardId: cardId,
-      });
-    } else {
-      onChange({ ...filters, bankAccountId: value, selectedCardId: undefined });
-    }
+    onChange({ ...filters, bankAccountId: value || undefined, selectedCardId: undefined });
+  }
+
+  function handleCardChange(value: string) {
+    onChange({ ...filters, selectedCardId: value || undefined });
   }
 
   const activeAccounts = accounts.filter((a) => a.status === "ACTIVE");
   const inactiveAccounts = accounts.filter((a) => a.status === "INACTIVE");
-
-  let selectedAccountValue = "";
-  if (filters.selectedCardId) {
-    selectedAccountValue = `card:${filters.selectedCardId}`;
-  } else if (filters.bankAccountId) {
-    selectedAccountValue = filters.bankAccountId;
-  }
+  const selectedAccount = accounts.find((a) => a.id === filters.bankAccountId);
+  const cardOptions = selectedAccount?.cards ?? [];
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <PillSelect value={selectedAccountValue} onChange={handleAccountChange}>
-        <option value="">{t("transactions.filters.allAccounts")}</option>
+      <PillSelect value={filters.bankAccountId ?? ""} onChange={handleAccountChange}>
+        <option value="">{t("transactions.form.selectAccount")}</option>
         {activeAccounts.map((a) => (
-          <optgroup key={a.id} label={a.name}>
-            <option value={a.id}>{a.name}</option>
-            {a.cards.map((c) => (
-              <option key={c.id} value={`card:${c.id}`}>
-                {`••••${c.last4} · ${c.name}`}
-              </option>
-            ))}
-          </optgroup>
+          <option key={a.id} value={a.id}>
+            {a.name}
+          </option>
         ))}
         {filters.showInactiveAccounts &&
           inactiveAccounts.map((a) => (
-            <optgroup key={a.id} label={`${a.name} (${t("accounts.status.INACTIVE")})`}>
-              <option value={a.id}>{a.name}</option>
-            </optgroup>
+            <option key={a.id} value={a.id}>
+              {`${a.name} (${t("accounts.status.INACTIVE")})`}
+            </option>
           ))}
       </PillSelect>
+
+      {cardOptions.length > 0 ? (
+        <PillSelect value={filters.selectedCardId ?? ""} onChange={handleCardChange}>
+          <option value="">{t("transactions.form.selectCard")}</option>
+          {cardOptions.map((c) => (
+            <option key={c.id} value={c.id}>
+              {`••••${c.last4} · ${c.name}`}
+            </option>
+          ))}
+        </PillSelect>
+      ) : null}
 
       <PillSelect
         value={filters.categorySearch}

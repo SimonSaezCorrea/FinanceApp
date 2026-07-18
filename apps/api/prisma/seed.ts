@@ -59,7 +59,16 @@ async function seedFullUser(passwordHash: string) {
   };
 
   // Transactions keyed by account (ids resolved after accounts are created).
-  type CardKey = "debit" | "credit";
+  // Extra cards ("Camila"/"Sofía"/"Rosa") model additional cards the bank issued
+  // on the same account/credit line for another person to carry and use.
+  type CardKey =
+    | "debit"
+    | "debitCamila"
+    | "debitSofia"
+    | "debitRosa"
+    | "credit"
+    | "creditCamila"
+    | "creditSofia";
   type Tx = {
     acct: AcctKey;
     card?: CardKey;
@@ -242,6 +251,53 @@ async function seedFullUser(passwordHash: string) {
       description: "Pizzería",
     },
 
+    // --- Checking: spend from the 3 additional cards (Camila, Sofía, Rosa) ---
+    {
+      acct: "checking",
+      card: "debitCamila",
+      type: "EXPENSE",
+      amount: 32_990,
+      at: "2026-06-04T11:00:00Z",
+      category: "Salud",
+      description: "Farmacia Ahumada · Camila",
+    },
+    {
+      acct: "checking",
+      card: "debitCamila",
+      type: "EXPENSE",
+      amount: 55_400,
+      at: "2026-06-11T19:30:00Z",
+      category: "Supermercado",
+      description: "Jumbo Ñuñoa · Camila",
+    },
+    {
+      acct: "checking",
+      card: "debitSofia",
+      type: "EXPENSE",
+      amount: 18_990,
+      at: "2026-06-06T16:00:00Z",
+      category: "Educación",
+      description: "Fotocopias U · Sofía",
+    },
+    {
+      acct: "checking",
+      card: "debitSofia",
+      type: "EXPENSE",
+      amount: 12_500,
+      at: "2026-06-14T13:20:00Z",
+      category: "Restaurantes",
+      description: "Almuerzo campus · Sofía",
+    },
+    {
+      acct: "checking",
+      card: "debitRosa",
+      type: "EXPENSE",
+      amount: 25_000,
+      at: "2026-06-09T09:00:00Z",
+      category: "Hogar",
+      description: "Insumos aseo · Rosa",
+    },
+
     // --- Vista (BancoEstado): small spends — no card linked to this account ---
     {
       acct: "sight",
@@ -323,6 +379,26 @@ async function seedFullUser(passwordHash: string) {
       at: "2026-05-25T10:00:00Z",
       category: "Viajes",
       description: "Pasajes LATAM",
+    },
+
+    // --- Credit: spend from the 2 additional cards (Camila, Sofía) ---
+    {
+      acct: "credit",
+      card: "creditCamila",
+      type: "EXPENSE",
+      amount: 68_990,
+      at: "2026-06-07T17:00:00Z",
+      category: "Compras",
+      description: "Falabella Parque Arauco · Camila",
+    },
+    {
+      acct: "credit",
+      card: "creditSofia",
+      type: "EXPENSE",
+      amount: 24_990,
+      at: "2026-06-13T20:00:00Z",
+      category: "Entretenimiento",
+      description: "Cine Falabella · Sofía",
     },
 
     // --- Cash ---
@@ -434,6 +510,8 @@ async function seedFullUser(passwordHash: string) {
   };
 
   // Cards (only last4 stored). The credit card belongs to the CREDIT_LINE account.
+  // Checking and CMR each carry additional cards issued by the bank for another
+  // person to hold — 4 cards on checking, 3 on the credit line.
   const debitCard = await prisma.cardAccount.create({
     data: {
       accountId: checking.id,
@@ -445,6 +523,39 @@ async function seedFullUser(passwordHash: string) {
       expiryYear: 2029,
     },
   });
+  const debitCardCamila = await prisma.cardAccount.create({
+    data: {
+      accountId: checking.id,
+      userId: javier.id,
+      name: "Visa Débito · Camila",
+      kind: "DEBIT",
+      last4: "2284",
+      expiryMonth: 8,
+      expiryYear: 2029,
+    },
+  });
+  const debitCardSofia = await prisma.cardAccount.create({
+    data: {
+      accountId: checking.id,
+      userId: javier.id,
+      name: "Visa Débito · Sofía",
+      kind: "DEBIT",
+      last4: "3375",
+      expiryMonth: 11,
+      expiryYear: 2028,
+    },
+  });
+  const debitCardRosa = await prisma.cardAccount.create({
+    data: {
+      accountId: checking.id,
+      userId: javier.id,
+      name: "Visa Débito · Rosa",
+      kind: "DEBIT",
+      last4: "4466",
+      expiryMonth: 3,
+      expiryYear: 2027,
+    },
+  });
   const creditCard = await prisma.cardAccount.create({
     data: {
       accountId: credit.id,
@@ -452,6 +563,28 @@ async function seedFullUser(passwordHash: string) {
       name: "CMR Visa",
       kind: "CREDIT",
       last4: "4827",
+      expiryMonth: 5,
+      expiryYear: 2028,
+    },
+  });
+  const creditCardCamila = await prisma.cardAccount.create({
+    data: {
+      accountId: credit.id,
+      userId: javier.id,
+      name: "CMR Visa · Camila",
+      kind: "CREDIT",
+      last4: "5938",
+      expiryMonth: 5,
+      expiryYear: 2028,
+    },
+  });
+  const creditCardSofia = await prisma.cardAccount.create({
+    data: {
+      accountId: credit.id,
+      userId: javier.id,
+      name: "CMR Visa · Sofía",
+      kind: "CREDIT",
+      last4: "6049",
       expiryMonth: 5,
       expiryYear: 2028,
     },
@@ -466,7 +599,15 @@ async function seedFullUser(passwordHash: string) {
     ],
   });
 
-  const cardIdMap: Record<CardKey, string> = { debit: debitCard.id, credit: creditCard.id };
+  const cardIdMap: Record<CardKey, string> = {
+    debit: debitCard.id,
+    debitCamila: debitCardCamila.id,
+    debitSofia: debitCardSofia.id,
+    debitRosa: debitCardRosa.id,
+    credit: creditCard.id,
+    creditCamila: creditCardCamila.id,
+    creditSofia: creditCardSofia.id,
+  };
 
   await prisma.transaction.createMany({
     data: TX.map((t) => ({

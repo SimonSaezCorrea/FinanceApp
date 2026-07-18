@@ -130,17 +130,15 @@ export function DateRangeButton({ from, to, onChange }: Readonly<DateRangeButton
   }
 
   function handleDayClick(iso: string) {
-    if (!draftStart || (draftStart && draftEnd)) {
+    if (!draftStart || draftEnd) {
       setDraftStart(iso);
       setDraftEnd(undefined);
       return;
     }
-    if (iso < draftStart) {
-      setDraftStart(iso);
-      return;
-    }
-    setDraftEnd(iso);
-    commit(draftStart, iso);
+    const start = iso < draftStart ? iso : draftStart;
+    const end = iso < draftStart ? draftStart : iso;
+    setDraftEnd(end);
+    commit(start, end);
   }
 
   function handleClear() {

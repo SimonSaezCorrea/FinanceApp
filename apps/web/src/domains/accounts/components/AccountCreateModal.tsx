@@ -37,10 +37,13 @@ export function AccountCreateModal({
 }>) {
   const { t, i18n } = useTranslation();
   const { create } = useAccountMutations();
-  const { data: institutions } = useInstitutions("CL");
-  const { data: currencies } = useCurrencies();
   const [name, setName] = useState("");
   const [type, setType] = useState<accounts.AccountType>("CHECKING");
+  const { data: institutions } = useInstitutions(
+    "CL",
+    accountsContract.institutionKindForAccountType(type),
+  );
+  const { data: currencies } = useCurrencies();
   const [institutionId, setInstitutionId] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
   const [status, setStatus] = useState<accounts.AccountStatus>("ACTIVE");
@@ -76,6 +79,12 @@ export function AccountCreateModal({
     if (next === "CASH") {
       setInstitutionId("");
       setAccountNumber("");
+    } else {
+      const requiredKind = accountsContract.institutionKindForAccountType(next);
+      const selected = institutions?.find((i) => i.id === institutionId);
+      if (requiredKind && selected && selected.kind !== requiredKind) {
+        setInstitutionId("");
+      }
     }
   }
 
