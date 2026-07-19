@@ -11,6 +11,7 @@ describe("money boundary", () => {
     const parsed = accounts.createBankAccountSchema.parse({
       name: "Checking",
       currency: "USD",
+      accountNumber: "1234567890",
       initialBalance: "1240.5000",
     });
     expect(parsed.initialBalance).toBe("1240.5000");

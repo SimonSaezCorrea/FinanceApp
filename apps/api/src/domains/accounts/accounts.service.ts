@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from "@nestjs/comm
 import type {
   BankAccount as BankAccountRow,
   CardAccount as CardRow,
+  CardLimit as CardLimitRow,
   FinancialInstitution as InstitutionRow,
 } from "@prisma/client";
 import { AccountStatus, TransactionType } from "@prisma/client";
@@ -10,12 +11,18 @@ import { accounts } from "@finance/contracts";
 import { addMoney, moneyToString, subtractMoney, toMoney } from "@finance/money";
 
 import { AccountsRepository } from "./accounts.repository";
+import { CardsRepository } from "./cards.repository";
 import { toContract as cardToContract } from "./cards.service";
 
+type CardWithLimits = CardRow & { limits: CardLimitRow[] };
+
 type AccountWithCards = BankAccountRow & {
-  cards: CardRow[];
+  cards: CardWithLimits[];
   financialInstitution?: InstitutionRow | null;
 };
+
+/** cardId:currency -> { income, expense } all-time sums. For each card limit's derived `used`. */
+type CardSums = Map<string, { income: string; expense: string }>;
 
 type WindowTx = {
   bankAccountId: string | null;
@@ -60,7 +67,10 @@ function computeSeries(
 
 @Injectable()
 export class AccountsService {
-  constructor(private readonly repo: AccountsRepository) {}
+  constructor(
+    private readonly repo: AccountsRepository,
+    private readonly cardsRepo: CardsRepository,
+  ) {}
 
   async list(userId: string, filters: accounts.AccountFilters): Promise<accounts.BankAccount[]> {
     const where = filters.status
@@ -95,18 +105,33 @@ export class AccountsService {
     }
     // Derived credit `used`: all-time income/expense sums per account, one grouped query.
     const sums: AccountSums = new Map();
-    for (const s of await this.repo.sumsByAccount(userId, ids)) {
+    for (const s of await this.repo.sumsByAccount(
+      userId,
+      rows.map((r) => ({ id: r.id, currency: r.currency })),
+    )) {
       if (!s.bankAccountId) continue;
       const entry = sums.get(s.bankAccountId) ?? { income: "0", expense: "0" };
       if (s.type === TransactionType.INCOME) entry.income = s.sum;
       else entry.expense = s.sum;
       sums.set(s.bankAccountId, entry);
     }
+    // Same, but per (card, currency) — for each card's own optional sub-limit's derived `used`.
+    const cardIds = rows.flatMap((r) => r.cards.map((c) => c.id));
+    const cardSums: CardSums = new Map();
+    for (const s of await this.cardsRepo.sumsByCard(userId, cardIds)) {
+      if (!s.cardId) continue;
+      const key = `${s.cardId}:${s.currency}`;
+      const entry = cardSums.get(key) ?? { income: "0", expense: "0" };
+      if (s.type === "INCOME") entry.income = s.sum;
+      else entry.expense = s.sum;
+      cardSums.set(key, entry);
+    }
     return rows.map((row) =>
       toContract(
         row,
         computeSeries(row.currentBalance.toString(), byAccount.get(row.id) ?? [], now),
         sums.get(row.id),
+        cardSums,
       ),
     );
   }
@@ -125,15 +150,63 @@ export class AccountsService {
     const institution = input.institutionId
       ? ((await this.repo.institutionName(input.institutionId)) ?? input.institution)
       : input.institution;
-    const cards = (input.cards ?? []).map((c) => ({
-      userId,
-      name: c.name,
-      kind: c.kind,
-      last4: c.last4,
-      expiryMonth: c.expiryMonth,
-      expiryYear: c.expiryYear,
-      isActive: c.isActive ?? true,
-    }));
+
+    // Same primary/mandatory-limit resolution as CardsService.create, but done in
+    // memory over the whole inline cards[] batch: no account/card rows exist yet
+    // to query, so "does a primary already exist" is just "have we seen a CREDIT
+    // card earlier in this same array" — the first one always becomes primary.
+    let creditLimit = input.creditLimit ?? "0";
+    let creditUsedInitial = input.creditUsedInitial ?? "0";
+    let primaryAssigned = false;
+    const cards = (input.cards ?? []).map((c) => {
+      let isPrimary = false;
+      let cardLimits: { currency: string; limitAmount: string; usedInitial: string }[] = [];
+      if (c.kind === "CREDIT") {
+        if (!primaryAssigned) {
+          const own = (c.limits ?? []).find((l) => l.currency === input.currency);
+          if (!own || !toMoney(own.limitAmount).greaterThan(0)) {
+            throw new BadRequestException({ code: "CARD_LIMIT_REQUIRED" });
+          }
+          creditLimit = own.limitAmount;
+          creditUsedInitial = own.usedInitial ?? "0";
+          isPrimary = true;
+          primaryAssigned = true;
+          // Any OTHER currency also entered becomes a real CardLimit row on the
+          // primary itself — an independent pool per currency (no FX, so never
+          // cross-checked against the account's own-currency pool above).
+          const extra = (c.limits ?? []).filter((l) => l.currency !== input.currency);
+          cardLimits = extra.map((l) => ({
+            currency: l.currency,
+            limitAmount: l.limitAmount,
+            usedInitial: l.usedInitial ?? "0",
+          }));
+        } else if (c.usesAccountPool === false) {
+          if (!c.limits || c.limits.length === 0) {
+            throw new BadRequestException({ code: "CARD_LIMIT_REQUIRED" });
+          }
+          cardLimits = c.limits.map((l) => {
+            if (
+              l.currency === input.currency &&
+              toMoney(l.limitAmount).greaterThan(toMoney(creditLimit))
+            ) {
+              throw new BadRequestException({ code: "CARD_SUBLIMIT_EXCEEDS_ACCOUNT" });
+            }
+            return { currency: l.currency, limitAmount: l.limitAmount, usedInitial: l.usedInitial ?? "0" };
+          });
+        }
+      }
+      return {
+        userId,
+        name: c.name,
+        kind: c.kind,
+        last4: c.last4,
+        expiryMonth: c.expiryMonth,
+        expiryYear: c.expiryYear,
+        isActive: c.isActive ?? true,
+        isPrimary,
+        ...(cardLimits.length > 0 ? { limits: { create: cardLimits } } : {}),
+      };
+    });
     const row = await this.repo.create(userId, {
       name: input.name,
       type: input.type,
@@ -144,8 +217,8 @@ export class AccountsService {
       accountNumber: input.accountNumber,
       initialBalance,
       currentBalance: initialBalance,
-      creditLimit: input.creditLimit ?? "0",
-      creditUsedInitial: input.creditUsedInitial ?? "0",
+      creditLimit,
+      creditUsedInitial,
       ...(cards.length > 0 ? { cards: { create: cards } } : {}),
     });
     return this.withSeries(userId, row);
@@ -156,6 +229,13 @@ export class AccountsService {
     id: string,
     input: accounts.UpdateBankAccount,
   ): Promise<accounts.BankAccount> {
+    const current = await this.repo.findOne(userId, id);
+    if (!current) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
+    const effectiveType = input.type ?? current.type;
+    const effectiveAccountNumber = input.accountNumber ?? current.accountNumber;
+    if (accounts.isAccountNumberRequired(effectiveType) && !effectiveAccountNumber?.trim()) {
+      throw new BadRequestException({ code: "ACCOUNT_NUMBER_REQUIRED" });
+    }
     // When an institution is (re)linked, mirror its name into `institution` for display.
     const linkedName =
       input.institutionId !== undefined && input.institutionId
@@ -213,10 +293,13 @@ function toContract(
   row: AccountWithCards,
   series: { series: string[]; balanceChangePct: string | null },
   sums?: { income: string; expense: string },
+  cardSums?: CardSums,
 ): accounts.BankAccount {
-  // Credit used (derived) only for credit lines: seed + Σexpense − Σincome (payments reduce it).
-  const isCredit = row.type === "CREDIT_LINE";
-  const creditUsed = isCredit
+  // Credit used (derived) for credit lines, OR any other cardable account that has
+  // grown a CREDIT-kind card (e.g. a checking account's add-on credit card) — the
+  // account-level creditLimit is the shared/master pool across all its cards either way.
+  const hasCreditPool = row.type === "CREDIT_LINE" || row.cards.some((c) => c.kind === "CREDIT");
+  const creditUsed = hasCreditPool
     ? moneyToString(
         subtractMoney(
           addMoney(row.creditUsedInitial.toString(), sums?.expense ?? "0"),
@@ -224,6 +307,22 @@ function toContract(
         ),
       )
     : "0";
+  const cardsContract = (row.cards ?? []).map((c) => cardToContract(c, cardSums));
+  // The account's own-currency pool, plus any EXTRA currency the primary card
+  // also carries its own CardLimit for (e.g. a CLP account whose primary card
+  // also has a USD sub-limit) — a non-primary card's own sub-limit stays
+  // scoped to that card alone, not rolled up here.
+  const primaryCard = cardsContract.find((c) => c.isPrimary);
+  const creditPools: accounts.CreditPool[] = hasCreditPool
+    ? [
+        { currency: row.currency, limit: moneyToString(row.creditLimit.toString()), used: creditUsed },
+        ...(primaryCard?.limits ?? []).map((l) => ({
+          currency: l.currency,
+          limit: l.limitAmount,
+          used: l.used,
+        })),
+      ]
+    : [];
   return {
     id: row.id,
     name: row.name,
@@ -238,9 +337,10 @@ function toContract(
     currentBalance: moneyToString(row.currentBalance.toString()),
     creditLimit: moneyToString(row.creditLimit.toString()),
     creditUsed,
+    creditPools,
     balanceSeries: series.series,
     balanceChangePct: series.balanceChangePct,
-    cards: (row.cards ?? []).map(cardToContract),
+    cards: cardsContract,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };

@@ -1270,6 +1270,8 @@ async function seedFullUser(passwordHash: string) {
       last4: "4827",
       expiryMonth: 5,
       expiryYear: 2028,
+      // The account's first CREDIT card: its limit mirrors credit.creditLimit above.
+      isPrimary: true,
     },
   });
   const creditCardCamila = await prisma.cardAccount.create({

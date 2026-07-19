@@ -55,7 +55,8 @@
       "info": "Información",
       "created": "Creada",
       "updated": "Actualizada",
-      "change": "Variación"
+      "change": "Variación",
+      "creditPools": "Topes por moneda"
     },
     "filter": {
       "label": "Filtrar por estado",
@@ -69,10 +70,11 @@
       "status": "Estado",
       "institution": "Institución",
       "institutionNone": "Sin institución / manual",
-      "accountNumber": "Número de cuenta (opcional)",
+      "accountNumber": "Número de cuenta",
       "currency": "Moneda",
       "initialBalance": "Saldo inicial",
       "creditLimit": "Cupo total",
+      "creditLimitMirroredHint": "Se sincroniza con el tope de la tarjeta principal.",
       "creditUsedInitial": "Cupo usado inicial",
       "accountActive": "Cuenta activa",
       "sectionAccountData": "Datos de la cuenta",
@@ -101,6 +103,8 @@
     "count": "{{count}} tarjeta(s)",
     "expires": "Vence {{date}}",
     "secondary": "Secundaria",
+    "primaryBadge": "Principal",
+    "additionalBadge": "Adicional",
     "created": "Tarjeta creada",
     "updated": "Tarjeta actualizada",
     "deleted": "Tarjeta eliminada",
@@ -116,15 +120,26 @@
       "last4": "Últimos 4 dígitos",
       "last4Hint": "Solo se guardan los últimos 4 dígitos.",
       "limits": "Topes por moneda",
+      "limitsHint": "Opcional. Sin topes propios, la tarjeta puede usar todo el cupo de la cuenta.",
       "currency": "Moneda",
       "limit": "Tope",
       "used": "Usado",
       "initialUsed": "Usado inicial",
-      "addLimit": "Añadir tope"
+      "addLimit": "Añadir tope",
+      "primaryLimit": "Tope de la tarjeta ({{currency}})",
+      "primaryLimitHint": "Es la primera tarjeta de crédito de la cuenta: su tope pasa a ser el cupo compartido de la cuenta.",
+      "extraLimits": "Topes en otras monedas",
+      "extraLimitsHint": "Opcional. Añade un tope adicional si esta tarjeta también se usa en otra moneda (sin conversión entre monedas).",
+      "usesPool": "Cupo de la cuenta",
+      "usesPoolHint": "Esta tarjeta comparte el cupo total de la cuenta.",
+      "ownLimit": "Tope propio",
+      "ownLimitHint": "Define un tope independiente para esta tarjeta (no puede superar el cupo de la cuenta en su misma moneda).",
+      "ownLimitRowsHint": "Agrega al menos un tope por moneda."
     },
     "errors": {
       "last4": "Ingresa los últimos 4 dígitos.",
-      "expiry": "Ingresa una fecha de vencimiento válida (MM/AA)."
+      "expiry": "Ingresa una fecha de vencimiento válida (MM/AA).",
+      "limitRequired": "Ingresa un tope válido para esta tarjeta."
     }
   },
   "dashboard": {
@@ -554,9 +569,12 @@
     "CARD_REQUIRED": "Selecciona una tarjeta para este gasto.",
     "CARD_NOT_ALLOWED": "Este movimiento no puede asociarse a una tarjeta.",
     "ACCOUNT_CANNOT_HAVE_CARD": "Este tipo de cuenta no puede tener tarjetas asociadas.",
+    "ACCOUNT_NUMBER_REQUIRED": "Este tipo de cuenta requiere un número de cuenta.",
     "CARD_ACCOUNT_MISMATCH": "La tarjeta no pertenece a esa cuenta.",
     "CARD_LIMIT_EXCEEDED": "El gasto supera el cupo de la tarjeta principal.",
     "CARD_SUBLIMIT_EXCEEDED": "El gasto supera el sub-tope de la tarjeta secundaria.",
+    "CARD_SUBLIMIT_EXCEEDS_ACCOUNT": "El tope de la tarjeta no puede superar el cupo de la cuenta.",
+    "CARD_LIMIT_REQUIRED": "Ingresa un tope para esta tarjeta de crédito.",
     "PARENT_CARD_INVALID": "La tarjeta principal seleccionada no es válida.",
     "INVALID_CURRENT_PASSWORD": "La contraseña actual no es correcta.",
     "ACCOUNT_DISABLED": "Esta cuenta está deshabilitada."

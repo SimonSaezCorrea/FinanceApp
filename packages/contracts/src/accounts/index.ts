@@ -28,6 +28,17 @@ export function isCardableAccountType(type: AccountType): boolean {
 }
 
 /**
+ * Deposit-taking account types (CHECKING/SIGHT/SAVINGS) are the ones you'd transfer
+ * money TO, so they require a real `accountNumber`. CREDIT_LINE/INVESTMENT/CASH keep
+ * it optional.
+ */
+export const ACCOUNT_NUMBER_REQUIRED_TYPES: AccountType[] = ["CHECKING", "SIGHT", "SAVINGS"];
+
+export function isAccountNumberRequired(type: AccountType): boolean {
+  return ACCOUNT_NUMBER_REQUIRED_TYPES.includes(type);
+}
+
+/**
  * Deposit-taking account types (CHECKING/SIGHT/SAVINGS) can only be held at a bank,
  * so the institution picker narrows to `kind: "BANK"`. INVESTMENT and CREDIT_LINE are
  * left unfiltered: `kind` only distinguishes banks from non-bank *card* issuers, and
@@ -49,6 +60,27 @@ export type AccountStatus = z.infer<typeof accountStatus>;
 export const cardKind = z.enum(["CREDIT", "DEBIT", "PREPAID"]);
 export type CardKind = z.infer<typeof cardKind>;
 
+/**
+ * A card-specific sub-limit for one currency — optional and narrower than the
+ * account's own shared `creditLimit` pool, which remains the master cap across
+ * every card on the account. Only meaningful for CREDIT-kind cards.
+ */
+export const cardLimitSchema = z.object({
+  id: z.string(),
+  currency: z.string(),
+  limitAmount: moneyString,
+  /** Reconciled used = usedInitial + Σexpense − Σincome on this card+currency (derived). */
+  used: moneyString,
+});
+export type CardLimit = z.infer<typeof cardLimitSchema>;
+
+export const createCardLimitSchema = z.object({
+  currency: z.string().trim().length(3),
+  limitAmount: moneyString,
+  usedInitial: moneyString.optional(),
+});
+export type CreateCardLimit = z.infer<typeof createCardLimitSchema>;
+
 export const cardSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -57,10 +89,28 @@ export const cardSchema = z.object({
   expiryMonth: z.number().int().min(1).max(12),
   expiryYear: z.number().int().min(2000).max(2100),
   isActive: z.boolean(),
+  /** The account's first CREDIT card (set automatically). Its limit mirrors the
+   * account's own creditLimit/creditUsedInitial — `limits` never has an entry for
+   * the account's own currency, only for any EXTRA currency it also carries. */
+  isPrimary: z.boolean(),
+  limits: z.array(cardLimitSchema),
 });
 export type Card = z.infer<typeof cardSchema>;
 
-/** Card creation — ONLY last4 is accepted; the full PAN must never be sent. */
+/**
+ * Card creation — ONLY last4 is accepted; the full PAN must never be sent.
+ * For a CREDIT card, exactly one of these applies (enforced server-side, since
+ * "is this the account's primary card" depends on what else already exists):
+ *  - it becomes the account's PRIMARY (its first CREDIT card): `limits` must have
+ *    one entry in the account's own currency — written to the account's
+ *    creditLimit/creditUsedInitial, not stored as a CardLimit row. Any OTHER
+ *    entries (different currencies) DO become real CardLimit rows on it —
+ *    independent per-currency pools, same as an additional card's own sub-limit.
+ *  - it's an additional card sharing the account pool: `usesAccountPool: true`
+ *    (the default), `limits` ignored.
+ *  - it's an additional card with its own sub-limit ("tope propio"):
+ *    `usesAccountPool: false` + `limits` (one entry per currency).
+ */
 export const createCardSchema = z.object({
   name: z.string().trim().min(1).max(80),
   kind: cardKind,
@@ -68,8 +118,26 @@ export const createCardSchema = z.object({
   expiryMonth: z.number().int().min(1).max(12),
   expiryYear: z.number().int().min(2000).max(2100),
   isActive: z.boolean().optional().default(true),
+  /** Non-primary CREDIT cards only: share the account pool (true, default) or use `limits` instead. */
+  usesAccountPool: z.boolean().optional().default(true),
+  limits: z.array(createCardLimitSchema).optional(),
 });
 export type CreateCard = z.infer<typeof createCardSchema>;
+
+/**
+ * One of the account's shared credit pools, by currency: the account's own
+ * currency (same numbers as `creditLimit`/`creditUsed` below) plus, if the
+ * primary card carries an extra-currency `CardLimit`, one entry per such
+ * currency — e.g. a CLP account whose primary card also has a USD sub-limit
+ * shows both here. A non-primary card's own sub-limit is NOT included (that
+ * stays scoped to that card alone, not rolled up to the account).
+ */
+export const creditPoolSchema = z.object({
+  currency: z.string(),
+  limit: moneyString,
+  used: moneyString,
+});
+export type CreditPool = z.infer<typeof creditPoolSchema>;
 
 export const bankAccountSchema = z.object({
   id: z.string(),
@@ -90,6 +158,8 @@ export const bankAccountSchema = z.object({
   creditLimit: moneyString,
   /** Reconciled used credit = creditUsedInitial + Σexpense − Σincome (derived). "0" for non-credit. */
   creditUsed: moneyString,
+  /** All credit pools by currency (own currency + primary card's extra currencies, if any). Empty for non-credit accounts. */
+  creditPools: z.array(creditPoolSchema),
   /** Reconciled running balance, one point per day over a trailing window (oldest→newest, ends at currentBalance). For sparklines. */
   balanceSeries: z.array(moneyString),
   /** Percent change across `balanceSeries` (e.g. "2.1"); null when the window has no meaningful baseline. */
@@ -113,10 +183,17 @@ export const createBankAccountSchema = z.object({
   creditLimit: moneyString.optional(),
   creditUsedInitial: moneyString.optional(),
   cards: z.array(createCardSchema).optional(),
+}).refine((v) => !isAccountNumberRequired(v.type) || !!v.accountNumber?.trim(), {
+  message: "accountNumber is required for this account type",
+  path: ["accountNumber"],
 });
 export type CreateBankAccount = z.infer<typeof createBankAccountSchema>;
 
-export const updateBankAccountSchema = createBankAccountSchema.partial();
+// `.partial()` isn't available on a ZodEffects (refined) schema, so derive the
+// update shape from the inner object. `type` may be omitted on a PATCH, so the
+// accountNumber-required refinement isn't (and can't be) replicated here — it's
+// enforced in the API service layer instead, where the current row's type is known.
+export const updateBankAccountSchema = createBankAccountSchema.innerType().partial();
 export type UpdateBankAccount = z.infer<typeof updateBankAccountSchema>;
 
 export const setAccountStatusSchema = z.object({ status: accountStatus });

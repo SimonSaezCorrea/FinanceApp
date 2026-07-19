@@ -3,7 +3,9 @@ import { type Prisma, TransactionType } from "@prisma/client";
 
 import { PrismaService } from "../../infra/prisma/prisma.service";
 
-const withCards = { include: { cards: true, financialInstitution: true } } as const;
+const withCards = {
+  include: { cards: { include: { limits: true } }, financialInstitution: true },
+} as const;
 
 /** All access scoped by userId (Constitution Principle II). */
 @Injectable()
@@ -55,22 +57,48 @@ export class AccountsRepository {
     });
   }
 
-  /** Σ amount by (account, type) for the given accounts, scoped to user. For derived credit `used`. */
+  /**
+   * Σ amount by (account, type), scoped to user, for derived credit `used`.
+   * A credit pool only exists in the account's OWN currency, so transactions
+   * in any other currency don't count toward it; and a card that carries its
+   * own `CardLimit` for that SAME currency is excluded (its spend is siloed to
+   * that card's own limit instead) — a card can still share the pool for its
+   * own currency while being independent for another. `accounts` maps each
+   * account to its own currency (batched across every row in one query).
+   */
   async sumsByAccount(
     userId: string,
-    accountIds: string[],
+    accounts: { id: string; currency: string }[],
   ): Promise<{ bankAccountId: string | null; type: TransactionType; sum: string }[]> {
-    if (accountIds.length === 0) return [];
+    if (accounts.length === 0) return [];
+    const accountIds = accounts.map((a) => a.id);
+    const currencyByAccount = new Map(accounts.map((a) => [a.id, a.currency]));
+
+    const excludedCardIds = (
+      await this.prisma.cardLimit.findMany({
+        where: { card: { accountId: { in: accountIds }, userId } },
+        select: { currency: true, card: { select: { id: true, accountId: true } } },
+      })
+    )
+      .filter((l) => l.currency === currencyByAccount.get(l.card.accountId))
+      .map((l) => l.card.id);
+
     const grouped = await this.prisma.transaction.groupBy({
-      by: ["bankAccountId", "type"],
-      where: { userId, bankAccountId: { in: accountIds } },
+      by: ["bankAccountId", "currency", "type"],
+      where: {
+        userId,
+        bankAccountId: { in: accountIds },
+        ...(excludedCardIds.length > 0 ? { cardId: { notIn: excludedCardIds } } : {}),
+      },
       _sum: { amount: true },
     });
-    return grouped.map((g) => ({
-      bankAccountId: g.bankAccountId,
-      type: g.type,
-      sum: g._sum.amount?.toString() ?? "0",
-    }));
+    return grouped
+      .filter((g) => g.bankAccountId !== null && g.currency === currencyByAccount.get(g.bankAccountId))
+      .map((g) => ({
+        bankAccountId: g.bankAccountId,
+        type: g.type,
+        sum: g._sum.amount?.toString() ?? "0",
+      }));
   }
 
   /** Sum of linked transaction amounts by type, scoped to user + account. */

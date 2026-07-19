@@ -1,4 +1,106 @@
 <!--
+Sync Impact Report — 2026-07-19 (amendment 1.15.0)
+- Version change: 1.14.0 → 1.15.0 (MINOR: extends the primary-card credit model with
+  multi-currency pools, plus a same-scope correctness fix). Core Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards/transactions):
+  - **The primary card can now also carry `CardLimit` rows — but only for currencies OTHER than
+    the account's own.** The account's own currency stays exclusively mirrored via
+    `BankAccount.creditLimit`/`creditUsedInitial` (never duplicated as a `CardLimit` row for the
+    primary); any additional currency the user enters on the primary (optional) becomes a real,
+    independent `CardLimit` row — same mechanism a non-primary card's "tope propio" already uses,
+    still no FX conversion, so never cross-checked against the account's own-currency pool.
+    `CardsService.resolveCreditLimits` and `AccountsService.create`'s inline `cards[]` path both
+    split `input.limits` this way (one entry matching the account's currency → mandatory, mirrored;
+    the rest → `CardLimit` rows).
+  - **New derived contract field `BankAccount.creditPools: {currency, limit, used}[]`** — the
+    account's own-currency pool plus, if the primary card carries any, its extra-currency pools.
+    A non-primary card's own sub-limit is NOT rolled up here (stays scoped to that card alone).
+    Empty for non-credit accounts.
+  - **Correctness fix (real bug, not just new-feature plumbing):** `TransactionsRepository
+    .sumsForAccount` and `AccountsRepository.sumsByAccount` previously summed a bank account's
+    shared-pool usage **without scoping by currency at all**, and excluded a card from that sum if
+    it had *any* `CardLimit` row regardless of currency. Both were latent (harmless while a card's
+    `CardLimit` rows, if any, always meant "fully independent, single currency"), but became a real
+    bug the moment a SINGLE card could be pool-sharing in one currency while independently-limited
+    in another (exactly what the primary + extra-currency change above introduces) — a card's
+    other-currency spend would have inflated the account's own-currency `creditUsed`. Both methods
+    are now scoped to the account's own currency, and the "independent card" exclusion checks for a
+    `CardLimit` in *that specific currency*, not "any currency."
+  - Frontend: `CardForm`'s primary-card branch gained an optional, always-visible "Topes en otras
+    monedas" repeatable section (reusing the same currency/amount row UI as the additional-card
+    "Tope propio" section, but excluding the account's own currency from its picker). `CardDetailModal`
+    shows a small list of a card's non-account-currency `CardLimit`s (covers both the primary's extras
+    and a non-primary card's own sub-limit in another currency). `AccountDetailRoute` shows a
+    "Topes por moneda" card listing every entry in `creditPools` whenever there's more than one.
+  - Amount inputs across `CardForm`/`AccountCreateModal`/`AccountForm` now display locale-grouped
+    thousands (e.g. "3.000.000") while typing, via a shared `shared/lib/amountInput.ts` helper
+    (extracted from the pre-existing transaction-amount-field pattern); these fields became
+    integer-only in the process (matches the transaction amount field's existing convention) to
+    avoid ambiguity between a grouping separator and a decimal separator for `es-CL`.
+
+Sync Impact Report — 2026-07-18 (amendment 1.14.0)
+- Version change: 1.13.0 → 1.14.0 (MINOR: revised the accounts/cards credit model a FOURTH time —
+  supersedes 1.13.0's "any card may carry an optional sub-limit" shape with a "primary card mirrors
+  the account" shape, per a same-day product decision from a definitive design mockup). Core
+  Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards/transactions):
+  - **`CardAccount.isPrimary`** (new boolean, `@default(false)`): the account's FIRST CREDIT-kind card,
+    assigned automatically (never user-toggled) — at most one `true` per account, irrelevant for
+    DEBIT/PREPAID. The primary card's limit **IS** the account's own `creditLimit`/`creditUsedInitial`
+    — edited from either side (the account's own edit form, or the primary card's edit form), same
+    underlying value, no `CardLimit` row of its own (`limits` is always `[]` for the primary).
+  - **Every CREDIT card must resolve to a determinate limit before saving** (mandatory, enforced in
+    `CardsService.resolveCreditLimits` / `AccountsService.create`'s inline `cards[]` path): the first
+    CREDIT card on an account requires a limit in the account's own currency (becomes primary, writes
+    through to `BankAccount.creditLimit`/`creditUsedInitial`); a *second-or-later* CREDIT card chooses,
+    via new `createCardSchema.usesAccountPool` (boolean, default `true`), between sharing the account
+    pool (no `CardLimit` rows) or `false` = its own independent sub-limit ("tope propio", one
+    `CardLimit` row per currency, still capped against the account pool in the account's own currency
+    via `CARD_SUBLIMIT_EXCEEDS_ACCOUNT`). Missing/zero limit where one is required throws the new
+    `CARD_LIMIT_REQUIRED`. The `CardLimit` model itself (table `card-limit`, reinstated in 1.13.0) is
+    unchanged in shape — only *when* a card gets one, and what "no row" now specifically means (either
+    "this is the primary" or "this additional card shares the pool"), changed.
+  - Editing an existing primary card without re-entering `usedInitial` (the frontend never surfaces
+    that field) preserves the account's current `creditUsedInitial` instead of resetting it to `"0"` —
+    a correctness fix alongside this redesign, since the old code always defaulted to `"0"` on write.
+  - Frontend: `CardForm` is a 3-state UI now — non-CREDIT (no limit section), CREDIT-becomes-primary
+    (one mandatory amount field in the account's currency), CREDIT-additional (a "Cupo de la
+    cuenta"/"Tope propio" `Segmented` toggle, the latter revealing the existing repeatable
+    currency/amount rows). `AccountCreateModal`'s account-level cupo fields become read-only/derived
+    from the drafted primary card's own limit once one exists (mirrors 1:1, no independent input);
+    `AccountForm` (editing an existing account) disables its cupo fields once a primary card exists,
+    with a hint pointing at editing via the card instead. `AccountVisualCard`/`DraftCardTile` show a
+    small "Principal"/"Adicional" badge next to a CREDIT card's name.
+  - No new error codes beyond `CARD_LIMIT_REQUIRED`; `CARD_SUBLIMIT_EXCEEDED`/`CARD_SUBLIMIT_EXCEEDS_ACCOUNT`
+    from 1.13.0 remain in active use for the "tope propio" path.
+
+Sync Impact Report — 2026-07-18 (amendment 1.13.0)
+- Version change: 1.12.0 → 1.13.0 (MINOR: revised accounts/cards model a third time — reinstates a
+  card-level credit sub-limit, deliberately reversing amendment 1.5.0's simplification, per a live
+  2026-07-18 product decision). Core Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards/transactions):
+  - **`CardLimit` model reinstated** (table `card-limit`, one row per `(cardId, currency)`): `limitAmount`
+    + `usedInitial` (seed), with a derived `used = usedInitial + Σexpense − Σincome` on that card+currency
+    — same reconciliation pattern as the account's own `creditUsed`. Unlike the 1.4.0 attempt this
+    amendment supersedes again, there is **no `parentCardId`/primary-secondary hierarchy** — a card either
+    has its own `CardLimit` row(s) or it doesn't; a card with none simply draws on the full account pool.
+    "Primary vs. secondary" is purely a naming convention in card names now, not a data relationship.
+  - **The account-level pool is still the master/shared cap** — unchanged from 1.5.0 — but is no longer
+    exclusive to `CREDIT_LINE`: **any cardable account that grows a CREDIT-kind card** (e.g. a CHECKING
+    account's bank add-on credit card) gets the same `creditLimit`/`creditUsedInitial`/derived `creditUsed`
+    treatment. A card's own sub-limit (if set, for a given currency) is an *additional, narrower* cap on
+    top of the account pool, never a substitute for it — both are checked on every relevant transaction.
+  - Setting a card's sub-limit in the **account's own currency** cannot exceed the account's `creditLimit`
+    (`CARD_SUBLIMIT_EXCEEDS_ACCOUNT`, checked in `CardsService`); limits in other currencies aren't
+    cross-checked against it (no FX conversion anywhere in this app — same stance as `extraCurrencies`).
+  - Error codes restored: `CARD_SUBLIMIT_EXCEEDED` (a transaction exceeds the card's own sub-limit) is
+    back in active use; `PARENT_CARD_INVALID` from 1.4.0 was NOT reinstated (no parent/secondary relation
+    exists to validate). New: `CARD_SUBLIMIT_EXCEEDS_ACCOUNT`.
+  - Frontend: `CardForm` gained an optional "topes por moneda" repeatable section (CREDIT kind only);
+    `AccountCreateModal`/`AccountForm` show the account-level cupo fields whenever the account is a
+    `CREDIT_LINE` OR has gained a CREDIT card (previously CREDIT_LINE-only); `AccountVisualCard` shows a
+    card's own sub-limit progress when set, else falls back to the account pool.
+
 Sync Impact Report — 2026-07-16 (amendment 1.12.0)
 - Version change: 1.11.0 → 1.12.0 (MINOR: full profile-page redesign from a definitive design file,
   specs/008 "Perfil de Usuario"; also records a new durable workflow convention). Core Principles
@@ -365,4 +467,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.12.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-16
+**Version**: 1.15.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-19

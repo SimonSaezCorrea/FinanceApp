@@ -5,6 +5,7 @@ import { accounts as accountsContract } from "@finance/contracts";
 import type { accounts } from "@finance/contracts";
 
 import { useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
+import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { Button } from "../../../shared/ui/button";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
@@ -40,12 +41,23 @@ interface Props {
   initial?: Partial<AccountFormValues>;
   submitting?: boolean;
   submitLabel: string;
+  /** Whether this account already has a CREDIT-kind card (added via CardsAside,
+   * after account creation) — broadens the credit-pool fields the same way a
+   * CREDIT_LINE account gets them, without hiding this account's own balance. */
+  hasCreditCard?: boolean;
   onSubmit: (values: AccountFormValues) => void;
 }
 
-export function AccountForm({ initial, submitting, submitLabel, onSubmit }: Readonly<Props>) {
-  const { t } = useTranslation();
+export function AccountForm({
+  initial,
+  submitting,
+  submitLabel,
+  hasCreditCard = false,
+  onSubmit,
+}: Readonly<Props>) {
+  const { t, i18n } = useTranslation();
   const [values, setValues] = useState<AccountFormValues>({ ...EMPTY, ...initial });
+  const isCreditLineType = values.type === "CREDIT_LINE";
   const { data: institutions } = useInstitutions(
     "CL",
     accountsContract.institutionKindForAccountType(values.type),
@@ -120,6 +132,7 @@ export function AccountForm({ initial, submitting, submitLabel, onSubmit }: Read
               id="acc-num"
               value={values.accountNumber}
               inputMode="numeric"
+              required={accountsContract.isAccountNumberRequired(values.type)}
               onChange={(e) => set("accountNumber", e.target.value)}
               aria-label={t("accounts.form.accountNumber")}
             />
@@ -136,13 +149,14 @@ export function AccountForm({ initial, submitting, submitLabel, onSubmit }: Read
             aria-label={t("accounts.form.currency")}
           />
         </Field>
-        {values.type === "CREDIT_LINE" ? (
+        {isCreditLineType ? (
           <Field label={t("accounts.form.creditLimit")}>
             <Input
               id="acc-climit"
-              value={values.creditLimit}
-              inputMode="decimal"
-              onChange={(e) => set("creditLimit", e.target.value)}
+              value={formatAmountDisplay(values.creditLimit, groupingLocaleFor(values.currency, i18n.language))}
+              inputMode="numeric"
+              disabled={hasCreditCard}
+              onChange={(e) => set("creditLimit", e.target.value.replace(/\D/g, ""))}
               aria-label={t("accounts.form.creditLimit")}
             />
           </Field>
@@ -150,22 +164,70 @@ export function AccountForm({ initial, submitting, submitLabel, onSubmit }: Read
           <Field label={t("accounts.form.initialBalance")}>
             <Input
               id="acc-bal"
-              value={values.initialBalance}
-              inputMode="decimal"
-              onChange={(e) => set("initialBalance", e.target.value)}
+              value={formatAmountDisplay(
+                values.initialBalance,
+                groupingLocaleFor(values.currency, i18n.language),
+              )}
+              inputMode="numeric"
+              onChange={(e) => set("initialBalance", e.target.value.replace(/\D/g, ""))}
               aria-label={t("accounts.form.initialBalance")}
             />
           </Field>
         )}
       </div>
-      {values.type === "CREDIT_LINE" ? (
+      {isCreditLineType && hasCreditCard ? (
+        <p className="-mt-2 text-xs text-muted-foreground">
+          {t("accounts.form.creditLimitMirroredHint")}
+        </p>
+      ) : null}
+      {/* A checking/sight account that grew a CREDIT card also needs the account-level
+          pool that card draws on — CREDIT_LINE already shows it above instead of a balance.
+          Once a primary card exists, its limit IS this value — edit it from the card instead. */}
+      {!isCreditLineType && hasCreditCard ? (
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label={t("accounts.form.creditLimit")}>
+              <Input
+                id="acc-climit2"
+                value={formatAmountDisplay(
+                  values.creditLimit,
+                  groupingLocaleFor(values.currency, i18n.language),
+                )}
+                inputMode="numeric"
+                disabled
+                aria-label={t("accounts.form.creditLimit")}
+              />
+            </Field>
+            <Field label={t("accounts.form.creditUsedInitial")}>
+              <Input
+                id="acc-cused2"
+                value={formatAmountDisplay(
+                  values.creditUsedInitial,
+                  groupingLocaleFor(values.currency, i18n.language),
+                )}
+                inputMode="numeric"
+                disabled
+                aria-label={t("accounts.form.creditUsedInitial")}
+              />
+            </Field>
+          </div>
+          <p className="-mt-1 text-xs text-muted-foreground">
+            {t("accounts.form.creditLimitMirroredHint")}
+          </p>
+        </div>
+      ) : null}
+      {isCreditLineType ? (
         <Field label={t("accounts.form.creditUsedInitial")}>
           <Input
             id="acc-cused"
-            value={values.creditUsedInitial}
-            inputMode="decimal"
+            value={formatAmountDisplay(
+              values.creditUsedInitial,
+              groupingLocaleFor(values.currency, i18n.language),
+            )}
+            inputMode="numeric"
+            disabled={hasCreditCard}
             aria-label={t("accounts.form.creditUsedInitial")}
-            onChange={(e) => set("creditUsedInitial", e.target.value)}
+            onChange={(e) => set("creditUsedInitial", e.target.value.replace(/\D/g, ""))}
           />
         </Field>
       ) : null}

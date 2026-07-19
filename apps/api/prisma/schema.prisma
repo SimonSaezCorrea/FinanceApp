@@ -149,16 +149,42 @@ model CardAccount {
   expiryYear  Int
   /// Whether the card is active (blocked/expired cards can be marked inactive).
   isActive    Boolean  @default(true)
+  /// The first CREDIT-kind card added to the account (set automatically, never
+  /// user-toggled). Its limit IS the account's own creditLimit/creditUsedInitial —
+  /// edited from either side, same underlying value, no CardLimit row of its own.
+  /// At most one true per account; irrelevant for DEBIT/PREPAID cards.
+  isPrimary   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   account      BankAccount           @relation(fields: [accountId], references: [id], onDelete: Cascade)
   walletItems  WalletItemDashboard[]
   transactions Transaction[]
+  limits       CardLimit[]
 
   @@index([accountId])
   @@index([userId])
   @@map("card-account")
+}
+
+/// A non-primary CREDIT card's own sub-limit (one per currency) — chosen instead of
+/// sharing the account's pool ("tope propio" vs "cupo de la cuenta" in the UI). The
+/// primary card never has CardLimit rows (its limit lives on BankAccount directly);
+/// a non-primary card with no CardLimit rows is explicitly sharing the account pool.
+model CardLimit {
+  id          String   @id @default(cuid())
+  cardId      String
+  currency    String
+  limitAmount Decimal  @db.Decimal(18, 4)
+  /// Seed of already-used credit at creation, same convention as BankAccount.creditUsedInitial.
+  usedInitial Decimal  @default(0) @db.Decimal(18, 4)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  card CardAccount @relation(fields: [cardId], references: [id], onDelete: Cascade)
+
+  @@unique([cardId, currency])
+  @@map("card-limit")
 }
 
 /// User-curated "wallet" on the dashboard. Each item pins EITHER a card or an

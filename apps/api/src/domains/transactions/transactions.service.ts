@@ -126,14 +126,20 @@ export class TransactionsService {
   }
 
   /**
-   * Movement rules (spec 007, revised): a "standalone credit card" is an account
-   * of type CREDIT_LINE whose credit pool lives on the account.
+   * Movement rules (spec 007, revised — plus per-card sub-limits): a "standalone
+   * credit card" is an account of type CREDIT_LINE whose credit pool lives on the
+   * account; but ANY cardable account can grow a CREDIT-kind card (e.g. a checking
+   * account's add-on credit card), in which case the SAME account-level pool
+   * applies to it too. Individual cards may additionally carry their own narrower
+   * sub-limit (one per currency) — the account pool is always the master/shared
+   * cap; a card's sub-limit, if set, is an extra, tighter cap on top of it.
    *  - bank must exist (scoped to user)
    *  - INCOME: no card
    *  - EXPENSE on CASH: no card
-   *  - EXPENSE on CREDIT_LINE: a card of that account is required; the amount must
-   *    fit the account's shared credit pool (creditLimit)
+   *  - EXPENSE on CREDIT_LINE: a card of that account is required
    *  - EXPENSE on other accounts: card optional, but if given it must belong
+   *  - Whenever the card used is kind=CREDIT: the amount must fit both the
+   *    account's shared pool (creditLimit) and, if set, that card's own sub-limit
    */
   private async validateMovement(
     userId: string,
@@ -157,39 +163,65 @@ export class TransactionsService {
       if (!m.cardId) throw new BadRequestException({ code: "CARD_REQUIRED" });
       await this.assertCardBelongs(userId, m.cardId, m.bankAccountId);
       await this.assertWithinCreditPool(userId, account, m, excludeTxId);
+      await this.assertWithinCardLimit(userId, m.cardId, m, excludeTxId);
       return;
     }
 
-    // Other non-cash accounts (checking/sight/savings/investment): card optional.
-    if (m.cardId) await this.assertCardBelongs(userId, m.cardId, m.bankAccountId);
+    // Other non-cash accounts (checking/sight/savings/investment): card optional,
+    // but a CREDIT-kind card still draws on the account's shared pool + its own sub-limit.
+    if (m.cardId) {
+      const card = await this.assertCardBelongs(userId, m.cardId, m.bankAccountId);
+      if (card.kind === "CREDIT") {
+        await this.assertWithinCreditPool(userId, account, m, excludeTxId);
+        await this.assertWithinCardLimit(userId, m.cardId, m, excludeTxId);
+      }
+    }
   }
 
-  private async assertCardBelongs(
-    userId: string,
-    cardId: string,
-    accountId: string,
-  ): Promise<void> {
-    if (!(await this.repo.cardBelongsToAccount(userId, cardId, accountId))) {
-      throw new BadRequestException({ code: "CARD_ACCOUNT_MISMATCH" });
-    }
+  private async assertCardBelongs(userId: string, cardId: string, accountId: string) {
+    const card = await this.repo.findCardInAccount(userId, cardId, accountId);
+    if (!card) throw new BadRequestException({ code: "CARD_ACCOUNT_MISMATCH" });
+    return card;
   }
 
   /** creditUsed = creditUsedInitial + Σexpense − Σincome; reject if used + amount > creditLimit. */
   private async assertWithinCreditPool(
     userId: string,
-    account: { creditLimit: { toString(): string }; creditUsedInitial: { toString(): string } },
+    account: {
+      currency: string;
+      creditLimit: { toString(): string };
+      creditUsedInitial: { toString(): string };
+    },
     m: EffectiveMovement,
     excludeTxId?: string,
   ): Promise<void> {
     const { income, expense } = await this.repo.sumsForAccount(
       userId,
       m.bankAccountId,
+      account.currency,
       excludeTxId,
     );
     const used = subtractMoney(addMoney(account.creditUsedInitial.toString(), expense), income);
     const projected = toMoney(used).plus(toMoney(m.amount));
     if (projected.greaterThan(toMoney(account.creditLimit.toString()))) {
       throw new BadRequestException({ code: "CARD_LIMIT_EXCEEDED" });
+    }
+  }
+
+  /** A card's own sub-limit (if set, for this currency) is a narrower cap on top of the account pool. */
+  private async assertWithinCardLimit(
+    userId: string,
+    cardId: string,
+    m: EffectiveMovement,
+    excludeTxId?: string,
+  ): Promise<void> {
+    const limit = await this.repo.findCardLimit(userId, cardId, m.currency);
+    if (!limit) return;
+    const { income, expense } = await this.repo.sumsForCard(userId, cardId, m.currency, excludeTxId);
+    const used = subtractMoney(addMoney(limit.usedInitial.toString(), expense), income);
+    const projected = toMoney(used).plus(toMoney(m.amount));
+    if (projected.greaterThan(toMoney(limit.limitAmount.toString()))) {
+      throw new BadRequestException({ code: "CARD_SUBLIMIT_EXCEEDED" });
     }
   }
 }

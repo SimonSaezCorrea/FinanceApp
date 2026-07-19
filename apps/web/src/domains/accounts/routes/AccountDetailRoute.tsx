@@ -19,10 +19,12 @@ import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { Card, CardContent } from "../../../shared/ui/card";
 import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
+import { Select } from "../../../shared/ui/select";
 import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
 import { AccountForm } from "../components/AccountForm";
 import { AccountVisualCard } from "../components/AccountVisualCard";
 import { CardCreateModal } from "../components/CardCreateModal";
+import { CardDetailModal } from "../components/CardDetailModal";
 import { ACCOUNT_ICON } from "../components/accountVisuals";
 import { useAccount, useAccountMutations } from "../hooks/useAccounts";
 import { useCardMutations } from "../hooks/useCards";
@@ -70,6 +72,7 @@ export function AccountDetailRoute() {
                 <p className="text-sm text-muted-foreground">
                   {t(`accounts.type.${acc.type}`)} · {acc.currency}
                   {acc.institution ? ` · ${acc.institution}` : ""}
+                  {acc.accountNumber ? ` · ${acc.accountNumber}` : ""}
                 </p>
               </div>
             </div>
@@ -96,6 +99,7 @@ export function AccountDetailRoute() {
                 <AccountForm
                   submitLabel={t("accounts.actions.save")}
                   submitting={update.isPending}
+                  hasCreditCard={acc.cards.some((c) => c.kind === "CREDIT")}
                   initial={{
                     name: acc.name,
                     type: acc.type,
@@ -164,6 +168,26 @@ export function AccountDetailRoute() {
               />
             </dl>
           </Card>
+
+          {acc.creditPools.length > 1 ? (
+            <Card className="p-4">
+              <span className="mb-3 block text-sm font-semibold">
+                {t("accounts.detail.creditPools")}
+              </span>
+              <dl className="flex flex-col gap-2 text-sm">
+                {acc.creditPools.map((p) => (
+                  <div key={p.currency} className="flex items-center justify-between">
+                    <dt className="text-muted-foreground">{p.currency}</dt>
+                    <dd className="font-medium tabular-nums">
+                      {formatMoney(p.used, { locale: i18n.language, currency: p.currency })}
+                      {" / "}
+                      {formatMoney(p.limit, { locale: i18n.language, currency: p.currency })}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
+            </Card>
+          ) : null}
 
           <Button
             variant={acc.status === "ACTIVE" ? "destructive" : "outline"}
@@ -243,7 +267,11 @@ function Kpi({
 /** Movements list for this account, sharing the global table format + full CRUD. */
 function MovementsSection({ account }: { account: accounts.BankAccount }) {
   const { t } = useTranslation();
-  const { data, isLoading, isError } = useTransactions({ bankAccountId: account.id });
+  const [cardFilter, setCardFilter] = useState("");
+  const { data, isLoading, isError } = useTransactions({
+    bankAccountId: account.id,
+    cardId: cardFilter || undefined,
+  });
   const { remove } = useTransactionMutations();
   const [modalOpen, setModalOpen] = useState(false);
   const [editTx, setEditTx] = useState<transactions.Transaction | null>(null);
@@ -251,20 +279,36 @@ function MovementsSection({ account }: { account: accounts.BankAccount }) {
   const [detailTx, setDetailTx] = useState<transactions.Transaction | null>(null);
   const list = data ?? [];
 
+  const cardOptions = [
+    { value: "", label: t("transactions.form.selectCard") },
+    ...account.cards.map((c) => ({ value: c.id, label: `••••${c.last4} · ${c.name}` })),
+  ];
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-lg font-semibold">{t("transactions.title")}</h2>
-        <Button
-          size="sm"
-          onClick={() => {
-            setEditTx(null);
-            setModalOpen(true);
-          }}
-        >
-          <Plus className="h-4 w-4" aria-hidden />
-          {t("transactions.new")}
-        </Button>
+        <div className="flex items-center gap-2">
+          {account.cards.length > 0 ? (
+            <Select
+              className="h-9 w-48"
+              value={cardFilter}
+              onChange={(e) => setCardFilter(e.target.value)}
+              options={cardOptions}
+              aria-label={t("transactions.form.selectCard")}
+            />
+          ) : null}
+          <Button
+            size="sm"
+            onClick={() => {
+              setEditTx(null);
+              setModalOpen(true);
+            }}
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            {t("transactions.new")}
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
@@ -325,13 +369,14 @@ function MovementsSection({ account }: { account: accounts.BankAccount }) {
   );
 }
 
-/** Sidebar: every card of the account with a single uniform visual + CRUD. */
+/** Sidebar: every card of the account with a single uniform visual. Click a card to view/edit/delete it. */
 function CardsAside({ account, holder }: { account: accounts.BankAccount; holder?: string }) {
   const { t } = useTranslation();
   const { remove } = useCardMutations(account.id);
   const [modalOpen, setModalOpen] = useState(false);
   const [editCard, setEditCard] = useState<accounts.Card | undefined>(undefined);
   const [deleteCard, setDeleteCard] = useState<accounts.Card | null>(null);
+  const [viewCard, setViewCard] = useState<accounts.Card | null>(null);
   const cardable = accountsContract.isCardableAccountType(account.type);
 
   return (
@@ -357,38 +402,38 @@ function CardsAside({ account, holder }: { account: accounts.BankAccount; holder
         <AccountVisualCard account={account} holder={holder} />
       ) : (
         account.cards.map((card) => (
-          <div key={card.id} className="flex flex-col gap-1">
-            <AccountVisualCard account={account} card={card} holder={holder} />
-            <div className="flex justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  setEditCard(card);
-                  setModalOpen(true);
-                }}
-              >
-                <Pencil className="h-3.5 w-3.5" aria-hidden />
-                {t("accounts.actions.edit")}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-destructive hover:bg-destructive/10"
-                onClick={() => setDeleteCard(card)}
-              >
-                <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                {t("accounts.actions.delete")}
-              </Button>
-            </div>
-          </div>
+          <AccountVisualCard
+            key={card.id}
+            account={account}
+            card={card}
+            holder={holder}
+            onClick={() => setViewCard(card)}
+          />
         ))
       )}
+
+      <CardDetailModal
+        account={account}
+        card={viewCard}
+        holder={holder}
+        open={viewCard !== null}
+        onOpenChange={(v) => !v && setViewCard(null)}
+        onEdit={(card) => {
+          setEditCard(card);
+          setModalOpen(true);
+        }}
+        onDelete={(card) => setDeleteCard(card)}
+      />
 
       <CardCreateModal
         open={modalOpen}
         onOpenChange={setModalOpen}
         accountId={account.id}
+        accountCurrency={account.currency}
+        accountCreditLimit={account.creditLimit}
+        hasExistingPrimary={account.cards.some(
+          (c) => c.kind === "CREDIT" && c.isPrimary && c.id !== editCard?.id,
+        )}
         initial={editCard}
       />
 

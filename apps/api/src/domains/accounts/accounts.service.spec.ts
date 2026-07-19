@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { AccountsService } from "./accounts.service";
 import type { AccountsRepository } from "./accounts.repository";
+import type { CardsRepository } from "./cards.repository";
 
 const row = {
   id: "a1",
@@ -22,13 +23,19 @@ const row = {
   updatedAt: new Date("2026-01-02T00:00:00Z"),
 };
 
-function makeService(repo: Partial<AccountsRepository>) {
+function makeService(repo: Partial<AccountsRepository>, cardsRepo: Partial<CardsRepository> = {}) {
   // Balance-series + credit-usage attach run on every read/write; default both to empty.
-  return new AccountsService({
-    txWindow: vi.fn().mockResolvedValue([]),
-    sumsByAccount: vi.fn().mockResolvedValue([]),
-    ...repo,
-  } as AccountsRepository);
+  return new AccountsService(
+    {
+      txWindow: vi.fn().mockResolvedValue([]),
+      sumsByAccount: vi.fn().mockResolvedValue([]),
+      ...repo,
+    } as AccountsRepository,
+    {
+      sumsByCard: vi.fn().mockResolvedValue([]),
+      ...cardsRepo,
+    } as CardsRepository,
+  );
 }
 
 describe("AccountsService", () => {
@@ -96,10 +103,131 @@ describe("AccountsService", () => {
             expiryMonth: 1,
             expiryYear: 2027,
             isActive: true,
+            usesAccountPool: true,
           },
         ],
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it("resolves the first inline CREDIT card as primary, mirroring its limit onto the account", async () => {
+    const create = vi.fn().mockResolvedValue(row);
+    const svc = makeService({ create });
+    await svc.create("u1", {
+      name: "Cuenta",
+      type: "CREDIT_LINE",
+      status: "ACTIVE",
+      currency: "CLP",
+      cards: [
+        {
+          name: "CMR Visa",
+          kind: "CREDIT",
+          last4: "4827",
+          expiryMonth: 5,
+          expiryYear: 2028,
+          isActive: true,
+          usesAccountPool: true,
+          limits: [{ currency: "CLP", limitAmount: "1500000" }],
+        },
+      ],
+    });
+    expect(create.mock.calls[0]![1]).toMatchObject({
+      creditLimit: "1500000",
+      creditUsedInitial: "0",
+    });
+    const cardInput = create.mock.calls[0]![1].cards.create[0];
+    expect(cardInput).toMatchObject({ isPrimary: true });
+    expect(cardInput.limits).toBeUndefined();
+  });
+
+  it("persists an inline primary CREDIT card's extra-currency limit as its own CardLimit row", async () => {
+    const create = vi.fn().mockResolvedValue(row);
+    const svc = makeService({ create });
+    await svc.create("u1", {
+      name: "Cuenta",
+      type: "CREDIT_LINE",
+      status: "ACTIVE",
+      currency: "CLP",
+      cards: [
+        {
+          name: "CMR Visa",
+          kind: "CREDIT",
+          last4: "4827",
+          expiryMonth: 5,
+          expiryYear: 2028,
+          isActive: true,
+          usesAccountPool: true,
+          limits: [
+            { currency: "CLP", limitAmount: "1500000" },
+            { currency: "USD", limitAmount: "500" },
+          ],
+        },
+      ],
+    });
+    expect(create.mock.calls[0]![1]).toMatchObject({ creditLimit: "1500000" });
+    const cardInput = create.mock.calls[0]![1].cards.create[0];
+    expect(cardInput.limits).toEqual({
+      create: [{ currency: "USD", limitAmount: "500", usedInitial: "0" }],
+    });
+  });
+
+  it("rejects an inline primary CREDIT card with no limit", async () => {
+    const svc = makeService({ create: vi.fn() });
+    await expect(
+      svc.create("u1", {
+        name: "Cuenta",
+        type: "CREDIT_LINE",
+        status: "ACTIVE",
+        currency: "CLP",
+        cards: [
+          {
+            name: "CMR Visa",
+            kind: "CREDIT",
+            last4: "4827",
+            expiryMonth: 5,
+            expiryYear: 2028,
+            isActive: true,
+            usesAccountPool: true,
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ response: { code: "CARD_LIMIT_REQUIRED" } });
+  });
+
+  it("resolves a second inline CREDIT card as additional (pool by default, not primary)", async () => {
+    const create = vi.fn().mockResolvedValue(row);
+    const svc = makeService({ create });
+    await svc.create("u1", {
+      name: "Cuenta",
+      type: "CREDIT_LINE",
+      status: "ACTIVE",
+      currency: "CLP",
+      cards: [
+        {
+          name: "CMR Visa",
+          kind: "CREDIT",
+          last4: "4827",
+          expiryMonth: 5,
+          expiryYear: 2028,
+          isActive: true,
+          usesAccountPool: true,
+          limits: [{ currency: "CLP", limitAmount: "3000000" }],
+        },
+        {
+          name: "CMR Visa · Camila",
+          kind: "CREDIT",
+          last4: "5938",
+          expiryMonth: 5,
+          expiryYear: 2028,
+          isActive: true,
+          usesAccountPool: true,
+        },
+      ],
+    });
+    const [primaryInput, additionalInput] = create.mock.calls[0]![1].cards.create;
+    expect(primaryInput).toMatchObject({ isPrimary: true });
+    expect(additionalInput).toMatchObject({ isPrimary: false });
+    expect(additionalInput.limits).toBeUndefined();
   });
 
   it("reconciles currentBalance = initial + income - expense (exact)", async () => {
@@ -169,6 +297,56 @@ describe("AccountsService", () => {
       });
       const [acc] = await svc.list("u1", {});
       expect(acc.creditUsed).toBe("0");
+    });
+
+    it("exposes creditPools combining the account's own currency and the primary card's extra-currency CardLimit", async () => {
+      const withPrimaryCard = {
+        ...creditRow,
+        cards: [
+          {
+            id: "c1",
+            name: "CMR Visa",
+            kind: "CREDIT" as const,
+            last4: "4827",
+            expiryMonth: 5,
+            expiryYear: 2028,
+            isActive: true,
+            isPrimary: true,
+            limits: [
+              {
+                id: "l1",
+                currency: "USD",
+                limitAmount: { toString: () => "500" },
+                usedInitial: { toString: () => "0" },
+              },
+            ],
+          },
+        ],
+      };
+      const svc = makeService(
+        {
+          list: vi.fn().mockResolvedValue([withPrimaryCard]),
+          sumsByAccount: vi
+            .fn()
+            .mockResolvedValue([{ bankAccountId: "aC", type: "EXPENSE", sum: "1000000" }]),
+        },
+        {
+          sumsByCard: vi
+            .fn()
+            .mockResolvedValue([{ cardId: "c1", currency: "USD", type: "EXPENSE", sum: "120" }]),
+        },
+      );
+      const [acc] = await svc.list("u1", {});
+      expect(acc.creditPools).toEqual([
+        { currency: "CLP", limit: "3000000.0000", used: "1000000.0000" },
+        { currency: "USD", limit: "500.0000", used: "120.0000" },
+      ]);
+    });
+
+    it("reports an empty creditPools for non-credit accounts", async () => {
+      const svc = makeService({ list: vi.fn().mockResolvedValue([row]) });
+      const [acc] = await svc.list("u1", {});
+      expect(acc.creditPools).toEqual([]);
     });
   });
 });

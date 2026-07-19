@@ -25,12 +25,17 @@ const row = {
 };
 
 function makeService(repo: Partial<TransactionsRepository>) {
-  return new TransactionsService(repo as TransactionsRepository);
+  // Every credit-pool check also probes for a per-card sub-limit; default to "none set".
+  return new TransactionsService({
+    findCardLimit: vi.fn().mockResolvedValue(null),
+    ...repo,
+  } as TransactionsRepository);
 }
 
 const creditAccount = {
   id: "aC",
   type: "CREDIT_LINE",
+  currency: "CLP",
   creditLimit: "3000000",
   creditUsedInitial: "0",
 };
@@ -99,7 +104,7 @@ describe("TransactionsService", () => {
   it("rejects a card that does not belong to the account", async () => {
     const svc = makeService({
       findAccount: vi.fn().mockResolvedValue(creditAccount),
-      cardBelongsToAccount: vi.fn().mockResolvedValue(false),
+      findCardInAccount: vi.fn().mockResolvedValue(null),
     });
     await expect(
       svc.create("u1", {
@@ -151,7 +156,7 @@ describe("TransactionsService", () => {
     const create = vi.fn().mockResolvedValue(row);
     const svc = makeService({
       findAccount: vi.fn().mockResolvedValue(creditAccount),
-      cardBelongsToAccount: vi.fn().mockResolvedValue(true),
+      findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
       sumsForAccount: vi.fn().mockResolvedValue({ income: "0", expense: "0" }),
       create,
     });
@@ -165,10 +170,29 @@ describe("TransactionsService", () => {
     expect(create).toHaveBeenCalled();
   });
 
+  it("scopes the shared-pool sum to the account's own currency (a card can pool-share in one currency while independent in another)", async () => {
+    const create = vi.fn().mockResolvedValue(row);
+    const sumsForAccount = vi.fn().mockResolvedValue({ income: "0", expense: "0" });
+    const svc = makeService({
+      findAccount: vi.fn().mockResolvedValue(creditAccount),
+      findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
+      sumsForAccount,
+      create,
+    });
+    await svc.create("u1", {
+      ...base,
+      type: "EXPENSE",
+      amount: "100000",
+      bankAccountId: "aC",
+      cardId: "cC",
+    });
+    expect(sumsForAccount.mock.calls[0]![2]).toBe("CLP"); // account.currency
+  });
+
   it("rejects a credit-line expense that exceeds the pool", async () => {
     const svc = makeService({
       findAccount: vi.fn().mockResolvedValue(creditAccount),
-      cardBelongsToAccount: vi.fn().mockResolvedValue(true),
+      findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
       // used = 0 + 2,950,000 − 0 = 2.95M; +100k = 3.05M > 3M
       sumsForAccount: vi.fn().mockResolvedValue({ income: "0", expense: "2950000" }),
     });
@@ -187,7 +211,7 @@ describe("TransactionsService", () => {
     const create = vi.fn().mockResolvedValue(row);
     const svc = makeService({
       findAccount: vi.fn().mockResolvedValue(creditAccount),
-      cardBelongsToAccount: vi.fn().mockResolvedValue(true),
+      findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
       // used = 0 + 2,950,000 − 200,000 = 2.75M; +100k = 2.85M ≤ 3M → ok
       sumsForAccount: vi.fn().mockResolvedValue({ income: "200000", expense: "2950000" }),
       create,
@@ -225,12 +249,92 @@ describe("TransactionsService", () => {
     const svc = makeService({
       findOne: vi.fn().mockResolvedValue(current),
       findAccount: vi.fn().mockResolvedValue(creditAccount),
-      cardBelongsToAccount: vi.fn().mockResolvedValue(true),
+      findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
       sumsForAccount,
       update,
     });
     await svc.update("u1", "tX", { amount: "250000" });
-    expect(sumsForAccount.mock.calls[0]![2]).toBe("tX"); // excludeTxId
+    expect(sumsForAccount.mock.calls[0]![3]).toBe("tX"); // excludeTxId
     expect(update).toHaveBeenCalled();
+  });
+
+  // --- Per-card sub-limit enforcement (narrower than the account pool) ---
+
+  it("allows a credit-line expense within both the account pool and the card's own sub-limit", async () => {
+    const create = vi.fn().mockResolvedValue(row);
+    const svc = makeService({
+      findAccount: vi.fn().mockResolvedValue(creditAccount),
+      findCardInAccount: vi.fn().mockResolvedValue({ id: "cSecondary", kind: "CREDIT" }),
+      sumsForAccount: vi.fn().mockResolvedValue({ income: "0", expense: "0" }),
+      findCardLimit: vi.fn().mockResolvedValue({ limitAmount: { toString: () => "1000000" }, usedInitial: { toString: () => "0" } }),
+      sumsForCard: vi.fn().mockResolvedValue({ income: "0", expense: "500000" }),
+      create,
+    });
+    await svc.create("u1", {
+      ...base,
+      type: "EXPENSE",
+      amount: "100000",
+      bankAccountId: "aC",
+      cardId: "cSecondary",
+    });
+    expect(create).toHaveBeenCalled();
+  });
+
+  it("rejects an expense that fits the account pool but exceeds the card's own sub-limit", async () => {
+    const svc = makeService({
+      findAccount: vi.fn().mockResolvedValue(creditAccount),
+      findCardInAccount: vi.fn().mockResolvedValue({ id: "cSecondary", kind: "CREDIT" }),
+      sumsForAccount: vi.fn().mockResolvedValue({ income: "0", expense: "0" }),
+      // sub-limit 1M, already used 950k → +100k = 1.05M > 1M
+      findCardLimit: vi.fn().mockResolvedValue({ limitAmount: { toString: () => "1000000" }, usedInitial: { toString: () => "0" } }),
+      sumsForCard: vi.fn().mockResolvedValue({ income: "0", expense: "950000" }),
+    });
+    await expect(
+      svc.create("u1", {
+        ...base,
+        type: "EXPENSE",
+        amount: "100000",
+        bankAccountId: "aC",
+        cardId: "cSecondary",
+      }),
+    ).rejects.toMatchObject({ response: { code: "CARD_SUBLIMIT_EXCEEDED" } });
+  });
+
+  it("enforces the account pool + card sub-limit for a CREDIT card on a non-credit-line account (e.g. checking)", async () => {
+    const svc = makeService({
+      findAccount: vi.fn().mockResolvedValue({ id: "a1", type: "CHECKING", creditLimit: "500000", creditUsedInitial: "0" }),
+      findCardInAccount: vi.fn().mockResolvedValue({ id: "cCredit", kind: "CREDIT" }),
+      sumsForAccount: vi.fn().mockResolvedValue({ income: "0", expense: "450000" }),
+    });
+    // account pool: 0 + 450,000 = 450k; +100k = 550k > 500k limit
+    await expect(
+      svc.create("u1", {
+        ...base,
+        type: "EXPENSE",
+        amount: "100000",
+        bankAccountId: "a1",
+        cardId: "cCredit",
+      }),
+    ).rejects.toMatchObject({ response: { code: "CARD_LIMIT_EXCEEDED" } });
+  });
+
+  it("skips pool/sub-limit checks entirely for a DEBIT card on a checking account", async () => {
+    const create = vi.fn().mockResolvedValue(row);
+    const sumsForAccount = vi.fn();
+    const svc = makeService({
+      findAccount: vi.fn().mockResolvedValue({ id: "a1", type: "CHECKING", creditLimit: "0", creditUsedInitial: "0" }),
+      findCardInAccount: vi.fn().mockResolvedValue({ id: "cDebit", kind: "DEBIT" }),
+      sumsForAccount,
+      create,
+    });
+    await svc.create("u1", {
+      ...base,
+      type: "EXPENSE",
+      amount: "1000000000",
+      bankAccountId: "a1",
+      cardId: "cDebit",
+    });
+    expect(create).toHaveBeenCalled();
+    expect(sumsForAccount).not.toHaveBeenCalled();
   });
 });

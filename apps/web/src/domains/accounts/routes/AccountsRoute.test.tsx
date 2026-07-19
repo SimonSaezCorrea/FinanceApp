@@ -39,6 +39,7 @@ const account = {
   currentBalance: "1240.5000",
   creditLimit: "0.0000",
   creditUsed: "0",
+  creditPools: [],
   balanceSeries: Array.from({ length: 30 }, () => "1240.5000"),
   balanceChangePct: "0.0",
   cards: [],

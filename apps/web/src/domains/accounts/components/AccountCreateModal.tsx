@@ -6,6 +6,7 @@ import { accounts as accountsContract } from "@finance/contracts";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { Button } from "../../../shared/ui/button";
 import { Dialog } from "../../../shared/ui/dialog";
 import { Field } from "../../../shared/ui/field";
@@ -53,7 +54,16 @@ export function AccountCreateModal({
   const [creditUsedInitial, setCreditUsedInitial] = useState("0");
   const [cards, setCards] = useState<accounts.CreateCard[]>([]);
   const [addingCard, setAddingCard] = useState(false);
-  const isCredit = type === "CREDIT_LINE";
+  const isCreditLineType = type === "CREDIT_LINE";
+  // The account's first drafted CREDIT card becomes its PRIMARY (mirrors the
+  // account's own cupo 1:1) — once one exists, the cupo is read-only here,
+  // driven by that card's own mandatory limit instead of typed independently.
+  const primaryDraftCard = cards.find((c) => c.kind === "CREDIT");
+  const hasCreditCard = primaryDraftCard !== undefined;
+  const derivedCreditLimit = primaryDraftCard?.limits?.[0]?.limitAmount ?? "0";
+  // No card yet: the account-level cupo fields are still manually editable
+  // (e.g. a CREDIT_LINE created before its first card is added later).
+  const manualCreditPool = isCreditLineType && !hasCreditCard;
   const cardable = accountsContract.isCardableAccountType(type);
 
   function reset() {
@@ -97,9 +107,9 @@ export function AccountCreateModal({
         currency,
         institutionId: institutionId || undefined,
         accountNumber: accountNumber || undefined,
-        initialBalance: isCredit ? "0" : initialBalance || "0",
-        creditLimit: isCredit ? creditLimit || "0" : undefined,
-        creditUsedInitial: isCredit ? creditUsedInitial || "0" : undefined,
+        initialBalance: isCreditLineType ? "0" : initialBalance || "0",
+        creditLimit: manualCreditPool ? creditLimit || "0" : undefined,
+        creditUsedInitial: manualCreditPool ? creditUsedInitial || "0" : undefined,
         cards: cards.length > 0 ? cards : undefined,
       },
       {
@@ -138,7 +148,7 @@ export function AccountCreateModal({
       onOpenChange={onOpenChange}
       title={t("accounts.new")}
       description={t("accounts.newSubtitle")}
-      className="max-w-2xl"
+      className="max-w-3xl"
     >
       <div className="grid gap-6 md:grid-cols-2">
         <div className="flex flex-col gap-3">
@@ -171,6 +181,7 @@ export function AccountCreateModal({
                   id="m-num"
                   inputMode="numeric"
                   value={accountNumber}
+                  required={accountsContract.isAccountNumberRequired(type)}
                   onChange={(e) => setAccountNumber(e.target.value)}
                   aria-label={t("accounts.form.accountNumber")}
                 />
@@ -189,13 +200,17 @@ export function AccountCreateModal({
                 aria-label={t("accounts.form.currency")}
               />
             </Field>
-            {isCredit ? (
+            {isCreditLineType ? (
               <Field label={t("accounts.form.creditLimit")}>
                 <Input
                   id="m-climit"
-                  inputMode="decimal"
-                  value={creditLimit}
-                  onChange={(e) => setCreditLimit(e.target.value)}
+                  inputMode="numeric"
+                  value={formatAmountDisplay(
+                    hasCreditCard ? derivedCreditLimit : creditLimit,
+                    groupingLocaleFor(currency, i18n.language),
+                  )}
+                  disabled={hasCreditCard}
+                  onChange={(e) => setCreditLimit(e.target.value.replace(/\D/g, ""))}
                   aria-label={t("accounts.form.creditLimit")}
                 />
               </Field>
@@ -203,22 +218,42 @@ export function AccountCreateModal({
               <Field label={t("accounts.form.initialBalance")}>
                 <Input
                   id="m-bal"
-                  inputMode="decimal"
-                  value={initialBalance}
-                  onChange={(e) => setInitialBalance(e.target.value)}
+                  inputMode="numeric"
+                  value={formatAmountDisplay(initialBalance, groupingLocaleFor(currency, i18n.language))}
+                  onChange={(e) => setInitialBalance(e.target.value.replace(/\D/g, ""))}
                   aria-label={t("accounts.form.initialBalance")}
                 />
               </Field>
             )}
           </div>
-          {isCredit ? (
+          {hasCreditCard ? (
+            <p className="-mt-2 text-xs text-muted-foreground">
+              {t("accounts.form.creditLimitMirroredHint")}
+            </p>
+          ) : null}
+          {/* A checking/sight account that grew a CREDIT card also needs the account-level
+              pool that card draws on — CREDIT_LINE already shows it above instead of a balance. */}
+          {!isCreditLineType && hasCreditCard ? (
+            <div className="grid grid-cols-2 gap-3">
+              <Field label={t("accounts.form.creditLimit")}>
+                <Input
+                  id="m-climit2"
+                  inputMode="numeric"
+                  value={formatAmountDisplay(derivedCreditLimit, groupingLocaleFor(currency, i18n.language))}
+                  disabled
+                  aria-label={t("accounts.form.creditLimit")}
+                />
+              </Field>
+            </div>
+          ) : null}
+          {manualCreditPool ? (
             <Field label={t("accounts.form.creditUsedInitial")}>
               <Input
                 id="m-cused"
-                inputMode="decimal"
-                value={creditUsedInitial}
+                inputMode="numeric"
+                value={formatAmountDisplay(creditUsedInitial, groupingLocaleFor(currency, i18n.language))}
                 aria-label={t("accounts.form.creditUsedInitial")}
-                onChange={(e) => setCreditUsedInitial(e.target.value)}
+                onChange={(e) => setCreditUsedInitial(e.target.value.replace(/\D/g, ""))}
               />
             </Field>
           ) : null}
@@ -275,6 +310,7 @@ export function AccountCreateModal({
                     <DraftCardTile
                       key={i}
                       card={c}
+                      isPrimary={c === primaryDraftCard}
                       onRemove={() => setCards((p) => p.filter((_, j) => j !== i))}
                     />
                   ))}
@@ -296,6 +332,8 @@ export function AccountCreateModal({
                   </div>
                   <CardForm
                     submitLabel={t("cards.add")}
+                    accountCurrency={currency}
+                    hasExistingPrimary={cards.some((c) => c.kind === "CREDIT")}
                     onSubmit={(card) => {
                       setCards((p) => [...p, card]);
                       setAddingCard(false);

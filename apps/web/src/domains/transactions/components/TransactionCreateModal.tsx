@@ -6,6 +6,7 @@ import { accounts as accountsContract } from "@finance/contracts";
 import type { transactions } from "@finance/contracts";
 
 import { useAccounts } from "../../accounts/hooks/useAccounts";
+import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
@@ -26,20 +27,6 @@ function todayInput(): string {
 
 function dateInput(iso: string): string {
   return iso.slice(0, 10);
-}
-
-// Bare "es" (no region) only groups digits from 10,000 up (CLDR/Spain rule);
-// Chile groups from 1,000, so CLP amounts need "es-CL" specifically.
-function groupingLocaleFor(currency: string, uiLocale: string): string {
-  return currency === "CLP" ? "es-CL" : uiLocale;
-}
-
-function formatAmountDisplay(raw: string, locale: string): string {
-  if (!raw) return "";
-  const [intPart = "", decPart] = raw.split(".");
-  const n = Number(intPart || "0");
-  const grouped = Number.isFinite(n) ? n.toLocaleString(locale) : intPart;
-  return decPart !== undefined ? `${grouped}.${decPart}` : grouped;
 }
 
 function currencySymbol(currency: string, locale: string): string {
@@ -95,7 +82,11 @@ export function TransactionCreateModal({
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
     setType(initial?.type ?? "EXPENSE");
-    setAmount(initial?.amount ?? "");
+    // The server returns amounts as decimal strings ("32000.0000") but this input is
+    // integer-only (handleAmountChange strips non-digits, so it can't even represent
+    // a decimal point) — keep just the integer part or the display grouping mangles
+    // the decimal suffix in with the thousands separators (e.g. "32.000.0000").
+    setAmount(initial?.amount ? (initial.amount.split(".")[0] ?? "") : "");
     setCurrency(initial?.currency ?? "CLP");
     setBankAccountId(initial?.bankAccountId ?? defaultBankAccountId ?? "");
     setCardId(initial?.cardId ?? "");
