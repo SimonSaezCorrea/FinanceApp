@@ -9,27 +9,10 @@ import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amou
 import { Button } from "../../../shared/ui/button";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
+import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { Segmented } from "../../../shared/ui/segmented";
 import { Select } from "../../../shared/ui/select";
-
-function formatExpiry(month: number, year: number): string {
-  return `${String(month).padStart(2, "0")}/${String(year).slice(-2)}`;
-}
-
-function cleanExpiryInput(raw: string): string {
-  const digits = raw.replace(/\D/g, "").slice(0, 4);
-  return digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
-}
-
-/** Parses "MM/AA" into a 1-12 month + 2000-based year, or null if not a valid expiry. */
-function parseExpiry(value: string): { month: number; year: number } | null {
-  const match = /^(\d{1,2})\/(\d{2})$/.exec(value);
-  if (!match) return null;
-  const month = Number(match[1]);
-  const year = 2000 + Number(match[2]);
-  if (month < 1 || month > 12) return null;
-  return { month, year };
-}
+import { cleanExpiryInput, formatExpiry, parseExpiry } from "../lib/cardExpiry";
 
 interface Props {
   submitLabel: string;
@@ -94,7 +77,7 @@ export function CardForm({
 
   const currencyOptions = (currencies ?? []).map((c) => ({
     value: c.code,
-    label: `${c.code} · ${c.name}`,
+    label: `${c.name} (${c.code})`,
   }));
   // The primary's mandatory field already owns the account's own currency —
   // its optional extra-currency rows can only add OTHER currencies.
@@ -225,7 +208,7 @@ export function CardForm({
 
           {extraCurrencyOptions.length > 0 ? (
             <div className="flex flex-col gap-2 border-t pt-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                   {t("cards.form.extraLimits")}
                 </span>
@@ -233,6 +216,7 @@ export function CardForm({
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="shrink-0 whitespace-nowrap"
                   onClick={() => addLimitRow(extraCurrencyOptions[0]!.value)}
                 >
                   <Plus className="h-3.5 w-3.5" aria-hidden />
@@ -244,10 +228,13 @@ export function CardForm({
               {limits.map((limit, i) => (
                 <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
                   <Field label={t("cards.form.currency")}>
-                    <Select
+                    <SearchableSelect
                       value={limit.currency}
-                      onChange={(e) => updateLimitRow(i, { currency: e.target.value })}
+                      onChange={(v) => updateLimitRow(i, { currency: v })}
                       options={extraCurrencyOptions}
+                      displayValue={limit.currency}
+                      searchPlaceholder={t("common.search")}
+                      noResultsLabel={t("common.noResults")}
                       aria-label={t("cards.form.currency")}
                     />
                   </Field>
@@ -300,7 +287,7 @@ export function CardForm({
 
           {!usesAccountPool ? (
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-3">
                 <p className="text-xs text-muted-foreground">
                   {limits.length === 0 ? t("cards.form.ownLimitRowsHint") : null}
                 </p>
@@ -308,6 +295,7 @@ export function CardForm({
                   type="button"
                   variant="outline"
                   size="sm"
+                  className="shrink-0 whitespace-nowrap"
                   onClick={() => addLimitRow(accountCurrency)}
                 >
                   <Plus className="h-3.5 w-3.5" aria-hidden />
@@ -319,10 +307,13 @@ export function CardForm({
               {limits.map((limit, i) => (
                 <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
                   <Field label={t("cards.form.currency")}>
-                    <Select
+                    <SearchableSelect
                       value={limit.currency}
-                      onChange={(e) => updateLimitRow(i, { currency: e.target.value })}
+                      onChange={(v) => updateLimitRow(i, { currency: v })}
                       options={currencyOptions}
+                      displayValue={limit.currency}
+                      searchPlaceholder={t("common.search")}
+                      noResultsLabel={t("common.noResults")}
                       aria-label={t("cards.form.currency")}
                     />
                   </Field>

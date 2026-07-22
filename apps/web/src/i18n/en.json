@@ -11,6 +11,8 @@
     "delete": "Delete",
     "confirmDeleteTitle": "Delete item?",
     "confirmDelete": "This action cannot be undone.",
+    "noResults": "No results.",
+    "search": "Search…",
     "frequency": {
       "DAILY": "Daily",
       "WEEKLY": "Weekly",
@@ -52,10 +54,8 @@
     "card": { "usage": "{{pct}}% used", "creditUsed": "Credit used" },
     "balanceLabel": "Balance",
     "detail": {
-      "info": "Information",
-      "created": "Created",
-      "updated": "Updated",
       "change": "Change",
+      "credit": "Credit",
       "creditPools": "Limits by currency"
     },
     "filter": {
@@ -71,11 +71,15 @@
       "institution": "Institution",
       "institutionNone": "No institution / manual",
       "accountNumber": "Account number",
+      "primaryCardHint": "This identifies this account's primary card — its limit is the total cupo defined below.",
       "currency": "Currency",
       "initialBalance": "Initial balance",
       "creditLimit": "Credit limit",
       "creditLimitMirroredHint": "Synced with the primary card's own limit.",
       "creditUsedInitial": "Initial used credit",
+      "billingCycleDay": "Billing day",
+      "billingCycleDayPlaceholder": "E.g. 15",
+      "billingCycleDayHint": "Optional. On this day of the month, used credit resets (transactions aren't deleted, they just stop counting toward the current limit).",
       "accountActive": "Account active",
       "sectionAccountData": "Account details",
       "sectionBalanceCurrency": "Balance and currency",
@@ -94,6 +98,7 @@
   },
   "cards": {
     "title": "Cards",
+    "additionalTitle": "Additional cards",
     "add": "Add card",
     "addShort": "Add",
     "newTitle": "New card",

@@ -1,4 +1,75 @@
 <!--
+Sync Impact Report — 2026-07-22 (amendment 1.18.0)
+- Version change: 1.17.0 → 1.18.0 (MINOR: streamlines `CREDIT_LINE` account creation — no schema or
+  API change, frontend-only). Core Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards):
+  - **`AccountCreateModal` no longer requires a separate "add card" step to establish a `CREDIT_LINE`
+    account's primary card.** A standalone credit-line account has no real bank account behind it, so
+    its generic "Número de cuenta" field never fit well there; it's replaced (for this type only) by
+    "Últimos 4 dígitos" + "Vencimiento" — combined with the account's own `creditLimit`/
+    `creditUsedInitial` (already shown for this type), the modal constructs the primary `CreateCard`
+    entry client-side and places it first in the submitted `cards[]`, so the backend's existing "first
+    CREDIT card becomes primary" resolution (`CardsService`/`AccountsService.create`, unchanged) picks
+    it up automatically. The modal's card-drafting section (relabeled "Tarjetas adicionales" for this
+    type) is therefore always additional-only for `CREDIT_LINE` going forward.
+  - **Unaffected:** editing an existing account (`AccountForm`) and any OTHER account type growing an
+    add-on credit card (e.g. `CHECKING`) still go through the normal `CardsAside` → "Añadir tarjeta"
+    flow exactly as before — this streamlining is scoped to creating a NEW `CREDIT_LINE` account only.
+  - `AccountCreateModal` also gained error-toast handling on its create mutation (previously silent on
+    failure) — needed now that this flow can reject with more validation codes (`CARD_LIMIT_REQUIRED`,
+    invalid last4/expiry) at creation time.
+
+Sync Impact Report — 2026-07-22 (amendment 1.17.0)
+- Version change: 1.16.0 → 1.17.0 (MINOR: adds statement billing cycles to the credit model, plus a
+  same-scope correctness fix). Core Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards/transactions):
+  - **New `BankAccount.billingCycleDay`** (nullable Int, 1-28). Once set, every derived credit-usage
+    number (`creditUsed`, a card's `ownUsed`, a card's own `CardLimit.used`) is scoped to the CURRENT
+    billing cycle — since the most recent occurrence of that day-of-month, computed by
+    `apps/api/src/domains/accounts/billing-cycle.ts`'s `currentCycleStart(billingCycleDay, now)` — instead
+    of all-time. Usage genuinely resets each cycle for BOTH display and enforcement (a transaction that
+    would have exceeded the limit last cycle can succeed again once the new cycle starts): transactions
+    are never deleted, they simply stop counting toward the current limit once the next cut-off passes.
+    `null` (the default, backward compatible with every existing account) keeps the prior all-time
+    behavior. One billing day per account, applied uniformly to every card sharing it (one statement
+    covers the whole account) — a card has no billing day of its own. The seed values
+    (`creditUsedInitial`, a `CardLimit`'s `usedInitial`) are NOT reset per cycle — there's no per-cycle
+    seed, only an account/card-level one, so they're still added on top of every cycle's computed sum
+    (a known, documented simplification, not a gap this amendment tries to close).
+  - **Correctness fix bundled with this feature:** `TransactionsRepository.sumsForAccount` (enforcement)
+    and `AccountsRepository.sumsByAccount` (display) previously summed **every** transaction on an
+    account toward its credit pool, with no filter on which card (if any) was used. That was harmless
+    for a standalone `CREDIT_LINE` account (every transaction on it already is a credit-line one, by
+    construction — an EXPENSE there always carries a CREDIT card, an INCOME is a payment) — but wrong
+    for any OTHER account type that merely grew an add-on credit card: ordinary day-to-day banking
+    (debit-card spend, cash, salary/other income) was incorrectly counted, in the worst observed case
+    driving a displayed `creditUsed` to a large negative percentage on an account with substantial
+    unrelated income. Fixed by requiring, for non-`CREDIT_LINE` accounts, that only EXPENSE transactions
+    via a pool-sharing CREDIT-kind card count; income is never subtracted for this case since the app
+    has no mechanism to record "a payment toward this specific add-on card" apart from ordinary account
+    income (income never carries a card at all, per the existing movement rules) — a documented
+    limitation carried forward, not newly introduced.
+  - Frontend: `AccountCreateModal` and `AccountForm` gained a "Día de facturación" field (1-28, optional,
+    digits-only, clamped to ≤28), shown whenever the account has (or is drafted to have) a credit pool.
+
+Sync Impact Report — 2026-07-19 (amendment 1.16.0)
+- Version change: 1.15.0 → 1.16.0 (MINOR: per-card usage display for pool-sharing cards). Core
+  Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards):
+  - **New derived contract field `Card.ownUsed`** (moneyString): a CREDIT card's own
+    Σexpense−Σincome in the account's own currency, computed regardless of whether the card shares
+    the account pool or carries its own `CardLimit`. Motivation: when several cards share the same
+    account pool, every one of them previously displayed the identical fully-combined
+    `account.creditUsed` figure — correct arithmetically (they DO share one pool) but confusing,
+    since it read as "this card individually spent X" rather than "the shared pool X of the group
+    is at". `AccountVisualCard` now shows `card.ownUsed` (not `account.creditUsed`) as a
+    pool-sharing card's "used" figure, still against the shared `creditLimit` as the denominator;
+    the no-`card` account-level tile is the only place the true combined total is still shown.
+  - `ownUsed` has no seed baseline (unlike `creditUsedInitial`/`CardLimit.usedInitial`) — there is
+    nowhere to attribute a pre-existing, not-transaction-backed balance to one specific
+    pool-sharing card, so such a seed only ever shows up in the account's own combined
+    `creditUsed`, never split across `ownUsed` values. Documented as a known limitation, not a bug.
+
 Sync Impact Report — 2026-07-19 (amendment 1.15.0)
 - Version change: 1.14.0 → 1.15.0 (MINOR: extends the primary-card credit model with
   multi-currency pools, plus a same-scope correctness fix). Core Principles unchanged in intent.
@@ -467,4 +538,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.15.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-19
+**Version**: 1.18.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-22

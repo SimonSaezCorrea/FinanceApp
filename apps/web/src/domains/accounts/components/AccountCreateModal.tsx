@@ -1,20 +1,23 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 
 import { accounts as accountsContract } from "@finance/contracts";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
+import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
 import { Dialog } from "../../../shared/ui/dialog";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
-import { Select } from "../../../shared/ui/select";
+import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { Switch } from "../../../shared/ui/switch";
 import { useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { useAccountMutations } from "../hooks/useAccounts";
+import { cleanExpiryInput, parseExpiry } from "../lib/cardExpiry";
 import { ACCOUNT_ICON } from "./accountVisuals";
 import { AccountTypeToggle } from "./AccountTypeToggle";
 import { CardForm } from "./CardForm";
@@ -52,18 +55,34 @@ export function AccountCreateModal({
   const [initialBalance, setInitialBalance] = useState("0");
   const [creditLimit, setCreditLimit] = useState("0");
   const [creditUsedInitial, setCreditUsedInitial] = useState("0");
+  const [billingCycleDay, setBillingCycleDay] = useState("");
+  // For a CREDIT_LINE account, these identify its PRIMARY card directly (in
+  // place of a bank "account number", which doesn't apply — there's no
+  // account behind a standalone credit card, only the card itself). Its limit
+  // is the account's own creditLimit/creditUsedInitial above; no separate
+  // "add card" step is needed for the primary anymore.
+  const [primaryLast4, setPrimaryLast4] = useState("");
+  const [primaryExpiry, setPrimaryExpiry] = useState("");
+  const [primaryLast4Error, setPrimaryLast4Error] = useState<string | null>(null);
+  const [primaryExpiryError, setPrimaryExpiryError] = useState<string | null>(null);
   const [cards, setCards] = useState<accounts.CreateCard[]>([]);
   const [addingCard, setAddingCard] = useState(false);
   const isCreditLineType = type === "CREDIT_LINE";
-  // The account's first drafted CREDIT card becomes its PRIMARY (mirrors the
-  // account's own cupo 1:1) — once one exists, the cupo is read-only here,
-  // driven by that card's own mandatory limit instead of typed independently.
-  const primaryDraftCard = cards.find((c) => c.kind === "CREDIT");
+  // For any OTHER cardable type (checking/sight growing an add-on card), the
+  // first drafted CREDIT card becomes the PRIMARY (mirrors the account's own
+  // cupo 1:1) — once one exists, the cupo is read-only here. For CREDIT_LINE
+  // itself this concept doesn't apply anymore: the primary is always the one
+  // defined by `primaryLast4`/`primaryExpiry` above, so every card drafted in
+  // the "Tarjetas" section is an ADDITIONAL one (see `hasExistingPrimary` below).
+  const primaryDraftCard = !isCreditLineType ? cards.find((c) => c.kind === "CREDIT") : undefined;
   const hasCreditCard = primaryDraftCard !== undefined;
   const derivedCreditLimit = primaryDraftCard?.limits?.[0]?.limitAmount ?? "0";
   // No card yet: the account-level cupo fields are still manually editable
-  // (e.g. a CREDIT_LINE created before its first card is added later).
-  const manualCreditPool = isCreditLineType && !hasCreditCard;
+  // (e.g. a CREDIT_LINE created before its first card is added later) — for
+  // CREDIT_LINE this is now always true, since the cupo always comes straight
+  // from these fields (the primary card mirrors them, never the other way).
+  const manualCreditPool = isCreditLineType || !hasCreditCard;
+  const hasCreditPool = isCreditLineType || hasCreditCard;
   const cardable = accountsContract.isCardableAccountType(type);
 
   function reset() {
@@ -76,6 +95,11 @@ export function AccountCreateModal({
     setInitialBalance("0");
     setCreditLimit("0");
     setCreditUsedInitial("0");
+    setBillingCycleDay("");
+    setPrimaryLast4("");
+    setPrimaryExpiry("");
+    setPrimaryLast4Error(null);
+    setPrimaryExpiryError(null);
     setCards([]);
     setAddingCard(false);
   }
@@ -96,9 +120,42 @@ export function AccountCreateModal({
         setInstitutionId("");
       }
     }
+    if (next === "CREDIT_LINE") {
+      setAccountNumber("");
+    } else {
+      setPrimaryLast4("");
+      setPrimaryExpiry("");
+      setPrimaryLast4Error(null);
+      setPrimaryExpiryError(null);
+    }
   }
 
   function submit() {
+    let parsedPrimaryExpiry: { month: number; year: number } | null = null;
+    if (isCreditLineType) {
+      const validLast4 = /^\d{4}$/.test(primaryLast4);
+      parsedPrimaryExpiry = parseExpiry(primaryExpiry);
+      setPrimaryLast4Error(validLast4 ? null : t("cards.errors.last4"));
+      setPrimaryExpiryError(parsedPrimaryExpiry ? null : t("cards.errors.expiry"));
+      if (!validLast4 || !parsedPrimaryExpiry) return;
+    }
+    // The primary card is always first in `cards[]` so the backend's "first
+    // CREDIT card becomes primary" resolution picks it up automatically.
+    const autoPrimaryCard: accounts.CreateCard | undefined =
+      isCreditLineType && parsedPrimaryExpiry
+        ? {
+            name: t("cards.kind.CREDIT"),
+            kind: "CREDIT",
+            last4: primaryLast4,
+            expiryMonth: parsedPrimaryExpiry.month,
+            expiryYear: parsedPrimaryExpiry.year,
+            isActive: true,
+            usesAccountPool: true,
+            limits: [{ currency, limitAmount: creditLimit || "0" }],
+          }
+        : undefined;
+    const allCards = autoPrimaryCard ? [autoPrimaryCard, ...cards] : cards;
+
     create.mutate(
       {
         name,
@@ -106,16 +163,21 @@ export function AccountCreateModal({
         status,
         currency,
         institutionId: institutionId || undefined,
-        accountNumber: accountNumber || undefined,
+        accountNumber: isCreditLineType ? undefined : accountNumber || undefined,
         initialBalance: isCreditLineType ? "0" : initialBalance || "0",
         creditLimit: manualCreditPool ? creditLimit || "0" : undefined,
         creditUsedInitial: manualCreditPool ? creditUsedInitial || "0" : undefined,
-        cards: cards.length > 0 ? cards : undefined,
+        billingCycleDay: hasCreditPool && billingCycleDay ? Number(billingCycleDay) : undefined,
+        cards: allCards.length > 0 ? allCards : undefined,
       },
       {
         onSuccess: () => {
           reset();
           onOpenChange(false);
+        },
+        onError: (err) => {
+          const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
+          toast.error(t(`errors.${code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
         },
       },
     );
@@ -128,7 +190,7 @@ export function AccountCreateModal({
   ];
   const currencyOptions = (currencies ?? []).map((c) => ({
     value: c.code,
-    label: `${c.code} · ${c.name}`,
+    label: `${c.name} (${c.code})`,
   }));
   if (currency && !currencyOptions.some((o) => o.value === currency)) {
     currencyOptions.unshift({ value: currency, label: currency });
@@ -168,35 +230,72 @@ export function AccountCreateModal({
           {type !== "CASH" ? (
             <>
               <Field label={t("accounts.form.institution")}>
-                <Select
+                <SearchableSelect
                   id="m-inst"
                   value={institutionId}
-                  onChange={(e) => setInstitutionId(e.target.value)}
+                  onChange={setInstitutionId}
                   options={institutionOptions}
+                  searchPlaceholder={t("common.search")}
+                  noResultsLabel={t("common.noResults")}
                   aria-label={t("accounts.form.institution")}
                 />
               </Field>
-              <Field label={t("accounts.form.accountNumber")}>
-                <Input
-                  id="m-num"
-                  inputMode="numeric"
-                  value={accountNumber}
-                  required={accountsContract.isAccountNumberRequired(type)}
-                  onChange={(e) => setAccountNumber(e.target.value)}
-                  aria-label={t("accounts.form.accountNumber")}
-                />
-              </Field>
+              {isCreditLineType ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label={t("cards.form.last4")} error={primaryLast4Error}>
+                    <Input
+                      id="m-primary-last4"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="4821"
+                      maxLength={4}
+                      value={primaryLast4}
+                      onChange={(e) => setPrimaryLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      aria-label={t("cards.form.last4")}
+                    />
+                  </Field>
+                  <Field label={t("cards.form.expiry")} error={primaryExpiryError}>
+                    <Input
+                      id="m-primary-expiry"
+                      inputMode="numeric"
+                      placeholder="MM/AA"
+                      value={primaryExpiry}
+                      onChange={(e) => setPrimaryExpiry(cleanExpiryInput(e.target.value))}
+                      aria-label={t("cards.form.expiry")}
+                    />
+                  </Field>
+                </div>
+              ) : (
+                <Field label={t("accounts.form.accountNumber")}>
+                  <Input
+                    id="m-num"
+                    inputMode="numeric"
+                    value={accountNumber}
+                    required={accountsContract.isAccountNumberRequired(type)}
+                    onChange={(e) => setAccountNumber(e.target.value)}
+                    aria-label={t("accounts.form.accountNumber")}
+                  />
+                </Field>
+              )}
+              {isCreditLineType ? (
+                <p className="-mt-2 text-xs text-muted-foreground">
+                  {t("accounts.form.primaryCardHint")}
+                </p>
+              ) : null}
             </>
           ) : null}
 
           <SectionLabel>{t("accounts.form.sectionBalanceCurrency")}</SectionLabel>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-[6rem_1fr] gap-3">
             <Field label={t("accounts.form.currency")}>
-              <Select
+              <SearchableSelect
                 id="m-cur"
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
+                onChange={setCurrency}
                 options={currencyOptions}
+                displayValue={currency}
+                searchPlaceholder={t("common.search")}
+                noResultsLabel={t("common.noResults")}
                 aria-label={t("accounts.form.currency")}
               />
             </Field>
@@ -257,6 +356,26 @@ export function AccountCreateModal({
               />
             </Field>
           ) : null}
+          {hasCreditPool ? (
+            <Field label={t("accounts.form.billingCycleDay")}>
+              <Input
+                id="m-billing-day"
+                inputMode="numeric"
+                placeholder={t("accounts.form.billingCycleDayPlaceholder")}
+                value={billingCycleDay}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
+                  setBillingCycleDay(digits && Number(digits) > 28 ? "28" : digits);
+                }}
+                aria-label={t("accounts.form.billingCycleDay")}
+              />
+            </Field>
+          ) : null}
+          {hasCreditPool ? (
+            <p className="-mt-2 text-xs text-muted-foreground">
+              {t("accounts.form.billingCycleDayHint")}
+            </p>
+          ) : null}
 
           <label className="mt-1 flex items-center gap-2">
             <Switch
@@ -276,13 +395,17 @@ export function AccountCreateModal({
             subtitle={t(`accounts.type.${type}`)}
             primary={balancePreview}
             footerLeft={currency}
+            footerRight={accountNumber || undefined}
             icon={ACCOUNT_ICON[type]}
           />
           {cardable ? (
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between">
                 <SectionLabel>
-                  {cards.length > 0 ? `${t("cards.title")} · ${cards.length}` : t("cards.title")}
+                  {(() => {
+                    const base = isCreditLineType ? t("cards.additionalTitle") : t("cards.title");
+                    return cards.length > 0 ? `${base} · ${cards.length}` : base;
+                  })()}
                 </SectionLabel>
                 {!addingCard ? (
                   <Button
@@ -333,7 +456,10 @@ export function AccountCreateModal({
                   <CardForm
                     submitLabel={t("cards.add")}
                     accountCurrency={currency}
-                    hasExistingPrimary={cards.some((c) => c.kind === "CREDIT")}
+                    // For CREDIT_LINE, the primary is always the one defined by
+                    // the "Últimos 4 dígitos"/"Vencimiento" fields above — every
+                    // card drafted here is an ADDITIONAL one, never the primary.
+                    hasExistingPrimary={isCreditLineType || cards.some((c) => c.kind === "CREDIT")}
                     onSubmit={(card) => {
                       setCards((p) => [...p, card]);
                       setAddingCard(false);

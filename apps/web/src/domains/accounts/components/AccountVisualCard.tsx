@@ -10,26 +10,35 @@ import { CARD_KIND_STYLE, isCreditType } from "./accountVisuals";
 /**
  * Visual "wallet" representation. Pass `card` to render a specific card (colored
  * by its `kind`, matching the create-account draft tiles); otherwise the account's
- * first card is used, or — with no cards at all — a muted/brand tile stands in for
- * the account itself. The credit pool is shared at the account level (CREDIT_LINE,
- * or any other account that's grown a CREDIT card); a card with its own sub-limit
- * shows that instead, falling back to the shared pool when it has none.
+ * first card is used as a stand-in (e.g. a Wallet pin of the account itself, with
+ * no specific card chosen), or — with no cards at all — a muted/brand tile stands
+ * in for the account itself. Pass `accountOnly` to force the genuine account-level
+ * view instead of that first-card stand-in, even when the account has cards (e.g.
+ * a dedicated "this is the account" summary tile shown alongside its own cards).
+ *
+ * The credit LIMIT is shared at the account level (CREDIT_LINE, or any other
+ * account that's grown a CREDIT card); a card with its own sub-limit shows that
+ * instead. The USED amount, though, is per-card: a card sharing the pool shows its
+ * own individual spend (`card.ownUsed`), not the fully-combined total — only the
+ * no-`card` account-level tile (including under `accountOnly`) shows that total.
  */
 export function AccountVisualCard({
   account,
   card: cardProp,
+  accountOnly = false,
   holder,
   onClick,
   large,
 }: Readonly<{
   account: accounts.BankAccount;
   card?: accounts.Card;
+  accountOnly?: boolean;
   holder?: string;
   onClick?: () => void;
   large?: boolean;
 }>) {
   const { t, i18n } = useTranslation();
-  const card = cardProp ?? account.cards[0];
+  const card = accountOnly ? undefined : (cardProp ?? account.cards[0]);
   // The account has a credit pool if it's a standalone CREDIT_LINE, OR any other
   // cardable account that's grown a CREDIT-kind card (e.g. a checking add-on card).
   const hasCreditCard = account.cards.some((c) => c.kind === "CREDIT");
@@ -45,10 +54,14 @@ export function AccountVisualCard({
     : null;
 
   // A card with its OWN sub-limit (for the account's currency) shows that instead
-  // of the shared account pool — a card with none implicitly draws on the full pool.
+  // of the shared account pool. A card that shares the pool (no sub-limit of its
+  // own) still shows the shared LIMIT, but its own individual usage (`ownUsed`)
+  // rather than the fully-combined pool total — each card tracks its own spend
+  // for management/analysis, while the account-level view (no specific `card`)
+  // is the only place the true combined total is shown.
   const cardLimit = card?.limits.find((l) => l.currency === account.currency);
   const poolLimitAmount = cardLimit ? cardLimit.limitAmount : account.creditLimit;
-  const poolUsedAmount = cardLimit ? cardLimit.used : account.creditUsed;
+  const poolUsedAmount = cardLimit ? cardLimit.used : card ? card.ownUsed : account.creditUsed;
   const limit = Number(poolLimitAmount);
   const used = Number(poolUsedAmount);
   const usagePct =

@@ -1,9 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import type { Prisma, Transaction as TransactionRow } from "@prisma/client";
+import type { AccountType, Prisma, Transaction as TransactionRow } from "@prisma/client";
 
 import { transactions } from "@finance/contracts";
 import { addMoney, moneyToString, subtractMoney, toMoney } from "@finance/money";
 
+import { currentCycleStart } from "../accounts/billing-cycle";
 import { TransactionsRepository } from "./transactions.repository";
 
 /** Effective movement fields used to validate rules + enforce credit limits. */
@@ -163,7 +164,7 @@ export class TransactionsService {
       if (!m.cardId) throw new BadRequestException({ code: "CARD_REQUIRED" });
       await this.assertCardBelongs(userId, m.cardId, m.bankAccountId);
       await this.assertWithinCreditPool(userId, account, m, excludeTxId);
-      await this.assertWithinCardLimit(userId, m.cardId, m, excludeTxId);
+      await this.assertWithinCardLimit(userId, m.cardId, m, account.billingCycleDay, excludeTxId);
       return;
     }
 
@@ -173,7 +174,7 @@ export class TransactionsService {
       const card = await this.assertCardBelongs(userId, m.cardId, m.bankAccountId);
       if (card.kind === "CREDIT") {
         await this.assertWithinCreditPool(userId, account, m, excludeTxId);
-        await this.assertWithinCardLimit(userId, m.cardId, m, excludeTxId);
+        await this.assertWithinCardLimit(userId, m.cardId, m, account.billingCycleDay, excludeTxId);
       }
     }
   }
@@ -184,21 +185,31 @@ export class TransactionsService {
     return card;
   }
 
-  /** creditUsed = creditUsedInitial + Σexpense − Σincome; reject if used + amount > creditLimit. */
+  /**
+   * creditUsed = creditUsedInitial + Σexpense − Σincome, scoped to the current
+   * billing cycle if the account has one configured (`billingCycleDay`) — the
+   * seed itself is still added every cycle (there's no per-cycle seed, only an
+   * account-level one). Reject if used + amount > creditLimit.
+   */
   private async assertWithinCreditPool(
     userId: string,
     account: {
+      type: AccountType;
       currency: string;
       creditLimit: { toString(): string };
       creditUsedInitial: { toString(): string };
+      billingCycleDay: number | null;
     },
     m: EffectiveMovement,
     excludeTxId?: string,
   ): Promise<void> {
+    const since = currentCycleStart(account.billingCycleDay, new Date());
     const { income, expense } = await this.repo.sumsForAccount(
       userId,
       m.bankAccountId,
       account.currency,
+      account.type,
+      since,
       excludeTxId,
     );
     const used = subtractMoney(addMoney(account.creditUsedInitial.toString(), expense), income);
@@ -208,16 +219,28 @@ export class TransactionsService {
     }
   }
 
-  /** A card's own sub-limit (if set, for this currency) is a narrower cap on top of the account pool. */
+  /**
+   * A card's own sub-limit (if set, for this currency) is a narrower cap on
+   * top of the account pool — scoped to the SAME billing cycle as the account
+   * (one statement covers every card sharing it).
+   */
   private async assertWithinCardLimit(
     userId: string,
     cardId: string,
     m: EffectiveMovement,
+    billingCycleDay: number | null,
     excludeTxId?: string,
   ): Promise<void> {
     const limit = await this.repo.findCardLimit(userId, cardId, m.currency);
     if (!limit) return;
-    const { income, expense } = await this.repo.sumsForCard(userId, cardId, m.currency, excludeTxId);
+    const since = currentCycleStart(billingCycleDay, new Date());
+    const { income, expense } = await this.repo.sumsForCard(
+      userId,
+      cardId,
+      m.currency,
+      since,
+      excludeTxId,
+    );
     const used = subtractMoney(addMoney(limit.usedInitial.toString(), expense), income);
     const projected = toMoney(used).plus(toMoney(m.amount));
     if (projected.greaterThan(toMoney(limit.limitAmount.toString()))) {

@@ -120,6 +120,11 @@ model BankAccount {
   creditLimit       Decimal       @default(0) @db.Decimal(18, 4)
   /// Seed of already-used credit at creation. Reconciled used = creditUsedInitial + Σexpense − Σincome.
   creditUsedInitial Decimal       @default(0) @db.Decimal(18, 4)
+  /// Statement cut-off day (1-28) for CREDIT_LINE accounts / accounts that have grown a
+  /// CREDIT-kind card. `creditUsed`/`ownUsed`/a card's own `CardLimit.used` are scoped to
+  /// the current cycle (since the most recent occurrence of this day) instead of all-time
+  /// once set. Null = no cycle configured yet, usage stays all-time (backward compatible).
+  billingCycleDay   Int?
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 

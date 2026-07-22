@@ -189,6 +189,49 @@ describe("TransactionsService", () => {
     expect(sumsForAccount.mock.calls[0]![2]).toBe("CLP"); // account.currency
   });
 
+  it("passes the account type through, and scopes to the current billing cycle when the account has one configured", async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-07-22T12:00:00Z"));
+    const create = vi.fn().mockResolvedValue(row);
+    const sumsForAccount = vi.fn().mockResolvedValue({ income: "0", expense: "0" });
+    const svc = makeService({
+      findAccount: vi.fn().mockResolvedValue({ ...creditAccount, billingCycleDay: 15 }),
+      findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
+      sumsForAccount,
+      create,
+    });
+    await svc.create("u1", {
+      ...base,
+      type: "EXPENSE",
+      amount: "100000",
+      bankAccountId: "aC",
+      cardId: "cC",
+    });
+    expect(sumsForAccount.mock.calls[0]![3]).toBe("CREDIT_LINE"); // account.type
+    const since = sumsForAccount.mock.calls[0]![4] as Date;
+    expect(since.toISOString()).toBe("2026-07-15T00:00:00.000Z");
+    vi.useRealTimers();
+  });
+
+  it("leaves the sum all-time (no cycle) when the account has no billing day configured", async () => {
+    const create = vi.fn().mockResolvedValue(row);
+    const sumsForAccount = vi.fn().mockResolvedValue({ income: "0", expense: "0" });
+    const svc = makeService({
+      findAccount: vi.fn().mockResolvedValue(creditAccount),
+      findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
+      sumsForAccount,
+      create,
+    });
+    await svc.create("u1", {
+      ...base,
+      type: "EXPENSE",
+      amount: "100000",
+      bankAccountId: "aC",
+      cardId: "cC",
+    });
+    expect(sumsForAccount.mock.calls[0]![4]).toBeNull();
+  });
+
   it("rejects a credit-line expense that exceeds the pool", async () => {
     const svc = makeService({
       findAccount: vi.fn().mockResolvedValue(creditAccount),
@@ -254,7 +297,7 @@ describe("TransactionsService", () => {
       update,
     });
     await svc.update("u1", "tX", { amount: "250000" });
-    expect(sumsForAccount.mock.calls[0]![3]).toBe("tX"); // excludeTxId
+    expect(sumsForAccount.mock.calls[0]![5]).toBe("tX"); // excludeTxId
     expect(update).toHaveBeenCalled();
   });
 

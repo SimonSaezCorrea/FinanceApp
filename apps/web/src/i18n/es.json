@@ -11,6 +11,8 @@
     "delete": "Eliminar",
     "confirmDeleteTitle": "¿Eliminar elemento?",
     "confirmDelete": "Esta acción no se puede deshacer.",
+    "noResults": "Sin resultados.",
+    "search": "Buscar…",
     "frequency": {
       "DAILY": "Diaria",
       "WEEKLY": "Semanal",
@@ -52,10 +54,8 @@
     "card": { "usage": "{{pct}}% cupo", "creditUsed": "Cupo usado" },
     "balanceLabel": "Saldo",
     "detail": {
-      "info": "Información",
-      "created": "Creada",
-      "updated": "Actualizada",
       "change": "Variación",
+      "credit": "Crédito",
       "creditPools": "Topes por moneda"
     },
     "filter": {
@@ -71,11 +71,15 @@
       "institution": "Institución",
       "institutionNone": "Sin institución / manual",
       "accountNumber": "Número de cuenta",
+      "primaryCardHint": "Estos datos identifican la tarjeta principal de esta cuenta — su tope es el cupo total definido abajo.",
       "currency": "Moneda",
       "initialBalance": "Saldo inicial",
       "creditLimit": "Cupo total",
       "creditLimitMirroredHint": "Se sincroniza con el tope de la tarjeta principal.",
       "creditUsedInitial": "Cupo usado inicial",
+      "billingCycleDay": "Día de facturación",
+      "billingCycleDayPlaceholder": "Ej. 15",
+      "billingCycleDayHint": "Opcional. Al llegar este día del mes, el cupo usado se reinicia (los movimientos no se borran, solo dejan de contar para el tope actual).",
       "accountActive": "Cuenta activa",
       "sectionAccountData": "Datos de la cuenta",
       "sectionBalanceCurrency": "Saldo y moneda",
@@ -94,6 +98,7 @@
   },
   "cards": {
     "title": "Tarjetas",
+    "additionalTitle": "Tarjetas adicionales",
     "add": "Añadir tarjeta",
     "addShort": "Añadir",
     "newTitle": "Nueva tarjeta",

@@ -9,7 +9,7 @@ import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amou
 import { Button } from "../../../shared/ui/button";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
-import { Select } from "../../../shared/ui/select";
+import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { Switch } from "../../../shared/ui/switch";
 import { AccountTypeToggle } from "./AccountTypeToggle";
 
@@ -23,6 +23,8 @@ export interface AccountFormValues {
   initialBalance: string;
   creditLimit: string;
   creditUsedInitial: string;
+  /** "" = no cycle configured (all-time usage), else a "1"-"28" day-of-month string. */
+  billingCycleDay: string;
 }
 
 const EMPTY: AccountFormValues = {
@@ -35,6 +37,7 @@ const EMPTY: AccountFormValues = {
   initialBalance: "0",
   creditLimit: "0",
   creditUsedInitial: "0",
+  billingCycleDay: "",
 };
 
 interface Props {
@@ -78,7 +81,7 @@ export function AccountForm({
   ];
   const currencyOptions = (currencies ?? []).map((c) => ({
     value: c.code,
-    label: `${c.code} · ${c.name}`,
+    label: `${c.name} (${c.code})`,
   }));
   // Ensure the current currency is selectable even before the list loads.
   if (values.currency && !currencyOptions.some((o) => o.value === values.currency)) {
@@ -119,11 +122,13 @@ export function AccountForm({
       {values.type !== "CASH" ? (
         <>
           <Field label={t("accounts.form.institution")}>
-            <Select
+            <SearchableSelect
               id="acc-inst"
               value={values.institutionId}
-              onChange={(e) => set("institutionId", e.target.value)}
+              onChange={(v) => set("institutionId", v)}
               options={institutionOptions}
+              searchPlaceholder={t("common.search")}
+              noResultsLabel={t("common.noResults")}
               aria-label={t("accounts.form.institution")}
             />
           </Field>
@@ -139,13 +144,16 @@ export function AccountForm({
           </Field>
         </>
       ) : null}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-[6rem_1fr] gap-4">
         <Field label={t("accounts.form.currency")}>
-          <Select
+          <SearchableSelect
             id="acc-cur"
             value={values.currency}
-            onChange={(e) => set("currency", e.target.value)}
+            onChange={(v) => set("currency", v)}
             options={currencyOptions}
+            displayValue={values.currency}
+            searchPlaceholder={t("common.search")}
+            noResultsLabel={t("common.noResults")}
             aria-label={t("accounts.form.currency")}
           />
         </Field>
@@ -230,6 +238,26 @@ export function AccountForm({
             onChange={(e) => set("creditUsedInitial", e.target.value.replace(/\D/g, ""))}
           />
         </Field>
+      ) : null}
+      {isCreditLineType || hasCreditCard ? (
+        <>
+          <Field label={t("accounts.form.billingCycleDay")}>
+            <Input
+              id="acc-billing-day"
+              inputMode="numeric"
+              placeholder={t("accounts.form.billingCycleDayPlaceholder")}
+              value={values.billingCycleDay}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
+                set("billingCycleDay", digits && Number(digits) > 28 ? "28" : digits);
+              }}
+              aria-label={t("accounts.form.billingCycleDay")}
+            />
+          </Field>
+          <p className="-mt-2 text-xs text-muted-foreground">
+            {t("accounts.form.billingCycleDayHint")}
+          </p>
+        </>
       ) : null}
       <label className="flex items-center gap-2">
         <Switch

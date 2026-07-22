@@ -142,7 +142,8 @@ describe("CardForm", () => {
         accountCurrency: "CLP",
         currencies: [
           { id: "1", code: "CLP", numeric: "152", name: "Peso chileno" },
-          { id: "2", code: "USD", numeric: "840", name: "US Dollar" },
+          { id: "2", code: "EUR", numeric: "978", name: "Euro" },
+          { id: "3", code: "USD", numeric: "840", name: "US Dollar" },
         ],
       });
       fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
@@ -155,12 +156,12 @@ describe("CardForm", () => {
       );
       fireEvent.click(screen.getByText(i18n.t("cards.form.addLimit")));
 
-      const currencySelect = screen.getByLabelText(i18n.t("cards.form.currency"));
-      const optionTexts = Array.from(currencySelect.querySelectorAll("option")).map(
-        (o) => o.textContent ?? "",
-      );
-      expect(optionTexts.some((text) => text.includes("CLP"))).toBe(false);
-      fireEvent.change(currencySelect, { target: { value: "USD" } });
+      // Opens the custom currency dropdown: CLP (already covered by the
+      // mandatory field above) must not be offered as an extra currency.
+      fireEvent.click(screen.getByLabelText(i18n.t("cards.form.currency")));
+      expect(screen.queryByText(/Peso chileno/)).toBeNull();
+      fireEvent.click(screen.getByText(/US Dollar/));
+
       fireEvent.change(screen.getByLabelText(i18n.t("cards.form.limit")), {
         target: { value: "500" },
       });

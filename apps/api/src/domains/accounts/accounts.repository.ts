@@ -1,7 +1,8 @@
 import { Injectable } from "@nestjs/common";
-import { type Prisma, TransactionType } from "@prisma/client";
+import { type AccountType, type Prisma, TransactionType } from "@prisma/client";
 
 import { PrismaService } from "../../infra/prisma/prisma.service";
+import { currentCycleStart } from "./billing-cycle";
 
 const withCards = {
   include: { cards: { include: { limits: true } }, financialInstitution: true },
@@ -59,46 +60,55 @@ export class AccountsRepository {
 
   /**
    * Σ amount by (account, type), scoped to user, for derived credit `used`.
-   * A credit pool only exists in the account's OWN currency, so transactions
-   * in any other currency don't count toward it; and a card that carries its
-   * own `CardLimit` for that SAME currency is excluded (its spend is siloed to
-   * that card's own limit instead) — a card can still share the pool for its
-   * own currency while being independent for another. `accounts` maps each
-   * account to its own currency (batched across every row in one query).
+   * One scoped query per account (not a single batched groupBy) since each
+   * account can have its own billing cycle window — see `TransactionsRepository
+   * .sumsForAccount` (transactions domain) for the identical card-scoping
+   * rationale (CREDIT_LINE: everything counts except independently-limited
+   * cards; any other account type: only pool-sharing CREDIT-card expense
+   * counts, never unrelated debit/cash/income) applied here for display.
    */
   async sumsByAccount(
     userId: string,
-    accounts: { id: string; currency: string }[],
+    accountsInfo: { id: string; type: AccountType; currency: string; billingCycleDay: number | null }[],
   ): Promise<{ bankAccountId: string | null; type: TransactionType; sum: string }[]> {
-    if (accounts.length === 0) return [];
-    const accountIds = accounts.map((a) => a.id);
-    const currencyByAccount = new Map(accounts.map((a) => [a.id, a.currency]));
-
-    const excludedCardIds = (
-      await this.prisma.cardLimit.findMany({
-        where: { card: { accountId: { in: accountIds }, userId } },
-        select: { currency: true, card: { select: { id: true, accountId: true } } },
-      })
-    )
-      .filter((l) => l.currency === currencyByAccount.get(l.card.accountId))
-      .map((l) => l.card.id);
-
-    const grouped = await this.prisma.transaction.groupBy({
-      by: ["bankAccountId", "currency", "type"],
-      where: {
-        userId,
-        bankAccountId: { in: accountIds },
-        ...(excludedCardIds.length > 0 ? { cardId: { notIn: excludedCardIds } } : {}),
-      },
-      _sum: { amount: true },
-    });
-    return grouped
-      .filter((g) => g.bankAccountId !== null && g.currency === currencyByAccount.get(g.bankAccountId))
-      .map((g) => ({
-        bankAccountId: g.bankAccountId,
-        type: g.type,
-        sum: g._sum.amount?.toString() ?? "0",
-      }));
+    if (accountsInfo.length === 0) return [];
+    const now = new Date();
+    const result: { bankAccountId: string | null; type: TransactionType; sum: string }[] = [];
+    for (const acc of accountsInfo) {
+      const cards = await this.prisma.cardAccount.findMany({
+        where: { accountId: acc.id, userId },
+        select: { id: true, kind: true, limits: { where: { currency: acc.currency }, select: { id: true } } },
+      });
+      const independentCardIds = cards.filter((c) => c.limits.length > 0).map((c) => c.id);
+      const cardFilter: Prisma.TransactionWhereInput =
+        acc.type === "CREDIT_LINE"
+          ? independentCardIds.length > 0
+            ? { cardId: { notIn: independentCardIds } }
+            : {}
+          : {
+              cardId: {
+                in: cards
+                  .filter((c) => c.kind === "CREDIT" && !independentCardIds.includes(c.id))
+                  .map((c) => c.id),
+              },
+            };
+      const since = currentCycleStart(acc.billingCycleDay, now);
+      const grouped = await this.prisma.transaction.groupBy({
+        by: ["type"],
+        where: {
+          userId,
+          bankAccountId: acc.id,
+          currency: acc.currency,
+          ...cardFilter,
+          ...(since ? { occurredAt: { gte: since } } : {}),
+        },
+        _sum: { amount: true },
+      });
+      for (const g of grouped) {
+        result.push({ bankAccountId: acc.id, type: g.type, sum: g._sum.amount?.toString() ?? "0" });
+      }
+    }
+    return result;
   }
 
   /** Sum of linked transaction amounts by type, scoped to user + account. */

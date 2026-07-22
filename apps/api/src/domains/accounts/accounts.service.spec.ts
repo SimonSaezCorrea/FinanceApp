@@ -343,6 +343,59 @@ describe("AccountsService", () => {
       ]);
     });
 
+    it("gives each pool-sharing card its OWN spend via ownUsed, distinct from the account's combined creditUsed", async () => {
+      const withTwoSharedCards = {
+        ...creditRow,
+        cards: [
+          {
+            id: "c1",
+            name: "CMR Visa",
+            kind: "CREDIT" as const,
+            last4: "4827",
+            expiryMonth: 5,
+            expiryYear: 2028,
+            isActive: true,
+            isPrimary: true,
+            limits: [],
+          },
+          {
+            id: "c2",
+            name: "CMR Visa · Camila",
+            kind: "CREDIT" as const,
+            last4: "5938",
+            expiryMonth: 5,
+            expiryYear: 2028,
+            isActive: true,
+            isPrimary: false,
+            limits: [],
+          },
+        ],
+      };
+      const svc = makeService(
+        {
+          list: vi.fn().mockResolvedValue([withTwoSharedCards]),
+          // Combined pool usage across both cards: 700,000 + 300,000 = 1,000,000.
+          sumsByAccount: vi
+            .fn()
+            .mockResolvedValue([{ bankAccountId: "aC", type: "EXPENSE", sum: "1000000" }]),
+        },
+        {
+          sumsByCard: vi.fn().mockResolvedValue([
+            { cardId: "c1", currency: "CLP", type: "EXPENSE", sum: "700000" },
+            { cardId: "c2", currency: "CLP", type: "EXPENSE", sum: "300000" },
+          ]),
+        },
+      );
+      const [acc] = await svc.list("u1", {});
+      expect(acc.creditUsed).toBe("1000000.0000");
+      const [primary, additional] = acc.cards;
+      expect(primary!.ownUsed).toBe("700000.0000");
+      expect(additional!.ownUsed).toBe("300000.0000");
+      // Neither card has its own CardLimit — both still fully share the pool.
+      expect(primary!.limits).toEqual([]);
+      expect(additional!.limits).toEqual([]);
+    });
+
     it("reports an empty creditPools for non-credit accounts", async () => {
       const svc = makeService({ list: vi.fn().mockResolvedValue([row]) });
       const [acc] = await svc.list("u1", {});

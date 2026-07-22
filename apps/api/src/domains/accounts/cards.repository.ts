@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 import type { Prisma } from "@prisma/client";
 
 import { PrismaService } from "../../infra/prisma/prisma.service";
+import { currentCycleStart } from "./billing-cycle";
 
 const withLimits = { include: { limits: true } } as const;
 
@@ -92,22 +93,31 @@ export class CardsRepository {
     });
   }
 
-  /** Σ amount by (card, currency, type), scoped to user. For derived per-card-limit `used`. */
+  /**
+   * Σ amount by (card, currency, type), scoped to user. For derived per-card-
+   * limit `used` / `ownUsed`. A card has no billing day of its own (it lives on
+   * its account, one statement per account) — one scoped query per card since
+   * each can belong to an account with a different cycle window.
+   */
   async sumsByCard(
     userId: string,
-    cardIds: string[],
+    cardsInfo: { id: string; billingCycleDay: number | null }[],
   ): Promise<{ cardId: string | null; currency: string; type: "INCOME" | "EXPENSE"; sum: string }[]> {
-    if (cardIds.length === 0) return [];
-    const grouped = await this.prisma.transaction.groupBy({
-      by: ["cardId", "currency", "type"],
-      where: { userId, cardId: { in: cardIds } },
-      _sum: { amount: true },
-    });
-    return grouped.map((g) => ({
-      cardId: g.cardId,
-      currency: g.currency,
-      type: g.type,
-      sum: g._sum.amount?.toString() ?? "0",
-    }));
+    if (cardsInfo.length === 0) return [];
+    const now = new Date();
+    const result: { cardId: string | null; currency: string; type: "INCOME" | "EXPENSE"; sum: string }[] =
+      [];
+    for (const c of cardsInfo) {
+      const since = currentCycleStart(c.billingCycleDay, now);
+      const grouped = await this.prisma.transaction.groupBy({
+        by: ["currency", "type"],
+        where: { userId, cardId: c.id, ...(since ? { occurredAt: { gte: since } } : {}) },
+        _sum: { amount: true },
+      });
+      for (const g of grouped) {
+        result.push({ cardId: c.id, currency: g.currency, type: g.type, sum: g._sum.amount?.toString() ?? "0" });
+      }
+    }
+    return result;
   }
 }

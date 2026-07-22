@@ -110,6 +110,7 @@ export function AccountDetailRoute() {
                     initialBalance: acc.initialBalance,
                     creditLimit: acc.creditLimit,
                     creditUsedInitial: acc.creditUsed,
+                    billingCycleDay: acc.billingCycleDay?.toString() ?? "",
                   }}
                   onSubmit={(v) =>
                     update.mutate(
@@ -125,6 +126,7 @@ export function AccountDetailRoute() {
                           initialBalance: v.initialBalance || "0",
                           creditLimit: v.creditLimit || "0",
                           creditUsedInitial: v.creditUsedInitial || "0",
+                          billingCycleDay: v.billingCycleDay ? Number(v.billingCycleDay) : null,
                         },
                       },
                       { onSuccess: () => setEditing(false) },
@@ -144,30 +146,6 @@ export function AccountDetailRoute() {
         {/* Side column */}
         <aside className="flex flex-col gap-4">
           <CardsAside account={acc} holder={user?.name ?? undefined} />
-
-          <Card className="p-4">
-            <span className="mb-3 block text-sm font-semibold">{t("accounts.detail.info")}</span>
-            <dl className="flex flex-col gap-2 text-sm">
-              {acc.accountNumber ? (
-                <DetailRow label={t("accounts.form.accountNumber")} value={acc.accountNumber} />
-              ) : null}
-              <DetailRow label={t("accounts.form.type")} value={t(`accounts.type.${acc.type}`)} />
-              <DetailRow label={t("accounts.form.currency")} value={acc.currency} />
-              <DetailRow label={t("accounts.form.institution")} value={acc.institution ?? "—"} />
-              <DetailRow
-                label={t("accounts.status.label")}
-                value={t(`accounts.status.${acc.status}`)}
-              />
-              <DetailRow
-                label={t("accounts.detail.created")}
-                value={new Date(acc.createdAt).toLocaleDateString(i18n.language)}
-              />
-              <DetailRow
-                label={t("accounts.detail.updated")}
-                value={new Date(acc.updatedAt).toLocaleDateString(i18n.language)}
-              />
-            </dl>
-          </Card>
 
           {acc.creditPools.length > 1 ? (
             <Card className="p-4">
@@ -219,10 +197,18 @@ export function AccountDetailRoute() {
 function KpiStrip({ account, pct }: { account: accounts.BankAccount; pct: number | null }) {
   const { t, i18n } = useTranslation();
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
+  // A CREDIT_LINE account has no real cash balance at all — its "balance" IS the
+  // credit pool (shown in the Crédito card instead), so "Saldo actual" makes no
+  // sense for it. Any other cardable account that's grown a credit card still has
+  // its own real balance AND a credit pool, so both show side by side.
+  const hasRealBalance = account.type !== "CREDIT_LINE";
+  const hasCreditPool = account.type === "CREDIT_LINE" || account.cards.some((c) => c.kind === "CREDIT");
+  const cols = (hasRealBalance ? 1 : 0) + 1 + (hasCreditPool ? 1 : 0);
   return (
-    <div className="grid gap-3 sm:grid-cols-3">
-      <Kpi label={t("accounts.currentBalance")} value={fmt(account.currentBalance)} emphasis />
-      <Kpi label={t("accounts.form.initialBalance")} value={fmt(account.initialBalance)} />
+    <div className={cn("grid gap-3", cols === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+      {hasRealBalance ? (
+        <Kpi label={t("accounts.currentBalance")} value={fmt(account.currentBalance)} emphasis />
+      ) : null}
       <Kpi
         label={t("accounts.detail.change")}
         value={
@@ -232,7 +218,33 @@ function KpiStrip({ account, pct }: { account: accounts.BankAccount; pct: number
         }
         tone={pct === null ? undefined : pct < 0 ? "danger" : "success"}
       />
+      {hasCreditPool ? <CreditKpi account={account} /> : null}
     </div>
+  );
+}
+
+/** The account's own-currency credit pool as a progress bar — the combined total
+ * across every card sharing it, never a single card's own usage (see AccountVisualCard). */
+function CreditKpi({ account }: { account: accounts.BankAccount }) {
+  const { t, i18n } = useTranslation();
+  const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
+  const limit = Number(account.creditLimit);
+  const used = Number(account.creditUsed);
+  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  return (
+    <Card className="flex flex-col gap-2 p-4">
+      <span className="text-xs font-medium text-muted-foreground">{t("accounts.detail.credit")}</span>
+      <p className="tabular-nums">
+        <span className="text-xl font-semibold tracking-tight">{fmt(account.creditUsed)}</span>
+        <span className="text-sm text-muted-foreground"> / {fmt(account.creditLimit)}</span>
+      </p>
+      <div className="flex items-center gap-2">
+        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+          <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+        </div>
+        <span className="text-xs font-medium tabular-nums text-muted-foreground">{pct}%</span>
+      </div>
+    </Card>
   );
 }
 
@@ -381,6 +393,16 @@ function CardsAside({ account, holder }: { account: accounts.BankAccount; holder
 
   return (
     <div className="flex flex-col gap-3">
+      {/* The account itself, as a quick visual reference — same tile style used to
+          create the account, above its actual cards (if any). `accountOnly` forces
+          this to be the genuine account view, not a stand-in for its first card.
+          Skipped for CREDIT_LINE: it's not really "an account" with its own balance
+          (that IS the credit pool, already shown in the Crédito card below), so this
+          tile would just repeat the same cupo number with nothing else to add. */}
+      {account.type !== "CREDIT_LINE" ? (
+        <AccountVisualCard account={account} holder={holder} accountOnly />
+      ) : null}
+
       <div className="flex items-center justify-between">
         <span className="text-sm font-semibold">{t("cards.title")}</span>
         {cardable ? (
@@ -399,7 +421,10 @@ function CardsAside({ account, holder }: { account: accounts.BankAccount; holder
       </div>
 
       {account.cards.length === 0 ? (
-        <AccountVisualCard account={account} holder={holder} />
+        <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+          <p>{t("cards.empty")}</p>
+          <p>{t("cards.emptyHint")}</p>
+        </div>
       ) : (
         account.cards.map((card) => (
           <AccountVisualCard
@@ -453,15 +478,6 @@ function CardsAside({ account, holder }: { account: accounts.BankAccount; holder
           });
         }}
       />
-    </div>
-  );
-}
-
-function DetailRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-center justify-between gap-4">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="tabular-nums">{value}</dd>
     </div>
   );
 }

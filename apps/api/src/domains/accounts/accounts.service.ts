@@ -107,7 +107,12 @@ export class AccountsService {
     const sums: AccountSums = new Map();
     for (const s of await this.repo.sumsByAccount(
       userId,
-      rows.map((r) => ({ id: r.id, currency: r.currency })),
+      rows.map((r) => ({
+        id: r.id,
+        type: r.type,
+        currency: r.currency,
+        billingCycleDay: r.billingCycleDay,
+      })),
     )) {
       if (!s.bankAccountId) continue;
       const entry = sums.get(s.bankAccountId) ?? { income: "0", expense: "0" };
@@ -116,9 +121,12 @@ export class AccountsService {
       sums.set(s.bankAccountId, entry);
     }
     // Same, but per (card, currency) — for each card's own optional sub-limit's derived `used`.
-    const cardIds = rows.flatMap((r) => r.cards.map((c) => c.id));
+    // A card has no billing day of its own — it inherits its account's.
+    const cardsInfo = rows.flatMap((r) =>
+      r.cards.map((c) => ({ id: c.id, billingCycleDay: r.billingCycleDay })),
+    );
     const cardSums: CardSums = new Map();
-    for (const s of await this.cardsRepo.sumsByCard(userId, cardIds)) {
+    for (const s of await this.cardsRepo.sumsByCard(userId, cardsInfo)) {
       if (!s.cardId) continue;
       const key = `${s.cardId}:${s.currency}`;
       const entry = cardSums.get(key) ?? { income: "0", expense: "0" };
@@ -219,6 +227,7 @@ export class AccountsService {
       currentBalance: initialBalance,
       creditLimit,
       creditUsedInitial,
+      billingCycleDay: input.billingCycleDay ?? null,
       ...(cards.length > 0 ? { cards: { create: cards } } : {}),
     });
     return this.withSeries(userId, row);
@@ -258,6 +267,7 @@ export class AccountsService {
       ...(input.creditUsedInitial !== undefined
         ? { creditUsedInitial: input.creditUsedInitial }
         : {}),
+      ...(input.billingCycleDay !== undefined ? { billingCycleDay: input.billingCycleDay } : {}),
     });
     if (!row) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
     return this.withSeries(userId, row);
@@ -307,7 +317,7 @@ function toContract(
         ),
       )
     : "0";
-  const cardsContract = (row.cards ?? []).map((c) => cardToContract(c, cardSums));
+  const cardsContract = (row.cards ?? []).map((c) => cardToContract(c, row.currency, cardSums));
   // The account's own-currency pool, plus any EXTRA currency the primary card
   // also carries its own CardLimit for (e.g. a CLP account whose primary card
   // also has a USD sub-limit) — a non-primary card's own sub-limit stays
@@ -338,6 +348,7 @@ function toContract(
     creditLimit: moneyToString(row.creditLimit.toString()),
     creditUsed,
     creditPools,
+    billingCycleDay: row.billingCycleDay,
     balanceSeries: series.series,
     balanceChangePct: series.balanceChangePct,
     cards: cardsContract,

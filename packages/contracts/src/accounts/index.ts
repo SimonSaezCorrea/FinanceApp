@@ -93,6 +93,13 @@ export const cardSchema = z.object({
    * account's own creditLimit/creditUsedInitial — `limits` never has an entry for
    * the account's own currency, only for any EXTRA currency it also carries. */
   isPrimary: z.boolean(),
+  /** This CREDIT card's own Σexpense − Σincome, in the account's own currency
+   * (derived) — its own contribution, whether it shares the account pool or
+   * carries its own CardLimit. No seed baseline (only the account and a
+   * CardLimit have one), so pre-existing debt not tied to a transaction isn't
+   * reflected here even though it is in the account's own `creditUsed`. "0"
+   * for non-CREDIT cards. */
+  ownUsed: moneyString,
   limits: z.array(cardLimitSchema),
 });
 export type Card = z.infer<typeof cardSchema>;
@@ -160,6 +167,10 @@ export const bankAccountSchema = z.object({
   creditUsed: moneyString,
   /** All credit pools by currency (own currency + primary card's extra currencies, if any). Empty for non-credit accounts. */
   creditPools: z.array(creditPoolSchema),
+  /** Statement cut-off day (1-28). Once set, creditUsed/ownUsed/a card's own CardLimit.used
+   * are scoped to the current cycle (since the most recent occurrence of this day) instead
+   * of all-time. Null = no cycle configured, usage stays all-time. */
+  billingCycleDay: z.number().int().min(1).max(28).nullable(),
   /** Reconciled running balance, one point per day over a trailing window (oldest→newest, ends at currentBalance). For sparklines. */
   balanceSeries: z.array(moneyString),
   /** Percent change across `balanceSeries` (e.g. "2.1"); null when the window has no meaningful baseline. */
@@ -182,6 +193,8 @@ export const createBankAccountSchema = z.object({
   /** For CREDIT_LINE accounts: the credit pool and any pre-existing used seed. */
   creditLimit: moneyString.optional(),
   creditUsedInitial: moneyString.optional(),
+  /** Statement cut-off day (1-28); omit/null to leave usage all-time (no cycle). */
+  billingCycleDay: z.number().int().min(1).max(28).nullable().optional(),
   cards: z.array(createCardSchema).optional(),
 }).refine((v) => !isAccountNumberRequired(v.type) || !!v.accountNumber?.trim(), {
   message: "accountNumber is required for this account type",

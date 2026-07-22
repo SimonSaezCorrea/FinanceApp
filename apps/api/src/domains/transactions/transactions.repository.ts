@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { type Prisma, TransactionType } from "@prisma/client";
+import { type AccountType, type Prisma, TransactionType } from "@prisma/client";
 
 import { PrismaService } from "../../infra/prisma/prisma.service";
 
@@ -12,7 +12,14 @@ export class TransactionsRepository {
   findAccount(userId: string, id: string) {
     return this.prisma.bankAccount.findFirst({
       where: { id, userId },
-      select: { id: true, type: true, currency: true, creditLimit: true, creditUsedInitial: true },
+      select: {
+        id: true,
+        type: true,
+        currency: true,
+        creditLimit: true,
+        creditUsedInitial: true,
+        billingCycleDay: true,
+      },
     });
   }
 
@@ -34,30 +41,56 @@ export class TransactionsRepository {
   /**
    * Σ income/expense counting toward the account's SHARED credit pool (in the
    * account's OWN currency — the pool doesn't exist in any other currency),
-   * optionally excluding one tx (for edits). Excludes transactions on cards that
-   * carry their own `CardLimit` ("tope propio") **for that same currency** — a
-   * card can share the pool for its own currency while being independent for
-   * another (e.g. a primary card with an extra USD sub-limit still shares the
-   * account's CLP pool), so the exclusion must be per-currency, not per-card.
+   * optionally scoped to a billing cycle (`since`) and excluding one tx (for
+   * edits).
+   *
+   * For a standalone CREDIT_LINE account, every transaction genuinely belongs
+   * to the credit line (an EXPENSE always carries a CREDIT card, an INCOME is
+   * a payment) — so everything counts, except transactions on cards that carry
+   * their own `CardLimit` ("tope propio") **for that same currency** (a card
+   * can share the pool for its own currency while being independent for
+   * another, so the exclusion must be per-currency, not per-card).
+   *
+   * For any OTHER account type that's merely grown a credit card, day-to-day
+   * banking (debit-card spend, cash, salary/other income) must NOT count
+   * toward the credit pool — only EXPENSE via a pool-sharing CREDIT card does.
+   * There's no way today to record "a payment toward this specific add-on
+   * card" apart from ordinary account income (income never carries a card),
+   * so income is never subtracted for this case.
    */
   async sumsForAccount(
     userId: string,
     accountId: string,
     currency: string,
+    accountType: AccountType,
+    since: Date | null,
     excludeTxId?: string,
   ): Promise<{ income: string; expense: string }> {
-    const independentCards = await this.prisma.cardAccount.findMany({
-      where: { accountId, userId, limits: { some: { currency } } },
-      select: { id: true },
+    const cards = await this.prisma.cardAccount.findMany({
+      where: { accountId, userId },
+      select: { id: true, kind: true, limits: { where: { currency }, select: { id: true } } },
     });
-    const independentCardIds = independentCards.map((c) => c.id);
+    const independentCardIds = cards.filter((c) => c.limits.length > 0).map((c) => c.id);
+    const cardFilter: Prisma.TransactionWhereInput =
+      accountType === "CREDIT_LINE"
+        ? independentCardIds.length > 0
+          ? { cardId: { notIn: independentCardIds } }
+          : {}
+        : {
+            cardId: {
+              in: cards
+                .filter((c) => c.kind === "CREDIT" && !independentCardIds.includes(c.id))
+                .map((c) => c.id),
+            },
+          };
     const grouped = await this.prisma.transaction.groupBy({
       by: ["type"],
       where: {
         userId,
         bankAccountId: accountId,
         currency,
-        ...(independentCardIds.length > 0 ? { cardId: { notIn: independentCardIds } } : {}),
+        ...cardFilter,
+        ...(since ? { occurredAt: { gte: since } } : {}),
         ...(excludeTxId ? { id: { not: excludeTxId } } : {}),
       },
       _sum: { amount: true },
@@ -67,11 +100,15 @@ export class TransactionsRepository {
     return { income: find(TransactionType.INCOME), expense: find(TransactionType.EXPENSE) };
   }
 
-  /** Σ income/expense for one card in one currency, optionally excluding one tx (for edits). */
+  /**
+   * Σ income/expense for one card in one currency, optionally scoped to a
+   * billing cycle (`since`) and excluding one tx (for edits).
+   */
   async sumsForCard(
     userId: string,
     cardId: string,
     currency: string,
+    since: Date | null,
     excludeTxId?: string,
   ): Promise<{ income: string; expense: string }> {
     const grouped = await this.prisma.transaction.groupBy({
@@ -80,6 +117,7 @@ export class TransactionsRepository {
         userId,
         cardId,
         currency,
+        ...(since ? { occurredAt: { gte: since } } : {}),
         ...(excludeTxId ? { id: { not: excludeTxId } } : {}),
       },
       _sum: { amount: true },

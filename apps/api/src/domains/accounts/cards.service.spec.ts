@@ -234,6 +234,29 @@ describe("CardsService", () => {
       expect(create.mock.calls[0]![3]).toEqual([]);
     });
 
+    it("exposes ownUsed for a pool-sharing card — its own spend, not the combined pool", async () => {
+      const create = vi.fn().mockResolvedValue({ ...cardRow, isPrimary: false });
+      const svc = make({
+        accountExists: vi.fn().mockResolvedValue({ id: "a1", type: "CREDIT_LINE", creditLimit: { toString: () => "3000000" }, currency: "CLP" }),
+        findPrimaryCreditCard: vi.fn().mockResolvedValue({ id: "cPrimary" }),
+        create,
+        sumsByCard: vi
+          .fn()
+          .mockResolvedValue([{ cardId: "c1", currency: "CLP", type: "EXPENSE", sum: "450000" }]),
+      });
+      const card = await svc.create("u1", "a1", {
+        name: "CMR Visa · Camila",
+        kind: "CREDIT",
+        last4: "5938",
+        expiryMonth: 5,
+        expiryYear: 2028,
+        isActive: true,
+        usesAccountPool: true,
+      });
+      expect(card.ownUsed).toBe("450000.0000");
+      expect(card.limits).toEqual([]); // still no CardLimit row — it shares the pool
+    });
+
     it("persists a sub-limit within the account's pool and derives its `used`", async () => {
       const create = vi.fn().mockResolvedValue({
         ...cardRow,

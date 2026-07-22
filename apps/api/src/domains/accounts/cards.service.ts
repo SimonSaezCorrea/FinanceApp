@@ -48,7 +48,7 @@ export class CardsService {
       },
       cardLimits,
     );
-    return this.toContractWithUsage(userId, row);
+    return this.toContractWithUsage(userId, row, account.currency, account.billingCycleDay);
   }
 
   async update(
@@ -82,7 +82,7 @@ export class CardsService {
       cardLimits,
     );
     if (!row) throw new NotFoundException({ code: "CARD_NOT_FOUND" });
-    return this.toContractWithUsage(userId, row);
+    return this.toContractWithUsage(userId, row, account.currency, account.billingCycleDay);
   }
 
   async remove(userId: string, accountId: string, cardId: string): Promise<void> {
@@ -168,8 +168,13 @@ export class CardsService {
     });
   }
 
-  private async toContractWithUsage(userId: string, row: CardWithLimits): Promise<accounts.Card> {
-    const sums = await this.repo.sumsByCard(userId, [row.id]);
+  private async toContractWithUsage(
+    userId: string,
+    row: CardWithLimits,
+    accountCurrency: string,
+    billingCycleDay: number | null,
+  ): Promise<accounts.Card> {
+    const sums = await this.repo.sumsByCard(userId, [{ id: row.id, billingCycleDay }]);
     const map = new Map<string, { income: string; expense: string }>();
     for (const s of sums) {
       if (!s.cardId) continue;
@@ -179,14 +184,26 @@ export class CardsService {
       else entry.expense = s.sum;
       map.set(key, entry);
     }
-    return toContract(row, map);
+    return toContract(row, accountCurrency, map);
   }
 }
 
 export function toContract(
   row: CardWithLimits,
+  accountCurrency: string,
   sums?: Map<string, { income: string; expense: string }>,
 ): accounts.Card {
+  // This card's OWN spend in the account's own currency, regardless of
+  // whether it shares the account pool or carries its own CardLimit — so a
+  // pool-sharing card can show "how much did I contribute" instead of only
+  // the fully-combined pool total. No seed baseline: only the account
+  // (creditUsedInitial) and a CardLimit (usedInitial) have one; a pool-sharing
+  // card has nowhere to store one, so pre-existing debt not tied to a
+  // transaction is invisible here (it still counts in the account's own total).
+  const ownSums = row.kind === "CREDIT" ? sums?.get(`${row.id}:${accountCurrency}`) : undefined;
+  const ownUsed = ownSums
+    ? moneyToString(subtractMoney(ownSums.expense, ownSums.income))
+    : "0";
   return {
     id: row.id,
     name: row.name,
@@ -196,6 +213,7 @@ export function toContract(
     expiryYear: row.expiryYear,
     isActive: row.isActive,
     isPrimary: row.isPrimary,
+    ownUsed,
     limits: row.limits.map((l) => {
       const s = sums?.get(`${row.id}:${l.currency}`);
       const used = subtractMoney(
