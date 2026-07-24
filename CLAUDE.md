@@ -52,7 +52,7 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     hardcoded list. Seeded: CL→RUT+PASSPORT, AR/CO/PY/PE→DNI+PASSPORT, PR→PASSPORT+OTHER.
     Amendment (full profile redesign, `design_handoff_financeapp/prototypes/Perfil.dc.html`): `User`
     also gains `phone`, `hideBalances` (real — masks amounts via the new `domains/profile/components/
-    MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial coverage**, not every
+MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial coverage**, not every
     money label app-wide — see `docs/PENDING.md`), `monthlyBudgetTarget` (money,
     `moneyString`/`moneyToString`), `billingCycleStartDay` (1-28, not yet wired into any "this month"
     calculation), `extraCurrencies` (`String[]`, a selection with **no live FX conversion**),

@@ -38,7 +38,9 @@ describe("SecuritySection — change password (US3)", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.security.title") })); // expand
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.security.password.change") }));
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("profile.security.password.change") }),
+    );
     fireEvent.change(await screen.findByLabelText(i18n.t("profile.security.password.current")), {
       target: { value: "wrong" },
     });

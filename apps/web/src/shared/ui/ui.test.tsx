@@ -59,7 +59,12 @@ describe("ui primitives", () => {
   it("Switch does not respond to clicks when disabled", () => {
     const onCheckedChange = vi.fn();
     render(
-      <Switch checked={false} onCheckedChange={onCheckedChange} disabled aria-label="inert switch" />,
+      <Switch
+        checked={false}
+        onCheckedChange={onCheckedChange}
+        disabled
+        aria-label="inert switch"
+      />,
     );
     fireEvent.click(screen.getByRole("switch", { name: "inert switch" }));
     expect(onCheckedChange).not.toHaveBeenCalled();

@@ -46,7 +46,9 @@ describe("Profile placeholders (FR-008)", () => {
 
   it("toggling any notification switch calls no network request", async () => {
     renderWithProviders(<NotificationsSection />);
-    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.notifications.title") }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: i18n.t("profile.notifications.title") }),
+    );
     const el = await waitFor(() =>
       screen.getByRole("switch", { name: i18n.t("profile.notifications.spendAlerts") }),
     );

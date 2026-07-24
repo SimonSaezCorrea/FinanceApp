@@ -52,9 +52,7 @@ describe("FinancialCustomizationSection", () => {
         <FinancialCustomizationSection />
       </Providers>,
     );
-    fireEvent.click(
-      await screen.findByRole("button", { name: i18n.t("profile.financial.title") }),
-    );
+    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.financial.title") }));
     const el = screen.getByRole("switch", { name: i18n.t("profile.financial.hideBalances") });
     fireEvent.click(el);
     await waitFor(() => expect(updatePreferences).toHaveBeenCalledWith({ hideBalances: true }));
@@ -68,12 +66,14 @@ describe("FinancialCustomizationSection", () => {
         <FinancialCustomizationSection />
       </Providers>,
     );
-    fireEvent.click(
-      await screen.findByRole("button", { name: i18n.t("profile.financial.title") }),
+    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.financial.title") }));
+    const select = await screen.findByDisplayValue(
+      i18n.t("profile.financial.addCurrencyPlaceholder"),
     );
-    const select = await screen.findByDisplayValue(i18n.t("profile.financial.addCurrencyPlaceholder"));
     fireEvent.change(select, { target: { value: "USD" } });
     fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.financial.addCurrency") }));
-    await waitFor(() => expect(updatePreferences).toHaveBeenCalledWith({ extraCurrencies: ["USD"] }));
+    await waitFor(() =>
+      expect(updatePreferences).toHaveBeenCalledWith({ extraCurrencies: ["USD"] }),
+    );
   });
 });

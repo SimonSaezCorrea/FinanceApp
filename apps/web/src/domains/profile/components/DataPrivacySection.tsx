@@ -26,19 +26,29 @@ export function DataPrivacySection() {
 
   return (
     <CollapsibleSection title={t("profile.dataPrivacy.title")}>
-      <div className="mb-1.5 text-xs text-muted-foreground">{t("profile.dataPrivacy.linkedBanks")}</div>
+      <div className="mb-1.5 text-xs text-muted-foreground">
+        {t("profile.dataPrivacy.linkedBanks")}
+      </div>
       <div className="mb-4 overflow-hidden rounded-lg border">
         {banks.map((b, i) => (
           <div
             key={b.id}
-            className={i < banks.length - 1 ? "flex items-center gap-3 border-b px-3.5 py-2.5" : "flex items-center gap-3 px-3.5 py-2.5"}
+            className={
+              i < banks.length - 1
+                ? "flex items-center gap-3 border-b px-3.5 py-2.5"
+                : "flex items-center gap-3 px-3.5 py-2.5"
+            }
           >
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted text-[10px] font-bold text-primary">
               {b.initials}
             </span>
             <div className="min-w-0 flex-1">
               <div className="text-xs font-medium">{b.name}</div>
-              <div className={b.synced ? "text-[10px] text-success" : "text-[10px] text-muted-foreground"}>
+              <div
+                className={
+                  b.synced ? "text-[10px] text-success" : "text-[10px] text-muted-foreground"
+                }
+              >
                 {b.synced ? t("profile.dataPrivacy.synced") : t("profile.dataPrivacy.paused")}
               </div>
             </div>
@@ -82,7 +92,9 @@ export function DataPrivacySection() {
       <div className="flex items-center justify-between py-3">
         <div>
           <div className="text-sm">{t("profile.dataPrivacy.autoBackup")}</div>
-          <div className="text-xs text-muted-foreground">{t("profile.dataPrivacy.autoBackupHint")}</div>
+          <div className="text-xs text-muted-foreground">
+            {t("profile.dataPrivacy.autoBackupHint")}
+          </div>
         </div>
         <Switch
           checked={autoBackup}

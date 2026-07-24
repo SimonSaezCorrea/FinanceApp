@@ -53,9 +53,17 @@ export function PlanBillingSection() {
       <div className="mb-3 flex items-center justify-between gap-3 rounded-lg border border-accent bg-accent/5 p-3.5">
         <div>
           <div className="text-xs font-semibold">{t("profile.billing.upsellTitle")}</div>
-          <div className="mt-0.5 text-xs text-muted-foreground">{t("profile.billing.upsellBody")}</div>
+          <div className="mt-0.5 text-xs text-muted-foreground">
+            {t("profile.billing.upsellBody")}
+          </div>
         </div>
-        <Button size="sm" variant="accent" className="shrink-0" disabled title={t("profile.comingSoon")}>
+        <Button
+          size="sm"
+          variant="accent"
+          className="shrink-0"
+          disabled
+          title={t("profile.comingSoon")}
+        >
           {t("profile.billing.upsellCta")}
         </Button>
       </div>

@@ -4,14 +4,14 @@
 
 Tabla existente (`@@map("user")`); no se crea entidad nueva. Campos que esta feature agrega:
 
-| Campo              | Tipo                          | Default        | Notas                                                                 |
-| ------------------- | ------------------------------ | --------------- | ---------------------------------------------------------------------- |
-| `preferredCurrency` | `String`                       | `"CLP"`        | Código ISO 4217 de 3 letras, mismo patrón que `BankAccount.currency`. |
-| `locale`            | `String`                       | `"es"`         | `"es"` \| `"en"` (validado en el contrato zod, no a nivel de Prisma). |
-| `dateFormat`        | `String`                       | `"DD/MM/YYYY"` | Uno de un set fijo (`DD/MM/YYYY`, `MM/DD/YYYY`, `YYYY-MM-DD`).        |
-| `theme`             | `String`                       | `"dark"`        | `"dark"` \| `"light"` \| `"system"` — mismo dominio que `ThemeMode` ya usado client-side. |
-| `status`            | `UserStatus` (enum nuevo)      | `ACTIVE`       | `ACTIVE` \| `DISABLED`. `DISABLED` bloquea login y guard.             |
-| `createdAt`         | `DateTime`                     | `now()`        | Fuente de "miembro desde" (`memberSinceYear` derivado en el contrato). |
+| Campo               | Tipo                      | Default        | Notas                                                                                     |
+| ------------------- | ------------------------- | -------------- | ----------------------------------------------------------------------------------------- |
+| `preferredCurrency` | `String`                  | `"CLP"`        | Código ISO 4217 de 3 letras, mismo patrón que `BankAccount.currency`.                     |
+| `locale`            | `String`                  | `"es"`         | `"es"` \| `"en"` (validado en el contrato zod, no a nivel de Prisma).                     |
+| `dateFormat`        | `String`                  | `"DD/MM/YYYY"` | Uno de un set fijo (`DD/MM/YYYY`, `MM/DD/YYYY`, `YYYY-MM-DD`).                            |
+| `theme`             | `String`                  | `"dark"`       | `"dark"` \| `"light"` \| `"system"` — mismo dominio que `ThemeMode` ya usado client-side. |
+| `status`            | `UserStatus` (enum nuevo) | `ACTIVE`       | `ACTIVE` \| `DISABLED`. `DISABLED` bloquea login y guard.                                 |
+| `createdAt`         | `DateTime`                | `now()`        | Fuente de "miembro desde" (`memberSinceYear` derivado en el contrato).                    |
 
 ```prisma
 enum UserStatus {
@@ -43,16 +43,16 @@ No se toca `emailVerified`/`image` (restos muertos de NextAuth, fuera de alcance
 
 ## Amendment 2026-07-15 — Información personal (FR-014..FR-018)
 
-| Campo               | Tipo               | Default | Notas                                                                    |
-| -------------------- | ------------------- | -------- | -------------------------------------------------------------------------- |
-| `countryId`         | `String?` (FK)     | `null`  | → `Country.id` (tabla `reference` ya existente, `onDelete: SetNull`). Back-relation `Country.users User[]`. |
-| `addressStreet`     | `String?`          | `null`  | Calle y número, texto libre.                                             |
-| `addressCity`       | `String?`          | `null`  | Ciudad/comuna, texto libre.                                              |
-| `addressRegion`     | `String?`          | `null`  | Región/estado, texto libre.                                              |
-| `addressPostalCode` | `String?`          | `null`  | Código postal, texto libre.                                              |
-| `birthDate`         | `DateTime?`        | `null`  | Fecha exacta almacenada; el contrato expone tanto `birthDate` (string ISO, para hidratar el form de edición) como `age` (derivado, para la vista principal — FR-016). |
-| `identifierType`    | `IdentifierType?` (enum nuevo) | `null` | `RUT` \| `DNI` \| `PASSPORT` \| `OTHER`.                                |
-| `identifierValue`   | `String?`          | `null`  | Validado con dígito verificador (módulo 11) solo cuando `identifierType === "RUT"` (FR-015). |
+| Campo               | Tipo                           | Default | Notas                                                                                                                                                                 |
+| ------------------- | ------------------------------ | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `countryId`         | `String?` (FK)                 | `null`  | → `Country.id` (tabla `reference` ya existente, `onDelete: SetNull`). Back-relation `Country.users User[]`.                                                           |
+| `addressStreet`     | `String?`                      | `null`  | Calle y número, texto libre.                                                                                                                                          |
+| `addressCity`       | `String?`                      | `null`  | Ciudad/comuna, texto libre.                                                                                                                                           |
+| `addressRegion`     | `String?`                      | `null`  | Región/estado, texto libre.                                                                                                                                           |
+| `addressPostalCode` | `String?`                      | `null`  | Código postal, texto libre.                                                                                                                                           |
+| `birthDate`         | `DateTime?`                    | `null`  | Fecha exacta almacenada; el contrato expone tanto `birthDate` (string ISO, para hidratar el form de edición) como `age` (derivado, para la vista principal — FR-016). |
+| `identifierType`    | `IdentifierType?` (enum nuevo) | `null`  | `RUT` \| `DNI` \| `PASSPORT` \| `OTHER`.                                                                                                                              |
+| `identifierValue`   | `String?`                      | `null`  | Validado con dígito verificador (módulo 11) solo cuando `identifierType === "RUT"` (FR-015).                                                                          |
 
 ```prisma
 enum IdentifierType {
@@ -142,14 +142,14 @@ CL→RUT+PASSPORT, AR/CO/PY/PE→DNI+PASSPORT, PR→PASSPORT+OTHER.
 
 ## Amendment 2026-07-16 — Perfil completo (`Perfil.dc.html`)
 
-| Campo                  | Tipo       | Default | Notas                                                                 |
-| ----------------------- | ----------- | -------- | ------------------------------------------------------------------------ |
-| `phone`                | `String?`  | `null`  | Texto libre.                                                            |
+| Campo                  | Tipo       | Default | Notas                                                                         |
+| ---------------------- | ---------- | ------- | ----------------------------------------------------------------------------- |
+| `phone`                | `String?`  | `null`  | Texto libre.                                                                  |
 | `hideBalances`         | `Boolean`  | `false` | Real — enmascara montos vía `MaskedAmount` (cobertura parcial, `PENDING.md`). |
-| `monthlyBudgetTarget`  | `Decimal?` | `null`  | Dinero — cruza el límite como `moneyString`, igual que el resto de la app. |
-| `billingCycleStartDay` | `Int?`     | `null`  | Día 1-28. No conectado al cálculo de "mes actual" del Panel todavía.   |
-| `extraCurrencies`      | `String[]` | `[]`    | Subconjunto de `CLP\|USD\|EUR`. Selección sin conversión en vivo.       |
-| `budgetAlertThreshold` | `Int?`     | `80`    | % 1-100. Usado solo por el slider de Notificaciones, sin alerta real.  |
+| `monthlyBudgetTarget`  | `Decimal?` | `null`  | Dinero — cruza el límite como `moneyString`, igual que el resto de la app.    |
+| `billingCycleStartDay` | `Int?`     | `null`  | Día 1-28. No conectado al cálculo de "mes actual" del Panel todavía.          |
+| `extraCurrencies`      | `String[]` | `[]`    | Subconjunto de `CLP\|USD\|EUR`. Selección sin conversión en vivo.             |
+| `budgetAlertThreshold` | `Int?`     | `80`    | % 1-100. Usado solo por el slider de Notificaciones, sin alerta real.         |
 
 `identifierTypeSchema`/`preferredCurrencySchema` reutilizados para `extraCurrencies`. Ver
 `PENDING.md` para qué de "Personalización financiera"/"Estado de tu cuenta" es real vs. placeholder,

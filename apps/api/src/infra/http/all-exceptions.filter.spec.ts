@@ -15,7 +15,10 @@ function makeHost() {
 describe("AllExceptionsFilter", () => {
   it("preserves a domain-specific code thrown on the exception", () => {
     const { host, status, json } = makeHost();
-    new AllExceptionsFilter().catch(new ConflictException({ code: "EMAIL_TAKEN", field: "email" }), host);
+    new AllExceptionsFilter().catch(
+      new ConflictException({ code: "EMAIL_TAKEN", field: "email" }),
+      host,
+    );
     expect(status).toHaveBeenCalledWith(409);
     expect(json).toHaveBeenCalledWith({ error: { code: "EMAIL_TAKEN", field: "email" } });
   });

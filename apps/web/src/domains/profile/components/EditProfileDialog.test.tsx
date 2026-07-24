@@ -73,8 +73,6 @@ describe("EditProfileDialog", () => {
     fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.edit.save") }));
 
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
-    expect(updateProfile).toHaveBeenCalledWith(
-      expect.objectContaining({ name: "New Name" }),
-    );
+    expect(updateProfile).toHaveBeenCalledWith(expect.objectContaining({ name: "New Name" }));
   });
 });

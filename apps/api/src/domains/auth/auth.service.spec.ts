@@ -104,7 +104,9 @@ describe("AuthService", () => {
   // US1 — Ver mi perfil
   it("getCurrentUser derives memberSinceYear from createdAt", async () => {
     const svc = makeService({
-      findById: vi.fn().mockResolvedValue(baseUser({ createdAt: new Date("2022-11-01T00:00:00Z") })),
+      findById: vi
+        .fn()
+        .mockResolvedValue(baseUser({ createdAt: new Date("2022-11-01T00:00:00Z") })),
     });
     const user = await svc.getCurrentUser("u1");
     expect(user.memberSinceYear).toBe(2022);
@@ -143,9 +145,9 @@ describe("AuthService", () => {
       const svc = makeService({
         findByEmail: vi.fn().mockResolvedValue(baseUser({ id: "other-user" })),
       });
-      await expect(
-        svc.updateProfile("u1", { email: "taken@b.com" }),
-      ).rejects.toBeInstanceOf(ConflictException);
+      await expect(svc.updateProfile("u1", { email: "taken@b.com" })).rejects.toBeInstanceOf(
+        ConflictException,
+      );
     });
 
     it("accepts renaming to the user's own current email (no-op, not a conflict)", async () => {
@@ -217,9 +219,9 @@ describe("AuthService", () => {
         findByEmail: vi.fn().mockResolvedValue(null), // pre-check passes...
         update: vi.fn().mockRejectedValue(p2002), // ...but a concurrent write already took it
       });
-      await expect(
-        svc.updateProfile("u1", { email: "race@b.com" }),
-      ).rejects.toBeInstanceOf(ConflictException);
+      await expect(svc.updateProfile("u1", { email: "race@b.com" })).rejects.toBeInstanceOf(
+        ConflictException,
+      );
     });
   });
 
@@ -242,7 +244,10 @@ describe("AuthService", () => {
         findById: vi.fn().mockResolvedValue(baseUser({ passwordHash })),
         update,
       });
-      await svc.changePassword("u1", { currentPassword: "correct-pw", newPassword: "newpassword123" });
+      await svc.changePassword("u1", {
+        currentPassword: "correct-pw",
+        newPassword: "newpassword123",
+      });
       const arg = update.mock.calls[0]![1] as { passwordHash: string };
       expect(arg.passwordHash).not.toBe(passwordHash);
       expect(await compare("newpassword123", arg.passwordHash)).toBe(true);
