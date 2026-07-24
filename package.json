@@ -26,6 +26,9 @@
       "prisma",
       "@nestjs/core"
     ],
+    "overrides": {
+      "fast-uri": "^3.1.4"
+    },
     "auditConfig": {
       "ignoreGhsas": [
         "GHSA-5j98-mcp5-4vw2",
