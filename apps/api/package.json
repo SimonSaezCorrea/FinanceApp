@@ -34,7 +34,7 @@
     "@finance/config": "workspace:*",
     "@nestjs/cli": "^11.0.24",
     "@nestjs/testing": "^11.1.28",
-    "@swc/core": "^1.10.7",
+    "@swc/core": "^1.15.46",
     "@types/cookie-parser": "^1.4.8",
     "@types/express": "^5.0.0",
     "@types/ms": "^2.1.0",
