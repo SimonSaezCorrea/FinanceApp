@@ -45,9 +45,13 @@ export function NotificationsSection() {
       </div>
       <div className="pt-3">
         <div className="mb-2 flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">{t("profile.notifications.budgetThreshold")}</span>
+          <span className="text-muted-foreground">
+            {t("profile.notifications.budgetThreshold")}
+          </span>
           <span className="font-semibold text-accent">
-            {t("profile.notifications.budgetThresholdValue", { pct: user.budgetAlertThreshold ?? 80 })}
+            {t("profile.notifications.budgetThresholdValue", {
+              pct: user.budgetAlertThreshold ?? 80,
+            })}
           </span>
         </div>
         <input
@@ -55,7 +59,9 @@ export function NotificationsSection() {
           min={1}
           max={100}
           value={user.budgetAlertThreshold ?? 80}
-          onChange={(e) => updatePreferences.mutate({ budgetAlertThreshold: Number(e.target.value) })}
+          onChange={(e) =>
+            updatePreferences.mutate({ budgetAlertThreshold: Number(e.target.value) })
+          }
           className="h-1.5 w-full cursor-pointer appearance-none rounded-full accent-accent"
           style={{
             background: `linear-gradient(to right, hsl(var(--accent)) ${user.budgetAlertThreshold ?? 80}%, hsl(var(--muted)) ${user.budgetAlertThreshold ?? 80}%)`,

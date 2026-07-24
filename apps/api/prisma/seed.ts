@@ -1150,7 +1150,11 @@ async function seedReferenceData() {
 
   // Country ↔ national-identity-document-type links. isPrimary = the country's default type.
   // A country may support more than one (e.g. a national id + passport).
-  const IDENTIFIER_LINKS: [alpha2: string, type: "RUT" | "DNI" | "PASSPORT" | "OTHER", isPrimary: boolean][] = [
+  const IDENTIFIER_LINKS: [
+    alpha2: string,
+    type: "RUT" | "DNI" | "PASSPORT" | "OTHER",
+    isPrimary: boolean,
+  ][] = [
     ["AR", "DNI", true],
     ["AR", "PASSPORT", false],
     ["CL", "RUT", true],

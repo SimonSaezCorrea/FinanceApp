@@ -60,7 +60,11 @@ export function DangerZone() {
         confirmLabel={t("profile.danger.confirmButton")}
         loading={deactivate.isPending}
       >
-        <Field label={t("profile.danger.passwordLabel")} htmlFor="deactivate-password" error={error}>
+        <Field
+          label={t("profile.danger.passwordLabel")}
+          htmlFor="deactivate-password"
+          error={error}
+        >
           <Input
             id="deactivate-password"
             type="password"

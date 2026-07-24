@@ -24,8 +24,7 @@ export function useProfileStats() {
   });
   const transactionsQuery = useQuery({
     queryKey: ["transactions", { from: startOfMonthISO(now), to: endOfMonthISO(now) }],
-    queryFn: () =>
-      transactionsApi.list({ from: startOfMonthISO(now), to: endOfMonthISO(now) }),
+    queryFn: () => transactionsApi.list({ from: startOfMonthISO(now), to: endOfMonthISO(now) }),
   });
 
   return {

@@ -11,7 +11,11 @@ import { Dialog } from "../../../shared/ui/dialog";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Select } from "../../../shared/ui/select";
-import { combinePhone, stripCallingCode, useCountryCallingCode } from "../hooks/useCountryCallingCode";
+import {
+  combinePhone,
+  stripCallingCode,
+  useCountryCallingCode,
+} from "../hooks/useCountryCallingCode";
 import { ALL_IDENTIFIER_TYPES, useAvailableIdentifierTypes } from "../hooks/useIdentifierTypes";
 import { useProfileMutations } from "../hooks/useProfile";
 

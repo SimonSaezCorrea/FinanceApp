@@ -17,5 +17,7 @@ export function useAvailableIdentifierTypes(
 ): NonNullable<auth.CurrentUser["identifierType"]>[] {
   const { data: countries } = useCountries();
   const country = countries?.find((c) => c.id === countryId);
-  return country && country.identifierTypes.length > 0 ? country.identifierTypes : ALL_IDENTIFIER_TYPES;
+  return country && country.identifierTypes.length > 0
+    ? country.identifierTypes
+    : ALL_IDENTIFIER_TYPES;
 }

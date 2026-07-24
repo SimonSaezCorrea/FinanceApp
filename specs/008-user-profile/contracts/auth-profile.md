@@ -38,7 +38,10 @@ Respuesta `CurrentUser` ampliada:
 **Request** (`changePasswordRequestSchema`):
 
 ```ts
-{ currentPassword: string; newPassword: string /* min 8, max 200, igual que registro */ }
+{
+  currentPassword: string;
+  newPassword: string; /* min 8, max 200, igual que registro */
+}
 ```
 
 **Response**: `204 No Content`.
@@ -65,7 +68,9 @@ Respuesta `CurrentUser` ampliada:
 **Request** (`deactivateRequestSchema`):
 
 ```ts
-{ password: string } // reingreso de la contraseña actual, obligatorio
+{
+  password: string;
+} // reingreso de la contraseña actual, obligatorio
 ```
 
 **Response**: `204 No Content` + limpia las cookies de sesión (mismo efecto que `POST /auth/logout`).

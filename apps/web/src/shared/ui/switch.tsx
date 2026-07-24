@@ -9,13 +9,7 @@ export interface SwitchProps {
 }
 
 /** Knob switch (on/off preference toggle). Tokens only. */
-export function Switch({
-  checked,
-  onCheckedChange,
-  disabled,
-  className,
-  ...rest
-}: SwitchProps) {
+export function Switch({ checked, onCheckedChange, disabled, className, ...rest }: SwitchProps) {
   return (
     <button
       type="button"

@@ -37,7 +37,12 @@ function ItemAction({ item, onEdit }: Readonly<{ item: ChecklistItem; onEdit: ()
     );
   }
   return (
-    <Button variant="outline" size="sm" className="h-6 rounded-full px-2.5 text-[10px]" onClick={onEdit}>
+    <Button
+      variant="outline"
+      size="sm"
+      className="h-6 rounded-full px-2.5 text-[10px]"
+      onClick={onEdit}
+    >
       {t(`profile.accountStatus.action.${item.key}`)}
     </Button>
   );
@@ -76,7 +81,9 @@ export function AccountStatusSection() {
         >
           <div className="flex h-[62px] w-[62px] flex-col items-center justify-center rounded-full bg-card">
             <div className="text-lg font-bold tabular-nums tracking-tight">{pct}%</div>
-            <div className="text-[9px] text-muted-foreground">{t("profile.accountStatus.complete")}</div>
+            <div className="text-[9px] text-muted-foreground">
+              {t("profile.accountStatus.complete")}
+            </div>
           </div>
         </div>
         <p className="text-xs leading-relaxed text-muted-foreground">
@@ -88,7 +95,9 @@ export function AccountStatusSection() {
           <div key={item.key} className="flex items-center justify-between">
             <span className="flex items-center gap-2 text-xs text-muted-foreground">
               <CircleCheck
-                className={item.done ? "h-3.5 w-3.5 text-success" : "h-3.5 w-3.5 text-muted-foreground/50"}
+                className={
+                  item.done ? "h-3.5 w-3.5 text-success" : "h-3.5 w-3.5 text-muted-foreground/50"
+                }
                 aria-hidden
               />
               {t(`profile.accountStatus.items.${item.key}`)}

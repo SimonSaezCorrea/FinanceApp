@@ -108,7 +108,9 @@ export function SecuritySection() {
       <div className="flex items-center justify-between border-b py-3">
         <div>
           <div className="text-sm">{t("profile.security.twoFactor.label")}</div>
-          <div className="text-xs text-muted-foreground">{t("profile.security.twoFactor.hint")}</div>
+          <div className="text-xs text-muted-foreground">
+            {t("profile.security.twoFactor.hint")}
+          </div>
         </div>
         <Switch
           checked={twoFactor}
@@ -144,14 +146,15 @@ export function SecuritySection() {
           {sessions.map((s, i) => {
             const Icon = s.device.toLowerCase().includes("iphone") ? Smartphone : Laptop;
             return (
-              <div
-                key={s.id}
-                className={cnRow(i, sessions.length)}
-              >
+              <div key={s.id} className={cnRow(i, sessions.length)}>
                 <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
                 <div className="min-w-0 flex-1">
                   <div className="text-xs font-medium">{s.device}</div>
-                  <div className={s.current ? "text-[11px] text-success" : "text-[11px] text-muted-foreground"}>
+                  <div
+                    className={
+                      s.current ? "text-[11px] text-success" : "text-[11px] text-muted-foreground"
+                    }
+                  >
                     {s.current ? t("profile.security.sessions.thisDevice") : s.detail}
                   </div>
                 </div>

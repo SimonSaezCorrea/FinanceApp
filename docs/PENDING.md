@@ -15,6 +15,7 @@ Cuando una feature nueva agregue un placeholder o una cobertura parcial, se agre
 
 El anillo de completitud y los checks de "Correo", "Identidad (RUT)" y "Teléfono" reflejan **si el
 dato está lleno**, no si fue verificado de verdad. No existe:
+
 - Envío de email de confirmación (no hay proveedor SMTP integrado).
 - Envío de SMS/OTP para verificar el teléfono (no hay proveedor tipo Twilio integrado).
 - Verificación de identidad contra un registro real (SII/Registro Civil u homólogo).
@@ -78,6 +79,7 @@ gratis), historial de facturas desde el proveedor de pagos.
 ### 7. Personalización financiera — partes reales vs. placeholder
 
 Persistido y real (columna `User`, editable, sin efecto de negocio adicional todavía):
+
 - `billingCycleStartDay` (día de inicio del ciclo mensual) — **no está conectado** al cálculo de "mes
   actual" del Panel (`domains/dashboard`); ese cálculo sigue usando el mes calendario.
 - `monthlyBudgetTarget` (presupuesto mensual objetivo) y `budgetAlertThreshold` (% de aviso, usado en
@@ -89,6 +91,7 @@ Persistido y real (columna `User`, editable, sin efecto de negocio adicional tod
   muestra ningún monto convertido, solo la preferencia de qué monedas seguir.
 
 Local-only, no persistido (idéntico al patrón ya usado por el switch de 2FA):
+
 - "Redondeo para ahorro" — no hay lógica de redondeo de transacciones ni de aporte automático a
   metas de ahorro.
 
@@ -97,6 +100,7 @@ Local-only, no persistido (idéntico al patrón ya usado por el switch de 2FA):
 Es una preferencia real y persistida (`User.hideBalances`), con efecto real: `MaskedAmount` (nuevo
 primitivo en `domains/profile/components/MaskedAmount.tsx`) enmascara el monto cuando está activo.
 Cableado hoy en:
+
 - Panel: patrimonio neto y montos de moneda secundaria (`NetWorthCard.tsx`).
 - Tarjetas visuales de cuenta: saldo, cupo usado/límite (`AccountVisualCard.tsx`).
 

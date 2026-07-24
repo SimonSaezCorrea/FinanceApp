@@ -61,20 +61,26 @@ export function FinancialCustomizationSection() {
       <div className="flex items-center justify-between border-b py-3">
         <div>
           <div className="text-sm">{t("profile.financial.cycleStart")}</div>
-          <div className="text-xs text-muted-foreground">{t("profile.financial.cycleStartHint")}</div>
+          <div className="text-xs text-muted-foreground">
+            {t("profile.financial.cycleStartHint")}
+          </div>
         </div>
         <Select
           className="h-8 w-20"
           value={String(user.billingCycleStartDay ?? 1)}
           options={CYCLE_DAYS.map((d) => ({ value: String(d), label: String(d) }))}
-          onChange={(e) => updatePreferences.mutate({ billingCycleStartDay: Number(e.target.value) })}
+          onChange={(e) =>
+            updatePreferences.mutate({ billingCycleStartDay: Number(e.target.value) })
+          }
         />
       </div>
 
       <div className="flex items-center justify-between border-b py-3">
         <div>
           <div className="text-sm">{t("profile.financial.budgetTarget")}</div>
-          <div className="text-xs text-muted-foreground">{t("profile.financial.budgetTargetHint")}</div>
+          <div className="text-xs text-muted-foreground">
+            {t("profile.financial.budgetTargetHint")}
+          </div>
         </div>
         {editingBudget ? (
           <div className="flex items-center gap-2">
@@ -111,7 +117,9 @@ export function FinancialCustomizationSection() {
       <div className="border-b py-3">
         <div className="mb-2">
           <div className="text-sm">{t("profile.financial.extraCurrencies")}</div>
-          <div className="text-xs text-muted-foreground">{t("profile.financial.extraCurrenciesHint")}</div>
+          <div className="text-xs text-muted-foreground">
+            {t("profile.financial.extraCurrenciesHint")}
+          </div>
         </div>
         <div className="mb-2 flex gap-2">
           <Select
@@ -153,7 +161,9 @@ export function FinancialCustomizationSection() {
             ))}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">{t("profile.financial.noExtraCurrencies")}</p>
+          <p className="text-xs text-muted-foreground">
+            {t("profile.financial.noExtraCurrencies")}
+          </p>
         )}
       </div>
 
@@ -162,13 +172,19 @@ export function FinancialCustomizationSection() {
           <div className="text-sm">{t("profile.financial.roundUp")}</div>
           <div className="text-xs text-muted-foreground">{t("profile.financial.roundUpHint")}</div>
         </div>
-        <Switch checked={roundUp} onCheckedChange={setRoundUp} aria-label={t("profile.financial.roundUp")} />
+        <Switch
+          checked={roundUp}
+          onCheckedChange={setRoundUp}
+          aria-label={t("profile.financial.roundUp")}
+        />
       </div>
 
       <div className="flex items-center justify-between py-3">
         <div>
           <div className="text-sm">{t("profile.financial.hideBalances")}</div>
-          <div className="text-xs text-muted-foreground">{t("profile.financial.hideBalancesHint")}</div>
+          <div className="text-xs text-muted-foreground">
+            {t("profile.financial.hideBalancesHint")}
+          </div>
         </div>
         <Switch
           checked={user.hideBalances}

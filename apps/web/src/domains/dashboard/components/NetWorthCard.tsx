@@ -62,7 +62,9 @@ export function NetWorthCard({
               className="rounded-full bg-muted px-3 py-1 text-xs font-medium tabular-nums text-muted-foreground"
             >
               {s.currency}{" "}
-              <MaskedAmount>{formatMoney(s.total, { locale: i18n.language, currency: s.currency })}</MaskedAmount>
+              <MaskedAmount>
+                {formatMoney(s.total, { locale: i18n.language, currency: s.currency })}
+              </MaskedAmount>
             </span>
           ))}
         </div>

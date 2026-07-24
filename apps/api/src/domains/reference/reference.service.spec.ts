@@ -40,7 +40,14 @@ describe("ReferenceService", () => {
   it("returns an empty identifierTypes array for a country with none configured", async () => {
     const svc = makeService({
       listCountries: vi.fn().mockResolvedValue([
-        { id: "c2", alpha2: "XX", alpha3: "XXX", numeric: "999", name: "Nowhere", identifierTypes: [] },
+        {
+          id: "c2",
+          alpha2: "XX",
+          alpha3: "XXX",
+          numeric: "999",
+          name: "Nowhere",
+          identifierTypes: [],
+        },
       ]),
     });
     const countries = await svc.listCountries();

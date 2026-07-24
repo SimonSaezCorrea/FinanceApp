@@ -11,7 +11,11 @@ import { Button } from "../../../shared/ui/button";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
 import { Input } from "../../../shared/ui/input";
 import { Select } from "../../../shared/ui/select";
-import { combinePhone, stripCallingCode, useCountryCallingCode } from "../hooks/useCountryCallingCode";
+import {
+  combinePhone,
+  stripCallingCode,
+  useCountryCallingCode,
+} from "../hooks/useCountryCallingCode";
 import { useAvailableIdentifierTypes } from "../hooks/useIdentifierTypes";
 import { useProfileMutations } from "../hooks/useProfile";
 
@@ -159,7 +163,12 @@ export function PersonalInfoSection() {
       >
         <div className="flex flex-col gap-2">
           <div className="flex gap-2">
-            <Input type="email" value={email} autoFocus onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              type="email"
+              value={email}
+              autoFocus
+              onChange={(e) => setEmail(e.target.value)}
+            />
             <Button size="sm" onClick={() => save({ email })} disabled={updateProfile.isPending}>
               {t("profile.edit.save")}
             </Button>
@@ -224,7 +233,9 @@ export function PersonalInfoSection() {
                 value: v,
                 label: t(`profile.edit.identifierTypes.${v}`),
               }))}
-              onChange={(e) => setIdentifierType(e.target.value as auth.CurrentUser["identifierType"])}
+              onChange={(e) =>
+                setIdentifierType(e.target.value as auth.CurrentUser["identifierType"])
+              }
             />
             <Input
               value={identifierValue}
@@ -261,7 +272,12 @@ export function PersonalInfoSection() {
         onCancel={() => setEditing(null)}
       >
         <div className="flex gap-2">
-          <Input type="date" value={birthDate} autoFocus onChange={(e) => setBirthDate(e.target.value)} />
+          <Input
+            type="date"
+            value={birthDate}
+            autoFocus
+            onChange={(e) => setBirthDate(e.target.value)}
+          />
           <Button
             size="sm"
             onClick={() => save({ birthDate: birthDate ? new Date(birthDate) : null })}

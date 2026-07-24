@@ -49,7 +49,9 @@ describe("PersonalInfoSection", () => {
         <PersonalInfoSection />
       </Providers>,
     );
-    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.personalInfo.title") }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: i18n.t("profile.personalInfo.title") }),
+    );
     await waitFor(() =>
       expect(screen.getAllByText(i18n.t("profile.personalInfo.notSet")).length).toBeGreaterThan(0),
     );
@@ -72,7 +74,9 @@ describe("PersonalInfoSection", () => {
         <PersonalInfoSection />
       </Providers>,
     );
-    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.personalInfo.title") }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: i18n.t("profile.personalInfo.title") }),
+    );
     await waitFor(() => expect(screen.getByText("Chile")).toBeDefined());
     expect(screen.getByText(/Av\. Siempre Viva 742/)).toBeDefined();
     expect(screen.getByText(/RUT: 12\.345\.678-5/)).toBeDefined();
@@ -86,7 +90,9 @@ describe("PersonalInfoSection", () => {
         <PersonalInfoSection />
       </Providers>,
     );
-    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.personalInfo.title") }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: i18n.t("profile.personalInfo.title") }),
+    );
 
     // Click the "Ana" row to enter inline edit mode (no dialog/modal involved).
     fireEvent.click(await screen.findByText("Ana"));
@@ -106,7 +112,9 @@ describe("PersonalInfoSection", () => {
         <PersonalInfoSection />
       </Providers>,
     );
-    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.personalInfo.title") }));
+    fireEvent.click(
+      await screen.findByRole("button", { name: i18n.t("profile.personalInfo.title") }),
+    );
 
     fireEvent.click(await screen.findByText("Ana"));
     fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.edit.cancel") }));
