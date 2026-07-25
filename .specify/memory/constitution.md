@@ -1,4 +1,85 @@
 <!--
+Sync Impact Report — 2026-07-25 (amendment 1.21.0)
+- Version change: 1.20.0 → 1.21.0 (MAJOR-ish in scope but MINOR by semver-for-docs convention:
+  replaces the one-shot "pay-credit" action with a full billing-period model — live-linked
+  transactions, automatic generation via cron + button, real cross-account payments). Core
+  Principles unchanged in intent; Principle II (per-user scoping) explicitly does NOT apply to the
+  new system cron job, which is documented as the deliberate exception (a system-wide job, not a
+  per-request query).
+- Technology & Operational Constraints (accounts/transactions):
+  - **New dependency `@nestjs/schedule`**, wired in a new **`src/infra/cron/`** module
+    (`cron.module.ts` + `billing-generation.cron.ts`) — the cross-cutting home for every scheduled
+    automation this app runs, same tier as `infra/prisma`/`infra/auth`/`infra/http`. Each
+    `*.cron.ts` is a thin trigger; real logic lives in the owning domain's own service.
+  - **`Transaction.creditStatementId`**: a contributing movement links, AT CREATION TIME, to
+    whichever `CreditStatement` is currently OPEN for its account (`closedAt: null`) — created
+    lazily on first contribution since the last close. Never reassigned by date on edit.
+  - **`CreditStatement` has no stored `status`** — derived from `closedAt`/`paidAt`: OPEN (still
+    accumulating, `amount` computed LIVE as the sum of linked transactions — no manual correction
+    ever needed while unpaid) → PENDING (closed by generation, awaiting payment, still live) → PAID
+    (`amount` frozen at pay time, only then correctable via `PATCH .../credit-statements/:id`, no
+    cascade to the payment transaction or `creditUsed`).
+  - **`BillingGenerationService`** (`domains/accounts/billing-generation.service.ts`) closes an
+    OPEN statement once `billingCycleDay` passes, gated on eligibility (account + relevant card
+    both ACTIVE) — shared verbatim by the daily cron (`generateForAllDueAccounts`, every user's due
+    accounts) and the manual "Generar facturación" button (`generateForAccount`, one account).
+  - **Paying a statement** (`POST /accounts/:id/credit-statements/:id/pay`) requires a real source
+    bank account (any type except `CREDIT_LINE`) and atomically creates a genuine EXPENSE
+    `Transaction` there (visible in its own Movimientos), decrements `creditUsed` by the
+    statement's amount (not a full reset — later purchases land in the next OPEN period), and
+    freezes the statement PAID.
+  - Once a transaction's statement is PAID, editing/deleting that transaction never touches
+    `creditUsed` again — its pool effect is already settled (mirrors the "no cascade" rule for
+    correcting a paid statement's amount).
+  - Web: `AccountDetailRoute` gained a Movimientos/Facturación tab switcher; the old sidebar
+    `CreditPaySection` is replaced by `components/BillingSection.tsx`.
+
+Sync Impact Report — 2026-07-25 (amendment 1.20.0)
+- Version change: 1.19.0 → 1.20.0 (MINOR: billing config split into its own `BillingSettings`
+  table; `AUTOMATIC` payment method locked in the UI pending payment-due-date design). Core
+  Principles unchanged in intent.
+- Technology & Operational Constraints (accounts):
+  - **New `BillingSettings` model** (table `billing-settings`, 1:1 with `BankAccount` via a unique
+    `accountId` FK, `onDelete: Cascade`): `billingCycleDay`, `paymentMethod`, and a new reserved
+    `paymentDueDay` (nullable Int, unused) now live here instead of as `BankAccount` columns —
+    deliberately separated so this configuration can be reviewed/maintained/searched independently
+    instead of growing the accounts table. The API contract shape is unchanged (`BankAccount`
+    still exposes `billingCycleDay`/`paymentMethod` as flat fields; the join is internal to
+    `AccountsService`/`AccountsRepository.upsertBillingSettings`).
+  - **The `AUTOMATIC` payment method is now locked in the UI** — `shared/ui/segmented.tsx` gained
+    per-option `disabled`/`disabledReason`, rendered as a genuinely native-`disabled` button (no
+    click handler fires at all — just a title tooltip explaining why), used by both `AccountForm`
+    and the new `BillingSettingsModal` to grey out "Automático". It cannot be selected until the
+    payment-due-date format is actually decided (still undefined — see `docs/PENDING.md`).
+  - **New `BillingSettingsModal`**, reached via a small warning-badge icon next to the account name
+    (not a full-width banner) on `AccountDetailRoute` when a credit-pool account has no billing day
+    configured — opens a focused 2-field modal (billing day + payment method) instead of routing
+    through the full `AccountForm` edit flow.
+
+Sync Impact Report — 2026-07-25 (amendment 1.19.0)
+- Version change: 1.18.0 → 1.19.0 (MINOR: `BankAccount.creditUsed` becomes a persisted column,
+  paid down explicitly, instead of a value derived from transactions on every read — plus
+  account-creation simplification). Core Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/transactions):
+  - **`BankAccount.creditUsed` is now persisted**, seeded from `creditUsedInitial` at creation and
+    mutated directly by `TransactionsService` on transaction create/update/delete (reverting the old
+    contribution before applying the new one, including cross-account moves) — no longer recomputed
+    via `AccountsRepository.sumsByAccount`/`TransactionsRepository.sumsForAccount` on read.
+  - **`BankAccount.billingCycleDay` no longer scopes any sum to a time window** — the automatic
+    per-cycle reset introduced in 1.17.0 is removed; it's now purely informational. Usage only goes
+    down via the new **`POST /accounts/:id/pay-credit`**, which logs a **`CreditStatement`** row
+    (`accountId`, `amount`, `paidAt` — history via `GET /accounts/:id/credit-statements`) and resets
+    `creditUsed` to `0`. If the user never pays, `creditUsed` keeps accumulating — intended.
+  - **New `BankAccount.paymentMethod`** (`BillingPaymentMethod`: MANUAL default/AUTOMATIC) — a stored
+    preference only, `AUTOMATIC` has no functional effect yet (see `docs/PENDING.md`).
+  - **Scoped to v1: the account-level shared pool only.** A card's own independent `CardLimit.used`
+    (sub-limit) is unchanged — still derived from transactions the old, all-time way; migrating it to
+    the same persisted+pay model is deferred (`docs/PENDING.md`).
+  - **`AccountCreateModal` no longer asks for `status`, `billingCycleDay`, or `paymentMethod`** —
+    every new account starts `ACTIVE`/unconfigured/`MANUAL`; all three remain editable afterward via
+    `AccountForm` or the existing status-toggle button in `AccountDetailRoute`. A warning banner
+    replaces the removed billing-day field when the drafted account has a credit pool.
+
 Sync Impact Report — 2026-07-22 (amendment 1.18.0)
 - Version change: 1.17.0 → 1.18.0 (MINOR: streamlines `CREDIT_LINE` account creation — no schema or
   API change, frontend-only). Core Principles unchanged in intent.
@@ -538,4 +619,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.18.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-22
+**Version**: 1.21.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-25

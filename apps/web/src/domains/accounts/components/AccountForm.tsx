@@ -10,6 +10,7 @@ import { Button } from "../../../shared/ui/button";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
+import { Segmented } from "../../../shared/ui/segmented";
 import { Switch } from "../../../shared/ui/switch";
 import { AccountTypeToggle } from "./AccountTypeToggle";
 
@@ -25,6 +26,7 @@ export interface AccountFormValues {
   creditUsedInitial: string;
   /** "" = no cycle configured (all-time usage), else a "1"-"28" day-of-month string. */
   billingCycleDay: string;
+  paymentMethod: accounts.BillingPaymentMethod;
 }
 
 const EMPTY: AccountFormValues = {
@@ -38,6 +40,7 @@ const EMPTY: AccountFormValues = {
   creditLimit: "0",
   creditUsedInitial: "0",
   billingCycleDay: "",
+  paymentMethod: "MANUAL",
 };
 
 interface Props {
@@ -257,6 +260,22 @@ export function AccountForm({
           <p className="-mt-2 text-xs text-muted-foreground">
             {t("accounts.form.billingCycleDayHint")}
           </p>
+          <Field label={t("accounts.form.paymentMethod")}>
+            <Segmented
+              value={values.paymentMethod}
+              onChange={(v) => set("paymentMethod", v)}
+              options={[
+                { value: "MANUAL", label: t("accounts.form.paymentMethodManual") },
+                {
+                  value: "AUTOMATIC",
+                  label: t("accounts.form.paymentMethodAutomatic"),
+                  disabled: true,
+                  disabledReason: t("accounts.form.paymentMethodAutomaticLocked"),
+                },
+              ]}
+              aria-label={t("accounts.form.paymentMethod")}
+            />
+          </Field>
         </>
       ) : null}
       <label className="flex items-center gap-2">

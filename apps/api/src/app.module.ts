@@ -13,6 +13,7 @@ import { ReferenceModule } from "./domains/reference/reference.module";
 import { SavingsModule } from "./domains/savings/savings.module";
 import { TransactionsModule } from "./domains/transactions/transactions.module";
 import { WalletModule } from "./domains/wallet/wallet.module";
+import { CronModule } from "./infra/cron/cron.module";
 import { PrismaModule } from "./infra/prisma/prisma.module";
 
 @Module({
@@ -31,6 +32,7 @@ import { PrismaModule } from "./infra/prisma/prisma.module";
     RecurringModule,
     WalletModule,
     ReferenceModule,
+    CronModule,
   ],
 })
 export class AppModule {}

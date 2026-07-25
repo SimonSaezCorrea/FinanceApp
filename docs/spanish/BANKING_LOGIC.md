@@ -192,34 +192,65 @@ cuenta como un todo, no a una tarjeta específica. Así que si el `creditUsedIni
 distinto de cero, sumar el `ownUsed` de todas las tarjetas que comparten el cupo quedará corto
 respecto a `account.creditUsed` justo por ese monto semilla — es lo esperado, no un bug.
 
-### 3.6 Ciclos de facturación: el uso se reinicia, el historial no
+### 3.6 El cupo de la cuenta: saldo persistido, períodos de facturación en vivo, pagos reales
 
-Una tarjeta de crédito real tiene una fecha de corte cada mes — todo lo que gastas se reinicia
-contra el tope cuando empieza un nuevo ciclo, aunque cada gasto pasado sigue existiendo en tu
-historial. Esta app modela eso con **`BankAccount.billingCycleDay`** (nullable, `1`-`28`, así todo
-mes tiene ese día — no hace falta acotar por fin de mes):
+**`BankAccount.creditUsed`** es una **columna persistida y viva** — no se recalcula desde los
+movimientos en cada lectura. Se inicializa con `creditUsedInitial` al crear la cuenta, y luego:
 
-- **`null` (por defecto):** sin ciclo configurado — todo número de uso derivado (`creditUsed`, el
-  `ownUsed` de una tarjeta, el `used` del `CardLimit` propio de una tarjeta) se mantiene **todo el
-  tiempo** (all-time), exactamente como antes de que existiera esta funcionalidad. Totalmente
-  compatible con cualquier cuenta creada antes de que se lanzara.
-- **Con un día definido (ej. `15`):** esos mismos números se recalculan acotados **solo al ciclo
-  actual** — desde la última ocurrencia de ese día del mes
-  (`apps/api/src/domains/accounts/billing-cycle.ts`, función `currentCycleStart`). Al pasar la
-  fecha de corte, el uso realmente vuelve a (casi) cero tanto para la **visualización** como para
-  la **aplicación del cupo** — un movimiento que habría sido rechazado por superar el tope el ciclo
-  pasado puede volver a pasar en el ciclo nuevo. **Los movimientos en sí nunca se borran ni se
-  modifican** — simplemente dejan de sumarse una vez que son más antiguos que el inicio del ciclo
-  actual.
-- **Un día por cuenta, compartido por todas sus tarjetas** — una tarjeta no tiene su propio día de
-  facturación, ya que en la vida real un solo estado de cuenta cubre todas las tarjetas que giran
-  sobre la misma cuenta/cupo.
-- **Los valores semilla no se reinician.** `creditUsedInitial` (de la cuenta) y el `usedInitial` de
-  un `CardLimit` (tope propio de una tarjeta) no tienen un equivalente por ciclo — se siguen
-  sumando encima de lo que dé el ciclo actual, ciclo tras ciclo, para siempre. Es una
-  simplificación conocida (coincide con la misma limitación de "sin semilla por tarjeta" del §3.5),
-  no algo que esta funcionalidad intente resolver — si defines un saldo semilla, espera que siga
-  apareciendo cada ciclo a menos que lo edites.
+- **Cada EXPENSE vía una tarjeta CREDIT que comparte el cupo** (o, en una cuenta `CREDIT_LINE`
+  standalone, cualquier EXPENSE) la **incrementa** por el monto del movimiento.
+- **INCOME en una cuenta `CREDIT_LINE` standalone** (su única forma de registrar un pago) la
+  **decrementa**.
+- **Editar o eliminar un movimiento** revierte su contribución anterior y aplica la nueva (un
+  delta neto en la misma cuenta, o un revertir+aplicar si el movimiento cambió de cuenta) — ver
+  `TransactionsService.creditPoolContribution`/`validateMovement`. **Excepción:** si el movimiento
+  ya está ligado a una facturación PAGADA, editarlo/eliminarlo nunca vuelve a tocar `creditUsed` —
+  su efecto en el cupo ya quedó saldado (ver más abajo).
+- Una tarjeta con su propio `CardLimit` independiente en esa moneda **no** afecta el cupo de la
+  cuenta — su `CardLimit.used` sigue siendo derivado de los movimientos igual que antes (sin
+  cambios, fuera de alcance de este modelo — ver §3.7).
+
+**Los períodos de facturación (`CreditStatement`) son en vivo, no se calculan después.** Cada
+movimiento que contribuye al cupo se liga, en el momento en que se crea, a la facturación
+actualmente **ABIERTA** (`closedAt: null`) de la cuenta — creándola si es la primera contribución
+desde el último cierre (`TransactionsRepository.findOrCreateOpenStatement`). El enlace de un
+movimiento se asigna una sola vez y nunca se reasigna por fecha al editar ("se va llenando"). Tres
+estados derivados (no una columna `status` guardada):
+
+- **ABIERTA** (`closedAt` null): sigue acumulando. Su `amount` mostrado se **calcula en vivo** —
+  la suma de todos los movimientos actualmente ligados — así que agregar/editar/eliminar un
+  movimiento ligado la actualiza sola, sin necesitar corrección manual mientras esté sin pagar.
+- **PENDIENTE** (`closedAt` con valor, `paidAt` null): sellada por la generación (ver abajo), a la
+  espera de pago. El monto sigue siendo en vivo (un movimiento ligado antes del pago aún podría
+  editarse).
+- **PAGADA** (`paidAt` con valor): `amount` queda **congelado** en el valor que tenía al momento de
+  pagar. Solo entonces se puede corregir manualmente (`PATCH /accounts/:id/credit-statements/:id`,
+  `{amount}`) — sin cascada al movimiento de pago ya creado ni a `creditUsed` (deliberado,
+  simplificación para uso personal).
+
+**Generación** (`BillingGenerationService`,
+`apps/api/src/domains/accounts/billing-generation.service.ts`) cierra la facturación ABIERTA cuando
+pasa `BillingSettings.billingCycleDay` (`1`-`28`) desde que empezó — pero solo si la cuenta (y su
+tarjeta de crédito relevante) sigue `ACTIVE`; si no, se deja abierta indefinidamente ("se dejan de
+generar si la cuenta o la tarjeta está inactiva"), y si nunca se abrió una facturación (sin uso
+alguno), no hay nada que cerrar ("si no hubo uso, no se genera"). Dos disparadores comparten
+exactamente esta lógica: un **cron diario**
+(`src/infra/cron/billing-generation.cron.ts`, `@nestjs/schedule`, 3am) sobre todas las cuentas
+vencidas de todos los usuarios, y un **botón manual "Generar facturación"**
+(`POST /accounts/:id/generate-statements`) scoped a una cuenta.
+
+**Pagar** (`POST /accounts/:id/credit-statements/:id/pay`, `{fromAccountId}`) exige elegir una
+cuenta bancaria real (cualquier tipo excepto `CREDIT_LINE`) — atómicamente: crea un `Transaction`
+EXPENSE normal en esa cuenta (visible en sus propios Movimientos, igual que cualquier otro gasto —
+su `currentBalance` solo se refleja tras "Reconciliar saldo", igual que en el resto de la app, no es
+un caso especial), decrementa el `creditUsed` de la cuenta de crédito por el monto de la
+facturación (su instantánea al momento de pagar, no un reset total — si hubo compras nuevas después
+de cerrarse el período, esas pertenecen al SIGUIENTE período abierto y `creditUsed` las sigue
+reflejando, dejando un remanente > 0 después de pagar), y congela la facturación como PAGADA.
+
+`BankAccount.paymentMethod` (`MANUAL` por defecto, o `AUTOMATIC`) guarda la preferencia declarada
+del usuario; `AUTOMATIC` está **bloqueado en la UI** (no se puede seleccionar) — ver
+`docs/PENDING.md`.
 
 ### 3.7 Qué NO está modelado
 
@@ -234,6 +265,14 @@ mes tiene ese día — no hace falta acotar por fin de mes):
 - No hay forma de registrar "un pago hacia esta tarjeta de crédito adicional en particular" por
   separado de un ingreso normal de la cuenta, en una cuenta que no es `CREDIT_LINE` (ver §4.2) — un
   ingreso nunca lleva tarjeta en absoluto.
+- El `CardLimit.used` propio de una tarjeta **no** forma parte del modelo de facturación por
+  períodos del §3.6 — sigue siendo derivado de los movimientos a la manera anterior (todo el
+  tiempo, sin períodos, sin acción de pago).
+- El método de pago `AUTOMATIC` y la "fecha de pago" (una fecha de vencimiento, distinta de
+  `billingCycleDay`) están ambos sin implementar/bloqueados — ver `docs/PENDING.md`.
+- Sin catch-up retroactivo de varios períodos: si el cron estuvo caído mucho tiempo, la generación
+  cierra solo el boundary vencido más reciente con lo acumulado, en vez de particionar en varios
+  períodos históricos.
 
 ---
 

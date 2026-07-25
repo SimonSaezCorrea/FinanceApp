@@ -1,8 +1,10 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import type {
   BankAccount as BankAccountRow,
+  BillingSettings as BillingSettingsRow,
   CardAccount as CardRow,
   CardLimit as CardLimitRow,
+  CreditStatement as CreditStatementRow,
   FinancialInstitution as InstitutionRow,
 } from "@prisma/client";
 import { AccountStatus, TransactionType } from "@prisma/client";
@@ -11,6 +13,7 @@ import { accounts } from "@finance/contracts";
 import { addMoney, moneyToString, subtractMoney, toMoney } from "@finance/money";
 
 import { AccountsRepository } from "./accounts.repository";
+import { BillingGenerationService } from "./billing-generation.service";
 import { CardsRepository } from "./cards.repository";
 import { toContract as cardToContract } from "./cards.service";
 
@@ -19,6 +22,7 @@ type CardWithLimits = CardRow & { limits: CardLimitRow[] };
 type AccountWithCards = BankAccountRow & {
   cards: CardWithLimits[];
   financialInstitution?: InstitutionRow | null;
+  billingSettings?: BillingSettingsRow | null;
 };
 
 /** cardId:currency -> { income, expense } all-time sums. For each card limit's derived `used`. */
@@ -30,9 +34,6 @@ type WindowTx = {
   amount: { toString(): string };
   occurredAt: Date;
 };
-
-/** accountId -> { income, expense } all-time sums (decimal strings). */
-type AccountSums = Map<string, { income: string; expense: string }>;
 
 const SERIES_DAYS = 30;
 const DAY_MS = 86_400_000;
@@ -70,6 +71,7 @@ export class AccountsService {
   constructor(
     private readonly repo: AccountsRepository,
     private readonly cardsRepo: CardsRepository,
+    private readonly billing: BillingGenerationService,
   ) {}
 
   async list(userId: string, filters: accounts.AccountFilters): Promise<accounts.BankAccount[]> {
@@ -103,27 +105,10 @@ export class AccountsService {
       bucket.push(t);
       byAccount.set(t.bankAccountId, bucket);
     }
-    // Derived credit `used`: all-time income/expense sums per account, one grouped query.
-    const sums: AccountSums = new Map();
-    for (const s of await this.repo.sumsByAccount(
-      userId,
-      rows.map((r) => ({
-        id: r.id,
-        type: r.type,
-        currency: r.currency,
-        billingCycleDay: r.billingCycleDay,
-      })),
-    )) {
-      if (!s.bankAccountId) continue;
-      const entry = sums.get(s.bankAccountId) ?? { income: "0", expense: "0" };
-      if (s.type === TransactionType.INCOME) entry.income = s.sum;
-      else entry.expense = s.sum;
-      sums.set(s.bankAccountId, entry);
-    }
     // Same, but per (card, currency) — for each card's own optional sub-limit's derived `used`.
     // A card has no billing day of its own — it inherits its account's.
     const cardsInfo = rows.flatMap((r) =>
-      r.cards.map((c) => ({ id: c.id, billingCycleDay: r.billingCycleDay })),
+      r.cards.map((c) => ({ id: c.id, billingCycleDay: r.billingSettings?.billingCycleDay ?? null })),
     );
     const cardSums: CardSums = new Map();
     for (const s of await this.cardsRepo.sumsByCard(userId, cardsInfo)) {
@@ -138,7 +123,6 @@ export class AccountsService {
       toContract(
         row,
         computeSeries(row.currentBalance.toString(), byAccount.get(row.id) ?? [], now),
-        sums.get(row.id),
         cardSums,
       ),
     );
@@ -227,10 +211,15 @@ export class AccountsService {
       currentBalance: initialBalance,
       creditLimit,
       creditUsedInitial,
-      billingCycleDay: input.billingCycleDay ?? null,
+      creditUsed: creditUsedInitial,
       ...(cards.length > 0 ? { cards: { create: cards } } : {}),
     });
-    return this.withSeries(userId, row);
+    await this.repo.upsertBillingSettings(row.id, {
+      billingCycleDay: input.billingCycleDay ?? null,
+      paymentMethod: input.paymentMethod ?? "MANUAL",
+    });
+    const fresh = await this.repo.findOne(userId, row.id);
+    return this.withSeries(userId, fresh ?? row);
   }
 
   async update(
@@ -267,10 +256,16 @@ export class AccountsService {
       ...(input.creditUsedInitial !== undefined
         ? { creditUsedInitial: input.creditUsedInitial }
         : {}),
-      ...(input.billingCycleDay !== undefined ? { billingCycleDay: input.billingCycleDay } : {}),
     });
     if (!row) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
-    return this.withSeries(userId, row);
+    if (input.billingCycleDay !== undefined || input.paymentMethod !== undefined) {
+      await this.repo.upsertBillingSettings(id, {
+        ...(input.billingCycleDay !== undefined ? { billingCycleDay: input.billingCycleDay } : {}),
+        ...(input.paymentMethod !== undefined ? { paymentMethod: input.paymentMethod } : {}),
+      });
+    }
+    const fresh = await this.repo.findOne(userId, id);
+    return this.withSeries(userId, fresh ?? row);
   }
 
   async setStatus(
@@ -297,26 +292,104 @@ export class AccountsService {
     const ok = await this.repo.remove(userId, id);
     if (!ok) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
   }
+
+  /** Manual "Generar facturación" — same rules as the daily cron, just scoped to
+   * one account on demand. Returns the (possibly unchanged) statement list. */
+  async generateStatements(userId: string, id: string): Promise<accounts.CreditStatement[]> {
+    await this.billing.generateForAccount(userId, id);
+    return this.listCreditStatements(userId, id);
+  }
+
+  async listCreditStatements(userId: string, id: string): Promise<accounts.CreditStatement[]> {
+    const account = await this.repo.findOne(userId, id);
+    if (!account) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
+    const rows = await this.repo.listCreditStatements(userId, id);
+    return Promise.all(rows.map((r) => this.statementToContract(r)));
+  }
+
+  /**
+   * Pay a statement by choosing a source bank account: creates a real EXPENSE
+   * movement there, decrements the credit account's `creditUsed`, and freezes the
+   * statement as paid — see `AccountsRepository.payStatement`.
+   */
+  async payCreditStatement(
+    userId: string,
+    id: string,
+    statementId: string,
+    fromAccountId: string,
+  ): Promise<accounts.CreditStatement> {
+    const account = await this.repo.findOne(userId, id);
+    if (!account) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
+    const statement = await this.repo.findStatement(userId, id, statementId);
+    if (!statement) throw new NotFoundException({ code: "STATEMENT_NOT_FOUND" });
+    if (statement.paidAt) throw new BadRequestException({ code: "STATEMENT_ALREADY_PAID" });
+    const fromAccount = await this.repo.findOne(userId, fromAccountId);
+    if (!fromAccount) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
+    if (fromAccount.type === "CREDIT_LINE") {
+      throw new BadRequestException({ code: "INVALID_PAYMENT_SOURCE" });
+    }
+    const amount = await this.repo.sumLinkedTransactions(statementId);
+    if (!toMoney(amount).greaterThan(0)) throw new BadRequestException({ code: "NOTHING_TO_PAY" });
+    const paid = await this.repo.payStatement({
+      userId,
+      creditAccountId: id,
+      statementId,
+      fromAccountId,
+      amount,
+      currency: account.currency,
+      description: account.name,
+      wasClosedAt: statement.closedAt,
+    });
+    return this.statementToContract(paid);
+  }
+
+  /** Correct a PAID statement's frozen amount — rejected for OPEN/PENDING ones
+   * (edit their linked transactions instead; the live sum updates itself). */
+  async updateCreditStatement(
+    userId: string,
+    id: string,
+    statementId: string,
+    amount: string,
+  ): Promise<accounts.CreditStatement> {
+    const account = await this.repo.findOne(userId, id);
+    if (!account) throw new NotFoundException({ code: "ACCOUNT_NOT_FOUND" });
+    const statement = await this.repo.findStatement(userId, id, statementId);
+    if (!statement) throw new NotFoundException({ code: "STATEMENT_NOT_FOUND" });
+    if (!statement.paidAt) throw new BadRequestException({ code: "STATEMENT_NOT_PAID" });
+    const updated = await this.repo.updateStatementAmount(statementId, amount);
+    return this.statementToContract(updated);
+  }
+
+  private async statementToContract(r: CreditStatementRow): Promise<accounts.CreditStatement> {
+    const amount = r.paidAt
+      ? (r.amount?.toString() ?? "0")
+      : await this.repo.sumLinkedTransactions(r.id);
+    return {
+      id: r.id,
+      accountId: r.accountId,
+      status: r.paidAt ? "PAID" : r.closedAt ? "PENDING" : "OPEN",
+      periodStart: r.periodStart.toISOString(),
+      closedAt: r.closedAt?.toISOString() ?? null,
+      paidAt: r.paidAt?.toISOString() ?? null,
+      amount: moneyToString(amount),
+      paidFromAccountId: r.paidFromAccountId ?? null,
+      paidTransactionId: r.paidTransactionId ?? null,
+      createdAt: r.createdAt.toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
+    };
+  }
 }
 
 function toContract(
   row: AccountWithCards,
   series: { series: string[]; balanceChangePct: string | null },
-  sums?: { income: string; expense: string },
   cardSums?: CardSums,
 ): accounts.BankAccount {
-  // Credit used (derived) for credit lines, OR any other cardable account that has
-  // grown a CREDIT-kind card (e.g. a checking account's add-on credit card) — the
-  // account-level creditLimit is the shared/master pool across all its cards either way.
+  // Credit pool (persisted `creditUsed`) for credit lines, OR any other cardable account
+  // that has grown a CREDIT-kind card (e.g. a checking account's add-on credit card) —
+  // the account-level creditLimit is the shared/master pool across all its cards either way.
   const hasCreditPool = row.type === "CREDIT_LINE" || row.cards.some((c) => c.kind === "CREDIT");
-  const creditUsed = hasCreditPool
-    ? moneyToString(
-        subtractMoney(
-          addMoney(row.creditUsedInitial.toString(), sums?.expense ?? "0"),
-          sums?.income ?? "0",
-        ),
-      )
-    : "0";
+  const creditUsed = hasCreditPool ? moneyToString(row.creditUsed.toString()) : "0";
   const cardsContract = (row.cards ?? []).map((c) => cardToContract(c, row.currency, cardSums));
   // The account's own-currency pool, plus any EXTRA currency the primary card
   // also carries its own CardLimit for (e.g. a CLP account whose primary card
@@ -348,7 +421,8 @@ function toContract(
     creditLimit: moneyToString(row.creditLimit.toString()),
     creditUsed,
     creditPools,
-    billingCycleDay: row.billingCycleDay,
+    billingCycleDay: row.billingSettings?.billingCycleDay ?? null,
+    paymentMethod: row.billingSettings?.paymentMethod ?? "MANUAL",
     balanceSeries: series.series,
     balanceChangePct: series.balanceChangePct,
     cards: cardsContract,

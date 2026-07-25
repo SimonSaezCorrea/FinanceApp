@@ -48,7 +48,12 @@ export class CardsService {
       },
       cardLimits,
     );
-    return this.toContractWithUsage(userId, row, account.currency, account.billingCycleDay);
+    return this.toContractWithUsage(
+      userId,
+      row,
+      account.currency,
+      account.billingSettings?.billingCycleDay ?? null,
+    );
   }
 
   async update(
@@ -82,7 +87,12 @@ export class CardsService {
       cardLimits,
     );
     if (!row) throw new NotFoundException({ code: "CARD_NOT_FOUND" });
-    return this.toContractWithUsage(userId, row, account.currency, account.billingCycleDay);
+    return this.toContractWithUsage(
+      userId,
+      row,
+      account.currency,
+      account.billingSettings?.billingCycleDay ?? null,
+    );
   }
 
   async remove(userId: string, accountId: string, cardId: string): Promise<void> {

@@ -18,23 +18,27 @@ const row = {
   currentBalance: { toString: () => "100" },
   creditLimit: { toString: () => "0" },
   creditUsedInitial: { toString: () => "0" },
+  creditUsed: { toString: () => "0" },
+  billingSettings: { billingCycleDay: null, paymentMethod: "MANUAL" as const },
   cards: [],
   createdAt: new Date("2026-01-01T00:00:00Z"),
   updatedAt: new Date("2026-01-02T00:00:00Z"),
 };
 
 function makeService(repo: Partial<AccountsRepository>, cardsRepo: Partial<CardsRepository> = {}) {
-  // Balance-series + credit-usage attach run on every read/write; default both to empty.
+  // Balance-series attach runs on every read/write; default to empty.
   return new AccountsService(
     {
       txWindow: vi.fn().mockResolvedValue([]),
-      sumsByAccount: vi.fn().mockResolvedValue([]),
+      findOne: vi.fn().mockResolvedValue(row),
+      upsertBillingSettings: vi.fn().mockResolvedValue(undefined),
       ...repo,
     } as AccountsRepository,
     {
       sumsByCard: vi.fn().mockResolvedValue([]),
       ...cardsRepo,
     } as CardsRepository,
+    {} as never,
   );
 }
 
@@ -78,6 +82,7 @@ describe("AccountsService", () => {
       name: "Checking",
       type: "CHECKING",
       status: "ACTIVE",
+      paymentMethod: "MANUAL",
       currency: "CLP",
       initialBalance: "100",
     });
@@ -94,6 +99,7 @@ describe("AccountsService", () => {
         name: "Ahorro",
         type: "SAVINGS",
         status: "ACTIVE",
+        paymentMethod: "MANUAL",
         currency: "CLP",
         cards: [
           {
@@ -117,6 +123,7 @@ describe("AccountsService", () => {
       name: "Cuenta",
       type: "CREDIT_LINE",
       status: "ACTIVE",
+      paymentMethod: "MANUAL",
       currency: "CLP",
       cards: [
         {
@@ -147,6 +154,7 @@ describe("AccountsService", () => {
       name: "Cuenta",
       type: "CREDIT_LINE",
       status: "ACTIVE",
+      paymentMethod: "MANUAL",
       currency: "CLP",
       cards: [
         {
@@ -178,6 +186,7 @@ describe("AccountsService", () => {
         name: "Cuenta",
         type: "CREDIT_LINE",
         status: "ACTIVE",
+        paymentMethod: "MANUAL",
         currency: "CLP",
         cards: [
           {
@@ -201,6 +210,7 @@ describe("AccountsService", () => {
       name: "Cuenta",
       type: "CREDIT_LINE",
       status: "ACTIVE",
+      paymentMethod: "MANUAL",
       currency: "CLP",
       cards: [
         {
@@ -250,50 +260,28 @@ describe("AccountsService", () => {
     await expect(svc.reconcile("u1", "nope")).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  // --- Derived credit `used` on a CREDIT_LINE account (standalone credit card) ---
+  // --- Persisted credit `used` on a CREDIT_LINE account (standalone credit card) ---
 
-  describe("derived credit used (CREDIT_LINE account)", () => {
+  describe("persisted credit used (CREDIT_LINE account)", () => {
     const creditRow = {
       ...row,
       id: "aC",
       type: "CREDIT_LINE" as const,
       creditLimit: { toString: () => "3000000" },
       creditUsedInitial: { toString: () => "0" },
+      creditUsed: { toString: () => "1000000" },
     };
 
-    it("computes used = seed + expense − income and exposes creditLimit", async () => {
-      const svc = makeService({
-        list: vi.fn().mockResolvedValue([creditRow]),
-        sumsByAccount: vi.fn().mockResolvedValue([
-          { bankAccountId: "aC", type: "EXPENSE", sum: "1024990" },
-          { bankAccountId: "aC", type: "INCOME", sum: "24990" },
-        ]),
-      });
+    it("exposes the persisted creditUsed and creditLimit", async () => {
+      const svc = makeService({ list: vi.fn().mockResolvedValue([creditRow]) });
       const [acc] = await svc.list("u1", {});
       expect(acc.creditLimit).toBe("3000000.0000");
-      // 0 + 1,024,990 − 24,990 = 1,000,000
       expect(acc.creditUsed).toBe("1000000.0000");
     });
 
-    it("includes the creditUsedInitial seed", async () => {
-      const seeded = { ...creditRow, creditUsedInitial: { toString: () => "50000" } };
+    it("reports creditUsed 0 for non-credit accounts even if the column is non-zero", async () => {
       const svc = makeService({
-        list: vi.fn().mockResolvedValue([seeded]),
-        sumsByAccount: vi
-          .fn()
-          .mockResolvedValue([{ bankAccountId: "aC", type: "EXPENSE", sum: "100000" }]),
-      });
-      const [acc] = await svc.list("u1", {});
-      // 50,000 + 100,000 − 0 = 150,000
-      expect(acc.creditUsed).toBe("150000.0000");
-    });
-
-    it("reports creditUsed 0 for non-credit accounts", async () => {
-      const svc = makeService({
-        list: vi.fn().mockResolvedValue([row]),
-        sumsByAccount: vi
-          .fn()
-          .mockResolvedValue([{ bankAccountId: "a1", type: "EXPENSE", sum: "999" }]),
+        list: vi.fn().mockResolvedValue([{ ...row, creditUsed: { toString: () => "999" } }]),
       });
       const [acc] = await svc.list("u1", {});
       expect(acc.creditUsed).toBe("0");
@@ -324,12 +312,7 @@ describe("AccountsService", () => {
         ],
       };
       const svc = makeService(
-        {
-          list: vi.fn().mockResolvedValue([withPrimaryCard]),
-          sumsByAccount: vi
-            .fn()
-            .mockResolvedValue([{ bankAccountId: "aC", type: "EXPENSE", sum: "1000000" }]),
-        },
+        { list: vi.fn().mockResolvedValue([withPrimaryCard]) },
         {
           sumsByCard: vi
             .fn()
@@ -373,11 +356,8 @@ describe("AccountsService", () => {
       };
       const svc = makeService(
         {
+          // Combined pool usage across both cards: 700,000 + 300,000 = 1,000,000 (persisted).
           list: vi.fn().mockResolvedValue([withTwoSharedCards]),
-          // Combined pool usage across both cards: 700,000 + 300,000 = 1,000,000.
-          sumsByAccount: vi
-            .fn()
-            .mockResolvedValue([{ bankAccountId: "aC", type: "EXPENSE", sum: "1000000" }]),
         },
         {
           sumsByCard: vi.fn().mockResolvedValue([

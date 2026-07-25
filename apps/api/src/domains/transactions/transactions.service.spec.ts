@@ -28,6 +28,8 @@ function makeService(repo: Partial<TransactionsRepository>) {
   // Every credit-pool check also probes for a per-card sub-limit; default to "none set".
   return new TransactionsService({
     findCardLimit: vi.fn().mockResolvedValue(null),
+    findOrCreateOpenStatement: vi.fn().mockResolvedValue({ id: "stmt1" }),
+    isStatementPaid: vi.fn().mockResolvedValue(false),
     ...repo,
   } as TransactionsRepository);
 }
@@ -36,8 +38,9 @@ const creditAccount = {
   id: "aC",
   type: "CREDIT_LINE",
   currency: "CLP",
-  creditLimit: "3000000",
-  creditUsedInitial: "0",
+  creditLimit: { toString: () => "3000000" },
+  creditUsed: { toString: () => "0" },
+  billingSettings: { billingCycleDay: null as number | null },
 };
 
 const base = { currency: "CLP", occurredAt: "2026-03-01T00:00:00.000Z" };
@@ -150,14 +153,15 @@ describe("TransactionsService", () => {
     expect(create).toHaveBeenCalled();
   });
 
-  // --- Credit-pool enforcement (account-level) ---
+  // --- Credit-pool enforcement (account-level, persisted `creditUsed`) ---
 
-  it("allows a credit-line expense within the pool", async () => {
+  it("allows a credit-line expense within the pool and persists the increment", async () => {
     const create = vi.fn().mockResolvedValue(row);
+    const adjustCreditUsed = vi.fn();
     const svc = makeService({
       findAccount: vi.fn().mockResolvedValue(creditAccount),
       findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
-      sumsForAccount: vi.fn().mockResolvedValue({ income: "0", expense: "0" }),
+      adjustCreditUsed,
       create,
     });
     await svc.create("u1", {
@@ -168,76 +172,14 @@ describe("TransactionsService", () => {
       cardId: "cC",
     });
     expect(create).toHaveBeenCalled();
+    expect(adjustCreditUsed).toHaveBeenCalledWith("aC", "100000");
   });
 
-  it("scopes the shared-pool sum to the account's own currency (a card can pool-share in one currency while independent in another)", async () => {
-    const create = vi.fn().mockResolvedValue(row);
-    const sumsForAccount = vi.fn().mockResolvedValue({ income: "0", expense: "0" });
+  it("rejects a credit-line expense that exceeds the persisted pool", async () => {
     const svc = makeService({
-      findAccount: vi.fn().mockResolvedValue(creditAccount),
+      // used = 2,950,000; +100k = 3.05M > 3M
+      findAccount: vi.fn().mockResolvedValue({ ...creditAccount, creditUsed: { toString: () => "2950000" } }),
       findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
-      sumsForAccount,
-      create,
-    });
-    await svc.create("u1", {
-      ...base,
-      type: "EXPENSE",
-      amount: "100000",
-      bankAccountId: "aC",
-      cardId: "cC",
-    });
-    expect(sumsForAccount.mock.calls[0]![2]).toBe("CLP"); // account.currency
-  });
-
-  it("passes the account type through, and scopes to the current billing cycle when the account has one configured", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-07-22T12:00:00Z"));
-    const create = vi.fn().mockResolvedValue(row);
-    const sumsForAccount = vi.fn().mockResolvedValue({ income: "0", expense: "0" });
-    const svc = makeService({
-      findAccount: vi.fn().mockResolvedValue({ ...creditAccount, billingCycleDay: 15 }),
-      findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
-      sumsForAccount,
-      create,
-    });
-    await svc.create("u1", {
-      ...base,
-      type: "EXPENSE",
-      amount: "100000",
-      bankAccountId: "aC",
-      cardId: "cC",
-    });
-    expect(sumsForAccount.mock.calls[0]![3]).toBe("CREDIT_LINE"); // account.type
-    const since = sumsForAccount.mock.calls[0]![4] as Date;
-    expect(since.toISOString()).toBe("2026-07-15T00:00:00.000Z");
-    vi.useRealTimers();
-  });
-
-  it("leaves the sum all-time (no cycle) when the account has no billing day configured", async () => {
-    const create = vi.fn().mockResolvedValue(row);
-    const sumsForAccount = vi.fn().mockResolvedValue({ income: "0", expense: "0" });
-    const svc = makeService({
-      findAccount: vi.fn().mockResolvedValue(creditAccount),
-      findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
-      sumsForAccount,
-      create,
-    });
-    await svc.create("u1", {
-      ...base,
-      type: "EXPENSE",
-      amount: "100000",
-      bankAccountId: "aC",
-      cardId: "cC",
-    });
-    expect(sumsForAccount.mock.calls[0]![4]).toBeNull();
-  });
-
-  it("rejects a credit-line expense that exceeds the pool", async () => {
-    const svc = makeService({
-      findAccount: vi.fn().mockResolvedValue(creditAccount),
-      findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
-      // used = 0 + 2,950,000 − 0 = 2.95M; +100k = 3.05M > 3M
-      sumsForAccount: vi.fn().mockResolvedValue({ income: "0", expense: "2950000" }),
     });
     await expect(
       svc.create("u1", {
@@ -250,26 +192,25 @@ describe("TransactionsService", () => {
     ).rejects.toMatchObject({ response: { code: "CARD_LIMIT_EXCEEDED" } });
   });
 
-  it("counts credit payments (income) as reducing the used pool", async () => {
+  it("counts credit payments (income) as decrementing the persisted pool", async () => {
     const create = vi.fn().mockResolvedValue(row);
+    const adjustCreditUsed = vi.fn();
     const svc = makeService({
-      findAccount: vi.fn().mockResolvedValue(creditAccount),
-      findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
-      // used = 0 + 2,950,000 − 200,000 = 2.75M; +100k = 2.85M ≤ 3M → ok
-      sumsForAccount: vi.fn().mockResolvedValue({ income: "200000", expense: "2950000" }),
+      findAccount: vi.fn().mockResolvedValue({ ...creditAccount, creditUsed: { toString: () => "2750000" } }),
+      adjustCreditUsed,
       create,
     });
     await svc.create("u1", {
       ...base,
-      type: "EXPENSE",
-      amount: "100000",
+      type: "INCOME",
+      amount: "200000",
       bankAccountId: "aC",
-      cardId: "cC",
     });
     expect(create).toHaveBeenCalled();
+    expect(adjustCreditUsed).toHaveBeenCalledWith("aC", "-200000.0000");
   });
 
-  // --- Update: re-enforce excluding the edited tx ---
+  // --- Update/delete: revert the old contribution, apply the new one ---
 
   it("throws NotFound updating a missing transaction", async () => {
     const svc = makeService({ findOne: vi.fn().mockResolvedValue(null) });
@@ -278,7 +219,7 @@ describe("TransactionsService", () => {
     );
   });
 
-  it("re-enforces on edit excluding the edited tx's own contribution", async () => {
+  it("nets the old vs. new contribution to the same account on edit", async () => {
     const current = {
       ...row,
       id: "tX",
@@ -287,28 +228,51 @@ describe("TransactionsService", () => {
       currency: "CLP",
       amount: { toString: () => "100000" },
     };
-    const sumsForAccount = vi.fn().mockResolvedValue({ income: "0", expense: "0" });
+    const adjustCreditUsed = vi.fn();
     const update = vi.fn().mockResolvedValue({ ...current, amount: { toString: () => "250000" } });
+    const svc = makeService({
+      findOne: vi.fn().mockResolvedValue(current),
+      // creditUsed already reflects the tx's own old 100,000 contribution.
+      findAccount: vi.fn().mockResolvedValue({ ...creditAccount, creditUsed: { toString: () => "100000" } }),
+      findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
+      adjustCreditUsed,
+      update,
+    });
+    await svc.update("u1", "tX", { amount: "250000" });
+    expect(update).toHaveBeenCalled();
+    // net delta = new (250000) - old (100000) = 150000
+    expect(adjustCreditUsed).toHaveBeenCalledWith("aC", "150000.0000");
+  });
+
+  it("reverts the transaction's contribution on delete", async () => {
+    const current = {
+      ...row,
+      id: "tX",
+      bankAccountId: "aC",
+      cardId: "cC",
+      currency: "CLP",
+      type: "EXPENSE" as const,
+      amount: { toString: () => "100000" },
+    };
+    const adjustCreditUsed = vi.fn();
     const svc = makeService({
       findOne: vi.fn().mockResolvedValue(current),
       findAccount: vi.fn().mockResolvedValue(creditAccount),
       findCardInAccount: vi.fn().mockResolvedValue({ id: "cC", kind: "CREDIT" }),
-      sumsForAccount,
-      update,
+      remove: vi.fn().mockResolvedValue(true),
+      adjustCreditUsed,
     });
-    await svc.update("u1", "tX", { amount: "250000" });
-    expect(sumsForAccount.mock.calls[0]![5]).toBe("tX"); // excludeTxId
-    expect(update).toHaveBeenCalled();
+    await svc.remove("u1", "tX");
+    expect(adjustCreditUsed).toHaveBeenCalledWith("aC", "-100000.0000");
   });
 
-  // --- Per-card sub-limit enforcement (narrower than the account pool) ---
+  // --- Per-card sub-limit enforcement (narrower than the account pool, still derived) ---
 
   it("allows a credit-line expense within both the account pool and the card's own sub-limit", async () => {
     const create = vi.fn().mockResolvedValue(row);
     const svc = makeService({
       findAccount: vi.fn().mockResolvedValue(creditAccount),
       findCardInAccount: vi.fn().mockResolvedValue({ id: "cSecondary", kind: "CREDIT" }),
-      sumsForAccount: vi.fn().mockResolvedValue({ income: "0", expense: "0" }),
       findCardLimit: vi.fn().mockResolvedValue({ limitAmount: { toString: () => "1000000" }, usedInitial: { toString: () => "0" } }),
       sumsForCard: vi.fn().mockResolvedValue({ income: "0", expense: "500000" }),
       create,
@@ -327,7 +291,6 @@ describe("TransactionsService", () => {
     const svc = makeService({
       findAccount: vi.fn().mockResolvedValue(creditAccount),
       findCardInAccount: vi.fn().mockResolvedValue({ id: "cSecondary", kind: "CREDIT" }),
-      sumsForAccount: vi.fn().mockResolvedValue({ income: "0", expense: "0" }),
       // sub-limit 1M, already used 950k → +100k = 1.05M > 1M
       findCardLimit: vi.fn().mockResolvedValue({ limitAmount: { toString: () => "1000000" }, usedInitial: { toString: () => "0" } }),
       sumsForCard: vi.fn().mockResolvedValue({ income: "0", expense: "950000" }),
@@ -345,11 +308,16 @@ describe("TransactionsService", () => {
 
   it("enforces the account pool + card sub-limit for a CREDIT card on a non-credit-line account (e.g. checking)", async () => {
     const svc = makeService({
-      findAccount: vi.fn().mockResolvedValue({ id: "a1", type: "CHECKING", creditLimit: "500000", creditUsedInitial: "0" }),
+      findAccount: vi.fn().mockResolvedValue({
+        id: "a1",
+        type: "CHECKING",
+        creditLimit: { toString: () => "500000" },
+        creditUsed: { toString: () => "450000" },
+        billingSettings: { billingCycleDay: null },
+      }),
       findCardInAccount: vi.fn().mockResolvedValue({ id: "cCredit", kind: "CREDIT" }),
-      sumsForAccount: vi.fn().mockResolvedValue({ income: "0", expense: "450000" }),
     });
-    // account pool: 0 + 450,000 = 450k; +100k = 550k > 500k limit
+    // account pool: 450k; +100k = 550k > 500k limit
     await expect(
       svc.create("u1", {
         ...base,
@@ -363,11 +331,17 @@ describe("TransactionsService", () => {
 
   it("skips pool/sub-limit checks entirely for a DEBIT card on a checking account", async () => {
     const create = vi.fn().mockResolvedValue(row);
-    const sumsForAccount = vi.fn();
+    const adjustCreditUsed = vi.fn();
     const svc = makeService({
-      findAccount: vi.fn().mockResolvedValue({ id: "a1", type: "CHECKING", creditLimit: "0", creditUsedInitial: "0" }),
+      findAccount: vi.fn().mockResolvedValue({
+        id: "a1",
+        type: "CHECKING",
+        creditLimit: { toString: () => "0" },
+        creditUsed: { toString: () => "0" },
+        billingSettings: { billingCycleDay: null },
+      }),
       findCardInAccount: vi.fn().mockResolvedValue({ id: "cDebit", kind: "DEBIT" }),
-      sumsForAccount,
+      adjustCreditUsed,
       create,
     });
     await svc.create("u1", {
@@ -378,6 +352,6 @@ describe("TransactionsService", () => {
       cardId: "cDebit",
     });
     expect(create).toHaveBeenCalled();
-    expect(sumsForAccount).not.toHaveBeenCalled();
+    expect(adjustCreditUsed).not.toHaveBeenCalled();
   });
 });

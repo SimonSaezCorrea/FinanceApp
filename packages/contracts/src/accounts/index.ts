@@ -55,6 +55,11 @@ export function institutionKindForAccountType(type: AccountType): InstitutionKin
 export const accountStatus = z.enum(["ACTIVE", "INACTIVE"]);
 export type AccountStatus = z.infer<typeof accountStatus>;
 
+/** Whether the user intends to pay the credit statement manually or automatically.
+ * Stored preference only — AUTOMATIC has no functional effect yet (see docs/PENDING.md). */
+export const billingPaymentMethod = z.enum(["MANUAL", "AUTOMATIC"]);
+export type BillingPaymentMethod = z.infer<typeof billingPaymentMethod>;
+
 // --- Cards (payment instruments; the physical "plastic") ---
 
 export const cardKind = z.enum(["CREDIT", "DEBIT", "PREPAID"]);
@@ -163,14 +168,18 @@ export const bankAccountSchema = z.object({
   currentBalance: moneyString,
   /** Credit pool for CREDIT_LINE accounts (shared by all its cards); "0" otherwise. */
   creditLimit: moneyString,
-  /** Reconciled used credit = creditUsedInitial + Σexpense − Σincome (derived). "0" for non-credit. */
+  /** Persisted, live used credit — seeded from creditUsedInitial, then mutated by
+   * transactions and by paying down a CreditStatement (see POST /accounts/:id/pay-credit).
+   * "0" for non-credit accounts. No longer derived/recomputed on read. */
   creditUsed: moneyString,
   /** All credit pools by currency (own currency + primary card's extra currencies, if any). Empty for non-credit accounts. */
   creditPools: z.array(creditPoolSchema),
-  /** Statement cut-off day (1-28). Once set, creditUsed/ownUsed/a card's own CardLimit.used
-   * are scoped to the current cycle (since the most recent occurrence of this day) instead
-   * of all-time. Null = no cycle configured, usage stays all-time. */
+  /** Statement cut-off day (1-28). Informational only — no automatic reset; usage only
+   * goes down via an explicit "pay credit" action. Null = not configured yet. */
   billingCycleDay: z.number().int().min(1).max(28).nullable(),
+  /** Manual (default) or automatic credit-statement payment preference. AUTOMATIC has no
+   * functional effect yet (see docs/PENDING.md). */
+  paymentMethod: billingPaymentMethod,
   /** Reconciled running balance, one point per day over a trailing window (oldest→newest, ends at currentBalance). For sparklines. */
   balanceSeries: z.array(moneyString),
   /** Percent change across `balanceSeries` (e.g. "2.1"); null when the window has no meaningful baseline. */
@@ -193,8 +202,11 @@ export const createBankAccountSchema = z.object({
   /** For CREDIT_LINE accounts: the credit pool and any pre-existing used seed. */
   creditLimit: moneyString.optional(),
   creditUsedInitial: moneyString.optional(),
-  /** Statement cut-off day (1-28); omit/null to leave usage all-time (no cycle). */
+  /** Statement cut-off day (1-28); omit/null to leave unconfigured. Advanced setting —
+   * intentionally not exposed in the create-account UI, only editable afterward. */
   billingCycleDay: z.number().int().min(1).max(28).nullable().optional(),
+  /** Advanced setting — not exposed in the create-account UI, only editable afterward. */
+  paymentMethod: billingPaymentMethod.default("MANUAL"),
   cards: z.array(createCardSchema).optional(),
 }).refine((v) => !isAccountNumberRequired(v.type) || !!v.accountNumber?.trim(), {
   message: "accountNumber is required for this account type",
@@ -211,6 +223,45 @@ export type UpdateBankAccount = z.infer<typeof updateBankAccountSchema>;
 
 export const setAccountStatusSchema = z.object({ status: accountStatus });
 export type SetAccountStatus = z.infer<typeof setAccountStatusSchema>;
+
+/** Derived (not persisted) lifecycle of a `CreditStatement`: OPEN (still accumulating
+ * — transactions keep linking to it), PENDING (closed by generation, awaiting
+ * payment), PAID. */
+export const creditStatementStatus = z.enum(["OPEN", "PENDING", "PAID"]);
+export type CreditStatementStatus = z.infer<typeof creditStatementStatus>;
+
+/** A billing period ("facturación") for an account's shared credit pool. While
+ * unpaid, `amount` is the LIVE sum of transactions linked to it (computed
+ * server-side, not user-editable); once paid, it's a frozen snapshot that CAN be
+ * corrected manually (no cascade to the linked payment or to `creditUsed` —
+ * a deliberate simplification for personal use). */
+export const creditStatementSchema = z.object({
+  id: z.string(),
+  accountId: z.string(),
+  status: creditStatementStatus,
+  periodStart: z.string(),
+  /** Set once generation seals this period (cron or manual button). Null while OPEN. */
+  closedAt: z.string().nullable(),
+  /** Set once paid. Null while OPEN/PENDING. */
+  paidAt: z.string().nullable(),
+  amount: moneyString,
+  /** The bank account paid from, if paid. Null otherwise. */
+  paidFromAccountId: z.string().nullable(),
+  /** The real EXPENSE transaction created on `paidFromAccountId` at pay time. */
+  paidTransactionId: z.string().nullable(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type CreditStatement = z.infer<typeof creditStatementSchema>;
+
+/** Pay a statement by choosing a source bank account (must not be CREDIT_LINE). */
+export const payCreditStatementSchema = z.object({ fromAccountId: z.string() });
+export type PayCreditStatement = z.infer<typeof payCreditStatementSchema>;
+
+/** Manually correct a PAID statement's frozen amount. Rejected for OPEN/PENDING
+ * statements — those are edited by adding/editing/removing their linked transactions. */
+export const updateCreditStatementSchema = z.object({ amount: moneyString });
+export type UpdateCreditStatement = z.infer<typeof updateCreditStatementSchema>;
 
 /** List query filters. */
 export const accountFiltersSchema = z.object({

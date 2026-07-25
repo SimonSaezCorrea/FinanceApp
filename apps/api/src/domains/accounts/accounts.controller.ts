@@ -71,6 +71,42 @@ export class AccountsController {
     return this.service.reconcile(user.id, id);
   }
 
+  @Post(":id/generate-statements")
+  generateStatements(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+  ): Promise<accounts.CreditStatement[]> {
+    return this.service.generateStatements(user.id, id);
+  }
+
+  @Get(":id/credit-statements")
+  listCreditStatements(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+  ): Promise<accounts.CreditStatement[]> {
+    return this.service.listCreditStatements(user.id, id);
+  }
+
+  @Post(":id/credit-statements/:statementId/pay")
+  payCreditStatement(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+    @Param("statementId") statementId: string,
+    @Body(new ZodValidationPipe(accounts.payCreditStatementSchema)) body: accounts.PayCreditStatement,
+  ): Promise<accounts.CreditStatement> {
+    return this.service.payCreditStatement(user.id, id, statementId, body.fromAccountId);
+  }
+
+  @Patch(":id/credit-statements/:statementId")
+  updateCreditStatement(
+    @CurrentUser() user: AuthUser,
+    @Param("id") id: string,
+    @Param("statementId") statementId: string,
+    @Body(new ZodValidationPipe(accounts.updateCreditStatementSchema)) body: accounts.UpdateCreditStatement,
+  ): Promise<accounts.CreditStatement> {
+    return this.service.updateCreditStatement(user.id, id, statementId, body.amount);
+  }
+
   @Delete(":id")
   @HttpCode(204)
   remove(@CurrentUser() user: AuthUser, @Param("id") id: string): Promise<void> {

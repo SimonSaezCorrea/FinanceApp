@@ -1,4 +1,4 @@
-import { ChevronRight, Pencil, Plus, Power, RefreshCw, Trash2 } from "lucide-react";
+import { AlertTriangle, ChevronRight, Pencil, Plus, Power, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -21,7 +21,10 @@ import { Card, CardContent } from "../../../shared/ui/card";
 import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
 import { Select } from "../../../shared/ui/select";
 import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
+import { Tabs } from "../../../shared/ui/tabs";
 import { AccountForm } from "../components/AccountForm";
+import { BillingSection } from "../components/BillingSection";
+import { BillingSettingsModal } from "../components/BillingSettingsModal";
 import { AccountVisualCard } from "../components/AccountVisualCard";
 import { CardCreateModal } from "../components/CardCreateModal";
 import { CardDetailModal } from "../components/CardDetailModal";
@@ -35,6 +38,8 @@ export function AccountDetailRoute() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [billingModalOpen, setBillingModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"movements" | "billing">("movements");
   const { data: acc, isLoading, isError } = useAccount(id);
   const { update, setStatus, reconcile, remove } = useAccountMutations();
 
@@ -43,6 +48,7 @@ export function AccountDetailRoute() {
 
   const Icon = ACCOUNT_ICON[acc.type];
   const pct = acc.balanceChangePct === null ? null : Number(acc.balanceChangePct);
+  const hasCreditPool = acc.type === "CREDIT_LINE" || acc.cards.some((c) => c.kind === "CREDIT");
 
   return (
     <div className="flex flex-col gap-6">
@@ -68,6 +74,10 @@ export function AccountDetailRoute() {
                   <Badge variant={acc.status === "ACTIVE" ? "success" : "neutral"}>
                     {t(`accounts.status.${acc.status}`)}
                   </Badge>
+                  <BillingNotConfiguredBadge
+                    account={acc}
+                    onConfigure={() => setBillingModalOpen(true)}
+                  />
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   {t(`accounts.type.${acc.type}`)} · {acc.currency}
@@ -111,6 +121,7 @@ export function AccountDetailRoute() {
                     creditLimit: acc.creditLimit,
                     creditUsedInitial: acc.creditUsed,
                     billingCycleDay: acc.billingCycleDay?.toString() ?? "",
+                    paymentMethod: acc.paymentMethod,
                   }}
                   onSubmit={(v) =>
                     update.mutate(
@@ -127,6 +138,7 @@ export function AccountDetailRoute() {
                           creditLimit: v.creditLimit || "0",
                           creditUsedInitial: v.creditUsedInitial || "0",
                           billingCycleDay: v.billingCycleDay ? Number(v.billingCycleDay) : null,
+                          paymentMethod: v.paymentMethod,
                         },
                       },
                       { onSuccess: () => setEditing(false) },
@@ -138,7 +150,25 @@ export function AccountDetailRoute() {
           ) : (
             <>
               <KpiStrip account={acc} pct={pct} />
-              <MovementsSection account={acc} />
+              {hasCreditPool ? (
+                <>
+                  <Tabs
+                    value={activeTab}
+                    onChange={setActiveTab}
+                    items={[
+                      { value: "movements", label: t("transactions.title") },
+                      { value: "billing", label: t("accounts.detail.billingTitle") },
+                    ]}
+                  />
+                  {activeTab === "movements" ? (
+                    <MovementsSection account={acc} />
+                  ) : (
+                    <BillingSection account={acc} />
+                  )}
+                </>
+              ) : (
+                <MovementsSection account={acc} />
+              )}
             </>
           )}
         </div>
@@ -190,7 +220,39 @@ export function AccountDetailRoute() {
           </Button>
         </aside>
       </div>
+
+      <BillingSettingsModal
+        account={acc}
+        open={billingModalOpen}
+        onOpenChange={setBillingModalOpen}
+      />
     </div>
+  );
+}
+
+/** Small reminder icon next to the account name (not just at creation time) while a
+ * credit-pool account still has no billing day configured — click opens a dedicated
+ * settings modal (not the full account-edit form). */
+function BillingNotConfiguredBadge({
+  account,
+  onConfigure,
+}: {
+  account: accounts.BankAccount;
+  onConfigure: () => void;
+}) {
+  const { t } = useTranslation();
+  const hasCreditPool = account.type === "CREDIT_LINE" || account.cards.some((c) => c.kind === "CREDIT");
+  if (!hasCreditPool || account.billingCycleDay !== null) return null;
+  return (
+    <button
+      type="button"
+      onClick={onConfigure}
+      title={t("accounts.form.billingNotConfiguredWarning")}
+      aria-label={t("accounts.form.billingNotConfiguredWarning")}
+      className="flex h-6 w-6 items-center justify-center rounded-full bg-warning/15 text-warning hover:bg-warning/25"
+    >
+      <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
+    </button>
   );
 }
 

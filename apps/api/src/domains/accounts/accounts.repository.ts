@@ -1,11 +1,14 @@
 import { Injectable } from "@nestjs/common";
-import { type AccountType, type Prisma, TransactionType } from "@prisma/client";
+import { Prisma, TransactionType } from "@prisma/client";
 
 import { PrismaService } from "../../infra/prisma/prisma.service";
-import { currentCycleStart } from "./billing-cycle";
 
 const withCards = {
-  include: { cards: { include: { limits: true } }, financialInstitution: true },
+  include: {
+    cards: { include: { limits: true } },
+    financialInstitution: true,
+    billingSettings: true,
+  },
 } as const;
 
 /** All access scoped by userId (Constitution Principle II). */
@@ -58,59 +61,6 @@ export class AccountsRepository {
     });
   }
 
-  /**
-   * Σ amount by (account, type), scoped to user, for derived credit `used`.
-   * One scoped query per account (not a single batched groupBy) since each
-   * account can have its own billing cycle window — see `TransactionsRepository
-   * .sumsForAccount` (transactions domain) for the identical card-scoping
-   * rationale (CREDIT_LINE: everything counts except independently-limited
-   * cards; any other account type: only pool-sharing CREDIT-card expense
-   * counts, never unrelated debit/cash/income) applied here for display.
-   */
-  async sumsByAccount(
-    userId: string,
-    accountsInfo: { id: string; type: AccountType; currency: string; billingCycleDay: number | null }[],
-  ): Promise<{ bankAccountId: string | null; type: TransactionType; sum: string }[]> {
-    if (accountsInfo.length === 0) return [];
-    const now = new Date();
-    const result: { bankAccountId: string | null; type: TransactionType; sum: string }[] = [];
-    for (const acc of accountsInfo) {
-      const cards = await this.prisma.cardAccount.findMany({
-        where: { accountId: acc.id, userId },
-        select: { id: true, kind: true, limits: { where: { currency: acc.currency }, select: { id: true } } },
-      });
-      const independentCardIds = cards.filter((c) => c.limits.length > 0).map((c) => c.id);
-      const cardFilter: Prisma.TransactionWhereInput =
-        acc.type === "CREDIT_LINE"
-          ? independentCardIds.length > 0
-            ? { cardId: { notIn: independentCardIds } }
-            : {}
-          : {
-              cardId: {
-                in: cards
-                  .filter((c) => c.kind === "CREDIT" && !independentCardIds.includes(c.id))
-                  .map((c) => c.id),
-              },
-            };
-      const since = currentCycleStart(acc.billingCycleDay, now);
-      const grouped = await this.prisma.transaction.groupBy({
-        by: ["type"],
-        where: {
-          userId,
-          bankAccountId: acc.id,
-          currency: acc.currency,
-          ...cardFilter,
-          ...(since ? { occurredAt: { gte: since } } : {}),
-        },
-        _sum: { amount: true },
-      });
-      for (const g of grouped) {
-        result.push({ bankAccountId: acc.id, type: g.type, sum: g._sum.amount?.toString() ?? "0" });
-      }
-    }
-    return result;
-  }
-
   /** Sum of linked transaction amounts by type, scoped to user + account. */
   async sumByType(userId: string, accountId: string): Promise<{ income: string; expense: string }> {
     const grouped = await this.prisma.transaction.groupBy({
@@ -121,5 +71,124 @@ export class AccountsRepository {
     const find = (t: TransactionType) =>
       grouped.find((g) => g.type === t)?._sum.amount?.toString() ?? "0";
     return { income: find(TransactionType.INCOME), expense: find(TransactionType.EXPENSE) };
+  }
+
+  /** Billing-period history for an account's credit pool, most recent first. */
+  listCreditStatements(userId: string, accountId: string) {
+    return this.prisma.creditStatement.findMany({
+      where: { accountId, account: { userId } },
+      orderBy: { createdAt: "desc" },
+    });
+  }
+
+  /** One statement, scoped to the account/user. */
+  findStatement(userId: string, accountId: string, statementId: string) {
+    return this.prisma.creditStatement.findFirst({
+      where: { id: statementId, accountId, account: { userId } },
+    });
+  }
+
+  /** The account's currently OPEN billing period (`closedAt: null`), if any — used by
+   * `BillingGenerationService` to decide whether there's anything to close ("no usage,
+   * no statement was ever created, nothing to generate"). */
+  findOpenStatement(accountId: string) {
+    return this.prisma.creditStatement.findFirst({
+      where: { accountId, closedAt: null },
+    });
+  }
+
+  /** Every account (any user) with a billing day configured — the cron's universe;
+   * a system job, not a per-request scoped query. */
+  listAccountsWithBillingCycle() {
+    return this.prisma.bankAccount.findMany({
+      where: { billingSettings: { billingCycleDay: { not: null } } },
+      ...withCards,
+    });
+  }
+
+  /** Seals an OPEN statement at the given boundary — it stops accepting new links;
+   * the next contributing transaction lazily opens a fresh one for the account. */
+  closeStatement(statementId: string, closedAt: Date) {
+    return this.prisma.creditStatement.update({ where: { id: statementId }, data: { closedAt } });
+  }
+
+  /** Live sum (Σexpense − Σincome) of every transaction currently linked to this
+   * statement — the displayed `amount` while unpaid (see `CreditStatement`). */
+  async sumLinkedTransactions(statementId: string): Promise<string> {
+    const grouped = await this.prisma.transaction.groupBy({
+      by: ["type"],
+      where: { creditStatementId: statementId },
+      _sum: { amount: true },
+    });
+    const find = (t: TransactionType) =>
+      grouped.find((g) => g.type === t)?._sum.amount?.toString() ?? "0";
+    const expense = find(TransactionType.EXPENSE);
+    const income = find(TransactionType.INCOME);
+    return new Prisma.Decimal(expense).minus(income).toString();
+  }
+
+  /**
+   * Pay a statement atomically: creates the real EXPENSE payment transaction on
+   * `fromAccountId`, decrements the credit account's `creditUsed` by the same amount,
+   * and freezes the statement as paid (closing it too, if it was still OPEN).
+   */
+  payStatement(params: {
+    userId: string;
+    creditAccountId: string;
+    statementId: string;
+    fromAccountId: string;
+    amount: string;
+    currency: string;
+    description: string;
+    wasClosedAt: Date | null;
+  }) {
+    const now = new Date();
+    return this.prisma.$transaction(async (tx) => {
+      const paymentTx = await tx.transaction.create({
+        data: {
+          userId: params.userId,
+          bankAccountId: params.fromAccountId,
+          type: "EXPENSE",
+          amount: params.amount,
+          currency: params.currency,
+          occurredAt: now,
+          category: "Pago facturación",
+          description: params.description,
+        },
+      });
+      await tx.bankAccount.update({
+        where: { id: params.creditAccountId },
+        data: { creditUsed: { decrement: params.amount } },
+      });
+      return tx.creditStatement.update({
+        where: { id: params.statementId },
+        data: {
+          amount: params.amount,
+          paidAt: now,
+          paidFromAccountId: params.fromAccountId,
+          paidTransactionId: paymentTx.id,
+          closedAt: params.wasClosedAt ?? now,
+        },
+      });
+    });
+  }
+
+  /** Correct a PAID statement's frozen amount — no cascade to the linked payment
+   * transaction or to `creditUsed` (deliberate, see `CreditStatement`). */
+  updateStatementAmount(statementId: string, amount: string) {
+    return this.prisma.creditStatement.update({ where: { id: statementId }, data: { amount } });
+  }
+
+  /** Create-or-update the account's billing settings (1:1, split out from `BankAccount`
+   * so it can be reviewed/maintained independently — see `BillingSettings` in schema). */
+  upsertBillingSettings(
+    accountId: string,
+    data: { billingCycleDay?: number | null; paymentMethod?: "MANUAL" | "AUTOMATIC" },
+  ) {
+    return this.prisma.billingSettings.upsert({
+      where: { accountId },
+      create: { accountId, ...data },
+      update: data,
+    });
   }
 }

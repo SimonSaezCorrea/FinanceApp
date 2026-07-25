@@ -41,6 +41,7 @@ const account = {
   creditUsed: "0",
   creditPools: [],
   billingCycleDay: null,
+  paymentMethod: "MANUAL" as const,
   balanceSeries: Array.from({ length: 30 }, () => "1240.5000"),
   balanceChangePct: "0.0",
   cards: [],

@@ -118,13 +118,14 @@ model BankAccount {
   currentBalance    Decimal       @default(0) @db.Decimal(18, 4)
   /// Credit pool for CREDIT_LINE accounts (shared by all its cards). 0 otherwise.
   creditLimit       Decimal       @default(0) @db.Decimal(18, 4)
-  /// Seed of already-used credit at creation. Reconciled used = creditUsedInitial + Σexpense − Σincome.
+  /// Seed of already-used credit at account creation. Immutable baseline used only to
+  /// initialize `creditUsed` — never recomputed into afterward.
   creditUsedInitial Decimal       @default(0) @db.Decimal(18, 4)
-  /// Statement cut-off day (1-28) for CREDIT_LINE accounts / accounts that have grown a
-  /// CREDIT-kind card. `creditUsed`/`ownUsed`/a card's own `CardLimit.used` are scoped to
-  /// the current cycle (since the most recent occurrence of this day) instead of all-time
-  /// once set. Null = no cycle configured yet, usage stays all-time (backward compatible).
-  billingCycleDay   Int?
+  /// Persisted, live "used" balance for the account's shared credit pool. Seeded from
+  /// `creditUsedInitial` at creation; incremented/decremented by transactions (see
+  /// TransactionsService) and decremented when a `CreditStatement` is paid.
+  /// No longer derived/recomputed on read.
+  creditUsed        Decimal       @default(0) @db.Decimal(18, 4)
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 
@@ -135,11 +136,87 @@ model BankAccount {
   cards             CardAccount[]
   recurringExpenses RecurringExpense[]
   walletItems       WalletItemDashboard[]
+  /// Statements belonging to THIS credit account's pool.
+  creditStatements  CreditStatement[] @relation("CreditStatementAccount")
+  /// Statements (of some OTHER credit account) paid FROM this account.
+  paidStatements    CreditStatement[] @relation("CreditStatementPaidFrom")
+  billingSettings   BillingSettings?
 
   @@index([userId])
   @@index([status])
   @@index([institutionId])
   @@map("bank-account")
+}
+
+enum BillingPaymentMethod {
+  MANUAL
+  AUTOMATIC
+}
+
+/// Billing configuration for an account's shared credit pool — split out from
+/// `BankAccount` (1:1) so it can be reviewed/maintained/searched independently
+/// instead of growing the account table with every billing-related field.
+model BillingSettings {
+  id        String   @id @default(cuid())
+  accountId String   @unique
+  /// Statement cut-off day (1-28). Drives automatic statement generation (cron +
+  /// manual "Generar facturación" button, see `BillingGenerationService`) — when this
+  /// day passes, the account's currently OPEN `CreditStatement` (if any) is closed.
+  billingCycleDay Int?
+  /// Whether the user intends to pay the credit statement manually or automatically.
+  /// Stored preference only — AUTOMATIC is currently LOCKED in the UI (not selectable):
+  /// the payment-due-date design isn't finalized yet, so no automatic payment can be
+  /// scheduled safely (see PENDING.md). Column kept for when that ships.
+  paymentMethod   BillingPaymentMethod @default(MANUAL)
+  /// Day of month (1-28) the statement is due. Nullable/unused while AUTOMATIC is
+  /// locked — no UI writes this yet (see PENDING.md).
+  paymentDueDay   Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  account BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@map("billing-settings")
+}
+
+/// A billing period for an account's shared credit pool ("facturación"). Transactions
+/// that contribute to the pool are linked here live, as they happen
+/// (`Transaction.creditStatementId`) — while unpaid, the amount is NOT stored here but
+/// computed on read as the live sum of linked transactions (see
+/// `AccountsService`/`BillingGenerationService`). Derived status (not persisted):
+/// OPEN (`closedAt` null, still accumulating) → PENDING (`closedAt` set by
+/// generation, awaiting payment) → PAID (`paidAt` set).
+model CreditStatement {
+  id        String   @id @default(cuid())
+  accountId String
+  /// When this period started accumulating (the previous statement's `closedAt`, or
+  /// the account's `createdAt` for the very first one).
+  periodStart DateTime
+  /// Sealed by generation (cron/manual button) once `billingCycleDay` passes — null
+  /// while still open/accumulating.
+  closedAt  DateTime?
+  /// Set when paid. Only then is `amount` meaningful (frozen at pay time) and only
+  /// then can `amount` be corrected manually (no cascade to the linked payment
+  /// transaction or to `creditUsed` — a deliberate, personal-use simplification).
+  paidAt    DateTime?
+  /// Frozen snapshot amount, set at pay time. Null/ignored while unpaid — the
+  /// live amount is computed by summing linked transactions instead.
+  amount    Decimal? @db.Decimal(18, 4)
+  /// The bank account the payment was made from (never the credit account itself).
+  paidFromAccountId String?
+  /// The real EXPENSE transaction created on `paidFromAccount` at pay time.
+  paidTransactionId String? @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  account         BankAccount  @relation("CreditStatementAccount", fields: [accountId], references: [id], onDelete: Cascade)
+  paidFromAccount BankAccount? @relation("CreditStatementPaidFrom", fields: [paidFromAccountId], references: [id], onDelete: SetNull)
+  paidTransaction Transaction? @relation(fields: [paidTransactionId], references: [id], onDelete: SetNull)
+  linkedTransactions Transaction[] @relation("CreditStatementLinkedTransactions")
+
+  @@index([accountId])
+  @@index([paidFromAccountId])
+  @@map("credit-statement")
 }
 
 model CardAccount {
@@ -229,6 +306,10 @@ model Transaction {
   receptor          String?
   lugar             String?
   installmentPlanId String?
+  /// The credit-pool billing period this movement contributes to, if any — assigned
+  /// ONCE at creation (whichever statement was OPEN for the account at that moment),
+  /// never reassigned by date on edit. See `CreditStatement`.
+  creditStatementId String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -236,10 +317,15 @@ model Transaction {
   bankAccount     BankAccount?     @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
   card            CardAccount?     @relation(fields: [cardId], references: [id], onDelete: SetNull)
   installmentPlan InstallmentPlan? @relation(fields: [installmentPlanId], references: [id], onDelete: SetNull)
+  creditStatement CreditStatement? @relation("CreditStatementLinkedTransactions", fields: [creditStatementId], references: [id], onDelete: SetNull)
+  /// The (at most one) CreditStatement this transaction was the payment FOR (reverse
+  /// of `CreditStatement.paidTransaction`) — distinct from `creditStatement` above.
+  paidForStatement CreditStatement?
 
   @@index([userId])
   @@index([bankAccountId])
   @@index([cardId])
+  @@index([creditStatementId])
   @@index([occurredAt])
   @@index([installmentPlanId])
   @@index([category])

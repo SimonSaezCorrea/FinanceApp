@@ -20,3 +20,16 @@ export function currentCycleStart(billingCycleDay: number | null, now: Date): Da
   }
   return new Date(Date.UTC(year, month - 1, billingCycleDay));
 }
+
+/**
+ * The first occurrence of `billingCycleDay` strictly after `periodStart` — the
+ * boundary at which an OPEN `CreditStatement` starting on `periodStart` should be
+ * closed by `BillingGenerationService`. Same "1-28 only" range as `currentCycleStart`
+ * (every month has that day, no end-of-month clamping needed).
+ */
+export function nextBoundaryAfter(periodStart: Date, billingCycleDay: number): Date {
+  const year = periodStart.getUTCFullYear();
+  const month = periodStart.getUTCMonth();
+  const candidate = new Date(Date.UTC(year, month, billingCycleDay));
+  return candidate > periodStart ? candidate : new Date(Date.UTC(year, month + 1, billingCycleDay));
+}

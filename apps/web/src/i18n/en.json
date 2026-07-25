@@ -56,7 +56,25 @@
     "detail": {
       "change": "Change",
       "credit": "Credit",
-      "creditPools": "Limits by currency"
+      "creditPools": "Limits by currency",
+      "billingSettingsTitle": "Configure billing",
+      "billingSettingsSubtitle": "This account's billing day and payment method.",
+      "billingTitle": "Statements",
+      "billingEmpty": "No statements yet — they're generated automatically as you use a credit card.",
+      "billingPeriod": "Period",
+      "billingAmount": "Amount",
+      "billingStatus": "Status",
+      "billingPaidAt": "Paid on",
+      "billingActions": "Actions",
+      "billingStatusValue": {
+        "OPEN": "Open",
+        "PENDING": "Pending",
+        "PAID": "Paid"
+      },
+      "payFromAccount": "Pay with",
+      "payFromAccountPlaceholder": "Select an account",
+      "correctAmountHint": "Correct this already-paid statement's amount. Doesn't affect the payment transaction already created or the used credit.",
+      "correctAmountConfirm": "Correct this statement's amount?"
     },
     "filter": {
       "label": "Filter by status",
@@ -79,8 +97,14 @@
       "creditUsedInitial": "Initial used credit",
       "billingCycleDay": "Billing day",
       "billingCycleDayPlaceholder": "E.g. 15",
-      "billingCycleDayHint": "Optional. On this day of the month, used credit resets (transactions aren't deleted, they just stop counting toward the current limit).",
+      "billingCycleDayHint": "Once this day of the month passes, the pending statement is generated automatically (or use the \"Generate statement\" button), waiting for you to pay it.",
+      "billingNotConfiguredWarning": "Billing not configured yet — you'll be able to set the billing day and payment method after creating the account, in Edit account.",
       "accountActive": "Account active",
+      "paymentMethod": "Statement payment",
+      "paymentMethodManual": "Manual",
+      "paymentMethodAutomatic": "Automatic",
+      "paymentMethodAutomaticLocked": "Coming soon — we're still defining how the payment due date works for automatic payment.",
+      "paymentDueDay": "Payment due date",
       "sectionAccountData": "Account details",
       "sectionBalanceCurrency": "Balance and currency",
       "preview": "Preview",
@@ -93,7 +117,14 @@
       "delete": "Delete",
       "reconcile": "Reconcile balance",
       "activate": "Activate",
-      "deactivate": "Deactivate"
+      "deactivate": "Deactivate",
+      "payCredit": "Pay statement",
+      "payCreditConfirm": "Pay {{amount}} of your statement? It will be deducted from used credit.",
+      "payCreditSuccess": "Statement paid",
+      "generateStatements": "Generate statement",
+      "generateStatementsSuccess": "Statements refreshed",
+      "correctAmount": "Correct amount",
+      "correctAmountSuccess": "Amount corrected"
     }
   },
   "cards": {

@@ -1,5 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import { type AccountType, type Prisma, TransactionType } from "@prisma/client";
+import { type Prisma, TransactionType } from "@prisma/client";
 
 import { PrismaService } from "../../infra/prisma/prisma.service";
 
@@ -17,10 +17,55 @@ export class TransactionsRepository {
         type: true,
         currency: true,
         creditLimit: true,
-        creditUsedInitial: true,
-        billingCycleDay: true,
+        creditUsed: true,
+        createdAt: true,
+        billingSettings: { select: { billingCycleDay: true } },
       },
     });
+  }
+
+  /** Atomically adjust the account's persisted credit-pool `creditUsed` by a signed amount. */
+  adjustCreditUsed(accountId: string, delta: string) {
+    return this.prisma.bankAccount.update({
+      where: { id: accountId },
+      data: { creditUsed: { increment: delta } },
+    });
+  }
+
+  /**
+   * The account's currently OPEN billing period (`closedAt: null`), or creates one if
+   * none exists — seeded from the previous statement's `closedAt`, or the account's
+   * `createdAt` for the very first period. Transactions that contribute to the pool
+   * link to whichever statement this returns at the moment they're created.
+   */
+  async findOrCreateOpenStatement(accountId: string): Promise<{ id: string }> {
+    const open = await this.prisma.creditStatement.findFirst({
+      where: { accountId, closedAt: null },
+      select: { id: true },
+    });
+    if (open) return open;
+    const [last, account] = await Promise.all([
+      this.prisma.creditStatement.findFirst({
+        where: { accountId },
+        orderBy: { createdAt: "desc" },
+        select: { closedAt: true },
+      }),
+      this.prisma.bankAccount.findUniqueOrThrow({ where: { id: accountId }, select: { createdAt: true } }),
+    ]);
+    return this.prisma.creditStatement.create({
+      data: { accountId, periodStart: last?.closedAt ?? account.createdAt },
+      select: { id: true },
+    });
+  }
+
+  /** Whether a given statement is already paid — governs the "don't touch creditUsed
+   * for transactions linked to an already-settled statement" edit/delete rule. */
+  async isStatementPaid(statementId: string): Promise<boolean> {
+    const s = await this.prisma.creditStatement.findUnique({
+      where: { id: statementId },
+      select: { paidAt: true },
+    });
+    return s?.paidAt != null;
   }
 
   /** The card (with `kind`, for credit-pool checks) if it's the user's and belongs to this account. */
@@ -36,68 +81,6 @@ export class TransactionsRepository {
     return this.prisma.cardLimit.findFirst({
       where: { currency, card: { id: cardId, userId } },
     });
-  }
-
-  /**
-   * Σ income/expense counting toward the account's SHARED credit pool (in the
-   * account's OWN currency — the pool doesn't exist in any other currency),
-   * optionally scoped to a billing cycle (`since`) and excluding one tx (for
-   * edits).
-   *
-   * For a standalone CREDIT_LINE account, every transaction genuinely belongs
-   * to the credit line (an EXPENSE always carries a CREDIT card, an INCOME is
-   * a payment) — so everything counts, except transactions on cards that carry
-   * their own `CardLimit` ("tope propio") **for that same currency** (a card
-   * can share the pool for its own currency while being independent for
-   * another, so the exclusion must be per-currency, not per-card).
-   *
-   * For any OTHER account type that's merely grown a credit card, day-to-day
-   * banking (debit-card spend, cash, salary/other income) must NOT count
-   * toward the credit pool — only EXPENSE via a pool-sharing CREDIT card does.
-   * There's no way today to record "a payment toward this specific add-on
-   * card" apart from ordinary account income (income never carries a card),
-   * so income is never subtracted for this case.
-   */
-  async sumsForAccount(
-    userId: string,
-    accountId: string,
-    currency: string,
-    accountType: AccountType,
-    since: Date | null,
-    excludeTxId?: string,
-  ): Promise<{ income: string; expense: string }> {
-    const cards = await this.prisma.cardAccount.findMany({
-      where: { accountId, userId },
-      select: { id: true, kind: true, limits: { where: { currency }, select: { id: true } } },
-    });
-    const independentCardIds = cards.filter((c) => c.limits.length > 0).map((c) => c.id);
-    const cardFilter: Prisma.TransactionWhereInput =
-      accountType === "CREDIT_LINE"
-        ? independentCardIds.length > 0
-          ? { cardId: { notIn: independentCardIds } }
-          : {}
-        : {
-            cardId: {
-              in: cards
-                .filter((c) => c.kind === "CREDIT" && !independentCardIds.includes(c.id))
-                .map((c) => c.id),
-            },
-          };
-    const grouped = await this.prisma.transaction.groupBy({
-      by: ["type"],
-      where: {
-        userId,
-        bankAccountId: accountId,
-        currency,
-        ...cardFilter,
-        ...(since ? { occurredAt: { gte: since } } : {}),
-        ...(excludeTxId ? { id: { not: excludeTxId } } : {}),
-      },
-      _sum: { amount: true },
-    });
-    const find = (t: TransactionType) =>
-      grouped.find((g) => g.type === t)?._sum.amount?.toString() ?? "0";
-    return { income: find(TransactionType.INCOME), expense: find(TransactionType.EXPENSE) };
   }
 
   /**

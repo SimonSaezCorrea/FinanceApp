@@ -14,7 +14,6 @@ import { Dialog } from "../../../shared/ui/dialog";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
-import { Switch } from "../../../shared/ui/switch";
 import { useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { useAccountMutations } from "../hooks/useAccounts";
 import { cleanExpiryInput, parseExpiry } from "../lib/cardExpiry";
@@ -50,12 +49,10 @@ export function AccountCreateModal({
   const { data: currencies } = useCurrencies();
   const [institutionId, setInstitutionId] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
-  const [status, setStatus] = useState<accounts.AccountStatus>("ACTIVE");
   const [currency, setCurrency] = useState("CLP");
   const [initialBalance, setInitialBalance] = useState("0");
   const [creditLimit, setCreditLimit] = useState("0");
   const [creditUsedInitial, setCreditUsedInitial] = useState("0");
-  const [billingCycleDay, setBillingCycleDay] = useState("");
   // For a CREDIT_LINE account, these identify its PRIMARY card directly (in
   // place of a bank "account number", which doesn't apply — there's no
   // account behind a standalone credit card, only the card itself). Its limit
@@ -90,12 +87,10 @@ export function AccountCreateModal({
     setType("CHECKING");
     setInstitutionId("");
     setAccountNumber("");
-    setStatus("ACTIVE");
     setCurrency("CLP");
     setInitialBalance("0");
     setCreditLimit("0");
     setCreditUsedInitial("0");
-    setBillingCycleDay("");
     setPrimaryLast4("");
     setPrimaryExpiry("");
     setPrimaryLast4Error(null);
@@ -160,14 +155,14 @@ export function AccountCreateModal({
       {
         name,
         type,
-        status,
+        status: "ACTIVE",
+        paymentMethod: "MANUAL",
         currency,
         institutionId: institutionId || undefined,
         accountNumber: isCreditLineType ? undefined : accountNumber || undefined,
         initialBalance: isCreditLineType ? "0" : initialBalance || "0",
         creditLimit: manualCreditPool ? creditLimit || "0" : undefined,
         creditUsedInitial: manualCreditPool ? creditUsedInitial || "0" : undefined,
-        billingCycleDay: hasCreditPool && billingCycleDay ? Number(billingCycleDay) : undefined,
         cards: allCards.length > 0 ? allCards : undefined,
       },
       {
@@ -357,34 +352,10 @@ export function AccountCreateModal({
             </Field>
           ) : null}
           {hasCreditPool ? (
-            <Field label={t("accounts.form.billingCycleDay")}>
-              <Input
-                id="m-billing-day"
-                inputMode="numeric"
-                placeholder={t("accounts.form.billingCycleDayPlaceholder")}
-                value={billingCycleDay}
-                onChange={(e) => {
-                  const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
-                  setBillingCycleDay(digits && Number(digits) > 28 ? "28" : digits);
-                }}
-                aria-label={t("accounts.form.billingCycleDay")}
-              />
-            </Field>
-          ) : null}
-          {hasCreditPool ? (
-            <p className="-mt-2 text-xs text-muted-foreground">
-              {t("accounts.form.billingCycleDayHint")}
+            <p className="-mt-2 rounded-md border border-dashed border-ring/60 p-2 text-xs text-muted-foreground">
+              {t("accounts.form.billingNotConfiguredWarning")}
             </p>
           ) : null}
-
-          <label className="mt-1 flex items-center gap-2">
-            <Switch
-              checked={status === "ACTIVE"}
-              onCheckedChange={(checked) => setStatus(checked ? "ACTIVE" : "INACTIVE")}
-              aria-label={t("accounts.form.accountActive")}
-            />
-            <span className="text-sm">{t("accounts.form.accountActive")}</span>
-          </label>
         </div>
 
         <div className="flex flex-col gap-4">

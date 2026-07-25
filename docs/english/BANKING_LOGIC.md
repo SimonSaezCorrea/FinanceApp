@@ -175,31 +175,61 @@ that in, since the seed conceptually belongs to the account as a whole, not to o
 So if an account's `creditUsedInitial` is non-zero, summing every pool-sharing card's `ownUsed`
 will fall short of `account.creditUsed` by exactly that seed amount — expected, not a bug.
 
-### 3.6 Billing cycles: usage resets, history doesn't
+### 3.6 The account's shared pool: persisted balance, live billing periods, real payments
 
-A real credit card has a statement cut-off date each month — everything you spend resets against
-the limit once a new cycle starts, even though every past charge is still there in your history.
-This app models that with **`BankAccount.billingCycleDay`** (nullable, `1`-`28`, so every month has
-that day — no end-of-month clamping needed):
+**`BankAccount.creditUsed`** is a **persisted, live column** — not recomputed from transactions on
+every read. It's seeded from `creditUsedInitial` at account creation, then:
 
-- **`null` (the default):** no cycle configured — every derived usage number (`creditUsed`, a
-  card's `ownUsed`, a card's own `CardLimit.used`) stays **all-time**, exactly as before this
-  feature existed. Fully backward compatible with every account created before it shipped.
-- **Set to a day (e.g. `15`):** those same numbers are recomputed scoped to the **current cycle
-  only** — since the most recent occurrence of that day-of-month
-  (`apps/api/src/domains/accounts/billing-cycle.ts`'s `currentCycleStart`). Once the cut-off passes,
-  usage genuinely drops back to (near) zero for both **display** and **enforcement** — a
-  transaction that would have been rejected for exceeding the limit last cycle can succeed again
-  in the new one. **Transactions themselves are never deleted or modified** — they simply stop
-  being summed once they're older than the current cycle's start.
-- **One day per account, shared by every card on it** — a card has no billing day of its own,
-  since in real life one statement covers every card drawing on the same account/pool.
-- **The seed values don't reset.** `creditUsedInitial` (account) and a `CardLimit`'s `usedInitial`
-  (a card's own sub-limit) have no per-cycle equivalent — they're still added on top of whatever
-  the current cycle's transactions sum to, every cycle, forever. This is a known simplification
-  (matching the same "no per-card seed" caveat in §3.5), not something this feature attempts to
-  solve — if you seed a baseline balance, expect it to keep showing up every cycle unless you edit
-  it away.
+- **Every EXPENSE via a pool-sharing CREDIT card** (or, on a standalone `CREDIT_LINE` account, any
+  EXPENSE at all) **increments** it by the transaction amount.
+- **INCOME on a standalone `CREDIT_LINE` account** (its only way to record a payment) **decrements**
+  it.
+- **Editing or deleting a transaction** reverts its old contribution and applies the new one (a
+  net delta on the same account, or a revert+apply pair if the transaction moved to a different
+  account) — see `TransactionsService.creditPoolContribution`/`validateMovement`. **Exception:**
+  once a transaction's billing period is PAID, editing/deleting it never touches `creditUsed`
+  again — its pool effect is already settled (see below).
+- A card with its own independent `CardLimit` for that currency does **not** touch the account
+  pool — its `CardLimit.used` stays derived from transactions exactly as before (unchanged, out of
+  scope for this model — see §3.7).
+
+**Billing periods (`CreditStatement`) are live, not computed after the fact.** Every contributing
+transaction links, at the moment it's created, to whichever period is currently **OPEN**
+(`closedAt: null`) for the account — creating one if this is the first contribution since the last
+close (`TransactionsRepository.findOrCreateOpenStatement`). A transaction's link is assigned once
+and never reassigned by date on edit ("se va llenando"). Three derived states (not a stored
+`status` column):
+
+- **OPEN** (`closedAt` null): still accumulating. Its displayed `amount` is **computed live** —
+  the sum of every transaction currently linked to it — so adding/editing/removing a linked
+  transaction updates it automatically, no manual correction ever needed while unpaid.
+- **PENDING** (`closedAt` set, `paidAt` null): sealed by generation (see below), awaiting payment.
+  Amount is still live (a transaction linked to it before payment could still be edited).
+- **PAID** (`paidAt` set): `amount` is **frozen** at the value it had at pay time. Only now can it
+  be corrected manually (`PATCH /accounts/:id/credit-statements/:id`, `{amount}`) — no cascade to
+  the linked payment transaction or to `creditUsed` (deliberate, personal-use simplification).
+
+**Generation** (`BillingGenerationService`, `apps/api/src/domains/accounts/billing-generation.service.ts`)
+closes the OPEN statement once `BillingSettings.billingCycleDay` (`1`-`28`) passes since it started
+— but only if the account (and its relevant credit card) is still `ACTIVE`; otherwise it's left
+open indefinitely ("se dejan de generar si la cuenta o la tarjeta está inactiva"), and if no
+statement was ever opened (no usage at all), there's nothing to close ("si no hubo uso, no se
+genera"). Two triggers share this exact logic: a **daily cron**
+(`src/infra/cron/billing-generation.cron.ts`, `@nestjs/schedule`, 3am) across every user's due
+accounts, and a **manual "Generar facturación" button** (`POST /accounts/:id/generate-statements`)
+scoped to one account.
+
+**Paying** (`POST /accounts/:id/credit-statements/:id/pay`, `{fromAccountId}`) requires choosing a
+real bank account (any type except `CREDIT_LINE`) — atomically: creates a normal EXPENSE
+`Transaction` on that account (visible in its own Movimientos, same as any other expense — its
+`currentBalance` only reflects after "Reconciliar saldo", same as everywhere else in the app, not
+a special case), decrements the credit account's `creditUsed` by the statement's amount (its
+snapshot at pay time, not a full reset — if new purchases happened after the period closed, they
+belong to the NEXT (new) open period and `creditUsed` still reflects them, leaving a remainder
+> 0 after paying), and freezes the statement as PAID.
+
+`BankAccount.paymentMethod` (`MANUAL` default, or `AUTOMATIC`) records the user's stated
+preference; `AUTOMATIC` is **locked in the UI** (can't be selected) — see `docs/PENDING.md`.
 
 ### 3.7 What's NOT modeled
 
@@ -211,6 +241,13 @@ that day — no end-of-month clamping needed):
   is currently no "promote a new primary" flow if the primary is deleted.
 - No way to record "a payment toward this specific add-on credit card" separately from ordinary
   account income, for a non-`CREDIT_LINE` account (see §4.2) — income never carries a card at all.
+- A card's own independent `CardLimit.used` is **not** part of the billing-period model in §3.6 —
+  it's still derived from transactions the old way (all-time, no periods, no payment action).
+- `AUTOMATIC` payment method and "fecha de pago" (a statement due date, separate from
+  `billingCycleDay`) are both unimplemented/locked — see `docs/PENDING.md`.
+- No retroactive multi-period catch-up: if the cron is down for a long time, generation closes only
+  the single most-recent due boundary with whatever accumulated, rather than splitting into several
+  historical periods.
 
 ---
 
@@ -304,8 +341,10 @@ the validation above.
 | Derived `creditPools`                               | `AccountsService`'s `toContract` (combines `creditLimit` + the primary's extra `CardLimit` rows) |
 | Derived `Card.ownUsed` (per-card usage)             | `CardsService`'s `toContract` (`apps/api/src/domains/accounts/cards.service.ts`) |
 | Transaction movement rules + credit enforcement     | `apps/api/src/domains/transactions/transactions.service.ts`                     |
-| Currency- and card-scoped pool sums                 | `TransactionsRepository.sumsForAccount`/`sumsForCard`, `AccountsRepository.sumsByAccount`, `CardsRepository.sumsByCard` |
-| Billing-cycle window helper                         | `apps/api/src/domains/accounts/billing-cycle.ts` (`currentCycleStart`)           |
+| Persisted `creditUsed` mutation on tx create/update/delete | `TransactionsService.creditPoolContribution`/`validateMovement`, `TransactionsRepository.adjustCreditUsed` |
+| Card-own-sub-limit sums (still derived, unchanged)  | `TransactionsRepository.sumsForCard`, `CardsRepository.sumsByCard`               |
+| Pay down the account's credit pool + payment history | `AccountsService.payCredit`/`listCreditStatements`, `POST/GET /accounts/:id/pay-credit`, `/credit-statements` |
+| Billing-cycle day (informational only)              | `apps/api/src/domains/accounts/billing-cycle.ts` (`currentCycleStart`, no longer used to scope any sum) |
 
 | Concept                                          | Frontend location                                                            |
 | --------------------------------------------------- | -------------------------------------------------------------------------------- |

@@ -56,7 +56,25 @@
     "detail": {
       "change": "Variación",
       "credit": "Crédito",
-      "creditPools": "Topes por moneda"
+      "creditPools": "Topes por moneda",
+      "billingSettingsTitle": "Configurar facturación",
+      "billingSettingsSubtitle": "Día de facturación y método de pago de esta cuenta.",
+      "billingTitle": "Facturación",
+      "billingEmpty": "Todavía no hay facturaciones — se generan automáticamente al usar una tarjeta de crédito.",
+      "billingPeriod": "Período",
+      "billingAmount": "Monto",
+      "billingStatus": "Estado",
+      "billingPaidAt": "Fecha de pago",
+      "billingActions": "Acciones",
+      "billingStatusValue": {
+        "OPEN": "Abierta",
+        "PENDING": "Pendiente",
+        "PAID": "Pagada"
+      },
+      "payFromAccount": "Pagar con",
+      "payFromAccountPlaceholder": "Selecciona una cuenta",
+      "correctAmountHint": "Corrige el monto de esta facturación ya pagada. No afecta el movimiento bancario ya creado ni el cupo usado.",
+      "correctAmountConfirm": "¿Corregir el monto de esta facturación?"
     },
     "filter": {
       "label": "Filtrar por estado",
@@ -79,8 +97,14 @@
       "creditUsedInitial": "Cupo usado inicial",
       "billingCycleDay": "Día de facturación",
       "billingCycleDayPlaceholder": "Ej. 15",
-      "billingCycleDayHint": "Opcional. Al llegar este día del mes, el cupo usado se reinicia (los movimientos no se borran, solo dejan de contar para el tope actual).",
+      "billingCycleDayHint": "Al llegar este día del mes se genera automáticamente la facturación pendiente (o usa el botón \"Generar facturación\"), a la espera de que la pagues.",
+      "billingNotConfiguredWarning": "Facturación no configurada — podrás configurar el día de facturación y el pago después de crear la cuenta, en Editar cuenta.",
       "accountActive": "Cuenta activa",
+      "paymentMethod": "Pago de facturación",
+      "paymentMethodManual": "Manual",
+      "paymentMethodAutomatic": "Automático",
+      "paymentMethodAutomaticLocked": "Próximamente — todavía estamos definiendo cómo funciona la fecha de pago para el pago automático.",
+      "paymentDueDay": "Fecha de pago",
       "sectionAccountData": "Datos de la cuenta",
       "sectionBalanceCurrency": "Saldo y moneda",
       "preview": "Vista previa",
@@ -93,7 +117,14 @@
       "delete": "Eliminar",
       "reconcile": "Reconciliar saldo",
       "activate": "Activar",
-      "deactivate": "Desactivar"
+      "deactivate": "Desactivar",
+      "payCredit": "Pagar facturación",
+      "payCreditConfirm": "¿Pagar {{amount}} de facturación? Se descontará del cupo usado.",
+      "payCreditSuccess": "Facturación pagada",
+      "generateStatements": "Generar facturación",
+      "generateStatementsSuccess": "Facturación revisada",
+      "correctAmount": "Corregir monto",
+      "correctAmountSuccess": "Monto corregido"
     }
   },
   "cards": {

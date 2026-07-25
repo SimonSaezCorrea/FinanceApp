@@ -12,7 +12,10 @@ export class CardsRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   accountExists(userId: string, accountId: string) {
-    return this.prisma.bankAccount.findFirst({ where: { id: accountId, userId } });
+    return this.prisma.bankAccount.findFirst({
+      where: { id: accountId, userId },
+      include: { billingSettings: { select: { billingCycleDay: true } } },
+    });
   }
 
   create(

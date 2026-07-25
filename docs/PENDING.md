@@ -114,6 +114,72 @@ Todo lo anterior fue verificado en su forma actual (visual fiel al diseño, sin 
 tests unitarios cubriendo el comportamiento real vs. el placeholder) — ver `specs/008-user-profile/`
 para el detalle de spec/plan/tasks.
 
+## Cuentas — facturación de crédito (períodos dinámicos + generación automática)
+
+### 1. Fecha de pago de la facturación (`paymentDueDay`)
+
+No existe ningún campo funcional ni lógica para "cuándo corresponde pagar" la facturación (distinto
+de `billingCycleDay`, que ahora sí es real: dispara el CIERRE de la facturación abierta, ver más
+abajo — pero no define ninguna fecha de vencimiento para el pago en sí). El formato del dato sigue
+sin definirse (¿día fijo del mes? ¿offset desde el cierre?) — por eso se **bloqueó la opción
+`AUTOMATIC`** en la UI: no tiene sentido dejar elegir "pago automático" sin saber todavía a qué
+fecha se engancharía. `BillingSettings.paymentDueDay` existe como columna nullable en el schema
+(reservada para cuando esto se defina), pero ninguna UI la escribe ni la muestra todavía — la opción
+"Automático" es un botón `disabled` de verdad (atributo nativo, sin ningún manejador de click), no
+reacciona de ninguna forma al clickearla.
+
+### 2. `paymentMethod: AUTOMATIC` — bloqueado en la UI, sin efecto funcional
+
+`BillingSettings.paymentMethod` (`MANUAL` por defecto, o `AUTOMATIC`) vive en la tabla separada
+`BillingSettings`. La opción "Automático" está **deshabilitada** en el control Segmented tanto en
+`AccountForm` como en `BillingSettingsModal` (`shared/ui/segmented.tsx` soporta `disabled`/
+`disabledReason` por opción) — no se puede seleccionar hasta que el punto 1 se resuelva. Aun si se
+forzara por API, no dispara ningún pago automático: la generación automática (cron, ver más abajo)
+solo CIERRA una facturación, nunca la paga — pagar siempre requiere elegir manualmente una cuenta
+bancaria vía `POST /accounts/:id/credit-statements/:statementId/pay`.
+
+**Para hacerlo real**: definir el formato de `paymentDueDay` (punto 1), habilitar la opción en el
+Segmented, y agregar lógica que, al llegar esa fecha, pague automáticamente eligiendo alguna cuenta
+por defecto para las facturaciones con `paymentMethod: AUTOMATIC`.
+
+### 3. Generación automática de facturación — cron diario + botón manual
+
+`BillingGenerationService` (`apps/api/src/domains/accounts/billing-generation.service.ts`) cierra la
+facturación `OPEN` de una cuenta una vez que pasa su `billingCycleDay`, sujeto a elegibilidad (cuenta
+y tarjeta activas) y a que haya habido uso (si nunca se abrió una facturación, no hay nada que
+cerrar). Dos disparadores comparten esta misma lógica:
+- **Cron diario** (`src/infra/cron/billing-generation.cron.ts`, `@nestjs/schedule`,
+  `EVERY_DAY_AT_3AM`) — recorre TODAS las cuentas de TODOS los usuarios con `billingCycleDay`
+  configurado (`generateForAllDueAccounts`).
+- **Botón manual** "Generar facturación" en la pestaña Facturación (`POST
+  /accounts/:id/generate-statements`) — mismo código (`generateForAccount`), por si el cron no ha
+  corrido todavía o se quiere forzar antes de tiempo.
+
+**Limitación conocida**: si el cron estuvo caído mucho tiempo (varios `billingCycleDay` vencidos sin
+cerrar), no se retro-particiona en varios períodos — se cierra un solo boundary (el más reciente
+vencido) con todo lo acumulado desde la última vez. No es un problema esperado en producción normal
+(el cron corre a diario), solo si el proceso backend estuvo apagado por semanas.
+
+### 4. Topes propios de tarjeta (`CardLimit.used`) — no migrados al modelo de facturación
+
+El modelo de facturación (períodos, enlazado de movimientos, cierre, pago) solo cubre el **cupo
+compartido de la cuenta** (`BankAccount.creditUsed`). El tope propio de una tarjeta adicional
+(`CardLimit.used`, "tope propio" en vez de "cupo de la cuenta") **sigue siendo derivado** de los
+movimientos (todo el tiempo, sin acotar por ciclo, sin períodos ni pagos) — no tiene su propia
+facturación, botón de pago, ni registro `CreditStatement`.
+
+**Para hacerlo real**: extender el mismo mecanismo (enlazado de movimientos + generación + pago) a
+`CardLimit`, y agregar una pestaña de facturación por tarjeta en `CardDetailModal`.
+
+### 5. Creación de cuenta simplificada — `status`/`billingCycleDay`/`paymentMethod` solo post-creación
+
+Desde esta pasada, `AccountCreateModal` ya no pide "Cuenta activa" (`status`), día de facturación
+(`billingCycleDay`) ni método de pago (`paymentMethod`) — toda cuenta nueva se crea `ACTIVE`, sin
+día de facturación configurado y en modalidad `MANUAL`. Estos tres campos siguen editables después
+vía `AccountForm` (o el botón dedicado de activar/desactivar en `AccountDetailRoute`). No es un
+placeholder — es una decisión de UX para simplificar el alta; no requiere ninguna implementación
+adicional.
+
 ## Movimientos (Transacciones)
 
 ### 1. Plantillas de movimientos

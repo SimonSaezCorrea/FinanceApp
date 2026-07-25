@@ -5,6 +5,10 @@ export interface SegmentedOption<T extends string> {
   label: string;
   /** Overrides the variant's active pill classes for just this option (e.g. red/green per side). */
   activeClassName?: string;
+  /** Renders this option greyed-out and non-interactive (e.g. a not-yet-available choice). */
+  disabled?: boolean;
+  /** Tooltip/aria text shown on a disabled option, explaining why it can't be picked. */
+  disabledReason?: string;
 }
 
 interface SegmentedProps<T extends string> {
@@ -44,12 +48,15 @@ export function Segmented<T extends string>({
           <button
             key={opt.value}
             type="button"
+            disabled={opt.disabled}
             aria-pressed={active}
+            title={opt.disabled ? opt.disabledReason : undefined}
             onClick={() => onChange(opt.value)}
             className={cn(
               "flex-1 rounded-sm px-3 py-1.5 text-center text-sm transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              active ? activeClass : "font-medium text-muted-foreground hover:bg-muted",
+              "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
+              !opt.disabled && (active ? activeClass : "font-medium text-muted-foreground hover:bg-muted"),
             )}
           >
             {opt.label}
