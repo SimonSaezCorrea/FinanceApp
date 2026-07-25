@@ -99,6 +99,47 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     (`shared/ui/tabs.tsx`) — the old sidebar `CreditPaySection` is gone, replaced by
     `domains/accounts/components/BillingSection.tsx` (table of periods/amounts/status/actions,
     pay-from-account modal, correct-paid-amount modal, generate button).
+    Amendment (backend DDD + CQRS migration, 2026-07-25, specs/009-ddd-cqrs-architecture):
+    **`apps/api`'s `accounts` domain is the reference implementation for a repo-wide migration off
+    the flat `module/controller/service/repository` skeleton onto full tactical DDD + CQRS** — the
+    other 10 domains are migrated later, one at a time (out of scope for this amendment; they still
+    use the flat skeleton until their own turn). The old `accounts.service.ts`/
+    `accounts.repository.ts`/`cards.service.ts`/`cards.repository.ts`/
+    `billing-generation.service.ts` are **retired** — every business rule/behavior described above
+    is unchanged, only where the code enforcing it lives. New structure under
+    `apps/api/src/domains/accounts/`: **`domain/`** (`BankAccount` aggregate — cardable/account-number/
+    credit-limit invariants; `CreditStatement` aggregate with a **State** pattern for its
+    OPEN→PENDING→PAID lifecycle, one class per stage in `domain/states/`; `BillingEligibilityStrategy`
+    — a **Strategy** per account shape, `CreditLineEligibility`/`AddOnCardEligibility`; domain events
+    `StatementClosedEvent`/`StatementPaidEvent`/`AccountDeactivatedEvent`; repository **ports**
+    `BankAccountRepositoryPort`/`CreditStatementRepositoryPort`; `domain/errors.ts`), **`application/`**
+    (one command + handler pair per mutation — `pay-credit-statement`, `generate-statements` +
+    `GenerateAllDueStatementsCommand` for the cron [`scope: "system"`, the one named/typed exception
+    to per-user command scoping], `correct-statement-amount`, plus create/update/reconcile/remove
+    account and add/update/remove card; one query + handler pair per read —
+    `list-accounts`/`get-account`/`list-credit-statements`; `LogStatementPaidListener` is the
+    reference **Observer** subscriber, proving a new reaction attaches with zero changes to the
+    publishing code), **`infrastructure/`** (`PrismaBankAccountRepository`/
+    `PrismaCreditStatementRepository` — the ONLY files in this domain allowed to import
+    `@prisma/client`, implementing the domain's ports — **Adapter** pattern), **`presentation/`**
+    (`accounts.controller.ts` rewritten as a thin **Facade**: translates each request into a
+    command/query via `CommandBus`/`QueryBus`, using the new `ZodParamsPipe` — mirrors
+    `ZodValidationPipe` but for path params, e.g. `:id` — for every route param). Every
+    `*CommandHandler`/`*QueryHandler` extends a shared **Template Method** base class
+    (`BaseCommandHandler`/`BaseQueryHandler`, `apps/api/src/infra/cqrs/`, built on `@nestjs/cqrs`'s
+    `CommandBus`/`QueryBus`/`EventBus`) fixing a load → handle → persist → publish skeleton.
+    **Cross-aggregate persistence** (paying a statement touches `CreditStatement` + a new
+    `Transaction` + `BankAccount` in one atomic step): `PayCreditStatementHandler` overrides
+    `persist()` to wrap all three saves in one `prisma.$transaction(...)` — a documented pragmatic
+    exception to one-aggregate-per-transaction purity, not a violation of it. Domain events dispatch
+    **synchronously by default** (a failing listener surfaces in the same request). Tests moved out of
+    `src/` into `apps/api/test/{unit,integration,e2e}/`, mirroring `src/domains/accounts/<layer>/` —
+    `test:unit` runs with **zero** database connections (aggregates/states/strategies/handlers all use
+    fake ports); `test:integration` exercises the Prisma adapters + the pay-statement transaction's
+    rollback guarantee against a real test DB; `test:e2e` drives the full HTTP flow through the
+    Facade controller. **No public API/contract change** — `@finance/contracts`'s `accounts` shapes
+    are untouched; this is a pure internal reorganization. Full pattern + rationale:
+    `docs/{english,spanish}/ARCHITECTURE.md` §12a; spec/plan/tasks: `specs/009-ddd-cqrs-architecture/`.
   - **transactions** (specs/005, 007): income/expense linked to a `BankAccount` and (optionally) a `Card`. Rules in `transactions.service` (contract requires `bankAccountId` on create + refine `INCOME ⇒ no card`): INCOME → no card; EXPENSE on CASH → no card; EXPENSE on **CREDIT_LINE → card required** (must belong); EXPENSE on other non-cash accounts → card optional. **Whenever the card used is CREDIT-kind** (on a CREDIT_LINE account, or any other account that's grown one), the amount is checked against **both** the account's shared pool (persisted `creditUsed` + amount ≤ `creditLimit`, error `CARD_LIMIT_EXCEEDED`) **and**, if the card has its own `CardLimit` for that currency, that narrower (still derived) sub-limit too (`sumsForCard`, error `CARD_SUBLIMIT_EXCEEDED`). Creating/editing/deleting a transaction that draws on the shared pool mutates `BankAccount.creditUsed` directly (`TransactionsRepository.adjustCreditUsed`) — edits/deletes revert the transaction's old contribution before applying the new one, including when the transaction moves to a different account (see accounts' billing-period amendment above for the linked-transaction/paid-statement exception). Full CRUD from both the Movements view and the Account view (shared `TransactionTable` with edit/delete, plus a `TransactionDetailModal` read-only view opened by clicking a row). Filter query supports `bankAccountId` + `cardId` (bank→card). Error codes: `CARD_REQUIRED`, `CARD_NOT_ALLOWED`, `CARD_ACCOUNT_MISMATCH`, `CARD_LIMIT_EXCEEDED`, `CARD_SUBLIMIT_EXCEEDED`.
   - **recurring**: `RecurringExpense` (subscriptions/rent/periodic payments) — `frequency` (`RecurrenceFrequency`: WEEKLY/MONTHLY/YEARLY), `interval`, `anchorDate`, optional `bankAccountId`/`category`, `active`. The contract exposes a computed `nextDueAt` (anchor stepped forward by frequency × interval). CRUD at `/recurring`.
   - **reference** (domain `reference`, global read-only, authed but not user-scoped): `Country` (table `country`, ISO 3166-1 `alpha2`/`alpha3`/`numeric` unique + name), `FinancialInstitution` (table `financial-institution`, **banks + non-bank card issuers** via `kind` `InstitutionKind` BANK/NON_BANK_ISSUER; `code` = SBIF/CMF or código institucional `@@unique([countryId,code])`, `name`, `rut?` (Chilean issuers), `category` `BankCategory?` ESTABLISHED/FOREIGN_BRANCH/STATE (banks only), `brands String[]`, `notes`, FK→Country), `Currency` (table `currency`, **ISO 4217** `code` unique + `numeric` + name), and `CountryCurrency` join (`isPrimary`). Endpoints `GET /countries`, `GET /institutions?country=CL&kind=BANK`, `GET /currencies` (ordered by name). Seeded idempotently in `prisma/seed.ts` (`seedReferenceData`): 6 countries, 18 CL banks + 15 non-bank issuers, 168 currencies, country↔currency links. **`BankAccount.institutionId`** FK → `FinancialInstitution` (the "institution" selector; scalar `institution` text mirrors its name for display; relation field is `financialInstitution`); web forms use `useInstitutions`/`useCurrencies` selects (`domains/reference`).

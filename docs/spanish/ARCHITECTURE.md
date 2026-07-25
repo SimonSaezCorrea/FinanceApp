@@ -251,6 +251,104 @@ del schema (`Decimal(18,4)` para montos). El redondeo es explícito (banquero, 4
   la carga multipart/xlsx + parseo de Excel en el servidor está diferida.
 - **Endurecimiento CSRF** para auth basada en cookies.
 
+## 12a. Patrón backend DDD + CQRS (en curso — `accounts` es el dominio de referencia)
+
+**Enmienda (2026-07-25, specs/009-ddd-cqrs-architecture):** `apps/api` está migrando, dominio por
+dominio, del esqueleto plano `module → controller → service → repository` de la §1 a DDD táctico +
+CQRS completo. `accounts` (específicamente su área de `billing`/facturación) es la implementación
+de referencia ya terminada; los otros 10 dominios se migran después, uno a la vez (FR-017) — hasta
+entonces siguen el esqueleto plano descrito antes en este documento. Ambas formas son válidas hoy;
+verifica cuál usa un dominio antes de asumir.
+
+Cada dominio migrado gana **cuatro capas internas** bajo `src/domains/<dominio>/`:
+
+| Capa | Contiene | Nunca contiene |
+|---|---|---|
+| `domain/` | Aggregates (invariantes + ciclo de vida), objetos State, objetos Strategy, eventos de dominio, puertos de repositorio (interfaces), errores de dominio propios | Imports de Prisma, detalles HTTP |
+| `application/` | Objetos command/query + sus handlers (`ICommandHandler`/`IQueryHandler` de `@nestjs/cqrs`, sobre un Template Method compartido `BaseCommandHandler`/`BaseQueryHandler` en `src/infra/cqrs/`), listeners de eventos | Imports de Prisma, reglas de negocio duplicadas |
+| `infrastructure/` | Adaptadores Prisma que implementan los puertos del dominio — los ÚNICOS archivos del dominio con permiso para importar `@prisma/client` | Reglas de negocio |
+| `presentation/` | El controlador (un Facade delgado: request → command/query vía `CommandBus`/`QueryBus` → response) + DTOs Zod para body/query/**path params** (`ZodParamsPipe`, junto al ya existente `ZodValidationPipe`) | Reglas de negocio, llamadas directas a repositorio/Prisma |
+
+Árbol de referencia (`accounts`, tras specs/009):
+
+```
+apps/api/src/domains/accounts/
+├── accounts.module.ts                  # conecta CqrsModule + las 4 capas
+├── domain/
+│   ├── bank-account.aggregate.ts       # invariantes: tipos cardable, reglas del cupo de crédito
+│   ├── credit-statement.aggregate.ts   # patrón State: OPEN → PENDING → PAID
+│   ├── states/{credit-statement-state,open-state,pending-state,paid-state}.ts
+│   ├── billing-eligibility.strategy.ts # Strategy: elegibilidad CREDIT_LINE vs. tarjeta adicional
+│   ├── events/{statement-closed,statement-paid,account-deactivated}.event.ts
+│   ├── ports/{bank-account,credit-statement}.repository.port.ts
+│   ├── errors.ts
+│   └── billing-cycle.ts                # helper puro de fechas (sin cambios respecto a antes)
+├── application/
+│   ├── commands/*.command.ts + *.handler.ts   # pay/generate/correct/create/update/... + tarjetas
+│   ├── queries/*.query.ts + *.handler.ts       # list-accounts, get-account, list-credit-statements
+│   └── events/log-statement-paid.listener.ts   # suscriptor Observer de referencia
+├── infrastructure/
+│   ├── prisma-bank-account.repository.ts
+│   └── prisma-credit-statement.repository.ts
+└── presentation/
+    ├── accounts.controller.ts
+    └── dto/*.params.ts                  # esquemas Zod de path params
+```
+
+Patrones aplicados y por qué (razonamiento completo en
+`specs/009-ddd-cqrs-architecture/spec.md` FR-005–FR-014):
+
+- **State** (`CreditStatement`): cada etapa del ciclo de vida es su propio objeto
+  (`OpenState`/`PendingState`/`PaidState`) que responde `canClose()`/`canPay()`/
+  `canCorrectAmount()` — el aggregate siempre delega en `this.state`, nunca reimplementa el chequeo.
+- **Strategy** (`BillingEligibilityStrategy`): "es esta cuenta/tarjeta elegible para cerrar su
+  período" varía por categoría (`CreditLineEligibility`/`AddOnCardEligibility`) y se espera que
+  crezca en categorías — una nueva es una clase nueva, no un `if/else` editado.
+- **Template Method** (`BaseCommandHandler`/`BaseQueryHandler`, `src/infra/cqrs/`): fija el
+  esqueleto load → handle → persist → publish; cada handler concreto solo aporta los tres pasos
+  específicos. Un command siempre está tipado `{ scope: "user"; userId }` o
+  `{ scope: "system" }` (el `GenerateAllDueStatementsCommand` del cron de facturación es la única
+  excepción, nombrada y tipada, a la acotación por usuario — cada fila que toca sigue acotada
+  internamente).
+- **Adapter** (`infrastructure/prisma-*.repository.ts`): implementa una interfaz
+  `domain/ports/*.port.ts`; las capas domain/application dependen solo del puerto.
+- **Facade** (`presentation/accounts.controller.ts`): traduce request → command/query → response,
+  nada más.
+- **Observer** (eventos de dominio + `EventBus` de `@nestjs/cqrs`): una transición de estado
+  relevante para el resto del sistema publica un evento (`StatementClosedEvent`/
+  `StatementPaidEvent`/`AccountDeactivatedEvent`); los listeners
+  (`application/events/*.listener.ts`) se suscriben sin que el publicador sepa que existen.
+  **Se despachan síncronamente por defecto** — un listener que falla se ve como parte del mismo
+  request; lo asíncrono es opt-in por listener, solo cuando una reacción puede esperar de verdad
+  (ninguno lo necesitó todavía).
+- **Persistencia cross-aggregate** (FR-020): una acción de negocio que abarca inherentemente más de
+  un aggregate en un solo paso atómico (pagar una facturación toca `CreditStatement` + un
+  `Transaction` nuevo + `BankAccount`) usa un único `prisma.$transaction(...)` dentro del `persist()`
+  propio de ese handler (`saveWithTx(tx, aggregate)` en los puertos) — una excepción pragmática
+  documentada, no pureza de un-aggregate-por-transacción forzada más allá de lo útil.
+- **Explícitamente fuera de alcance** (FR-009/FR-014): Singleton (el DI de Nest ya lo da), Abstract
+  Factory/Prototype (no existe esa necesidad aquí), Proxy (`JwtAuthGuard` ya cumple ese rol),
+  Composite (no hay datos recursivos/en árbol en esta app).
+
+Los **tests** se mueven fuera de `src/` a `apps/api/test/{unit,integration,e2e}/`, reflejando
+`src/domains/<dominio>/<capa>/...`:
+
+- `test/unit/**` — aggregates, states, strategies, handlers de command/query con **puertos falsos**
+  (sin Prisma, sin HTTP, sin ninguna conexión a BD — demostrable corriendo `pnpm --filter
+  @finance/api test:unit` con Postgres detenido).
+- `test/integration/**` — adaptadores Prisma + la garantía de rollback de la transacción
+  cross-aggregate, contra una base de datos de test real.
+- `test/e2e/**` — flujos HTTP completos a través del controlador Facade, idénticos en
+  comportamiento a antes de la migración (sin cambios al contrato público de la API — FR-015).
+
+`pnpm --filter @finance/api test:unit` / `test:integration` / `test:e2e` corren cada nivel de forma
+independiente; `pnpm --filter @finance/api test` corre los tres en secuencia.
+
+Esta migración no cambia ningún contrato HTTP público ni ninguna forma de `@finance/contracts` — es
+una reorganización puramente interna (FR-015). Ver `.specify/memory/constitution.md` para el
+principio constitucional correspondiente y la sección `accounts` de `CLAUDE.md` para la enmienda
+narrativa.
+
 ## 12. Agregar un dominio nuevo (resumen)
 
 1. Agrega esquemas zod + tipos en `packages/contracts/src/<dominio>/` y expórtalos desde `src/index.ts`.

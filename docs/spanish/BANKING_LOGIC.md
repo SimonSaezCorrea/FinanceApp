@@ -228,8 +228,10 @@ estados derivados (no una columna `status` guardada):
   `{amount}`) — sin cascada al movimiento de pago ya creado ni a `creditUsed` (deliberado,
   simplificación para uso personal).
 
-**Generación** (`BillingGenerationService`,
-`apps/api/src/domains/accounts/billing-generation.service.ts`) cierra la facturación ABIERTA cuando
+**Generación** (`GenerateStatementsHandler`/`GenerateAllDueStatementsHandler`,
+`apps/api/src/domains/accounts/application/commands/generate-statements.handler.ts` — el helper
+`closeIfDue` que comparten porta 1:1 la lógica del antiguo `BillingGenerationService`) cierra la
+facturación ABIERTA cuando
 pasa `BillingSettings.billingCycleDay` (`1`-`28`) desde que empezó — pero solo si la cuenta (y su
 tarjeta de crédito relevante) sigue `ACTIVE`; si no, se deja abierta indefinidamente ("se dejan de
 generar si la cuenta o la tarjeta está inactiva"), y si nunca se abrió una facturación (sin uso
@@ -361,17 +363,29 @@ de las validaciones anteriores.
 
 ## 6. Referencias rápidas de código
 
+**Enmienda (2026-07-25, migración DDD + CQRS — specs/009):** `accounts` fue el dominio de
+referencia de la migración DDD + CQRS. Sus antiguos `accounts.service.ts`/
+`accounts.repository.ts`/`cards.service.ts`/`cards.repository.ts`/
+`billing-generation.service.ts` quedan retirados; las MISMAS reglas de negocio descritas en este
+documento ahora viven en la estructura de cuatro capas de abajo. Ver
+`docs/{english,spanish}/ARCHITECTURE.md` para el patrón completo y
+`specs/009-ddd-cqrs-architecture/` para el spec/plan/tasks de la migración.
+
 | Concepto                                             | Ubicación en el backend                                                          |
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Tipos de cuenta, helpers de cardable/tipo de institución | `packages/contracts/src/accounts/index.ts`                                            |
-| CRUD de cuentas + resolución de principal en `cards[]` inline | `apps/api/src/domains/accounts/accounts.service.ts`                              |
-| CRUD de tarjetas + resolución de principal/tope obligatorio | `apps/api/src/domains/accounts/cards.service.ts` (`resolveCreditLimits`)          |
-| Búsqueda de la tarjeta principal                        | `apps/api/src/domains/accounts/cards.repository.ts` (`findPrimaryCreditCard`)         |
-| `creditPools` derivado                                  | `toContract` de `AccountsService` (combina `creditLimit` + los `CardLimit` extra de la principal) |
-| `Card.ownUsed` derivado (uso por tarjeta)                | `toContract` de `CardsService` (`apps/api/src/domains/accounts/cards.service.ts`)      |
-| Reglas de movimiento + aplicación del cupo               | `apps/api/src/domains/transactions/transactions.service.ts`                           |
-| Sumas de cupo acotadas por moneda y por tarjeta          | `TransactionsRepository.sumsForAccount`/`sumsForCard`, `AccountsRepository.sumsByAccount`, `CardsRepository.sumsByCard` |
-| Helper de ventana de ciclo de facturación                | `apps/api/src/domains/accounts/billing-cycle.ts` (`currentCycleStart`)                |
+| Invariantes de la cuenta (cardable, `ACCOUNT_NUMBER_REQUIRED`, proyección del cupo) | `apps/api/src/domains/accounts/domain/bank-account.aggregate.ts` (`BankAccount`) |
+| CRUD de tarjetas + resolución de principal/tope obligatorio | `BankAccount.resolveCardPlacement`/`planCreation` (mismo archivo del aggregate) |
+| Ciclo de vida de `CreditStatement` (OPEN/PENDING/PAID)  | `apps/api/src/domains/accounts/domain/credit-statement.aggregate.ts` + `domain/states/*.ts` (patrón State) |
+| Elegibilidad de facturación (CREDIT_LINE vs. tarjeta adicional) | `apps/api/src/domains/accounts/domain/billing-eligibility.strategy.ts` (patrón Strategy) |
+| `creditPools`/`Card.ownUsed` derivados (armado de lectura) | `apps/api/src/domains/accounts/application/queries/account-dto.mapper.ts`       |
+| Comandos de pagar/generar/corregir                      | `apps/api/src/domains/accounts/application/commands/{pay-credit-statement,generate-statements,correct-statement-amount}.handler.ts` |
+| Queries de listar/obtener                               | `apps/api/src/domains/accounts/application/queries/{list-accounts,get-account,list-credit-statements}.handler.ts` |
+| Adaptadores Prisma (únicos archivos que importan `@prisma/client` en este dominio) | `apps/api/src/domains/accounts/infrastructure/prisma-{bank-account,credit-statement}.repository.ts` |
+| Controlador Facade                                      | `apps/api/src/domains/accounts/presentation/accounts.controller.ts`             |
+| Reglas de movimiento + aplicación del cupo               | `apps/api/src/domains/transactions/transactions.service.ts` (aún no migrado — ver specs/009 Fase 8) |
+| Sumas de cupo acotadas por moneda y por tarjeta          | `TransactionsRepository.sumsForAccount`/`sumsForCard`, `PrismaBankAccountRepository.cardSums` |
+| Helper de ventana de ciclo de facturación                | `apps/api/src/domains/accounts/domain/billing-cycle.ts` (`currentCycleStart`)                |
 
 | Concepto                                             | Ubicación en el frontend                                                         |
 | ------------------------------------------------------- | -------------------------------------------------------------------------------------- |

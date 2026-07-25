@@ -37,11 +37,30 @@ export class AllExceptionsFilter implements ExceptionFilter {
       } else {
         code = statusToCode(status);
       }
+    } else if (isDomainError(exception)) {
+      // Domain-layer errors (`domain/errors.ts` in each migrated domain) are
+      // plain Errors, not `HttpException` — they carry their own httpStatus/code/
+      // field (duck-typed here, not imported, so `infra` never depends on a
+      // domain's classes) and must map identically to the pre-migration
+      // `BadRequestException({code})`/`NotFoundException({code})` shape (FR-015).
+      status = exception.httpStatus;
+      code = exception.code;
+      field = exception.field;
     }
 
     const body: ApiError = { error: { code, ...(field ? { field } : {}) } };
     res.status(status).json(body);
   }
+}
+
+function isDomainError(
+  exception: unknown,
+): exception is { httpStatus: number; code: string; field?: string } {
+  return (
+    exception instanceof Error &&
+    typeof (exception as { httpStatus?: unknown }).httpStatus === "number" &&
+    typeof (exception as { code?: unknown }).code === "string"
+  );
 }
 
 function statusToCode(status: number): string {

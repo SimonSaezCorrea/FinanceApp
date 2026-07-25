@@ -209,7 +209,9 @@ and never reassigned by date on edit ("se va llenando"). Three derived states (n
   be corrected manually (`PATCH /accounts/:id/credit-statements/:id`, `{amount}`) — no cascade to
   the linked payment transaction or to `creditUsed` (deliberate, personal-use simplification).
 
-**Generation** (`BillingGenerationService`, `apps/api/src/domains/accounts/billing-generation.service.ts`)
+**Generation** (`GenerateStatementsHandler`/`GenerateAllDueStatementsHandler`,
+`apps/api/src/domains/accounts/application/commands/generate-statements.handler.ts` — the
+`closeIfDue` helper they share ports over the pre-migration `BillingGenerationService` one-for-one)
 closes the OPEN statement once `BillingSettings.billingCycleDay` (`1`-`28`) passes since it started
 — but only if the account (and its relevant credit card) is still `ACTIVE`; otherwise it's left
 open indefinitely ("se dejan de generar si la cuenta o la tarjeta está inactiva"), and if no
@@ -332,19 +334,30 @@ the validation above.
 
 ## 6. Quick code-path references
 
+**Amendment (2026-07-25, DDD + CQRS migration — specs/009):** `accounts` was the reference domain
+for the DDD + CQRS migration. Its old flat `accounts.service.ts`/`accounts.repository.ts`/
+`cards.service.ts`/`cards.repository.ts`/`billing-generation.service.ts` are retired; the SAME
+business rules described in this document now live in the four-layer structure below. See
+`docs/{english,spanish}/ARCHITECTURE.md` for the full pattern and
+`specs/009-ddd-cqrs-architecture/` for the migration's spec/plan/tasks.
+
 | Concept                                          | Backend location                                                            |
 | --------------------------------------------------- | -------------------------------------------------------------------------------- |
 | Account types, cardable/institution-kind helpers    | `packages/contracts/src/accounts/index.ts`                                       |
-| Account CRUD + inline `cards[]` primary resolution  | `apps/api/src/domains/accounts/accounts.service.ts`                              |
-| Card CRUD + primary/mandatory-limit resolution      | `apps/api/src/domains/accounts/cards.service.ts` (`resolveCreditLimits`)         |
-| Primary-card lookup                                 | `apps/api/src/domains/accounts/cards.repository.ts` (`findPrimaryCreditCard`)    |
-| Derived `creditPools`                               | `AccountsService`'s `toContract` (combines `creditLimit` + the primary's extra `CardLimit` rows) |
-| Derived `Card.ownUsed` (per-card usage)             | `CardsService`'s `toContract` (`apps/api/src/domains/accounts/cards.service.ts`) |
-| Transaction movement rules + credit enforcement     | `apps/api/src/domains/transactions/transactions.service.ts`                     |
+| Account invariants (cardable, `ACCOUNT_NUMBER_REQUIRED`, credit-pool projection) | `apps/api/src/domains/accounts/domain/bank-account.aggregate.ts` (`BankAccount`) |
+| Card CRUD + primary/mandatory-limit resolution      | `BankAccount.resolveCardPlacement`/`planCreation` (same aggregate file)          |
+| `CreditStatement` lifecycle (OPEN/PENDING/PAID) | `apps/api/src/domains/accounts/domain/credit-statement.aggregate.ts` + `domain/states/*.ts` (State pattern) |
+| Billing eligibility (CREDIT_LINE vs. add-on card)   | `apps/api/src/domains/accounts/domain/billing-eligibility.strategy.ts` (Strategy pattern) |
+| Derived `creditPools`/`Card.ownUsed` (read shaping) | `apps/api/src/domains/accounts/application/queries/account-dto.mapper.ts`        |
+| Pay/generate/correct commands                       | `apps/api/src/domains/accounts/application/commands/{pay-credit-statement,generate-statements,correct-statement-amount}.handler.ts` |
+| List/get queries                                    | `apps/api/src/domains/accounts/application/queries/{list-accounts,get-account,list-credit-statements}.handler.ts` |
+| Prisma adapters (only files allowed to import `@prisma/client` in this domain) | `apps/api/src/domains/accounts/infrastructure/prisma-{bank-account,credit-statement}.repository.ts` |
+| Facade controller                                   | `apps/api/src/domains/accounts/presentation/accounts.controller.ts`             |
+| Transaction movement rules + credit enforcement     | `apps/api/src/domains/transactions/transactions.service.ts` (not yet migrated — see specs/009 Phase 8) |
 | Persisted `creditUsed` mutation on tx create/update/delete | `TransactionsService.creditPoolContribution`/`validateMovement`, `TransactionsRepository.adjustCreditUsed` |
-| Card-own-sub-limit sums (still derived, unchanged)  | `TransactionsRepository.sumsForCard`, `CardsRepository.sumsByCard`               |
-| Pay down the account's credit pool + payment history | `AccountsService.payCredit`/`listCreditStatements`, `POST/GET /accounts/:id/pay-credit`, `/credit-statements` |
-| Billing-cycle day (informational only)              | `apps/api/src/domains/accounts/billing-cycle.ts` (`currentCycleStart`, no longer used to scope any sum) |
+| Card-own-sub-limit sums (still derived, unchanged)  | `TransactionsRepository.sumsForCard`, `PrismaBankAccountRepository.cardSums`     |
+| Pay down the account's credit pool + payment history | `PayCreditStatementHandler`, `POST /accounts/:id/credit-statements/:id/pay`, `GET .../credit-statements` |
+| Billing-cycle day (informational only)              | `apps/api/src/domains/accounts/domain/billing-cycle.ts` (`currentCycleStart`, no longer used to scope any sum) |
 
 | Concept                                          | Frontend location                                                            |
 | --------------------------------------------------- | -------------------------------------------------------------------------------- |

@@ -1,4 +1,32 @@
 <!--
+Sync Impact Report — 2026-07-25 (amendment 1.22.0)
+- Version change: 1.21.1 → 1.22.0 (MINOR: new durable principle — Backend DDD + CQRS Architecture,
+  specs/009-ddd-cqrs-architecture — `accounts` is the completed reference domain; the other 10
+  domains are migrated later, one at a time, FR-017). Core Principles I-V unchanged in intent;
+  this is an ADDITIONAL architecture-norm principle, not a redefinition of an existing one.
+- New Core Principle VI (below): every backend domain, once migrated, MUST use four internal
+  layers (domain/application/infrastructure/presentation), Command/Query separation built on
+  `@nestjs/cqrs`, domain events dispatched synchronously by default, and the specific
+  pattern-to-problem mapping FR-005–FR-014 in `specs/009-ddd-cqrs-architecture/spec.md` establish
+  (State for multi-stage lifecycles, Strategy for growing categorical decisions, Template Method
+  for the shared handler skeleton, Adapter for repositories, Facade for controllers, Decorator via
+  Nest interceptors for cross-cutting concerns — Singleton/Abstract Factory/Prototype/Proxy/
+  Composite are explicitly NOT hand-implemented, per FR-009/FR-014). Domains not yet migrated
+  keep using the flat `module/controller/service/repository` skeleton from the Architecture norms
+  below until their own migration turn — both shapes are constitutionally valid simultaneously
+  during the rollout.
+- Technology & Operational Constraints: `@nestjs/cqrs` recorded as a new dependency (`CommandBus`/
+  `QueryBus`/`EventBus`). Tests for a migrated domain move out of `src/` into
+  `apps/api/test/{unit,integration,e2e}/`, mirroring `src/domains/<domain>/<layer>/` — `test:unit`
+  MUST run with zero database connections (Principle IV/SC-002).
+- Full pattern + accounts reference tree: `docs/{english,spanish}/ARCHITECTURE.md` §12a. Narrative
+  amendment: `CLAUDE.md`'s `accounts` section. Spec/plan/tasks: `specs/009-ddd-cqrs-architecture/`.
+
+Sync Impact Report — 2026-07-25 (amendment 1.21.1)
+- Version change: 1.21.0 → 1.21.1 (PATCH: docs-hygiene fix found by /speckit-analyze on spec 009 —
+  Principle IV's "no test runner configured yet" note was stale drift, Vitest has run across all
+  workspaces since specs/001). No principle content changed.
+
 Sync Impact Report — 2026-07-25 (amendment 1.21.0)
 - Version change: 1.20.0 → 1.21.0 (MAJOR-ish in scope but MINOR by semver-for-docs convention:
   replaces the one-shot "pay-credit" action with a full billing-period model — live-linked
@@ -518,10 +546,8 @@ Tests are written before implementation and follow Red-Green-Refactor: write a f
 make it pass, refactor. Financial logic (`lib/finance/**`) MUST have unit tests covering the
 money rules in Principle I.
 
-Current-state note (MUST be closed): the repository has **no test runner configured yet**.
-**Vitest** is the chosen runner (ratified with specs/001); until it is set up during the
-monorepo migration, this principle is the mandated standard but is **not yet satisfied** — see
-`TODO(TEST_RUNNER)` in the Sync Impact Report.
+**Vitest** is the runner, set up across `apps/api`, `apps/web`, and `packages/*` (ratified with
+specs/001, completed during the monorepo migration). `TODO(TEST_RUNNER)` is closed.
 
 Rationale: correctness in money math cannot be verified by eye. TDD makes the intended
 behavior executable and prevents regressions in the most consequential code.
@@ -540,6 +566,41 @@ follow-up.
 Rationale: the spec is the shared contract; skipping it produces code nobody agreed to.
 The constitution and `CLAUDE.md` are the project's durable memory — if they drift from
 reality, every future decision is made on false information.
+
+### VI. Backend DDD + CQRS Architecture (per-domain, rollout in progress)
+
+Once a backend domain (`apps/api/src/domains/<domain>/`) is migrated under
+specs/009-ddd-cqrs-architecture, it MUST use four internal layers — **domain** (aggregates that
+own their invariants/lifecycle; State objects for multi-stage lifecycles; Strategy objects for
+decisions that vary by a growing set of categories; domain events; repository ports; domain
+errors), **application** (Command/Query separation — one command+handler pair per mutation, one
+query+handler pair per read, every handler extending the shared `BaseCommandHandler`/
+`BaseQueryHandler` Template Method built on `@nestjs/cqrs`), **infrastructure** (Prisma repository
+Adapters implementing the domain's ports — the ONLY files in the domain allowed to import
+`@prisma/client`), **presentation** (a thin Facade controller: request → command/query →
+response, plus Zod validation of body/query AND path params). Domain events publish via
+`@nestjs/cqrs`'s `EventBus` and are dispatched **synchronously by default** (a failing listener
+surfaces as part of the same request; async is opt-in per listener, only when a reaction can
+genuinely wait). A business action that inherently spans more than one aggregate in one atomic
+step MAY use a single `prisma.$transaction(...)` across the involved ports' `saveWithTx` — this is
+a documented pragmatic exception, not a violation of aggregate boundaries. Singleton, Abstract
+Factory, Prototype, Proxy, and Composite are explicitly NOT hand-implemented (Nest's DI, existing
+Guards, and this app's flat non-recursive data already cover their roles).
+
+Migration proceeds **one domain at a time** (`accounts` is the completed reference
+implementation); a domain not yet migrated keeps using the flat
+`module/controller/service/repository` skeleton from the Architecture norms below until its own
+turn — both shapes are constitutionally valid simultaneously during the rollout. Tests for a
+migrated domain live in `apps/api/test/{unit,integration,e2e}/`, mirroring
+`src/domains/<domain>/<layer>/` — the unit tier MUST run with zero database connections
+(reinforces Principle IV).
+
+Rationale: business rules scattered across a service file that also talks to the database are
+easy to bypass from another code path; concentrating them in an aggregate makes them structurally
+impossible to skip and independently unit-testable. CQRS keeps read-shaping changes from ever
+risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-014) and the
+`accounts` reference tree: `docs/{english,spanish}/ARCHITECTURE.md` §12a;
+`specs/009-ddd-cqrs-architecture/spec.md`.
 
 ## Technology & Operational Constraints
 
@@ -619,4 +680,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.21.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-25
+**Version**: 1.22.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-25

@@ -1,14 +1,29 @@
 import { Module } from "@nestjs/common";
+import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
-import { WalletController } from "./wallet.controller";
-import { WalletRepository } from "./wallet.repository";
-import { WalletService } from "./wallet.service";
+import { AddWalletItemHandler } from "./application/commands/add-wallet-item.handler";
+import { RemoveWalletItemHandler } from "./application/commands/remove-wallet-item.handler";
+import { ReorderWalletHandler } from "./application/commands/reorder-wallet.handler";
+import { ListWalletQueryHandler } from "./application/queries/list-wallet.handler";
+import { WALLET_ITEM_REPOSITORY } from "./domain/ports/wallet-item.repository.port";
+import { PrismaWalletItemRepository } from "./infrastructure/prisma-wallet-item.repository";
+import { WalletController } from "./presentation/wallet.controller";
+
+const commandHandlers = [AddWalletItemHandler, ReorderWalletHandler, RemoveWalletItemHandler];
+
+const queryHandlers = [ListWalletQueryHandler];
 
 @Module({
-  imports: [JwtModule.register({})],
+  imports: [CqrsModule, JwtModule.register({})],
   controllers: [WalletController],
-  providers: [WalletService, WalletRepository, JwtAuthGuard],
+  providers: [
+    ...commandHandlers,
+    ...queryHandlers,
+    { provide: WALLET_ITEM_REPOSITORY, useClass: PrismaWalletItemRepository },
+    JwtAuthGuard,
+  ],
+  exports: [],
 })
 export class WalletModule {}
