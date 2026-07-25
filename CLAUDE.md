@@ -176,13 +176,18 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Active plan: specs/008-user-profile/plan.md
-(Perfil de Usuario. User gana preferredCurrency/locale/dateFormat/theme/status(UserStatus)/createdAt.
-Dominio auth extendido (no domain nuevo en backend): PATCH /auth/me, POST /auth/me/password,
-PATCH /auth/me/preferences, POST /auth/me/deactivate. JwtAuthGuard + rotateFromRefresh rechazan
-cuentas DISABLED. Frontend: nuevo domains/profile (ruta /profile), nuevo primitivo shared/ui/switch,
-ThemeProvider sincroniza tema con backend además de localStorage, sidebar user-block clicable.
-Nuevos error codes INVALID_CURRENT_PASSWORD, ACCOUNT_DISABLED.)
-Prior plans: 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
+Active plan: specs/009-ddd-cqrs-architecture/plan.md
+(Backend DDD + CQRS migration. apps/api pasa de domain-first plano a 4 capas por dominio
+(domain/application/infrastructure/presentation) en los 11 dominios existentes, uno a la vez,
+`accounts`/billing primero como referencia. `@nestjs/cqrs` para Command/Query/EventBus (eventos
+síncronos por defecto). Aggregates protegen invariantes (State pattern en CreditStatement:
+Open/Pending/Paid), Strategy para elegibilidad variable, Template Method para el esqueleto de
+handlers, Adapter para repositorios (Prisma detrás de puertos del dominio), Facade en
+controladores, Decorator vía interceptors de Nest para cross-cutting concerns. Zod ahora también
+valida path params. Tests se mueven de src/ a apps/api/test/{unit,integration,e2e} espejando
+src/. Sin cambios de contrato de API pública. Aplicación uniforme en los 11 dominios sin
+excepciones (datos bancarios personales). Ver docs/{english,spanish}/ARCHITECTURE.md para el
+patrón completo una vez documentado.)
+Prior plans: 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
 
 <!-- SPECKIT END -->
