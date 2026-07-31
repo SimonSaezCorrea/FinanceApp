@@ -44,7 +44,7 @@
     "dotenv": "^17.4.2",
     "@types/express": "^5.0.0",
     "@types/ms": "^2.1.0",
-    "@types/node": "^22.13.1",
+    "@types/node": "^26.1.2",
     "@types/supertest": "^7.2.1",
     "@typescript-eslint/eslint-plugin": "^8.64.0",
     "@typescript-eslint/parser": "^8.64.0",
