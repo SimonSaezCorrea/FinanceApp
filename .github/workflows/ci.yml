@@ -10,8 +10,31 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # Prisma 7's prisma.config.ts resolves DATABASE_URL eagerly for every CLI
-      # command (validate, generate, ...), not just ones that touch the DB.
+      # command (validate, generate, ...), not just ones that touch the DB. It
+      # also points at the `postgres` service below, which the api's integration
+      # and e2e tiers connect to for real (only `test:unit` runs without a DB).
       DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      # The e2e tier registers/logs in real users over HTTP, so the auth module
+      # needs its secrets. Throwaway values — nothing outside this job ever sees
+      # a token signed with them.
+      JWT_ACCESS_SECRET: "ci-access-secret"
+      JWT_REFRESH_SECRET: "ci-refresh-secret"
+      JWT_ACCESS_EXPIRES: "15m"
+      JWT_REFRESH_EXPIRES: "7d"
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
       - uses: actions/checkout@v7
         with:
@@ -37,6 +60,19 @@ jobs:
       - run: pnpm --filter @finance/api exec prisma validate
 
       - run: pnpm --filter @finance/api exec prisma generate
+
+      # The integration/e2e tiers query a real database, so the service container
+      # needs the schema. `db push` matches the local workflow (this repo has no
+      # prisma/migrations folder).
+      - name: Push Prisma schema to the test database
+        run: pnpm --filter @finance/api exec prisma db push
+
+      # The reference-data specs (countries/currencies/institutions) assert
+      # against seeded rows, exactly as a provisioned environment has them.
+      # `seedReferenceData` is idempotent; the demo user it also creates is
+      # harmless here and each spec scopes itself to its own random userId.
+      - name: Seed reference data
+        run: pnpm --filter @finance/api prisma:seed
 
       # Architecture boundaries: web↛api/db, api↛web, packages↛apps (SC-004/SC-007).
       - run: pnpm check:boundaries

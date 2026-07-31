@@ -16,11 +16,17 @@ export function CardCreateModal({
   open,
   onOpenChange,
   accountId,
+  accountCurrency,
+  accountCreditLimit,
+  hasExistingPrimary,
   initial,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   accountId: string;
+  accountCurrency: string;
+  accountCreditLimit?: string;
+  hasExistingPrimary: boolean;
   initial?: accounts.Card;
 }) {
   const { t } = useTranslation();
@@ -57,6 +63,9 @@ export function CardCreateModal({
         submitLabel={editing ? t("accounts.actions.save") : t("cards.add")}
         submitting={add.isPending || update.isPending}
         initial={initial}
+        accountCurrency={accountCurrency}
+        accountCreditLimit={accountCreditLimit}
+        hasExistingPrimary={hasExistingPrimary}
         onSubmit={handle}
       />
     </Dialog>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router";
 
 import { useAuth } from "../../auth/hooks/useAuth";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
@@ -71,6 +71,7 @@ export function DangerZone() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            aria-label={t("profile.danger.passwordLabel")}
           />
         </Field>
       </ConfirmDialog>

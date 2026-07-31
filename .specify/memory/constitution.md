@@ -1,4 +1,315 @@
 <!--
+Sync Impact Report — 2026-07-30 (amendment 1.23.0)
+- Version change: 1.22.1 → 1.23.0 (MINOR: Principle VI gains a new, enforceable structural rule; no
+  principle removed or redefined).
+- Principle VI now requires **one table = one domain = one adapter**: every table in schema.prisma
+  owns `src/domains/<table>/`, only its own adapter may query it, and reading a foreign table means
+  composing that domain's port (never a Prisma `include`). Aggregate boundaries are explicitly
+  preserved: a child table (card-account, card-limit, billing-settings, installment-payment,
+  savings-entry) owns its table but not the rules over it — writes still go through the aggregate
+  root. Adds the leaf/orchestration module split (`<table>.data.module.ts` vs `<table>.module.ts`)
+  as the acyclicity mechanism, and cross-table atomicity stays one `prisma.$transaction` with
+  `*WithTx` participants.
+- Backend went from 11 business domains to 21 table-domains (+ `import`/`health`, which own no
+  table). No public API/contract change; URLs unchanged.
+- Propagated in the same session: CLAUDE.md, apps/api/README.md,
+  docs/{english,spanish}/ARCHITECTURE.md §12a.
+
+Sync Impact Report — 2026-07-30 (amendment 1.22.1)
+- Version change: 1.22.0 → 1.22.1 (PATCH: status/clarity only, no principle added or redefined).
+- Principle VI: the specs/009 rollout is COMPLETE — all 11 domains use the four layers, so the
+  flat `module/controller/service/repository` skeleton is historical and must not be used for new
+  code (it was previously "valid simultaneously during the rollout"). Recorded the Decorator
+  (global `infra/cqrs/handler-logging.interceptor.ts`) as the required home for logging/timing
+  around a dispatch, and replaced the retired `BillingGenerationService` path in the billing
+  section with its command-handler/strategy replacements.
+- Propagated in the same session: CLAUDE.md, docs/{english,spanish}/ARCHITECTURE.md §12a,
+  docs/PENDING.md.
+
+Sync Impact Report — 2026-07-25 (amendment 1.22.0)
+- Version change: 1.21.1 → 1.22.0 (MINOR: new durable principle — Backend DDD + CQRS Architecture,
+  specs/009-ddd-cqrs-architecture — `accounts` is the completed reference domain; the other 10
+  domains are migrated later, one at a time, FR-017). Core Principles I-V unchanged in intent;
+  this is an ADDITIONAL architecture-norm principle, not a redefinition of an existing one.
+- New Core Principle VI (below): every backend domain, once migrated, MUST use four internal
+  layers (domain/application/infrastructure/presentation), Command/Query separation built on
+  `@nestjs/cqrs`, domain events dispatched synchronously by default, and the specific
+  pattern-to-problem mapping FR-005–FR-014 in `specs/009-ddd-cqrs-architecture/spec.md` establish
+  (State for multi-stage lifecycles, Strategy for growing categorical decisions, Template Method
+  for the shared handler skeleton, Adapter for repositories, Facade for controllers, Decorator via
+  Nest interceptors for cross-cutting concerns — Singleton/Abstract Factory/Prototype/Proxy/
+  Composite are explicitly NOT hand-implemented, per FR-009/FR-014). Domains not yet migrated
+  keep using the flat `module/controller/service/repository` skeleton from the Architecture norms
+  below until their own migration turn — both shapes are constitutionally valid simultaneously
+  during the rollout.
+- Technology & Operational Constraints: `@nestjs/cqrs` recorded as a new dependency (`CommandBus`/
+  `QueryBus`/`EventBus`). Tests for a migrated domain move out of `src/` into
+  `apps/api/test/{unit,integration,e2e}/`, mirroring `src/domains/<domain>/<layer>/` — `test:unit`
+  MUST run with zero database connections (Principle IV/SC-002).
+- Full pattern + accounts reference tree: `docs/{english,spanish}/ARCHITECTURE.md` §12a. Narrative
+  amendment: `CLAUDE.md`'s `accounts` section. Spec/plan/tasks: `specs/009-ddd-cqrs-architecture/`.
+
+Sync Impact Report — 2026-07-25 (amendment 1.21.1)
+- Version change: 1.21.0 → 1.21.1 (PATCH: docs-hygiene fix found by /speckit-analyze on spec 009 —
+  Principle IV's "no test runner configured yet" note was stale drift, Vitest has run across all
+  workspaces since specs/001). No principle content changed.
+
+Sync Impact Report — 2026-07-25 (amendment 1.21.0)
+- Version change: 1.20.0 → 1.21.0 (MAJOR-ish in scope but MINOR by semver-for-docs convention:
+  replaces the one-shot "pay-credit" action with a full billing-period model — live-linked
+  transactions, automatic generation via cron + button, real cross-account payments). Core
+  Principles unchanged in intent; Principle II (per-user scoping) explicitly does NOT apply to the
+  new system cron job, which is documented as the deliberate exception (a system-wide job, not a
+  per-request query).
+- Technology & Operational Constraints (accounts/transactions):
+  - **New dependency `@nestjs/schedule`**, wired in a new **`src/infra/cron/`** module
+    (`cron.module.ts` + `billing-generation.cron.ts`) — the cross-cutting home for every scheduled
+    automation this app runs, same tier as `infra/prisma`/`infra/auth`/`infra/http`. Each
+    `*.cron.ts` is a thin trigger; real logic lives in the owning domain's own service.
+  - **`Transaction.creditStatementId`**: a contributing movement links, AT CREATION TIME, to
+    whichever `CreditStatement` is currently OPEN for its account (`closedAt: null`) — created
+    lazily on first contribution since the last close. Never reassigned by date on edit.
+  - **`CreditStatement` has no stored `status`** — derived from `closedAt`/`paidAt`: OPEN (still
+    accumulating, `amount` computed LIVE as the sum of linked transactions — no manual correction
+    ever needed while unpaid) → PENDING (closed by generation, awaiting payment, still live) → PAID
+    (`amount` frozen at pay time, only then correctable via `PATCH .../credit-statements/:id`, no
+    cascade to the payment transaction or `creditUsed`).
+  - **Statement generation** (`domains/accounts/application/commands/generate-statements.handler.ts`
+    + the `BillingEligibilityStrategy` implementations in `domain/`) closes an OPEN statement once
+    `billingCycleDay` passes, gated on eligibility (account + relevant card both ACTIVE) — shared
+    verbatim by the daily cron (`GenerateAllDueStatementsCommand`, `scope: "system"`, every user's
+    due accounts) and the manual "Generar facturación" button (`GenerateStatementsCommand`, one
+    account).
+  - **Paying a statement** (`POST /accounts/:id/credit-statements/:id/pay`) requires a real source
+    bank account (any type except `CREDIT_LINE`) and atomically creates a genuine EXPENSE
+    `Transaction` there (visible in its own Movimientos), decrements `creditUsed` by the
+    statement's amount (not a full reset — later purchases land in the next OPEN period), and
+    freezes the statement PAID.
+  - Once a transaction's statement is PAID, editing/deleting that transaction never touches
+    `creditUsed` again — its pool effect is already settled (mirrors the "no cascade" rule for
+    correcting a paid statement's amount).
+  - Web: `AccountDetailRoute` gained a Movimientos/Facturación tab switcher; the old sidebar
+    `CreditPaySection` is replaced by `components/BillingSection.tsx`.
+
+Sync Impact Report — 2026-07-25 (amendment 1.20.0)
+- Version change: 1.19.0 → 1.20.0 (MINOR: billing config split into its own `BillingSettings`
+  table; `AUTOMATIC` payment method locked in the UI pending payment-due-date design). Core
+  Principles unchanged in intent.
+- Technology & Operational Constraints (accounts):
+  - **New `BillingSettings` model** (table `billing-settings`, 1:1 with `BankAccount` via a unique
+    `accountId` FK, `onDelete: Cascade`): `billingCycleDay`, `paymentMethod`, and a new reserved
+    `paymentDueDay` (nullable Int, unused) now live here instead of as `BankAccount` columns —
+    deliberately separated so this configuration can be reviewed/maintained/searched independently
+    instead of growing the accounts table. The API contract shape is unchanged (`BankAccount`
+    still exposes `billingCycleDay`/`paymentMethod` as flat fields; the join is internal to
+    `AccountsService`/`AccountsRepository.upsertBillingSettings`).
+  - **The `AUTOMATIC` payment method is now locked in the UI** — `shared/ui/segmented.tsx` gained
+    per-option `disabled`/`disabledReason`, rendered as a genuinely native-`disabled` button (no
+    click handler fires at all — just a title tooltip explaining why), used by both `AccountForm`
+    and the new `BillingSettingsModal` to grey out "Automático". It cannot be selected until the
+    payment-due-date format is actually decided (still undefined — see `docs/PENDING.md`).
+  - **New `BillingSettingsModal`**, reached via a small warning-badge icon next to the account name
+    (not a full-width banner) on `AccountDetailRoute` when a credit-pool account has no billing day
+    configured — opens a focused 2-field modal (billing day + payment method) instead of routing
+    through the full `AccountForm` edit flow.
+
+Sync Impact Report — 2026-07-25 (amendment 1.19.0)
+- Version change: 1.18.0 → 1.19.0 (MINOR: `BankAccount.creditUsed` becomes a persisted column,
+  paid down explicitly, instead of a value derived from transactions on every read — plus
+  account-creation simplification). Core Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/transactions):
+  - **`BankAccount.creditUsed` is now persisted**, seeded from `creditUsedInitial` at creation and
+    mutated directly by `TransactionsService` on transaction create/update/delete (reverting the old
+    contribution before applying the new one, including cross-account moves) — no longer recomputed
+    via `AccountsRepository.sumsByAccount`/`TransactionsRepository.sumsForAccount` on read.
+  - **`BankAccount.billingCycleDay` no longer scopes any sum to a time window** — the automatic
+    per-cycle reset introduced in 1.17.0 is removed; it's now purely informational. Usage only goes
+    down via the new **`POST /accounts/:id/pay-credit`**, which logs a **`CreditStatement`** row
+    (`accountId`, `amount`, `paidAt` — history via `GET /accounts/:id/credit-statements`) and resets
+    `creditUsed` to `0`. If the user never pays, `creditUsed` keeps accumulating — intended.
+  - **New `BankAccount.paymentMethod`** (`BillingPaymentMethod`: MANUAL default/AUTOMATIC) — a stored
+    preference only, `AUTOMATIC` has no functional effect yet (see `docs/PENDING.md`).
+  - **Scoped to v1: the account-level shared pool only.** A card's own independent `CardLimit.used`
+    (sub-limit) is unchanged — still derived from transactions the old, all-time way; migrating it to
+    the same persisted+pay model is deferred (`docs/PENDING.md`).
+  - **`AccountCreateModal` no longer asks for `status`, `billingCycleDay`, or `paymentMethod`** —
+    every new account starts `ACTIVE`/unconfigured/`MANUAL`; all three remain editable afterward via
+    `AccountForm` or the existing status-toggle button in `AccountDetailRoute`. A warning banner
+    replaces the removed billing-day field when the drafted account has a credit pool.
+
+Sync Impact Report — 2026-07-22 (amendment 1.18.0)
+- Version change: 1.17.0 → 1.18.0 (MINOR: streamlines `CREDIT_LINE` account creation — no schema or
+  API change, frontend-only). Core Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards):
+  - **`AccountCreateModal` no longer requires a separate "add card" step to establish a `CREDIT_LINE`
+    account's primary card.** A standalone credit-line account has no real bank account behind it, so
+    its generic "Número de cuenta" field never fit well there; it's replaced (for this type only) by
+    "Últimos 4 dígitos" + "Vencimiento" — combined with the account's own `creditLimit`/
+    `creditUsedInitial` (already shown for this type), the modal constructs the primary `CreateCard`
+    entry client-side and places it first in the submitted `cards[]`, so the backend's existing "first
+    CREDIT card becomes primary" resolution (`CardsService`/`AccountsService.create`, unchanged) picks
+    it up automatically. The modal's card-drafting section (relabeled "Tarjetas adicionales" for this
+    type) is therefore always additional-only for `CREDIT_LINE` going forward.
+  - **Unaffected:** editing an existing account (`AccountForm`) and any OTHER account type growing an
+    add-on credit card (e.g. `CHECKING`) still go through the normal `CardsAside` → "Añadir tarjeta"
+    flow exactly as before — this streamlining is scoped to creating a NEW `CREDIT_LINE` account only.
+  - `AccountCreateModal` also gained error-toast handling on its create mutation (previously silent on
+    failure) — needed now that this flow can reject with more validation codes (`CARD_LIMIT_REQUIRED`,
+    invalid last4/expiry) at creation time.
+
+Sync Impact Report — 2026-07-22 (amendment 1.17.0)
+- Version change: 1.16.0 → 1.17.0 (MINOR: adds statement billing cycles to the credit model, plus a
+  same-scope correctness fix). Core Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards/transactions):
+  - **New `BankAccount.billingCycleDay`** (nullable Int, 1-28). Once set, every derived credit-usage
+    number (`creditUsed`, a card's `ownUsed`, a card's own `CardLimit.used`) is scoped to the CURRENT
+    billing cycle — since the most recent occurrence of that day-of-month, computed by
+    `apps/api/src/domains/accounts/billing-cycle.ts`'s `currentCycleStart(billingCycleDay, now)` — instead
+    of all-time. Usage genuinely resets each cycle for BOTH display and enforcement (a transaction that
+    would have exceeded the limit last cycle can succeed again once the new cycle starts): transactions
+    are never deleted, they simply stop counting toward the current limit once the next cut-off passes.
+    `null` (the default, backward compatible with every existing account) keeps the prior all-time
+    behavior. One billing day per account, applied uniformly to every card sharing it (one statement
+    covers the whole account) — a card has no billing day of its own. The seed values
+    (`creditUsedInitial`, a `CardLimit`'s `usedInitial`) are NOT reset per cycle — there's no per-cycle
+    seed, only an account/card-level one, so they're still added on top of every cycle's computed sum
+    (a known, documented simplification, not a gap this amendment tries to close).
+  - **Correctness fix bundled with this feature:** `TransactionsRepository.sumsForAccount` (enforcement)
+    and `AccountsRepository.sumsByAccount` (display) previously summed **every** transaction on an
+    account toward its credit pool, with no filter on which card (if any) was used. That was harmless
+    for a standalone `CREDIT_LINE` account (every transaction on it already is a credit-line one, by
+    construction — an EXPENSE there always carries a CREDIT card, an INCOME is a payment) — but wrong
+    for any OTHER account type that merely grew an add-on credit card: ordinary day-to-day banking
+    (debit-card spend, cash, salary/other income) was incorrectly counted, in the worst observed case
+    driving a displayed `creditUsed` to a large negative percentage on an account with substantial
+    unrelated income. Fixed by requiring, for non-`CREDIT_LINE` accounts, that only EXPENSE transactions
+    via a pool-sharing CREDIT-kind card count; income is never subtracted for this case since the app
+    has no mechanism to record "a payment toward this specific add-on card" apart from ordinary account
+    income (income never carries a card at all, per the existing movement rules) — a documented
+    limitation carried forward, not newly introduced.
+  - Frontend: `AccountCreateModal` and `AccountForm` gained a "Día de facturación" field (1-28, optional,
+    digits-only, clamped to ≤28), shown whenever the account has (or is drafted to have) a credit pool.
+
+Sync Impact Report — 2026-07-19 (amendment 1.16.0)
+- Version change: 1.15.0 → 1.16.0 (MINOR: per-card usage display for pool-sharing cards). Core
+  Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards):
+  - **New derived contract field `Card.ownUsed`** (moneyString): a CREDIT card's own
+    Σexpense−Σincome in the account's own currency, computed regardless of whether the card shares
+    the account pool or carries its own `CardLimit`. Motivation: when several cards share the same
+    account pool, every one of them previously displayed the identical fully-combined
+    `account.creditUsed` figure — correct arithmetically (they DO share one pool) but confusing,
+    since it read as "this card individually spent X" rather than "the shared pool X of the group
+    is at". `AccountVisualCard` now shows `card.ownUsed` (not `account.creditUsed`) as a
+    pool-sharing card's "used" figure, still against the shared `creditLimit` as the denominator;
+    the no-`card` account-level tile is the only place the true combined total is still shown.
+  - `ownUsed` has no seed baseline (unlike `creditUsedInitial`/`CardLimit.usedInitial`) — there is
+    nowhere to attribute a pre-existing, not-transaction-backed balance to one specific
+    pool-sharing card, so such a seed only ever shows up in the account's own combined
+    `creditUsed`, never split across `ownUsed` values. Documented as a known limitation, not a bug.
+
+Sync Impact Report — 2026-07-19 (amendment 1.15.0)
+- Version change: 1.14.0 → 1.15.0 (MINOR: extends the primary-card credit model with
+  multi-currency pools, plus a same-scope correctness fix). Core Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards/transactions):
+  - **The primary card can now also carry `CardLimit` rows — but only for currencies OTHER than
+    the account's own.** The account's own currency stays exclusively mirrored via
+    `BankAccount.creditLimit`/`creditUsedInitial` (never duplicated as a `CardLimit` row for the
+    primary); any additional currency the user enters on the primary (optional) becomes a real,
+    independent `CardLimit` row — same mechanism a non-primary card's "tope propio" already uses,
+    still no FX conversion, so never cross-checked against the account's own-currency pool.
+    `CardsService.resolveCreditLimits` and `AccountsService.create`'s inline `cards[]` path both
+    split `input.limits` this way (one entry matching the account's currency → mandatory, mirrored;
+    the rest → `CardLimit` rows).
+  - **New derived contract field `BankAccount.creditPools: {currency, limit, used}[]`** — the
+    account's own-currency pool plus, if the primary card carries any, its extra-currency pools.
+    A non-primary card's own sub-limit is NOT rolled up here (stays scoped to that card alone).
+    Empty for non-credit accounts.
+  - **Correctness fix (real bug, not just new-feature plumbing):** `TransactionsRepository
+    .sumsForAccount` and `AccountsRepository.sumsByAccount` previously summed a bank account's
+    shared-pool usage **without scoping by currency at all**, and excluded a card from that sum if
+    it had *any* `CardLimit` row regardless of currency. Both were latent (harmless while a card's
+    `CardLimit` rows, if any, always meant "fully independent, single currency"), but became a real
+    bug the moment a SINGLE card could be pool-sharing in one currency while independently-limited
+    in another (exactly what the primary + extra-currency change above introduces) — a card's
+    other-currency spend would have inflated the account's own-currency `creditUsed`. Both methods
+    are now scoped to the account's own currency, and the "independent card" exclusion checks for a
+    `CardLimit` in *that specific currency*, not "any currency."
+  - Frontend: `CardForm`'s primary-card branch gained an optional, always-visible "Topes en otras
+    monedas" repeatable section (reusing the same currency/amount row UI as the additional-card
+    "Tope propio" section, but excluding the account's own currency from its picker). `CardDetailModal`
+    shows a small list of a card's non-account-currency `CardLimit`s (covers both the primary's extras
+    and a non-primary card's own sub-limit in another currency). `AccountDetailRoute` shows a
+    "Topes por moneda" card listing every entry in `creditPools` whenever there's more than one.
+  - Amount inputs across `CardForm`/`AccountCreateModal`/`AccountForm` now display locale-grouped
+    thousands (e.g. "3.000.000") while typing, via a shared `shared/lib/amountInput.ts` helper
+    (extracted from the pre-existing transaction-amount-field pattern); these fields became
+    integer-only in the process (matches the transaction amount field's existing convention) to
+    avoid ambiguity between a grouping separator and a decimal separator for `es-CL`.
+
+Sync Impact Report — 2026-07-18 (amendment 1.14.0)
+- Version change: 1.13.0 → 1.14.0 (MINOR: revised the accounts/cards credit model a FOURTH time —
+  supersedes 1.13.0's "any card may carry an optional sub-limit" shape with a "primary card mirrors
+  the account" shape, per a same-day product decision from a definitive design mockup). Core
+  Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards/transactions):
+  - **`CardAccount.isPrimary`** (new boolean, `@default(false)`): the account's FIRST CREDIT-kind card,
+    assigned automatically (never user-toggled) — at most one `true` per account, irrelevant for
+    DEBIT/PREPAID. The primary card's limit **IS** the account's own `creditLimit`/`creditUsedInitial`
+    — edited from either side (the account's own edit form, or the primary card's edit form), same
+    underlying value, no `CardLimit` row of its own (`limits` is always `[]` for the primary).
+  - **Every CREDIT card must resolve to a determinate limit before saving** (mandatory, enforced in
+    `CardsService.resolveCreditLimits` / `AccountsService.create`'s inline `cards[]` path): the first
+    CREDIT card on an account requires a limit in the account's own currency (becomes primary, writes
+    through to `BankAccount.creditLimit`/`creditUsedInitial`); a *second-or-later* CREDIT card chooses,
+    via new `createCardSchema.usesAccountPool` (boolean, default `true`), between sharing the account
+    pool (no `CardLimit` rows) or `false` = its own independent sub-limit ("tope propio", one
+    `CardLimit` row per currency, still capped against the account pool in the account's own currency
+    via `CARD_SUBLIMIT_EXCEEDS_ACCOUNT`). Missing/zero limit where one is required throws the new
+    `CARD_LIMIT_REQUIRED`. The `CardLimit` model itself (table `card-limit`, reinstated in 1.13.0) is
+    unchanged in shape — only *when* a card gets one, and what "no row" now specifically means (either
+    "this is the primary" or "this additional card shares the pool"), changed.
+  - Editing an existing primary card without re-entering `usedInitial` (the frontend never surfaces
+    that field) preserves the account's current `creditUsedInitial` instead of resetting it to `"0"` —
+    a correctness fix alongside this redesign, since the old code always defaulted to `"0"` on write.
+  - Frontend: `CardForm` is a 3-state UI now — non-CREDIT (no limit section), CREDIT-becomes-primary
+    (one mandatory amount field in the account's currency), CREDIT-additional (a "Cupo de la
+    cuenta"/"Tope propio" `Segmented` toggle, the latter revealing the existing repeatable
+    currency/amount rows). `AccountCreateModal`'s account-level cupo fields become read-only/derived
+    from the drafted primary card's own limit once one exists (mirrors 1:1, no independent input);
+    `AccountForm` (editing an existing account) disables its cupo fields once a primary card exists,
+    with a hint pointing at editing via the card instead. `AccountVisualCard`/`DraftCardTile` show a
+    small "Principal"/"Adicional" badge next to a CREDIT card's name.
+  - No new error codes beyond `CARD_LIMIT_REQUIRED`; `CARD_SUBLIMIT_EXCEEDED`/`CARD_SUBLIMIT_EXCEEDS_ACCOUNT`
+    from 1.13.0 remain in active use for the "tope propio" path.
+
+Sync Impact Report — 2026-07-18 (amendment 1.13.0)
+- Version change: 1.12.0 → 1.13.0 (MINOR: revised accounts/cards model a third time — reinstates a
+  card-level credit sub-limit, deliberately reversing amendment 1.5.0's simplification, per a live
+  2026-07-18 product decision). Core Principles unchanged in intent.
+- Technology & Operational Constraints (accounts/cards/transactions):
+  - **`CardLimit` model reinstated** (table `card-limit`, one row per `(cardId, currency)`): `limitAmount`
+    + `usedInitial` (seed), with a derived `used = usedInitial + Σexpense − Σincome` on that card+currency
+    — same reconciliation pattern as the account's own `creditUsed`. Unlike the 1.4.0 attempt this
+    amendment supersedes again, there is **no `parentCardId`/primary-secondary hierarchy** — a card either
+    has its own `CardLimit` row(s) or it doesn't; a card with none simply draws on the full account pool.
+    "Primary vs. secondary" is purely a naming convention in card names now, not a data relationship.
+  - **The account-level pool is still the master/shared cap** — unchanged from 1.5.0 — but is no longer
+    exclusive to `CREDIT_LINE`: **any cardable account that grows a CREDIT-kind card** (e.g. a CHECKING
+    account's bank add-on credit card) gets the same `creditLimit`/`creditUsedInitial`/derived `creditUsed`
+    treatment. A card's own sub-limit (if set, for a given currency) is an *additional, narrower* cap on
+    top of the account pool, never a substitute for it — both are checked on every relevant transaction.
+  - Setting a card's sub-limit in the **account's own currency** cannot exceed the account's `creditLimit`
+    (`CARD_SUBLIMIT_EXCEEDS_ACCOUNT`, checked in `CardsService`); limits in other currencies aren't
+    cross-checked against it (no FX conversion anywhere in this app — same stance as `extraCurrencies`).
+  - Error codes restored: `CARD_SUBLIMIT_EXCEEDED` (a transaction exceeds the card's own sub-limit) is
+    back in active use; `PARENT_CARD_INVALID` from 1.4.0 was NOT reinstated (no parent/secondary relation
+    exists to validate). New: `CARD_SUBLIMIT_EXCEEDS_ACCOUNT`.
+  - Frontend: `CardForm` gained an optional "topes por moneda" repeatable section (CREDIT kind only);
+    `AccountCreateModal`/`AccountForm` show the account-level cupo fields whenever the account is a
+    `CREDIT_LINE` OR has gained a CREDIT card (previously CREDIT_LINE-only); `AccountVisualCard` shows a
+    card's own sub-limit progress when set, else falls back to the account pool.
+
 Sync Impact Report — 2026-07-16 (amendment 1.12.0)
 - Version change: 1.11.0 → 1.12.0 (MINOR: full profile-page redesign from a definitive design file,
   specs/008 "Perfil de Usuario"; also records a new durable workflow convention). Core Principles
@@ -264,10 +575,8 @@ Tests are written before implementation and follow Red-Green-Refactor: write a f
 make it pass, refactor. Financial logic (`lib/finance/**`) MUST have unit tests covering the
 money rules in Principle I.
 
-Current-state note (MUST be closed): the repository has **no test runner configured yet**.
-**Vitest** is the chosen runner (ratified with specs/001); until it is set up during the
-monorepo migration, this principle is the mandated standard but is **not yet satisfied** — see
-`TODO(TEST_RUNNER)` in the Sync Impact Report.
+**Vitest** is the runner, set up across `apps/api`, `apps/web`, and `packages/*` (ratified with
+specs/001, completed during the monorepo migration). `TODO(TEST_RUNNER)` is closed.
 
 Rationale: correctness in money math cannot be verified by eye. TDD makes the intended
 behavior executable and prevents regressions in the most consequential code.
@@ -286,6 +595,59 @@ follow-up.
 Rationale: the spec is the shared contract; skipping it produces code nobody agreed to.
 The constitution and `CLAUDE.md` are the project's durable memory — if they drift from
 reality, every future decision is made on false information.
+
+### VI. Backend DDD + CQRS Architecture (one table = one domain, 21 domains)
+
+**One table, one domain, one adapter.** Every table in `apps/api/prisma/schema.prisma` MUST own
+exactly one folder `src/domains/<table>/` (kebab-case, matching its `@@map`), and exactly one Prisma
+adapter may query that table. No adapter, handler or controller may read or write a table owned by
+another domain: it goes through that domain's port. A folder that owns no table is allowed only when
+it owns no data either (`import`, `health`).
+
+This does NOT dissolve aggregates. A table whose rows exist only inside another aggregate
+(`card-account`, `card-limit`, `billing-settings`, `installment-payment`, `savings-entry`) owns its
+table and its row shape, never the rules over it — writes still travel through the aggregate root
+that validates them, and such a domain has only `domain/` + `infrastructure/` layers. Cross-table
+atomicity stays a single `prisma.$transaction(...)` opened by the handler, with each owner exposing a
+`*WithTx` method. To keep the module graph acyclic, a table exposes a LEAF `<table>.data.module.ts`
+(its port→adapter binding, importing no other domain) and, when it has commands/queries/HTTP, a
+`<table>.module.ts` that imports the leaves it reads — orchestration depends on leaves, never the
+reverse.
+
+Once a backend domain (`apps/api/src/domains/<domain>/`) is migrated under
+specs/009-ddd-cqrs-architecture, it MUST use four internal layers — **domain** (aggregates that
+own their invariants/lifecycle; State objects for multi-stage lifecycles; Strategy objects for
+decisions that vary by a growing set of categories; domain events; repository ports; domain
+errors), **application** (Command/Query separation — one command+handler pair per mutation, one
+query+handler pair per read, every handler extending the shared `BaseCommandHandler`/
+`BaseQueryHandler` Template Method built on `@nestjs/cqrs`), **infrastructure** (Prisma repository
+Adapters implementing the domain's ports — the ONLY files in the domain allowed to import
+`@prisma/client`), **presentation** (a thin Facade controller: request → command/query →
+response, plus Zod validation of body/query AND path params). Domain events publish via
+`@nestjs/cqrs`'s `EventBus` and are dispatched **synchronously by default** (a failing listener
+surfaces as part of the same request; async is opt-in per listener, only when a reaction can
+genuinely wait). A business action that inherently spans more than one aggregate in one atomic
+step MAY use a single `prisma.$transaction(...)` across the involved ports' `saveWithTx` — this is
+a documented pragmatic exception, not a violation of aggregate boundaries. Singleton, Abstract
+Factory, Prototype, Proxy, and Composite are explicitly NOT hand-implemented (Nest's DI, existing
+Guards, and this app's flat non-recursive data already cover their roles).
+
+Migration proceeded one domain at a time (`bank-account` is the reference implementation) and is
+**complete: all 21 table-domains use the four layers**, so the flat
+`module/controller/service/repository` skeleton described in the Architecture norms below is
+historical and MUST NOT be used for new code. Cross-cutting concerns around a dispatch (logging,
+timing) are Decorators — NestJS interceptors registered globally (`infra/cqrs/
+handler-logging.interceptor.ts`), never a `Logger` call inside a handler. Tests for each domain
+live in `apps/api/test/{unit,integration,e2e}/`, mirroring
+`src/domains/<domain>/<layer>/` — the unit tier MUST run with zero database connections
+(reinforces Principle IV).
+
+Rationale: business rules scattered across a service file that also talks to the database are
+easy to bypass from another code path; concentrating them in an aggregate makes them structurally
+impossible to skip and independently unit-testable. CQRS keeps read-shaping changes from ever
+risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-014) and the
+`accounts` reference tree: `docs/{english,spanish}/ARCHITECTURE.md` §12a;
+`specs/009-ddd-cqrs-architecture/spec.md`.
 
 ## Technology & Operational Constraints
 
@@ -365,4 +727,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.12.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-16
+**Version**: 1.23.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-30

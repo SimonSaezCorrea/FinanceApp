@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import i18n from "../../../i18n";
@@ -39,6 +39,9 @@ const account = {
   currentBalance: "1240.5000",
   creditLimit: "0.0000",
   creditUsed: "0",
+  creditPools: [],
+  billingCycleDay: null,
+  paymentMethod: "MANUAL" as const,
   balanceSeries: Array.from({ length: 30 }, () => "1240.5000"),
   balanceChangePct: "0.0",
   cards: [],

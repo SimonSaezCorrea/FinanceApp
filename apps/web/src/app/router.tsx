@@ -1,5 +1,5 @@
 import type { ReactElement } from "react";
-import { createBrowserRouter } from "react-router-dom";
+import { createBrowserRouter } from "react-router";
 
 import { AccountDetailRoute } from "../domains/accounts/routes/AccountDetailRoute";
 import { AccountsRoute } from "../domains/accounts/routes/AccountsRoute";

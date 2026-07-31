@@ -31,5 +31,23 @@ export const accountsApi = {
   reconcile: (id: string) =>
     apiFetch<accounts.BankAccount>(`/accounts/${id}/reconcile`, { method: "POST" }),
 
+  creditStatements: (id: string) =>
+    apiFetch<accounts.CreditStatement[]>(`/accounts/${id}/credit-statements`),
+
+  generateStatements: (id: string) =>
+    apiFetch<accounts.CreditStatement[]>(`/accounts/${id}/generate-statements`, { method: "POST" }),
+
+  payCreditStatement: (id: string, statementId: string, fromAccountId: string) =>
+    apiFetch<accounts.CreditStatement>(`/accounts/${id}/credit-statements/${statementId}/pay`, {
+      method: "POST",
+      body: JSON.stringify({ fromAccountId }),
+    }),
+
+  updateCreditStatement: (id: string, statementId: string, amount: string) =>
+    apiFetch<accounts.CreditStatement>(`/accounts/${id}/credit-statements/${statementId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ amount }),
+    }),
+
   remove: (id: string) => apiFetch<void>(`/accounts/${id}`, { method: "DELETE" }),
 };

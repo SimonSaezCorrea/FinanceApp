@@ -28,7 +28,7 @@ export function Switch({ checked, onCheckedChange, disabled, className, ...rest 
     >
       <span
         className={cn(
-          "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
+          "inline-block h-4 w-4 transform rounded-full border border-border bg-background shadow transition-transform",
           checked ? "translate-x-[18px]" : "translate-x-1",
         )}
       />

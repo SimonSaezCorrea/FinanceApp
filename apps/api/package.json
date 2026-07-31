@@ -6,12 +6,15 @@
     "dev": "nest start --watch",
     "build": "nest build",
     "start": "node dist/main.js",
-    "test": "vitest run",
+    "test": "pnpm test:unit && pnpm test:integration && pnpm test:e2e",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "test:unit": "vitest run test/unit",
+    "test:integration": "vitest run test/integration",
+    "test:e2e": "vitest run test/e2e"
   },
   "dependencies": {
     "@finance/contracts": "workspace:*",
@@ -21,6 +24,7 @@
     "@nestjs/core": "^11.1.28",
     "@nestjs/jwt": "^11.0.2",
     "@nestjs/platform-express": "^11.1.28",
+    "@nestjs/schedule": "^6.1.3",
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
     "bcryptjs": "^3.0.3",
@@ -28,7 +32,8 @@
     "decimal.js": "^10.5.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "zod": "^3.24.1"
+    "zod": "^3.24.1",
+    "@nestjs/cqrs": "^11.0.3"
   },
   "devDependencies": {
     "@finance/config": "workspace:*",
@@ -36,6 +41,7 @@
     "@nestjs/testing": "^11.1.28",
     "@swc/core": "^1.15.46",
     "@types/cookie-parser": "^1.4.8",
+    "dotenv": "^17.4.2",
     "@types/express": "^5.0.0",
     "@types/ms": "^2.1.0",
     "@types/node": "^22.13.1",

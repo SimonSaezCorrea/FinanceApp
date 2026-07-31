@@ -1,18 +1,24 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { APP_INTERCEPTOR } from "@nestjs/core";
 
-import { AccountsModule } from "./domains/accounts/accounts.module";
-import { AuthModule } from "./domains/auth/auth.module";
-import { DebtsModule } from "./domains/debts/debts.module";
+import { BankAccountModule } from "./domains/bank-account/bank-account.module";
+import { CreditStatementModule } from "./domains/credit-statement/credit-statement.module";
+import { UserModule } from "./domains/user/user.module";
+import { DebtModule } from "./domains/debt/debt.module";
 import { HealthModule } from "./domains/health/health.module";
 import { ImportModule } from "./domains/import/import.module";
-import { InstallmentsModule } from "./domains/installments/installments.module";
-import { InvestmentsModule } from "./domains/investments/investments.module";
-import { RecurringModule } from "./domains/recurring/recurring.module";
-import { ReferenceModule } from "./domains/reference/reference.module";
-import { SavingsModule } from "./domains/savings/savings.module";
-import { TransactionsModule } from "./domains/transactions/transactions.module";
-import { WalletModule } from "./domains/wallet/wallet.module";
+import { InstallmentPlanModule } from "./domains/installment-plan/installment-plan.module";
+import { InvestmentModule } from "./domains/investment/investment.module";
+import { RecurringExpenseModule } from "./domains/recurring-expense/recurring-expense.module";
+import { CountryModule } from "./domains/country/country.module";
+import { CurrencyModule } from "./domains/currency/currency.module";
+import { FinancialInstitutionModule } from "./domains/financial-institution/financial-institution.module";
+import { SavingsGoalModule } from "./domains/savings-goal/savings-goal.module";
+import { TransactionModule } from "./domains/transaction/transaction.module";
+import { WalletItemDashboardModule } from "./domains/wallet-item-dashboard/wallet-item-dashboard.module";
+import { HandlerLoggingInterceptor } from "./infra/cqrs/handler-logging.interceptor";
+import { CronModule } from "./infra/cron/cron.module";
 import { PrismaModule } from "./infra/prisma/prisma.module";
 
 @Module({
@@ -20,17 +26,24 @@ import { PrismaModule } from "./infra/prisma/prisma.module";
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
     HealthModule,
-    AuthModule,
-    AccountsModule,
-    TransactionsModule,
-    InstallmentsModule,
-    DebtsModule,
-    SavingsModule,
-    InvestmentsModule,
+    UserModule,
+    BankAccountModule,
+    CreditStatementModule,
+    TransactionModule,
+    InstallmentPlanModule,
+    DebtModule,
+    SavingsGoalModule,
+    InvestmentModule,
     ImportModule,
-    RecurringModule,
-    WalletModule,
-    ReferenceModule,
+    RecurringExpenseModule,
+    WalletItemDashboardModule,
+    CountryModule,
+    CurrencyModule,
+    FinancialInstitutionModule,
+    CronModule,
   ],
+  // Decorator (FR-013): logging/timing around every command/query dispatch,
+  // applied once here instead of inside any handler.
+  providers: [{ provide: APP_INTERCEPTOR, useClass: HandlerLoggingInterceptor }],
 })
 export class AppModule {}

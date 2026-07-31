@@ -92,20 +92,26 @@ export function EditProfileDialog({ open, onOpenChange }: Readonly<Props>) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title={t("profile.edit.title")}>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <Field label={t("profile.edit.name")} htmlFor="profile-name">
-          <Input id="profile-name" value={name} onChange={(e) => setName(e.target.value)} />
+        <Field label={t("profile.edit.name")}>
+          <Input
+            id="profile-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            aria-label={t("profile.edit.name")}
+          />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label={t("profile.edit.email")} htmlFor="profile-email" error={error}>
+          <Field label={t("profile.edit.email")} error={error}>
             <Input
               id="profile-email"
               type="email"
               value={email}
               required
               onChange={(e) => setEmail(e.target.value)}
+              aria-label={t("profile.edit.email")}
             />
           </Field>
-          <Field label={t("profile.edit.phone")} htmlFor="profile-phone">
+          <Field label={t("profile.edit.phone")}>
             <div className="flex gap-2">
               {callingCode ? (
                 <span className="flex h-10 shrink-0 items-center rounded-md border border-input bg-muted px-3 text-sm text-muted-foreground">
@@ -118,6 +124,7 @@ export function EditProfileDialog({ open, onOpenChange }: Readonly<Props>) {
                 value={phone}
                 placeholder="9 ····"
                 onChange={(e) => setPhone(e.target.value)}
+                aria-label={t("profile.edit.phone")}
               />
             </div>
           </Field>
@@ -125,24 +132,26 @@ export function EditProfileDialog({ open, onOpenChange }: Readonly<Props>) {
 
         <div className="border-t pt-4 text-sm font-semibold">{t("profile.edit.personalInfo")}</div>
 
-        <Field label={t("profile.edit.country")} htmlFor="profile-country">
+        <Field label={t("profile.edit.country")}>
           <Select
             id="profile-country"
             value={countryId}
             options={countryOptions}
             onChange={(e) => handleCountryChange(e.target.value)}
+            aria-label={t("profile.edit.country")}
           />
         </Field>
-        <Field label={t("profile.edit.birthDate")} htmlFor="profile-birthdate">
+        <Field label={t("profile.edit.birthDate")}>
           <Input
             id="profile-birthdate"
             type="date"
             value={birthDate}
             onChange={(e) => setBirthDate(e.target.value)}
+            aria-label={t("profile.edit.birthDate")}
           />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label={t("profile.edit.identifierType")} htmlFor="profile-identifier-type">
+          <Field label={t("profile.edit.identifierType")}>
             <Select
               id="profile-identifier-type"
               value={identifierType ?? availableIdentifierTypes[0]!}
@@ -153,46 +162,52 @@ export function EditProfileDialog({ open, onOpenChange }: Readonly<Props>) {
               onChange={(e) =>
                 setIdentifierType(e.target.value as auth.CurrentUser["identifierType"])
               }
+              aria-label={t("profile.edit.identifierType")}
             />
           </Field>
-          <Field label={t("profile.edit.identifierValue")} htmlFor="profile-identifier-value">
+          <Field label={t("profile.edit.identifierValue")}>
             <Input
               id="profile-identifier-value"
               value={identifierValue}
               placeholder="12.345.678-9"
               onChange={(e) => setIdentifierValue(e.target.value)}
+              aria-label={t("profile.edit.identifierValue")}
             />
           </Field>
         </div>
 
-        <Field label={t("profile.edit.addressStreet")} htmlFor="profile-address-street">
+        <Field label={t("profile.edit.addressStreet")}>
           <Input
             id="profile-address-street"
             value={addressStreet}
             onChange={(e) => setAddressStreet(e.target.value)}
+            aria-label={t("profile.edit.addressStreet")}
           />
         </Field>
         <div className="grid grid-cols-2 gap-3">
-          <Field label={t("profile.edit.addressCity")} htmlFor="profile-address-city">
+          <Field label={t("profile.edit.addressCity")}>
             <Input
               id="profile-address-city"
               value={addressCity}
               onChange={(e) => setAddressCity(e.target.value)}
+              aria-label={t("profile.edit.addressCity")}
             />
           </Field>
-          <Field label={t("profile.edit.addressRegion")} htmlFor="profile-address-region">
+          <Field label={t("profile.edit.addressRegion")}>
             <Input
               id="profile-address-region"
               value={addressRegion}
               onChange={(e) => setAddressRegion(e.target.value)}
+              aria-label={t("profile.edit.addressRegion")}
             />
           </Field>
         </div>
-        <Field label={t("profile.edit.addressPostalCode")} htmlFor="profile-address-postal">
+        <Field label={t("profile.edit.addressPostalCode")}>
           <Input
             id="profile-address-postal"
             value={addressPostalCode}
             onChange={(e) => setAddressPostalCode(e.target.value)}
+            aria-label={t("profile.edit.addressPostalCode")}
           />
         </Field>
 

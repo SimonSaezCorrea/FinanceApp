@@ -1,165 +1,131 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+
+import { ChevronDown } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { accounts } from "@finance/contracts";
 
-import { Input } from "../../../shared/ui/input";
+import { Switch } from "../../../shared/ui/switch";
+import { DateRangeButton } from "./DateRangeButton";
 import type { TransactionViewFilters } from "../lib/transactionMetrics";
 
 interface TransactionFiltersBarProps {
   filters: TransactionViewFilters;
   onChange: (filters: TransactionViewFilters) => void;
   accounts: accounts.BankAccount[];
+  categories: string[];
 }
 
-export function TransactionFiltersBar({ filters, onChange, accounts }: TransactionFiltersBarProps) {
+function PillSelect({
+  value,
+  onChange,
+  children,
+  disabled,
+}: Readonly<{
+  value: string;
+  onChange: (value: string) => void;
+  children: ReactNode;
+  disabled?: boolean;
+}>) {
+  return (
+    <div className="relative">
+      <select
+        value={value}
+        disabled={disabled}
+        onChange={(e) => onChange(e.target.value)}
+        className="h-9 appearance-none rounded-md border bg-card py-0 pl-3 pr-8 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {children}
+      </select>
+      <ChevronDown
+        className="pointer-events-none absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+        aria-hidden
+      />
+    </div>
+  );
+}
+
+export function TransactionFiltersBar({
+  filters,
+  onChange,
+  accounts,
+  categories,
+}: TransactionFiltersBarProps) {
   const { t } = useTranslation();
 
-  // Debounced category search
-  const [localCategory, setLocalCategory] = useState(filters.categorySearch);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- resync local echo when the external filter changes
-    setLocalCategory(filters.categorySearch);
-  }, [filters.categorySearch]);
-
-  const handleCategoryChange = useCallback(
-    (value: string) => {
-      setLocalCategory(value);
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-      debounceRef.current = setTimeout(() => {
-        onChange({ ...filters, categorySearch: value });
-      }, 300);
-    },
-    [filters, onChange],
-  );
-
   function handleAccountChange(value: string) {
-    if (value === "") {
-      onChange({ ...filters, bankAccountId: undefined, selectedCardId: undefined });
-      return;
-    }
-    // Check if value is a cardId (prefixed with "card:")
-    if (value.startsWith("card:")) {
-      const cardId = value.slice(5);
-      // Find the parent account for this card
-      const parentAccount = accounts.find((a) => a.cards.some((c) => c.id === cardId));
-      onChange({
-        ...filters,
-        bankAccountId: parentAccount?.id,
-        selectedCardId: cardId,
-      });
-    } else {
-      onChange({ ...filters, bankAccountId: value, selectedCardId: undefined });
-    }
+    onChange({ ...filters, bankAccountId: value || undefined, selectedCardId: undefined });
   }
 
-  function handleFromChange(value: string) {
-    onChange({ ...filters, from: value ? `${value}T00:00:00.000Z` : undefined });
-  }
-
-  function handleToChange(value: string) {
-    onChange({ ...filters, to: value ? `${value}T23:59:59.999Z` : undefined });
+  function handleCardChange(value: string) {
+    onChange({ ...filters, selectedCardId: value || undefined });
   }
 
   const activeAccounts = accounts.filter((a) => a.status === "ACTIVE");
   const inactiveAccounts = accounts.filter((a) => a.status === "INACTIVE");
-
-  const fromDate = filters.from ? filters.from.slice(0, 10) : "";
-  const toDate = filters.to ? filters.to.slice(0, 10) : "";
-
-  // Build selected value for the account/card select
-  let selectedAccountValue = "";
-  if (filters.selectedCardId) {
-    selectedAccountValue = `card:${filters.selectedCardId}`;
-  } else if (filters.bankAccountId) {
-    selectedAccountValue = filters.bankAccountId;
-  }
+  const selectedAccount = accounts.find((a) => a.id === filters.bankAccountId);
+  const cardOptions = selectedAccount?.cards ?? [];
 
   return (
-    <div className="flex flex-wrap items-end gap-3">
-      {/* Account / Card selector */}
-      <div className="flex min-w-[200px] flex-1 flex-col gap-1">
-        <label className="text-xs text-muted-foreground">{t("transactions.filters.account")}</label>
-        <select
-          value={selectedAccountValue}
-          onChange={(e) => handleAccountChange(e.target.value)}
-          className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="">{t("transactions.filters.allAccounts")}</option>
-
-          {activeAccounts.map((a) => (
-            <optgroup key={a.id} label={a.name}>
-              <option value={a.id}>{a.name}</option>
-              {a.cards.map((c) => (
-                <option key={c.id} value={`card:${c.id}`}>
-                  {`••••${c.last4} · ${c.name}`}
-                </option>
-              ))}
-            </optgroup>
+    <div className="flex flex-wrap items-center gap-2">
+      <PillSelect value={filters.bankAccountId ?? ""} onChange={handleAccountChange}>
+        <option value="">{t("transactions.form.selectAccount")}</option>
+        {activeAccounts.map((a) => (
+          <option key={a.id} value={a.id}>
+            {a.name}
+          </option>
+        ))}
+        {filters.showInactiveAccounts &&
+          inactiveAccounts.map((a) => (
+            <option key={a.id} value={a.id}>
+              {`${a.name} (${t("accounts.status.INACTIVE")})`}
+            </option>
           ))}
+      </PillSelect>
 
-          {filters.showInactiveAccounts &&
-            inactiveAccounts.map((a) => (
-              <optgroup key={a.id} label={`${a.name} (${t("accounts.status.INACTIVE")})`}>
-                <option value={a.id}>{a.name}</option>
-              </optgroup>
-            ))}
-        </select>
-      </div>
+      {/* Always rendered (disabled when the selected account has no cards) so switching
+          between a cardable and a non-cardable account doesn't shift the rest of the bar. */}
+      <PillSelect
+        value={filters.selectedCardId ?? ""}
+        onChange={handleCardChange}
+        disabled={cardOptions.length === 0}
+      >
+        <option value="">{t("transactions.form.selectCard")}</option>
+        {cardOptions.map((c) => (
+          <option key={c.id} value={c.id}>
+            {`••••${c.last4} · ${c.name}`}
+          </option>
+        ))}
+      </PillSelect>
 
-      {/* Show inactive toggle */}
-      <label className="flex cursor-pointer items-center gap-2 self-end pb-2">
-        <span className="relative inline-flex h-5 w-9 shrink-0">
-          <input
-            type="checkbox"
-            checked={filters.showInactiveAccounts}
-            onChange={(e) => onChange({ ...filters, showInactiveAccounts: e.target.checked })}
-            className="peer sr-only"
-          />
-          <span className="absolute inset-0 rounded-full bg-muted transition-colors peer-checked:bg-primary" />
-          <span className="absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-background shadow transition-[left] peer-checked:left-[18px]" />
-        </span>
+      <PillSelect
+        value={filters.categorySearch}
+        onChange={(value) => onChange({ ...filters, categorySearch: value })}
+      >
+        <option value="">{t("transactions.filters.allCategories")}</option>
+        {categories.map((c) => (
+          <option key={c} value={c}>
+            {c}
+          </option>
+        ))}
+      </PillSelect>
+
+      <DateRangeButton
+        from={filters.from}
+        to={filters.to}
+        onChange={({ from, to }) => onChange({ ...filters, from, to })}
+      />
+
+      <label className="flex cursor-pointer items-center gap-2 pl-1">
+        <Switch
+          checked={filters.showInactiveAccounts}
+          onCheckedChange={(checked) => onChange({ ...filters, showInactiveAccounts: checked })}
+          aria-label={t("transactions.filters.showInactive")}
+        />
         <span className="text-xs text-muted-foreground">
           {t("transactions.filters.showInactive")}
         </span>
       </label>
-
-      {/* Category search */}
-      <div className="flex min-w-[160px] flex-1 flex-col gap-1">
-        <label className="text-xs text-muted-foreground">
-          {t("transactions.filters.category")}
-        </label>
-        <Input
-          value={localCategory}
-          onChange={(e) => handleCategoryChange(e.target.value)}
-          placeholder={t("transactions.filters.categoryPlaceholder")}
-        />
-      </div>
-
-      {/* Date range */}
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">{t("transactions.filters.from")}</label>
-        <Input
-          type="date"
-          value={fromDate}
-          max={toDate || undefined}
-          onChange={(e) => handleFromChange(e.target.value)}
-          className="w-36"
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">{t("transactions.filters.to")}</label>
-        <Input
-          type="date"
-          value={toDate}
-          min={fromDate || undefined}
-          onChange={(e) => handleToChange(e.target.value)}
-          className="w-36"
-        />
-      </div>
     </div>
   );
 }

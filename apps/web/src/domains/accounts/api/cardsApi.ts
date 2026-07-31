@@ -19,8 +19,3 @@ export const cardsApi = {
   remove: (accountId: string, cardId: string) =>
     apiFetch<void>(`/accounts/${accountId}/cards/${cardId}`, { method: "DELETE" }),
 };
-
-/** Extract the last 4 digits from a typed card number; the full PAN never leaves here. */
-export function deriveLast4(input: string): string {
-  return input.replace(/\D/g, "").slice(-4);
-}
