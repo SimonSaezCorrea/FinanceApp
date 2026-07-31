@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { NavLink } from "react-router-dom";
+import { NavLink } from "react-router";
 
 import { useAuth } from "../domains/auth/hooks/useAuth";
 import { ThemeSync } from "../domains/profile/components/ThemeSync";

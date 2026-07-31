@@ -1,7 +1,7 @@
 import { AlertTriangle, ChevronRight, Pencil, Plus, Power, RefreshCw, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
 
 import { accounts as accountsContract } from "@finance/contracts";
@@ -241,7 +241,8 @@ function BillingNotConfiguredBadge({
   onConfigure: () => void;
 }) {
   const { t } = useTranslation();
-  const hasCreditPool = account.type === "CREDIT_LINE" || account.cards.some((c) => c.kind === "CREDIT");
+  const hasCreditPool =
+    account.type === "CREDIT_LINE" || account.cards.some((c) => c.kind === "CREDIT");
   if (!hasCreditPool || account.billingCycleDay !== null) return null;
   return (
     <button
@@ -264,7 +265,8 @@ function KpiStrip({ account, pct }: { account: accounts.BankAccount; pct: number
   // sense for it. Any other cardable account that's grown a credit card still has
   // its own real balance AND a credit pool, so both show side by side.
   const hasRealBalance = account.type !== "CREDIT_LINE";
-  const hasCreditPool = account.type === "CREDIT_LINE" || account.cards.some((c) => c.kind === "CREDIT");
+  const hasCreditPool =
+    account.type === "CREDIT_LINE" || account.cards.some((c) => c.kind === "CREDIT");
   const cols = (hasRealBalance ? 1 : 0) + 1 + (hasCreditPool ? 1 : 0);
   return (
     <div className={cn("grid gap-3", cols === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
@@ -295,7 +297,9 @@ function CreditKpi({ account }: { account: accounts.BankAccount }) {
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
   return (
     <Card className="flex flex-col gap-2 p-4">
-      <span className="text-xs font-medium text-muted-foreground">{t("accounts.detail.credit")}</span>
+      <span className="text-xs font-medium text-muted-foreground">
+        {t("accounts.detail.credit")}
+      </span>
       <p className="tabular-nums">
         <span className="text-xl font-semibold tracking-tight">{fmt(account.creditUsed)}</span>
         <span className="text-sm text-muted-foreground"> / {fmt(account.creditLimit)}</span>
