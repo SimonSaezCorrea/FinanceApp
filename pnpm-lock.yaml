@@ -111,6 +111,9 @@ importers:
       '@typescript-eslint/parser':
         specifier: ^8.64.0
         version: 8.64.0(eslint@10.7.0(jiti@2.7.0))(typescript@6.0.3)
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
       eslint:
         specifier: ^10.7.0
         version: 10.7.0(jiti@2.7.0)

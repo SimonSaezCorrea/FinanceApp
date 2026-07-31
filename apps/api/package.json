@@ -41,6 +41,7 @@
     "@nestjs/testing": "^11.1.28",
     "@swc/core": "^1.15.46",
     "@types/cookie-parser": "^1.4.8",
+    "dotenv": "^17.4.2",
     "@types/express": "^5.0.0",
     "@types/ms": "^2.1.0",
     "@types/node": "^22.13.1",
