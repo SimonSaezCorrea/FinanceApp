@@ -58,7 +58,7 @@ jobs:
       # needs the schema. `db push` matches the local workflow (this repo has no
       # prisma/migrations folder).
       - name: Push Prisma schema to the test database
-        run: pnpm --filter @finance/api exec prisma db push --skip-generate
+        run: pnpm --filter @finance/api exec prisma db push
 
       # Architecture boundaries: web↛api/db, api↛web, packages↛apps (SC-004/SC-007).
       - run: pnpm check:boundaries
