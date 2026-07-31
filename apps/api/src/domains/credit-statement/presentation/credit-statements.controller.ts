@@ -49,7 +49,8 @@ export class CreditStatementsController {
   payCreditStatement(
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(statementParamsSchema)) params: { id: string; statementId: string },
-    @Body(new ZodValidationPipe(accounts.payCreditStatementSchema)) body: accounts.PayCreditStatement,
+    @Body(new ZodValidationPipe(accounts.payCreditStatementSchema))
+    body: accounts.PayCreditStatement,
   ): Promise<accounts.CreditStatement> {
     return this.commandBus.execute(
       new PayCreditStatementCommand(user.id, params.id, params.statementId, body.fromAccountId),
@@ -60,7 +61,8 @@ export class CreditStatementsController {
   updateCreditStatement(
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(statementParamsSchema)) params: { id: string; statementId: string },
-    @Body(new ZodValidationPipe(accounts.updateCreditStatementSchema)) body: accounts.UpdateCreditStatement,
+    @Body(new ZodValidationPipe(accounts.updateCreditStatementSchema))
+    body: accounts.UpdateCreditStatement,
   ): Promise<accounts.CreditStatement> {
     return this.commandBus.execute(
       new CorrectStatementAmountCommand(user.id, params.id, params.statementId, body.amount),

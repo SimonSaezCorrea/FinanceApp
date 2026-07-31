@@ -3,7 +3,10 @@ import { fakeTransactionSumsRepo } from "../../../../support/fake-ports";
 
 import { GetAccountQueryHandler } from "../../../../../../src/domains/bank-account/application/queries/get-account.handler";
 import { GetAccountQuery } from "../../../../../../src/domains/bank-account/application/queries/get-account.query";
-import { BankAccount, type BankAccountProps } from "../../../../../../src/domains/bank-account/domain/bank-account.aggregate";
+import {
+  BankAccount,
+  type BankAccountProps,
+} from "../../../../../../src/domains/bank-account/domain/bank-account.aggregate";
 import { AccountNotFoundError } from "../../../../../../src/domains/bank-account/domain/errors";
 import type { BankAccountRepositoryPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 
@@ -33,7 +36,9 @@ function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountPro
   };
 }
 
-function fakeAccountRepo(overrides: Partial<BankAccountRepositoryPort> = {}): BankAccountRepositoryPort {
+function fakeAccountRepo(
+  overrides: Partial<BankAccountRepositoryPort> = {},
+): BankAccountRepositoryPort {
   return {
     findById: vi.fn(),
     listByUser: vi.fn(),
@@ -68,6 +73,8 @@ describe("GetAccountQueryHandler", () => {
     const accountRepo = fakeAccountRepo({ findById: vi.fn(async () => null) });
     const handler = new GetAccountQueryHandler(accountRepo, fakeTransactionSumsRepo());
 
-    await expect(handler.execute(new GetAccountQuery("u1", "missing"))).rejects.toThrow(AccountNotFoundError);
+    await expect(handler.execute(new GetAccountQuery("u1", "missing"))).rejects.toThrow(
+      AccountNotFoundError,
+    );
   });
 });

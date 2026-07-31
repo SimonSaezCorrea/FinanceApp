@@ -11,7 +11,11 @@ import { UpdateProfileCommand } from "./update-profile.command";
 
 @Injectable()
 @CommandHandler(UpdateProfileCommand)
-export class UpdateProfileHandler extends BaseCommandHandler<UpdateProfileCommand, auth.CurrentUser, User> {
+export class UpdateProfileHandler extends BaseCommandHandler<
+  UpdateProfileCommand,
+  auth.CurrentUser,
+  User
+> {
   constructor(
     eventBus: EventBus,
     @Inject(USER_REPOSITORY) private readonly repo: UserRepositoryPort,
@@ -30,12 +34,17 @@ export class UpdateProfileHandler extends BaseCommandHandler<UpdateProfileComman
     return user;
   }
 
-  protected async handle(command: UpdateProfileCommand, user: User): Promise<HandleResult<auth.CurrentUser>> {
+  protected async handle(
+    command: UpdateProfileCommand,
+    user: User,
+  ): Promise<HandleResult<auth.CurrentUser>> {
     const { input } = command;
     // A linked country mirrors its name into `countryName` for display (same
     // precedent as `accounts`' `UpdateAccountHandler` resolving `institutionName`).
     const linkedName =
-      input.countryId !== undefined && input.countryId ? await this.repo.countryName(input.countryId) : undefined;
+      input.countryId !== undefined && input.countryId
+        ? await this.repo.countryName(input.countryId)
+        : undefined;
     user.applyProfileUpdate({
       ...input,
       email: input.email ? input.email.toLowerCase() : undefined,

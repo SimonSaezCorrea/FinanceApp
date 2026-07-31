@@ -151,7 +151,12 @@ export class RecurringExpense {
       bankAccountId: this.props.bankAccountId,
       active: this.props.active,
       notes: this.props.notes,
-      nextDueAt: nextDue(this.props.anchorDate, this.props.frequency, this.props.interval, today).toISOString(),
+      nextDueAt: nextDue(
+        this.props.anchorDate,
+        this.props.frequency,
+        this.props.interval,
+        today,
+      ).toISOString(),
       createdAt: this.props.createdAt.toISOString(),
       updatedAt: this.props.updatedAt.toISOString(),
     };

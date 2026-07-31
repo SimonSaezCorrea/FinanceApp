@@ -10,15 +10,24 @@ import {
 } from "../../../transaction/domain/ports/transaction-sums.repository.port";
 import type { BankAccount } from "../../domain/bank-account.aggregate";
 import { AccountNotFoundError } from "../../domain/errors";
-import { BANK_ACCOUNT_REPOSITORY, type BankAccountRepositoryPort } from "../../domain/ports/bank-account.repository.port";
+import {
+  BANK_ACCOUNT_REPOSITORY,
+  type BankAccountRepositoryPort,
+} from "../../domain/ports/bank-account.repository.port";
 import { accountsToDtos } from "./account-dto.mapper";
 import { GetAccountQuery } from "./get-account.query";
 
 @Injectable()
 @QueryHandler(GetAccountQuery)
-export class GetAccountQueryHandler extends BaseQueryHandler<GetAccountQuery, accounts.BankAccount, BankAccount> {
-  constructor(@Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
-    @Inject(TRANSACTION_SUMS_REPOSITORY) private readonly sumsRepo: TransactionSumsRepositoryPort,) {
+export class GetAccountQueryHandler extends BaseQueryHandler<
+  GetAccountQuery,
+  accounts.BankAccount,
+  BankAccount
+> {
+  constructor(
+    @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
+    @Inject(TRANSACTION_SUMS_REPOSITORY) private readonly sumsRepo: TransactionSumsRepositoryPort,
+  ) {
     super();
   }
 
@@ -28,7 +37,10 @@ export class GetAccountQueryHandler extends BaseQueryHandler<GetAccountQuery, ac
     return account;
   }
 
-  protected async handle(query: GetAccountQuery, account: BankAccount): Promise<accounts.BankAccount> {
+  protected async handle(
+    query: GetAccountQuery,
+    account: BankAccount,
+  ): Promise<accounts.BankAccount> {
     const [dto] = await accountsToDtos(this.sumsRepo, query.userId, [account]);
     return dto;
   }

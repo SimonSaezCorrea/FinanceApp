@@ -52,21 +52,35 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
 describe("ChangePasswordHandler", () => {
   it("rejects an incorrect current password and never saves", async () => {
     const passwordHash = await hash("correct-pw", 1);
-    const repo = fakeRepo({ findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))) });
+    const repo = fakeRepo({
+      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
+    });
     const handler = new ChangePasswordHandler({ publish: vi.fn() } as never, repo);
 
     await expect(
-      handler.execute(new ChangePasswordCommand("u1", { currentPassword: "wrong", newPassword: "newpassword123" })),
+      handler.execute(
+        new ChangePasswordCommand("u1", {
+          currentPassword: "wrong",
+          newPassword: "newpassword123",
+        }),
+      ),
     ).rejects.toThrow(InvalidCurrentPasswordError);
     expect(repo.save).not.toHaveBeenCalled();
   });
 
   it("persists a new hash when the current password is correct", async () => {
     const passwordHash = await hash("correct-pw", 1);
-    const repo = fakeRepo({ findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))) });
+    const repo = fakeRepo({
+      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
+    });
     const handler = new ChangePasswordHandler({ publish: vi.fn() } as never, repo);
 
-    await handler.execute(new ChangePasswordCommand("u1", { currentPassword: "correct-pw", newPassword: "newpassword123" }));
+    await handler.execute(
+      new ChangePasswordCommand("u1", {
+        currentPassword: "correct-pw",
+        newPassword: "newpassword123",
+      }),
+    );
 
     expect(repo.save).toHaveBeenCalledTimes(1);
     const saved = (repo.save as ReturnType<typeof vi.fn>).mock.calls[0]![0] as User;

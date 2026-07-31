@@ -79,19 +79,32 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     };
 
     const oldAccountId = current.bankAccountId;
-    const oldLoaded = oldAccountId ? await loadAccountContext(this.accounts, userId, oldAccountId) : null;
+    const oldLoaded = oldAccountId
+      ? await loadAccountContext(this.accounts, userId, oldAccountId)
+      : null;
     const oldAccount = oldLoaded?.context ?? null;
     let accountCreatedAt = oldLoaded?.createdAt ?? new Date();
     const oldCard =
-      oldAccountId && current.cardId ? await this.cards.findOnAccount(userId, oldAccountId, current.cardId) : null;
+      oldAccountId && current.cardId
+        ? await this.cards.findOnAccount(userId, oldAccountId, current.cardId)
+        : null;
     const oldCardLimit =
-      oldCard?.kind === "CREDIT" ? await this.cardLimits.findForCardCurrency(userId, current.cardId!, current.currency) : null;
+      oldCard?.kind === "CREDIT"
+        ? await this.cardLimits.findForCardCurrency(userId, current.cardId!, current.currency)
+        : null;
     const oldContribution =
       oldAccount != null
-        ? MovementPolicy.contribution({ type: current.type, amount: current.amount }, oldAccount, oldCard, oldCardLimit)
+        ? MovementPolicy.contribution(
+            { type: current.type, amount: current.amount },
+            oldAccount,
+            oldCard,
+            oldCardLimit,
+          )
         : "0";
 
-    const oldLinkedToPaid = current.creditStatementId ? await this.statements.isPaid(current.creditStatementId) : false;
+    const oldLinkedToPaid = current.creditStatementId
+      ? await this.statements.isPaid(current.creditStatementId)
+      : false;
 
     let newContribution = "0";
     const sameAccount = effective.bankAccountId === oldAccountId;
@@ -109,7 +122,9 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
         ? await this.cards.findOnAccount(userId, effective.bankAccountId, effective.cardId)
         : null;
       const cardLimit =
-        card?.kind === "CREDIT" ? await this.cardLimits.findForCardCurrency(userId, effective.cardId!, effective.currency) : null;
+        card?.kind === "CREDIT"
+          ? await this.cardLimits.findForCardCurrency(userId, effective.cardId!, effective.currency)
+          : null;
       const cardUsage = cardLimit
         ? await this.repo.sumsForCard(
             userId,
@@ -149,12 +164,19 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     if (!oldLinkedToPaid) {
       // Re-link (or unlink) the billing period this movement contributes to.
       if (sameAccount && oldContribution === "0" && newContribution !== "0" && oldAccountId) {
-        patch.creditStatementId = (await this.statements.findOrCreateOpenForAccount(oldAccountId, accountCreatedAt)).id;
+        patch.creditStatementId = (
+          await this.statements.findOrCreateOpenForAccount(oldAccountId, accountCreatedAt)
+        ).id;
       } else if (sameAccount && oldContribution !== "0" && newContribution === "0") {
         patch.creditStatementId = null;
       } else if (!sameAccount) {
         if (newContribution !== "0" && effective.bankAccountId) {
-          patch.creditStatementId = (await this.statements.findOrCreateOpenForAccount(effective.bankAccountId, accountCreatedAt)).id;
+          patch.creditStatementId = (
+            await this.statements.findOrCreateOpenForAccount(
+              effective.bankAccountId,
+              accountCreatedAt,
+            )
+          ).id;
         } else if (oldContribution !== "0") {
           patch.creditStatementId = null;
         }
@@ -165,7 +187,10 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
         if (netDelta !== "0") creditUsedDeltas.push({ accountId: oldAccountId, delta: netDelta });
       } else {
         if (oldAccountId && oldContribution !== "0") {
-          creditUsedDeltas.push({ accountId: oldAccountId, delta: subtractMoney("0", oldContribution) });
+          creditUsedDeltas.push({
+            accountId: oldAccountId,
+            delta: subtractMoney("0", oldContribution),
+          });
         }
         if (effective.bankAccountId && newContribution !== "0") {
           creditUsedDeltas.push({ accountId: effective.bankAccountId, delta: newContribution });
@@ -180,7 +205,12 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     command: UpdateTransactionCommand,
     context: Context,
   ): Promise<HandleResult<transactions.Transaction>> {
-    const row = await this.repo.saveUpdate(command.userId, command.id, context.patch, context.creditUsedDeltas);
+    const row = await this.repo.saveUpdate(
+      command.userId,
+      command.id,
+      context.patch,
+      context.creditUsedDeltas,
+    );
     if (!row) throw new TransactionNotFoundError();
     return { result: row.toContract(), events: [] };
   }

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { BankAccount, type BankAccountProps } from "../../../../../src/domains/bank-account/domain/bank-account.aggregate";
+import {
+  BankAccount,
+  type BankAccountProps,
+} from "../../../../../src/domains/bank-account/domain/bank-account.aggregate";
 import {
   AccountCannotHaveCardError,
   AccountNumberRequiredError,
@@ -50,12 +53,16 @@ describe("BankAccount aggregate", () => {
   });
 
   it("does not require accountNumber for CREDIT_LINE/INVESTMENT/CASH", () => {
-    const account = BankAccount.fromPersistence(baseProps({ type: "CREDIT_LINE", accountNumber: null }));
+    const account = BankAccount.fromPersistence(
+      baseProps({ type: "CREDIT_LINE", accountNumber: null }),
+    );
     expect(() => account.applyUpdate({ name: "x" })).not.toThrow();
   });
 
   it("the first CREDIT card becomes primary and mirrors the account's credit pool", () => {
-    const account = BankAccount.fromPersistence(baseProps({ type: "CREDIT_LINE", creditLimit: "0" }));
+    const account = BankAccount.fromPersistence(
+      baseProps({ type: "CREDIT_LINE", creditLimit: "0" }),
+    );
     const placement = account.resolveCardPlacement(
       {
         name: "Main credit card",

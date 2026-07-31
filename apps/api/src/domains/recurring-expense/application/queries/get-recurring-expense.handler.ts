@@ -19,7 +19,9 @@ export class GetRecurringExpenseQueryHandler extends BaseQueryHandler<
   recurring.RecurringExpense,
   RecurringExpense
 > {
-  constructor(@Inject(RECURRING_EXPENSE_REPOSITORY) private readonly repo: RecurringExpenseRepositoryPort) {
+  constructor(
+    @Inject(RECURRING_EXPENSE_REPOSITORY) private readonly repo: RecurringExpenseRepositoryPort,
+  ) {
     super();
   }
 

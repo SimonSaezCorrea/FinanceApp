@@ -25,7 +25,10 @@ export class UpdateDebtHandler extends BaseCommandHandler<UpdateDebtCommand, deb
     return debt;
   }
 
-  protected async handle(command: UpdateDebtCommand, debt: Debt): Promise<HandleResult<debts.Debt>> {
+  protected async handle(
+    command: UpdateDebtCommand,
+    debt: Debt,
+  ): Promise<HandleResult<debts.Debt>> {
     const { input } = command;
     debt.applyUpdate({
       ...(input.direction !== undefined ? { direction: input.direction } : {}),
@@ -36,10 +39,16 @@ export class UpdateDebtHandler extends BaseCommandHandler<UpdateDebtCommand, deb
       ...(input.dueAt !== undefined ? { dueAt: new Date(input.dueAt) } : {}),
       ...(input.interestApr !== undefined ? { interestApr: input.interestApr } : {}),
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
-      ...(input.totalInstallments !== undefined ? { totalInstallments: input.totalInstallments } : {}),
-      ...(input.installmentAmount !== undefined ? { installmentAmount: input.installmentAmount } : {}),
+      ...(input.totalInstallments !== undefined
+        ? { totalInstallments: input.totalInstallments }
+        : {}),
+      ...(input.installmentAmount !== undefined
+        ? { installmentAmount: input.installmentAmount }
+        : {}),
       ...(input.frequency !== undefined ? { frequency: input.frequency } : {}),
-      ...(input.frequencyInterval !== undefined ? { frequencyInterval: input.frequencyInterval } : {}),
+      ...(input.frequencyInterval !== undefined
+        ? { frequencyInterval: input.frequencyInterval }
+        : {}),
     });
     return { result: debt.toContract(), events: [] };
   }

@@ -18,7 +18,9 @@ export class ListRecurringExpensesQueryHandler extends BaseQueryHandler<
   recurring.RecurringExpense[],
   string
 > {
-  constructor(@Inject(RECURRING_EXPENSE_REPOSITORY) private readonly repo: RecurringExpenseRepositoryPort) {
+  constructor(
+    @Inject(RECURRING_EXPENSE_REPOSITORY) private readonly repo: RecurringExpenseRepositoryPort,
+  ) {
     super();
   }
 
@@ -26,7 +28,10 @@ export class ListRecurringExpensesQueryHandler extends BaseQueryHandler<
     return query.userId;
   }
 
-  protected async handle(_query: ListRecurringExpensesQuery, userId: string): Promise<recurring.RecurringExpense[]> {
+  protected async handle(
+    _query: ListRecurringExpensesQuery,
+    userId: string,
+  ): Promise<recurring.RecurringExpense[]> {
     const rows = await this.repo.list(userId);
     const today = startOfTodayUTC(new Date());
     return rows.map((r) => r.toContract(today));

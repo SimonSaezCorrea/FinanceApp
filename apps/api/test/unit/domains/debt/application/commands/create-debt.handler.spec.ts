@@ -45,6 +45,9 @@ describe("CreateDebtHandler", () => {
 
     expect(result.id).toBe("d1");
     expect(result.counterparty).toBe("Acme Corp");
-    expect(create).toHaveBeenCalledWith("u1", expect.objectContaining({ counterparty: "Acme Corp" }));
+    expect(create).toHaveBeenCalledWith(
+      "u1",
+      expect.objectContaining({ counterparty: "Acme Corp" }),
+    );
   });
 });

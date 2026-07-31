@@ -29,6 +29,11 @@ export interface InstallmentPlanRepositoryPort {
   /** Sets (or clears) one scheduled payment's `paidAt`, scoped to the plan
    * belonging to `userId` — mirrors the pre-migration repository's
    * `markPaid`/`markUnpaid` ownership-scoped `updateMany`. */
-  setPaymentPaidAt(userId: string, planId: string, sequence: number, paidAt: Date | null): Promise<boolean>;
+  setPaymentPaidAt(
+    userId: string,
+    planId: string,
+    sequence: number,
+    paidAt: Date | null,
+  ): Promise<boolean>;
   remove(userId: string, id: string): Promise<boolean>;
 }

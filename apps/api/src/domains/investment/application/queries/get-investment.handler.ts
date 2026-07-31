@@ -29,7 +29,10 @@ export class GetInvestmentQueryHandler extends BaseQueryHandler<
     return row;
   }
 
-  protected async handle(_query: GetInvestmentQuery, row: Investment): Promise<investments.Investment> {
+  protected async handle(
+    _query: GetInvestmentQuery,
+    row: Investment,
+  ): Promise<investments.Investment> {
     return row.toContract();
   }
 }

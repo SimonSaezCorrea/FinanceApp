@@ -11,8 +11,12 @@ describe("BillingEligibilityStrategy", () => {
     const strategy = new CreditLineEligibility();
 
     it("applies only to CREDIT_LINE accounts", () => {
-      expect(strategy.applies({ accountType: "CREDIT_LINE", accountStatus: "ACTIVE", cards: [] })).toBe(true);
-      expect(strategy.applies({ accountType: "CHECKING", accountStatus: "ACTIVE", cards: [] })).toBe(false);
+      expect(
+        strategy.applies({ accountType: "CREDIT_LINE", accountStatus: "ACTIVE", cards: [] }),
+      ).toBe(true);
+      expect(
+        strategy.applies({ accountType: "CHECKING", accountStatus: "ACTIVE", cards: [] }),
+      ).toBe(false);
     });
 
     it("eligible only if ACTIVE + its primary CREDIT card is active", () => {
@@ -24,7 +28,10 @@ describe("BillingEligibilityStrategy", () => {
       expect(strategy.evaluate(active)).toBe(true);
       expect(strategy.evaluate({ ...active, accountStatus: "INACTIVE" })).toBe(false);
       expect(
-        strategy.evaluate({ ...active, cards: [{ kind: "CREDIT", isPrimary: true, isActive: false }] }),
+        strategy.evaluate({
+          ...active,
+          cards: [{ kind: "CREDIT", isPrimary: true, isActive: false }],
+        }),
       ).toBe(false);
     });
   });
@@ -69,7 +76,9 @@ describe("BillingEligibilityStrategy", () => {
     });
 
     it("is false when there are no cards at all", () => {
-      expect(resolveBillingEligibility({ accountType: "CHECKING", accountStatus: "ACTIVE", cards: [] })).toBe(false);
+      expect(
+        resolveBillingEligibility({ accountType: "CHECKING", accountStatus: "ACTIVE", cards: [] }),
+      ).toBe(false);
     });
   });
 });

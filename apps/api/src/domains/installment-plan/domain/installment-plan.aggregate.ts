@@ -92,7 +92,12 @@ export class InstallmentPlan {
     });
     const payments: PlannedPayment[] = schedule.map((row) => ({
       sequence: row.sequence,
-      dueDate: addPeriod(input.startDate, row.sequence - 1, input.frequency, input.frequencyInterval),
+      dueDate: addPeriod(
+        input.startDate,
+        row.sequence - 1,
+        input.frequency,
+        input.frequencyInterval,
+      ),
       amount: row.payment,
     }));
     return {
@@ -149,7 +154,8 @@ export class InstallmentPlan {
     if (patch.title !== undefined) this.props.title = patch.title;
     if (patch.currency !== undefined) this.props.currency = patch.currency;
     if (patch.frequency !== undefined) this.props.frequency = patch.frequency;
-    if (patch.frequencyInterval !== undefined) this.props.frequencyInterval = patch.frequencyInterval;
+    if (patch.frequencyInterval !== undefined)
+      this.props.frequencyInterval = patch.frequencyInterval;
     if (patch.notes !== undefined) this.props.notes = patch.notes;
   }
 

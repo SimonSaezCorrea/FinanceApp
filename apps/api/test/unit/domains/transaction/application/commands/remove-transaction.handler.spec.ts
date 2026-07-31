@@ -83,7 +83,9 @@ function makeHandler(
 describe("RemoveTransactionHandler", () => {
   it("throws TransactionNotFoundError when the row is missing", async () => {
     const handler = makeHandler(fakeRepo({ findOne: vi.fn().mockResolvedValue(null) }));
-    await expect(handler.execute(new RemoveTransactionCommand("u1", "nope"))).rejects.toBeInstanceOf(TransactionNotFoundError);
+    await expect(
+      handler.execute(new RemoveTransactionCommand("u1", "nope")),
+    ).rejects.toBeInstanceOf(TransactionNotFoundError);
   });
 
   it("reverts the transaction's contribution on delete", async () => {
@@ -93,7 +95,10 @@ describe("RemoveTransactionHandler", () => {
       { account: creditAccount(), card: creditCard },
     );
     await handler.execute(new RemoveTransactionCommand("u1", "tX"));
-    expect(removeWithCreditAdjustment).toHaveBeenCalledWith("u1", "tX", { accountId: "aC", delta: "-100000.0000" });
+    expect(removeWithCreditAdjustment).toHaveBeenCalledWith("u1", "tX", {
+      accountId: "aC",
+      delta: "-100000.0000",
+    });
   });
 
   it("never touches creditUsed when the linked statement is already PAID", async () => {

@@ -33,7 +33,10 @@ export class RefreshTokenHandler extends BaseCommandHandler<RefreshTokenCommand,
     return user;
   }
 
-  protected async handle(_command: RefreshTokenCommand, user: User): Promise<HandleResult<TokenPair>> {
+  protected async handle(
+    _command: RefreshTokenCommand,
+    user: User,
+  ): Promise<HandleResult<TokenPair>> {
     const tokens = this.tokenIssuer.issue({ id: user.id, email: user.email });
     return { result: tokens, events: [] };
   }

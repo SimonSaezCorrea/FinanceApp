@@ -20,9 +20,9 @@ describe("RemoveInvestmentHandler", () => {
   it("throws InvestmentNotFoundError when the repository found nothing to delete", async () => {
     const repo = fakeRepo({ remove: vi.fn().mockResolvedValue(false) });
     const handler = new RemoveInvestmentHandler({ publish: vi.fn() } as never, repo);
-    await expect(handler.execute(new RemoveInvestmentCommand("u1", "ghost"))).rejects.toBeInstanceOf(
-      InvestmentNotFoundError,
-    );
+    await expect(
+      handler.execute(new RemoveInvestmentCommand("u1", "ghost")),
+    ).rejects.toBeInstanceOf(InvestmentNotFoundError);
   });
 
   it("removes the investment scoped to the user", async () => {

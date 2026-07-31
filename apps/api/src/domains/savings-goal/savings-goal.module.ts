@@ -22,7 +22,11 @@ const commandHandlers = [
   CreateSavingsEntryHandler,
 ];
 
-const queryHandlers = [ListSavingsGoalsQueryHandler, GetSavingsGoalQueryHandler, ListSavingsEntriesQueryHandler];
+const queryHandlers = [
+  ListSavingsGoalsQueryHandler,
+  GetSavingsGoalQueryHandler,
+  ListSavingsEntriesQueryHandler,
+];
 
 /**
  * Orchestration module for the `savings-goal` table. It also hosts the two

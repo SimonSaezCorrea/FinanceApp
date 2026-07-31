@@ -29,7 +29,10 @@ export class GetSavingsGoalQueryHandler extends BaseQueryHandler<
     return row;
   }
 
-  protected async handle(_query: GetSavingsGoalQuery, row: SavingsGoal): Promise<savings.SavingsGoal> {
+  protected async handle(
+    _query: GetSavingsGoalQuery,
+    row: SavingsGoal,
+  ): Promise<savings.SavingsGoal> {
     return row.toContract();
   }
 }

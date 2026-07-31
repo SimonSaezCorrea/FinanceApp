@@ -33,7 +33,10 @@ export class ListTransactionsQueryHandler extends BaseQueryHandler<
     };
   }
 
-  protected async handle(query: ListTransactionsQuery, where: TransactionListFilter): Promise<transactions.Transaction[]> {
+  protected async handle(
+    query: ListTransactionsQuery,
+    where: TransactionListFilter,
+  ): Promise<transactions.Transaction[]> {
     const rows = await this.repo.list(query.userId, where);
     return rows.map((r) => r.toContract());
   }

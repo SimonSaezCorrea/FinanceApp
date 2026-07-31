@@ -2,8 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import { CorrectStatementAmountHandler } from "../../../../../../src/domains/credit-statement/application/commands/correct-statement-amount.handler";
 import { CorrectStatementAmountCommand } from "../../../../../../src/domains/credit-statement/application/commands/correct-statement-amount.command";
-import { CreditStatement, type CreditStatementProps } from "../../../../../../src/domains/credit-statement/domain/credit-statement.aggregate";
-import { StatementNotFoundError, StatementNotPaidError } from "../../../../../../src/domains/credit-statement/domain/errors";
+import {
+  CreditStatement,
+  type CreditStatementProps,
+} from "../../../../../../src/domains/credit-statement/domain/credit-statement.aggregate";
+import {
+  StatementNotFoundError,
+  StatementNotPaidError,
+} from "../../../../../../src/domains/credit-statement/domain/errors";
 import type { CreditStatementRepositoryPort } from "../../../../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
 
 function statementProps(overrides: Partial<CreditStatementProps> = {}): CreditStatementProps {
@@ -22,7 +28,9 @@ function statementProps(overrides: Partial<CreditStatementProps> = {}): CreditSt
   };
 }
 
-function fakeStatementRepo(overrides: Partial<CreditStatementRepositoryPort> = {}): CreditStatementRepositoryPort {
+function fakeStatementRepo(
+  overrides: Partial<CreditStatementRepositoryPort> = {},
+): CreditStatementRepositoryPort {
   return {
     findById: vi.fn(),
     findOpenForAccount: vi.fn(),
@@ -39,10 +47,15 @@ function fakeStatementRepo(overrides: Partial<CreditStatementRepositoryPort> = {
 describe("CorrectStatementAmountHandler", () => {
   it("corrects a PAID statement's frozen amount and persists it", async () => {
     const statement = CreditStatement.fromPersistence(statementProps());
-    const statementRepo = fakeStatementRepo({ findById: vi.fn(async () => statement), save: vi.fn(async () => undefined) });
+    const statementRepo = fakeStatementRepo({
+      findById: vi.fn(async () => statement),
+      save: vi.fn(async () => undefined),
+    });
     const handler = new CorrectStatementAmountHandler({ publish: vi.fn() } as never, statementRepo);
 
-    const result = await handler.execute(new CorrectStatementAmountCommand("u1", "acc_1", "st_1", "950"));
+    const result = await handler.execute(
+      new CorrectStatementAmountCommand("u1", "acc_1", "st_1", "950"),
+    );
 
     expect(result.amount).toBe("950.0000");
     expect(statementRepo.save).toHaveBeenCalledWith(statement);

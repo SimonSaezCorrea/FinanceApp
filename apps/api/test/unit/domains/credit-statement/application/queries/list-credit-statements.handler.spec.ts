@@ -2,8 +2,14 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ListCreditStatementsQueryHandler } from "../../../../../../src/domains/credit-statement/application/queries/list-credit-statements.handler";
 import { ListCreditStatementsQuery } from "../../../../../../src/domains/credit-statement/application/queries/list-credit-statements.query";
-import { BankAccount, type BankAccountProps } from "../../../../../../src/domains/bank-account/domain/bank-account.aggregate";
-import { CreditStatement, type CreditStatementProps } from "../../../../../../src/domains/credit-statement/domain/credit-statement.aggregate";
+import {
+  BankAccount,
+  type BankAccountProps,
+} from "../../../../../../src/domains/bank-account/domain/bank-account.aggregate";
+import {
+  CreditStatement,
+  type CreditStatementProps,
+} from "../../../../../../src/domains/credit-statement/domain/credit-statement.aggregate";
 import { AccountNotFoundError } from "../../../../../../src/domains/bank-account/domain/errors";
 import type { BankAccountRepositoryPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
@@ -50,7 +56,9 @@ function statementProps(overrides: Partial<CreditStatementProps> = {}): CreditSt
   };
 }
 
-function fakeAccountRepo(overrides: Partial<BankAccountRepositoryPort> = {}): BankAccountRepositoryPort {
+function fakeAccountRepo(
+  overrides: Partial<BankAccountRepositoryPort> = {},
+): BankAccountRepositoryPort {
   return {
     findById: vi.fn(),
     listByUser: vi.fn(),
@@ -68,7 +76,9 @@ function fakeAccountRepo(overrides: Partial<BankAccountRepositoryPort> = {}): Ba
   };
 }
 
-function fakeStatementRepo(overrides: Partial<CreditStatementRepositoryPort> = {}): CreditStatementRepositoryPort {
+function fakeStatementRepo(
+  overrides: Partial<CreditStatementRepositoryPort> = {},
+): CreditStatementRepositoryPort {
   return {
     findById: vi.fn(),
     findOpenForAccount: vi.fn(),

@@ -56,7 +56,9 @@ describe("GetInvestmentQueryHandler", () => {
 
 describe("ListInvestmentsQueryHandler", () => {
   it("lists the user's investments as contracts", async () => {
-    const repo = fakeRepo({ list: vi.fn().mockResolvedValue([makeInvestment("i1"), makeInvestment("i2")]) });
+    const repo = fakeRepo({
+      list: vi.fn().mockResolvedValue([makeInvestment("i1"), makeInvestment("i2")]),
+    });
     const handler = new ListInvestmentsQueryHandler(repo);
     const result = await handler.execute(new ListInvestmentsQuery("u1"));
     expect(result.map((i) => i.id)).toEqual(["i1", "i2"]);

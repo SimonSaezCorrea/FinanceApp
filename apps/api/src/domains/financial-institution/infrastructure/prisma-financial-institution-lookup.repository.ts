@@ -9,7 +9,10 @@ export class PrismaFinancialInstitutionLookupRepository implements FinancialInst
   constructor(private readonly prisma: PrismaService) {}
 
   async nameById(id: string): Promise<string | null> {
-    const row = await this.prisma.financialInstitution.findUnique({ where: { id }, select: { name: true } });
+    const row = await this.prisma.financialInstitution.findUnique({
+      where: { id },
+      select: { name: true },
+    });
     return row?.name ?? null;
   }
 

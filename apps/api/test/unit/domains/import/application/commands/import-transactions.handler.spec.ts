@@ -4,7 +4,9 @@ import { ImportTransactionsCommand } from "../../../../../../src/domains/import/
 import { ImportTransactionsHandler } from "../../../../../../src/domains/import/application/commands/import-transactions.handler";
 import type { ImportTransactionsRepositoryPort } from "../../../../../../src/domains/import/domain/ports/import-transactions.repository.port";
 
-function fakeRepo(overrides: Partial<ImportTransactionsRepositoryPort> = {}): ImportTransactionsRepositoryPort {
+function fakeRepo(
+  overrides: Partial<ImportTransactionsRepositoryPort> = {},
+): ImportTransactionsRepositoryPort {
   return {
     importRows: vi.fn(),
     ...overrides,
@@ -20,8 +22,18 @@ describe("ImportTransactionsHandler", () => {
     const result = await handler.execute(
       new ImportTransactionsCommand("u1", {
         rows: [
-          { type: "INCOME", amount: "100.00", currency: "USD", occurredAt: "2026-01-01T00:00:00.000Z" },
-          { type: "EXPENSE", amount: "40.50", currency: "USD", occurredAt: "2026-01-02T00:00:00.000Z" },
+          {
+            type: "INCOME",
+            amount: "100.00",
+            currency: "USD",
+            occurredAt: "2026-01-01T00:00:00.000Z",
+          },
+          {
+            type: "EXPENSE",
+            amount: "40.50",
+            currency: "USD",
+            occurredAt: "2026-01-02T00:00:00.000Z",
+          },
         ],
       }),
     );
@@ -43,7 +55,9 @@ describe("ImportTransactionsHandler", () => {
 
     const result = await handler.execute(
       new ImportTransactionsCommand("u1", {
-        rows: [{ type: "INCOME", amount: "10", currency: "USD", occurredAt: "2026-01-01T00:00:00.000Z" }],
+        rows: [
+          { type: "INCOME", amount: "10", currency: "USD", occurredAt: "2026-01-01T00:00:00.000Z" },
+        ],
       }),
     );
 

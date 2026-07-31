@@ -88,7 +88,10 @@ export class BankAccount {
   private constructor(private props: BankAccountProps) {}
 
   static fromPersistence(props: BankAccountProps): BankAccount {
-    return new BankAccount({ ...props, cards: props.cards.map((c) => ({ ...c, limits: [...c.limits] })) });
+    return new BankAccount({
+      ...props,
+      cards: props.cards.map((c) => ({ ...c, limits: [...c.limits] })),
+    });
   }
 
   /**
@@ -105,7 +108,11 @@ export class BankAccount {
     creditLimit?: string;
     creditUsedInitial?: string;
     cards?: CardInput[];
-  }): { creditLimit: string; creditUsedInitial: string; cards: (ResolvedCardPlacement & CardInput)[] } {
+  }): {
+    creditLimit: string;
+    creditUsedInitial: string;
+    cards: (ResolvedCardPlacement & CardInput)[];
+  } {
     if ((input.cards?.length ?? 0) > 0 && !accounts.isCardableAccountType(input.type)) {
       throw new AccountCannotHaveCardError();
     }
@@ -136,10 +143,18 @@ export class BankAccount {
       if (c.usesAccountPool === false) {
         if (!c.limits || c.limits.length === 0) throw new CardLimitRequiredError();
         const cardLimits = c.limits.map((l) => {
-          if (l.currency === input.currency && toMoney(l.limitAmount).greaterThan(toMoney(creditLimit))) {
+          if (
+            l.currency === input.currency &&
+            toMoney(l.limitAmount).greaterThan(toMoney(creditLimit))
+          ) {
             throw new CardSubLimitExceedsAccountError();
           }
-          return { id: "", currency: l.currency, limitAmount: l.limitAmount, usedInitial: l.usedInitial ?? "0" };
+          return {
+            id: "",
+            currency: l.currency,
+            limitAmount: l.limitAmount,
+            usedInitial: l.usedInitial ?? "0",
+          };
         });
         return { ...c, isPrimary: false, cardLimits };
       }
@@ -215,7 +230,10 @@ export class BankAccount {
   }
 
   /** ACCOUNT_NUMBER_REQUIRED — CHECKING/SIGHT/SAVINGS need a real accountNumber. */
-  private assertAccountNumber(effectiveType: accounts.AccountType, effectiveAccountNumber: string | null | undefined) {
+  private assertAccountNumber(
+    effectiveType: accounts.AccountType,
+    effectiveAccountNumber: string | null | undefined,
+  ) {
     if (accounts.isAccountNumberRequired(effectiveType) && !effectiveAccountNumber?.trim()) {
       throw new AccountNumberRequiredError();
     }
@@ -255,7 +273,8 @@ export class BankAccount {
     if (patch.accountNumber !== undefined) this.props.accountNumber = patch.accountNumber;
     if (patch.initialBalance !== undefined) this.props.initialBalance = patch.initialBalance;
     if (patch.creditLimit !== undefined) this.props.creditLimit = patch.creditLimit;
-    if (patch.creditUsedInitial !== undefined) this.props.creditUsedInitial = patch.creditUsedInitial;
+    if (patch.creditUsedInitial !== undefined)
+      this.props.creditUsedInitial = patch.creditUsedInitial;
     if (patch.billingCycleDay !== undefined) this.props.billingCycleDay = patch.billingCycleDay;
     if (patch.paymentMethod !== undefined) this.props.paymentMethod = patch.paymentMethod;
   }
@@ -284,9 +303,14 @@ export class BankAccount {
 
   /** A card's own sub-limit currency can't promise more than the account's
    * shared pool, in the account's own currency (CARD_SUBLIMIT_EXCEEDS_ACCOUNT). */
-  private normalizeLimits(limits: { currency: string; limitAmount: string; usedInitial?: string }[]): CardLimitProps[] {
+  private normalizeLimits(
+    limits: { currency: string; limitAmount: string; usedInitial?: string }[],
+  ): CardLimitProps[] {
     return limits.map((l) => {
-      if (l.currency === this.props.currency && toMoney(l.limitAmount).greaterThan(toMoney(this.props.creditLimit))) {
+      if (
+        l.currency === this.props.currency &&
+        toMoney(l.limitAmount).greaterThan(toMoney(this.props.creditLimit))
+      ) {
         throw new CardSubLimitExceedsAccountError();
       }
       return {

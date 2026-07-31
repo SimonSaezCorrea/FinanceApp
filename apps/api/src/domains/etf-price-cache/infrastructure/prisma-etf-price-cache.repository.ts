@@ -1,7 +1,10 @@
 import { Injectable } from "@nestjs/common";
 
 import { PrismaService } from "../../../infra/prisma/prisma.service";
-import type { EtfPriceCacheRepositoryPort, EtfQuoteRow } from "../domain/ports/etf-price-cache.repository.port";
+import type {
+  EtfPriceCacheRepositoryPort,
+  EtfQuoteRow,
+} from "../domain/ports/etf-price-cache.repository.port";
 
 /** Adapter — the ONLY file that touches `prisma.etfPriceCache`. */
 @Injectable()

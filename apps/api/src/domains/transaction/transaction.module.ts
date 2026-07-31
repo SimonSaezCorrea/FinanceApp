@@ -17,7 +17,11 @@ import { PrismaTransactionRepository } from "./infrastructure/prisma-transaction
 import { TransactionsController } from "./presentation/transactions.controller";
 import { TransactionDataModule } from "./transaction.data.module";
 
-const commandHandlers = [CreateTransactionHandler, UpdateTransactionHandler, RemoveTransactionHandler];
+const commandHandlers = [
+  CreateTransactionHandler,
+  UpdateTransactionHandler,
+  RemoveTransactionHandler,
+];
 
 const queryHandlers = [ListTransactionsQueryHandler, GetTransactionQueryHandler];
 

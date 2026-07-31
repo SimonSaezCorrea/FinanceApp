@@ -60,7 +60,10 @@ describe("Wallet HTTP (e2e)", () => {
   });
 
   it("rejects providing neither accountId nor cardId", async () => {
-    const res = await request(app.getHttpServer()).post("/api/v1/wallet").set("Cookie", cookies).send({});
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/wallet")
+      .set("Cookie", cookies)
+      .send({});
     expect(res.status).toBe(400);
   });
 
@@ -117,12 +120,16 @@ describe("Wallet HTTP (e2e)", () => {
   });
 
   it("removes the pin", async () => {
-    const res = await request(app.getHttpServer()).delete(`/api/v1/wallet/${itemId}`).set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .delete(`/api/v1/wallet/${itemId}`)
+      .set("Cookie", cookies);
     expect(res.status).toBe(204);
   });
 
   it("returns WALLET_ITEM_NOT_FOUND removing a missing item", async () => {
-    const res = await request(app.getHttpServer()).delete(`/api/v1/wallet/${itemId}`).set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .delete(`/api/v1/wallet/${itemId}`)
+      .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("WALLET_ITEM_NOT_FOUND");
   });

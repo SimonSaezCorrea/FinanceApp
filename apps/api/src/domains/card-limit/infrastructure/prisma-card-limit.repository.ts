@@ -21,8 +21,14 @@ export class PrismaCardLimitRepository implements CardLimitRepositoryPort {
     }));
   }
 
-  async findForCardCurrency(userId: string, cardId: string, currency: string): Promise<CardLimitProps | null> {
-    const row = await this.prisma.cardLimit.findFirst({ where: { currency, card: { id: cardId, userId } } });
+  async findForCardCurrency(
+    userId: string,
+    cardId: string,
+    currency: string,
+  ): Promise<CardLimitProps | null> {
+    const row = await this.prisma.cardLimit.findFirst({
+      where: { currency, card: { id: cardId, userId } },
+    });
     return row
       ? {
           id: row.id,

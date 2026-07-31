@@ -53,7 +53,9 @@ describe("User aggregate", () => {
   it("toContract() computes age from birthDate and formats it as YYYY-MM-DD", () => {
     const tenYearsAgo = new Date();
     tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
-    const user = User.fromPersistence(baseProps({ birthDate: tenYearsAgo, countryId: "cl", countryName: "Chile" }));
+    const user = User.fromPersistence(
+      baseProps({ birthDate: tenYearsAgo, countryId: "cl", countryName: "Chile" }),
+    );
     const contract = user.toContract();
     expect(contract.age).toBe(10);
     expect(contract.birthDate).toBe(tenYearsAgo.toISOString().slice(0, 10));

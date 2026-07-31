@@ -18,7 +18,11 @@ import {
   type TransactionWriterRepositoryPort,
 } from "../../../transaction/domain/ports/transaction-writer.repository.port";
 import type { CreditStatement } from "../../domain/credit-statement.aggregate";
-import { InvalidPaymentSourceError, NothingToPayError, StatementNotFoundError } from "../../domain/errors";
+import {
+  InvalidPaymentSourceError,
+  NothingToPayError,
+  StatementNotFoundError,
+} from "../../domain/errors";
 import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
@@ -66,8 +70,10 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
   constructor(
     eventBus: EventBus,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
-    @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statementRepo: CreditStatementRepositoryPort,
-    @Inject(TRANSACTION_WRITER_REPOSITORY) private readonly transactions: TransactionWriterRepositoryPort,
+    @Inject(CREDIT_STATEMENT_REPOSITORY)
+    private readonly statementRepo: CreditStatementRepositoryPort,
+    @Inject(TRANSACTION_WRITER_REPOSITORY)
+    private readonly transactions: TransactionWriterRepositoryPort,
     private readonly prisma: PrismaService,
   ) {
     super(eventBus);
@@ -76,7 +82,11 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
   protected async loadContext(command: PayCreditStatementCommand): Promise<Context> {
     const account = await this.accountRepo.findById(command.userId, command.accountId);
     if (!account) throw new AccountNotFoundError();
-    const statement = await this.statementRepo.findById(command.userId, command.accountId, command.statementId);
+    const statement = await this.statementRepo.findById(
+      command.userId,
+      command.accountId,
+      command.statementId,
+    );
     if (!statement) throw new StatementNotFoundError();
     const fromAccount = await this.accountRepo.findById(command.userId, command.fromAccountId);
     if (!fromAccount) throw new AccountNotFoundError();

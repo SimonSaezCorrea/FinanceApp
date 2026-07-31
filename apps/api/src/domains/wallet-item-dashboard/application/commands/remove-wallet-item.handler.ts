@@ -11,7 +11,11 @@ import { RemoveWalletItemCommand } from "./remove-wallet-item.command";
 
 @Injectable()
 @CommandHandler(RemoveWalletItemCommand)
-export class RemoveWalletItemHandler extends BaseCommandHandler<RemoveWalletItemCommand, void, null> {
+export class RemoveWalletItemHandler extends BaseCommandHandler<
+  RemoveWalletItemCommand,
+  void,
+  null
+> {
   constructor(
     eventBus: EventBus,
     @Inject(WALLET_ITEM_REPOSITORY) private readonly repo: WalletItemRepositoryPort,

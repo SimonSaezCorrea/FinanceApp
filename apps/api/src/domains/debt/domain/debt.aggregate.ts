@@ -134,10 +134,13 @@ export class Debt {
     if (patch.dueAt !== undefined) this.props.dueAt = patch.dueAt;
     if (patch.interestApr !== undefined) this.props.interestApr = patch.interestApr;
     if (patch.notes !== undefined) this.props.notes = patch.notes;
-    if (patch.totalInstallments !== undefined) this.props.totalInstallments = patch.totalInstallments;
-    if (patch.installmentAmount !== undefined) this.props.installmentAmount = patch.installmentAmount;
+    if (patch.totalInstallments !== undefined)
+      this.props.totalInstallments = patch.totalInstallments;
+    if (patch.installmentAmount !== undefined)
+      this.props.installmentAmount = patch.installmentAmount;
     if (patch.frequency !== undefined) this.props.frequency = patch.frequency;
-    if (patch.frequencyInterval !== undefined) this.props.frequencyInterval = patch.frequencyInterval;
+    if (patch.frequencyInterval !== undefined)
+      this.props.frequencyInterval = patch.frequencyInterval;
   }
 
   /** Marks the debt settled directly — no guard, mirrors the pre-migration
@@ -194,7 +197,9 @@ export class Debt {
       settledAt: this.props.settledAt ? this.props.settledAt.toISOString() : null,
       totalInstallments: this.props.totalInstallments,
       paidInstallments: this.props.paidInstallments,
-      installmentAmount: this.props.installmentAmount ? moneyToString(this.props.installmentAmount) : null,
+      installmentAmount: this.props.installmentAmount
+        ? moneyToString(this.props.installmentAmount)
+        : null,
       frequency: this.props.frequency,
       frequencyInterval: this.props.frequencyInterval,
       createdAt: this.props.createdAt.toISOString(),

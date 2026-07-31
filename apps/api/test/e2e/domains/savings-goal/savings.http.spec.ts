@@ -63,7 +63,9 @@ describe("Savings HTTP (e2e)", () => {
   });
 
   it("lists the user's savings goals", async () => {
-    const res = await request(app.getHttpServer()).get("/api/v1/savings/goals").set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/savings/goals")
+      .set("Cookie", cookies);
     expect(res.status).toBe(200);
     expect(res.body.map((g: { id: string }) => g.id)).toContain(goalId);
   });
@@ -110,7 +112,9 @@ describe("Savings HTTP (e2e)", () => {
   });
 
   it("lists the user's savings entries", async () => {
-    const res = await request(app.getHttpServer()).get("/api/v1/savings/entries").set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/savings/entries")
+      .set("Cookie", cookies);
     expect(res.status).toBe(200);
     expect(res.body.some((e: { savingsGoalId: string }) => e.savingsGoalId === goalId)).toBe(true);
   });

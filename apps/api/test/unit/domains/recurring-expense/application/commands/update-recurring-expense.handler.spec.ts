@@ -25,7 +25,9 @@ function makeExpense() {
   });
 }
 
-function fakeRepo(overrides: Partial<RecurringExpenseRepositoryPort> = {}): RecurringExpenseRepositoryPort {
+function fakeRepo(
+  overrides: Partial<RecurringExpenseRepositoryPort> = {},
+): RecurringExpenseRepositoryPort {
   return {
     list: vi.fn(),
     findOne: vi.fn(),

@@ -103,7 +103,12 @@ export class CreditStatement {
    * transaction, and (if still OPEN) closes it too. Rejects a double-pay
    * (`StatementAlreadyPaidError`) — the textbook State-pattern proof
    * (quickstart.md step 2). */
-  pay(amount: string, fromAccountId: string, paymentTransactionId: string, now: Date): StatementPaidEvent {
+  pay(
+    amount: string,
+    fromAccountId: string,
+    paymentTransactionId: string,
+    now: Date,
+  ): StatementPaidEvent {
     if (!this.state.canPay()) {
       throw new StatementAlreadyPaidError();
     }
@@ -112,7 +117,13 @@ export class CreditStatement {
     this.props.paidFromAccountId = fromAccountId;
     this.props.paidTransactionId = paymentTransactionId;
     this.props.closedAt = this.props.closedAt ?? now;
-    return new StatementPaidEvent(this.accountId, this.id, moneyToString(amount), fromAccountId, paymentTransactionId);
+    return new StatementPaidEvent(
+      this.accountId,
+      this.id,
+      moneyToString(amount),
+      fromAccountId,
+      paymentTransactionId,
+    );
   }
 
   /** Correct a PAID statement's frozen amount — rejected for OPEN/PENDING (edit

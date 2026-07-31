@@ -5,7 +5,9 @@ import { PrismaInstallmentPaymentRepository } from "./infrastructure/prisma-inst
 
 /** Leaf data module for the `installment-payment` table. */
 @Module({
-  providers: [{ provide: INSTALLMENT_PAYMENT_REPOSITORY, useClass: PrismaInstallmentPaymentRepository }],
+  providers: [
+    { provide: INSTALLMENT_PAYMENT_REPOSITORY, useClass: PrismaInstallmentPaymentRepository },
+  ],
   exports: [INSTALLMENT_PAYMENT_REPOSITORY],
 })
 export class InstallmentPaymentDataModule {}

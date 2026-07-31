@@ -23,7 +23,11 @@ interface Context {
  */
 @Injectable()
 @CommandHandler(PayInstallmentCommand)
-export class PayInstallmentHandler extends BaseCommandHandler<PayInstallmentCommand, void, Context> {
+export class PayInstallmentHandler extends BaseCommandHandler<
+  PayInstallmentCommand,
+  void,
+  Context
+> {
   constructor(
     eventBus: EventBus,
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort,
@@ -37,12 +41,20 @@ export class PayInstallmentHandler extends BaseCommandHandler<PayInstallmentComm
     return { plan, sequence: command.sequence };
   }
 
-  protected async handle(_command: PayInstallmentCommand, context: Context): Promise<HandleResult<void>> {
+  protected async handle(
+    _command: PayInstallmentCommand,
+    context: Context,
+  ): Promise<HandleResult<void>> {
     context.plan.markPaymentPaid(context.sequence);
     return { result: undefined, events: [] };
   }
 
   protected override async persist(context: Context): Promise<void> {
-    await this.repo.setPaymentPaidAt(context.plan.userId, context.plan.id, context.sequence, new Date());
+    await this.repo.setPaymentPaidAt(
+      context.plan.userId,
+      context.plan.id,
+      context.sequence,
+      new Date(),
+    );
   }
 }

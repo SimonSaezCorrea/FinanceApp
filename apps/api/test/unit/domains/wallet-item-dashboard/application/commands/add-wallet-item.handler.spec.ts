@@ -24,7 +24,9 @@ function fakeRepo(overrides: Partial<WalletItemRepositoryPort> = {}): WalletItem
   };
 }
 
-function makeItem(overrides: Partial<{ accountId: string | null; cardId: string | null; order: number }> = {}) {
+function makeItem(
+  overrides: Partial<{ accountId: string | null; cardId: string | null; order: number }> = {},
+) {
   return WalletItem.fromPersistence({
     id: "w1",
     userId: "u1",
@@ -39,7 +41,11 @@ function makeItem(overrides: Partial<{ accountId: string | null; cardId: string 
 describe("AddWalletItemHandler", () => {
   it("adds a card item at the end (order = current count)", async () => {
     const create = vi.fn().mockResolvedValue(makeItem({ order: 2 }));
-    const repo = fakeRepo({ cardOwned: vi.fn().mockResolvedValue(true), count: vi.fn().mockResolvedValue(2), create });
+    const repo = fakeRepo({
+      cardOwned: vi.fn().mockResolvedValue(true),
+      count: vi.fn().mockResolvedValue(2),
+      create,
+    });
     const handler = new AddWalletItemHandler({ publish: vi.fn() } as never, repo);
 
     const result = await handler.execute(new AddWalletItemCommand("u1", { cardId: "c1" }));
@@ -52,18 +58,18 @@ describe("AddWalletItemHandler", () => {
     const repo = fakeRepo({ cardOwned: vi.fn().mockResolvedValue(false) });
     const handler = new AddWalletItemHandler({ publish: vi.fn() } as never, repo);
 
-    await expect(handler.execute(new AddWalletItemCommand("u1", { cardId: "nope" }))).rejects.toBeInstanceOf(
-      WalletCardNotFoundError,
-    );
+    await expect(
+      handler.execute(new AddWalletItemCommand("u1", { cardId: "nope" })),
+    ).rejects.toBeInstanceOf(WalletCardNotFoundError);
   });
 
   it("rejects pinning an account the user doesn't own", async () => {
     const repo = fakeRepo({ accountOwned: vi.fn().mockResolvedValue(false) });
     const handler = new AddWalletItemHandler({ publish: vi.fn() } as never, repo);
 
-    await expect(handler.execute(new AddWalletItemCommand("u1", { accountId: "nope" }))).rejects.toBeInstanceOf(
-      WalletAccountNotFoundError,
-    );
+    await expect(
+      handler.execute(new AddWalletItemCommand("u1", { accountId: "nope" })),
+    ).rejects.toBeInstanceOf(WalletAccountNotFoundError);
   });
 
   it("rejects a duplicate pin", async () => {
@@ -73,8 +79,8 @@ describe("AddWalletItemHandler", () => {
     });
     const handler = new AddWalletItemHandler({ publish: vi.fn() } as never, repo);
 
-    await expect(handler.execute(new AddWalletItemCommand("u1", { accountId: "a1" }))).rejects.toBeInstanceOf(
-      WalletItemExistsError,
-    );
+    await expect(
+      handler.execute(new AddWalletItemCommand("u1", { accountId: "a1" })),
+    ).rejects.toBeInstanceOf(WalletItemExistsError);
   });
 });

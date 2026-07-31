@@ -38,7 +38,10 @@ export class RegisterHandler extends BaseCommandHandler<RegisterCommand, AuthRes
     return { passwordHash: await hash(command.input.password, 12) };
   }
 
-  protected async handle(command: RegisterCommand, context: Context): Promise<HandleResult<AuthResult>> {
+  protected async handle(
+    command: RegisterCommand,
+    context: Context,
+  ): Promise<HandleResult<AuthResult>> {
     const plan = User.planRegistration({ ...command.input, passwordHash: context.passwordHash });
     const user = await this.repo.create(plan);
     const tokens = this.tokenIssuer.issue({ id: user.id, email: user.email });

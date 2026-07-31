@@ -63,7 +63,10 @@ export class AddCardHandler extends BaseCommandHandler<AddCardCommand, accounts.
     return { account, plan };
   }
 
-  protected async handle(command: AddCardCommand, context: Context): Promise<HandleResult<accounts.Card>> {
+  protected async handle(
+    command: AddCardCommand,
+    context: Context,
+  ): Promise<HandleResult<accounts.Card>> {
     if (context.plan.isPrimary) {
       // The account's own creditLimit/creditUsedInitial mirror was already
       // applied in loadContext; persist it alongside the new card.
@@ -71,11 +74,16 @@ export class AddCardHandler extends BaseCommandHandler<AddCardCommand, accounts.
     }
     const account = await this.accountRepo.addCard(command.userId, command.accountId, context.plan);
     const created = account.cards.find(
-      (c) => c.last4 === context.plan.last4 && c.name === context.plan.name && c.isPrimary === context.plan.isPrimary,
+      (c) =>
+        c.last4 === context.plan.last4 &&
+        c.name === context.plan.name &&
+        c.isPrimary === context.plan.isPrimary,
     );
     const currency = account.snapshot().currency;
     const sums = created
-      ? await this.sumsRepo.sumsByCard(command.userId, [{ id: created.id, since: currentCycleStart(account.billingCycleDay, new Date()) }])
+      ? await this.sumsRepo.sumsByCard(command.userId, [
+          { id: created.id, since: currentCycleStart(account.billingCycleDay, new Date()) },
+        ])
       : [];
     const sumsMap = new Map<string, { income: string; expense: string }>();
     for (const s of sums) {

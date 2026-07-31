@@ -6,7 +6,9 @@ import {
   startOfTodayUTC,
 } from "../../../../../src/domains/recurring-expense/domain/recurring-expense.aggregate";
 
-function makeExpense(overrides: Partial<Parameters<typeof RecurringExpense.fromPersistence>[0]> = {}) {
+function makeExpense(
+  overrides: Partial<Parameters<typeof RecurringExpense.fromPersistence>[0]> = {},
+) {
   return RecurringExpense.fromPersistence({
     id: "r1",
     userId: "u1",

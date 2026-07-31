@@ -32,8 +32,12 @@ export class HandlerLoggingInterceptor implements NestInterceptor {
         next: () => this.logger.debug(`${label} ok in ${elapsedMs().toFixed(1)}ms`),
         error: (error: unknown) => {
           const code =
-            error instanceof Error && "code" in error ? String((error as { code: unknown }).code) : undefined;
-          this.logger.warn(`${label} failed in ${elapsedMs().toFixed(1)}ms${code ? ` (${code})` : ""}`);
+            error instanceof Error && "code" in error
+              ? String((error as { code: unknown }).code)
+              : undefined;
+          this.logger.warn(
+            `${label} failed in ${elapsedMs().toFixed(1)}ms${code ? ` (${code})` : ""}`,
+          );
         },
       }),
     );

@@ -10,13 +10,20 @@ import {
 } from "../../../transaction/domain/ports/transaction-sums.repository.port";
 import { BankAccount } from "../../domain/bank-account.aggregate";
 import { AccountNotFoundError } from "../../domain/errors";
-import { BANK_ACCOUNT_REPOSITORY, type BankAccountRepositoryPort } from "../../domain/ports/bank-account.repository.port";
+import {
+  BANK_ACCOUNT_REPOSITORY,
+  type BankAccountRepositoryPort,
+} from "../../domain/ports/bank-account.repository.port";
 import { accountsToDtos } from "../queries/account-dto.mapper";
 import { SetAccountStatusCommand } from "./set-account-status.command";
 
 @Injectable()
 @CommandHandler(SetAccountStatusCommand)
-export class SetAccountStatusHandler extends BaseCommandHandler<SetAccountStatusCommand, accounts.BankAccount, BankAccount> {
+export class SetAccountStatusHandler extends BaseCommandHandler<
+  SetAccountStatusCommand,
+  accounts.BankAccount,
+  BankAccount
+> {
   constructor(
     eventBus: EventBus,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
@@ -31,7 +38,10 @@ export class SetAccountStatusHandler extends BaseCommandHandler<SetAccountStatus
     return account;
   }
 
-  protected async handle(command: SetAccountStatusCommand, account: BankAccount): Promise<HandleResult<accounts.BankAccount>> {
+  protected async handle(
+    command: SetAccountStatusCommand,
+    account: BankAccount,
+  ): Promise<HandleResult<accounts.BankAccount>> {
     const event = account.setStatus(command.status);
     const [dto] = await accountsToDtos(this.sumsRepo, command.userId, [account]);
     return { result: dto, events: event ? [event] : [] };

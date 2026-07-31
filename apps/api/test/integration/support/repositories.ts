@@ -39,12 +39,17 @@ export function buildTransactionSumsRepo(prisma: PrismaService): PrismaTransacti
   return new PrismaTransactionSumsRepository(prisma);
 }
 
-export function buildTransactionWriterRepo(prisma: PrismaService): PrismaTransactionWriterRepository {
+export function buildTransactionWriterRepo(
+  prisma: PrismaService,
+): PrismaTransactionWriterRepository {
   return new PrismaTransactionWriterRepository(prisma);
 }
 
 export function buildInstallmentPlanRepo(prisma: PrismaService): PrismaInstallmentPlanRepository {
-  return new PrismaInstallmentPlanRepository(prisma, new PrismaInstallmentPaymentRepository(prisma));
+  return new PrismaInstallmentPlanRepository(
+    prisma,
+    new PrismaInstallmentPaymentRepository(prisma),
+  );
 }
 
 export function buildUserRepo(prisma: PrismaService): PrismaUserRepository {

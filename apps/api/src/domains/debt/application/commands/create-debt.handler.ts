@@ -47,7 +47,10 @@ export class CreateDebtHandler extends BaseCommandHandler<CreateDebtCommand, deb
     return { plan };
   }
 
-  protected async handle(command: CreateDebtCommand, context: Context): Promise<HandleResult<debts.Debt>> {
+  protected async handle(
+    command: CreateDebtCommand,
+    context: Context,
+  ): Promise<HandleResult<debts.Debt>> {
     const debt = await this.repo.create(command.userId, context.plan);
     return { result: debt.toContract(), events: [] };
   }

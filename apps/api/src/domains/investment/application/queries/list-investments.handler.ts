@@ -25,7 +25,10 @@ export class ListInvestmentsQueryHandler extends BaseQueryHandler<
     return query.userId;
   }
 
-  protected async handle(_query: ListInvestmentsQuery, userId: string): Promise<investments.Investment[]> {
+  protected async handle(
+    _query: ListInvestmentsQuery,
+    userId: string,
+  ): Promise<investments.Investment[]> {
     const rows = await this.repo.list(userId);
     return rows.map((r) => r.toContract());
   }

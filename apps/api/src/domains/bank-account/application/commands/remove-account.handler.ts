@@ -3,7 +3,10 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { AccountNotFoundError } from "../../domain/errors";
-import { BANK_ACCOUNT_REPOSITORY, type BankAccountRepositoryPort } from "../../domain/ports/bank-account.repository.port";
+import {
+  BANK_ACCOUNT_REPOSITORY,
+  type BankAccountRepositoryPort,
+} from "../../domain/ports/bank-account.repository.port";
 import { RemoveAccountCommand } from "./remove-account.command";
 
 @Injectable()

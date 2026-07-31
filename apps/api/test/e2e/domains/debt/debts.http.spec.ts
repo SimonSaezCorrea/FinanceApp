@@ -67,7 +67,9 @@ describe("Debts HTTP (e2e)", () => {
   });
 
   it("returns DEBT_NOT_FOUND for an unknown id", async () => {
-    const res = await request(app.getHttpServer()).get("/api/v1/debts/ghost").set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/debts/ghost")
+      .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("DEBT_NOT_FOUND");
   });
@@ -103,7 +105,9 @@ describe("Debts HTTP (e2e)", () => {
       .set("Cookie", cookies);
     expect(res.status).toBe(204);
 
-    const getRes = await request(app.getHttpServer()).get(`/api/v1/debts/${debtId}`).set("Cookie", cookies);
+    const getRes = await request(app.getHttpServer())
+      .get(`/api/v1/debts/${debtId}`)
+      .set("Cookie", cookies);
     expect(getRes.body.settledAt).not.toBeNull();
   });
 
@@ -141,12 +145,16 @@ describe("Debts HTTP (e2e)", () => {
   });
 
   it("deletes the debt", async () => {
-    const res = await request(app.getHttpServer()).delete(`/api/v1/debts/${debtId}`).set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .delete(`/api/v1/debts/${debtId}`)
+      .set("Cookie", cookies);
     expect(res.status).toBe(204);
   });
 
   it("returns DEBT_NOT_FOUND for a deleted/unknown id", async () => {
-    const res = await request(app.getHttpServer()).get(`/api/v1/debts/${debtId}`).set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/debts/${debtId}`)
+      .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("DEBT_NOT_FOUND");
   });

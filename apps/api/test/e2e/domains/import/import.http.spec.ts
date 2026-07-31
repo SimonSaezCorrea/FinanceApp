@@ -50,7 +50,12 @@ describe("Import HTTP (e2e)", () => {
       .set("Cookie", cookies)
       .send({
         rows: [
-          { type: "INCOME", amount: "100.00", currency: "USD", occurredAt: "2026-01-01T00:00:00.000Z" },
+          {
+            type: "INCOME",
+            amount: "100.00",
+            currency: "USD",
+            occurredAt: "2026-01-01T00:00:00.000Z",
+          },
           {
             type: "EXPENSE",
             amount: "40.50",

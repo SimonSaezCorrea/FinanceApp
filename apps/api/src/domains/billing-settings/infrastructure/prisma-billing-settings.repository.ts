@@ -4,7 +4,11 @@ import { PrismaService } from "../../../infra/prisma/prisma.service";
 import type { BillingSettingsProps } from "../domain/billing-settings.entity";
 import type { BillingSettingsRepositoryPort } from "../domain/ports/billing-settings.repository.port";
 
-type Row = { billingCycleDay: number | null; paymentMethod: "MANUAL" | "AUTOMATIC"; paymentDueDay: number | null };
+type Row = {
+  billingCycleDay: number | null;
+  paymentMethod: "MANUAL" | "AUTOMATIC";
+  paymentDueDay: number | null;
+};
 
 const toProps = (row: Row): BillingSettingsProps => ({
   billingCycleDay: row.billingCycleDay,
@@ -22,9 +26,13 @@ export class PrismaBillingSettingsRepository implements BillingSettingsRepositor
     return row ? toProps(row) : null;
   }
 
-  async listByAccounts(accountIds: string[]): Promise<(BillingSettingsProps & { accountId: string })[]> {
+  async listByAccounts(
+    accountIds: string[],
+  ): Promise<(BillingSettingsProps & { accountId: string })[]> {
     if (accountIds.length === 0) return [];
-    const rows = await this.prisma.billingSettings.findMany({ where: { accountId: { in: accountIds } } });
+    const rows = await this.prisma.billingSettings.findMany({
+      where: { accountId: { in: accountIds } },
+    });
     return rows.map((r) => ({ accountId: r.accountId, ...toProps(r) }));
   }
 
@@ -40,7 +48,11 @@ export class PrismaBillingSettingsRepository implements BillingSettingsRepositor
     await this.upsertWithTx(this.prisma, accountId, settings);
   }
 
-  async upsertWithTx(tx: unknown, accountId: string, settings: Partial<BillingSettingsProps>): Promise<void> {
+  async upsertWithTx(
+    tx: unknown,
+    accountId: string,
+    settings: Partial<BillingSettingsProps>,
+  ): Promise<void> {
     const client = tx as PrismaService;
     await client.billingSettings.upsert({
       where: { accountId },
@@ -51,7 +63,9 @@ export class PrismaBillingSettingsRepository implements BillingSettingsRepositor
         paymentDueDay: settings.paymentDueDay ?? null,
       },
       update: {
-        ...(settings.billingCycleDay !== undefined ? { billingCycleDay: settings.billingCycleDay } : {}),
+        ...(settings.billingCycleDay !== undefined
+          ? { billingCycleDay: settings.billingCycleDay }
+          : {}),
         ...(settings.paymentMethod !== undefined ? { paymentMethod: settings.paymentMethod } : {}),
         ...(settings.paymentDueDay !== undefined ? { paymentDueDay: settings.paymentDueDay } : {}),
       },

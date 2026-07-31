@@ -49,7 +49,9 @@ export class AuthController {
     @Body(new ZodValidationPipe(auth.registerRequestSchema)) body: auth.RegisterRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<auth.CurrentUser> {
-    const { tokens, user } = await this.commandBus.execute<RegisterCommand, AuthResult>(new RegisterCommand(body));
+    const { tokens, user } = await this.commandBus.execute<RegisterCommand, AuthResult>(
+      new RegisterCommand(body),
+    );
     this.setAuthCookies(res, tokens);
     return user;
   }
@@ -60,7 +62,9 @@ export class AuthController {
     @Body(new ZodValidationPipe(auth.loginRequestSchema)) body: auth.LoginRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<auth.CurrentUser> {
-    const { tokens, user } = await this.commandBus.execute<LoginCommand, AuthResult>(new LoginCommand(body));
+    const { tokens, user } = await this.commandBus.execute<LoginCommand, AuthResult>(
+      new LoginCommand(body),
+    );
     this.setAuthCookies(res, tokens);
     return user;
   }
@@ -69,7 +73,9 @@ export class AuthController {
   @HttpCode(204)
   async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
     const token = (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE];
-    const tokens = await this.commandBus.execute<RefreshTokenCommand, TokenPair>(new RefreshTokenCommand(token));
+    const tokens = await this.commandBus.execute<RefreshTokenCommand, TokenPair>(
+      new RefreshTokenCommand(token),
+    );
     this.setAuthCookies(res, tokens);
   }
 

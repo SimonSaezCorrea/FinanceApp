@@ -72,7 +72,9 @@ describe("Recurring HTTP (e2e)", () => {
   });
 
   it("returns RECURRING_NOT_FOUND for an unknown id", async () => {
-    const res = await request(app.getHttpServer()).get("/api/v1/recurring/ghost").set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/recurring/ghost")
+      .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("RECURRING_NOT_FOUND");
   });

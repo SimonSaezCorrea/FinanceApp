@@ -5,7 +5,9 @@ import { PrismaFinancialInstitutionLookupRepository } from "./infrastructure/pri
 
 /** Leaf data module for the `financial-institution` table. */
 @Module({
-  providers: [{ provide: FINANCIAL_INSTITUTION_LOOKUP, useClass: PrismaFinancialInstitutionLookupRepository }],
+  providers: [
+    { provide: FINANCIAL_INSTITUTION_LOOKUP, useClass: PrismaFinancialInstitutionLookupRepository },
+  ],
   exports: [FINANCIAL_INSTITUTION_LOOKUP],
 })
 export class FinancialInstitutionDataModule {}

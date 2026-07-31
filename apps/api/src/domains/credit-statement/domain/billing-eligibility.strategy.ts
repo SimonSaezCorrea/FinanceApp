@@ -51,7 +51,10 @@ export class AddOnCardEligibility implements BillingEligibilityStrategy {
 /** Picks the first strategy (in order) whose `applies()` matches — adding a
  * new account shape means adding a new strategy, never editing these. */
 export function resolveBillingEligibility(context: EligibilityContext): boolean {
-  const strategies: BillingEligibilityStrategy[] = [new CreditLineEligibility(), new AddOnCardEligibility()];
+  const strategies: BillingEligibilityStrategy[] = [
+    new CreditLineEligibility(),
+    new AddOnCardEligibility(),
+  ];
   const strategy = strategies.find((s) => s.applies(context));
   return strategy ? strategy.evaluate(context) : false;
 }

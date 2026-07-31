@@ -60,7 +60,9 @@ describe("Reference HTTP (e2e)", () => {
   });
 
   it("lists institutions, filterable by country and kind", async () => {
-    const all = await request(app.getHttpServer()).get("/api/v1/institutions").set("Cookie", cookies);
+    const all = await request(app.getHttpServer())
+      .get("/api/v1/institutions")
+      .set("Cookie", cookies);
     expect(all.status).toBe(200);
     expect(all.body.length).toBeGreaterThan(0);
 

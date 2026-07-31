@@ -41,7 +41,9 @@ export class UpdateInstallmentPlanHandler extends BaseCommandHandler<
       ...(input.title !== undefined ? { title: input.title } : {}),
       ...(input.currency !== undefined ? { currency: input.currency } : {}),
       ...(input.frequency !== undefined ? { frequency: input.frequency } : {}),
-      ...(input.frequencyInterval !== undefined ? { frequencyInterval: input.frequencyInterval } : {}),
+      ...(input.frequencyInterval !== undefined
+        ? { frequencyInterval: input.frequencyInterval }
+        : {}),
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
     });
     return { result: plan.toContract(), events: [] };

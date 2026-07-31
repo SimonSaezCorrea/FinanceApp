@@ -5,7 +5,11 @@ import type { wallet } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { WalletItem, type PlannedWalletItem } from "../../domain/wallet-item.aggregate";
-import { WalletAccountNotFoundError, WalletCardNotFoundError, WalletItemExistsError } from "../../domain/errors";
+import {
+  WalletAccountNotFoundError,
+  WalletCardNotFoundError,
+  WalletItemExistsError,
+} from "../../domain/errors";
 import {
   WALLET_ITEM_REPOSITORY,
   type WalletItemRepositoryPort,
@@ -23,7 +27,11 @@ interface Context {
  */
 @Injectable()
 @CommandHandler(AddWalletItemCommand)
-export class AddWalletItemHandler extends BaseCommandHandler<AddWalletItemCommand, wallet.WalletItem, Context> {
+export class AddWalletItemHandler extends BaseCommandHandler<
+  AddWalletItemCommand,
+  wallet.WalletItem,
+  Context
+> {
   constructor(
     eventBus: EventBus,
     @Inject(WALLET_ITEM_REPOSITORY) private readonly repo: WalletItemRepositoryPort,
@@ -36,14 +44,20 @@ export class AddWalletItemHandler extends BaseCommandHandler<AddWalletItemComman
 
     // The referenced card/account must belong to the user.
     if (input.accountId) {
-      if (!(await this.repo.accountOwned(userId, input.accountId))) throw new WalletAccountNotFoundError();
+      if (!(await this.repo.accountOwned(userId, input.accountId)))
+        throw new WalletAccountNotFoundError();
     } else if (input.cardId) {
       if (!(await this.repo.cardOwned(userId, input.cardId))) throw new WalletCardNotFoundError();
     }
-    if (await this.repo.existing(userId, input.accountId, input.cardId)) throw new WalletItemExistsError();
+    if (await this.repo.existing(userId, input.accountId, input.cardId))
+      throw new WalletItemExistsError();
 
     const order = await this.repo.count(userId);
-    const plan = WalletItem.planCreation({ accountId: input.accountId, cardId: input.cardId, order });
+    const plan = WalletItem.planCreation({
+      accountId: input.accountId,
+      cardId: input.cardId,
+      order,
+    });
     return { plan };
   }
 

@@ -1,6 +1,9 @@
 import { vi } from "vitest";
 
-import { BankAccount, type BankAccountProps } from "../../../src/domains/bank-account/domain/bank-account.aggregate";
+import {
+  BankAccount,
+  type BankAccountProps,
+} from "../../../src/domains/bank-account/domain/bank-account.aggregate";
 import type { BankAccountRepositoryPort } from "../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CardAccountRepositoryPort } from "../../../src/domains/card-account/domain/ports/card-account.repository.port";
 import type { CardLimitRepositoryPort } from "../../../src/domains/card-limit/domain/ports/card-limit.repository.port";
@@ -72,7 +75,9 @@ export function fakeCreditStatementRepo(
   };
 }
 
-export function fakeCardAccountRepo(overrides: Partial<CardAccountRepositoryPort> = {}): CardAccountRepositoryPort {
+export function fakeCardAccountRepo(
+  overrides: Partial<CardAccountRepositoryPort> = {},
+): CardAccountRepositoryPort {
   return {
     listByAccounts: vi.fn(async () => []),
     findOnAccount: vi.fn(async () => null),
@@ -84,7 +89,9 @@ export function fakeCardAccountRepo(overrides: Partial<CardAccountRepositoryPort
   };
 }
 
-export function fakeCardLimitRepo(overrides: Partial<CardLimitRepositoryPort> = {}): CardLimitRepositoryPort {
+export function fakeCardLimitRepo(
+  overrides: Partial<CardLimitRepositoryPort> = {},
+): CardLimitRepositoryPort {
   return {
     listByCards: vi.fn(async () => []),
     findForCardCurrency: vi.fn(async () => null),

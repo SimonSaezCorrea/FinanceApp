@@ -4,9 +4,19 @@ import {
   GenerateAllDueStatementsHandler,
   GenerateStatementsHandler,
 } from "../../../../../../src/domains/credit-statement/application/commands/generate-statements.handler";
-import { GenerateAllDueStatementsCommand, GenerateStatementsCommand } from "../../../../../../src/domains/credit-statement/application/commands/generate-statements.command";
-import { BankAccount, type BankAccountProps, type CardProps } from "../../../../../../src/domains/bank-account/domain/bank-account.aggregate";
-import { CreditStatement, type CreditStatementProps } from "../../../../../../src/domains/credit-statement/domain/credit-statement.aggregate";
+import {
+  GenerateAllDueStatementsCommand,
+  GenerateStatementsCommand,
+} from "../../../../../../src/domains/credit-statement/application/commands/generate-statements.command";
+import {
+  BankAccount,
+  type BankAccountProps,
+  type CardProps,
+} from "../../../../../../src/domains/bank-account/domain/bank-account.aggregate";
+import {
+  CreditStatement,
+  type CreditStatementProps,
+} from "../../../../../../src/domains/credit-statement/domain/credit-statement.aggregate";
 import type { BankAccountRepositoryPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
 
@@ -67,7 +77,9 @@ function statementProps(overrides: Partial<CreditStatementProps> = {}): CreditSt
   };
 }
 
-function fakeAccountRepo(overrides: Partial<BankAccountRepositoryPort> = {}): BankAccountRepositoryPort {
+function fakeAccountRepo(
+  overrides: Partial<BankAccountRepositoryPort> = {},
+): BankAccountRepositoryPort {
   return {
     findById: vi.fn(),
     listByUser: vi.fn(),
@@ -85,7 +97,9 @@ function fakeAccountRepo(overrides: Partial<BankAccountRepositoryPort> = {}): Ba
   };
 }
 
-function fakeStatementRepo(overrides: Partial<CreditStatementRepositoryPort> = {}): CreditStatementRepositoryPort {
+function fakeStatementRepo(
+  overrides: Partial<CreditStatementRepositoryPort> = {},
+): CreditStatementRepositoryPort {
   return {
     findById: vi.fn(),
     findOpenForAccount: vi.fn(),
@@ -108,7 +122,11 @@ describe("GenerateStatementsHandler (manual trigger)", () => {
       findOpenForAccount: vi.fn(async () => statement),
       save: vi.fn(async () => undefined),
     });
-    const handler = new GenerateStatementsHandler({ publish: vi.fn() } as never, accountRepo, statementRepo);
+    const handler = new GenerateStatementsHandler(
+      { publish: vi.fn() } as never,
+      accountRepo,
+      statementRepo,
+    );
 
     const closed = await handler.execute(new GenerateStatementsCommand("u1", "acc_1"));
 
@@ -121,7 +139,11 @@ describe("GenerateStatementsHandler (manual trigger)", () => {
     const account = BankAccount.fromPersistence(accountProps());
     const accountRepo = fakeAccountRepo({ findById: vi.fn(async () => account) });
     const statementRepo = fakeStatementRepo({ findOpenForAccount: vi.fn(async () => null) });
-    const handler = new GenerateStatementsHandler({ publish: vi.fn() } as never, accountRepo, statementRepo);
+    const handler = new GenerateStatementsHandler(
+      { publish: vi.fn() } as never,
+      accountRepo,
+      statementRepo,
+    );
 
     const closed = await handler.execute(new GenerateStatementsCommand("u1", "acc_1"));
     expect(closed).toBe(false);
@@ -132,7 +154,11 @@ describe("GenerateStatementsHandler (manual trigger)", () => {
     const statement = CreditStatement.fromPersistence(statementProps());
     const accountRepo = fakeAccountRepo({ findById: vi.fn(async () => account) });
     const statementRepo = fakeStatementRepo({ findOpenForAccount: vi.fn(async () => statement) });
-    const handler = new GenerateStatementsHandler({ publish: vi.fn() } as never, accountRepo, statementRepo);
+    const handler = new GenerateStatementsHandler(
+      { publish: vi.fn() } as never,
+      accountRepo,
+      statementRepo,
+    );
 
     const closed = await handler.execute(new GenerateStatementsCommand("u1", "acc_1"));
     expect(closed).toBe(false);
@@ -144,15 +170,27 @@ describe("GenerateAllDueStatementsHandler (cron trigger, scope: system)", () => 
   it("closes every due account's OPEN statement, returning the count closed", async () => {
     const account1 = BankAccount.fromPersistence(accountProps({ id: "acc_1" }));
     const account2 = BankAccount.fromPersistence(accountProps({ id: "acc_2" }));
-    const statement1 = CreditStatement.fromPersistence(statementProps({ id: "st_1", accountId: "acc_1" }));
-    const statement2 = CreditStatement.fromPersistence(statementProps({ id: "st_2", accountId: "acc_2" }));
+    const statement1 = CreditStatement.fromPersistence(
+      statementProps({ id: "st_1", accountId: "acc_1" }),
+    );
+    const statement2 = CreditStatement.fromPersistence(
+      statementProps({ id: "st_2", accountId: "acc_2" }),
+    );
 
-    const accountRepo = fakeAccountRepo({ listDueForBilling: vi.fn(async () => [account1, account2]) });
+    const accountRepo = fakeAccountRepo({
+      listDueForBilling: vi.fn(async () => [account1, account2]),
+    });
     const statementRepo = fakeStatementRepo({
-      findOpenForAccount: vi.fn(async (accountId: string) => (accountId === "acc_1" ? statement1 : statement2)),
+      findOpenForAccount: vi.fn(async (accountId: string) =>
+        accountId === "acc_1" ? statement1 : statement2,
+      ),
       save: vi.fn(async () => undefined),
     });
-    const handler = new GenerateAllDueStatementsHandler({ publish: vi.fn() } as never, accountRepo, statementRepo);
+    const handler = new GenerateAllDueStatementsHandler(
+      { publish: vi.fn() } as never,
+      accountRepo,
+      statementRepo,
+    );
 
     const count = await handler.execute(new GenerateAllDueStatementsCommand());
 

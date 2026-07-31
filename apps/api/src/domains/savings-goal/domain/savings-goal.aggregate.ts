@@ -23,7 +23,10 @@ export type SavingsGoalPatch = Partial<{
  * `id`/`userId`/timestamps yet (the repository adapter assigns them on
  * insert, `userId` supplied separately to `create(userId, plan)`, same
  * convention as `recurring`'s `PlannedRecurringExpense`). */
-export type PlannedSavingsGoal = Omit<SavingsGoalProps, "id" | "userId" | "createdAt" | "updatedAt">;
+export type PlannedSavingsGoal = Omit<
+  SavingsGoalProps,
+  "id" | "userId" | "createdAt" | "updatedAt"
+>;
 
 /**
  * `SavingsGoal` aggregate: a savings target the user is tracking. No

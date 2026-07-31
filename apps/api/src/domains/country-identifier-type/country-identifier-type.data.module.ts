@@ -6,7 +6,10 @@ import { PrismaCountryIdentifierTypeRepository } from "./infrastructure/prisma-c
 /** Leaf data module for the `country-identifier-type` join table. */
 @Module({
   providers: [
-    { provide: COUNTRY_IDENTIFIER_TYPE_REPOSITORY, useClass: PrismaCountryIdentifierTypeRepository },
+    {
+      provide: COUNTRY_IDENTIFIER_TYPE_REPOSITORY,
+      useClass: PrismaCountryIdentifierTypeRepository,
+    },
   ],
   exports: [COUNTRY_IDENTIFIER_TYPE_REPOSITORY],
 })

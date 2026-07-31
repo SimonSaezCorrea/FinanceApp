@@ -46,7 +46,11 @@ export class PrismaCreditStatementRepository implements CreditStatementRepositor
     @Inject(TRANSACTION_SUMS_REPOSITORY) private readonly sums: TransactionSumsRepositoryPort,
   ) {}
 
-  async findById(userId: string, accountId: string, statementId: string): Promise<CreditStatement | null> {
+  async findById(
+    userId: string,
+    accountId: string,
+    statementId: string,
+  ): Promise<CreditStatement | null> {
     const row = await this.prisma.creditStatement.findFirst({
       where: { id: statementId, accountId, account: { userId } },
     });
@@ -54,7 +58,9 @@ export class PrismaCreditStatementRepository implements CreditStatementRepositor
   }
 
   async findOpenForAccount(accountId: string): Promise<CreditStatement | null> {
-    const row = await this.prisma.creditStatement.findFirst({ where: { accountId, closedAt: null } });
+    const row = await this.prisma.creditStatement.findFirst({
+      where: { accountId, closedAt: null },
+    });
     return row ? CreditStatement.fromPersistence(rowToProps(row)) : null;
   }
 
@@ -66,7 +72,10 @@ export class PrismaCreditStatementRepository implements CreditStatementRepositor
     return rows.map((r) => CreditStatement.fromPersistence(rowToProps(r)));
   }
 
-  async findOrCreateOpenForAccount(accountId: string, fallbackPeriodStart: Date): Promise<{ id: string }> {
+  async findOrCreateOpenForAccount(
+    accountId: string,
+    fallbackPeriodStart: Date,
+  ): Promise<{ id: string }> {
     const open = await this.prisma.creditStatement.findFirst({
       where: { accountId, closedAt: null },
       select: { id: true },

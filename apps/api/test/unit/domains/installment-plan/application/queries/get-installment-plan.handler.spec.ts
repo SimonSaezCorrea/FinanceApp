@@ -26,7 +26,9 @@ function makePlan(id: string) {
   });
 }
 
-function fakeRepo(overrides: Partial<InstallmentPlanRepositoryPort> = {}): InstallmentPlanRepositoryPort {
+function fakeRepo(
+  overrides: Partial<InstallmentPlanRepositoryPort> = {},
+): InstallmentPlanRepositoryPort {
   return {
     list: vi.fn(),
     findOne: vi.fn(),
@@ -42,9 +44,9 @@ describe("GetInstallmentPlanQueryHandler", () => {
   it("throws InstallmentPlanNotFoundError when missing", async () => {
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(null) });
     const handler = new GetInstallmentPlanQueryHandler(repo);
-    await expect(handler.execute(new GetInstallmentPlanQuery("u1", "ghost"))).rejects.toBeInstanceOf(
-      InstallmentPlanNotFoundError,
-    );
+    await expect(
+      handler.execute(new GetInstallmentPlanQuery("u1", "ghost")),
+    ).rejects.toBeInstanceOf(InstallmentPlanNotFoundError);
   });
 
   it("returns the plan as a contract", async () => {

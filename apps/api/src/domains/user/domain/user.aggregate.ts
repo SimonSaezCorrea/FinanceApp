@@ -93,11 +93,11 @@ export class User {
    * lower-cased, matching the pre-migration service. Password hashing is a
    * pure-crypto concern performed by the calling handler (bcrypt has no I/O
    * dependency, so it isn't a repository port), the hash is handed in ready. */
-  static planRegistration(input: {
+  static planRegistration(input: { email: string; name?: string; passwordHash: string }): {
     email: string;
     name?: string;
     passwordHash: string;
-  }): { email: string; name?: string; passwordHash: string } {
+  } {
     return { email: input.email.toLowerCase(), name: input.name, passwordHash: input.passwordHash };
   }
 
@@ -132,12 +132,15 @@ export class User {
     if (patch.email !== undefined) this.props.email = patch.email;
     if (patch.countryId !== undefined) {
       this.props.countryId = patch.countryId;
-      this.props.countryName = patch.countryId ? (patch.countryName ?? this.props.countryName) : null;
+      this.props.countryName = patch.countryId
+        ? (patch.countryName ?? this.props.countryName)
+        : null;
     }
     if (patch.addressStreet !== undefined) this.props.addressStreet = patch.addressStreet;
     if (patch.addressCity !== undefined) this.props.addressCity = patch.addressCity;
     if (patch.addressRegion !== undefined) this.props.addressRegion = patch.addressRegion;
-    if (patch.addressPostalCode !== undefined) this.props.addressPostalCode = patch.addressPostalCode;
+    if (patch.addressPostalCode !== undefined)
+      this.props.addressPostalCode = patch.addressPostalCode;
     if (patch.birthDate !== undefined) this.props.birthDate = patch.birthDate;
     if (patch.identifierType !== undefined) this.props.identifierType = patch.identifierType;
     if (patch.identifierValue !== undefined) this.props.identifierValue = patch.identifierValue;
@@ -145,15 +148,19 @@ export class User {
   }
 
   applyPreferencesUpdate(patch: PreferencesPatch): void {
-    if (patch.preferredCurrency !== undefined) this.props.preferredCurrency = patch.preferredCurrency;
+    if (patch.preferredCurrency !== undefined)
+      this.props.preferredCurrency = patch.preferredCurrency;
     if (patch.locale !== undefined) this.props.locale = patch.locale;
     if (patch.dateFormat !== undefined) this.props.dateFormat = patch.dateFormat;
     if (patch.theme !== undefined) this.props.theme = patch.theme;
     if (patch.hideBalances !== undefined) this.props.hideBalances = patch.hideBalances;
-    if (patch.monthlyBudgetTarget !== undefined) this.props.monthlyBudgetTarget = patch.monthlyBudgetTarget;
-    if (patch.billingCycleStartDay !== undefined) this.props.billingCycleStartDay = patch.billingCycleStartDay;
+    if (patch.monthlyBudgetTarget !== undefined)
+      this.props.monthlyBudgetTarget = patch.monthlyBudgetTarget;
+    if (patch.billingCycleStartDay !== undefined)
+      this.props.billingCycleStartDay = patch.billingCycleStartDay;
     if (patch.extraCurrencies !== undefined) this.props.extraCurrencies = patch.extraCurrencies;
-    if (patch.budgetAlertThreshold !== undefined) this.props.budgetAlertThreshold = patch.budgetAlertThreshold;
+    if (patch.budgetAlertThreshold !== undefined)
+      this.props.budgetAlertThreshold = patch.budgetAlertThreshold;
   }
 
   /** Soft-disable (FR-011: only the status flag changes, no other field/related

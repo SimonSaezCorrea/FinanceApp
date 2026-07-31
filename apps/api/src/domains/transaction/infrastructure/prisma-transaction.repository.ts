@@ -63,7 +63,10 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         ...(where.occurredTo ? { lte: where.occurredTo } : {}),
       };
     }
-    const rows = await this.prisma.transaction.findMany({ where: prismaWhere, orderBy: { occurredAt: "desc" } });
+    const rows = await this.prisma.transaction.findMany({
+      where: prismaWhere,
+      orderBy: { occurredAt: "desc" },
+    });
     return rows.map((r) => Transaction.fromPersistence(rowToProps(r)));
   }
 
@@ -71,9 +74,6 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     const row = await this.prisma.transaction.findFirst({ where: { id, userId } });
     return row ? Transaction.fromPersistence(rowToProps(row)) : null;
   }
-
-
-
 
   async sumsForCard(
     userId: string,
@@ -93,7 +93,8 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
       },
       _sum: { amount: true },
     });
-    const find = (t: TransactionType) => grouped.find((g) => g.type === t)?._sum.amount?.toString() ?? "0";
+    const find = (t: TransactionType) =>
+      grouped.find((g) => g.type === t)?._sum.amount?.toString() ?? "0";
     return { income: find(TransactionType.INCOME), expense: find(TransactionType.EXPENSE) };
   }
   async saveNew(
@@ -121,7 +122,11 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         },
       });
       if (creditUsedDelta) {
-        await this.accounts.incrementCreditUsedWithTx(tx, creditUsedDelta.accountId, creditUsedDelta.delta);
+        await this.accounts.incrementCreditUsedWithTx(
+          tx,
+          creditUsedDelta.accountId,
+          creditUsedDelta.delta,
+        );
       }
       return created;
     });
@@ -138,7 +143,10 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     },
     creditUsedDeltas: { accountId: string; delta: string }[],
   ): Promise<Transaction | null> {
-    const owned = await this.prisma.transaction.findFirst({ where: { id, userId }, select: { id: true } });
+    const owned = await this.prisma.transaction.findFirst({
+      where: { id, userId },
+      select: { id: true },
+    });
     if (!owned) return null;
 
     const data: Prisma.TransactionUpdateInput = {};
@@ -159,7 +167,9 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
       data.card = patch.cardId ? { connect: { id: patch.cardId } } : { disconnect: true };
     }
     if (patch.creditStatementId !== undefined) {
-      data.creditStatement = patch.creditStatementId ? { connect: { id: patch.creditStatementId } } : { disconnect: true };
+      data.creditStatement = patch.creditStatementId
+        ? { connect: { id: patch.creditStatementId } }
+        : { disconnect: true };
     }
 
     const row = await this.prisma.$transaction(async (tx) => {
@@ -181,7 +191,11 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     const removed = await this.prisma.$transaction(async (tx) => {
       const result = await tx.transaction.deleteMany({ where: { id, userId } });
       if (result.count > 0 && creditUsedDelta && creditUsedDelta.delta !== "0") {
-        await this.accounts.incrementCreditUsedWithTx(tx, creditUsedDelta.accountId, creditUsedDelta.delta);
+        await this.accounts.incrementCreditUsedWithTx(
+          tx,
+          creditUsedDelta.accountId,
+          creditUsedDelta.delta,
+        );
       }
       return result.count > 0;
     });

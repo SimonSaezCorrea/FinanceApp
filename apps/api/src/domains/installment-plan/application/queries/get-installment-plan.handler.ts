@@ -19,7 +19,9 @@ export class GetInstallmentPlanQueryHandler extends BaseQueryHandler<
   installments.InstallmentPlan,
   InstallmentPlan
 > {
-  constructor(@Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort) {
+  constructor(
+    @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort,
+  ) {
     super();
   }
 
@@ -29,7 +31,10 @@ export class GetInstallmentPlanQueryHandler extends BaseQueryHandler<
     return row;
   }
 
-  protected async handle(_query: GetInstallmentPlanQuery, row: InstallmentPlan): Promise<installments.InstallmentPlan> {
+  protected async handle(
+    _query: GetInstallmentPlanQuery,
+    row: InstallmentPlan,
+  ): Promise<installments.InstallmentPlan> {
     return row.toContract();
   }
 }

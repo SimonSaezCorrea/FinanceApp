@@ -43,7 +43,10 @@ describe("CreateInvestmentHandler", () => {
     expect(result.id).toBe("i1");
     expect(result.label).toBe("Vanguard S&P 500");
     expect(result.shares).toBe("12.34567890");
-    expect(create).toHaveBeenCalledWith("u1", expect.objectContaining({ label: "Vanguard S&P 500" }));
+    expect(create).toHaveBeenCalledWith(
+      "u1",
+      expect.objectContaining({ label: "Vanguard S&P 500" }),
+    );
   });
 
   it("passes annualRate/principal through on create for a REMUNERATED_ACCOUNT", async () => {

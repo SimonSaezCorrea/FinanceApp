@@ -42,7 +42,11 @@ interface Context {
  */
 @Injectable()
 @CommandHandler(RemoveTransactionCommand)
-export class RemoveTransactionHandler extends BaseCommandHandler<RemoveTransactionCommand, void, Context> {
+export class RemoveTransactionHandler extends BaseCommandHandler<
+  RemoveTransactionCommand,
+  void,
+  Context
+> {
   constructor(
     eventBus: EventBus,
     @Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort,
@@ -58,7 +62,9 @@ export class RemoveTransactionHandler extends BaseCommandHandler<RemoveTransacti
     const current = await this.repo.findOne(command.userId, command.id);
     if (!current) throw new TransactionNotFoundError();
 
-    const linkedToPaid = current.creditStatementId ? await this.statements.isPaid(current.creditStatementId) : false;
+    const linkedToPaid = current.creditStatementId
+      ? await this.statements.isPaid(current.creditStatementId)
+      : false;
 
     let creditUsedDelta: { accountId: string; delta: string } | null = null;
     if (!linkedToPaid && current.bankAccountId) {
@@ -68,20 +74,41 @@ export class RemoveTransactionHandler extends BaseCommandHandler<RemoveTransacti
         ? await this.cards.findOnAccount(command.userId, current.bankAccountId, current.cardId)
         : null;
       const cardLimit =
-        card?.kind === "CREDIT" ? await this.cardLimits.findForCardCurrency(command.userId, current.cardId!, current.currency) : null;
+        card?.kind === "CREDIT"
+          ? await this.cardLimits.findForCardCurrency(
+              command.userId,
+              current.cardId!,
+              current.currency,
+            )
+          : null;
       const contribution = account
-        ? MovementPolicy.contribution({ type: current.type, amount: current.amount }, account, card, cardLimit)
+        ? MovementPolicy.contribution(
+            { type: current.type, amount: current.amount },
+            account,
+            card,
+            cardLimit,
+          )
         : "0";
       if (contribution !== "0") {
-        creditUsedDelta = { accountId: current.bankAccountId, delta: subtractMoney("0", contribution) };
+        creditUsedDelta = {
+          accountId: current.bankAccountId,
+          delta: subtractMoney("0", contribution),
+        };
       }
     }
 
     return { current, creditUsedDelta };
   }
 
-  protected async handle(command: RemoveTransactionCommand, context: Context): Promise<HandleResult<void>> {
-    const ok = await this.repo.removeWithCreditAdjustment(command.userId, command.id, context.creditUsedDelta);
+  protected async handle(
+    command: RemoveTransactionCommand,
+    context: Context,
+  ): Promise<HandleResult<void>> {
+    const ok = await this.repo.removeWithCreditAdjustment(
+      command.userId,
+      command.id,
+      context.creditUsedDelta,
+    );
     if (!ok) throw new TransactionNotFoundError();
     return { result: undefined, events: [] };
   }

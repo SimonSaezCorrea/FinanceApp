@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { UpdateProfileHandler } from "../../../../../../src/domains/user/application/commands/update-profile.handler";
 import { UpdateProfileCommand } from "../../../../../../src/domains/user/application/commands/update-profile.command";
-import { EmailTakenError, UnauthorizedError } from "../../../../../../src/domains/user/domain/errors";
+import {
+  EmailTakenError,
+  UnauthorizedError,
+} from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 
@@ -68,7 +71,9 @@ describe("UpdateProfileHandler", () => {
   });
 
   it("accepts renaming to the user's own current email (no-op, not a conflict)", async () => {
-    const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ id: "u1" }))) });
+    const repo = fakeRepo({
+      findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ id: "u1" }))),
+    });
     const handler = new UpdateProfileHandler({ publish: vi.fn() } as never, repo);
     const result = await handler.execute(new UpdateProfileCommand("u1", { email: "a@b.com" }));
     expect(result.email).toBe("a@b.com");

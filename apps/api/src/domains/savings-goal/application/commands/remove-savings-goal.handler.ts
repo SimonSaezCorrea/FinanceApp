@@ -11,7 +11,11 @@ import { RemoveSavingsGoalCommand } from "./remove-savings-goal.command";
 
 @Injectable()
 @CommandHandler(RemoveSavingsGoalCommand)
-export class RemoveSavingsGoalHandler extends BaseCommandHandler<RemoveSavingsGoalCommand, void, null> {
+export class RemoveSavingsGoalHandler extends BaseCommandHandler<
+  RemoveSavingsGoalCommand,
+  void,
+  null
+> {
   constructor(
     eventBus: EventBus,
     @Inject(SAVINGS_GOAL_REPOSITORY) private readonly repo: SavingsGoalRepositoryPort,

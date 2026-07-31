@@ -5,7 +5,10 @@ import { SettleDebtCommand } from "../../../../../../src/domains/debt/applicatio
 import { UnsettleDebtHandler } from "../../../../../../src/domains/debt/application/commands/unsettle-debt.handler";
 import { UnsettleDebtCommand } from "../../../../../../src/domains/debt/application/commands/unsettle-debt.command";
 import { Debt } from "../../../../../../src/domains/debt/domain/debt.aggregate";
-import { DebtNotFoundError, DebtNotSettledError } from "../../../../../../src/domains/debt/domain/errors";
+import {
+  DebtNotFoundError,
+  DebtNotSettledError,
+} from "../../../../../../src/domains/debt/domain/errors";
 import type { DebtRepositoryPort } from "../../../../../../src/domains/debt/domain/ports/debt.repository.port";
 
 function makeDebt(settledAt: Date | null = null) {
@@ -46,7 +49,9 @@ describe("SettleDebtHandler", () => {
   it("throws DebtNotFoundError when the debt is not the user's", async () => {
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(null) });
     const handler = new SettleDebtHandler({ publish: vi.fn() } as never, repo);
-    await expect(handler.execute(new SettleDebtCommand("u1", "ghost"))).rejects.toBeInstanceOf(DebtNotFoundError);
+    await expect(handler.execute(new SettleDebtCommand("u1", "ghost"))).rejects.toBeInstanceOf(
+      DebtNotFoundError,
+    );
   });
 
   it("settles the debt with no guard against re-settling", async () => {

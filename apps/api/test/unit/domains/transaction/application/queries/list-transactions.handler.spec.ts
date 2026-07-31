@@ -43,7 +43,9 @@ const row = Transaction.fromPersistence({
 
 describe("ListTransactionsQueryHandler", () => {
   it("maps rows to the contract (amount fixed string)", async () => {
-    const handler = new ListTransactionsQueryHandler(fakeRepo({ list: vi.fn().mockResolvedValue([row]) }));
+    const handler = new ListTransactionsQueryHandler(
+      fakeRepo({ list: vi.fn().mockResolvedValue([row]) }),
+    );
     const [tx] = await handler.execute(new ListTransactionsQuery("u1", {}));
     expect(tx.amount).toBe("33.3000");
     expect(tx.type).toBe("EXPENSE");
@@ -61,12 +63,18 @@ describe("ListTransactionsQueryHandler", () => {
 
 describe("GetTransactionQueryHandler", () => {
   it("throws TransactionNotFoundError when the row is missing", async () => {
-    const handler = new GetTransactionQueryHandler(fakeRepo({ findOne: vi.fn().mockResolvedValue(null) }));
-    await expect(handler.execute(new GetTransactionQuery("u1", "nope"))).rejects.toBeInstanceOf(TransactionNotFoundError);
+    const handler = new GetTransactionQueryHandler(
+      fakeRepo({ findOne: vi.fn().mockResolvedValue(null) }),
+    );
+    await expect(handler.execute(new GetTransactionQuery("u1", "nope"))).rejects.toBeInstanceOf(
+      TransactionNotFoundError,
+    );
   });
 
   it("returns the mapped contract for an existing row", async () => {
-    const handler = new GetTransactionQueryHandler(fakeRepo({ findOne: vi.fn().mockResolvedValue(row) }));
+    const handler = new GetTransactionQueryHandler(
+      fakeRepo({ findOne: vi.fn().mockResolvedValue(row) }),
+    );
     const tx = await handler.execute(new GetTransactionQuery("u1", "t1"));
     expect(tx.id).toBe("t1");
   });

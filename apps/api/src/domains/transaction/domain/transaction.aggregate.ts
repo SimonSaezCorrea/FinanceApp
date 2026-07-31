@@ -136,7 +136,8 @@ export class Transaction {
     if (patch.cardId !== undefined || patch.type !== undefined) {
       this.props.cardId = effectiveType === "INCOME" ? null : (patch.cardId ?? this.props.cardId);
     }
-    if (patch.creditStatementId !== undefined) this.props.creditStatementId = patch.creditStatementId;
+    if (patch.creditStatementId !== undefined)
+      this.props.creditStatementId = patch.creditStatementId;
   }
 
   snapshot(): Readonly<TransactionProps> {

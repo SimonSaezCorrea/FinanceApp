@@ -4,7 +4,11 @@ import type { Investment as InvestmentRow, Prisma } from "@prisma/client";
 import { moneyToString } from "@finance/money";
 
 import { PrismaService } from "../../../infra/prisma/prisma.service";
-import { Investment, type InvestmentProps, type PlannedInvestment } from "../domain/investment.aggregate";
+import {
+  Investment,
+  type InvestmentProps,
+  type PlannedInvestment,
+} from "../domain/investment.aggregate";
 import type { InvestmentRepositoryPort } from "../domain/ports/investment.repository.port";
 
 function rowToProps(row: InvestmentRow): InvestmentProps {

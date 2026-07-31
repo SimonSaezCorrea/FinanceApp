@@ -35,7 +35,12 @@ export class PrismaInstallmentPaymentRepository implements InstallmentPaymentRep
     });
   }
 
-  async setPaidAt(userId: string, planId: string, sequence: number, paidAt: Date | null): Promise<boolean> {
+  async setPaidAt(
+    userId: string,
+    planId: string,
+    sequence: number,
+    paidAt: Date | null,
+  ): Promise<boolean> {
     const result = await this.prisma.installmentPayment.updateMany({
       where: { installmentPlanId: planId, sequence, plan: { userId } },
       data: { paidAt },

@@ -11,7 +11,11 @@ import { UpdatePreferencesCommand } from "./update-preferences.command";
 
 @Injectable()
 @CommandHandler(UpdatePreferencesCommand)
-export class UpdatePreferencesHandler extends BaseCommandHandler<UpdatePreferencesCommand, auth.CurrentUser, User> {
+export class UpdatePreferencesHandler extends BaseCommandHandler<
+  UpdatePreferencesCommand,
+  auth.CurrentUser,
+  User
+> {
   constructor(
     eventBus: EventBus,
     @Inject(USER_REPOSITORY) private readonly repo: UserRepositoryPort,
@@ -25,7 +29,10 @@ export class UpdatePreferencesHandler extends BaseCommandHandler<UpdatePreferenc
     return user;
   }
 
-  protected async handle(command: UpdatePreferencesCommand, user: User): Promise<HandleResult<auth.CurrentUser>> {
+  protected async handle(
+    command: UpdatePreferencesCommand,
+    user: User,
+  ): Promise<HandleResult<auth.CurrentUser>> {
     user.applyPreferencesUpdate(command.input);
     return { result: user.toContract(), events: [] };
   }

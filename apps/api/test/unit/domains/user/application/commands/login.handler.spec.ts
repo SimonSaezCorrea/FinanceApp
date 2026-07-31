@@ -4,7 +4,10 @@ import { describe, expect, it, vi } from "vitest";
 import { LoginHandler } from "../../../../../../src/domains/user/application/commands/login.handler";
 import { LoginCommand } from "../../../../../../src/domains/user/application/commands/login.command";
 import { TokenIssuer } from "../../../../../../src/domains/user/application/token-issuer";
-import { AccountDisabledError, InvalidCredentialsError } from "../../../../../../src/domains/user/domain/errors";
+import {
+  AccountDisabledError,
+  InvalidCredentialsError,
+} from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 
@@ -60,17 +63,23 @@ function fakeTokenIssuer(): TokenIssuer {
 describe("LoginHandler", () => {
   it("accepts a correct password and issues tokens", async () => {
     const passwordHash = await hash("secret123", 1);
-    const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))) });
+    const repo = fakeRepo({
+      findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
+    });
     const handler = new LoginHandler({ publish: vi.fn() } as never, repo, fakeTokenIssuer());
 
-    const result = await handler.execute(new LoginCommand({ email: "a@b.com", password: "secret123" }));
+    const result = await handler.execute(
+      new LoginCommand({ email: "a@b.com", password: "secret123" }),
+    );
     expect(result.user.email).toBe("a@b.com");
     expect(result.tokens.accessToken).toBe("at");
   });
 
   it("rejects a wrong password with INVALID_CREDENTIALS", async () => {
     const passwordHash = await hash("secret123", 1);
-    const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))) });
+    const repo = fakeRepo({
+      findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
+    });
     const handler = new LoginHandler({ publish: vi.fn() } as never, repo, fakeTokenIssuer());
 
     await expect(
@@ -90,7 +99,9 @@ describe("LoginHandler", () => {
   it("rejects a DISABLED account with ACCOUNT_DISABLED even with the correct password", async () => {
     const passwordHash = await hash("secret123", 1);
     const repo = fakeRepo({
-      findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash, status: "DISABLED" }))),
+      findByEmail: vi
+        .fn()
+        .mockResolvedValue(User.fromPersistence(baseProps({ passwordHash, status: "DISABLED" }))),
     });
     const handler = new LoginHandler({ publish: vi.fn() } as never, repo, fakeTokenIssuer());
 

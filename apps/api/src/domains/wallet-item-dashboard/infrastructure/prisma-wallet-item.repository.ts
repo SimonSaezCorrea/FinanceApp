@@ -10,7 +10,11 @@ import {
   CARD_ACCOUNT_REPOSITORY,
   type CardAccountRepositoryPort,
 } from "../../card-account/domain/ports/card-account.repository.port";
-import { WalletItem, type PlannedWalletItem, type WalletItemProps } from "../domain/wallet-item.aggregate";
+import {
+  WalletItem,
+  type PlannedWalletItem,
+  type WalletItemProps,
+} from "../domain/wallet-item.aggregate";
 import type { WalletItemRepositoryPort } from "../domain/ports/wallet-item.repository.port";
 
 function rowToProps(row: WalletItemRow): WalletItemProps {

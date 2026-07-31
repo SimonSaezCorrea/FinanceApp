@@ -27,7 +27,10 @@ export class UnsettleDebtHandler extends BaseCommandHandler<UnsettleDebtCommand,
     return debt;
   }
 
-  protected async handle(_command: UnsettleDebtCommand, debt: Debt): Promise<HandleResult<debts.Debt>> {
+  protected async handle(
+    _command: UnsettleDebtCommand,
+    debt: Debt,
+  ): Promise<HandleResult<debts.Debt>> {
     debt.unsettle();
     return { result: debt.toContract(), events: [] };
   }

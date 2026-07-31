@@ -5,7 +5,10 @@ import { PayInstallmentCommand } from "../../../../../../src/domains/installment
 import { UnpayInstallmentHandler } from "../../../../../../src/domains/installment-plan/application/commands/unpay-installment.handler";
 import { UnpayInstallmentCommand } from "../../../../../../src/domains/installment-plan/application/commands/unpay-installment.command";
 import { InstallmentPlan } from "../../../../../../src/domains/installment-plan/domain/installment-plan.aggregate";
-import { InstallmentPlanNotFoundError, InstallmentPaymentNotFoundError } from "../../../../../../src/domains/installment-plan/domain/errors";
+import {
+  InstallmentPlanNotFoundError,
+  InstallmentPaymentNotFoundError,
+} from "../../../../../../src/domains/installment-plan/domain/errors";
 import type { InstallmentPlanRepositoryPort } from "../../../../../../src/domains/installment-plan/domain/ports/installment-plan.repository.port";
 
 function makePlan() {
@@ -29,7 +32,9 @@ function makePlan() {
   });
 }
 
-function fakeRepo(overrides: Partial<InstallmentPlanRepositoryPort> = {}): InstallmentPlanRepositoryPort {
+function fakeRepo(
+  overrides: Partial<InstallmentPlanRepositoryPort> = {},
+): InstallmentPlanRepositoryPort {
   return {
     list: vi.fn(),
     findOne: vi.fn(),
@@ -45,9 +50,9 @@ describe("PayInstallmentHandler", () => {
   it("throws InstallmentPlanNotFoundError when the plan is not the user's", async () => {
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(null) });
     const handler = new PayInstallmentHandler({ publish: vi.fn() } as never, repo);
-    await expect(handler.execute(new PayInstallmentCommand("u1", "ghost", 1))).rejects.toBeInstanceOf(
-      InstallmentPlanNotFoundError,
-    );
+    await expect(
+      handler.execute(new PayInstallmentCommand("u1", "ghost", 1)),
+    ).rejects.toBeInstanceOf(InstallmentPlanNotFoundError);
   });
 
   it("throws InstallmentPaymentNotFoundError for an unknown sequence", async () => {
@@ -71,9 +76,9 @@ describe("UnpayInstallmentHandler", () => {
   it("throws InstallmentPlanNotFoundError when the plan is not the user's", async () => {
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(null) });
     const handler = new UnpayInstallmentHandler({ publish: vi.fn() } as never, repo);
-    await expect(handler.execute(new UnpayInstallmentCommand("u1", "ghost", 1))).rejects.toBeInstanceOf(
-      InstallmentPlanNotFoundError,
-    );
+    await expect(
+      handler.execute(new UnpayInstallmentCommand("u1", "ghost", 1)),
+    ).rejects.toBeInstanceOf(InstallmentPlanNotFoundError);
   });
 
   it("clears the payment's paid status and persists null", async () => {

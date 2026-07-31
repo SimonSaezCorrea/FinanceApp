@@ -3,9 +3,18 @@ import { fakeTransactionWriterRepo } from "../../../../support/fake-ports";
 
 import { PayCreditStatementHandler } from "../../../../../../src/domains/credit-statement/application/commands/pay-credit-statement.handler";
 import { PayCreditStatementCommand } from "../../../../../../src/domains/credit-statement/application/commands/pay-credit-statement.command";
-import { BankAccount, type BankAccountProps } from "../../../../../../src/domains/bank-account/domain/bank-account.aggregate";
-import { CreditStatement, type CreditStatementProps } from "../../../../../../src/domains/credit-statement/domain/credit-statement.aggregate";
-import { InvalidPaymentSourceError, NothingToPayError } from "../../../../../../src/domains/credit-statement/domain/errors";
+import {
+  BankAccount,
+  type BankAccountProps,
+} from "../../../../../../src/domains/bank-account/domain/bank-account.aggregate";
+import {
+  CreditStatement,
+  type CreditStatementProps,
+} from "../../../../../../src/domains/credit-statement/domain/credit-statement.aggregate";
+import {
+  InvalidPaymentSourceError,
+  NothingToPayError,
+} from "../../../../../../src/domains/credit-statement/domain/errors";
 import type { BankAccountRepositoryPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
 
@@ -51,7 +60,9 @@ function statementProps(overrides: Partial<CreditStatementProps> = {}): CreditSt
   };
 }
 
-function fakeAccountRepo(overrides: Partial<BankAccountRepositoryPort> = {}): BankAccountRepositoryPort {
+function fakeAccountRepo(
+  overrides: Partial<BankAccountRepositoryPort> = {},
+): BankAccountRepositoryPort {
   return {
     findById: vi.fn(),
     listByUser: vi.fn(),
@@ -69,7 +80,9 @@ function fakeAccountRepo(overrides: Partial<BankAccountRepositoryPort> = {}): Ba
   };
 }
 
-function fakeStatementRepo(overrides: Partial<CreditStatementRepositoryPort> = {}): CreditStatementRepositoryPort {
+function fakeStatementRepo(
+  overrides: Partial<CreditStatementRepositoryPort> = {},
+): CreditStatementRepositoryPort {
   return {
     findById: vi.fn(),
     findOpenForAccount: vi.fn(),
@@ -87,18 +100,24 @@ function fakePrisma() {
   const created: unknown[] = [];
   return {
     transaction: { create: vi.fn(async (args: { data: unknown }) => created.push(args.data)) },
-    $transaction: vi.fn(async (cb: (tx: unknown) => Promise<void>) => cb({ transaction: { create: vi.fn() } })),
+    $transaction: vi.fn(async (cb: (tx: unknown) => Promise<void>) =>
+      cb({ transaction: { create: vi.fn() } }),
+    ),
   };
 }
 
 describe("PayCreditStatementHandler", () => {
   it("pays a statement: decrements creditUsed, freezes the statement, creates the payment transaction atomically", async () => {
     const creditAccount = BankAccount.fromPersistence(accountProps());
-    const fromAccount = BankAccount.fromPersistence(accountProps({ id: "acc_2", type: "CHECKING", creditLimit: "0" }));
+    const fromAccount = BankAccount.fromPersistence(
+      accountProps({ id: "acc_2", type: "CHECKING", creditLimit: "0" }),
+    );
     const statement = CreditStatement.fromPersistence(statementProps());
 
     const accountRepo = fakeAccountRepo({
-      findById: vi.fn(async (_userId: string, id: string) => (id === "acc_1" ? creditAccount : fromAccount)),
+      findById: vi.fn(async (_userId: string, id: string) =>
+        id === "acc_1" ? creditAccount : fromAccount,
+      ),
     });
     const statementRepo = fakeStatementRepo({
       findById: vi.fn(async () => statement),
@@ -114,7 +133,9 @@ describe("PayCreditStatementHandler", () => {
       prisma as never,
     );
 
-    const result = await handler.execute(new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2"));
+    const result = await handler.execute(
+      new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2"),
+    );
 
     expect(result.paidFromAccountId).toBe("acc_2");
     expect(statement.state.name).toBe("PAID");
@@ -127,7 +148,9 @@ describe("PayCreditStatementHandler", () => {
     const otherCreditLine = BankAccount.fromPersistence(accountProps({ id: "acc_3" }));
     const statement = CreditStatement.fromPersistence(statementProps());
     const accountRepo = fakeAccountRepo({
-      findById: vi.fn(async (_userId: string, id: string) => (id === "acc_1" ? creditAccount : otherCreditLine)),
+      findById: vi.fn(async (_userId: string, id: string) =>
+        id === "acc_1" ? creditAccount : otherCreditLine,
+      ),
     });
     const statementRepo = fakeStatementRepo({ findById: vi.fn(async () => statement) });
     const handler = new PayCreditStatementHandler(
@@ -144,10 +167,14 @@ describe("PayCreditStatementHandler", () => {
 
   it("rejects paying when there's nothing to pay", async () => {
     const creditAccount = BankAccount.fromPersistence(accountProps());
-    const fromAccount = BankAccount.fromPersistence(accountProps({ id: "acc_2", type: "CHECKING" }));
+    const fromAccount = BankAccount.fromPersistence(
+      accountProps({ id: "acc_2", type: "CHECKING" }),
+    );
     const statement = CreditStatement.fromPersistence(statementProps());
     const accountRepo = fakeAccountRepo({
-      findById: vi.fn(async (_userId: string, id: string) => (id === "acc_1" ? creditAccount : fromAccount)),
+      findById: vi.fn(async (_userId: string, id: string) =>
+        id === "acc_1" ? creditAccount : fromAccount,
+      ),
     });
     const statementRepo = fakeStatementRepo({
       findById: vi.fn(async () => statement),

@@ -10,7 +10,10 @@ import {
 } from "../../../transaction/domain/ports/transaction-sums.repository.port";
 import { BankAccount } from "../../domain/bank-account.aggregate";
 import type { CreateAccountPlan } from "../../domain/ports/bank-account.repository.port";
-import { BANK_ACCOUNT_REPOSITORY, type BankAccountRepositoryPort } from "../../domain/ports/bank-account.repository.port";
+import {
+  BANK_ACCOUNT_REPOSITORY,
+  type BankAccountRepositoryPort,
+} from "../../domain/ports/bank-account.repository.port";
 import { accountsToDtos } from "../queries/account-dto.mapper";
 import { CreateAccountCommand } from "./create-account.command";
 
@@ -20,7 +23,11 @@ interface Context {
 
 @Injectable()
 @CommandHandler(CreateAccountCommand)
-export class CreateAccountHandler extends BaseCommandHandler<CreateAccountCommand, accounts.BankAccount, Context> {
+export class CreateAccountHandler extends BaseCommandHandler<
+  CreateAccountCommand,
+  accounts.BankAccount,
+  Context
+> {
   constructor(
     eventBus: EventBus,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
@@ -62,13 +69,20 @@ export class CreateAccountHandler extends BaseCommandHandler<CreateAccountComman
         expiryYear: c.expiryYear,
         isActive: c.isActive ?? true,
         isPrimary: c.isPrimary,
-        limits: c.cardLimits.map((l) => ({ currency: l.currency, limitAmount: l.limitAmount, usedInitial: l.usedInitial })),
+        limits: c.cardLimits.map((l) => ({
+          currency: l.currency,
+          limitAmount: l.limitAmount,
+          usedInitial: l.usedInitial,
+        })),
       })),
     };
     return { plan };
   }
 
-  protected async handle(command: CreateAccountCommand, context: Context): Promise<HandleResult<accounts.BankAccount>> {
+  protected async handle(
+    command: CreateAccountCommand,
+    context: Context,
+  ): Promise<HandleResult<accounts.BankAccount>> {
     const account = await this.accountRepo.createWithCards(command.userId, context.plan);
     const [dto] = await accountsToDtos(this.sumsRepo, command.userId, [account]);
     return { result: dto, events: [] };

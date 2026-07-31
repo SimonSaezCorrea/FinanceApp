@@ -5,7 +5,9 @@ import { RemoveRecurringExpenseCommand } from "../../../../../../src/domains/rec
 import { RecurringExpenseNotFoundError } from "../../../../../../src/domains/recurring-expense/domain/errors";
 import type { RecurringExpenseRepositoryPort } from "../../../../../../src/domains/recurring-expense/domain/ports/recurring-expense.repository.port";
 
-function fakeRepo(overrides: Partial<RecurringExpenseRepositoryPort> = {}): RecurringExpenseRepositoryPort {
+function fakeRepo(
+  overrides: Partial<RecurringExpenseRepositoryPort> = {},
+): RecurringExpenseRepositoryPort {
   return {
     list: vi.fn(),
     findOne: vi.fn(),

@@ -62,13 +62,17 @@ describe("Investments HTTP (e2e)", () => {
   });
 
   it("lists the user's investments", async () => {
-    const res = await request(app.getHttpServer()).get("/api/v1/investments").set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/investments")
+      .set("Cookie", cookies);
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(1);
   });
 
   it("returns INVESTMENT_NOT_FOUND for an unknown id", async () => {
-    const res = await request(app.getHttpServer()).get("/api/v1/investments/ghost").set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/investments/ghost")
+      .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("INVESTMENT_NOT_FOUND");
   });

@@ -8,7 +8,11 @@ import {
   CardSubLimitExceededError,
 } from "../../../../../src/domains/transaction/domain/errors";
 import { MovementPolicy } from "../../../../../src/domains/transaction/domain/movement-policy";
-import type { AccountContext, CardContext, CardLimitContext } from "../../../../../src/domains/transaction/domain/movement-policy";
+import type {
+  AccountContext,
+  CardContext,
+  CardLimitContext,
+} from "../../../../../src/domains/transaction/domain/movement-policy";
 
 const cashAccount: AccountContext = {
   id: "a1",
@@ -91,13 +95,25 @@ describe("MovementPolicy.validate", () => {
 
   it("allows a cash expense with no card", () => {
     expect(
-      MovementPolicy.validate({ ...base, type: "EXPENSE", bankAccountId: "a1", amount: "1000" }, cashAccount, null, null, noUsage),
+      MovementPolicy.validate(
+        { ...base, type: "EXPENSE", bankAccountId: "a1", amount: "1000" },
+        cashAccount,
+        null,
+        null,
+        noUsage,
+      ),
     ).toBe("0");
   });
 
   it("allows a checking expense without a card (card optional on non-credit accounts)", () => {
     expect(
-      MovementPolicy.validate({ ...base, type: "EXPENSE", bankAccountId: "a1", amount: "1000" }, checkingAccount, null, null, noUsage),
+      MovementPolicy.validate(
+        { ...base, type: "EXPENSE", bankAccountId: "a1", amount: "1000" },
+        checkingAccount,
+        null,
+        null,
+        noUsage,
+      ),
     ).toBe("0");
   });
 
@@ -186,19 +202,32 @@ describe("MovementPolicy.validate", () => {
 
 describe("MovementPolicy.contribution", () => {
   it("is 0 for a CASH account regardless of type", () => {
-    expect(MovementPolicy.contribution({ type: "EXPENSE", amount: "100" }, cashAccount, null, null)).toBe("0");
+    expect(
+      MovementPolicy.contribution({ type: "EXPENSE", amount: "100" }, cashAccount, null, null),
+    ).toBe("0");
   });
 
   it("is the negative amount for INCOME on a CREDIT_LINE account", () => {
-    expect(MovementPolicy.contribution({ type: "INCOME", amount: "100" }, creditAccount, null, null)).toBe("-100.0000");
+    expect(
+      MovementPolicy.contribution({ type: "INCOME", amount: "100" }, creditAccount, null, null),
+    ).toBe("-100.0000");
   });
 
   it("is 0 for INCOME on a non-credit-line account", () => {
-    expect(MovementPolicy.contribution({ type: "INCOME", amount: "100" }, checkingAccount, null, null)).toBe("0");
+    expect(
+      MovementPolicy.contribution({ type: "INCOME", amount: "100" }, checkingAccount, null, null),
+    ).toBe("0");
   });
 
   it("is 0 without a CREDIT card", () => {
-    expect(MovementPolicy.contribution({ type: "EXPENSE", amount: "100" }, creditAccount, debitCard, null)).toBe("0");
+    expect(
+      MovementPolicy.contribution(
+        { type: "EXPENSE", amount: "100" },
+        creditAccount,
+        debitCard,
+        null,
+      ),
+    ).toBe("0");
   });
 
   it("is 0 for a CREDIT card with its own sub-limit (stays out of the shared pool)", () => {

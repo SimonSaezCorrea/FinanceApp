@@ -11,7 +11,11 @@ import { DeactivateAccountCommand } from "./deactivate-account.command";
 
 @Injectable()
 @CommandHandler(DeactivateAccountCommand)
-export class DeactivateAccountHandler extends BaseCommandHandler<DeactivateAccountCommand, void, User> {
+export class DeactivateAccountHandler extends BaseCommandHandler<
+  DeactivateAccountCommand,
+  void,
+  User
+> {
   private readonly logger = new Logger(DeactivateAccountHandler.name);
 
   constructor(
@@ -29,7 +33,10 @@ export class DeactivateAccountHandler extends BaseCommandHandler<DeactivateAccou
     return user;
   }
 
-  protected async handle(command: DeactivateAccountCommand, user: User): Promise<HandleResult<void>> {
+  protected async handle(
+    command: DeactivateAccountCommand,
+    user: User,
+  ): Promise<HandleResult<void>> {
     const event = user.deactivate();
     this.logger.log(`account deactivated: ${command.userId}`);
     const events: UserDeactivatedEvent[] = event ? [event] : [];

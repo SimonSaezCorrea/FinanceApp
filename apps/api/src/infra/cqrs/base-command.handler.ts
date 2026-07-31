@@ -23,7 +23,11 @@ export type HandleResult<TResult> = { result: TResult; events: object[] };
  * handler spanning more than one aggregate MUST wrap every save in one
  * `prisma.$transaction(...)` inside its own `persist()` override, per FR-020).
  */
-export abstract class BaseCommandHandler<TCommand extends BaseCommand, TResult, TContext = unknown> {
+export abstract class BaseCommandHandler<
+  TCommand extends BaseCommand,
+  TResult,
+  TContext = unknown,
+> {
   constructor(protected readonly eventBus: EventBus) {}
 
   async execute(command: TCommand): Promise<TResult> {

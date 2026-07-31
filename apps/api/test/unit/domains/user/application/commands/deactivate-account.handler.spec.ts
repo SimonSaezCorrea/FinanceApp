@@ -52,7 +52,9 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
 describe("DeactivateAccountHandler", () => {
   it("rejects an incorrect password and leaves the account untouched", async () => {
     const passwordHash = await hash("correct-pw", 1);
-    const repo = fakeRepo({ findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))) });
+    const repo = fakeRepo({
+      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
+    });
     const handler = new DeactivateAccountHandler({ publish: vi.fn() } as never, repo);
 
     await expect(
@@ -63,7 +65,9 @@ describe("DeactivateAccountHandler", () => {
 
   it("sets status=DISABLED and touches no other field (FR-011)", async () => {
     const passwordHash = await hash("correct-pw", 1);
-    const repo = fakeRepo({ findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))) });
+    const repo = fakeRepo({
+      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
+    });
     const handler = new DeactivateAccountHandler({ publish: vi.fn() } as never, repo);
 
     await handler.execute(new DeactivateAccountCommand("u1", { password: "correct-pw" }));
@@ -77,7 +81,9 @@ describe("DeactivateAccountHandler", () => {
 
   it("publishes UserDeactivatedEvent on a genuine ACTIVE -> DISABLED transition", async () => {
     const passwordHash = await hash("correct-pw", 1);
-    const repo = fakeRepo({ findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))) });
+    const repo = fakeRepo({
+      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
+    });
     const publish = vi.fn();
     const handler = new DeactivateAccountHandler({ publish } as never, repo);
 

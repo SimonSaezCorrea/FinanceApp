@@ -61,6 +61,11 @@ export interface BankAccountRepositoryPort {
   incrementCreditUsedWithTx(tx: unknown, accountId: string, delta: string): Promise<void>;
   remove(userId: string, id: string): Promise<boolean>;
   addCard(userId: string, accountId: string, plan: CreateCardPlan): Promise<BankAccount>;
-  updateCard(userId: string, accountId: string, cardId: string, plan: CreateCardPlan): Promise<BankAccount | null>;
+  updateCard(
+    userId: string,
+    accountId: string,
+    cardId: string,
+    plan: CreateCardPlan,
+  ): Promise<BankAccount | null>;
   removeCard(userId: string, accountId: string, cardId: string): Promise<boolean>;
 }

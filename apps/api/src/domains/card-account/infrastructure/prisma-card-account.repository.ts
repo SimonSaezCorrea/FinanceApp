@@ -56,15 +56,24 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
     return this.hydrate(rows);
   }
 
-  async findOnAccount(userId: string, accountId: string, cardId: string): Promise<CardProps | null> {
-    const row = await this.prisma.cardAccount.findFirst({ where: { id: cardId, accountId, userId } });
+  async findOnAccount(
+    userId: string,
+    accountId: string,
+    cardId: string,
+  ): Promise<CardProps | null> {
+    const row = await this.prisma.cardAccount.findFirst({
+      where: { id: cardId, accountId, userId },
+    });
     if (!row) return null;
     const [card] = await this.hydrate([row]);
     return card ?? null;
   }
 
   async existsForUser(userId: string, cardId: string): Promise<boolean> {
-    const row = await this.prisma.cardAccount.findFirst({ where: { id: cardId, userId }, select: { id: true } });
+    const row = await this.prisma.cardAccount.findFirst({
+      where: { id: cardId, userId },
+      select: { id: true },
+    });
     return row !== null;
   }
 
@@ -104,7 +113,9 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
   }
 
   async remove(userId: string, accountId: string, cardId: string): Promise<boolean> {
-    const result = await this.prisma.cardAccount.deleteMany({ where: { id: cardId, accountId, userId } });
+    const result = await this.prisma.cardAccount.deleteMany({
+      where: { id: cardId, accountId, userId },
+    });
     return result.count > 0;
   }
 }

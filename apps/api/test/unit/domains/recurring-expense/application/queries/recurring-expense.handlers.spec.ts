@@ -27,7 +27,9 @@ function makeExpense(id: string) {
   });
 }
 
-function fakeRepo(overrides: Partial<RecurringExpenseRepositoryPort> = {}): RecurringExpenseRepositoryPort {
+function fakeRepo(
+  overrides: Partial<RecurringExpenseRepositoryPort> = {},
+): RecurringExpenseRepositoryPort {
   return {
     list: vi.fn(),
     findOne: vi.fn(),
@@ -42,9 +44,9 @@ describe("GetRecurringExpenseQueryHandler", () => {
   it("throws RecurringExpenseNotFoundError when missing", async () => {
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(null) });
     const handler = new GetRecurringExpenseQueryHandler(repo);
-    await expect(handler.execute(new GetRecurringExpenseQuery("u1", "ghost"))).rejects.toBeInstanceOf(
-      RecurringExpenseNotFoundError,
-    );
+    await expect(
+      handler.execute(new GetRecurringExpenseQuery("u1", "ghost")),
+    ).rejects.toBeInstanceOf(RecurringExpenseNotFoundError);
   });
 
   it("returns the recurring expense as a contract, incl. computed nextDueAt", async () => {
@@ -58,7 +60,9 @@ describe("GetRecurringExpenseQueryHandler", () => {
 
 describe("ListRecurringExpensesQueryHandler", () => {
   it("lists the user's recurring expenses as contracts", async () => {
-    const repo = fakeRepo({ list: vi.fn().mockResolvedValue([makeExpense("r1"), makeExpense("r2")]) });
+    const repo = fakeRepo({
+      list: vi.fn().mockResolvedValue([makeExpense("r1"), makeExpense("r2")]),
+    });
     const handler = new ListRecurringExpensesQueryHandler(repo);
     const result = await handler.execute(new ListRecurringExpensesQuery("u1"));
     expect(result.map((r) => r.id)).toEqual(["r1", "r2"]);

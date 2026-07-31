@@ -14,7 +14,11 @@ import { UndoDebtPaymentCommand } from "./undo-debt-payment.command";
  * settled it. */
 @Injectable()
 @CommandHandler(UndoDebtPaymentCommand)
-export class UndoDebtPaymentHandler extends BaseCommandHandler<UndoDebtPaymentCommand, debts.Debt, Debt> {
+export class UndoDebtPaymentHandler extends BaseCommandHandler<
+  UndoDebtPaymentCommand,
+  debts.Debt,
+  Debt
+> {
   constructor(
     eventBus: EventBus,
     @Inject(DEBT_REPOSITORY) private readonly repo: DebtRepositoryPort,
@@ -28,7 +32,10 @@ export class UndoDebtPaymentHandler extends BaseCommandHandler<UndoDebtPaymentCo
     return debt;
   }
 
-  protected async handle(_command: UndoDebtPaymentCommand, debt: Debt): Promise<HandleResult<debts.Debt>> {
+  protected async handle(
+    _command: UndoDebtPaymentCommand,
+    debt: Debt,
+  ): Promise<HandleResult<debts.Debt>> {
     debt.undoPayment();
     return { result: debt.toContract(), events: [] };
   }

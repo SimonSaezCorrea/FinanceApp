@@ -50,7 +50,9 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
 
 describe("GetMeQueryHandler", () => {
   it("returns the user's contract shape", async () => {
-    const repo = fakeRepo({ findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())) });
+    const repo = fakeRepo({
+      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
+    });
     const handler = new GetMeQueryHandler(repo);
     const result = await handler.execute(new GetMeQuery("u1"));
     expect(result.memberSinceYear).toBe(2022);

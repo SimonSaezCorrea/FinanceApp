@@ -5,7 +5,10 @@ import type { accounts } from "@finance/contracts";
 
 import { BaseQueryHandler } from "../../../../infra/cqrs/base-query.handler";
 import { AccountNotFoundError } from "../../../bank-account/domain/errors";
-import { BANK_ACCOUNT_REPOSITORY, type BankAccountRepositoryPort } from "../../../bank-account/domain/ports/bank-account.repository.port";
+import {
+  BANK_ACCOUNT_REPOSITORY,
+  type BankAccountRepositoryPort,
+} from "../../../bank-account/domain/ports/bank-account.repository.port";
 import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
@@ -20,7 +23,8 @@ export class ListCreditStatementsQueryHandler extends BaseQueryHandler<
 > {
   constructor(
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
-    @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statementRepo: CreditStatementRepositoryPort,
+    @Inject(CREDIT_STATEMENT_REPOSITORY)
+    private readonly statementRepo: CreditStatementRepositoryPort,
   ) {
     super();
   }

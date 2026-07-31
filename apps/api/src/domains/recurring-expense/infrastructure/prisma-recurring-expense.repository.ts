@@ -79,7 +79,10 @@ export class PrismaRecurringExpenseRepository implements RecurringExpenseReposit
       active: snap.active,
       notes: snap.notes,
     };
-    await this.prisma.recurringExpense.updateMany({ where: { id: snap.id, userId: snap.userId }, data });
+    await this.prisma.recurringExpense.updateMany({
+      where: { id: snap.id, userId: snap.userId },
+      data,
+    });
   }
 
   async remove(userId: string, id: string): Promise<boolean> {

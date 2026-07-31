@@ -10,7 +10,11 @@ export interface CardLimitRepositoryPort {
   listByCards(cardIds: string[]): Promise<(CardLimitProps & { cardId: string })[]>;
   /** The card's own sub-limit for one currency, if it has one — the narrower cap
    * the `transaction` domain checks a movement against. */
-  findForCardCurrency(userId: string, cardId: string, currency: string): Promise<CardLimitProps | null>;
+  findForCardCurrency(
+    userId: string,
+    cardId: string,
+    currency: string,
+  ): Promise<CardLimitProps | null>;
   createForCard(cardId: string, limits: CardLimitPlan[]): Promise<void>;
   /** Replaces every limit row of a card in one go (edit path). */
   replaceForCard(cardId: string, limits: CardLimitPlan[]): Promise<void>;

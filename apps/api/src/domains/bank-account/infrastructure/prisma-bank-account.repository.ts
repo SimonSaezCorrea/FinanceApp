@@ -52,7 +52,8 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     private readonly prisma: PrismaService,
     @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
     @Inject(BILLING_SETTINGS_REPOSITORY) private readonly billing: BillingSettingsRepositoryPort,
-    @Inject(FINANCIAL_INSTITUTION_LOOKUP) private readonly institutions: FinancialInstitutionLookupPort,
+    @Inject(FINANCIAL_INSTITUTION_LOOKUP)
+    private readonly institutions: FinancialInstitutionLookupPort,
   ) {}
 
   /** Composes the child tables' own adapters into whole aggregates. */
@@ -78,7 +79,9 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
         currency: row.currency,
         institution: row.institution,
         institutionId: row.institutionId ?? null,
-        institutionName: row.institutionId ? (institutionNames.get(row.institutionId) ?? null) : null,
+        institutionName: row.institutionId
+          ? (institutionNames.get(row.institutionId) ?? null)
+          : null,
         accountNumber: row.accountNumber ?? null,
         initialBalance: row.initialBalance.toString(),
         currentBalance: row.currentBalance.toString(),
@@ -101,7 +104,10 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     return aggregate ?? null;
   }
 
-  async listByUser(userId: string, where: { status?: "ACTIVE" | "INACTIVE" }): Promise<BankAccount[]> {
+  async listByUser(
+    userId: string,
+    where: { status?: "ACTIVE" | "INACTIVE" },
+  ): Promise<BankAccount[]> {
     const rows = await this.prisma.bankAccount.findMany({
       where: { ...where, userId },
       orderBy: { createdAt: "desc" },
@@ -182,7 +188,10 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
 
   async incrementCreditUsedWithTx(tx: unknown, accountId: string, delta: string): Promise<void> {
     const client = tx as PrismaService;
-    await client.bankAccount.update({ where: { id: accountId }, data: { creditUsed: { increment: delta } } });
+    await client.bankAccount.update({
+      where: { id: accountId },
+      data: { creditUsed: { increment: delta } },
+    });
   }
 
   async remove(userId: string, id: string): Promise<boolean> {

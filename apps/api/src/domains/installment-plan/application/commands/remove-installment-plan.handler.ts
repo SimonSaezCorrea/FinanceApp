@@ -11,7 +11,11 @@ import { RemoveInstallmentPlanCommand } from "./remove-installment-plan.command"
 
 @Injectable()
 @CommandHandler(RemoveInstallmentPlanCommand)
-export class RemoveInstallmentPlanHandler extends BaseCommandHandler<RemoveInstallmentPlanCommand, void, null> {
+export class RemoveInstallmentPlanHandler extends BaseCommandHandler<
+  RemoveInstallmentPlanCommand,
+  void,
+  null
+> {
   constructor(
     eventBus: EventBus,
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort,

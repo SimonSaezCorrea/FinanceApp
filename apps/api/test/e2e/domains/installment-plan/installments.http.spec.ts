@@ -62,7 +62,11 @@ describe("Installments HTTP (e2e)", () => {
     expect(res.status).toBe(201);
     planId = res.body.id;
     expect(res.body.payments).toHaveLength(3);
-    expect(res.body.payments.map((p: { amount: string }) => p.amount)).toEqual(["400.0000", "400.0000", "400.0000"]);
+    expect(res.body.payments.map((p: { amount: string }) => p.amount)).toEqual([
+      "400.0000",
+      "400.0000",
+      "400.0000",
+    ]);
   });
 
   it("returns INSTALLMENT_PAYMENT_NOT_FOUND for an unknown sequence", async () => {
@@ -79,7 +83,9 @@ describe("Installments HTTP (e2e)", () => {
       .set("Cookie", cookies);
     expect(res.status).toBe(204);
 
-    const getRes = await request(app.getHttpServer()).get(`/api/v1/installments/${planId}`).set("Cookie", cookies);
+    const getRes = await request(app.getHttpServer())
+      .get(`/api/v1/installments/${planId}`)
+      .set("Cookie", cookies);
     expect(getRes.body.payments[0].paidAt).not.toBeNull();
   });
 
@@ -89,7 +95,9 @@ describe("Installments HTTP (e2e)", () => {
       .set("Cookie", cookies);
     expect(res.status).toBe(204);
 
-    const getRes = await request(app.getHttpServer()).get(`/api/v1/installments/${planId}`).set("Cookie", cookies);
+    const getRes = await request(app.getHttpServer())
+      .get(`/api/v1/installments/${planId}`)
+      .set("Cookie", cookies);
     expect(getRes.body.payments[0].paidAt).toBeNull();
   });
 
@@ -103,12 +111,16 @@ describe("Installments HTTP (e2e)", () => {
   });
 
   it("deletes the plan", async () => {
-    const res = await request(app.getHttpServer()).delete(`/api/v1/installments/${planId}`).set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .delete(`/api/v1/installments/${planId}`)
+      .set("Cookie", cookies);
     expect(res.status).toBe(204);
   });
 
   it("returns INSTALLMENT_PLAN_NOT_FOUND for a deleted/unknown id", async () => {
-    const res = await request(app.getHttpServer()).get(`/api/v1/installments/${planId}`).set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/installments/${planId}`)
+      .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("INSTALLMENT_PLAN_NOT_FOUND");
   });

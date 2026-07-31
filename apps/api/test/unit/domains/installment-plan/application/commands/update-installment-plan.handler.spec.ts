@@ -26,7 +26,9 @@ function makePlan() {
   });
 }
 
-function fakeRepo(overrides: Partial<InstallmentPlanRepositoryPort> = {}): InstallmentPlanRepositoryPort {
+function fakeRepo(
+  overrides: Partial<InstallmentPlanRepositoryPort> = {},
+): InstallmentPlanRepositoryPort {
   return {
     list: vi.fn(),
     findOne: vi.fn(),
@@ -51,7 +53,9 @@ describe("UpdateInstallmentPlanHandler", () => {
     const save = vi.fn().mockResolvedValue(undefined);
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(makePlan()), save });
     const handler = new UpdateInstallmentPlanHandler({ publish: vi.fn() } as never, repo);
-    const result = await handler.execute(new UpdateInstallmentPlanCommand("u1", "p1", { title: "New title" }));
+    const result = await handler.execute(
+      new UpdateInstallmentPlanCommand("u1", "p1", { title: "New title" }),
+    );
     expect(result.title).toBe("New title");
     expect(save).toHaveBeenCalled();
   });
@@ -61,9 +65,9 @@ describe("RemoveInstallmentPlanHandler", () => {
   it("throws InstallmentPlanNotFoundError when nothing was removed", async () => {
     const repo = fakeRepo({ remove: vi.fn().mockResolvedValue(false) });
     const handler = new RemoveInstallmentPlanHandler({ publish: vi.fn() } as never, repo);
-    await expect(handler.execute(new RemoveInstallmentPlanCommand("u1", "ghost"))).rejects.toBeInstanceOf(
-      InstallmentPlanNotFoundError,
-    );
+    await expect(
+      handler.execute(new RemoveInstallmentPlanCommand("u1", "ghost")),
+    ).rejects.toBeInstanceOf(InstallmentPlanNotFoundError);
   });
 
   it("removes the plan", async () => {

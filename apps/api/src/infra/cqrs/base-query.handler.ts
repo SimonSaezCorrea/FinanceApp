@@ -1,4 +1,7 @@
-import type { UserScopedCommand as UserScopedQuery, SystemCommand as SystemQuery } from "./base-command.handler";
+import type {
+  UserScopedCommand as UserScopedQuery,
+  SystemCommand as SystemQuery,
+} from "./base-command.handler";
 
 export type BaseQuery = UserScopedQuery | SystemQuery;
 

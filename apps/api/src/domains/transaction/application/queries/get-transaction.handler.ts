@@ -14,7 +14,11 @@ import { GetTransactionQuery } from "./get-transaction.query";
 
 @Injectable()
 @QueryHandler(GetTransactionQuery)
-export class GetTransactionQueryHandler extends BaseQueryHandler<GetTransactionQuery, transactions.Transaction, Transaction> {
+export class GetTransactionQueryHandler extends BaseQueryHandler<
+  GetTransactionQuery,
+  transactions.Transaction,
+  Transaction
+> {
   constructor(@Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort) {
     super();
   }
@@ -25,7 +29,10 @@ export class GetTransactionQueryHandler extends BaseQueryHandler<GetTransactionQ
     return row;
   }
 
-  protected async handle(_query: GetTransactionQuery, row: Transaction): Promise<transactions.Transaction> {
+  protected async handle(
+    _query: GetTransactionQuery,
+    row: Transaction,
+  ): Promise<transactions.Transaction> {
     return row.toContract();
   }
 }

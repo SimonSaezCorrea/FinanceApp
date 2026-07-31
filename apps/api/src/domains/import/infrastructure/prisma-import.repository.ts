@@ -15,7 +15,8 @@ import type { ImportTransactionsRepositoryPort } from "../domain/ports/import-tr
 @Injectable()
 export class PrismaImportRepository implements ImportTransactionsRepositoryPort {
   constructor(
-    @Inject(TRANSACTION_WRITER_REPOSITORY) private readonly transactions: TransactionWriterRepositoryPort,
+    @Inject(TRANSACTION_WRITER_REPOSITORY)
+    private readonly transactions: TransactionWriterRepositoryPort,
   ) {}
 
   importRows(userId: string, rows: PlannedImportRow[]): Promise<number> {

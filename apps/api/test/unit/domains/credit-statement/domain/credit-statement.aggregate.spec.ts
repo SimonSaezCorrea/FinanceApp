@@ -4,7 +4,10 @@ import {
   CreditStatement,
   type CreditStatementProps,
 } from "../../../../../src/domains/credit-statement/domain/credit-statement.aggregate";
-import { StatementAlreadyPaidError, StatementNotPaidError } from "../../../../../src/domains/credit-statement/domain/errors";
+import {
+  StatementAlreadyPaidError,
+  StatementNotPaidError,
+} from "../../../../../src/domains/credit-statement/domain/errors";
 import { StatementClosedEvent } from "../../../../../src/domains/credit-statement/domain/events/statement-closed.event";
 import { StatementPaidEvent } from "../../../../../src/domains/credit-statement/domain/events/statement-paid.event";
 
@@ -34,7 +37,9 @@ describe("CreditStatement aggregate (State pattern)", () => {
   });
 
   it("PENDING -> PAID via pay(), emitting StatementPaidEvent", () => {
-    const statement = CreditStatement.fromPersistence(baseProps({ closedAt: new Date("2026-02-01") }));
+    const statement = CreditStatement.fromPersistence(
+      baseProps({ closedAt: new Date("2026-02-01") }),
+    );
     const event = statement.pay("1000", "acc_2", "tx_1", new Date("2026-02-05"));
     expect(event).toBeInstanceOf(StatementPaidEvent);
     expect(statement.state.name).toBe("PAID");
@@ -52,7 +57,9 @@ describe("CreditStatement aggregate (State pattern)", () => {
   it("rejects paying an already-PAID statement twice (the textbook State-pattern proof)", () => {
     const statement = CreditStatement.fromPersistence(baseProps());
     statement.pay("100", "acc_1", "tx_1", new Date());
-    expect(() => statement.pay("100", "acc_1", "tx_2", new Date())).toThrow(StatementAlreadyPaidError);
+    expect(() => statement.pay("100", "acc_1", "tx_2", new Date())).toThrow(
+      StatementAlreadyPaidError,
+    );
   });
 
   it("rejects closing an already-PAID statement", () => {

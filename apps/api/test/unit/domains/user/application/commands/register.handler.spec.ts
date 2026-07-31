@@ -64,7 +64,9 @@ describe("RegisterHandler", () => {
     const tokenIssuer = fakeTokenIssuer();
     const handler = new RegisterHandler({ publish: vi.fn() } as never, repo, tokenIssuer);
 
-    const result = await handler.execute(new RegisterCommand({ email: "A@B.com", password: "password123" }));
+    const result = await handler.execute(
+      new RegisterCommand({ email: "A@B.com", password: "password123" }),
+    );
 
     expect(result.user.email).toBe("a@b.com");
     expect(result.tokens).toEqual({ accessToken: "at", refreshToken: "rt" });
@@ -75,7 +77,9 @@ describe("RegisterHandler", () => {
   });
 
   it("throws EMAIL_TAKEN when the email already exists", async () => {
-    const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())) });
+    const repo = fakeRepo({
+      findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
+    });
     const handler = new RegisterHandler({ publish: vi.fn() } as never, repo, fakeTokenIssuer());
 
     await expect(

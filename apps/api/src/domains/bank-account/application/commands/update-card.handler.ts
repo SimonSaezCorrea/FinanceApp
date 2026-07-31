@@ -26,7 +26,11 @@ interface Context {
 
 @Injectable()
 @CommandHandler(UpdateCardCommand)
-export class UpdateCardHandler extends BaseCommandHandler<UpdateCardCommand, accounts.Card, Context> {
+export class UpdateCardHandler extends BaseCommandHandler<
+  UpdateCardCommand,
+  accounts.Card,
+  Context
+> {
   constructor(
     eventBus: EventBus,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
@@ -38,7 +42,10 @@ export class UpdateCardHandler extends BaseCommandHandler<UpdateCardCommand, acc
   protected async loadContext(command: UpdateCardCommand): Promise<Context> {
     const account = await this.accountRepo.findById(command.userId, command.accountId);
     if (!account) throw new AccountNotFoundError();
-    const placement: ResolvedCardPlacement = account.resolveCardPlacement(command.input, command.cardId);
+    const placement: ResolvedCardPlacement = account.resolveCardPlacement(
+      command.input,
+      command.cardId,
+    );
     const plan: CreateCardPlan = {
       name: command.input.name,
       kind: command.input.kind,
@@ -62,11 +69,19 @@ export class UpdateCardHandler extends BaseCommandHandler<UpdateCardCommand, acc
     return { account, plan };
   }
 
-  protected async handle(command: UpdateCardCommand, context: Context): Promise<HandleResult<accounts.Card>> {
+  protected async handle(
+    command: UpdateCardCommand,
+    context: Context,
+  ): Promise<HandleResult<accounts.Card>> {
     if (context.plan.isPrimary) {
       await this.accountRepo.save(context.account);
     }
-    const account = await this.accountRepo.updateCard(command.userId, command.accountId, command.cardId, context.plan);
+    const account = await this.accountRepo.updateCard(
+      command.userId,
+      command.accountId,
+      command.cardId,
+      context.plan,
+    );
     if (!account) throw new CardNotFoundError();
     const updated = account.cards.find((c) => c.id === command.cardId);
     if (!updated) throw new CardNotFoundError();

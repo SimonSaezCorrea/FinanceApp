@@ -25,7 +25,10 @@ export class ListSavingsEntriesQueryHandler extends BaseQueryHandler<
     return query.userId;
   }
 
-  protected async handle(_query: ListSavingsEntriesQuery, userId: string): Promise<savings.SavingsEntry[]> {
+  protected async handle(
+    _query: ListSavingsEntriesQuery,
+    userId: string,
+  ): Promise<savings.SavingsEntry[]> {
     const rows = await this.repo.list(userId);
     return rows.map((r) => r.toContract());
   }

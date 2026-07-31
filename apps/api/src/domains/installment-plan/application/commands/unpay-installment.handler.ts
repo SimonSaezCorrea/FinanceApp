@@ -18,7 +18,11 @@ interface Context {
 /** Clears a scheduled payment's paid status — mirror of `PayInstallmentHandler`. */
 @Injectable()
 @CommandHandler(UnpayInstallmentCommand)
-export class UnpayInstallmentHandler extends BaseCommandHandler<UnpayInstallmentCommand, void, Context> {
+export class UnpayInstallmentHandler extends BaseCommandHandler<
+  UnpayInstallmentCommand,
+  void,
+  Context
+> {
   constructor(
     eventBus: EventBus,
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort,
@@ -32,7 +36,10 @@ export class UnpayInstallmentHandler extends BaseCommandHandler<UnpayInstallment
     return { plan, sequence: command.sequence };
   }
 
-  protected async handle(_command: UnpayInstallmentCommand, context: Context): Promise<HandleResult<void>> {
+  protected async handle(
+    _command: UnpayInstallmentCommand,
+    context: Context,
+  ): Promise<HandleResult<void>> {
     context.plan.markPaymentUnpaid(context.sequence);
     return { result: undefined, events: [] };
   }

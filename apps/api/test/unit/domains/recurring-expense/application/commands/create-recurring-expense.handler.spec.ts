@@ -5,7 +5,9 @@ import { CreateRecurringExpenseCommand } from "../../../../../../src/domains/rec
 import { RecurringExpense } from "../../../../../../src/domains/recurring-expense/domain/recurring-expense.aggregate";
 import type { RecurringExpenseRepositoryPort } from "../../../../../../src/domains/recurring-expense/domain/ports/recurring-expense.repository.port";
 
-function fakeRepo(overrides: Partial<RecurringExpenseRepositoryPort> = {}): RecurringExpenseRepositoryPort {
+function fakeRepo(
+  overrides: Partial<RecurringExpenseRepositoryPort> = {},
+): RecurringExpenseRepositoryPort {
   return {
     list: vi.fn(),
     findOne: vi.fn(),
@@ -44,6 +46,9 @@ describe("CreateRecurringExpenseHandler", () => {
     expect(result.id).toBe("r1");
     expect(result.label).toBe("Arriendo");
     expect(typeof result.nextDueAt).toBe("string");
-    expect(create).toHaveBeenCalledWith("u1", expect.objectContaining({ label: "Arriendo", active: true }));
+    expect(create).toHaveBeenCalledWith(
+      "u1",
+      expect.objectContaining({ label: "Arriendo", active: true }),
+    );
   });
 });

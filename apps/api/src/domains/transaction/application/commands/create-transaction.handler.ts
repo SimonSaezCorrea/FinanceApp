@@ -76,7 +76,9 @@ export class CreateTransactionHandler extends BaseCommandHandler<
       ? await this.cards.findOnAccount(command.userId, input.bankAccountId, input.cardId)
       : null;
     const cardLimit =
-      card?.kind === "CREDIT" ? await this.cardLimits.findForCardCurrency(command.userId, input.cardId!, input.currency) : null;
+      card?.kind === "CREDIT"
+        ? await this.cardLimits.findForCardCurrency(command.userId, input.cardId!, input.currency)
+        : null;
     const cardUsage = cardLimit
       ? await this.repo.sumsForCard(
           command.userId,
@@ -87,7 +89,13 @@ export class CreateTransactionHandler extends BaseCommandHandler<
       : { income: "0", expense: "0" };
 
     const contribution = MovementPolicy.validate(
-      { type: input.type, bankAccountId: input.bankAccountId, cardId: input.cardId, amount: input.amount, currency: input.currency },
+      {
+        type: input.type,
+        bankAccountId: input.bankAccountId,
+        cardId: input.cardId,
+        amount: input.amount,
+        currency: input.currency,
+      },
       account,
       card,
       cardLimit,
@@ -97,7 +105,10 @@ export class CreateTransactionHandler extends BaseCommandHandler<
     // currently OPEN for the account — creates one if this is the first
     // contribution since the last close (see `CreditStatement`).
     const creditStatementId =
-      contribution !== "0" ? (await this.statements.findOrCreateOpenForAccount(input.bankAccountId, accountCreatedAt)).id : null;
+      contribution !== "0"
+        ? (await this.statements.findOrCreateOpenForAccount(input.bankAccountId, accountCreatedAt))
+            .id
+        : null;
 
     return { account, card, cardLimit, contribution, creditStatementId };
   }
@@ -126,7 +137,9 @@ export class CreateTransactionHandler extends BaseCommandHandler<
     const row = await this.repo.saveNew(
       command.userId,
       plan,
-      context.contribution !== "0" ? { accountId: input.bankAccountId, delta: context.contribution } : null,
+      context.contribution !== "0"
+        ? { accountId: input.bankAccountId, delta: context.contribution }
+        : null,
     );
     return { result: row.toContract(), events: [] };
   }

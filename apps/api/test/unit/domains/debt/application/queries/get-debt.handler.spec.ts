@@ -46,7 +46,9 @@ describe("GetDebtQueryHandler", () => {
   it("throws DebtNotFoundError when missing", async () => {
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(null) });
     const handler = new GetDebtQueryHandler(repo);
-    await expect(handler.execute(new GetDebtQuery("u1", "ghost"))).rejects.toBeInstanceOf(DebtNotFoundError);
+    await expect(handler.execute(new GetDebtQuery("u1", "ghost"))).rejects.toBeInstanceOf(
+      DebtNotFoundError,
+    );
   });
 
   it("returns the debt as a contract", async () => {

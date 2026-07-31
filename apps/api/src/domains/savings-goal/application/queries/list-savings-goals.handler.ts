@@ -25,7 +25,10 @@ export class ListSavingsGoalsQueryHandler extends BaseQueryHandler<
     return query.userId;
   }
 
-  protected async handle(_query: ListSavingsGoalsQuery, userId: string): Promise<savings.SavingsGoal[]> {
+  protected async handle(
+    _query: ListSavingsGoalsQuery,
+    userId: string,
+  ): Promise<savings.SavingsGoal[]> {
     const rows = await this.repo.list(userId);
     return rows.map((r) => r.toContract());
   }

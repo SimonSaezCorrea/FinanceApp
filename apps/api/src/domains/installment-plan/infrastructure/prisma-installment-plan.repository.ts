@@ -16,7 +16,13 @@ import type {
 } from "../domain/ports/installment-plan.repository.port";
 
 type Row = NonNullable<Awaited<ReturnType<PrismaService["installmentPlan"]["findFirst"]>>> & {
-  payments: { id: string; sequence: number; dueDate: Date; amount: { toString(): string }; paidAt: Date | null }[];
+  payments: {
+    id: string;
+    sequence: number;
+    dueDate: Date;
+    amount: { toString(): string };
+    paidAt: Date | null;
+  }[];
 };
 
 function rowToProps(row: Row): InstallmentPlanProps {
@@ -31,15 +37,13 @@ function rowToProps(row: Row): InstallmentPlanProps {
     frequency: row.frequency,
     frequencyInterval: row.frequencyInterval,
     notes: row.notes,
-    payments: row.payments.map(
-      (p): InstallmentPaymentProps => ({
-        id: p.id,
-        sequence: p.sequence,
-        dueDate: p.dueDate,
-        amount: p.amount.toString(),
-        paidAt: p.paidAt,
-      }),
-    ),
+    payments: row.payments.map((p): InstallmentPaymentProps => ({
+      id: p.id,
+      sequence: p.sequence,
+      dueDate: p.dueDate,
+      amount: p.amount.toString(),
+      paidAt: p.paidAt,
+    })),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -54,7 +58,8 @@ function rowToProps(row: Row): InstallmentPlanProps {
 export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositoryPort {
   constructor(
     private readonly prisma: PrismaService,
-    @Inject(INSTALLMENT_PAYMENT_REPOSITORY) private readonly payments: InstallmentPaymentRepositoryPort,
+    @Inject(INSTALLMENT_PAYMENT_REPOSITORY)
+    private readonly payments: InstallmentPaymentRepositoryPort,
   ) {}
 
   /** Attaches each plan's schedule, fetched from its own table's adapter. */
@@ -72,7 +77,10 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
   }
 
   async list(userId: string): Promise<InstallmentPlan[]> {
-    const rows = await this.prisma.installmentPlan.findMany({ where: { userId }, orderBy: { startDate: "desc" } });
+    const rows = await this.prisma.installmentPlan.findMany({
+      where: { userId },
+      orderBy: { startDate: "desc" },
+    });
     return this.hydrate(rows);
   }
 
@@ -123,7 +131,12 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
   /** Sets/clears one payment's `paidAt` — delegated to the payment table's own
    * adapter, kept on this port because the plan aggregate is what decides
    * whether that sequence may change state. */
-  setPaymentPaidAt(userId: string, planId: string, sequence: number, paidAt: Date | null): Promise<boolean> {
+  setPaymentPaidAt(
+    userId: string,
+    planId: string,
+    sequence: number,
+    paidAt: Date | null,
+  ): Promise<boolean> {
     return this.payments.setPaidAt(userId, planId, sequence, paidAt);
   }
 

@@ -9,13 +9,17 @@ import type { TransactionSumsRepositoryPort } from "../domain/ports/transaction-
 export class PrismaTransactionSumsRepository implements TransactionSumsRepositoryPort {
   constructor(private readonly prisma: PrismaService) {}
 
-  async sumByTypeForAccount(userId: string, accountId: string): Promise<{ income: string; expense: string }> {
+  async sumByTypeForAccount(
+    userId: string,
+    accountId: string,
+  ): Promise<{ income: string; expense: string }> {
     const grouped = await this.prisma.transaction.groupBy({
       by: ["type"],
       where: { userId, bankAccountId: accountId },
       _sum: { amount: true },
     });
-    const find = (t: "INCOME" | "EXPENSE") => grouped.find((g) => g.type === t)?._sum.amount?.toString() ?? "0";
+    const find = (t: "INCOME" | "EXPENSE") =>
+      grouped.find((g) => g.type === t)?._sum.amount?.toString() ?? "0";
     return { income: find("INCOME"), expense: find("EXPENSE") };
   }
 
@@ -23,7 +27,9 @@ export class PrismaTransactionSumsRepository implements TransactionSumsRepositor
     userId: string,
     accountIds: string[],
     since: Date,
-  ): Promise<{ bankAccountId: string | null; type: "INCOME" | "EXPENSE"; amount: string; occurredAt: Date }[]> {
+  ): Promise<
+    { bankAccountId: string | null; type: "INCOME" | "EXPENSE"; amount: string; occurredAt: Date }[]
+  > {
     if (accountIds.length === 0) return [];
     const rows = await this.prisma.transaction.findMany({
       where: { userId, bankAccountId: { in: accountIds }, occurredAt: { gte: since } },
@@ -42,15 +48,25 @@ export class PrismaTransactionSumsRepository implements TransactionSumsRepositor
     userId: string,
     cards: { id: string; since: Date | null }[],
   ): Promise<{ cardId: string; currency: string; type: "INCOME" | "EXPENSE"; sum: string }[]> {
-    const result: { cardId: string; currency: string; type: "INCOME" | "EXPENSE"; sum: string }[] = [];
+    const result: { cardId: string; currency: string; type: "INCOME" | "EXPENSE"; sum: string }[] =
+      [];
     for (const card of cards) {
       const grouped = await this.prisma.transaction.groupBy({
         by: ["currency", "type"],
-        where: { userId, cardId: card.id, ...(card.since ? { occurredAt: { gte: card.since } } : {}) },
+        where: {
+          userId,
+          cardId: card.id,
+          ...(card.since ? { occurredAt: { gte: card.since } } : {}),
+        },
         _sum: { amount: true },
       });
       for (const g of grouped) {
-        result.push({ cardId: card.id, currency: g.currency, type: g.type, sum: g._sum.amount?.toString() ?? "0" });
+        result.push({
+          cardId: card.id,
+          currency: g.currency,
+          type: g.type,
+          sum: g._sum.amount?.toString() ?? "0",
+        });
       }
     }
     return result;
@@ -62,7 +78,8 @@ export class PrismaTransactionSumsRepository implements TransactionSumsRepositor
       where: { creditStatementId: statementId },
       _sum: { amount: true },
     });
-    const find = (t: "INCOME" | "EXPENSE") => grouped.find((g) => g.type === t)?._sum.amount?.toString() ?? "0";
+    const find = (t: "INCOME" | "EXPENSE") =>
+      grouped.find((g) => g.type === t)?._sum.amount?.toString() ?? "0";
     return new Prisma.Decimal(find("EXPENSE")).minus(find("INCOME")).toString();
   }
 }

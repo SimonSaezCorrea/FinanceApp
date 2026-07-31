@@ -11,13 +11,20 @@ import {
 import { BankAccount } from "../../domain/bank-account.aggregate";
 import { AccountNotFoundError } from "../../domain/errors";
 import type { AccountDeactivatedEvent } from "../../domain/events/account-deactivated.event";
-import { BANK_ACCOUNT_REPOSITORY, type BankAccountRepositoryPort } from "../../domain/ports/bank-account.repository.port";
+import {
+  BANK_ACCOUNT_REPOSITORY,
+  type BankAccountRepositoryPort,
+} from "../../domain/ports/bank-account.repository.port";
 import { accountsToDtos } from "../queries/account-dto.mapper";
 import { UpdateAccountCommand } from "./update-account.command";
 
 @Injectable()
 @CommandHandler(UpdateAccountCommand)
-export class UpdateAccountHandler extends BaseCommandHandler<UpdateAccountCommand, accounts.BankAccount, BankAccount> {
+export class UpdateAccountHandler extends BaseCommandHandler<
+  UpdateAccountCommand,
+  accounts.BankAccount,
+  BankAccount
+> {
   constructor(
     eventBus: EventBus,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
@@ -32,7 +39,10 @@ export class UpdateAccountHandler extends BaseCommandHandler<UpdateAccountComman
     return account;
   }
 
-  protected async handle(command: UpdateAccountCommand, account: BankAccount): Promise<HandleResult<accounts.BankAccount>> {
+  protected async handle(
+    command: UpdateAccountCommand,
+    account: BankAccount,
+  ): Promise<HandleResult<accounts.BankAccount>> {
     const { input } = command;
     // A linked institution mirrors its name into `institution` for display.
     const linkedName =
@@ -52,7 +62,9 @@ export class UpdateAccountHandler extends BaseCommandHandler<UpdateAccountComman
       ...(input.accountNumber !== undefined ? { accountNumber: input.accountNumber } : {}),
       ...(input.initialBalance !== undefined ? { initialBalance: input.initialBalance } : {}),
       ...(input.creditLimit !== undefined ? { creditLimit: input.creditLimit } : {}),
-      ...(input.creditUsedInitial !== undefined ? { creditUsedInitial: input.creditUsedInitial } : {}),
+      ...(input.creditUsedInitial !== undefined
+        ? { creditUsedInitial: input.creditUsedInitial }
+        : {}),
       ...(input.billingCycleDay !== undefined ? { billingCycleDay: input.billingCycleDay } : {}),
       ...(input.paymentMethod !== undefined ? { paymentMethod: input.paymentMethod } : {}),
     });

@@ -5,7 +5,11 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 import { PayCreditStatementCommand } from "../../../../../src/domains/credit-statement/application/commands/pay-credit-statement.command";
 import { PayCreditStatementHandler } from "../../../../../src/domains/credit-statement/application/commands/pay-credit-statement.handler";
-import { buildBankAccountRepo, buildCreditStatementRepo, buildTransactionWriterRepo } from "../../../support/repositories";
+import {
+  buildBankAccountRepo,
+  buildCreditStatementRepo,
+  buildTransactionWriterRepo,
+} from "../../../support/repositories";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
 
 /**
@@ -97,7 +101,9 @@ describe("PayCreditStatementHandler cross-aggregate transaction (integration)", 
     vi.spyOn(accountRepo, "saveWithTx").mockRejectedValueOnce(new Error("forced failure"));
 
     await expect(
-      handler.execute(new PayCreditStatementCommand(userId, creditAccountId, statementId, fromAccountId)),
+      handler.execute(
+        new PayCreditStatementCommand(userId, creditAccountId, statementId, fromAccountId),
+      ),
     ).rejects.toThrow("forced failure");
 
     const statement = await statementRepo.findById(userId, creditAccountId, statementId);

@@ -16,11 +16,19 @@ export class PrismaCountryCurrencyRepository implements CountryCurrencyRepositor
       where: { countryId },
       orderBy: { isPrimary: "desc" },
     });
-    return rows.map((r) => ({ countryId: r.countryId, currencyId: r.currencyId, isPrimary: r.isPrimary }));
+    return rows.map((r) => ({
+      countryId: r.countryId,
+      currencyId: r.currencyId,
+      isPrimary: r.isPrimary,
+    }));
   }
 
   async primaryForCountry(countryId: string): Promise<CountryCurrencyRow | null> {
-    const row = await this.prisma.countryCurrency.findFirst({ where: { countryId, isPrimary: true } });
-    return row ? { countryId: row.countryId, currencyId: row.currencyId, isPrimary: row.isPrimary } : null;
+    const row = await this.prisma.countryCurrency.findFirst({
+      where: { countryId, isPrimary: true },
+    });
+    return row
+      ? { countryId: row.countryId, currencyId: row.currencyId, isPrimary: row.isPrimary }
+      : null;
   }
 }

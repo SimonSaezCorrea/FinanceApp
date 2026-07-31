@@ -17,7 +17,9 @@ export class ListInstallmentPlansQueryHandler extends BaseQueryHandler<
   installments.InstallmentPlan[],
   string
 > {
-  constructor(@Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort) {
+  constructor(
+    @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort,
+  ) {
     super();
   }
 
@@ -25,7 +27,10 @@ export class ListInstallmentPlansQueryHandler extends BaseQueryHandler<
     return query.userId;
   }
 
-  protected async handle(_query: ListInstallmentPlansQuery, userId: string): Promise<installments.InstallmentPlan[]> {
+  protected async handle(
+    _query: ListInstallmentPlansQuery,
+    userId: string,
+  ): Promise<installments.InstallmentPlan[]> {
     const rows = await this.repo.list(userId);
     return rows.map((r) => r.toContract());
   }

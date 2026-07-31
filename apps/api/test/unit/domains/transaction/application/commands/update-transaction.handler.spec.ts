@@ -82,7 +82,9 @@ function makeHandler(
       findById: vi.fn(async (_u: string, id: string) => opts.accountById?.(id) ?? null),
     }),
     fakeCardAccountRepo({
-      findOnAccount: vi.fn(async (_u: string, accountId: string) => opts.cardByAccount?.(accountId) ?? null),
+      findOnAccount: vi.fn(
+        async (_u: string, accountId: string) => opts.cardByAccount?.(accountId) ?? null,
+      ),
     }),
     fakeCardLimitRepo(),
     fakeCreditStatementRepo({ isPaid: vi.fn(async () => opts.statementPaid ?? false) }),
@@ -92,20 +94,26 @@ function makeHandler(
 describe("UpdateTransactionHandler", () => {
   it("throws TransactionNotFoundError when the row is missing", async () => {
     const handler = makeHandler(fakeRepo({ findOne: vi.fn().mockResolvedValue(null) }));
-    await expect(handler.execute(new UpdateTransactionCommand("u1", "nope", { amount: "10" }))).rejects.toBeInstanceOf(
-      TransactionNotFoundError,
-    );
+    await expect(
+      handler.execute(new UpdateTransactionCommand("u1", "nope", { amount: "10" })),
+    ).rejects.toBeInstanceOf(TransactionNotFoundError);
   });
 
   it("nets the old vs. new contribution to the same account on edit", async () => {
     const current = txFixture();
     const saveUpdate = vi.fn().mockImplementation(async (userId, id, patch) =>
-      Transaction.fromPersistence({ ...current.snapshot(), amount: patch.amount ?? current.amount }),
+      Transaction.fromPersistence({
+        ...current.snapshot(),
+        amount: patch.amount ?? current.amount,
+      }),
     );
-    const handler = makeHandler(fakeRepo({ findOne: vi.fn().mockResolvedValue(current), saveUpdate }), {
-      accountById: () => creditAccount(),
-      cardByAccount: () => card("CREDIT"),
-    });
+    const handler = makeHandler(
+      fakeRepo({ findOne: vi.fn().mockResolvedValue(current), saveUpdate }),
+      {
+        accountById: () => creditAccount(),
+        cardByAccount: () => card("CREDIT"),
+      },
+    );
     await handler.execute(new UpdateTransactionCommand("u1", "tX", { amount: "250000" }));
     expect(saveUpdate).toHaveBeenCalledWith(
       "u1",
@@ -119,27 +127,31 @@ describe("UpdateTransactionHandler", () => {
     const current = txFixture();
     const saveUpdate = vi.fn().mockResolvedValue(txFixture({ bankAccountId: "aD" }));
     const otherAccount = accountAggregate({ id: "aD", type: "CHECKING" });
-    const handler = makeHandler(fakeRepo({ findOne: vi.fn().mockResolvedValue(current), saveUpdate }), {
-      accountById: (id) => (id === "aC" ? creditAccount() : otherAccount),
-      cardByAccount: (accountId) => (accountId === "aC" ? card("CREDIT") : card("DEBIT")),
-    });
-    await handler.execute(new UpdateTransactionCommand("u1", "tX", { bankAccountId: "aD", cardId: undefined }));
-    const deltas = saveUpdate.mock.calls[0]![3] as { accountId: string; delta: string }[];
-    expect(deltas).toEqual(
-      expect.arrayContaining([
-        { accountId: "aC", delta: "-100000.0000" },
-      ]),
+    const handler = makeHandler(
+      fakeRepo({ findOne: vi.fn().mockResolvedValue(current), saveUpdate }),
+      {
+        accountById: (id) => (id === "aC" ? creditAccount() : otherAccount),
+        cardByAccount: (accountId) => (accountId === "aC" ? card("CREDIT") : card("DEBIT")),
+      },
     );
+    await handler.execute(
+      new UpdateTransactionCommand("u1", "tX", { bankAccountId: "aD", cardId: undefined }),
+    );
+    const deltas = saveUpdate.mock.calls[0]![3] as { accountId: string; delta: string }[];
+    expect(deltas).toEqual(expect.arrayContaining([{ accountId: "aC", delta: "-100000.0000" }]));
   });
 
   it("never touches creditUsed when the linked statement is already PAID", async () => {
     const current = txFixture();
     const saveUpdate = vi.fn().mockResolvedValue(txFixture({ amount: "250000" }));
-    const handler = makeHandler(fakeRepo({ findOne: vi.fn().mockResolvedValue(current), saveUpdate }), {
-      accountById: () => creditAccount(),
-      cardByAccount: () => card("CREDIT"),
-      statementPaid: true,
-    });
+    const handler = makeHandler(
+      fakeRepo({ findOne: vi.fn().mockResolvedValue(current), saveUpdate }),
+      {
+        accountById: () => creditAccount(),
+        cardByAccount: () => card("CREDIT"),
+        statementPaid: true,
+      },
+    );
     await handler.execute(new UpdateTransactionCommand("u1", "tX", { amount: "250000" }));
     expect(saveUpdate).toHaveBeenCalledWith("u1", "tX", expect.anything(), []);
   });

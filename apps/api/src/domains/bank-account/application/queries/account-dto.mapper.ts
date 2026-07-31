@@ -40,7 +40,13 @@ export async function accountsToDtos(
     else entry.expense = s.sum;
     cardSums.set(key, entry);
   }
-  return rows.map((row) => accountToDto(row, computeSeries(row.currentBalance, byAccount.get(row.id) ?? [], now), cardSums));
+  return rows.map((row) =>
+    accountToDto(
+      row,
+      computeSeries(row.currentBalance, byAccount.get(row.id) ?? [], now),
+      cardSums,
+    ),
+  );
 }
 
 export type WindowTx = {
@@ -77,7 +83,9 @@ export function computeSeries(
   }
   const first = toMoney(series[0]);
   const last = toMoney(series[series.length - 1]);
-  const balanceChangePct = first.isZero() ? null : last.minus(first).div(first.abs()).times(100).toFixed(1);
+  const balanceChangePct = first.isZero()
+    ? null
+    : last.minus(first).div(first.abs()).times(100).toFixed(1);
   return { series, balanceChangePct };
 }
 
@@ -126,7 +134,11 @@ export function accountToDto(
   const creditPools: accounts.CreditPool[] = account.hasCreditPool
     ? [
         { currency: snap.currency, limit: account.creditLimit, used: creditUsed },
-        ...(primaryDto?.limits ?? []).map((l) => ({ currency: l.currency, limit: l.limitAmount, used: l.used })),
+        ...(primaryDto?.limits ?? []).map((l) => ({
+          currency: l.currency,
+          limit: l.limitAmount,
+          used: l.used,
+        })),
       ]
     : [];
   return {

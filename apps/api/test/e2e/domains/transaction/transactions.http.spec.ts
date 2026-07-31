@@ -74,7 +74,13 @@ describe("Transactions HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/transactions")
       .set("Cookie", cookies)
-      .send({ type: "EXPENSE", amount: "1000", currency: "CLP", occurredAt: new Date().toISOString(), bankAccountId: creditAccountId });
+      .send({
+        type: "EXPENSE",
+        amount: "1000",
+        currency: "CLP",
+        occurredAt: new Date().toISOString(),
+        bankAccountId: creditAccountId,
+      });
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("CARD_REQUIRED");
   });
@@ -94,7 +100,9 @@ describe("Transactions HTTP (e2e)", () => {
     expect(res.status).toBe(201);
     txId = res.body.id;
 
-    const accountRes = await request(app.getHttpServer()).get(`/api/v1/accounts/${creditAccountId}`).set("Cookie", cookies);
+    const accountRes = await request(app.getHttpServer())
+      .get(`/api/v1/accounts/${creditAccountId}`)
+      .set("Cookie", cookies);
     expect(accountRes.body.creditUsed).toBe("100000.0000");
   });
 
@@ -105,20 +113,28 @@ describe("Transactions HTTP (e2e)", () => {
       .send({ amount: "150000" });
     expect(res.status).toBe(200);
 
-    const accountRes = await request(app.getHttpServer()).get(`/api/v1/accounts/${creditAccountId}`).set("Cookie", cookies);
+    const accountRes = await request(app.getHttpServer())
+      .get(`/api/v1/accounts/${creditAccountId}`)
+      .set("Cookie", cookies);
     expect(accountRes.body.creditUsed).toBe("150000.0000");
   });
 
   it("deletes the transaction, reverting its contribution", async () => {
-    const res = await request(app.getHttpServer()).delete(`/api/v1/transactions/${txId}`).set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .delete(`/api/v1/transactions/${txId}`)
+      .set("Cookie", cookies);
     expect(res.status).toBe(204);
 
-    const accountRes = await request(app.getHttpServer()).get(`/api/v1/accounts/${creditAccountId}`).set("Cookie", cookies);
+    const accountRes = await request(app.getHttpServer())
+      .get(`/api/v1/accounts/${creditAccountId}`)
+      .set("Cookie", cookies);
     expect(accountRes.body.creditUsed).toBe("0.0000");
   });
 
   it("returns TRANSACTION_NOT_FOUND for a deleted/unknown id", async () => {
-    const res = await request(app.getHttpServer()).get(`/api/v1/transactions/${txId}`).set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/transactions/${txId}`)
+      .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("TRANSACTION_NOT_FOUND");
   });

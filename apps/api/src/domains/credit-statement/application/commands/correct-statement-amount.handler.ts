@@ -35,13 +35,18 @@ export class CorrectStatementAmountHandler extends BaseCommandHandler<
 > {
   constructor(
     eventBus: EventBus,
-    @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statementRepo: CreditStatementRepositoryPort,
+    @Inject(CREDIT_STATEMENT_REPOSITORY)
+    private readonly statementRepo: CreditStatementRepositoryPort,
   ) {
     super(eventBus);
   }
 
   protected async loadContext(command: CorrectStatementAmountCommand): Promise<CreditStatement> {
-    const statement = await this.statementRepo.findById(command.userId, command.accountId, command.statementId);
+    const statement = await this.statementRepo.findById(
+      command.userId,
+      command.accountId,
+      command.statementId,
+    );
     if (!statement) throw new StatementNotFoundError();
     return statement;
   }

@@ -11,7 +11,11 @@ import { RemoveInvestmentCommand } from "./remove-investment.command";
 
 @Injectable()
 @CommandHandler(RemoveInvestmentCommand)
-export class RemoveInvestmentHandler extends BaseCommandHandler<RemoveInvestmentCommand, void, null> {
+export class RemoveInvestmentHandler extends BaseCommandHandler<
+  RemoveInvestmentCommand,
+  void,
+  null
+> {
   constructor(
     eventBus: EventBus,
     @Inject(INVESTMENT_REPOSITORY) private readonly repo: InvestmentRepositoryPort,

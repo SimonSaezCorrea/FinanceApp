@@ -25,5 +25,10 @@ export interface InstallmentPaymentRepositoryPort {
   listByPlans(planIds: string[]): Promise<InstallmentPaymentRow[]>;
   createForPlan(planId: string, payments: InstallmentPaymentPlan[]): Promise<void>;
   /** Sets/clears one payment's `paidAt`, scoped through its plan's owner. */
-  setPaidAt(userId: string, planId: string, sequence: number, paidAt: Date | null): Promise<boolean>;
+  setPaidAt(
+    userId: string,
+    planId: string,
+    sequence: number,
+    paidAt: Date | null,
+  ): Promise<boolean>;
 }

@@ -61,7 +61,9 @@ function makeHandler(
 ) {
   const accounts = fakeBankAccountRepo({ findById: vi.fn(async () => opts.account ?? null) });
   const cards = fakeCardAccountRepo({ findOnAccount: vi.fn(async () => opts.card ?? null) });
-  const statements = opts.statements ?? fakeCreditStatementRepo({ findOrCreateOpenForAccount: vi.fn(async () => ({ id: "stmt1" })) });
+  const statements =
+    opts.statements ??
+    fakeCreditStatementRepo({ findOrCreateOpenForAccount: vi.fn(async () => ({ id: "stmt1" })) });
   return new CreateTransactionHandler(
     { publish: vi.fn() } as never,
     repo,
@@ -77,7 +79,13 @@ describe("CreateTransactionHandler", () => {
     const handler = makeHandler(fakeRepo(), { account: null });
     await expect(
       handler.execute(
-        new CreateTransactionCommand("u1", { ...base, type: "EXPENSE", amount: "1000", bankAccountId: "ghost", cardId: "cP" }),
+        new CreateTransactionCommand("u1", {
+          ...base,
+          type: "EXPENSE",
+          amount: "1000",
+          bankAccountId: "ghost",
+          cardId: "cP",
+        }),
       ),
     ).rejects.toBeInstanceOf(AccountNotFoundError);
   });
@@ -85,7 +93,14 @@ describe("CreateTransactionHandler", () => {
   it("requires a card for a credit-line expense", async () => {
     const handler = makeHandler(fakeRepo(), { account: creditAccount() });
     await expect(
-      handler.execute(new CreateTransactionCommand("u1", { ...base, type: "EXPENSE", amount: "1000", bankAccountId: "aC" })),
+      handler.execute(
+        new CreateTransactionCommand("u1", {
+          ...base,
+          type: "EXPENSE",
+          amount: "1000",
+          bankAccountId: "aC",
+        }),
+      ),
     ).rejects.toBeInstanceOf(CardRequiredError);
   });
 
@@ -93,7 +108,13 @@ describe("CreateTransactionHandler", () => {
     const handler = makeHandler(fakeRepo(), { account: creditAccount(), card: null });
     await expect(
       handler.execute(
-        new CreateTransactionCommand("u1", { ...base, type: "EXPENSE", amount: "1000", bankAccountId: "aC", cardId: "cP" }),
+        new CreateTransactionCommand("u1", {
+          ...base,
+          type: "EXPENSE",
+          amount: "1000",
+          bankAccountId: "aC",
+          cardId: "cP",
+        }),
       ),
     ).rejects.toBeInstanceOf(CardAccountMismatchError);
   });
@@ -108,15 +129,28 @@ describe("CreateTransactionHandler", () => {
         updatedAt: new Date(),
       }),
     );
-    const handler = makeHandler(fakeRepo({ saveNew }), { account: creditAccount(), card: creditCard });
+    const handler = makeHandler(fakeRepo({ saveNew }), {
+      account: creditAccount(),
+      card: creditCard,
+    });
     const result = await handler.execute(
-      new CreateTransactionCommand("u1", { ...base, type: "EXPENSE", amount: "100000", bankAccountId: "aC", cardId: "cC" }),
+      new CreateTransactionCommand("u1", {
+        ...base,
+        type: "EXPENSE",
+        amount: "100000",
+        bankAccountId: "aC",
+        cardId: "cC",
+      }),
     );
     expect(result.id).toBe("t1");
-    expect(saveNew).toHaveBeenCalledWith("u1", expect.objectContaining({ creditStatementId: "stmt1" }), {
-      accountId: "aC",
-      delta: "100000",
-    });
+    expect(saveNew).toHaveBeenCalledWith(
+      "u1",
+      expect.objectContaining({ creditStatementId: "stmt1" }),
+      {
+        accountId: "aC",
+        delta: "100000",
+      },
+    );
   });
 
   it("rejects a credit-line expense that exceeds the persisted pool", async () => {
@@ -129,22 +163,45 @@ describe("CreateTransactionHandler", () => {
     const handler = makeHandler(fakeRepo(), { account, card: creditCard });
     await expect(
       handler.execute(
-        new CreateTransactionCommand("u1", { ...base, type: "EXPENSE", amount: "100000", bankAccountId: "aC", cardId: "cC" }),
+        new CreateTransactionCommand("u1", {
+          ...base,
+          type: "EXPENSE",
+          amount: "100000",
+          bankAccountId: "aC",
+          cardId: "cC",
+        }),
       ),
     ).rejects.toBeInstanceOf(CardLimitExceededError);
   });
 
   it("does not create/link a statement for a non-pool movement", async () => {
     const saveNew = vi.fn().mockImplementation(async (userId, plan) =>
-      Transaction.fromPersistence({ id: "t1", userId, ...plan, createdAt: new Date(), updatedAt: new Date() }),
+      Transaction.fromPersistence({
+        id: "t1",
+        userId,
+        ...plan,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
     );
     const statements = fakeCreditStatementRepo();
     const handler = makeHandler(fakeRepo({ saveNew }), {
       account: accountAggregate({ id: "a1", type: "CASH" }),
       statements,
     });
-    await handler.execute(new CreateTransactionCommand("u1", { ...base, type: "EXPENSE", amount: "1000", bankAccountId: "a1" }));
+    await handler.execute(
+      new CreateTransactionCommand("u1", {
+        ...base,
+        type: "EXPENSE",
+        amount: "1000",
+        bankAccountId: "a1",
+      }),
+    );
     expect(statements.findOrCreateOpenForAccount).not.toHaveBeenCalled();
-    expect(saveNew).toHaveBeenCalledWith("u1", expect.objectContaining({ creditStatementId: null }), null);
+    expect(saveNew).toHaveBeenCalledWith(
+      "u1",
+      expect.objectContaining({ creditStatementId: null }),
+      null,
+    );
   });
 });

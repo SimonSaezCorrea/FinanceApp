@@ -75,12 +75,15 @@ describe("Accounts HTTP (e2e)", () => {
   });
 
   it("creates a CHECKING account to pay from", async () => {
-    const res = await request(app.getHttpServer()).post("/api/v1/accounts").set("Cookie", cookies).send({
-      name: "My checking",
-      type: "CHECKING",
-      currency: "CLP",
-      accountNumber: "1234567890",
-    });
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/accounts")
+      .set("Cookie", cookies)
+      .send({
+        name: "My checking",
+        type: "CHECKING",
+        currency: "CLP",
+        accountNumber: "1234567890",
+      });
     expect(res.status).toBe(201);
     checkingAccountId = res.body.id;
   });
@@ -94,7 +97,9 @@ describe("Accounts HTTP (e2e)", () => {
 
   it("generates a statement, then pays it from the checking account", async () => {
     // Spend on the credit card to open a statement.
-    const account = await request(app.getHttpServer()).get(`/api/v1/accounts/${creditAccountId}`).set("Cookie", cookies);
+    const account = await request(app.getHttpServer())
+      .get(`/api/v1/accounts/${creditAccountId}`)
+      .set("Cookie", cookies);
     const cardId = account.body.cards[0].id;
     await request(app.getHttpServer()).post("/api/v1/transactions").set("Cookie", cookies).send({
       bankAccountId: creditAccountId,

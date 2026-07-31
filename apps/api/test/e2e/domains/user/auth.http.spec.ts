@@ -58,7 +58,9 @@ describe("Auth HTTP (e2e)", () => {
   });
 
   it("logs in with correct credentials and rejects wrong ones", async () => {
-    const ok = await request(app.getHttpServer()).post("/api/v1/auth/login").send({ email, password });
+    const ok = await request(app.getHttpServer())
+      .post("/api/v1/auth/login")
+      .send({ email, password });
     expect(ok.status).toBe(200);
     cookies = ok.get("Set-Cookie") ?? [];
 
@@ -115,7 +117,9 @@ describe("Auth HTTP (e2e)", () => {
   });
 
   it("POST /auth/refresh rotates the token pair", async () => {
-    const res = await request(app.getHttpServer()).post("/api/v1/auth/refresh").set("Cookie", cookies);
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/auth/refresh")
+      .set("Cookie", cookies);
     expect(res.status).toBe(204);
     const fresh = res.get("Set-Cookie") ?? [];
     expect(fresh.some((c) => c.startsWith("access_token="))).toBe(true);

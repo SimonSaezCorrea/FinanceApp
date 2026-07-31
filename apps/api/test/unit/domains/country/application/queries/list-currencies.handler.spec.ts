@@ -7,7 +7,9 @@ import type { CurrencyRepositoryPort } from "../../../../../../src/domains/curre
 describe("ListCurrenciesQueryHandler", () => {
   it("returns whatever the repository resolves, unmodified", async () => {
     const repo: CurrencyRepositoryPort = {
-      findAll: vi.fn().mockResolvedValue([{ id: "cur1", code: "CLP", numeric: "152", name: "Chilean Peso" }]),
+      findAll: vi
+        .fn()
+        .mockResolvedValue([{ id: "cur1", code: "CLP", numeric: "152", name: "Chilean Peso" }]),
     };
     const handler = new ListCurrenciesQueryHandler(repo);
 

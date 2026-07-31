@@ -2,7 +2,10 @@ import { Inject, Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 
 import { PrismaService } from "../../../infra/prisma/prisma.service";
-import { COUNTRY_LOOKUP, type CountryLookupPort } from "../../country/domain/ports/country-lookup.port";
+import {
+  COUNTRY_LOOKUP,
+  type CountryLookupPort,
+} from "../../country/domain/ports/country-lookup.port";
 import { EmailTakenError } from "../domain/errors";
 import { User, type UserProps } from "../domain/user.aggregate";
 import type { UserRepositoryPort } from "../domain/ports/user.repository.port";

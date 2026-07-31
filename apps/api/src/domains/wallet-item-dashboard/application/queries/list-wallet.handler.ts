@@ -12,7 +12,11 @@ import { ListWalletQuery } from "./list-wallet.query";
 
 @Injectable()
 @QueryHandler(ListWalletQuery)
-export class ListWalletQueryHandler extends BaseQueryHandler<ListWalletQuery, wallet.WalletItem[], string> {
+export class ListWalletQueryHandler extends BaseQueryHandler<
+  ListWalletQuery,
+  wallet.WalletItem[],
+  string
+> {
   constructor(@Inject(WALLET_ITEM_REPOSITORY) private readonly repo: WalletItemRepositoryPort) {
     super();
   }

@@ -55,7 +55,9 @@ describe("UpdateDebtHandler", () => {
     const save = vi.fn().mockResolvedValue(undefined);
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(makeDebt()), save });
     const handler = new UpdateDebtHandler({ publish: vi.fn() } as never, repo);
-    const result = await handler.execute(new UpdateDebtCommand("u1", "d1", { counterparty: "New name" }));
+    const result = await handler.execute(
+      new UpdateDebtCommand("u1", "d1", { counterparty: "New name" }),
+    );
     expect(result.counterparty).toBe("New name");
     expect(save).toHaveBeenCalled();
   });
@@ -65,7 +67,9 @@ describe("RemoveDebtHandler", () => {
   it("throws DebtNotFoundError when nothing was removed", async () => {
     const repo = fakeRepo({ remove: vi.fn().mockResolvedValue(false) });
     const handler = new RemoveDebtHandler({ publish: vi.fn() } as never, repo);
-    await expect(handler.execute(new RemoveDebtCommand("u1", "ghost"))).rejects.toBeInstanceOf(DebtNotFoundError);
+    await expect(handler.execute(new RemoveDebtCommand("u1", "ghost"))).rejects.toBeInstanceOf(
+      DebtNotFoundError,
+    );
   });
 
   it("removes the debt", async () => {

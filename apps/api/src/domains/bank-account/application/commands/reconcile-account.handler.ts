@@ -10,14 +10,21 @@ import {
 } from "../../../transaction/domain/ports/transaction-sums.repository.port";
 import { BankAccount } from "../../domain/bank-account.aggregate";
 import { AccountNotFoundError } from "../../domain/errors";
-import { BANK_ACCOUNT_REPOSITORY, type BankAccountRepositoryPort } from "../../domain/ports/bank-account.repository.port";
+import {
+  BANK_ACCOUNT_REPOSITORY,
+  type BankAccountRepositoryPort,
+} from "../../domain/ports/bank-account.repository.port";
 import { accountsToDtos } from "../queries/account-dto.mapper";
 import { ReconcileAccountCommand } from "./reconcile-account.command";
 
 /** currentBalance = initialBalance + Σincome − Σexpense (scoped to user + account). */
 @Injectable()
 @CommandHandler(ReconcileAccountCommand)
-export class ReconcileAccountHandler extends BaseCommandHandler<ReconcileAccountCommand, accounts.BankAccount, BankAccount> {
+export class ReconcileAccountHandler extends BaseCommandHandler<
+  ReconcileAccountCommand,
+  accounts.BankAccount,
+  BankAccount
+> {
   constructor(
     eventBus: EventBus,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
@@ -32,8 +39,14 @@ export class ReconcileAccountHandler extends BaseCommandHandler<ReconcileAccount
     return account;
   }
 
-  protected async handle(command: ReconcileAccountCommand, account: BankAccount): Promise<HandleResult<accounts.BankAccount>> {
-    const { income, expense } = await this.sumsRepo.sumByTypeForAccount(command.userId, command.accountId);
+  protected async handle(
+    command: ReconcileAccountCommand,
+    account: BankAccount,
+  ): Promise<HandleResult<accounts.BankAccount>> {
+    const { income, expense } = await this.sumsRepo.sumByTypeForAccount(
+      command.userId,
+      command.accountId,
+    );
     account.reconcileBalance(income, expense);
     const [dto] = await accountsToDtos(this.sumsRepo, command.userId, [account]);
     return { result: dto, events: [] };

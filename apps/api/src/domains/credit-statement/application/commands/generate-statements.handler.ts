@@ -15,7 +15,10 @@ import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
 } from "../../domain/ports/credit-statement.repository.port";
-import { GenerateAllDueStatementsCommand, GenerateStatementsCommand } from "./generate-statements.command";
+import {
+  GenerateAllDueStatementsCommand,
+  GenerateStatementsCommand,
+} from "./generate-statements.command";
 
 /** Closes an account's currently OPEN `CreditStatement` once its
  * `billingCycleDay` boundary has passed AND it's eligible (Strategy) —
@@ -37,7 +40,11 @@ async function closeIfDue(
   const eligible = resolveBillingEligibility({
     accountType: account.type,
     accountStatus: account.status,
-    cards: account.cards.map((c) => ({ kind: c.kind, isPrimary: c.isPrimary, isActive: c.isActive })),
+    cards: account.cards.map((c) => ({
+      kind: c.kind,
+      isPrimary: c.isPrimary,
+      isActive: c.isActive,
+    })),
   });
   if (!eligible) return null; // leave it accumulating, don't seal it this cycle
 
@@ -48,11 +55,16 @@ async function closeIfDue(
 
 @Injectable()
 @CommandHandler(GenerateStatementsCommand)
-export class GenerateStatementsHandler extends BaseCommandHandler<GenerateStatementsCommand, boolean, BankAccount> {
+export class GenerateStatementsHandler extends BaseCommandHandler<
+  GenerateStatementsCommand,
+  boolean,
+  BankAccount
+> {
   constructor(
     eventBus: EventBus,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
-    @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statementRepo: CreditStatementRepositoryPort,
+    @Inject(CREDIT_STATEMENT_REPOSITORY)
+    private readonly statementRepo: CreditStatementRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -63,7 +75,10 @@ export class GenerateStatementsHandler extends BaseCommandHandler<GenerateStatem
     return account;
   }
 
-  protected async handle(_command: GenerateStatementsCommand, account: BankAccount): Promise<HandleResult<boolean>> {
+  protected async handle(
+    _command: GenerateStatementsCommand,
+    account: BankAccount,
+  ): Promise<HandleResult<boolean>> {
     const event = await closeIfDue(account, this.statementRepo);
     return { result: event !== null, events: event ? [event] : [] };
   }
@@ -82,7 +97,8 @@ export class GenerateAllDueStatementsHandler extends BaseCommandHandler<
   constructor(
     eventBus: EventBus,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
-    @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statementRepo: CreditStatementRepositoryPort,
+    @Inject(CREDIT_STATEMENT_REPOSITORY)
+    private readonly statementRepo: CreditStatementRepositoryPort,
   ) {
     super(eventBus);
   }

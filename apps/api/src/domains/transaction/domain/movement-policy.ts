@@ -96,7 +96,9 @@ export class MovementPolicy {
 
     const contribution = this.contribution(m, account, card, cardLimit);
     if (contribution === "0") return "0";
-    const projected = toMoney(account.creditUsed).minus(toMoney(poolOffset)).plus(toMoney(contribution));
+    const projected = toMoney(account.creditUsed)
+      .minus(toMoney(poolOffset))
+      .plus(toMoney(contribution));
     if (projected.greaterThan(toMoney(account.creditLimit))) {
       throw new CardLimitExceededError();
     }
@@ -137,7 +139,10 @@ export class MovementPolicy {
     cardUsage: { income: string; expense: string },
   ): void {
     if (!cardLimit) return;
-    const used = subtractMoney(addMoney(cardLimit.usedInitial, cardUsage.expense), cardUsage.income);
+    const used = subtractMoney(
+      addMoney(cardLimit.usedInitial, cardUsage.expense),
+      cardUsage.income,
+    );
     const projected = toMoney(used).plus(toMoney(m.amount));
     if (projected.greaterThan(toMoney(cardLimit.limitAmount))) {
       throw new CardSubLimitExceededError();

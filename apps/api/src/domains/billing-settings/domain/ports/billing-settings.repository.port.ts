@@ -11,5 +11,9 @@ export interface BillingSettingsRepositoryPort {
   accountIdsWithCycleDay(): Promise<string[]>;
   upsert(accountId: string, settings: Partial<BillingSettingsProps>): Promise<void>;
   /** Same write inside a caller-provided Prisma transaction. */
-  upsertWithTx(tx: unknown, accountId: string, settings: Partial<BillingSettingsProps>): Promise<void>;
+  upsertWithTx(
+    tx: unknown,
+    accountId: string,
+    settings: Partial<BillingSettingsProps>,
+  ): Promise<void>;
 }
