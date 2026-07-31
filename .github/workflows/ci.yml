@@ -60,6 +60,13 @@ jobs:
       - name: Push Prisma schema to the test database
         run: pnpm --filter @finance/api exec prisma db push
 
+      # The reference-data specs (countries/currencies/institutions) assert
+      # against seeded rows, exactly as a provisioned environment has them.
+      # `seedReferenceData` is idempotent; the demo user it also creates is
+      # harmless here and each spec scopes itself to its own random userId.
+      - name: Seed reference data
+        run: pnpm --filter @finance/api prisma:seed
+
       # Architecture boundaries: web↛api/db, api↛web, packages↛apps (SC-004/SC-007).
       - run: pnpm check:boundaries
 
