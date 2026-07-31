@@ -12,7 +12,14 @@
     },
     "test": {
       "dependsOn": ["^build"],
-      "env": ["DATABASE_URL", "TEST_DATABASE_URL"]
+      "env": [
+        "DATABASE_URL",
+        "TEST_DATABASE_URL",
+        "JWT_ACCESS_SECRET",
+        "JWT_REFRESH_SECRET",
+        "JWT_ACCESS_EXPIRES",
+        "JWT_REFRESH_EXPIRES"
+      ]
     },
     "lint": {},
     "typecheck": {

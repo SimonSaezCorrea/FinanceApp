@@ -14,6 +14,13 @@ jobs:
       # also points at the `postgres` service below, which the api's integration
       # and e2e tiers connect to for real (only `test:unit` runs without a DB).
       DATABASE_URL: "postgresql://ci:ci@localhost:5432/ci"
+      # The e2e tier registers/logs in real users over HTTP, so the auth module
+      # needs its secrets. Throwaway values — nothing outside this job ever sees
+      # a token signed with them.
+      JWT_ACCESS_SECRET: "ci-access-secret"
+      JWT_REFRESH_SECRET: "ci-refresh-secret"
+      JWT_ACCESS_EXPIRES: "15m"
+      JWT_REFRESH_EXPIRES: "7d"
     services:
       postgres:
         image: postgres:16-alpine
