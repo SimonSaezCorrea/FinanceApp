@@ -30,14 +30,14 @@ cupo paralelo y más estrecho).
 
 ### 2.1 Tipos de cuenta
 
-| Tipo          | Significado                          | ¿Requiere `accountNumber`?          | ¿Puede tener tarjetas? | ¿Tiene saldo real en efectivo? |
-| ------------- | ------------------------------------- | :-----------------------------------: | :----------------------: | :------------------------------: |
-| `CHECKING`    | Corriente                             | ✅ obligatorio                        | ✅                        | ✅                                |
-| `SIGHT`       | Vista / Cuenta RUT                    | ✅ obligatorio                        | ✅                        | ✅                                |
-| `SAVINGS`     | Ahorro                                | ✅ obligatorio                        | ❌                        | ✅                                |
-| `INVESTMENT`  | Inversiones (ej. Fintual)              | opcional                              | ❌                        | ✅                                |
-| `CREDIT_LINE` | Una tarjeta de crédito independiente (sin cuenta bancaria detrás) | opcional | ✅ | ❌ (su "saldo" ES el cupo de crédito) |
-| `CASH`        | Efectivo                              | opcional (sin institución alguna)     | ❌                        | ✅                                |
+| Tipo          | Significado                                                       |    ¿Requiere `accountNumber`?     | ¿Puede tener tarjetas? |    ¿Tiene saldo real en efectivo?     |
+| ------------- | ----------------------------------------------------------------- | :-------------------------------: | :--------------------: | :-----------------------------------: |
+| `CHECKING`    | Corriente                                                         |          ✅ obligatorio           |           ✅           |                  ✅                   |
+| `SIGHT`       | Vista / Cuenta RUT                                                |          ✅ obligatorio           |           ✅           |                  ✅                   |
+| `SAVINGS`     | Ahorro                                                            |          ✅ obligatorio           |           ❌           |                  ✅                   |
+| `INVESTMENT`  | Inversiones (ej. Fintual)                                         |             opcional              |           ❌           |                  ✅                   |
+| `CREDIT_LINE` | Una tarjeta de crédito independiente (sin cuenta bancaria detrás) |             opcional              |           ✅           | ❌ (su "saldo" ES el cupo de crédito) |
+| `CASH`        | Efectivo                                                          | opcional (sin institución alguna) |           ❌           |                  ✅                   |
 
 - **`ACCOUNT_NUMBER_REQUIRED_TYPES`** = `CHECKING`/`SIGHT`/`SAVINGS` — son tipos que reciben
   depósitos (a los que transferirías dinero), así que un número de cuenta real es obligatorio.
@@ -157,20 +157,20 @@ aquí — queda acotado solo a esa tarjeta.
 
 Supongamos que creas una cuenta **CHECKING** en CLP, y luego le agregas una tarjeta de crédito:
 
-| Paso                                                                              | Qué ocurre                                                                                                                    |
-| ------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
-| 1. Creas la cuenta, agregas una tarjeta CREDIT "CMR Visa", le pones un tope de 3.000.000 CLP | Esta tarjeta queda `isPrimary: true`. Su tope se escribe en `BankAccount.creditLimit = 3.000.000` (CLP). La tarjeta misma tiene `limits: []` — no se crea ninguna fila para ella. |
-| 2. En esa misma tarjeta, agregas también un "otro tope" de 500 USD                | Se crea una fila `CardLimit`: `{cardId, currency: "USD", limitAmount: 500}`. Los `limits` de la tarjeta ahora muestran esa entrada. El `creditPools` de la cuenta pasa a ser `[{CLP, 3.000.000}, {USD, 500}]`. |
-| 3. Agregas una segunda tarjeta CREDIT "CMR Visa · Camila", dejando `usesAccountPool: true` | Queda como tarjeta adicional, `isPrimary: false`, sin filas `CardLimit` — cada peso que gaste cuenta hacia el *mismo* cupo de 3.000.000 CLP que la principal. |
-| 4. Agregas una tercera tarjeta CREDIT "CMR Visa · Sofía" con `usesAccountPool: false` y su propio tope de 1.000.000 CLP | Queda como tarjeta adicional con su **propia** fila `CardLimit` en CLP — topada en 1.000.000, y además topada en ≤ el cupo de 3.000.000 de la cuenta. Su gasto **no** cuenta en absoluto hacia el cupo compartido de 3.000.000. |
-| 5. Editas el `creditLimit` de la cuenta directamente (no desde una tarjeta)       | Como la principal no tiene un valor propio guardado, esto simplemente cambia el único número que existe — la principal lo "recoge" automáticamente la próxima vez que se lea. |
-| 6. Gastas 300.000 CLP y 400 USD en la tarjeta principal                          | Ambos cuentan de forma independiente: el cupo en CLP de la cuenta muestra `used: 300.000`; el propio `CardLimit` en USD de la principal muestra `used: 400`. El gasto en la *tercera* tarjeta (su propio tope propio en CLP) nunca afecta a ninguno de los dos anteriores. |
+| Paso                                                                                                                    | Qué ocurre                                                                                                                                                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Creas la cuenta, agregas una tarjeta CREDIT "CMR Visa", le pones un tope de 3.000.000 CLP                            | Esta tarjeta queda `isPrimary: true`. Su tope se escribe en `BankAccount.creditLimit = 3.000.000` (CLP). La tarjeta misma tiene `limits: []` — no se crea ninguna fila para ella.                                                                                          |
+| 2. En esa misma tarjeta, agregas también un "otro tope" de 500 USD                                                      | Se crea una fila `CardLimit`: `{cardId, currency: "USD", limitAmount: 500}`. Los `limits` de la tarjeta ahora muestran esa entrada. El `creditPools` de la cuenta pasa a ser `[{CLP, 3.000.000}, {USD, 500}]`.                                                             |
+| 3. Agregas una segunda tarjeta CREDIT "CMR Visa · Camila", dejando `usesAccountPool: true`                              | Queda como tarjeta adicional, `isPrimary: false`, sin filas `CardLimit` — cada peso que gaste cuenta hacia el _mismo_ cupo de 3.000.000 CLP que la principal.                                                                                                              |
+| 4. Agregas una tercera tarjeta CREDIT "CMR Visa · Sofía" con `usesAccountPool: false` y su propio tope de 1.000.000 CLP | Queda como tarjeta adicional con su **propia** fila `CardLimit` en CLP — topada en 1.000.000, y además topada en ≤ el cupo de 3.000.000 de la cuenta. Su gasto **no** cuenta en absoluto hacia el cupo compartido de 3.000.000.                                            |
+| 5. Editas el `creditLimit` de la cuenta directamente (no desde una tarjeta)                                             | Como la principal no tiene un valor propio guardado, esto simplemente cambia el único número que existe — la principal lo "recoge" automáticamente la próxima vez que se lea.                                                                                              |
+| 6. Gastas 300.000 CLP y 400 USD en la tarjeta principal                                                                 | Ambos cuentan de forma independiente: el cupo en CLP de la cuenta muestra `used: 300.000`; el propio `CardLimit` en USD de la principal muestra `used: 400`. El gasto en la _tercera_ tarjeta (su propio tope propio en CLP) nunca afecta a ninguno de los dos anteriores. |
 
 ### 3.5 Visualización por tarjeta vs. el total combinado de la cuenta
 
 Varias tarjetas pueden compartir exactamente el mismo cupo (el valor por defecto `usesAccountPool:
 true` del §3.2). En términos aritméticos muestran el número correcto si la UI simplemente despliega
-`account.creditUsed` en cada una — pero *se lee* mal: tres tarjetas mostrando todas el mismo
+`account.creditUsed` en cada una — pero _se lee_ mal: tres tarjetas mostrando todas el mismo
 "1.686.470 / 3.000.000" parece como si cada una hubiera gastado individualmente ese monto, cuando en
 realidad ese es el total **combinado** de las tres juntas.
 
@@ -285,12 +285,12 @@ del usuario; `AUTOMATIC` está **bloqueado en la UI** (no se puede seleccionar) 
 Todo movimiento (`INCOME` | `EXPENSE`) se vincula a un `bankAccountId` y, opcionalmente, a un
 `cardId`. Las reglas, evaluadas en `TransactionsService.validateMovement`:
 
-| Escenario                                              | Regla                                                                       |
-| --------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `INCOME`                                                  | Nunca lleva tarjeta (`CARD_NOT_ALLOWED` si se entrega una).                     |
-| `EXPENSE` en una cuenta `CASH`                            | Tampoco lleva tarjeta.                                                          |
-| `EXPENSE` en una cuenta `CREDIT_LINE`                      | **Debe** llevar una tarjeta de esa cuenta (`CARD_REQUIRED` si falta, `CARD_ACCOUNT_MISMATCH` si pertenece a otra cuenta). |
-| `EXPENSE` en cualquier otra cuenta no-efectivo             | La tarjeta es opcional; si se entrega, debe pertenecer a la cuenta.             |
+| Escenario                                                                                                                         | Regla                                                                                                                                                                                |
+| --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `INCOME`                                                                                                                          | Nunca lleva tarjeta (`CARD_NOT_ALLOWED` si se entrega una).                                                                                                                          |
+| `EXPENSE` en una cuenta `CASH`                                                                                                    | Tampoco lleva tarjeta.                                                                                                                                                               |
+| `EXPENSE` en una cuenta `CREDIT_LINE`                                                                                             | **Debe** llevar una tarjeta de esa cuenta (`CARD_REQUIRED` si falta, `CARD_ACCOUNT_MISMATCH` si pertenece a otra cuenta).                                                            |
+| `EXPENSE` en cualquier otra cuenta no-efectivo                                                                                    | La tarjeta es opcional; si se entrega, debe pertenecer a la cuenta.                                                                                                                  |
 | Cada vez que la tarjeta usada es de tipo **CREDIT** (en una cuenta `CREDIT_LINE`, o en cualquier otra cuenta que haya sumado una) | El monto se valida contra **ambos**: el cupo compartido de la cuenta **y**, si esa tarjeta tiene su propio `CardLimit` para la moneda del movimiento, ese tope más estrecho también. |
 
 ### 4.2 Aplicación del cupo de crédito
@@ -314,7 +314,7 @@ distinta y no relacionada en CLP empuja el cupo compartido en CLP por sobre su l
 
 > **Por qué se destaca explícitamente "acotado por moneda":** versiones anteriores de esta lógica
 > sumaban el gasto de una tarjeta sin verificar la moneda en absoluto, y excluían a una tarjeta de
-> la suma del cupo compartido si tenía *cualquier* fila `CardLimit`, sin importar la moneda. Eso
+> la suma del cupo compartido si tenía _cualquier_ fila `CardLimit`, sin importar la moneda. Eso
 > era inofensivo mientras las filas `CardLimit` de una tarjeta siempre significaran "totalmente
 > independiente, una sola moneda" — pero se convirtió en un bug real en el momento en que una
 > misma tarjeta pudo compartir el cupo en una moneda mientras tenía un tope independiente en otra
@@ -323,7 +323,7 @@ distinta y no relacionada en CLP empuja el cupo compartido en CLP por sobre su l
 > Ambas sumas ahora están acotadas por moneda.
 
 > **Una segunda corrección, independiente (lanzada junto con los ciclos de facturación):** para una
-> cuenta `CREDIT_LINE` independiente, sumar *todos* los movimientos de la cuenta hacia el cupo de
+> cuenta `CREDIT_LINE` independiente, sumar _todos_ los movimientos de la cuenta hacia el cupo de
 > crédito es correcto por construcción — un EXPENSE ahí siempre lleva una tarjeta CREDIT, un INCOME
 > es un pago, no puede ser otra cosa. Pero para cualquier OTRO tipo de cuenta que solo sumó una
 > tarjeta de crédito adicional, esa misma consulta de "sumar todo" también arrastraba operaciones
@@ -346,18 +346,18 @@ de las validaciones anteriores.
 
 ## 5. Glosario de códigos de error (de este dominio)
 
-| Código                           | Se lanza cuando…                                                                                     |
-| ---------------------------------- | ----------------------------------------------------------------------------------------------------- |
-| `ACCOUNT_NUMBER_REQUIRED`          | Se crea/edita una cuenta CHECKING/SIGHT/SAVINGS sin `accountNumber`.                                  |
-| `ACCOUNT_CANNOT_HAVE_CARD`         | Se agrega una tarjeta (anidada o inline) a una cuenta SAVINGS/INVESTMENT/CASH.                        |
-| `CARD_REQUIRED`                    | Un EXPENSE en una cuenta CREDIT_LINE sin `cardId`.                                                     |
-| `CARD_NOT_ALLOWED`                 | Se entrega una tarjeta en un INCOME, o en un EXPENSE de una cuenta CASH.                               |
-| `CARD_ACCOUNT_MISMATCH`            | El `cardId` entregado no pertenece al `bankAccountId` entregado.                                       |
-| `CARD_LIMIT_REQUIRED`              | Una tarjeta CREDIT (que se vuelve principal, o adicional con `usesAccountPool: false`) no tiene un tope válido. |
-| `CARD_LIMIT_EXCEEDED`              | Un movimiento empujaría el cupo compartido de la cuenta (en su propia moneda) por sobre `creditLimit`. |
-| `CARD_SUBLIMIT_EXCEEDED`           | Un movimiento empujaría el `CardLimit` propio de una tarjeta (misma moneda) por sobre su `limitAmount`. |
-| `CARD_SUBLIMIT_EXCEEDS_ACCOUNT`    | Al definir el tope propio de una tarjeta, en la moneda propia de la cuenta, más alto que el cupo de la cuenta. |
-| `CARD_NOT_FOUND`                   | Al editar/eliminar/leer una tarjeta que no existe (o no es del usuario).                               |
+| Código                          | Se lanza cuando…                                                                                                |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `ACCOUNT_NUMBER_REQUIRED`       | Se crea/edita una cuenta CHECKING/SIGHT/SAVINGS sin `accountNumber`.                                            |
+| `ACCOUNT_CANNOT_HAVE_CARD`      | Se agrega una tarjeta (anidada o inline) a una cuenta SAVINGS/INVESTMENT/CASH.                                  |
+| `CARD_REQUIRED`                 | Un EXPENSE en una cuenta CREDIT_LINE sin `cardId`.                                                              |
+| `CARD_NOT_ALLOWED`              | Se entrega una tarjeta en un INCOME, o en un EXPENSE de una cuenta CASH.                                        |
+| `CARD_ACCOUNT_MISMATCH`         | El `cardId` entregado no pertenece al `bankAccountId` entregado.                                                |
+| `CARD_LIMIT_REQUIRED`           | Una tarjeta CREDIT (que se vuelve principal, o adicional con `usesAccountPool: false`) no tiene un tope válido. |
+| `CARD_LIMIT_EXCEEDED`           | Un movimiento empujaría el cupo compartido de la cuenta (en su propia moneda) por sobre `creditLimit`.          |
+| `CARD_SUBLIMIT_EXCEEDED`        | Un movimiento empujaría el `CardLimit` propio de una tarjeta (misma moneda) por sobre su `limitAmount`.         |
+| `CARD_SUBLIMIT_EXCEEDS_ACCOUNT` | Al definir el tope propio de una tarjeta, en la moneda propia de la cuenta, más alto que el cupo de la cuenta.  |
+| `CARD_NOT_FOUND`                | Al editar/eliminar/leer una tarjeta que no existe (o no es del usuario).                                        |
 
 ---
 
@@ -371,29 +371,29 @@ documento ahora viven en la estructura de cuatro capas de abajo. Ver
 `docs/{english,spanish}/ARCHITECTURE.md` para el patrón completo y
 `specs/009-ddd-cqrs-architecture/` para el spec/plan/tasks de la migración.
 
-| Concepto                                             | Ubicación en el backend                                                          |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Tipos de cuenta, helpers de cardable/tipo de institución | `packages/contracts/src/accounts/index.ts`                                            |
-| Invariantes de la cuenta (cardable, `ACCOUNT_NUMBER_REQUIRED`, proyección del cupo) | `apps/api/src/domains/accounts/domain/bank-account.aggregate.ts` (`BankAccount`) |
-| CRUD de tarjetas + resolución de principal/tope obligatorio | `BankAccount.resolveCardPlacement`/`planCreation` (mismo archivo del aggregate) |
-| Ciclo de vida de `CreditStatement` (OPEN/PENDING/PAID)  | `apps/api/src/domains/accounts/domain/credit-statement.aggregate.ts` + `domain/states/*.ts` (patrón State) |
-| Elegibilidad de facturación (CREDIT_LINE vs. tarjeta adicional) | `apps/api/src/domains/accounts/domain/billing-eligibility.strategy.ts` (patrón Strategy) |
-| `creditPools`/`Card.ownUsed` derivados (armado de lectura) | `apps/api/src/domains/accounts/application/queries/account-dto.mapper.ts`       |
-| Comandos de pagar/generar/corregir                      | `apps/api/src/domains/accounts/application/commands/{pay-credit-statement,generate-statements,correct-statement-amount}.handler.ts` |
-| Queries de listar/obtener                               | `apps/api/src/domains/accounts/application/queries/{list-accounts,get-account,list-credit-statements}.handler.ts` |
-| Adaptadores Prisma (únicos archivos que importan `@prisma/client` en este dominio) | `apps/api/src/domains/accounts/infrastructure/prisma-{bank-account,credit-statement}.repository.ts` |
-| Controlador Facade                                      | `apps/api/src/domains/accounts/presentation/accounts.controller.ts`             |
-| Reglas de movimiento + aplicación del cupo               | `apps/api/src/domains/transactions/domain/movement-policy.ts` + `domain/transaction.aggregate.ts`, aplicado por `application/commands/*.handler.ts` |
-| Sumas de cupo acotadas por moneda y por tarjeta          | `TransactionsRepository.sumsForAccount`/`sumsForCard`, `PrismaBankAccountRepository.cardSums` |
-| Helper de ventana de ciclo de facturación                | `apps/api/src/domains/accounts/domain/billing-cycle.ts` (`currentCycleStart`)                |
+| Concepto                                                                            | Ubicación en el backend                                                                                                                             |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Tipos de cuenta, helpers de cardable/tipo de institución                            | `packages/contracts/src/accounts/index.ts`                                                                                                          |
+| Invariantes de la cuenta (cardable, `ACCOUNT_NUMBER_REQUIRED`, proyección del cupo) | `apps/api/src/domains/accounts/domain/bank-account.aggregate.ts` (`BankAccount`)                                                                    |
+| CRUD de tarjetas + resolución de principal/tope obligatorio                         | `BankAccount.resolveCardPlacement`/`planCreation` (mismo archivo del aggregate)                                                                     |
+| Ciclo de vida de `CreditStatement` (OPEN/PENDING/PAID)                              | `apps/api/src/domains/accounts/domain/credit-statement.aggregate.ts` + `domain/states/*.ts` (patrón State)                                          |
+| Elegibilidad de facturación (CREDIT_LINE vs. tarjeta adicional)                     | `apps/api/src/domains/accounts/domain/billing-eligibility.strategy.ts` (patrón Strategy)                                                            |
+| `creditPools`/`Card.ownUsed` derivados (armado de lectura)                          | `apps/api/src/domains/accounts/application/queries/account-dto.mapper.ts`                                                                           |
+| Comandos de pagar/generar/corregir                                                  | `apps/api/src/domains/accounts/application/commands/{pay-credit-statement,generate-statements,correct-statement-amount}.handler.ts`                 |
+| Queries de listar/obtener                                                           | `apps/api/src/domains/accounts/application/queries/{list-accounts,get-account,list-credit-statements}.handler.ts`                                   |
+| Adaptadores Prisma (únicos archivos que importan `@prisma/client` en este dominio)  | `apps/api/src/domains/accounts/infrastructure/prisma-{bank-account,credit-statement}.repository.ts`                                                 |
+| Controlador Facade                                                                  | `apps/api/src/domains/accounts/presentation/accounts.controller.ts`                                                                                 |
+| Reglas de movimiento + aplicación del cupo                                          | `apps/api/src/domains/transactions/domain/movement-policy.ts` + `domain/transaction.aggregate.ts`, aplicado por `application/commands/*.handler.ts` |
+| Sumas de cupo acotadas por moneda y por tarjeta                                     | `TransactionsRepository.sumsForAccount`/`sumsForCard`, `PrismaBankAccountRepository.cardSums`                                                       |
+| Helper de ventana de ciclo de facturación                                           | `apps/api/src/domains/accounts/domain/billing-cycle.ts` (`currentCycleStart`)                                                                       |
 
-| Concepto                                             | Ubicación en el frontend                                                         |
-| ------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| Formulario de tarjeta en 3 estados (ninguna / principal / adicional) | `apps/web/src/domains/accounts/components/CardForm.tsx`                     |
-| Formularios de crear/editar cuenta (cupo reflejado, solo lectura, día de facturación) | `AccountCreateModal.tsx`, `AccountForm.tsx`                    |
-| Tiles de tarjeta + insignia Principal/Adicional + `ownUsed` por tarjeta | `AccountVisualCard.tsx`, `DraftCardTile.tsx`                          |
-| Vista ampliada de una tarjeta + topes en otras monedas   | `CardDetailModal.tsx`                                                                  |
-| Lista de "topes por moneda" a nivel de cuenta            | `AccountDetailRoute.tsx`                                                               |
+| Concepto                                                                              | Ubicación en el frontend                                |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| Formulario de tarjeta en 3 estados (ninguna / principal / adicional)                  | `apps/web/src/domains/accounts/components/CardForm.tsx` |
+| Formularios de crear/editar cuenta (cupo reflejado, solo lectura, día de facturación) | `AccountCreateModal.tsx`, `AccountForm.tsx`             |
+| Tiles de tarjeta + insignia Principal/Adicional + `ownUsed` por tarjeta               | `AccountVisualCard.tsx`, `DraftCardTile.tsx`            |
+| Vista ampliada de una tarjeta + topes en otras monedas                                | `CardDetailModal.tsx`                                   |
+| Lista de "topes por moneda" a nivel de cuenta                                         | `AccountDetailRoute.tsx`                                |
 
 ---
 

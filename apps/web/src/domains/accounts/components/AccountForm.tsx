@@ -164,7 +164,10 @@ export function AccountForm({
           <Field label={t("accounts.form.creditLimit")}>
             <Input
               id="acc-climit"
-              value={formatAmountDisplay(values.creditLimit, groupingLocaleFor(values.currency, i18n.language))}
+              value={formatAmountDisplay(
+                values.creditLimit,
+                groupingLocaleFor(values.currency, i18n.language),
+              )}
               inputMode="numeric"
               disabled={hasCreditCard}
               onChange={(e) => set("creditLimit", e.target.value.replace(/\D/g, ""))}

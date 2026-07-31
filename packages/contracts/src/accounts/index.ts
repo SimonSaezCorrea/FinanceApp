@@ -190,28 +190,30 @@ export const bankAccountSchema = z.object({
 });
 export type BankAccount = z.infer<typeof bankAccountSchema>;
 
-export const createBankAccountSchema = z.object({
-  name: z.string().trim().min(1).max(120),
-  type: accountType.default("CHECKING"),
-  status: accountStatus.default("ACTIVE"),
-  currency: z.string().trim().length(3).default("CLP"),
-  institution: z.string().trim().max(120).optional(),
-  institutionId: z.string().optional(),
-  accountNumber: z.string().trim().max(50).optional(),
-  initialBalance: moneyString.optional(),
-  /** For CREDIT_LINE accounts: the credit pool and any pre-existing used seed. */
-  creditLimit: moneyString.optional(),
-  creditUsedInitial: moneyString.optional(),
-  /** Statement cut-off day (1-28); omit/null to leave unconfigured. Advanced setting —
-   * intentionally not exposed in the create-account UI, only editable afterward. */
-  billingCycleDay: z.number().int().min(1).max(28).nullable().optional(),
-  /** Advanced setting — not exposed in the create-account UI, only editable afterward. */
-  paymentMethod: billingPaymentMethod.default("MANUAL"),
-  cards: z.array(createCardSchema).optional(),
-}).refine((v) => !isAccountNumberRequired(v.type) || !!v.accountNumber?.trim(), {
-  message: "accountNumber is required for this account type",
-  path: ["accountNumber"],
-});
+export const createBankAccountSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    type: accountType.default("CHECKING"),
+    status: accountStatus.default("ACTIVE"),
+    currency: z.string().trim().length(3).default("CLP"),
+    institution: z.string().trim().max(120).optional(),
+    institutionId: z.string().optional(),
+    accountNumber: z.string().trim().max(50).optional(),
+    initialBalance: moneyString.optional(),
+    /** For CREDIT_LINE accounts: the credit pool and any pre-existing used seed. */
+    creditLimit: moneyString.optional(),
+    creditUsedInitial: moneyString.optional(),
+    /** Statement cut-off day (1-28); omit/null to leave unconfigured. Advanced setting —
+     * intentionally not exposed in the create-account UI, only editable afterward. */
+    billingCycleDay: z.number().int().min(1).max(28).nullable().optional(),
+    /** Advanced setting — not exposed in the create-account UI, only editable afterward. */
+    paymentMethod: billingPaymentMethod.default("MANUAL"),
+    cards: z.array(createCardSchema).optional(),
+  })
+  .refine((v) => !isAccountNumberRequired(v.type) || !!v.accountNumber?.trim(), {
+    message: "accountNumber is required for this account type",
+    path: ["accountNumber"],
+  });
 export type CreateBankAccount = z.infer<typeof createBankAccountSchema>;
 
 // `.partial()` isn't available on a ZodEffects (refined) schema, so derive the

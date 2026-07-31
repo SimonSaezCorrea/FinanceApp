@@ -150,11 +150,12 @@ sujeto a elegibilidad (cuenta y tarjeta activas, vía las `BillingEligibilityStr
 `domains/accounts/application/commands/generate-statements.handler.ts` desde la migración a DDD +
 CQRS de specs/009 — el viejo `billing-generation.service.ts` ya no existe) y a que haya habido uso (si nunca se abrió una facturación, no hay nada que
 cerrar). Dos disparadores comparten esta misma lógica:
+
 - **Cron diario** (`src/infra/cron/billing-generation.cron.ts`, `@nestjs/schedule`,
   `EVERY_DAY_AT_3AM`) — recorre TODAS las cuentas de TODOS los usuarios con `billingCycleDay`
   configurado (`GenerateAllDueStatementsCommand`, `scope: "system"`).
 - **Botón manual** "Generar facturación" en la pestaña Facturación (`POST
-  /accounts/:id/generate-statements`) — mismo código (`GenerateStatementsCommand`), por si el cron no ha
+/accounts/:id/generate-statements`) — mismo código (`GenerateStatementsCommand`), por si el cron no ha
   corrido todavía o se quiere forzar antes de tiempo.
 
 **Limitación conocida**: si el cron estuvo caído mucho tiempo (varios `billingCycleDay` vencidos sin

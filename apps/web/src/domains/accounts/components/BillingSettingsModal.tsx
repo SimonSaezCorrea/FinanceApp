@@ -72,7 +72,9 @@ export function BillingSettingsModal({
             aria-label={t("accounts.form.billingCycleDay")}
           />
         </Field>
-        <p className="-mt-2 text-xs text-muted-foreground">{t("accounts.form.billingCycleDayHint")}</p>
+        <p className="-mt-2 text-xs text-muted-foreground">
+          {t("accounts.form.billingCycleDayHint")}
+        </p>
 
         <Field label={t("accounts.form.paymentMethod")}>
           <Segmented

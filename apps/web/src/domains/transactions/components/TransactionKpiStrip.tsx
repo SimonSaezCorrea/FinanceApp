@@ -31,7 +31,11 @@ function MiniStat({
         {label}
       </span>
       <span className="text-sm font-semibold tabular-nums">
-        {currency ? formatMoney(amount, { currency, locale }) : <span className="text-muted-foreground">—</span>}
+        {currency ? (
+          formatMoney(amount, { currency, locale })
+        ) : (
+          <span className="text-muted-foreground">—</span>
+        )}
       </span>
     </div>
   );
@@ -74,7 +78,9 @@ export function TransactionKpiStrip({
             <div className="flex flex-col gap-1">
               <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                 {balanceLabel}
-                {groups.length > 1 && g ? <span className="font-medium">· {g.currency}</span> : null}
+                {groups.length > 1 && g ? (
+                  <span className="font-medium">· {g.currency}</span>
+                ) : null}
               </span>
               {g ? (
                 <span
@@ -84,7 +90,10 @@ export function TransactionKpiStrip({
                   )}
                 >
                   {isNegative ? "−" : "+"}
-                  {formatMoney(g.netBalance.replace(/^-/, ""), { currency: g.currency, locale: i18n.language })}
+                  {formatMoney(g.netBalance.replace(/^-/, ""), {
+                    currency: g.currency,
+                    locale: i18n.language,
+                  })}
                 </span>
               ) : (
                 <span className="text-2xl font-bold tabular-nums text-muted-foreground">—</span>

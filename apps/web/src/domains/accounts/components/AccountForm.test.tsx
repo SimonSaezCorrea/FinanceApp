@@ -21,9 +21,7 @@ describe("AccountForm", () => {
   it("renders name, type toggle, active switch, currency and balance fields", () => {
     renderForm();
     expect(screen.getByLabelText(i18n.t("accounts.form.name"))).toBeDefined();
-    expect(
-      screen.getByRole("group", { name: i18n.t("accounts.form.type") }),
-    ).toBeDefined();
+    expect(screen.getByRole("group", { name: i18n.t("accounts.form.type") })).toBeDefined();
     expect(
       screen.getByRole("switch", { name: i18n.t("accounts.form.accountActive") }),
     ).toBeDefined();

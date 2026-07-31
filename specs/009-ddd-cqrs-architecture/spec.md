@@ -20,7 +20,7 @@ A maintainer needs to add or change a business rule inside a domain (e.g. "a sta
 paid twice", "an inactive account cannot generate a new statement"). Today that rule can live
 anywhere inside a service that also talks to the database — it's easy to accidentally bypass it
 from another code path. After the migration, that rule lives inside one well-known object (the
-aggregate) that is the *only* way to change that piece of data, so it is structurally impossible
+aggregate) that is the _only_ way to change that piece of data, so it is structurally impossible
 to bypass, and the rule can be tested by itself with no database involved.
 
 **Why this priority**: This is the foundational promise of the whole migration — if invariants
@@ -43,7 +43,7 @@ access, and confirm the existing API behavior is unchanged from the outside.
 
 ### User Story 2 - React to something that happened, without touching the source (Priority: P2)
 
-A maintainer wants to add new behavior that happens *because* something else happened elsewhere
+A maintainer wants to add new behavior that happens _because_ something else happened elsewhere
 in the system (e.g. "when a statement is paid, eventually notify the user" or "when an account is
 deactivated, stop its recurring reminders"). Today that means editing the original service that
 caused the change. After the migration, the original change publishes a domain event, and the new
@@ -270,7 +270,7 @@ command, query, or event should live.
   lives, where a command/query/event lives, where its test lives) MUST be documented in the
   project's living memory (`CLAUDE.md` and `.specify/memory/constitution.md`) AND in the
   authoritative architecture reference (`docs/english/ARCHITECTURE.md` + `docs/spanish/
-  ARCHITECTURE.md`, kept in parity) clearly enough that a new domain can be built correctly by
+ARCHITECTURE.md`, kept in parity) clearly enough that a new domain can be built correctly by
   following the documentation alone, without cross-referencing already-migrated code.
 - **FR-019**: Domain events MUST be delivered in-process (no new distributed messaging
   infrastructure) for this iteration, and MUST be dispatched to their listeners synchronously by
@@ -344,7 +344,7 @@ command, query, or event should live.
 - `apps/web` and the shared `packages/` are unaffected by this feature — it is scoped entirely to
   `apps/api`.
 - Narrative business-rule docs that reference specific files (e.g. `docs/{english,spanish}/
-  BANKING_LOGIC.md`, which currently cites exact service/repository file paths for the accounts/
+BANKING_LOGIC.md`, which currently cites exact service/repository file paths for the accounts/
   billing domain) MUST have their file/path references updated to point at the new aggregate/
   handler locations wherever that domain is migrated — the business rules they describe don't
   change, only where the code enforcing them lives.

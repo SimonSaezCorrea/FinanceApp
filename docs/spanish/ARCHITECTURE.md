@@ -268,7 +268,7 @@ Tres reglas hacen que la división no debilite los aggregates:
 
 1. **Los límites de aggregate no cambian.** `CardAccount`/`CardLimit`/`BillingSettings` siguen siendo
    entidades del aggregate `BankAccount` y solo se escriben a través de él — sus dominios son dueños
-   de la *tabla*, nunca de las reglas. Igual `InstallmentPayment` bajo `InstallmentPlan` y
+   de la _tabla_, nunca de las reglas. Igual `InstallmentPayment` bajo `InstallmentPlan` y
    `SavingsEntry` bajo `SavingsGoal`. Esas carpetas tienen solo `domain/` + `infrastructure/`.
 2. **Leer una tabla ajena es componer su port**, nunca un `include` de Prisma:
    `PrismaBankAccountRepository` inyecta los ports de tarjeta/tope/facturación/institución para
@@ -299,12 +299,12 @@ documento es histórico. Para un dominio nuevo, espeja `accounts`.
 
 Cada dominio migrado gana **cuatro capas internas** bajo `src/domains/<dominio>/`:
 
-| Capa | Contiene | Nunca contiene |
-|---|---|---|
-| `domain/` | Aggregates (invariantes + ciclo de vida), objetos State, objetos Strategy, eventos de dominio, puertos de repositorio (interfaces), errores de dominio propios | Imports de Prisma, detalles HTTP |
-| `application/` | Objetos command/query + sus handlers (`ICommandHandler`/`IQueryHandler` de `@nestjs/cqrs`, sobre un Template Method compartido `BaseCommandHandler`/`BaseQueryHandler` en `src/infra/cqrs/`), listeners de eventos | Imports de Prisma, reglas de negocio duplicadas |
-| `infrastructure/` | Adaptadores Prisma que implementan los puertos del dominio — los ÚNICOS archivos del dominio con permiso para importar `@prisma/client` | Reglas de negocio |
-| `presentation/` | El controlador (un Facade delgado: request → command/query vía `CommandBus`/`QueryBus` → response) + DTOs Zod para body/query/**path params** (`ZodParamsPipe`, junto al ya existente `ZodValidationPipe`) | Reglas de negocio, llamadas directas a repositorio/Prisma |
+| Capa              | Contiene                                                                                                                                                                                                           | Nunca contiene                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
+| `domain/`         | Aggregates (invariantes + ciclo de vida), objetos State, objetos Strategy, eventos de dominio, puertos de repositorio (interfaces), errores de dominio propios                                                     | Imports de Prisma, detalles HTTP                          |
+| `application/`    | Objetos command/query + sus handlers (`ICommandHandler`/`IQueryHandler` de `@nestjs/cqrs`, sobre un Template Method compartido `BaseCommandHandler`/`BaseQueryHandler` en `src/infra/cqrs/`), listeners de eventos | Imports de Prisma, reglas de negocio duplicadas           |
+| `infrastructure/` | Adaptadores Prisma que implementan los puertos del dominio — los ÚNICOS archivos del dominio con permiso para importar `@prisma/client`                                                                            | Reglas de negocio                                         |
+| `presentation/`   | El controlador (un Facade delgado: request → command/query vía `CommandBus`/`QueryBus` → response) + DTOs Zod para body/query/**path params** (`ZodParamsPipe`, junto al ya existente `ZodValidationPipe`)         | Reglas de negocio, llamadas directas a repositorio/Prisma |
 
 Árbol de referencia (`accounts`, tras specs/009):
 
@@ -362,7 +362,7 @@ Patrones aplicados y por qué (razonamiento completo en
   alrededor del dispatch de un command/query es un interceptor de NestJS registrado **una sola vez**
   como `APP_INTERCEPTOR` global en `app.module.ts` — cubre el controlador de todos los dominios, y
   como cada controlador es un Facade delgado que despacha exactamente un command/query, el span del
-  request *es* el span del handler. Nunca envolver `CommandBus.execute` a mano ni poner un `Logger`
+  request _es_ el span del handler. Nunca envolver `CommandBus.execute` a mano ni poner un `Logger`
   dentro de un handler o de `BaseCommandHandler.execute`.
 - **Persistencia cross-aggregate** (FR-020): una acción de negocio que abarca inherentemente más de
   un aggregate en un solo paso atómico (pagar una facturación toca `CreditStatement` + un
@@ -378,7 +378,7 @@ Los **tests** se mueven fuera de `src/` a `apps/api/test/{unit,integration,e2e}/
 
 - `test/unit/**` — aggregates, states, strategies, handlers de command/query con **puertos falsos**
   (sin Prisma, sin HTTP, sin ninguna conexión a BD — demostrable corriendo `pnpm --filter
-  @finance/api test:unit` con Postgres detenido).
+@finance/api test:unit` con Postgres detenido).
 - `test/integration/**` — adaptadores Prisma + la garantía de rollback de la transacción
   cross-aggregate, contra una base de datos de test real.
 - `test/e2e/**` — flujos HTTP completos a través del controlador Facade, idénticos en

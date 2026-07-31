@@ -39,7 +39,9 @@ Add a throwaway listener:
 ```ts
 @EventsHandler(StatementPaidEvent)
 class LogStatementPaidListener implements IEventHandler<StatementPaidEvent> {
-  handle(event: StatementPaidEvent) { console.log("paid:", event.statementId); }
+  handle(event: StatementPaidEvent) {
+    console.log("paid:", event.statementId);
+  }
 }
 ```
 

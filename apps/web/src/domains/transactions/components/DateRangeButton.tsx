@@ -45,7 +45,8 @@ export function formatDateRangeLabel(
     const sameYear = from.slice(0, 4) === to.slice(0, 4);
     const sameMonth = sameYear && from.slice(5, 7) === to.slice(5, 7);
     if (sameMonth) return `${dayFmt(from)}–${dayFmt(to)} ${monthFmt(to)}`;
-    if (sameYear) return `${dayFmt(from)} ${monthFmt(from)} – ${dayFmt(to)} ${monthFmt(to)} ${yearFmt(to)}`;
+    if (sameYear)
+      return `${dayFmt(from)} ${monthFmt(from)} – ${dayFmt(to)} ${monthFmt(to)} ${yearFmt(to)}`;
     return `${dayFmt(from)} ${monthFmt(from)} ${yearFmt(from)} – ${dayFmt(to)} ${monthFmt(to)} ${yearFmt(to)}`;
   }
   if (from) return `${dayFmt(from)} ${monthFmt(from)} ${yearFmt(from)} –`;
@@ -111,7 +112,8 @@ export function DateRangeButton({ from, to, onChange }: Readonly<DateRangeButton
     };
   }, [open]);
 
-  const label = formatDateRangeLabel(from, to, i18n.language) || t("transactions.filters.dateRange");
+  const label =
+    formatDateRangeLabel(from, to, i18n.language) || t("transactions.filters.dateRange");
   const weekdays = useMemo(() => weekdayLabels(i18n.language), [i18n.language]);
   const grid = useMemo(
     () => buildMonthGrid(viewDate.getUTCFullYear(), viewDate.getUTCMonth()),
@@ -179,9 +181,7 @@ export function DateRangeButton({ from, to, onChange }: Readonly<DateRangeButton
               type="button"
               aria-label="Previous month"
               onClick={() =>
-                setViewDate(
-                  (d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 1, 1)),
-                )
+                setViewDate((d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 1, 1)))
               }
               className="rounded-md p-1 hover:bg-muted"
             >
@@ -192,9 +192,7 @@ export function DateRangeButton({ from, to, onChange }: Readonly<DateRangeButton
               type="button"
               aria-label="Next month"
               onClick={() =>
-                setViewDate(
-                  (d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)),
-                )
+                setViewDate((d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 1)))
               }
               className="rounded-md p-1 hover:bg-muted"
             >

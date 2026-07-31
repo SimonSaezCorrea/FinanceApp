@@ -83,9 +83,7 @@ export function BillingSection({ account }: { account: accounts.BankAccount }) {
                     {t(`accounts.detail.billingStatusValue.${s.status}`)}
                   </Badge>
                 </TD>
-                <TD>
-                  {s.paidAt ? new Date(s.paidAt).toLocaleDateString(i18n.language) : "—"}
-                </TD>
+                <TD>{s.paidAt ? new Date(s.paidAt).toLocaleDateString(i18n.language) : "—"}</TD>
                 <TD>
                   <div className="flex gap-2">
                     {s.status !== "PAID" ? (
@@ -146,14 +144,20 @@ function PayStatementModal({
       open={statement !== null}
       onOpenChange={onOpenChange}
       title={t("accounts.actions.payCredit")}
-      description={formatMoney(statement.amount, { locale: i18n.language, currency: account.currency })}
+      description={formatMoney(statement.amount, {
+        locale: i18n.language,
+        currency: account.currency,
+      })}
     >
       <div className="flex flex-col gap-4">
         <Field label={t("accounts.detail.payFromAccount")}>
           <Select
             value={fromAccountId}
             onChange={(e) => setFromAccountId(e.target.value)}
-            options={[{ value: "", label: t("accounts.detail.payFromAccountPlaceholder") }, ...options]}
+            options={[
+              { value: "", label: t("accounts.detail.payFromAccountPlaceholder") },
+              ...options,
+            ]}
             aria-label={t("accounts.detail.payFromAccount")}
           />
         </Field>

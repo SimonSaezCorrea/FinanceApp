@@ -107,7 +107,8 @@ export function TransactionCreateModal({
     : accounts.filter((a) => a.status === "ACTIVE");
   const selectedAccount = accounts.find((a) => a.id === bankAccountId);
   const isCreditLine = selectedAccount?.type === "CREDIT_LINE";
-  const isCardable = !!selectedAccount && accountsContract.isCardableAccountType(selectedAccount.type);
+  const isCardable =
+    !!selectedAccount && accountsContract.isCardableAccountType(selectedAccount.type);
   // A card is REQUIRED only for credit-line expenses; optional for other cardable accounts
   // (CHECKING/SIGHT). SAVINGS/INVESTMENT/CASH never carry a card of their own.
   const needsCard = type === "EXPENSE" && isCreditLine;
@@ -221,7 +222,10 @@ export function TransactionCreateModal({
               value={formatAmountDisplay(amount, groupingLocaleFor(currency, i18n.language))}
               onChange={(e) => handleAmountChange(e.target.value)}
               placeholder="0"
-              size={Math.max(1, formatAmountDisplay(amount, groupingLocaleFor(currency, i18n.language)).length)}
+              size={Math.max(
+                1,
+                formatAmountDisplay(amount, groupingLocaleFor(currency, i18n.language)).length,
+              )}
               className="bg-transparent text-center text-4xl font-bold tabular-nums text-accent focus-visible:outline-none"
               aria-label={t("transactions.form.amount")}
             />

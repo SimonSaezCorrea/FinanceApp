@@ -45,14 +45,14 @@ export class AccountsModule {}
 
 ## Where new code goes
 
-| Kind of change | Lives in |
-|---|---|
-| A new business rule / invariant | The aggregate (`domain/*.aggregate.ts`) |
-| A new lifecycle stage for an existing aggregate | A new `domain/states/*.ts` class |
-| A new "which category applies" decision | A new `domain/*.strategy.ts` implementation |
-| A new mutation | A new `application/commands/*.command.ts` + `*.handler.ts` pair |
-| A new read/report shape | A new `application/queries/*.query.ts` + `*.handler.ts` pair |
-| A new reaction to an existing event | A new `application/events/*.listener.ts` — zero changes to the publisher |
-| A new persistence operation an aggregate needs | Add the method to its `domain/ports/*.port.ts` interface, implement it in the matching `infrastructure/prisma-*.repository.ts` |
-| A new HTTP endpoint | A new controller method that only translates request -> command/query |
-| Its test | The mirrored path under `apps/api/test/{unit,integration,e2e}/domains/<domain>/<layer>/...` |
+| Kind of change                                  | Lives in                                                                                                                       |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| A new business rule / invariant                 | The aggregate (`domain/*.aggregate.ts`)                                                                                        |
+| A new lifecycle stage for an existing aggregate | A new `domain/states/*.ts` class                                                                                               |
+| A new "which category applies" decision         | A new `domain/*.strategy.ts` implementation                                                                                    |
+| A new mutation                                  | A new `application/commands/*.command.ts` + `*.handler.ts` pair                                                                |
+| A new read/report shape                         | A new `application/queries/*.query.ts` + `*.handler.ts` pair                                                                   |
+| A new reaction to an existing event             | A new `application/events/*.listener.ts` — zero changes to the publisher                                                       |
+| A new persistence operation an aggregate needs  | Add the method to its `domain/ports/*.port.ts` interface, implement it in the matching `infrastructure/prisma-*.repository.ts` |
+| A new HTTP endpoint                             | A new controller method that only translates request -> command/query                                                          |
+| Its test                                        | The mirrored path under `apps/api/test/{unit,integration,e2e}/domains/<domain>/<layer>/...`                                    |

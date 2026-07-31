@@ -26,7 +26,10 @@ abstract class BaseCommandHandler<TCommand extends BaseCommand, TResult> {
   }
 
   protected abstract loadContext(command: TCommand): Promise<unknown>;
-  protected abstract handle(command: TCommand, context: unknown): Promise<{ result: TResult; events: object[] }>;
+  protected abstract handle(
+    command: TCommand,
+    context: unknown,
+  ): Promise<{ result: TResult; events: object[] }>;
   protected abstract persist(context: unknown, result: TResult): Promise<void>;
 }
 ```

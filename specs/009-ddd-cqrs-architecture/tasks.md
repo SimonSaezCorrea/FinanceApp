@@ -19,13 +19,13 @@ not necessarily parallel). Phase 9 is polish/docs.
 
 **Purpose**: Tooling and scaffolding every later phase depends on.
 
-- [X] T001 Add `@nestjs/cqrs` dependency to `apps/api/package.json` and run `pnpm install`
-- [X] T002 [P] Create the mirrored test tree skeleton: `apps/api/test/{unit,integration,e2e}/` with a
+- [x] T001 Add `@nestjs/cqrs` dependency to `apps/api/package.json` and run `pnpm install`
+- [x] T002 [P] Create the mirrored test tree skeleton: `apps/api/test/{unit,integration,e2e}/` with a
       `.gitkeep` each, and add `test:unit`/`test:integration`/`test:e2e` scripts to
       `apps/api/package.json` (Vitest `--dir` per tree)
-- [X] T003 [P] Implement `ZodParamsPipe` in `apps/api/src/infra/http/zod-params.pipe.ts` (mirrors
+- [x] T003 [P] Implement `ZodParamsPipe` in `apps/api/src/infra/http/zod-params.pipe.ts` (mirrors
       the existing `ZodValidationPipe`, validates `@Param()` instead of body/query)
-- [X] T004 Move any existing colocated `*.spec.ts` files that are NOT part of this migration's
+- [x] T004 Move any existing colocated `*.spec.ts` files that are NOT part of this migration's
       first domain (`accounts`) out of `src/` into the new `apps/api/test/unit/domains/<domain>/`
       tree unchanged, updating only relative import paths, so `src/` starts empty of tests
       immediately (independent of the rest of the migration timeline)
@@ -40,19 +40,19 @@ have a validation mechanism ready to use.
 **Purpose**: The shared shapes every domain's migration (starting with `accounts`) builds on.
 **⚠️ CRITICAL**: No user story work begins until this phase is complete.
 
-- [X] T005 Implement `BaseCommandHandler<TCommand, TResult>` (Template Method, FR-007) in
+- [x] T005 Implement `BaseCommandHandler<TCommand, TResult>` (Template Method, FR-007) in
       `apps/api/src/infra/cqrs/base-command.handler.ts` per `contracts/layer-contracts.md`,
       including the `UserScopedCommand`/`SystemCommand` (`scope: "user" | "system"`) split so
       `loadContext` knows when to skip per-user scoping, and the overridable `persist()` step
       that lets a handler wrap multiple aggregates' saves in one `prisma.$transaction(...)`
       (see T029a)
-- [X] T006 [P] Implement `BaseQueryHandler<TQuery, TResult>` (same Template Method shape, read-only
+- [x] T006 [P] Implement `BaseQueryHandler<TQuery, TResult>` (same Template Method shape, read-only
       variant — no `persist`/event-publish steps) in
       `apps/api/src/infra/cqrs/base-query.handler.ts`
-- [X] T007 [P] Document the per-domain module wiring convention (how a domain's `*.module.ts`
+- [x] T007 [P] Document the per-domain module wiring convention (how a domain's `*.module.ts`
       registers `CqrsModule`, its command/query handlers, and its event listeners) as a code
       comment/example in `apps/api/src/infra/cqrs/README.md`
-- [X] T008 Add `CronModule`'s existing cron trigger contract note: confirm
+- [x] T008 Add `CronModule`'s existing cron trigger contract note: confirm
       `BillingGenerationCron` (in `src/infra/cron/billing-generation.cron.ts`) will call the new
       `GenerateAllDueStatementsCommand` post-migration (no code change yet, just confirm the
       command shape from `data-model.md` covers it) — prevents rework in Phase 6
@@ -73,33 +73,33 @@ second call, proven by a unit test with no Postgres connection.
 
 ### Tests for User Story 1
 
-- [X] T009 [P] [US1] Unit test: `BankAccount` invariants (cardable types, `ACCOUNT_NUMBER_REQUIRED`,
+- [x] T009 [P] [US1] Unit test: `BankAccount` invariants (cardable types, `ACCOUNT_NUMBER_REQUIRED`,
       credit-limit projection) in `apps/api/test/unit/domains/accounts/domain/bank-account.aggregate.spec.ts`
-- [X] T010 [P] [US1] Unit test: `CreditStatement` state transitions (`OPEN→PENDING→PAID`, reject
+- [x] T010 [P] [US1] Unit test: `CreditStatement` state transitions (`OPEN→PENDING→PAID`, reject
       double-pay, reject correcting an unpaid one) in
       `apps/api/test/unit/domains/accounts/domain/credit-statement.aggregate.spec.ts`
-- [X] T011 [P] [US1] Unit test: each `CreditStatementState` (`Open`/`Pending`/`Paid`) in isolation
+- [x] T011 [P] [US1] Unit test: each `CreditStatementState` (`Open`/`Pending`/`Paid`) in isolation
       in `apps/api/test/unit/domains/accounts/domain/states/*.spec.ts`
-- [X] T012 [P] [US1] Unit test: `BillingEligibilityStrategy` implementations (`CreditLineEligibility`,
+- [x] T012 [P] [US1] Unit test: `BillingEligibilityStrategy` implementations (`CreditLineEligibility`,
       `AddOnCardEligibility`) in
       `apps/api/test/unit/domains/accounts/domain/billing-eligibility.strategy.spec.ts`
 
 ### Implementation for User Story 1
 
-- [X] T013 [US1] Create `BankAccount` aggregate in
+- [x] T013 [US1] Create `BankAccount` aggregate in
       `apps/api/src/domains/accounts/domain/bank-account.aggregate.ts` (port over invariants
       currently in `accounts.service.ts`/`cards.service.ts`, per `data-model.md`)
-- [X] T014 [US1] Create `CreditStatementState` interface + `OpenState`/`PendingState`/`PaidState`
+- [x] T014 [US1] Create `CreditStatementState` interface + `OpenState`/`PendingState`/`PaidState`
       in `apps/api/src/domains/accounts/domain/states/` (State pattern, FR-005)
-- [X] T015 [US1] Create `CreditStatement` aggregate in
+- [x] T015 [US1] Create `CreditStatement` aggregate in
       `apps/api/src/domains/accounts/domain/credit-statement.aggregate.ts` delegating
       `canClose`/`canPay`/`canCorrectAmount` to `this.state` (depends on T014)
-- [X] T016 [US1] Create `BillingEligibilityStrategy` interface + `CreditLineEligibility`/
+- [x] T016 [US1] Create `BillingEligibilityStrategy` interface + `CreditLineEligibility`/
       `AddOnCardEligibility` in `apps/api/src/domains/accounts/domain/billing-eligibility.strategy.ts`
       (Strategy pattern, FR-006 — ports over the `isEligible` logic from `BillingGenerationService`)
-- [X] T017 [US1] Create repository ports `BankAccountRepositoryPort`/`CreditStatementRepositoryPort`
+- [x] T017 [US1] Create repository ports `BankAccountRepositoryPort`/`CreditStatementRepositoryPort`
       in `apps/api/src/domains/accounts/domain/ports/` (domain-owned interfaces, zero Prisma imports)
-- [X] T018 [US1] Create custom domain errors (`StatementAlreadyPaidError`,
+- [x] T018 [US1] Create custom domain errors (`StatementAlreadyPaidError`,
       `AccountInactiveError`, etc.) in `apps/api/src/domains/accounts/domain/errors.ts`
 
 **Checkpoint**: `accounts`/billing's business rules are fully aggregate-owned and unit-tested.
@@ -117,17 +117,17 @@ changes to the paying command/handler.
 
 ### Tests for User Story 2
 
-- [X] T019 [P] [US2] Unit test: `CreditStatement.pay()`/`.close()`/`BankAccount.deactivate()`
+- [x] T019 [P] [US2] Unit test: `CreditStatement.pay()`/`.close()`/`BankAccount.deactivate()`
       each return the expected event object in their aggregate spec files (extend T010/T009)
 
 ### Implementation for User Story 2
 
-- [X] T020 [P] [US2] Create `StatementClosedEvent`, `StatementPaidEvent`, `AccountDeactivatedEvent`
+- [x] T020 [P] [US2] Create `StatementClosedEvent`, `StatementPaidEvent`, `AccountDeactivatedEvent`
       in `apps/api/src/domains/accounts/domain/events/`
-- [X] T021 [US2] Wire `CreditStatement`/`BankAccount` aggregate methods to collect and return these
+- [x] T021 [US2] Wire `CreditStatement`/`BankAccount` aggregate methods to collect and return these
       events (depends on T015/T013)
-- [X] T022 [US2] Register `CqrsModule` + `EventBus` in `apps/api/src/domains/accounts/accounts.module.ts`
-- [X] T023 [US2] Create the reference listener `LogStatementPaidListener` in
+- [x] T022 [US2] Register `CqrsModule` + `EventBus` in `apps/api/src/domains/accounts/accounts.module.ts`
+- [x] T023 [US2] Create the reference listener `LogStatementPaidListener` in
       `apps/api/src/domains/accounts/application/events/log-statement-paid.listener.ts`
       (`@EventsHandler(StatementPaidEvent)`, per quickstart.md step 3) — synchronous, the default
       per Clarifications
@@ -152,59 +152,59 @@ needs to change.
 
 ### Tests for User Story 3
 
-- [X] T024 [P] [US3] Unit test: `PayCreditStatementHandler` using a fake
+- [x] T024 [P] [US3] Unit test: `PayCreditStatementHandler` using a fake
       `CreditStatementRepositoryPort` (no Prisma) in
       `apps/api/test/unit/domains/accounts/application/commands/pay-credit-statement.handler.spec.ts`
-- [X] T025 [P] [US3] Unit test: `GenerateStatementsHandler`/`GenerateAllDueStatementsHandler` in
+- [x] T025 [P] [US3] Unit test: `GenerateStatementsHandler`/`GenerateAllDueStatementsHandler` in
       `apps/api/test/unit/domains/accounts/application/commands/generate-statements.handler.spec.ts`
-- [X] T026 [P] [US3] Unit test: `CorrectStatementAmountHandler` (rejects on non-PAID statement) in
+- [x] T026 [P] [US3] Unit test: `CorrectStatementAmountHandler` (rejects on non-PAID statement) in
       `apps/api/test/unit/domains/accounts/application/commands/correct-statement-amount.handler.spec.ts`
-- [X] T027 [P] [US3] Unit test: `ListCreditStatementsQueryHandler`/`GetAccountQueryHandler` in
+- [x] T027 [P] [US3] Unit test: `ListCreditStatementsQueryHandler`/`GetAccountQueryHandler` in
       `apps/api/test/unit/domains/accounts/application/queries/*.spec.ts`
 
 ### Implementation for User Story 3
 
-- [X] T028 [P] [US3] Create commands `PayCreditStatementCommand`, `GenerateStatementsCommand`,
+- [x] T028 [P] [US3] Create commands `PayCreditStatementCommand`, `GenerateStatementsCommand`,
       `CorrectStatementAmountCommand` (all `scope: "user"`) and `GenerateAllDueStatementsCommand`
       (`scope: "system"`, no `userId` — the cron trigger, per `data-model.md`) in
       `apps/api/src/domains/accounts/application/commands/*.command.ts`
-- [X] T029 [US3] Implement `PayCreditStatementHandler` extending `BaseCommandHandler` in
+- [x] T029 [US3] Implement `PayCreditStatementHandler` extending `BaseCommandHandler` in
       `apps/api/src/domains/accounts/application/commands/pay-credit-statement.handler.ts`
       (depends on T005, T015, T017) — its `handle()` step touches THREE aggregates
       (`CreditStatement`, the new payment `Transaction`, `BankAccount`), so its `persist()` MUST
       use the cross-aggregate transactional override (see next task), never three independent
       `save()` calls
-- [X] T029a [US3] Add `saveWithTx(tx, aggregate)` to `BankAccountRepositoryPort`/
+- [x] T029a [US3] Add `saveWithTx(tx, aggregate)` to `BankAccountRepositoryPort`/
       `CreditStatementRepositoryPort` (and their Prisma adapters from T034) and override
       `PayCreditStatementHandler.persist()` to wrap all three saves in one
       `prisma.$transaction(...)`, per `contracts/layer-contracts.md`'s "Cross-aggregate
       persistence" section (closes FR-020's atomicity requirement — depends on T029, T034)
-- [X] T029b [P] [US3] Integration test: force a failure on the THIRD save inside
+- [x] T029b [P] [US3] Integration test: force a failure on the THIRD save inside
       `PayCreditStatementHandler`'s transaction (e.g. a broken `BankAccount` write) and assert
       the `CreditStatement` and payment `Transaction` writes are ALSO rolled back — proves the
       atomicity guarantee, not just that all three succeed on the happy path — in
       `apps/api/test/integration/domains/accounts/application/pay-credit-statement.transaction.spec.ts`
       (depends on T029a)
-- [X] T030 [US3] Implement `GenerateStatementsHandler`/`GenerateAllDueStatementsHandler` in
+- [x] T030 [US3] Implement `GenerateStatementsHandler`/`GenerateAllDueStatementsHandler` in
       `apps/api/src/domains/accounts/application/commands/generate-statements.handler.ts`
       (ports over `BillingGenerationService`, depends on T016)
-- [X] T031 [US3] Implement `CorrectStatementAmountHandler` in
+- [x] T031 [US3] Implement `CorrectStatementAmountHandler` in
       `apps/api/src/domains/accounts/application/commands/correct-statement-amount.handler.ts`
-- [X] T032 [P] [US3] Create queries `ListCreditStatementsQuery`, `GetAccountQuery` in
+- [x] T032 [P] [US3] Create queries `ListCreditStatementsQuery`, `GetAccountQuery` in
       `apps/api/src/domains/accounts/application/queries/*.query.ts`
-- [X] T033 [US3] Implement `ListCreditStatementsQueryHandler`/`GetAccountQueryHandler` extending
+- [x] T033 [US3] Implement `ListCreditStatementsQueryHandler`/`GetAccountQueryHandler` extending
       `BaseQueryHandler` in `apps/api/src/domains/accounts/application/queries/*.handler.ts`
-- [X] T034 [US3] Implement `PrismaBankAccountRepository`/`PrismaCreditStatementRepository`
+- [x] T034 [US3] Implement `PrismaBankAccountRepository`/`PrismaCreditStatementRepository`
       (Adapter, FR-011) in `apps/api/src/domains/accounts/infrastructure/prisma-*.repository.ts`,
       implementing the ports from T017 — the only files in this domain allowed to import
       `@prisma/client`
-- [X] T035 [US3] Rewrite `apps/api/src/domains/accounts/presentation/accounts.controller.ts` as a
+- [x] T035 [US3] Rewrite `apps/api/src/domains/accounts/presentation/accounts.controller.ts` as a
       thin Facade (FR-012): translate request → command/query via `CommandBus`/`QueryBus`, using
       `ZodParamsPipe` (T003) for every path param — remove the old `accounts.service.ts`/
       `accounts.repository.ts` business logic entirely once every call site is migrated
-- [X] T036 [US3] Integration test: `PrismaCreditStatementRepository` against the real test DB in
+- [x] T036 [US3] Integration test: `PrismaCreditStatementRepository` against the real test DB in
       `apps/api/test/integration/domains/accounts/infrastructure/prisma-credit-statement.repository.spec.ts`
-- [X] T037 [US3] E2E test: full pay/generate/correct HTTP flows in
+- [x] T037 [US3] E2E test: full pay/generate/correct HTTP flows in
       `apps/api/test/e2e/domains/accounts/accounts.http.spec.ts` (must pass identically to the
       pre-migration behavior — SC-001)
 
@@ -223,10 +223,10 @@ this phase validates and documents the pattern for reuse.
 **Independent Test**: `pnpm --filter @finance/api test:unit` and `test:integration` each target
 only their own tree and pass independently.
 
-- [X] T038 [US4] Confirm zero database connections open during `test:unit` for `accounts` (stop
+- [x] T038 [US4] Confirm zero database connections open during `test:unit` for `accounts` (stop
       local Postgres, re-run `test:unit`, confirm pass) — document the check in `quickstart.md`
       step 1 as verified
-- [X] T039 [US4] Add a root `pnpm --filter @finance/api test` convenience script that runs all
+- [x] T039 [US4] Add a root `pnpm --filter @finance/api test` convenience script that runs all
       three trees in sequence (unit → integration → e2e), for CI/local full-suite runs
 
 **Checkpoint**: The three-tier test split is proven on a real (not toy) domain.
@@ -241,18 +241,18 @@ only their own tree and pass independently.
 **Independent Test**: Someone unfamiliar with the codebase can predict where a new rule/command/
 query/event goes, from docs alone.
 
-- [X] T040 [P] [US5] Update `CLAUDE.md`'s `accounts` architecture section to describe the new
+- [x] T040 [P] [US5] Update `CLAUDE.md`'s `accounts` architecture section to describe the new
       four-layer structure, replacing the old flat-service description (keep prior amendments as
       history, add a new dated amendment per existing convention)
-- [X] T041 [P] [US5] Update `.specify/memory/constitution.md`: bump version, add the DDD+CQRS
+- [x] T041 [P] [US5] Update `.specify/memory/constitution.md`: bump version, add the DDD+CQRS
       pattern as a durable principle/constraint (four layers, Command/Query separation, event
       dispatch defaults, pattern list from spec FR-005–FR-014)
-- [X] T042 [P] [US5] Update `docs/english/ARCHITECTURE.md` and `docs/spanish/ARCHITECTURE.md` (kept
+- [x] T042 [P] [US5] Update `docs/english/ARCHITECTURE.md` and `docs/spanish/ARCHITECTURE.md` (kept
       in parity) with the full four-layer pattern description + the `accounts` reference tree
-- [X] T043 [P] [US5] Update `docs/english/BANKING_LOGIC.md` and `docs/spanish/BANKING_LOGIC.md`:
+- [x] T043 [P] [US5] Update `docs/english/BANKING_LOGIC.md` and `docs/spanish/BANKING_LOGIC.md`:
       replace file/path references to the old `accounts.service.ts`/`billing-generation.service.ts`
       locations with the new aggregate/handler paths (business rules unchanged, only their home)
-- [X] T044 [US5] Cross-read all four updated documents (`CLAUDE.md`, constitution, both
+- [x] T044 [US5] Cross-read all four updated documents (`CLAUDE.md`, constitution, both
       `ARCHITECTURE.md`) and confirm no contradictions (SC-004a) — fix any found
 
 **Checkpoint**: Documentation parity achieved; `accounts` is now a citable reference for the
@@ -274,13 +274,12 @@ aggregates/states/strategies → commands/queries → adapters → controller �
 the exact Phase 3–5 pattern, then work that expanded list — do not attempt the one-line version
 literally.
 
-- [X] T045 [auth] Migrate `auth` domain to the four-layer pattern (aggregate: `User` invariants —
+- [x] T045 [auth] Migrate `auth` domain to the four-layer pattern (aggregate: `User` invariants —
       e.g. `ACCOUNT_DISABLED` login rejection; likely no State/Strategy needed — see plan.md
       Structure Decision for the per-domain shape). Expanded/executed as: domain (`user.aggregate.ts`,
       `errors.ts`, `events/user-deactivated.event.ts`, `ports/user.repository.port.ts`) → application
       (`token-issuer.ts` + commands `Register/Login/RefreshToken` as `SystemCommand` per the
-      `GenerateAllDueStatementsCommand` precedent, `UpdateProfile/ChangePassword/UpdatePreferences/
-      DeactivateAccount` as `UserScopedCommand`, query `GetMe`) → infrastructure
+      `GenerateAllDueStatementsCommand` precedent, `UpdateProfile/ChangePassword/UpdatePreferences/DeactivateAccount` as `UserScopedCommand`, query `GetMe`) → infrastructure
       (`prisma-user.repository.ts`, only file importing `@prisma/client`, maps `P2002` to
       `EmailTakenError`) → presentation (`auth.controller.ts` rewritten as a thin Facade over
       `CommandBus`/`QueryBus`, cookie-setting kept as a presentation concern). Old `auth.service.ts`/
@@ -292,18 +291,17 @@ literally.
       (`e2e/domains/auth/auth.http.spec.ts`) written but not run here (no reachable Postgres in this
       sandbox). `pnpm --filter @finance/api typecheck`, `test:unit`, `check:boundaries`, and
       `pnpm --filter @finance/web typecheck` all verified green.
-- [X] T046 [transactions] Migrate `transactions` domain (aggregate: `Transaction` +
+- [x] T046 [transactions] Migrate `transactions` domain (aggregate: `Transaction` +
       its credit-pool contribution/statement-linking rules currently in `transactions.service.ts`
       — this one is tightly coupled to `accounts`'s `CreditStatement`; coordinate ports carefully)
-- [X] T047 [installments] Migrate `installments` domain (aggregate: `InstallmentPlan` +
+- [x] T047 [installments] Migrate `installments` domain (aggregate: `InstallmentPlan` +
       `InstallmentPayment` pay/unpay invariants). Expanded/executed as: domain
       (`installment-plan.aggregate.ts` — `planCreation` factory ports the equal-principal
       schedule generation from `@finance/money`'s `equalPrincipalSchedule` + due-date stepping
       unchanged, `markPaymentPaid`/`markPaymentUnpaid` enforce the "payment must exist on this
       plan" invariant (`INSTALLMENT_PAYMENT_NOT_FOUND`), intentionally idempotent (no
       already-paid error, mirrors the pre-migration repository); `errors.ts`
-      (`InstallmentPlanNotFoundError`/`InstallmentPaymentNotFoundError`, both 404); `ports/
-      installment-plan.repository.port.ts`, zero Prisma imports) → application (commands
+      (`InstallmentPlanNotFoundError`/`InstallmentPaymentNotFoundError`, both 404); `ports/installment-plan.repository.port.ts`, zero Prisma imports) → application (commands
       `CreateInstallmentPlan`/`UpdateInstallmentPlan`/`PayInstallment`/`UnpayInstallment`/
       `RemoveInstallmentPlan` as `UserScopedCommand`, extending `BaseCommandHandler`; pay/unpay
       load the full plan to validate ownership + the invariant, then persist only that payment's
@@ -320,9 +318,8 @@ literally.
       (`infrastructure/prisma-installment-plan.repository.spec.ts`) and e2e
       (`e2e/domains/installments/installments.http.spec.ts`) written but not run here (no
       reachable Postgres in this sandbox). `pnpm --filter @finance/api typecheck`, `test:unit`
-      (190/190 passing across 43 files), `check:boundaries`, and `pnpm --filter @finance/web
-      typecheck` all verified green.
-- [X] T048 [debts] Migrate `debts` domain (aggregate: `Debt` settle/unsettle invariants). Expanded/
+      (190/190 passing across 43 files), `check:boundaries`, and `pnpm --filter @finance/webtypecheck` all verified green.
+- [x] T048 [debts] Migrate `debts` domain (aggregate: `Debt` settle/unsettle invariants). Expanded/
       executed as: domain (`debt.aggregate.ts` — `planCreation` factory ports the plain field
       mapping from `DebtsService.create`, `settle()` sets `settledAt` directly with no guard
       (mirrors the pre-migration behavior exactly — it never checked prior state either),
@@ -344,7 +341,7 @@ literally.
       (`e2e/domains/debts/debts.http.spec.ts`) written but not run here (no reachable Postgres in
       this sandbox). `pnpm --filter @finance/api typecheck`, `test:unit` (213/213 passing across 48
       files), `check:boundaries`, and `pnpm --filter @finance/web typecheck` all verified green.
-- [X] T049 [recurring] Migrate `recurring` domain (aggregate: `RecurringExpense`,
+- [x] T049 [recurring] Migrate `recurring` domain (aggregate: `RecurringExpense`,
       `nextDueAt` computation). Expanded/executed as: domain
       (`recurring-expense.aggregate.ts` — `planCreation` factory ports the plain
       field mapping/defaults (`category`/`bankAccountId`/`notes` → `null`,
@@ -353,8 +350,7 @@ literally.
       old service (still pure, zero DB); no settle-like state machine — `active`
       is just another `applyUpdate` field, mirroring the pre-migration
       `RecurringService.update`'s partial-patch exactly; `errors.ts`
-      (`RecurringExpenseNotFoundError`, 404); `ports/
-      recurring-expense.repository.port.ts`, zero Prisma imports) → application
+      (`RecurringExpenseNotFoundError`, 404); `ports/recurring-expense.repository.port.ts`, zero Prisma imports) → application
       (commands `CreateRecurringExpense`/`UpdateRecurringExpense`/
       `RemoveRecurringExpense` as `UserScopedCommand`, extending
       `BaseCommandHandler`; queries `ListRecurringExpenses`/`GetRecurringExpense`
@@ -371,22 +367,19 @@ literally.
       `recurring.service.spec.ts`. Tests: unit
       (`domain/recurring-expense.aggregate.spec.ts` — covers `nextDue` across
       WEEKLY/MONTHLY/YEARLY plus `planCreation`/`applyUpdate`/`toContract`,
-      `application/commands/*.spec.ts`, `application/queries/
-      recurring-expense.handlers.spec.ts` — all passing with zero DB),
+      `application/commands/*.spec.ts`, `application/queries/recurring-expense.handlers.spec.ts` — all passing with zero DB),
       integration (`infrastructure/prisma-recurring-expense.repository.spec.ts`)
       and e2e (`e2e/domains/recurring/recurring.http.spec.ts`) written but not
-      run here (no reachable Postgres in this sandbox). `pnpm --filter
-      @finance/api typecheck`, `test:unit` (223/223 passing across 52 files),
+      run here (no reachable Postgres in this sandbox). `pnpm --filter@finance/api typecheck`, `test:unit` (223/223 passing across 52 files),
       `check:boundaries`, and `pnpm --filter @finance/web typecheck` all
       verified green.
-- [X] T050 [savings] Migrate `savings` domain (aggregate: `SavingsGoal` + `SavingsEntry`).
+- [x] T050 [savings] Migrate `savings` domain (aggregate: `SavingsGoal` + `SavingsEntry`).
       Expanded/executed as: domain (`savings-goal.aggregate.ts` — `planCreation` factory ports
       the plain field mapping/defaults (`deadline` → `null`) from `SavingsService.createGoal`'s
       inline object; `applyUpdate` is a plain partial-patch, mirroring the pre-migration
       `SavingsService.updateGoal` exactly (no settle-like state machine); `savings-entry.aggregate.ts`
       — immutable, `planCreation` only, matching the pre-migration service which never exposed
-      update/delete for entries; `errors.ts` (`SavingsGoalNotFoundError`, 404); `ports/
-      savings-goal.repository.port.ts` + `ports/savings-entry.repository.port.ts`, zero Prisma
+      update/delete for entries; `errors.ts` (`SavingsGoalNotFoundError`, 404); `ports/savings-goal.repository.port.ts` + `ports/savings-entry.repository.port.ts`, zero Prisma
       imports) → application (commands `CreateSavingsGoal`/`UpdateSavingsGoal`/`RemoveSavingsGoal`/
       `CreateSavingsEntry` as `UserScopedCommand`, extending `BaseCommandHandler`; queries
       `ListSavingsGoals`/`GetSavingsGoal`/`ListSavingsEntries` extending `BaseQueryHandler`) →
@@ -403,9 +396,9 @@ literally.
       (`e2e/domains/savings/savings.http.spec.ts`) written but not run here (no reachable Postgres
       in this sandbox). `pnpm --filter @finance/api typecheck`, `test:unit` (240/240 passing across
       59 files), `check:boundaries`, and `pnpm --filter @finance/web typecheck` all verified green.
-- [X] T051 [investments] Migrate `investments` domain (aggregate: `Investment`,
+- [x] T051 [investments] Migrate `investments` domain (aggregate: `Investment`,
       ETF price-cache read path as a query)
-- [X] T052 [import] Migrate `import` domain (command: bulk-import rows; likely
+- [x] T052 [import] Migrate `import` domain (command: bulk-import rows; likely
       command-only, no long-lived aggregate — confirmed genuinely so: no
       state machine, no invariant beyond what
       `importTransactionsRequestSchema` already validates at the HTTP
@@ -432,13 +425,12 @@ literally.
       passing with zero DB), integration
       (`infrastructure/prisma-import.repository.spec.ts`) and e2e
       (`e2e/domains/import/import.http.spec.ts`) written but not run here (no
-      reachable Postgres in this sandbox). `pnpm --filter @finance/api
-      typecheck`, `test:unit` (255/255 passing across 64 files),
+      reachable Postgres in this sandbox). `pnpm --filter @finance/apitypecheck`, `test:unit` (255/255 passing across 64 files),
       `check:boundaries`, and `pnpm --filter @finance/web typecheck` all
       verified green.
-- [X] T053 [wallet] Migrate `wallet` domain (aggregate: `WalletItemDashboard`
+- [x] T053 [wallet] Migrate `wallet` domain (aggregate: `WalletItemDashboard`
       XOR card/account invariant)
-- [X] T054 [reference] Migrate `reference` domain (read-only — per Clarifications,
+- [x] T054 [reference] Migrate `reference` domain (read-only — per Clarifications,
       still gets full structure: queries only, no commands, since there are no writes to protect).
       Expanded/executed as: domain (no aggregate — genuinely no invariant to protect, per the
       task's own guidance; no `errors.ts` either, the pre-migration controller never threw;
@@ -472,15 +464,15 @@ literally.
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [X] T055 [P] Apply the Decorator pattern (FR-013) for logging/timing around command/query
+- [x] T055 [P] Apply the Decorator pattern (FR-013) for logging/timing around command/query
       handlers via a shared NestJS interceptor in `apps/api/src/infra/cqrs/handler-logging.interceptor.ts`,
       applied first to `accounts` then to each domain as it's migrated
-- [X] T056 [P] Remove now-dead code: old `*.service.ts`/`*.repository.ts` files per domain once
+- [x] T056 [P] Remove now-dead code: old `*.service.ts`/`*.repository.ts` files per domain once
       their replacement is verified (do this per-domain immediately after that domain's checkpoint,
       not in one big pass at the end)
-- [X] T057 Run `pnpm --filter @finance/api test`, `pnpm --filter @finance/api typecheck`, and
+- [x] T057 Run `pnpm --filter @finance/api test`, `pnpm --filter @finance/api typecheck`, and
       `pnpm --filter @finance/web typecheck` (contracts unchanged, but confirm) as the final gate
-- [X] T058 Run the full `quickstart.md` validation guide end to end
+- [x] T058 Run the full `quickstart.md` validation guide end to end
 
 ---
 

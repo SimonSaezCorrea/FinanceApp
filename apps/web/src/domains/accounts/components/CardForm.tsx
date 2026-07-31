@@ -197,10 +197,16 @@ export function CardForm({
             {t("cards.primaryBadge")}
           </span>
           <p className="-mt-1 text-xs text-muted-foreground">{t("cards.form.primaryLimitHint")}</p>
-          <Field label={t("cards.form.primaryLimit", { currency: accountCurrency })} error={limitError}>
+          <Field
+            label={t("cards.form.primaryLimit", { currency: accountCurrency })}
+            error={limitError}
+          >
             <Input
               inputMode="numeric"
-              value={formatAmountDisplay(primaryLimitAmount, groupingLocaleFor(accountCurrency, i18n.language))}
+              value={formatAmountDisplay(
+                primaryLimitAmount,
+                groupingLocaleFor(accountCurrency, i18n.language),
+              )}
               onChange={(e) => setPrimaryLimitAmount(e.target.value.replace(/\D/g, ""))}
               aria-label={t("cards.form.primaryLimit", { currency: accountCurrency })}
             />
@@ -223,7 +229,9 @@ export function CardForm({
                   {t("cards.form.addLimit")}
                 </Button>
               </div>
-              <p className="-mt-1 text-xs text-muted-foreground">{t("cards.form.extraLimitsHint")}</p>
+              <p className="-mt-1 text-xs text-muted-foreground">
+                {t("cards.form.extraLimitsHint")}
+              </p>
 
               {limits.map((limit, i) => (
                 <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">

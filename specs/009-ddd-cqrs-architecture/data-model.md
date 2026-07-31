@@ -27,7 +27,7 @@ and concretely for the reference domain (`accounts`/billing).
 
 - Command: a plain data object, always including `userId` (Principle II) plus whatever the
   operation needs (e.g. `PayCreditStatementCommand { userId, accountId, statementId,
-  fromAccountId }`).
+fromAccountId }`).
 - Handler: implements `ICommandHandler<TCommand>` from `@nestjs/cqrs`, extends the shared
   `BaseCommandHandler` (Template Method) which fixes the skeleton: load aggregate(s) scoped to
   `userId` → invoke the aggregate method → persist via the repository port → publish resulting
@@ -66,11 +66,11 @@ and concretely for the reference domain (`accounts`/billing).
 - Wraps the existing `CreditStatement` Prisma row plus its linked transactions' live sum.
 - State object per lifecycle stage (`domain/states/`), each implementing the same interface:
 
-  | State | `canClose()` | `canPay()` | `canCorrectAmount()` |
-  |---|---|---|---|
-  | `OpenState` | only if due date passed + account/card eligible (Strategy) | yes (early payment allowed) | no — no frozen amount yet |
-  | `PendingState` | n/a (already closed) | yes | no — still live, edit via linked transactions |
-  | `PaidState` | n/a | no — `StatementAlreadyPaidError` | yes — the one state where correction is allowed |
+  | State          | `canClose()`                                               | `canPay()`                       | `canCorrectAmount()`                            |
+  | -------------- | ---------------------------------------------------------- | -------------------------------- | ----------------------------------------------- |
+  | `OpenState`    | only if due date passed + account/card eligible (Strategy) | yes (early payment allowed)      | no — no frozen amount yet                       |
+  | `PendingState` | n/a (already closed)                                       | yes                              | no — still live, edit via linked transactions   |
+  | `PaidState`    | n/a                                                        | no — `StatementAlreadyPaidError` | yes — the one state where correction is allowed |
 
 - Methods: `close(boundaryDate)`, `pay(amount, fromAccountId, paymentTxId)`, `correctAmount(newAmount)`
   — each delegates the "is this allowed right now" question to `this.state`, then transitions
@@ -108,6 +108,6 @@ All commands below implement `BaseCommand` (`contracts/layer-contracts.md`): use
 ### Ports (accounts/billing)
 
 - `BankAccountRepositoryPort`: `findById(userId, id)`, `save(aggregate)`, `listByUser(userId,
-  filters)`.
+filters)`.
 - `CreditStatementRepositoryPort`: `findById(userId, accountId, statementId)`,
   `findOpenForAccount(accountId)`, `save(aggregate)`, `listForAccount(userId, accountId)`.

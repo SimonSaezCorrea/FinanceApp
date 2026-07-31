@@ -29,14 +29,14 @@ of drawing on it (or, optionally, on their own narrower/parallel pool).
 
 ### 2.1 Account types
 
-| Type          | Meaning                             | Needs `accountNumber`? | Can have cards? | Has a real cash balance? |
-| ------------- | ------------------------------------ | :---------------------: | :--------------: | :------------------------: |
-| `CHECKING`    | Corriente                            | ✅ required             | ✅               | ✅                          |
-| `SIGHT`       | Vista / Cuenta RUT                   | ✅ required             | ✅               | ✅                          |
-| `SAVINGS`     | Ahorro                               | ✅ required             | ❌               | ✅                          |
-| `INVESTMENT`  | Inversiones (e.g. Fintual)            | optional                | ❌               | ✅                          |
-| `CREDIT_LINE` | A standalone credit card (no bank account behind it) | optional | ✅               | ❌ (its "balance" IS the credit pool) |
-| `CASH`        | Efectivo                             | optional (no institution at all) | ❌      | ✅                          |
+| Type          | Meaning                                              |      Needs `accountNumber`?      | Can have cards? |       Has a real cash balance?        |
+| ------------- | ---------------------------------------------------- | :------------------------------: | :-------------: | :-----------------------------------: |
+| `CHECKING`    | Corriente                                            |           ✅ required            |       ✅        |                  ✅                   |
+| `SIGHT`       | Vista / Cuenta RUT                                   |           ✅ required            |       ✅        |                  ✅                   |
+| `SAVINGS`     | Ahorro                                               |           ✅ required            |       ❌        |                  ✅                   |
+| `INVESTMENT`  | Inversiones (e.g. Fintual)                           |             optional             |       ❌        |                  ✅                   |
+| `CREDIT_LINE` | A standalone credit card (no bank account behind it) |             optional             |       ✅        | ❌ (its "balance" IS the credit pool) |
+| `CASH`        | Efectivo                                             | optional (no institution at all) |       ❌        |                  ✅                   |
 
 - **`ACCOUNT_NUMBER_REQUIRED_TYPES`** = `CHECKING`/`SIGHT`/`SAVINGS` — these are deposit-taking
   types (you'd transfer money **to** them), so a real account number is mandatory. Enforced by a
@@ -47,7 +47,7 @@ of drawing on it (or, optionally, on their own narrower/parallel pool).
   inline `cards[]` path (error `ACCOUNT_CANNOT_HAVE_CARD`), mirrored in the web UI.
 - **Institution kind filter:** `CHECKING`/`SIGHT`/`SAVINGS` can only link a `BANK`-kind
   institution (you can't hold a checking account at a non-bank card issuer). `INVESTMENT` and
-  `CREDIT_LINE` are left unfiltered — `kind` only distinguishes banks from non-bank *card* issuers,
+  `CREDIT_LINE` are left unfiltered — `kind` only distinguishes banks from non-bank _card_ issuers,
   and neither bucket cleanly represents an investment manager, while a credit line can legitimately
   be issued by either. `CASH` has no institution field at all.
 
@@ -86,7 +86,7 @@ amendment history for the full back-and-forth) before settling on the current de
 
 > **The account's credit pool is a single set of numbers
 > (`creditLimit` + `creditUsedInitial`, in the account's own currency). The account's FIRST
-> CREDIT-kind card is automatically marked `isPrimary` and its limit simply *is* that pool — there
+> CREDIT-kind card is automatically marked `isPrimary` and its limit simply _is_ that pool — there
 > is no separate value stored for it.** Any additional CREDIT card chooses between sharing that
 > same pool, or having its own independent, narrower limit.
 
@@ -143,20 +143,20 @@ non-primary card's own sub-limit is **not** rolled up here — it stays scoped t
 
 Say you create a **CHECKING** account in CLP, then add a credit card to it:
 
-| Step                                                                          | What happens                                                                                                                |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------ |
-| 1. Create the account, add a CREDIT card "CMR Visa", set its limit to 3,000,000 CLP | This card becomes `isPrimary: true`. Its limit is written to `BankAccount.creditLimit = 3,000,000` (CLP). The card itself has `limits: []` — no row is created for it. |
-| 2. On that same card, also add a 500 USD "otro tope"                          | A `CardLimit` row is created: `{cardId, currency: "USD", limitAmount: 500}`. The card's `limits` now shows that one entry. `creditPools` on the account becomes `[{CLP, 3,000,000}, {USD, 500}]`. |
-| 3. Add a second CREDIT card "CMR Visa · Camila", leave `usesAccountPool: true` | It becomes an additional card, `isPrimary: false`, no `CardLimit` rows — every peso it spends counts toward the *same* 3,000,000 CLP pool as the primary. |
+| Step                                                                                                        | What happens                                                                                                                                                                                                                |
+| ----------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. Create the account, add a CREDIT card "CMR Visa", set its limit to 3,000,000 CLP                         | This card becomes `isPrimary: true`. Its limit is written to `BankAccount.creditLimit = 3,000,000` (CLP). The card itself has `limits: []` — no row is created for it.                                                      |
+| 2. On that same card, also add a 500 USD "otro tope"                                                        | A `CardLimit` row is created: `{cardId, currency: "USD", limitAmount: 500}`. The card's `limits` now shows that one entry. `creditPools` on the account becomes `[{CLP, 3,000,000}, {USD, 500}]`.                           |
+| 3. Add a second CREDIT card "CMR Visa · Camila", leave `usesAccountPool: true`                              | It becomes an additional card, `isPrimary: false`, no `CardLimit` rows — every peso it spends counts toward the _same_ 3,000,000 CLP pool as the primary.                                                                   |
 | 4. Add a third CREDIT card "CMR Visa · Sofía" with `usesAccountPool: false` and its own 1,000,000 CLP limit | It becomes an additional card with its **own** `CardLimit` row in CLP — capped at 1,000,000, and separately capped at ≤ the account's 3,000,000 pool. Its spend does **not** count toward the shared 3,000,000 pool at all. |
-| 5. Edit the account's `creditLimit` directly (not via a card)                 | Since the primary has no stored value of its own, this simply changes the one number that exists — the primary "picks it up" automatically next time it's read. |
-| 6. Spend 300,000 CLP and 400 USD on the primary card                          | Both count independently: the account's CLP pool shows `used: 300,000`; the primary's own USD `CardLimit` shows `used: 400`. Spending on the *third* card (its own CLP sub-limit) never touches either of these. |
+| 5. Edit the account's `creditLimit` directly (not via a card)                                               | Since the primary has no stored value of its own, this simply changes the one number that exists — the primary "picks it up" automatically next time it's read.                                                             |
+| 6. Spend 300,000 CLP and 400 USD on the primary card                                                        | Both count independently: the account's CLP pool shows `used: 300,000`; the primary's own USD `CardLimit` shows `used: 400`. Spending on the _third_ card (its own CLP sub-limit) never touches either of these.            |
 
 ### 3.5 Per-card usage display vs. the account's combined total
 
 Several cards can share the exact same pool (§3.2's `usesAccountPool: true` default). Arithmetically
 they show the correct number if the UI just displays `account.creditUsed` on every one of them — but
-it *reads* wrong: three cards all showing the identical "1,686,470 / 3,000,000" looks like each one
+it _reads_ wrong: three cards all showing the identical "1,686,470 / 3,000,000" looks like each one
 individually spent that amount, when really that's the **combined** total across all three.
 
 To fix that, each card's contract carries a derived **`ownUsed`** (moneyString): that specific
@@ -228,6 +228,7 @@ real bank account (any type except `CREDIT_LINE`) — atomically: creates a norm
 a special case), decrements the credit account's `creditUsed` by the statement's amount (its
 snapshot at pay time, not a full reset — if new purchases happened after the period closed, they
 belong to the NEXT (new) open period and `creditUsed` still reflects them, leaving a remainder
+
 > 0 after paying), and freezes the statement as PAID.
 
 `BankAccount.paymentMethod` (`MANUAL` default, or `AUTOMATIC`) records the user's stated
@@ -260,12 +261,12 @@ preference; `AUTOMATIC` is **locked in the UI** (can't be selected) — see `doc
 Every transaction (`INCOME` | `EXPENSE`) links to a `bankAccountId` and, optionally, a `cardId`.
 Rules, evaluated in `TransactionsService.validateMovement`:
 
-| Scenario                                        | Rule                                                                 |
-| -------------------------------------------------- | ----------------------------------------------------------------------- |
-| `INCOME`                                          | Never carries a card (`CARD_NOT_ALLOWED` if one is given).             |
-| `EXPENSE` on a `CASH` account                      | Never carries a card either.                                           |
-| `EXPENSE` on a `CREDIT_LINE` account               | **Must** carry a card belonging to that account (`CARD_REQUIRED` if missing, `CARD_ACCOUNT_MISMATCH` if it belongs to a different account). |
-| `EXPENSE` on any other non-cash account            | A card is optional; if given, it must belong to the account.           |
+| Scenario                                                                                                      | Rule                                                                                                                                                                            |
+| ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `INCOME`                                                                                                      | Never carries a card (`CARD_NOT_ALLOWED` if one is given).                                                                                                                      |
+| `EXPENSE` on a `CASH` account                                                                                 | Never carries a card either.                                                                                                                                                    |
+| `EXPENSE` on a `CREDIT_LINE` account                                                                          | **Must** carry a card belonging to that account (`CARD_REQUIRED` if missing, `CARD_ACCOUNT_MISMATCH` if it belongs to a different account).                                     |
+| `EXPENSE` on any other non-cash account                                                                       | A card is optional; if given, it must belong to the account.                                                                                                                    |
 | Whenever the card used is **CREDIT**-kind (on a `CREDIT_LINE` account, or any other account that's grown one) | The amount is checked against **both** the account's shared pool **and**, if that card carries its own `CardLimit` for the transaction's currency, that narrower sub-limit too. |
 
 ### 4.2 Credit-pool enforcement
@@ -283,19 +284,19 @@ account's billing cycle (§3.6, if one is configured):
   card+currency. If exceeded, throws `CARD_SUBLIMIT_EXCEEDED`.
 
 Both are independent — a transaction can fail either one regardless of the other (e.g. staying
-under a card's own USD sub-limit doesn't matter if a *different*, unrelated CLP transaction pushes
+under a card's own USD sub-limit doesn't matter if a _different_, unrelated CLP transaction pushes
 the shared CLP pool over its limit).
 
 > **Why "currency-scoped" is called out explicitly:** earlier revisions of this logic summed a
 > card's spend without checking currency at all, and excluded a card from the shared-pool sum if it
-> had *any* `CardLimit` row, regardless of currency. That was harmless as long as a card's
+> had _any_ `CardLimit` row, regardless of currency. That was harmless as long as a card's
 > `CardLimit` rows always meant "fully independent, single currency" — but it became a real bug the
 > moment a single card could share the pool in one currency while being independently limited in
 > another (exactly the primary-card multi-currency case above): the card's other-currency spend
 > would have inflated the account's own-currency `creditUsed`. Both sums are now scoped per-currency.
 
 > **A second, separate correctness fix (shipped alongside billing cycles):** for a standalone
-> `CREDIT_LINE` account, summing *every* transaction on it toward the credit pool is correct by
+> `CREDIT_LINE` account, summing _every_ transaction on it toward the credit pool is correct by
 > construction — an EXPENSE there always carries a CREDIT card, an INCOME is a payment, there's
 > nothing else it could be. But for any OTHER account type that's merely grown an add-on credit
 > card, that same "sum everything" query used to also sweep up ordinary day-to-day banking — debit-
@@ -317,18 +318,18 @@ the validation above.
 
 ## 5. Error codes glossary (this domain)
 
-| Code                            | Thrown when…                                                                                  |
-| -------------------------------- | -------------------------------------------------------------------------------------------------- |
-| `ACCOUNT_NUMBER_REQUIRED`        | Creating/updating a CHECKING/SIGHT/SAVINGS account with no `accountNumber`.                        |
-| `ACCOUNT_CANNOT_HAVE_CARD`       | Adding a card (nested or inline) to a SAVINGS/INVESTMENT/CASH account.                              |
-| `CARD_REQUIRED`                  | An EXPENSE on a CREDIT_LINE account with no `cardId`.                                               |
-| `CARD_NOT_ALLOWED`               | A card given on an INCOME, or on a CASH-account EXPENSE.                                            |
-| `CARD_ACCOUNT_MISMATCH`          | The given `cardId` doesn't belong to the given `bankAccountId`.                                     |
-| `CARD_LIMIT_REQUIRED`            | A CREDIT card (becoming primary, or additional with `usesAccountPool: false`) has no valid limit.  |
-| `CARD_LIMIT_EXCEEDED`            | A transaction would push the account's shared pool (in its own currency) over `creditLimit`.       |
-| `CARD_SUBLIMIT_EXCEEDED`         | A transaction would push a card's own `CardLimit` (same currency) over its `limitAmount`.           |
-| `CARD_SUBLIMIT_EXCEEDS_ACCOUNT`  | Setting a card's own sub-limit, in the account's own currency, higher than the account's pool.     |
-| `CARD_NOT_FOUND`                 | Editing/removing/reading a card that doesn't exist (or isn't the user's).                          |
+| Code                            | Thrown when…                                                                                      |
+| ------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `ACCOUNT_NUMBER_REQUIRED`       | Creating/updating a CHECKING/SIGHT/SAVINGS account with no `accountNumber`.                       |
+| `ACCOUNT_CANNOT_HAVE_CARD`      | Adding a card (nested or inline) to a SAVINGS/INVESTMENT/CASH account.                            |
+| `CARD_REQUIRED`                 | An EXPENSE on a CREDIT_LINE account with no `cardId`.                                             |
+| `CARD_NOT_ALLOWED`              | A card given on an INCOME, or on a CASH-account EXPENSE.                                          |
+| `CARD_ACCOUNT_MISMATCH`         | The given `cardId` doesn't belong to the given `bankAccountId`.                                   |
+| `CARD_LIMIT_REQUIRED`           | A CREDIT card (becoming primary, or additional with `usesAccountPool: false`) has no valid limit. |
+| `CARD_LIMIT_EXCEEDED`           | A transaction would push the account's shared pool (in its own currency) over `creditLimit`.      |
+| `CARD_SUBLIMIT_EXCEEDED`        | A transaction would push a card's own `CardLimit` (same currency) over its `limitAmount`.         |
+| `CARD_SUBLIMIT_EXCEEDS_ACCOUNT` | Setting a card's own sub-limit, in the account's own currency, higher than the account's pool.    |
+| `CARD_NOT_FOUND`                | Editing/removing/reading a card that doesn't exist (or isn't the user's).                         |
 
 ---
 
@@ -341,31 +342,31 @@ business rules described in this document now live in the four-layer structure b
 `docs/{english,spanish}/ARCHITECTURE.md` for the full pattern and
 `specs/009-ddd-cqrs-architecture/` for the migration's spec/plan/tasks.
 
-| Concept                                          | Backend location                                                            |
-| --------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Account types, cardable/institution-kind helpers    | `packages/contracts/src/accounts/index.ts`                                       |
-| Account invariants (cardable, `ACCOUNT_NUMBER_REQUIRED`, credit-pool projection) | `apps/api/src/domains/accounts/domain/bank-account.aggregate.ts` (`BankAccount`) |
-| Card CRUD + primary/mandatory-limit resolution      | `BankAccount.resolveCardPlacement`/`planCreation` (same aggregate file)          |
-| `CreditStatement` lifecycle (OPEN/PENDING/PAID) | `apps/api/src/domains/accounts/domain/credit-statement.aggregate.ts` + `domain/states/*.ts` (State pattern) |
-| Billing eligibility (CREDIT_LINE vs. add-on card)   | `apps/api/src/domains/accounts/domain/billing-eligibility.strategy.ts` (Strategy pattern) |
-| Derived `creditPools`/`Card.ownUsed` (read shaping) | `apps/api/src/domains/accounts/application/queries/account-dto.mapper.ts`        |
-| Pay/generate/correct commands                       | `apps/api/src/domains/accounts/application/commands/{pay-credit-statement,generate-statements,correct-statement-amount}.handler.ts` |
-| List/get queries                                    | `apps/api/src/domains/accounts/application/queries/{list-accounts,get-account,list-credit-statements}.handler.ts` |
-| Prisma adapters (only files allowed to import `@prisma/client` in this domain) | `apps/api/src/domains/accounts/infrastructure/prisma-{bank-account,credit-statement}.repository.ts` |
-| Facade controller                                   | `apps/api/src/domains/accounts/presentation/accounts.controller.ts`             |
-| Transaction movement rules + credit enforcement     | `apps/api/src/domains/transactions/domain/movement-policy.ts` + `domain/transaction.aggregate.ts`, applied by `application/commands/*.handler.ts` |
-| Persisted `creditUsed` mutation on tx create/update/delete | `TransactionsService.creditPoolContribution`/`validateMovement`, `TransactionsRepository.adjustCreditUsed` |
-| Card-own-sub-limit sums (still derived, unchanged)  | `TransactionsRepository.sumsForCard`, `PrismaBankAccountRepository.cardSums`     |
-| Pay down the account's credit pool + payment history | `PayCreditStatementHandler`, `POST /accounts/:id/credit-statements/:id/pay`, `GET .../credit-statements` |
-| Billing-cycle day (informational only)              | `apps/api/src/domains/accounts/domain/billing-cycle.ts` (`currentCycleStart`, no longer used to scope any sum) |
+| Concept                                                                          | Backend location                                                                                                                                  |
+| -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Account types, cardable/institution-kind helpers                                 | `packages/contracts/src/accounts/index.ts`                                                                                                        |
+| Account invariants (cardable, `ACCOUNT_NUMBER_REQUIRED`, credit-pool projection) | `apps/api/src/domains/accounts/domain/bank-account.aggregate.ts` (`BankAccount`)                                                                  |
+| Card CRUD + primary/mandatory-limit resolution                                   | `BankAccount.resolveCardPlacement`/`planCreation` (same aggregate file)                                                                           |
+| `CreditStatement` lifecycle (OPEN/PENDING/PAID)                                  | `apps/api/src/domains/accounts/domain/credit-statement.aggregate.ts` + `domain/states/*.ts` (State pattern)                                       |
+| Billing eligibility (CREDIT_LINE vs. add-on card)                                | `apps/api/src/domains/accounts/domain/billing-eligibility.strategy.ts` (Strategy pattern)                                                         |
+| Derived `creditPools`/`Card.ownUsed` (read shaping)                              | `apps/api/src/domains/accounts/application/queries/account-dto.mapper.ts`                                                                         |
+| Pay/generate/correct commands                                                    | `apps/api/src/domains/accounts/application/commands/{pay-credit-statement,generate-statements,correct-statement-amount}.handler.ts`               |
+| List/get queries                                                                 | `apps/api/src/domains/accounts/application/queries/{list-accounts,get-account,list-credit-statements}.handler.ts`                                 |
+| Prisma adapters (only files allowed to import `@prisma/client` in this domain)   | `apps/api/src/domains/accounts/infrastructure/prisma-{bank-account,credit-statement}.repository.ts`                                               |
+| Facade controller                                                                | `apps/api/src/domains/accounts/presentation/accounts.controller.ts`                                                                               |
+| Transaction movement rules + credit enforcement                                  | `apps/api/src/domains/transactions/domain/movement-policy.ts` + `domain/transaction.aggregate.ts`, applied by `application/commands/*.handler.ts` |
+| Persisted `creditUsed` mutation on tx create/update/delete                       | `TransactionsService.creditPoolContribution`/`validateMovement`, `TransactionsRepository.adjustCreditUsed`                                        |
+| Card-own-sub-limit sums (still derived, unchanged)                               | `TransactionsRepository.sumsForCard`, `PrismaBankAccountRepository.cardSums`                                                                      |
+| Pay down the account's credit pool + payment history                             | `PayCreditStatementHandler`, `POST /accounts/:id/credit-statements/:id/pay`, `GET .../credit-statements`                                          |
+| Billing-cycle day (informational only)                                           | `apps/api/src/domains/accounts/domain/billing-cycle.ts` (`currentCycleStart`, no longer used to scope any sum)                                    |
 
-| Concept                                          | Frontend location                                                            |
-| --------------------------------------------------- | -------------------------------------------------------------------------------- |
-| 3-state card form (none / primary / additional)     | `apps/web/src/domains/accounts/components/CardForm.tsx`                          |
-| Account create/edit forms (mirrored, read-only cupo, billing day) | `AccountCreateModal.tsx`, `AccountForm.tsx`                        |
-| Card tiles + Principal/Adicional badge + per-card `ownUsed` display | `AccountVisualCard.tsx`, `DraftCardTile.tsx`                     |
-| Enlarged single-card view + extra-currency pools    | `CardDetailModal.tsx`                                                            |
-| Account-level "topes por moneda" list               | `AccountDetailRoute.tsx`                                                         |
+| Concept                                                             | Frontend location                                       |
+| ------------------------------------------------------------------- | ------------------------------------------------------- |
+| 3-state card form (none / primary / additional)                     | `apps/web/src/domains/accounts/components/CardForm.tsx` |
+| Account create/edit forms (mirrored, read-only cupo, billing day)   | `AccountCreateModal.tsx`, `AccountForm.tsx`             |
+| Card tiles + Principal/Adicional badge + per-card `ownUsed` display | `AccountVisualCard.tsx`, `DraftCardTile.tsx`            |
+| Enlarged single-card view + extra-currency pools                    | `CardDetailModal.tsx`                                   |
+| Account-level "topes por moneda" list                               | `AccountDetailRoute.tsx`                                |
 
 ---
 

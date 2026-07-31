@@ -56,7 +56,8 @@ export function Segmented<T extends string>({
               "flex-1 rounded-sm px-3 py-1.5 text-center text-sm transition-colors",
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
-              !opt.disabled && (active ? activeClass : "font-medium text-muted-foreground hover:bg-muted"),
+              !opt.disabled &&
+                (active ? activeClass : "font-medium text-muted-foreground hover:bg-muted"),
             )}
           >
             {opt.label}

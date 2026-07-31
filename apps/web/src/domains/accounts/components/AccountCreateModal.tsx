@@ -245,7 +245,9 @@ export function AccountCreateModal({
                       placeholder="4821"
                       maxLength={4}
                       value={primaryLast4}
-                      onChange={(e) => setPrimaryLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      onChange={(e) =>
+                        setPrimaryLast4(e.target.value.replace(/\D/g, "").slice(0, 4))
+                      }
                       aria-label={t("cards.form.last4")}
                     />
                   </Field>
@@ -313,7 +315,10 @@ export function AccountCreateModal({
                 <Input
                   id="m-bal"
                   inputMode="numeric"
-                  value={formatAmountDisplay(initialBalance, groupingLocaleFor(currency, i18n.language))}
+                  value={formatAmountDisplay(
+                    initialBalance,
+                    groupingLocaleFor(currency, i18n.language),
+                  )}
                   onChange={(e) => setInitialBalance(e.target.value.replace(/\D/g, ""))}
                   aria-label={t("accounts.form.initialBalance")}
                 />
@@ -333,7 +338,10 @@ export function AccountCreateModal({
                 <Input
                   id="m-climit2"
                   inputMode="numeric"
-                  value={formatAmountDisplay(derivedCreditLimit, groupingLocaleFor(currency, i18n.language))}
+                  value={formatAmountDisplay(
+                    derivedCreditLimit,
+                    groupingLocaleFor(currency, i18n.language),
+                  )}
                   disabled
                   aria-label={t("accounts.form.creditLimit")}
                 />
@@ -345,7 +353,10 @@ export function AccountCreateModal({
               <Input
                 id="m-cused"
                 inputMode="numeric"
-                value={formatAmountDisplay(creditUsedInitial, groupingLocaleFor(currency, i18n.language))}
+                value={formatAmountDisplay(
+                  creditUsedInitial,
+                  groupingLocaleFor(currency, i18n.language),
+                )}
                 aria-label={t("accounts.form.creditUsedInitial")}
                 onChange={(e) => setCreditUsedInitial(e.target.value.replace(/\D/g, ""))}
               />

@@ -84,7 +84,8 @@ export function AccountVisualCard({
       className={cn(
         "relative flex w-full flex-col overflow-hidden rounded-2xl p-5 text-left shadow-md transition-transform",
         large ? "h-64" : "h-[12.5rem]",
-        onClick && "cursor-pointer hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        onClick &&
+          "cursor-pointer hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         gradientClass,
       )}
     >
@@ -100,7 +101,11 @@ export function AccountVisualCard({
           </div>
           {/* Type chip: the card's own kind when there's a card, else the account type. */}
           <span className="rounded-full bg-white/25 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
-            {card ? t(`cards.kind.${card.kind}`) : isAccountCreditPool ? t("cards.title") : t(`accounts.type.${account.type}`)}
+            {card
+              ? t(`cards.kind.${card.kind}`)
+              : isAccountCreditPool
+                ? t("cards.title")
+                : t(`accounts.type.${account.type}`)}
           </span>
         </div>
 
