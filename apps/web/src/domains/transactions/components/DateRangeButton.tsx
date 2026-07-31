@@ -85,14 +85,16 @@ export function DateRangeButton({ from, to, onChange }: Readonly<DateRangeButton
     monthStartFromIsoDate(committedFrom ?? toIsoDate(new Date())),
   );
 
-  useEffect(() => {
-    if (!open) return;
+  /** Discards any half-finished selection and re-seeds the draft from the
+   * committed range. Called when the popover opens — as an event handler rather
+   * than from an effect, so opening doesn't cost a second render pass. */
+  function openWithFreshDraft() {
     setDraftStart(committedFrom);
     setDraftEnd(committedTo);
     setHoverDate(undefined);
     setViewDate(monthStartFromIsoDate(committedFrom ?? toIsoDate(new Date())));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- only resync when the popover opens
-  }, [open]);
+    setOpen(true);
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -167,7 +169,7 @@ export function DateRangeButton({ from, to, onChange }: Readonly<DateRangeButton
     <div ref={containerRef} className="relative">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (open ? setOpen(false) : openWithFreshDraft())}
         className="inline-flex h-9 items-center gap-2 rounded-md border bg-card px-3 text-sm hover:bg-muted"
       >
         <CalendarRange className="h-4 w-4 text-muted-foreground" aria-hidden />

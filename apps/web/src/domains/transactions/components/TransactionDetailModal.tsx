@@ -7,8 +7,8 @@ import { formatMoney } from "@finance/money";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
+import { CategoryIcon } from "./CategoryIcon";
 import { Dialog } from "../../../shared/ui/dialog";
-import { categoryIcon } from "../lib/categoryIcons";
 
 function formatDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, {
@@ -54,7 +54,6 @@ export function TransactionDetailModal({
   const account = tx.bankAccountId ? accounts.find((a) => a.id === tx.bankAccountId) : undefined;
   const card = tx.cardId ? account?.cards.find((c) => c.id === tx.cardId) : undefined;
   const isIncome = tx.type === "INCOME";
-  const Icon = categoryIcon(tx.category);
 
   const extraDetails = [
     { label: t("transactions.form.emisor"), value: tx.emisor },
@@ -78,7 +77,7 @@ export function TransactionDetailModal({
               isIncome ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
             }`}
           >
-            <Icon className="h-5 w-5" aria-hidden />
+            <CategoryIcon category={tx.category} className="h-5 w-5" />
           </span>
           <div className="flex flex-col gap-1">
             <span

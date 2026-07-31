@@ -4,12 +4,12 @@ import { useTranslation } from "react-i18next";
 import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { CategoryIcon } from "./CategoryIcon";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
 import { EmptyState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
-import { categoryIcon } from "../lib/categoryIcons";
 
 interface TransactionTableProps {
   transactions: transactions.Transaction[];
@@ -66,7 +66,6 @@ export function TransactionTable({
         </THead>
         <tbody>
           {sorted.map((tx) => {
-            const Icon = categoryIcon(tx.category);
             const accountName = tx.bankAccountId
               ? (accountMap.get(tx.bankAccountId) ?? t("transactions.table.noAccount"))
               : t("transactions.table.noAccount");
@@ -87,7 +86,7 @@ export function TransactionTable({
                   <span
                     className={`flex h-8 w-8 items-center justify-center rounded-full ${iconWrapColor}`}
                   >
-                    <Icon className="h-4 w-4" aria-hidden />
+                    <CategoryIcon category={tx.category} className="h-4 w-4" />
                   </span>
                 </TD>
                 <TD className="font-medium">
