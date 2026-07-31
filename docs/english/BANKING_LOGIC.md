@@ -353,7 +353,7 @@ business rules described in this document now live in the four-layer structure b
 | List/get queries                                    | `apps/api/src/domains/accounts/application/queries/{list-accounts,get-account,list-credit-statements}.handler.ts` |
 | Prisma adapters (only files allowed to import `@prisma/client` in this domain) | `apps/api/src/domains/accounts/infrastructure/prisma-{bank-account,credit-statement}.repository.ts` |
 | Facade controller                                   | `apps/api/src/domains/accounts/presentation/accounts.controller.ts`             |
-| Transaction movement rules + credit enforcement     | `apps/api/src/domains/transactions/transactions.service.ts` (not yet migrated — see specs/009 Phase 8) |
+| Transaction movement rules + credit enforcement     | `apps/api/src/domains/transactions/domain/movement-policy.ts` + `domain/transaction.aggregate.ts`, applied by `application/commands/*.handler.ts` |
 | Persisted `creditUsed` mutation on tx create/update/delete | `TransactionsService.creditPoolContribution`/`validateMovement`, `TransactionsRepository.adjustCreditUsed` |
 | Card-own-sub-limit sums (still derived, unchanged)  | `TransactionsRepository.sumsForCard`, `PrismaBankAccountRepository.cardSums`     |
 | Pay down the account's credit pool + payment history | `PayCreditStatementHandler`, `POST /accounts/:id/credit-statements/:id/pay`, `GET .../credit-statements` |

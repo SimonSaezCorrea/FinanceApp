@@ -69,9 +69,9 @@ finance-app/
 │   │   │   ├── main.ts            # bootstrap: global prefix /api/v1, cookies, CORS(credentials), error filter
 │   │   │   ├── app.module.ts      # wires infra + all domain modules
 │   │   │   ├── domains/<domain>/  # auth, accounts, transactions, installments, debts, savings, investments, import, health
-│   │   │   │   ├── <d>.module.ts
-│   │   │   │   ├── <d>.controller.ts
-│   │   │   │   ├── <d>.service.ts
+│   │   │   │   ├── <d>.module.ts   # HISTORICAL layout below — every domain now uses the four
+│   │   │   │   ├── <d>.controller.ts  #   DDD layers of §12a (domain/application/infrastructure/
+│   │   │   │   ├── <d>.service.ts     #   presentation) and these files no longer exist
 │   │   │   │   ├── <d>.repository.ts
 │   │   │   │   └── <d>.service.spec.ts
 │   │   │   └── infra/             # prisma (single client), auth (guard + @CurrentUser), http (error filter + ZodValidationPipe), config
@@ -104,10 +104,10 @@ finance-app/
 - `main.ts` — process bootstrap: global prefix `/api/v1`, cookie parser, CORS (credentials), global
   error filter, then `listen`.
 - `app.module.ts` — composition root: imports infra modules + every domain module.
-- `domains/<domain>/` — one business domain. `*.module.ts` (wiring), `*.controller.ts` (HTTP routes,
-  guard, zod validation), `*.service.ts` (business logic; money via `@finance/money`),
-  `*.repository.ts` (the **only** Prisma access for that domain, always scoped by `userId`),
-  `*.service.spec.ts` (tests), optional `dto/`.
+- `domains/<domain>/` — one business domain. **This flat description is historical**: since
+  specs/009 every domain is split into the four layers documented in §12a (`domain/`,
+  `application/`, `infrastructure/`, `presentation/`), with tests under
+  `apps/api/test/{unit,integration,e2e}/`. Only `<d>.module.ts` (wiring) survives at the domain root.
 - `infra/` — cross-cutting, **not** a business domain: `prisma/` (the single `PrismaService`),
   `auth/` (`JwtAuthGuard` + `@CurrentUser`), `http/` (`AllExceptionsFilter` + `ZodValidationPipe`),
   `config/` (env).
@@ -247,14 +247,49 @@ schema precision (`Decimal(18,4)` for amounts). Rounding is explicit (banker's r
   multipart/xlsx upload + server-side Excel parsing is deferred.
 - **CSRF hardening** for cookie-based auth.
 
-## 12a. Backend DDD + CQRS pattern (in progress — `accounts` is the reference domain)
+## 12a. Backend DDD + CQRS pattern, one table per domain
 
-**Amendment (2026-07-25, specs/009-ddd-cqrs-architecture):** `apps/api` is migrating, domain by
+**Amendment (2026-07-30, one table = one domain):** the 11 business domains below were split by
+table. Every table in `prisma/schema.prisma` owns a folder `src/domains/<table>/` (kebab-case,
+matching its `@@map`) and **exactly one adapter may query it** — 21 table-domains, plus `import` and
+`health` which own no table. `accounts` became `bank-account` + `card-account` + `card-limit` +
+`billing-settings` + `credit-statement`; `reference` became `country` + `currency` +
+`country-currency` + `country-identifier-type` + `financial-institution`; `savings` and
+`installments` each split into their goal/plan + entry/payment tables; `auth` → `user`,
+`wallet` → `wallet-item-dashboard`, `transactions` → `transaction`, and the remaining plurals became
+singular. `etf-price-cache` has a folder even though its feature is deferred.
+
+Three rules make that split work without weakening the aggregates:
+
+1. **Aggregate boundaries are unchanged.** `CardAccount`/`CardLimit`/`BillingSettings` are still
+   entities of the `BankAccount` aggregate and are only ever written through it — their domains own
+   the *table*, never the rules. Same for `InstallmentPayment` under `InstallmentPlan` and
+   `SavingsEntry` under `SavingsGoal`. Such a table's folder has only `domain/` + `infrastructure/`.
+2. **Reading a table you don't own means composing its port**, never a Prisma `include`:
+   `PrismaBankAccountRepository` injects the card/limit/billing-settings/institution ports to hydrate
+   an aggregate; `PrismaTransactionRepository` moves the credit pool through
+   `BankAccountRepositoryPort.incrementCreditUsedWithTx`. Cross-table atomicity is unchanged — one
+   `prisma.$transaction(...)` opened by the handler, with every participant exposing a `*WithTx`
+   method that enlists in it.
+3. **Two modules per table where needed.** `<table>.data.module.ts` is a leaf: it exports only that
+   table's port→adapter binding and imports no other domain. `<table>.module.ts` holds
+   handlers/controllers and imports the leaves it reads. Orchestration depends on leaves, never the
+   reverse — the only thing keeping the graph acyclic where tables reference each other
+   (`transaction` ⇄ `bank-account`, `credit-statement` ⇄ `bank-account`).
+
+Public URLs did not change: `/accounts/:id/credit-statements*` and `/generate-statements` are served
+by `credit-statement`'s own Facade, `/countries`, `/currencies` and `/institutions` by theirs.
+
+The rest of this section describes the layer pattern itself, which is unchanged.
+
+### The four layers (`accounts`/`bank-account` is the reference)
+
+**Amendment (2026-07-25, specs/009-ddd-cqrs-architecture):** `apps/api` migrated, domain by
 domain, from the flat `module → controller → service → repository` skeleton in §1 to full tactical
-DDD + CQRS. `accounts` (specifically its `billing`/credit-statement area) is the completed
-reference implementation; the other 10 domains are migrated later, one at a time (FR-017) — until
-then they still follow the flat skeleton described earlier in this document. Both shapes are valid
-today; check which one a domain actually uses before assuming.
+DDD + CQRS. `accounts` (specifically its `billing`/credit-statement area) is the reference
+implementation. **All 11 domains are migrated (FR-017) — no `*.service.ts`/`*.repository.ts` file
+remains under `src/domains/`**; the flat skeleton described earlier in this document is historical.
+Mirror `accounts` for any new domain.
 
 Each migrated domain gains **four internal layers** under `src/domains/<domain>/`:
 
@@ -314,6 +349,12 @@ Patterns applied, and why (full rationale in `specs/009-ddd-cqrs-architecture/sp
   publisher knowing they exist. **Dispatched synchronously by default** — a failing listener
   surfaces as part of the same request; async is opt-in per listener, only when a reaction can
   genuinely wait (none needed it yet).
+- **Decorator** (FR-013, `src/infra/cqrs/handler-logging.interceptor.ts`): logging/timing around a
+  command/query dispatch is a NestJS interceptor registered **once** as a global `APP_INTERCEPTOR`
+  in `app.module.ts` — it covers every domain's controller, and since each controller is a thin
+  Facade that dispatches exactly one command/query, the request span *is* the handler span. Never
+  hand-wrap `CommandBus.execute` and never put a `Logger` call inside a handler or inside
+  `BaseCommandHandler.execute`.
 - **Cross-aggregate persistence** (FR-020): a business action that inherently spans more than one
   aggregate in one atomic step (paying a statement touches `CreditStatement` + a new `Transaction` +
   `BankAccount`) uses one `prisma.$transaction(...)` inside that handler's own `persist()` override

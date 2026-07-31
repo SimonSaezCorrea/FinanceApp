@@ -4,6 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaImportRepository } from "../../../../../src/domains/import/infrastructure/prisma-import.repository";
+import { buildTransactionWriterRepo } from "../../../support/repositories";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
 
 /**
@@ -12,7 +13,7 @@ import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
  */
 describe("PrismaImportRepository (integration)", () => {
   const prisma = new PrismaService(new ConfigService());
-  const repo = new PrismaImportRepository(prisma);
+  const repo = new PrismaImportRepository(buildTransactionWriterRepo(prisma));
   const userId = `u_${randomUUID()}`;
 
   beforeAll(async () => {

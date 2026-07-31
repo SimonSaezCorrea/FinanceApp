@@ -144,15 +144,17 @@ por defecto para las facturaciones con `paymentMethod: AUTOMATIC`.
 
 ### 3. Generación automática de facturación — cron diario + botón manual
 
-`BillingGenerationService` (`apps/api/src/domains/accounts/billing-generation.service.ts`) cierra la
-facturación `OPEN` de una cuenta una vez que pasa su `billingCycleDay`, sujeto a elegibilidad (cuenta
-y tarjeta activas) y a que haya habido uso (si nunca se abrió una facturación, no hay nada que
+La generación cierra la facturación `OPEN` de una cuenta una vez que pasa su `billingCycleDay`,
+sujeto a elegibilidad (cuenta y tarjeta activas, vía las `BillingEligibilityStrategy` de
+`domains/accounts/domain/`; la lógica vive en
+`domains/accounts/application/commands/generate-statements.handler.ts` desde la migración a DDD +
+CQRS de specs/009 — el viejo `billing-generation.service.ts` ya no existe) y a que haya habido uso (si nunca se abrió una facturación, no hay nada que
 cerrar). Dos disparadores comparten esta misma lógica:
 - **Cron diario** (`src/infra/cron/billing-generation.cron.ts`, `@nestjs/schedule`,
   `EVERY_DAY_AT_3AM`) — recorre TODAS las cuentas de TODOS los usuarios con `billingCycleDay`
-  configurado (`generateForAllDueAccounts`).
+  configurado (`GenerateAllDueStatementsCommand`, `scope: "system"`).
 - **Botón manual** "Generar facturación" en la pestaña Facturación (`POST
-  /accounts/:id/generate-statements`) — mismo código (`generateForAccount`), por si el cron no ha
+  /accounts/:id/generate-statements`) — mismo código (`GenerateStatementsCommand`), por si el cron no ha
   corrido todavía o se quiere forzar antes de tiempo.
 
 **Limitación conocida**: si el cron estuvo caído mucho tiempo (varios `billingCycleDay` vencidos sin

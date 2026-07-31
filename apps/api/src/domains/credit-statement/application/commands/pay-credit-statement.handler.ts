@@ -1,0 +1,147 @@
+import { randomUUID } from "node:crypto";
+
+import { Inject, Injectable } from "@nestjs/common";
+import { CommandHandler, EventBus } from "@nestjs/cqrs";
+
+import { toMoney } from "@finance/money";
+
+import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import { PrismaService } from "../../../../infra/prisma/prisma.service";
+import type { BankAccount } from "../../../bank-account/domain/bank-account.aggregate";
+import { AccountNotFoundError } from "../../../bank-account/domain/errors";
+import {
+  BANK_ACCOUNT_REPOSITORY,
+  type BankAccountRepositoryPort,
+} from "../../../bank-account/domain/ports/bank-account.repository.port";
+import {
+  TRANSACTION_WRITER_REPOSITORY,
+  type TransactionWriterRepositoryPort,
+} from "../../../transaction/domain/ports/transaction-writer.repository.port";
+import type { CreditStatement } from "../../domain/credit-statement.aggregate";
+import { InvalidPaymentSourceError, NothingToPayError, StatementNotFoundError } from "../../domain/errors";
+import {
+  CREDIT_STATEMENT_REPOSITORY,
+  type CreditStatementRepositoryPort,
+} from "../../domain/ports/credit-statement.repository.port";
+import { PayCreditStatementCommand } from "./pay-credit-statement.command";
+
+interface Context {
+  account: BankAccount;
+  statement: CreditStatement;
+  fromAccount: BankAccount;
+  amount: string;
+  paymentTransactionId: string;
+  now: Date;
+}
+
+export interface PaidStatementResult {
+  id: string;
+  accountId: string;
+  status: "OPEN" | "PENDING" | "PAID";
+  periodStart: string;
+  closedAt: string | null;
+  amount: string;
+  paidAt: string;
+  paidFromAccountId: string;
+  paidTransactionId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Pays a statement by choosing a source bank account: creates a real EXPENSE
+ * `Transaction`, decrements the credit account's `creditUsed`, and freezes
+ * the statement PAID — one atomic action touching THREE aggregates
+ * (`CreditStatement`, the new payment `Transaction`, `BankAccount`), so
+ * `persist()` wraps every save in a single `prisma.$transaction(...)`
+ * (FR-020, T029a) rather than three independent `save()` calls.
+ */
+@Injectable()
+@CommandHandler(PayCreditStatementCommand)
+export class PayCreditStatementHandler extends BaseCommandHandler<
+  PayCreditStatementCommand,
+  PaidStatementResult,
+  Context
+> {
+  constructor(
+    eventBus: EventBus,
+    @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
+    @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statementRepo: CreditStatementRepositoryPort,
+    @Inject(TRANSACTION_WRITER_REPOSITORY) private readonly transactions: TransactionWriterRepositoryPort,
+    private readonly prisma: PrismaService,
+  ) {
+    super(eventBus);
+  }
+
+  protected async loadContext(command: PayCreditStatementCommand): Promise<Context> {
+    const account = await this.accountRepo.findById(command.userId, command.accountId);
+    if (!account) throw new AccountNotFoundError();
+    const statement = await this.statementRepo.findById(command.userId, command.accountId, command.statementId);
+    if (!statement) throw new StatementNotFoundError();
+    const fromAccount = await this.accountRepo.findById(command.userId, command.fromAccountId);
+    if (!fromAccount) throw new AccountNotFoundError();
+    if (fromAccount.type === "CREDIT_LINE") throw new InvalidPaymentSourceError();
+    const amount = await this.statementRepo.sumLinkedTransactions(command.statementId);
+    if (!toMoney(amount).greaterThan(0)) throw new NothingToPayError();
+    return {
+      account,
+      statement,
+      fromAccount,
+      amount,
+      paymentTransactionId: randomUUID(),
+      now: new Date(),
+    };
+  }
+
+  protected async handle(
+    command: PayCreditStatementCommand,
+    context: Context,
+  ): Promise<HandleResult<PaidStatementResult>> {
+    const event = context.statement.pay(
+      context.amount,
+      command.fromAccountId,
+      context.paymentTransactionId,
+      context.now,
+    );
+    context.account.adjustCreditUsed(toMoney(context.amount).negated().toString());
+    return {
+      result: {
+        id: context.statement.id,
+        accountId: context.statement.accountId,
+        status: context.statement.state.name,
+        periodStart: context.statement.periodStart.toISOString(),
+        closedAt: context.statement.closedAt?.toISOString() ?? null,
+        amount: context.statement.amount,
+        paidAt: context.statement.paidAt!.toISOString(),
+        paidFromAccountId: context.statement.paidFromAccountId!,
+        paidTransactionId: context.statement.paidTransactionId!,
+        createdAt: context.statement.createdAt.toISOString(),
+        updatedAt: context.statement.updatedAt.toISOString(),
+      },
+      events: [event],
+    };
+  }
+
+  // Cross-aggregate persistence (FR-020, contracts/layer-contracts.md): three
+  // tables in one atomic step. Each write goes through the port of the domain
+  // that owns its table (`transaction`, `credit-statement`, `bank-account`) —
+  // this handler only supplies the shared `$transaction` they all enlist in, so
+  // all three commit or roll back together.
+  protected override async persist(context: Context): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await this.transactions.createWithTx(tx, {
+        id: context.paymentTransactionId,
+        userId: context.account.userId,
+        bankAccountId: context.fromAccount.id,
+        type: "EXPENSE",
+        amount: context.amount,
+        currency: context.account.snapshot().currency,
+        occurredAt: context.now,
+        category: "Pago facturación",
+        description: context.account.name,
+      });
+      await this.statementRepo.saveWithTx(tx, context.statement);
+      await this.accountRepo.saveWithTx(tx, context.account);
+    });
+  }
+}

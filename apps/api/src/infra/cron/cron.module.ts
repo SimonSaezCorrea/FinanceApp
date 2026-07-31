@@ -2,7 +2,7 @@ import { Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
 import { ScheduleModule } from "@nestjs/schedule";
 
-import { AccountsModule } from "../../domains/accounts/accounts.module";
+import { CreditStatementModule } from "../../domains/credit-statement/credit-statement.module";
 import { BillingGenerationCron } from "./billing-generation.cron";
 
 /**
@@ -12,10 +12,10 @@ import { BillingGenerationCron } from "./billing-generation.cron";
  * a command via `CommandBus` into the relevant domain's own handler (no business
  * logic lives here). `CqrsModule` is imported directly (a static class reference,
  * not a dynamic `forRoot()` module) so it resolves to the SAME singleton instance
- * `AccountsModule` already registers, sharing one `CommandBus`.
+ * `CreditStatementModule` already registers, sharing one `CommandBus`.
  */
 @Module({
-  imports: [ScheduleModule.forRoot(), CqrsModule, AccountsModule],
+  imports: [ScheduleModule.forRoot(), CqrsModule, CreditStatementModule],
   providers: [BillingGenerationCron],
 })
 export class CronModule {}

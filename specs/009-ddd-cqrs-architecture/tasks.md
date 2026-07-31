@@ -472,15 +472,15 @@ literally.
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T055 [P] Apply the Decorator pattern (FR-013) for logging/timing around command/query
+- [X] T055 [P] Apply the Decorator pattern (FR-013) for logging/timing around command/query
       handlers via a shared NestJS interceptor in `apps/api/src/infra/cqrs/handler-logging.interceptor.ts`,
       applied first to `accounts` then to each domain as it's migrated
-- [ ] T056 [P] Remove now-dead code: old `*.service.ts`/`*.repository.ts` files per domain once
+- [X] T056 [P] Remove now-dead code: old `*.service.ts`/`*.repository.ts` files per domain once
       their replacement is verified (do this per-domain immediately after that domain's checkpoint,
       not in one big pass at the end)
-- [ ] T057 Run `pnpm --filter @finance/api test`, `pnpm --filter @finance/api typecheck`, and
+- [X] T057 Run `pnpm --filter @finance/api test`, `pnpm --filter @finance/api typecheck`, and
       `pnpm --filter @finance/web typecheck` (contracts unchanged, but confirm) as the final gate
-- [ ] T058 Run the full `quickstart.md` validation guide end to end
+- [X] T058 Run the full `quickstart.md` validation guide end to end
 
 ---
 

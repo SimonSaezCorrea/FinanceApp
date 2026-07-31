@@ -2,10 +2,10 @@ import { Injectable, Logger } from "@nestjs/common";
 import { CommandBus } from "@nestjs/cqrs";
 import { Cron, CronExpression } from "@nestjs/schedule";
 
-import { GenerateAllDueStatementsCommand } from "../../domains/accounts/application/commands/generate-statements.command";
+import { GenerateAllDueStatementsCommand } from "../../domains/credit-statement/application/commands/generate-statements.command";
 
 /** Daily trigger for closing due credit-pool billing periods — same rules as the
- * manual "Generar facturación" button (`AccountsController.generateStatements`),
+ * manual "Generar facturación" button (`CreditStatementsController.generateStatements`),
  * via the shared `GenerateStatementsHandler`/`GenerateAllDueStatementsHandler`
  * (both port over the same `closeIfDue` logic). */
 @Injectable()

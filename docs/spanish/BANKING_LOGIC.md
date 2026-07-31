@@ -383,7 +383,7 @@ documento ahora viven en la estructura de cuatro capas de abajo. Ver
 | Queries de listar/obtener                               | `apps/api/src/domains/accounts/application/queries/{list-accounts,get-account,list-credit-statements}.handler.ts` |
 | Adaptadores Prisma (únicos archivos que importan `@prisma/client` en este dominio) | `apps/api/src/domains/accounts/infrastructure/prisma-{bank-account,credit-statement}.repository.ts` |
 | Controlador Facade                                      | `apps/api/src/domains/accounts/presentation/accounts.controller.ts`             |
-| Reglas de movimiento + aplicación del cupo               | `apps/api/src/domains/transactions/transactions.service.ts` (aún no migrado — ver specs/009 Fase 8) |
+| Reglas de movimiento + aplicación del cupo               | `apps/api/src/domains/transactions/domain/movement-policy.ts` + `domain/transaction.aggregate.ts`, aplicado por `application/commands/*.handler.ts` |
 | Sumas de cupo acotadas por moneda y por tarjeta          | `TransactionsRepository.sumsForAccount`/`sumsForCard`, `PrismaBankAccountRepository.cardSums` |
 | Helper de ventana de ciclo de facturación                | `apps/api/src/domains/accounts/domain/billing-cycle.ts` (`currentCycleStart`)                |
 

@@ -1,4 +1,31 @@
 <!--
+Sync Impact Report — 2026-07-30 (amendment 1.23.0)
+- Version change: 1.22.1 → 1.23.0 (MINOR: Principle VI gains a new, enforceable structural rule; no
+  principle removed or redefined).
+- Principle VI now requires **one table = one domain = one adapter**: every table in schema.prisma
+  owns `src/domains/<table>/`, only its own adapter may query it, and reading a foreign table means
+  composing that domain's port (never a Prisma `include`). Aggregate boundaries are explicitly
+  preserved: a child table (card-account, card-limit, billing-settings, installment-payment,
+  savings-entry) owns its table but not the rules over it — writes still go through the aggregate
+  root. Adds the leaf/orchestration module split (`<table>.data.module.ts` vs `<table>.module.ts`)
+  as the acyclicity mechanism, and cross-table atomicity stays one `prisma.$transaction` with
+  `*WithTx` participants.
+- Backend went from 11 business domains to 21 table-domains (+ `import`/`health`, which own no
+  table). No public API/contract change; URLs unchanged.
+- Propagated in the same session: CLAUDE.md, apps/api/README.md,
+  docs/{english,spanish}/ARCHITECTURE.md §12a.
+
+Sync Impact Report — 2026-07-30 (amendment 1.22.1)
+- Version change: 1.22.0 → 1.22.1 (PATCH: status/clarity only, no principle added or redefined).
+- Principle VI: the specs/009 rollout is COMPLETE — all 11 domains use the four layers, so the
+  flat `module/controller/service/repository` skeleton is historical and must not be used for new
+  code (it was previously "valid simultaneously during the rollout"). Recorded the Decorator
+  (global `infra/cqrs/handler-logging.interceptor.ts`) as the required home for logging/timing
+  around a dispatch, and replaced the retired `BillingGenerationService` path in the billing
+  section with its command-handler/strategy replacements.
+- Propagated in the same session: CLAUDE.md, docs/{english,spanish}/ARCHITECTURE.md §12a,
+  docs/PENDING.md.
+
 Sync Impact Report — 2026-07-25 (amendment 1.22.0)
 - Version change: 1.21.1 → 1.22.0 (MINOR: new durable principle — Backend DDD + CQRS Architecture,
   specs/009-ddd-cqrs-architecture — `accounts` is the completed reference domain; the other 10
@@ -47,10 +74,12 @@ Sync Impact Report — 2026-07-25 (amendment 1.21.0)
     ever needed while unpaid) → PENDING (closed by generation, awaiting payment, still live) → PAID
     (`amount` frozen at pay time, only then correctable via `PATCH .../credit-statements/:id`, no
     cascade to the payment transaction or `creditUsed`).
-  - **`BillingGenerationService`** (`domains/accounts/billing-generation.service.ts`) closes an
-    OPEN statement once `billingCycleDay` passes, gated on eligibility (account + relevant card
-    both ACTIVE) — shared verbatim by the daily cron (`generateForAllDueAccounts`, every user's due
-    accounts) and the manual "Generar facturación" button (`generateForAccount`, one account).
+  - **Statement generation** (`domains/accounts/application/commands/generate-statements.handler.ts`
+    + the `BillingEligibilityStrategy` implementations in `domain/`) closes an OPEN statement once
+    `billingCycleDay` passes, gated on eligibility (account + relevant card both ACTIVE) — shared
+    verbatim by the daily cron (`GenerateAllDueStatementsCommand`, `scope: "system"`, every user's
+    due accounts) and the manual "Generar facturación" button (`GenerateStatementsCommand`, one
+    account).
   - **Paying a statement** (`POST /accounts/:id/credit-statements/:id/pay`) requires a real source
     bank account (any type except `CREDIT_LINE`) and atomically creates a genuine EXPENSE
     `Transaction` there (visible in its own Movimientos), decrements `creditUsed` by the
@@ -567,7 +596,23 @@ Rationale: the spec is the shared contract; skipping it produces code nobody agr
 The constitution and `CLAUDE.md` are the project's durable memory — if they drift from
 reality, every future decision is made on false information.
 
-### VI. Backend DDD + CQRS Architecture (per-domain, rollout in progress)
+### VI. Backend DDD + CQRS Architecture (one table = one domain, 21 domains)
+
+**One table, one domain, one adapter.** Every table in `apps/api/prisma/schema.prisma` MUST own
+exactly one folder `src/domains/<table>/` (kebab-case, matching its `@@map`), and exactly one Prisma
+adapter may query that table. No adapter, handler or controller may read or write a table owned by
+another domain: it goes through that domain's port. A folder that owns no table is allowed only when
+it owns no data either (`import`, `health`).
+
+This does NOT dissolve aggregates. A table whose rows exist only inside another aggregate
+(`card-account`, `card-limit`, `billing-settings`, `installment-payment`, `savings-entry`) owns its
+table and its row shape, never the rules over it — writes still travel through the aggregate root
+that validates them, and such a domain has only `domain/` + `infrastructure/` layers. Cross-table
+atomicity stays a single `prisma.$transaction(...)` opened by the handler, with each owner exposing a
+`*WithTx` method. To keep the module graph acyclic, a table exposes a LEAF `<table>.data.module.ts`
+(its port→adapter binding, importing no other domain) and, when it has commands/queries/HTTP, a
+`<table>.module.ts` that imports the leaves it reads — orchestration depends on leaves, never the
+reverse.
 
 Once a backend domain (`apps/api/src/domains/<domain>/`) is migrated under
 specs/009-ddd-cqrs-architecture, it MUST use four internal layers — **domain** (aggregates that
@@ -587,11 +632,13 @@ a documented pragmatic exception, not a violation of aggregate boundaries. Singl
 Factory, Prototype, Proxy, and Composite are explicitly NOT hand-implemented (Nest's DI, existing
 Guards, and this app's flat non-recursive data already cover their roles).
 
-Migration proceeds **one domain at a time** (`accounts` is the completed reference
-implementation); a domain not yet migrated keeps using the flat
-`module/controller/service/repository` skeleton from the Architecture norms below until its own
-turn — both shapes are constitutionally valid simultaneously during the rollout. Tests for a
-migrated domain live in `apps/api/test/{unit,integration,e2e}/`, mirroring
+Migration proceeded one domain at a time (`bank-account` is the reference implementation) and is
+**complete: all 21 table-domains use the four layers**, so the flat
+`module/controller/service/repository` skeleton described in the Architecture norms below is
+historical and MUST NOT be used for new code. Cross-cutting concerns around a dispatch (logging,
+timing) are Decorators — NestJS interceptors registered globally (`infra/cqrs/
+handler-logging.interceptor.ts`), never a `Logger` call inside a handler. Tests for each domain
+live in `apps/api/test/{unit,integration,e2e}/`, mirroring
 `src/domains/<domain>/<layer>/` — the unit tier MUST run with zero database connections
 (reinforces Principle IV).
 
@@ -680,4 +727,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.22.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-25
+**Version**: 1.23.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-30
