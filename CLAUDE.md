@@ -23,7 +23,7 @@ Package manager is **pnpm**; the monorepo is orchestrated by **Turborepo** (root
 - `pnpm test` — Vitest across all workspaces; one: `pnpm --filter @finance/api test`
 - `pnpm typecheck` — `tsc --noEmit` per package
 - `pnpm check:boundaries` — enforce import boundaries (`scripts/check-boundaries.mjs`)
-- CI (`.github/workflows/ci.yml`) also gates on `pnpm format:check`, `turbo run lint` and **`pnpm audit --audit-level=high`** — advisories are fixed with `pnpm.overrides` in the root `package.json` (today: `postcss`, `brace-expansion`, `fast-uri`, `find-my-way`) or, when a finding genuinely doesn't apply to this app, added to `pnpm.auditConfig.ignoreGhsas` with a reason
+- CI (`.github/workflows/ci.yml`) also gates on `pnpm format:check`, `turbo run lint` and **`pnpm audit --audit-level=high`** — advisories are fixed with `pnpm.overrides` in the root `package.json` (today: `postcss`, `brace-expansion`, `fast-uri`, `find-my-way`) or, when a finding genuinely doesn't apply to this app, added to `pnpm.auditConfig.ignoreGhsas` with a reason. CI runs a **`postgres:16-alpine` service** so `test:integration`/`test:e2e` hit a real DB (`prisma db push` before the tests); `DATABASE_URL` is declared in `turbo.json`'s `test` task `env` because Turborepo hides undeclared env vars from tasks
 - `pnpm db:migrate` / `pnpm db:seed` — Prisma migrate/seed in `apps/api` (the sole DB owner)
 - `pnpm db:push` — sync schema to the DB without migrations (this repo has **no `prisma/migrations` folder**; `db push` is the workflow)
 - `pnpm db:reset` — **Docker-based full reset** (`scripts/db-reset.mjs`): tears down the Postgres container + volume (`docker-compose.yml`), recreates it, `db push`, then seeds. Wipes all data (dev only). Requires Docker.
