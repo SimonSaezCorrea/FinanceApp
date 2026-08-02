@@ -41,7 +41,6 @@
     "newSubtitle": "Registra una cuenta bancaria, tarjeta o efectivo",
     "currentBalance": "Saldo actual",
     "summary": "{{accounts}} cuentas · {{currencies}} monedas",
-    "countLabel": "{{count}} cuenta(s)",
     "type": {
       "CHECKING": "Corriente",
       "SIGHT": "Vista",
@@ -51,7 +50,30 @@
       "CASH": "Efectivo"
     },
     "status": { "label": "Estado", "ACTIVE": "Activa", "INACTIVE": "Inactiva" },
-    "card": { "usage": "{{pct}}% cupo", "creditUsed": "Cupo usado" },
+    "card": {
+      "usage": "{{pct}}% cupo",
+      "creditUsed": "Cupo usado",
+      "cardPool": "Tarjeta ···· {{last4}}",
+      "trend": "{{pct}}% este mes",
+      "billedOn": "Facturado el {{day}} de cada mes"
+    },
+    "overview": {
+      "netWorth": "Patrimonio total",
+      "netWorthHint": "· neto, aprox. en {{currency}}",
+      "assets": "Activos",
+      "cardDebt": "Deuda tarjetas"
+    },
+    "groupBy": {
+      "label": "Agrupar:",
+      "currency": "Moneda",
+      "type": "Tipo de cuenta",
+      "institution": "Institución",
+      "status": "Estado",
+      "none": "Sin agrupar",
+      "noInstitution": "Sin institución",
+      "allAccounts": "Todas las cuentas",
+      "count": "{{count}} cuenta(s)"
+    },
     "balanceLabel": "Saldo",
     "detail": {
       "change": "Variación",

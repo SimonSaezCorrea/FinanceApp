@@ -37,8 +37,8 @@ export function BillingSection({ account }: { account: accounts.BankAccount }) {
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 lg:shrink-0">
         <h2 className="text-lg font-semibold">{t("accounts.detail.billingTitle")}</h2>
         <Button
           size="sm"
@@ -56,52 +56,55 @@ export function BillingSection({ account }: { account: accounts.BankAccount }) {
         </Button>
       </div>
 
-      {isLoading ? (
-        <LoadingState title={t("app.loading")} />
-      ) : isError ? (
-        <ErrorState title={t("errors.INTERNAL_ERROR")} />
-      ) : !statements || statements.length === 0 ? (
-        <EmptyState title={t("accounts.detail.billingEmpty")} />
-      ) : (
-        <Table>
-          <THead>
-            <TR>
-              <TH>{t("accounts.detail.billingPeriod")}</TH>
-              <TH numeric>{t("accounts.detail.billingAmount")}</TH>
-              <TH>{t("accounts.detail.billingStatus")}</TH>
-              <TH>{t("accounts.detail.billingPaidAt")}</TH>
-              <TH>{t("accounts.detail.billingActions")}</TH>
-            </TR>
-          </THead>
-          <tbody>
-            {statements.map((s) => (
-              <TR key={s.id}>
-                <TD>{new Date(s.periodStart).toLocaleDateString(i18n.language)}</TD>
-                <TD numeric>{fmt(s.amount)}</TD>
-                <TD>
-                  <Badge variant={STATUS_VARIANT[s.status]}>
-                    {t(`accounts.detail.billingStatusValue.${s.status}`)}
-                  </Badge>
-                </TD>
-                <TD>{s.paidAt ? new Date(s.paidAt).toLocaleDateString(i18n.language) : "—"}</TD>
-                <TD>
-                  <div className="flex gap-2">
-                    {s.status !== "PAID" ? (
-                      <Button variant="secondary" size="sm" onClick={() => setPayTarget(s)}>
-                        {t("accounts.actions.payCredit")}
-                      </Button>
-                    ) : (
-                      <Button variant="outline" size="sm" onClick={() => setCorrectTarget(s)}>
-                        {t("accounts.actions.correctAmount")}
-                      </Button>
-                    )}
-                  </div>
-                </TD>
+      {/* Only the periods table scrolls — heading and actions stay pinned. */}
+      <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto scrollbar-thin">
+        {isLoading ? (
+          <LoadingState title={t("app.loading")} />
+        ) : isError ? (
+          <ErrorState title={t("errors.INTERNAL_ERROR")} />
+        ) : !statements || statements.length === 0 ? (
+          <EmptyState title={t("accounts.detail.billingEmpty")} />
+        ) : (
+          <Table>
+            <THead>
+              <TR>
+                <TH>{t("accounts.detail.billingPeriod")}</TH>
+                <TH numeric>{t("accounts.detail.billingAmount")}</TH>
+                <TH>{t("accounts.detail.billingStatus")}</TH>
+                <TH>{t("accounts.detail.billingPaidAt")}</TH>
+                <TH>{t("accounts.detail.billingActions")}</TH>
               </TR>
-            ))}
-          </tbody>
-        </Table>
-      )}
+            </THead>
+            <tbody>
+              {statements.map((s) => (
+                <TR key={s.id}>
+                  <TD>{new Date(s.periodStart).toLocaleDateString(i18n.language)}</TD>
+                  <TD numeric>{fmt(s.amount)}</TD>
+                  <TD>
+                    <Badge variant={STATUS_VARIANT[s.status]}>
+                      {t(`accounts.detail.billingStatusValue.${s.status}`)}
+                    </Badge>
+                  </TD>
+                  <TD>{s.paidAt ? new Date(s.paidAt).toLocaleDateString(i18n.language) : "—"}</TD>
+                  <TD>
+                    <div className="flex gap-2">
+                      {s.status !== "PAID" ? (
+                        <Button variant="secondary" size="sm" onClick={() => setPayTarget(s)}>
+                          {t("accounts.actions.payCredit")}
+                        </Button>
+                      ) : (
+                        <Button variant="outline" size="sm" onClick={() => setCorrectTarget(s)}>
+                          {t("accounts.actions.correctAmount")}
+                        </Button>
+                      )}
+                    </div>
+                  </TD>
+                </TR>
+              ))}
+            </tbody>
+          </Table>
+        )}
+      </div>
 
       <PayStatementModal
         account={account}

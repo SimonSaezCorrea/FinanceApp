@@ -39,7 +39,7 @@ export function RecurringRoute() {
       <PageHeader
         title={t("recurring.title")}
         actions={
-          <Button onClick={() => setModal({ open: true })}>
+          <Button variant="accent" onClick={() => setModal({ open: true })}>
             <Plus className="h-4 w-4" aria-hidden />
             {t("recurring.new")}
           </Button>

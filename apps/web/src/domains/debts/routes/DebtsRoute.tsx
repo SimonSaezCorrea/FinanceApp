@@ -119,7 +119,7 @@ export function DebtsRoute() {
         title={t("debts.title")}
         description={subtitle}
         actions={
-          <Button onClick={() => setModalOpen(true)}>
+          <Button variant="accent" onClick={() => setModalOpen(true)}>
             <Plus className="h-4 w-4" aria-hidden />
             {t("debts.new")}
           </Button>

@@ -41,7 +41,6 @@
     "newSubtitle": "Register a bank account, card, or cash",
     "currentBalance": "Current balance",
     "summary": "{{accounts}} accounts · {{currencies}} currencies",
-    "countLabel": "{{count}} account(s)",
     "type": {
       "CHECKING": "Checking",
       "SIGHT": "Sight",
@@ -51,7 +50,30 @@
       "CASH": "Cash"
     },
     "status": { "label": "Status", "ACTIVE": "Active", "INACTIVE": "Inactive" },
-    "card": { "usage": "{{pct}}% used", "creditUsed": "Credit used" },
+    "card": {
+      "usage": "{{pct}}% used",
+      "creditUsed": "Credit used",
+      "cardPool": "Card ···· {{last4}}",
+      "trend": "{{pct}}% this month",
+      "billedOn": "Billed on the {{day}}th of each month"
+    },
+    "overview": {
+      "netWorth": "Total net worth",
+      "netWorthHint": "· net, approx. in {{currency}}",
+      "assets": "Assets",
+      "cardDebt": "Card debt"
+    },
+    "groupBy": {
+      "label": "Group by:",
+      "currency": "Currency",
+      "type": "Account type",
+      "institution": "Institution",
+      "status": "Status",
+      "none": "No grouping",
+      "noInstitution": "No institution",
+      "allAccounts": "All accounts",
+      "count": "{{count}} account(s)"
+    },
     "balanceLabel": "Balance",
     "detail": {
       "change": "Change",

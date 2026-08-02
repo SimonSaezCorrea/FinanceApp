@@ -12,6 +12,11 @@ vi.mock("../api/accountsApi", () => ({
   accountsApi: { list: vi.fn(), create: vi.fn() },
 }));
 
+// The route reads the signed-in user's preferred currency (for the "≈" hints).
+vi.mock("../../auth/hooks/useAuth", () => ({
+  useAuth: () => ({ user: { preferredCurrency: "CLP" } }),
+}));
+
 function renderRoute() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(

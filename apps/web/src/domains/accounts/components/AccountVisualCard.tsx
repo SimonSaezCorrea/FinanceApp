@@ -82,8 +82,12 @@ export function AccountVisualCard({
       type={onClick ? "button" : undefined}
       onClick={onClick}
       className={cn(
-        "relative flex w-full flex-col overflow-hidden rounded-2xl p-5 text-left shadow-md transition-transform",
-        large ? "h-64" : "h-[12.5rem]",
+        // `shrink-0`: the tile has a fixed height and must keep it inside a
+        // scrolling flex column (the account-detail aside), never be squashed.
+        "relative flex w-full shrink-0 flex-col overflow-hidden rounded-2xl p-5 text-left shadow-md transition-transform",
+        // min-, not fixed: the account-level tile carries an extra row (the account
+        // number) and must grow instead of clipping it.
+        large ? "min-h-64" : "min-h-[12.5rem]",
         onClick &&
           "cursor-pointer hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         gradientClass,
@@ -124,6 +128,17 @@ export function AccountVisualCard({
                 •••• •••• •••• {last4}
               </p>
             </>
+          ) : null}
+
+          {/* Account-level tile: the bank account number takes the place a card's
+              masked PAN would occupy (it's stored/shown in full — not a PAN). */}
+          {!card && account.accountNumber ? (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs opacity-70">{t("accounts.form.accountNumber")}</span>
+              <p className="text-base font-medium tabular-nums tracking-wider">
+                {account.accountNumber}
+              </p>
+            </div>
           ) : null}
 
           {showCreditInfo ? (

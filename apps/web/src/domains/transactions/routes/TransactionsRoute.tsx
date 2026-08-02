@@ -104,6 +104,7 @@ export function TransactionsRoute() {
               {t("transactions.table.import")}
             </Button>
             <Button
+              variant="accent"
               onClick={() => {
                 setEditTx(null);
                 setModalOpen(true);

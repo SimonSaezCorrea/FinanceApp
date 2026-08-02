@@ -15,6 +15,7 @@ import { TransactionCreateModal } from "../../transactions/components/Transactio
 import { TransactionDetailModal } from "../../transactions/components/TransactionDetailModal";
 import { TransactionTable } from "../../transactions/components/TransactionTable";
 import { cn } from "../../../shared/lib/cn";
+import { DESKTOP_QUERY, useMediaQuery } from "../../../shared/lib/useMediaQuery";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { Card, CardContent } from "../../../shared/ui/card";
@@ -39,9 +40,13 @@ export function AccountDetailRoute() {
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
   const [billingModalOpen, setBillingModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"movements" | "billing">("movements");
+  const [tab, setTab] = useState<"movements" | "billing" | "cards">("movements");
   const { data: acc, isLoading, isError } = useAccount(id);
   const { update, setStatus, reconcile, remove } = useAccountMutations();
+  // Below `lg` there is no side column, so the cards become a third tab instead.
+  // Derived (not an effect): resizing up to desktop drops the mobile-only tab.
+  const isDesktop = useMediaQuery(DESKTOP_QUERY);
+  const activeTab = isDesktop && tab === "cards" ? "movements" : tab;
 
   if (isLoading) return <LoadingState title={t("app.loading")} />;
   if (isError || !acc) return <ErrorState title={t("errors.INTERNAL_ERROR")} />;
@@ -49,10 +54,22 @@ export function AccountDetailRoute() {
   const Icon = ACCOUNT_ICON[acc.type];
   const pct = acc.balanceChangePct === null ? null : Number(acc.balanceChangePct);
   const hasCreditPool = acc.type === "CREDIT_LINE" || acc.cards.some((c) => c.kind === "CREDIT");
+  const cardable = accountsContract.isCardableAccountType(acc.type);
+  const tabItems = [
+    { value: "movements" as const, label: t("transactions.title") },
+    ...(hasCreditPool
+      ? [{ value: "billing" as const, label: t("accounts.detail.billingTitle") }]
+      : []),
+    // Mobile only: on desktop these live in the side column.
+    ...(!isDesktop && cardable ? [{ value: "cards" as const, label: t("cards.title") }] : []),
+  ];
 
   return (
-    <div className="flex flex-col gap-6">
-      <nav className="flex items-center gap-1 text-sm text-muted-foreground">
+    // On desktop the page itself never scrolls: the summary stays put and each
+    // column (movements table / cards aside) owns its own scrollbar. `3rem` is the
+    // layout container's py-6. Below `lg` it falls back to normal page scrolling.
+    <div className="flex flex-col gap-4 lg:h-[calc(100dvh-3rem)] lg:overflow-hidden">
+      <nav className="flex shrink-0 items-center gap-1 text-sm text-muted-foreground">
         <Link to="/accounts" className="hover:text-foreground">
           {t("accounts.title")}
         </Link>
@@ -60,16 +77,17 @@ export function AccountDetailRoute() {
         <span className="text-foreground">{acc.name}</span>
       </nav>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_320px]">
         {/* Main column */}
-        <div className="flex min-w-0 flex-col gap-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+        <div className="flex min-w-0 flex-col gap-6 lg:min-h-0">
+          {/* Stacks on mobile — the action row alone is wider than a phone. */}
+          <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
                 <Icon className="h-6 w-6" aria-hidden />
               </span>
-              <div>
-                <h1 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
+              <div className="min-w-0">
+                <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold tracking-tight">
                   {acc.name}
                   <Badge variant={acc.status === "ACTIVE" ? "success" : "neutral"}>
                     {t(`accounts.status.${acc.status}`)}
@@ -86,8 +104,12 @@ export function AccountDetailRoute() {
                 </p>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setEditing((v) => !v)}>
+            {/* Every account-level action lives here — including the destructive
+                ones, which used to sit at the bottom of the (now scrollable) aside.
+                Everyday actions first, then a divider, then the risky ones tinted
+                by consequence: amber to pause the account, red to destroy it. */}
+            <div className="flex flex-wrap items-center gap-1.5 lg:shrink-0 lg:justify-end">
+              <Button variant="secondary" size="sm" onClick={() => setEditing((v) => !v)}>
                 <Pencil className="h-4 w-4" aria-hidden />
                 {editing ? t("common.cancel") : t("accounts.actions.edit")}
               </Button>
@@ -100,11 +122,41 @@ export function AccountDetailRoute() {
                 <RefreshCw className="h-4 w-4" aria-hidden />
                 {t("accounts.actions.reconcile")}
               </Button>
+
+              <span className="mx-1 h-5 w-px bg-border" aria-hidden />
+
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  acc.status === "ACTIVE"
+                    ? "text-warning hover:bg-warning/10 hover:text-warning"
+                    : "text-success hover:bg-success/10 hover:text-success",
+                )}
+                disabled={setStatus.isPending}
+                onClick={() =>
+                  setStatus.mutate({ id, status: acc.status === "ACTIVE" ? "INACTIVE" : "ACTIVE" })
+                }
+              >
+                <Power className="h-4 w-4" aria-hidden />
+                {acc.status === "ACTIVE"
+                  ? t("accounts.actions.deactivate")
+                  : t("accounts.actions.activate")}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => remove.mutate(id, { onSuccess: () => navigate("/accounts") })}
+              >
+                <Trash2 className="h-4 w-4" aria-hidden />
+                {t("accounts.actions.delete")}
+              </Button>
             </div>
           </div>
 
           {editing ? (
-            <Card>
+            <Card className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto scrollbar-thin">
               <CardContent className="pt-6">
                 <AccountForm
                   submitLabel={t("accounts.actions.save")}
@@ -150,31 +202,22 @@ export function AccountDetailRoute() {
           ) : (
             <>
               <KpiStrip account={acc} pct={pct} />
-              {hasCreditPool ? (
-                <>
-                  <Tabs
-                    value={activeTab}
-                    onChange={setActiveTab}
-                    items={[
-                      { value: "movements", label: t("transactions.title") },
-                      { value: "billing", label: t("accounts.detail.billingTitle") },
-                    ]}
-                  />
-                  {activeTab === "movements" ? (
-                    <MovementsSection account={acc} />
-                  ) : (
-                    <BillingSection account={acc} />
-                  )}
-                </>
-              ) : (
-                <MovementsSection account={acc} />
-              )}
+              {tabItems.length > 1 ? (
+                <Tabs className="shrink-0" value={activeTab} onChange={setTab} items={tabItems} />
+              ) : null}
+              {activeTab === "billing" ? <BillingSection account={acc} /> : null}
+              {activeTab === "cards" ? (
+                <CardsAside account={acc} holder={user?.name ?? undefined} />
+              ) : null}
+              {activeTab === "movements" ? <MovementsSection account={acc} /> : null}
             </>
           )}
         </div>
 
-        {/* Side column */}
-        <aside className="flex flex-col gap-4">
+        {/* Side column — desktop only (on mobile its content is the "Tarjetas" tab
+            above). The account tile stays put; only the cards list scrolls (see
+            CardsAside), so it never drags the movements table along. */}
+        <aside className="hidden flex-col gap-4 lg:flex lg:min-h-0">
           <CardsAside account={acc} holder={user?.name ?? undefined} />
 
           {acc.creditPools.length > 1 ? (
@@ -196,28 +239,6 @@ export function AccountDetailRoute() {
               </dl>
             </Card>
           ) : null}
-
-          <Button
-            variant={acc.status === "ACTIVE" ? "destructive" : "outline"}
-            className="w-full"
-            disabled={setStatus.isPending}
-            onClick={() =>
-              setStatus.mutate({ id, status: acc.status === "ACTIVE" ? "INACTIVE" : "ACTIVE" })
-            }
-          >
-            <Power className="h-4 w-4" aria-hidden />
-            {acc.status === "ACTIVE"
-              ? t("accounts.actions.deactivate")
-              : t("accounts.actions.activate")}
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full text-destructive hover:bg-destructive/10"
-            onClick={() => remove.mutate(id, { onSuccess: () => navigate("/accounts") })}
-          >
-            <Trash2 className="h-4 w-4" aria-hidden />
-            {t("accounts.actions.delete")}
-          </Button>
         </aside>
       </div>
 
@@ -269,7 +290,9 @@ function KpiStrip({ account, pct }: { account: accounts.BankAccount; pct: number
     account.type === "CREDIT_LINE" || account.cards.some((c) => c.kind === "CREDIT");
   const cols = (hasRealBalance ? 1 : 0) + 1 + (hasCreditPool ? 1 : 0);
   return (
-    <div className={cn("grid gap-3", cols === 3 ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
+    // Three across only from `lg`: at tablet widths the credit KPI's
+    // "used / limit" pair doesn't fit in a third of the row.
+    <div className={cn("grid gap-3 sm:grid-cols-2", cols === 3 && "lg:grid-cols-3")}>
       {hasRealBalance ? (
         <Kpi label={t("accounts.currentBalance")} value={fmt(account.currentBalance)} emphasis />
       ) : null}
@@ -363,8 +386,8 @@ function MovementsSection({ account }: { account: accounts.BankAccount }) {
   ];
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 lg:shrink-0">
         <h2 className="text-lg font-semibold">{t("transactions.title")}</h2>
         <div className="flex items-center gap-2">
           {account.cards.length > 0 ? (
@@ -377,6 +400,7 @@ function MovementsSection({ account }: { account: accounts.BankAccount }) {
             />
           ) : null}
           <Button
+            variant="accent"
             size="sm"
             onClick={() => {
               setEditTx(null);
@@ -389,24 +413,28 @@ function MovementsSection({ account }: { account: accounts.BankAccount }) {
         </div>
       </div>
 
-      {isLoading ? (
-        <LoadingState title={t("app.loading")} />
-      ) : isError ? (
-        <ErrorState title={t("errors.INTERNAL_ERROR")} />
-      ) : list.length === 0 ? (
-        <EmptyState title={t("transactions.empty")} />
-      ) : (
-        <TransactionTable
-          transactions={list}
-          accounts={[account]}
-          onEdit={(tx) => {
-            setEditTx(tx);
-            setModalOpen(true);
-          }}
-          onDelete={(tx) => setDeleteTx(tx)}
-          onRowClick={(tx) => setDetailTx(tx)}
-        />
-      )}
+      {/* Only the results scroll — the section heading, card filter and "new
+          movement" button stay pinned above it. */}
+      <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto scrollbar-thin">
+        {isLoading ? (
+          <LoadingState title={t("app.loading")} />
+        ) : isError ? (
+          <ErrorState title={t("errors.INTERNAL_ERROR")} />
+        ) : list.length === 0 ? (
+          <EmptyState title={t("transactions.empty")} />
+        ) : (
+          <TransactionTable
+            transactions={list}
+            accounts={[account]}
+            onEdit={(tx) => {
+              setEditTx(tx);
+              setModalOpen(true);
+            }}
+            onDelete={(tx) => setDeleteTx(tx)}
+            onRowClick={(tx) => setDetailTx(tx)}
+          />
+        )}
+      </div>
 
       <TransactionCreateModal
         open={modalOpen}
@@ -458,7 +486,7 @@ function CardsAside({ account, holder }: { account: accounts.BankAccount; holder
   const cardable = accountsContract.isCardableAccountType(account.type);
 
   return (
-    <div className="flex flex-col gap-3">
+    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
       {/* The account itself, as a quick visual reference — same tile style used to
           create the account, above its actual cards (if any). `accountOnly` forces
           this to be the genuine account view, not a stand-in for its first card.
@@ -469,39 +497,48 @@ function CardsAside({ account, holder }: { account: accounts.BankAccount; holder
         <AccountVisualCard account={account} holder={holder} accountOnly />
       ) : null}
 
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold">{t("cards.title")}</span>
-        {cardable ? (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setEditCard(undefined);
-              setModalOpen(true);
-            }}
-          >
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            {t("cards.add")}
-          </Button>
-        ) : null}
-      </div>
+      {/* Account types that can never carry a card (cash, savings, investment)
+          drop the whole section — an "add a card" prompt they can't act on is
+          noise, not an empty state. */}
+      {cardable ? (
+        <>
+          <div className="flex items-center justify-between lg:shrink-0">
+            <span className="text-sm font-semibold">{t("cards.title")}</span>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setEditCard(undefined);
+                setModalOpen(true);
+              }}
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden />
+              {t("cards.add")}
+            </Button>
+          </div>
 
-      {account.cards.length === 0 ? (
-        <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
-          <p>{t("cards.empty")}</p>
-          <p>{t("cards.emptyHint")}</p>
-        </div>
-      ) : (
-        account.cards.map((card) => (
-          <AccountVisualCard
-            key={card.id}
-            account={account}
-            card={card}
-            holder={holder}
-            onClick={() => setViewCard(card)}
-          />
-        ))
-      )}
+          {/* Only the card tiles scroll — the account tile above and this section's
+              header stay pinned. */}
+          <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1 scrollbar-thin">
+            {account.cards.length === 0 ? (
+              <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+                <p>{t("cards.empty")}</p>
+                <p>{t("cards.emptyHint")}</p>
+              </div>
+            ) : (
+              account.cards.map((card) => (
+                <AccountVisualCard
+                  key={card.id}
+                  account={account}
+                  card={card}
+                  holder={holder}
+                  onClick={() => setViewCard(card)}
+                />
+              ))
+            )}
+          </div>
+        </>
+      ) : null}
 
       <CardDetailModal
         account={account}
