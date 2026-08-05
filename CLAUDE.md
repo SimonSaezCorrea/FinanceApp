@@ -177,6 +177,32 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     `test/unit/support/fake-ports.ts` (fake port per table + an `accountAggregate` builder) and
     `test/integration/support/repositories.ts` (composes the real adapter graphs).
   - **transaction** (specs/005, 007; folder `domains/transaction`): income/expense linked to a `BankAccount` and (optionally) a `Card`. Rules in `transaction/domain/movement-policy.ts` + its command handlers (contract requires `bankAccountId` on create + refine `INCOME ⇒ no card`): INCOME → no card; EXPENSE on CASH → no card; EXPENSE on **CREDIT_LINE → card required** (must belong); EXPENSE on other non-cash accounts → card optional. **Whenever the card used is CREDIT-kind** (on a CREDIT_LINE account, or any other account that's grown one), the amount is checked against **both** the account's shared pool (persisted `creditUsed` + amount ≤ `creditLimit`, error `CARD_LIMIT_EXCEEDED`) **and**, if the card has its own `CardLimit` for that currency, that narrower (still derived) sub-limit too (`sumsForCard`, error `CARD_SUBLIMIT_EXCEEDED`). Creating/editing/deleting a transaction that draws on the shared pool mutates `BankAccount.creditUsed` directly (`BankAccountRepositoryPort.incrementCreditUsedWithTx`, called inside the movement's own `$transaction`) — edits/deletes revert the transaction's old contribution before applying the new one, including when the transaction moves to a different account (see accounts' billing-period amendment above for the linked-transaction/paid-statement exception). Full CRUD from both the Movements view and the Account view (shared `TransactionTable` with edit/delete, plus a `TransactionDetailModal` read-only view opened by clicking a row). Filter query supports `bankAccountId` + `cardId` (bank→card). Error codes: `CARD_REQUIRED`, `CARD_NOT_ALLOWED`, `CARD_ACCOUNT_MISMATCH`, `CARD_LIMIT_EXCEEDED`, `CARD_SUBLIMIT_EXCEEDED`.
+    Amendment (paginated list + aggregates endpoint, 2026-08-05): `GET /transactions` is
+    **keyset-paginated** and its response shape is now **`{ items, nextCursor }`** (was a bare
+    array). `limit` (≤100) + an opaque base64 `cursor` over `(occurredAt desc, id desc)` —
+    keyset, not offset, because rows are created/deleted while the user scrolls;
+    `TRANSACTION_PAGE_SIZE = 20` in `@finance/contracts` is what the UI requests. **Omitting
+    `limit` still returns every match** (`nextCursor: null`), which is what the dashboard's
+    month-scoped aggregation relies on. A cursor the API didn't issue throws `INVALID_CURSOR`
+    (never silently restarts — that would loop a paginating client). Cursor encode/decode lives
+    in `transaction/application/queries/transaction-cursor.ts`; `toListFilter`
+    (`transaction-list-filter.ts`) is shared by both read handlers so a page and its summary
+    can't describe different sets. New **`GET /transactions/summary`** (declared BEFORE `:id` in
+    the Facade, or Nest would match it as an id) returns `{ total, currencyTotals[], categories[] }`
+    for the WHOLE filtered set, aggregated in Postgres (`count` + `groupBy(currency,type)` +
+    `distinct category`) — the KPI strip, the "N movimientos" count, the category-filter options,
+    the create-modal's category combobox and the profile's monthly-movement count all read from
+    it, because deriving them from loaded pages yields wrong numbers. New `category` filter
+    (case-insensitive `contains`) replaced the old client-side `clientFilter`, which could only
+    ever search already-fetched rows; `clientFilter`/`uniqueCategories`/`summarizeByCurrency`
+    were deleted from `transactionMetrics.ts` (replaced by `toCurrencyKpis`, which only derives
+    the net balance from the API's totals). Web: `useTransactions` keeps returning a plain array
+    (via `select: page => page.items`) for the unpaginated consumers, plus new
+    `useInfiniteTransactions` (TanStack `useInfiniteQuery`) and `useTransactionsSummary`; both
+    scrolling views (`TransactionsRoute` and the account detail's Movimientos tab) load more
+    automatically through `shared/ui/infinite-scroll-sentinel.tsx` (IntersectionObserver,
+    200px rootMargin, re-armed on each landed page so a short page on a tall screen doesn't
+    stall the list).
   - **recurring-expense**: `RecurringExpense` (subscriptions/rent/periodic payments) — `frequency` (`RecurrenceFrequency`: WEEKLY/MONTHLY/YEARLY), `interval`, `anchorDate`, optional `bankAccountId`/`category`, `active`. The contract exposes a computed `nextDueAt` (anchor stepped forward by frequency × interval). CRUD at `/recurring`.
   - **reference tables** (`country`, `currency`, `country-currency`, `country-identifier-type`, `financial-institution` — one domain each since the one-table-one-domain amendment; global read-only, authed but not user-scoped): `Country` (table `country`, ISO 3166-1 `alpha2`/`alpha3`/`numeric` unique + name), `FinancialInstitution` (table `financial-institution`, **banks + non-bank card issuers** via `kind` `InstitutionKind` BANK/NON_BANK_ISSUER; `code` = SBIF/CMF or código institucional `@@unique([countryId,code])`, `name`, `rut?` (Chilean issuers), `category` `BankCategory?` ESTABLISHED/FOREIGN_BRANCH/STATE (banks only), `brands String[]`, `notes`, FK→Country), `Currency` (table `currency`, **ISO 4217** `code` unique + `numeric` + name), and `CountryCurrency` join (`isPrimary`). Endpoints `GET /countries`, `GET /institutions?country=CL&kind=BANK`, `GET /currencies` (ordered by name). Seeded idempotently in `prisma/seed.ts` (`seedReferenceData`): 6 countries, 18 CL banks + 15 non-bank issuers, 168 currencies, country↔currency links. **`BankAccount.institutionId`** FK → `FinancialInstitution` (the "institution" selector; scalar `institution` text mirrors its name for display; relation field is `financialInstitution`); web forms use `useInstitutions`/`useCurrencies` selects (`apps/web`'s `domains/reference` — the FRONTEND keeps one reference module; only the backend is split per table).
   - **wallet-item-dashboard**: `WalletItemDashboard` (table `wallet-item-dashboard`) `(accountId? | cardId?, order)` — a user-curated set of pinned cards **or** accounts for the dashboard "wallet" (exactly one of card/account; XOR enforced in its aggregate; `onDelete: Cascade`). Endpoints `GET/POST /wallet`, `PATCH /wallet/reorder` (`{ids[]}`), `DELETE /wallet/:id`.

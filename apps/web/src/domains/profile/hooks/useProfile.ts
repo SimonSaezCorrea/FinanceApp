@@ -22,15 +22,17 @@ export function useProfileStats() {
     queryKey: ["accounts", { status: "active" }],
     queryFn: () => accountsApi.list({ status: "active" }),
   });
+  // Only the count is needed, so ask the API for the count — fetching every
+  // movement of the month just to read `.length` off it is pure waste.
   const transactionsQuery = useQuery({
-    queryKey: ["transactions", { from: startOfMonthISO(now), to: endOfMonthISO(now) }],
-    queryFn: () => transactionsApi.list({ from: startOfMonthISO(now), to: endOfMonthISO(now) }),
+    queryKey: ["transactions", "summary", { from: startOfMonthISO(now), to: endOfMonthISO(now) }],
+    queryFn: () => transactionsApi.summary({ from: startOfMonthISO(now), to: endOfMonthISO(now) }),
   });
 
   return {
     isLoading: accountsQuery.isLoading || transactionsQuery.isLoading,
     accountsCount: accountsQuery.data?.length ?? 0,
-    monthlyMovementsCount: transactionsQuery.data?.length ?? 0,
+    monthlyMovementsCount: transactionsQuery.data?.total ?? 0,
   };
 }
 

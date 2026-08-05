@@ -2,6 +2,7 @@
   "brand": { "name": "FinanceApp" },
   "app": {
     "loading": "Loading…",
+    "loadingMore": "Loading more…",
     "welcome": "Personal finance dashboard"
   },
   "common": {
@@ -9,6 +10,7 @@
     "save": "Save",
     "edit": "Edit",
     "delete": "Delete",
+    "options": "Options",
     "confirmDeleteTitle": "Delete item?",
     "confirmDelete": "This action cannot be undone.",
     "noResults": "No results.",

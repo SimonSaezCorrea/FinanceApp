@@ -1,4 +1,21 @@
 <!--
+Sync Impact Report — 2026-08-05 (amendment 1.24.0)
+- Version change: 1.23.0 → 1.24.0 (MINOR: new enforceable rule under Architecture norms; no
+  principle removed or redefined).
+- Architecture norms gain **"Unbounded list growth (paginated reads)"**: a list endpoint whose rows
+  grow without limit MUST use keyset pagination over a *total* sort key (`(occurredAt, id)`) with an
+  opaque `cursor` + `limit`, returning `{ items, nextCursor }`. Offset pagination is banned (rows are
+  inserted/deleted mid-scroll, so offsets skip and repeat). An unrecognized cursor is REJECTED
+  (`INVALID_CURSOR`), never treated as "start over" — that loops a paginating client forever.
+  Aggregates over a paginated set (counts, sums, distinct values) MUST be computed in the database and
+  served separately, never folded from whichever pages a client has loaded.
+- First application: `GET /transactions` (response shape changed from a bare array to
+  `{ items, nextCursor }`; `limit` omitted still returns everything, which the dashboard relies on)
+  plus the new `GET /transactions/summary` and a server-side `category` filter that replaces the old
+  client-side category search. Web adds `useInfiniteTransactions`/`useTransactionsSummary` and
+  `shared/ui/infinite-scroll-sentinel.tsx`.
+- Propagated in the same session: CLAUDE.md (`transaction` domain amendment).
+
 Sync Impact Report — 2026-07-30 (amendment 1.23.0)
 - Version change: 1.22.1 → 1.23.0 (MINOR: Principle VI gains a new, enforceable structural rule; no
   principle removed or redefined).
@@ -672,6 +689,16 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
   - **One-way dependencies:** `apps → packages`; `packages ↛ apps`; `api ↛ web`. Enforced by
     `pnpm check:boundaries` (the frontend must not import backend internals or any DB client).
   - **Validation with zod** (`ZodValidationPipe`), not class-validator.
+  - **Unbounded list growth (paginated reads):** a list endpoint whose rows grow without limit
+    (`transaction` today) MUST offer **keyset pagination** — an opaque `cursor` over a _total_
+    sort key (`(occurredAt, id)`, never a bare timestamp) plus `limit`, returning
+    `{ items, nextCursor }`. Offset pagination is NOT used: rows are inserted and deleted while
+    the user scrolls, which makes offsets skip and repeat records. A cursor the API didn't issue
+    is **rejected** (`INVALID_CURSOR`), never silently treated as "start over" — that turns a
+    paginating client into an infinite loop. **Aggregates over a paginated set (counts, sums,
+    distinct values) MUST be computed in the database and served separately** (e.g.
+    `GET /transactions/summary`), never folded from the rows a client happens to have loaded:
+    a KPI derived from page one is a wrong number, not an approximation.
   - **Persistence naming:** Prisma **model** names are PascalCase; the physical **DB table** name MUST
     be **kebab-case via `@@map`** (e.g. `BankAccount` → `bank-account`, `CardAccount` → `card-account`,
     `WalletItemDashboard` → `wallet-item-dashboard`). Every model carries an `@@map`. No unused/legacy
@@ -727,4 +754,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.23.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-30
+**Version**: 1.24.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-05

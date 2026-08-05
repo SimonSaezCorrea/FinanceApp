@@ -13,6 +13,31 @@ export interface TransactionListFilter {
   cardId?: string;
   occurredFrom?: Date;
   occurredTo?: Date;
+  category?: string;
+}
+
+/** Decoded keyset cursor — the last row of the previous page. */
+export interface TransactionCursor {
+  occurredAt: Date;
+  id: string;
+}
+
+/** `limit`/`cursor` absent ⇒ return every match, `nextCursor: null`. */
+export interface TransactionPageRequest {
+  limit?: number;
+  cursor?: TransactionCursor;
+}
+
+export interface TransactionPage {
+  items: Transaction[];
+  nextCursor: TransactionCursor | null;
+}
+
+/** Aggregates over the whole filtered set, not just the requested page. */
+export interface TransactionSummaryResult {
+  total: number;
+  currencyTotals: { currency: string; income: string; expense: string }[];
+  categories: string[];
 }
 
 /**
@@ -24,7 +49,12 @@ export interface TransactionListFilter {
  * into the handlers.
  */
 export interface TransactionRepositoryPort {
-  list(userId: string, where: TransactionListFilter): Promise<Transaction[]>;
+  list(
+    userId: string,
+    where: TransactionListFilter,
+    page?: TransactionPageRequest,
+  ): Promise<TransactionPage>;
+  summary(userId: string, where: TransactionListFilter): Promise<TransactionSummaryResult>;
   findOne(userId: string, id: string): Promise<Transaction | null>;
   /** Σ income/expense for one card in one currency, optionally scoped to a
    * billing cycle (`since`) and excluding one tx (for edits). */

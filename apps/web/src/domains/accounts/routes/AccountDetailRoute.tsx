@@ -9,7 +9,7 @@ import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { useAuth } from "../../auth/hooks/useAuth";
-import { useTransactions } from "../../transactions/hooks/useTransactions";
+import { useInfiniteTransactions } from "../../transactions/hooks/useTransactions";
 import { useTransactionMutations } from "../../transactions/hooks/useTransactionMutations";
 import { TransactionCreateModal } from "../../transactions/components/TransactionCreateModal";
 import { TransactionDetailModal } from "../../transactions/components/TransactionDetailModal";
@@ -43,7 +43,7 @@ export function AccountDetailRoute() {
   const [tab, setTab] = useState<"movements" | "billing" | "cards">("movements");
   const { data: acc, isLoading, isError } = useAccount(id);
   const { update, setStatus, reconcile, remove } = useAccountMutations();
-  // Below `lg` there is no side column, so the cards become a third tab instead.
+  // Below `xl` there is no side column, so the cards become a third tab instead.
   // Derived (not an effect): resizing up to desktop drops the mobile-only tab.
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const activeTab = isDesktop && tab === "cards" ? "movements" : tab;
@@ -63,12 +63,13 @@ export function AccountDetailRoute() {
     // Mobile only: on desktop these live in the side column.
     ...(!isDesktop && cardable ? [{ value: "cards" as const, label: t("cards.title") }] : []),
   ];
+  const hasTabs = tabItems.length > 1;
 
   return (
     // On desktop the page itself never scrolls: the summary stays put and each
     // column (movements table / cards aside) owns its own scrollbar. `3rem` is the
-    // layout container's py-6. Below `lg` it falls back to normal page scrolling.
-    <div className="flex flex-col gap-4 lg:h-[calc(100dvh-3rem)] lg:overflow-hidden">
+    // layout container's py-6. Below `xl` it falls back to normal page scrolling.
+    <div className="flex flex-col gap-4 xl:h-[calc(100dvh-3rem)] xl:overflow-hidden">
       <nav className="flex shrink-0 items-center gap-1 text-sm text-muted-foreground">
         <Link to="/accounts" className="hover:text-foreground">
           {t("accounts.title")}
@@ -77,10 +78,14 @@ export function AccountDetailRoute() {
         <span className="text-foreground">{acc.name}</span>
       </nav>
 
-      <div className="grid gap-6 lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 xl:min-h-0 xl:flex-1 xl:grid-cols-[1fr_320px]">
         {/* Main column */}
-        <div className="flex min-w-0 flex-col gap-6 lg:min-h-0">
-          {/* Stacks on mobile — the action row alone is wider than a phone. */}
+        <div className="flex min-w-0 flex-col gap-6 xl:min-h-0">
+          {/* Stacks below `lg` — the action row alone is wider than a phone/tablet.
+              `lg`, not `xl` (the two-column layout's own breakpoint): this row has
+              plenty of room well before the side column appears, and waiting for
+              `xl` left it stacked with a wide empty gap beside the title from
+              1024-1280px. */}
           <div className="flex shrink-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between lg:gap-4">
             <div className="flex min-w-0 items-center gap-3">
               <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-muted text-muted-foreground">
@@ -88,7 +93,9 @@ export function AccountDetailRoute() {
               </span>
               <div className="min-w-0">
                 <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold tracking-tight">
-                  {acc.name}
+                  {/* Own item: as a bare text node the name becomes an anonymous
+                      flex item that wraps word-by-word when the column is tight. */}
+                  <span className="min-w-0 break-words">{acc.name}</span>
                   <Badge variant={acc.status === "ACTIVE" ? "success" : "neutral"}>
                     {t(`accounts.status.${acc.status}`)}
                   </Badge>
@@ -156,7 +163,7 @@ export function AccountDetailRoute() {
           </div>
 
           {editing ? (
-            <Card className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto scrollbar-thin">
+            <Card className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto scrollbar-thin">
               <CardContent className="pt-6">
                 <AccountForm
                   submitLabel={t("accounts.actions.save")}
@@ -202,14 +209,21 @@ export function AccountDetailRoute() {
           ) : (
             <>
               <KpiStrip account={acc} pct={pct} />
-              {tabItems.length > 1 ? (
+              {hasTabs ? (
                 <Tabs className="shrink-0" value={activeTab} onChange={setTab} items={tabItems} />
               ) : null}
-              {activeTab === "billing" ? <BillingSection account={acc} /> : null}
-              {activeTab === "cards" ? (
-                <CardsAside account={acc} holder={user?.name ?? undefined} />
+              {/* With the tab strip visible its label IS the section heading — an
+                  in-section <h2> repeating it is pure noise. Without tabs (a single
+                  view) the heading is the only thing naming the section, so it stays. */}
+              {activeTab === "billing" ? (
+                <BillingSection account={acc} hideTitle={hasTabs} />
               ) : null}
-              {activeTab === "movements" ? <MovementsSection account={acc} /> : null}
+              {activeTab === "cards" ? (
+                <CardsAside account={acc} holder={user?.name ?? undefined} hideTitle={hasTabs} />
+              ) : null}
+              {activeTab === "movements" ? (
+                <MovementsSection account={acc} hideTitle={hasTabs} />
+              ) : null}
             </>
           )}
         </div>
@@ -217,7 +231,7 @@ export function AccountDetailRoute() {
         {/* Side column — desktop only (on mobile its content is the "Tarjetas" tab
             above). The account tile stays put; only the cards list scrolls (see
             CardsAside), so it never drags the movements table along. */}
-        <aside className="hidden flex-col gap-4 lg:flex lg:min-h-0">
+        <aside className="hidden flex-col gap-4 xl:flex xl:min-h-0">
           <CardsAside account={acc} holder={user?.name ?? undefined} />
 
           {acc.creditPools.length > 1 ? (
@@ -319,7 +333,10 @@ function CreditKpi({ account }: { account: accounts.BankAccount }) {
   const used = Number(account.creditUsed);
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
   return (
-    <Card className="flex flex-col gap-2 p-4">
+    // Capped between `sm` and `lg`: with 3 KPIs on a 2-col grid this card is alone
+    // on its row and would otherwise stretch to the full row width instead of
+    // matching its siblings' size. From `lg` the 3-col grid fits it naturally.
+    <Card className="flex flex-col gap-2 p-4 sm:max-w-sm lg:max-w-none">
       <span className="text-xs font-medium text-muted-foreground">
         {t("accounts.detail.credit")}
       </span>
@@ -366,19 +383,27 @@ function Kpi({
 }
 
 /** Movements list for this account, sharing the global table format + full CRUD. */
-function MovementsSection({ account }: { account: accounts.BankAccount }) {
+function MovementsSection({
+  account,
+  hideTitle,
+}: {
+  account: accounts.BankAccount;
+  /** The tab strip above already names this section — don't repeat it. */
+  hideTitle?: boolean;
+}) {
   const { t } = useTranslation();
   const [cardFilter, setCardFilter] = useState("");
-  const { data, isLoading, isError } = useTransactions({
+  const txQuery = useInfiniteTransactions({
     bankAccountId: account.id,
     cardId: cardFilter || undefined,
   });
+  const { isLoading, isError } = txQuery;
   const { remove } = useTransactionMutations();
   const [modalOpen, setModalOpen] = useState(false);
   const [editTx, setEditTx] = useState<transactions.Transaction | null>(null);
   const [deleteTx, setDeleteTx] = useState<transactions.Transaction | null>(null);
   const [detailTx, setDetailTx] = useState<transactions.Transaction | null>(null);
-  const list = data ?? [];
+  const list = txQuery.data?.pages.flatMap((p) => p.items) ?? [];
 
   const cardOptions = [
     { value: "", label: t("transactions.form.selectCard") },
@@ -386,13 +411,17 @@ function MovementsSection({ account }: { account: accounts.BankAccount }) {
   ];
 
   return (
-    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
-      <div className="flex flex-wrap items-center justify-between gap-3 lg:shrink-0">
-        <h2 className="text-lg font-semibold">{t("transactions.title")}</h2>
-        <div className="flex items-center gap-2">
+    <div className="flex flex-col gap-3 xl:min-h-0 xl:flex-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 xl:shrink-0">
+        {hideTitle ? null : <h2 className="text-lg font-semibold">{t("transactions.title")}</h2>}
+        {/* `justify-between` pins the button to the far edge regardless of the
+            filter's width, instead of the two just trailing each other. The card
+            filter shrinks (was pushing the button off-screen at 320px) but is
+            capped so it doesn't stretch edge-to-edge on mid-width phones (456px). */}
+        <div className="flex min-w-0 flex-1 items-center justify-between gap-2">
           {account.cards.length > 0 ? (
             <Select
-              className="h-9 w-48"
+              className="h-9 min-w-0 max-w-[220px] flex-1 sm:w-48 sm:max-w-none sm:flex-none"
               value={cardFilter}
               onChange={(e) => setCardFilter(e.target.value)}
               options={cardOptions}
@@ -402,20 +431,22 @@ function MovementsSection({ account }: { account: accounts.BankAccount }) {
           <Button
             variant="accent"
             size="sm"
+            className="shrink-0"
             onClick={() => {
               setEditTx(null);
               setModalOpen(true);
             }}
           >
             <Plus className="h-4 w-4" aria-hidden />
-            {t("transactions.new")}
+            {/* Icon-only below 550px: the label doesn't fit next to the filter there. */}
+            <span className="sr-only min-[500px]:not-sr-only">{t("transactions.new")}</span>
           </Button>
         </div>
       </div>
 
       {/* Only the results scroll — the section heading, card filter and "new
           movement" button stay pinned above it. */}
-      <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto scrollbar-thin">
+      <div className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto scrollbar-thin">
         {isLoading ? (
           <LoadingState title={t("app.loading")} />
         ) : isError ? (
@@ -426,12 +457,16 @@ function MovementsSection({ account }: { account: accounts.BankAccount }) {
           <TransactionTable
             transactions={list}
             accounts={[account]}
+            showAccountColumn={false}
             onEdit={(tx) => {
               setEditTx(tx);
               setModalOpen(true);
             }}
             onDelete={(tx) => setDeleteTx(tx)}
             onRowClick={(tx) => setDetailTx(tx)}
+            hasMore={txQuery.hasNextPage}
+            isLoadingMore={txQuery.isFetchingNextPage}
+            onLoadMore={() => void txQuery.fetchNextPage()}
           />
         )}
       </div>
@@ -476,7 +511,16 @@ function MovementsSection({ account }: { account: accounts.BankAccount }) {
 }
 
 /** Sidebar: every card of the account with a single uniform visual. Click a card to view/edit/delete it. */
-function CardsAside({ account, holder }: { account: accounts.BankAccount; holder?: string }) {
+function CardsAside({
+  account,
+  holder,
+  hideTitle,
+}: {
+  account: accounts.BankAccount;
+  holder?: string;
+  /** Set when rendered as the mobile "Tarjetas" tab — the tab strip already names it. */
+  hideTitle?: boolean;
+}) {
   const { t } = useTranslation();
   const { remove } = useCardMutations(account.id);
   const [modalOpen, setModalOpen] = useState(false);
@@ -485,26 +529,31 @@ function CardsAside({ account, holder }: { account: accounts.BankAccount; holder
   const [viewCard, setViewCard] = useState<accounts.Card | null>(null);
   const cardable = accountsContract.isCardableAccountType(account.type);
 
-  return (
-    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
-      {/* The account itself, as a quick visual reference — same tile style used to
-          create the account, above its actual cards (if any). `accountOnly` forces
-          this to be the genuine account view, not a stand-in for its first card.
-          Skipped for CREDIT_LINE: it's not really "an account" with its own balance
-          (that IS the credit pool, already shown in the Crédito card below), so this
-          tile would just repeat the same cupo number with nothing else to add. */}
-      {account.type !== "CREDIT_LINE" ? (
-        <AccountVisualCard account={account} holder={holder} accountOnly />
-      ) : null}
+  // As the mobile "Tarjetas" tab this renders in the full-width main column
+  // (not the desktop aside's fixed 320px), so a single narrow stack (capped by
+  // AccountVisualCard's own max-w-md) left most of the row empty — a grid uses
+  // that width instead, growing to 3 columns past ~1024px so it keeps filling
+  // the row as it gets wider rather than sitting at a fixed 2-up. `justify-items-
+  // center`: each card is still capped at max-w-md, so a column wider than that
+  // (there's more room per column than there are cards to fill it) centers the
+  // card instead of stranding it against the column's left edge. The desktop
+  // aside stays a single-column stack: its column is already only 320px, a grid
+  // there would do nothing.
+  const tilesLayout = hideTitle
+    ? "grid grid-cols-1 justify-items-center gap-3 sm:grid-cols-2 lg:grid-cols-3"
+    : "flex flex-col gap-3";
 
+  return (
+    <div className="flex flex-col gap-3 xl:min-h-0 xl:flex-1">
       {/* Account types that can never carry a card (cash, savings, investment)
           drop the whole section — an "add a card" prompt they can't act on is
           noise, not an empty state. */}
       {cardable ? (
         <>
-          <div className="flex items-center justify-between lg:shrink-0">
-            <span className="text-sm font-semibold">{t("cards.title")}</span>
+          <div className="flex items-center justify-between xl:shrink-0">
+            {hideTitle ? null : <span className="text-sm font-semibold">{t("cards.title")}</span>}
             <Button
+              className="ml-auto"
               variant="outline"
               size="sm"
               onClick={() => {
@@ -517,9 +566,13 @@ function CardsAside({ account, holder }: { account: accounts.BankAccount; holder
             </Button>
           </div>
 
-          {/* Only the card tiles scroll — the account tile above and this section's
-              header stay pinned. */}
-          <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1 scrollbar-thin">
+          {/* Only the card tiles scroll — this section's header stays pinned. */}
+          <div
+            className={cn(
+              tilesLayout,
+              "xl:min-h-0 xl:flex-1 xl:overflow-y-auto xl:pr-1 scrollbar-thin",
+            )}
+          >
             {account.cards.length === 0 ? (
               <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
                 <p>{t("cards.empty")}</p>

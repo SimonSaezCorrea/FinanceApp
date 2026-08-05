@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -17,8 +17,7 @@ import { Input } from "../../../shared/ui/input";
 import { Segmented } from "../../../shared/ui/segmented";
 import { Select } from "../../../shared/ui/select";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
-import { useTransactions } from "../hooks/useTransactions";
-import { uniqueCategories } from "../lib/transactionMetrics";
+import { useTransactionsSummary } from "../hooks/useTransactions";
 
 function todayInput(): string {
   const d = new Date();
@@ -60,9 +59,11 @@ export function TransactionCreateModal({
   const { t, i18n } = useTranslation();
   const { create, update } = useTransactionMutations();
   const { data: accountList } = useAccounts();
-  const { data: allTransactions } = useTransactions();
+  // The distinct categories straight from the API, instead of fetching every
+  // movement just to fold them down in the browser.
+  const { data: summary } = useTransactionsSummary();
   const editing = Boolean(initial);
-  const categoryOptions = useMemo(() => uniqueCategories(allTransactions ?? []), [allTransactions]);
+  const categoryOptions = summary?.categories ?? [];
 
   const [type, setType] = useState<transactions.TransactionType>("EXPENSE");
   const [amount, setAmount] = useState("");

@@ -22,48 +22,26 @@ export interface TransactionViewFilters {
 const SCALE = 4;
 const ROUND = Decimal.ROUND_HALF_EVEN;
 
-export function summarizeByCurrency(txs: transactions.Transaction[]): CurrencyKpi[] {
-  const map = new Map<string, { income: Decimal; expense: Decimal }>();
-
-  for (const tx of txs) {
-    if (!map.has(tx.currency)) {
-      map.set(tx.currency, { income: new Decimal(0), expense: new Decimal(0) });
-    }
-    const entry = map.get(tx.currency)!;
-    const amount = new Decimal(tx.amount);
-    if (tx.type === "INCOME") {
-      entry.income = entry.income.plus(amount);
-    } else {
-      entry.expense = entry.expense.plus(amount);
-    }
-  }
-
-  return Array.from(map.entries()).map(([currency, { income, expense }]) => {
-    const net = income.minus(expense);
+/**
+ * The API's per-currency income/expense totals, plus the derived net balance.
+ *
+ * These totals are summed in the database, not here: the movements list is
+ * paginated, so folding the rows currently in the browser would report the KPIs
+ * of whatever the user had scrolled past rather than of the filtered set.
+ */
+export function toCurrencyKpis(
+  totals: transactions.TransactionSummary["currencyTotals"],
+): CurrencyKpi[] {
+  return totals.map(({ currency, income, expense }) => {
+    const inc = new Decimal(income);
+    const exp = new Decimal(expense);
     return {
       currency,
-      totalIncome: income.toFixed(SCALE, ROUND),
-      totalExpense: expense.toFixed(SCALE, ROUND),
-      netBalance: net.toFixed(SCALE, ROUND),
+      totalIncome: inc.toFixed(SCALE, ROUND),
+      totalExpense: exp.toFixed(SCALE, ROUND),
+      netBalance: inc.minus(exp).toFixed(SCALE, ROUND),
     };
   });
-}
-
-export function uniqueCategories(txs: transactions.Transaction[]): string[] {
-  const set = new Set<string>();
-  for (const tx of txs) {
-    if (tx.category) set.add(tx.category);
-  }
-  return Array.from(set).sort((a, b) => a.localeCompare(b));
-}
-
-export function clientFilter(
-  txs: transactions.Transaction[],
-  search: string,
-): transactions.Transaction[] {
-  if (!search.trim()) return txs;
-  const lower = search.toLowerCase();
-  return txs.filter((tx) => tx.category?.toLowerCase().includes(lower) ?? false);
 }
 
 export function isFullMonthRange(from: string | undefined, to: string | undefined): boolean {

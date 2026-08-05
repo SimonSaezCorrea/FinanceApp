@@ -2,6 +2,7 @@
   "brand": { "name": "FinanceApp" },
   "app": {
     "loading": "Cargando…",
+    "loadingMore": "Cargando más…",
     "welcome": "Panel de finanzas personales"
   },
   "common": {
@@ -9,6 +10,7 @@
     "save": "Guardar",
     "edit": "Editar",
     "delete": "Eliminar",
+    "options": "Opciones",
     "confirmDeleteTitle": "¿Eliminar elemento?",
     "confirmDelete": "Esta acción no se puede deshacer.",
     "noResults": "Sin resultados.",

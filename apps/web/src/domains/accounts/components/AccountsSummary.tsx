@@ -33,8 +33,8 @@ export function AccountsSummary({
     formatMoney(value, { locale: i18n.language, currency });
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card px-6 py-5">
-      <div>
+    <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card px-4 py-5 sm:px-6">
+      <div className="min-w-0">
         <p className="text-xs text-muted-foreground">
           {t("accounts.overview.netWorth")}{" "}
           <span className="text-dim">
@@ -44,7 +44,7 @@ export function AccountsSummary({
         {/* Chips sit beside the hero number, not under it — stacking them made the
             card taller than the right-hand column and left it visually top-heavy. */}
         <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
-          <p className="text-[30px] font-bold tabular-nums leading-none tracking-tight">
+          <p className="text-[26px] font-bold tabular-nums leading-none tracking-tight sm:text-[30px]">
             {money(inPrimary(net, heroCurrency), heroCurrency)}
           </p>
           {net
@@ -60,7 +60,9 @@ export function AccountsSummary({
         </div>
       </div>
 
-      <div className="flex gap-8">
+      {/* At 320px these two amounts no longer fit on one line beside each other:
+          they wrap to their own rows instead of overflowing the card. */}
+      <div className="flex flex-wrap gap-x-6 gap-y-2 sm:gap-8">
         <div className="text-right">
           <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.assets")}</p>
           <p className="mt-1 text-base font-semibold tabular-nums text-success">

@@ -27,6 +27,15 @@ export class AccountNotFoundError extends DomainError {
   }
 }
 
+/** A `cursor` query param that isn't a cursor this API issued. Rejected rather
+ * than ignored: silently restarting from page one would make a paginating
+ * client re-request the same page forever. */
+export class InvalidCursorError extends DomainError {
+  constructor() {
+    super("INVALID_CURSOR", 400, "cursor");
+  }
+}
+
 export class CardRequiredError extends DomainError {
   constructor() {
     super("CARD_REQUIRED");

@@ -84,27 +84,39 @@ export function AccountVisualCard({
       className={cn(
         // `shrink-0`: the tile has a fixed height and must keep it inside a
         // scrolling flex column (the account-detail aside), never be squashed.
-        "relative flex w-full shrink-0 flex-col overflow-hidden rounded-2xl p-5 text-left shadow-md transition-transform",
+        // Padding/min-height scale down under `sm` — at narrow widths (e.g. the
+        // mobile "Tarjetas" tab) the full-size padding left too little room for
+        // the two lines of text, cramming everything toward the tile's center.
+        // `sm:max-w-md`: this tile reads as a physical card — in the desktop
+        // aside its 320px column already caps it, but as the mobile "Tarjetas"
+        // tab it sits in the full-width main column (1024-1280px) and would
+        // otherwise stretch into a wide banner instead of a card. Uncapped
+        // below `sm`: that grid is a single column there (one tile per row
+        // regardless), so capping it just left empty gutters on both sides
+        // instead of a real second column — full width reads better than
+        // "narrow card floating in the middle" when there's nowhere else for
+        // the freed space to go.
+        "relative flex w-full shrink-0 flex-col overflow-hidden rounded-2xl p-4 text-left shadow-md transition-transform sm:max-w-md sm:p-5",
         // min-, not fixed: the account-level tile carries an extra row (the account
         // number) and must grow instead of clipping it.
-        large ? "min-h-64" : "min-h-[12.5rem]",
+        large ? "min-h-56 sm:min-h-64" : "min-h-[11rem] sm:min-h-[12.5rem]",
         onClick &&
           "cursor-pointer hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         gradientClass,
       )}
     >
-      <div className="flex h-full flex-col justify-between gap-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-semibold leading-tight">
+      <div className="flex h-full flex-col justify-between gap-2 sm:gap-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold leading-tight">
               {account.institution ?? account.name}
             </p>
-            <p className="text-xs opacity-80">
+            <p className="truncate text-xs opacity-80">
               {t(`accounts.type.${account.type}`)} · {account.currency}
             </p>
           </div>
           {/* Type chip: the card's own kind when there's a card, else the account type. */}
-          <span className="rounded-full bg-white/25 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+          <span className="shrink-0 rounded-full bg-white/25 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
             {card
               ? t(`cards.kind.${card.kind}`)
               : isAccountCreditPool

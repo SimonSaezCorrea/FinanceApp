@@ -23,6 +23,7 @@ import { RemoveTransactionCommand } from "../application/commands/remove-transac
 import { UpdateTransactionCommand } from "../application/commands/update-transaction.command";
 import { GetTransactionQuery } from "../application/queries/get-transaction.query";
 import { ListTransactionsQuery } from "../application/queries/list-transactions.query";
+import { SummarizeTransactionsQuery } from "../application/queries/summarize-transactions.query";
 import { transactionIdParamsSchema } from "./dto/transaction-id.params";
 
 /**
@@ -43,8 +44,19 @@ export class TransactionsController {
     @CurrentUser() user: AuthUser,
     @Query(new ZodValidationPipe(transactions.transactionFiltersSchema))
     filters: transactions.TransactionFilters,
-  ): Promise<transactions.Transaction[]> {
+  ): Promise<transactions.TransactionPage> {
     return this.queryBus.execute(new ListTransactionsQuery(user.id, filters));
+  }
+
+  // Declared BEFORE `:id` — Nest matches routes in order, so the reverse would
+  // make this path arrive as `GetTransactionQuery("summary")`.
+  @Get("summary")
+  summary(
+    @CurrentUser() user: AuthUser,
+    @Query(new ZodValidationPipe(transactions.transactionFiltersSchema))
+    filters: transactions.TransactionFilters,
+  ): Promise<transactions.TransactionSummary> {
+    return this.queryBus.execute(new SummarizeTransactionsQuery(user.id, filters));
   }
 
   @Get(":id")

@@ -62,6 +62,9 @@ export const updateTransactionSchema = createTransactionSchema
   });
 export type UpdateTransaction = z.infer<typeof updateTransactionSchema>;
 
+export const TRANSACTION_PAGE_SIZE = 20;
+const TRANSACTION_MAX_PAGE_SIZE = 100;
+
 /** Optional list filters (query params). */
 export const transactionFiltersSchema = z.object({
   type: transactionType.optional(),
@@ -69,5 +72,46 @@ export const transactionFiltersSchema = z.object({
   cardId: z.string().optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
+  /** Case-insensitive substring match on `category`. Server-side because the
+   * list is paginated — filtering the loaded page in the browser would only
+   * ever search the rows already fetched. */
+  category: z.string().trim().max(120).optional(),
+  /**
+   * Page size. **Omit to get every match in one response** (no pagination),
+   * which is what the aggregate-only consumers rely on (e.g. the dashboard's
+   * month view). Views that scroll pass it explicitly.
+   */
+  limit: z.coerce.number().int().positive().max(TRANSACTION_MAX_PAGE_SIZE).optional(),
+  /** Opaque keyset cursor from the previous page's `nextCursor`. */
+  cursor: z.string().optional(),
 });
 export type TransactionFilters = z.infer<typeof transactionFiltersSchema>;
+
+/**
+ * One page of movements. `nextCursor` is `null` on the last page (and always
+ * `null` when the request carried no `limit`, since that returns everything).
+ */
+export const transactionPageSchema = z.object({
+  items: z.array(transactionSchema),
+  nextCursor: z.string().nullable(),
+});
+export type TransactionPage = z.infer<typeof transactionPageSchema>;
+
+/**
+ * Aggregates over the WHOLE filtered set, independent of pagination — the
+ * KPI strip, the "N movimientos" count and the category filter's options all
+ * have to stay correct no matter how few pages are loaded, so they can't be
+ * derived from the rows currently in the browser.
+ */
+export const transactionSummarySchema = z.object({
+  total: z.number().int().nonnegative(),
+  currencyTotals: z.array(
+    z.object({
+      currency: z.string(),
+      income: moneyString,
+      expense: moneyString,
+    }),
+  ),
+  categories: z.array(z.string()),
+});
+export type TransactionSummary = z.infer<typeof transactionSummarySchema>;

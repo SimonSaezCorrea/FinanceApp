@@ -18,6 +18,7 @@ import {
 function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): TransactionRepositoryPort {
   return {
     list: vi.fn(),
+    summary: vi.fn(),
     findOne: vi.fn(),
     sumsForCard: vi.fn(async () => ({ income: "0", expense: "0" })),
     saveNew: vi.fn(),

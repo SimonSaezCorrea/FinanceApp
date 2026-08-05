@@ -27,7 +27,14 @@ const STATUS_VARIANT = {
 /** "Facturación" tab: every billing period for this account's credit pool — open
  * (still accumulating), pending (closed, awaiting payment) or paid — with actions
  * to pay (choosing a source bank account) or correct a paid one's frozen amount. */
-export function BillingSection({ account }: { account: accounts.BankAccount }) {
+export function BillingSection({
+  account,
+  hideTitle,
+}: {
+  account: accounts.BankAccount;
+  /** The tab strip above already names this section — don't repeat it. */
+  hideTitle?: boolean;
+}) {
   const { t, i18n } = useTranslation();
   const { data: statements, isLoading, isError } = useCreditStatements(account.id);
   const { generateStatements } = useAccountMutations();
@@ -37,10 +44,13 @@ export function BillingSection({ account }: { account: accounts.BankAccount }) {
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
 
   return (
-    <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
-      <div className="flex flex-wrap items-center justify-between gap-3 lg:shrink-0">
-        <h2 className="text-lg font-semibold">{t("accounts.detail.billingTitle")}</h2>
+    <div className="flex flex-col gap-3 xl:min-h-0 xl:flex-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 xl:shrink-0">
+        {hideTitle ? null : (
+          <h2 className="text-lg font-semibold">{t("accounts.detail.billingTitle")}</h2>
+        )}
         <Button
+          className="ml-auto"
           size="sm"
           variant="outline"
           disabled={generateStatements.isPending}
@@ -52,12 +62,15 @@ export function BillingSection({ account }: { account: accounts.BankAccount }) {
           }
         >
           <RefreshCw className="h-4 w-4" aria-hidden />
-          {t("accounts.actions.generateStatements")}
+          {/* Icon-only below 550px: the full label doesn't fit at 320px. */}
+          <span className="sr-only min-[550px]:not-sr-only">
+            {t("accounts.actions.generateStatements")}
+          </span>
         </Button>
       </div>
 
       {/* Only the periods table scrolls — heading and actions stay pinned. */}
-      <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto scrollbar-thin">
+      <div className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto scrollbar-thin">
         {isLoading ? (
           <LoadingState title={t("app.loading")} />
         ) : isError ? (

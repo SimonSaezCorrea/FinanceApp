@@ -21,5 +21,5 @@ export function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(subscribe, getSnapshot, () => false);
 }
 
-/** The `lg` breakpoint — where the account detail switches to its two-column layout. */
-export const DESKTOP_QUERY = "(min-width: 1024px)";
+/** The `xl` breakpoint — where the account detail switches to its two-column layout. */
+export const DESKTOP_QUERY = "(min-width: 1280px)";

@@ -4,7 +4,7 @@ import type { transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { cn } from "../../../shared/lib/cn";
-import { isFullMonthRange, summarizeByCurrency } from "../lib/transactionMetrics";
+import { isFullMonthRange, toCurrencyKpis } from "../lib/transactionMetrics";
 import type { CurrencyKpi } from "../lib/transactionMetrics";
 
 function monthLabel(iso: string, locale: string): string {
@@ -42,19 +42,21 @@ function MiniStat({
 }
 
 interface TransactionKpiStripProps {
-  transactions: transactions.Transaction[];
+  /** Per-currency totals for the WHOLE filtered set (from the summary
+   * endpoint), not just the pages loaded so far. */
+  currencyTotals: transactions.TransactionSummary["currencyTotals"];
   from?: string;
   to?: string;
 }
 
 /** Summary bar above the movements table: net balance + income/expense minis. */
 export function TransactionKpiStrip({
-  transactions: txs,
+  currencyTotals,
   from,
   to,
 }: Readonly<TransactionKpiStripProps>) {
   const { t, i18n } = useTranslation();
-  const groups = summarizeByCurrency(txs);
+  const groups = toCurrencyKpis(currencyTotals);
   const fullMonth = isFullMonthRange(from, to);
 
   const balanceLabel =
