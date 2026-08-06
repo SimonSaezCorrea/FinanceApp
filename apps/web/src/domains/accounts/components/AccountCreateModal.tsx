@@ -10,7 +10,7 @@ import { formatMoney } from "@finance/money";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
-import { Dialog } from "../../../shared/ui/dialog";
+import { ResponsiveSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
@@ -200,7 +200,7 @@ export function AccountCreateModal({
   })();
 
   return (
-    <Dialog
+    <ResponsiveSurface
       open={open}
       onOpenChange={onOpenChange}
       title={t("accounts.new")}
@@ -465,6 +465,6 @@ export function AccountCreateModal({
           </Button>
         </div>
       </div>
-    </Dialog>
+    </ResponsiveSurface>
   );
 }

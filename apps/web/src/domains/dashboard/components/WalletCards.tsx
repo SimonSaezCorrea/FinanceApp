@@ -41,7 +41,11 @@ import { AccountVisualCard } from "../../accounts/components/AccountVisualCard";
 import { useWallet, useWalletMutations } from "../hooks/useWallet";
 import { WalletAddModal } from "./WalletAddModal";
 
-const GRID = "grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3";
+// `[&>*]:max-w-md` caps each CELL: AccountVisualCard no longer caps itself (the
+// account aside needs it to grow with its column), so the wallet keeps its tiles
+// card-shaped here instead of stretching them into banners on a wide screen.
+const GRID =
+  "grid grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-3 [&>*]:w-full [&>*]:max-w-md";
 
 /** Smoothly fly the overlay into its (already-reordered) final slot instead of popping out. */
 const dropAnimation: DropAnimation = {

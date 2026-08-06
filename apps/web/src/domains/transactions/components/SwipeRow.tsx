@@ -11,7 +11,7 @@ const ACTION_WIDTH = 144;
 // drag with travel rather than an all-or-nothing toggle.
 const OPEN_RATIO = 0.5;
 const AXIS_LOCK_PX = 8;
-const SETTLE_TRANSITION = "transform 260ms cubic-bezier(0.22, 1, 0.36, 1)";
+const SETTLE_TRANSITION = "transform 180ms cubic-bezier(0.22, 1, 0.36, 1)";
 
 type GestureHandlers = {
   move: (e: globalThis.PointerEvent) => void;
@@ -61,6 +61,7 @@ export function SwipeRow({
 }: Readonly<Props>) {
   const rootRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const startX = useRef(0);
   const startY = useRef(0);
   const baseX = useRef(0);
@@ -73,12 +74,24 @@ export function SwipeRow({
 
   const hasActions = Boolean(onEdit || onDelete);
 
+  // The action panel travels WITH the content instead of sitting still behind
+  // it: the buttons then occupy exactly the strip that is visible at any instant
+  // of the gesture/settle, so a tap during the slide hits the button it looks
+  // like it hits. Combined with the panel painting above the content, the
+  // actions are pressable from the first pixel of reveal — no dead window while
+  // the row finishes travelling.
   const setX = useCallback((x: number) => {
-    const node = contentRef.current;
     currentX.current = x;
-    if (!node) return;
-    node.style.transition = "none";
-    node.style.transform = `translateX(${x}px)`;
+    const node = contentRef.current;
+    const panel = panelRef.current;
+    if (node) {
+      node.style.transition = "none";
+      node.style.transform = `translateX(${x}px)`;
+    }
+    if (panel) {
+      panel.style.transition = "none";
+      panel.style.transform = `translateX(${ACTION_WIDTH + x}px)`;
+    }
   }, []);
 
   const settleTo = useCallback((x: number) => {
@@ -87,14 +100,17 @@ export function SwipeRow({
     // this the second pass would force a redundant reflow mid-transition.
     if (currentX.current === x) return;
     const node = contentRef.current;
+    const panel = panelRef.current;
     currentX.current = x;
     if (!node) return;
     node.style.transition = SETTLE_TRANSITION;
+    if (panel) panel.style.transition = SETTLE_TRANSITION;
     // Forces a style/layout flush so the transition declaration is committed
     // before the value it should animate changes — see the note above. The
     // returned rect is deliberately unused.
     node.getBoundingClientRect();
     node.style.transform = `translateX(${x}px)`;
+    if (panel) panel.style.transform = `translateX(${ACTION_WIDTH + x}px)`;
   }, []);
 
   // Settle to the position the current `open` state implies, whenever that
@@ -232,7 +248,21 @@ export function SwipeRow({
    * `pointerup`. A guard here had nothing to catch and instead swallowed the
    * user's real first click, so the actions only fired on the second press.
    */
-  function runAction(action: () => void) {
+  /**
+   * Fired on `pointerdown`, not `click`: while the row is still travelling the
+   * browser can drop the synthetic `click` altogether (the target moves out
+   * from under the finger), which read as a dead ~180ms window on the buttons.
+   * `onClick` stays wired for keyboard/assistive activation, de-duplicated
+   * through this flag so a mouse press doesn't fire the action twice.
+   */
+  const actionFired = useRef(false);
+
+  function runAction(action: () => void, fromPointer: boolean) {
+    if (fromPointer) actionFired.current = true;
+    else if (actionFired.current) {
+      actionFired.current = false;
+      return;
+    }
     onOpenChange(false);
     action();
   }
@@ -244,13 +274,25 @@ export function SwipeRow({
       onPointerDown={onPointerDown}
     >
       {hasActions ? (
-        <div className="absolute inset-y-0 right-0 flex" style={{ width: ACTION_WIDTH }}>
+        <div
+          ref={panelRef}
+          className="absolute inset-y-0 right-0 z-10 flex will-change-transform"
+          style={{
+            width: ACTION_WIDTH,
+            transform: `translateX(${ACTION_WIDTH}px)`,
+          }}
+        >
           {onEdit ? (
             <button
               type="button"
               data-swipe-action
               className="flex w-[72px] flex-col items-center justify-center gap-1 bg-primary text-xs font-medium text-primary-foreground"
-              onClick={() => runAction(onEdit)}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                runAction(onEdit, true);
+              }}
+              onClick={() => runAction(onEdit, false)}
             >
               <Pencil className="h-4 w-4" aria-hidden />
               {t("common.edit")}
@@ -261,7 +303,12 @@ export function SwipeRow({
               type="button"
               data-swipe-action
               className="flex w-[72px] flex-col items-center justify-center gap-1 bg-destructive text-xs font-medium text-destructive-foreground"
-              onClick={() => runAction(onDelete)}
+              onPointerDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                runAction(onDelete, true);
+              }}
+              onClick={() => runAction(onDelete, false)}
             >
               <Trash2 className="h-4 w-4" aria-hidden />
               {t("common.delete")}

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import type { accounts } from "@finance/contracts";
 
 import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { Dialog } from "../../../shared/ui/dialog";
+import { ResponsiveSurface } from "../../../shared/ui/overlay";
 import { useCardMutations } from "../hooks/useCards";
 import { CardForm } from "./CardForm";
 
@@ -52,7 +52,7 @@ export function CardCreateModal({
   }
 
   return (
-    <Dialog
+    <ResponsiveSurface
       open={open}
       onOpenChange={onOpenChange}
       title={editing ? t("cards.editTitle") : t("cards.add")}
@@ -68,6 +68,6 @@ export function CardCreateModal({
         hasExistingPrimary={hasExistingPrimary}
         onSubmit={handle}
       />
-    </Dialog>
+    </ResponsiveSurface>
   );
 }

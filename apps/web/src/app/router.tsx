@@ -2,6 +2,7 @@ import type { ReactElement } from "react";
 import { createBrowserRouter } from "react-router";
 
 import { AccountDetailRoute } from "../domains/accounts/routes/AccountDetailRoute";
+import { AccountEditRoute } from "../domains/accounts/routes/AccountEditRoute";
 import { AccountsRoute } from "../domains/accounts/routes/AccountsRoute";
 import { RequireAuth } from "../domains/auth/components/RequireAuth";
 import { LoginRoute } from "../domains/auth/routes/LoginRoute";
@@ -29,6 +30,7 @@ export const router = createBrowserRouter([
   { path: "/", element: protect(<DashboardPage />) },
   { path: "/accounts", element: protect(<AccountsRoute />) },
   { path: "/accounts/:id", element: protect(<AccountDetailRoute />) },
+  { path: "/accounts/:id/edit", element: protect(<AccountEditRoute />) },
   { path: "/transactions", element: protect(<TransactionsRoute />) },
   { path: "/installments", element: protect(<InstallmentsRoute />) },
   { path: "/debts", element: protect(<DebtsRoute />) },

@@ -1,6 +1,8 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
+
 import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
@@ -8,7 +10,7 @@ import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
 import { CategoryIcon } from "./CategoryIcon";
-import { Dialog } from "../../../shared/ui/dialog";
+import { ResponsiveSurface } from "../../../shared/ui/overlay";
 
 function formatDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, {
@@ -48,8 +50,10 @@ export function TransactionDetailModal({
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
 
-  if (!transaction) return null;
-  const tx = transaction;
+  // Retained through the close so the surface can play its exit animation: the
+  // parent clears `transaction` in the same update that closes the modal.
+  const tx = useLastNonNull(transaction);
+  if (!tx) return null;
 
   const account = tx.bankAccountId ? accounts.find((a) => a.id === tx.bankAccountId) : undefined;
   const card = tx.cardId ? account?.cards.find((c) => c.id === tx.cardId) : undefined;
@@ -63,7 +67,7 @@ export function TransactionDetailModal({
   ];
 
   return (
-    <Dialog
+    <ResponsiveSurface
       open={open}
       onOpenChange={onOpenChange}
       title={tx.description ?? t(`transactions.type.${tx.type}`)}
@@ -149,6 +153,6 @@ export function TransactionDetailModal({
           </Button>
         ) : null}
       </div>
-    </Dialog>
+    </ResponsiveSurface>
   );
 }

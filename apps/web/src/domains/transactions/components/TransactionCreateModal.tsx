@@ -8,10 +8,9 @@ import type { transactions } from "@finance/contracts";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { Button } from "../../../shared/ui/button";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
 import { Combobox } from "../../../shared/ui/combobox";
-import { Dialog } from "../../../shared/ui/dialog";
+import { FormSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Segmented } from "../../../shared/ui/segmented";
@@ -50,11 +49,18 @@ export function TransactionCreateModal({
   onOpenChange,
   initial,
   defaultBankAccountId,
+  lockAccount = false,
 }: Readonly<{
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial?: transactions.Transaction;
   defaultBankAccountId?: string;
+  /**
+   * Opened from within one account's own view: the account is context, not a
+   * choice, so the selector is hidden instead of offering a switch that would
+   * move the movement out of the view the user is looking at.
+   */
+  lockAccount?: boolean;
 }>) {
   const { t, i18n } = useTranslation();
   const { create, update } = useTransactionMutations();
@@ -100,6 +106,15 @@ export function TransactionCreateModal({
     setDate(initial ? dateInput(initial.occurredAt) : todayInput());
   }, [open, initial, defaultBankAccountId]);
 
+  // With the selector hidden there's no `handleAccountChange` to carry the
+  // account's currency into the form, so mirror it here once the account loads.
+  useEffect(() => {
+    if (!open || initial || !defaultBankAccountId) return;
+    const acc = accountList?.find((a) => a.id === defaultBankAccountId);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
+    if (acc) setCurrency(acc.currency);
+  }, [open, initial, defaultBankAccountId, accountList]);
+
   const accounts = accountList ?? [];
   // For a new movement, only active accounts; when editing, also keep the
   // movement's own (possibly inactive) account selectable.
@@ -107,6 +122,7 @@ export function TransactionCreateModal({
     ? accounts.filter((a) => a.status === "ACTIVE" || a.id === initial?.bankAccountId)
     : accounts.filter((a) => a.status === "ACTIVE");
   const selectedAccount = accounts.find((a) => a.id === bankAccountId);
+  const accountLocked = lockAccount && !!bankAccountId;
   const isCreditLine = selectedAccount?.type === "CREDIT_LINE";
   const isCardable =
     !!selectedAccount && accountsContract.isCardableAccountType(selectedAccount.type);
@@ -182,11 +198,17 @@ export function TransactionCreateModal({
     !!amount && !!bankAccountId && !(needsCard && !cardId) && !noCardsAvailable && !pending;
 
   return (
-    <Dialog
+    <FormSurface
       open={open}
       onOpenChange={onOpenChange}
+      mode={editing ? "edit" : "create"}
       title={editing ? t("transactions.edit") : t("transactions.new")}
       className="max-w-md"
+      headerAside={accountLocked ? selectedAccount?.name : undefined}
+      submitLabel={t("transactions.form.submit")}
+      onSubmit={submit}
+      canSubmit={canSubmit}
+      submitting={pending}
     >
       <div className="flex flex-col gap-4">
         <Segmented
@@ -212,7 +234,9 @@ export function TransactionCreateModal({
           ]}
         />
 
-        <div className="flex flex-col items-center gap-1 py-2">
+        {/* Sticky so the figure being typed stays on screen once the numeric
+            keyboard eats most of the viewport and the form scrolls behind it. */}
+        <div className="sticky top-0 z-10 flex flex-col items-center gap-1 bg-card py-2 max-sm:border-b">
           <span className="text-sm text-muted-foreground">{t("transactions.form.amount")}</span>
           <div className="flex items-center gap-1 text-accent">
             <span className="text-2xl font-semibold">
@@ -243,7 +267,7 @@ export function TransactionCreateModal({
           />
         </Field>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Field label={t("transactions.form.category")}>
             <Combobox
               id="tx-cat"
@@ -265,15 +289,17 @@ export function TransactionCreateModal({
           </Field>
         </div>
 
-        <Field label={t("transactions.form.account")}>
-          <Select
-            id="tx-acc"
-            value={bankAccountId}
-            onChange={(e) => handleAccountChange(e.target.value)}
-            options={accountOptions}
-            aria-label={t("transactions.form.account")}
-          />
-        </Field>
+        {accountLocked ? null : (
+          <Field label={t("transactions.form.account")}>
+            <Select
+              id="tx-acc"
+              value={bankAccountId}
+              onChange={(e) => handleAccountChange(e.target.value)}
+              options={accountOptions}
+              aria-label={t("transactions.form.account")}
+            />
+          </Field>
+        )}
 
         {showCard ? (
           <Field label={t("transactions.form.card")}>
@@ -293,7 +319,7 @@ export function TransactionCreateModal({
 
         <CollapsibleSection title={t("transactions.form.moreDetails")} className="p-3">
           <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Field label={t("transactions.form.emisor")}>
                 <Input
                   id="tx-emisor"
@@ -331,16 +357,8 @@ export function TransactionCreateModal({
             </Field>
           </div>
         </CollapsibleSection>
+        <div className="h-2" />
       </div>
-
-      <div className="mt-6 flex justify-end gap-2">
-        <Button variant="outline" onClick={() => onOpenChange(false)}>
-          {t("common.cancel")}
-        </Button>
-        <Button variant="accent" onClick={submit} disabled={!canSubmit}>
-          {t("transactions.form.submit")}
-        </Button>
-      </div>
-    </Dialog>
+    </FormSurface>
   );
 }

@@ -1,5 +1,7 @@
 {
-  "brand": { "name": "FinanceApp" },
+  "brand": {
+    "name": "FinanceApp"
+  },
   "app": {
     "loading": "Loading…",
     "loadingMore": "Loading more…",
@@ -20,7 +22,10 @@
       "WEEKLY": "Weekly",
       "MONTHLY": "Monthly",
       "YEARLY": "Yearly"
-    }
+    },
+    "unsaved": "Unsaved",
+    "saveChanges": "Save changes",
+    "create": "Create"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -39,6 +44,9 @@
   "accounts": {
     "title": "Accounts",
     "empty": "You don't have any accounts yet.",
+    "deleted": "Account deleted",
+    "deleteConfirm": "Delete this account?",
+    "deleteConfirmDescription": "It will be permanently deleted, along with its cards and billing.",
     "new": "New account",
     "newSubtitle": "Register a bank account, card, or cash",
     "currentBalance": "Current balance",
@@ -51,7 +59,11 @@
       "CREDIT_LINE": "Credit card",
       "CASH": "Cash"
     },
-    "status": { "label": "Status", "ACTIVE": "Active", "INACTIVE": "Inactive" },
+    "status": {
+      "label": "Status",
+      "ACTIVE": "Active",
+      "INACTIVE": "Inactive"
+    },
     "card": {
       "usage": "{{pct}}% used",
       "creditUsed": "Credit used",
@@ -133,7 +145,23 @@
       "sectionBalanceCurrency": "Balance and currency",
       "preview": "Preview",
       "editLaterHint": "You'll be able to edit all this later.",
-      "createSubmit": "Create account"
+      "createSubmit": "Create account",
+      "optional": "Optional",
+      "availableResult": "Resulting available",
+      "unsavedChanges": "Unsaved changes",
+      "accountActiveHint": "Shows up in summaries, filters and new movements.",
+      "sections": {
+        "identification": "Identification",
+        "identificationHint": "How the account shows up in lists, filters and movements.",
+        "credit": "Credit",
+        "creditHint": "The total limit mirrors the primary card's limit.",
+        "balance": "Balance",
+        "balanceHint": "The account's currency and the balance it was created with.",
+        "billing": "Billing",
+        "billingHint": "On the billing day the statement is generated pending payment.",
+        "status": "Status",
+        "statusHint": "An inactive account is hidden from summaries but keeps its history."
+      }
     },
     "actions": {
       "edit": "Edit",
@@ -149,6 +177,17 @@
       "generateStatementsSuccess": "Statements refreshed",
       "correctAmount": "Correct amount",
       "correctAmountSuccess": "Amount corrected"
+    },
+    "updated": "Account updated",
+    "edit": {
+      "title": "Edit",
+      "cardsNotEditable": "Not editable here",
+      "cardsAsideHint": "They are managed from each card's own detail. Save the account changes to go back.",
+      "titleMobile": "Edit account",
+      "deleteAccount": "Delete account",
+      "leaveConfirm": "Leave without saving?",
+      "leaveConfirmDescription": "You have unsaved changes on this account. If you leave now they will be lost.",
+      "leaveDiscard": "Discard changes"
     }
   },
   "cards": {
@@ -169,7 +208,11 @@
     "updated": "Card updated",
     "deleted": "Card deleted",
     "deleteConfirm": "Delete this card?",
-    "kind": { "CREDIT": "Credit", "DEBIT": "Debit", "PREPAID": "Prepaid" },
+    "kind": {
+      "CREDIT": "Credit",
+      "DEBIT": "Debit",
+      "PREPAID": "Prepaid"
+    },
     "form": {
       "name": "Card name (optional)",
       "namePlaceholder": "E.g. Main card",
@@ -200,6 +243,22 @@
       "last4": "Enter the last 4 digits.",
       "expiry": "Enter a valid expiry date (MM/YY).",
       "limitRequired": "Enter a valid limit for this card."
+    },
+    "deleteConfirmDescription": "It will be permanently deleted, along with everything tied to it.",
+    "detail": {
+      "title": "Card detail",
+      "available": "Available {{amount}}",
+      "role": "Role",
+      "holder": "Holder",
+      "limitSource": "Limit source",
+      "ownLimit": "Own limit",
+      "accountPool": "Account pool",
+      "movements": "Recent movements",
+      "editingThis": "Editing this card",
+      "filteringTable": "Filtering the table ←",
+      "filteringTableHint": "The table on the left is already filtered by this card",
+      "expiry": "Expires",
+      "availableLabel": "Available"
     }
   },
   "dashboard": {
@@ -249,7 +308,10 @@
     "subtitle": "{{month}} · {{count}} transactions",
     "subtitleRange": "{{range}} · {{count}} transactions",
     "subtitleAll": "All time · {{count}} transactions",
-    "type": { "INCOME": "Income", "EXPENSE": "Expense" },
+    "type": {
+      "INCOME": "Income",
+      "EXPENSE": "Expense"
+    },
     "form": {
       "type": "Type",
       "amount": "Amount",
@@ -297,7 +359,8 @@
       "noCategory": "Uncategorized",
       "noAccount": "No account",
       "import": "Import"
-    }
+    },
+    "count": "{{count}} movements"
   },
   "installments": {
     "title": "Installments",
@@ -374,7 +437,10 @@
     "new": "New debt",
     "created": "Debt created",
     "subtitle": "{{count}} active debts · {{people}} people",
-    "direction": { "OWED_TO_YOU": "Owed to you", "YOU_OWE": "You owe" },
+    "direction": {
+      "OWED_TO_YOU": "Owed to you",
+      "YOU_OWE": "You owe"
+    },
     "kpi": {
       "owedToYou": "Owed to you",
       "youOwe": "You owe",
@@ -435,7 +501,11 @@
     "deleted": "Recurring expense deleted",
     "inactive": "Inactive",
     "next": "Next: {{date}}",
-    "frequency": { "WEEKLY": "Weekly", "MONTHLY": "Monthly", "YEARLY": "Yearly" },
+    "frequency": {
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly",
+      "YEARLY": "Yearly"
+    },
     "form": {
       "label": "Name",
       "amount": "Amount",
@@ -452,7 +522,10 @@
   "investments": {
     "title": "Investments",
     "empty": "You don't have any investments yet.",
-    "kind": { "ETF": "ETF", "REMUNERATED_ACCOUNT": "Remunerated account" }
+    "kind": {
+      "ETF": "ETF",
+      "REMUNERATED_ACCOUNT": "Remunerated account"
+    }
   },
   "import": {
     "title": "Import",
@@ -472,7 +545,9 @@
   "profile": {
     "title": "Profile",
     "ageYears": "{{age}} years old",
-    "plan": { "personal": "Personal plan" },
+    "plan": {
+      "personal": "Personal plan"
+    },
     "stats": {
       "accounts": "Accounts",
       "monthlyMovements": "Mov./mo.",

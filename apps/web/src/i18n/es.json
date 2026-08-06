@@ -1,5 +1,7 @@
 {
-  "brand": { "name": "FinanceApp" },
+  "brand": {
+    "name": "FinanceApp"
+  },
   "app": {
     "loading": "Cargando…",
     "loadingMore": "Cargando más…",
@@ -20,7 +22,10 @@
       "WEEKLY": "Semanal",
       "MONTHLY": "Mensual",
       "YEARLY": "Anual"
-    }
+    },
+    "unsaved": "Sin guardar",
+    "saveChanges": "Guardar cambios",
+    "create": "Crear"
   },
   "nav": {
     "dashboard": "Panel",
@@ -39,6 +44,9 @@
   "accounts": {
     "title": "Cuentas",
     "empty": "Aún no tienes cuentas.",
+    "deleted": "Cuenta eliminada",
+    "deleteConfirm": "¿Eliminar esta cuenta?",
+    "deleteConfirmDescription": "Se eliminará de forma permanente, junto con sus tarjetas y su facturación.",
     "new": "Nueva cuenta",
     "newSubtitle": "Registra una cuenta bancaria, tarjeta o efectivo",
     "currentBalance": "Saldo actual",
@@ -51,7 +59,11 @@
       "CREDIT_LINE": "Tarjeta de crédito",
       "CASH": "Efectivo"
     },
-    "status": { "label": "Estado", "ACTIVE": "Activa", "INACTIVE": "Inactiva" },
+    "status": {
+      "label": "Estado",
+      "ACTIVE": "Activa",
+      "INACTIVE": "Inactiva"
+    },
     "card": {
       "usage": "{{pct}}% cupo",
       "creditUsed": "Cupo usado",
@@ -133,7 +145,23 @@
       "sectionBalanceCurrency": "Saldo y moneda",
       "preview": "Vista previa",
       "editLaterHint": "Podrás editar todos estos datos después.",
-      "createSubmit": "Crear cuenta"
+      "createSubmit": "Crear cuenta",
+      "optional": "Opcional",
+      "availableResult": "Disponible resultante",
+      "unsavedChanges": "Cambios sin guardar",
+      "accountActiveHint": "Aparece en resúmenes, filtros y nuevos movimientos.",
+      "sections": {
+        "identification": "Identificación",
+        "identificationHint": "Cómo aparece la cuenta en listas, filtros y movimientos.",
+        "credit": "Crédito",
+        "creditHint": "El cupo total se sincroniza con el tope de la tarjeta principal.",
+        "balance": "Saldo",
+        "balanceHint": "Moneda de la cuenta y saldo con el que se creó.",
+        "billing": "Facturación",
+        "billingHint": "Al llegar el día de facturación se genera el estado de cuenta pendiente de pago.",
+        "status": "Estado",
+        "statusHint": "Una cuenta inactiva se oculta de los resúmenes pero conserva su historial."
+      }
     },
     "actions": {
       "edit": "Editar",
@@ -149,6 +177,17 @@
       "generateStatementsSuccess": "Facturación revisada",
       "correctAmount": "Corregir monto",
       "correctAmountSuccess": "Monto corregido"
+    },
+    "updated": "Cuenta actualizada",
+    "edit": {
+      "title": "Editar",
+      "cardsNotEditable": "No editables aquí",
+      "cardsAsideHint": "Se administran desde el detalle de cada tarjeta. Guarda los cambios de la cuenta para volver.",
+      "titleMobile": "Editar cuenta",
+      "deleteAccount": "Eliminar cuenta",
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en esta cuenta. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios"
     }
   },
   "cards": {
@@ -169,7 +208,11 @@
     "updated": "Tarjeta actualizada",
     "deleted": "Tarjeta eliminada",
     "deleteConfirm": "¿Eliminar esta tarjeta?",
-    "kind": { "CREDIT": "Crédito", "DEBIT": "Débito", "PREPAID": "Prepago" },
+    "kind": {
+      "CREDIT": "Crédito",
+      "DEBIT": "Débito",
+      "PREPAID": "Prepago"
+    },
     "form": {
       "name": "Nombre de la tarjeta (opcional)",
       "namePlaceholder": "Ej. Tarjeta principal",
@@ -200,6 +243,22 @@
       "last4": "Ingresa los últimos 4 dígitos.",
       "expiry": "Ingresa una fecha de vencimiento válida (MM/AA).",
       "limitRequired": "Ingresa un tope válido para esta tarjeta."
+    },
+    "deleteConfirmDescription": "Se eliminará de forma permanente, junto con todo lo relacionado a ella.",
+    "detail": {
+      "title": "Detalle de tarjeta",
+      "available": "Disponible {{amount}}",
+      "role": "Rol",
+      "holder": "Titular",
+      "limitSource": "Origen del tope",
+      "ownLimit": "Tope propio",
+      "accountPool": "Cupo de la cuenta",
+      "movements": "Últimos movimientos",
+      "editingThis": "Editando esta tarjeta",
+      "filteringTable": "Filtrando la tabla ←",
+      "filteringTableHint": "La tabla de la izquierda ya está filtrada por esta tarjeta",
+      "expiry": "Vence",
+      "availableLabel": "Disponible"
     }
   },
   "dashboard": {
@@ -249,7 +308,10 @@
     "subtitle": "{{month}} · {{count}} movimientos",
     "subtitleRange": "{{range}} · {{count}} movimientos",
     "subtitleAll": "Todos los períodos · {{count}} movimientos",
-    "type": { "INCOME": "Ingreso", "EXPENSE": "Gasto" },
+    "type": {
+      "INCOME": "Ingreso",
+      "EXPENSE": "Gasto"
+    },
     "form": {
       "type": "Tipo",
       "amount": "Monto",
@@ -297,7 +359,8 @@
       "noCategory": "Sin categoría",
       "noAccount": "Sin cuenta",
       "import": "Importar"
-    }
+    },
+    "count": "{{count}} movimientos"
   },
   "installments": {
     "title": "Cuotas",
@@ -374,7 +437,10 @@
     "new": "Nueva deuda",
     "created": "Deuda creada",
     "subtitle": "{{count}} deudas activas · {{people}} personas",
-    "direction": { "OWED_TO_YOU": "Te deben", "YOU_OWE": "Debes" },
+    "direction": {
+      "OWED_TO_YOU": "Te deben",
+      "YOU_OWE": "Debes"
+    },
     "kpi": {
       "owedToYou": "Te deben",
       "youOwe": "Debes",
@@ -435,7 +501,11 @@
     "deleted": "Gasto recurrente eliminado",
     "inactive": "Inactivo",
     "next": "Próximo: {{date}}",
-    "frequency": { "WEEKLY": "Semanal", "MONTHLY": "Mensual", "YEARLY": "Anual" },
+    "frequency": {
+      "WEEKLY": "Semanal",
+      "MONTHLY": "Mensual",
+      "YEARLY": "Anual"
+    },
     "form": {
       "label": "Nombre",
       "amount": "Monto",
@@ -452,7 +522,10 @@
   "investments": {
     "title": "Inversiones",
     "empty": "Aún no tienes inversiones.",
-    "kind": { "ETF": "ETF", "REMUNERATED_ACCOUNT": "Cuenta remunerada" }
+    "kind": {
+      "ETF": "ETF",
+      "REMUNERATED_ACCOUNT": "Cuenta remunerada"
+    }
   },
   "import": {
     "title": "Importar",
@@ -472,7 +545,9 @@
   "profile": {
     "title": "Perfil",
     "ageYears": "{{age}} años",
-    "plan": { "personal": "Plan personal" },
+    "plan": {
+      "personal": "Plan personal"
+    },
     "stats": {
       "accounts": "Cuentas",
       "monthlyMovements": "Mov./mes",

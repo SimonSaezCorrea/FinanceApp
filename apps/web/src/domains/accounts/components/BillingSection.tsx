@@ -9,8 +9,8 @@ import { formatMoney } from "@finance/money";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
-import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
-import { Dialog } from "../../../shared/ui/dialog";
+import { ConfirmModal } from "../../../shared/ui/overlay";
+import { ResponsiveSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Select } from "../../../shared/ui/select";
@@ -63,9 +63,7 @@ export function BillingSection({
         >
           <RefreshCw className="h-4 w-4" aria-hidden />
           {/* Icon-only below 550px: the full label doesn't fit at 320px. */}
-          <span className="sr-only min-[550px]:not-sr-only">
-            {t("accounts.actions.generateStatements")}
-          </span>
+          <span className="sr-only sm:not-sr-only">{t("accounts.actions.generateStatements")}</span>
         </Button>
       </div>
 
@@ -156,7 +154,7 @@ function PayStatementModal({
   if (!statement) return null;
 
   return (
-    <Dialog
+    <ResponsiveSurface
       open={statement !== null}
       onOpenChange={onOpenChange}
       title={t("accounts.actions.payCredit")}
@@ -204,7 +202,7 @@ function PayStatementModal({
           </Button>
         </div>
       </div>
-    </Dialog>
+    </ResponsiveSurface>
   );
 }
 
@@ -227,7 +225,7 @@ function CorrectAmountModal({
   if (!statement) return null;
 
   return (
-    <Dialog
+    <ResponsiveSurface
       open={statement !== null}
       onOpenChange={onOpenChange}
       title={t("accounts.actions.correctAmount")}
@@ -253,7 +251,7 @@ function CorrectAmountModal({
         </div>
       </div>
 
-      <ConfirmDialog
+      <ConfirmModal
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
         title={t("accounts.detail.correctAmountConfirm")}
@@ -272,6 +270,6 @@ function CorrectAmountModal({
           )
         }
       />
-    </Dialog>
+    </ResponsiveSurface>
   );
 }

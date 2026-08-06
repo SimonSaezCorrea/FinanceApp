@@ -1,5 +1,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 
+import { minWidth } from "../../../breakpoints";
+
 /**
  * Subscribes to a CSS media query from JS. Only for cases a Tailwind responsive
  * class can't cover — when the *structure* changes, not just the styling (e.g. a
@@ -21,5 +23,7 @@ export function useMediaQuery(query: string): boolean {
   return useSyncExternalStore(subscribe, getSnapshot, () => false);
 }
 
-/** The `xl` breakpoint — where the account detail switches to its two-column layout. */
-export const DESKTOP_QUERY = "(min-width: 1280px)";
+/** Desktop stage (`2xl`). Kept for views whose layout genuinely depends on the
+ * VIEWPORT; a two-column decision that the collapsible sidebar can change should
+ * measure its own width instead — see `useElementWidth`/`ASIDE_MIN_WIDTH`. */
+export const DESKTOP_QUERY = minWidth("2xl");

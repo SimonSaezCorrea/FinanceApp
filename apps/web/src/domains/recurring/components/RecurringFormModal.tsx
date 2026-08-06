@@ -6,7 +6,7 @@ import type { recurring } from "@finance/contracts";
 
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { Button } from "../../../shared/ui/button";
-import { Dialog } from "../../../shared/ui/dialog";
+import { ResponsiveSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Select } from "../../../shared/ui/select";
@@ -80,7 +80,7 @@ export function RecurringFormModal({
   const pending = create.isPending || update.isPending;
 
   return (
-    <Dialog
+    <ResponsiveSurface
       open={open}
       onOpenChange={onOpenChange}
       title={editing ? t("recurring.edit") : t("recurring.new")}
@@ -189,6 +189,6 @@ export function RecurringFormModal({
           {editing ? t("accounts.actions.save") : t("recurring.new")}
         </Button>
       </div>
-    </Dialog>
+    </ResponsiveSurface>
   );
 }

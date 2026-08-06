@@ -1,4 +1,28 @@
 <!--
+Sync Impact Report — 2026-08-05 (amendment 1.25.0, extended the same day)
+- Version change: 1.24.0 → 1.25.0 (MINOR: new enforceable rule under the design-system norms; no
+  principle removed or redefined).
+- Design-system norms gain **"One overlay family"**: every dialog in `apps/web` MUST be built from
+  `shared/ui/overlay/` and MUST NOT hand-roll its own frame. `ResponsiveSurface` is the default
+  (full-screen `Window` below 420px, centered `Modal` above); `ConfirmModal` is ALWAYS a modal —
+  an alert must never become a full-screen screen, since it interrupts and may stack on another
+  surface. A modal's backdrop MUST blur as well as darken. Header/body/footer come from
+  `SurfaceChrome`, so the title, the way out and the action bar sit in the same place in every
+  context; opinionated variants (`FormSurface`'s create/edit modes) are built ON TOP of the chrome
+  rather than by adding flags to it. A route that becomes a full-screen screen on a phone uses
+  `WindowScreen` instead of re-inventing sheet classes.
+- Design-system norms also gain **"Container width, not viewport, when a sibling moves"** (measured
+  width via `useElementWidth`, first applied to `TransactionTable`'s full-vs-compact switch) and
+  **"Breakpoint stages"**: Tailwind's default scale with a stipulated
+  meaning per step (base phone / `sm` end-of-phone / `md`+`lg` tablet / `xl` widest tablet /
+  `2xl` desktop), documented in `apps/web/breakpoints.ts`, which is also the single source the JS media
+  queries derive from. No custom screens, no arbitrary pixel values in classes or query strings.
+- Removed: `shared/ui/dialog.tsx`, `shared/ui/confirm-dialog.tsx` (all 19 call sites migrated), and
+  `CardDetailModal` — the card's detail/edit is now `CardDetailPanel` inside three shells (inline
+  accordion in the desktop aside, `Drawer` on tablet, `Window` on phone).
+- Propagated in the same session: CLAUDE.md (`apps/web` overlay amendment).
+
+<!--
 Sync Impact Report — 2026-08-05 (amendment 1.24.0)
 - Version change: 1.23.0 → 1.24.0 (MINOR: new enforceable rule under Architecture norms; no
   principle removed or redefined).
@@ -699,6 +723,34 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
     distinct values) MUST be computed in the database and served separately** (e.g.
     `GET /transactions/summary`), never folded from the rows a client happens to have loaded:
     a KPI derived from page one is a wrong number, not an approximation.
+  - **Breakpoint stages (web):** the responsive scale is Tailwind's DEFAULT one, with a fixed meaning
+    per step: base = phone, `sm` (640) = end of phone/start of tablet, `md` (768) = tablet, `lg` (1024)
+    = tablet, `xl` (1280) = widest tablet, `2xl` (1536) = desktop.
+    Custom screens, arbitrary `min-[NNNpx]:` classes and inline `(min-width: NNNpx)` strings are NOT
+    used; `apps/web/breakpoints.ts` documents the stages and is the single source the JS media queries
+    derive from (`minWidth(name)`), so a view's CSS and its structural JS always switch at the same
+    width. Rationale: the gap between a CSS breakpoint and a differing JS one is a state nobody
+    designed — a shipped instance hid a desktop aside and its mobile tab at once, making the content
+    unreachable.
+  - **Container width, not viewport, when a sibling moves (web):** if the space a component gets can
+    change without the viewport changing (the collapsible sidebar), the layout decision MUST read the
+    element's own measured width (`shared/lib/useElementWidth.ts`) rather than a breakpoint. A media
+    query cannot distinguish "1024px with the sidebar collapsed" from "1024px with it expanded", so a
+    breakpoint-only rule necessarily gets one of the two wrong.
+  - **One overlay family (web):** every dialog is built from `apps/web/src/shared/ui/overlay/` and
+    MUST NOT hand-roll its own frame. `ResponsiveSurface` is the default (full-screen `Window` below
+    420px, centered `Modal` above; the choice is a media query, so only one structure is mounted);
+    `ConfirmModal` is **always** a modal — an alert interrupts, may stack on top of another surface,
+    and turning it into a full screen would hide the very thing being asked about. A modal's backdrop
+    blurs as well as darkens. Header (`leading`/title/`headerAside`/close), single scrolling body and
+    pinned footer come from `SurfaceChrome`, so those land in the same place in every context;
+    opinionated variants (`FormSurface`'s `create`/`edit` modes) are composed ON TOP of the chrome,
+    never added as flags inside it. A route that becomes a full-screen screen on a phone uses
+    `WindowScreen`. When a form's submit lives in the surface footer, they are wired with
+    `formId` + `form="<id>"` — one form, one action bar. Where a width has room to show a record
+    beside its list (the desktop cards aside), the detail is shown **inline** instead of in an
+    overlay, and the same content component is reused across the inline/drawer/window forms — the
+    same information MUST NOT be rendered twice at once.
   - **Persistence naming:** Prisma **model** names are PascalCase; the physical **DB table** name MUST
     be **kebab-case via `@@map`** (e.g. `BankAccount` → `bank-account`, `CardAccount` → `card-account`,
     `WalletItemDashboard` → `wallet-item-dashboard`). Every model carries an `@@map`. No unused/legacy
@@ -754,4 +806,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.24.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-05
+**Version**: 1.25.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-05

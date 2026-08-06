@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Button } from "../../../shared/ui/button";
-import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
+import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { ErrorState, LoadingState } from "../../../shared/ui/states";
 import { Segmented } from "../../../shared/ui/segmented";
@@ -177,7 +177,7 @@ export function TransactionsRoute() {
         onDelete={(tx) => setDeleteTx(tx)}
       />
 
-      <ConfirmDialog
+      <ConfirmModal
         open={deleteTx !== null}
         onOpenChange={(v) => !v && setDeleteTx(null)}
         title={t("transactions.deleteConfirm")}

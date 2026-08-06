@@ -66,6 +66,15 @@ export function useAccountMutations() {
         qc.invalidateQueries({ queryKey: ["accounts", vars.id, "credit-statements"] });
       },
     }),
-    remove: useMutation({ mutationFn: accountsApi.remove, onSuccess: invalidate }),
+    remove: useMutation({
+      mutationFn: accountsApi.remove,
+      onSuccess: (_, id) => {
+        // Drop the deleted account's own entries BEFORE invalidating, or the
+        // blanket `["accounts"]` invalidation refetches `["accounts", id]` and
+        // the detail view flips to a 404 error state while it's still mounted.
+        qc.removeQueries({ queryKey: ["accounts", id] });
+        invalidate();
+      },
+    }),
   };
 }

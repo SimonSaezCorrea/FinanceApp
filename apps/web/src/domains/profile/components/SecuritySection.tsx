@@ -5,7 +5,7 @@ import { Laptop, Smartphone } from "lucide-react";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
-import { Dialog } from "../../../shared/ui/dialog";
+import { ResponsiveSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Switch } from "../../../shared/ui/switch";
@@ -36,7 +36,11 @@ function ChangePasswordDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={t("profile.security.password.change")}>
+    <ResponsiveSurface
+      open={open}
+      onOpenChange={onOpenChange}
+      title={t("profile.security.password.change")}
+    >
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <Field label={t("profile.security.password.current")}>
           <Input
@@ -70,7 +74,7 @@ function ChangePasswordDialog({
           </Button>
         </div>
       </form>
-    </Dialog>
+    </ResponsiveSurface>
   );
 }
 

@@ -6,7 +6,7 @@ import type { accounts } from "@finance/contracts";
 
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
-import { Dialog } from "../../../shared/ui/dialog";
+import { ResponsiveSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Segmented } from "../../../shared/ui/segmented";
@@ -51,7 +51,7 @@ export function BillingSettingsModal({
   }
 
   return (
-    <Dialog
+    <ResponsiveSurface
       open={open}
       onOpenChange={onOpenChange}
       title={t("accounts.detail.billingSettingsTitle")}
@@ -102,6 +102,6 @@ export function BillingSettingsModal({
           </Button>
         </div>
       </div>
-    </Dialog>
+    </ResponsiveSurface>
   );
 }

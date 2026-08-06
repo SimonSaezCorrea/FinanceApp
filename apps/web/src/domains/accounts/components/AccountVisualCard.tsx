@@ -1,3 +1,4 @@
+import { ChevronUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { accounts } from "@finance/contracts";
@@ -29,6 +30,8 @@ export function AccountVisualCard({
   holder,
   onClick,
   large,
+  expanded,
+  className,
 }: Readonly<{
   account: accounts.BankAccount;
   card?: accounts.Card;
@@ -36,6 +39,10 @@ export function AccountVisualCard({
   holder?: string;
   onClick?: () => void;
   large?: boolean;
+  /** Part of an open accordion row: draws a collapse chevron and squares off the
+   * bottom corners so the tile and its expansion read as one surface. */
+  expanded?: boolean;
+  className?: string;
 }>) {
   const { t, i18n } = useTranslation();
   const card = accountOnly ? undefined : (cardProp ?? account.cards[0]);
@@ -87,22 +94,23 @@ export function AccountVisualCard({
         // Padding/min-height scale down under `sm` — at narrow widths (e.g. the
         // mobile "Tarjetas" tab) the full-size padding left too little room for
         // the two lines of text, cramming everything toward the tile's center.
-        // `sm:max-w-md`: this tile reads as a physical card — in the desktop
-        // aside its 320px column already caps it, but as the mobile "Tarjetas"
-        // tab it sits in the full-width main column (1024-1280px) and would
-        // otherwise stretch into a wide banner instead of a card. Uncapped
-        // below `sm`: that grid is a single column there (one tile per row
-        // regardless), so capping it just left empty gutters on both sides
-        // instead of a real second column — full width reads better than
-        // "narrow card floating in the middle" when there's nowhere else for
-        // the freed space to go.
-        "relative flex w-full shrink-0 flex-col overflow-hidden rounded-2xl p-4 text-left shadow-md transition-transform sm:max-w-md sm:p-5",
+        // No width cap of its own: the tile fills whatever column it's in, and
+        // whoever places it bounds that column (the desktop aside grows with the
+        // viewport between a 320px floor and ~1.5x that; the mobile "Tarjetas"
+        // grid caps each cell at `max-w-md`). A cap baked in here fought both —
+        // it left the aside's extra width as dead space.
+        "relative flex w-full shrink-0 flex-col overflow-hidden rounded-2xl p-4 text-left shadow-md transition-transform sm:p-5",
+        // On a surface the tile is the subject of the view, so it takes a real
+        // card's proportion (~1.6:1) instead of a fixed height.
+        large && "sm:aspect-[1.6]",
         // min-, not fixed: the account-level tile carries an extra row (the account
         // number) and must grow instead of clipping it.
-        large ? "min-h-56 sm:min-h-64" : "min-h-[11rem] sm:min-h-[12.5rem]",
+        large ? "min-h-56" : "min-h-[11rem] sm:min-h-[12.5rem]",
         onClick &&
           "cursor-pointer hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         gradientClass,
+        expanded && "rounded-b-none",
+        className,
       )}
     >
       <div className="flex h-full flex-col justify-between gap-2 sm:gap-3">
@@ -115,14 +123,26 @@ export function AccountVisualCard({
               {t(`accounts.type.${account.type}`)} · {account.currency}
             </p>
           </div>
-          {/* Type chip: the card's own kind when there's a card, else the account type. */}
-          <span className="shrink-0 rounded-full bg-white/25 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
-            {card
-              ? t(`cards.kind.${card.kind}`)
-              : isAccountCreditPool
-                ? t("cards.title")
-                : t(`accounts.type.${account.type}`)}
-          </span>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {/* Type chip: the card's own kind when there's a card, else the account type. */}
+            <span className="rounded-full bg-white/25 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+              {card
+                ? t(`cards.kind.${card.kind}`)
+                : isAccountCreditPool
+                  ? t("cards.title")
+                  : t(`accounts.type.${account.type}`)}
+            </span>
+            {/* Purely an affordance — the whole tile is the toggle, and a real
+                button here would nest inside the tile's own button. */}
+            {expanded ? (
+              <span
+                className="flex h-5 w-5 items-center justify-center rounded-md bg-white/25"
+                aria-hidden
+              >
+                <ChevronUp className="h-3.5 w-3.5" />
+              </span>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex flex-col gap-1">

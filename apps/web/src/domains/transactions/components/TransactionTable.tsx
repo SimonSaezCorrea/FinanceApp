@@ -1,5 +1,5 @@
 import { Pencil, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { accounts, transactions } from "@finance/contracts";
@@ -12,6 +12,7 @@ import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
 import { cn } from "../../../shared/lib/cn";
+import { useElementWidth } from "../../../shared/lib/useElementWidth";
 import { InfiniteScrollSentinel } from "../../../shared/ui/infinite-scroll-sentinel";
 import { EmptyState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
@@ -30,6 +31,15 @@ interface TransactionTableProps {
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
 }
+
+/**
+ * Narrowest width at which the full column-per-field table still reads: below it
+ * the rows fold into the compact list instead. Measured on the TABLE, not the
+ * viewport — at 1024px the same screen leaves ~896px with the sidebar collapsed
+ * (full table) and ~736px with it expanded (compact), and a media query can't
+ * tell those apart.
+ */
+const FULL_TABLE_MIN_WIDTH = 860;
 
 function formatDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, {
@@ -55,6 +65,12 @@ export function TransactionTable({
   // Only one row's swipe panel open at a time — opening another closes the
   // previous one for free, since both read off this single id.
   const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const width = useElementWidth(containerRef);
+  // Before the first measurement (and in environments without ResizeObserver)
+  // fall back to the compact list: it works at every width, so a wrong guess
+  // here is a cosmetic downgrade rather than an overflowing table.
+  const wide = width !== null && width >= FULL_TABLE_MIN_WIDTH;
 
   if (txs.length === 0) {
     return <EmptyState title={t("transactions.empty")} />;
@@ -73,9 +89,9 @@ export function TransactionTable({
   const showCardColumn = new Set(sorted.map((tx) => tx.cardId).filter(Boolean)).size > 1;
 
   return (
-    <Card className="overflow-hidden p-0">
-      {/* Desktop: the full table, one column per field. */}
-      <div className="hidden lg:block">
+    <Card ref={containerRef} className="overflow-hidden p-0">
+      {/* Full table, one column per field — only where the columns actually fit. */}
+      <div className={wide ? "block" : "hidden"}>
         <Table>
           <THead className="bg-muted/50">
             <TR>
@@ -199,7 +215,7 @@ export function TransactionTable({
           get the same swipe-to-reveal Editar/Eliminar shortcut; a tap (not a
           swipe) opens the full detail sheet (`onRowClick`) — that sheet is
           the only way to reach edit/delete on mobile, where there's no menu. */}
-      <div className="lg:hidden">
+      <div className={wide ? "hidden" : "block"}>
         <div className="hidden items-center gap-3 border-b bg-muted/50 px-4 py-2 text-xs font-medium text-muted-foreground sm:flex">
           <span className="w-8" />
           <span className="flex-1">{t("transactions.form.description")}</span>

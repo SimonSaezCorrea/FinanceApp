@@ -74,8 +74,19 @@ export function RowActionsMenu({ onEdit, onDelete }: Readonly<Props>) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t("common.options")}
-        onClick={() => setOpen((o) => !o)}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+        onClick={(e) => {
+          setOpen((o) => !o);
+          // A mouse/touch toggle leaves the trigger focused, so it kept reading as
+          // pressed after the menu closed. Keyboard use is unaffected — Enter/Space
+          // arrive with no pointer type, and focus-visible is what draws the ring.
+          if (e.detail > 0) e.currentTarget.blur();
+        }}
+        // Only two states draw the box: hovered (pointer devices only, via the
+        // config's hover-only media query) and open. `focus:outline-none` kills
+        // the UA ring a plain click leaves behind — a keyboard user still gets a
+        // ring, through `focus-visible`.
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md text-muted-foreground focus:outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring data-[open=true]:bg-muted data-[open=true]:text-foreground"
+        data-open={open}
       >
         <MoreVertical className="h-4 w-4" aria-hidden />
       </button>

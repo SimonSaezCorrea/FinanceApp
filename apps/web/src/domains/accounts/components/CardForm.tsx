@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -26,7 +26,26 @@ interface Props {
   /** The account's current creditLimit — only used to prefill the mandatory field
    * when editing the account's existing primary card (whose own `limits` is always empty). */
   accountCreditLimit?: string;
+  /** Set when the host renders the submit button itself (a surface footer),
+   * pointing at it with `form="<id>"` — one form, one action bar. */
+  formId?: string;
+  hideSubmit?: boolean;
+  /** Fires on every keystroke with the card as typed so far, for a host that
+   * previews it (the detail surface's tile). Partial by design: `last4` may hold
+   * fewer than 4 digits and the expiry may not parse yet. */
+  onDraftChange?: (draft: CardDraft) => void;
   onSubmit: (card: accounts.CreateCard) => void;
+}
+
+/** What a host can preview while the form is being filled in. */
+export interface CardDraft {
+  name: string;
+  kind: accounts.CardKind;
+  last4: string;
+  expiryMonth: number | null;
+  expiryYear: number | null;
+  /** The primary's mandatory amount, or the first own-limit row. */
+  limitAmount: string | null;
 }
 
 interface LimitDraft {
@@ -49,6 +68,9 @@ export function CardForm({
   accountCurrency,
   hasExistingPrimary,
   accountCreditLimit,
+  formId,
+  hideSubmit = false,
+  onDraftChange,
   onSubmit,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
@@ -71,6 +93,29 @@ export function CardForm({
   const [last4Error, setLast4Error] = useState<string | null>(null);
   const [expiryError, setExpiryError] = useState<string | null>(null);
   const [limitError, setLimitError] = useState<string | null>(null);
+
+  const parsedDraftExpiry = parseExpiry(expiry);
+  // Reported from an effect, not from each setter: every field feeds the same
+  // object, and one place to build it can't drift from another.
+  useEffect(() => {
+    onDraftChange?.({
+      name,
+      kind,
+      last4,
+      expiryMonth: parsedDraftExpiry?.month ?? null,
+      expiryYear: parsedDraftExpiry?.year ?? null,
+      limitAmount: primaryLimitAmount.trim() || (limits[0]?.limitAmount ?? null) || null,
+    });
+  }, [
+    name,
+    kind,
+    last4,
+    parsedDraftExpiry?.month,
+    parsedDraftExpiry?.year,
+    primaryLimitAmount,
+    limits,
+    onDraftChange,
+  ]);
 
   const willBePrimary = kind === "CREDIT" && !hasExistingPrimary;
   const isAdditionalCredit = kind === "CREDIT" && hasExistingPrimary;
@@ -142,7 +187,7 @@ export function CardForm({
   }
 
   return (
-    <form className="flex flex-col gap-3" onSubmit={submit}>
+    <form id={formId} className="flex flex-col gap-3" onSubmit={submit}>
       <Field label={t("cards.form.name")}>
         <Input
           id="card-name"
@@ -354,9 +399,11 @@ export function CardForm({
         </div>
       ) : null}
 
-      <Button type="submit" disabled={submitting}>
-        {submitLabel}
-      </Button>
+      {hideSubmit ? null : (
+        <Button type="submit" disabled={submitting}>
+          {submitLabel}
+        </Button>
+      )}
     </form>
   );
 }
