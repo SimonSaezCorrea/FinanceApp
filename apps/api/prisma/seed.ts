@@ -1,6 +1,11 @@
+import path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { config as loadEnv } from "dotenv";
+
+// tsx doesn't load apps/api/.env on its own.
+loadEnv({ path: path.join(__dirname, "..", ".env") });
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
