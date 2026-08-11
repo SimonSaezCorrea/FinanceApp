@@ -394,7 +394,21 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Active plan: specs/009-ddd-cqrs-architecture/plan.md
+Active plan: specs/010-movement-transfers-attachments/plan.md
+(Movimientos: traspasos, comprobantes y paneles rediseñados. Los paneles de detalle y de
+crear/editar movimiento pasan al formato del handoff (panel lateral, monto protagonista, filas
+etiqueta/valor, acciones al pie) y ganan navegación ‹ › paginada, Duplicar, saldo tras el
+movimiento / proyectado y "Guardar y crear otro". Backend nuevo: **traspaso** = dos filas
+`Transaction` (`EXPENSE` origen + `INCOME` destino) unidas por una columna nueva `transferGroupId`
+— sin tarjeta, sin tocar cupo ni facturación, destino nunca `CREDIT_LINE`, creadas/editadas/
+borradas como par en una sola `$transaction`, excluidas de `GET /transactions/summary` vía el
+predicado único `EXCLUDE_TRANSFERS`; y **adjuntos** = tabla + dominio nuevos
+`transaction-attachment` (dominio 22), archivos en S3 detrás de un `ObjectStoragePort`
+(`@aws-sdk/client-s3`, subida multipart por el API, lectura por URL prefirmada, `503
+ATTACHMENTS_UNAVAILABLE` mientras no haya credenciales). Fuera de alcance: crear recurrente desde
+el formulario, presupuestos por categoría y conversión de moneda.
+**Estado: plan aprobado, pendiente /speckit-tasks.**)
+Prior plan: specs/009-ddd-cqrs-architecture/plan.md
 (Backend DDD + CQRS migration. apps/api pasa de domain-first plano a 4 capas por dominio
 (domain/application/infrastructure/presentation) en los 11 dominios existentes, uno a la vez,
 `accounts`/billing primero como referencia. `@nestjs/cqrs` para Command/Query/EventBus (eventos
@@ -410,6 +424,6 @@ patrón completo una vez documentado.
 tests). Encima se aplicó, sin spec propia, la regla **una tabla = un dominio**: los 11 dominios se
 dividieron en 21 dominios-tabla (+ `import`/`health` sin tabla), un solo adapter por tabla,
 constitución en v1.23.0. Ver ARCHITECTURE.md §12a.)
-Prior plans: 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
+Prior plans: 009 (backend DDD+CQRS), 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
 
 <!-- SPECKIT END -->
