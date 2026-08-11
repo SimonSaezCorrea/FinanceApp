@@ -94,7 +94,7 @@ describe("PrismaCreditStatementRepository (integration)", () => {
       },
     });
 
-    afterClose!.pay("5000", fromAccountId, paymentTx.id, new Date("2026-02-05"));
+    afterClose!.payTowards("5000", "5000", fromAccountId, paymentTx.id, new Date("2026-02-05"));
     await statementRepo.save(afterClose!);
 
     const afterPay = await statementRepo.findById(userId, accountId, created.id);

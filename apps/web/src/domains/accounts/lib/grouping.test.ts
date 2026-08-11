@@ -30,6 +30,7 @@ function account(over: Partial<accounts.BankAccount>): accounts.BankAccount {
     creditPools: [],
     billingCycleDay: null,
     paymentMethod: "MANUAL",
+    minimumPaymentPercent: null,
     balanceSeries: [],
     balanceChangePct: null,
     cards: [],

@@ -125,7 +125,10 @@ export function SurfaceChrome({
           // different heights (a card's detail vs. its form) otherwise gains or
           // loses the scrollbar and shifts all the content sideways.
           "scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]",
-          isWindow ? "px-4 pb-4" : "px-6 pb-6",
+          // Top padding matters as much as the rest: without it the first element
+          // sits flush against the header's rule, which reads as a rendering
+          // glitch rather than as a section starting.
+          isWindow ? "px-4 pb-4 pt-4" : "px-6 pb-6 pt-5",
           footer && "pb-0",
         )}
       >

@@ -185,6 +185,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     userId: string,
     plan: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     creditUsedDelta: { accountId: string; delta: string } | null,
+    balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<Transaction> {
     const row = await this.prisma.$transaction(async (tx) => {
       const created = await tx.transaction.create({
@@ -212,6 +213,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
           creditUsedDelta.delta,
         );
       }
+      await this.applyBalanceDeltas(tx, balanceDeltas);
       return created;
     });
     return Transaction.fromPersistence(rowToProps(row));
@@ -226,6 +228,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
       creditStatementId?: string | null;
     },
     creditUsedDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<Transaction | null> {
     const owned = await this.prisma.transaction.findFirst({
       where: { id, userId },
@@ -262,6 +265,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         if (d.delta === "0") continue;
         await this.accounts.incrementCreditUsedWithTx(tx, d.accountId, d.delta);
       }
+      await this.applyBalanceDeltas(tx, balanceDeltas);
       return updated;
     });
     return Transaction.fromPersistence(rowToProps(row));
@@ -271,6 +275,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     userId: string,
     id: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
+    balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<boolean> {
     const removed = await this.prisma.$transaction(async (tx) => {
       const result = await tx.transaction.deleteMany({ where: { id, userId } });
@@ -281,8 +286,23 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
           creditUsedDelta.delta,
         );
       }
+      if (result.count > 0) {
+        await this.applyBalanceDeltas(tx, balanceDeltas);
+      }
       return result.count > 0;
     });
     return removed;
+  }
+
+  /** Cash-balance moves go through the `bank-account` port, inside whichever
+   *  `$transaction` the caller opened — one table, one adapter, still atomic. */
+  private async applyBalanceDeltas(
+    tx: unknown,
+    deltas: { accountId: string; delta: string }[],
+  ): Promise<void> {
+    for (const d of deltas) {
+      if (d.delta === "0") continue;
+      await this.accounts.incrementBalanceWithTx(tx, d.accountId, d.delta);
+    }
   }
 }

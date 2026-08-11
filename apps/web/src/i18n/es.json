@@ -5,7 +5,8 @@
   "app": {
     "loading": "Cargando…",
     "loadingMore": "Cargando más…",
-    "welcome": "Panel de finanzas personales"
+    "welcome": "Panel de finanzas personales",
+    "bootstrapping": "Preparando tu sesión…"
   },
   "common": {
     "cancel": "Cancelar",
@@ -105,12 +106,38 @@
       "billingStatusValue": {
         "OPEN": "Abierta",
         "PENDING": "Pendiente",
-        "PAID": "Pagada"
+        "PAID": "Pagada",
+        "PARTIALLY_PAID": "Pago parcial"
       },
       "payFromAccount": "Pagar con",
       "payFromAccountPlaceholder": "Selecciona una cuenta",
-      "correctAmountHint": "Corrige el monto de esta facturación ya pagada. No afecta el movimiento bancario ya creado ni el cupo usado.",
-      "correctAmountConfirm": "¿Corregir el monto de esta facturación?"
+      "payTitle": "Pagar facturación",
+      "paySummaryAmount": "Monto a pagar",
+      "payToAccount": "Facturación de",
+      "payThisAccount": "Esta cuenta",
+      "payInsufficient": "El saldo de esta cuenta es menor que el monto a pagar.",
+      "payDifferentCurrency": "Esta cuenta está en otra moneda; no se aplica conversión.",
+      "payCreatesMovement": "Se registrará un gasto en la cuenta seleccionada y la facturación quedará pagada.",
+      "payEyebrow": "Pagar facturación",
+      "payPeriodTitle": "Período {{date}}",
+      "payBalanceAfter": "Saldo después del pago",
+      "payAction": "Pagar {{amount}}",
+      "payModeTotal": "Total",
+      "payModeMinimum": "Mínimo",
+      "payModeCustom": "Otro monto",
+      "payCoversTotal": "Cubre el total de la facturación.",
+      "payCoversMinimum": "Es el mínimo de esta cuenta ({{percent}}% del período).",
+      "payCoversCustom": "Quedará un saldo pendiente para el próximo pago.",
+      "payBreakdownPurchases": "Compras del período",
+      "payBreakdownInstallments": "Cuotas del mes ({{count}})",
+      "payAmountLabel": "Monto",
+      "payRemainingAfter": "Saldo pendiente tras el pago",
+      "payDate": "Fecha de pago",
+      "payReference": "Referencia (opcional)",
+      "payReferencePlaceholder": "Ej. Transferencia 4412",
+      "payAlreadyPaid": "Pagado hasta ahora",
+      "payMinimumUnset": "Esta cuenta no tiene pago mínimo configurado. Puedes definirlo en la facturación de la cuenta (Pago mínimo %).",
+      "payMinimumCovered": "Ya pagaste más que el mínimo de este período."
     },
     "filter": {
       "label": "Filtrar por estado",
@@ -161,22 +188,27 @@
         "billingHint": "Al llegar el día de facturación se genera el estado de cuenta pendiente de pago.",
         "status": "Estado",
         "statusHint": "Una cuenta inactiva se oculta de los resúmenes pero conserva su historial."
-      }
+      },
+      "minimumPercent": "Pago mínimo (%)",
+      "minimumPercentHint": "Porcentaje del período que tu emisor acepta como pago mínimo. Vacío = sin mínimo."
     },
     "actions": {
       "edit": "Editar",
       "save": "Guardar",
       "delete": "Eliminar",
-      "reconcile": "Reconciliar saldo",
       "activate": "Activar",
       "deactivate": "Desactivar",
       "payCredit": "Pagar facturación",
       "payCreditConfirm": "¿Pagar {{amount}} de facturación? Se descontará del cupo usado.",
       "payCreditSuccess": "Facturación pagada",
       "generateStatements": "Generar facturación",
+      "generateStatementsConfirm": "¿Generar la facturación?",
+      "generateStatementsConfirmDescription": "Se cerrará el periodo abierto y quedará pendiente de pago. Los movimientos posteriores irán al periodo siguiente.",
       "generateStatementsSuccess": "Facturación revisada",
-      "correctAmount": "Corregir monto",
-      "correctAmountSuccess": "Monto corregido"
+      "syncStatement": "Sincronizar pagos",
+      "syncStatementConfirm": "¿Sincronizar esta facturación?",
+      "syncStatementConfirmDescription": "Se recalculará el monto del período con los movimientos que caen dentro de sus fechas. Si ya estaba pagada, también se ajustará el movimiento de pago y el cupo usado.",
+      "syncStatementSuccess": "Facturación sincronizada"
     },
     "updated": "Cuenta actualizada",
     "edit": {
@@ -220,6 +252,7 @@
       "parent": "Tarjeta principal (secundaria)",
       "parentNone": "Ninguna (es principal)",
       "expiry": "Vence",
+      "expiryPlaceholder": "MM/AA",
       "last4": "Últimos 4 dígitos",
       "last4Hint": "Solo se guardan los últimos 4 dígitos.",
       "limits": "Topes por moneda",
@@ -237,7 +270,9 @@
       "usesPoolHint": "Esta tarjeta comparte el cupo total de la cuenta.",
       "ownLimit": "Tope propio",
       "ownLimitHint": "Define un tope independiente para esta tarjeta (no puede superar el cupo de la cuenta en su misma moneda).",
-      "ownLimitRowsHint": "Agrega al menos un tope por moneda."
+      "ownLimitRowsHint": "Agrega al menos un tope por moneda.",
+      "active": "Tarjeta activa",
+      "activeHint": "Una tarjeta inactiva se conserva con su historial, pero no aparece al registrar movimientos."
     },
     "errors": {
       "last4": "Ingresa los últimos 4 dígitos.",
@@ -259,7 +294,9 @@
       "filteringTableHint": "La tabla de la izquierda ya está filtrada por esta tarjeta",
       "expiry": "Vence",
       "availableLabel": "Disponible"
-    }
+    },
+    "showInactive": "Ver inactivas",
+    "inactiveBadge": "Inactiva"
   },
   "dashboard": {
     "title": "Panel",
@@ -712,6 +749,8 @@
     "CARD_LIMIT_REQUIRED": "Ingresa un tope para esta tarjeta de crédito.",
     "PARENT_CARD_INVALID": "La tarjeta principal seleccionada no es válida.",
     "INVALID_CURRENT_PASSWORD": "La contraseña actual no es correcta.",
-    "ACCOUNT_DISABLED": "Esta cuenta está deshabilitada."
+    "ACCOUNT_DISABLED": "Esta cuenta está deshabilitada.",
+    "PAYMENT_EXCEEDS_REMAINING": "El monto supera lo que queda por pagar de esta facturación.",
+    "INVALID_PAYMENT_AMOUNT": "Ingresa un monto mayor que cero."
   }
 }

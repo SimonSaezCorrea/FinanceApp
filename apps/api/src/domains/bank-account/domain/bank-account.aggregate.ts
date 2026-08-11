@@ -1,5 +1,5 @@
 import { accounts } from "@finance/contracts";
-import { addMoney, moneyToString, subtractMoney, toMoney } from "@finance/money";
+import { addMoney, moneyToString, toMoney } from "@finance/money";
 
 import { AccountDeactivatedEvent } from "./events/account-deactivated.event";
 import {
@@ -47,6 +47,8 @@ export interface BankAccountProps {
   creditUsed: string;
   billingCycleDay: number | null;
   paymentMethod: accounts.BillingPaymentMethod;
+  /** Minimum-payment percentage of this account's statements ("5" = 5%), or null. */
+  minimumPaymentPercent: string | null;
   cards: CardProps[];
   createdAt: Date;
   updatedAt: Date;
@@ -203,6 +205,10 @@ export class BankAccount {
   get paymentMethod(): accounts.BillingPaymentMethod {
     return this.props.paymentMethod;
   }
+
+  get minimumPaymentPercent(): string | null {
+    return this.props.minimumPaymentPercent;
+  }
   get cards(): readonly CardProps[] {
     return this.props.cards;
   }
@@ -260,6 +266,7 @@ export class BankAccount {
     creditUsedInitial?: string;
     billingCycleDay?: number | null;
     paymentMethod?: accounts.BillingPaymentMethod;
+    minimumPaymentPercent?: string | null;
   }): void {
     const effectiveType = patch.type ?? this.props.type;
     const effectiveAccountNumber = patch.accountNumber ?? this.props.accountNumber;
@@ -277,6 +284,8 @@ export class BankAccount {
       this.props.creditUsedInitial = patch.creditUsedInitial;
     if (patch.billingCycleDay !== undefined) this.props.billingCycleDay = patch.billingCycleDay;
     if (patch.paymentMethod !== undefined) this.props.paymentMethod = patch.paymentMethod;
+    if (patch.minimumPaymentPercent !== undefined)
+      this.props.minimumPaymentPercent = patch.minimumPaymentPercent;
   }
 
   /** ACTIVE <-> INACTIVE. Emits `AccountDeactivatedEvent` only on a genuine
@@ -290,10 +299,6 @@ export class BankAccount {
     return null;
   }
 
-  /** currentBalance = initialBalance + Σincome − Σexpense. */
-  reconcileBalance(income: string, expense: string): void {
-    this.props.currentBalance = subtractMoney(addMoney(this.props.initialBalance, income), expense);
-  }
 
   /** Adjust the shared credit pool's usage (never below 0). */
   adjustCreditUsed(delta: string): void {

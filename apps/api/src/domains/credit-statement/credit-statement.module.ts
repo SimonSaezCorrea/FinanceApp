@@ -5,7 +5,7 @@ import { JwtModule } from "@nestjs/jwt";
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
 import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
 import { TransactionDataModule } from "../transaction/transaction.data.module";
-import { CorrectStatementAmountHandler } from "./application/commands/correct-statement-amount.handler";
+import { SyncStatementHandler } from "./application/commands/sync-statement.handler";
 import {
   GenerateAllDueStatementsHandler,
   GenerateStatementsHandler,
@@ -20,7 +20,7 @@ const commandHandlers = [
   PayCreditStatementHandler,
   GenerateStatementsHandler,
   GenerateAllDueStatementsHandler,
-  CorrectStatementAmountHandler,
+  SyncStatementHandler,
 ];
 
 /**

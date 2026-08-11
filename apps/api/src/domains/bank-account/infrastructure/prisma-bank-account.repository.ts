@@ -90,6 +90,7 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
         creditUsed: row.creditUsed.toString(),
         billingCycleDay: accountSettings?.billingCycleDay ?? null,
         paymentMethod: accountSettings?.paymentMethod ?? "MANUAL",
+        minimumPaymentPercent: accountSettings?.minimumPaymentPercent ?? null,
         cards: accountCards,
         createdAt: row.createdAt,
         updatedAt: row.updatedAt,
@@ -183,6 +184,15 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     await this.billing.upsertWithTx(client, snap.id, {
       billingCycleDay: snap.billingCycleDay,
       paymentMethod: snap.paymentMethod,
+      minimumPaymentPercent: snap.minimumPaymentPercent,
+    });
+  }
+
+  async incrementBalanceWithTx(tx: unknown, accountId: string, delta: string): Promise<void> {
+    const client = tx as PrismaService;
+    await client.bankAccount.update({
+      where: { id: accountId },
+      data: { currentBalance: { increment: delta } },
     });
   }
 

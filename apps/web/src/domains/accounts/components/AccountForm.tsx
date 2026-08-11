@@ -8,6 +8,7 @@ import { formatMoney } from "@finance/money";
 import { useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
+import { useElementWidth } from "../../../shared/lib/useElementWidth";
 import { Button } from "../../../shared/ui/button";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
@@ -28,6 +29,8 @@ export interface AccountFormValues {
   creditUsedInitial: string;
   /** "" = no cycle configured (all-time usage), else a "1"-"28" day-of-month string. */
   billingCycleDay: string;
+  /** "" = this account has no minimum payment; else a percentage like "5". */
+  minimumPaymentPercent: string;
   paymentMethod: accounts.BillingPaymentMethod;
 }
 
@@ -42,6 +45,7 @@ const EMPTY: AccountFormValues = {
   creditLimit: "0",
   creditUsedInitial: "0",
   billingCycleDay: "",
+  minimumPaymentPercent: "",
   paymentMethod: "MANUAL",
 };
 
@@ -64,18 +68,36 @@ interface Props {
   /** Reports pending edits so the host can show the marker outside the form
    * (a page header) and guard navigation away from it. */
   onDirtyChange?: (dirty: boolean) => void;
+  /** Drives the account's status from OUTSIDE the form (the edit panel puts the
+   * switch in its header, beside the account name). When set, the form drops its
+   * own "Estado" section and mirrors this value into the data it submits. */
+  status?: accounts.AccountStatus;
+  onStatusChange?: (status: accounts.AccountStatus) => void;
   onSubmit: (values: AccountFormValues) => void;
 }
 
 /**
- * One titled group of fields. The title/description column only splits off at
- * `xl` — a tablet gets the same sections stacked, which is what keeps the form
- * readable at 780px without a second layout.
+ * Width the FORM itself needs before the title/description can sit in a column
+ * beside the fields: the label column is 14rem plus a 2rem gap, and under this
+ * the fields get squeezed into a strip too narrow for a two-up row.
+ *
+ * Measured on the form, not the viewport. This layout used to switch at the `xl`
+ * breakpoint, which was right while editing was a full-width screen and wrong the
+ * moment the same form moved into a side panel: a 1400px window with a 660px
+ * panel still matched `xl`, so the labels took their column and the fields lost
+ * their format.
+ */
+const SECTION_LABEL_MIN_WIDTH = 860;
+
+/**
+ * One titled group of fields. The title/description column splits off only when
+ * the form is wide enough for it; otherwise the title sits above its fields.
  */
 function FormSection({
   title,
   description,
   hideTitleOnMobile = false,
+  sideLabel,
   children,
 }: Readonly<{
   title: string;
@@ -83,16 +105,28 @@ function FormSection({
   /** The first section's heading is noise on a phone — the screen title already
    * says what is being edited, and the fields below it are self-labelled. */
   hideTitleOnMobile?: boolean;
+  /** Enough room to put the title beside the fields instead of above them. */
+  sideLabel?: boolean;
   children: ReactNode;
 }>) {
   return (
-    <section className="grid gap-4 border-t border-border px-4 py-5 first:border-t-0 sm:px-6 xl:grid-cols-[14rem_1fr] xl:gap-8">
-      <div className={cn("xl:pt-1", hideTitleOnMobile && "max-sm:hidden")}>
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-brand xl:text-base xl:normal-case xl:tracking-normal xl:text-foreground">
+    <section
+      className={cn(
+        "grid gap-4 border-t border-border px-4 py-5 first:border-t-0 sm:px-6",
+        sideLabel && "grid-cols-[14rem_1fr] gap-8",
+      )}
+    >
+      <div className={cn(sideLabel && "pt-1", hideTitleOnMobile && "max-sm:hidden")}>
+        <h2
+          className={cn(
+            "text-sm font-semibold uppercase tracking-wide text-brand",
+            sideLabel && "text-base normal-case tracking-normal text-foreground",
+          )}
+        >
           {title}
         </h2>
-        {description ? (
-          <p className="mt-1 hidden text-xs text-muted-foreground xl:block">{description}</p>
+        {description && sideLabel ? (
+          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
         ) : null}
       </div>
       <div className="flex flex-col gap-4">{children}</div>
@@ -110,6 +144,8 @@ export function AccountForm({
   formId,
   hideFooter = false,
   onDirtyChange,
+  status,
+  onStatusChange,
   onSubmit,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
@@ -125,10 +161,16 @@ export function AccountForm({
   const set = <K extends keyof AccountFormValues>(k: K, v: AccountFormValues[K]) =>
     setValues((prev) => ({ ...prev, [k]: v }));
 
+  // The status can be driven from outside (the edit panel's header switch). It is
+  // READ from the prop rather than copied into state by an effect: mirroring it
+  // would mean a setState during render-commit, i.e. a second render per toggle
+  // and two places claiming to own the same value.
+  const submitted: AccountFormValues = status ? { ...values, status } : values;
+
   // Compared against the values the form opened with, so undoing an edit by hand
   // clears the warning instead of leaving it stuck on for the rest of the session.
-  const dirty = (Object.keys(values) as (keyof AccountFormValues)[]).some(
-    (k) => values[k] !== initialValues[k],
+  const dirty = (Object.keys(submitted) as (keyof AccountFormValues)[]).some(
+    (k) => submitted[k] !== initialValues[k],
   );
 
   useEffect(() => {
@@ -137,7 +179,7 @@ export function AccountForm({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    onSubmit(values);
+    onSubmit(submitted);
   }
 
   const institutionOptions = [
@@ -153,6 +195,11 @@ export function AccountForm({
     currencyOptions.unshift({ value: values.currency, label: values.currency });
   }
 
+  const [formRef, formWidth] = useElementWidth();
+  // Until measured, stack: it works at every width, so a wrong first guess is a
+  // cosmetic downgrade rather than a squeezed two-column row.
+  const sideLabel = formWidth !== null && formWidth >= SECTION_LABEL_MIN_WIDTH;
+
   const hasCreditPool = isCreditLineType || hasCreditCard;
   const locale = groupingLocaleFor(values.currency, i18n.language);
   const limitNum = Number(values.creditLimit || 0);
@@ -160,8 +207,12 @@ export function AccountForm({
   const availablePct = limitNum > 0 ? Math.min(100, Math.max(0, (usedNum / limitNum) * 100)) : 0;
 
   return (
-    <form id={formId} className="flex flex-col" onSubmit={handleSubmit}>
+    // Measured on the form itself: the same markup is rendered as a full-width
+    // screen and inside a side panel, and only its own width says which layout
+    // fits (see SECTION_LABEL_MIN_WIDTH).
+    <form ref={formRef} id={formId} className="flex flex-col" onSubmit={handleSubmit}>
       <FormSection
+        sideLabel={sideLabel}
         title={t("accounts.form.sections.identification")}
         description={t("accounts.form.sections.identificationHint")}
         hideTitleOnMobile
@@ -229,6 +280,7 @@ export function AccountForm({
       </FormSection>
 
       <FormSection
+        sideLabel={sideLabel}
         title={
           hasCreditPool ? t("accounts.form.sections.credit") : t("accounts.form.sections.balance")
         }
@@ -347,12 +399,19 @@ export function AccountForm({
 
       {hasCreditPool ? (
         <FormSection
+          sideLabel={sideLabel}
           title={t("accounts.form.sections.billing")}
           description={t("accounts.form.sections.billingHint")}
         >
-          <div className="grid gap-4 sm:grid-cols-[7rem_1fr]">
+          {/* Not a grid with a fixed first column: at 7rem the day's label wrapped
+              onto two lines while the segmented beside it kept its full width, so
+              the pair read as broken. Here each field takes the width it needs —
+              the day is a two-digit box, the method fills the rest — and the
+              method drops to its own row when they no longer fit side by side. */}
+          <div className="flex flex-wrap items-end gap-4">
             <Field label={t("accounts.form.billingCycleDay")}>
               <Input
+                className="w-24"
                 id="acc-billing-day"
                 inputMode="numeric"
                 placeholder={t("accounts.form.billingCycleDayPlaceholder")}
@@ -364,7 +423,21 @@ export function AccountForm({
                 aria-label={t("accounts.form.billingCycleDay")}
               />
             </Field>
-            <Field label={t("accounts.form.paymentMethod")}>
+            <Field label={t("accounts.form.minimumPercent")}>
+              <Input
+                className="w-24"
+                inputMode="decimal"
+                placeholder="5"
+                value={values.minimumPaymentPercent}
+                onChange={(e) => {
+                  // 0-100, at most two decimals — the column's own precision.
+                  const clean = e.target.value.replace(/[^\d.]/g, "").slice(0, 6);
+                  set("minimumPaymentPercent", Number(clean) > 100 ? "100" : clean);
+                }}
+                aria-label={t("accounts.form.minimumPercent")}
+              />
+            </Field>
+            <Field label={t("accounts.form.paymentMethod")} className="min-w-[15rem] flex-1">
               <Segmented
                 value={values.paymentMethod}
                 onChange={(v) => set("paymentMethod", v)}
@@ -382,28 +455,34 @@ export function AccountForm({
               />
             </Field>
           </div>
-          <p className="text-xs text-brand/80">{t("accounts.form.billingCycleDayHint")}</p>
+          {/* Same muted style as every other hint in this form: in brand green it
+              read as a warning about something being wrong, not as help text. */}
+          <p className="text-xs text-muted-foreground">{t("accounts.form.billingCycleDayHint")}</p>
+          <p className="text-xs text-muted-foreground">{t("accounts.form.minimumPercentHint")}</p>
         </FormSection>
       ) : null}
 
-      <FormSection
-        title={t("accounts.form.sections.status")}
-        description={t("accounts.form.sections.statusHint")}
-      >
-        <label className="flex items-start gap-3">
-          <Switch
-            checked={values.status === "ACTIVE"}
-            onCheckedChange={(checked) => set("status", checked ? "ACTIVE" : "INACTIVE")}
-            aria-label={t("accounts.form.accountActive")}
-          />
-          <span>
-            <span className="block text-sm font-medium">{t("accounts.form.accountActive")}</span>
-            <span className="block text-xs text-muted-foreground">
-              {t("accounts.form.accountActiveHint")}
+      {onStatusChange ? null : (
+        <FormSection
+          sideLabel={sideLabel}
+          title={t("accounts.form.sections.status")}
+          description={t("accounts.form.sections.statusHint")}
+        >
+          <label className="flex items-start gap-3">
+            <Switch
+              checked={values.status === "ACTIVE"}
+              onCheckedChange={(checked) => set("status", checked ? "ACTIVE" : "INACTIVE")}
+              aria-label={t("accounts.form.accountActive")}
+            />
+            <span>
+              <span className="block text-sm font-medium">{t("accounts.form.accountActive")}</span>
+              <span className="block text-xs text-muted-foreground">
+                {t("accounts.form.accountActiveHint")}
+              </span>
             </span>
-          </span>
-        </label>
-      </FormSection>
+          </label>
+        </FormSection>
+      )}
 
       {dangerZone ? (
         // Bottom of the form on a phone, far from the thumb's resting position —

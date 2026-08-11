@@ -67,6 +67,9 @@ export class UpdateAccountHandler extends BaseCommandHandler<
         : {}),
       ...(input.billingCycleDay !== undefined ? { billingCycleDay: input.billingCycleDay } : {}),
       ...(input.paymentMethod !== undefined ? { paymentMethod: input.paymentMethod } : {}),
+      ...(input.minimumPaymentPercent !== undefined
+        ? { minimumPaymentPercent: input.minimumPaymentPercent }
+        : {}),
     });
     const events: AccountDeactivatedEvent[] = [];
     if (input.status !== undefined) {

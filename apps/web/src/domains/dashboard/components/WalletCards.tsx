@@ -38,6 +38,7 @@ import type { accounts, wallet } from "@finance/contracts";
 import { cn } from "../../../shared/lib/cn";
 import { Button } from "../../../shared/ui/button";
 import { AccountVisualCard } from "../../accounts/components/AccountVisualCard";
+import { CardTileSkeleton } from "../../accounts/components/CardTileSkeleton";
 import { useWallet, useWalletMutations } from "../hooks/useWallet";
 import { WalletAddModal } from "./WalletAddModal";
 
@@ -83,7 +84,7 @@ export function WalletCards({
   holder?: string;
 }) {
   const { t } = useTranslation();
-  const { data: walletItems } = useWallet();
+  const { data: walletItems, isLoading } = useWallet();
   const { reorder, remove } = useWalletMutations();
   const [addOpen, setAddOpen] = useState(false);
   const [organizing, setOrganizing] = useState(false);
@@ -99,9 +100,12 @@ export function WalletCards({
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
+      <div className="flex h-8 items-center justify-between">
         <span className="text-sm font-medium text-muted-foreground">{t("dashboard.wallet")}</span>
-        {resolved.length > 0 ? (
+        {/* Height reserved above so this button's arrival doesn't push the grid
+            down. Hidden while loading: whether it belongs depends on whether the
+            wallet turns out to have anything pinned. */}
+        {!isLoading && resolved.length > 0 ? (
           <Button variant="ghost" size="sm" onClick={() => setOrganizing((v) => !v)}>
             {organizing ? (
               <>
@@ -121,7 +125,15 @@ export function WalletCards({
       <WalletAddModal open={addOpen} onOpenChange={setAddOpen} pinned={items} />
 
       <div className="scrollbar-thin -m-1 max-h-[28rem] overflow-y-auto p-1">
-        {organizing ? (
+        {/* Until the pins are known, an empty grid would render the genuine "your
+            wallet is empty, add something" state — a claim we can't make yet, and
+            one the arriving cards then contradict. Placeholders instead. */}
+        {isLoading ? (
+          <div className={GRID}>
+            <CardTileSkeleton />
+            <CardTileSkeleton />
+          </div>
+        ) : organizing ? (
           <WalletOrganizer
             resolved={resolved}
             holder={holder}

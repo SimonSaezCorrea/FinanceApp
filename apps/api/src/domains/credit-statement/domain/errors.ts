@@ -29,6 +29,21 @@ export class InvalidPaymentSourceError extends DomainError {
   }
 }
 
+/** A payment bigger than what the period still owes. Rejected instead of being
+ * capped: a wrong figure in a money form must never be quietly "corrected". */
+export class PaymentExceedsRemainingError extends DomainError {
+  constructor() {
+    super("PAYMENT_EXCEEDS_REMAINING");
+  }
+}
+
+/** A payment of zero or less. */
+export class InvalidPaymentAmountError extends DomainError {
+  constructor() {
+    super("INVALID_PAYMENT_AMOUNT");
+  }
+}
+
 export class NothingToPayError extends DomainError {
   constructor() {
     super("NOTHING_TO_PAY");

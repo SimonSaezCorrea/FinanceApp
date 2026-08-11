@@ -33,6 +33,7 @@ export function fakeBankAccountRepo(
     updateCard: vi.fn(),
     removeCard: vi.fn(),
     incrementCreditUsedWithTx: vi.fn(),
+    incrementBalanceWithTx: vi.fn(),
     ...overrides,
   };
 }
@@ -45,6 +46,12 @@ export function fakeTransactionSumsRepo(
     windowForAccounts: vi.fn(async () => []),
     sumsByCard: vi.fn(async () => []),
     netForStatement: vi.fn(async () => "0"),
+    netForPeriod: vi.fn(async () => "0"),
+    breakdownForStatement: vi.fn(async () => ({
+      purchases: "0",
+      installments: "0",
+      installmentCount: 0,
+    })),
     ...overrides,
   };
 }
@@ -54,6 +61,8 @@ export function fakeTransactionWriterRepo(
 ): TransactionWriterRepositoryPort {
   return {
     createWithTx: vi.fn(),
+    relinkToStatementWithTx: vi.fn(),
+    updateAmountWithTx: vi.fn(),
     createMany: vi.fn(async () => 0),
     ...overrides,
   };
@@ -71,6 +80,7 @@ export function fakeCreditStatementRepo(
     save: vi.fn(),
     saveWithTx: vi.fn(),
     sumLinkedTransactions: vi.fn(async () => "0"),
+    breakdown: vi.fn(async () => ({ purchases: "0", installments: "0", installmentCount: 0 })),
     ...overrides,
   };
 }
@@ -113,6 +123,7 @@ export function accountAggregate(input: {
   creditLimit?: string;
   creditUsed?: string;
   billingCycleDay?: number | null;
+  minimumPaymentPercent?: string | null;
   currency?: string;
   cards?: BankAccountProps["cards"];
   createdAt?: Date;
@@ -135,6 +146,7 @@ export function accountAggregate(input: {
     creditUsed: input.creditUsed ?? "0",
     billingCycleDay: input.billingCycleDay ?? null,
     paymentMethod: "MANUAL",
+    minimumPaymentPercent: input.minimumPaymentPercent ?? null,
     cards: input.cards ?? [],
     createdAt: input.createdAt ?? new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),

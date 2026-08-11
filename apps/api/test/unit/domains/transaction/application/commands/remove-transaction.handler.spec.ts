@@ -96,10 +96,13 @@ describe("RemoveTransactionHandler", () => {
       { account: creditAccount(), card: creditCard },
     );
     await handler.execute(new RemoveTransactionCommand("u1", "tX"));
-    expect(removeWithCreditAdjustment).toHaveBeenCalledWith("u1", "tX", {
-      accountId: "aC",
-      delta: "-100000.0000",
-    });
+    expect(removeWithCreditAdjustment).toHaveBeenCalledWith(
+      "u1",
+      "tX",
+      { accountId: "aC", delta: "-100000.0000" },
+      // Deleting an expense gives its money back to the balance.
+      [{ accountId: "aC", delta: "100000.0000" }],
+    );
   });
 
   it("never touches creditUsed when the linked statement is already PAID", async () => {
@@ -109,6 +112,10 @@ describe("RemoveTransactionHandler", () => {
       { statementPaid: true },
     );
     await handler.execute(new RemoveTransactionCommand("u1", "tX"));
-    expect(removeWithCreditAdjustment).toHaveBeenCalledWith("u1", "tX", null);
+    // The pool stays put (already settled), but the cash still left the account,
+    // so the balance is still corrected.
+    expect(removeWithCreditAdjustment).toHaveBeenCalledWith("u1", "tX", null, [
+      { accountId: "aC", delta: "100000.0000" },
+    ]);
   });
 });

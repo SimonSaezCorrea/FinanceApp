@@ -1,5 +1,5 @@
-import { AlertTriangle, ChevronRight, Pencil, Plus, Power, RefreshCw, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { AlertTriangle, ChevronRight, Loader2, Pencil, Plus, Power, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "sonner";
@@ -22,7 +22,10 @@ import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
 import { ConfirmModal } from "../../../shared/ui/overlay";
 import { Select } from "../../../shared/ui/select";
-import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
+import { Switch } from "../../../shared/ui/switch";
+import { EmptyState, ErrorState } from "../../../shared/ui/states";
+import { AccountDetailSkeleton, MovementsTableSkeleton } from "../components/AccountDetailSkeleton";
+import { AccountEditPanel } from "../components/AccountEditPanel";
 import { Tabs } from "../../../shared/ui/tabs";
 import { BillingSection } from "../components/BillingSection";
 import { BillingSettingsModal } from "../components/BillingSettingsModal";
@@ -35,7 +38,7 @@ import { ACCOUNT_ICON } from "../components/accountVisuals";
 import { useAccount, useAccountMutations } from "../hooks/useAccounts";
 import { useCardMutations } from "../hooks/useCards";
 
-export function AccountDetailRoute() {
+export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boolean }>) {
   const { t, i18n } = useTranslation();
   const { id = "" } = useParams();
   const navigate = useNavigate();
@@ -48,18 +51,31 @@ export function AccountDetailRoute() {
   const [cardFilter, setCardFilter] = useState("");
   const [tab, setTab] = useState<"movements" | "billing" | "cards">("movements");
   const { data: acc, isLoading, isError } = useAccount(id);
-  const { setStatus, reconcile, remove } = useAccountMutations();
+  const { setStatus, remove } = useAccountMutations();
   // Whether there's room for the cards aside is a question about THIS view's
   // width, not the window's: the collapsible sidebar changes it without the
   // viewport moving, so at 1280px the aside fits with the sidebar collapsed and
   // doesn't with it expanded (where the cards become the third tab instead).
-  const shellRef = useRef<HTMLDivElement>(null);
-  const shellWidth = useElementWidth(shellRef);
+  const [shellRef, shellWidth] = useElementWidth();
   const isDesktop = shellWidth !== null && shellWidth >= ASIDE_MIN_WIDTH;
   const activeTab = isDesktop && tab === "cards" ? "movements" : tab;
 
-  if (isLoading) return <LoadingState title={t("app.loading")} />;
-  if (isError || !acc) return <ErrorState title={t("errors.INTERNAL_ERROR")} />;
+  // The placeholder keeps the SAME shell element (same type, same position) as the
+  // loaded view, so React reuses the node: the width is already measured when the
+  // data lands and the real layout renders correct on its first frame — instead of
+  // painting the narrow one and snapping to two columns a tick later.
+  if (isLoading || isError || !acc)
+    return (
+      <div ref={shellRef} className={cn("flex flex-col gap-4", isDesktop && "min-h-0 flex-1")}>
+        {isLoading ? (
+          // Takes the measured layout too: the skeleton already shows the side
+          // column when there's room for it, so nothing moves once data lands.
+          <AccountDetailSkeleton label={t("app.loading")} isDesktop={isDesktop} />
+        ) : (
+          <ErrorState title={t("errors.INTERNAL_ERROR")} />
+        )}
+      </div>
+    );
 
   const Icon = ACCOUNT_ICON[acc.type];
   const pct = acc.balanceChangePct === null ? null : Number(acc.balanceChangePct);
@@ -119,7 +135,16 @@ export function AccountDetailRoute() {
                   {/* Own item: as a bare text node the name becomes an anonymous
                       flex item that wraps word-by-word when the column is tight. */}
                   <span className="min-w-0 break-words">{acc.name}</span>
-                  <Badge variant={acc.status === "ACTIVE" ? "success" : "neutral"}>
+                  {/* Dimmed while the change is in flight: the badge is the thing
+                      about to change, so it reads as "settling", and the swap to
+                      the new value lands as the end of a transition. */}
+                  <Badge
+                    variant={acc.status === "ACTIVE" ? "success" : "neutral"}
+                    className={cn(
+                      "transition-opacity duration-200",
+                      setStatus.isPending && "opacity-50",
+                    )}
+                  >
                     {t(`accounts.status.${acc.status}`)}
                   </Badge>
                   <BillingNotConfiguredBadge
@@ -139,8 +164,9 @@ export function AccountDetailRoute() {
                 Everyday actions first, then a divider, then the risky ones tinted
                 by consequence: amber to pause the account, red to destroy it. */}
             <div className="flex flex-wrap items-center gap-1.5 lg:shrink-0 lg:justify-end">
-              {/* Editing is its own screen (`/accounts/:id/edit`) — the form is
-                  far too tall to live inside this view's scroll containers. */}
+              {/* Editing opens a side panel at `/accounts/:id/edit` — a URL, so
+                  it's deep-linkable and Back closes it, while the account stays
+                  behind it as the context being edited. */}
               <Button
                 variant="secondary"
                 size="sm"
@@ -148,15 +174,6 @@ export function AccountDetailRoute() {
               >
                 <Pencil className="h-4 w-4" aria-hidden />
                 {t("accounts.actions.edit")}
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={reconcile.isPending}
-                onClick={() => reconcile.mutate(id)}
-              >
-                <RefreshCw className="h-4 w-4" aria-hidden />
-                {t("accounts.actions.reconcile")}
               </Button>
 
               <span className="mx-1 h-5 w-px bg-border" aria-hidden />
@@ -174,7 +191,15 @@ export function AccountDetailRoute() {
                   setStatus.mutate({ id, status: acc.status === "ACTIVE" ? "INACTIVE" : "ACTIVE" })
                 }
               >
-                <Power className="h-4 w-4" aria-hidden />
+                {/* The label still reads the CURRENT state while the switch is in
+                    flight ("Desactivar" until it really is inactive), so only the
+                    icon reports the work — swapping the label early would announce
+                    a result the server hasn't confirmed. */}
+                {setStatus.isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+                ) : (
+                  <Power className="h-4 w-4" aria-hidden />
+                )}
                 {acc.status === "ACTIVE"
                   ? t("accounts.actions.deactivate")
                   : t("accounts.actions.activate")}
@@ -218,7 +243,16 @@ export function AccountDetailRoute() {
             above). The account tile stays put; only the cards list scrolls (see
             CardsAside), so it never drags the movements table along. */}
         <aside className={cn("flex-col gap-4", isDesktop ? "flex min-h-0" : "hidden")}>
-          <CardsAside account={acc} holder={user?.name ?? undefined} onSelectCard={setCardFilter} />
+          <CardsAside
+            account={acc}
+            holder={user?.name ?? undefined}
+            onSelectCard={setCardFilter}
+            // Without this the tiles had no scroller of their own, so a long list
+            // pushed the column past the viewport with no way to reach the end —
+            // the aside's whole point is that only the tiles scroll while its
+            // header stays pinned.
+            columnScroll
+          />
 
           {acc.creditPools.length > 1 ? (
             <Card className="p-4">
@@ -241,6 +275,15 @@ export function AccountDetailRoute() {
           ) : null}
         </aside>
       </div>
+
+      {/* Opened by the `/accounts/:id/edit` URL, closed by navigating back to the
+          account — the panel never owns its own open/closed state. */}
+      <AccountEditPanel
+        account={acc}
+        open={editing}
+        onClose={() => navigate(`/accounts/${id}`)}
+        onDeleted={() => navigate("/accounts")}
+      />
 
       <BillingSettingsModal
         account={acc}
@@ -472,7 +515,7 @@ function MovementsSection({
           movement" button stay pinned above it. */}
       <div className={cn("scrollbar-thin", columnScroll && "min-h-0 flex-1 overflow-y-auto")}>
         {isLoading ? (
-          <LoadingState title={t("app.loading")} />
+          <MovementsTableSkeleton />
         ) : isError ? (
           <ErrorState title={t("errors.INTERNAL_ERROR")} />
         ) : list.length === 0 ? (
@@ -542,6 +585,7 @@ function CardsAside({
   hideTitle,
   onSelectCard,
   columnScroll = false,
+  inlineExpand = false,
 }: {
   account: accounts.BankAccount;
   holder?: string;
@@ -551,6 +595,8 @@ function CardsAside({
   onSelectCard?: (cardId: string) => void;
   /** Side-column layout: only the tiles scroll, the header stays pinned. */
   columnScroll?: boolean;
+  /** Clicking a card expands it in place instead of opening the drawer/window. */
+  inlineExpand?: boolean;
 }) {
   const { t } = useTranslation();
   const { remove, update } = useCardMutations(account.id);
@@ -564,10 +610,15 @@ function CardsAside({
   // the drawer/window surface.
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [inlineEditing, setInlineEditing] = useState(false);
-  // Inline expansion belongs to the side-column rendering; as the "Tarjetas" tab
-  // the same click opens the drawer/window surface instead. `columnScroll` is set
-  // only by the side column, so it doubles as "am I the aside?".
-  const isDesktop = columnScroll;
+  // Inactive cards are hidden by default: they keep their history but aren't
+  // part of day-to-day use, so they'd only pad the column. Off by default, and
+  // only offered when the account actually has one to show.
+  const [showInactive, setShowInactive] = useState(false);
+  // Inline expansion is now its OWN flag, not a synonym for "I'm the aside".
+  // While the two were the same prop, giving the aside its scroller would also
+  // have switched every card click from the drawer to the accordion — two
+  // unrelated decisions that must be changeable one at a time.
+  const isDesktop = inlineExpand;
   const cardable = accountsContract.isCardableAccountType(account.type);
 
   // As the mobile "Tarjetas" tab this renders in the full-width main column
@@ -583,6 +634,9 @@ function CardsAside({
   // The mobile "Tarjetas" tab lays the tiles out as a grid in the full-width main
   // column, so each CELL caps the card (the tile itself no longer caps anything);
   // the desktop aside is a plain stack that fills its own column.
+  const hasInactive = account.cards.some((c) => !c.isActive);
+  const visibleCards = showInactive ? account.cards : account.cards.filter((c) => c.isActive);
+
   const tilesLayout = hideTitle
     ? "grid grid-cols-1 justify-items-center gap-3 sm:grid-cols-2 lg:grid-cols-3 [&>*]:max-w-md"
     : "flex flex-col gap-3 px-1";
@@ -596,8 +650,20 @@ function CardsAside({
         <>
           <div className={cn("flex items-center justify-between", columnScroll && "shrink-0")}>
             {hideTitle ? null : <span className="text-sm font-semibold">{t("cards.title")}</span>}
+            {hasInactive ? (
+              <label className="ml-auto flex cursor-pointer items-center gap-2">
+                <Switch
+                  checked={showInactive}
+                  onCheckedChange={setShowInactive}
+                  aria-label={t("cards.showInactive")}
+                />
+                <span className="whitespace-nowrap text-xs text-muted-foreground">
+                  {t("cards.showInactive")}
+                </span>
+              </label>
+            ) : null}
             <Button
-              className="ml-auto"
+              className={cn(!hasInactive && "ml-auto")}
               variant="outline"
               size="sm"
               onClick={() => {
@@ -618,13 +684,13 @@ function CardsAside({
               columnScroll && "min-h-0 flex-1 overflow-y-auto pr-1",
             )}
           >
-            {account.cards.length === 0 ? (
+            {visibleCards.length === 0 ? (
               <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
                 <p>{t("cards.empty")}</p>
                 <p>{t("cards.emptyHint")}</p>
               </div>
             ) : (
-              account.cards.map((card) => {
+              visibleCards.map((card) => {
                 const expanded = isDesktop && expandedId === card.id;
                 return (
                   // One continuous surface when open: the tile squares off its
@@ -752,19 +818,18 @@ function CardsAside({
           holder={holder}
           open={viewCard !== null}
           onOpenChange={(v) => !v && setViewCard(null)}
-          onDelete={(card) => {
-            setViewCard(null);
-            setDeleteCard(card);
-          }}
+          // The panel STAYS open behind the confirmation: "Eliminar" only asks a
+          // question, and closing the thing you're being asked about leaves you
+          // confirming a deletion you can no longer see. It closes on success.
+          onDelete={(card) => setDeleteCard(card)}
         />
       )}
 
       <CardCreateModal
         open={modalOpen}
         onOpenChange={setModalOpen}
-        accountId={account.id}
-        accountCurrency={account.currency}
-        accountCreditLimit={account.creditLimit}
+        account={account}
+        holder={holder}
         hasExistingPrimary={account.cards.some(
           (c) => c.kind === "CREDIT" && c.isPrimary && c.id !== editCard?.id,
         )}
@@ -784,6 +849,9 @@ function CardsAside({
             onSuccess: () => {
               toast.success(t("cards.deleted"));
               setDeleteCard(null);
+              // Now the card is gone, so its detail panel must go with it.
+              setViewCard(null);
+              setExpandedId(null);
             },
             onError: () => toast.error(t("errors.INTERNAL_ERROR")),
           });

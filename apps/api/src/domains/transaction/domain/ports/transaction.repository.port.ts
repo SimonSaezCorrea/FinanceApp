@@ -66,13 +66,16 @@ export interface TransactionRepositoryPort {
     excludeTxId?: string,
   ): Promise<{ income: string; expense: string }>;
 
-  /** Cross-aggregate persistence (FR-020): saves the transaction row +
-   * `creditUsed` delta (if any) in one atomic unit. `creditUsedDelta` is
-   * `null` when this action doesn't touch the pool. */
+  /** Cross-aggregate persistence (FR-020): saves the transaction row + the
+   * `creditUsed` delta (if any) + the affected accounts' cash-balance deltas in
+   * one atomic unit. `creditUsedDelta` is `null` when this action doesn't touch
+   * the pool; `balanceDeltas` is empty when no account's balance moves (a
+   * movement with no account attached). */
   saveNew(
     userId: string,
     plan: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     creditUsedDelta: { accountId: string; delta: string } | null,
+    balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<Transaction>;
   saveUpdate(
     userId: string,
@@ -83,10 +86,12 @@ export interface TransactionRepositoryPort {
       creditStatementId?: string | null;
     },
     creditUsedDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<Transaction | null>;
   removeWithCreditAdjustment(
     userId: string,
     id: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
+    balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<boolean>;
 }

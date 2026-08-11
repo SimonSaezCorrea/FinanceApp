@@ -28,4 +28,29 @@ export interface TransactionSumsRepositoryPort {
   ): Promise<{ cardId: string; currency: string; type: "INCOME" | "EXPENSE"; sum: string }[]>;
   /** Σexpense − Σincome of the movements linked to one credit statement. */
   netForStatement(statementId: string): Promise<string>;
+  /**
+   * Σexpense − Σincome of the movements that fall inside a billing period's DATE
+   * WINDOW, regardless of which statement they were linked to when created.
+   *
+   * This is what reconciliation compares against: movements are linked to
+   * whichever period was open at creation time and never re-linked by date, so a
+   * movement back-dated into a closed period sits in the wrong one until a sync
+   * puts it right. `cardIds: null` means "every movement on the account" (a
+   * standalone CREDIT_LINE, where all of them are credit-line movements by
+   * construction); otherwise only EXPENSE through those cards counts, the same
+   * rule the live credit-pool sums use.
+   */
+  netForPeriod(input: {
+    accountId: string;
+    cardIds: string[] | null;
+    from: Date;
+    to: Date;
+  }): Promise<string>;
+  /** What a statement is MADE OF: its linked expenses split into ordinary
+   * purchases and installment charges (those carrying an `installmentPlanId`),
+   * plus how many of the latter there are. Income (payments) is excluded — it
+   * reduces the total but isn't part of what was spent. */
+  breakdownForStatement(
+    statementId: string,
+  ): Promise<{ purchases: string; installments: string; installmentCount: number }>;
 }

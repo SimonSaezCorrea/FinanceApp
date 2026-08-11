@@ -95,7 +95,7 @@ describe("Accounts HTTP (e2e)", () => {
     expect(res.status).not.toBe(500);
   });
 
-  it("generates a statement, then pays it from the checking account", async () => {
+  it("generates a statement, pays it, then reconciles it", async () => {
     // Spend on the credit card to open a statement.
     const account = await request(app.getHttpServer())
       .get(`/api/v1/accounts/${creditAccountId}`)
@@ -130,11 +130,14 @@ describe("Accounts HTTP (e2e)", () => {
     expect(payRes.body.status).toBe("PAID");
     expect(payRes.body.paidFromAccountId).toBe(checkingAccountId);
 
-    const correctRes = await request(app.getHttpServer())
-      .patch(`/api/v1/accounts/${creditAccountId}/credit-statements/${statementId}`)
-      .set("Cookie", cookies)
-      .send({ amount: "9000" });
-    expect(correctRes.status).toBe(200);
-    expect(correctRes.body.amount).toBe("9000.0000");
+    // Reconciling a settled period recomputes it from the movements dated inside
+    // it — 10000 here — and leaves it settled at that figure.
+    const syncRes = await request(app.getHttpServer())
+      .post(`/api/v1/accounts/${creditAccountId}/credit-statements/${statementId}/sync`)
+      .set("Cookie", cookies);
+    expect(syncRes.status).toBe(201);
+    expect(syncRes.body.status).toBe("PAID");
+    expect(syncRes.body.amount).toBe("10000.0000");
+    expect(syncRes.body.paidAmount).toBe("10000.0000");
   });
 });

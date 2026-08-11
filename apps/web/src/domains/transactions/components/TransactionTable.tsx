@@ -1,5 +1,5 @@
 import { Pencil, Trash2 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { accounts, transactions } from "@finance/contracts";
@@ -39,7 +39,9 @@ interface TransactionTableProps {
  * (full table) and ~736px with it expanded (compact), and a media query can't
  * tell those apart.
  */
-const FULL_TABLE_MIN_WIDTH = 860;
+/** Exported so a loading placeholder for this table splits at the same width —
+ *  a skeleton showing columns the real table then drops is a layout jump. */
+export const FULL_TABLE_MIN_WIDTH = 860;
 
 function formatDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, {
@@ -65,8 +67,7 @@ export function TransactionTable({
   // Only one row's swipe panel open at a time — opening another closes the
   // previous one for free, since both read off this single id.
   const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const width = useElementWidth(containerRef);
+  const [containerRef, width] = useElementWidth();
   // Before the first measurement (and in environments without ResizeObserver)
   // fall back to the compact list: it works at every width, so a wrong guess
   // here is a cosmetic downgrade rather than an overflowing table.

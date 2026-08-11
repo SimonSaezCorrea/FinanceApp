@@ -1,32 +1,76 @@
 import { useState } from "react";
 import { RefreshCw } from "lucide-react";
+import { cn } from "../../../shared/lib/cn";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { ConfirmModal } from "../../../shared/ui/overlay";
-import { ResponsiveSurface } from "../../../shared/ui/overlay";
-import { Field } from "../../../shared/ui/field";
-import { Input } from "../../../shared/ui/input";
-import { Select } from "../../../shared/ui/select";
-import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
+import { Skeleton, SkeletonScreen } from "../../../shared/ui/skeleton";
+import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
-import { useAccountMutations, useAccounts, useCreditStatements } from "../hooks/useAccounts";
+import { useAccountMutations, useCreditStatements } from "../hooks/useAccounts";
+import { PayStatementPanel } from "./PayStatementPanel";
 
 const STATUS_VARIANT = {
   OPEN: "info",
   PENDING: "warning",
+  PARTIALLY_PAID: "info",
   PAID: "success",
 } as const;
 
 /** "Facturación" tab: every billing period for this account's credit pool — open
  * (still accumulating), pending (closed, awaiting payment) or paid — with actions
  * to pay (choosing a source bank account) or correct a paid one's frozen amount. */
+/**
+ * Loading shape of the periods table. The column headings are ours — they never
+ * depend on the response — so they render for real and the table is already
+ * itself before a single row arrives; only the cells are placeholders.
+ */
+function BillingTableSkeleton({ label }: Readonly<{ label: string }>) {
+  const { t } = useTranslation();
+  return (
+    <SkeletonScreen label={label}>
+      <Table>
+        <THead>
+          <TR>
+            <TH>{t("accounts.detail.billingPeriod")}</TH>
+            <TH numeric>{t("accounts.detail.billingAmount")}</TH>
+            <TH>{t("accounts.detail.billingStatus")}</TH>
+            <TH>{t("accounts.detail.billingPaidAt")}</TH>
+            <TH>{t("accounts.detail.billingActions")}</TH>
+          </TR>
+        </THead>
+        <tbody>
+          {[0, 1, 2].map((i) => (
+            <TR key={i}>
+              <TD>
+                <Skeleton className="h-[13px] w-24" />
+              </TD>
+              <TD numeric>
+                <Skeleton className="ml-auto h-[13px] w-24" />
+              </TD>
+              <TD>
+                <Skeleton className="h-[20px] w-20 rounded-full" />
+              </TD>
+              <TD>
+                <Skeleton className="h-[13px] w-20" />
+              </TD>
+              <TD>
+                <Skeleton className="h-8 w-24 rounded-md" />
+              </TD>
+            </TR>
+          ))}
+        </tbody>
+      </Table>
+    </SkeletonScreen>
+  );
+}
+
 export function BillingSection({
   account,
   hideTitle,
@@ -37,9 +81,10 @@ export function BillingSection({
 }) {
   const { t, i18n } = useTranslation();
   const { data: statements, isLoading, isError } = useCreditStatements(account.id);
-  const { generateStatements } = useAccountMutations();
+  const { generateStatements, syncStatement } = useAccountMutations();
   const [payTarget, setPayTarget] = useState<accounts.CreditStatement | null>(null);
-  const [correctTarget, setCorrectTarget] = useState<accounts.CreditStatement | null>(null);
+  const [syncTarget, setSyncTarget] = useState<accounts.CreditStatement | null>(null);
+  const [confirmGenerate, setConfirmGenerate] = useState(false);
 
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
 
@@ -54,12 +99,9 @@ export function BillingSection({
           size="sm"
           variant="outline"
           disabled={generateStatements.isPending}
-          onClick={() =>
-            generateStatements.mutate(account.id, {
-              onSuccess: () => toast.success(t("accounts.actions.generateStatementsSuccess")),
-              onError: () => toast.error(t("errors.INTERNAL_ERROR")),
-            })
-          }
+          // Closing a billing period is not reversible from the UI: it turns the
+          // open period into one pending payment. Ask first.
+          onClick={() => setConfirmGenerate(true)}
         >
           <RefreshCw className="h-4 w-4" aria-hidden />
           {/* Icon-only below 550px: the full label doesn't fit at 320px. */}
@@ -70,7 +112,7 @@ export function BillingSection({
       {/* Only the periods table scrolls — heading and actions stay pinned. */}
       <div className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto scrollbar-thin">
         {isLoading ? (
-          <LoadingState title={t("app.loading")} />
+          <BillingTableSkeleton label={t("app.loading")} />
         ) : isError ? (
           <ErrorState title={t("errors.INTERNAL_ERROR")} />
         ) : !statements || statements.length === 0 ? (
@@ -98,14 +140,26 @@ export function BillingSection({
                   </TD>
                   <TD>{s.paidAt ? new Date(s.paidAt).toLocaleDateString(i18n.language) : "—"}</TD>
                   <TD>
+                    {/* Sync FIRST: it's the only action every row has, so leading
+                        with it keeps that button in one column down the table.
+                        "Pagar" then sits to its right on the rows that offer it,
+                        instead of shunting the sync button sideways. */}
                     <div className="flex gap-2">
-                      {s.status !== "PAID" ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={syncStatement.isPending}
+                        onClick={() => setSyncTarget(s)}
+                      >
+                        <RefreshCw
+                          className={cn("h-3.5 w-3.5", syncStatement.isPending && "animate-spin")}
+                          aria-hidden
+                        />
+                        {t("accounts.actions.syncStatement")}
+                      </Button>
+                      {s.status === "PAID" ? null : (
                         <Button variant="secondary" size="sm" onClick={() => setPayTarget(s)}>
                           {t("accounts.actions.payCredit")}
-                        </Button>
-                      ) : (
-                        <Button variant="outline" size="sm" onClick={() => setCorrectTarget(s)}>
-                          {t("accounts.actions.correctAmount")}
                         </Button>
                       )}
                     </div>
@@ -117,159 +171,50 @@ export function BillingSection({
         )}
       </div>
 
-      <PayStatementModal
+      <ConfirmModal
+        open={confirmGenerate}
+        onOpenChange={setConfirmGenerate}
+        title={t("accounts.actions.generateStatementsConfirm")}
+        description={t("accounts.actions.generateStatementsConfirmDescription")}
+        confirmLabel={t("accounts.actions.generateStatements")}
+        loading={generateStatements.isPending}
+        onConfirm={() =>
+          generateStatements.mutate(account.id, {
+            onSuccess: () => {
+              toast.success(t("accounts.actions.generateStatementsSuccess"));
+              setConfirmGenerate(false);
+            },
+            onError: () => toast.error(t("errors.INTERNAL_ERROR")),
+          })
+        }
+      />
+
+      <PayStatementPanel
         account={account}
         statement={payTarget}
         onOpenChange={(v) => !v && setPayTarget(null)}
       />
-      <CorrectAmountModal
-        account={account}
-        statement={correctTarget}
-        onOpenChange={(v) => !v && setCorrectTarget(null)}
-      />
-    </div>
-  );
-}
-
-/** Pay a statement by choosing a source bank account (any of the user's own,
- * except CREDIT_LINE — you don't pay a credit card with another credit line). */
-function PayStatementModal({
-  account,
-  statement,
-  onOpenChange,
-}: {
-  account: accounts.BankAccount;
-  statement: accounts.CreditStatement | null;
-  onOpenChange: (v: boolean) => void;
-}) {
-  const { t, i18n } = useTranslation();
-  const { data: allAccounts } = useAccounts();
-  const { payCreditStatement } = useAccountMutations();
-  const [fromAccountId, setFromAccountId] = useState("");
-
-  const options = (allAccounts ?? [])
-    .filter((a) => a.type !== "CREDIT_LINE" && a.status === "ACTIVE")
-    .map((a) => ({ value: a.id, label: `${a.name} (${a.currency})` }));
-
-  if (!statement) return null;
-
-  return (
-    <ResponsiveSurface
-      open={statement !== null}
-      onOpenChange={onOpenChange}
-      title={t("accounts.actions.payCredit")}
-      description={formatMoney(statement.amount, {
-        locale: i18n.language,
-        currency: account.currency,
-      })}
-    >
-      <div className="flex flex-col gap-4">
-        <Field label={t("accounts.detail.payFromAccount")}>
-          <Select
-            value={fromAccountId}
-            onChange={(e) => setFromAccountId(e.target.value)}
-            options={[
-              { value: "", label: t("accounts.detail.payFromAccountPlaceholder") },
-              ...options,
-            ]}
-            aria-label={t("accounts.detail.payFromAccount")}
-          />
-        </Field>
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t("common.cancel")}
-          </Button>
-          <Button
-            disabled={!fromAccountId || payCreditStatement.isPending}
-            onClick={() =>
-              payCreditStatement.mutate(
-                { id: account.id, statementId: statement.id, fromAccountId },
-                {
-                  onSuccess: () => {
-                    toast.success(t("accounts.actions.payCreditSuccess"));
-                    onOpenChange(false);
-                    setFromAccountId("");
-                  },
-                  onError: (err) => {
-                    const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
-                    toast.error(t(`errors.${code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
-                  },
-                },
-              )
-            }
-          >
-            {t("accounts.actions.payCredit")}
-          </Button>
-        </div>
-      </div>
-    </ResponsiveSurface>
-  );
-}
-
-/** Correct a PAID statement's frozen amount — no cascade to the linked payment
- * transaction or to `creditUsed` (see `CreditStatement`). */
-function CorrectAmountModal({
-  account,
-  statement,
-  onOpenChange,
-}: {
-  account: accounts.BankAccount;
-  statement: accounts.CreditStatement | null;
-  onOpenChange: (v: boolean) => void;
-}) {
-  const { t } = useTranslation();
-  const { updateCreditStatement } = useAccountMutations();
-  const [amount, setAmount] = useState(statement?.amount ?? "0");
-  const [confirmOpen, setConfirmOpen] = useState(false);
-
-  if (!statement) return null;
-
-  return (
-    <ResponsiveSurface
-      open={statement !== null}
-      onOpenChange={onOpenChange}
-      title={t("accounts.actions.correctAmount")}
-      description={t("accounts.detail.correctAmountHint")}
-      className="max-w-sm"
-    >
-      <div className="flex flex-col gap-4">
-        <Field label={t("accounts.detail.billingAmount")}>
-          <Input
-            inputMode="numeric"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ""))}
-            aria-label={t("accounts.detail.billingAmount")}
-          />
-        </Field>
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t("common.cancel")}
-          </Button>
-          <Button disabled={!amount} onClick={() => setConfirmOpen(true)}>
-            {t("accounts.actions.save")}
-          </Button>
-        </div>
-      </div>
-
       <ConfirmModal
-        open={confirmOpen}
-        onOpenChange={setConfirmOpen}
-        title={t("accounts.detail.correctAmountConfirm")}
-        loading={updateCreditStatement.isPending}
-        onConfirm={() =>
-          updateCreditStatement.mutate(
-            { id: account.id, statementId: statement.id, amount },
+        open={syncTarget !== null}
+        onOpenChange={(v) => !v && setSyncTarget(null)}
+        title={t("accounts.actions.syncStatementConfirm")}
+        description={t("accounts.actions.syncStatementConfirmDescription")}
+        confirmLabel={t("accounts.actions.syncStatement")}
+        loading={syncStatement.isPending}
+        onConfirm={() => {
+          if (!syncTarget) return;
+          syncStatement.mutate(
+            { id: account.id, statementId: syncTarget.id },
             {
               onSuccess: () => {
-                toast.success(t("accounts.actions.correctAmountSuccess"));
-                setConfirmOpen(false);
-                onOpenChange(false);
+                toast.success(t("accounts.actions.syncStatementSuccess"));
+                setSyncTarget(null);
               },
               onError: () => toast.error(t("errors.INTERNAL_ERROR")),
             },
-          )
-        }
+          );
+        }}
       />
-    </ResponsiveSurface>
+    </div>
   );
 }

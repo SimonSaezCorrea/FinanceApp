@@ -54,6 +54,7 @@ function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountPro
     creditUsed: "50000",
     billingCycleDay: 5,
     paymentMethod: "MANUAL",
+    minimumPaymentPercent: null,
     cards: [card()],
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -69,6 +70,7 @@ function statementProps(overrides: Partial<CreditStatementProps> = {}): CreditSt
     closedAt: null,
     paidAt: null,
     amount: "0",
+    paidAmount: "0",
     paidFromAccountId: null,
     paidTransactionId: null,
     createdAt: new Date(),
@@ -93,6 +95,7 @@ function fakeAccountRepo(
     updateCard: vi.fn(),
     removeCard: vi.fn(),
     incrementCreditUsedWithTx: vi.fn(),
+    incrementBalanceWithTx: vi.fn(),
     ...overrides,
   };
 }
@@ -109,6 +112,7 @@ function fakeStatementRepo(
     save: vi.fn(),
     saveWithTx: vi.fn(),
     sumLinkedTransactions: vi.fn(),
+    breakdown: vi.fn(async () => ({ purchases: "0", installments: "0", installmentCount: 0 })),
     ...overrides,
   };
 }

@@ -6,7 +6,7 @@ import { formatMoney } from "@finance/money";
 
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { cn } from "../../../shared/lib/cn";
-import { CARD_KIND_STYLE, isCreditType } from "./accountVisuals";
+import { CARD_INACTIVE_STYLE, CARD_KIND_STYLE, isCreditType } from "./accountVisuals";
 
 /**
  * Visual "wallet" representation. Pass `card` to render a specific card (colored
@@ -28,6 +28,7 @@ export function AccountVisualCard({
   card: cardProp,
   accountOnly = false,
   holder,
+  expiryOverride,
   onClick,
   large,
   expanded,
@@ -37,6 +38,9 @@ export function AccountVisualCard({
   card?: accounts.Card;
   accountOnly?: boolean;
   holder?: string;
+  /** Text to print instead of the formatted expiry — for a card being typed,
+   *  where "no date yet" can't be expressed as a month/year pair. */
+  expiryOverride?: string;
   onClick?: () => void;
   large?: boolean;
   /** Part of an open accordion row: draws a collapse chevron and squares off the
@@ -56,9 +60,11 @@ export function AccountVisualCard({
   // on the account's real cash balance.
   const showCreditInfo = card ? card.kind === "CREDIT" : isAccountCreditPool;
   const last4 = card?.last4 ?? "••••";
-  const expiry = card
-    ? `${String(card.expiryMonth).padStart(2, "0")}/${String(card.expiryYear).slice(-2)}`
-    : null;
+  const expiry =
+    expiryOverride ??
+    (card
+      ? `${String(card.expiryMonth).padStart(2, "0")}/${String(card.expiryYear).slice(-2)}`
+      : null);
 
   // A card with its OWN sub-limit (for the account's currency) shows that instead
   // of the shared account pool. A card that shares the pool (no sub-limit of its
@@ -76,8 +82,11 @@ export function AccountVisualCard({
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
   const balance = Number(account.currentBalance);
 
+  const inactiveCard = card ? !card.isActive : false;
   const gradientClass = card
-    ? CARD_KIND_STYLE[card.kind]
+    ? inactiveCard
+      ? CARD_INACTIVE_STYLE
+      : CARD_KIND_STYLE[card.kind]
     : isAccountCreditPool
       ? "bg-gradient-to-br from-brand to-primary text-white"
       : "bg-gradient-to-br from-secondary to-muted text-foreground";
@@ -125,7 +134,17 @@ export function AccountVisualCard({
           </div>
           <div className="flex shrink-0 items-center gap-1.5">
             {/* Type chip: the card's own kind when there's a card, else the account type. */}
-            <span className="rounded-full bg-white/25 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+            {inactiveCard ? (
+              <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+                {t("cards.inactiveBadge")}
+              </span>
+            ) : null}
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                inactiveCard ? "bg-foreground/10" : "bg-white/25",
+              )}
+            >
               {card
                 ? t(`cards.kind.${card.kind}`)
                 : isAccountCreditPool

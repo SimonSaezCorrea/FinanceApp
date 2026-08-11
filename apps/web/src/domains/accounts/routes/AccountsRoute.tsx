@@ -8,9 +8,11 @@ import { convertApprox } from "../../../shared/lib/fx";
 import { Button } from "../../../shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Segmented } from "../../../shared/ui/segmented";
-import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
+import { Skeleton } from "../../../shared/ui/skeleton";
+import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { AccountCard } from "../components/AccountCard";
 import { AccountCreateModal } from "../components/AccountCreateModal";
+import { AccountsSkeleton } from "../components/AccountsSkeleton";
 import { AccountsSummary } from "../components/AccountsSummary";
 import { GroupByMenu } from "../components/GroupByMenu";
 import { useAuth } from "../../auth/hooks/useAuth";
@@ -35,6 +37,7 @@ export function AccountsRoute() {
     const currencies = new Set(list.map((a) => a.currency)).size;
     return t("accounts.summary", { accounts: list.length, currencies });
   }, [list, t]);
+  const subtitleOrNothing = list.length > 0 ? subtitle : undefined;
 
   const groups = useMemo(
     () =>
@@ -60,11 +63,37 @@ export function AccountsRoute() {
     return { native, approx: approx === null ? null : money(approx, primaryCurrency) };
   };
 
+  // Rendered by both the loaded view and the skeleton: these controls are client
+  // state, so hiding them while the list loads would be hiding something we have.
+  const filterRow = (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <Segmented
+        size="sm"
+        // Compact and left-aligned: it's a secondary filter, not a full-width control.
+        className="self-start"
+        aria-label={t("accounts.filter.label")}
+        value={filter}
+        onChange={setFilter}
+        options={[
+          { value: "all", label: t("accounts.filter.all") },
+          { value: "active", label: t("accounts.filter.active") },
+          { value: "inactive", label: t("accounts.filter.inactive") },
+        ]}
+      />
+      {/* Grouping only means something once there are accounts to group. */}
+      {isLoading || list.length > 0 ? <GroupByMenu value={groupBy} onChange={setGroupBy} /> : null}
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
         title={t("accounts.title")}
-        description={list.length > 0 ? subtitle : undefined}
+        description={
+          // Reserved while loading: without it the header grows a line the moment
+          // the count arrives and pushes the whole page down.
+          isLoading ? <Skeleton className="mt-1.5 h-[13px] w-40" /> : subtitleOrNothing
+        }
         actions={
           <Button variant="accent" onClick={() => setModalOpen(true)}>
             <Plus className="h-4 w-4" aria-hidden />
@@ -76,29 +105,20 @@ export function AccountsRoute() {
       <AccountCreateModal open={modalOpen} onOpenChange={setModalOpen} />
 
       {isLoading ? (
-        <LoadingState title={t("app.loading")} />
+        <AccountsSkeleton
+          label={t("app.loading")}
+          primaryCurrency={primaryCurrency}
+          // The filters are ours, not the server's: they stay live while the list
+          // loads (switching one just re-runs the query behind the same skeleton).
+          controls={filterRow}
+        />
       ) : isError ? (
         <ErrorState title={t("errors.INTERNAL_ERROR")} />
       ) : (
         <>
           <AccountsSummary list={list} primaryCurrency={primaryCurrency} />
 
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Segmented
-              size="sm"
-              // Compact and left-aligned: it's a secondary filter, not a full-width control.
-              className="self-start"
-              aria-label={t("accounts.filter.label")}
-              value={filter}
-              onChange={setFilter}
-              options={[
-                { value: "all", label: t("accounts.filter.all") },
-                { value: "active", label: t("accounts.filter.active") },
-                { value: "inactive", label: t("accounts.filter.inactive") },
-              ]}
-            />
-            {list.length > 0 ? <GroupByMenu value={groupBy} onChange={setGroupBy} /> : null}
-          </div>
+          {filterRow}
 
           {list.length === 0 ? (
             <EmptyState title={t("accounts.empty")} />

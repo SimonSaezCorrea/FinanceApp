@@ -5,7 +5,8 @@
   "app": {
     "loading": "Loading…",
     "loadingMore": "Loading more…",
-    "welcome": "Personal finance dashboard"
+    "welcome": "Personal finance dashboard",
+    "bootstrapping": "Setting up your session…"
   },
   "common": {
     "cancel": "Cancel",
@@ -105,12 +106,38 @@
       "billingStatusValue": {
         "OPEN": "Open",
         "PENDING": "Pending",
-        "PAID": "Paid"
+        "PAID": "Paid",
+        "PARTIALLY_PAID": "Partially paid"
       },
       "payFromAccount": "Pay with",
       "payFromAccountPlaceholder": "Select an account",
-      "correctAmountHint": "Correct this already-paid statement's amount. Doesn't affect the payment transaction already created or the used credit.",
-      "correctAmountConfirm": "Correct this statement's amount?"
+      "payTitle": "Pay statement",
+      "paySummaryAmount": "Amount due",
+      "payToAccount": "Statement for",
+      "payThisAccount": "This account",
+      "payInsufficient": "This account's balance is lower than the amount due.",
+      "payDifferentCurrency": "This account is in another currency; no conversion is applied.",
+      "payCreatesMovement": "An expense will be recorded in the selected account and the statement marked as paid.",
+      "payEyebrow": "Pay statement",
+      "payPeriodTitle": "Period {{date}}",
+      "payBalanceAfter": "Balance after payment",
+      "payAction": "Pay {{amount}}",
+      "payModeTotal": "Total",
+      "payModeMinimum": "Minimum",
+      "payModeCustom": "Other amount",
+      "payCoversTotal": "Covers the whole statement.",
+      "payCoversMinimum": "This account's minimum ({{percent}}% of the period).",
+      "payCoversCustom": "A balance will remain for the next payment.",
+      "payBreakdownPurchases": "Purchases in the period",
+      "payBreakdownInstallments": "Installments this month ({{count}})",
+      "payAmountLabel": "Amount",
+      "payRemainingAfter": "Balance left after payment",
+      "payDate": "Payment date",
+      "payReference": "Reference (optional)",
+      "payReferencePlaceholder": "e.g. Transfer 4412",
+      "payAlreadyPaid": "Paid so far",
+      "payMinimumUnset": "This account has no minimum payment configured. You can set it in the account’s billing settings (Minimum payment %).",
+      "payMinimumCovered": "You have already paid more than this period’s minimum."
     },
     "filter": {
       "label": "Filter by status",
@@ -161,22 +188,27 @@
         "billingHint": "On the billing day the statement is generated pending payment.",
         "status": "Status",
         "statusHint": "An inactive account is hidden from summaries but keeps its history."
-      }
+      },
+      "minimumPercent": "Minimum payment (%)",
+      "minimumPercentHint": "Percentage of the period your issuer accepts as a minimum payment. Empty = no minimum."
     },
     "actions": {
       "edit": "Edit",
       "save": "Save",
       "delete": "Delete",
-      "reconcile": "Reconcile balance",
       "activate": "Activate",
       "deactivate": "Deactivate",
       "payCredit": "Pay statement",
       "payCreditConfirm": "Pay {{amount}} of your statement? It will be deducted from used credit.",
       "payCreditSuccess": "Statement paid",
       "generateStatements": "Generate statement",
+      "generateStatementsConfirm": "Generate the statement?",
+      "generateStatementsConfirmDescription": "The open period will be closed and left pending payment. Later movements go to the next period.",
       "generateStatementsSuccess": "Statements refreshed",
-      "correctAmount": "Correct amount",
-      "correctAmountSuccess": "Amount corrected"
+      "syncStatement": "Sync payments",
+      "syncStatementConfirm": "Sync this statement?",
+      "syncStatementConfirmDescription": "The period's amount will be recalculated from the movements dated inside it. If it was already paid, the payment movement and the used credit are adjusted to match.",
+      "syncStatementSuccess": "Statement synced"
     },
     "updated": "Account updated",
     "edit": {
@@ -220,6 +252,7 @@
       "parent": "Primary card (secondary)",
       "parentNone": "None (primary)",
       "expiry": "Expires",
+      "expiryPlaceholder": "MM/YY",
       "last4": "Last 4 digits",
       "last4Hint": "Only the last 4 digits are stored.",
       "limits": "Limits per currency",
@@ -237,7 +270,9 @@
       "usesPoolHint": "This card shares the account's full pool.",
       "ownLimit": "Own limit",
       "ownLimitHint": "Set an independent limit for this card (can't exceed the account's pool in the same currency).",
-      "ownLimitRowsHint": "Add at least one limit per currency."
+      "ownLimitRowsHint": "Add at least one limit per currency.",
+      "active": "Card active",
+      "activeHint": "An inactive card keeps its history but no longer appears when recording movements."
     },
     "errors": {
       "last4": "Enter the last 4 digits.",
@@ -259,7 +294,9 @@
       "filteringTableHint": "The table on the left is already filtered by this card",
       "expiry": "Expires",
       "availableLabel": "Available"
-    }
+    },
+    "showInactive": "Show inactive",
+    "inactiveBadge": "Inactive"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -712,6 +749,8 @@
     "CARD_LIMIT_REQUIRED": "Enter a limit for this credit card.",
     "PARENT_CARD_INVALID": "The selected primary card is invalid.",
     "INVALID_CURRENT_PASSWORD": "Your current password is incorrect.",
-    "ACCOUNT_DISABLED": "This account is disabled."
+    "ACCOUNT_DISABLED": "This account is disabled.",
+    "PAYMENT_EXCEEDS_REMAINING": "The amount is more than what this statement still owes.",
+    "INVALID_PAYMENT_AMOUNT": "Enter an amount greater than zero."
   }
 }

@@ -4,6 +4,7 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import { subtractMoney } from "@finance/money";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import { reverseBalanceDelta } from "../../domain/balance-delta";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
@@ -108,6 +109,17 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
       command.userId,
       command.id,
       context.creditUsedDelta,
+      // Undo what this movement did to the balance. Unlike the credit pool, this
+      // applies even to a movement of an already-paid period: the cash left the
+      // account regardless of how its statement was settled.
+      context.current.bankAccountId
+        ? [
+            {
+              accountId: context.current.bankAccountId,
+              delta: reverseBalanceDelta(context.current.type, context.current.amount),
+            },
+          ]
+        : [],
     );
     if (!ok) throw new TransactionNotFoundError();
     return { result: undefined, events: [] };

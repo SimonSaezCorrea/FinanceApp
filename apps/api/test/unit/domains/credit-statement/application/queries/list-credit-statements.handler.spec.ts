@@ -33,6 +33,7 @@ function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountPro
     creditUsed: "0",
     billingCycleDay: null,
     paymentMethod: "MANUAL",
+    minimumPaymentPercent: null,
     cards: [],
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -48,6 +49,7 @@ function statementProps(overrides: Partial<CreditStatementProps> = {}): CreditSt
     closedAt: null,
     paidAt: null,
     amount: "0",
+    paidAmount: "0",
     paidFromAccountId: null,
     paidTransactionId: null,
     createdAt: new Date(),
@@ -72,6 +74,7 @@ function fakeAccountRepo(
     updateCard: vi.fn(),
     removeCard: vi.fn(),
     incrementCreditUsedWithTx: vi.fn(),
+    incrementBalanceWithTx: vi.fn(),
     ...overrides,
   };
 }
@@ -88,6 +91,7 @@ function fakeStatementRepo(
     save: vi.fn(),
     saveWithTx: vi.fn(),
     sumLinkedTransactions: vi.fn(),
+    breakdown: vi.fn(async () => ({ purchases: "0", installments: "0", installmentCount: 0 })),
     ...overrides,
   };
 }
@@ -100,6 +104,7 @@ describe("ListCreditStatementsQueryHandler", () => {
     const statementRepo = fakeStatementRepo({
       listForAccount: vi.fn(async () => [statement]),
       sumLinkedTransactions: vi.fn(async () => "12345"),
+      breakdown: vi.fn(async () => ({ purchases: "0", installments: "0", installmentCount: 0 })),
     });
     const handler = new ListCreditStatementsQueryHandler(accountRepo, statementRepo);
 
@@ -107,7 +112,9 @@ describe("ListCreditStatementsQueryHandler", () => {
 
     expect(result).toHaveLength(1);
     expect(result[0].status).toBe("OPEN");
-    expect(result[0].amount).toBe("12345");
+    // Normalised to money scale by the shared DTO mapper, like every other
+    // amount the API returns.
+    expect(result[0].amount).toBe("12345.0000");
   });
 
   it("throws AccountNotFoundError for a missing account", async () => {

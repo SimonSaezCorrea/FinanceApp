@@ -11,6 +11,7 @@ import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { Segmented } from "../../../shared/ui/segmented";
+import { Switch } from "../../../shared/ui/switch";
 import { Select } from "../../../shared/ui/select";
 import { cleanExpiryInput, formatExpiry, parseExpiry } from "../lib/cardExpiry";
 
@@ -34,6 +35,11 @@ interface Props {
    * previews it (the detail surface's tile). Partial by design: `last4` may hold
    * fewer than 4 digits and the expiry may not parse yet. */
   onDraftChange?: (draft: CardDraft) => void;
+  /** Drives the card's active state from OUTSIDE the form (a panel header, beside
+   * the card name). When set, the form drops its own switch and submits this
+   * value — same arrangement the account form uses for its status. */
+  isActive?: boolean;
+  onActiveChange?: (active: boolean) => void;
   onSubmit: (card: accounts.CreateCard) => void;
 }
 
@@ -70,6 +76,8 @@ export function CardForm({
   accountCreditLimit,
   formId,
   hideSubmit = false,
+  isActive: activeFromHost,
+  onActiveChange,
   onDraftChange,
   onSubmit,
 }: Readonly<Props>) {
@@ -90,6 +98,11 @@ export function CardForm({
   const [limits, setLimits] = useState<LimitDraft[]>(
     initial?.limits.map((l) => ({ currency: l.currency, limitAmount: l.limitAmount })) ?? [],
   );
+  // A card that is no longer in use but whose history must stay: deactivating it
+  // keeps every past movement while taking the card out of the pickers. Read from
+  // the host when it owns the control, so there's never a second copy to sync.
+  const [ownActive, setOwnActive] = useState(initial?.isActive ?? true);
+  const isActive = activeFromHost ?? ownActive;
   const [last4Error, setLast4Error] = useState<string | null>(null);
   const [expiryError, setExpiryError] = useState<string | null>(null);
   const [limitError, setLimitError] = useState<string | null>(null);
@@ -180,7 +193,7 @@ export function CardForm({
       last4,
       expiryMonth: parsedExpiry.month,
       expiryYear: parsedExpiry.year,
-      isActive: initial?.isActive ?? true,
+      isActive,
       usesAccountPool: poolFlag,
       limits: cardLimits,
     });
@@ -398,6 +411,22 @@ export function CardForm({
           ) : null}
         </div>
       ) : null}
+
+      {onActiveChange ? null : (
+        <label className="flex items-center gap-3 border-t border-border pt-3">
+          <Switch
+            checked={isActive}
+            onCheckedChange={setOwnActive}
+            aria-label={t("cards.form.active")}
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-medium">{t("cards.form.active")}</span>
+            <span className="block text-xs text-muted-foreground">
+              {t("cards.form.activeHint")}
+            </span>
+          </span>
+        </label>
+      )}
 
       {hideSubmit ? null : (
         <Button type="submit" disabled={submitting}>

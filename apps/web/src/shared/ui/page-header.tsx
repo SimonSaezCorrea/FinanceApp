@@ -4,7 +4,9 @@ import { cn } from "../lib/cn";
 
 interface PageHeaderProps {
   title: string;
-  description?: string;
+  /** Takes a node so a loading view can reserve the line with a skeleton, which
+   *  keeps the header from growing a row when the real subtitle lands. */
+  description?: ReactNode;
   actions?: ReactNode;
   className?: string;
 }

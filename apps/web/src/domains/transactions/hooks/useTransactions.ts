@@ -10,10 +10,18 @@ import { transactionsApi } from "../api/transactionsApi";
  * aggregate rather than scroll (the dashboard's month view) — a scrolling list
  * wants `useInfiniteTransactions` instead.
  */
-export function useTransactions(filters?: transactions.TransactionFilters) {
+export function useTransactions(
+  filters?: transactions.TransactionFilters,
+  // Omitting `filters` means "every movement, unpaginated" — a legitimate but
+  // EXPENSIVE call. A consumer that only wants the query in some of its states
+  // must say so explicitly: passing `undefined` filters to skip the fetch used to
+  // silently request the user's entire history instead (and throw it away).
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: ["transactions", filters ?? {}],
     queryFn: () => transactionsApi.list(filters),
+    enabled: options?.enabled ?? true,
     // Consumers keep receiving a plain array — the pagination metadata is only
     // of interest to the infinite variant below.
     select: (page) => page.items,
@@ -49,9 +57,11 @@ export function useInfiniteTransactions(
  */
 export function useTransactionsSummary(
   filters?: Omit<transactions.TransactionFilters, "cursor" | "limit">,
+  options?: { enabled?: boolean },
 ) {
   return useQuery({
     queryKey: ["transactions", "summary", filters ?? {}],
     queryFn: () => transactionsApi.summary(filters),
+    enabled: options?.enabled ?? true,
   });
 }

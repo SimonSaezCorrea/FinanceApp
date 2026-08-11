@@ -82,4 +82,59 @@ export class PrismaTransactionSumsRepository implements TransactionSumsRepositor
       grouped.find((g) => g.type === t)?._sum.amount?.toString() ?? "0";
     return new Prisma.Decimal(find("EXPENSE")).minus(find("INCOME")).toString();
   }
+
+  async netForPeriod(input: {
+    accountId: string;
+    cardIds: string[] | null;
+    from: Date;
+    to: Date;
+  }): Promise<string> {
+    const window = {
+      bankAccountId: input.accountId,
+      occurredAt: { gte: input.from, lt: input.to },
+    };
+    const where =
+      input.cardIds === null
+        ? window
+        : { ...window, type: "EXPENSE" as const, cardId: { in: input.cardIds } };
+    const grouped = await this.prisma.transaction.groupBy({
+      by: ["type"],
+      where,
+      _sum: { amount: true },
+    });
+    const find = (t: "INCOME" | "EXPENSE") =>
+      grouped.find((g) => g.type === t)?._sum.amount?.toString() ?? "0";
+    return new Prisma.Decimal(find("EXPENSE")).minus(find("INCOME")).toString();
+  }
+
+  async breakdownForStatement(
+    statementId: string,
+  ): Promise<{ purchases: string; installments: string; installmentCount: number }> {
+    // Aggregated in Postgres, not by loading the rows: a long period can hold
+    // hundreds of movements and only three numbers are wanted.
+    const [installments, all] = await Promise.all([
+      this.prisma.transaction.aggregate({
+        where: {
+          creditStatementId: statementId,
+          type: "EXPENSE",
+          installmentPlanId: { not: null },
+        },
+        _sum: { amount: true },
+        _count: { _all: true },
+      }),
+      this.prisma.transaction.aggregate({
+        where: { creditStatementId: statementId, type: "EXPENSE" },
+        _sum: { amount: true },
+      }),
+    ]);
+    const installmentSum = new Prisma.Decimal(installments._sum.amount?.toString() ?? "0");
+    const total = new Prisma.Decimal(all._sum.amount?.toString() ?? "0");
+    return {
+      // Purchases are the remainder, so the two always add up to the period's
+      // spend — deriving each with its own query would let them drift apart.
+      purchases: total.minus(installmentSum).toString(),
+      installments: installmentSum.toString(),
+      installmentCount: installments._count._all,
+    };
+  }
 }

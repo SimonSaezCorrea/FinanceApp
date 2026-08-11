@@ -15,6 +15,7 @@ type Row = {
   closedAt: Date | null;
   paidAt: Date | null;
   amount: { toString(): string } | null;
+  paidAmount: { toString(): string } | null;
   paidFromAccountId: string | null;
   paidTransactionId: string | null;
   createdAt: Date;
@@ -29,6 +30,7 @@ function rowToProps(row: Row): CreditStatementProps {
     closedAt: row.closedAt,
     paidAt: row.paidAt,
     amount: row.amount?.toString() ?? "0",
+    paidAmount: row.paidAmount?.toString() ?? "0",
     paidFromAccountId: row.paidFromAccountId,
     paidTransactionId: row.paidTransactionId,
     createdAt: row.createdAt,
@@ -112,7 +114,10 @@ export class PrismaCreditStatementRepository implements CreditStatementRepositor
       data: {
         closedAt: state.closedAt,
         paidAt: state.paidAt,
+        // Frozen only once settled; while partially paid the amount stays live
+        // (the sum of the period's transactions), same as PENDING.
         amount: state.paidAt ? state.amount : undefined,
+        paidAmount: state.paidAmount,
         paidFromAccountId: state.paidFromAccountId,
         paidTransactionId: state.paidTransactionId,
       },
@@ -121,5 +126,11 @@ export class PrismaCreditStatementRepository implements CreditStatementRepositor
 
   sumLinkedTransactions(statementId: string): Promise<string> {
     return this.sums.netForStatement(statementId);
+  }
+
+  breakdown(
+    statementId: string,
+  ): Promise<{ purchases: string; installments: string; installmentCount: number }> {
+    return this.sums.breakdownForStatement(statementId);
   }
 }

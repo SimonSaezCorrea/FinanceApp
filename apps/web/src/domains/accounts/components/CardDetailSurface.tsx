@@ -6,12 +6,15 @@ import type { accounts } from "@finance/contracts";
 
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
-import { useMediaQuery } from "../../../shared/lib/useMediaQuery";
+import { ActiveToggle } from "../../../shared/ui/active-toggle";
+import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
-import { Drawer, SHEET_QUERY, Window } from "../../../shared/ui/overlay";
+import { SidePanel } from "../../../shared/ui/overlay";
+import { useCardMovements } from "../hooks/useCardMovements";
 import { useCardMutations } from "../hooks/useCards";
 import { AccountVisualCard } from "./AccountVisualCard";
 import { CardDetailPanel } from "./CardDetailPanel";
+import { CardTileSkeleton } from "./CardTileSkeleton";
 import { type CardDraft, CardForm } from "./CardForm";
 
 /** Ties the footer's submit button to the form it lives outside of. */
@@ -28,10 +31,10 @@ interface Props {
 
 /**
  * The card's detail/edit surface for the widths where the aside isn't available:
- * a right-side `Drawer` on a tablet (the list behind stays visible but out of
- * reach) and a full-screen `Window` on a phone. Desktop never mounts this — there
- * the same content expands inline inside the cards aside, so nothing about the
- * card is ever shown in two places at once.
+ * the shared `SidePanel` (a right-side drawer on a tablet, where the list behind
+ * stays visible but out of reach; a full-screen window on a phone). Desktop never
+ * mounts this — there the same content expands inline inside the cards aside, so
+ * nothing about the card is ever shown in two places at once.
  *
  * Detail and edit are ONE surface with two modes, not two stacked overlays:
  * "Editar" swaps the body in place and the header's eyebrow says which mode
@@ -54,11 +57,19 @@ export function CardDetailSurface({
   // Stable identity: it's in the form's effect deps, and a new function every
   // render would re-report on every keystroke's re-render too.
   const onDraftChange = useCallback((next: CardDraft) => setDraft(next), []);
-  const isTablet = useMediaQuery(SHEET_QUERY);
+  // Only meaningful in edit mode, where the header switch drives the form; reset
+  // on close so reopening starts from the saved card again.
+  const [editActive, setEditActive] = useState<boolean | null>(null);
 
   // Retained through the close: the parent clears `card` at the same time it
   // closes, and unmounting on that frame would cut the exit animation short.
   const retained = useLastNonNull(card);
+  // Same queries the panel below runs (identical keys — one request, two
+  // readers), so the TILE can join the same loading block instead of standing
+  // fully drawn above a body that's still resolving.
+  const { loading } = useCardMovements(account.id, retained?.id ?? "", {
+    enabled: retained !== null,
+  });
   if (!retained) return null;
   // Re-bound after the guard: the hoisted function declarations below don't see
   // the narrowing of `retained` itself.
@@ -68,6 +79,7 @@ export function CardDetailSurface({
     if (!next) {
       setEditing(false);
       setDraft(null);
+      setEditActive(null);
     }
     onOpenChange(next);
   }
@@ -98,6 +110,7 @@ export function CardDetailSurface({
     editing && draft
       ? {
           ...activeCard,
+          isActive: editActive ?? activeCard.isActive,
           name: draft.name || activeCard.name,
           kind: draft.kind,
           last4: draft.last4 || activeCard.last4,
@@ -129,13 +142,19 @@ export function CardDetailSurface({
   // state), which read as the header shifting when you pressed Editar.
   const content = (
     <div className="flex flex-col gap-4">
-      <AccountVisualCard
-        account={account}
-        card={previewCard}
-        holder={holder}
-        large
-        className="mx-auto mt-2 sm:max-w-sm"
-      />
+      {/* While editing the tile previews what's being typed, so it must stay real
+          no matter what the movement queries are doing. */}
+      {loading && !editing ? (
+        <CardTileSkeleton large className="mx-auto sm:max-w-sm" />
+      ) : (
+        <AccountVisualCard
+          account={account}
+          card={previewCard}
+          holder={holder}
+          large
+          className="mx-auto sm:max-w-sm"
+        />
+      )}
       {editing ? (
         <CardForm
           key={activeCard.id}
@@ -150,6 +169,8 @@ export function CardDetailSurface({
             (c) => c.kind === "CREDIT" && c.isPrimary && c.id !== activeCard.id,
           )}
           onDraftChange={onDraftChange}
+          isActive={editActive ?? activeCard.isActive}
+          onActiveChange={setEditActive}
           onSubmit={save}
         />
       ) : (
@@ -197,17 +218,34 @@ export function CardDetailSurface({
     </div>
   );
 
-  const shared = {
-    open,
-    onOpenChange: close,
-    eyebrow: editing ? t("cards.editTitle") : t("cards.detail.title"),
-    title: activeCard.name,
-    // Same subtitle in both modes: the eyebrow already says which mode you're in,
-    // and dropping the account name only made the header jump.
-    description: account.name,
-    footer,
-    children: content,
-  };
-
-  return isTablet ? <Drawer {...shared} /> : <Window {...shared} />;
+  return (
+    <SidePanel
+      open={open}
+      onOpenChange={close}
+      eyebrow={editing ? t("cards.editTitle") : t("cards.detail.title")}
+      title={activeCard.name}
+      headerAside={
+        // Editing: the switch, at the card's own level (same place the account
+        // panel puts its status). Reading: the state as a plain badge — a live
+        // control here would save on a click, unlike every other field.
+        editing ? (
+          <ActiveToggle
+            checked={editActive ?? activeCard.isActive}
+            onCheckedChange={setEditActive}
+            label={t("cards.form.active")}
+            activeLabel={t("accounts.status.ACTIVE")}
+            inactiveLabel={t("accounts.status.INACTIVE")}
+          />
+        ) : activeCard.isActive ? null : (
+          <Badge variant="neutral">{t("cards.inactiveBadge")}</Badge>
+        )
+      }
+      // Same subtitle in both modes: the eyebrow already says which mode you're
+      // in, and dropping the account name only made the header jump.
+      description={account.name}
+      footer={footer}
+    >
+      {content}
+    </SidePanel>
+  );
 }

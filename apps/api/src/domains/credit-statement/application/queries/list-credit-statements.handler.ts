@@ -13,6 +13,7 @@ import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
 } from "../../domain/ports/credit-statement.repository.port";
+import { toStatementDto } from "../statement-dto.mapper";
 import { ListCreditStatementsQuery } from "./list-credit-statements.query";
 
 @Injectable()
@@ -35,21 +36,19 @@ export class ListCreditStatementsQueryHandler extends BaseQueryHandler<
   }
 
   protected async handle(query: ListCreditStatementsQuery): Promise<accounts.CreditStatement[]> {
+    const account = await this.accountRepo.findById(query.userId, query.accountId);
+    const minimumPercent = account?.minimumPaymentPercent ?? null;
     const statements = await this.statementRepo.listForAccount(query.userId, query.accountId);
     return Promise.all(
-      statements.map(async (s) => ({
-        id: s.id,
-        accountId: s.accountId,
-        status: s.state.name,
-        periodStart: s.periodStart.toISOString(),
-        closedAt: s.closedAt?.toISOString() ?? null,
-        paidAt: s.paidAt?.toISOString() ?? null,
-        amount: s.paidAt ? s.amount : await this.statementRepo.sumLinkedTransactions(s.id),
-        paidFromAccountId: s.paidFromAccountId,
-        paidTransactionId: s.paidTransactionId,
-        createdAt: s.createdAt.toISOString(),
-        updatedAt: s.updatedAt.toISOString(),
-      })),
+      statements.map(async (s) => {
+        // Settled periods carry their frozen figure; the rest are still live sums
+        // of their linked transactions.
+        const [amount, breakdown] = await Promise.all([
+          s.paidAt ? Promise.resolve(s.amount) : this.statementRepo.sumLinkedTransactions(s.id),
+          this.statementRepo.breakdown(s.id),
+        ]);
+        return toStatementDto(s, { amount, breakdown, minimumPercent });
+      }),
     );
   }
 }

@@ -131,6 +131,68 @@ describe("Transactions HTTP (e2e)", () => {
     expect(accountRes.body.creditUsed).toBe("0.0000");
   });
 
+  it("keeps the account's balance in step with its movements, with no reconcile step", async () => {
+    const accountRes = await request(app.getHttpServer())
+      .post("/api/v1/accounts")
+      .set("Cookie", cookies)
+      .send({
+        name: "Checking balance",
+        type: "CHECKING",
+        currency: "CLP",
+        accountNumber: "111-2",
+        initialBalance: "100000",
+      });
+    const accountId = accountRes.body.id;
+    expect(accountRes.body.currentBalance).toBe("100000.0000");
+
+    const income = await request(app.getHttpServer())
+      .post("/api/v1/transactions")
+      .set("Cookie", cookies)
+      .send({
+        bankAccountId: accountId,
+        type: "INCOME",
+        amount: "50000",
+        currency: "CLP",
+        occurredAt: new Date().toISOString(),
+      });
+    expect(income.status).toBe(201);
+
+    const expense = await request(app.getHttpServer())
+      .post("/api/v1/transactions")
+      .set("Cookie", cookies)
+      .send({
+        bankAccountId: accountId,
+        type: "EXPENSE",
+        amount: "20000",
+        currency: "CLP",
+        occurredAt: new Date().toISOString(),
+      });
+
+    const afterBoth = await request(app.getHttpServer())
+      .get(`/api/v1/accounts/${accountId}`)
+      .set("Cookie", cookies);
+    expect(afterBoth.body.currentBalance).toBe("130000.0000");
+
+    // Editing re-applies the difference...
+    await request(app.getHttpServer())
+      .patch(`/api/v1/transactions/${expense.body.id}`)
+      .set("Cookie", cookies)
+      .send({ amount: "30000" });
+    const afterEdit = await request(app.getHttpServer())
+      .get(`/api/v1/accounts/${accountId}`)
+      .set("Cookie", cookies);
+    expect(afterEdit.body.currentBalance).toBe("120000.0000");
+
+    // ...and deleting gives it back.
+    await request(app.getHttpServer())
+      .delete(`/api/v1/transactions/${expense.body.id}`)
+      .set("Cookie", cookies);
+    const afterDelete = await request(app.getHttpServer())
+      .get(`/api/v1/accounts/${accountId}`)
+      .set("Cookie", cookies);
+    expect(afterDelete.body.currentBalance).toBe("150000.0000");
+  });
+
   it("returns TRANSACTION_NOT_FOUND for a deleted/unknown id", async () => {
     const res = await request(app.getHttpServer())
       .get(`/api/v1/transactions/${txId}`)

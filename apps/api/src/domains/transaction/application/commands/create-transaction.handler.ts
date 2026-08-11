@@ -5,6 +5,7 @@ import type { transactions } from "@finance/contracts";
 
 import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import { balanceDelta } from "../../domain/balance-delta";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
@@ -140,6 +141,9 @@ export class CreateTransactionHandler extends BaseCommandHandler<
       context.contribution !== "0"
         ? { accountId: input.bankAccountId, delta: context.contribution }
         : null,
+      // The account's cash balance follows every movement, so it never needs a
+      // manual reconciliation: income adds, expense subtracts.
+      [{ accountId: input.bankAccountId, delta: balanceDelta(input.type, input.amount) }],
     );
     return { result: row.toContract(), events: [] };
   }

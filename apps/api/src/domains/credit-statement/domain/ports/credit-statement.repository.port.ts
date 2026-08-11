@@ -22,4 +22,8 @@ export interface CreditStatementRepositoryPort {
   /** Live sum (Σexpense − Σincome) of every transaction currently linked to
    * this statement — the displayed `amount` while unpaid. */
   sumLinkedTransactions(statementId: string): Promise<string>;
+  /** What the period is made of (purchases vs installment charges). */
+  breakdown(
+    statementId: string,
+  ): Promise<{ purchases: string; installments: string; installmentCount: number }>;
 }

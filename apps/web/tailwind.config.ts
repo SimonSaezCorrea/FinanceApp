@@ -84,6 +84,17 @@ export default {
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      keyframes: {
+        // Indeterminate progress: a segment sweeping across its track. Used by
+        // the app splash, where there's no percentage to show — only "alive".
+        "progress-sweep": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(300%)" },
+        },
+      },
+      animation: {
+        "progress-sweep": "progress-sweep 1.4s ease-in-out infinite",
+      },
       zIndex: {
         dropdown: "1000",
         sticky: "1100",

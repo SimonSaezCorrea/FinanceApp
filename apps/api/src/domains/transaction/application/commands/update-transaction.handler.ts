@@ -6,6 +6,7 @@ import { subtractMoney } from "@finance/money";
 
 import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import { balanceDelta, reverseBalanceDelta } from "../../domain/balance-delta";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
@@ -36,6 +37,7 @@ interface Context {
   current: Transaction;
   patch: TransactionPatch;
   creditUsedDeltas: { accountId: string; delta: string }[];
+  balanceDeltas: { accountId: string; delta: string }[];
 }
 
 /**
@@ -198,7 +200,24 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       }
     }
 
-    return { current, patch, creditUsedDeltas };
+    // The balance always moves, whatever the credit pool does: undo the old
+    // movement on the old account, apply the new one on the (possibly different)
+    // new account. Same account and same figures cancels out to nothing.
+    const balanceDeltas: { accountId: string; delta: string }[] = [];
+    if (oldAccountId) {
+      balanceDeltas.push({
+        accountId: oldAccountId,
+        delta: reverseBalanceDelta(current.type, current.amount),
+      });
+    }
+    if (effective.bankAccountId) {
+      balanceDeltas.push({
+        accountId: effective.bankAccountId,
+        delta: balanceDelta(effective.type, effective.amount),
+      });
+    }
+
+    return { current, patch, creditUsedDeltas, balanceDeltas };
   }
 
   protected async handle(
@@ -210,6 +229,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       command.id,
       context.patch,
       context.creditUsedDeltas,
+      context.balanceDeltas,
     );
     if (!row) throw new TransactionNotFoundError();
     return { result: row.toContract(), events: [] };
