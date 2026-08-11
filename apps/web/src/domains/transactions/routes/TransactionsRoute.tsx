@@ -4,11 +4,11 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Button } from "../../../shared/ui/button";
-import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { ErrorState, LoadingState } from "../../../shared/ui/states";
 import { Segmented } from "../../../shared/ui/segmented";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
+import { TransactionDeleteConfirm } from "../components/TransactionDeleteConfirm";
 import { TransactionCreateModal } from "../components/TransactionCreateModal";
 import { TransactionDetailModal } from "../components/TransactionDetailModal";
 import { TransactionKpiStrip } from "../components/TransactionKpiStrip";
@@ -177,11 +177,11 @@ export function TransactionsRoute() {
         onDelete={(tx) => setDeleteTx(tx)}
       />
 
-      <ConfirmModal
-        open={deleteTx !== null}
-        onOpenChange={(v) => !v && setDeleteTx(null)}
-        title={t("transactions.deleteConfirm")}
+      <TransactionDeleteConfirm
+        transaction={deleteTx}
+        accounts={accounts}
         loading={remove.isPending}
+        onOpenChange={(v) => !v && setDeleteTx(null)}
         onConfirm={() => {
           if (!deleteTx) return;
           remove.mutate(deleteTx.id, {

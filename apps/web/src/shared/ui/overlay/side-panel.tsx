@@ -23,8 +23,14 @@ import { Window } from "./window";
  * title, description, body, footer) and moving a screen between the two forms is
  * a one-word change.
  */
-export function SidePanel({ className, ...props }: Readonly<DrawerProps>) {
+export function SidePanel({ className, size, ...props }: Readonly<DrawerProps>) {
   const roomForPanel = useMediaQuery(SHEET_QUERY);
 
-  return roomForPanel ? <Drawer className={className} {...props} /> : <Window {...props} />;
+  // `size` only means something for the drawer: on a phone every surface is the
+  // whole screen, nested or not.
+  return roomForPanel ? (
+    <Drawer className={className} size={size} {...props} />
+  ) : (
+    <Window {...props} />
+  );
 }

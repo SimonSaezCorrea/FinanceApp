@@ -340,6 +340,7 @@
     "updated": "Transaction updated",
     "deleted": "Transaction deleted",
     "deleteConfirm": "Delete this transaction?",
+    "deleteConfirmDescription": "It will be permanently removed and the account's balance (and used credit, where it applies) will adjust back.",
     "empty": "You don't have any transactions yet.",
     "uncategorized": "Uncategorized",
     "subtitle": "{{month}} · {{count}} transactions",
@@ -397,7 +398,8 @@
       "noAccount": "No account",
       "import": "Import"
     },
-    "count": "{{count}} movements"
+    "count": "{{count}} movements",
+    "detailTitle": "Movement detail"
   },
   "installments": {
     "title": "Installments",

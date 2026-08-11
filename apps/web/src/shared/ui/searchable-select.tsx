@@ -11,9 +11,14 @@ export interface SearchableSelectOption {
 }
 
 interface Rect {
-  top: number;
+  /** Set when the panel hangs BELOW the control; `bottom` when it flips above. */
+  top?: number;
+  bottom?: number;
   left: number;
   width: number;
+  /** How much room the chosen side actually has, so a flipped panel that still
+   *  doesn't fit scrolls instead of running off the screen. */
+  maxHeight: number;
 }
 
 interface Props {
@@ -35,10 +40,34 @@ interface Props {
 }
 
 /**
+ * A `fixed` child is positioned against the VIEWPORT — unless an ancestor
+ * establishes a containing block (a transform, filter, or will-change does it).
+ * A Dialog's content has one WHILE its open animation runs and none once it
+ * settles, so the panel's coordinates have to say which frame of reference they
+ * are in instead of assuming one: assuming wrong throws the panel across the
+ * screen, which is exactly what a stacked panel made visible.
+ */
+/** Room a dropdown wants below the control before it gives up and flips up. */
+const MIN_PANEL_HEIGHT = 200;
+/** Its normal cap; a flipped panel may get less if that's all there is. */
+const MAX_PANEL_HEIGHT = 240;
+
+function establishesContainingBlock(el: Element): boolean {
+  const style = getComputedStyle(el);
+  return (
+    style.transform !== "none" ||
+    style.filter !== "none" ||
+    style.perspective !== "none" ||
+    style.willChange.includes("transform") ||
+    style.contain.includes("paint")
+  );
+}
+
+/**
  * A `<select>`-like control for long option lists (banks, currencies): a
  * native `<select>`'s popup can't be restyled or height-capped cross-browser,
  * which makes a 20+ item list (banks) or a 168-item one (currencies) unwieldy
- * — this instead opens a custom, fixed-height (`max-h-60`) scrollable panel
+ * — this instead opens a custom scrollable panel (capped by the room it has)
  * with its own styled scrollbar and a search box to filter by label.
  *
  * Portaling/positioning/dismissal mirrors Combobox: the panel targets the
@@ -72,12 +101,33 @@ export function SearchableSelect({
     if (!el) return;
     const target = el.closest('[role="dialog"]') ?? document.body;
     const controlRect = el.getBoundingClientRect();
-    const origin = target === document.body ? { top: 0, left: 0 } : target.getBoundingClientRect();
+    // Only subtract the dialog's own offset when the dialog is what `fixed`
+    // resolves against; otherwise these are plain viewport coordinates.
+    const originRect =
+      target !== document.body && establishesContainingBlock(target)
+        ? target.getBoundingClientRect()
+        : null;
+    const origin = originRect ?? { top: 0, left: 0 };
+    // When `fixed` resolves against the dialog, a bottom-anchored panel measures
+    // from the dialog's bottom edge, not the window's.
+    const originBottom = originRect ? globalThis.innerHeight - originRect.bottom : null;
     setPortalTarget(target);
+    // Flip up when the space below can't hold a usable list and there's more
+    // room above — a picker that opens off the bottom of the window is unusable
+    // exactly where it matters, at the last field of a long form.
+    const gap = 4;
+    const spaceBelow = globalThis.innerHeight - controlRect.bottom - gap;
+    const spaceAbove = controlRect.top - gap;
+    const flipUp = spaceBelow < MIN_PANEL_HEIGHT && spaceAbove > spaceBelow;
     setRect({
-      top: controlRect.bottom + 4 - origin.top,
+      ...(flipUp
+        ? // Anchored by its bottom edge, so the panel doesn't need to be measured
+          // before it can be placed.
+          { bottom: globalThis.innerHeight - controlRect.top + gap - (originBottom ?? 0) }
+        : { top: controlRect.bottom + gap - origin.top }),
       left: controlRect.left - origin.left,
       width: controlRect.width,
+      maxHeight: Math.min(MAX_PANEL_HEIGHT, flipUp ? spaceAbove : spaceBelow),
     });
   }
 
@@ -150,8 +200,17 @@ export function SearchableSelect({
         ? createPortal(
             <div
               ref={panelRef}
-              style={{ top: rect.top, left: rect.left, width: rect.width }}
-              className="fixed z-[1350] flex flex-col overflow-hidden rounded-md border bg-card shadow-md"
+              // Above a panel stacked on another panel (see `Drawer`), which the
+              // old Tailwind z-class sat just below.
+              style={{
+                top: rect.top,
+                bottom: rect.bottom,
+                left: rect.left,
+                width: rect.width,
+                maxHeight: rect.maxHeight,
+                zIndex: 1370,
+              }}
+              className="fixed flex flex-col overflow-hidden rounded-md border bg-card shadow-md"
             >
               <div className="border-b p-1">
                 <Input
@@ -163,7 +222,7 @@ export function SearchableSelect({
                   className="h-8"
                 />
               </div>
-              <div className="scrollbar-thin max-h-60 overflow-y-auto p-1">
+              <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto p-1">
                 {filtered.length > 0 ? (
                   filtered.map((o) => (
                     <button

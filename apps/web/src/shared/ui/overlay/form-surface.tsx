@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "../button";
 import { UnsavedIndicator } from "../unsaved-indicator";
+import { SidePanel } from "./side-panel";
 import { ResponsiveSurface } from "./surface";
 
 interface FormSurfaceProps {
@@ -15,6 +16,12 @@ interface FormSurfaceProps {
    * submit labelled as saving rather than adding.
    */
   mode: "create" | "edit";
+  /**
+   * Which shell the form lives in. `panel` (a right-side drawer, full-screen on a
+   * phone) is right for a form long enough to scroll, or one where the record
+   * behind it is useful context; `modal` stays for the short, self-contained ones.
+   */
+  surface?: "modal" | "panel";
   title: string;
   description?: string;
   headerAside?: ReactNode;
@@ -42,6 +49,7 @@ export function FormSurface({
   open,
   onOpenChange,
   mode,
+  surface = "modal",
   title,
   description,
   headerAside,
@@ -55,9 +63,10 @@ export function FormSurface({
 }: Readonly<FormSurfaceProps>) {
   const { t } = useTranslation();
   const showDirty = mode === "edit" && dirty;
+  const Shell = surface === "panel" ? SidePanel : ResponsiveSurface;
 
   return (
-    <ResponsiveSurface
+    <Shell
       open={open}
       onOpenChange={onOpenChange}
       title={title}
@@ -87,6 +96,6 @@ export function FormSurface({
       }
     >
       {children}
-    </ResponsiveSurface>
+    </Shell>
   );
 }

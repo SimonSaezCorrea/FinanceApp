@@ -69,7 +69,10 @@ export function ConfirmModal({
         </div>
       }
     >
-      {children}
+      {/* Tighter to the question above it (the description already separates
+          them) and clear of the action bar below, which the chrome pins with no
+          padding of its own. */}
+      {children ? <div className="-mt-2 pb-4">{children}</div> : null}
     </Modal>
   );
 }

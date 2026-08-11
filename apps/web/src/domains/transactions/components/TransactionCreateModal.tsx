@@ -202,8 +202,11 @@ export function TransactionCreateModal({
       open={open}
       onOpenChange={onOpenChange}
       mode={editing ? "edit" : "create"}
+      // A movement's form is tall (type, amount, currency, account, card, date,
+      // category, description) and is often opened from the very table it will
+      // change, which stays visible behind the panel.
+      surface="panel"
       title={editing ? t("transactions.edit") : t("transactions.new")}
-      className="max-w-md"
       headerAside={accountLocked ? selectedAccount?.name : undefined}
       submitLabel={t("transactions.form.submit")}
       onSubmit={submit}

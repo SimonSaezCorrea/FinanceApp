@@ -16,9 +16,38 @@ interface ComboboxProps {
 }
 
 interface Rect {
-  top: number;
+  /** Set when the panel hangs BELOW the control; `bottom` when it flips above. */
+  top?: number;
+  bottom?: number;
   left: number;
   width: number;
+  /** How much room the chosen side actually has, so a flipped panel that still
+   *  doesn't fit scrolls instead of running off the screen. */
+  maxHeight: number;
+}
+
+/**
+ * A `fixed` child is positioned against the VIEWPORT — unless an ancestor
+ * establishes a containing block (a transform, filter, or will-change does it).
+ * A Dialog's content has one WHILE its open animation runs and none once it
+ * settles, so the panel's coordinates have to say which frame of reference they
+ * are in instead of assuming one: assuming wrong throws the panel across the
+ * screen, which is exactly what a stacked panel made visible.
+ */
+/** Room a dropdown wants below the control before it gives up and flips up. */
+const MIN_PANEL_HEIGHT = 200;
+/** Its normal cap; a flipped panel may get less if that's all there is. */
+const MAX_PANEL_HEIGHT = 240;
+
+function establishesContainingBlock(el: Element): boolean {
+  const style = getComputedStyle(el);
+  return (
+    style.transform !== "none" ||
+    style.filter !== "none" ||
+    style.perspective !== "none" ||
+    style.willChange.includes("transform") ||
+    style.contain.includes("paint")
+  );
 }
 
 /**
@@ -70,12 +99,33 @@ export function Combobox({
     // transform (the Dialog's positioner does, to center itself) — in that case
     // the transformed ancestor becomes the containing block instead, so offsets
     // must be relative to IT rather than the viewport.
-    const origin = target === document.body ? { top: 0, left: 0 } : target.getBoundingClientRect();
+    // Only subtract the dialog's own offset when the dialog is what `fixed`
+    // resolves against; otherwise these are plain viewport coordinates.
+    const originRect =
+      target !== document.body && establishesContainingBlock(target)
+        ? target.getBoundingClientRect()
+        : null;
+    const origin = originRect ?? { top: 0, left: 0 };
+    // When `fixed` resolves against the dialog, a bottom-anchored panel measures
+    // from the dialog's bottom edge, not the window's.
+    const originBottom = originRect ? globalThis.innerHeight - originRect.bottom : null;
     setPortalTarget(target);
+    // Flip up when the space below can't hold a usable list and there's more
+    // room above — a picker that opens off the bottom of the window is unusable
+    // exactly where it matters, at the last field of a long form.
+    const gap = 4;
+    const spaceBelow = globalThis.innerHeight - inputRect.bottom - gap;
+    const spaceAbove = inputRect.top - gap;
+    const flipUp = spaceBelow < MIN_PANEL_HEIGHT && spaceAbove > spaceBelow;
     setRect({
-      top: inputRect.bottom + 4 - origin.top,
+      ...(flipUp
+        ? // Anchored by its bottom edge, so the panel doesn't need to be measured
+          // before it can be placed.
+          { bottom: globalThis.innerHeight - inputRect.top + gap - (originBottom ?? 0) }
+        : { top: inputRect.bottom + gap - origin.top }),
       left: inputRect.left - origin.left,
       width: inputRect.width,
+      maxHeight: Math.min(MAX_PANEL_HEIGHT, flipUp ? spaceAbove : spaceBelow),
     });
   }
 
@@ -162,8 +212,17 @@ export function Combobox({
         ? createPortal(
             <div
               ref={panelRef}
-              style={{ top: rect.top, left: rect.left, width: rect.width }}
-              className="scrollbar-thin fixed z-[1350] max-h-60 overflow-y-auto rounded-md border bg-card p-1 shadow-md"
+              // Above a panel stacked on another panel (see `Drawer`), which the
+              // old Tailwind z-class sat just below.
+              style={{
+                top: rect.top,
+                bottom: rect.bottom,
+                left: rect.left,
+                width: rect.width,
+                maxHeight: rect.maxHeight,
+                zIndex: 1370,
+              }}
+              className="scrollbar-thin fixed overflow-y-auto rounded-md border bg-card p-1 shadow-md"
             >
               {filtered.length > 0 ? (
                 filtered.map((o) => (

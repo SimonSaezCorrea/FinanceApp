@@ -340,6 +340,7 @@
     "updated": "Movimiento actualizado",
     "deleted": "Movimiento eliminado",
     "deleteConfirm": "¿Eliminar este movimiento?",
+    "deleteConfirmDescription": "Se eliminará de forma permanente y el saldo de la cuenta (y el cupo usado, si aplica) volverá a ajustarse.",
     "empty": "Aún no tienes movimientos.",
     "uncategorized": "Sin categoría",
     "subtitle": "{{month}} · {{count}} movimientos",
@@ -397,7 +398,8 @@
       "noAccount": "Sin cuenta",
       "import": "Importar"
     },
-    "count": "{{count}} movimientos"
+    "count": "{{count}} movimientos",
+    "detailTitle": "Detalle del movimiento"
   },
   "installments": {
     "title": "Cuotas",

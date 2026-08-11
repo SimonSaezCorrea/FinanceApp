@@ -102,7 +102,11 @@ export function AccountsRoute() {
         }
       />
 
-      <AccountCreateModal open={modalOpen} onOpenChange={setModalOpen} />
+      <AccountCreateModal
+        open={modalOpen}
+        onOpenChange={setModalOpen}
+        holder={user?.name ?? undefined}
+      />
 
       {isLoading ? (
         <AccountsSkeleton

@@ -13,6 +13,7 @@ import { useInfiniteTransactions } from "../../transactions/hooks/useTransaction
 import { useTransactionMutations } from "../../transactions/hooks/useTransactionMutations";
 import { TransactionCreateModal } from "../../transactions/components/TransactionCreateModal";
 import { TransactionDetailModal } from "../../transactions/components/TransactionDetailModal";
+import { TransactionDeleteConfirm } from "../../transactions/components/TransactionDeleteConfirm";
 import { TransactionTable } from "../../transactions/components/TransactionTable";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { cn } from "../../../shared/lib/cn";
@@ -558,11 +559,11 @@ function MovementsSection({
         onDelete={(tx) => setDeleteTx(tx)}
       />
 
-      <ConfirmModal
-        open={deleteTx !== null}
-        onOpenChange={(v) => !v && setDeleteTx(null)}
-        title={t("transactions.deleteConfirm")}
+      <TransactionDeleteConfirm
+        transaction={deleteTx}
+        accounts={[account]}
         loading={remove.isPending}
+        onOpenChange={(v) => !v && setDeleteTx(null)}
         onConfirm={() => {
           if (!deleteTx) return;
           remove.mutate(deleteTx.id, {

@@ -8,9 +8,8 @@ import { formatMoney } from "@finance/money";
 
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
-import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
 import { CategoryIcon } from "./CategoryIcon";
-import { ResponsiveSurface } from "../../../shared/ui/overlay";
+import { SidePanel } from "../../../shared/ui/overlay";
 
 function formatDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, {
@@ -67,12 +66,43 @@ export function TransactionDetailModal({
   ];
 
   return (
-    <ResponsiveSurface
+    <SidePanel
       open={open}
       onOpenChange={onOpenChange}
+      eyebrow={t("transactions.detailTitle")}
       title={tx.description ?? t(`transactions.type.${tx.type}`)}
       description={formatDate(tx.occurredAt, i18n.language)}
-      className="max-w-md"
+      footer={
+        <div className="flex justify-end gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t("common.cancel")}
+          </Button>
+          {onDelete ? (
+            <Button
+              variant="outline"
+              className="text-destructive hover:bg-destructive/10"
+              onClick={() => {
+                onDelete(tx);
+                onOpenChange(false);
+              }}
+            >
+              <Trash2 className="h-4 w-4" aria-hidden />
+              {t("common.delete")}
+            </Button>
+          ) : null}
+          {onEdit ? (
+            <Button
+              onClick={() => {
+                onEdit(tx);
+                onOpenChange(false);
+              }}
+            >
+              <Pencil className="h-4 w-4" aria-hidden />
+              {t("common.edit")}
+            </Button>
+          ) : null}
+        </div>
+      }
     >
       <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
@@ -115,44 +145,18 @@ export function TransactionDetailModal({
           ) : null}
         </div>
 
-        <CollapsibleSection title={t("transactions.form.moreDetails")} className="p-3">
-          <div className="flex flex-col">
+        {/* No accordion: the collapse existed to keep a narrow modal short, and
+            the panel has the height to just show them. One click less to read
+            data that's already loaded. */}
+        <div className="rounded-lg border border-border p-3">
+          <span className="text-sm font-semibold">{t("transactions.form.moreDetails")}</span>
+          <div className="mt-3 flex flex-col">
             {extraDetails.map((d) => (
               <DetailRow key={d.label} label={d.label} value={d.value || "-"} />
             ))}
           </div>
-        </CollapsibleSection>
+        </div>
       </div>
-
-      <div className="mt-6 flex justify-end gap-2">
-        <Button variant="outline" onClick={() => onOpenChange(false)}>
-          {t("common.cancel")}
-        </Button>
-        {onDelete ? (
-          <Button
-            variant="outline"
-            className="text-destructive hover:bg-destructive/10"
-            onClick={() => {
-              onDelete(tx);
-              onOpenChange(false);
-            }}
-          >
-            <Trash2 className="h-4 w-4" aria-hidden />
-            {t("common.delete")}
-          </Button>
-        ) : null}
-        {onEdit ? (
-          <Button
-            onClick={() => {
-              onEdit(tx);
-              onOpenChange(false);
-            }}
-          >
-            <Pencil className="h-4 w-4" aria-hidden />
-            {t("common.edit")}
-          </Button>
-        ) : null}
-      </div>
-    </ResponsiveSurface>
+    </SidePanel>
   );
 }
