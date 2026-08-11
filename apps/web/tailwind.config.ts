@@ -5,6 +5,10 @@ import type { Config } from "tailwindcss";
 // theme (incl. dark mode) is swappable without touching component classes.
 export default {
   darkMode: "class",
+  // Compile every `hover:` to `@media (hover: hover)`. Without this a tap on a
+  // touch device leaves the hover state applied until you tap elsewhere, which
+  // read as "the button stayed selected" after closing a menu.
+  future: { hoverOnlyWhenSupported: true },
   content: ["./index.html", "./src/**/*.{ts,tsx}"],
   theme: {
     container: {
@@ -79,6 +83,17 @@ export default {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      keyframes: {
+        // Indeterminate progress: a segment sweeping across its track. Used by
+        // the app splash, where there's no percentage to show — only "alive".
+        "progress-sweep": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(300%)" },
+        },
+      },
+      animation: {
+        "progress-sweep": "progress-sweep 1.4s ease-in-out infinite",
       },
       zIndex: {
         dropdown: "1000",

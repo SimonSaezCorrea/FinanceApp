@@ -5,7 +5,7 @@ import { useNavigate } from "react-router";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
-import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
+import { ConfirmModal } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { useProfileMutations } from "../hooks/useProfile";
@@ -51,7 +51,7 @@ export function DangerZone() {
       >
         {t("profile.danger.deactivate")}
       </Button>
-      <ConfirmDialog
+      <ConfirmModal
         open={confirming}
         onOpenChange={setConfirming}
         onConfirm={() => void handleDeactivate()}
@@ -74,7 +74,7 @@ export function DangerZone() {
             aria-label={t("profile.danger.passwordLabel")}
           />
         </Field>
-      </ConfirmDialog>
+      </ConfirmModal>
     </div>
   );
 }

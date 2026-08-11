@@ -12,6 +12,7 @@ import { RemoveTransactionHandler } from "./application/commands/remove-transact
 import { UpdateTransactionHandler } from "./application/commands/update-transaction.handler";
 import { GetTransactionQueryHandler } from "./application/queries/get-transaction.handler";
 import { ListTransactionsQueryHandler } from "./application/queries/list-transactions.handler";
+import { SummarizeTransactionsQueryHandler } from "./application/queries/summarize-transactions.handler";
 import { TRANSACTION_REPOSITORY } from "./domain/ports/transaction.repository.port";
 import { PrismaTransactionRepository } from "./infrastructure/prisma-transaction.repository";
 import { TransactionsController } from "./presentation/transactions.controller";
@@ -23,7 +24,11 @@ const commandHandlers = [
   RemoveTransactionHandler,
 ];
 
-const queryHandlers = [ListTransactionsQueryHandler, GetTransactionQueryHandler];
+const queryHandlers = [
+  ListTransactionsQueryHandler,
+  SummarizeTransactionsQueryHandler,
+  GetTransactionQueryHandler,
+];
 
 /**
  * Orchestration module for the `transaction` table. A movement is validated

@@ -1,3 +1,4 @@
+import { CreditCard, TrendingDown, TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
@@ -5,109 +6,141 @@ import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { cn } from "../../../shared/lib/cn";
-import { Badge } from "../../../shared/ui/badge";
-import { Sparkline } from "../../../shared/ui/sparkline";
+import { convertApprox } from "../../../shared/lib/fx";
 import { ACCOUNT_ICON, isCreditType } from "./accountVisuals";
 
-/** Credit pool (used / limit) for a CREDIT_LINE account. */
-function creditUsage(acc: accounts.BankAccount): { used: number; limit: number } | null {
-  if (!isCreditType(acc.type)) return null;
+/**
+ * Credit pool (used / limit) of the account's own currency — shown for ANY account
+ * carrying a credit line, not just a standalone CREDIT_LINE one (a checking account
+ * with an add-on credit card has a pool too). A configured pool with 0 used is still
+ * shown (the bar just reads 0%); accounts with no pool at all return null.
+ */
+function creditUsage(
+  acc: accounts.BankAccount,
+): { used: number; limit: number; pct: number } | null {
   const limit = Number(acc.creditLimit);
-  return limit > 0 ? { used: Number(acc.creditUsed), limit } : null;
+  if (limit <= 0) return null;
+  const used = Number(acc.creditUsed);
+  return { used, limit, pct: Math.min(100, Math.round((used / limit) * 100)) };
 }
 
-export function AccountCard({ account }: { account: accounts.BankAccount }) {
+export function AccountCard({
+  account,
+  primaryCurrency,
+}: Readonly<{ account: accounts.BankAccount; primaryCurrency: string }>) {
   const { t, i18n } = useTranslation();
   const Icon = ACCOUNT_ICON[account.type];
-  const isCard = isCreditType(account.type); // standalone credit card (no bank account)
-  const balance = Number(account.currentBalance);
-  const last4 = account.cards[0]?.last4;
+  // A standalone credit card holds no money: the card reads as debt, in the accent color.
+  const isCredit = isCreditType(account.type);
   const usage = creditUsage(account);
-  const usagePct = usage ? Math.min(100, Math.round((usage.used / usage.limit) * 100)) : null;
   const pct = account.balanceChangePct === null ? null : Number(account.balanceChangePct);
+  const money = (value: string) =>
+    formatMoney(value, { locale: i18n.language, currency: account.currency });
+  const approxInPrimary = convertApprox(
+    isCredit ? `-${account.creditUsed}` : account.currentBalance,
+    account.currency,
+    primaryCurrency,
+  );
+
+  const subtitle = [account.institutionName ?? account.institution, account.cards[0]?.last4]
+    .filter(Boolean)
+    .map((part, i) => (i === 0 ? part : `···· ${part}`))
+    .join(" · ");
 
   return (
     <Link
       to={`/accounts/${account.id}`}
       className={cn(
-        "group flex flex-col gap-4 rounded-xl border bg-card p-4 shadow-sm transition-colors",
-        "hover:border-primary/40 hover:bg-muted/40",
+        "group flex flex-col rounded-xl border bg-card p-4 shadow-sm transition-colors",
+        isCredit ? "border-accent/30 hover:border-accent/60" : "hover:border-primary/40",
       )}
     >
-      <div className="flex items-start justify-between">
-        <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-          <Icon className="h-5 w-5" aria-hidden />
-        </span>
-        {account.status === "INACTIVE" ? (
-          <Badge variant="neutral">{t("accounts.status.INACTIVE")}</Badge>
-        ) : (
-          <Badge variant="neutral">{t(`accounts.type.${account.type}`)}</Badge>
-        )}
-      </div>
-
-      <div>
-        <p className="font-semibold leading-tight">{account.name}</p>
-        <p className="text-xs text-muted-foreground">
-          {account.currency}
-          {last4 ? ` · ···· ${last4}` : account.institution ? ` · ${account.institution}` : ""}
-        </p>
-      </div>
-
-      {isCard ? (
-        <p className="text-xl font-semibold tabular-nums tracking-tight">
-          {formatMoney(account.creditUsed, { locale: i18n.language, currency: account.currency })}
-          <span className="text-sm font-normal text-muted-foreground">
-            {" / "}
-            {formatMoney(account.creditLimit, {
-              locale: i18n.language,
-              currency: account.currency,
-            })}
-          </span>
-        </p>
-      ) : (
-        <p
+      <div className="mb-3.5 flex items-start justify-between">
+        <span
           className={cn(
-            "text-xl font-semibold tabular-nums tracking-tight",
-            balance < 0 && "text-destructive",
+            "flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-chip",
+            isCredit ? "text-accent" : "text-muted-foreground",
           )}
         >
-          {formatMoney(account.currentBalance, {
-            locale: i18n.language,
-            currency: account.currency,
+          <Icon className="h-[17px] w-[17px]" aria-hidden />
+        </span>
+        <span
+          className={cn(
+            "rounded-full px-2.5 py-0.5 text-[10px] font-medium",
+            isCredit ? "bg-accent/15 text-accent" : "bg-chip text-muted-foreground",
+          )}
+        >
+          {account.status === "INACTIVE"
+            ? t("accounts.status.INACTIVE")
+            : t(`accounts.type.${account.type}`)}
+        </span>
+      </div>
+
+      <p className="text-[13.5px] font-semibold leading-tight">{account.name}</p>
+      <p className="mt-0.5 text-[11px] text-dim">{subtitle || account.currency}</p>
+
+      <p
+        className={cn(
+          "mt-3 text-[19px] font-bold tabular-nums tracking-tight",
+          isCredit && "text-accent",
+        )}
+      >
+        {isCredit ? `−${money(account.creditUsed)}` : money(account.currentBalance)}
+      </p>
+
+      {/* Approximate value in the user's currency (static rates — see shared/lib/fx). */}
+      {approxInPrimary !== null ? (
+        <p className="mt-2 text-[11px] tabular-nums text-dim">
+          ≈ {formatMoney(approxInPrimary, { locale: i18n.language, currency: primaryCurrency })}{" "}
+          {primaryCurrency}
+        </p>
+      ) : null}
+
+      {!isCredit && pct !== null ? (
+        <p
+          className={cn(
+            "mt-2 flex items-center gap-1.5 text-[11px]",
+            pct < 0 ? "text-destructive" : "text-success",
+          )}
+        >
+          {pct < 0 ? (
+            <TrendingDown className="h-3 w-3" aria-hidden />
+          ) : (
+            <TrendingUp className="h-3 w-3" aria-hidden />
+          )}
+          {t("accounts.card.trend", {
+            pct: `${pct > 0 ? "+" : ""}${pct.toLocaleString(i18n.language, { maximumFractionDigits: 1 })}`,
           })}
         </p>
-      )}
+      ) : null}
+
+      {isCredit && account.billingCycleDay !== null ? (
+        <p className="mt-2 text-[11px] text-dim">
+          {t("accounts.card.billedOn", { day: account.billingCycleDay })}
+        </p>
+      ) : null}
 
       {usage ? (
-        <div className="mt-auto flex items-center gap-2">
-          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-            <div className="h-full rounded-full bg-accent" style={{ width: `${usagePct}%` }} />
+        <div className="mt-auto border-t pt-2.5">
+          <div className="mb-1.5 flex items-center justify-between gap-2 text-[10.5px] text-muted-foreground">
+            <span className="flex min-w-0 items-center gap-1.5">
+              <CreditCard className="h-[11px] w-[11px] shrink-0 text-accent" aria-hidden />
+              <span className="truncate">
+                {isCredit
+                  ? t("accounts.card.creditUsed")
+                  : t("accounts.card.cardPool", { last4: account.cards[0]?.last4 ?? "" }).trim()}
+              </span>
+            </span>
+            <span className="shrink-0 tabular-nums">{usage.pct}%</span>
           </div>
-          {usagePct !== null ? (
-            <span className="shrink-0 text-xs font-medium tabular-nums text-accent">
-              {t("accounts.card.usage", { pct: usagePct })}
-            </span>
-          ) : null}
+          <div className="h-1 overflow-hidden rounded-full bg-track">
+            <div className="h-full rounded-full bg-accent" style={{ width: `${usage.pct}%` }} />
+          </div>
+          <p className="mt-1.5 whitespace-nowrap text-[10px] tabular-nums text-dim">
+            {money(account.creditUsed)} / {money(account.creditLimit)}
+          </p>
         </div>
-      ) : (
-        <div className="mt-auto flex items-end justify-between">
-          <Sparkline
-            data={account.balanceSeries}
-            tone={pct !== null && pct < 0 ? "danger" : "success"}
-          />
-          {pct !== null ? (
-            <span
-              className={cn(
-                "text-xs font-medium tabular-nums",
-                pct < 0 ? "text-destructive" : "text-success",
-              )}
-            >
-              {pct > 0 ? "+" : ""}
-              {pct.toLocaleString(i18n.language, { maximumFractionDigits: 1 })}%
-            </span>
-          ) : null}
-        </div>
-      )}
+      ) : null}
     </Link>
   );
 }

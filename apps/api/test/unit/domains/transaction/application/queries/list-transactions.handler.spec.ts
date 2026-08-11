@@ -4,13 +4,21 @@ import { GetTransactionQueryHandler } from "../../../../../../src/domains/transa
 import { GetTransactionQuery } from "../../../../../../src/domains/transaction/application/queries/get-transaction.query";
 import { ListTransactionsQueryHandler } from "../../../../../../src/domains/transaction/application/queries/list-transactions.handler";
 import { ListTransactionsQuery } from "../../../../../../src/domains/transaction/application/queries/list-transactions.query";
-import { TransactionNotFoundError } from "../../../../../../src/domains/transaction/domain/errors";
+import { SummarizeTransactionsQueryHandler } from "../../../../../../src/domains/transaction/application/queries/summarize-transactions.handler";
+import { SummarizeTransactionsQuery } from "../../../../../../src/domains/transaction/application/queries/summarize-transactions.query";
+import {
+  InvalidCursorError,
+  TransactionNotFoundError,
+} from "../../../../../../src/domains/transaction/domain/errors";
 import { Transaction } from "../../../../../../src/domains/transaction/domain/transaction.aggregate";
 import type { TransactionRepositoryPort } from "../../../../../../src/domains/transaction/domain/ports/transaction.repository.port";
 
+const emptyPage = { items: [], nextCursor: null };
+
 function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): TransactionRepositoryPort {
   return {
-    list: vi.fn().mockResolvedValue([]),
+    list: vi.fn().mockResolvedValue(emptyPage),
+    summary: vi.fn().mockResolvedValue({ total: 0, currencyTotals: [], categories: [] }),
     findOne: vi.fn(),
     sumsForCard: vi.fn(async () => ({ income: "0", expense: "0" })),
     saveNew: vi.fn(),
@@ -44,20 +52,73 @@ const row = Transaction.fromPersistence({
 describe("ListTransactionsQueryHandler", () => {
   it("maps rows to the contract (amount fixed string)", async () => {
     const handler = new ListTransactionsQueryHandler(
-      fakeRepo({ list: vi.fn().mockResolvedValue([row]) }),
+      fakeRepo({ list: vi.fn().mockResolvedValue({ items: [row], nextCursor: null }) }),
     );
-    const [tx] = await handler.execute(new ListTransactionsQuery("u1", {}));
-    expect(tx.amount).toBe("33.3000");
-    expect(tx.type).toBe("EXPENSE");
+    const page = await handler.execute(new ListTransactionsQuery("u1", {}));
+    expect(page.items[0]!.amount).toBe("33.3000");
+    expect(page.items[0]!.type).toBe("EXPENSE");
   });
 
   it("threads bankAccountId + cardId into the list where-clause", async () => {
-    const list = vi.fn().mockResolvedValue([]);
+    const list = vi.fn().mockResolvedValue(emptyPage);
     const handler = new ListTransactionsQueryHandler(fakeRepo({ list }));
     await handler.execute(new ListTransactionsQuery("u1", { bankAccountId: "aC", cardId: "cS" }));
     const where = list.mock.calls[0]![1] as { bankAccountId?: string; cardId?: string };
     expect(where.bankAccountId).toBe("aC");
     expect(where.cardId).toBe("cS");
+  });
+
+  it("passes limit through and round-trips the last row into an opaque nextCursor", async () => {
+    const list = vi.fn().mockResolvedValue({
+      items: [row],
+      nextCursor: { occurredAt: new Date("2026-03-01T00:00:00Z"), id: "t1" },
+    });
+    const handler = new ListTransactionsQueryHandler(fakeRepo({ list }));
+
+    const page = await handler.execute(new ListTransactionsQuery("u1", { limit: 20 }));
+
+    expect(list.mock.calls[0]![2]).toMatchObject({ limit: 20, cursor: undefined });
+    expect(page.nextCursor).toBeTypeOf("string");
+
+    // Feeding that cursor back decodes to the same keyset position.
+    await handler.execute(new ListTransactionsQuery("u1", { limit: 20, cursor: page.nextCursor! }));
+    expect(list.mock.calls[1]![2]).toMatchObject({
+      limit: 20,
+      cursor: { occurredAt: new Date("2026-03-01T00:00:00Z"), id: "t1" },
+    });
+  });
+
+  it("rejects a cursor this API never issued instead of silently restarting", async () => {
+    const handler = new ListTransactionsQueryHandler(fakeRepo());
+    await expect(
+      handler.execute(new ListTransactionsQuery("u1", { limit: 20, cursor: "not-a-cursor" })),
+    ).rejects.toBeInstanceOf(InvalidCursorError);
+  });
+
+  it("omits pagination entirely when no limit is given (aggregate consumers)", async () => {
+    const list = vi.fn().mockResolvedValue(emptyPage);
+    const handler = new ListTransactionsQueryHandler(fakeRepo({ list }));
+    await handler.execute(new ListTransactionsQuery("u1", {}));
+    expect(list.mock.calls[0]![2]).toMatchObject({ limit: undefined, cursor: undefined });
+  });
+});
+
+describe("SummarizeTransactionsQueryHandler", () => {
+  it("summarizes the filtered set, ignoring page selection", async () => {
+    const summary = vi
+      .fn()
+      .mockResolvedValue({ total: 42, currencyTotals: [], categories: ["food"] });
+    const handler = new SummarizeTransactionsQueryHandler(fakeRepo({ summary }));
+
+    const result = await handler.execute(
+      new SummarizeTransactionsQuery("u1", { limit: 20, cursor: "whatever", category: "fo" }),
+    );
+
+    expect(result.total).toBe(42);
+    const where = summary.mock.calls[0]![1] as Record<string, unknown>;
+    expect(where.category).toBe("fo");
+    expect(where).not.toHaveProperty("limit");
+    expect(where).not.toHaveProperty("cursor");
   });
 });
 

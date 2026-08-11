@@ -13,6 +13,31 @@ export interface TransactionListFilter {
   cardId?: string;
   occurredFrom?: Date;
   occurredTo?: Date;
+  category?: string;
+}
+
+/** Decoded keyset cursor — the last row of the previous page. */
+export interface TransactionCursor {
+  occurredAt: Date;
+  id: string;
+}
+
+/** `limit`/`cursor` absent ⇒ return every match, `nextCursor: null`. */
+export interface TransactionPageRequest {
+  limit?: number;
+  cursor?: TransactionCursor;
+}
+
+export interface TransactionPage {
+  items: Transaction[];
+  nextCursor: TransactionCursor | null;
+}
+
+/** Aggregates over the whole filtered set, not just the requested page. */
+export interface TransactionSummaryResult {
+  total: number;
+  currencyTotals: { currency: string; income: string; expense: string }[];
+  categories: string[];
 }
 
 /**
@@ -24,7 +49,12 @@ export interface TransactionListFilter {
  * into the handlers.
  */
 export interface TransactionRepositoryPort {
-  list(userId: string, where: TransactionListFilter): Promise<Transaction[]>;
+  list(
+    userId: string,
+    where: TransactionListFilter,
+    page?: TransactionPageRequest,
+  ): Promise<TransactionPage>;
+  summary(userId: string, where: TransactionListFilter): Promise<TransactionSummaryResult>;
   findOne(userId: string, id: string): Promise<Transaction | null>;
   /** Σ income/expense for one card in one currency, optionally scoped to a
    * billing cycle (`since`) and excluding one tx (for edits). */
@@ -36,13 +66,16 @@ export interface TransactionRepositoryPort {
     excludeTxId?: string,
   ): Promise<{ income: string; expense: string }>;
 
-  /** Cross-aggregate persistence (FR-020): saves the transaction row +
-   * `creditUsed` delta (if any) in one atomic unit. `creditUsedDelta` is
-   * `null` when this action doesn't touch the pool. */
+  /** Cross-aggregate persistence (FR-020): saves the transaction row + the
+   * `creditUsed` delta (if any) + the affected accounts' cash-balance deltas in
+   * one atomic unit. `creditUsedDelta` is `null` when this action doesn't touch
+   * the pool; `balanceDeltas` is empty when no account's balance moves (a
+   * movement with no account attached). */
   saveNew(
     userId: string,
     plan: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     creditUsedDelta: { accountId: string; delta: string } | null,
+    balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<Transaction>;
   saveUpdate(
     userId: string,
@@ -53,10 +86,12 @@ export interface TransactionRepositoryPort {
       creditStatementId?: string | null;
     },
     creditUsedDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<Transaction | null>;
   removeWithCreditAdjustment(
     userId: string,
     id: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
+    balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<boolean>;
 }

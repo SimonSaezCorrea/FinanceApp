@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import type { debts } from "@finance/contracts";
 
 import { Button } from "../../../shared/ui/button";
-import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
+import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Segmented } from "../../../shared/ui/segmented";
 import { ErrorState, LoadingState } from "../../../shared/ui/states";
@@ -119,7 +119,7 @@ export function DebtsRoute() {
         title={t("debts.title")}
         description={subtitle}
         actions={
-          <Button onClick={() => setModalOpen(true)}>
+          <Button variant="accent" onClick={() => setModalOpen(true)}>
             <Plus className="h-4 w-4" aria-hidden />
             {t("debts.new")}
           </Button>
@@ -171,7 +171,7 @@ export function DebtsRoute() {
         initialData={editingDebt ?? undefined}
       />
 
-      <ConfirmDialog
+      <ConfirmModal
         open={deleteId !== null}
         onOpenChange={(open) => {
           if (!open) setDeleteId(null);

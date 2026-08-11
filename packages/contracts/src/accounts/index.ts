@@ -180,6 +180,10 @@ export const bankAccountSchema = z.object({
   /** Manual (default) or automatic credit-statement payment preference. AUTOMATIC has no
    * functional effect yet (see docs/PENDING.md). */
   paymentMethod: billingPaymentMethod,
+  /** Percentage of a statement that counts as its minimum payment (e.g. "5" = 5%).
+   * No universal rule exists — each issuer sets its own — so it's per account.
+   * Null = no minimum defined, and the UI offers no "minimum" option. */
+  minimumPaymentPercent: z.string().nullable(),
   /** Reconciled running balance, one point per day over a trailing window (oldest→newest, ends at currentBalance). For sparklines. */
   balanceSeries: z.array(moneyString),
   /** Percent change across `balanceSeries` (e.g. "2.1"); null when the window has no meaningful baseline. */
@@ -208,6 +212,8 @@ export const createBankAccountSchema = z
     billingCycleDay: z.number().int().min(1).max(28).nullable().optional(),
     /** Advanced setting — not exposed in the create-account UI, only editable afterward. */
     paymentMethod: billingPaymentMethod.default("MANUAL"),
+    /** Minimum-payment percentage (0-100); null clears it. */
+    minimumPaymentPercent: z.string().nullable().optional(),
     cards: z.array(createCardSchema).optional(),
   })
   .refine((v) => !isAccountNumberRequired(v.type) || !!v.accountNumber?.trim(), {
@@ -229,7 +235,9 @@ export type SetAccountStatus = z.infer<typeof setAccountStatusSchema>;
 /** Derived (not persisted) lifecycle of a `CreditStatement`: OPEN (still accumulating
  * — transactions keep linking to it), PENDING (closed by generation, awaiting
  * payment), PAID. */
-export const creditStatementStatus = z.enum(["OPEN", "PENDING", "PAID"]);
+/** A closed period can be settled in several payments, so PARTIALLY_PAID sits
+ * between "closed, untouched" (PENDING) and "settled" (PAID). */
+export const creditStatementStatus = z.enum(["OPEN", "PENDING", "PARTIALLY_PAID", "PAID"]);
 export type CreditStatementStatus = z.infer<typeof creditStatementStatus>;
 
 /** A billing period ("facturación") for an account's shared credit pool. While
@@ -247,6 +255,21 @@ export const creditStatementSchema = z.object({
   /** Set once paid. Null while OPEN/PENDING. */
   paidAt: z.string().nullable(),
   amount: moneyString,
+  /** Settled so far, accumulated across payments. "0" until the first one. */
+  paidAmount: moneyString,
+  /** What's still owed for this period: `amount` − `paidAmount`, never negative. */
+  remainingAmount: moneyString,
+  /** The minimum this period accepts as a payment, from the account's configured
+   * percentage. Null when the account has no minimum configured. */
+  minimumAmount: moneyString.nullable(),
+  /** What the period is made of. Derived from the transactions linked to it —
+   * purchases vs. installment charges — never stored. */
+  breakdown: z.object({
+    purchases: moneyString,
+    installments: moneyString,
+    /** How many installment charges make up `installments`. */
+    installmentCount: z.number().int(),
+  }),
   /** The bank account paid from, if paid. Null otherwise. */
   paidFromAccountId: z.string().nullable(),
   /** The real EXPENSE transaction created on `paidFromAccountId` at pay time. */
@@ -256,14 +279,21 @@ export const creditStatementSchema = z.object({
 });
 export type CreditStatement = z.infer<typeof creditStatementSchema>;
 
-/** Pay a statement by choosing a source bank account (must not be CREDIT_LINE). */
-export const payCreditStatementSchema = z.object({ fromAccountId: z.string() });
+/** Pay a statement by choosing a source bank account (must not be CREDIT_LINE).
+ *
+ * `amount` omitted = pay everything still owed. A smaller amount is a partial
+ * payment: the period stays open for the rest. Paying more than what's owed is
+ * rejected (`PAYMENT_EXCEEDS_REMAINING`) rather than silently capped — a wrong
+ * figure in a money form must not be quietly "corrected". */
+export const payCreditStatementSchema = z.object({
+  fromAccountId: z.string(),
+  amount: moneyString.optional(),
+  /** When the payment happened; defaults to now. Dates the created expense too. */
+  paidAt: z.string().optional(),
+  /** Free-text note carried onto the payment movement (e.g. a transfer number). */
+  reference: z.string().trim().max(200).optional(),
+});
 export type PayCreditStatement = z.infer<typeof payCreditStatementSchema>;
-
-/** Manually correct a PAID statement's frozen amount. Rejected for OPEN/PENDING
- * statements — those are edited by adding/editing/removing their linked transactions. */
-export const updateCreditStatementSchema = z.object({ amount: moneyString });
-export type UpdateCreditStatement = z.infer<typeof updateCreditStatementSchema>;
 
 /** List query filters. */
 export const accountFiltersSchema = z.object({

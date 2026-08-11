@@ -29,6 +29,10 @@ export const router = createBrowserRouter([
   { path: "/", element: protect(<DashboardPage />) },
   { path: "/accounts", element: protect(<AccountsRoute />) },
   { path: "/accounts/:id", element: protect(<AccountDetailRoute />) },
+  // Editing is a PANEL over the account, not a separate screen — but it keeps its
+  // own URL, so it stays deep-linkable and browser Back closes it. The detail
+  // view renders behind it as the context the panel is editing.
+  { path: "/accounts/:id/edit", element: protect(<AccountDetailRoute editing />) },
   { path: "/transactions", element: protect(<TransactionsRoute />) },
   { path: "/installments", element: protect(<InstallmentsRoute />) },
   { path: "/debts", element: protect(<DebtsRoute />) },

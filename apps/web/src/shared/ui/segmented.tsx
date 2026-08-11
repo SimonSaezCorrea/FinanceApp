@@ -20,7 +20,14 @@ interface SegmentedProps<T extends string> {
   /** "primary" (default): active pill in the brand color. "neutral": active pill is a
    * subtle raised surface with bold foreground text, no brand color. */
   variant?: "primary" | "neutral";
+  /** "md" (default) or "sm" — a compact switch for secondary controls (e.g. list filters). */
+  size?: "sm" | "md";
 }
+
+const SIZE_CLASS: Record<"sm" | "md", string> = {
+  sm: "px-2.5 py-1 text-xs",
+  md: "px-3 py-1.5 text-sm",
+};
 
 /** Inline segmented switch (filters, tabs-like toggles). Tokens only. */
 export function Segmented<T extends string>({
@@ -29,6 +36,7 @@ export function Segmented<T extends string>({
   options,
   className,
   variant = "primary",
+  size = "md",
   ...rest
 }: SegmentedProps<T>) {
   return (
@@ -53,7 +61,8 @@ export function Segmented<T extends string>({
             title={opt.disabled ? opt.disabledReason : undefined}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "flex-1 rounded-sm px-3 py-1.5 text-center text-sm transition-colors",
+              "flex-1 rounded-sm text-center transition-colors",
+              SIZE_CLASS[size],
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",
               !opt.disabled &&

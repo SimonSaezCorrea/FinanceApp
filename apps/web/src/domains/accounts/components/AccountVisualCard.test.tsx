@@ -41,6 +41,7 @@ const account: accounts.BankAccount = {
   creditPools: [{ currency: "CLP", limit: "3000000.0000", used: "1686470.0000" }],
   billingCycleDay: null,
   paymentMethod: "MANUAL",
+  minimumPaymentPercent: null,
   balanceSeries: [],
   balanceChangePct: null,
   cards: [card],

@@ -59,6 +59,10 @@ export interface BankAccountRepositoryPort {
    * named increment (not a full aggregate save) so two concurrent movements on
    * the same account can't clobber each other's total. */
   incrementCreditUsedWithTx(tx: unknown, accountId: string, delta: string): Promise<void>;
+  /** Move an account's reconciled cash balance by `delta` (signed), enlisted in
+   * the caller's transaction. Every movement keeps this in step, so the balance
+   * is never a figure waiting for someone to press "reconcile". */
+  incrementBalanceWithTx(tx: unknown, accountId: string, delta: string): Promise<void>;
   remove(userId: string, id: string): Promise<boolean>;
   addCard(userId: string, accountId: string, plan: CreateCardPlan): Promise<BankAccount>;
   updateCard(

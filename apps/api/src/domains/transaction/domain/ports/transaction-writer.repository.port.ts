@@ -12,6 +12,9 @@ export interface TransactionPlan {
   occurredAt: Date;
   category: string | null;
   description: string | null;
+  /** Free-text note on the movement (a statement payment carries its reference
+   * here — the field the movement detail already shows). */
+  observation?: string | null;
 }
 
 /**
@@ -22,6 +25,22 @@ export interface TransactionPlan {
  */
 export interface TransactionWriterRepositoryPort {
   createWithTx(tx: unknown, plan: TransactionPlan): Promise<void>;
+  /** Point every movement of a period's date window at that period, so the link
+   * and the dates agree after a reconciliation. Same scoping rules as
+   * `TransactionSumsRepositoryPort.netForPeriod`. */
+  relinkToStatementWithTx(
+    tx: unknown,
+    input: {
+      statementId: string;
+      accountId: string;
+      cardIds: string[] | null;
+      from: Date;
+      to: Date;
+    },
+  ): Promise<void>;
+  /** Correct one movement's amount — used to keep a statement's payment movement
+   * equal to what the period turned out to be worth. */
+  updateAmountWithTx(tx: unknown, id: string, amount: string): Promise<void>;
   /** Bulk insert, used by the `import` domain (a spreadsheet/statement import
    * creates many movements at once, with no credit-pool effect). */
   createMany(rows: Omit<TransactionPlan, "id">[]): Promise<number>;

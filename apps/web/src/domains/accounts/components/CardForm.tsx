@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -11,6 +11,7 @@ import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { Segmented } from "../../../shared/ui/segmented";
+import { Switch } from "../../../shared/ui/switch";
 import { Select } from "../../../shared/ui/select";
 import { cleanExpiryInput, formatExpiry, parseExpiry } from "../lib/cardExpiry";
 
@@ -26,7 +27,31 @@ interface Props {
   /** The account's current creditLimit — only used to prefill the mandatory field
    * when editing the account's existing primary card (whose own `limits` is always empty). */
   accountCreditLimit?: string;
+  /** Set when the host renders the submit button itself (a surface footer),
+   * pointing at it with `form="<id>"` — one form, one action bar. */
+  formId?: string;
+  hideSubmit?: boolean;
+  /** Fires on every keystroke with the card as typed so far, for a host that
+   * previews it (the detail surface's tile). Partial by design: `last4` may hold
+   * fewer than 4 digits and the expiry may not parse yet. */
+  onDraftChange?: (draft: CardDraft) => void;
+  /** Drives the card's active state from OUTSIDE the form (a panel header, beside
+   * the card name). When set, the form drops its own switch and submits this
+   * value — same arrangement the account form uses for its status. */
+  isActive?: boolean;
+  onActiveChange?: (active: boolean) => void;
   onSubmit: (card: accounts.CreateCard) => void;
+}
+
+/** What a host can preview while the form is being filled in. */
+export interface CardDraft {
+  name: string;
+  kind: accounts.CardKind;
+  last4: string;
+  expiryMonth: number | null;
+  expiryYear: number | null;
+  /** The primary's mandatory amount, or the first own-limit row. */
+  limitAmount: string | null;
 }
 
 interface LimitDraft {
@@ -49,6 +74,11 @@ export function CardForm({
   accountCurrency,
   hasExistingPrimary,
   accountCreditLimit,
+  formId,
+  hideSubmit = false,
+  isActive: activeFromHost,
+  onActiveChange,
+  onDraftChange,
   onSubmit,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
@@ -68,9 +98,37 @@ export function CardForm({
   const [limits, setLimits] = useState<LimitDraft[]>(
     initial?.limits.map((l) => ({ currency: l.currency, limitAmount: l.limitAmount })) ?? [],
   );
+  // A card that is no longer in use but whose history must stay: deactivating it
+  // keeps every past movement while taking the card out of the pickers. Read from
+  // the host when it owns the control, so there's never a second copy to sync.
+  const [ownActive, setOwnActive] = useState(initial?.isActive ?? true);
+  const isActive = activeFromHost ?? ownActive;
   const [last4Error, setLast4Error] = useState<string | null>(null);
   const [expiryError, setExpiryError] = useState<string | null>(null);
   const [limitError, setLimitError] = useState<string | null>(null);
+
+  const parsedDraftExpiry = parseExpiry(expiry);
+  // Reported from an effect, not from each setter: every field feeds the same
+  // object, and one place to build it can't drift from another.
+  useEffect(() => {
+    onDraftChange?.({
+      name,
+      kind,
+      last4,
+      expiryMonth: parsedDraftExpiry?.month ?? null,
+      expiryYear: parsedDraftExpiry?.year ?? null,
+      limitAmount: primaryLimitAmount.trim() || (limits[0]?.limitAmount ?? null) || null,
+    });
+  }, [
+    name,
+    kind,
+    last4,
+    parsedDraftExpiry?.month,
+    parsedDraftExpiry?.year,
+    primaryLimitAmount,
+    limits,
+    onDraftChange,
+  ]);
 
   const willBePrimary = kind === "CREDIT" && !hasExistingPrimary;
   const isAdditionalCredit = kind === "CREDIT" && hasExistingPrimary;
@@ -135,14 +193,14 @@ export function CardForm({
       last4,
       expiryMonth: parsedExpiry.month,
       expiryYear: parsedExpiry.year,
-      isActive: initial?.isActive ?? true,
+      isActive,
       usesAccountPool: poolFlag,
       limits: cardLimits,
     });
   }
 
   return (
-    <form className="flex flex-col gap-3" onSubmit={submit}>
+    <form id={formId} className="flex flex-col gap-3" onSubmit={submit}>
       <Field label={t("cards.form.name")}>
         <Input
           id="card-name"
@@ -354,9 +412,27 @@ export function CardForm({
         </div>
       ) : null}
 
-      <Button type="submit" disabled={submitting}>
-        {submitLabel}
-      </Button>
+      {onActiveChange ? null : (
+        <label className="flex items-center gap-3 border-t border-border pt-3">
+          <Switch
+            checked={isActive}
+            onCheckedChange={setOwnActive}
+            aria-label={t("cards.form.active")}
+          />
+          <span className="min-w-0">
+            <span className="block text-sm font-medium">{t("cards.form.active")}</span>
+            <span className="block text-xs text-muted-foreground">
+              {t("cards.form.activeHint")}
+            </span>
+          </span>
+        </label>
+      )}
+
+      {hideSubmit ? null : (
+        <Button type="submit" disabled={submitting}>
+          {submitLabel}
+        </Button>
+      )}
     </form>
   );
 }

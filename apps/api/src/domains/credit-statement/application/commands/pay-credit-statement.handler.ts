@@ -17,6 +17,8 @@ import {
   TRANSACTION_WRITER_REPOSITORY,
   type TransactionWriterRepositoryPort,
 } from "../../../transaction/domain/ports/transaction-writer.repository.port";
+import type { accounts } from "@finance/contracts";
+
 import type { CreditStatement } from "../../domain/credit-statement.aggregate";
 import {
   InvalidPaymentSourceError,
@@ -27,30 +29,26 @@ import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
 } from "../../domain/ports/credit-statement.repository.port";
+import { toStatementDto } from "../statement-dto.mapper";
 import { PayCreditStatementCommand } from "./pay-credit-statement.command";
 
 interface Context {
   account: BankAccount;
   statement: CreditStatement;
   fromAccount: BankAccount;
+  /** What THIS payment settles (the whole remaining balance, or a part of it). */
   amount: string;
+  /** The period's full amount, frozen into the statement once it's settled. */
+  periodAmount: string;
+  breakdown: { purchases: string; installments: string; installmentCount: number };
   paymentTransactionId: string;
   now: Date;
+  /** Business date of the payment — what the created expense is dated with. */
+  occurredAt: Date;
+  reference?: string;
 }
 
-export interface PaidStatementResult {
-  id: string;
-  accountId: string;
-  status: "OPEN" | "PENDING" | "PAID";
-  periodStart: string;
-  closedAt: string | null;
-  amount: string;
-  paidAt: string;
-  paidFromAccountId: string;
-  paidTransactionId: string;
-  createdAt: string;
-  updatedAt: string;
-}
+export type PaidStatementResult = accounts.CreditStatement;
 
 /**
  * Pays a statement by choosing a source bank account: creates a real EXPENSE
@@ -91,15 +89,26 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
     const fromAccount = await this.accountRepo.findById(command.userId, command.fromAccountId);
     if (!fromAccount) throw new AccountNotFoundError();
     if (fromAccount.type === "CREDIT_LINE") throw new InvalidPaymentSourceError();
-    const amount = await this.statementRepo.sumLinkedTransactions(command.statementId);
-    if (!toMoney(amount).greaterThan(0)) throw new NothingToPayError();
+    // The period's total: frozen once settled, still the live sum otherwise.
+    const periodAmount = statement.paidAt
+      ? statement.amount
+      : await this.statementRepo.sumLinkedTransactions(command.statementId);
+    if (!toMoney(periodAmount).greaterThan(0)) throw new NothingToPayError();
+    const breakdown = await this.statementRepo.breakdown(command.statementId);
+    const now = new Date();
     return {
       account,
       statement,
       fromAccount,
-      amount,
+      // No explicit amount = settle whatever is still owed. The aggregate is what
+      // validates it (positive, not more than remaining) — see `pay`.
+      amount: command.amount ?? statement.remainingFor(periodAmount),
+      periodAmount,
+      breakdown,
       paymentTransactionId: randomUUID(),
-      now: new Date(),
+      now,
+      occurredAt: command.paidAt ?? now,
+      reference: command.reference,
     };
   }
 
@@ -107,27 +116,22 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
     command: PayCreditStatementCommand,
     context: Context,
   ): Promise<HandleResult<PaidStatementResult>> {
-    const event = context.statement.pay(
+    const event = context.statement.payTowards(
+      context.periodAmount,
       context.amount,
       command.fromAccountId,
       context.paymentTransactionId,
-      context.now,
+      context.occurredAt,
     );
+    // Only what was actually paid comes off the credit pool: a partial payment
+    // frees exactly its own amount, and the rest stays used.
     context.account.adjustCreditUsed(toMoney(context.amount).negated().toString());
     return {
-      result: {
-        id: context.statement.id,
-        accountId: context.statement.accountId,
-        status: context.statement.state.name,
-        periodStart: context.statement.periodStart.toISOString(),
-        closedAt: context.statement.closedAt?.toISOString() ?? null,
-        amount: context.statement.amount,
-        paidAt: context.statement.paidAt!.toISOString(),
-        paidFromAccountId: context.statement.paidFromAccountId!,
-        paidTransactionId: context.statement.paidTransactionId!,
-        createdAt: context.statement.createdAt.toISOString(),
-        updatedAt: context.statement.updatedAt.toISOString(),
-      },
+      result: toStatementDto(context.statement, {
+        amount: context.periodAmount,
+        breakdown: context.breakdown,
+        minimumPercent: context.account.minimumPaymentPercent,
+      }),
       events: [event],
     };
   }
@@ -146,9 +150,12 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
         type: "EXPENSE",
         amount: context.amount,
         currency: context.account.snapshot().currency,
-        occurredAt: context.now,
+        occurredAt: context.occurredAt,
         category: "Pago facturación",
         description: context.account.name,
+        // The user's reference for this payment (a transfer number, say) rides on
+        // the movement itself, where they'll look for it later.
+        observation: context.reference,
       });
       await this.statementRepo.saveWithTx(tx, context.statement);
       await this.accountRepo.saveWithTx(tx, context.account);

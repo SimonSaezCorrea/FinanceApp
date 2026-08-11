@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import type { debts, installments } from "@finance/contracts";
 
 import { Button } from "../../../shared/ui/button";
-import { Dialog } from "../../../shared/ui/dialog";
+import { ResponsiveSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Segmented } from "../../../shared/ui/segmented";
@@ -123,7 +123,7 @@ export function DebtCreateModal({ open, onOpenChange, initialData }: DebtCreateM
   const submitLabel = isPending ? "…" : idleLabel;
 
   return (
-    <Dialog
+    <ResponsiveSurface
       open={open}
       onOpenChange={onOpenChange}
       title={isEdit ? `${t("common.edit")}: ${initialData.counterparty}` : t("debts.new")}
@@ -248,6 +248,6 @@ export function DebtCreateModal({ open, onOpenChange, initialData }: DebtCreateM
           </Button>
         </div>
       </div>
-    </Dialog>
+    </ResponsiveSurface>
   );
 }

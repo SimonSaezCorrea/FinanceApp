@@ -10,12 +10,14 @@ import {
   type TransactionRepositoryPort,
 } from "../../domain/ports/transaction.repository.port";
 import { ListTransactionsQuery } from "./list-transactions.query";
+import { decodeCursor, encodeCursor } from "./transaction-cursor";
+import { toListFilter } from "./transaction-list-filter";
 
 @Injectable()
 @QueryHandler(ListTransactionsQuery)
 export class ListTransactionsQueryHandler extends BaseQueryHandler<
   ListTransactionsQuery,
-  transactions.Transaction[],
+  transactions.TransactionPage,
   TransactionListFilter
 > {
   constructor(@Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort) {
@@ -23,21 +25,21 @@ export class ListTransactionsQueryHandler extends BaseQueryHandler<
   }
 
   protected async loadContext(query: ListTransactionsQuery): Promise<TransactionListFilter> {
-    const { filters } = query;
-    return {
-      type: filters.type,
-      bankAccountId: filters.bankAccountId,
-      cardId: filters.cardId,
-      occurredFrom: filters.from ? new Date(filters.from) : undefined,
-      occurredTo: filters.to ? new Date(filters.to) : undefined,
-    };
+    return toListFilter(query.filters);
   }
 
   protected async handle(
     query: ListTransactionsQuery,
     where: TransactionListFilter,
-  ): Promise<transactions.Transaction[]> {
-    const rows = await this.repo.list(query.userId, where);
-    return rows.map((r) => r.toContract());
+  ): Promise<transactions.TransactionPage> {
+    const { limit, cursor } = query.filters;
+    const page = await this.repo.list(query.userId, where, {
+      limit,
+      cursor: cursor ? decodeCursor(cursor) : undefined,
+    });
+    return {
+      items: page.items.map((r) => r.toContract()),
+      nextCursor: page.nextCursor ? encodeCursor(page.nextCursor) : null,
+    };
   }
 }

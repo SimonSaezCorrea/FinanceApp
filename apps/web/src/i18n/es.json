@@ -1,14 +1,19 @@
 {
-  "brand": { "name": "FinanceApp" },
+  "brand": {
+    "name": "FinanceApp"
+  },
   "app": {
     "loading": "Cargando…",
-    "welcome": "Panel de finanzas personales"
+    "loadingMore": "Cargando más…",
+    "welcome": "Panel de finanzas personales",
+    "bootstrapping": "Preparando tu sesión…"
   },
   "common": {
     "cancel": "Cancelar",
     "save": "Guardar",
     "edit": "Editar",
     "delete": "Eliminar",
+    "options": "Opciones",
     "confirmDeleteTitle": "¿Eliminar elemento?",
     "confirmDelete": "Esta acción no se puede deshacer.",
     "noResults": "Sin resultados.",
@@ -18,7 +23,10 @@
       "WEEKLY": "Semanal",
       "MONTHLY": "Mensual",
       "YEARLY": "Anual"
-    }
+    },
+    "unsaved": "Sin guardar",
+    "saveChanges": "Guardar cambios",
+    "create": "Crear"
   },
   "nav": {
     "dashboard": "Panel",
@@ -37,11 +45,13 @@
   "accounts": {
     "title": "Cuentas",
     "empty": "Aún no tienes cuentas.",
+    "deleted": "Cuenta eliminada",
+    "deleteConfirm": "¿Eliminar esta cuenta?",
+    "deleteConfirmDescription": "Se eliminará de forma permanente, junto con sus tarjetas y su facturación.",
     "new": "Nueva cuenta",
     "newSubtitle": "Registra una cuenta bancaria, tarjeta o efectivo",
     "currentBalance": "Saldo actual",
     "summary": "{{accounts}} cuentas · {{currencies}} monedas",
-    "countLabel": "{{count}} cuenta(s)",
     "type": {
       "CHECKING": "Corriente",
       "SIGHT": "Vista",
@@ -50,8 +60,35 @@
       "CREDIT_LINE": "Tarjeta de crédito",
       "CASH": "Efectivo"
     },
-    "status": { "label": "Estado", "ACTIVE": "Activa", "INACTIVE": "Inactiva" },
-    "card": { "usage": "{{pct}}% cupo", "creditUsed": "Cupo usado" },
+    "status": {
+      "label": "Estado",
+      "ACTIVE": "Activa",
+      "INACTIVE": "Inactiva"
+    },
+    "card": {
+      "usage": "{{pct}}% cupo",
+      "creditUsed": "Cupo usado",
+      "cardPool": "Tarjeta ···· {{last4}}",
+      "trend": "{{pct}}% este mes",
+      "billedOn": "Facturado el {{day}} de cada mes"
+    },
+    "overview": {
+      "netWorth": "Patrimonio total",
+      "netWorthHint": "· neto, aprox. en {{currency}}",
+      "assets": "Activos",
+      "cardDebt": "Deuda tarjetas"
+    },
+    "groupBy": {
+      "label": "Agrupar:",
+      "currency": "Moneda",
+      "type": "Tipo de cuenta",
+      "institution": "Institución",
+      "status": "Estado",
+      "none": "Sin agrupar",
+      "noInstitution": "Sin institución",
+      "allAccounts": "Todas las cuentas",
+      "count": "{{count}} cuenta(s)"
+    },
     "balanceLabel": "Saldo",
     "detail": {
       "change": "Variación",
@@ -69,12 +106,38 @@
       "billingStatusValue": {
         "OPEN": "Abierta",
         "PENDING": "Pendiente",
-        "PAID": "Pagada"
+        "PAID": "Pagada",
+        "PARTIALLY_PAID": "Pago parcial"
       },
       "payFromAccount": "Pagar con",
       "payFromAccountPlaceholder": "Selecciona una cuenta",
-      "correctAmountHint": "Corrige el monto de esta facturación ya pagada. No afecta el movimiento bancario ya creado ni el cupo usado.",
-      "correctAmountConfirm": "¿Corregir el monto de esta facturación?"
+      "payTitle": "Pagar facturación",
+      "paySummaryAmount": "Monto a pagar",
+      "payToAccount": "Facturación de",
+      "payThisAccount": "Esta cuenta",
+      "payInsufficient": "El saldo de esta cuenta es menor que el monto a pagar.",
+      "payDifferentCurrency": "Esta cuenta está en otra moneda; no se aplica conversión.",
+      "payCreatesMovement": "Se registrará un gasto en la cuenta seleccionada y la facturación quedará pagada.",
+      "payEyebrow": "Pagar facturación",
+      "payPeriodTitle": "Período {{date}}",
+      "payBalanceAfter": "Saldo después del pago",
+      "payAction": "Pagar {{amount}}",
+      "payModeTotal": "Total",
+      "payModeMinimum": "Mínimo",
+      "payModeCustom": "Otro monto",
+      "payCoversTotal": "Cubre el total de la facturación.",
+      "payCoversMinimum": "Es el mínimo de esta cuenta ({{percent}}% del período).",
+      "payCoversCustom": "Quedará un saldo pendiente para el próximo pago.",
+      "payBreakdownPurchases": "Compras del período",
+      "payBreakdownInstallments": "Cuotas del mes ({{count}})",
+      "payAmountLabel": "Monto",
+      "payRemainingAfter": "Saldo pendiente tras el pago",
+      "payDate": "Fecha de pago",
+      "payReference": "Referencia (opcional)",
+      "payReferencePlaceholder": "Ej. Transferencia 4412",
+      "payAlreadyPaid": "Pagado hasta ahora",
+      "payMinimumUnset": "Esta cuenta no tiene pago mínimo configurado. Puedes definirlo en la facturación de la cuenta (Pago mínimo %).",
+      "payMinimumCovered": "Ya pagaste más que el mínimo de este período."
     },
     "filter": {
       "label": "Filtrar por estado",
@@ -109,22 +172,54 @@
       "sectionBalanceCurrency": "Saldo y moneda",
       "preview": "Vista previa",
       "editLaterHint": "Podrás editar todos estos datos después.",
-      "createSubmit": "Crear cuenta"
+      "createSubmit": "Crear cuenta",
+      "optional": "Opcional",
+      "availableResult": "Disponible resultante",
+      "unsavedChanges": "Cambios sin guardar",
+      "accountActiveHint": "Aparece en resúmenes, filtros y nuevos movimientos.",
+      "sections": {
+        "identification": "Identificación",
+        "identificationHint": "Cómo aparece la cuenta en listas, filtros y movimientos.",
+        "credit": "Crédito",
+        "creditHint": "El cupo total se sincroniza con el tope de la tarjeta principal.",
+        "balance": "Saldo",
+        "balanceHint": "Moneda de la cuenta y saldo con el que se creó.",
+        "billing": "Facturación",
+        "billingHint": "Al llegar el día de facturación se genera el estado de cuenta pendiente de pago.",
+        "status": "Estado",
+        "statusHint": "Una cuenta inactiva se oculta de los resúmenes pero conserva su historial."
+      },
+      "minimumPercent": "Pago mínimo (%)",
+      "minimumPercentHint": "Porcentaje del período que tu emisor acepta como pago mínimo. Vacío = sin mínimo."
     },
     "actions": {
       "edit": "Editar",
       "save": "Guardar",
       "delete": "Eliminar",
-      "reconcile": "Reconciliar saldo",
       "activate": "Activar",
       "deactivate": "Desactivar",
       "payCredit": "Pagar facturación",
       "payCreditConfirm": "¿Pagar {{amount}} de facturación? Se descontará del cupo usado.",
       "payCreditSuccess": "Facturación pagada",
       "generateStatements": "Generar facturación",
+      "generateStatementsConfirm": "¿Generar la facturación?",
+      "generateStatementsConfirmDescription": "Se cerrará el periodo abierto y quedará pendiente de pago. Los movimientos posteriores irán al periodo siguiente.",
       "generateStatementsSuccess": "Facturación revisada",
-      "correctAmount": "Corregir monto",
-      "correctAmountSuccess": "Monto corregido"
+      "syncStatement": "Sincronizar pagos",
+      "syncStatementConfirm": "¿Sincronizar esta facturación?",
+      "syncStatementConfirmDescription": "Se recalculará el monto del período con los movimientos que caen dentro de sus fechas. Si ya estaba pagada, también se ajustará el movimiento de pago y el cupo usado.",
+      "syncStatementSuccess": "Facturación sincronizada"
+    },
+    "updated": "Cuenta actualizada",
+    "edit": {
+      "title": "Editar",
+      "cardsNotEditable": "No editables aquí",
+      "cardsAsideHint": "Se administran desde el detalle de cada tarjeta. Guarda los cambios de la cuenta para volver.",
+      "titleMobile": "Editar cuenta",
+      "deleteAccount": "Eliminar cuenta",
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en esta cuenta. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios"
     }
   },
   "cards": {
@@ -145,7 +240,11 @@
     "updated": "Tarjeta actualizada",
     "deleted": "Tarjeta eliminada",
     "deleteConfirm": "¿Eliminar esta tarjeta?",
-    "kind": { "CREDIT": "Crédito", "DEBIT": "Débito", "PREPAID": "Prepago" },
+    "kind": {
+      "CREDIT": "Crédito",
+      "DEBIT": "Débito",
+      "PREPAID": "Prepago"
+    },
     "form": {
       "name": "Nombre de la tarjeta (opcional)",
       "namePlaceholder": "Ej. Tarjeta principal",
@@ -153,6 +252,7 @@
       "parent": "Tarjeta principal (secundaria)",
       "parentNone": "Ninguna (es principal)",
       "expiry": "Vence",
+      "expiryPlaceholder": "MM/AA",
       "last4": "Últimos 4 dígitos",
       "last4Hint": "Solo se guardan los últimos 4 dígitos.",
       "limits": "Topes por moneda",
@@ -170,13 +270,33 @@
       "usesPoolHint": "Esta tarjeta comparte el cupo total de la cuenta.",
       "ownLimit": "Tope propio",
       "ownLimitHint": "Define un tope independiente para esta tarjeta (no puede superar el cupo de la cuenta en su misma moneda).",
-      "ownLimitRowsHint": "Agrega al menos un tope por moneda."
+      "ownLimitRowsHint": "Agrega al menos un tope por moneda.",
+      "active": "Tarjeta activa",
+      "activeHint": "Una tarjeta inactiva se conserva con su historial, pero no aparece al registrar movimientos."
     },
     "errors": {
       "last4": "Ingresa los últimos 4 dígitos.",
       "expiry": "Ingresa una fecha de vencimiento válida (MM/AA).",
       "limitRequired": "Ingresa un tope válido para esta tarjeta."
-    }
+    },
+    "deleteConfirmDescription": "Se eliminará de forma permanente, junto con todo lo relacionado a ella.",
+    "detail": {
+      "title": "Detalle de tarjeta",
+      "available": "Disponible {{amount}}",
+      "role": "Rol",
+      "holder": "Titular",
+      "limitSource": "Origen del tope",
+      "ownLimit": "Tope propio",
+      "accountPool": "Cupo de la cuenta",
+      "movements": "Últimos movimientos",
+      "editingThis": "Editando esta tarjeta",
+      "filteringTable": "Filtrando la tabla ←",
+      "filteringTableHint": "La tabla de la izquierda ya está filtrada por esta tarjeta",
+      "expiry": "Vence",
+      "availableLabel": "Disponible"
+    },
+    "showInactive": "Ver inactivas",
+    "inactiveBadge": "Inactiva"
   },
   "dashboard": {
     "title": "Panel",
@@ -225,7 +345,10 @@
     "subtitle": "{{month}} · {{count}} movimientos",
     "subtitleRange": "{{range}} · {{count}} movimientos",
     "subtitleAll": "Todos los períodos · {{count}} movimientos",
-    "type": { "INCOME": "Ingreso", "EXPENSE": "Gasto" },
+    "type": {
+      "INCOME": "Ingreso",
+      "EXPENSE": "Gasto"
+    },
     "form": {
       "type": "Tipo",
       "amount": "Monto",
@@ -273,7 +396,8 @@
       "noCategory": "Sin categoría",
       "noAccount": "Sin cuenta",
       "import": "Importar"
-    }
+    },
+    "count": "{{count}} movimientos"
   },
   "installments": {
     "title": "Cuotas",
@@ -350,7 +474,10 @@
     "new": "Nueva deuda",
     "created": "Deuda creada",
     "subtitle": "{{count}} deudas activas · {{people}} personas",
-    "direction": { "OWED_TO_YOU": "Te deben", "YOU_OWE": "Debes" },
+    "direction": {
+      "OWED_TO_YOU": "Te deben",
+      "YOU_OWE": "Debes"
+    },
     "kpi": {
       "owedToYou": "Te deben",
       "youOwe": "Debes",
@@ -411,7 +538,11 @@
     "deleted": "Gasto recurrente eliminado",
     "inactive": "Inactivo",
     "next": "Próximo: {{date}}",
-    "frequency": { "WEEKLY": "Semanal", "MONTHLY": "Mensual", "YEARLY": "Anual" },
+    "frequency": {
+      "WEEKLY": "Semanal",
+      "MONTHLY": "Mensual",
+      "YEARLY": "Anual"
+    },
     "form": {
       "label": "Nombre",
       "amount": "Monto",
@@ -428,7 +559,10 @@
   "investments": {
     "title": "Inversiones",
     "empty": "Aún no tienes inversiones.",
-    "kind": { "ETF": "ETF", "REMUNERATED_ACCOUNT": "Cuenta remunerada" }
+    "kind": {
+      "ETF": "ETF",
+      "REMUNERATED_ACCOUNT": "Cuenta remunerada"
+    }
   },
   "import": {
     "title": "Importar",
@@ -448,7 +582,9 @@
   "profile": {
     "title": "Perfil",
     "ageYears": "{{age}} años",
-    "plan": { "personal": "Plan personal" },
+    "plan": {
+      "personal": "Plan personal"
+    },
     "stats": {
       "accounts": "Cuentas",
       "monthlyMovements": "Mov./mes",
@@ -613,6 +749,8 @@
     "CARD_LIMIT_REQUIRED": "Ingresa un tope para esta tarjeta de crédito.",
     "PARENT_CARD_INVALID": "La tarjeta principal seleccionada no es válida.",
     "INVALID_CURRENT_PASSWORD": "La contraseña actual no es correcta.",
-    "ACCOUNT_DISABLED": "Esta cuenta está deshabilitada."
+    "ACCOUNT_DISABLED": "Esta cuenta está deshabilitada.",
+    "PAYMENT_EXCEEDS_REMAINING": "El monto supera lo que queda por pagar de esta facturación.",
+    "INVALID_PAYMENT_AMOUNT": "Ingresa un monto mayor que cero."
   }
 }

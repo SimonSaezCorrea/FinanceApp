@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Button } from "../../../shared/ui/button";
-import { ConfirmDialog } from "../../../shared/ui/confirm-dialog";
+import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { ErrorState, LoadingState } from "../../../shared/ui/states";
 import { Segmented } from "../../../shared/ui/segmented";
@@ -14,15 +14,9 @@ import { TransactionDetailModal } from "../components/TransactionDetailModal";
 import { TransactionKpiStrip } from "../components/TransactionKpiStrip";
 import { TransactionFiltersBar } from "../components/TransactionFiltersBar";
 import { TransactionTable } from "../components/TransactionTable";
-import { useTransactions } from "../hooks/useTransactions";
+import { useInfiniteTransactions, useTransactionsSummary } from "../hooks/useTransactions";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
-import {
-  clientFilter,
-  endOfMonth,
-  isFullMonthRange,
-  startOfMonth,
-  uniqueCategories,
-} from "../lib/transactionMetrics";
+import { endOfMonth, isFullMonthRange, startOfMonth } from "../lib/transactionMetrics";
 import type { TransactionViewFilters } from "../lib/transactionMetrics";
 import type { transactions } from "@finance/contracts";
 import { formatDateRangeLabel } from "../components/DateRangeButton";
@@ -50,24 +44,31 @@ export function TransactionsRoute() {
   const accounts = accountsQuery.data ?? [];
 
   const apiAccountId = filters.selectedCardId ? undefined : filters.bankAccountId;
+  // The category search is a server-side filter now: with the list paginated,
+  // matching in the browser would only ever search the pages already loaded.
   const apiFilters = {
     type: filters.type,
     bankAccountId: apiAccountId,
     cardId: filters.selectedCardId,
     from: filters.from,
     to: filters.to,
+    category: filters.categorySearch.trim() || undefined,
   };
-  const txQuery = useTransactions(apiFilters);
+  const txQuery = useInfiniteTransactions(apiFilters);
+  // Count, per-currency totals and the category options describe the whole
+  // filtered set, so they come from the aggregate endpoint rather than from
+  // however many pages happen to be loaded.
+  const summaryQuery = useTransactionsSummary(apiFilters);
 
-  const visibleTxs = useMemo(() => {
-    const fetched = txQuery.data ?? [];
-    return clientFilter(fetched, filters.categorySearch);
-  }, [txQuery.data, filters.categorySearch]);
+  const visibleTxs = useMemo(
+    () => txQuery.data?.pages.flatMap((p) => p.items) ?? [],
+    [txQuery.data],
+  );
 
-  const categories = useMemo(() => uniqueCategories(txQuery.data ?? []), [txQuery.data]);
+  const categories = summaryQuery.data?.categories ?? [];
 
   const periodLabel = useMemo(() => {
-    const count = visibleTxs.length;
+    const count = summaryQuery.data?.total ?? 0;
     if (isFullMonthRange(filters.from, filters.to)) {
       const month = new Date(filters.from!).toLocaleDateString(i18n.language, {
         month: "long",
@@ -81,7 +82,7 @@ export function TransactionsRoute() {
       return t("transactions.subtitleRange", { range, count });
     }
     return t("transactions.subtitleAll", { count });
-  }, [filters.from, filters.to, visibleTxs.length, t, i18n.language]);
+  }, [filters.from, filters.to, summaryQuery.data?.total, t, i18n.language]);
 
   const segmentedOptions: { value: transactions.TransactionType | "ALL"; label: string }[] = [
     { value: "ALL", label: t("transactions.filters.all") },
@@ -104,6 +105,7 @@ export function TransactionsRoute() {
               {t("transactions.table.import")}
             </Button>
             <Button
+              variant="accent"
               onClick={() => {
                 setEditTx(null);
                 setModalOpen(true);
@@ -115,7 +117,11 @@ export function TransactionsRoute() {
         }
       />
 
-      <TransactionKpiStrip transactions={visibleTxs} from={filters.from} to={filters.to} />
+      <TransactionKpiStrip
+        currencyTotals={summaryQuery.data?.currencyTotals ?? []}
+        from={filters.from}
+        to={filters.to}
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Segmented
@@ -147,6 +153,9 @@ export function TransactionsRoute() {
           }}
           onDelete={(tx) => setDeleteTx(tx)}
           onRowClick={(tx) => setDetailTx(tx)}
+          hasMore={txQuery.hasNextPage}
+          isLoadingMore={txQuery.isFetchingNextPage}
+          onLoadMore={() => void txQuery.fetchNextPage()}
         />
       )}
 
@@ -168,7 +177,7 @@ export function TransactionsRoute() {
         onDelete={(tx) => setDeleteTx(tx)}
       />
 
-      <ConfirmDialog
+      <ConfirmModal
         open={deleteTx !== null}
         onOpenChange={(v) => !v && setDeleteTx(null)}
         title={t("transactions.deleteConfirm")}

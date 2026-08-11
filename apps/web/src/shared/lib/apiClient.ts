@@ -51,14 +51,54 @@ async function parseResponse<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
+/**
+ * The refresh currently in flight, shared by every caller that hits a 401 while
+ * it runs. Without this, N concurrent requests firing on the same expired session
+ * each POST their own /auth/refresh — a view with five queries produced five
+ * rotations, and with react-query's retries on top the server logged dozens of
+ * NO_REFRESH_TOKEN in a couple of seconds.
+ */
+let refreshInFlight: Promise<boolean> | null = null;
+
+/**
+ * Set once a refresh has failed: there is no valid refresh cookie, so every
+ * later 401 is the SAME dead session and re-asking can only fail again. Cleared
+ * by `resetAuthRefresh()` when a real login re-establishes one.
+ */
+let refreshExhausted = false;
+
+/** Call after a successful login/register: a new session deserves a new attempt. */
+export function resetAuthRefresh(): void {
+  refreshExhausted = false;
+  refreshInFlight = null;
+}
+
+function refreshSession(): Promise<boolean> {
+  refreshInFlight ??= rawFetch("/auth/refresh", { method: "POST" })
+    .then((res) => {
+      if (!res.ok) refreshExhausted = true;
+      return res.ok;
+    })
+    .catch(() => {
+      // A network failure isn't proof the session is gone — don't burn the
+      // circuit breaker on it, just report this attempt as failed.
+      return false;
+    })
+    .finally(() => {
+      refreshInFlight = null;
+    });
+  return refreshInFlight;
+}
+
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   let res = await rawFetch(path, init);
 
   // Silent refresh: intercept 401 on non-auth paths, attempt token rotation,
-  // then retry the original request once.
-  if (res.status === 401 && !path.startsWith("/auth/")) {
-    const refreshRes = await rawFetch("/auth/refresh", { method: "POST" });
-    if (refreshRes.ok) {
+  // then retry the original request once. Concurrent callers share the single
+  // in-flight refresh instead of each starting one.
+  if (res.status === 401 && !path.startsWith("/auth/") && !refreshExhausted) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
       res = await rawFetch(path, init);
     }
   }

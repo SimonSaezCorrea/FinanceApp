@@ -4,8 +4,7 @@
  * re-implementing the check itself.
  */
 export interface CreditStatementState {
-  readonly name: "OPEN" | "PENDING" | "PAID";
+  readonly name: "OPEN" | "PENDING" | "PARTIALLY_PAID" | "PAID";
   canClose(): boolean;
   canPay(): boolean;
-  canCorrectAmount(): boolean;
 }

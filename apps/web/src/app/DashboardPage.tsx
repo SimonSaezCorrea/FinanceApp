@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useAccounts } from "../domains/accounts/hooks/useAccounts";
 import { useAuth } from "../domains/auth/hooks/useAuth";
 import { CategoryDonut } from "../domains/dashboard/components/CategoryDonut";
+import { DashboardSkeleton } from "../domains/dashboard/components/DashboardSkeleton";
 import { MonthFlowCard } from "../domains/dashboard/components/MonthFlowCard";
 import { NetWorthCard } from "../domains/dashboard/components/NetWorthCard";
 import { UpcomingPaymentsCard } from "../domains/dashboard/components/UpcomingPaymentsCard";
@@ -25,7 +26,7 @@ import { TransactionCreateModal } from "../domains/transactions/components/Trans
 import { useTransactions } from "../domains/transactions/hooks/useTransactions";
 import { Button } from "../shared/ui/button";
 import { PageHeader } from "../shared/ui/page-header";
-import { ErrorState, LoadingState } from "../shared/ui/states";
+import { ErrorState } from "../shared/ui/states";
 
 export function DashboardPage() {
   const { t, i18n } = useTranslation();
@@ -114,7 +115,7 @@ export function DashboardPage() {
       <TransactionCreateModal open={modalOpen} onOpenChange={setModalOpen} />
 
       {accountsQuery.isLoading ? (
-        <LoadingState title={t("app.loading")} />
+        <DashboardSkeleton label={t("app.loading")} />
       ) : accountsQuery.isError ? (
         <ErrorState title={t("errors.INTERNAL_ERROR")} />
       ) : (

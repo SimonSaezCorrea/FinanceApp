@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Geist',ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-font-smoothing:antialiased;
+    --bg:#0b1518; --surface:#0f1e21; --surface-2:#13242a; --border:#1e2e32; --border-2:#283c41;
+    --text:#e6eded; --text-mut:#8aa0a2; --text-dim:#7d9295;
+    --primary:#66A5AD; --primary-ink:#08181b; --brand:#07575B; --accent:#F4A261; --accent-ink:#2b1908;
+    --success:#46b483; --danger:#e08a8a; --warning-bg:rgba(244,162,97,.14);
+    --chip:#1c2c30; --track:#22343a;
+    background:var(--bg);color:var(--text);min-height:100vh}
+  .nw{font-variant-numeric:tabular-nums}
+  .card{border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+  .tag{font-size:10px;padding:2px 9px;border-radius:20px;background:var(--chip);color:var(--text-mut);font-weight:500}
+  .ico{width:34px;height:34px;border-radius:9px;background:var(--chip);display:flex;align-items:center;justify-content:center;flex:none}
+  .grp{font-size:11px;font-weight:600;color:var(--text-dim);text-transform:uppercase;letter-spacing:.09em}
+  .cupo-l{display:flex;align-items:center;justify-content:space-between;font-size:10.5px;color:var(--text-mut);margin-bottom:5px}
+  .cupo-n{display:flex;align-items:center;gap:5px;min-width:0}
+  .cupo-n span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .opt{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;border-radius:7px;font-size:12.5px;color:var(--text-mut);cursor:pointer}
+  .opt[data-on="1"]{background:rgba(102,165,173,.12);color:var(--text);font-weight:500}
+  svg.ic{stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+</style>
+</helmet>
+
+<div style="padding:26px 32px;max-width:1180px">
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px">
+    <div><h1 style="font-size:20px;font-weight:600;letter-spacing:-.01em">Cuentas</h1><p style="font-size:12px;color:var(--text-mut);margin-top:2px">6 cuentas · 3 monedas</p></div>
+    <button style="height:36px;padding:0 15px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:600;border:none;font-family:inherit;display:flex;align-items:center;gap:7px;cursor:pointer"><svg class="ic" width="15" height="15" viewBox="0 0 24 24" style="stroke-width:2.4"><path d="M12 5v14M5 12h14"/></svg>Nueva cuenta</button>
+  </div>
+
+  <div style="display:flex;align-items:center;justify-content:space-between;border:1px solid var(--border);border-radius:12px;background:var(--surface);padding:18px 22px;margin-bottom:18px">
+    <div>
+      <div style="font-size:12px;color:var(--text-mut);margin-bottom:3px">Patrimonio total <span style="color:var(--text-dim)">· neto, en CLP</span></div>
+      <div class="nw" style="font-size:30px;font-weight:700;letter-spacing:-.025em">$16.891.410</div>
+    </div>
+    <div style="display:flex;gap:34px">
+      <div style="text-align:right"><div style="font-size:11.5px;color:var(--text-mut)">Activos</div><div class="nw" style="font-size:16px;font-weight:600;margin-top:3px;color:var(--success)">$18.250.510</div></div>
+      <div style="text-align:right"><div style="font-size:11.5px;color:var(--text-mut)">Deuda tarjetas</div><div class="nw" style="font-size:16px;font-weight:600;margin-top:3px;color:var(--accent)">−$1.359.100</div></div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:9px;margin-bottom:16px">
+    <div style="display:flex;gap:2px;background:var(--chip);border-radius:8px;padding:3px">
+      <button style="height:28px;padding:0 13px;border-radius:6px;font-size:12px;border:none;font-family:inherit;background:var(--surface);color:var(--text);font-weight:600;cursor:pointer">Todas</button>
+      <button style="height:28px;padding:0 13px;border-radius:6px;font-size:12px;border:none;font-family:inherit;background:transparent;color:var(--text-mut);cursor:pointer">Activas</button>
+      <button style="height:28px;padding:0 13px;border-radius:6px;font-size:12px;border:none;font-family:inherit;background:transparent;color:var(--text-mut);cursor:pointer">Inactivas</button>
+    </div>
+    <div style="position:relative;margin-left:auto">
+      <button onClick="{{ toggleMenu }}" style="height:32px;padding:0 12px;border-radius:8px;border:1px solid {{ menuBorder }};background:transparent;color:var(--text-mut);display:flex;align-items:center;gap:7px;font-size:12.5px;font-family:inherit;cursor:pointer">Agrupar: <span style="color:var(--text)">{{ groupLabel }}</span> <svg class="ic" width="13" height="13" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button>
+      <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ closeMenu }}" style="position:fixed;inset:0;z-index:4"></div>
+        <div style="position:absolute;top:38px;right:0;width:192px;background:var(--surface-2);border:1px solid var(--border-2);border-radius:10px;box-shadow:0 8px 32px rgba(0,0,0,.45);padding:5px;z-index:5">
+          <sc-for list="{{ options }}" as="o" hint-placeholder-count="5">
+            <div onClick="{{ o.pick }}" class="opt" data-on="{{ o.on }}">{{ o.label }}<sc-if value="{{ o.active }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="13" height="13" viewBox="0 0 24 24" style="color:var(--primary);stroke-width:2.4"><path d="M20 6 9 17l-5-5"/></svg></sc-if></div>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:11px">
+      <span class="grp">{{ g.title }}</span>
+      <span style="flex:1;height:1px;background:var(--border)"></span>
+      <span class="nw" style="font-size:12.5px;font-weight:600">{{ g.total }}<sc-if value="{{ g.hasEq }}" hint-placeholder-val="{{ false }}"><span style="color:var(--text-dim);font-weight:400"> {{ g.eq }}</span></sc-if></span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:22px">
+      <sc-for list="{{ g.items }}" as="a" hint-placeholder-count="4">
+        <div class="card" style="padding:15px;display:flex;flex-direction:column;border-color:{{ a.border }}">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
+            <div class="ico">
+              <sc-if value="{{ a.isBank }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" style="color:var(--text-mut)"><path d="M3 21h18M4 10h16M5 10 12 4l7 6M7 10v11M17 10v11M12 10v11"/></svg></sc-if>
+              <sc-if value="{{ a.isCard }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" style="color:{{ a.iconColor }}"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg></sc-if>
+              <sc-if value="{{ a.isCash }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" style="color:var(--text-mut)"><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2.5"/></svg></sc-if>
+              <sc-if value="{{ a.isInvest }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" style="color:var(--text-mut)"><path d="m3 17 6-6 4 4 8-8"/></svg></sc-if>
+              <sc-if value="{{ a.isSave }}" hint-placeholder-val="{{ false }}"><svg class="ic" width="17" height="17" viewBox="0 0 24 24" style="color:var(--text-mut)"><path d="M4 12a8 4 0 1 0 16 0 8 4 0 1 0-16 0M4 12v5c0 2.2 3.6 4 8 4s8-1.8 8-4v-5"/></svg></sc-if>
+            </div>
+            <span class="tag" style="background:{{ a.tagBg }};color:{{ a.tagFg }}">{{ a.type }}</span>
+          </div>
+          <div style="font-size:13.5px;font-weight:600">{{ a.name }}</div>
+          <div style="font-size:11px;color:var(--text-dim);margin-top:2px">{{ a.sub }}</div>
+          <div class="nw" style="font-size:19px;font-weight:700;margin-top:12px;letter-spacing:-.02em;color:{{ a.balColor }}">{{ a.balance }}</div>
+          <sc-if value="{{ a.trendUp }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--success)"><svg class="ic" width="12" height="12" viewBox="0 0 24 24"><path d="m3 17 6-6 4 4 8-8"/></svg>{{ a.trend }}</div></sc-if>
+          <sc-if value="{{ a.trendDown }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:6px;margin-top:8px;font-size:11px;color:var(--danger)"><svg class="ic" width="12" height="12" viewBox="0 0 24 24"><path d="m3 7 6 6 4-4 8 8"/></svg>{{ a.trend }}</div></sc-if>
+          <sc-if value="{{ a.hasEq }}" hint-placeholder-val="{{ false }}"><div class="nw" style="font-size:11px;color:var(--text-dim);margin-top:8px">{{ a.eq }}</div></sc-if>
+          <sc-if value="{{ a.hasNote }}" hint-placeholder-val="{{ false }}"><div style="font-size:11px;color:var(--text-dim);margin-top:8px">{{ a.note }}</div></sc-if>
+          <sc-if value="{{ a.hasCupo }}" hint-placeholder-val="{{ false }}">
+            <div style="border-top:1px solid var(--border);margin-top:12px;padding-top:10px">
+              <div class="cupo-l"><span class="cupo-n"><svg class="ic" width="11" height="11" viewBox="0 0 24 24" style="color:var(--accent);flex:none"><rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18"/></svg><span>{{ a.cupoLabel }}</span></span><span class="nw" style="flex:none;margin-left:8px">{{ a.cupoPct }}</span></div>
+              <div style="height:4px;border-radius:3px;background:var(--track)"><div style="width:{{ a.cupoPct }};height:100%;border-radius:3px;background:var(--accent)"></div></div>
+              <div class="nw" style="font-size:10px;color:var(--text-dim);margin-top:5px;white-space:nowrap">{{ a.cupoAmt }}</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1180,&quot;height&quot;:900}}">
+const CLP = (n) => (n < 0 ? '−$' : '$') + Math.abs(n).toLocaleString('es-CL');
+
+const ACCOUNTS = [
+  { id:'bch', name:'Banco de Chile', sub:'···· 1193', type:'Corriente', kind:'bank',
+    inst:'Banco de Chile', currency:'CLP', active:true,
+    balance:'$7.146.280', asset:7146280, trend:'+11% este mes', dir:'up',
+    cupo:{ label:'Tarjeta ···· 1193', pct:40, amt:'$800.000 / $2.000.000', debt:800000 } },
+  { id:'vista', name:'Cuenta Vista', sub:'BancoEstado · ···· 7712', type:'Vista', kind:'card',
+    inst:'BancoEstado', currency:'CLP', active:true,
+    balance:'$297.410', asset:297410, trend:'+45,3% este mes', dir:'up',
+    cupo:{ label:'Tarjeta ···· 7712', pct:16, amt:'$80.000 / $500.000', debt:80000 } },
+  { id:'cmr', name:'CMR Falabella', sub:'···· 4827', type:'Tarjeta de crédito', kind:'card',
+    inst:'Falabella', currency:'CLP', active:true, credit:true,
+    balance:'−$479.100', asset:0, note:'Facturado el 5 de cada mes',
+    cupo:{ label:'Cupo usado', pct:16, amt:'$479.100 / $3.000.000', debt:479100 } },
+  { id:'cash', name:'Efectivo', sub:'Billetera', type:'Efectivo', kind:'cash',
+    inst:'Billetera', currency:'CLP', active:true,
+    balance:'$7.500', asset:7500, trend:'−22,4% este mes', dir:'down' },
+  { id:'fintual', name:'Fintual Global', sub:'Fintual', type:'Inversiones', kind:'invest',
+    inst:'Fintual', currency:'EUR', active:true,
+    balance:'€6.500,00', asset:6792500, eq:'≈ $6.792.500 CLP', native:'€6.500,00' },
+  { id:'tenpo', name:'Tenpo Ahorro', sub:'Tenpo Bank Chile', type:'Ahorro', kind:'save',
+    inst:'Tenpo Bank Chile', currency:'USD', active:true,
+    balance:'US$4.200,00', asset:4006820, eq:'≈ $4.006.820 CLP', native:'US$4.200,00' },
+];
+
+const MODES = [
+  { key:'moneda', label:'Moneda' },
+  { key:'tipo', label:'Tipo de cuenta' },
+  { key:'inst', label:'Institución' },
+  { key:'estado', label:'Estado' },
+  { key:'none', label:'Sin agrupar' },
+];
+
+class Component extends DCLogic {
+  state = { groupBy:'moneda', menuOpen:false };
+
+  net(a){ return a.asset - (a.cupo ? a.cupo.debt : 0) - (a.credit ? 479100 : 0) * 0; }
+
+  view(a){
+    const debt = a.cupo ? a.cupo.debt : 0;
+    return {
+      ...a,
+      isBank:a.kind==='bank', isCard:a.kind==='card', isCash:a.kind==='cash',
+      isInvest:a.kind==='invest', isSave:a.kind==='save',
+      iconColor: a.credit ? 'var(--accent)' : 'var(--text-mut)',
+      border: a.credit ? 'rgba(244,162,97,.3)' : 'var(--border)',
+      tagBg: a.credit ? 'var(--warning-bg)' : 'var(--chip)',
+      tagFg: a.credit ? 'var(--accent)' : 'var(--text-mut)',
+      balColor: a.credit ? 'var(--accent)' : 'var(--text)',
+      trendUp: a.dir==='up', trendDown: a.dir==='down', trend:a.trend || '',
+      hasEq: !!a.eq, eq:a.eq || '',
+      hasNote: !!a.note, note:a.note || '',
+      hasCupo: !!a.cupo,
+      cupoLabel: a.cupo ? a.cupo.label : '',
+      cupoPct: a.cupo ? a.cupo.pct + '%' : '0%',
+      cupoAmt: a.cupo ? a.cupo.amt : '',
+      _net: (a.credit ? -debt : a.asset - debt),
+    };
+  }
+
+  build(){
+    const mode = this.state.groupBy;
+    const items = ACCOUNTS.map(a => this.view(a));
+    const sum = (arr) => arr.reduce((t,a) => t + a._net, 0);
+
+    if (mode === 'none') return [{ title:'Todas las cuentas · ' + items.length, total:CLP(sum(items)), hasEq:false, eq:'', items }];
+
+    const keyOf = { moneda:a=>a.currency, tipo:a=>a.type, inst:a=>a.inst, estado:a=>(a.active?'Activas':'Inactivas') }[mode];
+    const order = [];
+    const bucket = {};
+    items.forEach(a => { const k = keyOf(a); if(!bucket[k]){ bucket[k]=[]; order.push(k); } bucket[k].push(a); });
+
+    return order.map(k => {
+      const list = bucket[k];
+      const total = sum(list);
+      if (mode === 'moneda' && k !== 'CLP') {
+        return { title:k + ' · ' + list.length + (list.length===1?' cuenta':' cuentas'), total:list[0].native, hasEq:true, eq:'≈ ' + CLP(total), items:list };
+      }
+      const suffix = mode==='moneda' ? ' · ' + list.length + (list.length===1?' cuenta (neto)':' cuentas (neto)')
+                   : ' · ' + list.length + (list.length===1?' cuenta':' cuentas');
+      return { title:k + suffix, total:CLP(total), hasEq:false, eq:'', items:list };
+    });
+  }
+
+  renderVals(){
+    const { groupBy, menuOpen } = this.state;
+    return {
+      groups: this.build(),
+      groupLabel: (MODES.find(m => m.key === groupBy) || MODES[0]).label,
+      menuOpen, menuBorder: menuOpen ? 'var(--primary)' : 'var(--border-2)',
+      toggleMenu: () => this.setState(s => ({ menuOpen: !s.menuOpen })),
+      closeMenu: () => this.setState({ menuOpen:false }),
+      options: MODES.map(m => ({
+        label:m.label, on: m.key===groupBy ? '1':'0', active: m.key===groupBy,
+        pick: () => this.setState({ groupBy:m.key, menuOpen:false }),
+      })),
+    };
+  }
+}
+</script>
+</body>
+</html>

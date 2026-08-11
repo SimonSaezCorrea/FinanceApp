@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 
 import { accounts } from "@finance/contracts";
@@ -8,9 +8,9 @@ import { JwtAuthGuard } from "../../../infra/auth/jwt-auth.guard";
 import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { accountIdParamsSchema } from "../../bank-account/presentation/dto/account-id.params";
-import { CorrectStatementAmountCommand } from "../application/commands/correct-statement-amount.command";
 import { GenerateStatementsCommand } from "../application/commands/generate-statements.command";
 import { PayCreditStatementCommand } from "../application/commands/pay-credit-statement.command";
+import { SyncStatementCommand } from "../application/commands/sync-statement.command";
 import { ListCreditStatementsQuery } from "../application/queries/list-credit-statements.query";
 import { statementParamsSchema } from "./dto/statement.params";
 
@@ -53,19 +53,27 @@ export class CreditStatementsController {
     body: accounts.PayCreditStatement,
   ): Promise<accounts.CreditStatement> {
     return this.commandBus.execute(
-      new PayCreditStatementCommand(user.id, params.id, params.statementId, body.fromAccountId),
+      new PayCreditStatementCommand(
+        user.id,
+        params.id,
+        params.statementId,
+        body.fromAccountId,
+        body.amount,
+        body.paidAt ? new Date(body.paidAt) : undefined,
+        body.reference,
+      ),
     );
   }
 
-  @Patch(":id/credit-statements/:statementId")
-  updateCreditStatement(
+  /** Reconcile a period against the movements dated inside it (replaces the old
+   *  manual amount correction). */
+  @Post(":id/credit-statements/:statementId/sync")
+  syncCreditStatement(
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(statementParamsSchema)) params: { id: string; statementId: string },
-    @Body(new ZodValidationPipe(accounts.updateCreditStatementSchema))
-    body: accounts.UpdateCreditStatement,
   ): Promise<accounts.CreditStatement> {
     return this.commandBus.execute(
-      new CorrectStatementAmountCommand(user.id, params.id, params.statementId, body.amount),
+      new SyncStatementCommand(user.id, params.id, params.statementId),
     );
   }
 }

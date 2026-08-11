@@ -1,3 +1,4 @@
+import { ChevronUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { accounts } from "@finance/contracts";
@@ -5,7 +6,7 @@ import { formatMoney } from "@finance/money";
 
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { cn } from "../../../shared/lib/cn";
-import { CARD_KIND_STYLE, isCreditType } from "./accountVisuals";
+import { CARD_INACTIVE_STYLE, CARD_KIND_STYLE, isCreditType } from "./accountVisuals";
 
 /**
  * Visual "wallet" representation. Pass `card` to render a specific card (colored
@@ -27,15 +28,25 @@ export function AccountVisualCard({
   card: cardProp,
   accountOnly = false,
   holder,
+  expiryOverride,
   onClick,
   large,
+  expanded,
+  className,
 }: Readonly<{
   account: accounts.BankAccount;
   card?: accounts.Card;
   accountOnly?: boolean;
   holder?: string;
+  /** Text to print instead of the formatted expiry — for a card being typed,
+   *  where "no date yet" can't be expressed as a month/year pair. */
+  expiryOverride?: string;
   onClick?: () => void;
   large?: boolean;
+  /** Part of an open accordion row: draws a collapse chevron and squares off the
+   * bottom corners so the tile and its expansion read as one surface. */
+  expanded?: boolean;
+  className?: string;
 }>) {
   const { t, i18n } = useTranslation();
   const card = accountOnly ? undefined : (cardProp ?? account.cards[0]);
@@ -49,9 +60,11 @@ export function AccountVisualCard({
   // on the account's real cash balance.
   const showCreditInfo = card ? card.kind === "CREDIT" : isAccountCreditPool;
   const last4 = card?.last4 ?? "••••";
-  const expiry = card
-    ? `${String(card.expiryMonth).padStart(2, "0")}/${String(card.expiryYear).slice(-2)}`
-    : null;
+  const expiry =
+    expiryOverride ??
+    (card
+      ? `${String(card.expiryMonth).padStart(2, "0")}/${String(card.expiryYear).slice(-2)}`
+      : null);
 
   // A card with its OWN sub-limit (for the account's currency) shows that instead
   // of the shared account pool. A card that shares the pool (no sub-limit of its
@@ -69,8 +82,11 @@ export function AccountVisualCard({
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
   const balance = Number(account.currentBalance);
 
+  const inactiveCard = card ? !card.isActive : false;
   const gradientClass = card
-    ? CARD_KIND_STYLE[card.kind]
+    ? inactiveCard
+      ? CARD_INACTIVE_STYLE
+      : CARD_KIND_STYLE[card.kind]
     : isAccountCreditPool
       ? "bg-gradient-to-br from-brand to-primary text-white"
       : "bg-gradient-to-br from-secondary to-muted text-foreground";
@@ -82,31 +98,70 @@ export function AccountVisualCard({
       type={onClick ? "button" : undefined}
       onClick={onClick}
       className={cn(
-        "relative flex w-full flex-col overflow-hidden rounded-2xl p-5 text-left shadow-md transition-transform",
-        large ? "h-64" : "h-[12.5rem]",
+        // `shrink-0`: the tile has a fixed height and must keep it inside a
+        // scrolling flex column (the account-detail aside), never be squashed.
+        // Padding/min-height scale down under `sm` — at narrow widths (e.g. the
+        // mobile "Tarjetas" tab) the full-size padding left too little room for
+        // the two lines of text, cramming everything toward the tile's center.
+        // No width cap of its own: the tile fills whatever column it's in, and
+        // whoever places it bounds that column (the desktop aside grows with the
+        // viewport between a 320px floor and ~1.5x that; the mobile "Tarjetas"
+        // grid caps each cell at `max-w-md`). A cap baked in here fought both —
+        // it left the aside's extra width as dead space.
+        "relative flex w-full shrink-0 flex-col overflow-hidden rounded-2xl p-4 text-left shadow-md transition-transform sm:p-5",
+        // On a surface the tile is the subject of the view, so it takes a real
+        // card's proportion (~1.6:1) instead of a fixed height.
+        large && "sm:aspect-[1.6]",
+        // min-, not fixed: the account-level tile carries an extra row (the account
+        // number) and must grow instead of clipping it.
+        large ? "min-h-56" : "min-h-[11rem] sm:min-h-[12.5rem]",
         onClick &&
           "cursor-pointer hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         gradientClass,
+        expanded && "rounded-b-none",
+        className,
       )}
     >
-      <div className="flex h-full flex-col justify-between gap-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <p className="text-sm font-semibold leading-tight">
+      <div className="flex h-full flex-col justify-between gap-2 sm:gap-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold leading-tight">
               {account.institution ?? account.name}
             </p>
-            <p className="text-xs opacity-80">
+            <p className="truncate text-xs opacity-80">
               {t(`accounts.type.${account.type}`)} · {account.currency}
             </p>
           </div>
-          {/* Type chip: the card's own kind when there's a card, else the account type. */}
-          <span className="rounded-full bg-white/25 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
-            {card
-              ? t(`cards.kind.${card.kind}`)
-              : isAccountCreditPool
-                ? t("cards.title")
-                : t(`accounts.type.${account.type}`)}
-          </span>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {/* Type chip: the card's own kind when there's a card, else the account type. */}
+            {inactiveCard ? (
+              <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+                {t("cards.inactiveBadge")}
+              </span>
+            ) : null}
+            <span
+              className={cn(
+                "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                inactiveCard ? "bg-foreground/10" : "bg-white/25",
+              )}
+            >
+              {card
+                ? t(`cards.kind.${card.kind}`)
+                : isAccountCreditPool
+                  ? t("cards.title")
+                  : t(`accounts.type.${account.type}`)}
+            </span>
+            {/* Purely an affordance — the whole tile is the toggle, and a real
+                button here would nest inside the tile's own button. */}
+            {expanded ? (
+              <span
+                className="flex h-5 w-5 items-center justify-center rounded-md bg-white/25"
+                aria-hidden
+              >
+                <ChevronUp className="h-3.5 w-3.5" />
+              </span>
+            ) : null}
+          </div>
         </div>
 
         <div className="flex flex-col gap-1">
@@ -124,6 +179,17 @@ export function AccountVisualCard({
                 •••• •••• •••• {last4}
               </p>
             </>
+          ) : null}
+
+          {/* Account-level tile: the bank account number takes the place a card's
+              masked PAN would occupy (it's stored/shown in full — not a PAN). */}
+          {!card && account.accountNumber ? (
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs opacity-70">{t("accounts.form.accountNumber")}</span>
+              <p className="text-base font-medium tabular-nums tracking-wider">
+                {account.accountNumber}
+              </p>
+            </div>
           ) : null}
 
           {showCreditInfo ? (

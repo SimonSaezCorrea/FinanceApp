@@ -30,6 +30,7 @@ function baseProps(overrides: Partial<BankAccountProps> = {}): BankAccountProps 
     creditUsed: "0",
     billingCycleDay: null,
     paymentMethod: "MANUAL",
+    minimumPaymentPercent: null,
     cards: [],
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
@@ -157,12 +158,6 @@ describe("BankAccount aggregate", () => {
     const account = BankAccount.fromPersistence(baseProps({ creditUsed: "100" }));
     account.adjustCreditUsed("-500");
     expect(account.creditUsed).toBe("0.0000");
-  });
-
-  it("reconcileBalance = initialBalance + income - expense", () => {
-    const account = BankAccount.fromPersistence(baseProps({ initialBalance: "1000" }));
-    account.reconcileBalance("500", "200");
-    expect(account.currentBalance).toBe("1300.0000");
   });
 
   it("setStatus emits AccountDeactivatedEvent only on a genuine ACTIVE -> INACTIVE transition", () => {

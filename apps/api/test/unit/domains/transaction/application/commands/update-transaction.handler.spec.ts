@@ -18,6 +18,7 @@ import {
 function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): TransactionRepositoryPort {
   return {
     list: vi.fn(),
+    summary: vi.fn(),
     findOne: vi.fn(),
     sumsForCard: vi.fn(async () => ({ income: "0", expense: "0" })),
     saveNew: vi.fn(),
@@ -120,6 +121,12 @@ describe("UpdateTransactionHandler", () => {
       "tX",
       expect.objectContaining({ amount: "250000" }),
       [{ accountId: "aC", delta: "150000.0000" }],
+      // Old expense undone, new one applied — same account, so it nets to the
+      // extra 150000 leaving the balance.
+      [
+        { accountId: "aC", delta: "100000.0000" },
+        { accountId: "aC", delta: "-250000.0000" },
+      ],
     );
   });
 
@@ -153,6 +160,6 @@ describe("UpdateTransactionHandler", () => {
       },
     );
     await handler.execute(new UpdateTransactionCommand("u1", "tX", { amount: "250000" }));
-    expect(saveUpdate).toHaveBeenCalledWith("u1", "tX", expect.anything(), []);
+    expect(saveUpdate).toHaveBeenCalledWith("u1", "tX", expect.anything(), [], expect.anything());
   });
 });

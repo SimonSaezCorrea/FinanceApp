@@ -9,39 +9,39 @@ datasource db {
 }
 
 model User {
-  id                String          @id @default(cuid())
-  name              String?
-  email             String?         @unique
-  emailVerified     DateTime?
-  image             String?
-  passwordHash      String?
-  preferredCurrency String          @default("CLP")
-  locale            String          @default("es")
-  dateFormat        String          @default("DD/MM/YYYY")
-  theme             String          @default("dark")
-  status            UserStatus      @default(ACTIVE)
-  createdAt         DateTime        @default(now())
+  id                   String          @id @default(cuid())
+  name                 String?
+  email                String?         @unique
+  emailVerified        DateTime?
+  image                String?
+  passwordHash         String?
+  preferredCurrency    String          @default("CLP")
+  locale               String          @default("es")
+  dateFormat           String          @default("DD/MM/YYYY")
+  theme                String          @default("dark")
+  status               UserStatus      @default(ACTIVE)
+  createdAt            DateTime        @default(now())
   /// Optional link to the user's country of residence (reuses the reference `Country` table).
-  countryId         String?
-  addressStreet     String?
-  addressCity       String?
-  addressRegion     String?
-  addressPostalCode String?
-  birthDate         DateTime?
+  countryId            String?
+  addressStreet        String?
+  addressCity          String?
+  addressRegion        String?
+  addressPostalCode    String?
+  birthDate            DateTime?
   /// National identity document type (RUT is Chile-specific; DNI/PASSPORT/OTHER cover other countries).
-  identifierType    IdentifierType?
+  identifierType       IdentifierType?
   /// The identifier's value. Format is only validated when identifierType is RUT (Chilean check digit).
-  identifierValue   String?
-  phone             String?
+  identifierValue      String?
+  phone                String?
   /// Masks monetary amounts across the app when true (real effect — see PENDING.md for coverage scope).
-  hideBalances      Boolean               @default(false)
-  monthlyBudgetTarget  Decimal?           @db.Decimal(18, 4)
+  hideBalances         Boolean         @default(false)
+  monthlyBudgetTarget  Decimal?        @db.Decimal(18, 4)
   /// Day of month (1-28) the user's financial cycle starts. Stored, not yet wired into "this month" calculations (see PENDING.md).
   billingCycleStartDay Int?
   /// Extra currencies the user wants tracked, on top of preferredCurrency. Selection only — no live FX conversion.
-  extraCurrencies      String[]           @default([])
+  extraCurrencies      String[]        @default([])
   /// % of monthlyBudgetTarget at which to warn the user. Stored for the Notifications UI; no real alert is sent yet.
-  budgetAlertThreshold Int?               @default(80)
+  budgetAlertThreshold Int?            @default(80)
 
   country           Country?              @relation(fields: [countryId], references: [id], onDelete: SetNull)
   bankAccounts      BankAccount[]
@@ -131,16 +131,16 @@ model BankAccount {
 
   user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   financialInstitution FinancialInstitution? @relation(fields: [institutionId], references: [id], onDelete: SetNull)
-  transactions      Transaction[]
-  investments       Investment[]
-  cards             CardAccount[]
-  recurringExpenses RecurringExpense[]
-  walletItems       WalletItemDashboard[]
+  transactions         Transaction[]
+  investments          Investment[]
+  cards                CardAccount[]
+  recurringExpenses    RecurringExpense[]
+  walletItems          WalletItemDashboard[]
   /// Statements belonging to THIS credit account's pool.
-  creditStatements  CreditStatement[] @relation("CreditStatementAccount")
+  creditStatements     CreditStatement[]     @relation("CreditStatementAccount")
   /// Statements (of some OTHER credit account) paid FROM this account.
-  paidStatements    CreditStatement[] @relation("CreditStatementPaidFrom")
-  billingSettings   BillingSettings?
+  paidStatements       CreditStatement[]     @relation("CreditStatementPaidFrom")
+  billingSettings      BillingSettings?
 
   @@index([userId])
   @@index([status])
@@ -157,22 +157,27 @@ enum BillingPaymentMethod {
 /// `BankAccount` (1:1) so it can be reviewed/maintained/searched independently
 /// instead of growing the account table with every billing-related field.
 model BillingSettings {
-  id        String   @id @default(cuid())
-  accountId String   @unique
+  id                    String               @id @default(cuid())
+  accountId             String               @unique
   /// Statement cut-off day (1-28). Drives automatic statement generation (cron +
   /// manual "Generar facturación" button, see `BillingGenerationService`) — when this
   /// day passes, the account's currently OPEN `CreditStatement` (if any) is closed.
-  billingCycleDay Int?
+  billingCycleDay       Int?
   /// Whether the user intends to pay the credit statement manually or automatically.
   /// Stored preference only — AUTOMATIC is currently LOCKED in the UI (not selectable):
   /// the payment-due-date design isn't finalized yet, so no automatic payment can be
   /// scheduled safely (see PENDING.md). Column kept for when that ships.
-  paymentMethod   BillingPaymentMethod @default(MANUAL)
+  paymentMethod         BillingPaymentMethod @default(MANUAL)
   /// Day of month (1-28) the statement is due. Nullable/unused while AUTOMATIC is
   /// locked — no UI writes this yet (see PENDING.md).
-  paymentDueDay   Int?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  paymentDueDay         Int?
+  /// Percentage of a statement that counts as its MINIMUM payment (e.g. 5 = 5%).
+  /// There is no universal rule for this — each issuer sets its own — so it is
+  /// per-account configuration rather than a constant. Null = this account has no
+  /// minimum defined, and the UI offers no "minimum" option for it.
+  minimumPaymentPercent Decimal?             @db.Decimal(5, 2)
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
   account BankAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
 
@@ -187,31 +192,36 @@ model BillingSettings {
 /// OPEN (`closedAt` null, still accumulating) → PENDING (`closedAt` set by
 /// generation, awaiting payment) → PAID (`paidAt` set).
 model CreditStatement {
-  id        String   @id @default(cuid())
-  accountId String
+  id                String    @id @default(cuid())
+  accountId         String
   /// When this period started accumulating (the previous statement's `closedAt`, or
   /// the account's `createdAt` for the very first one).
-  periodStart DateTime
+  periodStart       DateTime
   /// Sealed by generation (cron/manual button) once `billingCycleDay` passes — null
   /// while still open/accumulating.
-  closedAt  DateTime?
+  closedAt          DateTime?
   /// Set when paid. Only then is `amount` meaningful (frozen at pay time) and only
   /// then can `amount` be corrected manually (no cascade to the linked payment
   /// transaction or to `creditUsed` — a deliberate, personal-use simplification).
-  paidAt    DateTime?
+  paidAt            DateTime?
   /// Frozen snapshot amount, set at pay time. Null/ignored while unpaid — the
   /// live amount is computed by summing linked transactions instead.
-  amount    Decimal? @db.Decimal(18, 4)
+  amount            Decimal?  @db.Decimal(18, 4)
+  /// How much of this period has been paid so far. A statement can be settled in
+  /// several payments (pay the minimum now, the rest later), so this ACCUMULATES:
+  /// `paidAt` is only stamped once it reaches the period's amount, and the status
+  /// in between is PARTIALLY_PAID. Zero for a period nobody has paid into yet.
+  paidAmount        Decimal   @default(0) @db.Decimal(18, 4)
   /// The bank account the payment was made from (never the credit account itself).
   paidFromAccountId String?
   /// The real EXPENSE transaction created on `paidFromAccount` at pay time.
-  paidTransactionId String? @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  paidTransactionId String?   @unique
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  account         BankAccount  @relation("CreditStatementAccount", fields: [accountId], references: [id], onDelete: Cascade)
-  paidFromAccount BankAccount? @relation("CreditStatementPaidFrom", fields: [paidFromAccountId], references: [id], onDelete: SetNull)
-  paidTransaction Transaction? @relation(fields: [paidTransactionId], references: [id], onDelete: SetNull)
+  account            BankAccount   @relation("CreditStatementAccount", fields: [accountId], references: [id], onDelete: Cascade)
+  paidFromAccount    BankAccount?  @relation("CreditStatementPaidFrom", fields: [paidFromAccountId], references: [id], onDelete: SetNull)
+  paidTransaction    Transaction?  @relation(fields: [paidTransactionId], references: [id], onDelete: SetNull)
   linkedTransactions Transaction[] @relation("CreditStatementLinkedTransactions")
 
   @@index([accountId])
@@ -313,11 +323,11 @@ model Transaction {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bankAccount     BankAccount?     @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
-  card            CardAccount?     @relation(fields: [cardId], references: [id], onDelete: SetNull)
-  installmentPlan InstallmentPlan? @relation(fields: [installmentPlanId], references: [id], onDelete: SetNull)
-  creditStatement CreditStatement? @relation("CreditStatementLinkedTransactions", fields: [creditStatementId], references: [id], onDelete: SetNull)
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount      BankAccount?     @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  card             CardAccount?     @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  installmentPlan  InstallmentPlan? @relation(fields: [installmentPlanId], references: [id], onDelete: SetNull)
+  creditStatement  CreditStatement? @relation("CreditStatementLinkedTransactions", fields: [creditStatementId], references: [id], onDelete: SetNull)
   /// The (at most one) CreditStatement this transaction was the payment FOR (reverse
   /// of `CreditStatement.paidTransaction`) — distinct from `creditStatement` above.
   paidForStatement CreditStatement?
@@ -538,21 +548,21 @@ model EtfPriceCache {
 // --- Reference data: countries + banks ---
 
 enum BankCategory {
-  ESTABLISHED    // Bancos establecidos en el país
+  ESTABLISHED // Bancos establecidos en el país
   FOREIGN_BRANCH // Sucursales de bancos extranjeros
-  STATE          // Bancos estatales
+  STATE // Bancos estatales
 }
 
 /// ISO 3166-1 country reference. Banks (and future entities) link here.
 model Country {
-  id      String @id @default(cuid())
+  id          String  @id @default(cuid())
   /// ISO 3166-1 alpha-2 (e.g. "CL"). Canonical code used for lookups/auditing.
-  alpha2  String @unique
+  alpha2      String  @unique
   /// ISO 3166-1 alpha-3 (e.g. "CHL").
-  alpha3  String @unique
+  alpha3      String  @unique
   /// ISO 3166-1 numeric (e.g. "152").
-  numeric String @unique
-  name    String
+  numeric     String  @unique
+  name        String
   /// International calling code, with leading "+" (e.g. "+56"). Used to prefix phone numbers so the
   /// user never has to type it — derived from their selected country instead.
   callingCode String?

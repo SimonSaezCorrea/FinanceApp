@@ -5,6 +5,7 @@ import { NestFactory } from "@nestjs/core";
 import cookieParser from "cookie-parser";
 
 import { AppModule } from "./app.module";
+import { registerArtificialDelay } from "./infra/http/artificial-delay.interceptor";
 import { AllExceptionsFilter } from "./infra/http/all-exceptions.filter";
 
 async function bootstrap() {
@@ -16,6 +17,8 @@ async function bootstrap() {
   // Request validation is done with zod (packages/contracts) via per-domain pipes (US2),
   // not Nest's class-validator ValidationPipe.
   app.useGlobalFilters(new AllExceptionsFilter());
+  // Dev-only: simulates production latency so loading states are testable locally.
+  registerArtificialDelay(app, config);
 
   const webOrigin = config.get<string>("CORS_ORIGIN") ?? "http://localhost:5173";
   app.enableCors({ origin: webOrigin, credentials: true });

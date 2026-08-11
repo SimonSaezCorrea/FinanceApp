@@ -24,7 +24,11 @@ vi.mock("../../accounts/api/accountsApi", () => ({
   accountsApi: { list: vi.fn().mockResolvedValue([]) },
 }));
 vi.mock("../../transactions/api/transactionsApi", () => ({
-  transactionsApi: { list: vi.fn().mockResolvedValue([]) },
+  transactionsApi: {
+    list: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
+    // The monthly movement count comes from the aggregate endpoint now.
+    summary: vi.fn().mockResolvedValue({ total: 0, currencyTotals: [], categories: [] }),
+  },
 }));
 
 describe("ProfileCard", () => {

@@ -7,6 +7,5 @@ describe("PaidState", () => {
   it("rejects close, rejects pay, allows correctAmount", () => {
     expect(state.canClose()).toBe(false);
     expect(state.canPay()).toBe(false);
-    expect(state.canCorrectAmount()).toBe(true);
   });
 });

@@ -20,7 +20,6 @@ import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { AddCardCommand } from "../application/commands/add-card.command";
 import { CreateAccountCommand } from "../application/commands/create-account.command";
-import { ReconcileAccountCommand } from "../application/commands/reconcile-account.command";
 import { RemoveAccountCommand } from "../application/commands/remove-account.command";
 import { RemoveCardCommand } from "../application/commands/remove-card.command";
 import { SetAccountStatusCommand } from "../application/commands/set-account-status.command";
@@ -84,14 +83,6 @@ export class AccountsController {
     @Body(new ZodValidationPipe(accounts.setAccountStatusSchema)) body: accounts.SetAccountStatus,
   ): Promise<accounts.BankAccount> {
     return this.commandBus.execute(new SetAccountStatusCommand(user.id, params.id, body.status));
-  }
-
-  @Post(":id/reconcile")
-  reconcile(
-    @CurrentUser() user: AuthUser,
-    @Param(new ZodParamsPipe(accountIdParamsSchema)) params: { id: string },
-  ): Promise<accounts.BankAccount> {
-    return this.commandBus.execute(new ReconcileAccountCommand(user.id, params.id));
   }
 
   // Billing periods (`/accounts/:id/credit-statements*`, `/generate-statements`)

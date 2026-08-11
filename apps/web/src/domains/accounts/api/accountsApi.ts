@@ -28,25 +28,22 @@ export const accountsApi = {
       body: JSON.stringify({ status }),
     }),
 
-  reconcile: (id: string) =>
-    apiFetch<accounts.BankAccount>(`/accounts/${id}/reconcile`, { method: "POST" }),
-
   creditStatements: (id: string) =>
     apiFetch<accounts.CreditStatement[]>(`/accounts/${id}/credit-statements`),
 
   generateStatements: (id: string) =>
     apiFetch<accounts.CreditStatement[]>(`/accounts/${id}/generate-statements`, { method: "POST" }),
 
-  payCreditStatement: (id: string, statementId: string, fromAccountId: string) =>
+  payCreditStatement: (id: string, statementId: string, body: accounts.PayCreditStatement) =>
     apiFetch<accounts.CreditStatement>(`/accounts/${id}/credit-statements/${statementId}/pay`, {
       method: "POST",
-      body: JSON.stringify({ fromAccountId }),
+      body: JSON.stringify(body),
     }),
 
-  updateCreditStatement: (id: string, statementId: string, amount: string) =>
-    apiFetch<accounts.CreditStatement>(`/accounts/${id}/credit-statements/${statementId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ amount }),
+  /** Reconcile a period against the movements dated inside it. */
+  syncCreditStatement: (id: string, statementId: string) =>
+    apiFetch<accounts.CreditStatement>(`/accounts/${id}/credit-statements/${statementId}/sync`, {
+      method: "POST",
     }),
 
   remove: (id: string) => apiFetch<void>(`/accounts/${id}`, { method: "DELETE" }),

@@ -1,4 +1,110 @@
 <!--
+Sync Impact Report — 2026-08-07 (amendment 1.28.0)
+- Version change: 1.27.0 → 1.28.0 (MINOR: new enforceable rule under the banking-domain norms; the
+  manual balance-reconciliation endpoint is withdrawn).
+- Banking-domain norms gain **"A derived total maintains itself"**: a persisted total that is defined
+  as a sum of rows (`BankAccount.currentBalance` = initialBalance + Σincome − Σexpense) MUST be
+  updated by every write that changes those rows, inside the SAME database transaction as the row
+  itself. It MUST NOT depend on a user-triggered "recalculate" action: a total that only refreshes
+  when someone presses a button is wrong for as long as nobody presses it, and every view that reads
+  it is quietly wrong too. The signed delta belongs in ONE named place
+  (`transaction/domain/balance-delta.ts`), never re-spelled per call site.
+- Withdrawn: `POST /accounts/:id/reconcile` and `BankAccount.reconcileBalance` — with the balance
+  maintained on every movement there is nothing left to reconcile, and keeping a manual override
+  invites the two paths to disagree.
+- First application: `BankAccountRepositoryPort.incrementBalanceWithTx`, the `balanceDeltas`
+  argument threaded through `saveNew`/`saveUpdate`/`removeWithCreditAdjustment`, and an e2e that
+  creates, edits and deletes a movement asserting the balance after each step.
+- Propagated in the same session: CLAUDE.md (`bank-account` domain description).
+
+<!--
+Sync Impact Report — 2026-08-07 (amendment 1.27.0)
+- Version change: 1.26.0 → 1.27.0 (MINOR: new enforceable rule under the banking-domain norms; the
+  previous "manual correction" allowance is withdrawn; no principle removed or redefined).
+- Banking-domain norms gain **"Reconcile, never re-type"**: a stored financial figure that can drift
+  from the movements behind it MUST be fixable by RECOMPUTING it from those movements, never by
+  letting the user type a replacement. Reconciliation MUST be total — it recomputes from the period's
+  DATE WINDOW (not from stale links), re-links the movements it found, and cascades to everything
+  derived from the old figure (the payment movement and the account's `creditUsed`) inside ONE
+  database transaction, so a period is never left half-reconciled.
+- Withdrawn: the 2026-07-25 allowance for correcting a PAID statement's frozen amount by hand "with
+  no cascade" — that rule let the app hold a number nothing supported. `correctAmount`,
+  `canCorrectAmount`, the PATCH endpoint and `updateCreditStatementSchema` are removed.
+- First application: `POST /accounts/:id/credit-statements/:statementId/sync`
+  (`SyncStatementHandler`), `CreditStatement.syncAmount`, `netForPeriod`,
+  `relinkToStatementWithTx`, `updateAmountWithTx`, and the per-row "Sincronizar pagos" button.
+- Propagated in the same session: CLAUDE.md (`credit-statement` amendment).
+
+<!--
+Sync Impact Report — 2026-08-07 (amendment 1.26.0)
+- Version change: 1.25.0 → 1.26.0 (MINOR: new enforceable rule under the banking-domain norms; no
+  principle removed or redefined).
+- Banking-domain norms gain **"Settlement is accumulated, never a flag"**: a billing period that can
+  be paid in more than one go MUST accumulate what has been settled (`CreditStatement.paidAmount`)
+  instead of flipping a boolean/date. Its status stays DERIVED (no stored `status` column) — OPEN →
+  PENDING → PARTIALLY_PAID → PAID — and the period's `amount` FREEZES only when it is fully settled,
+  because until then it is the live sum of its linked transactions. A payment MUST decrement the
+  account's `creditUsed` by the amount actually paid, never by the period's total. A payment larger
+  than what is still owed MUST be REJECTED (`PAYMENT_EXCEEDS_REMAINING`), never silently capped: a
+  wrong figure in a money form must not be quietly "corrected". A partially paid period MUST refuse
+  a manual amount correction, for the same reason PENDING already does.
+- Banking-domain norms also gain **"No invented financial rules"**: a figure with no universal
+  definition (here, the minimum payment) is per-account CONFIGURATION
+  (`BillingSettings.minimumPaymentPercent`), never a constant baked into code. An account without it
+  configured simply has no minimum, and the UI offers no such option instead of defaulting to one.
+  A statement's composition (purchases vs installment charges) is DERIVED from its own linked
+  transactions — never stored, never estimated; a concept the model doesn't have (interest) is not
+  displayed at all.
+- Schema: `CreditStatement.paidAmount`, `BillingSettings.minimumPaymentPercent`. Contract:
+  `creditStatementStatus` gains PARTIALLY_PAID; `CreditStatement` gains `paidAmount`,
+  `remainingAmount`, `minimumAmount`, `breakdown`; `payCreditStatementSchema` gains optional
+  `amount`/`paidAt`/`reference`; `BankAccount` gains `minimumPaymentPercent`.
+- First application: `PartiallyPaidState`, `CreditStatement.payTowards`, the shared
+  `statement-dto.mapper.ts`, and the web `PayStatementPanel` (Total/Minimum/Other amount).
+- Propagated in the same session: CLAUDE.md (`credit-statement` amendment).
+
+<!--
+Sync Impact Report — 2026-08-05 (amendment 1.25.0, extended the same day)
+- Version change: 1.24.0 → 1.25.0 (MINOR: new enforceable rule under the design-system norms; no
+  principle removed or redefined).
+- Design-system norms gain **"One overlay family"**: every dialog in `apps/web` MUST be built from
+  `shared/ui/overlay/` and MUST NOT hand-roll its own frame. `ResponsiveSurface` is the default
+  (full-screen `Window` below 420px, centered `Modal` above); `ConfirmModal` is ALWAYS a modal —
+  an alert must never become a full-screen screen, since it interrupts and may stack on another
+  surface. A modal's backdrop MUST blur as well as darken. Header/body/footer come from
+  `SurfaceChrome`, so the title, the way out and the action bar sit in the same place in every
+  context; opinionated variants (`FormSurface`'s create/edit modes) are built ON TOP of the chrome
+  rather than by adding flags to it. A route that becomes a full-screen screen on a phone uses
+  `WindowScreen` instead of re-inventing sheet classes.
+- Design-system norms also gain **"Container width, not viewport, when a sibling moves"** (measured
+  width via `useElementWidth`, first applied to `TransactionTable`'s full-vs-compact switch) and
+  **"Breakpoint stages"**: Tailwind's default scale with a stipulated
+  meaning per step (base phone / `sm` end-of-phone / `md`+`lg` tablet / `xl` widest tablet /
+  `2xl` desktop), documented in `apps/web/breakpoints.ts`, which is also the single source the JS media
+  queries derive from. No custom screens, no arbitrary pixel values in classes or query strings.
+- Removed: `shared/ui/dialog.tsx`, `shared/ui/confirm-dialog.tsx` (all 19 call sites migrated), and
+  `CardDetailModal` — the card's detail/edit is now `CardDetailPanel` inside three shells (inline
+  accordion in the desktop aside, `Drawer` on tablet, `Window` on phone).
+- Propagated in the same session: CLAUDE.md (`apps/web` overlay amendment).
+
+<!--
+Sync Impact Report — 2026-08-05 (amendment 1.24.0)
+- Version change: 1.23.0 → 1.24.0 (MINOR: new enforceable rule under Architecture norms; no
+  principle removed or redefined).
+- Architecture norms gain **"Unbounded list growth (paginated reads)"**: a list endpoint whose rows
+  grow without limit MUST use keyset pagination over a *total* sort key (`(occurredAt, id)`) with an
+  opaque `cursor` + `limit`, returning `{ items, nextCursor }`. Offset pagination is banned (rows are
+  inserted/deleted mid-scroll, so offsets skip and repeat). An unrecognized cursor is REJECTED
+  (`INVALID_CURSOR`), never treated as "start over" — that loops a paginating client forever.
+  Aggregates over a paginated set (counts, sums, distinct values) MUST be computed in the database and
+  served separately, never folded from whichever pages a client has loaded.
+- First application: `GET /transactions` (response shape changed from a bare array to
+  `{ items, nextCursor }`; `limit` omitted still returns everything, which the dashboard relies on)
+  plus the new `GET /transactions/summary` and a server-side `category` filter that replaces the old
+  client-side category search. Web adds `useInfiniteTransactions`/`useTransactionsSummary` and
+  `shared/ui/infinite-scroll-sentinel.tsx`.
+- Propagated in the same session: CLAUDE.md (`transaction` domain amendment).
+
 Sync Impact Report — 2026-07-30 (amendment 1.23.0)
 - Version change: 1.22.1 → 1.23.0 (MINOR: Principle VI gains a new, enforceable structural rule; no
   principle removed or redefined).
@@ -672,6 +778,44 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
   - **One-way dependencies:** `apps → packages`; `packages ↛ apps`; `api ↛ web`. Enforced by
     `pnpm check:boundaries` (the frontend must not import backend internals or any DB client).
   - **Validation with zod** (`ZodValidationPipe`), not class-validator.
+  - **Unbounded list growth (paginated reads):** a list endpoint whose rows grow without limit
+    (`transaction` today) MUST offer **keyset pagination** — an opaque `cursor` over a _total_
+    sort key (`(occurredAt, id)`, never a bare timestamp) plus `limit`, returning
+    `{ items, nextCursor }`. Offset pagination is NOT used: rows are inserted and deleted while
+    the user scrolls, which makes offsets skip and repeat records. A cursor the API didn't issue
+    is **rejected** (`INVALID_CURSOR`), never silently treated as "start over" — that turns a
+    paginating client into an infinite loop. **Aggregates over a paginated set (counts, sums,
+    distinct values) MUST be computed in the database and served separately** (e.g.
+    `GET /transactions/summary`), never folded from the rows a client happens to have loaded:
+    a KPI derived from page one is a wrong number, not an approximation.
+  - **Breakpoint stages (web):** the responsive scale is Tailwind's DEFAULT one, with a fixed meaning
+    per step: base = phone, `sm` (640) = end of phone/start of tablet, `md` (768) = tablet, `lg` (1024)
+    = tablet, `xl` (1280) = widest tablet, `2xl` (1536) = desktop.
+    Custom screens, arbitrary `min-[NNNpx]:` classes and inline `(min-width: NNNpx)` strings are NOT
+    used; `apps/web/breakpoints.ts` documents the stages and is the single source the JS media queries
+    derive from (`minWidth(name)`), so a view's CSS and its structural JS always switch at the same
+    width. Rationale: the gap between a CSS breakpoint and a differing JS one is a state nobody
+    designed — a shipped instance hid a desktop aside and its mobile tab at once, making the content
+    unreachable.
+  - **Container width, not viewport, when a sibling moves (web):** if the space a component gets can
+    change without the viewport changing (the collapsible sidebar), the layout decision MUST read the
+    element's own measured width (`shared/lib/useElementWidth.ts`) rather than a breakpoint. A media
+    query cannot distinguish "1024px with the sidebar collapsed" from "1024px with it expanded", so a
+    breakpoint-only rule necessarily gets one of the two wrong.
+  - **One overlay family (web):** every dialog is built from `apps/web/src/shared/ui/overlay/` and
+    MUST NOT hand-roll its own frame. `ResponsiveSurface` is the default (full-screen `Window` below
+    420px, centered `Modal` above; the choice is a media query, so only one structure is mounted);
+    `ConfirmModal` is **always** a modal — an alert interrupts, may stack on top of another surface,
+    and turning it into a full screen would hide the very thing being asked about. A modal's backdrop
+    blurs as well as darkens. Header (`leading`/title/`headerAside`/close), single scrolling body and
+    pinned footer come from `SurfaceChrome`, so those land in the same place in every context;
+    opinionated variants (`FormSurface`'s `create`/`edit` modes) are composed ON TOP of the chrome,
+    never added as flags inside it. A route that becomes a full-screen screen on a phone uses
+    `WindowScreen`. When a form's submit lives in the surface footer, they are wired with
+    `formId` + `form="<id>"` — one form, one action bar. Where a width has room to show a record
+    beside its list (the desktop cards aside), the detail is shown **inline** instead of in an
+    overlay, and the same content component is reused across the inline/drawer/window forms — the
+    same information MUST NOT be rendered twice at once.
   - **Persistence naming:** Prisma **model** names are PascalCase; the physical **DB table** name MUST
     be **kebab-case via `@@map`** (e.g. `BankAccount` → `bank-account`, `CardAccount` → `card-account`,
     `WalletItemDashboard` → `wallet-item-dashboard`). Every model carries an `@@map`. No unused/legacy
@@ -727,4 +871,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.23.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-07-30
+**Version**: 1.28.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-07

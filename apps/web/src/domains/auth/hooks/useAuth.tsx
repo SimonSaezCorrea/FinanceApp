@@ -2,6 +2,7 @@ import { type ReactNode, createContext, useContext, useEffect, useMemo, useState
 
 import type { auth } from "@finance/contracts";
 
+import { resetAuthRefresh } from "../../../shared/lib/apiClient";
 import { authApi } from "../api/authApi";
 
 interface AuthContextValue {
@@ -34,8 +35,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       loading,
-      login: async (email, password) => setUser(await authApi.login({ email, password })),
-      register: async (input) => setUser(await authApi.register(input)),
+      // `resetAuthRefresh` re-arms the silent refresh: it disables itself after a
+      // failure so a dead session can't be re-asked on every request, and a fresh
+      // login is exactly the event that makes it valid again.
+      login: async (email, password) => {
+        const next = await authApi.login({ email, password });
+        resetAuthRefresh();
+        setUser(next);
+      },
+      register: async (input) => {
+        const next = await authApi.register(input);
+        resetAuthRefresh();
+        setUser(next);
+      },
       logout: async () => {
         await authApi.logout();
         setUser(null);

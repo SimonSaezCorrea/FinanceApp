@@ -1,14 +1,19 @@
 {
-  "brand": { "name": "FinanceApp" },
+  "brand": {
+    "name": "FinanceApp"
+  },
   "app": {
     "loading": "Loading…",
-    "welcome": "Personal finance dashboard"
+    "loadingMore": "Loading more…",
+    "welcome": "Personal finance dashboard",
+    "bootstrapping": "Setting up your session…"
   },
   "common": {
     "cancel": "Cancel",
     "save": "Save",
     "edit": "Edit",
     "delete": "Delete",
+    "options": "Options",
     "confirmDeleteTitle": "Delete item?",
     "confirmDelete": "This action cannot be undone.",
     "noResults": "No results.",
@@ -18,7 +23,10 @@
       "WEEKLY": "Weekly",
       "MONTHLY": "Monthly",
       "YEARLY": "Yearly"
-    }
+    },
+    "unsaved": "Unsaved",
+    "saveChanges": "Save changes",
+    "create": "Create"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -37,11 +45,13 @@
   "accounts": {
     "title": "Accounts",
     "empty": "You don't have any accounts yet.",
+    "deleted": "Account deleted",
+    "deleteConfirm": "Delete this account?",
+    "deleteConfirmDescription": "It will be permanently deleted, along with its cards and billing.",
     "new": "New account",
     "newSubtitle": "Register a bank account, card, or cash",
     "currentBalance": "Current balance",
     "summary": "{{accounts}} accounts · {{currencies}} currencies",
-    "countLabel": "{{count}} account(s)",
     "type": {
       "CHECKING": "Checking",
       "SIGHT": "Sight",
@@ -50,8 +60,35 @@
       "CREDIT_LINE": "Credit card",
       "CASH": "Cash"
     },
-    "status": { "label": "Status", "ACTIVE": "Active", "INACTIVE": "Inactive" },
-    "card": { "usage": "{{pct}}% used", "creditUsed": "Credit used" },
+    "status": {
+      "label": "Status",
+      "ACTIVE": "Active",
+      "INACTIVE": "Inactive"
+    },
+    "card": {
+      "usage": "{{pct}}% used",
+      "creditUsed": "Credit used",
+      "cardPool": "Card ···· {{last4}}",
+      "trend": "{{pct}}% this month",
+      "billedOn": "Billed on the {{day}}th of each month"
+    },
+    "overview": {
+      "netWorth": "Total net worth",
+      "netWorthHint": "· net, approx. in {{currency}}",
+      "assets": "Assets",
+      "cardDebt": "Card debt"
+    },
+    "groupBy": {
+      "label": "Group by:",
+      "currency": "Currency",
+      "type": "Account type",
+      "institution": "Institution",
+      "status": "Status",
+      "none": "No grouping",
+      "noInstitution": "No institution",
+      "allAccounts": "All accounts",
+      "count": "{{count}} account(s)"
+    },
     "balanceLabel": "Balance",
     "detail": {
       "change": "Change",
@@ -69,12 +106,38 @@
       "billingStatusValue": {
         "OPEN": "Open",
         "PENDING": "Pending",
-        "PAID": "Paid"
+        "PAID": "Paid",
+        "PARTIALLY_PAID": "Partially paid"
       },
       "payFromAccount": "Pay with",
       "payFromAccountPlaceholder": "Select an account",
-      "correctAmountHint": "Correct this already-paid statement's amount. Doesn't affect the payment transaction already created or the used credit.",
-      "correctAmountConfirm": "Correct this statement's amount?"
+      "payTitle": "Pay statement",
+      "paySummaryAmount": "Amount due",
+      "payToAccount": "Statement for",
+      "payThisAccount": "This account",
+      "payInsufficient": "This account's balance is lower than the amount due.",
+      "payDifferentCurrency": "This account is in another currency; no conversion is applied.",
+      "payCreatesMovement": "An expense will be recorded in the selected account and the statement marked as paid.",
+      "payEyebrow": "Pay statement",
+      "payPeriodTitle": "Period {{date}}",
+      "payBalanceAfter": "Balance after payment",
+      "payAction": "Pay {{amount}}",
+      "payModeTotal": "Total",
+      "payModeMinimum": "Minimum",
+      "payModeCustom": "Other amount",
+      "payCoversTotal": "Covers the whole statement.",
+      "payCoversMinimum": "This account's minimum ({{percent}}% of the period).",
+      "payCoversCustom": "A balance will remain for the next payment.",
+      "payBreakdownPurchases": "Purchases in the period",
+      "payBreakdownInstallments": "Installments this month ({{count}})",
+      "payAmountLabel": "Amount",
+      "payRemainingAfter": "Balance left after payment",
+      "payDate": "Payment date",
+      "payReference": "Reference (optional)",
+      "payReferencePlaceholder": "e.g. Transfer 4412",
+      "payAlreadyPaid": "Paid so far",
+      "payMinimumUnset": "This account has no minimum payment configured. You can set it in the account’s billing settings (Minimum payment %).",
+      "payMinimumCovered": "You have already paid more than this period’s minimum."
     },
     "filter": {
       "label": "Filter by status",
@@ -109,22 +172,54 @@
       "sectionBalanceCurrency": "Balance and currency",
       "preview": "Preview",
       "editLaterHint": "You'll be able to edit all this later.",
-      "createSubmit": "Create account"
+      "createSubmit": "Create account",
+      "optional": "Optional",
+      "availableResult": "Resulting available",
+      "unsavedChanges": "Unsaved changes",
+      "accountActiveHint": "Shows up in summaries, filters and new movements.",
+      "sections": {
+        "identification": "Identification",
+        "identificationHint": "How the account shows up in lists, filters and movements.",
+        "credit": "Credit",
+        "creditHint": "The total limit mirrors the primary card's limit.",
+        "balance": "Balance",
+        "balanceHint": "The account's currency and the balance it was created with.",
+        "billing": "Billing",
+        "billingHint": "On the billing day the statement is generated pending payment.",
+        "status": "Status",
+        "statusHint": "An inactive account is hidden from summaries but keeps its history."
+      },
+      "minimumPercent": "Minimum payment (%)",
+      "minimumPercentHint": "Percentage of the period your issuer accepts as a minimum payment. Empty = no minimum."
     },
     "actions": {
       "edit": "Edit",
       "save": "Save",
       "delete": "Delete",
-      "reconcile": "Reconcile balance",
       "activate": "Activate",
       "deactivate": "Deactivate",
       "payCredit": "Pay statement",
       "payCreditConfirm": "Pay {{amount}} of your statement? It will be deducted from used credit.",
       "payCreditSuccess": "Statement paid",
       "generateStatements": "Generate statement",
+      "generateStatementsConfirm": "Generate the statement?",
+      "generateStatementsConfirmDescription": "The open period will be closed and left pending payment. Later movements go to the next period.",
       "generateStatementsSuccess": "Statements refreshed",
-      "correctAmount": "Correct amount",
-      "correctAmountSuccess": "Amount corrected"
+      "syncStatement": "Sync payments",
+      "syncStatementConfirm": "Sync this statement?",
+      "syncStatementConfirmDescription": "The period's amount will be recalculated from the movements dated inside it. If it was already paid, the payment movement and the used credit are adjusted to match.",
+      "syncStatementSuccess": "Statement synced"
+    },
+    "updated": "Account updated",
+    "edit": {
+      "title": "Edit",
+      "cardsNotEditable": "Not editable here",
+      "cardsAsideHint": "They are managed from each card's own detail. Save the account changes to go back.",
+      "titleMobile": "Edit account",
+      "deleteAccount": "Delete account",
+      "leaveConfirm": "Leave without saving?",
+      "leaveConfirmDescription": "You have unsaved changes on this account. If you leave now they will be lost.",
+      "leaveDiscard": "Discard changes"
     }
   },
   "cards": {
@@ -145,7 +240,11 @@
     "updated": "Card updated",
     "deleted": "Card deleted",
     "deleteConfirm": "Delete this card?",
-    "kind": { "CREDIT": "Credit", "DEBIT": "Debit", "PREPAID": "Prepaid" },
+    "kind": {
+      "CREDIT": "Credit",
+      "DEBIT": "Debit",
+      "PREPAID": "Prepaid"
+    },
     "form": {
       "name": "Card name (optional)",
       "namePlaceholder": "E.g. Main card",
@@ -153,6 +252,7 @@
       "parent": "Primary card (secondary)",
       "parentNone": "None (primary)",
       "expiry": "Expires",
+      "expiryPlaceholder": "MM/YY",
       "last4": "Last 4 digits",
       "last4Hint": "Only the last 4 digits are stored.",
       "limits": "Limits per currency",
@@ -170,13 +270,33 @@
       "usesPoolHint": "This card shares the account's full pool.",
       "ownLimit": "Own limit",
       "ownLimitHint": "Set an independent limit for this card (can't exceed the account's pool in the same currency).",
-      "ownLimitRowsHint": "Add at least one limit per currency."
+      "ownLimitRowsHint": "Add at least one limit per currency.",
+      "active": "Card active",
+      "activeHint": "An inactive card keeps its history but no longer appears when recording movements."
     },
     "errors": {
       "last4": "Enter the last 4 digits.",
       "expiry": "Enter a valid expiry date (MM/YY).",
       "limitRequired": "Enter a valid limit for this card."
-    }
+    },
+    "deleteConfirmDescription": "It will be permanently deleted, along with everything tied to it.",
+    "detail": {
+      "title": "Card detail",
+      "available": "Available {{amount}}",
+      "role": "Role",
+      "holder": "Holder",
+      "limitSource": "Limit source",
+      "ownLimit": "Own limit",
+      "accountPool": "Account pool",
+      "movements": "Recent movements",
+      "editingThis": "Editing this card",
+      "filteringTable": "Filtering the table ←",
+      "filteringTableHint": "The table on the left is already filtered by this card",
+      "expiry": "Expires",
+      "availableLabel": "Available"
+    },
+    "showInactive": "Show inactive",
+    "inactiveBadge": "Inactive"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -225,7 +345,10 @@
     "subtitle": "{{month}} · {{count}} transactions",
     "subtitleRange": "{{range}} · {{count}} transactions",
     "subtitleAll": "All time · {{count}} transactions",
-    "type": { "INCOME": "Income", "EXPENSE": "Expense" },
+    "type": {
+      "INCOME": "Income",
+      "EXPENSE": "Expense"
+    },
     "form": {
       "type": "Type",
       "amount": "Amount",
@@ -273,7 +396,8 @@
       "noCategory": "Uncategorized",
       "noAccount": "No account",
       "import": "Import"
-    }
+    },
+    "count": "{{count}} movements"
   },
   "installments": {
     "title": "Installments",
@@ -350,7 +474,10 @@
     "new": "New debt",
     "created": "Debt created",
     "subtitle": "{{count}} active debts · {{people}} people",
-    "direction": { "OWED_TO_YOU": "Owed to you", "YOU_OWE": "You owe" },
+    "direction": {
+      "OWED_TO_YOU": "Owed to you",
+      "YOU_OWE": "You owe"
+    },
     "kpi": {
       "owedToYou": "Owed to you",
       "youOwe": "You owe",
@@ -411,7 +538,11 @@
     "deleted": "Recurring expense deleted",
     "inactive": "Inactive",
     "next": "Next: {{date}}",
-    "frequency": { "WEEKLY": "Weekly", "MONTHLY": "Monthly", "YEARLY": "Yearly" },
+    "frequency": {
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly",
+      "YEARLY": "Yearly"
+    },
     "form": {
       "label": "Name",
       "amount": "Amount",
@@ -428,7 +559,10 @@
   "investments": {
     "title": "Investments",
     "empty": "You don't have any investments yet.",
-    "kind": { "ETF": "ETF", "REMUNERATED_ACCOUNT": "Remunerated account" }
+    "kind": {
+      "ETF": "ETF",
+      "REMUNERATED_ACCOUNT": "Remunerated account"
+    }
   },
   "import": {
     "title": "Import",
@@ -448,7 +582,9 @@
   "profile": {
     "title": "Profile",
     "ageYears": "{{age}} years old",
-    "plan": { "personal": "Personal plan" },
+    "plan": {
+      "personal": "Personal plan"
+    },
     "stats": {
       "accounts": "Accounts",
       "monthlyMovements": "Mov./mo.",
@@ -613,6 +749,8 @@
     "CARD_LIMIT_REQUIRED": "Enter a limit for this credit card.",
     "PARENT_CARD_INVALID": "The selected primary card is invalid.",
     "INVALID_CURRENT_PASSWORD": "Your current password is incorrect.",
-    "ACCOUNT_DISABLED": "This account is disabled."
+    "ACCOUNT_DISABLED": "This account is disabled.",
+    "PAYMENT_EXCEEDS_REMAINING": "The amount is more than what this statement still owes.",
+    "INVALID_PAYMENT_AMOUNT": "Enter an amount greater than zero."
   }
 }

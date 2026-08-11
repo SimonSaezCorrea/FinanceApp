@@ -158,6 +158,7 @@ export function accountToDto(
     creditPools,
     billingCycleDay: snap.billingCycleDay,
     paymentMethod: snap.paymentMethod,
+    minimumPaymentPercent: snap.minimumPaymentPercent,
     balanceSeries: series.series,
     balanceChangePct: series.balanceChangePct,
     cards: cardsDto,

@@ -1,6 +1,11 @@
+import path from "node:path";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
+import { config as loadEnv } from "dotenv";
+
+// tsx doesn't load apps/api/.env on its own.
+loadEnv({ path: path.join(__dirname, "..", ".env") });
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
@@ -66,6 +71,11 @@ async function seedFullUser(passwordHash: string) {
     | "debitCamila"
     | "debitSofia"
     | "debitRosa"
+    // Add-on CREDIT card the bank issued on the checking account (its own pool).
+    | "creditBch"
+    // Cuenta Vista: one debit + one add-on credit card.
+    | "debitVista"
+    | "creditVista"
     | "credit"
     | "creditCamila"
     | "creditSofia";
@@ -1123,6 +1133,341 @@ async function seedFullUser(passwordHash: string) {
       category: "Supermercado",
       description: "Feria libre",
     },
+    // ===== Add-on credit card on the checking account (billing history) =====
+    {
+      acct: "checking",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 129_990,
+      at: "2026-04-11T16:20:00Z",
+      category: "Compras",
+      description: "Audífonos · Falabella",
+    },
+    {
+      acct: "checking",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 58_400,
+      at: "2026-05-02T20:00:00Z",
+      category: "Restaurantes",
+      description: "Cena aniversario",
+    },
+    {
+      acct: "checking",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 213_500,
+      at: "2026-05-19T11:00:00Z",
+      category: "Salud",
+      description: "Exámenes médicos · Clínica Alemana",
+    },
+    {
+      acct: "checking",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 76_800,
+      at: "2026-06-08T19:30:00Z",
+      category: "Compras",
+      description: "Ropa · H&M",
+    },
+    {
+      acct: "checking",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 44_900,
+      at: "2026-06-24T14:00:00Z",
+      category: "Entretención",
+      description: "Steam · videojuegos",
+    },
+    {
+      acct: "checking",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 91_200,
+      at: "2026-07-02T18:00:00Z",
+      category: "Transporte",
+      description: "Mantención auto",
+    },
+    // ==================== Late July 2026 ====================
+    {
+      acct: "checking",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 89_900,
+      at: "2026-07-18T20:10:00Z",
+      category: "Compras",
+      description: "Zapatillas · Sparta",
+    },
+    {
+      acct: "checking",
+      card: "debitCamila",
+      type: "EXPENSE",
+      amount: 47_300,
+      at: "2026-07-19T13:00:00Z",
+      category: "Supermercado",
+      description: "Líder Kennedy · Camila",
+    },
+    {
+      acct: "sight",
+      card: "creditVista",
+      type: "EXPENSE",
+      amount: 34_500,
+      at: "2026-07-20T21:30:00Z",
+      category: "Restaurantes",
+      description: "Cena · Ñuñoa",
+    },
+    {
+      acct: "sight",
+      card: "debitVista",
+      type: "EXPENSE",
+      amount: 12_900,
+      at: "2026-07-22T09:00:00Z",
+      category: "Transporte",
+      description: "Carga Bip!",
+    },
+    {
+      acct: "credit",
+      card: "credit",
+      type: "EXPENSE",
+      amount: 52_400,
+      at: "2026-07-23T19:00:00Z",
+      category: "Supermercado",
+      description: "Tottus Falabella",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 620_000,
+      at: "2026-07-25T09:00:00Z",
+      category: "Vivienda",
+      description: "Arriendo julio",
+    },
+    {
+      acct: "checking",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 41_990,
+      at: "2026-07-27T18:40:00Z",
+      category: "Salud",
+      description: "Farmacia Ahumada",
+    },
+    {
+      acct: "cash",
+      type: "EXPENSE",
+      amount: 7_500,
+      at: "2026-07-28T11:00:00Z",
+      category: "Restaurantes",
+      description: "Almuerzo",
+    },
+    {
+      acct: "credit",
+      card: "creditSofia",
+      type: "EXPENSE",
+      amount: 38_700,
+      at: "2026-07-29T17:20:00Z",
+      category: "Compras",
+      description: "Falabella · Sofía",
+    },
+    // ==================== August 2026 (up to today, 2026-08-01) ====================
+    {
+      acct: "checking",
+      type: "INCOME",
+      amount: 2_100_000,
+      at: "2026-08-01T09:00:00Z",
+      category: "Sueldo",
+      description: "Sueldo agosto",
+    },
+    {
+      acct: "sight",
+      type: "INCOME",
+      amount: 180_000,
+      at: "2026-08-01T10:00:00Z",
+      category: "Otros",
+      description: "Transferencia desde cuenta corriente",
+    },
+    {
+      acct: "checking",
+      card: "debit",
+      type: "EXPENSE",
+      amount: 58_400,
+      at: "2026-08-01T19:15:00Z",
+      category: "Supermercado",
+      description: "Jumbo Costanera",
+    },
+    // ============ August 2026 (future — hasta el 21 de agosto) ============
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 33_900,
+      at: "2026-08-03T12:00:00Z",
+      category: "Servicios",
+      description: "Cuenta de luz · Enel",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 19_800,
+      at: "2026-08-03T12:05:00Z",
+      category: "Servicios",
+      description: "Cuenta de agua · Aguas Andinas",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 29_990,
+      at: "2026-08-04T10:00:00Z",
+      category: "Servicios",
+      description: "Internet · VTR",
+    },
+    {
+      acct: "checking",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 74_500,
+      at: "2026-08-05T20:00:00Z",
+      category: "Compras",
+      description: "Ropa de invierno · Paris",
+    },
+    {
+      acct: "checking",
+      card: "debit",
+      type: "EXPENSE",
+      amount: 44_200,
+      at: "2026-08-06T08:20:00Z",
+      category: "Transporte",
+      description: "Bencina · Copec",
+    },
+    {
+      acct: "sight",
+      card: "creditVista",
+      type: "EXPENSE",
+      amount: 27_900,
+      at: "2026-08-07T21:00:00Z",
+      category: "Restaurantes",
+      description: "Delivery · PedidosYa",
+    },
+    {
+      acct: "credit",
+      card: "credit",
+      type: "EXPENSE",
+      amount: 96_000,
+      at: "2026-08-08T18:30:00Z",
+      category: "Compras",
+      description: "Electrodomésticos · Falabella",
+    },
+    {
+      acct: "checking",
+      card: "debitSofia",
+      type: "EXPENSE",
+      amount: 23_400,
+      at: "2026-08-09T16:00:00Z",
+      category: "Entretención",
+      description: "Cine · Sofía",
+    },
+    {
+      acct: "cash",
+      type: "EXPENSE",
+      amount: 12_000,
+      at: "2026-08-10T11:30:00Z",
+      category: "Supermercado",
+      description: "Feria libre",
+    },
+    {
+      acct: "checking",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 118_000,
+      at: "2026-08-11T19:45:00Z",
+      category: "Salud",
+      description: "Consulta dental",
+    },
+    {
+      acct: "sight",
+      card: "debitVista",
+      type: "EXPENSE",
+      amount: 9_990,
+      at: "2026-08-12T09:30:00Z",
+      category: "Suscripciones",
+      description: "Spotify Familiar",
+    },
+    {
+      acct: "credit",
+      card: "creditCamila",
+      type: "EXPENSE",
+      amount: 45_600,
+      at: "2026-08-13T17:10:00Z",
+      category: "Compras",
+      description: "Falabella Plaza Egaña · Camila",
+    },
+    {
+      acct: "checking",
+      card: "debit",
+      type: "EXPENSE",
+      amount: 66_700,
+      at: "2026-08-14T19:00:00Z",
+      category: "Supermercado",
+      description: "Unimarc",
+    },
+    {
+      acct: "checking",
+      type: "INCOME",
+      amount: 340_000,
+      at: "2026-08-15T10:00:00Z",
+      category: "Otros",
+      description: "Proyecto freelance",
+    },
+    {
+      acct: "sight",
+      card: "creditVista",
+      type: "EXPENSE",
+      amount: 63_200,
+      at: "2026-08-16T15:00:00Z",
+      category: "Compras",
+      description: "Librería Antártica",
+    },
+    {
+      acct: "checking",
+      card: "debitRosa",
+      type: "EXPENSE",
+      amount: 18_600,
+      at: "2026-08-17T13:40:00Z",
+      category: "Transporte",
+      description: "Uber · Rosa",
+    },
+    {
+      acct: "credit",
+      card: "credit",
+      type: "EXPENSE",
+      amount: 31_500,
+      at: "2026-08-18T20:20:00Z",
+      category: "Restaurantes",
+      description: "Sushi Providencia",
+    },
+    {
+      acct: "checking",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 55_300,
+      at: "2026-08-19T18:00:00Z",
+      category: "Entretención",
+      description: "Concierto · Puntoticket",
+    },
+    {
+      acct: "cash",
+      type: "EXPENSE",
+      amount: 6_500,
+      at: "2026-08-20T12:00:00Z",
+      category: "Restaurantes",
+      description: "Café",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 620_000,
+      at: "2026-08-21T09:00:00Z",
+      category: "Vivienda",
+      description: "Arriendo agosto",
+    },
   ];
 
   // Net movement per account → reconciled currentBalance.
@@ -1146,6 +1491,11 @@ async function seedFullUser(passwordHash: string) {
     institution: "Banco de Chile",
     institutionId: bankId("001"),
     accountNumber: "001-2345678-90",
+    // Add-on credit line the bank granted on this checking account (its primary
+    // CREDIT card below mirrors this pool). Not a CREDIT_LINE account: it also
+    // holds real money and debit cards.
+    creditLimit: dec("1500000.0000"),
+    creditUsedInitial: dec("0"),
     initialBalance: dec("0"),
     currentBalance: dec("0"),
   });
@@ -1157,6 +1507,10 @@ async function seedFullUser(passwordHash: string) {
     institution: "BancoEstado",
     institutionId: bankId("012"),
     accountNumber: "22345678", // Cuenta RUT ≈ RUT sin dígito verificador
+    // Small add-on credit line — deliberately left WITHOUT billing settings below,
+    // so the "falta configurar la facturación" warning is visible somewhere.
+    creditLimit: dec("800000.0000"),
+    creditUsedInitial: dec("0"),
     initialBalance: dec("0"),
     currentBalance: dec("0"),
   });
@@ -1261,6 +1615,44 @@ async function seedFullUser(passwordHash: string) {
       expiryYear: 2027,
     },
   });
+  // Add-on CREDIT card on the checking account: it's that account's FIRST credit
+  // card, so it's the primary one and its limit IS checking.creditLimit (no CardLimit row).
+  const creditCardBch = await prisma.cardAccount.create({
+    data: {
+      accountId: checking.id,
+      userId: javier.id,
+      name: "Visa Crédito",
+      kind: "CREDIT",
+      last4: "5521",
+      expiryMonth: 8,
+      expiryYear: 2029,
+      isPrimary: true,
+    },
+  });
+  // Cuenta Vista: one debit + one add-on credit card (the simpler mixed account).
+  const debitCardVista = await prisma.cardAccount.create({
+    data: {
+      accountId: sight.id,
+      userId: javier.id,
+      name: "Mastercard Débito",
+      kind: "DEBIT",
+      last4: "7712",
+      expiryMonth: 6,
+      expiryYear: 2030,
+    },
+  });
+  const creditCardVista = await prisma.cardAccount.create({
+    data: {
+      accountId: sight.id,
+      userId: javier.id,
+      name: "Mastercard Crédito",
+      kind: "CREDIT",
+      last4: "8890",
+      expiryMonth: 6,
+      expiryYear: 2030,
+      isPrimary: true,
+    },
+  });
   const creditCard = await prisma.cardAccount.create({
     data: {
       accountId: credit.id,
@@ -1311,6 +1703,9 @@ async function seedFullUser(passwordHash: string) {
     debitCamila: debitCardCamila.id,
     debitSofia: debitCardSofia.id,
     debitRosa: debitCardRosa.id,
+    creditBch: creditCardBch.id,
+    debitVista: debitCardVista.id,
+    creditVista: creditCardVista.id,
     credit: creditCard.id,
     creditCamila: creditCardCamila.id,
     creditSofia: creditCardSofia.id,
@@ -1329,6 +1724,164 @@ async function seedFullUser(passwordHash: string) {
       description: t.description,
     })),
   });
+
+  // ==========================================================================
+  // Billing settings + credit-statement history (facturación)
+  // ==========================================================================
+  // "Now" for the seed. Movements exist up to 2026-08-21 (20 days ahead) so the
+  // upcoming-payments / future flows can be exercised without re-seeding.
+  const SEED_NOW = new Date("2026-08-01T12:00:00Z");
+  /** Where periods start accumulating for the very first statement. */
+  const SEED_EPOCH = new Date("2026-03-01T00:00:00Z");
+
+  /** Every occurrence of `day` (1-28) in [from, to]. */
+  const cutsBetween = (day: number, from: Date, to: Date) => {
+    const out: Date[] = [];
+    const d = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), day, 23, 59, 0));
+    while (d <= to) {
+      if (d >= from) out.push(new Date(d));
+      d.setUTCMonth(d.getUTCMonth() + 1);
+    }
+    return out;
+  };
+
+  type CreditSpec = {
+    accountId: string;
+    /** null = intentionally not configured (shows the "configura la facturación" warning). */
+    billingCycleDay: number | null;
+    /** CREDIT_LINE: every movement on the account feeds the pool (income = payments). */
+    wholeAccount: boolean;
+    /** Cards drawing on the shared pool (used when `wholeAccount` is false). */
+    poolCardIds: string[];
+    /** Account the closed statements are paid from. */
+    payFromAccountId: string;
+  };
+
+  const creditSpecs: CreditSpec[] = [
+    {
+      accountId: credit.id,
+      billingCycleDay: 15,
+      wholeAccount: true,
+      poolCardIds: [creditCard.id, creditCardCamila.id, creditCardSofia.id],
+      payFromAccountId: checking.id,
+    },
+    {
+      accountId: checking.id,
+      billingCycleDay: 5,
+      wholeAccount: false,
+      poolCardIds: [creditCardBch.id],
+      payFromAccountId: checking.id,
+    },
+    {
+      // Deliberately unconfigured: no billing day → nothing is ever generated,
+      // the account only carries a permanently OPEN period.
+      accountId: sight.id,
+      billingCycleDay: null,
+      wholeAccount: false,
+      poolCardIds: [creditCardVista.id],
+      payFromAccountId: checking.id,
+    },
+  ];
+
+  /** Extra outflow the statement payments cause on the paying account. */
+  const paidFromOutflow: Record<string, number> = {};
+
+  for (const spec of creditSpecs) {
+    await prisma.billingSettings.create({
+      data: {
+        accountId: spec.accountId,
+        billingCycleDay: spec.billingCycleDay,
+        paymentMethod: "MANUAL",
+      },
+    });
+
+    // Movements feeding this pool, oldest first.
+    const contributions = await prisma.transaction.findMany({
+      where: spec.wholeAccount
+        ? { bankAccountId: spec.accountId }
+        : { bankAccountId: spec.accountId, type: "EXPENSE", cardId: { in: spec.poolCardIds } },
+      select: { id: true, type: true, amount: true, occurredAt: true },
+      orderBy: { occurredAt: "asc" },
+    });
+    const signed = (t: (typeof contributions)[number]) =>
+      (t.type === "EXPENSE" ? 1 : -1) * Number(t.amount);
+
+    // Period boundaries: every cut-off that already happened, plus the still-open tail.
+    const cuts = spec.billingCycleDay
+      ? cutsBetween(spec.billingCycleDay, SEED_EPOCH, SEED_NOW)
+      : [];
+    const bounds = [SEED_EPOCH, ...cuts];
+
+    let unpaidTotal = 0;
+    for (let i = 0; i < bounds.length; i++) {
+      const periodStart = bounds[i]!;
+      const closedAt = cuts[i] ?? null; // null → the current OPEN period
+      const periodEnd = closedAt ?? new Date("2100-01-01T00:00:00Z");
+      const inPeriod = contributions.filter(
+        (t) => t.occurredAt >= periodStart && t.occurredAt < periodEnd,
+      );
+      if (inPeriod.length === 0) continue;
+      const total = inPeriod.reduce((s, t) => s + signed(t), 0);
+
+      // The most recent closed period stays PENDING (awaiting payment); older ones are PAID.
+      const isLastClosed = closedAt !== null && i === cuts.length - 1;
+      const paid = closedAt !== null && !isLastClosed && total > 0;
+
+      let paidTransactionId: string | null = null;
+      let paidAt: Date | null = null;
+      if (paid) {
+        paidAt = new Date(closedAt.getTime() + 5 * 86_400_000);
+        const payTx = await prisma.transaction.create({
+          data: {
+            userId: javier.id,
+            bankAccountId: spec.payFromAccountId,
+            type: "EXPENSE",
+            amount: dec(total.toFixed(4)),
+            currency: "CLP",
+            occurredAt: paidAt,
+            category: "Tarjeta de crédito",
+            description: `Pago facturación · ${closedAt.toISOString().slice(0, 10)}`,
+          },
+        });
+        paidTransactionId = payTx.id;
+        paidFromOutflow[spec.payFromAccountId] =
+          (paidFromOutflow[spec.payFromAccountId] ?? 0) + total;
+      } else {
+        unpaidTotal += total;
+      }
+
+      const statement = await prisma.creditStatement.create({
+        data: {
+          accountId: spec.accountId,
+          periodStart,
+          closedAt,
+          paidAt,
+          amount: paid ? dec(total.toFixed(4)) : null,
+          paidFromAccountId: paid ? spec.payFromAccountId : null,
+          paidTransactionId,
+        },
+      });
+      await prisma.transaction.updateMany({
+        where: { id: { in: inPeriod.map((t) => t.id) } },
+        data: { creditStatementId: statement.id },
+      });
+    }
+
+    // Persisted pool usage = everything not yet settled by a payment.
+    await prisma.bankAccount.update({
+      where: { id: spec.accountId },
+      data: { creditUsed: dec(Math.max(0, unpaidTotal).toFixed(4)) },
+    });
+  }
+
+  // The statement payments are real expenses on the paying account — reconcile it.
+  for (const [accountId, outflow] of Object.entries(paidFromOutflow)) {
+    const acc = await prisma.bankAccount.findUniqueOrThrow({ where: { id: accountId } });
+    await prisma.bankAccount.update({
+      where: { id: accountId },
+      data: { currentBalance: acc.currentBalance.minus(dec(outflow.toFixed(4))) },
+    });
+  }
 
   // --- Installment plans (some paid, some upcoming after "today" 2026-06-21) ---
   const notebook = await prisma.installmentPlan.create({

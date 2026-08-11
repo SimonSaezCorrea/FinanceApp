@@ -7,7 +7,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { useCountries } from "../../reference/hooks/useReference";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
-import { Dialog } from "../../../shared/ui/dialog";
+import { ResponsiveSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Select } from "../../../shared/ui/select";
@@ -90,7 +90,7 @@ export function EditProfileDialog({ open, onOpenChange }: Readonly<Props>) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={t("profile.edit.title")}>
+    <ResponsiveSurface open={open} onOpenChange={onOpenChange} title={t("profile.edit.title")}>
       <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
         <Field label={t("profile.edit.name")}>
           <Input
@@ -220,6 +220,6 @@ export function EditProfileDialog({ open, onOpenChange }: Readonly<Props>) {
           </Button>
         </div>
       </form>
-    </Dialog>
+    </ResponsiveSurface>
   );
 }

@@ -8,7 +8,7 @@ import type { accounts, wallet } from "@finance/contracts";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
-import { Dialog } from "../../../shared/ui/dialog";
+import { ResponsiveSurface } from "../../../shared/ui/overlay";
 import { EmptyState } from "../../../shared/ui/states";
 import { useWalletMutations } from "../hooks/useWallet";
 
@@ -53,7 +53,7 @@ export function WalletAddModal({
   }
 
   return (
-    <Dialog
+    <ResponsiveSurface
       open={open}
       onOpenChange={onOpenChange}
       title={t("wallet.addTitle")}
@@ -105,6 +105,6 @@ export function WalletAddModal({
           ))}
         </ul>
       )}
-    </Dialog>
+    </ResponsiveSurface>
   );
 }

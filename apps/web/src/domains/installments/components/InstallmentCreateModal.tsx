@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import type { installments } from "@finance/contracts";
 
 import { Button } from "../../../shared/ui/button";
-import { Dialog } from "../../../shared/ui/dialog";
+import { ResponsiveSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { useInstallmentMutations } from "../hooks/useInstallmentMutations";
@@ -124,7 +124,7 @@ export function InstallmentCreateModal({
   const submitLabel = isPending ? "…" : idleLabel;
 
   return (
-    <Dialog
+    <ResponsiveSurface
       open={open}
       onOpenChange={onOpenChange}
       title={isEdit ? `${t("common.edit")}: ${initialData.title}` : t("installments.new")}
@@ -236,6 +236,6 @@ export function InstallmentCreateModal({
           </Button>
         </div>
       </div>
-    </Dialog>
+    </ResponsiveSurface>
   );
 }

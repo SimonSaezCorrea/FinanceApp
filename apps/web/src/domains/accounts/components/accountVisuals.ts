@@ -31,6 +31,14 @@ export function isCreditType(type: accounts.AccountType): boolean {
  * --debit-to, --prepaid-from and --prepaid-to tokens in index.css). Shared by
  * every card-visual tile (draft cards, account detail).
  */
+/**
+ * An INACTIVE card, whatever its kind: the gradient is dropped for a flat muted
+ * surface. Colour is what identifies a card at a glance in this app, so a card
+ * that can no longer be used must not keep the same one — it reads as available
+ * when it isn't. The tile stays fully legible (its history still matters).
+ */
+export const CARD_INACTIVE_STYLE = "border border-border bg-muted text-muted-foreground grayscale";
+
 export const CARD_KIND_STYLE: Record<accounts.CardKind, string> = {
   CREDIT:
     "border border-primary/35 bg-[linear-gradient(150deg,hsl(var(--brand)),hsl(var(--brand-deep)))] text-credit-ink",

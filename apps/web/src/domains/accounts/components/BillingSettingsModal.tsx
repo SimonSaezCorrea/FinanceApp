@@ -6,7 +6,7 @@ import type { accounts } from "@finance/contracts";
 
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
-import { Dialog } from "../../../shared/ui/dialog";
+import { ResponsiveSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Segmented } from "../../../shared/ui/segmented";
@@ -27,6 +27,7 @@ export function BillingSettingsModal({
   const { t } = useTranslation();
   const { update } = useAccountMutations();
   const [billingCycleDay, setBillingCycleDay] = useState(account.billingCycleDay?.toString() ?? "");
+  const [minimumPercent, setMinimumPercent] = useState(account.minimumPaymentPercent ?? "");
   const [paymentMethod, setPaymentMethod] = useState<accounts.BillingPaymentMethod>(
     account.paymentMethod,
   );
@@ -37,6 +38,7 @@ export function BillingSettingsModal({
         id: account.id,
         body: {
           billingCycleDay: billingCycleDay ? Number(billingCycleDay) : null,
+          minimumPaymentPercent: minimumPercent.trim() || null,
           paymentMethod,
         },
       },
@@ -51,7 +53,7 @@ export function BillingSettingsModal({
   }
 
   return (
-    <Dialog
+    <ResponsiveSurface
       open={open}
       onOpenChange={onOpenChange}
       title={t("accounts.detail.billingSettingsTitle")}
@@ -75,6 +77,20 @@ export function BillingSettingsModal({
         <p className="-mt-2 text-xs text-muted-foreground">
           {t("accounts.form.billingCycleDayHint")}
         </p>
+        <Field label={t("accounts.form.minimumPercent")}>
+          <Input
+            className="w-24"
+            inputMode="decimal"
+            placeholder="5"
+            value={minimumPercent}
+            onChange={(e) => {
+              const clean = e.target.value.replace(/[^0-9.]/g, "").slice(0, 6);
+              setMinimumPercent(Number(clean) > 100 ? "100" : clean);
+            }}
+            aria-label={t("accounts.form.minimumPercent")}
+          />
+        </Field>
+        <p className="text-xs text-muted-foreground">{t("accounts.form.minimumPercentHint")}</p>
 
         <Field label={t("accounts.form.paymentMethod")}>
           <Segmented
@@ -102,6 +118,6 @@ export function BillingSettingsModal({
           </Button>
         </div>
       </div>
-    </Dialog>
+    </ResponsiveSurface>
   );
 }

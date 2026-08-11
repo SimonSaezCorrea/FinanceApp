@@ -13,10 +13,14 @@ export interface BillingSettingsProps {
   paymentMethod: accounts.BillingPaymentMethod;
   /** Reserved — the "AUTOMATIC" flow is not implemented (see docs/PENDING.md). */
   paymentDueDay: number | null;
+  /** Percentage of a statement that counts as its minimum payment ("5" = 5%).
+   * Null = this account has no minimum, and none is offered when paying. */
+  minimumPaymentPercent: string | null;
 }
 
 export const DEFAULT_BILLING_SETTINGS: BillingSettingsProps = {
   billingCycleDay: null,
   paymentMethod: "MANUAL",
   paymentDueDay: null,
+  minimumPaymentPercent: null,
 };

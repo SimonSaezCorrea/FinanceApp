@@ -23,6 +23,7 @@ import {
 function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): TransactionRepositoryPort {
   return {
     list: vi.fn(),
+    summary: vi.fn(),
     findOne: vi.fn(),
     sumsForCard: vi.fn(async () => ({ income: "0", expense: "0" })),
     saveNew: vi.fn(),
@@ -150,6 +151,8 @@ describe("CreateTransactionHandler", () => {
         accountId: "aC",
         delta: "100000",
       },
+      // The cash balance always follows the movement, pool or no pool.
+      [{ accountId: "aC", delta: "-100000.0000" }],
     );
   });
 
@@ -202,6 +205,7 @@ describe("CreateTransactionHandler", () => {
       "u1",
       expect.objectContaining({ creditStatementId: null }),
       null,
+      [{ accountId: "a1", delta: "-1000.0000" }],
     );
   });
 });

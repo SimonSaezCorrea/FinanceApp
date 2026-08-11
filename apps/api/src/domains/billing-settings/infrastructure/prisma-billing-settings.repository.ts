@@ -8,12 +8,14 @@ type Row = {
   billingCycleDay: number | null;
   paymentMethod: "MANUAL" | "AUTOMATIC";
   paymentDueDay: number | null;
+  minimumPaymentPercent: { toString(): string } | null;
 };
 
 const toProps = (row: Row): BillingSettingsProps => ({
   billingCycleDay: row.billingCycleDay,
   paymentMethod: row.paymentMethod,
   paymentDueDay: row.paymentDueDay,
+  minimumPaymentPercent: row.minimumPaymentPercent?.toString() ?? null,
 });
 
 /** Adapter — the ONLY file that touches `prisma.billingSettings`. */
@@ -61,6 +63,7 @@ export class PrismaBillingSettingsRepository implements BillingSettingsRepositor
         billingCycleDay: settings.billingCycleDay ?? null,
         paymentMethod: settings.paymentMethod ?? "MANUAL",
         paymentDueDay: settings.paymentDueDay ?? null,
+        minimumPaymentPercent: settings.minimumPaymentPercent ?? null,
       },
       update: {
         ...(settings.billingCycleDay !== undefined
@@ -68,6 +71,9 @@ export class PrismaBillingSettingsRepository implements BillingSettingsRepositor
           : {}),
         ...(settings.paymentMethod !== undefined ? { paymentMethod: settings.paymentMethod } : {}),
         ...(settings.paymentDueDay !== undefined ? { paymentDueDay: settings.paymentDueDay } : {}),
+        ...(settings.minimumPaymentPercent !== undefined
+          ? { minimumPaymentPercent: settings.minimumPaymentPercent }
+          : {}),
       },
     });
   }

@@ -114,7 +114,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       <ThemeSync />
       <div
         className={cn(
-          "relative hidden shrink-0 transition-[width] duration-300 ease-in-out md:block",
+          "relative hidden shrink-0 transition-[width] duration-300 ease-in-out lg:block",
           collapsed ? "w-20" : "w-60",
         )}
       >
@@ -192,8 +192,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
 
       <RadixDialog.Root open={mobileOpen} onOpenChange={setMobileOpen}>
         <RadixDialog.Portal>
-          <RadixDialog.Overlay className="fixed inset-0 z-overlay bg-black/50 md:hidden" />
-          <RadixDialog.Content className="fixed inset-y-0 left-0 z-modal flex w-64 flex-col border-r bg-card p-4 focus:outline-none md:hidden">
+          <RadixDialog.Overlay className="fixed inset-0 z-overlay bg-black/50 lg:hidden" />
+          <RadixDialog.Content className="fixed inset-y-0 left-0 z-modal flex w-64 flex-col border-r bg-card p-4 focus:outline-none lg:hidden">
             <RadixDialog.Title className="sr-only">{t("nav.menu")}</RadixDialog.Title>
             <div className="flex items-center justify-between gap-2 px-2 py-3">
               <span className="flex items-center gap-2">
@@ -241,7 +241,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </RadixDialog.Root>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b bg-card px-4 py-3 md:hidden">
+        <header className="flex shrink-0 items-center justify-between gap-3 border-b bg-card px-4 py-3 lg:hidden">
           <div className="flex items-center gap-2">
             <button
               type="button"

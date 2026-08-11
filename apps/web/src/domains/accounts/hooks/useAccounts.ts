@@ -43,7 +43,6 @@ export function useAccountMutations() {
         accountsApi.setStatus(vars.id, vars.status),
       onSuccess: invalidate,
     }),
-    reconcile: useMutation({ mutationFn: accountsApi.reconcile, onSuccess: invalidate }),
     generateStatements: useMutation({
       mutationFn: accountsApi.generateStatements,
       onSuccess: (_, id) => {
@@ -52,20 +51,33 @@ export function useAccountMutations() {
       },
     }),
     payCreditStatement: useMutation({
-      mutationFn: (vars: { id: string; statementId: string; fromAccountId: string }) =>
-        accountsApi.payCreditStatement(vars.id, vars.statementId, vars.fromAccountId),
+      mutationFn: (vars: { id: string; statementId: string; body: accounts.PayCreditStatement }) =>
+        accountsApi.payCreditStatement(vars.id, vars.statementId, vars.body),
       onSuccess: (_, vars) => {
         invalidate();
         qc.invalidateQueries({ queryKey: ["accounts", vars.id, "credit-statements"] });
       },
     }),
-    updateCreditStatement: useMutation({
-      mutationFn: (vars: { id: string; statementId: string; amount: string }) =>
-        accountsApi.updateCreditStatement(vars.id, vars.statementId, vars.amount),
+    syncStatement: useMutation({
+      mutationFn: (vars: { id: string; statementId: string }) =>
+        accountsApi.syncCreditStatement(vars.id, vars.statementId),
       onSuccess: (_, vars) => {
+        // A sync can move the account's own credit pool and a payment movement,
+        // so it isn't enough to refresh the statements list.
+        invalidate();
         qc.invalidateQueries({ queryKey: ["accounts", vars.id, "credit-statements"] });
+        qc.invalidateQueries({ queryKey: ["transactions"] });
       },
     }),
-    remove: useMutation({ mutationFn: accountsApi.remove, onSuccess: invalidate }),
+    remove: useMutation({
+      mutationFn: accountsApi.remove,
+      onSuccess: (_, id) => {
+        // Drop the deleted account's own entries BEFORE invalidating, or the
+        // blanket `["accounts"]` invalidation refetches `["accounts", id]` and
+        // the detail view flips to a 404 error state while it's still mounted.
+        qc.removeQueries({ queryKey: ["accounts", id] });
+        invalidate();
+      },
+    }),
   };
 }

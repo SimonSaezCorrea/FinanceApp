@@ -7,7 +7,6 @@ import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { BankAccountDataModule } from "./bank-account.data.module";
 import { AddCardHandler } from "./application/commands/add-card.handler";
 import { CreateAccountHandler } from "./application/commands/create-account.handler";
-import { ReconcileAccountHandler } from "./application/commands/reconcile-account.handler";
 import { RemoveAccountHandler } from "./application/commands/remove-account.handler";
 import { RemoveCardHandler } from "./application/commands/remove-card.handler";
 import { SetAccountStatusHandler } from "./application/commands/set-account-status.handler";
@@ -21,7 +20,6 @@ const commandHandlers = [
   CreateAccountHandler,
   UpdateAccountHandler,
   SetAccountStatusHandler,
-  ReconcileAccountHandler,
   RemoveAccountHandler,
   AddCardHandler,
   UpdateCardHandler,

@@ -96,6 +96,7 @@ describe("PrismaTransactionRepository (integration)", () => {
         creditStatementId: stmt.id,
       },
       { accountId: creditAccountId, delta: "50000" },
+      [],
     );
     expect(created.amount).toBe("50000.0000");
     const account = await accountRepo.findById(userId, creditAccountId);
@@ -124,12 +125,15 @@ describe("PrismaTransactionRepository (integration)", () => {
         creditStatementId: stmt.id,
       },
       { accountId: creditAccountId, delta: "10000" },
+      [],
     );
     const before = await accountRepo.findById(userId, creditAccountId);
-    const removed = await txRepo.removeWithCreditAdjustment(userId, created.id, {
-      accountId: creditAccountId,
-      delta: "-10000",
-    });
+    const removed = await txRepo.removeWithCreditAdjustment(
+      userId,
+      created.id,
+      { accountId: creditAccountId, delta: "-10000" },
+      [],
+    );
     expect(removed).toBe(true);
     const after = await accountRepo.findById(userId, creditAccountId);
     expect(after?.creditUsed).toBe(String(Number(before!.creditUsed) - 10000) + ".0000");
