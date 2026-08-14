@@ -68,8 +68,6 @@ const creditCard: CardProps = {
   expiryYear: 2030,
   isActive: true,
   isPrimary: true,
-  prepaidBalance: null,
-  prepaidInitialBalance: null,
   limits: [],
 };
 
@@ -109,8 +107,6 @@ describe("RemoveTransactionHandler", () => {
       { accountId: "aC", delta: "-100000.0000" },
       // Deleting an expense gives its money back to the balance.
       [{ accountId: "aC", delta: "100000.0000" }],
-      // Nothing to give back to a prepaid pot: this was a CREDIT card.
-      [],
     );
   });
 
@@ -123,12 +119,8 @@ describe("RemoveTransactionHandler", () => {
     await handler.execute(new RemoveTransactionCommand("u1", "tX"));
     // The pool stays put (already settled), but the cash still left the account,
     // so the balance is still corrected.
-    expect(removeWithCreditAdjustment).toHaveBeenCalledWith(
-      "u1",
-      "tX",
-      null,
-      [{ accountId: "aC", delta: "100000.0000" }],
-      [],
-    );
+    expect(removeWithCreditAdjustment).toHaveBeenCalledWith("u1", "tX", null, [
+      { accountId: "aC", delta: "100000.0000" },
+    ]);
   });
 });

@@ -35,8 +35,6 @@ import { RemoveTransactionCommand } from "./remove-transaction.command";
 interface Context {
   current: Transaction;
   creditUsedDelta: { accountId: string; delta: string } | null;
-  /** Puts back what an expense through a PREPAID card took off that card. */
-  prepaidDeltas: { cardId: string; delta: string }[];
 }
 
 /**
@@ -68,27 +66,13 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
 
     // A transfer leg is deleted as a PAIR (FR-015): the user deletes from the row
     // they're looking at and has no reason to know there are two.
-    if (current.isTransferLeg) return { current, creditUsedDelta: null, prepaidDeltas: [] };
+    if (current.isTransferLeg) return { current, creditUsedDelta: null };
 
     const linkedToPaid = current.creditStatementId
       ? await this.statements.isPaid(current.creditStatementId)
       : false;
 
     let creditUsedDelta: { accountId: string; delta: string } | null = null;
-    const prepaidDeltas: { cardId: string; delta: string }[] = [];
-    // A prepaid card's own pot is unrelated to billing periods, so it is reverted
-    // even when the movement's statement is already settled — the money is back on
-    // the card either way.
-    if (current.cardId && current.bankAccountId) {
-      const card = await this.cards.findOnAccount(
-        command.userId,
-        current.bankAccountId,
-        current.cardId,
-      );
-      if (card?.kind === "PREPAID") {
-        prepaidDeltas.push({ cardId: current.cardId, delta: current.amount });
-      }
-    }
     if (!linkedToPaid && current.bankAccountId) {
       const loaded = await loadAccountContext(this.accounts, command.userId, current.bankAccountId);
       const account = loaded?.context ?? null;
@@ -119,7 +103,7 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
       }
     }
 
-    return { current, creditUsedDelta, prepaidDeltas };
+    return { current, creditUsedDelta };
   }
 
   protected async handle(
@@ -155,7 +139,7 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
       // Undo what this movement did to the balance. Unlike the credit pool, this
       // applies even to a movement of an already-paid period: the cash left the
       // account regardless of how its statement was settled.
-      context.current.bankAccountId && context.prepaidDeltas.length === 0
+      context.current.bankAccountId
         ? [
             {
               accountId: context.current.bankAccountId,
@@ -163,7 +147,6 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
             },
           ]
         : [],
-      context.prepaidDeltas,
     );
     if (!ok) throw new TransactionNotFoundError();
     return { result: undefined, events: [] };

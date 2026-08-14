@@ -37,17 +37,41 @@ cupo paralelo y más estrecho).
 | `SAVINGS`     | Ahorro                                                            |          ✅ obligatorio           |           ❌           |                  ✅                   |
 | `INVESTMENT`  | Inversiones (ej. Fintual)                                         |             opcional              |           ❌           |                  ✅                   |
 | `CREDIT_LINE` | Una tarjeta de crédito independiente (sin cuenta bancaria detrás) |             opcional              |           ✅           | ❌ (su "saldo" ES el cupo de crédito) |
+| `PREPAID`     | Cuenta prepago (fondos provisionados, emisor bancario o no)       |          ✅ obligatorio           |           ✅           |          ✅ (nunca negativo)          |
 | `CASH`        | Efectivo                                                          | opcional (sin institución alguna) |           ❌           |                  ✅                   |
 
-- **`ACCOUNT_NUMBER_REQUIRED_TYPES`** = `CHECKING`/`SIGHT`/`SAVINGS` — son tipos que reciben
+- **`ACCOUNT_NUMBER_REQUIRED_TYPES`** = `CHECKING`/`SIGHT`/`SAVINGS`/`PREPAID` — son tipos que reciben
   depósitos (a los que transferirías dinero), así que un número de cuenta real es obligatorio.
   Se refuerza con un `.refine()` de zod al crear y una verificación a nivel de servicio al editar
   (error `ACCOUNT_NUMBER_REQUIRED`).
-- **`CARDABLE_ACCOUNT_TYPES`** = `CHECKING`/`SIGHT`/`CREDIT_LINE` — solo estos pueden tener tarjeta
-  propia. `SAVINGS`/`INVESTMENT`/`CASH` nunca la tienen (en la vida real, su dinero se mueve
-  primero por transferencia hacia una cuenta que sí admite tarjeta). Se refuerza en
-  `CardsService.create` y en el flujo inline `cards[]` de `AccountsService.create` (error
-  `ACCOUNT_CANNOT_HAVE_CARD`), y se refleja también en la UI web.
+- **`ALLOWED_CARD_KINDS`** (matriz tipo de cuenta ↔ `kind` de tarjeta, en `@finance/contracts`) —
+  `CHECKING`/`SIGHT`: `DEBIT` + `CREDIT`; `CREDIT_LINE`: solo `CREDIT`; `PREPAID`: solo `PREPAID`;
+  `SAVINGS`/`INVESTMENT`/`CASH`: ninguna (en la vida real, su dinero se mueve primero por
+  transferencia hacia una cuenta que sí admite tarjeta). `isCardableAccountType` se deriva de ella
+  (lista no vacía). Dos rechazos distintos: una cuenta que no admite tarjeta alguna responde
+  `ACCOUNT_CANNOT_HAVE_CARD`; una que admite tarjetas pero no ESE kind responde
+  `CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT`. Se refuerza en el agregado `BankAccount` (alta y edición de
+  tarjeta, y el flujo inline `cards[]` al crear la cuenta) y se refleja en la UI web, que solo
+  ofrece los kinds válidos.
+
+### 2.1.1 La cuenta prepago (spec 011)
+
+El prepago es un **producto propio**, no una tarjeta colgada de una cuenta corriente: los fondos los
+provisiona el usuario por adelantado y los tiene un emisor (bancario o no bancario), sin línea de
+crédito detrás. Reglas:
+
+- Solo admite tarjetas `PREPAID`, y ninguna otra cuenta admite una: son productos distintos.
+- Varias tarjetas prepago de la misma cuenta **comparten su saldo**; la tarjeta no tiene saldo
+  propio (las columnas `prepaidBalance`/`prepaidInitialBalance` de `card-account` fueron eliminadas).
+- **El saldo nunca queda negativo**: toda salida (gasto con tarjeta, gasto sin tarjeta, o la pata de
+  salida de un traspaso) se rechaza con `PREPAID_INSUFFICIENT_BALANCE` si excede el saldo. Al editar
+  un movimiento se evalúa contra el saldo _antes_ de su propio cargo anterior.
+- **Cargarla es un traspaso** desde otra cuenta propia (o un INCOME normal si el dinero viene de
+  fuera de la app). No existe endpoint de recarga de tarjeta.
+- Sin cupo, sin facturación y sin día de corte; el saldo inicial no puede ser negativo
+  (`INVALID_INITIAL_BALANCE`).
+- El tipo de una cuenta **no se puede convertir** hacia ni desde `PREPAID`
+  (`ACCOUNT_TYPE_CHANGE_NOT_ALLOWED`).
 - **Filtro por tipo de institución:** `CHECKING`/`SIGHT`/`SAVINGS` solo pueden vincular una
   institución de tipo `BANK` (no puedes tener una cuenta corriente en un emisor de tarjetas no
   bancario). `INVESTMENT` y `CREDIT_LINE` quedan sin filtrar — `kind` solo distingue bancos de

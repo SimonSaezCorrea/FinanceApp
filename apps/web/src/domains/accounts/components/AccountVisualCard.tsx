@@ -80,12 +80,10 @@ export function AccountVisualCard({
   const usagePct =
     showCreditInfo && limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : null;
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
-  // A PREPAID card shows ITS OWN pot, not the account's cash: the money moved to
-  // the card when it was loaded, and spending with it never touches the account
-  // balance again. Every other tile (DEBIT card, or the account itself) shows the
-  // account's balance, which is what those actually spend.
-  const isPrepaidCard = card?.kind === "PREPAID";
-  const shownBalance = isPrepaidCard ? (card.prepaidBalance ?? "0") : account.currentBalance;
+  // Every tile shows the ACCOUNT's balance — a prepaid card included: the money
+  // lives in the prepaid account, and its cards spend it exactly like a debit card
+  // spends a checking account's.
+  const shownBalance = account.currentBalance;
   const balance = Number(shownBalance);
 
   const inactiveCard = card ? !card.isActive : false;
@@ -94,8 +92,14 @@ export function AccountVisualCard({
       ? CARD_INACTIVE_STYLE
       : CARD_KIND_STYLE[card.kind]
     : isAccountCreditPool
-      ? "bg-gradient-to-br from-brand to-primary text-white"
-      : "bg-gradient-to-br from-secondary to-muted text-foreground";
+      ? // Same border treatment the card-kind tiles get (`CARD_KIND_STYLE`): without
+        // it the account-level tiles are the only ones with no edge, which reads as
+        // a missing outline next to a bordered card in the same grid.
+        "border border-[hsl(var(--brand)/0.45)] bg-gradient-to-br from-brand to-primary text-white"
+      : // Not `border-border`: that token (dark 16% L) sits between this tile's own
+        // `--secondary` (15%) and `--muted` (18%) fill, so it renders invisible. Like
+        // the kind tiles, the edge is a translucent tint of the tile's OWN ink.
+        "border border-[hsl(var(--foreground)/0.18)] bg-gradient-to-br from-secondary to-muted text-foreground";
 
   const Tag = onClick ? "button" : "div";
 
@@ -226,9 +230,7 @@ export function AccountVisualCard({
             </div>
           ) : (
             <div className="flex flex-col gap-0.5">
-              <span className="text-xs opacity-70">
-                {isPrepaidCard ? t("cards.detail.prepaidBalance") : t("accounts.balanceLabel")}
-              </span>
+              <span className="text-xs opacity-70">{t("accounts.balanceLabel")}</span>
               <p
                 className={cn(
                   "text-base font-semibold tabular-nums",

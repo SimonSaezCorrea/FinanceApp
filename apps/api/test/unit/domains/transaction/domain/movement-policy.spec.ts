@@ -17,6 +17,7 @@ import type {
 const cashAccount: AccountContext = {
   id: "a1",
   type: "CASH",
+  currentBalance: "1000000",
   creditLimit: "0",
   creditUsed: "0",
   billingCycleDay: null,
@@ -25,6 +26,7 @@ const cashAccount: AccountContext = {
 const checkingAccount: AccountContext = {
   id: "a1",
   type: "CHECKING",
+  currentBalance: "1000000",
   creditLimit: "0",
   creditUsed: "0",
   billingCycleDay: null,
@@ -33,6 +35,7 @@ const checkingAccount: AccountContext = {
 const creditAccount: AccountContext = {
   id: "aC",
   type: "CREDIT_LINE",
+  currentBalance: "1000000",
   creditLimit: "3000000",
   creditUsed: "0",
   billingCycleDay: null,

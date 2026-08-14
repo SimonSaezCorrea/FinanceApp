@@ -5,7 +5,7 @@ import type { transactions } from "@finance/contracts";
 
 import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
-import { accountBalanceDelta } from "../../domain/balance-delta";
+import { balanceDelta } from "../../domain/balance-delta";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
@@ -142,26 +142,9 @@ export class CreateTransactionHandler extends BaseCommandHandler<
         ? { accountId: input.bankAccountId, delta: context.contribution }
         : null,
       // The account's cash balance follows every movement, so it never needs a
-      // manual reconciliation: income adds, expense subtracts — except through a
-      // PREPAID card, whose own pot is what moves (the account paid when it was
-      // loaded).
-      [
-        {
-          accountId: input.bankAccountId,
-          delta: accountBalanceDelta(input.type, input.amount, context.card?.kind),
-        },
-      ],
-      context.card
-        ? [
-            {
-              cardId: context.card.id,
-              delta: MovementPolicy.prepaidDelta(
-                { type: input.type, amount: input.amount },
-                context.card,
-              ),
-            },
-          ]
-        : [],
+      // manual reconciliation: income adds, expense subtracts. A prepaid card is
+      // no exception — the money lives in ITS account, same as a debit card's.
+      [{ accountId: input.bankAccountId, delta: balanceDelta(input.type, input.amount) }],
     );
     return { result: row.toContract(), events: [] };
   }

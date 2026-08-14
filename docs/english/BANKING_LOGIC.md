@@ -29,22 +29,45 @@ of drawing on it (or, optionally, on their own narrower/parallel pool).
 
 ### 2.1 Account types
 
-| Type          | Meaning                                              |      Needs `accountNumber`?      | Can have cards? |       Has a real cash balance?        |
-| ------------- | ---------------------------------------------------- | :------------------------------: | :-------------: | :-----------------------------------: |
-| `CHECKING`    | Corriente                                            |           ✅ required            |       ✅        |                  ✅                   |
-| `SIGHT`       | Vista / Cuenta RUT                                   |           ✅ required            |       ✅        |                  ✅                   |
-| `SAVINGS`     | Ahorro                                               |           ✅ required            |       ❌        |                  ✅                   |
-| `INVESTMENT`  | Inversiones (e.g. Fintual)                           |             optional             |       ❌        |                  ✅                   |
-| `CREDIT_LINE` | A standalone credit card (no bank account behind it) |             optional             |       ✅        | ❌ (its "balance" IS the credit pool) |
-| `CASH`        | Efectivo                                             | optional (no institution at all) |       ❌        |                  ✅                   |
+| Type          | Meaning                                                      |      Needs `accountNumber`?      | Can have cards? |       Has a real cash balance?        |
+| ------------- | ------------------------------------------------------------ | :------------------------------: | :-------------: | :-----------------------------------: |
+| `CHECKING`    | Corriente                                                    |           ✅ required            |       ✅        |                  ✅                   |
+| `SIGHT`       | Vista / Cuenta RUT                                           |           ✅ required            |       ✅        |                  ✅                   |
+| `SAVINGS`     | Ahorro                                                       |           ✅ required            |       ❌        |                  ✅                   |
+| `INVESTMENT`  | Inversiones (e.g. Fintual)                                   |             optional             |       ❌        |                  ✅                   |
+| `CREDIT_LINE` | A standalone credit card (no bank account behind it)         |             optional             |       ✅        | ❌ (its "balance" IS the credit pool) |
+| `PREPAID`     | Prepaid account (provisioned funds, bank or non-bank issuer) |           ✅ required            |       ✅        |          ✅ (never negative)          |
+| `CASH`        | Efectivo                                                     | optional (no institution at all) |       ❌        |                  ✅                   |
 
-- **`ACCOUNT_NUMBER_REQUIRED_TYPES`** = `CHECKING`/`SIGHT`/`SAVINGS` — these are deposit-taking
+- **`ACCOUNT_NUMBER_REQUIRED_TYPES`** = `CHECKING`/`SIGHT`/`SAVINGS`/`PREPAID` — these are deposit-taking
   types (you'd transfer money **to** them), so a real account number is mandatory. Enforced by a
   zod `.refine()` on create and a service-layer check on update (error `ACCOUNT_NUMBER_REQUIRED`).
-- **`CARDABLE_ACCOUNT_TYPES`** = `CHECKING`/`SIGHT`/`CREDIT_LINE` — only these can carry a card of
-  their own. `SAVINGS`/`INVESTMENT`/`CASH` never do (real-world: their funds move via transfer into
-  a cardable account first). Enforced in `CardsService.create` and `AccountsService.create`'s
-  inline `cards[]` path (error `ACCOUNT_CANNOT_HAVE_CARD`), mirrored in the web UI.
+- **`ALLOWED_CARD_KINDS`** (the account-type ↔ card-kind matrix, in `@finance/contracts`) —
+  `CHECKING`/`SIGHT`: `DEBIT` + `CREDIT`; `CREDIT_LINE`: `CREDIT` only; `PREPAID`: `PREPAID` only;
+  `SAVINGS`/`INVESTMENT`/`CASH`: none (real-world: their funds move via transfer into a cardable
+  account first). `isCardableAccountType` derives from it (non-empty list). Two distinct refusals:
+  an account that carries no cards at all answers `ACCOUNT_CANNOT_HAVE_CARD`; one that carries
+  cards but not THIS kind answers `CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT`. Enforced in the
+  `BankAccount` aggregate (adding/editing a card, and the inline `cards[]` path on create), and
+  mirrored in the web UI, which only offers the valid kinds.
+
+### 2.1.1 The prepaid account (spec 011)
+
+Prepaid is its **own product**, not a card hanging off a checking account: the user provisions the
+funds up front and an issuer (bank or non-bank) holds them, with no credit line behind it. Rules:
+
+- It only carries `PREPAID` cards, and no other account carries one: they are different products.
+- Several prepaid cards on the same account **share its balance**; the card holds no balance of its
+  own (`card-account`'s `prepaidBalance`/`prepaidInitialBalance` columns were removed).
+- **The balance never goes negative**: any outflow (an expense with a card, without one, or a
+  transfer's outgoing leg) is rejected with `PREPAID_INSUFFICIENT_BALANCE` when it exceeds the
+  balance. Editing a movement is checked against the balance _before_ its own previous charge.
+- **Topping it up is a transfer** from another of the user's accounts (or an ordinary INCOME when
+  the money comes from outside the app). There is no card top-up endpoint.
+- No credit pool, no billing, no cut-off day; the initial balance can't be negative
+  (`INVALID_INITIAL_BALANCE`).
+- An account's type can **never be converted** to or from `PREPAID`
+  (`ACCOUNT_TYPE_CHANGE_NOT_ALLOWED`).
 - **Institution kind filter:** `CHECKING`/`SIGHT`/`SAVINGS` can only link a `BANK`-kind
   institution (you can't hold a checking account at a non-bank card issuer). `INVESTMENT` and
   `CREDIT_LINE` are left unfiltered — `kind` only distinguishes banks from non-bank _card_ issuers,

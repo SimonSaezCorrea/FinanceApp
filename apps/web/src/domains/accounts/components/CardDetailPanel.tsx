@@ -50,7 +50,6 @@ export function CardDetailPanel({
   variant = "surface",
   movementsAside,
   movementsHint,
-  onLoadPrepaid,
 }: Readonly<{
   account: accounts.BankAccount;
   card: accounts.Card;
@@ -59,9 +58,6 @@ export function CardDetailPanel({
   /** Trailing content of the movements heading (e.g. "filtering the table"). */
   movementsAside?: ReactNode;
   movementsHint?: string;
-  /** PREPAID only: opens the host's "recargar" flow. Omitted = no action offered
-   * (the panel never owns a mutation of its own — see the note above). */
-  onLoadPrepaid?: () => void;
 }>) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
@@ -94,7 +90,6 @@ export function CardDetailPanel({
   const used = Number(usedAmount);
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
   const isCredit = card.kind === "CREDIT";
-  const isPrepaid = card.kind === "PREPAID";
   const available = money(String(Math.max(0, limit - used)));
   // Extra pools = a CardLimit in any OTHER currency (the primary's extra
   // currencies, or a non-primary card's own sub-limit outside the account's one).
@@ -195,32 +190,6 @@ export function CardDetailPanel({
               </p>
             </>
           )}
-        </div>
-      ) : null}
-
-      {/* A prepaid card's protagonist is what it HOLDS — it has no limit and no
-          usage bar, because there is no line of credit to draw a bar against. */}
-      {isPrepaid ? (
-        <div className={inline ? "border-b border-border pb-3" : undefined}>
-          <p className="text-xs text-muted-foreground">{t("cards.detail.prepaidBalance")}</p>
-          {loading ? (
-            <Skeleton className="mt-1 h-[28px] w-40" />
-          ) : (
-            <p
-              className={
-                inline
-                  ? "text-lg font-semibold tabular-nums"
-                  : "text-2xl font-semibold tabular-nums"
-              }
-            >
-              {money(card.prepaidBalance ?? "0")}
-            </p>
-          )}
-          {onLoadPrepaid ? (
-            <Button variant="secondary" size="sm" className="mt-2" onClick={onLoadPrepaid}>
-              {t("cards.actions.load")}
-            </Button>
-          ) : null}
         </div>
       ) : null}
 

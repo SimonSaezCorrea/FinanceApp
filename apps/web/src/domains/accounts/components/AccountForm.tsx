@@ -229,6 +229,15 @@ export function AccountForm({
         <Field label={t("accounts.form.type")}>
           <AccountTypeToggle
             value={values.type}
+            // A prepaid account can't be converted into anything else, nor anything
+            // else into one (ACCOUNT_TYPE_CHANGE_NOT_ALLOWED): the API refuses it,
+            // so the form never offers it.
+            disabledTypes={
+              initialValues.type === "PREPAID"
+                ? accountsContract.accountType.options.filter((o) => o !== "PREPAID")
+                : ["PREPAID"]
+            }
+            disabledReason={t("errors.ACCOUNT_TYPE_CHANGE_NOT_ALLOWED")}
             onChange={(next) =>
               setValues((prev) => {
                 if (next === "CASH") {

@@ -85,6 +85,7 @@ enum AccountType {
   SAVINGS // Ahorro
   INVESTMENT // Inversiones (Fintual)
   CREDIT_LINE // Línea de crédito (tarjeta de crédito sin cuenta bancaria / retail)
+  PREPAID // Cuenta prepago: fondos provisionados (emisor bancario o no bancario), sin crédito
   CASH // Efectivo
 }
 
@@ -255,12 +256,6 @@ model CardAccount {
   /// edited from either side, same underlying value, no CardLimit row of its own.
   /// At most one true per account; irrelevant for DEBIT/PREPAID cards.
   isPrimary             Boolean  @default(false)
-  /// PREPAID cards only: the card's OWN pot of money. A prepaid card holds funds
-  /// instead of a credit line — loading it is an expense on the account, and
-  /// spending with it draws down this balance (not the account's currentBalance,
-  /// which the load already moved). Null for CREDIT/DEBIT.
-  prepaidInitialBalance Decimal? @db.Decimal(18, 4)
-  prepaidBalance        Decimal? @db.Decimal(18, 4)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 

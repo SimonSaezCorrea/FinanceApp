@@ -11,28 +11,22 @@ export const accountType = z.enum([
   "SAVINGS", // Ahorro
   "INVESTMENT", // Inversiones (Fintual)
   "CREDIT_LINE", // Línea de crédito (tarjeta de crédito sin cuenta bancaria)
+  "PREPAID", // Cuenta prepago: fondos provisionados, sin crédito, saldo nunca negativo
   "CASH", // Efectivo
 ]);
 export type AccountType = z.infer<typeof accountType>;
 
 /**
- * Only these account types can carry a physical/digital card. A debit card is
- * the mandatory instrument for CHECKING/SIGHT; a CREDIT_LINE's card(s) share
- * its credit pool. SAVINGS, INVESTMENT and CASH never have their own card —
- * moving their funds means transferring into a cardable account first.
+ * Deposit-taking account types are the ones you'd transfer money TO, so they
+ * require a real `accountNumber` — a prepaid account included: it is funded by
+ * transferring to its own number. CREDIT_LINE/INVESTMENT/CASH keep it optional.
  */
-export const CARDABLE_ACCOUNT_TYPES: AccountType[] = ["CHECKING", "SIGHT", "CREDIT_LINE"];
-
-export function isCardableAccountType(type: AccountType): boolean {
-  return CARDABLE_ACCOUNT_TYPES.includes(type);
-}
-
-/**
- * Deposit-taking account types (CHECKING/SIGHT/SAVINGS) are the ones you'd transfer
- * money TO, so they require a real `accountNumber`. CREDIT_LINE/INVESTMENT/CASH keep
- * it optional.
- */
-export const ACCOUNT_NUMBER_REQUIRED_TYPES: AccountType[] = ["CHECKING", "SIGHT", "SAVINGS"];
+export const ACCOUNT_NUMBER_REQUIRED_TYPES: AccountType[] = [
+  "CHECKING",
+  "SIGHT",
+  "SAVINGS",
+  "PREPAID",
+];
 
 export function isAccountNumberRequired(type: AccountType): boolean {
   return ACCOUNT_NUMBER_REQUIRED_TYPES.includes(type);
@@ -64,6 +58,40 @@ export type BillingPaymentMethod = z.infer<typeof billingPaymentMethod>;
 
 export const cardKind = z.enum(["CREDIT", "DEBIT", "PREPAID"]);
 export type CardKind = z.infer<typeof cardKind>;
+
+/**
+ * Which payment instruments each account type may carry. An empty list means the
+ * account never has a card of its own (SAVINGS/INVESTMENT/CASH: their funds move
+ * by transferring into a cardable account first).
+ *
+ * The three products are deliberately kept apart: a bank account (CHECKING/SIGHT)
+ * is spent with a DEBIT card and may grow an add-on CREDIT one; a CREDIT_LINE is
+ * only ever a credit card; and a PREPAID account — funds provisioned up front,
+ * typically at a non-bank issuer — is spent ONLY with prepaid cards, which is why
+ * a prepaid card can't live on a checking account nor a debit card on a prepaid one.
+ */
+export const ALLOWED_CARD_KINDS: Record<AccountType, CardKind[]> = {
+  CHECKING: ["DEBIT", "CREDIT"],
+  SIGHT: ["DEBIT", "CREDIT"],
+  CREDIT_LINE: ["CREDIT"],
+  PREPAID: ["PREPAID"],
+  SAVINGS: [],
+  INVESTMENT: [],
+  CASH: [],
+};
+
+export function allowedCardKinds(type: AccountType): CardKind[] {
+  return ALLOWED_CARD_KINDS[type];
+}
+
+/** Whether this account type carries cards at all (any kind). */
+export function isCardableAccountType(type: AccountType): boolean {
+  return allowedCardKinds(type).length > 0;
+}
+
+export function isCardKindAllowed(type: AccountType, kind: CardKind): boolean {
+  return allowedCardKinds(type).includes(kind);
+}
 
 /**
  * A card-specific sub-limit for one currency — optional and narrower than the
@@ -105,14 +133,6 @@ export const cardSchema = z.object({
    * reflected here even though it is in the account's own `creditUsed`. "0"
    * for non-CREDIT cards. */
   ownUsed: moneyString,
-  /** PREPAID cards only: the money loaded on the card itself. A prepaid card is a
-   * pot of its own — it holds funds instead of a credit line, so spending with it
-   * draws down THIS balance and leaves the account's `currentBalance` alone (the
-   * money left the account when the card was loaded). Null for CREDIT/DEBIT. */
-  prepaidBalance: moneyString.nullable(),
-  /** The balance the card was registered with (seed for `prepaidBalance`, which
-   * then maintains itself). Null for CREDIT/DEBIT. */
-  prepaidInitialBalance: moneyString.nullable(),
   limits: z.array(cardLimitSchema),
 });
 export type Card = z.infer<typeof cardSchema>;
@@ -141,24 +161,8 @@ export const createCardSchema = z.object({
   /** Non-primary CREDIT cards only: share the account pool (true, default) or use `limits` instead. */
   usesAccountPool: z.boolean().optional().default(true),
   limits: z.array(createCardLimitSchema).optional(),
-  /** PREPAID cards only: the balance already loaded on the card. Omitted = "0"
-   * (a card registered before being loaded). Rejected on CREDIT/DEBIT, which have
-   * no balance of their own (`PREPAID_BALANCE_NOT_ALLOWED`). */
-  prepaidInitialBalance: moneyString.optional(),
 });
 export type CreateCard = z.infer<typeof createCardSchema>;
-
-/** Load ("recargar") a PREPAID card from the account it belongs to: records a real
- * EXPENSE movement on that account and adds the same amount to the card's own
- * `prepaidBalance`, atomically. The money is only ever counted once — that expense
- * is where it leaves the account, and spending with the card afterwards moves only
- * the card's balance. */
-export const loadPrepaidCardSchema = z.object({
-  amount: moneyString,
-  /** When the load happened; defaults to now. Dates the created expense. */
-  occurredAt: z.string().optional(),
-});
-export type LoadPrepaidCard = z.infer<typeof loadPrepaidCardSchema>;
 
 /**
  * One of the account's shared credit pools, by currency: the account's own
@@ -218,39 +222,77 @@ export const bankAccountSchema = z.object({
 });
 export type BankAccount = z.infer<typeof bankAccountSchema>;
 
-export const createBankAccountSchema = z
-  .object({
-    name: z.string().trim().min(1).max(120),
-    type: accountType.default("CHECKING"),
-    status: accountStatus.default("ACTIVE"),
-    currency: z.string().trim().length(3).default("CLP"),
-    institution: z.string().trim().max(120).optional(),
-    institutionId: z.string().optional(),
-    accountNumber: z.string().trim().max(50).optional(),
-    initialBalance: moneyString.optional(),
-    /** For CREDIT_LINE accounts: the credit pool and any pre-existing used seed. */
-    creditLimit: moneyString.optional(),
-    creditUsedInitial: moneyString.optional(),
-    /** Statement cut-off day (1-28); omit/null to leave unconfigured. Advanced setting —
-     * intentionally not exposed in the create-account UI, only editable afterward. */
-    billingCycleDay: z.number().int().min(1).max(28).nullable().optional(),
-    /** Advanced setting — not exposed in the create-account UI, only editable afterward. */
-    paymentMethod: billingPaymentMethod.default("MANUAL"),
-    /** Minimum-payment percentage (0-100); null clears it. */
-    minimumPaymentPercent: z.string().nullable().optional(),
-    cards: z.array(createCardSchema).optional(),
-  })
+/** The plain object half of the create shape. Kept separate because each `.refine()`
+ * wraps the schema in a `ZodEffects`, which has neither `.partial()` nor a
+ * chainable `.innerType()` — the PATCH shape derives from THIS. */
+const bankAccountFieldsSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  type: accountType.default("CHECKING"),
+  status: accountStatus.default("ACTIVE"),
+  currency: z.string().trim().length(3).default("CLP"),
+  institution: z.string().trim().max(120).optional(),
+  institutionId: z.string().optional(),
+  accountNumber: z.string().trim().max(50).optional(),
+  initialBalance: moneyString.optional(),
+  /** For CREDIT_LINE accounts: the credit pool and any pre-existing used seed. */
+  creditLimit: moneyString.optional(),
+  creditUsedInitial: moneyString.optional(),
+  /** Statement cut-off day (1-28); omit/null to leave unconfigured. Advanced setting —
+   * intentionally not exposed in the create-account UI, only editable afterward. */
+  billingCycleDay: z.number().int().min(1).max(28).nullable().optional(),
+  /** Advanced setting — not exposed in the create-account UI, only editable afterward. */
+  paymentMethod: billingPaymentMethod.default("MANUAL"),
+  /** Minimum-payment percentage (0-100); null clears it. */
+  minimumPaymentPercent: z.string().nullable().optional(),
+  cards: z.array(createCardSchema).optional(),
+});
+
+export const createBankAccountSchema = bankAccountFieldsSchema
   .refine((v) => !isAccountNumberRequired(v.type) || !!v.accountNumber?.trim(), {
     message: "accountNumber is required for this account type",
     path: ["accountNumber"],
+  })
+  // A prepaid account holds provisioned funds: it has no credit line, so it can't
+  // start owing money, and none of the credit/billing settings apply to it.
+  .refine((v) => v.type !== "PREPAID" || !v.initialBalance || !v.initialBalance.startsWith("-"), {
+    message: "a prepaid account cannot start with a negative balance",
+    path: ["initialBalance"],
+  })
+  .refine((v) => v.type !== "PREPAID" || !hasCreditSettings(v), {
+    message: "a prepaid account has no credit line nor billing settings",
+    path: ["creditLimit"],
+  })
+  // The kinds a card may take depend on the account carrying it; the inline
+  // `cards[]` path must obey the same matrix the dedicated card endpoints do.
+  .refine((v) => (v.cards ?? []).every((c) => isCardKindAllowed(v.type, c.kind)), {
+    message: "this card kind is not allowed on this account type",
+    path: ["cards"],
   });
+
+function hasCreditSettings(v: {
+  creditLimit?: string;
+  creditUsedInitial?: string;
+  billingCycleDay?: number | null;
+  minimumPaymentPercent?: string | null;
+}): boolean {
+  return (
+    isNonZeroMoney(v.creditLimit) ||
+    isNonZeroMoney(v.creditUsedInitial) ||
+    v.billingCycleDay != null ||
+    v.minimumPaymentPercent != null
+  );
+}
+
+function isNonZeroMoney(value: string | undefined): boolean {
+  return value != null && Number(value) !== 0;
+}
 export type CreateBankAccount = z.infer<typeof createBankAccountSchema>;
 
 // `.partial()` isn't available on a ZodEffects (refined) schema, so derive the
-// update shape from the inner object. `type` may be omitted on a PATCH, so the
-// accountNumber-required refinement isn't (and can't be) replicated here — it's
-// enforced in the API service layer instead, where the current row's type is known.
-export const updateBankAccountSchema = createBankAccountSchema.innerType().partial();
+// update shape from the plain fields. `type` may be omitted on a PATCH, so none of
+// the create-time refinements is (or can be) replicated here — they're enforced in
+// the aggregate instead, where the current row's type is known.
+export const updateBankAccountSchema = bankAccountFieldsSchema.partial();
 export type UpdateBankAccount = z.infer<typeof updateBankAccountSchema>;
 
 export const setAccountStatusSchema = z.object({ status: accountStatus });

@@ -33,7 +33,6 @@ import { BillingSettingsModal } from "../components/BillingSettingsModal";
 import { AccountVisualCard } from "../components/AccountVisualCard";
 import { CardCreateModal } from "../components/CardCreateModal";
 import { CardDetailPanel } from "../components/CardDetailPanel";
-import { LoadPrepaidPanel } from "../components/LoadPrepaidPanel";
 import { CardDetailSurface } from "../components/CardDetailSurface";
 import { CardForm } from "../components/CardForm";
 import { ACCOUNT_ICON } from "../components/accountVisuals";
@@ -637,7 +636,6 @@ function CardsAside({
   const [deleteCard, setDeleteCard] = useState<accounts.Card | null>(null);
   const [viewCard, setViewCard] = useState<accounts.Card | null>(null);
   /** The prepaid card being loaded from the INLINE (desktop) expansion. */
-  const [loadingCard, setLoadingCard] = useState<accounts.Card | null>(null);
   // Desktop expands the selected card in place instead of opening an overlay:
   // `expandedId` is the accordion's open row, `inlineEditing` swaps that same
   // block for the form. Below `2xl` both stay unused — there `viewCard` drives
@@ -769,6 +767,7 @@ function CardsAside({
                               submitting={update.isPending}
                               initial={card}
                               accountCurrency={account.currency}
+                              accountType={account.type}
                               accountCreditLimit={account.creditLimit}
                               hasExistingPrimary={account.cards.some(
                                 (c) => c.kind === "CREDIT" && c.isPrimary && c.id !== card.id,
@@ -807,9 +806,6 @@ function CardsAside({
                               card={card}
                               holder={holder}
                               variant="inline"
-                              onLoadPrepaid={
-                                card.kind === "PREPAID" ? () => setLoadingCard(card) : undefined
-                              }
                               movementsAside={
                                 <span className="text-xs text-brand">
                                   {t("cards.detail.filteringTable")}
@@ -861,12 +857,6 @@ function CardsAside({
           onDelete={(card) => setDeleteCard(card)}
         />
       )}
-
-      <LoadPrepaidPanel
-        account={account}
-        card={loadingCard}
-        onOpenChange={(v) => !v && setLoadingCard(null)}
-      />
 
       <CardCreateModal
         open={modalOpen}

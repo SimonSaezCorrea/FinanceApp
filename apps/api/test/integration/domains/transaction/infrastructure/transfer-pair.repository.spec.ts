@@ -12,7 +12,7 @@ import { buildBankAccountRepo, buildCardAccountRepo } from "../../../support/rep
 describe("transfer pair (integration)", () => {
   const prisma = new PrismaService(new ConfigService());
   const accountRepo = buildBankAccountRepo(prisma);
-  const txRepo = new PrismaTransactionRepository(prisma, accountRepo, buildCardAccountRepo(prisma));
+  const txRepo = new PrismaTransactionRepository(prisma, accountRepo);
   const userId = `u_${randomUUID()}`;
   let a1 = "";
   let a2 = "";

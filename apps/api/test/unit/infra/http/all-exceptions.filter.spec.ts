@@ -20,7 +20,10 @@ function captureLog(exception: unknown) {
   const { host, status, json } = makeHost();
   const filter = new AllExceptionsFilter();
   const error = vi
-    .spyOn((filter as unknown as { logger: { error: (...args: unknown[]) => void } }).logger, "error")
+    .spyOn(
+      (filter as unknown as { logger: { error: (...args: unknown[]) => void } }).logger,
+      "error",
+    )
     .mockImplementation(() => undefined);
   filter.catch(exception, host);
   const [message, stack] = error.mock.calls[0] ?? [];

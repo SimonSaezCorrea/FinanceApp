@@ -4,10 +4,6 @@ import { type Prisma, TransactionType } from "@prisma/client";
 import { PrismaService } from "../../../infra/prisma/prisma.service";
 import { EXCLUDE_TRANSFERS } from "../application/queries/transaction-list-filter";
 import {
-  CARD_ACCOUNT_REPOSITORY,
-  type CardAccountRepositoryPort,
-} from "../../card-account/domain/ports/card-account.repository.port";
-import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
 } from "../../bank-account/domain/ports/bank-account.repository.port";
@@ -93,21 +89,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
-    @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
   ) {}
-
-  /** A PREPAID card's own pot follows the movement that moved it, in the same
-   * transaction — the card table is written through ITS domain's port, never
-   * from here (one table, one adapter). */
-  private async applyPrepaidDeltas(
-    tx: unknown,
-    deltas: { cardId: string; delta: string }[] | undefined,
-  ): Promise<void> {
-    for (const d of deltas ?? []) {
-      if (d.delta === "0") continue;
-      await this.cards.incrementPrepaidBalanceWithTx(tx, d.cardId, d.delta);
-    }
-  }
 
   /** Shared `where` builder so a page and its summary can never disagree. */
   private buildWhere(userId: string, where: TransactionListFilter): Prisma.TransactionWhereInput {
@@ -228,7 +210,6 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     plan: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     creditUsedDelta: { accountId: string; delta: string } | null,
     balanceDeltas: { accountId: string; delta: string }[],
-    prepaidDeltas?: { cardId: string; delta: string }[],
   ): Promise<Transaction> {
     const row = await this.prisma.$transaction(async (tx) => {
       const created = await tx.transaction.create({
@@ -257,7 +238,6 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         );
       }
       await this.applyBalanceDeltas(tx, balanceDeltas);
-      await this.applyPrepaidDeltas(tx, prepaidDeltas);
       return created;
     });
     return Transaction.fromPersistence(rowToProps(row));
@@ -273,7 +253,6 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     },
     creditUsedDeltas: { accountId: string; delta: string }[],
     balanceDeltas: { accountId: string; delta: string }[],
-    prepaidDeltas?: { cardId: string; delta: string }[],
   ): Promise<Transaction | null> {
     const owned = await this.prisma.transaction.findFirst({
       where: { id, userId },
@@ -311,7 +290,6 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         await this.accounts.incrementCreditUsedWithTx(tx, d.accountId, d.delta);
       }
       await this.applyBalanceDeltas(tx, balanceDeltas);
-      await this.applyPrepaidDeltas(tx, prepaidDeltas);
       return updated;
     });
     return Transaction.fromPersistence(rowToProps(row));
@@ -322,7 +300,6 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     id: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
     balanceDeltas: { accountId: string; delta: string }[],
-    prepaidDeltas?: { cardId: string; delta: string }[],
   ): Promise<boolean> {
     const removed = await this.prisma.$transaction(async (tx) => {
       const result = await tx.transaction.deleteMany({ where: { id, userId } });
@@ -335,7 +312,6 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
       }
       if (result.count > 0) {
         await this.applyBalanceDeltas(tx, balanceDeltas);
-        await this.applyPrepaidDeltas(tx, prepaidDeltas);
       }
       return result.count > 0;
     });

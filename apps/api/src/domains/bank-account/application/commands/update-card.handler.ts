@@ -54,8 +54,6 @@ export class UpdateCardHandler extends BaseCommandHandler<
       expiryYear: command.input.expiryYear,
       isActive: command.input.isActive ?? true,
       isPrimary: placement.isPrimary,
-      prepaidBalance: placement.resolvedPrepaidBalance,
-      prepaidInitialBalance: placement.resolvedPrepaidInitialBalance,
       limits: placement.cardLimits.map((l) => ({
         currency: l.currency,
         limitAmount: l.limitAmount,

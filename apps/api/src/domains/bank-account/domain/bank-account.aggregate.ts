@@ -4,12 +4,13 @@ import { addMoney, moneyToString, toMoney } from "@finance/money";
 import { AccountDeactivatedEvent } from "./events/account-deactivated.event";
 import {
   AccountCannotHaveCardError,
-  InvalidPrepaidBalanceError,
-  PrepaidBalanceNotAllowedError,
   AccountNumberRequiredError,
+  AccountTypeChangeNotAllowedError,
+  CardKindNotAllowedError,
   CardLimitRequiredError,
   CardNotFoundError,
   CardSubLimitExceedsAccountError,
+  InvalidInitialBalanceError,
 } from "./errors";
 
 export interface CardLimitProps {
@@ -28,10 +29,6 @@ export interface CardProps {
   expiryYear: number;
   isActive: boolean;
   isPrimary: boolean;
-  /** PREPAID only: the card's own pot of money (see `card-account`'s entity).
-   * Null for CREDIT/DEBIT. */
-  prepaidBalance: string | null;
-  prepaidInitialBalance: string | null;
   limits: CardLimitProps[];
 }
 
@@ -69,8 +66,6 @@ type CardInput = {
   isActive?: boolean;
   usesAccountPool?: boolean;
   limits?: { currency: string; limitAmount: string; usedInitial?: string }[];
-  /** PREPAID only: the balance already loaded on the card ("0" when omitted). */
-  prepaidInitialBalance?: string;
 };
 
 /** What the aggregate resolves a (new or edited) CREDIT card's placement to —
@@ -78,13 +73,6 @@ type CardInput = {
 export interface ResolvedCardPlacement {
   isPrimary: boolean;
   cardLimits: CardLimitProps[];
-  /** PREPAID only: the card's own pot, as resolved from the input. The live balance
-   * seeds from the initial one at creation and is never rewritten from a form
-   * afterwards (it moves only through loads and spending). Both null for
-   * CREDIT/DEBIT. Named `resolved*` because a `CardInput` carries a field of its own
-   * with the raw, optional value and the two are merged in `planCreation`. */
-  resolvedPrepaidBalance: string | null;
-  resolvedPrepaidInitialBalance: string | null;
   /** Set only when this card becomes/remains the primary — the account's own
    * creditLimit/creditUsedInitial mirror it 1:1. */
   accountCreditLimit?: string;
@@ -95,8 +83,12 @@ export interface ResolvedCardPlacement {
  * `BankAccount` aggregate: the authoritative object for a bank account and
  * every CREDIT-kind card it carries. Invariants ported over unchanged from
  * `AccountsService`/`CardsService` (same rules, now enforced here):
- *  - Only CHECKING/SIGHT/CREDIT_LINE accounts can carry a card.
- *  - `accountNumber` required for CHECKING/SIGHT/SAVINGS.
+ *  - A card's kind must belong on the account's type (`ALLOWED_CARD_KINDS`):
+ *    SAVINGS/INVESTMENT/CASH carry none at all, a PREPAID account carries only
+ *    prepaid cards, and no other type carries a prepaid one.
+ *  - `accountNumber` required for CHECKING/SIGHT/SAVINGS/PREPAID.
+ *  - A PREPAID account never starts with a negative balance, and its type can
+ *    never be converted to or from another one.
  *  - Every CREDIT card resolves to a determinate limit (primary mirrors the
  *    account pool; additional cards share it or carry their own sub-limit,
  *    capped against the account pool in the account's own currency).
@@ -122,6 +114,7 @@ export class BankAccount {
   static planCreation(input: {
     type: accounts.AccountType;
     currency: string;
+    initialBalance?: string;
     creditLimit?: string;
     creditUsedInitial?: string;
     cards?: CardInput[];
@@ -130,15 +123,16 @@ export class BankAccount {
     creditUsedInitial: string;
     cards: (ResolvedCardPlacement & CardInput)[];
   } {
-    if ((input.cards?.length ?? 0) > 0 && !accounts.isCardableAccountType(input.type)) {
-      throw new AccountCannotHaveCardError();
+    BankAccount.assertInitialBalance(input.type, input.initialBalance);
+    for (const card of input.cards ?? []) {
+      BankAccount.assertCardKindAllowedFor(input.type, card.kind);
     }
     let creditLimit = input.creditLimit ?? "0";
     let creditUsedInitial = input.creditUsedInitial ?? "0";
     let primaryAssigned = false;
     const cards = (input.cards ?? []).map((c) => {
       if (c.kind !== "CREDIT") {
-        return { ...c, isPrimary: false, cardLimits: [], ...BankAccount.prepaidPot(c) };
+        return { ...c, isPrimary: false, cardLimits: [] };
       }
       if (!primaryAssigned) {
         const own = (c.limits ?? []).find((l) => l.currency === input.currency);
@@ -155,7 +149,7 @@ export class BankAccount {
           limitAmount: l.limitAmount,
           usedInitial: l.usedInitial ?? "0",
         }));
-        return { ...c, isPrimary: true, cardLimits, ...BankAccount.prepaidPot(c) };
+        return { ...c, isPrimary: true, cardLimits };
       }
       if (c.usesAccountPool === false) {
         if (!c.limits || c.limits.length === 0) throw new CardLimitRequiredError();
@@ -173,9 +167,9 @@ export class BankAccount {
             usedInitial: l.usedInitial ?? "0",
           };
         });
-        return { ...c, isPrimary: false, cardLimits, ...BankAccount.prepaidPot(c) };
+        return { ...c, isPrimary: false, cardLimits };
       }
-      return { ...c, isPrimary: false, cardLimits: [], ...BankAccount.prepaidPot(c) };
+      return { ...c, isPrimary: false, cardLimits: [] };
     });
     return { creditLimit, creditUsedInitial, cards };
   }
@@ -266,6 +260,33 @@ export class BankAccount {
     }
   }
 
+  /** The card kind must belong on this account type (`ALLOWED_CARD_KINDS`). Two
+   * distinct refusals: an account that takes NO cards at all answers
+   * ACCOUNT_CANNOT_HAVE_CARD, one that takes cards but not THIS kind answers
+   * CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT. */
+  assertCardKindAllowed(kind: accounts.CardKind): void {
+    BankAccount.assertCardKindAllowedFor(this.props.type, kind);
+  }
+
+  private static assertCardKindAllowedFor(
+    type: accounts.AccountType,
+    kind: accounts.CardKind,
+  ): void {
+    if (!accounts.isCardableAccountType(type)) throw new AccountCannotHaveCardError();
+    if (!accounts.isCardKindAllowed(type, kind)) throw new CardKindNotAllowedError();
+  }
+
+  /** A prepaid account holds provisioned funds, so it can't be registered already
+   * owing money. Other types may legitimately start negative (an overdrawn
+   * checking account). */
+  private static assertInitialBalance(
+    type: accounts.AccountType,
+    initialBalance: string | undefined,
+  ): void {
+    if (type !== "PREPAID" || initialBalance === undefined) return;
+    if (toMoney(initialBalance).isNegative()) throw new InvalidInitialBalanceError();
+  }
+
   /** Apply a partial update to the account's own scalar fields — validates the
    * ACCOUNT_NUMBER_REQUIRED invariant against the *effective* (patched) type. */
   applyUpdate(patch: {
@@ -285,6 +306,14 @@ export class BankAccount {
   }): void {
     const effectiveType = patch.type ?? this.props.type;
     const effectiveAccountNumber = patch.accountNumber ?? this.props.accountNumber;
+    // A prepaid account is a different product, not a setting: converting either
+    // way would drag cards that can't exist on the other side, a credit pool and
+    // billing periods with it.
+    const changesType = effectiveType !== this.props.type;
+    if (changesType && (effectiveType === "PREPAID" || this.props.type === "PREPAID")) {
+      throw new AccountTypeChangeNotAllowedError();
+    }
+    BankAccount.assertInitialBalance(effectiveType, patch.initialBalance);
     this.assertAccountNumber(effectiveType, effectiveAccountNumber);
     if (patch.name !== undefined) this.props.name = patch.name;
     if (patch.type !== undefined) this.props.type = patch.type;
@@ -342,28 +371,6 @@ export class BankAccount {
   }
 
   /**
-   * A PREPAID card's own pot: it holds money instead of a credit line, so this is
-   * its equivalent of a limit. A card registered before being loaded simply starts
-   * at "0". DEBIT cards have neither (they spend the account's own balance), and a
-   * balance sent for a CREDIT/DEBIT card is rejected rather than ignored.
-   */
-  private static prepaidPot(input: CardInput): {
-    resolvedPrepaidBalance: string | null;
-    resolvedPrepaidInitialBalance: string | null;
-  } {
-    if (input.kind !== "PREPAID") {
-      if (input.prepaidInitialBalance !== undefined) throw new PrepaidBalanceNotAllowedError();
-      return { resolvedPrepaidBalance: null, resolvedPrepaidInitialBalance: null };
-    }
-    const seed = input.prepaidInitialBalance ?? "0";
-    if (toMoney(seed).isNegative()) throw new InvalidPrepaidBalanceError();
-    return {
-      resolvedPrepaidBalance: moneyToString(seed),
-      resolvedPrepaidInitialBalance: moneyToString(seed),
-    };
-  }
-
-  /**
    * Works out whether a CREDIT card is/becomes the account's PRIMARY (the
    * account's own creditLimit/creditUsedInitial mirror its limit 1:1), or an
    * additional card sharing the pool (no CardLimit rows) or carrying its own
@@ -373,10 +380,10 @@ export class BankAccount {
    * conflicting other primary).
    */
   resolveCardPlacement(input: CardInput, excludeCardId: string | null): ResolvedCardPlacement {
+    this.assertCardKindAllowed(input.kind);
     if (input.kind !== "CREDIT") {
-      return { isPrimary: false, cardLimits: [], ...BankAccount.prepaidPot(input) };
+      return { isPrimary: false, cardLimits: [] };
     }
-    if (input.prepaidInitialBalance !== undefined) throw new PrepaidBalanceNotAllowedError();
 
     const existingPrimary = this.props.cards.find(
       (c) => c.kind === "CREDIT" && c.isPrimary && c.id !== excludeCardId,
@@ -399,8 +406,6 @@ export class BankAccount {
         cardLimits: this.normalizeLimits(extra),
         accountCreditLimit: own.limitAmount,
         accountCreditUsedInitial: own.usedInitial ?? fallbackUsedInitial,
-        resolvedPrepaidBalance: null,
-        resolvedPrepaidInitialBalance: null,
       };
     }
 
@@ -408,8 +413,6 @@ export class BankAccount {
       return {
         isPrimary: false,
         cardLimits: [],
-        resolvedPrepaidBalance: null,
-        resolvedPrepaidInitialBalance: null,
       };
     }
     if (!input.limits || input.limits.length === 0) {
@@ -418,8 +421,6 @@ export class BankAccount {
     return {
       isPrimary: false,
       cardLimits: this.normalizeLimits(input.limits),
-      resolvedPrepaidBalance: null,
-      resolvedPrepaidInitialBalance: null,
     };
   }
 

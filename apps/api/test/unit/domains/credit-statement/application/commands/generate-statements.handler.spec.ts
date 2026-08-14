@@ -28,8 +28,6 @@ function card(overrides: Partial<CardProps> = {}): CardProps {
     last4: "1111",
     expiryMonth: 1,
     expiryYear: 2030,
-    prepaidBalance: null,
-    prepaidInitialBalance: null,
     isActive: true,
     isPrimary: true,
     limits: [],

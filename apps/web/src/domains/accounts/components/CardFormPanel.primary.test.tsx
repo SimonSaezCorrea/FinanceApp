@@ -55,8 +55,6 @@ const primary: accounts.Card = {
   isActive: true,
   limits: [],
   ownUsed: "0",
-  prepaidBalance: null,
-  prepaidInitialBalance: null,
 };
 
 describe("CardFormPanel · primary card extra limits", () => {

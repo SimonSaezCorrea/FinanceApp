@@ -272,31 +272,39 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     `/institutions` and `/currencies` to theirs. No contract change. Shared test helpers:
     `test/unit/support/fake-ports.ts` (fake port per table + an `accountAggregate` builder) and
     `test/integration/support/repositories.ts` (composes the real adapter graphs).
-    Amendment (PREPAID cards hold their own money, 2026-08-13): a `PREPAID` card is no longer a
-    kind with no behavior — it carries its OWN pot: **`CardAccount.prepaidInitialBalance`** (seed,
-    from the card form's "Saldo cargado") + **`prepaidBalance`** (self-maintaining, never written
-    from a form). Contract: `Card.prepaidBalance`/`prepaidInitialBalance` (null for CREDIT/DEBIT),
-    `createCardSchema.prepaidInitialBalance` (rejected on CREDIT/DEBIT —
-    `PREPAID_BALANCE_NOT_ALLOWED`; negative — `INVALID_PREPAID_BALANCE`), resolved by the aggregate's
-    `prepaidPot` (`ResolvedCardPlacement.resolvedPrepaid*`). **Loading**: `POST
-/accounts/:id/cards/:cardId/load` (`LoadPrepaidCardCommand`/Handler in `bank-account`) writes a real
-    EXPENSE on the account (category "Recarga prepago", **no `cardId`** — with one it would look like
-    spending through the card), decrements the account balance and credits the card, in one
-    `$transaction`. **Spending**: an EXPENSE through a PREPAID card is bounded by that balance
-    (`MovementPolicy.assertWithinPrepaidBalance` → `PREPAID_INSUFFICIENT_BALANCE`, never negative),
-    contributes "0" to any credit pool, draws the card's pot down
-    (`MovementPolicy.prepaidDelta` → the write ports' new `prepaidDeltas`, applied through
-    `CardAccountRepositoryPort.incrementPrepaidBalanceWithTx`) and **leaves the account's
-    `currentBalance` untouched** (`accountBalanceDelta` in `transaction/domain/balance-delta.ts` —
-    the money left when the card was loaded; counting both would subtract it twice). Edits/deletes
-    revert the pot symmetrically and, unlike the credit pool, do so even when the movement's
-    statement is settled (a prepaid card has no statement); an edit re-validates against the balance
-    BEFORE its own old charge (`prepaidOffset`). Unchanged: only CHECKING/SIGHT/CREDIT_LINE accounts
-    may carry cards. Web: `CardForm` gains a prepaid section, `AccountVisualCard` shows the CARD's
-    balance (not the account's) on a prepaid tile with the existing slate `--prepaid-*` gradient,
-    `CardDetailPanel` leads with that balance + a "Recargar" action, and `LoadPrepaidPanel` (a
-    `FormSurface` panel showing both balances before/after) performs it via
-    `useCardMutations.load`. Seed: one prepaid card ("Prepago · Rosa", loaded, no movements).
+    Amendment (PREPAID is an ACCOUNT, not a card pot — specs/011, 2026-08-14): the previous
+    "a prepaid card holds its own money" model is **superseded and removed**. Prepaid is its own
+    product: **`AccountType.PREPAID`** — an account with `accountNumber` (required: it is funded by
+    transferring to it), institution (bank or non-bank issuer, unfiltered), currency and its own
+    balance, which **can never go negative**. `CardAccount.prepaidBalance`/`prepaidInitialBalance`,
+    `BankAccount.prepaidPot`, `MovementPolicy.prepaidDelta`, the ports' `prepaidDeltas`,
+    `CardAccountRepositoryPort.incrementPrepaidBalanceWithTx`, `accountBalanceDelta`,
+    `POST /accounts/:id/cards/:cardId/load` (+ its command/handler), `loadPrepaidCardSchema` and
+    `LoadPrepaidPanel` are all **gone**: a prepaid card is a channel onto its account's balance,
+    exactly like a debit card, so an expense through one moves the ACCOUNT's `currentBalance` like
+    any other. **`CARDABLE_ACCOUNT_TYPES` is replaced by the matrix `ALLOWED_CARD_KINDS`**
+    (`@finance/contracts`) + `allowedCardKinds`/`isCardKindAllowed`, with `isCardableAccountType`
+    derived from it: CHECKING/SIGHT → DEBIT+CREDIT, CREDIT_LINE → CREDIT, PREPAID → PREPAID,
+    SAVINGS/INVESTMENT/CASH → none. Two distinct refusals: `ACCOUNT_CANNOT_HAVE_CARD` (carries no
+    cards at all) vs the new **`CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT`**. The "never negative" rule lives
+    in `MovementPolicy.assertWithinPrepaidBalance` (now keyed on `account.type === "PREPAID"` and
+    reading the new `AccountContext.currentBalance`; an edit passes its own previous amount as the
+    offset) and, for the outgoing leg, in `TransferPolicy` (whose context gained `currentBalance` +
+    an `outgoingOffset` argument) — error `PREPAID_INSUFFICIENT_BALANCE`, reused with new wording.
+    Topping up is an ordinary **traspaso** (spec 010) or an INCOME; a prepaid account never opens a
+    `CreditStatement` (no CREDIT card ⇒ `resolveBillingEligibility` false). Also new:
+    **`INVALID_INITIAL_BALANCE`** (a prepaid account can't start negative) and
+    **`ACCOUNT_TYPE_CHANGE_NOT_ALLOWED`** (a `type` can never be converted to or from PREPAID —
+    `BankAccount.applyUpdate`; `AccountTypeToggle` gained `disabledTypes`/`disabledReason` to mirror
+    it). `createBankAccountSchema` gained refinements (no negative initial balance, no credit/billing
+    settings, inline `cards[]` obey the matrix) and, since each `.refine()` wraps the schema in a
+    `ZodEffects`, the PATCH shape now derives from a shared plain-object `bankAccountFieldsSchema`.
+    Web: `CardForm` takes `accountType` and offers only the allowed kinds (its "saldo cargado"
+    section is gone), `AccountVisualCard` shows the account's balance on every tile, `CardDetailPanel`
+    lost its balance block and "Recargar". Seed: the prepaid card no longer hangs off the checking
+    account — there's a **"Tenpo Prepago"** `PREPAID` account with two prepaid cards sharing its
+    balance, movements with and without a card, and a top-up recorded as a real transfer.
+    `docs/PENDING.md` lost its point 6 (the un-revertable card top-up), which this design removes.
   - **transaction** (specs/005, 007; folder `domains/transaction`): income/expense linked to a `BankAccount` and (optionally) a `Card`. Rules in `transaction/domain/movement-policy.ts` + its command handlers (contract requires `bankAccountId` on create + refine `INCOME ⇒ no card`): INCOME → no card; EXPENSE on CASH → no card; EXPENSE on **CREDIT_LINE → card required** (must belong); EXPENSE on other non-cash accounts → card optional. **Whenever the card used is CREDIT-kind** (on a CREDIT_LINE account, or any other account that's grown one), the amount is checked against **both** the account's shared pool (persisted `creditUsed` + amount ≤ `creditLimit`, error `CARD_LIMIT_EXCEEDED`) **and**, if the card has its own `CardLimit` for that currency, that narrower (still derived) sub-limit too (`sumsForCard`, error `CARD_SUBLIMIT_EXCEEDED`). Creating/editing/deleting a transaction that draws on the shared pool mutates `BankAccount.creditUsed` directly (`BankAccountRepositoryPort.incrementCreditUsedWithTx`, called inside the movement's own `$transaction`) — edits/deletes revert the transaction's old contribution before applying the new one, including when the transaction moves to a different account (see accounts' billing-period amendment above for the linked-transaction/paid-statement exception). Full CRUD from both the Movements view and the Account view (shared `TransactionTable` with edit/delete, plus a `TransactionDetailModal` read-only view opened by clicking a row). Filter query supports `bankAccountId` + `cardId` (bank→card). Error codes: `CARD_REQUIRED`, `CARD_NOT_ALLOWED`, `CARD_ACCOUNT_MISMATCH`, `CARD_LIMIT_EXCEEDED`, `CARD_SUBLIMIT_EXCEEDED`.
     Amendment (paginated list + aggregates endpoint, 2026-08-05): `GET /transactions` is
     **keyset-paginated** and its response shape is now **`{ items, nextCursor }`** (was a bare
@@ -532,7 +540,18 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Active plan: specs/010-movement-transfers-attachments/plan.md
+Active plan: specs/011-prepaid-account-product/plan.md
+(Cuenta prepago como producto independiente. El prepago deja de ser una tarjeta con pote propio
+colgada de una cuenta corriente/vista y pasa a ser un tipo de cuenta: `AccountType.PREPAID`, con
+número de cuenta, emisor, moneda y saldo propio, que solo admite tarjetas `PREPAID` (una o varias,
+todas gastan el mismo saldo) y cuyo saldo nunca baja de cero. `CardAccount` pierde
+`prepaidBalance`/`prepaidInitialBalance`; se elimina `POST /accounts/:id/cards/:cardId/load` y su
+panel — cargar es un traspaso (spec 010) o un ingreso normal. `CARDABLE_ACCOUNT_TYPES` se reemplaza
+por una matriz tipo-cuenta ↔ kind-tarjeta en `@finance/contracts`. Cambiar el tipo de una cuenta
+hacia/desde PREPAID queda prohibido. Sin migración de datos: `db push` + seed rehecho.
+**Estado: 011 implementado** (T001-T061; contrato, dominio, API, web, seed, docs y constitución
+en v1.34.0).)
+Prior plan: specs/010-movement-transfers-attachments/plan.md
 (Movimientos: traspasos, comprobantes y paneles rediseñados. Los paneles de detalle y de
 crear/editar movimiento pasan al formato del handoff (panel lateral, monto protagonista, filas
 etiqueta/valor, acciones al pie) y ganan navegación ‹ › paginada, Duplicar, saldo tras el
@@ -546,7 +565,7 @@ predicado único `EXCLUDE_TRANSFERS`; y **adjuntos** = tabla + dominio nuevos
 ATTACHMENTS_UNAVAILABLE` mientras no haya credenciales). Fuera de alcance: crear recurrente desde
 el formulario, presupuestos por categoría y conversión de moneda.
 **Estado: 010 implementado** (T001-T073; traspasos, adjuntos y ambos paneles completos, constitución en v1.29.0).)
-Prior plan: specs/009-ddd-cqrs-architecture/plan.md
+Earlier plan: specs/009-ddd-cqrs-architecture/plan.md
 (Backend DDD + CQRS migration. apps/api pasa de domain-first plano a 4 capas por dominio
 (domain/application/infrastructure/presentation) en los 11 dominios existentes, uno a la vez,
 `accounts`/billing primero como referencia. `@nestjs/cqrs` para Command/Query/EventBus (eventos
@@ -562,6 +581,6 @@ patrón completo una vez documentado.
 tests). Encima se aplicó, sin spec propia, la regla **una tabla = un dominio**: los 11 dominios se
 dividieron en 21 dominios-tabla (+ `import`/`health` sin tabla), un solo adapter por tabla,
 constitución en v1.23.0. Ver ARCHITECTURE.md §12a.)
-Prior plans: 009 (backend DDD+CQRS), 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
+Prior plans: 010 (traspasos/adjuntos), 009 (backend DDD+CQRS), 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
 
 <!-- SPECKIT END -->

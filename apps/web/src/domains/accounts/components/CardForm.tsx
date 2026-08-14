@@ -2,7 +2,7 @@ import { type FormEvent, useEffect, useState } from "react";
 import { Plus, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import type { accounts } from "@finance/contracts";
+import { accounts as accountsContract, type accounts } from "@finance/contracts";
 
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
@@ -21,6 +21,10 @@ interface Props {
   initial?: accounts.Card;
   /** The account's currency — the primary card's mandatory limit is always in it. */
   accountCurrency: string;
+  /** The account's type: it decides which card kinds may be offered at all
+   * (`accounts.allowedCardKinds`) — a prepaid account carries only prepaid cards,
+   * and no other type carries one. */
+  accountType: accounts.AccountType;
   /** Whether a DIFFERENT CREDIT card on this account already holds the primary slot
    * (excluding the card being edited, if any). false ⇒ this CREDIT card becomes/stays primary. */
   hasExistingPrimary: boolean;
@@ -72,6 +76,7 @@ export function CardForm({
   submitting,
   initial,
   accountCurrency,
+  accountType,
   hasExistingPrimary,
   accountCreditLimit,
   formId,
@@ -84,7 +89,12 @@ export function CardForm({
   const { t, i18n } = useTranslation();
   const { data: currencies } = useCurrencies();
   const [name, setName] = useState(initial?.name ?? "");
-  const [kind, setKind] = useState<accounts.CardKind>(initial?.kind ?? "CREDIT");
+  const kindOptions = accountsContract.allowedCardKinds(accountType);
+  // CREDIT stays the default wherever it's allowed (the kind whose setup needs the
+  // most from this form); a prepaid account offers only PREPAID, so it lands there.
+  const [kind, setKind] = useState<accounts.CardKind>(
+    initial?.kind ?? (kindOptions.includes("CREDIT") ? "CREDIT" : (kindOptions[0] ?? "CREDIT")),
+  );
   const [last4, setLast4] = useState(initial?.last4 ?? "");
   const [expiry, setExpiry] = useState(
     initial ? formatExpiry(initial.expiryMonth, initial.expiryYear) : "",
@@ -106,13 +116,6 @@ export function CardForm({
   const [last4Error, setLast4Error] = useState<string | null>(null);
   const [expiryError, setExpiryError] = useState<string | null>(null);
   const [limitError, setLimitError] = useState<string | null>(null);
-  // A prepaid card holds money instead of a credit line, so this is its
-  // equivalent of a limit: what is already loaded on it. Editing it changes the
-  // SEED only — the live balance moves through loads and spending, never a form.
-  const [prepaidInitialBalance, setPrepaidInitialBalance] = useState(
-    initial?.prepaidInitialBalance ?? "",
-  );
-
   const parsedDraftExpiry = parseExpiry(expiry);
   // Reported from an effect, not from each setter: every field feeds the same
   // object, and one place to build it can't drift from another.
@@ -136,7 +139,6 @@ export function CardForm({
     onDraftChange,
   ]);
 
-  const isPrepaid = kind === "PREPAID";
   const willBePrimary = kind === "CREDIT" && !hasExistingPrimary;
   const isAdditionalCredit = kind === "CREDIT" && hasExistingPrimary;
 
@@ -203,9 +205,6 @@ export function CardForm({
       isActive,
       usesAccountPool: poolFlag,
       limits: cardLimits,
-      // Sent only for a prepaid card: the backend rejects it on CREDIT/DEBIT
-      // rather than ignoring it (PREPAID_BALANCE_NOT_ALLOWED).
-      prepaidInitialBalance: isPrepaid ? prepaidInitialBalance.trim() || "0" : undefined,
     });
   }
 
@@ -226,11 +225,11 @@ export function CardForm({
             id="card-kind"
             value={kind}
             onChange={(e) => setKind(e.target.value as accounts.CardKind)}
-            options={[
-              { value: "CREDIT", label: t("cards.kind.CREDIT") },
-              { value: "DEBIT", label: t("cards.kind.DEBIT") },
-              { value: "PREPAID", label: t("cards.kind.PREPAID") },
-            ]}
+            // Only the kinds this account type may carry: the products are kept
+            // apart, so a checking account never offers "prepago" and a prepaid
+            // account offers nothing else.
+            options={kindOptions.map((k) => ({ value: k, label: t(`cards.kind.${k}`) }))}
+            disabled={kindOptions.length === 1}
             aria-label={t("cards.form.kind")}
           />
         </Field>
@@ -258,27 +257,6 @@ export function CardForm({
         />
       </Field>
       <p className="-mt-1 text-xs text-muted-foreground">{t("cards.form.last4Hint")}</p>
-
-      {isPrepaid ? (
-        <div className="flex flex-col gap-2 rounded-md border p-3">
-          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            {t("cards.kind.PREPAID")}
-          </span>
-          <p className="-mt-1 text-xs text-muted-foreground">{t("cards.form.prepaidHint")}</p>
-          <Field label={t("cards.form.prepaidBalance", { currency: accountCurrency })}>
-            <Input
-              id="card-prepaid-balance"
-              type="number"
-              inputMode="decimal"
-              min="0"
-              step="0.01"
-              placeholder="0"
-              value={prepaidInitialBalance}
-              onChange={(e) => setPrepaidInitialBalance(e.target.value)}
-            />
-          </Field>
-        </div>
-      ) : null}
 
       {willBePrimary ? (
         <div className="flex flex-col gap-2 rounded-md border p-3">

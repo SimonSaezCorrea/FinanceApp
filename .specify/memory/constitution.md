@@ -1,4 +1,32 @@
 <!--
+Sync Impact Report — 2026-08-14 (amendment 1.34.0)
+- Version change: 1.33.0 → 1.34.0 (MINOR: new enforceable rule from specs/011 — prepaid as its own
+  account product; no principle removed or redefined).
+- Banking-domain norms gain **"A payment instrument holds no money of its own"**: money lives in an
+  ACCOUNT, never in a card. A card is a channel onto its account's funds or credit line, so a card
+  row MUST NOT carry a balance column of its own (`CardAccount.prepaidBalance`/
+  `prepaidInitialBalance` were removed in specs/011). Consequently a prepaid product is modelled as
+  an account type (`AccountType.PREPAID`), funded by an ordinary transfer or income — never by a
+  dedicated "top up this card" endpoint — and several prepaid cards on one account share that
+  account's single balance.
+- Banking-domain norms also gain **"A prepaid account never goes negative"**: every outflow (an
+  expense with a card, without one, or a transfer's outgoing leg) MUST be rejected
+  (`PREPAID_INSUFFICIENT_BALANCE`) when it exceeds the balance — the rule belongs to the account
+  type and is enforced in the pure policies (`MovementPolicy`/`TransferPolicy`), not per channel.
+  An edit is validated against the balance BEFORE its own previous charge.
+- Banking-domain norms also gain **"Which card kinds an account carries is one matrix"**: the
+  account-type ↔ card-kind compatibility lives in ONE table in `@finance/contracts`
+  (`ALLOWED_CARD_KINDS`), which `isCardableAccountType` derives from, and both the API and the UI
+  read — never as scattered `if`s. Two distinct refusals: `ACCOUNT_CANNOT_HAVE_CARD` (this type
+  carries no cards at all) vs `CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT` (it carries cards, not this kind).
+- Banking-domain norms also gain **"A financial product is not a setting"**: an account's `type`
+  MUST NOT be convertible to or from `PREPAID` (`ACCOUNT_TYPE_CHANGE_NOT_ALLOWED`) — converting
+  would drag cards that can't exist on the other side, a credit pool and billing periods with it.
+- Templates requiring updates: none (no template references these norms).
+- Follow-up TODOs: none.
+-->
+
+<!--
 Sync Impact Report — 2026-08-11 (amendment 1.29.0)
 - Version change: 1.28.0 → 1.29.0 (MINOR: new enforceable rules from specs/010 — transfers between
   own accounts, and file attachments on a movement; no principle removed or redefined).
@@ -946,6 +974,27 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
     beside its list (the desktop cards aside), the detail is shown **inline** instead of in an
     overlay, and the same content component is reused across the inline/drawer/window forms — the
     same information MUST NOT be rendered twice at once.
+  - **A payment instrument holds no money of its own:** money lives in an ACCOUNT; a card is a
+    channel onto its account's funds (DEBIT/PREPAID) or credit line (CREDIT). A card row MUST NOT
+    carry a balance column of its own. A prepaid product is therefore an account type
+    (`AccountType.PREPAID`) whose cards all share the account's single balance, funded by an
+    ordinary transfer or income — never by a dedicated card top-up endpoint, which would be a second
+    way to record the same fact.
+  - **A prepaid account never goes negative:** every outflow — an expense with a card, an expense
+    without one, or a transfer's outgoing leg — MUST be rejected with `PREPAID_INSUFFICIENT_BALANCE`
+    when it exceeds the balance, and its initial balance MUST NOT be negative
+    (`INVALID_INITIAL_BALANCE`). The rule belongs to the account TYPE, so it is enforced once in the
+    pure policies (`MovementPolicy`/`TransferPolicy`), never per channel; an edit is checked against
+    the balance BEFORE its own previous charge.
+  - **Which card kinds an account carries is one matrix:** the account-type ↔ card-kind
+    compatibility lives in a single table in `@finance/contracts` (`ALLOWED_CARD_KINDS`), from which
+    `isCardableAccountType` derives and which BOTH the API aggregate and the web forms read — never
+    as scattered conditionals. An account carrying no cards at all answers
+    `ACCOUNT_CANNOT_HAVE_CARD`; one carrying cards but not that kind answers
+    `CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT`.
+  - **A financial product is not a setting:** an account's `type` MUST NOT be convertible to or from
+    `PREPAID` (`ACCOUNT_TYPE_CHANGE_NOT_ALLOWED`). Correcting a mistyped account means deleting and
+    recreating it, not migrating cards, a credit pool and billing periods across products.
   - **A transfer is not income nor expense:** money moved between two of the user's own accounts MUST
     be excluded from every income/expense aggregate. Representing it as ordinary rows (two
     `Transaction` rows sharing `transferGroupId`) means no sum excludes it on its own, so the
@@ -1029,4 +1078,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.33.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-13
+**Version**: 1.34.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-14

@@ -97,7 +97,6 @@ export function fakeCardAccountRepo(
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
-    incrementPrepaidBalanceWithTx: vi.fn(),
     ...overrides,
   };
 }
@@ -125,6 +124,7 @@ export function accountAggregate(input: {
   type: BankAccountProps["type"];
   creditLimit?: string;
   creditUsed?: string;
+  currentBalance?: string;
   billingCycleDay?: number | null;
   minimumPaymentPercent?: string | null;
   currency?: string;
@@ -142,8 +142,8 @@ export function accountAggregate(input: {
     institutionId: null,
     institutionName: null,
     accountNumber: null,
-    initialBalance: "0",
-    currentBalance: "0",
+    initialBalance: input.currentBalance ?? "0",
+    currentBalance: input.currentBalance ?? "0",
     creditLimit: input.creditLimit ?? "0",
     creditUsedInitial: "0",
     creditUsed: input.creditUsed ?? "0",

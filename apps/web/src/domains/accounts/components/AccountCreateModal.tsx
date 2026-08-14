@@ -105,6 +105,10 @@ export function AccountCreateModal({
 
   function handleTypeChange(next: accounts.AccountType) {
     setType(next);
+    // Drafted cards that the new type can't carry are dropped, not silently
+    // submitted into a rejection (a prepaid card can't move to a checking account
+    // and a debit one can't move to a prepaid account).
+    setCards((prev) => prev.filter((c) => accountsContract.isCardKindAllowed(next, c.kind)));
     if (!accountsContract.isCardableAccountType(next)) {
       setCards([]);
       setAddingCard(false);

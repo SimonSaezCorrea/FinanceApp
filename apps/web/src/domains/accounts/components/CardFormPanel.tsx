@@ -35,8 +35,6 @@ const BLANK_CARD: accounts.Card = {
   isActive: true,
   limits: [],
   ownUsed: "0",
-  prepaidBalance: null,
-  prepaidInitialBalance: null,
 };
 
 /**
@@ -190,6 +188,7 @@ export function CardFormPanel({
           submitting={submitting}
           initial={initial}
           accountCurrency={account.currency}
+          accountType={account.type}
           accountCreditLimit={account.creditLimit}
           hasExistingPrimary={hasExistingPrimary}
           onDraftChange={onDraftChange}

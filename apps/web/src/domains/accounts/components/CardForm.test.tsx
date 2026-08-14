@@ -3,6 +3,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
 
+import type { accounts } from "@finance/contracts";
+
 import i18n from "../../../i18n";
 import { CardForm } from "./CardForm";
 
@@ -11,6 +13,7 @@ function renderForm(
   props: Partial<{
     hasExistingPrimary: boolean;
     accountCurrency: string;
+    accountType: accounts.AccountType;
     currencies: { id: string; code: string; numeric: string; name: string }[];
   }> = {},
 ) {
@@ -24,6 +27,7 @@ function renderForm(
         <CardForm
           submitLabel="add"
           accountCurrency={props.accountCurrency ?? "CLP"}
+          accountType={props.accountType ?? "CHECKING"}
           hasExistingPrimary={props.hasExistingPrimary ?? false}
           onSubmit={onSubmit}
         />

@@ -17,7 +17,4 @@ export interface CardAccountRepositoryPort {
   create(userId: string, accountId: string, plan: CardPlan): Promise<string>;
   update(cardId: string, plan: CardPlan): Promise<void>;
   remove(userId: string, accountId: string, cardId: string): Promise<boolean>;
-  /** Moves a PREPAID card's own balance (loading it, or spending with it), inside
-   * a caller-supplied transaction so it commits with the movement that caused it. */
-  incrementPrepaidBalanceWithTx(tx: unknown, cardId: string, delta: string): Promise<void>;
 }

@@ -22,10 +22,6 @@ export interface CardProps {
   isActive: boolean;
   /** At most one `true` per account — assigned by the `BankAccount` aggregate. */
   isPrimary: boolean;
-  /** PREPAID only: the card's own pot of money (null for CREDIT/DEBIT). Spending
-   * with the card draws this down; the account's balance moved when it was loaded. */
-  prepaidBalance: string | null;
-  prepaidInitialBalance: string | null;
   limits: CardLimitProps[];
 }
 
@@ -38,7 +34,5 @@ export type CardPlan = {
   expiryYear: number;
   isActive: boolean;
   isPrimary: boolean;
-  prepaidBalance: string | null;
-  prepaidInitialBalance: string | null;
   limits: CardLimitPlan[];
 };
