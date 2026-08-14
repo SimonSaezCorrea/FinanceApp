@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { Button } from "../button";
 import { UnsavedIndicator } from "../unsaved-indicator";
+import { SidePanel } from "./side-panel";
 import { ResponsiveSurface } from "./surface";
 
 interface FormSurfaceProps {
@@ -15,7 +16,15 @@ interface FormSurfaceProps {
    * submit labelled as saving rather than adding.
    */
   mode: "create" | "edit";
-  title: string;
+  /**
+   * Which shell the form lives in. `panel` (a right-side drawer, full-screen on a
+   * phone) is right for a form long enough to scroll, or one where the record
+   * behind it is useful context; `modal` stays for the short, self-contained ones.
+   */
+  surface?: "modal" | "panel";
+  /** Usually a string; a node for a form whose visible title lives in its body
+   * (pass an `sr-only` span so the dialog still has an accessible name). */
+  title: ReactNode;
   description?: string;
   headerAside?: ReactNode;
   /** Overrides the mode's default submit label. */
@@ -25,6 +34,16 @@ interface FormSurfaceProps {
   submitting?: boolean;
   /** `edit` only: pending-changes marker in the footer (and the header on a phone). */
   dirty?: boolean;
+  /** Extra footer action beside the submit (e.g. "save and create another"). */
+  extraActions?: ReactNode;
+  /** Small caps label above the title, naming what the surface is. */
+  eyebrow?: string;
+  /**
+   * Drops the Cancel button: on a panel whose header already carries a close
+   * control, a second "way out" only competes with the primary action. The
+   * header's ✕ (and Esc, and the backdrop) remain the way to back out.
+   */
+  hideCancel?: boolean;
   className?: string;
   children: ReactNode;
 }
@@ -42,7 +61,10 @@ export function FormSurface({
   open,
   onOpenChange,
   mode,
+  surface = "modal",
   title,
+  eyebrow,
+  hideCancel = false,
   description,
   headerAside,
   submitLabel,
@@ -50,31 +72,37 @@ export function FormSurface({
   canSubmit = true,
   submitting = false,
   dirty = false,
+  extraActions,
   className,
   children,
 }: Readonly<FormSurfaceProps>) {
   const { t } = useTranslation();
   const showDirty = mode === "edit" && dirty;
+  const Shell = surface === "panel" ? SidePanel : ResponsiveSurface;
 
   return (
-    <ResponsiveSurface
+    <Shell
       open={open}
       onOpenChange={onOpenChange}
       title={title}
+      eyebrow={eyebrow}
       description={description}
       headerAside={headerAside ?? (showDirty ? <UnsavedIndicator visible /> : undefined)}
       className={className}
       footer={
         <div className="flex items-center justify-end gap-2">
           {showDirty ? <UnsavedIndicator visible className="mr-auto max-sm:hidden" /> : null}
-          <Button
-            variant="outline"
-            onClick={() => onOpenChange(false)}
-            disabled={submitting}
-            className="max-sm:hidden"
-          >
-            {t("common.cancel")}
-          </Button>
+          {hideCancel ? null : (
+            <Button
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={submitting}
+              className="max-sm:hidden"
+            >
+              {t("common.cancel")}
+            </Button>
+          )}
+          {extraActions}
           <Button
             variant="accent"
             onClick={onSubmit}
@@ -87,6 +115,6 @@ export function FormSurface({
       }
     >
       {children}
-    </ResponsiveSurface>
+    </Shell>
   );
 }

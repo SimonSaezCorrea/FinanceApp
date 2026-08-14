@@ -23,6 +23,8 @@ function statementProps(overrides: Partial<CreditStatementProps> = {}): CreditSt
     paidAt: null,
     amount: "0",
     paidAmount: "0",
+    carriedOverAmount: "0",
+    carriedToId: null,
     paidFromAccountId: null,
     paidTransactionId: null,
     createdAt: new Date("2026-01-01"),

@@ -54,17 +54,16 @@
     --panel-bg: 196 38% 12%; /* same as --surface-2 */
     --viewer-bg: 190 38% 9%; /* same as --card */
 
-    /* Card-visual gradient end-stops (CardPreview/DraftCardTile). Fixed identity
-       across both themes, same reasoning as --brand: a card's "photograph"
-       shouldn't reflow when the app theme changes. */
-    --brand-deep: 184 67% 12%; /* #0a3033 — 2nd stop for the credit/preview gradient */
-    --credit-ink: 185 38% 94%; /* #e9f4f5 */
-    --debit-from: 30 54% 19%; /* #4a3016 muted clay */
-    --debit-to: 30 64% 9%; /* #241608 */
-    --debit-ink: 31 76% 82%; /* #f4d3b0 */
-    --prepaid-from: 196 21% 21%; /* #2a3a40 slate */
-    --prepaid-to: 196 27% 11%; /* #141f23 */
-    --prepaid-ink: 187 24% 86%; /* #d3e2e4 */
+    /* Card visuals: one FLAT surface + one ink per card kind, per theme (no
+       gradients — the gradient existed to fake photographic depth; with no photo
+       it only muddied the light theme). Everything drawn on a tile derives from
+       its ink via currentColor, so contrast holds in both themes. */
+    --credit-surface: 185 52% 11%; /* #0e2a2d */
+    --credit-ink: 185 36% 68%; /* #8ec9cf */
+    --debit-surface: 31 42% 12%; /* #2b1e12 */
+    --debit-ink: 33 79% 77%; /* #f3c795 */
+    --prepaid-surface: 197 27% 13%; /* #18262b */
+    --prepaid-ink: 190 18% 77%; /* #b9ccd0 */
   }
 
   [data-theme="light"] {
@@ -95,19 +94,31 @@
 
     --brand: 183 86% 19%;
 
+    /*
+     * Dark-named tokens, LIGHT values. These MUST be redefined here: without
+     * them the theme inherits `:root`'s dark values, and every consumer
+     * (`bg-chip` icon tiles and type chips on account cards, `bg-surface2`
+     * panels/menus, `bg-track` progress rails, `border-border2`, `text-dim`)
+     * paints a dark block in the light theme — with `text-muted-foreground`
+     * (#003B46 in light) unreadable on top of it.
+     */
+    --surface-2: 192 24% 93%; /* elevated surface above #F4F7F8, below white cards */
+    --chip: 190 28% 91%; /* a shade darker than --muted, so a chip reads ON a white card */
+    --track: 192 24% 86%; /* unfilled half of a progress rail */
+    --border-2: 188 33% 55%; /* stronger than --border, same role as dark's #283c41 */
+    --text-dim: 190 12% 42%; /* dimmer than --muted-foreground, still AA on --card */
+
     /* Additional tokens from the handoff — defined for future use. */
     --panel-bg: 192 40% 84%; /* #C4DFE6 — sidebars/panels */
     --viewer-bg: 192 27% 89%; /* #dce8eb — canvas/viewer surfaces */
 
-    /* Card-visual gradient end-stops — same fixed identity as dark (see :root). */
-    --brand-deep: 184 67% 12%;
-    --credit-ink: 185 38% 94%;
-    --debit-from: 30 54% 19%;
-    --debit-to: 30 64% 9%;
-    --debit-ink: 31 76% 82%;
-    --prepaid-from: 196 21% 21%;
-    --prepaid-to: 196 27% 11%;
-    --prepaid-ink: 187 24% 86%;
+    /* Card visuals — light surface/ink pairs (see :root for the rationale). */
+    --credit-surface: 180 33% 91%; /* #dfefef */
+    --credit-ink: 183 86% 19%; /* #07575b */
+    --debit-surface: 22 79% 93%; /* #fbe7dd */
+    --debit-ink: 17 68% 38%; /* #a4401f */
+    --prepaid-surface: 194 17% 92%; /* #e6edef */
+    --prepaid-ink: 197 22% 32%; /* #3f5b64 */
   }
 
   * {

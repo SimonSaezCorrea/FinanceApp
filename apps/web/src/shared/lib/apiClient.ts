@@ -27,10 +27,15 @@ function buildUrl(path: string): string {
 }
 
 async function rawFetch(path: string, init: RequestInit): Promise<Response> {
+  // A multipart upload must NOT carry a hand-written Content-Type: only the
+  // browser knows the boundary it generated for the FormData body.
+  const isMultipart = typeof FormData !== "undefined" && init.body instanceof FormData;
   return fetch(buildUrl(path), {
     ...init,
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...init.headers },
+    headers: isMultipart
+      ? { ...init.headers }
+      : { "Content-Type": "application/json", ...init.headers },
   });
 }
 

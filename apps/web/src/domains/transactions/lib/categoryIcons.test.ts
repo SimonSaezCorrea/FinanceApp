@@ -111,3 +111,27 @@ describe("categoryIcon", () => {
     expect(categoryIcon("NETFLIX")).toBe(Tv);
   });
 });
+
+describe("common Spanish categories all get a real icon", () => {
+  // Falling through to the generic tag reads as "this category has no icon",
+  // which is what the entertainment/shopping/home ones used to do.
+  const named = [
+    "Entretención",
+    "Entretenimiento",
+    "Compras",
+    "Hogar",
+    "Educación",
+    "Supermercado",
+    "Transporte",
+    "Salud",
+    "Internet",
+    "Pago facturación",
+  ];
+
+  it("resolves each to something other than the fallback tag", () => {
+    const fallback = categoryIcon(null);
+    for (const category of named) {
+      expect(categoryIcon(category), category).not.toBe(fallback);
+    }
+  });
+});

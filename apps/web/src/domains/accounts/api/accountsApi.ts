@@ -40,6 +40,13 @@ export const accountsApi = {
       body: JSON.stringify(body),
     }),
 
+  /** Correct what was PAID on a settled period (its total is only ever synced). */
+  updateStatementPayment: (id: string, statementId: string, amount: string) =>
+    apiFetch<accounts.CreditStatement>(`/accounts/${id}/credit-statements/${statementId}/payment`, {
+      method: "PATCH",
+      body: JSON.stringify({ amount } satisfies accounts.UpdateStatementPayment),
+    }),
+
   /** Reconcile a period against the movements dated inside it. */
   syncCreditStatement: (id: string, statementId: string) =>
     apiFetch<accounts.CreditStatement>(`/accounts/${id}/credit-statements/${statementId}/sync`, {

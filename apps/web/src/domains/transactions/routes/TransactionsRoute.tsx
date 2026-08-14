@@ -4,11 +4,11 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { Button } from "../../../shared/ui/button";
-import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { ErrorState, LoadingState } from "../../../shared/ui/states";
 import { Segmented } from "../../../shared/ui/segmented";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
+import { TransactionDeleteConfirm } from "../components/TransactionDeleteConfirm";
 import { TransactionCreateModal } from "../components/TransactionCreateModal";
 import { TransactionDetailModal } from "../components/TransactionDetailModal";
 import { TransactionKpiStrip } from "../components/TransactionKpiStrip";
@@ -34,6 +34,14 @@ export function TransactionsRoute() {
   const { t, i18n } = useTranslation();
   const [modalOpen, setModalOpen] = useState(false);
   const [editTx, setEditTx] = useState<transactions.Transaction | null>(null);
+  const [duplicateTx, setDuplicateTx] = useState<transactions.Transaction | null>(null);
+  // The movement the form was opened FROM, when it was opened from its detail
+  // panel: backing out of the form returns there instead of dropping the user
+  // all the way out to the list.
+  const [returnToDetail, setReturnToDetail] = useState<transactions.Transaction | null>(null);
+  // Just saved: the table points it out for a moment, since a movement dated
+  // earlier than the ones on screen does NOT land at the top.
+  const [savedId, setSavedId] = useState<string | null>(null);
   const [deleteTx, setDeleteTx] = useState<transactions.Transaction | null>(null);
   const [detailTx, setDetailTx] = useState<transactions.Transaction | null>(null);
   const [filters, setFilters] = useState<TransactionViewFilters>(DEFAULT_FILTERS);
@@ -108,6 +116,8 @@ export function TransactionsRoute() {
               variant="accent"
               onClick={() => {
                 setEditTx(null);
+                setDuplicateTx(null);
+                setReturnToDetail(null);
                 setModalOpen(true);
               }}
             >
@@ -145,10 +155,13 @@ export function TransactionsRoute() {
         <ErrorState title={t("errors.INTERNAL_ERROR")} />
       ) : (
         <TransactionTable
+          highlightId={savedId}
           transactions={visibleTxs}
           accounts={accounts}
           onEdit={(tx) => {
             setEditTx(tx);
+            setDuplicateTx(null);
+            setReturnToDetail(null);
             setModalOpen(true);
           }}
           onDelete={(tx) => setDeleteTx(tx)}
@@ -163,6 +176,13 @@ export function TransactionsRoute() {
         open={modalOpen}
         onOpenChange={setModalOpen}
         initial={editTx ?? undefined}
+        duplicateFrom={duplicateTx ?? undefined}
+        onSaved={setSavedId}
+        onDismiss={() => {
+          // Cancelled: reopen the detail this form was opened from.
+          if (returnToDetail) setDetailTx(returnToDetail);
+          setReturnToDetail(null);
+        }}
       />
 
       <TransactionDetailModal
@@ -172,16 +192,31 @@ export function TransactionsRoute() {
         onOpenChange={(v) => !v && setDetailTx(null)}
         onEdit={(tx) => {
           setEditTx(tx);
+          setDuplicateTx(null);
+          setReturnToDetail(tx);
+          setModalOpen(true);
+        }}
+        onDuplicate={(tx) => {
+          setEditTx(null);
+          setDuplicateTx(tx);
+          setReturnToDetail(tx);
           setModalOpen(true);
         }}
         onDelete={(tx) => setDeleteTx(tx)}
+        // The panel pages through the very set the table behind is showing.
+        items={visibleTxs}
+        total={summaryQuery.data?.total}
+        hasNextPage={txQuery.hasNextPage}
+        onLoadMore={() => void txQuery.fetchNextPage()}
+        onNavigate={(tx) => setDetailTx(tx)}
+        dateFiltered={Boolean(filters.from || filters.to)}
       />
 
-      <ConfirmModal
-        open={deleteTx !== null}
-        onOpenChange={(v) => !v && setDeleteTx(null)}
-        title={t("transactions.deleteConfirm")}
+      <TransactionDeleteConfirm
+        transaction={deleteTx}
+        accounts={accounts}
         loading={remove.isPending}
+        onOpenChange={(v) => !v && setDeleteTx(null)}
         onConfirm={() => {
           if (!deleteTx) return;
           remove.mutate(deleteTx.id, {

@@ -58,6 +58,17 @@ export function useAccountMutations() {
         qc.invalidateQueries({ queryKey: ["accounts", vars.id, "credit-statements"] });
       },
     }),
+    updateStatementPayment: useMutation({
+      mutationFn: (vars: { id: string; statementId: string; amount: string }) =>
+        accountsApi.updateStatementPayment(vars.id, vars.statementId, vars.amount),
+      onSuccess: (_, vars) => {
+        // Moves the credit pool, the payment movement AND the source account's
+        // balance, so the statements list alone is not enough.
+        invalidate();
+        qc.invalidateQueries({ queryKey: ["accounts", vars.id, "credit-statements"] });
+        qc.invalidateQueries({ queryKey: ["transactions"] });
+      },
+    }),
     syncStatement: useMutation({
       mutationFn: (vars: { id: string; statementId: string }) =>
         accountsApi.syncCreditStatement(vars.id, vars.statementId),

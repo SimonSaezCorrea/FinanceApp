@@ -1,5 +1,5 @@
-import { Pencil, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeftRight, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { accounts, transactions } from "@finance/contracts";
@@ -26,6 +26,13 @@ interface TransactionTableProps {
   /** Hide the "Cuenta" column — redundant on a single account's own detail
    * page, where every row is already that account by construction. */
   showAccountColumn?: boolean;
+  /**
+   * Movement to point out for a moment — the one just created or edited. A new
+   * movement is NOT necessarily the top row (the list is ordered by date, so one
+   * dated earlier lands further down), and without this the save reads as "the
+   * table didn't update".
+   */
+  highlightId?: string | null;
   /** Infinite scroll. Omit all three for a complete, non-paginated list. */
   hasMore?: boolean;
   isLoadingMore?: boolean;
@@ -58,6 +65,7 @@ export function TransactionTable({
   onDelete,
   onRowClick,
   showAccountColumn = true,
+  highlightId = null,
   hasMore = false,
   isLoadingMore = false,
   onLoadMore,
@@ -67,6 +75,16 @@ export function TransactionTable({
   // Only one row's swipe panel open at a time — opening another closes the
   // previous one for free, since both read off this single id.
   const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
+  // The highlight fades on its own: it is a "look here", not a selection. Only
+  // the FADE is state — deriving the lit row from the prop keeps the effect from
+  // setting state synchronously (which would cascade a render on every save).
+  const [faded, setFaded] = useState<string | null>(null);
+  useEffect(() => {
+    if (!highlightId) return;
+    const timer = setTimeout(() => setFaded(highlightId), 4000);
+    return () => clearTimeout(timer);
+  }, [highlightId]);
+  const highlighted = highlightId && highlightId !== faded ? highlightId : null;
   const [containerRef, width] = useElementWidth();
   // Before the first measurement (and in environments without ResizeObserver)
   // fall back to the compact list: it works at every width, so a wrong guess
@@ -114,22 +132,39 @@ export function TransactionTable({
                 : t("transactions.table.noAccount");
               const card = tx.cardId ? cardMap.get(tx.cardId) : undefined;
               const isIncome = tx.type === "INCOME";
+              // A transfer leg is an ordinary row for the balance, but it is
+              // neither income nor expense — say so instead of colouring it red.
+              const isTransfer = tx.transferGroupId !== null;
               const amountColor = isIncome ? "text-success" : "text-destructive";
-              const iconWrapColor = isIncome
-                ? "bg-success/15 text-success"
-                : "bg-muted text-muted-foreground";
+              const iconWrapColor = isTransfer
+                ? "bg-info/15 text-info"
+                : isIncome
+                  ? "bg-success/15 text-success"
+                  : "bg-muted text-muted-foreground";
 
               return (
                 <TR
                   key={tx.id}
-                  className={onRowClick ? "cursor-pointer hover:bg-muted/40" : "hover:bg-muted/40"}
+                  className={cn(
+                    "hover:bg-muted/40",
+                    onRowClick && "cursor-pointer",
+                    // `border-b-accent/40` too: the row's own separator paints
+                    // ON TOP of the inset ring's bottom edge, so without it the
+                    // highlight looks open at the bottom (three sides, not four).
+                    tx.id === highlighted &&
+                      "border-b-accent/40 bg-accent/10 ring-1 ring-inset ring-accent/40",
+                  )}
                   onClick={() => onRowClick?.(tx)}
                 >
                   <TD>
                     <span
                       className={`flex h-8 w-8 items-center justify-center rounded-full ${iconWrapColor}`}
                     >
-                      <CategoryIcon category={tx.category} className="h-4 w-4" />
+                      {isTransfer ? (
+                        <ArrowLeftRight className="h-4 w-4" aria-hidden />
+                      ) : (
+                        <CategoryIcon category={tx.category} className="h-4 w-4" />
+                      )}
                     </span>
                   </TD>
                   <TD className="font-medium">
@@ -145,8 +180,10 @@ export function TransactionTable({
                     </span>
                   </TD>
                   <TD>
-                    <Badge variant={isIncome ? "success" : "danger"}>
-                      {t(`transactions.type.${tx.type}`)}
+                    <Badge variant={isTransfer ? "info" : isIncome ? "success" : "danger"}>
+                      {isTransfer
+                        ? t("transactions.type.TRANSFER")
+                        : t(`transactions.type.${tx.type}`)}
                     </Badge>
                   </TD>
                   {showAccountColumn ? (
@@ -248,6 +285,7 @@ export function TransactionTable({
                   className={cn(
                     "flex min-h-14 items-center gap-3 px-4 py-2",
                     onRowClick && "cursor-pointer",
+                    tx.id === highlighted && "bg-accent/10 ring-1 ring-inset ring-accent/40",
                   )}
                 >
                   <span

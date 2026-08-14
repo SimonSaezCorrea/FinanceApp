@@ -19,6 +19,11 @@ import { JwtAuthGuard } from "../../../infra/auth/jwt-auth.guard";
 import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { CreateTransactionCommand } from "../application/commands/create-transaction.command";
+import { CreateTransferCommand } from "../application/commands/create-transfer.command";
+import { RemoveTransferCommand } from "../application/commands/remove-transfer.command";
+import { UpdateTransferCommand } from "../application/commands/update-transfer.command";
+import { GetTransferQuery } from "../application/queries/get-transfer.query";
+import { transferGroupParamsSchema } from "./dto/transfer-group.params";
 import { RemoveTransactionCommand } from "../application/commands/remove-transaction.command";
 import { UpdateTransactionCommand } from "../application/commands/update-transaction.command";
 import { GetTransactionQuery } from "../application/queries/get-transaction.query";
@@ -57,6 +62,45 @@ export class TransactionsController {
     filters: transactions.TransactionFilters,
   ): Promise<transactions.TransactionSummary> {
     return this.queryBus.execute(new SummarizeTransactionsQuery(user.id, filters));
+  }
+
+  /* Transfers. Declared BEFORE `:id` for the same reason `summary` is: Nest
+     matches in order and would otherwise read "transfers" as a movement id. */
+
+  @Post("transfers")
+  createTransfer(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(transactions.createTransferSchema))
+    body: transactions.CreateTransfer,
+  ): Promise<transactions.Transfer> {
+    return this.commandBus.execute(new CreateTransferCommand(user.id, body));
+  }
+
+  @Get("transfers/:groupId")
+  getTransfer(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(transferGroupParamsSchema)) params: { groupId: string },
+  ): Promise<transactions.Transfer> {
+    return this.queryBus.execute(new GetTransferQuery(user.id, params.groupId));
+  }
+
+  @Patch("transfers/:groupId")
+  updateTransfer(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(transferGroupParamsSchema)) params: { groupId: string },
+    @Body(new ZodValidationPipe(transactions.updateTransferSchema))
+    body: transactions.UpdateTransfer,
+  ): Promise<transactions.Transfer> {
+    return this.commandBus.execute(new UpdateTransferCommand(user.id, params.groupId, body));
+  }
+
+  @Delete("transfers/:groupId")
+  @HttpCode(204)
+  removeTransfer(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(transferGroupParamsSchema)) params: { groupId: string },
+  ): Promise<void> {
+    return this.commandBus.execute(new RemoveTransferCommand(user.id, params.groupId));
   }
 
   @Get(":id")

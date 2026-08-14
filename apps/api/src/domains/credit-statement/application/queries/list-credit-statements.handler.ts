@@ -44,7 +44,10 @@ export class ListCreditStatementsQueryHandler extends BaseQueryHandler<
         // Settled periods carry their frozen figure; the rest are still live sums
         // of their linked transactions.
         const [amount, breakdown] = await Promise.all([
-          s.paidAt ? Promise.resolve(s.amount) : this.statementRepo.sumLinkedTransactions(s.id),
+          s.paidAt
+            ? Promise.resolve(s.amount)
+            : // Plus whatever the previous period left unpaid — it is owed here now.
+              this.statementRepo.sumLinkedTransactions(s.id).then((sum) => s.totalFor(sum)),
           this.statementRepo.breakdown(s.id),
         ]);
         return toStatementDto(s, { amount, breakdown, minimumPercent });

@@ -4,6 +4,8 @@ import { addMoney, moneyToString, toMoney } from "@finance/money";
 import { AccountDeactivatedEvent } from "./events/account-deactivated.event";
 import {
   AccountCannotHaveCardError,
+  InvalidPrepaidBalanceError,
+  PrepaidBalanceNotAllowedError,
   AccountNumberRequiredError,
   CardLimitRequiredError,
   CardNotFoundError,
@@ -26,6 +28,10 @@ export interface CardProps {
   expiryYear: number;
   isActive: boolean;
   isPrimary: boolean;
+  /** PREPAID only: the card's own pot of money (see `card-account`'s entity).
+   * Null for CREDIT/DEBIT. */
+  prepaidBalance: string | null;
+  prepaidInitialBalance: string | null;
   limits: CardLimitProps[];
 }
 
@@ -63,6 +69,8 @@ type CardInput = {
   isActive?: boolean;
   usesAccountPool?: boolean;
   limits?: { currency: string; limitAmount: string; usedInitial?: string }[];
+  /** PREPAID only: the balance already loaded on the card ("0" when omitted). */
+  prepaidInitialBalance?: string;
 };
 
 /** What the aggregate resolves a (new or edited) CREDIT card's placement to —
@@ -70,6 +78,13 @@ type CardInput = {
 export interface ResolvedCardPlacement {
   isPrimary: boolean;
   cardLimits: CardLimitProps[];
+  /** PREPAID only: the card's own pot, as resolved from the input. The live balance
+   * seeds from the initial one at creation and is never rewritten from a form
+   * afterwards (it moves only through loads and spending). Both null for
+   * CREDIT/DEBIT. Named `resolved*` because a `CardInput` carries a field of its own
+   * with the raw, optional value and the two are merged in `planCreation`. */
+  resolvedPrepaidBalance: string | null;
+  resolvedPrepaidInitialBalance: string | null;
   /** Set only when this card becomes/remains the primary — the account's own
    * creditLimit/creditUsedInitial mirror it 1:1. */
   accountCreditLimit?: string;
@@ -123,7 +138,7 @@ export class BankAccount {
     let primaryAssigned = false;
     const cards = (input.cards ?? []).map((c) => {
       if (c.kind !== "CREDIT") {
-        return { ...c, isPrimary: false, cardLimits: [] };
+        return { ...c, isPrimary: false, cardLimits: [], ...BankAccount.prepaidPot(c) };
       }
       if (!primaryAssigned) {
         const own = (c.limits ?? []).find((l) => l.currency === input.currency);
@@ -140,7 +155,7 @@ export class BankAccount {
           limitAmount: l.limitAmount,
           usedInitial: l.usedInitial ?? "0",
         }));
-        return { ...c, isPrimary: true, cardLimits };
+        return { ...c, isPrimary: true, cardLimits, ...BankAccount.prepaidPot(c) };
       }
       if (c.usesAccountPool === false) {
         if (!c.limits || c.limits.length === 0) throw new CardLimitRequiredError();
@@ -158,9 +173,9 @@ export class BankAccount {
             usedInitial: l.usedInitial ?? "0",
           };
         });
-        return { ...c, isPrimary: false, cardLimits };
+        return { ...c, isPrimary: false, cardLimits, ...BankAccount.prepaidPot(c) };
       }
-      return { ...c, isPrimary: false, cardLimits: [] };
+      return { ...c, isPrimary: false, cardLimits: [], ...BankAccount.prepaidPot(c) };
     });
     return { creditLimit, creditUsedInitial, cards };
   }
@@ -299,7 +314,6 @@ export class BankAccount {
     return null;
   }
 
-
   /** Adjust the shared credit pool's usage (never below 0). */
   adjustCreditUsed(delta: string): void {
     const next = addMoney(this.props.creditUsed, delta);
@@ -328,6 +342,28 @@ export class BankAccount {
   }
 
   /**
+   * A PREPAID card's own pot: it holds money instead of a credit line, so this is
+   * its equivalent of a limit. A card registered before being loaded simply starts
+   * at "0". DEBIT cards have neither (they spend the account's own balance), and a
+   * balance sent for a CREDIT/DEBIT card is rejected rather than ignored.
+   */
+  private static prepaidPot(input: CardInput): {
+    resolvedPrepaidBalance: string | null;
+    resolvedPrepaidInitialBalance: string | null;
+  } {
+    if (input.kind !== "PREPAID") {
+      if (input.prepaidInitialBalance !== undefined) throw new PrepaidBalanceNotAllowedError();
+      return { resolvedPrepaidBalance: null, resolvedPrepaidInitialBalance: null };
+    }
+    const seed = input.prepaidInitialBalance ?? "0";
+    if (toMoney(seed).isNegative()) throw new InvalidPrepaidBalanceError();
+    return {
+      resolvedPrepaidBalance: moneyToString(seed),
+      resolvedPrepaidInitialBalance: moneyToString(seed),
+    };
+  }
+
+  /**
    * Works out whether a CREDIT card is/becomes the account's PRIMARY (the
    * account's own creditLimit/creditUsedInitial mirror its limit 1:1), or an
    * additional card sharing the pool (no CardLimit rows) or carrying its own
@@ -338,8 +374,9 @@ export class BankAccount {
    */
   resolveCardPlacement(input: CardInput, excludeCardId: string | null): ResolvedCardPlacement {
     if (input.kind !== "CREDIT") {
-      return { isPrimary: false, cardLimits: [] };
+      return { isPrimary: false, cardLimits: [], ...BankAccount.prepaidPot(input) };
     }
+    if (input.prepaidInitialBalance !== undefined) throw new PrepaidBalanceNotAllowedError();
 
     const existingPrimary = this.props.cards.find(
       (c) => c.kind === "CREDIT" && c.isPrimary && c.id !== excludeCardId,
@@ -362,16 +399,28 @@ export class BankAccount {
         cardLimits: this.normalizeLimits(extra),
         accountCreditLimit: own.limitAmount,
         accountCreditUsedInitial: own.usedInitial ?? fallbackUsedInitial,
+        resolvedPrepaidBalance: null,
+        resolvedPrepaidInitialBalance: null,
       };
     }
 
     if (input.usesAccountPool !== false) {
-      return { isPrimary: false, cardLimits: [] };
+      return {
+        isPrimary: false,
+        cardLimits: [],
+        resolvedPrepaidBalance: null,
+        resolvedPrepaidInitialBalance: null,
+      };
     }
     if (!input.limits || input.limits.length === 0) {
       throw new CardLimitRequiredError();
     }
-    return { isPrimary: false, cardLimits: this.normalizeLimits(input.limits) };
+    return {
+      isPrimary: false,
+      cardLimits: this.normalizeLimits(input.limits),
+      resolvedPrepaidBalance: null,
+      resolvedPrepaidInitialBalance: null,
+    };
   }
 
   findCardOrThrow(cardId: string): CardProps {

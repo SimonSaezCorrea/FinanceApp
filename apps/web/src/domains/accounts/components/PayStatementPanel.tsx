@@ -19,7 +19,8 @@ import { useAccountMutations, useAccounts } from "../hooks/useAccounts";
 const STATUS_VARIANT = {
   OPEN: "info",
   PENDING: "warning",
-  PARTIALLY_PAID: "info",
+  // Settled, but not for its full amount — success would overstate it.
+  PARTIALLY_PAID: "warning",
   PAID: "success",
 } as const;
 
@@ -256,11 +257,13 @@ export function PayStatementPanel({
                 </dd>
               </div>
             ) : null}
-            {Number(statement.paidAmount) > 0 ? (
+            {/* Debt the previous period couldn't cover: part of what's owed
+                here, but not one of this period's own movements. */}
+            {Number(statement.carriedOverAmount) > 0 ? (
               <div className="flex items-center justify-between gap-3">
-                <dt className="text-muted-foreground">{t("accounts.detail.payAlreadyPaid")}</dt>
-                <dd className="font-medium tabular-nums text-success">
-                  {money(statement.paidAmount, account.currency)}
+                <dt className="text-muted-foreground">{t("accounts.detail.payCarriedOver")}</dt>
+                <dd className="font-medium tabular-nums text-warning">
+                  {money(statement.carriedOverAmount, account.currency)}
                 </dd>
               </div>
             ) : null}

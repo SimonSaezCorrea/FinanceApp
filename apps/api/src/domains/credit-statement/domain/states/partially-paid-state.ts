@@ -1,12 +1,12 @@
 import type { CreditStatementState } from "./credit-statement-state";
 
 /**
- * Closed and paid into, but not settled: some of the period has been paid and a
- * balance is still owed.
+ * Settled with LESS than the period's total: the payment covered part of it and
+ * the rest was carried into the next period (`carriedToId`), so this one is as
+ * closed as a fully paid one — it can be neither closed nor paid again.
  *
- * It accepts further payments — that is the whole point of a partial one. Its
- * `amount` is still the LIVE sum of the period's linked transactions and only
- * freezes once the period is settled.
+ * It exists purely so the period reports what actually happened instead of
+ * claiming "Pagada": the same terminal behavior as `PaidState`, a different name.
  */
 export class PartiallyPaidState implements CreditStatementState {
   readonly name = "PARTIALLY_PAID" as const;
@@ -16,6 +16,6 @@ export class PartiallyPaidState implements CreditStatementState {
   }
 
   canPay(): boolean {
-    return true;
+    return false;
   }
 }

@@ -38,4 +38,50 @@ export const transactionsApi = {
     }),
 
   remove: (id: string) => apiFetch<void>(`/transactions/${id}`, { method: "DELETE" }),
+
+  /** A transfer is created, read, edited and deleted as a PAIR (FR-015). */
+  transfer: {
+    get: (groupId: string) => apiFetch<transactions.Transfer>(`/transactions/transfers/${groupId}`),
+
+    create: (body: transactions.CreateTransfer) =>
+      apiFetch<transactions.Transfer>("/transactions/transfers", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }),
+
+    update: (groupId: string, body: transactions.UpdateTransfer) =>
+      apiFetch<transactions.Transfer>(`/transactions/transfers/${groupId}`, {
+        method: "PATCH",
+        body: JSON.stringify(body),
+      }),
+
+    remove: (groupId: string) =>
+      apiFetch<void>(`/transactions/transfers/${groupId}`, { method: "DELETE" }),
+  },
+
+  attachments: {
+    list: (transactionId: string) =>
+      apiFetch<transactions.Attachment[]>(`/transactions/${transactionId}/attachments`),
+
+    upload: (transactionId: string, file: File) => {
+      const form = new FormData();
+      form.append("file", file);
+      // No Content-Type header on purpose: the browser has to set the multipart
+      // boundary itself.
+      return apiFetch<transactions.Attachment>(`/transactions/${transactionId}/attachments`, {
+        method: "POST",
+        body: form,
+      });
+    },
+
+    url: (transactionId: string, attachmentId: string) =>
+      apiFetch<transactions.AttachmentUrl>(
+        `/transactions/${transactionId}/attachments/${attachmentId}/url`,
+      ),
+
+    remove: (transactionId: string, attachmentId: string) =>
+      apiFetch<void>(`/transactions/${transactionId}/attachments/${attachmentId}`, {
+        method: "DELETE",
+      }),
+  },
 };

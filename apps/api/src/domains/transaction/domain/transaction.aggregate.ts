@@ -18,6 +18,8 @@ export interface TransactionProps {
   cardId: string | null;
   installmentPlanId: string | null;
   creditStatementId: string | null;
+  /** Non-null on the two rows of a transfer (see `TransferPolicy`). */
+  transferGroupId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -89,6 +91,9 @@ export class Transaction {
       cardId: input.type === "INCOME" ? null : (input.cardId ?? null),
       installmentPlanId: null,
       creditStatementId: input.creditStatementId,
+      // Ordinary movements are never part of a transfer — those are planned by
+      // `Transfer.planPair` and written by the transfer commands.
+      transferGroupId: null,
     };
   }
 
@@ -115,6 +120,12 @@ export class Transaction {
   }
   get creditStatementId(): string | null {
     return this.props.creditStatementId;
+  }
+  get transferGroupId(): string | null {
+    return this.props.transferGroupId;
+  }
+  get isTransferLeg(): boolean {
+    return this.props.transferGroupId !== null;
   }
 
   /** Apply a partial patch — keeps `cardId` consistent with the *effective*
@@ -160,6 +171,7 @@ export class Transaction {
       bankAccountId: this.props.bankAccountId,
       cardId: this.props.cardId,
       installmentPlanId: this.props.installmentPlanId,
+      transferGroupId: this.props.transferGroupId,
       createdAt: this.props.createdAt.toISOString(),
       updatedAt: this.props.updatedAt.toISOString(),
     };

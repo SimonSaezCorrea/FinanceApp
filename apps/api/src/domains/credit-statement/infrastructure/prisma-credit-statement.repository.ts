@@ -16,6 +16,8 @@ type Row = {
   paidAt: Date | null;
   amount: { toString(): string } | null;
   paidAmount: { toString(): string } | null;
+  carriedOverAmount: { toString(): string } | null;
+  carriedToId: string | null;
   paidFromAccountId: string | null;
   paidTransactionId: string | null;
   createdAt: Date;
@@ -31,6 +33,8 @@ function rowToProps(row: Row): CreditStatementProps {
     paidAt: row.paidAt,
     amount: row.amount?.toString() ?? "0",
     paidAmount: row.paidAmount?.toString() ?? "0",
+    carriedOverAmount: row.carriedOverAmount?.toString() ?? "0",
+    carriedToId: row.carriedToId,
     paidFromAccountId: row.paidFromAccountId,
     paidTransactionId: row.paidTransactionId,
     createdAt: row.createdAt,
@@ -94,6 +98,34 @@ export class PrismaCreditStatementRepository implements CreditStatementRepositor
     });
   }
 
+  async findOrCreateCarryOverTargetWithTx(
+    tx: unknown,
+    params: { accountId: string; excludeStatementId: string; periodStart: Date },
+  ): Promise<{ id: string }> {
+    const client = tx as PrismaService;
+    const open = await client.creditStatement.findFirst({
+      where: {
+        accountId: params.accountId,
+        closedAt: null,
+        id: { not: params.excludeStatementId },
+      },
+      select: { id: true },
+    });
+    if (open) return open;
+    return client.creditStatement.create({
+      data: { accountId: params.accountId, periodStart: params.periodStart },
+      select: { id: true },
+    });
+  }
+
+  async addCarriedOverWithTx(tx: unknown, statementId: string, amount: string): Promise<void> {
+    const client = tx as PrismaService;
+    await client.creditStatement.update({
+      where: { id: statementId },
+      data: { carriedOverAmount: { increment: amount } },
+    });
+  }
+
   async isPaid(statementId: string): Promise<boolean> {
     const row = await this.prisma.creditStatement.findUnique({
       where: { id: statementId },
@@ -114,10 +146,12 @@ export class PrismaCreditStatementRepository implements CreditStatementRepositor
       data: {
         closedAt: state.closedAt,
         paidAt: state.paidAt,
-        // Frozen only once settled; while partially paid the amount stays live
-        // (the sum of the period's transactions), same as PENDING.
+        // Frozen only once settled; while unpaid the amount stays live (the sum
+        // of the period's transactions plus whatever was carried into it).
         amount: state.paidAt ? state.amount : undefined,
         paidAmount: state.paidAmount,
+        carriedOverAmount: state.carriedOverAmount,
+        carriedToId: state.carriedToId,
         paidFromAccountId: state.paidFromAccountId,
         paidTransactionId: state.paidTransactionId,
       },

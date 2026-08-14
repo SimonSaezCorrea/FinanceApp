@@ -4,7 +4,11 @@ import { ConfigService } from "@nestjs/config";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { PrismaTransactionRepository } from "../../../../../src/domains/transaction/infrastructure/prisma-transaction.repository";
-import { buildBankAccountRepo, buildCreditStatementRepo } from "../../../support/repositories";
+import {
+  buildBankAccountRepo,
+  buildCardAccountRepo,
+  buildCreditStatementRepo,
+} from "../../../support/repositories";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
 
 /**
@@ -16,7 +20,7 @@ describe("PrismaTransactionRepository (integration)", () => {
   const prisma = new PrismaService(new ConfigService());
   const accountRepo = buildBankAccountRepo(prisma);
   const statementRepo = buildCreditStatementRepo(prisma);
-  const txRepo = new PrismaTransactionRepository(prisma, accountRepo);
+  const txRepo = new PrismaTransactionRepository(prisma, accountRepo, buildCardAccountRepo(prisma));
   const userId = `u_${randomUUID()}`;
   let creditAccountId: string;
 
@@ -47,6 +51,8 @@ describe("PrismaTransactionRepository (integration)", () => {
           expiryYear: 2030,
           isActive: true,
           isPrimary: true,
+          prepaidBalance: null,
+          prepaidInitialBalance: null,
           limits: [],
         },
       ],
@@ -93,6 +99,7 @@ describe("PrismaTransactionRepository (integration)", () => {
         bankAccountId: creditAccountId,
         cardId: null,
         installmentPlanId: null,
+        transferGroupId: null,
         creditStatementId: stmt.id,
       },
       { accountId: creditAccountId, delta: "50000" },
@@ -122,6 +129,7 @@ describe("PrismaTransactionRepository (integration)", () => {
         bankAccountId: creditAccountId,
         cardId: null,
         installmentPlanId: null,
+        transferGroupId: null,
         creditStatementId: stmt.id,
       },
       { accountId: creditAccountId, delta: "10000" },

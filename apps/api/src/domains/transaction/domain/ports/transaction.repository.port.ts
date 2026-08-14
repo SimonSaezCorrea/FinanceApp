@@ -76,6 +76,9 @@ export interface TransactionRepositoryPort {
     plan: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     creditUsedDelta: { accountId: string; delta: string } | null,
     balanceDeltas: { accountId: string; delta: string }[],
+    /** PREPAID cards only: how each card's own balance moves (an expense through
+     * one draws down its pot instead of the account's balance). */
+    prepaidDeltas?: { cardId: string; delta: string }[],
   ): Promise<Transaction>;
   saveUpdate(
     userId: string,
@@ -87,11 +90,58 @@ export interface TransactionRepositoryPort {
     },
     creditUsedDeltas: { accountId: string; delta: string }[],
     balanceDeltas: { accountId: string; delta: string }[],
+    prepaidDeltas?: { cardId: string; delta: string }[],
   ): Promise<Transaction | null>;
   removeWithCreditAdjustment(
     userId: string,
     id: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
     balanceDeltas: { accountId: string; delta: string }[],
+    prepaidDeltas?: { cardId: string; delta: string }[],
+  ): Promise<boolean>;
+
+  /* Transfers — always written as a PAIR, in one `$transaction`, together with
+   * both accounts' balance deltas. Never one leg at a time: a half-written
+   * transfer is money that vanished. */
+
+  /** Both legs of a transfer, or `null` if the group doesn't exist for the user. */
+  findTransferGroup(userId: string, transferGroupId: string): Promise<TransferPair | null>;
+  saveTransferPair(
+    userId: string,
+    outgoing: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
+    incoming: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
+    balanceDeltas: { accountId: string; delta: string }[],
+  ): Promise<TransferPair>;
+  updateTransferPair(
+    userId: string,
+    transferGroupId: string,
+    outgoing: TransferLegPatch,
+    incoming: TransferLegPatch,
+    /** Reverts of the old legs plus the new legs' effects, already netted. */
+    balanceDeltas: { accountId: string; delta: string }[],
+  ): Promise<TransferPair | null>;
+  removeTransferPair(
+    userId: string,
+    transferGroupId: string,
+    balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<boolean>;
 }
+
+export interface TransferPair {
+  transferGroupId: string;
+  outgoing: Transaction;
+  incoming: Transaction;
+}
+
+export type TransferLegPatch = Partial<{
+  amount: string;
+  currency: string;
+  occurredAt: Date;
+  category: string | null;
+  description: string | null;
+  observation: string | null;
+  emisor: string | null;
+  receptor: string | null;
+  lugar: string | null;
+  bankAccountId: string;
+}>;

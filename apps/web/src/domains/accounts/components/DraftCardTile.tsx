@@ -32,7 +32,7 @@ export function DraftCardTile({
         <div className="flex items-center gap-1.5">
           <span className="text-xs font-medium opacity-90">{t(`cards.kind.${card.kind}`)}</span>
           {card.kind === "CREDIT" ? (
-            <span className="rounded-full bg-white/25 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
+            <span className="rounded-full bg-[color-mix(in_srgb,currentColor_15%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
               {isPrimary ? t("cards.primaryBadge") : t("cards.additionalBadge")}
             </span>
           ) : null}

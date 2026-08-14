@@ -235,7 +235,10 @@ schema precision (`Decimal(18,4)` for amounts). Rounding is explicit (banker's r
 ## 10. Environment
 
 - `apps/api/.env`: `DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`,
-  optional `ALPHA_VANTAGE_API_KEY`.
+  optional `ALPHA_VANTAGE_API_KEY`, and the optional S3 block for movement attachments
+  (`S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`,
+  `S3_FORCE_PATH_STYLE`) — absent, attachments answer `503 ATTACHMENTS_UNAVAILABLE` and nothing else
+  is affected.
 - `apps/web/.env`: `VITE_API_URL`.
 - Secrets are never committed; see each app's `.env.example`.
 
@@ -251,7 +254,7 @@ schema precision (`Decimal(18,4)` for amounts). Rounding is explicit (banker's r
 
 **Amendment (2026-07-30, one table = one domain):** the 11 business domains below were split by
 table. Every table in `prisma/schema.prisma` owns a folder `src/domains/<table>/` (kebab-case,
-matching its `@@map`) and **exactly one adapter may query it** — 21 table-domains, plus `import` and
+matching its `@@map`) and **exactly one adapter may query it** — 22 table-domains, plus `import` and
 `health` which own no table. `accounts` became `bank-account` + `card-account` + `card-limit` +
 `billing-settings` + `credit-statement`; `reference` became `country` + `currency` +
 `country-currency` + `country-identifier-type` + `financial-institution`; `savings` and
@@ -381,6 +384,57 @@ independently; `pnpm --filter @finance/api test` runs all three in sequence.
 No public HTTP contract or `@finance/contracts` shape changed by this migration — it is a pure
 internal reorganization (FR-015). See `.specify/memory/constitution.md` for the corresponding
 constitutional principle and `CLAUDE.md`'s `accounts` section for the narrative amendment.
+
+## 12b. Movements: transfers and attachments (specs/010)
+
+**Transfer.** A transfer between two of the user's own accounts is NOT a new `TransactionType`: it is
+**two ordinary rows** — an `EXPENSE` on the source and an `INCOME` on the destination — sharing a new
+`Transaction.transferGroupId` column. Each account therefore sees its own leg as a normal movement and
+every existing mechanism (balance deltas, keyset pagination, filters, the account view) keeps working
+untouched.
+
+The price of that choice is that no existing sum excludes a transfer by itself, so the rule is
+centralised in ONE named predicate: `EXCLUDE_TRANSFERS` (`transaction/application/queries/transaction-list-filter.ts`),
+applied to `GET /transactions/summary`'s `currencyTotals` and `categories`, and mirrored on the web by
+`excludeTransfers` in `domains/dashboard/lib/metrics.ts`. The list and the "N movimientos" count do
+NOT exclude them — both legs are real rows of the set on screen. **Any new income/expense aggregate
+must apply the predicate.**
+
+Rules (`transaction/domain/transfer-policy.ts`): the two accounts must differ, both must be the
+user's, the destination is never a `CREDIT_LINE` (settling a credit line is a statement payment, with
+its own flow), neither leg carries a `cardId` or a `creditStatementId`, and both amounts are
+positive. Currencies are each side's own account currency and are never compared — this app performs
+no FX conversion. Endpoints `POST/GET/PATCH/DELETE /transactions/transfers[/:groupId]` (declared
+BEFORE `:id` in the Facade). `DELETE /transactions/:id` on one leg deletes the pair; `PATCH` on one
+leg answers `409 TRANSFER_EDIT_AS_PAIR`. Every write goes through `saveTransferPair` /
+`updateTransferPair` / `removeTransferPair`, each a single `prisma.$transaction` covering both rows
+AND both balance deltas — a half-written transfer would be money that vanished.
+
+**Attachments** (domain 22, `transaction-attachment`). Its own table, its own domain, its own four
+layers and Facade under `/transactions/:id/attachments`: an attachment has a life of its own (uploaded
+and deleted without the movement changing) and its bytes live outside the database. Upload goes
+THROUGH the API (`FileInterceptor`, memory storage, 5 MB cap, mimetype filter) because that is the
+only place where size, real type and ownership can be checked before anything is written;
+`AttachmentPolicy` validates the declared content type AND the file's **magic bytes** (JPEG/PNG/WebP/
+PDF), which is what stops an executable renamed to `.pdf`. Reading is delegated to the bucket via a
+5-minute signed URL, so the API never proxies bytes.
+
+`ObjectStoragePort` (`put`/`getSignedUrl`/`delete`/`isConfigured`) keeps the S3 client in
+`infrastructure/` — the same Adapter rule Prisma follows — so the unit tier uses an in-memory fake and
+touches no network. With no bucket configured the port reports `isConfigured() === false` and every
+write/read answers `503 ATTACHMENTS_UNAVAILABLE`, while listing still works so the panel renders.
+Deleting removes the DB row first and the object AFTER the transaction (a network call must not sit
+inside `prisma.$transaction`); a failed remote delete is logged with its key and does not roll the
+deletion back — an orphaned object is a cost problem, a row that refuses to be deleted is a
+correctness one.
+
+**Web.** The detail and the create/edit form are both `SidePanel`s built from the shared
+`shared/ui/detail-row.tsx` primitive: amount as the protagonist, label/value rows, actions pinned at
+the foot. The detail pages through the very array the table behind it holds (`panelNavigation`, no
+query of its own) and offers Duplicate (a create pre-filled from the movement, dated today). "Balance
+after this movement" (`balanceAfter.ts`) and "projected balance" (`projectedBalance.ts`) are computed
+in the browser with `@finance/money`, and are OMITTED rather than approximated when the loaded set
+can't support them — see `docs/PENDING.md`.
 
 ## 12. Adding a new domain (recap)
 

@@ -1615,6 +1615,24 @@ async function seedFullUser(passwordHash: string) {
       expiryYear: 2027,
     },
   });
+
+  // A PREPAID card: it holds its OWN money instead of a credit line or the
+  // account's balance. Seeded already loaded (the equivalent of a credit card's
+  // `creditUsedInitial` baseline) and with no movements of its own, so the
+  // account's balance stays exactly what its own movements say.
+  await prisma.cardAccount.create({
+    data: {
+      accountId: checking.id,
+      userId: javier.id,
+      name: "Prepago · Rosa",
+      kind: "PREPAID",
+      last4: "8890",
+      expiryMonth: 3,
+      expiryYear: 2027,
+      prepaidInitialBalance: dec("318400.0000"),
+      prepaidBalance: dec("318400.0000"),
+    },
+  });
   // Add-on CREDIT card on the checking account: it's that account's FIRST credit
   // card, so it's the primary one and its limit IS checking.creditLimit (no CardLimit row).
   const creditCardBch = await prisma.cardAccount.create({
@@ -1857,6 +1875,10 @@ async function seedFullUser(passwordHash: string) {
           closedAt,
           paidAt,
           amount: paid ? dec(total.toFixed(4)) : null,
+          // Seeded payments settle the period IN FULL: without this the column
+          // defaults to 0 and the period derives PARTIALLY_PAID ("pagado 0 de X"),
+          // which is a state no seeded history should be in.
+          paidAmount: paid ? dec(total.toFixed(4)) : dec("0"),
           paidFromAccountId: paid ? spec.payFromAccountId : null,
           paidTransactionId,
         },

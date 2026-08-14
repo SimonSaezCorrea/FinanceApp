@@ -28,13 +28,13 @@ Package manager is **pnpm**; the monorepo is orchestrated by **Turborepo** (root
 - `pnpm db:push` — sync schema to the DB without migrations (this repo has **no `prisma/migrations` folder**; `db push` is the workflow)
 - `pnpm db:reset` — **Docker-based full reset** (`scripts/db-reset.mjs`): tears down the Postgres container + volume (`docker-compose.yml`), recreates it, `db push`, then seeds. Wipes all data (dev only). Requires Docker.
 
-Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, optional `ALPHA_VANTAGE_API_KEY`); `apps/web/.env` (`VITE_API_URL`). See each app's `.env.example`. After install, generate the Prisma client: `pnpm --filter @finance/api exec prisma generate`.
+Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, optional `ALPHA_VANTAGE_API_KEY`, and the optional S3 block for movement attachments — `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`; absent, attachments answer `503 ATTACHMENTS_UNAVAILABLE` and nothing else is affected); `apps/web/.env` (`VITE_API_URL`). See each app's `.env.example`. After install, generate the Prisma client: `pnpm --filter @finance/api exec prisma generate`.
 
 ## Architecture (big picture)
 
 **pnpm + Turborepo monorepo** with two separately-deployable apps + shared packages. TypeScript, Node 20. Migrated from the legacy single Next.js app via specs/001.
 
-- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 21 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, investment, etf-price-cache, user, country, currency, country-currency, country-identifier-type, financial-institution — plus `import` and `health`, the only folders that own no table. Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **pure JWT email+password** — the NextAuth `Account`/`Session`/`VerificationToken` tables were removed (no OAuth adapter in the API).
+- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 22 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, investment, etf-price-cache, user, country, currency, country-currency, country-identifier-type, financial-institution, transaction-attachment — plus `import` and `health`, the only folders that own no table. Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **pure JWT email+password** — the NextAuth `Account`/`Session`/`VerificationToken` tables were removed (no OAuth adapter in the API).
   - **bank-account** (specs/003, 007; the aggregate root of the accounts cluster — `card-account`/`card-limit`/`billing-settings`/`credit-statement` are its own table-domains, written only through it): `BankAccount` is **where money or a credit line lives**. `type` (`AccountType`: **CHECKING/SIGHT/SAVINGS/INVESTMENT/CREDIT_LINE/CASH**), `status` (ACTIVE/INACTIVE), `accountNumber` (**bank account number — free text, stored/shown in full; NOT a card PAN**; **required for CHECKING/SIGHT/SAVINGS**, optional for CREDIT_LINE/INVESTMENT/CASH — enforced via a zod refine on create and by the aggregate on update, `ACCOUNT_NUMBER_REQUIRED`), `initialBalance` (seed) + `currentBalance`, which every movement keeps in step (`initialBalance` + Σincome − Σexpense): creating/editing/deleting a transaction applies its signed balance delta inside the movement's own `$transaction` (`transaction/domain/balance-delta.ts` → `BankAccountRepositoryPort.incrementBalanceWithTx`), exactly as it already does for `creditUsed`. **The manual `POST /accounts/:id/reconcile` is gone** (command, handler, aggregate method and UI button removed) — a balance that maintains itself has nothing to reconcile. **The account-level credit pool** (`creditLimit` + `creditUsedInitial`, seed) is the **shared/master cap across every CREDIT-kind card on the account** — this applies not just to a standalone credit card (a `CREDIT_LINE` account) but to **any cardable account that's grown a CREDIT-kind card** (e.g. a checking account's bank add-on credit card); the contract exposes a **derived `creditUsed` = creditUsedInitial + Σexpense − Σincome** (income = card payments; computed on-read via `sumsByAccount`), `"0"` when the account has no credit pool. List filter `?status=active|inactive`; `POST /accounts/:id/status`. List/get also return a 30d `balanceSeries` + `balanceChangePct` (for sparklines). Deleting unlinks transactions (`onDelete: SetNull`).
   - **card-account** / **card-limit** (specs/004, 007): `CardAccount` (table `card-account`) = the physical **payment instrument** (plastic), **always belongs to a `BankAccount`** (`onDelete: Cascade`) — `kind` (`CardKind`: **CREDIT/DEBIT/PREPAID**), `last4` (**only the last 4 digits ever transmitted/stored — full PAN never leaves the browser; no CVV**), `expiryMonth`/`expiryYear`, `isActive`. **Every CREDIT card must resolve to a determinate limit before it can be saved** (mandatory — `CardsService.resolveCreditLimits`, mirrored in `AccountsService.create`'s inline `cards[]` path): the account's **first** CREDIT card becomes its `isPrimary` card (boolean, `@default(false)`, assigned automatically — never user-toggled, at most one `true` per account) — its limit **IS** the account's own `creditLimit`/`creditUsedInitial`, editable from either side (the account's own edit form, or the primary card's own edit form; same underlying value, no `CardLimit` row for it, `limits` always `[]`). Any **additional** CREDIT card on the same account chooses, via `usesAccountPool` (boolean, default `true`), between sharing that same pool (no `CardLimit` rows) or `false` = its own independent sub-limit — one **`CardLimit`** row per currency (table `card-limit`: `limitAmount` + `usedInitial`, exposes a derived `used` the same way the account does), still capped against the account's pool in the account's own currency (`CARD_SUBLIMIT_EXCEEDS_ACCOUNT`); sub-limits in other currencies aren't cross-checked (no FX conversion in this app). Missing/zero limit where one is required throws `CARD_LIMIT_REQUIRED`. **Only CHECKING/SIGHT/CREDIT_LINE accounts can have cards** (`accounts.CARDABLE_ACCOUNT_TYPES`/`isCardableAccountType` in `@finance/contracts`) — SAVINGS, INVESTMENT and CASH never carry a card of their own (real-world: their funds move via transfer into a cardable account first); enforced in `CardsService.create` and `AccountsService.create`'s inline `cards[]` (error code `ACCOUNT_CANNOT_HAVE_CARD`), and mirrored in the web UI (`CardsAside`'s add button, `TransactionCreateModal`'s card field) — both hide/reject for non-cardable types. Nested endpoints `POST/PATCH/DELETE /accounts/:id/cards[/:cardId]`; `POST /accounts` accepts inline `cards[]`. Display masked as `•••• last4`; `CardsAside` in the account-detail view shows every card as a `AccountVisualCard` tile (gradient keyed by `kind`, matching the create-account draft tiles, plus a small "Principal"/"Adicional" badge on CREDIT cards) — clicking one opens `CardDetailModal` (enlarged, centered) with Editar/Eliminar, instead of always-visible buttons under each tile. `CardForm` is a 3-state UI (non-CREDIT: no limit section; CREDIT-becomes-primary: one mandatory amount field in the account's currency, plus an optional repeatable "topes en otras monedas" section excluding that currency; CREDIT-additional: a "Cupo de la cuenta"/"Tope propio" toggle, the latter revealing the repeatable currency/amount rows). `AccountCreateModal`'s account-level cupo fields become read-only once a CREDIT card is drafted (mirrors that card's own limit); `AccountForm` (editing an existing account) likewise disables its cupo fields once a primary card exists. **The primary card can ALSO carry `CardLimit` rows — only for currencies other than the account's own** (that one stays exclusively on `BankAccount.creditLimit`, never duplicated) — an independent, non-cross-checked pool per extra currency (no FX in this app), same mechanism a non-primary card's own sub-limit already uses. The contract exposes a derived **`BankAccount.creditPools: {currency, limit, used}[]`** (the account's own-currency pool + the primary's extra ones; empty for non-credit accounts) — shown as a list in `AccountDetailRoute` whenever there's more than one, and per-card in `CardDetailModal`. Because a single card can now share the pool in one currency while being independently limited in another, `TransactionsRepository.sumsForAccount`/`AccountsRepository.sumsByAccount` are scoped to the account's own currency and only exclude a card from that sum if its `CardLimit` is in _that same currency_ (not "any currency" — a bug this fixed). **`Card.ownUsed`** (derived, moneyString) is a CREDIT card's own Σexpense−Σincome in the account's own currency regardless of whether it shares the pool or has its own `CardLimit` — so a pool-sharing card can display its own individual contribution instead of the fully-combined pool total (which only the no-`card` account-level tile shows); no seed baseline exists per-card the way `creditUsedInitial`/`CardLimit.usedInitial` do, so pre-existing debt not tied to a transaction is invisible here even though it's included in the account's own `creditUsed`. `AccountVisualCard` uses `card.ownUsed` (not `account.creditUsed`) as the "used" half of a pool-sharing card's progress bar. **`BankAccount.billingCycleDay`** (nullable, 1-28): once set, `creditUsed`/`ownUsed`/a card's own `CardLimit.used` are scoped to the CURRENT billing cycle (since the most recent occurrence of this day, via `accounts/billing-cycle.ts`'s `currentCycleStart`) instead of all-time — usage genuinely resets each cycle (transactions aren't deleted, they just stop counting toward the current limit/display once the next cut-off passes); `null` (the default) keeps the old all-time behavior. Applies uniformly to every card sharing the account (one statement covers all of them) — a card has no billing day of its own. **Correctness fix bundled with this feature:** for any account type OTHER than `CREDIT_LINE` (i.e. one that merely grew an add-on credit card), `sumsForAccount`/`sumsByAccount` previously summed _every_ transaction on the account (debit-card spend, cash, salary/other income) toward the credit pool — now scoped to only EXPENSE via a pool-sharing CREDIT card, since unrelated account activity has nothing to do with the credit line (this app also has no way to record "a payment toward this specific add-on card" apart from ordinary account income, so income is never subtracted in this case — a documented limitation, not a bug). A standalone `CREDIT_LINE` account is unaffected (unchanged: every transaction on it already is a credit-line one by construction). **`AccountCreateModal`'s creation flow for `CREDIT_LINE` no longer requires a separate "add card" step for the primary**: since a standalone credit-line account has no real bank account behind it, its generic "Número de cuenta" field is replaced by "Últimos 4 dígitos" + "Vencimiento" (the same `last4`/`expiryMonth`/`expiryYear` a card needs) — combined with the account's own already-shown `creditLimit`/`creditUsedInitial`, the modal constructs the primary `CreateCard` entry itself (`kind: "CREDIT"`, `usesAccountPool: true`, `limits: [{currency, limitAmount: creditLimit}]`) and puts it first in the submitted `cards[]`, so the backend's existing "first CREDIT card becomes primary" resolution picks it up with no schema/API change needed. The modal's "Tarjetas" section (renamed "Tarjetas adicionales" for this type) is therefore always additional-only for `CREDIT_LINE` — `CardForm`'s `hasExistingPrimary` is forced `true` regardless of what's drafted there. Unaffected: editing an existing account (`AccountForm`) and any OTHER account type growing an add-on card still go through the normal `CardsAside` → "Añadir tarjeta" flow.
     Amendment (persisted `creditUsed` + "pagar facturación", 2026-07-25): `BankAccount.creditUsed` is
@@ -125,12 +125,59 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     **`PayStatementPanel`** (a `SidePanel`, like the card/account panels) with a Total/Mínimo/Otro
     monto segmented control, the period breakdown, the source account's balance before and after,
     what would remain owed, plus payment date and reference.
+    Amendment (a partial payment settles the period; the shortfall is carried forward, 2026-08-12):
+    the multi-payment model above is **superseded**. **Any** payment — the total, the account's
+    minimum, or any figure between — now SETTLES the period: `paidAt` is stamped and `amount` freezes
+    at the period's real total (not at what was paid). What the payment didn't cover is rolled into
+    the next period as the new column **`CreditStatement.carriedOverAmount`**, and the settled period
+    records where it went in **`carriedToId`**. A period therefore never stays half-payable and the
+    derived status is back to OPEN → PENDING → PAID — **`PARTIALLY_PAID` and `PartiallyPaidState` are
+    gone** (contract enum, badges and the "Pagado hasta ahora" row too). A period's total owed is
+    `CreditStatement.totalFor(linkedSum)` = its linked transactions **plus** `carriedOverAmount` — the
+    carry-over is a figure of its own, deliberately NOT a synthetic "saldo anterior" movement, which
+    "Sincronizar pagos" (recomputing from real movements) would erase. `PayCreditStatementHandler`
+    resolves the receiving period inside the same `$transaction`
+    (`findOrCreateCarryOverTargetWithTx` — the account's OPEN period excluding the one being paid,
+    or a fresh one starting at its `closedAt` — then `addCarriedOverWithTx`). Unchanged: `creditUsed`
+    drops only by what was ACTUALLY paid (the shortfall is still used credit, now owed in the next
+    period) and an overpayment still throws `PAYMENT_EXCEEDS_REMAINING`. `syncAmount` gained a third
+    case: a period settled with a shortfall keeps its payment and pool untouched and instead returns
+    a **`carryOverDelta`** applied to its successor. `remainingAmount` is always `"0"` once paid.
+    Web: `PayStatementPanel` shows "Saldo de la facturación anterior" in the breakdown and labels the
+    leftover "Pasa a la próxima facturación"; `BillingSection` annotates each period's amount with
+    what it inherited and what it rolled over.
+    Amendment (a shortfall payment reports PARTIALLY_PAID, 2026-08-13): the carry-forward mechanism
+    above is unchanged (any payment settles the period, `amount` freezes at the real total, the
+    shortfall rolls into the next period), but a period settled for LESS than its total now derives
+    **`PARTIALLY_PAID`** instead of PAID — `PartiallyPaidState` is back
+    (`domain/states/partially-paid-state.ts`), chosen in `CreditStatement.state` when `paidAt` is set
+    and `paidAmount < amount`. It is TERMINAL, same as PAID (`canPay()`/`canClose()` false): the debt
+    lives in the successor period, so nothing is payable here again. Contract's
+    `creditStatementStatus` regains the value. **Consequence: "settled" must be tested as
+    `paidAt !== null`, never `status === "PAID"`** — `BillingSection` now groups and hides its
+    "Pagar" button by `isSettled(s)`, and shows "pagado X de Y" (`billingPaidPartially`) on such a
+    period in both layouts; the badge variant is `warning`, and the paid-periods heading became
+    "Períodos liquidados"/"Settled periods".
+    Amendment (correcting a payment, 2026-08-13): a settled period's PAYMENT is correctable via
+    **`PATCH /accounts/:id/credit-statements/:statementId/payment`** (`{amount}`,
+    `UpdateStatementPaymentCommand`/Handler, `CreditStatement.changePaidAmount`, contract
+    `updateStatementPaymentSchema`) — bounded by the period's computed total
+    (`PAYMENT_EXCEEDS_REMAINING`), positive (`INVALID_PAYMENT_AMOUNT`), settled periods only
+    (`STATEMENT_NOT_PAID`). This is NOT the retired manual amount correction: the period's total
+    still comes from its movements (`sync`) and is never typed in; only `paidAmount` moves. One
+    `$transaction` moves everything derived from it — the payment movement's amount, the SOURCE
+    account's balance (`incrementBalanceWithTx`), `creditUsed`, and the carry-over on the successor
+    period (resolved/created when a period previously paid in full becomes short). Correcting up to
+    the full total turns the period back into PAID. Web: `EditStatementPaymentPanel` (a `FormSurface`
+    panel showing total / paid-so-far / new amount / what rolls over), opened by the "Modificar pago"
+    button that only appears on a PARTIALLY_PAID row; `useAccountMutations.updateStatementPayment`
+    invalidates accounts, statements and transactions.
     Amendment (statement reconciliation replaces manual correction, 2026-08-07): the manual
     "correct a PAID statement's amount" is **gone** — `PATCH /accounts/:id/credit-statements/:id`,
     `CorrectStatementAmountCommand`/Handler, `updateCreditStatementSchema`,
     `CreditStatement.correctAmount` and the State's `canCorrectAmount` were all removed (typing a
     number in by hand could agree with nothing). In its place, **`POST
-    /accounts/:id/credit-statements/:id/sync`** (`SyncStatementCommand`/`SyncStatementHandler`)
+/accounts/:id/credit-statements/:id/sync`** (`SyncStatementCommand`/`SyncStatementHandler`)
     reconciles a period against reality, and its button ("Sincronizar pagos") sits on EVERY row of
     the Facturación table, paid or not. What it does, in one `prisma.$transaction`: (1) recomputes
     the period from its **DATE WINDOW** (`periodStart` → `closedAt ?? now`) via the new
@@ -225,6 +272,31 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     `/institutions` and `/currencies` to theirs. No contract change. Shared test helpers:
     `test/unit/support/fake-ports.ts` (fake port per table + an `accountAggregate` builder) and
     `test/integration/support/repositories.ts` (composes the real adapter graphs).
+    Amendment (PREPAID cards hold their own money, 2026-08-13): a `PREPAID` card is no longer a
+    kind with no behavior — it carries its OWN pot: **`CardAccount.prepaidInitialBalance`** (seed,
+    from the card form's "Saldo cargado") + **`prepaidBalance`** (self-maintaining, never written
+    from a form). Contract: `Card.prepaidBalance`/`prepaidInitialBalance` (null for CREDIT/DEBIT),
+    `createCardSchema.prepaidInitialBalance` (rejected on CREDIT/DEBIT —
+    `PREPAID_BALANCE_NOT_ALLOWED`; negative — `INVALID_PREPAID_BALANCE`), resolved by the aggregate's
+    `prepaidPot` (`ResolvedCardPlacement.resolvedPrepaid*`). **Loading**: `POST
+/accounts/:id/cards/:cardId/load` (`LoadPrepaidCardCommand`/Handler in `bank-account`) writes a real
+    EXPENSE on the account (category "Recarga prepago", **no `cardId`** — with one it would look like
+    spending through the card), decrements the account balance and credits the card, in one
+    `$transaction`. **Spending**: an EXPENSE through a PREPAID card is bounded by that balance
+    (`MovementPolicy.assertWithinPrepaidBalance` → `PREPAID_INSUFFICIENT_BALANCE`, never negative),
+    contributes "0" to any credit pool, draws the card's pot down
+    (`MovementPolicy.prepaidDelta` → the write ports' new `prepaidDeltas`, applied through
+    `CardAccountRepositoryPort.incrementPrepaidBalanceWithTx`) and **leaves the account's
+    `currentBalance` untouched** (`accountBalanceDelta` in `transaction/domain/balance-delta.ts` —
+    the money left when the card was loaded; counting both would subtract it twice). Edits/deletes
+    revert the pot symmetrically and, unlike the credit pool, do so even when the movement's
+    statement is settled (a prepaid card has no statement); an edit re-validates against the balance
+    BEFORE its own old charge (`prepaidOffset`). Unchanged: only CHECKING/SIGHT/CREDIT_LINE accounts
+    may carry cards. Web: `CardForm` gains a prepaid section, `AccountVisualCard` shows the CARD's
+    balance (not the account's) on a prepaid tile with the existing slate `--prepaid-*` gradient,
+    `CardDetailPanel` leads with that balance + a "Recargar" action, and `LoadPrepaidPanel` (a
+    `FormSurface` panel showing both balances before/after) performs it via
+    `useCardMutations.load`. Seed: one prepaid card ("Prepago · Rosa", loaded, no movements).
   - **transaction** (specs/005, 007; folder `domains/transaction`): income/expense linked to a `BankAccount` and (optionally) a `Card`. Rules in `transaction/domain/movement-policy.ts` + its command handlers (contract requires `bankAccountId` on create + refine `INCOME ⇒ no card`): INCOME → no card; EXPENSE on CASH → no card; EXPENSE on **CREDIT_LINE → card required** (must belong); EXPENSE on other non-cash accounts → card optional. **Whenever the card used is CREDIT-kind** (on a CREDIT_LINE account, or any other account that's grown one), the amount is checked against **both** the account's shared pool (persisted `creditUsed` + amount ≤ `creditLimit`, error `CARD_LIMIT_EXCEEDED`) **and**, if the card has its own `CardLimit` for that currency, that narrower (still derived) sub-limit too (`sumsForCard`, error `CARD_SUBLIMIT_EXCEEDED`). Creating/editing/deleting a transaction that draws on the shared pool mutates `BankAccount.creditUsed` directly (`BankAccountRepositoryPort.incrementCreditUsedWithTx`, called inside the movement's own `$transaction`) — edits/deletes revert the transaction's old contribution before applying the new one, including when the transaction moves to a different account (see accounts' billing-period amendment above for the linked-transaction/paid-statement exception). Full CRUD from both the Movements view and the Account view (shared `TransactionTable` with edit/delete, plus a `TransactionDetailModal` read-only view opened by clicking a row). Filter query supports `bankAccountId` + `cardId` (bank→card). Error codes: `CARD_REQUIRED`, `CARD_NOT_ALLOWED`, `CARD_ACCOUNT_MISMATCH`, `CARD_LIMIT_EXCEEDED`, `CARD_SUBLIMIT_EXCEEDED`.
     Amendment (paginated list + aggregates endpoint, 2026-08-05): `GET /transactions` is
     **keyset-paginated** and its response shape is now **`{ items, nextCursor }`** (was a bare
@@ -252,6 +324,52 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     automatically through `shared/ui/infinite-scroll-sentinel.tsx` (IntersectionObserver,
     200px rootMargin, re-armed on each landed page so a short page on a tall screen doesn't
     stall the list).
+    Amendment (transfers + attachments, specs/010, 2026-08-11): **a transfer between two of the
+    user's own accounts is NOT a new `TransactionType`** — it is **two ordinary rows** (an `EXPENSE`
+    on the source + an `INCOME` on the destination) sharing a new column
+    **`Transaction.transferGroupId`** (`@@index`), so each account sees its own leg as a normal
+    movement and balance deltas / keyset pagination / filters keep working untouched. The contract
+    exposes `transferGroupId` on `transactionSchema` plus helpers `isTransfer`/`transferSide`, and the
+    pair shapes `createTransferSchema`/`updateTransferSchema`/`transferSchema` (`{transferGroupId,
+outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIFFERENT accounts,
+    both the user's (`TRANSFER_ACCOUNT_NOT_FOUND`), destination never `CREDIT_LINE`
+    (`TRANSFER_TO_CREDIT_ACCOUNT` — settling a credit line is a statement payment), never a `cardId`
+    (`CARD_NOT_ALLOWED`) nor a `creditStatementId`, both amounts positive; the two currencies are each
+    account's own and are **never compared** (no FX in this app). Endpoints
+    `POST/GET/PATCH/DELETE /transactions/transfers[/:groupId]`, declared **before `:id`** in the
+    Facade; `DELETE /transactions/:id` on one leg deletes the PAIR, `PATCH /transactions/:id` on one
+    leg answers **409 `TRANSFER_EDIT_AS_PAIR`**. Writes go through
+    `saveTransferPair`/`updateTransferPair`/`removeTransferPair`, each ONE `prisma.$transaction`
+    covering both rows and every affected balance delta (`netDeltas` collapses per-account deltas, so
+    moving a transfer to a third account adjusts three balances correctly).
+    **Critical invariant:** since the type enum didn't change, no existing sum excludes a transfer by
+    itself — the exclusion lives in the single named predicate **`EXCLUDE_TRANSFERS`**
+    (`transaction/application/queries/transaction-list-filter.ts`), applied to
+    `GET /transactions/summary`'s `currencyTotals` and `categories` (NOT to `total`, nor to the list:
+    both legs are real rows each account must see), and mirrored on the web by `excludeTransfers`
+    (`domains/dashboard/lib/metrics.ts`, used by `monthFlow` + `expensesByCategory`). **Any new
+    income/expense aggregate must apply it.**
+  - **transaction-attachment** (specs/010, domain 22): `TransactionAttachment` (table
+    `transaction-attachment`) = a receipt/voucher file on a movement — `storageKey` (`@unique`,
+    `u/<userId>/t/<txId>/<attachmentId>-<slug>`, derived from the id so two files named alike
+    coexist), `fileName`, `contentType`, `sizeBytes`, FKs to `User` and `Transaction` (both
+    `onDelete: Cascade`). Its own aggregate (it is uploaded/deleted without the movement changing)
+    with the four layers and its own Facade `GET/POST /transactions/:id/attachments`,
+    `GET .../:attachmentId/url`, `DELETE .../:attachmentId`. Upload goes **through the API**
+    (`FileInterceptor`, memory storage, 5 MB `limits.fileSize`, mimetype `fileFilter`);
+    `AttachmentPolicy` validates the declared type against `ATTACHMENT_CONTENT_TYPES`
+    (jpeg/png/webp/pdf) **and the file's magic bytes** (what stops an executable renamed to `.pdf`),
+    after checking the movement is the user's through the `transaction` domain's own port (404, never
+    403). Reading is a **5-minute signed URL** — the API never proxies bytes. Bytes live behind
+    **`ObjectStoragePort`** (`put`/`getSignedUrl`/`delete`/`isConfigured`) with
+    `S3ObjectStorageAdapter` (`@aws-sdk/client-s3` + `s3-request-presigner`, endpoint configurable
+    for AWS/MinIO/R2/Backblaze); **with no bucket/credentials the feature is INERT** —
+    `isConfigured()` false ⇒ `503 ATTACHMENTS_UNAVAILABLE` on upload/url/delete while LIST keeps
+    working, so the panel always renders (`docs/PENDING.md`). Deleting removes the row first and the
+    object AFTER the transaction; a failed remote delete is logged with its key, never rolled back.
+    Web: `AttachmentsSection` + `useAttachments`, with **deferred upload** — files chosen while
+    creating a movement are held in memory (validated locally by type and size) and uploaded as soon
+    as `POST /transactions` returns an id; one that fails stays listed with **Reintentar**.
   - **recurring-expense**: `RecurringExpense` (subscriptions/rent/periodic payments) — `frequency` (`RecurrenceFrequency`: WEEKLY/MONTHLY/YEARLY), `interval`, `anchorDate`, optional `bankAccountId`/`category`, `active`. The contract exposes a computed `nextDueAt` (anchor stepped forward by frequency × interval). CRUD at `/recurring`.
   - **reference tables** (`country`, `currency`, `country-currency`, `country-identifier-type`, `financial-institution` — one domain each since the one-table-one-domain amendment; global read-only, authed but not user-scoped): `Country` (table `country`, ISO 3166-1 `alpha2`/`alpha3`/`numeric` unique + name), `FinancialInstitution` (table `financial-institution`, **banks + non-bank card issuers** via `kind` `InstitutionKind` BANK/NON_BANK_ISSUER; `code` = SBIF/CMF or código institucional `@@unique([countryId,code])`, `name`, `rut?` (Chilean issuers), `category` `BankCategory?` ESTABLISHED/FOREIGN_BRANCH/STATE (banks only), `brands String[]`, `notes`, FK→Country), `Currency` (table `currency`, **ISO 4217** `code` unique + `numeric` + name), and `CountryCurrency` join (`isPrimary`). Endpoints `GET /countries`, `GET /institutions?country=CL&kind=BANK`, `GET /currencies` (ordered by name). Seeded idempotently in `prisma/seed.ts` (`seedReferenceData`): 6 countries, 18 CL banks + 15 non-bank issuers, 168 currencies, country↔currency links. **`BankAccount.institutionId`** FK → `FinancialInstitution` (the "institution" selector; scalar `institution` text mirrors its name for display; relation field is `financialInstitution`); web forms use `useInstitutions`/`useCurrencies` selects (`apps/web`'s `domains/reference` — the FRONTEND keeps one reference module; only the backend is split per table).
   - **wallet-item-dashboard**: `WalletItemDashboard` (table `wallet-item-dashboard`) `(accountId? | cardId?, order)` — a user-curated set of pinned cards **or** accounts for the dashboard "wallet" (exactly one of card/account; XOR enforced in its aggregate; `onDelete: Cascade`). Endpoints `GET/POST /wallet`, `PATCH /wallet/reorder` (`{ids[]}`), `DELETE /wallet/:id`.
@@ -292,6 +410,26 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
   principal" action / "Tarjeta principal" switch (the primary card is still assigned automatically —
   changing it would move the account-level `creditLimit` mirror, a backend change) and "Cuotas
   activas" (`InstallmentPlan` has no `cardId`, so it isn't derivable).
+
+  Amendment (movement panels, specs/010, 2026-08-11): the movement **detail** and its **create/edit
+  form** are both `SidePanel`s built on the new shared primitive **`shared/ui/detail-row.tsx`**
+  (label left / value right, interactive variant renders a real button + chevron): amount as the
+  protagonist, label/value rows, actions pinned at the foot. `TransactionDetailModal` is now a thin
+  shell over **`TransactionDetailPanel`** with paged **‹ ›** in its header (`panelNavigation.ts` — the
+  panel makes NO query of its own, it walks the same array the table behind it holds and asks the
+  parent for the next page at the end) and Eliminar / **Duplicar** / Editar at the foot (Duplicar
+  opens the create form pre-filled, dated today, via the modal's new `duplicateFrom` prop; Eliminar
+  still goes through `TransactionDeleteConfirm`). `TransactionCreateModal` is likewise a shell over
+  **`TransactionFormPanel`** (+ `TransferFields` for the third "Traspaso" segment) and gained
+  **"Guardar y crear otro"** (`FormSurface`'s new `extraActions` slot; clears amount/description/
+  category/details, keeps account and date, refocuses the amount — hidden while editing). Two
+  client-side figures use `@finance/money`: **`balanceAfter.ts`** (balance after a movement) and
+  **`projectedBalance.ts`** (what the account's balance becomes if the form is saved); both return
+  `null` — and their row is OMITTED, never approximated — for an account with no balance
+  (`CREDIT_LINE`), while a date filter is active, or when the loaded list mixes accounts. Also here:
+  `apiClient` no longer forces `Content-Type: application/json` on a `FormData` body (the browser
+  must set the multipart boundary), and **`src/i18n/parity.test.ts`** now enforces es/en key parity
+  as a test instead of by discipline.
 
 - **`packages/`** — `contracts` (zod schemas + inferred types = the API contract; one module per domain; built to dist CJS + `import` condition → src for Vite), `money` (`decimal.js`: money helpers, `equalPrincipalSchedule`, interest), `config` (shared `tsconfig.base.json`). One-way deps: `apps → packages`; `api ↛ web`; `packages ↛ apps` (enforced by `check:boundaries`).
 - **Auth:** backend issues **JWT access+refresh tokens in httpOnly cookies** (`domains/auth`); `JwtAuthGuard` validates the access cookie **and** (per-request DB check) that the account's `status` is still `ACTIVE`, rejecting `DISABLED` accounts (`ACCOUNT_DISABLED`) even with an otherwise-valid token. Every endpoint is scoped to the authenticated `userId`. The frontend `AuthProvider`/`useAuth` + `RequireAuth` gate routes.
@@ -362,7 +500,7 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
   viewport-driven cases.
   Tailwind also sets `future.hoverOnlyWhenSupported` so every `hover:` compiles inside
   `@media (hover: hover)` — without it a tap on a touch device leaves the hover state stuck on.
-  Amendment (dark-theme repaint from design handoff, 2026-07-17): `--background`/`--card`/`--border`/`--input`/`--muted`/`--muted-foreground`/`--primary-foreground`/`--destructive` were replaced with the exact hex from the handoff palette (`#0b1518`/`#0f1e21`/`#1e2e32`/`#283c41`/`#22343a`/`#8aa0a2`/`#08181b`/`#e08a8a` respectively); `--brand`/`--accent`/`--success` already matched and only got sub-degree hue rounding fixes. `--destructive-foreground` (dark) changed from white to a dark ink (`0 45% 10%`) because the handoff's danger red is light enough that white text on a _solid_ `bg-destructive` button would fail contrast — mirrors how `--primary`/`--accent` already pair a light base color with a dark "ink" foreground; the ~40 `text-destructive`/low-opacity-fill usages elsewhere were unaffected. New tokens from the same handoff, defined in both themes but **not yet consumed by any component** (available for future use — grep before assuming something already uses them): `--surface-2`/`--chip`/`--track`/`--border-2`/`--text-dim` (dark-named concepts; dark values are the handoff hex, light theme falls back to existing near-equivalents) and `--panel-bg`/`--viewer-bg` (light-named concepts from the handoff; dark theme falls back to `--surface-2`/`--card`). Exposed via Tailwind as `surface2`/`chip`/`track`/`border2`/`dim`/`panel`/`viewer`. Explicit hover hex (`primary-hover`/`accent-hover`) from the light-theme handoff were **not** wired in — `Button` still uses the `hover:bg-primary/90` opacity approach.
+  Amendment (dark-theme repaint from design handoff, 2026-07-17): `--background`/`--card`/`--border`/`--input`/`--muted`/`--muted-foreground`/`--primary-foreground`/`--destructive` were replaced with the exact hex from the handoff palette (`#0b1518`/`#0f1e21`/`#1e2e32`/`#283c41`/`#22343a`/`#8aa0a2`/`#08181b`/`#e08a8a` respectively); `--brand`/`--accent`/`--success` already matched and only got sub-degree hue rounding fixes. `--destructive-foreground` (dark) changed from white to a dark ink (`0 45% 10%`) because the handoff's danger red is light enough that white text on a _solid_ `bg-destructive` button would fail contrast — mirrors how `--primary`/`--accent` already pair a light base color with a dark "ink" foreground; the ~40 `text-destructive`/low-opacity-fill usages elsewhere were unaffected. New tokens from the same handoff, defined in both themes but **not yet consumed by any component** (available for future use — grep before assuming something already uses them): `--surface-2`/`--chip`/`--track`/`--border-2`/`--text-dim` (dark-named concepts; dark values are the handoff hex. **Light values were MISSING until 2026-08-13** — the light theme inherited `:root`'s dark ones, so `bg-chip`/`bg-surface2`/`bg-track`/`border-border2`/`text-dim` painted dark blocks with unreadable text in light mode, e.g. the account cards' icon tiles and type chips; every one of these now has an explicit `[data-theme="light"]` value. Any NEW token must be defined in BOTH blocks) and `--panel-bg`/`--viewer-bg` (light-named concepts from the handoff; dark theme falls back to `--surface-2`/`--card`). Exposed via Tailwind as `surface2`/`chip`/`track`/`border2`/`dim`/`panel`/`viewer`. Explicit hover hex (`primary-hover`/`accent-hover`) from the light-theme handoff were **not** wired in — `Button` still uses the `hover:bg-primary/90` opacity approach.
 - **Boundaries:** keep the one-way dep rule; run `pnpm check:boundaries`. New domain → mirror an existing one (see `apps/api/README.md` / `apps/web/README.md` skeletons).
 - **Commits:** only when the user explicitly asks.
 - **Markdown:** don't add `.md` files unless requested.
@@ -394,7 +532,21 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Active plan: specs/009-ddd-cqrs-architecture/plan.md
+Active plan: specs/010-movement-transfers-attachments/plan.md
+(Movimientos: traspasos, comprobantes y paneles rediseñados. Los paneles de detalle y de
+crear/editar movimiento pasan al formato del handoff (panel lateral, monto protagonista, filas
+etiqueta/valor, acciones al pie) y ganan navegación ‹ › paginada, Duplicar, saldo tras el
+movimiento / proyectado y "Guardar y crear otro". Backend nuevo: **traspaso** = dos filas
+`Transaction` (`EXPENSE` origen + `INCOME` destino) unidas por una columna nueva `transferGroupId`
+— sin tarjeta, sin tocar cupo ni facturación, destino nunca `CREDIT_LINE`, creadas/editadas/
+borradas como par en una sola `$transaction`, excluidas de `GET /transactions/summary` vía el
+predicado único `EXCLUDE_TRANSFERS`; y **adjuntos** = tabla + dominio nuevos
+`transaction-attachment` (dominio 22), archivos en S3 detrás de un `ObjectStoragePort`
+(`@aws-sdk/client-s3`, subida multipart por el API, lectura por URL prefirmada, `503
+ATTACHMENTS_UNAVAILABLE` mientras no haya credenciales). Fuera de alcance: crear recurrente desde
+el formulario, presupuestos por categoría y conversión de moneda.
+**Estado: 010 implementado** (T001-T073; traspasos, adjuntos y ambos paneles completos, constitución en v1.29.0).)
+Prior plan: specs/009-ddd-cqrs-architecture/plan.md
 (Backend DDD + CQRS migration. apps/api pasa de domain-first plano a 4 capas por dominio
 (domain/application/infrastructure/presentation) en los 11 dominios existentes, uno a la vez,
 `accounts`/billing primero como referencia. `@nestjs/cqrs` para Command/Query/EventBus (eventos
@@ -410,6 +562,6 @@ patrón completo una vez documentado.
 tests). Encima se aplicó, sin spec propia, la regla **una tabla = un dominio**: los 11 dominios se
 dividieron en 21 dominios-tabla (+ `import`/`health` sin tabla), un solo adapter por tabla,
 constitución en v1.23.0. Ver ARCHITECTURE.md §12a.)
-Prior plans: 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
+Prior plans: 009 (backend DDD+CQRS), 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
 
 <!-- SPECKIT END -->

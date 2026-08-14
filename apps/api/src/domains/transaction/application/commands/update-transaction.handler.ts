@@ -6,7 +6,7 @@ import { subtractMoney } from "@finance/money";
 
 import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
-import { balanceDelta, reverseBalanceDelta } from "../../domain/balance-delta";
+import { accountBalanceDelta, balanceDelta, reverseBalanceDelta } from "../../domain/balance-delta";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
@@ -23,7 +23,11 @@ import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
 } from "../../../credit-statement/domain/ports/credit-statement.repository.port";
-import { AccountNotFoundError, TransactionNotFoundError } from "../../domain/errors";
+import {
+  AccountNotFoundError,
+  TransactionNotFoundError,
+  TransferEditAsPairError,
+} from "../../domain/errors";
 import { MovementPolicy, type EffectiveMovement } from "../../domain/movement-policy";
 import type { Transaction, TransactionPatch } from "../../domain/transaction.aggregate";
 import {
@@ -38,6 +42,9 @@ interface Context {
   patch: TransactionPatch;
   creditUsedDeltas: { accountId: string; delta: string }[];
   balanceDeltas: { accountId: string; delta: string }[];
+  /** How each PREPAID card's own pot moves: the old charge goes back on the card it
+   * was made with, the new one comes off the card it is now made with. */
+  prepaidDeltas: { cardId: string; delta: string }[];
 }
 
 /**
@@ -70,6 +77,9 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     const { input, userId, id } = command;
     const current = await this.repo.findOne(userId, id);
     if (!current) throw new TransactionNotFoundError();
+    // Editing one leg alone would desynchronise the pair (and the two balances
+    // behind it): a transfer is edited through its own endpoint.
+    if (current.isTransferLeg) throw new TransferEditAsPairError();
 
     const effectiveType = input.type ?? current.type;
     const effective: EffectiveMovement = {
@@ -109,6 +119,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       : false;
 
     let newContribution = "0";
+    let newCard: Awaited<ReturnType<typeof this.cards.findOnAccount>> = null;
     const sameAccount = effective.bankAccountId === oldAccountId;
     if (effective.bankAccountId) {
       let account = sameAccount ? oldAccount : null;
@@ -123,6 +134,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       const card = effective.cardId
         ? await this.cards.findOnAccount(userId, effective.bankAccountId, effective.cardId)
         : null;
+      newCard = card;
       const cardLimit =
         card?.kind === "CREDIT"
           ? await this.cardLimits.findForCardCurrency(userId, effective.cardId!, effective.currency)
@@ -143,6 +155,12 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
         cardLimit,
         cardUsage,
         sameAccount ? oldContribution : "0",
+        // Re-saving a movement already charged to THIS prepaid card must check
+        // against the balance as it was before that charge, or editing it at all
+        // would look like it doesn't fit.
+        oldCard?.kind === "PREPAID" && oldCard.id === card?.id && current.type === "EXPENSE"
+          ? current.amount
+          : "0",
       );
     }
 
@@ -207,17 +225,30 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     if (oldAccountId) {
       balanceDeltas.push({
         accountId: oldAccountId,
-        delta: reverseBalanceDelta(current.type, current.amount),
+        // A prepaid-card expense never moved this balance, so undoing it must not
+        // credit the account with money it never lost.
+        delta: subtractMoney("0", accountBalanceDelta(current.type, current.amount, oldCard?.kind)),
       });
     }
     if (effective.bankAccountId) {
       balanceDeltas.push({
         accountId: effective.bankAccountId,
-        delta: balanceDelta(effective.type, effective.amount),
+        delta: accountBalanceDelta(effective.type, effective.amount, newCard?.kind),
       });
     }
 
-    return { current, patch, creditUsedDeltas, balanceDeltas };
+    // Same shape as the balance: put the old charge back, take the new one off.
+    // Two entries on the same card are fine — the adapter applies them in order.
+    const prepaidDeltas: { cardId: string; delta: string }[] = [];
+    if (oldCard?.kind === "PREPAID" && current.type === "EXPENSE") {
+      prepaidDeltas.push({ cardId: oldCard.id, delta: current.amount });
+    }
+    if (newCard?.kind === "PREPAID") {
+      const delta = MovementPolicy.prepaidDelta(effective, newCard);
+      if (delta !== "0") prepaidDeltas.push({ cardId: newCard.id, delta });
+    }
+
+    return { current, patch, creditUsedDeltas, balanceDeltas, prepaidDeltas };
   }
 
   protected async handle(
@@ -230,6 +261,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       context.patch,
       context.creditUsedDeltas,
       context.balanceDeltas,
+      context.prepaidDeltas,
     );
     if (!row) throw new TransactionNotFoundError();
     return { result: row.toContract(), events: [] };

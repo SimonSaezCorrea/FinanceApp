@@ -10,7 +10,15 @@ vi.mock("../domains/accounts/api/accountsApi", () => ({
   accountsApi: { list: vi.fn().mockResolvedValue([]) },
 }));
 vi.mock("../domains/transactions/api/transactionsApi", () => ({
-  transactionsApi: { list: vi.fn().mockResolvedValue([]) },
+  transactionsApi: {
+    list: vi.fn().mockResolvedValue([]),
+    summary: vi.fn().mockResolvedValue({ total: 0, currencyTotals: [], categories: [] }),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    transfer: { get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
+    attachments: { list: vi.fn(), upload: vi.fn(), url: vi.fn(), remove: vi.fn() },
+  },
 }));
 vi.mock("../domains/installments/api/installmentsApi", () => ({
   installmentsApi: { list: vi.fn().mockResolvedValue([]) },

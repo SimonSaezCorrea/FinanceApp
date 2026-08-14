@@ -29,6 +29,10 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     saveNew: vi.fn(),
     saveUpdate: vi.fn(),
     removeWithCreditAdjustment: vi.fn(),
+    findTransferGroup: vi.fn(async () => null),
+    saveTransferPair: vi.fn(),
+    updateTransferPair: vi.fn(),
+    removeTransferPair: vi.fn(async () => true),
     ...overrides,
   };
 }
@@ -47,6 +51,8 @@ const creditCard: CardProps = {
   expiryYear: 2030,
   isActive: true,
   isPrimary: true,
+  prepaidBalance: null,
+  prepaidInitialBalance: null,
   limits: [],
 };
 
@@ -153,6 +159,8 @@ describe("CreateTransactionHandler", () => {
       },
       // The cash balance always follows the movement, pool or no pool.
       [{ accountId: "aC", delta: "-100000.0000" }],
+      // A CREDIT card has no prepaid pot of its own, so the delta is inert.
+      [{ cardId: "cC", delta: "0" }],
     );
   });
 
@@ -206,6 +214,7 @@ describe("CreateTransactionHandler", () => {
       expect.objectContaining({ creditStatementId: null }),
       null,
       [{ accountId: "a1", delta: "-1000.0000" }],
+      [],
     );
   });
 });

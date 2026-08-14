@@ -69,6 +69,8 @@ export class CreateAccountHandler extends BaseCommandHandler<
         expiryYear: c.expiryYear,
         isActive: c.isActive ?? true,
         isPrimary: c.isPrimary,
+        prepaidBalance: c.resolvedPrepaidBalance,
+        prepaidInitialBalance: c.resolvedPrepaidInitialBalance,
         limits: c.cardLimits.map((l) => ({
           currency: l.currency,
           limitAmount: l.limitAmount,

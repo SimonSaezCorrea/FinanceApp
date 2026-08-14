@@ -40,6 +40,8 @@ interface Context {
   recomputedAmount: string;
   /** How much the payment movement (and the credit pool) must change by. */
   paidDelta: string;
+  /** How much the period this one carried its shortfall into must change by. */
+  carryOverDelta: string;
   breakdown: { purchases: string; installments: string; installmentCount: number };
 }
 
@@ -114,8 +116,11 @@ export class SyncStatementHandler extends BaseCommandHandler<
       from,
       to,
       cardIds,
-      recomputedAmount,
+      // What the period owes is its movements plus what was carried into it —
+      // that part isn't a movement, so recomputing must not drop it.
+      recomputedAmount: statement.totalFor(recomputedAmount),
       paidDelta: "0",
+      carryOverDelta: "0",
       breakdown,
     };
   }
@@ -124,8 +129,9 @@ export class SyncStatementHandler extends BaseCommandHandler<
     _command: SyncStatementCommand,
     context: Context,
   ): Promise<HandleResult<SyncedStatementResult>> {
-    const { paidDelta } = context.statement.syncAmount(context.recomputedAmount);
+    const { paidDelta, carryOverDelta } = context.statement.syncAmount(context.recomputedAmount);
     context.paidDelta = paidDelta;
+    context.carryOverDelta = carryOverDelta;
     // A settled period that turned out bigger means MORE of the pool was really
     // used than the payment released — and vice versa. Editing those movements
     // left the pool untouched on purpose, so this is where it gets corrected.
@@ -156,6 +162,12 @@ export class SyncStatementHandler extends BaseCommandHandler<
       // Only a settled period has a payment movement to keep in step.
       if (paymentId && context.statement.paidAt) {
         await this.transactions.updateAmountWithTx(tx, paymentId, context.statement.paidAmount);
+      }
+      // A period settled with a shortfall keeps its payment as it happened; what
+      // moves is the debt that was carried forward, which is still owed.
+      const carriedTo = context.statement.carriedToId;
+      if (carriedTo && !toMoney(context.carryOverDelta).isZero()) {
+        await this.statementRepo.addCarriedOverWithTx(tx, carriedTo, context.carryOverDelta);
       }
       await this.statementRepo.saveWithTx(tx, context.statement);
       if (!toMoney(context.paidDelta).isZero()) {

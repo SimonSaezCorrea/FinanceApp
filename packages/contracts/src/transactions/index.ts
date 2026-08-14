@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import { moneyString } from "../common/money";
 
+export * from "./attachments";
+
 /** Transactions domain contracts. Amounts are positive decimal strings; sign is the `type`. */
 
 export const transactionType = z.enum(["INCOME", "EXPENSE"]);
@@ -22,10 +24,29 @@ export const transactionSchema = z.object({
   bankAccountId: z.string().nullable(),
   cardId: z.string().nullable(),
   installmentPlanId: z.string().nullable(),
+  /**
+   * Ties the two rows of a transfer together (EXPENSE on the source account +
+   * INCOME on the destination). `null` on ordinary income/expense — the `type`
+   * enum deliberately does NOT grow a TRANSFER value, so use `isTransfer`.
+   */
+  transferGroupId: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 export type Transaction = z.infer<typeof transactionSchema>;
+
+/** A movement is a transfer leg when it carries a group id. */
+export function isTransfer(t: Pick<Transaction, "transferGroupId">): boolean {
+  return t.transferGroupId != null;
+}
+
+/** Which leg of the transfer this row is — `null` for an ordinary movement. */
+export function transferSide(
+  t: Pick<Transaction, "transferGroupId" | "type">,
+): "OUT" | "IN" | null {
+  if (!isTransfer(t)) return null;
+  return t.type === "EXPENSE" ? "OUT" : "IN";
+}
 
 export const createTransactionSchema = z
   .object({
@@ -61,6 +82,57 @@ export const updateTransactionSchema = createTransactionSchema
     path: ["cardId"],
   });
 export type UpdateTransaction = z.infer<typeof updateTransactionSchema>;
+
+/**
+ * A transfer between two of the user's own accounts. It is created and edited as
+ * a UNIT: the API writes both rows (and moves both balances) atomically, so
+ * `createTransactionSchema` above deliberately has no `transferGroupId`.
+ * Currencies are each side's own account currency and are never compared —
+ * this app performs no FX conversion.
+ */
+export const createTransferSchema = z
+  .object({
+    fromBankAccountId: z.string(),
+    toBankAccountId: z.string(),
+    amountOut: moneyString,
+    amountIn: moneyString,
+    currencyOut: z.string().trim().length(3),
+    currencyIn: z.string().trim().length(3),
+    occurredAt: z.string().datetime(),
+    description: z.string().trim().max(500).optional(),
+    category: z.string().trim().max(120).optional(),
+    observation: z.string().trim().max(500).optional(),
+    emisor: z.string().trim().max(200).optional(),
+    receptor: z.string().trim().max(200).optional(),
+    lugar: z.string().trim().max(200).optional(),
+  })
+  .refine((t) => t.fromBankAccountId !== t.toBankAccountId, {
+    message: "a transfer needs two different accounts",
+    path: ["toBankAccountId"],
+  });
+export type CreateTransfer = z.infer<typeof createTransferSchema>;
+
+export const updateTransferSchema = createTransferSchema
+  .innerType()
+  .partial()
+  .refine(
+    (t) => !t.fromBankAccountId || !t.toBankAccountId || t.fromBankAccountId !== t.toBankAccountId,
+    {
+      message: "a transfer needs two different accounts",
+      path: ["toBankAccountId"],
+    },
+  );
+export type UpdateTransfer = z.infer<typeof updateTransferSchema>;
+
+/** Both rows of a transfer, as one unit. Named by role — `in` reads badly in TS. */
+export const transferSchema = z.object({
+  transferGroupId: z.string(),
+  /** EXPENSE on the source account. */
+  outgoing: transactionSchema,
+  /** INCOME on the destination account. */
+  incoming: transactionSchema,
+});
+export type Transfer = z.infer<typeof transferSchema>;
 
 export const TRANSACTION_PAGE_SIZE = 20;
 const TRANSACTION_MAX_PAGE_SIZE = 100;
@@ -102,6 +174,10 @@ export type TransactionPage = z.infer<typeof transactionPageSchema>;
  * KPI strip, the "N movimientos" count and the category filter's options all
  * have to stay correct no matter how few pages are loaded, so they can't be
  * derived from the rows currently in the browser.
+ *
+ * `currencyTotals` and `categories` EXCLUDE transfer legs (FR-017): moving money
+ * between your own accounts is neither income nor expense. `total` counts them —
+ * they are real rows of the filtered set the list shows.
  */
 export const transactionSummarySchema = z.object({
   total: z.number().int().nonnegative(),

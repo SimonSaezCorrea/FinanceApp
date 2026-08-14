@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -10,7 +10,7 @@ import { formatMoney } from "@finance/money";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
-import { ResponsiveSurface } from "../../../shared/ui/overlay";
+import { SidePanel } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
@@ -19,7 +19,7 @@ import { useAccountMutations } from "../hooks/useAccounts";
 import { cleanExpiryInput, parseExpiry } from "../lib/cardExpiry";
 import { ACCOUNT_ICON } from "./accountVisuals";
 import { AccountTypeToggle } from "./AccountTypeToggle";
-import { CardForm } from "./CardForm";
+import { CardFormPanel } from "./CardFormPanel";
 import { CardPreview } from "./CardPreview";
 import { DraftCardTile } from "./DraftCardTile";
 
@@ -34,9 +34,13 @@ function SectionLabel({ children }: Readonly<{ children: string }>) {
 export function AccountCreateModal({
   open,
   onOpenChange,
+  holder,
 }: Readonly<{
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** Name printed on the card preview tile. Comes from the route, which already
+   *  knows the user — this component shouldn't need the auth context to draw. */
+  holder?: string;
 }>) {
   const { t, i18n } = useTranslation();
   const { create } = useAccountMutations();
@@ -199,13 +203,55 @@ export function AccountCreateModal({
     }
   })();
 
+  // What the tile in the card panel previews: the account as typed so far. The
+  // form only reads currency/limit off it, but the tile renders a whole account,
+  // so the unset fields carry neutral zeros rather than invented values.
+  const draftAccount: accounts.BankAccount = {
+    id: "draft",
+    name,
+    type,
+    status: "ACTIVE",
+    currency,
+    institution: null,
+    institutionId: institutionId || null,
+    institutionName: null,
+    accountNumber: accountNumber || null,
+    initialBalance: initialBalance || "0",
+    currentBalance: initialBalance || "0",
+    creditLimit: creditLimit || "0",
+    creditUsed: creditUsedInitial || "0",
+    creditPools: [],
+    billingCycleDay: null,
+    paymentMethod: "MANUAL",
+    minimumPaymentPercent: null,
+    balanceSeries: [],
+    balanceChangePct: null,
+    cards: [],
+    createdAt: "",
+    updatedAt: "",
+  };
+
   return (
-    <ResponsiveSurface
+    <SidePanel
       open={open}
       onOpenChange={onOpenChange}
       title={t("accounts.new")}
       description={t("accounts.newSubtitle")}
-      className="max-w-3xl"
+      footer={
+        <div className="flex items-center justify-between gap-4">
+          <p className="text-xs text-muted-foreground max-sm:hidden">
+            {t("accounts.form.editLaterHint")}
+          </p>
+          <div className="flex shrink-0 gap-2">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              {t("common.cancel")}
+            </Button>
+            <Button variant="accent" onClick={submit} disabled={create.isPending || !name}>
+              {t("accounts.form.createSubmit")}
+            </Button>
+          </div>
+        </div>
+      }
     >
       <div className="grid gap-6 md:grid-cols-2">
         <div className="flex flex-col gap-3">
@@ -410,43 +456,20 @@ export function AccountCreateModal({
               ) : null}
 
               {cards.length > 0 ? (
-                <div className="grid grid-cols-2 gap-3">
-                  {cards.map((c, i) => (
-                    <DraftCardTile
-                      key={i}
-                      card={c}
-                      isPrimary={c === primaryDraftCard}
-                      onRemove={() => setCards((p) => p.filter((_, j) => j !== i))}
-                    />
-                  ))}
-                </div>
-              ) : null}
-
-              {addingCard ? (
-                <div className="flex flex-col gap-3 rounded-md border border-ring/60 p-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold">{t("cards.newTitle")}</span>
-                    <button
-                      type="button"
-                      onClick={() => setAddingCard(false)}
-                      className="rounded-md p-1 text-muted-foreground hover:bg-muted"
-                      aria-label={t("common.cancel")}
-                    >
-                      <X className="h-4 w-4" aria-hidden />
-                    </button>
+                // Its own scroller: drafting several cards otherwise grew this
+                // column past the panel and pushed the account fields out of
+                // reach. ~2.5 tiles tall, so there's a visible cue to scroll.
+                <div className="scrollbar-thin -mr-1 max-h-[22rem] overflow-y-auto pr-1">
+                  <div className="grid grid-cols-2 gap-3">
+                    {cards.map((c, i) => (
+                      <DraftCardTile
+                        key={i}
+                        card={c}
+                        isPrimary={c === primaryDraftCard}
+                        onRemove={() => setCards((p) => p.filter((_, j) => j !== i))}
+                      />
+                    ))}
                   </div>
-                  <CardForm
-                    submitLabel={t("cards.add")}
-                    accountCurrency={currency}
-                    // For CREDIT_LINE, the primary is always the one defined by
-                    // the "Últimos 4 dígitos"/"Vencimiento" fields above — every
-                    // card drafted here is an ADDITIONAL one, never the primary.
-                    hasExistingPrimary={isCreditLineType || cards.some((c) => c.kind === "CREDIT")}
-                    onSubmit={(card) => {
-                      setCards((p) => [...p, card]);
-                      setAddingCard(false);
-                    }}
-                  />
                 </div>
               ) : null}
             </div>
@@ -454,17 +477,31 @@ export function AccountCreateModal({
         </div>
       </div>
 
-      <div className="mt-6 flex items-center justify-between gap-4">
-        <p className="text-xs text-muted-foreground">{t("accounts.form.editLaterHint")}</p>
-        <div className="flex shrink-0 gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t("common.cancel")}
-          </Button>
-          <Button onClick={submit} disabled={create.isPending || !name}>
-            {t("accounts.form.createSubmit")}
-          </Button>
-        </div>
-      </div>
-    </ResponsiveSurface>
+      {/* The SAME panel used to add a card to an existing account — tile preview
+          included — so drafting one here and adding one later are the same
+          screen. It only differs in where the card ends up: local state now, the
+          API there. Rendered INSIDE this panel on purpose: Radix treats a layer
+          outside the parent's tree as an outside click, so as a sibling it
+          dismissed BOTH panels on cancel. */}
+      <CardFormPanel
+        // Remounted per opening, so a cancelled draft never reappears
+        // half-filled the next time the panel opens.
+        key={addingCard ? cards.length : "closed"}
+        open={addingCard}
+        onOpenChange={setAddingCard}
+        // Narrower than the account panel it sits on, so that one stays visible.
+        size="compact"
+        account={draftAccount}
+        holder={holder}
+        // For CREDIT_LINE, the primary is always the one defined by the
+        // "Últimos 4 dígitos"/"Vencimiento" fields above — every card drafted
+        // here is an ADDITIONAL one, never the primary.
+        hasExistingPrimary={isCreditLineType || cards.some((c) => c.kind === "CREDIT")}
+        onSubmit={(card) => {
+          setCards((p) => [...p, card]);
+          setAddingCard(false);
+        }}
+      />
+    </SidePanel>
   );
 }

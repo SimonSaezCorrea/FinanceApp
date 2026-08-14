@@ -45,3 +45,19 @@ export class CardSubLimitExceedsAccountError extends DomainError {
     super("CARD_SUBLIMIT_EXCEEDS_ACCOUNT");
   }
 }
+
+/** A prepaid balance sent for a CREDIT/DEBIT card: those have no pot of their own
+ * (a debit card spends the account's balance, a credit one draws on the pool), so
+ * the figure is rejected rather than silently dropped. */
+export class PrepaidBalanceNotAllowedError extends DomainError {
+  constructor() {
+    super("PREPAID_BALANCE_NOT_ALLOWED");
+  }
+}
+
+/** A negative starting balance on a prepaid card — it is money held, not credit. */
+export class InvalidPrepaidBalanceError extends DomainError {
+  constructor() {
+    super("INVALID_PREPAID_BALANCE");
+  }
+}

@@ -4,7 +4,13 @@ import type { ReactNode } from "react";
 import { cn } from "../../lib/cn";
 
 export interface SurfaceContent {
-  title: string;
+  /**
+   * The surface's accessible name. Usually a string; a node is allowed for the
+   * surfaces whose visible title lives in the body (the movement panels, which
+   * lead with an icon + amount block) — pass `<span className="sr-only">…</span>`
+   * there so the dialog still announces what it is.
+   */
+  title: ReactNode;
   /** Small caps label above the title, naming what kind of surface this is
    * ("Detalle de tarjeta") while the title stays the subject ("CMR Visa"). */
   eyebrow?: string;
@@ -111,7 +117,7 @@ export function SurfaceChrome({
             {headerAside}
           </div>
         ) : null}
-        {Close && !closeAtStart && !leading ? (
+        {Close && !closeAtStart ? (
           <Close className={closeClass} aria-label="Close">
             <X className="h-5 w-5" aria-hidden />
           </Close>

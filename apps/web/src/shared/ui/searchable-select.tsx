@@ -1,19 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 
+import { anchoredPanelRect, type PanelRect } from "../lib/anchoredPanel";
 import { cn } from "../lib/cn";
 import { Input } from "./input";
 
 export interface SearchableSelectOption {
   value: string;
   label: string;
-}
-
-interface Rect {
-  top: number;
-  left: number;
-  width: number;
 }
 
 interface Props {
@@ -31,14 +26,28 @@ interface Props {
   displayValue?: string;
   disabled?: boolean;
   className?: string;
+  /**
+   * `control` (default) is the bordered form field. `inline` is the label/value
+   * row form: no border, no background, right-aligned — the value reads as text
+   * with a chevron, and only the panel says it is a picker.
+   */
+  variant?: "control" | "inline";
   "aria-label"?: string;
 }
 
 /**
+ * A `fixed` child is positioned against the VIEWPORT — unless an ancestor
+ * establishes a containing block (a transform, filter, or will-change does it).
+ * A Dialog's content has one WHILE its open animation runs and none once it
+ * settles, so the panel's coordinates have to say which frame of reference they
+ * are in instead of assuming one: assuming wrong throws the panel across the
+ * screen, which is exactly what a stacked panel made visible.
+ */
+/**
  * A `<select>`-like control for long option lists (banks, currencies): a
  * native `<select>`'s popup can't be restyled or height-capped cross-browser,
  * which makes a 20+ item list (banks) or a 168-item one (currencies) unwieldy
- * — this instead opens a custom, fixed-height (`max-h-60`) scrollable panel
+ * — this instead opens a custom scrollable panel (capped by the room it has)
  * with its own styled scrollbar and a search box to filter by label.
  *
  * Portaling/positioning/dismissal mirrors Combobox: the panel targets the
@@ -57,28 +66,27 @@ export function SearchableSelect({
   displayValue,
   disabled,
   className,
+  variant = "control",
   "aria-label": ariaLabel,
 }: Readonly<Props>) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [rect, setRect] = useState<Rect | null>(null);
+  const [rect, setRect] = useState<PanelRect | null>(null);
   const [portalTarget, setPortalTarget] = useState<Element | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  // See Combobox: a never-seen field name keeps Chrome's form history from
+  // drawing its own suggestions on top of this panel.
+  const historylessName = `search-${useId()}`;
   const panelRef = useRef<HTMLDivElement>(null);
 
   function updatePosition() {
     const el = containerRef.current;
     if (!el) return;
-    const target = el.closest('[role="dialog"]') ?? document.body;
-    const controlRect = el.getBoundingClientRect();
-    const origin = target === document.body ? { top: 0, left: 0 } : target.getBoundingClientRect();
+    // Placement lives in one place for every portaled panel (see anchoredPanel).
+    const { rect: next, portalTarget: target } = anchoredPanelRect(el);
     setPortalTarget(target);
-    setRect({
-      top: controlRect.bottom + 4 - origin.top,
-      left: controlRect.left - origin.left,
-      width: controlRect.width,
-    });
+    setRect(next);
   }
 
   function openPanel() {
@@ -110,7 +118,6 @@ export function SearchableSelect({
       window.removeEventListener("scroll", updatePosition, true);
       window.removeEventListener("resize", updatePosition);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- updatePosition is stable enough for this effect's purpose
   }, [open]);
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -135,9 +142,11 @@ export function SearchableSelect({
         onClick={() => (open ? setOpen(false) : openPanel())}
         aria-label={ariaLabel}
         className={cn(
-          "flex h-10 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 text-left text-sm",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          "disabled:cursor-not-allowed disabled:opacity-50",
+          "flex w-full items-center gap-2 text-sm",
+          variant === "control"
+            ? "h-10 justify-between rounded-md border border-input bg-background px-3 text-left focus-visible:ring-2 focus-visible:ring-ring"
+            : "h-8 justify-end text-right font-medium",
+          "focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
         )}
       >
         <span className={cn("truncate", !selectedLabel && "text-muted-foreground")}>
@@ -150,8 +159,17 @@ export function SearchableSelect({
         ? createPortal(
             <div
               ref={panelRef}
-              style={{ top: rect.top, left: rect.left, width: rect.width }}
-              className="fixed z-[1350] flex flex-col overflow-hidden rounded-md border bg-card shadow-md"
+              // Above a panel stacked on another panel (see `Drawer`), which the
+              // old Tailwind z-class sat just below.
+              style={{
+                top: rect.top,
+                bottom: rect.bottom,
+                left: rect.left,
+                width: rect.width,
+                maxHeight: rect.maxHeight,
+                zIndex: 1370,
+              }}
+              className="fixed flex flex-col overflow-hidden rounded-md border bg-card shadow-md"
             >
               <div className="border-b p-1">
                 <Input
@@ -159,11 +177,15 @@ export function SearchableSelect({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={searchPlaceholder}
+                  name={historylessName}
                   autoComplete="off"
+                  spellCheck={false}
+                  data-1p-ignore
+                  data-lpignore="true"
                   className="h-8"
                 />
               </div>
-              <div className="scrollbar-thin max-h-60 overflow-y-auto p-1">
+              <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto p-1">
                 {filtered.length > 0 ? (
                   filtered.map((o) => (
                     <button

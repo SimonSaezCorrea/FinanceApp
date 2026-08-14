@@ -16,6 +16,13 @@ export const cardsApi = {
       body: JSON.stringify(body),
     }),
 
+  /** Load a prepaid card: an expense on the account + the card's own balance. */
+  load: (accountId: string, cardId: string, body: accounts.LoadPrepaidCard) =>
+    apiFetch<accounts.Card>(`/accounts/${accountId}/cards/${cardId}/load`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
   remove: (accountId: string, cardId: string) =>
     apiFetch<void>(`/accounts/${accountId}/cards/${cardId}`, { method: "DELETE" }),
 };

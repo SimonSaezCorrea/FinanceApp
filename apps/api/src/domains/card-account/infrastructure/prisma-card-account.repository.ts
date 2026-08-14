@@ -18,6 +18,8 @@ type Row = {
   expiryYear: number;
   isActive: boolean;
   isPrimary: boolean;
+  prepaidBalance: unknown;
+  prepaidInitialBalance: unknown;
 };
 
 /** Adapter — the ONLY file that touches `prisma.cardAccount`. Limit rows are
@@ -41,6 +43,9 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
       expiryYear: r.expiryYear,
       isActive: r.isActive,
       isPrimary: r.isPrimary,
+      prepaidBalance: r.prepaidBalance === null ? null : String(r.prepaidBalance),
+      prepaidInitialBalance:
+        r.prepaidInitialBalance === null ? null : String(r.prepaidInitialBalance),
       limits: limitRows
         .filter((l) => l.cardId === r.id)
         .map(({ cardId: _cardId, ...limit }) => limit),
@@ -89,6 +94,8 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
         expiryYear: plan.expiryYear,
         isActive: plan.isActive,
         isPrimary: plan.isPrimary,
+        prepaidBalance: plan.prepaidBalance,
+        prepaidInitialBalance: plan.prepaidInitialBalance,
       },
       select: { id: true },
     });
@@ -107,6 +114,9 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
         expiryYear: plan.expiryYear,
         isActive: plan.isActive,
         isPrimary: plan.isPrimary,
+        // The seed is editable; the live balance is NOT rewritten from a form —
+        // it only moves through loads and spending (`incrementPrepaidBalanceWithTx`).
+        prepaidInitialBalance: plan.prepaidInitialBalance,
       },
     });
     await this.limits.replaceForCard(cardId, plan.limits);
@@ -117,5 +127,13 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
       where: { id: cardId, accountId, userId },
     });
     return result.count > 0;
+  }
+
+  async incrementPrepaidBalanceWithTx(tx: unknown, cardId: string, delta: string): Promise<void> {
+    const client = tx as PrismaService;
+    await client.cardAccount.update({
+      where: { id: cardId },
+      data: { prepaidBalance: { increment: delta } },
+    });
   }
 }

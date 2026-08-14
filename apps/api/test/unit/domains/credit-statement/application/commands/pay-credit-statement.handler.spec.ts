@@ -54,6 +54,8 @@ function statementProps(overrides: Partial<CreditStatementProps> = {}): CreditSt
     paidAt: null,
     amount: "0",
     paidAmount: "0",
+    carriedOverAmount: "0",
+    carriedToId: null,
     paidFromAccountId: null,
     paidTransactionId: null,
     createdAt: new Date(),
@@ -90,6 +92,8 @@ function fakeStatementRepo(
     findById: vi.fn(),
     findOpenForAccount: vi.fn(),
     findOrCreateOpenForAccount: vi.fn(async () => ({ id: "st_open" })),
+    findOrCreateCarryOverTargetWithTx: vi.fn(async () => ({ id: "st_next" })),
+    addCarriedOverWithTx: vi.fn(),
     isPaid: vi.fn(async () => false),
     listForAccount: vi.fn(),
     save: vi.fn(),
@@ -196,5 +200,45 @@ describe("PayCreditStatementHandler", () => {
     await expect(
       handler.execute(new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2")),
     ).rejects.toThrow(NothingToPayError);
+  });
+  it("a partial payment settles the period and rolls the shortfall into the next one", async () => {
+    const creditAccount = BankAccount.fromPersistence(accountProps());
+    const fromAccount = BankAccount.fromPersistence(
+      accountProps({ id: "acc_2", type: "CHECKING", creditLimit: "0" }),
+    );
+    const statement = CreditStatement.fromPersistence(statementProps());
+    const accountRepo = fakeAccountRepo({
+      findById: vi.fn(async (_userId: string, id: string) =>
+        id === "acc_1" ? creditAccount : fromAccount,
+      ),
+    });
+    const statementRepo = fakeStatementRepo({
+      findById: vi.fn(async () => statement),
+      sumLinkedTransactions: vi.fn(async () => "10000"),
+    });
+    const handler = new PayCreditStatementHandler(
+      { publish: vi.fn() } as never,
+      accountRepo,
+      statementRepo,
+      fakeTransactionWriterRepo(),
+      fakePrisma() as never,
+    );
+
+    const result = await handler.execute(
+      new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2", "4000"),
+    );
+
+    // Settled and owing nothing further HERE — reported as PARTIALLY_PAID
+    // because the payment covered 4000 of the period's 10000.
+    expect(result.status).toBe("PARTIALLY_PAID");
+    expect(result.remainingAmount).toBe("0.0000");
+    expect(statement.carriedToId).toBe("st_next");
+    expect(statementRepo.addCarriedOverWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      "st_next",
+      "6000.0000",
+    );
+    // Only the 4000 actually paid comes off the pool; the 6000 is still used.
+    expect(creditAccount.creditUsed).toBe("46000.0000");
   });
 });

@@ -240,7 +240,10 @@ del schema (`Decimal(18,4)` para montos). El redondeo es explícito (banquero, 4
 ## 10. Entorno
 
 - `apps/api/.env`: `DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`,
-  opcional `ALPHA_VANTAGE_API_KEY`.
+  opcional `ALPHA_VANTAGE_API_KEY`, y el bloque S3 opcional para los comprobantes de movimientos
+  (`S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`,
+  `S3_FORCE_PATH_STYLE`) — si faltan, los adjuntos responden `503 ATTACHMENTS_UNAVAILABLE` y nada más
+  se ve afectado.
 - `apps/web/.env`: `VITE_API_URL`.
 - Los secretos nunca se commitean; ver el `.env.example` de cada app.
 
@@ -256,7 +259,7 @@ del schema (`Decimal(18,4)` para montos). El redondeo es explícito (banquero, 4
 
 **Enmienda (2026-07-30, una tabla = un dominio):** los 11 dominios de negocio se dividieron por
 tabla. Cada tabla de `prisma/schema.prisma` tiene su carpeta `src/domains/<tabla>/` (kebab-case,
-igual que su `@@map`) y **solo un adapter puede consultarla** — 21 dominios-tabla, más `import` y
+igual que su `@@map`) y **solo un adapter puede consultarla** — 22 dominios-tabla, más `import` y
 `health` que no son dueños de ninguna. `accounts` se volvió `bank-account` + `card-account` +
 `card-limit` + `billing-settings` + `credit-statement`; `reference` se volvió `country` + `currency` +
 `country-currency` + `country-identifier-type` + `financial-institution`; `savings` e `installments`
@@ -391,6 +394,57 @@ Esta migración no cambia ningún contrato HTTP público ni ninguna forma de `@f
 una reorganización puramente interna (FR-015). Ver `.specify/memory/constitution.md` para el
 principio constitucional correspondiente y la sección `accounts` de `CLAUDE.md` para la enmienda
 narrativa.
+
+## 12b. Movimientos: traspasos y adjuntos (specs/010)
+
+**Traspaso.** Un traspaso entre dos cuentas propias NO es un `TransactionType` nuevo: son **dos filas
+corrientes** — un `EXPENSE` en el origen y un `INCOME` en el destino — unidas por la columna nueva
+`Transaction.transferGroupId`. Cada cuenta ve su propio lado como un movimiento normal y todo lo que
+ya existía (deltas de saldo, paginación por keyset, filtros, la vista de cuenta) sigue funcionando sin
+tocarse.
+
+El precio de esa decisión es que ninguna suma existente excluye un traspaso por sí sola, así que la
+regla vive en UN solo predicado con nombre: `EXCLUDE_TRANSFERS` (`transaction/application/queries/transaction-list-filter.ts`),
+aplicado a `currencyTotals` y `categories` de `GET /transactions/summary`, y replicado en el frontend
+por `excludeTransfers` en `domains/dashboard/lib/metrics.ts`. El listado y el contador "N movimientos"
+NO los excluyen: ambos lados son filas reales del conjunto en pantalla. **Todo agregado nuevo de
+ingreso/gasto debe aplicar el predicado.**
+
+Reglas (`transaction/domain/transfer-policy.ts`): las dos cuentas deben ser distintas y del usuario,
+el destino nunca es `CREDIT_LINE` (pagar una línea de crédito es un pago de facturación, con su propio
+flujo), ningún lado lleva `cardId` ni `creditStatementId`, y ambos montos son positivos. Las monedas
+son las de cada cuenta y nunca se comparan — esta app no hace conversión. Endpoints
+`POST/GET/PATCH/DELETE /transactions/transfers[/:groupId]` (declarados ANTES de `:id`).
+`DELETE /transactions/:id` sobre un lado borra el par; `PATCH` sobre un lado responde
+`409 TRANSFER_EDIT_AS_PAIR`. Cada escritura pasa por `saveTransferPair` / `updateTransferPair` /
+`removeTransferPair`, cada uno una sola `prisma.$transaction` que cubre las dos filas Y los dos deltas
+de saldo — un traspaso a medio escribir sería dinero desaparecido.
+
+**Adjuntos** (dominio 22, `transaction-attachment`). Tabla propia, dominio propio, sus cuatro capas y
+su Facade bajo `/transactions/:id/attachments`: un adjunto tiene ciclo de vida propio (se sube y se
+borra sin tocar el movimiento) y sus bytes viven fuera de la base de datos. La subida pasa POR el API
+(`FileInterceptor`, memoria, tope de 5 MB, filtro por mimetype) porque es el único lugar donde el
+tamaño, el tipo real y la propiedad se comprueban antes de escribir nada; `AttachmentPolicy` valida el
+content type declarado Y los **magic bytes** del archivo (JPEG/PNG/WebP/PDF), que es lo que impide un
+ejecutable renombrado a `.pdf`. La lectura se delega al bucket con una URL firmada de 5 minutos, así
+el API nunca proxya bytes.
+
+`ObjectStoragePort` (`put`/`getSignedUrl`/`delete`/`isConfigured`) mantiene el cliente S3 en
+`infrastructure/` — la misma regla de Adapter que ya cumple Prisma —, de modo que el tier unitario usa
+un doble en memoria y no toca la red. Sin bucket configurado el puerto responde
+`isConfigured() === false` y toda escritura/lectura devuelve `503 ATTACHMENTS_UNAVAILABLE`, mientras
+que el listado sigue funcionando y el panel se pinta igual. Al borrar se elimina primero la fila y
+DESPUÉS el objeto (una llamada de red no puede vivir dentro de `prisma.$transaction`); si el bucket
+falla se registra la clave huérfana y no se revierte el borrado — un archivo huérfano es un problema
+de costo, un movimiento que no se deja borrar es uno de corrección.
+
+**Web.** El detalle y el formulario de crear/editar son ambos `SidePanel` construidos sobre el
+primitivo compartido `shared/ui/detail-row.tsx`: monto protagonista, filas etiqueta/valor y acciones
+al pie. El detalle navega con ‹ › sobre el mismo arreglo que ya tiene la tabla detrás
+(`panelNavigation`, sin consulta propia) y ofrece Duplicar (una creación precargada, con fecha de
+hoy). "Saldo tras el movimiento" (`balanceAfter.ts`) y "saldo proyectado" (`projectedBalance.ts`) se
+calculan en el cliente con `@finance/money` y se OMITEN en vez de aproximarse cuando el conjunto
+cargado no los sostiene — ver `docs/PENDING.md`.
 
 ## 12. Agregar un dominio nuevo (resumen)
 

@@ -4,6 +4,7 @@ import {
   InvalidPaymentAmountError,
   PaymentExceedsRemainingError,
   StatementAlreadyPaidError,
+  StatementNotPaidError,
 } from "./errors";
 import { StatementClosedEvent } from "./events/statement-closed.event";
 import { StatementPaidEvent } from "./events/statement-paid.event";
@@ -22,8 +23,13 @@ export interface CreditStatementProps {
   /** Frozen only once PAID; while OPEN/PENDING this is the live linked-transactions
    * sum, supplied by the repository adapter (see `sumLinkedTransactions`). */
   amount: string;
-  /** Settled so far, accumulated across payments ("0" until the first one). */
+  /** What was actually paid for this period ("0" until it is paid). May be less
+   * than the period's total — the rest is carried into the next period. */
   paidAmount: string;
+  /** Debt brought forward from the previous period (part of what this one owes). */
+  carriedOverAmount: string;
+  /** The period this one's leftover was rolled into, if any. */
+  carriedToId: string | null;
   paidFromAccountId: string | null;
   paidTransactionId: string | null;
   createdAt: Date;
@@ -71,6 +77,34 @@ export class CreditStatement {
     return moneyToString(this.props.paidAmount);
   }
 
+  get carriedOverAmount(): string {
+    return moneyToString(this.props.carriedOverAmount);
+  }
+
+  get carriedToId(): string | null {
+    return this.props.carriedToId;
+  }
+
+  /**
+   * What this period owes in total: its own movements plus whatever the previous
+   * period left unpaid. The movements' sum is passed IN for the same reason
+   * `remainingFor` takes it — until the period is settled it isn't stored.
+   */
+  totalFor(linkedAmount: string): string {
+    return addMoney(linkedAmount, this.props.carriedOverAmount);
+  }
+
+  /** Receives the leftover of the period that came before it. Accumulates:
+   * two periods in a row can each roll their remainder into the same open one. */
+  receiveCarryOver(amount: string): void {
+    this.props.carriedOverAmount = addMoney(this.props.carriedOverAmount, amount);
+  }
+
+  /** Records where this period's leftover went (its successor's id). */
+  markCarriedTo(statementId: string): void {
+    this.props.carriedToId = statementId;
+  }
+
   /**
    * Still owed for this period, given its total.
    *
@@ -100,12 +134,16 @@ export class CreditStatement {
     return this.props.updatedAt;
   }
 
-  /** Derived from `closedAt`/`paidAt`/`paidAmount` — no stored `status` column. */
+  /** Derived from `closedAt`/`paidAt`/`paidAmount` — no stored `status` column.
+   * A settled period whose payment fell short of its frozen total reports
+   * PARTIALLY_PAID: any payment settles the period (see `payTowards`), so this is
+   * a label on a terminal state, not a payable stage of its own. */
   get state(): CreditStatementState {
-    if (this.props.paidAt) return new PaidState();
-    // Paid into but not settled. Checked before `closedAt` only for readability —
-    // a payment always closes the period, so both hold by this point.
-    if (toMoney(this.props.paidAmount).greaterThan(0)) return new PartiallyPaidState();
+    if (this.props.paidAt) {
+      return toMoney(this.props.paidAmount).lessThan(toMoney(this.props.amount))
+        ? new PartiallyPaidState()
+        : new PaidState();
+    }
     if (this.props.closedAt) return new PendingState();
     return new OpenState();
   }
@@ -127,17 +165,16 @@ export class CreditStatement {
   }
 
   /**
-   * Pay into this statement.
+   * Pay this statement — in full, the minimum, or any amount in between.
    *
-   * A period can be settled in several payments, so this ACCUMULATES rather than
-   * flipping a flag: `paidAmount` grows, and only when it reaches the period's
-   * total does `paidAt` get stamped and the amount freeze. Until then the
-   * statement stays payable and its amount stays live.
+   * ANY payment settles the period: `paidAt` is stamped, the total freezes, and
+   * whatever wasn't covered is returned as `carryOver` for the caller to roll into
+   * the next period (which is where it will be owed from now on — a period never
+   * stays half-payable). This mirrors how a real card statement works.
    *
-   * `amount` must be positive and must not exceed what's still owed — an
-   * overpayment is rejected, not capped (`PaymentExceedsRemainingError`): a wrong
-   * figure in a money form must never be quietly "corrected". Paying an OPEN
-   * period closes it, as before.
+   * `amount` must be positive and must not exceed what's owed — an overpayment is
+   * rejected, not capped (`PaymentExceedsRemainingError`): a wrong figure in a
+   * money form must never be quietly "corrected". Paying an OPEN period closes it.
    */
   payTowards(
     periodAmount: string,
@@ -145,7 +182,7 @@ export class CreditStatement {
     fromAccountId: string,
     paymentTransactionId: string,
     when: Date,
-  ): StatementPaidEvent {
+  ): { event: StatementPaidEvent; carryOver: string } {
     if (!this.state.canPay()) {
       throw new StatementAlreadyPaidError();
     }
@@ -157,26 +194,49 @@ export class CreditStatement {
       throw new PaymentExceedsRemainingError();
     }
 
-    this.props.paidAmount = addMoney(this.props.paidAmount, amount);
-    if (toMoney(this.props.paidAmount).greaterThanOrEqualTo(toMoney(periodAmount))) {
-      // Settled: freeze the period's total and stamp the date. A partial payment
-      // leaves both untouched, which is what keeps the period payable.
-      this.props.amount = moneyToString(periodAmount);
-      this.props.paidAt = when;
-    }
-    // The LAST payment is the one recorded here: with several payments this points
-    // at the most recent movement, not at all of them (documented simplification —
-    // every payment is still a real Transaction of its own).
+    // Closed and settled whatever the size of the payment: the period's total
+    // freezes here, and the shortfall becomes the next period's problem.
+    this.props.paidAmount = moneyToString(amount);
+    this.props.amount = moneyToString(periodAmount);
+    this.props.paidAt = when;
     this.props.paidFromAccountId = fromAccountId;
     this.props.paidTransactionId = paymentTransactionId;
     this.props.closedAt = this.props.closedAt ?? when;
-    return new StatementPaidEvent(
-      this.accountId,
-      this.id,
-      moneyToString(amount),
-      fromAccountId,
-      paymentTransactionId,
-    );
+    return {
+      event: new StatementPaidEvent(
+        this.accountId,
+        this.id,
+        moneyToString(amount),
+        fromAccountId,
+        paymentTransactionId,
+      ),
+      carryOver: subtractMoney(periodAmount, amount),
+    };
+  }
+
+  /**
+   * Correct what was actually PAID on a settled period.
+   *
+   * The period's own total is untouched — that comes from its movements and is
+   * only ever recomputed (`syncAmount`), never typed in. This moves the payment:
+   * a figure entered wrong, or more money sent afterwards. The caller applies the
+   * returned `paidDelta` to the payment movement, the source account's balance,
+   * the credit pool and the shortfall carried into the next period — all of which
+   * followed from the old figure and must follow the new one.
+   *
+   * Bounds are the same as a payment's: positive, and never more than the period
+   * owes in total (`PaymentExceedsRemainingError`) — paying exactly the total makes
+   * the period fully PAID again. `carryOver` is what the successor should now hold
+   * (an absolute figure, not a delta: the caller knows what it holds today).
+   */
+  changePaidAmount(amount: string): { paidDelta: string; carryOver: string } {
+    if (!this.props.paidAt) throw new StatementNotPaidError();
+    const paying = toMoney(amount);
+    if (paying.lessThanOrEqualTo(0)) throw new InvalidPaymentAmountError();
+    if (paying.greaterThan(toMoney(this.props.amount))) throw new PaymentExceedsRemainingError();
+    const paidDelta = subtractMoney(amount, this.props.paidAmount);
+    this.props.paidAmount = moneyToString(amount);
+    return { paidDelta, carryOver: subtractMoney(this.props.amount, amount) };
   }
 
   /**
@@ -198,17 +258,37 @@ export class CreditStatement {
    *
    * For an unsettled period this only fixes the stored figure: its amount is the
    * live sum anyway, so nothing else moves.
+   *
+   * A period settled with a SHORTFALL (one that carried its leftover forward) is
+   * the third case: what was paid is a historical fact and must not be rewritten,
+   * so the recomputation moves the CARRY-OVER instead — `carryOverDelta` is what
+   * the successor period has to change by, and the payment movement and the credit
+   * pool are both left alone (nothing extra was ever released).
    */
-  syncAmount(recomputedAmount: string): { previousPaidAmount: string; paidDelta: string } {
+  syncAmount(recomputedAmount: string): {
+    previousPaidAmount: string;
+    paidDelta: string;
+    carryOverDelta: string;
+  } {
     const previousPaidAmount = this.paidAmount;
+    const previousAmount = this.amount;
     this.props.amount = moneyToString(recomputedAmount);
+    const zero = moneyToString("0");
     if (!this.props.paidAt) {
-      return { previousPaidAmount, paidDelta: moneyToString("0") };
+      return { previousPaidAmount, paidDelta: zero, carryOverDelta: zero };
+    }
+    if (this.props.carriedToId) {
+      return {
+        previousPaidAmount,
+        paidDelta: zero,
+        carryOverDelta: subtractMoney(recomputedAmount, previousAmount),
+      };
     }
     this.props.paidAmount = moneyToString(recomputedAmount);
     return {
       previousPaidAmount,
       paidDelta: subtractMoney(this.props.paidAmount, previousPaidAmount),
+      carryOverDelta: zero,
     };
   }
 }

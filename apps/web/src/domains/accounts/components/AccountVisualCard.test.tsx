@@ -21,6 +21,8 @@ const card: accounts.Card = {
   isActive: true,
   isPrimary: true,
   ownUsed: "1435990.0000",
+  prepaidBalance: null,
+  prepaidInitialBalance: null,
   limits: [],
 };
 

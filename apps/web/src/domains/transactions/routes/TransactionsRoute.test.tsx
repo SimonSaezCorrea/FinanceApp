@@ -10,7 +10,15 @@ import { transactionsApi } from "../api/transactionsApi";
 import { TransactionsRoute } from "./TransactionsRoute";
 
 vi.mock("../api/transactionsApi", () => ({
-  transactionsApi: { list: vi.fn(), summary: vi.fn() },
+  transactionsApi: {
+    list: vi.fn(),
+    summary: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    transfer: { get: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() },
+    attachments: { list: vi.fn(), upload: vi.fn(), url: vi.fn(), remove: vi.fn() },
+  },
 }));
 
 const emptySummary = { total: 0, currencyTotals: [], categories: [] };
@@ -47,6 +55,7 @@ describe("TransactionsRoute", () => {
           bankAccountId: null,
           cardId: null,
           installmentPlanId: null,
+          transferGroupId: null,
           createdAt: "2026-03-01T00:00:00.000Z",
           updatedAt: "2026-03-01T00:00:00.000Z",
         },

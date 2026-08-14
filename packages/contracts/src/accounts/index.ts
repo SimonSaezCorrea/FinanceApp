@@ -105,6 +105,14 @@ export const cardSchema = z.object({
    * reflected here even though it is in the account's own `creditUsed`. "0"
    * for non-CREDIT cards. */
   ownUsed: moneyString,
+  /** PREPAID cards only: the money loaded on the card itself. A prepaid card is a
+   * pot of its own — it holds funds instead of a credit line, so spending with it
+   * draws down THIS balance and leaves the account's `currentBalance` alone (the
+   * money left the account when the card was loaded). Null for CREDIT/DEBIT. */
+  prepaidBalance: moneyString.nullable(),
+  /** The balance the card was registered with (seed for `prepaidBalance`, which
+   * then maintains itself). Null for CREDIT/DEBIT. */
+  prepaidInitialBalance: moneyString.nullable(),
   limits: z.array(cardLimitSchema),
 });
 export type Card = z.infer<typeof cardSchema>;
@@ -133,8 +141,24 @@ export const createCardSchema = z.object({
   /** Non-primary CREDIT cards only: share the account pool (true, default) or use `limits` instead. */
   usesAccountPool: z.boolean().optional().default(true),
   limits: z.array(createCardLimitSchema).optional(),
+  /** PREPAID cards only: the balance already loaded on the card. Omitted = "0"
+   * (a card registered before being loaded). Rejected on CREDIT/DEBIT, which have
+   * no balance of their own (`PREPAID_BALANCE_NOT_ALLOWED`). */
+  prepaidInitialBalance: moneyString.optional(),
 });
 export type CreateCard = z.infer<typeof createCardSchema>;
+
+/** Load ("recargar") a PREPAID card from the account it belongs to: records a real
+ * EXPENSE movement on that account and adds the same amount to the card's own
+ * `prepaidBalance`, atomically. The money is only ever counted once — that expense
+ * is where it leaves the account, and spending with the card afterwards moves only
+ * the card's balance. */
+export const loadPrepaidCardSchema = z.object({
+  amount: moneyString,
+  /** When the load happened; defaults to now. Dates the created expense. */
+  occurredAt: z.string().optional(),
+});
+export type LoadPrepaidCard = z.infer<typeof loadPrepaidCardSchema>;
 
 /**
  * One of the account's shared credit pools, by currency: the account's own
@@ -235,8 +259,11 @@ export type SetAccountStatus = z.infer<typeof setAccountStatusSchema>;
 /** Derived (not persisted) lifecycle of a `CreditStatement`: OPEN (still accumulating
  * — transactions keep linking to it), PENDING (closed by generation, awaiting
  * payment), PAID. */
-/** A closed period can be settled in several payments, so PARTIALLY_PAID sits
- * between "closed, untouched" (PENDING) and "settled" (PAID). */
+/** Any payment — the total, the minimum or anything between — SETTLES the period,
+ * and the shortfall is carried into the next one as its `carriedOverAmount`. A
+ * period settled with less than its total is therefore not payable either, but it
+ * reports **PARTIALLY_PAID** rather than PAID: what was actually covered
+ * (`paidAmount`) is a fact worth naming instead of hiding behind "Pagada". */
 export const creditStatementStatus = z.enum(["OPEN", "PENDING", "PARTIALLY_PAID", "PAID"]);
 export type CreditStatementStatus = z.infer<typeof creditStatementStatus>;
 
@@ -254,10 +281,18 @@ export const creditStatementSchema = z.object({
   closedAt: z.string().nullable(),
   /** Set once paid. Null while OPEN/PENDING. */
   paidAt: z.string().nullable(),
+  /** Everything this period owes: its own movements PLUS `carriedOverAmount`. */
   amount: moneyString,
-  /** Settled so far, accumulated across payments. "0" until the first one. */
+  /** What was actually paid. "0" until the period is paid; may be less than
+   * `amount` — the difference went to the next period. */
   paidAmount: moneyString,
-  /** What's still owed for this period: `amount` − `paidAmount`, never negative. */
+  /** Debt brought forward from the previous period, because that one was settled
+   * with less than its total. Already included in `amount`. "0" normally. */
+  carriedOverAmount: moneyString,
+  /** The period this one's shortfall was rolled into. Null when paid in full. */
+  carriedToId: z.string().nullable(),
+  /** What's still owed for this period: `amount` − `paidAmount`, never negative.
+   * Always "0" once paid — the shortfall is owed in the NEXT period, not here. */
   remainingAmount: moneyString,
   /** The minimum this period accepts as a payment, from the account's configured
    * percentage. Null when the account has no minimum configured. */
@@ -281,8 +316,9 @@ export type CreditStatement = z.infer<typeof creditStatementSchema>;
 
 /** Pay a statement by choosing a source bank account (must not be CREDIT_LINE).
  *
- * `amount` omitted = pay everything still owed. A smaller amount is a partial
- * payment: the period stays open for the rest. Paying more than what's owed is
+ * `amount` omitted = pay everything owed. A smaller amount (typically the
+ * minimum) still SETTLES the period: what it doesn't cover is carried into the
+ * next period as its `carriedOverAmount`. Paying more than what's owed is
  * rejected (`PAYMENT_EXCEEDS_REMAINING`) rather than silently capped — a wrong
  * figure in a money form must not be quietly "corrected". */
 export const payCreditStatementSchema = z.object({
@@ -294,6 +330,20 @@ export const payCreditStatementSchema = z.object({
   reference: z.string().trim().max(200).optional(),
 });
 export type PayCreditStatement = z.infer<typeof payCreditStatementSchema>;
+
+/** Correct what was actually paid on an ALREADY SETTLED period (`STATEMENT_NOT_PAID`
+ * otherwise) — the figure was mistyped, or more was transferred later.
+ *
+ * This is NOT the retired manual "correct the period's amount": the period's total
+ * still comes from its real movements (`POST .../sync`) and is never typed in. Only
+ * the PAYMENT moves, and everything that followed from it moves with it: the payment
+ * movement's amount, the source account's balance, the credit pool, and the shortfall
+ * carried into the next period. It must be positive and cannot exceed the period's
+ * total (`PAYMENT_EXCEEDS_REMAINING`); paying the total makes the period PAID. */
+export const updateStatementPaymentSchema = z.object({
+  amount: moneyString,
+});
+export type UpdateStatementPayment = z.infer<typeof updateStatementPaymentSchema>;
 
 /** List query filters. */
 export const accountFiltersSchema = z.object({

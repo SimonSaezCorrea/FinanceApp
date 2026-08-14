@@ -1,34 +1,16 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, Pencil, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
-
 import type { accounts, transactions } from "@finance/contracts";
-import { formatMoney } from "@finance/money";
 
-import { Badge } from "../../../shared/ui/badge";
+import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
-import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
-import { CategoryIcon } from "./CategoryIcon";
-import { ResponsiveSurface } from "../../../shared/ui/overlay";
-
-function formatDate(iso: string, locale: string): string {
-  return new Date(iso).toLocaleDateString(locale, {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
-}
-
-function DetailRow({ label, value }: Readonly<{ label: string; value: string }>) {
-  return (
-    <div className="flex items-center justify-between gap-4 border-b py-2 last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
-      <span className="text-sm font-medium">{value}</span>
-    </div>
-  );
-}
+import { SidePanel } from "../../../shared/ui/overlay";
+import { balanceAfterTransaction } from "../lib/balanceAfter";
+import { panelNavigation } from "../lib/panelNavigation";
+import { AttachmentsSection } from "./AttachmentsSection";
+import { TransactionDetailPanel } from "./TransactionDetailPanel";
 
 interface Props {
   transaction: transactions.Transaction | null;
@@ -36,10 +18,30 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onEdit?: (tx: transactions.Transaction) => void;
+  /** Deletion always goes through the confirm dialog owned by the route (FR-006). */
   onDelete?: (tx: transactions.Transaction) => void;
+  /** Opens the create form pre-filled from this movement, dated today. */
+  onDuplicate?: (tx: transactions.Transaction) => void;
+
+  /** Paging context (research D5): the very set the table behind is showing. */
+  items?: transactions.Transaction[];
+  /** Size of the whole filtered set, from the summary endpoint. */
+  total?: number;
+  hasNextPage?: boolean;
+  onLoadMore?: () => void;
+  /** Moves the panel to another movement of `items`. */
+  onNavigate?: (tx: transactions.Transaction) => void;
+  /** True while a `from`/`to` filter is active — hides the "balance after" figure. */
+  dateFiltered?: boolean;
+  children?: ReactNode;
 }
 
-/** Read-only view of a single movement's full details (opened by clicking its row). */
+/**
+ * Shell around `TransactionDetailPanel`: a `SidePanel` whose header leads with
+ * the paged ‹ › ("N de M") and trails with Duplicate + close, and whose footer
+ * pins Delete / Duplicate / Edit. The visible title lives in the body (icon +
+ * description + amount), so the chrome's own title is screen-reader only.
+ */
 export function TransactionDetailModal({
   transaction,
   accounts,
@@ -47,112 +49,148 @@ export function TransactionDetailModal({
   onOpenChange,
   onEdit,
   onDelete,
+  onDuplicate,
+  items = [],
+  total,
+  hasNextPage = false,
+  onLoadMore,
+  onNavigate,
+  dateFiltered = false,
+  children,
 }: Readonly<Props>) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
 
-  // Retained through the close so the surface can play its exit animation: the
-  // parent clears `transaction` in the same update that closes the modal.
+  // Retained through the close so the surface can play its exit animation.
   const tx = useLastNonNull(transaction);
   if (!tx) return null;
 
+  const index = items.findIndex((i) => i.id === tx.id);
+  const nav =
+    index >= 0 ? panelNavigation({ index, loaded: items.length, total, hasNextPage }) : null;
   const account = tx.bankAccountId ? accounts.find((a) => a.id === tx.bankAccountId) : undefined;
-  const card = tx.cardId ? account?.cards.find((c) => c.id === tx.cardId) : undefined;
-  const isIncome = tx.type === "INCOME";
 
-  const extraDetails = [
-    { label: t("transactions.form.emisor"), value: tx.emisor },
-    { label: t("transactions.form.receptor"), value: tx.receptor },
-    { label: t("transactions.form.lugar"), value: tx.lugar },
-    { label: t("transactions.form.observation"), value: tx.observation },
-  ];
+  const balanceAfter =
+    index >= 0 ? balanceAfterTransaction({ items, index, account, dateFiltered }) : null;
+
+  function go(target: number | null, needsMore: boolean) {
+    if (target !== null) {
+      const next = items[target];
+      if (next) onNavigate?.(next);
+      return;
+    }
+    // End of what's loaded: ask the parent for the next page. The panel stays
+    // where it is and the user presses › again once the rows land.
+    if (needsMore) onLoadMore?.();
+  }
+
+  const navControls = nav ? (
+    <div className="flex items-center gap-1">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="px-2"
+        aria-label="previous"
+        disabled={!nav.canGoPrevious}
+        onClick={() => go(nav.previousIndex, false)}
+      >
+        <ChevronLeft className="h-4 w-4" aria-hidden />
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="px-2"
+        aria-label="next"
+        disabled={!nav.canGoNext}
+        onClick={() => go(nav.nextIndex, nav.needsMore)}
+      >
+        <ChevronRight className="h-4 w-4" aria-hidden />
+      </Button>
+      <span className="whitespace-nowrap text-sm tabular-nums text-muted-foreground">
+        {t("transactions.detail.navPosition", { position: nav.position, count: nav.count })}
+      </span>
+    </div>
+  ) : undefined;
 
   return (
-    <ResponsiveSurface
+    <SidePanel
       open={open}
       onOpenChange={onOpenChange}
-      title={tx.description ?? t(`transactions.type.${tx.type}`)}
-      description={formatDate(tx.occurredAt, i18n.language)}
-      className="max-w-md"
-    >
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <span
-            className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full ${
-              isIncome ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"
-            }`}
+      leading={navControls}
+      title={<span className="sr-only">{t("transactions.detailTitle")}</span>}
+      headerAside={
+        onDuplicate ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="px-2"
+            aria-label={t("transactions.detail.duplicate")}
+            title={t("transactions.detail.duplicate")}
+            onClick={() => {
+              onDuplicate(tx);
+              onOpenChange(false);
+            }}
           >
-            <CategoryIcon category={tx.category} className="h-5 w-5" />
-          </span>
-          <div className="flex flex-col gap-1">
-            <span
-              className={`text-2xl font-semibold tabular-nums ${
-                isIncome ? "text-success" : "text-destructive"
-              }`}
+            <Copy className="h-4 w-4" aria-hidden />
+          </Button>
+        ) : undefined
+      }
+      footer={
+        <div className="flex items-center gap-2">
+          {onDelete ? (
+            <Button
+              variant="ghost"
+              className="mr-auto text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => {
+                onDelete(tx);
+                onOpenChange(false);
+              }}
             >
-              {isIncome ? "+" : "−"}
-              {formatMoney(tx.amount, { currency: tx.currency, locale: i18n.language })}
-            </span>
-            <Badge variant={isIncome ? "success" : "danger"} className="w-fit">
-              {t(`transactions.type.${tx.type}`)}
-            </Badge>
-          </div>
-        </div>
-
-        <div className="flex flex-col">
-          <DetailRow
-            label={t("transactions.form.category")}
-            value={tx.category ?? t("transactions.table.noCategory")}
-          />
-          <DetailRow
-            label={t("transactions.form.account")}
-            value={account?.name ?? t("transactions.table.noAccount")}
-          />
-          {card ? (
-            <DetailRow
-              label={t("transactions.form.card")}
-              value={`••••${card.last4} · ${card.name}`}
-            />
+              <Trash2 className="h-4 w-4" aria-hidden />
+              {t("common.delete")}
+            </Button>
+          ) : null}
+          {onDuplicate ? (
+            <Button
+              variant="outline"
+              onClick={() => {
+                onDuplicate(tx);
+                onOpenChange(false);
+              }}
+            >
+              {t("transactions.detail.duplicate")}
+            </Button>
+          ) : null}
+          {onEdit ? (
+            <Button
+              variant="accent"
+              onClick={() => {
+                onEdit(tx);
+                onOpenChange(false);
+              }}
+            >
+              <Pencil className="h-4 w-4" aria-hidden />
+              {t("common.edit")}
+            </Button>
           ) : null}
         </div>
-
-        <CollapsibleSection title={t("transactions.form.moreDetails")} className="p-3">
-          <div className="flex flex-col">
-            {extraDetails.map((d) => (
-              <DetailRow key={d.label} label={d.label} value={d.value || "-"} />
-            ))}
-          </div>
-        </CollapsibleSection>
-      </div>
-
-      <div className="mt-6 flex justify-end gap-2">
-        <Button variant="outline" onClick={() => onOpenChange(false)}>
-          {t("common.cancel")}
-        </Button>
-        {onDelete ? (
-          <Button
-            variant="outline"
-            className="text-destructive hover:bg-destructive/10"
-            onClick={() => {
-              onDelete(tx);
-              onOpenChange(false);
-            }}
-          >
-            <Trash2 className="h-4 w-4" aria-hidden />
-            {t("common.delete")}
-          </Button>
-        ) : null}
-        {onEdit ? (
-          <Button
-            onClick={() => {
-              onEdit(tx);
-              onOpenChange(false);
-            }}
-          >
-            <Pencil className="h-4 w-4" aria-hidden />
-            {t("common.edit")}
-          </Button>
-        ) : null}
-      </div>
-    </ResponsiveSurface>
+      }
+    >
+      <TransactionDetailPanel
+        transaction={tx}
+        accounts={accounts}
+        balanceAfter={balanceAfter}
+        onAddDetails={
+          onEdit
+            ? () => {
+                onEdit(tx);
+                onOpenChange(false);
+              }
+            : undefined
+        }
+      >
+        <AttachmentsSection transactionId={tx.id} />
+        {children}
+      </TransactionDetailPanel>
+    </SidePanel>
   );
 }
