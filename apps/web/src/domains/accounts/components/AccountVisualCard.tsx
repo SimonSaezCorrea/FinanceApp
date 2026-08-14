@@ -80,7 +80,13 @@ export function AccountVisualCard({
   const usagePct =
     showCreditInfo && limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : null;
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
-  const balance = Number(account.currentBalance);
+  // A PREPAID card shows ITS OWN pot, not the account's cash: the money moved to
+  // the card when it was loaded, and spending with it never touches the account
+  // balance again. Every other tile (DEBIT card, or the account itself) shows the
+  // account's balance, which is what those actually spend.
+  const isPrepaidCard = card?.kind === "PREPAID";
+  const shownBalance = isPrepaidCard ? (card.prepaidBalance ?? "0") : account.currentBalance;
+  const balance = Number(shownBalance);
 
   const inactiveCard = card ? !card.isActive : false;
   const gradientClass = card
@@ -142,7 +148,9 @@ export function AccountVisualCard({
             <span
               className={cn(
                 "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
-                inactiveCard ? "bg-foreground/10" : "bg-white/25",
+                inactiveCard
+                  ? "bg-foreground/10"
+                  : "bg-[color-mix(in_srgb,currentColor_15%,transparent)]",
               )}
             >
               {card
@@ -155,7 +163,7 @@ export function AccountVisualCard({
                 button here would nest inside the tile's own button. */}
             {expanded ? (
               <span
-                className="flex h-5 w-5 items-center justify-center rounded-md bg-white/25"
+                className="flex h-5 w-5 items-center justify-center rounded-md bg-[color-mix(in_srgb,currentColor_15%,transparent)]"
                 aria-hidden
               >
                 <ChevronUp className="h-3.5 w-3.5" />
@@ -170,7 +178,7 @@ export function AccountVisualCard({
               <div className="flex items-center gap-2">
                 <p className="text-sm font-medium opacity-90">{card.name}</p>
                 {card.kind === "CREDIT" ? (
-                  <span className="rounded-full bg-white/25 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
+                  <span className="rounded-full bg-[color-mix(in_srgb,currentColor_15%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">
                     {card.isPrimary ? t("cards.primaryBadge") : t("cards.additionalBadge")}
                   </span>
                 ) : null}
@@ -205,9 +213,9 @@ export function AccountVisualCard({
                 </span>
               </p>
               <div className="mt-0.5 flex items-center gap-2">
-                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-white/25">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[color-mix(in_srgb,currentColor_20%,transparent)]">
                   <div
-                    className="h-full rounded-full bg-white/90"
+                    className="h-full rounded-full bg-current"
                     style={{ width: `${usagePct ?? 0}%` }}
                   />
                 </div>
@@ -218,14 +226,16 @@ export function AccountVisualCard({
             </div>
           ) : (
             <div className="flex flex-col gap-0.5">
-              <span className="text-xs opacity-70">{t("accounts.balanceLabel")}</span>
+              <span className="text-xs opacity-70">
+                {isPrepaidCard ? t("cards.detail.prepaidBalance") : t("accounts.balanceLabel")}
+              </span>
               <p
                 className={cn(
                   "text-base font-semibold tabular-nums",
                   balance < 0 && "text-destructive",
                 )}
               >
-                <MaskedAmount>{fmt(account.currentBalance)}</MaskedAmount>
+                <MaskedAmount>{fmt(shownBalance)}</MaskedAmount>
               </p>
             </div>
           )}

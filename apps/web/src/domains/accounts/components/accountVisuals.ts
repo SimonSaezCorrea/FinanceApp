@@ -26,24 +26,26 @@ export function isCreditType(type: accounts.AccountType): boolean {
 }
 
 /**
- * Deep, moody gradients (not light-to-bright) — a fixed "photograph" identity per
- * card kind, same across both app themes (see the --brand-deep, --debit-from,
- * --debit-to, --prepaid-from and --prepaid-to tokens in index.css). Shared by
- * every card-visual tile (draft cards, account detail).
+ * Flat surface + ink per card kind, one pair per theme (see the --credit-surface/
+ * --credit-ink family in index.css). No gradient: it existed to give photographic
+ * depth, and with no photo it only muddied the light theme. The border rides the
+ * ink's own hue at /45 — against flat, low-contrast surfaces a /35 border
+ * disappears. Shared by every card-visual tile (draft cards, account detail).
  */
 /**
- * An INACTIVE card, whatever its kind: the gradient is dropped for a flat muted
+ * An INACTIVE card, whatever its kind: it loses its ink and falls to a muted
  * surface. Colour is what identifies a card at a glance in this app, so a card
  * that can no longer be used must not keep the same one — it reads as available
- * when it isn't. The tile stays fully legible (its history still matters).
+ * when it isn't. No `grayscale` filter: with flat surfaces there is nothing left
+ * to desaturate. The tile stays fully legible (its history still matters).
  */
-export const CARD_INACTIVE_STYLE = "border border-border bg-muted text-muted-foreground grayscale";
+export const CARD_INACTIVE_STYLE = "border border-border bg-muted text-muted-foreground";
 
 export const CARD_KIND_STYLE: Record<accounts.CardKind, string> = {
   CREDIT:
-    "border border-primary/35 bg-[linear-gradient(150deg,hsl(var(--brand)),hsl(var(--brand-deep)))] text-credit-ink",
+    "border border-[hsl(var(--credit-ink)/0.45)] bg-[hsl(var(--credit-surface))] text-[hsl(var(--credit-ink))]",
   DEBIT:
-    "border border-accent/35 bg-[linear-gradient(150deg,hsl(var(--debit-from)),hsl(var(--debit-to)))] text-debit-ink",
+    "border border-[hsl(var(--debit-ink)/0.45)] bg-[hsl(var(--debit-surface))] text-[hsl(var(--debit-ink))]",
   PREPAID:
-    "border border-muted-foreground/30 bg-[linear-gradient(150deg,hsl(var(--prepaid-from)),hsl(var(--prepaid-to)))] text-prepaid-ink",
+    "border border-[hsl(var(--prepaid-ink)/0.45)] bg-[hsl(var(--prepaid-surface))] text-[hsl(var(--prepaid-ink))]",
 };

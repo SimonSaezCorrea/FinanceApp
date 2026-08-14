@@ -19,7 +19,7 @@ export function CardPreview({
   icon?: LucideIcon;
 }) {
   return (
-    <div className="relative aspect-[16/10] w-full max-w-sm overflow-hidden rounded-xl border border-primary/35 bg-[linear-gradient(150deg,hsl(var(--brand)),hsl(var(--brand-deep)))] p-5 text-credit-ink shadow-md">
+    <div className="relative aspect-[16/10] w-full max-w-sm overflow-hidden rounded-xl border border-[hsl(var(--credit-ink)/0.45)] bg-credit-surface p-5 text-credit-ink shadow-md">
       <div className="flex items-start justify-between">
         <span className="text-sm font-medium opacity-90">{brand ?? ""}</span>
         <Icon className="h-6 w-6 opacity-90" aria-hidden />
