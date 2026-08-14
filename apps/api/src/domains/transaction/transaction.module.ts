@@ -8,6 +8,10 @@ import { CardAccountDataModule } from "../card-account/card-account.data.module"
 import { CardLimitDataModule } from "../card-limit/card-limit.data.module";
 import { CreditStatementDataModule } from "../credit-statement/credit-statement.data.module";
 import { CreateTransactionHandler } from "./application/commands/create-transaction.handler";
+import { CreateTransferHandler } from "./application/commands/create-transfer.handler";
+import { RemoveTransferHandler } from "./application/commands/remove-transfer.handler";
+import { UpdateTransferHandler } from "./application/commands/update-transfer.handler";
+import { GetTransferQueryHandler } from "./application/queries/get-transfer.handler";
 import { RemoveTransactionHandler } from "./application/commands/remove-transaction.handler";
 import { UpdateTransactionHandler } from "./application/commands/update-transaction.handler";
 import { GetTransactionQueryHandler } from "./application/queries/get-transaction.handler";
@@ -22,12 +26,16 @@ const commandHandlers = [
   CreateTransactionHandler,
   UpdateTransactionHandler,
   RemoveTransactionHandler,
+  CreateTransferHandler,
+  UpdateTransferHandler,
+  RemoveTransferHandler,
 ];
 
 const queryHandlers = [
   ListTransactionsQueryHandler,
   SummarizeTransactionsQueryHandler,
   GetTransactionQueryHandler,
+  GetTransferQueryHandler,
 ];
 
 /**
@@ -54,5 +62,8 @@ const queryHandlers = [
     { provide: TRANSACTION_REPOSITORY, useClass: PrismaTransactionRepository },
     JwtAuthGuard,
   ],
+  // Exported so the `transaction-attachment` domain can check a movement's
+  // ownership through THIS table's own adapter instead of querying it itself.
+  exports: [TRANSACTION_REPOSITORY],
 })
 export class TransactionModule {}

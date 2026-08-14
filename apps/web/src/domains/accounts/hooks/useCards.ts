@@ -19,6 +19,16 @@ export function useCardMutations(accountId: string) {
         cardsApi.update(accountId, vars.cardId, vars.body),
       onSuccess: invalidate,
     }),
+    load: useMutation({
+      mutationFn: (vars: { cardId: string; body: accounts.LoadPrepaidCard }) =>
+        cardsApi.load(accountId, vars.cardId, vars.body),
+      onSuccess: () => {
+        // A load moves the account's balance AND creates a movement, so the
+        // movements cache is stale too — not just the account.
+        invalidate();
+        qc.invalidateQueries({ queryKey: ["transactions"] });
+      },
+    }),
     remove: useMutation({
       mutationFn: (cardId: string) => cardsApi.remove(accountId, cardId),
       onSuccess: invalidate,

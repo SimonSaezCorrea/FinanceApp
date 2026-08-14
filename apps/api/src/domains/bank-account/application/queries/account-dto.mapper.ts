@@ -106,6 +106,12 @@ export function cardToDto(
     isActive: card.isActive,
     isPrimary: card.isPrimary,
     ownUsed,
+    // Persisted, not derived: a prepaid card's pot is moved by loads and by
+    // spending, and there is no reconstructible "sum of transactions" for it (its
+    // loads are ordinary account expenses).
+    prepaidBalance: card.prepaidBalance === null ? null : moneyToString(card.prepaidBalance),
+    prepaidInitialBalance:
+      card.prepaidInitialBalance === null ? null : moneyToString(card.prepaidInitialBalance),
     limits: card.limits.map((l) => {
       const s = sums?.get(`${card.id}:${l.currency}`);
       const used = subtractMoney(addMoney(l.usedInitial, s?.expense ?? "0"), s?.income ?? "0");

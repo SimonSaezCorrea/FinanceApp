@@ -33,6 +33,7 @@ import { BillingSettingsModal } from "../components/BillingSettingsModal";
 import { AccountVisualCard } from "../components/AccountVisualCard";
 import { CardCreateModal } from "../components/CardCreateModal";
 import { CardDetailPanel } from "../components/CardDetailPanel";
+import { LoadPrepaidPanel } from "../components/LoadPrepaidPanel";
 import { CardDetailSurface } from "../components/CardDetailSurface";
 import { CardForm } from "../components/CardForm";
 import { ACCOUNT_ICON } from "../components/accountVisuals";
@@ -465,6 +466,13 @@ function MovementsSection({
   const [editTx, setEditTx] = useState<transactions.Transaction | null>(null);
   const [deleteTx, setDeleteTx] = useState<transactions.Transaction | null>(null);
   const [detailTx, setDetailTx] = useState<transactions.Transaction | null>(null);
+  const [duplicateTx, setDuplicateTx] = useState<transactions.Transaction | null>(null);
+  // Where the form was opened from, when that was a detail panel: cancelling
+  // returns there instead of closing everything.
+  const [returnToDetail, setReturnToDetail] = useState<transactions.Transaction | null>(null);
+  // Just saved: the table points it out for a moment, since a movement dated
+  // earlier than the ones on screen does NOT land at the top.
+  const [savedId, setSavedId] = useState<string | null>(null);
   const list = txQuery.data?.pages.flatMap((p) => p.items) ?? [];
 
   const cardOptions = [
@@ -501,6 +509,8 @@ function MovementsSection({
             className="shrink-0"
             onClick={() => {
               setEditTx(null);
+              setDuplicateTx(null);
+              setReturnToDetail(null);
               setModalOpen(true);
             }}
           >
@@ -523,11 +533,14 @@ function MovementsSection({
           <EmptyState title={t("transactions.empty")} />
         ) : (
           <TransactionTable
+            highlightId={savedId}
             transactions={list}
             accounts={[account]}
             showAccountColumn={false}
             onEdit={(tx) => {
               setEditTx(tx);
+              setDuplicateTx(null);
+              setReturnToDetail(null);
               setModalOpen(true);
             }}
             onDelete={(tx) => setDeleteTx(tx)}
@@ -543,8 +556,14 @@ function MovementsSection({
         open={modalOpen}
         onOpenChange={setModalOpen}
         initial={editTx ?? undefined}
+        duplicateFrom={duplicateTx ?? undefined}
         defaultBankAccountId={account.id}
         lockAccount
+        onSaved={setSavedId}
+        onDismiss={() => {
+          if (returnToDetail) setDetailTx(returnToDetail);
+          setReturnToDetail(null);
+        }}
       />
 
       <TransactionDetailModal
@@ -554,9 +573,21 @@ function MovementsSection({
         onOpenChange={(v) => !v && setDetailTx(null)}
         onEdit={(tx) => {
           setEditTx(tx);
+          setDuplicateTx(null);
+          setReturnToDetail(tx);
+          setModalOpen(true);
+        }}
+        onDuplicate={(tx) => {
+          setEditTx(null);
+          setDuplicateTx(tx);
+          setReturnToDetail(tx);
           setModalOpen(true);
         }}
         onDelete={(tx) => setDeleteTx(tx)}
+        items={list}
+        hasNextPage={txQuery.hasNextPage}
+        onLoadMore={() => void txQuery.fetchNextPage()}
+        onNavigate={(tx) => setDetailTx(tx)}
       />
 
       <TransactionDeleteConfirm
@@ -605,6 +636,8 @@ function CardsAside({
   const [editCard, setEditCard] = useState<accounts.Card | undefined>(undefined);
   const [deleteCard, setDeleteCard] = useState<accounts.Card | null>(null);
   const [viewCard, setViewCard] = useState<accounts.Card | null>(null);
+  /** The prepaid card being loaded from the INLINE (desktop) expansion. */
+  const [loadingCard, setLoadingCard] = useState<accounts.Card | null>(null);
   // Desktop expands the selected card in place instead of opening an overlay:
   // `expandedId` is the accordion's open row, `inlineEditing` swaps that same
   // block for the form. Below `2xl` both stay unused — there `viewCard` drives
@@ -774,6 +807,9 @@ function CardsAside({
                               card={card}
                               holder={holder}
                               variant="inline"
+                              onLoadPrepaid={
+                                card.kind === "PREPAID" ? () => setLoadingCard(card) : undefined
+                              }
                               movementsAside={
                                 <span className="text-xs text-brand">
                                   {t("cards.detail.filteringTable")}
@@ -825,6 +861,12 @@ function CardsAside({
           onDelete={(card) => setDeleteCard(card)}
         />
       )}
+
+      <LoadPrepaidPanel
+        account={account}
+        card={loadingCard}
+        onOpenChange={(v) => !v && setLoadingCard(null)}
+      />
 
       <CardCreateModal
         open={modalOpen}

@@ -19,6 +19,7 @@ import { JwtAuthGuard } from "../../../infra/auth/jwt-auth.guard";
 import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { AddCardCommand } from "../application/commands/add-card.command";
+import { LoadPrepaidCardCommand } from "../application/commands/load-prepaid-card.command";
 import { CreateAccountCommand } from "../application/commands/create-account.command";
 import { RemoveAccountCommand } from "../application/commands/remove-account.command";
 import { RemoveCardCommand } from "../application/commands/remove-card.command";
@@ -116,6 +117,25 @@ export class AccountsController {
     @Body(new ZodValidationPipe(accounts.createCardSchema)) body: accounts.CreateCard,
   ): Promise<accounts.Card> {
     return this.commandBus.execute(new UpdateCardCommand(user.id, params.id, params.cardId, body));
+  }
+
+  /** Load a PREPAID card from the account it belongs to (an expense + the card's
+   *  own balance, atomically). */
+  @Post(":id/cards/:cardId/load")
+  loadPrepaidCard(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(cardParamsSchema)) params: { id: string; cardId: string },
+    @Body(new ZodValidationPipe(accounts.loadPrepaidCardSchema)) body: accounts.LoadPrepaidCard,
+  ): Promise<accounts.Card> {
+    return this.commandBus.execute(
+      new LoadPrepaidCardCommand(
+        user.id,
+        params.id,
+        params.cardId,
+        body.amount,
+        body.occurredAt ? new Date(body.occurredAt) : undefined,
+      ),
+    );
   }
 
   @Delete(":id/cards/:cardId")

@@ -26,7 +26,14 @@
     },
     "unsaved": "Sin guardar",
     "saveChanges": "Guardar cambios",
-    "create": "Crear"
+    "create": "Crear",
+    "date": {
+      "choose": "Elegir fecha",
+      "today": "hoy",
+      "clear": "Borrar",
+      "previousMonth": "Mes anterior",
+      "nextMonth": "Mes siguiente"
+    }
   },
   "nav": {
     "dashboard": "Panel",
@@ -103,11 +110,17 @@
       "billingStatus": "Estado",
       "billingPaidAt": "Fecha de pago",
       "billingActions": "Acciones",
+      "billingCurrentPeriod": "Período actual",
+      "billingPaidPeriods": "Períodos liquidados",
+      "billingPeriodToDate": "{{date}} – hoy",
+      "billingPaidOn": "Pagada el {{date}}",
+      "billingIncludesCarryOver": "incluye {{amount}} de la anterior",
+      "billingPaidAmount": "pagado {{amount}}",
       "billingStatusValue": {
         "OPEN": "Abierta",
         "PENDING": "Pendiente",
-        "PAID": "Pagada",
-        "PARTIALLY_PAID": "Pago parcial"
+        "PARTIALLY_PAID": "Pago parcial",
+        "PAID": "Pagada"
       },
       "payFromAccount": "Pagar con",
       "payFromAccountPlaceholder": "Selecciona una cuenta",
@@ -126,16 +139,21 @@
       "payModeMinimum": "Mínimo",
       "payModeCustom": "Otro monto",
       "payCoversTotal": "Cubre el total de la facturación.",
-      "payCoversMinimum": "Es el mínimo de esta cuenta ({{percent}}% del período).",
-      "payCoversCustom": "Quedará un saldo pendiente para el próximo pago.",
+      "payCoversMinimum": "Es el mínimo de esta cuenta ({{percent}}% del período); el resto pasa a la próxima.",
+      "payCoversCustom": "El resto pasará a la próxima facturación.",
       "payBreakdownPurchases": "Compras del período",
       "payBreakdownInstallments": "Cuotas del mes ({{count}})",
       "payAmountLabel": "Monto",
-      "payRemainingAfter": "Saldo pendiente tras el pago",
+      "payRemainingAfter": "Pasa a la próxima facturación",
       "payDate": "Fecha de pago",
       "payReference": "Referencia (opcional)",
       "payReferencePlaceholder": "Ej. Transferencia 4412",
-      "payAlreadyPaid": "Pagado hasta ahora",
+      "payCarriedOver": "Saldo de la facturación anterior",
+      "editPaymentEyebrow": "Modificar pago",
+      "editPaymentDescription": "Corrige cuánto se pagó realmente en este período. El monto del período no se edita a mano: se recalcula con \"Sincronizar pagos\".",
+      "editPaymentCurrent": "Pagado hasta ahora",
+      "editPaymentCascadeHint": "Se ajustan el movimiento del pago, el saldo de la cuenta de origen, el cupo usado y lo que pasa a la próxima facturación.",
+      "editPaymentSuccess": "Pago actualizado",
       "payMinimumUnset": "Esta cuenta no tiene pago mínimo configurado. Puedes definirlo en la facturación de la cuenta (Pago mínimo %).",
       "payMinimumCovered": "Ya pagaste más que el mínimo de este período."
     },
@@ -199,6 +217,8 @@
       "activate": "Activar",
       "deactivate": "Desactivar",
       "payCredit": "Pagar facturación",
+      "editStatementPayment": "Modificar pago",
+      "editStatementPaymentShort": "Pago",
       "payCreditConfirm": "¿Pagar {{amount}} de facturación? Se descontará del cupo usado.",
       "payCreditSuccess": "Facturación pagada",
       "generateStatements": "Generar facturación",
@@ -223,6 +243,19 @@
     }
   },
   "cards": {
+    "actions": {
+      "load": "Recargar"
+    },
+    "load": {
+      "description": "El dinero sale de la cuenta como un gasto y queda disponible en la tarjeta.",
+      "amount": "Monto a recargar",
+      "date": "Fecha",
+      "cardAfter": "Saldo de la tarjeta después",
+      "accountBalance": "Saldo de la cuenta",
+      "accountAfter": "Saldo de la cuenta después",
+      "movementHint": "Se registra un gasto \"Recarga prepago\" en la cuenta. Los gastos con esta tarjeta descuentan de su propio saldo, no del de la cuenta.",
+      "success": "Tarjeta recargada"
+    },
     "title": "Tarjetas",
     "additionalTitle": "Tarjetas adicionales",
     "add": "Añadir tarjeta",
@@ -246,6 +279,8 @@
       "PREPAID": "Prepago"
     },
     "form": {
+      "prepaidBalance": "Saldo cargado ({{currency}})",
+      "prepaidHint": "Una tarjeta prepago tiene su propio saldo en lugar de cupo. Este es el monto ya cargado; después se recarga desde la cuenta.",
       "name": "Nombre de la tarjeta (opcional)",
       "namePlaceholder": "Ej. Tarjeta principal",
       "kind": "Tipo",
@@ -281,6 +316,7 @@
     },
     "deleteConfirmDescription": "Se eliminará de forma permanente, junto con todo lo relacionado a ella.",
     "detail": {
+      "prepaidBalance": "Saldo de la tarjeta",
       "title": "Detalle de tarjeta",
       "available": "Disponible {{amount}}",
       "role": "Rol",
@@ -348,7 +384,8 @@
     "subtitleAll": "Todos los períodos · {{count}} movimientos",
     "type": {
       "INCOME": "Ingreso",
-      "EXPENSE": "Gasto"
+      "EXPENSE": "Gasto",
+      "TRANSFER": "Traspaso"
     },
     "form": {
       "type": "Tipo",
@@ -369,7 +406,23 @@
       "observation": "Observación",
       "emisor": "Emisor",
       "receptor": "Receptor",
-      "lugar": "Lugar"
+      "lugar": "Lugar",
+      "projectedBalance": "Saldo proyectado",
+      "saveAndNew": "Guardar y crear otro",
+      "fromAccount": "Cuenta de origen",
+      "toAccount": "Cuenta de destino",
+      "amountOut": "Monto que sale",
+      "amountIn": "Monto que entra",
+      "optional": "opcional",
+      "dateToday": "hoy",
+      "categoryEmpty": "Elegir categoría",
+      "emisorEmpty": "Sin emisor",
+      "receptorEmpty": "Sin receptor",
+      "lugarEmpty": "Sin lugar",
+      "observationEmpty": "Agregar nota",
+      "newEyebrow": "Nuevo movimiento",
+      "editEyebrow": "Editar movimiento",
+      "projectedCredit": "Cupo disponible tras el movimiento"
     },
     "kpi": {
       "income": "Ingresos",
@@ -399,7 +452,32 @@
       "import": "Importar"
     },
     "count": "{{count}} movimientos",
-    "detailTitle": "Detalle del movimiento"
+    "detailTitle": "Detalle del movimiento",
+    "detail": {
+      "balanceAfter": "Saldo tras el movimiento",
+      "duplicate": "Duplicar",
+      "navPosition": "{{position}} de {{count}}",
+      "noDetails": "Este movimiento no tiene detalles adicionales.",
+      "addDetails": "Agregar detalles",
+      "transferCounterpart": "Traspaso desde/hacia",
+      "transferFrom": "Desde",
+      "transferTo": "Hacia"
+    },
+    "attachments": {
+      "title": "Comprobantes",
+      "dropzone": "Arrastra un archivo aquí",
+      "browse": "Elegir archivo",
+      "uploading": "Subiendo…",
+      "empty": "Sin comprobantes.",
+      "delete": "Eliminar comprobante",
+      "saveFirst": "Se subirán al guardar el movimiento.",
+      "retry": "Reintentar",
+      "failed": "No se pudo subir.",
+      "hint": "JPG, PNG, WebP o PDF · hasta 5 MB",
+      "open": "Abrir",
+      "comingSoon": "Próximamente",
+      "comingSoonReason": "Los comprobantes estarán disponibles cuando se habilite el almacenamiento de archivos."
+    }
   },
   "installments": {
     "title": "Cuotas",
@@ -748,11 +826,23 @@
     "CARD_LIMIT_EXCEEDED": "El gasto supera el cupo de la tarjeta principal.",
     "CARD_SUBLIMIT_EXCEEDED": "El gasto supera el sub-tope de la tarjeta secundaria.",
     "CARD_SUBLIMIT_EXCEEDS_ACCOUNT": "El tope de la tarjeta no puede superar el cupo de la cuenta.",
+    "PREPAID_INSUFFICIENT_BALANCE": "El saldo de la tarjeta prepago no alcanza para este gasto.",
+    "PREPAID_BALANCE_NOT_ALLOWED": "Solo una tarjeta prepago tiene saldo propio.",
+    "INVALID_PREPAID_BALANCE": "El monto de la recarga debe ser mayor que cero.",
     "CARD_LIMIT_REQUIRED": "Ingresa un tope para esta tarjeta de crédito.",
     "PARENT_CARD_INVALID": "La tarjeta principal seleccionada no es válida.",
     "INVALID_CURRENT_PASSWORD": "La contraseña actual no es correcta.",
     "ACCOUNT_DISABLED": "Esta cuenta está deshabilitada.",
     "PAYMENT_EXCEEDS_REMAINING": "El monto supera lo que queda por pagar de esta facturación.",
-    "INVALID_PAYMENT_AMOUNT": "Ingresa un monto mayor que cero."
+    "INVALID_PAYMENT_AMOUNT": "Ingresa un monto mayor que cero.",
+    "TRANSFER_SAME_ACCOUNT": "El origen y el destino deben ser cuentas distintas.",
+    "TRANSFER_TO_CREDIT_ACCOUNT": "No puedes traspasar dinero hacia una línea de crédito.",
+    "TRANSFER_ACCOUNT_NOT_FOUND": "No se encontró alguna de las cuentas del traspaso.",
+    "TRANSFER_NOT_FOUND": "No se encontró el traspaso.",
+    "TRANSFER_EDIT_AS_PAIR": "Un traspaso se edita completo, desde sus dos lados.",
+    "ATTACHMENT_TYPE_NOT_ALLOWED": "Solo se admiten imágenes JPG, PNG, WebP o archivos PDF.",
+    "ATTACHMENT_TOO_LARGE": "El archivo supera los 5 MB.",
+    "ATTACHMENTS_UNAVAILABLE": "El almacenamiento de comprobantes no está configurado.",
+    "ATTACHMENT_NOT_FOUND": "No se encontró el comprobante."
   }
 }

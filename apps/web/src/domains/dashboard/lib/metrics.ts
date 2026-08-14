@@ -52,9 +52,18 @@ export interface MonthFlow {
   savingsRate: number; // 0..1
 }
 
+/**
+ * Money moved between the user's own accounts is neither income nor expense, so
+ * every aggregate here drops it — the same rule the API applies to
+ * `GET /transactions/summary` (`EXCLUDE_TRANSFERS`).
+ */
+export function excludeTransfers(txs: transactions.Transaction[]): transactions.Transaction[] {
+  return txs.filter((t) => t.transferGroupId === null);
+}
+
 /** Income/expense totals (primary currency) for the given transactions. */
 export function monthFlow(txs: transactions.Transaction[]): MonthFlow {
-  const primary = txs.filter((t) => t.currency === PRIMARY_CURRENCY);
+  const primary = excludeTransfers(txs).filter((t) => t.currency === PRIMARY_CURRENCY);
   const income = sumMoney(primary.filter((t) => t.type === "INCOME").map((t) => t.amount));
   const expense = sumMoney(primary.filter((t) => t.type === "EXPENSE").map((t) => t.amount));
   const inc = Number(income);
@@ -71,7 +80,7 @@ export interface CategorySlice {
 /** Expenses (primary currency) grouped by category, largest first. */
 export function expensesByCategory(txs: transactions.Transaction[]): CategorySlice[] {
   const map = new Map<string | null, string[]>();
-  for (const t of txs) {
+  for (const t of excludeTransfers(txs)) {
     if (t.type !== "EXPENSE" || t.currency !== PRIMARY_CURRENCY) continue;
     const key = t.category ?? null;
     const bucket = map.get(key) ?? [];

@@ -4,21 +4,32 @@ import {
   type ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from "@nestjs/common";
-import type { Response } from "express";
+import type { Request, Response } from "express";
 
 import type { ApiError } from "@finance/contracts";
+
+import { describeError, needsStack } from "./describe-error";
 
 /**
  * Maps every error to the language-agnostic contract shape
  * `{ error: { code, field?, details? } }` (Clarify Q1 / FR-007a, SC-010).
  * Never returns localized prose — the frontend maps `code` → es/en text.
+ *
+ * It is also the ONLY place that logs a failed request: expected 4xx domain
+ * errors stay silent (their code is self-explanatory and the `Cqrs` interceptor
+ * already prints one WARN line), while anything 5xx — which by definition
+ * nobody anticipated — gets one readable line via `describeError`.
  */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
+  private readonly logger = new Logger("Http");
+
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const res = ctx.getResponse<Response>();
+    const req = ctx.getRequest<Request>();
 
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let code = "INTERNAL_ERROR";
@@ -46,6 +57,15 @@ export class AllExceptionsFilter implements ExceptionFilter {
       status = exception.httpStatus;
       code = exception.code;
       field = exception.field;
+    }
+
+    if (status >= HttpStatus.INTERNAL_SERVER_ERROR) {
+      const where = `${req.method} ${req.originalUrl ?? req.url}`;
+      const description = describeError(exception);
+      this.logger.error(
+        `${where} → ${status} ${code} | ${description}`,
+        needsStack(exception) && exception instanceof Error ? exception.stack : undefined,
+      );
     }
 
     const body: ApiError = { error: { code, ...(field ? { field } : {}) } };

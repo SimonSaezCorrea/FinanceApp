@@ -35,6 +35,8 @@ const BLANK_CARD: accounts.Card = {
   isActive: true,
   limits: [],
   ownUsed: "0",
+  prepaidBalance: null,
+  prepaidInitialBalance: null,
 };
 
 /**

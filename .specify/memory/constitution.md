@@ -1,4 +1,40 @@
 <!--
+Sync Impact Report — 2026-08-11 (amendment 1.29.0)
+- Version change: 1.28.0 → 1.29.0 (MINOR: new enforceable rules from specs/010 — transfers between
+  own accounts, and file attachments on a movement; no principle removed or redefined).
+- Banking-domain norms gain **"A transfer is not income nor expense"**: money moved between two of
+  the user's OWN accounts MUST NOT count in any income/expense aggregate. When such a movement is
+  represented as ordinary rows (here: two `Transaction` rows — an EXPENSE + an INCOME — sharing
+  `transferGroupId`), no existing sum excludes it by itself, so the exclusion MUST live in ONE named
+  predicate (`EXCLUDE_TRANSFERS` in the API, `excludeTransfers` on the web) applied by EVERY such
+  aggregate, and any new aggregate MUST apply it. The LIST and the movement COUNT deliberately do
+  not: both legs are real rows the user must see in their own account.
+- Banking-domain norms also gain **"A paired write is one transaction"**: a record that only makes
+  sense as a pair (the two legs of a transfer) MUST be created, edited and deleted as a unit inside a
+  single `prisma.$transaction` that also carries both balance deltas, and MUST NOT be editable one
+  leg at a time (`409 TRANSFER_EDIT_AS_PAIR`). A half-written transfer is money that vanished.
+- Architecture norms gain **"Uploaded files are validated, not trusted"**: a file accepted from a
+  client MUST be validated by the API itself — declared content type against an allow-list, real
+  **magic bytes** against that declared type, and a size cap enforced by the upload interceptor with
+  in-memory (never on-disk) storage. The `Content-Type` is chosen by the client, so trusting it would
+  let an executable renamed to `.pdf` be stored and served back under that type.
+- Architecture norms also gain **"External storage is a port, and its absence is inert"**: bytes
+  living outside the database are reached through a domain port (`ObjectStoragePort`) whose adapter
+  lives in `infrastructure/`, so the unit tier never touches the network. Missing credentials MUST
+  leave the feature INERT — `isConfigured() === false` and `503 ATTACHMENTS_UNAVAILABLE` on
+  write/read — never crash boot and never degrade the rest of the app. Deleting the remote object
+  happens AFTER the database transaction; a failed remote delete is logged, not rolled back.
+- New dependency: `@aws-sdk/client-s3` + `@aws-sdk/s3-request-presigner` (`@types/multer` dev).
+- New environment variables (all optional): `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`,
+  `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`.
+- Schema: `Transaction.transferGroupId` (+ index); new table `transaction-attachment` → **domain 22**
+  (Principle VI's count moves 21 → 22).
+- i18n parity is now enforced by a TEST (`apps/web/src/i18n/parity.test.ts`), not by discipline.
+- Propagated in the same session: `CLAUDE.md`, `docs/{english,spanish}/ARCHITECTURE.md`,
+  `docs/PENDING.md`.
+-->
+
+<!--
 Sync Impact Report — 2026-08-07 (amendment 1.28.0)
 - Version change: 1.27.0 → 1.28.0 (MINOR: new enforceable rule under the banking-domain norms; the
   manual balance-reconciliation endpoint is withdrawn).
@@ -34,6 +70,100 @@ Sync Impact Report — 2026-08-07 (amendment 1.27.0)
   (`SyncStatementHandler`), `CreditStatement.syncAmount`, `netForPeriod`,
   `relinkToStatementWithTx`, `updateAmountWithTx`, and the per-row "Sincronizar pagos" button.
 - Propagated in the same session: CLAUDE.md (`credit-statement` amendment).
+
+<!--
+Sync Impact Report — 2026-08-13 (amendment 1.33.0)
+- Version change: 1.32.0 → 1.33.0 (MINOR: a new banking-domain rule — the prepaid instrument).
+- **"A PREPAID card holds its own money"**: a prepaid card is neither a credit line nor a view onto
+  the account's cash. It MUST carry its own persisted pot (`CardAccount.prepaidInitialBalance` seed +
+  self-maintaining `prepaidBalance`), and an expense through it MUST be bounded by that balance
+  (`PREPAID_INSUFFICIENT_BALANCE` — rejected, never allowed negative: a prepaid card declines, it does
+  not lend) and MUST NOT touch the account's `currentBalance` nor any credit pool.
+- **The money is counted exactly once.** It leaves the account when the card is LOADED — `POST
+  /accounts/:id/cards/:cardId/load` writes a real EXPENSE movement on the account (category "Recarga
+  prepago"), decrements the account's balance and credits the card, in ONE `prisma.$transaction`.
+  Spending afterwards moves only the card's pot. The load movement MUST NOT carry the `cardId`:
+  with it, it would be indistinguishable from spending through the card, which is precisely what must
+  leave the account balance alone.
+- Edits/deletes of a prepaid expense MUST revert the card's pot symmetrically, and — unlike the
+  credit pool — regardless of any billing period being settled: a prepaid card has no statement.
+- A prepaid balance sent for a CREDIT/DEBIT card is REJECTED (`PREPAID_BALANCE_NOT_ALLOWED`), never
+  ignored. Unchanged: only CHECKING/SIGHT/CREDIT_LINE accounts may carry any card at all.
+- Schema: `CardAccount.prepaidInitialBalance`, `CardAccount.prepaidBalance`. Contract: `Card` gains
+  both; `createCardSchema` gains `prepaidInitialBalance`; new `loadPrepaidCardSchema`.
+- First application: `MovementPolicy.assertWithinPrepaidBalance`/`prepaidDelta`,
+  `accountBalanceDelta`, `LoadPrepaidCardHandler`, and the web `LoadPrepaidPanel` +
+  `AccountVisualCard`/`CardDetailPanel`/`CardForm` prepaid states.
+- Propagated in the same session: CLAUDE.md (`card-account` + `transaction` amendments).
+
+<!--
+Sync Impact Report — 2026-08-13 (amendment 1.32.0)
+- Version change: 1.31.0 → 1.32.0 (MINOR: a new enforceable rule about correcting a payment).
+- **"The PAYMENT is correctable; the period's amount is not"**: a settled period's `paidAmount` MAY
+  be corrected (`PATCH /accounts/:id/credit-statements/:statementId/payment`) — a figure entered
+  wrong, or money transferred afterwards — but the period's own total MUST still come from its real
+  movements (`POST .../sync`) and MUST NEVER be typed in. This does not reopen the retired manual
+  amount correction: the correction is bounded by that computed total
+  (`PAYMENT_EXCEEDS_REMAINING`), must be positive (`INVALID_PAYMENT_AMOUNT`), and only applies to an
+  already-settled period (`STATEMENT_NOT_PAID`).
+- **Every figure derived from a payment MUST move with it**, in the same `prisma.$transaction`: the
+  payment movement's amount, the SOURCE account's balance (that expense is what left it), the credit
+  account's `creditUsed`, and the shortfall carried into the next period — resolving/creating a
+  successor when a period previously paid in full becomes short. A correction that updates one of
+  these and not the rest is a defect, not a partial feature.
+- Schema: none. Contract: `updateStatementPaymentSchema`.
+- First application: `CreditStatement.changePaidAmount`, `UpdateStatementPaymentHandler`, and the web
+  `EditStatementPaymentPanel` ("Modificar pago", offered only on a PARTIALLY_PAID period).
+- Propagated in the same session: CLAUDE.md (`credit-statement` amendment).
+
+<!--
+Sync Impact Report — 2026-08-13 (amendment 1.31.0)
+- Version change: 1.30.0 → 1.31.0 (MINOR: a derived status gains a value; no mechanism changes).
+- **"A period settled for less than its total MUST say so"**: the carry-forward mechanism of
+  1.30.0 is UNCHANGED — any payment still settles the period, freezes `amount` at the period's real
+  total and rolls the shortfall into the next period — but such a period now reports
+  **`PARTIALLY_PAID`** instead of `PAID`, and the UI MUST show what was actually covered
+  (`paidAmount` of `amount`). Reporting "Pagada" for a period the user paid the minimum on hides a
+  fact the user needs; the label is derived (`paidAmount < amount` once `paidAt` is set), never a
+  stored column, and it is a TERMINAL state exactly like `PAID`: `canPay()`/`canClose()` are both
+  false, so nothing becomes payable again. Derived lifecycle: OPEN → PENDING →
+  (PAID | PARTIALLY_PAID).
+- Consequence for any consumer: "settled" MUST be tested as `paidAt !== null` (or as
+  `!state.canPay()`), never as `status === "PAID"` — the latter now silently excludes settled
+  periods and would re-offer a payment.
+- Schema: none. Contract: `creditStatementStatus` regains PARTIALLY_PAID.
+- First application: `PartiallyPaidState`, `CreditStatement.state`, and the web
+  `BillingSection`/`PayStatementPanel` ("pagado X de Y" + warning badge).
+- Propagated in the same session: CLAUDE.md (`credit-statement` amendment).
+
+<!--
+Sync Impact Report — 2026-08-12 (amendment 1.30.0)
+- Version change: 1.29.0 → 1.30.0 (MINOR: an enforceable banking-domain rule is REDEFINED in its
+  mechanism, not removed — settlement stops being accumulated and becomes carried forward).
+- **Supersedes "Settlement is accumulated, never a flag" (1.26.0) with "A period is settled once;
+  the shortfall is carried forward"**: ANY payment on a billing period — the total, the account's
+  minimum, or any amount between — SETTLES that period (`paidAt` stamped, `amount` frozen at the
+  period's real total, not at what was paid). What the payment did not cover MUST be rolled into
+  the next period as `CreditStatement.carriedOverAmount`, which is part of what that period owes
+  (`totalFor(linkedSum)`), and the settled period MUST record where it went (`carriedToId`). A
+  period therefore NEVER stays half-payable: the derived status is OPEN → PENDING → PAID and
+  `PARTIALLY_PAID` no longer exists. Unchanged from 1.26.0: `creditUsed` is decremented by the
+  amount ACTUALLY paid (the shortfall is still used credit, just owed in the next period), and an
+  overpayment is REJECTED (`PAYMENT_EXCEEDS_REMAINING`), never capped.
+- Carry-over MUST be a figure of its own, never a synthesized "previous balance" movement:
+  reconciliation (`POST .../sync`) recomputes a period from its REAL movements, so a fake movement
+  would be erased by the very feature meant to keep periods honest. For the same reason, syncing a
+  period settled with a shortfall MUST move the CARRY-OVER (`carryOverDelta`, applied to the
+  successor) and leave the payment movement and `creditUsed` untouched — what was paid is a
+  historical fact.
+- Schema: `CreditStatement.carriedOverAmount`, `CreditStatement.carriedToId`. Contract:
+  `creditStatementStatus` loses PARTIALLY_PAID; `CreditStatement` gains `carriedOverAmount` and
+  `carriedToId`; `remainingAmount` is always "0" once paid.
+- First application: `CreditStatement.payTowards`/`receiveCarryOver`/`markCarriedTo`/`syncAmount`,
+  `PayCreditStatementHandler` (`findOrCreateCarryOverTargetWithTx` + `addCarriedOverWithTx`),
+  `SyncStatementHandler`, and the web `PayStatementPanel`/`BillingSection`.
+- Propagated in the same session: CLAUDE.md (`credit-statement` amendment).
+-->
 
 <!--
 Sync Impact Report — 2026-08-07 (amendment 1.26.0)
@@ -702,7 +832,7 @@ Rationale: the spec is the shared contract; skipping it produces code nobody agr
 The constitution and `CLAUDE.md` are the project's durable memory — if they drift from
 reality, every future decision is made on false information.
 
-### VI. Backend DDD + CQRS Architecture (one table = one domain, 21 domains)
+### VI. Backend DDD + CQRS Architecture (one table = one domain, 22 domains)
 
 **One table, one domain, one adapter.** Every table in `apps/api/prisma/schema.prisma` MUST own
 exactly one folder `src/domains/<table>/` (kebab-case, matching its `@@map`), and exactly one Prisma
@@ -816,6 +946,34 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
     beside its list (the desktop cards aside), the detail is shown **inline** instead of in an
     overlay, and the same content component is reused across the inline/drawer/window forms — the
     same information MUST NOT be rendered twice at once.
+  - **A transfer is not income nor expense:** money moved between two of the user's own accounts MUST
+    be excluded from every income/expense aggregate. Representing it as ordinary rows (two
+    `Transaction` rows sharing `transferGroupId`) means no sum excludes it on its own, so the
+    exclusion lives in ONE named predicate — `EXCLUDE_TRANSFERS` (API) / `excludeTransfers` (web) —
+    that EVERY such aggregate applies, including any new one. The list and the movement count do not
+    exclude them: each account must see its own leg. A transfer never carries a card, never touches a
+    credit pool or a billing period, and never lands in a `CREDIT_LINE` account.
+  - **A paired write is one transaction:** a record that only exists as a pair MUST be created,
+    edited and deleted as a unit, inside a single `prisma.$transaction` that also applies every
+    affected account's balance delta, and MUST NOT be editable one side at a time
+    (`409 TRANSFER_EDIT_AS_PAIR`); deleting from either side deletes the pair.
+  - **Uploaded files are validated, not trusted:** a file accepted from a client MUST be checked by
+    the API — declared content type against an allow-list, the file's real **magic bytes** against
+    that declared type, and a size cap enforced by the upload interceptor with in-memory (never
+    on-disk) storage — before anything is written and after the owning record's ownership is
+    verified. Ownership failures answer 404, never 403.
+  - **External storage is a port, and its absence is inert:** bytes stored outside the database are
+    reached through a domain port (`ObjectStoragePort`), its client confined to `infrastructure/`,
+    so the unit tier stays network-free. Missing configuration MUST leave the feature inert
+    (`isConfigured() === false`, `503 ATTACHMENTS_UNAVAILABLE`), never break boot or any other
+    feature. Removing the remote object happens AFTER the database transaction — a network call must
+    not hold one open — and a failed removal is logged with its key rather than rolled back.
+  - **A derived figure is declared unknown, not approximated (web):** a client-side financial figure
+    that cannot be computed correctly from what is loaded (balance after a movement, when a date
+    filter or a mixed-account list hides the rows it depends on) MUST read as an explicit unknown
+    (an em dash) or be hidden — never as an unlabelled estimate — and the gap catalogued in
+    `docs/PENDING.md`. Keeping the labelled row with "—" is preferred where the design shows it:
+    it tells the user the figure exists and is not available, instead of silently missing.
   - **Persistence naming:** Prisma **model** names are PascalCase; the physical **DB table** name MUST
     be **kebab-case via `@@map`** (e.g. `BankAccount` → `bank-account`, `CardAccount` → `card-account`,
     `WalletItemDashboard` → `wallet-item-dashboard`). Every model carries an `@@map`. No unused/legacy
@@ -871,4 +1029,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.28.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-07
+**Version**: 1.33.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-13

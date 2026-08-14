@@ -1,22 +1,21 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { accounts as accountsContract } from "@finance/contracts";
 import type { transactions } from "@finance/contracts";
 
 import { useAccounts } from "../../accounts/hooks/useAccounts";
-import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
-import { Combobox } from "../../../shared/ui/combobox";
+import { Button } from "../../../shared/ui/button";
 import { FormSurface } from "../../../shared/ui/overlay";
-import { Field } from "../../../shared/ui/field";
-import { Input } from "../../../shared/ui/input";
-import { Segmented } from "../../../shared/ui/segmented";
-import { Select } from "../../../shared/ui/select";
+import { transactionsApi } from "../api/transactionsApi";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
+import { useTransferMutations } from "../hooks/useTransferMutations";
 import { useTransactionsSummary } from "../hooks/useTransactions";
+import { AttachmentsSection } from "./AttachmentsSection";
+import { TransactionFormPanel, type TransactionFormValue } from "./TransactionFormPanel";
 
 function todayInput(): string {
   const d = new Date();
@@ -27,34 +26,57 @@ function dateInput(iso: string): string {
   return iso.slice(0, 10);
 }
 
-function currencySymbol(currency: string, locale: string): string {
-  try {
-    const parts = new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency,
-      currencyDisplay: "narrowSymbol",
-    }).formatToParts(0);
-    return parts.find((p) => p.type === "currency")?.value ?? currency;
-  } catch {
-    return currency;
-  }
-}
+const emptyForm = (date: string): TransactionFormValue => ({
+  mode: "EXPENSE",
+  amount: "",
+  currency: "CLP",
+  bankAccountId: "",
+  toBankAccountId: "",
+  amountIn: "",
+  cardId: "",
+  category: "",
+  description: "",
+  observation: "",
+  emisor: "",
+  receptor: "",
+  lugar: "",
+  date,
+});
 
 /**
- * Create OR edit a movement. Bank is required; a non-cash EXPENSE requires a
- * card; INCOME and cash expenses never carry one (mirrors the server rules).
+ * Create OR edit a movement — the shell around `TransactionFormPanel`: it owns
+ * the form state, the submit and the surface, the panel owns the layout.
+ *
+ * Three shapes go through here: an ordinary income/expense, a transfer (which
+ * is created and edited as a PAIR through its own endpoints, FR-015), and a
+ * duplicate (a create pre-filled from an existing movement, dated today).
  */
 export function TransactionCreateModal({
   open,
   onOpenChange,
   initial,
+  duplicateFrom,
   defaultBankAccountId,
   lockAccount = false,
+  onDismiss,
+  onSaved,
 }: Readonly<{
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial?: transactions.Transaction;
+  duplicateFrom?: transactions.Transaction;
   defaultBankAccountId?: string;
+  /**
+   * Closed WITHOUT saving (cancel, the window's close control, the backdrop).
+   * Lets the caller go back where the form was opened from — the detail panel —
+   * instead of dropping the user all the way out to the list. Not fired after a
+   * successful save: the saved data is what the caller then re-reads.
+   */
+  onDismiss?: () => void;
+  /** The movement that was just created or updated — lets the caller point it
+   *  out in the list, which is not necessarily at the top (rows are ordered by
+   *  date, so one dated earlier lands further down). */
+  onSaved?: (id: string) => void;
   /**
    * Opened from within one account's own view: the account is context, not a
    * choice, so the selector is hidden instead of offering a switch that would
@@ -62,57 +84,95 @@ export function TransactionCreateModal({
    */
   lockAccount?: boolean;
 }>) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { create, update } = useTransactionMutations();
+  const transfer = useTransferMutations();
   const { data: accountList } = useAccounts();
-  // The distinct categories straight from the API, instead of fetching every
-  // movement just to fold them down in the browser.
   const { data: summary } = useTransactionsSummary();
   const editing = Boolean(initial);
   const categoryOptions = summary?.categories ?? [];
 
-  const [type, setType] = useState<transactions.TransactionType>("EXPENSE");
-  const [amount, setAmount] = useState("");
-  const [currency, setCurrency] = useState("CLP");
-  const [bankAccountId, setBankAccountId] = useState(defaultBankAccountId ?? "");
-  const [cardId, setCardId] = useState("");
-  const [category, setCategory] = useState("");
-  const [description, setDescription] = useState("");
-  const [observation, setObservation] = useState("");
-  const [emisor, setEmisor] = useState("");
-  const [receptor, setReceptor] = useState("");
-  const [lugar, setLugar] = useState("");
-  const [date, setDate] = useState(todayInput());
+  const [form, setForm] = useState<TransactionFormValue>(() => emptyForm(todayInput()));
+  // Receipts chosen BEFORE the movement exists: the id only shows up once it's
+  // been created, and the panel must not close while they're still uploading.
+  const [pendingAttachments, setPendingAttachments] = useState(0);
+  const [createdId, setCreatedId] = useState<string | null>(null);
+  // Distinguishes "saved, then closed" from "backed out" — both go through the
+  // same `onOpenChange(false)`, but only the second one should return the user
+  // to where they came from.
+  const savedRef = useRef(false);
 
-  // Sync form state whenever the modal opens (create defaults or edit prefill).
+  const handleOpenChange = useCallback(
+    (v: boolean) => {
+      if (!v) {
+        if (!savedRef.current) onDismiss?.();
+        savedRef.current = false;
+      }
+      onOpenChange(v);
+    },
+    [onDismiss, onOpenChange],
+  );
+  const patch = useCallback(
+    (p: Partial<TransactionFormValue>) => setForm((f) => ({ ...f, ...p })),
+    [],
+  );
+
+  // Editing a transfer needs its OTHER leg, which the list row doesn't carry.
+  const groupId = initial?.transferGroupId ?? null;
+  const { data: transferPair } = useQuery({
+    queryKey: ["transactions", "transfer", groupId],
+    queryFn: () => transactionsApi.transfer.get(groupId!),
+    enabled: open && groupId !== null,
+  });
+
+  // Sync form state whenever the panel opens (create defaults or edit prefill).
   useEffect(() => {
     if (!open) return;
+    const source = initial ?? duplicateFrom;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
-    setType(initial?.type ?? "EXPENSE");
-    // The server returns amounts as decimal strings ("32000.0000") but this input is
-    // integer-only (handleAmountChange strips non-digits, so it can't even represent
-    // a decimal point) — keep just the integer part or the display grouping mangles
-    // the decimal suffix in with the thousands separators (e.g. "32.000.0000").
-    setAmount(initial?.amount ? (initial.amount.split(".")[0] ?? "") : "");
-    setCurrency(initial?.currency ?? "CLP");
-    setBankAccountId(initial?.bankAccountId ?? defaultBankAccountId ?? "");
-    setCardId(initial?.cardId ?? "");
-    setCategory(initial?.category ?? "");
-    setDescription(initial?.description ?? "");
-    setObservation(initial?.observation ?? "");
-    setEmisor(initial?.emisor ?? "");
-    setReceptor(initial?.receptor ?? "");
-    setLugar(initial?.lugar ?? "");
-    setDate(initial ? dateInput(initial.occurredAt) : todayInput());
-  }, [open, initial, defaultBankAccountId]);
+    setCreatedId(null);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
+    setForm({
+      ...emptyForm(initial ? dateInput(initial.occurredAt) : todayInput()),
+      mode: source?.transferGroupId ? "TRANSFER" : (source?.type ?? "EXPENSE"),
+      // Amounts come back as decimal strings ("32000.0000") but this input is
+      // integer-only, so keep the integer part or the grouping mangles it.
+      amount: source?.amount ? (source.amount.split(".")[0] ?? "") : "",
+      currency: source?.currency ?? "CLP",
+      bankAccountId: source?.bankAccountId ?? defaultBankAccountId ?? "",
+      cardId: source?.cardId ?? "",
+      category: source?.category ?? "",
+      description: source?.description ?? "",
+      observation: source?.observation ?? "",
+      emisor: source?.emisor ?? "",
+      receptor: source?.receptor ?? "",
+      lugar: source?.lugar ?? "",
+    });
+  }, [open, initial, duplicateFrom, defaultBankAccountId]);
 
-  // With the selector hidden there's no `handleAccountChange` to carry the
+  // Both legs of a transfer, once loaded: the form always edits it from the
+  // outgoing side, whichever row the user actually clicked.
+  useEffect(() => {
+    if (!open || !transferPair) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill from a fetched pair
+    setForm((f) => ({
+      ...f,
+      mode: "TRANSFER",
+      bankAccountId: transferPair.outgoing.bankAccountId ?? "",
+      toBankAccountId: transferPair.incoming.bankAccountId ?? "",
+      currency: transferPair.outgoing.currency,
+      amount: transferPair.outgoing.amount.split(".")[0] ?? "",
+      amountIn: transferPair.incoming.amount.split(".")[0] ?? "",
+    }));
+  }, [open, transferPair]);
+
+  // With the selector hidden there's no account change handler to carry the
   // account's currency into the form, so mirror it here once the account loads.
   useEffect(() => {
     if (!open || initial || !defaultBankAccountId) return;
     const acc = accountList?.find((a) => a.id === defaultBankAccountId);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
-    if (acc) setCurrency(acc.currency);
+    if (acc) setForm((f) => ({ ...f, currency: acc.currency }));
   }, [open, initial, defaultBankAccountId, accountList]);
 
   const accounts = accountList ?? [];
@@ -121,247 +181,178 @@ export function TransactionCreateModal({
   const selectable = editing
     ? accounts.filter((a) => a.status === "ACTIVE" || a.id === initial?.bankAccountId)
     : accounts.filter((a) => a.status === "ACTIVE");
-  const selectedAccount = accounts.find((a) => a.id === bankAccountId);
-  const accountLocked = lockAccount && !!bankAccountId;
+
+  const isTransfer = form.mode === "TRANSFER";
+  const selectedAccount = accounts.find((a) => a.id === form.bankAccountId);
   const isCreditLine = selectedAccount?.type === "CREDIT_LINE";
-  const isCardable =
-    !!selectedAccount && accountsContract.isCardableAccountType(selectedAccount.type);
-  // A card is REQUIRED only for credit-line expenses; optional for other cardable accounts
-  // (CHECKING/SIGHT). SAVINGS/INVESTMENT/CASH never carry a card of their own.
-  const needsCard = type === "EXPENSE" && isCreditLine;
-  const showCard = type === "EXPENSE" && isCardable;
+  const needsCard = !isTransfer && form.mode === "EXPENSE" && isCreditLine;
   const noCardsAvailable = needsCard && (selectedAccount?.cards.length ?? 0) === 0;
 
-  const accountOptions = [
-    { value: "", label: t("transactions.form.selectAccount") },
-    ...selectable.map((a) => ({
-      value: a.id,
-      label: a.status === "ACTIVE" ? a.name : `${a.name} · ${t("accounts.status.INACTIVE")}`,
-    })),
-  ];
-  const cardOptions = [
-    { value: "", label: t("transactions.form.selectCard") },
-    ...(selectedAccount?.cards ?? []).map((c) => ({
-      value: c.id,
-      label: `••••${c.last4} · ${c.name}`,
-    })),
-  ];
+  const pending =
+    create.isPending || update.isPending || transfer.create.isPending || transfer.update.isPending;
+  const canSubmit =
+    !!form.amount &&
+    !!form.bankAccountId &&
+    (!isTransfer || !!form.toBankAccountId) &&
+    !(needsCard && !form.cardId) &&
+    !noCardsAvailable &&
+    !pending;
 
-  function handleAccountChange(id: string) {
-    setBankAccountId(id);
-    setCardId("");
-    const acc = accounts.find((a) => a.id === id);
-    if (acc) setCurrency(acc.currency);
+  /** Resets what changes movement to movement, keeps the working context. */
+  function resetForNext() {
+    setForm((f) => ({
+      ...f,
+      amount: "",
+      amountIn: "",
+      description: "",
+      category: "",
+      observation: "",
+      emisor: "",
+      receptor: "",
+      lugar: "",
+    }));
+    // Back to the amount, which is where the next movement starts.
+    document.querySelector<HTMLInputElement>('[data-testid="tx-amount"]')?.focus();
   }
 
-  function handleAmountChange(raw: string) {
-    setAmount(raw.replace(/\D/g, ""));
-  }
-
-  function submit() {
-    const cleanCard = type === "INCOME" || !isCardable ? undefined : cardId || undefined;
-    const body = {
-      type,
-      amount,
-      currency,
-      occurredAt: new Date(`${date}T00:00:00`).toISOString(),
-      bankAccountId,
-      cardId: cleanCard,
-      category: category || undefined,
-      description: description || undefined,
-      observation: observation || undefined,
-      emisor: emisor || undefined,
-      receptor: receptor || undefined,
-      lugar: lugar || undefined,
-    } satisfies transactions.CreateTransaction;
-
+  function submit(keepOpen = false) {
+    const done = (saved?: { id?: string }) => {
+      toast.success(editing ? t("transactions.updated") : t("transactions.created"));
+      savedRef.current = true;
+      const savedId = saved?.id ?? initial?.id;
+      if (savedId) onSaved?.(savedId);
+      // Deferred receipts: hand the section the fresh id so it can flush them,
+      // and stay open until they've landed (or failed with a Retry offered).
+      if (!editing && saved?.id && pendingAttachments > 0) {
+        setCreatedId(saved.id);
+        return;
+      }
+      if (keepOpen) resetForNext();
+      else handleOpenChange(false);
+    };
     const handlers = {
-      onSuccess: () => {
-        toast.success(editing ? t("transactions.updated") : t("transactions.created"));
-        onOpenChange(false);
-      },
+      onSuccess: done,
       onError: (err: unknown) => {
         const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
         toast.error(t(`errors.${code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
       },
     };
 
-    if (editing && initial) {
-      update.mutate({ id: initial.id, body }, handlers);
-    } else {
-      create.mutate(body, handlers);
-    }
-  }
+    const occurredAt = new Date(`${form.date}T00:00:00`).toISOString();
 
-  const pending = create.isPending || update.isPending;
-  const canSubmit =
-    !!amount && !!bankAccountId && !(needsCard && !cardId) && !noCardsAvailable && !pending;
+    if (isTransfer) {
+      const destination = accounts.find((a) => a.id === form.toBankAccountId);
+      const body = {
+        fromBankAccountId: form.bankAccountId,
+        toBankAccountId: form.toBankAccountId,
+        amountOut: form.amount,
+        amountIn: form.amountIn || form.amount,
+        currencyOut: form.currency,
+        currencyIn: destination?.currency ?? form.currency,
+        occurredAt,
+        description: form.description || undefined,
+        category: form.category || undefined,
+        observation: form.observation || undefined,
+        emisor: form.emisor || undefined,
+        receptor: form.receptor || undefined,
+        lugar: form.lugar || undefined,
+      } satisfies transactions.CreateTransfer;
+
+      // A transfer's own surface has no attachment step, so it just closes.
+      const transferHandlers = { onSuccess: () => done(), onError: handlers.onError };
+      if (groupId) transfer.update.mutate({ groupId, body }, transferHandlers);
+      else transfer.create.mutate(body, transferHandlers);
+      return;
+    }
+
+    const selected = accounts.find((a) => a.id === form.bankAccountId);
+    // Only CHECKING/SIGHT/CREDIT_LINE carry cards; anything else must send none.
+    const cardable = !!selected && accountsContract.isCardableAccountType(selected.type);
+    const body = {
+      type: form.mode as transactions.TransactionType,
+      amount: form.amount,
+      currency: form.currency,
+      occurredAt,
+      bankAccountId: form.bankAccountId,
+      cardId: form.mode === "INCOME" || !cardable ? undefined : form.cardId || undefined,
+      category: form.category || undefined,
+      description: form.description || undefined,
+      observation: form.observation || undefined,
+      emisor: form.emisor || undefined,
+      receptor: form.receptor || undefined,
+      lugar: form.lugar || undefined,
+    } satisfies transactions.CreateTransaction;
+
+    if (editing && initial) update.mutate({ id: initial.id, body }, handlers);
+    else create.mutate(body, handlers);
+  }
 
   return (
     <FormSurface
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       mode={editing ? "edit" : "create"}
-      // A movement's form is tall (type, amount, currency, account, card, date,
-      // category, description) and is often opened from the very table it will
-      // change, which stays visible behind the panel.
+      // A movement's form is tall and is often opened from the very table it
+      // will change, which stays visible behind the panel.
       surface="panel"
-      title={editing ? t("transactions.edit") : t("transactions.new")}
-      headerAside={accountLocked ? selectedAccount?.name : undefined}
+      // The visible title is the description, edited inside the body — the
+      // header carries only the eyebrow naming what this surface is.
+      eyebrow={editing ? t("transactions.form.editEyebrow") : t("transactions.form.newEyebrow")}
+      title={
+        <span className="sr-only">{editing ? t("transactions.edit") : t("transactions.new")}</span>
+      }
+      headerAside={lockAccount ? selectedAccount?.name : undefined}
+      // The header's ✕ is already the way out; a Cancel button beside the two
+      // save actions would be a third button competing for the same corner.
+      hideCancel
       submitLabel={t("transactions.form.submit")}
-      onSubmit={submit}
+      onSubmit={() => submit(false)}
       canSubmit={canSubmit}
       submitting={pending}
+      // "Save and create another" only makes sense while creating.
+      extraActions={
+        editing ? undefined : (
+          <Button
+            type="button"
+            variant="ghost"
+            className="mr-auto"
+            disabled={!canSubmit}
+            onClick={() => submit(true)}
+          >
+            {t("transactions.form.saveAndNew")}
+          </Button>
+        )
+      }
     >
-      <div className="flex flex-col gap-4">
-        <Segmented
-          aria-label={t("transactions.form.type")}
-          value={type}
-          onChange={(v) => {
-            setType(v);
-            if (v === "INCOME") setCardId("");
-          }}
-          className="w-full"
-          variant="neutral"
-          options={[
-            {
-              value: "EXPENSE",
-              label: t("transactions.type.EXPENSE"),
-              activeClassName: "bg-destructive/15 font-semibold text-destructive",
-            },
-            {
-              value: "INCOME",
-              label: t("transactions.type.INCOME"),
-              activeClassName: "bg-success/15 font-semibold text-success",
-            },
-          ]}
-        />
-
-        {/* Sticky so the figure being typed stays on screen once the numeric
-            keyboard eats most of the viewport and the form scrolls behind it. */}
-        <div className="sticky top-0 z-10 flex flex-col items-center gap-1 bg-card py-2 max-sm:border-b">
-          <span className="text-sm text-muted-foreground">{t("transactions.form.amount")}</span>
-          <div className="flex items-center gap-1 text-accent">
-            <span className="text-2xl font-semibold">
-              {currencySymbol(currency, groupingLocaleFor(currency, i18n.language))}
-            </span>
-            <input
-              inputMode="numeric"
-              value={formatAmountDisplay(amount, groupingLocaleFor(currency, i18n.language))}
-              onChange={(e) => handleAmountChange(e.target.value)}
-              placeholder="0"
-              size={Math.max(
-                1,
-                formatAmountDisplay(amount, groupingLocaleFor(currency, i18n.language)).length,
-              )}
-              className="bg-transparent text-center text-4xl font-bold tabular-nums text-accent focus-visible:outline-none"
-              aria-label={t("transactions.form.amount")}
-            />
-          </div>
-        </div>
-
-        <Field label={t("transactions.form.description")}>
-          <Input
-            id="tx-desc"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder={t("transactions.form.descriptionPlaceholder")}
-            aria-label={t("transactions.form.description")}
+      <TransactionFormPanel
+        value={form}
+        onChange={patch}
+        accounts={accounts}
+        selectable={selectable}
+        categoryOptions={categoryOptions}
+        editing={editing}
+        // In transfer mode this locks the ORIGIN row instead of hiding the
+        // account row: the origin is the account being viewed, only the
+        // destination is a choice.
+        accountLocked={lockAccount && !!form.bankAccountId}
+        original={initial ?? null}
+        // Offered from inside an account too: the whole pair can be created
+        // from here (this account is just the source, pre-filled), and
+        // `accountLocked` above already reveals the selector in transfer mode
+        // so the origin can still be changed.
+        allowTransfer
+        attachments={
+          <AttachmentsSection
+            transactionId={initial?.id ?? createdId ?? undefined}
+            onPendingCountChange={setPendingAttachments}
+            onPendingSettled={(allSucceeded) => {
+              // A failed upload keeps the panel open showing its Retry; a clean
+              // run closes it, since the movement itself is already saved.
+              if (allSucceeded) handleOpenChange(false);
+            }}
           />
-        </Field>
-
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Field label={t("transactions.form.category")}>
-            <Combobox
-              id="tx-cat"
-              value={category}
-              onChange={setCategory}
-              options={categoryOptions}
-              placeholder={t("transactions.filters.categoryPlaceholder")}
-              aria-label={t("transactions.form.category")}
-            />
-          </Field>
-          <Field label={t("transactions.form.date")}>
-            <Input
-              id="tx-date"
-              type="date"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              aria-label={t("transactions.form.date")}
-            />
-          </Field>
-        </div>
-
-        {accountLocked ? null : (
-          <Field label={t("transactions.form.account")}>
-            <Select
-              id="tx-acc"
-              value={bankAccountId}
-              onChange={(e) => handleAccountChange(e.target.value)}
-              options={accountOptions}
-              aria-label={t("transactions.form.account")}
-            />
-          </Field>
-        )}
-
-        {showCard ? (
-          <Field label={t("transactions.form.card")}>
-            <Select
-              id="tx-card"
-              value={cardId}
-              onChange={(e) => setCardId(e.target.value)}
-              aria-label={t("transactions.form.card")}
-              options={cardOptions}
-              disabled={noCardsAvailable}
-            />
-          </Field>
-        ) : null}
-        {noCardsAvailable ? (
-          <p className="-mt-2 text-xs text-destructive">{t("transactions.form.noCardsHint")}</p>
-        ) : null}
-
-        <CollapsibleSection title={t("transactions.form.moreDetails")} className="p-3">
-          <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <Field label={t("transactions.form.emisor")}>
-                <Input
-                  id="tx-emisor"
-                  value={emisor}
-                  onChange={(e) => setEmisor(e.target.value)}
-                  aria-label={t("transactions.form.emisor")}
-                />
-              </Field>
-              <Field label={t("transactions.form.receptor")}>
-                <Input
-                  id="tx-receptor"
-                  value={receptor}
-                  onChange={(e) => setReceptor(e.target.value)}
-                  aria-label={t("transactions.form.receptor")}
-                />
-              </Field>
-            </div>
-
-            <Field label={t("transactions.form.lugar")}>
-              <Input
-                id="tx-lugar"
-                value={lugar}
-                onChange={(e) => setLugar(e.target.value)}
-                aria-label={t("transactions.form.lugar")}
-              />
-            </Field>
-
-            <Field label={t("transactions.form.observation")}>
-              <Input
-                id="tx-obs"
-                value={observation}
-                onChange={(e) => setObservation(e.target.value)}
-                aria-label={t("transactions.form.observation")}
-              />
-            </Field>
-          </div>
-        </CollapsibleSection>
-        <div className="h-2" />
-      </div>
+        }
+      />
     </FormSurface>
   );
 }

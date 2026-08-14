@@ -7,7 +7,7 @@
 export class DomainError extends Error {
   constructor(
     public readonly code: string,
-    public readonly httpStatus: 400 | 404 = 400,
+    public readonly httpStatus: 400 | 404 | 409 = 400,
     public readonly field?: string,
   ) {
     super(code);
@@ -63,5 +63,54 @@ export class CardLimitExceededError extends DomainError {
 export class CardSubLimitExceededError extends DomainError {
   constructor() {
     super("CARD_SUBLIMIT_EXCEEDED");
+  }
+}
+
+/** Transfers (`TransferPolicy`). */
+
+export class TransferSameAccountError extends DomainError {
+  constructor() {
+    super("TRANSFER_SAME_ACCOUNT", 400, "toBankAccountId");
+  }
+}
+
+/** Money doesn't land in a credit line: settling one is a statement payment,
+ * which has its own flow and its own accounting. */
+export class TransferToCreditAccountError extends DomainError {
+  constructor() {
+    super("TRANSFER_TO_CREDIT_ACCOUNT", 400, "toBankAccountId");
+  }
+}
+
+export class TransferAccountNotFoundError extends DomainError {
+  constructor() {
+    super("TRANSFER_ACCOUNT_NOT_FOUND", 404);
+  }
+}
+
+export class TransferNotFoundError extends DomainError {
+  constructor() {
+    super("TRANSFER_NOT_FOUND", 404);
+  }
+}
+
+/** Editing one leg of a transfer: it is edited as a pair, by its own endpoint. */
+export class TransferEditAsPairError extends DomainError {
+  constructor() {
+    super("TRANSFER_EDIT_AS_PAIR", 409);
+  }
+}
+
+export class InvalidAmountError extends DomainError {
+  constructor() {
+    super("INVALID_AMOUNT", 400, "amount");
+  }
+}
+
+/** An expense through a PREPAID card bigger than what the card holds. A prepaid
+ * card declines instead of lending, so this is rejected, never allowed negative. */
+export class PrepaidInsufficientBalanceError extends DomainError {
+  constructor() {
+    super("PREPAID_INSUFFICIENT_BALANCE");
   }
 }

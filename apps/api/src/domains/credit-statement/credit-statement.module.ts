@@ -6,6 +6,7 @@ import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
 import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
 import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { SyncStatementHandler } from "./application/commands/sync-statement.handler";
+import { UpdateStatementPaymentHandler } from "./application/commands/update-statement-payment.handler";
 import {
   GenerateAllDueStatementsHandler,
   GenerateStatementsHandler,
@@ -21,6 +22,7 @@ const commandHandlers = [
   GenerateStatementsHandler,
   GenerateAllDueStatementsHandler,
   SyncStatementHandler,
+  UpdateStatementPaymentHandler,
 ];
 
 /**

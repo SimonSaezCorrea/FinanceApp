@@ -43,7 +43,7 @@ model User {
   /// % of monthlyBudgetTarget at which to warn the user. Stored for the Notifications UI; no real alert is sent yet.
   budgetAlertThreshold Int?            @default(80)
 
-  country           Country?              @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  country           Country?                @relation(fields: [countryId], references: [id], onDelete: SetNull)
   bankAccounts      BankAccount[]
   transactions      Transaction[]
   installmentPlans  InstallmentPlan[]
@@ -53,6 +53,7 @@ model User {
   investments       Investment[]
   recurringExpenses RecurringExpense[]
   walletItems       WalletItemDashboard[]
+  attachments       TransactionAttachment[]
 
   @@index([countryId])
   @@map("user")
@@ -207,11 +208,19 @@ model CreditStatement {
   /// Frozen snapshot amount, set at pay time. Null/ignored while unpaid — the
   /// live amount is computed by summing linked transactions instead.
   amount            Decimal?  @db.Decimal(18, 4)
-  /// How much of this period has been paid so far. A statement can be settled in
-  /// several payments (pay the minimum now, the rest later), so this ACCUMULATES:
-  /// `paidAt` is only stamped once it reaches the period's amount, and the status
-  /// in between is PARTIALLY_PAID. Zero for a period nobody has paid into yet.
+  /// How much was actually paid for this period. A payment SETTLES the period
+  /// whatever its size (paying the minimum closes it too) — anything left over
+  /// rolls into the next period's `carriedOverAmount` instead of keeping this one
+  /// payable, which is how a real credit card works. Zero while unpaid.
   paidAmount        Decimal   @default(0) @db.Decimal(18, 4)
+  /// Debt brought forward from the PREVIOUS period, when that one was settled with
+  /// less than its total. The period's total owed is its linked transactions plus
+  /// this — the figure is kept here rather than as a fake movement so that
+  /// "Sincronizar pagos" (which recomputes from real movements) can't erase it.
+  carriedOverAmount Decimal   @default(0) @db.Decimal(18, 4)
+  /// The period this one's leftover was rolled into (set at pay time when the
+  /// payment didn't cover everything). Null when the period was paid in full.
+  carriedToId       String?
   /// The bank account the payment was made from (never the credit account itself).
   paidFromAccountId String?
   /// The real EXPENSE transaction created on `paidFromAccount` at pay time.
@@ -230,24 +239,30 @@ model CreditStatement {
 }
 
 model CardAccount {
-  id          String   @id @default(cuid())
-  accountId   String
-  userId      String
-  name        String
-  kind        CardKind
+  id                    String   @id @default(cuid())
+  accountId             String
+  userId                String
+  name                  String
+  kind                  CardKind
   /// Only the last 4 digits are ever stored. Full PAN never transmitted/persisted.
-  last4       String
-  expiryMonth Int
-  expiryYear  Int
+  last4                 String
+  expiryMonth           Int
+  expiryYear            Int
   /// Whether the card is active (blocked/expired cards can be marked inactive).
-  isActive    Boolean  @default(true)
+  isActive              Boolean  @default(true)
   /// The first CREDIT-kind card added to the account (set automatically, never
   /// user-toggled). Its limit IS the account's own creditLimit/creditUsedInitial —
   /// edited from either side, same underlying value, no CardLimit row of its own.
   /// At most one true per account; irrelevant for DEBIT/PREPAID cards.
-  isPrimary   Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  isPrimary             Boolean  @default(false)
+  /// PREPAID cards only: the card's OWN pot of money. A prepaid card holds funds
+  /// instead of a credit line — loading it is an expense on the account, and
+  /// spending with it draws down this balance (not the account's currentBalance,
+  /// which the load already moved). Null for CREDIT/DEBIT.
+  prepaidInitialBalance Decimal? @db.Decimal(18, 4)
+  prepaidBalance        Decimal? @db.Decimal(18, 4)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   account      BankAccount           @relation(fields: [accountId], references: [id], onDelete: Cascade)
   walletItems  WalletItemDashboard[]
@@ -320,17 +335,24 @@ model Transaction {
   /// ONCE at creation (whichever statement was OPEN for the account at that moment),
   /// never reassigned by date on edit. See `CreditStatement`.
   creditStatementId String?
+  /// Ties the two rows of a transfer together (EXPENSE on the source account +
+  /// INCOME on the destination). `null` on ordinary income/expense. A row that
+  /// carries it never has a card nor a credit statement (FR-019), and income/expense
+  /// AGGREGATES must exclude these rows (`EXCLUDE_TRANSFERS`) — money moved between
+  /// the user's own accounts is neither.
+  transferGroupId   String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
-  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bankAccount      BankAccount?     @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
-  card             CardAccount?     @relation(fields: [cardId], references: [id], onDelete: SetNull)
-  installmentPlan  InstallmentPlan? @relation(fields: [installmentPlanId], references: [id], onDelete: SetNull)
-  creditStatement  CreditStatement? @relation("CreditStatementLinkedTransactions", fields: [creditStatementId], references: [id], onDelete: SetNull)
+  user             User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount      BankAccount?            @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  card             CardAccount?            @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  installmentPlan  InstallmentPlan?        @relation(fields: [installmentPlanId], references: [id], onDelete: SetNull)
+  creditStatement  CreditStatement?        @relation("CreditStatementLinkedTransactions", fields: [creditStatementId], references: [id], onDelete: SetNull)
   /// The (at most one) CreditStatement this transaction was the payment FOR (reverse
   /// of `CreditStatement.paidTransaction`) — distinct from `creditStatement` above.
   paidForStatement CreditStatement?
+  attachments      TransactionAttachment[]
 
   @@index([userId])
   @@index([bankAccountId])
@@ -339,7 +361,30 @@ model Transaction {
   @@index([occurredAt])
   @@index([installmentPlanId])
   @@index([category])
+  @@index([transferGroupId])
   @@map("transaction")
+}
+
+/// A receipt/voucher file attached to a movement. The bytes live in object storage
+/// (see `ObjectStoragePort`); this table only holds the pointer + metadata.
+model TransactionAttachment {
+  id            String   @id @default(cuid())
+  userId        String
+  transactionId String
+  /// `u/<userId>/t/<transactionId>/<attachmentId>-<slug>` — derived from the id, not
+  /// from the uploaded name, so two files named alike can coexist on one movement.
+  storageKey    String   @unique
+  fileName      String
+  contentType   String
+  sizeBytes     Int
+  createdAt     DateTime @default(now())
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([transactionId])
+  @@map("transaction-attachment")
 }
 
 model InstallmentPlan {

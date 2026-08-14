@@ -16,6 +16,7 @@ import { CurrencyModule } from "./domains/currency/currency.module";
 import { FinancialInstitutionModule } from "./domains/financial-institution/financial-institution.module";
 import { SavingsGoalModule } from "./domains/savings-goal/savings-goal.module";
 import { TransactionModule } from "./domains/transaction/transaction.module";
+import { TransactionAttachmentModule } from "./domains/transaction-attachment/transaction-attachment.module";
 import { WalletItemDashboardModule } from "./domains/wallet-item-dashboard/wallet-item-dashboard.module";
 import { HandlerLoggingInterceptor } from "./infra/cqrs/handler-logging.interceptor";
 import { CronModule } from "./infra/cron/cron.module";
@@ -30,6 +31,7 @@ import { PrismaModule } from "./infra/prisma/prisma.module";
     BankAccountModule,
     CreditStatementModule,
     TransactionModule,
+    TransactionAttachmentModule,
     InstallmentPlanModule,
     DebtModule,
     SavingsGoalModule,

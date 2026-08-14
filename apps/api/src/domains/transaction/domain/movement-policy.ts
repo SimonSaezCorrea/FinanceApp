@@ -7,6 +7,7 @@ import {
   CardNotAllowedError,
   CardRequiredError,
   CardSubLimitExceededError,
+  PrepaidInsufficientBalanceError,
 } from "./errors";
 
 /** Effective movement fields used to validate rules + enforce credit limits. */
@@ -32,6 +33,10 @@ export interface AccountContext {
 export interface CardContext {
   id: string;
   kind: accounts.CardKind;
+  /** PREPAID only: what the card currently holds. A prepaid card spends its own
+   * money, so this — not the account's balance, and not a credit line — is what
+   * bounds an expense through it. Null for CREDIT/DEBIT. */
+  prepaidBalance?: string | null;
 }
 
 export interface CardLimitContext {
@@ -73,6 +78,10 @@ export class MovementPolicy {
     cardLimit: CardLimitContext | null,
     cardUsage: { income: string; expense: string },
     poolOffset = "0",
+    /** On an edit, what this same movement already took off the prepaid card —
+     * so re-saving it doesn't check against a balance that still includes its own
+     * old charge. */
+    prepaidOffset = "0",
   ): string {
     if (m.type === "INCOME") {
       if (m.cardId) throw new CardNotAllowedError();
@@ -85,6 +94,10 @@ export class MovementPolicy {
       this.assertWithinCardLimit(m, cardLimit, cardUsage);
     } else if (m.cardId) {
       if (!card) throw new CardAccountMismatchError();
+      if (card.kind === "PREPAID") {
+        this.assertWithinPrepaidBalance(m, card, prepaidOffset);
+        return "0";
+      }
       if (card.kind === "CREDIT") {
         this.assertWithinCardLimit(m, cardLimit, cardUsage);
       } else {
@@ -126,6 +139,35 @@ export class MovementPolicy {
     }
     if (!card || card.kind !== "CREDIT") return "0";
     return cardLimit ? "0" : m.amount;
+  }
+
+  /**
+   * A prepaid card can only spend what it holds. Rejected rather than allowed to go
+   * negative: a prepaid card physically declines, it does not lend.
+   */
+  static assertWithinPrepaidBalance(
+    m: { type: transactions.TransactionType; amount: string },
+    card: CardContext,
+    prepaidOffset = "0",
+  ): void {
+    if (m.type !== "EXPENSE") return;
+    const available = toMoney(card.prepaidBalance ?? "0").plus(toMoney(prepaidOffset));
+    if (toMoney(m.amount).greaterThan(available)) {
+      throw new PrepaidInsufficientBalanceError();
+    }
+  }
+
+  /**
+   * How a movement moves a PREPAID card's own balance: an expense through it
+   * draws it down, nothing else touches it (a load goes through its own endpoint).
+   * "0" for every other movement — including one on a CREDIT/DEBIT card.
+   */
+  static prepaidDelta(
+    m: { type: transactions.TransactionType; amount: string },
+    card: CardContext | null,
+  ): string {
+    if (!card || card.kind !== "PREPAID" || m.type !== "EXPENSE") return "0";
+    return subtractMoney("0", m.amount);
   }
 
   /**

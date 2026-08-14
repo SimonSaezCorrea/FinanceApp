@@ -24,6 +24,10 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     saveNew: vi.fn(),
     saveUpdate: vi.fn(),
     removeWithCreditAdjustment: vi.fn(),
+    findTransferGroup: vi.fn(async () => null),
+    saveTransferPair: vi.fn(),
+    updateTransferPair: vi.fn(),
+    removeTransferPair: vi.fn(async () => true),
     ...overrides,
   };
 }
@@ -45,6 +49,7 @@ function txFixture(overrides: Partial<Parameters<typeof Transaction.fromPersiste
     bankAccountId: "aC",
     cardId: "cC",
     installmentPlanId: null,
+    transferGroupId: null,
     creditStatementId: "stmt1",
     createdAt: new Date("2026-03-01"),
     updatedAt: new Date("2026-03-01"),
@@ -63,6 +68,8 @@ const card = (kind: CardProps["kind"]): CardProps => ({
   expiryMonth: 12,
   expiryYear: 2030,
   isActive: true,
+  prepaidBalance: kind === "PREPAID" ? "50000" : null,
+  prepaidInitialBalance: kind === "PREPAID" ? "50000" : null,
   isPrimary: kind === "CREDIT",
   limits: [],
 });
@@ -127,6 +134,8 @@ describe("UpdateTransactionHandler", () => {
         { accountId: "aC", delta: "100000.0000" },
         { accountId: "aC", delta: "-250000.0000" },
       ],
+      // CREDIT card on both sides: no prepaid pot moves.
+      [],
     );
   });
 
@@ -160,6 +169,13 @@ describe("UpdateTransactionHandler", () => {
       },
     );
     await handler.execute(new UpdateTransactionCommand("u1", "tX", { amount: "250000" }));
-    expect(saveUpdate).toHaveBeenCalledWith("u1", "tX", expect.anything(), [], expect.anything());
+    expect(saveUpdate).toHaveBeenCalledWith(
+      "u1",
+      "tX",
+      expect.anything(),
+      [],
+      expect.anything(),
+      [],
+    );
   });
 });

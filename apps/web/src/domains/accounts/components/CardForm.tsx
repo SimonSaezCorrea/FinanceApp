@@ -106,6 +106,12 @@ export function CardForm({
   const [last4Error, setLast4Error] = useState<string | null>(null);
   const [expiryError, setExpiryError] = useState<string | null>(null);
   const [limitError, setLimitError] = useState<string | null>(null);
+  // A prepaid card holds money instead of a credit line, so this is its
+  // equivalent of a limit: what is already loaded on it. Editing it changes the
+  // SEED only — the live balance moves through loads and spending, never a form.
+  const [prepaidInitialBalance, setPrepaidInitialBalance] = useState(
+    initial?.prepaidInitialBalance ?? "",
+  );
 
   const parsedDraftExpiry = parseExpiry(expiry);
   // Reported from an effect, not from each setter: every field feeds the same
@@ -130,6 +136,7 @@ export function CardForm({
     onDraftChange,
   ]);
 
+  const isPrepaid = kind === "PREPAID";
   const willBePrimary = kind === "CREDIT" && !hasExistingPrimary;
   const isAdditionalCredit = kind === "CREDIT" && hasExistingPrimary;
 
@@ -196,6 +203,9 @@ export function CardForm({
       isActive,
       usesAccountPool: poolFlag,
       limits: cardLimits,
+      // Sent only for a prepaid card: the backend rejects it on CREDIT/DEBIT
+      // rather than ignoring it (PREPAID_BALANCE_NOT_ALLOWED).
+      prepaidInitialBalance: isPrepaid ? prepaidInitialBalance.trim() || "0" : undefined,
     });
   }
 
@@ -248,6 +258,27 @@ export function CardForm({
         />
       </Field>
       <p className="-mt-1 text-xs text-muted-foreground">{t("cards.form.last4Hint")}</p>
+
+      {isPrepaid ? (
+        <div className="flex flex-col gap-2 rounded-md border p-3">
+          <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            {t("cards.kind.PREPAID")}
+          </span>
+          <p className="-mt-1 text-xs text-muted-foreground">{t("cards.form.prepaidHint")}</p>
+          <Field label={t("cards.form.prepaidBalance", { currency: accountCurrency })}>
+            <Input
+              id="card-prepaid-balance"
+              type="number"
+              inputMode="decimal"
+              min="0"
+              step="0.01"
+              placeholder="0"
+              value={prepaidInitialBalance}
+              onChange={(e) => setPrepaidInitialBalance(e.target.value)}
+            />
+          </Field>
+        </div>
+      ) : null}
 
       {willBePrimary ? (
         <div className="flex flex-col gap-2 rounded-md border p-3">

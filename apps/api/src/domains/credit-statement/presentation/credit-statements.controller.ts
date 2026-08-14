@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 
 import { accounts } from "@finance/contracts";
@@ -11,6 +11,7 @@ import { accountIdParamsSchema } from "../../bank-account/presentation/dto/accou
 import { GenerateStatementsCommand } from "../application/commands/generate-statements.command";
 import { PayCreditStatementCommand } from "../application/commands/pay-credit-statement.command";
 import { SyncStatementCommand } from "../application/commands/sync-statement.command";
+import { UpdateStatementPaymentCommand } from "../application/commands/update-statement-payment.command";
 import { ListCreditStatementsQuery } from "../application/queries/list-credit-statements.query";
 import { statementParamsSchema } from "./dto/statement.params";
 
@@ -62,6 +63,19 @@ export class CreditStatementsController {
         body.paidAt ? new Date(body.paidAt) : undefined,
         body.reference,
       ),
+    );
+  }
+
+  /** Correct what was PAID on a settled period (not its amount — that is `sync`). */
+  @Patch(":id/credit-statements/:statementId/payment")
+  updateStatementPayment(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(statementParamsSchema)) params: { id: string; statementId: string },
+    @Body(new ZodValidationPipe(accounts.updateStatementPaymentSchema))
+    body: accounts.UpdateStatementPayment,
+  ): Promise<accounts.CreditStatement> {
+    return this.commandBus.execute(
+      new UpdateStatementPaymentCommand(user.id, params.id, params.statementId, body.amount),
     );
   }
 

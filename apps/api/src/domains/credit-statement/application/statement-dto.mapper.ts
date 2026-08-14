@@ -22,7 +22,11 @@ export function toStatementDto(
     minimumPercent: string | null;
   },
 ): accounts.CreditStatement {
-  const remaining = subtractMoney(input.amount, statement.paidAmount);
+  // A settled period owes nothing, even when the payment didn't cover it all:
+  // the shortfall moved to the next period (`carriedToId`) and is owed there.
+  const remaining = statement.paidAt
+    ? moneyToString("0")
+    : subtractMoney(input.amount, statement.paidAmount);
   return {
     id: statement.id,
     accountId: statement.accountId,
@@ -32,6 +36,8 @@ export function toStatementDto(
     paidAt: statement.paidAt?.toISOString() ?? null,
     amount: moneyToString(input.amount),
     paidAmount: statement.paidAmount,
+    carriedOverAmount: statement.carriedOverAmount,
+    carriedToId: statement.carriedToId,
     remainingAmount: toMoney(remaining).isNegative() ? moneyToString("0") : remaining,
     minimumAmount: minimumFor(input.amount, input.minimumPercent),
     breakdown: {

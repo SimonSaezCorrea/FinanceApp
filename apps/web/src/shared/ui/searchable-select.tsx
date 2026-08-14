@@ -1,24 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 
+import { anchoredPanelRect, type PanelRect } from "../lib/anchoredPanel";
 import { cn } from "../lib/cn";
 import { Input } from "./input";
 
 export interface SearchableSelectOption {
   value: string;
   label: string;
-}
-
-interface Rect {
-  /** Set when the panel hangs BELOW the control; `bottom` when it flips above. */
-  top?: number;
-  bottom?: number;
-  left: number;
-  width: number;
-  /** How much room the chosen side actually has, so a flipped panel that still
-   *  doesn't fit scrolls instead of running off the screen. */
-  maxHeight: number;
 }
 
 interface Props {
@@ -36,6 +26,12 @@ interface Props {
   displayValue?: string;
   disabled?: boolean;
   className?: string;
+  /**
+   * `control` (default) is the bordered form field. `inline` is the label/value
+   * row form: no border, no background, right-aligned — the value reads as text
+   * with a chevron, and only the panel says it is a picker.
+   */
+  variant?: "control" | "inline";
   "aria-label"?: string;
 }
 
@@ -47,22 +43,6 @@ interface Props {
  * are in instead of assuming one: assuming wrong throws the panel across the
  * screen, which is exactly what a stacked panel made visible.
  */
-/** Room a dropdown wants below the control before it gives up and flips up. */
-const MIN_PANEL_HEIGHT = 200;
-/** Its normal cap; a flipped panel may get less if that's all there is. */
-const MAX_PANEL_HEIGHT = 240;
-
-function establishesContainingBlock(el: Element): boolean {
-  const style = getComputedStyle(el);
-  return (
-    style.transform !== "none" ||
-    style.filter !== "none" ||
-    style.perspective !== "none" ||
-    style.willChange.includes("transform") ||
-    style.contain.includes("paint")
-  );
-}
-
 /**
  * A `<select>`-like control for long option lists (banks, currencies): a
  * native `<select>`'s popup can't be restyled or height-capped cross-browser,
@@ -86,49 +66,27 @@ export function SearchableSelect({
   displayValue,
   disabled,
   className,
+  variant = "control",
   "aria-label": ariaLabel,
 }: Readonly<Props>) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [rect, setRect] = useState<Rect | null>(null);
+  const [rect, setRect] = useState<PanelRect | null>(null);
   const [portalTarget, setPortalTarget] = useState<Element | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
+  // See Combobox: a never-seen field name keeps Chrome's form history from
+  // drawing its own suggestions on top of this panel.
+  const historylessName = `search-${useId()}`;
   const panelRef = useRef<HTMLDivElement>(null);
 
   function updatePosition() {
     const el = containerRef.current;
     if (!el) return;
-    const target = el.closest('[role="dialog"]') ?? document.body;
-    const controlRect = el.getBoundingClientRect();
-    // Only subtract the dialog's own offset when the dialog is what `fixed`
-    // resolves against; otherwise these are plain viewport coordinates.
-    const originRect =
-      target !== document.body && establishesContainingBlock(target)
-        ? target.getBoundingClientRect()
-        : null;
-    const origin = originRect ?? { top: 0, left: 0 };
-    // When `fixed` resolves against the dialog, a bottom-anchored panel measures
-    // from the dialog's bottom edge, not the window's.
-    const originBottom = originRect ? globalThis.innerHeight - originRect.bottom : null;
+    // Placement lives in one place for every portaled panel (see anchoredPanel).
+    const { rect: next, portalTarget: target } = anchoredPanelRect(el);
     setPortalTarget(target);
-    // Flip up when the space below can't hold a usable list and there's more
-    // room above — a picker that opens off the bottom of the window is unusable
-    // exactly where it matters, at the last field of a long form.
-    const gap = 4;
-    const spaceBelow = globalThis.innerHeight - controlRect.bottom - gap;
-    const spaceAbove = controlRect.top - gap;
-    const flipUp = spaceBelow < MIN_PANEL_HEIGHT && spaceAbove > spaceBelow;
-    setRect({
-      ...(flipUp
-        ? // Anchored by its bottom edge, so the panel doesn't need to be measured
-          // before it can be placed.
-          { bottom: globalThis.innerHeight - controlRect.top + gap - (originBottom ?? 0) }
-        : { top: controlRect.bottom + gap - origin.top }),
-      left: controlRect.left - origin.left,
-      width: controlRect.width,
-      maxHeight: Math.min(MAX_PANEL_HEIGHT, flipUp ? spaceAbove : spaceBelow),
-    });
+    setRect(next);
   }
 
   function openPanel() {
@@ -160,7 +118,6 @@ export function SearchableSelect({
       window.removeEventListener("scroll", updatePosition, true);
       window.removeEventListener("resize", updatePosition);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- updatePosition is stable enough for this effect's purpose
   }, [open]);
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -185,9 +142,11 @@ export function SearchableSelect({
         onClick={() => (open ? setOpen(false) : openPanel())}
         aria-label={ariaLabel}
         className={cn(
-          "flex h-10 w-full items-center justify-between gap-2 rounded-md border border-input bg-background px-3 text-left text-sm",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          "disabled:cursor-not-allowed disabled:opacity-50",
+          "flex w-full items-center gap-2 text-sm",
+          variant === "control"
+            ? "h-10 justify-between rounded-md border border-input bg-background px-3 text-left focus-visible:ring-2 focus-visible:ring-ring"
+            : "h-8 justify-end text-right font-medium",
+          "focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
         )}
       >
         <span className={cn("truncate", !selectedLabel && "text-muted-foreground")}>
@@ -218,7 +177,11 @@ export function SearchableSelect({
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder={searchPlaceholder}
+                  name={historylessName}
                   autoComplete="off"
+                  spellCheck={false}
+                  data-1p-ignore
+                  data-lpignore="true"
                   className="h-8"
                 />
               </div>

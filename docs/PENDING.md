@@ -211,3 +211,61 @@ límite de plan que no existe.
 opcional desde `Transaction` (migrando el string libre existente), pantalla de gestión
 (crear/renombrar/fusionar/eliminar) y actualizar el combobox para listar categorías reales en vez de
 strings derivados del historial.
+
+## Movimientos — traspasos, comprobantes y paneles (specs/010)
+
+### 3. Comprobantes sin almacenamiento configurado
+
+Los adjuntos (`transaction-attachment`, dominio 22) guardan el archivo en un bucket S3-compatible
+detrás de `ObjectStoragePort`. **Sin `S3_BUCKET` ni credenciales el `S3ObjectStorageAdapter` queda
+inerte**: `isConfigured()` es `false` y subir, firmar URL o borrar responden `503
+ATTACHMENTS_UNAVAILABLE` (el listado sigue funcionando y devuelve lo que haya en la tabla, así que el
+panel nunca se rompe). Es la decisión explícita de la spec ("falla y ya", sin bandera de capacidad).
+
+**En la UI el botón está bloqueado**: mientras no exista bucket, "Elegir archivo" se muestra
+deshabilitado con el texto **"Próximamente"** (y su explicación como tooltip), porque ofrecer el
+selector solo produciría un `503` que el usuario no puede resolver. El interruptor es la constante
+`ATTACHMENT_UPLOAD_ENABLED` en `apps/web/src/domains/transactions/components/AttachmentsSection.tsx`:
+ponerla en `true` reactiva la subida completa (el listado, la apertura por URL firmada y el borrado ya
+están implementados y no dependen de ella). El backend está completo y probado de punta a punta.
+
+**Para hacerlo real**: aprovisionar un bucket (AWS S3, MinIO, R2 o Backblaze), completar las seis
+variables de `apps/api/.env.example` (`S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`,
+`S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`). No hace falta ningún cambio de código.
+
+**Limitación conocida asociada**: el borrado del OBJETO ocurre después de la transacción de base de
+datos; si el bucket falla en ese momento el archivo queda huérfano y solo se registra en el log
+(`orphaned object left in the bucket: <key>`). No existe todavía un job de limpieza que reconcilie
+claves huérfanas contra la tabla.
+
+### 4. "Saldo tras el movimiento" con cobertura parcial
+
+La fila **Saldo tras el movimiento** del panel de detalle se calcula en el cliente (no hay endpoint de
+saldo histórico por movimiento) y **muestra "—"** — nunca un número aproximado — cuando no puede
+sostenerse: si la cuenta no lleva saldo (`CREDIT_LINE`), si hay un filtro de fecha activo (un rango
+recortado esconde movimientos posteriores que sí afectan el saldo), o si la lista mezcla cuentas (la
+vista de Movimientos), donde los deltas de esta cuenta quedan detrás de filas de otras.
+
+**Para hacerlo real**: un `runningBalance` por fila devuelto por el API (calculado en Postgres con una
+ventana sobre `occurredAt`), que además sobreviviría a cualquier filtro.
+
+### 5. Traspasos y agregados de terceros
+
+La exclusión de traspasos de los agregados de ingreso/gasto está centralizada en el predicado
+`EXCLUDE_TRANSFERS` (API, `transaction/application/queries/transaction-list-filter.ts`) y en
+`excludeTransfers` (web, `domains/dashboard/lib/metrics.ts`). **Cualquier agregado nuevo de
+ingreso/gasto debe aplicarlo**: al no cambiar el enum `TransactionType`, ninguna suma lo excluye por sí
+sola.
+
+### 6. Borrar la recarga de una tarjeta prepago no devuelve el saldo a la tarjeta
+
+La recarga (`POST /accounts/:id/cards/:cardId/load`) crea un gasto en la cuenta **sin `cardId`** — a
+propósito: con tarjeta sería indistinguible de un gasto hecho CON la prepago, que es justamente el que
+no debe mover el saldo de la cuenta. La consecuencia es que ese movimiento no está ligado a la tarjeta:
+si se **edita o borra desde Movimientos**, la cuenta recupera su saldo pero el saldo de la tarjeta
+queda como estaba (queda dinero "de más" en la prepago). Los gastos hechos con la prepago sí revierten
+su saldo al editarse/borrarse — esos llevan `cardId`.
+
+**Para hacerlo real**: una columna que marque el movimiento como recarga de una tarjeta concreta
+(p. ej. `prepaidLoadCardId`, distinta de `cardId`), que los handlers de editar/borrar lean para mover
+el saldo de la tarjeta igual que hoy mueven el de la cuenta.

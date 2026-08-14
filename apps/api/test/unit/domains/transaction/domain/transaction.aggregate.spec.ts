@@ -51,6 +51,7 @@ describe("Transaction.applyUpdate", () => {
       bankAccountId: "a1",
       cardId: "c1",
       installmentPlanId: null,
+      transferGroupId: null,
       creditStatementId: "st1",
       createdAt: new Date("2026-01-01"),
       updatedAt: new Date("2026-01-01"),

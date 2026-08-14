@@ -1,9 +1,14 @@
-import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 
+import { anchoredPanelRect, type PanelRect } from "../lib/anchoredPanel";
 import { cn } from "../lib/cn";
 import { Input } from "./input";
+
+/** Enough room for the icon + a long category on one line ("Pago facturación"). */
+const PANEL_MIN_WIDTH = 240;
 
 interface ComboboxProps {
   id?: string;
@@ -11,43 +16,22 @@ interface ComboboxProps {
   onChange: (value: string) => void;
   options: string[];
   placeholder?: string;
+  /**
+   * `control` (default) is the bordered form field. `inline` is the label/value
+   * row form: no border, no background, right-aligned text with a chevron —
+   * only the panel says it is a picker.
+   */
+  variant?: "control" | "inline";
+  /**
+   * Leads the control (icon · text · ▾) as an adornment for the CURRENT value —
+   * e.g. the category's icon. In `inline` the input shrink-wraps its text so the
+   * icon stays next to it instead of stranded at the far side of the row.
+   */
+  adornment?: ReactNode;
+  /** Renders an option in the panel; defaults to its plain text. */
+  renderOption?: (option: string) => ReactNode;
   className?: string;
   "aria-label"?: string;
-}
-
-interface Rect {
-  /** Set when the panel hangs BELOW the control; `bottom` when it flips above. */
-  top?: number;
-  bottom?: number;
-  left: number;
-  width: number;
-  /** How much room the chosen side actually has, so a flipped panel that still
-   *  doesn't fit scrolls instead of running off the screen. */
-  maxHeight: number;
-}
-
-/**
- * A `fixed` child is positioned against the VIEWPORT — unless an ancestor
- * establishes a containing block (a transform, filter, or will-change does it).
- * A Dialog's content has one WHILE its open animation runs and none once it
- * settles, so the panel's coordinates have to say which frame of reference they
- * are in instead of assuming one: assuming wrong throws the panel across the
- * screen, which is exactly what a stacked panel made visible.
- */
-/** Room a dropdown wants below the control before it gives up and flips up. */
-const MIN_PANEL_HEIGHT = 200;
-/** Its normal cap; a flipped panel may get less if that's all there is. */
-const MAX_PANEL_HEIGHT = 240;
-
-function establishesContainingBlock(el: Element): boolean {
-  const style = getComputedStyle(el);
-  return (
-    style.transform !== "none" ||
-    style.filter !== "none" ||
-    style.perspective !== "none" ||
-    style.willChange.includes("transform") ||
-    style.contain.includes("paint")
-  );
 }
 
 /**
@@ -76,6 +60,9 @@ export function Combobox({
   onChange,
   options,
   placeholder,
+  variant = "control",
+  adornment,
+  renderOption,
   className,
   "aria-label": ariaLabel,
 }: Readonly<ComboboxProps>) {
@@ -84,49 +71,30 @@ export function Combobox({
   // every open so re-opening after a selection shows all options again instead
   // of just the one that happens to already be in the field.
   const [query, setQuery] = useState("");
-  const [rect, setRect] = useState<Rect | null>(null);
+  const [rect, setRect] = useState<PanelRect | null>(null);
   const [portalTarget, setPortalTarget] = useState<Element | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  // Chrome keys its form-history suggestions on the field's name/id and ignores
+  // `autocomplete="off"` for plain text inputs. Those suggestions draw OVER this
+  // component's own panel — same words, no icons, native styling — which reads
+  // as "the list lost its icons". A name it has never seen has no history.
+  const historylessName = `combobox-${useId()}`;
 
   function updatePosition() {
     const el = containerRef.current;
     if (!el) return;
-    const target = el.closest('[role="dialog"]') ?? document.body;
-    const inputRect = el.getBoundingClientRect();
-    // `position: fixed` resolves against the viewport UNLESS an ancestor has a
-    // transform (the Dialog's positioner does, to center itself) — in that case
-    // the transformed ancestor becomes the containing block instead, so offsets
-    // must be relative to IT rather than the viewport.
-    // Only subtract the dialog's own offset when the dialog is what `fixed`
-    // resolves against; otherwise these are plain viewport coordinates.
-    const originRect =
-      target !== document.body && establishesContainingBlock(target)
-        ? target.getBoundingClientRect()
-        : null;
-    const origin = originRect ?? { top: 0, left: 0 };
-    // When `fixed` resolves against the dialog, a bottom-anchored panel measures
-    // from the dialog's bottom edge, not the window's.
-    const originBottom = originRect ? globalThis.innerHeight - originRect.bottom : null;
+    // Placement lives in one place for every portaled panel (see anchoredPanel).
+    // The `inline` control shrink-wraps its text, so its own width says nothing
+    // about how long the options are — give the panel a floor and hang it from
+    // the control's right edge (the value it belongs to is right-aligned too).
+    const { rect: next, portalTarget: target } = anchoredPanelRect(
+      el,
+      variant === "inline" ? { minWidth: PANEL_MIN_WIDTH, align: "end" } : {},
+    );
     setPortalTarget(target);
-    // Flip up when the space below can't hold a usable list and there's more
-    // room above — a picker that opens off the bottom of the window is unusable
-    // exactly where it matters, at the last field of a long form.
-    const gap = 4;
-    const spaceBelow = globalThis.innerHeight - inputRect.bottom - gap;
-    const spaceAbove = inputRect.top - gap;
-    const flipUp = spaceBelow < MIN_PANEL_HEIGHT && spaceAbove > spaceBelow;
-    setRect({
-      ...(flipUp
-        ? // Anchored by its bottom edge, so the panel doesn't need to be measured
-          // before it can be placed.
-          { bottom: globalThis.innerHeight - inputRect.top + gap - (originBottom ?? 0) }
-        : { top: inputRect.bottom + gap - origin.top }),
-      left: inputRect.left - origin.left,
-      width: inputRect.width,
-      maxHeight: Math.min(MAX_PANEL_HEIGHT, flipUp ? spaceAbove : spaceBelow),
-    });
+    setRect(next);
   }
 
   function openPanel() {
@@ -170,43 +138,84 @@ export function Combobox({
     setOpen(false);
   }
 
+  const inline = variant === "inline";
+  const field = (
+    <Input
+      id={id}
+      ref={inputRef}
+      value={value}
+      onChange={(e) => {
+        onChange(e.target.value);
+        setQuery(e.target.value);
+        setOpen(true);
+      }}
+      onFocus={openPanel}
+      placeholder={placeholder}
+      name={historylessName}
+      autoComplete="off"
+      spellCheck={false}
+      // Password managers otherwise offer to fill this too.
+      data-1p-ignore
+      data-lpignore="true"
+      aria-label={ariaLabel}
+      // Shrink-to-fit so the icon before it hugs the text instead of being
+      // stranded at the far side of the row. `field-sizing:content` is exact
+      // where it exists; `size` (in characters) is the fallback everywhere else,
+      // hence the deliberate lack of extra padding.
+      size={inline ? Math.max(1, (value || placeholder || "").length) : undefined}
+      className={cn(
+        inline
+          ? // Reads as the row's value until it is focused; the chevron alone
+            // signals there is a list behind it.
+            "h-8 w-auto min-w-0 max-w-full border-0 bg-transparent px-0 text-right font-medium shadow-none [field-sizing:content] focus-visible:outline-none focus-visible:ring-0"
+          : "pr-8",
+      )}
+    />
+  );
+
+  const chevron = (
+    <button
+      type="button"
+      tabIndex={-1}
+      onClick={() => {
+        // Clicking this button (even with tabIndex={-1}) still moves DOM focus
+        // to it. Only re-focus the input when OPENING — doing it unconditionally
+        // re-focuses the input while closing too, which fires the input's
+        // onFocus handler and immediately re-opens the panel we just closed.
+        if (open) {
+          setOpen(false);
+        } else {
+          openPanel();
+          inputRef.current?.focus();
+        }
+      }}
+      className={cn(
+        "flex shrink-0 text-muted-foreground",
+        !inline && "absolute right-2 top-1/2 -translate-y-1/2",
+      )}
+      aria-label="Toggle options"
+    >
+      <ChevronDown className="h-4 w-4" aria-hidden />
+    </button>
+  );
+
   return (
     <div ref={containerRef} className={cn("relative", className)}>
-      <Input
-        id={id}
-        ref={inputRef}
-        value={value}
-        onChange={(e) => {
-          onChange(e.target.value);
-          setQuery(e.target.value);
-          setOpen(true);
-        }}
-        onFocus={openPanel}
-        placeholder={placeholder}
-        autoComplete="off"
-        aria-label={ariaLabel}
-        className="pr-8"
-      />
-      <button
-        type="button"
-        tabIndex={-1}
-        onClick={() => {
-          // Clicking this button (even with tabIndex={-1}) still moves DOM focus
-          // to it. Only re-focus the input when OPENING — doing it unconditionally
-          // re-focuses the input while closing too, which fires the input's
-          // onFocus handler and immediately re-opens the panel we just closed.
-          if (open) {
-            setOpen(false);
-          } else {
-            openPanel();
-            inputRef.current?.focus();
-          }
-        }}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground"
-        aria-label="Toggle options"
-      >
-        <ChevronDown className="h-4 w-4" aria-hidden />
-      </button>
+      {inline ? (
+        // icon · text · ▾, right-aligned as one group.
+        <span className="flex items-center justify-end gap-1.5 text-muted-foreground">
+          {adornment ? (
+            <span className="pointer-events-none flex shrink-0">{adornment}</span>
+          ) : null}
+          {field}
+          {chevron}
+        </span>
+      ) : (
+        <>
+          {field}
+          {chevron}
+        </>
+      )}
 
       {open && options.length > 0 && rect && portalTarget
         ? createPortal(
@@ -231,11 +240,14 @@ export function Combobox({
                     type="button"
                     onClick={() => select(o)}
                     className={cn(
-                      "w-full rounded-sm px-2.5 py-1.5 text-left text-sm hover:bg-muted",
+                      // `min-w-0` + a non-shrinking leading icon: the label is
+                      // what gives when the panel is narrow, never the icon
+                      // (a squashed icon reads as a missing one).
+                      "flex w-full min-w-0 items-center gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm hover:bg-muted [&>svg]:shrink-0",
                       o === value && "bg-muted font-medium",
                     )}
                   >
-                    {o}
+                    {renderOption ? renderOption(o) : o}
                   </button>
                 ))
               ) : (

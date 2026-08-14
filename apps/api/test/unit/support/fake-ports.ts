@@ -76,6 +76,8 @@ export function fakeCreditStatementRepo(
     findOpenForAccount: vi.fn(),
     listForAccount: vi.fn(),
     findOrCreateOpenForAccount: vi.fn(async () => ({ id: "st_open" })),
+    findOrCreateCarryOverTargetWithTx: vi.fn(async () => ({ id: "st_next" })),
+    addCarriedOverWithTx: vi.fn(),
     isPaid: vi.fn(async () => false),
     save: vi.fn(),
     saveWithTx: vi.fn(),
@@ -95,6 +97,7 @@ export function fakeCardAccountRepo(
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
+    incrementPrepaidBalanceWithTx: vi.fn(),
     ...overrides,
   };
 }

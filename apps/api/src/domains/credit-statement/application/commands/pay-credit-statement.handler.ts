@@ -38,8 +38,11 @@ interface Context {
   fromAccount: BankAccount;
   /** What THIS payment settles (the whole remaining balance, or a part of it). */
   amount: string;
-  /** The period's full amount, frozen into the statement once it's settled. */
+  /** The period's full amount (its movements + what the previous period carried
+   * in), frozen into the statement once it's settled. */
   periodAmount: string;
+  /** Left unpaid by this payment; rolled into the next period at persist time. */
+  carryOver: string;
   breakdown: { purchases: string; installments: string; installmentCount: number };
   paymentTransactionId: string;
   now: Date;
@@ -92,7 +95,7 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
     // The period's total: frozen once settled, still the live sum otherwise.
     const periodAmount = statement.paidAt
       ? statement.amount
-      : await this.statementRepo.sumLinkedTransactions(command.statementId);
+      : statement.totalFor(await this.statementRepo.sumLinkedTransactions(command.statementId));
     if (!toMoney(periodAmount).greaterThan(0)) throw new NothingToPayError();
     const breakdown = await this.statementRepo.breakdown(command.statementId);
     const now = new Date();
@@ -105,6 +108,7 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
       amount: command.amount ?? statement.remainingFor(periodAmount),
       periodAmount,
       breakdown,
+      carryOver: "0",
       paymentTransactionId: randomUUID(),
       now,
       occurredAt: command.paidAt ?? now,
@@ -116,15 +120,17 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
     command: PayCreditStatementCommand,
     context: Context,
   ): Promise<HandleResult<PaidStatementResult>> {
-    const event = context.statement.payTowards(
+    const { event, carryOver } = context.statement.payTowards(
       context.periodAmount,
       context.amount,
       command.fromAccountId,
       context.paymentTransactionId,
       context.occurredAt,
     );
-    // Only what was actually paid comes off the credit pool: a partial payment
-    // frees exactly its own amount, and the rest stays used.
+    context.carryOver = carryOver;
+    // Only what was actually paid comes off the credit pool: paying the minimum
+    // frees exactly that, and the shortfall stays used — it is still owed, just
+    // in the next period now.
     context.account.adjustCreditUsed(toMoney(context.amount).negated().toString());
     return {
       result: toStatementDto(context.statement, {
@@ -157,6 +163,18 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
         // the movement itself, where they'll look for it later.
         observation: context.reference,
       });
+      // A payment smaller than the period never leaves it half-paid: the period
+      // is settled and the shortfall becomes the next period's `carriedOverAmount`
+      // (its own OPEN one, or a fresh period starting where this one closed).
+      if (toMoney(context.carryOver).greaterThan(0)) {
+        const target = await this.statementRepo.findOrCreateCarryOverTargetWithTx(tx, {
+          accountId: context.account.id,
+          excludeStatementId: context.statement.id,
+          periodStart: context.statement.closedAt ?? context.occurredAt,
+        });
+        context.statement.markCarriedTo(target.id);
+        await this.statementRepo.addCarriedOverWithTx(tx, target.id, context.carryOver);
+      }
       await this.statementRepo.saveWithTx(tx, context.statement);
       await this.accountRepo.saveWithTx(tx, context.account);
     });

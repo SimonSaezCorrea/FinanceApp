@@ -17,3 +17,20 @@ export function balanceDelta(type: "INCOME" | "EXPENSE", amount: string): string
 export function reverseBalanceDelta(type: "INCOME" | "EXPENSE", amount: string): string {
   return subtractMoney("0", balanceDelta(type, amount));
 }
+
+/**
+ * How a movement moves the ACCOUNT's balance, given the card it was made with.
+ *
+ * A PREPAID card is the one case where a movement on an account leaves that
+ * account's balance alone: the money left it when the card was loaded (a real
+ * EXPENSE of its own), and spending afterwards draws down the card's own pot.
+ * Counting both would subtract the same money twice.
+ */
+export function accountBalanceDelta(
+  type: "INCOME" | "EXPENSE",
+  amount: string,
+  cardKind: "CREDIT" | "DEBIT" | "PREPAID" | null | undefined,
+): string {
+  if (cardKind === "PREPAID" && type === "EXPENSE") return "0";
+  return balanceDelta(type, amount);
+}

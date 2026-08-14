@@ -26,7 +26,14 @@
     },
     "unsaved": "Unsaved",
     "saveChanges": "Save changes",
-    "create": "Create"
+    "create": "Create",
+    "date": {
+      "choose": "Pick a date",
+      "today": "today",
+      "clear": "Clear",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month"
+    }
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -103,11 +110,17 @@
       "billingStatus": "Status",
       "billingPaidAt": "Paid on",
       "billingActions": "Actions",
+      "billingCurrentPeriod": "Current period",
+      "billingPaidPeriods": "Settled periods",
+      "billingPeriodToDate": "{{date}} – today",
+      "billingPaidOn": "Paid on {{date}}",
+      "billingIncludesCarryOver": "includes {{amount}} carried over",
+      "billingPaidAmount": "{{amount}} paid",
       "billingStatusValue": {
         "OPEN": "Open",
         "PENDING": "Pending",
-        "PAID": "Paid",
-        "PARTIALLY_PAID": "Partially paid"
+        "PARTIALLY_PAID": "Partially paid",
+        "PAID": "Paid"
       },
       "payFromAccount": "Pay with",
       "payFromAccountPlaceholder": "Select an account",
@@ -126,16 +139,21 @@
       "payModeMinimum": "Minimum",
       "payModeCustom": "Other amount",
       "payCoversTotal": "Covers the whole statement.",
-      "payCoversMinimum": "This account's minimum ({{percent}}% of the period).",
-      "payCoversCustom": "A balance will remain for the next payment.",
+      "payCoversMinimum": "This account's minimum ({{percent}}% of the period); the rest rolls over.",
+      "payCoversCustom": "The rest rolls into the next statement.",
       "payBreakdownPurchases": "Purchases in the period",
       "payBreakdownInstallments": "Installments this month ({{count}})",
       "payAmountLabel": "Amount",
-      "payRemainingAfter": "Balance left after payment",
+      "payRemainingAfter": "Rolls into the next statement",
       "payDate": "Payment date",
       "payReference": "Reference (optional)",
       "payReferencePlaceholder": "e.g. Transfer 4412",
-      "payAlreadyPaid": "Paid so far",
+      "payCarriedOver": "Balance from the previous statement",
+      "editPaymentEyebrow": "Edit payment",
+      "editPaymentDescription": "Correct how much was actually paid for this period. The period’s amount is never typed in: it is recomputed with \"Sync payments\".",
+      "editPaymentCurrent": "Paid so far",
+      "editPaymentCascadeHint": "The payment movement, the source account’s balance, the used credit and what rolls into the next statement are all adjusted.",
+      "editPaymentSuccess": "Payment updated",
       "payMinimumUnset": "This account has no minimum payment configured. You can set it in the account’s billing settings (Minimum payment %).",
       "payMinimumCovered": "You have already paid more than this period’s minimum."
     },
@@ -199,6 +217,8 @@
       "activate": "Activate",
       "deactivate": "Deactivate",
       "payCredit": "Pay statement",
+      "editStatementPayment": "Edit payment",
+      "editStatementPaymentShort": "Payment",
       "payCreditConfirm": "Pay {{amount}} of your statement? It will be deducted from used credit.",
       "payCreditSuccess": "Statement paid",
       "generateStatements": "Generate statement",
@@ -223,6 +243,19 @@
     }
   },
   "cards": {
+    "actions": {
+      "load": "Top up"
+    },
+    "load": {
+      "description": "The money leaves the account as an expense and becomes available on the card.",
+      "amount": "Amount to load",
+      "date": "Date",
+      "cardAfter": "Card balance after",
+      "accountBalance": "Account balance",
+      "accountAfter": "Account balance after",
+      "movementHint": "A \"Recarga prepago\" expense is recorded on the account. Spending with this card draws down its own balance, not the account's.",
+      "success": "Card topped up"
+    },
     "title": "Cards",
     "additionalTitle": "Additional cards",
     "add": "Add card",
@@ -246,6 +279,8 @@
       "PREPAID": "Prepaid"
     },
     "form": {
+      "prepaidBalance": "Loaded balance ({{currency}})",
+      "prepaidHint": "A prepaid card holds its own balance instead of a credit limit. This is what is already loaded; you top it up from the account afterwards.",
       "name": "Card name (optional)",
       "namePlaceholder": "E.g. Main card",
       "kind": "Kind",
@@ -281,6 +316,7 @@
     },
     "deleteConfirmDescription": "It will be permanently deleted, along with everything tied to it.",
     "detail": {
+      "prepaidBalance": "Card balance",
       "title": "Card detail",
       "available": "Available {{amount}}",
       "role": "Role",
@@ -348,7 +384,8 @@
     "subtitleAll": "All time · {{count}} transactions",
     "type": {
       "INCOME": "Income",
-      "EXPENSE": "Expense"
+      "EXPENSE": "Expense",
+      "TRANSFER": "Transfer"
     },
     "form": {
       "type": "Type",
@@ -369,7 +406,23 @@
       "observation": "Observation",
       "emisor": "Sender",
       "receptor": "Recipient",
-      "lugar": "Location"
+      "lugar": "Location",
+      "projectedBalance": "Projected balance",
+      "saveAndNew": "Save and create another",
+      "fromAccount": "Source account",
+      "toAccount": "Destination account",
+      "amountOut": "Amount out",
+      "amountIn": "Amount in",
+      "optional": "optional",
+      "dateToday": "today",
+      "categoryEmpty": "Choose category",
+      "emisorEmpty": "No sender",
+      "receptorEmpty": "No recipient",
+      "lugarEmpty": "No place",
+      "observationEmpty": "Add a note",
+      "newEyebrow": "New movement",
+      "editEyebrow": "Edit movement",
+      "projectedCredit": "Available credit after this movement"
     },
     "kpi": {
       "income": "Income",
@@ -399,7 +452,32 @@
       "import": "Import"
     },
     "count": "{{count}} movements",
-    "detailTitle": "Movement detail"
+    "detailTitle": "Movement detail",
+    "detail": {
+      "balanceAfter": "Balance after this movement",
+      "duplicate": "Duplicate",
+      "navPosition": "{{position}} of {{count}}",
+      "noDetails": "This movement has no extra details.",
+      "addDetails": "Add details",
+      "transferCounterpart": "Transfer from/to",
+      "transferFrom": "From",
+      "transferTo": "To"
+    },
+    "attachments": {
+      "title": "Receipts",
+      "dropzone": "Drop a file here",
+      "browse": "Choose file",
+      "uploading": "Uploading…",
+      "empty": "No receipts yet.",
+      "delete": "Delete receipt",
+      "saveFirst": "They will be uploaded when the movement is saved.",
+      "retry": "Retry",
+      "failed": "Couldn't upload.",
+      "hint": "JPG, PNG, WebP or PDF · up to 5 MB",
+      "open": "Open",
+      "comingSoon": "Coming soon",
+      "comingSoonReason": "Receipts will be available once file storage is enabled."
+    }
   },
   "installments": {
     "title": "Installments",
@@ -748,11 +826,23 @@
     "CARD_LIMIT_EXCEEDED": "The expense exceeds the primary card's credit limit.",
     "CARD_SUBLIMIT_EXCEEDED": "The expense exceeds the secondary card's sub-limit.",
     "CARD_SUBLIMIT_EXCEEDS_ACCOUNT": "A card's limit can't exceed the account's own credit pool.",
+    "PREPAID_INSUFFICIENT_BALANCE": "This prepaid card doesn’t hold enough for this expense.",
+    "PREPAID_BALANCE_NOT_ALLOWED": "Only a prepaid card has a balance of its own.",
+    "INVALID_PREPAID_BALANCE": "The top-up amount must be greater than zero.",
     "CARD_LIMIT_REQUIRED": "Enter a limit for this credit card.",
     "PARENT_CARD_INVALID": "The selected primary card is invalid.",
     "INVALID_CURRENT_PASSWORD": "Your current password is incorrect.",
     "ACCOUNT_DISABLED": "This account is disabled.",
     "PAYMENT_EXCEEDS_REMAINING": "The amount is more than what this statement still owes.",
-    "INVALID_PAYMENT_AMOUNT": "Enter an amount greater than zero."
+    "INVALID_PAYMENT_AMOUNT": "Enter an amount greater than zero.",
+    "TRANSFER_SAME_ACCOUNT": "Source and destination must be different accounts.",
+    "TRANSFER_TO_CREDIT_ACCOUNT": "You can't transfer money into a credit line.",
+    "TRANSFER_ACCOUNT_NOT_FOUND": "One of the transfer's accounts was not found.",
+    "TRANSFER_NOT_FOUND": "Transfer not found.",
+    "TRANSFER_EDIT_AS_PAIR": "A transfer is edited as a whole, from both of its sides.",
+    "ATTACHMENT_TYPE_NOT_ALLOWED": "Only JPG, PNG, WebP images or PDF files are allowed.",
+    "ATTACHMENT_TOO_LARGE": "The file is larger than 5 MB.",
+    "ATTACHMENTS_UNAVAILABLE": "Receipt storage isn't configured.",
+    "ATTACHMENT_NOT_FOUND": "Receipt not found."
   }
 }
