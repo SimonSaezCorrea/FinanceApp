@@ -11,7 +11,7 @@ import { ACCOUNT_ICON, isCreditType } from "./accountVisuals";
 
 /**
  * Credit pool (used / limit) of the account's own currency — shown for ANY account
- * carrying a credit line, not just a standalone CREDIT_LINE one (a checking account
+ * carrying a credit line, not just a standalone CREDIT_CARD one (a checking account
  * with an add-on credit card has a pool too). A configured pool with 0 used is still
  * shown (the bar just reads 0%); accounts with no pool at all return null.
  */

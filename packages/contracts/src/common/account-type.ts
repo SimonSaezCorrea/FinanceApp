@@ -12,7 +12,10 @@ export const accountType = z.enum([
   "SIGHT", // Vista / Cuenta RUT
   "SAVINGS", // Ahorro
   "INVESTMENT", // Inversiones (Fintual)
-  "CREDIT_LINE", // Línea de crédito (tarjeta de crédito sin cuenta bancaria)
+  // Cuenta de tarjeta de crédito: deuda rotativa con su propia facturación, ciclo y
+  // pago mínimo. NO es la "línea de crédito" de una cuenta corriente — eso es el
+  // sobregiro, que vive como `overdraftLimit` en la cuenta que lo tiene.
+  "CREDIT_CARD",
   "PREPAID", // Cuenta prepago: fondos provisionados, sin crédito, saldo nunca negativo
   "CASH", // Efectivo
 ]);

@@ -36,7 +36,7 @@ export interface TransactionSumsRepositoryPort {
    * whichever period was open at creation time and never re-linked by date, so a
    * movement back-dated into a closed period sits in the wrong one until a sync
    * puts it right. `cardIds: null` means "every movement on the account" (a
-   * standalone CREDIT_LINE, where all of them are credit-line movements by
+   * standalone CREDIT_CARD, where all of them are credit-line movements by
    * construction); otherwise only EXPENSE through those cards counts, the same
    * rule the live credit-pool sums use.
    */

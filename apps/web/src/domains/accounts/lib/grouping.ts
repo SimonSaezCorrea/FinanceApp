@@ -8,7 +8,7 @@ export const GROUP_BY_VALUES: GroupBy[] = ["currency", "type", "institution", "s
 
 /** A standalone credit card: it holds no money, only debt. */
 function isCreditLine(a: accounts.BankAccount): boolean {
-  return a.type === "CREDIT_LINE";
+  return a.type === "CREDIT_CARD";
 }
 
 /** What the account adds to (or subtracts from) net worth, in its own currency. */

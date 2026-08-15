@@ -7,6 +7,7 @@ import {
   CardNotAllowedError,
   CardRequiredError,
   CardSubLimitExceededError,
+  OverdraftLimitExceededError,
   PrepaidInsufficientBalanceError,
 } from "./errors";
 
@@ -28,6 +29,8 @@ export interface AccountContext {
   /** What the account currently holds. Only a PREPAID account is BOUNDED by it
    * (it can never go negative); every other type may. */
   currentBalance: string;
+  /** How far below zero this account may go ("0" = no line configured). */
+  overdraftLimit?: string;
   creditLimit: string;
   creditUsed: string;
   billingCycleDay: number | null;
@@ -52,7 +55,7 @@ export interface CardLimitContext {
  *  - bank must exist (caller's job to fetch + 404 before calling in)
  *  - INCOME: no card
  *  - EXPENSE on CASH: no card
- *  - EXPENSE on CREDIT_LINE: a card of that account is required
+ *  - EXPENSE on CREDIT_CARD: a card of that account is required
  *  - EXPENSE on other accounts: card optional, but if given it must belong
  *  - Whenever the card used is kind=CREDIT: the amount must fit both the
  *    account's shared pool (creditLimit, persisted `creditUsed`) and, if set,
@@ -85,13 +88,15 @@ export class MovementPolicy {
     // A prepaid account can only spend what was provisioned into it, whatever the
     // channel: with a card, without one, or as the outgoing leg of a transfer.
     this.assertWithinPrepaidBalance(m, account, prepaidOffset);
+    // A cash account may go negative only as far as its overdraft line allows.
+    this.assertWithinOverdraft(m, account, prepaidOffset);
 
     if (m.type === "INCOME") {
       if (m.cardId) throw new CardNotAllowedError();
     } else if (account.type === "CASH") {
       if (m.cardId) throw new CardNotAllowedError();
       return "0";
-    } else if (account.type === "CREDIT_LINE") {
+    } else if (account.type === "CREDIT_CARD") {
       if (!m.cardId) throw new CardRequiredError();
       if (!card) throw new CardAccountMismatchError();
       this.assertWithinCardLimit(m, cardLimit, cardUsage);
@@ -121,7 +126,7 @@ export class MovementPolicy {
   /**
    * A movement's signed contribution to its account's shared credit pool
    * ("0" if it doesn't touch one): +amount for an EXPENSE via a pool-sharing
-   * CREDIT card, −amount for INCOME on a standalone CREDIT_LINE account (its
+   * CREDIT card, −amount for INCOME on a standalone CREDIT_CARD account (its
    * only way to record a payment), "0" for a card with its own independent
    * sub-limit (that stays out of the account pool). Never throws — also used
    * to recompute a transaction's ORIGINAL contribution on edit/delete, which
@@ -135,7 +140,7 @@ export class MovementPolicy {
   ): string {
     if (account.type === "CASH") return "0";
     if (m.type === "INCOME") {
-      return account.type === "CREDIT_LINE" ? subtractMoney("0", m.amount) : "0";
+      return account.type === "CREDIT_CARD" ? subtractMoney("0", m.amount) : "0";
     }
     if (!card || card.kind !== "CREDIT") return "0";
     return cardLimit ? "0" : m.amount;
@@ -149,6 +154,31 @@ export class MovementPolicy {
    * `offset` is what this same movement already took off the balance, so an edit is
    * checked against the balance as it was BEFORE its own old charge.
    */
+  /**
+   * A cash account can be overdrawn only down to the line the bank granted:
+   * `currentBalance - amount >= -overdraftLimit`. With no line (the default "0")
+   * this is just "don't go below zero"… except that a checking account WITHOUT a
+   * declared line is exactly the case where the app has no business refusing —
+   * the bank may allow it and the movement really happened. So the check only
+   * bites when a line is configured, and what it enforces is its ceiling.
+   *
+   * `offset` is what this same movement already took off the balance, so an edit
+   * is checked against the balance as it was BEFORE its own old charge.
+   */
+  static assertWithinOverdraft(
+    m: { type: transactions.TransactionType; amount: string },
+    account: Pick<AccountContext, "type" | "currentBalance" | "overdraftLimit">,
+    offset = "0",
+  ): void {
+    if (m.type !== "EXPENSE") return;
+    const limit = toMoney(account.overdraftLimit ?? "0");
+    if (!limit.greaterThan(0)) return;
+    const available = toMoney(account.currentBalance).plus(toMoney(offset)).plus(limit);
+    if (toMoney(m.amount).greaterThan(available)) {
+      throw new OverdraftLimitExceededError();
+    }
+  }
+
   static assertWithinPrepaidBalance(
     m: { type: transactions.TransactionType; amount: string },
     account: Pick<AccountContext, "type" | "currentBalance">,

@@ -127,6 +127,7 @@ export function accountAggregate(input: {
   currentBalance?: string;
   billingCycleDay?: number | null;
   minimumPaymentPercent?: string | null;
+  overdraftLimit?: string;
   currency?: string;
   cards?: BankAccountProps["cards"];
   createdAt?: Date;
@@ -143,6 +144,7 @@ export function accountAggregate(input: {
     institutionName: null,
     accountNumber: null,
     initialBalance: input.currentBalance ?? "0",
+    overdraftLimit: input.overdraftLimit ?? "0",
     currentBalance: input.currentBalance ?? "0",
     creditLimit: input.creditLimit ?? "0",
     creditUsedInitial: "0",

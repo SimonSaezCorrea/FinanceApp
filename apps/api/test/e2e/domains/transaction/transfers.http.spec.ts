@@ -65,7 +65,7 @@ describe("Transfers HTTP (e2e)", () => {
       .set("Cookie", cookies)
       .send({
         name: "Linea",
-        type: "CREDIT_LINE",
+        type: "CREDIT_CARD",
         currency: "CLP",
         creditLimit: "500000",
         cards: [

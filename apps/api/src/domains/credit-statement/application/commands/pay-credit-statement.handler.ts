@@ -91,7 +91,7 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
     if (!statement) throw new StatementNotFoundError();
     const fromAccount = await this.accountRepo.findById(command.userId, command.fromAccountId);
     if (!fromAccount) throw new AccountNotFoundError();
-    if (fromAccount.type === "CREDIT_LINE") throw new InvalidPaymentSourceError();
+    if (fromAccount.type === "CREDIT_CARD") throw new InvalidPaymentSourceError();
     // The period's total: frozen once settled, still the live sum otherwise.
     const periodAmount = statement.paidAt
       ? statement.amount

@@ -84,7 +84,7 @@ enum AccountType {
   SIGHT // Vista / Cuenta RUT
   SAVINGS // Ahorro
   INVESTMENT // Inversiones (Fintual)
-  CREDIT_LINE // Línea de crédito (tarjeta de crédito sin cuenta bancaria / retail)
+  CREDIT_CARD // Cuenta de tarjeta de crédito: deuda rotativa con su propia facturación
   PREPAID // Cuenta prepago: fondos provisionados (emisor bancario o no bancario), sin crédito
   CASH // Efectivo
 }
@@ -124,11 +124,16 @@ model BankAccount {
   institutionId     String?
   /// Bank account number (free text, stored/displayed in full — NOT a card PAN).
   accountNumber     String?
-  /// User-set seed balance (own funds). For CREDIT_LINE accounts typically 0.
+  /// How far below zero this account may go — the "línea de sobregiro" a bank grants
+  /// on a current account. 0 = no overdraft. It is a property OF the cash account
+  /// (the money is consumed automatically when the balance hits zero), not a product
+  /// with movements of its own, which is why it is a column and not an account type.
+  overdraftLimit    Decimal       @default(0) @db.Decimal(18, 4)
+  /// User-set seed balance (own funds). For CREDIT_CARD accounts typically 0.
   initialBalance    Decimal       @default(0) @db.Decimal(18, 4)
   /// Reconciled/cached balance = initialBalance + Σincome − Σexpense.
   currentBalance    Decimal       @default(0) @db.Decimal(18, 4)
-  /// Credit pool for CREDIT_LINE accounts (shared by all its cards). 0 otherwise.
+  /// Credit pool for CREDIT_CARD accounts (shared by all its cards). 0 otherwise.
   creditLimit       Decimal       @default(0) @db.Decimal(18, 4)
   /// Seed of already-used credit at account creation. Immutable baseline used only to
   /// initialize `creditUsed` — never recomputed into afterward.

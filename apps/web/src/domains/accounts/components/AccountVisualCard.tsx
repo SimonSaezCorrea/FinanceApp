@@ -17,7 +17,7 @@ import { CARD_INACTIVE_STYLE, CARD_KIND_STYLE, isCreditType } from "./accountVis
  * view instead of that first-card stand-in, even when the account has cards (e.g.
  * a dedicated "this is the account" summary tile shown alongside its own cards).
  *
- * The credit LIMIT is shared at the account level (CREDIT_LINE, or any other
+ * The credit LIMIT is shared at the account level (CREDIT_CARD, or any other
  * account that's grown a CREDIT card); a card with its own sub-limit shows that
  * instead. The USED amount, though, is per-card: a card sharing the pool shows its
  * own individual spend (`card.ownUsed`), not the fully-combined total — only the
@@ -50,7 +50,7 @@ export function AccountVisualCard({
 }>) {
   const { t, i18n } = useTranslation();
   const card = accountOnly ? undefined : (cardProp ?? account.cards[0]);
-  // The account has a credit pool if it's a standalone CREDIT_LINE, OR any other
+  // The account has a credit pool if it's a standalone CREDIT_CARD, OR any other
   // cardable account that's grown a CREDIT-kind card (e.g. a checking add-on card).
   const hasCreditCard = account.cards.some((c) => c.kind === "CREDIT");
   const isAccountCreditPool = isCreditType(account.type) || hasCreditCard;

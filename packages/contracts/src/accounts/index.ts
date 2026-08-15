@@ -13,7 +13,7 @@ export { accountType, type AccountType };
 /**
  * Deposit-taking account types are the ones you'd transfer money TO, so they
  * require a real `accountNumber` — a prepaid account included: it is funded by
- * transferring to its own number. CREDIT_LINE/INVESTMENT/CASH keep it optional.
+ * transferring to its own number. CREDIT_CARD/INVESTMENT/CASH keep it optional.
  */
 export const ACCOUNT_NUMBER_REQUIRED_TYPES: AccountType[] = [
   "CHECKING",
@@ -28,11 +28,11 @@ export function isAccountNumberRequired(type: AccountType): boolean {
 
 /**
  * Deposit-taking account types (CHECKING/SIGHT/SAVINGS) can only be held at a bank,
- * so the institution picker narrows to `kind: "BANK"`. INVESTMENT and CREDIT_LINE are
+ * so the institution picker narrows to `kind: "BANK"`. INVESTMENT and CREDIT_CARD are
  * left unfiltered: `kind` only distinguishes banks from non-bank *card* issuers, and
  * neither bucket cleanly represents investment managers (e.g. Fintual is seeded as a
  * NON_BANK_ISSUER for an unrelated prepaid-card entity, not because it's a card
- * issuer as an investment platform) — CREDIT_LINE, meanwhile, can legitimately be
+ * issuer as an investment platform) — CREDIT_CARD, meanwhile, can legitimately be
  * issued by either kind. CASH has no institution field at all.
  */
 export function institutionKindForAccountType(type: AccountType): InstitutionKind | undefined {
@@ -64,7 +64,7 @@ export type CardKind = z.infer<typeof cardKind>;
  *    out of the account, it opens a debt with its own statement, minimum payment
  *    and cycle. Banks SELL them together as a "plan", but they are separate
  *    products with separate balances — so a credit card lives on its own
- *    `CREDIT_LINE` account here, and the payment of its statement is the
+ *    `CREDIT_CARD` account here, and the payment of its statement is the
  *    (single, real) expense that leaves the checking account.
  *  - SAVINGS holds cash too and may carry a DEBIT card, used almost exclusively
  *    to withdraw at an ATM (BancoEstado, Coopeuch); the withdrawal limits that
@@ -75,7 +75,7 @@ export const ALLOWED_CARD_KINDS: Record<AccountType, CardKind[]> = {
   CHECKING: ["DEBIT"],
   SIGHT: ["DEBIT"],
   SAVINGS: ["DEBIT"],
-  CREDIT_LINE: ["CREDIT"],
+  CREDIT_CARD: ["CREDIT"],
   PREPAID: ["PREPAID"],
   INVESTMENT: [],
   CASH: [],
@@ -200,6 +200,14 @@ export const creditPoolSchema = z.object({
 });
 export type CreditPool = z.infer<typeof creditPoolSchema>;
 
+/** Account types that can hold an overdraft line: the ones holding cash you can
+ * overdraw. A savings account is not overdrawn, and prepaid never goes negative. */
+export const OVERDRAFT_ACCOUNT_TYPES: AccountType[] = ["CHECKING", "SIGHT"];
+
+export function allowsOverdraft(type: AccountType): boolean {
+  return OVERDRAFT_ACCOUNT_TYPES.includes(type);
+}
+
 export const bankAccountSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -215,7 +223,11 @@ export const bankAccountSchema = z.object({
   accountNumber: z.string().nullable(),
   initialBalance: moneyString,
   currentBalance: moneyString,
-  /** Credit pool for CREDIT_LINE accounts (shared by all its cards); "0" otherwise. */
+  /** How far below zero the balance may go (the bank's overdraft line on a current
+   * account); "0" = none. Not a product of its own: it has no movements, it is the
+   * floor this account's cash may reach. */
+  overdraftLimit: moneyString,
+  /** Credit pool for CREDIT_CARD accounts (shared by all its cards); "0" otherwise. */
   creditLimit: moneyString,
   /** Persisted, live used credit — seeded from creditUsedInitial, then mutated by
    * transactions and by paying down a CreditStatement (see POST /accounts/:id/pay-credit).
@@ -255,7 +267,9 @@ const bankAccountFieldsSchema = z.object({
   institutionId: z.string().optional(),
   accountNumber: z.string().trim().max(50).optional(),
   initialBalance: moneyString.optional(),
-  /** For CREDIT_LINE accounts: the credit pool and any pre-existing used seed. */
+  /** Overdraft line granted on this account (CHECKING/SIGHT only). */
+  overdraftLimit: moneyString.optional(),
+  /** For CREDIT_CARD accounts: the credit pool and any pre-existing used seed. */
   creditLimit: moneyString.optional(),
   creditUsedInitial: moneyString.optional(),
   /** Statement cut-off day (1-28); omit/null to leave unconfigured. Advanced setting —
@@ -282,9 +296,20 @@ export const createBankAccountSchema = bankAccountFieldsSchema
   // A credit pool and its billing settings belong to the account that IS a credit
   // line. No other type has one: a checking account's cash and a credit card's
   // debt are different products (see `ALLOWED_CARD_KINDS`).
-  .refine((v) => v.type === "CREDIT_LINE" || !hasCreditSettings(v), {
+  .refine((v) => v.type === "CREDIT_CARD" || !hasCreditSettings(v), {
     message: "only a credit-line account has a credit line and billing settings",
     path: ["creditLimit"],
+  })
+  // An overdraft is the floor of a cash balance: only the account types that hold
+  // spendable cash can have one, and it is never negative.
+  // "0" is not "has an overdraft" — it is what every account without one sends.
+  .refine((v) => !isNonZeroMoney(v.overdraftLimit) || allowsOverdraft(v.type), {
+    message: "only a checking or sight account can have an overdraft line",
+    path: ["overdraftLimit"],
+  })
+  .refine((v) => !v.overdraftLimit?.startsWith("-"), {
+    message: "an overdraft line cannot be negative",
+    path: ["overdraftLimit"],
   })
   // The kinds a card may take depend on the account carrying it; the inline
   // `cards[]` path must obey the same matrix the dedicated card endpoints do.
@@ -380,7 +405,7 @@ export const creditStatementSchema = z.object({
 });
 export type CreditStatement = z.infer<typeof creditStatementSchema>;
 
-/** Pay a statement by choosing a source bank account (must not be CREDIT_LINE).
+/** Pay a statement by choosing a source bank account (must not be CREDIT_CARD).
  *
  * `amount` omitted = pay everything owed. A smaller amount (typically the
  * minimum) still SETTLES the period: what it doesn't cover is carried into the

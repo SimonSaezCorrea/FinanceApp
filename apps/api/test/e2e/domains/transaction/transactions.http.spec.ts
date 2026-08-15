@@ -45,7 +45,7 @@ describe("Transactions HTTP (e2e)", () => {
       .set("Cookie", cookies)
       .send({
         name: "Credit line",
-        type: "CREDIT_LINE",
+        type: "CREDIT_CARD",
         currency: "CLP",
         cards: [
           {
@@ -141,6 +141,7 @@ describe("Transactions HTTP (e2e)", () => {
         currency: "CLP",
         accountNumber: "111-2",
         initialBalance: "100000",
+        overdraftLimit: "0",
       });
     const accountId = accountRes.body.id;
     expect(accountRes.body.currentBalance).toBe("100000.0000");

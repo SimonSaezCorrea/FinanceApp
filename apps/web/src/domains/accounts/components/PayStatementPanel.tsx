@@ -67,7 +67,7 @@ export function PayStatementPanel({
   const [reference, setReference] = useState("");
 
   const sources = (allAccounts ?? []).filter(
-    (a) => a.type !== "CREDIT_LINE" && a.status === "ACTIVE",
+    (a) => a.type !== "CREDIT_CARD" && a.status === "ACTIVE",
   );
   const selfPayable = sources.some((a) => a.id === account.id);
   // Derived, not written into state by an effect: an effect would fire a second

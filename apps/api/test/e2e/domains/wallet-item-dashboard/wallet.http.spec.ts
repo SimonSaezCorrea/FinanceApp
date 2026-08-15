@@ -48,6 +48,7 @@ describe("Wallet HTTP (e2e)", () => {
         currency: "USD",
         accountNumber: "1234",
         initialBalance: "0",
+        overdraftLimit: "0",
       });
     accountId = accountRes.body.id;
   });

@@ -27,6 +27,7 @@ function baseProps(overrides: Partial<BankAccountProps> = {}): BankAccountProps 
     institutionName: null,
     accountNumber: "12345",
     initialBalance: "0",
+    overdraftLimit: "0",
     currentBalance: "0",
     creditLimit: "0",
     creditUsedInitial: "0",
@@ -42,7 +43,7 @@ function baseProps(overrides: Partial<BankAccountProps> = {}): BankAccountProps 
 }
 
 describe("BankAccount aggregate", () => {
-  it("only CHECKING/SIGHT/CREDIT_LINE accounts can carry a card", () => {
+  it("only CHECKING/SIGHT/CREDIT_CARD accounts can carry a card", () => {
     const cash = BankAccount.fromPersistence(baseProps({ type: "CASH", accountNumber: null }));
     expect(() => cash.assertCardable()).toThrow(AccountCannotHaveCardError);
 
@@ -56,16 +57,16 @@ describe("BankAccount aggregate", () => {
     expect(() => account.applyUpdate({ accountNumber: "999" })).not.toThrow();
   });
 
-  it("does not require accountNumber for CREDIT_LINE/INVESTMENT/CASH", () => {
+  it("does not require accountNumber for CREDIT_CARD/INVESTMENT/CASH", () => {
     const account = BankAccount.fromPersistence(
-      baseProps({ type: "CREDIT_LINE", accountNumber: null }),
+      baseProps({ type: "CREDIT_CARD", accountNumber: null }),
     );
     expect(() => account.applyUpdate({ name: "x" })).not.toThrow();
   });
 
   it("the first CREDIT card becomes primary and mirrors the account's credit pool", () => {
     const account = BankAccount.fromPersistence(
-      baseProps({ type: "CREDIT_LINE", creditLimit: "0" }),
+      baseProps({ type: "CREDIT_CARD", creditLimit: "0" }),
     );
     const placement = account.resolveCardPlacement(
       {
@@ -84,7 +85,7 @@ describe("BankAccount aggregate", () => {
   });
 
   it("rejects a primary CREDIT card missing a limit in the account's own currency", () => {
-    const account = BankAccount.fromPersistence(baseProps({ type: "CREDIT_LINE" }));
+    const account = BankAccount.fromPersistence(baseProps({ type: "CREDIT_CARD" }));
     expect(() =>
       account.resolveCardPlacement(
         { name: "c", kind: "CREDIT", last4: "1234", expiryMonth: 1, expiryYear: 2030, limits: [] },
@@ -96,7 +97,7 @@ describe("BankAccount aggregate", () => {
   it("an additional CREDIT card shares the account pool by default", () => {
     const account = BankAccount.fromPersistence(
       baseProps({
-        type: "CREDIT_LINE",
+        type: "CREDIT_CARD",
         creditLimit: "500000",
         cards: [
           {
@@ -128,7 +129,7 @@ describe("BankAccount aggregate", () => {
   it("an additional CREDIT card's own sub-limit can't exceed the account pool (same currency)", () => {
     const account = BankAccount.fromPersistence(
       baseProps({
-        type: "CREDIT_LINE",
+        type: "CREDIT_CARD",
         creditLimit: "100000",
         cards: [
           {

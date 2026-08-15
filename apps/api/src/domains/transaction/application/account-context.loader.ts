@@ -22,6 +22,7 @@ export async function loadAccountContext(
       id: snap.id,
       type: snap.type,
       currentBalance: account.currentBalance,
+      overdraftLimit: account.snapshot().overdraftLimit,
       creditLimit: account.creditLimit,
       creditUsed: account.creditUsed,
       billingCycleDay: snap.billingCycleDay,

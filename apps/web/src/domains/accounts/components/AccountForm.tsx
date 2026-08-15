@@ -26,6 +26,8 @@ export interface AccountFormValues {
   accountNumber: string;
   currency: string;
   initialBalance: string;
+  /** "0" = no overdraft line on this account. */
+  overdraftLimit: string;
   creditLimit: string;
   creditUsedInitial: string;
   /** "" = no cycle configured (all-time usage), else a "1"-"28" day-of-month string. */
@@ -43,6 +45,7 @@ const EMPTY: AccountFormValues = {
   accountNumber: "",
   currency: "CLP",
   initialBalance: "0",
+  overdraftLimit: "0",
   creditLimit: "0",
   creditUsedInitial: "0",
   billingCycleDay: "",
@@ -56,7 +59,7 @@ interface Props {
   submitLabel: string;
   /** Whether this account already has a CREDIT-kind card (added via CardsAside,
    * after account creation) — broadens the credit-pool fields the same way a
-   * CREDIT_LINE account gets them, without hiding this account's own balance. */
+   * CREDIT_CARD account gets them, without hiding this account's own balance. */
   hasCreditCard?: boolean;
   /** Rendered next to the submit button; without it the footer has submit only. */
   onCancel?: () => void;
@@ -152,7 +155,7 @@ export function AccountForm({
   const { t, i18n } = useTranslation();
   const [initialValues] = useState<AccountFormValues>({ ...EMPTY, ...initial });
   const [values, setValues] = useState<AccountFormValues>(initialValues);
-  const isCreditLineType = values.type === "CREDIT_LINE";
+  const isCreditLineType = values.type === "CREDIT_CARD";
   const { data: institutions } = useInstitutions(
     "CL",
     accountsContract.institutionKindForAccountType(values.type),
@@ -271,6 +274,21 @@ export function AccountForm({
             }
           />
         </Field>
+        {/* The overdraft is the floor of THIS balance, not a product of its own:
+            only an account that holds spendable cash can be granted one. */}
+        {accountsContract.allowsOverdraft(values.type) ? (
+          <Field label={t("accounts.form.overdraftLimit")}>
+            <Input
+              id="acc-overdraft"
+              className="text-right"
+              value={formatAmountDisplay(values.overdraftLimit, locale)}
+              inputMode="numeric"
+              onChange={(e) => set("overdraftLimit", e.target.value.replace(/\D/g, ""))}
+              aria-label={t("accounts.form.overdraftLimit")}
+            />
+            <p className="text-xs text-muted-foreground">{t("accounts.form.overdraftLimitHint")}</p>
+          </Field>
+        ) : null}
         {values.type !== "CASH" ? (
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label={t("accounts.form.institution")}>
@@ -354,7 +372,7 @@ export function AccountForm({
         </div>
 
         {/* A checking/sight account that grew a CREDIT card also needs the account-level
-            pool that card draws on — CREDIT_LINE already shows it above instead of a balance.
+            pool that card draws on — CREDIT_CARD already shows it above instead of a balance.
             Once a primary card exists, its limit IS this value — edit it from the card instead. */}
         {!isCreditLineType && hasCreditCard ? (
           <div className="grid gap-4 sm:grid-cols-2">

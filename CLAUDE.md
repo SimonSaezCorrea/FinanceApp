@@ -305,6 +305,21 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     account — there's a **"Tenpo Prepago"** `PREPAID` account with two prepaid cards sharing its
     balance, movements with and without a card, and a top-up recorded as a real transfer.
     `docs/PENDING.md` lost its point 6 (the un-revertable card top-up), which this design removes.
+  - **`CREDIT_LINE` → `CREDIT_CARD` + `overdraftLimit` (2026-08-15, breaking):** el enum nombraba mal
+    justo el concepto que más se confunde. **`AccountType.CREDIT_CARD`** es la cuenta de tarjeta de
+    crédito (deuda rotativa, facturación, pago mínimo). La **"línea de crédito"** que un banco da sobre
+    una cuenta corriente es otra cosa — un **sobregiro**: no tiene tarjeta, ni estado de cuenta, ni
+    movimientos propios; solo deja que el saldo baje de cero. Por eso es **columna
+    `BankAccount.overdraftLimit`** (Decimal, default 0) y no un tipo de cuenta. Solo `CHECKING`/`SIGHT`
+    pueden tenerlo (`accounts.allowsOverdraft` + refines del contrato + `assertOverdraft` en el
+    agregado → **`OVERDRAFT_NOT_ALLOWED`**). `MovementPolicy.assertWithinOverdraft` rechaza el gasto que
+    pasaría del piso (**`OVERDRAFT_LIMIT_EXCEEDED`**) **solo cuando hay línea configurada**: sin línea
+    declarada la app no tiene base para rechazar un movimiento que de verdad ocurrió (el banco pudo
+    permitirlo). Un edit se valida contra el saldo ANTES de su propio cargo previo, igual que prepago.
+    Ojo al leer: `"0"` significa *sin* sobregiro, no "tiene uno de cero" — el primer refine que escribí
+    trataba `"0"` como truthy y rompía la creación de cuentas prepago. El renombre tocó 58 archivos
+    (incluidas las llaves i18n `accounts.type.*`); los Sync Impact Reports viejos de la constitución
+    conservan el nombre anterior por ser historia.
   - **Cooperativas y emisores solo-crédito (2026-08-15):** el catálogo cubría únicamente el registro
     de prepago (TPEEM). Ahora también **TCEEM** (emisores no bancarios con licencia solo de tarjeta de
     crédito: Hites, sbpay/Matic Kard, Cruz Verde/Solventa, Unipay/Unicard, FISO, Inversiones y

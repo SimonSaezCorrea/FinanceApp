@@ -41,6 +41,7 @@ const account = {
   institutionName: null,
   accountNumber: null,
   initialBalance: "1000.0000",
+  overdraftLimit: "0",
   currentBalance: "1240.5000",
   creditLimit: "0.0000",
   creditUsed: "0",

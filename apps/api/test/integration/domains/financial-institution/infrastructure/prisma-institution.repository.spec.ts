@@ -56,7 +56,7 @@ describe("PrismaInstitutionRepository (integration)", () => {
     // is seeded too, so the flagship depends on the licence each entity holds.
     const issuers = await repo.findAll({ country: "CL", kind: "NON_BANK_ISSUER" });
     expect(
-      issuers.every((i) => i.accountTypes[0] === "PREPAID" || i.accountTypes[0] === "CREDIT_LINE"),
+      issuers.every((i) => i.accountTypes[0] === "PREPAID" || i.accountTypes[0] === "CREDIT_CARD"),
     ).toBe(true);
   });
 
@@ -69,9 +69,9 @@ describe("PrismaInstitutionRepository (integration)", () => {
     // is — prepaid, credit, or both for an entity registered in both registers.
     expect(issuers.every((i) => i.accountTypes.length > 0)).toBe(true);
     expect(issuers.find((i) => i.legalName === "Matic Kard S.A.")?.accountTypes).toEqual([
-      "CREDIT_LINE",
+      "CREDIT_CARD",
     ]);
-    expect(issuers.find((i) => i.code === "699")?.accountTypes).toEqual(["PREPAID", "CREDIT_LINE"]);
+    expect(issuers.find((i) => i.code === "699")?.accountTypes).toEqual(["PREPAID", "CREDIT_CARD"]);
   });
 
   it("lists cooperatives as their own kind, savings first", async () => {

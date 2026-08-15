@@ -31,6 +31,7 @@ describe("PrismaWalletItemRepository (integration)", () => {
         currency: "USD",
         accountNumber: "1234",
         initialBalance: "0",
+        overdraftLimit: "0",
       },
     });
     accountId = account.id;

@@ -45,7 +45,7 @@ export const TransferPolicy = {
   ): void {
     if (input.fromBankAccountId === input.toBankAccountId) throw new TransferSameAccountError();
     if (!from || !to) throw new TransferAccountNotFoundError();
-    if (to.type === "CREDIT_LINE") throw new TransferToCreditAccountError();
+    if (to.type === "CREDIT_CARD") throw new TransferToCreditAccountError();
     if (input.cardId) throw new CardNotAllowedError();
     if (toMoney(input.amountOut).lte(0) || toMoney(input.amountIn).lte(0)) {
       throw new InvalidAmountError();

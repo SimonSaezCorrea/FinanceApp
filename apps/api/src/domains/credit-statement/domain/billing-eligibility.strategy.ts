@@ -25,7 +25,7 @@ export interface BillingEligibilityStrategy {
  * ACTIVE and its primary CREDIT card is active. */
 export class CreditLineEligibility implements BillingEligibilityStrategy {
   applies(context: EligibilityContext): boolean {
-    return context.accountType === "CREDIT_LINE";
+    return context.accountType === "CREDIT_CARD";
   }
 
   evaluate(context: EligibilityContext): boolean {
@@ -36,7 +36,7 @@ export class CreditLineEligibility implements BillingEligibilityStrategy {
 
 /**
  * Every other account type: never eligible, because it holds cash (or provisioned
- * funds) and carries no CREDIT card — a credit card is its own `CREDIT_LINE`
+ * funds) and carries no CREDIT card — a credit card is its own `CREDIT_CARD`
  * account, not an add-on to a checking one (`ALLOWED_CARD_KINDS`). Kept as an
  * explicit strategy rather than a `return false` fallback so the reason is
  * stated where the decision is made, and so a future credit-bearing shape is
@@ -44,7 +44,7 @@ export class CreditLineEligibility implements BillingEligibilityStrategy {
  */
 export class NoCreditLineEligibility implements BillingEligibilityStrategy {
   applies(): boolean {
-    return true; // fallback for every non-CREDIT_LINE account
+    return true; // fallback for every non-CREDIT_CARD account
   }
 
   evaluate(): boolean {

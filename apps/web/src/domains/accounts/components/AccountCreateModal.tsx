@@ -59,7 +59,7 @@ export function AccountCreateModal({
   const [initialBalance, setInitialBalance] = useState("0");
   const [creditLimit, setCreditLimit] = useState("0");
   const [creditUsedInitial, setCreditUsedInitial] = useState("0");
-  // For a CREDIT_LINE account, these identify its PRIMARY card directly (in
+  // For a CREDIT_CARD account, these identify its PRIMARY card directly (in
   // place of a bank "account number", which doesn't apply — there's no
   // account behind a standalone credit card, only the card itself). Its limit
   // is the account's own creditLimit/creditUsedInitial above; no separate
@@ -70,10 +70,10 @@ export function AccountCreateModal({
   const [primaryExpiryError, setPrimaryExpiryError] = useState<string | null>(null);
   const [cards, setCards] = useState<accounts.CreateCard[]>([]);
   const [addingCard, setAddingCard] = useState(false);
-  const isCreditLineType = type === "CREDIT_LINE";
+  const isCreditLineType = type === "CREDIT_CARD";
   // For any OTHER cardable type (checking/sight growing an add-on card), the
   // first drafted CREDIT card becomes the PRIMARY (mirrors the account's own
-  // cupo 1:1) — once one exists, the cupo is read-only here. For CREDIT_LINE
+  // cupo 1:1) — once one exists, the cupo is read-only here. For CREDIT_CARD
   // itself this concept doesn't apply anymore: the primary is always the one
   // defined by `primaryLast4`/`primaryExpiry` above, so every card drafted in
   // the "Tarjetas" section is an ADDITIONAL one (see `hasExistingPrimary` below).
@@ -81,8 +81,8 @@ export function AccountCreateModal({
   const hasCreditCard = primaryDraftCard !== undefined;
   const derivedCreditLimit = primaryDraftCard?.limits?.[0]?.limitAmount ?? "0";
   // No card yet: the account-level cupo fields are still manually editable
-  // (e.g. a CREDIT_LINE created before its first card is added later) — for
-  // CREDIT_LINE this is now always true, since the cupo always comes straight
+  // (e.g. a CREDIT_CARD created before its first card is added later) — for
+  // CREDIT_CARD this is now always true, since the cupo always comes straight
   // from these fields (the primary card mirrors them, never the other way).
   const manualCreditPool = isCreditLineType || !hasCreditCard;
   const hasCreditPool = isCreditLineType || hasCreditCard;
@@ -126,7 +126,7 @@ export function AccountCreateModal({
         setInstitutionId("");
       }
     }
-    if (next === "CREDIT_LINE") {
+    if (next === "CREDIT_CARD") {
       setAccountNumber("");
     } else {
       setPrimaryLast4("");
@@ -226,6 +226,7 @@ export function AccountCreateModal({
     institutionName: null,
     accountNumber: accountNumber || null,
     initialBalance: initialBalance || "0",
+    overdraftLimit: "0",
     currentBalance: initialBalance || "0",
     creditLimit: creditLimit || "0",
     creditUsed: creditUsedInitial || "0",
@@ -386,7 +387,7 @@ export function AccountCreateModal({
             </p>
           ) : null}
           {/* A checking/sight account that grew a CREDIT card also needs the account-level
-              pool that card draws on — CREDIT_LINE already shows it above instead of a balance. */}
+              pool that card draws on — CREDIT_CARD already shows it above instead of a balance. */}
           {!isCreditLineType && hasCreditCard ? (
             <div className="grid grid-cols-2 gap-3">
               <Field label={t("accounts.form.creditLimit")}>
@@ -502,7 +503,7 @@ export function AccountCreateModal({
         size="compact"
         account={draftAccount}
         holder={holder}
-        // For CREDIT_LINE, the primary is always the one defined by the
+        // For CREDIT_CARD, the primary is always the one defined by the
         // "Últimos 4 dígitos"/"Vencimiento" fields above — every card drafted
         // here is an ADDITIONAL one, never the primary.
         hasExistingPrimary={isCreditLineType || cards.some((c) => c.kind === "CREDIT")}

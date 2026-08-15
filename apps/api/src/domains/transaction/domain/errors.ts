@@ -114,3 +114,12 @@ export class PrepaidInsufficientBalanceError extends DomainError {
     super("PREPAID_INSUFFICIENT_BALANCE");
   }
 }
+
+/** The movement would push the account past the overdraft line it was granted.
+ * Only ever thrown when a line IS configured: without one the app has no basis
+ * to refuse a movement that really happened. */
+export class OverdraftLimitExceededError extends DomainError {
+  constructor() {
+    super("OVERDRAFT_LIMIT_EXCEEDED", 400, "amount");
+  }
+}

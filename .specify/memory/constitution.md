@@ -1,4 +1,23 @@
 <!--
+Sync Impact Report — 2026-08-15 (amendment 1.40.0)
+- Version change: 1.39.0 → 1.40.0 (MINOR: new enforceable rule + a rename; BREAKING for stored data
+  and for the public contract's enum, but no principle removed or redefined).
+- Banking-domain norms gain **"Name the product, not the sales pitch"**: `AccountType.CREDIT_LINE` is
+  renamed **`CREDIT_CARD`** (it always meant the revolving-debt account), and the real "línea de
+  crédito" of a current account — the OVERDRAFT — becomes `BankAccount.overdraftLimit`, a floor on the
+  cash balance rather than an account type, since it has no card, statement or movements of its own.
+- New errors: `OVERDRAFT_NOT_ALLOWED` (a line on a type that holds no spendable cash, or a negative
+  one) and `OVERDRAFT_LIMIT_EXCEEDED` (the movement would pass the floor). The floor is enforced ONLY
+  when a line is configured: an undeclared overdraft is not grounds to refuse a real movement.
+- Note for readers: Sync Impact Reports above/below this one predate the rename and still say
+  `CREDIT_LINE`; they are kept as written, being history.
+- Migration: none written (dev data). Renaming an enum value cannot be pushed while rows still hold
+  it — the local database was moved off the old value first, then reseeded.
+- Templates requiring updates: none.
+- Follow-up TODOs: multi-country (PSP kind, CBU/CVU + alias identifiers).
+-->
+
+<!--
 Sync Impact Report — 2026-08-15 (amendment 1.39.0)
 - Version change: 1.38.1 → 1.39.0 (MINOR: new `InstitutionKind` value + two whole sectors of
   reference data; no principle removed or redefined).
@@ -1103,6 +1122,14 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
     (`INVALID_INITIAL_BALANCE`). The rule belongs to the account TYPE, so it is enforced once in the
     pure policies (`MovementPolicy`/`TransferPolicy`), never per channel; an edit is checked against
     the balance BEFORE its own previous charge.
+  - **Name the product, not the sales pitch:** `AccountType.CREDIT_CARD` is the revolving-debt
+    account a credit card lives on. The "línea de crédito" a bank grants on a current account is a
+    different thing — an OVERDRAFT — and it MUST be modelled as `BankAccount.overdraftLimit`, a floor
+    the cash balance may reach, never as an account type: it has no card, no statement and no
+    movements of its own. Only cash-holding types (CHECKING/SIGHT) may be granted one
+    (`OVERDRAFT_NOT_ALLOWED`), and the floor is enforced ONLY when a line is configured
+    (`OVERDRAFT_LIMIT_EXCEEDED`) — with none declared the app has no basis to refuse a movement that
+    really happened.
   - **A credit card is its own account, not an add-on:** a credit card MUST live on a `CREDIT_LINE`
     account, never on a CHECKING/SIGHT/SAVINGS one. Banks sell them bundled as a "plan", but a
     purchase on the card doesn't take money out of the deposit account: it opens revolving debt with
@@ -1226,4 +1253,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.39.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15
+**Version**: 1.40.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15

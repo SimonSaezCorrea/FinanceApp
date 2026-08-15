@@ -89,7 +89,7 @@ export function TransactionFormPanel({
   const type: transactions.TransactionType = value.mode === "TRANSFER" ? "EXPENSE" : value.mode;
   const isIncome = type === "INCOME";
   const selectedAccount = accountList.find((a) => a.id === value.bankAccountId);
-  const isCreditLine = selectedAccount?.type === "CREDIT_LINE";
+  const isCreditLine = selectedAccount?.type === "CREDIT_CARD";
   const isCardable =
     !!selectedAccount && accountsContract.isCardableAccountType(selectedAccount.type);
   // A card is REQUIRED only for credit-line expenses; optional for other cardable

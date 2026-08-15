@@ -15,7 +15,7 @@ const VALID_PAIRS: Array<[AccountType, CardKind]> = [
   ["CHECKING", "DEBIT"],
   ["SAVINGS", "DEBIT"],
   ["SIGHT", "DEBIT"],
-  ["CREDIT_LINE", "CREDIT"],
+  ["CREDIT_CARD", "CREDIT"],
   ["PREPAID", "PREPAID"],
 ];
 
@@ -24,7 +24,7 @@ const ALL_TYPES: AccountType[] = [
   "SIGHT",
   "SAVINGS",
   "INVESTMENT",
-  "CREDIT_LINE",
+  "CREDIT_CARD",
   "PREPAID",
   "CASH",
 ];

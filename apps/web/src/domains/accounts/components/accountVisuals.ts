@@ -17,14 +17,14 @@ export const ACCOUNT_ICON: Record<accounts.AccountType, LucideIcon> = {
   SIGHT: Wallet,
   SAVINGS: PiggyBank,
   INVESTMENT: LineChart,
-  CREDIT_LINE: CreditCard,
+  CREDIT_CARD: CreditCard,
   PREPAID: WalletCards,
   CASH: Banknote,
 };
 
 /** Whether an account is a credit line (a standalone credit card; uses "cupo"). */
 export function isCreditType(type: accounts.AccountType): boolean {
-  return type === "CREDIT_LINE";
+  return type === "CREDIT_CARD";
 }
 
 /**

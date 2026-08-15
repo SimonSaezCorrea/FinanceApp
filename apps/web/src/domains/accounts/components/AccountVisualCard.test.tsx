@@ -31,7 +31,7 @@ const card: accounts.Card = {
 const account: accounts.BankAccount = {
   id: "a1",
   name: "CMR Falabella",
-  type: "CREDIT_LINE",
+  type: "CREDIT_CARD",
   status: "ACTIVE",
   currency: "CLP",
   institution: "Falabella",
@@ -39,6 +39,7 @@ const account: accounts.BankAccount = {
   institutionName: "Falabella",
   accountNumber: null,
   initialBalance: "0.0000",
+  overdraftLimit: "0",
   currentBalance: "-1686470.0000",
   creditLimit: "3000000.0000",
   creditUsed: "1686470.0000",

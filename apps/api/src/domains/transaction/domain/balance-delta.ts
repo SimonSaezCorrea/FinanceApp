@@ -21,7 +21,7 @@ export function reverseBalanceDelta(type: "INCOME" | "EXPENSE", amount: string):
 
 /**
  * Whether a movement is charged to a credit line instead of to cash: any
- * movement on a standalone `CREDIT_LINE` account (every one of them is a credit
+ * movement on a standalone `CREDIT_CARD` account (every one of them is a credit
  * one by construction), and any movement made with a CREDIT-kind card on an
  * account that merely grew one.
  */
@@ -29,7 +29,7 @@ export function isChargedToCredit(
   account: { type: accounts.AccountType } | null,
   card: { kind: accounts.CardKind } | null,
 ): boolean {
-  return account?.type === "CREDIT_LINE" || card?.kind === "CREDIT";
+  return account?.type === "CREDIT_CARD" || card?.kind === "CREDIT";
 }
 
 /**

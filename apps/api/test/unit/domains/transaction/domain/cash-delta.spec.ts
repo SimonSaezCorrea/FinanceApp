@@ -8,7 +8,7 @@ import {
 } from "../../../../../src/domains/transaction/domain/balance-delta";
 
 const checking = { type: "CHECKING" } as const;
-const creditLine = { type: "CREDIT_LINE" } as const;
+const creditLine = { type: "CREDIT_CARD" } as const;
 const prepaid = { type: "PREPAID" } as const;
 const debitCard = { kind: "DEBIT" } as const;
 const creditCard = { kind: "CREDIT" } as const;

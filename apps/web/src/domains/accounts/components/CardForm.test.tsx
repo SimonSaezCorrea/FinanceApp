@@ -114,7 +114,7 @@ describe("CardForm", () => {
 
   describe("CREDIT — first card on the account (becomes primary)", () => {
     it("requires a limit before submitting", () => {
-      const onSubmit = renderForm(vi.fn(), { accountType: "CREDIT_LINE" });
+      const onSubmit = renderForm(vi.fn(), { accountType: "CREDIT_CARD" });
       fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
         target: { value: "1234" },
       });
@@ -125,7 +125,7 @@ describe("CardForm", () => {
     });
 
     it("submits with usesAccountPool: true and a limits entry in the account currency", () => {
-      const onSubmit = renderForm(vi.fn(), { accountType: "CREDIT_LINE", accountCurrency: "CLP" });
+      const onSubmit = renderForm(vi.fn(), { accountType: "CREDIT_CARD", accountCurrency: "CLP" });
       fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
         target: { value: "1234" },
       });
@@ -143,7 +143,7 @@ describe("CardForm", () => {
 
     it("offers an optional extra-currency limit, excluding the account's own currency", () => {
       const onSubmit = renderForm(vi.fn(), {
-        accountType: "CREDIT_LINE",
+        accountType: "CREDIT_CARD",
         accountCurrency: "CLP",
         currencies: [
           { id: "1", code: "CLP", numeric: "152", name: "Peso chileno" },
@@ -182,7 +182,7 @@ describe("CardForm", () => {
 
     it("submits successfully with the extra-currency row left empty (fully optional)", () => {
       const onSubmit = renderForm(vi.fn(), {
-        accountType: "CREDIT_LINE",
+        accountType: "CREDIT_CARD",
         accountCurrency: "CLP",
         currencies: [
           { id: "1", code: "CLP", numeric: "152", name: "Peso chileno" },
@@ -209,7 +209,7 @@ describe("CardForm", () => {
   describe("CREDIT — additional card (a primary already exists)", () => {
     it("defaults to sharing the account pool with no limit rows required", () => {
       const onSubmit = renderForm(vi.fn(), {
-        accountType: "CREDIT_LINE",
+        accountType: "CREDIT_CARD",
         hasExistingPrimary: true,
       });
       fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
@@ -226,7 +226,7 @@ describe("CardForm", () => {
 
     it("requires at least one limit row after switching to 'own limit'", () => {
       const onSubmit = renderForm(vi.fn(), {
-        accountType: "CREDIT_LINE",
+        accountType: "CREDIT_CARD",
         hasExistingPrimary: true,
       });
       fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {

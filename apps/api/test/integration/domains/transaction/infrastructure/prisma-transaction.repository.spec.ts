@@ -31,13 +31,14 @@ describe("PrismaTransactionRepository (integration)", () => {
     });
     const account = await accountRepo.createWithCards(userId, {
       name: "Test credit line",
-      type: "CREDIT_LINE",
+      type: "CREDIT_CARD",
       status: "ACTIVE",
       currency: "CLP",
       institution: null,
       institutionId: null,
       accountNumber: undefined,
       initialBalance: "0",
+      overdraftLimit: "0",
       creditLimit: "1000000",
       creditUsedInitial: "0",
       billingCycleDay: null,
@@ -72,7 +73,7 @@ describe("PrismaTransactionRepository (integration)", () => {
 
   it("the account's rule-relevant context comes from the bank-account port", async () => {
     const account = await accountRepo.findById(userId, creditAccountId);
-    expect(account?.type).toBe("CREDIT_LINE");
+    expect(account?.type).toBe("CREDIT_CARD");
     expect(account?.creditLimit).toBe("1000000.0000");
   });
 

@@ -40,7 +40,7 @@ const prisma = { $transaction: vi.fn(async (cb: (tx: unknown) => Promise<void>) 
 function setup(statement: CreditStatement, recomputed: string) {
   const account = accountAggregate({
     id: "acc_1",
-    type: "CREDIT_LINE",
+    type: "CREDIT_CARD",
     creditLimit: "1000000",
     creditUsed: "5000",
   });

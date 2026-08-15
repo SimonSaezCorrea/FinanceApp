@@ -10,9 +10,9 @@ describe("BillingEligibilityStrategy", () => {
   describe("CreditLineEligibility", () => {
     const strategy = new CreditLineEligibility();
 
-    it("applies only to CREDIT_LINE accounts", () => {
+    it("applies only to CREDIT_CARD accounts", () => {
       expect(
-        strategy.applies({ accountType: "CREDIT_LINE", accountStatus: "ACTIVE", cards: [] }),
+        strategy.applies({ accountType: "CREDIT_CARD", accountStatus: "ACTIVE", cards: [] }),
       ).toBe(true);
       expect(
         strategy.applies({ accountType: "CHECKING", accountStatus: "ACTIVE", cards: [] }),
@@ -21,7 +21,7 @@ describe("BillingEligibilityStrategy", () => {
 
     it("eligible only if ACTIVE + its primary CREDIT card is active", () => {
       const active = {
-        accountType: "CREDIT_LINE",
+        accountType: "CREDIT_CARD",
         accountStatus: "ACTIVE" as const,
         cards: [{ kind: "CREDIT", isPrimary: true, isActive: true }],
       };
@@ -49,10 +49,10 @@ describe("BillingEligibilityStrategy", () => {
   });
 
   describe("resolveBillingEligibility", () => {
-    it("picks CreditLineEligibility for CREDIT_LINE accounts", () => {
+    it("picks CreditLineEligibility for CREDIT_CARD accounts", () => {
       expect(
         resolveBillingEligibility({
-          accountType: "CREDIT_LINE",
+          accountType: "CREDIT_CARD",
           accountStatus: "ACTIVE",
           cards: [{ kind: "CREDIT", isPrimary: true, isActive: true }],
         }),

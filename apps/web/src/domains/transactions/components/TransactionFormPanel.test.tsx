@@ -118,16 +118,16 @@ describe("TransactionFormPanel card rules", () => {
     expect(screen.queryByLabelText(i18n.t("transactions.form.card"))).toBeNull();
   });
 
-  it("a CREDIT_LINE expense with no cards explains why it can't be saved", () => {
-    render(<Harness accounts={[account({ type: "CREDIT_LINE", cards: [] })]} />);
+  it("a CREDIT_CARD expense with no cards explains why it can't be saved", () => {
+    render(<Harness accounts={[account({ type: "CREDIT_CARD", cards: [] })]} />);
     expect(screen.getByText(i18n.t("transactions.form.noCardsHint"))).toBeDefined();
   });
 
-  it("a CREDIT_LINE projects the AVAILABLE CREDIT, not a balance", () => {
+  it("a CREDIT_CARD projects the AVAILABLE CREDIT, not a balance", () => {
     // Money spent on a credit line doesn't leave a balance, it eats the limit.
     render(
       <Harness
-        accounts={[account({ type: "CREDIT_LINE", creditLimit: "500000", creditUsed: "100000" })]}
+        accounts={[account({ type: "CREDIT_CARD", creditLimit: "500000", creditUsed: "100000" })]}
       />,
     );
     expect(screen.getByText(i18n.t("transactions.form.projectedCredit"))).toBeDefined();

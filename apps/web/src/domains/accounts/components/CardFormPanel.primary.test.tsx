@@ -22,7 +22,7 @@ vi.mock("../../auth/api/authApi", () => ({ authApi: { me: () => Promise.resolve(
 const account = {
   id: "a1",
   name: "Credit",
-  type: "CREDIT_LINE" as const,
+  type: "CREDIT_CARD" as const,
   status: "ACTIVE" as const,
   currency: "CLP",
   institution: null,
@@ -30,6 +30,7 @@ const account = {
   institutionName: null,
   accountNumber: null,
   initialBalance: "0",
+  overdraftLimit: "0",
   currentBalance: "0",
   creditLimit: "1000000",
   creditUsed: "0",

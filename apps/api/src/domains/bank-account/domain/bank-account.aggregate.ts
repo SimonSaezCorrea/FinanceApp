@@ -11,6 +11,7 @@ import {
   CardNotFoundError,
   CardSubLimitExceedsAccountError,
   CreditSettingsNotAllowedError,
+  OverdraftNotAllowedError,
   InvalidInitialBalanceError,
 } from "./errors";
 
@@ -53,6 +54,8 @@ export interface BankAccountProps {
   accountNumber: string | null;
   initialBalance: string;
   currentBalance: string;
+  /** How far below zero this account may go ("0" = no overdraft line). */
+  overdraftLimit: string;
   creditLimit: string;
   creditUsedInitial: string;
   creditUsed: string;
@@ -127,6 +130,7 @@ export class BankAccount {
     type: accounts.AccountType;
     currency: string;
     initialBalance?: string;
+    overdraftLimit?: string;
     creditLimit?: string;
     creditUsedInitial?: string;
     cards?: CardInput[];
@@ -240,10 +244,10 @@ export class BankAccount {
     return moneyToString(this.props.initialBalance);
   }
 
-  /** Shared/master credit pool exists for a standalone CREDIT_LINE account OR
+  /** Shared/master credit pool exists for a standalone CREDIT_CARD account OR
    * any other cardable account that's grown a CREDIT-kind card. */
   get hasCreditPool(): boolean {
-    return this.props.type === "CREDIT_LINE" || this.props.cards.some((c) => c.kind === "CREDIT");
+    return this.props.type === "CREDIT_CARD" || this.props.cards.some((c) => c.kind === "CREDIT");
   }
 
   get primaryCard(): CardProps | undefined {
@@ -299,9 +303,18 @@ export class BankAccount {
     if (toMoney(initialBalance).isNegative()) throw new InvalidInitialBalanceError();
   }
 
+  /** An overdraft is the floor of a CASH balance, so only the account types that
+   * hold spendable cash can be granted one, and it is never negative. */
+  private static assertOverdraft(type: accounts.AccountType, overdraftLimit?: string): void {
+    if (overdraftLimit === undefined || !isNonZero(overdraftLimit)) return;
+    if (!accounts.allowsOverdraft(type) || toMoney(overdraftLimit).isNegative()) {
+      throw new OverdraftNotAllowedError();
+    }
+  }
+
   /** Only a credit line carries a credit pool and billing settings: a checking
    * account's cash and a credit card's revolving debt are separate products, so
-   * the pool belongs to the CREDIT_LINE account the card lives on. Zero/absent
+   * the pool belongs to the CREDIT_CARD account the card lives on. Zero/absent
    * figures are not "settings" — they're what every other account already has. */
   private static assertCreditSettings(
     type: accounts.AccountType,
@@ -312,7 +325,7 @@ export class BankAccount {
       minimumPaymentPercent?: string | null;
     },
   ): void {
-    if (type === "CREDIT_LINE") return;
+    if (type === "CREDIT_CARD") return;
     const configured =
       isNonZero(patch.creditLimit) ||
       isNonZero(patch.creditUsedInitial) ||
@@ -332,6 +345,7 @@ export class BankAccount {
     institutionId?: string | null;
     accountNumber?: string;
     initialBalance?: string;
+    overdraftLimit?: string;
     creditLimit?: string;
     creditUsedInitial?: string;
     billingCycleDay?: number | null;
@@ -355,6 +369,7 @@ export class BankAccount {
       }
     }
     BankAccount.assertInitialBalance(effectiveType, patch.initialBalance);
+    BankAccount.assertOverdraft(effectiveType, patch.overdraftLimit);
     BankAccount.assertCreditSettings(effectiveType, patch);
     this.assertAccountNumber(effectiveType, effectiveAccountNumber);
     if (patch.name !== undefined) this.props.name = patch.name;
@@ -365,6 +380,7 @@ export class BankAccount {
     if (patch.institutionId !== undefined) this.props.institutionId = patch.institutionId;
     if (patch.accountNumber !== undefined) this.props.accountNumber = patch.accountNumber;
     if (patch.initialBalance !== undefined) this.props.initialBalance = patch.initialBalance;
+    if (patch.overdraftLimit !== undefined) this.props.overdraftLimit = patch.overdraftLimit;
     if (patch.creditLimit !== undefined) this.props.creditLimit = patch.creditLimit;
     if (patch.creditUsedInitial !== undefined)
       this.props.creditUsedInitial = patch.creditUsedInitial;

@@ -26,13 +26,14 @@ describe("PrismaCreditStatementRepository (integration)", () => {
     });
     const account = await accountRepo.createWithCards(userId, {
       name: "Test credit line",
-      type: "CREDIT_LINE",
+      type: "CREDIT_CARD",
       status: "ACTIVE",
       currency: "CLP",
       institution: null,
       institutionId: null,
       accountNumber: undefined,
       initialBalance: "0",
+      overdraftLimit: "0",
       creditLimit: "100000",
       creditUsedInitial: "0",
       billingCycleDay: null,
@@ -49,6 +50,7 @@ describe("PrismaCreditStatementRepository (integration)", () => {
       institutionId: null,
       accountNumber: "1234567890",
       initialBalance: "0",
+      overdraftLimit: "0",
       creditLimit: "0",
       creditUsedInitial: "0",
       billingCycleDay: null,

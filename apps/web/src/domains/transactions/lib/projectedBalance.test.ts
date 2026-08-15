@@ -12,7 +12,7 @@ const account = {
 
 const creditLine = {
   id: "c1",
-  type: "CREDIT_LINE" as const,
+  type: "CREDIT_CARD" as const,
   currentBalance: "0",
   creditLimit: "500000",
   creditUsed: "100000",

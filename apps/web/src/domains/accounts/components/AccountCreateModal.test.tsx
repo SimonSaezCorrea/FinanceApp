@@ -30,7 +30,7 @@ function renderModal() {
   );
 }
 
-describe("AccountCreateModal — CREDIT_LINE primary card shortcut", () => {
+describe("AccountCreateModal — CREDIT_CARD primary card shortcut", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("auto-creates the primary card from the últimos-4-dígitos/vencimiento fields, as the first card, instead of requiring a separate 'add card' step", async () => {
@@ -39,7 +39,7 @@ describe("AccountCreateModal — CREDIT_LINE primary card shortcut", () => {
     fireEvent.change(screen.getByLabelText(i18n.t("accounts.form.name")), {
       target: { value: "CMR Falabella" },
     });
-    fireEvent.click(screen.getByText(i18n.t("accounts.type.CREDIT_LINE")));
+    fireEvent.click(screen.getByText(i18n.t("accounts.type.CREDIT_CARD")));
 
     // The generic "Número de cuenta" field is gone; últimos 4 dígitos/vencimiento show instead.
     expect(screen.queryByLabelText(i18n.t("accounts.form.accountNumber"))).toBeNull();
@@ -69,13 +69,13 @@ describe("AccountCreateModal — CREDIT_LINE primary card shortcut", () => {
     });
   });
 
-  it("blocks submission with an inline error when últimos 4 dígitos is missing for a CREDIT_LINE account", async () => {
+  it("blocks submission with an inline error when últimos 4 dígitos is missing for a CREDIT_CARD account", async () => {
     renderModal();
 
     fireEvent.change(screen.getByLabelText(i18n.t("accounts.form.name")), {
       target: { value: "CMR Falabella" },
     });
-    fireEvent.click(screen.getByText(i18n.t("accounts.type.CREDIT_LINE")));
+    fireEvent.click(screen.getByText(i18n.t("accounts.type.CREDIT_CARD")));
     fireEvent.click(screen.getByText(i18n.t("accounts.form.createSubmit")));
 
     expect(accountsApi.create).not.toHaveBeenCalled();

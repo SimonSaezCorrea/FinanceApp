@@ -48,13 +48,13 @@ describe("Accounts HTTP (e2e)", () => {
     await app.close();
   });
 
-  it("creates a CREDIT_LINE account with an inline primary card", async () => {
+  it("creates a CREDIT_CARD account with an inline primary card", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/accounts")
       .set("Cookie", cookies)
       .send({
         name: "My credit line",
-        type: "CREDIT_LINE",
+        type: "CREDIT_CARD",
         currency: "CLP",
         cards: [
           {

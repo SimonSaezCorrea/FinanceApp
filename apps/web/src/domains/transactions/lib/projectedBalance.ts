@@ -42,7 +42,7 @@ function cleanAmount(amount: string): string | null {
 function drawsOnCredit(account: AccountLike, card?: Pick<accounts.Card, "kind"> | null): boolean {
   // A standalone credit line has no cash at all; any other account only touches
   // the pool through a CREDIT-kind card.
-  return account.type === "CREDIT_LINE" || card?.kind === "CREDIT";
+  return account.type === "CREDIT_CARD" || card?.kind === "CREDIT";
 }
 
 /**

@@ -80,7 +80,7 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
 
   const Icon = ACCOUNT_ICON[acc.type];
   const pct = acc.balanceChangePct === null ? null : Number(acc.balanceChangePct);
-  const hasCreditPool = acc.type === "CREDIT_LINE" || acc.cards.some((c) => c.kind === "CREDIT");
+  const hasCreditPool = acc.type === "CREDIT_CARD" || acc.cards.some((c) => c.kind === "CREDIT");
   const cardable = accountsContract.isCardableAccountType(acc.type);
   const tabItems = [
     { value: "movements" as const, label: t("transactions.title") },
@@ -330,7 +330,7 @@ function BillingNotConfiguredBadge({
 }) {
   const { t } = useTranslation();
   const hasCreditPool =
-    account.type === "CREDIT_LINE" || account.cards.some((c) => c.kind === "CREDIT");
+    account.type === "CREDIT_CARD" || account.cards.some((c) => c.kind === "CREDIT");
   if (!hasCreditPool || account.billingCycleDay !== null) return null;
   return (
     <button
@@ -348,13 +348,13 @@ function BillingNotConfiguredBadge({
 function KpiStrip({ account, pct }: { account: accounts.BankAccount; pct: number | null }) {
   const { t, i18n } = useTranslation();
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
-  // A CREDIT_LINE account has no real cash balance at all — its "balance" IS the
+  // A CREDIT_CARD account has no real cash balance at all — its "balance" IS the
   // credit pool (shown in the Crédito card instead), so "Saldo actual" makes no
   // sense for it. Any other cardable account that's grown a credit card still has
   // its own real balance AND a credit pool, so both show side by side.
-  const hasRealBalance = account.type !== "CREDIT_LINE";
+  const hasRealBalance = account.type !== "CREDIT_CARD";
   const hasCreditPool =
-    account.type === "CREDIT_LINE" || account.cards.some((c) => c.kind === "CREDIT");
+    account.type === "CREDIT_CARD" || account.cards.some((c) => c.kind === "CREDIT");
   const cols = (hasRealBalance ? 1 : 0) + 1 + (hasCreditPool ? 1 : 0);
   return (
     // Three across only from `lg`: at tablet widths the credit KPI's

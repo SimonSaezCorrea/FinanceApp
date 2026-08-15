@@ -75,10 +75,18 @@ export class InvalidInitialBalanceError extends DomainError {
 
 /** A credit pool (or its billing settings) on an account that isn't a credit line.
  * Cash and revolving debt are separate products: the debt belongs to the
- * `CREDIT_LINE` account the card lives on, never to the checking account that
+ * `CREDIT_CARD` account the card lives on, never to the checking account that
  * eventually pays its statement. */
 export class CreditSettingsNotAllowedError extends DomainError {
   constructor() {
     super("CREDIT_SETTINGS_NOT_ALLOWED", 400, "creditLimit");
+  }
+}
+
+/** An overdraft line on an account type that holds no spendable cash (or a
+ * negative one). The overdraft is the floor of a balance, not a product. */
+export class OverdraftNotAllowedError extends DomainError {
+  constructor() {
+    super("OVERDRAFT_NOT_ALLOWED", 400, "overdraftLimit");
   }
 }

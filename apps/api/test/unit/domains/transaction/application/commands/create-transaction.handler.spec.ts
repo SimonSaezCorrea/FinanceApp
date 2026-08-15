@@ -40,7 +40,7 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
 const base = { currency: "CLP", occurredAt: "2026-03-01T00:00:00.000Z" } as const;
 
 const creditAccount = () =>
-  accountAggregate({ id: "aC", type: "CREDIT_LINE", creditLimit: "3000000", creditUsed: "0" });
+  accountAggregate({ id: "aC", type: "CREDIT_CARD", creditLimit: "3000000", creditUsed: "0" });
 
 const creditCard: CardProps = {
   id: "cC",
@@ -168,7 +168,7 @@ describe("CreateTransactionHandler", () => {
   it("rejects a credit-line expense that exceeds the persisted pool", async () => {
     const account = accountAggregate({
       id: "aC",
-      type: "CREDIT_LINE",
+      type: "CREDIT_CARD",
       creditLimit: "3000000",
       creditUsed: "2950000",
     });

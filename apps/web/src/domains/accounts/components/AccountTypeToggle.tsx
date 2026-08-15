@@ -9,7 +9,7 @@ const TYPES: accounts.AccountType[] = [
   "SIGHT",
   "SAVINGS",
   "INVESTMENT",
-  "CREDIT_LINE",
+  "CREDIT_CARD",
   "PREPAID",
   "CASH",
 ];

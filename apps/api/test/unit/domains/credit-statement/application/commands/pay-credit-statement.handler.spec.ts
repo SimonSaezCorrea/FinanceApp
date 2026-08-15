@@ -23,7 +23,7 @@ function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountPro
     id: "acc_1",
     userId: "u1",
     name: "Credit line",
-    type: "CREDIT_LINE",
+    type: "CREDIT_CARD",
     status: "ACTIVE",
     currency: "CLP",
     institution: null,
@@ -31,6 +31,7 @@ function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountPro
     institutionName: null,
     accountNumber: null,
     initialBalance: "0",
+    overdraftLimit: "0",
     currentBalance: "0",
     creditLimit: "100000",
     creditUsedInitial: "0",
@@ -152,7 +153,7 @@ describe("PayCreditStatementHandler", () => {
     expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 
-  it("rejects paying from a CREDIT_LINE source account", async () => {
+  it("rejects paying from a CREDIT_CARD source account", async () => {
     const creditAccount = BankAccount.fromPersistence(accountProps());
     const otherCreditLine = BankAccount.fromPersistence(accountProps({ id: "acc_3" }));
     const statement = CreditStatement.fromPersistence(statementProps());

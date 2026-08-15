@@ -184,7 +184,7 @@ export function TransactionCreateModal({
 
   const isTransfer = form.mode === "TRANSFER";
   const selectedAccount = accounts.find((a) => a.id === form.bankAccountId);
-  const isCreditLine = selectedAccount?.type === "CREDIT_LINE";
+  const isCreditLine = selectedAccount?.type === "CREDIT_CARD";
   const needsCard = !isTransfer && form.mode === "EXPENSE" && isCreditLine;
   const noCardsAvailable = needsCard && (selectedAccount?.cards.length ?? 0) === 0;
 
@@ -266,7 +266,7 @@ export function TransactionCreateModal({
     }
 
     const selected = accounts.find((a) => a.id === form.bankAccountId);
-    // Only CHECKING/SIGHT/CREDIT_LINE carry cards; anything else must send none.
+    // Only CHECKING/SIGHT/CREDIT_CARD carry cards; anything else must send none.
     const cardable = !!selected && accountsContract.isCardableAccountType(selected.type);
     const body = {
       type: form.mode as transactions.TransactionType,

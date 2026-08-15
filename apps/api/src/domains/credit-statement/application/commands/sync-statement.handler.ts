@@ -101,7 +101,7 @@ export class SyncStatementHandler extends BaseCommandHandler<
     // spend through a CREDIT card that shares the pool belongs to the statement.
     const snap = account.snapshot();
     const cardIds =
-      snap.type === "CREDIT_LINE"
+      snap.type === "CREDIT_CARD"
         ? null
         : snap.cards.filter((c) => c.kind === "CREDIT").map((c) => c.id);
 

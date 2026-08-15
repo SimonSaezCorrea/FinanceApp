@@ -58,7 +58,7 @@ function txFixture(overrides: Partial<Parameters<typeof Transaction.fromPersiste
 }
 
 const creditAccount = () =>
-  accountAggregate({ id: "aC", type: "CREDIT_LINE", creditLimit: "3000000", creditUsed: "100000" });
+  accountAggregate({ id: "aC", type: "CREDIT_CARD", creditLimit: "3000000", creditUsed: "100000" });
 
 const card = (kind: CardProps["kind"]): CardProps => ({
   id: "cC",

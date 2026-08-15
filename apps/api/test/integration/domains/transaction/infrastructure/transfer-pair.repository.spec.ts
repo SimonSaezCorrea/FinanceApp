@@ -28,6 +28,7 @@ describe("transfer pair (integration)", () => {
       institutionId: null,
       accountNumber: "1234",
       initialBalance,
+      overdraftLimit: "0",
       creditLimit: "0",
       creditUsedInitial: "0",
       billingCycleDay: null,

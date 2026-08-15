@@ -24,6 +24,7 @@ function account(over: Partial<accounts.BankAccount>): accounts.BankAccount {
     institutionName: null,
     accountNumber: null,
     initialBalance: "0",
+    overdraftLimit: "0",
     currentBalance: "0",
     creditLimit: "0",
     creditUsed: "0",
@@ -46,7 +47,7 @@ describe("accountNet", () => {
   });
 
   it("is pure debt for a standalone credit line", () => {
-    expect(accountNet(account({ type: "CREDIT_LINE", creditUsed: "500" }))).toBe("-500");
+    expect(accountNet(account({ type: "CREDIT_CARD", creditUsed: "500" }))).toBe("-500");
   });
 });
 
@@ -54,7 +55,7 @@ describe("accountsSummary", () => {
   it("splits net / assets / debt per currency instead of converting", () => {
     const { net, assets, cardDebt } = accountsSummary([
       account({ id: "a", currentBalance: "1000", creditUsed: "200" }),
-      account({ id: "b", type: "CREDIT_LINE", creditUsed: "500" }),
+      account({ id: "b", type: "CREDIT_CARD", creditUsed: "500" }),
       account({ id: "c", currency: "USD", currentBalance: "40" }),
     ]);
     expect(net).toEqual([
@@ -83,7 +84,7 @@ describe("groupAccounts", () => {
     const groups = groupAccounts(
       [
         account({ id: "small", currentBalance: "100" }),
-        account({ id: "debt", type: "CREDIT_LINE", creditUsed: "500" }),
+        account({ id: "debt", type: "CREDIT_CARD", creditUsed: "500" }),
         account({ id: "big", currentBalance: "9000" }),
       ],
       "currency",

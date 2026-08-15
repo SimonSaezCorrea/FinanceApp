@@ -34,7 +34,7 @@ const checkingAccount: AccountContext = {
 
 const creditAccount: AccountContext = {
   id: "aC",
-  type: "CREDIT_LINE",
+  type: "CREDIT_CARD",
   currentBalance: "1000000",
   creditLimit: "3000000",
   creditUsed: "0",
@@ -210,7 +210,7 @@ describe("MovementPolicy.contribution", () => {
     ).toBe("0");
   });
 
-  it("is the negative amount for INCOME on a CREDIT_LINE account", () => {
+  it("is the negative amount for INCOME on a CREDIT_CARD account", () => {
     expect(
       MovementPolicy.contribution({ type: "INCOME", amount: "100" }, creditAccount, null, null),
     ).toBe("-100.0000");

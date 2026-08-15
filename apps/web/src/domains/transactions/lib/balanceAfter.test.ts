@@ -83,7 +83,7 @@ describe("balanceAfterTransaction", () => {
       balanceAfterTransaction({
         items,
         index: 0,
-        account: { type: "CREDIT_LINE", currentBalance: "0", cards: [] },
+        account: { type: "CREDIT_CARD", currentBalance: "0", cards: [] },
         dateFiltered: false,
       }),
     ).toBeNull();

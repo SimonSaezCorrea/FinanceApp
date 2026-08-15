@@ -61,7 +61,7 @@ async function seedFullUser(passwordHash: string) {
   type AcctKey = "checking" | "sight" | "credit" | "creditBch" | "creditVista" | "cash" | "prepaid";
   /** Accounts that ARE a credit line: their movements are charged to the pool and
    * move no cash (the statement payment is what leaves the paying account). */
-  const CREDIT_LINE_ACCTS: AcctKey[] = ["credit", "creditBch", "creditVista"];
+  const CREDIT_CARD_ACCTS: AcctKey[] = ["credit", "creditBch", "creditVista"];
   const initial: Record<AcctKey, number> = {
     checking: 2_800_000,
     prepaid: 120_000,
@@ -1546,7 +1546,7 @@ async function seedFullUser(passwordHash: string) {
   // A purchase on a credit line moves no cash: it raises the pool, and the money
   // leaves once, when the statement is paid (`paidFromOutflow` below).
   for (const t of TX) {
-    if (CREDIT_LINE_ACCTS.includes(t.acct)) continue;
+    if (CREDIT_CARD_ACCTS.includes(t.acct)) continue;
     net[t.acct] += t.type === "INCOME" ? t.amount : -t.amount;
   }
 
@@ -1567,6 +1567,10 @@ async function seedFullUser(passwordHash: string) {
     institution: "Banco de Chile",
     institutionId: bankId("001"),
     accountNumber: "001-2345678-90",
+    // The bank's "línea de crédito" on a current account is an OVERDRAFT: no card,
+    // no statement of its own — it just lets the balance go this far below zero.
+    // A floor on this account, never a separate product.
+    overdraftLimit: dec("500000.0000"),
     initialBalance: dec("0"),
     currentBalance: dec("0"),
   });
@@ -1581,11 +1585,11 @@ async function seedFullUser(passwordHash: string) {
     initialBalance: dec("0"),
     currentBalance: dec("0"),
   });
-  // Standalone credit card = a CREDIT_LINE account (the pool lives here) + its plastic.
+  // Standalone credit card = a CREDIT_CARD account (the pool lives here) + its plastic.
   const credit = await mkAccount("credit", {
     userId: javier.id,
     name: "CMR Falabella",
-    type: "CREDIT_LINE",
+    type: "CREDIT_CARD",
     currency: "CLP",
     institution: "Falabella",
     institutionId: bankId("051"),
@@ -1600,7 +1604,7 @@ async function seedFullUser(passwordHash: string) {
   const creditBch = await mkAccount("creditBch", {
     userId: javier.id,
     name: "Banco de Chile · Visa Crédito",
-    type: "CREDIT_LINE",
+    type: "CREDIT_CARD",
     currency: "CLP",
     institution: "Banco de Chile",
     institutionId: bankId("001"),
@@ -1610,7 +1614,7 @@ async function seedFullUser(passwordHash: string) {
   const creditVista = await mkAccount("creditVista", {
     userId: javier.id,
     name: "BancoEstado · Mastercard Crédito",
-    type: "CREDIT_LINE",
+    type: "CREDIT_CARD",
     currency: "CLP",
     institution: "BancoEstado",
     institutionId: bankId("012"),
@@ -1674,7 +1678,7 @@ async function seedFullUser(passwordHash: string) {
     prepaid: prepaid.id,
   };
 
-  // Cards (only last4 stored). The credit card belongs to the CREDIT_LINE account.
+  // Cards (only last4 stored). The credit card belongs to the CREDIT_CARD account.
   // Checking and CMR each carry additional cards issued by the bank for another
   // person to hold — 4 cards on checking, 3 on the credit line.
   const debitCard = await prisma.cardAccount.create({
@@ -1900,7 +1904,7 @@ async function seedFullUser(passwordHash: string) {
     accountId: string;
     /** null = intentionally not configured (shows the "configura la facturación" warning). */
     billingCycleDay: number | null;
-    /** CREDIT_LINE: every movement on the account feeds the pool (income = payments). */
+    /** CREDIT_CARD: every movement on the account feeds the pool (income = payments). */
     wholeAccount: boolean;
     /** Cards drawing on the shared pool (used when `wholeAccount` is false). */
     poolCardIds: string[];
@@ -2377,20 +2381,20 @@ async function seedInstitutionAccountTypes(countryId: string) {
 
   const BY_BANK_CATEGORY: Record<string, Product[]> = {
     // Local retail/commercial bank: the full deposit + credit catalogue.
-    ESTABLISHED: ["CHECKING", "SIGHT", "SAVINGS", "CREDIT_LINE"],
+    ESTABLISHED: ["CHECKING", "SIGHT", "SAVINGS", "CREDIT_CARD"],
     // Branch of a foreign bank: corporate current accounts, no retail products.
     FOREIGN_BRANCH: ["CHECKING"],
-    STATE: ["SIGHT", "CHECKING", "SAVINGS", "CREDIT_LINE"], // BancoEstado: CuentaRUT first.
+    STATE: ["SIGHT", "CHECKING", "SAVINGS", "CREDIT_CARD"], // BancoEstado: CuentaRUT first.
   };
   // A cooperative takes its members' savings and lends: ahorro first, plus a sight
   // account (Coopeuch's Dale) and its own credit card.
-  const COOPERATIVE_PRODUCTS: Product[] = ["SAVINGS", "SIGHT", "CREDIT_LINE"];
+  const COOPERATIVE_PRODUCTS: Product[] = ["SAVINGS", "SIGHT", "CREDIT_CARD"];
   // Non-bank issuers with the prepaid licence provision funds up front.
   const ISSUER_PRODUCTS: Product[] = ["PREPAID"];
   // Retail / caja de compensación issuers that hold BOTH licences (prepaid + credit).
   const ISSUER_WITH_CREDIT = new Set(["697", "699", "729"]);
   // Issuers holding ONLY the credit-card licence (TCEEM): a store card, no prepaid.
-  const CREDIT_ONLY_PRODUCTS: Product[] = ["CREDIT_LINE"];
+  const CREDIT_ONLY_PRODUCTS: Product[] = ["CREDIT_CARD"];
   const CREDIT_ONLY_CODES = new Set([
     "RUT-96522900", // Hites
     "RUT-96712290", // FISO
@@ -2413,7 +2417,7 @@ async function seedInstitutionAccountTypes(countryId: string) {
     // A credit-only issuer is keyed by RUT precisely because it has no transfer
     // code — the same fact that tells us it holds no prepaid licence.
     if (CREDIT_ONLY_CODES.has(inst.code)) return CREDIT_ONLY_PRODUCTS;
-    if (ISSUER_WITH_CREDIT.has(inst.code)) return [...ISSUER_PRODUCTS, "CREDIT_LINE"];
+    if (ISSUER_WITH_CREDIT.has(inst.code)) return [...ISSUER_PRODUCTS, "CREDIT_CARD"];
     return ISSUER_PRODUCTS;
   }
 

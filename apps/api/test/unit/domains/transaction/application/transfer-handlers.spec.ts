@@ -64,7 +64,7 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
   } as TransactionRepositoryPort;
 }
 
-function fakeAccounts(types: Record<string, "CHECKING" | "SAVINGS" | "CREDIT_LINE">) {
+function fakeAccounts(types: Record<string, "CHECKING" | "SAVINGS" | "CREDIT_CARD">) {
   return {
     findById: vi.fn(async (_userId: string, id: string) =>
       types[id] ? accountAggregate({ id, type: types[id] }) : null,
@@ -110,7 +110,7 @@ describe("CreateTransferHandler", () => {
     const handler = new CreateTransferHandler(
       eventBus,
       fakeRepo(),
-      fakeAccounts({ a1: "CHECKING", a2: "CREDIT_LINE" }),
+      fakeAccounts({ a1: "CHECKING", a2: "CREDIT_CARD" }),
     );
     await expect(handler.execute(new CreateTransferCommand("u1", input))).rejects.toThrow(
       /TRANSFER_TO_CREDIT_ACCOUNT/,

@@ -37,7 +37,7 @@ export function balanceAfterTransaction({
 }: BalanceAfterInput): string | null {
   if (!account) return null;
   // A credit line has no cash balance to speak of — only a pool.
-  if (account.type === "CREDIT_LINE") return null;
+  if (account.type === "CREDIT_CARD") return null;
   if (dateFiltered) return null;
   if (index < 0 || index >= items.length) return null;
 

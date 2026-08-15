@@ -13,6 +13,7 @@ describe("money boundary", () => {
       currency: "USD",
       accountNumber: "1234567890",
       initialBalance: "1240.5000",
+      overdraftLimit: "0",
     });
     expect(parsed.initialBalance).toBe("1240.5000");
   });

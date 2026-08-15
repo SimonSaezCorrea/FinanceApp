@@ -72,6 +72,7 @@ describe("Attachments HTTP (e2e)", () => {
       currency: "CLP",
       accountNumber: "1234",
       initialBalance: "10000",
+      overdraftLimit: "0",
     });
     const movement = await api().post("/api/v1/transactions").set("Cookie", cookies).send({
       type: "EXPENSE",
