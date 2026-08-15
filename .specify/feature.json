@@ -1,1 +1,3 @@
-{ "feature_directory": "specs/011-prepaid-account-product" }
+{
+  "feature_directory": "specs/012-investment-tracking"
+}
