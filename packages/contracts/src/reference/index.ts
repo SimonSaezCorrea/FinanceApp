@@ -33,7 +33,12 @@ export type BankCategory = z.infer<typeof bankCategory>;
 /** What the entity IS in regulatory terms — never what it sells (that is
  * `accountTypes`): a non-bank issuer may hold the prepaid licence, the credit-card
  * one, or both, and a cooperative takes deposits without being a bank. */
-export const institutionKind = z.enum(["BANK", "NON_BANK_ISSUER", "COOPERATIVE"]);
+export const institutionKind = z.enum([
+  "BANK",
+  "NON_BANK_ISSUER",
+  "COOPERATIVE",
+  "PAYMENT_PROVIDER",
+]);
 export type InstitutionKind = z.infer<typeof institutionKind>;
 
 /** A financial institution: a bank or a non-bank card issuer. */

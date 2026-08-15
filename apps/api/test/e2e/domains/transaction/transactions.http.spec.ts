@@ -140,6 +140,7 @@ describe("Transactions HTTP (e2e)", () => {
         type: "CHECKING",
         currency: "CLP",
         accountNumber: "111-2",
+        accountAlias: null,
         initialBalance: "100000",
         overdraftLimit: "0",
       });

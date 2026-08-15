@@ -1,4 +1,25 @@
 <!--
+Sync Impact Report — 2026-08-15 (amendment 1.41.0)
+- Version change: 1.40.0 → 1.41.0 (MINOR: new enforceable rule + the first non-Chilean market; no
+  principle removed or redefined).
+- Banking-domain norms gain **"A market's rules are data about that market"**: account-number formats
+  live in `contracts/accounts/account-number.ts` keyed by ISO alpha-2 and are applied permissively
+  (unknown market ⇒ accept), with `isValidCbu` covering Argentina's CBU and CVU alike.
+- `InstitutionKind` gains **PAYMENT_PROVIDER** — one kind for the PSP/SEDPE/EEDE/EMPE role.
+  `BankAccount` gains **`accountAlias`** for the markets that identify accounts by alias.
+- The web stops hardcoding `country="CL"`: both account forms ask for the country, which drives the
+  institution catalogue, the account-number label/validation and whether an alias field exists at
+  all. The edit panel derives the country from the saved institution — the account never stores one,
+  since its institution already has it.
+- Data: 9 Argentine banks keyed by their BCRA entity code (the first 3 digits of every CBU they
+  issue, which is what makes it the natural key) and 3 PSPs keyed `PSP-<slug>`, their CVU prefixes
+  not being published in the sources used. Colombia, Peru and Paraguay remain empty.
+- Templates requiring updates: none.
+- Follow-up TODOs: seed CO/PE/PY; no FX conversion exists, so a multi-currency net worth is still
+  a sum of separate currencies.
+-->
+
+<!--
 Sync Impact Report — 2026-08-15 (amendment 1.40.0)
 - Version change: 1.39.0 → 1.40.0 (MINOR: new enforceable rule + a rename; BREAKING for stored data
   and for the public contract's enum, but no principle removed or redefined).
@@ -1155,6 +1176,13 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
     (`transaction/domain/balance-delta.ts`'s `cashDelta` in the API, `drawsOnCredit`/`balanceAfter` on
     the web) and every write path — create, edit, delete, statement payment, payment correction,
     statement sync — MUST agree with it; a balance the user cannot reconcile by hand is a defect.
+  - **A market's rules are data about that market:** how an account is identified varies by country
+    (Chile: free text with no check digit; Argentina: a 22-digit CBU/CVU plus an alias), so the format
+    lives in one table keyed by country and is applied PERMISSIVELY: a country whose format the app
+    doesn't know accepts any number, and only formats with a real, verifiable rule are validated —
+    the same standard the identifier types follow. An entity that holds payment accounts without
+    being a bank (PSP in Argentina, SEDPE in Colombia, EEDE in Peru, EMPE in Paraguay) is ONE kind,
+    `PAYMENT_PROVIDER`: four regulatory names for the same role, and the app models the role.
   - **The user recognises the brand, the regulator registers the entity:** an institution's
     user-facing `name` is its COMMERCIAL name (Copec Pay, Tenpo, BancoEstado) and its registered
     entity lives in `legalName`; pickers label with the former and MUST search both plus `brands`,
@@ -1253,4 +1281,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.40.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15
+**Version**: 1.41.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15

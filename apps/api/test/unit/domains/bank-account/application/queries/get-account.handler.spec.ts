@@ -22,6 +22,7 @@ function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountPro
     institutionId: null,
     institutionName: null,
     accountNumber: "123",
+    accountAlias: null,
     initialBalance: "1000",
     overdraftLimit: "0",
     currentBalance: "1000",

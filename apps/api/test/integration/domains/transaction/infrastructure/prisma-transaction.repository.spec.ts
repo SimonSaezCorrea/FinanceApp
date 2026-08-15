@@ -37,6 +37,7 @@ describe("PrismaTransactionRepository (integration)", () => {
       institution: null,
       institutionId: null,
       accountNumber: undefined,
+      accountAlias: null,
       initialBalance: "0",
       overdraftLimit: "0",
       creditLimit: "1000000",

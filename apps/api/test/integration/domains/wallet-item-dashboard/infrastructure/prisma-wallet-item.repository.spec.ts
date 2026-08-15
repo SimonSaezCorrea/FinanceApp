@@ -30,6 +30,7 @@ describe("PrismaWalletItemRepository (integration)", () => {
         type: "CHECKING",
         currency: "USD",
         accountNumber: "1234",
+        accountAlias: null,
         initialBalance: "0",
         overdraftLimit: "0",
       },

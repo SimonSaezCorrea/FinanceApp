@@ -6,6 +6,7 @@ import { toast } from "sonner";
 
 import type { accounts } from "@finance/contracts";
 
+import { useCountries, useInstitutions } from "../../reference/hooks/useReference";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
 import { ActiveToggle } from "../../../shared/ui/active-toggle";
@@ -43,6 +44,15 @@ export function AccountEditPanel({
   onDeleted: () => void;
 }>) {
   const { t } = useTranslation();
+  // The account doesn't store a country — its institution has one. Resolving it
+  // here means editing an Argentine account opens on Argentina's catalogue and
+  // its CBU/alias fields, instead of silently offering Chilean banks.
+  const { data: allInstitutions } = useInstitutions();
+  const { data: countries } = useCountries();
+  const accountCountry =
+    countries?.find(
+      (c) => c.id === allInstitutions?.find((i) => i.id === account.institutionId)?.countryId,
+    )?.alpha2 ?? "CL";
   const { update, remove } = useAccountMutations();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
@@ -144,6 +154,8 @@ export function AccountEditPanel({
             status: account.status,
             institutionId: account.institutionId ?? "",
             accountNumber: account.accountNumber ?? "",
+            accountAlias: account.accountAlias ?? "",
+            country: accountCountry,
             currency: account.currency,
             initialBalance: account.initialBalance,
             overdraftLimit: account.overdraftLimit,
@@ -164,6 +176,7 @@ export function AccountEditPanel({
                   currency: v.currency,
                   institutionId: v.institutionId || undefined,
                   accountNumber: v.accountNumber || undefined,
+                  accountAlias: v.accountAlias.trim() || null,
                   initialBalance: v.initialBalance || "0",
                   overdraftLimit: v.overdraftLimit || "0",
                   creditLimit: v.creditLimit || "0",

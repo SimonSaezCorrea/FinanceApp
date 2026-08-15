@@ -71,6 +71,7 @@ describe("Attachments HTTP (e2e)", () => {
       type: "CHECKING",
       currency: "CLP",
       accountNumber: "1234",
+      accountAlias: null,
       initialBalance: "10000",
       overdraftLimit: "0",
     });

@@ -47,6 +47,7 @@ describe("Wallet HTTP (e2e)", () => {
         type: "CHECKING",
         currency: "USD",
         accountNumber: "1234",
+        accountAlias: null,
         initialBalance: "0",
         overdraftLimit: "0",
       });

@@ -16,6 +16,7 @@ vi.mock("../../reference/hooks/useReference", () => ({
     ],
   }),
   useInstitutions: () => ({ data: [] }),
+  useCountries: () => ({ data: [{ id: "cl", alpha2: "CL", alpha3: "CHL", name: "Chile" }] }),
 }));
 vi.mock("../../auth/api/authApi", () => ({ authApi: { me: () => Promise.resolve(null) } }));
 
@@ -29,6 +30,7 @@ const account = {
   institutionId: null,
   institutionName: null,
   accountNumber: null,
+  accountAlias: null,
   initialBalance: "0",
   overdraftLimit: "0",
   currentBalance: "0",

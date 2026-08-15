@@ -2438,6 +2438,145 @@ async function seedInstitutionAccountTypes(countryId: string) {
   }
 }
 
+/**
+ * Argentina: the second market in the catalogue, seeded to prove the model travels.
+ * `code` is the BCRA entity code — the first 3 digits of every CBU issued by that
+ * bank, which is exactly what makes it the natural key here.
+ *
+ * The PSPs (Mercado Pago, Ualá, Naranja X) are a different regulatory figure —
+ * `PAYMENT_PROVIDER`: they hold payment accounts identified by a CVU, without being
+ * banks and without a card being the product. Their CVU prefixes are not published
+ * in the sources used here, so they are keyed `PSP-<slug>` rather than given an
+ * invented entity code.
+ */
+async function seedArgentina() {
+  const argentina = await prisma.country.findUnique({ where: { alpha2: "AR" } });
+  if (!argentina) return;
+
+  type ArSeed = {
+    code: string;
+    name: string;
+    legalName: string;
+    kind: "BANK" | "PAYMENT_PROVIDER";
+    products: ("CHECKING" | "SAVINGS" | "SIGHT" | "CREDIT_CARD" | "PREPAID")[];
+  };
+  // A "caja de ahorro" is the everyday account in Argentina, and a "cuenta
+  // corriente" is mostly a business product — so savings leads for the banks.
+  const BANK_PRODUCTS: ArSeed["products"] = ["SAVINGS", "CHECKING", "CREDIT_CARD"];
+  const AR_INSTITUTIONS: ArSeed[] = [
+    {
+      code: "011",
+      name: "Banco Nación",
+      legalName: "Banco de la Nación Argentina",
+      kind: "BANK",
+      products: BANK_PRODUCTS,
+    },
+    {
+      code: "007",
+      name: "Banco Galicia",
+      legalName: "Banco de Galicia y Buenos Aires S.A.U.",
+      kind: "BANK",
+      products: BANK_PRODUCTS,
+    },
+    {
+      code: "014",
+      name: "Banco Provincia",
+      legalName: "Banco de la Provincia de Buenos Aires",
+      kind: "BANK",
+      products: BANK_PRODUCTS,
+    },
+    {
+      code: "017",
+      name: "BBVA",
+      legalName: "BBVA Argentina S.A.",
+      kind: "BANK",
+      products: BANK_PRODUCTS,
+    },
+    {
+      code: "029",
+      name: "Banco Ciudad",
+      legalName: "Banco de la Ciudad de Buenos Aires",
+      kind: "BANK",
+      products: BANK_PRODUCTS,
+    },
+    {
+      code: "072",
+      name: "Santander",
+      legalName: "Banco Santander Argentina S.A.",
+      kind: "BANK",
+      products: BANK_PRODUCTS,
+    },
+    {
+      code: "143",
+      name: "Brubank",
+      legalName: "Brubank S.A.U.",
+      kind: "BANK",
+      products: ["SAVINGS", "CREDIT_CARD"],
+    },
+    {
+      code: "191",
+      name: "Credicoop",
+      legalName: "Banco Credicoop Coop. Ltdo.",
+      kind: "BANK",
+      products: BANK_PRODUCTS,
+    },
+    {
+      code: "285",
+      name: "Banco Macro",
+      legalName: "Banco Macro S.A.",
+      kind: "BANK",
+      products: BANK_PRODUCTS,
+    },
+    {
+      code: "PSP-mercadopago",
+      name: "Mercado Pago",
+      legalName: "Mercado Pago S.R.L.",
+      kind: "PAYMENT_PROVIDER",
+      products: ["SIGHT", "PREPAID"],
+    },
+    {
+      code: "PSP-uala",
+      name: "Ualá",
+      legalName: "Wanap S.A.",
+      kind: "PAYMENT_PROVIDER",
+      products: ["SIGHT", "PREPAID"],
+    },
+    {
+      code: "PSP-naranjax",
+      name: "Naranja X",
+      legalName: "Naranja Digital Compañía Financiera S.A.U.",
+      kind: "PAYMENT_PROVIDER",
+      products: ["SIGHT", "PREPAID", "CREDIT_CARD"],
+    },
+  ];
+
+  for (const inst of AR_INSTITUTIONS) {
+    const fields = {
+      kind: inst.kind,
+      name: inst.name,
+      legalName: inst.legalName,
+      category: null,
+      retailFacing: true,
+    };
+    const row = await prisma.financialInstitution.upsert({
+      where: { countryId_code: { countryId: argentina.id, code: inst.code } },
+      update: fields,
+      create: { countryId: argentina.id, code: inst.code, ...fields },
+      select: { id: true },
+    });
+    for (const [index, type] of inst.products.entries()) {
+      await prisma.institutionAccountType.upsert({
+        where: { institutionId_type: { institutionId: row.id, type } },
+        update: { isPrimary: index === 0 },
+        create: { institutionId: row.id, type, isPrimary: index === 0 },
+      });
+    }
+    await prisma.institutionAccountType.deleteMany({
+      where: { institutionId: row.id, type: { notIn: inst.products } },
+    });
+  }
+}
+
 /** Reference data (countries + banks). Idempotent: upsert by natural keys. */
 async function seedReferenceData() {
   const COUNTRIES = [
@@ -2634,6 +2773,8 @@ async function seedReferenceData() {
       create: { countryId: chile.id, code: e.code, ...fields },
     });
   }
+
+  await seedArgentina();
 
   /**
    * Cooperativas de ahorro y crédito (CMF register BCCOO) and the non-bank issuers

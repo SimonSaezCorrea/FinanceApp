@@ -47,6 +47,7 @@ describe("Prepaid account HTTP (e2e)", () => {
       type: "CHECKING",
       currency: "CLP",
       accountNumber: "001-2",
+      accountAlias: null,
       initialBalance: "500000",
     });
     checkingId = checking.body.id;
@@ -68,6 +69,7 @@ describe("Prepaid account HTTP (e2e)", () => {
         type: "PREPAID",
         currency: "CLP",
         accountNumber: "TP-1",
+        accountAlias: null,
         initialBalance: "50000",
         cards: [
           { name: "Prepago", kind: "PREPAID", last4: "8890", expiryMonth: 3, expiryYear: 2030 },
@@ -87,6 +89,7 @@ describe("Prepaid account HTTP (e2e)", () => {
       type: "PREPAID",
       currency: "CLP",
       accountNumber: "TP-2",
+      accountAlias: null,
       initialBalance: "-1",
     });
     expect(res.status).toBe(400);

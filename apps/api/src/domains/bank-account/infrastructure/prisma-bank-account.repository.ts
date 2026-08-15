@@ -31,6 +31,7 @@ type Row = {
   institution: string | null;
   institutionId: string | null;
   accountNumber: string | null;
+  accountAlias: string | null;
   initialBalance: { toString(): string };
   overdraftLimit: { toString(): string };
   currentBalance: { toString(): string };
@@ -84,6 +85,7 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
           ? (institutionNames.get(row.institutionId) ?? null)
           : null,
         accountNumber: row.accountNumber ?? null,
+        accountAlias: row.accountAlias ?? null,
         initialBalance: row.initialBalance.toString(),
         overdraftLimit: row.overdraftLimit.toString(),
         currentBalance: row.currentBalance.toString(),
@@ -177,6 +179,7 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
         institution: snap.institution,
         institutionId: snap.institutionId,
         accountNumber: snap.accountNumber,
+        accountAlias: snap.accountAlias,
         initialBalance: snap.initialBalance,
         overdraftLimit: snap.overdraftLimit,
         currentBalance: snap.currentBalance,

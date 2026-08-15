@@ -38,6 +38,7 @@ const account: accounts.BankAccount = {
   institutionId: null,
   institutionName: "Falabella",
   accountNumber: null,
+  accountAlias: null,
   initialBalance: "0.0000",
   overdraftLimit: "0",
   currentBalance: "-1686470.0000",

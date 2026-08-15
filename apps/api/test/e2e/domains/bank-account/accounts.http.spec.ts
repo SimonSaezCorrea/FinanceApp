@@ -83,6 +83,7 @@ describe("Accounts HTTP (e2e)", () => {
         type: "CHECKING",
         currency: "CLP",
         accountNumber: "1234567890",
+        accountAlias: null,
       });
     expect(res.status).toBe(201);
     checkingAccountId = res.body.id;

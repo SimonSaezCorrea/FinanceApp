@@ -12,6 +12,7 @@ describe("money boundary", () => {
       name: "Checking",
       currency: "USD",
       accountNumber: "1234567890",
+      accountAlias: null,
       initialBalance: "1240.5000",
       overdraftLimit: "0",
     });

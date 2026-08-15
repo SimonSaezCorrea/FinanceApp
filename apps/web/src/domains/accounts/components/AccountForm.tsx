@@ -6,7 +6,7 @@ import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { institutionOption } from "../../reference/lib/institutionOption";
-import { useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
+import { useCountries, useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
 import { useElementWidth } from "../../../shared/lib/useElementWidth";
@@ -24,6 +24,12 @@ export interface AccountFormValues {
   status: accounts.AccountStatus;
   institutionId: string;
   accountNumber: string;
+  /** Transfer alias, in the markets that have one (Argentina). */
+  accountAlias: string;
+  /** ISO alpha-2 of the country whose institutions are offered. Not persisted on
+   * the account — it is derived from the institution — but the form needs it to
+   * know which catalogue to show and which number format to expect. */
+  country: string;
   currency: string;
   initialBalance: string;
   /** "0" = no overdraft line on this account. */
@@ -43,6 +49,8 @@ const EMPTY: AccountFormValues = {
   status: "ACTIVE",
   institutionId: "",
   accountNumber: "",
+  accountAlias: "",
+  country: "CL",
   currency: "CLP",
   initialBalance: "0",
   overdraftLimit: "0",
@@ -157,13 +165,18 @@ export function AccountForm({
   const [values, setValues] = useState<AccountFormValues>(initialValues);
   const isCreditLineType = values.type === "CREDIT_CARD";
   const { data: institutions } = useInstitutions(
-    "CL",
+    values.country,
     accountsContract.institutionKindForAccountType(values.type),
     values.type,
   );
   // Unfiltered list, only to name the account's CURRENT institution if it no
   // longer offers this product (historical data: never silently dropped).
-  const { data: allInstitutions } = useInstitutions("CL");
+  const { data: allInstitutions } = useInstitutions(values.country);
+  const { data: countries } = useCountries();
+  const usesAlias = accountsContract.usesAccountAlias(values.country);
+  const accountNumberInvalid =
+    values.accountNumber.trim() !== "" &&
+    !accountsContract.isValidAccountNumber(values.accountNumber, values.country);
   const { data: currencies } = useCurrencies();
 
   const set = <K extends keyof AccountFormValues>(k: K, v: AccountFormValues[K]) =>
@@ -291,6 +304,32 @@ export function AccountForm({
         ) : null}
         {values.type !== "CASH" ? (
           <div className="grid gap-4 sm:grid-cols-2">
+            {/* The country decides WHICH institutions exist and what an account
+                number looks like there, so it is asked before both. */}
+            <Field label={t("accounts.form.country")}>
+              <SearchableSelect
+                id="acc-country"
+                value={values.country}
+                onChange={(v) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    country: v,
+                    // An institution belongs to its country: keeping it here would
+                    // silently attach a Chilean bank to an Argentine account.
+                    institutionId: "",
+                  }))
+                }
+                options={(countries ?? []).map((c) => ({
+                  value: c.alpha2,
+                  label: c.name,
+                  keywords: [c.alpha2, c.alpha3],
+                }))}
+                displayValue={values.country}
+                searchPlaceholder={t("common.search")}
+                noResultsLabel={t("common.noResults")}
+                aria-label={t("accounts.form.country")}
+              />
+            </Field>
             <Field label={t("accounts.form.institution")}>
               <SearchableSelect
                 id="acc-inst"
@@ -302,7 +341,12 @@ export function AccountForm({
                 aria-label={t("accounts.form.institution")}
               />
             </Field>
-            <Field label={t("accounts.form.accountNumber")}>
+            <Field
+              label={
+                usesAlias ? t("accounts.form.accountNumberCbu") : t("accounts.form.accountNumber")
+              }
+              error={accountNumberInvalid ? t("accounts.form.accountNumberInvalid") : null}
+            >
               <Input
                 id="acc-num"
                 value={values.accountNumber}
@@ -317,6 +361,19 @@ export function AccountForm({
                 aria-label={t("accounts.form.accountNumber")}
               />
             </Field>
+            {/* Only where the market actually has aliases: showing an empty field
+                labelled "alias" in Chile would invent a concept that isn't there. */}
+            {usesAlias ? (
+              <Field label={t("accounts.form.accountAlias")}>
+                <Input
+                  id="acc-alias"
+                  value={values.accountAlias}
+                  placeholder={t("accounts.form.accountAliasPlaceholder")}
+                  onChange={(e) => set("accountAlias", e.target.value)}
+                  aria-label={t("accounts.form.accountAlias")}
+                />
+              </Field>
+            ) : null}
           </div>
         ) : null}
       </FormSection>

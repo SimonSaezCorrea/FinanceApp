@@ -143,6 +143,7 @@ export function accountAggregate(input: {
     institutionId: null,
     institutionName: null,
     accountNumber: null,
+    accountAlias: null,
     initialBalance: input.currentBalance ?? "0",
     overdraftLimit: input.overdraftLimit ?? "0",
     currentBalance: input.currentBalance ?? "0",

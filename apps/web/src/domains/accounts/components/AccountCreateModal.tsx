@@ -15,7 +15,7 @@ import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { institutionOption } from "../../reference/lib/institutionOption";
-import { useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
+import { useCountries, useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { useAccountMutations } from "../hooks/useAccounts";
 import { cleanExpiryInput, parseExpiry } from "../lib/cardExpiry";
 import { ACCOUNT_ICON } from "./accountVisuals";
@@ -47,14 +47,18 @@ export function AccountCreateModal({
   const { create } = useAccountMutations();
   const [name, setName] = useState("");
   const [type, setType] = useState<accounts.AccountType>("CHECKING");
+  const [country, setCountry] = useState("CL");
+  const { data: countries } = useCountries();
+  const usesAlias = accountsContract.usesAccountAlias(country);
   const { data: institutions } = useInstitutions(
-    "CL",
+    country,
     accountsContract.institutionKindForAccountType(type),
     type,
   );
   const { data: currencies } = useCurrencies();
   const [institutionId, setInstitutionId] = useState("");
   const [accountNumber, setAccountNumber] = useState("");
+  const [accountAlias, setAccountAlias] = useState("");
   const [currency, setCurrency] = useState("CLP");
   const [initialBalance, setInitialBalance] = useState("0");
   const [creditLimit, setCreditLimit] = useState("0");
@@ -173,6 +177,7 @@ export function AccountCreateModal({
         currency,
         institutionId: institutionId || undefined,
         accountNumber: isCreditLineType ? undefined : accountNumber || undefined,
+        accountAlias: accountAlias.trim() || undefined,
         initialBalance: isCreditLineType ? "0" : initialBalance || "0",
         creditLimit: manualCreditPool ? creditLimit || "0" : undefined,
         creditUsedInitial: manualCreditPool ? creditUsedInitial || "0" : undefined,
@@ -225,6 +230,7 @@ export function AccountCreateModal({
     institutionId: institutionId || null,
     institutionName: null,
     accountNumber: accountNumber || null,
+    accountAlias: accountAlias.trim() || null,
     initialBalance: initialBalance || "0",
     overdraftLimit: "0",
     currentBalance: initialBalance || "0",
@@ -280,6 +286,27 @@ export function AccountCreateModal({
           </Field>
           {type !== "CASH" ? (
             <>
+              <Field label={t("accounts.form.country")}>
+                <SearchableSelect
+                  id="new-acc-country"
+                  value={country}
+                  onChange={(v) => {
+                    setCountry(v);
+                    // An institution belongs to its country; keeping the old one
+                    // would attach a bank from another market to this account.
+                    setInstitutionId("");
+                  }}
+                  options={(countries ?? []).map((c) => ({
+                    value: c.alpha2,
+                    label: c.name,
+                    keywords: [c.alpha2, c.alpha3],
+                  }))}
+                  displayValue={country}
+                  searchPlaceholder={t("common.search")}
+                  noResultsLabel={t("common.noResults")}
+                  aria-label={t("accounts.form.country")}
+                />
+              </Field>
               <Field label={t("accounts.form.institution")}>
                 <SearchableSelect
                   id="m-inst"
@@ -319,7 +346,13 @@ export function AccountCreateModal({
                   </Field>
                 </div>
               ) : (
-                <Field label={t("accounts.form.accountNumber")}>
+                <Field
+                  label={
+                    usesAlias
+                      ? t("accounts.form.accountNumberCbu")
+                      : t("accounts.form.accountNumber")
+                  }
+                >
                   <Input
                     id="m-num"
                     inputMode="numeric"
@@ -330,6 +363,17 @@ export function AccountCreateModal({
                   />
                 </Field>
               )}
+              {usesAlias && !isCreditLineType ? (
+                <Field label={t("accounts.form.accountAlias")}>
+                  <Input
+                    id="m-alias"
+                    value={accountAlias}
+                    placeholder={t("accounts.form.accountAliasPlaceholder")}
+                    onChange={(e) => setAccountAlias(e.target.value)}
+                    aria-label={t("accounts.form.accountAlias")}
+                  />
+                </Field>
+              ) : null}
               {isCreditLineType ? (
                 <p className="-mt-2 text-xs text-muted-foreground">
                   {t("accounts.form.primaryCardHint")}

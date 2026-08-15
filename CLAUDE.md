@@ -305,6 +305,26 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     account — there's a **"Tenpo Prepago"** `PREPAID` account with two prepaid cards sharing its
     balance, movements with and without a card, and a top-up recorded as a real transfer.
     `docs/PENDING.md` lost its point 6 (the un-revertable card top-up), which this design removes.
+  - **Multi-país: PSP, CBU/CVU y alias (2026-08-15, specs/P3 del informe):** el catálogo deja de ser
+    chileno. `InstitutionKind` gana **`PAYMENT_PROVIDER`** — mantiene cuentas de pago (dinero
+    electrónico) sin ser banco y sin que su producto sea una tarjeta: es la figura de los **PSP**
+    argentinos (CVU), las **SEDPE** colombianas, las **EEDE** peruanas y las **EMPE** paraguayas, mismo
+    rol con cuatro nombres regulatorios. **`BankAccount.accountAlias`** guarda el alias de
+    transferencia donde el mercado lo tiene (`mate.tango.mp`); null en el resto.
+    **`packages/contracts/src/accounts/account-number.ts`**: `accountNumberFormat(alpha2)`,
+    `usesAccountAlias`, **`isValidCbu`** (22 dígitos, dos bloques con dígito verificador propio —
+    ponderaciones 7,1,3,9,7,1,3 y 3,9,7,1,3,9,7,1,3,9,7,1,3; el mismo validador sirve para CVU, que es
+    el punto del esquema), `isValidAccountNumber` e `isValidAccountAlias`. **Permisivo por defecto**:
+    un país sin formato conocido acepta cualquier número — igual que el catálogo de instituciones, no
+    bloquear una cuenta real por no conocer su mercado. Chile queda como texto libre a propósito (no
+    hay formato único ni dígito verificador). Web: `AccountForm` y `AccountCreateModal` ganan
+    **selector de país** (antes `"CL"` fijo) que filtra las instituciones y cambia el rótulo a
+    "CBU / CVU" + el campo Alias; cambiar de país limpia la institución elegida (pertenece a su país).
+    `AccountEditPanel` **deriva** el país de la institución guardada (la cuenta no lo almacena).
+    Seed AR: 9 bancos con su **código de entidad BCRA** (= los 3 primeros dígitos del CBU, por eso es
+    la llave natural) y 3 PSP keyed `PSP-<slug>` porque sus prefijos CVU no están publicados en las
+    fuentes usadas. Productos AR: la caja de ahorro (`SAVINGS`) es la cuenta cotidiana, la corriente es
+    más bien producto de empresa. Pendiente: CO/PE/PY siguen sin instituciones.
   - **`CREDIT_LINE` → `CREDIT_CARD` + `overdraftLimit` (2026-08-15, breaking):** el enum nombraba mal
     justo el concepto que más se confunde. **`AccountType.CREDIT_CARD`** es la cuenta de tarjeta de
     crédito (deuda rotativa, facturación, pago mínimo). La **"línea de crédito"** que un banco da sobre

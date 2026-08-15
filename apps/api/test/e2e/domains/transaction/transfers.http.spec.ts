@@ -31,6 +31,7 @@ describe("Transfers HTTP (e2e)", () => {
       type: "CHECKING",
       currency: "CLP",
       accountNumber: "12345",
+      accountAlias: null,
       initialBalance,
     });
     expect(res.status).toBe(201);

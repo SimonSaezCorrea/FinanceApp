@@ -17,6 +17,7 @@ export type CreateAccountPlan = {
   institution: string | null;
   institutionId: string | null;
   accountNumber: string | null | undefined;
+  accountAlias: string | null;
   initialBalance: string;
   overdraftLimit: string;
   creditLimit: string;

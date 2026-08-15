@@ -155,6 +155,7 @@ export function accountToDto(
     institutionId: snap.institutionId,
     institutionName: snap.institutionName,
     accountNumber: snap.accountNumber,
+    accountAlias: snap.accountAlias,
     initialBalance: moneyToString(snap.initialBalance),
     overdraftLimit: moneyToString(snap.overdraftLimit),
     currentBalance: moneyToString(snap.currentBalance),

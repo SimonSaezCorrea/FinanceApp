@@ -16,6 +16,7 @@ vi.mock("../../auth/api/authApi", () => ({
 
 vi.mock("../../reference/hooks/useReference", () => ({
   useInstitutions: () => ({ data: [] }),
+  useCountries: () => ({ data: [{ id: "cl", alpha2: "CL", alpha3: "CHL", name: "Chile" }] }),
   useCurrencies: () => ({ data: [{ code: "CLP", name: "Peso", numeric: "152" }] }),
 }));
 

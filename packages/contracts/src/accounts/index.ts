@@ -4,6 +4,8 @@ import { accountType, type AccountType } from "../common/account-type";
 import { moneyString } from "../common/money";
 import type { InstitutionKind } from "../reference";
 
+export * from "./account-number";
+
 /** Accounts domain contracts (BankAccount + cards). Money as decimal strings. */
 
 /** Defined in `common/` so `reference` can use it too (see that file); re-exported
@@ -221,6 +223,9 @@ export const bankAccountSchema = z.object({
   institutionName: z.string().nullable(),
   /** Bank account number (free text, full — not a card PAN). Null for cash. */
   accountNumber: z.string().nullable(),
+  /** The alias that identifies this account for transfers, where the market has
+   * one (Argentina). Null elsewhere. */
+  accountAlias: z.string().nullable(),
   initialBalance: moneyString,
   currentBalance: moneyString,
   /** How far below zero the balance may go (the bank's overdraft line on a current
@@ -266,6 +271,7 @@ const bankAccountFieldsSchema = z.object({
   institution: z.string().trim().max(120).optional(),
   institutionId: z.string().optional(),
   accountNumber: z.string().trim().max(50).optional(),
+  accountAlias: z.string().trim().max(40).nullish(),
   initialBalance: moneyString.optional(),
   /** Overdraft line granted on this account (CHECKING/SIGHT only). */
   overdraftLimit: moneyString.optional(),

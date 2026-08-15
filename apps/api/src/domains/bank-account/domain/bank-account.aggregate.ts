@@ -52,6 +52,8 @@ export interface BankAccountProps {
   institutionId: string | null;
   institutionName: string | null;
   accountNumber: string | null;
+  /** Transfer alias, where the market has one (Argentina). */
+  accountAlias: string | null;
   initialBalance: string;
   currentBalance: string;
   /** How far below zero this account may go ("0" = no overdraft line). */
@@ -344,6 +346,7 @@ export class BankAccount {
     institution?: string;
     institutionId?: string | null;
     accountNumber?: string;
+    accountAlias?: string | null;
     initialBalance?: string;
     overdraftLimit?: string;
     creditLimit?: string;
@@ -379,6 +382,7 @@ export class BankAccount {
     if (patch.institution !== undefined) this.props.institution = patch.institution;
     if (patch.institutionId !== undefined) this.props.institutionId = patch.institutionId;
     if (patch.accountNumber !== undefined) this.props.accountNumber = patch.accountNumber;
+    if (patch.accountAlias !== undefined) this.props.accountAlias = patch.accountAlias;
     if (patch.initialBalance !== undefined) this.props.initialBalance = patch.initialBalance;
     if (patch.overdraftLimit !== undefined) this.props.overdraftLimit = patch.overdraftLimit;
     if (patch.creditLimit !== undefined) this.props.creditLimit = patch.creditLimit;
