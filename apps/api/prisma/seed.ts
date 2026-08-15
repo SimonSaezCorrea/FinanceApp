@@ -54,10 +54,14 @@ async function seedFullUser(passwordHash: string) {
       })
     : [];
   const bankId = (sbif: string) => clBanks.find((b) => b.code === sbif)?.id ?? null;
+  // Non-bank issuers share the same table (`kind: NON_BANK_ISSUER`) and the same
+  // per-country code space, so one lookup serves both.
+  const issuerId = (code: string) => clBanks.find((b) => b.code === code)?.id ?? null;
 
-  type AcctKey = "checking" | "sight" | "credit" | "cash";
+  type AcctKey = "checking" | "sight" | "credit" | "cash" | "prepaid";
   const initial: Record<AcctKey, number> = {
     checking: 2_800_000,
+    prepaid: 120_000,
     sight: 350_000,
     credit: 0,
     cash: 85_000,
@@ -67,6 +71,8 @@ async function seedFullUser(passwordHash: string) {
   // Extra cards ("Camila"/"Sofía"/"Rosa") model additional cards the bank issued
   // on the same account/credit line for another person to carry and use.
   type CardKey =
+    | "prepaidRosa"
+    | "prepaidVirtual"
     | "debit"
     | "debitCamila"
     | "debitSofia"
@@ -87,6 +93,8 @@ async function seedFullUser(passwordHash: string) {
     at: string;
     category: string;
     description: string;
+    /** Both legs of a transfer share this — two ordinary rows, no new type. */
+    transferGroup?: string;
   };
   const TX: Tx[] = [
     // ==================== April 2026 (complete month) ====================
@@ -1468,10 +1476,60 @@ async function seedFullUser(passwordHash: string) {
       category: "Vivienda",
       description: "Arriendo agosto",
     },
+
+    // ==================== Prepaid account ====================
+    // Topping it up is an ordinary TRANSFER: two rows sharing `transferGroupId`,
+    // one leaving the checking account and one arriving here. There is no
+    // "recargar la tarjeta" action — the money lives in the account.
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 80_000,
+      at: "2026-08-05T10:00:00Z",
+      category: "Traspaso",
+      description: "Carga Tenpo Prepago",
+      transferGroup: "tg_prepaid_load",
+    },
+    {
+      acct: "prepaid",
+      type: "INCOME",
+      amount: 80_000,
+      at: "2026-08-05T10:00:00Z",
+      category: "Traspaso",
+      description: "Carga desde Banco de Chile",
+      transferGroup: "tg_prepaid_load",
+    },
+    // Both cards draw on the SAME account balance.
+    {
+      acct: "prepaid",
+      card: "prepaidRosa",
+      type: "EXPENSE",
+      amount: 24_900,
+      at: "2026-08-07T13:30:00Z",
+      category: "Restaurantes",
+      description: "Almuerzo · Prepago",
+    },
+    {
+      acct: "prepaid",
+      card: "prepaidVirtual",
+      type: "EXPENSE",
+      amount: 12_900,
+      at: "2026-08-11T21:15:00Z",
+      category: "Suscripciones",
+      description: "Suscripción online · tarjeta virtual",
+    },
+    {
+      acct: "prepaid",
+      type: "EXPENSE",
+      amount: 3_700,
+      at: "2026-08-14T08:20:00Z",
+      category: "Transporte",
+      description: "Recarga Bip! (sin tarjeta)",
+    },
   ];
 
   // Net movement per account → reconciled currentBalance.
-  const net: Record<AcctKey, number> = { checking: 0, sight: 0, credit: 0, cash: 0 };
+  const net: Record<AcctKey, number> = { checking: 0, sight: 0, credit: 0, cash: 0, prepaid: 0 };
   for (const t of TX) net[t.acct] += t.type === "INCOME" ? t.amount : -t.amount;
 
   const mkAccount = (key: AcctKey, data: Prisma.BankAccountUncheckedCreateInput) =>
@@ -1561,11 +1619,25 @@ async function seedFullUser(passwordHash: string) {
     },
   });
 
+  // A PREPAID ACCOUNT: its own product (a non-bank issuer holds the funds), not a
+  // card hanging off the checking account. Its cards spend THIS balance, which can
+  // never go negative; it is topped up by transferring from another account.
+  const prepaid = await mkAccount("prepaid", {
+    userId: javier.id,
+    name: "Tenpo Prepago",
+    type: "PREPAID",
+    currency: "CLP",
+    institution: "Tenpo Payments S.A.",
+    institutionId: issuerId("730"),
+    accountNumber: "TP-4455667788",
+  });
+
   const accId: Record<AcctKey, string> = {
     checking: checking.id,
     sight: sight.id,
     credit: credit.id,
     cash: cash.id,
+    prepaid: prepaid.id,
   };
 
   // Cards (only last4 stored). The credit card belongs to the CREDIT_LINE account.
@@ -1616,21 +1688,27 @@ async function seedFullUser(passwordHash: string) {
     },
   });
 
-  // A PREPAID card: it holds its OWN money instead of a credit line or the
-  // account's balance. Seeded already loaded (the equivalent of a credit card's
-  // `creditUsedInitial` baseline) and with no movements of its own, so the
-  // account's balance stays exactly what its own movements say.
-  await prisma.cardAccount.create({
+  // Two cards on the same prepaid account: both spend the SAME account balance.
+  const prepaidCardRosa = await prisma.cardAccount.create({
     data: {
-      accountId: checking.id,
+      accountId: prepaid.id,
       userId: javier.id,
       name: "Prepago · Rosa",
       kind: "PREPAID",
       last4: "8890",
       expiryMonth: 3,
       expiryYear: 2027,
-      prepaidInitialBalance: dec("318400.0000"),
-      prepaidBalance: dec("318400.0000"),
+    },
+  });
+  const prepaidCardVirtual = await prisma.cardAccount.create({
+    data: {
+      accountId: prepaid.id,
+      userId: javier.id,
+      name: "Prepago · Virtual",
+      kind: "PREPAID",
+      last4: "2043",
+      expiryMonth: 9,
+      expiryYear: 2029,
     },
   });
   // Add-on CREDIT card on the checking account: it's that account's FIRST credit
@@ -1713,6 +1791,9 @@ async function seedFullUser(passwordHash: string) {
       { userId: javier.id, cardId: creditCard.id, order: 0 },
       { userId: javier.id, cardId: debitCard.id, order: 1 },
       { userId: javier.id, accountId: tenpo.id, order: 2 },
+      // Pinned so the wallet shows a prepaid tile too, beside a credit card, a
+      // debit card and a plain account.
+      { userId: javier.id, cardId: prepaidCardRosa.id, order: 3 },
     ],
   });
 
@@ -1727,6 +1808,8 @@ async function seedFullUser(passwordHash: string) {
     credit: creditCard.id,
     creditCamila: creditCardCamila.id,
     creditSofia: creditCardSofia.id,
+    prepaidRosa: prepaidCardRosa.id,
+    prepaidVirtual: prepaidCardVirtual.id,
   };
 
   await prisma.transaction.createMany({
@@ -1734,6 +1817,7 @@ async function seedFullUser(passwordHash: string) {
       userId: javier.id,
       bankAccountId: accId[t.acct],
       cardId: t.card ? cardIdMap[t.card] : undefined,
+      transferGroupId: t.transferGroup,
       type: t.type,
       amount: dec(String(t.amount)),
       currency: "CLP",
@@ -2226,6 +2310,57 @@ async function seedFullUser(passwordHash: string) {
   });
 }
 
+/**
+ * Which account products each institution offers (`institution-account-type`).
+ *
+ * Defaults are per bank category / per kind, with a small per-code override map —
+ * this is a commercial catalogue, so it is expected to be tuned institution by
+ * institution over time; the shape below is what makes that cheap. FIRST entry of
+ * each list is the flagship (`isPrimary`). Deliberately NOT derived at runtime
+ * from `kind`/`category`: those classify what the entity IS, not what it SELLS.
+ */
+async function seedInstitutionAccountTypes(countryId: string) {
+  type Product = Prisma.InstitutionAccountTypeCreateManyInput["type"];
+
+  const BY_BANK_CATEGORY: Record<string, Product[]> = {
+    // Local retail/commercial bank: the full deposit + credit catalogue.
+    ESTABLISHED: ["CHECKING", "SIGHT", "SAVINGS", "CREDIT_LINE"],
+    // Branch of a foreign bank: corporate current accounts, no retail products.
+    FOREIGN_BRANCH: ["CHECKING"],
+    STATE: ["SIGHT", "CHECKING", "SAVINGS", "CREDIT_LINE"], // BancoEstado: CuentaRUT first.
+  };
+  // Non-bank issuers provision funds up front — prepaid is the product.
+  const ISSUER_PRODUCTS: Product[] = ["PREPAID"];
+  // Retail / caja de compensación issuers that also run their own store credit card.
+  const ISSUER_WITH_CREDIT = new Set(["697", "699", "729"]);
+
+  const institutions = await prisma.financialInstitution.findMany({
+    where: { countryId },
+    select: { id: true, code: true, kind: true, category: true },
+  });
+
+  for (const inst of institutions) {
+    const products =
+      inst.kind === "BANK"
+        ? (BY_BANK_CATEGORY[inst.category ?? "ESTABLISHED"] ?? BY_BANK_CATEGORY.ESTABLISHED)
+        : ISSUER_WITH_CREDIT.has(inst.code)
+          ? [...ISSUER_PRODUCTS, "CREDIT_LINE" as Product]
+          : ISSUER_PRODUCTS;
+
+    for (const [index, type] of products.entries()) {
+      await prisma.institutionAccountType.upsert({
+        where: { institutionId_type: { institutionId: inst.id, type } },
+        update: { isPrimary: index === 0 },
+        create: { institutionId: inst.id, type, isPrimary: index === 0 },
+      });
+    }
+    // Re-seeding after tuning a list must also RETIRE what is no longer offered.
+    await prisma.institutionAccountType.deleteMany({
+      where: { institutionId: inst.id, type: { notIn: products } },
+    });
+  }
+}
+
 /** Reference data (countries + banks). Idempotent: upsert by natural keys. */
 async function seedReferenceData() {
   const COUNTRIES = [
@@ -2337,37 +2472,38 @@ async function seedReferenceData() {
   }
 
   // Non-bank payment card issuers (emisores de tarjetas de pago con provisión de fondos).
-  const CHILE_ISSUERS: { code: string; name: string; rut: string }[] = [
-    { code: "741", name: "Compañía Emisora de Medios de Pago Digitales S.A.", rut: "77509915-1" },
-    { code: "764", name: "Fintoc Pagos S.A.", rut: "76639633-K" },
-    { code: "746", name: "Fintual Prepago S.A.", rut: "77535416-K" },
-    { code: "738", name: "Global Card S.A.", rut: "77096794-5" },
-    { code: "739", name: "Haulmer Prepago S.A.", rut: "77312496-5" },
-    { code: "697", name: "Inversiones LP S.A.", rut: "76265724-4" },
-    { code: "732", name: "Los Andes Tarjetas de Prepago S.A.", rut: "76965744-4" },
-    { code: "875", name: "Mercado Pago Emisora S.A.", rut: "77214066-5" },
-    { code: "747", name: "Metro Emisora de Medios de Pago S.A.", rut: "77057498-6" },
-    { code: "882", name: "Pomelo Tech Chile S.A.", rut: "76627434-K" },
-    { code: "743", name: "Prex Chile S.A.", rut: "77691219-0" },
-    { code: "729", name: "Sociedad Emisora de Tarjetas Los Héroes S.A.", rut: "76965737-1" },
-    { code: "744", name: "SumUp Chile Blue S.A.", rut: "77528384-K" },
-    { code: "730", name: "Tenpo Payments S.A.", rut: "76967692-9" },
-    { code: "699", name: "Tricard S.A.", rut: "96842380-0" },
+  const CHILE_ISSUERS: { code: string; name: string }[] = [
+    { code: "741", name: "Compañía Emisora de Medios de Pago Digitales S.A." },
+    { code: "764", name: "Fintoc Pagos S.A." },
+    { code: "746", name: "Fintual Prepago S.A." },
+    { code: "738", name: "Global Card S.A." },
+    { code: "739", name: "Haulmer Prepago S.A." },
+    { code: "697", name: "Inversiones LP S.A." },
+    { code: "732", name: "Los Andes Tarjetas de Prepago S.A." },
+    { code: "875", name: "Mercado Pago Emisora S.A." },
+    { code: "747", name: "Metro Emisora de Medios de Pago S.A." },
+    { code: "882", name: "Pomelo Tech Chile S.A." },
+    { code: "743", name: "Prex Chile S.A." },
+    { code: "729", name: "Sociedad Emisora de Tarjetas Los Héroes S.A." },
+    { code: "744", name: "SumUp Chile Blue S.A." },
+    { code: "730", name: "Tenpo Payments S.A." },
+    { code: "699", name: "Tricard S.A." },
   ];
   for (const e of CHILE_ISSUERS) {
     await prisma.financialInstitution.upsert({
       where: { countryId_code: { countryId: chile.id, code: e.code } },
-      update: { kind: "NON_BANK_ISSUER", name: e.name, rut: e.rut, category: null },
+      update: { kind: "NON_BANK_ISSUER", name: e.name, category: null },
       create: {
         countryId: chile.id,
         kind: "NON_BANK_ISSUER",
         code: e.code,
         name: e.name,
-        rut: e.rut,
         category: null,
       },
     });
   }
+
+  await seedInstitutionAccountTypes(chile.id);
 
   // --- Currencies (ISO 4217, deduplicated by alpha code) ---
   const CURRENCIES: [code: string, numeric: string, name: string][] = [

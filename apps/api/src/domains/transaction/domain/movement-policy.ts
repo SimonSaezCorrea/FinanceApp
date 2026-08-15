@@ -25,6 +25,9 @@ export interface EffectiveMovement {
 export interface AccountContext {
   id: string;
   type: accounts.AccountType;
+  /** What the account currently holds. Only a PREPAID account is BOUNDED by it
+   * (it can never go negative); every other type may. */
+  currentBalance: string;
   creditLimit: string;
   creditUsed: string;
   billingCycleDay: number | null;
@@ -33,10 +36,6 @@ export interface AccountContext {
 export interface CardContext {
   id: string;
   kind: accounts.CardKind;
-  /** PREPAID only: what the card currently holds. A prepaid card spends its own
-   * money, so this — not the account's balance, and not a credit line — is what
-   * bounds an expense through it. Null for CREDIT/DEBIT. */
-  prepaidBalance?: string | null;
 }
 
 export interface CardLimitContext {
@@ -78,11 +77,15 @@ export class MovementPolicy {
     cardLimit: CardLimitContext | null,
     cardUsage: { income: string; expense: string },
     poolOffset = "0",
-    /** On an edit, what this same movement already took off the prepaid card —
-     * so re-saving it doesn't check against a balance that still includes its own
+    /** On an edit, what this same movement already took off the account's balance —
+     * so re-saving it doesn't check against a balance that still carries its own
      * old charge. */
     prepaidOffset = "0",
   ): string {
+    // A prepaid account can only spend what was provisioned into it, whatever the
+    // channel: with a card, without one, or as the outgoing leg of a transfer.
+    this.assertWithinPrepaidBalance(m, account, prepaidOffset);
+
     if (m.type === "INCOME") {
       if (m.cardId) throw new CardNotAllowedError();
     } else if (account.type === "CASH") {
@@ -94,10 +97,7 @@ export class MovementPolicy {
       this.assertWithinCardLimit(m, cardLimit, cardUsage);
     } else if (m.cardId) {
       if (!card) throw new CardAccountMismatchError();
-      if (card.kind === "PREPAID") {
-        this.assertWithinPrepaidBalance(m, card, prepaidOffset);
-        return "0";
-      }
+      if (card.kind === "PREPAID") return "0";
       if (card.kind === "CREDIT") {
         this.assertWithinCardLimit(m, cardLimit, cardUsage);
       } else {
@@ -142,32 +142,23 @@ export class MovementPolicy {
   }
 
   /**
-   * A prepaid card can only spend what it holds. Rejected rather than allowed to go
-   * negative: a prepaid card physically declines, it does not lend.
+   * A prepaid account can only spend what was provisioned into it. Rejected rather
+   * than allowed to go negative: a prepaid product declines, it does not lend — and
+   * unlike a checking account there is no overdraft behind it.
+   *
+   * `offset` is what this same movement already took off the balance, so an edit is
+   * checked against the balance as it was BEFORE its own old charge.
    */
   static assertWithinPrepaidBalance(
     m: { type: transactions.TransactionType; amount: string },
-    card: CardContext,
-    prepaidOffset = "0",
+    account: Pick<AccountContext, "type" | "currentBalance">,
+    offset = "0",
   ): void {
-    if (m.type !== "EXPENSE") return;
-    const available = toMoney(card.prepaidBalance ?? "0").plus(toMoney(prepaidOffset));
+    if (account.type !== "PREPAID" || m.type !== "EXPENSE") return;
+    const available = toMoney(account.currentBalance).plus(toMoney(offset));
     if (toMoney(m.amount).greaterThan(available)) {
       throw new PrepaidInsufficientBalanceError();
     }
-  }
-
-  /**
-   * How a movement moves a PREPAID card's own balance: an expense through it
-   * draws it down, nothing else touches it (a load goes through its own endpoint).
-   * "0" for every other movement — including one on a CREDIT/DEBIT card.
-   */
-  static prepaidDelta(
-    m: { type: transactions.TransactionType; amount: string },
-    card: CardContext | null,
-  ): string {
-    if (!card || card.kind !== "PREPAID" || m.type !== "EXPENSE") return "0";
-    return subtractMoney("0", m.amount);
   }
 
   /**

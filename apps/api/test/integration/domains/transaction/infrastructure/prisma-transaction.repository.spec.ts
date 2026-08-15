@@ -20,7 +20,7 @@ describe("PrismaTransactionRepository (integration)", () => {
   const prisma = new PrismaService(new ConfigService());
   const accountRepo = buildBankAccountRepo(prisma);
   const statementRepo = buildCreditStatementRepo(prisma);
-  const txRepo = new PrismaTransactionRepository(prisma, accountRepo, buildCardAccountRepo(prisma));
+  const txRepo = new PrismaTransactionRepository(prisma, accountRepo);
   const userId = `u_${randomUUID()}`;
   let creditAccountId: string;
 
@@ -51,8 +51,6 @@ describe("PrismaTransactionRepository (integration)", () => {
           expiryYear: 2030,
           isActive: true,
           isPrimary: true,
-          prepaidBalance: null,
-          prepaidInitialBalance: null,
           limits: [],
         },
       ],

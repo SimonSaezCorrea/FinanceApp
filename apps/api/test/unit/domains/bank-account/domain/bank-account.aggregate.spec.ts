@@ -7,8 +7,11 @@ import {
 import {
   AccountCannotHaveCardError,
   AccountNumberRequiredError,
+  AccountTypeChangeNotAllowedError,
+  CardKindNotAllowedError,
   CardLimitRequiredError,
   CardSubLimitExceedsAccountError,
+  InvalidInitialBalanceError,
 } from "../../../../../src/domains/bank-account/domain/errors";
 
 function baseProps(overrides: Partial<BankAccountProps> = {}): BankAccountProps {
@@ -105,8 +108,6 @@ describe("BankAccount aggregate", () => {
             expiryYear: 2030,
             isActive: true,
             isPrimary: true,
-            prepaidBalance: null,
-            prepaidInitialBalance: null,
             limits: [],
           },
         ],
@@ -135,8 +136,6 @@ describe("BankAccount aggregate", () => {
             expiryYear: 2030,
             isActive: true,
             isPrimary: true,
-            prepaidBalance: null,
-            prepaidInitialBalance: null,
             limits: [],
           },
         ],
@@ -172,5 +171,87 @@ describe("BankAccount aggregate", () => {
 
     const again = account.setStatus("INACTIVE");
     expect(again).toBeNull();
+  });
+
+  // --- Prepaid account (spec 011) ---
+
+  const prepaidCardInput = {
+    name: "Prepago",
+    kind: "PREPAID" as const,
+    last4: "8890",
+    expiryMonth: 3,
+    expiryYear: 2030,
+  };
+
+  it("accepts a prepaid card on a prepaid account", () => {
+    const account = BankAccount.fromPersistence(baseProps({ type: "PREPAID" }));
+    expect(account.resolveCardPlacement(prepaidCardInput, null)).toEqual({
+      isPrimary: false,
+      cardLimits: [],
+    });
+  });
+
+  it("refuses a card kind that doesn't belong on the account's type", () => {
+    const prepaid = BankAccount.fromPersistence(baseProps({ type: "PREPAID" }));
+    expect(() =>
+      prepaid.resolveCardPlacement({ ...prepaidCardInput, kind: "DEBIT" }, null),
+    ).toThrow(CardKindNotAllowedError);
+
+    const checking = BankAccount.fromPersistence(baseProps({ type: "CHECKING" }));
+    expect(() => checking.resolveCardPlacement(prepaidCardInput, null)).toThrow(
+      CardKindNotAllowedError,
+    );
+  });
+
+  it("still answers ACCOUNT_CANNOT_HAVE_CARD for a type that carries no cards at all", () => {
+    const savings = BankAccount.fromPersistence(baseProps({ type: "SAVINGS" }));
+    expect(() => savings.resolveCardPlacement(prepaidCardInput, null)).toThrow(
+      AccountCannotHaveCardError,
+    );
+  });
+
+  it("planCreation applies the same matrix to inline cards[]", () => {
+    expect(() =>
+      BankAccount.planCreation({
+        type: "PREPAID",
+        currency: "CLP",
+        cards: [{ ...prepaidCardInput, kind: "DEBIT" }],
+      }),
+    ).toThrow(CardKindNotAllowedError);
+    expect(
+      BankAccount.planCreation({ type: "PREPAID", currency: "CLP", cards: [prepaidCardInput] })
+        .cards,
+    ).toHaveLength(1);
+  });
+
+  it("refuses a negative initial balance on a prepaid account only", () => {
+    expect(() =>
+      BankAccount.planCreation({ type: "PREPAID", currency: "CLP", initialBalance: "-1" }),
+    ).toThrow(InvalidInitialBalanceError);
+    // An overdrawn checking account is a real thing; only prepaid is bounded.
+    expect(() =>
+      BankAccount.planCreation({ type: "CHECKING", currency: "CLP", initialBalance: "-1" }),
+    ).not.toThrow();
+  });
+
+  it("refuses to convert an account's type to or from PREPAID", () => {
+    const prepaid = BankAccount.fromPersistence(baseProps({ type: "PREPAID" }));
+    expect(() => prepaid.applyUpdate({ type: "CHECKING" })).toThrow(
+      AccountTypeChangeNotAllowedError,
+    );
+
+    const checking = BankAccount.fromPersistence(baseProps({ type: "CHECKING" }));
+    expect(() => checking.applyUpdate({ type: "PREPAID" })).toThrow(
+      AccountTypeChangeNotAllowedError,
+    );
+
+    // Every other conversion is still allowed, and re-stating the same type is a no-op.
+    expect(() => checking.applyUpdate({ type: "SIGHT" })).not.toThrow();
+    expect(() => prepaid.applyUpdate({ type: "PREPAID", name: "Renamed" })).not.toThrow();
+  });
+
+  it("requires an accountNumber on a prepaid account (it is funded by transferring to it)", () => {
+    const account = BankAccount.fromPersistence(baseProps({ type: "PREPAID" }));
+    expect(() => account.applyUpdate({ accountNumber: "" })).toThrow(AccountNumberRequiredError);
   });
 });

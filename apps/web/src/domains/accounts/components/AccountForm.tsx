@@ -155,7 +155,11 @@ export function AccountForm({
   const { data: institutions } = useInstitutions(
     "CL",
     accountsContract.institutionKindForAccountType(values.type),
+    values.type,
   );
+  // Unfiltered list, only to name the account's CURRENT institution if it no
+  // longer offers this product (historical data: never silently dropped).
+  const { data: allInstitutions } = useInstitutions("CL");
   const { data: currencies } = useCurrencies();
 
   const set = <K extends keyof AccountFormValues>(k: K, v: AccountFormValues[K]) =>
@@ -186,6 +190,12 @@ export function AccountForm({
     { value: "", label: t("accounts.form.institutionNone") },
     ...(institutions ?? []).map((b) => ({ value: b.id, label: b.name })),
   ];
+  // Keep the saved institution selectable even if it doesn't offer this product
+  // (the catalogue can change after the account was created).
+  if (values.institutionId && !institutionOptions.some((o) => o.value === values.institutionId)) {
+    const saved = allInstitutions?.find((i) => i.id === values.institutionId);
+    if (saved) institutionOptions.splice(1, 0, { value: saved.id, label: saved.name });
+  }
   const currencyOptions = (currencies ?? []).map((c) => ({
     value: c.code,
     label: `${c.name} (${c.code})`,
@@ -229,15 +239,28 @@ export function AccountForm({
         <Field label={t("accounts.form.type")}>
           <AccountTypeToggle
             value={values.type}
+            // A prepaid account can't be converted into anything else, nor anything
+            // else into one (ACCOUNT_TYPE_CHANGE_NOT_ALLOWED): the API refuses it,
+            // so the form never offers it.
+            disabledTypes={
+              initialValues.type === "PREPAID"
+                ? accountsContract.accountType.options.filter((o) => o !== "PREPAID")
+                : ["PREPAID"]
+            }
+            disabledReason={t("errors.ACCOUNT_TYPE_CHANGE_NOT_ALLOWED")}
             onChange={(next) =>
               setValues((prev) => {
                 if (next === "CASH") {
                   return { ...prev, type: next, institutionId: "", accountNumber: "" };
                 }
-                const requiredKind = accountsContract.institutionKindForAccountType(next);
-                const selected = institutions?.find((i) => i.id === prev.institutionId);
+                // Drop the institution only when it is KNOWN not to offer the new
+                // product. Read from the loaded objects (not from a refetch of the
+                // filtered list, which still holds the previous type's results).
+                const selected = allInstitutions?.find((i) => i.id === prev.institutionId);
                 const keepInstitution =
-                  !requiredKind || !selected || selected.kind === requiredKind;
+                  !selected ||
+                  selected.accountTypes.length === 0 ||
+                  selected.accountTypes.includes(next);
                 return {
                   ...prev,
                   type: next,

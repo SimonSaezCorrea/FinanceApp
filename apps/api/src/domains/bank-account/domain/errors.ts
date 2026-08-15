@@ -46,18 +46,29 @@ export class CardSubLimitExceedsAccountError extends DomainError {
   }
 }
 
-/** A prepaid balance sent for a CREDIT/DEBIT card: those have no pot of their own
- * (a debit card spends the account's balance, a credit one draws on the pool), so
- * the figure is rejected rather than silently dropped. */
-export class PrepaidBalanceNotAllowedError extends DomainError {
+/** The card kind doesn't belong on this account type: a prepaid card only lives on
+ * a prepaid account, a debit card only on a bank account, and a credit line carries
+ * nothing but credit cards. Distinct from `ACCOUNT_CANNOT_HAVE_CARD`, which means
+ * the account takes no cards at all. */
+export class CardKindNotAllowedError extends DomainError {
   constructor() {
-    super("PREPAID_BALANCE_NOT_ALLOWED");
+    super("CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT", 400, "kind");
   }
 }
 
-/** A negative starting balance on a prepaid card — it is money held, not credit. */
-export class InvalidPrepaidBalanceError extends DomainError {
+/** Converting an existing account to or from PREPAID. They are different financial
+ * products, not two settings of one: a prepaid account has no credit line and its
+ * cards can't exist anywhere else, so the conversion is refused rather than made to
+ * drag cards, credit pool and billing periods with it. */
+export class AccountTypeChangeNotAllowedError extends DomainError {
   constructor() {
-    super("INVALID_PREPAID_BALANCE");
+    super("ACCOUNT_TYPE_CHANGE_NOT_ALLOWED", 400, "type");
+  }
+}
+
+/** A negative starting balance on a prepaid account — it holds money, not credit. */
+export class InvalidInitialBalanceError extends DomainError {
+  constructor() {
+    super("INVALID_INITIAL_BALANCE", 400, "initialBalance");
   }
 }

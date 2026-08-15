@@ -3,6 +3,7 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
+import { InstitutionAccountTypeDataModule } from "../institution-account-type/institution-account-type.data.module";
 import { ListInstitutionsQueryHandler } from "./application/queries/list-institutions.handler";
 import { INSTITUTION_REPOSITORY } from "./domain/ports/institution.repository.port";
 import { PrismaInstitutionRepository } from "./infrastructure/prisma-institution.repository";
@@ -15,7 +16,7 @@ import { InstitutionsController } from "./presentation/institutions.controller";
  * `bank-account` composes.
  */
 @Module({
-  imports: [CqrsModule, JwtModule.register({})],
+  imports: [CqrsModule, JwtModule.register({}), InstitutionAccountTypeDataModule],
   controllers: [InstitutionsController],
   providers: [
     ListInstitutionsQueryHandler,

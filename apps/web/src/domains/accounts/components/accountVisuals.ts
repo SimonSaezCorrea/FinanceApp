@@ -6,6 +6,7 @@ import {
   type LucideIcon,
   PiggyBank,
   Wallet,
+  WalletCards,
 } from "lucide-react";
 
 import type { accounts } from "@finance/contracts";
@@ -17,6 +18,7 @@ export const ACCOUNT_ICON: Record<accounts.AccountType, LucideIcon> = {
   SAVINGS: PiggyBank,
   INVESTMENT: LineChart,
   CREDIT_LINE: CreditCard,
+  PREPAID: WalletCards,
   CASH: Banknote,
 };
 

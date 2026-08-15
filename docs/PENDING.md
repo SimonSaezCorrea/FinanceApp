@@ -256,16 +256,3 @@ La exclusión de traspasos de los agregados de ingreso/gasto está centralizada 
 `excludeTransfers` (web, `domains/dashboard/lib/metrics.ts`). **Cualquier agregado nuevo de
 ingreso/gasto debe aplicarlo**: al no cambiar el enum `TransactionType`, ninguna suma lo excluye por sí
 sola.
-
-### 6. Borrar la recarga de una tarjeta prepago no devuelve el saldo a la tarjeta
-
-La recarga (`POST /accounts/:id/cards/:cardId/load`) crea un gasto en la cuenta **sin `cardId`** — a
-propósito: con tarjeta sería indistinguible de un gasto hecho CON la prepago, que es justamente el que
-no debe mover el saldo de la cuenta. La consecuencia es que ese movimiento no está ligado a la tarjeta:
-si se **edita o borra desde Movimientos**, la cuenta recupera su saldo pero el saldo de la tarjeta
-queda como estaba (queda dinero "de más" en la prepago). Los gastos hechos con la prepago sí revierten
-su saldo al editarse/borrarse — esos llevan `cardId`.
-
-**Para hacerlo real**: una columna que marque el movimiento como recarga de una tarjeta concreta
-(p. ej. `prepaidLoadCardId`, distinta de `cardId`), que los handlers de editar/borrar lean para mover
-el saldo de la tarjeta igual que hoy mueven el de la cuenta.

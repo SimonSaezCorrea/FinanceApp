@@ -72,6 +72,10 @@ export class UpdateTransferHandler extends BaseCommandHandler<
       { fromBankAccountId: fromId, toBankAccountId: toId, amountOut, amountIn },
       context.from,
       context.to,
+      // Editing a transfer that already left this same account is checked against
+      // the balance BEFORE its own outgoing leg — otherwise raising it at all would
+      // look like it doesn't fit.
+      existing.outgoing.bankAccountId === fromId ? existing.outgoing.amount : "0",
     );
 
     const shared = {

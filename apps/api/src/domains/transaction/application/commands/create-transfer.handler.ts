@@ -117,7 +117,8 @@ export async function loadTransferAccounts(
     const account = await accounts.findById(userId, id);
     if (!account) return null;
     const snap = account.snapshot();
-    return { id: snap.id, type: snap.type };
+    // `currentBalance` is what bounds a PREPAID source's outgoing leg.
+    return { id: snap.id, type: snap.type, currentBalance: account.currentBalance };
   };
   return { from: await load(fromId), to: await load(toId) };
 }

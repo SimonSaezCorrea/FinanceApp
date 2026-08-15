@@ -65,6 +65,7 @@
       "SAVINGS": "Ahorro",
       "INVESTMENT": "Inversiones",
       "CREDIT_LINE": "Tarjeta de crédito",
+      "PREPAID": "Prepago",
       "CASH": "Efectivo"
     },
     "status": {
@@ -243,19 +244,7 @@
     }
   },
   "cards": {
-    "actions": {
-      "load": "Recargar"
-    },
-    "load": {
-      "description": "El dinero sale de la cuenta como un gasto y queda disponible en la tarjeta.",
-      "amount": "Monto a recargar",
-      "date": "Fecha",
-      "cardAfter": "Saldo de la tarjeta después",
-      "accountBalance": "Saldo de la cuenta",
-      "accountAfter": "Saldo de la cuenta después",
-      "movementHint": "Se registra un gasto \"Recarga prepago\" en la cuenta. Los gastos con esta tarjeta descuentan de su propio saldo, no del de la cuenta.",
-      "success": "Tarjeta recargada"
-    },
+    "actions": {},
     "title": "Tarjetas",
     "additionalTitle": "Tarjetas adicionales",
     "add": "Añadir tarjeta",
@@ -279,8 +268,6 @@
       "PREPAID": "Prepago"
     },
     "form": {
-      "prepaidBalance": "Saldo cargado ({{currency}})",
-      "prepaidHint": "Una tarjeta prepago tiene su propio saldo en lugar de cupo. Este es el monto ya cargado; después se recarga desde la cuenta.",
       "name": "Nombre de la tarjeta (opcional)",
       "namePlaceholder": "Ej. Tarjeta principal",
       "kind": "Tipo",
@@ -316,7 +303,6 @@
     },
     "deleteConfirmDescription": "Se eliminará de forma permanente, junto con todo lo relacionado a ella.",
     "detail": {
-      "prepaidBalance": "Saldo de la tarjeta",
       "title": "Detalle de tarjeta",
       "available": "Disponible {{amount}}",
       "role": "Rol",
@@ -826,9 +812,7 @@
     "CARD_LIMIT_EXCEEDED": "El gasto supera el cupo de la tarjeta principal.",
     "CARD_SUBLIMIT_EXCEEDED": "El gasto supera el sub-tope de la tarjeta secundaria.",
     "CARD_SUBLIMIT_EXCEEDS_ACCOUNT": "El tope de la tarjeta no puede superar el cupo de la cuenta.",
-    "PREPAID_INSUFFICIENT_BALANCE": "El saldo de la tarjeta prepago no alcanza para este gasto.",
-    "PREPAID_BALANCE_NOT_ALLOWED": "Solo una tarjeta prepago tiene saldo propio.",
-    "INVALID_PREPAID_BALANCE": "El monto de la recarga debe ser mayor que cero.",
+    "PREPAID_INSUFFICIENT_BALANCE": "El saldo de la cuenta prepago no alcanza para este movimiento.",
     "CARD_LIMIT_REQUIRED": "Ingresa un tope para esta tarjeta de crédito.",
     "PARENT_CARD_INVALID": "La tarjeta principal seleccionada no es válida.",
     "INVALID_CURRENT_PASSWORD": "La contraseña actual no es correcta.",
@@ -843,6 +827,9 @@
     "ATTACHMENT_TYPE_NOT_ALLOWED": "Solo se admiten imágenes JPG, PNG, WebP o archivos PDF.",
     "ATTACHMENT_TOO_LARGE": "El archivo supera los 5 MB.",
     "ATTACHMENTS_UNAVAILABLE": "El almacenamiento de comprobantes no está configurado.",
-    "ATTACHMENT_NOT_FOUND": "No se encontró el comprobante."
+    "ATTACHMENT_NOT_FOUND": "No se encontró el comprobante.",
+    "CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT": "Ese tipo de tarjeta no corresponde a este tipo de cuenta.",
+    "ACCOUNT_TYPE_CHANGE_NOT_ALLOWED": "No se puede convertir una cuenta prepago en otro tipo (ni al revés).",
+    "INVALID_INITIAL_BALANCE": "El saldo inicial no puede ser negativo."
   }
 }

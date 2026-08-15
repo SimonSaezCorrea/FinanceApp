@@ -51,6 +51,36 @@ describe("TransferPolicy", () => {
     );
   });
 
+  it("accepts a prepaid account as destination — that IS how it gets funded", () => {
+    expect(() =>
+      TransferPolicy.validate(input, from, { id: "a2", type: "PREPAID", currentBalance: "0" }),
+    ).not.toThrow();
+  });
+
+  it("bounds an outgoing transfer by the prepaid account's balance", () => {
+    const prepaidFrom = { id: "a1", type: "PREPAID", currentBalance: "1000" };
+    expect(() => TransferPolicy.validate(input, prepaidFrom, to)).not.toThrow();
+    expect(() =>
+      TransferPolicy.validate({ ...input, amountOut: "1000.01" }, prepaidFrom, to),
+    ).toThrowError(/PREPAID_INSUFFICIENT_BALANCE/);
+  });
+
+  it("checks an edited transfer against the balance before its own old leg", () => {
+    const prepaidFrom = { id: "a1", type: "PREPAID", currentBalance: "200" };
+    expect(() =>
+      TransferPolicy.validate({ ...input, amountOut: "1000" }, prepaidFrom, to, "800"),
+    ).not.toThrow();
+    expect(() =>
+      TransferPolicy.validate({ ...input, amountOut: "1001" }, prepaidFrom, to, "800"),
+    ).toThrowError(/PREPAID_INSUFFICIENT_BALANCE/);
+  });
+
+  it("leaves other source account types unbounded", () => {
+    expect(() =>
+      TransferPolicy.validate({ ...input, amountOut: "999999" }, from, to),
+    ).not.toThrow();
+  });
+
   it("rejects a non-positive amount on either leg", () => {
     expect(() => TransferPolicy.validate({ ...input, amountOut: "0" }, from, to)).toThrowError(
       /INVALID_AMOUNT/,

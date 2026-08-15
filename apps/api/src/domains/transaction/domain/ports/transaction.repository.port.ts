@@ -76,9 +76,6 @@ export interface TransactionRepositoryPort {
     plan: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     creditUsedDelta: { accountId: string; delta: string } | null,
     balanceDeltas: { accountId: string; delta: string }[],
-    /** PREPAID cards only: how each card's own balance moves (an expense through
-     * one draws down its pot instead of the account's balance). */
-    prepaidDeltas?: { cardId: string; delta: string }[],
   ): Promise<Transaction>;
   saveUpdate(
     userId: string,
@@ -90,14 +87,12 @@ export interface TransactionRepositoryPort {
     },
     creditUsedDeltas: { accountId: string; delta: string }[],
     balanceDeltas: { accountId: string; delta: string }[],
-    prepaidDeltas?: { cardId: string; delta: string }[],
   ): Promise<Transaction | null>;
   removeWithCreditAdjustment(
     userId: string,
     id: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
     balanceDeltas: { accountId: string; delta: string }[],
-    prepaidDeltas?: { cardId: string; delta: string }[],
   ): Promise<boolean>;
 
   /* Transfers — always written as a PAIR, in one `$transaction`, together with

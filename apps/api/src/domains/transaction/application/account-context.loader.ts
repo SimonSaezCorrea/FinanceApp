@@ -21,6 +21,7 @@ export async function loadAccountContext(
     context: {
       id: snap.id,
       type: snap.type,
+      currentBalance: account.currentBalance,
       creditLimit: account.creditLimit,
       creditUsed: account.creditUsed,
       billingCycleDay: snap.billingCycleDay,

@@ -14,7 +14,6 @@ import { useCardMovements } from "../hooks/useCardMovements";
 import { useCardMutations } from "../hooks/useCards";
 import { AccountVisualCard } from "./AccountVisualCard";
 import { CardDetailPanel } from "./CardDetailPanel";
-import { LoadPrepaidPanel } from "./LoadPrepaidPanel";
 import { CardTileSkeleton } from "./CardTileSkeleton";
 import { type CardDraft, CardForm } from "./CardForm";
 
@@ -61,8 +60,6 @@ export function CardDetailSurface({
   // Only meaningful in edit mode, where the header switch drives the form; reset
   // on close so reopening starts from the saved card again.
   const [editActive, setEditActive] = useState<boolean | null>(null);
-  /** The prepaid card being loaded, if any — its own surface, stacked on this one. */
-  const [loadingCard, setLoadingCard] = useState<accounts.Card | null>(null);
 
   // Retained through the close: the parent clears `card` at the same time it
   // closes, and unmounting on that frame would cut the exit animation short.
@@ -167,6 +164,7 @@ export function CardDetailSurface({
           submitting={update.isPending}
           initial={activeCard}
           accountCurrency={account.currency}
+          accountType={account.type}
           accountCreditLimit={account.creditLimit}
           hasExistingPrimary={account.cards.some(
             (c) => c.kind === "CREDIT" && c.isPrimary && c.id !== activeCard.id,
@@ -177,14 +175,7 @@ export function CardDetailSurface({
           onSubmit={save}
         />
       ) : (
-        <CardDetailPanel
-          account={account}
-          card={activeCard}
-          holder={holder}
-          onLoadPrepaid={
-            activeCard.kind === "PREPAID" ? () => setLoadingCard(activeCard) : undefined
-          }
-        />
+        <CardDetailPanel account={account} card={activeCard} holder={holder} />
       )}
     </div>
   );
@@ -256,11 +247,6 @@ export function CardDetailSurface({
       footer={footer}
     >
       {content}
-      <LoadPrepaidPanel
-        account={account}
-        card={loadingCard}
-        onOpenChange={(v) => !v && setLoadingCard(null)}
-      />
     </SidePanel>
   );
 }

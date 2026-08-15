@@ -75,6 +75,16 @@ describe("BillingEligibilityStrategy", () => {
       ).toBe(true);
     });
 
+    it("is never eligible for a prepaid account: it has no credit line to bill", () => {
+      expect(
+        resolveBillingEligibility({
+          accountType: "PREPAID",
+          accountStatus: "ACTIVE",
+          cards: [{ kind: "PREPAID", isPrimary: false, isActive: true }],
+        }),
+      ).toBe(false);
+    });
+
     it("is false when there are no cards at all", () => {
       expect(
         resolveBillingEligibility({ accountType: "CHECKING", accountStatus: "ACTIVE", cards: [] }),

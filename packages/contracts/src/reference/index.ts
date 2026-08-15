@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { accountType } from "../common/account-type";
+
 /** Reference data contracts: countries, financial institutions, currencies (ISO 4217). Global, read-only. */
 
 /** National identity document vocabulary — which types a country supports is data (see
@@ -39,12 +41,20 @@ export const institutionSchema = z.object({
   /** Institutional/regulator code (SBIF/CMF for banks; código institucional for issuers). */
   code: z.string(),
   name: z.string(),
-  /** Chilean tax id (RUT); null for banks / non-Chilean entities. */
-  rut: z.string().nullable(),
   /** Bank sub-category; null for non-bank issuers. */
   category: bankCategory.nullable(),
   brands: z.array(z.string()),
   notes: z.string().nullable(),
+  /**
+   * Which account products this institution offers, its flagship one first —
+   * data, not something derivable from `kind`: Tenpo is a NON_BANK_ISSUER that
+   * offers PREPAID today and may offer CHECKING tomorrow, and a foreign branch
+   * is a BANK with a much narrower catalogue than a local one.
+   *
+   * An EMPTY list means "not catalogued yet", never "offers nothing" — the
+   * institution is then shown for every account type (see `accountType` below).
+   */
+  accountTypes: z.array(accountType),
 });
 export type Institution = z.infer<typeof institutionSchema>;
 
@@ -58,9 +68,17 @@ export const currencySchema = z.object({
 });
 export type Currency = z.infer<typeof currencySchema>;
 
-/** Institution list filters: by country ISO alpha-2 and/or kind (`?country=CL&kind=BANK`). */
+/**
+ * Institution list filters: by country ISO alpha-2, kind and/or the account
+ * product on offer (`?country=CL&kind=BANK&accountType=PREPAID`).
+ *
+ * `accountType` is deliberately PERMISSIVE: an institution with no catalogued
+ * products passes every filter. A reference catalogue always lags reality, so a
+ * missing row must never make a real bank disappear from the picker.
+ */
 export const institutionFiltersSchema = z.object({
   country: z.string().trim().length(2).optional(),
   kind: institutionKind.optional(),
+  accountType: accountType.optional(),
 });
 export type InstitutionFilters = z.infer<typeof institutionFiltersSchema>;

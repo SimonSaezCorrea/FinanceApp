@@ -65,6 +65,7 @@
       "SAVINGS": "Savings",
       "INVESTMENT": "Investments",
       "CREDIT_LINE": "Credit card",
+      "PREPAID": "Prepaid",
       "CASH": "Cash"
     },
     "status": {
@@ -243,19 +244,7 @@
     }
   },
   "cards": {
-    "actions": {
-      "load": "Top up"
-    },
-    "load": {
-      "description": "The money leaves the account as an expense and becomes available on the card.",
-      "amount": "Amount to load",
-      "date": "Date",
-      "cardAfter": "Card balance after",
-      "accountBalance": "Account balance",
-      "accountAfter": "Account balance after",
-      "movementHint": "A \"Recarga prepago\" expense is recorded on the account. Spending with this card draws down its own balance, not the account's.",
-      "success": "Card topped up"
-    },
+    "actions": {},
     "title": "Cards",
     "additionalTitle": "Additional cards",
     "add": "Add card",
@@ -279,8 +268,6 @@
       "PREPAID": "Prepaid"
     },
     "form": {
-      "prepaidBalance": "Loaded balance ({{currency}})",
-      "prepaidHint": "A prepaid card holds its own balance instead of a credit limit. This is what is already loaded; you top it up from the account afterwards.",
       "name": "Card name (optional)",
       "namePlaceholder": "E.g. Main card",
       "kind": "Kind",
@@ -316,7 +303,6 @@
     },
     "deleteConfirmDescription": "It will be permanently deleted, along with everything tied to it.",
     "detail": {
-      "prepaidBalance": "Card balance",
       "title": "Card detail",
       "available": "Available {{amount}}",
       "role": "Role",
@@ -826,9 +812,7 @@
     "CARD_LIMIT_EXCEEDED": "The expense exceeds the primary card's credit limit.",
     "CARD_SUBLIMIT_EXCEEDED": "The expense exceeds the secondary card's sub-limit.",
     "CARD_SUBLIMIT_EXCEEDS_ACCOUNT": "A card's limit can't exceed the account's own credit pool.",
-    "PREPAID_INSUFFICIENT_BALANCE": "This prepaid card doesn’t hold enough for this expense.",
-    "PREPAID_BALANCE_NOT_ALLOWED": "Only a prepaid card has a balance of its own.",
-    "INVALID_PREPAID_BALANCE": "The top-up amount must be greater than zero.",
+    "PREPAID_INSUFFICIENT_BALANCE": "This prepaid account doesn't hold enough for this movement.",
     "CARD_LIMIT_REQUIRED": "Enter a limit for this credit card.",
     "PARENT_CARD_INVALID": "The selected primary card is invalid.",
     "INVALID_CURRENT_PASSWORD": "Your current password is incorrect.",
@@ -843,6 +827,9 @@
     "ATTACHMENT_TYPE_NOT_ALLOWED": "Only JPG, PNG, WebP images or PDF files are allowed.",
     "ATTACHMENT_TOO_LARGE": "The file is larger than 5 MB.",
     "ATTACHMENTS_UNAVAILABLE": "Receipt storage isn't configured.",
-    "ATTACHMENT_NOT_FOUND": "Receipt not found."
+    "ATTACHMENT_NOT_FOUND": "Receipt not found.",
+    "CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT": "That card kind doesn't belong on this account type.",
+    "ACCOUNT_TYPE_CHANGE_NOT_ALLOWED": "A prepaid account can't be converted to another type (or the other way round).",
+    "INVALID_INITIAL_BALANCE": "The initial balance can't be negative."
   }
 }

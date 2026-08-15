@@ -7,7 +7,6 @@ import { CardAccountDataModule } from "../card-account/card-account.data.module"
 import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { BankAccountDataModule } from "./bank-account.data.module";
 import { AddCardHandler } from "./application/commands/add-card.handler";
-import { LoadPrepaidCardHandler } from "./application/commands/load-prepaid-card.handler";
 import { CreateAccountHandler } from "./application/commands/create-account.handler";
 import { RemoveAccountHandler } from "./application/commands/remove-account.handler";
 import { RemoveCardHandler } from "./application/commands/remove-card.handler";
@@ -24,7 +23,6 @@ const commandHandlers = [
   SetAccountStatusHandler,
   RemoveAccountHandler,
   AddCardHandler,
-  LoadPrepaidCardHandler,
   UpdateCardHandler,
   RemoveCardHandler,
 ];
@@ -42,7 +40,6 @@ const queryHandlers = [ListAccountsQueryHandler, GetAccountQueryHandler];
     JwtModule.register({}),
     BankAccountDataModule,
     TransactionDataModule,
-    // Loading a prepaid card writes that card's own balance (its table's port).
     CardAccountDataModule,
   ],
   controllers: [AccountsController],
