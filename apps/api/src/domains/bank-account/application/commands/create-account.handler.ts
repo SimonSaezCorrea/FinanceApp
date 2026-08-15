@@ -41,6 +41,16 @@ export class CreateAccountHandler extends BaseCommandHandler<
     const institution = input.institutionId
       ? ((await this.accountRepo.institutionName(input.institutionId)) ?? input.institution)
       : input.institution;
+    // The account number's format is the country's business, and the country is
+    // the institution's — so it is resolved here and checked before anything is
+    // written. Validating this only in the form would leave the API open.
+    BankAccount.assertAccountIdentifiers({
+      countryAlpha2: input.institutionId
+        ? await this.accountRepo.institutionCountry(input.institutionId)
+        : null,
+      accountNumber: input.accountNumber,
+      accountAlias: input.accountAlias,
+    });
     const planned = BankAccount.planCreation({
       type: input.type,
       currency: input.currency,

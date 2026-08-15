@@ -174,6 +174,7 @@
       "accountNumberCbu": "CBU / CVU",
       "accountNumberInvalid": "That CBU/CVU isn't valid (22 digits with check digits).",
       "accountAlias": "Alias",
+      "accountAliasInvalid": "That alias isn't valid (6-20 characters, no spaces).",
       "accountAliasPlaceholder": "mate.tango.mp",
       "accountNumber": "Account number",
       "primaryCardHint": "This identifies this account's primary card — its limit is the total cupo defined below.",
@@ -860,6 +861,8 @@
     "CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT": "That card kind doesn't belong on this account type.",
     "CREDIT_SETTINGS_NOT_ALLOWED": "Only a credit-line account has a credit line and billing settings.",
     "ACCOUNT_TYPE_CHANGE_NOT_ALLOWED": "A prepaid account can't be converted to another type (or the other way round).",
+    "INVALID_ACCOUNT_NUMBER": "That account number doesn't match the country's format.",
+    "INVALID_ACCOUNT_ALIAS": "That transfer alias isn't valid.",
     "INVALID_INITIAL_BALANCE": "The initial balance can't be negative."
   }
 }

@@ -238,18 +238,57 @@ datos; si el bucket falla en ese momento el archivo queda huérfano y solo se re
 (`orphaned object left in the bucket: <key>`). No existe todavía un job de limpieza que reconcilie
 claves huérfanas contra la tabla.
 
-### 4. "Saldo tras el movimiento" con cobertura parcial
+### 4. Atributos de tarjeta puramente descriptivos
+
+`CardAccount.isVirtual`, `isAdditional`, `cardholderName` y `network` se guardan, se editan en
+`CardForm` y se muestran en `CardDetailPanel`, pero **ninguna regla de negocio depende de ellos**: una
+tarjeta virtual no se comporta distinto de una física, una adicional no tiene tope propio ni
+consolidación por titular, y la red no cambia ninguna validación. Son datos para que la persona
+reconozca su tarjeta y para poder responder "¿quién gastó esto?" leyendo el movimiento.
+
+**Para hacerlos reales**: agrupar el gasto por `cardholderName` en el panel y en los agregados
+(hoy no existe ese corte), y usar `network` en la presentación de la tarjeta.
+
+### 5. Catálogo de instituciones incompleto fuera de Chile
+
+`Country` tiene 6 países seedeados, pero solo Chile (46 instituciones) y Argentina (12) tienen
+catálogo. **Colombia, Perú, Paraguay y Puerto Rico aparecen en el selector de país y devuelven cero
+instituciones**: el formulario deja crear la cuenta igual (la institución es opcional), pero la
+experiencia es una lista vacía. `InstitutionKind.PAYMENT_PROVIDER` existe para las SEDPE colombianas,
+las EEDE peruanas y las EMPE paraguayas, y hoy solo lo usan los tres PSP argentinos.
+
+**Para hacerlo real**: sembrar cada registro contra la fuente del regulador correspondiente, como se
+hizo con TPEEM/TCEEM/BCCOO (CMF) y los códigos de entidad del BCRA.
+
+### 6. `BankCategory` no filtra nada
+
+`FinancialInstitution.category` (ESTABLISHED/FOREIGN_BRANCH/STATE) se guarda y se expone en el
+contrato, pero **ningún endpoint filtra por ella y ningún componente la muestra**. Se conserva porque
+es la taxonomía real del regulador chileno y porque agrupar el selector por ella (bancos /
+sucursales extranjeras / emisores / cooperativas) es la mejora natural cuando el catálogo crezca.
+
+### 7. Sin conversión de moneda
+
+No existe ninguna tasa de cambio en el sistema. El patrimonio neto y los totales multi-moneda son
+**sumas separadas por moneda**, nunca un único número convertido; los topes de tarjeta en otras
+monedas tampoco se cruzan contra el cupo de la cuenta. Con dos países en el catálogo esto se nota más.
+
+**Para hacerlo real**: una fuente de tasas (con su propia caché, como `EtfPriceCache`) y una decisión
+de producto sobre qué tasa usar y con qué fecha — un patrimonio convertido con la tasa de hoy no es
+comparable con el de ayer.
+
+### 8. "Saldo tras el movimiento" con cobertura parcial
 
 La fila **Saldo tras el movimiento** del panel de detalle se calcula en el cliente (no hay endpoint de
 saldo histórico por movimiento) y **muestra "—"** — nunca un número aproximado — cuando no puede
-sostenerse: si la cuenta no lleva saldo (`CREDIT_LINE`), si hay un filtro de fecha activo (un rango
+sostenerse: si la cuenta no lleva saldo (`CREDIT_CARD`), si hay un filtro de fecha activo (un rango
 recortado esconde movimientos posteriores que sí afectan el saldo), o si la lista mezcla cuentas (la
 vista de Movimientos), donde los deltas de esta cuenta quedan detrás de filas de otras.
 
 **Para hacerlo real**: un `runningBalance` por fila devuelto por el API (calculado en Postgres con una
 ventana sobre `occurredAt`), que además sobreviviría a cualquier filtro.
 
-### 5. Traspasos y agregados de terceros
+### 9. Traspasos y agregados de terceros
 
 La exclusión de traspasos de los agregados de ingreso/gasto está centralizada en el predicado
 `EXCLUDE_TRANSFERS` (API, `transaction/application/queries/transaction-list-filter.ts`) y en

@@ -130,6 +130,9 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
   institutionName(id: string): Promise<string | null> {
     return this.institutions.nameById(id);
   }
+  institutionCountry(id: string): Promise<string | null> {
+    return this.institutions.countryAlpha2ById(id);
+  }
 
   async createWithCards(userId: string, plan: CreateAccountPlan): Promise<BankAccount> {
     const row = await this.prisma.bankAccount.create({

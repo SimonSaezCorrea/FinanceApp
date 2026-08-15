@@ -97,6 +97,8 @@ export function AccountCreateModal({
     setType("CHECKING");
     setInstitutionId("");
     setAccountNumber("");
+    setAccountAlias("");
+    setCountry("CL");
     setCurrency("CLP");
     setInitialBalance("0");
     setCreditLimit("0");
@@ -140,7 +142,15 @@ export function AccountCreateModal({
     }
   }
 
+  const accountNumberInvalid =
+    accountNumber.trim() !== "" && !accountsContract.isValidAccountNumber(accountNumber, country);
+  const accountAliasInvalid =
+    accountAlias.trim() !== "" && !accountsContract.isValidAccountAlias(accountAlias);
+
   function submit() {
+    // Same guard the edit form applies: the API refuses these too, so the modal
+    // must not let a number through that will come back as an error.
+    if (accountNumberInvalid || accountAliasInvalid) return;
     let parsedPrimaryExpiry: { month: number; year: number } | null = null;
     if (isCreditLineType) {
       const validLast4 = /^\d{4}$/.test(primaryLast4);
@@ -262,7 +272,11 @@ export function AccountCreateModal({
             <Button variant="outline" onClick={() => onOpenChange(false)}>
               {t("common.cancel")}
             </Button>
-            <Button variant="accent" onClick={submit} disabled={create.isPending || !name}>
+            <Button
+              variant="accent"
+              onClick={submit}
+              disabled={create.isPending || !name || accountNumberInvalid || accountAliasInvalid}
+            >
               {t("accounts.form.createSubmit")}
             </Button>
           </div>

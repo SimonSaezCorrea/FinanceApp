@@ -25,6 +25,7 @@ export function fakeBankAccountRepo(
     listByUser: vi.fn(),
     listDueForBilling: vi.fn(),
     institutionName: vi.fn(),
+    institutionCountry: vi.fn(async () => null),
     createWithCards: vi.fn(),
     save: vi.fn(),
     saveWithTx: vi.fn(),

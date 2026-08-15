@@ -174,6 +174,7 @@
       "accountNumberCbu": "CBU / CVU",
       "accountNumberInvalid": "El CBU/CVU no es válido (22 dígitos con dígito verificador).",
       "accountAlias": "Alias",
+      "accountAliasInvalid": "El alias no es válido (6-20 caracteres, sin espacios).",
       "accountAliasPlaceholder": "mate.tango.mp",
       "accountNumber": "Número de cuenta",
       "primaryCardHint": "Estos datos identifican la tarjeta principal de esta cuenta — su tope es el cupo total definido abajo.",
@@ -860,6 +861,8 @@
     "CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT": "Ese tipo de tarjeta no corresponde a este tipo de cuenta.",
     "CREDIT_SETTINGS_NOT_ALLOWED": "Solo una cuenta de línea de crédito tiene cupo y facturación.",
     "ACCOUNT_TYPE_CHANGE_NOT_ALLOWED": "No se puede convertir una cuenta prepago en otro tipo (ni al revés).",
+    "INVALID_ACCOUNT_NUMBER": "El número de cuenta no tiene el formato de ese país.",
+    "INVALID_ACCOUNT_ALIAS": "El alias de transferencia no es válido.",
     "INVALID_INITIAL_BALANCE": "El saldo inicial no puede ser negativo."
   }
 }

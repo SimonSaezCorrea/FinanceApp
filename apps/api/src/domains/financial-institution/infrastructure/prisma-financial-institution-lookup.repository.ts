@@ -16,6 +16,14 @@ export class PrismaFinancialInstitutionLookupRepository implements FinancialInst
     return row?.name ?? null;
   }
 
+  async countryAlpha2ById(id: string): Promise<string | null> {
+    const row = await this.prisma.financialInstitution.findUnique({
+      where: { id },
+      select: { country: { select: { alpha2: true } } },
+    });
+    return row?.country.alpha2 ?? null;
+  }
+
   async namesByIds(ids: string[]): Promise<Map<string, string>> {
     if (ids.length === 0) return new Map();
     const rows = await this.prisma.financialInstitution.findMany({

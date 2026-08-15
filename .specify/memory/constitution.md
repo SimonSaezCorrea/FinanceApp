@@ -15,8 +15,11 @@ Sync Impact Report — 2026-08-15 (amendment 1.41.0)
   issue, which is what makes it the natural key) and 3 PSPs keyed `PSP-<slug>`, their CVU prefixes
   not being published in the sources used. Colombia, Peru and Paraguay remain empty.
 - Templates requiring updates: none.
+- Enforcement is two-sided: `BankAccount.assertAccountIdentifiers` (create + update handlers, which
+  resolve the country through the institution) answers `INVALID_ACCOUNT_NUMBER`/`INVALID_ACCOUNT_ALIAS`,
+  and both web forms block their own submit with the same contract function.
 - Follow-up TODOs: seed CO/PE/PY; no FX conversion exists, so a multi-currency net worth is still
-  a sum of separate currencies.
+  a sum of separate currencies. Both catalogued in `docs/PENDING.md`.
 -->
 
 <!--
@@ -1183,6 +1186,9 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
     the same standard the identifier types follow. An entity that holds payment accounts without
     being a bank (PSP in Argentina, SEDPE in Colombia, EEDE in Peru, EMPE in Paraguay) is ONE kind,
     `PAYMENT_PROVIDER`: four regulatory names for the same role, and the app models the role.
+    A format rule MUST be enforced on the API (the aggregate), not only in the form: a validation that
+    shows an error and saves anyway is worse than no validation, because it teaches the user the
+    message is noise.
   - **The user recognises the brand, the regulator registers the entity:** an institution's
     user-facing `name` is its COMMERCIAL name (Copec Pay, Tenpo, BancoEstado) and its registered
     entity lives in `legalName`; pickers label with the former and MUST search both plus `brands`,

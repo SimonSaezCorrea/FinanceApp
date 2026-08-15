@@ -321,6 +321,12 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     **selector de país** (antes `"CL"` fijo) que filtra las instituciones y cambia el rótulo a
     "CBU / CVU" + el campo Alias; cambiar de país limpia la institución elegida (pertenece a su país).
     `AccountEditPanel` **deriva** el país de la institución guardada (la cuenta no lo almacena).
+    **La validación es de dos lados**: el agregado la impone en
+    `BankAccount.assertAccountIdentifiers` (llamada desde create/update account, que resuelven el país
+    vía `BankAccountRepositoryPort.institutionCountry` → `FinancialInstitutionLookupPort.countryAlpha2ById`)
+    con errores **`INVALID_ACCOUNT_NUMBER`** / **`INVALID_ACCOUNT_ALIAS`**, y ambos formularios web
+    bloquean el submit con la misma función del contrato — mostrar el error y guardar igual sería peor
+    que no validar.
     Seed AR: 9 bancos con su **código de entidad BCRA** (= los 3 primeros dígitos del CBU, por eso es
     la llave natural) y 3 PSP keyed `PSP-<slug>` porque sus prefijos CVU no están publicados en las
     fuentes usadas. Productos AR: la caja de ahorro (`SAVINGS`) es la cuenta cotidiana, la corriente es

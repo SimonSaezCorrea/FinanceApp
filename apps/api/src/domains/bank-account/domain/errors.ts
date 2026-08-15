@@ -90,3 +90,19 @@ export class OverdraftNotAllowedError extends DomainError {
     super("OVERDRAFT_NOT_ALLOWED", 400, "overdraftLimit");
   }
 }
+
+/** The account number doesn't match the format its country uses (today: a 22-digit
+ * CBU/CVU with two check digits, in Argentina). Countries whose format the app
+ * doesn't know accept anything — this only fires where there IS a rule. */
+export class InvalidAccountNumberError extends DomainError {
+  constructor() {
+    super("INVALID_ACCOUNT_NUMBER", 400, "accountNumber");
+  }
+}
+
+/** The transfer alias isn't a usable one (6-20 chars, letters/digits and `.-_`). */
+export class InvalidAccountAliasError extends DomainError {
+  constructor() {
+    super("INVALID_ACCOUNT_ALIAS", 400, "accountAlias");
+  }
+}

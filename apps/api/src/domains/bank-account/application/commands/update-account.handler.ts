@@ -49,6 +49,17 @@ export class UpdateAccountHandler extends BaseCommandHandler<
       input.institutionId !== undefined && input.institutionId
         ? await this.accountRepo.institutionName(input.institutionId)
         : undefined;
+    // Same rule as creation: the number's format belongs to the institution's
+    // country, which may itself be changing in this very patch.
+    const effectiveInstitutionId =
+      input.institutionId !== undefined ? input.institutionId : account.snapshot().institutionId;
+    BankAccount.assertAccountIdentifiers({
+      countryAlpha2: effectiveInstitutionId
+        ? await this.accountRepo.institutionCountry(effectiveInstitutionId)
+        : null,
+      accountNumber: input.accountNumber ?? account.accountNumber,
+      accountAlias: input.accountAlias ?? account.snapshot().accountAlias,
+    });
     account.applyUpdate({
       ...(input.name !== undefined ? { name: input.name } : {}),
       ...(input.type !== undefined ? { type: input.type } : {}),
@@ -60,6 +71,7 @@ export class UpdateAccountHandler extends BaseCommandHandler<
           ? { institution: input.institution }
           : {}),
       ...(input.accountNumber !== undefined ? { accountNumber: input.accountNumber } : {}),
+      ...(input.accountAlias !== undefined ? { accountAlias: input.accountAlias } : {}),
       ...(input.initialBalance !== undefined ? { initialBalance: input.initialBalance } : {}),
       ...(input.creditLimit !== undefined ? { creditLimit: input.creditLimit } : {}),
       ...(input.creditUsedInitial !== undefined

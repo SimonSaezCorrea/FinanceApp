@@ -49,6 +49,8 @@ export interface BankAccountRepositoryPort {
    * cron's universe, not a per-request scoped query. */
   listDueForBilling(): Promise<BankAccount[]>;
   institutionName(id: string): Promise<string | null>;
+  /** ISO alpha-2 of the institution's country — decides the account-number format. */
+  institutionCountry(id: string): Promise<string | null>;
   createWithCards(userId: string, plan: CreateAccountPlan): Promise<BankAccount>;
   /** Persists the account's own scalar fields + its billing settings (never its
    * cards — those go through addCard/updateCard/removeCard so existing

@@ -177,6 +177,8 @@ export function AccountForm({
   const accountNumberInvalid =
     values.accountNumber.trim() !== "" &&
     !accountsContract.isValidAccountNumber(values.accountNumber, values.country);
+  const accountAliasInvalid =
+    values.accountAlias.trim() !== "" && !accountsContract.isValidAccountAlias(values.accountAlias);
   const { data: currencies } = useCurrencies();
 
   const set = <K extends keyof AccountFormValues>(k: K, v: AccountFormValues[K]) =>
@@ -200,6 +202,10 @@ export function AccountForm({
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
+    // Showing the error and saving anyway is worse than not validating at all:
+    // the API refuses it too (INVALID_ACCOUNT_NUMBER / INVALID_ACCOUNT_ALIAS),
+    // so stopping here is what keeps the two answers the same.
+    if (accountNumberInvalid || accountAliasInvalid) return;
     onSubmit(submitted);
   }
 
@@ -364,7 +370,10 @@ export function AccountForm({
             {/* Only where the market actually has aliases: showing an empty field
                 labelled "alias" in Chile would invent a concept that isn't there. */}
             {usesAlias ? (
-              <Field label={t("accounts.form.accountAlias")}>
+              <Field
+                label={t("accounts.form.accountAlias")}
+                error={accountAliasInvalid ? t("accounts.form.accountAliasInvalid") : null}
+              >
                 <Input
                   id="acc-alias"
                   value={values.accountAlias}

@@ -11,6 +11,8 @@ import {
   CardNotFoundError,
   CardSubLimitExceedsAccountError,
   CreditSettingsNotAllowedError,
+  InvalidAccountAliasError,
+  InvalidAccountNumberError,
   OverdraftNotAllowedError,
   InvalidInitialBalanceError,
 } from "./errors";
@@ -303,6 +305,29 @@ export class BankAccount {
   ): void {
     if (type !== "PREPAID" || initialBalance === undefined) return;
     if (toMoney(initialBalance).isNegative()) throw new InvalidInitialBalanceError();
+  }
+
+  /**
+   * The account's identifiers must be usable in the market they belong to. The
+   * FORMAT is data about the country (`@finance/contracts`'s `account-number`),
+   * applied permissively: a country whose format the app doesn't know accepts any
+   * number. The alias, when sent at all, must be a usable one.
+   *
+   * `countryAlpha2` is null for an account with no institution (cash, or a manual
+   * one) — nothing to check against, so nothing is refused.
+   */
+  static assertAccountIdentifiers(input: {
+    countryAlpha2: string | null;
+    accountNumber?: string | null;
+    accountAlias?: string | null;
+  }): void {
+    const { countryAlpha2, accountNumber, accountAlias } = input;
+    if (accountNumber?.trim() && !accounts.isValidAccountNumber(accountNumber, countryAlpha2)) {
+      throw new InvalidAccountNumberError();
+    }
+    if (accountAlias?.trim() && !accounts.isValidAccountAlias(accountAlias)) {
+      throw new InvalidAccountAliasError();
+    }
   }
 
   /** An overdraft is the floor of a CASH balance, so only the account types that

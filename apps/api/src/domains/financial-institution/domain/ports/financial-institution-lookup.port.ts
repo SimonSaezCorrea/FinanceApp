@@ -9,6 +9,9 @@ export const FINANCIAL_INSTITUTION_LOOKUP = Symbol("FINANCIAL_INSTITUTION_LOOKUP
  */
 export interface FinancialInstitutionLookupPort {
   nameById(id: string): Promise<string | null>;
+  /** ISO alpha-2 of the country this institution belongs to — what decides the
+   * format an account number must have (a CBU in Argentina, free text in Chile). */
+  countryAlpha2ById(id: string): Promise<string | null>;
   /** Batch form for hydrating a list of accounts in one query. */
   namesByIds(ids: string[]): Promise<Map<string, string>>;
 }
