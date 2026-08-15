@@ -24,7 +24,7 @@ import { Card } from "../../../shared/ui/card";
 import { ConfirmModal } from "../../../shared/ui/overlay";
 import { Select } from "../../../shared/ui/select";
 import { Switch } from "../../../shared/ui/switch";
-import { EmptyState, ErrorState } from "../../../shared/ui/states";
+import { ErrorState } from "../../../shared/ui/states";
 import { AccountDetailSkeleton, MovementsTableSkeleton } from "../components/AccountDetailSkeleton";
 import { AccountEditPanel } from "../components/AccountEditPanel";
 import { Tabs } from "../../../shared/ui/tabs";
@@ -542,8 +542,6 @@ function MovementsSection({
           <MovementsTableSkeleton />
         ) : isError ? (
           <ErrorState title={t("errors.INTERNAL_ERROR")} />
-        ) : list.length === 0 ? (
-          <EmptyState title={t("transactions.empty")} />
         ) : (
           <TransactionTable
             highlightId={savedId}

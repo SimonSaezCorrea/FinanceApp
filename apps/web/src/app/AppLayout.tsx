@@ -22,7 +22,6 @@ import { NavLink } from "react-router";
 
 import { useAuth } from "../domains/auth/hooks/useAuth";
 import { ThemeSync } from "../domains/profile/components/ThemeSync";
-import { ThemeToggle } from "../shared/ui/theme-toggle";
 import { cn } from "../shared/lib/cn";
 import { getInitials } from "../shared/lib/initials";
 
@@ -241,7 +240,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
       </RadixDialog.Root>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <header className="flex shrink-0 items-center justify-between gap-3 border-b bg-card px-4 py-3 lg:hidden">
+        {/* No theme control here: the desktop rail doesn't carry one either —
+            the theme is a saved preference and lives in /profile. On a phone
+            header a 3-mode switch was the widest thing in the bar. */}
+        <header className="flex shrink-0 items-center gap-3 border-b bg-card px-4 py-3 lg:hidden">
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -254,7 +256,6 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <Receipt className="h-5 w-5 text-brand" aria-hidden />
             <span className="font-semibold">{t("brand.name")}</span>
           </div>
-          <ThemeToggle />
         </header>
         <main className="scrollbar-thin min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
           <div className="container py-6">{children}</div>

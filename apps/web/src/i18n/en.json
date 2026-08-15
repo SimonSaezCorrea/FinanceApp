@@ -394,6 +394,7 @@
     "deleteConfirm": "Delete this transaction?",
     "deleteConfirmDescription": "It will be permanently removed and the account's balance (and used credit, where it applies) will adjust back.",
     "empty": "You don't have any transactions yet.",
+    "emptyHint": "Movements you record in this account will show up here.",
     "uncategorized": "Uncategorized",
     "subtitle": "{{month}} · {{count}} transactions",
     "subtitleRange": "{{range}} · {{count}} transactions",

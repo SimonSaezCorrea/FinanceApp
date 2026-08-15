@@ -1,4 +1,4 @@
-import { ArrowLeftRight, Pencil, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Inbox, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -14,7 +14,6 @@ import { Card } from "../../../shared/ui/card";
 import { cn } from "../../../shared/lib/cn";
 import { useElementWidth } from "../../../shared/lib/useElementWidth";
 import { InfiniteScrollSentinel } from "../../../shared/ui/infinite-scroll-sentinel";
-import { EmptyState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
 
 interface TransactionTableProps {
@@ -91,9 +90,11 @@ export function TransactionTable({
   // here is a cosmetic downgrade rather than an overflowing table.
   const wide = width !== null && width >= FULL_TABLE_MIN_WIDTH;
 
-  if (txs.length === 0) {
-    return <EmptyState title={t("transactions.empty")} />;
-  }
+  // Empty is rendered INSIDE the table chrome (headers + one spanning row), not
+  // as a bare card in its place: the columns are what say what this table would
+  // hold, so swapping them for a dashed box loses that and jumps the layout as
+  // soon as the first movement lands.
+  const isEmpty = txs.length === 0;
 
   const accountMap = new Map(accounts.map((a) => [a.id, a.name]));
   const cardMap = new Map(accounts.flatMap((a) => a.cards.map((c) => [c.id, c])));
@@ -342,6 +343,15 @@ export function TransactionTable({
         </div>
       </div>
 
+      {/* Rendered ONCE, below whichever layout is showing (both are mounted, one
+          hidden by class) — duplicating it would put the same message in the DOM
+          twice. The headers above still stand, so the table keeps its shape. */}
+      {isEmpty ? (
+        <div className="px-4 py-10">
+          <EmptyRow />
+        </div>
+      ) : null}
+
       {/* Shared by both layouts — it sits after the desktop table and the
           tablet/mobile list, only one of which is ever rendered. */}
       {onLoadMore ? (
@@ -352,5 +362,18 @@ export function TransactionTable({
         />
       ) : null}
     </Card>
+  );
+}
+
+/** The message that occupies the table's body while it has no rows. No border of
+ *  its own: the surrounding Card and the header row are already the frame. */
+function EmptyRow() {
+  const { t } = useTranslation();
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 text-center">
+      <Inbox className="h-6 w-6 text-muted-foreground" aria-hidden />
+      <p className="font-medium">{t("transactions.empty")}</p>
+      <p className="text-sm text-muted-foreground">{t("transactions.emptyHint")}</p>
+    </div>
   );
 }

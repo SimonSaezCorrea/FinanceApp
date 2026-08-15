@@ -394,6 +394,7 @@
     "deleteConfirm": "¿Eliminar este movimiento?",
     "deleteConfirmDescription": "Se eliminará de forma permanente y el saldo de la cuenta (y el cupo usado, si aplica) volverá a ajustarse.",
     "empty": "Aún no tienes movimientos.",
+    "emptyHint": "Los movimientos que registres en esta cuenta aparecerán aquí.",
     "uncategorized": "Sin categoría",
     "subtitle": "{{month}} · {{count}} movimientos",
     "subtitleRange": "{{range}} · {{count}} movimientos",
