@@ -52,8 +52,12 @@ describe("PrismaInstitutionRepository (integration)", () => {
     const banks = await repo.findAll({ country: "CL", kind: "BANK" });
     expect(banks.every((i) => i.accountTypes.length > 0)).toBe(true);
 
+    // Not every issuer is a prepaid one any more: the credit-only register (TCEEM)
+    // is seeded too, so the flagship depends on the licence each entity holds.
     const issuers = await repo.findAll({ country: "CL", kind: "NON_BANK_ISSUER" });
-    expect(issuers.every((i) => i.accountTypes[0] === "PREPAID")).toBe(true);
+    expect(
+      issuers.every((i) => i.accountTypes[0] === "PREPAID" || i.accountTypes[0] === "CREDIT_LINE"),
+    ).toBe(true);
   });
 
   it("labels institutions commercially and keeps the registered entity searchable", async () => {
@@ -61,6 +65,21 @@ describe("PrismaInstitutionRepository (integration)", () => {
     const tenpo = issuers.find((i) => i.code === "730");
     expect(tenpo?.name).toBe("Tenpo");
     expect(tenpo?.legalName).toBe("Tenpo Payments S.A.");
+    // Every issuer declares what it sells; the licence it holds decides what that
+    // is — prepaid, credit, or both for an entity registered in both registers.
+    expect(issuers.every((i) => i.accountTypes.length > 0)).toBe(true);
+    expect(issuers.find((i) => i.legalName === "Matic Kard S.A.")?.accountTypes).toEqual([
+      "CREDIT_LINE",
+    ]);
+    expect(issuers.find((i) => i.code === "699")?.accountTypes).toEqual(["PREPAID", "CREDIT_LINE"]);
+  });
+
+  it("lists cooperatives as their own kind, savings first", async () => {
+    const coops = await repo.findAll({ country: "CL", kind: "COOPERATIVE" });
+    expect(coops.length).toBeGreaterThan(0);
+    const coopeuch = coops.find((i) => i.code === "672");
+    expect(coopeuch?.name).toBe("Coopeuch");
+    expect(coopeuch?.accountTypes[0]).toBe("SAVINGS");
   });
 
   it("hides corporate-only entities when the picker asks for retail ones", async () => {

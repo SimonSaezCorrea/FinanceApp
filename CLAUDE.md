@@ -305,6 +305,19 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     account — there's a **"Tenpo Prepago"** `PREPAID` account with two prepaid cards sharing its
     balance, movements with and without a card, and a top-up recorded as a real transfer.
     `docs/PENDING.md` lost its point 6 (the un-revertable card top-up), which this design removes.
+  - **Cooperativas y emisores solo-crédito (2026-08-15):** el catálogo cubría únicamente el registro
+    de prepago (TPEEM). Ahora también **TCEEM** (emisores no bancarios con licencia solo de tarjeta de
+    crédito: Hites, sbpay/Matic Kard, Cruz Verde/Solventa, Unipay/Unicard, FISO, Inversiones y
+    Tarjetas) y las **cooperativas de ahorro y crédito** (registro BCCOO), con `InstitutionKind`
+    nuevo **`COOPERATIVE`** — ni banco ni emisora: capta ahorro de sus socios y presta. Productos por
+    defecto: cooperativa → SAVINGS*/SIGHT/CREDIT_LINE; emisor solo-crédito → CREDIT_LINE. **Tres
+    entidades tienen ambas licencias** (Tenpo 730, Inversiones LP 697, Tricard 699) y siguen siendo
+    UNA fila con dos productos — el `kind` dice qué ES la entidad, `institution-account-type` qué
+    vende. **`code` cuando no hay código institucional:** estas entidades no reciben transferencias,
+    así que no tienen código de transferencia (solo Coopeuch, 672); para el resto la llave natural es
+    su RUT con prefijo **`RUT-`**, que lo dice en voz alta en vez de inventar un código de regulador.
+    Corrección de dato: **697 Inversiones LP S.A. es La Polar**, no "Lider Bci" (verificado contra los
+    T&C de Tarjeta La Polar). Total CL: 46 instituciones, todas con productos catalogados.
   - **`InstallmentPlan.cardId` (2026-08-15):** un plan de cuotas registra con qué tarjeta se compró
     (FK nullable → `CardAccount`, **`onDelete: SetNull`** — borrar la tarjeta no puede borrar la deuda
     que creó). Opcional a propósito: un plan también puede ser un crédito bancario sin tarjeta detrás.

@@ -1,4 +1,23 @@
 <!--
+Sync Impact Report — 2026-08-15 (amendment 1.39.0)
+- Version change: 1.38.1 → 1.39.0 (MINOR: new `InstitutionKind` value + two whole sectors of
+  reference data; no principle removed or redefined).
+- `InstitutionKind` gains **COOPERATIVE** (a cooperative takes members' deposits and lends without
+  being a bank). The catalogue, which covered only the prepaid register (TPEEM), now also seeds the
+  credit-only issuers (TCEEM) and the cooperatives (BCCOO), all read off the CMF's own vigente lists.
+- Reinforces "A catalogue is data": three entities hold BOTH licences (Tenpo, Inversiones LP,
+  Tricard) and stay ONE row with two products — `kind` says what the entity is, the product table
+  says what it sells.
+- **Codes:** entities that receive no transfers have no institutional code (only Coopeuch, 672).
+  Their key is their RUT prefixed `RUT-`, which states the fact instead of inventing a regulator
+  code. Any future catalogue MUST do the same rather than guess.
+- Data correction: 697 Inversiones LP S.A. is **La Polar**, not "Lider Bci" as an earlier external
+  report claimed — verified against Tarjeta La Polar's own terms.
+- Templates requiring updates: none.
+- Follow-up TODOs: `OVERDRAFT_LINE` + renaming `CREDIT_LINE`; multi-country (PSP, CBU/CVU alias).
+-->
+
+<!--
 Sync Impact Report — 2026-08-15 (amendment 1.38.1)
 - Version change: 1.38.0 → 1.38.1 (PATCH: one nullable link + its UI; no principle added or changed).
 - `InstallmentPlan.cardId` (nullable FK → `CardAccount`, `onDelete: SetNull` — deleting a card must
@@ -1207,4 +1226,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.38.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15
+**Version**: 1.39.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15

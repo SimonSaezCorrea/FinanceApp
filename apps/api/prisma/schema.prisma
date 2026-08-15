@@ -691,7 +691,12 @@ model CountryIdentifierType {
 
 enum InstitutionKind {
   BANK // Banco establecido / estatal / sucursal extranjera
-  NON_BANK_ISSUER // Emisor de tarjetas de pago con provisión de fondos no bancario
+  /// Emisor no bancario de tarjetas (prepago y/o crédito). Una misma entidad puede
+  /// tener ambas licencias — qué vende lo dice `institution-account-type`, no esto.
+  NON_BANK_ISSUER
+  /// Cooperativa de ahorro y crédito fiscalizada por la CMF. Ni banco ni emisora:
+  /// capta ahorro de sus socios y presta, con su propia normativa.
+  COOPERATIVE
 }
 
 /// Financial-institution registry: banks + non-bank card issuers. Scoped to a country.

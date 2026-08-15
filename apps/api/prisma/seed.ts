@@ -2382,23 +2382,43 @@ async function seedInstitutionAccountTypes(countryId: string) {
     FOREIGN_BRANCH: ["CHECKING"],
     STATE: ["SIGHT", "CHECKING", "SAVINGS", "CREDIT_LINE"], // BancoEstado: CuentaRUT first.
   };
-  // Non-bank issuers provision funds up front — prepaid is the product.
+  // A cooperative takes its members' savings and lends: ahorro first, plus a sight
+  // account (Coopeuch's Dale) and its own credit card.
+  const COOPERATIVE_PRODUCTS: Product[] = ["SAVINGS", "SIGHT", "CREDIT_LINE"];
+  // Non-bank issuers with the prepaid licence provision funds up front.
   const ISSUER_PRODUCTS: Product[] = ["PREPAID"];
-  // Retail / caja de compensación issuers that also run their own store credit card.
+  // Retail / caja de compensación issuers that hold BOTH licences (prepaid + credit).
   const ISSUER_WITH_CREDIT = new Set(["697", "699", "729"]);
+  // Issuers holding ONLY the credit-card licence (TCEEM): a store card, no prepaid.
+  const CREDIT_ONLY_PRODUCTS: Product[] = ["CREDIT_LINE"];
+  const CREDIT_ONLY_CODES = new Set([
+    "RUT-96522900", // Hites
+    "RUT-96712290", // FISO
+    "RUT-85325100", // Inversiones y Tarjetas
+    "RUT-96623540", // sbpay
+    "RUT-96776000", // Cruz Verde
+    "RUT-76086272", // Unipay
+  ]);
 
   const institutions = await prisma.financialInstitution.findMany({
     where: { countryId },
     select: { id: true, code: true, kind: true, category: true },
   });
 
+  function resolveProducts(inst: (typeof institutions)[number]): Product[] {
+    if (inst.kind === "BANK") {
+      return BY_BANK_CATEGORY[inst.category ?? "ESTABLISHED"] ?? BY_BANK_CATEGORY.ESTABLISHED;
+    }
+    if (inst.kind === "COOPERATIVE") return COOPERATIVE_PRODUCTS;
+    // A credit-only issuer is keyed by RUT precisely because it has no transfer
+    // code — the same fact that tells us it holds no prepaid licence.
+    if (CREDIT_ONLY_CODES.has(inst.code)) return CREDIT_ONLY_PRODUCTS;
+    if (ISSUER_WITH_CREDIT.has(inst.code)) return [...ISSUER_PRODUCTS, "CREDIT_LINE"];
+    return ISSUER_PRODUCTS;
+  }
+
   for (const inst of institutions) {
-    const products =
-      inst.kind === "BANK"
-        ? (BY_BANK_CATEGORY[inst.category ?? "ESTABLISHED"] ?? BY_BANK_CATEGORY.ESTABLISHED)
-        : ISSUER_WITH_CREDIT.has(inst.code)
-          ? [...ISSUER_PRODUCTS, "CREDIT_LINE" as Product]
-          : ISSUER_PRODUCTS;
+    const products = resolveProducts(inst);
 
     for (const [index, type] of products.entries()) {
       await prisma.institutionAccountType.upsert({
@@ -2584,7 +2604,7 @@ async function seedReferenceData() {
     { code: "746", name: "Fintual", legalName: "Fintual Prepago S.A." },
     { code: "738", name: "Global66", legalName: "Global Card S.A." },
     { code: "739", name: "Haulmer", legalName: "Haulmer Prepago S.A." },
-    { code: "697", name: "Lider Bci", legalName: "Inversiones LP S.A." },
+    { code: "697", name: "La Polar", legalName: "Inversiones LP S.A." },
     { code: "732", name: "Tapp", legalName: "Los Andes Tarjetas de Prepago S.A." },
     { code: "875", name: "Mercado Pago", legalName: "Mercado Pago Emisora S.A." },
     { code: "747", name: "MetroPay", legalName: "Metro Emisora de Medios de Pago S.A." },
@@ -2603,6 +2623,100 @@ async function seedReferenceData() {
       legalName: e.legalName,
       category: null,
       retailFacing: e.retailFacing ?? true,
+    };
+    await prisma.financialInstitution.upsert({
+      where: { countryId_code: { countryId: chile.id, code: e.code } },
+      update: fields,
+      create: { countryId: chile.id, code: e.code, ...fields },
+    });
+  }
+
+  /**
+   * Cooperativas de ahorro y crédito (CMF register BCCOO) and the non-bank issuers
+   * that hold ONLY the credit-card licence (register TCEEM) — two whole sectors the
+   * catalogue was missing while it covered just the prepaid register (TPEEM).
+   *
+   * `code`: these entities receive no transfers, so most have no institutional
+   * (transfer) code the way a bank does — only Coopeuch does. For the rest the
+   * natural key is their RUT, prefixed to say so out loud rather than inventing a
+   * regulator code that doesn't exist.
+   */
+  const CHILE_COOPERATIVES: { code: string; name: string; legalName: string }[] = [
+    { code: "672", name: "Coopeuch", legalName: "Cooperativa de Ahorro y Crédito Coopeuch" },
+    {
+      code: "RUT-70017860",
+      name: "El Detallista",
+      legalName: "Cooperativa de Ahorro y Crédito El Detallista Ltda.",
+    },
+    {
+      code: "RUT-70286300",
+      name: "Coocretal",
+      legalName: "Cooperativa de Ahorro y Crédito Nacional para la Familia Limitada",
+    },
+    {
+      code: "RUT-70010920",
+      name: "Oriencoop",
+      legalName: "Cooperativa de Ahorro y Crédito Oriente Ltda.",
+    },
+    {
+      code: "RUT-70015260",
+      name: "Coopertal",
+      legalName: "Cooperativa de Ahorro y Crédito Talagante Ltda.",
+    },
+    {
+      code: "RUT-84156800",
+      name: "Unión Aérea",
+      legalName: "Cooperativa de Ahorro y Crédito Unión Aérea Ltda.",
+    },
+    {
+      code: "RUT-81836800",
+      name: "Ahorrocoop",
+      legalName:
+        "Cooperativa de Ahorro, Crédito y Servicios Financieros Ahorrocoop Diego Portales Ltda.",
+    },
+  ];
+  for (const c of CHILE_COOPERATIVES) {
+    const fields = {
+      kind: "COOPERATIVE" as const,
+      name: c.name,
+      legalName: c.legalName,
+      category: null,
+      retailFacing: true,
+    };
+    await prisma.financialInstitution.upsert({
+      where: { countryId_code: { countryId: chile.id, code: c.code } },
+      update: fields,
+      create: { countryId: chile.id, code: c.code, ...fields },
+    });
+  }
+
+  /** Credit-only non-bank issuers (TCEEM). The three that ALSO hold the prepaid
+   * licence (Tenpo 730, Inversiones LP 697, Tricard 699) are already seeded above
+   * from TPEEM — one entity, two licences, one row. Brands come from each retailer's
+   * own card, not from the register. */
+  const CHILE_CREDIT_ISSUERS: { code: string; name: string; legalName: string }[] = [
+    {
+      code: "RUT-96522900",
+      name: "Hites",
+      legalName: "Créditos, Organización y Finanzas S.A.",
+    },
+    { code: "RUT-96712290", name: "FISO", legalName: "FISO S.A." },
+    {
+      code: "RUT-85325100",
+      name: "Inversiones y Tarjetas",
+      legalName: "Inversiones y Tarjetas S.A.",
+    },
+    { code: "RUT-96623540", name: "sbpay", legalName: "Matic Kard S.A." },
+    { code: "RUT-96776000", name: "Cruz Verde", legalName: "Solventa Tarjetas S.A." },
+    { code: "RUT-76086272", name: "Unipay", legalName: "Unicard S.A." },
+  ];
+  for (const e of CHILE_CREDIT_ISSUERS) {
+    const fields = {
+      kind: "NON_BANK_ISSUER" as const,
+      name: e.name,
+      legalName: e.legalName,
+      category: null,
+      retailFacing: true,
     };
     await prisma.financialInstitution.upsert({
       where: { countryId_code: { countryId: chile.id, code: e.code } },
@@ -2846,7 +2960,7 @@ async function seedReferenceData() {
   }
 
   console.log(
-    `Reference data OK: ${COUNTRIES.length} countries, ${CHILE_BANKS.length} banks + ${CHILE_ISSUERS.length} non-bank issuers (CL), ${CURRENCIES.length} currencies, ${LINKS.length} country-currency links, ${IDENTIFIER_LINKS.length} country-identifier-type links`,
+    `Reference data OK: ${COUNTRIES.length} countries, CL institutions = ${CHILE_BANKS.length} banks + ${CHILE_ISSUERS.length} prepaid issuers + ${CHILE_CREDIT_ISSUERS.length} credit-only issuers + ${CHILE_COOPERATIVES.length} cooperatives, ${CURRENCIES.length} currencies, ${LINKS.length} country-currency links, ${IDENTIFIER_LINKS.length} country-identifier-type links`,
   );
 }
 

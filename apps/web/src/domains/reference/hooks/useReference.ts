@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
-import type { accounts } from "@finance/contracts";
+import type { accounts, reference } from "@finance/contracts";
 
 import { referenceApi } from "../api/referenceApi";
 
@@ -21,7 +21,7 @@ export function useCountries() {
  * a foreign branch or a BaaS provider is noise in every picker. */
 export function useInstitutions(
   country?: string,
-  kind?: "BANK" | "NON_BANK_ISSUER",
+  kind?: reference.InstitutionKind,
   accountType?: accounts.AccountType,
 ) {
   return useQuery({
