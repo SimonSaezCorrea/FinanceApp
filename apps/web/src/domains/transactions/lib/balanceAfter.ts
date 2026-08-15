@@ -1,8 +1,12 @@
 import type { accounts, transactions } from "@finance/contracts";
 import { moneyToString, subtractMoney } from "@finance/money";
 
-/** Signed effect of a movement on its account's cash balance. */
-function delta(tx: transactions.Transaction): string {
+/** Signed effect of a movement on its account's cash balance. A purchase made
+ * with a CREDIT card moves none: it raises the credit used, and the cash only
+ * leaves when the statement is paid (which is its own movement). Mirrors the
+ * API's `cashDelta`. */
+function delta(tx: transactions.Transaction, creditCardIds: Set<string>): string {
+  if (tx.cardId && creditCardIds.has(tx.cardId)) return "0";
   return tx.type === "INCOME" ? tx.amount : `-${tx.amount}`;
 }
 
@@ -11,7 +15,7 @@ export interface BalanceAfterInput {
   items: transactions.Transaction[];
   /** Index of the movement being looked at. */
   index: number;
-  account: Pick<accounts.BankAccount, "type" | "currentBalance"> | undefined;
+  account: Pick<accounts.BankAccount, "type" | "currentBalance" | "cards"> | undefined;
   /** Whether a `from`/`to` filter is active. */
   dateFiltered: boolean;
 }
@@ -44,7 +48,14 @@ export function balanceAfterTransaction({
   // account behind other accounts' rows; we can't reconstruct the running total.
   if (newer.some((tx) => tx.bankAccountId !== target.bankAccountId)) return null;
 
+  const cards = account.cards ?? [];
+  const creditCardIds = new Set(cards.filter((c) => c.kind === "CREDIT").map((c) => c.id));
+  // Without the account's cards there is no way to tell a credit purchase (which
+  // moved no cash) from a debit one, and a wrong running balance is worse than
+  // none — same standard as the rules above.
+  if (cards.length === 0 && newer.some((tx) => tx.cardId)) return null;
+
   let balance = moneyToString(account.currentBalance);
-  for (const tx of newer) balance = subtractMoney(balance, delta(tx));
+  for (const tx of newer) balance = subtractMoney(balance, delta(tx, creditCardIds));
   return balance;
 }

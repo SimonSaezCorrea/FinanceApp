@@ -126,12 +126,9 @@ describe("UpdateTransactionHandler", () => {
       "tX",
       expect.objectContaining({ amount: "250000" }),
       [{ accountId: "aC", delta: "150000.0000" }],
-      // Old expense undone, new one applied — same account, so it nets to the
-      // extra 150000 leaving the balance.
-      [
-        { accountId: "aC", delta: "100000.0000" },
-        { accountId: "aC", delta: "-250000.0000" },
-      ],
+      // Only the pool moves: both sides of the edit are charged to the credit
+      // line, so neither takes cash out of the account.
+      [],
     );
   });
 

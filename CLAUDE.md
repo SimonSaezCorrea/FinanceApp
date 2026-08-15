@@ -305,6 +305,22 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     account — there's a **"Tenpo Prepago"** `PREPAID` account with two prepaid cards sharing its
     balance, movements with and without a card, and a top-up recorded as a real transfer.
     `docs/PENDING.md` lost its point 6 (the un-revertable card top-up), which this design removes.
+  - **Cash vs. credit (2026-08-15, fix sin spec):** un movimiento cargado a una línea de crédito
+    (cualquiera sobre una cuenta `CREDIT_LINE`, o hecho con una tarjeta `CREDIT` sobre cualquier
+    cuenta) **no mueve `currentBalance`** — sube `creditUsed`, y la plata sale una sola vez, después,
+    al pagar la facturación. La regla vive en `transaction/domain/balance-delta.ts`
+    (**`cashDelta`/`reverseCashDelta`/`isChargedToCredit`**), la usan create/update/remove de
+    movimientos, y su espejo en el frontend es `drawsOnCredit` (`projectedBalance.ts`) + `balanceAfter.ts`
+    (que ahora salta los movimientos con tarjeta CREDIT y devuelve `null` si hay tarjeta pero la cuenta
+    no trae `cards`). Esto corrigió tres defectos con una causa común: (1) la compra con tarjeta de
+    crédito descontaba el saldo de la cuenta; (2) `POST /accounts/:id/credit-statements/:id/pay` creaba
+    su EXPENSE **sin** descontar el saldo de la cuenta origen (rompía `currentBalance = initialBalance +
+    Σingresos − Σgastos`); (3) corregir el pago sí movía el saldo, sobre una base nunca debitada. Ahora
+    pagar descuenta (`incrementBalanceWithTx` dentro del mismo `$transaction`) y `sync` también ajusta
+    el saldo del origen cuando corrige el movimiento de pago. **Los saldos guardados con el
+    comportamiento viejo no se migran** (data de dev; `pnpm db:seed` la regenera). Abierto y breaking:
+    si `CHECKING`/`SIGHT` deberían seguir admitiendo una tarjeta `CREDIT` (una tarjeta de crédito es su
+    propia cuenta, no un canal sobre el saldo de la corriente) — hoy la matriz lo permite.
   - **transaction** (specs/005, 007; folder `domains/transaction`): income/expense linked to a `BankAccount` and (optionally) a `Card`. Rules in `transaction/domain/movement-policy.ts` + its command handlers (contract requires `bankAccountId` on create + refine `INCOME ⇒ no card`): INCOME → no card; EXPENSE on CASH → no card; EXPENSE on **CREDIT_LINE → card required** (must belong); EXPENSE on other non-cash accounts → card optional. **Whenever the card used is CREDIT-kind** (on a CREDIT_LINE account, or any other account that's grown one), the amount is checked against **both** the account's shared pool (persisted `creditUsed` + amount ≤ `creditLimit`, error `CARD_LIMIT_EXCEEDED`) **and**, if the card has its own `CardLimit` for that currency, that narrower (still derived) sub-limit too (`sumsForCard`, error `CARD_SUBLIMIT_EXCEEDED`). Creating/editing/deleting a transaction that draws on the shared pool mutates `BankAccount.creditUsed` directly (`BankAccountRepositoryPort.incrementCreditUsedWithTx`, called inside the movement's own `$transaction`) — edits/deletes revert the transaction's old contribution before applying the new one, including when the transaction moves to a different account (see accounts' billing-period amendment above for the linked-transaction/paid-statement exception). Full CRUD from both the Movements view and the Account view (shared `TransactionTable` with edit/delete, plus a `TransactionDetailModal` read-only view opened by clicking a row). Filter query supports `bankAccountId` + `cardId` (bank→card). Error codes: `CARD_REQUIRED`, `CARD_NOT_ALLOWED`, `CARD_ACCOUNT_MISMATCH`, `CARD_LIMIT_EXCEEDED`, `CARD_SUBLIMIT_EXCEEDED`.
     Amendment (paginated list + aggregates endpoint, 2026-08-05): `GET /transactions` is
     **keyset-paginated** and its response shape is now **`{ items, nextCursor }`** (was a bare

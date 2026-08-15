@@ -5,7 +5,7 @@ import type { transactions } from "@finance/contracts";
 
 import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
-import { balanceDelta } from "../../domain/balance-delta";
+import { cashDelta } from "../../domain/balance-delta";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
@@ -119,6 +119,7 @@ export class CreateTransactionHandler extends BaseCommandHandler<
     context: Context,
   ): Promise<HandleResult<transactions.Transaction>> {
     const { input } = command;
+    const cashBalance = cashDelta(input.type, input.amount, context.account, context.card);
     const plan = Transaction.planCreation({
       userId: command.userId,
       type: input.type,
@@ -141,10 +142,12 @@ export class CreateTransactionHandler extends BaseCommandHandler<
       context.contribution !== "0"
         ? { accountId: input.bankAccountId, delta: context.contribution }
         : null,
-      // The account's cash balance follows every movement, so it never needs a
-      // manual reconciliation: income adds, expense subtracts. A prepaid card is
-      // no exception — the money lives in ITS account, same as a debit card's.
-      [{ accountId: input.bankAccountId, delta: balanceDelta(input.type, input.amount) }],
+      // The account's cash balance follows every movement that actually moves
+      // cash, so it never needs a manual reconciliation: income adds, expense
+      // subtracts. A prepaid card is no exception — the money lives in ITS
+      // account, same as a debit card's. A CREDIT-kind card is: nothing leaves
+      // the account until its statement is paid (see `cashDelta`).
+      cashBalance !== "0" ? [{ accountId: input.bankAccountId, delta: cashBalance }] : [],
     );
     return { result: row.toContract(), events: [] };
   }

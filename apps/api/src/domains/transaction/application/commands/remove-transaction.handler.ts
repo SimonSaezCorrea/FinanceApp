@@ -4,7 +4,7 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import { subtractMoney } from "@finance/money";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
-import { reverseBalanceDelta } from "../../domain/balance-delta";
+import { reverseBalanceDelta, reverseCashDelta } from "../../domain/balance-delta";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
@@ -35,6 +35,9 @@ import { RemoveTransactionCommand } from "./remove-transaction.command";
 interface Context {
   current: Transaction;
   creditUsedDelta: { accountId: string; delta: string } | null;
+  /** What deleting this movement gives back to the account's cash balance
+   * ("0" for one charged to a credit line, which never took cash out). */
+  cashReversal: string;
 }
 
 /**
@@ -66,13 +69,23 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
 
     // A transfer leg is deleted as a PAIR (FR-015): the user deletes from the row
     // they're looking at and has no reason to know there are two.
-    if (current.isTransferLeg) return { current, creditUsedDelta: null };
+    if (current.isTransferLeg) {
+      return {
+        current,
+        creditUsedDelta: null,
+        // A transfer never involves a card and is settled below as a pair.
+        cashReversal: reverseBalanceDelta(current.type, current.amount),
+      };
+    }
 
     const linkedToPaid = current.creditStatementId
       ? await this.statements.isPaid(current.creditStatementId)
       : false;
 
     let creditUsedDelta: { accountId: string; delta: string } | null = null;
+    // A movement linked to a statement was charged to a credit line, whatever
+    // its state: it never took cash out, so deleting it gives none back.
+    let cashReversal = current.creditStatementId ? "0" : null;
     if (!linkedToPaid && current.bankAccountId) {
       const loaded = await loadAccountContext(this.accounts, command.userId, current.bankAccountId);
       const account = loaded?.context ?? null;
@@ -101,9 +114,14 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
           delta: subtractMoney("0", contribution),
         };
       }
+      cashReversal ??= reverseCashDelta(current.type, current.amount, account, card);
     }
 
-    return { current, creditUsedDelta };
+    return {
+      current,
+      creditUsedDelta,
+      cashReversal: cashReversal ?? reverseBalanceDelta(current.type, current.amount),
+    };
   }
 
   protected async handle(
@@ -136,16 +154,10 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
       command.userId,
       command.id,
       context.creditUsedDelta,
-      // Undo what this movement did to the balance. Unlike the credit pool, this
-      // applies even to a movement of an already-paid period: the cash left the
-      // account regardless of how its statement was settled.
-      context.current.bankAccountId
-        ? [
-            {
-              accountId: context.current.bankAccountId,
-              delta: reverseBalanceDelta(context.current.type, context.current.amount),
-            },
-          ]
+      // Undo what this movement did to the balance — nothing, when it was
+      // charged to a credit line (the cash never left; see `cashDelta`).
+      context.current.bankAccountId && context.cashReversal !== "0"
+        ? [{ accountId: context.current.bankAccountId, delta: context.cashReversal }]
         : [],
     );
     if (!ok) throw new TransactionNotFoundError();

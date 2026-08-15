@@ -1,12 +1,12 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
-import type { transactions } from "@finance/contracts";
+import type { accounts, transactions } from "@finance/contracts";
 import { subtractMoney } from "@finance/money";
 
 import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
-import { balanceDelta, reverseBalanceDelta } from "../../domain/balance-delta";
+import { cashDelta, reverseCashDelta } from "../../domain/balance-delta";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
@@ -28,7 +28,11 @@ import {
   TransactionNotFoundError,
   TransferEditAsPairError,
 } from "../../domain/errors";
-import { MovementPolicy, type EffectiveMovement } from "../../domain/movement-policy";
+import {
+  MovementPolicy,
+  type AccountContext,
+  type EffectiveMovement,
+} from "../../domain/movement-policy";
 import type { Transaction, TransactionPatch } from "../../domain/transaction.aggregate";
 import {
   TRANSACTION_REPOSITORY,
@@ -116,6 +120,10 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       : false;
 
     let newContribution = "0";
+    // Hoisted out of the block below: the cash delta needs to know what the
+    // movement is charged to on BOTH sides of the edit, not just its pool.
+    let newAccount: AccountContext | null = null;
+    let newCard: { kind: accounts.CardKind } | null = null;
     const sameAccount = effective.bankAccountId === oldAccountId;
     if (effective.bankAccountId) {
       let account = sameAccount ? oldAccount : null;
@@ -127,9 +135,11 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
         if (newLoaded) accountCreatedAt = newLoaded.createdAt;
       }
       if (!account) throw new AccountNotFoundError();
+      newAccount = account;
       const card = effective.cardId
         ? await this.cards.findOnAccount(userId, effective.bankAccountId, effective.cardId)
         : null;
+      newCard = card;
       const cardLimit =
         card?.kind === "CREDIT"
           ? await this.cardLimits.findForCardCurrency(userId, effective.cardId!, effective.currency)
@@ -212,21 +222,23 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       }
     }
 
-    // The balance always moves, whatever the credit pool does: undo the old
-    // movement on the old account, apply the new one on the (possibly different)
-    // new account. Same account and same figures cancels out to nothing.
+    // Cash moves independently of the credit pool: undo the old movement on the
+    // old account, apply the new one on the (possibly different) new account.
+    // Same account and same figures cancels out to nothing. A movement charged
+    // to a credit line contributes "0" on its side, so switching a purchase from
+    // a debit card to a credit one refunds the balance and vice versa.
     const balanceDeltas: { accountId: string; delta: string }[] = [];
-    if (oldAccountId) {
-      balanceDeltas.push({
-        accountId: oldAccountId,
-        delta: reverseBalanceDelta(current.type, current.amount),
-      });
+    const oldCash = oldAccountId
+      ? reverseCashDelta(current.type, current.amount, oldAccount, oldCard)
+      : "0";
+    if (oldAccountId && oldCash !== "0") {
+      balanceDeltas.push({ accountId: oldAccountId, delta: oldCash });
     }
-    if (effective.bankAccountId) {
-      balanceDeltas.push({
-        accountId: effective.bankAccountId,
-        delta: balanceDelta(effective.type, effective.amount),
-      });
+    const newCash = effective.bankAccountId
+      ? cashDelta(effective.type, effective.amount, newAccount, newCard)
+      : "0";
+    if (effective.bankAccountId && newCash !== "0") {
+      balanceDeltas.push({ accountId: effective.bankAccountId, delta: newCash });
     }
 
     return { current, patch, creditUsedDeltas, balanceDeltas };

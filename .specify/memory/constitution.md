@@ -1,4 +1,24 @@
 <!--
+Sync Impact Report — 2026-08-15 (amendment 1.36.0)
+- Version change: 1.35.0 → 1.36.0 (MINOR: new enforceable rule correcting how a credit purchase
+  moves cash; no principle removed or redefined).
+- Banking-domain norms gain **"Cash moves once, when it actually moves"**: a movement charged to a
+  credit line MUST NOT move `currentBalance`; the cash leaves when the statement is paid, and that
+  payment movement is what moves the paying account's balance. One rule per side
+  (`cashDelta` in the API, `drawsOnCredit`/`balanceAfter` on the web), obeyed by every write path.
+- Fixes three defects that shared one cause (nobody owned "when does cash move"): a purchase with a
+  CREDIT card debited the account at purchase time; paying a statement created its EXPENSE movement
+  WITHOUT debiting the source account (breaking `currentBalance = initialBalance + Σincome − Σexpense`);
+  and correcting a payment moved the balance from a base that had never been debited. Statement `sync`
+  now also moves the source balance when it corrects the payment movement.
+- Existing balances computed under the old behavior are NOT migrated (dev data; `pnpm db:seed`
+  regenerates it). A production dataset would need a one-off recompute from the movements.
+- Templates requiring updates: none.
+- Follow-up TODOs: whether `CHECKING`/`SIGHT` should still allow a CREDIT card at all (a credit card
+  is its own account, not a channel onto a checking balance) is open and breaking — see CLAUDE.md.
+-->
+
+<!--
 Sync Impact Report — 2026-08-14 (amendment 1.35.0)
 - Version change: 1.34.0 → 1.35.0 (MINOR: new enforceable rule, no spec of its own — implemented
   directly on branch 011; no principle removed or redefined).
@@ -1018,6 +1038,15 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
   - **A financial product is not a setting:** an account's `type` MUST NOT be convertible to or from
     `PREPAID` (`ACCOUNT_TYPE_CHANGE_NOT_ALLOWED`). Correcting a mistyped account means deleting and
     recreating it, not migrating cards, a credit pool and billing periods across products.
+  - **Cash moves once, when it actually moves:** a movement's COST and its effect on the account's
+    cash balance are different questions. A purchase charged to a credit line (any movement on a
+    `CREDIT_LINE` account, or one made with a CREDIT-kind card on any account) MUST NOT move
+    `currentBalance` — it raises `creditUsed`, and the cash leaves once, later, when the statement is
+    paid. That payment is a real EXPENSE movement, so IT is what moves the paying account's balance
+    (which need not be the account carrying the card). The rule lives in one place per side
+    (`transaction/domain/balance-delta.ts`'s `cashDelta` in the API, `drawsOnCredit`/`balanceAfter` on
+    the web) and every write path — create, edit, delete, statement payment, payment correction,
+    statement sync — MUST agree with it; a balance the user cannot reconcile by hand is a defect.
   - **A catalogue is data, never an inference from classification:** which account products an
     institution offers lives in its own seeded table (`institution-account-type`, flagship first via
     `isPrimary`) and MUST NOT be derived at runtime from `kind` or `category`, which classify what
@@ -1110,4 +1139,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.35.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-14
+**Version**: 1.36.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15

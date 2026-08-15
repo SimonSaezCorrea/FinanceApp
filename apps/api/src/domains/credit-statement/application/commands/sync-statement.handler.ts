@@ -162,6 +162,17 @@ export class SyncStatementHandler extends BaseCommandHandler<
       // Only a settled period has a payment movement to keep in step.
       if (paymentId && context.statement.paidAt) {
         await this.transactions.updateAmountWithTx(tx, paymentId, context.statement.paidAmount);
+        // That movement is an EXPENSE on the source account, so its balance
+        // follows the correction — the same rule the manual payment correction
+        // applies (`UpdateStatementPaymentHandler`).
+        const fromAccountId = context.statement.paidFromAccountId;
+        if (fromAccountId && !toMoney(context.paidDelta).isZero()) {
+          await this.accountRepo.incrementBalanceWithTx(
+            tx,
+            fromAccountId,
+            toMoney(context.paidDelta).negated().toString(),
+          );
+        }
       }
       // A period settled with a shortfall keeps its payment as it happened; what
       // moves is the debt that was carried forward, which is still owed.

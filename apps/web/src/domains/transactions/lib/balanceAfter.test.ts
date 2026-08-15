@@ -31,7 +31,26 @@ const tx = (
 // Ordered newest first, exactly as the list renders them.
 const items = [tx("t1", "EXPENSE", "1000"), tx("t2", "INCOME", "500"), tx("t3", "EXPENSE", "200")];
 
-const account = { type: "CHECKING" as const, currentBalance: "10000" };
+const debitCard = {
+  id: "cD",
+  name: "Débito",
+  kind: "DEBIT" as const,
+  last4: "1111",
+  expiryMonth: 12,
+  expiryYear: 2030,
+  isActive: true,
+  isPrimary: false,
+  usesAccountPool: true,
+  ownUsed: "0",
+  limits: [],
+};
+const creditCard = { ...debitCard, id: "cC", name: "Crédito", kind: "CREDIT" as const };
+
+const account = {
+  type: "CHECKING" as const,
+  currentBalance: "10000",
+  cards: [debitCard, creditCard],
+};
 
 describe("balanceAfterTransaction", () => {
   it("returns the account's current balance for the newest movement", () => {
@@ -60,7 +79,7 @@ describe("balanceAfterTransaction", () => {
       balanceAfterTransaction({
         items,
         index: 0,
-        account: { type: "CREDIT_LINE", currentBalance: "0" },
+        account: { type: "CREDIT_LINE", currentBalance: "0", cards: [] },
         dateFiltered: false,
       }),
     ).toBeNull();
@@ -83,6 +102,34 @@ describe("balanceAfterTransaction", () => {
     const mixed = [{ ...tx("x", "EXPENSE", "1000"), bankAccountId: "other" }, items[1]!];
     expect(
       balanceAfterTransaction({ items: mixed, index: 1, account, dateFiltered: false }),
+    ).toBeNull();
+  });
+
+  it("ignores a newer purchase made with a CREDIT card: it moved no cash", () => {
+    // The money leaves when the statement is paid, which is its own movement —
+    // undoing it here too would show a balance that never existed.
+    const withCredit = [{ ...tx("t0", "EXPENSE", "9000"), cardId: "cC" }, ...items];
+    expect(
+      balanceAfterTransaction({ items: withCredit, index: 1, account, dateFiltered: false }),
+    ).toBe("10000.0000");
+  });
+
+  it("still undoes a purchase made with a DEBIT card", () => {
+    const withDebit = [{ ...tx("t0", "EXPENSE", "9000"), cardId: "cD" }, ...items];
+    expect(
+      balanceAfterTransaction({ items: withDebit, index: 1, account, dateFiltered: false }),
+    ).toBe("19000.0000");
+  });
+
+  it("is null when a card was used but the account's cards aren't loaded", () => {
+    const withCard = [{ ...tx("t0", "EXPENSE", "9000"), cardId: "cC" }, ...items];
+    expect(
+      balanceAfterTransaction({
+        items: withCard,
+        index: 1,
+        account: { ...account, cards: [] },
+        dateFiltered: false,
+      }),
     ).toBeNull();
   });
 });

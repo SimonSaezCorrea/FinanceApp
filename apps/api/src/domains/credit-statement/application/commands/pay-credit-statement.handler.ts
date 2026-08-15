@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
-import { toMoney } from "@finance/money";
+import { subtractMoney, toMoney } from "@finance/money";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
@@ -163,6 +163,14 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
         // the movement itself, where they'll look for it later.
         observation: context.reference,
       });
+      // Paying is when the cash actually leaves: the purchases themselves moved
+      // no balance (they were charged to the credit line, see `cashDelta`), so
+      // this single EXPENSE is what the source account's balance must follow.
+      await this.accountRepo.incrementBalanceWithTx(
+        tx,
+        context.fromAccount.id,
+        subtractMoney("0", context.amount),
+      );
       // A payment smaller than the period never leaves it half-paid: the period
       // is settled and the shortfall becomes the next period's `carriedOverAmount`
       // (its own OPEN one, or a fresh period starting where this one closed).

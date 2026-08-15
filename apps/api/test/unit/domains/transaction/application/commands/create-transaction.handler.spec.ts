@@ -155,8 +155,9 @@ describe("CreateTransactionHandler", () => {
         accountId: "aC",
         delta: "100000",
       },
-      // The cash balance always follows the movement, pool or no pool.
-      [{ accountId: "aC", delta: "-100000.0000" }],
+      // The purchase raises the pool and moves NO cash: the money leaves once,
+      // when the statement is paid. Charging it here too counted it twice.
+      [],
     );
   });
 
