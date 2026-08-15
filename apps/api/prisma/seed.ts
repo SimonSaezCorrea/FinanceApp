@@ -100,6 +100,10 @@ async function seedFullUser(passwordHash: string) {
     description: string;
     /** Both legs of a transfer share this — two ordinary rows, no new type. */
     transferGroup?: string;
+    /** An issuer charge on the credit account itself: interest on the revolved
+     * balance, an annual fee, insurance. No card makes these, which is exactly
+     * why the movement carries no `card`. */
+    financeCharge?: boolean;
   };
   const TX: Tx[] = [
     // ==================== April 2026 (complete month) ====================
@@ -1146,6 +1150,38 @@ async function seedFullUser(passwordHash: string) {
       category: "Supermercado",
       description: "Feria libre",
     },
+    // ===== Cargos del emisor sobre las cuentas de crédito (sin tarjeta) =====
+    {
+      acct: "credit",
+      type: "EXPENSE",
+      amount: 18_400,
+      at: "2026-06-16T09:00:00Z",
+      category: "Intereses",
+      description: "Interés por saldo rotativo",
+      financeCharge: true,
+    },
+    {
+      acct: "credit",
+      type: "EXPENSE",
+      amount: 4_990,
+      at: "2026-07-16T09:00:00Z",
+      category: "Comisiones",
+      description: "Comisión de administración",
+      financeCharge: true,
+    },
+    {
+      // El interés comprometido del plan del refrigerador: 6 x 65.000 = 390.000
+      // sobre un precio de 360.000. Es lo que el handler crea solo cuando el plan
+      // se registra desde la app, aquí escrito a mano porque el seed inserta el
+      // plan directo en la base.
+      acct: "creditBch",
+      type: "EXPENSE",
+      amount: 30_000,
+      at: "2026-05-10T12:00:00Z",
+      category: "Intereses",
+      description: "Interés del plan · Refrigerador Mademsa",
+      financeCharge: true,
+    },
     // ===== Add-on credit card on the checking account (billing history) =====
     {
       acct: "creditBch",
@@ -1582,6 +1618,9 @@ async function seedFullUser(passwordHash: string) {
     institution: "BancoEstado",
     institutionId: bankId("012"),
     accountNumber: "22345678", // Cuenta RUT ≈ RUT sin dígito verificador
+    // Una cuenta vista tiene tope de saldo por contrato; un abono que lo pase es
+    // uno que el banco rechazaría, así que la app lo rechaza igual.
+    balanceCeiling: dec("3000000.0000"),
     initialBalance: dec("0"),
     currentBalance: dec("0"),
   });
@@ -1629,6 +1668,33 @@ async function seedFullUser(passwordHash: string) {
     initialBalance: dec("0"),
     currentBalance: dec("0"),
   });
+  // An Argentine account: the market where an account is identified by a 22-digit
+  // CBU (with its two check digits) and shared by its alias, which is what people
+  // actually exchange. Seeded so both fields exist in real data, not only in tests.
+  const argentina = await prisma.country.findUnique({ where: { alpha2: "AR" } });
+  if (argentina) {
+    const nacion = await prisma.financialInstitution.findFirst({
+      where: { countryId: argentina.id, code: "011" },
+      select: { id: true, name: true },
+    });
+    await prisma.bankAccount.create({
+      data: {
+        userId: javier.id,
+        name: "Caja de ahorro ARS",
+        // En Argentina la caja de ahorro es la cuenta cotidiana; la corriente es
+        // más bien producto de empresa.
+        type: "SAVINGS",
+        currency: "ARS",
+        institution: nacion?.name ?? "Banco Nación",
+        institutionId: nacion?.id ?? null,
+        accountNumber: "0110599520000123456788",
+        accountAlias: "mate.tango.sol",
+        initialBalance: dec("850000.0000"),
+        currentBalance: dec("850000.0000"),
+      },
+    });
+  }
+
   // Foreign-currency accounts (the USD/EUR chips on the dashboard).
   const tenpo = await prisma.bankAccount.create({
     data: {
@@ -1663,9 +1729,11 @@ async function seedFullUser(passwordHash: string) {
     name: "Tenpo Prepago",
     type: "PREPAID",
     currency: "CLP",
-    institution: "Tenpo Payments S.A.",
+    institution: "Tenpo",
     institutionId: issuerId("730"),
     accountNumber: "TP-4455667788",
+    // Las cuentas de provisión de fondos también están topadas por contrato.
+    balanceCeiling: dec("2000000.0000"),
   });
 
   const accId: Record<AcctKey, string> = {
@@ -1870,6 +1938,7 @@ async function seedFullUser(passwordHash: string) {
       userId: javier.id,
       bankAccountId: accId[t.acct],
       cardId: t.card ? cardIdMap[t.card] : undefined,
+      financeCharge: t.financeCharge ?? false,
       transferGroupId: t.transferGroup,
       type: t.type,
       amount: dec(String(t.amount)),
@@ -2079,6 +2148,9 @@ async function seedFullUser(passwordHash: string) {
       startDate: new Date("2026-05-10T00:00:00Z"),
       currency: "CLP",
       cardId: creditCardBch.id,
+      // 6 x 65.000 = 390.000: la compra en cuotas CON interés compromete más que el
+      // precio, y esa diferencia va al cupo como cargo financiero (ver TX).
+      notes: "6 cuotas con interés",
     },
   });
   for (let seq = 1; seq <= 6; seq++) {
@@ -2089,7 +2161,7 @@ async function seedFullUser(passwordHash: string) {
         installmentPlanId: fridge.id,
         sequence: seq,
         dueDate: due,
-        amount: dec("60000.0000"),
+        amount: dec("65000.0000"),
         paidAt: seq === 1 ? new Date(due.getTime() + 86_400_000) : null,
       },
     });
