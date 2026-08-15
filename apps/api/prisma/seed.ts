@@ -1528,7 +1528,7 @@ async function seedFullUser(passwordHash: string) {
       amount: 80_000,
       at: "2026-08-05T10:00:00Z",
       category: "Traspaso",
-      description: "Carga Tenpo Prepago",
+      description: "Carga Cuenta Prepago",
       transferGroup: "tg_prepaid_load",
     },
     {
@@ -1597,7 +1597,7 @@ async function seedFullUser(passwordHash: string) {
 
   const checking = await mkAccount("checking", {
     userId: javier.id,
-    name: "Banco de Chile",
+    name: "Cuenta Corriente",
     type: "CHECKING",
     currency: "CLP",
     institution: "Banco de Chile",
@@ -1612,7 +1612,7 @@ async function seedFullUser(passwordHash: string) {
   });
   const sight = await mkAccount("sight", {
     userId: javier.id,
-    name: "Cuenta Vista",
+    name: "CuentaRUT",
     type: "SIGHT",
     currency: "CLP",
     institution: "BancoEstado",
@@ -1625,9 +1625,12 @@ async function seedFullUser(passwordHash: string) {
     currentBalance: dec("0"),
   });
   // Standalone credit card = a CREDIT_CARD account (the pool lives here) + its plastic.
+  // Account names are PRODUCT names ("Cuenta Corriente", "Visa Crédito"): every view
+  // already prints the institution under the name, so repeating it there wastes the
+  // one line that could say which of the user's products this is.
   const credit = await mkAccount("credit", {
     userId: javier.id,
-    name: "CMR Falabella",
+    name: "Tarjeta CMR",
     type: "CREDIT_CARD",
     currency: "CLP",
     institution: "Falabella",
@@ -1642,7 +1645,7 @@ async function seedFullUser(passwordHash: string) {
   // that account's cash, so it is modelled as a credit-line account, not an add-on.
   const creditBch = await mkAccount("creditBch", {
     userId: javier.id,
-    name: "Banco de Chile · Visa Crédito",
+    name: "Visa Crédito",
     type: "CREDIT_CARD",
     currency: "CLP",
     institution: "Banco de Chile",
@@ -1652,7 +1655,7 @@ async function seedFullUser(passwordHash: string) {
   });
   const creditVista = await mkAccount("creditVista", {
     userId: javier.id,
-    name: "BancoEstado · Mastercard Crédito",
+    name: "Mastercard Crédito",
     type: "CREDIT_CARD",
     currency: "CLP",
     institution: "BancoEstado",
@@ -1680,7 +1683,7 @@ async function seedFullUser(passwordHash: string) {
     await prisma.bankAccount.create({
       data: {
         userId: javier.id,
-        name: "Caja de ahorro ARS",
+        name: "Caja de Ahorro",
         // En Argentina la caja de ahorro es la cuenta cotidiana; la corriente es
         // más bien producto de empresa.
         type: "SAVINGS",
@@ -1699,7 +1702,7 @@ async function seedFullUser(passwordHash: string) {
   const tenpo = await prisma.bankAccount.create({
     data: {
       userId: javier.id,
-      name: "Tenpo Ahorro",
+      name: "Cuenta de Ahorro",
       type: "SAVINGS",
       currency: "USD",
       institution: "Tenpo",
@@ -1726,7 +1729,7 @@ async function seedFullUser(passwordHash: string) {
   // never go negative; it is topped up by transferring from another account.
   const prepaid = await mkAccount("prepaid", {
     userId: javier.id,
-    name: "Tenpo Prepago",
+    name: "Cuenta Prepago",
     type: "PREPAID",
     currency: "CLP",
     institution: "Tenpo",
@@ -1801,7 +1804,7 @@ async function seedFullUser(passwordHash: string) {
       userId: javier.id,
       name: "Prepago · Rosa",
       kind: "PREPAID",
-      last4: "8890",
+      last4: "1902",
       expiryMonth: 3,
       expiryYear: 2027,
     },
