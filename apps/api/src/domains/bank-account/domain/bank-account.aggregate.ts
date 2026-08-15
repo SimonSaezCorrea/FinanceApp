@@ -60,6 +60,8 @@ export interface BankAccountProps {
   currentBalance: string;
   /** How far below zero this account may go ("0" = no overdraft line). */
   overdraftLimit: string;
+  /** The most it may hold (null = no ceiling declared). */
+  balanceCeiling: string | null;
   creditLimit: string;
   creditUsedInitial: string;
   creditUsed: string;
@@ -374,6 +376,7 @@ export class BankAccount {
     accountAlias?: string | null;
     initialBalance?: string;
     overdraftLimit?: string;
+    balanceCeiling?: string | null;
     creditLimit?: string;
     creditUsedInitial?: string;
     billingCycleDay?: number | null;
@@ -410,6 +413,7 @@ export class BankAccount {
     if (patch.accountAlias !== undefined) this.props.accountAlias = patch.accountAlias;
     if (patch.initialBalance !== undefined) this.props.initialBalance = patch.initialBalance;
     if (patch.overdraftLimit !== undefined) this.props.overdraftLimit = patch.overdraftLimit;
+    if (patch.balanceCeiling !== undefined) this.props.balanceCeiling = patch.balanceCeiling;
     if (patch.creditLimit !== undefined) this.props.creditLimit = patch.creditLimit;
     if (patch.creditUsedInitial !== undefined)
       this.props.creditUsedInitial = patch.creditUsedInitial;

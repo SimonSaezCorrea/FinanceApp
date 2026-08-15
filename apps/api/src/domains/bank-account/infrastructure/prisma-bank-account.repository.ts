@@ -34,6 +34,7 @@ type Row = {
   accountAlias: string | null;
   initialBalance: { toString(): string };
   overdraftLimit: { toString(): string };
+  balanceCeiling: { toString(): string } | null;
   currentBalance: { toString(): string };
   creditLimit: { toString(): string };
   creditUsedInitial: { toString(): string };
@@ -88,6 +89,7 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
         accountAlias: row.accountAlias ?? null,
         initialBalance: row.initialBalance.toString(),
         overdraftLimit: row.overdraftLimit.toString(),
+        balanceCeiling: row.balanceCeiling?.toString() ?? null,
         currentBalance: row.currentBalance.toString(),
         creditLimit: row.creditLimit.toString(),
         creditUsedInitial: row.creditUsedInitial.toString(),
@@ -148,6 +150,7 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
         initialBalance: plan.initialBalance,
         currentBalance: plan.initialBalance,
         overdraftLimit: plan.overdraftLimit,
+        balanceCeiling: plan.balanceCeiling,
         creditLimit: plan.creditLimit,
         creditUsedInitial: plan.creditUsedInitial,
         creditUsed: plan.creditUsedInitial,
@@ -185,6 +188,7 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
         accountAlias: snap.accountAlias,
         initialBalance: snap.initialBalance,
         overdraftLimit: snap.overdraftLimit,
+        balanceCeiling: snap.balanceCeiling,
         currentBalance: snap.currentBalance,
         creditLimit: snap.creditLimit,
         creditUsedInitial: snap.creditUsedInitial,

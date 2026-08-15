@@ -143,6 +143,7 @@ describe("Transactions HTTP (e2e)", () => {
         accountAlias: null,
         initialBalance: "100000",
         overdraftLimit: "0",
+        balanceCeiling: null,
       });
     const accountId = accountRes.body.id;
     expect(accountRes.body.currentBalance).toBe("100000.0000");

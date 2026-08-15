@@ -43,6 +43,7 @@ const account = {
   accountAlias: null,
   initialBalance: "1000.0000",
   overdraftLimit: "0",
+  balanceCeiling: null,
   currentBalance: "1240.5000",
   creditLimit: "0.0000",
   creditUsed: "0",

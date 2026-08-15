@@ -26,6 +26,7 @@ function account(over: Partial<accounts.BankAccount>): accounts.BankAccount {
     accountAlias: null,
     initialBalance: "0",
     overdraftLimit: "0",
+    balanceCeiling: null,
     currentBalance: "0",
     creditLimit: "0",
     creditUsed: "0",

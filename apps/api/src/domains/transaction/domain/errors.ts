@@ -123,3 +123,12 @@ export class OverdraftLimitExceededError extends DomainError {
     super("OVERDRAFT_LIMIT_EXCEEDED", 400, "amount");
   }
 }
+
+/** The income would push the account past the maximum balance it may hold (a
+ * CuentaRUT or a prepaid account under its regulatory cap). Only thrown when a
+ * ceiling is declared. */
+export class BalanceCeilingExceededError extends DomainError {
+  constructor() {
+    super("BALANCE_CEILING_EXCEEDED", 400, "amount");
+  }
+}

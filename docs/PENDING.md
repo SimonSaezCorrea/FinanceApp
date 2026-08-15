@@ -273,6 +273,11 @@ No existe ninguna tasa de cambio en el sistema. El patrimonio neto y los totales
 **sumas separadas por moneda**, nunca un único número convertido; los topes de tarjeta en otras
 monedas tampoco se cruzan contra el cupo de la cuenta. Con dos países en el catálogo esto se nota más.
 
+Consecuencia concreta en tarjetas: un emisor real opera con **un solo cupo** y convierte la compra en
+moneda extranjera contra él. Aquí los topes por moneda son independientes, así que el disponible que
+muestra la app no coincide con el del banco cuando hay compras en otra moneda. `CardDetailPanel` lo
+advierte en vez de simular la conversión.
+
 **Para hacerlo real**: una fuente de tasas (con su propia caché, como `EtfPriceCache`) y una decisión
 de producto sobre qué tasa usar y con qué fecha — un patrimonio convertido con la tasa de hoy no es
 comparable con el de ayer.

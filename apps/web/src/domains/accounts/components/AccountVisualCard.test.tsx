@@ -41,6 +41,7 @@ const account: accounts.BankAccount = {
   accountAlias: null,
   initialBalance: "0.0000",
   overdraftLimit: "0",
+  balanceCeiling: null,
   currentBalance: "-1686470.0000",
   creditLimit: "3000000.0000",
   creditUsed: "1686470.0000",

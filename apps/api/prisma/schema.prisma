@@ -134,6 +134,11 @@ model BankAccount {
   /// (the money is consumed automatically when the balance hits zero), not a product
   /// with movements of its own, which is why it is a column and not an account type.
   overdraftLimit    Decimal       @default(0) @db.Decimal(18, 4)
+  /// Regulatory/contractual CEILING on the balance this account may hold — the mirror
+  /// image of `overdraftLimit`. Chile's CuentaRUT and the prepaid accounts under CMF
+  /// rules have a maximum they can store; an income past it is what the bank itself
+  /// would reject. Null = no ceiling declared, and then nothing is refused.
+  balanceCeiling    Decimal?      @db.Decimal(18, 4)
   /// User-set seed balance (own funds). For CREDIT_CARD accounts typically 0.
   initialBalance    Decimal       @default(0) @db.Decimal(18, 4)
   /// Reconciled/cached balance = initialBalance + Σincome − Σexpense.
@@ -342,11 +347,22 @@ model WalletItemDashboard {
   @@map("wallet-item-dashboard")
 }
 
+/// A charge the ISSUER applies to a credit account itself — interest on a revolved
+/// balance, an annual fee, insurance — as opposed to a purchase someone made with a
+/// card. It has no card by definition, and the app never computes it: it is read off
+/// the statement and recorded, which is what keeps the carried-over balance square
+/// with the bank's own figure without this domain inventing interest rates.
 model Transaction {
   id                String          @id @default(cuid())
   userId            String
   bankAccountId     String?
   cardId            String?
+  /// True for an issuer charge on the credit account itself — interest on a revolved
+  /// balance, an annual fee, insurance. EXPENSE, no card, only on a CREDIT_CARD
+  /// account, and it feeds the credit pool. The app never COMPUTES it: it is read off
+  /// the statement and recorded, which is what keeps the carried-over balance square
+  /// with the bank without this domain inventing interest rates.
+  financeCharge     Boolean  @default(false)
   type              TransactionType
   amount            Decimal         @db.Decimal(18, 4)
   currency          String          @default("USD")

@@ -15,6 +15,8 @@ export interface TransactionPlan {
   /** Free-text note on the movement (a statement payment carries its reference
    * here — the field the movement detail already shows). */
   observation?: string | null;
+  /** Issuer charge on a credit account itself: no card, feeds the credit pool. */
+  financeCharge?: boolean;
 }
 
 /**

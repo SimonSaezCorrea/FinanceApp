@@ -85,6 +85,14 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
     return row !== null;
   }
 
+  async accountIdForCard(userId: string, cardId: string): Promise<string | null> {
+    const row = await this.prisma.cardAccount.findFirst({
+      where: { id: cardId, userId },
+      select: { accountId: true },
+    });
+    return row?.accountId ?? null;
+  }
+
   async create(userId: string, accountId: string, plan: CardPlan): Promise<string> {
     const row = await this.prisma.cardAccount.create({
       data: {

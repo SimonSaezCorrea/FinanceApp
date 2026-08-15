@@ -29,6 +29,8 @@ export function isChargedToCredit(
   account: { type: accounts.AccountType } | null,
   card: { kind: accounts.CardKind } | null,
 ): boolean {
+  // A CREDIT_CARD account has no cash at all, so every movement on it — a purchase
+  // with one of its cards or an issuer charge with no card — is charged to credit.
   return account?.type === "CREDIT_CARD" || card?.kind === "CREDIT";
 }
 

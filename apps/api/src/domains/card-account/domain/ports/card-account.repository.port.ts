@@ -14,6 +14,9 @@ export interface CardAccountRepositoryPort {
   /** Whether this card belongs to the user, regardless of which account it's on
    * — used by `wallet-item-dashboard` to validate a pinned card. */
   existsForUser(userId: string, cardId: string): Promise<boolean>;
+  /** The account a card belongs to — a card is always ON one, and a caller that
+   * only holds the card id (an installment plan) needs it to reach the pool. */
+  accountIdForCard(userId: string, cardId: string): Promise<string | null>;
   create(userId: string, accountId: string, plan: CardPlan): Promise<string>;
   update(cardId: string, plan: CardPlan): Promise<void>;
   remove(userId: string, accountId: string, cardId: string): Promise<boolean>;

@@ -16,6 +16,8 @@ export interface TransactionProps {
   lugar: string | null;
   bankAccountId: string | null;
   cardId: string | null;
+  /** Issuer charge on the credit account itself (no card, feeds the pool). */
+  financeCharge: boolean;
   installmentPlanId: string | null;
   creditStatementId: string | null;
   /** Non-null on the two rows of a transfer (see `TransferPolicy`). */
@@ -37,6 +39,7 @@ export type TransactionPatch = Partial<{
   lugar: string | null;
   bankAccountId: string;
   cardId: string | null;
+  financeCharge: boolean;
   creditStatementId: string | null;
 }>;
 
@@ -73,6 +76,7 @@ export class Transaction {
     lugar?: string | null;
     bankAccountId: string;
     cardId?: string | null;
+    financeCharge?: boolean;
     creditStatementId: string | null;
   }): Omit<TransactionProps, "id" | "createdAt" | "updatedAt"> {
     return {
@@ -89,6 +93,7 @@ export class Transaction {
       lugar: input.lugar ?? null,
       bankAccountId: input.bankAccountId,
       cardId: input.type === "INCOME" ? null : (input.cardId ?? null),
+      financeCharge: input.financeCharge ?? false,
       installmentPlanId: null,
       creditStatementId: input.creditStatementId,
       // Ordinary movements are never part of a transfer — those are planned by
@@ -170,6 +175,7 @@ export class Transaction {
       lugar: this.props.lugar,
       bankAccountId: this.props.bankAccountId,
       cardId: this.props.cardId,
+      financeCharge: this.props.financeCharge,
       installmentPlanId: this.props.installmentPlanId,
       transferGroupId: this.props.transferGroupId,
       createdAt: this.props.createdAt.toISOString(),

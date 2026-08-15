@@ -23,6 +23,7 @@ const tx = (over: Partial<transactions.Transaction> = {}): transactions.Transact
   lugar: null,
   bankAccountId: "a1",
   cardId: null,
+  financeCharge: false,
   installmentPlanId: null,
   transferGroupId: null,
   createdAt: "2026-08-01T00:00:00.000Z",

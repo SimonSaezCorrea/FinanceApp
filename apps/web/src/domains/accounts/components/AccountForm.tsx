@@ -34,6 +34,8 @@ export interface AccountFormValues {
   initialBalance: string;
   /** "0" = no overdraft line on this account. */
   overdraftLimit: string;
+  /** "" = no ceiling declared; else the most this account may hold. */
+  balanceCeiling: string;
   creditLimit: string;
   creditUsedInitial: string;
   /** "" = no cycle configured (all-time usage), else a "1"-"28" day-of-month string. */
@@ -54,6 +56,7 @@ const EMPTY: AccountFormValues = {
   currency: "CLP",
   initialBalance: "0",
   overdraftLimit: "0",
+  balanceCeiling: "",
   creditLimit: "0",
   creditUsedInitial: "0",
   billingCycleDay: "",

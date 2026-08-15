@@ -50,6 +50,7 @@ describe("Wallet HTTP (e2e)", () => {
         accountAlias: null,
         initialBalance: "0",
         overdraftLimit: "0",
+        balanceCeiling: null,
       });
     accountId = accountRes.body.id;
   });

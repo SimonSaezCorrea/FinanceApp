@@ -4,14 +4,35 @@ import { sumMoney } from "@finance/money";
 /** No FX rates available — the dashboard aggregates only the primary currency. */
 export const PRIMARY_CURRENCY = "CLP";
 
-/** Net worth = Σ currentBalance of primary-currency accounts, plus its per-day series + % change. */
-export function netWorth(list: accounts.BankAccount[]): {
+/**
+ * Net worth = what you have minus what you owe, in the primary currency:
+ *   Σ currentBalance de las cuentas
+ *   − Σ creditUsed (deuda rotativa ya usada)
+ *   − Σ deudas no liquidadas que YO debo (+ las que me deben suman)
+ *
+ * The credit pool is counted here and the installment plans are NOT: a plan bought
+ * with a card already shows up as movements on its credit account, so adding it
+ * again would count the same debt twice. A `Debt` row, on the other hand, is a
+ * standalone loan or a personal one that no account reflects.
+ *
+ * `series`/`changePct` stay balance-only: there is no per-day history of debt, and
+ * a trend that mixes a daily series with a static figure would describe nothing.
+ */
+export function netWorth(
+  list: accounts.BankAccount[],
+  debtList: debts.Debt[] = [],
+): {
   total: string;
   series: string[];
   changePct: number | null;
 } {
   const primary = list.filter((a) => a.currency === PRIMARY_CURRENCY);
-  const total = sumMoney(primary.map((a) => a.currentBalance));
+  const owed = debtList.filter((d) => d.settledAt === null && d.currency === PRIMARY_CURRENCY);
+  const total = sumMoney([
+    ...primary.map((a) => a.currentBalance),
+    ...primary.map((a) => `-${a.creditUsed}`),
+    ...owed.map((d) => (d.direction === "YOU_OWE" ? `-${d.principal}` : d.principal)),
+  ]);
   const points = primary[0]?.balanceSeries.length ?? 0;
   const series = Array.from({ length: points }, (_, i) =>
     sumMoney(primary.map((a) => a.balanceSeries[i] ?? "0")),

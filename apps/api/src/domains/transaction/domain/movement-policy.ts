@@ -7,12 +7,15 @@ import {
   CardNotAllowedError,
   CardRequiredError,
   CardSubLimitExceededError,
+  BalanceCeilingExceededError,
   OverdraftLimitExceededError,
   PrepaidInsufficientBalanceError,
 } from "./errors";
 
 /** Effective movement fields used to validate rules + enforce credit limits. */
 export interface EffectiveMovement {
+  /** Issuer charge on the account itself; see `MovementPolicy.validate`. */
+  financeCharge?: boolean;
   type: transactions.TransactionType;
   bankAccountId: string;
   cardId?: string | null;
@@ -31,6 +34,8 @@ export interface AccountContext {
   currentBalance: string;
   /** How far below zero this account may go ("0" = no line configured). */
   overdraftLimit?: string;
+  /** The most it may hold (null = no ceiling declared). */
+  balanceCeiling?: string | null;
   creditLimit: string;
   creditUsed: string;
   billingCycleDay: number | null;
@@ -90,6 +95,8 @@ export class MovementPolicy {
     this.assertWithinPrepaidBalance(m, account, prepaidOffset);
     // A cash account may go negative only as far as its overdraft line allows.
     this.assertWithinOverdraft(m, account, prepaidOffset);
+    // ...and only hold as much as its ceiling allows, where one is declared.
+    this.assertWithinCeiling(m, account, prepaidOffset);
 
     if (m.type === "INCOME") {
       if (m.cardId) throw new CardNotAllowedError();
@@ -97,6 +104,13 @@ export class MovementPolicy {
       if (m.cardId) throw new CardNotAllowedError();
       return "0";
     } else if (account.type === "CREDIT_CARD") {
+      // An issuer charge (interest, annual fee, insurance) is applied to the
+      // ACCOUNT: no card made it, so requiring one would make it unrecordable —
+      // and then the carried-over balance could never match the bank's.
+      if (m.financeCharge) {
+        if (m.cardId) throw new CardNotAllowedError();
+        return m.amount;
+      }
       if (!m.cardId) throw new CardRequiredError();
       if (!card) throw new CardAccountMismatchError();
       this.assertWithinCardLimit(m, cardLimit, cardUsage);
@@ -133,7 +147,7 @@ export class MovementPolicy {
    * must always be revertible even if limits shrank since.
    */
   static contribution(
-    m: { type: transactions.TransactionType; amount: string },
+    m: { type: transactions.TransactionType; amount: string; financeCharge?: boolean },
     account: Pick<AccountContext, "type">,
     card: CardContext | null,
     cardLimit: CardLimitContext | null,
@@ -142,6 +156,9 @@ export class MovementPolicy {
     if (m.type === "INCOME") {
       return account.type === "CREDIT_CARD" ? subtractMoney("0", m.amount) : "0";
     }
+    // Same rule as `validate`, kept in step so an edit/delete reverts exactly
+    // what the movement contributed.
+    if (m.financeCharge) return account.type === "CREDIT_CARD" ? m.amount : "0";
     if (!card || card.kind !== "CREDIT") return "0";
     return cardLimit ? "0" : m.amount;
   }
@@ -177,6 +194,25 @@ export class MovementPolicy {
     if (toMoney(m.amount).greaterThan(available)) {
       throw new OverdraftLimitExceededError();
     }
+  }
+
+  /**
+   * Mirror image of the overdraft: an account whose balance is capped (a sight
+   * account like CuentaRUT, a prepaid one) cannot receive money past the cap —
+   * the bank itself would bounce the deposit. Only enforced when a ceiling IS
+   * declared: without one there is nothing to compare against.
+   */
+  static assertWithinCeiling(
+    m: { type: transactions.TransactionType; amount: string },
+    account: Pick<AccountContext, "currentBalance" | "balanceCeiling">,
+    offset = "0",
+  ): void {
+    if (m.type !== "INCOME" || account.balanceCeiling == null) return;
+    const ceiling = toMoney(account.balanceCeiling);
+    const resulting = toMoney(account.currentBalance)
+      .minus(toMoney(offset))
+      .plus(toMoney(m.amount));
+    if (resulting.greaterThan(ceiling)) throw new BalanceCeilingExceededError();
   }
 
   static assertWithinPrepaidBalance(

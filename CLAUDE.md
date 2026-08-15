@@ -305,6 +305,28 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     account — there's a **"Tenpo Prepago"** `PREPAID` account with two prepaid cards sharing its
     balance, movements with and without a card, and a top-up recorded as a real transfer.
     `docs/PENDING.md` lost its point 6 (the un-revertable card top-up), which this design removes.
+  - **Cargo financiero, techo de saldo y deuda en el patrimonio (2026-08-15):** tres huecos que
+    encontró una revisión externa. (1) **`Transaction.financeCharge`**: un cobro del EMISOR sobre la
+    cuenta de crédito (intereses del rotativo, comisión de mantención, seguro). Antes era IMPOSIBLE
+    registrarlo — un `EXPENSE` en cuenta `CREDIT_CARD` exigía tarjeta y ningún plástico hace estos
+    cargos —, así que el `carriedOverAmount` nunca podía cuadrar con la cartola. Reglas: EXPENSE, sin
+    tarjeta (`CARD_NOT_ALLOWED` si viene una), solo suma al pool en cuenta `CREDIT_CARD`, y **la app
+    nunca lo calcula**: se lee del estado de cuenta y se anota, que es lo que evita que este dominio
+    invente tasas. `MovementPolicy.contribution` lo refleja para que un edit/delete revierta
+    exactamente lo aportado; en la UI es un switch que oculta el campo de tarjeta. (2)
+    **`BankAccount.balanceCeiling`** (nullable): la imagen espejo de `overdraftLimit` — CuentaRUT y
+    las cuentas prepago tienen máximo regulatorio de saldo, y un ingreso que lo pasa es uno que el
+    banco rechazaría (`BALANCE_CEILING_EXCEEDED`, `MovementPolicy.assertWithinCeiling`). Solo en
+    SIGHT/PREPAID/SAVINGS y **solo se aplica si hay techo declarado**. (3) **El patrimonio neto resta
+    deuda**: `netWorth(cuentas, deudas)` descuenta `creditUsed` y las `Debt` no liquidadas (las que me
+    deben suman). **No** suma los planes de cuotas: un plan comprado con tarjeta ya está en los
+    movimientos de su cuenta de crédito y contarlo otra vez sería doble. La serie diaria sigue siendo
+    solo de saldos — no hay historial de deuda por día y mezclarlos no describiría nada. (4) Un
+    **plan de cuotas con interés** carga la diferencia (cuotas − principal) como `financeCharge` sobre
+    la cuenta de la tarjeta: el movimiento de compra solo lleva el precio, así que sin esto el cupo
+    subestimaba la deuda comprometida. (5) Cupo único multi-moneda: el emisor real descuenta una
+    compra en otra moneda del MISMO cupo; sin tipo de cambio la app mantiene los topes separados y
+    **lo advierte en `CardDetailPanel`** en vez de mostrar un disponible que el banco no reconocería.
   - **Multi-país: PSP, CBU/CVU y alias (2026-08-15, specs/P3 del informe):** el catálogo deja de ser
     chileno. `InstitutionKind` gana **`PAYMENT_PROVIDER`** — mantiene cuentas de pago (dinero
     electrónico) sin ser banco y sin que su producto sea una tarjeta: es la figura de los **PSP**
@@ -327,6 +349,11 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     con errores **`INVALID_ACCOUNT_NUMBER`** / **`INVALID_ACCOUNT_ALIAS`**, y ambos formularios web
     bloquean el submit con la misma función del contrato — mostrar el error y guardar igual sería peor
     que no validar.
+    Códigos: los emisores solo-crédito (TCEEM) **sí tienen código institucional CMF** — verificado en
+    cada ficha: 689 COFISA, 707 Solventa/Cruz Verde, 708 Inversiones y Tarjetas, 288 Unicard/Unipay,
+    2527 Matic Kard/sbpay. Solo FISO conserva llave `RUT-` porque su código no fue verificable. El
+    seed **retira explícitamente** las llaves viejas (`RETIRED_ISSUER_KEYS`): re-llavear una entidad
+    crea la fila nueva y deja huérfana la anterior.
     Seed AR: 9 bancos con su **código de entidad BCRA** (= los 3 primeros dígitos del CBU, por eso es
     la llave natural) y 3 PSP keyed `PSP-<slug>` porque sus prefijos CVU no están publicados en las
     fuentes usadas. Productos AR: la caja de ahorro (`SAVINGS`) es la cuenta cotidiana, la corriente es
@@ -342,7 +369,7 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     pasaría del piso (**`OVERDRAFT_LIMIT_EXCEEDED`**) **solo cuando hay línea configurada**: sin línea
     declarada la app no tiene base para rechazar un movimiento que de verdad ocurrió (el banco pudo
     permitirlo). Un edit se valida contra el saldo ANTES de su propio cargo previo, igual que prepago.
-    Ojo al leer: `"0"` significa *sin* sobregiro, no "tiene uno de cero" — el primer refine que escribí
+    Ojo al leer: `"0"` significa _sin_ sobregiro, no "tiene uno de cero" — el primer refine que escribí
     trataba `"0"` como truthy y rompía la creación de cuentas prepago. El renombre tocó 58 archivos
     (incluidas las llaves i18n `accounts.type.*`); los Sync Impact Reports viejos de la constitución
     conservan el nombre anterior por ser historia.
@@ -412,7 +439,7 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     no trae `cards`). Esto corrigió tres defectos con una causa común: (1) la compra con tarjeta de
     crédito descontaba el saldo de la cuenta; (2) `POST /accounts/:id/credit-statements/:id/pay` creaba
     su EXPENSE **sin** descontar el saldo de la cuenta origen (rompía `currentBalance = initialBalance +
-    Σingresos − Σgastos`); (3) corregir el pago sí movía el saldo, sobre una base nunca debitada. Ahora
+Σingresos − Σgastos`); (3) corregir el pago sí movía el saldo, sobre una base nunca debitada. Ahora
     pagar descuenta (`incrementBalanceWithTx` dentro del mismo `$transaction`) y `sync` también ajusta
     el saldo del origen cuando corrige el movimiento de pago. **Los saldos guardados con el
     comportamiento viejo no se migran** (data de dev; `pnpm db:seed` la regenera). Abierto y breaking:

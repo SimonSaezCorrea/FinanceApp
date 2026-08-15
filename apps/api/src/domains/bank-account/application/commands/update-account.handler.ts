@@ -72,6 +72,7 @@ export class UpdateAccountHandler extends BaseCommandHandler<
           : {}),
       ...(input.accountNumber !== undefined ? { accountNumber: input.accountNumber } : {}),
       ...(input.accountAlias !== undefined ? { accountAlias: input.accountAlias } : {}),
+      ...(input.balanceCeiling !== undefined ? { balanceCeiling: input.balanceCeiling } : {}),
       ...(input.initialBalance !== undefined ? { initialBalance: input.initialBalance } : {}),
       ...(input.creditLimit !== undefined ? { creditLimit: input.creditLimit } : {}),
       ...(input.creditUsedInitial !== undefined

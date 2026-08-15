@@ -30,6 +30,7 @@ const initialValue: TransactionFormValue = {
   toBankAccountId: "",
   amountIn: "",
   cardId: "",
+  financeCharge: false,
   category: "",
   description: "",
   observation: "",

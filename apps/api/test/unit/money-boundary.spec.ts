@@ -15,6 +15,7 @@ describe("money boundary", () => {
       accountAlias: null,
       initialBalance: "1240.5000",
       overdraftLimit: "0",
+      balanceCeiling: null,
     });
     expect(parsed.initialBalance).toBe("1240.5000");
   });

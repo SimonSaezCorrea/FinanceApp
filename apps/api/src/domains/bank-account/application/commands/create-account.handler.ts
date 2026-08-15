@@ -70,6 +70,7 @@ export class CreateAccountHandler extends BaseCommandHandler<
       accountAlias: input.accountAlias ?? null,
       initialBalance: input.initialBalance ?? "0",
       overdraftLimit: input.overdraftLimit ?? "0",
+      balanceCeiling: input.balanceCeiling ?? null,
       creditLimit: planned.creditLimit,
       creditUsedInitial: planned.creditUsedInitial,
       billingCycleDay: input.billingCycleDay ?? null,

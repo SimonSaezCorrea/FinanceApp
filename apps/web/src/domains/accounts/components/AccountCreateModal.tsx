@@ -243,6 +243,7 @@ export function AccountCreateModal({
     accountAlias: accountAlias.trim() || null,
     initialBalance: initialBalance || "0",
     overdraftLimit: "0",
+    balanceCeiling: null,
     currentBalance: initialBalance || "0",
     creditLimit: creditLimit || "0",
     creditUsed: creditUsedInitial || "0",

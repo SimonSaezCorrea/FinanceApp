@@ -3,7 +3,9 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
+import { CardAccountDataModule } from "../card-account/card-account.data.module";
 import { InstallmentPaymentDataModule } from "../installment-payment/installment-payment.data.module";
+import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { CreateInstallmentPlanHandler } from "./application/commands/create-installment-plan.handler";
 import { PayInstallmentHandler } from "./application/commands/pay-installment.handler";
 import { RemoveInstallmentPlanHandler } from "./application/commands/remove-installment-plan.handler";
@@ -26,7 +28,15 @@ const commandHandlers = [
 const queryHandlers = [ListInstallmentPlansQueryHandler, GetInstallmentPlanQueryHandler];
 
 @Module({
-  imports: [CqrsModule, JwtModule.register({}), InstallmentPaymentDataModule],
+  imports: [
+    CqrsModule,
+    JwtModule.register({}),
+    InstallmentPaymentDataModule,
+    // A plan with interest commits more debt than the price: the difference is
+    // charged to the card's credit pool (see the handler).
+    CardAccountDataModule,
+    TransactionDataModule,
+  ],
   controllers: [InstallmentsController],
   providers: [
     ...commandHandlers,

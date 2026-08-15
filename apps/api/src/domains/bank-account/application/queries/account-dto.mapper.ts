@@ -158,6 +158,7 @@ export function accountToDto(
     accountAlias: snap.accountAlias,
     initialBalance: moneyToString(snap.initialBalance),
     overdraftLimit: moneyToString(snap.overdraftLimit),
+    balanceCeiling: snap.balanceCeiling === null ? null : moneyToString(snap.balanceCeiling),
     currentBalance: moneyToString(snap.currentBalance),
     creditLimit: account.creditLimit,
     creditUsed,

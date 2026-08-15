@@ -96,6 +96,7 @@ export class CreateTransactionHandler extends BaseCommandHandler<
         cardId: input.cardId,
         amount: input.amount,
         currency: input.currency,
+        financeCharge: input.financeCharge,
       },
       account,
       card,
@@ -134,6 +135,7 @@ export class CreateTransactionHandler extends BaseCommandHandler<
       lugar: input.lugar,
       bankAccountId: input.bankAccountId,
       cardId: input.cardId,
+      financeCharge: input.financeCharge,
       creditStatementId: context.creditStatementId,
     });
     const row = await this.repo.saveNew(

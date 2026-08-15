@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { CreateInstallmentPlanHandler } from "../../../../../../src/domains/installment-plan/application/commands/create-installment-plan.handler";
 import { CreateInstallmentPlanCommand } from "../../../../../../src/domains/installment-plan/application/commands/create-installment-plan.command";
+import { fakeCardAccountRepo } from "../../../../support/fake-ports";
 import { InstallmentPlan } from "../../../../../../src/domains/installment-plan/domain/installment-plan.aggregate";
 import type { InstallmentPlanRepositoryPort } from "../../../../../../src/domains/installment-plan/domain/ports/installment-plan.repository.port";
 
@@ -20,7 +21,19 @@ function fakeRepo(
 }
 
 function makeHandler(repo: InstallmentPlanRepositoryPort) {
-  return new CreateInstallmentPlanHandler({ publish: vi.fn() } as never, repo);
+  // The handler also charges a plan's interest to the card's pool; these fakes keep
+  // that path inert (no card ⇒ nothing is charged) unless a test wires it.
+  return new CreateInstallmentPlanHandler(
+    { publish: vi.fn() } as never,
+    repo,
+    fakeCardAccountRepo(),
+    {
+      createWithTx: vi.fn(),
+      relinkToStatementWithTx: vi.fn(),
+      updateAmountWithTx: vi.fn(),
+    } as never,
+    {} as never,
+  );
 }
 
 describe("CreateInstallmentPlanHandler", () => {

@@ -9,6 +9,7 @@ const checking = (overrides: Partial<AccountContext> = {}): AccountContext => ({
   type: "CHECKING",
   currentBalance: "100000",
   overdraftLimit: "0",
+  balanceCeiling: null,
   creditLimit: "0",
   creditUsed: "0",
   billingCycleDay: null,

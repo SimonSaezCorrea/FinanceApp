@@ -74,6 +74,7 @@ export class CreateTransferHandler extends BaseCommandHandler<
       receptor: input.receptor ?? null,
       lugar: input.lugar ?? null,
       cardId: null,
+      financeCharge: false,
       installmentPlanId: null,
       creditStatementId: null,
       transferGroupId,

@@ -50,6 +50,7 @@ describe("Transaction.applyUpdate", () => {
       lugar: null,
       bankAccountId: "a1",
       cardId: "c1",
+      financeCharge: false,
       installmentPlanId: null,
       transferGroupId: null,
       creditStatementId: "st1",

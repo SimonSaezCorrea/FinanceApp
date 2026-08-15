@@ -11,6 +11,7 @@ import { Combobox } from "../../../shared/ui/combobox";
 import { DetailRow } from "../../../shared/ui/detail-row";
 import { DateField } from "../../../shared/ui/date-field";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
+import { Switch } from "../../../shared/ui/switch";
 import { Segmented } from "../../../shared/ui/segmented";
 import { CategoryIcon } from "./CategoryIcon";
 import { projectedAfterSave } from "../lib/projectedBalance";
@@ -29,6 +30,8 @@ export interface TransactionFormValue {
   /** Amount landing on the destination, transfer mode only. */
   amountIn: string;
   cardId: string;
+  /** Issuer charge on the credit account itself (interest, fee): no card. */
+  financeCharge: boolean;
   category: string;
   description: string;
   observation: string;
@@ -94,8 +97,8 @@ export function TransactionFormPanel({
     !!selectedAccount && accountsContract.isCardableAccountType(selectedAccount.type);
   // A card is REQUIRED only for credit-line expenses; optional for other cardable
   // accounts. A transfer never carries one (FR-019).
-  const needsCard = !isTransfer && type === "EXPENSE" && isCreditLine;
-  const showCard = !isTransfer && type === "EXPENSE" && isCardable;
+  const needsCard = !isTransfer && type === "EXPENSE" && isCreditLine && !value.financeCharge;
+  const showCard = !isTransfer && type === "EXPENSE" && isCardable && !value.financeCharge;
   const noCardsAvailable = needsCard && (selectedAccount?.cards.length ?? 0) === 0;
 
   const accountOptions = [
@@ -294,6 +297,20 @@ export function TransactionFormPanel({
                 />
               </DetailRow>
             )}
+
+            {/* Only a credit account can receive an issuer charge, and declaring
+                one drops the card field: no card made it. */}
+            {isCreditLine && !isTransfer && type === "EXPENSE" ? (
+              <DetailRow label={t("transactions.form.financeCharge")}>
+                <Switch
+                  checked={value.financeCharge}
+                  onCheckedChange={(financeCharge) =>
+                    onChange({ financeCharge, ...(financeCharge ? { cardId: "" } : {}) })
+                  }
+                  aria-label={t("transactions.form.financeCharge")}
+                />
+              </DetailRow>
+            ) : null}
 
             {showCard ? (
               <DetailRow label={t("transactions.form.card")}>

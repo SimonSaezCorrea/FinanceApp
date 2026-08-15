@@ -32,6 +32,7 @@ function leg(over: Partial<Parameters<typeof Transaction.fromPersistence>[0]> = 
     lugar: null,
     bankAccountId: "a1",
     cardId: null,
+    financeCharge: false,
     installmentPlanId: null,
     creditStatementId: null,
     transferGroupId: "g1",

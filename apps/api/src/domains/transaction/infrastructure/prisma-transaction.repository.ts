@@ -52,6 +52,7 @@ function rowToProps(row: Row): TransactionProps {
     lugar: row.lugar,
     bankAccountId: row.bankAccountId,
     cardId: row.cardId,
+    financeCharge: row.financeCharge,
     installmentPlanId: row.installmentPlanId,
     creditStatementId: row.creditStatementId,
     transferGroupId: row.transferGroupId,
@@ -227,6 +228,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
           lugar: plan.lugar,
           bankAccountId: plan.bankAccountId,
           cardId: plan.cardId,
+          financeCharge: plan.financeCharge,
           creditStatementId: plan.creditStatementId,
         },
       });

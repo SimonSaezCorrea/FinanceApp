@@ -33,6 +33,7 @@ describe("PrismaWalletItemRepository (integration)", () => {
         accountAlias: null,
         initialBalance: "0",
         overdraftLimit: "0",
+        balanceCeiling: null,
       },
     });
     accountId = account.id;

@@ -48,6 +48,7 @@ function txFixture(overrides: Partial<Parameters<typeof Transaction.fromPersiste
     lugar: null,
     bankAccountId: "aC",
     cardId: "cC",
+    financeCharge: false,
     installmentPlanId: null,
     transferGroupId: null,
     creditStatementId: "stmt1",

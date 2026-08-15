@@ -47,6 +47,7 @@ const row = Transaction.fromPersistence({
   lugar: null,
   bankAccountId: "a1",
   cardId: null,
+  financeCharge: false,
   installmentPlanId: null,
   transferGroupId: null,
   creditStatementId: null,

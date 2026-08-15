@@ -2396,12 +2396,12 @@ async function seedInstitutionAccountTypes(countryId: string) {
   // Issuers holding ONLY the credit-card licence (TCEEM): a store card, no prepaid.
   const CREDIT_ONLY_PRODUCTS: Product[] = ["CREDIT_CARD"];
   const CREDIT_ONLY_CODES = new Set([
-    "RUT-96522900", // Hites
+    "689", // COFISA
+    "708", // Inversiones y Tarjetas
+    "2527", // sbpay (Matic Kard)
+    "707", // Cruz Verde (Solventa)
+    "288", // Unipay (Unicard)
     "RUT-96712290", // FISO
-    "RUT-85325100", // Inversiones y Tarjetas
-    "RUT-96623540", // sbpay
-    "RUT-96776000", // Cruz Verde
-    "RUT-76086272", // Unipay
   ]);
 
   const institutions = await prisma.financialInstitution.findMany({
@@ -2538,6 +2538,14 @@ async function seedArgentina() {
       code: "PSP-uala",
       name: "Ualá",
       legalName: "Wanap S.A.",
+      kind: "PAYMENT_PROVIDER",
+      products: ["SIGHT", "PREPAID"],
+    },
+    {
+      // La billetera de Telecom: cuenta remunerada + prepago, sin ser banco.
+      code: "PSP-personalpay",
+      name: "Personal Pay",
+      legalName: "Micro Sistemas S.A.U.",
       kind: "PAYMENT_PROVIDER",
       products: ["SIGHT", "PREPAID"],
     },
@@ -2835,26 +2843,43 @@ async function seedReferenceData() {
     });
   }
 
-  /** Credit-only non-bank issuers (TCEEM). The three that ALSO hold the prepaid
+  /**
+   * Credit-only non-bank issuers (TCEEM). The three that ALSO hold the prepaid
    * licence (Tenpo 730, Inversiones LP 697, Tricard 699) are already seeded above
-   * from TPEEM — one entity, two licences, one row. Brands come from each retailer's
-   * own card, not from the register. */
+   * from TPEEM — one entity, two licences, one row.
+   *
+   * These entities receive no transfers, so they have no transfer code — but the CMF
+   * does assign them an institution code, read off each entity's own registry page.
+   * FISO is the one whose code couldn't be verified there, so it keeps the RUT key
+   * rather than a guessed number.
+   *
+   * `name`: the CMF's own "nombre de fantasía" when it declares one (COFISA), the
+   * card's brand when the entity's site states it (Unipay, sbpay, Cruz Verde).
+   */
   const CHILE_CREDIT_ISSUERS: { code: string; name: string; legalName: string }[] = [
-    {
-      code: "RUT-96522900",
-      name: "Hites",
-      legalName: "Créditos, Organización y Finanzas S.A.",
-    },
+    { code: "689", name: "COFISA", legalName: "Créditos, Organización y Finanzas S.A." },
+    { code: "708", name: "Inversiones y Tarjetas", legalName: "Inversiones y Tarjetas S.A." },
+    { code: "2527", name: "sbpay", legalName: "Matic Kard S.A." },
+    { code: "707", name: "Cruz Verde", legalName: "Solventa Tarjetas S.A." },
+    { code: "288", name: "Unipay", legalName: "Unicard S.A." },
+    // Código institucional no verificable en la ficha CMF: se mantiene la llave por RUT.
     { code: "RUT-96712290", name: "FISO", legalName: "FISO S.A." },
-    {
-      code: "RUT-85325100",
-      name: "Inversiones y Tarjetas",
-      legalName: "Inversiones y Tarjetas S.A.",
-    },
-    { code: "RUT-96623540", name: "sbpay", legalName: "Matic Kard S.A." },
-    { code: "RUT-96776000", name: "Cruz Verde", legalName: "Solventa Tarjetas S.A." },
-    { code: "RUT-76086272", name: "Unipay", legalName: "Unicard S.A." },
   ];
+  // These six were first seeded keyed by RUT, before their CMF institution codes
+  // were verified. Re-keying an entity means the upsert creates the new row and
+  // leaves the old one behind, so the retired keys are removed explicitly —
+  // `SetNull` on the account FK means no account is lost if one pointed at them.
+  const RETIRED_ISSUER_KEYS = [
+    "RUT-96522900",
+    "RUT-85325100",
+    "RUT-96623540",
+    "RUT-96776000",
+    "RUT-76086272",
+  ];
+  await prisma.financialInstitution.deleteMany({
+    where: { countryId: chile.id, code: { in: RETIRED_ISSUER_KEYS } },
+  });
+
   for (const e of CHILE_CREDIT_ISSUERS) {
     const fields = {
       kind: "NON_BANK_ISSUER" as const,

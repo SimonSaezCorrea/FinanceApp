@@ -74,6 +74,7 @@ describe("Attachments HTTP (e2e)", () => {
       accountAlias: null,
       initialBalance: "10000",
       overdraftLimit: "0",
+      balanceCeiling: null,
     });
     const movement = await api().post("/api/v1/transactions").set("Cookie", cookies).send({
       type: "EXPENSE",

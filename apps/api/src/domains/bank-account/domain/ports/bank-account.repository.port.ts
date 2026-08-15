@@ -20,6 +20,7 @@ export type CreateAccountPlan = {
   accountAlias: string | null;
   initialBalance: string;
   overdraftLimit: string;
+  balanceCeiling: string | null;
   creditLimit: string;
   creditUsedInitial: string;
   billingCycleDay: number | null;

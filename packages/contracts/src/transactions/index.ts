@@ -23,6 +23,9 @@ export const transactionSchema = z.object({
   lugar: z.string().nullable(),
   bankAccountId: z.string().nullable(),
   cardId: z.string().nullable(),
+  /** An issuer charge on the credit account itself (interest, fee, insurance) —
+   * no card made it, and the app never computes it: it is read off the statement. */
+  financeCharge: z.boolean(),
   installmentPlanId: z.string().nullable(),
   /**
    * Ties the two rows of a transfer together (EXPENSE on the source account +
@@ -48,34 +51,49 @@ export function transferSide(
   return t.type === "EXPENSE" ? "OUT" : "IN";
 }
 
-export const createTransactionSchema = z
-  .object({
-    type: transactionType,
-    amount: moneyString,
-    currency: z.string().trim().length(3).default("USD"),
-    occurredAt: z.string().datetime(),
-    category: z.string().trim().max(120).optional(),
-    description: z.string().trim().max(500).optional(),
-    observation: z.string().trim().max(500).optional(),
-    emisor: z.string().trim().max(200).optional(),
-    receptor: z.string().trim().max(200).optional(),
-    lugar: z.string().trim().max(200).optional(),
-    // Bank is required for new movements; card rules are enforced server-side
-    // (needs the account type: EXPENSE on a non-cash account requires a card,
-    // cash/INCOME forbid one).
-    bankAccountId: z.string(),
-    cardId: z.string().optional(),
-  })
+/** The plain field shape. Kept apart from the refinements because each `.refine()`
+ * wraps the schema in a ZodEffects, and `.partial()` (the PATCH shape) only exists
+ * on the object — same split `accounts` uses for its own fields. */
+const transactionFieldsSchema = z.object({
+  type: transactionType,
+  amount: moneyString,
+  currency: z.string().trim().length(3).default("USD"),
+  occurredAt: z.string().datetime(),
+  category: z.string().trim().max(120).optional(),
+  description: z.string().trim().max(500).optional(),
+  observation: z.string().trim().max(500).optional(),
+  emisor: z.string().trim().max(200).optional(),
+  receptor: z.string().trim().max(200).optional(),
+  lugar: z.string().trim().max(200).optional(),
+  // Bank is required for new movements; card rules are enforced server-side
+  // (needs the account type: EXPENSE on a non-cash account requires a card,
+  // cash/INCOME forbid one).
+  bankAccountId: z.string(),
+  cardId: z.string().optional(),
+  /** An issuer charge on the credit account itself (interest, annual fee,
+   * insurance): no card made it, so the "a credit-line expense needs a card"
+   * rule doesn't apply. It still feeds the credit pool. */
+  financeCharge: z.boolean().optional(),
+});
+
+export const createTransactionSchema = transactionFieldsSchema
   .refine((t) => t.type !== "INCOME" || !t.cardId, {
     message: "income cannot be linked to a card",
+    path: ["cardId"],
+  })
+  .refine((t) => !t.financeCharge || t.type === "EXPENSE", {
+    message: "a finance charge is always an expense",
+    path: ["financeCharge"],
+  })
+  .refine((t) => !t.financeCharge || !t.cardId, {
+    message: "a finance charge is applied to the account, not to a card",
     path: ["cardId"],
   });
 export type CreateTransaction = z.infer<typeof createTransactionSchema>;
 
 // `.partial()` isn't available on a ZodEffects (refined) schema, so derive the
-// update shape from the inner object and re-apply the income/card refinement.
-export const updateTransactionSchema = createTransactionSchema
-  .innerType()
+// update shape from the plain fields and re-apply the income/card refinement.
+export const updateTransactionSchema = transactionFieldsSchema
   .partial()
   .refine((t) => t.type !== "INCOME" || !t.cardId, {
     message: "income cannot be linked to a card",

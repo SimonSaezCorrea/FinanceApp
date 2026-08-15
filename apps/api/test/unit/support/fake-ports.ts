@@ -95,6 +95,7 @@ export function fakeCardAccountRepo(
     listByAccounts: vi.fn(async () => []),
     findOnAccount: vi.fn(async () => null),
     existsForUser: vi.fn(async () => true),
+    accountIdForCard: vi.fn(async () => null),
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
@@ -129,6 +130,7 @@ export function accountAggregate(input: {
   billingCycleDay?: number | null;
   minimumPaymentPercent?: string | null;
   overdraftLimit?: string;
+  balanceCeiling?: string | null;
   currency?: string;
   cards?: BankAccountProps["cards"];
   createdAt?: Date;
@@ -147,6 +149,7 @@ export function accountAggregate(input: {
     accountAlias: null,
     initialBalance: input.currentBalance ?? "0",
     overdraftLimit: input.overdraftLimit ?? "0",
+    balanceCeiling: input.balanceCeiling ?? null,
     currentBalance: input.currentBalance ?? "0",
     creditLimit: input.creditLimit ?? "0",
     creditUsedInitial: "0",

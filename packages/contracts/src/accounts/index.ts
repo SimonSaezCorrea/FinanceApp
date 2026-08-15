@@ -206,6 +206,14 @@ export type CreditPool = z.infer<typeof creditPoolSchema>;
  * overdraw. A savings account is not overdrawn, and prepaid never goes negative. */
 export const OVERDRAFT_ACCOUNT_TYPES: AccountType[] = ["CHECKING", "SIGHT"];
 
+/** Account types that can carry a maximum balance: the ones a regulator or a
+ * contract caps (a sight account like CuentaRUT, a prepaid account). */
+export const BALANCE_CEILING_ACCOUNT_TYPES: AccountType[] = ["SIGHT", "PREPAID", "SAVINGS"];
+
+export function allowsBalanceCeiling(type: AccountType): boolean {
+  return BALANCE_CEILING_ACCOUNT_TYPES.includes(type);
+}
+
 export function allowsOverdraft(type: AccountType): boolean {
   return OVERDRAFT_ACCOUNT_TYPES.includes(type);
 }
@@ -232,6 +240,9 @@ export const bankAccountSchema = z.object({
    * account); "0" = none. Not a product of its own: it has no movements, it is the
    * floor this account's cash may reach. */
   overdraftLimit: moneyString,
+  /** The most this account may hold (CuentaRUT and prepaid accounts are capped by
+   * regulation). `null` = no ceiling declared, and then nothing is refused. */
+  balanceCeiling: moneyString.nullable(),
   /** Credit pool for CREDIT_CARD accounts (shared by all its cards); "0" otherwise. */
   creditLimit: moneyString,
   /** Persisted, live used credit — seeded from creditUsedInitial, then mutated by
@@ -275,6 +286,8 @@ const bankAccountFieldsSchema = z.object({
   initialBalance: moneyString.optional(),
   /** Overdraft line granted on this account (CHECKING/SIGHT only). */
   overdraftLimit: moneyString.optional(),
+  /** Maximum balance this account may hold (SIGHT/PREPAID/SAVINGS only). */
+  balanceCeiling: moneyString.nullish(),
   /** For CREDIT_CARD accounts: the credit pool and any pre-existing used seed. */
   creditLimit: moneyString.optional(),
   creditUsedInitial: moneyString.optional(),
@@ -316,6 +329,10 @@ export const createBankAccountSchema = bankAccountFieldsSchema
   .refine((v) => !v.overdraftLimit?.startsWith("-"), {
     message: "an overdraft line cannot be negative",
     path: ["overdraftLimit"],
+  })
+  .refine((v) => !v.balanceCeiling || allowsBalanceCeiling(v.type), {
+    message: "this account type has no balance ceiling",
+    path: ["balanceCeiling"],
   })
   // The kinds a card may take depend on the account carrying it; the inline
   // `cards[]` path must obey the same matrix the dedicated card endpoints do.

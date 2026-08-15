@@ -1,4 +1,25 @@
 <!--
+Sync Impact Report — 2026-08-15 (amendment 1.42.0)
+- Version change: 1.41.0 → 1.42.0 (MINOR: three new enforceable rules from an external review of the
+  domain; no principle removed or redefined).
+- Banking-domain norms gain **"The app records charges, it never computes them"**
+  (`Transaction.financeCharge` — an issuer charge on a credit account: EXPENSE, no card, feeds the
+  pool; previously UNRECORDABLE, since a credit-account expense required a card), **"A limit has two
+  ends"** (`BankAccount.balanceCeiling`, mirror of `overdraftLimit`, `BALANCE_CEILING_EXCEEDED`) and
+  **"Net worth counts what is owed"** (subtract `creditUsed` + unsettled debts; never also add
+  installment plans, which already exist as movements).
+- An installment plan with interest now charges its finance portion to the card's pool, so the pool
+  reflects the debt COMMITTED rather than the price tag.
+- Catalogue: the credit-only issuers (TCEEM) do have CMF institution codes — verified one by one on
+  each entity's registry page (689, 707, 708, 288, 2527); only FISO keeps a `RUT-` key. Re-keying an
+  entity requires retiring the old key explicitly, or the upsert leaves an orphan row behind.
+- Known gap, deliberately not invented: a real issuer runs ONE limit and converts a foreign purchase
+  into the account's currency against it. With no FX rate the app keeps per-currency limits separate
+  and says so in the UI rather than showing an "available" figure the bank would not agree with.
+- Templates requiring updates: none.
+-->
+
+<!--
 Sync Impact Report — 2026-08-15 (amendment 1.41.0)
 - Version change: 1.40.0 → 1.41.0 (MINOR: new enforceable rule + the first non-Chilean market; no
   principle removed or redefined).
@@ -1170,6 +1191,18 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
   - **A financial product is not a setting:** an account's `type` MUST NOT be convertible to or from
     `PREPAID` (`ACCOUNT_TYPE_CHANGE_NOT_ALLOWED`). Correcting a mistyped account means deleting and
     recreating it, not migrating cards, a credit pool and billing periods across products.
+  - **The app records charges, it never computes them:** interest on a revolved balance, an annual
+    fee or insurance are charges the ISSUER applies to the credit account itself. They MUST be
+    recordable (`Transaction.financeCharge`: EXPENSE, no card, feeds the pool) precisely so this
+    domain never has to model interest rates — a carried-over balance that cannot be squared with the
+    bank's own statement is worse than one the user copies from it.
+  - **A limit has two ends:** an account is bounded below by its overdraft line and above by its
+    balance ceiling (`balanceCeiling` — CuentaRUT, prepaid accounts under their regulatory cap). Both
+    are enforced ONLY when declared, for the same reason: without a declared bound the app has no
+    basis to refuse a movement that really happened.
+  - **Net worth counts what is owed:** it subtracts the used credit pool and the unsettled debts. It
+    MUST NOT also add installment plans bought with a card — those already exist as movements on
+    their credit account, and counting them twice is the same double-counting the cash rule fixed.
   - **Cash moves once, when it actually moves:** a movement's COST and its effect on the account's
     cash balance are different questions. A purchase charged to a credit line (any movement on a
     `CREDIT_LINE` account, or one made with a CREDIT-kind card on any account) MUST NOT move
@@ -1287,4 +1320,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.41.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15
+**Version**: 1.42.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15

@@ -54,7 +54,10 @@ export function DashboardPage() {
   const accountList = accountsQuery.data ?? [];
   const txs = txQuery.data ?? [];
 
-  const worth = useMemo(() => netWorth(accountList), [accountList]);
+  const worth = useMemo(
+    () => netWorth(accountList, debtsQuery.data ?? []),
+    [accountList, debtsQuery.data],
+  );
   const secondary = useMemo(() => secondaryTotals(accountList), [accountList]);
   const flow = useMemo(() => monthFlow(txs), [txs]);
   const categories = useMemo(() => expensesByCategory(txs), [txs]);

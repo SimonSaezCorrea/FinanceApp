@@ -238,6 +238,13 @@ export function CardDetailPanel({
           <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             {t("cards.form.extraLimits")}
           </span>
+          {/* Real issuers usually run ONE limit and convert a foreign purchase into
+              the account's currency against it. This app has no exchange rate, so it
+              keeps each currency separate and says so, instead of showing an
+              "available" figure that the bank would not agree with. */}
+          <p className="text-xs leading-snug text-muted-foreground">
+            {t("cards.detail.separatePoolsHint")}
+          </p>
           {extraPools.map((l) => (
             <div key={l.currency} className="flex items-center justify-between text-sm">
               <span className="font-medium">{l.currency}</span>
