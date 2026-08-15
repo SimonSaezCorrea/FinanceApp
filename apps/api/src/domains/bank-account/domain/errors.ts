@@ -72,3 +72,13 @@ export class InvalidInitialBalanceError extends DomainError {
     super("INVALID_INITIAL_BALANCE", 400, "initialBalance");
   }
 }
+
+/** A credit pool (or its billing settings) on an account that isn't a credit line.
+ * Cash and revolving debt are separate products: the debt belongs to the
+ * `CREDIT_LINE` account the card lives on, never to the checking account that
+ * eventually pays its statement. */
+export class CreditSettingsNotAllowedError extends DomainError {
+  constructor() {
+    super("CREDIT_SETTINGS_NOT_ALLOWED", 400, "creditLimit");
+  }
+}

@@ -113,8 +113,8 @@ describe("TransactionFormPanel card rules", () => {
     expect(screen.queryByLabelText(i18n.t("transactions.form.card"))).toBeNull();
   });
 
-  it("a non-cardable account (SAVINGS) never offers a card", () => {
-    render(<Harness accounts={[account({ type: "SAVINGS" })]} />);
+  it("a non-cardable account (INVESTMENT) never offers a card", () => {
+    render(<Harness accounts={[account({ type: "INVESTMENT" })]} />);
     expect(screen.queryByLabelText(i18n.t("transactions.form.card"))).toBeNull();
   });
 

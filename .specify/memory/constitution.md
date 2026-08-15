@@ -1,4 +1,28 @@
 <!--
+Sync Impact Report — 2026-08-15 (amendment 1.37.0)
+- Version change: 1.36.0 → 1.37.0 (MINOR: new enforceable rule; BREAKING for existing data, but no
+  principle removed or redefined).
+- Banking-domain norms gain **"A credit card is its own account, not an add-on"**: `ALLOWED_CARD_KINDS`
+  becomes CHECKING/SIGHT/SAVINGS → DEBIT, CREDIT_LINE → CREDIT, PREPAID → PREPAID, INVESTMENT/CASH →
+  none. A credit card on a deposit account is refused (`CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT`), only a
+  CREDIT_LINE account may carry a credit pool or billing settings (new
+  **`CREDIT_SETTINGS_NOT_ALLOWED`**), and a type change that would strand already-issued cards is
+  refused. SAVINGS gains a DEBIT card (ATM withdrawals: BancoEstado, Coopeuch).
+- Consequences: `AddOnCardEligibility` → **`NoCreditLineEligibility`** (the add-on shape can no longer
+  exist, so the fallback strategy states that instead of testing for it); the seed models the two
+  bank-issued credit cards as their own `CREDIT_LINE` accounts, and its cash balances skip movements
+  charged to a credit line (the same rule as 1.36.0, mirrored in the fixture).
+- Known limitation this removes: there was no way to record "a payment to THIS add-on card" apart from
+  ordinary account income, so income was never subtracted from an add-on pool. With the card on its own
+  account, its statement payment is an ordinary expense on the paying account and the pool is exact.
+- Migration: none written (dev data; `pnpm db:seed` regenerates). A production dataset would need each
+  add-on CREDIT card moved to a new CREDIT_LINE account, carrying its pool, statements and movements.
+- Templates requiring updates: none.
+- Follow-up TODOs: `OVERDRAFT_LINE` (the real "línea de crédito" of a checking account) is still
+  unmodelled, and `CREDIT_LINE` keeps a name that describes it poorly — both deferred.
+-->
+
+<!--
 Sync Impact Report — 2026-08-15 (amendment 1.36.0)
 - Version change: 1.35.0 → 1.36.0 (MINOR: new enforceable rule correcting how a credit purchase
   moves cash; no principle removed or redefined).
@@ -1029,6 +1053,13 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
     (`INVALID_INITIAL_BALANCE`). The rule belongs to the account TYPE, so it is enforced once in the
     pure policies (`MovementPolicy`/`TransferPolicy`), never per channel; an edit is checked against
     the balance BEFORE its own previous charge.
+  - **A credit card is its own account, not an add-on:** a credit card MUST live on a `CREDIT_LINE`
+    account, never on a CHECKING/SIGHT/SAVINGS one. Banks sell them bundled as a "plan", but a
+    purchase on the card doesn't take money out of the deposit account: it opens revolving debt with
+    its own statement, cycle and minimum payment. Consequently only a `CREDIT_LINE` account carries a
+    credit pool and billing settings (`CREDIT_SETTINGS_NOT_ALLOWED` otherwise), and a type change MUST
+    be refused when it would strand cards already issued on the account. Cash accounts hold cash and
+    are spent with DEBIT cards — including SAVINGS, whose debit card exists to withdraw at an ATM.
   - **Which card kinds an account carries is one matrix:** the account-type ↔ card-kind
     compatibility lives in a single table in `@finance/contracts` (`ALLOWED_CARD_KINDS`), from which
     `isCardableAccountType` derives and which BOTH the API aggregate and the web forms read — never
@@ -1139,4 +1170,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.36.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15
+**Version**: 1.37.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15

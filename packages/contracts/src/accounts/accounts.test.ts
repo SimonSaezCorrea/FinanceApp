@@ -13,9 +13,8 @@ import {
  * here must be rejected — the matrix is what keeps the three products apart. */
 const VALID_PAIRS: Array<[AccountType, CardKind]> = [
   ["CHECKING", "DEBIT"],
-  ["CHECKING", "CREDIT"],
+  ["SAVINGS", "DEBIT"],
   ["SIGHT", "DEBIT"],
-  ["SIGHT", "CREDIT"],
   ["CREDIT_LINE", "CREDIT"],
   ["PREPAID", "PREPAID"],
 ];
@@ -53,12 +52,25 @@ describe("card kind ↔ account type matrix", () => {
     expect(isCardKindAllowed("PREPAID", "CREDIT")).toBe(false);
   });
 
+  it("keeps a credit card off a cash account: it is its own credit-line account", () => {
+    // A credit card doesn't spend the checking balance — it opens a debt with its
+    // own statement and cycle. The two products are never merged.
+    expect(isCardKindAllowed("CHECKING", "CREDIT")).toBe(false);
+    expect(isCardKindAllowed("SIGHT", "CREDIT")).toBe(false);
+    expect(isCardKindAllowed("SAVINGS", "CREDIT")).toBe(false);
+  });
+
+  it("gives a savings account its ATM debit card", () => {
+    expect(allowedCardKinds("SAVINGS")).toEqual(["DEBIT"]);
+  });
+
   it("treats an empty kind list as 'this account carries no cards'", () => {
-    for (const type of ["SAVINGS", "INVESTMENT", "CASH"] as AccountType[]) {
+    for (const type of ["INVESTMENT", "CASH"] as AccountType[]) {
       expect(allowedCardKinds(type)).toEqual([]);
       expect(isCardableAccountType(type)).toBe(false);
     }
     expect(isCardableAccountType("PREPAID")).toBe(true);
+    expect(isCardableAccountType("SAVINGS")).toBe(true);
   });
 });
 

@@ -55,21 +55,28 @@ export type CardKind = z.infer<typeof cardKind>;
 
 /**
  * Which payment instruments each account type may carry. An empty list means the
- * account never has a card of its own (SAVINGS/INVESTMENT/CASH: their funds move
- * by transferring into a cardable account first).
+ * account never has a card of its own (INVESTMENT/CASH: their funds move by
+ * transferring into a cardable account first).
  *
- * The three products are deliberately kept apart: a bank account (CHECKING/SIGHT)
- * is spent with a DEBIT card and may grow an add-on CREDIT one; a CREDIT_LINE is
- * only ever a credit card; and a PREPAID account — funds provisioned up front,
- * typically at a non-bank issuer — is spent ONLY with prepaid cards, which is why
- * a prepaid card can't live on a checking account nor a debit card on a prepaid one.
+ * Each product is kept apart because each holds a different kind of money:
+ *  - CHECKING/SIGHT hold cash and are spent with a DEBIT card. **A credit card is
+ *    NOT a channel onto a checking balance**: a purchase on it doesn't take money
+ *    out of the account, it opens a debt with its own statement, minimum payment
+ *    and cycle. Banks SELL them together as a "plan", but they are separate
+ *    products with separate balances — so a credit card lives on its own
+ *    `CREDIT_LINE` account here, and the payment of its statement is the
+ *    (single, real) expense that leaves the checking account.
+ *  - SAVINGS holds cash too and may carry a DEBIT card, used almost exclusively
+ *    to withdraw at an ATM (BancoEstado, Coopeuch); the withdrawal limits that
+ *    protect its interest are the bank's business, not this app's.
+ *  - PREPAID holds funds provisioned up front and is spent ONLY with prepaid cards.
  */
 export const ALLOWED_CARD_KINDS: Record<AccountType, CardKind[]> = {
-  CHECKING: ["DEBIT", "CREDIT"],
-  SIGHT: ["DEBIT", "CREDIT"],
+  CHECKING: ["DEBIT"],
+  SIGHT: ["DEBIT"],
+  SAVINGS: ["DEBIT"],
   CREDIT_LINE: ["CREDIT"],
   PREPAID: ["PREPAID"],
-  SAVINGS: [],
   INVESTMENT: [],
   CASH: [],
 };
@@ -252,8 +259,11 @@ export const createBankAccountSchema = bankAccountFieldsSchema
     message: "a prepaid account cannot start with a negative balance",
     path: ["initialBalance"],
   })
-  .refine((v) => v.type !== "PREPAID" || !hasCreditSettings(v), {
-    message: "a prepaid account has no credit line nor billing settings",
+  // A credit pool and its billing settings belong to the account that IS a credit
+  // line. No other type has one: a checking account's cash and a credit card's
+  // debt are different products (see `ALLOWED_CARD_KINDS`).
+  .refine((v) => v.type === "CREDIT_LINE" || !hasCreditSettings(v), {
+    message: "only a credit-line account has a credit line and billing settings",
     path: ["creditLimit"],
   })
   // The kinds a card may take depend on the account carrying it; the inline

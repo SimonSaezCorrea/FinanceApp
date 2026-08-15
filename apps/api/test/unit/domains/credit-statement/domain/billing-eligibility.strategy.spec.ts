@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  AddOnCardEligibility,
+  NoCreditLineEligibility,
   CreditLineEligibility,
   resolveBillingEligibility,
 } from "../../../../../src/domains/credit-statement/domain/billing-eligibility.strategy";
@@ -36,21 +36,15 @@ describe("BillingEligibilityStrategy", () => {
     });
   });
 
-  describe("AddOnCardEligibility", () => {
-    const strategy = new AddOnCardEligibility();
+  describe("NoCreditLineEligibility", () => {
+    const strategy = new NoCreditLineEligibility();
 
     it("applies as the fallback for any account shape", () => {
       expect(strategy.applies()).toBe(true);
     });
 
-    it("eligible if ACTIVE + at least one active CREDIT card (primary or not)", () => {
-      const ctx = {
-        accountType: "CHECKING",
-        accountStatus: "ACTIVE" as const,
-        cards: [{ kind: "CREDIT", isPrimary: false, isActive: true }],
-      };
-      expect(strategy.evaluate(ctx)).toBe(true);
-      expect(strategy.evaluate({ ...ctx, accountStatus: "INACTIVE" })).toBe(false);
+    it("is never eligible: a cash account carries no credit card to bill", () => {
+      expect(strategy.evaluate()).toBe(false);
     });
   });
 
@@ -65,14 +59,14 @@ describe("BillingEligibilityStrategy", () => {
       ).toBe(true);
     });
 
-    it("picks AddOnCardEligibility for any other account type", () => {
+    it("never bills a checking account, which can no longer carry a credit card", () => {
       expect(
         resolveBillingEligibility({
           accountType: "CHECKING",
           accountStatus: "ACTIVE",
-          cards: [{ kind: "CREDIT", isPrimary: false, isActive: true }],
+          cards: [{ kind: "DEBIT", isPrimary: false, isActive: true }],
         }),
-      ).toBe(true);
+      ).toBe(false);
     });
 
     it("is never eligible for a prepaid account: it has no credit line to bill", () => {

@@ -34,17 +34,21 @@ export class CreditLineEligibility implements BillingEligibilityStrategy {
   }
 }
 
-/** Any other cardable account that has grown an add-on CREDIT card: eligible
- * if the account is ACTIVE and it has at least one active CREDIT card
- * (primary or not). */
-export class AddOnCardEligibility implements BillingEligibilityStrategy {
+/**
+ * Every other account type: never eligible, because it holds cash (or provisioned
+ * funds) and carries no CREDIT card — a credit card is its own `CREDIT_LINE`
+ * account, not an add-on to a checking one (`ALLOWED_CARD_KINDS`). Kept as an
+ * explicit strategy rather than a `return false` fallback so the reason is
+ * stated where the decision is made, and so a future credit-bearing shape is
+ * added as a new strategy instead of an `if`.
+ */
+export class NoCreditLineEligibility implements BillingEligibilityStrategy {
   applies(): boolean {
     return true; // fallback for every non-CREDIT_LINE account
   }
 
-  evaluate(context: EligibilityContext): boolean {
-    if (context.accountStatus !== "ACTIVE") return false;
-    return context.cards.some((c) => c.kind === "CREDIT" && c.isActive);
+  evaluate(): boolean {
+    return false;
   }
 }
 
@@ -53,7 +57,7 @@ export class AddOnCardEligibility implements BillingEligibilityStrategy {
 export function resolveBillingEligibility(context: EligibilityContext): boolean {
   const strategies: BillingEligibilityStrategy[] = [
     new CreditLineEligibility(),
-    new AddOnCardEligibility(),
+    new NoCreditLineEligibility(),
   ];
   const strategy = strategies.find((s) => s.applies(context));
   return strategy ? strategy.evaluate(context) : false;

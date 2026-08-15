@@ -58,12 +58,17 @@ async function seedFullUser(passwordHash: string) {
   // per-country code space, so one lookup serves both.
   const issuerId = (code: string) => clBanks.find((b) => b.code === code)?.id ?? null;
 
-  type AcctKey = "checking" | "sight" | "credit" | "cash" | "prepaid";
+  type AcctKey = "checking" | "sight" | "credit" | "creditBch" | "creditVista" | "cash" | "prepaid";
+  /** Accounts that ARE a credit line: their movements are charged to the pool and
+   * move no cash (the statement payment is what leaves the paying account). */
+  const CREDIT_LINE_ACCTS: AcctKey[] = ["credit", "creditBch", "creditVista"];
   const initial: Record<AcctKey, number> = {
     checking: 2_800_000,
     prepaid: 120_000,
     sight: 350_000,
     credit: 0,
+    creditBch: 0,
+    creditVista: 0,
     cash: 85_000,
   };
 
@@ -1143,7 +1148,7 @@ async function seedFullUser(passwordHash: string) {
     },
     // ===== Add-on credit card on the checking account (billing history) =====
     {
-      acct: "checking",
+      acct: "creditBch",
       card: "creditBch",
       type: "EXPENSE",
       amount: 129_990,
@@ -1152,7 +1157,7 @@ async function seedFullUser(passwordHash: string) {
       description: "Audífonos · Falabella",
     },
     {
-      acct: "checking",
+      acct: "creditBch",
       card: "creditBch",
       type: "EXPENSE",
       amount: 58_400,
@@ -1161,7 +1166,7 @@ async function seedFullUser(passwordHash: string) {
       description: "Cena aniversario",
     },
     {
-      acct: "checking",
+      acct: "creditBch",
       card: "creditBch",
       type: "EXPENSE",
       amount: 213_500,
@@ -1170,7 +1175,7 @@ async function seedFullUser(passwordHash: string) {
       description: "Exámenes médicos · Clínica Alemana",
     },
     {
-      acct: "checking",
+      acct: "creditBch",
       card: "creditBch",
       type: "EXPENSE",
       amount: 76_800,
@@ -1179,7 +1184,7 @@ async function seedFullUser(passwordHash: string) {
       description: "Ropa · H&M",
     },
     {
-      acct: "checking",
+      acct: "creditBch",
       card: "creditBch",
       type: "EXPENSE",
       amount: 44_900,
@@ -1188,7 +1193,7 @@ async function seedFullUser(passwordHash: string) {
       description: "Steam · videojuegos",
     },
     {
-      acct: "checking",
+      acct: "creditBch",
       card: "creditBch",
       type: "EXPENSE",
       amount: 91_200,
@@ -1198,7 +1203,7 @@ async function seedFullUser(passwordHash: string) {
     },
     // ==================== Late July 2026 ====================
     {
-      acct: "checking",
+      acct: "creditBch",
       card: "creditBch",
       type: "EXPENSE",
       amount: 89_900,
@@ -1216,7 +1221,7 @@ async function seedFullUser(passwordHash: string) {
       description: "Líder Kennedy · Camila",
     },
     {
-      acct: "sight",
+      acct: "creditVista",
       card: "creditVista",
       type: "EXPENSE",
       amount: 34_500,
@@ -1251,7 +1256,7 @@ async function seedFullUser(passwordHash: string) {
       description: "Arriendo julio",
     },
     {
-      acct: "checking",
+      acct: "creditBch",
       card: "creditBch",
       type: "EXPENSE",
       amount: 41_990,
@@ -1328,7 +1333,7 @@ async function seedFullUser(passwordHash: string) {
       description: "Internet · VTR",
     },
     {
-      acct: "checking",
+      acct: "creditBch",
       card: "creditBch",
       type: "EXPENSE",
       amount: 74_500,
@@ -1346,7 +1351,7 @@ async function seedFullUser(passwordHash: string) {
       description: "Bencina · Copec",
     },
     {
-      acct: "sight",
+      acct: "creditVista",
       card: "creditVista",
       type: "EXPENSE",
       amount: 27_900,
@@ -1381,7 +1386,7 @@ async function seedFullUser(passwordHash: string) {
       description: "Feria libre",
     },
     {
-      acct: "checking",
+      acct: "creditBch",
       card: "creditBch",
       type: "EXPENSE",
       amount: 118_000,
@@ -1425,7 +1430,7 @@ async function seedFullUser(passwordHash: string) {
       description: "Proyecto freelance",
     },
     {
-      acct: "sight",
+      acct: "creditVista",
       card: "creditVista",
       type: "EXPENSE",
       amount: 63_200,
@@ -1452,7 +1457,7 @@ async function seedFullUser(passwordHash: string) {
       description: "Sushi Providencia",
     },
     {
-      acct: "checking",
+      acct: "creditBch",
       card: "creditBch",
       type: "EXPENSE",
       amount: 55_300,
@@ -1529,8 +1534,21 @@ async function seedFullUser(passwordHash: string) {
   ];
 
   // Net movement per account → reconciled currentBalance.
-  const net: Record<AcctKey, number> = { checking: 0, sight: 0, credit: 0, cash: 0, prepaid: 0 };
-  for (const t of TX) net[t.acct] += t.type === "INCOME" ? t.amount : -t.amount;
+  const net: Record<AcctKey, number> = {
+    checking: 0,
+    sight: 0,
+    credit: 0,
+    creditBch: 0,
+    creditVista: 0,
+    cash: 0,
+    prepaid: 0,
+  };
+  // A purchase on a credit line moves no cash: it raises the pool, and the money
+  // leaves once, when the statement is paid (`paidFromOutflow` below).
+  for (const t of TX) {
+    if (CREDIT_LINE_ACCTS.includes(t.acct)) continue;
+    net[t.acct] += t.type === "INCOME" ? t.amount : -t.amount;
+  }
 
   const mkAccount = (key: AcctKey, data: Prisma.BankAccountUncheckedCreateInput) =>
     prisma.bankAccount.create({
@@ -1549,11 +1567,6 @@ async function seedFullUser(passwordHash: string) {
     institution: "Banco de Chile",
     institutionId: bankId("001"),
     accountNumber: "001-2345678-90",
-    // Add-on credit line the bank granted on this checking account (its primary
-    // CREDIT card below mirrors this pool). Not a CREDIT_LINE account: it also
-    // holds real money and debit cards.
-    creditLimit: dec("1500000.0000"),
-    creditUsedInitial: dec("0"),
     initialBalance: dec("0"),
     currentBalance: dec("0"),
   });
@@ -1565,10 +1578,6 @@ async function seedFullUser(passwordHash: string) {
     institution: "BancoEstado",
     institutionId: bankId("012"),
     accountNumber: "22345678", // Cuenta RUT ≈ RUT sin dígito verificador
-    // Small add-on credit line — deliberately left WITHOUT billing settings below,
-    // so the "falta configurar la facturación" warning is visible somewhere.
-    creditLimit: dec("800000.0000"),
-    creditUsedInitial: dec("0"),
     initialBalance: dec("0"),
     currentBalance: dec("0"),
   });
@@ -1584,6 +1593,29 @@ async function seedFullUser(passwordHash: string) {
     creditUsedInitial: dec("0"),
     initialBalance: dec("0"),
     currentBalance: dec("0"),
+  });
+  // A credit card the bank sells alongside a checking/sight account is still its
+  // OWN product: its debt has a statement and a cycle of its own and never touches
+  // that account's cash, so it is modelled as a credit-line account, not an add-on.
+  const creditBch = await mkAccount("creditBch", {
+    userId: javier.id,
+    name: "Banco de Chile · Visa Crédito",
+    type: "CREDIT_LINE",
+    currency: "CLP",
+    institution: "Banco de Chile",
+    institutionId: bankId("001"),
+    creditLimit: dec("1500000.0000"),
+    creditUsedInitial: dec("0"),
+  });
+  const creditVista = await mkAccount("creditVista", {
+    userId: javier.id,
+    name: "BancoEstado · Mastercard Crédito",
+    type: "CREDIT_LINE",
+    currency: "CLP",
+    institution: "BancoEstado",
+    institutionId: bankId("012"),
+    creditLimit: dec("800000.0000"),
+    creditUsedInitial: dec("0"),
   });
   const cash = await mkAccount("cash", {
     userId: javier.id,
@@ -1636,6 +1668,8 @@ async function seedFullUser(passwordHash: string) {
     checking: checking.id,
     sight: sight.id,
     credit: credit.id,
+    creditBch: creditBch.id,
+    creditVista: creditVista.id,
     cash: cash.id,
     prepaid: prepaid.id,
   };
@@ -1711,11 +1745,11 @@ async function seedFullUser(passwordHash: string) {
       expiryYear: 2029,
     },
   });
-  // Add-on CREDIT card on the checking account: it's that account's FIRST credit
-  // card, so it's the primary one and its limit IS checking.creditLimit (no CardLimit row).
+  // The card of the Banco de Chile credit line: its FIRST credit card, so primary,
+  // and its limit IS that account's creditLimit (no CardLimit row).
   const creditCardBch = await prisma.cardAccount.create({
     data: {
-      accountId: checking.id,
+      accountId: creditBch.id,
       userId: javier.id,
       name: "Visa Crédito",
       kind: "CREDIT",
@@ -1725,7 +1759,7 @@ async function seedFullUser(passwordHash: string) {
       isPrimary: true,
     },
   });
-  // Cuenta Vista: one debit + one add-on credit card (the simpler mixed account).
+  // Cuenta Vista: debit only — its credit card lives on its own credit line.
   const debitCardVista = await prisma.cardAccount.create({
     data: {
       accountId: sight.id,
@@ -1739,7 +1773,7 @@ async function seedFullUser(passwordHash: string) {
   });
   const creditCardVista = await prisma.cardAccount.create({
     data: {
-      accountId: sight.id,
+      accountId: creditVista.id,
       userId: javier.id,
       name: "Mastercard Crédito",
       kind: "CREDIT",
@@ -1868,20 +1902,20 @@ async function seedFullUser(passwordHash: string) {
       payFromAccountId: checking.id,
     },
     {
-      accountId: checking.id,
+      accountId: creditBch.id,
       billingCycleDay: 5,
-      wholeAccount: false,
+      wholeAccount: true,
       poolCardIds: [creditCardBch.id],
       payFromAccountId: checking.id,
     },
     {
       // Deliberately unconfigured: no billing day → nothing is ever generated,
       // the account only carries a permanently OPEN period.
-      accountId: sight.id,
+      accountId: creditVista.id,
       billingCycleDay: null,
-      wholeAccount: false,
+      wholeAccount: true,
       poolCardIds: [creditCardVista.id],
-      payFromAccountId: checking.id,
+      payFromAccountId: sight.id,
     },
   ];
 

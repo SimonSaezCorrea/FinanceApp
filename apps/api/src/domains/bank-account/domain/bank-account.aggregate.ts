@@ -10,6 +10,7 @@ import {
   CardLimitRequiredError,
   CardNotFoundError,
   CardSubLimitExceedsAccountError,
+  CreditSettingsNotAllowedError,
   InvalidInitialBalanceError,
 } from "./errors";
 
@@ -287,6 +288,28 @@ export class BankAccount {
     if (toMoney(initialBalance).isNegative()) throw new InvalidInitialBalanceError();
   }
 
+  /** Only a credit line carries a credit pool and billing settings: a checking
+   * account's cash and a credit card's revolving debt are separate products, so
+   * the pool belongs to the CREDIT_LINE account the card lives on. Zero/absent
+   * figures are not "settings" — they're what every other account already has. */
+  private static assertCreditSettings(
+    type: accounts.AccountType,
+    patch: {
+      creditLimit?: string;
+      creditUsedInitial?: string;
+      billingCycleDay?: number | null;
+      minimumPaymentPercent?: string | null;
+    },
+  ): void {
+    if (type === "CREDIT_LINE") return;
+    const configured =
+      isNonZero(patch.creditLimit) ||
+      isNonZero(patch.creditUsedInitial) ||
+      patch.billingCycleDay != null ||
+      patch.minimumPaymentPercent != null;
+    if (configured) throw new CreditSettingsNotAllowedError();
+  }
+
   /** Apply a partial update to the account's own scalar fields — validates the
    * ACCOUNT_NUMBER_REQUIRED invariant against the *effective* (patched) type. */
   applyUpdate(patch: {
@@ -313,7 +336,15 @@ export class BankAccount {
     if (changesType && (effectiveType === "PREPAID" || this.props.type === "PREPAID")) {
       throw new AccountTypeChangeNotAllowedError();
     }
+    // Changing the type must not strand the cards already issued on the account
+    // (a credit card on a checking account is exactly what the matrix forbids).
+    if (changesType) {
+      for (const card of this.props.cards) {
+        BankAccount.assertCardKindAllowedFor(effectiveType, card.kind);
+      }
+    }
     BankAccount.assertInitialBalance(effectiveType, patch.initialBalance);
+    BankAccount.assertCreditSettings(effectiveType, patch);
     this.assertAccountNumber(effectiveType, effectiveAccountNumber);
     if (patch.name !== undefined) this.props.name = patch.name;
     if (patch.type !== undefined) this.props.type = patch.type;
@@ -429,4 +460,9 @@ export class BankAccount {
     if (!card) throw new CardNotFoundError();
     return card;
   }
+}
+
+/** A money string that actually configures something (absent or 0 does not). */
+function isNonZero(value: string | undefined): boolean {
+  return value != null && !toMoney(value).isZero();
 }

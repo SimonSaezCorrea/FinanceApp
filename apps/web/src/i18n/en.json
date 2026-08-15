@@ -829,6 +829,7 @@
     "ATTACHMENTS_UNAVAILABLE": "Receipt storage isn't configured.",
     "ATTACHMENT_NOT_FOUND": "Receipt not found.",
     "CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT": "That card kind doesn't belong on this account type.",
+    "CREDIT_SETTINGS_NOT_ALLOWED": "Only a credit-line account has a credit line and billing settings.",
     "ACCOUNT_TYPE_CHANGE_NOT_ALLOWED": "A prepaid account can't be converted to another type (or the other way round).",
     "INVALID_INITIAL_BALANCE": "The initial balance can't be negative."
   }

@@ -305,6 +305,25 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     account — there's a **"Tenpo Prepago"** `PREPAID` account with two prepaid cards sharing its
     balance, movements with and without a card, and a top-up recorded as a real transfer.
     `docs/PENDING.md` lost its point 6 (the un-revertable card top-up), which this design removes.
+  - **La tarjeta de crédito es su propia cuenta (2026-08-15, breaking, sin spec):** `ALLOWED_CARD_KINDS`
+    pasa a **CHECKING/SIGHT/SAVINGS → DEBIT, CREDIT_LINE → CREDIT, PREPAID → PREPAID,
+    INVESTMENT/CASH → ninguna**. Ya no existe la "tarjeta de crédito add-on" sobre una cuenta corriente
+    o vista: el banco las vende juntas, pero la compra no saca plata de la cuenta — abre deuda rotativa
+    con su propio estado de cuenta, ciclo y pago mínimo, así que vive en su cuenta `CREDIT_LINE`.
+    Consecuencias: **solo** una `CREDIT_LINE` puede tener cupo/facturación (nuevo error
+    **`CREDIT_SETTINGS_NOT_ALLOWED`**, refine en `createBankAccountSchema` + `assertCreditSettings` en el
+    agregado), cambiar el `type` se rechaza si dejaría tarjetas huérfanas (`applyUpdate` revalida las
+    tarjetas existentes contra la matriz), y `SAVINGS` gana tarjeta `DEBIT` (giro en cajero:
+    BancoEstado, Coopeuch). `AddOnCardEligibility` pasó a **`NoCreditLineEligibility`** (la forma add-on
+    ya no puede existir; la strategy lo dice en vez de testearlo). El seed modela las dos tarjetas de
+    crédito bancarias como cuentas `CREDIT_LINE` propias ("Banco de Chile · Visa Crédito",
+    "BancoEstado · Mastercard Crédito") y sus saldos de caja saltan los movimientos cargados a crédito.
+    **Esto elimina la limitación documentada** de que no se podía registrar "un pago a esta tarjeta
+    add-on" aparte del ingreso normal de la cuenta: ahora el pago de su facturación es un gasto común
+    sobre la cuenta que paga. **Sin migración** (data de dev; `pnpm db:seed` la regenera): en producción
+    habría que mover cada tarjeta CREDIT a una cuenta nueva con su cupo, facturaciones y movimientos.
+    Pendiente y no modelado: `OVERDRAFT_LINE` (la línea de sobregiro real de una cuenta corriente), y
+    `CREDIT_LINE` conserva un nombre que la describe mal.
   - **Cash vs. credit (2026-08-15, fix sin spec):** un movimiento cargado a una línea de crédito
     (cualquiera sobre una cuenta `CREDIT_LINE`, o hecho con una tarjeta `CREDIT` sobre cualquier
     cuenta) **no mueve `currentBalance`** — sube `creditUsed`, y la plata sale una sola vez, después,

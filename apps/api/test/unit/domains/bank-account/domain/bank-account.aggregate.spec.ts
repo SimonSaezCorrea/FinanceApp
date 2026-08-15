@@ -204,10 +204,27 @@ describe("BankAccount aggregate", () => {
   });
 
   it("still answers ACCOUNT_CANNOT_HAVE_CARD for a type that carries no cards at all", () => {
-    const savings = BankAccount.fromPersistence(baseProps({ type: "SAVINGS" }));
-    expect(() => savings.resolveCardPlacement(prepaidCardInput, null)).toThrow(
+    const investment = BankAccount.fromPersistence(baseProps({ type: "INVESTMENT" }));
+    expect(() => investment.resolveCardPlacement(prepaidCardInput, null)).toThrow(
       AccountCannotHaveCardError,
     );
+  });
+
+  it("gives a savings account its ATM debit card, and nothing else", () => {
+    const savings = BankAccount.fromPersistence(baseProps({ type: "SAVINGS" }));
+    expect(() =>
+      savings.resolveCardPlacement({ ...prepaidCardInput, kind: "DEBIT" }, null),
+    ).not.toThrow();
+    expect(() =>
+      savings.resolveCardPlacement({ ...prepaidCardInput, kind: "CREDIT" }, null),
+    ).toThrow(CardKindNotAllowedError);
+  });
+
+  it("refuses a credit card on a checking account: it is its own credit-line account", () => {
+    const checking2 = BankAccount.fromPersistence(baseProps({ type: "CHECKING" }));
+    expect(() =>
+      checking2.resolveCardPlacement({ ...prepaidCardInput, kind: "CREDIT" }, null),
+    ).toThrow(CardKindNotAllowedError);
   });
 
   it("planCreation applies the same matrix to inline cards[]", () => {
