@@ -106,3 +106,12 @@ export class InvalidAccountAliasError extends DomainError {
     super("INVALID_ACCOUNT_ALIAS", 400, "accountAlias");
   }
 }
+
+/** Deleting the account that holds physical cash would leave the user with nowhere
+ * to record what they paid in notes and coins — the one account every person has
+ * whether the app models it or not. Every user keeps at least one. */
+export class CashAccountRequiredError extends DomainError {
+  constructor() {
+    super("CASH_ACCOUNT_REQUIRED", 409, "type");
+  }
+}

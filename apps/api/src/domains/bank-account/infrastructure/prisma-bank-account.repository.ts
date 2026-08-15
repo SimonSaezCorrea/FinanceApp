@@ -1,5 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 
+import type { accounts } from "@finance/contracts";
+
 import { PrismaService } from "../../../infra/prisma/prisma.service";
 import {
   BILLING_SETTINGS_REPOSITORY,
@@ -127,6 +129,10 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     if (accountIds.length === 0) return [];
     const rows = await this.prisma.bankAccount.findMany({ where: { id: { in: accountIds } } });
     return this.hydrate(rows);
+  }
+
+  countByType(userId: string, type: accounts.AccountType): Promise<number> {
+    return this.prisma.bankAccount.count({ where: { userId, type } });
   }
 
   institutionName(id: string): Promise<string | null> {

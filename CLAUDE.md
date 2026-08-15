@@ -305,6 +305,16 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     account — there's a **"Tenpo Prepago"** `PREPAID` account with two prepaid cards sharing its
     balance, movements with and without a card, and a top-up recorded as a real transfer.
     `docs/PENDING.md` lost its point 6 (the un-revertable card top-up), which this design removes.
+  - **La cuenta de efectivo siempre existe (2026-08-15):** el efectivo es la única cuenta que existe
+    la modele la app o no — los billetes en la billetera. Por eso **se crea junto con el usuario**
+    (`RegisterHandler.createCashAccount`, nombre "Efectivo", CLP, saldo 0: se puede registrar un gasto
+    en efectivo el día uno sin inventar una cuenta antes) y **la última no se puede eliminar**
+    (`CASH_ACCOUNT_REQUIRED`, 409, en `RemoveAccountHandler` vía
+    `BankAccountRepositoryPort.countByType`). Una SEGUNDA cuenta de efectivo (una caja en casa, otra
+    billetera) sí se puede borrar: la garantía es que siempre quede una, no que el tipo sea intocable.
+    La regla se decide en el contrato (`accounts.isDeletableAccount(type, cashAccountCount)`) para que
+    la UI y el API digan lo mismo: `AccountEditPanel` no renderiza su danger zone y
+    `AccountDetailRoute` oculta el botón, en vez de ofrecer una acción que va a fallar.
   - **Cargo financiero, techo de saldo y deuda en el patrimonio (2026-08-15):** tres huecos que
     encontró una revisión externa. (1) **`Transaction.financeCharge`**: un cobro del EMISOR sobre la
     cuenta de crédito (intereses del rotativo, comisión de mantención, seguro). Antes era IMPOSIBLE

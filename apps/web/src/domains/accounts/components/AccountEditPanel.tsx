@@ -12,7 +12,9 @@ import { Button } from "../../../shared/ui/button";
 import { ActiveToggle } from "../../../shared/ui/active-toggle";
 import { ConfirmModal, SidePanel } from "../../../shared/ui/overlay";
 import { UnsavedIndicator } from "../../../shared/ui/unsaved-indicator";
-import { useAccountMutations } from "../hooks/useAccounts";
+import { accounts as accountsContract } from "@finance/contracts";
+
+import { useAccountMutations, useAccounts } from "../hooks/useAccounts";
 import { AccountForm } from "./AccountForm";
 
 /** Ties the panel footer's submit button to the form it lives outside of. */
@@ -49,6 +51,13 @@ export function AccountEditPanel({
   // its CBU/alias fields, instead of silently offering Chilean banks.
   const { data: allInstitutions } = useInstitutions();
   const { data: countries } = useCountries();
+  // Deleting the last cash account is refused by the API; the button says so by
+  // not being there, instead of failing when pressed.
+  const { data: allAccounts } = useAccounts();
+  const deletable = accountsContract.isDeletableAccount(
+    account.type,
+    (allAccounts ?? []).filter((a) => a.type === "CASH").length,
+  );
   const accountCountry =
     countries?.find(
       (c) => c.id === allInstitutions?.find((i) => i.id === account.institutionId)?.countryId,
@@ -137,16 +146,18 @@ export function AccountEditPanel({
           status={status}
           onStatusChange={setStatus}
           dangerZone={
-            <Button
-              type="button"
-              variant="outline"
-              disabled={remove.isPending}
-              onClick={() => setConfirmDelete(true)}
-              className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" aria-hidden />
-              {t("accounts.edit.deleteAccount")}
-            </Button>
+            !deletable ? null : (
+              <Button
+                type="button"
+                variant="outline"
+                disabled={remove.isPending}
+                onClick={() => setConfirmDelete(true)}
+                className="w-full border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4" aria-hidden />
+                {t("accounts.edit.deleteAccount")}
+              </Button>
+            )
           }
           initial={{
             name: account.name,

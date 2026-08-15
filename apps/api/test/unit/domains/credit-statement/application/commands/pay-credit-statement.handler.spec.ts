@@ -76,6 +76,7 @@ function fakeAccountRepo(
     listDueForBilling: vi.fn(),
     institutionName: vi.fn(),
     institutionCountry: vi.fn(async () => null),
+    countByType: vi.fn(async () => 2),
     createWithCards: vi.fn(),
     save: vi.fn(),
     saveWithTx: vi.fn(),

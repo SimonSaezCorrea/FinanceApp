@@ -49,6 +49,9 @@ export interface BankAccountRepositoryPort {
   /** System-wide: every account (any user) with a billing day configured — the
    * cron's universe, not a per-request scoped query. */
   listDueForBilling(): Promise<BankAccount[]>;
+  /** How many accounts of a type the user holds — the cash one is guaranteed to
+   * exist, so removing the last of them is refused. */
+  countByType(userId: string, type: accounts.AccountType): Promise<number>;
   institutionName(id: string): Promise<string | null>;
   /** ISO alpha-2 of the institution's country — decides the account-number format. */
   institutionCountry(id: string): Promise<string | null>;

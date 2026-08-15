@@ -42,6 +42,15 @@ export function institutionKindForAccountType(type: AccountType): InstitutionKin
   return bankOnlyTypes.includes(type) ? "BANK" : undefined;
 }
 
+/**
+ * Cash is the one account that exists whether or not an app models it — the notes
+ * in a wallet. Every user keeps at least one, so the LAST cash account can't be
+ * deleted (`CASH_ACCOUNT_REQUIRED`); a second one (a stash at home) still can.
+ */
+export function isDeletableAccount(type: AccountType, cashAccountCount: number): boolean {
+  return type !== "CASH" || cashAccountCount > 1;
+}
+
 export const accountStatus = z.enum(["ACTIVE", "INACTIVE"]);
 export type AccountStatus = z.infer<typeof accountStatus>;
 

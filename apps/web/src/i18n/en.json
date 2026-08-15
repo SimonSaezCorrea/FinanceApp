@@ -865,6 +865,7 @@
     "ATTACHMENT_NOT_FOUND": "Receipt not found.",
     "CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT": "That card kind doesn't belong on this account type.",
     "CREDIT_SETTINGS_NOT_ALLOWED": "Only a credit-line account has a credit line and billing settings.",
+    "CASH_ACCOUNT_REQUIRED": "One cash account must always remain: the last one can't be deleted.",
     "ACCOUNT_TYPE_CHANGE_NOT_ALLOWED": "A prepaid account can't be converted to another type (or the other way round).",
     "INVALID_ACCOUNT_NUMBER": "That account number doesn't match the country's format.",
     "INVALID_ACCOUNT_ALIAS": "That transfer alias isn't valid.",

@@ -3,6 +3,7 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
+import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
 import { CountryDataModule } from "../country/country.data.module";
 import { ChangePasswordHandler } from "./application/commands/change-password.handler";
 import { DeactivateAccountHandler } from "./application/commands/deactivate-account.handler";
@@ -30,7 +31,8 @@ const commandHandlers = [
 const queryHandlers = [GetMeQueryHandler];
 
 @Module({
-  imports: [CqrsModule, JwtModule.register({}), CountryDataModule],
+  // Registration creates the user's cash account, so it needs that table's port.
+  imports: [CqrsModule, JwtModule.register({}), CountryDataModule, BankAccountDataModule],
   controllers: [AuthController],
   providers: [
     ...commandHandlers,

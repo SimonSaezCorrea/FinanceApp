@@ -2,6 +2,7 @@ import { hash } from "bcryptjs";
 import { describe, expect, it, vi } from "vitest";
 
 import { RegisterHandler } from "../../../../../../src/domains/user/application/commands/register.handler";
+import { fakeBankAccountRepo } from "../../../../support/fake-ports";
 import { RegisterCommand } from "../../../../../../src/domains/user/application/commands/register.command";
 import { TokenIssuer } from "../../../../../../src/domains/user/application/token-issuer";
 import { EmailTakenError } from "../../../../../../src/domains/user/domain/errors";
@@ -62,7 +63,8 @@ describe("RegisterHandler", () => {
     const create = vi.fn().mockResolvedValue(User.fromPersistence(baseProps()));
     const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(null), create });
     const tokenIssuer = fakeTokenIssuer();
-    const handler = new RegisterHandler({ publish: vi.fn() } as never, repo, tokenIssuer);
+    const accounts = fakeBankAccountRepo({ createWithCards: vi.fn() });
+    const handler = new RegisterHandler({ publish: vi.fn() } as never, repo, accounts, tokenIssuer);
 
     const result = await handler.execute(
       new RegisterCommand({ email: "A@B.com", password: "password123" }),
@@ -74,13 +76,22 @@ describe("RegisterHandler", () => {
     expect(arg.email).toBe("a@b.com");
     expect(arg.passwordHash).not.toBe("password123");
     expect(await hash("password123", 1)).not.toBe(arg.passwordHash); // different salt, still a bcrypt hash
+    // Cash is the account everyone already has: a new user starts with it, so a
+    // cash expense can be recorded on day one without inventing an account first.
+    const cash = (accounts.createWithCards as ReturnType<typeof vi.fn>).mock.calls[0]![1];
+    expect(cash).toMatchObject({ type: "CASH", name: "Efectivo" });
   });
 
   it("throws EMAIL_TAKEN when the email already exists", async () => {
     const repo = fakeRepo({
       findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
     });
-    const handler = new RegisterHandler({ publish: vi.fn() } as never, repo, fakeTokenIssuer());
+    const handler = new RegisterHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeBankAccountRepo(),
+      fakeTokenIssuer(),
+    );
 
     await expect(
       handler.execute(new RegisterCommand({ email: "a@b.com", password: "password123" })),

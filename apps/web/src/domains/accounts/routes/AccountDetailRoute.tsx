@@ -36,7 +36,7 @@ import { CardDetailPanel } from "../components/CardDetailPanel";
 import { CardDetailSurface } from "../components/CardDetailSurface";
 import { CardForm } from "../components/CardForm";
 import { ACCOUNT_ICON } from "../components/accountVisuals";
-import { useAccount, useAccountMutations } from "../hooks/useAccounts";
+import { useAccount, useAccountMutations, useAccounts } from "../hooks/useAccounts";
 import { useCardMutations } from "../hooks/useCards";
 
 export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boolean }>) {
@@ -52,6 +52,8 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
   const [cardFilter, setCardFilter] = useState("");
   const [tab, setTab] = useState<"movements" | "billing" | "cards">("movements");
   const { data: acc, isLoading, isError } = useAccount(id);
+  // Only to know whether this is the user's last cash account (see `deletable`).
+  const { data: allAccounts } = useAccounts();
   const { setStatus, remove } = useAccountMutations();
   // Whether there's room for the cards aside is a question about THIS view's
   // width, not the window's: the collapsible sidebar changes it without the
@@ -82,6 +84,10 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
   const pct = acc.balanceChangePct === null ? null : Number(acc.balanceChangePct);
   const hasCreditPool = acc.type === "CREDIT_CARD" || acc.cards.some((c) => c.kind === "CREDIT");
   const cardable = accountsContract.isCardableAccountType(acc.type);
+  const deletable = accountsContract.isDeletableAccount(
+    acc.type,
+    (allAccounts ?? []).filter((a) => a.type === "CASH").length,
+  );
   const tabItems = [
     { value: "movements" as const, label: t("transactions.title") },
     ...(hasCreditPool
@@ -205,10 +211,15 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
                   ? t("accounts.actions.deactivate")
                   : t("accounts.actions.activate")}
               </Button>
+              {/* The last cash account can't be deleted (the API refuses it), so the
+                  action isn't offered rather than offered and then failing. */}
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className={cn(
+                  "text-destructive hover:bg-destructive/10 hover:text-destructive",
+                  !deletable && "hidden",
+                )}
                 disabled={remove.isPending}
                 onClick={() => setConfirmDelete(true)}
               >

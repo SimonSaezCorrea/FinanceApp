@@ -1,4 +1,16 @@
 <!--
+Sync Impact Report — 2026-08-15 (amendment 1.43.0)
+- Version change: 1.42.0 → 1.43.0 (MINOR: new enforceable rule; no principle removed or redefined).
+- Banking-domain norms gain **"Cash is not optional"**: registration creates the user's cash account
+  and the LAST one cannot be deleted (`CASH_ACCOUNT_REQUIRED`, via `countByType`). A second cash
+  account is still deletable. The rule is decided once in the contract (`isDeletableAccount`) so the
+  UI hides the action the API would refuse instead of offering it and failing.
+- `RegisterHandler` now composes `BankAccountDataModule` — the first cross-domain write at
+  registration, and the reason `user.module.ts` imports that leaf.
+- Templates requiring updates: none.
+-->
+
+<!--
 Sync Impact Report — 2026-08-15 (amendment 1.42.0)
 - Version change: 1.41.0 → 1.42.0 (MINOR: three new enforceable rules from an external review of the
   domain; no principle removed or redefined).
@@ -1191,6 +1203,11 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
   - **A financial product is not a setting:** an account's `type` MUST NOT be convertible to or from
     `PREPAID` (`ACCOUNT_TYPE_CHANGE_NOT_ALLOWED`). Correcting a mistyped account means deleting and
     recreating it, not migrating cards, a credit pool and billing periods across products.
+  - **Cash is not optional:** the notes in a wallet exist whether or not an app models them, so every
+    user is created WITH a cash account and can never be left without one
+    (`CASH_ACCOUNT_REQUIRED`) — a second cash account may still be deleted, since the guarantee is
+    that one remains, not that the type is untouchable. An action the API refuses MUST NOT be offered
+    by the UI: the rule lives in the contract (`isDeletableAccount`) and both read it.
   - **The app records charges, it never computes them:** interest on a revolved balance, an annual
     fee or insurance are charges the ISSUER applies to the credit account itself. They MUST be
     recordable (`Transaction.financeCharge`: EXPENSE, no card, feeds the pool) precisely so this
@@ -1320,4 +1337,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.42.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15
+**Version**: 1.43.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15

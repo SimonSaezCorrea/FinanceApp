@@ -5,6 +5,7 @@ import {
   createBankAccountSchema,
   isCardKindAllowed,
   isCardableAccountType,
+  isDeletableAccount,
   type AccountType,
   type CardKind,
 } from "./index";
@@ -133,5 +134,29 @@ describe("createBankAccountSchema — prepaid account", () => {
         cards: [{ ...card, kind: "PREPAID" }],
       }).success,
     ).toBe(false);
+  });
+});
+
+describe("isDeletableAccount", () => {
+  it("refuses to delete the only cash account", () => {
+    // Cash exists whether or not the app models it: a user without one has nowhere
+    // to record what they paid in notes.
+    expect(isDeletableAccount("CASH", 1)).toBe(false);
+  });
+
+  it("allows deleting a second cash account (a wallet, a stash at home)", () => {
+    expect(isDeletableAccount("CASH", 2)).toBe(true);
+  });
+
+  it("never blocks any other account type", () => {
+    for (const type of [
+      "CHECKING",
+      "SIGHT",
+      "SAVINGS",
+      "CREDIT_CARD",
+      "PREPAID",
+    ] as AccountType[]) {
+      expect(isDeletableAccount(type, 1)).toBe(true);
+    }
   });
 });

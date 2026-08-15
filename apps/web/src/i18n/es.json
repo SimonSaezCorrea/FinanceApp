@@ -865,6 +865,7 @@
     "ATTACHMENT_NOT_FOUND": "No se encontró el comprobante.",
     "CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT": "Ese tipo de tarjeta no corresponde a este tipo de cuenta.",
     "CREDIT_SETTINGS_NOT_ALLOWED": "Solo una cuenta de línea de crédito tiene cupo y facturación.",
+    "CASH_ACCOUNT_REQUIRED": "Siempre debe quedar una cuenta de efectivo: no se puede eliminar la última.",
     "ACCOUNT_TYPE_CHANGE_NOT_ALLOWED": "No se puede convertir una cuenta prepago en otro tipo (ni al revés).",
     "INVALID_ACCOUNT_NUMBER": "El número de cuenta no tiene el formato de ese país.",
     "INVALID_ACCOUNT_ALIAS": "El alias de transferencia no es válido.",
