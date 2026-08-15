@@ -1719,6 +1719,8 @@ async function seedFullUser(passwordHash: string) {
       type: "INVESTMENT",
       currency: "EUR",
       institution: "Fintual",
+      // La AGF, no la emisora de prepago: dos entidades con la misma marca.
+      institutionId: issuerId("AGF-fintual"),
       initialBalance: dec("6500.0000"),
       currentBalance: dec("6500.0000"),
     },
@@ -2456,16 +2458,23 @@ async function seedInstitutionAccountTypes(countryId: string) {
 
   const BY_BANK_CATEGORY: Record<string, Product[]> = {
     // Local retail/commercial bank: the full deposit + credit catalogue.
-    ESTABLISHED: ["CHECKING", "SIGHT", "SAVINGS", "CREDIT_CARD"],
+    // Local retail/commercial bank: deposits, credit, and the mutual funds it sells
+    // through its own AGF subsidiary — the user opens that account at "BCI", not at
+    // "BCI Asset Management AGF S.A.", so INVESTMENT hangs off the bank they know.
+    ESTABLISHED: ["CHECKING", "SIGHT", "SAVINGS", "CREDIT_CARD", "INVESTMENT"],
     // Branch of a foreign bank: corporate current accounts, no retail products.
     FOREIGN_BRANCH: ["CHECKING"],
-    STATE: ["SIGHT", "CHECKING", "SAVINGS", "CREDIT_CARD"], // BancoEstado: CuentaRUT first.
+    // BancoEstado: CuentaRUT first.
+    STATE: ["SIGHT", "CHECKING", "SAVINGS", "CREDIT_CARD", "INVESTMENT"],
   };
   // A cooperative takes its members' savings and lends: ahorro first, plus a sight
   // account (Coopeuch's Dale) and its own credit card.
   const COOPERATIVE_PRODUCTS: Product[] = ["SAVINGS", "SIGHT", "CREDIT_CARD"];
   // Non-bank issuers with the prepaid licence provision funds up front.
   const ISSUER_PRODUCTS: Product[] = ["PREPAID"];
+  // A fund manager / broker administers money invested in funds or instruments: the
+  // investment account is its ONLY product — it takes no deposits and issues no cards.
+  const FUND_MANAGER_PRODUCTS: Product[] = ["INVESTMENT"];
   // Retail / caja de compensación issuers that hold BOTH licences (prepaid + credit).
   const ISSUER_WITH_CREDIT = new Set(["697", "699", "729"]);
   // Issuers holding ONLY the credit-card licence (TCEEM): a store card, no prepaid.
@@ -2489,6 +2498,11 @@ async function seedInstitutionAccountTypes(countryId: string) {
       return BY_BANK_CATEGORY[inst.category ?? "ESTABLISHED"] ?? BY_BANK_CATEGORY.ESTABLISHED;
     }
     if (inst.kind === "COOPERATIVE") return COOPERATIVE_PRODUCTS;
+    if (inst.kind === "FUND_MANAGER") return FUND_MANAGER_PRODUCTS;
+    // A payment account holding e-money: it receives transfers and holds a balance
+    // that can't go negative — this app's PREPAID account — with or without a card
+    // ever being issued against it (Fintual issues none).
+    if (inst.kind === "PAYMENT_PROVIDER") return ISSUER_PRODUCTS;
     // A credit-only issuer is keyed by RUT precisely because it has no transfer
     // code — the same fact that tells us it holds no prepaid licence.
     if (CREDIT_ONLY_CODES.has(inst.code)) return CREDIT_ONLY_PRODUCTS;
@@ -2820,6 +2834,11 @@ async function seedReferenceData() {
     name: string;
     legalName: string;
     retailFacing?: boolean;
+    /** Default `NON_BANK_ISSUER`. A licence is a permission, not a product: an entity
+     * may hold the prepaid one and never issue a card, running a payment account
+     * instead — that entity is a `PAYMENT_PROVIDER`, same as the Argentine PSPs. */
+    kind?: "NON_BANK_ISSUER" | "PAYMENT_PROVIDER";
+    notes?: string;
   }[] = [
     {
       code: "741",
@@ -2827,7 +2846,14 @@ async function seedReferenceData() {
       legalName: "Compañía Emisora de Medios de Pago Digitales S.A.",
     },
     { code: "764", name: "Fintoc", legalName: "Fintoc Pagos S.A." },
-    { code: "746", name: "Fintual", legalName: "Fintual Prepago S.A." },
+    {
+      code: "746",
+      name: "Fintual",
+      legalName: "Fintual Prepago S.A.",
+      kind: "PAYMENT_PROVIDER",
+      notes:
+        "Tiene la licencia de prepago (TPEEM) pero NO emite tarjetas: la usa para conectarse al sistema de pagos y que la cuenta del usuario reciba transferencias a su propio nombre. Cuenta de pago sin plástico — por eso PAYMENT_PROVIDER y no NON_BANK_ISSUER. La cuenta de inversión es otra entidad: AGF-fintual.",
+    },
     { code: "738", name: "Global66", legalName: "Global Card S.A." },
     { code: "739", name: "Haulmer", legalName: "Haulmer Prepago S.A." },
     { code: "697", name: "La Polar", legalName: "Inversiones LP S.A." },
@@ -2844,11 +2870,12 @@ async function seedReferenceData() {
   ];
   for (const e of CHILE_ISSUERS) {
     const fields = {
-      kind: "NON_BANK_ISSUER" as const,
+      kind: e.kind ?? ("NON_BANK_ISSUER" as const),
       name: e.name,
       legalName: e.legalName,
       category: null,
       retailFacing: e.retailFacing ?? true,
+      notes: e.notes ?? null,
     };
     await prisma.financialInstitution.upsert({
       where: { countryId_code: { countryId: chile.id, code: e.code } },
@@ -2967,6 +2994,91 @@ async function seedReferenceData() {
       where: { countryId_code: { countryId: chile.id, code: e.code } },
       update: fields,
       create: { countryId: chile.id, code: e.code, ...fields },
+    });
+  }
+
+  /**
+   * Administradoras generales de fondos y corredoras (kind FUND_MANAGER). Sin ellas
+   * el catálogo no tenía UNA sola institución que ofreciera `INVESTMENT`: el selector
+   * de una cuenta de inversión quedaba vacío aunque Fintual ya estuviera en la tabla
+   * — su fila es "Fintual Prepago S.A.", la licencia de prepago, que es otra entidad.
+   *
+   * Por eso Fintual aparece dos veces en la tabla y nunca dos veces en el selector:
+   * son dos personas jurídicas distintas con la misma marca, y el filtro por producto
+   * muestra la prepago para PREPAID y la AGF para INVESTMENT.
+   *
+   * `code`: como las cooperativas y los emisores solo-crédito, estas entidades no
+   * reciben transferencias y no tienen código institucional. Aquí ni siquiera se usa
+   * el RUT — no fue verificado ficha por ficha —, así que la llave es `AGF-<slug>`,
+   * el mismo recurso honesto que los PSP argentinos (`PSP-<slug>`): decir que la
+   * llave es interna en vez de inventar un identificador de regulador.
+   *
+   * Lista PARCIAL a propósito: las AGF de marca propia que un usuario retail
+   * reconoce. Las AGF filiales de un banco (Banchile, BCI AM, Santander AM, BTG,
+   * Tanner) no van aquí — su producto INVESTMENT ya cuelga del banco de la marca.
+   */
+  const CHILE_FUND_MANAGERS: { code: string; name: string; legalName: string }[] = [
+    {
+      code: "AGF-fintual",
+      name: "Fintual",
+      legalName: "Fintual Administradora General de Fondos S.A.",
+    },
+    { code: "AGF-racional", name: "Racional", legalName: "Racional Corredores de Bolsa SpA" },
+    { code: "AGF-vector", name: "Vector", legalName: "Vector Capital Corredores de Bolsa S.A." },
+    { code: "AGF-renta4", name: "Renta 4", legalName: "Renta 4 Corredores de Bolsa S.A." },
+    {
+      code: "AGF-larrainvial",
+      name: "LarrainVial",
+      legalName: "LarrainVial Asset Management Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-principal",
+      name: "Principal",
+      legalName: "Principal Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-zurich",
+      name: "Zurich",
+      legalName: "Zurich Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-toesca",
+      name: "Toesca",
+      legalName: "Toesca Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-ameris",
+      name: "Ameris",
+      legalName: "Ameris Capital Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-sartor",
+      name: "Sartor",
+      legalName: "Sartor Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-frontaltrust",
+      name: "Frontal Trust",
+      legalName: "Frontal Trust Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-credicorp",
+      name: "Credicorp Capital",
+      legalName: "Credicorp Capital Asset Management Administradora General de Fondos S.A.",
+    },
+  ];
+  for (const f of CHILE_FUND_MANAGERS) {
+    const fields = {
+      kind: "FUND_MANAGER" as const,
+      name: f.name,
+      legalName: f.legalName,
+      category: null,
+      retailFacing: true,
+    };
+    await prisma.financialInstitution.upsert({
+      where: { countryId_code: { countryId: chile.id, code: f.code } },
+      update: fields,
+      create: { countryId: chile.id, code: f.code, ...fields },
     });
   }
 
@@ -3205,7 +3317,7 @@ async function seedReferenceData() {
   }
 
   console.log(
-    `Reference data OK: ${COUNTRIES.length} countries, CL institutions = ${CHILE_BANKS.length} banks + ${CHILE_ISSUERS.length} prepaid issuers + ${CHILE_CREDIT_ISSUERS.length} credit-only issuers + ${CHILE_COOPERATIVES.length} cooperatives, ${CURRENCIES.length} currencies, ${LINKS.length} country-currency links, ${IDENTIFIER_LINKS.length} country-identifier-type links`,
+    `Reference data OK: ${COUNTRIES.length} countries, CL institutions = ${CHILE_BANKS.length} banks + ${CHILE_ISSUERS.length} prepaid issuers + ${CHILE_CREDIT_ISSUERS.length} credit-only issuers + ${CHILE_COOPERATIVES.length} cooperatives + ${CHILE_FUND_MANAGERS.length} fund managers, ${CURRENCIES.length} currencies, ${LINKS.length} country-currency links, ${IDENTIFIER_LINKS.length} country-identifier-type links`,
   );
 }
 

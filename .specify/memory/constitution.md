@@ -1,4 +1,34 @@
 <!--
+Sync Impact Report — 2026-08-15 (amendment 1.44.0)
+- Version change: 1.43.0 → 1.44.0 (MINOR: new `InstitutionKind` value + a sector the catalogue was
+  missing; no principle removed or redefined).
+- `InstitutionKind` gains **FUND_MANAGER** — an administradora general de fondos / corredora
+  administers third-party money invested in funds or instruments without taking deposits or issuing
+  payment instruments, so its ONE product is the investment account.
+- Catalogue gap this closes: not a single institution declared `INVESTMENT`, so the institution
+  picker of an INVESTMENT account was empty except for "sin institución". Fintual was in the table
+  only as `Fintual Prepago S.A.` (the prepaid licence), and the permissive
+  `institution-account-type` filter does NOT rescue an institution that HAS rows — only one with
+  none. **A product nobody offers is a catalogue hole, not a UI bug**: check the join table before
+  concluding a filter is broken.
+- Banks keep their own INVESTMENT product (ESTABLISHED + STATE): the user opens the fund account at
+  the brand they know, not at that bank's AGF subsidiary — so a bank-owned AGF is NOT a separate row.
+- Two legal entities sharing a brand stay two rows (Fintual Prepago vs Fintual AGF); the product
+  filter is what keeps the picker from ever showing both.
+- Keys: fund managers receive no transfers and hold no institution code, and their RUTs were not
+  verified one by one, so the key is `AGF-<slug>` — the `PSP-<slug>` precedent: say the key is
+  internal instead of inventing a regulator identifier.
+- **A licence is a permission, not a product:** Fintual Prepago S.A. holds the prepaid licence and
+  issues no card at all — it uses it to run a payment account that receives transfers. Its `kind` is
+  therefore `PAYMENT_PROVIDER`, not `NON_BANK_ISSUER`, with the reason recorded in `notes`. The
+  register says what an entity MAY do; only its actual product belongs in the catalogue.
+- Not modelled on purpose: "this institution issues no cards". `ALLOWED_CARD_KINDS` is per account
+  TYPE, and a per-institution capability flag would age worse than the catalogue itself — which
+  guides the picker and never rejects a write.
+- Templates requiring updates: none.
+-->
+
+<!--
 Sync Impact Report — 2026-08-15 (amendment 1.43.0)
 - Version change: 1.42.0 → 1.43.0 (MINOR: new enforceable rule; no principle removed or redefined).
 - Banking-domain norms gain **"Cash is not optional"**: registration creates the user's cash account
@@ -1254,6 +1284,13 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
     every account type, the filter narrows the picker instead of rejecting a write, and an
     institution already saved on an account stays selectable even once it stops offering that
     product. A relation that carries attributes of its own is a join TABLE, not a scalar list.
+    Its corollary: **an empty picker is a catalogue hole until proven otherwise.** Permissiveness
+    only rescues an institution with NO rows — one that declares other products is correctly
+    filtered out, so a product no institution offers yields an empty list that looks like a broken
+    filter. Every account type MUST have at least one institution offering it, and the entity that
+    offers it is the one the USER would name: a bank's fund-manager subsidiary is a product on the
+    bank's own row, while a standalone manager (`FUND_MANAGER`) is its own. Two legal entities
+    sharing a brand stay two rows — the product filter, not deduplication, keeps the picker clean.
   - **A transfer is not income nor expense:** money moved between two of the user's own accounts MUST
     be excluded from every income/expense aggregate. Representing it as ordinary rows (two
     `Transaction` rows sharing `transferGroupId`) means no sum excludes it on its own, so the
@@ -1337,4 +1374,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.43.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15
+**Version**: 1.44.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15

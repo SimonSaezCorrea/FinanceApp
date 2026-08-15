@@ -38,6 +38,10 @@ export const institutionKind = z.enum([
   "NON_BANK_ISSUER",
   "COOPERATIVE",
   "PAYMENT_PROVIDER",
+  /** Administradora general de fondos / corredora: administra dinero de terceros
+   * invertido en fondos o instrumentos, sin captar depósitos ni emitir medios de
+   * pago. Su único producto es la cuenta de inversión. */
+  "FUND_MANAGER",
 ]);
 export type InstitutionKind = z.infer<typeof institutionKind>;
 

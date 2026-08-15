@@ -396,6 +396,34 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     su RUT con prefijo **`RUT-`**, que lo dice en voz alta en vez de inventar un código de regulador.
     Corrección de dato: **697 Inversiones LP S.A. es La Polar**, no "Lider Bci" (verificado contra los
     T&C de Tarjeta La Polar). Total CL: 46 instituciones, todas con productos catalogados.
+  - **AGF / corredoras y el producto `INVESTMENT` (2026-08-15):** ninguna institución del catálogo
+    declaraba `INVESTMENT`, así que el selector de institución de una cuenta de inversión salía
+    vacío. Fintual SÍ estaba en la tabla, pero como `Fintual Prepago S.A.` (licencia TPEEM) con
+    producto PREPAID — y la permisividad del filtro `?accountType=` solo rescata a la institución
+    **sin** filas, no a la que declara otras. `InstitutionKind` nuevo **`FUND_MANAGER`**:
+    administradora general de fondos / corredora — administra plata de terceros invertida en fondos
+    o instrumentos, sin captar depósitos ni emitir medios de pago, así que su ÚNICO producto es
+    `INVESTMENT`. Doce entidades CL (Fintual AGF, Racional, Vector, Renta 4, LarrainVial, Principal,
+    Zurich, Toesca, Ameris, Sartor, Frontal Trust, Credicorp Capital), llaveadas **`AGF-<slug>`**:
+    no reciben transferencias, no tienen código institucional y sus RUT no se verificaron ficha por
+    ficha — mismo recurso honesto que los `PSP-<slug>` argentinos. **Los bancos ganan `INVESTMENT`
+    en sus productos por defecto** (ESTABLISHED y STATE): el fondo mutuo se abre en la marca que el
+    usuario conoce ("BCI"), no en su AGF filial, así que una AGF de banco NO es fila aparte.
+    **Fintual queda con dos filas** (prepago y AGF) porque son dos personas jurídicas distintas; el
+    filtro por producto hace que el selector nunca muestre las dos. Total CL: 58 instituciones.
+    **Una licencia es un permiso, no un producto:** Fintual Prepago S.A. tiene la licencia TPEEM y
+    **nunca emitió tarjetas** — la usa para engancharse al sistema de pagos y que la cuenta del
+    usuario reciba transferencias a su propio nombre. Por eso su `kind` es **`PAYMENT_PROVIDER`**
+    (cuenta de pago sin plástico, la misma figura de los PSP argentinos) y no `NON_BANK_ISSUER`, con
+    el motivo escrito en su `notes`. El producto sigue siendo `PREPAID`: en este modelo ese tipo es
+    la **cuenta de provisión de fondos** (saldo que no baja de cero, con techo), y la tarjeta es
+    opcional — `MovementPolicy` nunca exige tarjeta en una cuenta PREPAID, así que una cuenta sin
+    plástico funciona tal cual. Lo que el modelo NO distingue es "esta institución no emite
+    tarjetas": la matriz `ALLOWED_CARD_KINDS` es por tipo de cuenta, así que la UI igual ofrece
+    "añadir tarjeta" en una cuenta Fintual. Se deja así a propósito (un flag por institución
+    envejece mal y el catálogo guía, nunca rechaza). Pendiente de nombre: `AccountType.PREPAID` se
+    lee como "tarjeta prepago" cuando significa "cuenta de pago" — el mismo error que ya obligó a
+    renombrar `CREDIT_LINE` → `CREDIT_CARD`.
   - **`InstallmentPlan.cardId` (2026-08-15):** un plan de cuotas registra con qué tarjeta se compró
     (FK nullable → `CardAccount`, **`onDelete: SetNull`** — borrar la tarjeta no puede borrar la deuda
     que creó). Opcional a propósito: un plan también puede ser un crédito bancario sin tarjeta detrás.
@@ -529,7 +557,7 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     creating a movement are held in memory (validated locally by type and size) and uploaded as soon
     as `POST /transactions` returns an id; one that fails stays listed with **Reintentar**.
   - **recurring-expense**: `RecurringExpense` (subscriptions/rent/periodic payments) — `frequency` (`RecurrenceFrequency`: WEEKLY/MONTHLY/YEARLY), `interval`, `anchorDate`, optional `bankAccountId`/`category`, `active`. The contract exposes a computed `nextDueAt` (anchor stepped forward by frequency × interval). CRUD at `/recurring`.
-  - **reference tables** (`country`, `currency`, `country-currency`, `country-identifier-type`, `financial-institution`, `institution-account-type` — one domain each since the one-table-one-domain amendment; global read-only, authed but not user-scoped): `Country` (table `country`, ISO 3166-1 `alpha2`/`alpha3`/`numeric` unique + name), `FinancialInstitution` (table `financial-institution`, **banks + non-bank card issuers** via `kind` `InstitutionKind` BANK/NON_BANK_ISSUER; `code` = SBIF/CMF or código institucional `@@unique([countryId,code])`, `name`, `category` `BankCategory?` ESTABLISHED/FOREIGN_BRANCH/STATE (banks only — unused at runtime, kept for grouping the picker as the catalogue grows past Chile), `brands String[]`, `notes`, FK→Country; **`rut` was dropped** — `code` is the identifier), `Currency` (table `currency`, **ISO 4217** `code` unique + `numeric` + name), and `CountryCurrency` join (`isPrimary`). Endpoints `GET /countries`, `GET /institutions?country=CL&kind=BANK&accountType=PREPAID`, `GET /currencies` (ordered by name). Seeded idempotently in `prisma/seed.ts` (`seedReferenceData`): 6 countries, 18 CL banks + 15 non-bank issuers, 168 currencies, country↔currency links.
+  - **reference tables** (`country`, `currency`, `country-currency`, `country-identifier-type`, `financial-institution`, `institution-account-type` — one domain each since the one-table-one-domain amendment; global read-only, authed but not user-scoped): `Country` (table `country`, ISO 3166-1 `alpha2`/`alpha3`/`numeric` unique + name), `FinancialInstitution` (table `financial-institution`, **banks + non-bank card issuers** via `kind` `InstitutionKind` BANK/NON_BANK_ISSUER/COOPERATIVE/PAYMENT_PROVIDER/FUND_MANAGER; `code` = SBIF/CMF or código institucional `@@unique([countryId,code])`, `name`, `category` `BankCategory?` ESTABLISHED/FOREIGN_BRANCH/STATE (banks only — unused at runtime, kept for grouping the picker as the catalogue grows past Chile), `brands String[]`, `notes`, FK→Country; **`rut` was dropped** — `code` is the identifier), `Currency` (table `currency`, **ISO 4217** `code` unique + `numeric` + name), and `CountryCurrency` join (`isPrimary`). Endpoints `GET /countries`, `GET /institutions?country=CL&kind=BANK&accountType=PREPAID`, `GET /currencies` (ordered by name). Seeded idempotently in `prisma/seed.ts` (`seedReferenceData`): 6 countries, 18 CL banks + 15 prepaid issuers + 6 credit-only issuers + 7 cooperatives + 12 fund managers (+ AR), 168 currencies, country↔currency links.
     **`InstitutionAccountType`** (table `institution-account-type`, join `institutionId` + `type`
     `AccountType` + `isPrimary`, `@@unique([institutionId,type])`, `onDelete: Cascade`) = **which
     account products an institution actually offers** — Tenpo sells PREPAID today and may sell
