@@ -40,11 +40,20 @@ export const institutionSchema = z.object({
   kind: institutionKind,
   /** Institutional/regulator code (SBIF/CMF for banks; código institucional for issuers). */
   code: z.string(),
+  /** COMMERCIAL name — what the user recognises. The registry's legal name is
+   * `legalName`: nobody looks for "Compañía Emisora de Medios de Pago Digitales
+   * S.A." when topping up their Copec Pay. */
   name: z.string(),
+  /** Registered legal name, when it differs from the commercial one. Searchable,
+   * never the label. */
+  legalName: z.string().nullable(),
   /** Bank sub-category; null for non-bank issuers. */
   category: bankCategory.nullable(),
   brands: z.array(z.string()),
   notes: z.string().nullable(),
+  /** Whether it sells to individuals. Corporate-only entities stay listed but the
+   * pickers hide them by default (`?retailFacing=true`). */
+  retailFacing: z.boolean(),
   /**
    * Which account products this institution offers, its flagship one first —
    * data, not something derivable from `kind`: Tenpo is a NON_BANK_ISSUER that
@@ -80,5 +89,7 @@ export const institutionFiltersSchema = z.object({
   country: z.string().trim().length(2).optional(),
   kind: institutionKind.optional(),
   accountType: accountType.optional(),
+  /** `true` drops the corporate-only entities from the list. */
+  retailFacing: z.coerce.boolean().optional(),
 });
 export type InstitutionFilters = z.infer<typeof institutionFiltersSchema>;

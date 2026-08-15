@@ -1,4 +1,25 @@
 <!--
+Sync Impact Report — 2026-08-15 (amendment 1.38.0)
+- Version change: 1.37.0 → 1.38.0 (MINOR: new enforceable rule + new descriptive card/institution
+  fields; no principle removed or redefined).
+- Banking-domain norms gain **"The user recognises the brand, the regulator registers the entity"**:
+  `FinancialInstitution.name` becomes the commercial name, new `legalName` holds the registered one,
+  and the pickers search name + legalName + brands (`SearchableSelectOption.keywords`). New
+  `retailFacing` hides corporate-only entities (foreign branches, BaaS providers such as Pomelo)
+  from the pickers without removing them from the catalogue; `GET /institutions?retailFacing=true`.
+- `CardAccount` gains four descriptive columns the model had no way to express: `isVirtual` (issuers
+  hand out several virtual cards on one balance), `isAdditional` + `cardholderName` (a card issued to
+  another person — knowing WHO spent is most of what this app adds over the bank's own statement) and
+  `network` (new `CardNetwork` enum: VISA/MASTERCARD/AMEX/REDCOMPRA/OTHER). All optional, all
+  descriptive: no rule depends on them yet.
+- Data: legal names were verified against the CMF registries (TPEEM/TCEEM); brand↔entity links come
+  from each product's own terms of service, which the registry does not carry — the softer half.
+- Templates requiring updates: none.
+- Follow-up TODOs: the TCEEM (non-bank CREDIT card issuers) registry and the cooperatives are still
+  missing from the catalogue.
+-->
+
+<!--
 Sync Impact Report — 2026-08-15 (amendment 1.37.0)
 - Version change: 1.36.0 → 1.37.0 (MINOR: new enforceable rule; BREAKING for existing data, but no
   principle removed or redefined).
@@ -1078,6 +1099,12 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
     (`transaction/domain/balance-delta.ts`'s `cashDelta` in the API, `drawsOnCredit`/`balanceAfter` on
     the web) and every write path — create, edit, delete, statement payment, payment correction,
     statement sync — MUST agree with it; a balance the user cannot reconcile by hand is a defect.
+  - **The user recognises the brand, the regulator registers the entity:** an institution's
+    user-facing `name` is its COMMERCIAL name (Copec Pay, Tenpo, BancoEstado) and its registered
+    entity lives in `legalName`; pickers label with the former and MUST search both plus `brands`,
+    because a person looks for what is printed on their card. An institution that sells only to
+    companies stays in the catalogue (the regulator lists it, and history may point at it) but is
+    flagged `retailFacing: false` and hidden from the pickers — never deleted.
   - **A catalogue is data, never an inference from classification:** which account products an
     institution offers lives in its own seeded table (`institution-account-type`, flagship first via
     `isPrimary`) and MUST NOT be derived at runtime from `kind` or `category`, which classify what
@@ -1170,4 +1197,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.37.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15
+**Version**: 1.38.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15

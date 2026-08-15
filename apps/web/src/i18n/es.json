@@ -267,6 +267,13 @@
       "DEBIT": "Débito",
       "PREPAID": "Prepago"
     },
+    "network": {
+      "VISA": "Visa",
+      "MASTERCARD": "Mastercard",
+      "AMEX": "American Express",
+      "REDCOMPRA": "Redcompra",
+      "OTHER": "Otra"
+    },
     "form": {
       "name": "Nombre de la tarjeta (opcional)",
       "namePlaceholder": "Ej. Tarjeta principal",
@@ -276,6 +283,14 @@
       "expiry": "Vence",
       "expiryPlaceholder": "MM/AA",
       "last4": "Últimos 4 dígitos",
+      "virtual": "Tarjeta virtual",
+      "virtualHint": "Sin plástico. Varias virtuales pueden compartir la misma cuenta.",
+      "additional": "Tarjeta adicional",
+      "additionalHint": "Emitida a otra persona sobre la misma cuenta o línea.",
+      "cardholder": "Titular de la tarjeta",
+      "cardholderPlaceholder": "Ej. Camila Rojas",
+      "network": "Red",
+      "networkNone": "Sin especificar",
       "last4Hint": "Solo se guardan los últimos 4 dígitos.",
       "limits": "Topes por moneda",
       "limitsHint": "Opcional. Sin topes propios, la tarjeta puede usar todo el cupo de la cuenta.",
@@ -307,6 +322,8 @@
       "available": "Disponible {{amount}}",
       "role": "Rol",
       "holder": "Titular",
+      "format": "Formato",
+      "issuedTo": "Emisión",
       "limitSource": "Origen del tope",
       "ownLimit": "Tope propio",
       "accountPool": "Cupo de la cuenta",

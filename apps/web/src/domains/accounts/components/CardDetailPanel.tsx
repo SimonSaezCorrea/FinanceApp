@@ -101,7 +101,20 @@ export function CardDetailPanel({
   const facts: Array<{ label: string; value: string }> = [
     ...(isCredit ? [{ label: t("cards.detail.role"), value: role }] : []),
     ...(inline ? [] : [{ label: t("cards.form.kind"), value: t(`cards.kind.${card.kind}`) }]),
-    ...(holder ? [{ label: t("cards.detail.holder"), value: holder }] : []),
+    // The card's OWN holder wins over the account owner passed in by the host:
+    // on an additional card, who carries it is the point.
+    ...(card.cardholderName || holder
+      ? [{ label: t("cards.detail.holder"), value: card.cardholderName ?? holder ?? "" }]
+      : []),
+    ...(card.isAdditional
+      ? [{ label: t("cards.detail.issuedTo"), value: t("cards.form.additional") }]
+      : []),
+    ...(card.network
+      ? [{ label: t("cards.form.network"), value: t(`cards.network.${card.network}`) }]
+      : []),
+    ...(card.isVirtual
+      ? [{ label: t("cards.detail.format"), value: t("cards.form.virtual") }]
+      : []),
     { label: t("cards.detail.expiry"), value: expiry },
     ...(isCredit ? [{ label: t("cards.detail.limitSource"), value: limitSource }] : []),
   ];

@@ -70,6 +70,10 @@ export class CreateAccountHandler extends BaseCommandHandler<
         expiryYear: c.expiryYear,
         isActive: c.isActive ?? true,
         isPrimary: c.isPrimary,
+        isVirtual: c.isVirtual ?? false,
+        isAdditional: c.isAdditional ?? false,
+        cardholderName: c.cardholderName ?? null,
+        network: c.network ?? null,
         limits: c.cardLimits.map((l) => ({
           currency: l.currency,
           limitAmount: l.limitAmount,

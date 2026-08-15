@@ -5,6 +5,7 @@ import { accounts as accountsContract } from "@finance/contracts";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { institutionOption } from "../../reference/lib/institutionOption";
 import { useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
@@ -188,13 +189,13 @@ export function AccountForm({
 
   const institutionOptions = [
     { value: "", label: t("accounts.form.institutionNone") },
-    ...(institutions ?? []).map((b) => ({ value: b.id, label: b.name })),
+    ...(institutions ?? []).map(institutionOption),
   ];
   // Keep the saved institution selectable even if it doesn't offer this product
   // (the catalogue can change after the account was created).
   if (values.institutionId && !institutionOptions.some((o) => o.value === values.institutionId)) {
     const saved = allInstitutions?.find((i) => i.id === values.institutionId);
-    if (saved) institutionOptions.splice(1, 0, { value: saved.id, label: saved.name });
+    if (saved) institutionOptions.splice(1, 0, institutionOption(saved));
   }
   const currencyOptions = (currencies ?? []).map((c) => ({
     value: c.code,

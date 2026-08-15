@@ -30,6 +30,13 @@ export interface CardProps {
   expiryYear: number;
   isActive: boolean;
   isPrimary: boolean;
+  /** No plastic: several virtual cards can share one account. */
+  isVirtual: boolean;
+  /** Issued to another person against the same account/credit line. */
+  isAdditional: boolean;
+  /** Name on the card, when it isn't the account owner's. */
+  cardholderName: string | null;
+  network: accounts.CardNetwork | null;
   limits: CardLimitProps[];
 }
 
@@ -65,6 +72,10 @@ type CardInput = {
   expiryMonth: number;
   expiryYear: number;
   isActive?: boolean;
+  isVirtual?: boolean;
+  isAdditional?: boolean;
+  cardholderName?: string | null;
+  network?: accounts.CardNetwork | null;
   usesAccountPool?: boolean;
   limits?: { currency: string; limitAmount: string; usedInitial?: string }[];
 };

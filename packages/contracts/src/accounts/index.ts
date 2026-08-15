@@ -115,6 +115,10 @@ export const createCardLimitSchema = z.object({
 });
 export type CreateCardLimit = z.infer<typeof createCardLimitSchema>;
 
+/** Processing network a card runs on (Redcompra = the Chilean domestic one). */
+export const cardNetwork = z.enum(["VISA", "MASTERCARD", "AMEX", "REDCOMPRA", "OTHER"]);
+export type CardNetwork = z.infer<typeof cardNetwork>;
+
 export const cardSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -127,6 +131,16 @@ export const cardSchema = z.object({
    * account's own creditLimit/creditUsedInitial — `limits` never has an entry for
    * the account's own currency, only for any EXTRA currency it also carries. */
   isPrimary: z.boolean(),
+  /** No plastic: one of several virtual cards an issuer hands out on the same
+   * account, often disposable. */
+  isVirtual: z.boolean(),
+  /** Issued to someone else against the same account or credit line — the charge
+   * is still the holder's, but the app can say who made it. */
+  isAdditional: z.boolean(),
+  /** Name on the card, when it isn't the account owner's. */
+  cardholderName: z.string().nullable(),
+  /** Processing network, when known. */
+  network: cardNetwork.nullable(),
   /** This CREDIT card's own Σexpense − Σincome, in the account's own currency
    * (derived) — its own contribution, whether it shares the account pool or
    * carries its own CardLimit. No seed baseline (only the account and a
@@ -159,6 +173,12 @@ export const createCardSchema = z.object({
   expiryMonth: z.number().int().min(1).max(12),
   expiryYear: z.number().int().min(2000).max(2100),
   isActive: z.boolean().optional().default(true),
+  /** No plastic — several of these can share one account (MACH, Tenpo, Chek). */
+  isVirtual: z.boolean().optional().default(false),
+  /** Issued to another person against the same account or credit line. */
+  isAdditional: z.boolean().optional().default(false),
+  cardholderName: z.string().trim().max(80).nullish(),
+  network: cardNetwork.nullish(),
   /** Non-primary CREDIT cards only: share the account pool (true, default) or use `limits` instead. */
   usesAccountPool: z.boolean().optional().default(true),
   limits: z.array(createCardLimitSchema).optional(),

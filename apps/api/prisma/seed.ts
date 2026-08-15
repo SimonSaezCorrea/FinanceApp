@@ -1743,6 +1743,9 @@ async function seedFullUser(passwordHash: string) {
       last4: "2043",
       expiryMonth: 9,
       expiryYear: 2029,
+      // No plastic: the second card on the same prepaid balance.
+      isVirtual: true,
+      network: "MASTERCARD",
     },
   });
   // The card of the Banco de Chile credit line: its FIRST credit card, so primary,
@@ -1757,6 +1760,7 @@ async function seedFullUser(passwordHash: string) {
       expiryMonth: 8,
       expiryYear: 2029,
       isPrimary: true,
+      network: "VISA",
     },
   });
   // Cuenta Vista: debit only — its credit card lives on its own credit line.
@@ -1769,6 +1773,7 @@ async function seedFullUser(passwordHash: string) {
       last4: "7712",
       expiryMonth: 6,
       expiryYear: 2030,
+      network: "MASTERCARD",
     },
   });
   const creditCardVista = await prisma.cardAccount.create({
@@ -1781,6 +1786,7 @@ async function seedFullUser(passwordHash: string) {
       expiryMonth: 6,
       expiryYear: 2030,
       isPrimary: true,
+      network: "MASTERCARD",
     },
   });
   const creditCard = await prisma.cardAccount.create({
@@ -1792,6 +1798,7 @@ async function seedFullUser(passwordHash: string) {
       last4: "4827",
       expiryMonth: 5,
       expiryYear: 2028,
+      network: "VISA",
       // The account's first CREDIT card: its limit mirrors credit.creditLimit above.
       isPrimary: true,
     },
@@ -1805,6 +1812,11 @@ async function seedFullUser(passwordHash: string) {
       last4: "5938",
       expiryMonth: 5,
       expiryYear: 2028,
+      // An additional card: the bank issued it on the same line for another
+      // person, so every charge is the holder's but the app can say who spent.
+      isAdditional: true,
+      cardholderName: "Camila Rojas",
+      network: "VISA",
     },
   });
   const creditCardSofia = await prisma.cardAccount.create({
@@ -1816,6 +1828,9 @@ async function seedFullUser(passwordHash: string) {
       last4: "6049",
       expiryMonth: 5,
       expiryYear: 2028,
+      isAdditional: true,
+      cardholderName: "Sofía Rojas",
+      network: "VISA",
     },
   });
 
@@ -2416,11 +2431,16 @@ async function seedReferenceData() {
 
   const chile = await prisma.country.findUniqueOrThrow({ where: { alpha2: "CL" } });
 
+  /** `name` is the COMMERCIAL name (what the picker shows and the user recognises);
+   * `legalName` is the entity as the CMF registers it, kept for compliance and as a
+   * search term. `retailFacing: false` = corporate-only, hidden from the picker. */
   type BankSeed = {
     code: string;
     name: string;
+    legalName?: string;
     category: "ESTABLISHED" | "FOREIGN_BRANCH" | "STATE";
     brands?: string[];
+    retailFacing?: boolean;
     notes?: string;
   };
   const CHILE_BANKS: BankSeed[] = [
@@ -2440,7 +2460,8 @@ async function seedReferenceData() {
     },
     {
       code: "016",
-      name: "Banco de Crédito e Inversiones",
+      name: "BCI",
+      legalName: "Banco de Crédito e Inversiones",
       category: "ESTABLISHED",
       brands: ["TBanc", "Banco Nova"],
     },
@@ -2451,7 +2472,7 @@ async function seedReferenceData() {
       notes:
         "Res. Exenta N°10940 (20-oct-2025): fusión por incorporación de Banco Security en Banco BICE (continuador legal).",
     },
-    { code: "031", name: "HSBC Bank (Chile)", category: "ESTABLISHED" },
+    { code: "031", name: "HSBC", legalName: "HSBC Bank (Chile)", category: "ESTABLISHED" },
     {
       code: "037",
       name: "Banco Santander-Chile",
@@ -2460,7 +2481,8 @@ async function seedReferenceData() {
     },
     {
       code: "039",
-      name: "Banco Itaú Chile",
+      name: "Itaú",
+      legalName: "Banco Itaú Chile",
       category: "ESTABLISHED",
       notes:
         "01-abr-2016: fusión de Banco Corpbanca en Itaú Corpbanca. Res. N°2215 (28-mar-2023): renombrado a Banco Itaú Chile.",
@@ -2468,19 +2490,44 @@ async function seedReferenceData() {
     { code: "051", name: "Banco Falabella", category: "ESTABLISHED" },
     { code: "053", name: "Banco Ripley", category: "ESTABLISHED" },
     { code: "055", name: "Banco Consorcio", category: "ESTABLISHED" },
-    { code: "059", name: "Banco BTG Pactual Chile", category: "ESTABLISHED" },
-    { code: "062", name: "Tanner Banco Digital", category: "ESTABLISHED" },
-    { code: "063", name: "Tenpo Bank Chile", category: "ESTABLISHED" },
+    {
+      code: "059",
+      name: "BTG Pactual",
+      legalName: "Banco BTG Pactual Chile",
+      category: "ESTABLISHED",
+    },
+    { code: "062", name: "Tanner", legalName: "Tanner Banco Digital", category: "ESTABLISHED" },
+    { code: "063", name: "Tenpo Bank", legalName: "Tenpo Bank Chile", category: "ESTABLISHED" },
     // Sucursales de bancos extranjeros
-    { code: "041", name: "JP Morgan Chase Bank, N. A.", category: "FOREIGN_BRANCH" },
+    {
+      code: "041",
+      name: "JP Morgan Chase",
+      legalName: "JP Morgan Chase Bank, N. A.",
+      category: "FOREIGN_BRANCH",
+      retailFacing: false,
+    },
     {
       code: "060",
-      name: "China Construction Bank, Agencia en Chile",
+      name: "China Construction Bank",
+      legalName: "China Construction Bank, Agencia en Chile",
       category: "FOREIGN_BRANCH",
+      retailFacing: false,
     },
-    { code: "061", name: "Bank of China, Agencia en Chile", category: "FOREIGN_BRANCH" },
+    {
+      code: "061",
+      name: "Bank of China",
+      legalName: "Bank of China, Agencia en Chile",
+      category: "FOREIGN_BRANCH",
+      retailFacing: false,
+    },
     // Bancos estatales
-    { code: "012", name: "Banco del Estado de Chile", category: "STATE" },
+    {
+      code: "012",
+      name: "BancoEstado",
+      legalName: "Banco del Estado de Chile",
+      category: "STATE",
+      brands: ["CuentaRUT"],
+    },
   ];
 
   for (const b of CHILE_BANKS) {
@@ -2489,8 +2536,10 @@ async function seedReferenceData() {
       update: {
         kind: "BANK",
         name: b.name,
+        legalName: b.legalName ?? b.name,
         category: b.category,
         brands: b.brands ?? [],
+        retailFacing: b.retailFacing ?? true,
         notes: b.notes ?? null,
       },
       create: {
@@ -2498,42 +2547,63 @@ async function seedReferenceData() {
         kind: "BANK",
         code: b.code,
         name: b.name,
+        legalName: b.legalName ?? b.name,
         category: b.category,
         brands: b.brands ?? [],
+        retailFacing: b.retailFacing ?? true,
         notes: b.notes ?? null,
       },
     });
   }
 
   // Non-bank payment card issuers (emisores de tarjetas de pago con provisión de fondos).
-  const CHILE_ISSUERS: { code: string; name: string }[] = [
-    { code: "741", name: "Compañía Emisora de Medios de Pago Digitales S.A." },
-    { code: "764", name: "Fintoc Pagos S.A." },
-    { code: "746", name: "Fintual Prepago S.A." },
-    { code: "738", name: "Global Card S.A." },
-    { code: "739", name: "Haulmer Prepago S.A." },
-    { code: "697", name: "Inversiones LP S.A." },
-    { code: "732", name: "Los Andes Tarjetas de Prepago S.A." },
-    { code: "875", name: "Mercado Pago Emisora S.A." },
-    { code: "747", name: "Metro Emisora de Medios de Pago S.A." },
-    { code: "882", name: "Pomelo Tech Chile S.A." },
-    { code: "743", name: "Prex Chile S.A." },
-    { code: "729", name: "Sociedad Emisora de Tarjetas Los Héroes S.A." },
-    { code: "744", name: "SumUp Chile Blue S.A." },
-    { code: "730", name: "Tenpo Payments S.A." },
-    { code: "699", name: "Tricard S.A." },
+  /**
+   * `name` = the brand on the app the user actually opens; `legalName` = the entity
+   * as the CMF registers it (verified against the TPEEM list). The two diverge almost
+   * everywhere here, which is why the picker searches both: nobody looks for
+   * "Compañía Emisora de Medios de Pago Digitales S.A." to find Copec Pay.
+   * Brand↔entity links come from each product's own terms of service, NOT from the
+   * registry (which carries no brands) — treat them as the softer half of this data.
+   */
+  const CHILE_ISSUERS: {
+    code: string;
+    name: string;
+    legalName: string;
+    retailFacing?: boolean;
+  }[] = [
+    {
+      code: "741",
+      name: "Copec Pay",
+      legalName: "Compañía Emisora de Medios de Pago Digitales S.A.",
+    },
+    { code: "764", name: "Fintoc", legalName: "Fintoc Pagos S.A." },
+    { code: "746", name: "Fintual", legalName: "Fintual Prepago S.A." },
+    { code: "738", name: "Global66", legalName: "Global Card S.A." },
+    { code: "739", name: "Haulmer", legalName: "Haulmer Prepago S.A." },
+    { code: "697", name: "Lider Bci", legalName: "Inversiones LP S.A." },
+    { code: "732", name: "Tapp", legalName: "Los Andes Tarjetas de Prepago S.A." },
+    { code: "875", name: "Mercado Pago", legalName: "Mercado Pago Emisora S.A." },
+    { code: "747", name: "MetroPay", legalName: "Metro Emisora de Medios de Pago S.A." },
+    // Banking-as-a-service infrastructure: issues for other companies, sells to none.
+    { code: "882", name: "Pomelo", legalName: "Pomelo Tech Chile S.A.", retailFacing: false },
+    { code: "743", name: "Prex", legalName: "Prex Chile S.A." },
+    { code: "729", name: "Los Héroes", legalName: "Sociedad Emisora de Tarjetas Los Héroes S.A." },
+    { code: "744", name: "SumUp Pay", legalName: "SumUp Chile Blue S.A." },
+    { code: "730", name: "Tenpo", legalName: "Tenpo Payments S.A." },
+    { code: "699", name: "Tricot", legalName: "Tricard S.A." },
   ];
   for (const e of CHILE_ISSUERS) {
+    const fields = {
+      kind: "NON_BANK_ISSUER" as const,
+      name: e.name,
+      legalName: e.legalName,
+      category: null,
+      retailFacing: e.retailFacing ?? true,
+    };
     await prisma.financialInstitution.upsert({
       where: { countryId_code: { countryId: chile.id, code: e.code } },
-      update: { kind: "NON_BANK_ISSUER", name: e.name, category: null },
-      create: {
-        countryId: chile.id,
-        kind: "NON_BANK_ISSUER",
-        code: e.code,
-        name: e.name,
-        category: null,
-      },
+      update: fields,
+      create: { countryId: chile.id, code: e.code, ...fields },
     });
   }
 

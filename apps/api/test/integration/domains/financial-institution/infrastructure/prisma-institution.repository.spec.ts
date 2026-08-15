@@ -56,6 +56,22 @@ describe("PrismaInstitutionRepository (integration)", () => {
     expect(issuers.every((i) => i.accountTypes[0] === "PREPAID")).toBe(true);
   });
 
+  it("labels institutions commercially and keeps the registered entity searchable", async () => {
+    const issuers = await repo.findAll({ country: "CL", kind: "NON_BANK_ISSUER" });
+    const tenpo = issuers.find((i) => i.code === "730");
+    expect(tenpo?.name).toBe("Tenpo");
+    expect(tenpo?.legalName).toBe("Tenpo Payments S.A.");
+  });
+
+  it("hides corporate-only entities when the picker asks for retail ones", async () => {
+    const retail = await repo.findAll({ country: "CL", retailFacing: true });
+    expect(retail.every((i) => i.retailFacing)).toBe(true);
+    // A foreign branch (JP Morgan) stays in the catalogue but out of the picker.
+    const all = await repo.findAll({ country: "CL" });
+    expect(all.some((i) => i.code === "041")).toBe(true);
+    expect(retail.some((i) => i.code === "041")).toBe(false);
+  });
+
   it("filters by account type, keeping institutions with no catalogued products", async () => {
     const prepaid = await repo.findAll({ country: "CL", accountType: "PREPAID" });
     expect(prepaid.length).toBeGreaterThan(0);

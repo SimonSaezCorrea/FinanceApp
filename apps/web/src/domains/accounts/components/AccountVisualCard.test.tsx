@@ -20,6 +20,10 @@ const card: accounts.Card = {
   expiryYear: 2028,
   isActive: true,
   isPrimary: true,
+  isVirtual: false,
+  isAdditional: false,
+  cardholderName: null,
+  network: null,
   ownUsed: "1435990.0000",
   limits: [],
 };

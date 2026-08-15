@@ -14,6 +14,7 @@ import { SidePanel } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
+import { institutionOption } from "../../reference/lib/institutionOption";
 import { useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { useAccountMutations } from "../hooks/useAccounts";
 import { cleanExpiryInput, parseExpiry } from "../lib/cardExpiry";
@@ -155,6 +156,8 @@ export function AccountCreateModal({
             expiryMonth: parsedPrimaryExpiry.month,
             expiryYear: parsedPrimaryExpiry.year,
             isActive: true,
+            isVirtual: false,
+            isAdditional: false,
             usesAccountPool: true,
             limits: [{ currency, limitAmount: creditLimit || "0" }],
           }
@@ -191,7 +194,7 @@ export function AccountCreateModal({
   const institutionName = institutions?.find((b) => b.id === institutionId)?.name ?? "";
   const institutionOptions = [
     { value: "", label: t("accounts.form.institutionNone") },
-    ...(institutions ?? []).map((b) => ({ value: b.id, label: b.name })),
+    ...(institutions ?? []).map(institutionOption),
   ];
   const currencyOptions = (currencies ?? []).map((c) => ({
     value: c.code,

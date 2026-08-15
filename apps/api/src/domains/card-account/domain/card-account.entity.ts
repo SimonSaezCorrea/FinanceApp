@@ -22,6 +22,13 @@ export interface CardProps {
   isActive: boolean;
   /** At most one `true` per account — assigned by the `BankAccount` aggregate. */
   isPrimary: boolean;
+  /** No plastic: several virtual cards can share one account. */
+  isVirtual: boolean;
+  /** Issued to another person against the same account/credit line. */
+  isAdditional: boolean;
+  /** Name on the card, when it isn't the account owner's. */
+  cardholderName: string | null;
+  network: accounts.CardNetwork | null;
   limits: CardLimitProps[];
 }
 
@@ -34,5 +41,12 @@ export type CardPlan = {
   expiryYear: number;
   isActive: boolean;
   isPrimary: boolean;
+  /** No plastic: several virtual cards can share one account. */
+  isVirtual: boolean;
+  /** Issued to another person against the same account/credit line. */
+  isAdditional: boolean;
+  /** Name on the card, when it isn't the account owner's. */
+  cardholderName: string | null;
+  network: accounts.CardNetwork | null;
   limits: CardLimitPlan[];
 };

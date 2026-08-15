@@ -112,6 +112,10 @@ export function CardForm({
   // keeps every past movement while taking the card out of the pickers. Read from
   // the host when it owns the control, so there's never a second copy to sync.
   const [ownActive, setOwnActive] = useState(initial?.isActive ?? true);
+  const [isVirtual, setIsVirtual] = useState(initial?.isVirtual ?? false);
+  const [isAdditional, setIsAdditional] = useState(initial?.isAdditional ?? false);
+  const [cardholderName, setCardholderName] = useState(initial?.cardholderName ?? "");
+  const [network, setNetwork] = useState<accounts.CardNetwork | "">(initial?.network ?? "");
   const isActive = activeFromHost ?? ownActive;
   const [last4Error, setLast4Error] = useState<string | null>(null);
   const [expiryError, setExpiryError] = useState<string | null>(null);
@@ -203,6 +207,12 @@ export function CardForm({
       expiryMonth: parsedExpiry.month,
       expiryYear: parsedExpiry.year,
       isActive,
+      isVirtual,
+      isAdditional,
+      // Only meaningful on an additional card — a blank one means "the account
+      // owner", which is what a null already says.
+      cardholderName: isAdditional ? cardholderName.trim() || null : null,
+      network: network === "" ? null : network,
       usesAccountPool: poolFlag,
       limits: cardLimits,
     });
@@ -244,6 +254,21 @@ export function CardForm({
           />
         </Field>
       </div>
+      <Field label={t("cards.form.network")}>
+        <Select
+          id="card-network"
+          value={network}
+          onChange={(e) => setNetwork(e.target.value as accounts.CardNetwork | "")}
+          options={[
+            { value: "", label: t("cards.form.networkNone") },
+            ...accountsContract.cardNetwork.options.map((n) => ({
+              value: n,
+              label: t(`cards.network.${n}`),
+            })),
+          ]}
+          aria-label={t("cards.form.network")}
+        />
+      </Field>
       <Field label={t("cards.form.last4")} error={last4Error}>
         <Input
           id="card-last4"
@@ -257,6 +282,46 @@ export function CardForm({
         />
       </Field>
       <p className="-mt-1 text-xs text-muted-foreground">{t("cards.form.last4Hint")}</p>
+      <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span>
+            {t("cards.form.virtual")}
+            <span className="block text-xs text-muted-foreground">
+              {t("cards.form.virtualHint")}
+            </span>
+          </span>
+          <Switch
+            checked={isVirtual}
+            onCheckedChange={setIsVirtual}
+            aria-label={t("cards.form.virtual")}
+          />
+        </div>
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span>
+            {t("cards.form.additional")}
+            <span className="block text-xs text-muted-foreground">
+              {t("cards.form.additionalHint")}
+            </span>
+          </span>
+          <Switch
+            checked={isAdditional}
+            onCheckedChange={setIsAdditional}
+            aria-label={t("cards.form.additional")}
+          />
+        </div>
+        {/* Who carries it only matters once it IS someone else's card. */}
+        {isAdditional ? (
+          <Field label={t("cards.form.cardholder")}>
+            <Input
+              id="card-cardholder"
+              value={cardholderName}
+              placeholder={t("cards.form.cardholderPlaceholder")}
+              onChange={(e) => setCardholderName(e.target.value)}
+              aria-label={t("cards.form.cardholder")}
+            />
+          </Field>
+        ) : null}
+      </div>
 
       {willBePrimary ? (
         <div className="flex flex-col gap-2 rounded-md border p-3">

@@ -9,6 +9,10 @@ import { Input } from "./input";
 export interface SearchableSelectOption {
   value: string;
   label: string;
+  /** Extra terms the search box also matches, beyond the visible label — e.g. an
+   * institution's legal name and its other commercial brands, which the user may
+   * well type ("Copec Pay", "Banefe") without them being the label shown. */
+  keywords?: string[];
 }
 
 interface Props {
@@ -122,7 +126,11 @@ export function SearchableSelect({
 
   const normalizedQuery = query.trim().toLowerCase();
   const filtered = normalizedQuery
-    ? options.filter((o) => o.label.toLowerCase().includes(normalizedQuery))
+    ? options.filter((o) =>
+        [o.label, ...(o.keywords ?? [])].some((term) =>
+          term.toLowerCase().includes(normalizedQuery),
+        ),
+      )
     : options;
   const matchedLabel = options.find((o) => o.value === value)?.label ?? "";
   const selectedLabel = value ? (displayValue ?? matchedLabel) : "";

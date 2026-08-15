@@ -18,6 +18,10 @@ type Row = {
   expiryYear: number;
   isActive: boolean;
   isPrimary: boolean;
+  isVirtual: boolean;
+  isAdditional: boolean;
+  cardholderName: string | null;
+  network: "VISA" | "MASTERCARD" | "AMEX" | "REDCOMPRA" | "OTHER" | null;
 };
 
 /** Adapter — the ONLY file that touches `prisma.cardAccount`. Limit rows are
@@ -41,6 +45,10 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
       expiryYear: r.expiryYear,
       isActive: r.isActive,
       isPrimary: r.isPrimary,
+      isVirtual: r.isVirtual,
+      isAdditional: r.isAdditional,
+      cardholderName: r.cardholderName,
+      network: r.network,
       limits: limitRows
         .filter((l) => l.cardId === r.id)
         .map(({ cardId: _cardId, ...limit }) => limit),
@@ -89,6 +97,10 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
         expiryYear: plan.expiryYear,
         isActive: plan.isActive,
         isPrimary: plan.isPrimary,
+        isVirtual: plan.isVirtual,
+        isAdditional: plan.isAdditional,
+        cardholderName: plan.cardholderName,
+        network: plan.network,
       },
       select: { id: true },
     });
@@ -107,6 +119,10 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
         expiryYear: plan.expiryYear,
         isActive: plan.isActive,
         isPrimary: plan.isPrimary,
+        isVirtual: plan.isVirtual,
+        isAdditional: plan.isAdditional,
+        cardholderName: plan.cardholderName,
+        network: plan.network,
       },
     });
     await this.limits.replaceForCard(cardId, plan.limits);

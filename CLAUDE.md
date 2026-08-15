@@ -305,6 +305,22 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     account — there's a **"Tenpo Prepago"** `PREPAID` account with two prepaid cards sharing its
     balance, movements with and without a card, and a top-up recorded as a real transfer.
     `docs/PENDING.md` lost its point 6 (the un-revertable card top-up), which this design removes.
+  - **Marca vs. razón social + atributos de tarjeta (2026-08-15):** `FinancialInstitution.name` pasa a
+    ser el **nombre comercial** (Copec Pay, Tenpo, BancoEstado, BCI) y la razón social registrada vive
+    en **`legalName`**; los selectores etiquetan con `name` y **buscan por los tres** (name, legalName,
+    brands) vía el nuevo `keywords` de `SearchableSelectOption` + `domains/reference/lib/institutionOption.ts`.
+    Nuevo **`retailFacing`**: las entidades que solo venden a empresas (sucursales extranjeras, Pomelo
+    como proveedor BaaS) siguen en el catálogo pero se ocultan de los selectores — `useInstitutions`
+    pide siempre `?retailFacing=true`. Razones sociales verificadas contra los registros TPEEM/TCEEM de
+    la CMF; los enlaces marca↔entidad salen de los T&C de cada producto (el registro no trae marcas).
+    **`CardAccount`** gana cuatro columnas descriptivas que el modelo no podía expresar: `isVirtual`
+    (un emisor entrega varias virtuales sobre el mismo saldo), `isAdditional` + `cardholderName` (la
+    tarjeta emitida a otra persona: saber QUIÉN gastó es gran parte de lo que esta app agrega sobre la
+    cartola del banco) y `network` (enum nuevo **`CardNetwork`**: VISA/MASTERCARD/AMEX/REDCOMPRA/OTHER).
+    Todas opcionales y **descriptivas**: ninguna regla depende de ellas todavía. `CardForm` las pide
+    (switches + selector de red, el campo de titular solo aparece si la tarjeta es adicional) y
+    `CardDetailPanel` las muestra como filas. Falta en el catálogo: el registro TCEEM completo
+    (emisores de crédito no bancario) y las cooperativas.
   - **La tarjeta de crédito es su propia cuenta (2026-08-15, breaking, sin spec):** `ALLOWED_CARD_KINDS`
     pasa a **CHECKING/SIGHT/SAVINGS → DEBIT, CREDIT_LINE → CREDIT, PREPAID → PREPAID,
     INVESTMENT/CASH → ninguna**. Ya no existe la "tarjeta de crédito add-on" sobre una cuenta corriente

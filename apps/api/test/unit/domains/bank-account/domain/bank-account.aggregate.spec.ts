@@ -108,6 +108,10 @@ describe("BankAccount aggregate", () => {
             expiryYear: 2030,
             isActive: true,
             isPrimary: true,
+            isVirtual: false,
+            isAdditional: false,
+            cardholderName: null,
+            network: null,
             limits: [],
           },
         ],
@@ -136,6 +140,10 @@ describe("BankAccount aggregate", () => {
             expiryYear: 2030,
             isActive: true,
             isPrimary: true,
+            isVirtual: false,
+            isAdditional: false,
+            cardholderName: null,
+            network: null,
             limits: [],
           },
         ],
@@ -185,6 +193,8 @@ describe("BankAccount aggregate", () => {
 
   it("accepts a prepaid card on a prepaid account", () => {
     const account = BankAccount.fromPersistence(baseProps({ type: "PREPAID" }));
+    // A placement answers only where the card sits (primary? own limits?) — the
+    // descriptive fields ride along on the plan, not on this decision.
     expect(account.resolveCardPlacement(prepaidCardInput, null)).toEqual({
       isPrimary: false,
       cardLimits: [],

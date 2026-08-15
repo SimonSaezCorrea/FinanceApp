@@ -69,6 +69,10 @@ const card = (kind: CardProps["kind"]): CardProps => ({
   expiryYear: 2030,
   isActive: true,
   isPrimary: kind === "CREDIT",
+  isVirtual: false,
+  isAdditional: false,
+  cardholderName: null,
+  network: null,
   limits: [],
 });
 

@@ -16,15 +16,17 @@ export function useCountries() {
 }
 
 /** `accountType` narrows the list to the institutions that offer that product
- * (permissively — one with no catalogued products is always included). */
+ * (permissively — one with no catalogued products is always included).
+ * Corporate-only entities are always excluded: this is a personal-finance app, so
+ * a foreign branch or a BaaS provider is noise in every picker. */
 export function useInstitutions(
   country?: string,
   kind?: "BANK" | "NON_BANK_ISSUER",
   accountType?: accounts.AccountType,
 ) {
   return useQuery({
-    queryKey: ["institutions", country ?? "all", kind ?? "all", accountType ?? "all"],
-    queryFn: () => referenceApi.institutions({ country, kind, accountType }),
+    queryKey: ["institutions", country ?? "all", kind ?? "all", accountType ?? "all", "retail"],
+    queryFn: () => referenceApi.institutions({ country, kind, accountType, retailFacing: true }),
     staleTime: STALE,
   });
 }

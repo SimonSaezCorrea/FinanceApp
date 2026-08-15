@@ -20,9 +20,11 @@ function toContract(
     kind: r.kind,
     code: r.code,
     name: r.name,
+    legalName: r.legalName,
     category: r.category,
     brands: r.brands,
     notes: r.notes,
+    retailFacing: r.retailFacing,
     accountTypes,
   };
 }
@@ -45,6 +47,7 @@ export class PrismaInstitutionRepository implements InstitutionRepositoryPort {
       where: {
         ...(filters.country ? { country: { alpha2: filters.country.toUpperCase() } } : {}),
         ...(filters.kind ? { kind: filters.kind } : {}),
+        ...(filters.retailFacing ? { retailFacing: true } : {}),
       },
       orderBy: { name: "asc" },
     });

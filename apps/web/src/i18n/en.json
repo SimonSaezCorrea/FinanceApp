@@ -267,6 +267,13 @@
       "DEBIT": "Debit",
       "PREPAID": "Prepaid"
     },
+    "network": {
+      "VISA": "Visa",
+      "MASTERCARD": "Mastercard",
+      "AMEX": "American Express",
+      "REDCOMPRA": "Redcompra",
+      "OTHER": "Other"
+    },
     "form": {
       "name": "Card name (optional)",
       "namePlaceholder": "E.g. Main card",
@@ -276,6 +283,14 @@
       "expiry": "Expires",
       "expiryPlaceholder": "MM/YY",
       "last4": "Last 4 digits",
+      "virtual": "Virtual card",
+      "virtualHint": "No plastic. Several virtual cards can share one account.",
+      "additional": "Additional card",
+      "additionalHint": "Issued to another person on the same account or credit line.",
+      "cardholder": "Cardholder",
+      "cardholderPlaceholder": "e.g. Camila Rojas",
+      "network": "Network",
+      "networkNone": "Unspecified",
       "last4Hint": "Only the last 4 digits are stored.",
       "limits": "Limits per currency",
       "limitsHint": "Optional. With no limits of its own, the card can draw on the full account pool.",
@@ -307,6 +322,8 @@
       "available": "Available {{amount}}",
       "role": "Role",
       "holder": "Holder",
+      "format": "Format",
+      "issuedTo": "Issued",
       "limitSource": "Limit source",
       "ownLimit": "Own limit",
       "accountPool": "Account pool",

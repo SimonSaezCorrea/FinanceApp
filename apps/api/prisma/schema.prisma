@@ -94,6 +94,16 @@ enum AccountStatus {
   INACTIVE
 }
 
+/// Processing network a card runs on. Redcompra is the Chilean domestic one (still
+/// the only network on some older debit cards).
+enum CardNetwork {
+  VISA
+  MASTERCARD
+  AMEX
+  REDCOMPRA
+  OTHER
+}
+
 /// Physical payment instruments (the "plastic"). Prepaid included.
 enum CardKind {
   CREDIT
@@ -256,6 +266,17 @@ model CardAccount {
   /// edited from either side, same underlying value, no CardLimit row of its own.
   /// At most one true per account; irrelevant for DEBIT/PREPAID cards.
   isPrimary             Boolean  @default(false)
+  /// A virtual card: no plastic. Issuers (MACH, Tenpo, Chek) hand out several of
+  /// them on one account, often disposable, all spending the same balance.
+  isVirtual             Boolean  @default(false)
+  /// Issued to someone else (partner, child, employee) against the same account or
+  /// credit line. Every charge is still the holder's, but knowing WHO spent is
+  /// most of what a personal-finance app adds over the bank's own statement.
+  isAdditional          Boolean  @default(false)
+  /// Name embossed on the card, when it isn't the account owner's.
+  cardholderName        String?
+  /// Processing network, when known.
+  network               CardNetwork?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
 
@@ -674,11 +695,20 @@ model FinancialInstitution {
   kind      InstitutionKind @default(BANK)
   /// Institutional/regulator code (SBIF/CMF for banks; código institucional for issuers).
   code      String
+  /// COMMERCIAL name — what the user recognises ("Tenpo", "Copec Pay"), which is
+  /// often nothing like the registered entity. This is what the pickers show.
   name      String
+  /// Registered legal name as it appears in the regulator's list ("Compañía Emisora
+  /// de Medios de Pago Digitales S.A."). Searchable, never the primary label.
+  legalName String?
   /// Bank sub-category; null for non-bank issuers.
   category  BankCategory?
   /// Other commercial brands the institution operates under.
   brands    String[]        @default([])
+  /// Whether this institution sells to individuals at all. Corporate-only entities
+  /// (foreign branches, BaaS providers) stay in the catalogue — the regulator lists
+  /// them and historical data may point at them — but are hidden from the picker.
+  retailFacing Boolean      @default(true)
   notes     String?
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt

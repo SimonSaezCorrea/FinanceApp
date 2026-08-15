@@ -30,6 +30,10 @@ function card(overrides: Partial<CardProps> = {}): CardProps {
     expiryYear: 2030,
     isActive: true,
     isPrimary: true,
+    isVirtual: false,
+    isAdditional: false,
+    cardholderName: null,
+    network: null,
     limits: [],
     ...overrides,
   };

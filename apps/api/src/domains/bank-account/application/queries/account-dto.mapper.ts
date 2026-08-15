@@ -105,6 +105,10 @@ export function cardToDto(
     expiryYear: card.expiryYear,
     isActive: card.isActive,
     isPrimary: card.isPrimary,
+    isVirtual: card.isVirtual,
+    isAdditional: card.isAdditional,
+    cardholderName: card.cardholderName,
+    network: card.network,
     ownUsed,
     limits: card.limits.map((l) => {
       const s = sums?.get(`${card.id}:${l.currency}`);
