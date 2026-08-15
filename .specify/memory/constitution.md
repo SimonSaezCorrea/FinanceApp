@@ -1,4 +1,27 @@
 <!--
+Sync Impact Report — 2026-08-14 (amendment 1.35.0)
+- Version change: 1.34.0 → 1.35.0 (MINOR: new enforceable rule, no spec of its own — implemented
+  directly on branch 011; no principle removed or redefined).
+- Banking-domain norms gain **"A catalogue is data, never an inference from classification"**: which
+  account products an institution offers is stored (`institution-account-type`: `institutionId` +
+  `type` + `isPrimary`, unique pair, `onDelete: Cascade` — mirrors `CountryCurrency`/
+  `CountryIdentifierType`), NOT derived from `kind`/`category`. It MUST be applied permissively: an
+  institution with no catalogued products passes every filter, the filter narrows the picker instead
+  of rejecting a write, and an institution already saved on an account stays selectable.
+- `FinancialInstitution.rut` was DROPPED (15 seeded values, no consumer anywhere): `code`
+  (`@@unique([countryId, code])`) is the institution's identifier. `category` stays — unused at
+  runtime, kept for grouping the picker as the catalogue expands beyond Chile.
+- `accountType` (zod enum) moved from `contracts/accounts` to `contracts/common/account-type.ts` and
+  is re-exported from `accounts`: `reference` needs it for `Institution.accountTypes` and `accounts`
+  already imports `reference` (`InstitutionKind`), so a shared module is what breaks the cycle. Same
+  reasoning that moved `identifierTypeSchema` to `reference` in 1.8.0. No call site changed.
+- Business domains: 22 → 23 (`institution-account-type`).
+- Templates requiring updates: none.
+- Follow-up TODOs: `institutionKindForAccountType` (the BANK-only heuristic) is now redundant with
+  the catalogue for the two account forms; kept only until the seeded catalogue covers every country.
+-->
+
+<!--
 Sync Impact Report — 2026-08-14 (amendment 1.34.0)
 - Version change: 1.33.0 → 1.34.0 (MINOR: new enforceable rule from specs/011 — prepaid as its own
   account product; no principle removed or redefined).
@@ -860,7 +883,7 @@ Rationale: the spec is the shared contract; skipping it produces code nobody agr
 The constitution and `CLAUDE.md` are the project's durable memory — if they drift from
 reality, every future decision is made on false information.
 
-### VI. Backend DDD + CQRS Architecture (one table = one domain, 22 domains)
+### VI. Backend DDD + CQRS Architecture (one table = one domain, 23 domains)
 
 **One table, one domain, one adapter.** Every table in `apps/api/prisma/schema.prisma` MUST own
 exactly one folder `src/domains/<table>/` (kebab-case, matching its `@@map`), and exactly one Prisma
@@ -995,6 +1018,15 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
   - **A financial product is not a setting:** an account's `type` MUST NOT be convertible to or from
     `PREPAID` (`ACCOUNT_TYPE_CHANGE_NOT_ALLOWED`). Correcting a mistyped account means deleting and
     recreating it, not migrating cards, a credit pool and billing periods across products.
+  - **A catalogue is data, never an inference from classification:** which account products an
+    institution offers lives in its own seeded table (`institution-account-type`, flagship first via
+    `isPrimary`) and MUST NOT be derived at runtime from `kind` or `category`, which classify what
+    the entity IS (regulation) rather than what it SELLS — a non-bank issuer may launch a checking
+    account, a foreign branch may sell only one product. Such a catalogue is ALWAYS behind reality,
+    so it MUST be applied permissively: an institution with no catalogued products is offered for
+    every account type, the filter narrows the picker instead of rejecting a write, and an
+    institution already saved on an account stays selectable even once it stops offering that
+    product. A relation that carries attributes of its own is a join TABLE, not a scalar list.
   - **A transfer is not income nor expense:** money moved between two of the user's own accounts MUST
     be excluded from every income/expense aggregate. Representing it as ordinary rows (two
     `Transaction` rows sharing `transferGroupId`) means no sum excludes it on its own, so the
@@ -1078,4 +1110,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.34.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-14
+**Version**: 1.35.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-14

@@ -9,6 +9,7 @@ export const referenceApi = {
     const params = new URLSearchParams();
     if (filters?.country) params.set("country", filters.country);
     if (filters?.kind) params.set("kind", filters.kind);
+    if (filters?.accountType) params.set("accountType", filters.accountType);
     const qs = params.toString();
     return apiFetch<reference.Institution[]>(`/institutions${qs ? `?${qs}` : ""}`);
   },

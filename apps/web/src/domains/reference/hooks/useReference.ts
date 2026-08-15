@@ -1,5 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 
+import type { accounts } from "@finance/contracts";
+
 import { referenceApi } from "../api/referenceApi";
 
 // Reference data barely changes — cache it aggressively.
@@ -13,10 +15,16 @@ export function useCountries() {
   });
 }
 
-export function useInstitutions(country?: string, kind?: "BANK" | "NON_BANK_ISSUER") {
+/** `accountType` narrows the list to the institutions that offer that product
+ * (permissively — one with no catalogued products is always included). */
+export function useInstitutions(
+  country?: string,
+  kind?: "BANK" | "NON_BANK_ISSUER",
+  accountType?: accounts.AccountType,
+) {
   return useQuery({
-    queryKey: ["institutions", country ?? "all", kind ?? "all"],
-    queryFn: () => referenceApi.institutions({ country, kind }),
+    queryKey: ["institutions", country ?? "all", kind ?? "all", accountType ?? "all"],
+    queryFn: () => referenceApi.institutions({ country, kind, accountType }),
     staleTime: STALE,
   });
 }

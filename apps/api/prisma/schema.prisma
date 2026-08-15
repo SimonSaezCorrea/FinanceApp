@@ -675,8 +675,6 @@ model FinancialInstitution {
   /// Institutional/regulator code (SBIF/CMF for banks; código institucional for issuers).
   code      String
   name      String
-  /// Chilean tax id (RUT) — mainly for non-bank issuers; null otherwise.
-  rut       String?
   /// Bank sub-category; null for non-bank issuers.
   category  BankCategory?
   /// Other commercial brands the institution operates under.
@@ -685,11 +683,34 @@ model FinancialInstitution {
   createdAt DateTime        @default(now())
   updatedAt DateTime        @updatedAt
 
-  country  Country       @relation(fields: [countryId], references: [id], onDelete: Cascade)
-  accounts BankAccount[]
+  country      Country                  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  accounts     BankAccount[]
+  accountTypes InstitutionAccountType[]
 
   @@unique([countryId, code])
   @@index([countryId])
   @@index([kind])
   @@map("financial-institution")
+}
+
+/// Which account products an institution actually offers (Tenpo: prepaid today, checking
+/// tomorrow). Deliberately NOT derived from `kind`/`category`, which classify what the entity
+/// IS (regulation), not what it SELLS. A join table rather than a scalar list because the
+/// relation carries attributes of its own (`isPrimary`, and more to come) — same shape as
+/// `CountryCurrency` / `CountryIdentifierType`. An institution with no rows here is treated as
+/// "not catalogued yet" and offered for every account type.
+model InstitutionAccountType {
+  id            String      @id @default(cuid())
+  institutionId String
+  type          AccountType
+  /// Marks the institution's flagship product (ordering only, no behavior).
+  isPrimary     Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  institution FinancialInstitution @relation(fields: [institutionId], references: [id], onDelete: Cascade)
+
+  @@unique([institutionId, type])
+  @@index([institutionId])
+  @@map("institution-account-type")
 }

@@ -1,20 +1,14 @@
 import { z } from "zod";
 
+import { accountType, type AccountType } from "../common/account-type";
 import { moneyString } from "../common/money";
 import type { InstitutionKind } from "../reference";
 
 /** Accounts domain contracts (BankAccount + cards). Money as decimal strings. */
 
-export const accountType = z.enum([
-  "CHECKING", // Corriente
-  "SIGHT", // Vista / Cuenta RUT
-  "SAVINGS", // Ahorro
-  "INVESTMENT", // Inversiones (Fintual)
-  "CREDIT_LINE", // Línea de crédito (tarjeta de crédito sin cuenta bancaria)
-  "PREPAID", // Cuenta prepago: fondos provisionados, sin crédito, saldo nunca negativo
-  "CASH", // Efectivo
-]);
-export type AccountType = z.infer<typeof accountType>;
+/** Defined in `common/` so `reference` can use it too (see that file); re-exported
+ * here because this is the domain that owns the concept. */
+export { accountType, type AccountType };
 
 /**
  * Deposit-taking account types are the ones you'd transfer money TO, so they

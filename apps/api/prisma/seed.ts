@@ -2310,6 +2310,57 @@ async function seedFullUser(passwordHash: string) {
   });
 }
 
+/**
+ * Which account products each institution offers (`institution-account-type`).
+ *
+ * Defaults are per bank category / per kind, with a small per-code override map —
+ * this is a commercial catalogue, so it is expected to be tuned institution by
+ * institution over time; the shape below is what makes that cheap. FIRST entry of
+ * each list is the flagship (`isPrimary`). Deliberately NOT derived at runtime
+ * from `kind`/`category`: those classify what the entity IS, not what it SELLS.
+ */
+async function seedInstitutionAccountTypes(countryId: string) {
+  type Product = Prisma.InstitutionAccountTypeCreateManyInput["type"];
+
+  const BY_BANK_CATEGORY: Record<string, Product[]> = {
+    // Local retail/commercial bank: the full deposit + credit catalogue.
+    ESTABLISHED: ["CHECKING", "SIGHT", "SAVINGS", "CREDIT_LINE"],
+    // Branch of a foreign bank: corporate current accounts, no retail products.
+    FOREIGN_BRANCH: ["CHECKING"],
+    STATE: ["SIGHT", "CHECKING", "SAVINGS", "CREDIT_LINE"], // BancoEstado: CuentaRUT first.
+  };
+  // Non-bank issuers provision funds up front — prepaid is the product.
+  const ISSUER_PRODUCTS: Product[] = ["PREPAID"];
+  // Retail / caja de compensación issuers that also run their own store credit card.
+  const ISSUER_WITH_CREDIT = new Set(["697", "699", "729"]);
+
+  const institutions = await prisma.financialInstitution.findMany({
+    where: { countryId },
+    select: { id: true, code: true, kind: true, category: true },
+  });
+
+  for (const inst of institutions) {
+    const products =
+      inst.kind === "BANK"
+        ? (BY_BANK_CATEGORY[inst.category ?? "ESTABLISHED"] ?? BY_BANK_CATEGORY.ESTABLISHED)
+        : ISSUER_WITH_CREDIT.has(inst.code)
+          ? [...ISSUER_PRODUCTS, "CREDIT_LINE" as Product]
+          : ISSUER_PRODUCTS;
+
+    for (const [index, type] of products.entries()) {
+      await prisma.institutionAccountType.upsert({
+        where: { institutionId_type: { institutionId: inst.id, type } },
+        update: { isPrimary: index === 0 },
+        create: { institutionId: inst.id, type, isPrimary: index === 0 },
+      });
+    }
+    // Re-seeding after tuning a list must also RETIRE what is no longer offered.
+    await prisma.institutionAccountType.deleteMany({
+      where: { institutionId: inst.id, type: { notIn: products } },
+    });
+  }
+}
+
 /** Reference data (countries + banks). Idempotent: upsert by natural keys. */
 async function seedReferenceData() {
   const COUNTRIES = [
@@ -2421,37 +2472,38 @@ async function seedReferenceData() {
   }
 
   // Non-bank payment card issuers (emisores de tarjetas de pago con provisión de fondos).
-  const CHILE_ISSUERS: { code: string; name: string; rut: string }[] = [
-    { code: "741", name: "Compañía Emisora de Medios de Pago Digitales S.A.", rut: "77509915-1" },
-    { code: "764", name: "Fintoc Pagos S.A.", rut: "76639633-K" },
-    { code: "746", name: "Fintual Prepago S.A.", rut: "77535416-K" },
-    { code: "738", name: "Global Card S.A.", rut: "77096794-5" },
-    { code: "739", name: "Haulmer Prepago S.A.", rut: "77312496-5" },
-    { code: "697", name: "Inversiones LP S.A.", rut: "76265724-4" },
-    { code: "732", name: "Los Andes Tarjetas de Prepago S.A.", rut: "76965744-4" },
-    { code: "875", name: "Mercado Pago Emisora S.A.", rut: "77214066-5" },
-    { code: "747", name: "Metro Emisora de Medios de Pago S.A.", rut: "77057498-6" },
-    { code: "882", name: "Pomelo Tech Chile S.A.", rut: "76627434-K" },
-    { code: "743", name: "Prex Chile S.A.", rut: "77691219-0" },
-    { code: "729", name: "Sociedad Emisora de Tarjetas Los Héroes S.A.", rut: "76965737-1" },
-    { code: "744", name: "SumUp Chile Blue S.A.", rut: "77528384-K" },
-    { code: "730", name: "Tenpo Payments S.A.", rut: "76967692-9" },
-    { code: "699", name: "Tricard S.A.", rut: "96842380-0" },
+  const CHILE_ISSUERS: { code: string; name: string }[] = [
+    { code: "741", name: "Compañía Emisora de Medios de Pago Digitales S.A." },
+    { code: "764", name: "Fintoc Pagos S.A." },
+    { code: "746", name: "Fintual Prepago S.A." },
+    { code: "738", name: "Global Card S.A." },
+    { code: "739", name: "Haulmer Prepago S.A." },
+    { code: "697", name: "Inversiones LP S.A." },
+    { code: "732", name: "Los Andes Tarjetas de Prepago S.A." },
+    { code: "875", name: "Mercado Pago Emisora S.A." },
+    { code: "747", name: "Metro Emisora de Medios de Pago S.A." },
+    { code: "882", name: "Pomelo Tech Chile S.A." },
+    { code: "743", name: "Prex Chile S.A." },
+    { code: "729", name: "Sociedad Emisora de Tarjetas Los Héroes S.A." },
+    { code: "744", name: "SumUp Chile Blue S.A." },
+    { code: "730", name: "Tenpo Payments S.A." },
+    { code: "699", name: "Tricard S.A." },
   ];
   for (const e of CHILE_ISSUERS) {
     await prisma.financialInstitution.upsert({
       where: { countryId_code: { countryId: chile.id, code: e.code } },
-      update: { kind: "NON_BANK_ISSUER", name: e.name, rut: e.rut, category: null },
+      update: { kind: "NON_BANK_ISSUER", name: e.name, category: null },
       create: {
         countryId: chile.id,
         kind: "NON_BANK_ISSUER",
         code: e.code,
         name: e.name,
-        rut: e.rut,
         category: null,
       },
     });
   }
+
+  await seedInstitutionAccountTypes(chile.id);
 
   // --- Currencies (ISO 4217, deduplicated by alpha code) ---
   const CURRENCIES: [code: string, numeric: string, name: string][] = [

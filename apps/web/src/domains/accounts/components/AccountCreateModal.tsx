@@ -49,6 +49,7 @@ export function AccountCreateModal({
   const { data: institutions } = useInstitutions(
     "CL",
     accountsContract.institutionKindForAccountType(type),
+    type,
   );
   const { data: currencies } = useCurrencies();
   const [institutionId, setInstitutionId] = useState("");
@@ -117,9 +118,10 @@ export function AccountCreateModal({
       setInstitutionId("");
       setAccountNumber("");
     } else {
-      const requiredKind = accountsContract.institutionKindForAccountType(next);
+      // Drop the picked institution only when it is KNOWN not to offer the new
+      // product (an empty catalogue means "not seeded yet", so it stays).
       const selected = institutions?.find((i) => i.id === institutionId);
-      if (requiredKind && selected && selected.kind !== requiredKind) {
+      if (selected && selected.accountTypes.length > 0 && !selected.accountTypes.includes(next)) {
         setInstitutionId("");
       }
     }
