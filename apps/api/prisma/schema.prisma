@@ -281,9 +281,10 @@ model CardAccount {
   updatedAt             DateTime @updatedAt
 
   account      BankAccount           @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  walletItems  WalletItemDashboard[]
-  transactions Transaction[]
-  limits       CardLimit[]
+  walletItems     WalletItemDashboard[]
+  transactions    Transaction[]
+  limits          CardLimit[]
+  installmentPlans InstallmentPlan[]
 
   @@index([accountId])
   @@index([userId])
@@ -413,16 +414,22 @@ model InstallmentPlan {
   currency          String               @default("USD")
   frequency         InstallmentFrequency @default(MONTHLY)
   frequencyInterval Int                  @default(1)
+  /// The card the purchase was made with, when it was one. Optional: a plan can
+  /// also be a bank loan or an informal agreement with no card behind it.
+  /// `SetNull` — deleting a card must not delete the debt it created.
+  cardId            String?
   notes             String?
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
 
   user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card         CardAccount?         @relation(fields: [cardId], references: [id], onDelete: SetNull)
   payments     InstallmentPayment[]
   transactions Transaction[]
 
   @@index([userId])
   @@index([startDate])
+  @@index([cardId])
   @@map("installment-plan")
 }
 

@@ -332,6 +332,8 @@
       "filteringTable": "Filtering the table ←",
       "filteringTableHint": "The table on the left is already filtered by this card",
       "expiry": "Expires",
+      "activePlans": "Active instalments",
+      "activePlansCount": "{{count}} plan(s)",
       "availableLabel": "Available"
     },
     "showInactive": "Show inactive",
@@ -491,6 +493,8 @@
     "updated": "Plan updated",
     "deleted": "Plan deleted",
     "form": {
+      "card": "Card",
+      "cardNone": "No card",
       "title": "Title",
       "frequency": "Frequency",
       "frequencyInterval": "Every (number)"

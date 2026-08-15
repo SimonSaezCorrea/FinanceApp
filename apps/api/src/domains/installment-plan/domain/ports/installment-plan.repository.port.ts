@@ -12,6 +12,7 @@ export type CreateInstallmentPlanPlan = {
   currency: string;
   frequency: installments.InstallmentFrequency;
   frequencyInterval: number;
+  cardId: string | null;
   notes: string | null;
   payments: PlannedPayment[];
 };

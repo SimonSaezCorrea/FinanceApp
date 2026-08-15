@@ -6,6 +6,7 @@ import { formatMoney } from "@finance/money";
 
 import { Button } from "../../../shared/ui/button";
 import { Skeleton } from "../../../shared/ui/skeleton";
+import { useInstallments } from "../../installments/hooks/useInstallments";
 import { useCardMovements } from "../hooks/useCardMovements";
 
 function Row({
@@ -118,6 +119,11 @@ export function CardDetailPanel({
     { label: t("cards.detail.expiry"), value: expiry },
     ...(isCredit ? [{ label: t("cards.detail.limitSource"), value: limitSource }] : []),
   ];
+
+  const { data: plans } = useInstallments();
+  const activePlans = (plans ?? []).filter(
+    (plan) => plan.cardId === card.id && plan.payments.some((p) => p.paidAt === null),
+  );
 
   // Built here rather than as a ternary chain inside the markup below.
   let recentRows: ReactNode = null;
@@ -244,6 +250,18 @@ export function CardDetailPanel({
               )}
             </div>
           ))}
+        </div>
+      ) : null}
+
+      {/* What this card still owes in instalments — derivable only since a plan
+          records the card it was bought with. A plan counts as active while it has
+          an unpaid instalment. */}
+      {activePlans.length > 0 ? (
+        <div className="flex items-center justify-between gap-2 rounded-lg border border-border px-3 py-2">
+          <span className="text-sm">{t("cards.detail.activePlans")}</span>
+          <span className="text-sm font-semibold">
+            {t("cards.detail.activePlansCount", { count: activePlans.length })}
+          </span>
         </div>
       ) : null}
 

@@ -21,6 +21,8 @@ export interface InstallmentPlanProps {
   currency: string;
   frequency: installments.InstallmentFrequency;
   frequencyInterval: number;
+  /** The card the purchase was made with, when there was one. */
+  cardId: string | null;
   notes: string | null;
   payments: InstallmentPaymentProps[];
   createdAt: Date;
@@ -32,6 +34,7 @@ export type InstallmentPlanPatch = Partial<{
   currency: string;
   frequency: installments.InstallmentFrequency;
   frequencyInterval: number;
+  cardId: string | null;
   notes: string | null;
 }>;
 
@@ -73,6 +76,7 @@ export class InstallmentPlan {
     frequency: installments.InstallmentFrequency;
     frequencyInterval: number;
     aprPerPeriod?: string;
+    cardId?: string | null;
     notes?: string | null;
   }): {
     title: string;
@@ -82,6 +86,7 @@ export class InstallmentPlan {
     currency: string;
     frequency: installments.InstallmentFrequency;
     frequencyInterval: number;
+    cardId: string | null;
     notes: string | null;
     payments: PlannedPayment[];
   } {
@@ -108,6 +113,7 @@ export class InstallmentPlan {
       currency: input.currency,
       frequency: input.frequency,
       frequencyInterval: input.frequencyInterval,
+      cardId: input.cardId ?? null,
       notes: input.notes ?? null,
       payments,
     };
@@ -156,6 +162,7 @@ export class InstallmentPlan {
     if (patch.frequency !== undefined) this.props.frequency = patch.frequency;
     if (patch.frequencyInterval !== undefined)
       this.props.frequencyInterval = patch.frequencyInterval;
+    if (patch.cardId !== undefined) this.props.cardId = patch.cardId;
     if (patch.notes !== undefined) this.props.notes = patch.notes;
   }
 
@@ -193,6 +200,7 @@ export class InstallmentPlan {
       currency: this.props.currency,
       frequency: this.props.frequency,
       frequencyInterval: this.props.frequencyInterval,
+      cardId: this.props.cardId,
       notes: this.props.notes,
       payments: this.props.payments.map((p) => ({
         id: p.id,

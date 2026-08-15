@@ -47,6 +47,7 @@ function makePlan() {
     currency: "USD",
     frequency: "MONTHLY",
     frequencyInterval: 1,
+    cardId: null,
     notes: null,
     payments: [
       { id: "pay1", sequence: 1, dueDate: new Date("2026-01-15"), amount: "400", paidAt: null },

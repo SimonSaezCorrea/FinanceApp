@@ -36,6 +36,7 @@ describe("InstallmentsRoute", () => {
         currency: "USD",
         frequency: "MONTHLY",
         frequencyInterval: 1,
+        cardId: null,
         notes: null,
         createdAt: "2026-01-15T00:00:00.000Z",
         updatedAt: "2026-01-15T00:00:00.000Z",

@@ -305,6 +305,14 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     account — there's a **"Tenpo Prepago"** `PREPAID` account with two prepaid cards sharing its
     balance, movements with and without a card, and a top-up recorded as a real transfer.
     `docs/PENDING.md` lost its point 6 (the un-revertable card top-up), which this design removes.
+  - **`InstallmentPlan.cardId` (2026-08-15):** un plan de cuotas registra con qué tarjeta se compró
+    (FK nullable → `CardAccount`, **`onDelete: SetNull`** — borrar la tarjeta no puede borrar la deuda
+    que creó). Opcional a propósito: un plan también puede ser un crédito bancario sin tarjeta detrás.
+    Expuesto en el contrato (`installmentPlanSchema.cardId` + create/update), elegido en
+    `InstallmentCreateModal` (selector de todas las tarjetas de todas las cuentas: el plan habla de la
+    deuda, no de los movimientos de una cuenta). Esto habilita **"Cuotas activas"** en `CardDetailPanel`
+    — el bloque que el rediseño de tarjetas había dejado fuera por no ser derivable: un plan cuenta
+    como activo mientras le quede alguna cuota impaga.
   - **Marca vs. razón social + atributos de tarjeta (2026-08-15):** `FinancialInstitution.name` pasa a
     ser el **nombre comercial** (Copec Pay, Tenpo, BancoEstado, BCI) y la razón social registrada vive
     en **`legalName`**; los selectores etiquetan con `name` y **buscan por los tres** (name, legalName,

@@ -36,6 +36,7 @@ describe("CreateInstallmentPlanHandler", () => {
         currency: plan.currency,
         frequency: plan.frequency,
         frequencyInterval: plan.frequencyInterval,
+        cardId: plan.cardId ?? null,
         notes: plan.notes,
         payments: plan.payments.map(
           (p: { sequence: number; dueDate: Date; amount: string }, i: number) => ({

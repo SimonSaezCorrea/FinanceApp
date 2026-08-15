@@ -39,6 +39,7 @@ describe("PrismaInstallmentPlanRepository (integration)", () => {
       currency: "USD",
       frequency: "MONTHLY",
       frequencyInterval: 1,
+      cardId: null,
       notes: null,
       payments: [
         { sequence: 1, dueDate: new Date("2026-01-15"), amount: "400" },

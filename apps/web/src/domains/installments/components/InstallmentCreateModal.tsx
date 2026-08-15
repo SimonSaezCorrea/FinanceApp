@@ -4,10 +4,12 @@ import { toast } from "sonner";
 
 import type { installments } from "@finance/contracts";
 
+import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { Button } from "../../../shared/ui/button";
 import { ResponsiveSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
+import { Select } from "../../../shared/ui/select";
 import { useInstallmentMutations } from "../hooks/useInstallmentMutations";
 
 type Freq = installments.InstallmentFrequency;
@@ -37,6 +39,20 @@ export function InstallmentCreateModal({
   const [frequency, setFrequency] = useState<Freq>("MONTHLY");
   const [frequencyInterval, setFrequencyInterval] = useState(1);
   const [notes, setNotes] = useState("");
+  const [cardId, setCardId] = useState("");
+  // Which card a purchase in instalments was made with: a plan can equally be a
+  // bank loan, so it stays optional. Every card of every account is offered —
+  // the plan is about the debt, not about one account's movements.
+  const { data: accounts } = useAccounts();
+  const cardOptions = [
+    { value: "", label: t("installments.form.cardNone") },
+    ...(accounts ?? []).flatMap((account) =>
+      account.cards.map((card) => ({
+        value: card.id,
+        label: `${account.name} · ${card.name} ···· ${card.last4}`,
+      })),
+    ),
+  ];
 
   useEffect(() => {
     if (open) {
@@ -50,6 +66,7 @@ export function InstallmentCreateModal({
         setFrequency(initialData.frequency);
         setFrequencyInterval(initialData.frequencyInterval);
         setNotes(initialData.notes ?? "");
+        setCardId(initialData.cardId ?? "");
       }
     } else {
       reset();
@@ -71,6 +88,7 @@ export function InstallmentCreateModal({
     setFrequency("MONTHLY");
     setFrequencyInterval(1);
     setNotes("");
+    setCardId("");
   }
 
   function handleSubmit() {
@@ -84,6 +102,7 @@ export function InstallmentCreateModal({
             currency: currency.trim().toUpperCase(),
             frequency,
             frequencyInterval,
+            cardId: cardId || null,
             notes: notes.trim() || null,
           },
         },
@@ -105,6 +124,7 @@ export function InstallmentCreateModal({
           startDate: new Date(startDate).toISOString(),
           frequency,
           frequencyInterval,
+          cardId: cardId || null,
           notes: notes.trim() || undefined,
         },
         {
@@ -218,6 +238,15 @@ export function InstallmentCreateModal({
             />
           </Field>
         </div>
+
+        <Field label={t("installments.form.card")}>
+          <Select
+            value={cardId}
+            onChange={(e) => setCardId(e.target.value)}
+            options={cardOptions}
+            aria-label={t("installments.form.card")}
+          />
+        </Field>
 
         <Field label={t("debts.form.notes")}>
           <Input

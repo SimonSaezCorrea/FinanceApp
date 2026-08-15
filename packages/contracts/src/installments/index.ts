@@ -25,6 +25,9 @@ export const installmentPlanSchema = z.object({
   currency: z.string(),
   frequency: installmentFrequency,
   frequencyInterval: z.number().int().positive(),
+  /** The card this purchase was put on, when there was one — a plan can equally
+   * be a bank loan with no card behind it. */
+  cardId: z.string().nullable(),
   notes: z.string().nullable(),
   payments: z.array(installmentPaymentSchema),
   createdAt: z.string(),
@@ -41,6 +44,7 @@ export const createInstallmentPlanSchema = z.object({
   frequency: installmentFrequency.default("MONTHLY"),
   frequencyInterval: z.number().int().min(1).max(999).default(1),
   aprPerPeriod: moneyString.optional(),
+  cardId: z.string().nullish(),
   notes: z.string().trim().max(500).optional(),
 });
 export type CreateInstallmentPlan = z.infer<typeof createInstallmentPlanSchema>;
@@ -50,6 +54,7 @@ export const updateInstallmentPlanSchema = z.object({
   currency: z.string().trim().length(3).optional(),
   frequency: installmentFrequency.optional(),
   frequencyInterval: z.number().int().min(1).max(999).optional(),
+  cardId: z.string().nullable().optional(),
   notes: z.string().trim().max(500).nullable().optional(),
 });
 export type UpdateInstallmentPlan = z.infer<typeof updateInstallmentPlanSchema>;

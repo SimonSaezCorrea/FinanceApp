@@ -36,6 +36,7 @@ function rowToProps(row: Row): InstallmentPlanProps {
     currency: row.currency,
     frequency: row.frequency,
     frequencyInterval: row.frequencyInterval,
+    cardId: row.cardId,
     notes: row.notes,
     payments: row.payments.map((p): InstallmentPaymentProps => ({
       id: p.id,
@@ -102,6 +103,7 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
         currency: plan.currency,
         frequency: plan.frequency,
         frequencyInterval: plan.frequencyInterval,
+        cardId: plan.cardId,
         notes: plan.notes,
       },
     });
@@ -123,6 +125,7 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
         currency: snap.currency,
         frequency: snap.frequency,
         frequencyInterval: snap.frequencyInterval,
+        cardId: snap.cardId,
         notes: snap.notes,
       },
     });

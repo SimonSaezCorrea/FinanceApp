@@ -332,6 +332,8 @@
       "filteringTable": "Filtrando la tabla ←",
       "filteringTableHint": "La tabla de la izquierda ya está filtrada por esta tarjeta",
       "expiry": "Vence",
+      "activePlans": "Cuotas activas",
+      "activePlansCount": "{{count}} plan(es)",
       "availableLabel": "Disponible"
     },
     "showInactive": "Ver inactivas",
@@ -491,6 +493,8 @@
     "updated": "Plan actualizado",
     "deleted": "Plan eliminado",
     "form": {
+      "card": "Tarjeta",
+      "cardNone": "Sin tarjeta",
       "title": "Título",
       "frequency": "Periodicidad",
       "frequencyInterval": "Cada (número)"

@@ -19,6 +19,7 @@ function makePlan(id: string) {
     currency: "USD",
     frequency: "MONTHLY",
     frequencyInterval: 1,
+    cardId: null,
     notes: null,
     payments: [],
     createdAt: new Date("2026-01-15"),

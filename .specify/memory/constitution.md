@@ -1,4 +1,14 @@
 <!--
+Sync Impact Report — 2026-08-15 (amendment 1.38.1)
+- Version change: 1.38.0 → 1.38.1 (PATCH: one nullable link + its UI; no principle added or changed).
+- `InstallmentPlan.cardId` (nullable FK → `CardAccount`, `onDelete: SetNull` — deleting a card must
+  never delete the debt it created) records which card a purchase in instalments was made with;
+  optional, since a plan can equally be a bank loan. Enables "Cuotas activas" on `CardDetailPanel`,
+  documented until now as not derivable.
+- Templates requiring updates: none. Follow-up TODOs: unchanged (TCEEM registry, cooperatives).
+-->
+
+<!--
 Sync Impact Report — 2026-08-15 (amendment 1.38.0)
 - Version change: 1.37.0 → 1.38.0 (MINOR: new enforceable rule + new descriptive card/institution
   fields; no principle removed or redefined).
@@ -1197,4 +1207,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.38.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15
+**Version**: 1.38.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15

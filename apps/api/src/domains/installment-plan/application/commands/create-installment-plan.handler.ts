@@ -47,6 +47,7 @@ export class CreateInstallmentPlanHandler extends BaseCommandHandler<
       frequency: input.frequency,
       frequencyInterval: input.frequencyInterval,
       aprPerPeriod: input.aprPerPeriod,
+      cardId: input.cardId,
       notes: input.notes,
     });
     return { plan: planned };

@@ -29,6 +29,7 @@ function makePlan(
     currency: "CLP",
     frequency: "MONTHLY",
     frequencyInterval: 1,
+    cardId: null,
     notes: null,
     payments: [],
     createdAt: "2026-01-01T00:00:00.000Z",

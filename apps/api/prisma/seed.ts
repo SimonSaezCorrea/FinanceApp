@@ -2047,6 +2047,9 @@ async function seedFullUser(passwordHash: string) {
       installmentCount: 12,
       startDate: new Date("2026-03-05T00:00:00Z"),
       currency: "CLP",
+      // Bought with the CMR card: the plan records which card, so the card's own
+      // detail can say what it still owes in instalments.
+      cardId: creditCard.id,
       notes: "12 cuotas sin interés",
     },
   });
@@ -2071,6 +2074,7 @@ async function seedFullUser(passwordHash: string) {
       installmentCount: 6,
       startDate: new Date("2026-05-10T00:00:00Z"),
       currency: "CLP",
+      cardId: creditCardBch.id,
     },
   });
   for (let seq = 1; seq <= 6; seq++) {
