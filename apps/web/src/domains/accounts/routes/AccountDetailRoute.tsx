@@ -36,6 +36,7 @@ import { CardDetailPanel } from "../components/CardDetailPanel";
 import { CardDetailSurface } from "../components/CardDetailSurface";
 import { CardForm } from "../components/CardForm";
 import { ACCOUNT_ICON } from "../components/accountVisuals";
+import { hasCardsAside } from "../lib/detailLayout";
 import { useAccount, useAccountMutations, useAccounts } from "../hooks/useAccounts";
 import { useCardMutations } from "../hooks/useCards";
 
@@ -88,6 +89,7 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
     acc.type,
     (allAccounts ?? []).filter((a) => a.type === "CASH").length,
   );
+  const hasAside = hasCardsAside(acc, cardable);
   const tabItems = [
     { value: "movements" as const, label: t("transactions.title") },
     ...(hasCreditPool
@@ -122,7 +124,8 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
       <div
         className={cn(
           "grid gap-6",
-          isDesktop && "min-h-0 flex-1 grid-cols-[1fr_clamp(320px,24vw,480px)]",
+          isDesktop && "min-h-0 flex-1",
+          isDesktop && hasAside && "grid-cols-[1fr_clamp(320px,24vw,480px)]",
         )}
       >
         {/* Main column */}
@@ -254,7 +257,7 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
         {/* Side column — desktop only (on mobile its content is the "Tarjetas" tab
             above). The account tile stays put; only the cards list scrolls (see
             CardsAside), so it never drags the movements table along. */}
-        <aside className={cn("flex-col gap-4", isDesktop ? "flex min-h-0" : "hidden")}>
+        <aside className={cn("flex-col gap-4", isDesktop && hasAside ? "flex min-h-0" : "hidden")}>
           <CardsAside
             account={acc}
             holder={user?.name ?? undefined}
