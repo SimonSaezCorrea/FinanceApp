@@ -249,16 +249,21 @@ reconozca su tarjeta y para poder responder "¿quién gastó esto?" leyendo el m
 **Para hacerlos reales**: agrupar el gasto por `cardholderName` en el panel y en los agregados
 (hoy no existe ese corte), y usar `network` en la presentación de la tarjeta.
 
-### 5. Catálogo de instituciones incompleto fuera de Chile
+### 5. Un solo país en el catálogo (decisión de MVP, no un hueco)
 
-`Country` tiene 6 países seedeados, pero solo Chile (58 instituciones) y Argentina (12) tienen
-catálogo. **Colombia, Perú, Paraguay y Puerto Rico aparecen en el selector de país y devuelven cero
-instituciones**: el formulario deja crear la cuenta igual (la institución es opcional), pero la
-experiencia es una lista vacía. `InstitutionKind.PAYMENT_PROVIDER` existe para las SEDPE colombianas,
-las EEDE peruanas y las EMPE paraguayas, y hoy lo usan los tres PSP argentinos y Fintual Prepago.
+Desde el 2026-08-15 el seed tiene **solo Chile** (58 instituciones) y **tres monedas** (CLP, USD,
+CLF/UF) — ver `docs/MVP.md`. Antes había 6 países sembrados, pero cuatro devolvían cero
+instituciones y Argentina estaba a medias, así que el selector de país ofrecía mercados vacíos.
 
-**Para hacerlo real**: sembrar cada registro contra la fuente del regulador correspondiente, como se
-hizo con TPEEM/TCEEM/BCCOO (CMF) y los códigos de entidad del BCRA.
+**El modelo sigue siendo multi-país** y no se tocó: FK `Country`, filtro `GET /institutions?country=`,
+`accountNumberFormat`/`isValidCbu`/`usesAccountAlias` con sus tests, e `InstitutionKind.PAYMENT_PROVIDER`
+(la figura de las SEDPE colombianas, las EEDE peruanas y las EMPE paraguayas; hoy la usa Fintual
+Prepago). Lo acotado es la data.
+
+**Para volver a expandir**: `docs/CATALOGO_REGIONAL.md` conserva el catálogo argentino completo (9
+bancos con su código de entidad BCRA + 4 PSP), los tipos de identificación por país, los enlaces
+país↔moneda y las reglas de CBU/CVU/alias. Sembrar un país nuevo es leerlo del regulador
+correspondiente, como se hizo con TPEEM/TCEEM/BCCOO (CMF).
 
 ### 5b. Los productos por institución están puestos por defecto, no verificados
 
@@ -327,7 +332,7 @@ editar ni eliminar** (`InvestmentsRoute.tsx`, 36 líneas). El modelo detrás tam
 fondo mutuo, las acciones ni la cuenta de ahorro para la vivienda — y **nada de lo invertido entra
 al patrimonio neto**, que solo cuenta saldos de cuentas menos deuda.
 
-**Diseño ya acordado, congelado en `specs/012-investment-tracking/spec.md`** (estado *Deferred*,
+**Diseño ya acordado, congelado en `specs/012-investment-tracking/spec.md`** (estado _Deferred_,
 2026-08-15): la plata siempre vive en una cuenta, así que un depósito a plazo se abre con un
 traspaso desde la cuenta de origen y se liquida devolviendo capital + el interés que el usuario lee
 de su cartola (**la app nunca lo calcula**, igual que `financeCharge`); renovar es una sola acción

@@ -1,4 +1,24 @@
 <!--
+Sync Impact Report — 2026-08-15 (amendment 1.45.0)
+- Version change: 1.44.0 → 1.45.0 (MINOR: new enforceable scope rule; no principle removed).
+- Delivery norms gain **"Scope is data, not code"**: the MVP (`docs/MVP.md`) is Chile-only with three
+  currencies (CLP, USD and CLF — the ISO 4217 code for the UF), and investments last. Narrowing the
+  product MUST be done by shrinking the SEEDED CATALOGUE, never by deleting the capability: the FK
+  `Country`, the `?country=` filter, `accountNumberFormat`/`isValidCbu`/`usesAccountAlias` and
+  `InstitutionKind.PAYMENT_PROVIDER` all stay, with their tests.
+- Corollary made explicit: **a seed that stops CREATING a row has not removed it.** A seed that
+  defines a catalogue MUST also retire what no longer belongs (`deleteMany` on the complement), or a
+  previously seeded database silently keeps the wider scope.
+- Research that leaves the seed MUST be written down before it is deleted — `docs/CATALOGO_REGIONAL.md`
+  holds the Argentine catalogue (BCRA entity codes), the CBU/CVU/alias rules, the identifier types per
+  country and the currency links, so re-expanding is copy-back rather than re-research.
+- The UF is a unit of account, not a spendable currency, and this app has no FX source: a UF amount is
+  stored and shown in UF and gets NO approximate CLP hint, because there is no honest number to write
+  into the static rate table.
+- Templates requiring updates: none.
+-->
+
+<!--
 Sync Impact Report — 2026-08-15 (amendment 1.44.0)
 - Version change: 1.43.0 → 1.44.0 (MINOR: new `InstitutionKind` value + a sector the catalogue was
   missing; no principle removed or redefined).
@@ -1138,6 +1158,17 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
 
 ## Technology & Operational Constraints
 
+- **Scope is data, not code (MVP — `docs/MVP.md`):** the first iteration ships **Chile only**, with
+  **three currencies (CLP, USD and CLF — the ISO 4217 code for the UF)**, and **investments last**.
+  Narrowing the product MUST be done by shrinking the SEEDED CATALOGUE, never by deleting the
+  capability: the multi-country model (FK `Country`, `?country=` filter, per-market account-number
+  formats, `InstitutionKind.PAYMENT_PROVIDER`) stays with its tests. Three consequences that are
+  themselves enforceable: (a) **a seed that stops CREATING a row has not removed it** — a seed that
+  defines a catalogue MUST also retire the complement, or an already-seeded database keeps the wider
+  scope; (b) **research that leaves the code is written down before it is deleted**
+  (`docs/CATALOGO_REGIONAL.md`), so re-expanding is copy-back, not re-research; (c) the **UF is a unit
+  of account, not a spendable currency** — with no FX source, a UF amount is stored and shown in UF and
+  gets no approximate CLP hint, because there is no honest number to write down.
 - **Target architecture (ratified — specs/001):** a **pnpm + Turborepo monorepo** with two
   separately deployable apps and shared packages:
   - `apps/api` — **NestJS** backend, **Prisma 7 / PostgreSQL** (sole DB owner, connected via the
@@ -1374,4 +1405,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.44.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15
+**Version**: 1.45.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15
