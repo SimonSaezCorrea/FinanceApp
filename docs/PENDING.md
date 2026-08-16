@@ -249,16 +249,37 @@ reconozca su tarjeta y para poder responder "¿quién gastó esto?" leyendo el m
 **Para hacerlos reales**: agrupar el gasto por `cardholderName` en el panel y en los agregados
 (hoy no existe ese corte), y usar `network` en la presentación de la tarjeta.
 
-### 5. Catálogo de instituciones incompleto fuera de Chile
+### 5. Un solo país en el catálogo (decisión de MVP, no un hueco)
 
-`Country` tiene 6 países seedeados, pero solo Chile (46 instituciones) y Argentina (12) tienen
-catálogo. **Colombia, Perú, Paraguay y Puerto Rico aparecen en el selector de país y devuelven cero
-instituciones**: el formulario deja crear la cuenta igual (la institución es opcional), pero la
-experiencia es una lista vacía. `InstitutionKind.PAYMENT_PROVIDER` existe para las SEDPE colombianas,
-las EEDE peruanas y las EMPE paraguayas, y hoy solo lo usan los tres PSP argentinos.
+Desde el 2026-08-15 el seed tiene **solo Chile** (58 instituciones) y **tres monedas** (CLP, USD,
+CLF/UF) — ver `docs/MVP.md`. Antes había 6 países sembrados, pero cuatro devolvían cero
+instituciones y Argentina estaba a medias, así que el selector de país ofrecía mercados vacíos.
 
-**Para hacerlo real**: sembrar cada registro contra la fuente del regulador correspondiente, como se
-hizo con TPEEM/TCEEM/BCCOO (CMF) y los códigos de entidad del BCRA.
+**El modelo sigue siendo multi-país** y no se tocó: FK `Country`, filtro `GET /institutions?country=`,
+`accountNumberFormat`/`isValidCbu`/`usesAccountAlias` con sus tests, e `InstitutionKind.PAYMENT_PROVIDER`
+(la figura de las SEDPE colombianas, las EEDE peruanas y las EMPE paraguayas; hoy la usa Fintual
+Prepago). Lo acotado es la data.
+
+**Para volver a expandir**: `docs/CATALOGO_REGIONAL.md` conserva el catálogo argentino completo (9
+bancos con su código de entidad BCRA + 4 PSP), los tipos de identificación por país, los enlaces
+país↔moneda y las reglas de CBU/CVU/alias. Sembrar un país nuevo es leerlo del regulador
+correspondiente, como se hizo con TPEEM/TCEEM/BCCOO (CMF).
+
+### 5b. Los productos por institución están puestos por defecto, no verificados
+
+`seedInstitutionAccountTypes` asigna los productos **por categoría** (banco ESTABLISHED → los cinco
+productos retail; cooperativa → SAVINGS/SIGHT/CREDIT_CARD; emisor → PREPAID), no entidad por
+entidad. El caso Fintual mostró que eso sobre-declara: tenía la licencia de prepago y **nunca emitió
+tarjetas**, así que su fila pasó a `PAYMENT_PROVIDER` con la razón escrita en `notes` — una licencia
+es un permiso, no un producto. Candidatos con el mismo síntoma, sin verificar todavía: **Fintoc**
+(764, API de pagos B2B, no vende cuenta a personas — mismo caso que Pomelo), **Haulmer** (739) y
+**SumUp Pay** (744) (prepago para comercios), **HSBC** (031), **Banco Internacional** (009) y **BTG
+Pactual** (059) (banca corporativa/privada declarando los cinco productos retail), las cooperativas
+chicas declarando `CREDIT_CARD`, y el `INVESTMENT` que se agregó a los 15 bancos por default de
+categoría.
+
+**Para hacerlo real**: verificar producto por producto contra los T&C de cada entidad y reemplazar
+el default por una lista explícita, como ya se hace con `ISSUER_WITH_CREDIT`/`CREDIT_ONLY_CODES`.
 
 ### 6. `BankCategory` no filtra nada
 
@@ -300,3 +321,31 @@ La exclusión de traspasos de los agregados de ingreso/gasto está centralizada 
 `excludeTransfers` (web, `domains/dashboard/lib/metrics.ts`). **Cualquier agregado nuevo de
 ingreso/gasto debe aplicarlo**: al no cambiar el enum `TransactionType`, ninguna suma lo excluye por sí
 sola.
+
+## Inversiones
+
+### 1. La vista de inversiones es una lista de solo lectura
+
+`/investments` lista etiqueta y tipo de cada `Investment` y nada más: **sin montos, sin crear,
+editar ni eliminar** (`InvestmentsRoute.tsx`, 36 líneas). El modelo detrás también está a medias —
+`InvestmentKind` solo tiene `ETF` y `REMUNERATED_ACCOUNT`, no existe el depósito a plazo, el APV, el
+fondo mutuo, las acciones ni la cuenta de ahorro para la vivienda — y **nada de lo invertido entra
+al patrimonio neto**, que solo cuenta saldos de cuentas menos deuda.
+
+**Diseño ya acordado, congelado en `specs/012-investment-tracking/spec.md`** (estado _Deferred_,
+2026-08-15): la plata siempre vive en una cuenta, así que un depósito a plazo se abre con un
+traspaso desde la cuenta de origen y se liquida devolviendo capital + el interés que el usuario lee
+de su cartola (**la app nunca lo calcula**, igual que `financeCharge`); renovar es una sola acción
+que no toca ninguna cuenta; una cuenta remunerada es una `BankAccount` con tasa declarada, no una
+fila aparte; y el patrimonio separa lo verificado por movimientos de la línea **declarada por el
+usuario** = Σ(valor declarado − capital aportado), que evita contar dos veces el mismo peso.
+
+**Qué falta decidir antes de implementar** (por eso quedó diferida): si una cuenta de inversión
+alberga un instrumento o varios — en Fintual el usuario ve UNA cuenta con varios fondos adentro — y
+si esa cuenta la crea la app al registrar el instrumento o la elige el usuario.
+
+### 2. Cotización en vivo de ETF
+
+`EtfPriceCache` y la integración con Alpha Vantage (`ALPHA_VANTAGE_API_KEY`) siguen sin
+implementarse. Mientras no existan, un ETF se valoriza por valor declarado como cualquier otro
+instrumento — que es exactamente lo que asume la spec 012.

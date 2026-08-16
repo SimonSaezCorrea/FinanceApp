@@ -1671,34 +1671,7 @@ async function seedFullUser(passwordHash: string) {
     initialBalance: dec("0"),
     currentBalance: dec("0"),
   });
-  // An Argentine account: the market where an account is identified by a 22-digit
-  // CBU (with its two check digits) and shared by its alias, which is what people
-  // actually exchange. Seeded so both fields exist in real data, not only in tests.
-  const argentina = await prisma.country.findUnique({ where: { alpha2: "AR" } });
-  if (argentina) {
-    const nacion = await prisma.financialInstitution.findFirst({
-      where: { countryId: argentina.id, code: "011" },
-      select: { id: true, name: true },
-    });
-    await prisma.bankAccount.create({
-      data: {
-        userId: javier.id,
-        name: "Caja de Ahorro",
-        // En Argentina la caja de ahorro es la cuenta cotidiana; la corriente es
-        // más bien producto de empresa.
-        type: "SAVINGS",
-        currency: "ARS",
-        institution: nacion?.name ?? "Banco Nación",
-        institutionId: nacion?.id ?? null,
-        accountNumber: "0110599520000123456788",
-        accountAlias: "mate.tango.sol",
-        initialBalance: dec("850000.0000"),
-        currentBalance: dec("850000.0000"),
-      },
-    });
-  }
-
-  // Foreign-currency accounts (the USD/EUR chips on the dashboard).
+  // Foreign-currency account (the USD chip on the dashboard).
   const tenpo = await prisma.bankAccount.create({
     data: {
       userId: javier.id,
@@ -1717,8 +1690,10 @@ async function seedFullUser(passwordHash: string) {
       userId: javier.id,
       name: "Fintual Global",
       type: "INVESTMENT",
-      currency: "EUR",
+      currency: "USD",
       institution: "Fintual",
+      // La AGF, no la emisora de prepago: dos entidades con la misma marca.
+      institutionId: issuerId("AGF-fintual"),
       initialBalance: dec("6500.0000"),
       currentBalance: dec("6500.0000"),
     },
@@ -2340,7 +2315,7 @@ async function seedFullUser(passwordHash: string) {
         userId: javier.id,
         kind: "ETF",
         label: "Vanguard FTSE All-World",
-        currency: "EUR",
+        currency: "USD",
         symbol: "VWCE",
         shares: dec("48.00000000"),
         openedAt: new Date("2025-09-01T00:00:00Z"),
@@ -2456,16 +2431,23 @@ async function seedInstitutionAccountTypes(countryId: string) {
 
   const BY_BANK_CATEGORY: Record<string, Product[]> = {
     // Local retail/commercial bank: the full deposit + credit catalogue.
-    ESTABLISHED: ["CHECKING", "SIGHT", "SAVINGS", "CREDIT_CARD"],
+    // Local retail/commercial bank: deposits, credit, and the mutual funds it sells
+    // through its own AGF subsidiary — the user opens that account at "BCI", not at
+    // "BCI Asset Management AGF S.A.", so INVESTMENT hangs off the bank they know.
+    ESTABLISHED: ["CHECKING", "SIGHT", "SAVINGS", "CREDIT_CARD", "INVESTMENT"],
     // Branch of a foreign bank: corporate current accounts, no retail products.
     FOREIGN_BRANCH: ["CHECKING"],
-    STATE: ["SIGHT", "CHECKING", "SAVINGS", "CREDIT_CARD"], // BancoEstado: CuentaRUT first.
+    // BancoEstado: CuentaRUT first.
+    STATE: ["SIGHT", "CHECKING", "SAVINGS", "CREDIT_CARD", "INVESTMENT"],
   };
   // A cooperative takes its members' savings and lends: ahorro first, plus a sight
   // account (Coopeuch's Dale) and its own credit card.
   const COOPERATIVE_PRODUCTS: Product[] = ["SAVINGS", "SIGHT", "CREDIT_CARD"];
   // Non-bank issuers with the prepaid licence provision funds up front.
   const ISSUER_PRODUCTS: Product[] = ["PREPAID"];
+  // A fund manager / broker administers money invested in funds or instruments: the
+  // investment account is its ONLY product — it takes no deposits and issues no cards.
+  const FUND_MANAGER_PRODUCTS: Product[] = ["INVESTMENT"];
   // Retail / caja de compensación issuers that hold BOTH licences (prepaid + credit).
   const ISSUER_WITH_CREDIT = new Set(["697", "699", "729"]);
   // Issuers holding ONLY the credit-card licence (TCEEM): a store card, no prepaid.
@@ -2489,6 +2471,11 @@ async function seedInstitutionAccountTypes(countryId: string) {
       return BY_BANK_CATEGORY[inst.category ?? "ESTABLISHED"] ?? BY_BANK_CATEGORY.ESTABLISHED;
     }
     if (inst.kind === "COOPERATIVE") return COOPERATIVE_PRODUCTS;
+    if (inst.kind === "FUND_MANAGER") return FUND_MANAGER_PRODUCTS;
+    // A payment account holding e-money: it receives transfers and holds a balance
+    // that can't go negative — this app's PREPAID account — with or without a card
+    // ever being issued against it (Fintual issues none).
+    if (inst.kind === "PAYMENT_PROVIDER") return ISSUER_PRODUCTS;
     // A credit-only issuer is keyed by RUT precisely because it has no transfer
     // code — the same fact that tells us it holds no prepaid licence.
     if (CREDIT_ONLY_CODES.has(inst.code)) return CREDIT_ONLY_PRODUCTS;
@@ -2513,162 +2500,19 @@ async function seedInstitutionAccountTypes(countryId: string) {
   }
 }
 
-/**
- * Argentina: the second market in the catalogue, seeded to prove the model travels.
- * `code` is the BCRA entity code — the first 3 digits of every CBU issued by that
- * bank, which is exactly what makes it the natural key here.
- *
- * The PSPs (Mercado Pago, Ualá, Naranja X) are a different regulatory figure —
- * `PAYMENT_PROVIDER`: they hold payment accounts identified by a CVU, without being
- * banks and without a card being the product. Their CVU prefixes are not published
- * in the sources used here, so they are keyed `PSP-<slug>` rather than given an
- * invented entity code.
- */
-async function seedArgentina() {
-  const argentina = await prisma.country.findUnique({ where: { alpha2: "AR" } });
-  if (!argentina) return;
-
-  type ArSeed = {
-    code: string;
-    name: string;
-    legalName: string;
-    kind: "BANK" | "PAYMENT_PROVIDER";
-    products: ("CHECKING" | "SAVINGS" | "SIGHT" | "CREDIT_CARD" | "PREPAID")[];
-  };
-  // A "caja de ahorro" is the everyday account in Argentina, and a "cuenta
-  // corriente" is mostly a business product — so savings leads for the banks.
-  const BANK_PRODUCTS: ArSeed["products"] = ["SAVINGS", "CHECKING", "CREDIT_CARD"];
-  const AR_INSTITUTIONS: ArSeed[] = [
-    {
-      code: "011",
-      name: "Banco Nación",
-      legalName: "Banco de la Nación Argentina",
-      kind: "BANK",
-      products: BANK_PRODUCTS,
-    },
-    {
-      code: "007",
-      name: "Banco Galicia",
-      legalName: "Banco de Galicia y Buenos Aires S.A.U.",
-      kind: "BANK",
-      products: BANK_PRODUCTS,
-    },
-    {
-      code: "014",
-      name: "Banco Provincia",
-      legalName: "Banco de la Provincia de Buenos Aires",
-      kind: "BANK",
-      products: BANK_PRODUCTS,
-    },
-    {
-      code: "017",
-      name: "BBVA",
-      legalName: "BBVA Argentina S.A.",
-      kind: "BANK",
-      products: BANK_PRODUCTS,
-    },
-    {
-      code: "029",
-      name: "Banco Ciudad",
-      legalName: "Banco de la Ciudad de Buenos Aires",
-      kind: "BANK",
-      products: BANK_PRODUCTS,
-    },
-    {
-      code: "072",
-      name: "Santander",
-      legalName: "Banco Santander Argentina S.A.",
-      kind: "BANK",
-      products: BANK_PRODUCTS,
-    },
-    {
-      code: "143",
-      name: "Brubank",
-      legalName: "Brubank S.A.U.",
-      kind: "BANK",
-      products: ["SAVINGS", "CREDIT_CARD"],
-    },
-    {
-      code: "191",
-      name: "Credicoop",
-      legalName: "Banco Credicoop Coop. Ltdo.",
-      kind: "BANK",
-      products: BANK_PRODUCTS,
-    },
-    {
-      code: "285",
-      name: "Banco Macro",
-      legalName: "Banco Macro S.A.",
-      kind: "BANK",
-      products: BANK_PRODUCTS,
-    },
-    {
-      code: "PSP-mercadopago",
-      name: "Mercado Pago",
-      legalName: "Mercado Pago S.R.L.",
-      kind: "PAYMENT_PROVIDER",
-      products: ["SIGHT", "PREPAID"],
-    },
-    {
-      code: "PSP-uala",
-      name: "Ualá",
-      legalName: "Wanap S.A.",
-      kind: "PAYMENT_PROVIDER",
-      products: ["SIGHT", "PREPAID"],
-    },
-    {
-      // La billetera de Telecom: cuenta remunerada + prepago, sin ser banco.
-      code: "PSP-personalpay",
-      name: "Personal Pay",
-      legalName: "Micro Sistemas S.A.U.",
-      kind: "PAYMENT_PROVIDER",
-      products: ["SIGHT", "PREPAID"],
-    },
-    {
-      code: "PSP-naranjax",
-      name: "Naranja X",
-      legalName: "Naranja Digital Compañía Financiera S.A.U.",
-      kind: "PAYMENT_PROVIDER",
-      products: ["SIGHT", "PREPAID", "CREDIT_CARD"],
-    },
-  ];
-
-  for (const inst of AR_INSTITUTIONS) {
-    const fields = {
-      kind: inst.kind,
-      name: inst.name,
-      legalName: inst.legalName,
-      category: null,
-      retailFacing: true,
-    };
-    const row = await prisma.financialInstitution.upsert({
-      where: { countryId_code: { countryId: argentina.id, code: inst.code } },
-      update: fields,
-      create: { countryId: argentina.id, code: inst.code, ...fields },
-      select: { id: true },
-    });
-    for (const [index, type] of inst.products.entries()) {
-      await prisma.institutionAccountType.upsert({
-        where: { institutionId_type: { institutionId: row.id, type } },
-        update: { isPrimary: index === 0 },
-        create: { institutionId: row.id, type, isPrimary: index === 0 },
-      });
-    }
-    await prisma.institutionAccountType.deleteMany({
-      where: { institutionId: row.id, type: { notIn: inst.products } },
-    });
-  }
-}
-
 /** Reference data (countries + banks). Idempotent: upsert by natural keys. */
 async function seedReferenceData() {
+  /**
+   * MVP: la app opera solo en Chile. Los otros cinco países estaban sembrados con
+   * catálogo vacío o a medias (solo Argentina llegó a tener instituciones), y un
+   * selector de país que ofrece mercados sin bancos es peor que no ofrecerlos.
+   *
+   * Lo que soporta más de un país NO se borró — `accountNumberFormat`/`isValidCbu`
+   * en el contrato, `InstitutionKind.PAYMENT_PROVIDER`, la FK `Country` y el filtro
+   * `?country=` siguen ahí: el modelo es multi-país, el catálogo es de uno.
+   */
   const COUNTRIES = [
-    { alpha2: "AR", alpha3: "ARG", numeric: "032", name: "Argentina", callingCode: "+54" },
     { alpha2: "CL", alpha3: "CHL", numeric: "152", name: "Chile", callingCode: "+56" },
-    { alpha2: "CO", alpha3: "COL", numeric: "170", name: "Colombia", callingCode: "+57" },
-    { alpha2: "PY", alpha3: "PRY", numeric: "600", name: "Paraguay", callingCode: "+595" },
-    { alpha2: "PE", alpha3: "PER", numeric: "604", name: "Perú", callingCode: "+51" },
-    { alpha2: "PR", alpha3: "PRI", numeric: "630", name: "Puerto Rico", callingCode: "+1" },
   ] as const;
 
   for (const c of COUNTRIES) {
@@ -2820,6 +2664,11 @@ async function seedReferenceData() {
     name: string;
     legalName: string;
     retailFacing?: boolean;
+    /** Default `NON_BANK_ISSUER`. A licence is a permission, not a product: an entity
+     * may hold the prepaid one and never issue a card, running a payment account
+     * instead — that entity is a `PAYMENT_PROVIDER`, same as the Argentine PSPs. */
+    kind?: "NON_BANK_ISSUER" | "PAYMENT_PROVIDER";
+    notes?: string;
   }[] = [
     {
       code: "741",
@@ -2827,7 +2676,14 @@ async function seedReferenceData() {
       legalName: "Compañía Emisora de Medios de Pago Digitales S.A.",
     },
     { code: "764", name: "Fintoc", legalName: "Fintoc Pagos S.A." },
-    { code: "746", name: "Fintual", legalName: "Fintual Prepago S.A." },
+    {
+      code: "746",
+      name: "Fintual",
+      legalName: "Fintual Prepago S.A.",
+      kind: "PAYMENT_PROVIDER",
+      notes:
+        "Tiene la licencia de prepago (TPEEM) pero NO emite tarjetas: la usa para conectarse al sistema de pagos y que la cuenta del usuario reciba transferencias a su propio nombre. Cuenta de pago sin plástico — por eso PAYMENT_PROVIDER y no NON_BANK_ISSUER. La cuenta de inversión es otra entidad: AGF-fintual.",
+    },
     { code: "738", name: "Global66", legalName: "Global Card S.A." },
     { code: "739", name: "Haulmer", legalName: "Haulmer Prepago S.A." },
     { code: "697", name: "La Polar", legalName: "Inversiones LP S.A." },
@@ -2844,11 +2700,12 @@ async function seedReferenceData() {
   ];
   for (const e of CHILE_ISSUERS) {
     const fields = {
-      kind: "NON_BANK_ISSUER" as const,
+      kind: e.kind ?? ("NON_BANK_ISSUER" as const),
       name: e.name,
       legalName: e.legalName,
       category: null,
       retailFacing: e.retailFacing ?? true,
+      notes: e.notes ?? null,
     };
     await prisma.financialInstitution.upsert({
       where: { countryId_code: { countryId: chile.id, code: e.code } },
@@ -2856,8 +2713,6 @@ async function seedReferenceData() {
       create: { countryId: chile.id, code: e.code, ...fields },
     });
   }
-
-  await seedArgentina();
 
   /**
    * Cooperativas de ahorro y crédito (CMF register BCCOO) and the non-bank issuers
@@ -2970,178 +2825,107 @@ async function seedReferenceData() {
     });
   }
 
+  /**
+   * Administradoras generales de fondos y corredoras (kind FUND_MANAGER). Sin ellas
+   * el catálogo no tenía UNA sola institución que ofreciera `INVESTMENT`: el selector
+   * de una cuenta de inversión quedaba vacío aunque Fintual ya estuviera en la tabla
+   * — su fila es "Fintual Prepago S.A.", la licencia de prepago, que es otra entidad.
+   *
+   * Por eso Fintual aparece dos veces en la tabla y nunca dos veces en el selector:
+   * son dos personas jurídicas distintas con la misma marca, y el filtro por producto
+   * muestra la prepago para PREPAID y la AGF para INVESTMENT.
+   *
+   * `code`: como las cooperativas y los emisores solo-crédito, estas entidades no
+   * reciben transferencias y no tienen código institucional. Aquí ni siquiera se usa
+   * el RUT — no fue verificado ficha por ficha —, así que la llave es `AGF-<slug>`,
+   * el mismo recurso honesto que los PSP argentinos (`PSP-<slug>`): decir que la
+   * llave es interna en vez de inventar un identificador de regulador.
+   *
+   * Lista PARCIAL a propósito: las AGF de marca propia que un usuario retail
+   * reconoce. Las AGF filiales de un banco (Banchile, BCI AM, Santander AM, BTG,
+   * Tanner) no van aquí — su producto INVESTMENT ya cuelga del banco de la marca.
+   */
+  const CHILE_FUND_MANAGERS: { code: string; name: string; legalName: string }[] = [
+    {
+      code: "AGF-fintual",
+      name: "Fintual",
+      legalName: "Fintual Administradora General de Fondos S.A.",
+    },
+    { code: "AGF-racional", name: "Racional", legalName: "Racional Corredores de Bolsa SpA" },
+    { code: "AGF-vector", name: "Vector", legalName: "Vector Capital Corredores de Bolsa S.A." },
+    { code: "AGF-renta4", name: "Renta 4", legalName: "Renta 4 Corredores de Bolsa S.A." },
+    {
+      code: "AGF-larrainvial",
+      name: "LarrainVial",
+      legalName: "LarrainVial Asset Management Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-principal",
+      name: "Principal",
+      legalName: "Principal Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-zurich",
+      name: "Zurich",
+      legalName: "Zurich Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-toesca",
+      name: "Toesca",
+      legalName: "Toesca Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-ameris",
+      name: "Ameris",
+      legalName: "Ameris Capital Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-sartor",
+      name: "Sartor",
+      legalName: "Sartor Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-frontaltrust",
+      name: "Frontal Trust",
+      legalName: "Frontal Trust Administradora General de Fondos S.A.",
+    },
+    {
+      code: "AGF-credicorp",
+      name: "Credicorp Capital",
+      legalName: "Credicorp Capital Asset Management Administradora General de Fondos S.A.",
+    },
+  ];
+  for (const f of CHILE_FUND_MANAGERS) {
+    const fields = {
+      kind: "FUND_MANAGER" as const,
+      name: f.name,
+      legalName: f.legalName,
+      category: null,
+      retailFacing: true,
+    };
+    await prisma.financialInstitution.upsert({
+      where: { countryId_code: { countryId: chile.id, code: f.code } },
+      update: fields,
+      create: { countryId: chile.id, code: f.code, ...fields },
+    });
+  }
+
   await seedInstitutionAccountTypes(chile.id);
 
-  // --- Currencies (ISO 4217, deduplicated by alpha code) ---
+  /**
+   * Monedas del MVP: la app opera solo en Chile, así que el catálogo son los tres
+   * códigos que un usuario chileno usa de verdad. Sembrar los 168 códigos ISO
+   * llenaba el selector de monedas que nadie iba a elegir.
+   *
+   * `CLF` es el código ISO 4217 de la **Unidad de Fomento** — la UF es una unidad
+   * de cuenta reajustable, no una moneda que se pueda gastar, y esta app no la
+   * convierte a pesos (no hay proveedor de tipo de cambio): un monto en UF se
+   * guarda y se muestra en UF.
+   */
   const CURRENCIES: [code: string, numeric: string, name: string][] = [
-    ["AFN", "971", "Afgani afgano"],
-    ["ALL", "008", "Lek"],
-    ["EUR", "978", "Euro"],
-    ["DZD", "012", "Dinar argelino"],
-    ["AOA", "973", "Kwanza angoleño"],
-    ["XCD", "951", "Dólar del Caribe Oriental"],
-    ["SAR", "682", "Riyal saudí"],
-    ["ARS", "032", "Peso argentino"],
-    ["AMD", "051", "Dram armenio"],
-    ["AWG", "533", "Florín arubeño"],
-    ["AUD", "036", "Dólar australiano"],
-    ["AZN", "944", "Manat azerbaiyano"],
-    ["BSD", "044", "Dólar bahameño"],
-    ["BDT", "050", "Taka"],
-    ["BBD", "052", "Dólar de Barbados"],
-    ["BHD", "048", "Dinar bareiní"],
-    ["BZD", "084", "Dólar beliceño"],
-    ["XOF", "952", "Franco CFA de África Occidental"],
-    ["BMD", "060", "Dólar bermudeño"],
-    ["BYR", "974", "Rublo bielorruso"],
-    ["MMK", "104", "Kyat birmano"],
-    ["BOB", "068", "Boliviano"],
-    ["BOV", "984", "Mvdol"],
-    ["USD", "840", "Dólar estadounidense"],
-    ["BAM", "977", "Marco bosnioherzegovino"],
-    ["BWP", "072", "Pula"],
-    ["BRL", "986", "Real brasileño"],
-    ["BND", "096", "Dólar de Brunei"],
-    ["BGN", "975", "Lev"],
-    ["BIF", "108", "Franco burundés"],
-    ["BTN", "064", "Ngultrum butanés"],
-    ["INR", "356", "Rupia india"],
-    ["CVE", "132", "Escudo caboverdiano"],
-    ["KHR", "116", "Riel camboyano"],
-    ["XAF", "950", "Franco CFA de África Central"],
-    ["CAD", "124", "Dólar canadiense"],
-    ["CLF", "990", "Unidad de Fomento"],
     ["CLP", "152", "Peso chileno"],
-    ["CNY", "156", "Renminbi"],
-    ["COP", "170", "Peso colombiano"],
-    ["COU", "970", "Unidad de valor real"],
-    ["KMF", "174", "Franco comorense"],
-    ["CDF", "976", "Franco congoleño"],
-    ["CRC", "188", "Colón costarricense"],
-    ["HRK", "191", "Kuna"],
-    ["CUC", "931", "Peso convertible"],
-    ["CUP", "192", "Peso cubano"],
-    ["ANG", "532", "Florín antillano neerlandés"],
-    ["DKK", "208", "Corona danesa"],
-    ["EGP", "818", "Libra egipcia"],
-    ["SVC", "222", "Colón salvadoreño"],
-    ["AED", "784", "Dírham de EAU"],
-    ["ERN", "232", "Nakfa"],
-    ["ETB", "230", "Birr etíope"],
-    ["FJD", "242", "Dólar fiyiano"],
-    ["PHP", "608", "Peso filipino"],
-    ["XDR", "960", "SDR (Derecho Especial de Giro)"],
-    ["GMD", "270", "Dalasi"],
-    ["GEL", "981", "Lari"],
-    ["GHS", "936", "Cedi"],
-    ["GIP", "292", "Libra gibraltareña"],
-    ["GTQ", "320", "Quetzal"],
-    ["GBP", "826", "Libra esterlina"],
-    ["GNF", "324", "Franco guineano"],
-    ["GYD", "328", "Dólar guyanés"],
-    ["HTG", "332", "Gourde"],
-    ["HNL", "340", "Lempira"],
-    ["HKD", "344", "Dólar de Hong Kong"],
-    ["HUF", "348", "Forinto húngaro"],
-    ["IDR", "360", "Rupia indonesia"],
-    ["IQD", "368", "Dinar iraquí"],
-    ["NOK", "578", "Corona noruega"],
-    ["ISK", "352", "Corona islandesa"],
-    ["KYD", "136", "Dólar de las Islas Caimán"],
-    ["NZD", "554", "Dólar neozelandés"],
-    ["FKP", "238", "Libra malvinense"],
-    ["SBD", "090", "Dólar de las Islas Salomón"],
-    ["ILS", "376", "Nuevo séquel israelí"],
-    ["JMD", "388", "Dólar jamaiquino"],
-    ["JPY", "392", "Yen"],
-    ["JOD", "400", "Dinar jordano"],
-    ["KZT", "398", "Tenge kazajo"],
-    ["KES", "404", "Chelín keniano"],
-    ["KGS", "417", "Som kirguís"],
-    ["KWD", "414", "Dinar kuwaití"],
-    ["LSL", "426", "Loti"],
-    ["ZAR", "710", "Rand"],
-    ["LRD", "430", "Dólar liberiano"],
-    ["LYD", "434", "Dinar libio"],
-    ["CHF", "756", "Franco suizo"],
-    ["LBP", "422", "Libra libanesa"],
-    ["MOP", "446", "Pataca"],
-    ["MKD", "807", "Dinar macedonio"],
-    ["MGA", "969", "Ariary malgache"],
-    ["MYR", "458", "Ringgit malayo"],
-    ["MWK", "454", "Kwacha malauí"],
-    ["MVR", "462", "Rufiyaa de Maldivas"],
-    ["MAD", "504", "Dírham marroquí"],
-    ["MUR", "480", "Rupia de Mauricio"],
-    ["MRO", "478", "Uguiya"],
-    ["MNT", "496", "Tugrik"],
-    ["MZN", "943", "Metical mozambiqueño"],
-    ["MXN", "484", "Peso mexicano"],
-    ["MXV", "979", "Unidad de Inversión Mexicana (UDI)"],
-    ["NAD", "516", "Dólar de Namibia"],
-    ["NPR", "524", "Rupia nepalí"],
-    ["NIO", "558", "Córdoba oro"],
-    ["NGN", "566", "Naira"],
-    ["XPF", "953", "Franco CFP"],
-    ["OMR", "512", "Rial omaní"],
-    ["XUA", "965", "BAD Unidad de Cuenta"],
-    ["PKR", "586", "Rupia pakistaní"],
-    ["PAB", "590", "Balboa"],
-    ["PGK", "598", "Kina"],
-    ["PYG", "600", "Guaraní"],
-    ["PEN", "604", "Sol"],
-    ["PLN", "985", "Zloty"],
-    ["QAR", "634", "Riyal catarí"],
-    ["LAK", "418", "Kip laosiano"],
-    ["VEF", "937", "Bolívar"],
-    ["CZK", "203", "Corona checa"],
-    ["KRW", "410", "Won surcoreano"],
-    ["MDL", "498", "Leu moldavo"],
-    ["KPW", "408", "Won norcoreano"],
-    ["DOP", "214", "Peso dominicano"],
-    ["IRR", "364", "Rial iraní"],
-    ["TZS", "834", "Chelín tanzano"],
-    ["SYP", "760", "Libra siria"],
-    ["RWF", "646", "Franco ruandés"],
-    ["RON", "946", "Leu rumano"],
-    ["RUB", "643", "Rublo ruso"],
-    ["WST", "882", "Tala"],
-    ["STD", "678", "Dobra"],
-    ["SHP", "654", "Libra de Santa Helena"],
-    ["RSD", "941", "Dinar serbio"],
-    ["SCR", "690", "Rupia de Seychelles"],
-    ["SLL", "694", "Leone"],
-    ["SGD", "702", "Dólar de Singapur"],
-    ["XSU", "994", "Sucre"],
-    ["SOS", "706", "Chelín somalí"],
-    ["LKR", "144", "Rupia de Sri Lanka"],
-    ["SZL", "748", "Lilangeni"],
-    ["SDG", "938", "Libra sudanesa"],
-    ["SSP", "728", "Libra sursudanesa"],
-    ["SEK", "752", "Corona sueca"],
-    ["CHE", "947", "WIR Euro"],
-    ["CHW", "948", "Franco WIR"],
-    ["SRD", "968", "Dólar surinamés"],
-    ["THB", "764", "Baht"],
-    ["TWD", "901", "Nuevo dólar taiwanés"],
-    ["TJS", "972", "Somoni"],
-    ["TOP", "776", "Pa'anga"],
-    ["TTD", "780", "Dólar de Trinidad y Tobago"],
-    ["TMT", "934", "Manat turcomano"],
-    ["TRY", "949", "Lira turca"],
-    ["TND", "788", "Dinar tunecino"],
-    ["UGX", "800", "Chelín ugandés"],
-    ["UAH", "980", "Grivna"],
-    ["UYI", "940", "Peso uruguayo en unidades indexadas"],
-    ["UYU", "858", "Peso uruguayo"],
-    ["UZS", "860", "Som uzbeko"],
-    ["VUV", "548", "Vatu"],
-    ["VND", "704", "Dong"],
-    ["YER", "886", "Rial yemení"],
-    ["DJF", "262", "Franco yibutiano"],
-    ["ZMW", "967", "Kwacha zambiano"],
-    ["ZWL", "932", "Dólar zimbabuense"],
-    ["USN", "997", "Dólar estadounidense (día siguiente)"],
+    ["CLF", "990", "Unidad de Fomento"],
+    ["USD", "840", "Dólar estadounidense"],
   ];
 
   for (const [code, numeric, name] of CURRENCIES) {
@@ -3154,14 +2938,11 @@ async function seedReferenceData() {
 
   // Country ↔ currency links (only for the countries we track). isPrimary = main one.
   const LINKS: [alpha2: string, code: string, isPrimary: boolean][] = [
-    ["AR", "ARS", true],
     ["CL", "CLP", true],
     ["CL", "CLF", false],
-    ["CO", "COP", true],
-    ["CO", "COU", false],
-    ["PY", "PYG", true],
-    ["PE", "PEN", true],
-    ["PR", "USD", true],
+    // El dólar no es moneda de curso legal en Chile, pero sí se abren cuentas y se
+    // ahorra en él, que es lo que este catálogo describe: qué puede elegir el usuario.
+    ["CL", "USD", false],
   ];
   for (const [alpha2, code, isPrimary] of LINKS) {
     const country = await prisma.country.findUnique({ where: { alpha2 } });
@@ -3181,18 +2962,8 @@ async function seedReferenceData() {
     type: "RUT" | "DNI" | "PASSPORT" | "OTHER",
     isPrimary: boolean,
   ][] = [
-    ["AR", "DNI", true],
-    ["AR", "PASSPORT", false],
     ["CL", "RUT", true],
     ["CL", "PASSPORT", false],
-    ["CO", "DNI", true],
-    ["CO", "PASSPORT", false],
-    ["PY", "DNI", true],
-    ["PY", "PASSPORT", false],
-    ["PE", "DNI", true],
-    ["PE", "PASSPORT", false],
-    ["PR", "PASSPORT", true],
-    ["PR", "OTHER", false],
   ];
   for (const [alpha2, identifierType, isPrimary] of IDENTIFIER_LINKS) {
     const country = await prisma.country.findUnique({ where: { alpha2 } });
@@ -3204,8 +2975,28 @@ async function seedReferenceData() {
     });
   }
 
+  /**
+   * El MVP acotó el catálogo a Chile y a tres monedas, así que el seed no basta con
+   * dejar de CREAR lo que sobra: una base sembrada antes conserva Argentina y las 168
+   * monedas ISO. Se retira explícitamente lo que ya no pertenece al catálogo.
+   *
+   * Orden obligado por las FK: primero las instituciones de los países que se van
+   * (`Country → FinancialInstitution` es Cascade, pero borrar la institución primero
+   * deja claro qué se pierde), después los países (arrastran en cascada sus enlaces de
+   * moneda e identificación; `User.countryId` y `BankAccount.institutionId` son
+   * SetNull, así que ninguna cuenta ni usuario se borra), y al final las monedas.
+   * Ver `docs/CATALOGO_REGIONAL.md` para recuperar cualquiera de estos catálogos.
+   */
+  const KEPT_COUNTRIES = COUNTRIES.map((c) => c.alpha2);
+  const KEPT_CURRENCIES = CURRENCIES.map(([code]) => code);
+  await prisma.financialInstitution.deleteMany({
+    where: { country: { alpha2: { notIn: KEPT_COUNTRIES } } },
+  });
+  await prisma.country.deleteMany({ where: { alpha2: { notIn: KEPT_COUNTRIES } } });
+  await prisma.currency.deleteMany({ where: { code: { notIn: KEPT_CURRENCIES } } });
+
   console.log(
-    `Reference data OK: ${COUNTRIES.length} countries, CL institutions = ${CHILE_BANKS.length} banks + ${CHILE_ISSUERS.length} prepaid issuers + ${CHILE_CREDIT_ISSUERS.length} credit-only issuers + ${CHILE_COOPERATIVES.length} cooperatives, ${CURRENCIES.length} currencies, ${LINKS.length} country-currency links, ${IDENTIFIER_LINKS.length} country-identifier-type links`,
+    `Reference data OK: ${COUNTRIES.length} countries, CL institutions = ${CHILE_BANKS.length} banks + ${CHILE_ISSUERS.length} prepaid issuers + ${CHILE_CREDIT_ISSUERS.length} credit-only issuers + ${CHILE_COOPERATIVES.length} cooperatives + ${CHILE_FUND_MANAGERS.length} fund managers, ${CURRENCIES.length} currencies, ${LINKS.length} country-currency links, ${IDENTIFIER_LINKS.length} country-identifier-type links`,
   );
 }
 

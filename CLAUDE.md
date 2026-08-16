@@ -4,6 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Canonical reference
 
+**`docs/MVP.md` defines the scope of the first iteration** (Chile only; three currencies CLP/USD/CLF;
+investments last) — read it before adding a country, a currency or anything the MVP deliberately
+deferred. `docs/CATALOGO_REGIONAL.md` preserves the multi-country catalogue research that left the
+seed with it (Argentine institutions, CBU/CVU/alias rules, identifier types per country, the 168-code
+currency list) so expanding again is copy-back, not re-research.
+
 `docs/{english,spanish}/APP_CONTEXT_AND_HISTORY.md` documents the product vision, data model, and business rules
 (written for the original Next.js app — predates the monorepo migration; treat its stack/routing
 details as historical, the domain/business rules still apply). `docs/english/ARCHITECTURE.md`
@@ -364,10 +370,12 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     2527 Matic Kard/sbpay. Solo FISO conserva llave `RUT-` porque su código no fue verificable. El
     seed **retira explícitamente** las llaves viejas (`RETIRED_ISSUER_KEYS`): re-llavear una entidad
     crea la fila nueva y deja huérfana la anterior.
-    Seed AR: 9 bancos con su **código de entidad BCRA** (= los 3 primeros dígitos del CBU, por eso es
-    la llave natural) y 3 PSP keyed `PSP-<slug>` porque sus prefijos CVU no están publicados en las
-    fuentes usadas. Productos AR: la caja de ahorro (`SAVINGS`) es la cuenta cotidiana, la corriente es
-    más bien producto de empresa. Pendiente: CO/PE/PY siguen sin instituciones.
+    Seed AR: **retirado del seed al acotar el MVP a Chile** (2026-08-15) — los 9 bancos con su código
+    de entidad BCRA, los 3 PSP keyed `PSP-<slug>` y las reglas de producto por mercado quedaron
+    documentados en `docs/CATALOGO_REGIONAL.md`, junto con los tipos de identificación y los enlaces
+    país↔moneda de los otros cinco países. **El código multi-país NO se tocó**: `accountNumberFormat`/
+    `isValidCbu`/`usesAccountAlias`, `InstitutionKind.PAYMENT_PROVIDER`, la FK `Country` y el filtro
+    `?country=` siguen ahí con sus tests. Lo que se redujo es la data sembrada.
   - **`CREDIT_LINE` → `CREDIT_CARD` + `overdraftLimit` (2026-08-15, breaking):** el enum nombraba mal
     justo el concepto que más se confunde. **`AccountType.CREDIT_CARD`** es la cuenta de tarjeta de
     crédito (deuda rotativa, facturación, pago mínimo). La **"línea de crédito"** que un banco da sobre
@@ -396,6 +404,34 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     su RUT con prefijo **`RUT-`**, que lo dice en voz alta en vez de inventar un código de regulador.
     Corrección de dato: **697 Inversiones LP S.A. es La Polar**, no "Lider Bci" (verificado contra los
     T&C de Tarjeta La Polar). Total CL: 46 instituciones, todas con productos catalogados.
+  - **AGF / corredoras y el producto `INVESTMENT` (2026-08-15):** ninguna institución del catálogo
+    declaraba `INVESTMENT`, así que el selector de institución de una cuenta de inversión salía
+    vacío. Fintual SÍ estaba en la tabla, pero como `Fintual Prepago S.A.` (licencia TPEEM) con
+    producto PREPAID — y la permisividad del filtro `?accountType=` solo rescata a la institución
+    **sin** filas, no a la que declara otras. `InstitutionKind` nuevo **`FUND_MANAGER`**:
+    administradora general de fondos / corredora — administra plata de terceros invertida en fondos
+    o instrumentos, sin captar depósitos ni emitir medios de pago, así que su ÚNICO producto es
+    `INVESTMENT`. Doce entidades CL (Fintual AGF, Racional, Vector, Renta 4, LarrainVial, Principal,
+    Zurich, Toesca, Ameris, Sartor, Frontal Trust, Credicorp Capital), llaveadas **`AGF-<slug>`**:
+    no reciben transferencias, no tienen código institucional y sus RUT no se verificaron ficha por
+    ficha — mismo recurso honesto que los `PSP-<slug>` argentinos. **Los bancos ganan `INVESTMENT`
+    en sus productos por defecto** (ESTABLISHED y STATE): el fondo mutuo se abre en la marca que el
+    usuario conoce ("BCI"), no en su AGF filial, así que una AGF de banco NO es fila aparte.
+    **Fintual queda con dos filas** (prepago y AGF) porque son dos personas jurídicas distintas; el
+    filtro por producto hace que el selector nunca muestre las dos. Total CL: 58 instituciones.
+    **Una licencia es un permiso, no un producto:** Fintual Prepago S.A. tiene la licencia TPEEM y
+    **nunca emitió tarjetas** — la usa para engancharse al sistema de pagos y que la cuenta del
+    usuario reciba transferencias a su propio nombre. Por eso su `kind` es **`PAYMENT_PROVIDER`**
+    (cuenta de pago sin plástico, la misma figura de los PSP argentinos) y no `NON_BANK_ISSUER`, con
+    el motivo escrito en su `notes`. El producto sigue siendo `PREPAID`: en este modelo ese tipo es
+    la **cuenta de provisión de fondos** (saldo que no baja de cero, con techo), y la tarjeta es
+    opcional — `MovementPolicy` nunca exige tarjeta en una cuenta PREPAID, así que una cuenta sin
+    plástico funciona tal cual. Lo que el modelo NO distingue es "esta institución no emite
+    tarjetas": la matriz `ALLOWED_CARD_KINDS` es por tipo de cuenta, así que la UI igual ofrece
+    "añadir tarjeta" en una cuenta Fintual. Se deja así a propósito (un flag por institución
+    envejece mal y el catálogo guía, nunca rechaza). Pendiente de nombre: `AccountType.PREPAID` se
+    lee como "tarjeta prepago" cuando significa "cuenta de pago" — el mismo error que ya obligó a
+    renombrar `CREDIT_LINE` → `CREDIT_CARD`.
   - **`InstallmentPlan.cardId` (2026-08-15):** un plan de cuotas registra con qué tarjeta se compró
     (FK nullable → `CardAccount`, **`onDelete: SetNull`** — borrar la tarjeta no puede borrar la deuda
     que creó). Opcional a propósito: un plan también puede ser un crédito bancario sin tarjeta detrás.
@@ -529,7 +565,7 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     creating a movement are held in memory (validated locally by type and size) and uploaded as soon
     as `POST /transactions` returns an id; one that fails stays listed with **Reintentar**.
   - **recurring-expense**: `RecurringExpense` (subscriptions/rent/periodic payments) — `frequency` (`RecurrenceFrequency`: WEEKLY/MONTHLY/YEARLY), `interval`, `anchorDate`, optional `bankAccountId`/`category`, `active`. The contract exposes a computed `nextDueAt` (anchor stepped forward by frequency × interval). CRUD at `/recurring`.
-  - **reference tables** (`country`, `currency`, `country-currency`, `country-identifier-type`, `financial-institution`, `institution-account-type` — one domain each since the one-table-one-domain amendment; global read-only, authed but not user-scoped): `Country` (table `country`, ISO 3166-1 `alpha2`/`alpha3`/`numeric` unique + name), `FinancialInstitution` (table `financial-institution`, **banks + non-bank card issuers** via `kind` `InstitutionKind` BANK/NON_BANK_ISSUER; `code` = SBIF/CMF or código institucional `@@unique([countryId,code])`, `name`, `category` `BankCategory?` ESTABLISHED/FOREIGN_BRANCH/STATE (banks only — unused at runtime, kept for grouping the picker as the catalogue grows past Chile), `brands String[]`, `notes`, FK→Country; **`rut` was dropped** — `code` is the identifier), `Currency` (table `currency`, **ISO 4217** `code` unique + `numeric` + name), and `CountryCurrency` join (`isPrimary`). Endpoints `GET /countries`, `GET /institutions?country=CL&kind=BANK&accountType=PREPAID`, `GET /currencies` (ordered by name). Seeded idempotently in `prisma/seed.ts` (`seedReferenceData`): 6 countries, 18 CL banks + 15 non-bank issuers, 168 currencies, country↔currency links.
+  - **reference tables** (`country`, `currency`, `country-currency`, `country-identifier-type`, `financial-institution`, `institution-account-type` — one domain each since the one-table-one-domain amendment; global read-only, authed but not user-scoped): `Country` (table `country`, ISO 3166-1 `alpha2`/`alpha3`/`numeric` unique + name), `FinancialInstitution` (table `financial-institution`, **banks + non-bank card issuers** via `kind` `InstitutionKind` BANK/NON_BANK_ISSUER/COOPERATIVE/PAYMENT_PROVIDER/FUND_MANAGER; `code` = SBIF/CMF or código institucional `@@unique([countryId,code])`, `name`, `category` `BankCategory?` ESTABLISHED/FOREIGN_BRANCH/STATE (banks only — unused at runtime, kept for grouping the picker as the catalogue grows past Chile), `brands String[]`, `notes`, FK→Country; **`rut` was dropped** — `code` is the identifier), `Currency` (table `currency`, **ISO 4217** `code` unique + `numeric` + name), and `CountryCurrency` join (`isPrimary`). Endpoints `GET /countries`, `GET /institutions?country=CL&kind=BANK&accountType=PREPAID`, `GET /currencies` (ordered by name). Seeded idempotently in `prisma/seed.ts` (`seedReferenceData`), **acotado al MVP** (`docs/MVP.md`): **1 país (CL)**, 58 instituciones chilenas (18 bancos + 15 emisores prepago + 6 emisores solo-crédito + 7 cooperativas + 12 AGF) y **3 monedas: CLP, USD y CLF (la UF)**. El seed además **borra** países, monedas e instituciones fuera de esa lista, para que una base sembrada antes converja al catálogo del MVP. El modelo sigue siendo multi-país (FK, filtro `?country=`, formatos de número de cuenta); lo acotado es la data. El catálogo argentino retirado y las reglas por mercado están en `docs/CATALOGO_REGIONAL.md`.
     **`InstitutionAccountType`** (table `institution-account-type`, join `institutionId` + `type`
     `AccountType` + `isPrimary`, `@@unique([institutionId,type])`, `onDelete: Cascade`) = **which
     account products an institution actually offers** — Tenpo sells PREPAID today and may sell
@@ -615,7 +651,7 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
 
 - **`packages/`** — `contracts` (zod schemas + inferred types = the API contract; one module per domain; built to dist CJS + `import` condition → src for Vite), `money` (`decimal.js`: money helpers, `equalPrincipalSchedule`, interest), `config` (shared `tsconfig.base.json`). One-way deps: `apps → packages`; `api ↛ web`; `packages ↛ apps` (enforced by `check:boundaries`).
 - **Auth:** backend issues **JWT access+refresh tokens in httpOnly cookies** (`domains/auth`); `JwtAuthGuard` validates the access cookie **and** (per-request DB check) that the account's `status` is still `ACTIVE`, rejecting `DISABLED` accounts (`ACCOUNT_DISABLED`) even with an otherwise-valid token. Every endpoint is scoped to the authenticated `userId`. The frontend `AuthProvider`/`useAuth` + `RequireAuth` gate routes.
-  - **profile** (specs/008, folded into the `auth` domain — no separate backend module, `User` already lives there): `User` gains `preferredCurrency` (CLP/USD/EUR), `locale` (es/en), `dateFormat`, `theme` (dark/light/system — same preference the sidebar `ThemeToggle` controls, now persisted per-user in addition to `localStorage`), `status` (`UserStatus`: ACTIVE/DISABLED), `createdAt` (→ contract's derived `memberSinceYear`). Endpoints: `PATCH /auth/me` (name/email, unique-email race guarded by catching Prisma `P2002` in addition to the pre-check), `POST /auth/me/password` (current+new, bcrypt), `PATCH /auth/me/preferences`, `POST /auth/me/deactivate` (requires re-entering the password; soft-disables the account — no data is deleted; clears cookies like `logout`). Frontend: new `domains/profile` (route `/profile`, reached by clicking the sidebar user block), `ThemeSync` component reconciles the shared theme preference between `localStorage` and the backend. New error codes `INVALID_CURRENT_PASSWORD`, `ACCOUNT_DISABLED`. 2FA switch + the 3 notification switches shown in the design are **intentionally inert** (local UI state only, no backend capability yet).
+  - **profile** (specs/008, folded into the `auth` domain — no separate backend module, `User` already lives there): `User` gains `preferredCurrency` (CLP/USD/CLF — las tres del MVP; `CLF` es la UF), `locale` (es/en), `dateFormat`, `theme` (dark/light/system — same preference the sidebar `ThemeToggle` controls, now persisted per-user in addition to `localStorage`), `status` (`UserStatus`: ACTIVE/DISABLED), `createdAt` (→ contract's derived `memberSinceYear`). Endpoints: `PATCH /auth/me` (name/email, unique-email race guarded by catching Prisma `P2002` in addition to the pre-check), `POST /auth/me/password` (current+new, bcrypt), `PATCH /auth/me/preferences`, `POST /auth/me/deactivate` (requires re-entering the password; soft-disables the account — no data is deleted; clears cookies like `logout`). Frontend: new `domains/profile` (route `/profile`, reached by clicking the sidebar user block), `ThemeSync` component reconciles the shared theme preference between `localStorage` and the backend. New error codes `INVALID_CURRENT_PASSWORD`, `ACCOUNT_DISABLED`. 2FA switch + the 3 notification switches shown in the design are **intentionally inert** (local UI state only, no backend capability yet).
     Amendment (personal info): `User` also gains `countryId` (FK → `Country`, `onDelete: SetNull`), `addressStreet`/`addressCity`/`addressRegion`/`addressPostalCode` (all free text), `birthDate`, `identifierType` (`IdentifierType`: RUT/DNI/PASSPORT/OTHER) + `identifierValue`. All optional, purely informational (no billing/KYC flow consumes them yet). `identifierValue` is check-digit validated (`isValidRut`, módulo 11) only when `identifierType === "RUT"` — other types have no universal format to validate. The contract exposes both `birthDate` (ISO date string, for the edit form) and a derived `age`; the Profile view only ever renders `age` (hiding the exact date is a UI choice, not an API one). `packages/contracts` gained its own Vitest suite (`"test": "vitest run"`) for this validator — it previously had none.
     Which `identifierType`(s) a country supports is **data, not a fixed global list** — a country may
     support more than one (e.g. a national id + passport): `CountryIdentifierType` (table

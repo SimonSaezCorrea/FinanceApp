@@ -15,8 +15,14 @@ import { toMoney } from "@finance/money";
 export const FX_TO_CLP: Record<string, number> = {
   CLP: 1,
   USD: 954.005,
-  EUR: 1045,
 };
+
+/**
+ * `CLF` (la UF) NO está aquí a propósito. Su valor en pesos cambia todos los días y
+ * no hay fuente que lo entregue, así que cualquier número escrito acá nace obsoleto.
+ * `canConvert` devuelve false y un monto en UF simplemente no muestra equivalencia —
+ * preferible a una cifra inventada con aspecto de dato.
+ */
 
 /** Whether both currencies have a rate, so a hint can be shown at all. */
 export function canConvert(from: string, to: string): boolean {

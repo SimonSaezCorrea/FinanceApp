@@ -10,7 +10,7 @@ import { Switch } from "../../../shared/ui/switch";
 import { useTheme } from "../../../theme/useTheme";
 import { useProfileMutations } from "../hooks/useProfile";
 
-const SUPPORTED_CURRENCIES: auth.CurrentUser["preferredCurrency"][] = ["CLP", "USD", "EUR"];
+const SUPPORTED_CURRENCIES: auth.CurrentUser["preferredCurrency"][] = ["CLP", "USD", "CLF"];
 const DATE_FORMATS: auth.CurrentUser["dateFormat"][] = ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"];
 
 export function PreferencesSection() {

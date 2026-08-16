@@ -728,6 +728,12 @@ enum InstitutionKind {
   /// figura de los PSP argentinos (CVU), las SEDPE colombianas, las EEDE peruanas
   /// y las EMPE paraguayas — mismo rol, cuatro nombres regulatorios.
   PAYMENT_PROVIDER
+  /// Administradora general de fondos / corredora: administra dinero de terceros
+  /// invertido en fondos o instrumentos. No capta depósitos ni emite medios de pago,
+  /// así que su único producto es la cuenta de inversión (Fintual, LarrainVial,
+  /// Banchile Inversiones). Un banco que vende fondos por su filial NO cambia de
+  /// `kind` — declara el producto INVESTMENT, que es lo que el usuario reconoce.
+  FUND_MANAGER
 }
 
 /// Financial-institution registry: banks + non-bank card issuers. Scoped to a country.

@@ -21,7 +21,9 @@ export const registerRequestSchema = z.object({
 });
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
 
-export const preferredCurrencySchema = z.enum(["CLP", "USD", "EUR"]);
+/** Moneda principal del usuario. El MVP opera en Chile con tres monedas: peso,
+ * dólar y `CLF` (el código ISO 4217 de la UF, que la app nunca convierte a pesos). */
+export const preferredCurrencySchema = z.enum(["CLP", "USD", "CLF"]);
 /** Any ISO 4217 alpha code from the reference `Currency` list (not restricted like the primary currency). */
 export const currencyCodeSchema = z.string().trim().length(3);
 export const localeSchema = z.enum(["es", "en"]);
@@ -57,7 +59,7 @@ export const currentUserSchema = z.object({
   /** Day of month (1-28) the user's financial cycle starts. Stored, not yet wired anywhere (PENDING.md). */
   billingCycleStartDay: z.number().int().min(1).max(28).nullable(),
   /** Extra currencies the user wants tracked, on top of preferredCurrency (any ISO 4217 code from
-   * the reference `Currency` list — not restricted to CLP/USD/EUR). Selection only — no live FX. */
+   * the reference `Currency` list — not restricted to the primary three). Selection only — no live FX. */
   extraCurrencies: z.array(currencyCodeSchema),
   /** % of monthlyBudgetTarget to warn at. Stored for the Notifications UI only — no real alert is sent. */
   budgetAlertThreshold: z.number().int().min(1).max(100).nullable(),
