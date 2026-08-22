@@ -33,7 +33,9 @@
       "clear": "Clear",
       "previousMonth": "Previous month",
       "nextMonth": "Next month"
-    }
+    },
+    "decrease": "Decrease",
+    "increase": "Increase"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -479,7 +481,9 @@
       "addDetails": "Add details",
       "transferCounterpart": "Transfer from/to",
       "transferFrom": "From",
-      "transferTo": "To"
+      "transferTo": "To",
+      "installmentLocked": "This movement backs an instalment. To change it, undo that instalment's payment from its plan.",
+      "installmentLockedLink": "Go to Instalments"
     },
     "attachments": {
       "title": "Receipts",
@@ -510,7 +514,30 @@
       "cardNone": "No card",
       "title": "Title",
       "frequency": "Frequency",
-      "frequencyInterval": "Every (number)"
+      "frequencyInterval": "Repeat every",
+      "eyebrowCreate": "New plan",
+      "eyebrowEdit": "Edit plan",
+      "totalPrincipal": "Total amount",
+      "currency": "Currency",
+      "installmentCount": "Number of instalments",
+      "startDate": "First instalment",
+      "category": "Category",
+      "paymentAccount": "Payment account",
+      "paymentAccountNone": "Choose when paying",
+      "paymentAccountCreditCard": "Not applicable (credit card)",
+      "aprPerPeriod": "Interest per period",
+      "notes": "Notes",
+      "notesEmpty": "No notes",
+      "intervalUnit": {
+        "DAILY_one": "day",
+        "DAILY_other": "days",
+        "WEEKLY_one": "week",
+        "WEEKLY_other": "weeks",
+        "MONTHLY_one": "month",
+        "MONTHLY_other": "months",
+        "YEARLY_one": "year",
+        "YEARLY_other": "years"
+      }
     },
     "planCard": {
       "installmentAmount": "Payment",
@@ -522,19 +549,20 @@
     "table": {
       "plan": "Plan",
       "progress": "Progress",
-      "nextDue": "Next payment",
-      "total": "Total",
-      "monthly": "/mo",
-      "product": "Product",
-      "payment": "Payment",
-      "dueDate": "Due date",
-      "status": "Status",
-      "amount": "Amount"
+      "nextDue": "Next instalment",
+      "instalment": "Instalment",
+      "remaining": "Remaining",
+      "card": "Card",
+      "ofTotal": "of {{total}}",
+      "unknownCard": "Unknown card"
     },
     "kpi": {
-      "monthly": "Monthly payment",
+      "thisMonth": "This month",
       "pending": "Total pending",
-      "nextDueDate": "Next payment"
+      "nextDue": "Next instalment",
+      "activePlans": "Active plans",
+      "nothingDue": "Nothing due",
+      "overdueOn": "Overdue · {{date}}"
     },
     "filters": {
       "all": "All",
@@ -544,10 +572,11 @@
       "next3months": "Next 3 months"
     },
     "status": {
-      "upcoming": "Upcoming",
-      "last": "Last",
-      "pending": "Pending",
-      "paid": "Paid"
+      "OVERDUE": "Overdue",
+      "DUE_SOON": "Due soon",
+      "ON_TRACK": "On track",
+      "PARTIALLY_PAID": "Partially paid",
+      "PAID": "Paid"
     },
     "payment": {
       "pay": "Confirm payment",
@@ -565,7 +594,88 @@
       "status": "Status",
       "paid": "Paid",
       "upcoming": "Upcoming",
-      "pending": "Pending"
+      "pending": "Pending",
+      "partial": "Partially paid"
+    },
+    "subtitleCount_one": "{{count}} instalment plan",
+    "subtitleCount_other": "{{count}} instalment plans",
+    "visibleCount_one": "{{count}} plan",
+    "visibleCount_other": "{{count}} plans",
+    "emptyHint": "Record a purchase in instalments to keep track of what you still owe.",
+    "noneMatchFilters": "No plan matches these filters.",
+    "statusWithDate": {
+      "OVERDUE": "Overdue {{date}}",
+      "DUE_SOON": "Due {{date}}",
+      "ON_TRACK": "{{date}}",
+      "PARTIALLY_PAID": "Partially paid",
+      "PAID": "Paid"
+    },
+    "list": {
+      "remaining": "{{amount}} left"
+    },
+    "detail": {
+      "eyebrow": "Plan detail",
+      "paid": "Paid",
+      "remaining": "Remaining",
+      "total": "Total",
+      "instalments": "Instalments",
+      "instalmentOf": "Instalment {{sequence}} of {{total}}",
+      "paidOfTotal": "{{paid}} paid · {{pending}} to pay",
+      "pay": "Pay",
+      "undo": "Undo",
+      "payNext": "Mark instalment {{sequence}} paid",
+      "carriedOver": "Includes {{amount}} from the previous instalment",
+      "paidSoFar": "Paid so far: {{amount}}",
+      "creditCardNotice": "This plan's instalments record no movement: the purchase is already on its credit card's statement."
+    },
+    "frequency": {
+      "DAILY": "Daily",
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly",
+      "YEARLY": "Yearly"
+    },
+    "paid": "Instalment paid",
+    "unpaid": "Payment undone",
+    "preview": {
+      "title": "How it will look",
+      "perInstallment": "Amount per instalment",
+      "first": "First instalment",
+      "last": "Last instalment",
+      "total": "Plan total",
+      "insufficient": "Fill in amount, instalments and date to see the schedule.",
+      "roundingAdjustment": "The last instalment absorbs the rounding: {{amount}}.",
+      "financeCharge": "The interest ({{amount}}) will be recorded as a finance charge on that card's account.",
+      "interestNoCard": "The plan includes {{amount}} of interest."
+    },
+    "immutable": {
+      "title": "Can't be changed",
+      "reason": "The schedule and the payments already recorded were built from these. To change them, delete the plan and create it again."
+    },
+    "pay": {
+      "eyebrow": "Pay instalment",
+      "title": "Instalment {{sequence}} of {{total}}",
+      "amount": "Amount to pay",
+      "owed": "Owed on this instalment",
+      "carriedIn": "Carried over from the previous one",
+      "account": "Payment account",
+      "selectAccount": "Choose an account",
+      "noMovement": "Records no movement",
+      "date": "Payment date",
+      "balanceBefore": "Balance before",
+      "balanceAfter": "Balance after",
+      "carriesForward": "Carries to the next instalment",
+      "appliedToNext": "Applied to the next instalments",
+      "differentCurrency": "The plan is in {{planCurrency}} and the account in {{accountCurrency}}. Declare both amounts: neither is converted.",
+      "chargedAmount": "Expense amount ({{currency}})"
+    },
+    "delete": {
+      "title": "Delete “{{title}}”",
+      "loadingImpact": "Working out what will be reversed…",
+      "noMovements": "This plan recorded no movements: only the plan and its schedule are deleted.",
+      "movements_one": "{{count}} movement will be deleted.",
+      "movements_other": "{{count}} movements will be deleted.",
+      "restores": "Restored: {{restorations}}.",
+      "unknownAccount": "Unknown account"
     }
   },
   "debts": {
@@ -842,6 +952,13 @@
     "CARD_NOT_ALLOWED": "This movement cannot be linked to a card.",
     "ACCOUNT_CANNOT_HAVE_CARD": "This account type can't have cards.",
     "ACCOUNT_NUMBER_REQUIRED": "This account type requires an account number.",
+    "INSTALLMENT_PAYMENT_ALREADY_PAID": "This instalment is already paid.",
+    "INSTALLMENT_PAYMENT_ACCOUNT_REQUIRED": "Choose the account this instalment is paid from.",
+    "INSTALLMENT_CARD_IS_CREDIT": "This plan's instalments record no movement: the debt is already on its credit card's statement.",
+    "INVALID_PAYMENT_AMOUNT": "Enter an amount greater than zero.",
+    "PAYMENT_CURRENCY_AMBIGUOUS": "The account is in a different currency than the plan: state how much was actually charged to it.",
+    "INSTALLMENT_PAYMENT_FROM_CREDIT_ACCOUNT": "An instalment cannot be paid from a credit-card account.",
+    "TRANSACTION_LINKED_TO_INSTALLMENT": "This movement backs an instalment. To change it, undo the instalment's payment from its plan.",
     "CARD_ACCOUNT_MISMATCH": "The card does not belong to that account.",
     "CARD_LIMIT_EXCEEDED": "The expense exceeds the primary card's credit limit.",
     "CARD_SUBLIMIT_EXCEEDED": "The expense exceeds the secondary card's sub-limit.",
@@ -854,7 +971,6 @@
     "INVALID_CURRENT_PASSWORD": "Your current password is incorrect.",
     "ACCOUNT_DISABLED": "This account is disabled.",
     "PAYMENT_EXCEEDS_REMAINING": "The amount is more than what this statement still owes.",
-    "INVALID_PAYMENT_AMOUNT": "Enter an amount greater than zero.",
     "TRANSFER_SAME_ACCOUNT": "Source and destination must be different accounts.",
     "TRANSFER_TO_CREDIT_ACCOUNT": "You can't transfer money into a credit line.",
     "TRANSFER_ACCOUNT_NOT_FOUND": "One of the transfer's accounts was not found.",

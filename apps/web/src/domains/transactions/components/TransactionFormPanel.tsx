@@ -13,7 +13,7 @@ import { DateField } from "../../../shared/ui/date-field";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { Switch } from "../../../shared/ui/switch";
 import { Segmented } from "../../../shared/ui/segmented";
-import { CategoryIcon } from "./CategoryIcon";
+import { CategoryIcon } from "../../../shared/ui/category-icon";
 import { projectedAfterSave } from "../lib/projectedBalance";
 import { TransferFields } from "./TransferFields";
 

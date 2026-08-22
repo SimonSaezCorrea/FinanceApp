@@ -2101,6 +2101,7 @@ async function seedFullUser(passwordHash: string) {
       // Bought with the CMR card: the plan records which card, so the card's own
       // detail can say what it still owes in instalments.
       cardId: creditCard.id,
+      category: "Tecnología",
       notes: "12 cuotas sin interés",
     },
   });
@@ -2126,6 +2127,7 @@ async function seedFullUser(passwordHash: string) {
       startDate: new Date("2026-05-10T00:00:00Z"),
       currency: "CLP",
       cardId: creditCardBch.id,
+      category: "Hogar",
       // 6 x 65.000 = 390.000: la compra en cuotas CON interés compromete más que el
       // precio, y esa diferencia va al cupo como cargo financiero (ver TX).
       notes: "6 cuotas con interés",
@@ -2142,6 +2144,144 @@ async function seedFullUser(passwordHash: string) {
         amount: dec("65000.0000"),
         paidAt: seq === 1 ? new Date(due.getTime() + 86_400_000) : null,
       },
+    });
+  }
+
+  // --- Instalment plans paid with REAL money (spec 013) -------------------------
+  // The two plans above hang off credit cards, so paying an instalment there only
+  // marks it: that debt is already on the card's statement. These four are the other
+  // half of the model — a remembered payment account, real expenses, a carry-over,
+  // a finished plan and an overdue one.
+  let instalmentOutflow = 0;
+
+  /** Creates a plan whose paid instalments each recorded a real expense on `checking`. */
+  async function mkPaidPlan(spec: {
+    title: string;
+    category: string;
+    total: string;
+    count: number;
+    amount: string;
+    start: string;
+    /** Per sequence: what was actually paid. Absent = unpaid. */
+    paid: Record<number, string>;
+    notes?: string;
+  }) {
+    const plan = await prisma.installmentPlan.create({
+      data: {
+        userId: javier.id,
+        title: spec.title,
+        totalPrincipal: dec(spec.total),
+        installmentCount: spec.count,
+        startDate: new Date(spec.start),
+        currency: "CLP",
+        category: spec.category,
+        paymentAccountId: checking.id,
+        notes: spec.notes ?? null,
+      },
+    });
+
+    let carry = 0;
+    for (let seq = 1; seq <= spec.count; seq++) {
+      const due = new Date(spec.start);
+      due.setUTCMonth(due.getUTCMonth() + (seq - 1));
+      const paidAmount = spec.paid[seq];
+      const carriedIn = carry;
+      let transactionId: string | null = null;
+
+      if (paidAmount !== undefined) {
+        const paidAt = new Date(due.getTime() + 86_400_000);
+        const tx = await prisma.transaction.create({
+          data: {
+            userId: javier.id,
+            bankAccountId: checking.id,
+            type: "EXPENSE",
+            amount: dec(paidAmount),
+            currency: "CLP",
+            occurredAt: paidAt,
+            category: spec.category,
+            description: `${spec.title} · ${seq}/${spec.count}`,
+            installmentPlanId: plan.id,
+          },
+        });
+        transactionId = tx.id;
+        instalmentOutflow += Number(paidAmount);
+        // What the payment failed to cover moves to the NEXT instalment — the
+        // schedule itself is never rewritten (FR-020/FR-021).
+        carry = Number(spec.amount) + carriedIn - Number(paidAmount);
+      } else {
+        carry = 0;
+      }
+
+      await prisma.installmentPayment.create({
+        data: {
+          installmentPlanId: plan.id,
+          sequence: seq,
+          dueDate: due,
+          amount: dec(spec.amount),
+          carriedOverAmount: dec(carriedIn.toFixed(4)),
+          paidAt: paidAmount === undefined ? null : new Date(due.getTime() + 86_400_000),
+          paidAmount: paidAmount === undefined ? null : dec(paidAmount),
+          transactionId,
+        },
+      });
+    }
+    return plan;
+  }
+
+  // In progress: two of four instalments paid in full, from the remembered account.
+  await mkPaidPlan({
+    title: "Bicicleta Trek",
+    category: "Deporte",
+    total: "200000.0000",
+    count: 4,
+    amount: "50000.0000",
+    start: "2026-04-02T00:00:00Z",
+    paid: { 1: "50000.0000", 2: "50000.0000" },
+  });
+
+  // Short payment: 50.000 against an instalment owing 60.000, so 10.000 rides on
+  // the next one as its own figure, shown apart from the scheduled amount.
+  await mkPaidPlan({
+    title: "Tratamiento dental",
+    category: "Salud",
+    total: "180000.0000",
+    count: 3,
+    amount: "60000.0000",
+    start: "2026-05-03T00:00:00Z",
+    paid: { 1: "50000.0000" },
+    notes: "Pagué de menos la primera cuota",
+  });
+
+  // Finished: every instalment paid — the case the "Pagados" filter is for.
+  await mkPaidPlan({
+    title: "Celular Samsung",
+    category: "Tecnología",
+    total: "300000.0000",
+    count: 3,
+    amount: "100000.0000",
+    start: "2026-02-08T00:00:00Z",
+    paid: { 1: "100000.0000", 2: "100000.0000", 3: "100000.0000" },
+  });
+
+  // Overdue: nothing paid and the first instalment fell due months ago, which is
+  // what puts the "próxima cuota" indicator in alert.
+  await mkPaidPlan({
+    title: "Curso de inglés",
+    category: "Educación",
+    total: "240000.0000",
+    count: 6,
+    amount: "40000.0000",
+    start: "2026-02-01T00:00:00Z",
+    paid: {},
+  });
+
+  // Those expenses are real money out of the current account: the seeded balance
+  // has to agree with them, exactly as it does for the statement payments above.
+  if (instalmentOutflow > 0) {
+    const acc = await prisma.bankAccount.findUniqueOrThrow({ where: { id: checking.id } });
+    await prisma.bankAccount.update({
+      where: { id: checking.id },
+      data: { currentBalance: acc.currentBalance.minus(dec(instalmentOutflow.toFixed(4))) },
     });
   }
 

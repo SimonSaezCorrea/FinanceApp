@@ -5,6 +5,11 @@ import type { installments } from "@finance/contracts";
 
 import { BaseQueryHandler } from "../../../../infra/cqrs/base-query.handler";
 import {
+  CARD_ACCOUNT_REPOSITORY,
+  type CardAccountRepositoryPort,
+} from "../../../card-account/domain/ports/card-account.repository.port";
+import { toPlanDtos } from "../plan-dto.mapper";
+import {
   INSTALLMENT_PLAN_REPOSITORY,
   type InstallmentPlanRepositoryPort,
 } from "../../domain/ports/installment-plan.repository.port";
@@ -19,6 +24,7 @@ export class ListInstallmentPlansQueryHandler extends BaseQueryHandler<
 > {
   constructor(
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort,
+    @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
   ) {
     super();
   }
@@ -32,6 +38,6 @@ export class ListInstallmentPlansQueryHandler extends BaseQueryHandler<
     userId: string,
   ): Promise<installments.InstallmentPlan[]> {
     const rows = await this.repo.list(userId);
-    return rows.map((r) => r.toContract());
+    return toPlanDtos(rows, userId, this.cards);
   }
 }

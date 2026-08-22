@@ -368,6 +368,65 @@ de las validaciones anteriores.
 
 ---
 
+## 4b. Cuotas: pagar una cuota mueve plata, y el faltante se arrastra
+
+Un **plan de cuotas** (`InstallmentPlan`) es una compra que se paga en cuotas fijas. Su calendario se
+genera una vez, con `equalPrincipalSchedule` de `@finance/money`, y **nunca se reescribe**: ni pagar
+de menos, ni pagar de más, ni corregir un pago cambian el monto programado de ninguna cuota.
+
+**Pagar una cuota registra un gasto real** (`POST /installments/:id/payments/:seq/pay`): crea un
+`Transaction` EXPENSE en la cuenta elegida, baja su `currentBalance`, marca la cuota con lo realmente
+pagado y aplica el arrastre — los cuatro efectos en un solo `prisma.$transaction`. Deshacer es su
+espejo exacto: borra el gasto, restituye el saldo, limpia la cuota y revierte el arrastre **que ese
+pago provocó** (nunca el que la cuota recibió: esa deuda pertenece a un pago que sigue en pie).
+
+**Excepción: un plan comprado con tarjeta CREDIT no genera movimiento.** Esa deuda ya está en la
+facturación de la cuenta de esa tarjeta, y registrarla otra vez sería contar lo mismo dos veces. Ahí
+pagar sólo marca la cuota, y el plan ni siquiera admite cuenta de pago recordada
+(`INSTALLMENT_CARD_IS_CREDIT`).
+
+### El arrastre, y en qué se parece —y en qué no— al de la facturación
+
+Lo adeudado por una cuota es **su monto programado + el arrastre que recibió** de la anterior. Si el
+pago no lo cubre, la diferencia pasa a la **siguiente cuota impaga por número de cuota** (no por
+fecha, y no necesariamente la inmediatamente siguiente: deshacer permite pagar fuera de orden). Si lo
+excede, el excedente se resta de esa siguiente y sigue propagándose hacia adelante hasta agotarse;
+una cuota completamente absorbida queda saldada sin pago propio y **lo adeudado nunca queda
+negativo**. Un pago que supera lo que el plan entero adeuda se rechaza (`PAYMENT_EXCEEDS_REMAINING`):
+el excedente sin deuda donde aplicarse no se convierte en saldo a favor, concepto que este dominio no
+tiene.
+
+Es el **mismo mecanismo** que `CreditStatement.carriedOverAmount` — una cifra propia de quien la
+recibe, no un movimiento sintético ni una reescritura del calendario — deliberadamente, para que la
+aplicación tenga una sola explicación de "lo que no cubriste" y no dos.
+
+La diferencia está en el final de la fila: una facturación siempre tiene una siguiente donde poner el
+faltante; **la última cuota impaga de un plan no**. Por eso ahí la cuota **no se liquida**: conserva
+su abono parcial, sigue siendo pagable por el remanente y mantiene el plan activo. Modelarlo al revés
+—liquidada pero debiendo— dejaría el mismo faltante contado en dos lugares.
+
+### El movimiento que respalda una cuota es de sólo lectura en Movimientos
+
+`InstallmentPayment.transactionId` apunta al gasto que respalda la cuota. Ese movimiento **no se
+edita ni se borra desde Movimientos** (`TRANSACTION_LINKED_TO_INSTALLMENT`, 409): su monto ES el pago
+de la cuota, y cambiarlo ahí dejaría el plan mintiendo sin nada que lo detecte. Se corrige deshaciendo
+y volviendo a pagar la cuota desde su plan, que mueve las cuatro cifras juntas.
+
+**Eliminar un plan revierte todo su historial**: borra los gastos de sus cuotas, restituye el saldo de
+cada cuenta afectada (agregado por cuenta: distintas cuotas pueden haberse pagado desde cuentas
+distintas) y borra el cargo financiero por interés si lo hubo, en una sola operación indivisible. La
+confirmación declara ese impacto **antes** de actuar, calculado con la misma función que lo aplica
+(`planDeletionReversal`), que es lo que impide que lo prometido y lo ocurrido se separen.
+
+### Dos monedas, ninguna conversión
+
+Si la cuenta de pago está en otra moneda que el plan, se declaran **dos montos**: lo abonado a la
+cuota (en la moneda del plan, que es lo que define el arrastre) y lo cargado a la cuenta (en la suya,
+que es el monto del gasto). No se comparan ni se convierten — esta app no tiene tipo de cambio — y si
+falta el segundo se rechaza (`PAYMENT_CURRENCY_AMBIGUOUS`) en vez de adivinarlo.
+
+---
+
 ## 5. Glosario de códigos de error (de este dominio)
 
 | Código                          | Se lanza cuando…                                                                                                |

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { CategoryIcon } from "./CategoryIcon";
+import { CategoryIcon } from "../../../shared/ui/category-icon";
 import { RowActionsMenu } from "./RowActionsMenu";
 import { SwipeRow } from "./SwipeRow";
 import { Badge } from "../../../shared/ui/badge";

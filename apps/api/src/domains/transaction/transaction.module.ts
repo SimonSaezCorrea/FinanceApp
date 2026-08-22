@@ -7,6 +7,7 @@ import { BankAccountDataModule } from "../bank-account/bank-account.data.module"
 import { CardAccountDataModule } from "../card-account/card-account.data.module";
 import { CardLimitDataModule } from "../card-limit/card-limit.data.module";
 import { CreditStatementDataModule } from "../credit-statement/credit-statement.data.module";
+import { InstallmentPaymentDataModule } from "../installment-payment/installment-payment.data.module";
 import { CreateTransactionHandler } from "./application/commands/create-transaction.handler";
 import { CreateTransferHandler } from "./application/commands/create-transfer.handler";
 import { RemoveTransferHandler } from "./application/commands/remove-transfer.handler";
@@ -54,6 +55,9 @@ const queryHandlers = [
     CardAccountDataModule,
     CardLimitDataModule,
     CreditStatementDataModule,
+    // A movement backing an instalment is read-only here: it is corrected by undoing
+    // and re-paying the instalment, never edited in place (FR-028a).
+    InstallmentPaymentDataModule,
   ],
   controllers: [TransactionsController],
   providers: [

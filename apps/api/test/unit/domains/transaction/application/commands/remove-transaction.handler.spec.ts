@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { RemoveTransactionHandler } from "../../../../../../src/domains/transaction/application/commands/remove-transaction.handler";
 import { RemoveTransactionCommand } from "../../../../../../src/domains/transaction/application/commands/remove-transaction.command";
-import { TransactionNotFoundError } from "../../../../../../src/domains/transaction/domain/errors";
+import {
+  TransactionLinkedToInstallmentError,
+  TransactionNotFoundError,
+} from "../../../../../../src/domains/transaction/domain/errors";
 import { Transaction } from "../../../../../../src/domains/transaction/domain/transaction.aggregate";
 import type { TransactionRepositoryPort } from "../../../../../../src/domains/transaction/domain/ports/transaction.repository.port";
 import type { BankAccount } from "../../../../../../src/domains/bank-account/domain/bank-account.aggregate";
@@ -13,6 +16,7 @@ import {
   fakeCardAccountRepo,
   fakeCardLimitRepo,
   fakeCreditStatementRepo,
+  fakeInstallmentPaymentLookup,
 } from "../../../../support/fake-ports";
 
 function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): TransactionRepositoryPort {
@@ -79,7 +83,12 @@ const creditCard: CardProps = {
 /** Each foreign table is read through its own port now (see fake-ports). */
 function makeHandler(
   repo: TransactionRepositoryPort,
-  opts: { account?: BankAccount | null; card?: CardProps | null; statementPaid?: boolean } = {},
+  opts: {
+    account?: BankAccount | null;
+    card?: CardProps | null;
+    statementPaid?: boolean;
+    linkedToInstallment?: boolean;
+  } = {},
 ) {
   return new RemoveTransactionHandler(
     { publish: vi.fn() } as never,
@@ -88,6 +97,9 @@ function makeHandler(
     fakeCardAccountRepo({ findOnAccount: vi.fn(async () => opts.card ?? null) }),
     fakeCardLimitRepo(),
     fakeCreditStatementRepo({ isPaid: vi.fn(async () => opts.statementPaid ?? false) }),
+    fakeInstallmentPaymentLookup({
+      isLinkedToPayment: vi.fn(async () => opts.linkedToInstallment ?? false),
+    }),
   );
 }
 
@@ -126,5 +138,18 @@ describe("RemoveTransactionHandler", () => {
     // The pool stays put (already settled) and so does the balance: a movement
     // linked to a statement was charged to credit, never to cash.
     expect(removeWithCreditAdjustment).toHaveBeenCalledWith("u1", "tX", null, []);
+  });
+  // FR-028a: deleting it here would leave the instalment marked paid with nothing
+  // behind it. Undoing the instalment deletes this row as part of the same reversal.
+  it("refuses to delete a movement that backs an instalment", async () => {
+    const removeWithCreditAdjustment = vi.fn();
+    const handler = makeHandler(
+      fakeRepo({ findOne: vi.fn().mockResolvedValue(txFixture()), removeWithCreditAdjustment }),
+      { account: creditAccount(), card: creditCard, linkedToInstallment: true },
+    );
+    await expect(handler.execute(new RemoveTransactionCommand("u1", "tX"))).rejects.toBeInstanceOf(
+      TransactionLinkedToInstallmentError,
+    );
+    expect(removeWithCreditAdjustment).not.toHaveBeenCalled();
   });
 });

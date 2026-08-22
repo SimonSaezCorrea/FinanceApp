@@ -22,6 +22,9 @@ type Row = NonNullable<Awaited<ReturnType<PrismaService["installmentPlan"]["find
     dueDate: Date;
     amount: { toString(): string };
     paidAt: Date | null;
+    paidAmount: string | null;
+    carriedOverAmount: string;
+    transactionId: string | null;
   }[];
 };
 
@@ -37,6 +40,8 @@ function rowToProps(row: Row): InstallmentPlanProps {
     frequency: row.frequency,
     frequencyInterval: row.frequencyInterval,
     cardId: row.cardId,
+    category: row.category,
+    paymentAccountId: row.paymentAccountId,
     notes: row.notes,
     payments: row.payments.map((p): InstallmentPaymentProps => ({
       id: p.id,
@@ -44,6 +49,9 @@ function rowToProps(row: Row): InstallmentPlanProps {
       dueDate: p.dueDate,
       amount: p.amount.toString(),
       paidAt: p.paidAt,
+      paidAmount: p.paidAmount,
+      carriedOverAmount: p.carriedOverAmount,
+      transactionId: p.transactionId,
     })),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -104,6 +112,8 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
         frequency: plan.frequency,
         frequencyInterval: plan.frequencyInterval,
         cardId: plan.cardId,
+        category: plan.category,
+        paymentAccountId: plan.paymentAccountId,
         notes: plan.notes,
       },
     });
@@ -126,9 +136,28 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
         frequency: snap.frequency,
         frequencyInterval: snap.frequencyInterval,
         cardId: snap.cardId,
+        category: snap.category,
+        paymentAccountId: snap.paymentAccountId,
         notes: snap.notes,
       },
     });
+  }
+
+  async savePaymentWithTx(
+    tx: unknown,
+    aggregate: InstallmentPlan,
+    sequence: number,
+    carryDeltas: { sequence: number; delta: string }[],
+  ): Promise<void> {
+    const snap = aggregate.snapshot();
+    const payment = snap.payments.find((p) => p.sequence === sequence);
+    if (!payment) throw new Error(`installment ${sequence} missing from plan ${snap.id}`);
+    await this.payments.savePaymentStateWithTx(tx, snap.id, sequence, {
+      paidAt: payment.paidAt,
+      paidAmount: payment.paidAmount,
+      transactionId: payment.transactionId,
+    });
+    await this.payments.applyCarryDeltasWithTx(tx, snap.id, carryDeltas);
   }
 
   /** Sets/clears one payment's `paidAt` — delegated to the payment table's own
@@ -145,6 +174,12 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
 
   async remove(userId: string, id: string): Promise<boolean> {
     const result = await this.prisma.installmentPlan.deleteMany({ where: { id, userId } });
+    return result.count > 0;
+  }
+
+  async removeWithTx(tx: unknown, userId: string, id: string): Promise<boolean> {
+    const client = tx as PrismaService;
+    const result = await client.installmentPlan.deleteMany({ where: { id, userId } });
     return result.count > 0;
   }
 }

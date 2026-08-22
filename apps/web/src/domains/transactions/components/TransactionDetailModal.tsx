@@ -68,6 +68,9 @@ export function TransactionDetailModal({
   const nav =
     index >= 0 ? panelNavigation({ index, loaded: items.length, total, hasNextPage }) : null;
   const account = tx.bankAccountId ? accounts.find((a) => a.id === tx.bankAccountId) : undefined;
+  // The API refuses to edit or delete this row (FR-028a); offering the buttons would
+  // only produce an error. The panel says why and where to go instead.
+  const isInstallmentPayment = tx.installmentPlanId !== null;
 
   const balanceAfter =
     index >= 0 ? balanceAfterTransaction({ items, index, account, dateFiltered }) : null;
@@ -136,7 +139,7 @@ export function TransactionDetailModal({
       }
       footer={
         <div className="flex items-center gap-2">
-          {onDelete ? (
+          {onDelete && !isInstallmentPayment ? (
             <Button
               variant="ghost"
               className="mr-auto text-destructive hover:bg-destructive/10 hover:text-destructive"
@@ -160,7 +163,7 @@ export function TransactionDetailModal({
               {t("transactions.detail.duplicate")}
             </Button>
           ) : null}
-          {onEdit ? (
+          {onEdit && !isInstallmentPayment ? (
             <Button
               variant="accent"
               onClick={() => {
@@ -180,7 +183,7 @@ export function TransactionDetailModal({
         accounts={accounts}
         balanceAfter={balanceAfter}
         onAddDetails={
-          onEdit
+          onEdit && !isInstallmentPayment
             ? () => {
                 onEdit(tx);
                 onOpenChange(false);

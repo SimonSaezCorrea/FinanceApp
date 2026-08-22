@@ -2,7 +2,10 @@ import { describe, expect, it, vi } from "vitest";
 
 import { UpdateTransactionHandler } from "../../../../../../src/domains/transaction/application/commands/update-transaction.handler";
 import { UpdateTransactionCommand } from "../../../../../../src/domains/transaction/application/commands/update-transaction.command";
-import { TransactionNotFoundError } from "../../../../../../src/domains/transaction/domain/errors";
+import {
+  TransactionLinkedToInstallmentError,
+  TransactionNotFoundError,
+} from "../../../../../../src/domains/transaction/domain/errors";
 import { Transaction } from "../../../../../../src/domains/transaction/domain/transaction.aggregate";
 import type { TransactionRepositoryPort } from "../../../../../../src/domains/transaction/domain/ports/transaction.repository.port";
 import type { BankAccount } from "../../../../../../src/domains/bank-account/domain/bank-account.aggregate";
@@ -13,6 +16,7 @@ import {
   fakeCardAccountRepo,
   fakeCardLimitRepo,
   fakeCreditStatementRepo,
+  fakeInstallmentPaymentLookup,
 } from "../../../../support/fake-ports";
 
 function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): TransactionRepositoryPort {
@@ -84,6 +88,7 @@ function makeHandler(
     accountById?: (id: string) => BankAccount | null;
     cardByAccount?: (accountId: string) => CardProps | null;
     statementPaid?: boolean;
+    linkedToInstallment?: boolean;
   } = {},
 ) {
   return new UpdateTransactionHandler(
@@ -99,6 +104,9 @@ function makeHandler(
     }),
     fakeCardLimitRepo(),
     fakeCreditStatementRepo({ isPaid: vi.fn(async () => opts.statementPaid ?? false) }),
+    fakeInstallmentPaymentLookup({
+      isLinkedToPayment: vi.fn(async () => opts.linkedToInstallment ?? false),
+    }),
   );
 }
 
@@ -168,5 +176,19 @@ describe("UpdateTransactionHandler", () => {
     );
     await handler.execute(new UpdateTransactionCommand("u1", "tX", { amount: "250000" }));
     expect(saveUpdate).toHaveBeenCalledWith("u1", "tX", expect.anything(), [], expect.anything());
+  });
+  // FR-028a: this row's amount IS an instalment's payment. Editing it here would
+  // leave the plan's paid total and its carry-over disagreeing with the movement,
+  // with nothing to detect the drift.
+  it("refuses to edit a movement that backs an instalment", async () => {
+    const saveUpdate = vi.fn();
+    const handler = makeHandler(
+      fakeRepo({ findOne: vi.fn().mockResolvedValue(txFixture()), saveUpdate }),
+      { accountById: () => creditAccount(), linkedToInstallment: true },
+    );
+    await expect(
+      handler.execute(new UpdateTransactionCommand("u1", "tX", { amount: "250000" })),
+    ).rejects.toBeInstanceOf(TransactionLinkedToInstallmentError);
+    expect(saveUpdate).not.toHaveBeenCalled();
   });
 });

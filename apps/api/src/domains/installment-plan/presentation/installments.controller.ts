@@ -67,8 +67,20 @@ export class InstallmentsController {
   pay(
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(installmentPaymentParamsSchema)) params: { id: string; seq: number },
+    @Body(new ZodValidationPipe(installments.payInstallmentSchema))
+    body: installments.PayInstallment,
   ): Promise<void> {
-    return this.commandBus.execute(new PayInstallmentCommand(user.id, params.id, params.seq));
+    return this.commandBus.execute(
+      new PayInstallmentCommand(
+        user.id,
+        params.id,
+        params.seq,
+        body.fromAccountId ?? null,
+        body.amount ?? null,
+        body.chargedAmount ?? null,
+        body.paidAt ? new Date(body.paidAt) : null,
+      ),
+    );
   }
 
   @Post(":id/payments/:seq/unpay")

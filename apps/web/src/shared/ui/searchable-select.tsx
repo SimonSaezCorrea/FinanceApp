@@ -6,6 +6,9 @@ import { anchoredPanelRect, type PanelRect } from "../lib/anchoredPanel";
 import { cn } from "../lib/cn";
 import { Input } from "./input";
 
+/** Floor for the panel of an `inline` control, which shrink-wraps its own text. */
+const PANEL_MIN_WIDTH = 240;
+
 export interface SearchableSelectOption {
   value: string;
   label: string;
@@ -88,7 +91,14 @@ export function SearchableSelect({
     const el = containerRef.current;
     if (!el) return;
     // Placement lives in one place for every portaled panel (see anchoredPanel).
-    const { rect: next, portalTarget: target } = anchoredPanelRect(el);
+    // The `inline` control shrink-wraps its text — and with nothing selected it is
+    // barely a chevron wide — so its own width says nothing about how long the
+    // options are. Same floor and right-alignment Combobox already uses; without
+    // them the panel rendered as a few-pixel sliver beside the row.
+    const { rect: next, portalTarget: target } = anchoredPanelRect(
+      el,
+      variant === "inline" ? { minWidth: PANEL_MIN_WIDTH, align: "end" } : {},
+    );
     setPortalTarget(target);
     setRect(next);
   }

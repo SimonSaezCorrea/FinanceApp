@@ -1,4 +1,26 @@
 <!--
+Sync Impact Report — 2026-08-22 (amendment 1.46.0)
+- Version change: 1.45.0 → 1.46.0 (MINOR: two new enforceable rules; no principle removed).
+- New rule **"An unpaid remainder is a figure, never a rewrite"**: when a payment fails to cover what
+  was owed, the shortfall MUST be carried onto the next unpaid item as a column of its own
+  (`CreditStatement.carriedOverAmount`, `InstallmentPayment.carriedOverAmount`), and the SCHEDULE —
+  the amounts and dates originally agreed — MUST never be rewritten to absorb it. One mechanism for
+  "what you didn't cover", not one per domain. Corollary: the last item in a sequence has no successor
+  to carry into, so it is NOT settled by a short payment; it keeps its partial credit and stays
+  payable, because a shortfall counted both on the item and on its carry is the same debt twice.
+- New rule **"Declare an irreversible impact with the code that applies it"**: an operation that
+  deletes real movements or moves real balances MUST state, before confirming, what it will undo — and
+  that statement MUST be produced by the SAME function the operation runs (`planDeletionReversal`),
+  never by a second implementation that can drift from it. A confirmation describing an effect that
+  did not happen is worse than no confirmation.
+- Reinforces "Money is never a float" (§I) and the one-aggregate-per-transaction exception already
+  documented for `PayCreditStatementHandler`: paying an instalment writes three aggregates in one
+  `prisma.$transaction` for the same reason — a marked instalment whose expense never landed leaves
+  the books wrong with nothing to detect it.
+- Templates requiring updates: none.
+-->
+
+<!--
 Sync Impact Report — 2026-08-15 (amendment 1.45.0)
 - Version change: 1.44.0 → 1.45.0 (MINOR: new enforceable scope rule; no principle removed).
 - Delivery norms gain **"Scope is data, not code"**: the MVP (`docs/MVP.md`) is Chile-only with three
@@ -1056,6 +1078,21 @@ Rounding MUST be explicit and consistent with the stored precision.
 Rationale: a finance app is only trustworthy if totals reconcile to the cent. Binary
 floats silently lose precision and corrupt balances, interest, and amortization.
 
+**An unpaid remainder is a figure, never a rewrite.** When a payment fails to cover what was owed,
+the shortfall MUST be carried onto the next unpaid item as a column of its own
+(`CreditStatement.carriedOverAmount`, `InstallmentPayment.carriedOverAmount`); the SCHEDULE — the
+amounts and dates originally agreed — MUST NOT be rewritten to absorb it, and a surplus MUST flow
+forward without ever leaving an item owing a negative amount. One mechanism for "what you didn't
+cover", not one per domain. Corollary: the LAST item of a sequence has no successor to carry into, so
+a short payment there does NOT settle it — it keeps its partial credit and stays payable, because a
+shortfall counted both on the item and on its carry is the same debt twice.
+
+**Declare an irreversible impact with the code that applies it.** An operation that deletes real
+movements or moves real balances MUST state, before confirming, what it will undo — and that
+statement MUST come from the SAME function the operation runs, never from a second implementation
+that can drift from it. A confirmation describing an effect that did not happen is worse than no
+confirmation at all.
+
 ### II. Per-User Data Isolation (NON-NEGOTIABLE)
 
 Every data read and write MUST be scoped by `session.user.id`. API route handlers
@@ -1405,4 +1442,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.45.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15
+**Version**: 1.46.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-22

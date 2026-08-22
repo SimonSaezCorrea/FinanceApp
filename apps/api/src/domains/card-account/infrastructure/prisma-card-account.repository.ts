@@ -1,5 +1,7 @@
 import { Inject, Injectable } from "@nestjs/common";
 
+import type { accounts } from "@finance/contracts";
+
 import { PrismaService } from "../../../infra/prisma/prisma.service";
 import {
   CARD_LIMIT_REPOSITORY,
@@ -91,6 +93,14 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
       select: { accountId: true },
     });
     return row?.accountId ?? null;
+  }
+
+  async kindForCard(userId: string, cardId: string): Promise<accounts.CardKind | null> {
+    const row = await this.prisma.cardAccount.findFirst({
+      where: { id: cardId, userId },
+      select: { kind: true },
+    });
+    return row?.kind ?? null;
   }
 
   async create(userId: string, accountId: string, plan: CardPlan): Promise<string> {

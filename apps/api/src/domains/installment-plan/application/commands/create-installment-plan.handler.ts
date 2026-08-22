@@ -55,6 +55,10 @@ export class CreateInstallmentPlanHandler extends BaseCommandHandler<
 
   protected async loadContext(command: CreateInstallmentPlanCommand): Promise<Context> {
     const { input } = command;
+    const cardKind = input.cardId
+      ? await this.cards.kindForCard(command.userId, input.cardId)
+      : null;
+    InstallmentPlan.assertPaymentAccountAllowed(cardKind, input.paymentAccountId);
     const planned = InstallmentPlan.planCreation({
       title: input.title,
       totalPrincipal: input.totalPrincipal,
@@ -65,6 +69,8 @@ export class CreateInstallmentPlanHandler extends BaseCommandHandler<
       frequencyInterval: input.frequencyInterval,
       aprPerPeriod: input.aprPerPeriod,
       cardId: input.cardId,
+      category: input.category,
+      paymentAccountId: input.paymentAccountId,
       notes: input.notes,
     });
     return { plan: planned };

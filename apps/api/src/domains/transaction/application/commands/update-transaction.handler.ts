@@ -24,7 +24,12 @@ import {
   type CreditStatementRepositoryPort,
 } from "../../../credit-statement/domain/ports/credit-statement.repository.port";
 import {
+  INSTALLMENT_PAYMENT_LOOKUP,
+  type InstallmentPaymentLookupPort,
+} from "../../../installment-payment/domain/ports/installment-payment-lookup.port";
+import {
   AccountNotFoundError,
+  TransactionLinkedToInstallmentError,
   TransactionNotFoundError,
   TransferEditAsPairError,
 } from "../../domain/errors";
@@ -70,6 +75,8 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
     @Inject(CARD_LIMIT_REPOSITORY) private readonly cardLimits: CardLimitRepositoryPort,
     @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statements: CreditStatementRepositoryPort,
+    @Inject(INSTALLMENT_PAYMENT_LOOKUP)
+    private readonly installmentPayments: InstallmentPaymentLookupPort,
   ) {
     super(eventBus);
   }
@@ -81,6 +88,11 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     // Editing one leg alone would desynchronise the pair (and the two balances
     // behind it): a transfer is edited through its own endpoint.
     if (current.isTransferLeg) throw new TransferEditAsPairError();
+    // This row's amount IS an instalment's payment: it is corrected by undoing and
+    // re-paying that instalment, never edited here (FR-028a).
+    if (await this.installmentPayments.isLinkedToPayment(userId, id)) {
+      throw new TransactionLinkedToInstallmentError();
+    }
 
     const effectiveType = input.type ?? current.type;
     const effective: EffectiveMovement = {

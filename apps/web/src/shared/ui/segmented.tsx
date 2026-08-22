@@ -61,7 +61,10 @@ export function Segmented<T extends string>({
             title={opt.disabled ? opt.disabledReason : undefined}
             onClick={() => onChange(opt.value)}
             className={cn(
-              "flex-1 rounded-sm text-center transition-colors",
+              // `flex-1` makes every segment the same width; without nowrap the longest
+              // label ("Por vencer") wraps to two lines and the whole switch grows to
+              // two rows. A segment label is a short phrase — it never wraps.
+              "flex-1 whitespace-nowrap rounded-sm text-center transition-colors",
               SIZE_CLASS[size],
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",

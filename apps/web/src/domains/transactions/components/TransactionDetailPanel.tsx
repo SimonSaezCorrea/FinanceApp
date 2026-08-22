@@ -1,6 +1,7 @@
-import { ArrowLeftRight } from "lucide-react";
+import { ArrowLeftRight, Info } from "lucide-react";
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
+import { Link } from "react-router";
 
 import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
@@ -8,7 +9,7 @@ import { formatMoney } from "@finance/money";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { DetailRow } from "../../../shared/ui/detail-row";
-import { CategoryIcon } from "./CategoryIcon";
+import { CategoryIcon } from "../../../shared/ui/category-icon";
 
 export function formatLongDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, {
@@ -119,6 +120,21 @@ export function TransactionDetailPanel({
           {card ? <Badge>{`•••• ${card.last4}`}</Badge> : null}
         </div>
       </div>
+
+      {/* FR-028a: this row is an instalment's payment. Saying so — and where to go
+          to change it — is the point; silently disabling the buttons would leave the
+          user guessing why. */}
+      {tx.installmentPlanId !== null && (
+        <p className="flex gap-2 rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <span>
+            {t("transactions.detail.installmentLocked")}{" "}
+            <Link to="/installments" className="text-accent underline-offset-2 hover:underline">
+              {t("transactions.detail.installmentLockedLink")}
+            </Link>
+          </span>
+        </p>
+      )}
 
       <div className="flex flex-col">
         {/* The category carries its icon here too: the header's icon is the

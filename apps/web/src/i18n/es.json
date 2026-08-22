@@ -33,7 +33,9 @@
       "clear": "Borrar",
       "previousMonth": "Mes anterior",
       "nextMonth": "Mes siguiente"
-    }
+    },
+    "decrease": "Disminuir",
+    "increase": "Aumentar"
   },
   "nav": {
     "dashboard": "Panel",
@@ -479,7 +481,9 @@
       "addDetails": "Agregar detalles",
       "transferCounterpart": "Traspaso desde/hacia",
       "transferFrom": "Desde",
-      "transferTo": "Hacia"
+      "transferTo": "Hacia",
+      "installmentLocked": "Este movimiento respalda una cuota de un plan. Para cambiarlo, deshaz el pago de esa cuota desde su plan.",
+      "installmentLockedLink": "Ir a Cuotas"
     },
     "attachments": {
       "title": "Comprobantes",
@@ -510,7 +514,30 @@
       "cardNone": "Sin tarjeta",
       "title": "Título",
       "frequency": "Periodicidad",
-      "frequencyInterval": "Cada (número)"
+      "frequencyInterval": "Repetir cada",
+      "eyebrowCreate": "Nuevo plan",
+      "eyebrowEdit": "Editar plan",
+      "totalPrincipal": "Monto total",
+      "currency": "Moneda",
+      "installmentCount": "Número de cuotas",
+      "startDate": "Primera cuota",
+      "category": "Categoría",
+      "paymentAccount": "Cuenta de pago",
+      "paymentAccountNone": "Elegir al pagar",
+      "paymentAccountCreditCard": "No aplica (tarjeta de crédito)",
+      "aprPerPeriod": "Interés por período",
+      "notes": "Notas",
+      "notesEmpty": "Sin notas",
+      "intervalUnit": {
+        "DAILY_one": "día",
+        "DAILY_other": "días",
+        "WEEKLY_one": "semana",
+        "WEEKLY_other": "semanas",
+        "MONTHLY_one": "mes",
+        "MONTHLY_other": "meses",
+        "YEARLY_one": "año",
+        "YEARLY_other": "años"
+      }
     },
     "planCard": {
       "installmentAmount": "Cuota",
@@ -522,19 +549,20 @@
     "table": {
       "plan": "Plan",
       "progress": "Progreso",
-      "nextDue": "Próximo pago",
-      "total": "Total",
-      "monthly": "/mes",
-      "product": "Producto",
-      "payment": "Cuota",
-      "dueDate": "Vencimiento",
-      "status": "Estado",
-      "amount": "Monto"
+      "nextDue": "Próxima cuota",
+      "instalment": "Cuota",
+      "remaining": "Restante",
+      "card": "Tarjeta",
+      "ofTotal": "de {{total}}",
+      "unknownCard": "Tarjeta desconocida"
     },
     "kpi": {
-      "monthly": "Pago mensual",
+      "thisMonth": "Este mes",
       "pending": "Pendiente total",
-      "nextDueDate": "Próximo pago"
+      "nextDue": "Próxima cuota",
+      "activePlans": "Planes activos",
+      "nothingDue": "Sin cuotas pendientes",
+      "overdueOn": "Vencida · {{date}}"
     },
     "filters": {
       "all": "Todas",
@@ -544,10 +572,11 @@
       "next3months": "Próx. 3 meses"
     },
     "status": {
-      "upcoming": "Próxima",
-      "last": "Última",
-      "pending": "Pendiente",
-      "paid": "Pagada"
+      "OVERDUE": "Vencida",
+      "DUE_SOON": "Próxima",
+      "ON_TRACK": "Al día",
+      "PARTIALLY_PAID": "Pagado en parte",
+      "PAID": "Pagado"
     },
     "payment": {
       "pay": "Confirmar pago",
@@ -565,7 +594,88 @@
       "status": "Estado",
       "paid": "Pagada",
       "upcoming": "Próxima",
-      "pending": "Pendiente"
+      "pending": "Pendiente",
+      "partial": "Pagada en parte"
+    },
+    "subtitleCount_one": "{{count}} plan de cuotas",
+    "subtitleCount_other": "{{count}} planes de cuotas",
+    "visibleCount_one": "{{count}} plan",
+    "visibleCount_other": "{{count}} planes",
+    "emptyHint": "Registra una compra en cuotas para seguir cuánto te queda por pagar.",
+    "noneMatchFilters": "Ningún plan coincide con estos filtros.",
+    "statusWithDate": {
+      "OVERDUE": "Vencida {{date}}",
+      "DUE_SOON": "Próxima {{date}}",
+      "ON_TRACK": "{{date}}",
+      "PARTIALLY_PAID": "Pagado en parte",
+      "PAID": "Pagado"
+    },
+    "list": {
+      "remaining": "Restan {{amount}}"
+    },
+    "detail": {
+      "eyebrow": "Detalle del plan",
+      "paid": "Pagado",
+      "remaining": "Restante",
+      "total": "Total",
+      "instalments": "Cuotas",
+      "instalmentOf": "Cuota {{sequence}} de {{total}}",
+      "paidOfTotal": "{{paid}} pagadas · {{pending}} por pagar",
+      "pay": "Pagar",
+      "undo": "Deshacer",
+      "payNext": "Marcar cuota {{sequence}} pagada",
+      "carriedOver": "Incluye {{amount}} de la cuota anterior",
+      "paidSoFar": "Pagado hasta ahora: {{amount}}",
+      "creditCardNotice": "Las cuotas de este plan no generan movimiento: la compra ya está registrada en la facturación de su tarjeta de crédito."
+    },
+    "frequency": {
+      "DAILY": "Diaria",
+      "WEEKLY": "Semanal",
+      "MONTHLY": "Mensual",
+      "YEARLY": "Anual"
+    },
+    "paid": "Cuota pagada",
+    "unpaid": "Pago deshecho",
+    "preview": {
+      "title": "Así quedará",
+      "perInstallment": "Monto por cuota",
+      "first": "Primera cuota",
+      "last": "Última cuota",
+      "total": "Total del plan",
+      "insufficient": "Completa monto, cuotas y fecha para ver el calendario.",
+      "roundingAdjustment": "La última cuota ajusta el redondeo: {{amount}}.",
+      "financeCharge": "El interés ({{amount}}) se registrará como cargo financiero en la cuenta de esa tarjeta.",
+      "interestNoCard": "El plan incluye {{amount}} de interés."
+    },
+    "immutable": {
+      "title": "No se puede cambiar",
+      "reason": "El calendario y las cuotas ya registradas se construyeron con estos datos. Para cambiarlos, elimina el plan y créalo de nuevo."
+    },
+    "pay": {
+      "eyebrow": "Pagar cuota",
+      "title": "Cuota {{sequence}} de {{total}}",
+      "amount": "Monto a pagar",
+      "owed": "Adeudado por esta cuota",
+      "carriedIn": "Viene de la cuota anterior",
+      "account": "Cuenta de pago",
+      "selectAccount": "Elige una cuenta",
+      "noMovement": "No genera movimiento",
+      "date": "Fecha del pago",
+      "balanceBefore": "Saldo antes",
+      "balanceAfter": "Saldo después",
+      "carriesForward": "Pasa a la próxima cuota",
+      "appliedToNext": "Se descuenta de las próximas cuotas",
+      "differentCurrency": "El plan está en {{planCurrency}} y la cuenta en {{accountCurrency}}. Declara los dos montos: no se convierte ninguno.",
+      "chargedAmount": "Monto del gasto ({{currency}})"
+    },
+    "delete": {
+      "title": "Eliminar «{{title}}»",
+      "loadingImpact": "Calculando qué se revierte…",
+      "noMovements": "Este plan no generó movimientos: sólo se elimina el plan y su calendario.",
+      "movements_one": "Se eliminará {{count}} movimiento.",
+      "movements_other": "Se eliminarán {{count}} movimientos.",
+      "restores": "Se restituye: {{restorations}}.",
+      "unknownAccount": "Cuenta desconocida"
     }
   },
   "debts": {
@@ -842,6 +952,13 @@
     "CARD_NOT_ALLOWED": "Este movimiento no puede asociarse a una tarjeta.",
     "ACCOUNT_CANNOT_HAVE_CARD": "Este tipo de cuenta no puede tener tarjetas asociadas.",
     "ACCOUNT_NUMBER_REQUIRED": "Este tipo de cuenta requiere un número de cuenta.",
+    "INSTALLMENT_PAYMENT_ALREADY_PAID": "Esta cuota ya está pagada.",
+    "INSTALLMENT_PAYMENT_ACCOUNT_REQUIRED": "Elige la cuenta con la que pagas esta cuota.",
+    "INSTALLMENT_CARD_IS_CREDIT": "Las cuotas de este plan no generan movimiento: la deuda ya está en la facturación de su tarjeta de crédito.",
+    "INVALID_PAYMENT_AMOUNT": "Ingresa un monto mayor que cero.",
+    "PAYMENT_CURRENCY_AMBIGUOUS": "La cuenta está en otra moneda que el plan: indica cuánto se cargó realmente a la cuenta.",
+    "INSTALLMENT_PAYMENT_FROM_CREDIT_ACCOUNT": "No puedes pagar una cuota desde una cuenta de tarjeta de crédito.",
+    "TRANSACTION_LINKED_TO_INSTALLMENT": "Este movimiento respalda una cuota. Para cambiarlo, deshaz el pago de la cuota desde su plan.",
     "CARD_ACCOUNT_MISMATCH": "La tarjeta no pertenece a esa cuenta.",
     "CARD_LIMIT_EXCEEDED": "El gasto supera el cupo de la tarjeta principal.",
     "CARD_SUBLIMIT_EXCEEDED": "El gasto supera el sub-tope de la tarjeta secundaria.",
@@ -854,7 +971,6 @@
     "INVALID_CURRENT_PASSWORD": "La contraseña actual no es correcta.",
     "ACCOUNT_DISABLED": "Esta cuenta está deshabilitada.",
     "PAYMENT_EXCEEDS_REMAINING": "El monto supera lo que queda por pagar de esta facturación.",
-    "INVALID_PAYMENT_AMOUNT": "Ingresa un monto mayor que cero.",
     "TRANSFER_SAME_ACCOUNT": "El origen y el destino deben ser cuentas distintas.",
     "TRANSFER_TO_CREDIT_ACCOUNT": "No puedes traspasar dinero hacia una línea de crédito.",
     "TRANSFER_ACCOUNT_NOT_FOUND": "No se encontró alguna de las cuentas del traspaso.",

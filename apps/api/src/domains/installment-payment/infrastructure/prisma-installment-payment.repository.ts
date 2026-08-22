@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 
 import { PrismaService } from "../../../infra/prisma/prisma.service";
+import type { InstallmentPaymentLookupPort } from "../domain/ports/installment-payment-lookup.port";
 import type {
   InstallmentPaymentPlan,
   InstallmentPaymentRepositoryPort,
@@ -9,7 +10,9 @@ import type {
 
 /** Adapter — the ONLY file that touches `prisma.installmentPayment`. */
 @Injectable()
-export class PrismaInstallmentPaymentRepository implements InstallmentPaymentRepositoryPort {
+export class PrismaInstallmentPaymentRepository
+  implements InstallmentPaymentRepositoryPort, InstallmentPaymentLookupPort
+{
   constructor(private readonly prisma: PrismaService) {}
 
   async listByPlans(planIds: string[]): Promise<InstallmentPaymentRow[]> {
@@ -25,6 +28,9 @@ export class PrismaInstallmentPaymentRepository implements InstallmentPaymentRep
       dueDate: r.dueDate,
       amount: r.amount.toString(),
       paidAt: r.paidAt,
+      paidAmount: r.paidAmount?.toString() ?? null,
+      carriedOverAmount: r.carriedOverAmount.toString(),
+      transactionId: r.transactionId,
     }));
   }
 
@@ -46,5 +52,43 @@ export class PrismaInstallmentPaymentRepository implements InstallmentPaymentRep
       data: { paidAt },
     });
     return result.count > 0;
+  }
+
+  async savePaymentStateWithTx(
+    tx: unknown,
+    planId: string,
+    sequence: number,
+    state: { paidAt: Date | null; paidAmount: string | null; transactionId: string | null },
+  ): Promise<void> {
+    const client = tx as PrismaService;
+    await client.installmentPayment.updateMany({
+      where: { installmentPlanId: planId, sequence },
+      data: state,
+    });
+  }
+
+  async applyCarryDeltasWithTx(
+    tx: unknown,
+    planId: string,
+    deltas: { sequence: number; delta: string }[],
+  ): Promise<void> {
+    const client = tx as PrismaService;
+    for (const { sequence, delta } of deltas) {
+      // `increment` rather than a computed write: the delta is what the payment
+      // moved, and adding it is what makes two carries onto the same instalment
+      // accumulate instead of overwriting each other.
+      await client.installmentPayment.updateMany({
+        where: { installmentPlanId: planId, sequence },
+        data: { carriedOverAmount: { increment: delta } },
+      });
+    }
+  }
+
+  async isLinkedToPayment(userId: string, transactionId: string): Promise<boolean> {
+    const row = await this.prisma.installmentPayment.findFirst({
+      where: { transactionId, plan: { userId } },
+      select: { id: true },
+    });
+    return row !== null;
   }
 }

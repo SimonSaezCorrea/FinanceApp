@@ -6,9 +6,17 @@ export interface InstallmentPaymentRow {
   installmentPlanId: string;
   sequence: number;
   dueDate: Date;
-  /** moneyString */
+  /** moneyString — the SCHEDULED amount, never rewritten after the plan exists. */
   amount: string;
+  /** The REAL date of payment. "Paid" is `paidAt !== null`, NEVER `paidAmount !== null`:
+   * a row paid before this feature has a date and no amount. */
   paidAt: Date | null;
+  /** moneyString — what was actually paid; null on a legacy row. */
+  paidAmount: string | null;
+  /** moneyString — inherited from the previous instalment; negative if it was overpaid. */
+  carriedOverAmount: string;
+  /** The real expense backing this instalment, when there is one. */
+  transactionId: string | null;
 }
 
 /** A row about to be inserted with its plan (the schedule is computed by the
@@ -31,4 +39,17 @@ export interface InstallmentPaymentRepositoryPort {
     sequence: number,
     paidAt: Date | null,
   ): Promise<boolean>;
+  /** Writes one instalment's payment state inside a caller-owned transaction. */
+  savePaymentStateWithTx(
+    tx: unknown,
+    planId: string,
+    sequence: number,
+    state: { paidAt: Date | null; paidAmount: string | null; transactionId: string | null },
+  ): Promise<void>;
+  /** Applies carry-over deltas to later instalments, same transaction. */
+  applyCarryDeltasWithTx(
+    tx: unknown,
+    planId: string,
+    deltas: { sequence: number; delta: string }[],
+  ): Promise<void>;
 }

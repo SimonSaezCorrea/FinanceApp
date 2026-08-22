@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { CategoryIcon } from "./CategoryIcon";
+import { CategoryIcon } from "./category-icon";
 
 /** Mapping to an icon isn't enough: it has to actually RENDER an svg. A name
  *  that doesn't exist in the installed lucide version resolves to `undefined`

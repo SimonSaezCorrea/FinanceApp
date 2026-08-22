@@ -349,3 +349,34 @@ si esa cuenta la crea la app al registrar el instrumento o la elige el usuario.
 `EtfPriceCache` y la integración con Alpha Vantage (`ALPHA_VANTAGE_API_KEY`) siguen sin
 implementarse. Mientras no existan, un ETF se valoriza por valor declarado como cualquier otro
 instrumento — que es exactamente lo que asume la spec 012.
+
+## Cuotas (specs/013)
+
+### 1. Pagar una facturación no valida saldo prepago ni sobregiro
+
+Pagar una **cuota** valida la cuenta de origen con `MovementPolicy.assertWithinPrepaidBalance` y
+`assertWithinOverdraft`: un cargo que dejaría una cuenta prepago en negativo, o que pasaría la línea
+de sobregiro, se rechaza sin marcar la cuota. **Pagar una facturación de crédito
+(`POST /accounts/:id/credit-statements/:id/pay`) no hace ninguna de las dos comprobaciones** — crea el
+gasto y descuenta el saldo sin preguntar.
+
+Son dos caminos que crean el mismo tipo de movimiento sobre el mismo tipo de cuenta y deberían validar
+igual. No se unificó aquí para no cambiar el comportamiento de un dominio que esta feature no tocaba;
+el arreglo es mover ambas guardas al pago de facturación, no relajarlas en el de cuotas.
+
+### 2. La previsualización repite el paso de fechas del agregado
+
+`schedulePreview` (web) llama a la MISMA `equalPrincipalSchedule` que el servidor —los montos no
+pueden divergir—, pero el avance de fechas por frecuencia × intervalo está escrito dos veces: en
+`InstallmentPlan.planCreation` y en `schedulePreview`. Son cuatro llamadas a `Date` y hoy no hay
+paquete compartido donde vivan; la alternativa (pedirle el calendario al servidor en cada tecla) es
+peor. Si el paso de fechas se complica (feriados, fin de mes), promoverlo a `@finance/money` antes de
+tocarlo.
+
+### 3. El plan no recuerda su tasa de interés
+
+`aprPerPeriod` se usa al CREAR el plan (define el calendario y el cargo financiero) y no se guarda.
+Editar un plan no puede mostrarla ni recalcular nada con ella, que es coherente con que el calendario
+sea inmutable, pero significa que el interés de un plan ya creado sólo se deduce comparando la suma de
+sus cuotas con su principal.
+

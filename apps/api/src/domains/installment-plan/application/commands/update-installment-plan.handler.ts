@@ -4,8 +4,12 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import type { installments } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import {
+  CARD_ACCOUNT_REPOSITORY,
+  type CardAccountRepositoryPort,
+} from "../../../card-account/domain/ports/card-account.repository.port";
 import { InstallmentPlanNotFoundError } from "../../domain/errors";
-import type { InstallmentPlan } from "../../domain/installment-plan.aggregate";
+import { InstallmentPlan } from "../../domain/installment-plan.aggregate";
 import {
   INSTALLMENT_PLAN_REPOSITORY,
   type InstallmentPlanRepositoryPort,
@@ -22,6 +26,7 @@ export class UpdateInstallmentPlanHandler extends BaseCommandHandler<
   constructor(
     eventBus: EventBus,
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort,
+    @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -37,6 +42,19 @@ export class UpdateInstallmentPlanHandler extends BaseCommandHandler<
     plan: InstallmentPlan,
   ): Promise<HandleResult<installments.InstallmentPlan>> {
     const { input } = command;
+    // The card AFTER the patch decides it: changing either half — putting the plan on
+    // a credit card, or naming an account to pay it from — can break INV-P2, and both
+    // arrive in the same request.
+    const effectiveCardId = input.cardId !== undefined ? input.cardId : plan.snapshot().cardId;
+    const effectivePaymentAccountId =
+      input.paymentAccountId !== undefined
+        ? input.paymentAccountId
+        : plan.snapshot().paymentAccountId;
+    const cardKind = effectiveCardId
+      ? await this.cards.kindForCard(command.userId, effectiveCardId)
+      : null;
+    InstallmentPlan.assertPaymentAccountAllowed(cardKind, effectivePaymentAccountId);
+
     plan.applyUpdate({
       ...(input.title !== undefined ? { title: input.title } : {}),
       ...(input.currency !== undefined ? { currency: input.currency } : {}),
@@ -45,6 +63,8 @@ export class UpdateInstallmentPlanHandler extends BaseCommandHandler<
         ? { frequencyInterval: input.frequencyInterval }
         : {}),
       ...(input.cardId !== undefined ? { cardId: input.cardId } : {}),
+      ...(input.category !== undefined ? { category: input.category } : {}),
+      ...(input.paymentAccountId !== undefined ? { paymentAccountId: input.paymentAccountId } : {}),
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
     });
     return { result: plan.toContract(), events: [] };

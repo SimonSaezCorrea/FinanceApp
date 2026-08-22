@@ -8,6 +8,7 @@ import type { BankAccountRepositoryPort } from "../../../src/domains/bank-accoun
 import type { CardAccountRepositoryPort } from "../../../src/domains/card-account/domain/ports/card-account.repository.port";
 import type { CardLimitRepositoryPort } from "../../../src/domains/card-limit/domain/ports/card-limit.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
+import type { InstallmentPaymentLookupPort } from "../../../src/domains/installment-payment/domain/ports/installment-payment-lookup.port";
 import type { TransactionSumsRepositoryPort } from "../../../src/domains/transaction/domain/ports/transaction-sums.repository.port";
 import type { TransactionWriterRepositoryPort } from "../../../src/domains/transaction/domain/ports/transaction-writer.repository.port";
 
@@ -65,6 +66,10 @@ export function fakeTransactionWriterRepo(
     createWithTx: vi.fn(),
     relinkToStatementWithTx: vi.fn(),
     updateAmountWithTx: vi.fn(),
+    deleteWithTx: vi.fn(),
+    listForInstallmentPlan: vi.fn(async () => []),
+    deleteManyWithTx: vi.fn(),
+    accountIdForTransaction: vi.fn(async () => null),
     createMany: vi.fn(async () => 0),
     ...overrides,
   };
@@ -97,9 +102,22 @@ export function fakeCardAccountRepo(
     findOnAccount: vi.fn(async () => null),
     existsForUser: vi.fn(async () => true),
     accountIdForCard: vi.fn(async () => null),
+    kindForCard: vi.fn(async () => null),
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
+    ...overrides,
+  };
+}
+
+/** The one question `transaction` asks `installment-payment` before letting a
+ *  movement be edited or deleted (FR-028a). Defaults to "not linked", the ordinary
+ *  case for every movement that has nothing to do with a plan. */
+export function fakeInstallmentPaymentLookup(
+  overrides: Partial<InstallmentPaymentLookupPort> = {},
+): InstallmentPaymentLookupPort {
+  return {
+    isLinkedToPayment: vi.fn(async () => false),
     ...overrides,
   };
 }

@@ -491,6 +491,46 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     comportamiento viejo no se migran** (data de dev; `pnpm db:seed` la regenera). Abierto y breaking:
     si `CHECKING`/`SIGHT` deberían seguir admitiendo una tarjeta `CREDIT` (una tarjeta de crédito es su
     propia cuenta, no un canal sobre el saldo de la corriente) — hoy la matriz lo permite.
+  - **installment-plan / installment-payment** (specs/013, 2026-08-22): un plan de cuotas es una
+    compra que se paga en cuotas fijas, y **pagar una cuota registra un gasto real**. Columnas nuevas:
+    `installment-plan` gana `category` (texto libre, mismo repertorio que los movimientos; de ahí sale
+    el ícono de la fila, vía `shared/lib/categoryIcons` + `shared/ui/category-icon`, promovidos desde
+    `domains/transactions`) y `paymentAccountId` (`SetNull`, la cuenta que prellena cada pago);
+    `installment-payment` gana `paidAmount`, `carriedOverAmount` y `transactionId` (`SetNull`: borrar
+    el movimiento no puede borrar la cuota). **`POST /installments/:id/payments/:seq/pay` ahora lleva
+    cuerpo** (`payInstallmentSchema`: `fromAccountId`, `amount`, `chargedAmount`, `paidAt`) y, en un
+    solo `prisma.$transaction`, crea el EXPENSE, baja el `currentBalance` de la cuenta, marca la cuota
+    con lo realmente pagado y aplica el arrastre; `unpay` es su espejo exacto. **El calendario nunca
+    se reescribe**: lo que el pago no cubre pasa a la **siguiente cuota impaga por número de cuota**
+    como `carriedOverAmount` (mismo mecanismo que `CreditStatement.carriedOverAmount`), y el excedente
+    se resta de las siguientes en cadena sin que lo adeudado quede negativo; un pago mayor a lo que el
+    plan entero adeuda se rechaza (`PAYMENT_EXCEEDS_REMAINING`). **La última cuota impaga no tiene
+    sucesora**, así que un pago corto ahí NO la liquida: conserva su abono, sigue pagable por el
+    remanente y el plan queda `PARTIALLY_PAID` (activo). La aritmética vive en
+    `domain/installment-carry-over.ts` (pura, sólo `@finance/money`). **Un plan con tarjeta CREDIT no
+    genera movimiento** (`generatesMovementOnPay` en el contrato): esa deuda ya está en la facturación
+    de su cuenta de crédito, y esos planes ni siquiera admiten `paymentAccountId`
+    (`InstallmentPlan.assertPaymentAccountAllowed` → `INSTALLMENT_CARD_IS_CREDIT`). **Dos monedas, cero
+    conversión**: si la cuenta está en otra moneda, `amount` (moneda del plan, define el arrastre) y
+    `chargedAmount` (moneda de la cuenta, es el monto del gasto) se declaran por separado y no se
+    comparan — falta el segundo ⇒ `PAYMENT_CURRENCY_AMBIGUOUS`. **El movimiento que respalda una cuota
+    es de sólo lectura en Movimientos**: `transaction`'s update/remove preguntan por
+    `InstallmentPaymentLookupPort.isLinkedToPayment` y responden **`TRANSACTION_LINKED_TO_INSTALLMENT`**
+    (409); el panel de detalle del movimiento lo explica y enlaza a Cuotas en vez de sólo deshabilitar
+    los botones. **Eliminar un plan revierte todo su historial** (`RemoveInstallmentPlanHandler` con
+    `persist()` transaccional): borra sus gastos, restituye el saldo por cuenta y libera el cupo del
+    cargo financiero; la confirmación declara ese impacto antes de actuar con el `deletionImpact` que
+    **sólo la consulta de detalle** (`GET /installments/:id`) trae — la lista responde `null`, y ambas
+    cifras salen de la misma `planDeletionReversal`, que es lo que impide que lo prometido y lo
+    ocurrido difieran. Otros errores nuevos: `INSTALLMENT_PAYMENT_ALREADY_PAID` (lo que frena el doble
+    clic), `INSTALLMENT_PAYMENT_ACCOUNT_REQUIRED`, `INVALID_PAYMENT_AMOUNT`,
+    `INSTALLMENT_PAYMENT_FROM_CREDIT_ACCOUNT` (pagar deuda con deuda). Web: la lista pasa a **una fila
+    por plan** (`InstallmentPlanTable` / `InstallmentPlanList`, elegidas por el ancho del CONTENEDOR)
+    con cuatro KPIs por moneda, y detalle/pago/crear/editar son **paneles laterales**
+    (`InstallmentDetailPanel`, `PayInstallmentPanel`, `InstallmentFormPanel` — este último con
+    `ImmutableFieldsNotice` en edición y `SchedulePreview` al crear). La previsualización llama a la
+    **misma `equalPrincipalSchedule`** que el agregado (`lib/schedulePreview.ts`), que es la única
+    forma honesta de que coincidan al centavo. `InstallmentCreateModal` fue retirado.
   - **transaction** (specs/005, 007; folder `domains/transaction`): income/expense linked to a `BankAccount` and (optionally) a `Card`. Rules in `transaction/domain/movement-policy.ts` + its command handlers (contract requires `bankAccountId` on create + refine `INCOME ⇒ no card`): INCOME → no card; EXPENSE on CASH → no card; EXPENSE on **CREDIT_LINE → card required** (must belong); EXPENSE on other non-cash accounts → card optional. **Whenever the card used is CREDIT-kind** (on a CREDIT_LINE account, or any other account that's grown one), the amount is checked against **both** the account's shared pool (persisted `creditUsed` + amount ≤ `creditLimit`, error `CARD_LIMIT_EXCEEDED`) **and**, if the card has its own `CardLimit` for that currency, that narrower (still derived) sub-limit too (`sumsForCard`, error `CARD_SUBLIMIT_EXCEEDED`). Creating/editing/deleting a transaction that draws on the shared pool mutates `BankAccount.creditUsed` directly (`BankAccountRepositoryPort.incrementCreditUsedWithTx`, called inside the movement's own `$transaction`) — edits/deletes revert the transaction's old contribution before applying the new one, including when the transaction moves to a different account (see accounts' billing-period amendment above for the linked-transaction/paid-statement exception). Full CRUD from both the Movements view and the Account view (shared `TransactionTable` with edit/delete, plus a `TransactionDetailModal` read-only view opened by clicking a row). Filter query supports `bankAccountId` + `cardId` (bank→card). Error codes: `CARD_REQUIRED`, `CARD_NOT_ALLOWED`, `CARD_ACCOUNT_MISMATCH`, `CARD_LIMIT_EXCEEDED`, `CARD_SUBLIMIT_EXCEEDED`.
     Amendment (paginated list + aggregates endpoint, 2026-08-05): `GET /transactions` is
     **keyset-paginated** and its response shape is now **`{ items, nextCursor }`** (was a bare
@@ -750,7 +790,24 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Active plan: specs/011-prepaid-account-product/plan.md
+Active plan: specs/013-installments-redesign/plan.md
+(Vista Cuotas: rediseño funcional y pago real de la cuota. La lista pasa de una tabla aplanada de
+cuotas sueltas a **una fila por plan**, con detalle, crear y editar en **panel lateral**
+(`SidePanel`/`FormSurface surface="panel"`, ya existentes) en los tres formatos del handoff. El
+cambio de fondo no es visual: **pagar una cuota registra un gasto real** en una cuenta —con el
+saldo movido en el mismo `$transaction`— y lo que el pago no cubre se **arrastra a la siguiente
+cuota impaga** (`InstallmentPayment.carriedOverAmount`, el mismo mecanismo que
+`CreditStatement.carriedOverAmount`), sin reescribir jamás el calendario programado. Un plan
+comprado con tarjeta CREDIT **no** genera movimiento: esa deuda ya vive en la facturación de su
+cuenta de crédito. Cinco columnas nuevas, cero tablas nuevas: `installment-plan` gana `category`
+(texto libre, mismo repertorio que los movimientos; el ícono sale del mapa compartido que se
+promueve a `shared/`) y `paymentAccountId`; `installment-payment` gana `paidAmount`,
+`carriedOverAmount` y `transactionId` (`SetNull`, para que borrar el movimiento no rompa la cuota).
+La previsualización del formulario llama a la MISMA `equalPrincipalSchedule` de `@finance/money`
+que usa el servidor, que es la única forma honesta de que coincidan. Sin migración: `db push` +
+seed. **Estado: 013 implementado** (T001-T082; contrato, dominio, API, web, seed, docs y constitución
+en v1.46.0).)
+Prior plan: specs/011-prepaid-account-product/plan.md
 (Cuenta prepago como producto independiente. El prepago deja de ser una tarjeta con pote propio
 colgada de una cuenta corriente/vista y pasa a ser un tipo de cuenta: `AccountType.PREPAID`, con
 número de cuenta, emisor, moneda y saldo propio, que solo admite tarjetas `PREPAID` (una o varias,
@@ -761,7 +818,7 @@ por una matriz tipo-cuenta ↔ kind-tarjeta en `@finance/contracts`. Cambiar el 
 hacia/desde PREPAID queda prohibido. Sin migración de datos: `db push` + seed rehecho.
 **Estado: 011 implementado** (T001-T061; contrato, dominio, API, web, seed, docs y constitución
 en v1.34.0).)
-Prior plan: specs/010-movement-transfers-attachments/plan.md
+Earlier plan: specs/010-movement-transfers-attachments/plan.md
 (Movimientos: traspasos, comprobantes y paneles rediseñados. Los paneles de detalle y de
 crear/editar movimiento pasan al formato del handoff (panel lateral, monto protagonista, filas
 etiqueta/valor, acciones al pie) y ganan navegación ‹ › paginada, Duplicar, saldo tras el
@@ -791,6 +848,6 @@ patrón completo una vez documentado.
 tests). Encima se aplicó, sin spec propia, la regla **una tabla = un dominio**: los 11 dominios se
 dividieron en 21 dominios-tabla (+ `import`/`health` sin tabla), un solo adapter por tabla,
 constitución en v1.23.0. Ver ARCHITECTURE.md §12a.)
-Prior plans: 010 (traspasos/adjuntos), 009 (backend DDD+CQRS), 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
+Prior plans: 012 (investment tracking, congelada), 011 (cuenta prepago), 010 (traspasos/adjuntos), 009 (backend DDD+CQRS), 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
 
 <!-- SPECKIT END -->

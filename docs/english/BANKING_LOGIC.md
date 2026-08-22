@@ -339,6 +339,68 @@ the validation above.
 
 ---
 
+## 4b. Instalments: paying one moves real money, and the shortfall is carried forward
+
+An **instalment plan** (`InstallmentPlan`) is a purchase paid off in fixed instalments. Its schedule
+is generated once, by `equalPrincipalSchedule` in `@finance/money`, and is **never rewritten**:
+paying less, paying more or correcting a payment changes no instalment's scheduled amount.
+
+**Paying an instalment records a real expense** (`POST /installments/:id/payments/:seq/pay`): it
+creates an EXPENSE `Transaction` on the chosen account, lowers its `currentBalance`, marks the
+instalment with what was really paid and applies the carry-over — all four inside one
+`prisma.$transaction`. Undoing is the exact mirror: it deletes the expense, restores the balance,
+clears the instalment and reverses the carry **that payment caused** (never the one the instalment
+received: that debt belongs to a payment that still stands).
+
+**Exception: a plan bought with a CREDIT card records no movement.** That debt already sits on the
+card account's statement, and recording it again would count the same spending twice. There, paying
+only marks the instalment, and the plan cannot even remember a payment account
+(`INSTALLMENT_CARD_IS_CREDIT`).
+
+### The carry-over, and how it differs from the statement's
+
+What an instalment owes is **its scheduled amount plus whatever it inherited** from the previous one.
+If the payment falls short, the difference moves to the **next unpaid instalment by sequence** (not
+by date, and not necessarily the immediately following one: undoing allows paying out of order). If
+it exceeds, the surplus is subtracted from that next one and keeps flowing forward until it runs out;
+an instalment entirely absorbed is settled with no payment of its own, and what an instalment owes
+**never goes negative**. A payment beyond what the whole plan owes is refused
+(`PAYMENT_EXCEEDS_REMAINING`): a surplus with no debt to apply to does not become a credit balance, a
+concept this domain does not have.
+
+It is the **same mechanism** as `CreditStatement.carriedOverAmount` — a figure belonging to whoever
+receives it, not a synthetic movement nor a rewrite of the schedule — deliberately, so the
+application has one explanation of "what you didn't cover" instead of two.
+
+The difference is at the end of the row: a statement always has a next one to put the shortfall in;
+**a plan's last unpaid instalment does not**. So there the instalment is **not settled**: it keeps
+its partial credit, stays payable for the remainder and keeps the plan active. Modelling it the other
+way — settled but still owing — would count the same shortfall in two places.
+
+### The movement backing an instalment is read-only in Movements
+
+`InstallmentPayment.transactionId` points at the expense backing the instalment. That movement
+**cannot be edited or deleted from Movements** (`TRANSACTION_LINKED_TO_INSTALLMENT`, 409): its amount
+IS the instalment's payment, and changing it there would leave the plan lying with nothing to detect
+it. It is corrected by undoing and re-paying the instalment from its plan, which moves all four
+figures together.
+
+**Deleting a plan reverses its whole history**: it deletes its instalments' expenses, restores each
+affected account's balance (aggregated per account, since different instalments may have been paid
+from different accounts) and deletes the interest finance charge if there was one, in one indivisible
+operation. The confirmation declares that impact **before** acting, computed by the same function
+that applies it (`planDeletionReversal`), which is what stops promise and effect from drifting apart.
+
+### Two currencies, no conversion
+
+If the paying account is in a different currency from the plan, **two amounts** are declared: what is
+credited to the instalment (in the plan's currency, which is what the carry-over is computed from)
+and what is charged to the account (in its own, which is the expense's amount). They are never
+compared or converted — this app has no exchange rate — and if the second is missing the payment is
+refused (`PAYMENT_CURRENCY_AMBIGUOUS`) rather than guessed.
+
+---
+
 ## 5. Error codes glossary (this domain)
 
 | Code                            | Thrown when…                                                                                      |
