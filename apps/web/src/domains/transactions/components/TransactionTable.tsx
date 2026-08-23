@@ -168,8 +168,17 @@ export function TransactionTable({
                       )}
                     </span>
                   </TD>
-                  <TD className="font-medium">
-                    {tx.description ?? <span className="text-muted-foreground">—</span>}
+                  {/* `w-full max-w-0` + a truncating child: the only column with no
+                      fixed-content minimum of its own (every other one is a badge,
+                      a monospace last4, a nowrap date/amount, or an icon) — without
+                      this, auto table layout gives it its full unwrapped preferred
+                      width first and only wraps once rendering literally runs out
+                      of room, which can still leave the TABLE wider than its
+                      container even though the text itself wrapped. */}
+                  <TD className="w-full max-w-0 font-medium">
+                    <div className="truncate">
+                      {tx.description ?? <span className="text-muted-foreground">—</span>}
+                    </div>
                   </TD>
                   <TD>
                     <span className="text-sm">
