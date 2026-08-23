@@ -14,6 +14,10 @@ import {
   type BankAccountRepositoryPort,
 } from "../../../bank-account/domain/ports/bank-account.repository.port";
 import {
+  INSTALLMENT_PLAN_REPOSITORY,
+  type InstallmentPlanRepositoryPort,
+} from "../../../installment-plan/domain/ports/installment-plan.repository.port";
+import {
   TRANSACTION_WRITER_REPOSITORY,
   type TransactionWriterRepositoryPort,
 } from "../../../transaction/domain/ports/transaction-writer.repository.port";
@@ -60,6 +64,12 @@ export type PaidStatementResult = accounts.CreditStatement;
  * (`CreditStatement`, the new payment `Transaction`, `BankAccount`), so
  * `persist()` wraps every save in a single `prisma.$transaction(...)`
  * (FR-020, T029a) rather than three independent `save()` calls.
+ *
+ * Spec 014, FR-014/FR-015: liquidating the period ALSO settles every instalment it
+ * charged, in that same transaction — whether the payment was full or short. A
+ * shortfall's debt lives in `carryOver` (rolled onto the successor period, above);
+ * doubling it onto the instalment as well would count it twice, which is exactly
+ * what Constitution I's carry-over rule forbids.
  */
 @Injectable()
 @CommandHandler(PayCreditStatementCommand)
@@ -75,6 +85,7 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
     private readonly statementRepo: CreditStatementRepositoryPort,
     @Inject(TRANSACTION_WRITER_REPOSITORY)
     private readonly transactions: TransactionWriterRepositoryPort,
+    @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly plans: InstallmentPlanRepositoryPort,
     private readonly prisma: PrismaService,
   ) {
     super(eventBus);
@@ -92,12 +103,15 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
     const fromAccount = await this.accountRepo.findById(command.userId, command.fromAccountId);
     if (!fromAccount) throw new AccountNotFoundError();
     if (fromAccount.type === "CREDIT_CARD") throw new InvalidPaymentSourceError();
+    const breakdown = await this.statementRepo.breakdown(command.statementId);
     // The period's total: frozen once settled, still the live sum otherwise.
+    // Spec 014, FR-010: the instalments this period billed are a summand of their
+    // own — omitting them here would settle the period for its purchases alone and
+    // leave the instalments' debt sitting nowhere.
     const periodAmount = statement.paidAt
       ? statement.amount
-      : statement.totalFor(await this.statementRepo.sumLinkedTransactions(command.statementId));
+      : statement.totalFor(breakdown.purchases, breakdown.installments);
     if (!toMoney(periodAmount).greaterThan(0)) throw new NothingToPayError();
-    const breakdown = await this.statementRepo.breakdown(command.statementId);
     const now = new Date();
     return {
       account,
@@ -185,6 +199,10 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
       }
       await this.statementRepo.saveWithTx(tx, context.statement);
       await this.accountRepo.saveWithTx(tx, context.account);
+      // FR-014: settle EVERY instalment this period charged, regardless of whether
+      // this payment covered the whole period — "settled" is decided by the fact
+      // of payment (`paidAt !== null`), never by the resulting status name.
+      await this.plans.settleForStatementWithTx(tx, context.statement.id, context.occurredAt);
     });
   }
 }

@@ -1,5 +1,6 @@
 import type { accounts, installments } from "@finance/contracts";
 
+import type { BankAccountRepositoryPort } from "../../bank-account/domain/ports/bank-account.repository.port";
 import type { CardAccountRepositoryPort } from "../../card-account/domain/ports/card-account.repository.port";
 import type { InstallmentPlan } from "../domain/installment-plan.aggregate";
 
@@ -17,7 +18,8 @@ import type { InstallmentPlan } from "../domain/installment-plan.aggregate";
 export async function toPlanDtos(
   plans: InstallmentPlan[],
   userId: string,
-  cards: Pick<CardAccountRepositoryPort, "kindForCard">,
+  cards: Pick<CardAccountRepositoryPort, "kindForCard" | "accountIdForCard">,
+  accounts_: Pick<BankAccountRepositoryPort, "findById">,
   now: Date = new Date(),
 ): Promise<installments.InstallmentPlan[]> {
   const cardIds = [...new Set(plans.map((p) => p.snapshot().cardId).filter((id) => id !== null))];
@@ -30,10 +32,45 @@ export async function toPlanDtos(
     ),
   );
 
-  return plans.map((plan) => {
-    const cardId = plan.snapshot().cardId;
-    return plan.toContract({ now, cardKind: cardId ? (kinds.get(cardId) ?? null) : null });
-  });
+  return Promise.all(
+    plans.map(async (plan) => {
+      const snap = plan.snapshot();
+      const cardKind = snap.cardId ? kinds.get(snap.cardId) ?? null : null;
+      const billingWarning = await billingWarningFor(plan, cardKind, userId, cards, accounts_);
+      return plan.toContract({ now, cardKind, billingWarning });
+    }),
+  );
+}
+
+/**
+ * Spec 014, FR-009a/FR-023a: why a credit-card plan's instalments cannot reach a
+ * statement, when something blocks them. Null when nothing is wrong.
+ *
+ * `CARD_REMOVED` is derived from a heuristic, not a stored fact: `InstallmentPlan
+.cardId` is `SetNull` on the card's deletion, so a plan that lost its card looks
+ * identical to one that never had one — EXCEPT it can only have billed an
+ * instalment if a CREDIT card once existed on it. `hasBilledInstalment()` is that
+ * signal.
+ */
+async function billingWarningFor(
+  plan: InstallmentPlan,
+  cardKind: accounts.CardKind | null,
+  userId: string,
+  cards: Pick<CardAccountRepositoryPort, "accountIdForCard">,
+  accounts_: Pick<BankAccountRepositoryPort, "findById">,
+): Promise<installments.PlanBillingWarning | null> {
+  const snap = plan.snapshot();
+  if (cardKind !== "CREDIT") {
+    if (snap.cardId === null && plan.hasBilledInstalment()) return "CARD_REMOVED";
+    return null;
+  }
+  const accountId = await cards.accountIdForCard(userId, snap.cardId!);
+  if (!accountId) return null;
+  const account = await accounts_.findById(userId, accountId);
+  if (!account) return null;
+  if (!account.billingCycleDay) return "NO_BILLING_DAY";
+  if (account.currency !== snap.currency) return "CURRENCY_MISMATCH";
+  return null;
 }
 
 /**

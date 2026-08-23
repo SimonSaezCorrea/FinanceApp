@@ -89,8 +89,14 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     // behind it): a transfer is edited through its own endpoint.
     if (current.isTransferLeg) throw new TransferEditAsPairError();
     // This row's amount IS an instalment's payment: it is corrected by undoing and
-    // re-paying that instalment, never edited here (FR-028a).
-    if (await this.installmentPayments.isLinkedToPayment(userId, id)) {
+    // re-paying that instalment, never edited here (FR-028a). Spec 014, FR-024: a
+    // plan's PURCHASE movement carries `installmentPlanId` directly on its own row
+    // — never linked via `installmentPayment.transactionId` (that link is for a
+    // PAYMENT, not a purchase), so the lookup alone would miss it.
+    if (
+      current.snapshot().installmentPlanId !== null ||
+      (await this.installmentPayments.isLinkedToPayment(userId, id))
+    ) {
       throw new TransactionLinkedToInstallmentError();
     }
 

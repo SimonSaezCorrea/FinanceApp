@@ -1,3 +1,4 @@
+import { installments } from "@finance/contracts";
 import { addMoney } from "@finance/money";
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
@@ -9,10 +10,14 @@ import {
   type BankAccountRepositoryPort,
 } from "../../../bank-account/domain/ports/bank-account.repository.port";
 import {
+  CARD_ACCOUNT_REPOSITORY,
+  type CardAccountRepositoryPort,
+} from "../../../card-account/domain/ports/card-account.repository.port";
+import {
   TRANSACTION_WRITER_REPOSITORY,
   type TransactionWriterRepositoryPort,
 } from "../../../transaction/domain/ports/transaction-writer.repository.port";
-import { InstallmentPlanNotFoundError } from "../../domain/errors";
+import { InstallmentCardIsCreditError, InstallmentPlanNotFoundError } from "../../domain/errors";
 import type { CarryDelta } from "../../domain/installment-carry-over";
 import type { InstallmentPlan } from "../../domain/installment-plan.aggregate";
 import {
@@ -53,6 +58,7 @@ export class UnpayInstallmentHandler extends BaseCommandHandler<
     private readonly prisma: PrismaService,
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
+    @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
     @Inject(TRANSACTION_WRITER_REPOSITORY)
     private readonly transactions: TransactionWriterRepositoryPort,
   ) {
@@ -62,6 +68,17 @@ export class UnpayInstallmentHandler extends BaseCommandHandler<
   protected async loadContext(command: UnpayInstallmentCommand): Promise<Context> {
     const plan = await this.repo.findOne(command.userId, command.planId);
     if (!plan) throw new InstallmentPlanNotFoundError();
+
+    // Spec 014, FR-021/FR-022a: symmetric with the pay-side refusal. An instalment
+    // on a CREDIT-card plan is never individually paid, so it is never individually
+    // unpaid either — the only way it becomes PAID is a statement settling it, and
+    // undoing that is correcting the statement's payment, not this endpoint.
+    const snapshot = plan.snapshot();
+    const cardKind = snapshot.cardId
+      ? await this.cards.kindForCard(command.userId, snapshot.cardId)
+      : null;
+    if (!installments.generatesMovementOnPay(cardKind)) throw new InstallmentCardIsCreditError();
+
     return {
       plan,
       sequence: command.sequence,

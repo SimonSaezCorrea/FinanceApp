@@ -45,6 +45,7 @@ function makePlan(over: { cardId?: string | null; currency?: string } = {}) {
         paidAmount: null,
         carriedOverAmount: "0.0000",
         transactionId: null,
+    creditStatementId: null,
       },
       {
         id: "pay2",
@@ -55,6 +56,7 @@ function makePlan(over: { cardId?: string | null; currency?: string } = {}) {
         paidAmount: null,
         carriedOverAmount: "0.0000",
         transactionId: null,
+    creditStatementId: null,
       },
     ],
     createdAt: new Date("2026-01-15"),
@@ -84,6 +86,11 @@ function fakeRepo(
     list: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),
+    createWithTx: vi.fn(),
+    listBillableForCards: vi.fn(async () => []),
+    stampBillableWithTx: vi.fn(),
+    settleForStatementWithTx: vi.fn(),
+    billedInstallmentsForStatement: vi.fn(async () => ({ amount: "0", count: 0 })),
     save: vi.fn(),
     savePaymentWithTx: vi.fn(),
     setPaymentPaidAt: vi.fn().mockResolvedValue(true),
@@ -230,25 +237,24 @@ describe("PayInstallmentHandler — credit-card plans (FR-035/FR-037)", () => {
   const creditCards = () =>
     fakeCardAccountRepo({ kindForCard: vi.fn(async () => "CREDIT" as const) });
 
-  it("marks the instalment WITHOUT recording a movement or moving a balance", async () => {
+  // Spec 014, FR-021/FR-022a: superseded. These instalments settle when the card's
+  // STATEMENT is paid — never one at a time. Hiding the button in the UI stops the
+  // accidental click; refusing here server-side is what stops a direct API call
+  // from creating the double-count the whole feature exists to prevent. There is
+  // no "mark only, no movement" success path left for these plans at all.
+  it.each([
+    ["with no paying account", null],
+    ["with a paying account", "acc1"],
+  ])("refuses to pay an instalment individually %s (FR-022a)", async (_label, fromAccountId) => {
     const { handler, transactions, accounts } = payHandler({
       repo: fakeRepo({ findOne: vi.fn().mockResolvedValue(makePlan({ cardId: "c1" })) }),
       cards: creditCards(),
     });
-    await handler.execute(command({ fromAccountId: null }));
-
-    expect(transactions.createWithTx).not.toHaveBeenCalled();
-    expect(accounts.incrementBalanceWithTx).not.toHaveBeenCalled();
-  });
-
-  it("refuses a paying account on such a plan: that is the double count (FR-037)", async () => {
-    const { handler } = payHandler({
-      repo: fakeRepo({ findOne: vi.fn().mockResolvedValue(makePlan({ cardId: "c1" })) }),
-      cards: creditCards(),
-    });
-    await expect(handler.execute(command({ fromAccountId: "acc1" }))).rejects.toBeInstanceOf(
+    await expect(handler.execute(command({ fromAccountId }))).rejects.toBeInstanceOf(
       InstallmentCardIsCreditError,
     );
+    expect(transactions.createWithTx).not.toHaveBeenCalled();
+    expect(accounts.incrementBalanceWithTx).not.toHaveBeenCalled();
   });
 
   it("DOES record a movement for a debit card: there the money leaves each time (FR-038)", async () => {
@@ -263,7 +269,11 @@ describe("PayInstallmentHandler — credit-card plans (FR-035/FR-037)", () => {
 });
 
 describe("UnpayInstallmentHandler", () => {
-  function unpayHandler(plan: InstallmentPlan, transactions = fakeTransactionWriterRepo()) {
+  function unpayHandler(
+    plan: InstallmentPlan,
+    transactions = fakeTransactionWriterRepo(),
+    cards = fakeCardAccountRepo(),
+  ) {
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(plan) });
     const accounts = fakeBankAccountRepo();
     const handler = new UnpayInstallmentHandler(
@@ -271,10 +281,38 @@ describe("UnpayInstallmentHandler", () => {
       fakePrisma,
       repo,
       accounts,
+      cards,
       transactions,
     );
     return { handler, repo, accounts, transactions };
   }
+
+  // Spec 014, FR-021/FR-022a: symmetric with the pay-side refusal. An instalment on
+  // a CREDIT-card plan is never individually paid, so it must never be individually
+  // "unpaid" either — the only way it becomes PAID is a statement settling it, and
+  // undoing THAT belongs to correcting the statement's payment, not this endpoint.
+  it("refuses to unpay an instalment on a CREDIT-card plan (FR-022a)", async () => {
+    const plan = makePlan({ cardId: "c1" });
+    const { handler } = unpayHandler(
+      plan,
+      fakeTransactionWriterRepo(),
+      fakeCardAccountRepo({ kindForCard: vi.fn(async () => "CREDIT" as const) }),
+    );
+    await expect(handler.execute(new UnpayInstallmentCommand("u1", "p1", 1))).rejects.toBeInstanceOf(
+      InstallmentCardIsCreditError,
+    );
+  });
+
+  it("still unpays normally for a debit-card plan", async () => {
+    const plan = makePlan({ cardId: "c1" });
+    plan.payInstallment(1, "400", new Date("2026-02-01"), "tx1");
+    const { handler } = unpayHandler(
+      plan,
+      fakeTransactionWriterRepo({ accountIdForTransaction: vi.fn(async () => "acc9") }),
+      fakeCardAccountRepo({ kindForCard: vi.fn(async () => "DEBIT" as const) }),
+    );
+    await expect(handler.execute(new UnpayInstallmentCommand("u1", "p1", 1))).resolves.not.toThrow();
+  });
 
   it("throws when the plan is not the user's", async () => {
     const { handler } = unpayHandler(makePlan());
@@ -284,6 +322,7 @@ describe("UnpayInstallmentHandler", () => {
       fakePrisma,
       repo,
       fakeBankAccountRepo(),
+      fakeCardAccountRepo(),
       fakeTransactionWriterRepo(),
     );
     expect(handler).toBeDefined();
@@ -325,6 +364,7 @@ describe("UnpayInstallmentHandler", () => {
           paidAmount: null,
           carriedOverAmount: "0.0000",
           transactionId: null,
+    creditStatementId: null,
         },
       ],
     });

@@ -36,7 +36,11 @@ export function buildCardAccountRepo(prisma: PrismaService): PrismaCardAccountRe
 }
 
 export function buildCreditStatementRepo(prisma: PrismaService): PrismaCreditStatementRepository {
-  return new PrismaCreditStatementRepository(prisma, new PrismaTransactionSumsRepository(prisma));
+  return new PrismaCreditStatementRepository(
+    prisma,
+    new PrismaTransactionSumsRepository(prisma),
+    buildInstallmentPlanRepo(prisma),
+  );
 }
 
 export function buildTransactionSumsRepo(prisma: PrismaService): PrismaTransactionSumsRepository {

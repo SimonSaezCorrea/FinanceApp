@@ -41,6 +41,11 @@ function fakeRepo(
     list: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),
+    createWithTx: vi.fn(),
+    listBillableForCards: vi.fn(async () => []),
+    stampBillableWithTx: vi.fn(),
+    settleForStatementWithTx: vi.fn(),
+    billedInstallmentsForStatement: vi.fn(async () => ({ amount: "0", count: 0 })),
     save: vi.fn(),
     savePaymentWithTx: vi.fn(),
     setPaymentPaidAt: vi.fn(),
@@ -80,7 +85,11 @@ describe("GetInstallmentPlanQueryHandler", () => {
 describe("ListInstallmentPlansQueryHandler", () => {
   it("lists the user's plans as contracts", async () => {
     const repo = fakeRepo({ list: vi.fn().mockResolvedValue([makePlan("p1"), makePlan("p2")]) });
-    const handler = new ListInstallmentPlansQueryHandler(repo, fakeCardAccountRepo());
+    const handler = new ListInstallmentPlansQueryHandler(
+      repo,
+      fakeCardAccountRepo(),
+      fakeBankAccountRepo(),
+    );
     const result = await handler.execute(new ListInstallmentPlansQuery("u1"));
     expect(result.map((p) => p.id)).toEqual(["p1", "p2"]);
   });

@@ -1,4 +1,26 @@
 <!--
+Sync Impact Report — 2026-08-22 (amendment 1.47.0)
+- Version change: 1.46.0 → 1.47.0 (MINOR: one principle sharpened with an explicit corollary; no
+  principle removed, no prior rule weakened).
+- Sharpens §I's carry-over rule ("An unpaid remainder is a figure, never a rewrite") with **"The
+  carry chain lives at whichever level actually receives the payment — never at both"**: a credit-card
+  instalment plan is never paid instalment-by-instalment (that would double-count the debt already
+  reserved on the card's pool at purchase time), so its shortfall carries PERIOD-to-period
+  (`CreditStatement.carriedOverAmount`), not instalment-to-instalment — and settling the period, in
+  full or short, settles every instalment it billed. `InstallmentPayment.carriedOverAmount` stays "0"
+  for such a plan; every other plan (paid instalment-by-instalment) keeps the carry there, unchanged.
+  The last-item corollary still holds at whichever level receives the payment — a statement period
+  always has a successor to carry into, so it is never the "last item" that corollary describes.
+- Driven by specs/014-installment-credit-billing: a credit-card plan's purchase now consumes the pool
+  in full on purchase day (a movement carrying `installmentPlanId`, excluded from any period's total)
+  and its schedule bills one instalment per period via a new `InstallmentPayment.creditStatementId`
+  column (nullable FK, `SetNull`) — necessary because periods are generated lazily, so deriving
+  "billed" from date windows alone would miss or double-charge an instalment falling in a gap between
+  two periods.
+- Templates requiring updates: none.
+-->
+
+<!--
 Sync Impact Report — 2026-08-22 (amendment 1.46.0)
 - Version change: 1.45.0 → 1.46.0 (MINOR: two new enforceable rules; no principle removed).
 - New rule **"An unpaid remainder is a figure, never a rewrite"**: when a payment fails to cover what
@@ -1087,6 +1109,20 @@ cover", not one per domain. Corollary: the LAST item of a sequence has no succes
 a short payment there does NOT settle it — it keeps its partial credit and stays payable, because a
 shortfall counted both on the item and on its carry is the same debt twice.
 
+**The carry chain lives at whichever level actually receives the payment — never at both.** A
+sequence's items are settled one PAYMENT at a time, and the carry-over MUST attach to the level that
+payment lands on, not to a level beneath it that never received one. A credit-card instalment plan
+is the case that makes this concrete: nobody pays an instalment on its own — the payment lands on the
+STATEMENT PERIOD, so the shortfall carries period-to-period (`CreditStatement.carriedOverAmount`), and
+every instalment that period billed is marked settled once the period is settled, in full or short,
+because the debt already lives in exactly one place — the successor period. Recording it a second
+time on the instalment (`InstallmentPayment.carriedOverAmount`, which stays "0" for such a plan) would
+be the same debt twice, exactly what this Principle already forbids; for every OTHER kind of plan,
+where a payment lands on the instalment directly, the carry-over stays there instead, unchanged. The
+last-item corollary above still holds at whichever level the payment actually lands on: a statement
+period always has a successor to carry into (one is created if none is open), so it is never the
+"last item" the corollary describes — that case remains exclusive to an instalment paid on its own.
+
 **Declare an irreversible impact with the code that applies it.** An operation that deletes real
 movements or moves real balances MUST state, before confirming, what it will undo — and that
 statement MUST come from the SAME function the operation runs, never from a second implementation
@@ -1442,4 +1478,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.46.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-22
+**Version**: 1.47.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-22

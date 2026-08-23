@@ -59,6 +59,10 @@ export class RemoveInstallmentPlanHandler extends BaseCommandHandler<
   protected async loadContext(command: RemoveInstallmentPlanCommand): Promise<Context> {
     const plan = await this.repo.findOne(command.userId, command.id);
     if (!plan) throw new InstallmentPlanNotFoundError();
+    // Spec 014, FR-006a: refused once a billed instalment's period has been paid —
+    // reversing that would mean undoing a real payment. A merely BILLED (still
+    // PENDING) period is fine: unwinding it touches no money.
+    plan.assertDeletable();
     // The same computation the confirmation showed the user (FR-050b) — one function,
     // so what was promised is what happens.
     const reversal = await loadPlanDeletionReversal(

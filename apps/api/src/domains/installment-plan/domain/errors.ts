@@ -50,6 +50,34 @@ export class InstallmentCardIsCreditError extends DomainError {
   }
 }
 
+/**
+ * An attempt to change what the plan COMMITS TO after a billing period already
+ * charged one of its instalments (FR-006b). Amount, instalment count, start date and
+ * card are frozen from that moment; title, category and notes stay editable.
+ *
+ * A statement that was already emitted is a statement about the world the user was
+ * shown. Letting the plan behind it change would leave a stored period describing
+ * something that no longer exists.
+ */
+export class InstallmentPlanBilledError extends DomainError {
+  constructor(field: string) {
+    super("INSTALLMENT_PLAN_BILLED", 409, field);
+  }
+}
+
+/**
+ * An attempt to delete a plan one of whose instalments sits on a SETTLED period
+ * (FR-006a). Reversing it would mean undoing a payment that really happened.
+ *
+ * Strictly narrower than the edit freeze above: while every period charging this plan
+ * is still PENDING, deleting is allowed — unwinding a pending period touches no money.
+ */
+export class InstallmentPlanSettledError extends DomainError {
+  constructor() {
+    super("INSTALLMENT_PLAN_SETTLED", 409);
+  }
+}
+
 /** Zero or negative. Undoing is how a payment is annulled, not paying nothing. */
 export class InvalidPaymentAmountError extends DomainError {
   constructor() {

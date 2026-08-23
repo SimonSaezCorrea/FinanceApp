@@ -41,13 +41,14 @@ interface Context {
   plan: InstallmentPlan;
   sequence: number;
   paidAt: Date;
-  /** Null on a CREDIT-card plan: the instalment is only marked. */
-  source: BankAccount | null;
+  /** Always set: a CREDIT-card plan's instalments are refused before a Context is
+   * ever built (see `loadContext`), so every remaining plan records a movement. */
+  source: BankAccount;
   /** What leaves the account, in the ACCOUNT's currency. */
   chargedAmount: string;
   /** What is credited to the debt, in the PLAN's currency. */
   paidAmount: string;
-  transactionId: string | null;
+  transactionId: string;
   carryDeltas: CarryDelta[];
 }
 
@@ -95,13 +96,12 @@ export class PayInstallmentHandler extends BaseCommandHandler<
       : null;
     const recordsMovement = installments.generatesMovementOnPay(cardKind);
 
-    // A CREDIT-card plan's purchase is already on that card's statement. Recording an
-    // expense per instalment would count the same debt twice, so this path only marks
-    // — and a caller that passed an account is asking for exactly that double count.
-    if (!recordsMovement) {
-      if (command.fromAccountId) throw new InstallmentCardIsCreditError();
-      return this.markOnlyContext(command, plan);
-    }
+    // Spec 014, FR-021/FR-022a: a CREDIT-card plan's instalments settle only when
+    // the card's STATEMENT is paid — never one at a time, with or without an
+    // account. The old "mark only, no movement" path this used to take is retired:
+    // allowing it here would let a direct API call double-mark what the statement
+    // payment already settles.
+    if (!recordsMovement) throw new InstallmentCardIsCreditError();
 
     if (!command.fromAccountId) throw new InstallmentPaymentAccountRequiredError();
     const source = await this.accounts.findById(command.userId, command.fromAccountId);
@@ -151,42 +151,24 @@ export class PayInstallmentHandler extends BaseCommandHandler<
     return { paidAmount, chargedAmount: command.chargedAmount };
   }
 
-  private markOnlyContext(command: PayInstallmentCommand, plan: InstallmentPlan): Context {
-    return {
-      plan,
-      sequence: command.sequence,
-      paidAt: command.paidAt ?? new Date(),
-      source: null,
-      chargedAmount: "0",
-      paidAmount: command.amount ?? plan.owedOn(command.sequence),
-      transactionId: null,
-      carryDeltas: [],
-    };
-  }
-
   protected async handle(
     _command: PayInstallmentCommand,
     context: Context,
   ): Promise<HandleResult<void>> {
-    if (context.source) {
-      const account = context.source.snapshot();
-      const movement = {
-        type: "EXPENSE" as const,
-        amount: context.chargedAmount,
-      };
-      // The account rules that already exist elsewhere, applied here rather than
-      // re-stated: a prepaid account can never go negative, an overdraft has a floor,
-      // and a bare low balance on an account that MAY go negative is not a refusal.
-      MovementPolicy.assertWithinPrepaidBalance(movement, {
-        type: account.type,
-        currentBalance: account.currentBalance,
-      });
-      MovementPolicy.assertWithinOverdraft(movement, {
-        type: account.type,
-        currentBalance: account.currentBalance,
-        overdraftLimit: account.overdraftLimit,
-      });
-    }
+    const account = context.source.snapshot();
+    const movement = { type: "EXPENSE" as const, amount: context.chargedAmount };
+    // The account rules that already exist elsewhere, applied here rather than
+    // re-stated: a prepaid account can never go negative, an overdraft has a floor,
+    // and a bare low balance on an account that MAY go negative is not a refusal.
+    MovementPolicy.assertWithinPrepaidBalance(movement, {
+      type: account.type,
+      currentBalance: account.currentBalance,
+    });
+    MovementPolicy.assertWithinOverdraft(movement, {
+      type: account.type,
+      currentBalance: account.currentBalance,
+      overdraftLimit: account.overdraftLimit,
+    });
 
     const { carryDeltas } = context.plan.payInstallment(
       context.sequence,
@@ -200,7 +182,7 @@ export class PayInstallmentHandler extends BaseCommandHandler<
 
   protected override async persist(context: Context): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      if (context.source && context.transactionId) {
+      {
         const account = context.source.snapshot();
         const plan = context.plan.snapshot();
         await this.transactions.createWithTx(tx, {

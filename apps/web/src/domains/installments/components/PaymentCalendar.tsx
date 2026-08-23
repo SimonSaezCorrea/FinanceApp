@@ -12,6 +12,7 @@ interface PaymentCalendarProps {
 
 const statusVariant = {
   paid: "success",
+  billed: "accent",
   partial: "warning",
   upcoming: "accent",
   pending: "neutral",

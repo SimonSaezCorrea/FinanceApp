@@ -91,6 +91,16 @@ export function InstallmentPlanTable({
                     {paidCount(plan)}/{plan.installmentCount}
                   </span>
                 </div>
+                {/* Spec 014, FR-019: a credit-card plan gets a stage the plain X/N
+                    count can't show — how many are already billed and awaiting their
+                    statement's payment. Only rendered when relevant. */}
+                {plan.billedCount > 0 && (
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {t("installments.counters.billed", { count: plan.billedCount })}
+                    {plan.scheduledCount > 0 &&
+                      ` · ${t("installments.counters.scheduled", { count: plan.scheduledCount })}`}
+                  </span>
+                )}
               </TD>
 
               <TD>

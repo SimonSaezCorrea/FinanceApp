@@ -5,6 +5,8 @@ import {
   InstallmentCardIsCreditError,
   InstallmentPaymentAlreadyPaidError,
   InstallmentPaymentNotFoundError,
+  InstallmentPlanBilledError,
+  InstallmentPlanSettledError,
   InvalidPaymentAmountError,
   PaymentExceedsRemainingError,
 } from "./errors";
@@ -30,6 +32,10 @@ export interface InstallmentPaymentProps {
   carriedOverAmount: string;
   /** The real expense backing this instalment, when there is one. */
   transactionId: string | null;
+  /** The billing period that CHARGED this instalment (spec 014); null while unbilled.
+   * Only ever set on a plan bought with a CREDIT card. Kept after settlement so the
+   * plan can link back to the period that settled it (FR-020). */
+  creditStatementId: string | null;
 }
 
 export interface InstallmentPlanProps {
@@ -200,10 +206,33 @@ export class InstallmentPlan {
     return this.props.payments;
   }
 
-  /** Apply a partial patch to the plan's own scalar fields — the schedule
-   * (payments) is immutable once created, same as the pre-migration
-   * `InstallmentsService.update` (which never touched `payments`). */
+  /** Whether any instalment has been charged into a billing period (spec 014) —
+   * true for a CREDIT-card plan once its first period closes, always false for
+   * every other kind of plan (nothing ever stamps their instalments). */
+  hasBilledInstalment(): boolean {
+    return this.props.payments.some((p) => p.creditStatementId !== null);
+  }
+
+  /**
+   * Apply a partial patch to the plan's own scalar fields — the schedule
+   * (payments, and with it `totalPrincipal`/`installmentCount`/`startDate`, which
+   * are not even part of this patch type) is immutable once created, same as the
+   * pre-migration `InstallmentsService.update`.
+   *
+   * Spec 014, FR-006b: once any instalment has been billed, `cardId` freezes too —
+   * a billed period is a statement the user already saw; letting the plan behind
+   * it change would leave that statement describing something that no longer
+   * exists. Everything else (title, category, notes, currency, frequency) stays
+   * editable — none of it is read by a closed period.
+   */
   applyUpdate(patch: InstallmentPlanPatch): void {
+    if (
+      patch.cardId !== undefined &&
+      patch.cardId !== this.props.cardId &&
+      this.hasBilledInstalment()
+    ) {
+      throw new InstallmentPlanBilledError("cardId");
+    }
     if (patch.title !== undefined) this.props.title = patch.title;
     if (patch.currency !== undefined) this.props.currency = patch.currency;
     if (patch.frequency !== undefined) this.props.frequency = patch.frequency;
@@ -213,6 +242,18 @@ export class InstallmentPlan {
     if (patch.category !== undefined) this.props.category = patch.category;
     if (patch.paymentAccountId !== undefined) this.props.paymentAccountId = patch.paymentAccountId;
     if (patch.notes !== undefined) this.props.notes = patch.notes;
+  }
+
+  /**
+   * Spec 014, FR-006a: refuses deletion once a billed instalment's period has been
+   * SETTLED (`paidAt !== null`) — reversing it would mean undoing a real payment.
+   * Strictly narrower than the edit freeze above: a plan whose instalments are
+   * merely BILLED (period still PENDING) may still be deleted, because unwinding a
+   * pending period touches no money.
+   */
+  assertDeletable(): void {
+    const settled = this.props.payments.some((p) => p.creditStatementId !== null && p.paidAt);
+    if (settled) throw new InstallmentPlanSettledError();
   }
 
   private findPaymentOrThrow(sequence: number): InstallmentPaymentProps {
@@ -390,6 +431,9 @@ export class InstallmentPlan {
   toContract(context?: {
     now?: Date;
     cardKind?: accounts.CardKind | null;
+    /** Why this plan's instalments cannot reach a statement (FR-009a/FR-023a), when
+     * something blocks them. Resolved by the caller from the card's ACCOUNT. */
+    billingWarning?: installments.PlanBillingWarning | null;
   }): installments.InstallmentPlan {
     const now = context?.now ?? new Date();
     const cardKind = context?.cardKind ?? null;
@@ -421,6 +465,11 @@ export class InstallmentPlan {
         carriedOverAmount: moneyToString(p.carriedOverAmount),
         dueAmount: owedBy(this.toCarryable(p)),
         transactionId: p.transactionId,
+        creditStatementId: p.creditStatementId,
+        status: installments.installmentStatus({
+          paidAt: p.paidAt ? p.paidAt.toISOString() : null,
+          creditStatementId: p.creditStatementId,
+        }),
       })),
       paidTotal: this.paidTotal(),
       remainingAmount: outstandingTotal(this.carryable()),
@@ -431,6 +480,19 @@ export class InstallmentPlan {
         hasUnsettledShortfall,
       ),
       generatesMovementOnPay: installments.generatesMovementOnPay(cardKind),
+      ...installments.planCounters(
+        this.props.payments.map((p) => ({
+          paidAt: p.paidAt ? p.paidAt.toISOString() : null,
+          creditStatementId: p.creditStatementId,
+        })),
+      ),
+      // The caller (`toPlanDtos`) is the sole decider here — it depends on the
+      // card's ACCOUNT (billing day, currency) and on whether a card was once
+      // billed and later removed, none of which this aggregate loads or tracks.
+      // Passed through as-is, including the CARD_REMOVED case, where `cardKind`
+      // is already null (the card is gone) and would otherwise look identical to
+      // a plan that never had one.
+      billingWarning: context?.billingWarning ?? null,
       // Only the detail query fills it in (see `withDeletionImpact`): the list would
       // pay for a figure only the delete confirmation ever reads.
       deletionImpact: null,

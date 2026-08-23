@@ -199,6 +199,20 @@ describe("CreditStatement aggregate (State pattern)", () => {
       expect(next.remainingFor(next.totalFor("200"))).toBe("950.0000");
     });
 
+    // Spec 014, FR-010: the third summand. A period's total is its linked movements
+    // PLUS its carry-over PLUS whatever instalments it charged — three sources, none
+    // a remainder of the others.
+    it("totalFor adds a third summand for the instalments this period charged", () => {
+      const statement = CreditStatement.fromPersistence(baseProps({ carriedOverAmount: "50" }));
+      // linked (200) + carried-over (50) + instalments (90) = 340
+      expect(statement.totalFor("200", "90")).toBe("340.0000");
+    });
+
+    it("totalFor with no instalments behaves exactly as before (default 0)", () => {
+      const statement = CreditStatement.fromPersistence(baseProps({ carriedOverAmount: "50" }));
+      expect(statement.totalFor("200")).toBe(statement.totalFor("200", "0"));
+    });
+
     it("rejects paying more than the period owes, instead of capping it", () => {
       const statement = CreditStatement.fromPersistence(
         baseProps({ closedAt: new Date("2026-02-01") }),

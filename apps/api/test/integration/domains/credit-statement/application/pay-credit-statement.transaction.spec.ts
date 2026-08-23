@@ -8,6 +8,7 @@ import { PayCreditStatementHandler } from "../../../../../src/domains/credit-sta
 import {
   buildBankAccountRepo,
   buildCreditStatementRepo,
+  buildInstallmentPlanRepo,
   buildTransactionWriterRepo,
 } from "../../../support/repositories";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
@@ -101,6 +102,7 @@ describe("PayCreditStatementHandler cross-aggregate transaction (integration)", 
       accountRepo,
       statementRepo,
       buildTransactionWriterRepo(prisma),
+      buildInstallmentPlanRepo(prisma),
       prisma,
     );
     // Force the third save (BankAccount) to fail by breaking its saveWithTx.

@@ -50,11 +50,6 @@ export function fakeTransactionSumsRepo(
     sumsByCard: vi.fn(async () => []),
     netForStatement: vi.fn(async () => "0"),
     netForPeriod: vi.fn(async () => "0"),
-    breakdownForStatement: vi.fn(async () => ({
-      purchases: "0",
-      installments: "0",
-      installmentCount: 0,
-    })),
     ...overrides,
   };
 }

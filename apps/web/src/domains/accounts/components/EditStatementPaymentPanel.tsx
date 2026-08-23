@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -34,11 +34,14 @@ export function EditStatementPaymentPanel({
   const { t, i18n } = useTranslation();
   const { updateStatementPayment } = useAccountMutations();
   const [amount, setAmount] = useState("");
-
-  // Reopening on another period must not keep the previous one's figure.
-  useEffect(() => {
-    if (statement) setAmount(statement.paidAmount);
-  }, [statement]);
+  // Reopening on another period must not keep the previous one's figure — reset
+  // during render (React's recommended pattern) rather than in an effect, which
+  // would cascade an extra render on every open.
+  const [seenStatementId, setSeenStatementId] = useState<string | null>(null);
+  if (statement && statement.id !== seenStatementId) {
+    setSeenStatementId(statement.id);
+    setAmount(statement.paidAmount);
+  }
 
   if (!statement) return null;
 

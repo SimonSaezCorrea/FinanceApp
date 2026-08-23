@@ -17,6 +17,7 @@ import {
 } from "../../../../../../src/domains/credit-statement/domain/errors";
 import type { BankAccountRepositoryPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
+import type { InstallmentPlanRepositoryPort } from "../../../../../../src/domains/installment-plan/domain/ports/installment-plan.repository.port";
 
 function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountProps {
   return {
@@ -93,7 +94,7 @@ function fakeAccountRepo(
 function fakeStatementRepo(
   overrides: Partial<CreditStatementRepositoryPort> = {},
 ): CreditStatementRepositoryPort {
-  return {
+  const merged: CreditStatementRepositoryPort = {
     findById: vi.fn(),
     findOpenForAccount: vi.fn(),
     findOrCreateOpenForAccount: vi.fn(async () => ({ id: "st_open" })),
@@ -103,10 +104,22 @@ function fakeStatementRepo(
     listForAccount: vi.fn(),
     save: vi.fn(),
     saveWithTx: vi.fn(),
-    sumLinkedTransactions: vi.fn(),
+    sumLinkedTransactions: vi.fn(async () => "0"),
     breakdown: vi.fn(async () => ({ purchases: "0", installments: "0", installmentCount: 0 })),
     ...overrides,
   };
+  // `PayCreditStatementHandler` now sources the period's total from `breakdown`
+  // rather than `sumLinkedTransactions` (spec 014, FR-010). A caller that only
+  // overrode the latter — as every pre-014 test here does — must still see it
+  // reflected, or the handler sees "0" and refuses with `NothingToPayError`.
+  if (overrides.sumLinkedTransactions && !overrides.breakdown) {
+    merged.breakdown = vi.fn(async () => ({
+      purchases: await merged.sumLinkedTransactions(""),
+      installments: "0",
+      installmentCount: 0,
+    }));
+  }
+  return merged;
 }
 
 function fakePrisma() {
@@ -117,6 +130,25 @@ function fakePrisma() {
       cb({ transaction: { create: vi.fn() } }),
     ),
   };
+}
+
+function fakePlanRepo(overrides: Partial<InstallmentPlanRepositoryPort> = {}) {
+  return {
+    list: vi.fn(),
+    findOne: vi.fn(),
+    create: vi.fn(),
+    createWithTx: vi.fn(),
+    listBillableForCards: vi.fn(async () => []),
+    stampBillableWithTx: vi.fn(),
+    settleForStatementWithTx: vi.fn(),
+    billedInstallmentsForStatement: vi.fn(async () => ({ amount: "0", count: 0 })),
+    save: vi.fn(),
+    savePaymentWithTx: vi.fn(),
+    setPaymentPaidAt: vi.fn(),
+    remove: vi.fn(),
+    removeWithTx: vi.fn(async () => true),
+    ...overrides,
+  } as InstallmentPlanRepositoryPort;
 }
 
 describe("PayCreditStatementHandler", () => {
@@ -134,8 +166,7 @@ describe("PayCreditStatementHandler", () => {
     });
     const statementRepo = fakeStatementRepo({
       findById: vi.fn(async () => statement),
-      sumLinkedTransactions: vi.fn(async () => "10000"),
-      breakdown: vi.fn(async () => ({ purchases: "0", installments: "0", installmentCount: 0 })),
+      breakdown: vi.fn(async () => ({ purchases: "10000", installments: "0", installmentCount: 0 })),
     });
     const prisma = fakePrisma();
 
@@ -144,6 +175,7 @@ describe("PayCreditStatementHandler", () => {
       accountRepo,
       statementRepo,
       fakeTransactionWriterRepo(),
+      fakePlanRepo(),
       prisma as never,
     );
 
@@ -172,6 +204,7 @@ describe("PayCreditStatementHandler", () => {
       accountRepo,
       statementRepo,
       fakeTransactionWriterRepo(),
+      fakePlanRepo(),
       fakePrisma() as never,
     );
     await expect(
@@ -200,6 +233,7 @@ describe("PayCreditStatementHandler", () => {
       accountRepo,
       statementRepo,
       fakeTransactionWriterRepo(),
+      fakePlanRepo(),
       fakePrisma() as never,
     );
     await expect(
@@ -226,6 +260,7 @@ describe("PayCreditStatementHandler", () => {
       accountRepo,
       statementRepo,
       fakeTransactionWriterRepo(),
+      fakePlanRepo(),
       fakePrisma() as never,
     );
 
@@ -245,5 +280,123 @@ describe("PayCreditStatementHandler", () => {
     );
     // Only the 4000 actually paid comes off the pool; the 6000 is still used.
     expect(creditAccount.creditUsed).toBe("46000.0000");
+  });
+
+  // --- spec 014: settling a period settles the instalments it charged ---
+
+  describe("settling a period's instalments (FR-014, FR-015)", () => {
+    it("settles every instalment the period charged when paid in full", async () => {
+      const creditAccount = BankAccount.fromPersistence(accountProps());
+      const fromAccount = BankAccount.fromPersistence(
+        accountProps({ id: "acc_2", type: "CHECKING", creditLimit: "0" }),
+      );
+      const statement = CreditStatement.fromPersistence(statementProps());
+      const accountRepo = fakeAccountRepo({
+        findById: vi.fn(async (_userId: string, id: string) =>
+          id === "acc_1" ? creditAccount : fromAccount,
+        ),
+      });
+      const statementRepo = fakeStatementRepo({
+        findById: vi.fn(async () => statement),
+        sumLinkedTransactions: vi.fn(async () => "10000"),
+      });
+      const settleForStatementWithTx = vi.fn();
+      const planRepo = fakePlanRepo({ settleForStatementWithTx });
+      const handler = new PayCreditStatementHandler(
+        { publish: vi.fn() } as never,
+        accountRepo,
+        statementRepo,
+        fakeTransactionWriterRepo(),
+        planRepo,
+        fakePrisma() as never,
+      );
+
+      await handler.execute(new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2"));
+
+      expect(settleForStatementWithTx).toHaveBeenCalledWith(
+        expect.anything(),
+        "st_1",
+        expect.any(Date),
+      );
+    });
+
+    // FR-015 — the case the spec singled out: a SHORT payment must ALSO settle the
+    // instalments. The shortfall lives only in the successor period's carry-over;
+    // leaving the instalment unpaid would count the same debt twice.
+    it("settles the instalments even when the payment is short", async () => {
+      const creditAccount = BankAccount.fromPersistence(accountProps());
+      const fromAccount = BankAccount.fromPersistence(
+        accountProps({ id: "acc_2", type: "CHECKING", creditLimit: "0" }),
+      );
+      const statement = CreditStatement.fromPersistence(statementProps());
+      const accountRepo = fakeAccountRepo({
+        findById: vi.fn(async (_userId: string, id: string) =>
+          id === "acc_1" ? creditAccount : fromAccount,
+        ),
+      });
+      const statementRepo = fakeStatementRepo({
+        findById: vi.fn(async () => statement),
+        sumLinkedTransactions: vi.fn(async () => "10000"),
+      });
+      const settleForStatementWithTx = vi.fn();
+      const planRepo = fakePlanRepo({ settleForStatementWithTx });
+      const handler = new PayCreditStatementHandler(
+        { publish: vi.fn() } as never,
+        accountRepo,
+        statementRepo,
+        fakeTransactionWriterRepo(),
+        planRepo,
+        fakePrisma() as never,
+      );
+
+      const result = await handler.execute(
+        new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2", "4000"),
+      );
+
+      // The period itself reports PARTIALLY_PAID (a status NAME) — but "settle the
+      // instalments" must not be gated on that name. It is called unconditionally.
+      expect(result.status).toBe("PARTIALLY_PAID");
+      expect(settleForStatementWithTx).toHaveBeenCalledWith(
+        expect.anything(),
+        "st_1",
+        expect.any(Date),
+      );
+    });
+
+    // FR-014a: "settled" is a fact about payment (`paidAt !== null`), never a status
+    // NAME — the project already hit this trap once (PARTIALLY_PAID vs PAID). This
+    // test would catch a regression that gated settling on `state.name === "PAID"`.
+    it("settles instalments identically whether the period ends up PAID or PARTIALLY_PAID", async () => {
+      const settleCallsFor = async (amount?: string) => {
+        const creditAccount = BankAccount.fromPersistence(accountProps());
+        const fromAccount = BankAccount.fromPersistence(
+          accountProps({ id: "acc_2", type: "CHECKING", creditLimit: "0" }),
+        );
+        const statement = CreditStatement.fromPersistence(statementProps());
+        const accountRepo = fakeAccountRepo({
+          findById: vi.fn(async (_userId: string, id: string) =>
+            id === "acc_1" ? creditAccount : fromAccount,
+          ),
+        });
+        const statementRepo = fakeStatementRepo({
+          findById: vi.fn(async () => statement),
+          sumLinkedTransactions: vi.fn(async () => "10000"),
+        });
+        const settleForStatementWithTx = vi.fn();
+        const handler = new PayCreditStatementHandler(
+          { publish: vi.fn() } as never,
+          accountRepo,
+          statementRepo,
+          fakeTransactionWriterRepo(),
+          fakePlanRepo({ settleForStatementWithTx }),
+          fakePrisma() as never,
+        );
+        await handler.execute(new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2", amount));
+        return settleForStatementWithTx.mock.calls.length;
+      };
+
+      expect(await settleCallsFor(undefined)).toBe(1); // full payment -> PAID
+      expect(await settleCallsFor("4000")).toBe(1); // short payment -> PARTIALLY_PAID
+    });
   });
 });

@@ -191,4 +191,22 @@ describe("UpdateTransactionHandler", () => {
     ).rejects.toBeInstanceOf(TransactionLinkedToInstallmentError);
     expect(saveUpdate).not.toHaveBeenCalled();
   });
+
+  // Spec 014, FR-024: a plan's PURCHASE movement carries `installmentPlanId` but is
+  // never linked via `installmentPayment.transactionId` (that link is for a
+  // payment, not a purchase) — the old lookup alone would miss it.
+  it("refuses to edit a plan's purchase movement, even when the lookup says unlinked", async () => {
+    const saveUpdate = vi.fn();
+    const handler = makeHandler(
+      fakeRepo({
+        findOne: vi.fn().mockResolvedValue(txFixture({ installmentPlanId: "plan1" })),
+        saveUpdate,
+      }),
+      { accountById: () => creditAccount(), linkedToInstallment: false },
+    );
+    await expect(
+      handler.execute(new UpdateTransactionCommand("u1", "tX", { amount: "250000" })),
+    ).rejects.toBeInstanceOf(TransactionLinkedToInstallmentError);
+    expect(saveUpdate).not.toHaveBeenCalled();
+  });
 });

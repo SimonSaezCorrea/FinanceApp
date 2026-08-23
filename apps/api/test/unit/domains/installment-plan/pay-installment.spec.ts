@@ -30,6 +30,7 @@ function payment(over: Partial<InstallmentPaymentProps> = {}): InstallmentPaymen
     paidAmount: null,
     carriedOverAmount: "0.0000",
     transactionId: null,
+    creditStatementId: null,
     ...over,
   };
 }

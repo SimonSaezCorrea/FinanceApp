@@ -9,6 +9,9 @@ interface Props {
   currency: string;
   installmentCount: number;
   startDate: string;
+  /** Spec 014, FR-006b: only the card of a CREDIT-card plan freezes, and only once
+   * it has billed its first instalment — never shown otherwise. */
+  cardLabel?: string | null;
 }
 
 /**
@@ -26,6 +29,7 @@ export function ImmutableFieldsNotice({
   currency,
   installmentCount,
   startDate,
+  cardLabel,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
 
@@ -49,8 +53,11 @@ export function ImmutableFieldsNotice({
           year: "numeric",
         })}
       />
+      {cardLabel && <DetailRow label={t("installments.form.card")} value={cardLabel} />}
 
-      <p className="pt-2 text-xs text-muted-foreground">{t("installments.immutable.reason")}</p>
+      <p className="pt-2 text-xs text-muted-foreground">
+        {cardLabel ? t("installments.immutable.reasonBilled") : t("installments.immutable.reason")}
+      </p>
     </section>
   );
 }

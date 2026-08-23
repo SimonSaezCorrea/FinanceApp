@@ -116,9 +116,10 @@ export class SyncStatementHandler extends BaseCommandHandler<
       from,
       to,
       cardIds,
-      // What the period owes is its movements plus what was carried into it —
-      // that part isn't a movement, so recomputing must not drop it.
-      recomputedAmount: statement.totalFor(recomputedAmount),
+      // What the period owes is its movements plus what was carried into it plus
+      // what the schedule billed — neither of the latter two is a movement, so
+      // recomputing from the date window alone must not drop them (FR-012).
+      recomputedAmount: statement.totalFor(recomputedAmount, breakdown.installments),
       paidDelta: "0",
       carryOverDelta: "0",
       breakdown,

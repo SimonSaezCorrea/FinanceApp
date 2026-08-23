@@ -174,6 +174,36 @@ facturación, botón de pago, ni registro `CreditStatement`.
 **Para hacerlo real**: extender el mismo mecanismo (enlazado de movimientos + generación + pago) a
 `CardLimit`, y agregar una pestaña de facturación por tarjeta en `CardDetailModal`.
 
+### 4b. `Card.ownUsed` — la PRINCIPAL absorbe el residuo, las tarjetas siempre suman `creditUsed` (fix, 2026-08-23)
+
+`ownUsed` (y `CardLimit.used`, misma consulta) sumaba TODO movimiento de la tarjeta desde siempre,
+sin importar si la facturación que lo cobraba ya se había pagado — por eso el uso mostrado por
+tarjeta podía superar por mucho el cupo usado de la cuenta (`creditUsed`), que sí se decrementa al
+pagar. `sumsByCard` ahora excluye los movimientos cuya facturación ya tiene `paidAt` (esa deuda ya
+salió del pool) y la **compra** de un plan de cuotas CREDIT (`installmentPlanId` seteado, que
+contaría dos veces contra el seguimiento por cuota); `account-dto.mapper.ts` suma de vuelta el
+`remainingAmount` de cada plan CREDIT de la tarjeta que lo tiene.
+
+Ese primer intento seguía dejando huérfana cualquier deuda que no fuera "la tarjeta X gastó Y": el
+arrastre de una facturación pagada en parte (`CreditStatement.carriedOverAmount`, una cifra del
+PERÍODO, no de ninguna cuota — `InstallmentPayment.carriedOverAmount` de un plan CREDIT queda
+siempre en `"0"` por diseño) y un cargo sin tarjeta (`financeCharge`, p. ej. intereses o comisión de
+mantención — sin plástico por diseño, `CARD_NOT_ALLOWED` si se intenta). Ambos suben `creditUsed`
+pero no tenían dónde aparecer entre las tarjetas — confirmado con datos reales el 2026-08-23 (una
+diferencia exacta de 293.390 en la cuenta "Tarjeta CMR": 270.000 de arrastre + 23.390 de dos
+movimientos sin tarjeta).
+
+**Corregido para siempre, no documentado como límite**: la tarjeta PRINCIPAL de una cuenta
+`CREDIT_CARD` no tiene ficha propia — su límite YA ES el límite de la cuenta (`creditLimit`/
+`creditUsed`, nunca un `CardLimit` aparte). Su `ownUsed` ahora sigue la misma regla: es lo que sobra
+del `creditUsed` de la cuenta una vez restado el `ownUsed` de cada tarjeta ADICIONAL
+(`account-dto.mapper.ts`, `accountToDto`) — nunca su propia suma de movimientos. Como toda deuda de
+la cuenta es "de alguna tarjeta adicional" o "de la principal" por definición, la suma de `ownUsed`
+de todas las tarjetas de una cuenta **siempre** iguala `creditUsed`, sin excepción — el arrastre y
+los cargos sin tarjeta caen automáticamente en la principal, que es justamente lo correcto: no
+pertenecen a Camila ni a Sofía, y la cuenta y su tarjeta principal son, para efectos de cupo, la
+misma cosa.
+
 ### 5. Creación de cuenta simplificada — `status`/`billingCycleDay`/`paymentMethod` solo post-creación
 
 Desde esta pasada, `AccountCreateModal` ya no pide "Cuenta activa" (`status`), día de facturación
@@ -350,7 +380,7 @@ si esa cuenta la crea la app al registrar el instrumento o la elige el usuario.
 implementarse. Mientras no existan, un ETF se valoriza por valor declarado como cualquier otro
 instrumento — que es exactamente lo que asume la spec 012.
 
-## Cuotas (specs/013)
+## Cuotas (specs/013, 014)
 
 ### 1. Pagar una facturación no valida saldo prepago ni sobregiro
 
@@ -363,6 +393,12 @@ gasto y descuenta el saldo sin preguntar.
 Son dos caminos que crean el mismo tipo de movimiento sobre el mismo tipo de cuenta y deberían validar
 igual. No se unificó aquí para no cambiar el comportamiento de un dominio que esta feature no tocaba;
 el arreglo es mover ambas guardas al pago de facturación, no relajarlas en el de cuotas.
+
+**Spec 014 amplió el alcance de este hueco, sin cerrarlo**: ahora el mismo endpoint es también el
+único camino por el que se liquida una cuota de un plan con tarjeta de crédito (`settleForStatementWithTx`
+corre en la misma transacción cruzada de `PayCreditStatementHandler`), así que la falta de estas dos
+comprobaciones alcanza igual a esas cuotas. Sigue pendiente la misma solución: mover las guardas al
+pago de facturación.
 
 ### 2. La previsualización repite el paso de fechas del agregado
 
@@ -379,4 +415,3 @@ tocarlo.
 Editar un plan no puede mostrarla ni recalcular nada con ella, que es coherente con que el calendario
 sea inmutable, pero significa que el interés de un plan ya creado sólo se deduce comparando la suma de
 sus cuotas con su principal.
-

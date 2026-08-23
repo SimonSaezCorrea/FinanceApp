@@ -136,6 +136,17 @@ export function BillingSection({
             {t("accounts.detail.billingIncludesCarryOver", { amount: fmt(s.carriedOverAmount) })}
           </p>
         ) : null}
+        {/* Spec 014, FR-011: purchases and instalments come from two disjoint
+            sources now — real figures, not the "0" this always reported before. */}
+        {Number(s.breakdown.installmentCount) > 0 ? (
+          <p className="-mt-2 text-xs text-muted-foreground">
+            {t("accounts.detail.billingBreakdown", {
+              purchases: fmt(s.breakdown.purchases),
+              installments: fmt(s.breakdown.installments),
+              count: s.breakdown.installmentCount,
+            })}
+          </p>
+        ) : null}
 
         {/* Same order as the table: sync first, pay after. */}
         <div className="flex items-center gap-2">

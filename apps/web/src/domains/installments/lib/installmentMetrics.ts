@@ -133,19 +133,30 @@ export function nextDuePayment(
   return earliest;
 }
 
-export type PaymentStatus = "paid" | "partial" | "upcoming" | "pending";
+export type PaymentStatus = "paid" | "billed" | "partial" | "upcoming" | "pending";
 
 export function paymentStatus(
   p: installments.InstallmentPayment,
   payments: installments.InstallmentPayment[],
 ): PaymentStatus {
   // "Paid" is `paidAt`, never `paidAmount`: a row paid before this feature existed
-  // has a date and no amount, and it IS paid.
+  // has a date and no amount, and it IS paid. Checked FIRST — a settled instalment
+  // keeps its `creditStatementId` (FR-020 needs it to reach the settling period),
+  // so testing that before `paidAt` would misreport a paid one as merely billed.
   if (p.paidAt !== null) return "paid";
+  // Spec 014: charged into a period awaiting its payment. Only ever true on a
+  // credit-card plan's instalment — every other plan settles straight to "paid".
+  if (p.status === "BILLED") return "billed";
   // Unpaid but with money against it: the last instalment, paid short, with no
   // successor to carry the difference into (FR-023).
   if (p.paidAmount !== null) return "partial";
   return nextDuePayment(payments)?.id === p.id ? "upcoming" : "pending";
+}
+
+/** The i18n key for why a plan's instalments can't reach a statement, or null when
+ * nothing blocks them (spec 014, FR-009a/FR-023a). */
+export function billingWarningKey(plan: installments.InstallmentPlan): string | null {
+  return plan.billingWarning ? `installments.warning.${plan.billingWarning}` : null;
 }
 
 /** What this instalment still owes — 0 once settled. */

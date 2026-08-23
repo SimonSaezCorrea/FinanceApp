@@ -46,11 +46,4 @@ export interface TransactionSumsRepositoryPort {
     from: Date;
     to: Date;
   }): Promise<string>;
-  /** What a statement is MADE OF: its linked expenses split into ordinary
-   * purchases and installment charges (those carrying an `installmentPlanId`),
-   * plus how many of the latter there are. Income (payments) is excluded — it
-   * reduces the total but isn't part of what was spent. */
-  breakdownForStatement(
-    statementId: string,
-  ): Promise<{ purchases: string; installments: string; installmentCount: number }>;
 }

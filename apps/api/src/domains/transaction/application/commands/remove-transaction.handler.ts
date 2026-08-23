@@ -74,8 +74,14 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
     if (!current) throw new TransactionNotFoundError();
     // Deleting it here would leave the instalment marked paid with nothing behind it.
     // Undoing the instalment from its plan deletes this row as part of the same
-    // reversal (FR-028a).
-    if (await this.installmentPayments.isLinkedToPayment(command.userId, command.id)) {
+    // reversal (FR-028a). Spec 014, FR-024: a plan's PURCHASE movement carries
+    // `installmentPlanId` directly on its own row — it is never linked via
+    // `installmentPayment.transactionId` (that link is for a PAYMENT, not a
+    // purchase), so the lookup alone would miss it.
+    if (
+      current.snapshot().installmentPlanId !== null ||
+      (await this.installmentPayments.isLinkedToPayment(command.userId, command.id))
+    ) {
       throw new TransactionLinkedToInstallmentError();
     }
 

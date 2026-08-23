@@ -4,6 +4,7 @@ import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
 import { CardAccountDataModule } from "../card-account/card-account.data.module";
+import { InstallmentPlanDataModule } from "../installment-plan/installment-plan.data.module";
 import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { BankAccountDataModule } from "./bank-account.data.module";
 import { AddCardHandler } from "./application/commands/add-card.handler";
@@ -41,6 +42,7 @@ const queryHandlers = [ListAccountsQueryHandler, GetAccountQueryHandler];
     BankAccountDataModule,
     TransactionDataModule,
     CardAccountDataModule,
+    InstallmentPlanDataModule,
   ],
   controllers: [AccountsController],
   providers: [...commandHandlers, ...queryHandlers, JwtAuthGuard],

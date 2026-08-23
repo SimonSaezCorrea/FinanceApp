@@ -193,9 +193,14 @@ describe("PayInstallmentHandler (integration)", () => {
         new Date("2026-01-16"),
       ),
     );
-    await new UnpayInstallmentHandler(eventBus, prisma, planRepo, accounts, transactions).execute(
-      new UnpayInstallmentCommand(userId, planId, 1),
-    );
+    await new UnpayInstallmentHandler(
+      eventBus,
+      prisma,
+      planRepo,
+      accounts,
+      cards,
+      transactions,
+    ).execute(new UnpayInstallmentCommand(userId, planId, 1));
 
     expect(await prisma.transaction.count({ where: { userId } })).toBe(0);
     const account = await prisma.bankAccount.findUniqueOrThrow({ where: { id: accountId } });

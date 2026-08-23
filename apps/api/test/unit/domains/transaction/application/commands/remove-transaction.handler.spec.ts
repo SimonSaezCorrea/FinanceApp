@@ -152,4 +152,23 @@ describe("RemoveTransactionHandler", () => {
     );
     expect(removeWithCreditAdjustment).not.toHaveBeenCalled();
   });
+
+  // Spec 014, FR-024: a plan's PURCHASE movement carries `installmentPlanId` but is
+  // never linked via `installmentPayment.transactionId` (that link is for a payment,
+  // not a purchase) — so the old lookup alone would miss it. The refusal must fire
+  // from the transaction's OWN field, not only from the lookup.
+  it("refuses to delete a plan's purchase movement, even when the lookup says unlinked", () => {
+    const purchase = Transaction.fromPersistence({
+      ...txFixture().snapshot(),
+      installmentPlanId: "plan1",
+    });
+    const removeWithCreditAdjustment = vi.fn();
+    const handler = makeHandler(
+      fakeRepo({ findOne: vi.fn().mockResolvedValue(purchase), removeWithCreditAdjustment }),
+      { account: creditAccount(), card: creditCard, linkedToInstallment: false },
+    );
+    return expect(
+      handler.execute(new RemoveTransactionCommand("u1", "tX")),
+    ).rejects.toBeInstanceOf(TransactionLinkedToInstallmentError);
+  });
 });

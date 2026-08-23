@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { useAccounts } from "../../accounts/hooks/useAccounts";
+import { useAccounts, useCreditStatements } from "../../accounts/hooks/useAccounts";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { useTransactionsSummary } from "../../transactions/hooks/useTransactions";
 import { cn } from "../../../shared/lib/cn";
@@ -95,6 +95,35 @@ export function InstallmentsRoute() {
     }
     return labels;
   }, [accountList]);
+
+  /** The account each card belongs to — for the credit-card plan's billing link
+   * (FR-020/FR-023a) and its "ver facturación" statement lookup. */
+  const cardAccountIds = useMemo(() => {
+    const ids = new Map<string, string>();
+    for (const account of accountList) {
+      for (const card of account.cards ?? []) {
+        ids.set(card.id, account.id);
+      }
+    }
+    return ids;
+  }, [accountList]);
+
+  const selectedAccountId = selectedPlan?.cardId
+    ? cardAccountIds.get(selectedPlan.cardId) ?? null
+    : null;
+  // Only fetched for whichever plan's panel is open — `useCreditStatements` is a
+  // no-op without an id (spec 014, FR-020: needed to tell a fully-paid instalment
+  // apart from one whose period settled with a shortfall).
+  const { data: selectedPlanStatements } = useCreditStatements(selectedAccountId ?? "");
+  const partiallyPaidStatementIds = useMemo(
+    () =>
+      new Set(
+        (selectedPlanStatements ?? [])
+          .filter((s) => s.status === "PARTIALLY_PAID")
+          .map((s) => s.id),
+      ),
+    [selectedPlanStatements],
+  );
 
   const statusOptions: { value: PlanFilter; label: string }[] = [
     { value: "all", label: t("installments.filters.all") },
@@ -295,6 +324,8 @@ export function InstallmentsRoute() {
       <InstallmentDetailPanel
         plan={selectedPlan}
         cardLabel={selectedPlan?.cardId ? (cardLabels.get(selectedPlan.cardId) ?? null) : null}
+        accountId={selectedAccountId}
+        partiallyPaidStatementIds={partiallyPaidStatementIds}
         onOpenChange={(open) => {
           if (!open) closeDetail();
         }}
@@ -335,6 +366,10 @@ export function InstallmentsRoute() {
           onChange={(patch) => setFormValue((v) => ({ ...v, ...patch }))}
           accounts={accountList}
           categoryOptions={summary?.categories ?? []}
+          cardFrozen={
+            form.mode === "edit" &&
+            (plans.find((p) => p.id === form.planId)?.billedCount ?? 0) > 0
+          }
           onSubmit={submitForm}
           submitting={create.isPending || update.isPending}
           dirty={form.mode === "edit"}

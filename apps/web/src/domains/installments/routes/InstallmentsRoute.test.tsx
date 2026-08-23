@@ -14,6 +14,7 @@ vi.mock("../api/installmentsApi", () => ({
 
 vi.mock("../../accounts/hooks/useAccounts", () => ({
   useAccounts: () => ({ data: [] }),
+  useCreditStatements: () => ({ data: [] }),
 }));
 
 function payment(
@@ -29,6 +30,8 @@ function payment(
     carriedOverAmount: "0.0000",
     dueAmount: "400.0000",
     transactionId: null,
+    creditStatementId: null,
+    status: "SCHEDULED" as const,
     ...over,
   };
 }
@@ -62,6 +65,10 @@ function plan(over: Partial<installments.InstallmentPlan> = {}): installments.In
     nextDueDate: "2026-02-15T00:00:00.000Z",
     status: "ON_TRACK",
     generatesMovementOnPay: true,
+    scheduledCount: 1,
+    billedCount: 0,
+    paidCount: 0,
+    billingWarning: null,
     deletionImpact: null,
     createdAt: "2026-01-15T00:00:00.000Z",
     updatedAt: "2026-01-15T00:00:00.000Z",

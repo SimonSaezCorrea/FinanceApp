@@ -4,6 +4,8 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { config as loadEnv } from "dotenv";
 
+import { addMoney, subtractMoney, toMoney } from "@finance/money";
+
 // tsx doesn't load apps/api/.env on its own.
 loadEnv({ path: path.join(__dirname, "..", ".env") });
 
@@ -1997,11 +1999,19 @@ async function seedFullUser(passwordHash: string) {
       },
     });
 
-    // Movements feeding this pool, oldest first.
+    // Movements feeding this pool, oldest first. A plan's PURCHASE movement
+    // (`installmentPlanId` set) is excluded — spec 014, FR-007: it consumes the
+    // pool but is never what a period bills; only its SCHEDULE does, stamped in
+    // separately below. Mirrors production's `EXCLUDE_PLAN_PURCHASES`.
     const contributions = await prisma.transaction.findMany({
       where: spec.wholeAccount
-        ? { bankAccountId: spec.accountId }
-        : { bankAccountId: spec.accountId, type: "EXPENSE", cardId: { in: spec.poolCardIds } },
+        ? { bankAccountId: spec.accountId, installmentPlanId: null }
+        : {
+            bankAccountId: spec.accountId,
+            type: "EXPENSE",
+            cardId: { in: spec.poolCardIds },
+            installmentPlanId: null,
+          },
       select: { id: true, type: true, amount: true, occurredAt: true },
       orderBy: { occurredAt: "asc" },
     });
@@ -2089,7 +2099,231 @@ async function seedFullUser(passwordHash: string) {
     });
   }
 
-  // --- Installment plans (some paid, some upcoming after "today" 2026-06-21) ---
+  // --- Credit-card instalment plans (spec 014) -----------------------------------
+  // A plan bought with a CREDIT card behaves like the real thing: the purchase
+  // consumes the pool IN FULL on day one (a movement of its own, excluded from any
+  // period's total — FR-007), and each period bills only the instalment(s) that
+  // fell due in it (FR-008). Settling a period settles every instalment it billed,
+  // whether the payment was full or short (FR-014) — the shortfall becomes the
+  // NEXT period's `carriedOverAmount`, never a debt left sitting on the instalment.
+  //
+  // Its schedule bills into the ACCOUNT'S OWN real chain built by the `creditSpecs`
+  // loop above — never a second, differently-cadenced chain of the plan's own. A
+  // real account only ever has one continuous chain (one `billingCycleDay`); a
+  // seed that invented a parallel one used to look merely cosmetic, until paying
+  // or "Sincronizar pagos"-ing either period revealed the real defect: both
+  // recompute by DATE WINDOW across the whole account, so settling one silently
+  // stole the other's transactions and corrupted both (found 2026-08-23).
+
+  /**
+   * Folds a plan's schedule into the account's real statement chain instead of a
+   * parallel one. Mirrors `closeIfDue` + `settleForStatementWithTx`: a real period
+   * already closed bills whatever instalments fell due in it; if the generic loop
+   * above already settled that period (from ordinary spend alone), every
+   * instalment it now also bills is marked PAID too (FR-014a — any settlement,
+   * full or short, settles every instalment; the shortfall is a PERIOD fact,
+   * `carriedOverAmount` on the next one, never left on the row). A period nothing
+   * else ever happened in is created fresh and paid in full — same convention the
+   * generic loop uses for every closed period except its last — exactly like
+   * `seedPeriodFromSchedule` would for an account whose only activity, so far, is
+   * this plan.
+   *
+   * Returns what's still reserved in the pool for this plan (billed-unpaid +
+   * not-yet-billed) — ADDED to, never overwriting, whatever the generic loop
+   * already computed for the account's ordinary spend.
+   */
+  async function foldPlanScheduleIntoRealChain(input: {
+    accountId: string;
+    planId: string;
+    billingCycleDay: number;
+    payFromAccountId: string;
+    schedule: { sequence: number; dueDate: Date; amount: string }[];
+  }): Promise<string> {
+    const cuts = cutsBetween(input.billingCycleDay, SEED_EPOCH, SEED_NOW);
+    const bounds = [SEED_EPOCH, ...cuts];
+    const existing = await prisma.creditStatement.findMany({
+      where: { accountId: input.accountId },
+    });
+    const findExisting = (periodStart: Date) =>
+      existing.find((s) => s.periodStart.getTime() === periodStart.getTime()) ?? null;
+
+    let carryIn = "0.0000";
+    let pendingCarrierId: string | null = null; // a settled period awaiting its successor's id
+    let cursor = 0;
+    let stillReserved = "0.0000";
+
+    const linkCarrierTo = async (successorId: string) => {
+      if (!pendingCarrierId) return;
+      await prisma.creditStatement.update({
+        where: { id: pendingCarrierId },
+        data: { carriedToId: successorId },
+      });
+      pendingCarrierId = null;
+    };
+
+    for (let i = 0; i < cuts.length; i++) {
+      const periodStart = bounds[i]!;
+      const closedAt = cuts[i]!;
+      const inWindow = input.schedule.slice(cursor).filter((p) => p.dueDate <= closedAt);
+      cursor += inWindow.length;
+      const cuotaSum = inWindow.reduce((s, p) => addMoney(s, p.amount), "0.0000");
+      const statement = findExisting(periodStart);
+      const isLastClosed = i === cuts.length - 1;
+
+      if (!statement) {
+        if (cuotaSum === "0.0000" && carryIn === "0.0000") continue; // nothing to say here
+        const total = addMoney(cuotaSum, carryIn);
+        const paidAt = isLastClosed ? null : new Date(closedAt.getTime() + 4 * 86_400_000);
+        let paidTransactionId: string | null = null;
+        if (paidAt) {
+          const payTx = await prisma.transaction.create({
+            data: {
+              userId: javier.id,
+              bankAccountId: input.payFromAccountId,
+              type: "EXPENSE",
+              amount: dec(total),
+              currency: "CLP",
+              occurredAt: paidAt,
+              category: "Tarjeta de crédito",
+              description: "Pago facturación",
+            },
+          });
+          paidTransactionId = payTx.id;
+          const payer = await prisma.bankAccount.findUniqueOrThrow({
+            where: { id: input.payFromAccountId },
+          });
+          await prisma.bankAccount.update({
+            where: { id: input.payFromAccountId },
+            data: { currentBalance: payer.currentBalance.minus(dec(total)) },
+          });
+        } else {
+          stillReserved = addMoney(stillReserved, total);
+        }
+        const created = await prisma.creditStatement.create({
+          data: {
+            accountId: input.accountId,
+            periodStart,
+            closedAt,
+            paidAt,
+            amount: paidAt ? dec(total) : null,
+            paidAmount: dec(paidAt ? total : "0"),
+            paidFromAccountId: paidAt ? input.payFromAccountId : null,
+            paidTransactionId,
+          },
+        });
+        existing.push(created);
+        if (inWindow.length > 0) {
+          await prisma.installmentPayment.updateMany({
+            where: {
+              installmentPlanId: input.planId,
+              sequence: { in: inWindow.map((p) => p.sequence) },
+            },
+            data: {
+              creditStatementId: created.id,
+              ...(paidAt ? { paidAt, transactionId: paidTransactionId } : {}),
+            },
+          });
+          if (paidAt) {
+            for (const p of inWindow) {
+              await prisma.installmentPayment.update({
+                where: {
+                  installmentPlanId_sequence: {
+                    installmentPlanId: input.planId,
+                    sequence: p.sequence,
+                  },
+                },
+                data: { paidAmount: dec(p.amount) },
+              });
+            }
+          }
+        }
+        await linkCarrierTo(created.id);
+        carryIn = "0.0000";
+        continue;
+      }
+
+      await linkCarrierTo(statement.id);
+
+      if (statement.paidAt) {
+        // Already settled by the generic loop, from ordinary spend alone — folding
+        // more debt in here doesn't rewrite that fact, it just means it wasn't
+        // enough for the bigger total this plan adds.
+        const newAmount = addMoney(addMoney(statement.amount!.toString(), carryIn), cuotaSum);
+        const shortfall = subtractMoney(newAmount, statement.paidAmount.toString());
+        await prisma.creditStatement.update({
+          where: { id: statement.id },
+          data: {
+            amount: dec(newAmount),
+            carriedOverAmount: dec(addMoney(statement.carriedOverAmount.toString(), carryIn)),
+          },
+        });
+        if (inWindow.length > 0) {
+          await prisma.installmentPayment.updateMany({
+            where: {
+              installmentPlanId: input.planId,
+              sequence: { in: inWindow.map((p) => p.sequence) },
+            },
+            data: {
+              creditStatementId: statement.id,
+              paidAt: statement.paidAt,
+              transactionId: statement.paidTransactionId,
+            },
+          });
+          for (const p of inWindow) {
+            await prisma.installmentPayment.update({
+              where: {
+                installmentPlanId_sequence: {
+                  installmentPlanId: input.planId,
+                  sequence: p.sequence,
+                },
+              },
+              data: { paidAmount: dec(p.amount) },
+            });
+          }
+        }
+        if (toMoney(shortfall).greaterThan(0)) {
+          carryIn = shortfall;
+          pendingCarrierId = statement.id;
+        } else {
+          carryIn = "0.0000";
+        }
+      } else {
+        // The account's real still-unpaid period: bills whatever fell due here,
+        // settles nothing (nothing has been paid on it yet).
+        if (carryIn !== "0.0000") {
+          await prisma.creditStatement.update({
+            where: { id: statement.id },
+            data: {
+              carriedOverAmount: dec(addMoney(statement.carriedOverAmount.toString(), carryIn)),
+            },
+          });
+        }
+        if (inWindow.length > 0) {
+          await prisma.installmentPayment.updateMany({
+            where: {
+              installmentPlanId: input.planId,
+              sequence: { in: inWindow.map((p) => p.sequence) },
+            },
+            data: { creditStatementId: statement.id },
+          });
+        }
+        stillReserved = addMoney(stillReserved, addMoney(cuotaSum, carryIn));
+        carryIn = "0.0000";
+      }
+    }
+
+    // Defensive: the account's last closed period is always the generic loop's
+    // unpaid one, which the branch above already folds `carryIn` into — this only
+    // fires if that invariant is ever broken.
+    stillReserved = addMoney(stillReserved, carryIn);
+    // Beyond the account's last real closed period: still due but unbilled (the
+    // still-open tail hasn't closed yet) or not due at all — either way, reserved.
+    stillReserved = input.schedule
+      .slice(cursor)
+      .reduce((s, p) => addMoney(s, p.amount), stillReserved);
+    return stillReserved;
+  }
+
   const notebook = await prisma.installmentPlan.create({
     data: {
       userId: javier.id,
@@ -2105,19 +2339,56 @@ async function seedFullUser(passwordHash: string) {
       notes: "12 cuotas sin interés",
     },
   });
+  const notebookDue: Date[] = [];
   for (let seq = 1; seq <= 12; seq++) {
     const due = new Date("2026-03-05T00:00:00Z");
     due.setUTCMonth(due.getUTCMonth() + (seq - 1));
+    notebookDue.push(due);
     await prisma.installmentPayment.create({
       data: {
         installmentPlanId: notebook.id,
         sequence: seq,
         dueDate: due,
         amount: dec("90000.0000"),
-        paidAt: seq <= 3 ? new Date(due.getTime() + 86_400_000) : null,
       },
     });
   }
+  // The purchase: consumes the CMR pool in full on day one — excluded from every
+  // period's total by `installmentPlanId` (FR-007).
+  await prisma.transaction.create({
+    data: {
+      userId: javier.id,
+      bankAccountId: credit.id,
+      cardId: creditCard.id,
+      type: "EXPENSE",
+      amount: dec("1080000.0000"),
+      currency: "CLP",
+      occurredAt: notebookDue[0]!,
+      category: "Tecnología",
+      description: notebook.title,
+      installmentPlanId: notebook.id,
+    },
+  });
+  // Its schedule folds into Tarjeta CMR's own real (day-15) chain, already built
+  // above from ordinary spend alone — never a parallel day-5 one of its own (see
+  // the comment on `foldPlanScheduleIntoRealChain`).
+  const notebookReserved = await foldPlanScheduleIntoRealChain({
+    accountId: credit.id,
+    planId: notebook.id,
+    billingCycleDay: 15,
+    payFromAccountId: checking.id,
+    schedule: notebookDue.map((due, i) => ({
+      sequence: i + 1,
+      dueDate: due,
+      amount: "90000.0000",
+    })),
+  });
+  const creditAfterFold = await prisma.bankAccount.findUniqueOrThrow({ where: { id: credit.id } });
+  await prisma.bankAccount.update({
+    where: { id: credit.id },
+    data: { creditUsed: dec(addMoney(creditAfterFold.creditUsed.toString(), notebookReserved)) },
+  });
+
   const fridge = await prisma.installmentPlan.create({
     data: {
       userId: javier.id,
@@ -2129,21 +2400,126 @@ async function seedFullUser(passwordHash: string) {
       cardId: creditCardBch.id,
       category: "Hogar",
       // 6 x 65.000 = 390.000: la compra en cuotas CON interés compromete más que el
-      // precio, y esa diferencia va al cupo como cargo financiero (ver TX).
+      // precio, y esa diferencia va al cupo como cargo financiero (ver TX), nunca
+      // calculada por la app — se anota, tal como llega en la cartola real.
       notes: "6 cuotas con interés",
     },
   });
+  const fridgeDue: Date[] = [];
   for (let seq = 1; seq <= 6; seq++) {
     const due = new Date("2026-05-10T00:00:00Z");
     due.setUTCMonth(due.getUTCMonth() + (seq - 1));
+    fridgeDue.push(due);
     await prisma.installmentPayment.create({
       data: {
         installmentPlanId: fridge.id,
         sequence: seq,
         dueDate: due,
         amount: dec("65000.0000"),
-        paidAt: seq === 1 ? new Date(due.getTime() + 86_400_000) : null,
       },
+    });
+  }
+  await prisma.transaction.create({
+    data: {
+      userId: javier.id,
+      bankAccountId: creditBch.id,
+      cardId: creditCardBch.id,
+      type: "EXPENSE",
+      amount: dec("360000.0000"),
+      currency: "CLP",
+      occurredAt: fridgeDue[0]!,
+      category: "Hogar",
+      description: fridge.title,
+      installmentPlanId: fridge.id,
+    },
+  });
+  // The interest the schedule commits beyond the price (390.000 − 360.000) is
+  // ALREADY in the seed's ordinary transaction list above (`TX`, "Interés del
+  // plan · Refrigerador Mademsa") — deliberately WITHOUT an `installmentPlanId`,
+  // so it keeps billing as an ordinary period charge, and created before the
+  // `creditSpecs` loop runs so that loop counts it like any other real spend.
+
+  // Its schedule folds into Visa Crédito's own real (day-5) chain, already built
+  // above from ordinary spend alone — never a parallel chain of its own.
+  const fridgeReserved = await foldPlanScheduleIntoRealChain({
+    accountId: creditBch.id,
+    planId: fridge.id,
+    billingCycleDay: 5,
+    payFromAccountId: checking.id,
+    schedule: fridgeDue.map((due, i) => ({
+      sequence: i + 1,
+      dueDate: due,
+      amount: "65000.0000",
+    })),
+  });
+  const creditBchAfterFold = await prisma.bankAccount.findUniqueOrThrow({
+    where: { id: creditBch.id },
+  });
+  await prisma.bankAccount.update({
+    where: { id: creditBch.id },
+    data: {
+      creditUsed: dec(addMoney(creditBchAfterFold.creditUsed.toString(), fridgeReserved)),
+    },
+  });
+
+  // A plan bought with a DEBIT card is the OTHER half of the model, unchanged by
+  // spec 014: no purchase movement, no billing period — each instalment pays with
+  // real money straight out of the account, exactly as before.
+  const bicycle2 = await prisma.installmentPlan.create({
+    data: {
+      userId: javier.id,
+      title: "Aspiradora Robot",
+      totalPrincipal: dec("240000.0000"),
+      installmentCount: 4,
+      startDate: new Date("2026-04-15T00:00:00Z"),
+      currency: "CLP",
+      cardId: debitCard.id,
+      category: "Hogar",
+      notes: "4 cuotas, pagadas con la débito de la cuenta corriente",
+    },
+  });
+  for (let seq = 1; seq <= 4; seq++) {
+    const due = new Date("2026-04-15T00:00:00Z");
+    due.setUTCMonth(due.getUTCMonth() + (seq - 1));
+    await prisma.installmentPayment.create({
+      data: {
+        installmentPlanId: bicycle2.id,
+        sequence: seq,
+        dueDate: due,
+        amount: dec("60000.0000"),
+      },
+    });
+  }
+  let debitPlanOutflow = 0;
+  for (let seq = 1; seq <= 2; seq++) {
+    const due = new Date("2026-04-15T00:00:00Z");
+    due.setUTCMonth(due.getUTCMonth() + (seq - 1));
+    const paidAt = new Date(due.getTime() + 86_400_000);
+    const tx = await prisma.transaction.create({
+      data: {
+        userId: javier.id,
+        bankAccountId: checking.id,
+        cardId: debitCard.id,
+        type: "EXPENSE",
+        amount: dec("60000.0000"),
+        currency: "CLP",
+        occurredAt: paidAt,
+        category: "Hogar",
+        description: `${bicycle2.title} · ${seq}/4`,
+        installmentPlanId: bicycle2.id,
+      },
+    });
+    debitPlanOutflow += 60000;
+    await prisma.installmentPayment.update({
+      where: { installmentPlanId_sequence: { installmentPlanId: bicycle2.id, sequence: seq } },
+      data: { paidAt, paidAmount: dec("60000.0000"), transactionId: tx.id },
+    });
+  }
+  if (debitPlanOutflow > 0) {
+    const acc = await prisma.bankAccount.findUniqueOrThrow({ where: { id: checking.id } });
+    await prisma.bankAccount.update({
+      where: { id: checking.id },
+      data: { currentBalance: acc.currentBalance.minus(dec(debitPlanOutflow.toFixed(4))) },
     });
   }
 

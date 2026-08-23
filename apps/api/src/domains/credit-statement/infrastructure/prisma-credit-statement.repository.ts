@@ -2,6 +2,10 @@ import { Inject, Injectable } from "@nestjs/common";
 
 import { PrismaService } from "../../../infra/prisma/prisma.service";
 import {
+  INSTALLMENT_PLAN_REPOSITORY,
+  type InstallmentPlanRepositoryPort,
+} from "../../installment-plan/domain/ports/installment-plan.repository.port";
+import {
   TRANSACTION_SUMS_REPOSITORY,
   type TransactionSumsRepositoryPort,
 } from "../../transaction/domain/ports/transaction-sums.repository.port";
@@ -50,6 +54,7 @@ export class PrismaCreditStatementRepository implements CreditStatementRepositor
   constructor(
     private readonly prisma: PrismaService,
     @Inject(TRANSACTION_SUMS_REPOSITORY) private readonly sums: TransactionSumsRepositoryPort,
+    @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly plans: InstallmentPlanRepositoryPort,
   ) {}
 
   async findById(
@@ -162,9 +167,21 @@ export class PrismaCreditStatementRepository implements CreditStatementRepositor
     return this.sums.netForStatement(statementId);
   }
 
-  breakdown(
+  /**
+   * Spec 014, FR-011: two disjoint sources composed here, never a remainder of one
+   * another — `purchases` is the ordinary linked-expense sum (already excluding a
+   * plan's purchase movement, see `EXCLUDE_PLAN_PURCHASES`), `installments` is what
+   * the SCHEDULE billed into this period. `transaction`'s own adapter must not query
+   * `installment-payment`'s table (Constitution VI); composing the two here, where
+   * both ports already live, is what keeps that true.
+   */
+  async breakdown(
     statementId: string,
   ): Promise<{ purchases: string; installments: string; installmentCount: number }> {
-    return this.sums.breakdownForStatement(statementId);
+    const [purchases, billed] = await Promise.all([
+      this.sums.netForStatement(statementId),
+      this.plans.billedInstallmentsForStatement(statementId),
+    ]);
+    return { purchases, installments: billed.amount, installmentCount: billed.count };
   }
 }

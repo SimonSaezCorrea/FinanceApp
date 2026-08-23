@@ -158,7 +158,9 @@
       "editPaymentCascadeHint": "The payment movement, the source account’s balance, the used credit and what rolls into the next statement are all adjusted.",
       "editPaymentSuccess": "Payment updated",
       "payMinimumUnset": "This account has no minimum payment configured. You can set it in the account’s billing settings (Minimum payment %).",
-      "payMinimumCovered": "You have already paid more than this period’s minimum."
+      "payMinimumCovered": "You have already paid more than this period’s minimum.",
+      "billingBreakdown": "{{purchases}} in purchases · {{installments}} in {{count}} instalment",
+      "billingBreakdown_other": "{{purchases}} in purchases · {{installments}} in {{count}} instalments"
     },
     "filter": {
       "label": "Filter by status",
@@ -595,7 +597,8 @@
       "paid": "Paid",
       "upcoming": "Upcoming",
       "pending": "Pending",
-      "partial": "Partially paid"
+      "partial": "Partially paid",
+      "billed": "Billed"
     },
     "subtitleCount_one": "{{count}} instalment plan",
     "subtitleCount_other": "{{count}} instalment plans",
@@ -626,7 +629,8 @@
       "payNext": "Mark instalment {{sequence}} paid",
       "carriedOver": "Includes {{amount}} from the previous instalment",
       "paidSoFar": "Paid so far: {{amount}}",
-      "creditCardNotice": "This plan's instalments record no movement: the purchase is already on its credit card's statement."
+      "creditCardNotice": "This plan's instalments record no movement: the purchase is already on its credit card's statement.",
+      "viewBilling": "View statement"
     },
     "frequency": {
       "DAILY": "Daily",
@@ -649,7 +653,8 @@
     },
     "immutable": {
       "title": "Can't be changed",
-      "reason": "The schedule and the payments already recorded were built from these. To change them, delete the plan and create it again."
+      "reason": "The schedule and the payments already recorded were built from these. To change them, delete the plan and create it again.",
+      "reasonBilled": "The card joins the above: once the first instalment was billed, changing it would leave an already-issued statement describing something that no longer exists."
     },
     "pay": {
       "eyebrow": "Pay instalment",
@@ -676,6 +681,26 @@
       "movements_other": "{{count}} movements will be deleted.",
       "restores": "Restored: {{restorations}}.",
       "unknownAccount": "Unknown account"
+    },
+    "counters": {
+      "scheduled": "{{count}} to bill",
+      "billed": "{{count}} billed",
+      "billed_other": "{{count}} billed",
+      "paid": "{{count}} paid",
+      "paid_other": "{{count}} paid"
+    },
+    "warning": {
+      "NO_BILLING_DAY": "This card's account has no billing day, so its instalments will never be charged. Set one for billing to start.",
+      "CURRENCY_MISMATCH": "This plan is in a different currency from the card's account. The app does not convert currencies, so its instalments are not added to the statement.",
+      "CARD_REMOVED": "This plan's card was deleted, so there is no account left to bill its instalments to."
+    },
+    "settledByStatement": "Settled by the statement of {{date}}",
+    "settledPartially": "That statement was paid in part; the rest rolled into the next one.",
+    "creditPlanNotice": "These instalments are settled when you pay the card statement, not one by one.",
+    "paymentStatus": {
+      "SCHEDULED": "Scheduled",
+      "BILLED": "Billed",
+      "PAID": "Paid"
     }
   },
   "debts": {
@@ -986,6 +1011,8 @@
     "ACCOUNT_TYPE_CHANGE_NOT_ALLOWED": "A prepaid account can't be converted to another type (or the other way round).",
     "INVALID_ACCOUNT_NUMBER": "That account number doesn't match the country's format.",
     "INVALID_ACCOUNT_ALIAS": "That transfer alias isn't valid.",
-    "INVALID_INITIAL_BALANCE": "The initial balance can't be negative."
+    "INVALID_INITIAL_BALANCE": "The initial balance can't be negative.",
+    "INSTALLMENT_PLAN_BILLED": "This plan already has billed instalments: the amount, instalment count, start date and card can no longer change. Title, category and notes still can.",
+    "INSTALLMENT_PLAN_SETTLED": "This plan has instalments on an already-paid statement. Deleting it would mean undoing a real payment."
   }
 }

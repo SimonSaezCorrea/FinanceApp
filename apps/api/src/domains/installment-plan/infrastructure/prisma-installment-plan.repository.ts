@@ -10,6 +10,7 @@ import {
   type InstallmentPaymentProps,
   type InstallmentPlanProps,
 } from "../domain/installment-plan.aggregate";
+import type { BillableCandidate } from "../domain/installment-billing";
 import type {
   CreateInstallmentPlanPlan,
   InstallmentPlanRepositoryPort,
@@ -25,6 +26,7 @@ type Row = NonNullable<Awaited<ReturnType<PrismaService["installmentPlan"]["find
     paidAmount: string | null;
     carriedOverAmount: string;
     transactionId: string | null;
+    creditStatementId: string | null;
   }[];
 };
 
@@ -52,6 +54,7 @@ function rowToProps(row: Row): InstallmentPlanProps {
       paidAmount: p.paidAmount,
       carriedOverAmount: p.carriedOverAmount,
       transactionId: p.transactionId,
+      creditStatementId: p.creditStatementId,
     })),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -100,8 +103,17 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
     return plan ?? null;
   }
 
-  async create(userId: string, plan: CreateInstallmentPlanPlan): Promise<InstallmentPlan> {
-    const row = await this.prisma.installmentPlan.create({
+  create(userId: string, plan: CreateInstallmentPlanPlan): Promise<InstallmentPlan> {
+    return this.createWithTx(this.prisma, userId, plan);
+  }
+
+  async createWithTx(
+    tx: unknown,
+    userId: string,
+    plan: CreateInstallmentPlanPlan,
+  ): Promise<InstallmentPlan> {
+    const client = tx as PrismaService;
+    const row = await client.installmentPlan.create({
       data: {
         userId,
         title: plan.title,
@@ -117,13 +129,27 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
         notes: plan.notes,
       },
     });
-    await this.payments.createForPlan(
+    const payments = await this.payments.createForPlanWithTx(
+      tx,
       row.id,
       plan.payments.map((p) => ({ sequence: p.sequence, dueDate: p.dueDate, amount: p.amount })),
     );
-    const created = await this.findOne(userId, row.id);
-    if (!created) throw new Error("installment plan disappeared right after being created");
-    return created;
+    // Built from what was just written rather than re-read: inside an open
+    // transaction, a read through another client would not see these rows.
+    return InstallmentPlan.fromPersistence({
+      ...rowToProps({ ...row, payments: [] }),
+      payments: payments.map((p) => ({
+        id: p.id,
+        sequence: p.sequence,
+        dueDate: p.dueDate,
+        amount: p.amount,
+        paidAt: p.paidAt,
+        paidAmount: p.paidAmount,
+        carriedOverAmount: p.carriedOverAmount,
+        transactionId: p.transactionId,
+        creditStatementId: p.creditStatementId,
+      })),
+    });
   }
 
   async save(aggregate: InstallmentPlan): Promise<void> {
@@ -170,6 +196,41 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
     paidAt: Date | null,
   ): Promise<boolean> {
     return this.payments.setPaidAt(userId, planId, sequence, paidAt);
+  }
+
+  async listBillableForCards(cardIds: string[], dueBy: Date): Promise<BillableCandidate[]> {
+    if (cardIds.length === 0) return [];
+    const plans = await this.prisma.installmentPlan.findMany({
+      where: { cardId: { in: cardIds } },
+      select: { id: true, currency: true },
+    });
+    if (plans.length === 0) return [];
+    const currencyByPlan = new Map(plans.map((p) => [p.id, p.currency]));
+    const rows = await this.payments.listUnbilledDueForPlans(
+      plans.map((p) => p.id),
+      dueBy,
+    );
+    return rows.map((row) => ({
+      planId: row.installmentPlanId,
+      paymentId: row.id,
+      sequence: row.sequence,
+      dueDate: row.dueDate,
+      amount: row.amount,
+      currency: currencyByPlan.get(row.installmentPlanId) ?? "",
+      creditStatementId: row.creditStatementId,
+    }));
+  }
+
+  stampBillableWithTx(tx: unknown, paymentIds: string[], statementId: string): Promise<void> {
+    return this.payments.stampWithTx(tx, paymentIds, statementId);
+  }
+
+  settleForStatementWithTx(tx: unknown, statementId: string, paidAt: Date): Promise<void> {
+    return this.payments.settleForStatementWithTx(tx, statementId, paidAt);
+  }
+
+  billedInstallmentsForStatement(statementId: string): Promise<{ amount: string; count: number }> {
+    return this.payments.sumBilledForStatement(statementId);
   }
 
   async remove(userId: string, id: string): Promise<boolean> {

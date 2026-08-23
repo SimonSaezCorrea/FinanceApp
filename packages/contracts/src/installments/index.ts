@@ -29,6 +29,65 @@ export type InstallmentPlanStatus = z.infer<typeof installmentPlanStatus>;
 /** How far ahead an unpaid installment counts as "coming up" rather than "on track". */
 export const DUE_SOON_DAYS = 7;
 
+/**
+ * Where one instalment stands (spec 014). Three situations, not two, because a
+ * credit-card plan gains a stage between "in the calendar" and "settled": the period
+ * that CHARGED it exists but has not been paid yet.
+ *
+ * `BILLED` only ever occurs on a credit-card plan. Every other plan goes straight
+ * from SCHEDULED to PAID, one instalment at a time, exactly as before.
+ */
+export const installmentPaymentStatus = z.enum(["SCHEDULED", "BILLED", "PAID"]);
+export type InstallmentPaymentStatus = z.infer<typeof installmentPaymentStatus>;
+
+/**
+ * Derives that situation. Shared by the API and the web so the two cannot disagree.
+ *
+ * `paidAt` is tested FIRST on purpose: a settled instalment keeps the link to the
+ * period that charged it — FR-020 needs it to reach that period — so asking about
+ * `creditStatementId` first would report a paid instalment as merely billed.
+ */
+export function installmentStatus(payment: {
+  paidAt: string | null;
+  creditStatementId: string | null;
+}): InstallmentPaymentStatus {
+  if (payment.paidAt) return "PAID";
+  return payment.creditStatementId ? "BILLED" : "SCHEDULED";
+}
+
+/** How many of a plan's instalments sit in each situation. Always sums to
+ * `installmentCount` — the three are a partition of the schedule, not overlapping
+ * filters. */
+export function planCounters(
+  payments: { paidAt: string | null; creditStatementId: string | null }[],
+): { paidCount: number; billedCount: number; scheduledCount: number } {
+  let paidCount = 0;
+  let billedCount = 0;
+  let scheduledCount = 0;
+  for (const payment of payments) {
+    const status = installmentStatus(payment);
+    if (status === "PAID") paidCount += 1;
+    else if (status === "BILLED") billedCount += 1;
+    else scheduledCount += 1;
+  }
+  return { paidCount, billedCount, scheduledCount };
+}
+
+/**
+ * Why a plan's instalments cannot reach a statement (FR-009a, FR-023a). Null when
+ * nothing is wrong. Derived on read, never stored: every one of these is fixable
+ * elsewhere, and a stored copy would go stale without anyone noticing.
+ */
+export const planBillingWarning = z.enum([
+  /** The card's account has no billing day, so no period will ever close. */
+  "NO_BILLING_DAY",
+  /** Plan currency ≠ the card account's; billing it would need a rate the app lacks. */
+  "CURRENCY_MISMATCH",
+  /** The card was deleted, so there is no account left to bill against. */
+  "CARD_REMOVED",
+]);
+export type PlanBillingWarning = z.infer<typeof planBillingWarning>;
+
 export const installmentPaymentSchema = z.object({
   id: z.string(),
   sequence: z.number().int().positive(),
@@ -45,6 +104,11 @@ export const installmentPaymentSchema = z.object({
   dueAmount: moneyString,
   /** The real expense backing this installment, when there is one. */
   transactionId: z.string().nullable(),
+  /** The billing period that CHARGED this instalment; null while unbilled. Kept after
+   * settlement so the plan can link back to the period that settled it (FR-020). */
+  creditStatementId: z.string().nullable(),
+  /** Derived from the two fields above — see `installmentStatus`. */
+  status: installmentPaymentStatus,
 });
 export type InstallmentPayment = z.infer<typeof installmentPaymentSchema>;
 
@@ -90,8 +154,17 @@ export const installmentPlanSchema = z.object({
   /** Due date of the oldest unpaid installment, or null when none is left. */
   nextDueDate: z.string().nullable(),
   status: installmentPlanStatus,
-  /** False ⇔ the plan's card is CREDIT: paying an installment records no movement. */
+  /** False ⇔ the plan's card is CREDIT: paying an installment records no movement,
+   * and — since spec 014 — no per-instalment pay action is offered at all (FR-021). */
   generatesMovementOnPay: z.boolean(),
+  /** How the schedule is split across the three situations (FR-019). The three always
+   * sum to `installmentCount`. On a non-credit-card plan `billedCount` is always 0. */
+  scheduledCount: z.number().int().nonnegative(),
+  billedCount: z.number().int().nonnegative(),
+  paidCount: z.number().int().nonnegative(),
+  /** Why this plan's instalments cannot be billed, or null when nothing blocks them.
+   * Always null on a non-credit-card plan: it has no statement to reach. */
+  billingWarning: planBillingWarning.nullable(),
   /**
    * Only the DETAIL response carries it; the list answers `null`. Computing it means
    * reading every movement of every plan, and the only caller is the delete

@@ -1,7 +1,13 @@
 import type { installments } from "@finance/contracts";
 import { describe, expect, it } from "vitest";
 
-import { nextDuePayment, paymentStatus, planKpis, visiblePlans } from "./installmentMetrics";
+import {
+  billingWarningKey,
+  nextDuePayment,
+  paymentStatus,
+  planKpis,
+  visiblePlans,
+} from "./installmentMetrics";
 
 /**
  * The four figures in the header and the filters underneath them.
@@ -27,6 +33,8 @@ function payment(
     carriedOverAmount: "0.0000",
     dueAmount: "10000.0000",
     transactionId: null,
+    creditStatementId: null,
+    status: "SCHEDULED" as const,
     ...over,
   };
 }
@@ -51,6 +59,10 @@ function plan(over: Partial<installments.InstallmentPlan> = {}): installments.In
     nextDueDate: "2026-08-20T00:00:00.000Z",
     status: "DUE_SOON",
     generatesMovementOnPay: true,
+    scheduledCount: 1,
+    billedCount: 0,
+    paidCount: 0,
+    billingWarning: null,
     deletionImpact: null,
     createdAt: "2026-07-05T00:00:00.000Z",
     updatedAt: "2026-07-05T00:00:00.000Z",
@@ -202,5 +214,45 @@ describe("per-instalment helpers", () => {
   it("paymentStatus reports partial credit apart from paid", () => {
     const partial = payment({ sequence: 1, paidAmount: "6000.0000" });
     expect(paymentStatus(partial, [partial])).toBe("partial");
+  });
+
+  // Spec 014, FR-018/FR-019: a credit-card plan's instalment gains a stage between
+  // "in the calendar" and "settled" — charged into a period awaiting its payment.
+  it("paymentStatus reports billed apart from upcoming/pending, once a period has charged it", () => {
+    const billed = payment({ sequence: 1, status: "BILLED", creditStatementId: "st_1" });
+    const scheduled = payment({ sequence: 2, status: "SCHEDULED" });
+    expect(paymentStatus(billed, [billed, scheduled])).toBe("billed");
+    // The one after it is still merely scheduled, not "upcoming" — a credit-card
+    // plan's instalments are never individually payable, so that label is moot here.
+    expect(paymentStatus(scheduled, [billed, scheduled])).toBe("pending");
+  });
+
+  it("paymentStatus reports paid even for a billed instalment whose period settled", () => {
+    const settled = payment({
+      sequence: 1,
+      status: "PAID",
+      creditStatementId: "st_1",
+      paidAt: "2026-08-15T00:00:00.000Z",
+      paidAmount: "10000.0000",
+    });
+    expect(paymentStatus(settled, [settled])).toBe("paid");
+  });
+});
+
+describe("billingWarningKey", () => {
+  it("maps each warning to its i18n key", () => {
+    expect(billingWarningKey(plan({ billingWarning: "NO_BILLING_DAY" }))).toBe(
+      "installments.warning.NO_BILLING_DAY",
+    );
+    expect(billingWarningKey(plan({ billingWarning: "CURRENCY_MISMATCH" }))).toBe(
+      "installments.warning.CURRENCY_MISMATCH",
+    );
+    expect(billingWarningKey(plan({ billingWarning: "CARD_REMOVED" }))).toBe(
+      "installments.warning.CARD_REMOVED",
+    );
+  });
+
+  it("is null when nothing is wrong", () => {
+    expect(billingWarningKey(plan({ billingWarning: null }))).toBeNull();
   });
 });

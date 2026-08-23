@@ -380,10 +380,10 @@ pagado y aplica el arrastre — los cuatro efectos en un solo `prisma.$transacti
 espejo exacto: borra el gasto, restituye el saldo, limpia la cuota y revierte el arrastre **que ese
 pago provocó** (nunca el que la cuota recibió: esa deuda pertenece a un pago que sigue en pie).
 
-**Excepción: un plan comprado con tarjeta CREDIT no genera movimiento.** Esa deuda ya está en la
-facturación de la cuenta de esa tarjeta, y registrarla otra vez sería contar lo mismo dos veces. Ahí
-pagar sólo marca la cuota, y el plan ni siquiera admite cuenta de pago recordada
-(`INSTALLMENT_CARD_IS_CREDIT`).
+**Excepción: un plan comprado con tarjeta CREDIT nunca paga una cuota por sí sola.** Esa deuda se
+factura a través de la propia facturación de la tarjeta — ver §4c más abajo. El plan ni siquiera
+admite cuenta de pago recordada (`INSTALLMENT_CARD_IS_CREDIT`), y los endpoints de pagar/deshacer una
+cuota suelta rechazan la solicitud desde el servidor, no sólo ocultan el botón, para ese mismo plan.
 
 ### El arrastre, y en qué se parece —y en qué no— al de la facturación
 
@@ -412,6 +412,12 @@ edita ni se borra desde Movimientos** (`TRANSACTION_LINKED_TO_INSTALLMENT`, 409)
 de la cuota, y cambiarlo ahí dejaría el plan mintiendo sin nada que lo detecte. Se corrige deshaciendo
 y volviendo a pagar la cuota desde su plan, que mueve las cuatro cifras juntas.
 
+El mismo rechazo protege el movimiento de **compra** de un plan con tarjeta de crédito (§4c), pero no
+es el mismo mecanismo: una compra nunca tiene un `InstallmentPayment.transactionId` que apunte a ella
+(no es el pago de nadie), así que los handlers de editar/borrar de `transaction` también revisan
+`Transaction.installmentPlanId !== null` directamente sobre el movimiento — la única huella que una
+compra deja.
+
 **Eliminar un plan revierte todo su historial**: borra los gastos de sus cuotas, restituye el saldo de
 cada cuenta afectada (agregado por cuenta: distintas cuotas pueden haberse pagado desde cuentas
 distintas) y borra el cargo financiero por interés si lo hubo, en una sola operación indivisible. La
@@ -424,6 +430,67 @@ Si la cuenta de pago está en otra moneda que el plan, se declaran **dos montos*
 cuota (en la moneda del plan, que es lo que define el arrastre) y lo cargado a la cuenta (en la suya,
 que es el monto del gasto). No se comparan ni se convierten — esta app no tiene tipo de cambio — y si
 falta el segundo se rechaza (`PAYMENT_CURRENCY_AMBIGUOUS`) en vez de adivinarlo.
+
+---
+
+## 4c. Un plan con tarjeta de crédito: el cupo se mueve al comprar, la facturación cobra el calendario
+
+Un plan comprado con tarjeta CREDIT reproduce lo que hace el emisor real, y el cupo y la facturación
+se mueven en momentos distintos por una razón:
+
+**El cupo se compromete completo el día de la compra.** Crear el plan
+(`create-installment-plan.handler.ts`) escribe UN movimiento EXPENSE por el `totalPrincipal`
+completo —con el `cardId` de la tarjeta y el `installmentPlanId` del plan— en la misma
+`$transaction` que el plan mismo, y ese movimiento consume el cupo de la cuenta de inmediato. Un
+plan de 12 × 90.000 baja el disponible en 1.080.000 en el momento de registrarse, tal como un emisor
+real reserva el compromiso completo el primer día en vez de liberarlo de a un doceavo.
+
+**Ese mismo movimiento queda excluido del total de toda facturación.** Llevar `installmentPlanId` es
+lo que lo saca de `netForStatement`/`netForPeriod`
+(`transaction/infrastructure/prisma-transaction-sums.repository.ts`) — el total de un período nunca
+es la compra, sólo lo que el CALENDARIO tenga vencido dentro de él. Sin esto, una sola facturación
+cobraría el 1.080.000 completo en un mes, que es exactamente el defecto que este diseño elimina.
+
+**Un período factura las cuotas que vencieron en él, y sólo una vez.** `InstallmentPayment` gana una
+columna nullable `creditStatementId` — se llena en el instante en que el cierre de un período la
+estampa (la selección en `installment-plan/domain/installment-billing.ts` es pura:
+`dueDate <= closedAt AND creditStatementId IS NULL`, así que un reintento o un período que cierra
+después de un hueco de actividad nunca puede facturar dos veces ni perder una cuota). Por esto existe
+la columna: las facturaciones se generan perezosamente (un mes sin actividad en la tarjeta no genera
+período), así que derivar "ya facturada" sólo por fecha dejaría huecos por los que una cuota podría
+caer sin que nadie lo note.
+
+**Tres situaciones, no dos.** Una cuota de este tipo de plan está `SCHEDULED` (aún no vence),
+`BILLED` (facturada en un período que todavía espera su propio pago) o `PAID` — el salto entre ellas
+lo decide siempre el cierre o el pago del período, nunca una acción sobre la cuota misma.
+
+**Liquidar el período liquida todas las cuotas que facturó — completo o parcial, igual.** Pagar una
+facturación (`PayCreditStatementHandler`) marca `paidAt` en cada cuota que ese período cobró, dentro
+de la misma transacción cruzada que ya mueve el cupo y el saldo de la cuenta que paga. "Liquidada" se
+decide por el hecho del pago (`paidAt !== null`), nunca por el nombre del estado resultante — un
+período pagado en parte deriva igual `PARTIALLY_PAID`, y sus cuotas quedan igual marcadas PAID. Esto
+no es un caso especial: es la regla de arrastre de la Constitución I aplicada en el nivel que
+realmente recibe el pago. Nadie paga una de estas cuotas por sí sola, así que el faltante le
+pertenece a la FACTURACIÓN, no a la cuota — `CreditStatement.carriedOverAmount` lo arrastra al
+período siguiente exactamente como ya hace con una compra ordinaria, y marcar además la cuota como
+impaga contaría ese mismo faltante dos veces. `InstallmentPayment.carriedOverAmount` —la columna que
+usan los planes ordinarios del §4b— queda siempre en `"0"` para las cuotas de un plan con tarjeta de
+crédito, por esta misma razón.
+
+**El total de una facturación ganó un tercer sumando.** `CreditStatement.totalFor(linkedAmount,
+instalmentAmount = "0")` ahora suma los movimientos ligados al período, lo que arrastró, Y lo que su
+calendario facturó — tres cifras de tres fuentes, nunca una derivada como resto de otra. El desglose
+de la facturación se compone igual: `credit-statement` le pide al puerto de `transaction` la suma de
+compras ligadas y al puerto de `installment-plan` la suma de cuotas facturadas, y las combina él
+mismo — el adaptador de `transaction` no tiene por qué saber nada de calendarios de cuotas.
+
+**Dos invariantes se congelan una vez que el plan facturó.** `InstallmentPlan.applyUpdate` rechaza
+cambiar la tarjeta desde que alguna cuota lleva `creditStatementId` (`INSTALLMENT_PLAN_BILLED`) — una
+facturación ya emitida describió una tarjeta concreta, y que el plan detrás cambie dejaría esa
+facturación mintiendo. Eliminar es más estrecho: sólo se rechaza cuando una cuota está en un período
+realmente **liquidado** (`INSTALLMENT_PLAN_SETTLED`) — un plan cuyas cuotas están sólo `BILLED`
+(período todavía PENDING) sigue pudiendo eliminarse, porque deshacer un período que nadie pagó no
+toca dinero real.
 
 ---
 

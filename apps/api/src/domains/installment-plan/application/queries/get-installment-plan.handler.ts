@@ -53,7 +53,7 @@ export class GetInstallmentPlanQueryHandler extends BaseQueryHandler<
     query: GetInstallmentPlanQuery,
     row: InstallmentPlan,
   ): Promise<installments.InstallmentPlan> {
-    const [dto] = await toPlanDtos([row], query.userId, this.cards);
+    const [dto] = await toPlanDtos([row], query.userId, this.cards, this.accounts);
     const reversal = await loadPlanDeletionReversal(
       query.userId,
       query.id,

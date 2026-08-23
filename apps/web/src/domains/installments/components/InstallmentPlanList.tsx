@@ -67,6 +67,15 @@ export function InstallmentPlanList({ plans, selectedId, onSelect }: Installment
                   </span>
                 </span>
 
+                {/* Spec 014, FR-019: only relevant to a credit-card plan. */}
+                {plan.billedCount > 0 && (
+                  <span className="block text-xs text-muted-foreground">
+                    {t("installments.counters.billed", { count: plan.billedCount })}
+                    {plan.scheduledCount > 0 &&
+                      ` · ${t("installments.counters.scheduled", { count: plan.scheduledCount })}`}
+                  </span>
+                )}
+
                 <span className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
                   <span className="font-medium tabular-nums text-foreground">
                     {next ? money(next.dueAmount) : "—"}

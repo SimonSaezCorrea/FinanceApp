@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { dueAmountOf, generatesMovementOnPay, planStatus } from "./index";
+import {
+  dueAmountOf,
+  generatesMovementOnPay,
+  installmentStatus,
+  planCounters,
+  planStatus,
+} from "./index";
 
 /**
  * The shared predicates of the installments domain. They live in the contract for
@@ -82,5 +88,55 @@ describe("generatesMovementOnPay", () => {
 
   it("is true with no card at all (a bank loan has no statement behind it)", () => {
     expect(generatesMovementOnPay(null)).toBe(true);
+  });
+});
+
+describe("installmentStatus", () => {
+  it("is SCHEDULED while the instalment has neither been billed nor paid", () => {
+    expect(installmentStatus({ paidAt: null, creditStatementId: null })).toBe("SCHEDULED");
+  });
+
+  it("is BILLED once a period charged it but that period is unpaid", () => {
+    expect(installmentStatus({ paidAt: null, creditStatementId: "st_1" })).toBe("BILLED");
+  });
+
+  it("is PAID once it is settled, whether or not a period charged it", () => {
+    // A non-credit-card plan is paid instalment by instalment and never gets billed.
+    expect(installmentStatus({ paidAt: "2026-08-15T00:00:00.000Z", creditStatementId: null })).toBe(
+      "PAID",
+    );
+  });
+
+  it("lets PAID win over BILLED: the link survives settlement and must not hide it", () => {
+    // FR-020 needs `creditStatementId` AFTER payment, to reach the settling period.
+    // Testing `creditStatementId` first would report a settled instalment as BILLED.
+    expect(installmentStatus({ paidAt: "2026-08-15T00:00:00.000Z", creditStatementId: "st_1" })).toBe(
+      "PAID",
+    );
+  });
+});
+
+describe("planCounters", () => {
+  const billed = { paidAt: null, creditStatementId: "st_1" };
+  const scheduled = { paidAt: null, creditStatementId: null };
+  const paid = { paidAt: "2026-08-15T00:00:00.000Z", creditStatementId: "st_0" };
+
+  it("always partitions the schedule: the three counts sum to the instalment count", () => {
+    const counters = planCounters([paid, paid, billed, scheduled, scheduled, scheduled]);
+    expect(counters).toEqual({ paidCount: 2, billedCount: 1, scheduledCount: 3 });
+    const total = counters.paidCount + counters.billedCount + counters.scheduledCount;
+    expect(total).toBe(6);
+  });
+
+  it("counts an empty schedule as all zeros", () => {
+    expect(planCounters([])).toEqual({ paidCount: 0, billedCount: 0, scheduledCount: 0 });
+  });
+
+  it("never reports a billed instalment on a plan that is not a credit-card plan", () => {
+    // FR-005 regression guard: only the billing flow writes `creditStatementId`, and it
+    // only ever runs for CREDIT-card plans. A non-zero billedCount here would mean the
+    // feature leaked into plans it must not touch.
+    const nonCreditSchedule = [paid, scheduled, scheduled];
+    expect(planCounters(nonCreditSchedule).billedCount).toBe(0);
   });
 });

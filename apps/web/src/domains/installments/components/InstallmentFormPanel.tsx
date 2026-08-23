@@ -40,6 +40,9 @@ interface Props {
   onChange: (patch: Partial<InstallmentFormValue>) => void;
   accounts: accountsContract.BankAccount[];
   categoryOptions: string[];
+  /** Spec 014, FR-006b: the plan's card is frozen once it has billed an instalment
+   * — always false while creating. */
+  cardFrozen?: boolean;
   onSubmit: () => void;
   submitting?: boolean;
   dirty?: boolean;
@@ -64,6 +67,7 @@ export function InstallmentFormPanel({
   onChange,
   accounts,
   categoryOptions,
+  cardFrozen = false,
   onSubmit,
   submitting = false,
   dirty = false,
@@ -190,6 +194,7 @@ export function InstallmentFormPanel({
             currency={value.currency}
             installmentCount={value.installmentCount}
             startDate={value.startDate}
+            cardLabel={cardFrozen ? (selectedCard?.label ?? t("installments.form.cardNone")) : null}
           />
         )}
 
@@ -263,31 +268,35 @@ export function InstallmentFormPanel({
             />
           </DetailRow>
 
-          <DetailRow label={t("installments.form.card")}>
-            <SearchableSelect
-              id="plan-card"
-              variant="inline"
-              className="w-auto"
-              value={value.cardId}
-              onChange={(cardId) =>
-                onChange({
-                  cardId,
-                  // Moving the plan onto a credit card drops the remembered account
-                  // in the same gesture: the two cannot coexist.
-                  ...(cards.find((c) => c.id === cardId)?.kind === "CREDIT"
-                    ? { paymentAccountId: "" }
-                    : {}),
-                })
-              }
-              options={[
-                { value: "", label: t("installments.form.cardNone") },
-                ...cards.map((c) => ({ value: c.id, label: c.label })),
-              ]}
-              searchPlaceholder={t("common.search")}
-              noResultsLabel={t("common.noResults")}
-              aria-label={t("installments.form.card")}
-            />
-          </DetailRow>
+          {/* FR-006b: once billed, shown (with its reason) inside
+              `ImmutableFieldsNotice` above instead of as an editable field. */}
+          {!cardFrozen && (
+            <DetailRow label={t("installments.form.card")}>
+              <SearchableSelect
+                id="plan-card"
+                variant="inline"
+                className="w-auto"
+                value={value.cardId}
+                onChange={(cardId) =>
+                  onChange({
+                    cardId,
+                    // Moving the plan onto a credit card drops the remembered account
+                    // in the same gesture: the two cannot coexist.
+                    ...(cards.find((c) => c.id === cardId)?.kind === "CREDIT"
+                      ? { paymentAccountId: "" }
+                      : {}),
+                  })
+                }
+                options={[
+                  { value: "", label: t("installments.form.cardNone") },
+                  ...cards.map((c) => ({ value: c.id, label: c.label })),
+                ]}
+                searchPlaceholder={t("common.search")}
+                noResultsLabel={t("common.noResults")}
+                aria-label={t("installments.form.card")}
+              />
+            </DetailRow>
+          )}
 
           {offersPaymentAccount ? (
             <DetailRow label={t("installments.form.paymentAccount")}>

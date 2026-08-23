@@ -42,14 +42,11 @@ export class ListCreditStatementsQueryHandler extends BaseQueryHandler<
     return Promise.all(
       statements.map(async (s) => {
         // Settled periods carry their frozen figure; the rest are still live sums
-        // of their linked transactions.
-        const [amount, breakdown] = await Promise.all([
-          s.paidAt
-            ? Promise.resolve(s.amount)
-            : // Plus whatever the previous period left unpaid — it is owed here now.
-              this.statementRepo.sumLinkedTransactions(s.id).then((sum) => s.totalFor(sum)),
-          this.statementRepo.breakdown(s.id),
-        ]);
+        // of their linked transactions, plus what was carried in, plus what the
+        // schedule billed (spec 014, FR-010) — the breakdown is fetched first
+        // because an unsettled period's total is built FROM it, not alongside it.
+        const breakdown = await this.statementRepo.breakdown(s.id);
+        const amount = s.paidAt ? s.amount : s.totalFor(breakdown.purchases, breakdown.installments);
         return toStatementDto(s, { amount, breakdown, minimumPercent });
       }),
     );

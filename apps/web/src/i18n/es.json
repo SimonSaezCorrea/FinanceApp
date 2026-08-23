@@ -158,7 +158,9 @@
       "editPaymentCascadeHint": "Se ajustan el movimiento del pago, el saldo de la cuenta de origen, el cupo usado y lo que pasa a la próxima facturación.",
       "editPaymentSuccess": "Pago actualizado",
       "payMinimumUnset": "Esta cuenta no tiene pago mínimo configurado. Puedes definirlo en la facturación de la cuenta (Pago mínimo %).",
-      "payMinimumCovered": "Ya pagaste más que el mínimo de este período."
+      "payMinimumCovered": "Ya pagaste más que el mínimo de este período.",
+      "billingBreakdown": "{{purchases}} en compras · {{installments}} en {{count}} cuota",
+      "billingBreakdown_other": "{{purchases}} en compras · {{installments}} en {{count}} cuotas"
     },
     "filter": {
       "label": "Filtrar por estado",
@@ -595,7 +597,8 @@
       "paid": "Pagada",
       "upcoming": "Próxima",
       "pending": "Pendiente",
-      "partial": "Pagada en parte"
+      "partial": "Pagada en parte",
+      "billed": "Facturada"
     },
     "subtitleCount_one": "{{count}} plan de cuotas",
     "subtitleCount_other": "{{count}} planes de cuotas",
@@ -626,7 +629,8 @@
       "payNext": "Marcar cuota {{sequence}} pagada",
       "carriedOver": "Incluye {{amount}} de la cuota anterior",
       "paidSoFar": "Pagado hasta ahora: {{amount}}",
-      "creditCardNotice": "Las cuotas de este plan no generan movimiento: la compra ya está registrada en la facturación de su tarjeta de crédito."
+      "creditCardNotice": "Las cuotas de este plan no generan movimiento: la compra ya está registrada en la facturación de su tarjeta de crédito.",
+      "viewBilling": "Ver facturación"
     },
     "frequency": {
       "DAILY": "Diaria",
@@ -649,7 +653,8 @@
     },
     "immutable": {
       "title": "No se puede cambiar",
-      "reason": "El calendario y las cuotas ya registradas se construyeron con estos datos. Para cambiarlos, elimina el plan y créalo de nuevo."
+      "reason": "El calendario y las cuotas ya registradas se construyeron con estos datos. Para cambiarlos, elimina el plan y créalo de nuevo.",
+      "reasonBilled": "La tarjeta se suma a lo anterior: una vez que se facturó la primera cuota, cambiarla dejaría una facturación ya emitida describiendo algo que ya no existe."
     },
     "pay": {
       "eyebrow": "Pagar cuota",
@@ -676,6 +681,26 @@
       "movements_other": "Se eliminarán {{count}} movimientos.",
       "restores": "Se restituye: {{restorations}}.",
       "unknownAccount": "Cuenta desconocida"
+    },
+    "counters": {
+      "scheduled": "{{count}} por facturar",
+      "billed": "{{count}} facturada",
+      "billed_other": "{{count}} facturadas",
+      "paid": "{{count}} pagada",
+      "paid_other": "{{count}} pagadas"
+    },
+    "warning": {
+      "NO_BILLING_DAY": "La cuenta de esta tarjeta no tiene día de facturación, así que sus cuotas no se cobrarán. Configúralo para que empiecen a facturarse.",
+      "CURRENCY_MISMATCH": "Este plan está en otra moneda que la cuenta de la tarjeta. La app no convierte monedas, así que sus cuotas no se incorporan a la facturación.",
+      "CARD_REMOVED": "La tarjeta de este plan fue eliminada, así que no hay cuenta a la que facturar sus cuotas."
+    },
+    "settledByStatement": "Saldada por la facturación del {{date}}",
+    "settledPartially": "Esa facturación se pagó en parte; el resto pasó a la siguiente.",
+    "creditPlanNotice": "Estas cuotas se pagan al pagar la facturación de la tarjeta, no una por una.",
+    "paymentStatus": {
+      "SCHEDULED": "Programada",
+      "BILLED": "Facturada",
+      "PAID": "Pagada"
     }
   },
   "debts": {
@@ -986,6 +1011,8 @@
     "ACCOUNT_TYPE_CHANGE_NOT_ALLOWED": "No se puede convertir una cuenta prepago en otro tipo (ni al revés).",
     "INVALID_ACCOUNT_NUMBER": "El número de cuenta no tiene el formato de ese país.",
     "INVALID_ACCOUNT_ALIAS": "El alias de transferencia no es válido.",
-    "INVALID_INITIAL_BALANCE": "El saldo inicial no puede ser negativo."
+    "INVALID_INITIAL_BALANCE": "El saldo inicial no puede ser negativo.",
+    "INSTALLMENT_PLAN_BILLED": "Este plan ya tiene cuotas facturadas: el monto, el número de cuotas, la fecha de inicio y la tarjeta no se pueden cambiar. El título, la categoría y las notas sí.",
+    "INSTALLMENT_PLAN_SETTLED": "Este plan tiene cuotas en una facturación ya pagada. Eliminarlo exigiría deshacer un pago real."
   }
 }
