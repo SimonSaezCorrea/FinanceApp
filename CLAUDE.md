@@ -816,7 +816,7 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
   (the collapsible sidebar), the decision belongs to the element's OWN width, not the viewport —
   `shared/lib/useElementWidth.ts` (ResizeObserver) does that, and two consumers use it:
   `TransactionTable` picks its full column-per-field table vs. its compact list at
-  `FULL_TABLE_MIN_WIDTH` (860px of table, not of screen) — at a 1024px viewport that's the full table
+  `TABLE_ROW_MIN_WIDTH` (760px of table, not of screen) — at a 1024px viewport that's the full table
   with the sidebar collapsed (~896px) and the compact one with it expanded (~736px); and
   `AccountDetailRoute`/`AccountEditRoute` decide the whole two-column layout (cards aside + per-column
   scrolling vs. single column + "Tarjetas" tab + card drawer) at `ASIDE_MIN_WIDTH` (1100px of view) —
@@ -827,6 +827,26 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
   viewport-driven cases.
   Tailwind also sets `future.hoverOnlyWhenSupported` so every `hover:` compiles inside
   `@media (hover: hover)` — without it a tap on a touch device leaves the hover state stuck on.
+  Amendment (one row format for every table, 2026-08-24): Movimientos, Cuotas and Facturación each
+  had their own table conventions — different leading-icon shapes (circle vs. rounded-square vs.
+  none), a shaded header only on Movimientos, three different table↔list breakpoints (860/860/640px
+  of container), and instalment/billing amounts in plain foreground instead of the red/green a real
+  outflow/inflow gets everywhere else. Unified: every such table's leading icon is a **circle**
+  (`rounded-full`), tinted only where a real sign exists (Movimientos, by income/expense/transfer) —
+  Cuotas and Facturación stay neutral `bg-chip`, since their icon names a category/period, not a
+  flow; every header gets `bg-muted/50`; the table↔list breakpoint is the single
+  **`TABLE_ROW_MIN_WIDTH`** (760px, `shared/lib/useElementWidth.ts`, replacing each table's own
+  `FULL_TABLE_MIN_WIDTH`/`BILLING_TABLE_MIN_WIDTH` constant); a Cuotas plan's next-due instalment and
+  a Facturación row's leading icon/header now follow the same rule. `InstallmentPlanTable` also lost
+  its own duplicate `RowAction` icon-button in favor of the shared `Button variant="ghost"`, matching
+  `TransactionTable`'s row actions. `BillingSection`'s wide table gained the same leading icon column
+  and its row actions ("Pagar", "Modificar pago") became icon-only (`Banknote`/`Pencil`, accent-tinted
+  for "Pagar" since it's the one action that moves money forward) instead of text buttons, to match
+  the icon-only "Sincronizar pagos" already there. Also fixed in the same pass: `formatMoney`
+  (`@finance/money`) resolved the bare `"es"` locale to Chilean Spanish's `"$95.000"` — `Intl.
+NumberFormat("es", …)` has no currency-symbol mapping for CLP and fell back to the ISO code
+  ("95.000 CLP"); `"es-CL"` resolves it (and disambiguates USD as "US$"), while CLF (the UF, which
+  has no real symbol in any locale) correctly keeps its code.
   Amendment (dark-theme repaint from design handoff, 2026-07-17): `--background`/`--card`/`--border`/`--input`/`--muted`/`--muted-foreground`/`--primary-foreground`/`--destructive` were replaced with the exact hex from the handoff palette (`#0b1518`/`#0f1e21`/`#1e2e32`/`#283c41`/`#22343a`/`#8aa0a2`/`#08181b`/`#e08a8a` respectively); `--brand`/`--accent`/`--success` already matched and only got sub-degree hue rounding fixes. `--destructive-foreground` (dark) changed from white to a dark ink (`0 45% 10%`) because the handoff's danger red is light enough that white text on a _solid_ `bg-destructive` button would fail contrast — mirrors how `--primary`/`--accent` already pair a light base color with a dark "ink" foreground; the ~40 `text-destructive`/low-opacity-fill usages elsewhere were unaffected. New tokens from the same handoff, defined in both themes but **not yet consumed by any component** (available for future use — grep before assuming something already uses them): `--surface-2`/`--chip`/`--track`/`--border-2`/`--text-dim` (dark-named concepts; dark values are the handoff hex. **Light values were MISSING until 2026-08-13** — the light theme inherited `:root`'s dark ones, so `bg-chip`/`bg-surface2`/`bg-track`/`border-border2`/`text-dim` painted dark blocks with unreadable text in light mode, e.g. the account cards' icon tiles and type chips; every one of these now has an explicit `[data-theme="light"]` value. Any NEW token must be defined in BOTH blocks) and `--panel-bg`/`--viewer-bg` (light-named concepts from the handoff; dark theme falls back to `--surface-2`/`--card`). Exposed via Tailwind as `surface2`/`chip`/`track`/`border2`/`dim`/`panel`/`viewer`. Explicit hover hex (`primary-hover`/`accent-hover`) from the light-theme handoff were **not** wired in — `Button` still uses the `hover:bg-primary/90` opacity approach.
 - **Boundaries:** keep the one-way dep rule; run `pnpm check:boundaries`. New domain → mirror an existing one (see `apps/api/README.md` / `apps/web/README.md` skeletons).
 - **Commits:** only when the user explicitly asks.

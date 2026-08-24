@@ -25,22 +25,34 @@ interface PlanStatusBadgeProps {
   nextDueDate: string | null;
 }
 
-export function PlanStatusBadge({ status, nextDueDate }: Readonly<PlanStatusBadgeProps>) {
-  const { t, i18n } = useTranslation();
-
+/**
+ * The same wording the badge shows, as plain text — for a context that needs
+ * the words but not the pill (a phone row's single-line subtitle, folding the
+ * status in next to the progress fraction instead of stacking it as its own
+ * coloured element).
+ */
+export function planStatusText(
+  status: installments.InstallmentPlanStatus,
+  nextDueDate: string | null,
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  locale: string,
+): string {
   const date =
     nextDueDate === null
       ? null
-      : new Date(nextDueDate).toLocaleDateString(i18n.language, {
-          day: "numeric",
-          month: "short",
-        });
+      : new Date(nextDueDate).toLocaleDateString(locale, { day: "numeric", month: "short" });
+
+  return date === null
+    ? t(`installments.status.${status}`)
+    : t(`installments.statusWithDate.${status}`, { date });
+}
+
+export function PlanStatusBadge({ status, nextDueDate }: Readonly<PlanStatusBadgeProps>) {
+  const { t, i18n } = useTranslation();
 
   return (
     <Badge variant={VARIANTS[status]}>
-      {date === null
-        ? t(`installments.status.${status}`)
-        : t(`installments.statusWithDate.${status}`, { date })}
+      {planStatusText(status, nextDueDate, t, i18n.language)}
     </Badge>
   );
 }

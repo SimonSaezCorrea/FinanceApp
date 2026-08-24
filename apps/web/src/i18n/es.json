@@ -237,7 +237,6 @@
       "deactivate": "Desactivar",
       "payCredit": "Pagar facturación",
       "editStatementPayment": "Modificar pago",
-      "editStatementPaymentShort": "Pago",
       "payCreditConfirm": "¿Pagar {{amount}} de facturación? Se descontará del cupo usado.",
       "payCreditSuccess": "Facturación pagada",
       "generateStatements": "Generar facturación",
@@ -618,7 +617,8 @@
       "PAID": "Pagado"
     },
     "list": {
-      "remaining": "Restan {{amount}}"
+      "remaining": "Restan {{amount}}",
+      "progressAndStatus": "{{paid}}/{{total}} · {{status}}"
     },
     "detail": {
       "eyebrow": "Detalle del plan",

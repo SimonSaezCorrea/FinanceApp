@@ -5,15 +5,15 @@ import { useTranslation } from "react-i18next";
 import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { CategoryIcon } from "../../../shared/ui/category-icon";
 import { RowActionsMenu } from "./RowActionsMenu";
-import { SwipeRow } from "./SwipeRow";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
+import { CategoryIcon } from "../../../shared/ui/category-icon";
 import { cn } from "../../../shared/lib/cn";
-import { useElementWidth } from "../../../shared/lib/useElementWidth";
+import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { InfiniteScrollSentinel } from "../../../shared/ui/infinite-scroll-sentinel";
+import { SwipeRow } from "../../../shared/ui/swipe-row";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
 
 interface TransactionTableProps {
@@ -44,10 +44,14 @@ interface TransactionTableProps {
  * viewport — at 1024px the same screen leaves ~896px with the sidebar collapsed
  * (full table) and ~736px with it expanded (compact), and a media query can't
  * tell those apart.
+ *
+ * `TABLE_ROW_MIN_WIDTH` — shared with Cuotas and Facturación, which used to
+ * each pick their own value. Re-exported under this table's original name so
+ * its own loading placeholder (which splits at the same width — a skeleton
+ * showing columns the real table then drops is a layout jump) doesn't need a
+ * second import.
  */
-/** Exported so a loading placeholder for this table splits at the same width —
- *  a skeleton showing columns the real table then drops is a layout jump. */
-export const FULL_TABLE_MIN_WIDTH = 860;
+export const FULL_TABLE_MIN_WIDTH = TABLE_ROW_MIN_WIDTH;
 
 function formatDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, {

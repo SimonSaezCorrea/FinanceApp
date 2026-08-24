@@ -8,7 +8,7 @@ import { useAccounts, useCreditStatements } from "../../accounts/hooks/useAccoun
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { useTransactionsSummary } from "../../transactions/hooks/useTransactions";
 import { cn } from "../../../shared/lib/cn";
-import { useElementWidth } from "../../../shared/lib/useElementWidth";
+import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { Button } from "../../../shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Segmented } from "../../../shared/ui/segmented";
@@ -36,14 +36,6 @@ import { useInstallments } from "../hooks/useInstallments";
 import type { PlanFilter } from "../lib/installmentMetrics";
 import { visiblePlans } from "../lib/installmentMetrics";
 
-/**
- * Below this much room FOR THE LIST, the per-column table stops fitting and the
- * stacked cards take over. Measured on the container, not the viewport: the
- * collapsible sidebar changes the space available without changing the window, and a
- * media query cannot see that (see `useElementWidth`).
- */
-const FULL_TABLE_MIN_WIDTH = 860;
-
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
 export function InstallmentsRoute() {
@@ -70,7 +62,7 @@ export function InstallmentsRoute() {
   const [listRef, listWidth] = useElementWidth();
   // Until measured, assume narrow: the stacked list is correct at ANY width, the
   // table is not.
-  const showTable = listWidth !== null && listWidth >= FULL_TABLE_MIN_WIDTH;
+  const showTable = listWidth !== null && listWidth >= TABLE_ROW_MIN_WIDTH;
 
   const plans = useMemo(() => data ?? [], [data]);
   const accountList = useMemo(() => accounts ?? [], [accounts]);
@@ -110,7 +102,7 @@ export function InstallmentsRoute() {
   }, [accountList]);
 
   const selectedAccountId = selectedPlan?.cardId
-    ? cardAccountIds.get(selectedPlan.cardId) ?? null
+    ? (cardAccountIds.get(selectedPlan.cardId) ?? null)
     : null;
   // Only fetched for whichever plan's panel is open — `useCreditStatements` is a
   // no-op without an id (spec 014, FR-020: needed to tell a fully-paid instalment
@@ -316,7 +308,13 @@ export function InstallmentsRoute() {
                 onDelete={setDeleteId}
               />
             ) : (
-              <InstallmentPlanList plans={visible} selectedId={selectedId} onSelect={selectPlan} />
+              <InstallmentPlanList
+                plans={visible}
+                selectedId={selectedId}
+                onSelect={selectPlan}
+                onEdit={openEdit}
+                onDelete={setDeleteId}
+              />
             )}
           </div>
         </>
@@ -368,8 +366,7 @@ export function InstallmentsRoute() {
           accounts={accountList}
           categoryOptions={summary?.categories ?? []}
           cardFrozen={
-            form.mode === "edit" &&
-            (plans.find((p) => p.id === form.planId)?.billedCount ?? 0) > 0
+            form.mode === "edit" && (plans.find((p) => p.id === form.planId)?.billedCount ?? 0) > 0
           }
           onSubmit={submitForm}
           submitting={create.isPending || update.isPending}

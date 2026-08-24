@@ -237,7 +237,6 @@
       "deactivate": "Deactivate",
       "payCredit": "Pay statement",
       "editStatementPayment": "Edit payment",
-      "editStatementPaymentShort": "Payment",
       "payCreditConfirm": "Pay {{amount}} of your statement? It will be deducted from used credit.",
       "payCreditSuccess": "Statement paid",
       "generateStatements": "Generate statement",
@@ -618,7 +617,8 @@
       "PAID": "Paid"
     },
     "list": {
-      "remaining": "{{amount}} left"
+      "remaining": "{{amount}} left",
+      "progressAndStatus": "{{paid}}/{{total}} · {{status}}"
     },
     "detail": {
       "eyebrow": "Plan detail",
