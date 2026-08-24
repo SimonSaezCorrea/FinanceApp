@@ -11,6 +11,7 @@ export interface TransactionListFilter {
   type?: transactions.TransactionType;
   bankAccountId?: string;
   cardId?: string;
+  creditStatementId?: string;
   occurredFrom?: Date;
   occurredTo?: Date;
   category?: string;

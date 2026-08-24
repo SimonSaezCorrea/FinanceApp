@@ -98,6 +98,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     if (where.type) prismaWhere.type = where.type;
     if (where.bankAccountId) prismaWhere.bankAccountId = where.bankAccountId;
     if (where.cardId) prismaWhere.cardId = where.cardId;
+    if (where.creditStatementId) prismaWhere.creditStatementId = where.creditStatementId;
     if (where.category) {
       prismaWhere.category = { contains: where.category, mode: "insensitive" };
     }

@@ -158,7 +158,10 @@ export function InstallmentDetailPanel({
               {plan.billingWarning === "NO_BILLING_DAY" && accountId && (
                 <>
                   {" "}
-                  <Link to={`/accounts/${accountId}`} className="underline underline-offset-2">
+                  <Link
+                    to={`/accounts/${accountId}?tab=billing`}
+                    className="underline underline-offset-2"
+                  >
                     {t("installments.detail.viewBilling")}
                   </Link>
                 </>
@@ -255,7 +258,7 @@ export function InstallmentDetailPanel({
                             {t("installments.settledPartially")}{" "}
                             {accountId && (
                               <Link
-                                to={`/accounts/${accountId}`}
+                                to={`/accounts/${accountId}?tab=billing&statement=${payment.creditStatementId}`}
                                 className="underline underline-offset-2"
                               >
                                 {t("installments.detail.viewBilling")}

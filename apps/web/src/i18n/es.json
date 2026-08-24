@@ -160,7 +160,11 @@
       "payMinimumUnset": "Esta cuenta no tiene pago mínimo configurado. Puedes definirlo en la facturación de la cuenta (Pago mínimo %).",
       "payMinimumCovered": "Ya pagaste más que el mínimo de este período.",
       "billingBreakdown": "{{purchases}} en compras · {{installments}} en {{count}} cuota",
-      "billingBreakdown_other": "{{purchases}} en compras · {{installments}} en {{count}} cuotas"
+      "billingBreakdown_other": "{{purchases}} en compras · {{installments}} en {{count}} cuotas",
+      "statementPaid": "Pagado",
+      "statementRemaining": "Restante",
+      "statementPurchases": "Compras",
+      "statementInstallments": "Cuotas facturadas"
     },
     "filter": {
       "label": "Filtrar por estado",

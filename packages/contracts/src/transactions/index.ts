@@ -160,6 +160,8 @@ export const transactionFiltersSchema = z.object({
   type: transactionType.optional(),
   bankAccountId: z.string().optional(),
   cardId: z.string().optional(),
+  /** Every movement linked to one billing period — a statement's detail view. */
+  creditStatementId: z.string().optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   /** Case-insensitive substring match on `category`. Server-side because the

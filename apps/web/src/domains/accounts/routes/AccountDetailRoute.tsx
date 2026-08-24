@@ -1,7 +1,7 @@
 import { AlertTriangle, ChevronRight, Loader2, Pencil, Plus, Power, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 
 import { accounts as accountsContract } from "@finance/contracts";
@@ -45,13 +45,19 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Shared by the movements table's own filter and (on desktop) the cards aside:
   // expanding a card there filters this table by it, which is the whole point of
   // showing both at once instead of in an overlay.
   const [cardFilter, setCardFilter] = useState("");
-  const [tab, setTab] = useState<"movements" | "billing" | "cards">("movements");
+  // Deep-linked from elsewhere (e.g. an instalment plan's "ver facturación"):
+  // `?tab=billing&statement=<id>` lands directly on the period's own detail.
+  const [tab, setTab] = useState<"movements" | "billing" | "cards">(() =>
+    searchParams.get("tab") === "billing" ? "billing" : "movements",
+  );
+  const openStatementId = searchParams.get("statement");
   const { data: acc, isLoading, isError } = useAccount(id);
   // Only to know whether this is the user's last cash account (see `deletable`).
   const { data: allAccounts } = useAccounts();
@@ -239,7 +245,24 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
           {/* With the tab strip visible its label IS the section heading — an
                 in-section <h2> repeating it is pure noise. Without tabs (a single
                 view) the heading is the only thing naming the section, so it stays. */}
-          {activeTab === "billing" ? <BillingSection account={acc} hideTitle={hasTabs} /> : null}
+          {activeTab === "billing" ? (
+            <BillingSection
+              account={acc}
+              hideTitle={hasTabs}
+              openStatementId={openStatementId}
+              onConsumeOpenStatement={() => {
+                setSearchParams(
+                  (prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.delete("statement");
+                    next.delete("tab");
+                    return next;
+                  },
+                  { replace: true },
+                );
+              }}
+            />
+          ) : null}
           {activeTab === "cards" ? (
             <CardsAside account={acc} holder={user?.name ?? undefined} hideTitle={hasTabs} />
           ) : null}

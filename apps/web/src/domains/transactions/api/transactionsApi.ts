@@ -7,6 +7,7 @@ function toQuery(filters: transactions.TransactionFilters = {}): string {
   if (filters.type) params.set("type", filters.type);
   if (filters.bankAccountId) params.set("bankAccountId", filters.bankAccountId);
   if (filters.cardId) params.set("cardId", filters.cardId);
+  if (filters.creditStatementId) params.set("creditStatementId", filters.creditStatementId);
   if (filters.from) params.set("from", filters.from);
   if (filters.to) params.set("to", filters.to);
   if (filters.category) params.set("category", filters.category);

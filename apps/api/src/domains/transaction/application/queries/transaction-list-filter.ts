@@ -28,6 +28,7 @@ export function toListFilter(filters: transactions.TransactionFilters): Transact
     type: filters.type,
     bankAccountId: filters.bankAccountId,
     cardId: filters.cardId,
+    creditStatementId: filters.creditStatementId,
     category: filters.category,
     occurredFrom: filters.from ? new Date(filters.from) : undefined,
     occurredTo: filters.to ? new Date(filters.to) : undefined,

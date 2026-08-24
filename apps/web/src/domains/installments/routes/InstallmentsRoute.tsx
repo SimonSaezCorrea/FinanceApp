@@ -12,7 +12,7 @@ import { useElementWidth } from "../../../shared/lib/useElementWidth";
 import { Button } from "../../../shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Segmented } from "../../../shared/ui/segmented";
-import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
+import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { DeletePlanConfirm } from "../components/DeletePlanConfirm";
 import { InstallmentDetailPanel } from "../components/InstallmentDetailPanel";
 import {
@@ -24,6 +24,7 @@ import {
 import { InstallmentKpiStrip } from "../components/InstallmentKpiStrip";
 import { InstallmentPlanList } from "../components/InstallmentPlanList";
 import { InstallmentPlanTable } from "../components/InstallmentPlanTable";
+import { InstallmentsSkeleton } from "../components/InstallmentsSkeleton";
 import {
   PayInstallmentPanel,
   initialPayValue,
@@ -264,7 +265,7 @@ export function InstallmentsRoute() {
         }
       />
 
-      {isLoading && <LoadingState title={t("app.loading")} />}
+      {isLoading && <InstallmentsSkeleton label={t("app.loading")} />}
       {/* A failed load is not "you have no plans" — saying so would be a lie the user
           acts on. */}
       {!isLoading && isError && <ErrorState title={t("errors.INTERNAL_ERROR")} />}

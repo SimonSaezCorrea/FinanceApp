@@ -160,7 +160,11 @@
       "payMinimumUnset": "This account has no minimum payment configured. You can set it in the account’s billing settings (Minimum payment %).",
       "payMinimumCovered": "You have already paid more than this period’s minimum.",
       "billingBreakdown": "{{purchases}} in purchases · {{installments}} in {{count}} instalment",
-      "billingBreakdown_other": "{{purchases}} in purchases · {{installments}} in {{count}} instalments"
+      "billingBreakdown_other": "{{purchases}} in purchases · {{installments}} in {{count}} instalments",
+      "statementPaid": "Paid",
+      "statementRemaining": "Remaining",
+      "statementPurchases": "Purchases",
+      "statementInstallments": "Billed instalments"
     },
     "filter": {
       "label": "Filter by status",

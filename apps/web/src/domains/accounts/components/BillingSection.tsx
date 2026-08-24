@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { cn } from "../../../shared/lib/cn";
 import { useTranslation } from "react-i18next";
@@ -17,6 +17,7 @@ import { useElementWidth } from "../../../shared/lib/useElementWidth";
 import { useAccountMutations, useCreditStatements } from "../hooks/useAccounts";
 import { EditStatementPaymentPanel } from "./EditStatementPaymentPanel";
 import { PayStatementPanel } from "./PayStatementPanel";
+import { StatementDetailPanel } from "./StatementDetailPanel";
 
 const STATUS_VARIANT = {
   OPEN: "info",
@@ -86,10 +87,18 @@ function BillingTableSkeleton({ label }: Readonly<{ label: string }>) {
 export function BillingSection({
   account,
   hideTitle,
+  openStatementId,
+  onConsumeOpenStatement,
 }: {
   account: accounts.BankAccount;
   /** The tab strip above already names this section — don't repeat it. */
   hideTitle?: boolean;
+  /** Deep-linked from elsewhere (e.g. an instalment's "ver facturación"): once
+   * the periods load, the matching one opens its own detail automatically. */
+  openStatementId?: string | null;
+  /** Called once the deep link above has been acted on, so the URL doesn't
+   * keep re-opening the same period on every re-render/back navigation. */
+  onConsumeOpenStatement?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const { data: statements, isLoading, isError } = useCreditStatements(account.id);
@@ -97,7 +106,18 @@ export function BillingSection({
   const [payTarget, setPayTarget] = useState<accounts.CreditStatement | null>(null);
   const [syncTarget, setSyncTarget] = useState<accounts.CreditStatement | null>(null);
   const [editPaymentTarget, setEditPaymentTarget] = useState<accounts.CreditStatement | null>(null);
+  const [detailTarget, setDetailTarget] = useState<accounts.CreditStatement | null>(null);
   const [confirmGenerate, setConfirmGenerate] = useState(false);
+
+  useEffect(() => {
+    if (!openStatementId || !statements) return;
+    const match = statements.find((s) => s.id === openStatementId);
+    if (match) setDetailTarget(match);
+    onConsumeOpenStatement?.();
+    // Only once the periods for THIS deep link have arrived — re-running on
+    // every `statements` refetch would reopen a panel the user already closed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openStatementId, statements]);
 
   const [containerRef, width] = useElementWidth();
   // Until measured, the stacked layout: it works at every width, so guessing it
@@ -118,7 +138,11 @@ export function BillingSection({
   /** The period being accumulated/owed: the protagonist of the stacked layout. */
   function CurrentPeriodCard({ statement: s }: Readonly<{ statement: accounts.CreditStatement }>) {
     return (
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface2 p-4">
+      <button
+        type="button"
+        onClick={() => setDetailTarget(s)}
+        className="flex flex-col gap-3 rounded-xl border border-border bg-surface2 p-4 text-left"
+      >
         <div className="flex items-start justify-between gap-3">
           <span className="text-sm text-muted-foreground">
             {s.closedAt
@@ -148,14 +172,15 @@ export function BillingSection({
           </p>
         ) : null}
 
-        {/* Same order as the table: sync first, pay after. */}
-        <div className="flex items-center gap-2">
+        {/* Same order as the table: sync first, pay after. Both stop the click
+            from also opening the detail panel underneath them. */}
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <SyncButton statement={s} iconOnly size="md" />
           <Button variant="secondary" className="flex-1" onClick={() => setPayTarget(s)}>
             {t("accounts.actions.payCredit")}
           </Button>
         </div>
-      </div>
+      </button>
     );
   }
 
@@ -238,9 +263,11 @@ export function BillingSection({
                   {t("accounts.detail.billingPaidPeriods")}
                 </h3>
                 {paid.map((s) => (
-                  <div
+                  <button
+                    type="button"
                     key={s.id}
-                    className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-0"
+                    onClick={() => setDetailTarget(s)}
+                    className="flex w-full items-center justify-between gap-3 border-b border-border py-3 text-left last:border-0"
                   >
                     <div className="min-w-0">
                       <p className="font-medium">{date(s.periodStart)}</p>
@@ -257,7 +284,10 @@ export function BillingSection({
                         </p>
                       ) : null}
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div
+                      className="flex shrink-0 items-center gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <span className="font-semibold tabular-nums">{fmt(s.amount)}</span>
                       <SyncButton statement={s} iconOnly />
                       {s.status === "PARTIALLY_PAID" ? (
@@ -266,7 +296,7 @@ export function BillingSection({
                         </Button>
                       ) : null}
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : null}
@@ -284,7 +314,7 @@ export function BillingSection({
             </THead>
             <tbody>
               {statements.map((s) => (
-                <TR key={s.id}>
+                <TR key={s.id} onClick={() => setDetailTarget(s)} className="cursor-pointer">
                   <TD>{new Date(s.periodStart).toLocaleDateString(i18n.language)}</TD>
                   <TD numeric>
                     {fmt(s.amount)}
@@ -323,7 +353,10 @@ export function BillingSection({
                         the rest. Sync FIRST and LEFT-aligned (not `justify-end`),
                         so its button sits at the same x in every row instead of
                         sliding sideways depending on what follows it. */}
-                    <div className="flex items-center gap-2">
+                    <div
+                      className="flex items-center gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <SyncButton statement={s} iconOnly />
                       {isSettled(s) ? (
                         // A period settled for less than its total: the payment is
@@ -370,6 +403,13 @@ export function BillingSection({
         }
       />
 
+      <StatementDetailPanel
+        account={account}
+        statement={detailTarget}
+        onOpenChange={(v) => !v && setDetailTarget(null)}
+        statements={statements}
+        onSelectStatement={setDetailTarget}
+      />
       <EditStatementPaymentPanel
         account={account}
         statement={editPaymentTarget}
