@@ -60,10 +60,19 @@ async function seedFullUser(passwordHash: string) {
   // per-country code space, so one lookup serves both.
   const issuerId = (code: string) => clBanks.find((b) => b.code === code)?.id ?? null;
 
-  type AcctKey = "checking" | "sight" | "credit" | "creditBch" | "creditVista" | "cash" | "prepaid";
+  type AcctKey =
+    | "checking"
+    | "sight"
+    | "credit"
+    | "creditBch"
+    | "creditVista"
+    | "cash"
+    | "prepaid"
+    | "bciChecking"
+    | "bciCredit";
   /** Accounts that ARE a credit line: their movements are charged to the pool and
    * move no cash (the statement payment is what leaves the paying account). */
-  const CREDIT_CARD_ACCTS: AcctKey[] = ["credit", "creditBch", "creditVista"];
+  const CREDIT_CARD_ACCTS: AcctKey[] = ["credit", "creditBch", "creditVista", "bciCredit"];
   const initial: Record<AcctKey, number> = {
     checking: 2_800_000,
     prepaid: 120_000,
@@ -72,6 +81,8 @@ async function seedFullUser(passwordHash: string) {
     creditBch: 0,
     creditVista: 0,
     cash: 85_000,
+    bciChecking: 650_000,
+    bciCredit: 0,
   };
 
   // Transactions keyed by account (ids resolved after accounts are created).
@@ -91,7 +102,11 @@ async function seedFullUser(passwordHash: string) {
     | "creditVista"
     | "credit"
     | "creditCamila"
-    | "creditSofia";
+    | "creditSofia"
+    // BCI: its own checking account + its own credit line (a separate product,
+    // not an add-on card — see the "credit line is its own account" amendment).
+    | "debitBci"
+    | "creditBci";
   type Tx = {
     acct: AcctKey;
     card?: CardKey;
@@ -1520,6 +1535,213 @@ async function seedFullUser(passwordHash: string) {
       description: "Arriendo agosto",
     },
 
+    // ==================== BCI: cuenta corriente + línea de crédito ====================
+    // A second bank relationship: its own checking account (own flow, own debit
+    // card) and its own credit-line account (spec's "credit line is its own
+    // product" model) — paid FROM that same BCI checking, so the pair reads as
+    // one real bank relationship instead of two unrelated accounts.
+    {
+      acct: "bciChecking",
+      type: "INCOME",
+      amount: 380_000,
+      at: "2026-04-03T09:00:00Z",
+      category: "Otros",
+      description: "Honorarios freelance · abril",
+    },
+    {
+      acct: "bciChecking",
+      type: "EXPENSE",
+      amount: 85_000,
+      at: "2026-04-05T11:00:00Z",
+      category: "Servicios",
+      description: "Gastos comunes · depto",
+    },
+    {
+      acct: "bciChecking",
+      card: "debitBci",
+      type: "EXPENSE",
+      amount: 42_300,
+      at: "2026-04-12T18:30:00Z",
+      category: "Supermercado",
+      description: "Líder Express",
+    },
+    {
+      acct: "bciCredit",
+      card: "creditBci",
+      type: "EXPENSE",
+      amount: 35_000,
+      at: "2026-04-08T08:15:00Z",
+      category: "Transporte",
+      description: "Bencina Copec",
+    },
+    {
+      acct: "bciCredit",
+      card: "creditBci",
+      type: "EXPENSE",
+      amount: 68_000,
+      at: "2026-04-25T21:00:00Z",
+      category: "Restaurantes",
+      description: "Cena aniversario",
+    },
+    {
+      acct: "bciChecking",
+      type: "INCOME",
+      amount: 380_000,
+      at: "2026-05-03T09:00:00Z",
+      category: "Otros",
+      description: "Honorarios freelance · mayo",
+    },
+    {
+      acct: "bciChecking",
+      type: "EXPENSE",
+      amount: 85_000,
+      at: "2026-05-05T11:00:00Z",
+      category: "Servicios",
+      description: "Gastos comunes · depto",
+    },
+    {
+      acct: "bciChecking",
+      card: "debitBci",
+      type: "EXPENSE",
+      amount: 18_900,
+      at: "2026-05-16T20:00:00Z",
+      category: "Restaurantes",
+      description: "Pizzería Google",
+    },
+    {
+      acct: "bciCredit",
+      card: "creditBci",
+      type: "EXPENSE",
+      amount: 210_000,
+      at: "2026-05-14T15:00:00Z",
+      category: "Viajes",
+      description: "Vuelos LATAM · Calama",
+    },
+    {
+      acct: "bciChecking",
+      type: "INCOME",
+      amount: 380_000,
+      at: "2026-06-03T09:00:00Z",
+      category: "Otros",
+      description: "Honorarios freelance · junio",
+    },
+    {
+      acct: "bciChecking",
+      type: "EXPENSE",
+      amount: 87_000,
+      at: "2026-06-05T11:00:00Z",
+      category: "Servicios",
+      description: "Gastos comunes · depto",
+    },
+    {
+      acct: "bciChecking",
+      card: "debitBci",
+      type: "EXPENSE",
+      amount: 39_500,
+      at: "2026-06-14T19:00:00Z",
+      category: "Supermercado",
+      description: "Jumbo Ñuñoa",
+    },
+    {
+      acct: "bciCredit",
+      card: "creditBci",
+      type: "EXPENSE",
+      amount: 54_500,
+      at: "2026-06-09T17:30:00Z",
+      category: "Compras",
+      description: "Falabella · ropa de invierno",
+    },
+    {
+      acct: "bciChecking",
+      type: "INCOME",
+      amount: 380_000,
+      at: "2026-07-03T09:00:00Z",
+      category: "Otros",
+      description: "Honorarios freelance · julio",
+    },
+    {
+      acct: "bciChecking",
+      type: "EXPENSE",
+      amount: 87_000,
+      at: "2026-07-05T11:00:00Z",
+      category: "Servicios",
+      description: "Gastos comunes · depto",
+    },
+    {
+      acct: "bciChecking",
+      card: "debitBci",
+      type: "EXPENSE",
+      amount: 15_200,
+      at: "2026-07-20T10:00:00Z",
+      category: "Salud",
+      description: "Farmacia Cruz Verde",
+    },
+    {
+      acct: "bciCredit",
+      card: "creditBci",
+      type: "EXPENSE",
+      amount: 47_800,
+      at: "2026-07-05T19:00:00Z",
+      category: "Supermercado",
+      description: "Santa Isabel",
+    },
+    // Already in the CURRENT (still open) period: the July 20 boundary already
+    // closed, so these two build up what the next statement will bill.
+    {
+      acct: "bciCredit",
+      card: "creditBci",
+      type: "EXPENSE",
+      amount: 18_500,
+      at: "2026-07-25T14:00:00Z",
+      category: "Educación",
+      description: "Librería Antártica",
+    },
+    {
+      acct: "bciCredit",
+      card: "creditBci",
+      type: "EXPENSE",
+      amount: 22_000,
+      at: "2026-07-30T06:30:00Z",
+      category: "Transporte",
+      description: "Uber al aeropuerto",
+    },
+    {
+      acct: "bciChecking",
+      type: "INCOME",
+      amount: 380_000,
+      at: "2026-08-03T09:00:00Z",
+      category: "Otros",
+      description: "Honorarios freelance · agosto",
+    },
+    {
+      acct: "bciChecking",
+      type: "EXPENSE",
+      amount: 87_000,
+      at: "2026-08-05T11:00:00Z",
+      category: "Servicios",
+      description: "Gastos comunes · depto",
+    },
+    // Consolidating idle funds into the main checking account — an ordinary
+    // transfer, two rows sharing `transferGroupId`.
+    {
+      acct: "bciChecking",
+      type: "EXPENSE",
+      amount: 150_000,
+      at: "2026-08-10T10:00:00Z",
+      category: "Traspaso",
+      description: "Traspaso a Cuenta Corriente",
+      transferGroup: "tg_bci_consolidate",
+    },
+    {
+      acct: "checking",
+      type: "INCOME",
+      amount: 150_000,
+      at: "2026-08-10T10:00:00Z",
+      category: "Traspaso",
+      description: "Traspaso desde BCI",
+      transferGroup: "tg_bci_consolidate",
+    },
+
     // ==================== Prepaid account ====================
     // Topping it up is an ordinary TRANSFER: two rows sharing `transferGroupId`,
     // one leaving the checking account and one arriving here. There is no
@@ -1580,6 +1802,8 @@ async function seedFullUser(passwordHash: string) {
     creditVista: 0,
     cash: 0,
     prepaid: 0,
+    bciChecking: 0,
+    bciCredit: 0,
   };
   // A purchase on a credit line moves no cash: it raises the pool, and the money
   // leaves once, when the statement is paid (`paidFromOutflow` below).
@@ -1665,6 +1889,29 @@ async function seedFullUser(passwordHash: string) {
     creditLimit: dec("800000.0000"),
     creditUsedInitial: dec("0"),
   });
+  // BCI: a second bank relationship, its own checking account...
+  const bciChecking = await mkAccount("bciChecking", {
+    userId: javier.id,
+    name: "Cuenta Corriente BCI",
+    type: "CHECKING",
+    currency: "CLP",
+    institution: "BCI",
+    institutionId: bankId("016"),
+    accountNumber: "016-9988776-01",
+    overdraftLimit: dec("300000.0000"),
+  });
+  // ...and its own credit-line account — a real credit line (its own statement,
+  // cycle and minimum payment), not an add-on card over the checking above.
+  const bciCredit = await mkAccount("bciCredit", {
+    userId: javier.id,
+    name: "Línea de Crédito BCI",
+    type: "CREDIT_CARD",
+    currency: "CLP",
+    institution: "BCI",
+    institutionId: bankId("016"),
+    creditLimit: dec("2000000.0000"),
+    creditUsedInitial: dec("0"),
+  });
   const cash = await mkAccount("cash", {
     userId: javier.id,
     name: "Efectivo",
@@ -1724,6 +1971,8 @@ async function seedFullUser(passwordHash: string) {
     creditVista: creditVista.id,
     cash: cash.id,
     prepaid: prepaid.id,
+    bciChecking: bciChecking.id,
+    bciCredit: bciCredit.id,
   };
 
   // Cards (only last4 stored). The credit card belongs to the CREDIT_CARD account.
@@ -1841,6 +2090,33 @@ async function seedFullUser(passwordHash: string) {
       network: "MASTERCARD",
     },
   });
+  const debitCardBci = await prisma.cardAccount.create({
+    data: {
+      accountId: bciChecking.id,
+      userId: javier.id,
+      name: "Débito BCI",
+      kind: "DEBIT",
+      last4: "7734",
+      expiryMonth: 2,
+      expiryYear: 2030,
+      network: "VISA",
+    },
+  });
+  // The BCI credit line's FIRST (and only) credit card: primary, so its limit IS
+  // the account's own creditLimit above (no separate CardLimit row).
+  const creditCardBci = await prisma.cardAccount.create({
+    data: {
+      accountId: bciCredit.id,
+      userId: javier.id,
+      name: "Visa Crédito BCI",
+      kind: "CREDIT",
+      last4: "9012",
+      expiryMonth: 10,
+      expiryYear: 2029,
+      isPrimary: true,
+      network: "VISA",
+    },
+  });
   const creditCard = await prisma.cardAccount.create({
     data: {
       accountId: credit.id,
@@ -1911,6 +2187,8 @@ async function seedFullUser(passwordHash: string) {
     creditSofia: creditCardSofia.id,
     prepaidRosa: prepaidCardRosa.id,
     prepaidVirtual: prepaidCardVirtual.id,
+    debitBci: debitCardBci.id,
+    creditBci: creditCardBci.id,
   };
 
   await prisma.transaction.createMany({
@@ -1966,12 +2244,24 @@ async function seedFullUser(passwordHash: string) {
     payFromAccountId: string;
   };
 
+  // Named so the `foldPlanScheduleIntoRealChain` calls further below (which
+  // recompute the SAME period boundaries via `cutsBetween`) can never drift
+  // from what this loop actually used — a mismatched day here silently forks a
+  // plan's schedule onto a second, parallel chain of periods instead of folding
+  // into the account's real one (see that function's own comment; this exact
+  // drift, between this loop's day and the fold call's hardcoded one, is what
+  // broke "Tarjeta CMR" when its cadence moved from calendar-day 15 to
+  // business-day 20 — found while seeding BCI, 2026-08-24).
+  const CREDIT_CYCLE_DAY = 20; // Tarjeta CMR (Falabella)
+  const CREDIT_BCH_CYCLE_DAY = 5; // Visa Crédito (Banco de Chile)
+  const CREDIT_BCI_CYCLE_DAY = 20; // Línea de Crédito BCI
+
   const creditSpecs: CreditSpec[] = [
     {
       accountId: credit.id,
       // BUSINESS_DAY is the default for new accounts — mirrors a real issuer's
       // cadence (e.g. BCI: 20 días hábiles para generar, 3 para pagar).
-      billingCycleDay: 20,
+      billingCycleDay: CREDIT_CYCLE_DAY,
       cycleType: "BUSINESS_DAY",
       paymentDueDay: 3,
       wholeAccount: true,
@@ -1982,7 +2272,7 @@ async function seedFullUser(passwordHash: string) {
       // CALENDAR_DAY: the original fixed day-of-month behavior, kept for
       // accounts already configured that way.
       accountId: creditBch.id,
-      billingCycleDay: 5,
+      billingCycleDay: CREDIT_BCH_CYCLE_DAY,
       cycleType: "CALENDAR_DAY",
       paymentDueDay: null,
       wholeAccount: true,
@@ -1999,6 +2289,17 @@ async function seedFullUser(passwordHash: string) {
       wholeAccount: true,
       poolCardIds: [creditCardVista.id],
       payFromAccountId: sight.id,
+    },
+    {
+      // BCI's real-world cadence: 20 días hábiles to generate, 3 to pay — paid
+      // from the BCI checking account itself, same bank relationship.
+      accountId: bciCredit.id,
+      billingCycleDay: CREDIT_BCI_CYCLE_DAY,
+      cycleType: "BUSINESS_DAY",
+      paymentDueDay: 3,
+      wholeAccount: true,
+      poolCardIds: [creditCardBci.id],
+      payFromAccountId: bciChecking.id,
     },
   ];
 
@@ -2386,13 +2687,15 @@ async function seedFullUser(passwordHash: string) {
       installmentPlanId: notebook.id,
     },
   });
-  // Its schedule folds into Tarjeta CMR's own real (day-15) chain, already built
-  // above from ordinary spend alone — never a parallel day-5 one of its own (see
-  // the comment on `foldPlanScheduleIntoRealChain`).
+  // Its schedule folds into Tarjeta CMR's own real chain, already built above
+  // from ordinary spend alone — never a parallel one of its own (see the
+  // comment on `foldPlanScheduleIntoRealChain`). MUST match `creditSpecs`'
+  // own entry for this account exactly, which is why both read from the same
+  // `CREDIT_CYCLE_DAY` constant instead of repeating the literal.
   const notebookReserved = await foldPlanScheduleIntoRealChain({
     accountId: credit.id,
     planId: notebook.id,
-    billingCycleDay: 15,
+    billingCycleDay: CREDIT_CYCLE_DAY,
     payFromAccountId: checking.id,
     schedule: notebookDue.map((due, i) => ({
       sequence: i + 1,
@@ -2456,12 +2759,13 @@ async function seedFullUser(passwordHash: string) {
   // so it keeps billing as an ordinary period charge, and created before the
   // `creditSpecs` loop runs so that loop counts it like any other real spend.
 
-  // Its schedule folds into Visa Crédito's own real (day-5) chain, already built
-  // above from ordinary spend alone — never a parallel chain of its own.
+  // Its schedule folds into Visa Crédito's own real chain, already built above
+  // from ordinary spend alone — never a parallel chain of its own. MUST match
+  // `creditSpecs`' own entry for this account (see `CREDIT_CYCLE_DAY`'s comment).
   const fridgeReserved = await foldPlanScheduleIntoRealChain({
     accountId: creditBch.id,
     planId: fridge.id,
-    billingCycleDay: 5,
+    billingCycleDay: CREDIT_BCH_CYCLE_DAY,
     payFromAccountId: checking.id,
     schedule: fridgeDue.map((due, i) => ({
       sequence: i + 1,
@@ -2476,6 +2780,76 @@ async function seedFullUser(passwordHash: string) {
     where: { id: creditBch.id },
     data: {
       creditUsed: dec(addMoney(creditBchAfterFold.creditUsed.toString(), fridgeReserved)),
+    },
+  });
+
+  // A third instalment plan bought with a CREDIT card, this time on the BCI
+  // credit line — same model as "Notebook ASUS"/"Refrigerador Mademsa" above:
+  // the purchase consumes the pool in full on day one, and only the schedule
+  // bills into the account's own real chain.
+  const tv = await prisma.installmentPlan.create({
+    data: {
+      userId: javier.id,
+      title: "Smart TV LG 55'",
+      totalPrincipal: dec("480000.0000"),
+      installmentCount: 6,
+      startDate: new Date("2026-04-10T00:00:00Z"),
+      currency: "CLP",
+      cardId: creditCardBci.id,
+      category: "Tecnología",
+      notes: "6 cuotas sin interés",
+    },
+  });
+  const tvDue: Date[] = [];
+  for (let seq = 1; seq <= 6; seq++) {
+    const due = new Date("2026-04-10T00:00:00Z");
+    due.setUTCMonth(due.getUTCMonth() + (seq - 1));
+    tvDue.push(due);
+    await prisma.installmentPayment.create({
+      data: {
+        installmentPlanId: tv.id,
+        sequence: seq,
+        dueDate: due,
+        amount: dec("80000.0000"),
+      },
+    });
+  }
+  await prisma.transaction.create({
+    data: {
+      userId: javier.id,
+      bankAccountId: bciCredit.id,
+      cardId: creditCardBci.id,
+      type: "EXPENSE",
+      amount: dec("480000.0000"),
+      currency: "CLP",
+      occurredAt: tvDue[0]!,
+      category: "Tecnología",
+      description: tv.title,
+      installmentPlanId: tv.id,
+    },
+  });
+  // Its schedule folds into Línea de Crédito BCI's own real chain, already
+  // built above from ordinary spend alone — never a parallel chain of its own.
+  // MUST match `creditSpecs`' own entry for this account (see
+  // `CREDIT_BCI_CYCLE_DAY`'s comment).
+  const tvReserved = await foldPlanScheduleIntoRealChain({
+    accountId: bciCredit.id,
+    planId: tv.id,
+    billingCycleDay: CREDIT_BCI_CYCLE_DAY,
+    payFromAccountId: bciChecking.id,
+    schedule: tvDue.map((due, i) => ({
+      sequence: i + 1,
+      dueDate: due,
+      amount: "80000.0000",
+    })),
+  });
+  const bciCreditAfterFold = await prisma.bankAccount.findUniqueOrThrow({
+    where: { id: bciCredit.id },
+  });
+  await prisma.bankAccount.update({
+    where: { id: bciCredit.id },
+    data: {
+      creditUsed: dec(addMoney(bciCreditAfterFold.creditUsed.toString(), tvReserved)),
     },
   });
 
