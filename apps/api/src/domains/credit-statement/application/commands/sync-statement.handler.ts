@@ -144,6 +144,7 @@ export class SyncStatementHandler extends BaseCommandHandler<
         amount: context.recomputedAmount,
         breakdown: context.breakdown,
         minimumPercent: context.account.minimumPaymentPercent,
+        paymentDueDay: context.account.paymentDueDay,
       }),
       events: [],
     };

@@ -167,7 +167,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
             userId,
             effective.cardId!,
             effective.currency,
-            currentCycleStart(account.billingCycleDay, new Date()),
+            currentCycleStart(account.billingCycleDay, account.billingCycleType, new Date()),
             id,
           )
         : { income: "0", expense: "0" };

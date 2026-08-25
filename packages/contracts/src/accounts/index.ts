@@ -59,6 +59,14 @@ export type AccountStatus = z.infer<typeof accountStatus>;
 export const billingPaymentMethod = z.enum(["MANUAL", "AUTOMATIC"]);
 export type BillingPaymentMethod = z.infer<typeof billingPaymentMethod>;
 
+/** How a credit account's statement cut-off (`billingCycleDay`) is counted.
+ * BUSINESS_DAY (días hábiles — the default for a new account) counts only
+ * Mon-Fri Chilean business days, e.g. BCI's real-world "20 días hábiles"
+ * after the previous period closed. CALENDAR_DAY is the original fixed
+ * day-of-month behavior, kept for accounts already configured that way. */
+export const billingCycleType = z.enum(["BUSINESS_DAY", "CALENDAR_DAY"]);
+export type BillingCycleType = z.infer<typeof billingCycleType>;
+
 // --- Cards (payment instruments; the physical "plastic") ---
 
 export const cardKind = z.enum(["CREDIT", "DEBIT", "PREPAID"]);
@@ -260,12 +268,20 @@ export const bankAccountSchema = z.object({
   creditUsed: moneyString,
   /** All credit pools by currency (own currency + primary card's extra currencies, if any). Empty for non-credit accounts. */
   creditPools: z.array(creditPoolSchema),
-  /** Statement cut-off day (1-28). Informational only — no automatic reset; usage only
-   * goes down via an explicit "pay credit" action. Null = not configured yet. */
+  /** Statement cut-off, meaning depends on `billingCycleType`: a day-of-month
+   * (1-28) for CALENDAR_DAY, or a count of business days for BUSINESS_DAY.
+   * Informational only — no automatic reset; usage only goes down via an
+   * explicit "pay credit" action. Null = not configured yet. */
   billingCycleDay: z.number().int().min(1).max(28).nullable(),
+  /** How `billingCycleDay` is counted. Días hábiles (BUSINESS_DAY) by default. */
+  billingCycleType: billingCycleType,
   /** Manual (default) or automatic credit-statement payment preference. AUTOMATIC has no
    * functional effect yet (see docs/PENDING.md). */
   paymentMethod: billingPaymentMethod,
+  /** Business days (días hábiles) directly after a period's own close at which
+   * payment is due (e.g. BCI's real-world "3 días hábiles"). Null = no due date
+   * configured, and none is shown. */
+  paymentDueDay: z.number().int().min(1).max(28).nullable(),
   /** Percentage of a statement that counts as its minimum payment (e.g. "5" = 5%).
    * No universal rule exists — each issuer sets its own — so it's per account.
    * Null = no minimum defined, and the UI offers no "minimum" option. */
@@ -300,11 +316,16 @@ const bankAccountFieldsSchema = z.object({
   /** For CREDIT_CARD accounts: the credit pool and any pre-existing used seed. */
   creditLimit: moneyString.optional(),
   creditUsedInitial: moneyString.optional(),
-  /** Statement cut-off day (1-28); omit/null to leave unconfigured. Advanced setting —
+  /** Statement cut-off (1-28); omit/null to leave unconfigured. Advanced setting —
    * intentionally not exposed in the create-account UI, only editable afterward. */
   billingCycleDay: z.number().int().min(1).max(28).nullable().optional(),
+  /** Días hábiles (default) or a fixed day-of-month. */
+  billingCycleType: billingCycleType.default("BUSINESS_DAY"),
   /** Advanced setting — not exposed in the create-account UI, only editable afterward. */
   paymentMethod: billingPaymentMethod.default("MANUAL"),
+  /** Business days directly after a period's close at which payment is due;
+   * omit/null to leave unconfigured. */
+  paymentDueDay: z.number().int().min(1).max(28).nullable().optional(),
   /** Minimum-payment percentage (0-100); null clears it. */
   minimumPaymentPercent: z.string().nullable().optional(),
   cards: z.array(createCardSchema).optional(),
@@ -354,12 +375,14 @@ function hasCreditSettings(v: {
   creditLimit?: string;
   creditUsedInitial?: string;
   billingCycleDay?: number | null;
+  paymentDueDay?: number | null;
   minimumPaymentPercent?: string | null;
 }): boolean {
   return (
     isNonZeroMoney(v.creditLimit) ||
     isNonZeroMoney(v.creditUsedInitial) ||
     v.billingCycleDay != null ||
+    v.paymentDueDay != null ||
     v.minimumPaymentPercent != null
   );
 }
@@ -404,6 +427,10 @@ export const creditStatementSchema = z.object({
   closedAt: z.string().nullable(),
   /** Set once paid. Null while OPEN/PENDING. */
   paidAt: z.string().nullable(),
+  /** When payment is due — the account's configured `paymentDueDay` business
+   * days directly after this period's own close. Null while OPEN (nothing to
+   * count from yet) or when the account has no `paymentDueDay` configured. */
+  dueDate: z.string().nullable(),
   /** Everything this period owes: its own movements PLUS `carriedOverAmount`. */
   amount: moneyString,
   /** What was actually paid. "0" until the period is paid; may be less than

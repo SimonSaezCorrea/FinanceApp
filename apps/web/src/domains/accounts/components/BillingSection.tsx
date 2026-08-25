@@ -153,6 +153,11 @@ export function BillingSection({
         </div>
 
         <p className="text-3xl font-semibold tabular-nums">{fmt(s.amount)}</p>
+        {!isSettled(s) && s.dueDate ? (
+          <p className="-mt-2 text-xs text-muted-foreground">
+            {t("accounts.detail.billingDueDate", { date: date(s.dueDate) })}
+          </p>
+        ) : null}
         {Number(s.carriedOverAmount) > 0 ? (
           <p className="-mt-2 text-xs text-muted-foreground">
             {t("accounts.detail.billingIncludesCarryOver", { amount: fmt(s.carriedOverAmount) })}
@@ -373,6 +378,11 @@ export function BillingSection({
                       <Badge variant={STATUS_VARIANT[s.status]} className="whitespace-nowrap">
                         {t(`accounts.detail.billingStatusValue.${s.status}`)}
                       </Badge>
+                      {!isSettled(s) && s.dueDate ? (
+                        <span className="mt-1 block whitespace-nowrap text-xs font-normal text-muted-foreground">
+                          {t("accounts.detail.billingDueDate", { date: date(s.dueDate) })}
+                        </span>
+                      ) : null}
                     </TD>
                     <TD>{s.paidAt ? new Date(s.paidAt).toLocaleDateString(i18n.language) : "—"}</TD>
                     <TD>

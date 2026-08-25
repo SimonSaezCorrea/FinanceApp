@@ -182,23 +182,38 @@ enum BillingPaymentMethod {
   AUTOMATIC
 }
 
+/// How `billingCycleDay` is counted. BUSINESS_DAY (días hábiles) counts only
+/// Mon-Fri Chilean business days (Saturdays, Sundays and public holidays don't
+/// count) — e.g. BCI's real-world "20 días hábiles" after the previous period
+/// closed. CALENDAR_DAY is the original fixed day-of-month behavior.
+enum BillingCycleType {
+  BUSINESS_DAY
+  CALENDAR_DAY
+}
+
 /// Billing configuration for an account's shared credit pool — split out from
 /// `BankAccount` (1:1) so it can be reviewed/maintained/searched independently
 /// instead of growing the account table with every billing-related field.
 model BillingSettings {
   id                    String               @id @default(cuid())
   accountId             String               @unique
-  /// Statement cut-off day (1-28). Drives automatic statement generation (cron +
-  /// manual "Generar facturación" button, see `BillingGenerationService`) — when this
-  /// day passes, the account's currently OPEN `CreditStatement` (if any) is closed.
+  /// Statement cut-off. Meaning depends on `cycleType`: a day-of-month (1-28)
+  /// for CALENDAR_DAY, or a count of business days for BUSINESS_DAY. Drives
+  /// automatic statement generation (cron + manual "Generar facturación"
+  /// button) — when this boundary passes, the account's currently OPEN
+  /// `CreditStatement` (if any) is closed.
   billingCycleDay       Int?
+  /// Días hábiles (default for new accounts) or a fixed day-of-month.
+  cycleType             BillingCycleType     @default(BUSINESS_DAY)
   /// Whether the user intends to pay the credit statement manually or automatically.
   /// Stored preference only — AUTOMATIC is currently LOCKED in the UI (not selectable):
-  /// the payment-due-date design isn't finalized yet, so no automatic payment can be
+  /// the automatic-payment execution isn't built yet, so no automatic payment can be
   /// scheduled safely (see PENDING.md). Column kept for when that ships.
   paymentMethod         BillingPaymentMethod @default(MANUAL)
-  /// Day of month (1-28) the statement is due. Nullable/unused while AUTOMATIC is
-  /// locked — no UI writes this yet (see PENDING.md).
+  /// Business days (días hábiles) directly after a period's own close at
+  /// which payment is due (e.g. BCI's real-world "3 días hábiles"). Null = no
+  /// due date configured/shown. Business-day-only for now — there is no
+  /// calendar-day alternative for this one yet.
   paymentDueDay         Int?
   /// Percentage of a statement that counts as its MINIMUM payment (e.g. 5 = 5%).
   /// There is no universal rule for this — each issuer sets its own — so it is

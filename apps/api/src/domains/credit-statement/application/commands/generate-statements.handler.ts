@@ -93,7 +93,7 @@ async function closeIfDue(
     (await seedPeriodFromSchedule(account, statementRepo, planRepo));
   if (!open) return null; // no usage since the last close, and nothing scheduled either
 
-  const boundary = nextBoundaryAfter(open.periodStart, day);
+  const boundary = nextBoundaryAfter(open.periodStart, day, account.billingCycleType);
   if (new Date() < boundary) return null;
 
   const eligible = resolveBillingEligibility({

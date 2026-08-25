@@ -1,6 +1,7 @@
 import type { accounts } from "@finance/contracts";
 import { moneyToString, subtractMoney, toMoney } from "@finance/money";
 
+import { paymentDueDate } from "../../billing-settings/domain/billing-cycle";
 import type { CreditStatement } from "../domain/credit-statement.aggregate";
 
 /**
@@ -20,6 +21,8 @@ export function toStatementDto(
     breakdown: { purchases: string; installments: string; installmentCount: number };
     /** The account's configured minimum-payment percentage, or null. */
     minimumPercent: string | null;
+    /** The account's configured business-days payment due day, or null. */
+    paymentDueDay: number | null;
   },
 ): accounts.CreditStatement {
   // A settled period owes nothing, even when the payment didn't cover it all:
@@ -27,6 +30,12 @@ export function toStatementDto(
   const remaining = statement.paidAt
     ? moneyToString("0")
     : subtractMoney(input.amount, statement.paidAmount);
+  // Nothing to count from until the period actually closes — an OPEN period
+  // has no due date yet, and neither does an account with no due-day configured.
+  const dueDate =
+    statement.closedAt && input.paymentDueDay != null
+      ? paymentDueDate(statement.closedAt, input.paymentDueDay).toISOString()
+      : null;
   return {
     id: statement.id,
     accountId: statement.accountId,
@@ -34,6 +43,7 @@ export function toStatementDto(
     periodStart: statement.periodStart.toISOString(),
     closedAt: statement.closedAt?.toISOString() ?? null,
     paidAt: statement.paidAt?.toISOString() ?? null,
+    dueDate,
     amount: moneyToString(input.amount),
     paidAmount: statement.paidAmount,
     carriedOverAmount: statement.carriedOverAmount,

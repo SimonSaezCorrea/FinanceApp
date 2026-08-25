@@ -63,6 +63,7 @@ describe("GenerateStatementsHandler stamps instalments (integration)", () => {
       creditLimit: "2000000",
       creditUsedInitial: "0",
       billingCycleDay: 5,
+      billingCycleType: "CALENDAR_DAY",
       paymentMethod: "MANUAL",
       cards: [
         {

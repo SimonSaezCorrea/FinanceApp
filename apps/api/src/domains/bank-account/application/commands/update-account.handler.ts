@@ -84,7 +84,11 @@ export class UpdateAccountHandler extends BaseCommandHandler<
         ? { creditUsedInitial: input.creditUsedInitial }
         : {}),
       ...(input.billingCycleDay !== undefined ? { billingCycleDay: input.billingCycleDay } : {}),
+      ...(input.billingCycleType !== undefined
+        ? { billingCycleType: input.billingCycleType }
+        : {}),
       ...(input.paymentMethod !== undefined ? { paymentMethod: input.paymentMethod } : {}),
+      ...(input.paymentDueDay !== undefined ? { paymentDueDay: input.paymentDueDay } : {}),
       ...(input.minimumPaymentPercent !== undefined
         ? { minimumPaymentPercent: input.minimumPaymentPercent }
         : {}),

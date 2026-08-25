@@ -1,4 +1,36 @@
 <!--
+Sync Impact Report — 2026-08-24 (amendment 1.48.0)
+- Version change: 1.47.0 → 1.48.0 (MINOR: new enforceable rule — how a billing cut-off/due date is
+  counted — no principle removed or redefined).
+- `BillingSettings` gains **`cycleType`** (`BUSINESS_DAY` default | `CALENDAR_DAY`): BUSINESS_DAY
+  counts `billingCycleDay` as días hábiles (Mon-Fri, excluding Chilean public holidays — via the new
+  `date-holidays` dependency, Chile only, matching the MVP's single market) since the PREVIOUS
+  period's close, matching a real issuer's cadence (e.g. BCI: 20 días hábiles to generate). CALENDAR_DAY
+  is the original fixed day-of-month behavior, kept for accounts already configured that way — both
+  compute the same closing boundary (`billing-settings/domain/billing-cycle.ts`'s
+  `nextBoundaryAfter`), only the counting rule differs.
+- **`BillingSettings.paymentDueDay`** stops being a reserved/unused column: it is now business days
+  (días hábiles only — no calendar-day alternative exists for this one yet) counted DIRECTLY from a
+  period's own close — the same mechanism generation's `nextBoundaryAfter` already uses, just anchored
+  to `closedAt` instead of `periodStart` (e.g. BCI: closes 22 Jul → 10 días hábiles → due 5 Aug, and
+  that same close also starts the clock for the NEXT closing, 20 días hábiles later on 20 Aug, from
+  which its own due date runs in turn) — `paymentDueDate(closedAt, paymentDueDay)` is a direct call to
+  `addBusinessDays`, exposed as the new **`CreditStatement.dueDate`** (null while OPEN, or when
+  unconfigured). This is INFORMATIONAL only — no automatic payment execution exists yet
+  (`paymentMethod: AUTOMATIC` stays locked in the UI; see
+  `docs/PENDING.md`).
+- Known, documented limitation: `currentCycleStart` (the helper that still scopes a card's own
+  independent `CardLimit` sub-limit to "since the current cycle began" — the account-level shared pool
+  stopped needing this in the 2026-07-25 persisted-`creditUsed` amendment) has no fixed day-of-month to
+  reconstruct a BUSINESS_DAY cycle's start from `now` alone, so it returns `null` for such accounts —
+  that sub-limit reverts to all-time scoping on a BUSINESS_DAY account, same as when no cycle is
+  configured at all.
+- Driven by a direct (non-SDD) implementation request — días hábiles billing/payment-due support,
+  Chile-only, using `date-holidays`.
+- Templates requiring updates: none.
+-->
+
+<!--
 Sync Impact Report — 2026-08-22 (amendment 1.47.0)
 - Version change: 1.46.0 → 1.47.0 (MINOR: one principle sharpened with an explicit corollary; no
   principle removed, no prior rule weakened).
@@ -1478,4 +1510,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.47.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-22
+**Version**: 1.48.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-24

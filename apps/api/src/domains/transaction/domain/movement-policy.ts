@@ -39,6 +39,7 @@ export interface AccountContext {
   creditLimit: string;
   creditUsed: string;
   billingCycleDay: number | null;
+  billingCycleType: accounts.BillingCycleType;
 }
 
 export interface CardContext {

@@ -79,7 +79,9 @@ export class CreateAccountHandler extends BaseCommandHandler<
       creditLimit: planned.creditLimit,
       creditUsedInitial: planned.creditUsedInitial,
       billingCycleDay: input.billingCycleDay ?? null,
+      billingCycleType: input.billingCycleType ?? "BUSINESS_DAY",
       paymentMethod: input.paymentMethod ?? "MANUAL",
+      paymentDueDay: input.paymentDueDay ?? null,
       cards: planned.cards.map((c) => ({
         name: c.name,
         kind: c.kind,

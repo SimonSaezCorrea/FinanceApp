@@ -116,33 +116,47 @@ para el detalle de spec/plan/tasks.
 
 ## Cuentas — facturación de crédito (períodos dinámicos + generación automática)
 
-### 1. Fecha de pago de la facturación (`paymentDueDay`)
+### 1. Fecha de pago de la facturación (`paymentDueDay`) — implementada (días hábiles), 2026-08-24
 
-No existe ningún campo funcional ni lógica para "cuándo corresponde pagar" la facturación (distinto
-de `billingCycleDay`, que ahora sí es real: dispara el CIERRE de la facturación abierta, ver más
-abajo — pero no define ninguna fecha de vencimiento para el pago en sí). El formato del dato sigue
-sin definirse (¿día fijo del mes? ¿offset desde el cierre?) — por eso se **bloqueó la opción
-`AUTOMATIC`** en la UI: no tiene sentido dejar elegir "pago automático" sin saber todavía a qué
-fecha se engancharía. `BillingSettings.paymentDueDay` existe como columna nullable en el schema
-(reservada para cuando esto se defina), pero ninguna UI la escribe ni la muestra todavía — la opción
-"Automático" es un botón `disabled` de verdad (atributo nativo, sin ningún manejador de click), no
-reacciona de ninguna forma al clickearla.
+`BillingSettings.paymentDueDay` dejó de ser una columna reservada: es la cuenta de días hábiles
+(sin sábados, domingos ni feriados legales chilenos) contados DIRECTAMENTE desde el cierre de un
+período (el mismo mecanismo que ya usa la generación, `nextBoundaryAfter`, solo que anclado a
+`closedAt` en vez de a `periodStart`) en que vence su pago — p.ej. BCI real: 22 de julio cierra
+→ 10 días hábiles → 5 de agosto vence, y el mismo período que cerró el 22 de julio genera el
+siguiente cierre 20 días hábiles después (20 de agosto), desde donde corre el mismo reloj para su
+propio vencimiento. Se computa en `billing-settings/domain/billing-cycle.ts`'s
+`paymentDueDate(closedAt, paymentDueDay)` (una llamada directa a `addBusinessDays`) y se
+expone como `CreditStatement.dueDate` (null mientras el período sigue OPEN, o si la cuenta no tiene
+`paymentDueDay` configurado) — mostrado en `BillingSection` para cada período no liquidado. Editable
+en `AccountForm`/`BillingSettingsModal`. **Sigue sin existir ninguna EJECUCIÓN de pago automático en
+esa fecha** — `dueDate` es solo informativo (para que el usuario sepa cuándo pagar manualmente); ver
+el punto 2 para lo que falta de verdad para `paymentMethod: AUTOMATIC`. Por ahora es días-hábiles
+únicamente: no existe una variante "día fijo del mes" para el vencimiento del pago (a diferencia del
+día de CORTE, que sí tiene ambas — ver el punto 3).
 
 ### 2. `paymentMethod: AUTOMATIC` — bloqueado en la UI, sin efecto funcional
 
 `BillingSettings.paymentMethod` (`MANUAL` por defecto, o `AUTOMATIC`) vive en la tabla separada
-`BillingSettings`. La opción "Automático" está **deshabilitada** en el control Segmented tanto en
+`BillingSettings`. La opción "Automático" sigue **deshabilitada** en el control Segmented tanto en
 `AccountForm` como en `BillingSettingsModal` (`shared/ui/segmented.tsx` soporta `disabled`/
-`disabledReason` por opción) — no se puede seleccionar hasta que el punto 1 se resuelva. Aun si se
-forzara por API, no dispara ningún pago automático: la generación automática (cron, ver más abajo)
-solo CIERRA una facturación, nunca la paga — pagar siempre requiere elegir manualmente una cuenta
-bancaria vía `POST /accounts/:id/credit-statements/:statementId/pay`.
+`disabledReason` por opción) — el punto 1 (`paymentDueDay`) ya está resuelto, pero nada dispara
+todavía un pago en esa fecha: la generación automática (cron, ver más abajo) solo CIERRA una
+facturación, nunca la paga — pagar siempre requiere elegir manualmente una cuenta bancaria vía
+`POST /accounts/:id/credit-statements/:statementId/pay`.
 
-**Para hacerlo real**: definir el formato de `paymentDueDay` (punto 1), habilitar la opción en el
-Segmented, y agregar lógica que, al llegar esa fecha, pague automáticamente eligiendo alguna cuenta
+**Para hacerlo real**: habilitar la opción en el Segmented, y agregar lógica que, al llegar `dueDate`
+(ya calculada, punto 1), pague automáticamente eligiendo alguna cuenta
 por defecto para las facturaciones con `paymentMethod: AUTOMATIC`.
 
 ### 3. Generación automática de facturación — cron diario + botón manual
+
+`BillingSettings.cycleType` (`BUSINESS_DAY`, el default para cuentas nuevas, o `CALENDAR_DAY`) decide
+cómo se cuenta `billingCycleDay`: BUSINESS_DAY cuenta días hábiles chilenos (sin sábados, domingos ni
+feriados legales, vía `date-holidays`) desde el cierre del período anterior — el comportamiento real
+de la mayoría de los emisores (p.ej. BCI: 20 días hábiles); CALENDAR_DAY es el comportamiento
+original (un día fijo del mes), conservado para cuentas ya configuradas así. Ambos calculan el mismo
+boundary de cierre (`billing-settings/domain/billing-cycle.ts`'s `nextBoundaryAfter`), solo cambia
+cómo se cuenta.
 
 La generación cierra la facturación `OPEN` de una cuenta una vez que pasa su `billingCycleDay`,
 sujeto a elegibilidad (cuenta y tarjeta activas, vía las `BillingEligibilityStrategy` de
@@ -173,6 +187,19 @@ facturación, botón de pago, ni registro `CreditStatement`.
 
 **Para hacerlo real**: extender el mismo mecanismo (enlazado de movimientos + generación + pago) a
 `CardLimit`, y agregar una pestaña de facturación por tarjeta en `CardDetailModal`.
+
+**Consecuencia del punto 3 (días hábiles) sobre este límite conocido**: `currentCycleStart` —lo único
+que sigue acotando `CardLimit.used` a una ventana de tiempo (el `since` de `sumsForCard`, ver
+`create-transaction.handler.ts`/`update-transaction.handler.ts`/`add-card.handler.ts`/
+`update-card.handler.ts`)— solo sabe reconstruir el inicio del ciclo actual para `cycleType:
+CALENDAR_DAY` (un día fijo del mes es reconstruible desde `now`). Para `BUSINESS_DAY` no hay un
+día fijo del que partir — el cierre depende de cuándo terminó el período anterior, algo que no vive
+en `BillingSettings` — así que `currentCycleStart` devuelve `null` para esas cuentas y el tope propio
+de la tarjeta deja de acotarse a un ciclo (vuelve a ser todo-el-tiempo, igual que antes de que
+existiera esta ventana). No es una regresión del cupo COMPARTIDO de la cuenta (`creditUsed`, que ya
+era un total persistido sin ventana de tiempo desde 2026-07-25) — solo del tope INDEPENDIENTE de una
+tarjeta adicional con `CardLimit` propio en `BUSINESS_DAY`, un caso limitado dentro de un límite ya
+documentado en este mismo punto.
 
 ### 4b. `Card.ownUsed` — la PRINCIPAL absorbe el residuo, las tarjetas siempre suman `creditUsed` (fix, 2026-08-23)
 

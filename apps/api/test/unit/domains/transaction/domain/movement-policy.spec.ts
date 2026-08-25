@@ -21,6 +21,7 @@ const cashAccount: AccountContext = {
   creditLimit: "0",
   creditUsed: "0",
   billingCycleDay: null,
+  billingCycleType: "BUSINESS_DAY",
 };
 
 const checkingAccount: AccountContext = {
@@ -30,6 +31,7 @@ const checkingAccount: AccountContext = {
   creditLimit: "0",
   creditUsed: "0",
   billingCycleDay: null,
+  billingCycleType: "BUSINESS_DAY",
 };
 
 const creditAccount: AccountContext = {
@@ -39,6 +41,7 @@ const creditAccount: AccountContext = {
   creditLimit: "3000000",
   creditUsed: "0",
   billingCycleDay: null,
+  billingCycleType: "BUSINESS_DAY",
 };
 
 const creditCard: CardContext = { id: "cC", kind: "CREDIT" };

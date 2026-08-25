@@ -38,8 +38,13 @@ export interface AccountFormValues {
   balanceCeiling: string;
   creditLimit: string;
   creditUsedInitial: string;
-  /** "" = no cycle configured (all-time usage), else a "1"-"28" day-of-month string. */
+  /** "" = no cycle configured (all-time usage), else a day-of-month or a count
+   * of business days, depending on `billingCycleType`. */
   billingCycleDay: string;
+  /** Días hábiles (default) or a fixed day-of-month. */
+  billingCycleType: accounts.BillingCycleType;
+  /** "" = no due date configured; else business days into next month. */
+  paymentDueDay: string;
   /** "" = this account has no minimum payment; else a percentage like "5". */
   minimumPaymentPercent: string;
   paymentMethod: accounts.BillingPaymentMethod;
@@ -60,6 +65,8 @@ const EMPTY: AccountFormValues = {
   creditLimit: "0",
   creditUsedInitial: "0",
   billingCycleDay: "",
+  billingCycleType: "BUSINESS_DAY",
+  paymentDueDay: "",
   minimumPaymentPercent: "",
   paymentMethod: "MANUAL",
 };
@@ -514,24 +521,62 @@ export function AccountForm({
           title={t("accounts.form.sections.billing")}
           description={t("accounts.form.sections.billingHint")}
         >
+          <Field label={t("accounts.form.billingCycleType")} className="mb-4 max-w-xs">
+            <Segmented
+              value={values.billingCycleType}
+              onChange={(v) => set("billingCycleType", v)}
+              className="w-full"
+              options={[
+                {
+                  value: "BUSINESS_DAY",
+                  label: t("accounts.form.billingCycleTypeBusinessDay"),
+                },
+                { value: "CALENDAR_DAY", label: t("accounts.form.billingCycleTypeCalendarDay") },
+              ]}
+              aria-label={t("accounts.form.billingCycleType")}
+            />
+          </Field>
           {/* Not a grid with a fixed first column: at 7rem the day's label wrapped
               onto two lines while the segmented beside it kept its full width, so
               the pair read as broken. Here each field takes the width it needs —
               the day is a two-digit box, the method fills the rest — and the
               method drops to its own row when they no longer fit side by side. */}
           <div className="flex flex-wrap items-end gap-4">
-            <Field label={t("accounts.form.billingCycleDay")}>
+            <Field
+              label={
+                values.billingCycleType === "BUSINESS_DAY"
+                  ? t("accounts.form.billingCycleDayBusiness")
+                  : t("accounts.form.billingCycleDay")
+              }
+            >
               <Input
                 className="w-24"
                 id="acc-billing-day"
                 inputMode="numeric"
-                placeholder={t("accounts.form.billingCycleDayPlaceholder")}
+                placeholder={
+                  values.billingCycleType === "BUSINESS_DAY"
+                    ? t("accounts.form.billingCycleDayBusinessPlaceholder")
+                    : t("accounts.form.billingCycleDayPlaceholder")
+                }
                 value={values.billingCycleDay}
                 onChange={(e) => {
                   const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
                   set("billingCycleDay", digits && Number(digits) > 28 ? "28" : digits);
                 }}
                 aria-label={t("accounts.form.billingCycleDay")}
+              />
+            </Field>
+            <Field label={t("accounts.form.paymentDueDay")}>
+              <Input
+                className="w-24"
+                inputMode="numeric"
+                placeholder={t("accounts.form.paymentDueDayPlaceholder")}
+                value={values.paymentDueDay}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
+                  set("paymentDueDay", digits && Number(digits) > 28 ? "28" : digits);
+                }}
+                aria-label={t("accounts.form.paymentDueDay")}
               />
             </Field>
             <Field label={t("accounts.form.minimumPercent")}>
@@ -568,7 +613,12 @@ export function AccountForm({
           </div>
           {/* Same muted style as every other hint in this form: in brand green it
               read as a warning about something being wrong, not as help text. */}
-          <p className="text-xs text-muted-foreground">{t("accounts.form.billingCycleDayHint")}</p>
+          <p className="text-xs text-muted-foreground">
+            {values.billingCycleType === "BUSINESS_DAY"
+              ? t("accounts.form.billingCycleDayBusinessHint")
+              : t("accounts.form.billingCycleDayHint")}
+          </p>
+          <p className="text-xs text-muted-foreground">{t("accounts.form.paymentDueDayHint")}</p>
           <p className="text-xs text-muted-foreground">{t("accounts.form.minimumPercentHint")}</p>
         </FormSection>
       ) : null}

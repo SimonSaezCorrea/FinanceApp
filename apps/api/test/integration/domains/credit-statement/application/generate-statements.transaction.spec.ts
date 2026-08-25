@@ -47,6 +47,7 @@ describe("GenerateStatementsHandler close+stamp transaction (integration)", () =
       creditLimit: "2000000",
       creditUsedInitial: "0",
       billingCycleDay: 5,
+      billingCycleType: "CALENDAR_DAY",
       paymentMethod: "MANUAL",
       cards: [
         {

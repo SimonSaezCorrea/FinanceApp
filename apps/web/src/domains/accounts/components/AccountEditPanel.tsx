@@ -174,6 +174,8 @@ export function AccountEditPanel({
             creditLimit: account.creditLimit,
             creditUsedInitial: account.creditUsed,
             billingCycleDay: account.billingCycleDay?.toString() ?? "",
+            billingCycleType: account.billingCycleType,
+            paymentDueDay: account.paymentDueDay?.toString() ?? "",
             minimumPaymentPercent: account.minimumPaymentPercent ?? "",
             paymentMethod: account.paymentMethod,
           }}
@@ -195,6 +197,8 @@ export function AccountEditPanel({
                   creditLimit: v.creditLimit || "0",
                   creditUsedInitial: v.creditUsedInitial || "0",
                   billingCycleDay: v.billingCycleDay ? Number(v.billingCycleDay) : null,
+                  billingCycleType: v.billingCycleType,
+                  paymentDueDay: v.paymentDueDay ? Number(v.paymentDueDay) : null,
                   // Empty = this account has no minimum, which is a real value
                   // (not "unchanged"), so it's sent as an explicit null.
                   minimumPaymentPercent: v.minimumPaymentPercent.trim() || null,

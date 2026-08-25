@@ -151,6 +151,7 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
         amount: context.periodAmount,
         breakdown: context.breakdown,
         minimumPercent: context.account.minimumPaymentPercent,
+        paymentDueDay: context.account.paymentDueDay,
       }),
       events: [event],
     };

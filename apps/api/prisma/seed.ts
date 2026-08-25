@@ -1953,6 +1953,11 @@ async function seedFullUser(passwordHash: string) {
     accountId: string;
     /** null = intentionally not configured (shows the "configura la facturación" warning). */
     billingCycleDay: number | null;
+    /** Días hábiles (default) or a fixed day-of-month — see billing-cycle.ts. */
+    cycleType: "BUSINESS_DAY" | "CALENDAR_DAY";
+    /** Business days into next month payment is due; null on the accounts left
+     * demonstrating the pre-existing (unconfigured) state. */
+    paymentDueDay: number | null;
     /** CREDIT_CARD: every movement on the account feeds the pool (income = payments). */
     wholeAccount: boolean;
     /** Cards drawing on the shared pool (used when `wholeAccount` is false). */
@@ -1964,14 +1969,22 @@ async function seedFullUser(passwordHash: string) {
   const creditSpecs: CreditSpec[] = [
     {
       accountId: credit.id,
-      billingCycleDay: 15,
+      // BUSINESS_DAY is the default for new accounts — mirrors a real issuer's
+      // cadence (e.g. BCI: 20 días hábiles para generar, 3 para pagar).
+      billingCycleDay: 20,
+      cycleType: "BUSINESS_DAY",
+      paymentDueDay: 3,
       wholeAccount: true,
       poolCardIds: [creditCard.id, creditCardCamila.id, creditCardSofia.id],
       payFromAccountId: checking.id,
     },
     {
+      // CALENDAR_DAY: the original fixed day-of-month behavior, kept for
+      // accounts already configured that way.
       accountId: creditBch.id,
       billingCycleDay: 5,
+      cycleType: "CALENDAR_DAY",
+      paymentDueDay: null,
       wholeAccount: true,
       poolCardIds: [creditCardBch.id],
       payFromAccountId: checking.id,
@@ -1981,6 +1994,8 @@ async function seedFullUser(passwordHash: string) {
       // the account only carries a permanently OPEN period.
       accountId: creditVista.id,
       billingCycleDay: null,
+      cycleType: "BUSINESS_DAY",
+      paymentDueDay: null,
       wholeAccount: true,
       poolCardIds: [creditCardVista.id],
       payFromAccountId: sight.id,
@@ -1995,7 +2010,9 @@ async function seedFullUser(passwordHash: string) {
       data: {
         accountId: spec.accountId,
         billingCycleDay: spec.billingCycleDay,
+        cycleType: spec.cycleType,
         paymentMethod: "MANUAL",
+        paymentDueDay: spec.paymentDueDay,
       },
     });
 

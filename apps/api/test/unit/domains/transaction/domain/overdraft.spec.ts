@@ -13,6 +13,7 @@ const checking = (overrides: Partial<AccountContext> = {}): AccountContext => ({
   creditLimit: "0",
   creditUsed: "0",
   billingCycleDay: null,
+  billingCycleType: "BUSINESS_DAY",
   ...overrides,
 });
 

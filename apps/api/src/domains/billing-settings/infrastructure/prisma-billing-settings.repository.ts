@@ -6,6 +6,7 @@ import type { BillingSettingsRepositoryPort } from "../domain/ports/billing-sett
 
 type Row = {
   billingCycleDay: number | null;
+  cycleType: "BUSINESS_DAY" | "CALENDAR_DAY";
   paymentMethod: "MANUAL" | "AUTOMATIC";
   paymentDueDay: number | null;
   minimumPaymentPercent: { toString(): string } | null;
@@ -13,6 +14,7 @@ type Row = {
 
 const toProps = (row: Row): BillingSettingsProps => ({
   billingCycleDay: row.billingCycleDay,
+  cycleType: row.cycleType,
   paymentMethod: row.paymentMethod,
   paymentDueDay: row.paymentDueDay,
   minimumPaymentPercent: row.minimumPaymentPercent?.toString() ?? null,
@@ -61,6 +63,7 @@ export class PrismaBillingSettingsRepository implements BillingSettingsRepositor
       create: {
         accountId,
         billingCycleDay: settings.billingCycleDay ?? null,
+        cycleType: settings.cycleType ?? "BUSINESS_DAY",
         paymentMethod: settings.paymentMethod ?? "MANUAL",
         paymentDueDay: settings.paymentDueDay ?? null,
         minimumPaymentPercent: settings.minimumPaymentPercent ?? null,
@@ -69,6 +72,7 @@ export class PrismaBillingSettingsRepository implements BillingSettingsRepositor
         ...(settings.billingCycleDay !== undefined
           ? { billingCycleDay: settings.billingCycleDay }
           : {}),
+        ...(settings.cycleType !== undefined ? { cycleType: settings.cycleType } : {}),
         ...(settings.paymentMethod !== undefined ? { paymentMethod: settings.paymentMethod } : {}),
         ...(settings.paymentDueDay !== undefined ? { paymentDueDay: settings.paymentDueDay } : {}),
         ...(settings.minimumPaymentPercent !== undefined

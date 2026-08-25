@@ -66,7 +66,10 @@ export interface BankAccountProps {
   creditUsedInitial: string;
   creditUsed: string;
   billingCycleDay: number | null;
+  billingCycleType: accounts.BillingCycleType;
   paymentMethod: accounts.BillingPaymentMethod;
+  /** Business days into next month at which payment is due, or null. */
+  paymentDueDay: number | null;
   /** Minimum-payment percentage of this account's statements ("5" = 5%), or null. */
   minimumPaymentPercent: string | null;
   cards: CardProps[];
@@ -233,8 +236,14 @@ export class BankAccount {
   get billingCycleDay(): number | null {
     return this.props.billingCycleDay;
   }
+  get billingCycleType(): accounts.BillingCycleType {
+    return this.props.billingCycleType;
+  }
   get paymentMethod(): accounts.BillingPaymentMethod {
     return this.props.paymentMethod;
+  }
+  get paymentDueDay(): number | null {
+    return this.props.paymentDueDay;
   }
 
   get minimumPaymentPercent(): string | null {
@@ -351,6 +360,7 @@ export class BankAccount {
       creditLimit?: string;
       creditUsedInitial?: string;
       billingCycleDay?: number | null;
+      paymentDueDay?: number | null;
       minimumPaymentPercent?: string | null;
     },
   ): void {
@@ -359,6 +369,7 @@ export class BankAccount {
       isNonZero(patch.creditLimit) ||
       isNonZero(patch.creditUsedInitial) ||
       patch.billingCycleDay != null ||
+      patch.paymentDueDay != null ||
       patch.minimumPaymentPercent != null;
     if (configured) throw new CreditSettingsNotAllowedError();
   }
@@ -380,7 +391,9 @@ export class BankAccount {
     creditLimit?: string;
     creditUsedInitial?: string;
     billingCycleDay?: number | null;
+    billingCycleType?: accounts.BillingCycleType;
     paymentMethod?: accounts.BillingPaymentMethod;
+    paymentDueDay?: number | null;
     minimumPaymentPercent?: string | null;
   }): void {
     const effectiveType = patch.type ?? this.props.type;
@@ -418,7 +431,9 @@ export class BankAccount {
     if (patch.creditUsedInitial !== undefined)
       this.props.creditUsedInitial = patch.creditUsedInitial;
     if (patch.billingCycleDay !== undefined) this.props.billingCycleDay = patch.billingCycleDay;
+    if (patch.billingCycleType !== undefined) this.props.billingCycleType = patch.billingCycleType;
     if (patch.paymentMethod !== undefined) this.props.paymentMethod = patch.paymentMethod;
+    if (patch.paymentDueDay !== undefined) this.props.paymentDueDay = patch.paymentDueDay;
     if (patch.minimumPaymentPercent !== undefined)
       this.props.minimumPaymentPercent = patch.minimumPaymentPercent;
   }

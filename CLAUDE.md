@@ -90,6 +90,38 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     no click handler fires at all, just a title tooltip explaining why; used in both `AccountForm`
     and the new `BillingSettingsModal`) until the payment-due-date format is actually decided (see
     `docs/PENDING.md`).
+    Amendment (días hábiles billing + a real payment due date, 2026-08-24): billing can now run on
+    **business days** instead of a fixed day of the month — días hábiles becomes the default for new
+    accounts. New **`BillingSettings.cycleType`** (`BillingCycleType`: `BUSINESS_DAY` default |
+    `CALENDAR_DAY`) decides how `billingCycleDay` is counted: `BUSINESS_DAY` counts Mon-Fri days
+    excluding Chilean public holidays (feriados legales — the new **`date-holidays`** dependency,
+    Chile only, matching the MVP's single market) since the PREVIOUS period's close, matching a real
+    issuer's cadence (e.g. **BCI: 20 días hábiles** to generate); `CALENDAR_DAY` is the original fixed
+    day-of-month behavior, kept for accounts already configured that way. Both compute the same
+    closing boundary through one function, `billing-settings/domain/billing-cycle.ts`'s
+    `nextBoundaryAfter(periodStart, billingCycleDay, cycleType)` — only the counting rule branches.
+    **`BillingSettings.paymentDueDay` stops being a reserved/unused column**: it is now business days
+    (días hábiles only — there's no calendar-day alternative for this one yet) counted DIRECTLY from a
+    period's own close — the same mechanism generation's `nextBoundaryAfter` already uses, just
+    anchored to `closedAt` instead of `periodStart` — at which payment is due (e.g. **BCI: closes with
+    22 Jul → 10 días hábiles → due 5 Aug**, and that same close also starts the clock for the NEXT
+    closing, 20 días hábiles later on 20 Aug, from which its own 10-día-hábil due date runs in turn).
+    `paymentDueDate(closedAt, paymentDueDay)` is a direct call to `addBusinessDays`, exposed as the new
+    **`CreditStatement.dueDate`** (null while OPEN, or when the account has no `paymentDueDay`
+    configured) and shown in `BillingSection` next to every unsettled period. This is **informational
+    only** — no automatic payment execution exists yet; `paymentMethod: AUTOMATIC` stays locked in the
+    UI (see `docs/PENDING.md`, whose point 1 this amendment resolves). `AccountForm`/
+    `BillingSettingsModal` gain a `cycleType` Segmented (días hábiles / día del mes) and a
+    `paymentDueDay` field, with the billing-day field's label/placeholder/hint switching to the
+    business-days wording when `cycleType` is `BUSINESS_DAY`. **Known, documented limitation**:
+    `currentCycleStart` — the helper that still scopes a card's own independent `CardLimit` sub-limit
+    to "since the current cycle began" (the account-level shared pool stopped needing this once
+    `creditUsed` became persisted, 2026-07-25) — has no fixed day-of-month to reconstruct a
+    `BUSINESS_DAY` cycle's start from `now` alone, so it now returns `null` for such accounts; that
+    sub-limit reverts to all-time scoping there, same as an account with no cycle configured at all
+    (see `docs/PENDING.md` point 4). No migration: `db push` regenerates `BillingSettings.cycleType`
+    at its default; the seed sets the main seeded credit account to `BUSINESS_DAY` (20/3, mirroring
+    BCI) and keeps a second one on `CALENDAR_DAY` to demonstrate both modes.
     Amendment (billing periods + automatic generation + real payments, 2026-07-25): the old
     one-shot `POST /accounts/:id/pay-credit` (which just zeroed `creditUsed`) is replaced by a
     full billing-period model. **`Transaction.creditStatementId`** links a contributing movement,
