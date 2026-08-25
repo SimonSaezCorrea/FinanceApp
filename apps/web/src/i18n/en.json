@@ -8,8 +8,35 @@
     "welcome": "Personal finance dashboard",
     "bootstrapping": "Setting up your session…"
   },
+  "states": {
+    "error": {
+      "connection": {
+        "title": "You're offline",
+        "message": "We couldn't reach the server. Check your connection and try again."
+      },
+      "server": {
+        "title": "Something went wrong",
+        "message": "Try again."
+      },
+      "notFound": {
+        "title": "We couldn't find that",
+        "message": "It may have been moved or deleted.",
+        "action": "Back to dashboard"
+      },
+      "unauthorized": {
+        "title": "Your session expired",
+        "message": "Sign in again to continue.",
+        "action": "Sign in"
+      },
+      "empty": {
+        "title": "Nothing to show",
+        "message": ""
+      }
+    }
+  },
   "common": {
     "cancel": "Cancel",
+    "retry": "Retry",
     "save": "Save",
     "edit": "Edit",
     "delete": "Delete",

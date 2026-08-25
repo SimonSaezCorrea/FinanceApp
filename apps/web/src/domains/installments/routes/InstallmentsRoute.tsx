@@ -12,7 +12,6 @@ import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useEle
 import { Button } from "../../../shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Segmented } from "../../../shared/ui/segmented";
-import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { DeletePlanConfirm } from "../components/DeletePlanConfirm";
 import { InstallmentDetailPanel } from "../components/InstallmentDetailPanel";
 import {
@@ -40,7 +39,7 @@ const todayInput = () => new Date().toISOString().slice(0, 10);
 
 export function InstallmentsRoute() {
   const { t } = useTranslation();
-  const { data, isLoading, isError } = useInstallments();
+  const { data, isLoading, isError, error, refetch } = useInstallments();
   const { data: accounts } = useAccounts();
   const { data: summary } = useTransactionsSummary();
   const { create, update, remove, pay, unpay } = useInstallmentMutations();
@@ -64,7 +63,12 @@ export function InstallmentsRoute() {
   // table is not.
   const showTable = listWidth !== null && listWidth >= TABLE_ROW_MIN_WIDTH;
 
-  const plans = useMemo(() => data ?? [], [data]);
+  // `data` is whatever the query last fetched SUCCESSFULLY — react-query keeps
+  // it around across a failed refetch, so a connection drop after the list
+  // already loaded once would otherwise show real KPI figures right next to
+  // "se nos cortó la conexión". Treat it as empty whenever the CURRENT state
+  // is an error, stale cache or not.
+  const plans = useMemo(() => (isError ? [] : (data ?? [])), [data, isError]);
   const accountList = useMemo(() => accounts ?? [], [accounts]);
   const visible = useMemo(
     () => visiblePlans(plans, statusFilter, withinWindow),
@@ -246,9 +250,7 @@ export function InstallmentsRoute() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t("installments.title")}
-        description={
-          plans.length > 0 ? t("installments.subtitleCount", { count: plans.length }) : undefined
-        }
+        description={!isLoading && !isError ? t("installments.subtitleCount", { count: plans.length }) : undefined}
         actions={
           <Button variant="accent" onClick={openCreate}>
             <Plus className="h-4 w-4" aria-hidden />
@@ -258,17 +260,13 @@ export function InstallmentsRoute() {
       />
 
       {isLoading && <InstallmentsSkeleton label={t("app.loading")} />}
-      {/* A failed load is not "you have no plans" — saying so would be a lie the user
-          acts on. */}
-      {!isLoading && isError && <ErrorState title={t("errors.INTERNAL_ERROR")} />}
 
-      {!isLoading && !isError && plans.length === 0 && (
-        // The CTA lives in the page header, which is always on screen — a second
-        // button inside the empty state would be the same action twice.
-        <EmptyState title={t("installments.empty")} message={t("installments.emptyHint")} />
-      )}
-
-      {!isLoading && !isError && plans.length > 0 && (
+      {/* The KPI strip, filters and table/list stay on screen regardless of
+          whether there's anything in them, load failed included — same as
+          Movimientos, whose own summary card and table header never
+          disappear either; only the table's OWN body says what happened
+          (`PlanEmptyRow`/`ErrorState inline`, below). */}
+      {!isLoading && (
         <>
           <InstallmentKpiStrip plans={plans} />
 
@@ -296,9 +294,7 @@ export function InstallmentsRoute() {
           </div>
 
           <div ref={listRef}>
-            {visible.length === 0 ? (
-              <EmptyState title={t("installments.noneMatchFilters")} />
-            ) : showTable ? (
+            {showTable ? (
               <InstallmentPlanTable
                 plans={visible}
                 cardLabels={cardLabels}
@@ -306,6 +302,10 @@ export function InstallmentsRoute() {
                 onSelect={selectPlan}
                 onEdit={openEdit}
                 onDelete={setDeleteId}
+                emptyTitle={plans.length === 0 ? t("installments.empty") : t("installments.noneMatchFilters")}
+                emptyMessage={plans.length === 0 ? t("installments.emptyHint") : undefined}
+                error={error}
+                onRetry={() => refetch()}
               />
             ) : (
               <InstallmentPlanList
@@ -314,6 +314,10 @@ export function InstallmentsRoute() {
                 onSelect={selectPlan}
                 onEdit={openEdit}
                 onDelete={setDeleteId}
+                emptyTitle={plans.length === 0 ? t("installments.empty") : t("installments.noneMatchFilters")}
+                emptyMessage={plans.length === 0 ? t("installments.emptyHint") : undefined}
+                error={error}
+                onRetry={() => refetch()}
               />
             )}
           </div>

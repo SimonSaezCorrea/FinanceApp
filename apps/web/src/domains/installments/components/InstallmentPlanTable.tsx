@@ -7,8 +7,10 @@ import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
 import { cn } from "../../../shared/lib/cn";
 import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { ErrorState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
 import { nextDuePayment, paidCount, progressRatio } from "../lib/installmentMetrics";
+import { PlanEmptyRow } from "./PlanEmptyRow";
 import { PlanStatusBadge } from "./PlanStatusBadge";
 
 interface InstallmentPlanTableProps {
@@ -18,7 +20,17 @@ interface InstallmentPlanTableProps {
   readonly onSelect: (id: string) => void;
   readonly onEdit: (plan: installments.InstallmentPlan) => void;
   readonly onDelete: (id: string) => void;
+  /** Shown, spanning the table, when `plans` is empty — the header row stays
+   * up regardless, same as `TransactionTable`'s own empty row. */
+  readonly emptyTitle: string;
+  readonly emptyMessage?: string;
+  /** The load's own error, if any — takes over the empty row's spot (the
+   * header stays up either way). `plans` is `[]` whenever this is set. */
+  readonly error?: unknown;
+  readonly onRetry?: () => void;
 }
+
+const COLUMN_COUNT = 7;
 
 /**
  * One row per PLAN — not per instalment, which is what the old flattened table did
@@ -36,6 +48,10 @@ export function InstallmentPlanTable({
   onSelect,
   onEdit,
   onDelete,
+  emptyTitle,
+  emptyMessage,
+  error,
+  onRetry,
 }: InstallmentPlanTableProps) {
   const { t, i18n } = useTranslation();
 
@@ -59,6 +75,17 @@ export function InstallmentPlanTable({
           </TR>
         </THead>
         <tbody>
+          {plans.length === 0 ? (
+            <TR>
+              <TD colSpan={COLUMN_COUNT} className="p-0">
+                {error ? (
+                  <ErrorState inline error={error} onRetry={onRetry} />
+                ) : (
+                  <PlanEmptyRow title={emptyTitle} message={emptyMessage} />
+                )}
+              </TD>
+            </TR>
+          ) : null}
           {plans.map((plan) => {
             const next = nextDuePayment(plan.payments);
             return (

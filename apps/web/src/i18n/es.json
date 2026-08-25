@@ -8,8 +8,35 @@
     "welcome": "Panel de finanzas personales",
     "bootstrapping": "Preparando tu sesión…"
   },
+  "states": {
+    "error": {
+      "connection": {
+        "title": "Se nos cortó la conexión",
+        "message": "No pudimos comunicarnos con el servidor. Revisa tu conexión e inténtalo de nuevo."
+      },
+      "server": {
+        "title": "Ocurrió un error",
+        "message": "Inténtalo de nuevo."
+      },
+      "notFound": {
+        "title": "No encontramos lo que buscabas",
+        "message": "Puede que se haya movido o eliminado.",
+        "action": "Volver al panel"
+      },
+      "unauthorized": {
+        "title": "Tu sesión expiró",
+        "message": "Inicia sesión de nuevo para continuar.",
+        "action": "Iniciar sesión"
+      },
+      "empty": {
+        "title": "No hay información para mostrar",
+        "message": ""
+      }
+    }
+  },
   "common": {
     "cancel": "Cancelar",
+    "retry": "Reintentar",
     "save": "Guardar",
     "edit": "Editar",
     "delete": "Eliminar",

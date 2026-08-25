@@ -15,6 +15,7 @@ import { TransactionCreateModal } from "../../transactions/components/Transactio
 import { TransactionDetailModal } from "../../transactions/components/TransactionDetailModal";
 import { TransactionDeleteConfirm } from "../../transactions/components/TransactionDeleteConfirm";
 import { TransactionTable } from "../../transactions/components/TransactionTable";
+import { MovementsTableSkeleton } from "../../transactions/components/MovementsTableSkeleton";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { cn } from "../../../shared/lib/cn";
 import { ASIDE_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
@@ -25,7 +26,7 @@ import { ConfirmModal } from "../../../shared/ui/overlay";
 import { Select } from "../../../shared/ui/select";
 import { Switch } from "../../../shared/ui/switch";
 import { ErrorState } from "../../../shared/ui/states";
-import { AccountDetailSkeleton, MovementsTableSkeleton } from "../components/AccountDetailSkeleton";
+import { AccountDetailSkeleton } from "../components/AccountDetailSkeleton";
 import { AccountEditPanel } from "../components/AccountEditPanel";
 import { Tabs } from "../../../shared/ui/tabs";
 import { BillingSection } from "../components/BillingSection";
@@ -58,7 +59,7 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
     searchParams.get("tab") === "billing" ? "billing" : "movements",
   );
   const openStatementId = searchParams.get("statement");
-  const { data: acc, isLoading, isError } = useAccount(id);
+  const { data: acc, isLoading, isError, error, refetch } = useAccount(id);
   // Only to know whether this is the user's last cash account (see `deletable`).
   const { data: allAccounts } = useAccounts();
   const { setStatus, remove } = useAccountMutations();
@@ -82,7 +83,7 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
           // column when there's room for it, so nothing moves once data lands.
           <AccountDetailSkeleton label={t("app.loading")} isDesktop={isDesktop} />
         ) : (
-          <ErrorState title={t("errors.INTERNAL_ERROR")} />
+          <ErrorState error={error} onRetry={() => refetch()} />
         )}
       </div>
     );
@@ -562,13 +563,11 @@ function MovementsSection({
           movement" button stay pinned above it. */}
       <div className={cn("scrollbar-thin", columnScroll && "min-h-0 flex-1 overflow-y-auto")}>
         {isLoading ? (
-          <MovementsTableSkeleton />
-        ) : isError ? (
-          <ErrorState title={t("errors.INTERNAL_ERROR")} />
+          <MovementsTableSkeleton showAccountColumn={false} />
         ) : (
           <TransactionTable
             highlightId={savedId}
-            transactions={list}
+            transactions={isError ? [] : list}
             accounts={[account]}
             showAccountColumn={false}
             onEdit={(tx) => {
@@ -582,6 +581,8 @@ function MovementsSection({
             hasMore={txQuery.hasNextPage}
             isLoadingMore={txQuery.isFetchingNextPage}
             onLoadMore={() => void txQuery.fetchNextPage()}
+            error={txQuery.error}
+            onRetry={() => txQuery.refetch()}
           />
         )}
       </div>

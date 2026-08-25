@@ -27,7 +27,7 @@ function recurringDateClass(nextDueAt: string): string {
 
 export function RecurringRoute() {
   const { t, i18n } = useTranslation();
-  const { data, isLoading, isError } = useRecurring();
+  const { data, isLoading, isError, error, refetch } = useRecurring();
   const { remove } = useRecurringMutations();
   const [modal, setModal] = useState<{ open: boolean; initial?: recurring.RecurringExpense }>({
     open: false,
@@ -56,7 +56,7 @@ export function RecurringRoute() {
       {isLoading ? (
         <LoadingState title={t("app.loading")} />
       ) : isError ? (
-        <ErrorState title={t("errors.INTERNAL_ERROR")} />
+        <ErrorState error={error} onRetry={() => refetch()} />
       ) : list.length === 0 ? (
         <EmptyState title={t("recurring.empty")} />
       ) : (

@@ -21,7 +21,7 @@ type StatusFilter = "active" | "settled" | "all";
 
 export function DebtsRoute() {
   const { t } = useTranslation();
-  const { data, isLoading, isError } = useDebts();
+  const { data, isLoading, isError, error, refetch } = useDebts();
   const { settle, unsettle, registerPayment, undoPayment, remove } = useDebtMutations();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingDebt, setEditingDebt] = useState<debts.Debt | null>(null);
@@ -127,7 +127,9 @@ export function DebtsRoute() {
       />
 
       {isLoading && <LoadingState title={t("app.loading")} />}
-      {!isLoading && isError && <ErrorState title={t("errors.INTERNAL_ERROR")} />}
+      {!isLoading && isError && (
+        <ErrorState error={error} onRetry={() => refetch()} />
+      )}
 
       {!isLoading && !isError && (
         <>

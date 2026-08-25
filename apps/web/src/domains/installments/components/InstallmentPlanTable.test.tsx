@@ -66,6 +66,7 @@ function renderTable(plans: installments.InstallmentPlan[]) {
         onSelect={vi.fn()}
         onEdit={vi.fn()}
         onDelete={vi.fn()}
+        emptyTitle="No plans"
       />
     </I18nextProvider>,
   );

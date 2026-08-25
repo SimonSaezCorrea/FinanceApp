@@ -732,7 +732,42 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     is re-exported from `accounts`: `reference` needs it and `accounts` already imports `reference`,
     so a shared module is what avoids the cycle (same move as `identifierTypeSchema`). Call sites unchanged. **`BankAccount.institutionId`** FK → `FinancialInstitution` (the "institution" selector; scalar `institution` text mirrors its name for display; relation field is `financialInstitution`); web forms use `useInstitutions`/`useCurrencies` selects (`apps/web`'s `domains/reference` — the FRONTEND keeps one reference module; only the backend is split per table).
   - **wallet-item-dashboard**: `WalletItemDashboard` (table `wallet-item-dashboard`) `(accountId? | cardId?, order)` — a user-curated set of pinned cards **or** accounts for the dashboard "wallet" (exactly one of card/account; XOR enforced in its aggregate; `onDelete: Cascade`). Endpoints `GET/POST /wallet`, `PATCH /wallet/reorder` (`{ids[]}`), `DELETE /wallet/:id`.
-- **`apps/web`** — **Vite + React 19 SPA**, consumes the API over HTTP only (`shared/lib/apiClient.ts`, `VITE_API_URL`). Domain-first: `src/domains/<domain>/{api,hooks,components,routes}`. Routing **react-router v8** (single `react-router` package — `react-router-dom` no longer exists in v8; every import comes from `react-router`), data via TanStack Query, **owns the es/en i18n catalogs** (`src/i18n`). **Styling: Tailwind CSS** (design tokens as CSS variables in `src/styles/index.css`, dark-mode ready) with shadcn-style primitives in `src/shared/ui` (`button`, `input`, `label`, `field`, `select`, `searchable-select` [button + portaled, fixed-height (`max-h-60`) custom-scrollbar (`scrollbar-thin`) panel with an in-panel search box — for long option lists a native `<select>` can't restyle/height-cap, e.g. institutions (~20 banks) or currencies (168 ISO codes); `displayValue` prop lets the closed control show something narrower than the list label, e.g. a currency's bare ISO code while the open list reads "Name (CODE)"], `combobox` [free-text input + the same portaled dropdown pattern, for fields that accept a value not in the list, e.g. transaction category], `card`, `badge`, `table`, `page-header`, `states`, `theme-toggle`, `switch`, `unsaved-indicator`, `overlay/` [the dialog family — Modal/Window/Drawer/ResponsiveSurface/FormSurface/ConfirmModal, see the overlay amendment below], `tabs`, `segmented`, `sparkline`) + `cn` helper (`shared/lib/cn.ts`); authed routes wrapped by `app/AppLayout.tsx`. The **Panel** (`app/DashboardPage.tsx` + `domains/dashboard`) is a frontend-only aggregation (net worth, month flow, category donut, upcoming payments, wallet). Libraries: **Recharts** (charts), **sonner** (toasts; `<Toaster/>` in `app/providers`), **@dnd-kit** (wallet drag-reorder). No DB access, never imports backend internals.
+- **`apps/web`** — **Vite + React 19 SPA**, consumes the API over HTTP only (`shared/lib/apiClient.ts`, `VITE_API_URL`). Domain-first: `src/domains/<domain>/{api,hooks,components,routes}`. Routing **react-router v8** (single `react-router` package — `react-router-dom` no longer exists in v8; every import comes from `react-router`), data via TanStack Query, **owns the es/en i18n catalogs** (`src/i18n`). **Styling: Tailwind CSS** (design tokens as CSS variables in `src/styles/index.css`, dark-mode ready) with shadcn-style primitives in `src/shared/ui` (`button`, `input`, `label`, `field`, `select`, `searchable-select` [button + portaled, fixed-height (`max-h-60`) custom-scrollbar (`scrollbar-thin`) panel with an in-panel search box — for long option lists a native `<select>` can't restyle/height-cap, e.g. institutions (~20 banks) or currencies (168 ISO codes); `displayValue` prop lets the closed control show something narrower than the list label, e.g. a currency's bare ISO code while the open list reads "Name (CODE)"], `combobox` [free-text input + the same portaled dropdown pattern, for fields that accept a value not in the list, e.g. transaction category], `card`, `badge`, `table`, `page-header`, `states` (kind-aware error/empty/loading — see the amendment
+below), `theme-toggle`, `switch`, `unsaved-indicator`, `overlay/` [the dialog family — Modal/Window/Drawer/ResponsiveSurface/FormSurface/ConfirmModal, see the overlay amendment below], `tabs`, `segmented`, `sparkline`) + `cn` helper (`shared/lib/cn.ts`); authed routes wrapped by `app/AppLayout.tsx`. The **Panel** (`app/DashboardPage.tsx` + `domains/dashboard`) is a frontend-only aggregation (net worth, month flow, category donut, upcoming payments, wallet). Libraries: **Recharts** (charts), **sonner** (toasts; `<Toaster/>` in `app/providers`), **@dnd-kit** (wallet drag-reorder). No DB access, never imports backend internals.
+  Amendment (kind-aware error/empty states + "keep the chrome" convention, 2026-08-25):
+  `shared/ui/states.tsx`'s `ErrorState` stopped being one generic sentence everywhere. Pass the
+  query/mutation's own `error` (preferred over a hardcoded `title`) and it derives a **`kind`**:
+  `connection` (the request never reached the server — not an `ApiRequestError` at all),
+  `server` (it did; the title comes from `error.code` via the same `errors.<CODE>` map every
+  mutation's toast already uses — "en lenguaje humano", not "algo salió mal"), `notFound` (404) and
+  `unauthorized` (401/403) each get their own copy AND an escape-hatch link (`KIND_ESCAPE`:
+  "Volver al panel" → `/`, "Iniciar sesión" → `/login`) since retrying rarely helps either one —
+  a plain `<a href>`, not `useNavigate`, so the primitive still renders with no `<Router>` around it
+  (unit tests included). `EmptyState` is `kind="empty"` of the SAME shell (not an error — the
+  request succeeded, there's just nothing to show), so there's one component family, not two
+  diverging ones. Visually: `error`/`connection`/`server`/etc. render as a centered **card** (solid
+  border, a soft glow behind the icon, `max-w-[640px]`, `min-h-[420px]`) for a whole page's worth of
+  failure; `empty` renders **plain** (bare icon, no border) — the same weight a table's own empty
+  row already had. New **`inline`** prop renders any kind (error included) in that same plain,
+  borderless look for embedding INSIDE existing chrome instead of replacing it — the house
+  convention, now applied everywhere a page has a table or a KPI strip: the headers/labels/filters
+  are static and don't depend on the response, so they render for real regardless of
+  loading/empty/error, and only the row/body area shows the placeholder or the failure
+  (`TransactionTable`'s `EmptyRow`, Cuotas' `PlanEmptyRow`, `InstallmentPlanTable`/`List`,
+  `BillingSection`, all wired the same way: `<ErrorState inline error={...} onRetry={...} />` takes
+  the empty row's spot when there's one). Skeletons follow the identical split — `MovementsTableSkeleton`
+  (moved from `accounts` to `transactions`, its rightful owner, and reused by both the main
+  Movimientos route and an account's own tab), `InstallmentsSkeleton` and `BillingTableSkeleton` all
+  render their real headers/labels/filter controls up front and shimmer only the rows/figures, so a
+  loading page never looks like a single dashed placeholder box. **A KPI/summary strip that would
+  otherwise hide when there's no data now stays up with a dash/zero placeholder instead of vanishing**
+  (`InstallmentKpiStrip`'s `EMPTY_CLP_KPIS`, `AccountsSummary`'s new `unavailable` prop) — the
+  container's presence is what says "a summary belongs here"; disappearing entirely on a stale-data
+  guard (below) would have looked like the feature broke, not like data being unavailable. **Stale
+  cache guard**: react-query keeps the last SUCCESSFUL `data` across a failed refetch, so a
+  connection drop right after a list loaded once would otherwise show real (old) numbers next to
+  "se nos cortó la conexión" — `AccountsRoute`/`InstallmentsRoute`/`BillingSection` now derive their
+  displayed list as `isError ? [] : (data ?? [])` before it reaches any summary, count or table.
   Amendment (overlay family, 2026-08-05): `shared/ui/dialog.tsx` and `shared/ui/confirm-dialog.tsx`
   are **gone**, replaced by `shared/ui/overlay/` (barrel `index.ts`): **`SurfaceChrome`** (the shared
   frame — header `leading`/title/description/`headerAside`/close → one scrolling body → pinned

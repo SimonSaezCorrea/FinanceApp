@@ -5,8 +5,10 @@ import { useTranslation } from "react-i18next";
 
 import { cn } from "../../../shared/lib/cn";
 import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { ErrorState } from "../../../shared/ui/states";
 import { SwipeRow } from "../../../shared/ui/swipe-row";
 import { nextDuePayment, paidCount, progressRatio } from "../lib/installmentMetrics";
+import { PlanEmptyRow } from "./PlanEmptyRow";
 import { PlanStatusBadge, planStatusText } from "./PlanStatusBadge";
 
 interface InstallmentPlanListProps {
@@ -15,6 +17,13 @@ interface InstallmentPlanListProps {
   readonly onSelect: (id: string) => void;
   readonly onEdit: (plan: installments.InstallmentPlan) => void;
   readonly onDelete: (id: string) => void;
+  /** Shown, inside the same bordered container, when `plans` is empty. */
+  readonly emptyTitle: string;
+  readonly emptyMessage?: string;
+  /** The load's own error, if any — takes over the same spot. `plans` is
+   * `[]` whenever this is set. */
+  readonly error?: unknown;
+  readonly onRetry?: () => void;
 }
 
 /**
@@ -37,11 +46,27 @@ export function InstallmentPlanList({
   onSelect,
   onEdit,
   onDelete,
+  emptyTitle,
+  emptyMessage,
+  error,
+  onRetry,
 }: InstallmentPlanListProps) {
   const { t, i18n } = useTranslation();
   // Only one row's swipe panel open at a time — opening another closes the
   // previous one for free, since both read off this single id.
   const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
+
+  if (plans.length === 0) {
+    return (
+      <div className="rounded-lg border bg-card">
+        {error ? (
+          <ErrorState inline error={error} onRetry={onRetry} />
+        ) : (
+          <PlanEmptyRow title={emptyTitle} message={emptyMessage} />
+        )}
+      </div>
+    );
+  }
 
   return (
     <ul className="flex flex-col divide-y divide-border rounded-lg border bg-card">

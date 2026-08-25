@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Banknote, CreditCard, Pencil, RefreshCw } from "lucide-react";
+import { Banknote, CreditCard, Inbox, Pencil, RefreshCw } from "lucide-react";
 import { cn } from "../../../shared/lib/cn";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
 import { ConfirmModal } from "../../../shared/ui/overlay";
 import { Skeleton, SkeletonScreen } from "../../../shared/ui/skeleton";
-import { EmptyState, ErrorState } from "../../../shared/ui/states";
+import { ErrorState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
 import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { useAccountMutations, useCreditStatements } from "../hooks/useAccounts";
@@ -82,6 +82,25 @@ function BillingTableSkeleton({ label }: Readonly<{ label: string }>) {
   );
 }
 
+/** The message that occupies the periods table/list while there's no billing
+ * history yet — OR, when the load itself failed, the error instead (same
+ * spot, `ErrorState`'s own `inline` look). No border of its own — the
+ * surrounding `Card` and header row (wide layout) are already the frame,
+ * same convention `TransactionTable`'s own `EmptyRow` and Cuotas'
+ * `PlanEmptyRow` use, so the table's chrome (headers, "Generar
+ * facturación") stays on screen instead of the whole section swapping out
+ * for a lone floating message. */
+function BillingEmptyMessage({ error, onRetry }: Readonly<{ error?: unknown; onRetry?: () => void }>) {
+  const { t } = useTranslation();
+  if (error) return <ErrorState inline error={error} onRetry={onRetry} />;
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center">
+      <Inbox className="h-6 w-6 text-muted-foreground" aria-hidden />
+      <p className="font-medium">{t("accounts.detail.billingEmpty")}</p>
+    </div>
+  );
+}
+
 export function BillingSection({
   account,
   hideTitle,
@@ -99,7 +118,19 @@ export function BillingSection({
   onConsumeOpenStatement?: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const { data: statements, isLoading, isError } = useCreditStatements(account.id);
+  const {
+    data: rawStatements,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useCreditStatements(account.id);
+  // `rawStatements` is whatever the query last fetched SUCCESSFULLY —
+  // react-query keeps it around across a failed refetch, so a connection drop
+  // after the periods already loaded once would otherwise render those STALE
+  // rows as if the load had succeeded, hiding the error and its retry action
+  // entirely. Treat it as empty whenever the CURRENT state is an error.
+  const statements = isError ? undefined : rawStatements;
   const { generateStatements, syncStatement } = useAccountMutations();
   const [payTarget, setPayTarget] = useState<accounts.CreditStatement | null>(null);
   const [syncTarget, setSyncTarget] = useState<accounts.CreditStatement | null>(null);
@@ -253,12 +284,11 @@ export function BillingSection({
       <div className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto scrollbar-thin">
         {isLoading ? (
           <BillingTableSkeleton label={t("app.loading")} />
-        ) : isError ? (
-          <ErrorState title={t("errors.INTERNAL_ERROR")} />
-        ) : !statements || statements.length === 0 ? (
-          <EmptyState title={t("accounts.detail.billingEmpty")} />
         ) : !wide ? (
           <div className="flex flex-col gap-5">
+            {!statements || statements.length === 0 ? (
+              <BillingEmptyMessage error={isError ? error : undefined} onRetry={() => refetch()} />
+            ) : null}
             {open.map((s) => (
               <CurrentPeriodCard key={s.id} statement={s} />
             ))}
@@ -333,7 +363,14 @@ export function BillingSection({
                 </TR>
               </THead>
               <tbody>
-                {statements.map((s) => (
+                {!statements || statements.length === 0 ? (
+                  <TR>
+                    <TD colSpan={6} className="p-0">
+                      <BillingEmptyMessage error={isError ? error : undefined} onRetry={() => refetch()} />
+                    </TD>
+                  </TR>
+                ) : null}
+                {(statements ?? []).map((s) => (
                   <TR key={s.id} onClick={() => setDetailTarget(s)} className="cursor-pointer">
                     <TD>
                       <span className="flex h-8 w-8 items-center justify-center rounded-full bg-chip text-muted-foreground">

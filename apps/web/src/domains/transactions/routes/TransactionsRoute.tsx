@@ -5,7 +5,6 @@ import { toast } from "sonner";
 
 import { Button } from "../../../shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
-import { ErrorState, LoadingState } from "../../../shared/ui/states";
 import { Segmented } from "../../../shared/ui/segmented";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { TransactionDeleteConfirm } from "../components/TransactionDeleteConfirm";
@@ -14,6 +13,7 @@ import { TransactionDetailModal } from "../components/TransactionDetailModal";
 import { TransactionKpiStrip } from "../components/TransactionKpiStrip";
 import { TransactionFiltersBar } from "../components/TransactionFiltersBar";
 import { TransactionTable } from "../components/TransactionTable";
+import { MovementsTableSkeleton } from "../components/MovementsTableSkeleton";
 import { useInfiniteTransactions, useTransactionsSummary } from "../hooks/useTransactions";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { endOfMonth, isFullMonthRange, startOfMonth } from "../lib/transactionMetrics";
@@ -150,13 +150,11 @@ export function TransactionsRoute() {
       </div>
 
       {txQuery.isLoading ? (
-        <LoadingState title={t("app.loading")} />
-      ) : txQuery.isError ? (
-        <ErrorState title={t("errors.INTERNAL_ERROR")} />
+        <MovementsTableSkeleton />
       ) : (
         <TransactionTable
           highlightId={savedId}
-          transactions={visibleTxs}
+          transactions={txQuery.isError ? [] : visibleTxs}
           accounts={accounts}
           onEdit={(tx) => {
             setEditTx(tx);
@@ -169,6 +167,8 @@ export function TransactionsRoute() {
           hasMore={txQuery.hasNextPage}
           isLoadingMore={txQuery.isFetchingNextPage}
           onLoadMore={() => void txQuery.fetchNextPage()}
+          error={txQuery.error}
+          onRetry={() => txQuery.refetch()}
         />
       )}
 

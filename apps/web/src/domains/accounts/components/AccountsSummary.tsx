@@ -23,14 +23,22 @@ function inPrimary(totals: CurrencyTotal[], primary: string): string {
 export function AccountsSummary({
   list,
   primaryCurrency,
-}: Readonly<{ list: accounts.BankAccount[]; primaryCurrency: string }>) {
+  /** The load failed — the container stays (its own shape is what says "a
+   * summary belongs here"), but every figure in it becomes a dash: whatever
+   * `list` holds while erroring is stale cache, not a real answer to "how
+   * much do you have", and showing a real-looking number for data that's
+   * currently unreachable is worse than showing nothing at all. */
+  unavailable = false,
+}: Readonly<{ list: accounts.BankAccount[]; primaryCurrency: string; unavailable?: boolean }>) {
   const { t, i18n } = useTranslation();
-  if (list.length === 0) return null;
+  // Genuinely no accounts (not an error): nothing to summarize.
+  if (list.length === 0 && !unavailable) return null;
 
-  const { net, assets, cardDebt } = accountsSummary(list);
   const heroCurrency = primaryCurrency;
   const money = (value: string, currency: string) =>
     formatMoney(value, { locale: i18n.language, currency });
+  const { net, assets, cardDebt } = unavailable ? { net: [], assets: [], cardDebt: [] } : accountsSummary(list);
+  const dash = "—";
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card px-4 py-5 sm:px-6">
@@ -45,18 +53,19 @@ export function AccountsSummary({
             card taller than the right-hand column and left it visually top-heavy. */}
         <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
           <p className="text-[26px] font-bold tabular-nums leading-none tracking-tight sm:text-[30px]">
-            {money(inPrimary(net, heroCurrency), heroCurrency)}
+            {unavailable ? dash : money(inPrimary(net, heroCurrency), heroCurrency)}
           </p>
-          {net
-            .filter((n) => n.currency !== heroCurrency)
-            .map((n) => (
-              <span
-                key={n.currency}
-                className="rounded-full bg-chip px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground"
-              >
-                {money(n.total, n.currency)}
-              </span>
-            ))}
+          {!unavailable &&
+            net
+              .filter((n) => n.currency !== heroCurrency)
+              .map((n) => (
+                <span
+                  key={n.currency}
+                  className="rounded-full bg-chip px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground"
+                >
+                  {money(n.total, n.currency)}
+                </span>
+              ))}
         </div>
       </div>
 
@@ -66,13 +75,13 @@ export function AccountsSummary({
         <div className="text-right">
           <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.assets")}</p>
           <p className="mt-1 text-base font-semibold tabular-nums text-success">
-            {money(inPrimary(assets, heroCurrency), heroCurrency)}
+            {unavailable ? dash : money(inPrimary(assets, heroCurrency), heroCurrency)}
           </p>
         </div>
         <div className="text-right">
           <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.cardDebt")}</p>
           <p className="mt-1 text-base font-semibold tabular-nums text-accent">
-            −{money(inPrimary(cardDebt, heroCurrency), heroCurrency)}
+            {unavailable ? dash : `−${money(inPrimary(cardDebt, heroCurrency), heroCurrency)}`}
           </p>
         </div>
       </div>

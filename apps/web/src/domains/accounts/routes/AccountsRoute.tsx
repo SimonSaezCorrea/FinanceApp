@@ -28,10 +28,15 @@ export function AccountsRoute() {
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [groupBy, setGroupBy] = useState<GroupBy>("currency");
   const [modalOpen, setModalOpen] = useState(false);
-  const { data, isLoading, isError } = useAccounts(
+  const { data, isLoading, isError, error, refetch } = useAccounts(
     filter === "all" ? undefined : { status: filter },
   );
-  const list = useMemo(() => data ?? [], [data]);
+  // `data` is whatever the query last fetched SUCCESSFULLY — react-query keeps
+  // it around across a failed refetch, so a connection drop after the list
+  // already loaded once would otherwise show real numbers (net worth, "11
+  // cuentas") right next to "se nos cortó la conexión". Treat it as empty
+  // whenever the CURRENT state is an error, stale cache or not.
+  const list = useMemo(() => (isError ? [] : (data ?? [])), [data, isError]);
 
   const subtitle = useMemo(() => {
     const currencies = new Set(list.map((a) => a.currency)).size;
@@ -116,15 +121,20 @@ export function AccountsRoute() {
           // loads (switching one just re-runs the query behind the same skeleton).
           controls={filterRow}
         />
-      ) : isError ? (
-        <ErrorState title={t("errors.INTERNAL_ERROR")} />
       ) : (
         <>
-          <AccountsSummary list={list} primaryCurrency={primaryCurrency} />
+          {/* Rendered regardless of outcome — it hides itself only when there's
+              genuinely nothing to summarize; on a failed load it stays up with
+              dashes instead of real (stale) figures, so the filter row below
+              it — and the "Nueva cuenta" button above — get to stay live too,
+              instead of the whole page swapping out for a lone error card. */}
+          <AccountsSummary list={list} primaryCurrency={primaryCurrency} unavailable={isError} />
 
           {filterRow}
 
-          {list.length === 0 ? (
+          {isError ? (
+            <ErrorState error={error} onRetry={() => refetch()} />
+          ) : list.length === 0 ? (
             <EmptyState title={t("accounts.empty")} />
           ) : (
             groups.map((group) => {

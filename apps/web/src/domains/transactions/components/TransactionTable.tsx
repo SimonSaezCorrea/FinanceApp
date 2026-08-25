@@ -13,6 +13,7 @@ import { CategoryIcon } from "../../../shared/ui/category-icon";
 import { cn } from "../../../shared/lib/cn";
 import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { InfiniteScrollSentinel } from "../../../shared/ui/infinite-scroll-sentinel";
+import { ErrorState } from "../../../shared/ui/states";
 import { SwipeRow } from "../../../shared/ui/swipe-row";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
 
@@ -25,6 +26,11 @@ interface TransactionTableProps {
   /** Hide the "Cuenta" column — redundant on a single account's own detail
    * page, where every row is already that account by construction. */
   showAccountColumn?: boolean;
+  /** The load's own error, if any — shown INSIDE the table chrome (see
+   * `isEmpty`'s comment below) instead of swapping the whole table out.
+   * `transactions` is `[]` whenever this is set. */
+  error?: unknown;
+  onRetry?: () => void;
   /**
    * Movement to point out for a moment — the one just created or edited. A new
    * movement is NOT necessarily the top row (the list is ordered by date, so one
@@ -72,6 +78,8 @@ export function TransactionTable({
   hasMore = false,
   isLoadingMore = false,
   onLoadMore,
+  error,
+  onRetry,
 }: TransactionTableProps) {
   const { t, i18n } = useTranslation();
   const showActions = Boolean(onEdit || onDelete);
@@ -358,8 +366,11 @@ export function TransactionTable({
 
       {/* Rendered ONCE, below whichever layout is showing (both are mounted, one
           hidden by class) — duplicating it would put the same message in the DOM
-          twice. The headers above still stand, so the table keeps its shape. */}
-      {isEmpty ? (
+          twice. The headers above still stand, so the table keeps its shape,
+          whether the row is empty or the load itself failed. */}
+      {error ? (
+        <ErrorState inline error={error} onRetry={onRetry} />
+      ) : isEmpty ? (
         <div className="px-4 py-10">
           <EmptyRow />
         </div>

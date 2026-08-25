@@ -3,11 +3,24 @@ import type { installments } from "@finance/contracts";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "../../../shared/lib/cn";
-import { planKpis } from "../lib/installmentMetrics";
+import { type PlanKpis, planKpis } from "../lib/installmentMetrics";
 
 interface InstallmentKpiStripProps {
   readonly plans: installments.InstallmentPlan[];
 }
+
+/** Shown when there isn't a single plan yet to derive a currency from — CLP
+ * (the MVP's primary market) with every figure at its own "nothing yet"
+ * placeholder, the same choice Movimientos already makes for its own summary
+ * card ("Balance de agosto: —") instead of hiding the whole strip. */
+const EMPTY_CLP_KPIS: PlanKpis = {
+  currency: "CLP",
+  thisMonth: "0",
+  pendingTotal: "0",
+  nextDueDate: null,
+  nextIsOverdue: false,
+  activeCount: 0,
+};
 
 /**
  * The four figures above the list: what this month costs, what is still owed, when
@@ -20,13 +33,11 @@ interface InstallmentKpiStripProps {
 export function InstallmentKpiStrip({ plans }: InstallmentKpiStripProps) {
   const { t, i18n } = useTranslation();
   const groups = planKpis(plans);
-
-  // No plans, no figures: a row of zeros reads as data the user doesn't have (FR-058).
-  if (groups.length === 0) return null;
+  const displayGroups = groups.length > 0 ? groups : [EMPTY_CLP_KPIS];
 
   return (
     <div className="flex flex-col gap-4">
-      {groups.map((kpi) => (
+      {displayGroups.map((kpi) => (
         <section key={kpi.currency} aria-label={kpi.currency} className="flex flex-col gap-2">
           {groups.length > 1 && (
             <h2 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
