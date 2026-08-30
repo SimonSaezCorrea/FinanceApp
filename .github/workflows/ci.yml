@@ -61,6 +61,13 @@ jobs:
 
       - run: pnpm --filter @finance/api exec prisma generate
 
+      # prisma/seed.ts imports @finance/money by its built dist (package.json's
+      # "default" condition, since tsx runs it as CJS) — on a fresh checkout/cache
+      # miss nothing has built that yet, so the seed step below would fail on
+      # "Cannot find module .../dist/index.js" with no explicit build first.
+      - name: Build shared packages
+        run: pnpm exec turbo run build --filter=@finance/money
+
       # The integration/e2e tiers query a real database, so the service container
       # needs the schema. `db push` matches the local workflow (this repo has no
       # prisma/migrations folder).
