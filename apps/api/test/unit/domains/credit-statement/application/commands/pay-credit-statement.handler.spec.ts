@@ -169,7 +169,11 @@ describe("PayCreditStatementHandler", () => {
     });
     const statementRepo = fakeStatementRepo({
       findById: vi.fn(async () => statement),
-      breakdown: vi.fn(async () => ({ purchases: "10000", installments: "0", installmentCount: 0 })),
+      breakdown: vi.fn(async () => ({
+        purchases: "10000",
+        installments: "0",
+        installmentCount: 0,
+      })),
     });
     const prisma = fakePrisma();
 
@@ -394,7 +398,9 @@ describe("PayCreditStatementHandler", () => {
           fakePlanRepo({ settleForStatementWithTx }),
           fakePrisma() as never,
         );
-        await handler.execute(new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2", amount));
+        await handler.execute(
+          new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2", amount),
+        );
         return settleForStatementWithTx.mock.calls.length;
       };
 

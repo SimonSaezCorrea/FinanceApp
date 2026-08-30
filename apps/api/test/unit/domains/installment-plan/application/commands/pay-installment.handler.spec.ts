@@ -45,7 +45,7 @@ function makePlan(over: { cardId?: string | null; currency?: string } = {}) {
         paidAmount: null,
         carriedOverAmount: "0.0000",
         transactionId: null,
-    creditStatementId: null,
+        creditStatementId: null,
       },
       {
         id: "pay2",
@@ -56,7 +56,7 @@ function makePlan(over: { cardId?: string | null; currency?: string } = {}) {
         paidAmount: null,
         carriedOverAmount: "0.0000",
         transactionId: null,
-    creditStatementId: null,
+        creditStatementId: null,
       },
     ],
     createdAt: new Date("2026-01-15"),
@@ -298,9 +298,9 @@ describe("UnpayInstallmentHandler", () => {
       fakeTransactionWriterRepo(),
       fakeCardAccountRepo({ kindForCard: vi.fn(async () => "CREDIT" as const) }),
     );
-    await expect(handler.execute(new UnpayInstallmentCommand("u1", "p1", 1))).rejects.toBeInstanceOf(
-      InstallmentCardIsCreditError,
-    );
+    await expect(
+      handler.execute(new UnpayInstallmentCommand("u1", "p1", 1)),
+    ).rejects.toBeInstanceOf(InstallmentCardIsCreditError);
   });
 
   it("still unpays normally for a debit-card plan", async () => {
@@ -311,7 +311,9 @@ describe("UnpayInstallmentHandler", () => {
       fakeTransactionWriterRepo({ accountIdForTransaction: vi.fn(async () => "acc9") }),
       fakeCardAccountRepo({ kindForCard: vi.fn(async () => "DEBIT" as const) }),
     );
-    await expect(handler.execute(new UnpayInstallmentCommand("u1", "p1", 1))).resolves.not.toThrow();
+    await expect(
+      handler.execute(new UnpayInstallmentCommand("u1", "p1", 1)),
+    ).resolves.not.toThrow();
   });
 
   it("throws when the plan is not the user's", async () => {
@@ -364,7 +366,7 @@ describe("UnpayInstallmentHandler", () => {
           paidAmount: null,
           carriedOverAmount: "0.0000",
           transactionId: null,
-    creditStatementId: null,
+          creditStatementId: null,
         },
       ],
     });

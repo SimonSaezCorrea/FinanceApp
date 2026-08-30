@@ -48,14 +48,14 @@ ocurre fuera de la transacción de base de datos.
 
 _GATE: revisado antes de Phase 0 y de nuevo tras Phase 1._
 
-| Principio                             | Cumplimiento en este plan                                                                                                                                                                        | Estado |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------ |
-| I. Money Precision                    | Montos de traspaso y saldos derivados con `@finance/money`/`Prisma.Decimal`; `sizeBytes` es lo único numérico y no es dinero. Saldo proyectado también se calcula con `decimal.js`, no con `number`. | ✅     |
-| II. Per-User Data Isolation           | `transferGroupId` se resuelve siempre junto a `userId`; `TransactionAttachment.userId` propio + toda consulta scopeada; un adjunto ajeno responde 404, no 403.                                     | ✅     |
-| III. i18n Parity                      | Cada texto nuevo (traspaso, adjuntos, saldos, duplicar, nav, 7 códigos de error) en `es.json` y `en.json`.                                                                                          | ✅     |
-| IV. Test-First / TDD                  | Cada tarea de lógica escribe su test antes: `TransferPolicy`, `AttachmentPolicy` (magic bytes), exclusión de traspasos del `summary`, atomicidad del par, saldo proyectado.                        | ✅     |
-| V. SDD + Living Memory                | Cadena spec → clarify → plan → tasks → analyze → implement; cierre obligatorio actualizando constitución (nueva dependencia + env vars + tabla) y `CLAUDE.md`.                                     | ✅     |
-| VI. DDD + CQRS, una tabla un dominio  | `transaction-attachment` es dominio nuevo con las cuatro capas y adapter único. El traspaso NO crea tabla, así que vive en el dominio `transaction` que ya posee la tabla.                          | ✅     |
+| Principio                            | Cumplimiento en este plan                                                                                                                                                                            | Estado |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| I. Money Precision                   | Montos de traspaso y saldos derivados con `@finance/money`/`Prisma.Decimal`; `sizeBytes` es lo único numérico y no es dinero. Saldo proyectado también se calcula con `decimal.js`, no con `number`. | ✅     |
+| II. Per-User Data Isolation          | `transferGroupId` se resuelve siempre junto a `userId`; `TransactionAttachment.userId` propio + toda consulta scopeada; un adjunto ajeno responde 404, no 403.                                       | ✅     |
+| III. i18n Parity                     | Cada texto nuevo (traspaso, adjuntos, saldos, duplicar, nav, 7 códigos de error) en `es.json` y `en.json`.                                                                                           | ✅     |
+| IV. Test-First / TDD                 | Cada tarea de lógica escribe su test antes: `TransferPolicy`, `AttachmentPolicy` (magic bytes), exclusión de traspasos del `summary`, atomicidad del par, saldo proyectado.                          | ✅     |
+| V. SDD + Living Memory               | Cadena spec → clarify → plan → tasks → analyze → implement; cierre obligatorio actualizando constitución (nueva dependencia + env vars + tabla) y `CLAUDE.md`.                                       | ✅     |
+| VI. DDD + CQRS, una tabla un dominio | `transaction-attachment` es dominio nuevo con las cuatro capas y adapter único. El traspaso NO crea tabla, así que vive en el dominio `transaction` que ya posee la tabla.                           | ✅     |
 
 **Normas operativas relevantes**:
 

@@ -127,9 +127,7 @@ export function DebtsRoute() {
       />
 
       {isLoading && <LoadingState title={t("app.loading")} />}
-      {!isLoading && isError && (
-        <ErrorState error={error} onRetry={() => refetch()} />
-      )}
+      {!isLoading && isError && <ErrorState error={error} onRetry={() => refetch()} />}
 
       {!isLoading && !isError && (
         <>

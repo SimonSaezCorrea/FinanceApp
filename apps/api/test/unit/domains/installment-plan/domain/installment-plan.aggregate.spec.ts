@@ -89,7 +89,12 @@ function makePlan(over: Partial<InstallmentPlanProps> = {}) {
 function billedPlan(paymentOverrides: Partial<InstallmentPaymentProps> = {}) {
   return makePlan({
     payments: [
-      payment({ sequence: 1, dueDate: new Date("2026-01-15"), creditStatementId: "st_1", ...paymentOverrides }),
+      payment({
+        sequence: 1,
+        dueDate: new Date("2026-01-15"),
+        creditStatementId: "st_1",
+        ...paymentOverrides,
+      }),
       payment({ sequence: 2, dueDate: new Date("2026-02-15") }),
       payment({ sequence: 3, dueDate: new Date("2026-03-15") }),
     ],

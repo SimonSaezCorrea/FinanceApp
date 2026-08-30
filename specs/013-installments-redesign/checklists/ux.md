@@ -24,7 +24,7 @@ sin contradicciones, ANTES de implementarlos. No prueba la implementación: prue
 - [x] CHK012 - ¿Está cuantificado qué campos concretos conserva la tarjeta de tablet? «sin columnas de detalle» no dice cuáles sobreviven. [Clarity, Spec §FR-055]
 - [x] CHK013 - ¿Es medible «la lista de fondo mantiene su orden, su ancho y su posición de scroll», o requiere una definición operativa? [Measurability, Spec §FR-012]
 - [x] CHK014 - ¿Está definido cómo se muestra el arrastre **por separado** del monto programado (fila propia, texto anexo, monto compuesto)? [Clarity, Spec §FR-022]
-- [X] CHK015 - ¿Está definido el texto o la forma con que el detalle «explica» por qué un plan con tarjeta de crédito no genera movimiento? [Clarity, Spec §FR-036]
+- [x] CHK015 - ¿Está definido el texto o la forma con que el detalle «explica» por qué un plan con tarjeta de crédito no genera movimiento? [Clarity, Spec §FR-036]
   - **Resuelto (2026-08-22):** nota fija con ícono informativo en el panel de detalle, clave
     `installments.detail.creditCardNotice`: «Las cuotas de este plan no generan movimiento: la compra
     ya está registrada en la facturación de su tarjeta de crédito.» El formulario de pago repite la

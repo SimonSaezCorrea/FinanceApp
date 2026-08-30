@@ -23,21 +23,23 @@ solo se crea y edita por sus propios endpoints. Enviarlo se ignora (no está en 
 ## Shapes nuevos
 
 ```ts
-export const createTransferSchema = z.object({
-  fromBankAccountId: z.string(),
-  toBankAccountId: z.string(),
-  amountOut: moneyString,
-  amountIn: moneyString,
-  currencyOut: z.string().trim().length(3),
-  currencyIn: z.string().trim().length(3),
-  occurredAt: z.string().datetime(),
-  description: z.string().trim().max(500).optional(),
-  category: z.string().trim().max(120).optional(),
-  observation: z.string().trim().max(500).optional(),
-  emisor: z.string().trim().max(200).optional(),
-  receptor: z.string().trim().max(200).optional(),
-  lugar: z.string().trim().max(200).optional(),
-}).refine((t) => t.fromBankAccountId !== t.toBankAccountId, { path: ["toBankAccountId"] });
+export const createTransferSchema = z
+  .object({
+    fromBankAccountId: z.string(),
+    toBankAccountId: z.string(),
+    amountOut: moneyString,
+    amountIn: moneyString,
+    currencyOut: z.string().trim().length(3),
+    currencyIn: z.string().trim().length(3),
+    occurredAt: z.string().datetime(),
+    description: z.string().trim().max(500).optional(),
+    category: z.string().trim().max(120).optional(),
+    observation: z.string().trim().max(500).optional(),
+    emisor: z.string().trim().max(200).optional(),
+    receptor: z.string().trim().max(200).optional(),
+    lugar: z.string().trim().max(200).optional(),
+  })
+  .refine((t) => t.fromBankAccountId !== t.toBankAccountId, { path: ["toBankAccountId"] });
 
 export const updateTransferSchema = createTransferSchema.innerType().partial().refine(/* idem */);
 
@@ -52,12 +54,12 @@ export const transferSchema = z.object({
 
 ## Endpoints
 
-| Método   | Ruta                          | Cuerpo                  | Respuesta   | Notas                                        |
-| -------- | ----------------------------- | ----------------------- | ----------- | -------------------------------------------- |
-| `POST`   | `/transactions/transfers`     | `createTransferSchema`  | `Transfer`  | Crea ambas filas y mueve ambos saldos, atómico |
-| `GET`    | `/transactions/transfers/:groupId` | —                  | `Transfer`  | Para abrir a editar desde cualquiera de los lados |
-| `PATCH`  | `/transactions/transfers/:groupId` | `updateTransferSchema` | `Transfer` | Reajusta hasta 3 saldos si cambia una cuenta  |
-| `DELETE` | `/transactions/transfers/:groupId` | —                  | `204`       | Borra el par completo                         |
+| Método   | Ruta                               | Cuerpo                 | Respuesta  | Notas                                             |
+| -------- | ---------------------------------- | ---------------------- | ---------- | ------------------------------------------------- |
+| `POST`   | `/transactions/transfers`          | `createTransferSchema` | `Transfer` | Crea ambas filas y mueve ambos saldos, atómico    |
+| `GET`    | `/transactions/transfers/:groupId` | —                      | `Transfer` | Para abrir a editar desde cualquiera de los lados |
+| `PATCH`  | `/transactions/transfers/:groupId` | `updateTransferSchema` | `Transfer` | Reajusta hasta 3 saldos si cambia una cuenta      |
+| `DELETE` | `/transactions/transfers/:groupId` | —                      | `204`      | Borra el par completo                             |
 
 Se declaran **antes** de `:id` en el Facade, o Nest resolvería `transfers` como un id de movimiento
 (mismo cuidado que ya exigió `/transactions/summary`).

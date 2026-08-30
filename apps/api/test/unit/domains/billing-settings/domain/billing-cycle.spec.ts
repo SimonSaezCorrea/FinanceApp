@@ -10,15 +10,11 @@ import {
 
 describe("currentCycleStart", () => {
   it("returns null when no billing day is configured (all-time, backward compatible)", () => {
-    expect(
-      currentCycleStart(null, "CALENDAR_DAY", new Date("2026-07-22T12:00:00Z")),
-    ).toBeNull();
+    expect(currentCycleStart(null, "CALENDAR_DAY", new Date("2026-07-22T12:00:00Z"))).toBeNull();
   });
 
   it("returns null for a BUSINESS_DAY cycle (no fixed day-of-month to anchor on)", () => {
-    expect(
-      currentCycleStart(20, "BUSINESS_DAY", new Date("2026-07-22T12:00:00Z")),
-    ).toBeNull();
+    expect(currentCycleStart(20, "BUSINESS_DAY", new Date("2026-07-22T12:00:00Z"))).toBeNull();
   });
 
   it("returns this month's cut-off when today is on or after the billing day", () => {

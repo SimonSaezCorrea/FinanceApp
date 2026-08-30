@@ -3,7 +3,7 @@
 **Feature**: [spec.md](./spec.md) | **Plan**: [plan.md](./plan.md) | **Date**: 2026-08-15
 
 No quedó ningún `NEEDS CLARIFICATION` en el Technical Context. Lo que sigue son las decisiones
-técnicas que la spec dejó abiertas a propósito (la spec dice el *qué*), más las dos que
+técnicas que la spec dejó abiertas a propósito (la spec dice el _qué_), más las dos que
 `/speckit-clarify` difirió explícitamente a esta fase.
 
 ---
@@ -17,19 +17,19 @@ misma columna.
 
 **Rationale**: es literalmente el mecanismo que `CreditStatement.carriedOverAmount` ya implementa en
 este repo para el mismo problema (un pago que no cubre el período), incluida la decisión de que el
-arrastre sea *una cifra propia* y no un movimiento sintético. Copiar ese patrón cuesta menos que
+arrastre sea _una cifra propia_ y no un movimiento sintético. Copiar ese patrón cuesta menos que
 inventar otro y mantiene una sola explicación para "lo que faltó pagar" en toda la aplicación.
 Persistirlo —no derivarlo— es lo que permite que deshacer un pago revierta exactamente lo que ese
 pago provocó.
 
 **Alternatives considered**:
 
-- *Derivar el arrastre en lectura*, recorriendo las cuotas en orden. Rechazado: no distingue un
+- _Derivar el arrastre en lectura_, recorriendo las cuotas en orden. Rechazado: no distingue un
   faltante arrastrado de un monto programado distinto, obliga a recorrer todo el plan en cada
   lectura, y hace imposible deshacer con precisión.
-- *Reescribir el monto de la siguiente cuota*. Rechazado: viola FR-020 (el calendario programado no
+- _Reescribir el monto de la siguiente cuota_. Rechazado: viola FR-020 (el calendario programado no
   se toca) y borra la información de por qué esa cuota vale más.
-- *Una tabla de ajustes*. Rechazado: una tabla nueva para un escalar por fila, contra la regla "una
+- _Una tabla de ajustes_. Rechazado: una tabla nueva para un escalar por fila, contra la regla "una
   tabla = un dominio" que obligaría a un dominio-tabla más.
 
 ---
@@ -48,10 +48,10 @@ tipo: es una columna escalar, no una lista.
 
 **Alternatives considered**:
 
-- *Sólo `Transaction.installmentPaymentId`* (el vínculo del lado del movimiento). Rechazado: leer la
+- _Sólo `Transaction.installmentPaymentId`_ (el vínculo del lado del movimiento). Rechazado: leer la
   cuota exigiría entonces una consulta a la tabla `transaction` desde el dominio de cuotas, y el
   puerto tendría que crecer con un buscador sólo para eso.
-- *Sin vínculo, buscando el gasto por monto y fecha*. Rechazado: dos cuotas del mismo plan y monto
+- _Sin vínculo, buscando el gasto por monto y fecha_. Rechazado: dos cuotas del mismo plan y monto
   en el mismo mes son indistinguibles; deshacer borraría el gasto equivocado.
 
 ---
@@ -74,10 +74,10 @@ segunda forma de resolver el mismo problema sería peor que la desviación.
 
 **Alternatives considered**:
 
-- *Emitir un evento de dominio y que un listener cree el gasto*. Rechazado: los eventos aquí son
+- _Emitir un evento de dominio y que un listener cree el gasto_. Rechazado: los eventos aquí son
   síncronos, así que no compra desacoplamiento real, y un listener que falla deja la cuota pagada
   sin gasto — el descuadre que la feature venía a arreglar.
-- *Dos requests desde el cliente* (marcar cuota, luego crear movimiento). Rechazado por lo mismo,
+- _Dos requests desde el cliente_ (marcar cuota, luego crear movimiento). Rechazado por lo mismo,
   agravado: la ventana de inconsistencia queda en manos de la red del usuario.
 
 ---
@@ -96,10 +96,10 @@ lados a la vez, que es la propiedad que queremos.
 
 **Alternatives considered**:
 
-- *Endpoint de previsualización* (`POST /installments/preview`). Rechazado: una llamada de red por
+- _Endpoint de previsualización_ (`POST /installments/preview`). Rechazado: una llamada de red por
   cada tecla en un cálculo que es aritmética pura y determinista; además hace inútil el formulario
   sin conexión. Se reconsideraría sólo si el cálculo pasara a depender de datos del servidor.
-- *Reimplementar la división en el cliente*. Rechazado: es exactamente cómo se rompe FR-042, y en
+- _Reimplementar la división en el cliente_. Rechazado: es exactamente cómo se rompe FR-042, y en
   coma flotante rompería además el Principio I.
 
 ---
@@ -118,10 +118,10 @@ pone lo que sirve a más de un dominio.
 
 **Alternatives considered**:
 
-- *Duplicar el mapa en installments*. Rechazado: dos mapas divergen, y SC-011 exige que un plan y un
+- _Duplicar el mapa en installments_. Rechazado: dos mapas divergen, y SC-011 exige que un plan y un
   movimiento de igual categoría muestren el mismo ícono — un requisito que sólo una fuente única
   garantiza.
-- *Importar cruzado entre dominios web*. Rechazado por la regla de fronteras del repo.
+- _Importar cruzado entre dominios web_. Rechazado por la regla de fronteras del repo.
 
 ---
 

@@ -52,9 +52,7 @@ export interface InstallmentPlanRepositoryPort {
   settleForStatementWithTx(tx: unknown, statementId: string, paidAt: Date): Promise<void>;
   /** Composes `installment-payment`'s sum for the statement breakdown (FR-011) —
    * `credit-statement` calls this rather than reaching past this domain. */
-  billedInstallmentsForStatement(
-    statementId: string,
-  ): Promise<{ amount: string; count: number }>;
+  billedInstallmentsForStatement(statementId: string): Promise<{ amount: string; count: number }>;
   /** Persists the plan's own scalar fields (title/currency/frequency/
    * frequencyInterval/notes) — never its payments (those are immutable once
    * scheduled; only their `paidAt` changes, via `setPaymentPaidAt`). */

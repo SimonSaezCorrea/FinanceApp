@@ -250,7 +250,11 @@ export function InstallmentsRoute() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={t("installments.title")}
-        description={!isLoading && !isError ? t("installments.subtitleCount", { count: plans.length }) : undefined}
+        description={
+          !isLoading && !isError
+            ? t("installments.subtitleCount", { count: plans.length })
+            : undefined
+        }
         actions={
           <Button variant="accent" onClick={openCreate}>
             <Plus className="h-4 w-4" aria-hidden />
@@ -302,7 +306,9 @@ export function InstallmentsRoute() {
                 onSelect={selectPlan}
                 onEdit={openEdit}
                 onDelete={setDeleteId}
-                emptyTitle={plans.length === 0 ? t("installments.empty") : t("installments.noneMatchFilters")}
+                emptyTitle={
+                  plans.length === 0 ? t("installments.empty") : t("installments.noneMatchFilters")
+                }
                 emptyMessage={plans.length === 0 ? t("installments.emptyHint") : undefined}
                 error={error}
                 onRetry={() => refetch()}
@@ -314,7 +320,9 @@ export function InstallmentsRoute() {
                 onSelect={selectPlan}
                 onEdit={openEdit}
                 onDelete={setDeleteId}
-                emptyTitle={plans.length === 0 ? t("installments.empty") : t("installments.noneMatchFilters")}
+                emptyTitle={
+                  plans.length === 0 ? t("installments.empty") : t("installments.noneMatchFilters")
+                }
                 emptyMessage={plans.length === 0 ? t("installments.emptyHint") : undefined}
                 error={error}
                 onRetry={() => refetch()}

@@ -36,10 +36,7 @@ export interface InstallmentPaymentRepositoryPort {
   /** Unbilled instalments (`creditStatementId IS NULL`) due at or before `dueBy`,
    * for the given plans — the raw candidate set `installment-billing.ts`'s pure
    * selection filters further (currency). Spec 014, FR-008/FR-009. */
-  listUnbilledDueForPlans(
-    planIds: string[],
-    dueBy: Date,
-  ): Promise<InstallmentPaymentRow[]>;
+  listUnbilledDueForPlans(planIds: string[], dueBy: Date): Promise<InstallmentPaymentRow[]>;
   /** Stamps a set of instalments with the period that just charged them, inside the
    * caller's transaction. `creditStatementId IS NULL` in the WHERE makes this
    * idempotent by construction — a retry that re-selected an already-stamped row

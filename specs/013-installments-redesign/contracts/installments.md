@@ -66,7 +66,7 @@ compartido, no la comprobación.
 ### `installmentPlanStatus`
 
 ```ts
-z.enum(["OVERDUE", "DUE_SOON", "ON_TRACK", "PARTIALLY_PAID", "PAID"])
+z.enum(["OVERDUE", "DUE_SOON", "ON_TRACK", "PARTIALLY_PAID", "PAID"]);
 ```
 
 `OVERDUE`: la cuota impaga más antigua vence antes de hoy. `DUE_SOON`: dentro de 7 días.
@@ -110,15 +110,15 @@ export function dueAmountOf(payment: InstallmentPayment): string;
 
 ## Endpoints
 
-| Método | Ruta | Cambio |
-| --- | --- | --- |
-| `GET` | `/installments` | Respuesta con los campos derivados nuevos. **Sin paginación** (R8) |
-| `GET` | `/installments/:id` | Igual |
-| `POST` | `/installments` | Acepta `category`, `paymentAccountId` |
-| `PATCH` | `/installments/:id` | Acepta `category`, `paymentAccountId` |
-| `DELETE` | `/installments/:id` | Sin cambios |
-| `POST` | `/installments/:id/payments/:sequence/pay` | **Cuerpo nuevo** (`payInstallmentSchema`). Antes no tenía |
-| `POST` | `/installments/:id/payments/:sequence/unpay` | Sin cuerpo. Ahora además borra el gasto, restituye el saldo y revierte el arrastre |
+| Método   | Ruta                                         | Cambio                                                                             |
+| -------- | -------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `GET`    | `/installments`                              | Respuesta con los campos derivados nuevos. **Sin paginación** (R8)                 |
+| `GET`    | `/installments/:id`                          | Igual                                                                              |
+| `POST`   | `/installments`                              | Acepta `category`, `paymentAccountId`                                              |
+| `PATCH`  | `/installments/:id`                          | Acepta `category`, `paymentAccountId`                                              |
+| `DELETE` | `/installments/:id`                          | Sin cambios                                                                        |
+| `POST`   | `/installments/:id/payments/:sequence/pay`   | **Cuerpo nuevo** (`payInstallmentSchema`). Antes no tenía                          |
+| `POST`   | `/installments/:id/payments/:sequence/unpay` | Sin cuerpo. Ahora además borra el gasto, restituye el saldo y revierte el arrastre |
 
 Rutas y verbos actuales se conservan: es la forma del cuerpo la que cambia, no la superficie.
 
@@ -128,16 +128,16 @@ Rutas y verbos actuales se conservan: es la forma del cuerpo la que cambia, no l
 
 Language-agnostic, con su clave `errors.<CODE>` en **es y en** (Principio III).
 
-| Código | HTTP | Cuándo |
-| --- | --- | --- |
-| `INSTALLMENT_PAYMENT_ALREADY_PAID` | 409 | Pagar una cuota que ya tiene `paidAt` (INV-C3; es lo que bloquea el doble clic) |
-| `INSTALLMENT_PAYMENT_ACCOUNT_REQUIRED` | 400 | Falta `fromAccountId` en un plan que sí genera movimiento (FR-034) |
-| `INSTALLMENT_CARD_IS_CREDIT` | 409 | Llega cuenta de pago en un plan con tarjeta CREDIT (INV-P2/FR-037) |
-| `INVALID_PAYMENT_AMOUNT` | 400 | Monto cero o negativo (INV-C2) |
-| `PAYMENT_CURRENCY_AMBIGUOUS` | 400 | Monedas distintas y falta `chargedAmount` (FR-029) |
-| `PAYMENT_EXCEEDS_REMAINING` | 409 | El pago supera lo que el plan entero adeuda (FR-021b). **Código ya existente** en el dominio de facturación, reutilizado con el mismo significado |
-| `INSTALLMENT_PAYMENT_FROM_CREDIT_ACCOUNT` | 409 | La cuenta de origen es una cuenta de tarjeta de crédito (FR-028b) |
-| `TRANSACTION_LINKED_TO_INSTALLMENT` | 409 | Se intenta editar o eliminar, desde el dominio `transaction`, un movimiento que respalda una cuota (FR-028a) |
+| Código                                    | HTTP | Cuándo                                                                                                                                            |
+| ----------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `INSTALLMENT_PAYMENT_ALREADY_PAID`        | 409  | Pagar una cuota que ya tiene `paidAt` (INV-C3; es lo que bloquea el doble clic)                                                                   |
+| `INSTALLMENT_PAYMENT_ACCOUNT_REQUIRED`    | 400  | Falta `fromAccountId` en un plan que sí genera movimiento (FR-034)                                                                                |
+| `INSTALLMENT_CARD_IS_CREDIT`              | 409  | Llega cuenta de pago en un plan con tarjeta CREDIT (INV-P2/FR-037)                                                                                |
+| `INVALID_PAYMENT_AMOUNT`                  | 400  | Monto cero o negativo (INV-C2)                                                                                                                    |
+| `PAYMENT_CURRENCY_AMBIGUOUS`              | 400  | Monedas distintas y falta `chargedAmount` (FR-029)                                                                                                |
+| `PAYMENT_EXCEEDS_REMAINING`               | 409  | El pago supera lo que el plan entero adeuda (FR-021b). **Código ya existente** en el dominio de facturación, reutilizado con el mismo significado |
+| `INSTALLMENT_PAYMENT_FROM_CREDIT_ACCOUNT` | 409  | La cuenta de origen es una cuenta de tarjeta de crédito (FR-028b)                                                                                 |
+| `TRANSACTION_LINKED_TO_INSTALLMENT`       | 409  | Se intenta editar o eliminar, desde el dominio `transaction`, un movimiento que respalda una cuota (FR-028a)                                      |
 
 `TRANSACTION_LINKED_TO_INSTALLMENT` es el único código de esta feature que se lanza **fuera** del
 dominio `installment-plan`: lo emiten los comandos de actualizar y eliminar movimiento, que deben

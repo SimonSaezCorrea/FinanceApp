@@ -2,7 +2,11 @@ import { describe, expect, it, vi } from "vitest";
 
 import { toPlanDtos } from "../../../../../src/domains/installment-plan/application/plan-dto.mapper";
 import { InstallmentPlan } from "../../../../../src/domains/installment-plan/domain/installment-plan.aggregate";
-import { accountAggregate, fakeBankAccountRepo, fakeCardAccountRepo } from "../../../support/fake-ports";
+import {
+  accountAggregate,
+  fakeBankAccountRepo,
+  fakeCardAccountRepo,
+} from "../../../support/fake-ports";
 
 /**
  * Spec 014, FR-009a/FR-023a — `billingWarning` on the plan DTO. The list and
@@ -56,7 +60,12 @@ describe("toPlanDtos billingWarning", () => {
       kindForCard: vi.fn(async () => "CREDIT" as const),
       accountIdForCard: vi.fn(async () => "acc1"),
     });
-    const account = accountAggregate({ id: "acc1", type: "CREDIT_CARD", currency: "CLP", billingCycleDay: 5 });
+    const account = accountAggregate({
+      id: "acc1",
+      type: "CREDIT_CARD",
+      currency: "CLP",
+      billingCycleDay: 5,
+    });
     const accounts = fakeBankAccountRepo({ findById: vi.fn(async () => account) });
     const [dto] = await toPlanDtos([plan()], "u1", cards, accounts);
     expect(dto!.billingWarning).toBeNull();
@@ -67,7 +76,12 @@ describe("toPlanDtos billingWarning", () => {
       kindForCard: vi.fn(async () => "CREDIT" as const),
       accountIdForCard: vi.fn(async () => "acc1"),
     });
-    const account = accountAggregate({ id: "acc1", type: "CREDIT_CARD", currency: "CLP", billingCycleDay: null });
+    const account = accountAggregate({
+      id: "acc1",
+      type: "CREDIT_CARD",
+      currency: "CLP",
+      billingCycleDay: null,
+    });
     const accounts = fakeBankAccountRepo({ findById: vi.fn(async () => account) });
     const [dto] = await toPlanDtos([plan()], "u1", cards, accounts);
     expect(dto!.billingWarning).toBe("NO_BILLING_DAY");
@@ -78,7 +92,12 @@ describe("toPlanDtos billingWarning", () => {
       kindForCard: vi.fn(async () => "CREDIT" as const),
       accountIdForCard: vi.fn(async () => "acc1"),
     });
-    const account = accountAggregate({ id: "acc1", type: "CREDIT_CARD", currency: "USD", billingCycleDay: 5 });
+    const account = accountAggregate({
+      id: "acc1",
+      type: "CREDIT_CARD",
+      currency: "USD",
+      billingCycleDay: 5,
+    });
     const accounts = fakeBankAccountRepo({ findById: vi.fn(async () => account) });
     const [dto] = await toPlanDtos([plan({ currency: "CLP" })], "u1", cards, accounts);
     expect(dto!.billingWarning).toBe("CURRENCY_MISMATCH");

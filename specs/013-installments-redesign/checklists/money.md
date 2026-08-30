@@ -20,7 +20,7 @@ de la feature que puede descuadrar los libros del usuario, así que se audita ap
 - [x] CHK007 - ¿Está definido qué pasa con el **cargo financiero por interés** al eliminar el plan? El caso borde lo nombra, pero no hay requisito que lo resuelva. [Gap, Spec §Edge Cases]
 - [x] CHK008 - ¿Está definido qué ocurre si el gasto de una cuota se **EDITA** (no se borra) desde Movimientos, cambiándole el monto? FR-028 sólo cubre la desaparición, y un monto editado deja `paidAmount` mintiendo. [Gap, Spec §FR-028]
 - [x] CHK009 - ¿Está definido si una cuenta de tipo **crédito** puede ser cuenta de pago de una cuota? Pagar una cuota con una tarjeta de crédito es refinanciar deuda con deuda; el modelo de traspasos ya prohíbe el caso análogo (`TRANSFER_TO_CREDIT_ACCOUNT`) y aquí no hay regla escrita. [Gap, Conflict, Spec §FR-018]
-- [X] CHK010 - ¿Está definido si deshacer un pago cuya cuenta de origen fue **desactivada** después es posible, y qué pasa con su saldo? [Coverage, Gap]
+- [x] CHK010 - ¿Está definido si deshacer un pago cuya cuenta de origen fue **desactivada** después es posible, y qué pasa con su saldo? [Coverage, Gap]
   - **Resuelto (2026-08-22):** sí se permite, y el saldo se restituye igual. Una cuenta inactiva no
     acepta movimientos NUEVOS, pero deshacer no crea historia: la corrige. Bloquearlo dejaría la cuota
     pagada para siempre y el gasto sin forma de borrarse. `UnpayInstallmentHandler` restituye el saldo

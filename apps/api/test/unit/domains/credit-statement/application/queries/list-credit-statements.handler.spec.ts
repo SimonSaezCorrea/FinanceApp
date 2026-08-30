@@ -117,7 +117,11 @@ describe("ListCreditStatementsQueryHandler", () => {
       listForAccount: vi.fn(async () => [statement]),
       // Spec 014: the handler builds an unsettled period's total from `breakdown`
       // (purchases + instalments), not from a separate `sumLinkedTransactions` call.
-      breakdown: vi.fn(async () => ({ purchases: "12345", installments: "0", installmentCount: 0 })),
+      breakdown: vi.fn(async () => ({
+        purchases: "12345",
+        installments: "0",
+        installmentCount: 0,
+      })),
     });
     const handler = new ListCreditStatementsQueryHandler(accountRepo, statementRepo);
 

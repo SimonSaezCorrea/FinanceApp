@@ -48,7 +48,9 @@ export class ListCreditStatementsQueryHandler extends BaseQueryHandler<
         // schedule billed (spec 014, FR-010) — the breakdown is fetched first
         // because an unsettled period's total is built FROM it, not alongside it.
         const breakdown = await this.statementRepo.breakdown(s.id);
-        const amount = s.paidAt ? s.amount : s.totalFor(breakdown.purchases, breakdown.installments);
+        const amount = s.paidAt
+          ? s.amount
+          : s.totalFor(breakdown.purchases, breakdown.installments);
         return toStatementDto(s, {
           amount,
           breakdown,

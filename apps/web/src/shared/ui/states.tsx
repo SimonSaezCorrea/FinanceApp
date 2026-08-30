@@ -68,7 +68,10 @@ function Shell({
         <div className="relative flex h-16 w-16 items-center justify-center">
           <div className={cn("absolute inset-0 rounded-full blur-xl", toneGlow[tone])} />
           <div
-            className={cn("relative flex h-11 w-11 items-center justify-center rounded-full", toneChip[tone])}
+            className={cn(
+              "relative flex h-11 w-11 items-center justify-center rounded-full",
+              toneChip[tone],
+            )}
           >
             <Icon className={cn("h-5 w-5", spin && "animate-spin")} aria-hidden />
           </div>
@@ -76,7 +79,9 @@ function Shell({
       ) : variant === "plain" ? (
         <Icon className="h-6 w-6 text-muted-foreground" aria-hidden />
       ) : (
-        <span className={cn("flex h-11 w-11 items-center justify-center rounded-full", toneChip[tone])}>
+        <span
+          className={cn("flex h-11 w-11 items-center justify-center rounded-full", toneChip[tone])}
+        >
           <Icon className={cn("h-5 w-5", spin && "animate-spin")} aria-hidden />
         </span>
       )}
@@ -179,7 +184,8 @@ export function ErrorState({
     (resolvedKind === "server" && code
       ? t(`errors.${code}`, { defaultValue: t("errors.INTERNAL_ERROR") })
       : t(`states.error.${resolvedKind}.title`));
-  const resolvedMessage = message ?? t(`states.error.${resolvedKind}.message`, { defaultValue: "" });
+  const resolvedMessage =
+    message ?? t(`states.error.${resolvedKind}.message`, { defaultValue: "" });
   const escape = KIND_ESCAPE[resolvedKind];
 
   if (resolvedKind === "empty") {

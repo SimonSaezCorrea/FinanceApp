@@ -152,7 +152,11 @@ export function InstallmentsSkeleton({ label }: Readonly<{ label: string }>) {
             </Table>
           </Card>
         </div>
-        <ul className={wide ? "hidden" : "flex flex-col divide-y divide-border rounded-lg border bg-card"}>
+        <ul
+          className={
+            wide ? "hidden" : "flex flex-col divide-y divide-border rounded-lg border bg-card"
+          }
+        >
           {Array.from({ length: 4 }, (_, i) => (
             <PlanRowSkeleton key={i} />
           ))}

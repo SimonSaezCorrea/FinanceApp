@@ -36,7 +36,11 @@ export function toStatementDto(
   // has no due date yet, and neither does an account with no due-day configured.
   const dueDate =
     statement.closedAt && input.paymentDueDay != null
-      ? paymentDueDate(statement.closedAt, input.paymentDueDay, input.paymentDueCycleType).toISOString()
+      ? paymentDueDate(
+          statement.closedAt,
+          input.paymentDueDay,
+          input.paymentDueCycleType,
+        ).toISOString()
       : null;
   return {
     id: statement.id,

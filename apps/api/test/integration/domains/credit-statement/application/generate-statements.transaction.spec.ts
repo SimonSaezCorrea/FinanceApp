@@ -6,7 +6,11 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { GenerateStatementsCommand } from "../../../../../src/domains/credit-statement/application/commands/generate-statements.command";
 import { GenerateStatementsHandler } from "../../../../../src/domains/credit-statement/application/commands/generate-statements.handler";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
-import { buildBankAccountRepo, buildCreditStatementRepo, buildInstallmentPlanRepo } from "../../../support/repositories";
+import {
+  buildBankAccountRepo,
+  buildCreditStatementRepo,
+  buildInstallmentPlanRepo,
+} from "../../../support/repositories";
 
 /**
  * Spec 014, T027: forces a failure on the stamping half of `closeIfDue`'s
@@ -119,9 +123,9 @@ describe("GenerateStatementsHandler close+stamp transaction (integration)", () =
     );
     vi.spyOn(planRepo, "stampBillableWithTx").mockRejectedValueOnce(new Error("forced failure"));
 
-    await expect(
-      handler.execute(new GenerateStatementsCommand(userId, accountId)),
-    ).rejects.toThrow("forced failure");
+    await expect(handler.execute(new GenerateStatementsCommand(userId, accountId))).rejects.toThrow(
+      "forced failure",
+    );
 
     const statement = await prisma.creditStatement.findUnique({ where: { id: statementId } });
     expect(statement?.closedAt).toBeNull(); // NOT closed — rolled back

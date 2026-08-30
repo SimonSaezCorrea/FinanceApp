@@ -144,7 +144,7 @@ abrirlos, borrar uno; sin configurar, comprobar que el intento falla con un mens
    accesible.
 4. **Given** un archivo de tipo no admitido o mayor a 5 MB, **When** se intenta subir, **Then** se
    rechaza indicando el motivo y no queda nada a medias.
-4b. **Given** un movimiento que se está creando y un comprobante ya elegido, **When** se guarda,
+   4b. **Given** un movimiento que se está creando y un comprobante ya elegido, **When** se guarda,
    **Then** el movimiento se crea y a continuación se sube el comprobante; si esa subida falla, el
    movimiento queda creado y el comprobante se muestra en estado de error con opción de reintentar.
 5. **Given** el almacenamiento sin configurar, **When** se intenta subir, **Then** falla con un

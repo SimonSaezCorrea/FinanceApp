@@ -90,7 +90,10 @@ function BillingTableSkeleton({ label }: Readonly<{ label: string }>) {
  * `PlanEmptyRow` use, so the table's chrome (headers, "Generar
  * facturación") stays on screen instead of the whole section swapping out
  * for a lone floating message. */
-function BillingEmptyMessage({ error, onRetry }: Readonly<{ error?: unknown; onRetry?: () => void }>) {
+function BillingEmptyMessage({
+  error,
+  onRetry,
+}: Readonly<{ error?: unknown; onRetry?: () => void }>) {
   const { t } = useTranslation();
   if (error) return <ErrorState inline error={error} onRetry={onRetry} />;
   return (
@@ -366,7 +369,10 @@ export function BillingSection({
                 {!statements || statements.length === 0 ? (
                   <TR>
                     <TD colSpan={6} className="p-0">
-                      <BillingEmptyMessage error={isError ? error : undefined} onRetry={() => refetch()} />
+                      <BillingEmptyMessage
+                        error={isError ? error : undefined}
+                        onRetry={() => refetch()}
+                      />
                     </TD>
                   </TR>
                 ) : null}

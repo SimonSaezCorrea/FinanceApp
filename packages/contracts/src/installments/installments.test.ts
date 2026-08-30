@@ -110,9 +110,9 @@ describe("installmentStatus", () => {
   it("lets PAID win over BILLED: the link survives settlement and must not hide it", () => {
     // FR-020 needs `creditStatementId` AFTER payment, to reach the settling period.
     // Testing `creditStatementId` first would report a settled instalment as BILLED.
-    expect(installmentStatus({ paidAt: "2026-08-15T00:00:00.000Z", creditStatementId: "st_1" })).toBe(
-      "PAID",
-    );
+    expect(
+      installmentStatus({ paidAt: "2026-08-15T00:00:00.000Z", creditStatementId: "st_1" }),
+    ).toBe("PAID");
   });
 });
 

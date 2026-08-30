@@ -32,24 +32,24 @@ tipo/tamaño/magic bytes ocurre en el interceptor y en `AttachmentPolicy`.
 
 ## Endpoints
 
-| Método   | Ruta                                          | Cuerpo               | Respuesta        |
-| -------- | --------------------------------------------- | -------------------- | ---------------- |
-| `GET`    | `/transactions/:id/attachments`               | —                    | `Attachment[]`   |
-| `POST`   | `/transactions/:id/attachments`               | `multipart` (`file`) | `Attachment`     |
-| `GET`    | `/transactions/:id/attachments/:attachmentId/url` | —                | `AttachmentUrl`  |
-| `DELETE` | `/transactions/:id/attachments/:attachmentId` | —                    | `204`            |
+| Método   | Ruta                                              | Cuerpo               | Respuesta       |
+| -------- | ------------------------------------------------- | -------------------- | --------------- |
+| `GET`    | `/transactions/:id/attachments`                   | —                    | `Attachment[]`  |
+| `POST`   | `/transactions/:id/attachments`                   | `multipart` (`file`) | `Attachment`    |
+| `GET`    | `/transactions/:id/attachments/:attachmentId/url` | —                    | `AttachmentUrl` |
+| `DELETE` | `/transactions/:id/attachments/:attachmentId`     | —                    | `204`           |
 
 La descarga no se proxya: el API firma una URL de 5 minutos contra el bucket y el navegador la abre.
 
 ## Errores
 
-| Código                        | HTTP | Cuándo                                                     |
-| ----------------------------- | ---- | ---------------------------------------------------------- |
-| `ATTACHMENTS_UNAVAILABLE`     | 503  | El almacenamiento no está configurado (FR-024)             |
-| `ATTACHMENT_TYPE_NOT_ALLOWED` | 400  | Tipo declarado o magic bytes fuera de la lista             |
-| `ATTACHMENT_TOO_LARGE`        | 400  | > 5 MB                                                     |
-| `ATTACHMENT_NOT_FOUND`        | 404  | No existe, o no es del usuario                             |
-| `TRANSACTION_NOT_FOUND`       | 404  | El movimiento no existe o no es del usuario                |
+| Código                        | HTTP | Cuándo                                         |
+| ----------------------------- | ---- | ---------------------------------------------- |
+| `ATTACHMENTS_UNAVAILABLE`     | 503  | El almacenamiento no está configurado (FR-024) |
+| `ATTACHMENT_TYPE_NOT_ALLOWED` | 400  | Tipo declarado o magic bytes fuera de la lista |
+| `ATTACHMENT_TOO_LARGE`        | 400  | > 5 MB                                         |
+| `ATTACHMENT_NOT_FOUND`        | 404  | No existe, o no es del usuario                 |
+| `TRANSACTION_NOT_FOUND`       | 404  | El movimiento no existe o no es del usuario    |
 
 ## Capacidad
 

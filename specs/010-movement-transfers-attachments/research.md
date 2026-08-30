@@ -25,15 +25,15 @@ traspaso y afirma que el resumen del período no se mueve. La lista de movimient
 
 **Alcance de la exclusión** (auditado con `grep INCOME`):
 
-| Consumidor                                       | ¿Excluye traspasos? | Por qué                                       |
-| ------------------------------------------------ | ------------------- | --------------------------------------------- |
-| `summary()` — `currencyTotals`, `categories`      | Sí                  | FR-017 / SC-004                               |
-| `summary().total` (contador "N movimientos")      | No                  | Son movimientos reales del conjunto filtrado  |
-| `list()`                                          | No                  | Cada cuenta ve su lado                        |
-| `balanceDelta` / `currentBalance`                 | No                  | El dinero sí se mueve                         |
-| `sumsForCard` / `sumsByAccount` (cupo)            | Irrelevante         | Un traspaso nunca lleva tarjeta (FR-019)      |
-| `netForPeriod` (conciliación de facturación)      | Irrelevante         | Misma razón; además el destino nunca es crédito |
-| Dashboard `metrics.ts` (flujo del mes, donut)     | Sí                  | Deriva de las mismas filas; filtra en cliente  |
+| Consumidor                                    | ¿Excluye traspasos? | Por qué                                         |
+| --------------------------------------------- | ------------------- | ----------------------------------------------- |
+| `summary()` — `currencyTotals`, `categories`  | Sí                  | FR-017 / SC-004                                 |
+| `summary().total` (contador "N movimientos")  | No                  | Son movimientos reales del conjunto filtrado    |
+| `list()`                                      | No                  | Cada cuenta ve su lado                          |
+| `balanceDelta` / `currentBalance`             | No                  | El dinero sí se mueve                           |
+| `sumsForCard` / `sumsByAccount` (cupo)        | Irrelevante         | Un traspaso nunca lleva tarjeta (FR-019)        |
+| `netForPeriod` (conciliación de facturación)  | Irrelevante         | Misma razón; además el destino nunca es crédito |
+| Dashboard `metrics.ts` (flujo del mes, donut) | Sí                  | Deriva de las mismas filas; filtra en cliente   |
 
 ## D2 — Almacenamiento de adjuntos
 

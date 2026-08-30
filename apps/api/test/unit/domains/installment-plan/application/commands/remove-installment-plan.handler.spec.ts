@@ -7,7 +7,9 @@ import { InstallmentPlan } from "../../../../../../src/domains/installment-plan/
 import type { InstallmentPlanRepositoryPort } from "../../../../../../src/domains/installment-plan/domain/ports/installment-plan.repository.port";
 import { fakeBankAccountRepo, fakeTransactionWriterRepo } from "../../../../support/fake-ports";
 
-function payment(over: Partial<Parameters<typeof InstallmentPlan.fromPersistence>[0]["payments"][number]> = {}) {
+function payment(
+  over: Partial<Parameters<typeof InstallmentPlan.fromPersistence>[0]["payments"][number]> = {},
+) {
   return {
     id: `pay${over.sequence ?? 1}`,
     sequence: 1,
@@ -43,7 +45,9 @@ function makePlan(paymentOverride: ReturnType<typeof payment> = payment()) {
   });
 }
 
-function fakeRepo(overrides: Partial<InstallmentPlanRepositoryPort> = {}): InstallmentPlanRepositoryPort {
+function fakeRepo(
+  overrides: Partial<InstallmentPlanRepositoryPort> = {},
+): InstallmentPlanRepositoryPort {
   return {
     list: vi.fn(),
     findOne: vi.fn(),
@@ -94,9 +98,9 @@ describe("RemoveInstallmentPlanHandler (spec 014, FR-006a)", () => {
       fakeTransactionWriterRepo({ listForInstallmentPlan: vi.fn(async () => []) }),
     );
 
-    await expect(handler.execute(new RemoveInstallmentPlanCommand("u1", "p1"))).rejects.toBeInstanceOf(
-      InstallmentPlanSettledError,
-    );
+    await expect(
+      handler.execute(new RemoveInstallmentPlanCommand("u1", "p1")),
+    ).rejects.toBeInstanceOf(InstallmentPlanSettledError);
     expect(removeWithTx).not.toHaveBeenCalled();
   });
 

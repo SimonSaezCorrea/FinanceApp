@@ -45,7 +45,11 @@ export class PrismaInstallmentPaymentRepository
   async listUnbilledDueForPlans(planIds: string[], dueBy: Date): Promise<InstallmentPaymentRow[]> {
     if (planIds.length === 0) return [];
     const rows = await this.prisma.installmentPayment.findMany({
-      where: { installmentPlanId: { in: planIds }, creditStatementId: null, dueDate: { lte: dueBy } },
+      where: {
+        installmentPlanId: { in: planIds },
+        creditStatementId: null,
+        dueDate: { lte: dueBy },
+      },
       orderBy: { sequence: "asc" },
     });
     return rows.map((r) => ({

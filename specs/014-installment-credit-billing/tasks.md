@@ -193,10 +193,10 @@ for credit-card plans, and a short-settled instalment says so.
 
 ## Phase 8: Polish & memory sync
 
-- [X] T071 [P] Rewrite the credit-card instalment plan in `apps/api/prisma/seed.ts`: a plan with its purchase movement, several billed instalments, and at least one period **settled with a shortfall** (the FR-020 display case)
-- [X] T072 [P] Add a seeded plan with a DEBIT card that still pays instalment-by-instalment, so the two behaviors are both visible in a fresh database
-- [X] T073 Run `pnpm db:push && pnpm db:seed` and walk the full quickstart end to end
-- [X] T074 [P] Run the full gate: `pnpm typecheck`, `pnpm check:boundaries`, `turbo run lint`, `pnpm format:check`
+- [x] T071 [P] Rewrite the credit-card instalment plan in `apps/api/prisma/seed.ts`: a plan with its purchase movement, several billed instalments, and at least one period **settled with a shortfall** (the FR-020 display case)
+- [x] T072 [P] Add a seeded plan with a DEBIT card that still pays instalment-by-instalment, so the two behaviors are both visible in a fresh database
+- [x] T073 Run `pnpm db:push && pnpm db:seed` and walk the full quickstart end to end
+- [x] T074 [P] Run the full gate: `pnpm typecheck`, `pnpm check:boundaries`, `turbo run lint`, `pnpm format:check`
 - [x] T075 **[Constitution V — mandatory]** Update `CLAUDE.md`: the new column, the statement-total rule (movements + carry-over + instalments), the purchase-movement role and its exclusion, the two error codes, the `installment-plan.data.module.ts` leaf, and the two-level carry-over note (FR-025)
 - [x] T076 **[Constitution V — mandatory]** Amend `.specify/memory/constitution.md` with a Sync Impact Report and a MINOR version bump: the carry-over rule now explicitly spans two levels (period-to-period for credit-card plans, instalment-to-instalment otherwise), which sharpens Principle I rather than replacing it
 - [x] T077 Update `docs/{english,spanish}/BANKING_LOGIC.md` with how a credit-card instalment plan flows through pool and statement

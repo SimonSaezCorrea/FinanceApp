@@ -8,10 +8,10 @@ Sin tablas nuevas. Cinco columnas nuevas en dos modelos existentes, más un mét
 
 ## `InstallmentPlan` (tabla `installment-plan`)
 
-| Columna | Tipo | Null | Default | Por qué |
-| --- | --- | --- | --- | --- |
-| `category` | `String?` | sí | — | FR-051. **Texto libre**, mismo repertorio que `Transaction.category`; de él sale el ícono (FR-052). No participa de ningún cálculo del plan |
-| `paymentAccountId` | `String?` FK → `BankAccount` | sí | — | FR-032. La cuenta que prellena el formulario de pago. **`onDelete: SetNull`**: borrar la cuenta no puede borrar la deuda, sólo hace que el formulario vuelva a pedirla (FR-034) |
+| Columna            | Tipo                         | Null | Default | Por qué                                                                                                                                                                         |
+| ------------------ | ---------------------------- | ---- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `category`         | `String?`                    | sí   | —       | FR-051. **Texto libre**, mismo repertorio que `Transaction.category`; de él sale el ícono (FR-052). No participa de ningún cálculo del plan                                     |
+| `paymentAccountId` | `String?` FK → `BankAccount` | sí   | —       | FR-032. La cuenta que prellena el formulario de pago. **`onDelete: SetNull`**: borrar la cuenta no puede borrar la deuda, sólo hace que el formulario vuelva a pedirla (FR-034) |
 
 Relación nueva: `paymentAccount BankAccount? @relation("InstallmentPlanPaymentAccount", fields: [paymentAccountId], references: [id], onDelete: SetNull)`.
 Índice nuevo: `@@index([paymentAccountId])`.
@@ -34,11 +34,11 @@ Relación nueva: `paymentAccount BankAccount? @relation("InstallmentPlanPaymentA
 
 ## `InstallmentPayment` (tabla `installment-payment`)
 
-| Columna | Tipo | Null | Default | Por qué |
-| --- | --- | --- | --- | --- |
-| `paidAmount` | `Decimal(18,4)?` | sí | — | FR-019. Lo **realmente** pagado, que puede diferir de `amount`. `null` en una cuota pagada antes de esta feature = "pagada, monto real desconocido" |
-| `carriedOverAmount` | `Decimal(18,4)` | no | `0` | FR-021/FR-022. Lo que la cuota **anterior** no cubrió y ésta hereda. **Negativo** cuando la anterior se pagó de más |
-| `transactionId` | `String?` FK → `Transaction` | sí | — | FR-025/FR-028. El gasto que respalda esta cuota. **`onDelete: SetNull`**: borrar el movimiento desde Movimientos deja la cuota intacta y deshacible |
+| Columna             | Tipo                         | Null | Default | Por qué                                                                                                                                             |
+| ------------------- | ---------------------------- | ---- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `paidAmount`        | `Decimal(18,4)?`             | sí   | —       | FR-019. Lo **realmente** pagado, que puede diferir de `amount`. `null` en una cuota pagada antes de esta feature = "pagada, monto real desconocido" |
+| `carriedOverAmount` | `Decimal(18,4)`              | no   | `0`     | FR-021/FR-022. Lo que la cuota **anterior** no cubrió y ésta hereda. **Negativo** cuando la anterior se pagó de más                                 |
+| `transactionId`     | `String?` FK → `Transaction` | sí   | —       | FR-025/FR-028. El gasto que respalda esta cuota. **`onDelete: SetNull`**: borrar el movimiento desde Movimientos deja la cuota intacta y deshacible |
 
 Relación nueva: `transaction Transaction? @relation(fields: [transactionId], references: [id], onDelete: SetNull)`.
 Índice nuevo: `@@index([transactionId])`.
@@ -48,13 +48,13 @@ Relación nueva: `transaction Transaction? @relation(fields: [transactionId], re
 
 ### Campos derivados (nunca almacenados)
 
-| Derivado | Fórmula | Dónde |
-| --- | --- | --- |
-| `dueAmount` de una cuota | `amount + carriedOverAmount` | contrato (API) |
-| `remainingAmount` del plan | `Σ dueAmount de las cuotas impagas` + remanente de una última cuota parcial | contrato (API) |
-| `paidTotal` del plan | `Σ (paidAmount ?? amount)` de las cuotas pagadas | contrato (API) |
-| Estado del plan | `vencida` / `próxima` (≤7 días) / `al día` / `parcialmente pagado` / `pagado` — FR-003. `parcialmente pagado` cubre el caso de FR-023 (última cuota cubierta sólo en parte) y **cuenta como plan activo** | `@finance/contracts` (`installments.planStatus`), consumido por el web |
-| Cuatro cifras del encabezado | agrupadas por moneda sobre la lista completa | web, `lib/installmentMetrics.ts` (R8) |
+| Derivado                     | Fórmula                                                                                                                                                                                                   | Dónde                                                                  |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `dueAmount` de una cuota     | `amount + carriedOverAmount`                                                                                                                                                                              | contrato (API)                                                         |
+| `remainingAmount` del plan   | `Σ dueAmount de las cuotas impagas` + remanente de una última cuota parcial                                                                                                                               | contrato (API)                                                         |
+| `paidTotal` del plan         | `Σ (paidAmount ?? amount)` de las cuotas pagadas                                                                                                                                                          | contrato (API)                                                         |
+| Estado del plan              | `vencida` / `próxima` (≤7 días) / `al día` / `parcialmente pagado` / `pagado` — FR-003. `parcialmente pagado` cubre el caso de FR-023 (última cuota cubierta sólo en parte) y **cuenta como plan activo** | `@finance/contracts` (`installments.planStatus`), consumido por el web |
+| Cuatro cifras del encabezado | agrupadas por moneda sobre la lista completa                                                                                                                                                              | web, `lib/installmentMetrics.ts` (R8)                                  |
 
 ### Invariantes del agregado
 
@@ -112,18 +112,18 @@ de la cuota (`InstallmentPayment.transactionId`), no aquí (R2).
 
 El gasto creado al pagar una cuota se compone así:
 
-| Campo | Valor |
-| --- | --- |
-| `type` | `EXPENSE` |
-| `bankAccountId` | la cuenta de pago confirmada |
-| `amount` | el monto confirmado, **en la moneda de la cuenta** (FR-030) |
-| `currency` | la de la **cuenta**, no la del plan (FR-030) |
-| `occurredAt` | la fecha confirmada (FR-019) |
-| `category` | la del plan, o `null` |
-| `description` | el título del plan + el número de cuota |
-| `installmentPlanId` | el plan |
-| `cardId` | **nunca** — la cuota se paga desde la cuenta, no con un plástico |
-| `financeCharge` | `false` (el cargo financiero es otro movimiento, creado al crear el plan) |
+| Campo               | Valor                                                                     |
+| ------------------- | ------------------------------------------------------------------------- |
+| `type`              | `EXPENSE`                                                                 |
+| `bankAccountId`     | la cuenta de pago confirmada                                              |
+| `amount`            | el monto confirmado, **en la moneda de la cuenta** (FR-030)               |
+| `currency`          | la de la **cuenta**, no la del plan (FR-030)                              |
+| `occurredAt`        | la fecha confirmada (FR-019)                                              |
+| `category`          | la del plan, o `null`                                                     |
+| `description`       | el título del plan + el número de cuota                                   |
+| `installmentPlanId` | el plan                                                                   |
+| `cardId`            | **nunca** — la cuota se paga desde la cuenta, no con un plástico          |
+| `financeCharge`     | `false` (el cargo financiero es otro movimiento, creado al crear el plan) |
 
 ---
 

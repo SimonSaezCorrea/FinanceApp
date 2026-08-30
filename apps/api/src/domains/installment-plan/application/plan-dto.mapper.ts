@@ -35,7 +35,7 @@ export async function toPlanDtos(
   return Promise.all(
     plans.map(async (plan) => {
       const snap = plan.snapshot();
-      const cardKind = snap.cardId ? kinds.get(snap.cardId) ?? null : null;
+      const cardKind = snap.cardId ? (kinds.get(snap.cardId) ?? null) : null;
       const billingWarning = await billingWarningFor(plan, cardKind, userId, cards, accounts_);
       return plan.toContract({ now, cardKind, billingWarning });
     }),

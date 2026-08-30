@@ -264,9 +264,7 @@ describe("GenerateStatementsHandler (manual trigger)", () => {
   });
 
   it("stamps nothing, and never calls the plan repo, for an account with no CREDIT card", async () => {
-    const account = BankAccount.fromPersistence(
-      accountProps({ cards: [card({ kind: "DEBIT" })] }),
-    );
+    const account = BankAccount.fromPersistence(accountProps({ cards: [card({ kind: "DEBIT" })] }));
     const statement = CreditStatement.fromPersistence(statementProps());
     const accountRepo = fakeAccountRepo({ findById: vi.fn(async () => account) });
     const statementRepo = fakeStatementRepo({

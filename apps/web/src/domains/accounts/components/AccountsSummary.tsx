@@ -37,7 +37,9 @@ export function AccountsSummary({
   const heroCurrency = primaryCurrency;
   const money = (value: string, currency: string) =>
     formatMoney(value, { locale: i18n.language, currency });
-  const { net, assets, cardDebt } = unavailable ? { net: [], assets: [], cardDebt: [] } : accountsSummary(list);
+  const { net, assets, cardDebt } = unavailable
+    ? { net: [], assets: [], cardDebt: [] }
+    : accountsSummary(list);
   const dash = "—";
 
   return (

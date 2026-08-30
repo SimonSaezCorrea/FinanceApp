@@ -167,8 +167,8 @@ describe("RemoveTransactionHandler", () => {
       fakeRepo({ findOne: vi.fn().mockResolvedValue(purchase), removeWithCreditAdjustment }),
       { account: creditAccount(), card: creditCard, linkedToInstallment: false },
     );
-    return expect(
-      handler.execute(new RemoveTransactionCommand("u1", "tX")),
-    ).rejects.toBeInstanceOf(TransactionLinkedToInstallmentError);
+    return expect(handler.execute(new RemoveTransactionCommand("u1", "tX"))).rejects.toBeInstanceOf(
+      TransactionLinkedToInstallmentError,
+    );
   });
 });

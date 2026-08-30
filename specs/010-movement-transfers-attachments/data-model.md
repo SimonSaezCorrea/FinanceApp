@@ -2,9 +2,9 @@
 
 ## `Transaction` (tabla `transaction`) — modificada
 
-| Campo             | Tipo                | Nota                                                              |
-| ----------------- | ------------------- | ----------------------------------------------------------------- |
-| `transferGroupId` | `String?` **nuevo** | Identifica el par de un traspaso. `null` en gastos e ingresos.     |
+| Campo             | Tipo                | Nota                                                           |
+| ----------------- | ------------------- | -------------------------------------------------------------- |
+| `transferGroupId` | `String?` **nuevo** | Identifica el par de un traspaso. `null` en gastos e ingresos. |
 
 - Índice nuevo: `@@index([transferGroupId])`.
 - Invariante: **exactamente dos** filas comparten un mismo `transferGroupId` — una `EXPENSE` (lado de
@@ -18,16 +18,16 @@
 
 ## `TransactionAttachment` (tabla `transaction-attachment`) — nueva
 
-| Campo           | Tipo       | Nota                                                       |
-| --------------- | ---------- | ---------------------------------------------------------- |
-| `id`            | `String`   | `cuid()`, PK                                                |
-| `userId`        | `String`   | FK → `User`, `onDelete: Cascade`. Aislamiento por usuario   |
-| `transactionId` | `String`   | FK → `Transaction`, `onDelete: Cascade`                     |
-| `storageKey`    | `String`   | Clave del objeto en el bucket, `@unique`                    |
-| `fileName`      | `String`   | Nombre original, máx. 255                                   |
-| `contentType`   | `String`   | Uno de los 4 admitidos                                      |
-| `sizeBytes`     | `Int`      | ≤ 5.242.880                                                 |
-| `createdAt`     | `DateTime` | `@default(now())`                                           |
+| Campo           | Tipo       | Nota                                                      |
+| --------------- | ---------- | --------------------------------------------------------- |
+| `id`            | `String`   | `cuid()`, PK                                              |
+| `userId`        | `String`   | FK → `User`, `onDelete: Cascade`. Aislamiento por usuario |
+| `transactionId` | `String`   | FK → `Transaction`, `onDelete: Cascade`                   |
+| `storageKey`    | `String`   | Clave del objeto en el bucket, `@unique`                  |
+| `fileName`      | `String`   | Nombre original, máx. 255                                 |
+| `contentType`   | `String`   | Uno de los 4 admitidos                                    |
+| `sizeBytes`     | `Int`      | ≤ 5.242.880                                               |
+| `createdAt`     | `DateTime` | `@default(now())`                                         |
 
 - Índices: `@@index([userId])`, `@@index([transactionId])`.
 - `@@map("transaction-attachment")`.
