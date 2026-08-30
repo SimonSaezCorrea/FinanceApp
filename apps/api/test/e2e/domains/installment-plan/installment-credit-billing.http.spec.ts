@@ -83,11 +83,14 @@ describe("Credit-card instalment plan billing, full lifecycle (e2e)", () => {
     creditAccountId = credit.body.id;
     cardId = credit.body.cards[0].id;
 
-    // A billing day so periods actually close.
+    // A billing day so periods actually close. CALENDAR_DAY (not the account
+    // default, BUSINESS_DAY) since the schedule below is built around day-of-month
+    // due dates: `seedPeriodFromSchedule` lands the boundary exactly on a due date
+    // only when the two use the same counting rule.
     await request(app.getHttpServer())
       .patch(`/api/v1/accounts/${creditAccountId}`)
       .set("Cookie", cookies)
-      .send({ billingCycleDay: 5 });
+      .send({ billingCycleDay: 5, billingCycleType: "CALENDAR_DAY" });
   });
 
   afterAll(async () => {
