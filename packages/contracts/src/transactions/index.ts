@@ -114,30 +114,32 @@ export type UpdateTransaction = z.infer<typeof updateTransactionSchema>;
  * Currencies are each side's own account currency and are never compared —
  * this app performs no FX conversion.
  */
-export const createTransferSchema = z
-  .object({
-    fromBankAccountId: z.string(),
-    toBankAccountId: z.string(),
-    amountOut: moneyString,
-    amountIn: moneyString,
-    currencyOut: z.string().trim().length(3),
-    currencyIn: z.string().trim().length(3),
-    occurredAt: z.string().datetime(),
-    description: z.string().trim().max(500).optional(),
-    category: z.string().trim().max(120).optional(),
-    observation: z.string().trim().max(500).optional(),
-    emisor: z.string().trim().max(200).optional(),
-    receptor: z.string().trim().max(200).optional(),
-    lugar: z.string().trim().max(200).optional(),
-  })
-  .refine((t) => t.fromBankAccountId !== t.toBankAccountId, {
+const transferFieldsSchema = z.object({
+  fromBankAccountId: z.string(),
+  toBankAccountId: z.string(),
+  amountOut: moneyString,
+  amountIn: moneyString,
+  currencyOut: z.string().trim().length(3),
+  currencyIn: z.string().trim().length(3),
+  occurredAt: z.string().datetime(),
+  description: z.string().trim().max(500).optional(),
+  category: z.string().trim().max(120).optional(),
+  observation: z.string().trim().max(500).optional(),
+  emisor: z.string().trim().max(200).optional(),
+  receptor: z.string().trim().max(200).optional(),
+  lugar: z.string().trim().max(200).optional(),
+});
+
+export const createTransferSchema = transferFieldsSchema.refine(
+  (t) => t.fromBankAccountId !== t.toBankAccountId,
+  {
     message: "a transfer needs two different accounts",
     path: ["toBankAccountId"],
-  });
+  },
+);
 export type CreateTransfer = z.infer<typeof createTransferSchema>;
 
-export const updateTransferSchema = createTransferSchema
-  .innerType()
+export const updateTransferSchema = transferFieldsSchema
   .partial()
   .refine(
     (t) => !t.fromBankAccountId || !t.toBankAccountId || t.fromBankAccountId !== t.toBankAccountId,
