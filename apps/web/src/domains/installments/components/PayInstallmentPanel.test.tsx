@@ -77,6 +77,7 @@ function account(over: Partial<accountsContract.BankAccount> = {}): accountsCont
     balanceCeiling: null,
     billingCycleDay: null,
     paymentDueDay: null,
+    paymentDueCycleType: "BUSINESS_DAY",
     paymentMethod: "MANUAL",
     minimumPaymentPercent: null,
     balanceSeries: [],
@@ -130,6 +131,38 @@ describe("initialPayValue", () => {
     const value = initialPayValue(plan(), payment(), "2026-09-05");
     expect(value.fromAccountId).toBe("aChecking");
     expect(value.date).toBe("2026-09-05");
+  });
+
+  // A plan with no explicit paymentAccountId still bought its purchases with a
+  // real card — that card's own account is a far better default than an empty
+  // field the user has to fill in on every single payment.
+  it("falls back to the account behind the plan's card when no paymentAccountId is set", () => {
+    const debitCard: accountsContract.Card = {
+      id: "cDebit",
+      name: "Débito",
+      kind: "DEBIT",
+      last4: "1193",
+      expiryMonth: 8,
+      expiryYear: 2029,
+      isPrimary: false,
+      isVirtual: false,
+      isAdditional: false,
+      cardholderName: null,
+      network: null,
+      isActive: true,
+      limits: [],
+      ownUsed: "0",
+    };
+    const thePlan = plan({ paymentAccountId: null, cardId: "cDebit" });
+    const accountWithCard = account({ id: "aVisa", cards: [debitCard] });
+    const value = initialPayValue(thePlan, payment(), "2026-09-05", [accountWithCard]);
+    expect(value.fromAccountId).toBe("aVisa");
+  });
+
+  it("leaves the account empty when neither paymentAccountId nor a matching card is found", () => {
+    const thePlan = plan({ paymentAccountId: null, cardId: null });
+    const value = initialPayValue(thePlan, payment(), "2026-09-05", [account()]);
+    expect(value.fromAccountId).toBe("");
   });
 });
 

@@ -42,6 +42,7 @@ const account = {
   billingCycleType: "BUSINESS_DAY" as const,
   paymentMethod: "MANUAL" as const,
   paymentDueDay: null,
+  paymentDueCycleType: "BUSINESS_DAY" as const,
   minimumPaymentPercent: null,
   balanceSeries: [],
   balanceChangePct: null,

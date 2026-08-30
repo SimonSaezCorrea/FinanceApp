@@ -52,6 +52,7 @@ const account = {
   billingCycleType: "BUSINESS_DAY" as const,
   paymentMethod: "MANUAL" as const,
   paymentDueDay: null,
+  paymentDueCycleType: "BUSINESS_DAY" as const,
   minimumPaymentPercent: null,
   balanceSeries: Array.from({ length: 30 }, () => "1240.5000"),
   balanceChangePct: "0.0",

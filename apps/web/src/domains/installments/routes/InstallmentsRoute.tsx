@@ -154,7 +154,7 @@ export function InstallmentsRoute() {
     const plan = plans.find((p) => p.id === planId);
     const payment = plan?.payments.find((p) => p.sequence === sequence);
     if (!plan || !payment) return;
-    setPayValue(initialPayValue(plan, payment, todayInput()));
+    setPayValue(initialPayValue(plan, payment, todayInput(), accountList));
     setPaying({ planId, sequence });
   }
 

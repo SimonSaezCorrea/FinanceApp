@@ -64,7 +64,12 @@ export function Segmented<T extends string>({
               // `flex-1` makes every segment the same width; without nowrap the longest
               // label ("Por vencer") wraps to two lines and the whole switch grows to
               // two rows. A segment label is a short phrase — it never wraps.
-              "flex-1 whitespace-nowrap rounded-sm text-center transition-colors",
+              // `flex items-center justify-center`: the root's default cross-axis
+              // `stretch` already grows a button to a caller-set root height (e.g.
+              // pairing this control with a same-row `Input`); without its own flex
+              // centering the label stays pinned to its unstretched line-height
+              // instead of sitting in the middle of that taller box.
+              "flex flex-1 items-center justify-center whitespace-nowrap rounded-sm text-center transition-colors",
               SIZE_CLASS[size],
               "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               "disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent",

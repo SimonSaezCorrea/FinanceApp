@@ -29,6 +29,7 @@ function creditAccount(): accountsContract.BankAccount {
     billingCycleType: "BUSINESS_DAY",
     paymentMethod: "MANUAL",
     paymentDueDay: null,
+    paymentDueCycleType: "BUSINESS_DAY",
     minimumPaymentPercent: null,
     balanceSeries: [],
     balanceChangePct: null,

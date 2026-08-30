@@ -31,6 +31,9 @@ export function BillingSettingsModal({
     account.billingCycleType,
   );
   const [paymentDueDay, setPaymentDueDay] = useState(account.paymentDueDay?.toString() ?? "");
+  const [paymentDueCycleType, setPaymentDueCycleType] = useState<accounts.BillingCycleType>(
+    account.paymentDueCycleType,
+  );
   const [minimumPercent, setMinimumPercent] = useState(account.minimumPaymentPercent ?? "");
   const [paymentMethod, setPaymentMethod] = useState<accounts.BillingPaymentMethod>(
     account.paymentMethod,
@@ -44,6 +47,7 @@ export function BillingSettingsModal({
           billingCycleDay: billingCycleDay ? Number(billingCycleDay) : null,
           billingCycleType,
           paymentDueDay: paymentDueDay ? Number(paymentDueDay) : null,
+          paymentDueCycleType,
           minimumPaymentPercent: minimumPercent.trim() || null,
           paymentMethod,
         },
@@ -106,10 +110,31 @@ export function BillingSettingsModal({
             ? t("accounts.form.billingCycleDayBusinessHint")
             : t("accounts.form.billingCycleDayHint")}
         </p>
-        <Field label={t("accounts.form.paymentDueDay")}>
+        <Field label={t("accounts.form.paymentDueCycleType")}>
+          <Segmented
+            value={paymentDueCycleType}
+            onChange={setPaymentDueCycleType}
+            options={[
+              { value: "BUSINESS_DAY", label: t("accounts.form.billingCycleTypeBusinessDay") },
+              { value: "CALENDAR_DAY", label: t("accounts.form.billingCycleTypeCalendarDay") },
+            ]}
+            aria-label={t("accounts.form.paymentDueCycleType")}
+          />
+        </Field>
+        <Field
+          label={
+            paymentDueCycleType === "BUSINESS_DAY"
+              ? t("accounts.form.paymentDueDayBusiness")
+              : t("accounts.form.paymentDueDay")
+          }
+        >
           <Input
             inputMode="numeric"
-            placeholder={t("accounts.form.paymentDueDayPlaceholder")}
+            placeholder={
+              paymentDueCycleType === "BUSINESS_DAY"
+                ? t("accounts.form.paymentDueDayBusinessPlaceholder")
+                : t("accounts.form.paymentDueDayPlaceholder")
+            }
             value={paymentDueDay}
             onChange={(e) => {
               const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
@@ -118,7 +143,11 @@ export function BillingSettingsModal({
             aria-label={t("accounts.form.paymentDueDay")}
           />
         </Field>
-        <p className="-mt-2 text-xs text-muted-foreground">{t("accounts.form.paymentDueDayHint")}</p>
+        <p className="-mt-2 text-xs text-muted-foreground">
+          {paymentDueCycleType === "BUSINESS_DAY"
+            ? t("accounts.form.paymentDueDayBusinessHint")
+            : t("accounts.form.paymentDueDayHint")}
+        </p>
         <Field label={t("accounts.form.minimumPercent")}>
           <Input
             className="w-24"

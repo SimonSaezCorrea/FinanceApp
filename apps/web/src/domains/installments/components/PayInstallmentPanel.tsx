@@ -237,15 +237,29 @@ export function PayInstallmentPanel({
   );
 }
 
+/** The account carrying `cardId`, or null — a plan created before `paymentAccountId`
+ *  was picked explicitly (or one where the user just never bothered) still bought
+ *  its purchases with a real card, and that card's own account is a far better
+ *  default than an empty field the user has to fill in on every single payment. */
+function accountForCard(
+  cardId: string | null,
+  accounts: accountsContract.BankAccount[],
+): accountsContract.BankAccount | null {
+  if (!cardId) return null;
+  return accounts.find((a) => a.cards.some((c) => c.id === cardId)) ?? null;
+}
+
 /** The form's opening state for one instalment: everything owed, from the account the
- *  plan remembers, dated today (FR-016). */
+ *  plan remembers, dated today (FR-016). Falls back to the account behind the plan's
+ *  own card when no `paymentAccountId` was set — still a better guess than nothing. */
 export function initialPayValue(
   plan: installments.InstallmentPlan,
   payment: installments.InstallmentPayment,
   today: string,
+  accounts: accountsContract.BankAccount[] = [],
 ): PayInstallmentFormValue {
   return {
-    fromAccountId: plan.paymentAccountId ?? "",
+    fromAccountId: plan.paymentAccountId ?? accountForCard(plan.cardId, accounts)?.id ?? "",
     // Trimmed of its trailing zeros: the field is a plain figure the user edits,
     // not the stored 4-decimal representation.
     amount: toMoney(payment.dueAmount).toString(),

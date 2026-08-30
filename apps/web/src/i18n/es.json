@@ -238,9 +238,13 @@
       "paymentMethodManual": "Manual",
       "paymentMethodAutomatic": "Automático",
       "paymentMethodAutomaticLocked": "Próximamente — todavía estamos definiendo cómo funciona la fecha de pago para el pago automático.",
-      "paymentDueDay": "Fecha de pago",
-      "paymentDueDayPlaceholder": "Ej. 3",
-      "paymentDueDayHint": "Días hábiles después del cierre de la facturación en que vence el pago.",
+      "paymentDueCycleType": "Tipo de fecha de pago",
+      "paymentDueDay": "Día de pago",
+      "paymentDueDayPlaceholder": "Ej. 5",
+      "paymentDueDayHint": "Al llegar este día del mes vence el pago de la facturación pendiente.",
+      "paymentDueDayBusiness": "Días hábiles para pagar",
+      "paymentDueDayBusinessPlaceholder": "Ej. 3",
+      "paymentDueDayBusinessHint": "Días hábiles (sin contar sábados, domingos ni feriados) después del cierre de la facturación en que vence el pago.",
       "sectionAccountData": "Datos de la cuenta",
       "sectionBalanceCurrency": "Saldo y moneda",
       "preview": "Vista previa",
@@ -261,6 +265,11 @@
         "billingHint": "Al llegar el día de facturación se genera el estado de cuenta pendiente de pago.",
         "status": "Estado",
         "statusHint": "Una cuenta inactiva se oculta de los resúmenes pero conserva su historial."
+      },
+      "tabs": {
+        "general": "General",
+        "credit": "Crédito",
+        "billing": "Facturación"
       },
       "minimumPercent": "Pago mínimo (%)",
       "minimumPercentHint": "Porcentaje del período que tu emisor acepta como pago mínimo. Vacío = sin mínimo."

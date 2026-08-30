@@ -238,9 +238,13 @@
       "paymentMethodManual": "Manual",
       "paymentMethodAutomatic": "Automatic",
       "paymentMethodAutomaticLocked": "Coming soon — we're still defining how the payment due date works for automatic payment.",
-      "paymentDueDay": "Payment due date",
-      "paymentDueDayPlaceholder": "E.g. 3",
-      "paymentDueDayHint": "Business days after the statement closes at which payment is due.",
+      "paymentDueCycleType": "Payment due type",
+      "paymentDueDay": "Payment due day",
+      "paymentDueDayPlaceholder": "E.g. 5",
+      "paymentDueDayHint": "Once this day of the month passes, payment for the pending statement is due.",
+      "paymentDueDayBusiness": "Business days to pay",
+      "paymentDueDayBusinessPlaceholder": "E.g. 3",
+      "paymentDueDayBusinessHint": "Business days (excluding Saturdays, Sundays and public holidays) after the statement closes at which payment is due.",
       "sectionAccountData": "Account details",
       "sectionBalanceCurrency": "Balance and currency",
       "preview": "Preview",
@@ -261,6 +265,11 @@
         "billingHint": "On the billing day the statement is generated pending payment.",
         "status": "Status",
         "statusHint": "An inactive account is hidden from summaries but keeps its history."
+      },
+      "tabs": {
+        "general": "General",
+        "credit": "Credit",
+        "billing": "Billing"
       },
       "minimumPercent": "Minimum payment (%)",
       "minimumPercentHint": "Percentage of the period your issuer accepts as a minimum payment. Empty = no minimum."
