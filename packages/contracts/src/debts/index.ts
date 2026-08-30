@@ -45,5 +45,14 @@ export const createDebtSchema = z.object({
 });
 export type CreateDebt = z.infer<typeof createDebtSchema>;
 
-export const updateDebtSchema = createDebtSchema.partial();
+// zod v4's `.partial()` keeps a `.default(...)` active even when the key is
+// absent, unlike v3 — left alone, an omitted field on a PATCH would silently
+// reset currency/totalInstallments/frequency/frequencyInterval to their
+// create-time defaults. Re-declared without defaults here.
+export const updateDebtSchema = createDebtSchema.partial().extend({
+  currency: z.string().trim().length(3).optional(),
+  totalInstallments: z.number().int().min(1).optional(),
+  frequency: installmentFrequency.optional(),
+  frequencyInterval: z.number().int().min(1).max(999).optional(),
+});
 export type UpdateDebt = z.infer<typeof updateDebtSchema>;

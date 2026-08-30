@@ -34,5 +34,10 @@ export const createInvestmentSchema = z.object({
 });
 export type CreateInvestment = z.infer<typeof createInvestmentSchema>;
 
-export const updateInvestmentSchema = createInvestmentSchema.partial();
+// zod v4's `.partial()` keeps a `.default(...)` active even when the key is
+// absent, unlike v3 — left alone, an omitted `currency` on a PATCH would silently
+// reset it to "USD". Re-declared without the default here.
+export const updateInvestmentSchema = createInvestmentSchema.partial().extend({
+  currency: z.string().trim().length(3).optional(),
+});
 export type UpdateInvestment = z.infer<typeof updateInvestmentSchema>;

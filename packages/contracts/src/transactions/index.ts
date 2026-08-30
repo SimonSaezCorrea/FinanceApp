@@ -93,8 +93,14 @@ export type CreateTransaction = z.infer<typeof createTransactionSchema>;
 
 // `.partial()` isn't available on a ZodEffects (refined) schema, so derive the
 // update shape from the plain fields and re-apply the income/card refinement.
+//
+// zod v4's `.partial()` keeps a `.default(...)` active even when the key is
+// absent, unlike v3 — left alone, an omitted `currency` on a PATCH would silently
+// reset it to "USD" (`patch.currency !== undefined` can't tell that apart from a
+// real value). Re-declared without the default here.
 export const updateTransactionSchema = transactionFieldsSchema
   .partial()
+  .extend({ currency: z.string().trim().length(3).optional() })
   .refine((t) => t.type !== "INCOME" || !t.cardId, {
     message: "income cannot be linked to a card",
     path: ["cardId"],

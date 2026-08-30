@@ -40,5 +40,12 @@ export const createRecurringExpenseSchema = z.object({
 });
 export type CreateRecurringExpense = z.infer<typeof createRecurringExpenseSchema>;
 
-export const updateRecurringExpenseSchema = createRecurringExpenseSchema.partial();
+// zod v4's `.partial()` keeps a `.default(...)` active even when the key is
+// absent, unlike v3 — left alone, an omitted field on a PATCH would silently
+// reset currency/interval to their create-time defaults. Re-declared without
+// defaults here.
+export const updateRecurringExpenseSchema = createRecurringExpenseSchema.partial().extend({
+  currency: z.string().trim().length(3).optional(),
+  interval: z.number().int().min(1).max(366).optional(),
+});
 export type UpdateRecurringExpense = z.infer<typeof updateRecurringExpenseSchema>;

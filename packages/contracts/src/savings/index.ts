@@ -23,7 +23,13 @@ export const createSavingsGoalSchema = z.object({
 });
 export type CreateSavingsGoal = z.infer<typeof createSavingsGoalSchema>;
 
-export const updateSavingsGoalSchema = createSavingsGoalSchema.partial();
+// zod v4's `.partial()` keeps a `.default(...)` active even when the key is
+// absent, unlike v3 — left alone, an omitted `currency` on a PATCH would silently
+// reset it to "USD" (the aggregate's `patch.currency !== undefined` check can't
+// tell that apart from a real value). Re-declared without the default here.
+export const updateSavingsGoalSchema = createSavingsGoalSchema.partial().extend({
+  currency: z.string().trim().length(3).optional(),
+});
 export type UpdateSavingsGoal = z.infer<typeof updateSavingsGoalSchema>;
 
 export const savingsEntrySchema = z.object({

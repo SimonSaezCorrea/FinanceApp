@@ -404,7 +404,23 @@ export type CreateBankAccount = z.infer<typeof createBankAccountSchema>;
 // update shape from the plain fields. `type` may be omitted on a PATCH, so none of
 // the create-time refinements is (or can be) replicated here — they're enforced in
 // the aggregate instead, where the current row's type is known.
-export const updateBankAccountSchema = bankAccountFieldsSchema.partial();
+//
+// zod v4 changed `.partial()` to keep a field's `.default(...)` active even when
+// the key is absent from the input — under v3 an omitted key stayed `undefined`
+// there, which is what every `patch.x !== undefined` check in the aggregate's
+// `applyUpdate` relies on to mean "not sent". Left alone, a v4 `.partial()` would
+// silently resurrect `type`/`status`/`currency`/`billingCycleType`/`paymentMethod`/
+// `paymentDueCycleType` to their create-time defaults on ANY partial update that
+// omits them — e.g. renaming an account would also reset its type to CHECKING.
+// These six are re-declared here without their default to keep the old semantics.
+export const updateBankAccountSchema = bankAccountFieldsSchema.partial().extend({
+  type: accountType.optional(),
+  status: accountStatus.optional(),
+  currency: z.string().trim().length(3).optional(),
+  billingCycleType: billingCycleType.optional(),
+  paymentMethod: billingPaymentMethod.optional(),
+  paymentDueCycleType: billingCycleType.optional(),
+});
 export type UpdateBankAccount = z.infer<typeof updateBankAccountSchema>;
 
 export const setAccountStatusSchema = z.object({ status: accountStatus });
