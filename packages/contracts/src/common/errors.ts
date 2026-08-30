@@ -8,7 +8,7 @@ export const apiErrorSchema = z.object({
   error: z.object({
     code: z.string(), // SCREAMING_SNAKE_CASE, e.g. "TRANSACTION_NOT_FOUND"
     field: z.string().optional(),
-    details: z.record(z.unknown()).optional(),
+    details: z.record(z.string(), z.unknown()).optional(),
   }),
 });
 
