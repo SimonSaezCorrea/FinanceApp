@@ -132,3 +132,17 @@ export class BalanceCeilingExceededError extends DomainError {
     super("BALANCE_CEILING_EXCEEDED", 400, "amount");
   }
 }
+
+/**
+ * A movement that backs an instalment payment, edited or deleted from Movements.
+ *
+ * Refused rather than allowed because its amount IS the instalment's payment: change
+ * it here and the plan's paid total, its carry-over and this row stop agreeing, with
+ * nothing to detect the drift. The way to change it is to undo the instalment and pay
+ * it again from its plan, which moves all four figures together (FR-028a).
+ */
+export class TransactionLinkedToInstallmentError extends DomainError {
+  constructor() {
+    super("TRANSACTION_LINKED_TO_INSTALLMENT", 409);
+  }
+}

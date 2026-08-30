@@ -3,13 +3,14 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { cn } from "../../../shared/lib/cn";
-import { useElementWidth } from "../../../shared/lib/useElementWidth";
 import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
 import { Skeleton, SkeletonScreen } from "../../../shared/ui/skeleton";
-import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
+// Owned by `transactions` (it's the movements table's own skeleton — every
+// other consumer of it, this account's own Movimientos tab included, reads
+// it from there rather than each growing its own copy).
+import { MovementsTableSkeleton } from "../../transactions/components/MovementsTableSkeleton";
 import { CardTileSkeleton } from "./CardTileSkeleton";
-import { FULL_TABLE_MIN_WIDTH } from "../../transactions/components/TransactionTable";
 
 /** KPI tile. Which ones exist (balance / change / credit) depends on the account
  *  type, so even the labels are unknown until the account lands. */
@@ -18,91 +19,6 @@ function KpiSkeleton() {
     <Card className="flex flex-col gap-2 p-4">
       <Skeleton className="h-[12px] w-24" />
       <Skeleton className="h-[24px] w-36" />
-    </Card>
-  );
-}
-
-/** Compact-list row, for the narrow layout where the real table drops its columns. */
-function MovementRowSkeleton() {
-  return (
-    <div className="flex items-center gap-3 border-b px-4 py-3 last:border-b-0">
-      <Skeleton className="h-8 w-8 shrink-0 rounded-full" />
-      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        <Skeleton className="h-[13px] w-2/5" />
-        <Skeleton className="h-[11px] w-1/4" />
-      </div>
-      <Skeleton className="hidden h-[11px] w-20 shrink-0 sm:block" />
-      <Skeleton className="h-[13px] w-24 shrink-0" />
-    </div>
-  );
-}
-
-/**
- * The movements table on its own — also used when only the list reloads (e.g.
- * after switching the card filter), where the rest of the view already stands.
- *
- * It measures itself and splits at the SAME width as `TransactionTable`, so the
- * placeholder and the real table always agree on which of the two shapes is on
- * screen. Where the columns fit, the headings render for real: they're ours and
- * fixed. "Tarjeta" is the one column left out — the real table only shows it when
- * the visible rows use more than one card, which is a property of the data.
- */
-export function MovementsTableSkeleton({ rows = 6 }: Readonly<{ rows?: number }>) {
-  const { t } = useTranslation();
-  const [containerRef, width] = useElementWidth();
-  // Same fallback as the real table: the compact list works at any width.
-  const wide = width !== null && width >= FULL_TABLE_MIN_WIDTH;
-
-  return (
-    <Card ref={containerRef} className="overflow-hidden p-0" aria-busy="true">
-      <div className={wide ? "block" : "hidden"}>
-        <Table>
-          <THead className="bg-muted/50">
-            <TR>
-              <TH className="w-8" />
-              <TH>{t("transactions.form.description")}</TH>
-              <TH>{t("transactions.form.category")}</TH>
-              <TH>{t("transactions.form.type")}</TH>
-              <TH className="whitespace-nowrap">{t("transactions.form.date")}</TH>
-              <TH numeric>{t("transactions.form.amount")}</TH>
-              <TH className="w-20" />
-            </TR>
-          </THead>
-          <tbody>
-            {Array.from({ length: rows }, (_, i) => (
-              <TR key={i}>
-                <TD>
-                  <Skeleton className="h-8 w-8 rounded-full" />
-                </TD>
-                <TD>
-                  <Skeleton className="h-[13px] w-40" />
-                </TD>
-                <TD>
-                  <Skeleton className="h-[13px] w-24" />
-                </TD>
-                <TD>
-                  <Skeleton className="h-[20px] w-16 rounded-full" />
-                </TD>
-                <TD>
-                  <Skeleton className="h-[13px] w-24" />
-                </TD>
-                <TD numeric>
-                  <Skeleton className="ml-auto h-[13px] w-24" />
-                </TD>
-                <TD>
-                  <Skeleton className="h-[13px] w-12" />
-                </TD>
-              </TR>
-            ))}
-          </tbody>
-        </Table>
-      </div>
-
-      <div className={wide ? "hidden" : "block"}>
-        {Array.from({ length: rows }, (_, i) => (
-          <MovementRowSkeleton key={i} />
-        ))}
-      </div>
     </Card>
   );
 }
@@ -210,7 +126,7 @@ export function AccountDetailSkeleton({
                 {t("transactions.new")}
               </Button>
             </div>
-            <MovementsTableSkeleton />
+            <MovementsTableSkeleton showAccountColumn={false} />
           </div>
         </div>
 

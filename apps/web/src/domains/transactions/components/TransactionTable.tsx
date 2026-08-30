@@ -5,15 +5,16 @@ import { useTranslation } from "react-i18next";
 import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { CategoryIcon } from "./CategoryIcon";
 import { RowActionsMenu } from "./RowActionsMenu";
-import { SwipeRow } from "./SwipeRow";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
+import { CategoryIcon } from "../../../shared/ui/category-icon";
 import { cn } from "../../../shared/lib/cn";
-import { useElementWidth } from "../../../shared/lib/useElementWidth";
+import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { InfiniteScrollSentinel } from "../../../shared/ui/infinite-scroll-sentinel";
+import { ErrorState } from "../../../shared/ui/states";
+import { SwipeRow } from "../../../shared/ui/swipe-row";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
 
 interface TransactionTableProps {
@@ -25,6 +26,11 @@ interface TransactionTableProps {
   /** Hide the "Cuenta" column — redundant on a single account's own detail
    * page, where every row is already that account by construction. */
   showAccountColumn?: boolean;
+  /** The load's own error, if any — shown INSIDE the table chrome (see
+   * `isEmpty`'s comment below) instead of swapping the whole table out.
+   * `transactions` is `[]` whenever this is set. */
+  error?: unknown;
+  onRetry?: () => void;
   /**
    * Movement to point out for a moment — the one just created or edited. A new
    * movement is NOT necessarily the top row (the list is ordered by date, so one
@@ -44,10 +50,14 @@ interface TransactionTableProps {
  * viewport — at 1024px the same screen leaves ~896px with the sidebar collapsed
  * (full table) and ~736px with it expanded (compact), and a media query can't
  * tell those apart.
+ *
+ * `TABLE_ROW_MIN_WIDTH` — shared with Cuotas and Facturación, which used to
+ * each pick their own value. Re-exported under this table's original name so
+ * its own loading placeholder (which splits at the same width — a skeleton
+ * showing columns the real table then drops is a layout jump) doesn't need a
+ * second import.
  */
-/** Exported so a loading placeholder for this table splits at the same width —
- *  a skeleton showing columns the real table then drops is a layout jump. */
-export const FULL_TABLE_MIN_WIDTH = 860;
+export const FULL_TABLE_MIN_WIDTH = TABLE_ROW_MIN_WIDTH;
 
 function formatDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, {
@@ -68,6 +78,8 @@ export function TransactionTable({
   hasMore = false,
   isLoadingMore = false,
   onLoadMore,
+  error,
+  onRetry,
 }: TransactionTableProps) {
   const { t, i18n } = useTranslation();
   const showActions = Boolean(onEdit || onDelete);
@@ -168,8 +180,17 @@ export function TransactionTable({
                       )}
                     </span>
                   </TD>
-                  <TD className="font-medium">
-                    {tx.description ?? <span className="text-muted-foreground">—</span>}
+                  {/* `w-full max-w-0` + a truncating child: the only column with no
+                      fixed-content minimum of its own (every other one is a badge,
+                      a monospace last4, a nowrap date/amount, or an icon) — without
+                      this, auto table layout gives it its full unwrapped preferred
+                      width first and only wraps once rendering literally runs out
+                      of room, which can still leave the TABLE wider than its
+                      container even though the text itself wrapped. */}
+                  <TD className="w-full max-w-0 font-medium">
+                    <div className="truncate">
+                      {tx.description ?? <span className="text-muted-foreground">—</span>}
+                    </div>
                   </TD>
                   <TD>
                     <span className="text-sm">
@@ -345,8 +366,11 @@ export function TransactionTable({
 
       {/* Rendered ONCE, below whichever layout is showing (both are mounted, one
           hidden by class) — duplicating it would put the same message in the DOM
-          twice. The headers above still stand, so the table keeps its shape. */}
-      {isEmpty ? (
+          twice. The headers above still stand, so the table keeps its shape,
+          whether the row is empty or the load itself failed. */}
+      {error ? (
+        <ErrorState inline error={error} onRetry={onRetry} />
+      ) : isEmpty ? (
         <div className="px-4 py-10">
           <EmptyRow />
         </div>

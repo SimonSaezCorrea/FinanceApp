@@ -3,6 +3,7 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
+import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
 import { CardAccountDataModule } from "../card-account/card-account.data.module";
 import { InstallmentPaymentDataModule } from "../installment-payment/installment-payment.data.module";
 import { TransactionDataModule } from "../transaction/transaction.data.module";
@@ -13,8 +14,7 @@ import { UnpayInstallmentHandler } from "./application/commands/unpay-installmen
 import { UpdateInstallmentPlanHandler } from "./application/commands/update-installment-plan.handler";
 import { GetInstallmentPlanQueryHandler } from "./application/queries/get-installment-plan.handler";
 import { ListInstallmentPlansQueryHandler } from "./application/queries/list-installment-plans.handler";
-import { INSTALLMENT_PLAN_REPOSITORY } from "./domain/ports/installment-plan.repository.port";
-import { PrismaInstallmentPlanRepository } from "./infrastructure/prisma-installment-plan.repository";
+import { InstallmentPlanDataModule } from "./installment-plan.data.module";
 import { InstallmentsController } from "./presentation/installments.controller";
 
 const commandHandlers = [
@@ -31,19 +31,21 @@ const queryHandlers = [ListInstallmentPlansQueryHandler, GetInstallmentPlanQuery
   imports: [
     CqrsModule,
     JwtModule.register({}),
+    // The plan's own table binding, plus the schedule rows its adapter composes.
+    InstallmentPlanDataModule,
+    // Handlers here also write instalment rows directly inside a caller-owned
+    // transaction, so the leaf is imported on its own too.
     InstallmentPaymentDataModule,
     // A plan with interest commits more debt than the price: the difference is
     // charged to the card's credit pool (see the handler).
     CardAccountDataModule,
     TransactionDataModule,
+    // Paying an instalment records a real expense AND moves the paying account's
+    // balance, both inside one transaction (FR-018/FR-019a).
+    BankAccountDataModule,
   ],
   controllers: [InstallmentsController],
-  providers: [
-    ...commandHandlers,
-    ...queryHandlers,
-    { provide: INSTALLMENT_PLAN_REPOSITORY, useClass: PrismaInstallmentPlanRepository },
-    JwtAuthGuard,
-  ],
+  providers: [...commandHandlers, ...queryHandlers, JwtAuthGuard],
   exports: [],
 })
 export class InstallmentPlanModule {}

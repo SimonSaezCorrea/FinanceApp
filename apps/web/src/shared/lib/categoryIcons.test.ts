@@ -135,3 +135,20 @@ describe("common Spanish categories all get a real icon", () => {
     }
   });
 });
+
+/**
+ * SC-011: an instalment plan and a movement with the SAME category must show the
+ * same icon. There is one map and one component (`shared/ui/category-icon`), used by
+ * both views, so the property to protect is that the lookup itself is a pure
+ * function of the category — nothing about who is asking.
+ */
+describe("one icon per category, whoever asks", () => {
+  it("gives the same icon for the same category", () => {
+    expect(categoryIcon("Tecnología")).toBe(categoryIcon("tecnologia"));
+    expect(categoryIcon("Supermercado")).toBe(categoryIcon("Supermercado"));
+  });
+
+  it("falls back to the neutral icon for an unknown or absent category", () => {
+    expect(categoryIcon("qwertyuiop")).toBe(categoryIcon(null));
+  });
+});

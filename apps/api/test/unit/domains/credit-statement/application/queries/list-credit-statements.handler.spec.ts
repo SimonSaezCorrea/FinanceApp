@@ -35,7 +35,10 @@ function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountPro
     creditUsedInitial: "0",
     creditUsed: "0",
     billingCycleDay: null,
+    billingCycleType: "BUSINESS_DAY",
     paymentMethod: "MANUAL",
+    paymentDueDay: null,
+    paymentDueCycleType: "BUSINESS_DAY",
     minimumPaymentPercent: null,
     cards: [],
     createdAt: new Date(),
@@ -112,8 +115,9 @@ describe("ListCreditStatementsQueryHandler", () => {
     const accountRepo = fakeAccountRepo({ findById: vi.fn(async () => account) });
     const statementRepo = fakeStatementRepo({
       listForAccount: vi.fn(async () => [statement]),
-      sumLinkedTransactions: vi.fn(async () => "12345"),
-      breakdown: vi.fn(async () => ({ purchases: "0", installments: "0", installmentCount: 0 })),
+      // Spec 014: the handler builds an unsettled period's total from `breakdown`
+      // (purchases + instalments), not from a separate `sumLinkedTransactions` call.
+      breakdown: vi.fn(async () => ({ purchases: "12345", installments: "0", installmentCount: 0 })),
     });
     const handler = new ListCreditStatementsQueryHandler(accountRepo, statementRepo);
 

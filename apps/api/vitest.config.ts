@@ -6,7 +6,9 @@ export default defineConfig({
   test: {
     globals: true,
     root: "./",
-    include: ["src/**/*.spec.ts", "test/**/*.spec.ts"],
+    // Both suffixes: the tree grew `*.test.ts` files alongside the original
+    // `*.spec.ts` ones, and a test that never runs is worse than no test.
+    include: ["src/**/*.spec.ts", "test/**/*.spec.ts", "test/**/*.test.ts"],
     setupFiles: ["./test/setup-env.ts"],
   },
   plugins: [swc.vite()],

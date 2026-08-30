@@ -24,7 +24,10 @@ export type CreateAccountPlan = {
   creditLimit: string;
   creditUsedInitial: string;
   billingCycleDay: number | null;
+  billingCycleType?: accounts.BillingCycleType;
   paymentMethod: accounts.BillingPaymentMethod;
+  paymentDueDay?: number | null;
+  paymentDueCycleType?: accounts.BillingCycleType;
   cards: CreateCardPlan[];
 };
 

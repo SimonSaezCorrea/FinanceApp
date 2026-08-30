@@ -17,6 +17,7 @@ const creditAccount: AccountContext = {
   creditLimit: "3000000",
   creditUsed: "0",
   billingCycleDay: null,
+  billingCycleType: "BUSINESS_DAY",
 };
 
 const charge = { type: "EXPENSE" as const, bankAccountId: "aC", amount: "12500", currency: "CLP" };

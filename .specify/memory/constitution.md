@@ -1,4 +1,99 @@
 <!--
+Sync Impact Report — 2026-08-29 (amendment 1.49.0)
+- Version change: 1.48.0 → 1.49.0 (MINOR: new enforceable rule — the payment due date's cycle type
+  is now configured independently of generation's — no principle removed or redefined).
+- New **`BillingSettings.paymentDueCycleType`** (`BUSINESS_DAY` default | `CALENDAR_DAY`) decides how
+  `paymentDueDay` is counted — resolving the "días hábiles only, no calendar-day alternative" limitation
+  recorded in amendment 1.48.0 below. **Independent of `cycleType`** (generation): an issuer can
+  generate on a fixed day-of-month but still owe payment N días hábiles later, or vice versa, so the
+  two must never be coupled to the same setting.
+- `paymentDueDate(closedAt, paymentDueDay, paymentDueCycleType)` gained a CALENDAR_DAY branch (first
+  occurrence of `paymentDueDay` as a day-of-month strictly after `closedAt`) via a new shared helper,
+  `nextCalendarDayAfter`, which also now backs `nextBoundaryAfter`'s own CALENDAR_DAY branch so the two
+  "day-of-month, strictly after anchor" computations can't drift apart.
+- `AccountForm`/`BillingSettingsModal` gain a second, independent días-hábiles/día-del-mes Segmented
+  for payment (next to generation's own); the `paymentDueDay` field's label/placeholder/hint switch on
+  `paymentDueCycleType` the same way `billingCycleDay`'s already switch on `cycleType`.
+- Driven by a direct (non-SDD) implementation request. Templates requiring updates: none.
+-->
+
+<!--
+Sync Impact Report — 2026-08-24 (amendment 1.48.0)
+- Version change: 1.47.0 → 1.48.0 (MINOR: new enforceable rule — how a billing cut-off/due date is
+  counted — no principle removed or redefined).
+- `BillingSettings` gains **`cycleType`** (`BUSINESS_DAY` default | `CALENDAR_DAY`): BUSINESS_DAY
+  counts `billingCycleDay` as días hábiles (Mon-Fri, excluding Chilean public holidays — via the new
+  `date-holidays` dependency, Chile only, matching the MVP's single market) since the PREVIOUS
+  period's close, matching a real issuer's cadence (e.g. BCI: 20 días hábiles to generate). CALENDAR_DAY
+  is the original fixed day-of-month behavior, kept for accounts already configured that way — both
+  compute the same closing boundary (`billing-settings/domain/billing-cycle.ts`'s
+  `nextBoundaryAfter`), only the counting rule differs.
+- **`BillingSettings.paymentDueDay`** stops being a reserved/unused column: it is now business days
+  (días hábiles only — no calendar-day alternative exists for this one yet) counted DIRECTLY from a
+  period's own close — the same mechanism generation's `nextBoundaryAfter` already uses, just anchored
+  to `closedAt` instead of `periodStart` (e.g. BCI: closes 22 Jul → 10 días hábiles → due 5 Aug, and
+  that same close also starts the clock for the NEXT closing, 20 días hábiles later on 20 Aug, from
+  which its own due date runs in turn) — `paymentDueDate(closedAt, paymentDueDay)` is a direct call to
+  `addBusinessDays`, exposed as the new **`CreditStatement.dueDate`** (null while OPEN, or when
+  unconfigured). This is INFORMATIONAL only — no automatic payment execution exists yet
+  (`paymentMethod: AUTOMATIC` stays locked in the UI; see
+  `docs/PENDING.md`).
+- Known, documented limitation: `currentCycleStart` (the helper that still scopes a card's own
+  independent `CardLimit` sub-limit to "since the current cycle began" — the account-level shared pool
+  stopped needing this in the 2026-07-25 persisted-`creditUsed` amendment) has no fixed day-of-month to
+  reconstruct a BUSINESS_DAY cycle's start from `now` alone, so it returns `null` for such accounts —
+  that sub-limit reverts to all-time scoping on a BUSINESS_DAY account, same as when no cycle is
+  configured at all.
+- Driven by a direct (non-SDD) implementation request — días hábiles billing/payment-due support,
+  Chile-only, using `date-holidays`.
+- Templates requiring updates: none.
+-->
+
+<!--
+Sync Impact Report — 2026-08-22 (amendment 1.47.0)
+- Version change: 1.46.0 → 1.47.0 (MINOR: one principle sharpened with an explicit corollary; no
+  principle removed, no prior rule weakened).
+- Sharpens §I's carry-over rule ("An unpaid remainder is a figure, never a rewrite") with **"The
+  carry chain lives at whichever level actually receives the payment — never at both"**: a credit-card
+  instalment plan is never paid instalment-by-instalment (that would double-count the debt already
+  reserved on the card's pool at purchase time), so its shortfall carries PERIOD-to-period
+  (`CreditStatement.carriedOverAmount`), not instalment-to-instalment — and settling the period, in
+  full or short, settles every instalment it billed. `InstallmentPayment.carriedOverAmount` stays "0"
+  for such a plan; every other plan (paid instalment-by-instalment) keeps the carry there, unchanged.
+  The last-item corollary still holds at whichever level receives the payment — a statement period
+  always has a successor to carry into, so it is never the "last item" that corollary describes.
+- Driven by specs/014-installment-credit-billing: a credit-card plan's purchase now consumes the pool
+  in full on purchase day (a movement carrying `installmentPlanId`, excluded from any period's total)
+  and its schedule bills one instalment per period via a new `InstallmentPayment.creditStatementId`
+  column (nullable FK, `SetNull`) — necessary because periods are generated lazily, so deriving
+  "billed" from date windows alone would miss or double-charge an instalment falling in a gap between
+  two periods.
+- Templates requiring updates: none.
+-->
+
+<!--
+Sync Impact Report — 2026-08-22 (amendment 1.46.0)
+- Version change: 1.45.0 → 1.46.0 (MINOR: two new enforceable rules; no principle removed).
+- New rule **"An unpaid remainder is a figure, never a rewrite"**: when a payment fails to cover what
+  was owed, the shortfall MUST be carried onto the next unpaid item as a column of its own
+  (`CreditStatement.carriedOverAmount`, `InstallmentPayment.carriedOverAmount`), and the SCHEDULE —
+  the amounts and dates originally agreed — MUST never be rewritten to absorb it. One mechanism for
+  "what you didn't cover", not one per domain. Corollary: the last item in a sequence has no successor
+  to carry into, so it is NOT settled by a short payment; it keeps its partial credit and stays
+  payable, because a shortfall counted both on the item and on its carry is the same debt twice.
+- New rule **"Declare an irreversible impact with the code that applies it"**: an operation that
+  deletes real movements or moves real balances MUST state, before confirming, what it will undo — and
+  that statement MUST be produced by the SAME function the operation runs (`planDeletionReversal`),
+  never by a second implementation that can drift from it. A confirmation describing an effect that
+  did not happen is worse than no confirmation.
+- Reinforces "Money is never a float" (§I) and the one-aggregate-per-transaction exception already
+  documented for `PayCreditStatementHandler`: paying an instalment writes three aggregates in one
+  `prisma.$transaction` for the same reason — a marked instalment whose expense never landed leaves
+  the books wrong with nothing to detect it.
+- Templates requiring updates: none.
+-->
+
+<!--
 Sync Impact Report — 2026-08-15 (amendment 1.45.0)
 - Version change: 1.44.0 → 1.45.0 (MINOR: new enforceable scope rule; no principle removed).
 - Delivery norms gain **"Scope is data, not code"**: the MVP (`docs/MVP.md`) is Chile-only with three
@@ -1056,6 +1151,35 @@ Rounding MUST be explicit and consistent with the stored precision.
 Rationale: a finance app is only trustworthy if totals reconcile to the cent. Binary
 floats silently lose precision and corrupt balances, interest, and amortization.
 
+**An unpaid remainder is a figure, never a rewrite.** When a payment fails to cover what was owed,
+the shortfall MUST be carried onto the next unpaid item as a column of its own
+(`CreditStatement.carriedOverAmount`, `InstallmentPayment.carriedOverAmount`); the SCHEDULE — the
+amounts and dates originally agreed — MUST NOT be rewritten to absorb it, and a surplus MUST flow
+forward without ever leaving an item owing a negative amount. One mechanism for "what you didn't
+cover", not one per domain. Corollary: the LAST item of a sequence has no successor to carry into, so
+a short payment there does NOT settle it — it keeps its partial credit and stays payable, because a
+shortfall counted both on the item and on its carry is the same debt twice.
+
+**The carry chain lives at whichever level actually receives the payment — never at both.** A
+sequence's items are settled one PAYMENT at a time, and the carry-over MUST attach to the level that
+payment lands on, not to a level beneath it that never received one. A credit-card instalment plan
+is the case that makes this concrete: nobody pays an instalment on its own — the payment lands on the
+STATEMENT PERIOD, so the shortfall carries period-to-period (`CreditStatement.carriedOverAmount`), and
+every instalment that period billed is marked settled once the period is settled, in full or short,
+because the debt already lives in exactly one place — the successor period. Recording it a second
+time on the instalment (`InstallmentPayment.carriedOverAmount`, which stays "0" for such a plan) would
+be the same debt twice, exactly what this Principle already forbids; for every OTHER kind of plan,
+where a payment lands on the instalment directly, the carry-over stays there instead, unchanged. The
+last-item corollary above still holds at whichever level the payment actually lands on: a statement
+period always has a successor to carry into (one is created if none is open), so it is never the
+"last item" the corollary describes — that case remains exclusive to an instalment paid on its own.
+
+**Declare an irreversible impact with the code that applies it.** An operation that deletes real
+movements or moves real balances MUST state, before confirming, what it will undo — and that
+statement MUST come from the SAME function the operation runs, never from a second implementation
+that can drift from it. A confirmation describing an effect that did not happen is worse than no
+confirmation at all.
+
 ### II. Per-User Data Isolation (NON-NEGOTIABLE)
 
 Every data read and write MUST be scoped by `session.user.id`. API route handlers
@@ -1405,4 +1529,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.45.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-15
+**Version**: 1.49.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-29

@@ -19,6 +19,7 @@ import {
 } from "../../../../../../src/domains/credit-statement/domain/credit-statement.aggregate";
 import type { BankAccountRepositoryPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
+import type { InstallmentPlanRepositoryPort } from "../../../../../../src/domains/installment-plan/domain/ports/installment-plan.repository.port";
 
 function card(overrides: Partial<CardProps> = {}): CardProps {
   return {
@@ -60,7 +61,10 @@ function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountPro
     creditUsedInitial: "0",
     creditUsed: "50000",
     billingCycleDay: 5,
+    billingCycleType: "CALENDAR_DAY",
     paymentMethod: "MANUAL",
+    paymentDueDay: null,
+    paymentDueCycleType: "BUSINESS_DAY",
     minimumPaymentPercent: null,
     cards: [card()],
     createdAt: new Date(),
@@ -130,6 +134,33 @@ function fakeStatementRepo(
   };
 }
 
+/** `$transaction(cb)` just runs the callback: real atomicity is the integration
+ * tier's job (test/integration/domains/credit-statement). */
+function fakePrisma() {
+  return { $transaction: vi.fn(async (cb: (tx: unknown) => Promise<unknown>) => cb({})) };
+}
+
+function fakePlanRepo(
+  overrides: Partial<InstallmentPlanRepositoryPort> = {},
+): InstallmentPlanRepositoryPort {
+  return {
+    list: vi.fn(),
+    findOne: vi.fn(),
+    create: vi.fn(),
+    createWithTx: vi.fn(),
+    listBillableForCards: vi.fn(async () => []),
+    stampBillableWithTx: vi.fn(),
+    settleForStatementWithTx: vi.fn(),
+    billedInstallmentsForStatement: vi.fn(async () => ({ amount: "0", count: 0 })),
+    save: vi.fn(),
+    savePaymentWithTx: vi.fn(),
+    setPaymentPaidAt: vi.fn(),
+    remove: vi.fn(),
+    removeWithTx: vi.fn(async () => true),
+    ...overrides,
+  };
+}
+
 describe("GenerateStatementsHandler (manual trigger)", () => {
   it("closes a due OPEN statement for an eligible account", async () => {
     const account = BankAccount.fromPersistence(accountProps());
@@ -139,17 +170,20 @@ describe("GenerateStatementsHandler (manual trigger)", () => {
       findOpenForAccount: vi.fn(async () => statement),
       save: vi.fn(async () => undefined),
     });
+    const planRepo = fakePlanRepo();
     const handler = new GenerateStatementsHandler(
       { publish: vi.fn() } as never,
       accountRepo,
       statementRepo,
+      planRepo,
+      fakePrisma() as never,
     );
 
     const closed = await handler.execute(new GenerateStatementsCommand("u1", "acc_1"));
 
     expect(closed).toBe(true);
     expect(statement.state.name).toBe("PENDING");
-    expect(statementRepo.save).toHaveBeenCalledWith(statement);
+    expect(statementRepo.saveWithTx).toHaveBeenCalledWith(expect.anything(), statement);
   });
 
   it("does nothing when no statement is OPEN (no usage since last close)", async () => {
@@ -160,6 +194,8 @@ describe("GenerateStatementsHandler (manual trigger)", () => {
       { publish: vi.fn() } as never,
       accountRepo,
       statementRepo,
+      fakePlanRepo(),
+      fakePrisma() as never,
     );
 
     const closed = await handler.execute(new GenerateStatementsCommand("u1", "acc_1"));
@@ -175,11 +211,156 @@ describe("GenerateStatementsHandler (manual trigger)", () => {
       { publish: vi.fn() } as never,
       accountRepo,
       statementRepo,
+      fakePlanRepo(),
+      fakePrisma() as never,
     );
 
     const closed = await handler.execute(new GenerateStatementsCommand("u1", "acc_1"));
     expect(closed).toBe(false);
     expect(statement.state.name).toBe("OPEN");
+  });
+
+  // --- spec 014: FR-008/FR-009 -- closing stamps the period's billable instalments ---
+
+  it("stamps the billable instalments of the account's CREDIT cards when it closes", async () => {
+    const account = BankAccount.fromPersistence(accountProps());
+    const statement = CreditStatement.fromPersistence(statementProps());
+    const accountRepo = fakeAccountRepo({ findById: vi.fn(async () => account) });
+    const statementRepo = fakeStatementRepo({
+      findOpenForAccount: vi.fn(async () => statement),
+      saveWithTx: vi.fn(async () => undefined),
+    });
+    const stampBillableWithTx = vi.fn();
+    const planRepo = fakePlanRepo({
+      listBillableForCards: vi.fn(async (cardIds: string[]) =>
+        cardIds.includes("card_1")
+          ? [
+              {
+                planId: "plan1",
+                paymentId: "pay1",
+                sequence: 1,
+                dueDate: new Date("2020-01-05"),
+                amount: "90000",
+                currency: "CLP",
+                creditStatementId: null,
+              },
+            ]
+          : [],
+      ),
+      stampBillableWithTx,
+    });
+    const handler = new GenerateStatementsHandler(
+      { publish: vi.fn() } as never,
+      accountRepo,
+      statementRepo,
+      planRepo,
+      fakePrisma() as never,
+    );
+
+    await handler.execute(new GenerateStatementsCommand("u1", "acc_1"));
+
+    expect(planRepo.listBillableForCards).toHaveBeenCalledWith(["card_1"], expect.any(Date));
+    expect(stampBillableWithTx).toHaveBeenCalledWith(expect.anything(), ["pay1"], "st_1");
+  });
+
+  it("stamps nothing, and never calls the plan repo, for an account with no CREDIT card", async () => {
+    const account = BankAccount.fromPersistence(
+      accountProps({ cards: [card({ kind: "DEBIT" })] }),
+    );
+    const statement = CreditStatement.fromPersistence(statementProps());
+    const accountRepo = fakeAccountRepo({ findById: vi.fn(async () => account) });
+    const statementRepo = fakeStatementRepo({
+      findOpenForAccount: vi.fn(async () => statement),
+      saveWithTx: vi.fn(async () => undefined),
+    });
+    const listBillableForCards = vi.fn();
+    const handler = new GenerateStatementsHandler(
+      { publish: vi.fn() } as never,
+      accountRepo,
+      statementRepo,
+      fakePlanRepo({ listBillableForCards }),
+      fakePrisma() as never,
+    );
+
+    await handler.execute(new GenerateStatementsCommand("u1", "acc_1"));
+
+    expect(listBillableForCards).not.toHaveBeenCalled();
+  });
+
+  // --- spec 014: a plan can be an account's ONLY activity ---
+  //
+  // The plan's purchase movement deliberately never links to a statement (FR-007),
+  // so an account whose only activity is a credit-card instalment plan never gets
+  // an OPEN period through the ordinary path (that only happens when some OTHER
+  // movement is recorded). Without a fix, such an account could never bill its
+  // instalments at all — this is what proves the fix closes that gap.
+  it("opens a period from the schedule alone when no OPEN one exists but instalments are due", async () => {
+    const account = BankAccount.fromPersistence(accountProps()); // no findOpenForAccount hit yet
+    const accountRepo = fakeAccountRepo({ findById: vi.fn(async () => account) });
+    const opened = CreditStatement.fromPersistence(
+      statementProps({ id: "st_seeded", periodStart: new Date("2020-01-04") }),
+    );
+    const findOrCreateOpenForAccount = vi.fn(async () => ({ id: "st_seeded" }));
+    let openCallCount = 0;
+    const statementRepo = fakeStatementRepo({
+      findOpenForAccount: vi.fn(async () => {
+        openCallCount += 1;
+        return openCallCount === 1 ? null : opened;
+      }),
+      findOrCreateOpenForAccount,
+      saveWithTx: vi.fn(async () => undefined),
+    });
+    const stampBillableWithTx = vi.fn();
+    const planRepo = fakePlanRepo({
+      listBillableForCards: vi.fn(async () => [
+        {
+          planId: "plan1",
+          paymentId: "pay1",
+          sequence: 1,
+          dueDate: new Date("2020-01-05"),
+          amount: "90000",
+          currency: "CLP",
+          creditStatementId: null,
+        },
+      ]),
+      stampBillableWithTx,
+    });
+    const handler = new GenerateStatementsHandler(
+      { publish: vi.fn() } as never,
+      accountRepo,
+      statementRepo,
+      planRepo,
+      fakePrisma() as never,
+    );
+
+    const closed = await handler.execute(new GenerateStatementsCommand("u1", "acc_1"));
+
+    expect(findOrCreateOpenForAccount).toHaveBeenCalledWith("acc_1", expect.any(Date));
+    expect(closed).toBe(true);
+    expect(stampBillableWithTx).toHaveBeenCalledWith(expect.anything(), ["pay1"], "st_seeded");
+  });
+
+  it("does nothing when no OPEN period exists and no instalment is due either", async () => {
+    const account = BankAccount.fromPersistence(accountProps());
+    const accountRepo = fakeAccountRepo({ findById: vi.fn(async () => account) });
+    const findOrCreateOpenForAccount = vi.fn();
+    const statementRepo = fakeStatementRepo({
+      findOpenForAccount: vi.fn(async () => null),
+      findOrCreateOpenForAccount,
+    });
+    const planRepo = fakePlanRepo({ listBillableForCards: vi.fn(async () => []) });
+    const handler = new GenerateStatementsHandler(
+      { publish: vi.fn() } as never,
+      accountRepo,
+      statementRepo,
+      planRepo,
+      fakePrisma() as never,
+    );
+
+    const closed = await handler.execute(new GenerateStatementsCommand("u1", "acc_1"));
+
+    expect(closed).toBe(false);
+    expect(findOrCreateOpenForAccount).not.toHaveBeenCalled();
   });
 });
 
@@ -207,6 +388,8 @@ describe("GenerateAllDueStatementsHandler (cron trigger, scope: system)", () => 
       { publish: vi.fn() } as never,
       accountRepo,
       statementRepo,
+      fakePlanRepo(),
+      fakePrisma() as never,
     );
 
     const count = await handler.execute(new GenerateAllDueStatementsCommand());

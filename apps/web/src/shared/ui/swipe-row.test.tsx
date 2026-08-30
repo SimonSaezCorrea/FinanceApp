@@ -2,8 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
 
-import i18n from "../../../i18n";
-import { SwipeRow } from "./SwipeRow";
+import i18n from "../../i18n";
+import { SwipeRow } from "./swipe-row";
 
 const ACTION_WIDTH = 144;
 

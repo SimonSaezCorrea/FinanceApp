@@ -4,7 +4,6 @@ import { useTranslation } from "react-i18next";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { Button } from "../../../shared/ui/button";
 import { Skeleton } from "../../../shared/ui/skeleton";
 import { useInstallments } from "../../installments/hooks/useInstallments";
 import { useCardMovements } from "../hooks/useCardMovements";

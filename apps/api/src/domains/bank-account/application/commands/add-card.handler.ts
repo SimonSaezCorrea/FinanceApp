@@ -86,7 +86,10 @@ export class AddCardHandler extends BaseCommandHandler<AddCardCommand, accounts.
     const currency = account.snapshot().currency;
     const sums = created
       ? await this.sumsRepo.sumsByCard(command.userId, [
-          { id: created.id, since: currentCycleStart(account.billingCycleDay, new Date()) },
+          {
+            id: created.id,
+            since: currentCycleStart(account.billingCycleDay, account.billingCycleType, new Date()),
+          },
         ])
       : [];
     const sumsMap = new Map<string, { income: string; expense: string }>();

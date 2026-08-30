@@ -9,6 +9,28 @@ import {
 } from "../../../../../../src/domains/bank-account/domain/bank-account.aggregate";
 import { AccountNotFoundError } from "../../../../../../src/domains/bank-account/domain/errors";
 import type { BankAccountRepositoryPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
+import type { InstallmentPlanRepositoryPort } from "../../../../../../src/domains/installment-plan/domain/ports/installment-plan.repository.port";
+
+function fakePlanRepo(
+  overrides: Partial<InstallmentPlanRepositoryPort> = {},
+): InstallmentPlanRepositoryPort {
+  return {
+    list: vi.fn(async () => []),
+    findOne: vi.fn(),
+    create: vi.fn(),
+    createWithTx: vi.fn(),
+    listBillableForCards: vi.fn(),
+    stampBillableWithTx: vi.fn(),
+    settleForStatementWithTx: vi.fn(),
+    billedInstallmentsForStatement: vi.fn(),
+    save: vi.fn(),
+    savePaymentWithTx: vi.fn(),
+    setPaymentPaidAt: vi.fn(),
+    remove: vi.fn(),
+    removeWithTx: vi.fn(),
+    ...overrides,
+  };
+}
 
 function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountProps {
   return {
@@ -31,7 +53,10 @@ function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountPro
     creditUsedInitial: "0",
     creditUsed: "0",
     billingCycleDay: null,
+    billingCycleType: "BUSINESS_DAY",
     paymentMethod: "MANUAL",
+    paymentDueDay: null,
+    paymentDueCycleType: "BUSINESS_DAY",
     minimumPaymentPercent: null,
     cards: [],
     createdAt: new Date(),
@@ -67,7 +92,11 @@ describe("GetAccountQueryHandler", () => {
   it("returns the account DTO, shaped with a balance series", async () => {
     const account = BankAccount.fromPersistence(accountProps());
     const accountRepo = fakeAccountRepo({ findById: vi.fn(async () => account) });
-    const handler = new GetAccountQueryHandler(accountRepo, fakeTransactionSumsRepo());
+    const handler = new GetAccountQueryHandler(
+      accountRepo,
+      fakeTransactionSumsRepo(),
+      fakePlanRepo(),
+    );
 
     const dto = await handler.execute(new GetAccountQuery("u1", "acc_1"));
 
@@ -78,7 +107,11 @@ describe("GetAccountQueryHandler", () => {
 
   it("throws AccountNotFoundError for a missing account", async () => {
     const accountRepo = fakeAccountRepo({ findById: vi.fn(async () => null) });
-    const handler = new GetAccountQueryHandler(accountRepo, fakeTransactionSumsRepo());
+    const handler = new GetAccountQueryHandler(
+      accountRepo,
+      fakeTransactionSumsRepo(),
+      fakePlanRepo(),
+    );
 
     await expect(handler.execute(new GetAccountQuery("u1", "missing"))).rejects.toThrow(
       AccountNotFoundError,

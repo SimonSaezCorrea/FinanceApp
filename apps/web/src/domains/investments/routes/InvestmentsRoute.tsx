@@ -7,7 +7,7 @@ import { useInvestments } from "../hooks/useInvestments";
 
 export function InvestmentsRoute() {
   const { t } = useTranslation();
-  const { data, isLoading, isError } = useInvestments();
+  const { data, isLoading, isError, error, refetch } = useInvestments();
   const list = data ?? [];
 
   return (
@@ -16,7 +16,7 @@ export function InvestmentsRoute() {
       {isLoading ? (
         <LoadingState title={t("app.loading")} />
       ) : isError ? (
-        <ErrorState title={t("errors.INTERNAL_ERROR")} />
+        <ErrorState error={error} onRetry={() => refetch()} />
       ) : list.length === 0 ? (
         <EmptyState title={t("investments.empty")} />
       ) : (

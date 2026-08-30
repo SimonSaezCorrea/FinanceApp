@@ -5,6 +5,10 @@ import type { accounts } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
+  INSTALLMENT_PLAN_REPOSITORY,
+  type InstallmentPlanRepositoryPort,
+} from "../../../installment-plan/domain/ports/installment-plan.repository.port";
+import {
   TRANSACTION_SUMS_REPOSITORY,
   type TransactionSumsRepositoryPort,
 } from "../../../transaction/domain/ports/transaction-sums.repository.port";
@@ -29,6 +33,7 @@ export class UpdateAccountHandler extends BaseCommandHandler<
     eventBus: EventBus,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
     @Inject(TRANSACTION_SUMS_REPOSITORY) private readonly sumsRepo: TransactionSumsRepositoryPort,
+    @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly plansRepo: InstallmentPlanRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -79,7 +84,14 @@ export class UpdateAccountHandler extends BaseCommandHandler<
         ? { creditUsedInitial: input.creditUsedInitial }
         : {}),
       ...(input.billingCycleDay !== undefined ? { billingCycleDay: input.billingCycleDay } : {}),
+      ...(input.billingCycleType !== undefined
+        ? { billingCycleType: input.billingCycleType }
+        : {}),
       ...(input.paymentMethod !== undefined ? { paymentMethod: input.paymentMethod } : {}),
+      ...(input.paymentDueDay !== undefined ? { paymentDueDay: input.paymentDueDay } : {}),
+      ...(input.paymentDueCycleType !== undefined
+        ? { paymentDueCycleType: input.paymentDueCycleType }
+        : {}),
       ...(input.minimumPaymentPercent !== undefined
         ? { minimumPaymentPercent: input.minimumPaymentPercent }
         : {}),
@@ -89,7 +101,7 @@ export class UpdateAccountHandler extends BaseCommandHandler<
       const event = account.setStatus(input.status);
       if (event) events.push(event);
     }
-    const [dto] = await accountsToDtos(this.sumsRepo, command.userId, [account]);
+    const [dto] = await accountsToDtos(this.sumsRepo, command.userId, [account], this.plansRepo);
     return { result: dto, events };
   }
 

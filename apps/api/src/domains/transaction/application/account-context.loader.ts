@@ -27,6 +27,7 @@ export async function loadAccountContext(
       creditLimit: account.creditLimit,
       creditUsed: account.creditUsed,
       billingCycleDay: snap.billingCycleDay,
+      billingCycleType: snap.billingCycleType,
     },
     createdAt: snap.createdAt,
   };

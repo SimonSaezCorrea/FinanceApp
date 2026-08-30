@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { addMoney, moneyToString, subtractMoney, sumMoney, toMoney } from "./index.js";
+import { addMoney, formatMoney, moneyToString, subtractMoney, sumMoney, toMoney } from "./index.js";
 
 describe("money", () => {
   it("preserves precision that floats would lose", () => {
@@ -28,5 +28,27 @@ describe("money", () => {
 
   it("rejects invalid input", () => {
     expect(() => toMoney("not-a-number")).toThrow();
+  });
+
+  describe("formatMoney", () => {
+    it("shows CLP as its $ symbol, not the ISO code", () => {
+      // Bare "es" has no currency-symbol mapping for CLP and falls back to
+      // the code ("95.000 CLP") — this app's "es" locale IS Chilean Spanish.
+      expect(formatMoney("95000", { locale: "es", currency: "CLP" })).toBe("$95.000");
+    });
+
+    it("disambiguates USD from CLP's bare $", () => {
+      expect(formatMoney("95000", { locale: "es", currency: "USD" })).toBe("US$95.000,00");
+    });
+
+    it("keeps the ISO code for CLF (the UF), which has no real symbol", () => {
+      const formatted = formatMoney("95000", { locale: "es", currency: "CLF" });
+      expect(formatted).toContain("CLF");
+      expect(formatted).not.toContain("$");
+    });
+
+    it("leaves an already region-qualified locale untouched", () => {
+      expect(formatMoney("95000", { locale: "en-US", currency: "USD" })).toBe("$95,000.00");
+    });
   });
 });

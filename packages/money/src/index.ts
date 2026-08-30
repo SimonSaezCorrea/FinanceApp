@@ -43,14 +43,25 @@ export function subtractMoney(a: MoneyInput, b: MoneyInput, scale: number = MONE
   return toMoney(a).minus(toMoney(b)).toFixed(scale, Decimal.ROUND_HALF_EVEN);
 }
 
-/** Format a money value for display in a given locale/currency. */
+/**
+ * Format a money value for display in a given locale/currency.
+ *
+ * The bare "es" locale has no currency-symbol mapping for CLP in ICU's data —
+ * `Intl.NumberFormat("es", { style: "currency", currency: "CLP" })` falls back
+ * to the ISO code ("95.000 CLP") instead of "$95.000". "es-CL" resolves it
+ * correctly (and disambiguates USD as "US$", still with no FX conversion) —
+ * a targeted fix rather than a region guess, since this app's `es` locale IS
+ * Chilean Spanish (the MVP is Chile-only). CLF (the UF) has no ISO symbol at
+ * all, in any locale, so it keeps showing its code — that's correct, not a bug.
+ */
 export function formatMoney(
   value: MoneyInput,
   opts: { locale?: string; currency?: string } = {},
 ): string {
   const { locale = "es", currency = "USD" } = opts;
   const n = toMoney(value).toNumber();
-  return new Intl.NumberFormat(locale, { style: "currency", currency }).format(n);
+  const resolvedLocale = locale === "es" ? "es-CL" : locale;
+  return new Intl.NumberFormat(resolvedLocale, { style: "currency", currency }).format(n);
 }
 
 export * from "./installments";

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Banknote, CreditCard, Inbox, Pencil, RefreshCw } from "lucide-react";
 import { cn } from "../../../shared/lib/cn";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -9,14 +9,16 @@ import { formatMoney } from "@finance/money";
 
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
+import { Card } from "../../../shared/ui/card";
 import { ConfirmModal } from "../../../shared/ui/overlay";
 import { Skeleton, SkeletonScreen } from "../../../shared/ui/skeleton";
-import { EmptyState, ErrorState } from "../../../shared/ui/states";
+import { ErrorState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
-import { useElementWidth } from "../../../shared/lib/useElementWidth";
+import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { useAccountMutations, useCreditStatements } from "../hooks/useAccounts";
 import { EditStatementPaymentPanel } from "./EditStatementPaymentPanel";
 import { PayStatementPanel } from "./PayStatementPanel";
+import { StatementDetailPanel } from "./StatementDetailPanel";
 
 const STATUS_VARIANT = {
   OPEN: "info",
@@ -25,15 +27,6 @@ const STATUS_VARIANT = {
   PARTIALLY_PAID: "warning",
   PAID: "success",
 } as const;
-
-/**
- * Where the periods table gives way to the stacked layout. Measured on the
- * SECTION, not the viewport: the collapsible sidebar changes how much room this
- * has at the same screen width (see the container-width rule in CLAUDE.md). Five
- * columns need this much before they stop colliding — less than it used to, now
- * that the actions column is one icon plus, at most, one button.
- */
-const BILLING_TABLE_MIN_WIDTH = 640;
 
 /** "Facturación" tab: every billing period for this account's credit pool — open
  * (still accumulating), pending (closed, awaiting payment) or paid — with actions
@@ -47,62 +40,118 @@ function BillingTableSkeleton({ label }: Readonly<{ label: string }>) {
   const { t } = useTranslation();
   return (
     <SkeletonScreen label={label}>
-      <Table>
-        <THead>
-          <TR>
-            <TH>{t("accounts.detail.billingPeriod")}</TH>
-            <TH numeric>{t("accounts.detail.billingAmount")}</TH>
-            <TH>{t("accounts.detail.billingStatus")}</TH>
-            <TH>{t("accounts.detail.billingPaidAt")}</TH>
-            <TH>{t("accounts.detail.billingActions")}</TH>
-          </TR>
-        </THead>
-        <tbody>
-          {[0, 1, 2].map((i) => (
-            <TR key={i}>
-              <TD>
-                <Skeleton className="h-[13px] w-24" />
-              </TD>
-              <TD numeric>
-                <Skeleton className="ml-auto h-[13px] w-24" />
-              </TD>
-              <TD>
-                <Skeleton className="h-[20px] w-20 rounded-full" />
-              </TD>
-              <TD>
-                <Skeleton className="h-[13px] w-20" />
-              </TD>
-              <TD>
-                <Skeleton className="h-8 w-8 rounded-md" />
-              </TD>
+      <Card className="overflow-hidden p-0">
+        <Table>
+          <THead className="bg-muted/50">
+            <TR>
+              <TH className="w-8" />
+              <TH>{t("accounts.detail.billingPeriod")}</TH>
+              <TH numeric>{t("accounts.detail.billingAmount")}</TH>
+              <TH>{t("accounts.detail.billingStatus")}</TH>
+              <TH>{t("accounts.detail.billingPaidAt")}</TH>
+              <TH>{t("accounts.detail.billingActions")}</TH>
             </TR>
-          ))}
-        </tbody>
-      </Table>
+          </THead>
+          <tbody>
+            {[0, 1, 2].map((i) => (
+              <TR key={i}>
+                <TD>
+                  <Skeleton className="h-8 w-8 rounded-full" />
+                </TD>
+                <TD>
+                  <Skeleton className="h-[13px] w-24" />
+                </TD>
+                <TD numeric>
+                  <Skeleton className="ml-auto h-[13px] w-24" />
+                </TD>
+                <TD>
+                  <Skeleton className="h-[20px] w-20 rounded-full" />
+                </TD>
+                <TD>
+                  <Skeleton className="h-[13px] w-20" />
+                </TD>
+                <TD>
+                  <Skeleton className="h-8 w-8 rounded-md" />
+                </TD>
+              </TR>
+            ))}
+          </tbody>
+        </Table>
+      </Card>
     </SkeletonScreen>
+  );
+}
+
+/** The message that occupies the periods table/list while there's no billing
+ * history yet — OR, when the load itself failed, the error instead (same
+ * spot, `ErrorState`'s own `inline` look). No border of its own — the
+ * surrounding `Card` and header row (wide layout) are already the frame,
+ * same convention `TransactionTable`'s own `EmptyRow` and Cuotas'
+ * `PlanEmptyRow` use, so the table's chrome (headers, "Generar
+ * facturación") stays on screen instead of the whole section swapping out
+ * for a lone floating message. */
+function BillingEmptyMessage({ error, onRetry }: Readonly<{ error?: unknown; onRetry?: () => void }>) {
+  const { t } = useTranslation();
+  if (error) return <ErrorState inline error={error} onRetry={onRetry} />;
+  return (
+    <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center">
+      <Inbox className="h-6 w-6 text-muted-foreground" aria-hidden />
+      <p className="font-medium">{t("accounts.detail.billingEmpty")}</p>
+    </div>
   );
 }
 
 export function BillingSection({
   account,
   hideTitle,
+  openStatementId,
+  onConsumeOpenStatement,
 }: {
   account: accounts.BankAccount;
   /** The tab strip above already names this section — don't repeat it. */
   hideTitle?: boolean;
+  /** Deep-linked from elsewhere (e.g. an instalment's "ver facturación"): once
+   * the periods load, the matching one opens its own detail automatically. */
+  openStatementId?: string | null;
+  /** Called once the deep link above has been acted on, so the URL doesn't
+   * keep re-opening the same period on every re-render/back navigation. */
+  onConsumeOpenStatement?: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const { data: statements, isLoading, isError } = useCreditStatements(account.id);
+  const {
+    data: rawStatements,
+    isLoading,
+    isError,
+    error,
+    refetch,
+  } = useCreditStatements(account.id);
+  // `rawStatements` is whatever the query last fetched SUCCESSFULLY —
+  // react-query keeps it around across a failed refetch, so a connection drop
+  // after the periods already loaded once would otherwise render those STALE
+  // rows as if the load had succeeded, hiding the error and its retry action
+  // entirely. Treat it as empty whenever the CURRENT state is an error.
+  const statements = isError ? undefined : rawStatements;
   const { generateStatements, syncStatement } = useAccountMutations();
   const [payTarget, setPayTarget] = useState<accounts.CreditStatement | null>(null);
   const [syncTarget, setSyncTarget] = useState<accounts.CreditStatement | null>(null);
   const [editPaymentTarget, setEditPaymentTarget] = useState<accounts.CreditStatement | null>(null);
+  const [detailTarget, setDetailTarget] = useState<accounts.CreditStatement | null>(null);
   const [confirmGenerate, setConfirmGenerate] = useState(false);
+
+  useEffect(() => {
+    if (!openStatementId || !statements) return;
+    const match = statements.find((s) => s.id === openStatementId);
+    if (match) setDetailTarget(match);
+    onConsumeOpenStatement?.();
+    // Only once the periods for THIS deep link have arrived — re-running on
+    // every `statements` refetch would reopen a panel the user already closed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openStatementId, statements]);
 
   const [containerRef, width] = useElementWidth();
   // Until measured, the stacked layout: it works at every width, so guessing it
   // is a cosmetic downgrade rather than a table overflowing its column.
-  const wide = width !== null && width >= BILLING_TABLE_MIN_WIDTH;
+  const wide = width !== null && width >= TABLE_ROW_MIN_WIDTH;
 
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
   const date = (iso: string) => new Date(iso).toLocaleDateString(i18n.language);
@@ -118,7 +167,11 @@ export function BillingSection({
   /** The period being accumulated/owed: the protagonist of the stacked layout. */
   function CurrentPeriodCard({ statement: s }: Readonly<{ statement: accounts.CreditStatement }>) {
     return (
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-surface2 p-4">
+      <button
+        type="button"
+        onClick={() => setDetailTarget(s)}
+        className="flex flex-col gap-3 rounded-xl border border-border bg-surface2 p-4 text-left"
+      >
         <div className="flex items-start justify-between gap-3">
           <span className="text-sm text-muted-foreground">
             {s.closedAt
@@ -131,20 +184,37 @@ export function BillingSection({
         </div>
 
         <p className="text-3xl font-semibold tabular-nums">{fmt(s.amount)}</p>
+        {!isSettled(s) && s.dueDate ? (
+          <p className="-mt-2 text-xs text-muted-foreground">
+            {t("accounts.detail.billingDueDate", { date: date(s.dueDate) })}
+          </p>
+        ) : null}
         {Number(s.carriedOverAmount) > 0 ? (
           <p className="-mt-2 text-xs text-muted-foreground">
             {t("accounts.detail.billingIncludesCarryOver", { amount: fmt(s.carriedOverAmount) })}
           </p>
         ) : null}
+        {/* Spec 014, FR-011: purchases and instalments come from two disjoint
+            sources now — real figures, not the "0" this always reported before. */}
+        {Number(s.breakdown.installmentCount) > 0 ? (
+          <p className="-mt-2 text-xs text-muted-foreground">
+            {t("accounts.detail.billingBreakdown", {
+              purchases: fmt(s.breakdown.purchases),
+              installments: fmt(s.breakdown.installments),
+              count: s.breakdown.installmentCount,
+            })}
+          </p>
+        ) : null}
 
-        {/* Same order as the table: sync first, pay after. */}
-        <div className="flex items-center gap-2">
+        {/* Same order as the table: sync first, pay after. Both stop the click
+            from also opening the detail panel underneath them. */}
+        <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <SyncButton statement={s} iconOnly size="md" />
           <Button variant="secondary" className="flex-1" onClick={() => setPayTarget(s)}>
             {t("accounts.actions.payCredit")}
           </Button>
         </div>
-      </div>
+      </button>
     );
   }
 
@@ -161,7 +231,10 @@ export function BillingSection({
   }>) {
     return (
       <Button
-        variant="outline"
+        // `ghost`, not `outline`: Movimientos/Cuotas's own row actions (Editar,
+        // Eliminar) are invisible until hovered — an always-bordered chip here
+        // stood out as its own style next to them.
+        variant="ghost"
         size={size}
         // No `icon` size in the primitive: squaring it here keeps the shared
         // Button honest instead of growing a variant for one screen.
@@ -211,12 +284,11 @@ export function BillingSection({
       <div className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto scrollbar-thin">
         {isLoading ? (
           <BillingTableSkeleton label={t("app.loading")} />
-        ) : isError ? (
-          <ErrorState title={t("errors.INTERNAL_ERROR")} />
-        ) : !statements || statements.length === 0 ? (
-          <EmptyState title={t("accounts.detail.billingEmpty")} />
         ) : !wide ? (
           <div className="flex flex-col gap-5">
+            {!statements || statements.length === 0 ? (
+              <BillingEmptyMessage error={isError ? error : undefined} onRetry={() => refetch()} />
+            ) : null}
             {open.map((s) => (
               <CurrentPeriodCard key={s.id} statement={s} />
             ))}
@@ -227,11 +299,16 @@ export function BillingSection({
                   {t("accounts.detail.billingPaidPeriods")}
                 </h3>
                 {paid.map((s) => (
-                  <div
+                  <button
+                    type="button"
                     key={s.id}
-                    className="flex items-center justify-between gap-3 border-b border-border py-3 last:border-0"
+                    onClick={() => setDetailTarget(s)}
+                    className="flex w-full items-center gap-3 border-b border-border py-3 text-left last:border-0"
                   >
-                    <div className="min-w-0">
+                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground">
+                      <CreditCard className="h-4 w-4" aria-hidden />
+                    </span>
+                    <div className="min-w-0 flex-1">
                       <p className="font-medium">{date(s.periodStart)}</p>
                       <p className="text-xs text-muted-foreground">
                         {s.paidAt
@@ -246,98 +323,152 @@ export function BillingSection({
                         </p>
                       ) : null}
                     </div>
-                    <div className="flex shrink-0 items-center gap-2">
+                    <div
+                      className="flex shrink-0 items-center gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <span className="font-semibold tabular-nums">{fmt(s.amount)}</span>
                       <SyncButton statement={s} iconOnly />
                       {s.status === "PARTIALLY_PAID" ? (
-                        <Button variant="outline" size="sm" onClick={() => setEditPaymentTarget(s)}>
-                          {t("accounts.actions.editStatementPaymentShort")}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-8 px-0"
+                          aria-label={t("accounts.actions.editStatementPayment")}
+                          title={t("accounts.actions.editStatementPayment")}
+                          onClick={() => setEditPaymentTarget(s)}
+                        >
+                          <Pencil className="h-3.5 w-3.5" aria-hidden />
                         </Button>
                       ) : null}
                     </div>
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : null}
           </div>
         ) : (
-          <Table>
-            <THead>
-              <TR>
-                <TH>{t("accounts.detail.billingPeriod")}</TH>
-                <TH numeric>{t("accounts.detail.billingAmount")}</TH>
-                <TH>{t("accounts.detail.billingStatus")}</TH>
-                <TH>{t("accounts.detail.billingPaidAt")}</TH>
-                <TH>{t("accounts.detail.billingActions")}</TH>
-              </TR>
-            </THead>
-            <tbody>
-              {statements.map((s) => (
-                <TR key={s.id}>
-                  <TD>{new Date(s.periodStart).toLocaleDateString(i18n.language)}</TD>
-                  <TD numeric>
-                    {fmt(s.amount)}
-                    {/* Only what this period INHERITED: its figure is no longer
+          // Same `Card` surface every other table wraps itself in — bare
+          // `Table` has no background/border of its own.
+          <Card className="overflow-hidden p-0">
+            <Table>
+              <THead className="bg-muted/50">
+                <TR>
+                  <TH className="w-8" />
+                  <TH>{t("accounts.detail.billingPeriod")}</TH>
+                  <TH numeric>{t("accounts.detail.billingAmount")}</TH>
+                  <TH>{t("accounts.detail.billingStatus")}</TH>
+                  <TH>{t("accounts.detail.billingPaidAt")}</TH>
+                  <TH>{t("accounts.detail.billingActions")}</TH>
+                </TR>
+              </THead>
+              <tbody>
+                {!statements || statements.length === 0 ? (
+                  <TR>
+                    <TD colSpan={6} className="p-0">
+                      <BillingEmptyMessage error={isError ? error : undefined} onRetry={() => refetch()} />
+                    </TD>
+                  </TR>
+                ) : null}
+                {(statements ?? []).map((s) => (
+                  <TR key={s.id} onClick={() => setDetailTarget(s)} className="cursor-pointer">
+                    <TD>
+                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-chip text-muted-foreground">
+                        <CreditCard className="h-4 w-4" aria-hidden />
+                      </span>
+                    </TD>
+                    {/* `w-full max-w-0` + a truncating child: same fix
+                        `TransactionTable` needed for Descripción — the only
+                        column with no fixed-content minimum of its own, so
+                        without this the table grows past its container
+                        instead of wrapping/truncating within it. */}
+                    <TD className="w-full max-w-0">
+                      <div className="truncate">
+                        {new Date(s.periodStart).toLocaleDateString(i18n.language)}
+                      </div>
+                    </TD>
+                    <TD numeric className="max-w-[11rem]">
+                      {fmt(s.amount)}
+                      {/* Only what this period INHERITED: its figure is no longer
                         just its own movements. What it rolled over is deliberately
                         not repeated here — it is the same money, already shown as
                         "incluye …" on the period that now owes it. */}
-                    {Number(s.carriedOverAmount) > 0 ? (
-                      <span className="block text-xs font-normal text-muted-foreground">
-                        {t("accounts.detail.billingIncludesCarryOver", {
-                          amount: fmt(s.carriedOverAmount),
-                        })}
-                      </span>
-                    ) : null}
-                    {/* Muted, not coloured: the badge beside it already carries the
+                      {Number(s.carriedOverAmount) > 0 ? (
+                        <span className="block truncate text-xs font-normal text-muted-foreground">
+                          {t("accounts.detail.billingIncludesCarryOver", {
+                            amount: fmt(s.carriedOverAmount),
+                          })}
+                        </span>
+                      ) : null}
+                      {/* Muted, not coloured: the badge beside it already carries the
                         colour, and two warning-toned things in one row read as an
                         error. Only the covered figure — the total is right above. */}
-                    {s.status === "PARTIALLY_PAID" ? (
-                      <span className="block text-xs font-normal tabular-nums text-muted-foreground">
-                        {t("accounts.detail.billingPaidAmount", { amount: fmt(s.paidAmount) })}
-                      </span>
-                    ) : null}
-                  </TD>
-                  <TD>
-                    {/* `nowrap`: "Pago parcial" wrapped to two lines and made the
+                      {s.status === "PARTIALLY_PAID" ? (
+                        <span className="block truncate text-xs font-normal tabular-nums text-muted-foreground">
+                          {t("accounts.detail.billingPaidAmount", { amount: fmt(s.paidAmount) })}
+                        </span>
+                      ) : null}
+                    </TD>
+                    <TD>
+                      {/* `nowrap`: "Pago parcial" wrapped to two lines and made the
                         row taller than every other one. */}
-                    <Badge variant={STATUS_VARIANT[s.status]} className="whitespace-nowrap">
-                      {t(`accounts.detail.billingStatusValue.${s.status}`)}
-                    </Badge>
-                  </TD>
-                  <TD>{s.paidAt ? new Date(s.paidAt).toLocaleDateString(i18n.language) : "—"}</TD>
-                  <TD>
-                    {/* Sync is the ICON alone: repeating "Sincronizar pagos" down
+                      <Badge variant={STATUS_VARIANT[s.status]} className="whitespace-nowrap">
+                        {t(`accounts.detail.billingStatusValue.${s.status}`)}
+                      </Badge>
+                      {!isSettled(s) && s.dueDate ? (
+                        <span className="mt-1 block whitespace-nowrap text-xs font-normal text-muted-foreground">
+                          {t("accounts.detail.billingDueDate", { date: date(s.dueDate) })}
+                        </span>
+                      ) : null}
+                    </TD>
+                    <TD>{s.paidAt ? new Date(s.paidAt).toLocaleDateString(i18n.language) : "—"}</TD>
+                    <TD>
+                      {/* Sync is the ICON alone: repeating "Sincronizar pagos" down
                         every row made a column of text wider than the data it acts
                         on, and left the one row with a real decision looking like
                         the rest. Sync FIRST and LEFT-aligned (not `justify-end`),
                         so its button sits at the same x in every row instead of
                         sliding sideways depending on what follows it. */}
-                    <div className="flex items-center gap-2">
-                      <SyncButton statement={s} iconOnly />
-                      {isSettled(s) ? (
-                        // A period settled for less than its total: the payment is
-                        // the only correctable figure (its amount comes from the
-                        // movements, via sync).
-                        s.status === "PARTIALLY_PAID" ? (
+                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                        <SyncButton statement={s} iconOnly />
+                        {isSettled(s) ? (
+                          // A period settled for less than its total: the payment is
+                          // the only correctable figure (its amount comes from the
+                          // movements, via sync).
+                          s.status === "PARTIALLY_PAID" ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="w-8 px-0"
+                              aria-label={t("accounts.actions.editStatementPayment")}
+                              title={t("accounts.actions.editStatementPayment")}
+                              onClick={() => setEditPaymentTarget(s)}
+                            >
+                              <Pencil className="h-3.5 w-3.5" aria-hidden />
+                            </Button>
+                          ) : null
+                        ) : (
+                          // Tinted (not a plain ghost icon): the one action on this
+                          // row that moves money forward, same reasoning as the
+                          // accent "Nuevo" buttons elsewhere.
                           <Button
-                            variant="outline"
+                            variant="accent"
                             size="sm"
-                            onClick={() => setEditPaymentTarget(s)}
+                            className="w-8 px-0"
+                            aria-label={t("accounts.actions.payCredit")}
+                            title={t("accounts.actions.payCredit")}
+                            onClick={() => setPayTarget(s)}
                           >
-                            {t("accounts.actions.editStatementPayment")}
+                            <Banknote className="h-3.5 w-3.5" aria-hidden />
                           </Button>
-                        ) : null
-                      ) : (
-                        <Button variant="secondary" size="sm" onClick={() => setPayTarget(s)}>
-                          {t("accounts.actions.payCredit")}
-                        </Button>
-                      )}
-                    </div>
-                  </TD>
-                </TR>
-              ))}
-            </tbody>
-          </Table>
+                        )}
+                      </div>
+                    </TD>
+                  </TR>
+                ))}
+              </tbody>
+            </Table>
+          </Card>
         )}
       </div>
 
@@ -359,6 +490,13 @@ export function BillingSection({
         }
       />
 
+      <StatementDetailPanel
+        account={account}
+        statement={detailTarget}
+        onOpenChange={(v) => !v && setDetailTarget(null)}
+        statements={statements}
+        onSelectStatement={setDetailTarget}
+      />
       <EditStatementPaymentPanel
         account={account}
         statement={editPaymentTarget}

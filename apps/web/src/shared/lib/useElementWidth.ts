@@ -49,3 +49,12 @@ export function useElementWidth(): [(el: HTMLElement | null) => void, number | n
  * screen, two different answers, which is why this can't be a breakpoint.
  */
 export const ASIDE_MIN_WIDTH = 1100;
+
+/**
+ * Width a row-based table needs before its per-column desktop layout still
+ * fits, below which it collapses to the stacked compact list. ONE value for
+ * every such table in the app (Movimientos, Cuotas, Facturación) — they used
+ * to disagree (860/860/640px of container), which is what let their compact
+ * layouts drift into three different shapes instead of one shared row format.
+ */
+export const TABLE_ROW_MIN_WIDTH = 760;

@@ -90,7 +90,10 @@ export class UpdateCardHandler extends BaseCommandHandler<
     const updated = account.cards.find((c) => c.id === command.cardId);
     if (!updated) throw new CardNotFoundError();
     const sums = await this.sumsRepo.sumsByCard(command.userId, [
-      { id: updated.id, since: currentCycleStart(account.billingCycleDay, new Date()) },
+      {
+        id: updated.id,
+        since: currentCycleStart(account.billingCycleDay, account.billingCycleType, new Date()),
+      },
     ]);
     const sumsMap = new Map<string, { income: string; expense: string }>();
     for (const s of sums) {

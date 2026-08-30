@@ -3,7 +3,7 @@ import type { PointerEvent, ReactNode } from "react";
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "../lib/cn";
 
 const ACTION_WIDTH = 144;
 // Snap open only past the halfway point of the reveal — a small nudge settles
@@ -35,6 +35,10 @@ interface Props {
  * swipe is just a faster path for a returning user, not a different action.
  * Controlled (`open`/`onOpenChange`) so the parent list keeps only one row
  * open at a time, and closes this one on any tap elsewhere on the page.
+ *
+ * Shared across every compact row list in the app (Movimientos, Cuotas — and
+ * whichever comes next) rather than owned by one domain, since the gesture
+ * itself has nothing transaction-specific about it.
  *
  * Three things here are load-bearing, each learned from a real misbehaviour:
  *

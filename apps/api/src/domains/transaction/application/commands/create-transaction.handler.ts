@@ -85,7 +85,7 @@ export class CreateTransactionHandler extends BaseCommandHandler<
           command.userId,
           input.cardId!,
           input.currency,
-          currentCycleStart(account.billingCycleDay, new Date()),
+          currentCycleStart(account.billingCycleDay, account.billingCycleType, new Date()),
         )
       : { income: "0", expense: "0" };
 

@@ -168,6 +168,8 @@ model BankAccount {
   /// Statements (of some OTHER credit account) paid FROM this account.
   paidStatements       CreditStatement[]     @relation("CreditStatementPaidFrom")
   billingSettings      BillingSettings?
+  /// Installment plans that are paid FROM this account.
+  paidInstallmentPlans InstallmentPlan[]     @relation("InstallmentPlanPaymentAccount")
 
   @@index([userId])
   @@index([status])
@@ -180,24 +182,42 @@ enum BillingPaymentMethod {
   AUTOMATIC
 }
 
+/// How `billingCycleDay` is counted. BUSINESS_DAY (días hábiles) counts only
+/// Mon-Fri Chilean business days (Saturdays, Sundays and public holidays don't
+/// count) — e.g. BCI's real-world "20 días hábiles" after the previous period
+/// closed. CALENDAR_DAY is the original fixed day-of-month behavior.
+enum BillingCycleType {
+  BUSINESS_DAY
+  CALENDAR_DAY
+}
+
 /// Billing configuration for an account's shared credit pool — split out from
 /// `BankAccount` (1:1) so it can be reviewed/maintained/searched independently
 /// instead of growing the account table with every billing-related field.
 model BillingSettings {
   id                    String               @id @default(cuid())
   accountId             String               @unique
-  /// Statement cut-off day (1-28). Drives automatic statement generation (cron +
-  /// manual "Generar facturación" button, see `BillingGenerationService`) — when this
-  /// day passes, the account's currently OPEN `CreditStatement` (if any) is closed.
+  /// Statement cut-off. Meaning depends on `cycleType`: a day-of-month (1-28)
+  /// for CALENDAR_DAY, or a count of business days for BUSINESS_DAY. Drives
+  /// automatic statement generation (cron + manual "Generar facturación"
+  /// button) — when this boundary passes, the account's currently OPEN
+  /// `CreditStatement` (if any) is closed.
   billingCycleDay       Int?
+  /// Días hábiles (default for new accounts) or a fixed day-of-month.
+  cycleType             BillingCycleType     @default(BUSINESS_DAY)
   /// Whether the user intends to pay the credit statement manually or automatically.
   /// Stored preference only — AUTOMATIC is currently LOCKED in the UI (not selectable):
-  /// the payment-due-date design isn't finalized yet, so no automatic payment can be
+  /// the automatic-payment execution isn't built yet, so no automatic payment can be
   /// scheduled safely (see PENDING.md). Column kept for when that ships.
   paymentMethod         BillingPaymentMethod @default(MANUAL)
-  /// Day of month (1-28) the statement is due. Nullable/unused while AUTOMATIC is
-  /// locked — no UI writes this yet (see PENDING.md).
+  /// When payment is due, counted from a period's own close. Meaning depends on
+  /// `paymentDueCycleType`: a count of business days (e.g. BCI's real-world "3
+  /// días hábiles") for BUSINESS_DAY, or a fixed day-of-month for CALENDAR_DAY.
+  /// Null = no due date configured/shown.
   paymentDueDay         Int?
+  /// Independent of `cycleType` (generation): an issuer can generate on a fixed
+  /// day-of-month but still owe payment N business days later, or vice versa.
+  paymentDueCycleType   BillingCycleType     @default(BUSINESS_DAY)
   /// Percentage of a statement that counts as its MINIMUM payment (e.g. 5 = 5%).
   /// There is no universal rule for this — each issuer sets its own — so it is
   /// per-account configuration rather than a constant. Null = this account has no
@@ -254,10 +274,14 @@ model CreditStatement {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  account            BankAccount   @relation("CreditStatementAccount", fields: [accountId], references: [id], onDelete: Cascade)
-  paidFromAccount    BankAccount?  @relation("CreditStatementPaidFrom", fields: [paidFromAccountId], references: [id], onDelete: SetNull)
-  paidTransaction    Transaction?  @relation(fields: [paidTransactionId], references: [id], onDelete: SetNull)
-  linkedTransactions Transaction[] @relation("CreditStatementLinkedTransactions")
+  account            BankAccount          @relation("CreditStatementAccount", fields: [accountId], references: [id], onDelete: Cascade)
+  paidFromAccount    BankAccount?         @relation("CreditStatementPaidFrom", fields: [paidFromAccountId], references: [id], onDelete: SetNull)
+  paidTransaction    Transaction?         @relation(fields: [paidTransactionId], references: [id], onDelete: SetNull)
+  linkedTransactions Transaction[]        @relation("CreditStatementLinkedTransactions")
+  /// The instalments this period charged (spec 014). A period's total owed is its
+  /// linked transactions PLUS its carry-over PLUS these — the third summand is not a
+  /// movement, for the same reason `carriedOverAmount` isn't one.
+  billedInstallments InstallmentPayment[]
 
   @@index([accountId])
   @@index([paidFromAccountId])
@@ -265,40 +289,40 @@ model CreditStatement {
 }
 
 model CardAccount {
-  id                    String   @id @default(cuid())
-  accountId             String
-  userId                String
-  name                  String
-  kind                  CardKind
+  id             String       @id @default(cuid())
+  accountId      String
+  userId         String
+  name           String
+  kind           CardKind
   /// Only the last 4 digits are ever stored. Full PAN never transmitted/persisted.
-  last4                 String
-  expiryMonth           Int
-  expiryYear            Int
+  last4          String
+  expiryMonth    Int
+  expiryYear     Int
   /// Whether the card is active (blocked/expired cards can be marked inactive).
-  isActive              Boolean  @default(true)
+  isActive       Boolean      @default(true)
   /// The first CREDIT-kind card added to the account (set automatically, never
   /// user-toggled). Its limit IS the account's own creditLimit/creditUsedInitial —
   /// edited from either side, same underlying value, no CardLimit row of its own.
   /// At most one true per account; irrelevant for DEBIT/PREPAID cards.
-  isPrimary             Boolean  @default(false)
+  isPrimary      Boolean      @default(false)
   /// A virtual card: no plastic. Issuers (MACH, Tenpo, Chek) hand out several of
   /// them on one account, often disposable, all spending the same balance.
-  isVirtual             Boolean  @default(false)
+  isVirtual      Boolean      @default(false)
   /// Issued to someone else (partner, child, employee) against the same account or
   /// credit line. Every charge is still the holder's, but knowing WHO spent is
   /// most of what a personal-finance app adds over the bank's own statement.
-  isAdditional          Boolean  @default(false)
+  isAdditional   Boolean      @default(false)
   /// Name embossed on the card, when it isn't the account owner's.
-  cardholderName        String?
+  cardholderName String?
   /// Processing network, when known.
-  network               CardNetwork?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  network        CardNetwork?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
-  account      BankAccount           @relation(fields: [accountId], references: [id], onDelete: Cascade)
-  walletItems     WalletItemDashboard[]
-  transactions    Transaction[]
-  limits          CardLimit[]
+  account          BankAccount           @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  walletItems      WalletItemDashboard[]
+  transactions     Transaction[]
+  limits           CardLimit[]
   installmentPlans InstallmentPlan[]
 
   @@index([accountId])
@@ -362,7 +386,7 @@ model Transaction {
   /// account, and it feeds the credit pool. The app never COMPUTES it: it is read off
   /// the statement and recorded, which is what keeps the carried-over balance square
   /// with the bank without this domain inventing interest rates.
-  financeCharge     Boolean  @default(false)
+  financeCharge     Boolean         @default(false)
   type              TransactionType
   amount            Decimal         @db.Decimal(18, 4)
   currency          String          @default("USD")
@@ -387,15 +411,19 @@ model Transaction {
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
-  user             User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bankAccount      BankAccount?            @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
-  card             CardAccount?            @relation(fields: [cardId], references: [id], onDelete: SetNull)
-  installmentPlan  InstallmentPlan?        @relation(fields: [installmentPlanId], references: [id], onDelete: SetNull)
-  creditStatement  CreditStatement?        @relation("CreditStatementLinkedTransactions", fields: [creditStatementId], references: [id], onDelete: SetNull)
+  user                User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount         BankAccount?            @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  card                CardAccount?            @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  installmentPlan     InstallmentPlan?        @relation(fields: [installmentPlanId], references: [id], onDelete: SetNull)
+  creditStatement     CreditStatement?        @relation("CreditStatementLinkedTransactions", fields: [creditStatementId], references: [id], onDelete: SetNull)
   /// The (at most one) CreditStatement this transaction was the payment FOR (reverse
   /// of `CreditStatement.paidTransaction`) — distinct from `creditStatement` above.
-  paidForStatement CreditStatement?
-  attachments      TransactionAttachment[]
+  paidForStatement    CreditStatement?
+  attachments         TransactionAttachment[]
+  /// The (at most one) installment this movement is the payment FOR. Its presence is
+  /// what makes this movement read-only from the Movements view: it is corrected by
+  /// undoing and re-paying the installment, never edited in place.
+  installmentPayments InstallmentPayment[]
 
   @@index([userId])
   @@index([bankAccountId])
@@ -444,18 +472,31 @@ model InstallmentPlan {
   /// also be a bank loan or an informal agreement with no card behind it.
   /// `SetNull` — deleting a card must not delete the debt it created.
   cardId            String?
+  /// Free text, drawn from the SAME repertoire as `Transaction.category` — not a
+  /// catalogue of its own. Purely descriptive: the row's icon is derived from it
+  /// with the shared category→icon map, and no calculation reads it.
+  category          String?
+  /// The account whose money pays this plan's installments — remembered so each
+  /// payment form comes pre-filled. `SetNull`: deleting the account must not delete
+  /// the debt, it only makes the form ask again. Changing it affects FUTURE payments
+  /// only; the ones already recorded keep the account they were paid from.
+  /// Always null on a plan bought with a CREDIT card (that debt is already in the
+  /// card's own statement, so its installments generate no movement).
+  paymentAccountId  String?
   notes             String?
   createdAt         DateTime             @default(now())
   updatedAt         DateTime             @updatedAt
 
-  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
-  card         CardAccount?         @relation(fields: [cardId], references: [id], onDelete: SetNull)
-  payments     InstallmentPayment[]
-  transactions Transaction[]
+  user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  card           CardAccount?         @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  paymentAccount BankAccount?         @relation("InstallmentPlanPaymentAccount", fields: [paymentAccountId], references: [id], onDelete: SetNull)
+  payments       InstallmentPayment[]
+  transactions   Transaction[]
 
   @@index([userId])
   @@index([startDate])
   @@index([cardId])
+  @@index([paymentAccountId])
   @@map("installment-plan")
 }
 
@@ -464,16 +505,50 @@ model InstallmentPayment {
   installmentPlanId String
   sequence          Int
   dueDate           DateTime
+  /// The SCHEDULED amount. Never rewritten after the plan is created — paying more
+  /// or less does not touch the calendar, it produces a carry-over instead.
   amount            Decimal   @db.Decimal(18, 4)
+  /// The REAL date of payment (which may be later than `dueDate`). "Paid" is
+  /// `paidAt !== null` — NEVER `paidAmount !== null`: an installment marked paid
+  /// before this feature has a date and no amount.
   paidAt            DateTime?
+  /// What was ACTUALLY paid, which may differ from `amount`. Null on an installment
+  /// paid before this feature existed = "paid, real amount unknown".
+  paidAmount        Decimal?  @db.Decimal(18, 4)
+  /// What the PREVIOUS installment failed to cover and this one inherits; NEGATIVE
+  /// when the previous one was overpaid. What this installment owes is
+  /// `amount + carriedOverAmount`. Persisted rather than derived so that undoing a
+  /// payment can reverse exactly what that payment caused — the same reasoning, and
+  /// the same mechanism, as `CreditStatement.carriedOverAmount`.
+  carriedOverAmount Decimal   @default(0) @db.Decimal(18, 4)
+  /// The real expense backing this installment. `SetNull` — if the movement is
+  /// removed by any route, the installment is left intact and still undoable, never
+  /// deleted along with it.
+  transactionId     String?
+  /// The billing period that CHARGED this installment (spec 014). Null = not billed
+  /// yet. Persisted rather than derived from `dueDate` falling inside a period's
+  /// window because periods are created LAZILY — a cycle with no card activity
+  /// produces no period at all, so those windows have gaps, and an installment
+  /// falling in one would be either missed or swept into a later period together
+  /// with the next. This column is what makes "billed exactly once" true by
+  /// construction: selection is `creditStatementId IS NULL`.
+  /// `SetNull`, never `Cascade`: deleting a period must never delete a row of the
+  /// plan's schedule.
+  /// Only ever set for plans bought with a CREDIT card. Every other plan goes
+  /// straight from scheduled to paid, one installment at a time, as before.
+  creditStatementId String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  plan InstallmentPlan @relation(fields: [installmentPlanId], references: [id], onDelete: Cascade)
+  plan            InstallmentPlan  @relation(fields: [installmentPlanId], references: [id], onDelete: Cascade)
+  transaction     Transaction?     @relation(fields: [transactionId], references: [id], onDelete: SetNull)
+  creditStatement CreditStatement? @relation(fields: [creditStatementId], references: [id], onDelete: SetNull)
 
   @@unique([installmentPlanId, sequence])
   @@index([installmentPlanId])
   @@index([dueDate])
+  @@index([transactionId])
+  @@index([creditStatementId])
   @@map("installment-payment")
 }
 
@@ -739,28 +814,28 @@ enum InstitutionKind {
 /// Financial-institution registry: banks + non-bank card issuers. Scoped to a country.
 /// (Chile: código SBIF/CMF for banks, código institucional for non-bank issuers.)
 model FinancialInstitution {
-  id        String          @id @default(cuid())
-  countryId String
-  kind      InstitutionKind @default(BANK)
+  id           String          @id @default(cuid())
+  countryId    String
+  kind         InstitutionKind @default(BANK)
   /// Institutional/regulator code (SBIF/CMF for banks; código institucional for issuers).
-  code      String
+  code         String
   /// COMMERCIAL name — what the user recognises ("Tenpo", "Copec Pay"), which is
   /// often nothing like the registered entity. This is what the pickers show.
-  name      String
+  name         String
   /// Registered legal name as it appears in the regulator's list ("Compañía Emisora
   /// de Medios de Pago Digitales S.A."). Searchable, never the primary label.
-  legalName String?
+  legalName    String?
   /// Bank sub-category; null for non-bank issuers.
-  category  BankCategory?
+  category     BankCategory?
   /// Other commercial brands the institution operates under.
-  brands    String[]        @default([])
+  brands       String[]        @default([])
   /// Whether this institution sells to individuals at all. Corporate-only entities
   /// (foreign branches, BaaS providers) stay in the catalogue — the regulator lists
   /// them and historical data may point at them — but are hidden from the picker.
-  retailFacing Boolean      @default(true)
-  notes     String?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  retailFacing Boolean         @default(true)
+  notes        String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
 
   country      Country                  @relation(fields: [countryId], references: [id], onDelete: Cascade)
   accounts     BankAccount[]

@@ -89,9 +89,17 @@ export class CreditStatement {
    * What this period owes in total: its own movements plus whatever the previous
    * period left unpaid. The movements' sum is passed IN for the same reason
    * `remainingFor` takes it — until the period is settled it isn't stored.
+   *
+   * Spec 014, FR-010: `instalmentAmount` is the third summand — what this period
+   * charged from instalment plans, stamped separately from `linkedAmount`'s ordinary
+   * movements (a plan's PURCHASE movement is deliberately excluded from
+   * `linkedAmount`; only its SCHEDULE bills here, one instalment at a time —
+   * `research.md` R1/R4). Defaults to "0" so every pre-existing call site (a
+   * non-credit-card period never has instalments to add) keeps behaving exactly as
+   * before without having to pass it.
    */
-  totalFor(linkedAmount: string): string {
-    return addMoney(linkedAmount, this.props.carriedOverAmount);
+  totalFor(linkedAmount: string, instalmentAmount = "0"): string {
+    return addMoney(addMoney(linkedAmount, this.props.carriedOverAmount), instalmentAmount);
   }
 
   /** Receives the leftover of the period that came before it. Accumulates:

@@ -21,7 +21,11 @@ import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
 } from "../../../credit-statement/domain/ports/credit-statement.repository.port";
-import { TransactionNotFoundError } from "../../domain/errors";
+import {
+  INSTALLMENT_PAYMENT_LOOKUP,
+  type InstallmentPaymentLookupPort,
+} from "../../../installment-payment/domain/ports/installment-payment-lookup.port";
+import { TransactionLinkedToInstallmentError, TransactionNotFoundError } from "../../domain/errors";
 import { MovementPolicy } from "../../domain/movement-policy";
 import type { Transaction } from "../../domain/transaction.aggregate";
 import {
@@ -59,6 +63,8 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
     @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
     @Inject(CARD_LIMIT_REPOSITORY) private readonly cardLimits: CardLimitRepositoryPort,
     @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statements: CreditStatementRepositoryPort,
+    @Inject(INSTALLMENT_PAYMENT_LOOKUP)
+    private readonly installmentPayments: InstallmentPaymentLookupPort,
   ) {
     super(eventBus);
   }
@@ -66,6 +72,18 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
   protected async loadContext(command: RemoveTransactionCommand): Promise<Context> {
     const current = await this.repo.findOne(command.userId, command.id);
     if (!current) throw new TransactionNotFoundError();
+    // Deleting it here would leave the instalment marked paid with nothing behind it.
+    // Undoing the instalment from its plan deletes this row as part of the same
+    // reversal (FR-028a). Spec 014, FR-024: a plan's PURCHASE movement carries
+    // `installmentPlanId` directly on its own row — it is never linked via
+    // `installmentPayment.transactionId` (that link is for a PAYMENT, not a
+    // purchase), so the lookup alone would miss it.
+    if (
+      current.snapshot().installmentPlanId !== null ||
+      (await this.installmentPayments.isLinkedToPayment(command.userId, command.id))
+    ) {
+      throw new TransactionLinkedToInstallmentError();
+    }
 
     // A transfer leg is deleted as a PAIR (FR-015): the user deletes from the row
     // they're looking at and has no reason to know there are two.

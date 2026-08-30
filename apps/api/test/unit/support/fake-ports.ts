@@ -8,6 +8,7 @@ import type { BankAccountRepositoryPort } from "../../../src/domains/bank-accoun
 import type { CardAccountRepositoryPort } from "../../../src/domains/card-account/domain/ports/card-account.repository.port";
 import type { CardLimitRepositoryPort } from "../../../src/domains/card-limit/domain/ports/card-limit.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
+import type { InstallmentPaymentLookupPort } from "../../../src/domains/installment-payment/domain/ports/installment-payment-lookup.port";
 import type { TransactionSumsRepositoryPort } from "../../../src/domains/transaction/domain/ports/transaction-sums.repository.port";
 import type { TransactionWriterRepositoryPort } from "../../../src/domains/transaction/domain/ports/transaction-writer.repository.port";
 
@@ -49,11 +50,6 @@ export function fakeTransactionSumsRepo(
     sumsByCard: vi.fn(async () => []),
     netForStatement: vi.fn(async () => "0"),
     netForPeriod: vi.fn(async () => "0"),
-    breakdownForStatement: vi.fn(async () => ({
-      purchases: "0",
-      installments: "0",
-      installmentCount: 0,
-    })),
     ...overrides,
   };
 }
@@ -65,6 +61,10 @@ export function fakeTransactionWriterRepo(
     createWithTx: vi.fn(),
     relinkToStatementWithTx: vi.fn(),
     updateAmountWithTx: vi.fn(),
+    deleteWithTx: vi.fn(),
+    listForInstallmentPlan: vi.fn(async () => []),
+    deleteManyWithTx: vi.fn(),
+    accountIdForTransaction: vi.fn(async () => null),
     createMany: vi.fn(async () => 0),
     ...overrides,
   };
@@ -97,9 +97,22 @@ export function fakeCardAccountRepo(
     findOnAccount: vi.fn(async () => null),
     existsForUser: vi.fn(async () => true),
     accountIdForCard: vi.fn(async () => null),
+    kindForCard: vi.fn(async () => null),
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
+    ...overrides,
+  };
+}
+
+/** The one question `transaction` asks `installment-payment` before letting a
+ *  movement be edited or deleted (FR-028a). Defaults to "not linked", the ordinary
+ *  case for every movement that has nothing to do with a plan. */
+export function fakeInstallmentPaymentLookup(
+  overrides: Partial<InstallmentPaymentLookupPort> = {},
+): InstallmentPaymentLookupPort {
+  return {
+    isLinkedToPayment: vi.fn(async () => false),
     ...overrides,
   };
 }
@@ -129,6 +142,9 @@ export function accountAggregate(input: {
   creditUsed?: string;
   currentBalance?: string;
   billingCycleDay?: number | null;
+  billingCycleType?: BankAccountProps["billingCycleType"];
+  paymentDueDay?: number | null;
+  paymentDueCycleType?: BankAccountProps["paymentDueCycleType"];
   minimumPaymentPercent?: string | null;
   overdraftLimit?: string;
   balanceCeiling?: string | null;
@@ -156,7 +172,10 @@ export function accountAggregate(input: {
     creditUsedInitial: "0",
     creditUsed: input.creditUsed ?? "0",
     billingCycleDay: input.billingCycleDay ?? null,
+    billingCycleType: input.billingCycleType ?? "BUSINESS_DAY",
     paymentMethod: "MANUAL",
+    paymentDueDay: input.paymentDueDay ?? null,
+    paymentDueCycleType: input.paymentDueCycleType ?? "BUSINESS_DAY",
     minimumPaymentPercent: input.minimumPaymentPercent ?? null,
     cards: input.cards ?? [],
     createdAt: input.createdAt ?? new Date("2026-01-01T00:00:00.000Z"),

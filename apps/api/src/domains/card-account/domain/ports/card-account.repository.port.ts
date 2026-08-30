@@ -1,3 +1,5 @@
+import type { accounts } from "@finance/contracts";
+
 import type { CardPlan, CardProps } from "../card-account.entity";
 
 export const CARD_ACCOUNT_REPOSITORY = Symbol("CARD_ACCOUNT_REPOSITORY");
@@ -17,6 +19,10 @@ export interface CardAccountRepositoryPort {
   /** The account a card belongs to — a card is always ON one, and a caller that
    * only holds the card id (an installment plan) needs it to reach the pool. */
   accountIdForCard(userId: string, cardId: string): Promise<string | null>;
+  /** A card's kind. An installment plan needs it to know whether paying one of its
+   * installments records a real movement: a CREDIT card's purchase is already in its
+   * own statement, so recording it again would count the debt twice (FR-035). */
+  kindForCard(userId: string, cardId: string): Promise<accounts.CardKind | null>;
   create(userId: string, accountId: string, plan: CardPlan): Promise<string>;
   update(cardId: string, plan: CardPlan): Promise<void>;
   remove(userId: string, accountId: string, cardId: string): Promise<boolean>;

@@ -42,7 +42,21 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
 
 - **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 23 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, investment, etf-price-cache, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment — plus `import` and `health`, the only folders that own no table. Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **pure JWT email+password** — the NextAuth `Account`/`Session`/`VerificationToken` tables were removed (no OAuth adapter in the API).
   - **bank-account** (specs/003, 007; the aggregate root of the accounts cluster — `card-account`/`card-limit`/`billing-settings`/`credit-statement` are its own table-domains, written only through it): `BankAccount` is **where money or a credit line lives**. `type` (`AccountType`: **CHECKING/SIGHT/SAVINGS/INVESTMENT/CREDIT_LINE/CASH**), `status` (ACTIVE/INACTIVE), `accountNumber` (**bank account number — free text, stored/shown in full; NOT a card PAN**; **required for CHECKING/SIGHT/SAVINGS**, optional for CREDIT_LINE/INVESTMENT/CASH — enforced via a zod refine on create and by the aggregate on update, `ACCOUNT_NUMBER_REQUIRED`), `initialBalance` (seed) + `currentBalance`, which every movement keeps in step (`initialBalance` + Σincome − Σexpense): creating/editing/deleting a transaction applies its signed balance delta inside the movement's own `$transaction` (`transaction/domain/balance-delta.ts` → `BankAccountRepositoryPort.incrementBalanceWithTx`), exactly as it already does for `creditUsed`. **The manual `POST /accounts/:id/reconcile` is gone** (command, handler, aggregate method and UI button removed) — a balance that maintains itself has nothing to reconcile. **The account-level credit pool** (`creditLimit` + `creditUsedInitial`, seed) is the **shared/master cap across every CREDIT-kind card on the account** — this applies not just to a standalone credit card (a `CREDIT_LINE` account) but to **any cardable account that's grown a CREDIT-kind card** (e.g. a checking account's bank add-on credit card); the contract exposes a **derived `creditUsed` = creditUsedInitial + Σexpense − Σincome** (income = card payments; computed on-read via `sumsByAccount`), `"0"` when the account has no credit pool. List filter `?status=active|inactive`; `POST /accounts/:id/status`. List/get also return a 30d `balanceSeries` + `balanceChangePct` (for sparklines). Deleting unlinks transactions (`onDelete: SetNull`).
-  - **card-account** / **card-limit** (specs/004, 007): `CardAccount` (table `card-account`) = the physical **payment instrument** (plastic), **always belongs to a `BankAccount`** (`onDelete: Cascade`) — `kind` (`CardKind`: **CREDIT/DEBIT/PREPAID**), `last4` (**only the last 4 digits ever transmitted/stored — full PAN never leaves the browser; no CVV**), `expiryMonth`/`expiryYear`, `isActive`. **Every CREDIT card must resolve to a determinate limit before it can be saved** (mandatory — `CardsService.resolveCreditLimits`, mirrored in `AccountsService.create`'s inline `cards[]` path): the account's **first** CREDIT card becomes its `isPrimary` card (boolean, `@default(false)`, assigned automatically — never user-toggled, at most one `true` per account) — its limit **IS** the account's own `creditLimit`/`creditUsedInitial`, editable from either side (the account's own edit form, or the primary card's own edit form; same underlying value, no `CardLimit` row for it, `limits` always `[]`). Any **additional** CREDIT card on the same account chooses, via `usesAccountPool` (boolean, default `true`), between sharing that same pool (no `CardLimit` rows) or `false` = its own independent sub-limit — one **`CardLimit`** row per currency (table `card-limit`: `limitAmount` + `usedInitial`, exposes a derived `used` the same way the account does), still capped against the account's pool in the account's own currency (`CARD_SUBLIMIT_EXCEEDS_ACCOUNT`); sub-limits in other currencies aren't cross-checked (no FX conversion in this app). Missing/zero limit where one is required throws `CARD_LIMIT_REQUIRED`. **Only CHECKING/SIGHT/CREDIT_LINE accounts can have cards** (`accounts.CARDABLE_ACCOUNT_TYPES`/`isCardableAccountType` in `@finance/contracts`) — SAVINGS, INVESTMENT and CASH never carry a card of their own (real-world: their funds move via transfer into a cardable account first); enforced in `CardsService.create` and `AccountsService.create`'s inline `cards[]` (error code `ACCOUNT_CANNOT_HAVE_CARD`), and mirrored in the web UI (`CardsAside`'s add button, `TransactionCreateModal`'s card field) — both hide/reject for non-cardable types. Nested endpoints `POST/PATCH/DELETE /accounts/:id/cards[/:cardId]`; `POST /accounts` accepts inline `cards[]`. Display masked as `•••• last4`; `CardsAside` in the account-detail view shows every card as a `AccountVisualCard` tile (gradient keyed by `kind`, matching the create-account draft tiles, plus a small "Principal"/"Adicional" badge on CREDIT cards) — clicking one opens `CardDetailModal` (enlarged, centered) with Editar/Eliminar, instead of always-visible buttons under each tile. `CardForm` is a 3-state UI (non-CREDIT: no limit section; CREDIT-becomes-primary: one mandatory amount field in the account's currency, plus an optional repeatable "topes en otras monedas" section excluding that currency; CREDIT-additional: a "Cupo de la cuenta"/"Tope propio" toggle, the latter revealing the repeatable currency/amount rows). `AccountCreateModal`'s account-level cupo fields become read-only once a CREDIT card is drafted (mirrors that card's own limit); `AccountForm` (editing an existing account) likewise disables its cupo fields once a primary card exists. **The primary card can ALSO carry `CardLimit` rows — only for currencies other than the account's own** (that one stays exclusively on `BankAccount.creditLimit`, never duplicated) — an independent, non-cross-checked pool per extra currency (no FX in this app), same mechanism a non-primary card's own sub-limit already uses. The contract exposes a derived **`BankAccount.creditPools: {currency, limit, used}[]`** (the account's own-currency pool + the primary's extra ones; empty for non-credit accounts) — shown as a list in `AccountDetailRoute` whenever there's more than one, and per-card in `CardDetailModal`. Because a single card can now share the pool in one currency while being independently limited in another, `TransactionsRepository.sumsForAccount`/`AccountsRepository.sumsByAccount` are scoped to the account's own currency and only exclude a card from that sum if its `CardLimit` is in _that same currency_ (not "any currency" — a bug this fixed). **`Card.ownUsed`** (derived, moneyString) is a CREDIT card's own Σexpense−Σincome in the account's own currency regardless of whether it shares the pool or has its own `CardLimit` — so a pool-sharing card can display its own individual contribution instead of the fully-combined pool total (which only the no-`card` account-level tile shows); no seed baseline exists per-card the way `creditUsedInitial`/`CardLimit.usedInitial` do, so pre-existing debt not tied to a transaction is invisible here even though it's included in the account's own `creditUsed`. `AccountVisualCard` uses `card.ownUsed` (not `account.creditUsed`) as the "used" half of a pool-sharing card's progress bar. **`BankAccount.billingCycleDay`** (nullable, 1-28): once set, `creditUsed`/`ownUsed`/a card's own `CardLimit.used` are scoped to the CURRENT billing cycle (since the most recent occurrence of this day, via `accounts/billing-cycle.ts`'s `currentCycleStart`) instead of all-time — usage genuinely resets each cycle (transactions aren't deleted, they just stop counting toward the current limit/display once the next cut-off passes); `null` (the default) keeps the old all-time behavior. Applies uniformly to every card sharing the account (one statement covers all of them) — a card has no billing day of its own. **Correctness fix bundled with this feature:** for any account type OTHER than `CREDIT_LINE` (i.e. one that merely grew an add-on credit card), `sumsForAccount`/`sumsByAccount` previously summed _every_ transaction on the account (debit-card spend, cash, salary/other income) toward the credit pool — now scoped to only EXPENSE via a pool-sharing CREDIT card, since unrelated account activity has nothing to do with the credit line (this app also has no way to record "a payment toward this specific add-on card" apart from ordinary account income, so income is never subtracted in this case — a documented limitation, not a bug). A standalone `CREDIT_LINE` account is unaffected (unchanged: every transaction on it already is a credit-line one by construction). **`AccountCreateModal`'s creation flow for `CREDIT_LINE` no longer requires a separate "add card" step for the primary**: since a standalone credit-line account has no real bank account behind it, its generic "Número de cuenta" field is replaced by "Últimos 4 dígitos" + "Vencimiento" (the same `last4`/`expiryMonth`/`expiryYear` a card needs) — combined with the account's own already-shown `creditLimit`/`creditUsedInitial`, the modal constructs the primary `CreateCard` entry itself (`kind: "CREDIT"`, `usesAccountPool: true`, `limits: [{currency, limitAmount: creditLimit}]`) and puts it first in the submitted `cards[]`, so the backend's existing "first CREDIT card becomes primary" resolution picks it up with no schema/API change needed. The modal's "Tarjetas" section (renamed "Tarjetas adicionales" for this type) is therefore always additional-only for `CREDIT_LINE` — `CardForm`'s `hasExistingPrimary` is forced `true` regardless of what's drafted there. Unaffected: editing an existing account (`AccountForm`) and any OTHER account type growing an add-on card still go through the normal `CardsAside` → "Añadir tarjeta" flow.
+  - **card-account** / **card-limit** (specs/004, 007): `CardAccount` (table `card-account`) = the physical **payment instrument** (plastic), **always belongs to a `BankAccount`** (`onDelete: Cascade`) — `kind` (`CardKind`: **CREDIT/DEBIT/PREPAID**), `last4` (**only the last 4 digits ever transmitted/stored — full PAN never leaves the browser; no CVV**), `expiryMonth`/`expiryYear`, `isActive`. **Every CREDIT card must resolve to a determinate limit before it can be saved** (mandatory — `CardsService.resolveCreditLimits`, mirrored in `AccountsService.create`'s inline `cards[]` path): the account's **first** CREDIT card becomes its `isPrimary` card (boolean, `@default(false)`, assigned automatically — never user-toggled, at most one `true` per account) — its limit **IS** the account's own `creditLimit`/`creditUsedInitial`, editable from either side (the account's own edit form, or the primary card's own edit form; same underlying value, no `CardLimit` row for it, `limits` always `[]`). Any **additional** CREDIT card on the same account chooses, via `usesAccountPool` (boolean, default `true`), between sharing that same pool (no `CardLimit` rows) or `false` = its own independent sub-limit — one **`CardLimit`** row per currency (table `card-limit`: `limitAmount` + `usedInitial`, exposes a derived `used` the same way the account does), still capped against the account's pool in the account's own currency (`CARD_SUBLIMIT_EXCEEDS_ACCOUNT`); sub-limits in other currencies aren't cross-checked (no FX conversion in this app). Missing/zero limit where one is required throws `CARD_LIMIT_REQUIRED`. **Only CHECKING/SIGHT/CREDIT_LINE accounts can have cards** (`accounts.CARDABLE_ACCOUNT_TYPES`/`isCardableAccountType` in `@finance/contracts`) — SAVINGS, INVESTMENT and CASH never carry a card of their own (real-world: their funds move via transfer into a cardable account first); enforced in `CardsService.create` and `AccountsService.create`'s inline `cards[]` (error code `ACCOUNT_CANNOT_HAVE_CARD`), and mirrored in the web UI (`CardsAside`'s add button, `TransactionCreateModal`'s card field) — both hide/reject for non-cardable types. Nested endpoints `POST/PATCH/DELETE /accounts/:id/cards[/:cardId]`; `POST /accounts` accepts inline `cards[]`. Display masked as `•••• last4`; `CardsAside` in the account-detail view shows every card as a `AccountVisualCard` tile (gradient keyed by `kind`, matching the create-account draft tiles, plus a small "Principal"/"Adicional" badge on CREDIT cards) — clicking one opens `CardDetailModal` (enlarged, centered) with Editar/Eliminar, instead of always-visible buttons under each tile. `CardForm` is a 3-state UI (non-CREDIT: no limit section; CREDIT-becomes-primary: one mandatory amount field in the account's currency, plus an optional repeatable "topes en otras monedas" section excluding that currency; CREDIT-additional: a "Cupo de la cuenta"/"Tope propio" toggle, the latter revealing the repeatable currency/amount rows). `AccountCreateModal`'s account-level cupo fields become read-only once a CREDIT card is drafted (mirrors that card's own limit); `AccountForm` (editing an existing account) likewise disables its cupo fields once a primary card exists. **The primary card can ALSO carry `CardLimit` rows — only for currencies other than the account's own** (that one stays exclusively on `BankAccount.creditLimit`, never duplicated) — an independent, non-cross-checked pool per extra currency (no FX in this app), same mechanism a non-primary card's own sub-limit already uses. The contract exposes a derived **`BankAccount.creditPools: {currency, limit, used}[]`** (the account's own-currency pool + the primary's extra ones; empty for non-credit accounts) — shown as a list in `AccountDetailRoute` whenever there's more than one, and per-card in `CardDetailModal`. Because a single card can now share the pool in one currency while being independently limited in another, `TransactionsRepository.sumsForAccount`/`AccountsRepository.sumsByAccount` are scoped to the account's own currency and only exclude a card from that sum if its `CardLimit` is in _that same currency_ (not "any currency" — a bug this fixed). **`Card.ownUsed`** (derived, moneyString) is a CREDIT card's own Σexpense−Σincome in the account's own currency regardless of whether it shares the pool or has its own `CardLimit` — so a pool-sharing card can display its own individual contribution instead of the fully-combined pool total (which only the no-`card` account-level tile shows); no seed baseline exists per-card the way `creditUsedInitial`/`CardLimit.usedInitial` do, so pre-existing debt not tied to a transaction is invisible here even though it's included in the account's own `creditUsed`. `AccountVisualCard` uses `card.ownUsed` (not `account.creditUsed`) as the "used" half of a pool-sharing card's progress bar.
+    Amendment (`ownUsed` reconciles exactly to `creditUsed`, 2026-08-23): the PRIMARY card's `ownUsed`
+    is no longer its own Σexpense−Σincome — it's **`creditUsed` minus every ADDITIONAL CREDIT card's
+    own `ownUsed`** (`account-dto.mapper.ts`, `accountToDto`). The primary has no ledger of its own
+    (its limit already just mirrors the account's, never a `CardLimit` row) — anything an additional
+    card can't specifically claim (a `financeCharge`, which by design has no card; a billing period's
+    `carriedOverAmount`, a fact about the STATEMENT, not any instalment) belongs to the primary by
+    definition. This makes **Σ(every card's `ownUsed`) always exactly equal `creditUsed`** — no
+    residual, no exception. `sumsByCard` (its per-card Σexpense−Σincome, still what feeds every
+    ADDITIONAL card's `ownUsed`) also excludes rows on an already-PAID statement (that debt already
+    left the pool at payment time) and a CREDIT-plan's purchase movement (would double it against
+    `InstallmentPlan.remainingAmount`, added back per card in the same mapper) — both bugs found the
+    same way: a real account whose statements got paid showed a card total wildly off from
+    `creditUsed`. `docs/PENDING.md` no longer documents any "cards don't sum to the account" gap —
+    there isn't one. **`BankAccount.billingCycleDay`** (nullable, 1-28): once set, `creditUsed`/`ownUsed`/a card's own `CardLimit.used` are scoped to the CURRENT billing cycle (since the most recent occurrence of this day, via `accounts/billing-cycle.ts`'s `currentCycleStart`) instead of all-time — usage genuinely resets each cycle (transactions aren't deleted, they just stop counting toward the current limit/display once the next cut-off passes); `null` (the default) keeps the old all-time behavior. Applies uniformly to every card sharing the account (one statement covers all of them) — a card has no billing day of its own. **Correctness fix bundled with this feature:** for any account type OTHER than `CREDIT_LINE` (i.e. one that merely grew an add-on credit card), `sumsForAccount`/`sumsByAccount` previously summed _every_ transaction on the account (debit-card spend, cash, salary/other income) toward the credit pool — now scoped to only EXPENSE via a pool-sharing CREDIT card, since unrelated account activity has nothing to do with the credit line (this app also has no way to record "a payment toward this specific add-on card" apart from ordinary account income, so income is never subtracted in this case — a documented limitation, not a bug). A standalone `CREDIT_LINE` account is unaffected (unchanged: every transaction on it already is a credit-line one by construction). **`AccountCreateModal`'s creation flow for `CREDIT_LINE` no longer requires a separate "add card" step for the primary**: since a standalone credit-line account has no real bank account behind it, its generic "Número de cuenta" field is replaced by "Últimos 4 dígitos" + "Vencimiento" (the same `last4`/`expiryMonth`/`expiryYear` a card needs) — combined with the account's own already-shown `creditLimit`/`creditUsedInitial`, the modal constructs the primary `CreateCard` entry itself (`kind: "CREDIT"`, `usesAccountPool: true`, `limits: [{currency, limitAmount: creditLimit}]`) and puts it first in the submitted `cards[]`, so the backend's existing "first CREDIT card becomes primary" resolution picks it up with no schema/API change needed. The modal's "Tarjetas" section (renamed "Tarjetas adicionales" for this type) is therefore always additional-only for `CREDIT_LINE` — `CardForm`'s `hasExistingPrimary` is forced `true` regardless of what's drafted there. Unaffected: editing an existing account (`AccountForm`) and any OTHER account type growing an add-on card still go through the normal `CardsAside` → "Añadir tarjeta" flow.
     Amendment (persisted `creditUsed` + "pagar facturación", 2026-07-25): `BankAccount.creditUsed` is
     now a **persisted column**, not derived on read — seeded from `creditUsedInitial` at creation,
     then incremented/decremented directly by `TransactionsService` on transaction create/update/delete
@@ -76,6 +90,54 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     no click handler fires at all, just a title tooltip explaining why; used in both `AccountForm`
     and the new `BillingSettingsModal`) until the payment-due-date format is actually decided (see
     `docs/PENDING.md`).
+    Amendment (días hábiles billing + a real payment due date, 2026-08-24): billing can now run on
+    **business days** instead of a fixed day of the month — días hábiles becomes the default for new
+    accounts. New **`BillingSettings.cycleType`** (`BillingCycleType`: `BUSINESS_DAY` default |
+    `CALENDAR_DAY`) decides how `billingCycleDay` is counted: `BUSINESS_DAY` counts Mon-Fri days
+    excluding Chilean public holidays (feriados legales — the new **`date-holidays`** dependency,
+    Chile only, matching the MVP's single market) since the PREVIOUS period's close, matching a real
+    issuer's cadence (e.g. **BCI: 20 días hábiles** to generate); `CALENDAR_DAY` is the original fixed
+    day-of-month behavior, kept for accounts already configured that way. Both compute the same
+    closing boundary through one function, `billing-settings/domain/billing-cycle.ts`'s
+    `nextBoundaryAfter(periodStart, billingCycleDay, cycleType)` — only the counting rule branches.
+    **`BillingSettings.paymentDueDay` stops being a reserved/unused column**: it is now business days
+    (días hábiles only — there's no calendar-day alternative for this one yet) counted DIRECTLY from a
+    period's own close — the same mechanism generation's `nextBoundaryAfter` already uses, just
+    anchored to `closedAt` instead of `periodStart` — at which payment is due (e.g. **BCI: closes with
+    22 Jul → 10 días hábiles → due 5 Aug**, and that same close also starts the clock for the NEXT
+    closing, 20 días hábiles later on 20 Aug, from which its own 10-día-hábil due date runs in turn).
+    `paymentDueDate(closedAt, paymentDueDay)` is a direct call to `addBusinessDays`, exposed as the new
+    **`CreditStatement.dueDate`** (null while OPEN, or when the account has no `paymentDueDay`
+    configured) and shown in `BillingSection` next to every unsettled period. This is **informational
+    only** — no automatic payment execution exists yet; `paymentMethod: AUTOMATIC` stays locked in the
+    UI (see `docs/PENDING.md`, whose point 1 this amendment resolves). `AccountForm`/
+    `BillingSettingsModal` gain a `cycleType` Segmented (días hábiles / día del mes) and a
+    `paymentDueDay` field, with the billing-day field's label/placeholder/hint switching to the
+    business-days wording when `cycleType` is `BUSINESS_DAY`. **Known, documented limitation**:
+    `currentCycleStart` — the helper that still scopes a card's own independent `CardLimit` sub-limit
+    to "since the current cycle began" (the account-level shared pool stopped needing this once
+    `creditUsed` became persisted, 2026-07-25) — has no fixed day-of-month to reconstruct a
+    `BUSINESS_DAY` cycle's start from `now` alone, so it now returns `null` for such accounts; that
+    sub-limit reverts to all-time scoping there, same as an account with no cycle configured at all
+    (see `docs/PENDING.md` point 4). No migration: `db push` regenerates `BillingSettings.cycleType`
+    at its default; the seed sets the main seeded credit account to `BUSINESS_DAY` (20/3, mirroring
+    BCI) and keeps a second one on `CALENDAR_DAY` to demonstrate both modes.
+    Amendment (payment due date gets its own independent cycle type, 2026-08-29): the "días-hábiles
+    only, no calendar-day alternative yet" limitation above is resolved. New
+    **`BillingSettings.paymentDueCycleType`** (`BillingCycleType`, `BUSINESS_DAY` default |
+    `CALENDAR_DAY`) decides how `paymentDueDay` is counted — **independent of `cycleType`**
+    (generation): an issuer can generate on a fixed day-of-month but still owe payment N días hábiles
+    later, or vice versa, so the two are never coupled. `paymentDueDate(closedAt, paymentDueDay,
+    paymentDueCycleType)` gained a CALENDAR_DAY branch (the first occurrence of `paymentDueDay` as a
+    day-of-month strictly after `closedAt`) via a new shared helper, `nextCalendarDayAfter`, that also
+    now backs `nextBoundaryAfter`'s own CALENDAR_DAY branch — the same "day-of-month, strictly after
+    anchor" rule, so the two can't drift apart. `AccountForm`/`BillingSettingsModal` gain a SECOND,
+    independent días-hábiles/día-del-mes Segmented for payment (next to generation's own), and the
+    `paymentDueDay` field's label/placeholder/hint switch on `paymentDueCycleType` the same way
+    `billingCycleDay`'s already switch on `cycleType`. No migration: `db push` regenerates
+    `BillingSettings.paymentDueCycleType` at its `BUSINESS_DAY` default; the seed's `CALENDAR_DAY`
+    demo account (Visa Crédito, Banco de Chile) now pairs CALENDAR_DAY generation with a
+    BUSINESS_DAY payment due date, to demonstrate the two being configured independently.
     Amendment (billing periods + automatic generation + real payments, 2026-07-25): the old
     one-shot `POST /accounts/:id/pay-credit` (which just zeroed `creditUsed`) is replaced by a
     full billing-period model. **`Transaction.creditStatementId`** links a contributing movement,
@@ -491,6 +553,101 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     comportamiento viejo no se migran** (data de dev; `pnpm db:seed` la regenera). Abierto y breaking:
     si `CHECKING`/`SIGHT` deberían seguir admitiendo una tarjeta `CREDIT` (una tarjeta de crédito es su
     propia cuenta, no un canal sobre el saldo de la corriente) — hoy la matriz lo permite.
+  - **installment-plan / installment-payment** (specs/013, 2026-08-22): un plan de cuotas es una
+    compra que se paga en cuotas fijas, y **pagar una cuota registra un gasto real**. Columnas nuevas:
+    `installment-plan` gana `category` (texto libre, mismo repertorio que los movimientos; de ahí sale
+    el ícono de la fila, vía `shared/lib/categoryIcons` + `shared/ui/category-icon`, promovidos desde
+    `domains/transactions`) y `paymentAccountId` (`SetNull`, la cuenta que prellena cada pago);
+    `installment-payment` gana `paidAmount`, `carriedOverAmount` y `transactionId` (`SetNull`: borrar
+    el movimiento no puede borrar la cuota). **`POST /installments/:id/payments/:seq/pay` ahora lleva
+    cuerpo** (`payInstallmentSchema`: `fromAccountId`, `amount`, `chargedAmount`, `paidAt`) y, en un
+    solo `prisma.$transaction`, crea el EXPENSE, baja el `currentBalance` de la cuenta, marca la cuota
+    con lo realmente pagado y aplica el arrastre; `unpay` es su espejo exacto. **El calendario nunca
+    se reescribe**: lo que el pago no cubre pasa a la **siguiente cuota impaga por número de cuota**
+    como `carriedOverAmount` (mismo mecanismo que `CreditStatement.carriedOverAmount`), y el excedente
+    se resta de las siguientes en cadena sin que lo adeudado quede negativo; un pago mayor a lo que el
+    plan entero adeuda se rechaza (`PAYMENT_EXCEEDS_REMAINING`). **La última cuota impaga no tiene
+    sucesora**, así que un pago corto ahí NO la liquida: conserva su abono, sigue pagable por el
+    remanente y el plan queda `PARTIALLY_PAID` (activo). La aritmética vive en
+    `domain/installment-carry-over.ts` (pura, sólo `@finance/money`). **Un plan con tarjeta CREDIT no
+    genera movimiento** (`generatesMovementOnPay` en el contrato): esa deuda ya está en la facturación
+    de su cuenta de crédito, y esos planes ni siquiera admiten `paymentAccountId`
+    (`InstallmentPlan.assertPaymentAccountAllowed` → `INSTALLMENT_CARD_IS_CREDIT`). **Dos monedas, cero
+    conversión**: si la cuenta está en otra moneda, `amount` (moneda del plan, define el arrastre) y
+    `chargedAmount` (moneda de la cuenta, es el monto del gasto) se declaran por separado y no se
+    comparan — falta el segundo ⇒ `PAYMENT_CURRENCY_AMBIGUOUS`. **El movimiento que respalda una cuota
+    es de sólo lectura en Movimientos**: `transaction`'s update/remove preguntan por
+    `InstallmentPaymentLookupPort.isLinkedToPayment` y responden **`TRANSACTION_LINKED_TO_INSTALLMENT`**
+    (409); el panel de detalle del movimiento lo explica y enlaza a Cuotas en vez de sólo deshabilitar
+    los botones. **Eliminar un plan revierte todo su historial** (`RemoveInstallmentPlanHandler` con
+    `persist()` transaccional): borra sus gastos, restituye el saldo por cuenta y libera el cupo del
+    cargo financiero; la confirmación declara ese impacto antes de actuar con el `deletionImpact` que
+    **sólo la consulta de detalle** (`GET /installments/:id`) trae — la lista responde `null`, y ambas
+    cifras salen de la misma `planDeletionReversal`, que es lo que impide que lo prometido y lo
+    ocurrido difieran. Otros errores nuevos: `INSTALLMENT_PAYMENT_ALREADY_PAID` (lo que frena el doble
+    clic), `INSTALLMENT_PAYMENT_ACCOUNT_REQUIRED`, `INVALID_PAYMENT_AMOUNT`,
+    `INSTALLMENT_PAYMENT_FROM_CREDIT_ACCOUNT` (pagar deuda con deuda). Web: la lista pasa a **una fila
+    por plan** (`InstallmentPlanTable` / `InstallmentPlanList`, elegidas por el ancho del CONTENEDOR)
+    con cuatro KPIs por moneda, y detalle/pago/crear/editar son **paneles laterales**
+    (`InstallmentDetailPanel`, `PayInstallmentPanel`, `InstallmentFormPanel` — este último con
+    `ImmutableFieldsNotice` en edición y `SchedulePreview` al crear). La previsualización llama a la
+    **misma `equalPrincipalSchedule`** que el agregado (`lib/schedulePreview.ts`), que es la única
+    forma honesta de que coincidan al centavo. `InstallmentCreateModal` fue retirado.
+    Amendment (facturación real de planes CREDIT, specs/014, 2026-08-22): lo de arriba —
+    "pagar una cuota registra un gasto real", el arrastre cuota-a-cuota, `generatesMovementOnPay`
+    ocultando el botón de pago — sigue intacto, pero **solo para un plan que no es CREDIT**. Un plan
+    con tarjeta CREDIT dejó de ser un calendario aislado del dinero: al crearlo,
+    `create-installment-plan.handler.ts` registra un movimiento de compra por `totalPrincipal`
+    (`cardId` + `installmentPlanId`, misma `$transaction` que el plan) que consume el cupo completo
+    ese mismo día, como hace el emisor real — y por llevar `installmentPlanId` ese movimiento queda
+    **excluido** de `netForStatement`/`netForPeriod` (`prisma-transaction-sums.repository.ts`): lo
+    que una facturación cobra es únicamente lo que el calendario tenga vencido, nunca la compra
+    entera. Columna nueva **`InstallmentPayment.creditStatementId`** (FK nullable → `CreditStatement`,
+    `SetNull`) — imprescindible porque las facturaciones se generan perezosamente
+    (`closeIfDue`: sin consumo no hay período), así que derivar "facturada" por fecha dejaría huecos;
+    la selección (`installment-plan/domain/installment-billing.ts`, función pura) es
+    `dueDate <= closedAt AND creditStatementId IS NULL`, idempotente por construcción. Tres estados
+    por cuota (`installments.installmentPaymentStatus`): `SCHEDULED → BILLED → PAID`, los dos saltos
+    los decide el cierre/pago del período, nunca el usuario — **pagar o deshacer una cuota suelta de
+    un plan CREDIT se rechaza en el servidor** (`INSTALLMENT_CARD_IS_CREDIT`, ampliado a
+    `pay-installment.handler.ts` y `unpay-installment.handler.ts`), no solo se oculta en la UI.
+    **Liquidar una facturación —pago total o parcial— marca pagadas todas sus cuotas**
+    (`PayCreditStatementHandler` llama `settleForStatementWithTx` en su misma transacción cruzada):
+    el faltante ya viajó como `carriedOverAmount` al período siguiente, así que dejar además la cuota
+    impaga contaría la misma deuda dos veces — "liquidada" se decide por `paidAt !== null`, nunca por
+    el nombre del estado. **El arrastre por faltante vive en dos niveles según el tipo de plan**: entre
+    facturaciones para un plan CREDIT (`CreditStatement.carriedOverAmount`, el mecanismo de siempre),
+    entre cuotas para cualquier otro plan (`InstallmentPayment.carriedOverAmount`, sin cambios) — para
+    un plan CREDIT esta última columna queda siempre en `"0"`. Dos invariantes nuevas en el agregado:
+    `applyUpdate` congela `cardId` desde la primera cuota facturada (**`INSTALLMENT_PLAN_BILLED`**) y
+    `assertDeletable` rechaza borrar un plan con una cuota en un período **liquidado**
+    (**`INSTALLMENT_PLAN_SETTLED`**) — más estrecho que el freeze de edición, porque deshacer un
+    período apenas PENDING no toca dinero real. `TRANSACTION_LINKED_TO_INSTALLMENT` se amplió: ya no
+    depende solo de `InstallmentPaymentLookupPort.isLinkedToPayment` (que solo conoce el movimiento de
+    una cuota _pagada_), sino también de `Transaction.installmentPlanId !== null` directamente — única
+    forma de proteger el movimiento de _compra_, que nunca aparece en esa tabla.
+    **`CreditStatement.totalFor(linkedAmount, instalmentAmount = "0")`** gana un tercer sumando; el
+    desglose de la facturación se compone en `credit-statement` desde DOS fuentes disjuntas — el
+    puerto de `transaction` (compras) y el de `installment-plan` (cuotas facturadas, vía
+    `billedInstallmentsForStatement` → `installment-payment`) — nunca en `transaction`, que ya no sabe
+    nada de cuotas. `billingWarning` (`NO_BILLING_DAY`/`CURRENCY_MISMATCH`/`CARD_REMOVED`) se deriva en
+    `plan-dto.mapper.ts` consultando la cuenta real de la tarjeta; `CARD_REMOVED` es una heurística
+    (`cardId === null` pero el plan ya facturó alguna cuota — la única huella que deja el `SetNull` de
+    la FK al borrar la tarjeta). **Hallazgo no previsto en el diseño original**: una cuenta cuya única
+    actividad es un plan en cuotas nunca facturaba nada, porque el movimiento de compra deliberadamente
+    no enlaza a ningún período y sin otro movimiento `findOrCreateOpenStatement` nunca se llama —
+    `closeIfDue` ahora siembra un período desde el calendario (`seedPeriodFromSchedule`) cuando no hay
+    uno abierto pero sí cuotas pendientes. Prerrequisito estructural resuelto: `installment-plan` no
+    tenía `*.data.module.ts`; se extrajo (imports solo `InstallmentPaymentDataModule`) para que
+    `credit-statement` dependa de la hoja y el grafo siga acíclico — `bank-account`, `card-account` y
+    `credit-statement` ahora componen ese puerto exactamente como ya hacía `bank-account` con
+    `card-account`/`billing-settings`. Web: `InstallmentDetailPanel` no ofrece pago/deshacer para un
+    plan CREDIT, distingue visualmente el estado `BILLED`, y una cuota saldada por una facturación
+    pagada en parte lo dice explícito con enlace a la cuenta (en vez de un "pagada" liso);
+    `InstallmentFormPanel` congela la tarjeta dentro del mismo aviso de campos inmutables una vez
+    facturada la primera cuota; la lista muestra "N facturada · M por facturar" solo cuando
+    `billedCount > 0`. Sin migración: `db:push` + `db:seed` regenera los datos de desarrollo bajo el
+    modelo nuevo.
   - **transaction** (specs/005, 007; folder `domains/transaction`): income/expense linked to a `BankAccount` and (optionally) a `Card`. Rules in `transaction/domain/movement-policy.ts` + its command handlers (contract requires `bankAccountId` on create + refine `INCOME ⇒ no card`): INCOME → no card; EXPENSE on CASH → no card; EXPENSE on **CREDIT_LINE → card required** (must belong); EXPENSE on other non-cash accounts → card optional. **Whenever the card used is CREDIT-kind** (on a CREDIT_LINE account, or any other account that's grown one), the amount is checked against **both** the account's shared pool (persisted `creditUsed` + amount ≤ `creditLimit`, error `CARD_LIMIT_EXCEEDED`) **and**, if the card has its own `CardLimit` for that currency, that narrower (still derived) sub-limit too (`sumsForCard`, error `CARD_SUBLIMIT_EXCEEDED`). Creating/editing/deleting a transaction that draws on the shared pool mutates `BankAccount.creditUsed` directly (`BankAccountRepositoryPort.incrementCreditUsedWithTx`, called inside the movement's own `$transaction`) — edits/deletes revert the transaction's old contribution before applying the new one, including when the transaction moves to a different account (see accounts' billing-period amendment above for the linked-transaction/paid-statement exception). Full CRUD from both the Movements view and the Account view (shared `TransactionTable` with edit/delete, plus a `TransactionDetailModal` read-only view opened by clicking a row). Filter query supports `bankAccountId` + `cardId` (bank→card). Error codes: `CARD_REQUIRED`, `CARD_NOT_ALLOWED`, `CARD_ACCOUNT_MISMATCH`, `CARD_LIMIT_EXCEEDED`, `CARD_SUBLIMIT_EXCEEDED`.
     Amendment (paginated list + aggregates endpoint, 2026-08-05): `GET /transactions` is
     **keyset-paginated** and its response shape is now **`{ items, nextCursor }`** (was a bare
@@ -591,7 +748,42 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     is re-exported from `accounts`: `reference` needs it and `accounts` already imports `reference`,
     so a shared module is what avoids the cycle (same move as `identifierTypeSchema`). Call sites unchanged. **`BankAccount.institutionId`** FK → `FinancialInstitution` (the "institution" selector; scalar `institution` text mirrors its name for display; relation field is `financialInstitution`); web forms use `useInstitutions`/`useCurrencies` selects (`apps/web`'s `domains/reference` — the FRONTEND keeps one reference module; only the backend is split per table).
   - **wallet-item-dashboard**: `WalletItemDashboard` (table `wallet-item-dashboard`) `(accountId? | cardId?, order)` — a user-curated set of pinned cards **or** accounts for the dashboard "wallet" (exactly one of card/account; XOR enforced in its aggregate; `onDelete: Cascade`). Endpoints `GET/POST /wallet`, `PATCH /wallet/reorder` (`{ids[]}`), `DELETE /wallet/:id`.
-- **`apps/web`** — **Vite + React 19 SPA**, consumes the API over HTTP only (`shared/lib/apiClient.ts`, `VITE_API_URL`). Domain-first: `src/domains/<domain>/{api,hooks,components,routes}`. Routing **react-router v8** (single `react-router` package — `react-router-dom` no longer exists in v8; every import comes from `react-router`), data via TanStack Query, **owns the es/en i18n catalogs** (`src/i18n`). **Styling: Tailwind CSS** (design tokens as CSS variables in `src/styles/index.css`, dark-mode ready) with shadcn-style primitives in `src/shared/ui` (`button`, `input`, `label`, `field`, `select`, `searchable-select` [button + portaled, fixed-height (`max-h-60`) custom-scrollbar (`scrollbar-thin`) panel with an in-panel search box — for long option lists a native `<select>` can't restyle/height-cap, e.g. institutions (~20 banks) or currencies (168 ISO codes); `displayValue` prop lets the closed control show something narrower than the list label, e.g. a currency's bare ISO code while the open list reads "Name (CODE)"], `combobox` [free-text input + the same portaled dropdown pattern, for fields that accept a value not in the list, e.g. transaction category], `card`, `badge`, `table`, `page-header`, `states`, `theme-toggle`, `switch`, `unsaved-indicator`, `overlay/` [the dialog family — Modal/Window/Drawer/ResponsiveSurface/FormSurface/ConfirmModal, see the overlay amendment below], `tabs`, `segmented`, `sparkline`) + `cn` helper (`shared/lib/cn.ts`); authed routes wrapped by `app/AppLayout.tsx`. The **Panel** (`app/DashboardPage.tsx` + `domains/dashboard`) is a frontend-only aggregation (net worth, month flow, category donut, upcoming payments, wallet). Libraries: **Recharts** (charts), **sonner** (toasts; `<Toaster/>` in `app/providers`), **@dnd-kit** (wallet drag-reorder). No DB access, never imports backend internals.
+- **`apps/web`** — **Vite + React 19 SPA**, consumes the API over HTTP only (`shared/lib/apiClient.ts`, `VITE_API_URL`). Domain-first: `src/domains/<domain>/{api,hooks,components,routes}`. Routing **react-router v8** (single `react-router` package — `react-router-dom` no longer exists in v8; every import comes from `react-router`), data via TanStack Query, **owns the es/en i18n catalogs** (`src/i18n`). **Styling: Tailwind CSS** (design tokens as CSS variables in `src/styles/index.css`, dark-mode ready) with shadcn-style primitives in `src/shared/ui` (`button`, `input`, `label`, `field`, `select`, `searchable-select` [button + portaled, fixed-height (`max-h-60`) custom-scrollbar (`scrollbar-thin`) panel with an in-panel search box — for long option lists a native `<select>` can't restyle/height-cap, e.g. institutions (~20 banks) or currencies (168 ISO codes); `displayValue` prop lets the closed control show something narrower than the list label, e.g. a currency's bare ISO code while the open list reads "Name (CODE)"], `combobox` [free-text input + the same portaled dropdown pattern, for fields that accept a value not in the list, e.g. transaction category], `card`, `badge`, `table`, `page-header`, `states` (kind-aware error/empty/loading — see the amendment
+below), `theme-toggle`, `switch`, `unsaved-indicator`, `overlay/` [the dialog family — Modal/Window/Drawer/ResponsiveSurface/FormSurface/ConfirmModal, see the overlay amendment below], `tabs`, `segmented`, `sparkline`) + `cn` helper (`shared/lib/cn.ts`); authed routes wrapped by `app/AppLayout.tsx`. The **Panel** (`app/DashboardPage.tsx` + `domains/dashboard`) is a frontend-only aggregation (net worth, month flow, category donut, upcoming payments, wallet). Libraries: **Recharts** (charts), **sonner** (toasts; `<Toaster/>` in `app/providers`), **@dnd-kit** (wallet drag-reorder). No DB access, never imports backend internals.
+  Amendment (kind-aware error/empty states + "keep the chrome" convention, 2026-08-25):
+  `shared/ui/states.tsx`'s `ErrorState` stopped being one generic sentence everywhere. Pass the
+  query/mutation's own `error` (preferred over a hardcoded `title`) and it derives a **`kind`**:
+  `connection` (the request never reached the server — not an `ApiRequestError` at all),
+  `server` (it did; the title comes from `error.code` via the same `errors.<CODE>` map every
+  mutation's toast already uses — "en lenguaje humano", not "algo salió mal"), `notFound` (404) and
+  `unauthorized` (401/403) each get their own copy AND an escape-hatch link (`KIND_ESCAPE`:
+  "Volver al panel" → `/`, "Iniciar sesión" → `/login`) since retrying rarely helps either one —
+  a plain `<a href>`, not `useNavigate`, so the primitive still renders with no `<Router>` around it
+  (unit tests included). `EmptyState` is `kind="empty"` of the SAME shell (not an error — the
+  request succeeded, there's just nothing to show), so there's one component family, not two
+  diverging ones. Visually: `error`/`connection`/`server`/etc. render as a centered **card** (solid
+  border, a soft glow behind the icon, `max-w-[640px]`, `min-h-[420px]`) for a whole page's worth of
+  failure; `empty` renders **plain** (bare icon, no border) — the same weight a table's own empty
+  row already had. New **`inline`** prop renders any kind (error included) in that same plain,
+  borderless look for embedding INSIDE existing chrome instead of replacing it — the house
+  convention, now applied everywhere a page has a table or a KPI strip: the headers/labels/filters
+  are static and don't depend on the response, so they render for real regardless of
+  loading/empty/error, and only the row/body area shows the placeholder or the failure
+  (`TransactionTable`'s `EmptyRow`, Cuotas' `PlanEmptyRow`, `InstallmentPlanTable`/`List`,
+  `BillingSection`, all wired the same way: `<ErrorState inline error={...} onRetry={...} />` takes
+  the empty row's spot when there's one). Skeletons follow the identical split — `MovementsTableSkeleton`
+  (moved from `accounts` to `transactions`, its rightful owner, and reused by both the main
+  Movimientos route and an account's own tab), `InstallmentsSkeleton` and `BillingTableSkeleton` all
+  render their real headers/labels/filter controls up front and shimmer only the rows/figures, so a
+  loading page never looks like a single dashed placeholder box. **A KPI/summary strip that would
+  otherwise hide when there's no data now stays up with a dash/zero placeholder instead of vanishing**
+  (`InstallmentKpiStrip`'s `EMPTY_CLP_KPIS`, `AccountsSummary`'s new `unavailable` prop) — the
+  container's presence is what says "a summary belongs here"; disappearing entirely on a stale-data
+  guard (below) would have looked like the feature broke, not like data being unavailable. **Stale
+  cache guard**: react-query keeps the last SUCCESSFUL `data` across a failed refetch, so a
+  connection drop right after a list loaded once would otherwise show real (old) numbers next to
+  "se nos cortó la conexión" — `AccountsRoute`/`InstallmentsRoute`/`BillingSection` now derive their
+  displayed list as `isError ? [] : (data ?? [])` before it reaches any summary, count or table.
   Amendment (overlay family, 2026-08-05): `shared/ui/dialog.tsx` and `shared/ui/confirm-dialog.tsx`
   are **gone**, replaced by `shared/ui/overlay/` (barrel `index.ts`): **`SurfaceChrome`** (the shared
   frame — header `leading`/title/description/`headerAside`/close → one scrolling body → pinned
@@ -707,7 +899,7 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
   (the collapsible sidebar), the decision belongs to the element's OWN width, not the viewport —
   `shared/lib/useElementWidth.ts` (ResizeObserver) does that, and two consumers use it:
   `TransactionTable` picks its full column-per-field table vs. its compact list at
-  `FULL_TABLE_MIN_WIDTH` (860px of table, not of screen) — at a 1024px viewport that's the full table
+  `TABLE_ROW_MIN_WIDTH` (760px of table, not of screen) — at a 1024px viewport that's the full table
   with the sidebar collapsed (~896px) and the compact one with it expanded (~736px); and
   `AccountDetailRoute`/`AccountEditRoute` decide the whole two-column layout (cards aside + per-column
   scrolling vs. single column + "Tarjetas" tab + card drawer) at `ASIDE_MIN_WIDTH` (1100px of view) —
@@ -718,6 +910,26 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
   viewport-driven cases.
   Tailwind also sets `future.hoverOnlyWhenSupported` so every `hover:` compiles inside
   `@media (hover: hover)` — without it a tap on a touch device leaves the hover state stuck on.
+  Amendment (one row format for every table, 2026-08-24): Movimientos, Cuotas and Facturación each
+  had their own table conventions — different leading-icon shapes (circle vs. rounded-square vs.
+  none), a shaded header only on Movimientos, three different table↔list breakpoints (860/860/640px
+  of container), and instalment/billing amounts in plain foreground instead of the red/green a real
+  outflow/inflow gets everywhere else. Unified: every such table's leading icon is a **circle**
+  (`rounded-full`), tinted only where a real sign exists (Movimientos, by income/expense/transfer) —
+  Cuotas and Facturación stay neutral `bg-chip`, since their icon names a category/period, not a
+  flow; every header gets `bg-muted/50`; the table↔list breakpoint is the single
+  **`TABLE_ROW_MIN_WIDTH`** (760px, `shared/lib/useElementWidth.ts`, replacing each table's own
+  `FULL_TABLE_MIN_WIDTH`/`BILLING_TABLE_MIN_WIDTH` constant); a Cuotas plan's next-due instalment and
+  a Facturación row's leading icon/header now follow the same rule. `InstallmentPlanTable` also lost
+  its own duplicate `RowAction` icon-button in favor of the shared `Button variant="ghost"`, matching
+  `TransactionTable`'s row actions. `BillingSection`'s wide table gained the same leading icon column
+  and its row actions ("Pagar", "Modificar pago") became icon-only (`Banknote`/`Pencil`, accent-tinted
+  for "Pagar" since it's the one action that moves money forward) instead of text buttons, to match
+  the icon-only "Sincronizar pagos" already there. Also fixed in the same pass: `formatMoney`
+  (`@finance/money`) resolved the bare `"es"` locale to Chilean Spanish's `"$95.000"` — `Intl.
+NumberFormat("es", …)` has no currency-symbol mapping for CLP and fell back to the ISO code
+  ("95.000 CLP"); `"es-CL"` resolves it (and disambiguates USD as "US$"), while CLF (the UF, which
+  has no real symbol in any locale) correctly keeps its code.
   Amendment (dark-theme repaint from design handoff, 2026-07-17): `--background`/`--card`/`--border`/`--input`/`--muted`/`--muted-foreground`/`--primary-foreground`/`--destructive` were replaced with the exact hex from the handoff palette (`#0b1518`/`#0f1e21`/`#1e2e32`/`#283c41`/`#22343a`/`#8aa0a2`/`#08181b`/`#e08a8a` respectively); `--brand`/`--accent`/`--success` already matched and only got sub-degree hue rounding fixes. `--destructive-foreground` (dark) changed from white to a dark ink (`0 45% 10%`) because the handoff's danger red is light enough that white text on a _solid_ `bg-destructive` button would fail contrast — mirrors how `--primary`/`--accent` already pair a light base color with a dark "ink" foreground; the ~40 `text-destructive`/low-opacity-fill usages elsewhere were unaffected. New tokens from the same handoff, defined in both themes but **not yet consumed by any component** (available for future use — grep before assuming something already uses them): `--surface-2`/`--chip`/`--track`/`--border-2`/`--text-dim` (dark-named concepts; dark values are the handoff hex. **Light values were MISSING until 2026-08-13** — the light theme inherited `:root`'s dark ones, so `bg-chip`/`bg-surface2`/`bg-track`/`border-border2`/`text-dim` painted dark blocks with unreadable text in light mode, e.g. the account cards' icon tiles and type chips; every one of these now has an explicit `[data-theme="light"]` value. Any NEW token must be defined in BOTH blocks) and `--panel-bg`/`--viewer-bg` (light-named concepts from the handoff; dark theme falls back to `--surface-2`/`--card`). Exposed via Tailwind as `surface2`/`chip`/`track`/`border2`/`dim`/`panel`/`viewer`. Explicit hover hex (`primary-hover`/`accent-hover`) from the light-theme handoff were **not** wired in — `Button` still uses the `hover:bg-primary/90` opacity approach.
 - **Boundaries:** keep the one-way dep rule; run `pnpm check:boundaries`. New domain → mirror an existing one (see `apps/api/README.md` / `apps/web/README.md` skeletons).
 - **Commits:** only when the user explicitly asks.
@@ -750,7 +962,78 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Active plan: specs/011-prepaid-account-product/plan.md
+Active plan: specs/014-installment-credit-billing/plan.md
+(Facturación de compras en cuotas con tarjeta de crédito. Un plan comprado con tarjeta CREDIT era
+un calendario desconectado del dinero: no generaba movimiento de compra, no consumía cupo, y el
+bucket `installments` de la facturación era **inalcanzable** (siempre `"0"`). Ahora reproduce al
+emisor real: **el cupo se compromete completo el día de la compra** — `create-installment-plan.handler.ts`
+crea un movimiento de gasto por `totalPrincipal` con `cardId` e `installmentPlanId`, en la misma
+`$transaction` que el plan — y **la facturación cobra una cuota por período**. Ese movimiento de
+compra queda **excluido** de `netForStatement`/`netForPeriod` por llevar `installmentPlanId`
+(`prisma-transaction-sums.repository.ts`); lo que un período cobra es únicamente lo que el
+calendario tenga vencido. Columna nueva **`InstallmentPayment.creditStatementId`** (FK nullable,
+`SetNull`) — necesaria porque los períodos se crean perezosamente (`closeIfDue`: sin consumo no hay
+período), así que la ventana de fechas tiene agujeros y derivar "facturada" por fecha no garantiza
+exactamente-una-vez; con la columna, la selección (`installment-plan/domain/installment-billing.ts`,
+función pura) es `dueDate <= closedAt AND creditStatementId IS NULL` — idempotente por construcción.
+Tres estados por cuota (`installments.installmentPaymentStatus`): `SCHEDULED → BILLED → PAID`, ambos
+saltos manejados por el cierre/pago del período, nunca por el usuario — pagar o deshacer una cuota
+suelta de un plan CREDIT se **rechaza en el servidor** (`INSTALLMENT_CARD_IS_CREDIT`), no solo se
+oculta en la UI. **Liquidar un período —pago total O parcial— marca pagadas todas sus cuotas**
+(`PayCreditStatementHandler` llama `settleForStatementWithTx` en la misma transacción cruzada): el
+faltante ya viajó como `carriedOverAmount` al período siguiente y dejarlo además como cuota impaga
+sería la misma deuda dos veces — "liquidada" se decide por `paidAt !== null`, nunca por el nombre del
+estado (PAID vs PARTIALLY_PAID). `CreditStatement.totalFor(linkedAmount, instalmentAmount = "0")`
+gana un tercer sumando; el breakdown de la facturación se compone en `credit-statement` desde DOS
+fuentes disjuntas — el puerto de `transaction` (compras) y el de `installment-plan` (cuotas
+facturadas, vía `billedInstallmentsForStatement` → `installment-payment`) — nunca en `transaction`,
+que ya no sabe nada de cuotas. **El arrastre por faltante ahora vive en dos niveles distintos según
+el tipo de plan**: entre facturaciones para un plan CREDIT (el mecanismo de siempre,
+`CreditStatement.carriedOverAmount`), entre cuotas para cualquier otro plan
+(`InstallmentPayment.carriedOverAmount`, sin cambios) — para un plan CREDIT esta última columna
+queda siempre en `"0"`, documentado para que no se busque ahí el faltante. Invariantes nuevas en el
+agregado: `applyUpdate` congela `cardId` desde la primera cuota facturada (`INSTALLMENT_PLAN_BILLED`)
+y `assertDeletable` rechaza borrar un plan con una cuota en un período **liquidado**
+(`INSTALLMENT_PLAN_SETTLED`) — más estrecho que el freeze de edición, porque deshacer un período
+apenas PENDING no toca dinero real. `TRANSACTION_LINKED_TO_INSTALLMENT` se amplió: ya no depende solo
+del lookup a `installment-payment` (que solo conoce el movimiento de una _cuota pagada_), sino
+también de `Transaction.installmentPlanId !== null` directamente — la única forma de proteger el
+movimiento de _compra_, que nunca aparece en esa tabla. **Descubierto e implementado en el camino,
+fuera del plan original**: (1) una cuenta cuya única actividad es un plan en cuotas nunca facturaba
+nada, porque el movimiento de compra deliberadamente no enlaza a ningún período y sin otro
+movimiento `findOpenForAccount` siempre daba `null` — `closeIfDue` ahora siembra un período desde el
+calendario (`seedPeriodFromSchedule`) cuando no hay uno abierto pero sí cuotas pendientes; (2)
+`billingWarning` (`NO_BILLING_DAY`/`CURRENCY_MISMATCH`/`CARD_REMOVED`) se deriva en
+`plan-dto.mapper.ts` consultando la cuenta real de la tarjeta — `CARD_REMOVED` usa una heurística
+(`cardId === null` pero el plan ya facturó alguna cuota, la única huella que deja el `SetNull` de la
+FK al borrar la tarjeta). Prerrequisito estructural resuelto: `installment-plan` no tenía
+`*.data.module.ts`; se extrajo para que `credit-statement` dependa de la hoja y el grafo siga
+acíclico (`bank-account`, `card-account`, `credit-statement` y `installment-plan` ahora componen
+puertos entre sí exactamente como ya hacía `bank-account`). Sin migración: `db:push` + `db:seed` — el
+seed reconstruye el plan "Notebook ASUS" con su movimiento de compra, 3 cuotas facturadas y pagadas
+(una en parte, con arrastre real a la siguiente), 1 cuota facturada sin pagar y 8 programadas; y
+"Refrigerador Mademsa" (con interés) más simple; un tercer plan nuevo con tarjeta DÉBITO
+("Aspiradora Robot") muestra el modelo sin cambios: sin movimiento de compra, cada cuota paga con
+dinero real de la cuenta. **Estado: 014 implementado** (T001-T078; contrato, dominio, API, web, seed,
+docs y constitución en v1.47.0).)
+Prior plan: specs/013-installments-redesign/plan.md
+(Vista Cuotas: rediseño funcional y pago real de la cuota. La lista pasa de una tabla aplanada de
+cuotas sueltas a **una fila por plan**, con detalle, crear y editar en **panel lateral**
+(`SidePanel`/`FormSurface surface="panel"`, ya existentes) en los tres formatos del handoff. El
+cambio de fondo no es visual: **pagar una cuota registra un gasto real** en una cuenta —con el
+saldo movido en el mismo `$transaction`— y lo que el pago no cubre se **arrastra a la siguiente
+cuota impaga** (`InstallmentPayment.carriedOverAmount`, el mismo mecanismo que
+`CreditStatement.carriedOverAmount`), sin reescribir jamás el calendario programado. Un plan
+comprado con tarjeta CREDIT **no** genera movimiento: esa deuda ya vive en la facturación de su
+cuenta de crédito. Cinco columnas nuevas, cero tablas nuevas: `installment-plan` gana `category`
+(texto libre, mismo repertorio que los movimientos; el ícono sale del mapa compartido que se
+promueve a `shared/`) y `paymentAccountId`; `installment-payment` gana `paidAmount`,
+`carriedOverAmount` y `transactionId` (`SetNull`, para que borrar el movimiento no rompa la cuota).
+La previsualización del formulario llama a la MISMA `equalPrincipalSchedule` de `@finance/money`
+que usa el servidor, que es la única forma honesta de que coincidan. Sin migración: `db push` +
+seed. **Estado: 013 implementado** (T001-T082; contrato, dominio, API, web, seed, docs y constitución
+en v1.46.0).)
+Earlier plan: specs/011-prepaid-account-product/plan.md
 (Cuenta prepago como producto independiente. El prepago deja de ser una tarjeta con pote propio
 colgada de una cuenta corriente/vista y pasa a ser un tipo de cuenta: `AccountType.PREPAID`, con
 número de cuenta, emisor, moneda y saldo propio, que solo admite tarjetas `PREPAID` (una o varias,
@@ -761,7 +1044,7 @@ por una matriz tipo-cuenta ↔ kind-tarjeta en `@finance/contracts`. Cambiar el 
 hacia/desde PREPAID queda prohibido. Sin migración de datos: `db push` + seed rehecho.
 **Estado: 011 implementado** (T001-T061; contrato, dominio, API, web, seed, docs y constitución
 en v1.34.0).)
-Prior plan: specs/010-movement-transfers-attachments/plan.md
+Earlier plan: specs/010-movement-transfers-attachments/plan.md
 (Movimientos: traspasos, comprobantes y paneles rediseñados. Los paneles de detalle y de
 crear/editar movimiento pasan al formato del handoff (panel lateral, monto protagonista, filas
 etiqueta/valor, acciones al pie) y ganan navegación ‹ › paginada, Duplicar, saldo tras el
@@ -791,6 +1074,6 @@ patrón completo una vez documentado.
 tests). Encima se aplicó, sin spec propia, la regla **una tabla = un dominio**: los 11 dominios se
 dividieron en 21 dominios-tabla (+ `import`/`health` sin tabla), un solo adapter por tabla,
 constitución en v1.23.0. Ver ARCHITECTURE.md §12a.)
-Prior plans: 010 (traspasos/adjuntos), 009 (backend DDD+CQRS), 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
+Prior plans: 013 (cuotas: rediseño y pago real), 012 (investment tracking, congelada), 011 (cuenta prepago), 010 (traspasos/adjuntos), 009 (backend DDD+CQRS), 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
 
 <!-- SPECKIT END -->

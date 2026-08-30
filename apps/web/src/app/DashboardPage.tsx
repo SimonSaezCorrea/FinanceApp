@@ -120,7 +120,7 @@ export function DashboardPage() {
       {accountsQuery.isLoading ? (
         <DashboardSkeleton label={t("app.loading")} />
       ) : accountsQuery.isError ? (
-        <ErrorState title={t("errors.INTERNAL_ERROR")} />
+        <ErrorState error={accountsQuery.error} onRetry={() => accountsQuery.refetch()} />
       ) : (
         <div className="grid gap-5 lg:grid-cols-[1.25fr_1fr]">
           <div className="flex flex-col gap-5">

@@ -9,7 +9,7 @@ import { useSavingsGoals } from "../hooks/useSavings";
 
 export function SavingsRoute() {
   const { t, i18n } = useTranslation();
-  const { data, isLoading, isError } = useSavingsGoals();
+  const { data, isLoading, isError, error, refetch } = useSavingsGoals();
   const list = data ?? [];
 
   return (
@@ -18,7 +18,7 @@ export function SavingsRoute() {
       {isLoading ? (
         <LoadingState title={t("app.loading")} />
       ) : isError ? (
-        <ErrorState title={t("errors.INTERNAL_ERROR")} />
+        <ErrorState error={error} onRetry={() => refetch()} />
       ) : list.length === 0 ? (
         <EmptyState title={t("savings.empty")} />
       ) : (

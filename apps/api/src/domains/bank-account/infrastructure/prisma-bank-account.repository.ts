@@ -97,7 +97,10 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
         creditUsedInitial: row.creditUsedInitial.toString(),
         creditUsed: row.creditUsed.toString(),
         billingCycleDay: accountSettings?.billingCycleDay ?? null,
+        billingCycleType: accountSettings?.cycleType ?? "BUSINESS_DAY",
         paymentMethod: accountSettings?.paymentMethod ?? "MANUAL",
+        paymentDueDay: accountSettings?.paymentDueDay ?? null,
+        paymentDueCycleType: accountSettings?.paymentDueCycleType ?? "BUSINESS_DAY",
         minimumPaymentPercent: accountSettings?.minimumPaymentPercent ?? null,
         cards: accountCards,
         createdAt: row.createdAt,
@@ -167,7 +170,10 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     }
     await this.billing.upsert(row.id, {
       billingCycleDay: plan.billingCycleDay,
+      cycleType: plan.billingCycleType,
       paymentMethod: plan.paymentMethod,
+      paymentDueDay: plan.paymentDueDay,
+      paymentDueCycleType: plan.paymentDueCycleType,
     });
     const fresh = await this.findById(userId, row.id);
     if (!fresh) throw new Error("account disappeared right after being created");
@@ -203,7 +209,10 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     });
     await this.billing.upsertWithTx(client, snap.id, {
       billingCycleDay: snap.billingCycleDay,
+      cycleType: snap.billingCycleType,
       paymentMethod: snap.paymentMethod,
+      paymentDueDay: snap.paymentDueDay,
+      paymentDueCycleType: snap.paymentDueCycleType,
       minimumPaymentPercent: snap.minimumPaymentPercent,
     });
   }

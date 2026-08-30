@@ -1,8 +1,24 @@
+import { installments } from "@finance/contracts";
+import { addMoney } from "@finance/money";
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
-import { InstallmentPlanNotFoundError } from "../../domain/errors";
+import { PrismaService } from "../../../../infra/prisma/prisma.service";
+import {
+  BANK_ACCOUNT_REPOSITORY,
+  type BankAccountRepositoryPort,
+} from "../../../bank-account/domain/ports/bank-account.repository.port";
+import {
+  CARD_ACCOUNT_REPOSITORY,
+  type CardAccountRepositoryPort,
+} from "../../../card-account/domain/ports/card-account.repository.port";
+import {
+  TRANSACTION_WRITER_REPOSITORY,
+  type TransactionWriterRepositoryPort,
+} from "../../../transaction/domain/ports/transaction-writer.repository.port";
+import { InstallmentCardIsCreditError, InstallmentPlanNotFoundError } from "../../domain/errors";
+import type { CarryDelta } from "../../domain/installment-carry-over";
 import type { InstallmentPlan } from "../../domain/installment-plan.aggregate";
 import {
   INSTALLMENT_PLAN_REPOSITORY,
@@ -13,9 +29,23 @@ import { UnpayInstallmentCommand } from "./unpay-installment.command";
 interface Context {
   plan: InstallmentPlan;
   sequence: number;
+  /** The expense to delete, when the payment created one. */
+  transactionId: string | null;
+  /** The account whose balance must be restored, and by how much. */
+  refundAccountId: string | null;
+  refundAmount: string;
+  carryDeltas: CarryDelta[];
 }
 
-/** Clears a scheduled payment's paid status — mirror of `PayInstallmentHandler`. */
+/**
+ * Undoing a payment — the exact mirror of making one (FR-024): the instalment is
+ * cleared, the expense deleted, the balance restored and the carry-over reversed, all
+ * inside one transaction.
+ *
+ * "The carry-over" means the one THIS payment caused. Whatever this instalment
+ * inherited from an earlier short payment stays: that debt belongs to a payment that
+ * still stands, and clearing it here would quietly forgive it.
+ */
 @Injectable()
 @CommandHandler(UnpayInstallmentCommand)
 export class UnpayInstallmentHandler extends BaseCommandHandler<
@@ -25,7 +55,12 @@ export class UnpayInstallmentHandler extends BaseCommandHandler<
 > {
   constructor(
     eventBus: EventBus,
+    private readonly prisma: PrismaService,
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort,
+    @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
+    @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
+    @Inject(TRANSACTION_WRITER_REPOSITORY)
+    private readonly transactions: TransactionWriterRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -33,18 +68,61 @@ export class UnpayInstallmentHandler extends BaseCommandHandler<
   protected async loadContext(command: UnpayInstallmentCommand): Promise<Context> {
     const plan = await this.repo.findOne(command.userId, command.planId);
     if (!plan) throw new InstallmentPlanNotFoundError();
-    return { plan, sequence: command.sequence };
+
+    // Spec 014, FR-021/FR-022a: symmetric with the pay-side refusal. An instalment
+    // on a CREDIT-card plan is never individually paid, so it is never individually
+    // unpaid either — the only way it becomes PAID is a statement settling it, and
+    // undoing that is correcting the statement's payment, not this endpoint.
+    const snapshot = plan.snapshot();
+    const cardKind = snapshot.cardId
+      ? await this.cards.kindForCard(command.userId, snapshot.cardId)
+      : null;
+    if (!installments.generatesMovementOnPay(cardKind)) throw new InstallmentCardIsCreditError();
+
+    return {
+      plan,
+      sequence: command.sequence,
+      transactionId: null,
+      refundAccountId: null,
+      refundAmount: "0",
+      carryDeltas: [],
+    };
   }
 
   protected async handle(
-    _command: UnpayInstallmentCommand,
+    command: UnpayInstallmentCommand,
     context: Context,
   ): Promise<HandleResult<void>> {
-    context.plan.markPaymentUnpaid(context.sequence);
+    const result = context.plan.unpayInstallment(context.sequence);
+    context.transactionId = result.transactionId;
+    context.refundAmount = result.refundAmount;
+    context.carryDeltas = result.carryDeltas;
+
+    if (result.transactionId) {
+      // The expense knows which account it came out of; the plan's remembered account
+      // may have changed since, and restoring the balance of the WRONG account would
+      // be worse than not restoring it at all.
+      context.refundAccountId = await this.transactions.accountIdForTransaction(
+        command.userId,
+        result.transactionId,
+      );
+    }
     return { result: undefined, events: [] };
   }
 
   protected override async persist(context: Context): Promise<void> {
-    await this.repo.setPaymentPaidAt(context.plan.userId, context.plan.id, context.sequence, null);
+    await this.prisma.$transaction(async (tx) => {
+      if (context.transactionId) {
+        await this.transactions.deleteWithTx(tx, context.transactionId);
+      }
+      if (context.refundAccountId) {
+        await this.accounts.incrementBalanceWithTx(
+          tx,
+          context.refundAccountId,
+          addMoney("0", context.refundAmount),
+        );
+      }
+      await this.repo.savePaymentWithTx(tx, context.plan, context.sequence, context.carryDeltas);
+    });
   }
 }

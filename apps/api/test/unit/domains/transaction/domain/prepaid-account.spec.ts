@@ -17,6 +17,7 @@ const prepaidAccount = (balance: string): AccountContext => ({
   creditLimit: "0",
   creditUsed: "0",
   billingCycleDay: null,
+  billingCycleType: "BUSINESS_DAY",
 });
 
 const checking: AccountContext = {
@@ -26,6 +27,7 @@ const checking: AccountContext = {
   creditLimit: "0",
   creditUsed: "0",
   billingCycleDay: null,
+  billingCycleType: "BUSINESS_DAY",
 };
 
 const prepaidCard: CardContext = { id: "cP", kind: "PREPAID" };

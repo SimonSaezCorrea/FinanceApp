@@ -339,6 +339,131 @@ the validation above.
 
 ---
 
+## 4b. Instalments: paying one moves real money, and the shortfall is carried forward
+
+An **instalment plan** (`InstallmentPlan`) is a purchase paid off in fixed instalments. Its schedule
+is generated once, by `equalPrincipalSchedule` in `@finance/money`, and is **never rewritten**:
+paying less, paying more or correcting a payment changes no instalment's scheduled amount.
+
+**Paying an instalment records a real expense** (`POST /installments/:id/payments/:seq/pay`): it
+creates an EXPENSE `Transaction` on the chosen account, lowers its `currentBalance`, marks the
+instalment with what was really paid and applies the carry-over — all four inside one
+`prisma.$transaction`. Undoing is the exact mirror: it deletes the expense, restores the balance,
+clears the instalment and reverses the carry **that payment caused** (never the one the instalment
+received: that debt belongs to a payment that still stands).
+
+**Exception: a plan bought with a CREDIT card never pays an instalment on its own.** That debt is
+billed through the card's own statement instead — see §4c below. The plan cannot even remember a
+payment account (`INSTALLMENT_CARD_IS_CREDIT`), and the per-instalment pay/unpay endpoints refuse the
+request server-side, not only hide the button, for exactly the same plan.
+
+### The carry-over, and how it differs from the statement's
+
+What an instalment owes is **its scheduled amount plus whatever it inherited** from the previous one.
+If the payment falls short, the difference moves to the **next unpaid instalment by sequence** (not
+by date, and not necessarily the immediately following one: undoing allows paying out of order). If
+it exceeds, the surplus is subtracted from that next one and keeps flowing forward until it runs out;
+an instalment entirely absorbed is settled with no payment of its own, and what an instalment owes
+**never goes negative**. A payment beyond what the whole plan owes is refused
+(`PAYMENT_EXCEEDS_REMAINING`): a surplus with no debt to apply to does not become a credit balance, a
+concept this domain does not have.
+
+It is the **same mechanism** as `CreditStatement.carriedOverAmount` — a figure belonging to whoever
+receives it, not a synthetic movement nor a rewrite of the schedule — deliberately, so the
+application has one explanation of "what you didn't cover" instead of two.
+
+The difference is at the end of the row: a statement always has a next one to put the shortfall in;
+**a plan's last unpaid instalment does not**. So there the instalment is **not settled**: it keeps
+its partial credit, stays payable for the remainder and keeps the plan active. Modelling it the other
+way — settled but still owing — would count the same shortfall in two places.
+
+### The movement backing an instalment is read-only in Movements
+
+`InstallmentPayment.transactionId` points at the expense backing the instalment. That movement
+**cannot be edited or deleted from Movements** (`TRANSACTION_LINKED_TO_INSTALLMENT`, 409): its amount
+IS the instalment's payment, and changing it there would leave the plan lying with nothing to detect
+it. It is corrected by undoing and re-paying the instalment from its plan, which moves all four
+figures together.
+
+The same refusal protects a credit-card plan's PURCHASE movement (§4c), but the check is not the same
+lookup: a purchase never has an `InstallmentPayment.transactionId` pointing at it (it isn't anyone's
+payment), so `transaction`'s update/remove handlers also test `Transaction.installmentPlanId !==
+null` directly on the row itself — the only signal a purchase movement carries.
+
+**Deleting a plan reverses its whole history**: it deletes its instalments' expenses, restores each
+affected account's balance (aggregated per account, since different instalments may have been paid
+from different accounts) and deletes the interest finance charge if there was one, in one indivisible
+operation. The confirmation declares that impact **before** acting, computed by the same function
+that applies it (`planDeletionReversal`), which is what stops promise and effect from drifting apart.
+
+### Two currencies, no conversion
+
+If the paying account is in a different currency from the plan, **two amounts** are declared: what is
+credited to the instalment (in the plan's currency, which is what the carry-over is computed from)
+and what is charged to the account (in its own, which is the expense's amount). They are never
+compared or converted — this app has no exchange rate — and if the second is missing the payment is
+refused (`PAYMENT_CURRENCY_AMBIGUOUS`) rather than guessed.
+
+---
+
+## 4c. A credit-card instalment plan: the pool moves on purchase day, the statement bills the schedule
+
+A plan bought with a CREDIT card reproduces what the issuer actually does, and the pool and the
+statement move at different times for a reason:
+
+**The pool is committed in full on purchase day.** Creating the plan
+(`create-installment-plan.handler.ts`) writes one EXPENSE `Transaction` for the WHOLE
+`totalPrincipal` — carrying the card's `cardId` and the plan's `installmentPlanId` — in the same
+`$transaction` as the plan itself, and that movement consumes the account's credit pool immediately.
+A 12 × 90.000 plan drops available credit by 1.080.000 the moment it is registered, exactly as a real
+issuer reserves the whole commitment on day one rather than releasing it a twelfth at a time.
+
+**That same movement is excluded from every statement's total.** Carrying `installmentPlanId` is
+what routes it out of `netForStatement`/`netForPeriod`
+(`transaction/infrastructure/prisma-transaction-sums.repository.ts`) — a period's total is never the
+purchase, only whatever the SCHEDULE has fallen due inside it. Without this, one statement would bill
+the entire 1.080.000 in a single month, which is the defect this design exists to remove.
+
+**A period bills the instalments that fell due in it, and only once.** `InstallmentPayment` carries a
+nullable `creditStatementId` — set the moment a period's close stamps it
+(`installment-plan/domain/installment-billing.ts`'s selection is a pure `dueDate <= closedAt AND
+creditStatementId IS NULL`, so a retry or a period that closed after a gap in card activity can never
+double-bill or drop an instalment). This is why the column exists at all: statements are generated
+lazily (a month with no card activity produces no period), so deriving "already billed" from a date
+window alone would leave gaps an instalment could fall through unnoticed.
+
+**Three situations, not two.** An instalment on such a plan is `SCHEDULED` (not yet due), `BILLED`
+(charged into a period still awaiting its own payment) or `PAID` — the jump between them is driven
+entirely by the period closing or being paid, never by an action on the instalment itself.
+
+**Settling the period settles every instalment it billed — in full or short, identically.** Paying a
+statement (`PayCreditStatementHandler`) marks `paidAt` on every instalment that period charged, inside
+the same cross-aggregate transaction that already moves the pool and the paying account's balance.
+"Settled" is decided by the fact of payment (`paidAt !== null`), never by the resulting status name —
+a period paid short still derives `PARTIALLY_PAID`, and its instalments are still marked PAID. This is
+not a special case: it is Constitution I's carry-over rule applied at the level that actually receives
+the payment. Nobody pays one of these instalments on its own, so the shortfall belongs to the
+STATEMENT, not to the instalment — `CreditStatement.carriedOverAmount` rolls it into the next period
+exactly as it already does for an ordinary purchase, and marking the instalment unpaid as well would
+count that same shortfall twice. `InstallmentPayment.carriedOverAmount` — the column §4b's ordinary
+plans use — stays `"0"` for a credit-card plan's instalments for this reason.
+
+**A statement's total gained a third summand.** `CreditStatement.totalFor(linkedAmount,
+instalmentAmount = "0")` now adds the period's linked movements, whatever it carried in, AND whatever
+its schedule billed — three figures from three sources, never one derived as a remainder of another.
+The statement's breakdown is composed the same way: `credit-statement` asks `transaction`'s port for
+the linked-purchase sum and `installment-plan`'s port for the billed-instalment sum, and combines them
+itself — `transaction`'s own adapter has no business knowing about instalment schedules.
+
+**Two invariants freeze once a plan has billed.** `InstallmentPlan.applyUpdate` refuses to change the
+card once any instalment carries a `creditStatementId` (`INSTALLMENT_PLAN_BILLED`) — an emitted
+statement described a specific card, and the plan behind it changing would leave that statement lying.
+Deleting is narrower: it is refused only once an instalment sits on a period that is actually
+**settled** (`INSTALLMENT_PLAN_SETTLED`) — a plan whose instalments are merely `BILLED` (period still
+PENDING) may still be deleted, because unwinding a period nobody paid touches no real money.
+
+---
+
 ## 5. Error codes glossary (this domain)
 
 | Code                            | Thrown when…                                                                                      |
