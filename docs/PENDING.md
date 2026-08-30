@@ -116,23 +116,25 @@ para el detalle de spec/plan/tasks.
 
 ## Cuentas — facturación de crédito (períodos dinámicos + generación automática)
 
-### 1. Fecha de pago de la facturación (`paymentDueDay`) — implementada (días hábiles), 2026-08-24
+### 1. Fecha de pago de la facturación (`paymentDueDay`) — implementada (días hábiles y día del mes, independiente de la generación), 2026-08-29
 
-`BillingSettings.paymentDueDay` dejó de ser una columna reservada: es la cuenta de días hábiles
-(sin sábados, domingos ni feriados legales chilenos) contados DIRECTAMENTE desde el cierre de un
-período (el mismo mecanismo que ya usa la generación, `nextBoundaryAfter`, solo que anclado a
-`closedAt` en vez de a `periodStart`) en que vence su pago — p.ej. BCI real: 22 de julio cierra
-→ 10 días hábiles → 5 de agosto vence, y el mismo período que cerró el 22 de julio genera el
-siguiente cierre 20 días hábiles después (20 de agosto), desde donde corre el mismo reloj para su
-propio vencimiento. Se computa en `billing-settings/domain/billing-cycle.ts`'s
-`paymentDueDate(closedAt, paymentDueDay)` (una llamada directa a `addBusinessDays`) y se
-expone como `CreditStatement.dueDate` (null mientras el período sigue OPEN, o si la cuenta no tiene
+`BillingSettings.paymentDueDay` dejó de ser una columna reservada: es la cuenta (según
+`paymentDueCycleType`, días hábiles o día del mes) desde el cierre de un período en que vence su
+pago — p.ej. BCI real: 22 de julio cierra → 10 días hábiles → 5 de agosto vence, y el mismo período
+que cerró el 22 de julio genera el siguiente cierre 20 días hábiles después (20 de agosto), desde
+donde corre el mismo reloj para su propio vencimiento. `BillingSettings.paymentDueCycleType`
+(`BUSINESS_DAY` por defecto o `CALENDAR_DAY`) es **independiente** de `cycleType` (generación): un
+emisor puede generar en un día fijo del mes y aun así deber el pago N días hábiles después, o
+viceversa — no están acoplados. Se computa en `billing-settings/domain/billing-cycle.ts`'s
+`paymentDueDate(closedAt, paymentDueDay, paymentDueCycleType)` (BUSINESS_DAY llama a
+`addBusinessDays`; CALENDAR_DAY reutiliza el mismo "primer día-del-mes estrictamente posterior" que
+`nextBoundaryAfter`, vía el helper compartido `nextCalendarDayAfter`) y se expone como
+`CreditStatement.dueDate` (null mientras el período sigue OPEN, o si la cuenta no tiene
 `paymentDueDay` configurado) — mostrado en `BillingSection` para cada período no liquidado. Editable
-en `AccountForm`/`BillingSettingsModal`. **Sigue sin existir ninguna EJECUCIÓN de pago automático en
-esa fecha** — `dueDate` es solo informativo (para que el usuario sepa cuándo pagar manualmente); ver
-el punto 2 para lo que falta de verdad para `paymentMethod: AUTOMATIC`. Por ahora es días-hábiles
-únicamente: no existe una variante "día fijo del mes" para el vencimiento del pago (a diferencia del
-día de CORTE, que sí tiene ambas — ver el punto 3).
+en `AccountForm`/`BillingSettingsModal`, cada uno con su propio Segmented días-hábiles/día-del-mes
+independiente del de generación. **Sigue sin existir ninguna EJECUCIÓN de pago automático en esa
+fecha** — `dueDate` es solo informativo (para que el usuario sepa cuándo pagar manualmente); ver el
+punto 2 para lo que falta de verdad para `paymentMethod: AUTOMATIC`.
 
 ### 2. `paymentMethod: AUTOMATIC` — bloqueado en la UI, sin efecto funcional
 

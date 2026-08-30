@@ -2233,9 +2233,14 @@ async function seedFullUser(passwordHash: string) {
     billingCycleDay: number | null;
     /** Días hábiles (default) or a fixed day-of-month — see billing-cycle.ts. */
     cycleType: "BUSINESS_DAY" | "CALENDAR_DAY";
-    /** Business days into next month payment is due; null on the accounts left
-     * demonstrating the pre-existing (unconfigured) state. */
+    /** Business days or day-of-month (per `paymentDueCycleType`) payment is due;
+     * null on the accounts left demonstrating the pre-existing (unconfigured)
+     * state. */
     paymentDueDay: number | null;
+    /** Independent of `cycleType` (generation) — an issuer can generate on a
+     * fixed day-of-month but still owe payment N días hábiles later, or vice
+     * versa; see billing-cycle.ts. */
+    paymentDueCycleType: "BUSINESS_DAY" | "CALENDAR_DAY";
     /** CREDIT_CARD: every movement on the account feeds the pool (income = payments). */
     wholeAccount: boolean;
     /** Cards drawing on the shared pool (used when `wholeAccount` is false). */
@@ -2260,21 +2265,24 @@ async function seedFullUser(passwordHash: string) {
     {
       accountId: credit.id,
       // BUSINESS_DAY is the default for new accounts — mirrors a real issuer's
-      // cadence (e.g. BCI: 20 días hábiles para generar, 3 para pagar).
+      // cadence (e.g. BCI: 20 días hábiles para generar, 10 para pagar).
       billingCycleDay: CREDIT_CYCLE_DAY,
       cycleType: "BUSINESS_DAY",
       paymentDueDay: 3,
+      paymentDueCycleType: "BUSINESS_DAY",
       wholeAccount: true,
       poolCardIds: [creditCard.id, creditCardCamila.id, creditCardSofia.id],
       payFromAccountId: checking.id,
     },
     {
-      // CALENDAR_DAY: the original fixed day-of-month behavior, kept for
-      // accounts already configured that way.
+      // CALENDAR_DAY generation (the original fixed day-of-month behavior),
+      // paired with a BUSINESS_DAY payment due date — demonstrates the two
+      // being configured independently of one another.
       accountId: creditBch.id,
       billingCycleDay: CREDIT_BCH_CYCLE_DAY,
       cycleType: "CALENDAR_DAY",
-      paymentDueDay: null,
+      paymentDueDay: 5,
+      paymentDueCycleType: "BUSINESS_DAY",
       wholeAccount: true,
       poolCardIds: [creditCardBch.id],
       payFromAccountId: checking.id,
@@ -2286,17 +2294,19 @@ async function seedFullUser(passwordHash: string) {
       billingCycleDay: null,
       cycleType: "BUSINESS_DAY",
       paymentDueDay: null,
+      paymentDueCycleType: "BUSINESS_DAY",
       wholeAccount: true,
       poolCardIds: [creditCardVista.id],
       payFromAccountId: sight.id,
     },
     {
-      // BCI's real-world cadence: 20 días hábiles to generate, 3 to pay — paid
+      // BCI's real-world cadence: 20 días hábiles to generate, 10 to pay — paid
       // from the BCI checking account itself, same bank relationship.
       accountId: bciCredit.id,
       billingCycleDay: CREDIT_BCI_CYCLE_DAY,
       cycleType: "BUSINESS_DAY",
-      paymentDueDay: 3,
+      paymentDueDay: 10,
+      paymentDueCycleType: "BUSINESS_DAY",
       wholeAccount: true,
       poolCardIds: [creditCardBci.id],
       payFromAccountId: bciChecking.id,
@@ -2314,6 +2324,7 @@ async function seedFullUser(passwordHash: string) {
         cycleType: spec.cycleType,
         paymentMethod: "MANUAL",
         paymentDueDay: spec.paymentDueDay,
+        paymentDueCycleType: spec.paymentDueCycleType,
       },
     });
 

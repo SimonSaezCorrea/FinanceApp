@@ -233,6 +233,7 @@ export function accountToDto(
     billingCycleType: snap.billingCycleType,
     paymentMethod: snap.paymentMethod,
     paymentDueDay: snap.paymentDueDay,
+    paymentDueCycleType: snap.paymentDueCycleType,
     minimumPaymentPercent: snap.minimumPaymentPercent,
     balanceSeries: series.series,
     balanceChangePct: series.balanceChangePct,

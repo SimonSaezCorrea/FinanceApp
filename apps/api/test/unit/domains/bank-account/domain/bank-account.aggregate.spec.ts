@@ -38,6 +38,7 @@ function baseProps(overrides: Partial<BankAccountProps> = {}): BankAccountProps 
     billingCycleType: "BUSINESS_DAY",
     paymentMethod: "MANUAL",
     paymentDueDay: null,
+    paymentDueCycleType: "BUSINESS_DAY",
     minimumPaymentPercent: null,
     cards: [],
     createdAt: new Date("2026-01-01"),

@@ -278,10 +278,15 @@ export const bankAccountSchema = z.object({
   /** Manual (default) or automatic credit-statement payment preference. AUTOMATIC has no
    * functional effect yet (see docs/PENDING.md). */
   paymentMethod: billingPaymentMethod,
-  /** Business days (días hábiles) directly after a period's own close at which
-   * payment is due (e.g. BCI's real-world "3 días hábiles"). Null = no due date
-   * configured, and none is shown. */
+  /** When payment is due, counted from a period's own close. Meaning depends on
+   * `paymentDueCycleType`: a count of business days (e.g. BCI's real-world "3
+   * días hábiles") for BUSINESS_DAY, or a day-of-month for CALENDAR_DAY. Null =
+   * no due date configured, and none is shown. */
   paymentDueDay: z.number().int().min(1).max(28).nullable(),
+  /** How `paymentDueDay` is counted — independent of `billingCycleType`
+   * (generation): an issuer can generate on a fixed day-of-month but still owe
+   * payment N business days later, or vice versa. Días hábiles by default. */
+  paymentDueCycleType: billingCycleType,
   /** Percentage of a statement that counts as its minimum payment (e.g. "5" = 5%).
    * No universal rule exists — each issuer sets its own — so it's per account.
    * Null = no minimum defined, and the UI offers no "minimum" option. */
@@ -323,9 +328,12 @@ const bankAccountFieldsSchema = z.object({
   billingCycleType: billingCycleType.default("BUSINESS_DAY"),
   /** Advanced setting — not exposed in the create-account UI, only editable afterward. */
   paymentMethod: billingPaymentMethod.default("MANUAL"),
-  /** Business days directly after a period's close at which payment is due;
-   * omit/null to leave unconfigured. */
+  /** When payment is due, counted from a period's close; omit/null to leave
+   * unconfigured. Meaning depends on `paymentDueCycleType`. */
   paymentDueDay: z.number().int().min(1).max(28).nullable().optional(),
+  /** Días hábiles (default) or a fixed day-of-month — independent of
+   * `billingCycleType`. */
+  paymentDueCycleType: billingCycleType.default("BUSINESS_DAY"),
   /** Minimum-payment percentage (0-100); null clears it. */
   minimumPaymentPercent: z.string().nullable().optional(),
   cards: z.array(createCardSchema).optional(),

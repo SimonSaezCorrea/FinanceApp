@@ -27,6 +27,7 @@ export type CreateAccountPlan = {
   billingCycleType?: accounts.BillingCycleType;
   paymentMethod: accounts.BillingPaymentMethod;
   paymentDueDay?: number | null;
+  paymentDueCycleType?: accounts.BillingCycleType;
   cards: CreateCardPlan[];
 };
 

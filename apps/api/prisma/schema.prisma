@@ -210,11 +210,14 @@ model BillingSettings {
   /// the automatic-payment execution isn't built yet, so no automatic payment can be
   /// scheduled safely (see PENDING.md). Column kept for when that ships.
   paymentMethod         BillingPaymentMethod @default(MANUAL)
-  /// Business days (días hábiles) directly after a period's own close at
-  /// which payment is due (e.g. BCI's real-world "3 días hábiles"). Null = no
-  /// due date configured/shown. Business-day-only for now — there is no
-  /// calendar-day alternative for this one yet.
+  /// When payment is due, counted from a period's own close. Meaning depends on
+  /// `paymentDueCycleType`: a count of business days (e.g. BCI's real-world "3
+  /// días hábiles") for BUSINESS_DAY, or a fixed day-of-month for CALENDAR_DAY.
+  /// Null = no due date configured/shown.
   paymentDueDay         Int?
+  /// Independent of `cycleType` (generation): an issuer can generate on a fixed
+  /// day-of-month but still owe payment N business days later, or vice versa.
+  paymentDueCycleType   BillingCycleType     @default(BUSINESS_DAY)
   /// Percentage of a statement that counts as its MINIMUM payment (e.g. 5 = 5%).
   /// There is no universal rule for this — each issuer sets its own — so it is
   /// per-account configuration rather than a constant. Null = this account has no

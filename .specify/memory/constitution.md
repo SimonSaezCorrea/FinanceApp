@@ -1,4 +1,23 @@
 <!--
+Sync Impact Report — 2026-08-29 (amendment 1.49.0)
+- Version change: 1.48.0 → 1.49.0 (MINOR: new enforceable rule — the payment due date's cycle type
+  is now configured independently of generation's — no principle removed or redefined).
+- New **`BillingSettings.paymentDueCycleType`** (`BUSINESS_DAY` default | `CALENDAR_DAY`) decides how
+  `paymentDueDay` is counted — resolving the "días hábiles only, no calendar-day alternative" limitation
+  recorded in amendment 1.48.0 below. **Independent of `cycleType`** (generation): an issuer can
+  generate on a fixed day-of-month but still owe payment N días hábiles later, or vice versa, so the
+  two must never be coupled to the same setting.
+- `paymentDueDate(closedAt, paymentDueDay, paymentDueCycleType)` gained a CALENDAR_DAY branch (first
+  occurrence of `paymentDueDay` as a day-of-month strictly after `closedAt`) via a new shared helper,
+  `nextCalendarDayAfter`, which also now backs `nextBoundaryAfter`'s own CALENDAR_DAY branch so the two
+  "day-of-month, strictly after anchor" computations can't drift apart.
+- `AccountForm`/`BillingSettingsModal` gain a second, independent días-hábiles/día-del-mes Segmented
+  for payment (next to generation's own); the `paymentDueDay` field's label/placeholder/hint switch on
+  `paymentDueCycleType` the same way `billingCycleDay`'s already switch on `cycleType`.
+- Driven by a direct (non-SDD) implementation request. Templates requiring updates: none.
+-->
+
+<!--
 Sync Impact Report — 2026-08-24 (amendment 1.48.0)
 - Version change: 1.47.0 → 1.48.0 (MINOR: new enforceable rule — how a billing cut-off/due date is
   counted — no principle removed or redefined).
@@ -1510,4 +1529,4 @@ the principle wins, or the principle is formally amended — not silently ignore
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
 
-**Version**: 1.48.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-24
+**Version**: 1.49.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-29

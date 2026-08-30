@@ -144,6 +144,7 @@ export function accountAggregate(input: {
   billingCycleDay?: number | null;
   billingCycleType?: BankAccountProps["billingCycleType"];
   paymentDueDay?: number | null;
+  paymentDueCycleType?: BankAccountProps["paymentDueCycleType"];
   minimumPaymentPercent?: string | null;
   overdraftLimit?: string;
   balanceCeiling?: string | null;
@@ -174,6 +175,7 @@ export function accountAggregate(input: {
     billingCycleType: input.billingCycleType ?? "BUSINESS_DAY",
     paymentMethod: "MANUAL",
     paymentDueDay: input.paymentDueDay ?? null,
+    paymentDueCycleType: input.paymentDueCycleType ?? "BUSINESS_DAY",
     minimumPaymentPercent: input.minimumPaymentPercent ?? null,
     cards: input.cards ?? [],
     createdAt: input.createdAt ?? new Date("2026-01-01T00:00:00.000Z"),

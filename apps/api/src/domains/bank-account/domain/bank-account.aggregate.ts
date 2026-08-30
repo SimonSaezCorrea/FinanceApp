@@ -68,8 +68,10 @@ export interface BankAccountProps {
   billingCycleDay: number | null;
   billingCycleType: accounts.BillingCycleType;
   paymentMethod: accounts.BillingPaymentMethod;
-  /** Business days into next month at which payment is due, or null. */
+  /** Meaning depends on `paymentDueCycleType`: business days after close, or a
+   * day-of-month. Null = unconfigured. */
   paymentDueDay: number | null;
+  paymentDueCycleType: accounts.BillingCycleType;
   /** Minimum-payment percentage of this account's statements ("5" = 5%), or null. */
   minimumPaymentPercent: string | null;
   cards: CardProps[];
@@ -245,6 +247,9 @@ export class BankAccount {
   get paymentDueDay(): number | null {
     return this.props.paymentDueDay;
   }
+  get paymentDueCycleType(): accounts.BillingCycleType {
+    return this.props.paymentDueCycleType;
+  }
 
   get minimumPaymentPercent(): string | null {
     return this.props.minimumPaymentPercent;
@@ -394,6 +399,7 @@ export class BankAccount {
     billingCycleType?: accounts.BillingCycleType;
     paymentMethod?: accounts.BillingPaymentMethod;
     paymentDueDay?: number | null;
+    paymentDueCycleType?: accounts.BillingCycleType;
     minimumPaymentPercent?: string | null;
   }): void {
     const effectiveType = patch.type ?? this.props.type;
@@ -434,6 +440,8 @@ export class BankAccount {
     if (patch.billingCycleType !== undefined) this.props.billingCycleType = patch.billingCycleType;
     if (patch.paymentMethod !== undefined) this.props.paymentMethod = patch.paymentMethod;
     if (patch.paymentDueDay !== undefined) this.props.paymentDueDay = patch.paymentDueDay;
+    if (patch.paymentDueCycleType !== undefined)
+      this.props.paymentDueCycleType = patch.paymentDueCycleType;
     if (patch.minimumPaymentPercent !== undefined)
       this.props.minimumPaymentPercent = patch.minimumPaymentPercent;
   }

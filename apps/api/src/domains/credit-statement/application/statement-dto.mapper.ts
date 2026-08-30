@@ -21,8 +21,10 @@ export function toStatementDto(
     breakdown: { purchases: string; installments: string; installmentCount: number };
     /** The account's configured minimum-payment percentage, or null. */
     minimumPercent: string | null;
-    /** The account's configured business-days payment due day, or null. */
+    /** The account's configured payment due day, or null. */
     paymentDueDay: number | null;
+    /** How `paymentDueDay` is counted (días hábiles or day-of-month). */
+    paymentDueCycleType: accounts.BillingCycleType;
   },
 ): accounts.CreditStatement {
   // A settled period owes nothing, even when the payment didn't cover it all:
@@ -34,7 +36,7 @@ export function toStatementDto(
   // has no due date yet, and neither does an account with no due-day configured.
   const dueDate =
     statement.closedAt && input.paymentDueDay != null
-      ? paymentDueDate(statement.closedAt, input.paymentDueDay).toISOString()
+      ? paymentDueDate(statement.closedAt, input.paymentDueDay, input.paymentDueCycleType).toISOString()
       : null;
   return {
     id: statement.id,

@@ -92,28 +92,44 @@ export function currentCycleStart(
  *   (días hábiles) after `periodStart` — e.g. BCI's real-world 20 días
  *   hábiles counted from the previous period's close.
  */
+/** The first occurrence of `dayOfMonth` strictly after `anchor` — this month's,
+ * or next month's if this month's has already passed (or falls on `anchor`
+ * itself). Shared by `nextBoundaryAfter`'s and `paymentDueDate`'s CALENDAR_DAY
+ * branch, so the two don't drift on the same "day-of-month, strictly after"
+ * rule. */
+function nextCalendarDayAfter(anchor: Date, dayOfMonth: number): Date {
+  const year = anchor.getUTCFullYear();
+  const month = anchor.getUTCMonth();
+  const candidate = new Date(Date.UTC(year, month, dayOfMonth));
+  return candidate > anchor ? candidate : new Date(Date.UTC(year, month + 1, dayOfMonth));
+}
+
 export function nextBoundaryAfter(
   periodStart: Date,
   billingCycleDay: number,
   cycleType: accounts.BillingCycleType,
 ): Date {
   if (cycleType === "BUSINESS_DAY") return addBusinessDays(periodStart, billingCycleDay);
-  const year = periodStart.getUTCFullYear();
-  const month = periodStart.getUTCMonth();
-  const candidate = new Date(Date.UTC(year, month, billingCycleDay));
-  return candidate > periodStart ? candidate : new Date(Date.UTC(year, month + 1, billingCycleDay));
+  return nextCalendarDayAfter(periodStart, billingCycleDay);
 }
 
 /**
- * The payment due date for a period closed at `closedAt`: `dueBusinessDays`
- * business days directly after the CLOSE itself (e.g. BCI's real-world "3
- * días hábiles" — closed Jul 22 → due Aug 5, with generation's own "20 días
- * hábiles" running the same clock from the same close to the NEXT one, Aug
- * 20). Same mechanism as `nextBoundaryAfter`'s BUSINESS_DAY branch, just
- * anchored to `closedAt` instead of `periodStart` and with its own count.
- * Business days only, for now — there is no calendar-day alternative for a
- * payment due date yet (see `BillingSettings.paymentDueDay`'s doc comment).
+ * The payment due date for a period closed at `closedAt`, counted from the
+ * CLOSE itself — independent of how generation itself is counted
+ * (`BillingSettings.cycleType`), since an issuer can generate on a fixed
+ * day-of-month but still owe payment N business days later, or vice versa:
+ * - BUSINESS_DAY: `dueDay` business days directly after `closedAt` (e.g. BCI's
+ *   real-world "10 días hábiles" — closed Jul 22 → due Aug 5). Same mechanism
+ *   as `nextBoundaryAfter`'s BUSINESS_DAY branch, just anchored to `closedAt`
+ *   instead of `periodStart` and with its own count.
+ * - CALENDAR_DAY: the first occurrence of `dueDay` as a day-of-month strictly
+ *   after `closedAt`.
  */
-export function paymentDueDate(closedAt: Date, dueBusinessDays: number): Date {
-  return addBusinessDays(closedAt, dueBusinessDays);
+export function paymentDueDate(
+  closedAt: Date,
+  dueDay: number,
+  cycleType: accounts.BillingCycleType,
+): Date {
+  if (cycleType === "BUSINESS_DAY") return addBusinessDays(closedAt, dueDay);
+  return nextCalendarDayAfter(closedAt, dueDay);
 }

@@ -56,6 +56,7 @@ function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountPro
     billingCycleType: "BUSINESS_DAY",
     paymentMethod: "MANUAL",
     paymentDueDay: null,
+    paymentDueCycleType: "BUSINESS_DAY",
     minimumPaymentPercent: null,
     cards: [],
     createdAt: new Date(),

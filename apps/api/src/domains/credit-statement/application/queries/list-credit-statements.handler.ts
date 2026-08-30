@@ -39,6 +39,7 @@ export class ListCreditStatementsQueryHandler extends BaseQueryHandler<
     const account = await this.accountRepo.findById(query.userId, query.accountId);
     const minimumPercent = account?.minimumPaymentPercent ?? null;
     const paymentDueDay = account?.paymentDueDay ?? null;
+    const paymentDueCycleType = account?.paymentDueCycleType ?? "BUSINESS_DAY";
     const statements = await this.statementRepo.listForAccount(query.userId, query.accountId);
     return Promise.all(
       statements.map(async (s) => {
@@ -48,7 +49,13 @@ export class ListCreditStatementsQueryHandler extends BaseQueryHandler<
         // because an unsettled period's total is built FROM it, not alongside it.
         const breakdown = await this.statementRepo.breakdown(s.id);
         const amount = s.paidAt ? s.amount : s.totalFor(breakdown.purchases, breakdown.installments);
-        return toStatementDto(s, { amount, breakdown, minimumPercent, paymentDueDay });
+        return toStatementDto(s, {
+          amount,
+          breakdown,
+          minimumPercent,
+          paymentDueDay,
+          paymentDueCycleType,
+        });
       }),
     );
   }

@@ -15,9 +15,13 @@ export interface BillingSettingsProps {
   /** Días hábiles (default) or a fixed day-of-month. */
   cycleType: accounts.BillingCycleType;
   paymentMethod: accounts.BillingPaymentMethod;
-  /** Business days directly after a period's own close at which payment is
-   * due (e.g. BCI's real-world "3 días hábiles"). Null = no due date shown. */
+  /** Meaning depends on `paymentDueCycleType`: business days directly after a
+   * period's own close (e.g. BCI's real-world "10 días hábiles") for
+   * BUSINESS_DAY, or a day-of-month for CALENDAR_DAY. Null = no due date shown. */
   paymentDueDay: number | null;
+  /** Días hábiles (default) or a fixed day-of-month — independent of `cycleType`
+   * (generation may be one and payment the other). */
+  paymentDueCycleType: accounts.BillingCycleType;
   /** Percentage of a statement that counts as its minimum payment ("5" = 5%).
    * Null = this account has no minimum, and none is offered when paying. */
   minimumPaymentPercent: string | null;
@@ -28,5 +32,6 @@ export const DEFAULT_BILLING_SETTINGS: BillingSettingsProps = {
   cycleType: "BUSINESS_DAY",
   paymentMethod: "MANUAL",
   paymentDueDay: null,
+  paymentDueCycleType: "BUSINESS_DAY",
   minimumPaymentPercent: null,
 };

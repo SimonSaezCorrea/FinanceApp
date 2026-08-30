@@ -100,6 +100,7 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
         billingCycleType: accountSettings?.cycleType ?? "BUSINESS_DAY",
         paymentMethod: accountSettings?.paymentMethod ?? "MANUAL",
         paymentDueDay: accountSettings?.paymentDueDay ?? null,
+        paymentDueCycleType: accountSettings?.paymentDueCycleType ?? "BUSINESS_DAY",
         minimumPaymentPercent: accountSettings?.minimumPaymentPercent ?? null,
         cards: accountCards,
         createdAt: row.createdAt,
@@ -172,6 +173,7 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
       cycleType: plan.billingCycleType,
       paymentMethod: plan.paymentMethod,
       paymentDueDay: plan.paymentDueDay,
+      paymentDueCycleType: plan.paymentDueCycleType,
     });
     const fresh = await this.findById(userId, row.id);
     if (!fresh) throw new Error("account disappeared right after being created");
@@ -210,6 +212,7 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
       cycleType: snap.billingCycleType,
       paymentMethod: snap.paymentMethod,
       paymentDueDay: snap.paymentDueDay,
+      paymentDueCycleType: snap.paymentDueCycleType,
       minimumPaymentPercent: snap.minimumPaymentPercent,
     });
   }

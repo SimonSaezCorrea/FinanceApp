@@ -89,6 +89,9 @@ export class UpdateAccountHandler extends BaseCommandHandler<
         : {}),
       ...(input.paymentMethod !== undefined ? { paymentMethod: input.paymentMethod } : {}),
       ...(input.paymentDueDay !== undefined ? { paymentDueDay: input.paymentDueDay } : {}),
+      ...(input.paymentDueCycleType !== undefined
+        ? { paymentDueCycleType: input.paymentDueCycleType }
+        : {}),
       ...(input.minimumPaymentPercent !== undefined
         ? { minimumPaymentPercent: input.minimumPaymentPercent }
         : {}),

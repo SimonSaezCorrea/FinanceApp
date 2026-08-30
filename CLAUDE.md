@@ -122,6 +122,22 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     (see `docs/PENDING.md` point 4). No migration: `db push` regenerates `BillingSettings.cycleType`
     at its default; the seed sets the main seeded credit account to `BUSINESS_DAY` (20/3, mirroring
     BCI) and keeps a second one on `CALENDAR_DAY` to demonstrate both modes.
+    Amendment (payment due date gets its own independent cycle type, 2026-08-29): the "días-hábiles
+    only, no calendar-day alternative yet" limitation above is resolved. New
+    **`BillingSettings.paymentDueCycleType`** (`BillingCycleType`, `BUSINESS_DAY` default |
+    `CALENDAR_DAY`) decides how `paymentDueDay` is counted — **independent of `cycleType`**
+    (generation): an issuer can generate on a fixed day-of-month but still owe payment N días hábiles
+    later, or vice versa, so the two are never coupled. `paymentDueDate(closedAt, paymentDueDay,
+    paymentDueCycleType)` gained a CALENDAR_DAY branch (the first occurrence of `paymentDueDay` as a
+    day-of-month strictly after `closedAt`) via a new shared helper, `nextCalendarDayAfter`, that also
+    now backs `nextBoundaryAfter`'s own CALENDAR_DAY branch — the same "day-of-month, strictly after
+    anchor" rule, so the two can't drift apart. `AccountForm`/`BillingSettingsModal` gain a SECOND,
+    independent días-hábiles/día-del-mes Segmented for payment (next to generation's own), and the
+    `paymentDueDay` field's label/placeholder/hint switch on `paymentDueCycleType` the same way
+    `billingCycleDay`'s already switch on `cycleType`. No migration: `db push` regenerates
+    `BillingSettings.paymentDueCycleType` at its `BUSINESS_DAY` default; the seed's `CALENDAR_DAY`
+    demo account (Visa Crédito, Banco de Chile) now pairs CALENDAR_DAY generation with a
+    BUSINESS_DAY payment due date, to demonstrate the two being configured independently.
     Amendment (billing periods + automatic generation + real payments, 2026-07-25): the old
     one-shot `POST /accounts/:id/pay-credit` (which just zeroed `creditUsed`) is replaced by a
     full billing-period model. **`Transaction.creditStatementId`** links a contributing movement,

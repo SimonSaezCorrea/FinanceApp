@@ -101,20 +101,30 @@ describe("nextBoundaryAfter", () => {
 });
 
 describe("paymentDueDate", () => {
-  it("counts business days directly after the close itself (BCI real-world: 22 Jul close -> 10 días hábiles -> 5 Aug due)", () => {
-    const due = paymentDueDate(new Date("2026-07-22T00:00:00Z"), 10);
+  it("BUSINESS_DAY: counts business days directly after the close itself (BCI real-world: 22 Jul close -> 10 días hábiles -> 5 Aug due)", () => {
+    const due = paymentDueDate(new Date("2026-07-22T00:00:00Z"), 10, "BUSINESS_DAY");
     expect(due.toISOString()).toBe("2026-08-05T00:00:00.000Z");
   });
 
-  it("is exactly addBusinessDays(closedAt, dueBusinessDays) — same mechanism generation uses", () => {
+  it("BUSINESS_DAY: is exactly addBusinessDays(closedAt, dueBusinessDays) — same mechanism generation uses", () => {
     const closedAt = new Date("2026-08-20T00:00:00Z");
-    expect(paymentDueDate(closedAt, 10).toISOString()).toBe(
+    expect(paymentDueDate(closedAt, 10, "BUSINESS_DAY").toISOString()).toBe(
       addBusinessDays(closedAt, 10).toISOString(),
     );
   });
 
-  it("rolls into the next month/year like any other business-day count", () => {
-    const due = paymentDueDate(new Date("2026-12-30T00:00:00Z"), 3);
+  it("BUSINESS_DAY: rolls into the next month/year like any other business-day count", () => {
+    const due = paymentDueDate(new Date("2026-12-30T00:00:00Z"), 3, "BUSINESS_DAY");
     expect(due.getUTCFullYear()).toBe(2027);
+  });
+
+  it("CALENDAR_DAY: first occurrence of the day-of-month strictly after closedAt, independent of generation's own cycle type", () => {
+    const due = paymentDueDate(new Date("2026-07-22T00:00:00Z"), 5, "CALENDAR_DAY");
+    expect(due.toISOString()).toBe("2026-08-05T00:00:00.000Z");
+  });
+
+  it("CALENDAR_DAY: rolls into the next month when the day already passed this month", () => {
+    const due = paymentDueDate(new Date("2026-12-30T00:00:00Z"), 3, "CALENDAR_DAY");
+    expect(due.toISOString()).toBe("2027-01-03T00:00:00.000Z");
   });
 });
