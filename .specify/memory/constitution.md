@@ -1,4 +1,75 @@
 <!--
+Sync Impact Report — 2026-09-02 (amendment 2.0.0)
+- Version change: 1.49.0 → 2.0.0 (MAJOR). Two additions would have been MINOR on their own, but
+  TWO EXISTING RULES ARE REDEFINED IN A BACKWARD-INCOMPATIBLE WAY, which this document's own
+  versioning policy classifies as MAJOR: (1) the keyset-pagination cursor's "opaque" was a
+  descriptive word and is now a verifiable requirement (MAC + version id) that the shipped cursor
+  does not meet; (2) object-storage keys may no longer derive from a user or resource identifier,
+  which invalidates the `storageKey` format ratified with specs/010. Additionally, new Principle VIII
+  forbids a state the schema is currently IN (two id formats in the same column). Callers, stored
+  keys and in-flight cursors are all affected.
+- AMENDED Principle II (Per-User Data Isolation): the legacy Next.js mechanism (`session.user.id`,
+  `auth()` inside `app/api/**/route.ts`) is replaced by the NestJS/CQRS reality — `JwtAuthGuard` +
+  `@CurrentUser`, the `userId` carried on every command/query, and the scoping applied to the Prisma
+  query itself rather than checked after an unscoped read; the cron's `scope: "system"` command is
+  named as the sole exception. Closes part of the drift acknowledged in the 1.11.0 report and in the
+  "Migration status" bullet. NEW normative paragraph: a body-supplied FK MUST be ownership-verified
+  BEFORE being persisted, and a null-returning ownership resolver MUST NOT be conflated with an
+  absent field.
+- ADDED Principle VII (Idempotencia de escrituras): every HTTP write must be retry-safe by one of
+  three declared mechanisms (terminal state machine / natural key + unique constraint / client-supplied
+  request identity), with `+= 1` counters, keyless `createMany` and unguarded timestamp re-stamping
+  named as non-satisfying; balance-, credit-pool- and instalment-count-moving writes require (b) or (c).
+- ADDED Principle VIII (Identificadores): one row-identifier format across all 23 tables, no two
+  formats in one column, structurally validatable and validated at the edge before reaching a
+  command/query; identifiers are never reused; business identifiers are their own columns with their
+  own validation and are never the PK; an identifier is not authorization.
+- AMENDED Architecture norm "Unbounded list growth (paginated reads)": "opaque" replaced by a MAC +
+  version-id requirement, with `INVALID_CURSOR` now triggered by MAC failure.
+- AMENDED Architecture norm "Uploaded files are validated, not trusted": object-storage keys MUST be
+  opaque and MUST NOT derive from any user or resource identifier, because a key inside a presigned
+  URL is public surface (address bar, `Referer`, intermediate caches).
+- ADDED Governance bullet: API versioning / deprecation / contract-breaking-change policy is recorded
+  as a KNOWN GAP, explicitly out of scope of this amendment (zero external consumers today).
+- Driven by a read-only identifier audit of code + SDD artifacts (2026-09-02), not by an SDD feature
+  cycle. Language: the amendment text is recorded verbatim in the maintainer's Spanish, matching the
+  project's existing bilingual governance practice in `CLAUDE.md`.
+- Templates requiring updates: ✅ `.specify/templates/plan-template.md` (Constitution Check gained
+  three explicit data gates — identifier format, idempotency mechanism, body-FK ownership).
+  `.specify/templates/spec-template.md` — no change needed (it deliberately asks for key entities
+  "without implementation"; identifier format is a plan-level concern). `.specify/templates/
+  tasks-template.md` — no change needed (its categories already carry contract/data-model tasks).
+- ⚠ CONFORMANCE DEBT — the code does NOT satisfy this amendment on the day it is ratified. Known
+  violations, from the 2026-09-02 audit, none of them fixed by this document:
+  * Principle VIII, one format: 23/23 PKs are `@default(cuid())` but runtime-minted ids use
+    `randomUUID()` in the same `id` columns (`pay-credit-statement.handler.ts:126`,
+    `pay-installment.handler.ts:126`, `create-transfer.handler.ts:65`,
+    `upload-attachment.handler.ts:61`).
+  * Principle VIII, validation at the edge: all 13 path-param schemas are `z.string().min(1)`;
+    there is no format validation anywhere (`packages/contracts/src`: 0 hits for `.cuid(`/`.uuid(`).
+    This also means specs/009's SC-007 is only trivially met.
+  * Principle II, body FKs: six write paths accept and persist an unverified foreign FK —
+    `POST /import/transactions` (`bankAccountId`), `POST /savings/entries` (`savingsGoalId`),
+    `POST|PATCH /investments` and `/recurring` (`bankAccountId`), `POST|PATCH /installments`
+    (`paymentAccountId`), plus `POST /installments`'s `cardId`, whose `kindForCard` returns `null`
+    for a foreign card — exactly the conflation the new paragraph forbids.
+  * Principle VII: `POST /transactions`, `/transactions/transfers`, `/import/transactions`,
+    attachment upload and `POST /installments` are unprotected against retry; `POST /debts/:id/
+    register-payment` and `/undo-payment` are raw `+= 1`/`-= 1` counters; `POST /debts/:id/settle`
+    re-stamps `settledAt` unguarded.
+  * Cursor MAC: `transaction/application/queries/transaction-cursor.ts` is unsigned base64url.
+  * Storage keys: `attachment-policy.ts:48-63` derives the key from `userId`/`transactionId`/
+    `attachmentId` and it egresses verbatim inside the presigned URL.
+  These are now constitutional violations rather than undocumented gaps, and each needs its own
+  spec/plan to close. ✅ Catalogued in `docs/PENDING.md` § "Deuda de conformidad con la constitución
+  v2.0.0" (7 entries: the 6 violations above + the API-versioning gap), per the "No silent
+  placeholders" gate — that section is the project-wide index; this report is the `file:line` detail.
+  Note recorded there: entry 6 (storage keys) CONTRADICTS
+  `specs/010-movement-transfers-attachments/data-model.md:34-35`, which ratified the derived
+  `storageKey` format — that spec needs the contradiction annotated when it is next touched.
+-->
+
+<!--
 Sync Impact Report — 2026-08-29 (amendment 1.49.0)
 - Version change: 1.48.0 → 1.49.0 (MINOR: new enforceable rule — the payment due date's cycle type
   is now configured independently of generation's — no principle removed or redefined).
@@ -1182,13 +1253,25 @@ confirmation at all.
 
 ### II. Per-User Data Isolation (NON-NEGOTIABLE)
 
-Every data read and write MUST be scoped by `session.user.id`. API route handlers
-(`app/api/**/route.ts`) MUST call `auth()` and return `401` when there is no valid session
-(the locale/auth middleware does not protect `api` routes). No query may return, and no
-mutation may touch, another user's data.
+Every data read and write MUST be scoped by the authenticated `userId`. Every HTTP entry point
+MUST be protected by `JwtAuthGuard` and take that identity from `@CurrentUser` — never from a
+body, a query string or a path parameter — returning `401` when there is no valid session
+cookie or the account is no longer `ACTIVE`. Every command and query carries the `userId`, and
+every Prisma adapter applies it to the query ITSELF (`where: { id, userId }`, or the parent
+chain `where: { id, account: { userId } }` for a table whose rows exist only inside another
+aggregate) — never as a check performed after an unscoped read. No query may return, and no
+mutation may touch, another user's data. A `scope: "system"` command (the billing cron's batch
+generation) is the ONLY exception and MUST be named and typed as such at its call site.
 
 Rationale: financial data is sensitive and personal. A single unscoped query is a data
 breach. Isolation is enforced at every entry point, not assumed.
+
+El scoping de la lectura no basta. Todo identificador de otra entidad que llegue en el cuerpo de
+un request y vaya a persistirse como FK MUST ser verificado como propiedad del usuario
+autenticado ANTES de escribirse. Aceptar y persistir una referencia ajena es una violación de
+aislamiento aunque ninguna lectura la siga todavía. La ausencia de un recurso propio y la
+existencia de uno ajeno MUST ser indistinguibles: un resolver de ownership que devuelve null no
+puede conflarse con "el campo venía vacío".
 
 ### III. i18n Parity (NON-NEGOTIABLE)
 
@@ -1280,6 +1363,41 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
 `accounts` reference tree: `docs/{english,spanish}/ARCHITECTURE.md` §12a;
 `specs/009-ddd-cqrs-architecture/spec.md`.
 
+### VII. Idempotencia de escrituras (NON-NEGOTIABLE)
+
+Toda operación de escritura expuesta por HTTP MUST ser segura ante reintento. Se satisface de una
+de tres formas, declaradas explícitamente en el plan de cada feature:
+
+- (a) máquina de estados con transición terminal que rechaza el replay;
+- (b) llave natural con constraint único en Postgres;
+- (c) identidad de request provista por el cliente, con constraint único y respuesta idéntica al
+  primer resultado.
+
+Un contador incrementado con `+= 1`, un `createMany` sin llave, o un timestamp re-estampado sin
+guarda NO satisfacen ninguna de las tres.
+
+Las escrituras que mueven saldo, cupo o cantidad de cuotas MUST usar (b) o (c); (a) sola no alcanza
+cuando el efecto es un delta y no un estado absoluto.
+
+Rationale: en una app de finanzas un timeout de red reintentado no puede cobrar dos veces.
+
+### VIII. Identificadores (NON-NEGOTIABLE)
+
+Existe UN formato de identificador de fila para todo el esquema, declarado en la constitución y
+uniforme en las 23 tablas. Está prohibido que dos formatos convivan en la misma columna.
+
+El formato MUST ser validable estructuralmente, y todo parámetro de ruta que lleve un identificador
+MUST validarse contra ese formato en el borde, antes de alcanzar un command o query.
+
+Los identificadores nunca se reutilizan.
+
+Los identificadores de negocio (código de institución, CBU, referencias externas, llaves de
+catálogo del tipo `RUT-`/`PSP-`/`AGF-`) son columnas propias con su validación; no son la PK.
+Re-llavearlos exige retiro explícito de la llave vieja (`docs/CATALOGO_REGIONAL.md` reglas 6 y 7).
+
+Un identificador no es autorización: el ownership se valida igual en cada entrada, sea el
+identificador adivinable o no.
+
 ## Technology & Operational Constraints
 
 - **Scope is data, not code (MVP — `docs/MVP.md`):** the first iteration ships **Chile only**, with
@@ -1315,12 +1433,14 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
     `pnpm check:boundaries` (the frontend must not import backend internals or any DB client).
   - **Validation with zod** (`ZodValidationPipe`), not class-validator.
   - **Unbounded list growth (paginated reads):** a list endpoint whose rows grow without limit
-    (`transaction` today) MUST offer **keyset pagination** — an opaque `cursor` over a _total_
+    (`transaction` today) MUST offer **keyset pagination** — a `cursor` over a _total_
     sort key (`(occurredAt, id)`, never a bare timestamp) plus `limit`, returning
     `{ items, nextCursor }`. Offset pagination is NOT used: rows are inserted and deleted while
-    the user scrolls, which makes offsets skip and repeat records. A cursor the API didn't issue
-    is **rejected** (`INVALID_CURSOR`), never silently treated as "start over" — that turns a
-    paginating client into an infinite loop. **Aggregates over a paginated set (counts, sums,
+    the user scrolls, which makes offsets skip and repeat records. El cursor MUST llevar un MAC
+    sobre su payload y un identificador de versión. Un cursor cuyo MAC no valida se rechaza con
+    `INVALID_CURSOR`. "Opaco" significa autenticado por el servidor, no codificado en base64.
+    Un cursor rechazado nunca se trata en silencio como "empezar de nuevo" — eso convierte a un
+    cliente que pagina en un bucle infinito. **Aggregates over a paginated set (counts, sums,
     distinct values) MUST be computed in the database and served separately** (e.g.
     `GET /transactions/summary`), never folded from the rows a client happens to have loaded:
     a KPI derived from page one is a wrong number, not an approximation.
@@ -1461,7 +1581,10 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
     the API — declared content type against an allow-list, the file's real **magic bytes** against
     that declared type, and a size cap enforced by the upload interceptor with in-memory (never
     on-disk) storage — before anything is written and after the owning record's ownership is
-    verified. Ownership failures answer 404, never 403.
+    verified. Ownership failures answer 404, never 403. Las claves de object storage MUST ser
+    opacas y no derivarse de ningún identificador de usuario ni de recurso. Una clave que viaja
+    dentro de una URL prefirmada llega a la barra de direcciones, al header `Referer` y a cachés
+    intermedias, y por lo tanto es superficie pública.
   - **External storage is a port, and its absence is inert:** bytes stored outside the database are
     reached through a domain port (`ObjectStoragePort`), its client confined to `infrastructure/`,
     so the unit tier stays network-free. Missing configuration MUST leave the feature inert
@@ -1491,8 +1614,11 @@ risking write-side correctness. Full pattern-to-problem rationale (FR-005–FR-0
   Design tokens include the **clay `--accent`** channel (HSL, dark/light). Adding a new runtime
   dependency is a Principle V change (record it here and in `CLAUDE.md` the same session).
 - **Migration status:** the specs/001 monorepo migration has **merged to `main`** (PR #1); the legacy
-  single Next.js app is removed. (Principles II–III still use legacy Next.js phrasing — see the latest
-  Sync Impact Report; intent is unchanged, mechanisms are now NestJS guard + the web `src/i18n` catalogs.)
+  single Next.js app is removed. (Principle II was rewritten to the NestJS/CQRS mechanism in 2.0.0.
+  **Principle III still uses legacy Next.js phrasing** — `messages/{es,en}.json` and
+  `@/i18n/navigation` — where the real catalogs are `apps/web/src/i18n/{es,en}.json` and routing is
+  react-router v8 with no locale prefix; intent is unchanged and parity is enforced by
+  `src/i18n/parity.test.ts`. Pending its own amendment.)
 - **Environment:** per `.env.example` — `DATABASE_URL`, JWT secrets, CORS origin (api), and
   `VITE_API_URL` (web); optional `GOOGLE_CLIENT_*`, `ALPHA_VANTAGE_API_KEY`. Secrets MUST NOT be
   committed; `.env` stays out of version control.
@@ -1528,5 +1654,12 @@ the principle wins, or the principle is formally amended — not silently ignore
   wording.
 - **Compliance:** complexity MUST be justified against the principles. `CLAUDE.md` is the
   runtime guidance file and MUST be kept in sync with this constitution (Principle V).
+- **Known gap — API versioning (deliberately unresolved, 2026-09-02):** this document has NO clause
+  governing HTTP API versioning, deprecation, or contract breaking changes. The `/api/v1` prefix is
+  a naming convention with nothing behind it: no policy says what may change inside `v1`, what forces
+  a `v2`, or how long an old shape is served. It is not urgent — the API has **zero external
+  consumers** (one SPA at a single CORS origin, no published OpenAPI, no mobile client) — but it is
+  recorded here so it is a decision that was postponed, not one that was never noticed. Amending
+  Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 1.49.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-08-29
+**Version**: 2.0.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-02

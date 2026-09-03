@@ -444,3 +444,134 @@ tocarlo.
 Editar un plan no puede mostrarla ni recalcular nada con ella, que es coherente con que el calendario
 sea inmutable, pero significa que el interés de un plan ya creado sólo se deduce comparando la suma de
 sus cuotas con su principal.
+
+## Deuda de conformidad con la constitución v2.0.0 (identificadores, idempotencia, aislamiento)
+
+Esta sección es distinta al resto del documento. Las demás registran **UI que parece funcionar y no
+funciona**; ésta registra **principios que parecen vigentes y todavía no lo están**. La enmienda
+**v2.0.0** (2026-09-02) agregó los principios VII (Idempotencia) y VIII (Identificadores), reescribió
+§II y endureció dos normas de arquitectura — todo a partir de una auditoría de solo lectura, sin tocar
+código. El código **no cumple ninguno de los seis puntos de abajo**, y quien lea la constitución sin
+leer esto va a asumir que sí. Cada uno necesita su propia spec; ninguno es un arreglo de una línea.
+
+Referencia completa con `file:line`: el Sync Impact Report de 2026-09-02 al tope de
+`.specify/memory/constitution.md`.
+
+### 1. Dos formatos de identificador en la misma columna (§VIII)
+
+Las 23 tablas declaran `id String @id @default(cuid())`, pero los ids que se acuñan en runtime usan
+`randomUUID()` — `pay-credit-statement.handler.ts:126`, `pay-installment.handler.ts:126`,
+`create-transfer.handler.ts:65`, `upload-attachment.handler.ts:61`. Conviven cuid y uuid v4 en columnas
+`id` del mismo esquema, que es exactamente lo que §VIII prohíbe. Ninguno de los dos es enumerable, así
+que no hay riesgo de seguridad hoy: el problema es que **no existe "el formato" contra el cual validar**,
+y sin eso el resto de §VIII (validación estructural en el borde) no se puede escribir.
+
+**Para hacerlo real**: elegir UN formato para todo el esquema, declararlo en la constitución, y unificar
+los cuatro sitios de runtime con el `@default` del schema. Si el formato elegido no es cuid, es
+`db push` + `db:seed` (data de dev, sin migración) — el costo real está en el punto 6, que hornea ids en
+claves durables de S3.
+
+### 2. Ningún parámetro de ruta valida formato (§VIII)
+
+Los 13 schemas de path params son `z.string().min(1)`. Grep en `packages/contracts/src` de `.cuid(`,
+`.uuid(`, `.regex(`, `.brand(`: **cero aciertos**. Los 62 campos id del contrato son `z.string()` pelado.
+
+Tres consecuencias concretas: (a) un id malformado llega hasta el repositorio antes de que alguien lo
+rechace, que es justo lo que **specs/009 SC-007 declara cumplido** — hoy se cumple sólo en sentido
+trivial; (b) el orden de declaración de rutas es load-bearing y frágil — `GET /transactions/summary` y
+las tres `transfers/:groupId` **tienen que declararse antes de `:id`** o Nest las resuelve como ids, y
+está comentado en el código (`transactions.controller.ts:56-57,67-68`) porque no hay forma de que el
+pipe distinga un segmento literal de un id válido; (c) toda la superficie es una string libre.
+
+**Para hacerlo real**: depende del punto 1. Una vez fijado el formato, un `zod` refine compartido en
+`@finance/contracts` y aplicarlo en los 13 params + los campos id del contrato. Reescribir el criterio
+de aceptación de `specs/009/quickstart.md:91-95` para que verifique algo real.
+
+### 3. Seis FK del cuerpo se persisten sin verificar propiedad (§II)
+
+La fila creada siempre lleva el `userId` del caller, así que **nada se lee cross-tenant** — pero un cuid
+ajeno se acepta y se escribe en una columna FK:
+
+- `POST /import/transactions` — `bankAccountId` por fila. Cero lectura de ownership en toda la ruta
+  (`import-transactions.handler.ts` → `prisma-import.repository.ts:31` → `createMany`).
+- `POST /savings/entries` — `savingsGoalId`.
+- `POST|PATCH /investments` y `POST|PATCH /recurring` — `bankAccountId`.
+- `POST|PATCH /installments` — `paymentAccountId`.
+- `POST /installments` — `cardId`, y éste es el peor: `kindForCard` devuelve `null` para una tarjeta
+  ajena, **indistinguible de "no vino tarjeta"**, y el `cardId` se escribe igual. Es literalmente la
+  conflación que el párrafo nuevo de §II nombra y prohíbe.
+
+`POST /wallet` sí valida (`add-wallet-item.handler.ts:47-50`, `accountOwned`/`cardOwned`) y es el patrón
+que los otros seis tienen que espejar.
+
+**Para hacerlo real**: un lookup scopeado por `userId` antes de cada escritura, y que el resolver
+distinga "no existe para vos" de "no vino" con tipos, no con `null`.
+
+### 4. Escrituras sin protección contra reintento (§VII)
+
+No existe `Idempotency-Key` en el repo: cero header, cero tabla de dedupe, cero store de hash. Lo que
+hay son máquinas de estado y unique constraints, que cubren bien lo grande (el pago de facturación
+rechaza el replay con `STATEMENT_ALREADY_PAID`; la generación es idempotente por construcción; wallet
+tiene su `@@unique`) y **no cubren nada de esto**:
+
+- `POST /transactions` — segundo movimiento + segundo delta de saldo y cupo.
+- `POST /transactions/transfers` — `randomUUID()` por llamada ⇒ segundo par de filas y de deltas.
+- `POST /installments` — plan y calendario duplicados; con tarjeta CREDIT **duplica el movimiento de
+  compra, o sea dobla el cupo comprometido**.
+- `POST /import/transactions` — `createMany` sin `skipDuplicates` ni llave natural ⇒ **duplica el
+  archivo entero**.
+- Subida de adjunto — el `attachmentId` aleatorio va dentro de `storageKey`, así que el `@unique`
+  **nunca puede colisionar** (deliberado, para que dos archivos homónimos convivan).
+- `POST /debts/:id/register-payment` y `/undo-payment` — `paidInstallments += 1` / `-= 1` crudos. Doble
+  clic registra dos cuotas.
+- `POST /debts/:id/settle` — sin guarda, re-estampa `settledAt` con `new Date()` en cada llamada.
+
+Los tres últimos son exactamente los tres antipatrones que §VII nombra por su nombre.
+
+**Para hacerlo real**: para las escrituras que mueven plata, §VII exige (b) llave natural con constraint
+único o (c) identidad de request del cliente — la máquina de estados sola no alcanza cuando el efecto es
+un delta. Lo más barato es (c): header `Idempotency-Key`, tabla de dedupe con `@@unique`, y devolver el
+primer resultado. Para `/import` sirve (b): una llave natural por fila.
+
+### 5. El cursor de paginación no está firmado (§ paginación keyset)
+
+`transaction/application/queries/transaction-cursor.ts` es `base64url("<ISO8601>|<id>")` sin MAC, sin
+secreto, sin versión. Un `atob` devuelve la PK en claro y cualquiera puede forjar un cursor arbitrario.
+Forjarlo sólo mueve la ventana de la página, no el tenant (la query sigue scopeada por `userId`), así que
+el impacto hoy es acotado — pero la constitución decía "opaque" y el código no lo era, y por eso la
+enmienda reemplazó la palabra por un requisito verificable.
+
+**Para hacerlo real**: HMAC sobre el payload con un secreto de entorno + un id de versión en el propio
+cursor; `INVALID_CURSOR` cuando el MAC no valida. Los cursores en vuelo se invalidan al desplegar, que es
+aceptable (viven un scroll).
+
+### 6. Las claves de object storage derivan de ids (§ uploads)
+
+`attachment-policy.ts:48-63` construye `u/<userId>/t/<transactionId>/<attachmentId>-<slug>`, y esa clave
+viaja **verbatim dentro de la URL prefirmada** que se le entrega al navegador
+(`s3-object-storage.adapter.ts:45-49`, TTL 300s). O sea que el `userId` llega a la barra de direcciones,
+al header `Referer` y a cualquier caché intermedia. **Es el único camino por el que un `userId` sale de
+la app fuera del JWT** — el `storageKey` nunca se mapea a un DTO, egresa dentro del string de la URL.
+
+Complicación propia: la clave es **durable en S3**. Cambiar el formato no es sólo cambiar la función,
+es decidir qué pasa con los objetos ya escritos.
+
+**Para hacerlo real**: clave opaca sin relación con ningún id (un random propio guardado en
+`storageKey`, que ya es `@unique`), y para lo existente o una migración de objetos o una función de
+lectura que acepte los dos formatos por un tiempo. El formato viejo está ratificado en
+`specs/010-movement-transfers-attachments/data-model.md:34-35`, así que esa spec queda contradicha por
+la enmienda y hay que anotarlo ahí también.
+
+### 7. Sin política de versionado de API (gap declarado, no violación)
+
+La constitución **no tiene** cláusula de versionado de API HTTP, deprecación ni breaking change de
+contrato. El prefijo `/api/v1` es una convención de nombre sin nada detrás: nada dice qué puede cambiar
+dentro de `v1`, qué obliga a un `v2`, ni por cuánto tiempo se sirve una forma vieja.
+
+No es urgente y por eso se dejó fuera de la enmienda: hay **cero consumidores externos** (una sola SPA
+contra un único origen CORS, sin OpenAPI publicado, sin app móvil, sin integraciones). Queda registrado
+para que sea una decisión postergada y no una que nadie vio.
+
+**Para hacerlo real**: escribir la cláusula ANTES de que exista el primer consumidor externo. Los puntos
+1, 2 y 6 de esta sección son cambios de contrato, así que si aparece un consumidor primero, hay que
+resolver esto antes que ellos.

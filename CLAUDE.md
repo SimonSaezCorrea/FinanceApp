@@ -948,12 +948,57 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (v1.2.0). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.0.0**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
+- **Constitution v2.0.0 (2026-09-02) — identifiers, idempotency, isolation.** First MAJOR bump.
+  Two new NON-NEGOTIABLE principles and three amended rules, all born from a read-only audit of
+  how ids are shaped and exposed. **They describe the TARGET state; the code does not satisfy
+  them yet** — the Sync Impact Report at the top of the constitution lists every known violation
+  with `file:line`. Read it before assuming any of this is enforced.
+  - **§II (Per-User Data Isolation)** dropped its legacy Next.js phrasing (`session.user.id`,
+    `auth()` in `app/api/**/route.ts`) for the real mechanism: `JwtAuthGuard` + `@CurrentUser`,
+    `userId` carried on every command/query, scoping applied to the Prisma query ITSELF, and the
+    billing cron's `scope: "system"` command named as the sole exception. **New rule:** a FK that
+    arrives in a request body MUST be ownership-verified BEFORE it is persisted — accepting a
+    foreign reference is an isolation breach even when no read follows it yet — and an ownership
+    resolver returning `null` MUST NOT be conflated with "the field was empty" (exactly what
+    `create-installment-plan.handler.ts`'s `kindForCard` does with a foreign `cardId` today).
+    Six write paths currently violate this; they are listed in the report.
+  - **§VII Idempotencia de escrituras (new).** Every HTTP write MUST be retry-safe by one of three
+    mechanisms, **declared explicitly in the feature's plan**: (a) terminal-state machine that
+    rejects the replay, (b) natural key + unique constraint in Postgres, (c) client-supplied request
+    identity + unique constraint, returning the first result. A `+= 1` counter, a keyless
+    `createMany` and an unguarded timestamp re-stamp satisfy NONE. Writes that move balance, credit
+    pool or instalment count MUST use (b) or (c) — (a) alone doesn't hold when the effect is a delta
+    rather than an absolute state. Today the `CreditStatement` state machine and the wallet's unique
+    constraints are the only real guards; `POST /transactions`, `/transactions/transfers`,
+    `/import/transactions`, attachment upload and `POST /installments` are unprotected.
+  - **§VIII Identificadores (new).** ONE row-identifier format across all 23 tables; two formats in
+    the same column are forbidden (today `@default(cuid())` and runtime `randomUUID()` share the
+    `id` columns). The format MUST be structurally validatable and **validated at the edge** before
+    a command/query — today every path-param schema is a bare `z.string().min(1)`. Ids are never
+    reused. Business identifiers (institution `code`, CBU, `RUT-`/`PSP-`/`AGF-` catalogue keys) are
+    their own columns with their own validation and are NEVER the PK; re-keying one requires
+    explicitly retiring the old key (`docs/CATALOGO_REGIONAL.md` rules 6-7). **An identifier is not
+    authorization:** ownership is validated on every entry regardless of how unguessable the id is.
+  - **Keyset cursor:** "opaque" stopped being a descriptive word. The cursor MUST carry a **MAC over
+    its payload plus a version id**, and `INVALID_CURSOR` is what a failing MAC returns. Base64 is
+    not opacity — `transaction-cursor.ts` is unsigned `base64url("<ISO>|<id>")` and one `atob`
+    yields the raw PK.
+  - **Object-storage keys** MUST be opaque and MUST NOT derive from any user or resource id: a key
+    inside a presigned URL reaches the address bar, the `Referer` header and intermediate caches, so
+    it is public surface. `attachment-policy.ts`'s `u/<userId>/t/<txId>/<attachmentId>-<slug>`
+    violates this and is the only path by which a `userId` leaves the app outside the JWT.
+  - **`plan-template.md`'s Constitution Check gained three data gates** (identifier format per new
+    entity, idempotency mechanism per new write endpoint, ownership-verification point per
+    body-supplied FK) — the section was generic before and enumerated no data rule at all.
+  - **Known gap, recorded on purpose:** there is still NO clause on API versioning, deprecation or
+    contract breaking changes. `/api/v1` is a naming convention with no policy behind it. Not urgent
+    (zero external consumers: one SPA, one CORS origin, no published OpenAPI, no mobile client), but
+    it must be decided before any consumer exists.
 - **Architecture migration (specs/001):** the monorepo above was implemented on branch
-  `001-api-frontend-monorepo` (the legacy single Next.js app was removed). `main` still holds the
-  legacy app until this branch is merged. Constitution is `v1.2.0`; bump it to reflect the merge
-  when it lands. See specs/001-api-frontend-monorepo/{plan,tasks}.md.
+  `001-api-frontend-monorepo` (the legacy single Next.js app was removed) and has **merged to
+  `main`** (PR #1). See specs/001-api-frontend-monorepo/{plan,tasks}.md.
 - **Keep memory in sync (mandatory):** on ANY relevant change — new dependency,
   convention, data-model/schema change, env var, command, routing/auth change, or
   new principle — update BOTH `.specify/memory/constitution.md` (principle-level,
