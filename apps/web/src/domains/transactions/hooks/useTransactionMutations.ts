@@ -13,7 +13,11 @@ export function useTransactionMutations() {
   };
 
   return {
-    create: useMutation({ mutationFn: transactionsApi.create, onSuccess: invalidate }),
+    create: useMutation({
+      mutationFn: (vars: { body: transactions.CreateTransaction; idempotencyKey: string }) =>
+        transactionsApi.create(vars.body, vars.idempotencyKey),
+      onSuccess: invalidate,
+    }),
     update: useMutation({
       mutationFn: (vars: { id: string; body: transactions.UpdateTransaction }) =>
         transactionsApi.update(vars.id, vars.body),

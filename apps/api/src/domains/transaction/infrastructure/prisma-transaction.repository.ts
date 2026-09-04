@@ -207,42 +207,56 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
       grouped.find((g) => g.type === t)?._sum.amount?.toString() ?? "0";
     return { income: find(TransactionType.INCOME), expense: find(TransactionType.EXPENSE) };
   }
+  /** Opens its own transaction. Kept as the plain entry point; callers that need
+   * to enlist other tables (idempotency's COMPLETED mark) pass their own `tx` to
+   * `saveNewWithTx` instead — same pattern as
+   * `prisma-installment-plan.repository.ts`'s `create`/`createWithTx`. */
   async saveNew(
     userId: string,
     plan: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     creditUsedDelta: { accountId: string; delta: string } | null,
     balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<Transaction> {
-    const row = await this.prisma.$transaction(async (tx) => {
-      const created = await tx.transaction.create({
-        data: {
-          userId,
-          type: plan.type,
-          amount: plan.amount,
-          currency: plan.currency,
-          occurredAt: plan.occurredAt,
-          category: plan.category,
-          description: plan.description,
-          observation: plan.observation,
-          emisor: plan.emisor,
-          receptor: plan.receptor,
-          lugar: plan.lugar,
-          bankAccountId: plan.bankAccountId,
-          cardId: plan.cardId,
-          financeCharge: plan.financeCharge,
-          creditStatementId: plan.creditStatementId,
-        },
-      });
-      if (creditUsedDelta) {
-        await this.accounts.incrementCreditUsedWithTx(
-          tx,
-          creditUsedDelta.accountId,
-          creditUsedDelta.delta,
-        );
-      }
-      await this.applyBalanceDeltas(tx, balanceDeltas);
-      return created;
+    return this.prisma.$transaction((tx) =>
+      this.saveNewWithTx(tx, userId, plan, creditUsedDelta, balanceDeltas),
+    );
+  }
+
+  async saveNewWithTx(
+    tx: unknown,
+    userId: string,
+    plan: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
+    creditUsedDelta: { accountId: string; delta: string } | null,
+    balanceDeltas: { accountId: string; delta: string }[],
+  ): Promise<Transaction> {
+    const client = tx as PrismaService;
+    const row = await client.transaction.create({
+      data: {
+        userId,
+        type: plan.type,
+        amount: plan.amount,
+        currency: plan.currency,
+        occurredAt: plan.occurredAt,
+        category: plan.category,
+        description: plan.description,
+        observation: plan.observation,
+        emisor: plan.emisor,
+        receptor: plan.receptor,
+        lugar: plan.lugar,
+        bankAccountId: plan.bankAccountId,
+        cardId: plan.cardId,
+        financeCharge: plan.financeCharge,
+        creditStatementId: plan.creditStatementId,
+      },
     });
+    if (creditUsedDelta) {
+      await this.accounts.incrementCreditUsedWithTx(
+        tx,
+        creditUsedDelta.accountId,
+        creditUsedDelta.delta,
+      );
+    }
+    await this.applyBalanceDeltas(tx, balanceDeltas);
     return Transaction.fromPersistence(rowToProps(row));
   }
 
@@ -336,34 +350,44 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     incoming: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<TransferPair> {
+    return this.prisma.$transaction((tx) =>
+      this.saveTransferPairWithTx(tx, userId, outgoing, incoming, balanceDeltas),
+    );
+  }
+
+  async saveTransferPairWithTx(
+    tx: unknown,
+    userId: string,
+    outgoing: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
+    incoming: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
+    balanceDeltas: { accountId: string; delta: string }[],
+  ): Promise<TransferPair> {
+    const client = tx as PrismaService;
     const groupId = outgoing.transferGroupId!;
-    const rows = await this.prisma.$transaction(async (tx) => {
-      const created = [];
-      for (const leg of [outgoing, incoming]) {
-        created.push(
-          await tx.transaction.create({
-            data: {
-              userId,
-              type: leg.type,
-              amount: leg.amount,
-              currency: leg.currency,
-              occurredAt: leg.occurredAt,
-              category: leg.category,
-              description: leg.description,
-              observation: leg.observation,
-              emisor: leg.emisor,
-              receptor: leg.receptor,
-              lugar: leg.lugar,
-              bankAccountId: leg.bankAccountId,
-              // A transfer never carries a card nor a billing period (FR-019).
-              transferGroupId: leg.transferGroupId,
-            },
-          }),
-        );
-      }
-      await this.applyBalanceDeltas(tx, balanceDeltas);
-      return created;
-    });
+    const rows = [];
+    for (const leg of [outgoing, incoming]) {
+      rows.push(
+        await client.transaction.create({
+          data: {
+            userId,
+            type: leg.type,
+            amount: leg.amount,
+            currency: leg.currency,
+            occurredAt: leg.occurredAt,
+            category: leg.category,
+            description: leg.description,
+            observation: leg.observation,
+            emisor: leg.emisor,
+            receptor: leg.receptor,
+            lugar: leg.lugar,
+            bankAccountId: leg.bankAccountId,
+            // A transfer never carries a card nor a billing period (FR-019).
+            transferGroupId: leg.transferGroupId,
+          },
+        }),
+      );
+    }
+    await this.applyBalanceDeltas(tx, balanceDeltas);
     return this.toPair(groupId, rows)!;
   }
 

@@ -2,6 +2,7 @@ import { PrismaBankAccountRepository } from "../../../src/domains/bank-account/i
 import { PrismaBillingSettingsRepository } from "../../../src/domains/billing-settings/infrastructure/prisma-billing-settings.repository";
 import { PrismaCardAccountRepository } from "../../../src/domains/card-account/infrastructure/prisma-card-account.repository";
 import { PrismaCardLimitRepository } from "../../../src/domains/card-limit/infrastructure/prisma-card-limit.repository";
+import { PrismaIdempotencyRecordRepository } from "../../../src/domains/idempotency-record/infrastructure/prisma-idempotency-record.repository";
 import { PrismaInstallmentPaymentRepository } from "../../../src/domains/installment-payment/infrastructure/prisma-installment-payment.repository";
 import { PrismaInstallmentPlanRepository } from "../../../src/domains/installment-plan/infrastructure/prisma-installment-plan.repository";
 import { PrismaCreditStatementRepository } from "../../../src/domains/credit-statement/infrastructure/prisma-credit-statement.repository";
@@ -21,6 +22,12 @@ import type { PrismaService } from "../../../src/infra/prisma/prisma.service";
  * limits, billing settings, institution lookup) — wiring it by hand in every
  * spec would be noise, and Nest's DI does exactly this in production.
  */
+export function buildIdempotencyRecordRepo(
+  prisma: PrismaService,
+): PrismaIdempotencyRecordRepository {
+  return new PrismaIdempotencyRecordRepository(prisma);
+}
+
 export function buildBankAccountRepo(prisma: PrismaService): PrismaBankAccountRepository {
   const cards = new PrismaCardAccountRepository(prisma, new PrismaCardLimitRepository(prisma));
   return new PrismaBankAccountRepository(

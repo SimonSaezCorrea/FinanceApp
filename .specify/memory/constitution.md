@@ -1,4 +1,36 @@
 <!--
+Sync Impact Report — 2026-09-03 (amendment 2.1.0)
+- Version change: 2.0.0 → 2.1.0 (MINOR: one new enforceable fact recorded, one preexisting drift
+  corrected, no principle redefined in a backward-incompatible way).
+- AMENDED Principle VI title and body: "23 domains" → **24 domains** — `idempotency-record`
+  (specs/015) is a new table-domain, `domain`+`application`+`infrastructure` only, deliberately no
+  `presentation` (the mechanism is invisible over HTTP by design, Principle VII's own reference
+  implementation). Also CORRECTED a preexisting inconsistency the drafting missed at the time:
+  the section header said "23 domains" while a sentence three paragraphs down claimed "all 21
+  table-domains use the four layers" — neither number was ever accurate (several table-domains
+  whose rows exist only inside another aggregate, e.g. `card-account`/`card-limit`/
+  `billing-settings`/`installment-payment`, deliberately use only `domain/` + `infrastructure/`).
+  Replaced the hard-coded count with a qualitative description (every table-domain uses at least
+  `domain/` + `infrastructure/`; `application/` and `presentation/` are added only where the domain
+  has its own commands/queries or HTTP surface) so this stops silently drifting every time a domain
+  is added.
+- RECORDED: Principle VII (Idempotencia de escrituras, added in 2.0.0 as a target with zero
+  conformance) now has a reference implementation — specs/015-idempotent-money-writes, form (c):
+  client-supplied `Idempotency-Key` + `IdempotencyRecord`'s `@@unique([userId, key])`, a two-phase
+  RESERVE/EXECUTE protocol where the effect and the `COMPLETED` mark commit in one transaction. Ten
+  money-moving endpoints are protected; `docs/PENDING.md` § "Deuda de conformidad..." point 4 is
+  updated to reflect this closure, and its point 3 drops one of six unverified body FKs
+  (`savingsGoalId`, also closed by specs/015). The other conformance-debt points from the 2.0.0
+  report (identifier format unification, path-param validation, five remaining FKs, cursor MAC,
+  storage-key derivation) are UNCHANGED by this amendment — see `docs/PENDING.md` for current state,
+  this report is not rewritten to match (Sync Impact Reports are append-only history).
+- Not driven by a fresh audit — driven by specs/015's own T077, executed by its own procedure rather
+  than as a side effect of a feature task (flagged HIGH by `/speckit-analyze` on 2026-09-02 and
+  resolved by ordering tasks.md this way).
+- Templates requiring updates: none — this amendment touches only §VI's own prose, no new gate.
+-->
+
+<!--
 Sync Impact Report — 2026-09-02 (amendment 2.0.0)
 - Version change: 1.49.0 → 2.0.0 (MAJOR). Two additions would have been MINOR on their own, but
   TWO EXISTING RULES ARE REDEFINED IN A BACKWARD-INCOMPATIBLE WAY, which this document's own
@@ -1310,7 +1342,7 @@ Rationale: the spec is the shared contract; skipping it produces code nobody agr
 The constitution and `CLAUDE.md` are the project's durable memory — if they drift from
 reality, every future decision is made on false information.
 
-### VI. Backend DDD + CQRS Architecture (one table = one domain, 23 domains)
+### VI. Backend DDD + CQRS Architecture (one table = one domain, 24 domains)
 
 **One table, one domain, one adapter.** Every table in `apps/api/prisma/schema.prisma` MUST own
 exactly one folder `src/domains/<table>/` (kebab-case, matching its `@@map`), and exactly one Prisma
@@ -1347,7 +1379,10 @@ Factory, Prototype, Proxy, and Composite are explicitly NOT hand-implemented (Ne
 Guards, and this app's flat non-recursive data already cover their roles).
 
 Migration proceeded one domain at a time (`bank-account` is the reference implementation) and is
-**complete: all 21 table-domains use the four layers**, so the flat
+**complete**: every table-domain uses at least `domain/` + `infrastructure/`, with `application/`
+and `presentation/` added wherever the domain has its own commands/queries or HTTP surface of its
+own (a table owned only inside another aggregate's rules, or a mechanism deliberately invisible
+over HTTP such as `idempotency-record`, legitimately stops short of all four) — so the flat
 `module/controller/service/repository` skeleton described in the Architecture norms below is
 historical and MUST NOT be used for new code. Cross-cutting concerns around a dispatch (logging,
 timing) are Decorators — NestJS interceptors registered globally (`infra/cqrs/
@@ -1662,4 +1697,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.0.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-02
+**Version**: 2.1.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-03

@@ -36,7 +36,23 @@ export class PrismaSavingsEntryRepository implements SavingsEntryRepositoryPort 
     return rows.map((r) => SavingsEntry.fromPersistence(rowToProps(r)));
   }
 
-  async create(userId: string, plan: PlannedSavingsEntry): Promise<SavingsEntry> {
+  async findOne(userId: string, id: string): Promise<SavingsEntry | null> {
+    const row = await this.prisma.savingsEntry.findFirst({ where: { id, userId } });
+    return row ? SavingsEntry.fromPersistence(rowToProps(row)) : null;
+  }
+
+  create(userId: string, plan: PlannedSavingsEntry): Promise<SavingsEntry> {
+    return this.createWithTx(this.prisma, userId, plan);
+  }
+
+  /** Enlisted in the caller's transaction, so the entry and the idempotency
+   * record's COMPLETED mark commit together. */
+  async createWithTx(
+    tx: unknown,
+    userId: string,
+    plan: PlannedSavingsEntry,
+  ): Promise<SavingsEntry> {
+    const client = tx as PrismaService;
     const data: Prisma.SavingsEntryUncheckedCreateInput = {
       userId,
       savingsGoalId: plan.savingsGoalId,
@@ -45,7 +61,27 @@ export class PrismaSavingsEntryRepository implements SavingsEntryRepositoryPort 
       contributedAt: plan.contributedAt,
       note: plan.note,
     };
-    const row = await this.prisma.savingsEntry.create({ data });
+    const row = await client.savingsEntry.create({ data });
     return SavingsEntry.fromPersistence(rowToProps(row));
+  }
+
+  async save(aggregate: SavingsEntry): Promise<void> {
+    const snap = aggregate.snapshot();
+    const data: Prisma.SavingsEntryUncheckedUpdateInput = {
+      savingsGoalId: snap.savingsGoalId,
+      amount: snap.amount,
+      currency: snap.currency,
+      contributedAt: snap.contributedAt,
+      note: snap.note,
+    };
+    await this.prisma.savingsEntry.updateMany({
+      where: { id: snap.id, userId: snap.userId },
+      data,
+    });
+  }
+
+  async remove(userId: string, id: string): Promise<boolean> {
+    const result = await this.prisma.savingsEntry.deleteMany({ where: { id, userId } });
+    return result.count > 0;
   }
 }

@@ -5,7 +5,16 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { transactions } from "@finance/contracts";
 
-import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import {
+  BaseIdempotentCommandHandler,
+  type CompleteFn,
+} from "../../../../infra/cqrs/base-idempotent-command.handler";
+import {
+  IDEMPOTENCY_RECORD_REPOSITORY,
+  type IdempotencyRecordRepositoryPort,
+} from "../../../idempotency-record/domain/ports/idempotency-record.repository.port";
+import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
@@ -33,17 +42,26 @@ interface Context {
  */
 @Injectable()
 @CommandHandler(CreateTransferCommand)
-export class CreateTransferHandler extends BaseCommandHandler<
+export class CreateTransferHandler extends BaseIdempotentCommandHandler<
   CreateTransferCommand,
   transactions.Transfer,
   Context
 > {
+  protected readonly operation = "transaction.createTransfer";
+  protected override readonly successStatus = 201;
+
   constructor(
     eventBus: EventBus,
+    @Inject(IDEMPOTENCY_RECORD_REPOSITORY) records: IdempotencyRecordRepositoryPort,
     @Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
+    private readonly prisma: PrismaService,
   ) {
-    super(eventBus);
+    super(eventBus, records);
+  }
+
+  protected requestBody(command: CreateTransferCommand): unknown {
+    return command.input;
   }
 
   protected async loadContext(command: CreateTransferCommand): Promise<Context> {
@@ -55,9 +73,10 @@ export class CreateTransferHandler extends BaseCommandHandler<
     );
   }
 
-  protected async handle(
+  protected async handleIdempotent(
     command: CreateTransferCommand,
     context: Context,
+    complete: CompleteFn<transactions.Transfer>,
   ): Promise<HandleResult<transactions.Transfer>> {
     const { input, userId } = command;
     TransferPolicy.validate(input, context.from, context.to);
@@ -80,29 +99,35 @@ export class CreateTransferHandler extends BaseCommandHandler<
       transferGroupId,
     };
 
-    const pair = await this.repo.saveTransferPair(
-      userId,
-      {
-        ...shared,
-        type: "EXPENSE",
-        amount: input.amountOut,
-        currency: input.currencyOut,
-        bankAccountId: input.fromBankAccountId,
-      },
-      {
-        ...shared,
-        type: "INCOME",
-        amount: input.amountIn,
-        currency: input.currencyIn,
-        bankAccountId: input.toBankAccountId,
-      },
-      [
-        { accountId: input.fromBankAccountId, delta: balanceDelta("EXPENSE", input.amountOut) },
-        { accountId: input.toBankAccountId, delta: balanceDelta("INCOME", input.amountIn) },
-      ],
-    );
+    const result = await this.prisma.$transaction(async (tx) => {
+      const pair = await this.repo.saveTransferPairWithTx(
+        tx,
+        userId,
+        {
+          ...shared,
+          type: "EXPENSE",
+          amount: input.amountOut,
+          currency: input.currencyOut,
+          bankAccountId: input.fromBankAccountId,
+        },
+        {
+          ...shared,
+          type: "INCOME",
+          amount: input.amountIn,
+          currency: input.currencyIn,
+          bankAccountId: input.toBankAccountId,
+        },
+        [
+          { accountId: input.fromBankAccountId, delta: balanceDelta("EXPENSE", input.amountOut) },
+          { accountId: input.toBankAccountId, delta: balanceDelta("INCOME", input.amountIn) },
+        ],
+      );
+      const contract = toTransferContract(pair);
+      await complete(tx, contract);
+      return contract;
+    });
 
-    return { result: toTransferContract(pair), events: [] };
+    return { result, events: [] };
   }
 }
 

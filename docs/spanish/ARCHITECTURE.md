@@ -446,6 +446,65 @@ hoy). "Saldo tras el movimiento" (`balanceAfter.ts`) y "saldo proyectado" (`proj
 calculan en el cliente con `@finance/money` y se OMITEN en vez de aproximarse cuando el conjunto
 cargado no los sostiene — ver `docs/PENDING.md`.
 
+## 12c. Escrituras idempotentes: el protocolo de dos fases (specs/015)
+
+**El problema.** Reintentar una escritura que mueve plata no puede duplicar su efecto, pero dos
+operaciones genuinamente distintas que se parecen —"dos cafés iguales"— tienen que entrar las dos. El
+principio VII de la constitución nombra tres mecanismos aceptables; una llave natural sobre monto/
+fecha/cuenta/descripción (forma b) rechazaría el segundo café en silencio, así que esta app usa la
+forma (c): una clave `Idempotency-Key` generada por el cliente, que el servidor recuerda.
+
+**El candado es el constraint único, no una validación antes de él.** `IdempotencyRecord`
+(`domains/idempotency-record`) tiene `@@unique([userId, key])`. Dos peticiones concurrentes con la
+misma clave intentan el mismo INSERT; Postgres deja pasar exactamente una. El repositorio traduce el
+`P2002` resultante en un resultado `EXISTS` en vez de tratarlo como error — esa colisión ES el
+mecanismo, no un bug que rodear.
+
+**Dos fases, y el orden es todo el argumento de seguridad** (`specs/015/research.md` §3):
+
+1. **RESERVAR** — `reserve(userId, key)` corre en su propia transacción. `EXISTS` significa que
+   `decideReplay()` sobre el registro existente decide qué sigue: **replay** de la respuesta guardada
+   tal cual (misma operación, mismo hash SHA-256 sobre JSON canónico —
+   `infra/cqrs/request-hash.ts`), rechazo con `IDEMPOTENCY_KEY_REUSED` (409 — datos distintos bajo la
+   misma clave), respuesta `IDEMPOTENCY_IN_PROGRESS` (409 — el intento original sigue corriendo), o
+   **toma de control** de una reserva abandonada una vez vencida (>60 s).
+2. **EJECUTAR** — el `handleIdempotent()` del handler abre EXACTAMENTE UNA `prisma.$transaction` que
+   cubre TANTO el efecto real (el insert, el delta de saldo, el descuento del cupo, …) COMO la llamada
+   a `complete(tx, body, status)`, que estampa el registro `COMPLETED` dentro de esa misma transacción.
+
+Completar el registro en una transacción SEPARADA después de la del efecto parecería equivalente y no
+lo es: una caída entre medio deja el efecto aplicado y el registro todavía `IN_FLIGHT`, y el siguiente
+reintento —viendo un registro en vuelo— volvería a aplicar el efecto. Como completar es atómico con el
+efecto, `IN_FLIGHT` siempre implica que el efecto nunca se comprometió, que es lo que hace segura la
+toma de control de una reserva vencida por argumento y no por optimismo.
+`BaseIdempotentCommandHandler` (`infra/cqrs/base-idempotent-command.handler.ts`) es el Template Method
+que impone esta forma — lanza si el `handleIdempotent()` de un handler concreto retorna sin haber
+llamado nunca a `complete()`.
+
+**Consecuencia sobre quién es dueño de la transacción.** Cada escritura protegida necesitó una
+variante `*WithTx(tx, …)` de su método de repositorio, y es el _handler_ —no el adapter— quien ahora
+abre la `$transaction`, porque es el único lugar que conoce tanto el efecto como la marca de
+idempotencia. Esto sacó la propiedad de la transacción de `saveNew`/`saveTransferPair` (que antes
+abrían la suya propia) y la puso en `CreateTransactionHandler`/`CreateTransferHandler`; los cuatro
+handlers de `debt` además no tenían ninguna transacción antes de esto y ahora hacen el ciclo completo
+lectura-mutación-escritura dentro de una, usando `findOneForUpdateWithTx` (`SELECT … FOR UPDATE`) —
+necesario porque envolver sólo la escritura dejaba la _lectura_ (antes en `loadContext()`, que corre
+ANTES de que la transacción se abra) compitiendo entre peticiones concurrentes: 6 llamadas simultáneas
+a `register-payment` sobre la misma deuda avanzaban el contador sólo 2 veces hasta que la lectura se
+movió adentro del candado.
+
+**Diez operaciones protegidas**: `POST /transactions`, `POST /transactions/transfers`,
+`POST /installments`, `POST /installments/:id/payments/:seq/pay`,
+`POST /accounts/:id/credit-statements/:id/pay`, `POST /debts/:id/settle`, `POST /debts/:id/unsettle`,
+`POST /debts/:id/payments`, `DELETE /debts/:id/payments`, `POST /savings/entries`. Un cron diario
+(`infra/cron/idempotency-cleanup.cron.ts`) purga intentos pasado su período de retención vía el único
+comando `scope: "system"` del dominio, siguiendo el molde de `billing-generation.cron.ts`.
+
+**Deliberadamente fuera de alcance**: `POST /import/transactions` (no tiene ningún llamador real
+todavía — la ruta web de importación es un placeholder) y recargar la página a mitad de un envío (la
+clave en memoria, `useIdempotencyKey`, se pierde — un reenvío es un intento genuinamente nuevo). Ambos
+catalogados en `docs/PENDING.md`.
+
 ## 12. Agregar un dominio nuevo (resumen)
 
 1. Agrega esquemas zod + tipos en `packages/contracts/src/<dominio>/` y expórtalos desde `src/index.ts`.

@@ -5,7 +5,15 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import { subtractMoney, toMoney } from "@finance/money";
 
-import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import {
+  BaseIdempotentCommandHandler,
+  type CompleteFn,
+} from "../../../../infra/cqrs/base-idempotent-command.handler";
+import {
+  IDEMPOTENCY_RECORD_REPOSITORY,
+  type IdempotencyRecordRepositoryPort,
+} from "../../../idempotency-record/domain/ports/idempotency-record.repository.port";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import type { BankAccount } from "../../../bank-account/domain/bank-account.aggregate";
 import { AccountNotFoundError } from "../../../bank-account/domain/errors";
@@ -73,13 +81,17 @@ export type PaidStatementResult = accounts.CreditStatement;
  */
 @Injectable()
 @CommandHandler(PayCreditStatementCommand)
-export class PayCreditStatementHandler extends BaseCommandHandler<
+export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
   PayCreditStatementCommand,
   PaidStatementResult,
   Context
 > {
+  protected readonly operation = "creditStatement.pay";
+  protected override readonly successStatus = 200;
+
   constructor(
     eventBus: EventBus,
+    @Inject(IDEMPOTENCY_RECORD_REPOSITORY) records: IdempotencyRecordRepositoryPort,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
     @Inject(CREDIT_STATEMENT_REPOSITORY)
     private readonly statementRepo: CreditStatementRepositoryPort,
@@ -88,7 +100,18 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly plans: InstallmentPlanRepositoryPort,
     private readonly prisma: PrismaService,
   ) {
-    super(eventBus);
+    super(eventBus, records);
+  }
+
+  protected requestBody(command: PayCreditStatementCommand): unknown {
+    return {
+      accountId: command.accountId,
+      statementId: command.statementId,
+      fromAccountId: command.fromAccountId,
+      amount: command.amount,
+      paidAt: command.paidAt,
+      reference: command.reference,
+    };
   }
 
   protected async loadContext(command: PayCreditStatementCommand): Promise<Context> {
@@ -130,9 +153,20 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
     };
   }
 
-  protected async handle(
+  // Cross-aggregate persistence (FR-020, contracts/layer-contracts.md): three
+  // tables plus the idempotency record in one atomic step. Each write goes
+  // through the port of the domain that owns its table (`transaction`,
+  // `credit-statement`, `bank-account`) — this handler only supplies the
+  // shared `$transaction` they all enlist in, so all four commit or roll back
+  // together. This is also what closes the concurrency hole the audit found:
+  // `context.statement`'s state was read in `loadContext`, before any lock —
+  // two simultaneous payments now serialize on the RESERVE step's
+  // `@@unique([userId, key])` insert instead, which happens before either one
+  // gets this far.
+  protected async handleIdempotent(
     command: PayCreditStatementCommand,
     context: Context,
+    complete: CompleteFn<PaidStatementResult>,
   ): Promise<HandleResult<PaidStatementResult>> {
     const { event, carryOver } = context.statement.payTowards(
       context.periodAmount,
@@ -146,24 +180,15 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
     // frees exactly that, and the shortfall stays used — it is still owed, just
     // in the next period now.
     context.account.adjustCreditUsed(toMoney(context.amount).negated().toString());
-    return {
-      result: toStatementDto(context.statement, {
-        amount: context.periodAmount,
-        breakdown: context.breakdown,
-        minimumPercent: context.account.minimumPaymentPercent,
-        paymentDueDay: context.account.paymentDueDay,
-        paymentDueCycleType: context.account.paymentDueCycleType,
-      }),
-      events: [event],
-    };
-  }
 
-  // Cross-aggregate persistence (FR-020, contracts/layer-contracts.md): three
-  // tables in one atomic step. Each write goes through the port of the domain
-  // that owns its table (`transaction`, `credit-statement`, `bank-account`) —
-  // this handler only supplies the shared `$transaction` they all enlist in, so
-  // all three commit or roll back together.
-  protected override async persist(context: Context): Promise<void> {
+    const result = toStatementDto(context.statement, {
+      amount: context.periodAmount,
+      breakdown: context.breakdown,
+      minimumPercent: context.account.minimumPaymentPercent,
+      paymentDueDay: context.account.paymentDueDay,
+      paymentDueCycleType: context.account.paymentDueCycleType,
+    });
+
     await this.prisma.$transaction(async (tx) => {
       await this.transactions.createWithTx(tx, {
         id: context.paymentTransactionId,
@@ -205,6 +230,9 @@ export class PayCreditStatementHandler extends BaseCommandHandler<
       // this payment covered the whole period — "settled" is decided by the fact
       // of payment (`paidAt !== null`), never by the resulting status name.
       await this.plans.settleForStatementWithTx(tx, context.statement.id, context.occurredAt);
+      await complete(tx, result);
     });
+
+    return { result, events: [event] };
   }
 }

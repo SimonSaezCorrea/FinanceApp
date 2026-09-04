@@ -15,6 +15,7 @@ export * as investments from "./investments/index";
 export * as imports from "./import/index";
 export * as wallet from "./wallet/index";
 export * as reference from "./reference/index";
+export * as idempotency from "./idempotency/index";
 
 export const API_VERSION = "v1";
 export const API_BASE_PATH = `/api/${API_VERSION}`;

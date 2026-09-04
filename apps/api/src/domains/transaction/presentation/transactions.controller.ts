@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   Param,
   Patch,
@@ -12,10 +13,11 @@ import {
 } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 
-import { transactions } from "@finance/contracts";
+import { idempotency, transactions } from "@finance/contracts";
 
 import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.decorator";
 import { JwtAuthGuard } from "../../../infra/auth/jwt-auth.guard";
+import { requireIdempotencyKey } from "../../../infra/http/idempotency-key";
 import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { CreateTransactionCommand } from "../application/commands/create-transaction.command";
@@ -72,8 +74,10 @@ export class TransactionsController {
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(transactions.createTransferSchema))
     body: transactions.CreateTransfer,
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<transactions.Transfer> {
-    return this.commandBus.execute(new CreateTransferCommand(user.id, body));
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(new CreateTransferCommand(user.id, body, idempotencyKey));
   }
 
   @Get("transfers/:groupId")
@@ -116,8 +120,10 @@ export class TransactionsController {
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(transactions.createTransactionSchema))
     body: transactions.CreateTransaction,
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<transactions.Transaction> {
-    return this.commandBus.execute(new CreateTransactionCommand(user.id, body));
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(new CreateTransactionCommand(user.id, body, idempotencyKey));
   }
 
   @Patch(":id")

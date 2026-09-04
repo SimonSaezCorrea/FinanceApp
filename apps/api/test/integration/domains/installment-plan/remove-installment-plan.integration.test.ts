@@ -13,6 +13,7 @@ import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import {
   buildBankAccountRepo,
   buildCardAccountRepo,
+  buildIdempotencyRecordRepo,
   buildInstallmentPlanRepo,
   buildTransactionWriterRepo,
 } from "../../support/repositories";
@@ -93,6 +94,7 @@ describe("RemoveInstallmentPlanHandler (integration)", () => {
 
     const pay = new PayInstallmentHandler(
       eventBus,
+      buildIdempotencyRecordRepo(prisma),
       prisma,
       planRepo,
       accounts,
@@ -100,10 +102,28 @@ describe("RemoveInstallmentPlanHandler (integration)", () => {
       transactions,
     );
     await pay.execute(
-      new PayInstallmentCommand(userId, planId, 1, accountId, null, null, new Date("2026-01-11")),
+      new PayInstallmentCommand(
+        userId,
+        planId,
+        1,
+        accountId,
+        null,
+        null,
+        new Date("2026-01-11"),
+        randomUUID(),
+      ),
     );
     await pay.execute(
-      new PayInstallmentCommand(userId, planId, 2, accountId, null, null, new Date("2026-02-11")),
+      new PayInstallmentCommand(
+        userId,
+        planId,
+        2,
+        accountId,
+        null,
+        null,
+        new Date("2026-02-11"),
+        randomUUID(),
+      ),
     );
   });
 

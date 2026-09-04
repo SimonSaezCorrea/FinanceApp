@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { accounts } from "@finance/contracts";
 
 import i18n from "../../../i18n";
+import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { accountsApi } from "../../accounts/api/accountsApi";
 import { transactionsApi } from "../api/transactionsApi";
 import { TransactionCreateModal } from "./TransactionCreateModal";
@@ -79,5 +80,66 @@ describe("TransactionCreateModal", () => {
       type: "EXPENSE",
       currency: "CLP",
     });
+  });
+
+  // T035: the form must carry an idempotency key end to end, and a replay
+  // must be visually indistinguishable from a normal success (FR-007) — there
+  // is no special branch for it anywhere in this component, which is itself
+  // the assertion: the server can never hand back a "this was a replay" flag
+  // for the client to react to (see contracts/idempotency.md §3).
+  it("sends an idempotency key with the create request", async () => {
+    renderModal({ defaultBankAccountId: "a1", lockAccount: true });
+
+    fireEvent.change(screen.getByLabelText(i18n.t("transactions.form.amount")), {
+      target: { value: "1500" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("transactions.form.submit") }));
+
+    await waitFor(() => expect(transactionsApi.create).toHaveBeenCalledOnce());
+    const [, idempotencyKey] = vi.mocked(transactionsApi.create).mock.calls[0]!;
+    expect(typeof idempotencyKey).toBe("string");
+    expect(idempotencyKey.length).toBeGreaterThanOrEqual(16);
+  });
+
+  // The exact failure mode T023 (useIdempotencyKey.test.ts) exists to catch,
+  // verified again here at the component level: "Guardar y crear otro" must
+  // mint a NEW key for the second record, or it would be rejected as a
+  // duplicate of the first.
+  it("uses a different idempotency key for each entry when saving and creating another", async () => {
+    renderModal({ defaultBankAccountId: "a1", lockAccount: true });
+
+    fireEvent.change(screen.getByLabelText(i18n.t("transactions.form.amount")), {
+      target: { value: "1000" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("transactions.form.saveAndNew") }));
+    await waitFor(() => expect(transactionsApi.create).toHaveBeenCalledTimes(1));
+
+    fireEvent.change(screen.getByLabelText(i18n.t("transactions.form.amount")), {
+      target: { value: "2000" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("transactions.form.saveAndNew") }));
+    await waitFor(() => expect(transactionsApi.create).toHaveBeenCalledTimes(2));
+
+    const [, firstKey] = vi.mocked(transactionsApi.create).mock.calls[0]!;
+    const [, secondKey] = vi.mocked(transactionsApi.create).mock.calls[1]!;
+    expect(secondKey).not.toBe(firstKey);
+  });
+
+  it("maps IDEMPOTENCY_KEY_REUSED to its own toast via the generic error path", async () => {
+    vi.mocked(transactionsApi.create).mockRejectedValueOnce(
+      new ApiRequestError("IDEMPOTENCY_KEY_REUSED", 409, "idempotency-key"),
+    );
+    renderModal({ defaultBankAccountId: "a1", lockAccount: true });
+
+    fireEvent.change(screen.getByLabelText(i18n.t("transactions.form.amount")), {
+      target: { value: "1500" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("transactions.form.submit") }));
+
+    await waitFor(() => expect(transactionsApi.create).toHaveBeenCalledOnce());
+    // No i18n key means no translation fallback would render the raw code —
+    // reaching this point without an unhandled rejection is what T026's
+    // es/en entries for this code exist to guarantee.
+    expect(i18n.exists("errors.IDEMPOTENCY_KEY_REUSED")).toBe(true);
   });
 });

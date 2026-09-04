@@ -18,7 +18,18 @@ import {
   fakeCardAccountRepo,
   fakeCardLimitRepo,
   fakeCreditStatementRepo,
+  fakeIdempotencyRecordRepo,
+  fakePrismaTransaction,
 } from "../../../../support/fake-ports";
+import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
+
+/** Every scenario needs SOME key; only its stability across calls matters
+ * elsewhere (see `useIdempotencyKey.test.ts` on the web side). */
+function cmd(
+  input: ConstructorParameters<typeof CreateTransactionCommand>[1],
+): CreateTransactionCommand {
+  return new CreateTransactionCommand("u1", input, "test-key-0000000000001");
+}
 
 function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): TransactionRepositoryPort {
   return {
@@ -27,10 +38,12 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     findOne: vi.fn(),
     sumsForCard: vi.fn(async () => ({ income: "0", expense: "0" })),
     saveNew: vi.fn(),
+    saveNewWithTx: vi.fn(),
     saveUpdate: vi.fn(),
     removeWithCreditAdjustment: vi.fn(),
     findTransferGroup: vi.fn(async () => null),
     saveTransferPair: vi.fn(),
+    saveTransferPairWithTx: vi.fn(),
     updateTransferPair: vi.fn(),
     removeTransferPair: vi.fn(async () => true),
     ...overrides,
@@ -75,11 +88,13 @@ function makeHandler(
     fakeCreditStatementRepo({ findOrCreateOpenForAccount: vi.fn(async () => ({ id: "stmt1" })) });
   return new CreateTransactionHandler(
     { publish: vi.fn() } as never,
+    fakeIdempotencyRecordRepo(),
     repo,
     accounts,
     cards,
     fakeCardLimitRepo(),
     statements,
+    fakePrismaTransaction() as unknown as PrismaService,
   );
 }
 
@@ -88,7 +103,7 @@ describe("CreateTransactionHandler", () => {
     const handler = makeHandler(fakeRepo(), { account: null });
     await expect(
       handler.execute(
-        new CreateTransactionCommand("u1", {
+        cmd({
           ...base,
           type: "EXPENSE",
           amount: "1000",
@@ -103,7 +118,7 @@ describe("CreateTransactionHandler", () => {
     const handler = makeHandler(fakeRepo(), { account: creditAccount() });
     await expect(
       handler.execute(
-        new CreateTransactionCommand("u1", {
+        cmd({
           ...base,
           type: "EXPENSE",
           amount: "1000",
@@ -117,7 +132,7 @@ describe("CreateTransactionHandler", () => {
     const handler = makeHandler(fakeRepo(), { account: creditAccount(), card: null });
     await expect(
       handler.execute(
-        new CreateTransactionCommand("u1", {
+        cmd({
           ...base,
           type: "EXPENSE",
           amount: "1000",
@@ -129,7 +144,7 @@ describe("CreateTransactionHandler", () => {
   });
 
   it("allows a credit-line expense within the pool, links the OPEN statement, and persists atomically", async () => {
-    const saveNew = vi.fn().mockImplementation(async (userId, plan) =>
+    const saveNewWithTx = vi.fn().mockImplementation(async (_tx, userId, plan) =>
       Transaction.fromPersistence({
         id: "t1",
         userId,
@@ -138,12 +153,12 @@ describe("CreateTransactionHandler", () => {
         updatedAt: new Date(),
       }),
     );
-    const handler = makeHandler(fakeRepo({ saveNew }), {
+    const handler = makeHandler(fakeRepo({ saveNewWithTx }), {
       account: creditAccount(),
       card: creditCard,
     });
     const result = await handler.execute(
-      new CreateTransactionCommand("u1", {
+      cmd({
         ...base,
         type: "EXPENSE",
         amount: "100000",
@@ -152,7 +167,8 @@ describe("CreateTransactionHandler", () => {
       }),
     );
     expect(result.id).toBe("t1");
-    expect(saveNew).toHaveBeenCalledWith(
+    expect(saveNewWithTx).toHaveBeenCalledWith(
+      expect.anything(),
       "u1",
       expect.objectContaining({ creditStatementId: "stmt1" }),
       {
@@ -175,7 +191,7 @@ describe("CreateTransactionHandler", () => {
     const handler = makeHandler(fakeRepo(), { account, card: creditCard });
     await expect(
       handler.execute(
-        new CreateTransactionCommand("u1", {
+        cmd({
           ...base,
           type: "EXPENSE",
           amount: "100000",
@@ -187,7 +203,7 @@ describe("CreateTransactionHandler", () => {
   });
 
   it("does not create/link a statement for a non-pool movement", async () => {
-    const saveNew = vi.fn().mockImplementation(async (userId, plan) =>
+    const saveNewWithTx = vi.fn().mockImplementation(async (_tx, userId, plan) =>
       Transaction.fromPersistence({
         id: "t1",
         userId,
@@ -197,12 +213,12 @@ describe("CreateTransactionHandler", () => {
       }),
     );
     const statements = fakeCreditStatementRepo();
-    const handler = makeHandler(fakeRepo({ saveNew }), {
+    const handler = makeHandler(fakeRepo({ saveNewWithTx }), {
       account: accountAggregate({ id: "a1", type: "CASH" }),
       statements,
     });
     await handler.execute(
-      new CreateTransactionCommand("u1", {
+      cmd({
         ...base,
         type: "EXPENSE",
         amount: "1000",
@@ -210,7 +226,8 @@ describe("CreateTransactionHandler", () => {
       }),
     );
     expect(statements.findOrCreateOpenForAccount).not.toHaveBeenCalled();
-    expect(saveNew).toHaveBeenCalledWith(
+    expect(saveNewWithTx).toHaveBeenCalledWith(
+      expect.anything(),
       "u1",
       expect.objectContaining({ creditStatementId: null }),
       null,

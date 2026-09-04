@@ -16,6 +16,12 @@ interface DebtCardProps {
   readonly onUnsettle?: () => void;
   readonly onEdit: () => void;
   readonly onDelete: () => void;
+  /** Same double-click guard as `DebtTable`'s `ActionBtn` — each mutation is
+   * shared, so "pending" disables that action while it's in flight. */
+  readonly settlePending?: boolean;
+  readonly unsettlePending?: boolean;
+  readonly registerPaymentPending?: boolean;
+  readonly undoPaymentPending?: boolean;
 }
 
 export function DebtCard({
@@ -26,6 +32,10 @@ export function DebtCard({
   onUnsettle,
   onEdit,
   onDelete,
+  settlePending,
+  unsettlePending,
+  registerPaymentPending,
+  undoPaymentPending,
 }: DebtCardProps) {
   const { t, i18n } = useTranslation();
   const initial = debt.counterparty.charAt(0).toUpperCase();
@@ -114,12 +124,24 @@ export function DebtCard({
 
       <div className="flex gap-2">
         {!debt.settledAt && !hasInstallments && onSettle ? (
-          <Button size="sm" variant="outline" onClick={onSettle} className="flex-1">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onSettle}
+            disabled={settlePending}
+            className="flex-1"
+          >
             {t("debts.card.markPaid")}
           </Button>
         ) : null}
         {!debt.settledAt && hasInstallments && !allPaid && onRegisterPayment ? (
-          <Button size="sm" variant="outline" onClick={onRegisterPayment} className="flex-1">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={onRegisterPayment}
+            disabled={registerPaymentPending}
+            className="flex-1"
+          >
             {t("debts.card.registerPayment")}
           </Button>
         ) : null}
@@ -128,13 +150,20 @@ export function DebtCard({
             type="button"
             onClick={onUndoPayment}
             aria-label={t("debts.card.undoPayment")}
-            className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+            disabled={undoPaymentPending}
+            className="rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors disabled:pointer-events-none disabled:opacity-40"
           >
             <Undo2 className="h-4 w-4" />
           </button>
         ) : null}
         {debt.settledAt && onUnsettle ? (
-          <Button size="sm" variant="ghost" onClick={onUnsettle} className="flex-1">
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={onUnsettle}
+            disabled={unsettlePending}
+            className="flex-1"
+          >
             {t("debts.card.unsettle")}
           </Button>
         ) : null}

@@ -17,6 +17,7 @@ import type { InstallmentPlanRepositoryPort } from "../../../../../../src/domain
 import {
   fakeBankAccountRepo,
   fakeCardAccountRepo,
+  fakeIdempotencyRecordRepo,
   fakeTransactionWriterRepo,
 } from "../../../../support/fake-ports";
 
@@ -119,6 +120,7 @@ function payHandler(
   const transactions = over.transactions ?? fakeTransactionWriterRepo();
   const handler = new PayInstallmentHandler(
     { publish: vi.fn() } as never,
+    fakeIdempotencyRecordRepo(),
     fakePrisma,
     repo,
     accounts,
@@ -137,6 +139,7 @@ function command(over: Partial<PayInstallmentCommand> = {}) {
     over.amount ?? null,
     over.chargedAmount ?? null,
     over.paidAt ?? null,
+    over.idempotencyKey ?? "test-key-0000000000001",
   );
 }
 

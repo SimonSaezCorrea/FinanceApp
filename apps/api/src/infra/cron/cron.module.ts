@@ -3,7 +3,9 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { ScheduleModule } from "@nestjs/schedule";
 
 import { CreditStatementModule } from "../../domains/credit-statement/credit-statement.module";
+import { IdempotencyRecordModule } from "../../domains/idempotency-record/idempotency-record.module";
 import { BillingGenerationCron } from "./billing-generation.cron";
+import { IdempotencyCleanupCron } from "./idempotency-cleanup.cron";
 
 /**
  * Cross-cutting home for every scheduled automation this app runs — same tier as
@@ -15,7 +17,7 @@ import { BillingGenerationCron } from "./billing-generation.cron";
  * `CreditStatementModule` already registers, sharing one `CommandBus`.
  */
 @Module({
-  imports: [ScheduleModule.forRoot(), CqrsModule, CreditStatementModule],
-  providers: [BillingGenerationCron],
+  imports: [ScheduleModule.forRoot(), CqrsModule, CreditStatementModule, IdempotencyRecordModule],
+  providers: [BillingGenerationCron, IdempotencyCleanupCron],
 })
 export class CronModule {}

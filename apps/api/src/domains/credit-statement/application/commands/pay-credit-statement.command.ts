@@ -1,6 +1,6 @@
-import type { UserScopedCommand } from "../../../../infra/cqrs/base-command.handler";
+import type { IdempotentCommand } from "../../../../infra/cqrs/base-idempotent-command.handler";
 
-export class PayCreditStatementCommand implements UserScopedCommand {
+export class PayCreditStatementCommand implements IdempotentCommand {
   readonly scope = "user" as const;
 
   constructor(
@@ -8,6 +8,7 @@ export class PayCreditStatementCommand implements UserScopedCommand {
     public readonly accountId: string,
     public readonly statementId: string,
     public readonly fromAccountId: string,
+    public readonly idempotencyKey: string,
     /** Undefined = settle everything still owed for the period. */
     public readonly amount?: string,
     /** When the payment happened; defaults to now. Dates the created expense. */

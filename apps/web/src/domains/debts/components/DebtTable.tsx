@@ -18,6 +18,14 @@ interface DebtTableProps {
   onUnsettle: (id: string) => void;
   onRegisterPayment: (id: string) => void;
   onUndoPayment: (id: string) => void;
+  /** Each mutation is shared across every row, so "pending" disables that
+   * action everywhere while it's in flight — the same double-click guard
+   * every other form in the app already has via `FormSurface`'s `submitting`,
+   * just without a form here to carry it. */
+  settlePending?: boolean;
+  unsettlePending?: boolean;
+  registerPaymentPending?: boolean;
+  undoPaymentPending?: boolean;
 }
 
 function formatDate(iso: string, locale: string): string {
@@ -36,6 +44,10 @@ export function DebtTable({
   onUnsettle,
   onRegisterPayment,
   onUndoPayment,
+  settlePending,
+  unsettlePending,
+  registerPaymentPending,
+  undoPaymentPending,
 }: DebtTableProps) {
   const { t, i18n } = useTranslation();
 
@@ -127,7 +139,11 @@ export function DebtTable({
               <TD>
                 <div className="flex items-center justify-end gap-0.5">
                   {isSettled ? (
-                    <ActionBtn onClick={() => onUnsettle(debt.id)} label={t("debts.card.unsettle")}>
+                    <ActionBtn
+                      onClick={() => onUnsettle(debt.id)}
+                      label={t("debts.card.unsettle")}
+                      disabled={unsettlePending}
+                    >
                       <RotateCcw className="h-3.5 w-3.5" />
                     </ActionBtn>
                   ) : hasInstallments ? (
@@ -136,6 +152,7 @@ export function DebtTable({
                         <ActionBtn
                           onClick={() => onRegisterPayment(debt.id)}
                           label={t("debts.card.registerPayment")}
+                          disabled={registerPaymentPending}
                         >
                           <PlusCircle className="h-3.5 w-3.5" />
                         </ActionBtn>
@@ -144,13 +161,18 @@ export function DebtTable({
                         <ActionBtn
                           onClick={() => onUndoPayment(debt.id)}
                           label={t("debts.card.undoPayment")}
+                          disabled={undoPaymentPending}
                         >
                           <Undo2 className="h-3.5 w-3.5" />
                         </ActionBtn>
                       )}
                     </>
                   ) : (
-                    <ActionBtn onClick={() => onSettle(debt.id)} label={t("debts.card.markPaid")}>
+                    <ActionBtn
+                      onClick={() => onSettle(debt.id)}
+                      label={t("debts.card.markPaid")}
+                      disabled={settlePending}
+                    >
                       <CircleCheck className="h-3.5 w-3.5" />
                     </ActionBtn>
                   )}
@@ -179,16 +201,19 @@ interface ActionBtnProps {
   label: string;
   children: ReactNode;
   className?: string;
+  disabled?: boolean;
 }
 
-function ActionBtn({ onClick, label, children, className }: ActionBtnProps) {
+function ActionBtn({ onClick, label, children, className, disabled }: ActionBtnProps) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-label={label}
+      disabled={disabled}
       className={cn(
         "rounded p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors",
+        "disabled:pointer-events-none disabled:opacity-40",
         className,
       )}
     >

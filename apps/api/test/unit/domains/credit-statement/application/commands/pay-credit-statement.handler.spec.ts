@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { fakeTransactionWriterRepo } from "../../../../support/fake-ports";
+import {
+  fakeIdempotencyRecordRepo,
+  fakeTransactionWriterRepo,
+} from "../../../../support/fake-ports";
 
 import { PayCreditStatementHandler } from "../../../../../../src/domains/credit-statement/application/commands/pay-credit-statement.handler";
 import { PayCreditStatementCommand } from "../../../../../../src/domains/credit-statement/application/commands/pay-credit-statement.command";
@@ -179,6 +182,7 @@ describe("PayCreditStatementHandler", () => {
 
     const handler = new PayCreditStatementHandler(
       { publish: vi.fn() } as never,
+      fakeIdempotencyRecordRepo(),
       accountRepo,
       statementRepo,
       fakeTransactionWriterRepo(),
@@ -187,7 +191,7 @@ describe("PayCreditStatementHandler", () => {
     );
 
     const result = await handler.execute(
-      new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2"),
+      new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2", "test-key-0000000000001"),
     );
 
     expect(result.paidFromAccountId).toBe("acc_2");
@@ -208,6 +212,7 @@ describe("PayCreditStatementHandler", () => {
     const statementRepo = fakeStatementRepo({ findById: vi.fn(async () => statement) });
     const handler = new PayCreditStatementHandler(
       { publish: vi.fn() } as never,
+      fakeIdempotencyRecordRepo(),
       accountRepo,
       statementRepo,
       fakeTransactionWriterRepo(),
@@ -215,7 +220,9 @@ describe("PayCreditStatementHandler", () => {
       fakePrisma() as never,
     );
     await expect(
-      handler.execute(new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_3")),
+      handler.execute(
+        new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_3", "test-key-0000000000001"),
+      ),
     ).rejects.toThrow(InvalidPaymentSourceError);
   });
 
@@ -237,6 +244,7 @@ describe("PayCreditStatementHandler", () => {
     });
     const handler = new PayCreditStatementHandler(
       { publish: vi.fn() } as never,
+      fakeIdempotencyRecordRepo(),
       accountRepo,
       statementRepo,
       fakeTransactionWriterRepo(),
@@ -244,7 +252,9 @@ describe("PayCreditStatementHandler", () => {
       fakePrisma() as never,
     );
     await expect(
-      handler.execute(new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2")),
+      handler.execute(
+        new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2", "test-key-0000000000001"),
+      ),
     ).rejects.toThrow(NothingToPayError);
   });
   it("a partial payment settles the period and rolls the shortfall into the next one", async () => {
@@ -264,6 +274,7 @@ describe("PayCreditStatementHandler", () => {
     });
     const handler = new PayCreditStatementHandler(
       { publish: vi.fn() } as never,
+      fakeIdempotencyRecordRepo(),
       accountRepo,
       statementRepo,
       fakeTransactionWriterRepo(),
@@ -272,7 +283,14 @@ describe("PayCreditStatementHandler", () => {
     );
 
     const result = await handler.execute(
-      new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2", "4000"),
+      new PayCreditStatementCommand(
+        "u1",
+        "acc_1",
+        "st_1",
+        "acc_2",
+        "test-key-0000000000001",
+        "4000",
+      ),
     );
 
     // Settled and owing nothing further HERE — reported as PARTIALLY_PAID
@@ -311,6 +329,7 @@ describe("PayCreditStatementHandler", () => {
       const planRepo = fakePlanRepo({ settleForStatementWithTx });
       const handler = new PayCreditStatementHandler(
         { publish: vi.fn() } as never,
+        fakeIdempotencyRecordRepo(),
         accountRepo,
         statementRepo,
         fakeTransactionWriterRepo(),
@@ -318,7 +337,9 @@ describe("PayCreditStatementHandler", () => {
         fakePrisma() as never,
       );
 
-      await handler.execute(new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2"));
+      await handler.execute(
+        new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2", "test-key-0000000000001"),
+      );
 
       expect(settleForStatementWithTx).toHaveBeenCalledWith(
         expect.anything(),
@@ -349,6 +370,7 @@ describe("PayCreditStatementHandler", () => {
       const planRepo = fakePlanRepo({ settleForStatementWithTx });
       const handler = new PayCreditStatementHandler(
         { publish: vi.fn() } as never,
+        fakeIdempotencyRecordRepo(),
         accountRepo,
         statementRepo,
         fakeTransactionWriterRepo(),
@@ -357,7 +379,14 @@ describe("PayCreditStatementHandler", () => {
       );
 
       const result = await handler.execute(
-        new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2", "4000"),
+        new PayCreditStatementCommand(
+          "u1",
+          "acc_1",
+          "st_1",
+          "acc_2",
+          "test-key-0000000000001",
+          "4000",
+        ),
       );
 
       // The period itself reports PARTIALLY_PAID (a status NAME) — but "settle the
@@ -392,6 +421,7 @@ describe("PayCreditStatementHandler", () => {
         const settleForStatementWithTx = vi.fn();
         const handler = new PayCreditStatementHandler(
           { publish: vi.fn() } as never,
+          fakeIdempotencyRecordRepo(),
           accountRepo,
           statementRepo,
           fakeTransactionWriterRepo(),
@@ -399,7 +429,14 @@ describe("PayCreditStatementHandler", () => {
           fakePrisma() as never,
         );
         await handler.execute(
-          new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2", amount),
+          new PayCreditStatementCommand(
+            "u1",
+            "acc_1",
+            "st_1",
+            "acc_2",
+            "test-key-0000000000001",
+            amount,
+          ),
         );
         return settleForStatementWithTx.mock.calls.length;
       };

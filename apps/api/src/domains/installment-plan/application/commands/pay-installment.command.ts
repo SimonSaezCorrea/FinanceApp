@@ -1,6 +1,6 @@
-import type { UserScopedCommand } from "../../../../infra/cqrs/base-command.handler";
+import type { IdempotentCommand } from "../../../../infra/cqrs/base-idempotent-command.handler";
 
-export class PayInstallmentCommand implements UserScopedCommand {
+export class PayInstallmentCommand implements IdempotentCommand {
   readonly scope = "user" as const;
 
   constructor(
@@ -17,5 +17,6 @@ export class PayInstallmentCommand implements UserScopedCommand {
     public readonly chargedAmount: string | null,
     /** Real date of payment; null = now. Dates the created expense too (FR-019). */
     public readonly paidAt: Date | null,
+    public readonly idempotencyKey: string,
   ) {}
 }

@@ -1062,6 +1062,15 @@
     "INVALID_ACCOUNT_ALIAS": "That transfer alias isn't valid.",
     "INVALID_INITIAL_BALANCE": "The initial balance can't be negative.",
     "INSTALLMENT_PLAN_BILLED": "This plan already has billed instalments: the amount, instalment count, start date and card can no longer change. Title, category and notes still can.",
-    "INSTALLMENT_PLAN_SETTLED": "This plan has instalments on an already-paid statement. Deleting it would mean undoing a real payment."
+    "INSTALLMENT_PLAN_SETTLED": "This plan has instalments on an already-paid statement. Deleting it would mean undoing a real payment.",
+    "IDEMPOTENCY_KEY_REQUIRED": "Couldn't complete the operation. Please try again.",
+    "IDEMPOTENCY_KEY_REUSED": "This operation was already recorded with different data. Please try again.",
+    "IDEMPOTENCY_IN_PROGRESS": "We're already processing this. Please wait a moment and try again.",
+    "SAVINGS_ENTRY_NOT_FOUND": "Contribution not found.",
+    "DEBT_NOT_FOUND": "Debt not found.",
+    "DEBT_ALREADY_SETTLED": "This debt is already settled.",
+    "ALL_INSTALLMENTS_PAID": "All instalments for this debt have already been recorded.",
+    "DEBT_NOT_SETTLED": "This debt is not settled.",
+    "NO_PAYMENTS_TO_UNDO": "There are no payments to undo on this debt."
   }
 }

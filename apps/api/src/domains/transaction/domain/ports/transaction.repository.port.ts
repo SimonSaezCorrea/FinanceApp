@@ -78,6 +78,17 @@ export interface TransactionRepositoryPort {
     creditUsedDelta: { accountId: string; delta: string } | null,
     balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<Transaction>;
+  /** Same write, enlisted in the CALLER's transaction. Needed when something
+   * outside this table must commit together with the movement — the idempotency
+   * record's COMPLETED mark, which has to be atomic with the effect or a crash
+   * in between would let a retry duplicate. */
+  saveNewWithTx(
+    tx: unknown,
+    userId: string,
+    plan: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
+    creditUsedDelta: { accountId: string; delta: string } | null,
+    balanceDeltas: { accountId: string; delta: string }[],
+  ): Promise<Transaction>;
   saveUpdate(
     userId: string,
     id: string,
@@ -103,6 +114,14 @@ export interface TransactionRepositoryPort {
   /** Both legs of a transfer, or `null` if the group doesn't exist for the user. */
   findTransferGroup(userId: string, transferGroupId: string): Promise<TransferPair | null>;
   saveTransferPair(
+    userId: string,
+    outgoing: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
+    incoming: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
+    balanceDeltas: { accountId: string; delta: string }[],
+  ): Promise<TransferPair>;
+  /** Same pair, enlisted in the caller's transaction (see `saveNewWithTx`). */
+  saveTransferPairWithTx(
+    tx: unknown,
     userId: string,
     outgoing: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     incoming: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,

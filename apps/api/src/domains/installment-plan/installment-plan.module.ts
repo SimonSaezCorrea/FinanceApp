@@ -5,6 +5,7 @@ import { JwtModule } from "@nestjs/jwt";
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
 import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
 import { CardAccountDataModule } from "../card-account/card-account.data.module";
+import { IdempotencyRecordDataModule } from "../idempotency-record/idempotency-record.data.module";
 import { InstallmentPaymentDataModule } from "../installment-payment/installment-payment.data.module";
 import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { CreateInstallmentPlanHandler } from "./application/commands/create-installment-plan.handler";
@@ -43,6 +44,7 @@ const queryHandlers = [ListInstallmentPlansQueryHandler, GetInstallmentPlanQuery
     // Paying an instalment records a real expense AND moves the paying account's
     // balance, both inside one transaction (FR-018/FR-019a).
     BankAccountDataModule,
+    IdempotencyRecordDataModule,
   ],
   controllers: [InstallmentsController],
   providers: [...commandHandlers, ...queryHandlers, JwtAuthGuard],

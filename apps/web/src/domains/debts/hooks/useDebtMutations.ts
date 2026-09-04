@@ -13,10 +13,26 @@ export function useDebtMutations() {
         debtsApi.update(id, body),
       onSuccess: invalidate,
     }),
-    settle: useMutation({ mutationFn: debtsApi.settle, onSuccess: invalidate }),
-    unsettle: useMutation({ mutationFn: debtsApi.unsettle, onSuccess: invalidate }),
-    registerPayment: useMutation({ mutationFn: debtsApi.registerPayment, onSuccess: invalidate }),
-    undoPayment: useMutation({ mutationFn: debtsApi.undoPayment, onSuccess: invalidate }),
+    settle: useMutation({
+      mutationFn: (vars: { id: string; idempotencyKey: string }) =>
+        debtsApi.settle(vars.id, vars.idempotencyKey),
+      onSuccess: invalidate,
+    }),
+    unsettle: useMutation({
+      mutationFn: (vars: { id: string; idempotencyKey: string }) =>
+        debtsApi.unsettle(vars.id, vars.idempotencyKey),
+      onSuccess: invalidate,
+    }),
+    registerPayment: useMutation({
+      mutationFn: (vars: { id: string; idempotencyKey: string }) =>
+        debtsApi.registerPayment(vars.id, vars.idempotencyKey),
+      onSuccess: invalidate,
+    }),
+    undoPayment: useMutation({
+      mutationFn: (vars: { id: string; idempotencyKey: string }) =>
+        debtsApi.undoPayment(vars.id, vars.idempotencyKey),
+      onSuccess: invalidate,
+    }),
     remove: useMutation({ mutationFn: debtsApi.remove, onSuccess: invalidate }),
   };
 }

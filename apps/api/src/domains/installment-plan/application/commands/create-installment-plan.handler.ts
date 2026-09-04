@@ -7,7 +7,15 @@ import type { installments } from "@finance/contracts";
 
 import { moneyToString, subtractMoney, sumMoney, toMoney } from "@finance/money";
 
-import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import {
+  BaseIdempotentCommandHandler,
+  type CompleteFn,
+} from "../../../../infra/cqrs/base-idempotent-command.handler";
+import {
+  IDEMPOTENCY_RECORD_REPOSITORY,
+  type IdempotencyRecordRepositoryPort,
+} from "../../../idempotency-record/domain/ports/idempotency-record.repository.port";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {
   BANK_ACCOUNT_REPOSITORY,
@@ -55,13 +63,17 @@ interface Context {
  */
 @Injectable()
 @CommandHandler(CreateInstallmentPlanCommand)
-export class CreateInstallmentPlanHandler extends BaseCommandHandler<
+export class CreateInstallmentPlanHandler extends BaseIdempotentCommandHandler<
   CreateInstallmentPlanCommand,
   installments.InstallmentPlan,
   Context
 > {
+  protected readonly operation = "installmentPlan.create";
+  protected override readonly successStatus = 201;
+
   constructor(
     eventBus: EventBus,
+    @Inject(IDEMPOTENCY_RECORD_REPOSITORY) records: IdempotencyRecordRepositoryPort,
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort,
     @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
     @Inject(TRANSACTION_WRITER_REPOSITORY)
@@ -69,7 +81,11 @@ export class CreateInstallmentPlanHandler extends BaseCommandHandler<
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
     private readonly prisma: PrismaService,
   ) {
-    super(eventBus);
+    super(eventBus, records);
+  }
+
+  protected requestBody(command: CreateInstallmentPlanCommand): unknown {
+    return command.input;
   }
 
   protected async loadContext(command: CreateInstallmentPlanCommand): Promise<Context> {
@@ -101,16 +117,19 @@ export class CreateInstallmentPlanHandler extends BaseCommandHandler<
     return { plan: planned, creditAccountId };
   }
 
-  protected async handle(
+  protected async handleIdempotent(
     command: CreateInstallmentPlanCommand,
     context: Context,
+    complete: CompleteFn<installments.InstallmentPlan>,
   ): Promise<HandleResult<installments.InstallmentPlan>> {
-    const row = await this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const created = await this.repo.createWithTx(tx, command.userId, context.plan);
       await this.recordCreditCharges(tx, command.userId, created, context.creditAccountId);
-      return created;
+      const contract = created.toContract();
+      await complete(tx, contract);
+      return contract;
     });
-    return { result: row.toContract(), events: [] };
+    return { result, events: [] };
   }
 
   /**

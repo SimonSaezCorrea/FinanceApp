@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   Param,
   Patch,
@@ -11,10 +12,11 @@ import {
 } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 
-import { debts } from "@finance/contracts";
+import { debts, idempotency } from "@finance/contracts";
 
 import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.decorator";
 import { JwtAuthGuard } from "../../../infra/auth/jwt-auth.guard";
+import { requireIdempotencyKey } from "../../../infra/http/idempotency-key";
 import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { CreateDebtCommand } from "../application/commands/create-debt.command";
@@ -76,8 +78,10 @@ export class DebtsController {
   async settle(
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(debtIdParamsSchema)) params: { id: string },
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<void> {
-    await this.commandBus.execute(new SettleDebtCommand(user.id, params.id));
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    await this.commandBus.execute(new SettleDebtCommand(user.id, params.id, idempotencyKey));
   }
 
   @Post(":id/unsettle")
@@ -85,8 +89,10 @@ export class DebtsController {
   unsettle(
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(debtIdParamsSchema)) params: { id: string },
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<debts.Debt> {
-    return this.commandBus.execute(new UnsettleDebtCommand(user.id, params.id));
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(new UnsettleDebtCommand(user.id, params.id, idempotencyKey));
   }
 
   @Post(":id/register-payment")
@@ -94,8 +100,12 @@ export class DebtsController {
   registerPayment(
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(debtIdParamsSchema)) params: { id: string },
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<debts.Debt> {
-    return this.commandBus.execute(new RegisterDebtPaymentCommand(user.id, params.id));
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(
+      new RegisterDebtPaymentCommand(user.id, params.id, idempotencyKey),
+    );
   }
 
   @Post(":id/undo-payment")
@@ -103,8 +113,10 @@ export class DebtsController {
   undoPayment(
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(debtIdParamsSchema)) params: { id: string },
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<debts.Debt> {
-    return this.commandBus.execute(new UndoDebtPaymentCommand(user.id, params.id));
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(new UndoDebtPaymentCommand(user.id, params.id, idempotencyKey));
   }
 
   @Delete(":id")

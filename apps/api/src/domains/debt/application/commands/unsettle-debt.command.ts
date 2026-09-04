@@ -1,10 +1,11 @@
-import type { UserScopedCommand } from "../../../../infra/cqrs/base-command.handler";
+import type { IdempotentCommand } from "../../../../infra/cqrs/base-idempotent-command.handler";
 
-export class UnsettleDebtCommand implements UserScopedCommand {
+export class UnsettleDebtCommand implements IdempotentCommand {
   readonly scope = "user" as const;
 
   constructor(
     public readonly userId: string,
     public readonly id: string,
+    public readonly idempotencyKey: string,
   ) {}
 }

@@ -106,6 +106,7 @@ describe("Transfers HTTP (e2e)", () => {
     const res = await api()
       .post("/api/v1/transactions/transfers")
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send(body());
     expect(res.status).toBe(201);
     groupId = res.body.transferGroupId;
@@ -185,6 +186,7 @@ describe("Transfers HTTP (e2e)", () => {
       api()
         .post("/api/v1/transactions/transfers")
         .set("Cookie", cookies)
+        .set("Idempotency-Key", randomUUID())
         .send({ ...body(), ...over });
 
     // Same account on both sides — caught by the contract's own refine.

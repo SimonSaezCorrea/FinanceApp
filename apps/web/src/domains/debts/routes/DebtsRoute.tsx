@@ -56,31 +56,43 @@ export function DebtsRoute() {
   ];
 
   function handleSettle(id: string) {
-    settle.mutate(id, {
-      onSuccess: () => toast.success(t("debts.updated")),
-      onError: () => toast.error(t("errors.INTERNAL_ERROR")),
-    });
+    settle.mutate(
+      { id, idempotencyKey: crypto.randomUUID() },
+      {
+        onSuccess: () => toast.success(t("debts.updated")),
+        onError: () => toast.error(t("errors.INTERNAL_ERROR")),
+      },
+    );
   }
 
   function handleUnsettle(id: string) {
-    unsettle.mutate(id, {
-      onSuccess: () => toast.success(t("debts.updated")),
-      onError: () => toast.error(t("errors.INTERNAL_ERROR")),
-    });
+    unsettle.mutate(
+      { id, idempotencyKey: crypto.randomUUID() },
+      {
+        onSuccess: () => toast.success(t("debts.updated")),
+        onError: () => toast.error(t("errors.INTERNAL_ERROR")),
+      },
+    );
   }
 
   function handleRegisterPayment(id: string) {
-    registerPayment.mutate(id, {
-      onSuccess: () => toast.success(t("debts.card.registerPayment")),
-      onError: () => toast.error(t("errors.INTERNAL_ERROR")),
-    });
+    registerPayment.mutate(
+      { id, idempotencyKey: crypto.randomUUID() },
+      {
+        onSuccess: () => toast.success(t("debts.card.registerPayment")),
+        onError: () => toast.error(t("errors.INTERNAL_ERROR")),
+      },
+    );
   }
 
   function handleUndoPayment(id: string) {
-    undoPayment.mutate(id, {
-      onSuccess: () => toast.success(t("debts.card.undoPayment")),
-      onError: () => toast.error(t("errors.INTERNAL_ERROR")),
-    });
+    undoPayment.mutate(
+      { id, idempotencyKey: crypto.randomUUID() },
+      {
+        onSuccess: () => toast.success(t("debts.card.undoPayment")),
+        onError: () => toast.error(t("errors.INTERNAL_ERROR")),
+      },
+    );
   }
 
   function handleEdit(debt: debts.Debt) {
@@ -161,6 +173,10 @@ export function DebtsRoute() {
             onUnsettle={handleUnsettle}
             onRegisterPayment={handleRegisterPayment}
             onUndoPayment={handleUndoPayment}
+            settlePending={settle.isPending}
+            unsettlePending={unsettle.isPending}
+            registerPaymentPending={registerPayment.isPending}
+            undoPaymentPending={undoPayment.isPending}
           />
         </>
       )}

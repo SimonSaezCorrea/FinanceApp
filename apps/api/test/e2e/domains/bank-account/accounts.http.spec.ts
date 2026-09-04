@@ -102,15 +102,19 @@ describe("Accounts HTTP (e2e)", () => {
       .get(`/api/v1/accounts/${creditAccountId}`)
       .set("Cookie", cookies);
     const cardId = account.body.cards[0].id;
-    await request(app.getHttpServer()).post("/api/v1/transactions").set("Cookie", cookies).send({
-      bankAccountId: creditAccountId,
-      cardId,
-      type: "EXPENSE",
-      amount: "10000",
-      currency: "CLP",
-      occurredAt: new Date().toISOString(),
-      category: "Test",
-    });
+    await request(app.getHttpServer())
+      .post("/api/v1/transactions")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({
+        bankAccountId: creditAccountId,
+        cardId,
+        type: "EXPENSE",
+        amount: "10000",
+        currency: "CLP",
+        occurredAt: new Date().toISOString(),
+        category: "Test",
+      });
 
     const generateRes = await request(app.getHttpServer())
       .post(`/api/v1/accounts/${creditAccountId}/generate-statements`)
@@ -126,6 +130,7 @@ describe("Accounts HTTP (e2e)", () => {
     const payRes = await request(app.getHttpServer())
       .post(`/api/v1/accounts/${creditAccountId}/credit-statements/${statementId}/pay`)
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({ fromAccountId: checkingAccountId });
     expect(payRes.status).toBe(201);
     expect(payRes.body.status).toBe("PAID");

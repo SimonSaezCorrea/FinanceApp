@@ -6,6 +6,7 @@ import {
   DebtAlreadySettledError,
   DebtNotSettledError,
   NoPaymentsToUndoError,
+  TotalInstallmentsBelowPaidError,
 } from "./errors";
 
 export interface DebtProps {
@@ -55,16 +56,23 @@ export type PlannedDebt = Omit<DebtProps, "id" | "userId" | "createdAt" | "updat
  * direction (`OWED_TO_YOU`/`YOU_OWE`), optionally paid off across scheduled
  * installments. Owns the settle/unsettle/register-payment/undo-payment
  * invariants that used to live in `DebtsService`:
- *  - `settle()` marks it settled directly, no guard (mirrors the
- *    pre-migration `DebtsService.settle`, which never checked prior state).
+ *  - `settle()` requires the debt not to be already settled
+ *    (`DEBT_ALREADY_SETTLED`) — the pre-migration `DebtsService.settle` had
+ *    no guard and re-stamped `settledAt` on every call; a legitimate second
+ *    click on an already-settled debt must not move that date.
  *  - `unsettle()` requires the debt to currently be settled
  *    (`DEBT_NOT_SETTLED` otherwise).
  *  - `registerPayment()` requires it to be neither already settled
  *    (`DEBT_ALREADY_SETTLED`) nor fully paid (`ALL_INSTALLMENTS_PAID`);
  *    reaching `totalInstallments` auto-settles it.
  *  - `undoPayment()` requires at least one payment to undo
- *    (`NO_PAYMENTS_TO_UNDO`); undoing the payment that had settled it also
- *    clears `settledAt`.
+ *    (`NO_PAYMENTS_TO_UNDO`); it clears `settledAt` only when THIS payment is
+ *    the one that completed the schedule and thereby auto-settled it — a
+ *    debt settled manually (`settle()`) while not fully paid is a fact of
+ *    its own that an unrelated instalment payment must not undo.
+ *  - `applyUpdate()` refuses a `totalInstallments` below what is already
+ *    paid (`TOTAL_INSTALLMENTS_BELOW_PAID`) — a schedule may shrink, never
+ *    past what already happened.
  */
 export class Debt {
   private constructor(private props: DebtProps) {}
@@ -134,8 +142,12 @@ export class Debt {
     if (patch.dueAt !== undefined) this.props.dueAt = patch.dueAt;
     if (patch.interestApr !== undefined) this.props.interestApr = patch.interestApr;
     if (patch.notes !== undefined) this.props.notes = patch.notes;
-    if (patch.totalInstallments !== undefined)
+    if (patch.totalInstallments !== undefined) {
+      if (patch.totalInstallments < this.props.paidInstallments) {
+        throw new TotalInstallmentsBelowPaidError();
+      }
       this.props.totalInstallments = patch.totalInstallments;
+    }
     if (patch.installmentAmount !== undefined)
       this.props.installmentAmount = patch.installmentAmount;
     if (patch.frequency !== undefined) this.props.frequency = patch.frequency;
@@ -143,9 +155,10 @@ export class Debt {
       this.props.frequencyInterval = patch.frequencyInterval;
   }
 
-  /** Marks the debt settled directly — no guard, mirrors the pre-migration
-   * `DebtsService.settle`. */
+  /** Marks the debt settled — `DEBT_ALREADY_SETTLED` if it already was,
+   * rather than silently re-stamping `settledAt` to a fresh timestamp. */
   settle(): void {
+    if (this.props.settledAt !== null) throw new DebtAlreadySettledError();
     this.props.settledAt = new Date();
   }
 
@@ -171,12 +184,17 @@ export class Debt {
   }
 
   /** Reverts the most recent payment — `NO_PAYMENTS_TO_UNDO` if none were
-   * registered; clears `settledAt` if the undone payment was the one that
-   * had settled it. */
+   * registered; clears `settledAt` only when the undone payment is the one
+   * that completed the schedule and thereby auto-settled it (a debt settled
+   * manually while not fully paid is a separate fact this payment did not
+   * cause). */
   undoPayment(): void {
     if (this.props.paidInstallments === 0) throw new NoPaymentsToUndoError();
+    const completedTheSchedule = this.props.paidInstallments === this.props.totalInstallments;
     this.props.paidInstallments -= 1;
-    if (this.props.settledAt !== null) this.props.settledAt = null;
+    if (completedTheSchedule && this.props.settledAt !== null) {
+      this.props.settledAt = null;
+    }
   }
 
   snapshot(): Readonly<DebtProps> {

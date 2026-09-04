@@ -1,4 +1,4 @@
-import { API_BASE_PATH, type ApiError } from "@finance/contracts";
+import { API_BASE_PATH, idempotency, type ApiError } from "@finance/contracts";
 
 /**
  * The ONLY way the frontend talks to the backend (FR-003): HTTP, credentials
@@ -95,8 +95,23 @@ function refreshSession(): Promise<boolean> {
   return refreshInFlight;
 }
 
-export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  let res = await rawFetch(path, init);
+/**
+ * `RequestInit` plus the attempt's identity. The key rides in the headers of the
+ * SAME `init` that the 401 refresh below replays, so that silent retry is
+ * covered without any extra handling here.
+ */
+export type ApiRequestInit = RequestInit & { idempotencyKey?: string };
+
+export async function apiFetch<T>(path: string, init: ApiRequestInit = {}): Promise<T> {
+  const { idempotencyKey, ...rest } = init;
+  const request: RequestInit = idempotencyKey
+    ? {
+        ...rest,
+        headers: { ...rest.headers, [idempotency.IDEMPOTENCY_HEADER]: idempotencyKey },
+      }
+    : rest;
+
+  let res = await rawFetch(path, request);
 
   // Silent refresh: intercept 401 on non-auth paths, attempt token rotation,
   // then retry the original request once. Concurrent callers share the single
@@ -104,7 +119,7 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (res.status === 401 && !path.startsWith("/auth/") && !refreshExhausted) {
     const refreshed = await refreshSession();
     if (refreshed) {
-      res = await rawFetch(path, init);
+      res = await rawFetch(path, request);
     }
   }
 

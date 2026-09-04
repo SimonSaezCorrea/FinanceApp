@@ -13,6 +13,7 @@ import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
 import {
   buildBankAccountRepo,
   buildCreditStatementRepo,
+  buildIdempotencyRecordRepo,
   buildInstallmentPlanRepo,
   buildTransactionWriterRepo,
 } from "../../../support/repositories";
@@ -180,6 +181,7 @@ describe("PayCreditStatementHandler settles instalments (integration)", () => {
 
     const payHandler = new PayCreditStatementHandler(
       { publish: () => undefined } as never,
+      buildIdempotencyRecordRepo(prisma),
       accountRepo,
       statementRepo,
       buildTransactionWriterRepo(prisma),
@@ -187,7 +189,13 @@ describe("PayCreditStatementHandler settles instalments (integration)", () => {
       prisma,
     );
     await payHandler.execute(
-      new PayCreditStatementCommand(userId, creditAccountId, statementId, fromAccountId),
+      new PayCreditStatementCommand(
+        userId,
+        creditAccountId,
+        statementId,
+        fromAccountId,
+        randomUUID(),
+      ),
     );
 
     const instalment1 = await prisma.installmentPayment.findFirst({

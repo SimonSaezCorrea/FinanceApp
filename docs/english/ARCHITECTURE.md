@@ -436,6 +436,62 @@ after this movement" (`balanceAfter.ts`) and "projected balance" (`projectedBala
 in the browser with `@finance/money`, and are OMITTED rather than approximated when the loaded set
 can't support them — see `docs/PENDING.md`.
 
+## 12c. Idempotent writes: the two-phase protocol (specs/015)
+
+**The problem.** A retry of a money-moving write must never duplicate its effect, but two genuinely
+distinct operations that happen to look identical — "two identical coffees" — must both go through.
+Constitution Principle VII names three acceptable mechanisms; a natural key over amount/date/account/
+description (form b) would silently reject the second coffee, so this app uses form (c): a
+client-generated `Idempotency-Key` header, remembered server-side.
+
+**The lock is the unique constraint, not a check before it.** `IdempotencyRecord`
+(`domains/idempotency-record`) has `@@unique([userId, key])`. Two concurrent requests carrying the
+same key both attempt that INSERT; Postgres lets exactly one through. The repository's `reserve()`
+translates the resulting `P2002` into an `EXISTS` result rather than treating it as an error — that
+collision IS the mechanism, not a bug to route around.
+
+**Two phases, and the ordering is the entire safety argument** (`specs/015/research.md` §3):
+
+1. **RESERVE** — `reserve(userId, key)` runs in its own transaction. `EXISTS` means a `decideReplay()`
+   call on the existing record decides what happens next: **replay** the stored response verbatim (same
+   operation, same canonical-JSON SHA-256 request hash — `infra/cqrs/request-hash.ts`), reject with
+   `IDEMPOTENCY_KEY_REUSED` (409 — different data under the same key), answer `IDEMPOTENCY_IN_PROGRESS`
+   (409 — the original attempt is still running), or **take over** an abandoned reservation once it's
+   stale (>60s).
+2. **EXECUTE** — the handler's `handleIdempotent()` opens exactly ONE `prisma.$transaction` that covers
+   BOTH the real effect (the row insert, the balance delta, the credit-pool decrement, …) AND the call
+   to `complete(tx, body, status)`, which stamps the record `COMPLETED` inside that same transaction.
+
+Completing the record in a SEPARATE transaction after the effect's own would look equivalent and is
+not: a crash between the two commits leaves the effect applied but the record still `IN_FLIGHT`, and
+the next retry — seeing an in-flight record — would apply the effect again. Because completion is
+atomic with the effect, `IN_FLIGHT` always means the effect never committed, which is what makes taking
+over a stale reservation safe by argument rather than by optimism. `BaseIdempotentCommandHandler`
+(`infra/cqrs/base-idempotent-command.handler.ts`) is the Template Method enforcing this shape — it
+throws if a concrete handler's `handleIdempotent()` returns without ever calling `complete()`.
+
+**Consequence for handler ownership.** Every protected write needed a `*WithTx(tx, …)` variant of its
+repository method, and the _handler_ — not the adapter — now opens the `$transaction`, since it is the
+only place that knows about both the effect and the idempotency mark. This moved transaction ownership
+out of `saveNew`/`saveTransferPair` (which used to open their own) and into
+`CreateTransactionHandler`/`CreateTransferHandler`; `debt`'s four handlers additionally had no
+transaction at all before this and now do the full read-mutate-write cycle inside one, using
+`findOneForUpdateWithTx` (`SELECT … FOR UPDATE`) — necessary because wrapping only the write left the
+_read_ (previously in `loadContext()`, which runs BEFORE the transaction opens) racing across
+concurrent requests: 6 simultaneous `register-payment` calls against the same debt advanced the
+counter by only 2 until the read moved inside the lock.
+
+**Ten protected operations**: `POST /transactions`, `POST /transactions/transfers`,
+`POST /installments`, `POST /installments/:id/payments/:seq/pay`,
+`POST /accounts/:id/credit-statements/:id/pay`, `POST /debts/:id/settle`, `POST /debts/:id/unsettle`,
+`POST /debts/:id/payments`, `DELETE /debts/:id/payments`, `POST /savings/entries`. A daily cron
+(`infra/cron/idempotency-cleanup.cron.ts`) purges attempts past their retention window via the
+domain's one `scope: "system"` command, mirroring `billing-generation.cron.ts`.
+
+**Deliberately out of scope**: `POST /import/transactions` (no real caller exists yet — the web import
+route is a placeholder) and reloading the page mid-submit (the in-memory key, `useIdempotencyKey`, is
+lost — a resubmission is a genuinely new attempt). Both are catalogued in `docs/PENDING.md`.
+
 ## 12. Adding a new domain (recap)
 
 1. Add zod schemas + types in `packages/contracts/src/<domain>/` and export from `src/index.ts`.

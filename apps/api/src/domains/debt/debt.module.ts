@@ -3,6 +3,7 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
+import { IdempotencyRecordDataModule } from "../idempotency-record/idempotency-record.data.module";
 import { CreateDebtHandler } from "./application/commands/create-debt.handler";
 import { RegisterDebtPaymentHandler } from "./application/commands/register-debt-payment.handler";
 import { RemoveDebtHandler } from "./application/commands/remove-debt.handler";
@@ -29,7 +30,7 @@ const commandHandlers = [
 const queryHandlers = [ListDebtsQueryHandler, GetDebtQueryHandler];
 
 @Module({
-  imports: [CqrsModule, JwtModule.register({})],
+  imports: [CqrsModule, JwtModule.register({}), IdempotencyRecordDataModule],
   controllers: [DebtsController],
   providers: [
     ...commandHandlers,

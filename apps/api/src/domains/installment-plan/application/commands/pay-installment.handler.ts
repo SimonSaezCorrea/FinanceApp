@@ -5,7 +5,15 @@ import { subtractMoney } from "@finance/money";
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
-import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import {
+  BaseIdempotentCommandHandler,
+  type CompleteFn,
+} from "../../../../infra/cqrs/base-idempotent-command.handler";
+import {
+  IDEMPOTENCY_RECORD_REPOSITORY,
+  type IdempotencyRecordRepositoryPort,
+} from "../../../idempotency-record/domain/ports/idempotency-record.repository.port";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import type { BankAccount } from "../../../bank-account/domain/bank-account.aggregate";
 import { AccountNotFoundError } from "../../../bank-account/domain/errors";
@@ -65,13 +73,17 @@ interface Context {
  */
 @Injectable()
 @CommandHandler(PayInstallmentCommand)
-export class PayInstallmentHandler extends BaseCommandHandler<
+export class PayInstallmentHandler extends BaseIdempotentCommandHandler<
   PayInstallmentCommand,
   void,
   Context
 > {
+  protected readonly operation = "installmentPlan.payInstallment";
+  protected override readonly successStatus = 204;
+
   constructor(
     eventBus: EventBus,
+    @Inject(IDEMPOTENCY_RECORD_REPOSITORY) records: IdempotencyRecordRepositoryPort,
     private readonly prisma: PrismaService,
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
@@ -79,7 +91,18 @@ export class PayInstallmentHandler extends BaseCommandHandler<
     @Inject(TRANSACTION_WRITER_REPOSITORY)
     private readonly transactions: TransactionWriterRepositoryPort,
   ) {
-    super(eventBus);
+    super(eventBus, records);
+  }
+
+  protected requestBody(command: PayInstallmentCommand): unknown {
+    return {
+      planId: command.planId,
+      sequence: command.sequence,
+      fromAccountId: command.fromAccountId,
+      amount: command.amount,
+      chargedAmount: command.chargedAmount,
+      paidAt: command.paidAt,
+    };
   }
 
   protected async loadContext(command: PayInstallmentCommand): Promise<Context> {
@@ -151,9 +174,10 @@ export class PayInstallmentHandler extends BaseCommandHandler<
     return { paidAmount, chargedAmount: command.chargedAmount };
   }
 
-  protected async handle(
+  protected async handleIdempotent(
     _command: PayInstallmentCommand,
     context: Context,
+    complete: CompleteFn<void>,
   ): Promise<HandleResult<void>> {
     const account = context.source.snapshot();
     const movement = { type: "EXPENSE" as const, amount: context.chargedAmount };
@@ -177,32 +201,29 @@ export class PayInstallmentHandler extends BaseCommandHandler<
       context.transactionId,
     );
     context.carryDeltas = carryDeltas;
-    return { result: undefined, events: [] };
-  }
 
-  protected override async persist(context: Context): Promise<void> {
     await this.prisma.$transaction(async (tx) => {
-      {
-        const account = context.source.snapshot();
-        const plan = context.plan.snapshot();
-        await this.transactions.createWithTx(tx, {
-          id: context.transactionId,
-          userId: plan.userId,
-          bankAccountId: account.id,
-          type: "EXPENSE",
-          amount: context.chargedAmount,
-          // The ACCOUNT's currency, not the plan's: this row describes money that
-          // left this account (FR-030).
-          currency: account.currency,
-          occurredAt: context.paidAt,
-          category: plan.category,
-          description: `${plan.title} · ${context.sequence}/${plan.installmentCount}`,
-          installmentPlanId: plan.id,
-        });
-        await this.accountsBalance(tx, account.id, context.chargedAmount);
-      }
+      const plan = context.plan.snapshot();
+      await this.transactions.createWithTx(tx, {
+        id: context.transactionId,
+        userId: plan.userId,
+        bankAccountId: account.id,
+        type: "EXPENSE",
+        amount: context.chargedAmount,
+        // The ACCOUNT's currency, not the plan's: this row describes money that
+        // left this account (FR-030).
+        currency: account.currency,
+        occurredAt: context.paidAt,
+        category: plan.category,
+        description: `${plan.title} · ${context.sequence}/${plan.installmentCount}`,
+        installmentPlanId: plan.id,
+      });
+      await this.accountsBalance(tx, account.id, context.chargedAmount);
       await this.repo.savePaymentWithTx(tx, context.plan, context.sequence, context.carryDeltas);
+      await complete(tx, undefined);
     });
+
+    return { result: undefined, events: [] };
   }
 
   private async accountsBalance(tx: unknown, accountId: string, amount: string): Promise<void> {

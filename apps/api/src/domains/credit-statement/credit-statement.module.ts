@@ -4,6 +4,7 @@ import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
 import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
+import { IdempotencyRecordDataModule } from "../idempotency-record/idempotency-record.data.module";
 import { InstallmentPlanDataModule } from "../installment-plan/installment-plan.data.module";
 import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { SyncStatementHandler } from "./application/commands/sync-statement.handler";
@@ -42,6 +43,7 @@ const commandHandlers = [
     JwtModule.register({}),
     CreditStatementDataModule,
     BankAccountDataModule,
+    IdempotencyRecordDataModule,
     TransactionDataModule,
     // Closing a period stamps the instalments it charges (spec 014) — the leaf, not
     // the plan's orchestration module, so the graph stays acyclic (research.md R3).

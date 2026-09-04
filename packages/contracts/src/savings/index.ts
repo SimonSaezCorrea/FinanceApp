@@ -51,3 +51,14 @@ export const createSavingsEntrySchema = z.object({
   note: z.string().trim().max(500).optional(),
 });
 export type CreateSavingsEntry = z.infer<typeof createSavingsEntrySchema>;
+
+/**
+ * A contribution recorded by mistake used to be permanent — the entry had no
+ * update or delete path at all. `currency` is re-declared optional so the
+ * create schema's `.default("USD")` cannot resurrect on a PATCH that never
+ * mentioned it (same correction as commit e93dc0b).
+ */
+export const updateSavingsEntrySchema = createSavingsEntrySchema.partial().extend({
+  currency: z.string().trim().length(3).optional(),
+});
+export type UpdateSavingsEntry = z.infer<typeof updateSavingsEntrySchema>;

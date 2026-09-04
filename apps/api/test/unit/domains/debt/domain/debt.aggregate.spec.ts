@@ -6,6 +6,7 @@ import {
   DebtAlreadySettledError,
   DebtNotSettledError,
   NoPaymentsToUndoError,
+  TotalInstallmentsBelowPaidError,
 } from "../../../../../src/domains/debt/domain/errors";
 
 function makeDebt(overrides: Partial<Parameters<typeof Debt.fromPersistence>[0]> = {}) {
@@ -84,14 +85,44 @@ describe("Debt.applyUpdate", () => {
     expect(debt.toContract().notes).toBe("note");
     expect(debt.toContract().principal).toBe("1240.5000");
   });
+
+  // T047: a schedule can shrink, but never past what already happened —
+  // otherwise `paidInstallments > totalInstallments` becomes representable.
+  it("throws TotalInstallmentsBelowPaidError when the new total is below what's already paid", () => {
+    const debt = makeDebt({ totalInstallments: 12, paidInstallments: 5 });
+    expect(() => debt.applyUpdate({ totalInstallments: 4 })).toThrow(
+      TotalInstallmentsBelowPaidError,
+    );
+  });
+
+  it("allows a new total that still covers what's already paid", () => {
+    const debt = makeDebt({ totalInstallments: 12, paidInstallments: 5 });
+    debt.applyUpdate({ totalInstallments: 5 });
+    expect(debt.totalInstallments).toBe(5);
+  });
 });
 
 describe("Debt.settle", () => {
-  it("marks it settled directly, no guard against re-settling", () => {
+  // T045: replaces the old "no guard against re-settling" behavior — a
+  // reservation-based retry no longer needs it, and re-settling silently was
+  // itself a bug: a legitimate second click on an already-settled debt used
+  // to move settledAt to a fresh timestamp every time.
+  it("marks a not-yet-settled debt settled", () => {
     const debt = makeDebt();
     debt.settle();
     expect(debt.settledAt).not.toBeNull();
-    expect(() => debt.settle()).not.toThrow();
+  });
+
+  it("throws DebtAlreadySettledError on a debt that is already settled", () => {
+    const debt = makeDebt({ settledAt: new Date("2026-02-01T00:00:00Z") });
+    expect(() => debt.settle()).toThrow(DebtAlreadySettledError);
+  });
+
+  it("does not move settledAt when called again on an already-settled debt", () => {
+    const settledAt = new Date("2026-02-01T00:00:00Z");
+    const debt = makeDebt({ settledAt });
+    expect(() => debt.settle()).toThrow(DebtAlreadySettledError);
+    expect(debt.settledAt).toEqual(settledAt);
   });
 });
 
@@ -155,5 +186,21 @@ describe("Debt.undoPayment", () => {
     debt.undoPayment();
     expect(debt.paidInstallments).toBe(2);
     expect(debt.settledAt).toBeNull();
+  });
+
+  // T046: a debt settled MANUALLY (settle(), not by completing the schedule)
+  // is a fact of its own — undoing an unrelated instalment payment must not
+  // touch it. Before this fix, undoPayment() cleared settledAt whenever it
+  // was non-null, regardless of whether THIS payment was the one that set it.
+  it("does NOT clear settledAt when undoing a payment on a debt settled manually while not fully paid", () => {
+    const settledAt = new Date("2026-03-01T00:00:00Z");
+    const debt = makeDebt({
+      totalInstallments: 5,
+      paidInstallments: 2,
+      settledAt, // settled by hand, e.g. "the counterparty forgave the rest"
+    });
+    debt.undoPayment();
+    expect(debt.paidInstallments).toBe(1);
+    expect(debt.settledAt).toEqual(settledAt);
   });
 });

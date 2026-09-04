@@ -464,6 +464,42 @@ PENDING) may still be deleted, because unwinding a period nobody paid touches no
 
 ---
 
+## 4d. Personal debts (out-of-band loans): re-entry guards added by specs/015
+
+`Debt` (someone owes the user, or the user owes someone — `direction: YOU_OWE | OWED`) tracks
+`paidInstallments`/`totalInstallments` and a `settledAt` timestamp, mutated by four commands:
+`settle`, `unsettle`, `register-payment` (`paidInstallments += 1`, auto-settles once it reaches
+`totalInstallments`), `undo-payment` (`paidInstallments -= 1`). Before specs/015 these were raw
+increments/decrements with no re-entry guard — a double-click on "pagar cuota" silently registered
+two payments, and calling `settle` twice just re-stamped `settledAt` with a fresh `new Date()` each
+time, discarding the original settlement moment.
+
+Three invariants added to the `Debt` aggregate itself (not just at the HTTP layer, so they hold
+regardless of how the command was dispatched):
+
+- **`settle()` refuses a debt that's already settled** (`DebtAlreadySettledError`) instead of quietly
+  re-stamping `settledAt`.
+- **`undoPayment()` only clears `settledAt` when the debt was auto-settled by reaching its full
+  schedule** (`paidInstallments === totalInstallments` before the undo) — undoing a payment on a debt
+  that was settled manually while instalments remained outstanding leaves `settledAt` alone, since
+  that settlement wasn't a consequence of the payment count in the first place.
+- **`applyUpdate()` refuses lowering `totalInstallments` below `paidInstallments`**
+  (`TotalInstallmentsBelowPaidError`) — editing the schedule can't retroactively make more payments
+  exist than instalments.
+
+All four commands are also idempotency-protected (Constitution Principle VII form (c)): `settle`,
+`unsettle`, `register-payment` and `undo-payment` each require an `Idempotency-Key` header and run
+through `BaseIdempotentCommandHandler`. Because the read that decides "is this still valid" has to
+see every OTHER concurrent attempt's effect, the read (`findOneForUpdateWithTx`, a raw
+`SELECT … FOR UPDATE`), the mutation, and the idempotency-record's `COMPLETED` mark all happen inside
+ONE transaction — wrapping only the write left a lost-update race open (confirmed empirically: 6
+concurrent `register-payment` requests against the same debt advanced the counter by only 2 before
+this fix; exactly 6 after it). See `CLAUDE.md`'s `idempotency-record` domain bullet and
+`specs/015-idempotent-money-writes/research.md` §3 for the full two-phase protocol this pattern is
+an instance of.
+
+---
+
 ## 5. Error codes glossary (this domain)
 
 | Code                            | Thrown when…                                                                                      |

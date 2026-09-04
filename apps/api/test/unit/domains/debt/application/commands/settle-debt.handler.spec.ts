@@ -6,10 +6,16 @@ import { UnsettleDebtHandler } from "../../../../../../src/domains/debt/applicat
 import { UnsettleDebtCommand } from "../../../../../../src/domains/debt/application/commands/unsettle-debt.command";
 import { Debt } from "../../../../../../src/domains/debt/domain/debt.aggregate";
 import {
+  DebtAlreadySettledError,
   DebtNotFoundError,
   DebtNotSettledError,
 } from "../../../../../../src/domains/debt/domain/errors";
 import type { DebtRepositoryPort } from "../../../../../../src/domains/debt/domain/ports/debt.repository.port";
+import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
+import { fakeIdempotencyRecordRepo, fakePrismaTransaction } from "../../../../support/fake-ports";
+
+const KEY = "test-key-0000000000001";
+const prisma = fakePrismaTransaction() as unknown as PrismaService;
 
 function makeDebt(settledAt: Date | null = null) {
   return Debt.fromPersistence({
@@ -38,8 +44,10 @@ function fakeRepo(overrides: Partial<DebtRepositoryPort> = {}): DebtRepositoryPo
   return {
     list: vi.fn(),
     findOne: vi.fn(),
+    findOneForUpdateWithTx: vi.fn(),
     create: vi.fn(),
     save: vi.fn(),
+    saveWithTx: vi.fn(),
     remove: vi.fn(),
     ...overrides,
   };
@@ -47,45 +55,93 @@ function fakeRepo(overrides: Partial<DebtRepositoryPort> = {}): DebtRepositoryPo
 
 describe("SettleDebtHandler", () => {
   it("throws DebtNotFoundError when the debt is not the user's", async () => {
-    const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(null) });
-    const handler = new SettleDebtHandler({ publish: vi.fn() } as never, repo);
-    await expect(handler.execute(new SettleDebtCommand("u1", "ghost"))).rejects.toBeInstanceOf(
+    const repo = fakeRepo({ findOneForUpdateWithTx: vi.fn().mockResolvedValue(null) });
+    const handler = new SettleDebtHandler(
+      { publish: vi.fn() } as never,
+      fakeIdempotencyRecordRepo(),
+      repo,
+      prisma,
+    );
+    await expect(handler.execute(new SettleDebtCommand("u1", "ghost", KEY))).rejects.toBeInstanceOf(
       DebtNotFoundError,
     );
   });
 
-  it("settles the debt with no guard against re-settling", async () => {
-    const save = vi.fn().mockResolvedValue(undefined);
-    const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(makeDebt(new Date())), save });
-    const handler = new SettleDebtHandler({ publish: vi.fn() } as never, repo);
-    await expect(handler.execute(new SettleDebtCommand("u1", "d1"))).resolves.toBeUndefined();
-    expect(save).toHaveBeenCalled();
+  it("settles a not-yet-settled debt", async () => {
+    const saveWithTx = vi.fn().mockResolvedValue(undefined);
+    const repo = fakeRepo({
+      findOneForUpdateWithTx: vi.fn().mockResolvedValue(makeDebt(null)),
+      saveWithTx,
+    });
+    const handler = new SettleDebtHandler(
+      { publish: vi.fn() } as never,
+      fakeIdempotencyRecordRepo(),
+      repo,
+      prisma,
+    );
+    await expect(handler.execute(new SettleDebtCommand("u1", "d1", KEY))).resolves.toBeUndefined();
+    expect(saveWithTx).toHaveBeenCalled();
+  });
+
+  // Replaces the old "no guard against re-settling" behavior — see
+  // Debt.settle's own tests for why re-stamping settledAt was a bug.
+  it("throws DebtAlreadySettledError on an already-settled debt", async () => {
+    const repo = fakeRepo({
+      findOneForUpdateWithTx: vi.fn().mockResolvedValue(makeDebt(new Date())),
+    });
+    const handler = new SettleDebtHandler(
+      { publish: vi.fn() } as never,
+      fakeIdempotencyRecordRepo(),
+      repo,
+      prisma,
+    );
+    await expect(handler.execute(new SettleDebtCommand("u1", "d1", KEY))).rejects.toBeInstanceOf(
+      DebtAlreadySettledError,
+    );
   });
 });
 
 describe("UnsettleDebtHandler", () => {
   it("throws DebtNotFoundError when the debt is not the user's", async () => {
-    const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(null) });
-    const handler = new UnsettleDebtHandler({ publish: vi.fn() } as never, repo);
-    await expect(handler.execute(new UnsettleDebtCommand("u1", "ghost"))).rejects.toBeInstanceOf(
-      DebtNotFoundError,
+    const repo = fakeRepo({ findOneForUpdateWithTx: vi.fn().mockResolvedValue(null) });
+    const handler = new UnsettleDebtHandler(
+      { publish: vi.fn() } as never,
+      fakeIdempotencyRecordRepo(),
+      repo,
+      prisma,
     );
+    await expect(
+      handler.execute(new UnsettleDebtCommand("u1", "ghost", KEY)),
+    ).rejects.toBeInstanceOf(DebtNotFoundError);
   });
 
   it("throws DebtNotSettledError when not currently settled", async () => {
-    const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(makeDebt(null)) });
-    const handler = new UnsettleDebtHandler({ publish: vi.fn() } as never, repo);
-    await expect(handler.execute(new UnsettleDebtCommand("u1", "d1"))).rejects.toBeInstanceOf(
+    const repo = fakeRepo({ findOneForUpdateWithTx: vi.fn().mockResolvedValue(makeDebt(null)) });
+    const handler = new UnsettleDebtHandler(
+      { publish: vi.fn() } as never,
+      fakeIdempotencyRecordRepo(),
+      repo,
+      prisma,
+    );
+    await expect(handler.execute(new UnsettleDebtCommand("u1", "d1", KEY))).rejects.toBeInstanceOf(
       DebtNotSettledError,
     );
   });
 
   it("clears settledAt and persists it", async () => {
-    const save = vi.fn().mockResolvedValue(undefined);
-    const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(makeDebt(new Date())), save });
-    const handler = new UnsettleDebtHandler({ publish: vi.fn() } as never, repo);
-    const result = await handler.execute(new UnsettleDebtCommand("u1", "d1"));
+    const saveWithTx = vi.fn().mockResolvedValue(undefined);
+    const repo = fakeRepo({
+      findOneForUpdateWithTx: vi.fn().mockResolvedValue(makeDebt(new Date())),
+      saveWithTx,
+    });
+    const handler = new UnsettleDebtHandler(
+      { publish: vi.fn() } as never,
+      fakeIdempotencyRecordRepo(),
+      repo,
+      prisma,
+    );
+    const result = await handler.execute(new UnsettleDebtCommand("u1", "d1", KEY));
     expect(result.settledAt).toBeNull();
-    expect(save).toHaveBeenCalled();
+    expect(saveWithTx).toHaveBeenCalled();
   });
 });

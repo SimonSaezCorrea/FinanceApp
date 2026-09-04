@@ -4,7 +4,16 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import type { transactions } from "@finance/contracts";
 
 import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
-import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import {
+  BaseIdempotentCommandHandler,
+  type CompleteFn,
+} from "../../../../infra/cqrs/base-idempotent-command.handler";
+import {
+  IDEMPOTENCY_RECORD_REPOSITORY,
+  type IdempotencyRecordRepositoryPort,
+} from "../../../idempotency-record/domain/ports/idempotency-record.repository.port";
+import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import { cashDelta } from "../../domain/balance-delta";
 import {
   BANK_ACCOUNT_REPOSITORY,
@@ -45,26 +54,38 @@ interface Context {
  * Creates a movement, enforcing the movement rules (`MovementPolicy`) and, if
  * it draws on a shared credit pool, linking it to the account's currently
  * OPEN billing period and persisting the `creditUsed` delta atomically with
- * the row itself (`saveNew`, FR-020) — the actual repository write happens in
- * `handle()` (same convention `accounts`' `CreateAccountHandler` uses), so
- * `persist()` stays the default no-op.
+ * the row itself (`saveNewWithTx`, FR-020).
+ *
+ * Retry-safe (Constitution Principle VII, form (c)): the write and the
+ * idempotency record's COMPLETED mark commit in one `$transaction`, opened
+ * here rather than inside the repository, so the two can be enlisted together
+ * — same convention `installment-plan`'s `CreateInstallmentPlanHandler` uses.
  */
 @Injectable()
 @CommandHandler(CreateTransactionCommand)
-export class CreateTransactionHandler extends BaseCommandHandler<
+export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
   CreateTransactionCommand,
   transactions.Transaction,
   Context
 > {
+  protected readonly operation = "transaction.create";
+  protected override readonly successStatus = 201;
+
   constructor(
     eventBus: EventBus,
+    @Inject(IDEMPOTENCY_RECORD_REPOSITORY) records: IdempotencyRecordRepositoryPort,
     @Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
     @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
     @Inject(CARD_LIMIT_REPOSITORY) private readonly cardLimits: CardLimitRepositoryPort,
     @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statements: CreditStatementRepositoryPort,
+    private readonly prisma: PrismaService,
   ) {
-    super(eventBus);
+    super(eventBus, records);
+  }
+
+  protected requestBody(command: CreateTransactionCommand): unknown {
+    return command.input;
   }
 
   protected async loadContext(command: CreateTransactionCommand): Promise<Context> {
@@ -115,9 +136,10 @@ export class CreateTransactionHandler extends BaseCommandHandler<
     return { account, card, cardLimit, contribution, creditStatementId };
   }
 
-  protected async handle(
+  protected async handleIdempotent(
     command: CreateTransactionCommand,
     context: Context,
+    complete: CompleteFn<transactions.Transaction>,
   ): Promise<HandleResult<transactions.Transaction>> {
     const { input } = command;
     const cashBalance = cashDelta(input.type, input.amount, context.account, context.card);
@@ -138,19 +160,29 @@ export class CreateTransactionHandler extends BaseCommandHandler<
       financeCharge: input.financeCharge,
       creditStatementId: context.creditStatementId,
     });
-    const row = await this.repo.saveNew(
-      command.userId,
-      plan,
-      context.contribution !== "0"
-        ? { accountId: input.bankAccountId, delta: context.contribution }
-        : null,
-      // The account's cash balance follows every movement that actually moves
-      // cash, so it never needs a manual reconciliation: income adds, expense
-      // subtracts. A prepaid card is no exception — the money lives in ITS
-      // account, same as a debit card's. A CREDIT-kind card is: nothing leaves
-      // the account until its statement is paid (see `cashDelta`).
-      cashBalance !== "0" ? [{ accountId: input.bankAccountId, delta: cashBalance }] : [],
-    );
-    return { result: row.toContract(), events: [] };
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      const row = await this.repo.saveNewWithTx(
+        tx,
+        command.userId,
+        plan,
+        context.contribution !== "0"
+          ? { accountId: input.bankAccountId, delta: context.contribution }
+          : null,
+        // The account's cash balance follows every movement that actually
+        // moves cash, so it never needs a manual reconciliation: income adds,
+        // expense subtracts. A prepaid card is no exception — the money lives
+        // in ITS account, same as a debit card's. A CREDIT-kind card is:
+        // nothing leaves the account until its statement is paid (`cashDelta`).
+        cashBalance !== "0" ? [{ accountId: input.bankAccountId, delta: cashBalance }] : [],
+      );
+      const contract = row.toContract();
+      // MUST be in this same transaction: it is what makes a crash between the
+      // write and this mark impossible to observe as "applied but un-marked".
+      await complete(tx, contract);
+      return contract;
+    });
+
+    return { result, events: [] };
   }
 }

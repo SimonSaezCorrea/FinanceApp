@@ -451,8 +451,11 @@ Esta sección es distinta al resto del documento. Las demás registran **UI que 
 funciona**; ésta registra **principios que parecen vigentes y todavía no lo están**. La enmienda
 **v2.0.0** (2026-09-02) agregó los principios VII (Idempotencia) y VIII (Identificadores), reescribió
 §II y endureció dos normas de arquitectura — todo a partir de una auditoría de solo lectura, sin tocar
-código. El código **no cumple ninguno de los seis puntos de abajo**, y quien lea la constitución sin
-leer esto va a asumir que sí. Cada uno necesita su propia spec; ninguno es un arreglo de una línea.
+código. En ese momento el código **no cumplía ninguno de los siete puntos de abajo**. **specs/015
+(2026-09-03) cerró el punto 4 completo** (§VII, idempotencia) y **cerró una de las seis FK del punto 3**
+(`savingsGoalId`, §II) — los seis puntos restantes (1, 2, 5, 6, 7 completos; 3 con cinco FK aún sin
+verificar) siguen sin spec propia. Quien lea la constitución sin leer esto va a asumir que sigue todo
+pendiente. Cada uno necesita su propia spec; ninguno es un arreglo de una línea.
 
 Referencia completa con `file:line`: el Sync Impact Report de 2026-09-02 al tope de
 `.specify/memory/constitution.md`.
@@ -487,14 +490,13 @@ pipe distinga un segmento literal de un id válido; (c) toda la superficie es un
 `@finance/contracts` y aplicarlo en los 13 params + los campos id del contrato. Reescribir el criterio
 de aceptación de `specs/009/quickstart.md:91-95` para que verifique algo real.
 
-### 3. Seis FK del cuerpo se persisten sin verificar propiedad (§II)
+### 3. Cinco FK del cuerpo se persisten sin verificar propiedad (§II)
 
 La fila creada siempre lleva el `userId` del caller, así que **nada se lee cross-tenant** — pero un cuid
 ajeno se acepta y se escribe en una columna FK:
 
 - `POST /import/transactions` — `bankAccountId` por fila. Cero lectura de ownership en toda la ruta
   (`import-transactions.handler.ts` → `prisma-import.repository.ts:31` → `createMany`).
-- `POST /savings/entries` — `savingsGoalId`.
 - `POST|PATCH /investments` y `POST|PATCH /recurring` — `bankAccountId`.
 - `POST|PATCH /installments` — `paymentAccountId`.
 - `POST /installments` — `cardId`, y éste es el peor: `kindForCard` devuelve `null` para una tarjeta
@@ -502,36 +504,40 @@ ajeno se acepta y se escribe en una columna FK:
   conflación que el párrafo nuevo de §II nombra y prohíbe.
 
 `POST /wallet` sí valida (`add-wallet-item.handler.ts:47-50`, `accountOwned`/`cardOwned`) y es el patrón
-que los otros seis tienen que espejar.
+que los otros cinco tienen que espejar — **`POST /savings/entries` (y el nuevo `PATCH /savings/entries/:id`)
+ya lo siguen**: specs/015 agregó la verificación de `savingsGoalId` contra el puerto de `savings-goal` en
+`create-savings-entry.handler.ts` y `update-savings-entry.handler.ts` antes de persistir, cerrando esa FK.
 
 **Para hacerlo real**: un lookup scopeado por `userId` antes de cada escritura, y que el resolver
 distinga "no existe para vos" de "no vino" con tipos, no con `null`.
 
-### 4. Escrituras sin protección contra reintento (§VII)
+### 4. Escrituras sin protección contra reintento (§VII) — **cerrado por specs/015 (2026-09-03)**
 
-No existe `Idempotency-Key` en el repo: cero header, cero tabla de dedupe, cero store de hash. Lo que
-hay son máquinas de estado y unique constraints, que cubren bien lo grande (el pago de facturación
-rechaza el replay con `STATEMENT_ALREADY_PAID`; la generación es idempotente por construcción; wallet
-tiene su `@@unique`) y **no cubren nada de esto**:
+Ya no hay ningún punto abierto aquí para las diez rutas que mueven dinero. Antes de specs/015 no existía
+`Idempotency-Key` en el repo — cero header, cero tabla de dedupe, cero store de hash — y sólo lo grande
+estaba cubierto por máquinas de estado y unique constraints (pago de facturación, wallet). Ahora:
 
-- `POST /transactions` — segundo movimiento + segundo delta de saldo y cupo.
-- `POST /transactions/transfers` — `randomUUID()` por llamada ⇒ segundo par de filas y de deltas.
-- `POST /installments` — plan y calendario duplicados; con tarjeta CREDIT **duplica el movimiento de
-  compra, o sea dobla el cupo comprometido**.
-- `POST /import/transactions` — `createMany` sin `skipDuplicates` ni llave natural ⇒ **duplica el
-  archivo entero**.
-- Subida de adjunto — el `attachmentId` aleatorio va dentro de `storageKey`, así que el `@unique`
-  **nunca puede colisionar** (deliberado, para que dos archivos homónimos convivan).
-- `POST /debts/:id/register-payment` y `/undo-payment` — `paidInstallments += 1` / `-= 1` crudos. Doble
-  clic registra dos cuotas.
-- `POST /debts/:id/settle` — sin guarda, re-estampa `settledAt` con `new Date()` en cada llamada.
+- `POST /transactions`, `POST /transactions/transfers`, `POST /installments`,
+  `POST /installments/:id/payments/:seq/pay`, `POST /accounts/:id/credit-statements/:id/pay`,
+  `POST /debts/:id/settle`, `POST /debts/:id/unsettle`, `POST /debts/:id/payments`,
+  `DELETE /debts/:id/payments`, `POST /savings/entries` — las diez exigen `Idempotency-Key` y responden
+  vía `BaseIdempotentCommandHandler` (forma (c) del principio VII: identidad de request del cliente +
+  tabla nueva `idempotency-record` con `@@unique([userId, key])`).
+- `POST /debts/:id/settle` ya no re-estampa `settledAt` en cada llamada (`DebtAlreadySettledError`
+  nuevo) y `register-payment`/`undo-payment` cierran su doble-clic con el mismo mecanismo, más
+  `findOneForUpdateWithTx` para la carrera de concurrencia genuina (probado: 6 peticiones simultáneas →
+  avanza exactamente 6, no menos).
+- **Import y adjuntos quedaron deliberadamente fuera de alcance**, verificado por la auditoría de
+  specs/015 antes de escribir la spec, no olvidado: `POST /import/transactions` no tiene NINGÚN
+  llamador — la ruta web es un placeholder, cero peticiones reales — y no aplica delta de saldo ni cupo,
+  así que no cargaba el riesgo que esta feature necesitaba cerrar; queda para cuando exista un cliente
+  real. La subida de adjuntos sigue con `attachmentId` aleatorio en el `storageKey` (por diseño, para que
+  dos archivos homónimos convivan) y no forma parte de este mecanismo.
+- **Límite conocido y aceptado, no arreglado**: recargar la página a mitad de un envío pierde la clave en
+  memoria (`useIdempotencyKey`) — el reenvío es un intento genuinamente nuevo y puede duplicar. Evitarlo
+  exige persistir borradores, spec aparte.
 
-Los tres últimos son exactamente los tres antipatrones que §VII nombra por su nombre.
-
-**Para hacerlo real**: para las escrituras que mueven plata, §VII exige (b) llave natural con constraint
-único o (c) identidad de request del cliente — la máquina de estados sola no alcanza cuando el efecto es
-un delta. Lo más barato es (c): header `Idempotency-Key`, tabla de dedupe con `@@unique`, y devolver el
-primer resultado. Para `/import` sirve (b): una llave natural por fila.
+Detalle completo: `specs/015-idempotent-money-writes/{spec,plan,research,data-model}.md`.
 
 ### 5. El cursor de paginación no está firmado (§ paginación keyset)
 

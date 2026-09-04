@@ -45,3 +45,11 @@ export class NoPaymentsToUndoError extends DomainError {
     super("NO_PAYMENTS_TO_UNDO", 409);
   }
 }
+
+/** A patch would leave `totalInstallments` below what is already paid — a
+ * schedule can shrink, but never past what already happened. */
+export class TotalInstallmentsBelowPaidError extends DomainError {
+  constructor() {
+    super("TOTAL_INSTALLMENTS_BELOW_PAID", 409, "totalInstallments");
+  }
+}

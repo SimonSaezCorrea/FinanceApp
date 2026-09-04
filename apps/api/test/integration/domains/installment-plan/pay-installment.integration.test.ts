@@ -11,6 +11,7 @@ import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import {
   buildBankAccountRepo,
   buildCardAccountRepo,
+  buildIdempotencyRecordRepo,
   buildInstallmentPlanRepo,
   buildTransactionWriterRepo,
 } from "../../support/repositories";
@@ -35,8 +36,18 @@ describe("PayInstallmentHandler (integration)", () => {
   let accountId: string;
   let planId: string;
 
+  const idempotencyRecords = buildIdempotencyRecordRepo(prisma);
+
   const handler = () =>
-    new PayInstallmentHandler(eventBus, prisma, planRepo, accounts, cards, transactions);
+    new PayInstallmentHandler(
+      eventBus,
+      idempotencyRecords,
+      prisma,
+      planRepo,
+      accounts,
+      cards,
+      transactions,
+    );
 
   beforeAll(async () => {
     await prisma.$connect();
@@ -94,7 +105,16 @@ describe("PayInstallmentHandler (integration)", () => {
 
   it("records the expense, moves the balance and marks the instalment, all at once", async () => {
     await handler().execute(
-      new PayInstallmentCommand(userId, planId, 1, accountId, null, null, new Date("2026-01-16")),
+      new PayInstallmentCommand(
+        userId,
+        planId,
+        1,
+        accountId,
+        null,
+        null,
+        new Date("2026-01-16"),
+        randomUUID(),
+      ),
     );
 
     const movements = await prisma.transaction.findMany({ where: { userId } });
@@ -126,6 +146,7 @@ describe("PayInstallmentHandler (integration)", () => {
         "30000",
         null,
         new Date("2026-01-16"),
+        randomUUID(),
       ),
     );
 
@@ -159,6 +180,7 @@ describe("PayInstallmentHandler (integration)", () => {
 
     const failing = new PayInstallmentHandler(
       eventBus,
+      idempotencyRecords,
       prisma,
       broken,
       accounts,
@@ -168,7 +190,16 @@ describe("PayInstallmentHandler (integration)", () => {
 
     await expect(
       failing.execute(
-        new PayInstallmentCommand(userId, planId, 1, accountId, null, null, new Date("2026-01-16")),
+        new PayInstallmentCommand(
+          userId,
+          planId,
+          1,
+          accountId,
+          null,
+          null,
+          new Date("2026-01-16"),
+          randomUUID(),
+        ),
       ),
     ).rejects.toThrow("boom");
 
@@ -191,6 +222,7 @@ describe("PayInstallmentHandler (integration)", () => {
         "30000",
         null,
         new Date("2026-01-16"),
+        randomUUID(),
       ),
     );
     await new UnpayInstallmentHandler(

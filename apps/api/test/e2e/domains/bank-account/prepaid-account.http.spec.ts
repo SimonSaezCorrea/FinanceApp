@@ -132,74 +132,94 @@ describe("Prepaid account HTTP (e2e)", () => {
   });
 
   it("spends down the account's balance, and refuses to go below zero", async () => {
-    const ok = await api().post("/api/v1/transactions").set("Cookie", cookies).send({
-      type: "EXPENSE",
-      amount: "20000",
-      currency: "CLP",
-      occurredAt: new Date().toISOString(),
-      category: "Restaurantes",
-      description: "Almuerzo",
-      bankAccountId: prepaidId,
-      cardId: prepaidCardId,
-    });
+    const ok = await api()
+      .post("/api/v1/transactions")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({
+        type: "EXPENSE",
+        amount: "20000",
+        currency: "CLP",
+        occurredAt: new Date().toISOString(),
+        category: "Restaurantes",
+        description: "Almuerzo",
+        bankAccountId: prepaidId,
+        cardId: prepaidCardId,
+      });
     expect(ok.status).toBe(201);
 
     const after = await api().get(`/api/v1/accounts/${prepaidId}`).set("Cookie", cookies);
     expect(after.body.currentBalance).toBe("30000.0000");
 
-    const tooMuch = await api().post("/api/v1/transactions").set("Cookie", cookies).send({
-      type: "EXPENSE",
-      amount: "30000.01",
-      currency: "CLP",
-      occurredAt: new Date().toISOString(),
-      category: "Otros",
-      description: "Demasiado",
-      bankAccountId: prepaidId,
-      cardId: prepaidCardId,
-    });
+    const tooMuch = await api()
+      .post("/api/v1/transactions")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({
+        type: "EXPENSE",
+        amount: "30000.01",
+        currency: "CLP",
+        occurredAt: new Date().toISOString(),
+        category: "Otros",
+        description: "Demasiado",
+        bankAccountId: prepaidId,
+        cardId: prepaidCardId,
+      });
     expect(tooMuch.body.error?.code).toBe("PREPAID_INSUFFICIENT_BALANCE");
 
     // …and with no card either: the rule belongs to the account, not the plastic.
-    const noCard = await api().post("/api/v1/transactions").set("Cookie", cookies).send({
-      type: "EXPENSE",
-      amount: "999999",
-      currency: "CLP",
-      occurredAt: new Date().toISOString(),
-      category: "Otros",
-      description: "Sin tarjeta",
-      bankAccountId: prepaidId,
-    });
+    const noCard = await api()
+      .post("/api/v1/transactions")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({
+        type: "EXPENSE",
+        amount: "999999",
+        currency: "CLP",
+        occurredAt: new Date().toISOString(),
+        category: "Otros",
+        description: "Sin tarjeta",
+        bankAccountId: prepaidId,
+      });
     expect(noCard.body.error?.code).toBe("PREPAID_INSUFFICIENT_BALANCE");
   });
 
   it("is topped up by an ordinary transfer, and bounds an outgoing one", async () => {
-    const load = await api().post("/api/v1/transactions/transfers").set("Cookie", cookies).send({
-      fromBankAccountId: checkingId,
-      toBankAccountId: prepaidId,
-      amountOut: "40000",
-      amountIn: "40000",
-      currencyOut: "CLP",
-      currencyIn: "CLP",
-      occurredAt: new Date().toISOString(),
-      category: "Traspaso",
-      description: "Carga",
-    });
+    const load = await api()
+      .post("/api/v1/transactions/transfers")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({
+        fromBankAccountId: checkingId,
+        toBankAccountId: prepaidId,
+        amountOut: "40000",
+        amountIn: "40000",
+        currencyOut: "CLP",
+        currencyIn: "CLP",
+        occurredAt: new Date().toISOString(),
+        category: "Traspaso",
+        description: "Carga",
+      });
     expect(load.status).toBe(201);
 
     const after = await api().get(`/api/v1/accounts/${prepaidId}`).set("Cookie", cookies);
     expect(after.body.currentBalance).toBe("70000.0000");
 
-    const tooMuch = await api().post("/api/v1/transactions/transfers").set("Cookie", cookies).send({
-      fromBankAccountId: prepaidId,
-      toBankAccountId: checkingId,
-      amountOut: "70000.01",
-      amountIn: "70000.01",
-      currencyOut: "CLP",
-      currencyIn: "CLP",
-      occurredAt: new Date().toISOString(),
-      category: "Traspaso",
-      description: "De vuelta",
-    });
+    const tooMuch = await api()
+      .post("/api/v1/transactions/transfers")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({
+        fromBankAccountId: prepaidId,
+        toBankAccountId: checkingId,
+        amountOut: "70000.01",
+        amountIn: "70000.01",
+        currencyOut: "CLP",
+        currencyIn: "CLP",
+        occurredAt: new Date().toISOString(),
+        category: "Traspaso",
+        description: "De vuelta",
+      });
     expect(tooMuch.body.error?.code).toBe("PREPAID_INSUFFICIENT_BALANCE");
   });
 

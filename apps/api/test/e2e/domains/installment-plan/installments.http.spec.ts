@@ -79,6 +79,7 @@ describe("Installments HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/installments")
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({
         title: "Laptop",
         totalPrincipal: "1200",
@@ -103,6 +104,7 @@ describe("Installments HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/installments/${planId}/payments/99/pay`)
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({ fromAccountId: accountId });
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("INSTALLMENT_PAYMENT_NOT_FOUND");
@@ -114,6 +116,7 @@ describe("Installments HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/installments/${planId}/payments/1/pay`)
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({});
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe("INSTALLMENT_PAYMENT_ACCOUNT_REQUIRED");
@@ -124,6 +127,7 @@ describe("Installments HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/installments/${planId}/payments/1/pay`)
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({ fromAccountId: creditAccountId });
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("INSTALLMENT_PAYMENT_FROM_CREDIT_ACCOUNT");
@@ -133,6 +137,7 @@ describe("Installments HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/installments/${planId}/payments/1/pay`)
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({ fromAccountId: accountId, paidAt: "2026-01-16T00:00:00.000Z" });
     expect(res.status).toBe(204);
 
@@ -167,6 +172,7 @@ describe("Installments HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/installments/${planId}/payments/1/pay`)
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({ fromAccountId: accountId });
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("INSTALLMENT_PAYMENT_ALREADY_PAID");
@@ -199,7 +205,8 @@ describe("Installments HTTP (e2e)", () => {
   it("unpays the first installment, giving the money back", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/installments/${planId}/payments/1/unpay`)
-      .set("Cookie", cookies);
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID());
     expect(res.status).toBe(204);
 
     const getRes = await request(app.getHttpServer())

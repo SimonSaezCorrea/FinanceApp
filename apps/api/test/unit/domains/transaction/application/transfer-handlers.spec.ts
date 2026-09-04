@@ -12,9 +12,23 @@ import {
 } from "../../../../../src/domains/transaction/application/commands/update-transfer.handler";
 import type { TransactionRepositoryPort } from "../../../../../src/domains/transaction/domain/ports/transaction.repository.port";
 import { Transaction } from "../../../../../src/domains/transaction/domain/transaction.aggregate";
-import { accountAggregate } from "../../../support/fake-ports";
+import type { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
+import {
+  accountAggregate,
+  fakeIdempotencyRecordRepo,
+  fakePrismaTransaction,
+} from "../../../support/fake-ports";
 
 const eventBus = { publish: vi.fn() } as unknown as EventBus;
+const prisma = fakePrismaTransaction() as unknown as PrismaService;
+
+/** Every scenario needs SOME key; only its stability across calls matters
+ * elsewhere (see `useIdempotencyKey.test.ts` on the web side). */
+function transferCmd(
+  input: ConstructorParameters<typeof CreateTransferCommand>[1],
+): CreateTransferCommand {
+  return new CreateTransferCommand("u1", input, "test-key-0000000000001");
+}
 
 function leg(over: Partial<Parameters<typeof Transaction.fromPersistence>[0]> = {}) {
   return Transaction.fromPersistence({
@@ -55,10 +69,12 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     findOne: vi.fn(),
     sumsForCard: vi.fn(async () => ({ income: "0", expense: "0" })),
     saveNew: vi.fn(),
+    saveNewWithTx: vi.fn(),
     saveUpdate: vi.fn(),
     removeWithCreditAdjustment: vi.fn(async () => true),
     findTransferGroup: vi.fn(async () => pair),
     saveTransferPair: vi.fn(async () => pair),
+    saveTransferPairWithTx: vi.fn(async () => pair),
     updateTransferPair: vi.fn(async () => pair),
     removeTransferPair: vi.fn(async () => true),
     ...overrides,
@@ -88,14 +104,16 @@ describe("CreateTransferHandler", () => {
     const repo = fakeRepo();
     const handler = new CreateTransferHandler(
       eventBus,
+      fakeIdempotencyRecordRepo(),
       repo,
       fakeAccounts({ a1: "CHECKING", a2: "SAVINGS" }),
+      prisma,
     );
 
-    await handler.execute(new CreateTransferCommand("u1", input));
+    await handler.execute(transferCmd(input));
 
-    const call = vi.mocked(repo.saveTransferPair).mock.calls[0]!;
-    const [, outgoing, incoming, deltas] = call;
+    const call = vi.mocked(repo.saveTransferPairWithTx).mock.calls[0]!;
+    const [, , outgoing, incoming, deltas] = call;
     expect(outgoing.type).toBe("EXPENSE");
     expect(incoming.type).toBe("INCOME");
     expect(outgoing.transferGroupId).toBe(incoming.transferGroupId);
@@ -110,23 +128,23 @@ describe("CreateTransferHandler", () => {
   it("refuses a destination that is a credit line", async () => {
     const handler = new CreateTransferHandler(
       eventBus,
+      fakeIdempotencyRecordRepo(),
       fakeRepo(),
       fakeAccounts({ a1: "CHECKING", a2: "CREDIT_CARD" }),
+      prisma,
     );
-    await expect(handler.execute(new CreateTransferCommand("u1", input))).rejects.toThrow(
-      /TRANSFER_TO_CREDIT_ACCOUNT/,
-    );
+    await expect(handler.execute(transferCmd(input))).rejects.toThrow(/TRANSFER_TO_CREDIT_ACCOUNT/);
   });
 
   it("refuses an account that isn't the user's", async () => {
     const handler = new CreateTransferHandler(
       eventBus,
+      fakeIdempotencyRecordRepo(),
       fakeRepo(),
       fakeAccounts({ a1: "CHECKING" }),
+      prisma,
     );
-    await expect(handler.execute(new CreateTransferCommand("u1", input))).rejects.toThrow(
-      /TRANSFER_ACCOUNT_NOT_FOUND/,
-    );
+    await expect(handler.execute(transferCmd(input))).rejects.toThrow(/TRANSFER_ACCOUNT_NOT_FOUND/);
   });
 });
 

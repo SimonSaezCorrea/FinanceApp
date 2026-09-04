@@ -494,6 +494,42 @@ toca dinero real.
 
 ---
 
+## 4d. Deudas personales (préstamos fuera de la app): guardas de reintento agregadas por specs/015
+
+`Debt` (alguien le debe al usuario, o el usuario le debe a alguien — `direction: YOU_OWE | OWED`)
+lleva `paidInstallments`/`totalInstallments` y un `settledAt`, mutados por cuatro comandos: `settle`,
+`unsettle`, `register-payment` (`paidInstallments += 1`, se liquida solo al llegar a
+`totalInstallments`), `undo-payment` (`paidInstallments -= 1`). Antes de specs/015 eran incrementos/
+decrementos crudos sin guarda de reintento — un doble clic en "pagar cuota" registraba dos pagos en
+silencio, y llamar `settle` dos veces simplemente re-estampaba `settledAt` con un `new Date()` nuevo
+cada vez, descartando el momento real de liquidación.
+
+Tres invariantes nuevas en el propio agregado `Debt` (no sólo en la capa HTTP, para que valgan sin
+importar cómo se despachó el comando):
+
+- **`settle()` rechaza una deuda ya liquidada** (`DebtAlreadySettledError`) en vez de re-estampar
+  `settledAt` en silencio.
+- **`undoPayment()` sólo limpia `settledAt` cuando la deuda se auto-liquidó al completar todo el
+  calendario** (`paidInstallments === totalInstallments` antes del undo) — deshacer un pago sobre una
+  deuda que se liquidó manualmente con cuotas todavía pendientes deja `settledAt` intacto, porque esa
+  liquidación no fue consecuencia del conteo de pagos.
+- **`applyUpdate()` rechaza bajar `totalInstallments` por debajo de `paidInstallments`**
+  (`TotalInstallmentsBelowPaidError`) — editar el calendario no puede hacer que retroactivamente
+  existan más pagos que cuotas.
+
+Los cuatro comandos también están protegidos por idempotencia (Principio VII, forma (c)): `settle`,
+`unsettle`, `register-payment` y `undo-payment` exigen `Idempotency-Key` y corren a través de
+`BaseIdempotentCommandHandler`. Como la lectura que decide "esto sigue siendo válido" tiene que ver el
+efecto de cualquier OTRO intento concurrente, la lectura (`findOneForUpdateWithTx`, un
+`SELECT … FOR UPDATE` crudo), la mutación y la marca `COMPLETED` del registro de idempotencia ocurren
+las tres dentro de UNA sola transacción — envolver sólo la escritura dejaba abierta una carrera de
+lost-update (confirmado empíricamente: 6 peticiones concurrentes de `register-payment` sobre la misma
+deuda avanzaban el contador sólo 2 veces antes de este arreglo; exactamente 6 después). Ver la viñeta
+del dominio `idempotency-record` en `CLAUDE.md` y `specs/015-idempotent-money-writes/research.md` §3
+para el protocolo completo de dos fases del que este patrón es una instancia.
+
+---
+
 ## 5. Glosario de códigos de error (de este dominio)
 
 | Código                          | Se lanza cuando…                                                                                                |

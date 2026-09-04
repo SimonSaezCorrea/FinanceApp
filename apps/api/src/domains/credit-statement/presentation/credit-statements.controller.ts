@@ -1,10 +1,11 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Headers, Param, Patch, Post, UseGuards } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 
-import { accounts } from "@finance/contracts";
+import { accounts, idempotency } from "@finance/contracts";
 
 import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.decorator";
 import { JwtAuthGuard } from "../../../infra/auth/jwt-auth.guard";
+import { requireIdempotencyKey } from "../../../infra/http/idempotency-key";
 import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { accountIdParamsSchema } from "../../bank-account/presentation/dto/account-id.params";
@@ -52,13 +53,16 @@ export class CreditStatementsController {
     @Param(new ZodParamsPipe(statementParamsSchema)) params: { id: string; statementId: string },
     @Body(new ZodValidationPipe(accounts.payCreditStatementSchema))
     body: accounts.PayCreditStatement,
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<accounts.CreditStatement> {
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
     return this.commandBus.execute(
       new PayCreditStatementCommand(
         user.id,
         params.id,
         params.statementId,
         body.fromAccountId,
+        idempotencyKey,
         body.amount,
         body.paidAt ? new Date(body.paidAt) : undefined,
         body.reference,

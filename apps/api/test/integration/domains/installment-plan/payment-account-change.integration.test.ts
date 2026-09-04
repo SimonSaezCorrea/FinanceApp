@@ -11,6 +11,7 @@ import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import {
   buildBankAccountRepo,
   buildCardAccountRepo,
+  buildIdempotencyRecordRepo,
   buildInstallmentPlanRepo,
   buildTransactionWriterRepo,
 } from "../../support/repositories";
@@ -89,6 +90,7 @@ describe("changing a plan's payment account (integration)", () => {
 
     await new PayInstallmentHandler(
       eventBus,
+      buildIdempotencyRecordRepo(prisma),
       prisma,
       planRepo,
       accounts,
@@ -103,6 +105,7 @@ describe("changing a plan's payment account (integration)", () => {
         null,
         null,
         new Date("2026-01-11"),
+        randomUUID(),
       ),
     );
   });

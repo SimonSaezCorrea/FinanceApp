@@ -8,6 +8,7 @@ import type { transactions } from "@finance/contracts";
 
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
 import { Button } from "../../../shared/ui/button";
 import { FormSurface } from "../../../shared/ui/overlay";
 import { transactionsApi } from "../api/transactionsApi";
@@ -88,6 +89,10 @@ export function TransactionCreateModal({
   const { t } = useTranslation();
   const { create, update } = useTransactionMutations();
   const transfer = useTransferMutations();
+  // One key per submission attempt, not per request — a retry of a failed
+  // network call reuses it, but "Guardar y crear otro" must NOT: that would
+  // reject the second record as a duplicate of the first (FR-002).
+  const idempotencyKey = useIdempotencyKey();
   const { data: accountList } = useAccounts();
   const { data: summary } = useTransactionsSummary();
   const editing = Boolean(initial);
@@ -220,6 +225,9 @@ export function TransactionCreateModal({
   function submit(keepOpen = false) {
     const done = (saved?: { id?: string }) => {
       toast.success(editing ? t("transactions.updated") : t("transactions.created"));
+      // This attempt succeeded — the next submit (another entry, or a future
+      // reopening) is a genuinely new one and needs its own key.
+      if (!editing) idempotencyKey.reset();
       savedRef.current = true;
       const savedId = saved?.id ?? initial?.id;
       if (savedId) onSaved?.(savedId);
@@ -263,7 +271,11 @@ export function TransactionCreateModal({
       // A transfer's own surface has no attachment step, so it just closes.
       const transferHandlers = { onSuccess: () => done(), onError: handlers.onError };
       if (groupId) transfer.update.mutate({ groupId, body }, transferHandlers);
-      else transfer.create.mutate(body, transferHandlers);
+      else
+        transfer.create.mutate(
+          { body, idempotencyKey: idempotencyKey.current() },
+          transferHandlers,
+        );
       return;
     }
 
@@ -287,7 +299,7 @@ export function TransactionCreateModal({
     } satisfies transactions.CreateTransaction;
 
     if (editing && initial) update.mutate({ id: initial.id, body }, handlers);
-    else create.mutate(body, handlers);
+    else create.mutate({ body, idempotencyKey: idempotencyKey.current() }, handlers);
   }
 
   return (

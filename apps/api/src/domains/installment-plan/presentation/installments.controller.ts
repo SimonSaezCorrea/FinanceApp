@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   Param,
   Patch,
@@ -11,10 +12,11 @@ import {
 } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 
-import { installments } from "@finance/contracts";
+import { idempotency, installments } from "@finance/contracts";
 
 import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.decorator";
 import { JwtAuthGuard } from "../../../infra/auth/jwt-auth.guard";
+import { requireIdempotencyKey } from "../../../infra/http/idempotency-key";
 import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { CreateInstallmentPlanCommand } from "../application/commands/create-installment-plan.command";
@@ -58,8 +60,10 @@ export class InstallmentsController {
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(installments.createInstallmentPlanSchema))
     body: installments.CreateInstallmentPlan,
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<installments.InstallmentPlan> {
-    return this.commandBus.execute(new CreateInstallmentPlanCommand(user.id, body));
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(new CreateInstallmentPlanCommand(user.id, body, idempotencyKey));
   }
 
   @Post(":id/payments/:seq/pay")
@@ -69,7 +73,9 @@ export class InstallmentsController {
     @Param(new ZodParamsPipe(installmentPaymentParamsSchema)) params: { id: string; seq: number },
     @Body(new ZodValidationPipe(installments.payInstallmentSchema))
     body: installments.PayInstallment,
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<void> {
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
     return this.commandBus.execute(
       new PayInstallmentCommand(
         user.id,
@@ -79,6 +85,7 @@ export class InstallmentsController {
         body.amount ?? null,
         body.chargedAmount ?? null,
         body.paidAt ? new Date(body.paidAt) : null,
+        idempotencyKey,
       ),
     );
   }

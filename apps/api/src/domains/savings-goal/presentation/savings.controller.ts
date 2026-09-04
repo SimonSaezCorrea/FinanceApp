@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   Param,
   Patch,
@@ -11,19 +12,24 @@ import {
 } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 
-import { savings } from "@finance/contracts";
+import { idempotency, savings } from "@finance/contracts";
 
 import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.decorator";
 import { JwtAuthGuard } from "../../../infra/auth/jwt-auth.guard";
+import { requireIdempotencyKey } from "../../../infra/http/idempotency-key";
 import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { CreateSavingsEntryCommand } from "../../savings-entry/application/commands/create-savings-entry.command";
+import { RemoveSavingsEntryCommand } from "../../savings-entry/application/commands/remove-savings-entry.command";
+import { UpdateSavingsEntryCommand } from "../../savings-entry/application/commands/update-savings-entry.command";
 import { CreateSavingsGoalCommand } from "../application/commands/create-savings-goal.command";
 import { RemoveSavingsGoalCommand } from "../application/commands/remove-savings-goal.command";
 import { UpdateSavingsGoalCommand } from "../application/commands/update-savings-goal.command";
 import { GetSavingsGoalQuery } from "../application/queries/get-savings-goal.query";
+import { GetSavingsEntryQuery } from "../../savings-entry/application/queries/get-savings-entry.query";
 import { ListSavingsEntriesQuery } from "../../savings-entry/application/queries/list-savings-entries.query";
 import { ListSavingsGoalsQuery } from "../application/queries/list-savings-goals.query";
+import { savingsEntryIdParamsSchema } from "./dto/savings-entry-id.params";
 import { savingsGoalIdParamsSchema } from "./dto/savings-goal-id.params";
 
 /**
@@ -87,7 +93,35 @@ export class SavingsController {
   createEntry(
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(savings.createSavingsEntrySchema)) body: savings.CreateSavingsEntry,
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<savings.SavingsEntry> {
-    return this.commandBus.execute(new CreateSavingsEntryCommand(user.id, body));
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(new CreateSavingsEntryCommand(user.id, body, idempotencyKey));
+  }
+
+  @Get("entries/:id")
+  getEntry(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(savingsEntryIdParamsSchema)) params: { id: string },
+  ): Promise<savings.SavingsEntry> {
+    return this.queryBus.execute(new GetSavingsEntryQuery(user.id, params.id));
+  }
+
+  @Patch("entries/:id")
+  updateEntry(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(savingsEntryIdParamsSchema)) params: { id: string },
+    @Body(new ZodValidationPipe(savings.updateSavingsEntrySchema)) body: savings.UpdateSavingsEntry,
+  ): Promise<savings.SavingsEntry> {
+    return this.commandBus.execute(new UpdateSavingsEntryCommand(user.id, params.id, body));
+  }
+
+  @Delete("entries/:id")
+  @HttpCode(204)
+  removeEntry(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(savingsEntryIdParamsSchema)) params: { id: string },
+  ): Promise<void> {
+    return this.commandBus.execute(new RemoveSavingsEntryCommand(user.id, params.id));
   }
 }

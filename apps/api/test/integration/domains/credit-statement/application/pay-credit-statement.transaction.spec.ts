@@ -8,6 +8,7 @@ import { PayCreditStatementHandler } from "../../../../../src/domains/credit-sta
 import {
   buildBankAccountRepo,
   buildCreditStatementRepo,
+  buildIdempotencyRecordRepo,
   buildInstallmentPlanRepo,
   buildTransactionWriterRepo,
 } from "../../../support/repositories";
@@ -99,6 +100,7 @@ describe("PayCreditStatementHandler cross-aggregate transaction (integration)", 
   it("rolls back the statement + payment transaction if the account save fails", async () => {
     const handler = new PayCreditStatementHandler(
       { publish: vi.fn() } as never,
+      buildIdempotencyRecordRepo(prisma),
       accountRepo,
       statementRepo,
       buildTransactionWriterRepo(prisma),
@@ -110,7 +112,13 @@ describe("PayCreditStatementHandler cross-aggregate transaction (integration)", 
 
     await expect(
       handler.execute(
-        new PayCreditStatementCommand(userId, creditAccountId, statementId, fromAccountId),
+        new PayCreditStatementCommand(
+          userId,
+          creditAccountId,
+          statementId,
+          fromAccountId,
+          randomUUID(),
+        ),
       ),
     ).rejects.toThrow("forced failure");
 

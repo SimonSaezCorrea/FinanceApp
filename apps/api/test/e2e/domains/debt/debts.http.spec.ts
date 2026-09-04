@@ -77,7 +77,8 @@ describe("Debts HTTP (e2e)", () => {
   it("registers a payment", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/debts/${debtId}/register-payment`)
-      .set("Cookie", cookies);
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID());
     expect(res.status).toBe(200);
     expect(res.body.paidInstallments).toBe(1);
     expect(res.body.settledAt).toBeNull();
@@ -86,7 +87,8 @@ describe("Debts HTTP (e2e)", () => {
   it("undoes the payment", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/debts/${debtId}/undo-payment`)
-      .set("Cookie", cookies);
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID());
     expect(res.status).toBe(200);
     expect(res.body.paidInstallments).toBe(0);
   });
@@ -94,7 +96,8 @@ describe("Debts HTTP (e2e)", () => {
   it("returns NO_PAYMENTS_TO_UNDO when undoing with nothing paid", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/debts/${debtId}/undo-payment`)
-      .set("Cookie", cookies);
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID());
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("NO_PAYMENTS_TO_UNDO");
   });
@@ -102,7 +105,8 @@ describe("Debts HTTP (e2e)", () => {
   it("settles the debt directly", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/debts/${debtId}/settle`)
-      .set("Cookie", cookies);
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID());
     expect(res.status).toBe(204);
 
     const getRes = await request(app.getHttpServer())
@@ -114,7 +118,8 @@ describe("Debts HTTP (e2e)", () => {
   it("returns DEBT_ALREADY_SETTLED when registering a payment on a settled debt", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/debts/${debtId}/register-payment`)
-      .set("Cookie", cookies);
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID());
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("DEBT_ALREADY_SETTLED");
   });
@@ -122,7 +127,8 @@ describe("Debts HTTP (e2e)", () => {
   it("unsettles the debt", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/debts/${debtId}/unsettle`)
-      .set("Cookie", cookies);
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID());
     expect(res.status).toBe(200);
     expect(res.body.settledAt).toBeNull();
   });
@@ -130,7 +136,8 @@ describe("Debts HTTP (e2e)", () => {
   it("returns DEBT_NOT_SETTLED when unsettling an already-open debt", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/debts/${debtId}/unsettle`)
-      .set("Cookie", cookies);
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID());
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("DEBT_NOT_SETTLED");
   });

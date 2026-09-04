@@ -43,20 +43,70 @@ model User {
   /// % of monthlyBudgetTarget at which to warn the user. Stored for the Notifications UI; no real alert is sent yet.
   budgetAlertThreshold Int?            @default(80)
 
-  country           Country?                @relation(fields: [countryId], references: [id], onDelete: SetNull)
-  bankAccounts      BankAccount[]
-  transactions      Transaction[]
-  installmentPlans  InstallmentPlan[]
-  debts             Debt[]
-  savingsGoals      SavingsGoal[]
-  savingsEntries    SavingsEntry[]
-  investments       Investment[]
-  recurringExpenses RecurringExpense[]
-  walletItems       WalletItemDashboard[]
-  attachments       TransactionAttachment[]
+  country            Country?                @relation(fields: [countryId], references: [id], onDelete: SetNull)
+  bankAccounts       BankAccount[]
+  transactions       Transaction[]
+  installmentPlans   InstallmentPlan[]
+  debts              Debt[]
+  savingsGoals       SavingsGoal[]
+  savingsEntries     SavingsEntry[]
+  investments        Investment[]
+  recurringExpenses  RecurringExpense[]
+  walletItems        WalletItemDashboard[]
+  attachments        TransactionAttachment[]
+  idempotencyRecords IdempotencyRecord[]
 
   @@index([countryId])
   @@map("user")
+}
+
+/// One ATTEMPT by the user, so a retry can be told apart from a new operation
+/// (Constitution Principle VII, form (c)).
+///
+/// The key comes from the client and is opaque here: identity must NOT be derived
+/// from the request's content, or two genuinely different operations that look
+/// alike (two identical coffees on the same day) would collapse into one.
+///
+/// `@@unique([userId, key])` is not a validation — it IS the mutual exclusion.
+/// Two simultaneous requests issue the same INSERT; Postgres lets one through and
+/// the other gets P2002. No pessimistic lock, no row to lock beforehand.
+///
+/// Lifecycle: INSERT (IN_FLIGHT) → effect + COMPLETED in ONE transaction. Because
+/// those two commit together, an IN_FLIGHT record ALWAYS means the effect did not
+/// commit — which is what makes taking over a stale one safe rather than a gamble.
+/// A rejected attempt is DELETED, never remembered: remembering it would leave the
+/// user stuck repeating the same error.
+model IdempotencyRecord {
+  id             String            @id @default(cuid())
+  userId         String
+  /// Client-generated, opaque. A business value in its own column — NOT a row
+  /// identifier (Principle VIII): this table's PK is a cuid like every other.
+  key            String
+  /// Which operation reserved the key, so replaying it against a different one is
+  /// caught instead of answered with the first operation's response.
+  operation      String
+  /// SHA-256 of the canonicalized body. Used ONLY to detect "same key, different
+  /// data" — never to decide whether two operations are the same.
+  requestHash    String
+  status         IdempotencyStatus @default(IN_FLIGHT)
+  /// The exact first response, replayed verbatim. Re-reading the resource instead
+  /// could return something else if it was edited in between.
+  responseBody   Json?
+  responseStatus Int?
+  createdAt      DateTime          @default(now())
+  /// createdAt + IDEMPOTENCY_RETENTION_HOURS. Swept by the daily cron.
+  expiresAt      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([expiresAt])
+  @@map("idempotency-record")
+}
+
+enum IdempotencyStatus {
+  IN_FLIGHT
+  COMPLETED
 }
 
 enum UserStatus {

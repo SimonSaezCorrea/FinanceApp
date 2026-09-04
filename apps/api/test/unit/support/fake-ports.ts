@@ -9,6 +9,8 @@ import type { CardAccountRepositoryPort } from "../../../src/domains/card-accoun
 import type { CardLimitRepositoryPort } from "../../../src/domains/card-limit/domain/ports/card-limit.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
 import type { InstallmentPaymentLookupPort } from "../../../src/domains/installment-payment/domain/ports/installment-payment-lookup.port";
+import { IdempotencyRecord } from "../../../src/domains/idempotency-record/domain/idempotency-record.aggregate";
+import type { IdempotencyRecordRepositoryPort } from "../../../src/domains/idempotency-record/domain/ports/idempotency-record.repository.port";
 import type { TransactionSumsRepositoryPort } from "../../../src/domains/transaction/domain/ports/transaction-sums.repository.port";
 import type { TransactionWriterRepositoryPort } from "../../../src/domains/transaction/domain/ports/transaction-writer.repository.port";
 
@@ -181,4 +183,81 @@ export function accountAggregate(input: {
     createdAt: input.createdAt ?? new Date("2026-01-01T00:00:00.000Z"),
     updatedAt: new Date("2026-01-01T00:00:00.000Z"),
   });
+}
+
+/**
+ * Fake `IdempotencyRecordRepositoryPort` backed by a real in-memory map keyed
+ * on `(userId, key)` — a genuine second `reserve()` call for the same pair
+ * comes back `EXISTS`, exactly like the `@@unique([userId, key])` collision
+ * the real adapter relies on. This is what makes a handler under test
+ * actually replay on a retry instead of running twice, so a spec does not
+ * have to hand-roll that plumbing (see `RegisterDebtPaymentHandler`'s
+ * "replays … instead of registering twice" for the pattern).
+ *
+ * True concurrent-request mutual exclusion is NOT what this proves — that
+ * only proves out against a real Postgres unique constraint (see
+ * `test/integration/domains/idempotency-record`). This fake is for the
+ * sequential replay/collision *decision* logic, which is deterministic.
+ */
+export function fakeIdempotencyRecordRepo(
+  overrides: Partial<IdempotencyRecordRepositoryPort> = {},
+): IdempotencyRecordRepositoryPort {
+  const rows = new Map<string, ReturnType<IdempotencyRecord["snapshot"]>>();
+  let seq = 0;
+  const rowKey = (userId: string, key: string) => `${userId}:${key}`;
+
+  return {
+    reserve: vi.fn(async (userId, plan) => {
+      const k = rowKey(userId, plan.key);
+      const existing = rows.get(k);
+      if (existing) {
+        return { kind: "EXISTS" as const, record: IdempotencyRecord.fromPersistence(existing) };
+      }
+      const props = { ...plan, id: `ir${++seq}`, userId };
+      rows.set(k, props);
+      return { kind: "RESERVED" as const, record: IdempotencyRecord.fromPersistence(props) };
+    }),
+    findByKey: vi.fn(async (userId, key) => {
+      const row = rows.get(rowKey(userId, key));
+      return row ? IdempotencyRecord.fromPersistence(row) : null;
+    }),
+    completeWithTx: vi.fn(async (_tx, id, body, status) => {
+      for (const [k, row] of rows) {
+        if (row.id === id) {
+          rows.set(k, { ...row, status: "COMPLETED", responseBody: body, responseStatus: status });
+          return;
+        }
+      }
+    }),
+    release: vi.fn(async (id) => {
+      for (const [k, row] of rows) {
+        if (row.id === id) {
+          rows.delete(k);
+          return;
+        }
+      }
+    }),
+    takeOver: vi.fn(async (id, plan) => {
+      for (const [k, row] of rows) {
+        if (row.id === id) {
+          const next = { ...row, ...plan, id: row.id, userId: row.userId };
+          rows.set(k, next);
+          return IdempotencyRecord.fromPersistence(next);
+        }
+      }
+      throw new Error(`fakeIdempotencyRecordRepo.takeOver: no row with id ${id}`);
+    }),
+    deleteExpired: vi.fn(async () => 0),
+    ...overrides,
+  };
+}
+
+/** Fake `PrismaService`, sufficient for a handler that only calls
+ * `$transaction(cb)` to enlist its `*WithTx` calls — `cb` runs immediately
+ * against an opaque marker, since the fake repos it is passed to don't
+ * inspect it. */
+export function fakePrismaTransaction(): {
+  $transaction: (cb: (tx: unknown) => unknown) => unknown;
+} {
+  return { $transaction: (cb) => cb({ __fakeTx: true }) };
 }

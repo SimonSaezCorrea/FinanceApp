@@ -5,7 +5,19 @@ import { CreateInstallmentPlanHandler } from "../../../../../../src/domains/inst
 import { InstallmentCardIsCreditError } from "../../../../../../src/domains/installment-plan/domain/errors";
 import { InstallmentPlan } from "../../../../../../src/domains/installment-plan/domain/installment-plan.aggregate";
 import type { InstallmentPlanRepositoryPort } from "../../../../../../src/domains/installment-plan/domain/ports/installment-plan.repository.port";
-import { fakeBankAccountRepo, fakeCardAccountRepo } from "../../../../support/fake-ports";
+import {
+  fakeBankAccountRepo,
+  fakeCardAccountRepo,
+  fakeIdempotencyRecordRepo,
+} from "../../../../support/fake-ports";
+
+/** Every scenario needs SOME key; only its stability across calls matters
+ * elsewhere (see `useIdempotencyKey.test.ts` on the web side). */
+function cmd(
+  input: ConstructorParameters<typeof CreateInstallmentPlanCommand>[1],
+): CreateInstallmentPlanCommand {
+  return new CreateInstallmentPlanCommand("u1", input, "test-key-0000000000001");
+}
 
 function fakeRepo(
   overrides: Partial<InstallmentPlanRepositoryPort> = {},
@@ -43,6 +55,7 @@ function makeHandler(
   const incrementBalanceWithTx = vi.fn();
   const handler = new CreateInstallmentPlanHandler(
     { publish: vi.fn() } as never,
+    fakeIdempotencyRecordRepo(),
     repo,
     fakeCardAccountRepo({
       kindForCard: vi.fn(async () => opts.cardKind ?? null),
@@ -114,7 +127,7 @@ describe("CreateInstallmentPlanHandler", () => {
     const { handler } = makeHandler(fakeRepo({ createWithTx }));
 
     const result = await handler.execute(
-      new CreateInstallmentPlanCommand("u1", {
+      cmd({
         title: "Laptop",
         totalPrincipal: "1200",
         installmentCount: 3,
@@ -142,9 +155,7 @@ describe("CreateInstallmentPlanHandler", () => {
     const createWithTx = vi.fn();
     const { handler } = makeHandler(fakeRepo({ createWithTx }), { cardKind: "CREDIT" });
     await expect(
-      handler.execute(
-        new CreateInstallmentPlanCommand("u1", { ...CREDIT_PLAN, paymentAccountId: "a1" }),
-      ),
+      handler.execute(cmd({ ...CREDIT_PLAN, paymentAccountId: "a1" })),
     ).rejects.toBeInstanceOf(InstallmentCardIsCreditError);
     expect(createWithTx).not.toHaveBeenCalled();
   });
@@ -153,7 +164,7 @@ describe("CreateInstallmentPlanHandler", () => {
     const createWithTx = persistedPlan();
     const { handler } = makeHandler(fakeRepo({ createWithTx }));
     await handler.execute(
-      new CreateInstallmentPlanCommand("u1", {
+      cmd({
         title: "Sofá",
         totalPrincipal: "300",
         installmentCount: 3,
@@ -181,7 +192,7 @@ describe("CreateInstallmentPlanHandler", () => {
         accountId: "accCredit",
       });
 
-      await handler.execute(new CreateInstallmentPlanCommand("u1", CREDIT_PLAN));
+      await handler.execute(cmd(CREDIT_PLAN));
 
       const movements = movementsOf(createWithTx);
       expect(movements).toHaveLength(1);
@@ -206,7 +217,7 @@ describe("CreateInstallmentPlanHandler", () => {
         { cardKind: "CREDIT", accountId: "accCredit" },
       );
 
-      await handler.execute(new CreateInstallmentPlanCommand("u1", CREDIT_PLAN));
+      await handler.execute(cmd(CREDIT_PLAN));
 
       expect(incrementCreditUsedWithTx).toHaveBeenCalledWith(
         expect.anything(),
@@ -223,7 +234,7 @@ describe("CreateInstallmentPlanHandler", () => {
         { cardKind: "CREDIT", accountId: "accCredit" },
       );
 
-      await handler.execute(new CreateInstallmentPlanCommand("u1", CREDIT_PLAN));
+      await handler.execute(cmd(CREDIT_PLAN));
 
       expect(incrementBalanceWithTx).not.toHaveBeenCalled();
     });
@@ -237,7 +248,7 @@ describe("CreateInstallmentPlanHandler", () => {
       );
 
       await handler.execute(
-        new CreateInstallmentPlanCommand("u1", {
+        cmd({
           ...CREDIT_PLAN,
           totalPrincipal: "1200",
           installmentCount: 3,
@@ -278,7 +289,7 @@ describe("CreateInstallmentPlanHandler", () => {
       );
 
       await handler.execute(
-        new CreateInstallmentPlanCommand("u1", {
+        cmd({
           ...CREDIT_PLAN,
           cardId: cardKind === null ? undefined : "cSome",
         }),

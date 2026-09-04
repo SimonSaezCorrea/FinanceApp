@@ -76,13 +76,17 @@ describe("Attachments HTTP (e2e)", () => {
       overdraftLimit: "0",
       balanceCeiling: null,
     });
-    const movement = await api().post("/api/v1/transactions").set("Cookie", cookies).send({
-      type: "EXPENSE",
-      amount: "1000",
-      currency: "CLP",
-      occurredAt: "2026-08-01T00:00:00.000Z",
-      bankAccountId: account.body.id,
-    });
+    const movement = await api()
+      .post("/api/v1/transactions")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({
+        type: "EXPENSE",
+        amount: "1000",
+        currency: "CLP",
+        occurredAt: "2026-08-01T00:00:00.000Z",
+        bankAccountId: account.body.id,
+      });
     transactionId = movement.body.id;
   });
 

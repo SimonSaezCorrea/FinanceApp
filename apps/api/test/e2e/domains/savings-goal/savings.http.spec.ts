@@ -100,6 +100,7 @@ describe("Savings HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/savings/entries")
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({
         savingsGoalId: goalId,
         amount: "250",

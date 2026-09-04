@@ -74,6 +74,7 @@ describe("Transactions HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/transactions")
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({
         type: "EXPENSE",
         amount: "1000",
@@ -89,6 +90,7 @@ describe("Transactions HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/transactions")
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({
         type: "EXPENSE",
         amount: "100000",
@@ -151,6 +153,7 @@ describe("Transactions HTTP (e2e)", () => {
     const income = await request(app.getHttpServer())
       .post("/api/v1/transactions")
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({
         bankAccountId: accountId,
         type: "INCOME",
@@ -163,6 +166,7 @@ describe("Transactions HTTP (e2e)", () => {
     const expense = await request(app.getHttpServer())
       .post("/api/v1/transactions")
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({
         bankAccountId: accountId,
         type: "EXPENSE",

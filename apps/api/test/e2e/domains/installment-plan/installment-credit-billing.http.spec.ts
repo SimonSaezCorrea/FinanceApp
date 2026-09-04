@@ -112,6 +112,7 @@ describe("Credit-card instalment plan billing, full lifecycle (e2e)", () => {
     const plan = await request(app.getHttpServer())
       .post("/api/v1/installments")
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({
         title: "Notebook ASUS",
         totalPrincipal: PRINCIPAL.toString(),
@@ -152,6 +153,7 @@ describe("Credit-card instalment plan billing, full lifecycle (e2e)", () => {
     const attempt = await request(app.getHttpServer())
       .post(`/api/v1/installments/${planId}/payments/1/pay`)
       .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
       .send({ fromAccountId });
     expect(attempt.status).toBe(409);
     expect(attempt.body.error.code).toBe("INSTALLMENT_CARD_IS_CREDIT");
@@ -203,6 +205,7 @@ describe("Credit-card instalment plan billing, full lifecycle (e2e)", () => {
         const pay = await request(app.getHttpServer())
           .post(`/api/v1/accounts/${creditAccountId}/credit-statements/${statement.id}/pay`)
           .set("Cookie", cookies)
+          .set("Idempotency-Key", randomUUID())
           .send({ fromAccountId });
         expect(pay.status).toBe(201);
       }

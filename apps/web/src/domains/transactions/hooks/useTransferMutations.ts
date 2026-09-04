@@ -18,7 +18,11 @@ export function useTransferMutations() {
   };
 
   return {
-    create: useMutation({ mutationFn: transactionsApi.transfer.create, onSuccess: invalidate }),
+    create: useMutation({
+      mutationFn: (vars: { body: transactions.CreateTransfer; idempotencyKey: string }) =>
+        transactionsApi.transfer.create(vars.body, vars.idempotencyKey),
+      onSuccess: invalidate,
+    }),
     update: useMutation({
       mutationFn: (vars: { groupId: string; body: transactions.UpdateTransfer }) =>
         transactionsApi.transfer.update(vars.groupId, vars.body),

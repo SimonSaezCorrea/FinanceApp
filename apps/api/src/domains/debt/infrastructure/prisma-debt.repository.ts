@@ -67,7 +67,16 @@ export class PrismaDebtRepository implements DebtRepositoryPort {
     return Debt.fromPersistence(rowToProps(row));
   }
 
-  async save(aggregate: Debt): Promise<void> {
+  save(aggregate: Debt): Promise<void> {
+    return this.saveWithTx(this.prisma, aggregate);
+  }
+
+  /** Enlisted in the caller's transaction, alongside the idempotency record's
+   * COMPLETED mark. On its own this makes the WRITE atomic — closing the race
+   * requires reading the row inside the same transaction too, via
+   * `findOneForUpdateWithTx`. */
+  async saveWithTx(tx: unknown, aggregate: Debt): Promise<void> {
+    const client = tx as PrismaService;
     const snap = aggregate.snapshot();
     const data: Prisma.DebtUpdateInput = {
       direction: snap.direction,
@@ -85,7 +94,25 @@ export class PrismaDebtRepository implements DebtRepositoryPort {
       frequency: snap.frequency,
       frequencyInterval: snap.frequencyInterval,
     };
-    await this.prisma.debt.updateMany({ where: { id: snap.id, userId: snap.userId }, data });
+    await client.debt.updateMany({ where: { id: snap.id, userId: snap.userId }, data });
+  }
+
+  /**
+   * `SELECT ... FOR UPDATE` inside the caller's transaction: a second
+   * concurrent call for the SAME (userId, id) blocks on this query until the
+   * first transaction commits or rolls back, instead of both reading the
+   * pre-mutation row and one silently overwriting the other's write. This is
+   * what actually closes the `paidInstallments += 1` race — `saveWithTx`
+   * alone only makes the write atomic with the idempotency mark, not the
+   * read against a concurrent read.
+   */
+  async findOneForUpdateWithTx(tx: unknown, userId: string, id: string): Promise<Debt | null> {
+    const client = tx as PrismaService;
+    const rows = await client.$queryRaw<DebtRow[]>`
+      SELECT * FROM "debt" WHERE "id" = ${id} AND "userId" = ${userId} FOR UPDATE
+    `;
+    const row = rows[0];
+    return row ? Debt.fromPersistence(rowToProps(row)) : null;
   }
 
   async remove(userId: string, id: string): Promise<boolean> {

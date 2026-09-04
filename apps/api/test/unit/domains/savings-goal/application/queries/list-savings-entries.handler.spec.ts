@@ -21,7 +21,11 @@ function makeEntry(id: string) {
 function fakeRepo(overrides: Partial<SavingsEntryRepositoryPort> = {}): SavingsEntryRepositoryPort {
   return {
     list: vi.fn(),
+    findOne: vi.fn(),
     create: vi.fn(),
+    createWithTx: vi.fn(),
+    save: vi.fn(),
+    remove: vi.fn(),
     ...overrides,
   };
 }

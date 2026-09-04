@@ -26,10 +26,11 @@ export const transactionsApi = {
   summary: (filters?: transactions.TransactionFilters) =>
     apiFetch<transactions.TransactionSummary>(`/transactions/summary${toQuery(filters)}`),
 
-  create: (body: transactions.CreateTransaction) =>
+  create: (body: transactions.CreateTransaction, idempotencyKey: string) =>
     apiFetch<transactions.Transaction>("/transactions", {
       method: "POST",
       body: JSON.stringify(body),
+      idempotencyKey,
     }),
 
   update: (id: string, body: transactions.UpdateTransaction) =>
@@ -44,10 +45,11 @@ export const transactionsApi = {
   transfer: {
     get: (groupId: string) => apiFetch<transactions.Transfer>(`/transactions/transfers/${groupId}`),
 
-    create: (body: transactions.CreateTransfer) =>
+    create: (body: transactions.CreateTransfer, idempotencyKey: string) =>
       apiFetch<transactions.Transfer>("/transactions/transfers", {
         method: "POST",
         body: JSON.stringify(body),
+        idempotencyKey,
       }),
 
     update: (groupId: string, body: transactions.UpdateTransfer) =>

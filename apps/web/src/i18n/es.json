@@ -1062,6 +1062,15 @@
     "INVALID_ACCOUNT_ALIAS": "El alias de transferencia no es válido.",
     "INVALID_INITIAL_BALANCE": "El saldo inicial no puede ser negativo.",
     "INSTALLMENT_PLAN_BILLED": "Este plan ya tiene cuotas facturadas: el monto, el número de cuotas, la fecha de inicio y la tarjeta no se pueden cambiar. El título, la categoría y las notas sí.",
-    "INSTALLMENT_PLAN_SETTLED": "Este plan tiene cuotas en una facturación ya pagada. Eliminarlo exigiría deshacer un pago real."
+    "INSTALLMENT_PLAN_SETTLED": "Este plan tiene cuotas en una facturación ya pagada. Eliminarlo exigiría deshacer un pago real.",
+    "IDEMPOTENCY_KEY_REQUIRED": "No se pudo completar la operación. Intenta de nuevo.",
+    "IDEMPOTENCY_KEY_REUSED": "Esta operación ya se registró con otros datos. Vuelve a intentarlo.",
+    "IDEMPOTENCY_IN_PROGRESS": "Ya estamos procesando esto. Espera un momento y vuelve a intentarlo.",
+    "SAVINGS_ENTRY_NOT_FOUND": "No se encontró el aporte.",
+    "DEBT_NOT_FOUND": "No se encontró la deuda.",
+    "DEBT_ALREADY_SETTLED": "Esta deuda ya está liquidada.",
+    "ALL_INSTALLMENTS_PAID": "Ya se registraron todas las cuotas de esta deuda.",
+    "DEBT_NOT_SETTLED": "Esta deuda no está liquidada.",
+    "NO_PAYMENTS_TO_UNDO": "No hay pagos que deshacer en esta deuda."
   }
 }
