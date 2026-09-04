@@ -77,7 +77,10 @@ describe("UploadAttachmentHandler", () => {
     const result = await handler.execute(new UploadAttachmentCommand("u1", "t1", file));
 
     expect(storage.put).toHaveBeenCalledOnce();
-    expect(vi.mocked(repo.save).mock.calls[0]![0].storageKey).toMatch(/^u\/u1\/t\/t1\//);
+    // specs/017: the storage key is an opaque random value, unrelated to any id.
+    expect(vi.mocked(repo.save).mock.calls[0]![0].storageKey).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
+    );
     expect(result.fileName).toBe("boleta.pdf");
   });
 

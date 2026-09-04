@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { transactions } from "@finance/contracts";
 
 import { AttachmentTooLargeError, AttachmentTypeNotAllowedError } from "./errors";
@@ -45,19 +47,11 @@ export const AttachmentPolicy = {
   },
 };
 
-/** Object key: derived from the attachment's own id, never from the uploaded
- *  name, so two files called the same on one movement can coexist. */
-export function storageKeyFor(input: {
-  userId: string;
-  transactionId: string;
-  attachmentId: string;
-  fileName: string;
-}): string {
-  const slug =
-    input.fileName
-      .toLowerCase()
-      .replace(/[^a-z0-9.]+/g, "-")
-      .replace(/^-+|-+$/g, "")
-      .slice(0, 60) || "file";
-  return `u/${input.userId}/t/${input.transactionId}/${input.attachmentId}-${slug}`;
+/** Object key: a fresh, independent random value with no relationship to any
+ *  user/resource id or filename — a key inside a presigned URL is public
+ *  surface (address bar, `Referer`, intermediate caches), so it must reveal
+ *  nothing extractable. `fileName` stays in its own column; nothing reads it
+ *  back from this key. */
+export function storageKeyFor(): string {
+  return randomUUID();
 }

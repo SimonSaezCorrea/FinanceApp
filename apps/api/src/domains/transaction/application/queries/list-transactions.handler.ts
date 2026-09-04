@@ -1,8 +1,10 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { QueryHandler } from "@nestjs/cqrs";
 
 import type { transactions } from "@finance/contracts";
 
+import { getCursorSigningSecret } from "../../../../infra/config/cursor.config";
 import { BaseQueryHandler } from "../../../../infra/cqrs/base-query.handler";
 import {
   TRANSACTION_REPOSITORY,
@@ -20,8 +22,14 @@ export class ListTransactionsQueryHandler extends BaseQueryHandler<
   transactions.TransactionPage,
   TransactionListFilter
 > {
-  constructor(@Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort) {
+  private readonly cursorSecret: string;
+
+  constructor(
+    @Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort,
+    config: ConfigService,
+  ) {
     super();
+    this.cursorSecret = getCursorSigningSecret(config);
   }
 
   protected async loadContext(query: ListTransactionsQuery): Promise<TransactionListFilter> {
@@ -35,11 +43,11 @@ export class ListTransactionsQueryHandler extends BaseQueryHandler<
     const { limit, cursor } = query.filters;
     const page = await this.repo.list(query.userId, where, {
       limit,
-      cursor: cursor ? decodeCursor(cursor) : undefined,
+      cursor: cursor ? decodeCursor(cursor, this.cursorSecret) : undefined,
     });
     return {
       items: page.items.map((r) => r.toContract()),
-      nextCursor: page.nextCursor ? encodeCursor(page.nextCursor) : null,
+      nextCursor: page.nextCursor ? encodeCursor(page.nextCursor, this.cursorSecret) : null,
     };
   }
 }

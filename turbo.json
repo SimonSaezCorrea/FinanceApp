@@ -18,7 +18,8 @@
         "JWT_ACCESS_SECRET",
         "JWT_REFRESH_SECRET",
         "JWT_ACCESS_EXPIRES",
-        "JWT_REFRESH_EXPIRES"
+        "JWT_REFRESH_EXPIRES",
+        "CURSOR_SIGNING_SECRET"
       ]
     },
     "lint": {},

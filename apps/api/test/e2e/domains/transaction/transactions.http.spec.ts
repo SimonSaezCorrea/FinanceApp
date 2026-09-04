@@ -233,4 +233,91 @@ describe("Transactions HTTP (e2e)", () => {
     expect(res.body).toHaveProperty("total");
     expect(res.body).toHaveProperty("currencyTotals");
   });
+
+  // specs/017: the keyset pagination cursor is HMAC-signed.
+  describe("pagination cursor signing", () => {
+    let pagedAccountId: string;
+
+    beforeAll(async () => {
+      const accountRes = await request(app.getHttpServer())
+        .post("/api/v1/accounts")
+        .set("Cookie", cookies)
+        .send({
+          name: "Paging account",
+          type: "CHECKING",
+          currency: "CLP",
+          accountNumber: "999-1",
+          accountAlias: null,
+          initialBalance: "0",
+          overdraftLimit: "0",
+          balanceCeiling: null,
+        });
+      pagedAccountId = accountRes.body.id;
+
+      for (const amount of ["1000", "2000"]) {
+        await request(app.getHttpServer())
+          .post("/api/v1/transactions")
+          .set("Cookie", cookies)
+          .set("Idempotency-Key", randomUUID())
+          .send({
+            bankAccountId: pagedAccountId,
+            type: "INCOME",
+            amount,
+            currency: "CLP",
+            occurredAt: new Date().toISOString(),
+          });
+      }
+    });
+
+    it("round-trips a freshly issued cursor to fetch the next page", async () => {
+      const first = await request(app.getHttpServer())
+        .get(`/api/v1/transactions?bankAccountId=${pagedAccountId}&limit=1`)
+        .set("Cookie", cookies);
+      expect(first.status).toBe(200);
+      expect(first.body.items).toHaveLength(1);
+      expect(first.body.nextCursor).toBeTypeOf("string");
+
+      const second = await request(app.getHttpServer())
+        .get(
+          `/api/v1/transactions?bankAccountId=${pagedAccountId}&limit=1&cursor=${encodeURIComponent(first.body.nextCursor)}`,
+        )
+        .set("Cookie", cookies);
+      expect(second.status).toBe(200);
+      expect(second.body.items).toHaveLength(1);
+      expect(second.body.items[0].id).not.toBe(first.body.items[0].id);
+    });
+
+    it("rejects a byte-tampered cursor with 400 INVALID_CURSOR", async () => {
+      const first = await request(app.getHttpServer())
+        .get(`/api/v1/transactions?bankAccountId=${pagedAccountId}&limit=1`)
+        .set("Cookie", cookies);
+      const tampered = `${first.body.nextCursor}x`;
+
+      const res = await request(app.getHttpServer())
+        .get(
+          `/api/v1/transactions?bankAccountId=${pagedAccountId}&limit=1&cursor=${encodeURIComponent(tampered)}`,
+        )
+        .set("Cookie", cookies);
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe("INVALID_CURSOR");
+    });
+
+    it("rejects the old pre-signing unsigned cursor format", async () => {
+      const first = await request(app.getHttpServer())
+        .get(`/api/v1/transactions?bankAccountId=${pagedAccountId}&limit=1`)
+        .set("Cookie", cookies);
+      const legacy = Buffer.from(
+        `${new Date().toISOString()}|${first.body.items[0].id}`,
+        "utf8",
+      ).toString("base64url");
+
+      const res = await request(app.getHttpServer())
+        .get(
+          `/api/v1/transactions?bankAccountId=${pagedAccountId}&limit=1&cursor=${encodeURIComponent(legacy)}`,
+        )
+        .set("Cookie", cookies);
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe("INVALID_CURSOR");
+    });
+  });
 });

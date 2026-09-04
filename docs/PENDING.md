@@ -455,9 +455,10 @@ código. En ese momento el código **no cumplía ninguno de los siete puntos de 
 (2026-09-03) cerró el punto 4 completo** (§VII, idempotencia) y **cerró una de las seis FK del punto 3**
 (`savingsGoalId`, §II). **specs/016 (2026-09-04) cerró los puntos 1 y 2 completos** (§VIII,
 identificadores) **y, extendiendo su alcance por decisión del dueño del producto, cerró también el
-punto 3 completo** (las cinco FK restantes, §II) — quedan 5, 6 y 7, todos sin spec propia. Quien lea
-la constitución sin leer esto va a asumir que sigue todo pendiente. Cada uno necesita su propia
-spec; ninguno es un arreglo de una línea.
+punto 3 completo** (las cinco FK restantes, §II). **specs/017 (2026-09-04) cerró los puntos 5 y 6
+completos** (firma del cursor y opacidad de la storage key) — queda solo el 7, sin spec propia (es
+un gap declarado, no una violación). Quien lea la constitución sin leer esto va a asumir que sigue
+todo pendiente. Cada uno necesita su propia spec; ninguno es un arreglo de una línea.
 
 Referencia completa con `file:line`: el Sync Impact Report de 2026-09-02 al tope de
 `.specify/memory/constitution.md`.
@@ -569,34 +570,52 @@ estaba cubierto por máquinas de estado y unique constraints (pago de facturaci�
 
 Detalle completo: `specs/015-idempotent-money-writes/{spec,plan,research,data-model}.md`.
 
-### 5. El cursor de paginación no está firmado (§ paginación keyset)
+### 5. El cursor de paginación no está firmado (§ paginación keyset) — **cerrado por specs/017 (2026-09-04)**
 
-`transaction/application/queries/transaction-cursor.ts` es `base64url("<ISO8601>|<id>")` sin MAC, sin
-secreto, sin versión. Un `atob` devuelve la PK en claro y cualquiera puede forjar un cursor arbitrario.
-Forjarlo sólo mueve la ventana de la página, no el tenant (la query sigue scopeada por `userId`), así que
-el impacto hoy es acotado — pero la constitución decía "opaque" y el código no lo era, y por eso la
-enmienda reemplazó la palabra por un requisito verificable.
+Ya no hay ningún punto abierto acá. Antes de specs/017, `transaction/application/queries/
+transaction-cursor.ts` era `base64url("<ISO8601>|<id>")` sin MAC, sin secreto, sin versión — un `atob`
+devolvía la PK en claro y cualquiera podía forjar un cursor arbitrario (sólo movía la ventana de la
+página, no el tenant, ya que la query sigue scopeada por `userId`, pero la constitución decía "opaque"
+y el código no lo era). Ahora:
 
-**Para hacerlo real**: HMAC sobre el payload con un secreto de entorno + un id de versión en el propio
-cursor; `INVALID_CURSOR` cuando el MAC no valida. Los cursores en vuelo se invalidan al desplegar, que es
-aceptable (viven un scroll).
+- `encodeCursor`/`decodeCursor` (mismo archivo) producen y verifican
+  `base64url("<versión>|<ISO8601>|<id>") + "." + base64url(HMAC-SHA256(secreto, ese payload))` — la
+  versión viaja DENTRO del payload firmado, así que un intento de downgrade también lo cubre el MAC.
+  Verificación con `crypto.timingSafeEqual` (tiempo constante). Cualquier MAC que no calce, versión no
+  reconocida, o cursor sin exactamente un `.` → `INVALID_CURSOR` (mismo error de dominio de siempre,
+  esta feature amplía qué lo dispara).
+- Secreto nuevo **`CURSOR_SIGNING_SECRET`** (`apps/api/.env.example`, mismo patrón "change-me-…" que
+  `JWT_ACCESS_SECRET`), leído vía `infra/config/cursor.config.ts`'s `getCursorSigningSecret` —
+  `ListTransactionsQueryHandler` lo resuelve una vez con `ConfigService.getOrThrow` (falla rápido en
+  el boot si falta, igual que los secretos JWT).
+- Los cursores en vuelo se invalidan al desplegar — aceptable, viven un scroll (Decision 4 de
+  `specs/017`).
 
-### 6. Las claves de object storage derivan de ids (§ uploads)
+Detalle completo: `specs/017-opaque-identifiers/{spec,plan,research,data-model}.md`.
 
-`attachment-policy.ts:48-63` construye `u/<userId>/t/<transactionId>/<attachmentId>-<slug>`, y esa clave
-viaja **verbatim dentro de la URL prefirmada** que se le entrega al navegador
-(`s3-object-storage.adapter.ts:45-49`, TTL 300s). O sea que el `userId` llega a la barra de direcciones,
-al header `Referer` y a cualquier caché intermedia. **Es el único camino por el que un `userId` sale de
-la app fuera del JWT** — el `storageKey` nunca se mapea a un DTO, egresa dentro del string de la URL.
+### 6. Las claves de object storage derivan de ids (§ uploads) — **cerrado por specs/017 (2026-09-04)**
 
-Complicación propia: la clave es **durable en S3**. Cambiar el formato no es sólo cambiar la función,
-es decidir qué pasa con los objetos ya escritos.
+Ya no hay ningún punto abierto acá tampoco. Antes de specs/017, `attachment-policy.ts:48-63`
+construía `u/<userId>/t/<transactionId>/<attachmentId>-<slug>`, y esa clave viajaba **verbatim dentro
+de la URL prefirmada** que se le entrega al navegador (`s3-object-storage.adapter.ts:45-49`, TTL
+300s) — el `userId` llegaba a la barra de direcciones, al header `Referer` y a cualquier caché
+intermedia; era el único camino por el que un `userId` salía de la app fuera del JWT. Ahora:
 
-**Para hacerlo real**: clave opaca sin relación con ningún id (un random propio guardado en
-`storageKey`, que ya es `@unique`), y para lo existente o una migración de objetos o una función de
-lectura que acepte los dos formatos por un tiempo. El formato viejo está ratificado en
-`specs/010-movement-transfers-attachments/data-model.md:34-35`, así que esa spec queda contradicha por
-la enmienda y hay que anotarlo ahí también.
+- `storageKeyFor()` (mismo archivo, ya sin parámetros) devuelve un `randomUUID()` (v4) plano — sin
+  prefijo, sin segmentos de ruta, sin relación con `userId`/`transactionId`/`attachmentId`/nombre de
+  archivo. **Deliberadamente UUID v4 y no `generateRowId()`** (UUID v7, el estándar de specs/016 para
+  el resto de las filas): v7 embebe un timestamp de 48 bits que filtraría la hora de subida, y el
+  objetivo acá es que la clave no revele nada extraíble, ni siquiera eso — un `storageKey` es una
+  llave de bucket opaca, no el identificador de una fila.
+- `fileName` sigue en su propia columna, nunca se leyó desde la storage key (verificado antes de
+  escribir la spec: sólo `RemoveAttachmentHandler`/`ListAttachmentsHandler` leen `storageKey`, ambos
+  como llave de lookup opaca).
+- **Sin migración de objetos**: las filas `TransactionAttachment` ya existentes conservan la clave
+  vieja (sigue resolviendo contra lo que haya en el bucket local); sólo las subidas NUEVAS obtienen el
+  formato opaco. `specs/010-movement-transfers-attachments/data-model.md:34-35`, que ratificaba el
+  formato derivado, queda contradicho por esta enmienda — anotado ahí también.
+
+Detalle completo: `specs/017-opaque-identifiers/{spec,plan,research,data-model}.md`.
 
 ### 7. Sin política de versionado de API (gap declarado, no violación)
 
@@ -609,5 +628,5 @@ contra un único origen CORS, sin OpenAPI publicado, sin app móvil, sin integra
 para que sea una decisión postergada y no una que nadie vio.
 
 **Para hacerlo real**: escribir la cláusula ANTES de que exista el primer consumidor externo. Los puntos
-1, 2 y 6 de esta sección son cambios de contrato, así que si aparece un consumidor primero, hay que
-resolver esto antes que ellos.
+1, 2 y 6 de esta sección (ya cerrados) fueron cambios de contrato/formato interno; si aparece un
+consumidor externo, cualquier cambio equivalente en el futuro debe resolver esto primero.

@@ -1,4 +1,39 @@
 <!--
+Sync Impact Report — 2026-09-04 (amendment 2.3.0)
+- Version change: 2.2.0 → 2.3.0 (MINOR: two documented conformance-debt items closed with a
+  reference implementation; no principle text redefined — both normative rules this closes were
+  already worded correctly by the 2.0.0 amendment, so this entry is a closure record, not a
+  wording change).
+- RECORDED: the keyset-pagination cursor MAC requirement (Architecture norm "Unbounded list growth
+  (paginated reads)") and the object-storage-key opacity requirement (Architecture norm "Uploaded
+  files are validated, not trusted") now both have a reference implementation —
+  specs/017-opaque-identifiers. `transaction/application/queries/transaction-cursor.ts`'s
+  `encodeCursor`/`decodeCursor` produce and verify `base64url("<version>|<occurredAt>|<id>") + "." +
+  base64url(HMAC-SHA256(secret, payload))`, verified with `crypto.timingSafeEqual`; any MAC mismatch,
+  unrecognized version, or malformed two-part shape throws the existing `InvalidCursorError`
+  (`INVALID_CURSOR`). New env var `CURSOR_SIGNING_SECRET`, read via
+  `infra/config/cursor.config.ts`'s `getCursorSigningSecret` (`ConfigService.getOrThrow`, same
+  fail-fast-at-boot pattern as the JWT secrets). Separately, `transaction-attachment/domain/
+attachment-policy.ts`'s `storageKeyFor()` dropped its `userId`/`transactionId`/`attachmentId`/
+  filename parameters entirely and now returns a flat `randomUUID()` (v4, deliberately NOT
+  `generateRowId()`'s UUID v7 — v7's embedded 48-bit timestamp would leak an approximate upload time,
+  which the opacity requirement forbids just as much as a userId would). `docs/PENDING.md` § "Deuda
+  de conformidad..." points 5 and 6 are marked closed; point 7 (API versioning gap) remains, unchanged
+  by this amendment.
+- No migration: existing `TransactionAttachment` rows keep their old-format `storageKey` (still
+  resolves against whatever a local bucket has under it); only newly uploaded attachments get the
+  opaque format. In-flight cursors are simply invalidated on deploy (a cursor's whole lifetime is one
+  scroll) — accepted per the original 2.0.0 report.
+- `specs/010-movement-transfers-attachments/data-model.md:34-35`, which ratified the old derived
+  `storageKey` format, is annotated with the contradiction per the 2.0.0 report's own instruction to
+  do so when this was next touched.
+- Driven by an SDD cycle (specs/017), following directly from the 2.0.0 audit's own catalogued
+  conformance debt (docs/PENDING.md points 5-6).
+- Templates requiring updates: none — no new data gate needed (the existing identifier-format and
+  idempotency gates already covered the shape of this change).
+-->
+
+<!--
 Sync Impact Report — 2026-09-04 (amendment 2.2.0)
 - Version change: 2.1.0 → 2.2.0 (MINOR: Principle VIII gets its reference implementation — the
   format it names goes from "TBD, declare it" to a concrete, enforced value — and Principle II's
@@ -1758,4 +1793,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.2.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-04
+**Version**: 2.3.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-04

@@ -1,3 +1,4 @@
+import type { ConfigService } from "@nestjs/config";
 import { describe, expect, it, vi } from "vitest";
 
 import { GetTransactionQueryHandler } from "../../../../../../src/domains/transaction/application/queries/get-transaction.handler";
@@ -14,6 +15,8 @@ import { Transaction } from "../../../../../../src/domains/transaction/domain/tr
 import type { TransactionRepositoryPort } from "../../../../../../src/domains/transaction/domain/ports/transaction.repository.port";
 
 const emptyPage = { items: [], nextCursor: null };
+
+const fakeConfig = () => ({ getOrThrow: () => "test-cursor-secret" }) as unknown as ConfigService;
 
 function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): TransactionRepositoryPort {
   return {
@@ -61,6 +64,7 @@ describe("ListTransactionsQueryHandler", () => {
   it("maps rows to the contract (amount fixed string)", async () => {
     const handler = new ListTransactionsQueryHandler(
       fakeRepo({ list: vi.fn().mockResolvedValue({ items: [row], nextCursor: null }) }),
+      fakeConfig(),
     );
     const page = await handler.execute(new ListTransactionsQuery("u1", {}));
     expect(page.items[0]!.amount).toBe("33.3000");
@@ -69,7 +73,7 @@ describe("ListTransactionsQueryHandler", () => {
 
   it("threads bankAccountId + cardId into the list where-clause", async () => {
     const list = vi.fn().mockResolvedValue(emptyPage);
-    const handler = new ListTransactionsQueryHandler(fakeRepo({ list }));
+    const handler = new ListTransactionsQueryHandler(fakeRepo({ list }), fakeConfig());
     await handler.execute(new ListTransactionsQuery("u1", { bankAccountId: "aC", cardId: "cS" }));
     const where = list.mock.calls[0]![1] as { bankAccountId?: string; cardId?: string };
     expect(where.bankAccountId).toBe("aC");
@@ -81,7 +85,7 @@ describe("ListTransactionsQueryHandler", () => {
       items: [row],
       nextCursor: { occurredAt: new Date("2026-03-01T00:00:00Z"), id: "t1" },
     });
-    const handler = new ListTransactionsQueryHandler(fakeRepo({ list }));
+    const handler = new ListTransactionsQueryHandler(fakeRepo({ list }), fakeConfig());
 
     const page = await handler.execute(new ListTransactionsQuery("u1", { limit: 20 }));
 
@@ -97,7 +101,7 @@ describe("ListTransactionsQueryHandler", () => {
   });
 
   it("rejects a cursor this API never issued instead of silently restarting", async () => {
-    const handler = new ListTransactionsQueryHandler(fakeRepo());
+    const handler = new ListTransactionsQueryHandler(fakeRepo(), fakeConfig());
     await expect(
       handler.execute(new ListTransactionsQuery("u1", { limit: 20, cursor: "not-a-cursor" })),
     ).rejects.toBeInstanceOf(InvalidCursorError);
@@ -105,7 +109,7 @@ describe("ListTransactionsQueryHandler", () => {
 
   it("omits pagination entirely when no limit is given (aggregate consumers)", async () => {
     const list = vi.fn().mockResolvedValue(emptyPage);
-    const handler = new ListTransactionsQueryHandler(fakeRepo({ list }));
+    const handler = new ListTransactionsQueryHandler(fakeRepo({ list }), fakeConfig());
     await handler.execute(new ListTransactionsQuery("u1", {}));
     expect(list.mock.calls[0]![2]).toMatchObject({ limit: undefined, cursor: undefined });
   });

@@ -21,6 +21,9 @@ jobs:
       JWT_REFRESH_SECRET: "ci-refresh-secret"
       JWT_ACCESS_EXPIRES: "15m"
       JWT_REFRESH_EXPIRES: "7d"
+      # specs/017: the keyset pagination cursor is HMAC-signed; the e2e tier issues
+      # and validates real cursors over HTTP, so this needs a real value too.
+      CURSOR_SIGNING_SECRET: "ci-cursor-secret"
     services:
       postgres:
         image: postgres:16-alpine

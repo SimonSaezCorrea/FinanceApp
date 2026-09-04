@@ -113,6 +113,16 @@ describe("Attachments HTTP (e2e)", () => {
     expect(objects.size).toBe(1);
   });
 
+  // specs/017: the storage key reveals nothing about who owns the file.
+  it("records a storage key that contains neither the user's id nor the transaction's id", async () => {
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+    const saved = await prisma.transactionAttachment.findUniqueOrThrow({
+      where: { id: attachmentId },
+    });
+    expect(saved.storageKey).not.toContain(user.id);
+    expect(saved.storageKey).not.toContain(transactionId);
+  });
+
   it("lists it", async () => {
     const res = await api()
       .get(`/api/v1/transactions/${transactionId}/attachments`)

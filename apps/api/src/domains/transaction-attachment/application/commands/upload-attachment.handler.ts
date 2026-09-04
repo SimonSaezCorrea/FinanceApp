@@ -60,12 +60,7 @@ export class UploadAttachmentHandler extends BaseCommandHandler<
     const attachmentId = generateRowId();
     return {
       attachmentId,
-      storageKey: storageKeyFor({
-        userId: command.userId,
-        transactionId: command.transactionId,
-        attachmentId,
-        fileName: command.file.originalname,
-      }),
+      storageKey: storageKeyFor(),
     };
   }
 

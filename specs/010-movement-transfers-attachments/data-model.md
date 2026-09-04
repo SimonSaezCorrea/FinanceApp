@@ -33,6 +33,12 @@
 - `@@map("transaction-attachment")`.
 - `storageKey` = `u/<userId>/t/<transactionId>/<attachmentId>-<slug del nombre>`. Se deriva del id,
   no del nombre subido, así que dos archivos con el mismo nombre en el mismo movimiento conviven.
+  **Contradicho por specs/017-opaque-identifiers (2026-09-04, constitución v2.0.0 §"Uploaded files
+  are validated, not trusted"):** un `storageKey` que deriva de `userId`/`transactionId` egresa
+  verbatim dentro de la URL prefirmada, así que el formato descrito acá ya no es el que produce
+  `storageKeyFor()` — ahora es un `randomUUID()` (v4) plano, sin relación con ningún id. Las filas
+  escritas bajo este formato viejo no se migran (siguen resolviendo contra el bucket local); sólo las
+  subidas nuevas usan el formato opaco. Ver `specs/017-opaque-identifiers/data-model.md`.
 - El `Cascade` en base de datos garantiza que no queden filas colgando; el borrado del OBJETO en el
   bucket lo hace el handler, después de la transacción (D4).
 

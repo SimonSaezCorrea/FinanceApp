@@ -61,21 +61,15 @@ describe("AttachmentPolicy", () => {
   });
 });
 
+const UUID_V4 = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 describe("storageKeyFor", () => {
-  it("derives the key from the ids, keeping a readable slug", () => {
-    expect(
-      storageKeyFor({
-        userId: "u1",
-        transactionId: "t1",
-        attachmentId: "at1",
-        fileName: "Boleta Jumbo (agosto).pdf",
-      }),
-    ).toBe("u/u1/t/t1/at1-boleta-jumbo-agosto-.pdf");
+  it("takes no parameters and returns a UUID v4 string", () => {
+    expect(storageKeyFor()).toMatch(UUID_V4);
   });
 
-  it("survives a name with nothing usable in it", () => {
-    expect(
-      storageKeyFor({ userId: "u1", transactionId: "t1", attachmentId: "at1", fileName: "***" }),
-    ).toBe("u/u1/t/t1/at1-file");
+  it("never collides across many calls", () => {
+    const keys = new Set(Array.from({ length: 1000 }, () => storageKeyFor()));
+    expect(keys.size).toBe(1000);
   });
 });

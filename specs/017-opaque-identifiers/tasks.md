@@ -29,7 +29,7 @@ Monorepo per plan.md: `apps/api/src/`, `apps/api/test/{unit,integration,e2e}/`, 
 
 **Purpose**: Declare the one new environment variable this feature needs.
 
-- [ ] T001 Add `CURSOR_SIGNING_SECRET` to `apps/api/.env.example` (placeholder value, same "change-me-…" convention as `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET`) and to any local `.env` used for running tests
+- [x] T001 Add `CURSOR_SIGNING_SECRET` to `apps/api/.env.example` (placeholder value, same "change-me-…" convention as `JWT_ACCESS_SECRET`/`JWT_REFRESH_SECRET`) and to any local `.env` used for running tests
 
 ---
 
@@ -53,15 +53,15 @@ untouched cursor and confirm the correct next page — per quickstart.md §1-§3
 
 ### Tests for User Story 1
 
-- [ ] T002 [P] [US1] Create `apps/api/test/unit/domains/transaction/application/queries/transaction-cursor.spec.ts`: `encodeCursor`/`decodeCursor` round-trip correctly with a given secret; a decoded cursor with any byte of the payload or MAC segment flipped throws `InvalidCursorError`; a cursor with a version other than the current one throws `InvalidCursorError` even with a valid MAC for that (wrong) version's payload; a cursor missing the `.` separator, or with more than one, throws `InvalidCursorError`; two different secrets never validate each other's cursors
-- [ ] T003 [P] [US1] Update `apps/api/test/unit/domains/transaction/application/queries/list-transactions.handler.spec.ts` for the new `ConfigService` constructor param (fake returning a fixed test secret)
-- [ ] T004 [P] [US1] E2E: in `apps/api/test/e2e/domains/transaction/transactions.http.spec.ts`, add cases per quickstart.md §1-§3 — a real issued cursor round-trips; a byte-tampered cursor returns `400 INVALID_CURSOR`; the OLD pre-feature unsigned encoding (`base64url("<date>|<id>")`, no `.` separator) also returns `400 INVALID_CURSOR`
+- [x] T002 [P] [US1] Create `apps/api/test/unit/domains/transaction/application/queries/transaction-cursor.spec.ts`: `encodeCursor`/`decodeCursor` round-trip correctly with a given secret; a decoded cursor with any byte of the payload or MAC segment flipped throws `InvalidCursorError`; a cursor with a version other than the current one throws `InvalidCursorError` even with a valid MAC for that (wrong) version's payload; a cursor missing the `.` separator, or with more than one, throws `InvalidCursorError`; two different secrets never validate each other's cursors
+- [x] T003 [P] [US1] Update `apps/api/test/unit/domains/transaction/application/queries/list-transactions.handler.spec.ts` for the new `ConfigService` constructor param (fake returning a fixed test secret)
+- [x] T004 [P] [US1] E2E: in `apps/api/test/e2e/domains/transaction/transactions.http.spec.ts`, add cases per quickstart.md §1-§3 — a real issued cursor round-trips; a byte-tampered cursor returns `400 INVALID_CURSOR`; the OLD pre-feature unsigned encoding (`base64url("<date>|<id>")`, no `.` separator) also returns `400 INVALID_CURSOR`
 
 ### Implementation for User Story 1
 
-- [ ] T005 [US1] Create `apps/api/src/infra/config/cursor.config.ts` exporting `getCursorSigningSecret(config: ConfigService): string` (`config.getOrThrow("CURSOR_SIGNING_SECRET")`), mirroring `readS3Config`'s shape (research.md Decision 2)
-- [ ] T006 [US1] Rewrite `apps/api/src/domains/transaction/application/queries/transaction-cursor.ts`: `encodeCursor(cursor, secret)` builds `"<version>|<occurredAt>|<id>"`, HMAC-SHA256s it with `secret`, returns `base64url(payload) + "." + base64url(mac)`; `decodeCursor(raw, secret)` splits on `.` (exactly 2 parts or throw), recomputes the MAC and compares with `crypto.timingSafeEqual`, checks the decoded version equals the current one, then parses `occurredAt`/`id` as today — any failure throws `InvalidCursorError` (research.md Decision 1)
-- [ ] T007 [US1] Update `apps/api/src/domains/transaction/application/queries/list-transactions.handler.ts`: inject `ConfigService`, resolve the secret once via `getCursorSigningSecret`, pass it to both `encodeCursor`/`decodeCursor` calls
+- [x] T005 [US1] Create `apps/api/src/infra/config/cursor.config.ts` exporting `getCursorSigningSecret(config: ConfigService): string` (`config.getOrThrow("CURSOR_SIGNING_SECRET")`), mirroring `readS3Config`'s shape (research.md Decision 2)
+- [x] T006 [US1] Rewrite `apps/api/src/domains/transaction/application/queries/transaction-cursor.ts`: `encodeCursor(cursor, secret)` builds `"<version>|<occurredAt>|<id>"`, HMAC-SHA256s it with `secret`, returns `base64url(payload) + "." + base64url(mac)`; `decodeCursor(raw, secret)` splits on `.` (exactly 2 parts or throw), recomputes the MAC and compares with `crypto.timingSafeEqual`, checks the decoded version equals the current one, then parses `occurredAt`/`id` as today — any failure throws `InvalidCursorError` (research.md Decision 1)
+- [x] T007 [US1] Update `apps/api/src/domains/transaction/application/queries/list-transactions.handler.ts`: inject `ConfigService`, resolve the secret once via `getCursorSigningSecret`, pass it to both `encodeCursor`/`decodeCursor` calls
 
 **Checkpoint**: A malformed/forged/wrong-version cursor is rejected before any query runs; a valid one still pages correctly.
 
@@ -78,13 +78,13 @@ the user's id nor the transaction's id as a substring — per quickstart.md §4-
 
 ### Tests for User Story 2
 
-- [ ] T008 [P] [US2] Update `apps/api/test/unit/domains/transaction-attachment/attachment-policy.spec.ts`: `storageKeyFor` takes NO parameters and returns a UUID v4 string (matches `/^[0-9a-f]{8}-...-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-...$/i`); two calls never collide (generate N values, assert all unique)
-- [ ] T009 [P] [US2] E2E: in `apps/api/test/e2e/domains/transaction-attachment/attachments.http.spec.ts`, after uploading, assert the persisted `storageKey` (read via Prisma in the test, same pattern the file already uses for `objects` bookkeeping) contains neither the test user's id nor the transaction's id as a substring, and that upload/list/view still return `201`/`200` unchanged (SC-004)
+- [x] T008 [P] [US2] Update `apps/api/test/unit/domains/transaction-attachment/attachment-policy.spec.ts`: `storageKeyFor` takes NO parameters and returns a UUID v4 string (matches `/^[0-9a-f]{8}-...-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-...$/i`); two calls never collide (generate N values, assert all unique)
+- [x] T009 [P] [US2] E2E: in `apps/api/test/e2e/domains/transaction-attachment/attachments.http.spec.ts`, after uploading, assert the persisted `storageKey` (read via Prisma in the test, same pattern the file already uses for `objects` bookkeeping) contains neither the test user's id nor the transaction's id as a substring, and that upload/list/view still return `201`/`200` unchanged (SC-004)
 
 ### Implementation for User Story 2
 
-- [ ] T010 [US2] Rewrite `storageKeyFor` in `apps/api/src/domains/transaction-attachment/domain/attachment-policy.ts`: drop the `userId`/`transactionId`/`attachmentId`/`fileName` parameters entirely (an unused parameter is worse than none) and return `randomUUID()` from `node:crypto` (research.md Decision 3) — no slug, no path segments
-- [ ] T011 [US2] Update the call site in `apps/api/src/domains/transaction-attachment/application/commands/upload-attachment.handler.ts` to match `storageKeyFor`'s new parameterless signature
+- [x] T010 [US2] Rewrite `storageKeyFor` in `apps/api/src/domains/transaction-attachment/domain/attachment-policy.ts`: drop the `userId`/`transactionId`/`attachmentId`/`fileName` parameters entirely (an unused parameter is worse than none) and return `randomUUID()` from `node:crypto` (research.md Decision 3) — no slug, no path segments
+- [x] T011 [US2] Update the call site in `apps/api/src/domains/transaction-attachment/application/commands/upload-attachment.handler.ts` to match `storageKeyFor`'s new parameterless signature
 
 **Checkpoint**: Every newly uploaded attachment's storage key is flat and unrelated to any resource id; upload/list/view are unaffected.
 
@@ -94,11 +94,11 @@ the user's id nor the transaction's id as a substring — per quickstart.md §4-
 
 **Purpose**: Close the loop on the conformance-debt tracking this feature exists to resolve, and confirm no regressions.
 
-- [ ] T012 [P] Update `docs/PENDING.md` — mark points 5 and 6 under "Deuda de conformidad con la constitución v2.0.0" as closed by specs/017, following the style of points 1-4's closure notes (specs/015/016)
-- [ ] T013 [P] Add a new Sync Impact Report entry at the top of `.specify/memory/constitution.md` recording this closure (MINOR version bump — no principle redefined, two documented conformance gaps closed)
-- [ ] T013a [P] Add a durable note under CLAUDE.md's `## Conventions` section (or extend the existing "Identifiers:" bullet from specs/016) documenting `CURSOR_SIGNING_SECRET` and the new opaque `storageKey` format — the discoverable reference future contributors would grep for (FR-007, closes the G1 gap found by `/speckit-analyze`)
-- [ ] T014 Run `pnpm --filter @finance/api test && pnpm --filter @finance/api test:integration && pnpm --filter @finance/api test:e2e && pnpm typecheck && pnpm lint && pnpm format:check` and confirm zero regressions (SC-004)
-- [ ] T015 Walk through quickstart.md end-to-end (§1-§6) manually once, to catch anything the automated tests don't
+- [x] T012 [P] Update `docs/PENDING.md` — mark points 5 and 6 under "Deuda de conformidad con la constitución v2.0.0" as closed by specs/017, following the style of points 1-4's closure notes (specs/015/016)
+- [x] T013 [P] Add a new Sync Impact Report entry at the top of `.specify/memory/constitution.md` recording this closure (MINOR version bump — no principle redefined, two documented conformance gaps closed)
+- [x] T013a [P] Add a durable note under CLAUDE.md's `## Conventions` section (or extend the existing "Identifiers:" bullet from specs/016) documenting `CURSOR_SIGNING_SECRET` and the new opaque `storageKey` format — the discoverable reference future contributors would grep for (FR-007, closes the G1 gap found by `/speckit-analyze`)
+- [ ] T014 Run `pnpm --filter @finance/api test && pnpm --filter @finance/api test:integration && pnpm --filter @finance/api test:e2e && pnpm typecheck && pnpm lint && pnpm format:check` and confirm zero regressions (SC-004) — **partially done**: `test:unit` (561/561), `typecheck`, `lint`, `format:check` and `check:boundaries` ran clean in the implementing session; `test:integration`/`test:e2e` need a reachable Postgres, which that sandbox didn't have configured/authorized to provision destructively — pending a run with a real test DB
+- [ ] T015 Walk through quickstart.md end-to-end (§1-§6) manually once, to catch anything the automated tests don't — pending, needs a running API + DB
 
 ---
 
