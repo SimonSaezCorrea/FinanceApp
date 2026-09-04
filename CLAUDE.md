@@ -1038,11 +1038,13 @@ hora de subida, y el objetivo acá es que la clave no revele nada extraíble, ni
 contrato HTTP en ninguna de las dos superficies — solo cambia qué input se rechaza (cursor) y qué
 contiene la clave interna (adjuntos), nunca la forma de la respuesta. Punto 7 (versionado de API)
 descartado explícitamente por el dueño del producto — sin consumidores externos. **Estado: 017
-implementado** (T001-T013a; contrato de comportamiento, dominio, tests unitarios y e2e, docs
-[`PENDING.md` puntos 5-6 cerrados, nota de contradicción en `specs/010/data-model.md`] y constitución
-en v2.3.0. `pnpm --filter @finance/api test:unit` [561/561], `typecheck`, `lint`, `format:check` y
-`check:boundaries` verificados en la sesión que implementó esto; `test:integration`/`test:e2e`
-requieren una Postgres real que ese entorno no tenía disponible — no se corrieron ahí).)
+implementado** (T001-T015; contrato de comportamiento, dominio, tests unitarios/integración/e2e,
+docs [`PENDING.md` puntos 5-6 cerrados, nota de contradicción en `specs/010/data-model.md`] y
+constitución en v2.3.0. Verificado de punta a punta contra una Postgres real:
+`pnpm --filter @finance/api test:unit` [561/561], `test:integration` [85/85], `test:e2e` [141/141,
+incluye los casos nuevos de cursor firmado y storage key opaca], `typecheck`, `lint`,
+`check:boundaries` y `format:check` [limpio salvo 3 warnings preexistentes en el markdown de esta
+misma spec, sin relación con el código]).)
 Prior plan: specs/016-unified-row-ids/plan.md
 (Unificar el identificador de fila en las 24 tablas: UUID v7 en todas partes, reemplazando tanto
 el `@default(cuid())` del schema como los 5 sitios de runtime que acuñaban su propio id con
