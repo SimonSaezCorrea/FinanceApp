@@ -1015,6 +1015,29 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
+Prior plan: specs/017-opaque-identifiers/plan.md
+(Firmar el cursor de paginación de movimientos y hacer opaca la storage key de los adjuntos —
+puntos 5 y 6 de la deuda de conformidad con la constitución v2.0.0. **Cursor**: `transaction-cursor.ts`'s
+`encodeCursor`/`decodeCursor` pasan de `base64url("<fecha>|<id>")` sin firma a
+`base64url("<versión>|<fecha>|<id>") + "." + base64url(HMAC-SHA256(secret, payload))` — el número de
+versión va DENTRO del payload firmado (no como prefijo sin firmar) para que un intento de downgrade
+de versión también quede cubierto por el MAC. Verificación por `crypto.timingSafeEqual` (constante en
+tiempo). Cualquier MAC que no calce o versión no reconocida → `InvalidCursorError` (el mismo error de
+dominio que ya existía, `INVALID_CURSOR` — esta feature amplía qué lo dispara, no su forma). Secreto
+nuevo **`CURSOR_SIGNING_SECRET`** (mismo patrón que `JWT_ACCESS_SECRET`, un solo secreto estático, sin
+soporte de rotación por ahora — decisión explícita del dueño del producto) leído vía un helper nuevo
+`infra/config/cursor.config.ts`'s `getCursorSigningSecret(config)`, mismo patrón que `readS3Config`:
+las funciones del cursor siguen siendo puras (reciben el secreto como parámetro), y es
+`ListTransactionsQueryHandler` quien lo resuelve una vez vía `ConfigService`. **Storage key**:
+`storageKeyFor` deja de construirse desde `userId`/`transactionId`/`attachmentId`/slug del nombre de
+archivo y pasa a ser un `randomUUID()` (v4) plano — **no** el `generateRowId()` (UUID v7) que
+specs/016 unificó para las filas, a propósito: v7 embebe un timestamp de 48 bits que filtraría la
+hora de subida, y el objetivo acá es que la clave no revele nada extraíble, ni siquiera eso.
+`fileName` sigue en su propia columna, nunca se leyó desde la storage key. Sin migración de datos
+(ninguna feature de esta toca el schema; specs/016 sí necesitó `db:reset`, ésta no) y sin cambio de
+contrato HTTP en ninguna de las dos superficies — solo cambia qué input se rechaza (cursor) y qué
+contiene la clave interna (adjuntos), nunca la forma de la respuesta. Punto 7 (versionado de API)
+descartado explícitamente por el dueño del producto — sin consumidores externos.)
 Prior plan: specs/016-unified-row-ids/plan.md
 (Unificar el identificador de fila en las 24 tablas: UUID v7 en todas partes, reemplazando tanto
 el `@default(cuid())` del schema como los 5 sitios de runtime que acuñaban su propio id con
@@ -1199,6 +1222,6 @@ patrón completo una vez documentado.
 tests). Encima se aplicó, sin spec propia, la regla **una tabla = un dominio**: los 11 dominios se
 dividieron en 21 dominios-tabla (+ `import`/`health` sin tabla), un solo adapter por tabla,
 constitución en v1.23.0. Ver ARCHITECTURE.md §12a.)
-Prior plans: 016 (identificadores unificados), 015 (escrituras idempotentes), 014 (facturación de planes CREDIT), 013 (cuotas: rediseño y pago real), 012 (investment tracking, congelada), 011 (cuenta prepago), 010 (traspasos/adjuntos), 009 (backend DDD+CQRS), 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
+Prior plans: 017 (cursor firmado + storage key opaca), 016 (identificadores unificados), 015 (escrituras idempotentes), 014 (facturación de planes CREDIT), 013 (cuotas: rediseño y pago real), 012 (investment tracking, congelada), 011 (cuenta prepago), 010 (traspasos/adjuntos), 009 (backend DDD+CQRS), 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
 
 <!-- SPECKIT END -->
