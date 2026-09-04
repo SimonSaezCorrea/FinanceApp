@@ -26,7 +26,7 @@ export function TH({
   return (
     <th
       className={cn(
-        "px-4 py-2 text-left font-medium",
+        "px-6 py-3 text-left font-medium",
         numeric && "text-right tabular-nums",
         className,
       )}
@@ -41,6 +41,6 @@ export function TD({
   ...props
 }: TdHTMLAttributes<HTMLTableCellElement> & { numeric?: boolean }) {
   return (
-    <td className={cn("px-4 py-3", numeric && "text-right tabular-nums", className)} {...props} />
+    <td className={cn("px-6 py-4", numeric && "text-right tabular-nums", className)} {...props} />
   );
 }

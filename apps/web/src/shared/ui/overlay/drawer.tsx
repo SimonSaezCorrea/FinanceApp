@@ -49,7 +49,7 @@ export function Drawer({
         <RadixDialog.Overlay
           style={layer && { zIndex: layer.overlay }}
           className={cn(
-            "fixed inset-0 bg-black/50 backdrop-blur-sm",
+            "fixed inset-0 bg-black/50 backdrop-blur-md",
             "data-[state=open]:animate-in data-[state=open]:fade-in data-[state=closed]:animate-out data-[state=closed]:fade-out",
             // z-index, not DOM order, decides what covers what: a nested panel's
             // backdrop has to outrank the panel it was opened from.

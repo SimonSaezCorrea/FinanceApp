@@ -60,12 +60,26 @@ export function InstallmentPlanTable({
     // this table had no background/border of its own and just floated on the
     // page, unlike every other table in the app.
     <Card className="overflow-hidden p-0">
-      <Table>
+      <Table className="table-fixed">
+        {/* Fixed column widths, matched to the design handoff's proportions —
+            without them the browser's auto layout hands almost every spare pixel
+            to Plan (the one column with no fixed-content minimum), leaving Próxima
+            cuota wrapping and Tarjeta truncating even though there was plenty of
+            room on screen. */}
+        <colgroup>
+          <col className="w-[28%]" />
+          <col className="w-[15%]" />
+          <col className="w-[13%]" />
+          <col className="w-[10%]" />
+          <col className="w-[10%]" />
+          <col className="w-[18%]" />
+          <col className="w-[6%]" />
+        </colgroup>
         <THead className="bg-muted/50">
           <TR>
             <TH>{t("installments.table.plan")}</TH>
             <TH>{t("installments.table.progress")}</TH>
-            <TH>{t("installments.table.nextDue")}</TH>
+            <TH className="whitespace-nowrap">{t("installments.table.nextDue")}</TH>
             <TH align="right">{t("installments.table.instalment")}</TH>
             <TH align="right">{t("installments.table.remaining")}</TH>
             <TH>{t("installments.table.card")}</TH>
@@ -176,10 +190,16 @@ export function InstallmentPlanTable({
                   })}
                 </TD>
 
-                <TD className="max-w-[9rem] truncate text-muted-foreground">
-                  {plan.cardId
-                    ? (cardLabels.get(plan.cardId) ?? t("installments.table.unknownCard"))
-                    : "—"}
+                <TD className="text-muted-foreground">
+                  {/* `truncate` on the `<td>` itself doesn't reliably clip in a
+                      table-cell box — the block-level span is what actually
+                      contains overflow instead of letting it bleed into the
+                      actions column next to it. */}
+                  <span className="block truncate">
+                    {plan.cardId
+                      ? (cardLabels.get(plan.cardId) ?? t("installments.table.unknownCard"))
+                      : "—"}
+                  </span>
                 </TD>
 
                 <TD align="right">

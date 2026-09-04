@@ -314,7 +314,7 @@ interface FigureProps {
 
 function Figure({ label, value, tone = "default" }: FigureProps) {
   return (
-    <div className="flex flex-col gap-0.5 rounded-md border bg-card p-3">
+    <div className="flex flex-col gap-0.5 rounded-md border bg-background p-3">
       <span className="text-xs text-muted-foreground">{label}</span>
       <span
         className={cn(
