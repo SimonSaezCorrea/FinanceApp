@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { rowId } from "../common/row-id";
+
 /** Receipt/voucher files attached to a movement. */
 
 export const ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
@@ -13,8 +15,8 @@ export const ATTACHMENT_CONTENT_TYPES = [
 export type AttachmentContentType = (typeof ATTACHMENT_CONTENT_TYPES)[number];
 
 export const attachmentSchema = z.object({
-  id: z.string(),
-  transactionId: z.string(),
+  id: rowId,
+  transactionId: rowId,
   fileName: z.string(),
   contentType: z.enum(ATTACHMENT_CONTENT_TYPES),
   sizeBytes: z.number().int().positive().max(ATTACHMENT_MAX_BYTES),

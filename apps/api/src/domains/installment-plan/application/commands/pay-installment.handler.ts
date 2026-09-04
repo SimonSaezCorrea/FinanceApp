@@ -1,15 +1,15 @@
-import { randomUUID } from "node:crypto";
+import { Inject, Injectable } from "@nestjs/common";
+import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import { installments } from "@finance/contracts";
 import { subtractMoney } from "@finance/money";
-import { Inject, Injectable } from "@nestjs/common";
-import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
   BaseIdempotentCommandHandler,
   type CompleteFn,
 } from "../../../../infra/cqrs/base-idempotent-command.handler";
+import { generateRowId } from "../../../../infra/id/generate-row-id";
 import {
   IDEMPOTENCY_RECORD_REPOSITORY,
   type IdempotencyRecordRepositoryPort,
@@ -146,7 +146,7 @@ export class PayInstallmentHandler extends BaseIdempotentCommandHandler<
       source,
       chargedAmount,
       paidAmount,
-      transactionId: randomUUID(),
+      transactionId: generateRowId(),
       carryDeltas: [],
     };
   }

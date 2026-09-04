@@ -121,7 +121,7 @@ describe("changing a plan's payment account (integration)", () => {
   it("leaves the expenses and the balances already recorded exactly as they were", async () => {
     const before = await prisma.transaction.findMany({ where: { userId } });
 
-    await new UpdateInstallmentPlanHandler(eventBus, planRepo, cards).execute(
+    await new UpdateInstallmentPlanHandler(eventBus, planRepo, cards, accounts).execute(
       new UpdateInstallmentPlanCommand(userId, planId, { paymentAccountId: secondAccountId }),
     );
 

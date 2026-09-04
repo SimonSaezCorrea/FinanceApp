@@ -3,6 +3,11 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { recurring } from "@finance/contracts";
 
+import {
+  BANK_ACCOUNT_LOOKUP,
+  type BankAccountLookupPort,
+} from "../../../bank-account/domain/ports/bank-account-lookup.port";
+import { AccountNotFoundError } from "../../../bank-account/domain/errors";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
   RecurringExpense,
@@ -34,12 +39,19 @@ export class CreateRecurringExpenseHandler extends BaseCommandHandler<
   constructor(
     eventBus: EventBus,
     @Inject(RECURRING_EXPENSE_REPOSITORY) private readonly repo: RecurringExpenseRepositoryPort,
+    @Inject(BANK_ACCOUNT_LOOKUP) private readonly accounts: BankAccountLookupPort,
   ) {
     super(eventBus);
   }
 
   protected async loadContext(command: CreateRecurringExpenseCommand): Promise<Context> {
     const { input } = command;
+    if (
+      input.bankAccountId &&
+      !(await this.accounts.accountOwned(command.userId, input.bankAccountId))
+    ) {
+      throw new AccountNotFoundError();
+    }
     const plan = RecurringExpense.planCreation({
       label: input.label,
       amount: input.amount,

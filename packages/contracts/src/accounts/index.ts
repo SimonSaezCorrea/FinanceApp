@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { accountType, type AccountType } from "../common/account-type";
 import { moneyString } from "../common/money";
+import { rowId } from "../common/row-id";
 import type { InstitutionKind } from "../reference";
 
 export * from "./account-number";
@@ -119,7 +120,7 @@ export function isCardKindAllowed(type: AccountType, kind: CardKind): boolean {
  * every card on the account. Only meaningful for CREDIT-kind cards.
  */
 export const cardLimitSchema = z.object({
-  id: z.string(),
+  id: rowId,
   currency: z.string(),
   limitAmount: moneyString,
   /** Reconciled used = usedInitial + Σexpense − Σincome on this card+currency (derived). */
@@ -139,7 +140,7 @@ export const cardNetwork = z.enum(["VISA", "MASTERCARD", "AMEX", "REDCOMPRA", "O
 export type CardNetwork = z.infer<typeof cardNetwork>;
 
 export const cardSchema = z.object({
-  id: z.string(),
+  id: rowId,
   name: z.string(),
   kind: cardKind,
   last4: z.string().regex(/^\d{4}$/),
@@ -236,14 +237,14 @@ export function allowsOverdraft(type: AccountType): boolean {
 }
 
 export const bankAccountSchema = z.object({
-  id: z.string(),
+  id: rowId,
   name: z.string(),
   type: accountType,
   status: accountStatus,
   currency: z.string(),
   institution: z.string().nullable(),
   /** Linked financial institution (bank or non-bank issuer) id; null for cash/manual. */
-  institutionId: z.string().nullable(),
+  institutionId: rowId.nullable(),
   /** Resolved institution name (from the link), for display; null when unlinked. */
   institutionName: z.string().nullable(),
   /** Bank account number (free text, full — not a card PAN). Null for cash. */
@@ -310,7 +311,7 @@ const bankAccountFieldsSchema = z.object({
   status: accountStatus.default("ACTIVE"),
   currency: z.string().trim().length(3).default("CLP"),
   institution: z.string().trim().max(120).optional(),
-  institutionId: z.string().optional(),
+  institutionId: rowId.optional(),
   accountNumber: z.string().trim().max(50).optional(),
   accountAlias: z.string().trim().max(40).nullish(),
   initialBalance: moneyString.optional(),
@@ -443,8 +444,8 @@ export type CreditStatementStatus = z.infer<typeof creditStatementStatus>;
  * corrected manually (no cascade to the linked payment or to `creditUsed` —
  * a deliberate simplification for personal use). */
 export const creditStatementSchema = z.object({
-  id: z.string(),
-  accountId: z.string(),
+  id: rowId,
+  accountId: rowId,
   status: creditStatementStatus,
   periodStart: z.string(),
   /** Set once generation seals this period (cron or manual button). Null while OPEN. */
@@ -464,7 +465,7 @@ export const creditStatementSchema = z.object({
    * with less than its total. Already included in `amount`. "0" normally. */
   carriedOverAmount: moneyString,
   /** The period this one's shortfall was rolled into. Null when paid in full. */
-  carriedToId: z.string().nullable(),
+  carriedToId: rowId.nullable(),
   /** What's still owed for this period: `amount` − `paidAmount`, never negative.
    * Always "0" once paid — the shortfall is owed in the NEXT period, not here. */
   remainingAmount: moneyString,
@@ -480,9 +481,9 @@ export const creditStatementSchema = z.object({
     installmentCount: z.number().int(),
   }),
   /** The bank account paid from, if paid. Null otherwise. */
-  paidFromAccountId: z.string().nullable(),
+  paidFromAccountId: rowId.nullable(),
   /** The real EXPENSE transaction created on `paidFromAccountId` at pay time. */
-  paidTransactionId: z.string().nullable(),
+  paidTransactionId: rowId.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -496,7 +497,7 @@ export type CreditStatement = z.infer<typeof creditStatementSchema>;
  * rejected (`PAYMENT_EXCEEDS_REMAINING`) rather than silently capped — a wrong
  * figure in a money form must not be quietly "corrected". */
 export const payCreditStatementSchema = z.object({
-  fromAccountId: z.string(),
+  fromAccountId: rowId,
   amount: moneyString.optional(),
   /** When the payment happened; defaults to now. Dates the created expense too. */
   paidAt: z.string().optional(),

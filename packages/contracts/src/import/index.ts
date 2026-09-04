@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { moneyString } from "../common/money";
+import { rowId } from "../common/row-id";
 
 /** Bulk-import domain contracts. Rows are already-parsed transactions. */
 
@@ -11,7 +12,7 @@ export const importRowSchema = z.object({
   occurredAt: z.string().datetime(),
   category: z.string().trim().max(120).optional(),
   description: z.string().trim().max(500).optional(),
-  bankAccountId: z.string().optional(),
+  bankAccountId: rowId.optional(),
 });
 export type ImportRow = z.infer<typeof importRowSchema>;
 

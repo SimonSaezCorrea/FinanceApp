@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto";
-
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
@@ -10,6 +8,7 @@ import {
   BaseIdempotentCommandHandler,
   type CompleteFn,
 } from "../../../../infra/cqrs/base-idempotent-command.handler";
+import { generateRowId } from "../../../../infra/id/generate-row-id";
 import {
   IDEMPOTENCY_RECORD_REPOSITORY,
   type IdempotencyRecordRepositoryPort,
@@ -146,7 +145,7 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
       periodAmount,
       breakdown,
       carryOver: "0",
-      paymentTransactionId: randomUUID(),
+      paymentTransactionId: generateRowId(),
       now,
       occurredAt: command.paidAt ?? now,
       reference: command.reference,

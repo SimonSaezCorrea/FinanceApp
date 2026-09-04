@@ -453,63 +453,93 @@ funciona**; ésta registra **principios que parecen vigentes y todavía no lo es
 §II y endureció dos normas de arquitectura — todo a partir de una auditoría de solo lectura, sin tocar
 código. En ese momento el código **no cumplía ninguno de los siete puntos de abajo**. **specs/015
 (2026-09-03) cerró el punto 4 completo** (§VII, idempotencia) y **cerró una de las seis FK del punto 3**
-(`savingsGoalId`, §II) — los seis puntos restantes (1, 2, 5, 6, 7 completos; 3 con cinco FK aún sin
-verificar) siguen sin spec propia. Quien lea la constitución sin leer esto va a asumir que sigue todo
-pendiente. Cada uno necesita su propia spec; ninguno es un arreglo de una línea.
+(`savingsGoalId`, §II). **specs/016 (2026-09-04) cerró los puntos 1 y 2 completos** (§VIII,
+identificadores) **y, extendiendo su alcance por decisión del dueño del producto, cerró también el
+punto 3 completo** (las cinco FK restantes, §II) — quedan 5, 6 y 7, todos sin spec propia. Quien lea
+la constitución sin leer esto va a asumir que sigue todo pendiente. Cada uno necesita su propia
+spec; ninguno es un arreglo de una línea.
 
 Referencia completa con `file:line`: el Sync Impact Report de 2026-09-02 al tope de
 `.specify/memory/constitution.md`.
 
-### 1. Dos formatos de identificador en la misma columna (§VIII)
+### 1. Dos formatos de identificador en la misma columna (§VIII) — **cerrado por specs/016 (2026-09-04)**
 
-Las 23 tablas declaran `id String @id @default(cuid())`, pero los ids que se acuñan en runtime usan
-`randomUUID()` — `pay-credit-statement.handler.ts:126`, `pay-installment.handler.ts:126`,
-`create-transfer.handler.ts:65`, `upload-attachment.handler.ts:61`. Conviven cuid y uuid v4 en columnas
-`id` del mismo esquema, que es exactamente lo que §VIII prohíbe. Ninguno de los dos es enumerable, así
-que no hay riesgo de seguridad hoy: el problema es que **no existe "el formato" contra el cual validar**,
-y sin eso el resto de §VIII (validación estructural en el borde) no se puede escribir.
+Ya no hay ningún punto abierto acá. Antes de specs/016, las 24 tablas declaraban
+`id String @id @default(cuid())` mientras 5 sitios de runtime acuñaban ids con `randomUUID()` (uuid v4)
+— dos formatos en la misma columna, justo lo que §VIII prohíbe. Ahora:
 
-**Para hacerlo real**: elegir UN formato para todo el esquema, declararlo en la constitución, y unificar
-los cuatro sitios de runtime con el `@default` del schema. Si el formato elegido no es cuid, es
-`db push` + `db:seed` (data de dev, sin migración) — el costo real está en el punto 6, que hornea ids en
-claves durables de S3.
+- Las 24 tablas usan `@default(uuid(7))` — Prisma 7 lo genera en el cliente, sin depender de una
+  función nativa de Postgres (funciona igual en el `postgres:16-alpine` de CI/dev).
+- Los 5 sitios (`pay-credit-statement.handler.ts`, `pay-installment.handler.ts`,
+  `create-installment-plan.handler.ts`, `create-transfer.handler.ts`, `upload-attachment.handler.ts`)
+  pasaron a un helper compartido nuevo, `apps/api/src/infra/id/generate-row-id.ts` (paquete `uuid`,
+  `v7()`) — necesario porque esos 5 casos necesitan el valor ANTES del insert (una referencia cruzada
+  en la misma transacción, o un valor no-PK como `transferGroupId`), así que un default de schema solo
+  no alcanza.
+- Sin migración de datos (no hay producción): `pnpm db:reset` regeneró el dev con el formato unificado.
 
-### 2. Ningún parámetro de ruta valida formato (§VIII)
+Detalle completo: `specs/016-unified-row-ids/{spec,plan,research,data-model}.md`.
 
-Los 13 schemas de path params son `z.string().min(1)`. Grep en `packages/contracts/src` de `.cuid(`,
-`.uuid(`, `.regex(`, `.brand(`: **cero aciertos**. Los 62 campos id del contrato son `z.string()` pelado.
+### 2. Ningún parámetro de ruta valida formato (§VIII) — **cerrado por specs/016 (2026-09-04)**
 
-Tres consecuencias concretas: (a) un id malformado llega hasta el repositorio antes de que alguien lo
-rechace, que es justo lo que **specs/009 SC-007 declara cumplido** — hoy se cumple sólo en sentido
-trivial; (b) el orden de declaración de rutas es load-bearing y frágil — `GET /transactions/summary` y
-las tres `transfers/:groupId` **tienen que declararse antes de `:id`** o Nest las resuelve como ids, y
-está comentado en el código (`transactions.controller.ts:56-57,67-68`) porque no hay forma de que el
-pipe distinga un segmento literal de un id válido; (c) toda la superficie es una string libre.
+Ya no hay ningún punto abierto acá tampoco. Antes de specs/016, los 13 schemas de path params y los
+~62 campos id del contrato eran `z.string()`/`z.string().min(1)` pelados — cero validación de formato
+en todo `packages/contracts/src`. Ahora:
 
-**Para hacerlo real**: depende del punto 1. Una vez fijado el formato, un `zod` refine compartido en
-`@finance/contracts` y aplicarlo en los 13 params + los campos id del contrato. Reescribir el criterio
-de aceptación de `specs/009/quickstart.md:91-95` para que verifique algo real.
+- Un schema zod compartido nuevo, **`rowId`** (`packages/contracts/src/common/row-id.ts`,
+  `z.uuidv7()` — estricto a la versión 7, un UUID v4 bien formado también se rechaza), reemplaza el
+  `z.string()` pelado en los 13 archivos de path-params y en los ~62 campos id del contrato.
+- `ZodValidationPipe`/`ZodParamsPipe` ganan un chequeo de `meta({errorCode})` (vía el helper
+  `zod-issue-meta.ts`, que camina el schema hasta el nodo que falló — soporta campos anidados y
+  elementos de array) para mapear cualquier falla de `rowId` a un único código compartido
+  **`INVALID_ID_FORMAT`** (con `field`), sin tocar el resto de su comportamiento — un id malformado se
+  rechaza en `400` antes de tocar la base de datos.
+- **El orden de declaración de rutas (`GET /transactions/summary`/`transfers/:groupId` antes de
+  `:id`) sigue siendo necesario** — Nest resuelve el ruteo por orden de declaración antes de que corra
+  cualquier validación de formato, así que esto no es un "arreglo" de esa fragilidad, solo una segunda
+  capa de defensa independiente (research.md Decision 5 de specs/016 lo documenta explícitamente para
+  que nadie intente removerlo creyendo que ya no hace falta).
+- `specs/009/quickstart.md`'s SC-007 se reescribió para verificar el comportamiento real (antes se
+  cumplía solo trivialmente, porque nada validaba nada).
+- Deliberadamente fuera de alcance: verificar OWNERSHIP de una FK (eso es el punto 3 más abajo) — esto
+  valida solo forma, no que el id sea del usuario.
 
-### 3. Cinco FK del cuerpo se persisten sin verificar propiedad (§II)
+Detalle completo: `specs/016-unified-row-ids/{spec,plan,research,data-model}.md`.
 
-La fila creada siempre lleva el `userId` del caller, así que **nada se lee cross-tenant** — pero un cuid
-ajeno se acepta y se escribe en una columna FK:
+### 3. Seis FK del cuerpo se persistían sin verificar propiedad (§II) — **cerrado por specs/015 + specs/016 (2026-09-04)**
 
-- `POST /import/transactions` — `bankAccountId` por fila. Cero lectura de ownership en toda la ruta
-  (`import-transactions.handler.ts` → `prisma-import.repository.ts:31` → `createMany`).
-- `POST|PATCH /investments` y `POST|PATCH /recurring` — `bankAccountId`.
-- `POST|PATCH /installments` — `paymentAccountId`.
-- `POST /installments` — `cardId`, y éste es el peor: `kindForCard` devuelve `null` para una tarjeta
-  ajena, **indistinguible de "no vino tarjeta"**, y el `cardId` se escribe igual. Es literalmente la
-  conflación que el párrafo nuevo de §II nombra y prohíbe.
+Ya no hay ningún punto abierto acá. La fila creada siempre llevó el `userId` del caller, así que
+**nunca hubo lectura cross-tenant** — el hueco era que un id ajeno bien formado se aceptaba igual y
+se escribía en una columna FK, sin comprobar que fuera del usuario. Las seis rutas originales:
 
-`POST /wallet` sí valida (`add-wallet-item.handler.ts:47-50`, `accountOwned`/`cardOwned`) y es el patrón
-que los otros cinco tienen que espejar — **`POST /savings/entries` (y el nuevo `PATCH /savings/entries/:id`)
-ya lo siguen**: specs/015 agregó la verificación de `savingsGoalId` contra el puerto de `savings-goal` en
-`create-savings-entry.handler.ts` y `update-savings-entry.handler.ts` antes de persistir, cerrando esa FK.
+- `POST /savings/entries` — `savingsGoalId`. **Cerrado por specs/015** (2026-09-03): verificación
+  contra el puerto de `savings-goal` en `create-savings-entry.handler.ts`/`update-savings-entry.handler.ts`.
+- `POST /import/transactions` — `bankAccountId` por fila. **Cerrado por specs/016** (2026-09-04):
+  `import-transactions.handler.ts` deduplica los ids referenciados y verifica cada uno con el
+  `BankAccountLookupPort` nuevo antes de `handle()`.
+- `POST|PATCH /investments` y `POST|PATCH /recurring` — `bankAccountId`. **Cerrado por specs/016**:
+  mismo `BankAccountLookupPort`, inyectado en los 4 handlers de create/update.
+- `POST|PATCH /installments` — `paymentAccountId`. **Cerrado por specs/016**: reutiliza el
+  `BankAccountRepositoryPort.findById` que estos handlers ya inyectaban (por el flujo de pago), sin
+  agregar un puerto nuevo.
+- `POST /installments` (y su `PATCH`) — `cardId`, el peor caso: `kindForCard` devuelve `null` tanto
+  para "no vino tarjeta" como para "tarjeta ajena". **Cerrado por specs/016**: la conflación se
+  resolvía distinguiendo los dos casos antes de aplicar la regla de negocio — `input.cardId &&
+!cardKind` ahora lanza `CardNotFoundError` en vez de persistir el id ajeno en silencio.
+  `kindForCard` en sí ya escopeaba por `userId` (`prisma-card-account.repository.ts:98`); el bug
+  vivía enteramente en los dos handlers, no en el puerto.
 
-**Para hacerlo real**: un lookup scopeado por `userId` antes de cada escritura, y que el resolver
-distinga "no existe para vos" de "no vino" con tipos, no con `null`.
+`POST /wallet` (`add-wallet-item.handler.ts:47-50`, `accountOwned`/`cardOwned`) y `POST /transactions`
+(`movement-policy.ts:116,119`, `CardAccountMismatchError`) **ya validaban correctamente antes de esta
+auditoría** — eran el patrón a espejar, no violaciones; verificado leyendo ambos handlers antes de
+escribir specs/016, no asumido de la auditoría original.
+
+Puerto nuevo: `BankAccountLookupPort.accountOwned(userId, accountId)`
+(`bank-account/domain/ports/bank-account-lookup.port.ts`), mismo patrón liviano que
+`CountryLookupPort`/`FinancialInstitutionLookupPort` — una lectura acotada de una tabla que el
+dominio consumidor no es dueño, en vez de importar el puerto completo. Detalle completo:
+`specs/016-unified-row-ids/{spec,plan,research,data-model}.md` (User Story 4, agregada 2026-09-04
+por decisión explícita del dueño del producto — extiende specs/016 en vez de abrir spec propia).
 
 ### 4. Escrituras sin protección contra reintento (§VII) — **cerrado por specs/015 (2026-09-03)**
 

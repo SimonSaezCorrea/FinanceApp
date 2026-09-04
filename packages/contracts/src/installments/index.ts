@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import type { CardKind } from "../accounts";
 import { moneyString } from "../common/money";
+import { rowId } from "../common/row-id";
 
 /** Installments domain contracts (plan + scheduled payments). */
 
@@ -89,7 +90,7 @@ export const planBillingWarning = z.enum([
 export type PlanBillingWarning = z.infer<typeof planBillingWarning>;
 
 export const installmentPaymentSchema = z.object({
-  id: z.string(),
+  id: rowId,
   sequence: z.number().int().positive(),
   dueDate: z.string(),
   /** The SCHEDULED amount — never rewritten once the plan exists. */
@@ -103,10 +104,10 @@ export const installmentPaymentSchema = z.object({
   /** Derived: `amount + carriedOverAmount`, floored at zero. */
   dueAmount: moneyString,
   /** The real expense backing this installment, when there is one. */
-  transactionId: z.string().nullable(),
+  transactionId: rowId.nullable(),
   /** The billing period that CHARGED this instalment; null while unbilled. Kept after
    * settlement so the plan can link back to the period that settled it (FR-020). */
-  creditStatementId: z.string().nullable(),
+  creditStatementId: rowId.nullable(),
   /** Derived from the two fields above — see `installmentStatus`. */
   status: installmentPaymentStatus,
 });
@@ -122,13 +123,13 @@ export const installmentDeletionImpactSchema = z.object({
   /** How many real movements disappear: the instalment expenses + the finance charge. */
   movementCount: z.number().int().nonnegative(),
   balanceRestorations: z.array(
-    z.object({ accountId: z.string(), amount: moneyString, currency: z.string() }),
+    z.object({ accountId: rowId, amount: moneyString, currency: z.string() }),
   ),
 });
 export type InstallmentDeletionImpact = z.infer<typeof installmentDeletionImpactSchema>;
 
 export const installmentPlanSchema = z.object({
-  id: z.string(),
+  id: rowId,
   title: z.string(),
   totalPrincipal: moneyString,
   installmentCount: z.number().int().positive(),
@@ -138,11 +139,11 @@ export const installmentPlanSchema = z.object({
   frequencyInterval: z.number().int().positive(),
   /** The card this purchase was put on, when there was one — a plan can equally
    * be a bank loan with no card behind it. */
-  cardId: z.string().nullable(),
+  cardId: rowId.nullable(),
   /** Free text, same repertoire as a movement's category; the row's icon comes from it. */
   category: z.string().nullable(),
   /** The account remembered to pre-fill each payment form. Null on a CREDIT-card plan. */
-  paymentAccountId: z.string().nullable(),
+  paymentAccountId: rowId.nullable(),
   notes: z.string().nullable(),
   payments: z.array(installmentPaymentSchema),
 
@@ -186,9 +187,9 @@ export const createInstallmentPlanSchema = z.object({
   frequency: installmentFrequency.default("MONTHLY"),
   frequencyInterval: z.number().int().min(1).max(999).default(1),
   aprPerPeriod: moneyString.optional(),
-  cardId: z.string().nullish(),
+  cardId: rowId.nullish(),
   category: z.string().trim().max(120).nullish(),
-  paymentAccountId: z.string().nullish(),
+  paymentAccountId: rowId.nullish(),
   notes: z.string().trim().max(500).optional(),
 });
 export type CreateInstallmentPlan = z.infer<typeof createInstallmentPlanSchema>;
@@ -198,9 +199,9 @@ export const updateInstallmentPlanSchema = z.object({
   currency: z.string().trim().length(3).optional(),
   frequency: installmentFrequency.optional(),
   frequencyInterval: z.number().int().min(1).max(999).optional(),
-  cardId: z.string().nullable().optional(),
+  cardId: rowId.nullable().optional(),
   category: z.string().trim().max(120).nullable().optional(),
-  paymentAccountId: z.string().nullable().optional(),
+  paymentAccountId: rowId.nullable().optional(),
   notes: z.string().trim().max(500).nullable().optional(),
 });
 export type UpdateInstallmentPlan = z.infer<typeof updateInstallmentPlanSchema>;
@@ -216,7 +217,7 @@ export type UpdateInstallmentPlan = z.infer<typeof updateInstallmentPlanSchema>;
  */
 export const payInstallmentSchema = z.object({
   /** Omitted on a CREDIT-card plan: there the installment is only marked. */
-  fromAccountId: z.string().nullish(),
+  fromAccountId: rowId.nullish(),
   /** Credited to the installment, in the PLAN's currency. Omitted = everything owed. */
   amount: moneyString.nullish(),
   /** Charged to the account, in the ACCOUNT's currency. Required only when they differ. */

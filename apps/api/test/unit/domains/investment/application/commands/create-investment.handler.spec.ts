@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { BankAccountLookupPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account-lookup.port";
 import { CreateInvestmentHandler } from "../../../../../../src/domains/investment/application/commands/create-investment.handler";
 import { CreateInvestmentCommand } from "../../../../../../src/domains/investment/application/commands/create-investment.command";
 import { Investment } from "../../../../../../src/domains/investment/domain/investment.aggregate";
@@ -16,6 +17,13 @@ function fakeRepo(overrides: Partial<InvestmentRepositoryPort> = {}): Investment
   };
 }
 
+function fakeAccounts(overrides: Partial<BankAccountLookupPort> = {}): BankAccountLookupPort {
+  return {
+    accountOwned: vi.fn().mockResolvedValue(true),
+    ...overrides,
+  };
+}
+
 describe("CreateInvestmentHandler", () => {
   it("plans the investment and persists it via the repository", async () => {
     const create = vi.fn().mockImplementation(async (userId: string, plan) =>
@@ -28,7 +36,11 @@ describe("CreateInvestmentHandler", () => {
       }),
     );
     const repo = fakeRepo({ create });
-    const handler = new CreateInvestmentHandler({ publish: vi.fn() } as never, repo);
+    const handler = new CreateInvestmentHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeAccounts(),
+    );
 
     const result = await handler.execute(
       new CreateInvestmentCommand("u1", {
@@ -60,7 +72,11 @@ describe("CreateInvestmentHandler", () => {
       }),
     );
     const repo = fakeRepo({ create });
-    const handler = new CreateInvestmentHandler({ publish: vi.fn() } as never, repo);
+    const handler = new CreateInvestmentHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeAccounts(),
+    );
 
     const result = await handler.execute(
       new CreateInvestmentCommand("u1", {

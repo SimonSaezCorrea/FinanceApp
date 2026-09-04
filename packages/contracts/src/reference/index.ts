@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { accountType } from "../common/account-type";
+import { rowId } from "../common/row-id";
 
 /** Reference data contracts: countries, financial institutions, currencies (ISO 4217). Global, read-only. */
 
@@ -10,7 +11,7 @@ export const identifierTypeSchema = z.enum(["RUT", "DNI", "PASSPORT", "OTHER"]);
 export type IdentifierType = z.infer<typeof identifierTypeSchema>;
 
 export const countrySchema = z.object({
-  id: z.string(),
+  id: rowId,
   /** ISO 3166-1 alpha-2 (e.g. "CL"). */
   alpha2: z.string(),
   /** ISO 3166-1 alpha-3 (e.g. "CHL"). */
@@ -47,8 +48,8 @@ export type InstitutionKind = z.infer<typeof institutionKind>;
 
 /** A financial institution: a bank or a non-bank card issuer. */
 export const institutionSchema = z.object({
-  id: z.string(),
-  countryId: z.string(),
+  id: rowId,
+  countryId: rowId,
   kind: institutionKind,
   /** Institutional/regulator code (SBIF/CMF for banks; código institucional for issuers). */
   code: z.string(),
@@ -80,7 +81,7 @@ export const institutionSchema = z.object({
 export type Institution = z.infer<typeof institutionSchema>;
 
 export const currencySchema = z.object({
-  id: z.string(),
+  id: rowId,
   /** ISO 4217 alpha code (e.g. "CLP"). */
   code: z.string(),
   /** ISO 4217 numeric code (e.g. "152"). */

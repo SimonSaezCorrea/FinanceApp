@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { UUID_V7 } from "../../support/uuid";
 
 /**
  * E2E test (mirrors transactions'/accounts' T037/T046): full create/pay/unpay/
@@ -21,11 +22,14 @@ describe("Installments HTTP (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_inst_${randomUUID()}@test.local`;
+  const otherEmail = `e2e_inst_other_${randomUUID()}@test.local`;
   const password = "Sup3rSecret!";
   let cookies: string[] = [];
   let planId: string;
   let accountId: string;
   let creditAccountId: string;
+  let foreignAccountId: string;
+  let foreignCardId: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -65,13 +69,44 @@ describe("Installments HTTP (e2e)", () => {
         creditLimit: "3000",
       });
     creditAccountId = credit.body.id;
+
+    const registerOther = await request(app.getHttpServer())
+      .post("/api/v1/auth/register")
+      .send({ email: otherEmail, password, name: "Other" });
+    const otherCookies = registerOther.get("Set-Cookie") ?? [];
+    const otherAccount = await request(app.getHttpServer())
+      .post("/api/v1/accounts")
+      .set("Cookie", otherCookies)
+      .send({ name: "Other's account", type: "CHECKING", currency: "USD", accountNumber: "999" });
+    foreignAccountId = otherAccount.body.id;
+    const otherCredit = await request(app.getHttpServer())
+      .post("/api/v1/accounts")
+      .set("Cookie", otherCookies)
+      .send({
+        name: "Other's Visa",
+        type: "CREDIT_CARD",
+        currency: "USD",
+        cards: [
+          {
+            name: "Other's card",
+            kind: "CREDIT",
+            last4: "9999",
+            expiryMonth: 12,
+            expiryYear: 2030,
+            limits: [{ currency: "USD", limitAmount: "1000" }],
+          },
+        ],
+      });
+    foreignCardId = otherCredit.body.cards[0].id;
   });
 
   afterAll(async () => {
     await prisma.transaction.deleteMany({ where: { user: { email } } });
     await prisma.installmentPlan.deleteMany({ where: { user: { email } } });
-    await prisma.bankAccount.deleteMany({ where: { user: { email } } });
-    await prisma.user.deleteMany({ where: { email } });
+    await prisma.bankAccount.deleteMany({
+      where: { user: { email: { in: [email, otherEmail] } } },
+    });
+    await prisma.user.deleteMany({ where: { email: { in: [email, otherEmail] } } });
     await app.close();
   });
 
@@ -98,6 +133,56 @@ describe("Installments HTTP (e2e)", () => {
       "400.0000",
       "400.0000",
     ]);
+  });
+
+  // Principle II: a body-supplied FK must be ownership-verified before persisting,
+  // and a null-returning resolver (kindForCard) must not be conflated with "no
+  // card was sent" — a foreign cardId used to be silently written anyway.
+  it("rejects creating a plan with another user's cardId", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/installments")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({
+        title: "Foreign card",
+        totalPrincipal: "300",
+        installmentCount: 3,
+        startDate: "2026-01-15T00:00:00.000Z",
+        currency: "USD",
+        frequency: "MONTHLY",
+        frequencyInterval: 1,
+        cardId: foreignCardId,
+      });
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("CARD_NOT_FOUND");
+  });
+
+  it("rejects creating a plan with another user's paymentAccountId", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/installments")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({
+        title: "Foreign account",
+        totalPrincipal: "300",
+        installmentCount: 3,
+        startDate: "2026-01-15T00:00:00.000Z",
+        currency: "USD",
+        frequency: "MONTHLY",
+        frequencyInterval: 1,
+        paymentAccountId: foreignAccountId,
+      });
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("ACCOUNT_NOT_FOUND");
+  });
+
+  it("rejects patching a plan onto another user's paymentAccountId", async () => {
+    const res = await request(app.getHttpServer())
+      .patch(`/api/v1/installments/${planId}`)
+      .set("Cookie", cookies)
+      .send({ paymentAccountId: foreignAccountId });
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("ACCOUNT_NOT_FOUND");
   });
 
   it("returns INSTALLMENT_PAYMENT_NOT_FOUND for an unknown sequence", async () => {
@@ -159,6 +244,8 @@ describe("Installments HTTP (e2e)", () => {
     expect(expense.amount).toBe("400.0000");
     expect(expense.category).toBe("Tecnologia");
     expect(expense.description).toContain("1/3");
+    // specs/016 US2: the transaction pay-installment mints is UUID v7, not v4.
+    expect(expense.id).toMatch(UUID_V7);
 
     // And the money really left the account.
     const account = await request(app.getHttpServer())
@@ -251,5 +338,25 @@ describe("Installments HTTP (e2e)", () => {
       .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("INSTALLMENT_PLAN_NOT_FOUND");
+  });
+
+  // specs/016: unified row identifiers.
+  it("rejects a malformed paymentAccountId body field with 400 INVALID_ID_FORMAT", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/installments")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({
+        title: "Vacuum",
+        totalPrincipal: "300",
+        installmentCount: 3,
+        startDate: "2026-01-15T00:00:00.000Z",
+        currency: "USD",
+        frequency: "MONTHLY",
+        frequencyInterval: 1,
+        paymentAccountId: "not-a-real-id",
+      });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toEqual({ code: "INVALID_ID_FORMAT", field: "paymentAccountId" });
   });
 });

@@ -1,11 +1,10 @@
-import { randomUUID } from "node:crypto";
-
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { transactions } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import { generateRowId } from "../../../../infra/id/generate-row-id";
 import {
   TRANSACTION_REPOSITORY,
   type TransactionRepositoryPort,
@@ -58,7 +57,7 @@ export class UploadAttachmentHandler extends BaseCommandHandler<
       bytes: new Uint8Array(command.file.buffer),
     });
 
-    const attachmentId = randomUUID();
+    const attachmentId = generateRowId();
     return {
       attachmentId,
       storageKey: storageKeyFor({

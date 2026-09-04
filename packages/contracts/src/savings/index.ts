@@ -1,11 +1,12 @@
 import { z } from "zod";
 
 import { moneyString } from "../common/money";
+import { rowId } from "../common/row-id";
 
 /** Savings domain contracts (SavingsGoal + SavingsEntry). Money as decimal strings. */
 
 export const savingsGoalSchema = z.object({
-  id: z.string(),
+  id: rowId,
   title: z.string(),
   targetAmount: moneyString,
   currency: z.string(),
@@ -33,8 +34,8 @@ export const updateSavingsGoalSchema = createSavingsGoalSchema.partial().extend(
 export type UpdateSavingsGoal = z.infer<typeof updateSavingsGoalSchema>;
 
 export const savingsEntrySchema = z.object({
-  id: z.string(),
-  savingsGoalId: z.string().nullable(),
+  id: rowId,
+  savingsGoalId: rowId.nullable(),
   amount: moneyString,
   currency: z.string(),
   contributedAt: z.string(),
@@ -47,7 +48,7 @@ export const createSavingsEntrySchema = z.object({
   amount: moneyString,
   currency: z.string().trim().length(3).default("USD"),
   contributedAt: z.string().datetime(),
-  savingsGoalId: z.string().optional(),
+  savingsGoalId: rowId.optional(),
   note: z.string().trim().max(500).optional(),
 });
 export type CreateSavingsEntry = z.infer<typeof createSavingsEntrySchema>;

@@ -207,4 +207,30 @@ describe("Transactions HTTP (e2e)", () => {
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("TRANSACTION_NOT_FOUND");
   });
+
+  // specs/016: unified row identifiers.
+  it("rejects a malformed bankAccountId body field with 400 INVALID_ID_FORMAT before persisting", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/transactions")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({
+        type: "EXPENSE",
+        amount: "10.00",
+        currency: "CLP",
+        bankAccountId: "not-a-real-id",
+        occurredAt: "2026-08-01T00:00:00.000Z",
+      });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toEqual({ code: "INVALID_ID_FORMAT", field: "bankAccountId" });
+  });
+
+  it("still routes GET /transactions/summary to the summary handler, never misread as :id", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/transactions/summary")
+      .set("Cookie", cookies);
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveProperty("total");
+    expect(res.body).toHaveProperty("currencyTotals");
+  });
 });

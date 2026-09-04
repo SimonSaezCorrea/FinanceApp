@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { moneyString } from "../common/money";
+import { rowId } from "../common/row-id";
 import { installmentFrequency } from "../installments";
 
 /** Debts domain contracts (Debt). Money as decimal strings. */
@@ -9,7 +10,7 @@ export const debtDirection = z.enum(["OWED_TO_YOU", "YOU_OWE"]);
 export type DebtDirection = z.infer<typeof debtDirection>;
 
 export const debtSchema = z.object({
-  id: z.string(),
+  id: rowId,
   direction: debtDirection,
   counterparty: z.string(),
   principal: moneyString,

@@ -9,7 +9,7 @@ datasource db {
 }
 
 model User {
-  id                   String          @id @default(cuid())
+  id                   String          @id @default(uuid(7))
   name                 String?
   email                String?         @unique
   emailVerified        DateTime?
@@ -77,7 +77,7 @@ model User {
 /// A rejected attempt is DELETED, never remembered: remembering it would leave the
 /// user stuck repeating the same error.
 model IdempotencyRecord {
-  id             String            @id @default(cuid())
+  id             String            @id @default(uuid(7))
   userId         String
   /// Client-generated, opaque. A business value in its own column — NOT a row
   /// identifier (Principle VIII): this table's PK is a cuid like every other.
@@ -162,7 +162,7 @@ enum CardKind {
 }
 
 model BankAccount {
-  id                String        @id @default(cuid())
+  id                String        @id @default(uuid(7))
   userId            String
   name              String
   type              AccountType   @default(CHECKING)
@@ -245,7 +245,7 @@ enum BillingCycleType {
 /// `BankAccount` (1:1) so it can be reviewed/maintained/searched independently
 /// instead of growing the account table with every billing-related field.
 model BillingSettings {
-  id                    String               @id @default(cuid())
+  id                    String               @id @default(uuid(7))
   accountId             String               @unique
   /// Statement cut-off. Meaning depends on `cycleType`: a day-of-month (1-28)
   /// for CALENDAR_DAY, or a count of business days for BUSINESS_DAY. Drives
@@ -289,7 +289,7 @@ model BillingSettings {
 /// OPEN (`closedAt` null, still accumulating) → PENDING (`closedAt` set by
 /// generation, awaiting payment) → PAID (`paidAt` set).
 model CreditStatement {
-  id                String    @id @default(cuid())
+  id                String    @id @default(uuid(7))
   accountId         String
   /// When this period started accumulating (the previous statement's `closedAt`, or
   /// the account's `createdAt` for the very first one).
@@ -339,7 +339,7 @@ model CreditStatement {
 }
 
 model CardAccount {
-  id             String       @id @default(cuid())
+  id             String       @id @default(uuid(7))
   accountId      String
   userId         String
   name           String
@@ -385,7 +385,7 @@ model CardAccount {
 /// primary card never has CardLimit rows (its limit lives on BankAccount directly);
 /// a non-primary card with no CardLimit rows is explicitly sharing the account pool.
 model CardLimit {
-  id          String   @id @default(cuid())
+  id          String   @id @default(uuid(7))
   cardId      String
   currency    String
   limitAmount Decimal  @db.Decimal(18, 4)
@@ -404,7 +404,7 @@ model CardLimit {
 /// account (exactly one of cardId/accountId; enforced in the service). `order`
 /// is the manual drag-and-drop position.
 model WalletItemDashboard {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid(7))
   userId    String
   accountId String?
   cardId    String?
@@ -427,7 +427,7 @@ model WalletItemDashboard {
 /// the statement and recorded, which is what keeps the carried-over balance square
 /// with the bank's own figure without this domain inventing interest rates.
 model Transaction {
-  id                String          @id @default(cuid())
+  id                String          @id @default(uuid(7))
   userId            String
   bankAccountId     String?
   cardId            String?
@@ -489,7 +489,7 @@ model Transaction {
 /// A receipt/voucher file attached to a movement. The bytes live in object storage
 /// (see `ObjectStoragePort`); this table only holds the pointer + metadata.
 model TransactionAttachment {
-  id            String   @id @default(cuid())
+  id            String   @id @default(uuid(7))
   userId        String
   transactionId String
   /// `u/<userId>/t/<transactionId>/<attachmentId>-<slug>` — derived from the id, not
@@ -509,7 +509,7 @@ model TransactionAttachment {
 }
 
 model InstallmentPlan {
-  id                String               @id @default(cuid())
+  id                String               @id @default(uuid(7))
   userId            String
   title             String
   totalPrincipal    Decimal              @db.Decimal(18, 4)
@@ -551,7 +551,7 @@ model InstallmentPlan {
 }
 
 model InstallmentPayment {
-  id                String    @id @default(cuid())
+  id                String    @id @default(uuid(7))
   installmentPlanId String
   sequence          Int
   dueDate           DateTime
@@ -615,7 +615,7 @@ enum DebtDirection {
 }
 
 model Debt {
-  id                String               @id @default(cuid())
+  id                String               @id @default(uuid(7))
   userId            String
   direction         DebtDirection
   counterparty      String
@@ -643,7 +643,7 @@ model Debt {
 }
 
 model SavingsGoal {
-  id           String    @id @default(cuid())
+  id           String    @id @default(uuid(7))
   userId       String
   title        String
   targetAmount Decimal   @db.Decimal(18, 4)
@@ -661,7 +661,7 @@ model SavingsGoal {
 }
 
 model SavingsEntry {
-  id            String   @id @default(cuid())
+  id            String   @id @default(uuid(7))
   userId        String
   savingsGoalId String?
   amount        Decimal  @db.Decimal(18, 4)
@@ -688,7 +688,7 @@ enum RecurrenceFrequency {
 /// Recurring expense (subscriptions, rent, periodic payments to people).
 /// The next due date is computed from `anchorDate` + frequency × interval.
 model RecurringExpense {
-  id            String              @id @default(cuid())
+  id            String              @id @default(uuid(7))
   userId        String
   label         String
   amount        Decimal             @db.Decimal(18, 4)
@@ -720,7 +720,7 @@ enum InvestmentKind {
 }
 
 model Investment {
-  id            String         @id @default(cuid())
+  id            String         @id @default(uuid(7))
   userId        String
   kind          InvestmentKind
   label         String
@@ -750,7 +750,7 @@ model Investment {
 /// TTL (~24h): application treats rows with fetchedAt older than 24 hours as stale,
 /// refetches from the API, then upserts by symbol.
 model EtfPriceCache {
-  id        String   @id @default(cuid())
+  id        String   @id @default(uuid(7))
   symbol    String   @unique
   fetchedAt DateTime
   open      Decimal  @db.Decimal(18, 6)
@@ -774,7 +774,7 @@ enum BankCategory {
 
 /// ISO 3166-1 country reference. Banks (and future entities) link here.
 model Country {
-  id          String  @id @default(cuid())
+  id          String  @id @default(uuid(7))
   /// ISO 3166-1 alpha-2 (e.g. "CL"). Canonical code used for lookups/auditing.
   alpha2      String  @unique
   /// ISO 3166-1 alpha-3 (e.g. "CHL").
@@ -797,7 +797,7 @@ model Country {
 /// ISO 4217 currency reference (deduplicated by alpha code). `currency` string
 /// fields across the app use these codes (CLP, USD, EUR…).
 model Currency {
-  id      String @id @default(cuid())
+  id      String @id @default(uuid(7))
   /// ISO 4217 alpha code (e.g. "CLP").
   code    String @unique
   /// ISO 4217 numeric code (e.g. "152").
@@ -813,7 +813,7 @@ model Currency {
 /// Which currencies a country uses (a country may have several; a currency is
 /// shared by many countries). `isPrimary` marks the main one.
 model CountryCurrency {
-  id         String  @id @default(cuid())
+  id         String  @id @default(uuid(7))
   countryId  String
   currencyId String
   isPrimary  Boolean @default(false)
@@ -829,7 +829,7 @@ model CountryCurrency {
 /// Which national identity document types a country supports (a country may support more than
 /// one, e.g. a national id + passport). `isPrimary` marks the default/most common one.
 model CountryIdentifierType {
-  id             String         @id @default(cuid())
+  id             String         @id @default(uuid(7))
   countryId      String
   identifierType IdentifierType
   isPrimary      Boolean        @default(false)
@@ -864,7 +864,7 @@ enum InstitutionKind {
 /// Financial-institution registry: banks + non-bank card issuers. Scoped to a country.
 /// (Chile: código SBIF/CMF for banks, código institucional for non-bank issuers.)
 model FinancialInstitution {
-  id           String          @id @default(cuid())
+  id           String          @id @default(uuid(7))
   countryId    String
   kind         InstitutionKind @default(BANK)
   /// Institutional/regulator code (SBIF/CMF for banks; código institucional for issuers).
@@ -904,7 +904,7 @@ model FinancialInstitution {
 /// `CountryCurrency` / `CountryIdentifierType`. An institution with no rows here is treated as
 /// "not catalogued yet" and offered for every account type.
 model InstitutionAccountType {
-  id            String      @id @default(cuid())
+  id            String      @id @default(uuid(7))
   institutionId String
   type          AccountType
   /// Marks the institution's flagship product (ordering only, no behavior).

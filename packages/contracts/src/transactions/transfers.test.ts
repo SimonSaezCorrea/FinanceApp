@@ -30,9 +30,12 @@ const tx = (over: Partial<Transaction> = {}): Transaction => ({
   ...over,
 });
 
+const ACCOUNT_A = "018f6b9a-2c3e-7c21-9e4a-1f2b3c4d5e6f";
+const ACCOUNT_B = "018f6b9a-2c3e-7c21-9e4a-1f2b3c4d5e70";
+
 const validTransfer = {
-  fromBankAccountId: "a1",
-  toBankAccountId: "a2",
+  fromBankAccountId: ACCOUNT_A,
+  toBankAccountId: ACCOUNT_B,
   amountOut: "1000",
   amountIn: "1000",
   currencyOut: "CLP",
@@ -48,7 +51,7 @@ describe("createTransferSchema", () => {
   it("rejects source == destination", () => {
     const result = createTransferSchema.safeParse({
       ...validTransfer,
-      toBankAccountId: "a1",
+      toBankAccountId: ACCOUNT_A,
     });
     expect(result.success).toBe(false);
     if (!result.success) {
@@ -75,8 +78,8 @@ describe("updateTransferSchema", () => {
   it("still rejects source == destination when both are sent", () => {
     expect(
       updateTransferSchema.safeParse({
-        fromBankAccountId: "a1",
-        toBankAccountId: "a1",
+        fromBankAccountId: ACCOUNT_A,
+        toBankAccountId: ACCOUNT_A,
       }).success,
     ).toBe(false);
   });

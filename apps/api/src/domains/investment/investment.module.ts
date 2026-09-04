@@ -3,6 +3,7 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
+import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
 import { CreateInvestmentHandler } from "./application/commands/create-investment.handler";
 import { RemoveInvestmentHandler } from "./application/commands/remove-investment.handler";
 import { UpdateInvestmentHandler } from "./application/commands/update-investment.handler";
@@ -17,7 +18,7 @@ const commandHandlers = [CreateInvestmentHandler, UpdateInvestmentHandler, Remov
 const queryHandlers = [ListInvestmentsQueryHandler, GetInvestmentQueryHandler];
 
 @Module({
-  imports: [CqrsModule, JwtModule.register({})],
+  imports: [CqrsModule, JwtModule.register({}), BankAccountDataModule],
   controllers: [InvestmentsController],
   providers: [
     ...commandHandlers,

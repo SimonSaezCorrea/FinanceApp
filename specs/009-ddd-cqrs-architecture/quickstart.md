@@ -91,8 +91,12 @@ grep -rn "prisma\." apps/api/src/domains/accounts/presentation/ || echo "OK: no 
 ## 8. Path params are Zod-validated (SC-007)
 
 Hit an endpoint with a malformed `:id` (e.g. `GET /accounts/not-a-real-id/credit-statements`) and
-confirm a Zod validation error (400) is returned before any repository/database call is made,
-instead of falling through to a generic 404 from an empty Prisma lookup.
+confirm a `400` is returned with `{ "error": { "code": "INVALID_ID_FORMAT", "field": "id" } }` —
+before any repository/database call is made, instead of falling through to a generic 404 from an
+empty Prisma lookup. A well-formed UUID of the wrong version (e.g. a v4 UUID) is rejected the same
+way: row identifiers are validated against the unified format (UUID v7, specs/016), not merely
+"looks like some kind of id". This closed a real gap — before specs/016 every path-param schema was
+`z.string().min(1)`, so this check passed only trivially (nothing validated format at all).
 
 ## 9. Documentation parity (SC-004a)
 

@@ -3,6 +3,11 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { investments } from "@finance/contracts";
 
+import {
+  BANK_ACCOUNT_LOOKUP,
+  type BankAccountLookupPort,
+} from "../../../bank-account/domain/ports/bank-account-lookup.port";
+import { AccountNotFoundError } from "../../../bank-account/domain/errors";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { Investment } from "../../domain/investment.aggregate";
 import type { PlannedInvestment } from "../../domain/investment.aggregate";
@@ -31,12 +36,19 @@ export class CreateInvestmentHandler extends BaseCommandHandler<
   constructor(
     eventBus: EventBus,
     @Inject(INVESTMENT_REPOSITORY) private readonly repo: InvestmentRepositoryPort,
+    @Inject(BANK_ACCOUNT_LOOKUP) private readonly accounts: BankAccountLookupPort,
   ) {
     super(eventBus);
   }
 
   protected async loadContext(command: CreateInvestmentCommand): Promise<Context> {
     const { input } = command;
+    if (
+      input.bankAccountId &&
+      !(await this.accounts.accountOwned(command.userId, input.bankAccountId))
+    ) {
+      throw new AccountNotFoundError();
+    }
     const plan = Investment.planCreation({
       kind: input.kind,
       label: input.label,

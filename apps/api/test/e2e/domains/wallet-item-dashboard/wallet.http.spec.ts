@@ -102,7 +102,9 @@ describe("Wallet HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/wallet")
       .set("Cookie", cookies)
-      .send({ accountId: randomUUID() });
+      // specs/016: accountId must be UUID v7 — randomUUID() (v4) would now be
+      // rejected earlier with INVALID_ID_FORMAT instead of exercising ownership.
+      .send({ accountId: "018f6b9a-2c3e-7c21-9e4a-1f2b3c4d5e6f" });
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("ACCOUNT_NOT_FOUND");
   });

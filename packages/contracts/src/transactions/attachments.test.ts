@@ -9,8 +9,8 @@ import {
 } from "./attachments";
 
 const base = {
-  id: "at1",
-  transactionId: "t1",
+  id: "018f6b9a-2c3e-7c21-9e4a-1f2b3c4d5e6f",
+  transactionId: "018f6b9a-2c3e-7c21-9e4a-1f2b3c4d5e70",
   fileName: "boleta.pdf",
   contentType: "application/pdf",
   sizeBytes: 1024,

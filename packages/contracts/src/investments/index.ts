@@ -1,12 +1,14 @@
 import { z } from "zod";
 
+import { rowId } from "../common/row-id";
+
 /** Investments domain contracts. Decimal fields cross the boundary as RAW decimal strings. */
 
 export const investmentKind = z.enum(["ETF", "REMUNERATED_ACCOUNT"]);
 export type InvestmentKind = z.infer<typeof investmentKind>;
 
 export const investmentSchema = z.object({
-  id: z.string(),
+  id: rowId,
   kind: investmentKind,
   label: z.string(),
   currency: z.string(),
@@ -14,7 +16,7 @@ export const investmentSchema = z.object({
   shares: z.string().nullable(),
   annualRate: z.string().nullable(),
   principal: z.string().nullable(),
-  bankAccountId: z.string().nullable(),
+  bankAccountId: rowId.nullable(),
   openedAt: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -29,7 +31,7 @@ export const createInvestmentSchema = z.object({
   shares: z.string().optional(),
   annualRate: z.string().optional(),
   principal: z.string().optional(),
-  bankAccountId: z.string().optional(),
+  bankAccountId: rowId.optional(),
   openedAt: z.string().datetime().optional(),
 });
 export type CreateInvestment = z.infer<typeof createInvestmentSchema>;

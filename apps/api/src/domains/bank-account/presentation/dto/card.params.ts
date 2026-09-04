@@ -1,4 +1,6 @@
 import { z } from "zod";
 
-export const cardParamsSchema = z.object({ id: z.string().min(1), cardId: z.string().min(1) });
+import { rowId } from "@finance/contracts";
+
+export const cardParamsSchema = z.object({ id: rowId, cardId: rowId });
 export type CardParams = z.infer<typeof cardParamsSchema>;

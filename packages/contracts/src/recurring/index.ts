@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { moneyString } from "../common/money";
+import { rowId } from "../common/row-id";
 
 /** Recurring expenses (subscriptions, rent, periodic payments). Money as decimal strings. */
 
@@ -8,7 +9,7 @@ export const recurrenceFrequency = z.enum(["WEEKLY", "MONTHLY", "YEARLY"]);
 export type RecurrenceFrequency = z.infer<typeof recurrenceFrequency>;
 
 export const recurringExpenseSchema = z.object({
-  id: z.string(),
+  id: rowId,
   label: z.string(),
   amount: moneyString,
   currency: z.string(),
@@ -16,7 +17,7 @@ export const recurringExpenseSchema = z.object({
   frequency: recurrenceFrequency,
   interval: z.number().int().positive(),
   anchorDate: z.string(),
-  bankAccountId: z.string().nullable(),
+  bankAccountId: rowId.nullable(),
   active: z.boolean(),
   notes: z.string().nullable(),
   /** Next occurrence on/after today, computed from anchorDate + frequency × interval. */
@@ -34,7 +35,7 @@ export const createRecurringExpenseSchema = z.object({
   frequency: recurrenceFrequency,
   interval: z.number().int().min(1).max(366).default(1),
   anchorDate: z.string().datetime(),
-  bankAccountId: z.string().optional(),
+  bankAccountId: rowId.optional(),
   active: z.boolean().optional(),
   notes: z.string().trim().max(500).optional(),
 });

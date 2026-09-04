@@ -1,6 +1,8 @@
 import { BadRequestException, type PipeTransform } from "@nestjs/common";
 import type { ZodSchema } from "zod";
 
+import { metaAtPath } from "./zod-issue-meta";
+
 /** Validates request payloads with a zod schema from @finance/contracts. */
 export class ZodValidationPipe<T> implements PipeTransform<unknown, T> {
   constructor(private readonly schema: ZodSchema<T>) {}
@@ -9,9 +11,12 @@ export class ZodValidationPipe<T> implements PipeTransform<unknown, T> {
     const result = this.schema.safeParse(value);
     if (!result.success) {
       const first = result.error.issues[0];
+      const field = first?.path.join(".");
+      const meta = first ? metaAtPath(this.schema, first.path) : undefined;
+      const errorCode = typeof meta?.errorCode === "string" ? meta.errorCode : undefined;
       throw new BadRequestException({
-        code: "VALIDATION_FAILED",
-        field: first?.path.join("."),
+        code: errorCode ?? "VALIDATION_FAILED",
+        field,
       });
     }
     return result.data;

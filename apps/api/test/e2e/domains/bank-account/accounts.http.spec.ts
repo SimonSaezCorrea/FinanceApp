@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { UUID_V7 } from "../../support/uuid";
 
 /**
  * E2E test (T037, SC-001): full pay/generate/correct HTTP flows through the
@@ -135,6 +136,9 @@ describe("Accounts HTTP (e2e)", () => {
     expect(payRes.status).toBe(201);
     expect(payRes.body.status).toBe("PAID");
     expect(payRes.body.paidFromAccountId).toBe(checkingAccountId);
+    // specs/016 US2: the payment transaction pay-credit-statement mints is
+    // UUID v7, not v4.
+    expect(payRes.body.paidTransactionId).toMatch(UUID_V7);
 
     // Reconciling a settled period recomputes it from the movements dated inside
     // it — 10000 here — and leaves it settled at that figure.
@@ -145,5 +149,23 @@ describe("Accounts HTTP (e2e)", () => {
     expect(syncRes.body.status).toBe("PAID");
     expect(syncRes.body.amount).toBe("10000.0000");
     expect(syncRes.body.paidAmount).toBe("10000.0000");
+  });
+
+  // specs/016: unified row identifiers — malformed/wrong-version ids are
+  // rejected at the boundary with the single shared code, before any query.
+  it("rejects a malformed :id with 400 INVALID_ID_FORMAT", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/accounts/not-a-real-id")
+      .set("Cookie", cookies);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toEqual({ code: "INVALID_ID_FORMAT", field: "id" });
+  });
+
+  it("rejects a well-formed UUID of the wrong version (v4) the same way", async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/api/v1/accounts/${randomUUID()}`)
+      .set("Cookie", cookies);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toEqual({ code: "INVALID_ID_FORMAT", field: "id" });
   });
 });

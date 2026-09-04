@@ -80,7 +80,9 @@ describe("Savings HTTP (e2e)", () => {
 
   it("returns SAVINGS_GOAL_NOT_FOUND for an unknown id", async () => {
     const res = await request(app.getHttpServer())
-      .get("/api/v1/savings/goals/ghost")
+      // specs/016: a malformed id ("ghost") is now rejected earlier with
+      // INVALID_ID_FORMAT — this well-formed UUID v7 exercises NOT_FOUND.
+      .get("/api/v1/savings/goals/018f6b9a-2c3e-7c21-9e4a-1f2b3c4d5e6f")
       .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("SAVINGS_GOAL_NOT_FOUND");

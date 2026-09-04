@@ -1,4 +1,6 @@
 import { z } from "zod";
 
-export const recurringIdParamsSchema = z.object({ id: z.string().min(1) });
+import { rowId } from "@finance/contracts";
+
+export const recurringIdParamsSchema = z.object({ id: rowId });
 export type RecurringIdParams = z.infer<typeof recurringIdParamsSchema>;

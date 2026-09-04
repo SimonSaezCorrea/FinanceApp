@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { BankAccountLookupPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account-lookup.port";
 import { UpdateRecurringExpenseHandler } from "../../../../../../src/domains/recurring-expense/application/commands/update-recurring-expense.handler";
 import { UpdateRecurringExpenseCommand } from "../../../../../../src/domains/recurring-expense/application/commands/update-recurring-expense.command";
 import { RecurringExpense } from "../../../../../../src/domains/recurring-expense/domain/recurring-expense.aggregate";
@@ -38,10 +39,21 @@ function fakeRepo(
   };
 }
 
+function fakeAccounts(overrides: Partial<BankAccountLookupPort> = {}): BankAccountLookupPort {
+  return {
+    accountOwned: vi.fn().mockResolvedValue(true),
+    ...overrides,
+  };
+}
+
 describe("UpdateRecurringExpenseHandler", () => {
   it("throws RecurringExpenseNotFoundError when missing", async () => {
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(null) });
-    const handler = new UpdateRecurringExpenseHandler({ publish: vi.fn() } as never, repo);
+    const handler = new UpdateRecurringExpenseHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeAccounts(),
+    );
     await expect(
       handler.execute(new UpdateRecurringExpenseCommand("u1", "ghost", {})),
     ).rejects.toBeInstanceOf(RecurringExpenseNotFoundError);
@@ -50,7 +62,11 @@ describe("UpdateRecurringExpenseHandler", () => {
   it("patches the provided fields and persists via save", async () => {
     const save = vi.fn();
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(makeExpense()), save });
-    const handler = new UpdateRecurringExpenseHandler({ publish: vi.fn() } as never, repo);
+    const handler = new UpdateRecurringExpenseHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeAccounts(),
+    );
 
     const result = await handler.execute(
       new UpdateRecurringExpenseCommand("u1", "r1", { active: false, label: "Arriendo depto" }),

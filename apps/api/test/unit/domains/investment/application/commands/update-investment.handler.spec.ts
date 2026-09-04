@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { BankAccountLookupPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account-lookup.port";
 import { UpdateInvestmentHandler } from "../../../../../../src/domains/investment/application/commands/update-investment.handler";
 import { UpdateInvestmentCommand } from "../../../../../../src/domains/investment/application/commands/update-investment.command";
 import { Investment } from "../../../../../../src/domains/investment/domain/investment.aggregate";
@@ -35,10 +36,21 @@ function fakeRepo(overrides: Partial<InvestmentRepositoryPort> = {}): Investment
   };
 }
 
+function fakeAccounts(overrides: Partial<BankAccountLookupPort> = {}): BankAccountLookupPort {
+  return {
+    accountOwned: vi.fn().mockResolvedValue(true),
+    ...overrides,
+  };
+}
+
 describe("UpdateInvestmentHandler", () => {
   it("throws InvestmentNotFoundError when missing", async () => {
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(null) });
-    const handler = new UpdateInvestmentHandler({ publish: vi.fn() } as never, repo);
+    const handler = new UpdateInvestmentHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeAccounts(),
+    );
     await expect(
       handler.execute(new UpdateInvestmentCommand("u1", "ghost", { label: "x" })),
     ).rejects.toBeInstanceOf(InvestmentNotFoundError);
@@ -48,7 +60,11 @@ describe("UpdateInvestmentHandler", () => {
     const investment = makeInvestment();
     const save = vi.fn().mockResolvedValue(undefined);
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(investment), save });
-    const handler = new UpdateInvestmentHandler({ publish: vi.fn() } as never, repo);
+    const handler = new UpdateInvestmentHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeAccounts(),
+    );
 
     const result = await handler.execute(
       new UpdateInvestmentCommand("u1", "i1", { label: "Renamed", symbol: "SPY" }),

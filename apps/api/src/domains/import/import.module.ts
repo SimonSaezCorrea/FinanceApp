@@ -3,6 +3,7 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
+import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
 import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { ImportTransactionsHandler } from "./application/commands/import-transactions.handler";
 import { IMPORT_TRANSACTIONS_REPOSITORY } from "./domain/ports/import-transactions.repository.port";
@@ -12,7 +13,7 @@ import { ImportController } from "./presentation/import.controller";
 const commandHandlers = [ImportTransactionsHandler];
 
 @Module({
-  imports: [CqrsModule, JwtModule.register({}), TransactionDataModule],
+  imports: [CqrsModule, JwtModule.register({}), TransactionDataModule, BankAccountDataModule],
   controllers: [ImportController],
   providers: [
     ...commandHandlers,

@@ -4,6 +4,7 @@
  * One module per business domain is added here during the US2 migration.
  */
 export * from "./common/errors";
+export * from "./common/row-id";
 export * as auth from "./auth/index";
 export * as accounts from "./accounts/index";
 export * as transactions from "./transactions/index";

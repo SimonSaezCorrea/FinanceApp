@@ -6,6 +6,7 @@ import { InstallmentCardIsCreditError } from "../../../../../../src/domains/inst
 import { InstallmentPlan } from "../../../../../../src/domains/installment-plan/domain/installment-plan.aggregate";
 import type { InstallmentPlanRepositoryPort } from "../../../../../../src/domains/installment-plan/domain/ports/installment-plan.repository.port";
 import {
+  accountAggregate,
   fakeBankAccountRepo,
   fakeCardAccountRepo,
   fakeIdempotencyRecordRepo,
@@ -62,7 +63,11 @@ function makeHandler(
       accountIdForCard: vi.fn(async () => (opts.accountId === undefined ? "acc1" : opts.accountId)),
     }),
     { createWithTx, relinkToStatementWithTx: vi.fn(), updateAmountWithTx: vi.fn() } as never,
-    fakeBankAccountRepo({ incrementCreditUsedWithTx, incrementBalanceWithTx }),
+    fakeBankAccountRepo({
+      incrementCreditUsedWithTx,
+      incrementBalanceWithTx,
+      findById: vi.fn(async () => accountAggregate({ id: "a1", type: "CHECKING" })),
+    }),
     fakePrisma() as never,
   );
   return { handler, createWithTx, incrementCreditUsedWithTx, incrementBalanceWithTx };

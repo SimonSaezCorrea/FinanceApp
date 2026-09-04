@@ -5,6 +5,11 @@ import type { installments } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
+  BANK_ACCOUNT_REPOSITORY,
+  type BankAccountRepositoryPort,
+} from "../../../bank-account/domain/ports/bank-account.repository.port";
+import { AccountNotFoundError, CardNotFoundError } from "../../../bank-account/domain/errors";
+import {
   CARD_ACCOUNT_REPOSITORY,
   type CardAccountRepositoryPort,
 } from "../../../card-account/domain/ports/card-account.repository.port";
@@ -27,6 +32,7 @@ export class UpdateInstallmentPlanHandler extends BaseCommandHandler<
     eventBus: EventBus,
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly repo: InstallmentPlanRepositoryPort,
     @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
+    @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -53,6 +59,15 @@ export class UpdateInstallmentPlanHandler extends BaseCommandHandler<
     const cardKind = effectiveCardId
       ? await this.cards.kindForCard(command.userId, effectiveCardId)
       : null;
+    // Same non-conflation rule as create: a card id that resolves to no kind
+    // is nonexistent or foreign, never silently treated as "no card".
+    if (effectiveCardId && !cardKind) throw new CardNotFoundError();
+    if (
+      input.paymentAccountId &&
+      !(await this.accounts.findById(command.userId, input.paymentAccountId))
+    ) {
+      throw new AccountNotFoundError();
+    }
     InstallmentPlan.assertPaymentAccountAllowed(cardKind, effectivePaymentAccountId);
 
     plan.applyUpdate({

@@ -1,7 +1,9 @@
 import { z } from "zod";
 
+import { rowId } from "@finance/contracts";
+
 export const statementParamsSchema = z.object({
-  id: z.string().min(1),
-  statementId: z.string().min(1),
+  id: rowId,
+  statementId: rowId,
 });
 export type StatementParams = z.infer<typeof statementParamsSchema>;

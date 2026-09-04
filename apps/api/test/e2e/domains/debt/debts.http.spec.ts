@@ -66,9 +66,12 @@ describe("Debts HTTP (e2e)", () => {
     expect(res.body.settledAt).toBeNull();
   });
 
-  it("returns DEBT_NOT_FOUND for an unknown id", async () => {
+  it("returns DEBT_NOT_FOUND for a well-formed but nonexistent id", async () => {
     const res = await request(app.getHttpServer())
-      .get("/api/v1/debts/ghost")
+      // specs/016: a malformed id ("ghost") is now rejected earlier with
+      // INVALID_ID_FORMAT — this well-formed UUID v7 exercises the NOT_FOUND
+      // path specifically.
+      .get("/api/v1/debts/018f6b9a-2c3e-7c21-9e4a-1f2b3c4d5e6f")
       .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("DEBT_NOT_FOUND");
@@ -164,5 +167,14 @@ describe("Debts HTTP (e2e)", () => {
       .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("DEBT_NOT_FOUND");
+  });
+
+  // specs/016: unified row identifiers.
+  it("rejects a malformed :id with 400 INVALID_ID_FORMAT", async () => {
+    const res = await request(app.getHttpServer())
+      .get("/api/v1/debts/not-a-real-id")
+      .set("Cookie", cookies);
+    expect(res.status).toBe(400);
+    expect(res.body.error).toEqual({ code: "INVALID_ID_FORMAT", field: "id" });
   });
 });

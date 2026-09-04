@@ -2,6 +2,7 @@ import { z } from "zod";
 
 import { isValidRut } from "./rut";
 import { moneyString } from "../common/money";
+import { rowId } from "../common/row-id";
 import { identifierTypeSchema } from "../reference";
 
 export * from "./rut";
@@ -31,7 +32,7 @@ export const dateFormatSchema = z.enum(["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"
 export const themeSchema = z.enum(["dark", "light", "system"]);
 
 export const currentUserSchema = z.object({
-  id: z.string(),
+  id: rowId,
   email: z.string().email().nullable(),
   name: z.string().nullable(),
   preferredCurrency: preferredCurrencySchema,
@@ -39,7 +40,7 @@ export const currentUserSchema = z.object({
   dateFormat: dateFormatSchema,
   theme: themeSchema,
   memberSinceYear: z.number(),
-  countryId: z.string().nullable(),
+  countryId: rowId.nullable(),
   countryName: z.string().nullable(),
   addressStreet: z.string().nullable(),
   addressCity: z.string().nullable(),
@@ -70,7 +71,7 @@ export const updateProfileRequestSchema = z
   .object({
     name: z.string().trim().min(1).max(120).optional(),
     email: z.string().email().optional(),
-    countryId: z.string().nullable().optional(),
+    countryId: rowId.nullable().optional(),
     addressStreet: z.string().trim().max(200).nullable().optional(),
     addressCity: z.string().trim().max(120).nullable().optional(),
     addressRegion: z.string().trim().max(120).nullable().optional(),

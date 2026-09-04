@@ -3,6 +3,11 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { recurring } from "@finance/contracts";
 
+import {
+  BANK_ACCOUNT_LOOKUP,
+  type BankAccountLookupPort,
+} from "../../../bank-account/domain/ports/bank-account-lookup.port";
+import { AccountNotFoundError } from "../../../bank-account/domain/errors";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { RecurringExpenseNotFoundError } from "../../domain/errors";
 import { startOfTodayUTC, type RecurringExpense } from "../../domain/recurring-expense.aggregate";
@@ -22,6 +27,7 @@ export class UpdateRecurringExpenseHandler extends BaseCommandHandler<
   constructor(
     eventBus: EventBus,
     @Inject(RECURRING_EXPENSE_REPOSITORY) private readonly repo: RecurringExpenseRepositoryPort,
+    @Inject(BANK_ACCOUNT_LOOKUP) private readonly accounts: BankAccountLookupPort,
   ) {
     super(eventBus);
   }
@@ -29,6 +35,12 @@ export class UpdateRecurringExpenseHandler extends BaseCommandHandler<
   protected async loadContext(command: UpdateRecurringExpenseCommand): Promise<RecurringExpense> {
     const expense = await this.repo.findOne(command.userId, command.id);
     if (!expense) throw new RecurringExpenseNotFoundError();
+    if (
+      command.input.bankAccountId &&
+      !(await this.accounts.accountOwned(command.userId, command.input.bankAccountId))
+    ) {
+      throw new AccountNotFoundError();
+    }
     return expense;
   }
 

@@ -879,6 +879,7 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
 
 - **Money:** never floats. Cross the boundary as **decimal strings** (zod `moneyString` in contracts); compute with `@finance/money` (`decimal.js`) / `Prisma.Decimal` at schema precision.
 - **Validation:** request bodies/queries validated with **zod** schemas from `@finance/contracts` via `ZodValidationPipe` (NOT Nest's class-validator).
+- **Identifiers (specs/016):** every row's `id`, across all 24 tables, is **UUID v7** — `schema.prisma`'s `@default(uuid(7))` (Prisma 7 generates it client-side, no native Postgres v7 function needed); the handful of write paths that mint an id explicitly (a cross-referenced value needed before insert, or a non-PK correlation value like `transferGroupId`) go through the one shared helper `apps/api/src/infra/id/generate-row-id.ts`, never a bare `randomUUID()`. Validated at the boundary via the shared zod schema `rowId` (`packages/contracts/src/common/row-id.ts`, `z.uuidv7()`) — every path param and every id-shaped body field uses it, never a bare `z.string()`; a malformed id, or a well-formed UUID of the wrong version, is rejected `400 INVALID_ID_FORMAT` before any query runs (`ZodValidationPipe`/`ZodParamsPipe`). Business identifiers (institution `code`, CBU, `RUT-`/`PSP-`/`AGF-` catalogue keys) are untouched by this — separate columns, their own validation, never the row's PK.
 - **Per-user isolation:** every repository query is scoped by `userId`; controllers use `@CurrentUser`.
 - **i18n:** every UI string in BOTH `apps/web/src/i18n/es.json` and `en.json` (identical keys); the API never returns localized text.
 - **Styling / design system:** Tailwind utility classes + `src/shared/ui` primitives (button, input, label, field, card, badge, table, page-header, states, theme-toggle, overlay (Modal/Window/ResponsiveSurface/FormSurface/ConfirmModal), tabs, segmented, sparkline). **Tokens are the only source** of color/size (CSS variables in `src/styles/index.css`); never hardcode `#hex`/`rgb()` — use token classes (`bg-background`, `text-muted-foreground`, `text-brand`, `bg-accent`, …). Palette includes the **clay `--accent`** channel (`#F4A261` dark / `#E76F51` light). Theming via `data-theme` on `<html>` (**dark default**, light, system) through `src/theme/ThemeProvider`; icons from **Lucide**, font **Geist** (`@fontsource-variable/geist`, Inter fallback). Full guide: `docs/{english,spanish}/DESIGN_SYSTEM.md`.
@@ -1014,6 +1015,40 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
+Prior plan: specs/016-unified-row-ids/plan.md
+(Unificar el identificador de fila en las 24 tablas: UUID v7 en todas partes, reemplazando tanto
+el `@default(cuid())` del schema como los 5 sitios de runtime que acuñaban su propio id con
+`randomUUID()` (v4) — `pay-credit-statement.handler.ts`, `pay-installment.handler.ts`,
+`create-transfer.handler.ts`, `upload-attachment.handler.ts`, `create-installment-plan.handler.ts`.
+Cierra los puntos 1 y 2 de la deuda de conformidad con la constitución v2.0.0 (Principio VIII).
+Prisma 7 genera `uuid(7)` en el cliente (no depende de una función nativa de Postgres — funciona
+igual en el `postgres:16-alpine` de CI/dev); los 5 sitios de acuñado explícito pasan a un helper
+compartido nuevo (`apps/api/src/infra/id/generate-row-id.ts`, paquete `uuid`) porque necesitan el
+valor ANTES del insert (una referencia cruzada en la misma transacción, o un valor no-PK como
+`transferGroupId`) — un default de schema no alcanza para esos casos. Validación en el borde:
+schema zod compartido nuevo **`rowId`** (`packages/contracts/src/common/row-id.ts`,
+`z.uuidv7()` — estricto a la versión 7, un UUID v4 bien formado también se rechaza) reemplaza
+`z.string().min(1)` en los 13 archivos de path-params y en los ~62 campos id de los schemas de
+dominio; `ZodValidationPipe`/`ZodParamsPipe` ganan un chequeo de `meta({errorCode})` (vía
+`zod-issue-meta.ts`, que camina el schema hasta el campo que falló) para mapear cualquier falla de
+`rowId` a un único código compartido **`INVALID_ID_FORMAT`** (con `field`), sin tocar el resto de su
+comportamiento. **No resuelve la fragilidad de orden de rutas** (`summary`/`transfers/:groupId`
+antes de `:id`) — Nest decide el ruteo por orden de declaración antes de que corra cualquier
+validación de formato, así que la convención de declarar rutas literales primero sigue siendo
+necesaria tal cual. Sin migración de datos (no hay producción; `db push` + `db:seed`). Actualiza
+`specs/009/quickstart.md`'s SC-007 para que verifique comportamiento real en vez de pasar trivialmente.
+**Alcance extendido el mismo día por decisión del dueño del producto (User Story 4): cierra también
+el punto 3 completo** (§II, las cinco FK del cuerpo que se persistían sin verificar ownership) —
+`import`/`investments`/`recurring` (`bankAccountId`) e `installments` (`paymentAccountId` y
+`cardId`) ahora verifican pertenencia antes de persistir. Puerto nuevo **`BankAccountLookupPort.
+accountOwned(userId, accountId)`** (`bank-account/domain/ports/bank-account-lookup.port.ts`, mismo
+patrón liviano que `CountryLookupPort`), inyectado en 4 dominios; `installment-plan` reutiliza el
+`BankAccountRepositoryPort.findById` que ya tenía inyectado. El caso `cardId` no necesitaba puerto
+nuevo — `kindForCard` ya escopeaba por `userId`, el bug era la conflación en el handler entre "no
+vino tarjeta" y "tarjeta ajena" (ambas devuelven `null`); ahora se distinguen antes de aplicar la
+regla de negocio, lanzando `CardNotFoundError` en el segundo caso. `POST /transactions` y
+`POST /wallet` se verificaron como ya correctos (no tocados) — la auditoría original los citaba como
+el patrón a espejar, no como violaciones.)
 Prior plan: specs/015-idempotent-money-writes/plan.md
 (Reintentos y doble envío no pueden duplicar dinero. Diez operaciones que registran o mueven dinero
 pasan a aceptar una **clave de idempotencia generada por el cliente** (header `Idempotency-Key`), y el
@@ -1164,6 +1199,6 @@ patrón completo una vez documentado.
 tests). Encima se aplicó, sin spec propia, la regla **una tabla = un dominio**: los 11 dominios se
 dividieron en 21 dominios-tabla (+ `import`/`health` sin tabla), un solo adapter por tabla,
 constitución en v1.23.0. Ver ARCHITECTURE.md §12a.)
-Prior plans: 015 (escrituras idempotentes), 014 (facturación de planes CREDIT), 013 (cuotas: rediseño y pago real), 012 (investment tracking, congelada), 011 (cuenta prepago), 010 (traspasos/adjuntos), 009 (backend DDD+CQRS), 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
+Prior plans: 016 (identificadores unificados), 015 (escrituras idempotentes), 014 (facturación de planes CREDIT), 013 (cuotas: rediseño y pago real), 012 (investment tracking, congelada), 011 (cuenta prepago), 010 (traspasos/adjuntos), 009 (backend DDD+CQRS), 008 (user profile), 007 (accounts/movements redesign), 006 (deudas/installments view), 005 (transactions redesign), 004 (account cards modal), 003 (accounts mgmt), 002 (design system), 001 (monorepo).
 
 <!-- SPECKIT END -->

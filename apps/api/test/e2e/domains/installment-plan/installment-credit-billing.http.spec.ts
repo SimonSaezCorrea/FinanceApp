@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { UUID_V7 } from "../../support/uuid";
 
 /**
  * Spec 014 — E2E, the whole life of a credit-card instalment plan through the real
@@ -142,6 +143,9 @@ describe("Credit-card instalment plan billing, full lifecycle (e2e)", () => {
       .set("Cookie", cookies);
     expect(movements.body.items).toHaveLength(1);
     expect(movements.body.items[0].amount).toBe(PRINCIPAL.toFixed(4));
+    // specs/016 US2: the purchase movement create-installment-plan mints is
+    // UUID v7, not v4.
+    expect(movements.body.items[0].id).toMatch(UUID_V7);
   });
 
   it("does not offer the per-instalment pay action for this plan (FR-021)", async () => {

@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 
+import type { BankAccountLookupPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account-lookup.port";
 import { ImportTransactionsCommand } from "../../../../../../src/domains/import/application/commands/import-transactions.command";
 import { ImportTransactionsHandler } from "../../../../../../src/domains/import/application/commands/import-transactions.handler";
 import type { ImportTransactionsRepositoryPort } from "../../../../../../src/domains/import/domain/ports/import-transactions.repository.port";
@@ -13,11 +14,22 @@ function fakeRepo(
   };
 }
 
+function fakeAccounts(overrides: Partial<BankAccountLookupPort> = {}): BankAccountLookupPort {
+  return {
+    accountOwned: vi.fn().mockResolvedValue(true),
+    ...overrides,
+  };
+}
+
 describe("ImportTransactionsHandler", () => {
   it("plans every row and persists the batch via the repository, returning the inserted count", async () => {
     const importRows = vi.fn().mockResolvedValue(2);
     const repo = fakeRepo({ importRows });
-    const handler = new ImportTransactionsHandler({ publish: vi.fn() } as never, repo);
+    const handler = new ImportTransactionsHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeAccounts(),
+    );
 
     const result = await handler.execute(
       new ImportTransactionsCommand("u1", {
@@ -51,7 +63,11 @@ describe("ImportTransactionsHandler", () => {
 
   it("returns 0 imported when the repository inserts nothing", async () => {
     const repo = fakeRepo({ importRows: vi.fn().mockResolvedValue(0) });
-    const handler = new ImportTransactionsHandler({ publish: vi.fn() } as never, repo);
+    const handler = new ImportTransactionsHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeAccounts(),
+    );
 
     const result = await handler.execute(
       new ImportTransactionsCommand("u1", {

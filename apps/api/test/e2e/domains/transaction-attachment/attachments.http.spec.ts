@@ -11,6 +11,7 @@ import { OBJECT_STORAGE } from "../../../../src/domains/transaction-attachment/d
 import type { ObjectStoragePort } from "../../../../src/domains/transaction-attachment/domain/ports/object-storage.port";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { UUID_V7 } from "../../support/uuid";
 
 const PDF = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x0a]);
 const PNG = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
@@ -106,6 +107,8 @@ describe("Attachments HTTP (e2e)", () => {
 
     expect(res.status).toBe(201);
     attachmentId = res.body.id;
+    // specs/016 US2: the attachmentId upload-attachment mints is UUID v7, not v4.
+    expect(attachmentId).toMatch(UUID_V7);
     expect(res.body.fileName).toBe("boleta.pdf");
     expect(objects.size).toBe(1);
   });

@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { UUID_V7 } from "../../support/uuid";
 
 /** Full transfer flow over HTTP: create → see both sides → edit → delete, plus
  *  every rejection the policy owes. Requires a reachable Postgres. */
@@ -110,6 +111,8 @@ describe("Transfers HTTP (e2e)", () => {
       .send(body());
     expect(res.status).toBe(201);
     groupId = res.body.transferGroupId;
+    // specs/016 US2: the transferGroupId create-transfer mints is UUID v7, not v4.
+    expect(groupId).toMatch(UUID_V7);
     expect(res.body.outgoing.type).toBe("EXPENSE");
     expect(res.body.incoming.type).toBe("INCOME");
     expect(res.body.outgoing.cardId).toBeNull();
@@ -195,15 +198,20 @@ describe("Transfers HTTP (e2e)", () => {
     const credit = await post({ toBankAccountId: creditLine });
     expect(credit.status).toBe(400);
     expect(credit.body.error.code).toBe("TRANSFER_TO_CREDIT_ACCOUNT");
-    // An account that isn't the user's.
-    const foreign = await post({ toBankAccountId: "not-mine" });
+    // An account that isn't the user's (well-formed id, specs/016 — a
+    // malformed one is now rejected earlier with INVALID_ID_FORMAT).
+    const foreign = await post({ toBankAccountId: "018f6b9a-2c3e-7c21-9e4a-1f2b3c4d5e6f" });
     expect(foreign.status).toBe(404);
     expect(foreign.body.error.code).toBe("TRANSFER_ACCOUNT_NOT_FOUND");
     // Non-positive amount.
     expect((await post({ amountOut: "0" })).status).toBe(400);
-    // An unknown group.
+    // An unknown group (well-formed id, specs/016).
     expect(
-      (await api().get("/api/v1/transactions/transfers/nope").set("Cookie", cookies)).status,
+      (
+        await api()
+          .get("/api/v1/transactions/transfers/018f6b9a-2c3e-7c21-9e4a-1f2b3c4d5e6f")
+          .set("Cookie", cookies)
+      ).status,
     ).toBe(404);
   });
 });

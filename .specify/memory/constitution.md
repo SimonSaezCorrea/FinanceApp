@@ -1,4 +1,61 @@
 <!--
+Sync Impact Report — 2026-09-04 (amendment 2.2.0)
+- Version change: 2.1.0 → 2.2.0 (MINOR: Principle VIII gets its reference implementation — the
+  format it names goes from "TBD, declare it" to a concrete, enforced value — and Principle II's
+  body-supplied-FK-ownership clause closes its last five open violations; no principle redefined
+  in a backward-incompatible way, no prior rule weakened).
+- AMENDED Principle VIII text: "23 tablas" → **24 tablas** (matching §VI's own count since the
+  2.1.0 amendment), and the format is no longer merely "declared in the constitution" as a
+  placeholder — it is now named explicitly: **UUID v7**. The validation clause is also widened from
+  "todo parámetro de ruta" to "todo parámetro de ruta o campo del cuerpo", and now says explicitly
+  that a well-formed UUID of the wrong version is rejected too, not only an arbitrary malformed
+  string — closing an ambiguity the original 2.0.0 wording left open.
+- RECORDED: Principle VIII (Identificadores, added in 2.0.0 as two targets with zero conformance —
+  one format across the schema, and validation at the edge) now has a reference implementation —
+  specs/016-unified-row-ids. Every table's `id` default changed from `@default(cuid())` to
+  `@default(uuid(7))` (Prisma 7 generates it client-side, no native Postgres v7 function needed);
+  the five write paths that previously minted their own id with `randomUUID()` (uuid v4) — paying a
+  credit statement, paying an installment, creating an installment plan, creating a transfer,
+  uploading an attachment — now go through one shared helper,
+  `apps/api/src/infra/id/generate-row-id.ts`, producing the identical format. A new shared zod
+  schema, `rowId` (`packages/contracts/src/common/row-id.ts`, `z.uuidv7()`), replaces the bare
+  `z.string()`/`z.string().min(1)` on the 13 path-param schemas and the ~62 id-shaped contract
+  fields; `ZodValidationPipe`/`ZodParamsPipe` map any failure on that schema to one shared
+  `INVALID_ID_FORMAT` code (with `field`), via a small schema-walking helper
+  (`zod-issue-meta.ts`) rather than hard-coding per-field detection. `docs/PENDING.md` § "Deuda de
+  conformidad..." points 1 and 2 are marked closed.
+- RECORDED (same amendment, scope extended 2026-09-04 by product-owner decision): specs/016 also
+  closes Principle II's body-supplied-FK-ownership clause for the five write paths the 2.0.0 audit
+  named as unverified — `POST /import/transactions` (`bankAccountId`), `POST|PATCH /investments`
+  and `/recurring` (`bankAccountId`), `POST|PATCH /installments` (`paymentAccountId` and `cardId`).
+  A new narrow port, `BankAccountLookupPort.accountOwned(userId, accountId)`
+  (`bank-account/domain/ports/bank-account-lookup.port.ts`, mirroring the existing
+  `CountryLookupPort`/`FinancialInstitutionLookupPort` convention), backs the first four; the fifth
+  (`cardId`) needed no new port — `CardAccountRepositoryPort.kindForCard` already scoped by
+  `userId`, so the fix was closing the conflation where a `null` result (foreign card,
+  indistinguishable from "no card sent") was silently treated as the latter and the foreign id
+  persisted anyway. `docs/PENDING.md` point 3 is marked closed (all six original entries: one
+  closed by specs/015's `savingsGoalId`, five by this). `POST /transactions`'s `cardId` and
+  `POST /wallet` were verified, not modified — the audit cited both as the pattern already
+  correctly applied, not as violations.
+- Points 5 (cursor MAC), 6 (storage-key derivation) and 7 (API versioning gap) are UNCHANGED by
+  this amendment — this report is not rewritten to match (Sync Impact Reports are append-only
+  history).
+- Explicitly NOT addressed by specs/016 (recorded so it isn't assumed done): route-declaration
+  ordering (`GET /transactions/summary`/`transfers/:groupId` before `:id`) is still required —
+  format validation runs only once NestJS has already picked a route by declaration order, so it is
+  a second, independent layer of defense, not a fix for that fragility. Business identifiers
+  (institution `code`, CBU, `RUT-`/`PSP-`/`AGF-` catalogue keys) are unaffected by design — they
+  were never the row identifier this principle governs.
+- Driven by an SDD cycle (specs/016), following directly from the 2.0.0 audit's own catalogued
+  conformance debt (docs/PENDING.md points 1-2, then 3, folded into the same feature's scope by
+  explicit product-owner decision rather than a fresh audit).
+- Templates requiring updates: none — the three data gates the 2.0.0 amendment added to
+  `plan-template.md`'s Constitution Check already covered this; specs/016's own plan satisfied them
+  without needing new gate language.
+-->
+
+<!--
 Sync Impact Report — 2026-09-03 (amendment 2.1.0)
 - Version change: 2.0.0 → 2.1.0 (MINOR: one new enforceable fact recorded, one preexisting drift
   corrected, no principle redefined in a backward-incompatible way).
@@ -1419,10 +1476,14 @@ Rationale: en una app de finanzas un timeout de red reintentado no puede cobrar 
 ### VIII. Identificadores (NON-NEGOTIABLE)
 
 Existe UN formato de identificador de fila para todo el esquema, declarado en la constitución y
-uniforme en las 23 tablas. Está prohibido que dos formatos convivan en la misma columna.
+uniforme en las 24 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
+localidad de índice en Postgres, estándar RFC 9562). Está prohibido que dos formatos convivan en la
+misma columna.
 
-El formato MUST ser validable estructuralmente, y todo parámetro de ruta que lleve un identificador
-MUST validarse contra ese formato en el borde, antes de alcanzar un command o query.
+El formato MUST ser validable estructuralmente, y todo parámetro de ruta o campo del cuerpo que
+lleve un identificador de fila MUST validarse contra ese formato en el borde, antes de alcanzar un
+command o query — un UUID bien formado de otra versión (ej. v4) también se rechaza, no solo un
+string arbitrario.
 
 Los identificadores nunca se reutilizan.
 
@@ -1697,4 +1758,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.1.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-03
+**Version**: 2.2.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-04

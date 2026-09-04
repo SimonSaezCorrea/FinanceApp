@@ -3,6 +3,7 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
+import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
 import { CreateRecurringExpenseHandler } from "./application/commands/create-recurring-expense.handler";
 import { RemoveRecurringExpenseHandler } from "./application/commands/remove-recurring-expense.handler";
 import { UpdateRecurringExpenseHandler } from "./application/commands/update-recurring-expense.handler";
@@ -21,7 +22,7 @@ const commandHandlers = [
 const queryHandlers = [ListRecurringExpensesQueryHandler, GetRecurringExpenseQueryHandler];
 
 @Module({
-  imports: [CqrsModule, JwtModule.register({})],
+  imports: [CqrsModule, JwtModule.register({}), BankAccountDataModule],
   controllers: [RecurringController],
   providers: [
     ...commandHandlers,

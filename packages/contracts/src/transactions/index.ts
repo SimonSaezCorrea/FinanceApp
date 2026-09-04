@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { moneyString } from "../common/money";
+import { rowId } from "../common/row-id";
 
 export * from "./attachments";
 
@@ -10,7 +11,7 @@ export const transactionType = z.enum(["INCOME", "EXPENSE"]);
 export type TransactionType = z.infer<typeof transactionType>;
 
 export const transactionSchema = z.object({
-  id: z.string(),
+  id: rowId,
   type: transactionType,
   amount: moneyString,
   currency: z.string(),
@@ -21,18 +22,18 @@ export const transactionSchema = z.object({
   emisor: z.string().nullable(),
   receptor: z.string().nullable(),
   lugar: z.string().nullable(),
-  bankAccountId: z.string().nullable(),
-  cardId: z.string().nullable(),
+  bankAccountId: rowId.nullable(),
+  cardId: rowId.nullable(),
   /** An issuer charge on the credit account itself (interest, fee, insurance) —
    * no card made it, and the app never computes it: it is read off the statement. */
   financeCharge: z.boolean(),
-  installmentPlanId: z.string().nullable(),
+  installmentPlanId: rowId.nullable(),
   /**
    * Ties the two rows of a transfer together (EXPENSE on the source account +
    * INCOME on the destination). `null` on ordinary income/expense — the `type`
    * enum deliberately does NOT grow a TRANSFER value, so use `isTransfer`.
    */
-  transferGroupId: z.string().nullable(),
+  transferGroupId: rowId.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -68,8 +69,8 @@ const transactionFieldsSchema = z.object({
   // Bank is required for new movements; card rules are enforced server-side
   // (needs the account type: EXPENSE on a non-cash account requires a card,
   // cash/INCOME forbid one).
-  bankAccountId: z.string(),
-  cardId: z.string().optional(),
+  bankAccountId: rowId,
+  cardId: rowId.optional(),
   /** An issuer charge on the credit account itself (interest, annual fee,
    * insurance): no card made it, so the "a credit-line expense needs a card"
    * rule doesn't apply. It still feeds the credit pool. */
@@ -115,8 +116,8 @@ export type UpdateTransaction = z.infer<typeof updateTransactionSchema>;
  * this app performs no FX conversion.
  */
 const transferFieldsSchema = z.object({
-  fromBankAccountId: z.string(),
-  toBankAccountId: z.string(),
+  fromBankAccountId: rowId,
+  toBankAccountId: rowId,
   amountOut: moneyString,
   amountIn: moneyString,
   currencyOut: z.string().trim().length(3),
@@ -152,7 +153,7 @@ export type UpdateTransfer = z.infer<typeof updateTransferSchema>;
 
 /** Both rows of a transfer, as one unit. Named by role — `in` reads badly in TS. */
 export const transferSchema = z.object({
-  transferGroupId: z.string(),
+  transferGroupId: rowId,
   /** EXPENSE on the source account. */
   outgoing: transactionSchema,
   /** INCOME on the destination account. */
@@ -166,10 +167,10 @@ const TRANSACTION_MAX_PAGE_SIZE = 100;
 /** Optional list filters (query params). */
 export const transactionFiltersSchema = z.object({
   type: transactionType.optional(),
-  bankAccountId: z.string().optional(),
-  cardId: z.string().optional(),
+  bankAccountId: rowId.optional(),
+  cardId: rowId.optional(),
   /** Every movement linked to one billing period — a statement's detail view. */
-  creditStatementId: z.string().optional(),
+  creditStatementId: rowId.optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   /** Case-insensitive substring match on `category`. Server-side because the

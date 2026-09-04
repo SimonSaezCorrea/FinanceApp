@@ -20,8 +20,10 @@ describe("Import HTTP (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_import_${randomUUID()}@test.local`;
+  const otherEmail = `e2e_import_other_${randomUUID()}@test.local`;
   const password = "Sup3rSecret!";
   let cookies: string[] = [];
+  let foreignAccountId: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -36,11 +38,22 @@ describe("Import HTTP (e2e)", () => {
       .post("/api/v1/auth/register")
       .send({ email, password, name: "E2E Import User" });
     cookies = registerRes.get("Set-Cookie") ?? [];
+
+    const registerOther = await request(app.getHttpServer())
+      .post("/api/v1/auth/register")
+      .send({ email: otherEmail, password, name: "Other" });
+    const otherCookies = registerOther.get("Set-Cookie") ?? [];
+    const otherAccount = await request(app.getHttpServer())
+      .post("/api/v1/accounts")
+      .set("Cookie", otherCookies)
+      .send({ name: "Other's account", type: "CHECKING", currency: "USD", accountNumber: "999" });
+    foreignAccountId = otherAccount.body.id;
   });
 
   afterAll(async () => {
     await prisma.transaction.deleteMany({ where: { user: { email } } });
-    await prisma.user.deleteMany({ where: { email } });
+    await prisma.bankAccount.deleteMany({ where: { user: { email: otherEmail } } });
+    await prisma.user.deleteMany({ where: { email: { in: [email, otherEmail] } } });
     await app.close();
   });
 
@@ -77,5 +90,25 @@ describe("Import HTTP (e2e)", () => {
       .send({ rows: [] });
 
     expect(res.status).toBe(400);
+  });
+
+  // Principle II: a body-supplied FK must be ownership-verified before persisting.
+  it("rejects a row whose bankAccountId belongs to another user", async () => {
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/import/transactions")
+      .set("Cookie", cookies)
+      .send({
+        rows: [
+          {
+            type: "EXPENSE",
+            amount: "10.00",
+            currency: "USD",
+            occurredAt: "2026-01-01T00:00:00.000Z",
+            bankAccountId: foreignAccountId,
+          },
+        ],
+      });
+    expect(res.status).toBe(404);
+    expect(res.body.error.code).toBe("ACCOUNT_NOT_FOUND");
   });
 });

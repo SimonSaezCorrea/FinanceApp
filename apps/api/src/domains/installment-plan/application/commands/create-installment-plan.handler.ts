@@ -1,5 +1,3 @@
-import { randomUUID } from "node:crypto";
-
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
@@ -12,6 +10,7 @@ import {
   BaseIdempotentCommandHandler,
   type CompleteFn,
 } from "../../../../infra/cqrs/base-idempotent-command.handler";
+import { generateRowId } from "../../../../infra/id/generate-row-id";
 import {
   IDEMPOTENCY_RECORD_REPOSITORY,
   type IdempotencyRecordRepositoryPort,
@@ -21,6 +20,7 @@ import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
 } from "../../../bank-account/domain/ports/bank-account.repository.port";
+import { AccountNotFoundError, CardNotFoundError } from "../../../bank-account/domain/errors";
 import {
   CARD_ACCOUNT_REPOSITORY,
   type CardAccountRepositoryPort,
@@ -93,6 +93,18 @@ export class CreateInstallmentPlanHandler extends BaseIdempotentCommandHandler<
     const cardKind = input.cardId
       ? await this.cards.kindForCard(command.userId, input.cardId)
       : null;
+    // A card id that resolves to no kind is either nonexistent or belongs to
+    // someone else — `kindForCard` can't tell those apart from "no card was
+    // sent" by itself, so the caller must (Principle II: a body-supplied FK
+    // must be ownership-verified, and a null-returning resolver must not be
+    // conflated with an absent field).
+    if (input.cardId && !cardKind) throw new CardNotFoundError();
+    if (
+      input.paymentAccountId &&
+      !(await this.accounts.findById(command.userId, input.paymentAccountId))
+    ) {
+      throw new AccountNotFoundError();
+    }
     InstallmentPlan.assertPaymentAccountAllowed(cardKind, input.paymentAccountId);
     const planned = InstallmentPlan.planCreation({
       title: input.title,
@@ -193,7 +205,7 @@ export class CreateInstallmentPlanHandler extends BaseIdempotentCommandHandler<
     },
   ): Promise<void> {
     await this.transactions.createWithTx(tx, {
-      id: randomUUID(),
+      id: generateRowId(),
       userId: input.userId,
       bankAccountId: input.accountId,
       type: "EXPENSE",

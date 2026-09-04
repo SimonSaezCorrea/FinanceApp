@@ -67,6 +67,9 @@ function makeUpdateHandler(
     { publish: vi.fn() } as never,
     repo,
     fakeCardAccountRepo({ kindForCard: vi.fn(async () => cardKind) }),
+    fakeBankAccountRepo({
+      findById: vi.fn(async () => accountAggregate({ id: "a1", type: "CHECKING" })),
+    }),
   );
 }
 
