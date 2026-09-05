@@ -6,10 +6,10 @@ points — this document records their before/after shape.
 ## Pagination cursor (`Transaction` list, keyset pagination)
 
 - **Column of the schema it's derived from**: none directly — built from `Transaction.occurredAt`
-  + `Transaction.id` (both already exist), never itself stored.
+  and `Transaction.id` (both already exist), never itself stored.
 - **Before**: `base64url("<occurredAt ISO8601>|<id>")` — unsigned, unversioned.
 - **After**: `base64url("<version>|<occurredAt ISO8601>|<id>") + "." + base64url(HMAC-SHA256(secret,
-  that payload))` — see research.md Decision 1. Same two source values (`occurredAt`, `id`), now
+that payload))` — see research.md Decision 1. Same two source values (`occurredAt`, `id`), now
   wrapped in a version tag and an authenticity proof.
 - **Validated**: on every `GET /transactions?cursor=...` request, before the decoded `occurredAt`/
   `id` are used in the keyset query. A MAC mismatch or unrecognized version → `INVALID_CURSOR`

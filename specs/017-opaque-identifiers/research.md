@@ -23,6 +23,7 @@ weaker/older verification path if one ever existed side-by-side during a migrati
 closes that off even though this project has no such migration today.
 
 **Alternatives considered**:
+
 - Truncating the HMAC to save bytes (e.g. 16 of 32 bytes) — rejected, the cursor already isn't
   size-constrained (one query param) and a shorter MAC is a weaker one for no real benefit here.
 - A single base64url blob with the MAC appended before encoding (`base64url(payload + mac)`) —
@@ -51,6 +52,7 @@ themselves stay pure. `ListTransactionsQueryHandler` injects `ConfigService`, re
 once, and passes it to both functions.
 
 **Alternatives considered**:
+
 - Reading `process.env.CURSOR_SIGNING_SECRET` directly inside `transaction-cursor.ts` — rejected,
   a grep across `apps/api/src/domains` confirms zero existing direct `process.env` reads in
   domain/application code; every other secret goes through `ConfigService`, and this shouldn't be
@@ -85,6 +87,7 @@ by any caller (confirmed by grep: only `RemoveAttachmentHandler` and `ListAttach
 `storageKey`, both treat it as an opaque lookup key, never parse it).
 
 **Alternatives considered**:
+
 - Keeping a hash of the identifying values instead of fresh randomness (e.g.
   `sha256(userId+transactionId+attachmentId)`) — rejected: a hash of known inputs is still
   effectively derived from them (anyone who can guess/enumerate the inputs can verify a match),

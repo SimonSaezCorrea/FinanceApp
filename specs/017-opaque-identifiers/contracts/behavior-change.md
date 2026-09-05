@@ -11,12 +11,12 @@ before (spec FR-003/SC-002).
 
 **Changed**: what makes a cursor invalid.
 
-| Input | Before | After |
-| --- | --- | --- |
-| Freshly issued cursor, unmodified | Accepted | Accepted (unchanged) |
-| Any byte of the cursor altered | Accepted if it still happened to parse as `<date>|<id>` — a forged cursor could work | `400 INVALID_CURSOR` |
-| A cursor from a future/incompatible format version | N/A (no versioning existed) | `400 INVALID_CURSOR` |
-| Syntactically garbage string | `400 INVALID_CURSOR` (already true today) | `400 INVALID_CURSOR` (unchanged) |
+| Input                                              | Before                                                                                | After                            |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------- | -------------------------------- |
+| Freshly issued cursor, unmodified                  | Accepted                                                                              | Accepted (unchanged)             |
+| Any byte of the cursor altered                     | Accepted if it still happened to parse as `<date>\|<id>` — a forged cursor could work | `400 INVALID_CURSOR`             |
+| A cursor from a future/incompatible format version | N/A (no versioning existed)                                                           | `400 INVALID_CURSOR`             |
+| Syntactically garbage string                       | `400 INVALID_CURSOR` (already true today)                                             | `400 INVALID_CURSOR` (unchanged) |
 
 ## `POST /transactions/:id/attachments` (upload) and its listing/viewing endpoints
 
