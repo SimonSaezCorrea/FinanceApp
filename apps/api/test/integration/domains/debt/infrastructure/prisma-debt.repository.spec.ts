@@ -46,6 +46,10 @@ describe("PrismaDebtRepository (integration)", () => {
       installmentAmount: null,
       frequency: "MONTHLY",
       frequencyInterval: 1,
+      paymentAccountId: null,
+      lastPaymentTransactionId: null,
+      lastPaymentAccountId: null,
+      lastPaymentAmount: null,
     });
     debtId = created.id;
     expect(created.toContract().counterparty).toBe("Acme Corp");
@@ -64,6 +68,21 @@ describe("PrismaDebtRepository (integration)", () => {
     await repo.save(debt!);
     const reloaded = await repo.findOne(userId, debtId);
     expect(reloaded?.paidInstallments).toBe(1);
+  });
+
+  it("save persists and clears the lastPayment* bookkeeping columns", async () => {
+    const debt = await repo.findOne(userId, debtId);
+    debt!.registerPayment({ transactionId: "tx1", accountId: "acc1", amount: "400.0000" });
+    await repo.save(debt!);
+    const withPayment = await repo.findOne(userId, debtId);
+    expect(withPayment?.toContract().lastPaymentTransactionId).toBe("tx1");
+    expect(withPayment?.toContract().lastPaymentAmount).toBe("400.0000");
+
+    withPayment!.undoPayment();
+    await repo.save(withPayment!);
+    const cleared = await repo.findOne(userId, debtId);
+    expect(cleared?.toContract().lastPaymentTransactionId).toBeNull();
+    expect(cleared?.toContract().lastPaymentAmount).toBeNull();
   });
 
   it("remove deletes the debt, scoped to ownership", async () => {

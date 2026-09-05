@@ -17,14 +17,22 @@ export const debtsApi = {
       body: JSON.stringify(body),
     }),
 
-  settle: (id: string, idempotencyKey: string) =>
-    apiFetch<void>(`/debts/${id}/settle`, { method: "POST", idempotencyKey }),
+  settle: (id: string, idempotencyKey: string, body: debts.PayDebt) =>
+    apiFetch<void>(`/debts/${id}/settle`, {
+      method: "POST",
+      idempotencyKey,
+      body: JSON.stringify(body),
+    }),
 
   unsettle: (id: string, idempotencyKey: string) =>
     apiFetch<debts.Debt>(`/debts/${id}/unsettle`, { method: "POST", idempotencyKey }),
 
-  registerPayment: (id: string, idempotencyKey: string) =>
-    apiFetch<debts.Debt>(`/debts/${id}/register-payment`, { method: "POST", idempotencyKey }),
+  registerPayment: (id: string, idempotencyKey: string, body: debts.PayDebt) =>
+    apiFetch<debts.Debt>(`/debts/${id}/register-payment`, {
+      method: "POST",
+      idempotencyKey,
+      body: JSON.stringify(body),
+    }),
 
   undoPayment: (id: string, idempotencyKey: string) =>
     apiFetch<debts.Debt>(`/debts/${id}/undo-payment`, { method: "POST", idempotencyKey }),

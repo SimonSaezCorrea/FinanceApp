@@ -22,6 +22,10 @@ export interface TransactionProps {
   creditStatementId: string | null;
   /** Non-null on the two rows of a transfer (see `TransferPolicy`). */
   transferGroupId: string | null;
+  /** The `Debt` this movement pays — set only by `register-payment`/`settle`,
+   * writing through `TransactionWriterRepositoryPort` directly (never through
+   * this aggregate's own `planCreation`, same as `installmentPlanId`). */
+  debtId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -99,6 +103,7 @@ export class Transaction {
       // Ordinary movements are never part of a transfer — those are planned by
       // `Transfer.planPair` and written by the transfer commands.
       transferGroupId: null,
+      debtId: null,
     };
   }
 
@@ -178,6 +183,7 @@ export class Transaction {
       financeCharge: this.props.financeCharge,
       installmentPlanId: this.props.installmentPlanId,
       transferGroupId: this.props.transferGroupId,
+      debtId: this.props.debtId,
       createdAt: this.props.createdAt.toISOString(),
       updatedAt: this.props.updatedAt.toISOString(),
     };

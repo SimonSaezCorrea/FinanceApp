@@ -96,6 +96,7 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
       installmentPlanId: null,
       creditStatementId: null,
       transferGroupId,
+      debtId: null,
     };
 
     const result = await this.prisma.$transaction(async (tx) => {

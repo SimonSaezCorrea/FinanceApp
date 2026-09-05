@@ -58,6 +58,7 @@ function txFixture(overrides: Partial<Parameters<typeof Transaction.fromPersiste
     installmentPlanId: null,
     transferGroupId: null,
     creditStatementId: "stmt1",
+    debtId: null,
     createdAt: new Date("2026-03-01"),
     updatedAt: new Date("2026-03-01"),
     ...overrides,

@@ -3,7 +3,8 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
-import type { accounts, transactions } from "@finance/contracts";
+import { transactions } from "@finance/contracts";
+import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { Badge } from "../../../shared/ui/badge";
@@ -75,6 +76,17 @@ export function TransactionDetailPanel({
     ? [account.name, t(`accounts.type.${account.type}`)].join(" · ")
     : t("transactions.table.noAccount");
 
+  // Where this movement came from — derived from fields already on the row
+  // (never stored on its own), so a manual entry, a plan's instalment/interest,
+  // a debt payment or a traspaso all say so instead of looking hand-typed.
+  const source = transactions.sourceOf(tx);
+  const sourceLink =
+    source.kind === "INSTALLMENT" || source.kind === "INSTALLMENT_INTEREST"
+      ? { to: "/installments", label: t("transactions.detail.viewPlan") }
+      : source.kind === "DEBT"
+        ? { to: "/debts", label: t("transactions.detail.viewDebt") }
+        : null;
+
   return (
     <div className="flex flex-col gap-5">
       {/* Identity block: what this movement is, before how much it was. */}
@@ -137,6 +149,21 @@ export function TransactionDetailPanel({
       )}
 
       <div className="flex flex-col">
+        <DetailRow label={t("transactions.detail.source")}>
+          <span className="flex items-center gap-2">
+            <Badge variant={source.kind === "MANUAL" ? "neutral" : "info"}>
+              {t(`transactions.source.${source.kind}`)}
+            </Badge>
+            {sourceLink ? (
+              <Link
+                to={sourceLink.to}
+                className="text-xs text-accent underline-offset-2 hover:underline"
+              >
+                {sourceLink.label}
+              </Link>
+            ) : null}
+          </span>
+        </DetailRow>
         {/* The category carries its icon here too: the header's icon is the
             movement's identity, this one names the category being read. */}
         <DetailRow label={t("transactions.form.category")}>

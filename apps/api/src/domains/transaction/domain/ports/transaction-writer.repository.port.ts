@@ -21,6 +21,8 @@ export interface TransactionPlan {
    * recorded when a plan with interest is created, and on the expense recorded when
    * one of its installments is paid, so either is recognisable among the movements. */
   installmentPlanId?: string | null;
+  /** The `Debt` this movement pays — set by `register-payment`/`settle`. */
+  debtId?: string | null;
 }
 
 /** One movement this app recorded on behalf of an instalment plan. */

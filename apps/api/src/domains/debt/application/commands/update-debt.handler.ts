@@ -3,6 +3,11 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { debts } from "@finance/contracts";
 
+import {
+  BANK_ACCOUNT_LOOKUP,
+  type BankAccountLookupPort,
+} from "../../../bank-account/domain/ports/bank-account-lookup.port";
+import { AccountNotFoundError } from "../../../bank-account/domain/errors";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { DebtNotFoundError } from "../../domain/errors";
 import type { Debt } from "../../domain/debt.aggregate";
@@ -15,6 +20,7 @@ export class UpdateDebtHandler extends BaseCommandHandler<UpdateDebtCommand, deb
   constructor(
     eventBus: EventBus,
     @Inject(DEBT_REPOSITORY) private readonly repo: DebtRepositoryPort,
+    @Inject(BANK_ACCOUNT_LOOKUP) private readonly accounts: BankAccountLookupPort,
   ) {
     super(eventBus);
   }
@@ -22,6 +28,12 @@ export class UpdateDebtHandler extends BaseCommandHandler<UpdateDebtCommand, deb
   protected async loadContext(command: UpdateDebtCommand): Promise<Debt> {
     const debt = await this.repo.findOne(command.userId, command.id);
     if (!debt) throw new DebtNotFoundError();
+    if (
+      command.input.paymentAccountId &&
+      !(await this.accounts.accountOwned(command.userId, command.input.paymentAccountId))
+    ) {
+      throw new AccountNotFoundError();
+    }
     return debt;
   }
 
@@ -49,6 +61,7 @@ export class UpdateDebtHandler extends BaseCommandHandler<UpdateDebtCommand, deb
       ...(input.frequencyInterval !== undefined
         ? { frequencyInterval: input.frequencyInterval }
         : {}),
+      ...(input.paymentAccountId !== undefined ? { paymentAccountId: input.paymentAccountId } : {}),
     });
     return { result: debt.toContract(), events: [] };
   }

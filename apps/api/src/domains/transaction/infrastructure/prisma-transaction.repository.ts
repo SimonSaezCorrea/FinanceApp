@@ -56,6 +56,7 @@ function rowToProps(row: Row): TransactionProps {
     installmentPlanId: row.installmentPlanId,
     creditStatementId: row.creditStatementId,
     transferGroupId: row.transferGroupId,
+    debtId: row.debtId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

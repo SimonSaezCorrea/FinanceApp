@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { addMoney, formatMoney, moneyToString, subtractMoney, sumMoney, toMoney } from "./index.js";
+import {
+  addMoney,
+  currencySymbol,
+  formatMoney,
+  moneyToString,
+  subtractMoney,
+  sumMoney,
+  toMoney,
+} from "./index.js";
 
 describe("money", () => {
   it("preserves precision that floats would lose", () => {
@@ -49,6 +57,20 @@ describe("money", () => {
 
     it("leaves an already region-qualified locale untouched", () => {
       expect(formatMoney("95000", { locale: "en-US", currency: "USD" })).toBe("$95,000.00");
+    });
+  });
+
+  describe("currencySymbol", () => {
+    it("resolves CLP's $ the same way formatMoney does", () => {
+      expect(currencySymbol("CLP", "es")).toBe("$");
+    });
+
+    it("disambiguates USD as US$ in Chilean Spanish", () => {
+      expect(currencySymbol("USD", "es")).toBe("US$");
+    });
+
+    it("falls back to the ISO code for CLF, which has no real symbol", () => {
+      expect(currencySymbol("CLF", "es")).toBe("CLF");
     });
   });
 });

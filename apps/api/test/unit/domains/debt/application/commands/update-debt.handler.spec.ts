@@ -4,6 +4,8 @@ import { UpdateDebtHandler } from "../../../../../../src/domains/debt/applicatio
 import { UpdateDebtCommand } from "../../../../../../src/domains/debt/application/commands/update-debt.command";
 import { RemoveDebtHandler } from "../../../../../../src/domains/debt/application/commands/remove-debt.handler";
 import { RemoveDebtCommand } from "../../../../../../src/domains/debt/application/commands/remove-debt.command";
+import { AccountNotFoundError } from "../../../../../../src/domains/bank-account/domain/errors";
+import type { BankAccountLookupPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account-lookup.port";
 import { Debt } from "../../../../../../src/domains/debt/domain/debt.aggregate";
 import { DebtNotFoundError } from "../../../../../../src/domains/debt/domain/errors";
 import type { DebtRepositoryPort } from "../../../../../../src/domains/debt/domain/ports/debt.repository.port";
@@ -26,6 +28,10 @@ function makeDebt() {
     installmentAmount: null,
     frequency: "MONTHLY",
     frequencyInterval: 1,
+    paymentAccountId: null,
+    lastPaymentTransactionId: null,
+    lastPaymentAccountId: null,
+    lastPaymentAmount: null,
     createdAt: new Date("2026-01-01T00:00:00Z"),
     updatedAt: new Date("2026-01-01T00:00:00Z"),
   });
@@ -44,10 +50,17 @@ function fakeRepo(overrides: Partial<DebtRepositoryPort> = {}): DebtRepositoryPo
   };
 }
 
+function fakeAccounts(overrides: Partial<BankAccountLookupPort> = {}): BankAccountLookupPort {
+  return {
+    accountOwned: vi.fn().mockResolvedValue(true),
+    ...overrides,
+  };
+}
+
 describe("UpdateDebtHandler", () => {
   it("throws DebtNotFoundError for a missing debt", async () => {
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(null) });
-    const handler = new UpdateDebtHandler({ publish: vi.fn() } as never, repo);
+    const handler = new UpdateDebtHandler({ publish: vi.fn() } as never, repo, fakeAccounts());
     await expect(
       handler.execute(new UpdateDebtCommand("u1", "ghost", { counterparty: "New" })),
     ).rejects.toBeInstanceOf(DebtNotFoundError);
@@ -56,12 +69,26 @@ describe("UpdateDebtHandler", () => {
   it("applies the patch and persists it", async () => {
     const save = vi.fn().mockResolvedValue(undefined);
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(makeDebt()), save });
-    const handler = new UpdateDebtHandler({ publish: vi.fn() } as never, repo);
+    const handler = new UpdateDebtHandler({ publish: vi.fn() } as never, repo, fakeAccounts());
     const result = await handler.execute(
       new UpdateDebtCommand("u1", "d1", { counterparty: "New name" }),
     );
     expect(result.counterparty).toBe("New name");
     expect(save).toHaveBeenCalled();
+  });
+
+  it("rejects a paymentAccountId that doesn't belong to the caller", async () => {
+    const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(makeDebt()) });
+    const handler = new UpdateDebtHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeAccounts({ accountOwned: vi.fn().mockResolvedValue(false) }),
+    );
+    await expect(
+      handler.execute(
+        new UpdateDebtCommand("u1", "d1", { paymentAccountId: "someone-elses-account" }),
+      ),
+    ).rejects.toBeInstanceOf(AccountNotFoundError);
   });
 });
 

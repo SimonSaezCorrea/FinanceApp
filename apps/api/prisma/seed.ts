@@ -1334,7 +1334,7 @@ async function seedFullUser(passwordHash: string) {
       category: "Compras",
       description: "Falabella · Sofía",
     },
-    // ==================== August 2026 (up to today, 2026-08-01) ====================
+    // ==================== August 2026 ====================
     {
       acct: "checking",
       type: "INCOME",
@@ -1360,7 +1360,7 @@ async function seedFullUser(passwordHash: string) {
       category: "Supermercado",
       description: "Jumbo Costanera",
     },
-    // ============ August 2026 (future — hasta el 21 de agosto) ============
+    // ============ August 2026 (continued) ============
     {
       acct: "checking",
       type: "EXPENSE",
@@ -1533,6 +1533,474 @@ async function seedFullUser(passwordHash: string) {
       at: "2026-08-21T09:00:00Z",
       category: "Vivienda",
       description: "Arriendo agosto",
+    },
+
+    // ==================== September 2026 ====================
+    {
+      acct: "checking",
+      type: "INCOME",
+      amount: 2_100_000,
+      at: "2026-09-01T09:00:00Z",
+      category: "Sueldo",
+      description: "Sueldo septiembre",
+    },
+    {
+      acct: "sight",
+      type: "INCOME",
+      amount: 180_000,
+      at: "2026-09-01T10:00:00Z",
+      category: "Otros",
+      description: "Transferencia desde cuenta corriente",
+    },
+    {
+      acct: "checking",
+      card: "debit",
+      type: "EXPENSE",
+      amount: 61_200,
+      at: "2026-09-01T19:15:00Z",
+      category: "Supermercado",
+      description: "Jumbo Costanera",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 35_400,
+      at: "2026-09-03T12:00:00Z",
+      category: "Servicios",
+      description: "Cuenta de luz · Enel",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 20_100,
+      at: "2026-09-03T12:05:00Z",
+      category: "Servicios",
+      description: "Cuenta de agua · Aguas Andinas",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 29_990,
+      at: "2026-09-04T10:00:00Z",
+      category: "Servicios",
+      description: "Internet · VTR",
+    },
+    {
+      acct: "creditBch",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 82_300,
+      at: "2026-09-05T20:00:00Z",
+      category: "Compras",
+      description: "Ropa de primavera · Paris",
+    },
+    {
+      acct: "checking",
+      card: "debit",
+      type: "EXPENSE",
+      amount: 42_800,
+      at: "2026-09-06T08:20:00Z",
+      category: "Transporte",
+      description: "Bencina · Copec",
+    },
+    {
+      acct: "creditVista",
+      card: "creditVista",
+      type: "EXPENSE",
+      amount: 31_200,
+      at: "2026-09-07T21:00:00Z",
+      category: "Restaurantes",
+      description: "Delivery · PedidosYa",
+    },
+    {
+      acct: "credit",
+      card: "credit",
+      type: "EXPENSE",
+      amount: 102_000,
+      at: "2026-09-08T18:30:00Z",
+      category: "Compras",
+      description: "Electrodomésticos · Falabella",
+    },
+    {
+      acct: "checking",
+      card: "debitSofia",
+      type: "EXPENSE",
+      amount: 25_600,
+      at: "2026-09-09T16:00:00Z",
+      category: "Entretención",
+      description: "Cine · Sofía",
+    },
+    {
+      acct: "cash",
+      type: "EXPENSE",
+      amount: 13_500,
+      at: "2026-09-10T11:30:00Z",
+      category: "Supermercado",
+      description: "Feria libre",
+    },
+    {
+      acct: "creditBch",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 95_000,
+      at: "2026-09-11T19:45:00Z",
+      category: "Salud",
+      description: "Consulta dental",
+    },
+    {
+      acct: "sight",
+      card: "debitVista",
+      type: "EXPENSE",
+      amount: 9_990,
+      at: "2026-09-12T09:30:00Z",
+      category: "Suscripciones",
+      description: "Spotify Familiar",
+    },
+    {
+      acct: "credit",
+      card: "creditCamila",
+      type: "EXPENSE",
+      amount: 51_400,
+      at: "2026-09-13T17:10:00Z",
+      category: "Compras",
+      description: "Falabella Plaza Egaña · Camila",
+    },
+    {
+      acct: "checking",
+      card: "debit",
+      type: "EXPENSE",
+      amount: 70_300,
+      at: "2026-09-14T19:00:00Z",
+      category: "Supermercado",
+      description: "Unimarc",
+    },
+    {
+      acct: "checking",
+      type: "INCOME",
+      amount: 210_000,
+      at: "2026-09-15T10:00:00Z",
+      category: "Otros",
+      description: "Proyecto freelance",
+    },
+    {
+      acct: "creditVista",
+      card: "creditVista",
+      type: "EXPENSE",
+      amount: 47_800,
+      at: "2026-09-16T15:00:00Z",
+      category: "Compras",
+      description: "Librería Antártica",
+    },
+    {
+      acct: "checking",
+      card: "debitRosa",
+      type: "EXPENSE",
+      amount: 21_300,
+      at: "2026-09-17T13:40:00Z",
+      category: "Transporte",
+      description: "Uber · Rosa",
+    },
+    {
+      acct: "credit",
+      card: "credit",
+      type: "EXPENSE",
+      amount: 34_900,
+      at: "2026-09-18T20:20:00Z",
+      category: "Restaurantes",
+      description: "Sushi Providencia",
+    },
+    {
+      acct: "creditBch",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 62_700,
+      at: "2026-09-19T18:00:00Z",
+      category: "Entretención",
+      description: "Concierto · Puntoticket",
+    },
+    {
+      acct: "cash",
+      type: "EXPENSE",
+      amount: 7_200,
+      at: "2026-09-20T12:00:00Z",
+      category: "Restaurantes",
+      description: "Café",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 620_000,
+      at: "2026-09-21T09:00:00Z",
+      category: "Vivienda",
+      description: "Arriendo septiembre",
+    },
+    {
+      acct: "checking",
+      card: "debit",
+      type: "EXPENSE",
+      amount: 38_900,
+      at: "2026-09-24T17:00:00Z",
+      category: "Supermercado",
+      description: "Santa Isabel",
+    },
+    {
+      acct: "cash",
+      type: "EXPENSE",
+      amount: 15_000,
+      at: "2026-09-27T14:00:00Z",
+      category: "Transporte",
+      description: "Taxi",
+    },
+    {
+      acct: "creditVista",
+      card: "creditVista",
+      type: "EXPENSE",
+      amount: 22_400,
+      at: "2026-09-29T19:00:00Z",
+      category: "Restaurantes",
+      description: "Almuerzo equipo",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 45_000,
+      at: "2026-09-30T20:00:00Z",
+      category: "Entretención",
+      description: "Streaming anual",
+    },
+
+    // ==================== October 2026 ====================
+    {
+      acct: "checking",
+      type: "INCOME",
+      amount: 2_100_000,
+      at: "2026-10-01T09:00:00Z",
+      category: "Sueldo",
+      description: "Sueldo octubre",
+    },
+    {
+      acct: "sight",
+      type: "INCOME",
+      amount: 180_000,
+      at: "2026-10-01T10:00:00Z",
+      category: "Otros",
+      description: "Transferencia desde cuenta corriente",
+    },
+    {
+      acct: "checking",
+      card: "debit",
+      type: "EXPENSE",
+      amount: 59_700,
+      at: "2026-10-01T19:15:00Z",
+      category: "Supermercado",
+      description: "Jumbo Costanera",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 36_800,
+      at: "2026-10-03T12:00:00Z",
+      category: "Servicios",
+      description: "Cuenta de luz · Enel",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 20_500,
+      at: "2026-10-03T12:05:00Z",
+      category: "Servicios",
+      description: "Cuenta de agua · Aguas Andinas",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 29_990,
+      at: "2026-10-04T10:00:00Z",
+      category: "Servicios",
+      description: "Internet · VTR",
+    },
+    {
+      acct: "creditBch",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 68_900,
+      at: "2026-10-05T20:00:00Z",
+      category: "Compras",
+      description: "Zapatillas · Paris",
+    },
+    {
+      acct: "checking",
+      card: "debit",
+      type: "EXPENSE",
+      amount: 43_600,
+      at: "2026-10-06T08:20:00Z",
+      category: "Transporte",
+      description: "Bencina · Copec",
+    },
+    {
+      acct: "creditVista",
+      card: "creditVista",
+      type: "EXPENSE",
+      amount: 29_300,
+      at: "2026-10-07T21:00:00Z",
+      category: "Restaurantes",
+      description: "Delivery · PedidosYa",
+    },
+    {
+      acct: "credit",
+      card: "credit",
+      type: "EXPENSE",
+      amount: 88_500,
+      at: "2026-10-08T18:30:00Z",
+      category: "Compras",
+      description: "Ropa de oficina · Falabella",
+    },
+    {
+      acct: "checking",
+      card: "debitSofia",
+      type: "EXPENSE",
+      amount: 24_100,
+      at: "2026-10-09T16:00:00Z",
+      category: "Entretención",
+      description: "Cine · Sofía",
+    },
+    {
+      acct: "cash",
+      type: "EXPENSE",
+      amount: 12_800,
+      at: "2026-10-10T11:30:00Z",
+      category: "Supermercado",
+      description: "Feria libre",
+    },
+    {
+      acct: "creditBch",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 74_000,
+      at: "2026-10-11T19:45:00Z",
+      category: "Salud",
+      description: "Control médico",
+    },
+    {
+      acct: "sight",
+      card: "debitVista",
+      type: "EXPENSE",
+      amount: 9_990,
+      at: "2026-10-12T09:30:00Z",
+      category: "Suscripciones",
+      description: "Spotify Familiar",
+    },
+    {
+      acct: "credit",
+      card: "creditCamila",
+      type: "EXPENSE",
+      amount: 48_600,
+      at: "2026-10-13T17:10:00Z",
+      category: "Compras",
+      description: "Falabella Plaza Egaña · Camila",
+    },
+    {
+      acct: "checking",
+      card: "debit",
+      type: "EXPENSE",
+      amount: 65_200,
+      at: "2026-10-14T19:00:00Z",
+      category: "Supermercado",
+      description: "Unimarc",
+    },
+    {
+      acct: "checking",
+      type: "INCOME",
+      amount: 275_000,
+      at: "2026-10-15T10:00:00Z",
+      category: "Otros",
+      description: "Proyecto freelance",
+    },
+    {
+      acct: "creditVista",
+      card: "creditVista",
+      type: "EXPENSE",
+      amount: 55_300,
+      at: "2026-10-16T15:00:00Z",
+      category: "Compras",
+      description: "Librería Antártica",
+    },
+    {
+      acct: "checking",
+      card: "debitRosa",
+      type: "EXPENSE",
+      amount: 19_900,
+      at: "2026-10-17T13:40:00Z",
+      category: "Transporte",
+      description: "Uber · Rosa",
+    },
+    {
+      acct: "credit",
+      card: "credit",
+      type: "EXPENSE",
+      amount: 33_700,
+      at: "2026-10-18T20:20:00Z",
+      category: "Restaurantes",
+      description: "Sushi Providencia",
+    },
+    {
+      acct: "creditBch",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 58_400,
+      at: "2026-10-19T18:00:00Z",
+      category: "Entretención",
+      description: "Concierto · Puntoticket",
+    },
+    {
+      acct: "cash",
+      type: "EXPENSE",
+      amount: 6_900,
+      at: "2026-10-20T12:00:00Z",
+      category: "Restaurantes",
+      description: "Café",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 620_000,
+      at: "2026-10-21T09:00:00Z",
+      category: "Vivienda",
+      description: "Arriendo octubre",
+    },
+    {
+      acct: "checking",
+      card: "debit",
+      type: "EXPENSE",
+      amount: 41_300,
+      at: "2026-10-24T17:00:00Z",
+      category: "Supermercado",
+      description: "Santa Isabel",
+    },
+    {
+      acct: "creditBch",
+      card: "creditBch",
+      type: "EXPENSE",
+      amount: 39_900,
+      at: "2026-10-27T14:00:00Z",
+      category: "Compras",
+      description: "Regalo cumpleaños",
+    },
+    {
+      acct: "cash",
+      type: "EXPENSE",
+      amount: 18_200,
+      at: "2026-10-29T19:00:00Z",
+      category: "Restaurantes",
+      description: "Cena Halloween",
+    },
+    {
+      acct: "checking",
+      type: "EXPENSE",
+      amount: 27_500,
+      at: "2026-10-31T20:00:00Z",
+      category: "Entretención",
+      description: "Streaming mensual",
     },
 
     // ==================== BCI: cuenta corriente + línea de crédito ====================
@@ -3064,90 +3532,186 @@ async function seedFullUser(passwordHash: string) {
   }
 
   // --- Debts (both directions; mix of cuotas, simple, settled, multi-currency) ---
-  await prisma.debt.createMany({
-    data: [
-      // OWED_TO_YOU — en cuotas (3/3 aún no pagadas todas → muestra progreso 1/3)
-      {
-        userId: javier.id,
-        direction: "OWED_TO_YOU",
-        counterparty: "María González",
-        principal: dec("120000.0000"),
-        currency: "CLP",
-        openedAt: new Date("2026-06-11T00:00:00Z"),
-        dueAt: new Date("2026-08-11T00:00:00Z"),
-        totalInstallments: 3,
-        paidInstallments: 1,
-        installmentAmount: dec("40000.0000"),
-        notes: "Préstamo en 3 cuotas",
-      },
-      // OWED_TO_YOU — deuda simple (1 cuota → botón "Marcar pagada")
-      {
-        userId: javier.id,
-        direction: "OWED_TO_YOU",
-        counterparty: "Pedro Soto",
-        principal: dec("45000.0000"),
-        currency: "CLP",
-        openedAt: new Date("2026-05-20T00:00:00Z"),
-        dueAt: new Date("2026-07-15T00:00:00Z"),
-        totalInstallments: 1,
-        paidInstallments: 0,
-        installmentAmount: null,
-      },
-      // OWED_TO_YOU — en USD (para mostrar KPI multi-moneda)
-      {
-        userId: javier.id,
-        direction: "OWED_TO_YOU",
-        counterparty: "Roberto (viaje NY)",
-        principal: dec("320.0000"),
-        currency: "USD",
-        openedAt: new Date("2026-06-01T00:00:00Z"),
-        totalInstallments: 1,
-        paidInstallments: 0,
-        installmentAmount: null,
-        notes: "Split vuelo NYC",
-      },
-      // YOU_OWE — en cuotas (2/4 pagadas → barra al 50%)
-      {
-        userId: javier.id,
-        direction: "YOU_OWE",
-        counterparty: "Tía Carmen",
-        principal: dec("200000.0000"),
-        currency: "CLP",
-        openedAt: new Date("2026-05-01T00:00:00Z"),
-        dueAt: new Date("2026-08-31T00:00:00Z"),
-        totalInstallments: 4,
-        paidInstallments: 2,
-        installmentAmount: dec("50000.0000"),
-        notes: "Préstamo familiar",
-      },
-      // YOU_OWE — en cuotas largas (0/6 pagadas → barra en cero)
-      {
-        userId: javier.id,
-        direction: "YOU_OWE",
-        counterparty: "Carlos (TV)",
-        principal: dec("150000.0000"),
-        currency: "CLP",
-        openedAt: new Date("2026-06-15T00:00:00Z"),
-        totalInstallments: 6,
-        paidInstallments: 0,
-        installmentAmount: dec("25000.0000"),
-      },
-      // YOU_OWE — saldada (no debe aparecer en lista activa)
-      {
-        userId: javier.id,
-        direction: "YOU_OWE",
-        counterparty: "Diego (arriendo)",
-        principal: dec("89500.0000"),
-        currency: "CLP",
-        openedAt: new Date("2026-04-01T00:00:00Z"),
-        dueAt: new Date("2026-05-15T00:00:00Z"),
-        totalInstallments: 1,
-        paidInstallments: 1,
-        installmentAmount: null,
-        settledAt: new Date("2026-05-14T00:00:00Z"),
-      },
-    ],
+  // `paymentAccountId` is the payment panel's DEFAULT suggestion (see CLAUDE.md's
+  // `debt` bullet) — most get a real account matching their own currency; one
+  // (Diego) is left WITHOUT one on purpose, to prove the "Sin cuenta" state still
+  // renders fine. Two of them (María, Tía Carmen) already have real instalments
+  // paid — since 2026-09-05 that means a real `Transaction` + balance move, not
+  // just the counter, so those are created individually (not `createMany`, which
+  // returns no ids) with their own linked movements below, mirroring exactly what
+  // `SettleDebtHandler`/`RegisterDebtPaymentHandler` do at runtime.
+  const debtMaria = await prisma.debt.create({
+    data: {
+      userId: javier.id,
+      direction: "OWED_TO_YOU",
+      counterparty: "María González",
+      principal: dec("120000.0000"),
+      currency: "CLP",
+      openedAt: new Date("2026-06-11T00:00:00Z"),
+      dueAt: new Date("2026-08-11T00:00:00Z"),
+      totalInstallments: 3,
+      paidInstallments: 1,
+      installmentAmount: dec("40000.0000"),
+      notes: "Préstamo en 3 cuotas",
+      paymentAccountId: checking.id,
+    },
   });
+
+  await prisma.debt.create({
+    data: {
+      userId: javier.id,
+      direction: "OWED_TO_YOU",
+      counterparty: "Pedro Soto",
+      principal: dec("45000.0000"),
+      currency: "CLP",
+      openedAt: new Date("2026-05-20T00:00:00Z"),
+      dueAt: new Date("2026-07-15T00:00:00Z"),
+      totalInstallments: 1,
+      paidInstallments: 0,
+      installmentAmount: null,
+      paymentAccountId: sight.id,
+    },
+  });
+
+  // OWED_TO_YOU — en USD (para mostrar KPI multi-moneda), enlazada a la única
+  // cuenta en USD del usuario.
+  await prisma.debt.create({
+    data: {
+      userId: javier.id,
+      direction: "OWED_TO_YOU",
+      counterparty: "Roberto (viaje NY)",
+      principal: dec("320.0000"),
+      currency: "USD",
+      openedAt: new Date("2026-06-01T00:00:00Z"),
+      totalInstallments: 1,
+      paidInstallments: 0,
+      installmentAmount: null,
+      notes: "Split vuelo NYC",
+      paymentAccountId: tenpo.id,
+    },
+  });
+
+  const debtCarmen = await prisma.debt.create({
+    data: {
+      userId: javier.id,
+      direction: "YOU_OWE",
+      counterparty: "Tía Carmen",
+      principal: dec("200000.0000"),
+      currency: "CLP",
+      openedAt: new Date("2026-05-01T00:00:00Z"),
+      dueAt: new Date("2026-08-31T00:00:00Z"),
+      totalInstallments: 4,
+      paidInstallments: 2,
+      installmentAmount: dec("50000.0000"),
+      notes: "Préstamo familiar",
+      paymentAccountId: checking.id,
+    },
+  });
+
+  await prisma.debt.create({
+    data: {
+      userId: javier.id,
+      direction: "YOU_OWE",
+      counterparty: "Carlos (TV)",
+      principal: dec("150000.0000"),
+      currency: "CLP",
+      openedAt: new Date("2026-06-15T00:00:00Z"),
+      totalInstallments: 6,
+      paidInstallments: 0,
+      installmentAmount: dec("25000.0000"),
+      paymentAccountId: cash.id,
+    },
+  });
+
+  // YOU_OWE — saldada (no debe aparecer en lista activa). Sin cuenta asociada a
+  // propósito: demuestra que "Sin cuenta" es un estado válido — y, por lo tanto,
+  // que `lastPaymentTransactionId` se queda en null (nada real que revertir con
+  // "Reabrir") tal como una deuda saldada antes de esta funcionalidad.
+  await prisma.debt.create({
+    data: {
+      userId: javier.id,
+      direction: "YOU_OWE",
+      counterparty: "Diego (arriendo)",
+      principal: dec("89500.0000"),
+      currency: "CLP",
+      openedAt: new Date("2026-04-01T00:00:00Z"),
+      dueAt: new Date("2026-05-15T00:00:00Z"),
+      totalInstallments: 1,
+      paidInstallments: 1,
+      installmentAmount: null,
+      settledAt: new Date("2026-05-14T00:00:00Z"),
+    },
+  });
+
+  // The real movements behind María's and Tía Carmen's already-paid instalments —
+  // same shape `RegisterDebtPaymentHandler` writes at runtime (an ordinary
+  // INCOME/EXPENSE on `checking`, category "Deudas"), so `checking`'s seeded
+  // balance has to account for them, exactly like the instalment-plan outflows
+  // above. Only the LAST one paid becomes each debt's `lastPaymentTransactionId`/
+  // `lastPaymentAccountId`/`lastPaymentAmount` — the one "Deshacer" would revert —
+  // mirroring the real handler's "only the most recent payment is undoable" rule.
+  let debtNetFlow = 0;
+
+  const mariaPaidAt = new Date("2026-07-11T00:00:00Z");
+  const mariaTx = await prisma.transaction.create({
+    data: {
+      userId: javier.id,
+      bankAccountId: checking.id,
+      type: "INCOME",
+      amount: dec("40000.0000"),
+      currency: "CLP",
+      occurredAt: mariaPaidAt,
+      category: "Deudas",
+      description: `${debtMaria.counterparty} · ${debtMaria.notes} · 1/3`,
+      debtId: debtMaria.id,
+    },
+  });
+  debtNetFlow += 40000;
+  await prisma.debt.update({
+    where: { id: debtMaria.id },
+    data: {
+      lastPaymentTransactionId: mariaTx.id,
+      lastPaymentAccountId: checking.id,
+      lastPaymentAmount: dec("40000.0000"),
+    },
+  });
+
+  let carmenLastTxId = "";
+  for (let seq = 1; seq <= 2; seq++) {
+    const paidAt = new Date("2026-06-01T00:00:00Z");
+    paidAt.setUTCMonth(paidAt.getUTCMonth() + (seq - 1));
+    const tx = await prisma.transaction.create({
+      data: {
+        userId: javier.id,
+        bankAccountId: checking.id,
+        type: "EXPENSE",
+        amount: dec("50000.0000"),
+        currency: "CLP",
+        occurredAt: paidAt,
+        category: "Deudas",
+        description: `${debtCarmen.counterparty} · ${debtCarmen.notes} · ${seq}/4`,
+        debtId: debtCarmen.id,
+      },
+    });
+    debtNetFlow -= 50000;
+    carmenLastTxId = tx.id;
+  }
+  await prisma.debt.update({
+    where: { id: debtCarmen.id },
+    data: {
+      lastPaymentTransactionId: carmenLastTxId,
+      lastPaymentAccountId: checking.id,
+      lastPaymentAmount: dec("50000.0000"),
+    },
+  });
+
+  if (debtNetFlow !== 0) {
+    const acc = await prisma.bankAccount.findUniqueOrThrow({ where: { id: checking.id } });
+    await prisma.bankAccount.update({
+      where: { id: checking.id },
+      data: { currentBalance: acc.currentBalance.plus(dec(debtNetFlow.toFixed(4))) },
+    });
+  }
 
   // --- Savings goals + entries ---
   const japan = await prisma.savingsGoal.create({

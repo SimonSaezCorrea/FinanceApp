@@ -1,3 +1,5 @@
+import type { debts } from "@finance/contracts";
+
 import type { IdempotentCommand } from "../../../../infra/cqrs/base-idempotent-command.handler";
 
 export class RegisterDebtPaymentCommand implements IdempotentCommand {
@@ -7,5 +9,6 @@ export class RegisterDebtPaymentCommand implements IdempotentCommand {
     public readonly userId: string,
     public readonly id: string,
     public readonly idempotencyKey: string,
+    public readonly input: debts.PayDebt,
   ) {}
 }

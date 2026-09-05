@@ -27,6 +27,10 @@ function makeDebt(overrides: Partial<Parameters<typeof Debt.fromPersistence>[0]>
     installmentAmount: null,
     frequency: "MONTHLY",
     frequencyInterval: 1,
+    paymentAccountId: null,
+    lastPaymentTransactionId: null,
+    lastPaymentAccountId: null,
+    lastPaymentAmount: null,
     createdAt: new Date("2026-01-01T00:00:00Z"),
     updatedAt: new Date("2026-01-02T00:00:00Z"),
     ...overrides,
@@ -71,9 +75,68 @@ describe("Debt.toContract", () => {
       installmentAmount: null,
       frequency: "MONTHLY",
       frequencyInterval: 1,
+      paymentAccountId: null,
+      lastPaymentTransactionId: null,
+      lastPaymentAccountId: null,
+      lastPaymentAmount: null,
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-02T00:00:00.000Z",
     });
+  });
+});
+
+describe("Debt.nextInstallmentAmount / pendingAmount", () => {
+  it("splits principal evenly when no installmentAmount was declared", () => {
+    const debt = makeDebt({ principal: "1200", totalInstallments: 3, paidInstallments: 0 });
+    expect(debt.nextInstallmentAmount()).toBe("400.0000");
+    expect(debt.pendingAmount()).toBe("1200.0000");
+  });
+
+  it("uses the declared installmentAmount over an even split", () => {
+    const debt = makeDebt({
+      principal: "1200",
+      totalInstallments: 3,
+      installmentAmount: "500",
+      paidInstallments: 1,
+    });
+    expect(debt.nextInstallmentAmount()).toBe("500.0000");
+    // Two of three remain, at 500 each.
+    expect(debt.pendingAmount()).toBe("1000.0000");
+  });
+
+  it("is the full principal for a single-payment debt", () => {
+    const debt = makeDebt({ principal: "45000", totalInstallments: 1, paidInstallments: 0 });
+    expect(debt.pendingAmount()).toBe("45000.0000");
+  });
+});
+
+describe("Debt payment record round-trip", () => {
+  it("settle() records the payment; unsettle() returns and clears it", () => {
+    const debt = makeDebt();
+    debt.settle({ transactionId: "tx1", accountId: "acc1", amount: "1240.5000" });
+    expect(debt.toContract().lastPaymentTransactionId).toBe("tx1");
+
+    const reversed = debt.unsettle();
+    expect(reversed).toEqual({ transactionId: "tx1", accountId: "acc1", amount: "1240.5000" });
+    expect(debt.toContract().lastPaymentTransactionId).toBeNull();
+  });
+
+  it("registerPayment() records the payment; undoPayment() returns and clears it", () => {
+    const debt = makeDebt({ totalInstallments: 3, paidInstallments: 0 });
+    debt.registerPayment({ transactionId: "tx1", accountId: "acc1", amount: "400.0000" });
+    expect(debt.toContract().lastPaymentAmount).toBe("400.0000");
+
+    const reversed = debt.undoPayment();
+    expect(reversed).toEqual({ transactionId: "tx1", accountId: "acc1", amount: "400.0000" });
+    expect(debt.toContract().lastPaymentAmount).toBeNull();
+  });
+
+  it("undoPayment()/unsettle() return null when nothing was recorded (a payment from before this feature)", () => {
+    const settled = makeDebt({ settledAt: new Date("2026-02-01T00:00:00Z") });
+    expect(settled.unsettle()).toBeNull();
+
+    const withInstallments = makeDebt({ totalInstallments: 3, paidInstallments: 2 });
+    expect(withInstallments.undoPayment()).toBeNull();
   });
 });
 

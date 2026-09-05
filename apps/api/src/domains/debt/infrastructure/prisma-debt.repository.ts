@@ -23,6 +23,10 @@ function rowToProps(row: DebtRow): DebtProps {
     installmentAmount: row.installmentAmount ? row.installmentAmount.toString() : null,
     frequency: row.frequency,
     frequencyInterval: row.frequencyInterval,
+    paymentAccountId: row.paymentAccountId,
+    lastPaymentTransactionId: row.lastPaymentTransactionId,
+    lastPaymentAccountId: row.lastPaymentAccountId,
+    lastPaymentAmount: row.lastPaymentAmount ? row.lastPaymentAmount.toString() : null,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -62,6 +66,10 @@ export class PrismaDebtRepository implements DebtRepositoryPort {
       installmentAmount: plan.installmentAmount,
       frequency: plan.frequency,
       frequencyInterval: plan.frequencyInterval,
+      paymentAccountId: plan.paymentAccountId,
+      lastPaymentTransactionId: plan.lastPaymentTransactionId,
+      lastPaymentAccountId: plan.lastPaymentAccountId,
+      lastPaymentAmount: plan.lastPaymentAmount,
     };
     const row = await this.prisma.debt.create({ data });
     return Debt.fromPersistence(rowToProps(row));
@@ -78,7 +86,7 @@ export class PrismaDebtRepository implements DebtRepositoryPort {
   async saveWithTx(tx: unknown, aggregate: Debt): Promise<void> {
     const client = tx as PrismaService;
     const snap = aggregate.snapshot();
-    const data: Prisma.DebtUpdateInput = {
+    const data: Prisma.DebtUncheckedUpdateInput = {
       direction: snap.direction,
       counterparty: snap.counterparty,
       principal: snap.principal,
@@ -93,6 +101,10 @@ export class PrismaDebtRepository implements DebtRepositoryPort {
       installmentAmount: snap.installmentAmount,
       frequency: snap.frequency,
       frequencyInterval: snap.frequencyInterval,
+      paymentAccountId: snap.paymentAccountId,
+      lastPaymentTransactionId: snap.lastPaymentTransactionId,
+      lastPaymentAccountId: snap.lastPaymentAccountId,
+      lastPaymentAmount: snap.lastPaymentAmount,
     };
     await client.debt.updateMany({ where: { id: snap.id, userId: snap.userId }, data });
   }

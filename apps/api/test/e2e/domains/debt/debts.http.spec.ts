@@ -24,6 +24,7 @@ describe("Debts HTTP (e2e)", () => {
   const password = "Sup3rSecret!";
   let cookies: string[] = [];
   let debtId: string;
+  let accountId: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -38,6 +39,18 @@ describe("Debts HTTP (e2e)", () => {
       .post("/api/v1/auth/register")
       .send({ email, password, name: "E2E Debts User" });
     cookies = registerRes.get("Set-Cookie") ?? [];
+
+    const accountRes = await request(app.getHttpServer())
+      .post("/api/v1/accounts")
+      .set("Cookie", cookies)
+      .send({
+        name: "Cuenta Corriente",
+        type: "CHECKING",
+        currency: "USD",
+        accountNumber: "1234",
+        initialBalance: "0",
+      });
+    accountId = accountRes.body.id;
   });
 
   afterAll(async () => {
@@ -77,23 +90,59 @@ describe("Debts HTTP (e2e)", () => {
     expect(res.body.error.code).toBe("DEBT_NOT_FOUND");
   });
 
-  it("registers a payment", async () => {
+  it("returns VALIDATION_ERROR when register-payment is called without an accountId", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/debts/${debtId}/register-payment`)
       .set("Cookie", cookies)
-      .set("Idempotency-Key", randomUUID());
+      .set("Idempotency-Key", randomUUID())
+      .send({});
+    expect(res.status).toBe(400);
+  });
+
+  it("registers a payment and records a real movement on the account", async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/debts/${debtId}/register-payment`)
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({ accountId });
     expect(res.status).toBe(200);
     expect(res.body.paidInstallments).toBe(1);
     expect(res.body.settledAt).toBeNull();
+    expect(res.body.lastPaymentTransactionId).not.toBeNull();
+    expect(res.body.lastPaymentAccountId).toBe(accountId);
+    // YOU_OWE, no installmentAmount: one instalment = 1200 / 3 = 400, an EXPENSE.
+    expect(res.body.lastPaymentAmount).toBe("400.0000");
+
+    // The movement itself is traceable back to this debt (specs conversation
+    // "¿No genera movimiento marcarla como pagada?" → Movements' "Origen").
+    const listRes = await request(app.getHttpServer())
+      .get("/api/v1/transactions")
+      .set("Cookie", cookies);
+    const movement = listRes.body.items.find(
+      (t: { id: string }) => t.id === res.body.lastPaymentTransactionId,
+    );
+    expect(movement).toBeDefined();
+    expect(movement.debtId).toBe(debtId);
+
+    const accountRes = await request(app.getHttpServer())
+      .get(`/api/v1/accounts/${accountId}`)
+      .set("Cookie", cookies);
+    expect(accountRes.body.currentBalance).toBe("-400.0000");
   });
 
-  it("undoes the payment", async () => {
+  it("undoes the payment and reverses the movement", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/debts/${debtId}/undo-payment`)
       .set("Cookie", cookies)
       .set("Idempotency-Key", randomUUID());
     expect(res.status).toBe(200);
     expect(res.body.paidInstallments).toBe(0);
+    expect(res.body.lastPaymentTransactionId).toBeNull();
+
+    const accountRes = await request(app.getHttpServer())
+      .get(`/api/v1/accounts/${accountId}`)
+      .set("Cookie", cookies);
+    expect(accountRes.body.currentBalance).toBe("0.0000");
   });
 
   it("returns NO_PAYMENTS_TO_UNDO when undoing with nothing paid", async () => {
@@ -105,35 +154,49 @@ describe("Debts HTTP (e2e)", () => {
     expect(res.body.error.code).toBe("NO_PAYMENTS_TO_UNDO");
   });
 
-  it("settles the debt directly", async () => {
+  it("settles the debt directly and records the full remaining amount", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/debts/${debtId}/settle`)
       .set("Cookie", cookies)
-      .set("Idempotency-Key", randomUUID());
+      .set("Idempotency-Key", randomUUID())
+      .send({ accountId });
     expect(res.status).toBe(204);
 
     const getRes = await request(app.getHttpServer())
       .get(`/api/v1/debts/${debtId}`)
       .set("Cookie", cookies);
     expect(getRes.body.settledAt).not.toBeNull();
+    expect(getRes.body.lastPaymentAmount).toBe("1200.0000");
+
+    const accountRes = await request(app.getHttpServer())
+      .get(`/api/v1/accounts/${accountId}`)
+      .set("Cookie", cookies);
+    expect(accountRes.body.currentBalance).toBe("-1200.0000");
   });
 
   it("returns DEBT_ALREADY_SETTLED when registering a payment on a settled debt", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/debts/${debtId}/register-payment`)
       .set("Cookie", cookies)
-      .set("Idempotency-Key", randomUUID());
+      .set("Idempotency-Key", randomUUID())
+      .send({ accountId });
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("DEBT_ALREADY_SETTLED");
   });
 
-  it("unsettles the debt", async () => {
+  it("unsettles the debt and reverses the recorded movement", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/debts/${debtId}/unsettle`)
       .set("Cookie", cookies)
       .set("Idempotency-Key", randomUUID());
     expect(res.status).toBe(200);
     expect(res.body.settledAt).toBeNull();
+    expect(res.body.lastPaymentTransactionId).toBeNull();
+
+    const accountRes = await request(app.getHttpServer())
+      .get(`/api/v1/accounts/${accountId}`)
+      .set("Cookie", cookies);
+    expect(accountRes.body.currentBalance).toBe("0.0000");
   });
 
   it("returns DEBT_NOT_SETTLED when unsettling an already-open debt", async () => {

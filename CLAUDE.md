@@ -700,6 +700,24 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     both legs are real rows each account must see), and mirrored on the web by `excludeTransfers`
     (`domains/dashboard/lib/metrics.ts`, used by `monthFlow` + `expensesByCategory`). **Any new
     income/expense aggregate must apply it.**
+    Amendment (movement provenance, 2026-09-05): answers "quiero ver de dónde viene un
+    movimiento" — `Transaction` gains **`debtId`** (nullable FK → `Debt`, `onDelete: SetNull`),
+    set by `RegisterDebtPaymentHandler`/`SettleDebtHandler` the same way `installmentPlanId` is
+    set by their `installment-plan` counterparts. A new contract helper,
+    **`transactions.sourceOf(t)`**, derives WHERE a movement came from purely from fields already
+    on the row (never stored on its own, so it can't drift): `TRANSFER` (`transferGroupId` set) →
+    `INSTALLMENT_INTEREST` (`installmentPlanId` + `financeCharge`) → `INSTALLMENT`
+    (`installmentPlanId` alone) → `FINANCE_CHARGE` (`financeCharge` with no plan — an issuer
+    charge on the account itself) → `DEBT` (`debtId`) → `MANUAL` (none of the above — also covers
+    anything from `import`, which sets no marker of its own). Web:
+    `TransactionDetailPanel` gained an "Origen" row (a `Badge` for the kind, plus a "Ver
+    plan"/"Ver deuda" link to `/installments`/`/debts` when the source names one) — deliberately
+    NOT added to `TransactionTable`'s row or to `GET /transactions/summary`, both of which stay
+    unchanged; this is a single-movement detail concern. **Not modelled**: a statement payment
+    (`CreditStatement.paidTransactionId`) has no equivalent `sourceOf` case — detecting it would
+    need a join `sourceOf` deliberately avoids (it only reads fields already on the `Transaction`
+    row); today it's told apart only by its own `category: "Pago facturación"`, same as before
+    this amendment. No migration (`db push`).
   - **transaction-attachment** (specs/010, domain 22): `TransactionAttachment` (table
     `transaction-attachment`) = a receipt/voucher file on a movement — `storageKey` (`@unique`,
     `u/<userId>/t/<txId>/<attachmentId>-<slug>`, derived from the id so two files named alike
@@ -722,6 +740,38 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     creating a movement are held in memory (validated locally by type and size) and uploaded as soon
     as `POST /transactions` returns an id; one that fails stays listed with **Reintentar**.
   - **recurring-expense**: `RecurringExpense` (subscriptions/rent/periodic payments) — `frequency` (`RecurrenceFrequency`: WEEKLY/MONTHLY/YEARLY), `interval`, `anchorDate`, optional `bankAccountId`/`category`, `active`. The contract exposes a computed `nextDueAt` (anchor stepped forward by frequency × interval). CRUD at `/recurring`.
+  - **debt** (person-to-person debts, "Deudas"): `Debt` gains **`paymentAccountId`** (nullable FK → `BankAccount`, `onDelete: SetNull`) — the payment panel's DEFAULT suggestion for which account a payment moves on. Ownership-verified before persisting (create/update, via the lightweight `BankAccountLookupPort.accountOwned`, same pattern `recurring-expense` uses) — `AccountNotFoundError` if the id isn't the caller's own. `null`/absent is valid (a debt need not name one). Web: `DebtFormPanel` has a "Cuenta asociada" row (`SearchableSelect`, explicit "Sin cuenta" `""` option); `DebtDetailPanel` shows the linked account's name/type/institution/number when set.
+    Amendment (settle/register-payment move real money, 2026-09-05): answers "¿No genera
+    movimiento marcarla como pagada?" — **`POST /debts/:id/settle` and `/register-payment` now
+    require a body** (`payDebtSchema`: `{accountId, paidAt?}`, both endpoints) and each creates a
+    real `Transaction` + moves the account's `currentBalance`, exactly like `installment-plan`'s
+    own pay endpoint: an **INCOME** on an `OWED_TO_YOU` debt (someone paid you back), an
+    **EXPENSE** on `YOU_OWE` (you paid). The amount is never sent by the client — it's derived
+    server-side from the debt's own schedule (`Debt.nextInstallmentAmount()` for
+    `register-payment`, one instalment's worth; `Debt.pendingAmount()` for `settle`, everything
+    still owed — covers both a single-payment debt and the last instalment of one in cuotas,
+    which the frontend already routes to `settle` instead of `register-payment`). Three new
+    bookkeeping columns — **`lastPaymentTransactionId`/`lastPaymentAccountId`/`lastPaymentAmount`**
+    (plain strings/Decimal, deliberately NOT FKs: the pointed-at account/transaction may later be
+    deleted, and the record should survive that) — record exactly what a payment moved, so
+    **`undoPayment`/`unsettle` reverse it**: they delete the `Transaction` and move the balance
+    back by the same amount, opposite direction. A debt paid before this amendment existed has
+    nothing recorded (`Debt.undoPayment()`/`unsettle()` return `null` then) — only the
+    counter/date moves, same as before; this is what makes the feature backward-compatible with
+    already-seeded/production data with no migration needed beyond `db push`. Two new domain
+    errors: **`DEBT_PAYMENT_CURRENCY_MISMATCH`** (this app has no FX conversion — the account's
+    currency must equal the debt's own) and **`DEBT_PAYMENT_FROM_CREDIT_ACCOUNT`** (settling debt
+    with debt makes no sense — mirrors `installment-plan`'s own
+    `INSTALLMENT_PAYMENT_FROM_CREDIT_ACCOUNT`). Movement-policy checks
+    (`assertWithinPrepaidBalance`/`assertWithinOverdraft`/`assertWithinCeiling`) apply exactly as
+    they do to any other movement. Web: `DebtPayPanel`'s account selector — previously
+    documented as "local UI state only, never sent to the API" — is now genuinely required and
+    filtered to eligible accounts (`currency === debt.currency && type !== "CREDIT_CARD"`), and
+    its choice IS what `confirmPay` sends as `accountId`; `DebtsRoute.openPay`'s default now only
+    ever offers an eligible account (`debt.paymentAccountId` first, falling back to the first
+    eligible one) instead of the previous simple currency-matching heuristic; the four
+    money-moving mutations now also invalidate `["accounts"]`/`["transactions"]`, not just
+    `["debts"]`.
   - **reference tables** (`country`, `currency`, `country-currency`, `country-identifier-type`, `financial-institution`, `institution-account-type` — one domain each since the one-table-one-domain amendment; global read-only, authed but not user-scoped): `Country` (table `country`, ISO 3166-1 `alpha2`/`alpha3`/`numeric` unique + name), `FinancialInstitution` (table `financial-institution`, **banks + non-bank card issuers** via `kind` `InstitutionKind` BANK/NON_BANK_ISSUER/COOPERATIVE/PAYMENT_PROVIDER/FUND_MANAGER; `code` = SBIF/CMF or código institucional `@@unique([countryId,code])`, `name`, `category` `BankCategory?` ESTABLISHED/FOREIGN_BRANCH/STATE (banks only — unused at runtime, kept for grouping the picker as the catalogue grows past Chile), `brands String[]`, `notes`, FK→Country; **`rut` was dropped** — `code` is the identifier), `Currency` (table `currency`, **ISO 4217** `code` unique + `numeric` + name), and `CountryCurrency` join (`isPrimary`). Endpoints `GET /countries`, `GET /institutions?country=CL&kind=BANK&accountType=PREPAID`, `GET /currencies` (ordered by name). Seeded idempotently in `prisma/seed.ts` (`seedReferenceData`), **acotado al MVP** (`docs/MVP.md`): **1 país (CL)**, 58 instituciones chilenas (18 bancos + 15 emisores prepago + 6 emisores solo-crédito + 7 cooperativas + 12 AGF) y **3 monedas: CLP, USD y CLF (la UF)**. El seed además **borra** países, monedas e instituciones fuera de esa lista, para que una base sembrada antes converja al catálogo del MVP. El modelo sigue siendo multi-país (FK, filtro `?country=`, formatos de número de cuenta); lo acotado es la data. El catálogo argentino retirado y las reglas por mercado están en `docs/CATALOGO_REGIONAL.md`.
     **`InstitutionAccountType`** (table `institution-account-type`, join `institutionId` + `type`
     `AccountType` + `isPrimary`, `@@unique([institutionId,type])`, `onDelete: Cascade`) = **which

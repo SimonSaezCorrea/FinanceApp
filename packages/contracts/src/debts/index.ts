@@ -25,10 +25,32 @@ export const debtSchema = z.object({
   installmentAmount: moneyString.nullable(),
   frequency: installmentFrequency,
   frequencyInterval: z.number().int().positive(),
+  /** The bank account this debt is associated with — the default account
+   * `register-payment`/`settle`'s own `accountId` body field suggests; the
+   * caller may pick a different one at payment time. */
+  paymentAccountId: rowId.nullable(),
+  /** What `register-payment`/`settle` most recently did to a real account —
+   * null on a debt with no payment yet (or one paid before this existed).
+   * `undoPayment`/`unsettle` reverse exactly this movement when it is set. */
+  lastPaymentTransactionId: rowId.nullable(),
+  lastPaymentAccountId: rowId.nullable(),
+  lastPaymentAmount: moneyString.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 export type Debt = z.infer<typeof debtSchema>;
+
+/** Body for `POST /debts/:id/register-payment` and `/settle` — both now move
+ * real money (INCOME on an `OWED_TO_YOU` debt, EXPENSE on `YOU_OWE`) out of
+ * or into a real account, so both require one. The amount is never supplied
+ * here: it is derived server-side (one instalment's worth for
+ * register-payment, everything still owed for settle) from the debt's own
+ * schedule, the same figures the "Registrar abono" panel already previews. */
+export const payDebtSchema = z.object({
+  accountId: rowId,
+  paidAt: z.string().datetime().optional(),
+});
+export type PayDebt = z.infer<typeof payDebtSchema>;
 
 export const createDebtSchema = z.object({
   direction: debtDirection,
@@ -43,6 +65,7 @@ export const createDebtSchema = z.object({
   installmentAmount: moneyString.optional(),
   frequency: installmentFrequency.default("MONTHLY"),
   frequencyInterval: z.number().int().min(1).max(999).default(1),
+  paymentAccountId: rowId.nullable().optional(),
 });
 export type CreateDebt = z.infer<typeof createDebtSchema>;
 

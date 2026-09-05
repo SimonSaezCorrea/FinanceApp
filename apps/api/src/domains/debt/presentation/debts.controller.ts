@@ -78,10 +78,11 @@ export class DebtsController {
   async settle(
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(debtIdParamsSchema)) params: { id: string },
+    @Body(new ZodValidationPipe(debts.payDebtSchema)) body: debts.PayDebt,
     @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<void> {
     const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
-    await this.commandBus.execute(new SettleDebtCommand(user.id, params.id, idempotencyKey));
+    await this.commandBus.execute(new SettleDebtCommand(user.id, params.id, idempotencyKey, body));
   }
 
   @Post(":id/unsettle")
@@ -100,11 +101,12 @@ export class DebtsController {
   registerPayment(
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(debtIdParamsSchema)) params: { id: string },
+    @Body(new ZodValidationPipe(debts.payDebtSchema)) body: debts.PayDebt,
     @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<debts.Debt> {
     const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
     return this.commandBus.execute(
-      new RegisterDebtPaymentCommand(user.id, params.id, idempotencyKey),
+      new RegisterDebtPaymentCommand(user.id, params.id, idempotencyKey, body),
     );
   }
 

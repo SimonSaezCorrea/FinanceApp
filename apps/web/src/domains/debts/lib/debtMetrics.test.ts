@@ -2,7 +2,14 @@ import { describe, expect, it } from "vitest";
 
 import type { debts } from "@finance/contracts";
 
-import { calcRemaining, summarizeDebtsByCurrency } from "./debtMetrics";
+import {
+  calcRemaining,
+  dueInfo,
+  isOverdue,
+  leftAmount,
+  summarizeDebts,
+  summarizeDebtsByCurrency,
+} from "./debtMetrics";
 
 function makeDebt(overrides: Partial<debts.Debt> = {}): debts.Debt {
   return {
@@ -21,6 +28,10 @@ function makeDebt(overrides: Partial<debts.Debt> = {}): debts.Debt {
     installmentAmount: null,
     frequency: "MONTHLY",
     frequencyInterval: 1,
+    paymentAccountId: null,
+    lastPaymentTransactionId: null,
+    lastPaymentAccountId: null,
+    lastPaymentAmount: null,
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
     ...overrides,
@@ -115,5 +126,102 @@ describe("calcRemaining", () => {
       principal: "50000.0000",
     });
     expect(calcRemaining(debt)).toBe("50000.0000");
+  });
+});
+
+describe("leftAmount", () => {
+  it("is zero once the debt is settled, regardless of the instalment counter", () => {
+    const debt = makeDebt({
+      totalInstallments: 6,
+      paidInstallments: 2,
+      settledAt: "2026-02-01T00:00:00.000Z",
+    });
+    expect(leftAmount(debt)).toBe("0.0000");
+  });
+
+  it("falls back to calcRemaining while still open", () => {
+    const debt = makeDebt({ totalInstallments: 4, paidInstallments: 1, principal: "400.0000" });
+    expect(leftAmount(debt)).toBe(calcRemaining(debt));
+  });
+});
+
+describe("isOverdue", () => {
+  const now = new Date("2026-03-15T00:00:00.000Z");
+
+  it("is true for an open debt whose due date already passed", () => {
+    const debt = makeDebt({ dueAt: "2026-03-01T00:00:00.000Z" });
+    expect(isOverdue(debt, now)).toBe(true);
+  });
+
+  it("is false once the debt is settled, even past its due date", () => {
+    const debt = makeDebt({
+      dueAt: "2026-03-01T00:00:00.000Z",
+      settledAt: "2026-03-05T00:00:00.000Z",
+    });
+    expect(isOverdue(debt, now)).toBe(false);
+  });
+
+  it("is false with no due date at all", () => {
+    expect(isOverdue(makeDebt({ dueAt: null }), now)).toBe(false);
+  });
+});
+
+describe("dueInfo", () => {
+  const now = new Date("2026-03-15T00:00:00.000Z");
+
+  it("reports days remaining for a future date", () => {
+    expect(dueInfo("2026-03-26T00:00:00.000Z", now)).toEqual({ overdue: false, days: 11 });
+  });
+
+  it("reports days elapsed for a past date", () => {
+    expect(dueInfo("2026-03-03T00:00:00.000Z", now)).toEqual({ overdue: true, days: 12 });
+  });
+
+  it("returns no days at all when there is no date", () => {
+    expect(dueInfo(null, now)).toEqual({ overdue: false, days: null });
+  });
+});
+
+describe("summarizeDebts", () => {
+  const now = new Date("2026-03-15T00:00:00.000Z");
+
+  it("computes youOwe/owedYou/net/oweSharePct/overdueSum per currency", () => {
+    const list = [
+      makeDebt({
+        direction: "YOU_OWE",
+        principal: "3000.0000",
+        currency: "CLP",
+        dueAt: "2026-03-01T00:00:00.000Z", // overdue
+      }),
+      makeDebt({ direction: "OWED_TO_YOU", principal: "1000.0000", currency: "CLP" }),
+    ];
+    const [summary] = summarizeDebts(list, now);
+    expect(summary).toEqual({
+      currency: "CLP",
+      youOwe: "3000.0000",
+      owedYou: "1000.0000",
+      net: "-2000.0000",
+      oweSharePct: 75,
+      overdueSum: "3000.0000",
+    });
+  });
+
+  it("excludes settled debts entirely", () => {
+    const list = [
+      makeDebt({
+        direction: "YOU_OWE",
+        principal: "500.0000",
+        settledAt: "2026-01-10T00:00:00.000Z",
+      }),
+    ];
+    expect(summarizeDebts(list, now)).toEqual([]);
+  });
+
+  it("returns 0% share when nothing circulates for a currency", () => {
+    // Can't happen via the same currency (an empty group has no entry at
+    // all), but a single active debt still exercises the non-zero branch.
+    const list = [makeDebt({ direction: "OWED_TO_YOU", principal: "100.0000", currency: "USD" })];
+    const [summary] = summarizeDebts(list, now);
+    expect(summary!.oweSharePct).toBe(0);
   });
 });

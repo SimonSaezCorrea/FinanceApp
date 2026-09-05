@@ -26,6 +26,7 @@ describe("POST /debts/:id/register-payment — concurrent distinct attempts (int
   const password = "Sup3rSecret!";
   let cookies: string[] = [];
   let debtId: string;
+  let accountId: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -40,6 +41,18 @@ describe("POST /debts/:id/register-payment — concurrent distinct attempts (int
       .post("/api/v1/auth/register")
       .send({ email, password, name: "Debt race test" });
     cookies = registerRes.get("Set-Cookie") ?? [];
+
+    const accountRes = await request(app.getHttpServer())
+      .post("/api/v1/accounts")
+      .set("Cookie", cookies)
+      .send({
+        name: "Cuenta Corriente",
+        type: "CHECKING",
+        currency: "CLP",
+        accountNumber: "1234",
+        initialBalance: "0",
+      });
+    accountId = accountRes.body.id;
   });
 
   afterEach(async () => {
@@ -75,7 +88,8 @@ describe("POST /debts/:id/register-payment — concurrent distinct attempts (int
         request(app.getHttpServer())
           .post(`/api/v1/debts/${debtId}/register-payment`)
           .set("Cookie", cookies)
-          .set("Idempotency-Key", randomUUID()),
+          .set("Idempotency-Key", randomUUID())
+          .send({ accountId }),
       ),
     );
 

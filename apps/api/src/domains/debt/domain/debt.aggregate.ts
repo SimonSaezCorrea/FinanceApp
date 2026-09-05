@@ -1,5 +1,5 @@
 import type { debts } from "@finance/contracts";
-import { moneyToString } from "@finance/money";
+import { moneyToString, toMoney } from "@finance/money";
 
 import {
   AllInstallmentsPaidError,
@@ -8,6 +8,20 @@ import {
   NoPaymentsToUndoError,
   TotalInstallmentsBelowPaidError,
 } from "./errors";
+
+/** What a successful `settle()`/`registerPayment()` moved on a real account —
+ * `undoPayment()`/`unsettle()` read it back to reverse exactly that. */
+export interface DebtPaymentRecord {
+  transactionId: string;
+  accountId: string;
+  /** moneyString, in the ACCOUNT's currency. */
+  amount: string;
+}
+
+/** What `undoPayment()`/`unsettle()` need reversed — null when the debt had
+ * no real-money payment recorded to begin with (created before this feature,
+ * or never paid). */
+export type ReversedPayment = DebtPaymentRecord | null;
 
 export interface DebtProps {
   id: string;
@@ -26,6 +40,12 @@ export interface DebtProps {
   installmentAmount: string | null;
   frequency: debts.Debt["frequency"];
   frequencyInterval: number;
+  /** The payment panel's default suggestion — see the contract. */
+  paymentAccountId: string | null;
+  /** See `DebtPaymentRecord`. */
+  lastPaymentTransactionId: string | null;
+  lastPaymentAccountId: string | null;
+  lastPaymentAmount: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +63,7 @@ export type DebtPatch = Partial<{
   installmentAmount: string | null;
   frequency: debts.Debt["frequency"];
   frequencyInterval: number;
+  paymentAccountId: string | null;
 }>;
 
 /** A brand-new debt, as planned by `Debt.planCreation` — no `id`/`userId`/
@@ -97,6 +118,7 @@ export class Debt {
     installmentAmount?: string;
     frequency: debts.Debt["frequency"];
     frequencyInterval: number;
+    paymentAccountId?: string | null;
   }): PlannedDebt {
     return {
       direction: input.direction,
@@ -113,6 +135,10 @@ export class Debt {
       installmentAmount: input.installmentAmount ?? null,
       frequency: input.frequency,
       frequencyInterval: input.frequencyInterval,
+      paymentAccountId: input.paymentAccountId ?? null,
+      lastPaymentTransactionId: null,
+      lastPaymentAccountId: null,
+      lastPaymentAmount: null,
     };
   }
 
@@ -130,6 +156,31 @@ export class Debt {
   }
   get totalInstallments(): number {
     return this.props.totalInstallments;
+  }
+  get direction(): debts.DebtDirection {
+    return this.props.direction;
+  }
+  get currency(): string {
+    return this.props.currency;
+  }
+
+  /** One instalment's worth — `installmentAmount` when the schedule declared
+   * one, otherwise `principal` split evenly. Same figure the "Registrar
+   * abono" panel already previews before confirming. */
+  nextInstallmentAmount(): string {
+    return moneyToString(
+      this.props.installmentAmount ??
+        toMoney(this.props.principal).dividedBy(this.props.totalInstallments),
+    );
+  }
+
+  /** Everything still owed right now: the instalments not yet paid, at one
+   * instalment's worth each. What `settle()` moves — whether this debt has
+   * never had an instalment (a single payment) or is having its last one
+   * paid off in one shot. */
+  pendingAmount(): string {
+    const remaining = this.props.totalInstallments - this.props.paidInstallments;
+    return moneyToString(toMoney(this.nextInstallmentAmount()).times(Math.max(remaining, 0)));
   }
 
   /** Apply a partial patch to the debt's own scalar fields. */
@@ -153,26 +204,37 @@ export class Debt {
     if (patch.frequency !== undefined) this.props.frequency = patch.frequency;
     if (patch.frequencyInterval !== undefined)
       this.props.frequencyInterval = patch.frequencyInterval;
+    if (patch.paymentAccountId !== undefined) this.props.paymentAccountId = patch.paymentAccountId;
   }
 
   /** Marks the debt settled — `DEBT_ALREADY_SETTLED` if it already was,
-   * rather than silently re-stamping `settledAt` to a fresh timestamp. */
-  settle(): void {
+   * rather than silently re-stamping `settledAt` to a fresh timestamp.
+   * `payment`, when given, is the real movement this settle produced
+   * (`pendingAmount()`'s worth, moved on `payment.accountId`) — recorded so
+   * `unsettle()` can reverse it. Omitted by a caller with nothing to move
+   * (kept optional so the aggregate's own unit tests can call this bare). */
+  settle(payment?: DebtPaymentRecord): void {
     if (this.props.settledAt !== null) throw new DebtAlreadySettledError();
     this.props.settledAt = new Date();
+    if (payment) this.recordPayment(payment);
   }
 
   /** Reverts a settled debt back to open — `DEBT_NOT_SETTLED` if it wasn't
-   * settled to begin with. */
-  unsettle(): void {
+   * settled to begin with. Returns whatever real movement `settle()` (or the
+   * `registerPayment()` that auto-settled it) recorded, for the caller to
+   * reverse — null when there was none. */
+  unsettle(): ReversedPayment {
     if (this.props.settledAt === null) throw new DebtNotSettledError();
     this.props.settledAt = null;
+    return this.takePaymentRecord();
   }
 
   /** Registers one more paid installment — `DEBT_ALREADY_SETTLED` if already
    * settled, `ALL_INSTALLMENTS_PAID` if the schedule is already complete;
-   * auto-settles once the last installment is registered. */
-  registerPayment(): void {
+   * auto-settles once the last installment is registered. `payment`, when
+   * given, is the real movement this call produced (`nextInstallmentAmount()`'s
+   * worth) — recorded so `undoPayment()` can reverse it. */
+  registerPayment(payment?: DebtPaymentRecord): void {
     if (this.props.settledAt !== null) throw new DebtAlreadySettledError();
     if (this.props.paidInstallments >= this.props.totalInstallments) {
       throw new AllInstallmentsPaidError();
@@ -181,20 +243,44 @@ export class Debt {
     if (this.props.paidInstallments === this.props.totalInstallments) {
       this.props.settledAt = new Date();
     }
+    if (payment) this.recordPayment(payment);
   }
 
   /** Reverts the most recent payment — `NO_PAYMENTS_TO_UNDO` if none were
    * registered; clears `settledAt` only when the undone payment is the one
    * that completed the schedule and thereby auto-settled it (a debt settled
    * manually while not fully paid is a separate fact this payment did not
-   * cause). */
-  undoPayment(): void {
+   * cause). Returns whatever real movement that payment recorded, for the
+   * caller to reverse — null when there was none. */
+  undoPayment(): ReversedPayment {
     if (this.props.paidInstallments === 0) throw new NoPaymentsToUndoError();
     const completedTheSchedule = this.props.paidInstallments === this.props.totalInstallments;
     this.props.paidInstallments -= 1;
     if (completedTheSchedule && this.props.settledAt !== null) {
       this.props.settledAt = null;
     }
+    return this.takePaymentRecord();
+  }
+
+  private recordPayment(payment: DebtPaymentRecord): void {
+    this.props.lastPaymentTransactionId = payment.transactionId;
+    this.props.lastPaymentAccountId = payment.accountId;
+    this.props.lastPaymentAmount = payment.amount;
+  }
+
+  /** Reads back and clears whatever `recordPayment` last stored — "take" so a
+   * second undo/unsettle of the SAME payment can't reverse it twice. */
+  private takePaymentRecord(): ReversedPayment {
+    const { lastPaymentTransactionId, lastPaymentAccountId, lastPaymentAmount } = this.props;
+    if (!lastPaymentTransactionId || !lastPaymentAccountId || !lastPaymentAmount) return null;
+    this.props.lastPaymentTransactionId = null;
+    this.props.lastPaymentAccountId = null;
+    this.props.lastPaymentAmount = null;
+    return {
+      transactionId: lastPaymentTransactionId,
+      accountId: lastPaymentAccountId,
+      amount: lastPaymentAmount,
+    };
   }
 
   snapshot(): Readonly<DebtProps> {
@@ -220,6 +306,12 @@ export class Debt {
         : null,
       frequency: this.props.frequency,
       frequencyInterval: this.props.frequencyInterval,
+      paymentAccountId: this.props.paymentAccountId,
+      lastPaymentTransactionId: this.props.lastPaymentTransactionId,
+      lastPaymentAccountId: this.props.lastPaymentAccountId,
+      lastPaymentAmount: this.props.lastPaymentAmount
+        ? moneyToString(this.props.lastPaymentAmount)
+        : null,
       createdAt: this.props.createdAt.toISOString(),
       updatedAt: this.props.updatedAt.toISOString(),
     };

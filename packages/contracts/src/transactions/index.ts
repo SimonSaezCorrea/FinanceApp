@@ -34,6 +34,9 @@ export const transactionSchema = z.object({
    * enum deliberately does NOT grow a TRANSFER value, so use `isTransfer`.
    */
   transferGroupId: rowId.nullable(),
+  /** The `Debt` this movement pays — set by `register-payment`/`settle`, the same
+   * way `installmentPlanId` is set by an instalment payment. */
+  debtId: rowId.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -42,6 +45,37 @@ export type Transaction = z.infer<typeof transactionSchema>;
 /** A movement is a transfer leg when it carries a group id. */
 export function isTransfer(t: Pick<Transaction, "transferGroupId">): boolean {
   return t.transferGroupId != null;
+}
+
+/**
+ * Where a movement came from — derived from the fields already on the row,
+ * never stored on its own (so it can't drift from the fields it reads). Used
+ * by the Movements detail view to answer "¿de dónde viene esto?" instead of
+ * leaving every non-manual movement looking hand-typed.
+ */
+export type TransactionSource =
+  | { kind: "TRANSFER" }
+  | { kind: "INSTALLMENT"; installmentPlanId: string }
+  | { kind: "INSTALLMENT_INTEREST"; installmentPlanId: string }
+  | { kind: "FINANCE_CHARGE" }
+  | { kind: "DEBT"; debtId: string }
+  | { kind: "MANUAL" };
+
+export function sourceOf(
+  t: Pick<Transaction, "transferGroupId" | "installmentPlanId" | "financeCharge" | "debtId">,
+): TransactionSource {
+  if (t.transferGroupId !== null) return { kind: "TRANSFER" };
+  if (t.installmentPlanId !== null) {
+    return t.financeCharge
+      ? { kind: "INSTALLMENT_INTEREST", installmentPlanId: t.installmentPlanId }
+      : { kind: "INSTALLMENT", installmentPlanId: t.installmentPlanId };
+  }
+  // An issuer charge that ISN'T tied to a specific plan (interest/fee on the
+  // card account itself) — checked after `installmentPlanId` so a plan's own
+  // interest keeps reading as INSTALLMENT_INTEREST, not this.
+  if (t.financeCharge) return { kind: "FINANCE_CHARGE" };
+  if (t.debtId !== null) return { kind: "DEBT", debtId: t.debtId };
+  return { kind: "MANUAL" };
 }
 
 /** Which leg of the transfer this row is — `null` for an ordinary movement. */

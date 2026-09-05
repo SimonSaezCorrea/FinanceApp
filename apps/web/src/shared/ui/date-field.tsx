@@ -1,4 +1,5 @@
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
@@ -58,6 +59,9 @@ interface Props {
   className?: string;
   /** Allows clearing the date (adds a "Borrar" action). */
   clearable?: boolean;
+  /** Trailing icon on the trigger. Defaults to a dropdown chevron — pass e.g.
+   * `CalendarClock` where the control isn't meant to read as a picker/dropdown. */
+  icon?: LucideIcon;
   "aria-label"?: string;
 }
 
@@ -78,6 +82,7 @@ export function DateField({
   disabled = false,
   className,
   clearable = false,
+  icon: Icon = ChevronDown,
   "aria-label": ariaLabel,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
@@ -176,7 +181,7 @@ export function DateField({
           <span className="text-muted-foreground">{t("common.date.today")} ·</span>
         ) : null}
         <span className="tabular-nums">{label}</span>
-        <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+        <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
       </button>
 
       {open && rect && portalTarget

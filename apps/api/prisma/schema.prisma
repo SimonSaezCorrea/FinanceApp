@@ -220,6 +220,8 @@ model BankAccount {
   billingSettings      BillingSettings?
   /// Installment plans that are paid FROM this account.
   paidInstallmentPlans InstallmentPlan[]     @relation("InstallmentPlanPaymentAccount")
+  /// Debts that record this account as where they'd be paid from/to.
+  linkedDebts          Debt[]                @relation("DebtPaymentAccount")
 
   @@index([userId])
   @@index([status])
@@ -458,6 +460,11 @@ model Transaction {
   /// AGGREGATES must exclude these rows (`EXCLUDE_TRANSFERS`) — money moved between
   /// the user's own accounts is neither.
   transferGroupId   String?
+  /// The person-to-person `Debt` this movement is a payment for/against — set by
+  /// `RegisterDebtPaymentHandler`/`SettleDebtHandler`, the same way `installmentPlanId`
+  /// is set by their `installment-plan` counterparts. Lets the Movements view say
+  /// "viene de una deuda" instead of leaving the movement looking manual.
+  debtId            String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -465,6 +472,7 @@ model Transaction {
   bankAccount         BankAccount?            @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
   card                CardAccount?            @relation(fields: [cardId], references: [id], onDelete: SetNull)
   installmentPlan     InstallmentPlan?        @relation(fields: [installmentPlanId], references: [id], onDelete: SetNull)
+  debt                Debt?                   @relation(fields: [debtId], references: [id], onDelete: SetNull)
   creditStatement     CreditStatement?        @relation("CreditStatementLinkedTransactions", fields: [creditStatementId], references: [id], onDelete: SetNull)
   /// The (at most one) CreditStatement this transaction was the payment FOR (reverse
   /// of `CreditStatement.paidTransaction`) — distinct from `creditStatement` above.
@@ -483,6 +491,7 @@ model Transaction {
   @@index([installmentPlanId])
   @@index([category])
   @@index([transferGroupId])
+  @@index([debtId])
   @@map("transaction")
 }
 
@@ -615,30 +624,50 @@ enum DebtDirection {
 }
 
 model Debt {
-  id                String               @id @default(uuid(7))
-  userId            String
-  direction         DebtDirection
-  counterparty      String
-  principal         Decimal              @db.Decimal(18, 4)
-  currency          String               @default("USD")
-  openedAt          DateTime
-  dueAt             DateTime?
-  interestApr       Decimal?             @db.Decimal(8, 4)
-  notes             String?
-  settledAt         DateTime?
-  totalInstallments Int                  @default(1)
-  paidInstallments  Int                  @default(0)
-  installmentAmount Decimal?             @db.Decimal(18, 4)
-  frequency         InstallmentFrequency @default(MONTHLY)
-  frequencyInterval Int                  @default(1)
-  createdAt         DateTime             @default(now())
-  updatedAt         DateTime             @updatedAt
+  id                       String               @id @default(uuid(7))
+  userId                   String
+  direction                DebtDirection
+  counterparty             String
+  principal                Decimal              @db.Decimal(18, 4)
+  currency                 String               @default("USD")
+  openedAt                 DateTime
+  dueAt                    DateTime?
+  interestApr              Decimal?             @db.Decimal(8, 4)
+  notes                    String?
+  settledAt                DateTime?
+  totalInstallments        Int                  @default(1)
+  paidInstallments         Int                  @default(0)
+  installmentAmount        Decimal?             @db.Decimal(18, 4)
+  frequency                InstallmentFrequency @default(MONTHLY)
+  frequencyInterval        Int                  @default(1)
+  /// The bank account this debt is associated with — the payment panel's
+  /// DEFAULT suggestion for `register-payment`/`settle`'s own `accountId`
+  /// body field, which may differ (the user can pick another account there).
+  /// Nullable/`SetNull` because a debt can outlive the account it pointed to.
+  paymentAccountId         String?
+  /// The three columns below record what `register-payment`/`settle` most
+  /// recently did to a REAL account, so `undoPayment`/`unsettle` can reverse
+  /// exactly that movement — plain bookkeeping columns, not FKs (an account
+  /// this points to may since have been deleted, and the record should
+  /// survive that). Null on a debt with no payment yet, or one settled/paid
+  /// before this feature existed (its `undoPayment`/`unsettle` then only
+  /// reverts the counter/date, same as before — no movement to reverse).
+  lastPaymentTransactionId String?
+  lastPaymentAccountId     String?
+  lastPaymentAmount        Decimal?             @db.Decimal(18, 4)
+  createdAt                DateTime             @default(now())
+  updatedAt                DateTime             @updatedAt
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  paymentAccount BankAccount?  @relation("DebtPaymentAccount", fields: [paymentAccountId], references: [id], onDelete: SetNull)
+  /// Movements recorded against this debt (see `Transaction.debtId`) — every real
+  /// payment `register-payment`/`settle` created, not just the most recent one.
+  transactions   Transaction[]
 
   @@index([userId])
   @@index([openedAt])
   @@index([dueAt])
+  @@index([paymentAccountId])
   @@map("debt")
 }
 

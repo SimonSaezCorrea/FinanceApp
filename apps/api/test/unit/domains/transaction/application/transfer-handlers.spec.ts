@@ -50,6 +50,7 @@ function leg(over: Partial<Parameters<typeof Transaction.fromPersistence>[0]> = 
     installmentPlanId: null,
     creditStatementId: null,
     transferGroupId: "g1",
+    debtId: null,
     createdAt: new Date("2026-08-01"),
     updatedAt: new Date("2026-08-01"),
     ...over,

@@ -3,6 +3,11 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { debts } from "@finance/contracts";
 
+import {
+  BANK_ACCOUNT_LOOKUP,
+  type BankAccountLookupPort,
+} from "../../../bank-account/domain/ports/bank-account-lookup.port";
+import { AccountNotFoundError } from "../../../bank-account/domain/errors";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { Debt } from "../../domain/debt.aggregate";
 import type { PlannedDebt } from "../../domain/debt.aggregate";
@@ -24,12 +29,19 @@ export class CreateDebtHandler extends BaseCommandHandler<CreateDebtCommand, deb
   constructor(
     eventBus: EventBus,
     @Inject(DEBT_REPOSITORY) private readonly repo: DebtRepositoryPort,
+    @Inject(BANK_ACCOUNT_LOOKUP) private readonly accounts: BankAccountLookupPort,
   ) {
     super(eventBus);
   }
 
   protected async loadContext(command: CreateDebtCommand): Promise<Context> {
     const { input } = command;
+    if (
+      input.paymentAccountId &&
+      !(await this.accounts.accountOwned(command.userId, input.paymentAccountId))
+    ) {
+      throw new AccountNotFoundError();
+    }
     const plan = Debt.planCreation({
       direction: input.direction,
       counterparty: input.counterparty,
@@ -43,6 +55,7 @@ export class CreateDebtHandler extends BaseCommandHandler<CreateDebtCommand, deb
       installmentAmount: input.installmentAmount,
       frequency: input.frequency,
       frequencyInterval: input.frequencyInterval,
+      paymentAccountId: input.paymentAccountId ?? null,
     });
     return { plan };
   }

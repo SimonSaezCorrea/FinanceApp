@@ -533,7 +533,18 @@
       "transferFrom": "From",
       "transferTo": "To",
       "installmentLocked": "This movement backs an instalment. To change it, undo that instalment's payment from its plan.",
-      "installmentLockedLink": "Go to Instalments"
+      "installmentLockedLink": "Go to Instalments",
+      "source": "Source",
+      "viewPlan": "View plan",
+      "viewDebt": "View debt"
+    },
+    "source": {
+      "MANUAL": "Manual",
+      "TRANSFER": "Transfer",
+      "INSTALLMENT": "Plan instalment",
+      "INSTALLMENT_INTEREST": "Plan interest",
+      "FINANCE_CHARGE": "Finance charge",
+      "DEBT": "Debt"
     },
     "attachments": {
       "title": "Receipts",
@@ -754,7 +765,8 @@
   },
   "debts": {
     "title": "Debts",
-    "empty": "You don't have any debts yet.",
+    "empty": "No debts match this filter.",
+    "emptyHint": "Change the filter or record a new debt.",
     "new": "New debt",
     "created": "Debt created",
     "subtitle": "{{count}} active debts · {{people}} people",
@@ -762,31 +774,45 @@
       "OWED_TO_YOU": "Owed to you",
       "YOU_OWE": "You owe"
     },
-    "kpi": {
-      "owedToYou": "Owed to you",
+    "summary": {
       "youOwe": "You owe",
-      "balance": "Net balance"
+      "owedYou": "Owed to you",
+      "net": "Net balance",
+      "shareNote": "{{pct}}% of what's outstanding is your own debt",
+      "overdueChip": "{{amount}} overdue"
     },
     "card": {
-      "installments": "{{paid}}/{{total}} paid",
-      "remaining": "${{amount}} remaining",
       "markPaid": "Mark as paid",
       "registerPayment": "Register payment",
       "undoPayment": "Undo payment",
       "unsettle": "Reopen",
       "settledOn": "Paid on {{date}}"
     },
-    "history": "History",
     "table": {
       "person": "Person",
-      "concept": "Concept",
+      "progress": "Progress",
+      "progressPaid": "Paid",
       "type": "Type",
+      "pending": "Pending",
+      "ofTotal": "of {{total}}",
       "due": "Due",
-      "amount": "Amount",
-      "noDue": "No date"
+      "actions": "Actions"
+    },
+    "list": {
+      "metaInstallments": "{{concept}} · {{paid}}/{{total}} installments",
+      "metaDirection": "{{concept}} · {{direction}}"
+    },
+    "due": {
+      "inDays_one": "in {{count}} day",
+      "inDays_other": "in {{count}} days",
+      "agoDays_one": "{{count}} day ago",
+      "agoDays_other": "{{count}} days ago",
+      "today": "Due today",
+      "noDate": "No due date"
     },
     "filters": {
       "all": "All",
+      "overdue": "Overdue",
       "active": "Active",
       "settled": "Paid",
       "allStatus": "All",
@@ -794,18 +820,72 @@
     },
     "updated": "Debt updated",
     "deleted": "Debt deleted",
+    "delete": {
+      "description": "You're about to delete the debt with {{name}}. This can't be undone."
+    },
+    "detail": {
+      "eyebrow": "Debt detail",
+      "noConcept": "No concept",
+      "type": "Type",
+      "totalAmount": "Total amount",
+      "paidAmount": "Paid",
+      "pending": "Pending",
+      "installments": "Installments",
+      "installmentsOf": "{{paid}} of {{total}}",
+      "singlePayment": "One-time payment",
+      "due": "Due",
+      "note": "Note",
+      "calendar": "Payment calendar",
+      "installmentOf": "Payment {{sequence}} of {{total}}",
+      "undo": "Undo",
+      "status": {
+        "paid": "Paid",
+        "next": "Next",
+        "pending": "Pending"
+      }
+    },
+    "pay": {
+      "eyebrow": "Register payment",
+      "subtitleInstallment": "Payment {{sequence}} of {{total}} · {{concept}}",
+      "subtitleSingle": "One-time payment · {{concept}}",
+      "amount": "Instalment amount",
+      "due": "Due date",
+      "account": "Payment account",
+      "selectAccount": "Choose account",
+      "previewTitle": "After this payment",
+      "previewProgress": "Progress",
+      "previewPending": "Remaining balance",
+      "registeredToast": "Payment registered",
+      "settledToast": "Debt marked as paid"
+    },
     "form": {
-      "direction": "Direction",
-      "counterparty": "Counterparty",
+      "eyebrowCreate": "New debt",
+      "eyebrowEdit": "Edit debt",
+      "concept": "Concept",
       "amount": "Amount",
       "currency": "Currency",
-      "openedAt": "Opened on",
-      "dueAt": "Due date (optional)",
-      "installments": "Number of installments",
-      "installmentAmount": "Amount per installment (optional)",
+      "typeLabel": "Type",
+      "personOwedToYou": "Who owes you?",
+      "personYouOwe": "Who do you owe?",
+      "personPlaceholder": "Name",
+      "account": "Associated account",
+      "noAccount": "No account",
+      "installments": "Installments",
+      "dueAt": "First due date",
       "frequency": "Frequency",
-      "frequencyInterval": "Every (number)",
-      "notes": "Notes",
+      "frequencyInterval": "Repeat every",
+      "intervalUnit": {
+        "DAILY_one": "day",
+        "DAILY_other": "days",
+        "WEEKLY_one": "week",
+        "WEEKLY_other": "weeks",
+        "MONTHLY_one": "month",
+        "MONTHLY_other": "months",
+        "YEARLY_one": "year",
+        "YEARLY_other": "years"
+      },
+      "scheduleNoteSingle": "This will be recorded as a one-time payment on the date above.",
+      "scheduleNoteMulti": "The installment calendar is generated automatically from the first due date and the frequency.",
       "directionOptions": {
         "OWED_TO_YOU": "Owed to me",
         "YOU_OWE": "I owe"
@@ -1072,6 +1152,9 @@
     "DEBT_ALREADY_SETTLED": "This debt is already settled.",
     "ALL_INSTALLMENTS_PAID": "All instalments for this debt have already been recorded.",
     "DEBT_NOT_SETTLED": "This debt is not settled.",
-    "NO_PAYMENTS_TO_UNDO": "There are no payments to undo on this debt."
+    "NO_PAYMENTS_TO_UNDO": "There are no payments to undo on this debt.",
+    "DEBT_PAYMENT_CURRENCY_MISMATCH": "The chosen account is in a different currency than the debt.",
+    "DEBT_PAYMENT_FROM_CREDIT_ACCOUNT": "You can't pay a debt from a credit card account.",
+    "ACCOUNT_NOT_FOUND": "The account wasn't found."
   }
 }

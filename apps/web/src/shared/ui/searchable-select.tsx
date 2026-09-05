@@ -16,6 +16,12 @@ export interface SearchableSelectOption {
    * institution's legal name and its other commercial brands, which the user may
    * well type ("Copec Pay", "Banefe") without them being the label shown. */
   keywords?: string[];
+  /** A muted second line under `label` — e.g. an account's "Corriente · Banco de
+   * Chile · 001-2345678-90". Shown both in the dropdown row and, for the
+   * SELECTED option, on the closed control — the same two-line shape a debt's
+   * "Cuenta asociada" detail row already uses, so a picker and its own read-only
+   * display never disagree on how much identifies an account. */
+  description?: string;
 }
 
 interface Props {
@@ -142,8 +148,12 @@ export function SearchableSelect({
         ),
       )
     : options;
-  const matchedLabel = options.find((o) => o.value === value)?.label ?? "";
-  const selectedLabel = value ? (displayValue ?? matchedLabel) : "";
+  const matchedOption = options.find((o) => o.value === value);
+  const selectedLabel = value ? (displayValue ?? matchedOption?.label ?? "") : "";
+  // `displayValue` overrides the LABEL for a narrower closed-control reading
+  // (e.g. a currency's bare code) — it says nothing about the description, so
+  // the two-line shape still applies whenever the matched option carries one.
+  const selectedDescription = value ? matchedOption?.description : undefined;
 
   function select(option: SearchableSelectOption) {
     onChange(option.value);
@@ -162,14 +172,23 @@ export function SearchableSelect({
         className={cn(
           "flex w-full items-center gap-2 text-sm",
           variant === "control"
-            ? "h-10 justify-between rounded-md border border-input bg-background px-3 text-left focus-visible:ring-2 focus-visible:ring-ring"
-            : "h-8 justify-end text-right font-medium",
+            ? "min-h-10 justify-between rounded-md border border-input bg-background px-3 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring"
+            : "min-h-8 justify-end text-right font-medium",
           "focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
         )}
       >
-        <span className={cn("truncate", !selectedLabel && "text-muted-foreground")}>
-          {selectedLabel || placeholder || ""}
-        </span>
+        {selectedDescription ? (
+          <span className={cn("flex min-w-0 flex-col", variant === "inline" && "items-end")}>
+            <span className="truncate">{selectedLabel}</span>
+            <span className="truncate text-xs font-normal text-muted-foreground">
+              {selectedDescription}
+            </span>
+          </span>
+        ) : (
+          <span className={cn("truncate", !selectedLabel && "text-muted-foreground")}>
+            {selectedLabel || placeholder || ""}
+          </span>
+        )}
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
       </button>
 
@@ -215,7 +234,14 @@ export function SearchableSelect({
                         o.value === value && "bg-muted font-medium",
                       )}
                     >
-                      <span className="truncate">{o.label}</span>
+                      <span className="flex min-w-0 flex-col">
+                        <span className="truncate">{o.label}</span>
+                        {o.description ? (
+                          <span className="truncate text-xs font-normal text-muted-foreground">
+                            {o.description}
+                          </span>
+                        ) : null}
+                      </span>
                       {o.value === value ? (
                         <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
                       ) : null}

@@ -56,6 +56,7 @@ const row = Transaction.fromPersistence({
   installmentPlanId: null,
   transferGroupId: null,
   creditStatementId: null,
+  debtId: null,
   createdAt: new Date("2026-03-01T00:00:00Z"),
   updatedAt: new Date("2026-03-01T00:00:00Z"),
 });

@@ -53,3 +53,20 @@ export class TotalInstallmentsBelowPaidError extends DomainError {
     super("TOTAL_INSTALLMENTS_BELOW_PAID", 409, "totalInstallments");
   }
 }
+
+/** The paying account's currency differs from the debt's own — this app has
+ * no FX conversion anywhere, so there is no honest single amount to move. */
+export class DebtPaymentCurrencyMismatchError extends DomainError {
+  constructor() {
+    super("DEBT_PAYMENT_CURRENCY_MISMATCH", 409);
+  }
+}
+
+/** Settling debt with debt: a CREDIT_CARD account has no cash of its own to
+ * move — same rule a transfer and an instalment payment already apply to a
+ * credit destination/source. */
+export class DebtPaymentFromCreditAccountError extends DomainError {
+  constructor() {
+    super("DEBT_PAYMENT_FROM_CREDIT_ACCOUNT", 409);
+  }
+}

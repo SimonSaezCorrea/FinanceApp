@@ -64,5 +64,20 @@ export function formatMoney(
   return new Intl.NumberFormat(resolvedLocale, { style: "currency", currency }).format(n);
 }
 
+/**
+ * Just the currency glyph/prefix a `formatMoney` call would show ("$", "US$",
+ * or the bare ISO code for CLF, which has none) — for an amount input that
+ * shows the sign next to what the user types instead of only after saving.
+ * Same "es" → "es-CL" resolution as `formatMoney`, so the two never disagree.
+ */
+export function currencySymbol(currency: string, locale: string = "es"): string {
+  const resolvedLocale = locale === "es" ? "es-CL" : locale;
+  const parts = new Intl.NumberFormat(resolvedLocale, {
+    style: "currency",
+    currency,
+  }).formatToParts(0);
+  return parts.find((p) => p.type === "currency")?.value ?? currency;
+}
+
 export * from "./installments";
 export * from "./interest";
