@@ -8,6 +8,7 @@ de handoff accesible.
 Trabaja en `apps/web`. Quiero integrar el rediseño de la vista **Deudas**.
 
 Referencias (en `design_handoff_deudas/`):
+
 - `README.md` — especificación completa: layout, medidas, tokens, copy, estados y fórmulas.
 - `FinanceApp.dc.html` — prototipo HTML interactivo del app. Ábrelo y ve a "Deudas".
 
@@ -17,6 +18,7 @@ del repo (React + TypeScript + Tailwind) reutilizando lo que ya existe:
 tokens de `src/styles/index.css` (usa las variables, no hex); iconos Lucide.
 
 Alcance:
+
 1. `src/domains/debts/routes/DebtsRoute.tsx` — encabezado, filtros, tabla desktop,
    lista móvil (<1280px) y estado vacío.
 2. `src/domains/debts/components/DebtKpiStrip.tsx` — tarjeta de resumen: Debes / Balance neto /
@@ -28,6 +30,7 @@ Alcance:
 5. Un nuevo componente de fila móvil si no existe uno reutilizable en `shared/ui`.
 
 Reglas:
+
 - Respeta las medidas y el copy en español del README **literalmente** (subtítulos con cifras,
   separador " · ", signo "−" U+2212, montos con `tabular-nums`).
 - Ambos temas (oscuro por defecto y claro) deben verse correctos.
