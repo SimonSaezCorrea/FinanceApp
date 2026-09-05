@@ -2,12 +2,8 @@
 "use strict";
 (() => {
   var __defProp = Object.defineProperty;
-  var __defNormalProp = (obj, key, value) =>
-    key in obj
-      ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value })
-      : (obj[key] = value);
-  var __publicField = (obj, key, value) =>
-    __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 
   // src/react.ts
   function getReact() {
@@ -20,19 +16,23 @@
     if (!RD) throw new Error("dc-runtime: window.ReactDOM is not available yet");
     return RD;
   }
-  var h = (...args) => getReact().createElement(...args);
+  var h = ((...args) => getReact().createElement(
+    ...args
+  ));
 
   // src/parse.ts
   function parseDcDocument(doc) {
     const dc = doc.querySelector("x-dc");
     if (!dc) return null;
     const scriptEl = doc.querySelector("script[data-dc-script]");
-    const { props, preview } = parseDataProps(scriptEl?.getAttribute("data-props") ?? null);
+    const { props, preview } = parseDataProps(
+      scriptEl?.getAttribute("data-props") ?? null
+    );
     return {
       template: dc.innerHTML,
       js: scriptEl ? scriptEl.textContent || "" : "",
       props,
-      preview,
+      preview
     };
   }
   function parseDcText(src) {
@@ -43,12 +43,14 @@
     const template = src.slice(openMatch.index + openMatch[0].length, close);
     const doc = new DOMParser().parseFromString(src, "text/html");
     const scriptEl = doc.querySelector("script[data-dc-script]");
-    const { props, preview } = parseDataProps(scriptEl?.getAttribute("data-props") ?? null);
+    const { props, preview } = parseDataProps(
+      scriptEl?.getAttribute("data-props") ?? null
+    );
     return {
       template,
       js: scriptEl ? scriptEl.textContent || "" : "",
       props,
-      preview,
+      preview
     };
   }
   function parseDataProps(raw) {
@@ -74,14 +76,16 @@
     let p = pathname || "";
     try {
       p = decodeURIComponent(p);
-    } catch {}
+    } catch {
+    }
     const base = p.split("/").pop() || "Root";
     return base.replace(/\.dc\.html$/, "").replace(/\.html?$/, "") || "Root";
   }
 
   // src/boot.ts
   var BASE_CSS = `
-    .sc-placeholder{background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
+    .sc-placeholder{background:color-mix(in srgb,currentColor 8%,transparent);
+      border:1px solid color-mix(in srgb,currentColor 50%,transparent);
       border-radius:2px;box-sizing:border-box;overflow:hidden}
     @keyframes sc-shine{0%{background-position:100% 50%}100%{background-position:0% 50%}}
     html.sc-dc-streaming .sc-placeholder,
@@ -97,13 +101,14 @@
     html.sc-dc-streaming .sc-interp.sc-missing:nth-child(n+9 of .sc-interp.sc-missing)::before{animation:none;
       background:color-mix(in srgb,currentColor 8%,transparent)}
     .sc-placeholder-error{padding:4px 8px;font:11px/1.4 ui-monospace,monospace;
-      color:rgba(0,0,0,.7);word-break:break-word}
+      color:color-mix(in srgb,currentColor 70%,transparent);word-break:break-word}
     .sc-interp.sc-missing{display:inline-block;width:2em;height:1em;overflow:hidden;
       vertical-align:text-bottom;background:rgba(255,255,255,.3);border:1px solid rgba(0,0,0,.5);
       border-radius:2px;box-sizing:border-box;color:transparent;
       user-select:none}
     .sc-interp.sc-unresolved{font-family:ui-monospace,monospace;font-size:.85em;
-      color:rgba(0,0,0,.5);background:rgba(0,0,0,.05);border-radius:3px;
+      color:color-mix(in srgb,currentColor 50%,transparent);
+      background:color-mix(in srgb,currentColor 10%,transparent);border-radius:3px;
       padding:0 3px}
     .sc-host.sc-has-error{position:relative}
     .sc-logic-error{position:absolute;top:8px;left:8px;z-index:2147483647;max-width:60ch;
@@ -113,7 +118,8 @@
        in sync until dc-runtime regains a build step. */
     @media print {
       @page { margin: 0.5cm; }
-      section, article, figure, table { break-inside: avoid; }
+      figure, table { break-inside: avoid; }
+      #dc-root, #dc-root > .sc-host { height: auto; }
       *, *::before, *::after {
         print-color-adjust: exact; -webkit-print-color-adjust: exact;
         backdrop-filter: none !important; -webkit-backdrop-filter: none !important;
@@ -129,7 +135,8 @@
     if (!/\.dc\.html?$/i.test(safeDecode(bootPath))) {
       try {
         bootPath = new URL(doc.baseURI || "/").pathname;
-      } catch {}
+      } catch {
+      }
     }
     return dcNameFromPath(bootPath);
   }
@@ -146,14 +153,15 @@
     const React = getReact();
     const rootName = rootNameForDocument(doc, location);
     runtime.markFetched(rootName);
+    runtime.setRootName(rootName);
     runtime.adoptParsed(rootName, parsed);
-    fetch(location.href)
-      .then((res) => (res.ok ? res.text() : ""))
-      .then((t) => {
+    if (!window.__resources) {
+      fetch(location.href).then((res) => res.ok ? res.text() : "").then((t) => {
         const raw = t ? parseDcText(t) : null;
         if (raw?.template) runtime.updateHtml(rootName, raw.template);
-      })
-      .catch(() => {});
+      }).catch(() => {
+      });
+    }
     const dc = doc.querySelector("x-dc");
     const hostEl = doc.createElement("div");
     hostEl.id = "dc-root";
@@ -174,10 +182,19 @@
           entry.subs.delete(sub);
         };
       }, []);
-      return h(Root, entry.propOverrides || null);
+      const defaults = React.useMemo(() => {
+        const d = {};
+        for (const k in entry.propsMeta || {}) {
+          const v = entry.propsMeta?.[k]?.default;
+          if (v !== void 0) d[k] = v;
+        }
+        return d;
+      }, [entry.propsMeta]);
+      return h(Root, { ...defaults, ...entry.propOverrides || {} });
     }
     const ReactDOM = getReactDOM();
-    if (ReactDOM.createRoot) ReactDOM.createRoot(hostEl).render(h(StandaloneRoot));
+    if (ReactDOM.createRoot)
+      ReactDOM.createRoot(hostEl).render(h(StandaloneRoot));
     else ReactDOM.render(h(StandaloneRoot), hostEl);
     return rootName;
   }
@@ -212,11 +229,7 @@
     if (expr === "null") return null;
     if (expr === "undefined") return void 0;
     if (NUMBER_RE.test(expr)) return Number(expr);
-    if (
-      expr.length >= 2 &&
-      (expr[0] === '"' || expr[0] === "'") &&
-      expr[expr.length - 1] === expr[0]
-    ) {
+    if (expr.length >= 2 && (expr[0] === '"' || expr[0] === "'") && expr[expr.length - 1] === expr[0]) {
       return expr.slice(1, -1);
     }
     return resolvePath(vals, expr);
@@ -282,6 +295,11 @@
 
   // src/encode.ts
   var CAMEL_ATTR = "sc-camel-";
+  var INLINE_TEXT_TAGS = new Set(
+    "a abbr b bdi bdo br cite code del dfn em i ins kbd mark q s samp small span strike strong sub sup u var wbr".split(
+      " "
+    )
+  );
   var RAW_WRAP = {
     select: "sc-raw-select",
     table: "sc-raw-table",
@@ -291,9 +309,11 @@
     tr: "sc-raw-tr",
     td: "sc-raw-td",
     th: "sc-raw-th",
-    caption: "sc-raw-caption",
+    caption: "sc-raw-caption"
   };
-  var RAW_UNWRAP = Object.fromEntries(Object.entries(RAW_WRAP).map(([k, v]) => [v, k]));
+  var RAW_UNWRAP = Object.fromEntries(
+    Object.entries(RAW_WRAP).map(([k, v]) => [v, k])
+  );
   var EVENT_MAP = {
     onclick: "onClick",
     onchange: "onChange",
@@ -310,21 +330,58 @@
     onblur: "onBlur",
     ondoubleclick: "onDoubleClick",
     oncontextmenu: "onContextMenu",
+    onmousemove: "onMouseMove",
+    onmouseover: "onMouseOver",
+    onmouseout: "onMouseOut",
+    onpointerdown: "onPointerDown",
+    onpointerup: "onPointerUp",
+    onpointermove: "onPointerMove",
+    onpointerenter: "onPointerEnter",
+    onpointerleave: "onPointerLeave",
+    onpointercancel: "onPointerCancel",
+    onpointerover: "onPointerOver",
+    onpointerout: "onPointerOut",
+    ongotpointercapture: "onGotPointerCapture",
+    onlostpointercapture: "onLostPointerCapture",
+    ontouchstart: "onTouchStart",
+    ontouchend: "onTouchEnd",
+    ontouchmove: "onTouchMove",
+    ontouchcancel: "onTouchCancel",
+    ondragstart: "onDragStart",
+    ondragend: "onDragEnd",
+    ondragenter: "onDragEnter",
+    ondragleave: "onDragLeave",
+    ondragover: "onDragOver",
+    onanimationstart: "onAnimationStart",
+    onanimationend: "onAnimationEnd",
+    onanimationiteration: "onAnimationIteration",
+    ontransitionend: "onTransitionEnd"
   };
   var ATTRS = `(?:[^>"']|"[^"]*"|'[^']*')*`;
-  var IMPORT_SELF_CLOSE_RE = new RegExp("<(x-import|dc-import)(" + ATTRS + ")/>", "gi");
+  var IMPORT_SELF_CLOSE_RE = new RegExp(
+    "<(x-import|dc-import)(" + ATTRS + ")/>",
+    "gi"
+  );
   var CAMEL_ATTR_RE = /(\s)([a-z]+[A-Z][A-Za-z0-9]*)(\s*=)/g;
+  function encodeCamelAttrs(html) {
+    return html.replace(
+      CAMEL_ATTR_RE,
+      (_, sp, name, eq) => sp + CAMEL_ATTR + name.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()) + eq
+    );
+  }
   function encodeCase(html) {
-    html = html.replace(IMPORT_SELF_CLOSE_RE, (_, t, a) => "<" + t + a + "></" + t + ">");
+    html = html.replace(
+      IMPORT_SELF_CLOSE_RE,
+      (_, t, a) => "<" + t + a + "></" + t + ">"
+    );
     html = html.replace(/<helmet(\s|>)/gi, "<sc-helmet$1");
     html = html.replace(/<\/helmet\s*>/gi, "</sc-helmet>");
-    html = html.replace(
-      CAMEL_ATTR_RE,
-      (_, sp, name, eq) =>
-        sp + CAMEL_ATTR + name.replace(/[A-Z]/g, (c) => "-" + c.toLowerCase()) + eq,
-    );
+    html = encodeCamelAttrs(html);
     for (const [real, alias] of Object.entries(RAW_WRAP)) {
-      html = html.replace(new RegExp("(</?)" + real + "(?=[\\s>])", "gi"), "$1" + alias);
+      html = html.replace(
+        new RegExp("(</?)" + real + "(?=[\\s>])", "gi"),
+        "$1" + alias
+      );
     }
     return html;
   }
@@ -349,20 +406,21 @@
     }
     if (raw.includes("{{")) {
       const parts = raw.split(/\{\{([\s\S]+?)\}\}/g);
-      return (vals) => parts.map((s, i) => (i & 1 ? (resolve(vals, s) ?? "") : s)).join("");
+      return (vals) => parts.map((s, i) => i & 1 ? resolve(vals, s) ?? "" : s).join("");
     }
     return () => raw;
   }
 
   // src/compile.ts
-  function collectProps(node, isComponent, host) {
+  function collectProps(node, kind, host) {
     const propGetters = [];
     const pseudoClasses = [];
     let hintSize = null;
     for (const { name, value } of [...node.attributes]) {
       if (name === "sc-name" || name === "data-dc-tpl") continue;
       let key = name;
-      if (key.startsWith(CAMEL_ATTR)) key = kebabToCamel(key.slice(CAMEL_ATTR.length));
+      if (key.startsWith(CAMEL_ATTR))
+        key = kebabToCamel(key.slice(CAMEL_ATTR.length));
       if (key === "hint-size") {
         hintSize = value;
         continue;
@@ -371,8 +429,9 @@
         pseudoClasses.push(host.pseudoClass(key.slice(6), value));
         continue;
       }
-      if (isComponent) {
-        if (key.includes("-")) key = kebabToCamel(key);
+      if (kind !== "dom") {
+        if (key.includes("-") && !(kind === "x-import" && (key.startsWith("aria-") || key.startsWith("data-"))))
+          key = kebabToCamel(key);
       } else {
         if (key === "class") key = "className";
         else if (key === "for") key = "htmlFor";
@@ -393,15 +452,10 @@
     "width",
     "height",
     "z-index",
-    "transform",
+    "transform"
   ]);
   function hostPositionStyle(style) {
-    const all =
-      typeof style === "string"
-        ? cssToObj(style)
-        : style != null && typeof style === "object"
-          ? style
-          : null;
+    const all = typeof style === "string" ? cssToObj(style) : style != null && typeof style === "object" ? style : null;
     if (!all) return void 0;
     const out = {};
     for (const [k, v] of Object.entries(all)) {
@@ -422,12 +476,76 @@
       for (const c of node.childNodes) stamp(c);
     })(tpl.content);
     const builders = walkChildren(tpl.content, host);
-    const render = (vals, ctx) => builders.map((b, i) => b(vals || {}, ctx, i));
+    const render = ((vals, ctx) => builders.map((b, i) => b(vals || {}, ctx, i)));
     render.__annotated = tpl.innerHTML;
     return render;
   }
   function walkChildren(node, host) {
     return [...node.childNodes].map((c) => walk(c, host)).filter((b) => b != null);
+  }
+  var SLIDE_ID_VALUE_RE = /^[0-9a-f]{8}$/;
+  var DECK_CONTROL_FLOW_RE = /^(sc-if|sc-for|sc-else|dc-import|x-import)$/;
+  var DECK_AUX_RE = /^(template|script|style|sc-helmet|helmet)$/;
+  function isDeckMountTag(el) {
+    if (el.localName === "deck-stage") return true;
+    return el.localName === "x-import" && (el.getAttribute("component-from-global-scope") || "") === "deck-stage";
+  }
+  function walkDeckChildren(el, host) {
+    const pairs = [...el.childNodes].map((c) => ({ c, b: walk(c, host) })).filter((p) => p.b !== null);
+    const kids = pairs.map((p) => p.b);
+    const seen = /* @__PURE__ */ new Set();
+    const wsSeen = /* @__PURE__ */ new Map();
+    const keys = [];
+    const nextSlideId = new Array(pairs.length);
+    {
+      let upcoming = null;
+      for (let j = pairs.length - 1; j >= 0; j--) {
+        const n = pairs[j].c;
+        if (n.nodeType === Node.ELEMENT_NODE) {
+          const t = n.localName;
+          upcoming = !DECK_AUX_RE.test(t) && !DECK_CONTROL_FLOW_RE.test(t) ? n.getAttribute("data-om-slide-id") : null;
+        }
+        nextSlideId[j] = upcoming;
+      }
+    }
+    for (let j = 0; j < pairs.length; j++) {
+      const { c } = pairs[j];
+      if (c.nodeType === Node.TEXT_NODE) {
+        if ((c.nodeValue ?? "").trim() === "") {
+          const base = nextSlideId[j] ? "omid-ws:" + nextSlideId[j] : "omid-ws:aux";
+          const n = wsSeen.get(base) ?? 0;
+          wsSeen.set(base, n + 1);
+          keys.push(n === 0 ? base : base + ":" + n);
+          continue;
+        }
+        return { kids, keys: null };
+      }
+      if (c.nodeType !== Node.ELEMENT_NODE) {
+        keys.push(j);
+        continue;
+      }
+      const child = c;
+      const tag = child.localName;
+      if (DECK_AUX_RE.test(tag)) {
+        keys.push(j);
+        continue;
+      }
+      if (DECK_CONTROL_FLOW_RE.test(tag)) return { kids, keys: null };
+      const v = child.getAttribute("data-om-slide-id");
+      if (!v || !SLIDE_ID_VALUE_RE.test(v) || seen.has(v)) {
+        return { kids, keys: null };
+      }
+      seen.add(v);
+      keys.push("omid:" + v);
+    }
+    return { kids, keys };
+  }
+  function renderDeckKids(kids, kidKeys, vals, ctx) {
+    return kids.map((b, j) => {
+      const k = kidKeys ? kidKeys[j] : j;
+      const out = b(vals, ctx, k);
+      return kidKeys != null && typeof out === "string" ? h(getReact().Fragment, { key: k }, out) : out;
+    });
   }
   function walk(node, host) {
     if (node.nodeType === Node.TEXT_NODE) return walkText(node);
@@ -455,34 +573,40 @@
       return () => txt;
     }
     const parts = txt.split(/\{\{([\s\S]+?)\}\}/g);
-    return (vals, ctx, key) =>
-      h(
-        getReact().Fragment,
-        { key },
-        ...parts.map((p, i) => {
-          if (!(i & 1)) return p;
-          const v = resolve(vals, p);
-          if (v === void 0) {
-            if (!ctx?.__streamingNow) {
-              if (document.body?.hasAttribute("data-dc-editor-on")) {
-                return h(
-                  "span",
-                  { key: i, className: "sc-interp sc-unresolved" },
-                  "{{ " + p.trim() + " }}",
-                );
-              }
-              warnUnresolved(ctx, "{{ " + p.trim() + " }} never resolved \u2014 rendered as empty");
-              return null;
+    return (vals, ctx, key) => h(
+      getReact().Fragment,
+      { key },
+      ...parts.map((p, i) => {
+        if (!(i & 1)) return p;
+        const v = resolve(vals, p);
+        if (v === void 0) {
+          if (!ctx?.__streamingNow) {
+            if (document.body?.hasAttribute("data-dc-editor-on")) {
+              return h(
+                "span",
+                { key: i, className: "sc-interp sc-unresolved" },
+                "{{ " + p.trim() + " }}"
+              );
             }
-            return h("span", { key: i, className: "sc-interp sc-missing" }, p.trim());
+            warnUnresolved(
+              ctx,
+              "{{ " + p.trim() + " }} never resolved \u2014 rendered as empty"
+            );
+            return null;
           }
-          if (getReact().isValidElement(v) || Array.isArray(v)) {
-            return h(getReact().Fragment, { key: i }, v);
-          }
-          if (v === null || typeof v === "boolean") return null;
-          return h("span", { key: i, className: "sc-interp" }, String(v));
-        }),
-      );
+          return h(
+            "span",
+            { key: i, className: "sc-interp sc-missing" },
+            p.trim()
+          );
+        }
+        if (getReact().isValidElement(v) || Array.isArray(v)) {
+          return h(getReact().Fragment, { key: i }, v);
+        }
+        if (v === null || typeof v === "boolean") return null;
+        return h("span", { key: i, className: "sc-interp" }, String(v));
+      })
+    );
   }
   function walkFor(el, host) {
     const listGet = compileAttr(el.getAttribute("list") || "");
@@ -497,7 +621,7 @@
           if (list !== void 0 && list !== null) {
             warnUnresolved(
               ctx,
-              'sc-for list="' + listSrc + '" is not an array (' + typeof list + ")",
+              'sc-for list="' + listSrc + '" is not an array (' + typeof list + ")"
             );
           }
           list = [];
@@ -513,9 +637,9 @@
           return h(
             getReact().Fragment,
             { key: i },
-            kids.map((b, j) => b(sub, ctx, j)),
+            kids.map((b, j) => b(sub, ctx, j))
           );
-        }),
+        })
       );
     };
   }
@@ -527,13 +651,11 @@
     return (vals, ctx, key) => {
       let v = valGet(vals);
       if (v === void 0 && hintGet && ctx?.__streamingNow) v = hintGet(vals);
-      return v
-        ? h(
-            getReact().Fragment,
-            { key },
-            kids.map((b, j) => b(vals, ctx, j)),
-          )
-        : null;
+      return v ? h(
+        getReact().Fragment,
+        { key },
+        kids.map((b, j) => b(vals, ctx, j))
+      ) : null;
     };
   }
   function walkComponent(el, host) {
@@ -544,38 +666,53 @@
     const styleRaw = el.getAttribute("style");
     el.removeAttribute("style");
     const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
-    const { propGetters, hintSize } = collectProps(el, true, host);
+    const { propGetters, hintSize } = collectProps(el, "dc-import", host);
     const kids = walkChildren(el, host);
     return (vals, ctx, key) => {
       const props = {
         key,
         __hintSize: hintSize,
         __tplId: tplId,
-        __hostStyle: styleGet ? hostPositionStyle(styleGet(vals)) : void 0,
+        __hostStyle: styleGet ? hostPositionStyle(styleGet(vals)) : void 0
       };
-      for (const [k, g] of propGetters) props[k] = g(vals);
+      for (const [k, g] of propGetters) {
+        const v = g(vals);
+        if (k === "dcProps") {
+          if (v && typeof v === "object") Object.assign(props, v);
+          continue;
+        }
+        props[k] = v;
+      }
       if (kids.length) props.children = kids.map((b, j) => b(vals, ctx, j));
       return h(host.component(name), props);
     };
   }
   function walkXImport(el, host) {
-    const globalNameGet = compileAttr(el.getAttribute("component-from-global-scope") || "");
-    const exportNameGet = compileAttr(
-      el.getAttribute("component") || el.getAttribute("name") || "",
+    const globalNameGet = compileAttr(
+      el.getAttribute("component-from-global-scope") || ""
     );
-    const url =
-      el.getAttribute("from") || el.getAttribute("src") || el.getAttribute("import") || "";
-    const kind = /\.(jsx|tsx)(\?|#|$)/i.test(url) ? "jsx" : "js";
+    const exportNameGet = compileAttr(
+      el.getAttribute("component") || el.getAttribute("name") || ""
+    );
+    const fromRaw = el.getAttribute("from") || (el.getAttribute("component-from-global-scope") ? "" : el.getAttribute("src") || el.getAttribute("import") || "");
+    const urls = fromRaw.trim() ? fromRaw.trim().split(/\s+/) : [];
+    const url = urls.length ? urls[urls.length - 1] : "";
+    const kindOf = (u) => /\.(jsx|tsx)(\?|#|$)/i.test(u) ? "jsx" : "js";
     const tplId = el.getAttribute("data-dc-tpl");
     const styleRaw = el.getAttribute("style");
     el.removeAttribute("style");
     const styleGet = styleRaw != null ? compileAttr(styleRaw) : null;
     const wrap = tplId != null || styleGet != null;
-    const { propGetters, hintSize } = collectProps(el, true, host);
+    const { propGetters, hintSize } = collectProps(el, "x-import", host);
     const hasContent = el.children.length > 0 || !!(el.textContent || "").trim();
-    const kids = hasContent ? walkChildren(el, host) : [];
-    const urlBindable = url.includes("{{");
-    if (url && !urlBindable) host.loadExternal(kind, url);
+    const deckKeyed = hasContent && isDeckMountTag(el) ? walkDeckChildren(el, host) : null;
+    const kids = deckKeyed ? deckKeyed.kids : hasContent ? walkChildren(el, host) : [];
+    const kidKeys = deckKeyed?.keys ?? null;
+    const urlBindable = fromRaw.includes("{{");
+    if (urls.length && !urlBindable) {
+      let prev;
+      for (const u of urls) prev = host.loadExternal(kindOf(u), u, prev);
+    }
     const evalName = (g, vals) => {
       const v = g(vals);
       const s = v == null ? "" : String(v);
@@ -584,48 +721,36 @@
     return (vals, ctx, key) => {
       const globalName = evalName(globalNameGet, vals);
       const name = globalName || evalName(exportNameGet, vals);
-      const C =
-        !name || urlBindable
-          ? null
-          : globalName
-            ? host.resolveExternalGlobal(url, globalName)
-            : host.resolveExternal(url, name);
+      const C = !name || urlBindable ? null : globalName ? host.resolveExternalGlobal(url, globalName) : host.resolveExternal(url, name);
       const hostStyle = styleGet ? hostPositionStyle(styleGet(vals)) : void 0;
-      const wrapper = wrap
-        ? {
-            key,
-            className: "sc-host-x",
-            "data-dc-tpl": tplId,
-            style: hostStyle || { display: "contents" },
-          }
-        : null;
+      const wrapper = wrap ? {
+        key,
+        className: "sc-host-x",
+        "data-dc-tpl": tplId,
+        style: hostStyle || { display: "contents" }
+      } : null;
       if (!C) {
-        const error = urlBindable
-          ? "x-import `from` cannot contain {{ \u2026 }} \u2014 module URLs are resolved at parse time; use a literal URL"
-          : host.resolveExternalError(url, name);
+        const error = urlBindable ? "x-import `from` cannot contain {{ \u2026 }} \u2014 module URLs are resolved at parse time; use a literal URL" : host.resolveExternalError(url, name);
         const ph = host.placeholder({
           key: wrapper ? void 0 : key,
           name,
           hintSize,
-          error,
+          error
         });
         return wrapper ? h("div", wrapper, ph) : ph;
       }
       const props = wrapper ? {} : { key };
       let unresolvedHole = false;
       for (const [k, g] of propGetters) {
-        if (
-          k === "component" ||
-          k === "componentFromGlobalScope" ||
-          k === "name" ||
-          k === "from" ||
-          k === "src" ||
-          k === "import"
-        ) {
+        if (k === "component" || k === "componentFromGlobalScope" || k === "from") {
           continue;
         }
         const v = g(vals);
         if (v === void 0) unresolvedHole = true;
+        if (k === "dcProps") {
+          if (v && typeof v === "object") Object.assign(props, v);
+          continue;
+        }
         props[k] = v;
       }
       if (unresolvedHole && ctx?.__htmlStreamingNow) {
@@ -633,21 +758,46 @@
           key: wrapper ? void 0 : key,
           name,
           hintSize,
-          error: null,
+          error: null
         });
         return wrapper ? h("div", wrapper, ph) : ph;
       }
-      if (kids.length) props.children = kids.map((b, j) => b(vals, ctx, j));
+      if (kids.length) {
+        props.children = renderDeckKids(kids, kidKeys, vals, ctx);
+      }
       return wrapper ? h("div", wrapper, h(C, props)) : h(C, props);
     };
   }
+  function contentKey(el) {
+    const clone = el.cloneNode(true);
+    for (const d of clone.querySelectorAll("*")) {
+      while (d.attributes.length) d.removeAttribute(d.attributes[0].name);
+    }
+    const s = clone.innerHTML;
+    let h2 = 5381;
+    for (let i = 0; i < s.length; i++) h2 = (h2 << 5) + h2 + s.charCodeAt(i) | 0;
+    return s.length + "." + (h2 >>> 0).toString(36);
+  }
+  var NEVER_CONTENT_KEYED = new Set(
+    "script style textarea option title select canvas iframe video audio".split(
+      " "
+    )
+  );
+  var NOT_INLINE_SELECTOR = ":not(" + [...INLINE_TEXT_TAGS].join(",") + ")";
   function walkElement(el, host) {
     const realTag = RAW_UNWRAP[el.localName] || el.localName;
     const tplId = el.getAttribute("data-dc-tpl");
-    const { propGetters, pseudoClasses } = collectProps(el, false, host);
-    const kids = walkChildren(el, host);
+    const inlineOnly = el.childNodes.length > 0 && !NEVER_CONTENT_KEYED.has(realTag) && el.querySelector(NOT_INLINE_SELECTOR) === null;
+    const keySuffix = inlineOnly ? "|" + contentKey(el) : "";
+    const { propGetters, pseudoClasses } = collectProps(el, "dom", host);
+    const deckKeyed = isDeckMountTag(el) ? walkDeckChildren(el, host) : null;
+    const kids = deckKeyed ? deckKeyed.kids : walkChildren(el, host);
+    const kidKeys = deckKeyed?.keys ?? null;
     return (vals, ctx, key) => {
-      const props = { key, "data-dc-tpl": tplId };
+      const props = {
+        key: key + keySuffix,
+        "data-dc-tpl": tplId
+      };
       for (const [k, g] of propGetters) {
         let v = g(vals);
         if (k === "style" && typeof v === "string") v = cssToObj(v);
@@ -659,7 +809,7 @@
       if (pseudoClasses.length) {
         props.className = [props.className, ...pseudoClasses].filter(Boolean).join(" ");
       }
-      return h(realTag, props, ...kids.map((b, j) => b(vals, ctx, j)));
+      return h(realTag, props, ...renderDeckKids(kids, kidKeys, vals, ctx));
     };
   }
 
@@ -678,9 +828,12 @@
     forceUpdate() {
       this.__host && this.__host.forceUpdate();
     }
-    componentDidMount() {}
-    componentDidUpdate(_prevProps) {}
-    componentWillUnmount() {}
+    componentDidMount() {
+    }
+    componentDidUpdate(_prevProps) {
+    }
+    componentWillUnmount() {
+    }
     /** The flat object the template renders against (merged over props). */
     renderVals() {
       return {};
@@ -692,7 +845,7 @@
       "DCLogic",
       "StreamableLogic",
       "React",
-      src + '\n;return (typeof Component!=="undefined"&&Component)||undefined;',
+      src + '\n;return (typeof Component!=="undefined"&&Component)||undefined;'
     );
     return fn(StreamableLogic, StreamableLogic, getReact());
   }
@@ -706,18 +859,25 @@
     for (const k of ak) if (a[k] !== b[k]) return false;
     return true;
   }
-  function Placeholder({ name, hintSize, streaming, error }) {
+  function Placeholder({
+    name,
+    hintSize,
+    streaming,
+    error
+  }) {
     const [w, hgt] = (hintSize || "100%,60px").split(",");
     return h(
       "div",
       {
         className: "sc-placeholder" + (streaming ? " sc-streaming" : ""),
         style: { width: w.trim(), height: hgt && hgt.trim() },
-        title: name,
+        title: name
       },
-      error
-        ? h("div", { className: "sc-placeholder-error" }, (name ? name + ": " : "") + error)
-        : null,
+      error ? h(
+        "div",
+        { className: "sc-placeholder-error" },
+        (name ? name + ": " : "") + error
+      ) : null
     );
   }
   function hintToMin(hint) {
@@ -772,7 +932,7 @@
         console.error(
           "[dc-runtime] render error in <" + this.__name + ">:",
           e,
-          info?.componentStack || "",
+          info?.componentStack || ""
         );
       }
       /** Instantiate the logic class (or the no-op base) and adopt `prevState`
@@ -789,12 +949,14 @@
           this.__failedLogic = Logic;
           this.__failedUserProps = this.__userProps();
           this.__failedVer = registry.get(this.__name).ver;
-          this.__ctorError =
-            this.__name + ": " + (e instanceof Error && e.message ? e.message : String(e));
-          this.logic = new StreamableLogic(this.__userProps());
+          this.__ctorError = this.__name + ": " + (e instanceof Error && e.message ? e.message : String(e));
+          this.logic = new StreamableLogic(
+            this.__userProps()
+          );
         }
         this.logic.__host = this;
-        if (prevState) this.logic.state = { ...(this.logic.state || {}), ...prevState };
+        if (prevState)
+          this.logic.state = { ...this.logic.state || {}, ...prevState };
       }
       /** The props the author's logic + template see — internal __-prefixed
        *  wiring stripped. */
@@ -815,13 +977,7 @@
         const r = registry.get(this.__name);
         const Next = r.Logic;
         const Cur = this.logic.constructor;
-        if (
-          Next === Cur ||
-          (!Next && Cur === StreamableLogic) ||
-          (Next === this.__failedLogic &&
-            r.ver === this.__failedVer &&
-            shallowEqual(this.__userProps(), this.__failedUserProps))
-        ) {
+        if (Next === Cur || !Next && Cur === StreamableLogic || Next === this.__failedLogic && r.ver === this.__failedVer && shallowEqual(this.__userProps(), this.__failedUserProps)) {
           return;
         }
         if (!this.__needsDidMount) {
@@ -872,44 +1028,45 @@
       }
       render() {
         const r = registry.get(this.__name);
-        const cls =
-          "sc-host" +
-          (r.htmlStreaming ? " sc-streaming-html" : "") +
-          (r.jsStreaming ? " sc-streaming-js" : "");
+        const cls = "sc-host" + (r.htmlStreaming ? " sc-streaming-html" : "") + (r.jsStreaming ? " sc-streaming-js" : "");
         const hintStyle = r.htmlStreaming ? hintToMin(this.props.__hintSize) : void 0;
-        const hostStyle =
-          this.props.__hostStyle || hintStyle
-            ? { ...(hintStyle || {}), ...(this.props.__hostStyle || {}) }
-            : void 0;
+        const hostStyle = this.props.__hostStyle || hintStyle ? { ...hintStyle || {}, ...this.props.__hostStyle || {} } : void 0;
         const hostBase = {
           className: cls,
           style: hostStyle,
           "data-sc-name": this.__name,
-          "data-dc-tpl": this.props.__tplId,
+          "data-dc-tpl": this.props.__tplId
         };
         const chain = Array.isArray(this.context) ? this.context : [];
         if (chain.includes(this.__name)) {
-          const cycle = [...chain.slice(chain.indexOf(this.__name)), this.__name].join(" \u2192 ");
+          const cycle = [
+            ...chain.slice(chain.indexOf(this.__name)),
+            this.__name
+          ].join(" \u2192 ");
           return h(
             "div",
             { ...hostBase, className: cls + " sc-has-error" },
             h(Placeholder, {
               name: this.__name,
               hintSize: this.props.__hintSize,
-              error: "circular import: " + cycle,
-            }),
+              error: "circular import: " + cycle
+            })
           );
         }
         if (this.state.__err) {
           return h(
             "div",
             { ...hostBase, className: cls + " sc-has-error" },
-            h("div", { className: "sc-logic-error" }, this.__name + ": " + this.state.__err),
+            h(
+              "div",
+              { className: "sc-logic-error", "data-omelette-chrome": "" },
+              this.__name + ": " + this.state.__err
+            ),
             h(Placeholder, {
               name: this.__name,
               hintSize: this.props.__hintSize,
-              error: this.state.__err,
-            }),
+              error: this.state.__err
+            })
           );
         }
         this.__reconcileLogic();
@@ -917,7 +1074,7 @@
           return h(
             "div",
             hostBase,
-            h(Placeholder, { name: this.__name, hintSize: this.props.__hintSize }),
+            h(Placeholder, { name: this.__name, hintSize: this.props.__hintSize })
           );
         }
         const userProps = this.__userProps();
@@ -925,21 +1082,26 @@
         let vals = userProps;
         let renderErr = r.logicError || this.__ctorError;
         try {
-          vals = { ...userProps, ...(this.logic.renderVals() || {}) };
+          vals = { ...userProps, ...this.logic.renderVals() || {} };
         } catch (e) {
           console.error(e);
-          renderErr =
-            this.__name +
-            ".renderVals(): " +
-            (e instanceof Error && e.message ? e.message : String(e));
+          renderErr = this.__name + ".renderVals(): " + (e instanceof Error && e.message ? e.message : String(e));
         }
         this.__streamingNow = !!(r.htmlStreaming || r.jsStreaming);
         this.__htmlStreamingNow = !!r.htmlStreaming;
         return h(
           "div",
           { ...hostBase, className: cls + (renderErr ? " sc-has-error" : "") },
-          renderErr && h("div", { className: "sc-logic-error" }, renderErr),
-          h(AncestorContext.Provider, { value: [...chain, this.__name] }, r.tpl(vals, this)),
+          renderErr && h(
+            "div",
+            { className: "sc-logic-error", "data-omelette-chrome": "" },
+            renderErr
+          ),
+          h(
+            AncestorContext.Provider,
+            { value: [...chain, this.__name] },
+            r.tpl(vals, this)
+          )
         );
       }
     }
@@ -966,8 +1128,28 @@
     }
     return {
       getDC,
-      StreamableComponent,
+      StreamableComponent
     };
+  }
+
+  // src/bundled.ts
+  function bundledBlob(url) {
+    const blobs = window.__resourceBlobs;
+    const b = blobs ? blobs[url.split("#")[0]] : void 0;
+    return b instanceof Blob ? b : null;
+  }
+
+  // src/cdn.ts
+  var REACT_URL = "https://unpkg.com/react@18.3.1/umd/react.production.min.js";
+  var REACT_SRI = "sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z";
+  var REACT_DOM_URL = "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js";
+  var REACT_DOM_SRI = "sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1";
+  var BABEL_URL = "https://unpkg.com/@babel/standalone@7.29.0/babel.min.js";
+  var BABEL_SRI = "sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y";
+  function cdnScriptFor(url, sri) {
+    const res = window.__resources;
+    const v = res ? res[url] : void 0;
+    return typeof v === "string" && v ? { src: v } : { src: url, integrity: sri };
   }
 
   // src/external.ts
@@ -984,7 +1166,6 @@
     }
     return cur;
   }
-  var BABEL_URL = "https://unpkg.com/@babel/standalone@7.26.4/babel.min.js";
   var GLOBAL_POLL_INTERVAL_MS = 50;
   var GLOBAL_POLL_TIMEOUT_MS = 3e4;
   function createExternalModules(onResolved) {
@@ -995,87 +1176,95 @@
     function ensureBabel() {
       if (window.Babel) return Promise.resolve();
       if (babelLoading) return babelLoading;
+      const babel = cdnScriptFor(BABEL_URL, BABEL_SRI);
       babelLoading = new Promise((res, rej) => {
         const s = document.createElement("script");
-        s.src = BABEL_URL;
-        s.crossOrigin = "anonymous";
+        s.src = babel.src;
+        if (babel.integrity) {
+          s.integrity = babel.integrity;
+          s.crossOrigin = "anonymous";
+        }
         s.onload = () => res();
         s.onerror = rej;
         document.head.appendChild(s);
       });
       return babelLoading;
     }
-    function load(kind, url) {
-      if (cache.has(url)) return;
+    const pending = /* @__PURE__ */ new Map();
+    function load(kind, url, after) {
+      const existing = pending.get(url);
+      if (existing) return existing;
       cache.set(url, null);
       console.info("[dc-runtime] x-import: loading", url, "(" + kind + ")");
-      const ready = kind === "jsx" ? ensureBabel() : Promise.resolve();
-      ready
-        .then(() => fetch(url))
-        .then((r) => {
+      const ready = Promise.all([
+        kind === "jsx" ? ensureBabel() : Promise.resolve(),
+        after ?? Promise.resolve()
+      ]);
+      const p = ready.then(() => {
+        const pre = bundledBlob(url);
+        if (pre) return pre.text();
+        return fetch(url).then((r) => {
           if (!r.ok) throw new Error("HTTP " + r.status);
           return r.text();
-        })
-        .then((src) => {
-          const code =
-            kind === "jsx"
-              ? window.Babel.transform(src, {
-                  filename: url,
-                  presets: ["react", "typescript"],
-                }).code
-              : src;
-          const module = { exports: {} };
-          const before = new Set(Object.keys(window));
-          //! nosemgrep: eval-and-function-constructor
-          new Function("React", "module", "exports", "require", code)(
-            getReact(),
-            module,
-            module.exports,
-            () => ({}),
-          );
-          const globals = {};
-          for (const k of Object.keys(window)) {
-            if (!before.has(k) && typeof window[k] === "function") {
-              globals[k] = window[k];
-            }
-          }
-          cache.set(url, { mod: module.exports, globals });
-          console.info(
-            "[dc-runtime] x-import: loaded",
-            url,
-            "\u2014 exports:",
-            Object.keys(module.exports),
-            "window globals:",
-            Object.keys(globals),
-          );
-          onResolved();
-        })
-        .catch((e) => {
-          cache.set(url, {
-            mod: {},
-            globals: {},
-            error: "failed to load: " + (e instanceof Error && e.message ? e.message : String(e)),
-          });
-          console.error("[dc-runtime] x-import: FAILED to load", url, "(" + kind + ")", e);
-          onResolved();
         });
+      }).then((src) => {
+        const code = kind === "jsx" ? window.Babel.transform(src, {
+          filename: url,
+          presets: ["react", "typescript"]
+        }).code : src;
+        const module = { exports: {} };
+        const before = new Set(Object.keys(window));
+        //! nosemgrep: eval-and-function-constructor
+        new Function("React", "module", "exports", "require", code)(
+          getReact(),
+          module,
+          module.exports,
+          () => ({})
+        );
+        const globals = {};
+        for (const k of Object.keys(window)) {
+          if (!before.has(k) && typeof window[k] === "function") {
+            globals[k] = window[k];
+          }
+        }
+        cache.set(url, { mod: module.exports, globals });
+        console.info(
+          "[dc-runtime] x-import: loaded",
+          url,
+          "\u2014 exports:",
+          Object.keys(module.exports),
+          "window globals:",
+          Object.keys(globals)
+        );
+        onResolved();
+      }).catch((e) => {
+        cache.set(url, {
+          mod: {},
+          globals: {},
+          error: "failed to load: " + (e instanceof Error && e.message ? e.message : String(e))
+        });
+        console.error(
+          "[dc-runtime] x-import: FAILED to load",
+          url,
+          "(" + kind + ")",
+          e
+        );
+        onResolved();
+      });
+      pending.set(url, p);
+      return p;
     }
     function resolve2(url, name) {
       const entry = cache.get(url);
       if (!entry) return null;
       const { mod, globals } = entry;
-      const C =
-        (mod && mod[name]) ||
-        (globals && globals[name]) ||
-        (typeof window !== "undefined" && window[name]) ||
-        (mod && mod.default);
+      const C = mod && mod[name] || globals && globals[name] || typeof window !== "undefined" && window[name] || mod && mod.default;
       if (typeof C === "function") return C;
       const key = url + "\0" + name;
       if (!reportedMissing.has(key)) {
         reportedMissing.set(
           key,
-          entry.error ||
-            'no export named "' + name + '" (has: ' + Object.keys(mod).join(", ") + ")",
+          entry.error || 'no export named "' + name + '" (has: ' + Object.keys(mod).join(", ") + ")"
         );
         console.error(
           "[dc-runtime] x-import: module",
@@ -1086,7 +1275,7 @@
           Object.keys(mod),
           "window globals:",
           Object.keys(globals),
-          ". The module must `module.exports = {" + name + "}` or set `window." + name + "`.",
+          ". The module must `module.exports = {" + name + "}` or set `window." + name + "`."
         );
       }
       return null;
@@ -1097,9 +1286,7 @@
       const started = Date.now();
       const isCE = isCustomElementName(name);
       const tick = () => {
-        const found = isCE
-          ? customElements.get(name)
-          : isRenderableType(resolveDottedPath(window, name));
+        const found = isCE ? customElements.get(name) : isRenderableType(resolveDottedPath(window, name));
         if (found) {
           polling.delete(name);
           onResolved();
@@ -1109,7 +1296,7 @@
           console.warn(
             "[dc-runtime] x-import: global",
             JSON.stringify(name),
-            "never appeared on window after " + GLOBAL_POLL_TIMEOUT_MS + "ms",
+            "never appeared on window after " + GLOBAL_POLL_TIMEOUT_MS + "ms"
           );
           return;
         }
@@ -1145,11 +1332,7 @@
             url,
             "loaded but no custom element",
             JSON.stringify(name),
-            "is registered and window." +
-              name +
-              " is not a function \u2014 rendering <" +
-              name +
-              "> as an unknown element.",
+            "is registered and window." + name + " is not a function \u2014 rendering <" + name + "> as an unknown element."
           );
         }
       }
@@ -1164,25 +1347,88 @@
   }
   function isElementClass(g) {
     try {
-      return (
-        typeof g === "function" &&
-        typeof HTMLElement !== "undefined" &&
-        g.prototype instanceof HTMLElement
-      );
+      return typeof g === "function" && typeof HTMLElement !== "undefined" && g.prototype instanceof HTMLElement;
     } catch {
       return false;
     }
   }
 
+  // src/atomics.ts
+  var ATOMIC_CSS = (
+    // layout
+    ".fx{display:flex}.col{display:flex;flex-direction:column}.grid{display:grid}.ac{align-items:center}.jc{justify-content:center}.jb{justify-content:space-between}.f1{flex:1}.noshrink{flex-shrink:0}.wrap{flex-wrap:wrap}.fw5{font-weight:500}.fw6{font-weight:600}.fw7{font-weight:700}.fw8{font-weight:800}.fs11{font-size:11px}.fs12{font-size:12px}.fs13{font-size:13px}.fs14{font-size:14px}.fs15{font-size:15px}.fs16{font-size:16px}.fs20{font-size:20px}.fs22{font-size:22px}.upper{text-transform:uppercase}.tc{text-align:center}.nowrap{white-space:nowrap}.gap8{gap:8px}.gap10{gap:10px}.gap12{gap:12px}.gap16{gap:16px}.gap24{gap:24px}.m0{margin:0}.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}.mb16{margin-bottom:16px}.posrel{position:relative}.posabs{position:absolute}.round{border-radius:50%}.ohide{overflow:hidden}.bbox{box-sizing:border-box}.pointer{cursor:pointer}.w100{width:100%}.b0{border:none}"
+  );
+
   // src/helmet.ts
+  var DESIGN_DOC_MODE_RE = /<meta\b[^>]*\bname\s*=\s*["']design_doc_mode["'][^>]*\b(?:content|value)\s*=\s*["'](\w+)["']/i;
+  var CANVAS_BG_LIGHT = "#f0eee6";
+  var CANVAS_BG_DARK = "#2e2c26";
   function createHelmetManager(doc, isStreaming) {
     const mounted = /* @__PURE__ */ new Set();
     const live = /* @__PURE__ */ new Map();
+    let designDocMode = null;
+    let canvasStyleEl = null;
+    let appTheme = "light";
+    try {
+      const ds = doc.documentElement.dataset.theme;
+      appTheme = ds === "dark" || ds === "light" ? ds : new URLSearchParams(doc.defaultView?.location.search ?? "").get(
+        "theme"
+      ) === "dark" ? "dark" : "light";
+    } catch {
+    }
+    function applyCanvasBg() {
+      if (!canvasStyleEl) return;
+      const bg = appTheme === "dark" ? CANVAS_BG_DARK : CANVAS_BG_LIGHT;
+      canvasStyleEl.textContent = `html,body{background:${bg}}#dc-root>.sc-host{position:relative}`;
+    }
+    function postDesignMode(mode) {
+      if (window.parent === window) return;
+      try {
+        window.parent.postMessage({ type: "__dc_design_mode", mode }, "*");
+      } catch {
+      }
+    }
+    function setDesignDocMode(mode) {
+      if (mode === designDocMode) return;
+      designDocMode = mode;
+      postDesignMode(mode);
+      if (mode === "canvas") {
+        doc.documentElement.setAttribute("data-dc-canvas", "");
+        canvasStyleEl = doc.createElement("style");
+        canvasStyleEl.setAttribute("data-dc-canvas", "");
+        applyCanvasBg();
+        doc.head.appendChild(canvasStyleEl);
+      } else {
+        doc.documentElement.removeAttribute("data-dc-canvas");
+        canvasStyleEl?.remove();
+        canvasStyleEl = null;
+      }
+    }
+    window.addEventListener("message", (e) => {
+      const type = e.data && e.data.type;
+      if (type === "__dc_theme") {
+        const t = e.data.theme;
+        if (t === "light" || t === "dark") {
+          appTheme = t;
+          applyCanvasBg();
+        }
+        return;
+      }
+      if (!designDocMode || type !== "__dc_probe") return;
+      postDesignMode(designDocMode);
+    });
     function compile(node) {
       const raw = [...node.children];
       const helmetClosed = node.nextSibling != null || node.parentNode?.nextSibling != null;
+      if (node.hasAttribute("data-dc-atomics") && !mounted.has("__dc-atomics")) {
+        mounted.add("__dc-atomics");
+        const el = doc.createElement("style");
+        el.id = "__dc-atomics";
+        el.textContent = ATOMIC_CSS;
+        doc.head.appendChild(el);
+      }
       return (_vals, ctx) => {
-        const name = (ctx && ctx.__name) || "";
+        const name = ctx && ctx.__name || "";
         const streaming = !!(name && isStreaming(name));
         for (let i = 0; i < raw.length; i++) {
           const child = raw[i];
@@ -1194,17 +1440,37 @@
             if (mounted.has(key)) continue;
             mounted.add(key);
             const el = doc.createElement("script");
-            for (const { name: an, value } of [...child.attributes]) el.setAttribute(an, value);
+            for (const { name: an, value } of [...child.attributes])
+              el.setAttribute(an, value);
             if (child.textContent) el.textContent = child.textContent;
             doc.head.appendChild(el);
           } else if (tag === "LINK" || tag === "META") {
             if (mayBePartial) continue;
-            const key =
-              tag +
-              "|" +
-              (child.getAttribute("href") || child.getAttribute("src") || child.outerHTML);
+            const key = tag + "|" + (child.getAttribute("href") || child.getAttribute("src") || child.outerHTML);
             if (mounted.has(key)) continue;
             mounted.add(key);
+            if (tag === "LINK") {
+              const rel = (child.getAttribute("rel") || "").toLowerCase().split(/\s+/);
+              const href = (child.getAttribute("href") || "").trim();
+              const res = window.__resources;
+              const pre = res && rel.includes("stylesheet") && !rel.includes("alternate") ? res[href] : void 0;
+              const blob = typeof pre === "string" && pre ? bundledBlob(pre) : null;
+              if (blob) {
+                const el = doc.createElement("style");
+                if (child.hasAttribute("disabled")) {
+                  el.setAttribute("media", "not all");
+                } else if (child.getAttribute("media")) {
+                  el.setAttribute("media", child.getAttribute("media"));
+                }
+                if (child.getAttribute("title"))
+                  el.setAttribute("title", child.getAttribute("title"));
+                void blob.text().then((css) => {
+                  el.textContent = css;
+                });
+                doc.head.appendChild(el);
+                continue;
+              }
+            }
             doc.head.appendChild(child.cloneNode(true));
           } else {
             const key = name + "|" + i;
@@ -1218,16 +1484,86 @@
             for (const { name: an, value } of [...child.attributes]) {
               if (el.getAttribute(an) !== value) el.setAttribute(an, value);
             }
-            if (el.textContent !== child.textContent) el.textContent = child.textContent;
+            if (el.textContent !== child.textContent)
+              el.textContent = child.textContent;
           }
         }
         return null;
       };
     }
-    return { compile };
+    return { compile, setDesignDocMode };
   }
 
   // src/pseudo.ts
+  function scanUnquotedUrl(css, i) {
+    if (css[i] !== "u" && css[i] !== "U" || css.slice(i, i + 4).toLowerCase() !== "url(" || /[a-z0-9_-]/i.test(css[i - 1] ?? "")) {
+      return -1;
+    }
+    let j = i + 4;
+    while (j < css.length && /\s/.test(css[j])) j++;
+    if (css[j] === '"' || css[j] === "'") return -1;
+    while (j < css.length && css[j] !== ")") {
+      if (css[j] === "\\") j++;
+      j++;
+    }
+    return j < css.length ? j + 1 : css.length;
+  }
+  function stripComments(css) {
+    let out = "";
+    let quote = "";
+    for (let i = 0; i < css.length; i++) {
+      const c = css[i];
+      if (quote) {
+        if (c === "\\") {
+          out += c + (css[i + 1] ?? "");
+          i++;
+          continue;
+        }
+        if (c === quote) quote = "";
+        out += c;
+      } else if (c === "'" || c === '"') {
+        quote = c;
+        out += c;
+      } else if (c === "/" && css[i + 1] === "*") {
+        const end = css.indexOf("*/", i + 2);
+        i = end === -1 ? css.length : end + 1;
+        out += " ";
+      } else {
+        const end = scanUnquotedUrl(css, i);
+        if (end === -1) out += c;
+        else {
+          out += css.slice(i, end);
+          i = end - 1;
+        }
+      }
+    }
+    return out;
+  }
+  function importantify(css) {
+    css = stripComments(css);
+    const decls = [];
+    let start = 0;
+    let depth = 0;
+    let quote = "";
+    for (let i = 0; i < css.length; i++) {
+      const c = css[i];
+      if (quote) {
+        if (c === "\\") i++;
+        else if (c === quote) quote = "";
+      } else if (c === "'" || c === '"') quote = c;
+      else if (c === "(") depth++;
+      else if (c === ")") depth = Math.max(0, depth - 1);
+      else if (c === ";" && depth === 0) {
+        decls.push(css.slice(start, i));
+        start = i + 1;
+      } else {
+        const end = scanUnquotedUrl(css, i);
+        if (end !== -1) i = end - 1;
+      }
+    }
+    decls.push(css.slice(start));
+    return decls.map((d) => d.trim()).filter(Boolean).map((d) => /!\s*important$/i.test(d) ? d : d + " !important").join(";");
+  }
   function createPseudoSheet(doc) {
     let el = null;
     const cache = /* @__PURE__ */ new Map();
@@ -1241,11 +1577,12 @@
         doc.head.appendChild(el);
       }
       const cls = "scp" + (n++).toString(36);
-      const sel =
-        pseudo === "before" || pseudo === "after"
-          ? "." + cls + "::" + pseudo
-          : "." + cls + ":" + pseudo;
-      el.sheet.insertRule(sel + "{" + css + "}", el.sheet.cssRules.length);
+      const isPseudoElement = pseudo === "before" || pseudo === "after";
+      const sel = isPseudoElement ? "." + cls + "::" + pseudo : "." + cls + ":" + pseudo;
+      el.sheet.insertRule(
+        sel + "{" + (isPseudoElement ? css : importantify(css)) + "}",
+        el.sheet.cssRules.length
+      );
       cache.set(k, cls);
       return cls;
     };
@@ -1255,19 +1592,16 @@
   function createRegistry() {
     const entries = /* @__PURE__ */ Object.create(null);
     function get(name) {
-      return (
-        entries[name] ||
-        (entries[name] = {
-          html: "",
-          tpl: null,
-          Logic: null,
-          jsStreaming: false,
-          htmlStreaming: false,
-          ver: 0,
-          subs: /* @__PURE__ */ new Set(),
-          fetched: false,
-        })
-      );
+      return entries[name] || (entries[name] = {
+        html: "",
+        tpl: null,
+        Logic: null,
+        jsStreaming: false,
+        htmlStreaming: false,
+        ver: 0,
+        subs: /* @__PURE__ */ new Set(),
+        fetched: false
+      });
     }
     function bump(name) {
       const r = get(name);
@@ -1280,7 +1614,7 @@
       bump,
       bumpAll() {
         for (const n in entries) bump(n);
-      },
+      }
     };
   }
 
@@ -1289,61 +1623,74 @@
   function createRuntime(doc = document) {
     const registry = createRegistry();
     const pseudoClass = createPseudoSheet(doc);
-    const helmet = createHelmetManager(doc, (name) => registry.get(name).htmlStreaming);
+    const helmet = createHelmetManager(
+      doc,
+      (name) => registry.get(name).htmlStreaming
+    );
     const external = createExternalModules(() => registry.bumpAll());
     const factory = createComponentFactory(registry, ensureFetched);
     const host = {
       component: (name) => factory.getDC(name),
       placeholder: (props) => h(Placeholder, props),
       helmet: (node) => helmet.compile(node),
-      loadExternal: (kind, url) => external.load(kind, url),
+      loadExternal: (kind, url, after) => external.load(kind, url, after),
       resolveExternal: (url, name) => external.resolve(url, name),
       resolveExternalGlobal: (url, name) => external.resolveGlobal(url, name),
       resolveExternalError: (url, name) => external.getError(url, name),
-      pseudoClass,
+      pseudoClass
     };
     function ensureFetched(name) {
       const r = registry.get(name);
       if (r.fetched) return;
       r.fetched = true;
       const url = COMPONENT_DIR + "/" + encodeURIComponent(name) + ".dc.html";
-      fetch(url)
-        .then((res) => {
-          if (!res.ok) {
-            console.error(
-              "[dc-runtime] sibling fetch for <" + name + "/> failed:",
-              url,
-              "returned",
-              res.status,
-              "\u2014 the reference renders as an empty placeholder.",
-            );
-            return "";
-          }
-          return res.text();
-        })
-        .then((t) => {
-          if (!t) return;
-          const parsed = parseDcText(t);
-          if (!parsed) {
-            console.error(
-              "[dc-runtime] sibling fetch for <" + name + "/>:",
-              url,
-              "has no <x-dc> block \u2014 not a Design Component.",
-            );
-            return;
-          }
-          if (parsed.props) r.propsMeta = parsed.props;
-          if (parsed.preview) r.preview = parsed.preview;
-          if (parsed.template && !r.html) updateHtml(name, parsed.template);
-          if (parsed.js && !r.Logic) updateJs(name, parsed.js);
-        })
-        .catch((e) =>
-          console.error("[dc-runtime] sibling fetch for <" + name + "/> threw:", url, e),
-        );
+      const res = window.__resources;
+      const pre = res ? res[url] : void 0;
+      const target = typeof pre === "string" && pre ? pre : url;
+      const blob = bundledBlob(target);
+      (blob ? blob.text() : fetch(target).then((res2) => {
+        if (!res2.ok) {
+          console.error(
+            '[dc-runtime] sibling fetch for "' + name + '" failed:',
+            url,
+            "returned",
+            res2.status,
+            "\u2014 the reference renders as an empty placeholder."
+          );
+          return "";
+        }
+        return res2.text();
+      })).then((t) => {
+        if (!t) return;
+        const parsed = parseDcText(t);
+        if (!parsed) {
+          console.error(
+            '[dc-runtime] sibling fetch for "' + name + '":',
+            url,
+            "has no <x-dc> block \u2014 not a Design Component."
+          );
+          return;
+        }
+        if (parsed.props) r.propsMeta = parsed.props;
+        if (parsed.preview) r.preview = parsed.preview;
+        if (parsed.template && !r.html) updateHtml(name, parsed.template);
+        if (parsed.js && !r.Logic) updateJs(name, parsed.js);
+      }).catch(
+        (e) => console.error(
+          '[dc-runtime] sibling fetch for "' + name + '" threw:',
+          url,
+          e
+        )
+      );
     }
+    let rootName = null;
     function updateHtml(name, html) {
       const r = registry.get(name);
       r.html = html;
+      if (name === rootName) {
+        const mode = DESIGN_DOC_MODE_RE.exec(html)?.[1] ?? null;
+        if (mode || !r.htmlStreaming) helmet.setDesignDocMode(mode);
+      }
       try {
         r.tpl = compileTemplate(html, host);
       } catch (e) {
@@ -1353,14 +1700,12 @@
     }
     function updateJs(name, src) {
       const r = registry.get(name);
-      const seq = (r.jsSeq = (r.jsSeq || 0) + 1);
+      const seq = r.jsSeq = (r.jsSeq || 0) + 1;
       try {
         const Cls = evalDcLogic(src);
         if (r.jsSeq !== seq) return;
         if (typeof Cls !== "function") {
-          r.logicError =
-            name +
-            ".dc.html: <script data-dc-script> must define `class Component extends DCLogic`";
+          r.logicError = name + ".dc.html: <script data-dc-script> must define `class Component extends DCLogic`";
         } else {
           r.logicError = null;
           r.Logic = Cls;
@@ -1371,7 +1716,7 @@
           "[dc-runtime] logic class eval FAILED for",
           name,
           "\u2014 the template renders with props only.",
-          e,
+          e
         );
         r.logicError = name + ": " + (e instanceof Error && e.message ? e.message : String(e));
       }
@@ -1409,8 +1754,7 @@
       }
     }
     function setProps(name, overrides) {
-      registry.get(name).propOverrides =
-        overrides && typeof overrides === "object" ? { ...overrides } : null;
+      registry.get(name).propOverrides = overrides && typeof overrides === "object" ? { ...overrides } : null;
       registry.bump(name);
     }
     function adoptParsed(name, parsed) {
@@ -1429,23 +1773,48 @@
       dcUpdate,
       setProps,
       adoptParsed,
+      setRootName: (name) => {
+        rootName = name;
+      },
       markFetched: (name) => {
         registry.get(name).fetched = true;
       },
       annotatedTemplate: (name) => {
         const r = registry.get(name);
-        return (r.tpl && r.tpl.__annotated) || null;
+        return r.tpl && r.tpl.__annotated || null;
       },
       templateSource: (name) => registry.get(name).html || null,
-      StreamableLogic,
+      StreamableLogic
+    };
+  }
+
+  // src/stream-state.ts
+  function createStreamTracker(staleMs = 6e4, now = Date.now) {
+    const since = /* @__PURE__ */ new Map();
+    const liveOne = (n) => {
+      const t = since.get(n);
+      if (t === void 0) return false;
+      if (now() - t > staleMs) {
+        since.delete(n);
+        return false;
+      }
+      return true;
+    };
+    return {
+      push(name, streaming, viewportKey) {
+        if (viewportKey === "dc-model") return;
+        if (streaming) since.set(name, now());
+        else since.delete(name);
+      },
+      live(name) {
+        if (name !== void 0) return liveOne(name);
+        for (const n of [...since.keys()]) if (liveOne(n)) return true;
+        return false;
+      }
     };
   }
 
   // src/index.ts
-  var REACT_URL = "https://unpkg.com/react@18.3.1/umd/react.production.min.js";
-  var REACT_SRI = "sha384-DGyLxAyjq0f9SPpVevD6IgztCFlnMF6oW/XQGmfe+IsZ8TqEiDrcHkMLKI6fiB/Z";
-  var REACT_DOM_URL = "https://unpkg.com/react-dom@18.3.1/umd/react-dom.production.min.js";
-  var REACT_DOM_SRI = "sha384-gTGxhz21lVGYNMcdJOyq01Edg0jhn/c22nsx0kyqP0TxaV5WVdsSH1fSDUf5YJj1";
   function hideRawTemplate() {
     const s = document.createElement("style");
     s.textContent = "x-dc{display:none!important}";
@@ -1456,8 +1825,10 @@
       //! nosemgrep: create-script-element
       const s = document.createElement("script");
       s.src = src;
-      s.integrity = integrity;
-      s.crossOrigin = "anonymous";
+      if (integrity) {
+        s.integrity = integrity;
+        s.crossOrigin = "anonymous";
+      }
       s.async = false;
       s.onload = () => resolve2();
       s.onerror = () => reject(new Error(`failed to load ${src}`));
@@ -1467,9 +1838,11 @@
   function loadReactUmd() {
     const w = window;
     if (w.React && w.ReactDOM) return Promise.resolve();
+    const react = cdnScriptFor(REACT_URL, REACT_SRI);
+    const reactDom = cdnScriptFor(REACT_DOM_URL, REACT_DOM_SRI);
     return Promise.all([
-      loadScript(REACT_URL, REACT_SRI),
-      loadScript(REACT_DOM_URL, REACT_DOM_SRI),
+      loadScript(react.src, react.integrity),
+      loadScript(reactDom.src, reactDom.integrity)
     ]).then(() => void 0);
   }
   function init() {
@@ -1486,18 +1859,22 @@
           {
             type: "__dc_booted",
             rootName,
-            propsMeta: (r && r.propsMeta) || null,
-            preview: (r && r.preview) || null,
+            propsMeta: r && r.propsMeta || null,
+            preview: r && r.preview || null
           },
-          "*",
+          "*"
         );
-      } catch {}
+      } catch {
+      }
     };
+    const streams = createStreamTracker();
     const api = {
-      __dcUpdate: (name, kind, content, streaming) => {
+      __dcUpdate: (name, kind, content, streaming, viewportKey) => {
+        streams.push(name, streaming, viewportKey);
         runtime.dcUpdate(name, kind, content, streaming);
         if (name === rootName && !streaming && kind === "props") notifyHost();
       },
+      __dcStreaming: (name) => streams.live(name),
       __dcSetProps: (name, overrides) => runtime.setProps(name, overrides),
       /** Name of the component currently mounted as the page root — DC tools
        *  push their template-stream here when targeting "the open page". */
@@ -1505,8 +1882,8 @@
       /** Editor bridge — the encoded, `data-dc-tpl`-annotated template source.
        *  The host editor parses this into its own template DOM so it can map a
        *  rendered node (carrying the same `data-dc-tpl`) back to the source
-       *  node that emitted it. Returns the encoded form (`<sc-comp>`,
-       *  `sc-camel-*` attrs); the editor decodes on serialize. */
+       *  node that emitted it. Returns the encoded form (`sc-camel-*` attrs,
+       *  `<sc-raw-*>`/`<sc-helmet>` tags); the editor decodes on serialize. */
       __dcAnnotatedTemplate: (name) => runtime.annotatedTemplate(name),
       /** Editor bridge — the *original* (decoded) template source. */
       __dcTemplateSource: (name) => runtime.templateSource(name),
@@ -1519,17 +1896,16 @@
       // `DCLogic` is the documented base class name; `StreamableLogic` is the
       // implementation alias kept for any project that already references it.
       DCLogic: runtime.StreamableLogic,
-      StreamableLogic: runtime.StreamableLogic,
+      StreamableLogic: runtime.StreamableLogic
     };
     Object.assign(window, api);
+    window.__dcContentKeyed = true;
     if (document.readyState !== "loading") api.__dcBoot();
     else document.addEventListener("DOMContentLoaded", () => api.__dcBoot());
   }
   hideRawTemplate();
-  loadReactUmd()
-    .then(init)
-    .catch((err) => {
-      console.error("[dc] failed to load React or boot:", err);
-      throw err;
-    });
+  loadReactUmd().then(init).catch((err) => {
+    console.error("[dc] failed to load React or boot:", err);
+    throw err;
+  });
 })();
