@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
@@ -22,6 +23,11 @@ export interface SearchableSelectOption {
    * "Cuenta asociada" detail row already uses, so a picker and its own read-only
    * display never disagree on how much identifies an account. */
   description?: string;
+  /** Leading icon, shown in both the dropdown row and (for the SELECTED
+   * option) the closed control — e.g. a category's icon, same shape
+   * `Combobox`'s own `renderOption`/`adornment` already give free-text
+   * pickers. Omit for a picker that doesn't need one (most don't). */
+  icon?: ReactNode;
 }
 
 interface Props {
@@ -149,11 +155,18 @@ export function SearchableSelect({
       )
     : options;
   const matchedOption = options.find((o) => o.value === value);
-  const selectedLabel = value ? (displayValue ?? matchedOption?.label ?? "") : "";
+  // Whether something is "selected" depends on whether a real OPTION matches
+  // `value` — not on `value` being truthy. A picker with an explicit "none"
+  // option (`{ value: "", label: "Sin cuenta" }`) has a real, showable
+  // selection at `value === ""`; treating every falsy value as unselected
+  // hid that option's own label (and showed a blank control) even though it
+  // was the one actually chosen.
+  const selectedLabel = matchedOption ? (displayValue ?? matchedOption.label) : "";
   // `displayValue` overrides the LABEL for a narrower closed-control reading
   // (e.g. a currency's bare code) — it says nothing about the description, so
   // the two-line shape still applies whenever the matched option carries one.
-  const selectedDescription = value ? matchedOption?.description : undefined;
+  const selectedDescription = matchedOption?.description;
+  const selectedIcon = matchedOption?.icon;
 
   function select(option: SearchableSelectOption) {
     onChange(option.value);
@@ -177,6 +190,7 @@ export function SearchableSelect({
           "focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
         )}
       >
+        {selectedIcon}
         {selectedDescription ? (
           <span className={cn("flex min-w-0 flex-col", variant === "inline" && "items-end")}>
             <span className="truncate">{selectedLabel}</span>
@@ -234,13 +248,16 @@ export function SearchableSelect({
                         o.value === value && "bg-muted font-medium",
                       )}
                     >
-                      <span className="flex min-w-0 flex-col">
-                        <span className="truncate">{o.label}</span>
-                        {o.description ? (
-                          <span className="truncate text-xs font-normal text-muted-foreground">
-                            {o.description}
-                          </span>
-                        ) : null}
+                      <span className="flex min-w-0 items-center gap-2">
+                        {o.icon}
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate">{o.label}</span>
+                          {o.description ? (
+                            <span className="truncate text-xs font-normal text-muted-foreground">
+                              {o.description}
+                            </span>
+                          ) : null}
+                        </span>
                       </span>
                       {o.value === value ? (
                         <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />

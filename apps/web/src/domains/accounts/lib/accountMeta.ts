@@ -16,3 +16,20 @@ export function accountMetaLine(
     .filter(Boolean)
     .join(" · ");
 }
+
+/**
+ * Same shape as `accountMetaLine`, but for a CARD: "Corriente · Banco de Chile ·
+ * ····1234" — the card's own last4, never the bank account number. A card
+ * already carries its account's type/institution (it can only ever belong to
+ * one), so a picker that lists cards has no separate "cuenta" of its own to
+ * name — this is the one line that identifies it.
+ */
+export function cardMetaLine(
+  account: accountsContract.BankAccount,
+  card: Pick<accountsContract.Card, "last4">,
+  typeLabel: (type: accountsContract.AccountType) => string,
+): string {
+  return [typeLabel(account.type), account.institution, `···· ${card.last4}`]
+    .filter(Boolean)
+    .join(" · ");
+}
