@@ -41,6 +41,9 @@ export function RecurringDetailPanel({ r, accounts, onOpenChange, onTogglePause,
   if (r === null) return null;
 
   const account = r.bankAccountId ? (accounts.find((a) => a.id === r.bankAccountId) ?? null) : null;
+  const card = r.cardId
+    ? (accounts.flatMap((a) => a.cards).find((c) => c.id === r.cardId) ?? null)
+    : null;
   const paused = !r.active;
   const money = (v: string) => formatMoney(v, { locale: i18n.language, currency: r.currency });
 
@@ -114,6 +117,7 @@ export function RecurringDetailPanel({ r, accounts, onOpenChange, onTogglePause,
             label={t("debts.form.account")}
             value={account?.name ?? t("recurring.form.noAccount")}
           />
+          <DetailRow label={t("transactions.form.card")} value={card?.name ?? t("transactions.form.noCard")} />
           <DetailRow
             label={t("recurring.form.anchorDate")}
             value={formatLongDate(r.anchorDate, i18n.language)}

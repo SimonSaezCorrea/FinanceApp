@@ -7,7 +7,11 @@ import {
   BANK_ACCOUNT_LOOKUP,
   type BankAccountLookupPort,
 } from "../../../bank-account/domain/ports/bank-account-lookup.port";
-import { AccountNotFoundError } from "../../../bank-account/domain/errors";
+import { AccountNotFoundError, CardNotFoundError } from "../../../bank-account/domain/errors";
+import {
+  CARD_ACCOUNT_REPOSITORY,
+  type CardAccountRepositoryPort,
+} from "../../../card-account/domain/ports/card-account.repository.port";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
   RecurringExpense,
@@ -40,6 +44,7 @@ export class CreateRecurringExpenseHandler extends BaseCommandHandler<
     eventBus: EventBus,
     @Inject(RECURRING_EXPENSE_REPOSITORY) private readonly repo: RecurringExpenseRepositoryPort,
     @Inject(BANK_ACCOUNT_LOOKUP) private readonly accounts: BankAccountLookupPort,
+    @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -52,6 +57,9 @@ export class CreateRecurringExpenseHandler extends BaseCommandHandler<
     ) {
       throw new AccountNotFoundError();
     }
+    if (input.cardId && !(await this.cards.existsForUser(command.userId, input.cardId))) {
+      throw new CardNotFoundError();
+    }
     const plan = RecurringExpense.planCreation({
       label: input.label,
       amount: input.amount,
@@ -61,6 +69,7 @@ export class CreateRecurringExpenseHandler extends BaseCommandHandler<
       interval: input.interval,
       anchorDate: new Date(input.anchorDate),
       bankAccountId: input.bankAccountId,
+      cardId: input.cardId,
       active: input.active,
       notes: input.notes,
     });

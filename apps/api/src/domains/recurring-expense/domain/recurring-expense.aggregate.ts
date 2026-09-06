@@ -12,6 +12,7 @@ export interface RecurringExpenseProps {
   interval: number;
   anchorDate: Date;
   bankAccountId: string | null;
+  cardId: string | null;
   active: boolean;
   notes: string | null;
   createdAt: Date;
@@ -27,6 +28,7 @@ export type RecurringExpensePatch = Partial<{
   interval: number;
   anchorDate: Date;
   bankAccountId: string | null;
+  cardId: string | null;
   active: boolean;
   notes: string | null;
 }>;
@@ -96,6 +98,7 @@ export class RecurringExpense {
     interval: number;
     anchorDate: Date;
     bankAccountId?: string;
+    cardId?: string;
     active?: boolean;
     notes?: string;
   }): PlannedRecurringExpense {
@@ -108,6 +111,7 @@ export class RecurringExpense {
       interval: input.interval,
       anchorDate: input.anchorDate,
       bankAccountId: input.bankAccountId ?? null,
+      cardId: input.cardId ?? null,
       active: input.active ?? true,
       notes: input.notes ?? null,
     };
@@ -130,6 +134,7 @@ export class RecurringExpense {
     if (patch.interval !== undefined) this.props.interval = patch.interval;
     if (patch.anchorDate !== undefined) this.props.anchorDate = patch.anchorDate;
     if (patch.bankAccountId !== undefined) this.props.bankAccountId = patch.bankAccountId;
+    if (patch.cardId !== undefined) this.props.cardId = patch.cardId;
     if (patch.active !== undefined) this.props.active = patch.active;
     if (patch.notes !== undefined) this.props.notes = patch.notes;
   }
@@ -149,6 +154,7 @@ export class RecurringExpense {
       interval: this.props.interval,
       anchorDate: this.props.anchorDate.toISOString(),
       bankAccountId: this.props.bankAccountId,
+      cardId: this.props.cardId,
       active: this.props.active,
       notes: this.props.notes,
       nextDueAt: nextDue(

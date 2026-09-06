@@ -740,6 +740,19 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     creating a movement are held in memory (validated locally by type and size) and uploaded as soon
     as `POST /transactions` returns an id; one that fails stays listed with **Reintentar**.
   - **recurring-expense**: `RecurringExpense` (subscriptions/rent/periodic payments) — `frequency` (`RecurrenceFrequency`: WEEKLY/MONTHLY/YEARLY), `interval`, `anchorDate`, optional `bankAccountId`/`category`, `active`. The contract exposes a computed `nextDueAt` (anchor stepped forward by frequency × interval). CRUD at `/recurring`.
+    Amendment (optional `cardId`, 2026-09-06): a series gains **`cardId`** (nullable FK →
+    `CardAccount`, `onDelete: SetNull`) — the card it's paid with, when it isn't a plain
+    transfer out of `bankAccountId`. Purely informational, same spirit as `Debt.paymentAccountId`:
+    nothing here moves real money or generates a movement automatically. Ownership-verified on
+    create/update via `CardAccountRepositoryPort.existsForUser` (mirrors `bankAccountId`'s own
+    `BankAccountLookupPort.accountOwned` check) — `CARD_NOT_FOUND` if it isn't the caller's own;
+    not cross-checked against `bankAccountId` (a card always belongs to SOME account, but this
+    field doesn't enforce it's the one selected here). Web: `RecurringFormPanel` shows the card
+    picker only once an account is chosen and that account actually carries a card, right after
+    the "Cuenta" row, defaulting to "Cuenta propia" (paid straight out of the account). The form's
+    own Activo/Pausado chip was removed — a new series always starts active, and pausing/resuming
+    an existing one already has its own dedicated flow (`RecurringPauseModal`), so the form never
+    duplicated it.
   - **debt** (person-to-person debts, "Deudas"): `Debt` gains **`paymentAccountId`** (nullable FK → `BankAccount`, `onDelete: SetNull`) — the payment panel's DEFAULT suggestion for which account a payment moves on. Ownership-verified before persisting (create/update, via the lightweight `BankAccountLookupPort.accountOwned`, same pattern `recurring-expense` uses) — `AccountNotFoundError` if the id isn't the caller's own. `null`/absent is valid (a debt need not name one). Web: `DebtFormPanel` has a "Cuenta asociada" row (`SearchableSelect`, explicit "Sin cuenta" `""` option); `DebtDetailPanel` shows the linked account's name/type/institution/number when set.
     Amendment (settle/register-payment move real money, 2026-09-05): answers "¿No genera
     movimiento marcarla como pagada?" — **`POST /debts/:id/settle` and `/register-payment` now

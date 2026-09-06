@@ -7,7 +7,11 @@ import {
   BANK_ACCOUNT_LOOKUP,
   type BankAccountLookupPort,
 } from "../../../bank-account/domain/ports/bank-account-lookup.port";
-import { AccountNotFoundError } from "../../../bank-account/domain/errors";
+import { AccountNotFoundError, CardNotFoundError } from "../../../bank-account/domain/errors";
+import {
+  CARD_ACCOUNT_REPOSITORY,
+  type CardAccountRepositoryPort,
+} from "../../../card-account/domain/ports/card-account.repository.port";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { RecurringExpenseNotFoundError } from "../../domain/errors";
 import { startOfTodayUTC, type RecurringExpense } from "../../domain/recurring-expense.aggregate";
@@ -28,6 +32,7 @@ export class UpdateRecurringExpenseHandler extends BaseCommandHandler<
     eventBus: EventBus,
     @Inject(RECURRING_EXPENSE_REPOSITORY) private readonly repo: RecurringExpenseRepositoryPort,
     @Inject(BANK_ACCOUNT_LOOKUP) private readonly accounts: BankAccountLookupPort,
+    @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -40,6 +45,12 @@ export class UpdateRecurringExpenseHandler extends BaseCommandHandler<
       !(await this.accounts.accountOwned(command.userId, command.input.bankAccountId))
     ) {
       throw new AccountNotFoundError();
+    }
+    if (
+      command.input.cardId &&
+      !(await this.cards.existsForUser(command.userId, command.input.cardId))
+    ) {
+      throw new CardNotFoundError();
     }
     return expense;
   }
@@ -58,6 +69,7 @@ export class UpdateRecurringExpenseHandler extends BaseCommandHandler<
       ...(input.interval !== undefined ? { interval: input.interval } : {}),
       ...(input.anchorDate !== undefined ? { anchorDate: new Date(input.anchorDate) } : {}),
       ...(input.bankAccountId !== undefined ? { bankAccountId: input.bankAccountId } : {}),
+      ...(input.cardId !== undefined ? { cardId: input.cardId } : {}),
       ...(input.active !== undefined ? { active: input.active } : {}),
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
     });

@@ -21,6 +21,7 @@ function rowToProps(row: RecurringExpenseRow): RecurringExpenseProps {
     interval: row.interval,
     anchorDate: row.anchorDate,
     bankAccountId: row.bankAccountId,
+    cardId: row.cardId,
     active: row.active,
     notes: row.notes,
     createdAt: row.createdAt,
@@ -58,6 +59,7 @@ export class PrismaRecurringExpenseRepository implements RecurringExpenseReposit
       interval: plan.interval,
       anchorDate: plan.anchorDate,
       bankAccountId: plan.bankAccountId,
+      cardId: plan.cardId,
       active: plan.active,
       notes: plan.notes,
     };
@@ -76,6 +78,7 @@ export class PrismaRecurringExpenseRepository implements RecurringExpenseReposit
       interval: snap.interval,
       anchorDate: snap.anchorDate,
       bankAccountId: snap.bankAccountId,
+      cardId: snap.cardId,
       active: snap.active,
       notes: snap.notes,
     };

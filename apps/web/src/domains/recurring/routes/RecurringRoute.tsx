@@ -86,12 +86,10 @@ export function RecurringRoute() {
     : undefined;
 
   function openCreate() {
-    const defaultAccountId =
-      accountList.find((a) => a.currency === preferredCurrency)?.id ?? accountList[0]?.id ?? "";
-    setFormValue({
-      ...emptyRecurringForm(todayInput(), preferredCurrency),
-      bankAccountId: defaultAccountId,
-    });
+    // No account preselected — a recurring series isn't necessarily tied to
+    // one (it's optional on the model), and it needs to start on "Sin cuenta
+    // asociada" rather than picking one on the user's behalf.
+    setFormValue(emptyRecurringForm(todayInput(), preferredCurrency));
     setForm({ mode: "create", id: null });
   }
 
@@ -135,6 +133,7 @@ export function RecurringRoute() {
       interval: formValue.interval,
       anchorDate: new Date(`${formValue.anchorDate}T00:00:00`).toISOString(),
       bankAccountId: formValue.bankAccountId || undefined,
+      cardId: formValue.cardId || undefined,
       active: formValue.active,
       notes: formValue.notes.trim() || undefined,
     };

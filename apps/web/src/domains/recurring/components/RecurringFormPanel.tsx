@@ -2,15 +2,13 @@ import { useTranslation } from "react-i18next";
 
 import type { accounts as accountsContract, recurring } from "@finance/contracts";
 
-import { accountMetaLine } from "../../accounts/lib/accountMeta";
+import { accountMetaLine, cardMetaLine } from "../../accounts/lib/accountMeta";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { CategoryIcon } from "../../../shared/ui/category-icon";
-import { DetailRow } from "../../../shared/ui/detail-row";
 import {
   FormBigTextField,
-  FormChip,
   FormCounterField,
   FormCycleField,
   FormDateField,
@@ -30,6 +28,9 @@ export interface RecurringFormValue {
   interval: number;
   anchorDate: string;
   bankAccountId: string;
+  /** The card this series is paid with, when it isn't a plain transfer out of
+   * the account above — optional, purely informational. `""` = none. */
+  cardId: string;
   active: boolean;
   notes: string;
 }
@@ -83,6 +84,23 @@ export function RecurringFormPanel({
     })),
   ];
 
+  // The card field only makes sense once an account is chosen (a card always
+  // belongs to one) and that account actually carries any — otherwise there's
+  // nothing to offer. Paying straight from the account (a transfer) is the
+  // default, same convention a movement's own card field uses — including its
+  // "tipo · banco · número" description line (`cardMetaLine`), so a card reads
+  // the same way here as it does in Movimientos.
+  const typeLabel = (accType: accountsContract.AccountType) => t(`accounts.type.${accType}`);
+  const selectedAccount = accounts.find((a) => a.id === value.bankAccountId);
+  const cardOptions = [
+    { value: "", label: t("transactions.form.ownAccount") },
+    ...(selectedAccount?.cards ?? []).map((c) => ({
+      value: c.id,
+      label: c.name,
+      description: selectedAccount ? cardMetaLine(selectedAccount, c, typeLabel) : undefined,
+    })),
+  ];
+
   // The same category vocabulary Movimientos offers, picked from a list —
   // typing lives inside the panel's own search box, not in the closed
   // control. `value.category` is folded in when it isn't already there (an
@@ -133,8 +151,10 @@ export function RecurringFormPanel({
           aria-label={t("recurring.form.label")}
         />
 
+        {/* A recurring series is always an outgoing expense — red like any
+            other expense amount, never a neutral tone. */}
         <div className="flex items-baseline gap-2 border-b border-border pb-3">
-          <span className="shrink-0 text-3xl font-bold text-muted-foreground" aria-hidden>
+          <span className="shrink-0 text-3xl font-bold text-destructive" aria-hidden>
             {resolveCurrencySymbol(value.currency, currencies, i18n.language)}
           </span>
           <input
@@ -143,7 +163,7 @@ export function RecurringFormPanel({
             onChange={(e) => onChange({ amount: e.target.value.replace(/\D/g, "") })}
             placeholder="0"
             aria-label={t("recurring.form.amount")}
-            className="min-w-0 max-w-[220px] flex-1 border-0 bg-transparent p-0 text-3xl font-bold tabular-nums text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+            className="min-w-0 max-w-[220px] flex-1 border-0 bg-transparent p-0 text-3xl font-bold tabular-nums text-destructive placeholder:text-destructive/50 focus-visible:outline-none"
           />
           <span className="ml-auto shrink-0 text-sm text-muted-foreground">{value.currency}</span>
         </div>
@@ -185,24 +205,19 @@ export function RecurringFormPanel({
             id="recurring-account"
             label={t("debts.form.account")}
             value={value.bankAccountId}
-            onChange={(bankAccountId) => onChange({ bankAccountId })}
+            onChange={(bankAccountId) => onChange({ bankAccountId, cardId: "" })}
             options={accountOptions}
           />
 
-          <DetailRow label={t("recurring.form.status")}>
-            <FormChip
-              value={value.active ? "active" : "paused"}
-              onChange={(status) => onChange({ active: status === "active" })}
-              options={[
-                { value: "paused", label: t("recurring.inactive") },
-                {
-                  value: "active",
-                  label: t("recurring.detail.active"),
-                  activeClassName: "bg-success text-success-foreground",
-                },
-              ]}
+          {selectedAccount && selectedAccount.cards.length > 0 ? (
+            <FormSelectField
+              id="recurring-card"
+              label={t("transactions.form.card")}
+              value={value.cardId}
+              onChange={(cardId) => onChange({ cardId })}
+              options={cardOptions}
             />
-          </DetailRow>
+          ) : null}
         </div>
 
         <FormNotice>{noteText}</FormNotice>
@@ -229,6 +244,7 @@ export function emptyRecurringForm(today: string, currency = "CLP"): RecurringFo
     interval: 1,
     anchorDate: today,
     bankAccountId: "",
+    cardId: "",
     active: true,
     notes: "",
   };
@@ -245,6 +261,7 @@ export function recurringFormFrom(r: recurring.RecurringExpense): RecurringFormV
     interval: r.interval,
     anchorDate: r.anchorDate.slice(0, 10),
     bankAccountId: r.bankAccountId ?? "",
+    cardId: r.cardId ?? "",
     active: r.active,
     notes: r.notes ?? "",
   };

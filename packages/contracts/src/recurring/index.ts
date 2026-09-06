@@ -18,6 +18,9 @@ export const recurringExpenseSchema = z.object({
   interval: z.number().int().positive(),
   anchorDate: z.string(),
   bankAccountId: rowId.nullable(),
+  /** The card this series is paid with, when it isn't a plain transfer out of
+   * `bankAccountId` — purely informational, same spirit as `Debt.paymentAccountId`. */
+  cardId: rowId.nullable(),
   active: z.boolean(),
   notes: z.string().nullable(),
   /** Next occurrence on/after today, computed from anchorDate + frequency × interval. */
@@ -36,6 +39,7 @@ export const createRecurringExpenseSchema = z.object({
   interval: z.number().int().min(1).max(366).default(1),
   anchorDate: z.string().datetime(),
   bankAccountId: rowId.optional(),
+  cardId: rowId.optional(),
   active: z.boolean().optional(),
   notes: z.string().trim().max(500).optional(),
 });

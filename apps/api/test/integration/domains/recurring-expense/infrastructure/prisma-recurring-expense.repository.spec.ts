@@ -40,6 +40,7 @@ describe("PrismaRecurringExpenseRepository (integration)", () => {
       interval: 1,
       anchorDate: new Date("2026-01-05T00:00:00.000Z"),
       bankAccountId: null,
+      cardId: null,
       active: true,
       notes: null,
     });

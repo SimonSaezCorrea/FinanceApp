@@ -20,6 +20,7 @@ function makeExpense(
     interval: 1,
     anchorDate: new Date("2026-01-05T00:00:00Z"),
     bankAccountId: null,
+    cardId: null,
     active: true,
     notes: null,
     createdAt: new Date("2026-01-01T00:00:00Z"),

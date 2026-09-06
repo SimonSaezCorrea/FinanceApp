@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { BankAccountLookupPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account-lookup.port";
+import type { CardAccountRepositoryPort } from "../../../../../../src/domains/card-account/domain/ports/card-account.repository.port";
 import { UpdateRecurringExpenseHandler } from "../../../../../../src/domains/recurring-expense/application/commands/update-recurring-expense.handler";
 import { UpdateRecurringExpenseCommand } from "../../../../../../src/domains/recurring-expense/application/commands/update-recurring-expense.command";
 import { RecurringExpense } from "../../../../../../src/domains/recurring-expense/domain/recurring-expense.aggregate";
@@ -19,6 +20,7 @@ function makeExpense() {
     interval: 1,
     anchorDate: new Date("2026-01-05T00:00:00Z"),
     bankAccountId: null,
+    cardId: null,
     active: true,
     notes: null,
     createdAt: new Date("2026-01-01T00:00:00Z"),
@@ -46,6 +48,20 @@ function fakeAccounts(overrides: Partial<BankAccountLookupPort> = {}): BankAccou
   };
 }
 
+function fakeCards(overrides: Partial<CardAccountRepositoryPort> = {}): CardAccountRepositoryPort {
+  return {
+    listByAccounts: vi.fn(),
+    findOnAccount: vi.fn(),
+    existsForUser: vi.fn().mockResolvedValue(true),
+    accountIdForCard: vi.fn(),
+    kindForCard: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    ...overrides,
+  };
+}
+
 describe("UpdateRecurringExpenseHandler", () => {
   it("throws RecurringExpenseNotFoundError when missing", async () => {
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(null) });
@@ -53,6 +69,7 @@ describe("UpdateRecurringExpenseHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       fakeAccounts(),
+      fakeCards(),
     );
     await expect(
       handler.execute(new UpdateRecurringExpenseCommand("u1", "ghost", {})),
@@ -66,6 +83,7 @@ describe("UpdateRecurringExpenseHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       fakeAccounts(),
+      fakeCards(),
     );
 
     const result = await handler.execute(

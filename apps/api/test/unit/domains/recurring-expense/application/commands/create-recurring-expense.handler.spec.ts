@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import type { BankAccountLookupPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account-lookup.port";
+import type { CardAccountRepositoryPort } from "../../../../../../src/domains/card-account/domain/ports/card-account.repository.port";
 import { CreateRecurringExpenseHandler } from "../../../../../../src/domains/recurring-expense/application/commands/create-recurring-expense.handler";
 import { CreateRecurringExpenseCommand } from "../../../../../../src/domains/recurring-expense/application/commands/create-recurring-expense.command";
 import { RecurringExpense } from "../../../../../../src/domains/recurring-expense/domain/recurring-expense.aggregate";
@@ -26,6 +27,20 @@ function fakeAccounts(overrides: Partial<BankAccountLookupPort> = {}): BankAccou
   };
 }
 
+function fakeCards(overrides: Partial<CardAccountRepositoryPort> = {}): CardAccountRepositoryPort {
+  return {
+    listByAccounts: vi.fn(),
+    findOnAccount: vi.fn(),
+    existsForUser: vi.fn().mockResolvedValue(true),
+    accountIdForCard: vi.fn(),
+    kindForCard: vi.fn(),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+    ...overrides,
+  };
+}
+
 describe("CreateRecurringExpenseHandler", () => {
   it("plans the recurring expense and persists it via the repository", async () => {
     const create = vi.fn().mockImplementation(async (userId: string, plan) =>
@@ -42,6 +57,7 @@ describe("CreateRecurringExpenseHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       fakeAccounts(),
+      fakeCards(),
     );
 
     const result = await handler.execute(
