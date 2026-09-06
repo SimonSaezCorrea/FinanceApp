@@ -492,7 +492,9 @@
       "observationEmpty": "Add a note",
       "newEyebrow": "New movement",
       "editEyebrow": "Edit movement",
-      "projectedCredit": "Available credit after this movement"
+      "projectedCredit": "Available credit after this movement",
+      "ownAccount": "My own account",
+      "currency": "Currency"
     },
     "kpi": {
       "income": "Income",
@@ -571,7 +573,7 @@
     "updated": "Plan updated",
     "deleted": "Plan deleted",
     "form": {
-      "card": "Card",
+      "card": "Payment card",
       "cardNone": "No card",
       "title": "Title",
       "frequency": "Frequency",
@@ -583,9 +585,6 @@
       "installmentCount": "Number of instalments",
       "startDate": "First instalment",
       "category": "Category",
-      "paymentAccount": "Payment account",
-      "paymentAccountNone": "Choose when paying",
-      "paymentAccountCreditCard": "Not applicable (credit card)",
       "aprPerPeriod": "Interest per period",
       "notes": "Notes",
       "notesEmpty": "No notes",
@@ -894,26 +893,97 @@
   },
   "recurring": {
     "title": "Recurring",
+    "subtitle": "{{active}} active · {{paused}} paused",
     "new": "New recurring",
     "edit": "Edit recurring",
-    "empty": "You don't have any recurring expenses yet.",
-    "created": "Recurring expense created",
-    "updated": "Recurring expense updated",
-    "deleted": "Recurring expense deleted",
-    "inactive": "Inactive",
+    "empty": "No recurring expenses yet.",
+    "created": "Recurring created",
+    "updated": "Recurring updated",
+    "deleted": "Recurring deleted",
+    "inactive": "Paused",
     "next": "Next: {{date}}",
     "frequency": {
       "WEEKLY": "Weekly",
       "MONTHLY": "Monthly",
       "YEARLY": "Yearly"
     },
+    "total": {
+      "label": "Committed per month"
+    },
+    "autoGeneration": {
+      "message": "Movements are generated automatically on each due date."
+    },
+    "groups": {
+      "WEEKLY": "Weekly",
+      "MONTHLY": "Monthly",
+      "YEARLY": "Yearly",
+      "PAUSED": "Paused",
+      "activeMeta": "{{count}} active · {{sum}} per month",
+      "pausedMeta": "{{count}} · doesn't generate movements"
+    },
+    "due": {
+      "today": "today",
+      "tomorrow": "tomorrow",
+      "inDays": "in {{count}} days"
+    },
+    "row": {
+      "overdueMeta": "Due {{date}} · no movement",
+      "pausedMeta": "{{frequency}} · paused since {{date}}"
+    },
+    "actions": {
+      "pause": "Pause",
+      "resume": "Resume",
+      "edit": "Edit recurring",
+      "delete": "Delete recurring"
+    },
+    "detail": {
+      "eyebrow": "Recurring detail",
+      "active": "Active",
+      "amount": "Amount",
+      "perMonth": "Per month",
+      "next": "Next",
+      "pausedSince": "Paused since",
+      "every": "every {{count}} {{unit}}",
+      "generation": "Generation",
+      "automatic": "Automatic on each due date",
+      "suspendedSince": "Suspended since {{date}}",
+      "noNotes": "No notes",
+      "history": "Occurrence history",
+      "historyEmpty": "No generated occurrences",
+      "historyEmptyHint": "No movement has been generated from this recurring yet.",
+      "historyNote": "Movement generated automatically · {{account}}",
+      "historyBadge": "Generated"
+    },
+    "pause": {
+      "titlePause": "Pause «{{name}}»",
+      "titleResume": "Resume «{{name}}»",
+      "bodyPause": "It will stop generating automatic movements. Movements already generated aren't changed.",
+      "bodyResume": "It will start generating movements automatically again from the date you set.",
+      "pauseFrom": "Pause from",
+      "resumeFrom": "Resume from",
+      "hintPause": "If you stopped paying it earlier, adjust the date: no movements will be generated after that day.",
+      "hintResume": "If you reactivated it earlier, adjust the date to recover the in-between occurrences.",
+      "pausedToast": "{{name}} paused",
+      "resumedToast": "{{name}} resumed"
+    },
+    "delete": {
+      "description": "This will delete the recurring «{{name}}». This action can't be undone."
+    },
     "form": {
       "label": "Name",
+      "namePlaceholder": "Recurring name",
       "amount": "Amount",
       "frequency": "Frequency",
-      "interval": "Every",
-      "anchorDate": "First charge",
-      "notes": "Note"
+      "interval": "Repeat every",
+      "anchorDate": "First occurrence",
+      "status": "Status",
+      "noAccount": "No linked account",
+      "notes": "Note",
+      "notesPlaceholder": "Optional",
+      "noteActive": "A movement will be generated automatically every {{count}} {{unit}}, with no manual confirmation.",
+      "notePaused": "Paused: no movements will be generated until you resume it.",
+      "noCategory": "No category",
+      "categoryPlaceholder": "Choose category"
     }
   },
   "savings": {

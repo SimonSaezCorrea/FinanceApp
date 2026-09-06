@@ -492,7 +492,9 @@
       "observationEmpty": "Agregar nota",
       "newEyebrow": "Nuevo movimiento",
       "editEyebrow": "Editar movimiento",
-      "projectedCredit": "Cupo disponible tras el movimiento"
+      "projectedCredit": "Cupo disponible tras el movimiento",
+      "ownAccount": "Cuenta propia",
+      "currency": "Moneda"
     },
     "kpi": {
       "income": "Ingresos",
@@ -571,7 +573,7 @@
     "updated": "Plan actualizado",
     "deleted": "Plan eliminado",
     "form": {
-      "card": "Tarjeta",
+      "card": "Tarjeta de pago",
       "cardNone": "Sin tarjeta",
       "title": "Título",
       "frequency": "Periodicidad",
@@ -583,9 +585,6 @@
       "installmentCount": "Número de cuotas",
       "startDate": "Primera cuota",
       "category": "Categoría",
-      "paymentAccount": "Cuenta de pago",
-      "paymentAccountNone": "Elegir al pagar",
-      "paymentAccountCreditCard": "No aplica (tarjeta de crédito)",
       "aprPerPeriod": "Interés por período",
       "notes": "Notas",
       "notesEmpty": "Sin notas",
@@ -894,26 +893,97 @@
   },
   "recurring": {
     "title": "Recurrentes",
+    "subtitle": "{{active}} activos · {{paused}} pausado(s)",
     "new": "Nuevo recurrente",
     "edit": "Editar recurrente",
     "empty": "Aún no tienes gastos recurrentes.",
-    "created": "Gasto recurrente creado",
-    "updated": "Gasto recurrente actualizado",
-    "deleted": "Gasto recurrente eliminado",
-    "inactive": "Inactivo",
+    "created": "Recurrente creado",
+    "updated": "Recurrente actualizado",
+    "deleted": "Recurrente eliminado",
+    "inactive": "Pausado",
     "next": "Próximo: {{date}}",
     "frequency": {
       "WEEKLY": "Semanal",
       "MONTHLY": "Mensual",
       "YEARLY": "Anual"
     },
+    "total": {
+      "label": "Comprometido al mes"
+    },
+    "autoGeneration": {
+      "message": "Los movimientos se generan automáticamente en cada vencimiento."
+    },
+    "groups": {
+      "WEEKLY": "Semanales",
+      "MONTHLY": "Mensuales",
+      "YEARLY": "Anuales",
+      "PAUSED": "Pausados",
+      "activeMeta": "{{count}} activo(s) · {{sum}} al mes",
+      "pausedMeta": "{{count}} · no genera movimientos"
+    },
+    "due": {
+      "today": "hoy",
+      "tomorrow": "mañana",
+      "inDays": "en {{count}} días"
+    },
+    "row": {
+      "overdueMeta": "Venció {{date}} · sin movimiento",
+      "pausedMeta": "{{frequency}} · pausado desde {{date}}"
+    },
+    "actions": {
+      "pause": "Pausar",
+      "resume": "Reactivar",
+      "edit": "Editar recurrente",
+      "delete": "Eliminar recurrente"
+    },
+    "detail": {
+      "eyebrow": "Detalle del recurrente",
+      "active": "Activo",
+      "amount": "Monto",
+      "perMonth": "Al mes",
+      "next": "Próxima",
+      "pausedSince": "Pausado desde",
+      "every": "cada {{count}} {{unit}}",
+      "generation": "Generación",
+      "automatic": "Automática en cada vencimiento",
+      "suspendedSince": "Suspendida desde {{date}}",
+      "noNotes": "Sin notas",
+      "history": "Historial de ocurrencias",
+      "historyEmpty": "Sin ocurrencias generadas",
+      "historyEmptyHint": "Aún no se ha generado ningún movimiento a partir de este recurrente.",
+      "historyNote": "Movimiento generado automáticamente · {{account}}",
+      "historyBadge": "Generado"
+    },
+    "pause": {
+      "titlePause": "Pausar «{{name}}»",
+      "titleResume": "Reactivar «{{name}}»",
+      "bodyPause": "Dejará de generar movimientos automáticos. Los movimientos ya generados no se modifican.",
+      "bodyResume": "Volverá a generar movimientos automáticamente desde la fecha que indiques.",
+      "pauseFrom": "Pausar desde",
+      "resumeFrom": "Reactivar desde",
+      "hintPause": "Si dejaste de pagarlo antes, ajusta la fecha: no se generarán movimientos posteriores a ese día.",
+      "hintResume": "Si reactivaste antes, ajusta la fecha para recuperar las ocurrencias intermedias.",
+      "pausedToast": "{{name}} pausado",
+      "resumedToast": "{{name}} reactivado"
+    },
+    "delete": {
+      "description": "Se eliminará el recurrente «{{name}}». Esta acción no se puede deshacer."
+    },
     "form": {
       "label": "Nombre",
+      "namePlaceholder": "Nombre del recurrente",
       "amount": "Monto",
-      "frequency": "Frecuencia",
-      "interval": "Cada",
-      "anchorDate": "Primer cobro",
-      "notes": "Nota"
+      "frequency": "Periodicidad",
+      "interval": "Repetir cada",
+      "anchorDate": "Primera ocurrencia",
+      "status": "Estado",
+      "noAccount": "Sin cuenta asociada",
+      "notes": "Nota",
+      "notesPlaceholder": "Opcional",
+      "noteActive": "Se generará un movimiento automáticamente cada {{count}} {{unit}}, sin confirmación manual.",
+      "notePaused": "Pausado: no se generarán movimientos hasta reactivarlo.",
+      "noCategory": "Sin categoría",
+      "categoryPlaceholder": "Elegir categoría"
     }
   },
   "savings": {
