@@ -5,11 +5,10 @@ import type { accounts as accountsContract, debts, installments } from "@finance
 import { accountMetaLine } from "../../accounts/lib/accountMeta";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
+import { cn } from "../../../shared/lib/cn";
 import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
-import { DetailRow } from "../../../shared/ui/detail-row";
 import {
-  FormChip,
   FormCounterField,
   FormDateField,
   FormNotice,
@@ -17,6 +16,7 @@ import {
   FormTextField,
 } from "../../../shared/ui/form";
 import { FormSurface } from "../../../shared/ui/overlay";
+import { Segmented } from "../../../shared/ui/segmented";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
 
 export interface DebtFormValue {
@@ -58,10 +58,11 @@ interface Props {
  * Creating and editing a debt: one sheet-style panel — fields as rows
  * separated by a top border, no boxed inputs — matching the handoff exactly.
  *
- * The "Tipo" row is a two-position pill switch (Debes/Te deben), not a
- * dropdown — a single button with a chevron read as "opens a menu" when it
- * only ever flips between two values, which is what a switch communicates
- * instead.
+ * "Tipo" is a full-width nav-style Segmented switch (Debes/Te deben) right
+ * under the amount — the same shape a movement's Gasto/Ingreso/Traspaso
+ * switch uses, colored the same way (destructive/success) — rather than a
+ * row with a compact pill: it's the first real decision in the form, same
+ * weight the movement's own type switch gets.
  *
  * Periodicity offers only the four frequencies the real model has
  * (DAILY/WEEKLY/MONTHLY/YEARLY) — the handoff's own cycle also lists
@@ -87,6 +88,13 @@ export function DebtFormPanel({
   const isOwedToYou = value.direction === "OWED_TO_YOU";
   const personLabel = isOwedToYou ? t("debts.form.personOwedToYou") : t("debts.form.personYouOwe");
   const hasInstallments = value.totalInstallments > 1;
+  // Same red/green the Debes/Te deben switch itself uses — the amount reads
+  // as a debt owed or owed-to-you from across the panel, the same way a
+  // movement's own amount reads red/green/blue from its type switch.
+  const amountToneClass = isOwedToYou ? "text-success" : "text-destructive";
+  const amountPlaceholderToneClass = isOwedToYou
+    ? "placeholder:text-success/50"
+    : "placeholder:text-destructive/50";
 
   const currencyOptions = (currencies ?? []).map((c) => ({
     value: c.code,
@@ -135,7 +143,7 @@ export function DebtFormPanel({
         />
 
         <div className="flex items-baseline gap-2 border-b border-border pb-3">
-          <span className="shrink-0 text-3xl font-bold text-muted-foreground" aria-hidden>
+          <span className={cn("shrink-0 text-3xl font-bold", amountToneClass)} aria-hidden>
             {resolveCurrencySymbol(value.currency, currencies, i18n.language)}
           </span>
           <input
@@ -147,7 +155,11 @@ export function DebtFormPanel({
             onChange={(e) => onChange({ amount: e.target.value.replace(/\D/g, "") })}
             placeholder="0"
             aria-label={t("debts.form.amount")}
-            className="min-w-0 max-w-[220px] flex-1 border-0 bg-transparent p-0 text-3xl font-bold tabular-nums text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+            className={cn(
+              "min-w-0 max-w-[220px] flex-1 border-0 bg-transparent p-0 text-3xl font-bold tabular-nums focus-visible:outline-none",
+              amountToneClass,
+              amountPlaceholderToneClass,
+            )}
           />
           <SearchableSelect
             id="debt-currency"
@@ -163,26 +175,27 @@ export function DebtFormPanel({
           />
         </div>
 
-        <div className="flex flex-col">
-          <DetailRow label={t("debts.form.typeLabel")}>
-            <FormChip
-              value={value.direction}
-              onChange={(direction) => onChange({ direction })}
-              options={[
-                {
-                  value: "YOU_OWE",
-                  label: t("debts.form.directionOptions.YOU_OWE"),
-                  activeClassName: "bg-destructive text-destructive-foreground",
-                },
-                {
-                  value: "OWED_TO_YOU",
-                  label: t("debts.form.directionOptions.OWED_TO_YOU"),
-                  activeClassName: "bg-success text-success-foreground",
-                },
-              ]}
-            />
-          </DetailRow>
+        <Segmented
+          aria-label={t("debts.form.typeLabel")}
+          value={value.direction}
+          onChange={(direction) => onChange({ direction })}
+          className="w-full"
+          variant="neutral"
+          options={[
+            {
+              value: "YOU_OWE",
+              label: t("debts.form.directionOptions.YOU_OWE"),
+              activeClassName: "bg-destructive/15 font-semibold text-destructive",
+            },
+            {
+              value: "OWED_TO_YOU",
+              label: t("debts.form.directionOptions.OWED_TO_YOU"),
+              activeClassName: "bg-success/15 font-semibold text-success",
+            },
+          ]}
+        />
 
+        <div className="flex flex-col">
           <FormTextField
             label={personLabel}
             value={value.counterparty}
