@@ -2,16 +2,20 @@ import { CalendarClock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { accounts as accountsContract, debts, installments } from "@finance/contracts";
-import { currencySymbol } from "@finance/money";
-
 import { accountMetaLine } from "../../accounts/lib/accountMeta";
 import { useCurrencies } from "../../reference/hooks/useReference";
-import { cn } from "../../../shared/lib/cn";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
-import { DateField } from "../../../shared/ui/date-field";
+import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
+import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { DetailRow } from "../../../shared/ui/detail-row";
-import { Input } from "../../../shared/ui/input";
-import { NumberField } from "../../../shared/ui/number-field";
+import {
+  FormChip,
+  FormCounterField,
+  FormDateField,
+  FormNotice,
+  FormSelectField,
+  FormTextField,
+} from "../../../shared/ui/form";
 import { FormSurface } from "../../../shared/ui/overlay";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
 
@@ -84,9 +88,12 @@ export function DebtFormPanel({
   const personLabel = isOwedToYou ? t("debts.form.personOwedToYou") : t("debts.form.personYouOwe");
   const hasInstallments = value.totalInstallments > 1;
 
-  const currencyOptions = (currencies ?? []).map((c) => ({ value: c.code, label: c.code }));
+  const currencyOptions = (currencies ?? []).map((c) => ({
+    value: c.code,
+    label: currencyPickerLabel(c.code),
+  }));
   if (value.currency && !currencyOptions.some((o) => o.value === value.currency)) {
-    currencyOptions.unshift({ value: value.currency, label: value.currency });
+    currencyOptions.unshift({ value: value.currency, label: currencyPickerLabel(value.currency) });
   }
 
   const accountOptions = [
@@ -129,7 +136,7 @@ export function DebtFormPanel({
 
         <div className="flex items-baseline gap-2 border-b border-border pb-3">
           <span className="shrink-0 text-3xl font-bold text-muted-foreground" aria-hidden>
-            {currencySymbol(value.currency, i18n.language)}
+            {resolveCurrencySymbol(value.currency, currencies, i18n.language)}
           </span>
           <input
             inputMode="numeric"
@@ -158,129 +165,86 @@ export function DebtFormPanel({
 
         <div className="flex flex-col">
           <DetailRow label={t("debts.form.typeLabel")}>
-            <div className="inline-flex items-center rounded-full border border-input bg-muted p-[2px] text-xs font-medium">
-              <button
-                type="button"
-                onClick={() => onChange({ direction: "YOU_OWE" })}
-                aria-pressed={!isOwedToYou}
-                className={cn(
-                  "rounded-full px-2.5 py-1 transition-colors",
-                  !isOwedToYou
-                    ? "bg-destructive text-destructive-foreground"
-                    : "text-muted-foreground",
-                )}
-              >
-                {t("debts.form.directionOptions.YOU_OWE")}
-              </button>
-              <button
-                type="button"
-                onClick={() => onChange({ direction: "OWED_TO_YOU" })}
-                aria-pressed={isOwedToYou}
-                className={cn(
-                  "rounded-full px-2.5 py-1 transition-colors",
-                  isOwedToYou ? "bg-success text-success-foreground" : "text-muted-foreground",
-                )}
-              >
-                {t("debts.form.directionOptions.OWED_TO_YOU")}
-              </button>
-            </div>
-          </DetailRow>
-
-          <DetailRow label={personLabel}>
-            <Input
-              value={value.counterparty}
-              onChange={(e) => onChange({ counterparty: e.target.value })}
-              placeholder={t("debts.form.personPlaceholder")}
-              aria-label={personLabel}
-              className="h-8 w-full max-w-[13rem] border-0 bg-transparent text-right shadow-none focus-visible:outline-none focus-visible:ring-0"
+            <FormChip
+              value={value.direction}
+              onChange={(direction) => onChange({ direction })}
+              options={[
+                {
+                  value: "YOU_OWE",
+                  label: t("debts.form.directionOptions.YOU_OWE"),
+                  activeClassName: "bg-destructive text-destructive-foreground",
+                },
+                {
+                  value: "OWED_TO_YOU",
+                  label: t("debts.form.directionOptions.OWED_TO_YOU"),
+                  activeClassName: "bg-success text-success-foreground",
+                },
+              ]}
             />
           </DetailRow>
 
-          <DetailRow label={t("debts.form.account")}>
-            <SearchableSelect
-              id="debt-account"
-              variant="inline"
-              className="w-auto"
-              value={value.paymentAccountId}
-              onChange={(paymentAccountId) => onChange({ paymentAccountId })}
-              options={accountOptions}
-              searchPlaceholder={t("common.search")}
-              noResultsLabel={t("common.noResults")}
-              aria-label={t("debts.form.account")}
-            />
-          </DetailRow>
+          <FormTextField
+            label={personLabel}
+            value={value.counterparty}
+            onChange={(counterparty) => onChange({ counterparty })}
+            placeholder={t("debts.form.personPlaceholder")}
+          />
 
-          <DetailRow label={t("debts.form.installments")}>
-            <NumberField
-              min={1}
-              max={600}
-              value={String(value.totalInstallments)}
-              onChange={(count) =>
-                onChange({ totalInstallments: Math.max(1, Number.parseInt(count, 10) || 1) })
-              }
-              aria-label={t("debts.form.installments")}
-            />
-          </DetailRow>
+          <FormSelectField
+            id="debt-account"
+            label={t("debts.form.account")}
+            value={value.paymentAccountId}
+            onChange={(paymentAccountId) => onChange({ paymentAccountId })}
+            options={accountOptions}
+          />
 
-          <DetailRow label={t("debts.form.dueAt")}>
-            <DateField
-              variant="inline"
-              icon={CalendarClock}
-              value={value.dueAt}
-              onChange={(dueAt) => onChange({ dueAt })}
-              aria-label={t("debts.form.dueAt")}
-            />
-          </DetailRow>
+          <FormCounterField
+            label={t("debts.form.installments")}
+            min={1}
+            max={600}
+            value={String(value.totalInstallments)}
+            onChange={(count) =>
+              onChange({ totalInstallments: Math.max(1, Number.parseInt(count, 10) || 1) })
+            }
+          />
+
+          <FormDateField
+            label={t("debts.form.dueAt")}
+            icon={CalendarClock}
+            value={value.dueAt}
+            onChange={(dueAt) => onChange({ dueAt })}
+          />
 
           {hasInstallments ? (
             <>
-              <DetailRow label={t("debts.form.frequency")}>
-                <SearchableSelect
-                  id="debt-frequency"
-                  variant="inline"
-                  className="w-auto"
-                  value={value.frequency}
-                  onChange={(frequency) =>
-                    onChange({ frequency: frequency as installments.InstallmentFrequency })
-                  }
-                  options={FREQS.map((f) => ({ value: f, label: t(`common.frequency.${f}`) }))}
-                  searchPlaceholder={t("common.search")}
-                  noResultsLabel={t("common.noResults")}
-                  aria-label={t("debts.form.frequency")}
-                />
-              </DetailRow>
-              <DetailRow label={t("debts.form.frequencyInterval")}>
-                <span className="flex items-center gap-2">
-                  <NumberField
-                    min={1}
-                    max={999}
-                    value={String(value.frequencyInterval)}
-                    onChange={(interval) =>
-                      onChange({
-                        frequencyInterval: Math.max(1, Number.parseInt(interval, 10) || 1),
-                      })
-                    }
-                    aria-label={t("debts.form.frequencyInterval")}
-                  />
-                  <span className="text-sm text-muted-foreground">
-                    {t(`debts.form.intervalUnit.${value.frequency}`, {
-                      count: value.frequencyInterval,
-                    })}
-                  </span>
-                </span>
-              </DetailRow>
+              <FormSelectField
+                id="debt-frequency"
+                label={t("debts.form.frequency")}
+                value={value.frequency}
+                onChange={(frequency) =>
+                  onChange({ frequency: frequency as installments.InstallmentFrequency })
+                }
+                options={FREQS.map((f) => ({ value: f, label: t(`common.frequency.${f}`) }))}
+              />
+              <FormCounterField
+                label={t("debts.form.frequencyInterval")}
+                min={1}
+                max={999}
+                value={String(value.frequencyInterval)}
+                onChange={(interval) =>
+                  onChange({ frequencyInterval: Math.max(1, Number.parseInt(interval, 10) || 1) })
+                }
+                unit={t(`debts.form.intervalUnit.${value.frequency}`, {
+                  count: value.frequencyInterval,
+                })}
+              />
             </>
           ) : null}
         </div>
 
-        <div className="flex gap-2 rounded-[9.6px] border bg-background p-[14px_16px]">
-          <CalendarClock className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-          <p className="text-[13px] text-muted-foreground">
-            {hasInstallments
-              ? t("debts.form.scheduleNoteMulti")
-              : t("debts.form.scheduleNoteSingle")}
-          </p>
-        </div>
+        <FormNotice icon={CalendarClock}>
+          {hasInstallments ? t("debts.form.scheduleNoteMulti") : t("debts.form.scheduleNoteSingle")}
+        </FormNotice>
       </div>
     </FormSurface>
   );

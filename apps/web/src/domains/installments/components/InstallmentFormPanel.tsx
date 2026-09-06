@@ -2,15 +2,18 @@ import type { accounts as accountsContract, installments } from "@finance/contra
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
+import { cardMetaLine } from "../../accounts/lib/accountMeta";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { CategoryIcon } from "../../../shared/ui/category-icon";
-import { Combobox } from "../../../shared/ui/combobox";
-import { DateField } from "../../../shared/ui/date-field";
-import { DetailRow } from "../../../shared/ui/detail-row";
-import { Input } from "../../../shared/ui/input";
-import { NumberField } from "../../../shared/ui/number-field";
+import {
+  FormBigTextField,
+  FormCounterField,
+  FormCycleField,
+  FormDateField,
+  FormSelectField,
+  FormTextareaField,
+} from "../../../shared/ui/form";
 import { FormSurface } from "../../../shared/ui/overlay";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { schedulePreview } from "../lib/schedulePreview";
 import { ImmutableFieldsNotice } from "./ImmutableFieldsNotice";
 import { SchedulePreview } from "./SchedulePreview";
@@ -76,22 +79,40 @@ export function InstallmentFormPanel({
   const { t, i18n } = useTranslation();
   const creating = mode === "create";
 
-  const cards = useMemo(
+  // A card already belongs to exactly one account, which already has its own
+  // type/institution — asking for a SEPARATE "cuenta de pago" on top invited
+  // the two to disagree (a card from one account, a payment account from
+  // another). One field instead: picking a card derives its payment account
+  // automatically (FR-037: a CREDIT card pays no instalment with money, so it
+  // derives to none — the API would refuse the pair outright, INV-P2).
+  const cardOptions = useMemo(
     () =>
       accounts.flatMap((account) =>
         account.cards.map((card) => ({
           id: card.id,
+          accountId: account.id,
           kind: card.kind,
-          label: `${account.name} · ${card.name} ···· ${card.last4}`,
+          label: card.name,
+          description: cardMetaLine(account, card, (type) => t(`accounts.type.${type}`)),
         })),
       ),
-    [accounts],
+    [accounts, t],
   );
-  const selectedCard = cards.find((c) => c.id === value.cardId) ?? null;
-  // FR-037: a CREDIT-card plan pays no instalment with money, so there is no account
-  // to remember. The API refuses the pair outright (INV-P2) — offering the field
-  // would only produce an error.
-  const offersPaymentAccount = selectedCard === null || selectedCard.kind !== "CREDIT";
+  const selectedCard = cardOptions.find((c) => c.id === value.cardId) ?? null;
+  const paymentCardValue = value.cardId ? `card:${value.cardId}` : "";
+
+  function selectPaymentCard(optionValue: string) {
+    if (!optionValue) {
+      onChange({ cardId: "", paymentAccountId: "" });
+      return;
+    }
+    const card = cardOptions.find((c) => `card:${c.id}` === optionValue);
+    if (!card) return;
+    onChange({
+      cardId: card.id,
+      paymentAccountId: card.kind === "CREDIT" ? "" : card.accountId,
+    });
+  }
 
   const preview = creating
     ? schedulePreview({
@@ -131,13 +152,12 @@ export function InstallmentFormPanel({
       <div className="flex flex-col gap-5">
         {/* The title IS the plan's name in the list — the same editable-title shape
             the movement form uses. */}
-        <input
+        <FormBigTextField
           id="plan-title"
           value={value.title}
-          onChange={(e) => onChange({ title: e.target.value })}
+          onChange={(title) => onChange({ title })}
           placeholder={t("installments.form.title")}
           aria-label={t("installments.form.title")}
-          className="w-full border-0 bg-transparent p-0 text-2xl font-semibold tracking-tight text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
         />
 
         {creating ? (
@@ -164,28 +184,23 @@ export function InstallmentFormPanel({
             </div>
 
             <div className="flex flex-col">
-              <DetailRow label={t("installments.form.installmentCount")}>
-                <NumberField
-                  id="plan-count"
-                  min={1}
-                  max={600}
-                  value={String(value.installmentCount)}
-                  onChange={(count) =>
-                    onChange({ installmentCount: Math.max(1, Number.parseInt(count, 10) || 1) })
-                  }
-                  aria-label={t("installments.form.installmentCount")}
-                />
-              </DetailRow>
+              <FormCounterField
+                id="plan-count"
+                label={t("installments.form.installmentCount")}
+                min={1}
+                max={600}
+                value={String(value.installmentCount)}
+                onChange={(count) =>
+                  onChange({ installmentCount: Math.max(1, Number.parseInt(count, 10) || 1) })
+                }
+              />
 
-              <DetailRow label={t("installments.form.startDate")}>
-                <DateField
-                  id="plan-start"
-                  variant="inline"
-                  value={value.startDate}
-                  onChange={(startDate) => onChange({ startDate })}
-                  aria-label={t("installments.form.startDate")}
-                />
-              </DetailRow>
+              <FormDateField
+                id="plan-start"
+                label={t("installments.form.startDate")}
+                value={value.startDate}
+                onChange={(startDate) => onChange({ startDate })}
+              />
             </div>
           </>
         ) : (
@@ -194,165 +209,108 @@ export function InstallmentFormPanel({
             currency={value.currency}
             installmentCount={value.installmentCount}
             startDate={value.startDate}
-            cardLabel={cardFrozen ? (selectedCard?.label ?? t("installments.form.cardNone")) : null}
+            cardLabel={
+              cardFrozen
+                ? selectedCard
+                  ? `${selectedCard.label} · ${selectedCard.description}`
+                  : t("installments.form.cardNone")
+                : null
+            }
           />
         )}
 
         <div className="flex flex-col">
-          <DetailRow label={t("installments.form.frequency")}>
-            <SearchableSelect
-              id="plan-frequency"
-              variant="inline"
-              className="w-auto"
-              value={value.frequency}
-              onChange={(frequency) =>
-                onChange({ frequency: frequency as installments.InstallmentFrequency })
-              }
-              options={FREQUENCIES.map((f) => ({ value: f, label: t(`common.frequency.${f}`) }))}
-              searchPlaceholder={t("common.search")}
-              noResultsLabel={t("common.noResults")}
-              aria-label={t("installments.form.frequency")}
-            />
-          </DetailRow>
+          <FormCycleField
+            label={t("installments.form.frequency")}
+            options={FREQUENCIES}
+            value={value.frequency}
+            onChange={(frequency) => onChange({ frequency })}
+            renderValue={(f) => t(`common.frequency.${f}`)}
+          />
 
           {/* What the frequency is multiplied by: 1 = every month, 2 = every other
               month. The unit is spelled out because "Cada 2" alone means nothing. */}
-          <DetailRow label={t("installments.form.frequencyInterval")}>
-            <span className="flex items-center gap-2">
-              <NumberField
-                id="plan-interval"
-                min={1}
-                max={999}
-                value={String(value.frequencyInterval)}
-                onChange={(interval) =>
-                  onChange({ frequencyInterval: Math.max(1, Number.parseInt(interval, 10) || 1) })
-                }
-                aria-label={t("installments.form.frequencyInterval")}
-              />
-              <span className="text-sm text-muted-foreground">
-                {t(`installments.form.intervalUnit.${value.frequency}`, {
-                  count: value.frequencyInterval,
-                })}
-              </span>
-            </span>
-          </DetailRow>
+          <FormCounterField
+            id="plan-interval"
+            label={t("installments.form.frequencyInterval")}
+            min={1}
+            max={999}
+            value={String(value.frequencyInterval)}
+            onChange={(interval) =>
+              onChange({ frequencyInterval: Math.max(1, Number.parseInt(interval, 10) || 1) })
+            }
+            unit={t(`installments.form.intervalUnit.${value.frequency}`, {
+              count: value.frequencyInterval,
+            })}
+          />
 
-          {/* FR-051: the movements' own repertoire, free text included — the same
-              categories, so the same icon shows up in both views. */}
-          <DetailRow label={t("installments.form.category")}>
-            <Combobox
-              id="plan-category"
-              variant="inline"
-              value={value.category}
-              onChange={(category) => onChange({ category })}
-              options={categoryOptions}
-              placeholder={t("transactions.form.categoryEmpty")}
-              aria-label={t("installments.form.category")}
-              className="w-full max-w-[13rem]"
-              // Only once a category is picked: the neutral tag icon standing next to
-              // "Elegir categoría" reads as if something were already chosen.
-              adornment={
-                value.category ? (
-                  <CategoryIcon category={value.category} className="h-4 w-4" />
-                ) : undefined
-              }
-              renderOption={(option) => (
-                <>
-                  <CategoryIcon
-                    category={option}
-                    className="h-4 w-4 shrink-0 text-muted-foreground"
-                  />
-                  <span className="min-w-0 flex-1 break-words">{option}</span>
-                </>
-              )}
-            />
-          </DetailRow>
+          {/* FR-051: the movements' own repertoire — the same categories, so the
+              same icon shows up in both views. Picked from a list, same as
+              Recurrentes' own category field: typing lives in the panel's own
+              search box, not in the closed control. */}
+          <FormSelectField
+            id="plan-category"
+            label={t("installments.form.category")}
+            value={value.category}
+            onChange={(category) => onChange({ category })}
+            options={[
+              { value: "", label: t("recurring.form.noCategory") },
+              ...categoryOptions.map((c) => ({
+                value: c,
+                label: c,
+                icon: <CategoryIcon category={c} className="h-4 w-4 shrink-0 text-muted-foreground" />,
+              })),
+            ]}
+          />
 
           {/* FR-006b: once billed, shown (with its reason) inside
-              `ImmutableFieldsNotice` above instead of as an editable field. */}
+              `ImmutableFieldsNotice` above instead of as an editable field.
+              One field, not two: a card already belongs to one specific
+              account, so picking a payment account SEPARATELY could name a
+              different one than the card actually draws from — this derives
+              it instead of asking twice. */}
           {!cardFrozen && (
-            <DetailRow label={t("installments.form.card")}>
-              <SearchableSelect
-                id="plan-card"
-                variant="inline"
-                className="w-auto"
-                value={value.cardId}
-                onChange={(cardId) =>
-                  onChange({
-                    cardId,
-                    // Moving the plan onto a credit card drops the remembered account
-                    // in the same gesture: the two cannot coexist.
-                    ...(cards.find((c) => c.id === cardId)?.kind === "CREDIT"
-                      ? { paymentAccountId: "" }
-                      : {}),
-                  })
-                }
-                options={[
-                  { value: "", label: t("installments.form.cardNone") },
-                  ...cards.map((c) => ({ value: c.id, label: c.label })),
-                ]}
-                searchPlaceholder={t("common.search")}
-                noResultsLabel={t("common.noResults")}
-                aria-label={t("installments.form.card")}
-              />
-            </DetailRow>
-          )}
-
-          {offersPaymentAccount ? (
-            <DetailRow label={t("installments.form.paymentAccount")}>
-              <SearchableSelect
-                id="plan-account"
-                variant="inline"
-                className="w-auto"
-                value={value.paymentAccountId}
-                onChange={(paymentAccountId) => onChange({ paymentAccountId })}
-                options={[
-                  { value: "", label: t("installments.form.paymentAccountNone") },
-                  ...accounts
-                    .filter((a) => a.type !== "CREDIT_CARD")
-                    .map((a) => ({ value: a.id, label: a.name })),
-                ]}
-                searchPlaceholder={t("common.search")}
-                noResultsLabel={t("common.noResults")}
-                aria-label={t("installments.form.paymentAccount")}
-              />
-            </DetailRow>
-          ) : (
-            <DetailRow
-              label={t("installments.form.paymentAccount")}
-              value={t("installments.form.paymentAccountCreditCard")}
+            <FormSelectField
+              id="plan-card"
+              label={t("installments.form.card")}
+              value={paymentCardValue}
+              onChange={selectPaymentCard}
+              options={[
+                { value: "", label: t("installments.form.cardNone") },
+                ...cardOptions.map((c) => ({
+                  value: `card:${c.id}`,
+                  label: c.label,
+                  description: c.description,
+                })),
+              ]}
             />
           )}
 
           {creating && (
             /* FR-044: interest is declared, never guessed. Left empty it is zero and
                the preview shows the plain principal. */
-            <DetailRow label={t("installments.form.aprPerPeriod")}>
-              <NumberField
-                id="plan-apr"
-                min={0}
-                // A rate per period is a fraction (0.02 = 2%), so it steps in
-                // hundredths and accepts four decimals typed by hand.
-                step={0.01}
-                decimals={4}
-                value={value.aprPerPeriod}
-                onChange={(aprPerPeriod) => onChange({ aprPerPeriod })}
-                placeholder="0"
-                aria-label={t("installments.form.aprPerPeriod")}
-              />
-            </DetailRow>
-          )}
-
-          <DetailRow label={t("installments.form.notes")}>
-            <Input
-              value={value.notes}
-              onChange={(e) => onChange({ notes: e.target.value })}
-              placeholder={t("installments.form.notesEmpty")}
-              aria-label={t("installments.form.notes")}
-              className="h-8 w-full max-w-[13rem] text-right"
+            <FormCounterField
+              id="plan-apr"
+              label={t("installments.form.aprPerPeriod")}
+              min={0}
+              // A rate per period is a fraction (0.02 = 2%), so it steps in
+              // hundredths and accepts four decimals typed by hand.
+              step={0.01}
+              decimals={4}
+              placeholder="0"
+              value={value.aprPerPeriod}
+              onChange={(aprPerPeriod) => onChange({ aprPerPeriod })}
             />
-          </DetailRow>
+          )}
         </div>
+
+        <FormTextareaField
+          id="plan-notes"
+          label={t("installments.form.notes")}
+          value={value.notes}
+          onChange={(notes) => onChange({ notes })}
+          placeholder={t("installments.form.notesEmpty")}
+        />
 
         {creating && (
           <SchedulePreview

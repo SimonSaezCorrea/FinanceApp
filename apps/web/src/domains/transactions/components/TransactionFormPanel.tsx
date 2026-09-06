@@ -5,15 +5,24 @@ import { accounts as accountsContract } from "@finance/contracts";
 import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { accountMetaLine, cardMetaLine } from "../../accounts/lib/accountMeta";
+import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
-import { Combobox } from "../../../shared/ui/combobox";
-import { DetailRow } from "../../../shared/ui/detail-row";
-import { DateField } from "../../../shared/ui/date-field";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
-import { Switch } from "../../../shared/ui/switch";
-import { Segmented } from "../../../shared/ui/segmented";
+import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
+import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { DetailRow } from "../../../shared/ui/detail-row";
+import {
+  FormBigTextField,
+  FormDateField,
+  FormSelectField,
+  FormSwitchField,
+  FormTextField,
+  FormTextareaField,
+} from "../../../shared/ui/form";
+import { Segmented } from "../../../shared/ui/segmented";
+import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { projectedAfterSave } from "../lib/projectedBalance";
 import { TransferFields } from "./TransferFields";
 
@@ -41,12 +50,23 @@ export interface TransactionFormValue {
   date: string;
 }
 
-/** Right-hand inline field of a label/value row — reads as text until focused. */
-const ROW_FIELD =
-  "h-8 w-full max-w-[13rem] border-0 bg-transparent p-0 text-right text-sm font-medium text-foreground shadow-none " +
-  // No ring and no outline: inside a label/value row the focus box read as a
-  // rendering glitch. The caret plus the row's own hover is the affordance.
-  "focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0";
+/** Amount/sign color per selected nav tab — the same red/green/blue the type
+ * switch's own active pill already uses. */
+const AMOUNT_TONE_CLASS = {
+  destructive: "text-destructive",
+  success: "text-success",
+  info: "text-info",
+} as const;
+
+/** The "0" placeholder tinted the SAME tone, just dimmed — not the neutral
+ * `text-muted-foreground` every other field's placeholder uses, which read as
+ * white/uncolored against a red or green amount and made the tab's own color
+ * look like it only applied once you'd typed something. */
+const AMOUNT_PLACEHOLDER_TONE_CLASS = {
+  destructive: "placeholder:text-destructive/50",
+  success: "placeholder:text-success/50",
+  info: "placeholder:text-info/50",
+} as const;
 
 interface Props {
   value: TransactionFormValue;
@@ -85,12 +105,25 @@ export function TransactionFormPanel({
   attachments,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
+  const { data: currencies } = useCurrencies();
+
+  const currencyOptions = (currencies ?? []).map((c) => ({
+    value: c.code,
+    label: currencyPickerLabel(c.code),
+  }));
+  if (value.currency && !currencyOptions.some((o) => o.value === value.currency)) {
+    currencyOptions.unshift({ value: value.currency, label: currencyPickerLabel(value.currency) });
+  }
 
   const isTransfer = value.mode === "TRANSFER";
   // A transfer's own side is an expense on the source account, which is what the
   // projected balance and the card rules below need to reason about.
   const type: transactions.TransactionType = value.mode === "TRANSFER" ? "EXPENSE" : value.mode;
   const isIncome = type === "INCOME";
+  // A signed color per navigation tab, not just the sign glyph — the amount
+  // reads as red/green/blue from across the panel, same as the type switch's
+  // own active pill color.
+  const amountTone = isTransfer ? "info" : isIncome ? "success" : "destructive";
   const selectedAccount = accountList.find((a) => a.id === value.bankAccountId);
   const isCreditLine = selectedAccount?.type === "CREDIT_CARD";
   const isCardable =
@@ -101,16 +134,22 @@ export function TransactionFormPanel({
   const showCard = !isTransfer && type === "EXPENSE" && isCardable && !value.financeCharge;
   const noCardsAvailable = needsCard && (selectedAccount?.cards.length ?? 0) === 0;
 
-  const accountOptions = [
-    ...selectable.map((a) => ({
-      value: a.id,
-      label: a.status === "ACTIVE" ? a.name : `${a.name} · ${t("accounts.status.INACTIVE")}`,
-    })),
-  ];
+  const typeLabel = (accType: accounts.AccountType) => t(`accounts.type.${accType}`);
+  const accountOptions = selectable.map((a) => ({
+    value: a.id,
+    label: a.status === "ACTIVE" ? a.name : `${a.name} · ${t("accounts.status.INACTIVE")}`,
+    description: accountMetaLine(a, typeLabel),
+  }));
+  // "Cuenta propia" first: an expense on a cardable account doesn't NEED a
+  // card (paid straight out of the account — a transfer out, a cash-like
+  // withdrawal) — same convention `installments`' own merged card field uses,
+  // so the default reads as a real choice instead of "nothing picked yet".
   const cardOptions = [
+    { value: "", label: t("transactions.form.ownAccount") },
     ...(selectedAccount?.cards ?? []).map((c) => ({
       value: c.id,
-      label: `••••${c.last4} · ${c.name}`,
+      label: c.name,
+      description: selectedAccount ? cardMetaLine(selectedAccount, c, typeLabel) : undefined,
     })),
   ];
 
@@ -178,37 +217,30 @@ export function TransactionFormPanel({
       label: t("transactions.form.lugar"),
       placeholder: t("transactions.form.lugarEmpty"),
     },
-    {
-      key: "observation",
-      label: t("transactions.form.observation"),
-      placeholder: t("transactions.form.observationEmpty"),
-    },
   ];
 
   return (
     <div className="flex flex-col gap-5">
       {/* The description IS the movement's title: it's what the list shows and
           what the user is actually naming. */}
-      <input
+      <FormBigTextField
         id="tx-desc"
         value={value.description}
-        onChange={(e) => onChange({ description: e.target.value })}
+        onChange={(description) => onChange({ description })}
         placeholder={t("transactions.form.description")}
         aria-label={t("transactions.form.description")}
-        className="w-full border-0 bg-transparent p-0 text-2xl font-semibold tracking-tight text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
       />
 
       {/* Amount: sign on the left, figure as the protagonist, currency trailing.
-          Sticky so it stays on screen once a numeric keyboard eats the viewport. */}
+          Both colored by the selected nav tab (red/green/blue) — the sign
+          alone said too little at a glance. Sticky so it stays on screen once
+          a numeric keyboard eats the viewport. */}
       <div className="sticky top-0 z-10 flex items-baseline gap-3 border-b border-border bg-card pb-3">
-        <span
-          className={cn(
-            "text-3xl font-semibold",
-            isTransfer ? "text-foreground" : isIncome ? "text-success" : "text-destructive",
-          )}
-          aria-hidden
-        >
-          {isIncome ? "+" : "−"}
+        <span className={cn("text-3xl font-semibold", AMOUNT_TONE_CLASS[amountTone])} aria-hidden>
+          {isTransfer ? "±" : isIncome ? "+" : "−"}
+        </span>
+        <span className={cn("shrink-0 text-2xl font-bold", AMOUNT_TONE_CLASS[amountTone])} aria-hidden>
+          {resolveCurrencySymbol(value.currency, currencies, i18n.language)}
         </span>
         <input
           inputMode="numeric"
@@ -216,10 +248,25 @@ export function TransactionFormPanel({
           value={formatAmountDisplay(value.amount, locale)}
           onChange={(e) => onChange({ amount: e.target.value.replace(/\D/g, "") })}
           placeholder="0"
-          className="min-w-0 flex-1 border-0 bg-transparent p-0 text-4xl font-bold tabular-nums text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+          className={cn(
+            "min-w-0 flex-1 border-0 bg-transparent p-0 text-4xl font-bold tabular-nums focus-visible:outline-none",
+            AMOUNT_TONE_CLASS[amountTone],
+            AMOUNT_PLACEHOLDER_TONE_CLASS[amountTone],
+          )}
           aria-label={t("transactions.form.amount")}
         />
-        <span className="shrink-0 text-sm font-medium text-muted-foreground">{value.currency}</span>
+        <SearchableSelect
+          id="tx-currency"
+          variant="inline"
+          className="w-auto shrink-0"
+          value={value.currency}
+          onChange={(currency) => onChange({ currency })}
+          options={currencyOptions}
+          displayValue={value.currency}
+          searchPlaceholder={t("common.search")}
+          noResultsLabel={t("common.noResults")}
+          aria-label={t("transactions.form.currency")}
+        />
       </div>
 
       <Segmented
@@ -235,41 +282,31 @@ export function TransactionFormPanel({
       />
 
       <div className="flex flex-col">
-        <DetailRow label={t("transactions.form.date")}>
-          <DateField
-            id="tx-date"
-            variant="inline"
-            value={value.date}
-            onChange={(date) => onChange({ date })}
-            aria-label={t("transactions.form.date")}
-          />
-        </DetailRow>
+        <FormDateField
+          id="tx-date"
+          label={t("transactions.form.date")}
+          value={value.date}
+          onChange={(date) => onChange({ date })}
+        />
 
-        {/* The icon sits between the value and the chevron (text · icon · ▾) so
-            it reads as part of the value, and repeats in the list so the options
-            can be scanned by shape instead of by reading each word. */}
-        <DetailRow label={t("transactions.form.category")}>
-          <Combobox
-            id="tx-cat"
-            variant="inline"
-            value={value.category}
-            onChange={(v) => onChange({ category: v })}
-            options={categoryOptions}
-            placeholder={t("transactions.form.categoryEmpty")}
-            aria-label={t("transactions.form.category")}
-            className="w-full max-w-[13rem]"
-            adornment={<CategoryIcon category={value.category || null} className="h-4 w-4" />}
-            renderOption={(option) => (
-              <>
-                <CategoryIcon
-                  category={option}
-                  className="h-4 w-4 shrink-0 text-muted-foreground"
-                />
-                <span className="min-w-0 flex-1 break-words">{option}</span>
-              </>
-            )}
-          />
-        </DetailRow>
+        {/* Picked from the movements' own repertoire — search box + list, not
+            free text, so the same icon shows up wherever this category is
+            picked again. */}
+        <FormSelectField
+          id="tx-cat"
+          label={t("transactions.form.category")}
+          value={value.category}
+          onChange={(category) => onChange({ category })}
+          placeholder={t("transactions.form.categoryEmpty")}
+          options={[
+            { value: "", label: t("recurring.form.noCategory") },
+            ...categoryOptions.map((c) => ({
+              value: c,
+              label: c,
+              icon: <CategoryIcon category={c} className="h-4 w-4 shrink-0 text-muted-foreground" />,
+            })),
+          ]}
+        />
 
         {isTransfer ? (
           <TransferFields
@@ -282,52 +319,37 @@ export function TransactionFormPanel({
         ) : (
           <>
             {accountLocked ? null : (
-              <DetailRow label={t("transactions.form.account")}>
-                <SearchableSelect
-                  id="tx-acc"
-                  variant="inline"
-                  className="w-auto"
-                  value={value.bankAccountId}
-                  onChange={handleAccountChange}
-                  options={accountOptions}
-                  placeholder={t("transactions.form.selectAccount")}
-                  searchPlaceholder={t("common.search")}
-                  noResultsLabel={t("common.noResults")}
-                  aria-label={t("transactions.form.account")}
-                />
-              </DetailRow>
+              <FormSelectField
+                id="tx-acc"
+                label={t("transactions.form.account")}
+                value={value.bankAccountId}
+                onChange={handleAccountChange}
+                options={accountOptions}
+                placeholder={t("transactions.form.selectAccount")}
+              />
             )}
 
             {/* Only a credit account can receive an issuer charge, and declaring
                 one drops the card field: no card made it. */}
             {isCreditLine && !isTransfer && type === "EXPENSE" ? (
-              <DetailRow label={t("transactions.form.financeCharge")}>
-                <Switch
-                  checked={value.financeCharge}
-                  onCheckedChange={(financeCharge) =>
-                    onChange({ financeCharge, ...(financeCharge ? { cardId: "" } : {}) })
-                  }
-                  aria-label={t("transactions.form.financeCharge")}
-                />
-              </DetailRow>
+              <FormSwitchField
+                label={t("transactions.form.financeCharge")}
+                checked={value.financeCharge}
+                onChange={(financeCharge) =>
+                  onChange({ financeCharge, ...(financeCharge ? { cardId: "" } : {}) })
+                }
+              />
             ) : null}
 
             {showCard ? (
-              <DetailRow label={t("transactions.form.card")}>
-                <SearchableSelect
-                  id="tx-card"
-                  variant="inline"
-                  className="w-auto"
-                  value={value.cardId}
-                  onChange={(cardId) => onChange({ cardId })}
-                  aria-label={t("transactions.form.card")}
-                  options={cardOptions}
-                  placeholder={t("transactions.form.selectCard")}
-                  searchPlaceholder={t("common.search")}
-                  noResultsLabel={t("common.noResults")}
-                  disabled={noCardsAvailable}
-                />
-              </DetailRow>
+              <FormSelectField
+                id="tx-card"
+                label={t("transactions.form.card")}
+                value={value.cardId}
+                onChange={(cardId) => onChange({ cardId })}
+                options={cardOptions}
+                disabled={noCardsAvailable}
+              />
             ) : null}
           </>
         )}
@@ -364,18 +386,25 @@ export function TransactionFormPanel({
           </span>
         </h3>
         {optionalDetails.map((field) => (
-          <DetailRow key={field.key} label={field.label}>
-            <input
-              id={`tx-${field.key}`}
-              value={value[field.key] as string}
-              onChange={(e) => onChange({ [field.key]: e.target.value })}
-              placeholder={field.placeholder}
-              aria-label={field.label}
-              className={cn(ROW_FIELD, "placeholder:text-muted-foreground")}
-            />
-          </DetailRow>
+          <FormTextField
+            key={field.key}
+            id={`tx-${field.key}`}
+            label={field.label}
+            value={value[field.key] as string}
+            onChange={(v) => onChange({ [field.key]: v })}
+            placeholder={field.placeholder}
+          />
         ))}
       </section>
+
+      {/* A long free-text note is a paragraph, not a row value. */}
+      <FormTextareaField
+        id="tx-observation"
+        label={t("transactions.form.observation")}
+        value={value.observation}
+        onChange={(observation) => onChange({ observation })}
+        placeholder={t("transactions.form.observationEmpty")}
+      />
 
       {attachments}
       {editing ? null : <div className="h-2" />}

@@ -2,9 +2,8 @@ import { useTranslation } from "react-i18next";
 
 import type { accounts } from "@finance/contracts";
 
-import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
+import { accountMetaLine } from "../../accounts/lib/accountMeta";
 import { DetailRow } from "../../../shared/ui/detail-row";
-import { Input } from "../../../shared/ui/input";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import type { TransactionFormValue } from "./TransactionFormPanel";
 
@@ -34,21 +33,18 @@ export function TransferFields({
   selectable,
   lockedFrom = false,
 }: Readonly<Props>) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
+  const typeLabel = (accType: accounts.AccountType) => t(`accounts.type.${accType}`);
 
-  const fromOptions = [
-    ...selectable
-      .filter((a) => a.id !== value.toBankAccountId)
-      .map((a) => ({ value: a.id, label: a.name })),
-  ];
-  const toOptions = [
-    ...selectable
-      .filter((a) => a.id !== value.bankAccountId && a.type !== "CREDIT_CARD")
-      .map((a) => ({ value: a.id, label: a.name })),
-  ];
-
-  const destination = all.find((a) => a.id === value.toBankAccountId);
-  const inLocale = groupingLocaleFor(destination?.currency ?? value.currency, i18n.language);
+  // Both pickers share the same "Nombre / Tipo · Banco · Número" shape as the
+  // ordinary account field — and each one excludes whatever the OTHER side
+  // already picked, so the same account can't be both ends of its own transfer.
+  const fromOptions = selectable
+    .filter((a) => a.id !== value.toBankAccountId)
+    .map((a) => ({ value: a.id, label: a.name, description: accountMetaLine(a, typeLabel) }));
+  const toOptions = selectable
+    .filter((a) => a.id !== value.bankAccountId && a.type !== "CREDIT_CARD")
+    .map((a) => ({ value: a.id, label: a.name, description: accountMetaLine(a, typeLabel) }));
 
   return (
     <>
@@ -92,19 +88,6 @@ export function TransferFields({
           searchPlaceholder={t("common.search")}
           noResultsLabel={t("common.noResults")}
           aria-label={t("transactions.form.toAccount")}
-        />
-      </DetailRow>
-
-      {/* A second amount because the two sides can be in different currencies
-          and this app performs no conversion — the user states both figures. */}
-      <DetailRow label={t("transactions.form.amountIn")}>
-        <Input
-          id="tx-amount-in"
-          inputMode="numeric"
-          className="h-8 w-32 border-0 bg-transparent p-0 text-right font-medium shadow-none focus-visible:outline-none focus-visible:ring-0"
-          value={formatAmountDisplay(value.amountIn || value.amount, inLocale)}
-          onChange={(e) => onChange({ amountIn: e.target.value.replace(/\D/g, "") })}
-          aria-label={t("transactions.form.amountIn")}
         />
       </DetailRow>
     </>

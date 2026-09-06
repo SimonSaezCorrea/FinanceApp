@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { I18nextProvider } from "react-i18next";
@@ -50,17 +51,20 @@ function Harness({
   start?: TransactionFormValue;
 }) {
   const [value, setValue] = useState(start);
+  const [qc] = useState(() => new QueryClient({ defaultOptions: { queries: { retry: false } } }));
   return (
-    <I18nextProvider i18n={i18n}>
-      <TransactionFormPanel
-        value={value}
-        onChange={(p) => setValue((v) => ({ ...v, ...p }))}
-        accounts={list}
-        selectable={list}
-        categoryOptions={["Comida", "Transporte"]}
-        editing={editing}
-      />
-    </I18nextProvider>
+    <QueryClientProvider client={qc}>
+      <I18nextProvider i18n={i18n}>
+        <TransactionFormPanel
+          value={value}
+          onChange={(p) => setValue((v) => ({ ...v, ...p }))}
+          accounts={list}
+          selectable={list}
+          categoryOptions={["Comida", "Transporte"]}
+          editing={editing}
+        />
+      </I18nextProvider>
+    </QueryClientProvider>
   );
 }
 
@@ -76,7 +80,7 @@ describe("TransactionFormPanel", () => {
     // The account picker is the app's own panel, not a native <select>: open it
     // and choose, the way the user does.
     fireEvent.click(screen.getByLabelText(i18n.t("transactions.form.account")));
-    fireEvent.click(screen.getByRole("button", { name: "Dólares" }));
+    fireEvent.click(screen.getByRole("button", { name: /Dólares/ }));
     expect(screen.getByLabelText(i18n.t("transactions.form.amount"))).toBeDefined();
     // The amount's currency label comes from the account now.
     expect(screen.getByText("USD")).toBeDefined();
@@ -91,7 +95,9 @@ describe("TransactionFormPanel", () => {
     const control = field.closest("div")!;
     expect(control.querySelectorAll("svg").length).toBeGreaterThanOrEqual(2); // icon + chevron
 
-    fireEvent.focus(field);
+    // A `SearchableSelect`, not a free-text `Combobox`: its panel opens on
+    // click, not on focus.
+    fireEvent.click(field);
     const option = screen.getByRole("button", { name: /Comida/ });
     expect(option.querySelector("svg")).not.toBeNull();
   });
