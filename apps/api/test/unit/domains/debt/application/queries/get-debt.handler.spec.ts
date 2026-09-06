@@ -19,6 +19,7 @@ function makeDebt(id: string) {
     openedAt: new Date("2026-01-01T00:00:00Z"),
     dueAt: null,
     interestApr: null,
+    title: null,
     notes: null,
     settledAt: null,
     totalInstallments: 1,

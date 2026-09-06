@@ -642,6 +642,13 @@ model Debt {
   openedAt                 DateTime
   dueAt                    DateTime?
   interestApr              Decimal?             @db.Decimal(8, 4)
+  /// Short label for the debt ("Título" in the UI) — what every list/detail
+  /// view actually displays as its name. Was called `notes` before it split
+  /// from the free-text `notes` column below (there was nothing to fuse: the
+  /// real model only ever had this one field, doing double duty as both).
+  title                    String?
+  /// Genuine free-text notes/observación — separate from `title` above, same
+  /// pairing a movement's own Descripción + Observación already has.
   notes                    String?
   settledAt                DateTime?
   totalInstallments        Int                  @default(1)

@@ -50,6 +50,7 @@ export class CreateDebtHandler extends BaseCommandHandler<CreateDebtCommand, deb
       openedAt: new Date(input.openedAt),
       dueAt: input.dueAt ? new Date(input.dueAt) : undefined,
       interestApr: input.interestApr,
+      title: input.title,
       notes: input.notes,
       totalInstallments: input.totalInstallments,
       installmentAmount: input.installmentAmount,

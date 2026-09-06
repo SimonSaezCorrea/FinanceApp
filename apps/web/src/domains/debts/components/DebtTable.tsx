@@ -112,8 +112,8 @@ export function DebtTable({
                       <p className="truncate text-sm font-medium text-foreground">
                         {debt.counterparty}
                       </p>
-                      {debt.notes ? (
-                        <p className="truncate text-xs text-muted-foreground">{debt.notes}</p>
+                      {debt.title ? (
+                        <p className="truncate text-xs text-muted-foreground">{debt.title}</p>
                       ) : null}
                     </div>
                   </div>

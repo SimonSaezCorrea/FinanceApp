@@ -122,8 +122,8 @@ export class RegisterDebtPaymentHandler extends BaseIdempotentCommandHandler<
         currency: account.currency,
         occurredAt: command.input.paidAt ? new Date(command.input.paidAt) : new Date(),
         category: "Deudas",
-        description: snap.notes
-          ? `${snap.counterparty} · ${snap.notes} · ${snap.paidInstallments}/${snap.totalInstallments}`
+        description: snap.title
+          ? `${snap.counterparty} · ${snap.title} · ${snap.paidInstallments}/${snap.totalInstallments}`
           : `${snap.counterparty} · ${snap.paidInstallments}/${snap.totalInstallments}`,
         debtId: command.id,
       });

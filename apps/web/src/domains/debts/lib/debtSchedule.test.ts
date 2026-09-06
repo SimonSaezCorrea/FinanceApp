@@ -19,6 +19,7 @@ function makeDebt(overrides: Partial<debts.Debt> = {}): debts.Debt {
     // convention `schedulePreview.test.ts`'s own fixtures use.
     dueAt: "2026-02-15T00:00:00.000Z",
     interestApr: null,
+    title: null,
     notes: null,
     settledAt: null,
     totalInstallments: 1,

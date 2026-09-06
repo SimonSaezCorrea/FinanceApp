@@ -785,6 +785,15 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     eligible one) instead of the previous simple currency-matching heuristic; the four
     money-moving mutations now also invalidate `["accounts"]`/`["transactions"]`, not just
     `["debts"]`.
+    Amendment (title/notes split, 2026-09-06): the old single `notes` column did double duty as
+    both the debt's short label (what every list/detail view actually displayed as its name) and a
+    free-text note — there was nothing to fuse, it was the ONE field the model ever had. Split into
+    **`title`** (the hero field, what `DebtTable`/`DebtList`/`DebtPayPanel`/`DebtDetailPanel`'s
+    heading now read) and a genuine **`notes`** (free-text observación, same pairing a movement's
+    own description + observación already has) — `DebtFormPanel` gained a `FormTextareaField` for
+    it, and `DebtDetailPanel`'s existing "Notas" row — which used to just repeat the title
+    redundantly — now shows the real thing. No migration: dev data only, `db push` dropped the old
+    column and added both new ones.
   - **reference tables** (`country`, `currency`, `country-currency`, `country-identifier-type`, `financial-institution`, `institution-account-type` — one domain each since the one-table-one-domain amendment; global read-only, authed but not user-scoped): `Country` (table `country`, ISO 3166-1 `alpha2`/`alpha3`/`numeric` unique + name), `FinancialInstitution` (table `financial-institution`, **banks + non-bank card issuers** via `kind` `InstitutionKind` BANK/NON_BANK_ISSUER/COOPERATIVE/PAYMENT_PROVIDER/FUND_MANAGER; `code` = SBIF/CMF or código institucional `@@unique([countryId,code])`, `name`, `category` `BankCategory?` ESTABLISHED/FOREIGN_BRANCH/STATE (banks only — unused at runtime, kept for grouping the picker as the catalogue grows past Chile), `brands String[]`, `notes`, FK→Country; **`rut` was dropped** — `code` is the identifier), `Currency` (table `currency`, **ISO 4217** `code` unique + `numeric` + name), and `CountryCurrency` join (`isPrimary`). Endpoints `GET /countries`, `GET /institutions?country=CL&kind=BANK&accountType=PREPAID`, `GET /currencies` (ordered by name). Seeded idempotently in `prisma/seed.ts` (`seedReferenceData`), **acotado al MVP** (`docs/MVP.md`): **1 país (CL)**, 58 instituciones chilenas (18 bancos + 15 emisores prepago + 6 emisores solo-crédito + 7 cooperativas + 12 AGF) y **3 monedas: CLP, USD y CLF (la UF)**. El seed además **borra** países, monedas e instituciones fuera de esa lista, para que una base sembrada antes converja al catálogo del MVP. El modelo sigue siendo multi-país (FK, filtro `?country=`, formatos de número de cuenta); lo acotado es la data. El catálogo argentino retirado y las reglas por mercado están en `docs/CATALOGO_REGIONAL.md`.
     **`InstitutionAccountType`** (table `institution-account-type`, join `institutionId` + `type`
     `AccountType` + `isPrimary`, `@@unique([institutionId,type])`, `onDelete: Cascade`) = **which

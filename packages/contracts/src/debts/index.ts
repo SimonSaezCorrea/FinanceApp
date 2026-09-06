@@ -18,6 +18,11 @@ export const debtSchema = z.object({
   openedAt: z.string(),
   dueAt: z.string().nullable(),
   interestApr: moneyString.nullable(),
+  /** Short label for the debt — what every list/detail view displays as its
+   * name. */
+  title: z.string().nullable(),
+  /** Free-text notes/observación, separate from `title` — same pairing a
+   * movement's own description + observación already has. */
   notes: z.string().nullable(),
   settledAt: z.string().nullable(),
   totalInstallments: z.number().int().min(1),
@@ -60,6 +65,7 @@ export const createDebtSchema = z.object({
   openedAt: z.string().datetime(),
   dueAt: z.string().datetime().optional(),
   interestApr: moneyString.optional(),
+  title: z.string().trim().max(160).optional(),
   notes: z.string().trim().max(500).optional(),
   totalInstallments: z.number().int().min(1).default(1),
   installmentAmount: moneyString.optional(),

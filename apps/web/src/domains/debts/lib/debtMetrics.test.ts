@@ -21,6 +21,7 @@ function makeDebt(overrides: Partial<debts.Debt> = {}): debts.Debt {
     openedAt: "2026-01-01T00:00:00.000Z",
     dueAt: null,
     interestApr: null,
+    title: null,
     notes: null,
     settledAt: null,
     totalInstallments: 1,

@@ -86,7 +86,7 @@ export function DebtDetailPanel({
       onOpenChange={onOpenChange}
       eyebrow={t("debts.detail.eyebrow")}
       title={debt.counterparty}
-      description={`${debt.notes ?? t("debts.detail.noConcept")} · ${t(
+      description={`${debt.title ?? t("debts.detail.noTitle")} · ${t(
         `debts.direction.${debt.direction}`,
       )}`}
       footer={

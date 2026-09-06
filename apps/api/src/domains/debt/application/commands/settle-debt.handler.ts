@@ -126,7 +126,7 @@ export class SettleDebtHandler extends BaseIdempotentCommandHandler<
         currency: account.currency,
         occurredAt: command.input.paidAt ? new Date(command.input.paidAt) : new Date(),
         category: "Deudas",
-        description: snap.notes ? `${snap.counterparty} · ${snap.notes}` : snap.counterparty,
+        description: snap.title ? `${snap.counterparty} · ${snap.title}` : snap.counterparty,
         debtId: command.id,
       });
       await this.accounts.incrementBalanceWithTx(

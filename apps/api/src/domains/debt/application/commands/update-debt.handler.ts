@@ -50,6 +50,7 @@ export class UpdateDebtHandler extends BaseCommandHandler<UpdateDebtCommand, deb
       ...(input.openedAt !== undefined ? { openedAt: new Date(input.openedAt) } : {}),
       ...(input.dueAt !== undefined ? { dueAt: new Date(input.dueAt) } : {}),
       ...(input.interestApr !== undefined ? { interestApr: input.interestApr } : {}),
+      ...(input.title !== undefined ? { title: input.title } : {}),
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
       ...(input.totalInstallments !== undefined
         ? { totalInstallments: input.totalInstallments }

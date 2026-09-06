@@ -13,6 +13,7 @@ import {
   FormDateField,
   FormNotice,
   FormSelectField,
+  FormTextareaField,
   FormTextField,
 } from "../../../shared/ui/form";
 import { FormSurface } from "../../../shared/ui/overlay";
@@ -30,9 +31,11 @@ export interface DebtFormValue {
   totalInstallments: number;
   frequency: installments.InstallmentFrequency;
   frequencyInterval: number;
-  /** Doubles as the handoff's "Concepto" field: the real `Debt` model has a
-   * single free-text `notes` column, not a separate concept + notes pair, so
-   * there is nothing to fuse — this one field IS both. */
+  /** Short label — the hero field at the top, what every list/detail view
+   * displays as the debt's name. */
+  title: string;
+  /** Free-text notes/observación, separate from `title` — same pairing a
+   * movement's own description + observación already has. */
   notes: string;
   /** The bank account this debt is associated with — persisted on `Debt`
    * (`paymentAccountId`). Purely informational: `register-payment`/`settle`
@@ -135,10 +138,10 @@ export function DebtFormPanel({
     >
       <div className="flex flex-col gap-5">
         <input
-          value={value.notes}
-          onChange={(e) => onChange({ notes: e.target.value })}
-          placeholder={t("debts.form.concept")}
-          aria-label={t("debts.form.concept")}
+          value={value.title}
+          onChange={(e) => onChange({ title: e.target.value })}
+          placeholder={t("debts.form.title")}
+          aria-label={t("debts.form.title")}
           className="w-full border-0 bg-transparent p-0 text-[28px] font-semibold tracking-tight text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
         />
 
@@ -258,6 +261,13 @@ export function DebtFormPanel({
         <FormNotice icon={CalendarClock}>
           {hasInstallments ? t("debts.form.scheduleNoteMulti") : t("debts.form.scheduleNoteSingle")}
         </FormNotice>
+
+        <FormTextareaField
+          label={t("debts.form.notes")}
+          value={value.notes}
+          onChange={(notes) => onChange({ notes })}
+          placeholder={t("debts.form.notesPlaceholder")}
+        />
       </div>
     </FormSurface>
   );
@@ -282,6 +292,7 @@ export function emptyDebtForm(
     totalInstallments: 1,
     frequency: "MONTHLY",
     frequencyInterval: 1,
+    title: "",
     notes: "",
     paymentAccountId,
   };
@@ -298,6 +309,7 @@ export function debtFormFrom(debt: debts.Debt, today: string): DebtFormValue {
     totalInstallments: debt.totalInstallments,
     frequency: debt.frequency,
     frequencyInterval: debt.frequencyInterval,
+    title: debt.title ?? "",
     notes: debt.notes ?? "",
     paymentAccountId: debt.paymentAccountId ?? "",
   };

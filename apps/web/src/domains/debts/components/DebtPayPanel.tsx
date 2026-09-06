@@ -75,9 +75,9 @@ export function DebtPayPanel({
           ? t("debts.pay.subtitleInstallment", {
               sequence: newPaid,
               total: debt.totalInstallments,
-              concept: debt.notes ?? "",
+              concept: debt.title ?? "",
             })
-          : t("debts.pay.subtitleSingle", { concept: debt.notes ?? "" })
+          : t("debts.pay.subtitleSingle", { concept: debt.title ?? "" })
       }
       submitLabel={hasInstallments ? t("debts.card.registerPayment") : t("debts.card.markPaid")}
       canSubmit={payAccountId !== ""}

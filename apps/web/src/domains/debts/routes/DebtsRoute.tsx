@@ -213,6 +213,7 @@ export function DebtsRoute() {
       totalInstallments: formValue.totalInstallments,
       frequency: formValue.frequency,
       frequencyInterval: formValue.frequencyInterval,
+      title: formValue.title.trim() || undefined,
       notes: formValue.notes.trim() || undefined,
       paymentAccountId: formValue.paymentAccountId || null,
     };

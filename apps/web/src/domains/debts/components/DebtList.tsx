@@ -58,12 +58,12 @@ export function DebtList({
 
         const meta = hasInstallments
           ? t("debts.list.metaInstallments", {
-              concept: debt.notes ?? "",
+              concept: debt.title ?? "",
               paid: debt.paidInstallments,
               total: debt.totalInstallments,
             })
           : t("debts.list.metaDirection", {
-              concept: debt.notes ?? "",
+              concept: debt.title ?? "",
               direction: t(`debts.direction.${debt.direction}`),
             });
 

@@ -33,6 +33,9 @@ export interface DebtProps {
   openedAt: Date;
   dueAt: Date | null;
   interestApr: string | null;
+  /** Short label — what every list/detail view displays as the debt's name. */
+  title: string | null;
+  /** Free-text notes/observación, separate from `title`. */
   notes: string | null;
   settledAt: Date | null;
   totalInstallments: number;
@@ -58,6 +61,7 @@ export type DebtPatch = Partial<{
   openedAt: Date;
   dueAt: Date;
   interestApr: string | null;
+  title: string | null;
   notes: string | null;
   totalInstallments: number;
   installmentAmount: string | null;
@@ -113,6 +117,7 @@ export class Debt {
     openedAt: Date;
     dueAt?: Date;
     interestApr?: string;
+    title?: string;
     notes?: string;
     totalInstallments: number;
     installmentAmount?: string;
@@ -128,6 +133,7 @@ export class Debt {
       openedAt: input.openedAt,
       dueAt: input.dueAt ?? null,
       interestApr: input.interestApr ?? null,
+      title: input.title ?? null,
       notes: input.notes ?? null,
       settledAt: null,
       totalInstallments: input.totalInstallments,
@@ -192,6 +198,7 @@ export class Debt {
     if (patch.openedAt !== undefined) this.props.openedAt = patch.openedAt;
     if (patch.dueAt !== undefined) this.props.dueAt = patch.dueAt;
     if (patch.interestApr !== undefined) this.props.interestApr = patch.interestApr;
+    if (patch.title !== undefined) this.props.title = patch.title;
     if (patch.notes !== undefined) this.props.notes = patch.notes;
     if (patch.totalInstallments !== undefined) {
       if (patch.totalInstallments < this.props.paidInstallments) {
@@ -297,6 +304,7 @@ export class Debt {
       openedAt: this.props.openedAt.toISOString(),
       dueAt: this.props.dueAt ? this.props.dueAt.toISOString() : null,
       interestApr: this.props.interestApr ? moneyToString(this.props.interestApr) : null,
+      title: this.props.title,
       notes: this.props.notes,
       settledAt: this.props.settledAt ? this.props.settledAt.toISOString() : null,
       totalInstallments: this.props.totalInstallments,
