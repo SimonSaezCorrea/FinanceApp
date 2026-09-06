@@ -465,6 +465,12 @@ model Transaction {
   /// is set by their `installment-plan` counterparts. Lets the Movements view say
   /// "viene de una deuda" instead of leaving the movement looking manual.
   debtId            String?
+  /// The `RecurringExpense` this movement was generated FOR — set only when a
+  /// real automatic-generation mechanism writes the row (none exists yet; see
+  /// `RecurringExpense`'s own doc comment). Seeded by hand today so the
+  /// "historial de ocurrencias" detail view has real rows to read instead of
+  /// always showing empty.
+  recurringExpenseId String?
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
@@ -473,6 +479,7 @@ model Transaction {
   card                CardAccount?            @relation(fields: [cardId], references: [id], onDelete: SetNull)
   installmentPlan     InstallmentPlan?        @relation(fields: [installmentPlanId], references: [id], onDelete: SetNull)
   debt                Debt?                   @relation(fields: [debtId], references: [id], onDelete: SetNull)
+  recurringExpense    RecurringExpense?       @relation(fields: [recurringExpenseId], references: [id], onDelete: SetNull)
   creditStatement     CreditStatement?        @relation("CreditStatementLinkedTransactions", fields: [creditStatementId], references: [id], onDelete: SetNull)
   /// The (at most one) CreditStatement this transaction was the payment FOR (reverse
   /// of `CreditStatement.paidTransaction`) — distinct from `creditStatement` above.
@@ -492,6 +499,7 @@ model Transaction {
   @@index([category])
   @@index([transferGroupId])
   @@index([debtId])
+  @@index([recurringExpenseId])
   @@map("transaction")
 }
 
@@ -734,8 +742,10 @@ model RecurringExpense {
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bankAccount  BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  /// Movements generated FOR this series — see `Transaction.recurringExpenseId`.
+  transactions Transaction[]
 
   @@index([userId])
   @@index([bankAccountId])
@@ -826,13 +836,25 @@ model Country {
 /// ISO 4217 currency reference (deduplicated by alpha code). `currency` string
 /// fields across the app use these codes (CLP, USD, EUR…).
 model Currency {
-  id      String @id @default(uuid(7))
+  id      String  @id @default(uuid(7))
   /// ISO 4217 alpha code (e.g. "CLP").
-  code    String @unique
+  code    String  @unique
   /// ISO 4217 numeric code (e.g. "152").
   numeric String
   /// Currency name (e.g. "Peso chileno").
   name    String
+  /// Display symbol ("$", "UF", "S/", "€"…), stored rather than derived —
+  /// `Intl.NumberFormat` only resolves a currency's native symbol when given a
+  /// LOCALE that matches its own region (S/ needs `es-PE`, € needs a European
+  /// locale), and this app renders every amount in the user's own UI locale
+  /// regardless of the money's currency, which is what made CLF/UF and USD
+  /// come out wrong or ambiguous under a single fixed `es-CL` locale. Nullable
+  /// for a currency that genuinely has no symbol at all — the reading then
+  /// falls back to the bare ISO code. Dynamic ON PURPOSE: adding a new
+  /// currency here (reactivating the regional catalogue,
+  /// `docs/CATALOGO_REGIONAL.md`) makes its symbol show up everywhere with no
+  /// code change, instead of a new special case in `currencySymbol`.
+  symbol  String?
 
   countries CountryCurrency[]
 

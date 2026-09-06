@@ -59,6 +59,7 @@ function txFixture() {
     transferGroupId: null,
     creditStatementId: "stmt1",
     debtId: null,
+    recurringExpenseId: null,
     createdAt: new Date("2026-03-01"),
     updatedAt: new Date("2026-03-01"),
   });

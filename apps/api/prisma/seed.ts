@@ -3816,86 +3816,193 @@ async function seedFullUser(passwordHash: string) {
   });
 
   // --- Recurring expenses (subscriptions, rent, periodic payments) ---
-  await prisma.recurringExpense.createMany({
+  //
+  // Created one at a time (not `createMany`) because a few of them get past
+  // occurrences seeded below via `Transaction.recurringExpenseId` — `createMany`
+  // doesn't return the created rows' ids. No real generation mechanism exists
+  // yet (see the column's own doc comment in schema.prisma): these are hand-seeded
+  // so the "historial de ocurrencias" detail view has real rows to show instead
+  // of always rendering empty.
+  const recurringArriendo = await prisma.recurringExpense.create({
+    data: {
+      userId: javier.id,
+      label: "Arriendo",
+      amount: dec("520000.0000"),
+      currency: "CLP",
+      category: "Vivienda",
+      frequency: "MONTHLY",
+      interval: 1,
+      anchorDate: new Date("2026-01-05T00:00:00Z"),
+      bankAccountId: checking.id,
+      notes: "Departamento Ñuñoa",
+    },
+  });
+  const recurringNetflix = await prisma.recurringExpense.create({
+    data: {
+      userId: javier.id,
+      label: "Netflix",
+      amount: dec("9990.0000"),
+      currency: "CLP",
+      category: "Suscripciones",
+      frequency: "MONTHLY",
+      interval: 1,
+      anchorDate: new Date("2026-01-10T00:00:00Z"),
+      bankAccountId: credit.id,
+    },
+  });
+  await prisma.recurringExpense.create({
+    data: {
+      userId: javier.id,
+      label: "Spotify",
+      amount: dec("5990.0000"),
+      currency: "CLP",
+      category: "Suscripciones",
+      frequency: "MONTHLY",
+      interval: 1,
+      anchorDate: new Date("2026-01-10T00:00:00Z"),
+      bankAccountId: credit.id,
+    },
+  });
+  const recurringGym = await prisma.recurringExpense.create({
+    data: {
+      userId: javier.id,
+      label: "Gimnasio Smart Fit",
+      amount: dec("32000.0000"),
+      currency: "CLP",
+      category: "Salud",
+      frequency: "MONTHLY",
+      interval: 1,
+      anchorDate: new Date("2026-01-17T00:00:00Z"),
+      bankAccountId: checking.id,
+    },
+  });
+  await prisma.recurringExpense.create({
+    data: {
+      userId: javier.id,
+      label: "Mesada a hijo",
+      amount: dec("100000.0000"),
+      currency: "CLP",
+      category: "Familia",
+      frequency: "MONTHLY",
+      interval: 1,
+      anchorDate: new Date("2026-01-25T00:00:00Z"),
+      bankAccountId: checking.id,
+    },
+  });
+  await prisma.recurringExpense.create({
+    data: {
+      userId: javier.id,
+      label: "Aseo semanal",
+      amount: dec("25000.0000"),
+      currency: "CLP",
+      category: "Hogar",
+      frequency: "WEEKLY",
+      interval: 1,
+      anchorDate: new Date("2026-06-02T00:00:00Z"),
+    },
+  });
+  await prisma.recurringExpense.create({
+    data: {
+      userId: javier.id,
+      label: "Seguro automóvil",
+      amount: dec("360000.0000"),
+      currency: "CLP",
+      category: "Seguros",
+      frequency: "YEARLY",
+      interval: 1,
+      anchorDate: new Date("2026-03-15T00:00:00Z"),
+      bankAccountId: checking.id,
+    },
+  });
+
+  // Past occurrences for three of the series above — plain EXPENSE rows tagged
+  // with `recurringExpenseId`, dated on the months leading up to the app's
+  // simulated "today" (2026-09). No credit-pool/balance side effects are
+  // applied here (unlike a real movement write through the `transaction`
+  // domain's own handlers) since nothing yet actually spends this money going
+  // forward — see the column's doc comment.
+  await prisma.transaction.createMany({
     data: [
       {
         userId: javier.id,
-        label: "Arriendo",
+        bankAccountId: checking.id,
+        recurringExpenseId: recurringArriendo.id,
+        type: "EXPENSE",
         amount: dec("520000.0000"),
         currency: "CLP",
+        occurredAt: new Date("2026-06-05T12:00:00Z"),
         category: "Vivienda",
-        frequency: "MONTHLY",
-        interval: 1,
-        anchorDate: new Date("2026-01-05T00:00:00Z"),
+        description: "Arriendo",
+        observation: "Movimiento generado automáticamente",
+      },
+      {
+        userId: javier.id,
         bankAccountId: checking.id,
-        notes: "Departamento Ñuñoa",
-      },
-      {
-        userId: javier.id,
-        label: "Netflix",
-        amount: dec("9990.0000"),
+        recurringExpenseId: recurringArriendo.id,
+        type: "EXPENSE",
+        amount: dec("520000.0000"),
         currency: "CLP",
-        category: "Suscripciones",
-        frequency: "MONTHLY",
-        interval: 1,
-        anchorDate: new Date("2026-01-10T00:00:00Z"),
-        bankAccountId: credit.id,
+        occurredAt: new Date("2026-07-05T12:00:00Z"),
+        category: "Vivienda",
+        description: "Arriendo",
+        observation: "Movimiento generado automáticamente",
       },
       {
         userId: javier.id,
-        label: "Spotify",
-        amount: dec("5990.0000"),
+        bankAccountId: checking.id,
+        recurringExpenseId: recurringArriendo.id,
+        type: "EXPENSE",
+        amount: dec("520000.0000"),
         currency: "CLP",
-        category: "Suscripciones",
-        frequency: "MONTHLY",
-        interval: 1,
-        anchorDate: new Date("2026-01-10T00:00:00Z"),
-        bankAccountId: credit.id,
+        occurredAt: new Date("2026-08-05T12:00:00Z"),
+        category: "Vivienda",
+        description: "Arriendo",
+        observation: "Movimiento generado automáticamente",
       },
       {
         userId: javier.id,
-        label: "Gimnasio Smart Fit",
+        bankAccountId: checking.id,
+        recurringExpenseId: recurringGym.id,
+        type: "EXPENSE",
         amount: dec("32000.0000"),
         currency: "CLP",
+        occurredAt: new Date("2026-07-17T12:00:00Z"),
         category: "Salud",
-        frequency: "MONTHLY",
-        interval: 1,
-        anchorDate: new Date("2026-01-17T00:00:00Z"),
-        bankAccountId: checking.id,
+        description: "Gimnasio Smart Fit",
+        observation: "Movimiento generado automáticamente",
       },
       {
         userId: javier.id,
-        label: "Mesada a hijo",
-        amount: dec("100000.0000"),
-        currency: "CLP",
-        category: "Familia",
-        frequency: "MONTHLY",
-        interval: 1,
-        anchorDate: new Date("2026-01-25T00:00:00Z"),
         bankAccountId: checking.id,
-      },
-      {
-        userId: javier.id,
-        label: "Aseo semanal",
-        amount: dec("25000.0000"),
+        recurringExpenseId: recurringGym.id,
+        type: "EXPENSE",
+        amount: dec("32000.0000"),
         currency: "CLP",
-        category: "Hogar",
-        frequency: "WEEKLY",
-        interval: 1,
-        anchorDate: new Date("2026-06-02T00:00:00Z"),
-      },
-      {
-        userId: javier.id,
-        label: "Seguro automóvil",
-        amount: dec("360000.0000"),
-        currency: "CLP",
-        category: "Seguros",
-        frequency: "YEARLY",
-        interval: 1,
-        anchorDate: new Date("2026-03-15T00:00:00Z"),
-        bankAccountId: checking.id,
+        occurredAt: new Date("2026-08-17T12:00:00Z"),
+        category: "Salud",
+        description: "Gimnasio Smart Fit",
+        observation: "Movimiento generado automáticamente",
       },
     ],
+  });
+
+  // The five historial rows above (3× Arriendo + 2× Gimnasio, both on `checking`)
+  // are inserted straight into the DB, bypassing the `transaction` domain's own
+  // create handler — the only thing that normally keeps `currentBalance` in step
+  // with a movement. `checking.currentBalance` was already reconciled above from
+  // the `TX`/`net` simulation, which knows nothing about these five rows, so it
+  // is corrected here by the same total (Arriendo 3×520.000 + Gimnasio 2×32.000 =
+  // 1.624.000) to keep `currentBalance = initialBalance + Σincome − Σexpense` true.
+  // Deliberately NOT done for `credit` (a Netflix historial would have needed):
+  // that account's `creditUsed`/statement figures come from a separate billing
+  // simulation below keyed off the in-memory `TX` array, not a live transaction
+  // sum, and a stray linked movement risks landing inside its currently OPEN
+  // period's live total in ways this seed's simulation doesn't account for.
+  await prisma.bankAccount.update({
+    where: { id: checking.id },
+    data: {
+      currentBalance: dec(subtractMoney(checking.currentBalance.toString(), "1624000.0000")),
+    },
   });
 }
 
@@ -4404,17 +4511,17 @@ async function seedReferenceData() {
    * convierte a pesos (no hay proveedor de tipo de cambio): un monto en UF se
    * guarda y se muestra en UF.
    */
-  const CURRENCIES: [code: string, numeric: string, name: string][] = [
-    ["CLP", "152", "Peso chileno"],
-    ["CLF", "990", "Unidad de Fomento"],
-    ["USD", "840", "Dólar estadounidense"],
+  const CURRENCIES: [code: string, numeric: string, name: string, symbol: string | null][] = [
+    ["CLP", "152", "Peso chileno", "$"],
+    ["CLF", "990", "Unidad de Fomento", "UF"],
+    ["USD", "840", "Dólar estadounidense", "$"],
   ];
 
-  for (const [code, numeric, name] of CURRENCIES) {
+  for (const [code, numeric, name, symbol] of CURRENCIES) {
     await prisma.currency.upsert({
       where: { code },
-      update: { numeric, name },
-      create: { code, numeric, name },
+      update: { numeric, name, symbol },
+      create: { code, numeric, name, symbol },
     });
   }
 

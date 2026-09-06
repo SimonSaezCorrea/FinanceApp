@@ -87,6 +87,11 @@ export const currencySchema = z.object({
   /** ISO 4217 numeric code (e.g. "152"). */
   numeric: z.string(),
   name: z.string(),
+  /** Display symbol ("$", "UF", "S/", "€"…), `null` when this currency has
+   * none at all. Stored rather than derived so the app isn't limited to the
+   * handful of currencies `Intl.NumberFormat` happens to resolve under the
+   * UI's own locale — see the column's own doc comment in `schema.prisma`. */
+  symbol: z.string().nullable(),
 });
 export type Currency = z.infer<typeof currencySchema>;
 

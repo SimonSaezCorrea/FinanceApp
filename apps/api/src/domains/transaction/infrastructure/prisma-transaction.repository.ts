@@ -57,6 +57,7 @@ function rowToProps(row: Row): TransactionProps {
     creditStatementId: row.creditStatementId,
     transferGroupId: row.transferGroupId,
     debtId: row.debtId,
+    recurringExpenseId: row.recurringExpenseId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -100,6 +101,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     if (where.bankAccountId) prismaWhere.bankAccountId = where.bankAccountId;
     if (where.cardId) prismaWhere.cardId = where.cardId;
     if (where.creditStatementId) prismaWhere.creditStatementId = where.creditStatementId;
+    if (where.recurringExpenseId) prismaWhere.recurringExpenseId = where.recurringExpenseId;
     if (where.category) {
       prismaWhere.category = { contains: where.category, mode: "insensitive" };
     }

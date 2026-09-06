@@ -29,6 +29,7 @@ export function toListFilter(filters: transactions.TransactionFilters): Transact
     bankAccountId: filters.bankAccountId,
     cardId: filters.cardId,
     creditStatementId: filters.creditStatementId,
+    recurringExpenseId: filters.recurringExpenseId,
     category: filters.category,
     occurredFrom: filters.from ? new Date(filters.from) : undefined,
     occurredTo: filters.to ? new Date(filters.to) : undefined,

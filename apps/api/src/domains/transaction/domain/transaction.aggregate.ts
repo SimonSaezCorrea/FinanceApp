@@ -26,6 +26,10 @@ export interface TransactionProps {
    * writing through `TransactionWriterRepositoryPort` directly (never through
    * this aggregate's own `planCreation`, same as `installmentPlanId`). */
   debtId: string | null;
+  /** The `RecurringExpense` this movement was generated for — set only by
+   * hand today (see `RecurringExpense`'s own doc comment; no automatic
+   * generation mechanism exists yet). */
+  recurringExpenseId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -104,6 +108,7 @@ export class Transaction {
       // `Transfer.planPair` and written by the transfer commands.
       transferGroupId: null,
       debtId: null,
+      recurringExpenseId: null,
     };
   }
 
@@ -184,6 +189,7 @@ export class Transaction {
       installmentPlanId: this.props.installmentPlanId,
       transferGroupId: this.props.transferGroupId,
       debtId: this.props.debtId,
+      recurringExpenseId: this.props.recurringExpenseId,
       createdAt: this.props.createdAt.toISOString(),
       updatedAt: this.props.updatedAt.toISOString(),
     };

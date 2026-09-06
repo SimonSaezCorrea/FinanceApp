@@ -62,6 +62,7 @@ describe("transfer pair (integration)", () => {
     creditStatementId: null,
     transferGroupId: "",
     debtId: null,
+    recurringExpenseId: null,
     ...over,
   });
 

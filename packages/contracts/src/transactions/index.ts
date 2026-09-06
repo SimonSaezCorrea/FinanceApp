@@ -37,6 +37,10 @@ export const transactionSchema = z.object({
   /** The `Debt` this movement pays — set by `register-payment`/`settle`, the same
    * way `installmentPlanId` is set by an instalment payment. */
   debtId: rowId.nullable(),
+  /** The `RecurringExpense` this movement was generated for. Set only when a
+   * real automatic-generation mechanism writes the row — none exists yet, so
+   * today this is only ever set by hand in the seed. */
+  recurringExpenseId: rowId.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -59,10 +63,14 @@ export type TransactionSource =
   | { kind: "INSTALLMENT_INTEREST"; installmentPlanId: string }
   | { kind: "FINANCE_CHARGE" }
   | { kind: "DEBT"; debtId: string }
+  | { kind: "RECURRING"; recurringExpenseId: string }
   | { kind: "MANUAL" };
 
 export function sourceOf(
-  t: Pick<Transaction, "transferGroupId" | "installmentPlanId" | "financeCharge" | "debtId">,
+  t: Pick<
+    Transaction,
+    "transferGroupId" | "installmentPlanId" | "financeCharge" | "debtId" | "recurringExpenseId"
+  >,
 ): TransactionSource {
   if (t.transferGroupId !== null) return { kind: "TRANSFER" };
   if (t.installmentPlanId !== null) {
@@ -75,6 +83,9 @@ export function sourceOf(
   // interest keeps reading as INSTALLMENT_INTEREST, not this.
   if (t.financeCharge) return { kind: "FINANCE_CHARGE" };
   if (t.debtId !== null) return { kind: "DEBT", debtId: t.debtId };
+  if (t.recurringExpenseId !== null) {
+    return { kind: "RECURRING", recurringExpenseId: t.recurringExpenseId };
+  }
   return { kind: "MANUAL" };
 }
 
@@ -205,6 +216,9 @@ export const transactionFiltersSchema = z.object({
   cardId: rowId.optional(),
   /** Every movement linked to one billing period — a statement's detail view. */
   creditStatementId: rowId.optional(),
+  /** Every movement generated for one recurring series — its detail view's
+   * "historial de ocurrencias". */
+  recurringExpenseId: rowId.optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
   /** Case-insensitive substring match on `category`. Server-side because the

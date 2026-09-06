@@ -7,7 +7,7 @@ import { PrismaService } from "../../../infra/prisma/prisma.service";
 import type { CurrencyRepositoryPort } from "../domain/ports/currency.repository.port";
 
 function toContract(r: CurrencyRow): reference.Currency {
-  return { id: r.id, code: r.code, numeric: r.numeric, name: r.name };
+  return { id: r.id, code: r.code, numeric: r.numeric, name: r.name, symbol: r.symbol };
 }
 
 /** Adapter (FR-011) — the only file in `reference` allowed to import

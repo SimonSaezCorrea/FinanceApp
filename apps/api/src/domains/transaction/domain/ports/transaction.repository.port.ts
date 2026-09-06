@@ -12,6 +12,7 @@ export interface TransactionListFilter {
   bankAccountId?: string;
   cardId?: string;
   creditStatementId?: string;
+  recurringExpenseId?: string;
   occurredFrom?: Date;
   occurredTo?: Date;
   category?: string;
