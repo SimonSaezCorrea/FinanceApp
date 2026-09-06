@@ -18,10 +18,10 @@ function renderForm() {
 }
 
 describe("AccountForm", () => {
-  it("renders name, type toggle, active switch, currency and balance fields", () => {
+  it("renders name, type picker, active switch, currency and balance fields", () => {
     renderForm();
     expect(screen.getByLabelText(i18n.t("accounts.form.name"))).toBeDefined();
-    expect(screen.getByRole("group", { name: i18n.t("accounts.form.type") })).toBeDefined();
+    expect(screen.getByLabelText(i18n.t("accounts.form.type"))).toBeDefined();
     expect(
       screen.getByRole("switch", { name: i18n.t("accounts.form.accountActive") }),
     ).toBeDefined();
@@ -29,11 +29,12 @@ describe("AccountForm", () => {
     expect(screen.getByLabelText(i18n.t("accounts.form.initialBalance"))).toBeDefined();
   });
 
-  it("switches account type by clicking a toggle button (not a dropdown)", () => {
+  it("switches account type via the dropdown", () => {
     renderForm();
-    fireEvent.click(screen.getByText(i18n.t("accounts.type.SAVINGS")));
-    const savingsButton = screen.getByText(i18n.t("accounts.type.SAVINGS")).closest("button")!;
-    expect(savingsButton.getAttribute("aria-pressed")).toBe("true");
+    // The type picker is the app's own panel, not a native <select>: open it
+    // and choose, the way the user does.
+    fireEvent.click(screen.getByLabelText(i18n.t("accounts.form.type")));
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("accounts.type.SAVINGS") }));
     // Institution/account number fields only apply to non-CASH; SAVINGS keeps them.
     expect(screen.getByLabelText(i18n.t("accounts.form.institution"))).toBeDefined();
   });

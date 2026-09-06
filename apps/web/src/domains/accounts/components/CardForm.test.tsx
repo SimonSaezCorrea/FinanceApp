@@ -37,12 +37,6 @@ function renderForm(
   return onSubmit;
 }
 
-function selectDebitKind() {
-  fireEvent.change(screen.getByLabelText(i18n.t("cards.form.kind")), {
-    target: { value: "DEBIT" },
-  });
-}
-
 function fillExpiry() {
   fireEvent.change(screen.getByLabelText(i18n.t("cards.form.expiry")), {
     target: { value: "0129" },
@@ -58,7 +52,6 @@ describe("CardForm", () => {
 
   it("submits the last 4 digits + parsed MM/AA expiry (non-credit kind, no limit fields)", () => {
     const onSubmit = renderForm();
-    selectDebitKind();
     fireEvent.change(screen.getByLabelText(i18n.t("cards.form.name")), {
       target: { value: "Visa" },
     });
@@ -77,7 +70,6 @@ describe("CardForm", () => {
 
   it("defaults the name to the card kind when left blank", () => {
     const onSubmit = renderForm();
-    selectDebitKind();
     fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
       target: { value: "4821" },
     });
@@ -90,7 +82,6 @@ describe("CardForm", () => {
 
   it("rejects a last4 that isn't exactly 4 digits", () => {
     const onSubmit = renderForm();
-    selectDebitKind();
     fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
       target: { value: "12" },
     });
@@ -101,7 +92,6 @@ describe("CardForm", () => {
 
   it("rejects an out-of-range expiry month (e.g. 13/29)", () => {
     const onSubmit = renderForm();
-    selectDebitKind();
     fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
       target: { value: "1234" },
     });

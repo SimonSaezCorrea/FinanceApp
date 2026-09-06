@@ -5,24 +5,36 @@ import { toast } from "sonner";
 
 import { accounts as accountsContract } from "@finance/contracts";
 import type { accounts } from "@finance/contracts";
-import { formatMoney } from "@finance/money";
 
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
+import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { Button } from "../../../shared/ui/button";
 import { SidePanel } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
+import { FormBigTextField, FormSelectField, FormTextField } from "../../../shared/ui/form";
 import { Input } from "../../../shared/ui/input";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { institutionOption } from "../../reference/lib/institutionOption";
 import { useCountries, useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { useAccountMutations } from "../hooks/useAccounts";
 import { cleanExpiryInput, parseExpiry } from "../lib/cardExpiry";
-import { ACCOUNT_ICON } from "./accountVisuals";
 import { AccountTypeToggle } from "./AccountTypeToggle";
 import { CardFormPanel } from "./CardFormPanel";
-import { CardPreview } from "./CardPreview";
 import { DraftCardTile } from "./DraftCardTile";
+
+/**
+ * EXPERIMENT (2026-09-05): drops a plain text/number field's filled
+ * `bg-background` AND its `border-input` outline, keeping just the label
+ * above it — tried on `Nombre`/`Número de cuenta`/the money fields. Reverted
+ * on every `SearchableSelect`/dropdown in this form (2026-09-05): without a
+ * border it read as broken rather than intentional — a picker needs the
+ * frame a plain field doesn't. To revert what's left, delete this constant
+ * and its usages below; nothing else about the fields (focus ring, layout)
+ * changes.
+ */
+const NO_FILL = "bg-transparent border-transparent";
 
 function SectionLabel({ children }: Readonly<{ children: string }>) {
   return (
@@ -75,21 +87,13 @@ export function AccountCreateModal({
   const [cards, setCards] = useState<accounts.CreateCard[]>([]);
   const [addingCard, setAddingCard] = useState(false);
   const isCreditLineType = type === "CREDIT_CARD";
-  // For any OTHER cardable type (checking/sight growing an add-on card), the
-  // first drafted CREDIT card becomes the PRIMARY (mirrors the account's own
-  // cupo 1:1) — once one exists, the cupo is read-only here. For CREDIT_CARD
-  // itself this concept doesn't apply anymore: the primary is always the one
-  // defined by `primaryLast4`/`primaryExpiry` above, so every card drafted in
-  // the "Tarjetas" section is an ADDITIONAL one (see `hasExistingPrimary` below).
-  const primaryDraftCard = !isCreditLineType ? cards.find((c) => c.kind === "CREDIT") : undefined;
-  const hasCreditCard = primaryDraftCard !== undefined;
-  const derivedCreditLimit = primaryDraftCard?.limits?.[0]?.limitAmount ?? "0";
-  // No card yet: the account-level cupo fields are still manually editable
-  // (e.g. a CREDIT_CARD created before its first card is added later) — for
-  // CREDIT_CARD this is now always true, since the cupo always comes straight
-  // from these fields (the primary card mirrors them, never the other way).
-  const manualCreditPool = isCreditLineType || !hasCreditCard;
-  const hasCreditPool = isCreditLineType || hasCreditCard;
+  // Only a CREDIT_CARD account has a cupo at all — since the "credit card is its
+  // own account" redesign, CHECKING/SIGHT/SAVINGS/PREPAID can never carry a
+  // CREDIT card (`ALLOWED_CARD_KINDS`), so there is no "additional CREDIT card on
+  // a checking account" case left to mirror a cupo from. Every card drafted in
+  // the "Tarjetas" section here is an ADDITIONAL one on the credit line itself
+  // (see `hasExistingPrimary` below) — the primary is always the one defined by
+  // `primaryLast4`/`primaryExpiry` above.
   const cardable = accountsContract.isCardableAccountType(type);
 
   function reset() {
@@ -191,8 +195,8 @@ export function AccountCreateModal({
         accountNumber: isCreditLineType ? undefined : accountNumber || undefined,
         accountAlias: accountAlias.trim() || undefined,
         initialBalance: isCreditLineType ? "0" : initialBalance || "0",
-        creditLimit: manualCreditPool ? creditLimit || "0" : undefined,
-        creditUsedInitial: manualCreditPool ? creditUsedInitial || "0" : undefined,
+        creditLimit: isCreditLineType ? creditLimit || "0" : undefined,
+        creditUsedInitial: isCreditLineType ? creditUsedInitial || "0" : undefined,
         cards: allCards.length > 0 ? allCards : undefined,
       },
       {
@@ -208,26 +212,21 @@ export function AccountCreateModal({
     );
   }
 
-  const institutionName = institutions?.find((b) => b.id === institutionId)?.name ?? "";
   const institutionOptions = [
     { value: "", label: t("accounts.form.institutionNone") },
     ...(institutions ?? []).map(institutionOption),
   ];
+  // Short code as the label (CLP, UF, USD…), full name underneath — the
+  // reverse of the old "Full name (CODE)" single line, which just truncated
+  // in this field's own narrow half-column ("Dólar est…").
   const currencyOptions = (currencies ?? []).map((c) => ({
     value: c.code,
-    label: `${c.name} (${c.code})`,
+    label: currencyPickerLabel(c.code),
+    description: c.name,
   }));
   if (currency && !currencyOptions.some((o) => o.value === currency)) {
-    currencyOptions.unshift({ value: currency, label: currency });
+    currencyOptions.unshift({ value: currency, label: currencyPickerLabel(currency), description: "" });
   }
-
-  const balancePreview = (() => {
-    try {
-      return formatMoney(initialBalance || "0", { locale: i18n.language, currency });
-    } catch {
-      return initialBalance;
-    }
-  })();
 
   // What the tile in the card panel previews: the account as typed so far. The
   // form only reads currency/limit off it, but the tile renders a whole account,
@@ -289,266 +288,199 @@ export function AccountCreateModal({
         </div>
       }
     >
-      <div className="grid gap-6 md:grid-cols-2">
-        <div className="flex flex-col gap-3">
-          <SectionLabel>{t("accounts.form.sectionAccountData")}</SectionLabel>
-          <Field label={t("accounts.form.name")}>
-            <Input
-              id="m-name"
-              value={name}
-              required
-              onChange={(e) => setName(e.target.value)}
-              aria-label={t("accounts.form.name")}
-            />
-          </Field>
-          <Field label={t("accounts.form.type")}>
-            <AccountTypeToggle value={type} onChange={handleTypeChange} />
-          </Field>
-          {type !== "CASH" ? (
-            <>
-              <Field label={t("accounts.form.country")}>
-                <SearchableSelect
-                  id="new-acc-country"
-                  value={country}
-                  onChange={(v) => {
-                    setCountry(v);
-                    // An institution belongs to its country; keeping the old one
-                    // would attach a bank from another market to this account.
-                    setInstitutionId("");
-                  }}
-                  options={(countries ?? []).map((c) => ({
-                    value: c.alpha2,
-                    label: c.name,
-                    keywords: [c.alpha2, c.alpha3],
-                  }))}
-                  displayValue={country}
-                  searchPlaceholder={t("common.search")}
-                  noResultsLabel={t("common.noResults")}
-                  aria-label={t("accounts.form.country")}
-                />
-              </Field>
-              <Field label={t("accounts.form.institution")}>
-                <SearchableSelect
-                  id="m-inst"
-                  value={institutionId}
-                  onChange={setInstitutionId}
-                  options={institutionOptions}
-                  searchPlaceholder={t("common.search")}
-                  noResultsLabel={t("common.noResults")}
-                  aria-label={t("accounts.form.institution")}
-                />
-              </Field>
-              {isCreditLineType ? (
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label={t("cards.form.last4")} error={primaryLast4Error}>
-                    <Input
-                      id="m-primary-last4"
-                      inputMode="numeric"
-                      autoComplete="off"
-                      placeholder="4821"
-                      maxLength={4}
-                      value={primaryLast4}
-                      onChange={(e) =>
-                        setPrimaryLast4(e.target.value.replace(/\D/g, "").slice(0, 4))
-                      }
-                      aria-label={t("cards.form.last4")}
-                    />
-                  </Field>
-                  <Field label={t("cards.form.expiry")} error={primaryExpiryError}>
-                    <Input
-                      id="m-primary-expiry"
-                      inputMode="numeric"
-                      placeholder="MM/AA"
-                      value={primaryExpiry}
-                      onChange={(e) => setPrimaryExpiry(cleanExpiryInput(e.target.value))}
-                      aria-label={t("cards.form.expiry")}
-                    />
-                  </Field>
-                </div>
-              ) : (
-                <Field
-                  label={
-                    usesAlias
-                      ? t("accounts.form.accountNumberCbu")
-                      : t("accounts.form.accountNumber")
-                  }
-                >
-                  <Input
-                    id="m-num"
-                    inputMode="numeric"
-                    value={accountNumber}
-                    required={accountsContract.isAccountNumberRequired(type)}
-                    onChange={(e) => setAccountNumber(e.target.value)}
-                    aria-label={t("accounts.form.accountNumber")}
-                  />
-                </Field>
-              )}
-              {usesAlias && !isCreditLineType ? (
-                <Field label={t("accounts.form.accountAlias")}>
-                  <Input
-                    id="m-alias"
-                    value={accountAlias}
-                    placeholder={t("accounts.form.accountAliasPlaceholder")}
-                    onChange={(e) => setAccountAlias(e.target.value)}
-                    aria-label={t("accounts.form.accountAlias")}
-                  />
-                </Field>
-              ) : null}
-              {isCreditLineType ? (
-                <p className="-mt-2 text-xs text-muted-foreground">
-                  {t("accounts.form.primaryCardHint")}
-                </p>
-              ) : null}
-            </>
-          ) : null}
+      <div className="flex flex-col gap-6">
+        {/* Name: hero, no visible label — the same idiom a movement's own
+            Descripción field leads with. */}
+        <FormBigTextField
+          id="m-name"
+          value={name}
+          onChange={setName}
+          placeholder={t("accounts.form.namePlaceholder")}
+          aria-label={t("accounts.form.name")}
+        />
 
-          <SectionLabel>{t("accounts.form.sectionBalanceCurrency")}</SectionLabel>
-          <div className="grid grid-cols-[6rem_1fr] gap-3">
-            <Field label={t("accounts.form.currency")}>
-              <SearchableSelect
-                id="m-cur"
-                value={currency}
-                onChange={setCurrency}
-                options={currencyOptions}
-                displayValue={currency}
-                searchPlaceholder={t("common.search")}
-                noResultsLabel={t("common.noResults")}
-                aria-label={t("accounts.form.currency")}
-              />
-            </Field>
-            {isCreditLineType ? (
-              <Field label={t("accounts.form.creditLimit")}>
-                <Input
-                  id="m-climit"
-                  inputMode="numeric"
-                  value={formatAmountDisplay(
-                    hasCreditCard ? derivedCreditLimit : creditLimit,
-                    groupingLocaleFor(currency, i18n.language),
-                  )}
-                  disabled={hasCreditCard}
-                  onChange={(e) => setCreditLimit(e.target.value.replace(/\D/g, ""))}
-                  aria-label={t("accounts.form.creditLimit")}
-                />
-              </Field>
-            ) : (
-              <Field label={t("accounts.form.initialBalance")}>
-                <Input
-                  id="m-bal"
-                  inputMode="numeric"
-                  value={formatAmountDisplay(
-                    initialBalance,
-                    groupingLocaleFor(currency, i18n.language),
-                  )}
-                  onChange={(e) => setInitialBalance(e.target.value.replace(/\D/g, ""))}
-                  aria-label={t("accounts.form.initialBalance")}
-                />
-              </Field>
-            )}
+        <Field label={t("accounts.form.type")}>
+          <AccountTypeToggle value={type} onChange={handleTypeChange} />
+        </Field>
+
+        {/* Balance / cupo: hero figure, currency inline — same idiom as a
+            movement's own signed amount, and the next thing worth knowing
+            about a new account right after its type. */}
+        <div>
+          <SectionLabel>
+            {isCreditLineType ? t("accounts.form.creditLimit") : t("accounts.form.initialBalance")}
+          </SectionLabel>
+          <div className="mt-2 flex items-baseline gap-3">
+            <span className="shrink-0 text-2xl font-bold text-brand" aria-hidden>
+              {resolveCurrencySymbol(currency, currencies, i18n.language)}
+            </span>
+            <input
+              inputMode="numeric"
+              value={formatAmountDisplay(
+                isCreditLineType ? creditLimit : initialBalance,
+                groupingLocaleFor(currency, i18n.language),
+              )}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "");
+                if (isCreditLineType) setCreditLimit(digits);
+                else setInitialBalance(digits);
+              }}
+              placeholder="0"
+              className="min-w-0 flex-1 border-0 bg-transparent p-0 text-3xl font-bold tabular-nums text-foreground focus-visible:outline-none"
+              aria-label={isCreditLineType ? t("accounts.form.creditLimit") : t("accounts.form.initialBalance")}
+            />
+            <SearchableSelect
+              id="m-cur"
+              variant="inline"
+              className="w-auto shrink-0"
+              value={currency}
+              onChange={setCurrency}
+              options={currencyOptions}
+              displayValue={currency}
+              searchPlaceholder={t("common.search")}
+              noResultsLabel={t("common.noResults")}
+              aria-label={t("accounts.form.currency")}
+            />
           </div>
-          {hasCreditCard ? (
-            <p className="-mt-2 text-xs text-muted-foreground">
-              {t("accounts.form.creditLimitMirroredHint")}
-            </p>
-          ) : null}
-          {/* A checking/sight account that grew a CREDIT card also needs the account-level
-              pool that card draws on — CREDIT_CARD already shows it above instead of a balance. */}
-          {!isCreditLineType && hasCreditCard ? (
-            <div className="grid grid-cols-2 gap-3">
-              <Field label={t("accounts.form.creditLimit")}>
-                <Input
-                  id="m-climit2"
-                  inputMode="numeric"
-                  value={formatAmountDisplay(
-                    derivedCreditLimit,
-                    groupingLocaleFor(currency, i18n.language),
-                  )}
-                  disabled
-                  aria-label={t("accounts.form.creditLimit")}
-                />
-              </Field>
-            </div>
-          ) : null}
-          {manualCreditPool ? (
-            <Field label={t("accounts.form.creditUsedInitial")}>
-              <Input
-                id="m-cused"
-                inputMode="numeric"
-                value={formatAmountDisplay(
-                  creditUsedInitial,
-                  groupingLocaleFor(currency, i18n.language),
-                )}
-                aria-label={t("accounts.form.creditUsedInitial")}
-                onChange={(e) => setCreditUsedInitial(e.target.value.replace(/\D/g, ""))}
-              />
-            </Field>
-          ) : null}
-          {hasCreditPool ? (
-            <p className="-mt-2 rounded-md border border-dashed border-ring/60 p-2 text-xs text-muted-foreground">
+        </div>
+        {/* Cupo usado inicial only makes sense for a credit line — every other
+            account type has no cupo to seed a starting balance for. */}
+        {isCreditLineType ? (
+          <>
+            <FormTextField
+              id="m-cused"
+              label={t("accounts.form.creditUsedInitial")}
+              value={formatAmountDisplay(creditUsedInitial, groupingLocaleFor(currency, i18n.language))}
+              onChange={(v) => setCreditUsedInitial(v.replace(/\D/g, ""))}
+            />
+            <p className="-mt-4 rounded-md border border-dashed border-ring/60 p-2 text-xs text-muted-foreground">
               {t("accounts.form.billingNotConfiguredWarning")}
             </p>
-          ) : null}
-        </div>
+          </>
+        ) : null}
 
-        <div className="flex flex-col gap-4">
-          <SectionLabel>{t("accounts.form.preview")}</SectionLabel>
-          <CardPreview
-            brand={institutionName || t("accounts.title")}
-            title={name}
-            subtitle={t(`accounts.type.${type}`)}
-            primary={balancePreview}
-            footerLeft={currency}
-            footerRight={accountNumber || undefined}
-            icon={ACCOUNT_ICON[type]}
-          />
-          {cardable ? (
-            <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <SectionLabel>
-                  {(() => {
-                    const base = isCreditLineType ? t("cards.additionalTitle") : t("cards.title");
-                    return cards.length > 0 ? `${base} · ${cards.length}` : base;
-                  })()}
-                </SectionLabel>
-                {!addingCard ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setAddingCard(true)}
-                  >
-                    <Plus className="h-3.5 w-3.5" aria-hidden />
-                    {t("cards.addShort")}
-                  </Button>
-                ) : null}
+        {type !== "CASH" ? (
+          <div className="flex flex-col">
+            <FormSelectField
+              id="new-acc-country"
+              label={t("accounts.form.country")}
+              value={country}
+              onChange={(v) => {
+                setCountry(v);
+                // An institution belongs to its country; keeping the old one
+                // would attach a bank from another market to this account.
+                setInstitutionId("");
+              }}
+              options={(countries ?? []).map((c) => ({
+                value: c.alpha2,
+                label: `${c.name} · ${c.alpha2}`,
+                keywords: [c.alpha2, c.alpha3],
+              }))}
+            />
+            <FormSelectField
+              id="m-inst"
+              label={t("accounts.form.institution")}
+              value={institutionId}
+              onChange={setInstitutionId}
+              options={institutionOptions}
+            />
+            {isCreditLineType ? (
+              <div className="grid grid-cols-2 gap-3 py-3">
+                <Field label={t("cards.form.last4")} error={primaryLast4Error}>
+                  <Input
+                    id="m-primary-last4"
+                    className={NO_FILL}
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="4821"
+                    maxLength={4}
+                    value={primaryLast4}
+                    onChange={(e) => setPrimaryLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    aria-label={t("cards.form.last4")}
+                  />
+                </Field>
+                <Field label={t("cards.form.expiry")} error={primaryExpiryError}>
+                  <Input
+                    id="m-primary-expiry"
+                    className={NO_FILL}
+                    inputMode="numeric"
+                    placeholder="MM/AA"
+                    value={primaryExpiry}
+                    onChange={(e) => setPrimaryExpiry(cleanExpiryInput(e.target.value))}
+                    aria-label={t("cards.form.expiry")}
+                  />
+                </Field>
               </div>
+            ) : (
+              <FormTextField
+                id="m-num"
+                label={usesAlias ? t("accounts.form.accountNumberCbu") : t("accounts.form.accountNumber")}
+                value={accountNumber}
+                onChange={setAccountNumber}
+                placeholder={t("accounts.form.accountNumberPlaceholder")}
+              />
+            )}
+            {usesAlias && !isCreditLineType ? (
+              <FormTextField
+                id="m-alias"
+                label={t("accounts.form.accountAlias")}
+                value={accountAlias}
+                onChange={setAccountAlias}
+                placeholder={t("accounts.form.accountAliasPlaceholder")}
+              />
+            ) : null}
+            {isCreditLineType ? (
+              <p className="pb-1 text-xs text-muted-foreground">{t("accounts.form.primaryCardHint")}</p>
+            ) : null}
+          </div>
+        ) : null}
 
-              {cards.length === 0 && !addingCard ? (
-                <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
-                  <p>{t("cards.empty")}</p>
-                  <p>{t("cards.emptyHint")}</p>
-                </div>
-              ) : null}
-
-              {cards.length > 0 ? (
-                // Its own scroller: drafting several cards otherwise grew this
-                // column past the panel and pushed the account fields out of
-                // reach. ~2.5 tiles tall, so there's a visible cue to scroll.
-                <div className="scrollbar-thin -mr-1 max-h-[22rem] overflow-y-auto pr-1">
-                  <div className="grid grid-cols-2 gap-3">
-                    {cards.map((c, i) => (
-                      <DraftCardTile
-                        key={i}
-                        card={c}
-                        isPrimary={c === primaryDraftCard}
-                        onRemove={() => setCards((p) => p.filter((_, j) => j !== i))}
-                      />
-                    ))}
-                  </div>
-                </div>
+        {cardable ? (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <SectionLabel>
+                {(() => {
+                  const base = isCreditLineType ? t("cards.additionalTitle") : t("cards.title");
+                  return cards.length > 0 ? `${base} · ${cards.length}` : base;
+                })()}
+              </SectionLabel>
+              {!addingCard ? (
+                <Button type="button" variant="outline" size="sm" onClick={() => setAddingCard(true)}>
+                  <Plus className="h-3.5 w-3.5" aria-hidden />
+                  {t("cards.addShort")}
+                </Button>
               ) : null}
             </div>
-          ) : null}
-        </div>
+
+            {cards.length === 0 && !addingCard ? (
+              <div className="rounded-md border border-dashed p-4 text-center text-sm text-muted-foreground">
+                <p>{t("cards.empty")}</p>
+                <p>{t("cards.emptyHint")}</p>
+              </div>
+            ) : null}
+
+            {cards.length > 0 ? (
+              // Its own scroller: drafting several cards otherwise grew this
+              // column past the panel and pushed the account fields out of
+              // reach. ~2.5 tiles tall, so there's a visible cue to scroll.
+              <div className="scrollbar-thin -mr-1 max-h-[22rem] overflow-y-auto pr-1">
+                <div className="grid grid-cols-2 gap-3">
+                  {cards.map((c, i) => (
+                    <DraftCardTile
+                      key={i}
+                      card={c}
+                      // Every card drafted here is an ADDITIONAL one — the
+                      // primary (for a CREDIT_CARD account) is defined by
+                      // `primaryLast4`/`primaryExpiry` above, never by a
+                      // drafted card, and no other type can carry CREDIT at all.
+                      onRemove={() => setCards((p) => p.filter((_, j) => j !== i))}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </div>
 
       {/* The SAME panel used to add a card to an existing account — tile preview
@@ -569,8 +501,9 @@ export function AccountCreateModal({
         holder={holder}
         // For CREDIT_CARD, the primary is always the one defined by the
         // "Últimos 4 dígitos"/"Vencimiento" fields above — every card drafted
-        // here is an ADDITIONAL one, never the primary.
-        hasExistingPrimary={isCreditLineType || cards.some((c) => c.kind === "CREDIT")}
+        // here is an ADDITIONAL one, never the primary. No other account type
+        // can carry a CREDIT card at all (`ALLOWED_CARD_KINDS`).
+        hasExistingPrimary={isCreditLineType}
         onSubmit={(card) => {
           setCards((p) => [...p, card]);
           setAddingCard(false);

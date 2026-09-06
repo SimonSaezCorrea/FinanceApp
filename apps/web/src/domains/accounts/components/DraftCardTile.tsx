@@ -50,6 +50,7 @@ export function DraftCardTile({
         </div>
       </div>
       <div>
+        {card.name ? <p className="truncate text-xs font-medium opacity-90">{card.name}</p> : null}
         <p className="text-lg font-semibold tracking-wide tabular-nums">•••• {card.last4}</p>
         <p className="mt-0.5 text-xs opacity-75 tabular-nums">{expiry}</p>
       </div>

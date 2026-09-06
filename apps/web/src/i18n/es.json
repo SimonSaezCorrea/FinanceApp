@@ -272,7 +272,9 @@
         "billing": "Facturación"
       },
       "minimumPercent": "Pago mínimo (%)",
-      "minimumPercentHint": "Porcentaje del período que tu emisor acepta como pago mínimo. Vacío = sin mínimo."
+      "minimumPercentHint": "Porcentaje del período que tu emisor acepta como pago mínimo. Vacío = sin mínimo.",
+      "namePlaceholder": "Ej. Cuenta Corriente",
+      "accountNumberPlaceholder": "Ej. 001-2345678-90"
     },
     "actions": {
       "edit": "Editar",
@@ -354,6 +356,8 @@
       "network": "Red",
       "networkNone": "Sin especificar",
       "last4Hint": "Solo se guardan los últimos 4 dígitos.",
+      "cardDetails": "Datos de la tarjeta",
+      "moreDetails": "Más detalles",
       "limits": "Topes por moneda",
       "limitsHint": "Opcional. Sin topes propios, la tarjeta puede usar todo el cupo de la cuenta.",
       "currency": "Moneda",

@@ -39,7 +39,8 @@ describe("AccountCreateModal — CREDIT_CARD primary card shortcut", () => {
     fireEvent.change(screen.getByLabelText(i18n.t("accounts.form.name")), {
       target: { value: "CMR Falabella" },
     });
-    fireEvent.click(screen.getByText(i18n.t("accounts.type.CREDIT_CARD")));
+    fireEvent.click(screen.getByLabelText(i18n.t("accounts.form.type")));
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("accounts.type.CREDIT_CARD") }));
 
     // The generic "Número de cuenta" field is gone; últimos 4 dígitos/vencimiento show instead.
     expect(screen.queryByLabelText(i18n.t("accounts.form.accountNumber"))).toBeNull();
@@ -75,7 +76,8 @@ describe("AccountCreateModal — CREDIT_CARD primary card shortcut", () => {
     fireEvent.change(screen.getByLabelText(i18n.t("accounts.form.name")), {
       target: { value: "CMR Falabella" },
     });
-    fireEvent.click(screen.getByText(i18n.t("accounts.type.CREDIT_CARD")));
+    fireEvent.click(screen.getByLabelText(i18n.t("accounts.form.type")));
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("accounts.type.CREDIT_CARD") }));
     fireEvent.click(screen.getByText(i18n.t("accounts.form.createSubmit")));
 
     expect(accountsApi.create).not.toHaveBeenCalled();

@@ -6,13 +6,16 @@ import { accounts as accountsContract, type accounts } from "@finance/contracts"
 
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
+import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { Button } from "../../../shared/ui/button";
+import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
+import { DetailRow } from "../../../shared/ui/detail-row";
 import { Field } from "../../../shared/ui/field";
+import { FormSelectField, FormSwitchField, FormTextField } from "../../../shared/ui/form";
 import { Input } from "../../../shared/ui/input";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { Segmented } from "../../../shared/ui/segmented";
 import { Switch } from "../../../shared/ui/switch";
-import { Select } from "../../../shared/ui/select";
 import { cleanExpiryInput, formatExpiry, parseExpiry } from "../lib/cardExpiry";
 
 interface Props {
@@ -64,6 +67,18 @@ interface LimitDraft {
 }
 
 /**
+ * EXPERIMENT (2026-09-05): drops a plain text/number field's filled
+ * `bg-background` AND its `border-input` outline (border-transparent keeps
+ * the same 1px reserved, so nothing shifts) — tried here first before
+ * considering it anywhere else. Reverted on every `Select`/`SearchableSelect`
+ * dropdown in this form (2026-09-05): without a border it read as broken
+ * rather than intentional — a picker needs the frame a plain field doesn't.
+ * To revert what's left, delete this constant and its usages below; nothing
+ * else about the fields (focus ring, layout) changes.
+ */
+const NO_FILL = "bg-transparent border-transparent";
+
+/**
  * Collects a card (payment instrument). Only the last 4 digits are ever asked
  * for or stored — the full PAN never has a field to type into in the first
  * place. CREDIT-kind cards always resolve to a determinate limit before
@@ -90,11 +105,11 @@ export function CardForm({
   const { data: currencies } = useCurrencies();
   const [name, setName] = useState(initial?.name ?? "");
   const kindOptions = accountsContract.allowedCardKinds(accountType);
-  // CREDIT stays the default wherever it's allowed (the kind whose setup needs the
-  // most from this form); a prepaid account offers only PREPAID, so it lands there.
-  const [kind, setKind] = useState<accounts.CardKind>(
-    initial?.kind ?? (kindOptions.includes("CREDIT") ? "CREDIT" : (kindOptions[0] ?? "CREDIT")),
-  );
+  // The account's type decides the ONE kind a card on it can be
+  // (`allowedCardKinds` never returns more than one option: CHECKING/SIGHT/
+  // SAVINGS → DEBIT, CREDIT_CARD → CREDIT, PREPAID → PREPAID) — there is
+  // nothing left to pick, so this isn't a form field, just a derived constant.
+  const kind: accounts.CardKind = initial?.kind ?? (kindOptions[0] ?? "CREDIT");
   const [last4, setLast4] = useState(initial?.last4 ?? "");
   const [expiry, setExpiry] = useState(
     initial ? formatExpiry(initial.expiryMonth, initial.expiryYear) : "",
@@ -148,7 +163,8 @@ export function CardForm({
 
   const currencyOptions = (currencies ?? []).map((c) => ({
     value: c.code,
-    label: `${c.name} (${c.code})`,
+    label: currencyPickerLabel(c.code),
+    description: c.name,
   }));
   // The primary's mandatory field already owns the account's own currency —
   // its optional extra-currency rows can only add OTHER currencies.
@@ -220,108 +236,60 @@ export function CardForm({
 
   return (
     <form id={formId} className="flex flex-col gap-3" onSubmit={submit}>
-      <Field label={t("cards.form.name")}>
-        <Input
-          id="card-name"
-          value={name}
-          placeholder={t("cards.form.namePlaceholder")}
-          onChange={(e) => setName(e.target.value)}
-          aria-label={t("cards.form.name")}
-        />
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field label={t("cards.form.kind")}>
-          <Select
-            id="card-kind"
-            value={kind}
-            onChange={(e) => setKind(e.target.value as accounts.CardKind)}
-            // Only the kinds this account type may carry: the products are kept
-            // apart, so a checking account never offers "prepago" and a prepaid
-            // account offers nothing else.
-            options={kindOptions.map((k) => ({ value: k, label: t(`cards.kind.${k}`) }))}
-            disabled={kindOptions.length === 1}
-            aria-label={t("cards.form.kind")}
-          />
-        </Field>
-        <Field label={t("cards.form.expiry")} error={expiryError}>
-          <Input
-            id="card-expiry"
-            inputMode="numeric"
-            placeholder="MM/AA"
-            value={expiry}
-            onChange={(e) => setExpiry(cleanExpiryInput(e.target.value))}
-            aria-label={t("cards.form.expiry")}
-          />
-        </Field>
-      </div>
-      <Field label={t("cards.form.network")}>
-        <Select
-          id="card-network"
-          value={network}
-          onChange={(e) => setNetwork(e.target.value as accounts.CardNetwork | "")}
-          options={[
-            { value: "", label: t("cards.form.networkNone") },
-            ...accountsContract.cardNetwork.options.map((n) => ({
-              value: n,
-              label: t(`cards.network.${n}`),
-            })),
-          ]}
-          aria-label={t("cards.form.network")}
-        />
-      </Field>
-      <Field label={t("cards.form.last4")} error={last4Error}>
-        <Input
-          id="card-last4"
-          inputMode="numeric"
-          autoComplete="off"
-          placeholder="4821"
-          maxLength={4}
-          value={last4}
-          onChange={(e) => setLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
-          aria-label={t("cards.form.last4")}
-        />
-      </Field>
-      <p className="-mt-1 text-xs text-muted-foreground">{t("cards.form.last4Hint")}</p>
-      <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span>
-            {t("cards.form.virtual")}
-            <span className="block text-xs text-muted-foreground">
-              {t("cards.form.virtualHint")}
+      <FormTextField
+        id="card-name"
+        label={t("cards.form.name")}
+        value={name}
+        onChange={setName}
+        placeholder={t("cards.form.namePlaceholder")}
+      />
+      {/* Últimos 4 dígitos + Vencimiento share one row — both are short fields,
+          and splitting them into two full-width rows just spent two dividers
+          on data that reads naturally as a pair. */}
+      <DetailRow label={t("cards.form.cardDetails")} className="items-end py-2">
+        <div className="flex items-end gap-5">
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
+              {t("cards.form.last4")}
             </span>
-          </span>
-          <Switch
-            checked={isVirtual}
-            onCheckedChange={setIsVirtual}
-            aria-label={t("cards.form.virtual")}
-          />
-        </div>
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span>
-            {t("cards.form.additional")}
-            <span className="block text-xs text-muted-foreground">
-              {t("cards.form.additionalHint")}
-            </span>
-          </span>
-          <Switch
-            checked={isAdditional}
-            onCheckedChange={setIsAdditional}
-            aria-label={t("cards.form.additional")}
-          />
-        </div>
-        {/* Who carries it only matters once it IS someone else's card. */}
-        {isAdditional ? (
-          <Field label={t("cards.form.cardholder")}>
-            <Input
-              id="card-cardholder"
-              value={cardholderName}
-              placeholder={t("cards.form.cardholderPlaceholder")}
-              onChange={(e) => setCardholderName(e.target.value)}
-              aria-label={t("cards.form.cardholder")}
+            <input
+              id="card-last4"
+              inputMode="numeric"
+              autoComplete="off"
+              maxLength={4}
+              value={last4}
+              onChange={(e) => setLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              placeholder="4821"
+              aria-label={t("cards.form.last4")}
+              className="h-6 w-16 border-0 bg-transparent p-0 text-right text-sm font-medium leading-tight text-foreground placeholder:text-muted-foreground shadow-none focus-visible:outline-none focus-visible:ring-0"
             />
-          </Field>
-        ) : null}
-      </div>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
+              {t("cards.form.expiry")}
+            </span>
+            <input
+              id="card-expiry"
+              value={expiry}
+              onChange={(e) => setExpiry(cleanExpiryInput(e.target.value))}
+              placeholder="MM/AA"
+              aria-label={t("cards.form.expiry")}
+              className="h-6 w-14 border-0 bg-transparent p-0 text-right text-sm font-medium leading-tight text-foreground placeholder:text-muted-foreground shadow-none focus-visible:outline-none focus-visible:ring-0"
+            />
+          </div>
+        </div>
+      </DetailRow>
+      {last4Error ? (
+        <p role="alert" className="pb-1 pt-1 text-right text-xs text-destructive">
+          {last4Error}
+        </p>
+      ) : null}
+      {expiryError ? (
+        <p role="alert" className="pb-1 pt-1 text-right text-xs text-destructive">
+          {expiryError}
+        </p>
+      ) : null}
+      <p className="pt-1 text-xs text-muted-foreground">{t("cards.form.last4Hint")}</p>
 
       {willBePrimary ? (
         <div className="flex flex-col gap-2 rounded-md border p-3">
@@ -334,7 +302,9 @@ export function CardForm({
             error={limitError}
           >
             <Input
+              className={NO_FILL}
               inputMode="numeric"
+              placeholder="0"
               value={formatAmountDisplay(
                 primaryLimitAmount,
                 groupingLocaleFor(accountCurrency, i18n.language),
@@ -380,7 +350,9 @@ export function CardForm({
                   </Field>
                   <Field label={t("cards.form.limit")}>
                     <Input
+                      className={NO_FILL}
                       inputMode="numeric"
+                      placeholder="0"
                       value={formatAmountDisplay(
                         limit.limitAmount,
                         groupingLocaleFor(limit.currency, i18n.language),
@@ -459,7 +431,9 @@ export function CardForm({
                   </Field>
                   <Field label={t("cards.form.limit")}>
                     <Input
+                      className={NO_FILL}
                       inputMode="numeric"
+                      placeholder="0"
                       value={formatAmountDisplay(
                         limit.limitAmount,
                         groupingLocaleFor(limit.currency, i18n.language),
@@ -485,6 +459,46 @@ export function CardForm({
           ) : null}
         </div>
       ) : null}
+
+      <CollapsibleSection title={t("cards.form.moreDetails")}>
+        <div className="flex flex-col">
+          <FormSwitchField
+            label={t("cards.form.virtual")}
+            checked={isVirtual}
+            onChange={setIsVirtual}
+          />
+          <p className="pb-2 pt-1 text-xs text-muted-foreground">{t("cards.form.virtualHint")}</p>
+          <FormSwitchField
+            label={t("cards.form.additional")}
+            checked={isAdditional}
+            onChange={setIsAdditional}
+          />
+          <p className="pb-2 pt-1 text-xs text-muted-foreground">{t("cards.form.additionalHint")}</p>
+          {/* Who carries it only matters once it IS someone else's card. */}
+          {isAdditional ? (
+            <FormTextField
+              id="card-cardholder"
+              label={t("cards.form.cardholder")}
+              value={cardholderName}
+              onChange={setCardholderName}
+              placeholder={t("cards.form.cardholderPlaceholder")}
+            />
+          ) : null}
+          <FormSelectField
+            id="card-network"
+            label={t("cards.form.network")}
+            value={network}
+            onChange={(v) => setNetwork(v as accounts.CardNetwork | "")}
+            options={[
+              { value: "", label: t("cards.form.networkNone") },
+              ...accountsContract.cardNetwork.options.map((n) => ({
+                value: n,
+                label: t(`cards.network.${n}`),
+              })),
+            ]}
+          />
+        </div>
+      </CollapsibleSection>
 
       {onActiveChange ? null : (
         <label className="flex items-center gap-3 border-t border-border pt-3">

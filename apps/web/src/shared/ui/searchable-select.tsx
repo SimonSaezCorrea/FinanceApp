@@ -28,6 +28,13 @@ export interface SearchableSelectOption {
    * `Combobox`'s own `renderOption`/`adornment` already give free-text
    * pickers. Omit for a picker that doesn't need one (most don't). */
   icon?: ReactNode;
+  /** Renders this option greyed-out and unpickable — e.g. a product an
+   * existing account can never convert into. Still shown (never hidden): a
+   * disabled option with its own reason is a real answer, disappearing
+   * silently isn't. */
+  disabled?: boolean;
+  /** Tooltip on a disabled option, explaining why it can't be picked. */
+  disabledReason?: string;
 }
 
 interface Props {
@@ -43,8 +50,16 @@ interface Props {
    * list reads "Dólar estadounidense (USD)" but the closed control just shows
    * "USD". Ignored when nothing is selected. */
   displayValue?: string;
+  /** Suppresses an option's `description` on the CLOSED control while still
+   * showing it in the dropdown list — for a narrow field (a half-width
+   * "Moneda" column) where the two-line closed shape wraps/truncates badly.
+   * The list keeps the full two-line row either way. */
+  hideDescriptionWhenClosed?: boolean;
   disabled?: boolean;
   className?: string;
+  /** Extra classes on the OPEN dropdown panel — `className` only ever reaches
+   * the closed trigger, which is portaled separately from the panel. */
+  panelClassName?: string;
   /**
    * `control` (default) is the bordered form field. `inline` is the label/value
    * row form: no border, no background, right-aligned — the value reads as text
@@ -83,8 +98,10 @@ export function SearchableSelect({
   searchPlaceholder,
   noResultsLabel,
   displayValue,
+  hideDescriptionWhenClosed = false,
   disabled,
   className,
+  panelClassName,
   variant = "control",
   "aria-label": ariaLabel,
 }: Readonly<Props>) {
@@ -165,7 +182,7 @@ export function SearchableSelect({
   // `displayValue` overrides the LABEL for a narrower closed-control reading
   // (e.g. a currency's bare code) — it says nothing about the description, so
   // the two-line shape still applies whenever the matched option carries one.
-  const selectedDescription = matchedOption?.description;
+  const selectedDescription = hideDescriptionWhenClosed ? undefined : matchedOption?.description;
   const selectedIcon = matchedOption?.icon;
 
   function select(option: SearchableSelectOption) {
@@ -188,6 +205,12 @@ export function SearchableSelect({
             ? "min-h-10 justify-between rounded-md border border-input bg-background px-3 py-2 text-left focus-visible:ring-2 focus-visible:ring-ring"
             : "min-h-8 justify-end text-right font-medium",
           "focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+          // `className` is ALSO applied on the wrapping div above (for a
+          // caller's width override, e.g. `w-auto`) — but the border/background
+          // this component actually paints live here, on the button. A caller
+          // overriding those (e.g. dropping the fill) was silently landing on
+          // an element that has neither, so nothing visible changed.
+          className,
         )}
       >
         {selectedIcon}
@@ -208,67 +231,98 @@ export function SearchableSelect({
 
       {open && rect && portalTarget
         ? createPortal(
-            <div
-              ref={panelRef}
-              // Above a panel stacked on another panel (see `Drawer`), which the
-              // old Tailwind z-class sat just below.
-              style={{
-                top: rect.top,
-                bottom: rect.bottom,
-                left: rect.left,
-                width: rect.width,
-                maxHeight: rect.maxHeight,
-                zIndex: 1370,
-              }}
-              className="fixed flex flex-col overflow-hidden rounded-md border bg-card shadow-md"
-            >
-              <div className="border-b p-1">
-                <Input
-                  ref={searchRef}
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder={searchPlaceholder}
-                  name={historylessName}
-                  autoComplete="off"
-                  spellCheck={false}
-                  data-1p-ignore
-                  data-lpignore="true"
-                  className="h-8"
-                />
-              </div>
-              <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto p-1">
-                {filtered.length > 0 ? (
-                  filtered.map((o) => (
-                    <button
-                      key={o.value}
-                      type="button"
-                      onClick={() => select(o)}
-                      className={cn(
-                        "flex w-full items-center justify-between gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm hover:bg-muted",
-                        o.value === value && "bg-muted font-medium",
-                      )}
-                    >
-                      <span className="flex min-w-0 items-center gap-2">
-                        {o.icon}
-                        <span className="flex min-w-0 flex-col">
-                          <span className="truncate">{o.label}</span>
-                          {o.description ? (
-                            <span className="truncate text-xs font-normal text-muted-foreground">
-                              {o.description}
-                            </span>
-                          ) : null}
+            (() => {
+              // A panel anchored by `bottom` has flipped ABOVE the control (not
+              // enough room below) — the search box stays adjacent to the
+              // control either way by rendering LAST instead of first, so it
+              // ends up at the visual bottom of the flipped panel, right next
+              // to the trigger, rather than stranded at its far edge.
+              const flippedUp = rect.bottom !== undefined;
+              const searchBox = (
+                <div className={cn("p-1", flippedUp ? "border-t" : "border-b")}>
+                  <Input
+                    ref={searchRef}
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder={searchPlaceholder}
+                    name={historylessName}
+                    autoComplete="off"
+                    spellCheck={false}
+                    data-1p-ignore
+                    data-lpignore="true"
+                    className="h-8"
+                  />
+                </div>
+              );
+              const optionList = (
+                <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto p-1">
+                  {filtered.length > 0 ? (
+                    filtered.map((o) => (
+                      <button
+                        key={o.value}
+                        type="button"
+                        disabled={o.disabled}
+                        title={o.disabled ? o.disabledReason : undefined}
+                        onClick={() => select(o)}
+                        className={cn(
+                          "flex w-full items-center justify-between gap-2 rounded-sm px-2.5 py-1.5 text-left text-sm hover:bg-muted",
+                          o.value === value && "bg-muted font-medium",
+                          o.disabled && "cursor-not-allowed opacity-40 hover:bg-transparent",
+                        )}
+                      >
+                        <span className="flex min-w-0 items-center gap-2">
+                          {o.icon}
+                          <span className="flex min-w-0 flex-col">
+                            <span className="truncate">{o.label}</span>
+                            {o.description ? (
+                              <span className="truncate text-xs font-normal text-muted-foreground">
+                                {o.description}
+                              </span>
+                            ) : null}
+                          </span>
                         </span>
-                      </span>
-                      {o.value === value ? (
-                        <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                      ) : null}
-                    </button>
-                  ))
-                ) : (
-                  <p className="px-2.5 py-1.5 text-sm text-muted-foreground">{noResultsLabel}</p>
-                )}
-              </div>
-            </div>,
+                        {o.value === value ? (
+                          <Check className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        ) : null}
+                      </button>
+                    ))
+                  ) : (
+                    <p className="px-2.5 py-1.5 text-sm text-muted-foreground">{noResultsLabel}</p>
+                  )}
+                </div>
+              );
+              return (
+                <div
+                  ref={panelRef}
+                  // Above a panel stacked on another panel (see `Drawer`), which the
+                  // old Tailwind z-class sat just below.
+                  style={{
+                    top: rect.top,
+                    bottom: rect.bottom,
+                    left: rect.left,
+                    width: rect.width,
+                    maxHeight: rect.maxHeight,
+                    zIndex: 1370,
+                  }}
+                  className={cn(
+                    "fixed flex flex-col overflow-hidden rounded-md border bg-card shadow-md",
+                    panelClassName,
+                  )}
+                >
+                  {flippedUp ? (
+                    <>
+                      {optionList}
+                      {searchBox}
+                    </>
+                  ) : (
+                    <>
+                      {searchBox}
+                      {optionList}
+                    </>
+                  )}
+                </div>
+              );
+            })(),
             portalTarget,
           )
         : null}

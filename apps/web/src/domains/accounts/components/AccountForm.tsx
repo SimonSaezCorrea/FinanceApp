@@ -9,6 +9,7 @@ import { institutionOption } from "../../reference/lib/institutionOption";
 import { useCountries, useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
+import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { useElementWidth } from "../../../shared/lib/useElementWidth";
 import { Button } from "../../../shared/ui/button";
 import { Field } from "../../../shared/ui/field";
@@ -121,6 +122,18 @@ const SECTION_LABEL_MIN_WIDTH = 860;
  * (see `hasCreditPool` below) — a plain account never grows past two sections,
  * so it never shows a tab strip at all. */
 type FormTab = "general" | "credit" | "billing";
+
+/**
+ * EXPERIMENT (2026-09-05): drops a plain text/number field's filled
+ * `bg-background` AND its `border-input` outline, keeping just the label
+ * above it — same trial as `AccountCreateModal`'s own `NO_FILL`. Reverted on
+ * every `SearchableSelect`/dropdown in this form (2026-09-05): without a
+ * border it read as broken rather than intentional — a picker needs the
+ * frame a plain field doesn't. To revert what's left, delete this constant
+ * and its usages below; nothing else about the fields (focus ring, layout)
+ * changes.
+ */
+const NO_FILL = "bg-transparent border-transparent";
 
 /**
  * One titled group of fields. The title/description column splits off only when
@@ -253,13 +266,21 @@ export function AccountForm({
     const saved = allInstitutions?.find((i) => i.id === values.institutionId);
     if (saved) institutionOptions.splice(1, 0, institutionOption(saved));
   }
+  // Short code as the label (CLP, UF, USD…), full name underneath — the
+  // reverse of "Full name (CODE)" on one line, which just truncated in this
+  // field's own narrow half-column ("Dólar est…").
   const currencyOptions = (currencies ?? []).map((c) => ({
     value: c.code,
-    label: `${c.name} (${c.code})`,
+    label: currencyPickerLabel(c.code),
+    description: c.name,
   }));
   // Ensure the current currency is selectable even before the list loads.
   if (values.currency && !currencyOptions.some((o) => o.value === values.currency)) {
-    currencyOptions.unshift({ value: values.currency, label: values.currency });
+    currencyOptions.unshift({
+      value: values.currency,
+      label: currencyPickerLabel(values.currency),
+      description: "",
+    });
   }
 
   const [formRef, formWidth] = useElementWidth();
@@ -305,8 +326,10 @@ export function AccountForm({
           <Field label={t("accounts.form.name")}>
             <Input
               id="acc-name"
+              className={NO_FILL}
               value={values.name}
               required
+              placeholder={t("accounts.form.namePlaceholder")}
               onChange={(e) => set("name", e.target.value)}
               aria-label={t("accounts.form.name")}
             />
@@ -351,7 +374,7 @@ export function AccountForm({
             <Field label={t("accounts.form.overdraftLimit")}>
               <Input
                 id="acc-overdraft"
-                className="text-right"
+                className={cn(NO_FILL, "text-right")}
                 value={formatAmountDisplay(values.overdraftLimit, locale)}
                 inputMode="numeric"
                 onChange={(e) => set("overdraftLimit", e.target.value.replace(/\D/g, ""))}
@@ -381,10 +404,13 @@ export function AccountForm({
                   }
                   options={(countries ?? []).map((c) => ({
                     value: c.alpha2,
-                    label: c.name,
+                    // Same "Name · ISO" reading whether the control is open or
+                    // closed — the old `displayValue={values.country}` showed
+                    // the bare code closed and the full name open, which read
+                    // as two different pickers.
+                    label: `${c.name} · ${c.alpha2}`,
                     keywords: [c.alpha2, c.alpha3],
                   }))}
-                  displayValue={values.country}
                   searchPlaceholder={t("common.search")}
                   noResultsLabel={t("common.noResults")}
                   aria-label={t("accounts.form.country")}
@@ -409,12 +435,13 @@ export function AccountForm({
               >
                 <Input
                   id="acc-num"
+                  className={NO_FILL}
                   value={values.accountNumber}
                   inputMode="numeric"
                   required={accountsContract.isAccountNumberRequired(values.type)}
                   placeholder={
                     accountsContract.isAccountNumberRequired(values.type)
-                      ? undefined
+                      ? t("accounts.form.accountNumberPlaceholder")
                       : t("accounts.form.optional")
                   }
                   onChange={(e) => set("accountNumber", e.target.value)}
@@ -430,6 +457,7 @@ export function AccountForm({
                 >
                   <Input
                     id="acc-alias"
+                    className={NO_FILL}
                     value={values.accountAlias}
                     placeholder={t("accounts.form.accountAliasPlaceholder")}
                     onChange={(e) => set("accountAlias", e.target.value)}
@@ -469,6 +497,7 @@ export function AccountForm({
                 onChange={(v) => set("currency", v)}
                 options={currencyOptions}
                 displayValue={values.currency}
+                hideDescriptionWhenClosed
                 searchPlaceholder={t("common.search")}
                 noResultsLabel={t("common.noResults")}
                 aria-label={t("accounts.form.currency")}
@@ -478,7 +507,7 @@ export function AccountForm({
               <Field label={t("accounts.form.creditLimit")}>
                 <Input
                   id="acc-climit"
-                  className="text-right"
+                  className={cn(NO_FILL, "text-right")}
                   value={formatAmountDisplay(values.creditLimit, locale)}
                   inputMode="numeric"
                   disabled={hasCreditCard}
@@ -490,7 +519,7 @@ export function AccountForm({
               <Field label={t("accounts.form.initialBalance")}>
                 <Input
                   id="acc-bal"
-                  className="text-right"
+                  className={cn(NO_FILL, "text-right")}
                   value={formatAmountDisplay(values.initialBalance, locale)}
                   inputMode="numeric"
                   onChange={(e) => set("initialBalance", e.target.value.replace(/\D/g, ""))}
@@ -508,7 +537,7 @@ export function AccountForm({
               <Field label={t("accounts.form.creditLimit")}>
                 <Input
                   id="acc-climit2"
-                  className="text-right"
+                  className={cn(NO_FILL, "text-right")}
                   value={formatAmountDisplay(values.creditLimit, locale)}
                   inputMode="numeric"
                   disabled
@@ -518,7 +547,7 @@ export function AccountForm({
               <Field label={t("accounts.form.creditUsedInitial")}>
                 <Input
                   id="acc-cused2"
-                  className="text-right"
+                  className={cn(NO_FILL, "text-right")}
                   value={formatAmountDisplay(values.creditUsedInitial, locale)}
                   inputMode="numeric"
                   disabled
@@ -531,7 +560,7 @@ export function AccountForm({
             <Field label={t("accounts.form.creditUsedInitial")}>
               <Input
                 id="acc-cused"
-                className="text-right"
+                className={cn(NO_FILL, "text-right")}
                 value={formatAmountDisplay(values.creditUsedInitial, locale)}
                 inputMode="numeric"
                 disabled={hasCreditCard}
@@ -594,7 +623,7 @@ export function AccountForm({
                 }
               >
                 <Input
-                  className="w-24"
+                  className={cn(NO_FILL, "w-24")}
                   id="acc-billing-day"
                   inputMode="numeric"
                   placeholder={
@@ -647,7 +676,7 @@ export function AccountForm({
                 }
               >
                 <Input
-                  className="w-24"
+                  className={cn(NO_FILL, "w-24")}
                   inputMode="numeric"
                   placeholder={
                     values.paymentDueCycleType === "BUSINESS_DAY"
@@ -693,7 +722,7 @@ export function AccountForm({
             <div className="flex items-end gap-4">
               <Field label={t("accounts.form.minimumPercent")}>
                 <Input
-                  className="w-24"
+                  className={cn(NO_FILL, "w-24")}
                   inputMode="decimal"
                   placeholder="5"
                   value={values.minimumPaymentPercent}

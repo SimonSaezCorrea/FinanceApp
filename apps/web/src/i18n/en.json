@@ -272,7 +272,9 @@
         "billing": "Billing"
       },
       "minimumPercent": "Minimum payment (%)",
-      "minimumPercentHint": "Percentage of the period your issuer accepts as a minimum payment. Empty = no minimum."
+      "minimumPercentHint": "Percentage of the period your issuer accepts as a minimum payment. Empty = no minimum.",
+      "namePlaceholder": "e.g. Checking Account",
+      "accountNumberPlaceholder": "e.g. 001-2345678-90"
     },
     "actions": {
       "edit": "Edit",
@@ -354,6 +356,8 @@
       "network": "Network",
       "networkNone": "Unspecified",
       "last4Hint": "Only the last 4 digits are stored.",
+      "cardDetails": "Card details",
+      "moreDetails": "More details",
       "limits": "Limits per currency",
       "limitsHint": "Optional. With no limits of its own, the card can draw on the full account pool.",
       "currency": "Currency",
