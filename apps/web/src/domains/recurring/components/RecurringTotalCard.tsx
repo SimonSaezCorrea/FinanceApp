@@ -24,7 +24,9 @@ export function RecurringTotalCard({ groups }: Props) {
   if (groups.length === 0) return null;
 
   const currency =
-    selected !== null && groups.some((g) => g.currency === selected) ? selected : groups[0]!.currency;
+    selected !== null && groups.some((g) => g.currency === selected)
+      ? selected
+      : groups[0]!.currency;
   const g = groups.find((group) => group.currency === currency)!;
   const money = (v: string) => formatMoney(v, { locale: i18n.language, currency: g.currency });
 

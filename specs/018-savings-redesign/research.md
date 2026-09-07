@@ -42,6 +42,7 @@ degradación elegante que el resto de las FKs "de bookkeeping").
 
 **Decisión**: dos columnas nuevas en `Transaction` (mismo patrón que `debtId`/`installmentPlanId`,
 `apps/api/prisma/schema.prisma:432-505`):
+
 - `savingsEntryId String? @unique` (FK → `SavingsEntry`, `onDelete: SetNull`) — el EXPENSE real que
   generó un aporte. `@unique` porque la relación es 1:1 (un aporte, un movimiento).
 - `savingsGoalId String?` (FK → `SavingsGoal`, `onDelete: SetNull`, no único) — el INCOME real de un
@@ -139,13 +140,13 @@ vez de que el frontend sume páginas cargadas.
 Siguiendo el Principio VII y el patrón de `BaseIdempotentCommandHandler`
 (`apps/api/src/infra/cqrs/base-idempotent-command.handler.ts`, usado por los 4 handlers de `debt`):
 
-| Operación (`IDEMPOTENT_OPERATIONS`) | Ruta | Nota |
-| --- | --- | --- |
-| `savingsEntry.create` | `POST /savings/entries` | Ya existe — se EXTIENDE para mover dinero real dentro del mismo `handleIdempotent` |
-| `savingsEntry.update` | `PATCH /savings/entries/:id` | Nueva — ahora mueve dinero real (revierte el monto/cuenta anterior, aplica el nuevo) |
-| `savingsEntry.remove` | `DELETE /savings/entries/:id` | Nueva — revierte el movimiento real, mismo patrón que `DELETE /debts/:id/payments` |
-| `savingsGoal.close` | `POST /savings/goals/:id/close` | Nueva — mueve dinero real solo si el destino es "retirar a cuenta"; se exige el header siempre, por consistencia (no condicional) |
-| `savingsGoal.reopen` | `POST /savings/goals/:id/reopen` | Nueva — revierte el movimiento real solo si el cierre fue "retirar a cuenta" |
+| Operación (`IDEMPOTENT_OPERATIONS`) | Ruta                             | Nota                                                                                                                              |
+| ----------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `savingsEntry.create`               | `POST /savings/entries`          | Ya existe — se EXTIENDE para mover dinero real dentro del mismo `handleIdempotent`                                                |
+| `savingsEntry.update`               | `PATCH /savings/entries/:id`     | Nueva — ahora mueve dinero real (revierte el monto/cuenta anterior, aplica el nuevo)                                              |
+| `savingsEntry.remove`               | `DELETE /savings/entries/:id`    | Nueva — revierte el movimiento real, mismo patrón que `DELETE /debts/:id/payments`                                                |
+| `savingsGoal.close`                 | `POST /savings/goals/:id/close`  | Nueva — mueve dinero real solo si el destino es "retirar a cuenta"; se exige el header siempre, por consistencia (no condicional) |
+| `savingsGoal.reopen`                | `POST /savings/goals/:id/reopen` | Nueva — revierte el movimiento real solo si el cierre fue "retirar a cuenta"                                                      |
 
 `update`/`remove` de un aporte no tenían protección de idempotencia hasta ahora porque no movían
 dinero (specs/015 los dejó fuera a propósito). Ahora que sí mueven dinero, entran al mecanismo — igual

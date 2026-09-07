@@ -225,7 +225,11 @@ export function AccountCreateModal({
     description: c.name,
   }));
   if (currency && !currencyOptions.some((o) => o.value === currency)) {
-    currencyOptions.unshift({ value: currency, label: currencyPickerLabel(currency), description: "" });
+    currencyOptions.unshift({
+      value: currency,
+      label: currencyPickerLabel(currency),
+      description: "",
+    });
   }
 
   // What the tile in the card panel previews: the account as typed so far. The
@@ -327,7 +331,11 @@ export function AccountCreateModal({
               }}
               placeholder="0"
               className="min-w-0 flex-1 border-0 bg-transparent p-0 text-3xl font-bold tabular-nums text-foreground focus-visible:outline-none"
-              aria-label={isCreditLineType ? t("accounts.form.creditLimit") : t("accounts.form.initialBalance")}
+              aria-label={
+                isCreditLineType
+                  ? t("accounts.form.creditLimit")
+                  : t("accounts.form.initialBalance")
+              }
             />
             <SearchableSelect
               id="m-cur"
@@ -350,7 +358,10 @@ export function AccountCreateModal({
             <FormTextField
               id="m-cused"
               label={t("accounts.form.creditUsedInitial")}
-              value={formatAmountDisplay(creditUsedInitial, groupingLocaleFor(currency, i18n.language))}
+              value={formatAmountDisplay(
+                creditUsedInitial,
+                groupingLocaleFor(currency, i18n.language),
+              )}
               onChange={(v) => setCreditUsedInitial(v.replace(/\D/g, ""))}
             />
             <p className="-mt-4 rounded-md border border-dashed border-ring/60 p-2 text-xs text-muted-foreground">
@@ -414,7 +425,9 @@ export function AccountCreateModal({
             ) : (
               <FormTextField
                 id="m-num"
-                label={usesAlias ? t("accounts.form.accountNumberCbu") : t("accounts.form.accountNumber")}
+                label={
+                  usesAlias ? t("accounts.form.accountNumberCbu") : t("accounts.form.accountNumber")
+                }
                 value={accountNumber}
                 onChange={setAccountNumber}
                 placeholder={t("accounts.form.accountNumberPlaceholder")}
@@ -430,7 +443,9 @@ export function AccountCreateModal({
               />
             ) : null}
             {isCreditLineType ? (
-              <p className="pb-1 text-xs text-muted-foreground">{t("accounts.form.primaryCardHint")}</p>
+              <p className="pb-1 text-xs text-muted-foreground">
+                {t("accounts.form.primaryCardHint")}
+              </p>
             ) : null}
           </div>
         ) : null}
@@ -445,7 +460,12 @@ export function AccountCreateModal({
                 })()}
               </SectionLabel>
               {!addingCard ? (
-                <Button type="button" variant="outline" size="sm" onClick={() => setAddingCard(true)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAddingCard(true)}
+                >
                   <Plus className="h-3.5 w-3.5" aria-hidden />
                   {t("cards.addShort")}
                 </Button>

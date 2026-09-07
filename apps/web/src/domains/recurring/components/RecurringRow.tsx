@@ -7,7 +7,13 @@ import { formatMoney } from "@finance/money";
 
 import { CategoryIcon } from "../../../shared/ui/category-icon";
 import { cn } from "../../../shared/lib/cn";
-import { dueNote, formatLongDate, formatShortDate, isOverdue, monthlyAmount } from "../lib/recurringMetrics";
+import {
+  dueNote,
+  formatLongDate,
+  formatShortDate,
+  isOverdue,
+  monthlyAmount,
+} from "../lib/recurringMetrics";
 
 interface Props {
   readonly r: recurring.RecurringExpense;
@@ -41,7 +47,9 @@ export function RecurringRow({ r, accountName, onSelect, onTogglePause, onEdit, 
         : days === 1
           ? t("recurring.due.tomorrow")
           : t("recurring.due.inDays", { count: days });
-    meta = [formatShortDate(r.nextDueAt, i18n.language), note, accountName].filter(Boolean).join(" · ");
+    meta = [formatShortDate(r.nextDueAt, i18n.language), note, accountName]
+      .filter(Boolean)
+      .join(" · ");
   }
 
   return (

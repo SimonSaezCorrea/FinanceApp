@@ -1,6 +1,7 @@
 # Handoff: vista Ahorros (FinanceApp)
 
 ## Overview
+
 Vista `Ahorros` de FinanceApp: metas de ahorro con progreso, proyección de llegada según ritmo,
 total ahorrado con desglose por meta, un bloque de "ahorro libre" (aportes sin meta), metas
 cerradas colapsables, y cuatro overlays laterales: detalle de la meta, nueva/editar meta,
@@ -12,6 +13,7 @@ Archivos existentes que se reemplazan/actualizan:
 overlays en `src/shared/ui/overlay/{side-panel,chrome,form-surface}.tsx`.
 
 ## About the Design Files
+
 `FinanceApp.dc.html` (incluido) es una **referencia de diseño en HTML**: prototipo interactivo
 del app completo, no código de producción. No copiar el HTML: **recrear** la vista en
 React + TypeScript + Tailwind con los primitivos de `src/shared/ui/*` y los tokens de
@@ -21,14 +23,17 @@ Abrir el prototipo y elegir "Ahorros" en el sidebar. El modo móvil (420×880) s
 toggle de vista móvil del prototipo.
 
 ## Fidelity
+
 **Alta fidelidad.** Medidas, colores, tipografía y copy son finales. Reproducir 1:1.
 
 ## Screens / Views
 
 ### 1. Ahorros (ruta `/ahorros`)
+
 Contenedor: `flex flex-col gap-6` (24px).
 
 **a) Encabezado** — `flex items-start justify-between gap-4`; en móvil pasa a columna.
+
 - h1 "Ahorros": 24px / line-height 32px / weight 600 / letter-spacing −0.025em.
 - Subtítulo 14px muted, `margin-top: 4px`: `"{n} metas abiertas · {monto} por reunir"`
   (singular "1 meta abierta").
@@ -39,6 +44,7 @@ Contenedor: `flex flex-col gap-6` (24px).
     radio 7.6px, 14px/500, icono `plus` 16px.
 
 **b) Tarjeta de total** — `border rounded-[9.6px] bg-card p-[22px_24px] flex flex-col gap-4`.
+
 - Bloque superior `flex flex-wrap items-end justify-between gap-6`:
   - Izquierda (`flex-col gap-1`): label "Ahorrado" 12px muted; monto **38px/600**,
     letter-spacing −0.03em, `tabular-nums`; nota 12px muted
@@ -52,6 +58,7 @@ Contenedor: `flex flex-col gap-6` (24px).
 
 **c) Grupos de metas** — un bloque `flex flex-col gap-2` por grupo, en orden fijo
 **En curso → Fuera de plazo → Cumplidas**; los grupos vacíos no se renderizan.
+
 - Cabecera: título 13px/600 uppercase letter-spacing .06em muted; meta 13px muted
   `"{n} metas · {monto} acumulados"` (singular "1 meta").
 - Card: `overflow-hidden border rounded-[9.6px] bg-card`, shadow `0 1px 2px rgba(0,0,0,.28)`.
@@ -74,6 +81,7 @@ Contenedor: `flex flex-col gap-6` (24px).
     Ocultas en móvil; la fila completa abre el detalle.
 
 **d) Metas cerradas** (solo si hay alguna)
+
 - Franja `flex items-center justify-between gap-4 border rounded-[9.6px] bg-card p-[12px_18px]`,
   13px muted (columna en móvil): icono `archive` 15px +
   `"{n} metas cerradas · {monto} ahorrados en total — no cuentan en el total ni en el ritmo, sí en tu historial."`
@@ -86,6 +94,7 @@ Contenedor: `flex flex-col gap-6` (24px).
   → toast `"{meta} reabierta"`.
 
 **e) Ahorro libre**
+
 - Cabecera de grupo: "AHORRO LIBRE" + `"{n} aportes sin meta"` (singular "1 aporte sin meta").
 - Card **con borde discontinuo** (`1px dashed --border`), radio 9.6px, `bg-card`,
   `p-[18px_20px]`, `flex-col gap-[14px]`:
@@ -97,8 +106,10 @@ Contenedor: `flex flex-col gap-6` (24px).
     `tabular-nums` en `text-success`.
 
 ### 2. Panel: Detalle de la meta
+
 Overlay `rgba(0,0,0,.55)` + `backdrop-filter: blur(8px)`; panel derecho **`width: min(560px, 100vw)`**,
 `bg-card`, borde izquierdo 1px, shadow `-24px 0 60px rgba(0,0,0,.45)`.
+
 - Encabezado: eyebrow 11px/600 uppercase letter-spacing .1em `text-brand` "Meta de ahorro" +
   botón cerrar (`x` 20px).
 - Identidad: chip 44px circular + título 22px/600 (letter-spacing −0.02em) y la línea de estado
@@ -118,8 +129,10 @@ Overlay `rgba(0,0,0,.55)` + `backdrop-filter: blur(8px)`; panel derecho **`width
   `bg-background` + borde `--input`) y "Registrar aporte" (`accent/0.85`, 15px/600).
 
 ### 3. Panel: Nueva / Editar meta
+
 Mismo shell (560px). Formulario tipo hoja: campos como filas con `border-top` 1px,
 `margin-top 16px`, `padding-top 16px`, label 15px izquierda / valor 15px/600 derecha.
+
 - Eyebrow: "Nueva meta" / "Editar meta".
 - Título: input sin borde 28px/600, letter-spacing −0.02em, placeholder "Título de la meta".
 - Monto: input 32px/600 `tabular-nums` (ancho 260px) + sufijo "CLP" 14px muted;
@@ -137,7 +150,9 @@ Mismo shell (560px). Formulario tipo hoja: campos como filas con `border-top` 1p
   Toast: "Meta creada" / "Meta actualizada".
 
 ### 4. Panel: Registrar aporte
+
 Mismo shell, `z-index` por encima del detalle (overlay 1400 / panel 1500).
+
 - Eyebrow "Registrar aporte".
 - Título 28px/600: `Aporte a «{meta}»` (comillas angulares) o "Aporte sin meta".
 - Monto: "+" 30px/600 en `text-success` + input 32px/600 `tabular-nums` (ancho 240px) +
@@ -154,7 +169,9 @@ Mismo shell, `z-index` por encima del detalle (overlay 1400 / panel 1500).
 - Footer: Cancelar + "Registrar aporte" → toast "Aporte registrado".
 
 ### 5. Panel: Cerrar meta
+
 Mismo shell y z-index alto (1400 / 1500).
+
 - Eyebrow: "Cerrar meta cumplida" / "Cerrar meta sin cumplir".
 - Título 26px/600: `Cerrar «{meta}»`; resumen 14px/1.55 muted:
   - cumplida: "Reuniste el 100% del objetivo. Al cerrarla deja de aparecer en las metas abiertas y en el ritmo mensual."
@@ -175,6 +192,7 @@ Mismo shell y z-index alto (1400 / 1500).
   Traspasado a otra meta) y se cierra el panel de detalle.
 
 ## Interactions & Behavior
+
 - Fila de meta → panel de detalle; los icon-buttons hacen `stopPropagation`.
 - Cerrar meta **solo** está disponible si la meta está cumplida o vencida, y siempre pasa por el
   panel de cierre con destino y fecha; nunca es una acción inmediata.
@@ -189,6 +207,7 @@ Mismo shell y z-index alto (1400 / 1500).
   "{meta} cerrada".
 
 ## State Management
+
 ```ts
 panel: { kind: "savGoal" | "savForm" | "savEdit"; id?: string } | null
 savEntryOpen: boolean
@@ -201,6 +220,7 @@ savDeadline: boolean | null     // null = heredar de la meta editada
 ```
 
 Modelo y fórmulas (exactas del prototipo):
+
 ```ts
 type Goal = {
   id: string; title: string;
@@ -234,13 +254,14 @@ const pace       = openGoals.reduce((n, g) => n + g.pace, 0);
 ```
 
 **Estados de meta** (línea de estado, icono y color de acento/barra):
-| Estado | Copy | Color | Icono |
-| --- | --- | --- | --- |
-| Cumplida | `Meta cumplida · {objetivo}` | `--success` | `circle-check` |
-| Vencida | `Venció el {plazo} · faltan {monto}` | `--destructive` | `clock-alert` |
-| No llega a tiempo | `A este ritmo llegas en {mes}, después de {plazo} · sube a {monto}/mes` | `--warning` | `trending-down` |
-| En ritmo | `A este ritmo llegas en {mes} · plazo {plazo}` (o `· sin plazo`) | muted | `trending-up` |
-| Sin aportes | `Sin aportes registrados` | muted | — |
+
+| Estado            | Copy                                                                    | Color           | Icono           |
+| ----------------- | ----------------------------------------------------------------------- | --------------- | --------------- |
+| Cumplida          | `Meta cumplida · {objetivo}`                                            | `--success`     | `circle-check`  |
+| Vencida           | `Venció el {plazo} · faltan {monto}`                                    | `--destructive` | `clock-alert`   |
+| No llega a tiempo | `A este ritmo llegas en {mes}, después de {plazo} · sube a {monto}/mes` | `--warning`     | `trending-down` |
+| En ritmo          | `A este ritmo llegas en {mes} · plazo {plazo}` (o `· sin plazo`)        | muted           | `trending-up`   |
+| Sin aportes       | `Sin aportes registrados`                                               | muted           | —               |
 
 Agrupación: `live` = incompletas y no vencidas → "En curso"; `late` = incompletas y vencidas →
 "Fuera de plazo"; `done` = `saved >= target` → "Cumplidas". `openGoals = live + late`.
@@ -248,50 +269,102 @@ Agrupación: `live` = incompletas y no vencidas → "En curso"; `late` = incompl
 Formato CLP: miles con punto, sin decimales, prefijo `$`. Todos los montos con `tabular-nums`.
 
 Datos de ejemplo (fixtures útiles):
+
 ```ts
 const savings = [
-  { id:"s1", title:"Pie departamento",   target:15000000, saved:6300000, pace:300000, deadline:"dic 2027",   deadlineMonths:15, icon:"home",            color:"hsl(var(--brand))" },
-  { id:"s2", title:"Fondo de emergencia",target:3500000,  saved:2450000, pace:150000, deadline:null,         deadlineMonths:null, icon:"shield",        color:"hsl(var(--success))" },
-  { id:"s3", title:"Viaje a Japón",      target:2800000,  saved:2050000, pace:250000, deadline:"15 nov 2026",deadlineMonths:2,  icon:"plane",           color:"hsl(var(--accent))" },
-  { id:"s4", title:"Notebook nuevo",     target:1200000,  saved:480000,  pace:60000,  deadline:"15 ago 2026",deadlineMonths:-1, icon:"laptop",          color:"hsl(var(--warning))" },
-  { id:"s5", title:"Curso de inglés",    target:600000,   saved:600000,  pace:100000, deadline:"30 jun 2026",deadlineMonths:-2, icon:"graduation-cap",  color:"hsl(var(--muted-foreground))" },
+  {
+    id: "s1",
+    title: "Pie departamento",
+    target: 15000000,
+    saved: 6300000,
+    pace: 300000,
+    deadline: "dic 2027",
+    deadlineMonths: 15,
+    icon: "home",
+    color: "hsl(var(--brand))",
+  },
+  {
+    id: "s2",
+    title: "Fondo de emergencia",
+    target: 3500000,
+    saved: 2450000,
+    pace: 150000,
+    deadline: null,
+    deadlineMonths: null,
+    icon: "shield",
+    color: "hsl(var(--success))",
+  },
+  {
+    id: "s3",
+    title: "Viaje a Japón",
+    target: 2800000,
+    saved: 2050000,
+    pace: 250000,
+    deadline: "15 nov 2026",
+    deadlineMonths: 2,
+    icon: "plane",
+    color: "hsl(var(--accent))",
+  },
+  {
+    id: "s4",
+    title: "Notebook nuevo",
+    target: 1200000,
+    saved: 480000,
+    pace: 60000,
+    deadline: "15 ago 2026",
+    deadlineMonths: -1,
+    icon: "laptop",
+    color: "hsl(var(--warning))",
+  },
+  {
+    id: "s5",
+    title: "Curso de inglés",
+    target: 600000,
+    saved: 600000,
+    pace: 100000,
+    deadline: "30 jun 2026",
+    deadlineMonths: -2,
+    icon: "graduation-cap",
+    color: "hsl(var(--muted-foreground))",
+  },
 ];
 // s5 arranca cerrada: { s5: { date: "2 jul 2026", dest: "Retirado a Cuenta Corriente" } }
 
 const savingsEntries = [
-  { id:"e1", goal:"s1",  amount:300000, date:"28 ago 2026", note:"Traspaso mensual" },
-  { id:"e2", goal:"s3",  amount:250000, date:"26 ago 2026", note:"Aporte pasajes" },
-  { id:"e3", goal:null,  amount:120000, date:"22 ago 2026", note:"Vuelto proyecto freelance" },
-  { id:"e4", goal:"s2",  amount:150000, date:"20 ago 2026", note:"" },
-  { id:"e5", goal:"s1",  amount:300000, date:"28 jul 2026", note:"Traspaso mensual" },
-  { id:"e6", goal:"s3",  amount:250000, date:"26 jul 2026", note:"" },
-  { id:"e7", goal:null,  amount:80000,  date:"18 jul 2026", note:"Redondeos del mes" },
-  { id:"e8", goal:"s4",  amount:60000,  date:"15 jul 2026", note:"" },
-  { id:"e9", goal:"s2",  amount:150000, date:"20 jun 2026", note:"" },
-  { id:"e10",goal:null,  amount:140000, date:"9 jun 2026",  note:"Venta bicicleta" },
+  { id: "e1", goal: "s1", amount: 300000, date: "28 ago 2026", note: "Traspaso mensual" },
+  { id: "e2", goal: "s3", amount: 250000, date: "26 ago 2026", note: "Aporte pasajes" },
+  { id: "e3", goal: null, amount: 120000, date: "22 ago 2026", note: "Vuelto proyecto freelance" },
+  { id: "e4", goal: "s2", amount: 150000, date: "20 ago 2026", note: "" },
+  { id: "e5", goal: "s1", amount: 300000, date: "28 jul 2026", note: "Traspaso mensual" },
+  { id: "e6", goal: "s3", amount: 250000, date: "26 jul 2026", note: "" },
+  { id: "e7", goal: null, amount: 80000, date: "18 jul 2026", note: "Redondeos del mes" },
+  { id: "e8", goal: "s4", amount: 60000, date: "15 jul 2026", note: "" },
+  { id: "e9", goal: "s2", amount: 150000, date: "20 jun 2026", note: "" },
+  { id: "e10", goal: null, amount: 140000, date: "9 jun 2026", note: "Venta bicicleta" },
 ];
 ```
 
 ## Design Tokens
+
 Usar los tokens HSL de `src/styles/index.css` — no hardcodear hex.
 
-| Token | Oscuro | Claro |
-| --- | --- | --- |
-| `--card` | 190 38% 9% | 0 0% 100% |
-| `--background` | 194 37% 7% | 195 22% 96% |
-| `--foreground` | 180 16% 92% | 191 21% 10% |
-| `--muted-foreground` | 185 11% 59% | 191 13% 42% |
-| `--border` | 192 25% 16% | 190 22% 84% |
-| `--input` | 192 24% 21% | 190 22% 80% |
-| `--primary` | 187 30% 54% | 184 52% 33% |
-| `--accent` | 27 87% 67% | 12 76% 58% |
-| `--success` | 153 44% 49% | 152 42% 38% |
-| `--warning` | ver `index.css` | ver `index.css` |
-| `--destructive` | 0 58% 71% | 0 62% 50% |
-| `--brand` | 183 86% 19% | 184 52% 33% |
-| `--track` | 195 26% 18% | 192 20% 89% |
-| `--muted` | 195 26% 18% | 190 30% 96% |
-| `--chip` | ver `index.css` | ver `index.css` |
+| Token                | Oscuro          | Claro           |
+| -------------------- | --------------- | --------------- |
+| `--card`             | 190 38% 9%      | 0 0% 100%       |
+| `--background`       | 194 37% 7%      | 195 22% 96%     |
+| `--foreground`       | 180 16% 92%     | 191 21% 10%     |
+| `--muted-foreground` | 185 11% 59%     | 191 13% 42%     |
+| `--border`           | 192 25% 16%     | 190 22% 84%     |
+| `--input`            | 192 24% 21%     | 190 22% 80%     |
+| `--primary`          | 187 30% 54%     | 184 52% 33%     |
+| `--accent`           | 27 87% 67%      | 12 76% 58%      |
+| `--success`          | 153 44% 49%     | 152 42% 38%     |
+| `--warning`          | ver `index.css` | ver `index.css` |
+| `--destructive`      | 0 58% 71%       | 0 62% 50%       |
+| `--brand`            | 183 86% 19%     | 184 52% 33%     |
+| `--track`            | 195 26% 18%     | 192 20% 89%     |
+| `--muted`            | 195 26% 18%     | 190 30% 96%     |
+| `--chip`             | ver `index.css` | ver `index.css` |
 
 Radios: 7.6px (botones, icon-buttons, inputs date), 9.6px (cards, paneles, botones de footer,
 tarjetas de destino), `9999px` (chips, barras, switch), 2px (cuadritos de leyenda).
@@ -303,12 +376,14 @@ Sombras: card `0 1px 2px rgba(0,0,0,.28)`; panel `-24px 0 60px rgba(0,0,0,.45)`.
 Z-index: overlay/panel de detalle y formulario 1200/1300; aporte y cierre 1400/1500.
 
 ## Assets
+
 Solo iconos **Lucide** (ya en el repo): `plus`, `plus-circle`, `pencil`, `archive`, `circle-x`,
 `circle-check`, `clock-alert`, `trending-up`, `trending-down`, `chevron-down`, `x`,
 `banknote`, `piggy-bank`, `arrow-right-left`, y los de meta `home`, `shield`, `plane`,
 `laptop`, `graduation-cap`. Sin imágenes ni logos.
 
 ## Files
+
 - `FinanceApp.dc.html` — prototipo completo e interactivo (vista Ahorros + los cuatro paneles).
 - `support.js` — runtime del prototipo; necesario para abrirlo.
 - `PROMPT.md` — prompt listo para pegar en Claude Code.

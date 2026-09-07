@@ -13,7 +13,13 @@ interface Props {
  * pair a movement's "Cargo financiero" (and similar boolean fields) already
  * built by hand. Reach for `FormChip` instead when the two states are named
  * options rather than a plain on/off (Debes/Te deben, Activo/Pausado). */
-export function FormSwitchField({ label, checked, onChange, disabled, className }: Readonly<Props>) {
+export function FormSwitchField({
+  label,
+  checked,
+  onChange,
+  disabled,
+  className,
+}: Readonly<Props>) {
   return (
     <DetailRow label={label} className={className}>
       <Switch checked={checked} onCheckedChange={onChange} disabled={disabled} aria-label={label} />

@@ -32,7 +32,14 @@ interface Props {
  * link automatically yet (no generation cron exists): today it is only ever
  * set by hand in the seed, so most series legitimately show the empty state.
  */
-export function RecurringDetailPanel({ r, accounts, onOpenChange, onTogglePause, onEdit, onDelete }: Props) {
+export function RecurringDetailPanel({
+  r,
+  accounts,
+  onOpenChange,
+  onTogglePause,
+  onEdit,
+  onDelete,
+}: Props) {
   const { t, i18n } = useTranslation();
   const { data: history } = useTransactions(
     r ? { recurringExpenseId: r.id, limit: HISTORY_LIMIT } : undefined,
@@ -117,7 +124,10 @@ export function RecurringDetailPanel({ r, accounts, onOpenChange, onTogglePause,
             label={t("debts.form.account")}
             value={account?.name ?? t("recurring.form.noAccount")}
           />
-          <DetailRow label={t("transactions.form.card")} value={card?.name ?? t("transactions.form.noCard")} />
+          <DetailRow
+            label={t("transactions.form.card")}
+            value={card?.name ?? t("transactions.form.noCard")}
+          />
           <DetailRow
             label={t("recurring.form.anchorDate")}
             value={formatLongDate(r.anchorDate, i18n.language)}
@@ -132,7 +142,10 @@ export function RecurringDetailPanel({ r, accounts, onOpenChange, onTogglePause,
                 : t("recurring.detail.automatic")
             }
           />
-          <DetailRow label={t("recurring.form.notes")} value={r.notes ?? t("recurring.detail.noNotes")} />
+          <DetailRow
+            label={t("recurring.form.notes")}
+            value={r.notes ?? t("recurring.detail.noNotes")}
+          />
         </div>
 
         <section className="flex flex-col gap-1">
@@ -185,7 +198,9 @@ function Stat({
   return (
     <div className="flex flex-col gap-1">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <span className={`text-lg font-semibold tabular-nums ${muted ? "text-muted-foreground" : ""}`}>
+      <span
+        className={`text-lg font-semibold tabular-nums ${muted ? "text-muted-foreground" : ""}`}
+      >
         {value}
       </span>
     </div>

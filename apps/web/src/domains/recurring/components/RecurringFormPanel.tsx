@@ -159,7 +159,10 @@ export function RecurringFormPanel({
           </span>
           <input
             inputMode="numeric"
-            value={formatAmountDisplay(value.amount, groupingLocaleFor(value.currency, i18n.language))}
+            value={formatAmountDisplay(
+              value.amount,
+              groupingLocaleFor(value.currency, i18n.language),
+            )}
             onChange={(e) => onChange({ amount: e.target.value.replace(/\D/g, "") })}
             placeholder="0"
             aria-label={t("recurring.form.amount")}

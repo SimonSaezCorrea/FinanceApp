@@ -14,7 +14,10 @@ interface Props {
 }
 
 const TONE_CLASS: Record<"muted" | "warning", { box: string; icon: string }> = {
-  muted: { box: "border-border bg-background text-muted-foreground", icon: "text-muted-foreground" },
+  muted: {
+    box: "border-border bg-background text-muted-foreground",
+    icon: "text-muted-foreground",
+  },
   warning: { box: "border-warning/40 bg-warning/5 text-warning", icon: "text-warning" },
 };
 
@@ -24,7 +27,12 @@ const TONE_CLASS: Record<"muted" | "warning", { box: string; icon: string }> = {
  * instalment plan's frozen-fields explanation. One shape instead of each form
  * rolling its own `rounded-[9.6px] border p-[14px_16px]` div.
  */
-export function FormNotice({ children, icon: Icon = Info, tone = "muted", className }: Readonly<Props>) {
+export function FormNotice({
+  children,
+  icon: Icon = Info,
+  tone = "muted",
+  className,
+}: Readonly<Props>) {
   const { box, icon } = TONE_CLASS[tone];
   return (
     <div

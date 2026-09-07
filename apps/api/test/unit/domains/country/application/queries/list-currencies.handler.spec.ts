@@ -9,13 +9,17 @@ describe("ListCurrenciesQueryHandler", () => {
     const repo: CurrencyRepositoryPort = {
       findAll: vi
         .fn()
-        .mockResolvedValue([{ id: "cur1", code: "CLP", numeric: "152", name: "Chilean Peso", symbol: "$" }]),
+        .mockResolvedValue([
+          { id: "cur1", code: "CLP", numeric: "152", name: "Chilean Peso", symbol: "$" },
+        ]),
     };
     const handler = new ListCurrenciesQueryHandler(repo);
 
     const result = await handler.execute(new ListCurrenciesQuery());
 
-    expect(result).toEqual([{ id: "cur1", code: "CLP", numeric: "152", name: "Chilean Peso", symbol: "$" }]);
+    expect(result).toEqual([
+      { id: "cur1", code: "CLP", numeric: "152", name: "Chilean Peso", symbol: "$" },
+    ]);
     expect(repo.findAll).toHaveBeenCalledOnce();
   });
 });

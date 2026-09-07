@@ -109,7 +109,7 @@ export function CardForm({
   // (`allowedCardKinds` never returns more than one option: CHECKING/SIGHT/
   // SAVINGS → DEBIT, CREDIT_CARD → CREDIT, PREPAID → PREPAID) — there is
   // nothing left to pick, so this isn't a form field, just a derived constant.
-  const kind: accounts.CardKind = initial?.kind ?? (kindOptions[0] ?? "CREDIT");
+  const kind: accounts.CardKind = initial?.kind ?? kindOptions[0] ?? "CREDIT";
   const [last4, setLast4] = useState(initial?.last4 ?? "");
   const [expiry, setExpiry] = useState(
     initial ? formatExpiry(initial.expiryMonth, initial.expiryYear) : "",
@@ -473,7 +473,9 @@ export function CardForm({
             checked={isAdditional}
             onChange={setIsAdditional}
           />
-          <p className="pb-2 pt-1 text-xs text-muted-foreground">{t("cards.form.additionalHint")}</p>
+          <p className="pb-2 pt-1 text-xs text-muted-foreground">
+            {t("cards.form.additionalHint")}
+          </p>
           {/* Who carries it only matters once it IS someone else's card. */}
           {isAdditional ? (
             <FormTextField

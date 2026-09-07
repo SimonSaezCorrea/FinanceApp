@@ -58,8 +58,8 @@ const row = Transaction.fromPersistence({
   creditStatementId: null,
   debtId: null,
   recurringExpenseId: null,
-      savingsEntryId: null,
-      savingsGoalId: null,
+  savingsEntryId: null,
+  savingsGoalId: null,
   createdAt: new Date("2026-03-01T00:00:00Z"),
   updatedAt: new Date("2026-03-01T00:00:00Z"),
 });

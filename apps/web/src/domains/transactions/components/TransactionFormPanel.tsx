@@ -239,7 +239,10 @@ export function TransactionFormPanel({
         <span className={cn("text-3xl font-semibold", AMOUNT_TONE_CLASS[amountTone])} aria-hidden>
           {isTransfer ? "±" : isIncome ? "+" : "−"}
         </span>
-        <span className={cn("shrink-0 text-2xl font-bold", AMOUNT_TONE_CLASS[amountTone])} aria-hidden>
+        <span
+          className={cn("shrink-0 text-2xl font-bold", AMOUNT_TONE_CLASS[amountTone])}
+          aria-hidden
+        >
           {resolveCurrencySymbol(value.currency, currencies, i18n.language)}
         </span>
         <input
@@ -303,7 +306,9 @@ export function TransactionFormPanel({
             ...categoryOptions.map((c) => ({
               value: c,
               label: c,
-              icon: <CategoryIcon category={c} className="h-4 w-4 shrink-0 text-muted-foreground" />,
+              icon: (
+                <CategoryIcon category={c} className="h-4 w-4 shrink-0 text-muted-foreground" />
+              ),
             })),
           ]}
         />

@@ -49,7 +49,9 @@ export function FormChip<T extends string>({
             aria-pressed={active}
             className={cn(
               "rounded-full px-2.5 py-1 transition-colors",
-              active ? (opt.activeClassName ?? "bg-foreground text-background") : "text-muted-foreground",
+              active
+                ? (opt.activeClassName ?? "bg-foreground text-background")
+                : "text-muted-foreground",
             )}
           >
             {opt.label}

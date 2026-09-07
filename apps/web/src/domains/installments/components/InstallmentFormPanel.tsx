@@ -258,7 +258,9 @@ export function InstallmentFormPanel({
               ...categoryOptions.map((c) => ({
                 value: c,
                 label: c,
-                icon: <CategoryIcon category={c} className="h-4 w-4 shrink-0 text-muted-foreground" />,
+                icon: (
+                  <CategoryIcon category={c} className="h-4 w-4 shrink-0 text-muted-foreground" />
+                ),
               })),
             ]}
           />

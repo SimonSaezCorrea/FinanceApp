@@ -18,13 +18,13 @@ export const savingsGoalSchema = z.object({
   targetAmount: moneyString,
   currency: z.string(),
   deadline: z.string().nullable(),
-  notes: z.string().nullable(),                          // nuevo
-  closedAt: z.string().nullable(),                        // nuevo
+  notes: z.string().nullable(), // nuevo
+  closedAt: z.string().nullable(), // nuevo
   closeDestination: savingsGoalCloseDestination.nullable(), // nuevo
-  closeTargetGoalId: rowId.nullable(),                    // nuevo — solo TRANSFER_TO_GOAL
+  closeTargetGoalId: rowId.nullable(), // nuevo — solo TRANSFER_TO_GOAL
   // derivados, calculados en el query handler — nunca escritos por el cliente
-  savedAmount: moneyString,                               // nuevo
-  pace: moneyString,                                      // nuevo
+  savedAmount: moneyString, // nuevo
+  pace: moneyString, // nuevo
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -43,7 +43,7 @@ export const createSavingsGoalSchema = z.object({
   targetAmount: moneyString,
   currency: z.string().trim().length(3).default("USD"),
   deadline: z.string().datetime().optional(),
-  notes: z.string().trim().max(500).optional(),           // nuevo
+  notes: z.string().trim().max(500).optional(), // nuevo
 });
 
 export const updateSavingsGoalSchema = createSavingsGoalSchema.partial().extend({
@@ -104,7 +104,7 @@ export const savingsEntrySchema = z.object({
   currency: z.string(),
   contributedAt: z.string(),
   note: z.string().nullable(),
-  bankAccountId: rowId.nullable(),   // nuevo — nullable porque sobrevive el borrado de la cuenta
+  bankAccountId: rowId.nullable(), // nuevo — nullable porque sobrevive el borrado de la cuenta
   createdAt: z.string(),
 });
 
@@ -113,7 +113,7 @@ export const createSavingsEntrySchema = z.object({
   currency: z.string().trim().length(3).default("USD"),
   contributedAt: z.string().datetime(),
   savingsGoalId: rowId.optional(),
-  bankAccountId: rowId,               // nuevo, REQUERIDO — antes no existía
+  bankAccountId: rowId, // nuevo, REQUERIDO — antes no existía
   note: z.string().trim().max(500).optional(),
 });
 
@@ -127,6 +127,7 @@ todos `Idempotency-Key`** (antes solo `POST`). `create` ya estaba en `IDEMPOTENT
 agregan `"savingsEntry.update"` y `"savingsEntry.remove"`.
 
 Reglas de negocio (handler, no schema — dependen de estado):
+
 - `bankAccountId` debe ser del usuario, no `CREDIT_LINE`, y de la misma moneda que `currency`
   (`SAVINGS_ENTRY_FROM_CREDIT_ACCOUNT` / `SAVINGS_ENTRY_CURRENCY_MISMATCH`).
 - Si `savingsGoalId` está presente, su moneda debe coincidir con `currency`
@@ -152,10 +153,10 @@ GET /savings/summary
 
 ```ts
 export const savingsSummarySchema = z.object({
-  totalSaved: moneyString,      // metas abiertas+cumplidas + ahorro libre, EXCLUYE cerradas
+  totalSaved: moneyString, // metas abiertas+cumplidas + ahorro libre, EXCLUYE cerradas
   freeSavingsTotal: moneyString,
-  pace: moneyString,            // suma de pace de metas abiertas (no cumplidas ni cerradas... ver nota)
-  missing: moneyString,         // Σ max(0, target - saved) de metas abiertas
+  pace: moneyString, // suma de pace de metas abiertas (no cumplidas ni cerradas... ver nota)
+  missing: moneyString, // Σ max(0, target - saved) de metas abiertas
 });
 export type SavingsSummary = z.infer<typeof savingsSummarySchema>;
 ```
@@ -174,8 +175,8 @@ export type TransactionSource =
   | { kind: "INSTALLMENT" }
   | { kind: "FINANCE_CHARGE" }
   | { kind: "DEBT" }
-  | { kind: "SAVINGS" }              // nuevo
-  | { kind: "SAVINGS_WITHDRAWAL" }   // nuevo
+  | { kind: "SAVINGS" } // nuevo
+  | { kind: "SAVINGS_WITHDRAWAL" } // nuevo
   | { kind: "MANUAL" };
 ```
 

@@ -8,6 +8,7 @@ de handoff accesible.
 Trabaja en `apps/web`. Quiero integrar el rediseño de la vista **Ahorros**.
 
 Referencias (en `design_handoff_ahorros/`):
+
 - `README.md` — especificación completa: layout, medidas, tokens, copy, estados y fórmulas.
 - `FinanceApp.dc.html` — prototipo HTML interactivo del app. Ábrelo y ve a "Ahorros".
 
@@ -17,6 +18,7 @@ del repo (React + TypeScript + Tailwind) reutilizando lo que ya existe:
 `src/styles/index.css` (usa las variables, no hex); iconos Lucide.
 
 Alcance:
+
 1. `src/domains/savings/routes/SavingsRoute.tsx` — encabezado con doble acción, tarjeta de total
    con desglose por meta, grupos de metas (En curso → Fuera de plazo → Cumplidas), bloque de
    metas cerradas colapsable y bloque de ahorro libre.
@@ -32,6 +34,7 @@ Alcance:
    fecha de cierre).
 
 Reglas:
+
 - Respeta las medidas y el copy en español del README **literalmente** (subtítulos con cifras,
   separador " · ", comillas angulares «», montos con `tabular-nums`).
 - Implementa la lógica de estado de meta y la proyección con las fórmulas del README

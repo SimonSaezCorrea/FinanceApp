@@ -81,9 +81,10 @@ export function RecurringRoute() {
 
   const currencyGroups = useMemo(() => recurringByCurrency(list), [list]);
 
-  const subtitle = !isLoading && !isError
-    ? t("recurring.subtitle", { active: activeCount, paused: pausedList.length })
-    : undefined;
+  const subtitle =
+    !isLoading && !isError
+      ? t("recurring.subtitle", { active: activeCount, paused: pausedList.length })
+      : undefined;
 
   function openCreate() {
     // No account preselected — a recurring series isn't necessarily tied to

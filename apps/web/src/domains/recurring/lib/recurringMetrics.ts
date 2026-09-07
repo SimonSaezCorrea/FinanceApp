@@ -116,5 +116,9 @@ export function formatShortDate(iso: string, locale: string): string {
 
 /** "3 sep 2026" — day + short month + year (detail panel / form dates). */
 export function formatLongDate(iso: string, locale: string): string {
-  return new Date(iso).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" });
+  return new Date(iso).toLocaleDateString(locale, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
