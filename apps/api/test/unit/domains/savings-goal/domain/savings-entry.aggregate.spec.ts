@@ -8,6 +8,8 @@ describe("SavingsEntry.planCreation", () => {
       amount: "250",
       currency: "USD",
       contributedAt: new Date("2026-02-01T00:00:00Z"),
+      bankAccountId: "a1",
+      transactionId: "t1",
     });
     expect(planned.savingsGoalId).toBeNull();
     expect(planned.note).toBeNull();
@@ -20,6 +22,8 @@ describe("SavingsEntry.planCreation", () => {
       currency: "USD",
       contributedAt: new Date("2026-02-01T00:00:00Z"),
       note: "Bonus deposit",
+      bankAccountId: "a1",
+      transactionId: "t1",
     });
     expect(planned.savingsGoalId).toBe("g1");
     expect(planned.note).toBe("Bonus deposit");
@@ -35,7 +39,10 @@ describe("SavingsEntry.toContract", () => {
       amount: "250",
       currency: "USD",
       contributedAt: new Date("2026-02-01T00:00:00Z"),
+      title: null,
       note: null,
+      bankAccountId: "a1",
+      transactionId: "t1",
       createdAt: new Date("2026-02-01T00:00:00Z"),
     });
     expect(entry.toContract()).toEqual({
@@ -44,7 +51,9 @@ describe("SavingsEntry.toContract", () => {
       amount: "250.0000",
       currency: "USD",
       contributedAt: "2026-02-01T00:00:00.000Z",
+      title: null,
       note: null,
+      bankAccountId: "a1",
       createdAt: "2026-02-01T00:00:00.000Z",
     });
   });

@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ListSavingsEntriesQueryHandler } from "../../../../../../src/domains/savings-entry/application/queries/list-savings-entries.handler";
 import { ListSavingsEntriesQuery } from "../../../../../../src/domains/savings-entry/application/queries/list-savings-entries.query";
 import { SavingsEntry } from "../../../../../../src/domains/savings-entry/domain/savings-entry.aggregate";
-import type { SavingsEntryRepositoryPort } from "../../../../../../src/domains/savings-entry/domain/ports/savings-entry.repository.port";
+import { fakeSavingsEntryRepo as fakeRepo } from "../../../../../unit/support/fake-ports";
 
 function makeEntry(id: string) {
   return SavingsEntry.fromPersistence({
@@ -13,21 +13,12 @@ function makeEntry(id: string) {
     amount: "250",
     currency: "USD",
     contributedAt: new Date("2026-02-01T00:00:00Z"),
+    title: null,
     note: null,
+    bankAccountId: "a1",
+    transactionId: "t1",
     createdAt: new Date("2026-02-01T00:00:00Z"),
   });
-}
-
-function fakeRepo(overrides: Partial<SavingsEntryRepositoryPort> = {}): SavingsEntryRepositoryPort {
-  return {
-    list: vi.fn(),
-    findOne: vi.fn(),
-    create: vi.fn(),
-    createWithTx: vi.fn(),
-    save: vi.fn(),
-    remove: vi.fn(),
-    ...overrides,
-  };
 }
 
 describe("ListSavingsEntriesQueryHandler", () => {

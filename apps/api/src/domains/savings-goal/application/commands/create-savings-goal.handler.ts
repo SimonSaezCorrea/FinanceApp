@@ -4,11 +4,16 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import type { savings } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import {
+  SAVINGS_ENTRY_REPOSITORY,
+  type SavingsEntryRepositoryPort,
+} from "../../../savings-entry/domain/ports/savings-entry.repository.port";
 import { SavingsGoal, type PlannedSavingsGoal } from "../../domain/savings-goal.aggregate";
 import {
   SAVINGS_GOAL_REPOSITORY,
   type SavingsGoalRepositoryPort,
 } from "../../domain/ports/savings-goal.repository.port";
+import { toSavingsGoalContract } from "../savings-goal-dto.mapper";
 import { CreateSavingsGoalCommand } from "./create-savings-goal.command";
 
 interface Context {
@@ -30,6 +35,7 @@ export class CreateSavingsGoalHandler extends BaseCommandHandler<
   constructor(
     eventBus: EventBus,
     @Inject(SAVINGS_GOAL_REPOSITORY) private readonly repo: SavingsGoalRepositoryPort,
+    @Inject(SAVINGS_ENTRY_REPOSITORY) private readonly entries: SavingsEntryRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -41,6 +47,8 @@ export class CreateSavingsGoalHandler extends BaseCommandHandler<
       targetAmount: input.targetAmount,
       currency: input.currency,
       deadline: input.deadline ? new Date(input.deadline) : undefined,
+      notes: input.notes,
+      color: input.color,
     });
     return { plan };
   }
@@ -50,6 +58,7 @@ export class CreateSavingsGoalHandler extends BaseCommandHandler<
     context: Context,
   ): Promise<HandleResult<savings.SavingsGoal>> {
     const goal = await this.repo.create(command.userId, context.plan);
-    return { result: goal.toContract(), events: [] };
+    const result = await toSavingsGoalContract(this.entries, command.userId, goal);
+    return { result, events: [] };
   }
 }

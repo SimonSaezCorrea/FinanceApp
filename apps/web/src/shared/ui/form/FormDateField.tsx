@@ -13,6 +13,9 @@ interface Props {
    * not as a generic dropdown (`ChevronDown`, `DateField`'s own default). */
   icon?: LucideIcon;
   disabled?: boolean;
+  /** Adds a "Borrar" action so the field can go back to empty — for a date
+   * that's genuinely optional (e.g. no plazo at all), not just unset yet. */
+  clearable?: boolean;
   className?: string;
 }
 
@@ -25,6 +28,7 @@ export function FormDateField({
   id,
   icon = CalendarDays,
   disabled,
+  clearable = false,
   className,
 }: Readonly<Props>) {
   return (
@@ -36,6 +40,7 @@ export function FormDateField({
         onChange={onChange}
         icon={icon}
         disabled={disabled}
+        clearable={clearable}
         aria-label={label}
       />
     </DetailRow>

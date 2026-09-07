@@ -23,6 +23,12 @@ export interface TransactionPlan {
   installmentPlanId?: string | null;
   /** The `Debt` this movement pays — set by `register-payment`/`settle`. */
   debtId?: string | null;
+  /** The `SavingsEntry` this movement IS — the real EXPENSE a contribution
+   * generates on its source account (1:1). */
+  savingsEntryId?: string | null;
+  /** The `SavingsGoal` this movement is the "retirar a cuenta" INCOME for,
+   * when a goal was closed with that destination. */
+  savingsGoalId?: string | null;
 }
 
 /** One movement this app recorded on behalf of an instalment plan. */

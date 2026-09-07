@@ -17,6 +17,14 @@ function rowToProps(row: SavingsGoalRow): SavingsGoalProps {
     targetAmount: row.targetAmount.toString(),
     currency: row.currency,
     deadline: row.deadline,
+    notes: row.notes,
+    color: row.color as SavingsGoalProps["color"],
+    closedAt: row.closedAt,
+    closeDestination: row.closeDestination,
+    closeAccountId: row.closeAccountId,
+    closeTransactionId: row.closeTransactionId,
+    closeAmount: row.closeAmount ? row.closeAmount.toString() : null,
+    closeTargetGoalId: row.closeTargetGoalId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -48,20 +56,55 @@ export class PrismaSavingsGoalRepository implements SavingsGoalRepositoryPort {
       targetAmount: plan.targetAmount,
       currency: plan.currency,
       deadline: plan.deadline,
+      notes: plan.notes,
+      color: plan.color,
     };
     const row = await this.prisma.savingsGoal.create({ data });
     return SavingsGoal.fromPersistence(rowToProps(row));
   }
 
-  async save(aggregate: SavingsGoal): Promise<void> {
+  save(aggregate: SavingsGoal): Promise<void> {
+    return this.saveWithTx(this.prisma, aggregate);
+  }
+
+  /** Enlisted in the caller's transaction, alongside the idempotency record's
+   * COMPLETED mark. On its own this makes the WRITE atomic — closing the race
+   * requires reading the row inside the same transaction too, via
+   * `findOneForUpdateWithTx`. */
+  async saveWithTx(tx: unknown, aggregate: SavingsGoal): Promise<void> {
+    const client = tx as PrismaService;
     const snap = aggregate.snapshot();
     const data: Prisma.SavingsGoalUncheckedUpdateInput = {
       title: snap.title,
       targetAmount: snap.targetAmount,
       currency: snap.currency,
       deadline: snap.deadline,
+      notes: snap.notes,
+      color: snap.color,
+      closedAt: snap.closedAt,
+      closeDestination: snap.closeDestination,
+      closeAccountId: snap.closeAccountId,
+      closeTransactionId: snap.closeTransactionId,
+      closeAmount: snap.closeAmount,
+      closeTargetGoalId: snap.closeTargetGoalId,
     };
-    await this.prisma.savingsGoal.updateMany({ where: { id: snap.id, userId: snap.userId }, data });
+    await client.savingsGoal.updateMany({ where: { id: snap.id, userId: snap.userId }, data });
+  }
+
+  /** `SELECT … FOR UPDATE` inside the caller's transaction — what actually
+   * closes the close/reopen race; `saveWithTx` alone only makes the write
+   * atomic with the idempotency mark, not the read against a concurrent one. */
+  async findOneForUpdateWithTx(
+    tx: unknown,
+    userId: string,
+    id: string,
+  ): Promise<SavingsGoal | null> {
+    const client = tx as PrismaService;
+    const rows = await client.$queryRaw<SavingsGoalRow[]>`
+      SELECT * FROM "savings-goal" WHERE "id" = ${id} AND "userId" = ${userId} FOR UPDATE
+    `;
+    const row = rows[0];
+    return row ? SavingsGoal.fromPersistence(rowToProps(row)) : null;
   }
 
   async remove(userId: string, id: string): Promise<boolean> {

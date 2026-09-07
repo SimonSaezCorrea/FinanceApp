@@ -10,7 +10,10 @@ function makeEntry(overrides: Partial<Parameters<typeof SavingsEntry.fromPersist
     amount: "200000",
     currency: "CLP",
     contributedAt: new Date("2026-03-01T00:00:00Z"),
+    title: null,
     note: null,
+    bankAccountId: "a1",
+    transactionId: "t1",
     createdAt: new Date("2026-03-01T00:00:00Z"),
     ...overrides,
   });

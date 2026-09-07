@@ -11,6 +11,8 @@ import type { CreditStatementRepositoryPort } from "../../../src/domains/credit-
 import type { InstallmentPaymentLookupPort } from "../../../src/domains/installment-payment/domain/ports/installment-payment-lookup.port";
 import { IdempotencyRecord } from "../../../src/domains/idempotency-record/domain/idempotency-record.aggregate";
 import type { IdempotencyRecordRepositoryPort } from "../../../src/domains/idempotency-record/domain/ports/idempotency-record.repository.port";
+import type { SavingsGoalRepositoryPort } from "../../../src/domains/savings-goal/domain/ports/savings-goal.repository.port";
+import type { SavingsEntryRepositoryPort } from "../../../src/domains/savings-entry/domain/ports/savings-entry.repository.port";
 import type { TransactionSumsRepositoryPort } from "../../../src/domains/transaction/domain/ports/transaction-sums.repository.port";
 import type { TransactionWriterRepositoryPort } from "../../../src/domains/transaction/domain/ports/transaction-writer.repository.port";
 
@@ -68,6 +70,41 @@ export function fakeTransactionWriterRepo(
     deleteManyWithTx: vi.fn(),
     accountIdForTransaction: vi.fn(async () => null),
     createMany: vi.fn(async () => 0),
+    ...overrides,
+  };
+}
+
+export function fakeSavingsGoalRepo(
+  overrides: Partial<SavingsGoalRepositoryPort> = {},
+): SavingsGoalRepositoryPort {
+  return {
+    list: vi.fn(async () => []),
+    findOne: vi.fn(),
+    create: vi.fn(),
+    save: vi.fn(),
+    saveWithTx: vi.fn(),
+    findOneForUpdateWithTx: vi.fn(),
+    remove: vi.fn(),
+    ...overrides,
+  };
+}
+
+export function fakeSavingsEntryRepo(
+  overrides: Partial<SavingsEntryRepositoryPort> = {},
+): SavingsEntryRepositoryPort {
+  return {
+    list: vi.fn(async () => []),
+    findOne: vi.fn(),
+    create: vi.fn(),
+    createWithTx: vi.fn(),
+    save: vi.fn(),
+    saveWithTx: vi.fn(),
+    remove: vi.fn(),
+    removeWithTx: vi.fn(),
+    countByGoal: vi.fn(async () => 0),
+    reassignGoalWithTx: vi.fn(),
+    sumsByGoal: vi.fn(async () => new Map()),
+    freeSavingsTotal: vi.fn(async () => "0"),
     ...overrides,
   };
 }

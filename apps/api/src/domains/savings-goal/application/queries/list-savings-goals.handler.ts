@@ -5,9 +5,14 @@ import type { savings } from "@finance/contracts";
 
 import { BaseQueryHandler } from "../../../../infra/cqrs/base-query.handler";
 import {
+  SAVINGS_ENTRY_REPOSITORY,
+  type SavingsEntryRepositoryPort,
+} from "../../../savings-entry/domain/ports/savings-entry.repository.port";
+import {
   SAVINGS_GOAL_REPOSITORY,
   type SavingsGoalRepositoryPort,
 } from "../../domain/ports/savings-goal.repository.port";
+import { toSavingsGoalContracts } from "../savings-goal-dto.mapper";
 import { ListSavingsGoalsQuery } from "./list-savings-goals.query";
 
 @Injectable()
@@ -17,7 +22,10 @@ export class ListSavingsGoalsQueryHandler extends BaseQueryHandler<
   savings.SavingsGoal[],
   string
 > {
-  constructor(@Inject(SAVINGS_GOAL_REPOSITORY) private readonly repo: SavingsGoalRepositoryPort) {
+  constructor(
+    @Inject(SAVINGS_GOAL_REPOSITORY) private readonly repo: SavingsGoalRepositoryPort,
+    @Inject(SAVINGS_ENTRY_REPOSITORY) private readonly entries: SavingsEntryRepositoryPort,
+  ) {
     super();
   }
 
@@ -30,6 +38,6 @@ export class ListSavingsGoalsQueryHandler extends BaseQueryHandler<
     userId: string,
   ): Promise<savings.SavingsGoal[]> {
     const rows = await this.repo.list(userId);
-    return rows.map((r) => r.toContract());
+    return toSavingsGoalContracts(this.entries, userId, rows);
   }
 }

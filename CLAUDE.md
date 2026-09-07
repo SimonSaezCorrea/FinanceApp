@@ -794,6 +794,54 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     it, and `DebtDetailPanel`'s existing "Notas" row — which used to just repeat the title
     redundantly — now shows the real thing. No migration: dev data only, `db push` dropped the old
     column and added both new ones.
+  - **savings-goal / savings-entry** (specs/018, 2026-09-07, "Ahorros con progreso real"):
+    `SavingsGoal` gains **`notes`** and a two-state lifecycle — **`closedAt`** (`null` = abierta) +
+    **`closeDestination`** (`SavingsGoalCloseDestination`: `WITHDRAW_TO_ACCOUNT`/`FREE_SAVINGS`/
+    `TRANSFER_TO_GOAL`), plus reversal bookkeeping mirroring `Debt.lastPayment*` exactly: plain
+    (non-FK) `closeAccountId`/`closeTransactionId`/`closeAmount` — only ever populated for
+    `WITHDRAW_TO_ACCOUNT`, what "reabrir" needs to reverse the real money it moved — and
+    `closeTargetGoalId` (also plain, `TRANSFER_TO_GOAL` only, display-only: "traspasado a «{meta}»").
+    `SavingsEntry` gains **`bankAccountId`** (real FK → `BankAccount`, `onDelete: SetNull` — an
+    aporte survives its source account's deletion, just loses the reference) and **`transactionId`**
+    (plain, the real `Transaction.id` it created, for edit/delete to reverse without an inverse
+    query). `Transaction` gains **`savingsEntryId`** (`@unique`, 1:1 — the EXPENSE a contribution
+    generates on its source account) and **`savingsGoalId`** (the INCOME a "retirar a cuenta" close
+    generates); `transactions.sourceOf()` gains matching `SAVINGS`/`SAVINGS_WITHDRAWAL` cases. **A
+    contribution moves real money**: `CreateSavingsEntryHandler` (idempotent, `savingsEntry.create`)
+    creates the EXPENSE and decrements the source account's balance inside one transaction, checked
+    against the same `MovementPolicy` rules (prepaid/overdraft/ceiling) every other movement uses —
+    deliberately NOT a new, stricter "insufficient balance" rule (an account with no overdraft
+    configured can go negative on an aporte exactly like any other expense today).
+    `UpdateSavingsEntryHandler`/`RemoveSavingsEntryHandler` are now idempotent too
+    (`savingsEntry.update`/`.remove`) and reverse the old movement before applying the new one (or
+    reverse and stop, on delete). **Closing a goal** (`POST /savings/goals/:id/close`, idempotent,
+    only when `isSavingsGoalCloseable` — cumplida or vencida, same check client- and server-side) —
+    `WITHDRAW_TO_ACCOUNT` creates a real INCOME for the goal's full `savedAmount` and is reversed
+    exactly by **`POST /savings/goals/:id/reopen`**; `FREE_SAVINGS`/`TRANSFER_TO_GOAL` only bulk-
+    reassign `SavingsEntry.savingsGoalId` (`reassignGoalWithTx`) with no money movement, and —
+    documented, deliberate limitation — reopening does **not** undo that reassignment. An entry
+    belonging to a currently-closed goal is frozen (`SAVINGS_GOAL_CLOSED` on edit/delete), same
+    "freeze after an event" shape as `InstallmentPlan.applyUpdate`'s billed-field guard; a goal's
+    `currency` locks (`SAVINGS_GOAL_CURRENCY_LOCKED`) once it has any real aporte. **`savedAmount`/
+    `pace` are always derived, never declared**: `pace` averages the real aportes of the last 3
+    complete calendar months (or since the goal's own creation if younger, minimum 1 month —
+    `savings-goal/domain/savings-pace.ts`), composed via
+    `SavingsEntryRepositoryPort.sumsByGoal` in one shared `savings-goal-dto.mapper.ts` so list/get/
+    close/reopen can never disagree (same role `credit-statement`'s own `statement-dto.mapper.ts`
+    plays). New **`GET /savings/summary`** (same role as `GET /transactions/summary`) aggregates
+    `totalSaved`/`freeSavingsTotal`/`pace`/`missing` across every OPEN goal (closed ones count
+    toward none of it, but keep their full aporte history — nothing is ever deleted on close). New
+    leaf **`SavingsGoalDataModule`** (a preexisting structural gap — `savings-goal` was the only
+    domain this feature touches with no `*.data.module.ts` of its own — now closed so
+    `bank-account`/`transaction` can be composed the same way `debt` already does). Web:
+    `SavingsRoute` rewritten — total card + stacked bar, "En curso"/"Fuera de plazo"/"Cumplidas"
+    groups, a collapsible "Metas cerradas" block, an "Ahorro libre" section, and four side panels
+    (`SavingsGoalDetailPanel`, `SavingsGoalFormPanel`, `SavingsEntryFormPanel`,
+    `SavingsGoalClosePanel`). A goal's icon/color is 100% deterministic from a hash of its own id
+    (`goalVisual.ts`, no column, no user choice — same spirit `accountVisuals.ts` has for accounts).
+    State classification/grouping/projection/needed-monthly-aporte are pure frontend logic
+    (`savingsMetrics.ts`) over the primitives the API exposes, same split `recurringMetrics.ts`
+    already uses for its own domain. No new libraries.
   - **reference tables** (`country`, `currency`, `country-currency`, `country-identifier-type`, `financial-institution`, `institution-account-type` — one domain each since the one-table-one-domain amendment; global read-only, authed but not user-scoped): `Country` (table `country`, ISO 3166-1 `alpha2`/`alpha3`/`numeric` unique + name), `FinancialInstitution` (table `financial-institution`, **banks + non-bank card issuers** via `kind` `InstitutionKind` BANK/NON_BANK_ISSUER/COOPERATIVE/PAYMENT_PROVIDER/FUND_MANAGER; `code` = SBIF/CMF or código institucional `@@unique([countryId,code])`, `name`, `category` `BankCategory?` ESTABLISHED/FOREIGN_BRANCH/STATE (banks only — unused at runtime, kept for grouping the picker as the catalogue grows past Chile), `brands String[]`, `notes`, FK→Country; **`rut` was dropped** — `code` is the identifier), `Currency` (table `currency`, **ISO 4217** `code` unique + `numeric` + name), and `CountryCurrency` join (`isPrimary`). Endpoints `GET /countries`, `GET /institutions?country=CL&kind=BANK&accountType=PREPAID`, `GET /currencies` (ordered by name). Seeded idempotently in `prisma/seed.ts` (`seedReferenceData`), **acotado al MVP** (`docs/MVP.md`): **1 país (CL)**, 58 instituciones chilenas (18 bancos + 15 emisores prepago + 6 emisores solo-crédito + 7 cooperativas + 12 AGF) y **3 monedas: CLP, USD y CLF (la UF)**. El seed además **borra** países, monedas e instituciones fuera de esa lista, para que una base sembrada antes converja al catálogo del MVP. El modelo sigue siendo multi-país (FK, filtro `?country=`, formatos de número de cuenta); lo acotado es la data. El catálogo argentino retirado y las reglas por mercado están en `docs/CATALOGO_REGIONAL.md`.
     **`InstitutionAccountType`** (table `institution-account-type`, join `institutionId` + `type`
     `AccountType` + `isPrimary`, `@@unique([institutionId,type])`, `onDelete: Cascade`) = **which
@@ -1086,6 +1134,50 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   same session. These are the canonical, living memory; stale docs are a defect.
 
 <!-- SPECKIT START -->
+
+Prior plan: specs/018-savings-redesign/plan.md
+(Rediseño de la vista Ahorros con progreso/ritmo/proyección reales, y extensión de
+`savings-goal`/`savings-entry` para que los aportes y el cierre de una meta con destino "retirar a
+cuenta" muevan dinero real. **Backend**: `SavingsGoal` gana `notes`, y un ciclo de vida
+abierta/cerrada — `closedAt` + `closeDestination` (`WITHDRAW_TO_ACCOUNT`/`FREE_SAVINGS`/
+`TRANSFER_TO_GOAL`) + bookkeeping de reversión plano (`closeAccountId`/`closeTransactionId`/
+`closeAmount`, solo para retirar-a-cuenta; `closeTargetGoalId`, solo para traspaso) — mismo patrón
+reversible que `Debt.lastPayment*`. `SavingsEntry` gana `bankAccountId` (FK real, `onDelete:
+SetNull`) y `transactionId` (bookkeeping plano); `Transaction` gana `savingsEntryId` (`@unique`,
+1:1) y `savingsGoalId`, y `transactions.sourceOf()` dos casos nuevos (`SAVINGS`/
+`SAVINGS_WITHDRAWAL`). **Un aporte es un EXPENSE real** en la cuenta de origen
+(`CreateSavingsEntryHandler`, `BaseIdempotentCommandHandler`, operación `savingsEntry.create`
+extendida); editar/eliminar un aporte (`savingsEntry.update`/`.remove`, ahora también idempotentes)
+revierte el movimiento anterior antes de aplicar el nuevo. **Cerrar con "retirar a cuenta"** crea un
+INCOME real por el `savedAmount` completo y es reversible con "reabrir" (`CloseSavingsGoalHandler`/
+`ReopenSavingsGoalHandler`, operaciones `savingsGoal.close`/`.reopen`); cerrar con "ahorro libre" o
+"traspaso a otra meta" solo reasigna `SavingsEntry.savingsGoalId` en bloque
+(`reassignGoalWithTx`), sin mover saldo — y **no** se revierte al reabrir (limitación documentada a
+propósito). Cerrar solo está permitido si la meta está cumplida o vencida
+(`isSavingsGoalCloseable`, mismo criterio server-side y client-side). Un aporte de una meta cerrada
+queda congelado (`SAVINGS_GOAL_CLOSED`) hasta reabrir — mismo patrón "freeze after event" que
+`InstallmentPlan.applyUpdate`. La moneda de una meta se bloquea (`SAVINGS_GOAL_CURRENCY_LOCKED`) en
+cuanto tiene algún aporte. `savedAmount`/`pace` son SIEMPRE derivados (nunca declarados): `pace` es
+el promedio de aportes reales de los últimos 3 meses calendario completos (o desde la creación de
+la meta si es más joven, mínimo 1 mes — `savings-pace.ts`), compuesto vía
+`SavingsEntryRepositoryPort.sumsByGoal` en un mapper compartido (`savings-goal-dto.mapper.ts`) para
+que list/get/close/reopen nunca puedan mostrar cifras distintas. Nuevo `GET /savings/summary`
+(mismo rol que `GET /transactions/summary`). Nuevo leaf `SavingsGoalDataModule` (deuda estructural
+preexistente cerrada). **Frontend**: `SavingsRoute` reescrita — tarjeta de total + barra apilada,
+grupos En curso/Fuera de plazo/Cumplidas, bloque de metas cerradas colapsable, ahorro libre, y 4
+paneles laterales nuevos (detalle, crear/editar, registrar aporte, cerrar con destino). Identidad
+visual (ícono/color) por meta es 100% determinística por hash del id (`goalVisual.ts`) — no hay
+columna ni elección del usuario. Estado/agrupación/proyección/aporte-necesario se calculan
+client-side (`savingsMetrics.ts`) a partir de los primitivos que expone el backend, mismo split que
+`recurringMetrics.ts`. Sin librerías nuevas. **Deuda de test conocida**: no se escribieron archivos
+de integration test dedicados para `GET /savings/goals`/`GET /savings/summary` (T024/T025 de
+specs/018) — la cobertura equivalente existe vía e2e (`test/e2e/savings/*.http.spec.ts`), pero falta
+el nivel de integración puro. Verificado de punta a punta: `pnpm --filter @finance/api test:unit`
+[591/591], `test:integration` [86/86], `test:e2e` [146/146], `pnpm --filter @finance/web test`
+[326/326], `typecheck`, `lint` y `check:boundaries` limpios en ambos paquetes; smoke test manual vía
+curl contra la API real (`login`, `GET /savings/summary`, `GET /savings/goals`) confirmó las cifras
+esperadas contra el seed. **No verificado visualmente en navegador** — este entorno no tiene
+herramienta de automatización de navegador disponible.)
 
 Prior plan: specs/017-opaque-identifiers/plan.md
 (Firmar el cursor de paginación de movimientos y hacer opaca la storage key de los adjuntos —

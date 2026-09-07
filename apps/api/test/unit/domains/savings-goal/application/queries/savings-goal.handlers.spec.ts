@@ -6,7 +6,7 @@ import { ListSavingsGoalsQueryHandler } from "../../../../../../src/domains/savi
 import { ListSavingsGoalsQuery } from "../../../../../../src/domains/savings-goal/application/queries/list-savings-goals.query";
 import { SavingsGoal } from "../../../../../../src/domains/savings-goal/domain/savings-goal.aggregate";
 import { SavingsGoalNotFoundError } from "../../../../../../src/domains/savings-goal/domain/errors";
-import type { SavingsGoalRepositoryPort } from "../../../../../../src/domains/savings-goal/domain/ports/savings-goal.repository.port";
+import { fakeSavingsEntryRepo, fakeSavingsGoalRepo } from "../../../../../unit/support/fake-ports";
 
 function makeGoal(id: string) {
   return SavingsGoal.fromPersistence({
@@ -16,44 +16,47 @@ function makeGoal(id: string) {
     targetAmount: "5000",
     currency: "USD",
     deadline: null,
+    notes: null,
+    color: null,
+    closedAt: null,
+    closeDestination: null,
+    closeAccountId: null,
+    closeTransactionId: null,
+    closeAmount: null,
+    closeTargetGoalId: null,
     createdAt: new Date("2026-01-01T00:00:00Z"),
     updatedAt: new Date("2026-01-01T00:00:00Z"),
   });
 }
 
-function fakeRepo(overrides: Partial<SavingsGoalRepositoryPort> = {}): SavingsGoalRepositoryPort {
-  return {
-    list: vi.fn(),
-    findOne: vi.fn(),
-    create: vi.fn(),
-    save: vi.fn(),
-    remove: vi.fn(),
-    ...overrides,
-  };
-}
-
 describe("GetSavingsGoalQueryHandler", () => {
   it("throws SavingsGoalNotFoundError when missing", async () => {
-    const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(null) });
-    const handler = new GetSavingsGoalQueryHandler(repo);
+    const repo = fakeSavingsGoalRepo({ findOne: vi.fn().mockResolvedValue(null) });
+    const entries = fakeSavingsEntryRepo();
+    const handler = new GetSavingsGoalQueryHandler(repo, entries);
     await expect(handler.execute(new GetSavingsGoalQuery("u1", "ghost"))).rejects.toBeInstanceOf(
       SavingsGoalNotFoundError,
     );
   });
 
   it("returns the goal as a contract", async () => {
-    const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(makeGoal("g1")) });
-    const handler = new GetSavingsGoalQueryHandler(repo);
+    const repo = fakeSavingsGoalRepo({ findOne: vi.fn().mockResolvedValue(makeGoal("g1")) });
+    const entries = fakeSavingsEntryRepo();
+    const handler = new GetSavingsGoalQueryHandler(repo, entries);
     const result = await handler.execute(new GetSavingsGoalQuery("u1", "g1"));
     expect(result.id).toBe("g1");
     expect(result.targetAmount).toBe("5000.0000");
+    expect(result.savedAmount).toBe("0.0000");
   });
 });
 
 describe("ListSavingsGoalsQueryHandler", () => {
   it("lists the user's goals as contracts", async () => {
-    const repo = fakeRepo({ list: vi.fn().mockResolvedValue([makeGoal("g1"), makeGoal("g2")]) });
-    const handler = new ListSavingsGoalsQueryHandler(repo);
+    const repo = fakeSavingsGoalRepo({
+      list: vi.fn().mockResolvedValue([makeGoal("g1"), makeGoal("g2")]),
+    });
+    const entries = fakeSavingsEntryRepo();
+    const handler = new ListSavingsGoalsQueryHandler(repo, entries);
     const result = await handler.execute(new ListSavingsGoalsQuery("u1"));
     expect(result.map((g) => g.id)).toEqual(["g1", "g2"]);
   });

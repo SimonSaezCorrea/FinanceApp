@@ -34,7 +34,10 @@ describe("PrismaSavingsEntryRepository (integration)", () => {
       amount: "250",
       currency: "USD",
       contributedAt: new Date("2026-02-01T00:00:00.000Z"),
+      title: null,
       note: null,
+      bankAccountId: null,
+      transactionId: null,
     });
     expect(created.toContract().amount).toBe("250.0000");
   });

@@ -222,6 +222,8 @@ model BankAccount {
   paidInstallmentPlans InstallmentPlan[]     @relation("InstallmentPlanPaymentAccount")
   /// Debts that record this account as where they'd be paid from/to.
   linkedDebts          Debt[]                @relation("DebtPaymentAccount")
+  /// Savings contributions whose real money came out of this account.
+  savingsEntries       SavingsEntry[]
 
   @@index([userId])
   @@index([status])
@@ -451,6 +453,14 @@ model Transaction {
   receptor           String?
   lugar              String?
   installmentPlanId  String?
+  /// The `SavingsEntry` this movement IS — the real EXPENSE a contribution generates
+  /// on its source account. `@unique`: a 1:1 relation, unlike the other provenance
+  /// FKs on this row.
+  savingsEntryId     String?             @unique
+  /// The `SavingsGoal` this movement is the "retirar a cuenta" INCOME for, when the
+  /// goal was closed with that destination. Not unique — a goal can be closed and
+  /// reopened more than once over its life, each time with its own transaction.
+  savingsGoalId      String?
   /// The credit-pool billing period this movement contributes to, if any — assigned
   /// ONCE at creation (whichever statement was OPEN for the account at that moment),
   /// never reassigned by date on edit. See `CreditStatement`.
@@ -480,6 +490,8 @@ model Transaction {
   card                CardAccount?            @relation(fields: [cardId], references: [id], onDelete: SetNull)
   installmentPlan     InstallmentPlan?        @relation(fields: [installmentPlanId], references: [id], onDelete: SetNull)
   debt                Debt?                   @relation(fields: [debtId], references: [id], onDelete: SetNull)
+  savingsEntry        SavingsEntry?           @relation(fields: [savingsEntryId], references: [id], onDelete: SetNull)
+  savingsGoal         SavingsGoal?            @relation(fields: [savingsGoalId], references: [id], onDelete: SetNull)
   recurringExpense    RecurringExpense?       @relation(fields: [recurringExpenseId], references: [id], onDelete: SetNull)
   creditStatement     CreditStatement?        @relation("CreditStatementLinkedTransactions", fields: [creditStatementId], references: [id], onDelete: SetNull)
   /// The (at most one) CreditStatement this transaction was the payment FOR (reverse
@@ -501,6 +513,7 @@ model Transaction {
   @@index([transferGroupId])
   @@index([debtId])
   @@index([recurringExpenseId])
+  @@index([savingsGoalId])
   @@map("transaction")
 }
 
@@ -687,6 +700,12 @@ model Debt {
   @@map("debt")
 }
 
+enum SavingsGoalCloseDestination {
+  WITHDRAW_TO_ACCOUNT
+  FREE_SAVINGS
+  TRANSFER_TO_GOAL
+}
+
 model SavingsGoal {
   id           String    @id @default(uuid(7))
   userId       String
@@ -694,11 +713,32 @@ model SavingsGoal {
   targetAmount Decimal   @db.Decimal(18, 4)
   currency     String    @default("USD")
   deadline     DateTime?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  notes        String?
+  /// User-picked accent token (one of `SavingsGoalColor`) for the chip/bar/
+  /// legend — `null` = automatic, a deterministic hash of the goal's own id
+  /// decides it instead (`goalVisual.ts`). The icon is always automatic;
+  /// only the color is ever user-chosen.
+  color        String?
+  /// `null` = the goal is open. Set together with `closeDestination` by
+  /// `CloseSavingsGoalHandler`; both cleared by `ReopenSavingsGoalHandler`.
+  closedAt         DateTime?
+  closeDestination SavingsGoalCloseDestination?
+  /// Plain bookkeeping (not FKs) — only populated for `WITHDRAW_TO_ACCOUNT`, mirrors
+  /// `Debt.lastPaymentAccountId`/`lastPaymentTransactionId`/`lastPaymentAmount`: what
+  /// "reabrir" needs to reverse the real money movement, surviving the deletion of
+  /// the account/transaction it points at.
+  closeAccountId     String?
+  closeTransactionId String?
+  closeAmount        Decimal? @db.Decimal(18, 4)
+  /// Plain bookkeeping (not FK) — only for `TRANSFER_TO_GOAL`, display-only
+  /// ("traspasado a «{meta}»"); degrades gracefully if that goal is later deleted.
+  closeTargetGoalId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entries SavingsEntry[]
+  user                 User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries              SavingsEntry[]
+  withdrawalTransactions Transaction[]
 
   @@index([userId])
   @@index([deadline])
@@ -712,15 +752,31 @@ model SavingsEntry {
   amount        Decimal  @db.Decimal(18, 4)
   currency      String   @default("USD")
   contributedAt DateTime
+  /// Short label — what every list (ahorro libre, historial de la meta)
+  /// displays as the aporte's name. Same title/notes split `Debt` already
+  /// has. Required by the UI for an ahorro-libre aporte (nothing else
+  /// identifies it); optional when the aporte belongs to a goal.
+  title         String?
   note          String?
+  /// The real source account this contribution came from. Nullable so the entry
+  /// survives the account's own deletion (`onDelete: SetNull`) — it just loses the
+  /// reference, same as `Debt.paymentAccountId`.
+  bankAccountId String?
+  /// Plain bookkeeping (not FK) — the real `Transaction.id` this contribution
+  /// generated. What editing/deleting the entry uses to reverse/adjust the real
+  /// movement without an inverse query.
+  transactionId String?
   createdAt     DateTime @default(now())
 
-  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  goal SavingsGoal? @relation(fields: [savingsGoalId], references: [id], onDelete: SetNull)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal        SavingsGoal? @relation(fields: [savingsGoalId], references: [id], onDelete: SetNull)
+  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
+  transaction Transaction?
 
   @@index([userId])
   @@index([savingsGoalId])
   @@index([contributedAt])
+  @@index([bankAccountId])
   @@map("savings-entry")
 }
 

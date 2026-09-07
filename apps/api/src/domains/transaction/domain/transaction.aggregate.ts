@@ -30,6 +30,13 @@ export interface TransactionProps {
    * hand today (see `RecurringExpense`'s own doc comment; no automatic
    * generation mechanism exists yet). */
   recurringExpenseId: string | null;
+  /** The `SavingsEntry` this movement IS — set only by
+   * `TransactionWriterRepositoryPort` writes from `savings-entry`, never
+   * through this aggregate's own `planCreation`. */
+  savingsEntryId: string | null;
+  /** The `SavingsGoal` this movement is the "retirar a cuenta" INCOME for —
+   * set only by `savings-goal`'s close handler. */
+  savingsGoalId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -109,6 +116,8 @@ export class Transaction {
       transferGroupId: null,
       debtId: null,
       recurringExpenseId: null,
+      savingsEntryId: null,
+      savingsGoalId: null,
     };
   }
 
@@ -190,6 +199,8 @@ export class Transaction {
       transferGroupId: this.props.transferGroupId,
       debtId: this.props.debtId,
       recurringExpenseId: this.props.recurringExpenseId,
+      savingsEntryId: this.props.savingsEntryId,
+      savingsGoalId: this.props.savingsGoalId,
       createdAt: this.props.createdAt.toISOString(),
       updatedAt: this.props.updatedAt.toISOString(),
     };

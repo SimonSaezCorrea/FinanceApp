@@ -48,6 +48,10 @@ export const IDEMPOTENT_OPERATIONS = [
   "debt.settle",
   "debt.unsettle",
   "savingsEntry.create",
+  "savingsEntry.update",
+  "savingsEntry.remove",
+  "savingsGoal.close",
+  "savingsGoal.reopen",
 ] as const;
 
 export type IdempotentOperation = (typeof IDEMPOTENT_OPERATIONS)[number];

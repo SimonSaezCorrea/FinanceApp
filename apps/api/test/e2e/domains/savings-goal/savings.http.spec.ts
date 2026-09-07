@@ -24,6 +24,7 @@ describe("Savings HTTP (e2e)", () => {
   const password = "Sup3rSecret!";
   let cookies: string[] = [];
   let goalId: string;
+  let accountId: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -38,11 +39,25 @@ describe("Savings HTTP (e2e)", () => {
       .post("/api/v1/auth/register")
       .send({ email, password, name: "E2E Savings User" });
     cookies = registerRes.get("Set-Cookie") ?? [];
+
+    const accountRes = await request(app.getHttpServer())
+      .post("/api/v1/accounts")
+      .set("Cookie", cookies)
+      .send({
+        name: "Cuenta Corriente",
+        type: "CHECKING",
+        currency: "USD",
+        accountNumber: "1234",
+        initialBalance: "10000",
+      });
+    accountId = accountRes.body.id;
   });
 
   afterAll(async () => {
+    await prisma.transaction.deleteMany({ where: { user: { email } } });
     await prisma.savingsEntry.deleteMany({ where: { user: { email } } });
     await prisma.savingsGoal.deleteMany({ where: { user: { email } } });
+    await prisma.bankAccount.deleteMany({ where: { user: { email } } });
     await prisma.user.deleteMany({ where: { email } });
     await app.close();
   });
@@ -108,10 +123,12 @@ describe("Savings HTTP (e2e)", () => {
         amount: "250",
         currency: "USD",
         contributedAt: "2026-02-01T00:00:00.000Z",
+        bankAccountId: accountId,
       });
     expect(res.status).toBe(201);
     expect(res.body.amount).toBe("250.0000");
     expect(res.body.savingsGoalId).toBe(goalId);
+    expect(res.body.bankAccountId).toBe(accountId);
   });
 
   it("lists the user's savings entries", async () => {

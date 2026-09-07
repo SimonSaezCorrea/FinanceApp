@@ -3,18 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { RemoveSavingsGoalHandler } from "../../../../../../src/domains/savings-goal/application/commands/remove-savings-goal.handler";
 import { RemoveSavingsGoalCommand } from "../../../../../../src/domains/savings-goal/application/commands/remove-savings-goal.command";
 import { SavingsGoalNotFoundError } from "../../../../../../src/domains/savings-goal/domain/errors";
-import type { SavingsGoalRepositoryPort } from "../../../../../../src/domains/savings-goal/domain/ports/savings-goal.repository.port";
-
-function fakeRepo(overrides: Partial<SavingsGoalRepositoryPort> = {}): SavingsGoalRepositoryPort {
-  return {
-    list: vi.fn(),
-    findOne: vi.fn(),
-    create: vi.fn(),
-    save: vi.fn(),
-    remove: vi.fn(),
-    ...overrides,
-  };
-}
+import { fakeSavingsGoalRepo as fakeRepo } from "../../../../../unit/support/fake-ports";
 
 describe("RemoveSavingsGoalHandler", () => {
   it("throws SavingsGoalNotFoundError when the repository reports nothing removed", async () => {

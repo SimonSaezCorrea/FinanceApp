@@ -24,6 +24,7 @@ describe("Savings entry correction (e2e)", () => {
   const password = "Sup3rSecret!";
   let cookiesA: string[] = [];
   let cookiesB: string[] = [];
+  let accountIdA: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -43,13 +44,27 @@ describe("Savings entry correction (e2e)", () => {
       .post("/api/v1/auth/register")
       .send({ email: emailB, password, name: "E2E Entry Stranger" });
     cookiesB = registerB.get("Set-Cookie") ?? [];
+
+    const accountRes = await request(app.getHttpServer())
+      .post("/api/v1/accounts")
+      .set("Cookie", cookiesA)
+      .send({
+        name: "Cuenta Corriente",
+        type: "CHECKING",
+        currency: "CLP",
+        accountNumber: "1234",
+        initialBalance: "1000000",
+      });
+    accountIdA = accountRes.body.id;
   });
 
   afterAll(async () => {
+    await prisma.transaction.deleteMany({ where: { user: { email: { in: [emailA, emailB] } } } });
     await prisma.savingsEntry.deleteMany({ where: { user: { email: { in: [emailA, emailB] } } } });
     await prisma.idempotencyRecord.deleteMany({
       where: { user: { email: { in: [emailA, emailB] } } },
     });
+    await prisma.bankAccount.deleteMany({ where: { user: { email: { in: [emailA, emailB] } } } });
     await prisma.user.deleteMany({ where: { email: { in: [emailA, emailB] } } });
     await app.close();
   });
@@ -59,13 +74,20 @@ describe("Savings entry correction (e2e)", () => {
       .post("/api/v1/savings/entries")
       .set("Cookie", cookiesA)
       .set("Idempotency-Key", randomUUID())
-      .send({ amount: "200000", currency: "CLP", contributedAt: "2026-09-02T12:00:00.000Z" });
+      .send({
+        amount: "200000",
+        currency: "CLP",
+        contributedAt: "2026-09-02T12:00:00.000Z",
+        bankAccountId: accountIdA,
+        title: "Bono de fin de año",
+      });
     expect(created.status).toBe(201);
     const entryId = created.body.id;
 
     const patched = await request(app.getHttpServer())
       .patch(`/api/v1/savings/entries/${entryId}`)
       .set("Cookie", cookiesA)
+      .set("Idempotency-Key", randomUUID())
       .send({ amount: "150000" });
     expect(patched.status).toBe(200);
     expect(patched.body.amount).toBe("150000.0000");
@@ -79,7 +101,8 @@ describe("Savings entry correction (e2e)", () => {
 
     const removed = await request(app.getHttpServer())
       .delete(`/api/v1/savings/entries/${entryId}`)
-      .set("Cookie", cookiesA);
+      .set("Cookie", cookiesA)
+      .set("Idempotency-Key", randomUUID());
     expect(removed.status).toBe(204);
 
     const listAfterDelete = await request(app.getHttpServer())
@@ -89,7 +112,8 @@ describe("Savings entry correction (e2e)", () => {
 
     const secondDelete = await request(app.getHttpServer())
       .delete(`/api/v1/savings/entries/${entryId}`)
-      .set("Cookie", cookiesA);
+      .set("Cookie", cookiesA)
+      .set("Idempotency-Key", randomUUID());
     expect(secondDelete.status).toBe(404);
   });
 
@@ -98,7 +122,13 @@ describe("Savings entry correction (e2e)", () => {
       .post("/api/v1/savings/entries")
       .set("Cookie", cookiesA)
       .set("Idempotency-Key", randomUUID())
-      .send({ amount: "50000", currency: "CLP", contributedAt: "2026-09-02T12:00:00.000Z" });
+      .send({
+        amount: "50000",
+        currency: "CLP",
+        contributedAt: "2026-09-02T12:00:00.000Z",
+        bankAccountId: accountIdA,
+        title: "Reembolso",
+      });
     const entryId = created.body.id;
 
     const getForeign = await request(app.getHttpServer())
@@ -110,12 +140,14 @@ describe("Savings entry correction (e2e)", () => {
     const patchForeign = await request(app.getHttpServer())
       .patch(`/api/v1/savings/entries/${entryId}`)
       .set("Cookie", cookiesB)
+      .set("Idempotency-Key", randomUUID())
       .send({ amount: "1" });
     expect(patchForeign.status).toBe(404);
 
     const deleteForeign = await request(app.getHttpServer())
       .delete(`/api/v1/savings/entries/${entryId}`)
-      .set("Cookie", cookiesB);
+      .set("Cookie", cookiesB)
+      .set("Idempotency-Key", randomUUID());
     expect(deleteForeign.status).toBe(404);
   });
 });

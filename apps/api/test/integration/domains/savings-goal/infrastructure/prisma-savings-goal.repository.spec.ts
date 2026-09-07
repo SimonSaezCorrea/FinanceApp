@@ -30,16 +30,26 @@ describe("PrismaSavingsGoalRepository (integration)", () => {
     await prisma.$disconnect();
   });
 
+  const derived = { savedAmount: "0", pace: "0" };
+
   it("create persists the savings goal", async () => {
     const created = await repo.create(userId, {
       title: "Emergency fund",
       targetAmount: "5000",
       currency: "USD",
       deadline: new Date("2026-12-31T00:00:00.000Z"),
+      notes: null,
+      color: null,
+      closedAt: null,
+      closeDestination: null,
+      closeAccountId: null,
+      closeTransactionId: null,
+      closeAmount: null,
+      closeTargetGoalId: null,
     });
     goalId = created.id;
-    expect(created.toContract().title).toBe("Emergency fund");
-    expect(created.toContract().targetAmount).toBe("5000.0000");
+    expect(created.toContract(derived).title).toBe("Emergency fund");
+    expect(created.toContract(derived).targetAmount).toBe("5000.0000");
   });
 
   it("findOne returns the goal scoped to the user, null otherwise", async () => {
@@ -50,11 +60,11 @@ describe("PrismaSavingsGoalRepository (integration)", () => {
 
   it("save persists scalar-field updates", async () => {
     const goal = await repo.findOne(userId, goalId);
-    goal!.applyUpdate({ title: "New title", targetAmount: "6000" });
+    goal!.applyUpdate({ title: "New title", targetAmount: "6000" }, false);
     await repo.save(goal!);
     const reloaded = await repo.findOne(userId, goalId);
-    expect(reloaded?.toContract().title).toBe("New title");
-    expect(reloaded?.toContract().targetAmount).toBe("6000.0000");
+    expect(reloaded?.toContract(derived).title).toBe("New title");
+    expect(reloaded?.toContract(derived).targetAmount).toBe("6000.0000");
   });
 
   it("remove deletes the goal, scoped to ownership", async () => {

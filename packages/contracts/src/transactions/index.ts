@@ -41,6 +41,12 @@ export const transactionSchema = z.object({
    * real automatic-generation mechanism writes the row — none exists yet, so
    * today this is only ever set by hand in the seed. */
   recurringExpenseId: rowId.nullable(),
+  /** The `SavingsEntry` this movement IS — the real EXPENSE a contribution
+   * generates on its source account (1:1). */
+  savingsEntryId: rowId.nullable(),
+  /** The `SavingsGoal` this movement is the "retirar a cuenta" INCOME for,
+   * when the goal was closed with that destination. */
+  savingsGoalId: rowId.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -64,12 +70,20 @@ export type TransactionSource =
   | { kind: "FINANCE_CHARGE" }
   | { kind: "DEBT"; debtId: string }
   | { kind: "RECURRING"; recurringExpenseId: string }
+  | { kind: "SAVINGS"; savingsEntryId: string }
+  | { kind: "SAVINGS_WITHDRAWAL"; savingsGoalId: string }
   | { kind: "MANUAL" };
 
 export function sourceOf(
   t: Pick<
     Transaction,
-    "transferGroupId" | "installmentPlanId" | "financeCharge" | "debtId" | "recurringExpenseId"
+    | "transferGroupId"
+    | "installmentPlanId"
+    | "financeCharge"
+    | "debtId"
+    | "recurringExpenseId"
+    | "savingsEntryId"
+    | "savingsGoalId"
   >,
 ): TransactionSource {
   if (t.transferGroupId !== null) return { kind: "TRANSFER" };
@@ -85,6 +99,10 @@ export function sourceOf(
   if (t.debtId !== null) return { kind: "DEBT", debtId: t.debtId };
   if (t.recurringExpenseId !== null) {
     return { kind: "RECURRING", recurringExpenseId: t.recurringExpenseId };
+  }
+  if (t.savingsEntryId !== null) return { kind: "SAVINGS", savingsEntryId: t.savingsEntryId };
+  if (t.savingsGoalId !== null) {
+    return { kind: "SAVINGS_WITHDRAWAL", savingsGoalId: t.savingsGoalId };
   }
   return { kind: "MANUAL" };
 }

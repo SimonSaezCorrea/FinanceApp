@@ -3714,6 +3714,47 @@ async function seedFullUser(passwordHash: string) {
   }
 
   // --- Savings goals + entries ---
+  // Every contribution is real money: an EXPENSE on its source account
+  // (`checking`), linked back via `Transaction.savingsEntryId` — mirrors how a
+  // real `CreateSavingsEntryHandler` call would leave the data (see specs/018).
+  let savingsNetFlow = 0;
+  async function contributeToGoal(
+    goalId: string | null,
+    amount: string,
+    contributedAt: Date,
+    title?: string,
+    note?: string,
+  ) {
+    const entry = await prisma.savingsEntry.create({
+      data: {
+        userId: javier.id,
+        savingsGoalId: goalId,
+        amount: dec(amount),
+        currency: "CLP",
+        contributedAt,
+        title: title ?? null,
+        note: note ?? null,
+        bankAccountId: checking.id,
+      },
+    });
+    const tx = await prisma.transaction.create({
+      data: {
+        userId: javier.id,
+        bankAccountId: checking.id,
+        type: "EXPENSE",
+        amount: dec(amount),
+        currency: "CLP",
+        occurredAt: contributedAt,
+        category: "Ahorro",
+        description: title ?? (goalId ? "Aporte a meta de ahorro" : "Aporte a ahorro libre"),
+        savingsEntryId: entry.id,
+      },
+    });
+    await prisma.savingsEntry.update({ where: { id: entry.id }, data: { transactionId: tx.id } });
+    savingsNetFlow -= Number(amount);
+    return entry;
+  }
+
   const japan = await prisma.savingsGoal.create({
     data: {
       userId: javier.id,
@@ -3740,55 +3781,86 @@ async function seedFullUser(passwordHash: string) {
       currency: "CLP",
     },
   });
-  await prisma.savingsEntry.createMany({
-    data: [
-      {
-        userId: javier.id,
-        savingsGoalId: japan.id,
-        amount: dec("400000.0000"),
-        currency: "CLP",
-        contributedAt: new Date("2026-04-01T08:00:00Z"),
-        note: "Aporte mensual",
-      },
-      {
-        userId: javier.id,
-        savingsGoalId: japan.id,
-        amount: dec("400000.0000"),
-        currency: "CLP",
-        contributedAt: new Date("2026-05-01T08:00:00Z"),
-        note: "Aporte mensual",
-      },
-      {
-        userId: javier.id,
-        savingsGoalId: japan.id,
-        amount: dec("450000.0000"),
-        currency: "CLP",
-        contributedAt: new Date("2026-06-01T08:00:00Z"),
-        note: "Aporte mensual",
-      },
-      {
-        userId: javier.id,
-        savingsGoalId: emergency.id,
-        amount: dec("500000.0000"),
-        currency: "CLP",
-        contributedAt: new Date("2026-05-05T08:00:00Z"),
-      },
-      {
-        userId: javier.id,
-        savingsGoalId: emergency.id,
-        amount: dec("300000.0000"),
-        currency: "CLP",
-        contributedAt: new Date("2026-06-05T08:00:00Z"),
-      },
-      {
-        userId: javier.id,
-        savingsGoalId: laptopGoal.id,
-        amount: dec("300000.0000"),
-        currency: "CLP",
-        contributedAt: new Date("2026-06-10T08:00:00Z"),
-      },
-    ],
+  await contributeToGoal(
+    japan.id,
+    "400000.0000",
+    new Date("2026-04-01T08:00:00Z"),
+    "Aporte mensual",
+  );
+  await contributeToGoal(
+    japan.id,
+    "400000.0000",
+    new Date("2026-05-01T08:00:00Z"),
+    "Aporte mensual",
+  );
+  await contributeToGoal(
+    japan.id,
+    "450000.0000",
+    new Date("2026-06-01T08:00:00Z"),
+    "Aporte mensual",
+  );
+  await contributeToGoal(emergency.id, "500000.0000", new Date("2026-05-05T08:00:00Z"));
+  await contributeToGoal(emergency.id, "300000.0000", new Date("2026-06-05T08:00:00Z"));
+  await contributeToGoal(laptopGoal.id, "300000.0000", new Date("2026-06-10T08:00:00Z"));
+  // A free-savings contribution (no goal) — exercises the "ahorro libre" block.
+  // `title` is what identifies it (required for ahorro libre); `note` stays a
+  // genuinely separate, optional detail.
+  await contributeToGoal(
+    null,
+    "120000.0000",
+    new Date("2026-08-22T08:00:00Z"),
+    "Vuelto proyecto freelance",
+  );
+
+  // A goal already CUMPLIDA and CLOSED, withdrawn back to `checking` — exercises
+  // the "Metas cerradas" block with a real, reversible money movement (T003).
+  const englishCourse = await prisma.savingsGoal.create({
+    data: {
+      userId: javier.id,
+      title: "Curso de inglés",
+      targetAmount: dec("600000.0000"),
+      currency: "CLP",
+      deadline: new Date("2026-06-30T00:00:00Z"),
+    },
   });
+  await contributeToGoal(
+    englishCourse.id,
+    "600000.0000",
+    new Date("2026-06-01T08:00:00Z"),
+    "Ahorro para el curso",
+  );
+  const withdrawalTx = await prisma.transaction.create({
+    data: {
+      userId: javier.id,
+      bankAccountId: checking.id,
+      type: "INCOME",
+      amount: dec("600000.0000"),
+      currency: "CLP",
+      occurredAt: new Date("2026-07-02T08:00:00Z"),
+      category: "Ahorro",
+      description: "Retiro de meta «Curso de inglés»",
+      savingsGoalId: englishCourse.id,
+    },
+  });
+  savingsNetFlow += 600000;
+  await prisma.savingsGoal.update({
+    where: { id: englishCourse.id },
+    data: {
+      closedAt: new Date("2026-07-02T08:00:00Z"),
+      closeDestination: "WITHDRAW_TO_ACCOUNT",
+      closeAccountId: checking.id,
+      closeTransactionId: withdrawalTx.id,
+      closeAmount: dec("600000.0000"),
+    },
+  });
+
+  if (savingsNetFlow !== 0) {
+    const acc = await prisma.bankAccount.findUniqueOrThrow({ where: { id: checking.id } });
+    await prisma.bankAccount.update({
+      where: { id: checking.id },
+      data: { currentBalance: acc.currentBalance.plus(dec(savingsNetFlow.toFixed(4))) },
+    });
+  }
 
   // --- Investments ---
   await prisma.investment.createMany({
