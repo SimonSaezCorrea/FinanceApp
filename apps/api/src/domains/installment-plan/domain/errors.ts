@@ -66,6 +66,19 @@ export class InstallmentPlanBilledError extends DomainError {
 }
 
 /**
+ * An attempt to change the schedule itself — total, instalment count or start
+ * date — once any instalment has been paid or billed, or once the plan
+ * carries an interest charge from creation. Past that point the calendar is
+ * real history (real money moved, or a statement was shown); regenerating it
+ * would rewrite that history rather than a draft.
+ */
+export class InstallmentPlanScheduleLockedError extends DomainError {
+  constructor(field: string) {
+    super("INSTALLMENT_PLAN_SCHEDULE_LOCKED", 409, field);
+  }
+}
+
+/**
  * An attempt to delete a plan one of whose instalments sits on a SETTLED period
  * (FR-006a). Reversing it would mean undoing a payment that really happened.
  *

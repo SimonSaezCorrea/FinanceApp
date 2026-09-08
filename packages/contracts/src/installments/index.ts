@@ -203,6 +203,14 @@ export const updateInstallmentPlanSchema = z.object({
   category: z.string().trim().max(120).nullable().optional(),
   paymentAccountId: rowId.nullable().optional(),
   notes: z.string().trim().max(500).nullable().optional(),
+  /**
+   * The schedule itself — refused by the API (`INSTALLMENT_PLAN_SCHEDULE_LOCKED`)
+   * once any instalment has been paid or billed, or once the plan carries an
+   * interest charge: past that point the calendar is real history, not a draft.
+   */
+  totalPrincipal: moneyString.optional(),
+  installmentCount: z.number().int().positive().max(600).optional(),
+  startDate: z.string().datetime().optional(),
 });
 export type UpdateInstallmentPlan = z.infer<typeof updateInstallmentPlanSchema>;
 

@@ -134,6 +134,11 @@ export class PrismaInstallmentPaymentRepository
     return rows;
   }
 
+  async deleteForPlanWithTx(tx: unknown, planId: string): Promise<void> {
+    const client = tx as PrismaService;
+    await client.installmentPayment.deleteMany({ where: { installmentPlanId: planId } });
+  }
+
   async setPaidAt(
     userId: string,
     planId: string,

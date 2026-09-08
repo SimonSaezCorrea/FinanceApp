@@ -93,6 +93,7 @@ function fakeRepo(
     settleForStatementWithTx: vi.fn(),
     billedInstallmentsForStatement: vi.fn(async () => ({ amount: "0", count: 0 })),
     save: vi.fn(),
+    saveScheduleWithTx: vi.fn(),
     savePaymentWithTx: vi.fn(),
     setPaymentPaidAt: vi.fn().mockResolvedValue(true),
     remove: vi.fn(),

@@ -24,6 +24,7 @@ function fakePlanRepo(
     settleForStatementWithTx: vi.fn(),
     billedInstallmentsForStatement: vi.fn(),
     save: vi.fn(),
+    saveScheduleWithTx: vi.fn(),
     savePaymentWithTx: vi.fn(),
     setPaymentPaidAt: vi.fn(),
     remove: vi.fn(),

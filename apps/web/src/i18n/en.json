@@ -1360,6 +1360,7 @@
     "INVALID_ACCOUNT_ALIAS": "That transfer alias isn't valid.",
     "INVALID_INITIAL_BALANCE": "The initial balance can't be negative.",
     "INSTALLMENT_PLAN_BILLED": "This plan already has billed instalments: the amount, instalment count, start date and card can no longer change. Title, category and notes still can.",
+    "INSTALLMENT_PLAN_SCHEDULE_LOCKED": "This plan's schedule can no longer be regenerated: it has paid or billed instalments, or interest computed at creation.",
     "INSTALLMENT_PLAN_SETTLED": "This plan has instalments on an already-paid statement. Deleting it would mean undoing a real payment.",
     "IDEMPOTENCY_KEY_REQUIRED": "Couldn't complete the operation. Please try again.",
     "IDEMPOTENCY_KEY_REUSED": "This operation was already recorded with different data. Please try again.",

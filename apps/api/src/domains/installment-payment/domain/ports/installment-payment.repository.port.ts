@@ -61,6 +61,10 @@ export interface InstallmentPaymentRepositoryPort {
     planId: string,
     payments: InstallmentPaymentPlan[],
   ): Promise<InstallmentPaymentRow[]>;
+  /** Drops every row of a plan's schedule, inside the caller's transaction — only
+   * ever called right before `createForPlanWithTx` recreates it wholesale, and
+   * only once the aggregate has refused this while anything was paid or billed. */
+  deleteForPlanWithTx(tx: unknown, planId: string): Promise<void>;
   /** Sets/clears one payment's `paidAt`, scoped through its plan's owner. */
   setPaidAt(
     userId: string,

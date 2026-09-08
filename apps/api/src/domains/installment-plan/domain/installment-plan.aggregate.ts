@@ -6,6 +6,7 @@ import {
   InstallmentPaymentAlreadyPaidError,
   InstallmentPaymentNotFoundError,
   InstallmentPlanBilledError,
+  InstallmentPlanScheduleLockedError,
   InstallmentPlanSettledError,
   InvalidPaymentAmountError,
   PaymentExceedsRemainingError,
@@ -69,6 +70,10 @@ export type InstallmentPlanPatch = Partial<{
   category: string | null;
   paymentAccountId: string | null;
   notes: string | null;
+  /** The schedule itself — see `applyUpdate`'s own doc for when this is allowed. */
+  totalPrincipal: string;
+  installmentCount: number;
+  startDate: Date;
 }>;
 
 /** A brand-new plan's payments, as planned by `planCreation` — no `id` yet
@@ -213,17 +218,37 @@ export class InstallmentPlan {
     return this.props.payments.some((p) => p.creditStatementId !== null);
   }
 
+  /** Whether the schedule has any real history behind it yet — a paid instalment
+   * (this domain's own money movement) or a billed one (a statement the user
+   * already saw). Regenerating the schedule past this point would rewrite either. */
+  hasAnyActivity(): boolean {
+    return this.props.payments.some((p) => p.paidAt !== null || p.creditStatementId !== null);
+  }
+
+  /** Set by `applyUpdate` when it actually regenerates the schedule — `null`
+   * otherwise. The handler reads this to know whether to replace the plan's
+   * payment rows wholesale instead of just saving its scalar fields. */
+  get regeneratedSchedule(): PlannedPayment[] | null {
+    return this.scheduleRegeneratedTo;
+  }
+  private scheduleRegeneratedTo: PlannedPayment[] | null = null;
+
   /**
-   * Apply a partial patch to the plan's own scalar fields — the schedule
-   * (payments, and with it `totalPrincipal`/`installmentCount`/`startDate`, which
-   * are not even part of this patch type) is immutable once created, same as the
-   * pre-migration `InstallmentsService.update`.
+   * Apply a partial patch to the plan.
    *
    * Spec 014, FR-006b: once any instalment has been billed, `cardId` freezes too —
    * a billed period is a statement the user already saw; letting the plan behind
    * it change would leave that statement describing something that no longer
    * exists. Everything else (title, category, notes, currency, frequency) stays
    * editable — none of it is read by a closed period.
+   *
+   * `totalPrincipal`/`installmentCount`/`startDate` — the schedule itself — are
+   * allowed ONLY while `hasAnyActivity()` is false (nothing paid, nothing billed):
+   * past that point the calendar is real history, not a draft, and regenerating it
+   * would rewrite payments or a statement that already happened for real. When
+   * allowed, the WHOLE schedule is rebuilt from scratch (same amortization the
+   * plan was created with) and left on `regeneratedSchedule` for the handler to
+   * persist — this aggregate has no repository access of its own.
    */
   applyUpdate(patch: InstallmentPlanPatch): void {
     if (
@@ -242,6 +267,50 @@ export class InstallmentPlan {
     if (patch.category !== undefined) this.props.category = patch.category;
     if (patch.paymentAccountId !== undefined) this.props.paymentAccountId = patch.paymentAccountId;
     if (patch.notes !== undefined) this.props.notes = patch.notes;
+
+    const scheduleChanging =
+      patch.totalPrincipal !== undefined ||
+      patch.installmentCount !== undefined ||
+      patch.startDate !== undefined;
+    if (!scheduleChanging) return;
+
+    if (this.hasAnyActivity()) {
+      const field =
+        patch.totalPrincipal !== undefined
+          ? "totalPrincipal"
+          : patch.installmentCount !== undefined
+            ? "installmentCount"
+            : "startDate";
+      throw new InstallmentPlanScheduleLockedError(field);
+    }
+
+    const totalPrincipal = patch.totalPrincipal ?? this.props.totalPrincipal;
+    const installmentCount = patch.installmentCount ?? this.props.installmentCount;
+    const startDate = patch.startDate ?? this.props.startDate;
+    const schedule = equalPrincipalSchedule({ totalPrincipal, installmentCount });
+    const planned: PlannedPayment[] = schedule.map((row) => ({
+      sequence: row.sequence,
+      dueDate: addPeriod(startDate, row.sequence - 1, this.props.frequency, this.props.frequencyInterval),
+      amount: row.payment,
+    }));
+
+    this.props.totalPrincipal = totalPrincipal;
+    this.props.installmentCount = installmentCount;
+    this.props.startDate = startDate;
+    // Placeholder ids: the repository deletes the old rows and inserts these,
+    // then the handler re-reads the plan for its real ones before responding.
+    this.props.payments = planned.map((p) => ({
+      id: "",
+      sequence: p.sequence,
+      dueDate: p.dueDate,
+      amount: p.amount,
+      paidAt: null,
+      paidAmount: null,
+      carriedOverAmount: "0.0000",
+      transactionId: null,
+      creditStatementId: null,
+    }));
+    this.scheduleRegeneratedTo = planned;
   }
 
   /**

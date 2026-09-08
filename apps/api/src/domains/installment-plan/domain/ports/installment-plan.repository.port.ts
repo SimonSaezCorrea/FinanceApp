@@ -58,6 +58,18 @@ export interface InstallmentPlanRepositoryPort {
    * scheduled; only their `paidAt` changes, via `setPaymentPaidAt`). */
   save(aggregate: InstallmentPlan): Promise<void>;
   /**
+   * Persists the plan's scalar fields INCLUDING `totalPrincipal`/
+   * `installmentCount`/`startDate`, and replaces its schedule wholesale with
+   * `payments` — only ever called after `InstallmentPlan.applyUpdate` actually
+   * regenerated one (which itself refuses to when anything was paid or billed),
+   * so dropping the old rows loses nothing real.
+   */
+  saveScheduleWithTx(
+    tx: unknown,
+    aggregate: InstallmentPlan,
+    payments: PlannedPayment[],
+  ): Promise<void>;
+  /**
    * Persists ONE instalment's payment state (`paidAt`, `paidAmount`,
    * `transactionId`) plus the carry-over deltas it produced, inside a transaction
    * the caller owns — so the expense, the balance and these land together or not at

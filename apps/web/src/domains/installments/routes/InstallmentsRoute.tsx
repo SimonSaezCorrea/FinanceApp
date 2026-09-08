@@ -83,6 +83,14 @@ export function InstallmentsRoute() {
   // is an error, stale cache or not.
   const plans = useMemo(() => (isError ? [] : (data ?? [])), [data, isError]);
   const accountList = useMemo(() => accounts ?? [], [accounts]);
+  // The plan being edited, if any — read from the live list (not a copy taken
+  // when the form opened) so `scheduleFrozen` reflects reality even if paying
+  // an instalment elsewhere locks it while this form is still open.
+  const editingPlan =
+    retainedForm?.mode === "edit" ? (plans.find((p) => p.id === retainedForm.planId) ?? null) : null;
+  // Once anything is real history — a paid instalment or a billed one — the
+  // schedule (total/count/start date) can no longer be regenerated (FR-006b).
+  const scheduleFrozen = (editingPlan?.paidCount ?? 0) > 0 || (editingPlan?.billedCount ?? 0) > 0;
   const visible = useMemo(
     () => visiblePlans(plans, statusFilter, withinWindow),
     [plans, statusFilter, withinWindow],
@@ -215,7 +223,17 @@ export function InstallmentsRoute() {
 
     if (form.mode === "edit" && form.planId) {
       update.mutate(
-        { id: form.planId, body: common },
+        {
+          id: form.planId,
+          body: scheduleFrozen
+            ? common
+            : {
+                ...common,
+                totalPrincipal: formValue.totalPrincipal.trim(),
+                installmentCount: formValue.installmentCount,
+                startDate: new Date(formValue.startDate).toISOString(),
+              },
+        },
         {
           onSuccess: () => {
             toast.success(t("installments.updated"));
@@ -387,6 +405,7 @@ export function InstallmentsRoute() {
           retainedForm?.mode === "edit" &&
           (plans.find((p) => p.id === retainedForm.planId)?.billedCount ?? 0) > 0
         }
+        scheduleFrozen={retainedForm?.mode === "edit" && scheduleFrozen}
         onSubmit={submitForm}
         submitting={create.isPending || update.isPending}
         dirty={retainedForm?.mode === "edit"}

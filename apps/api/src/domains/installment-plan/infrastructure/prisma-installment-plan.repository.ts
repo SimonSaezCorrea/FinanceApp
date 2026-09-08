@@ -9,6 +9,7 @@ import {
   InstallmentPlan,
   type InstallmentPaymentProps,
   type InstallmentPlanProps,
+  type PlannedPayment,
 } from "../domain/installment-plan.aggregate";
 import type { BillableCandidate } from "../domain/installment-billing";
 import type {
@@ -167,6 +168,33 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
         notes: snap.notes,
       },
     });
+  }
+
+  async saveScheduleWithTx(
+    tx: unknown,
+    aggregate: InstallmentPlan,
+    payments: PlannedPayment[],
+  ): Promise<void> {
+    const client = tx as PrismaService;
+    const snap = aggregate.snapshot();
+    await client.installmentPlan.update({
+      where: { id: snap.id },
+      data: {
+        title: snap.title,
+        totalPrincipal: snap.totalPrincipal,
+        installmentCount: snap.installmentCount,
+        startDate: snap.startDate,
+        currency: snap.currency,
+        frequency: snap.frequency,
+        frequencyInterval: snap.frequencyInterval,
+        cardId: snap.cardId,
+        category: snap.category,
+        paymentAccountId: snap.paymentAccountId,
+        notes: snap.notes,
+      },
+    });
+    await this.payments.deleteForPlanWithTx(tx, snap.id);
+    await this.payments.createForPlanWithTx(tx, snap.id, payments);
   }
 
   async savePaymentWithTx(

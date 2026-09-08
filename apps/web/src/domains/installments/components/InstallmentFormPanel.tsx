@@ -46,6 +46,11 @@ interface Props {
   /** Spec 014, FR-006b: the plan's card is frozen once it has billed an instalment
    * — always false while creating. */
   cardFrozen?: boolean;
+  /** FR-006b: the schedule itself (total/count/start date) is frozen once any
+   * instalment has been paid or billed — always false while creating. Editing an
+   * untouched plan shows the same editable hero fields creating does instead of
+   * the locked summary. */
+  scheduleFrozen?: boolean;
   onSubmit: () => void;
   submitting?: boolean;
   dirty?: boolean;
@@ -71,6 +76,7 @@ export function InstallmentFormPanel({
   accounts,
   categoryOptions,
   cardFrozen = false,
+  scheduleFrozen = false,
   onSubmit,
   submitting = false,
   dirty = false,
@@ -78,6 +84,10 @@ export function InstallmentFormPanel({
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
   const creating = mode === "create";
+  // Whether the hero total/count/start-date fields are editable right now —
+  // always true creating, and true editing too once nothing on the plan is
+  // real history yet.
+  const scheduleEditable = creating || !scheduleFrozen;
 
   // A card already belongs to exactly one account, which already has its own
   // type/institution — asking for a SEPARATE "cuenta de pago" on top invited
@@ -114,21 +124,24 @@ export function InstallmentFormPanel({
     });
   }
 
-  const preview = creating
+  const preview = scheduleEditable
     ? schedulePreview({
         totalPrincipal: value.totalPrincipal,
         installmentCount: value.installmentCount,
         startDate: value.startDate,
         frequency: value.frequency,
         frequencyInterval: value.frequencyInterval,
-        aprPerPeriod: value.aprPerPeriod,
+        // Interest is a create-only input (the edit form has no field for it,
+        // and the API has no formula to recompute it against a new total) — a
+        // regenerated schedule is always plain equal-principal.
+        aprPerPeriod: creating ? value.aprPerPeriod : undefined,
       })
     : null;
 
   const canSubmit =
     value.title.trim().length > 0 &&
     value.frequencyInterval >= 1 &&
-    (!creating || preview !== null);
+    (!scheduleEditable || preview !== null);
 
   return (
     <FormSurface
@@ -160,7 +173,7 @@ export function InstallmentFormPanel({
           aria-label={t("installments.form.title")}
         />
 
-        {creating ? (
+        {scheduleEditable ? (
           <>
             <div className="flex items-baseline gap-3 border-b border-border pb-3">
               <input
@@ -314,7 +327,7 @@ export function InstallmentFormPanel({
           placeholder={t("installments.form.notesEmpty")}
         />
 
-        {creating && (
+        {scheduleEditable && (
           <SchedulePreview
             preview={preview}
             currency={value.currency}

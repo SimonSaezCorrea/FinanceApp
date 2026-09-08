@@ -185,6 +185,64 @@ describe("Installments HTTP (e2e)", () => {
     expect(res.body.error.code).toBe("ACCOUNT_NOT_FOUND");
   });
 
+  it("regenerates a fresh plan's schedule, and refuses once it has been paid", async () => {
+    // A dedicated account, never touched by any other test in this file — the
+    // instalment paid below moves real money, and the shared `accountId`
+    // fixture is asserted against exact balances elsewhere.
+    const scratchAccount = await request(app.getHttpServer())
+      .post("/api/v1/accounts")
+      .set("Cookie", cookies)
+      .send({
+        name: "Cuenta de prueba (edición de calendario)",
+        type: "CHECKING",
+        currency: "USD",
+        accountNumber: "555",
+        initialBalance: "5000",
+      });
+    const scratchAccountId = scratchAccount.body.id;
+
+    const created = await request(app.getHttpServer())
+      .post("/api/v1/installments")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({
+        title: "Curso de inglés",
+        totalPrincipal: "240",
+        installmentCount: 6,
+        startDate: "2026-01-31T00:00:00.000Z",
+        currency: "USD",
+        frequency: "MONTHLY",
+        frequencyInterval: 1,
+        paymentAccountId: scratchAccountId,
+      });
+    const freshPlanId = created.body.id;
+
+    const patched = await request(app.getHttpServer())
+      .patch(`/api/v1/installments/${freshPlanId}`)
+      .set("Cookie", cookies)
+      .send({ totalPrincipal: "300", installmentCount: 5 });
+    expect(patched.status).toBe(200);
+    expect(patched.body.totalPrincipal).toBe("300.0000");
+    expect(patched.body.installmentCount).toBe(5);
+    expect(patched.body.payments).toHaveLength(5);
+    expect(patched.body.payments.every((p: { amount: string }) => p.amount === "60.0000")).toBe(
+      true,
+    );
+
+    await request(app.getHttpServer())
+      .post(`/api/v1/installments/${freshPlanId}/payments/1/pay`)
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({ fromAccountId: scratchAccountId });
+
+    const locked = await request(app.getHttpServer())
+      .patch(`/api/v1/installments/${freshPlanId}`)
+      .set("Cookie", cookies)
+      .send({ totalPrincipal: "999" });
+    expect(locked.status).toBe(409);
+    expect(locked.body.error.code).toBe("INSTALLMENT_PLAN_SCHEDULE_LOCKED");
+  });
+
   it("returns INSTALLMENT_PAYMENT_NOT_FOUND for an unknown sequence", async () => {
     const res = await request(app.getHttpServer())
       .post(`/api/v1/installments/${planId}/payments/99/pay`)

@@ -51,6 +51,7 @@ function fakeRepo(
     settleForStatementWithTx: vi.fn(),
     billedInstallmentsForStatement: vi.fn(async () => ({ amount: "0", count: 0 })),
     save: vi.fn(),
+    saveScheduleWithTx: vi.fn(),
     savePaymentWithTx: vi.fn(),
     setPaymentPaidAt: vi.fn(),
     remove: vi.fn(),
@@ -70,6 +71,8 @@ function makeUpdateHandler(
     fakeBankAccountRepo({
       findById: vi.fn(async () => accountAggregate({ id: "a1", type: "CHECKING" })),
     }),
+    fakeTransactionWriterRepo({ listForInstallmentPlan: vi.fn(async () => []) }),
+    { $transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn({}) } as never,
   );
 }
 
