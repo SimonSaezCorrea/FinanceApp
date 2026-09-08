@@ -9,11 +9,12 @@ import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useTransactionsSummary } from "../../transactions/hooks/useTransactions";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
-import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { RecurringAutoGenerationStrip } from "../components/RecurringAutoGenerationStrip";
+import { RecurringDeleteConfirm } from "../components/RecurringDeleteConfirm";
 import { RecurringDetailPanel } from "../components/RecurringDetailPanel";
 import {
   emptyRecurringForm,
@@ -61,6 +62,10 @@ export function RecurringRoute() {
 
   const list = useMemo(() => (isError ? [] : (data ?? [])), [data, isError]);
   const accountList = useMemo(() => accounts ?? [], [accounts]);
+  // Retained through close so the form/pause overlays play their exit
+  // animation instead of unmounting the instant their target clears.
+  const retainedForm = useLastNonNull(form);
+  const retainedPauseTarget = useLastNonNull(pauseTarget);
 
   const selected = list.find((r) => r.id === selectedId) ?? null;
   const activeCount = list.filter((r) => r.active).length;
@@ -236,50 +241,40 @@ export function RecurringRoute() {
         onDelete={() => selected && setDeleteTarget(selected)}
       />
 
-      {form ? (
-        <RecurringFormPanel
-          open
-          onOpenChange={(open) => {
-            if (!open) setForm(null);
-          }}
-          mode={form.mode}
-          value={formValue}
-          onChange={(patch) => setFormValue((v) => ({ ...v, ...patch }))}
-          accounts={accountList}
-          categoryOptions={categoryOptions}
-          onSubmit={submitForm}
-          submitting={create.isPending || update.isPending}
-          dirty={form.mode === "edit"}
-        />
-      ) : null}
+      <RecurringFormPanel
+        open={form !== null}
+        onOpenChange={(open) => {
+          if (!open) setForm(null);
+        }}
+        mode={retainedForm?.mode ?? "create"}
+        value={formValue}
+        onChange={(patch) => setFormValue((v) => ({ ...v, ...patch }))}
+        accounts={accountList}
+        categoryOptions={categoryOptions}
+        onSubmit={submitForm}
+        submitting={create.isPending || update.isPending}
+        dirty={retainedForm?.mode === "edit"}
+      />
 
-      {pauseTarget ? (
-        <RecurringPauseModal
-          open
-          onOpenChange={(open) => {
-            if (!open) setPauseTarget(null);
-          }}
-          name={pauseTarget.label}
-          resume={!pauseTarget.active}
-          date={pauseDate}
-          onDateChange={setPauseDate}
-          onConfirm={confirmPause}
-          submitting={update.isPending}
-        />
-      ) : null}
+      <RecurringPauseModal
+        open={pauseTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) setPauseTarget(null);
+        }}
+        name={retainedPauseTarget?.label ?? ""}
+        resume={retainedPauseTarget ? !retainedPauseTarget.active : false}
+        date={pauseDate}
+        onDateChange={setPauseDate}
+        onConfirm={confirmPause}
+        submitting={update.isPending}
+      />
 
-      <ConfirmModal
-        open={deleteTarget !== null}
+      <RecurringDeleteConfirm
+        recurringExpense={deleteTarget}
         onOpenChange={(open) => {
           if (!open) setDeleteTarget(null);
         }}
         onConfirm={confirmDelete}
-        title={t("common.confirmDeleteTitle")}
-        description={
-          deleteTarget
-            ? t("recurring.delete.description", { name: deleteTarget.label })
-            : t("common.confirmDelete")
-        }
         loading={remove.isPending}
       />
     </div>

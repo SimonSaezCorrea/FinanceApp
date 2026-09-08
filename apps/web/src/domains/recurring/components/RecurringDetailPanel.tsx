@@ -1,10 +1,11 @@
-import { Pencil } from "lucide-react";
+import { Pause, Pencil, Play, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { accounts as accountsContract, recurring } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { useTransactions } from "../../transactions/hooks/useTransactions";
+import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { DetailRow } from "../../../shared/ui/detail-row";
@@ -41,84 +42,96 @@ export function RecurringDetailPanel({
   onDelete,
 }: Props) {
   const { t, i18n } = useTranslation();
+  // Retained through the close so the panel can play its exit animation
+  // instead of vanishing the instant `r` clears — see the hook's own doc.
+  const d = useLastNonNull(r);
   const { data: history } = useTransactions(
-    r ? { recurringExpenseId: r.id, limit: HISTORY_LIMIT } : undefined,
-    { enabled: r !== null },
+    d ? { recurringExpenseId: d.id, limit: HISTORY_LIMIT } : undefined,
+    { enabled: d !== null },
   );
-  if (r === null) return null;
+  if (d === null) return null;
 
-  const account = r.bankAccountId ? (accounts.find((a) => a.id === r.bankAccountId) ?? null) : null;
-  const card = r.cardId
-    ? (accounts.flatMap((a) => a.cards).find((c) => c.id === r.cardId) ?? null)
+  const account = d.bankAccountId ? (accounts.find((a) => a.id === d.bankAccountId) ?? null) : null;
+  const card = d.cardId
+    ? (accounts.flatMap((a) => a.cards).find((c) => c.id === d.cardId) ?? null)
     : null;
-  const paused = !r.active;
-  const money = (v: string) => formatMoney(v, { locale: i18n.language, currency: r.currency });
+  const paused = !d.active;
+  const money = (v: string) => formatMoney(v, { locale: i18n.language, currency: d.currency });
 
   const subtitle = [
-    t(`common.frequency.${r.frequency}`),
-    r.interval > 1
+    t(`common.frequency.${d.frequency}`),
+    d.interval > 1
       ? t("recurring.detail.every", {
-          count: r.interval,
-          unit: t(`debts.form.intervalUnit.${r.frequency}`, { count: r.interval }),
+          count: d.interval,
+          unit: t(`debts.form.intervalUnit.${d.frequency}`, { count: d.interval }),
         })
       : null,
-    r.category ?? t("transactions.uncategorized"),
+    d.category ?? t("transactions.uncategorized"),
   ]
     .filter(Boolean)
     .join(" · ");
 
   return (
     <SidePanel
-      open
+      open={r !== null}
       onOpenChange={onOpenChange}
       eyebrow={t("recurring.detail.eyebrow")}
-      title={r.label}
+      title={d.label}
       description={subtitle}
       headerAside={
-        <Badge variant={paused ? "neutral" : "success"}>
-          {t(paused ? "recurring.inactive" : "recurring.detail.active")}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={paused ? "neutral" : "success"}>
+            {t(paused ? "recurring.inactive" : "recurring.detail.active")}
+          </Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            aria-label={t(paused ? "recurring.actions.resume" : "recurring.actions.pause")}
+            onClick={onTogglePause}
+          >
+            {paused ? (
+              <Play className="h-4 w-4" aria-hidden />
+            ) : (
+              <Pause className="h-4 w-4" aria-hidden />
+            )}
+          </Button>
+        </div>
       }
       footer={
-        <div className="flex items-center justify-between gap-3">
-          <Button variant="outline" className="text-destructive" onClick={onDelete}>
-            {t("common.delete")}
+        <div className="flex items-center justify-end gap-2">
+          <Button variant="outline" onClick={onEdit}>
+            <Pencil className="h-4 w-4" aria-hidden />
+            {t("common.edit")}
           </Button>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={onTogglePause}>
-              {t(paused ? "recurring.actions.resume" : "recurring.actions.pause")}
-            </Button>
-            <Button variant="accent" onClick={onEdit}>
-              <Pencil className="h-4 w-4" aria-hidden />
-              {t("common.edit")}
-            </Button>
-          </div>
+          <Button variant="ghost" aria-label={t("common.delete")} onClick={onDelete}>
+            <Trash2 className="h-4 w-4 text-destructive" aria-hidden />
+          </Button>
         </div>
       }
     >
       <div className="flex flex-col gap-6">
         <div className="flex flex-wrap gap-6">
-          <Stat label={t("recurring.detail.amount")} value={money(r.amount)} />
-          <Stat label={t("recurring.detail.perMonth")} value={money(monthlyAmount(r))} />
+          <Stat label={t("recurring.detail.amount")} value={money(d.amount)} />
+          <Stat label={t("recurring.detail.perMonth")} value={money(monthlyAmount(d))} />
           {paused ? (
             <Stat
               label={t("recurring.detail.pausedSince")}
-              value={formatLongDate(r.updatedAt, i18n.language)}
+              value={formatLongDate(d.updatedAt, i18n.language)}
               muted
             />
           ) : (
             <Stat
               label={t("recurring.detail.next")}
-              value={formatLongDate(r.nextDueAt, i18n.language)}
+              value={formatLongDate(d.nextDueAt, i18n.language)}
             />
           )}
         </div>
 
         <div className="flex flex-col">
-          <DetailRow label={t("transactions.form.category")} value={r.category ?? "—"} />
+          <DetailRow label={t("transactions.form.category")} value={d.category ?? "—"} />
           <DetailRow
             label={t("recurring.form.frequency")}
-            value={t(`common.frequency.${r.frequency}`)}
+            value={t(`common.frequency.${d.frequency}`)}
           />
           <DetailRow
             label={t("debts.form.account")}
@@ -130,21 +143,21 @@ export function RecurringDetailPanel({
           />
           <DetailRow
             label={t("recurring.form.anchorDate")}
-            value={formatLongDate(r.anchorDate, i18n.language)}
+            value={formatLongDate(d.anchorDate, i18n.language)}
           />
           <DetailRow
             label={t("recurring.detail.generation")}
             value={
               paused
                 ? t("recurring.detail.suspendedSince", {
-                    date: formatLongDate(r.updatedAt, i18n.language),
+                    date: formatLongDate(d.updatedAt, i18n.language),
                   })
                 : t("recurring.detail.automatic")
             }
           />
           <DetailRow
             label={t("recurring.form.notes")}
-            value={r.notes ?? t("recurring.detail.noNotes")}
+            value={d.notes ?? t("recurring.detail.noNotes")}
           />
         </div>
 
