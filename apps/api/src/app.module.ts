@@ -10,7 +10,6 @@ import { HealthModule } from "./domains/health/health.module";
 import { IdempotencyRecordModule } from "./domains/idempotency-record/idempotency-record.module";
 import { ImportModule } from "./domains/import/import.module";
 import { InstallmentPlanModule } from "./domains/installment-plan/installment-plan.module";
-import { InvestmentModule } from "./domains/investment/investment.module";
 import { RecurringExpenseModule } from "./domains/recurring-expense/recurring-expense.module";
 import { CountryModule } from "./domains/country/country.module";
 import { CurrencyModule } from "./domains/currency/currency.module";
@@ -37,7 +36,6 @@ import { PrismaModule } from "./infra/prisma/prisma.module";
     InstallmentPlanModule,
     DebtModule,
     SavingsGoalModule,
-    InvestmentModule,
     ImportModule,
     RecurringExpenseModule,
     WalletItemDashboardModule,

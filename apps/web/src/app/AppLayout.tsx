@@ -5,6 +5,7 @@ import {
   CreditCard,
   HandCoins,
   LayoutDashboard,
+  Lock,
   LogOut,
   type LucideIcon,
   Menu,
@@ -47,7 +48,14 @@ function UserAvatar({
   );
 }
 
-const NAV: { to: string; key: string; icon: LucideIcon; end?: boolean }[] = [
+const NAV: {
+  to: string;
+  key: string;
+  icon: LucideIcon;
+  end?: boolean;
+  /** No route behind it — rendered greyed-out with a "coming soon" badge, not a link. */
+  disabled?: boolean;
+}[] = [
   { to: "/", key: "nav.dashboard", icon: LayoutDashboard, end: true },
   { to: "/accounts", key: "accounts.title", icon: Wallet },
   { to: "/transactions", key: "transactions.title", icon: ArrowLeftRight },
@@ -55,7 +63,7 @@ const NAV: { to: string; key: string; icon: LucideIcon; end?: boolean }[] = [
   { to: "/debts", key: "debts.title", icon: HandCoins },
   { to: "/recurring", key: "recurring.title", icon: Repeat },
   { to: "/savings", key: "savings.title", icon: PiggyBank },
-  { to: "/investments", key: "investments.title", icon: TrendingUp },
+  { to: "/investments", key: "investments.title", icon: TrendingUp, disabled: true },
   { to: "/import", key: "import.title", icon: Upload },
 ];
 
@@ -69,31 +77,56 @@ function NavLinks({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: 
   const { t } = useTranslation();
   return (
     <nav className="mt-2 flex flex-1 flex-col gap-1">
-      {NAV.map(({ to, key, icon: Icon, end }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={end}
-          onClick={onNavigate}
-          title={collapsed ? t(key) : undefined}
-          className={({ isActive }) =>
-            cn(
-              "flex items-center rounded-md py-2 pl-[15.5px] pr-3 text-sm font-medium transition-colors",
-              isActive ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted",
-            )
-          }
-        >
-          <Icon className="h-4 w-4 shrink-0" aria-hidden />
-          <span
-            className={cn(
-              "min-w-0 overflow-hidden whitespace-nowrap transition-all duration-200",
-              collapsed ? "max-w-0 pl-0 opacity-0" : "max-w-[10rem] pl-3 opacity-100",
-            )}
+      {NAV.map(({ to, key, icon: Icon, end, disabled }) => {
+        if (disabled) {
+          const label = collapsed ? `${t(key)} — ${t("nav.comingSoon")}` : t("nav.comingSoon");
+          return (
+            <div
+              key={to}
+              aria-disabled="true"
+              title={label}
+              className="flex cursor-not-allowed items-center rounded-md py-2 pl-[15.5px] pr-3 text-sm font-medium text-muted-foreground/60"
+            >
+              <Icon className="h-4 w-4 shrink-0" aria-hidden />
+              <span
+                className={cn(
+                  "min-w-0 flex-1 overflow-hidden whitespace-nowrap transition-all duration-200",
+                  collapsed ? "max-w-0 pl-0 opacity-0" : "max-w-[10rem] pl-3 opacity-100",
+                )}
+              >
+                {t(key)}
+              </span>
+              {collapsed ? null : <Lock className="ml-2 h-3.5 w-3.5 shrink-0" aria-hidden />}
+            </div>
+          );
+        }
+
+        return (
+          <NavLink
+            key={to}
+            to={to}
+            end={end}
+            onClick={onNavigate}
+            title={collapsed ? t(key) : undefined}
+            className={({ isActive }) =>
+              cn(
+                "flex items-center rounded-md py-2 pl-[15.5px] pr-3 text-sm font-medium transition-colors",
+                isActive ? "bg-primary text-primary-foreground" : "text-foreground hover:bg-muted",
+              )
+            }
           >
-            {t(key)}
-          </span>
-        </NavLink>
-      ))}
+            <Icon className="h-4 w-4 shrink-0" aria-hidden />
+            <span
+              className={cn(
+                "min-w-0 overflow-hidden whitespace-nowrap transition-all duration-200",
+                collapsed ? "max-w-0 pl-0 opacity-0" : "max-w-[10rem] pl-3 opacity-100",
+              )}
+            >
+              {t(key)}
+            </span>
+          </NavLink>
+        );
+      })}
     </nav>
   );
 }

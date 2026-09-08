@@ -54,14 +54,6 @@ export type {
   CreateSavingsEntry,
 } from "./savings/index";
 
-// investments
-export type {
-  Investment,
-  CreateInvestment,
-  UpdateInvestment,
-  InvestmentKind,
-} from "./investments/index";
-
 // import
 export type { ImportRow, ImportTransactionsRequest, ImportResult } from "./import/index";
 

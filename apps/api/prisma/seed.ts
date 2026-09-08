@@ -24,7 +24,7 @@ const DEMO_PASSWORD = "demo1234";
 /**
  * Full-featured Chilean demo user (CLP primary). Has accounts + cards, a month
  * of categorized transactions (plus late-May ones so 30-day sparklines populate),
- * installment plans, debts both ways, savings goals, and investments.
+ * installment plans, debts both ways, and savings goals.
  * Balances are derived from transactions so the dashboard stays internally consistent.
  */
 async function seedFullUser(passwordHash: string) {
@@ -3861,31 +3861,6 @@ async function seedFullUser(passwordHash: string) {
       data: { currentBalance: acc.currentBalance.plus(dec(savingsNetFlow.toFixed(4))) },
     });
   }
-
-  // --- Investments ---
-  await prisma.investment.createMany({
-    data: [
-      {
-        userId: javier.id,
-        kind: "ETF",
-        label: "Vanguard FTSE All-World",
-        currency: "USD",
-        symbol: "VWCE",
-        shares: dec("48.00000000"),
-        openedAt: new Date("2025-09-01T00:00:00Z"),
-      },
-      {
-        userId: javier.id,
-        kind: "REMUNERATED_ACCOUNT",
-        label: "Depósito a plazo Tenpo",
-        currency: "USD",
-        annualRate: dec("0.050000"),
-        principal: dec("4000.0000"),
-        bankAccountId: tenpo.id,
-        openedAt: new Date("2026-02-01T00:00:00Z"),
-      },
-    ],
-  });
 
   // --- Recurring expenses (subscriptions, rent, periodic payments) ---
   //

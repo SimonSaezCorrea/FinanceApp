@@ -343,9 +343,10 @@ export function AccountForm({
               disabledTypes={
                 initialValues.type === "PREPAID"
                   ? accountsContract.accountType.options.filter((o) => o !== "PREPAID")
-                  : ["PREPAID"]
+                  : ["PREPAID", "INVESTMENT"]
               }
               disabledReason={t("errors.ACCOUNT_TYPE_CHANGE_NOT_ALLOWED")}
+              disabledReasonFor={{ INVESTMENT: t("accounts.form.investmentTypeLocked") }}
               onChange={(next) =>
                 setValues((prev) => {
                   if (next === "CASH") {

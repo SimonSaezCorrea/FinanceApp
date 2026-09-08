@@ -304,7 +304,12 @@ export function AccountCreateModal({
         />
 
         <Field label={t("accounts.form.type")}>
-          <AccountTypeToggle value={type} onChange={handleTypeChange} />
+          <AccountTypeToggle
+            value={type}
+            onChange={handleTypeChange}
+            disabledTypes={["INVESTMENT"]}
+            disabledReasonFor={{ INVESTMENT: t("accounts.form.investmentTypeLocked") }}
+          />
         </Field>
 
         {/* Balance / cupo: hero figure, currency inline — same idiom as a

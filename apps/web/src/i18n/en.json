@@ -70,7 +70,8 @@
     "open": "Open menu",
     "close": "Close menu",
     "collapse": "Collapse sidebar",
-    "expand": "Expand sidebar"
+    "expand": "Expand sidebar",
+    "comingSoon": "Coming soon"
   },
   "theme": {
     "label": "Theme",
@@ -238,6 +239,7 @@
       "paymentMethodManual": "Manual",
       "paymentMethodAutomatic": "Automatic",
       "paymentMethodAutomaticLocked": "Coming soon — we're still defining how the payment due date works for automatic payment.",
+      "investmentTypeLocked": "Coming soon — investments isn't available yet.",
       "paymentDueCycleType": "Payment due type",
       "paymentDueDay": "Payment due day",
       "paymentDueDayPlaceholder": "E.g. 5",
@@ -738,6 +740,7 @@
     },
     "delete": {
       "title": "Delete “{{title}}”",
+      "summary": "{{paid}} of {{total}} instalments paid",
       "loadingImpact": "Working out what will be reversed…",
       "noMovements": "This plan recorded no movements: only the plan and its schedule are deleted.",
       "movements_one": "{{count}} movement will be deleted.",
@@ -1140,12 +1143,7 @@
     }
   },
   "investments": {
-    "title": "Investments",
-    "empty": "You don't have any investments yet.",
-    "kind": {
-      "ETF": "ETF",
-      "REMUNERATED_ACCOUNT": "Remunerated account"
-    }
+    "title": "Investments"
   },
   "import": {
     "title": "Import",

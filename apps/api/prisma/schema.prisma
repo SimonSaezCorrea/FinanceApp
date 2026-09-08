@@ -50,7 +50,6 @@ model User {
   debts              Debt[]
   savingsGoals       SavingsGoal[]
   savingsEntries     SavingsEntry[]
-  investments        Investment[]
   recurringExpenses  RecurringExpense[]
   walletItems        WalletItemDashboard[]
   attachments        TransactionAttachment[]
@@ -209,7 +208,6 @@ model BankAccount {
   user                 User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
   financialInstitution FinancialInstitution? @relation(fields: [institutionId], references: [id], onDelete: SetNull)
   transactions         Transaction[]
-  investments          Investment[]
   cards                CardAccount[]
   recurringExpenses    RecurringExpense[]
   walletItems          WalletItemDashboard[]
@@ -822,56 +820,6 @@ model RecurringExpense {
   @@index([cardId])
   @@index([active])
   @@map("recurring-expense")
-}
-
-enum InvestmentKind {
-  ETF
-  REMUNERATED_ACCOUNT
-}
-
-model Investment {
-  id            String         @id @default(uuid(7))
-  userId        String
-  kind          InvestmentKind
-  label         String
-  currency      String         @default("USD")
-  /// ETF: ticker symbol (e.g. VTI). Ignored for remunerated accounts.
-  symbol        String?
-  shares        Decimal?       @db.Decimal(24, 8)
-  /// Remunerated / interest-bearing: nominal annual rate (e.g. 0.05 for 5%).
-  annualRate    Decimal?       @db.Decimal(8, 6)
-  principal     Decimal?       @db.Decimal(18, 4)
-  bankAccountId String?
-  openedAt      DateTime?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  bankAccount BankAccount? @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
-
-  @@index([userId])
-  @@index([kind])
-  @@index([symbol])
-  @@index([bankAccountId])
-  @@map("investment")
-}
-
-/// Alpha Vantage quote cache.
-/// TTL (~24h): application treats rows with fetchedAt older than 24 hours as stale,
-/// refetches from the API, then upserts by symbol.
-model EtfPriceCache {
-  id        String   @id @default(uuid(7))
-  symbol    String   @unique
-  fetchedAt DateTime
-  open      Decimal  @db.Decimal(18, 6)
-  high      Decimal  @db.Decimal(18, 6)
-  low       Decimal  @db.Decimal(18, 6)
-  close     Decimal  @db.Decimal(18, 6)
-  volume    Decimal? @db.Decimal(24, 4)
-  rawJson   Json?
-
-  @@index([fetchedAt])
-  @@map("etf-price-cache")
 }
 
 // --- Reference data: countries + banks ---

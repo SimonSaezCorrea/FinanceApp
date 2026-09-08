@@ -23,6 +23,7 @@ export function AccountTypeToggle({
   onChange,
   disabledTypes,
   disabledReason,
+  disabledReasonFor,
   className,
   panelClassName,
 }: Readonly<{
@@ -32,7 +33,10 @@ export function AccountTypeToggle({
    * `disabledReason` as their tooltip — a prepaid account is a different
    * product, not a setting, so it can never be converted into or out of one. */
   disabledTypes?: accounts.AccountType[];
+  /** Shared tooltip for every disabled type, unless `disabledReasonFor` names one specifically. */
   disabledReason?: string;
+  /** Per-type override — checked before the shared `disabledReason`. */
+  disabledReasonFor?: Partial<Record<accounts.AccountType, string>>;
   className?: string;
   /** Forwarded to the underlying `SearchableSelect`'s OPEN dropdown panel. */
   panelClassName?: string;
@@ -46,7 +50,7 @@ export function AccountTypeToggle({
       label: t(`accounts.type.${v}`),
       icon: <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />,
       disabled: v !== value && (disabledTypes?.includes(v) ?? false),
-      disabledReason,
+      disabledReason: disabledReasonFor?.[v] ?? disabledReason,
     };
   });
 
