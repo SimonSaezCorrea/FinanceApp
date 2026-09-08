@@ -128,51 +128,30 @@ export function TransactionDetailModal({
             className="px-2"
             aria-label={t("transactions.detail.duplicate")}
             title={t("transactions.detail.duplicate")}
-            onClick={() => {
-              onDuplicate(tx);
-              onOpenChange(false);
-            }}
+            onClick={() => onDuplicate(tx)}
           >
             <Copy className="h-4 w-4" aria-hidden />
           </Button>
         ) : undefined
       }
+      // Edit (accent) then Delete (icon-only ghost), together on the right.
+      // Duplicate stays only in the header (icon button next to close) — not
+      // repeated here.
       footer={
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-end gap-2">
+          {onEdit && !isInstallmentPayment ? (
+            <Button variant="accent" onClick={() => onEdit(tx)}>
+              <Pencil className="h-4 w-4" aria-hidden />
+              {t("common.edit")}
+            </Button>
+          ) : null}
           {onDelete && !isInstallmentPayment ? (
             <Button
               variant="ghost"
-              className="mr-auto text-destructive hover:bg-destructive/10 hover:text-destructive"
-              onClick={() => {
-                onDelete(tx);
-                onOpenChange(false);
-              }}
+              aria-label={t("common.delete")}
+              onClick={() => onDelete(tx)}
             >
-              <Trash2 className="h-4 w-4" aria-hidden />
-              {t("common.delete")}
-            </Button>
-          ) : null}
-          {onDuplicate ? (
-            <Button
-              variant="outline"
-              onClick={() => {
-                onDuplicate(tx);
-                onOpenChange(false);
-              }}
-            >
-              {t("transactions.detail.duplicate")}
-            </Button>
-          ) : null}
-          {onEdit && !isInstallmentPayment ? (
-            <Button
-              variant="accent"
-              onClick={() => {
-                onEdit(tx);
-                onOpenChange(false);
-              }}
-            >
-              <Pencil className="h-4 w-4" aria-hidden />
-              {t("common.edit")}
+              <Trash2 className="h-4 w-4 text-destructive" aria-hidden />
             </Button>
           ) : null}
         </div>
@@ -182,14 +161,7 @@ export function TransactionDetailModal({
         transaction={tx}
         accounts={accounts}
         balanceAfter={balanceAfter}
-        onAddDetails={
-          onEdit && !isInstallmentPayment
-            ? () => {
-                onEdit(tx);
-                onOpenChange(false);
-              }
-            : undefined
-        }
+        onAddDetails={onEdit && !isInstallmentPayment ? () => onEdit(tx) : undefined}
       >
         <AttachmentsSection transactionId={tx.id} />
         {children}

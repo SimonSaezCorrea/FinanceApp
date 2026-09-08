@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { accounts as accountsContract, debts } from "@finance/contracts";
 import { formatMoney, subtractMoney, toMoney } from "@finance/money";
 
+import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { DetailRow } from "../../../shared/ui/detail-row";
 import { FormSurface } from "../../../shared/ui/overlay";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
@@ -10,7 +11,8 @@ import { dueInfo, leftAmount } from "../lib/debtMetrics";
 import { debtSchedule } from "../lib/debtSchedule";
 
 interface DebtPayPanelProps {
-  readonly debt: debts.Debt;
+  /** The debt to register a payment for, or null when the panel is closed. */
+  readonly debt: debts.Debt | null;
   readonly accounts: accountsContract.BankAccount[];
   /** The chosen payment source/destination account — sent as `settle`'s/
    * `register-payment`'s own `accountId` body field, which actually moves the
@@ -38,16 +40,21 @@ export function DebtPayPanel({
   submitting = false,
 }: Readonly<DebtPayPanelProps>) {
   const { t, i18n } = useTranslation();
-  const hasInstallments = debt.totalInstallments > 1;
-  const schedule = debtSchedule(debt);
-  const next = schedule[debt.paidInstallments] ?? schedule[schedule.length - 1]!;
+  // Retained through the close so the panel can play its exit animation
+  // instead of vanishing the instant `debt` clears.
+  const d = useLastNonNull(debt);
+  if (d === null) return null;
+
+  const hasInstallments = d.totalInstallments > 1;
+  const schedule = debtSchedule(d);
+  const next = schedule[d.paidInstallments] ?? schedule[schedule.length - 1]!;
   const due = dueInfo(next.dueDate ? next.dueDate.toISOString() : null);
 
-  const money = (v: string) => formatMoney(v, { locale: i18n.language, currency: debt.currency });
+  const money = (v: string) => formatMoney(v, { locale: i18n.language, currency: d.currency });
 
-  const newPaid = debt.paidInstallments + 1;
-  const pct = Math.round((newPaid / debt.totalInstallments) * 100);
-  const pendingAfterRaw = subtractMoney(leftAmount(debt), next.amount);
+  const newPaid = d.paidInstallments + 1;
+  const pct = Math.round((newPaid / d.totalInstallments) * 100);
+  const pendingAfterRaw = subtractMoney(leftAmount(d), next.amount);
   const pendingAfter = toMoney(pendingAfterRaw).isNegative() ? "0.0000" : pendingAfterRaw;
 
   // Only accounts that could ACTUALLY receive/pay this debt: same currency
@@ -55,7 +62,7 @@ export function DebtPayPanel({
   // refused server-side, `DEBT_PAYMENT_FROM_CREDIT_ACCOUNT`) — narrower than
   // the full list so the picker never offers a choice the API would reject.
   const eligibleAccounts = accounts.filter(
-    (a) => a.currency === debt.currency && a.type !== "CREDIT_CARD",
+    (a) => a.currency === d.currency && a.type !== "CREDIT_CARD",
   );
   const accountOptions = eligibleAccounts.map((a) => ({
     value: a.id,
@@ -64,20 +71,20 @@ export function DebtPayPanel({
 
   return (
     <FormSurface
-      open
+      open={debt !== null}
       onOpenChange={onOpenChange}
       mode="create"
       surface="panel"
       eyebrow={t("debts.pay.eyebrow")}
-      title={debt.counterparty}
+      title={d.counterparty}
       description={
         hasInstallments
           ? t("debts.pay.subtitleInstallment", {
               sequence: newPaid,
-              total: debt.totalInstallments,
-              concept: debt.title ?? "",
+              total: d.totalInstallments,
+              concept: d.title ?? "",
             })
-          : t("debts.pay.subtitleSingle", { concept: debt.title ?? "" })
+          : t("debts.pay.subtitleSingle", { concept: d.title ?? "" })
       }
       submitLabel={hasInstallments ? t("debts.card.registerPayment") : t("debts.card.markPaid")}
       canSubmit={payAccountId !== ""}
@@ -126,7 +133,7 @@ export function DebtPayPanel({
           <div className="flex items-center justify-between text-sm">
             <span className="text-muted-foreground">{t("debts.pay.previewProgress")}</span>
             <span className="font-medium tabular-nums">
-              {newPaid}/{debt.totalInstallments} · {pct}%
+              {newPaid}/{d.totalInstallments} · {pct}%
             </span>
           </div>
           <div className="flex items-center justify-between text-sm">

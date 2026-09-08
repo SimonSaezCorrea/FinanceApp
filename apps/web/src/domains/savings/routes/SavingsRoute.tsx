@@ -10,7 +10,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
-import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
+import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { ClosedGoalsSection } from "../components/ClosedGoalsSection";
 import { FreeSavingsSection } from "../components/FreeSavingsSection";
 import {
@@ -28,6 +28,7 @@ import {
 } from "../components/SavingsGoalFormPanel";
 import { SavingsGoalRow } from "../components/SavingsGoalRow";
 import { SavingsGroupHeader } from "../components/SavingsGroupHeader";
+import { SavingsSkeleton } from "../components/SavingsSkeleton";
 import {
   emptySavingsEntryForm,
   SavingsEntryFormPanel,
@@ -253,7 +254,7 @@ export function SavingsRoute() {
         }
       />
 
-      {goalsLoading && <LoadingState title={t("app.loading")} />}
+      {goalsLoading && <SavingsSkeleton label={t("app.loading")} />}
       {!goalsLoading && goalsError && <ErrorState error={goalsErr} onRetry={() => refetch()} />}
       {!goalsLoading && !goalsError && goals.length === 0 && freeEntries.length === 0 && (
         <EmptyState title={t("savings.empty")} />

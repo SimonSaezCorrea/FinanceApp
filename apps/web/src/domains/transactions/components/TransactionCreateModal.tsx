@@ -62,12 +62,20 @@ export function TransactionCreateModal({
   lockAccount = false,
   onDismiss,
   onSaved,
+  size,
+  nested,
 }: Readonly<{
   open: boolean;
   onOpenChange: (v: boolean) => void;
   initial?: transactions.Transaction;
   duplicateFrom?: transactions.Transaction;
   defaultBankAccountId?: string;
+  /** `"compact"` narrows the form when opened from a still-open detail panel;
+   * this form stays `"default"` (full-size) even nested — see `nested`. */
+  size?: "default" | "compact";
+  /** Pass when this form is opened from a still-open detail panel (nested in
+   * its own children) — elevates it above that panel regardless of `size`. */
+  nested?: boolean;
   /**
    * Closed WITHOUT saving (cancel, the window's close control, the backdrop).
    * Lets the caller go back where the form was opened from — the detail panel —
@@ -310,6 +318,8 @@ export function TransactionCreateModal({
       // A movement's form is tall and is often opened from the very table it
       // will change, which stays visible behind the panel.
       surface="panel"
+      size={size}
+      nested={nested}
       // The visible title is the description, edited inside the body — the
       // header carries only the eyebrow naming what this surface is.
       eyebrow={editing ? t("transactions.form.editEyebrow") : t("transactions.form.newEyebrow")}

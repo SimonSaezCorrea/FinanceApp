@@ -12,7 +12,7 @@ import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
 import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
-import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
+import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { RecurringAutoGenerationStrip } from "../components/RecurringAutoGenerationStrip";
 import { RecurringDetailPanel } from "../components/RecurringDetailPanel";
 import {
@@ -23,6 +23,7 @@ import {
 } from "../components/RecurringFormPanel";
 import { RecurringGroup } from "../components/RecurringGroup";
 import { RecurringPauseModal } from "../components/RecurringPauseModal";
+import { RecurringSkeleton } from "../components/RecurringSkeleton";
 import { RecurringTotalCard } from "../components/RecurringTotalCard";
 import { useRecurring, useRecurringMutations } from "../hooks/useRecurring";
 import { FREQUENCY_ORDER, recurringByCurrency } from "../lib/recurringMetrics";
@@ -187,7 +188,7 @@ export function RecurringRoute() {
         }
       />
 
-      {isLoading && <LoadingState title={t("app.loading")} />}
+      {isLoading && <RecurringSkeleton label={t("app.loading")} />}
       {!isLoading && isError && <ErrorState error={error} onRetry={() => refetch()} />}
       {!isLoading && !isError && list.length === 0 && <EmptyState title={t("recurring.empty")} />}
 

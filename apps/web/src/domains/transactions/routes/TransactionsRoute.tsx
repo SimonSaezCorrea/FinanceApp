@@ -35,10 +35,12 @@ export function TransactionsRoute() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editTx, setEditTx] = useState<transactions.Transaction | null>(null);
   const [duplicateTx, setDuplicateTx] = useState<transactions.Transaction | null>(null);
-  // The movement the form was opened FROM, when it was opened from its detail
-  // panel: backing out of the form returns there instead of dropping the user
-  // all the way out to the list.
-  const [returnToDetail, setReturnToDetail] = useState<transactions.Transaction | null>(null);
+  // Set at OPEN time by whichever entry point triggered the form, and left
+  // alone while it's open or mid-close-animation — flipping it on close would
+  // move the form to a different JSX parent (top-level vs. nested in the
+  // detail panel) in the very render that starts the exit animation, which
+  // remounts it instead of letting it animate out.
+  const [formNested, setFormNested] = useState(false);
   // Just saved: the table points it out for a moment, since a movement dated
   // earlier than the ones on screen does NOT land at the top.
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -102,6 +104,24 @@ export function TransactionsRoute() {
     setFilters((f) => ({ ...f, type: value === "ALL" ? undefined : value }));
   }
 
+  const createModal = (
+    <TransactionCreateModal
+      open={modalOpen}
+      onOpenChange={setModalOpen}
+      initial={editTx ?? undefined}
+      duplicateFrom={duplicateTx ?? undefined}
+      // Full-size even when nested in the detail panel (unlike `CardFormPanel`'s
+      // "compact" convention) — a movement's edit form is substantial enough
+      // that narrowing it to make room for the detail behind would cramp it
+      // for no benefit; the detail isn't meant to stay visible alongside it.
+      // `nested` still elevates its z-index above the detail panel it was
+      // opened from, so it overlaps it fully instead of stacking behind.
+      size="default"
+      nested={formNested}
+      onSaved={setSavedId}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -117,7 +137,7 @@ export function TransactionsRoute() {
               onClick={() => {
                 setEditTx(null);
                 setDuplicateTx(null);
-                setReturnToDetail(null);
+                setFormNested(false);
                 setModalOpen(true);
               }}
             >
@@ -159,7 +179,7 @@ export function TransactionsRoute() {
           onEdit={(tx) => {
             setEditTx(tx);
             setDuplicateTx(null);
-            setReturnToDetail(null);
+            setFormNested(false);
             setModalOpen(true);
           }}
           onDelete={(tx) => setDeleteTx(tx)}
@@ -172,18 +192,14 @@ export function TransactionsRoute() {
         />
       )}
 
-      <TransactionCreateModal
-        open={modalOpen}
-        onOpenChange={setModalOpen}
-        initial={editTx ?? undefined}
-        duplicateFrom={duplicateTx ?? undefined}
-        onSaved={setSavedId}
-        onDismiss={() => {
-          // Cancelled: reopen the detail this form was opened from.
-          if (returnToDetail) setDetailTx(returnToDetail);
-          setReturnToDetail(null);
-        }}
-      />
+      {/* Opened from the table or the "+ Nuevo movimiento" button: the detail
+          panel isn't open, so this renders at the top level like any other
+          overlay. Opened FROM the detail panel instead, it's rendered nested
+          inside it (below) — same reasoning as `CardFormPanel` inside
+          `AccountCreateModal`: a sibling Dialog reads a Radix dismiss on the
+          new one as an outside click on the old one, so nesting is what lets
+          the detail panel stay open underneath instead of closing first. */}
+      {!formNested && createModal}
 
       <TransactionDetailModal
         transaction={detailTx}
@@ -193,13 +209,13 @@ export function TransactionsRoute() {
         onEdit={(tx) => {
           setEditTx(tx);
           setDuplicateTx(null);
-          setReturnToDetail(tx);
+          setFormNested(true);
           setModalOpen(true);
         }}
         onDuplicate={(tx) => {
           setEditTx(null);
           setDuplicateTx(tx);
-          setReturnToDetail(tx);
+          setFormNested(true);
           setModalOpen(true);
         }}
         onDelete={(tx) => setDeleteTx(tx)}
@@ -210,7 +226,9 @@ export function TransactionsRoute() {
         onLoadMore={() => void txQuery.fetchNextPage()}
         onNavigate={(tx) => setDetailTx(tx)}
         dateFiltered={Boolean(filters.from || filters.to)}
-      />
+      >
+        {formNested && createModal}
+      </TransactionDetailModal>
 
       <TransactionDeleteConfirm
         transaction={deleteTx}
@@ -223,6 +241,7 @@ export function TransactionsRoute() {
             onSuccess: () => {
               toast.success(t("transactions.deleted"));
               setDeleteTx(null);
+              if (detailTx?.id === deleteTx.id) setDetailTx(null);
             },
             onError: () => toast.error(t("errors.INTERNAL_ERROR")),
           });

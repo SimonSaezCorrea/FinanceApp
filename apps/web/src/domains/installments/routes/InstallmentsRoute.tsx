@@ -9,6 +9,7 @@ import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { useTransactionsSummary } from "../../transactions/hooks/useTransactions";
 import { cn } from "../../../shared/lib/cn";
 import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
+import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Segmented } from "../../../shared/ui/segmented";
@@ -45,13 +46,25 @@ export function InstallmentsRoute() {
   const { create, update, remove, pay, unpay } = useInstallmentMutations();
 
   const [form, setForm] = useState<{ mode: "create" | "edit"; planId: string | null } | null>(null);
+  // Retained through the close so the panel can play its exit animation
+  // instead of vanishing (and its mode/title flipping back to "create")
+  // the instant `form` clears.
+  const retainedForm = useLastNonNull(form);
   const [formValue, setFormValue] = useState<InstallmentFormValue>(() =>
     emptyInstallmentForm(todayInput()),
   );
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [paying, setPaying] = useState<{ planId: string; sequence: number } | null>(null);
-  const [payValue, setPayValue] = useState<PayInstallmentFormValue | null>(null);
+  // Never reset to null on close (only re-set by `openPay`): the panel retains
+  // it internally to play its exit animation instead of vanishing when
+  // `paying` clears.
+  const [payValue, setPayValue] = useState<PayInstallmentFormValue>(() => ({
+    fromAccountId: "",
+    amount: "",
+    chargedAmount: "",
+    date: todayInput(),
+  }));
   const [statusFilter, setStatusFilter] = useState<PlanFilter>("all");
   const [withinWindow, setWithinWindow] = useState(false);
 
@@ -159,7 +172,7 @@ export function InstallmentsRoute() {
   }
 
   function confirmPay() {
-    if (!paying || !payingPlan || !payValue) return;
+    if (!paying || !payingPlan) return;
     const account = accountList.find((a) => a.id === payValue.fromAccountId) ?? null;
     pay.mutate(
       {
@@ -171,7 +184,6 @@ export function InstallmentsRoute() {
         onSuccess: () => {
           toast.success(t("installments.paid"));
           setPaying(null);
-          setPayValue(null);
         },
         onError: (error: unknown) => toast.error(errorMessage(error, t)),
       },
@@ -306,6 +318,7 @@ export function InstallmentsRoute() {
                 onSelect={selectPlan}
                 onEdit={openEdit}
                 onDelete={setDeleteId}
+                onPay={openPay}
                 emptyTitle={
                   plans.length === 0 ? t("installments.empty") : t("installments.noneMatchFilters")
                 }
@@ -347,44 +360,37 @@ export function InstallmentsRoute() {
         busySequence={pay.isPending || unpay.isPending ? (paying?.sequence ?? -1) : null}
       />
 
-      {payingPlan && payingPayment && payValue && (
-        <PayInstallmentPanel
-          open
-          onOpenChange={(open) => {
-            if (!open) {
-              setPaying(null);
-              setPayValue(null);
-            }
-          }}
-          plan={payingPlan}
-          payment={payingPayment}
-          accounts={accountList}
-          value={payValue}
-          onChange={(patch) => setPayValue((v) => (v ? { ...v, ...patch } : v))}
-          onSubmit={confirmPay}
-          submitting={pay.isPending}
-        />
-      )}
+      <PayInstallmentPanel
+        onOpenChange={(open) => {
+          if (!open) setPaying(null);
+        }}
+        plan={payingPlan}
+        payment={payingPayment}
+        accounts={accountList}
+        value={payValue}
+        onChange={(patch) => setPayValue((v) => ({ ...v, ...patch }))}
+        onSubmit={confirmPay}
+        submitting={pay.isPending}
+      />
 
-      {form && (
-        <InstallmentFormPanel
-          open
-          onOpenChange={(open) => {
-            if (!open) setForm(null);
-          }}
-          mode={form.mode}
-          value={formValue}
-          onChange={(patch) => setFormValue((v) => ({ ...v, ...patch }))}
-          accounts={accountList}
-          categoryOptions={summary?.categories ?? []}
-          cardFrozen={
-            form.mode === "edit" && (plans.find((p) => p.id === form.planId)?.billedCount ?? 0) > 0
-          }
-          onSubmit={submitForm}
-          submitting={create.isPending || update.isPending}
-          dirty={form.mode === "edit"}
-        />
-      )}
+      <InstallmentFormPanel
+        open={form !== null}
+        onOpenChange={(open) => {
+          if (!open) setForm(null);
+        }}
+        mode={retainedForm?.mode ?? "create"}
+        value={formValue}
+        onChange={(patch) => setFormValue((v) => ({ ...v, ...patch }))}
+        accounts={accountList}
+        categoryOptions={summary?.categories ?? []}
+        cardFrozen={
+          retainedForm?.mode === "edit" &&
+          (plans.find((p) => p.id === retainedForm.planId)?.billedCount ?? 0) > 0
+        }
+        onSubmit={submitForm}
+        submitting={create.isPending || update.isPending}
+        dirty={retainedForm?.mode === "edit"}
+      />
 
       <DeletePlanConfirm
         plan={deletingPlan}

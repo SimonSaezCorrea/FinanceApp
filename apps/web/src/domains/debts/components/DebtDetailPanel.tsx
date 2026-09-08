@@ -1,10 +1,11 @@
-import { Pencil } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { accounts as accountsContract, debts } from "@finance/contracts";
 import { formatMoney, subtractMoney } from "@finance/money";
 
 import { accountMetaLine } from "../../accounts/lib/accountMeta";
+import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { DetailRow } from "../../../shared/ui/detail-row";
@@ -18,6 +19,7 @@ interface DebtDetailPanelProps {
   readonly onOpenChange: (open: boolean) => void;
   readonly onPay: () => void;
   readonly onEdit: () => void;
+  readonly onDelete: () => void;
   /** Not part of the handoff's asset list, kept from the previous UI: dropping
    * the ability to reopen a settled debt or undo the last instalment would be
    * a real feature regression the redesign doesn't call for. Surfaced as plain
@@ -46,6 +48,7 @@ export function DebtDetailPanel({
   onOpenChange,
   onPay,
   onEdit,
+  onDelete,
   onUnsettle,
   onUndoPayment,
   unsettlePending,
@@ -53,23 +56,26 @@ export function DebtDetailPanel({
 }: DebtDetailPanelProps) {
   const { t, i18n } = useTranslation();
 
-  if (debt === null) return null;
+  // Retained through the close so the panel can play its exit animation
+  // instead of vanishing the instant `debt` clears — see the hook's own doc.
+  const d = useLastNonNull(debt);
+  if (d === null) return null;
 
-  const linkedAccount = debt.paymentAccountId
-    ? (accounts.find((a) => a.id === debt.paymentAccountId) ?? null)
+  const linkedAccount = d.paymentAccountId
+    ? (accounts.find((a) => a.id === d.paymentAccountId) ?? null)
     : null;
 
-  const isOwedToYou = debt.direction === "OWED_TO_YOU";
-  const isSettled = debt.settledAt !== null;
-  const hasInstallments = debt.totalInstallments > 1;
-  const left = leftAmount(debt);
-  const paidAmount = subtractMoney(debt.principal, left);
-  const due = dueInfo(debt.dueAt);
-  const schedule = debtSchedule(debt);
-  const money = (v: string) => formatMoney(v, { locale: i18n.language, currency: debt.currency });
+  const isOwedToYou = d.direction === "OWED_TO_YOU";
+  const isSettled = d.settledAt !== null;
+  const hasInstallments = d.totalInstallments > 1;
+  const left = leftAmount(d);
+  const paidAmount = subtractMoney(d.principal, left);
+  const due = dueInfo(d.dueAt);
+  const schedule = debtSchedule(d);
+  const money = (v: string) => formatMoney(v, { locale: i18n.language, currency: d.currency });
 
-  const dueValue = debt.dueAt
-    ? `${formatDebtDate(debt.dueAt, i18n.language)} · ${
+  const dueValue = d.dueAt
+    ? `${formatDebtDate(d.dueAt, i18n.language)} · ${
         due.overdue
           ? t("debts.due.agoDays", { count: due.days ?? 0 })
           : due.days === 0
@@ -78,16 +84,16 @@ export function DebtDetailPanel({
       }`
     : t("debts.due.noDate");
 
-  const lastPaidSequence = debt.paidInstallments;
+  const lastPaidSequence = d.paidInstallments;
 
   return (
     <SidePanel
-      open
+      open={debt !== null}
       onOpenChange={onOpenChange}
       eyebrow={t("debts.detail.eyebrow")}
-      title={debt.counterparty}
-      description={`${debt.title ?? t("debts.detail.noTitle")} · ${t(
-        `debts.direction.${debt.direction}`,
+      title={d.counterparty}
+      description={`${d.title ?? t("debts.detail.noTitle")} · ${t(
+        `debts.direction.${d.direction}`,
       )}`}
       footer={
         isSettled ? (
@@ -99,6 +105,9 @@ export function DebtDetailPanel({
             <Button variant="outline" onClick={onUnsettle} disabled={unsettlePending}>
               {t("debts.card.unsettle")}
             </Button>
+            <Button variant="ghost" aria-label={t("common.delete")} onClick={onDelete}>
+              <Trash2 className="h-4 w-4 text-destructive" aria-hidden />
+            </Button>
           </div>
         ) : (
           <div className="flex items-center gap-2">
@@ -108,6 +117,9 @@ export function DebtDetailPanel({
             <Button variant="outline" onClick={onEdit}>
               <Pencil className="h-4 w-4" aria-hidden />
               {t("common.edit")}
+            </Button>
+            <Button variant="ghost" aria-label={t("common.delete")} onClick={onDelete}>
+              <Trash2 className="h-4 w-4 text-destructive" aria-hidden />
             </Button>
           </div>
         )
@@ -119,11 +131,11 @@ export function DebtDetailPanel({
             label={t("debts.detail.type")}
             value={
               <Badge variant={isOwedToYou ? "success" : "danger"}>
-                {t(`debts.direction.${debt.direction}`)}
+                {t(`debts.direction.${d.direction}`)}
               </Badge>
             }
           />
-          <DetailRow label={t("debts.detail.totalAmount")} value={money(debt.principal)} />
+          <DetailRow label={t("debts.detail.totalAmount")} value={money(d.principal)} />
           <DetailRow label={t("debts.detail.paidAmount")} value={money(paidAmount)} />
           <DetailRow label={t("debts.detail.pending")} value={money(left)} />
           <DetailRow
@@ -131,8 +143,8 @@ export function DebtDetailPanel({
             value={
               hasInstallments
                 ? t("debts.detail.installmentsOf", {
-                    paid: debt.paidInstallments,
-                    total: debt.totalInstallments,
+                    paid: d.paidInstallments,
+                    total: d.totalInstallments,
                   })
                 : t("debts.detail.singlePayment")
             }
@@ -148,7 +160,7 @@ export function DebtDetailPanel({
             </DetailRow>
           ) : null}
           <DetailRow label={t("debts.detail.due")} value={dueValue} />
-          <DetailRow label={t("debts.detail.note")} value={debt.notes ?? "—"} />
+          <DetailRow label={t("debts.detail.note")} value={d.notes ?? "—"} />
         </div>
 
         <section className="flex flex-col gap-1">
@@ -170,7 +182,7 @@ export function DebtDetailPanel({
                       {hasInstallments
                         ? t("debts.detail.installmentOf", {
                             sequence: item.sequence,
-                            total: debt.totalInstallments,
+                            total: d.totalInstallments,
                           })
                         : t("debts.detail.singlePayment")}
                     </span>

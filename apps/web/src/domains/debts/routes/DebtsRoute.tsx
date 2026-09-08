@@ -8,12 +8,13 @@ import type { debts } from "@finance/contracts";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { Button } from "../../../shared/ui/button";
-import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Segmented } from "../../../shared/ui/segmented";
-import { ErrorState, LoadingState } from "../../../shared/ui/states";
+import { ErrorState } from "../../../shared/ui/states";
+import { DebtDeleteConfirm } from "../components/DebtDeleteConfirm";
 import { DebtDetailPanel } from "../components/DebtDetailPanel";
 import {
   DebtFormPanel,
@@ -25,6 +26,7 @@ import { DebtKpiStrip } from "../components/DebtKpiStrip";
 import { DebtList } from "../components/DebtList";
 import { DebtPayPanel } from "../components/DebtPayPanel";
 import { DebtTable } from "../components/DebtTable";
+import { DebtsSkeleton } from "../components/DebtsSkeleton";
 import { useDebtMutations } from "../hooks/useDebtMutations";
 import { useDebts } from "../hooks/useDebts";
 import { isOverdue, uniquePeopleCount } from "../lib/debtMetrics";
@@ -47,6 +49,10 @@ export function DebtsRoute() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<{ mode: "create" | "edit"; debtId: string | null } | null>(null);
+  // Retained through the close so the panel can play its exit animation
+  // instead of vanishing the instant `form` clears — `mode`/`title` would
+  // otherwise flip back to "create" mid-animation.
+  const retainedForm = useLastNonNull(form);
   const [formValue, setFormValue] = useState<DebtFormValue>(() =>
     emptyDebtForm(todayInput(), preferredCurrency),
   );
@@ -277,7 +283,7 @@ export function DebtsRoute() {
         }
       />
 
-      {isLoading && <LoadingState title={t("app.loading")} />}
+      {isLoading && <DebtsSkeleton label={t("app.loading")} />}
       {!isLoading && isError && <ErrorState error={error} onRetry={() => refetch()} />}
 
       {!isLoading && !isError && (
@@ -335,54 +341,45 @@ export function DebtsRoute() {
         }}
         onPay={() => selectedDebt && openPay(selectedDebt)}
         onEdit={() => selectedDebt && openEdit(selectedDebt)}
+        onDelete={() => selectedDebt && setDeleteId(selectedDebt.id)}
         onUnsettle={() => selectedDebt && handleUnsettle(selectedDebt.id)}
         onUndoPayment={() => selectedDebt && handleUndoPayment(selectedDebt.id)}
         unsettlePending={unsettle.isPending}
         undoPaymentPending={undoPayment.isPending}
       />
 
-      {payingDebt ? (
-        <DebtPayPanel
-          debt={payingDebt}
-          accounts={accountList}
-          payAccountId={payAccountId}
-          onPayAccountChange={setPayAccountId}
-          onOpenChange={(open) => {
-            if (!open) setPayingId(null);
-          }}
-          onConfirm={confirmPay}
-          submitting={settle.isPending || registerPayment.isPending}
-        />
-      ) : null}
+      <DebtPayPanel
+        debt={payingDebt}
+        accounts={accountList}
+        payAccountId={payAccountId}
+        onPayAccountChange={setPayAccountId}
+        onOpenChange={(open) => {
+          if (!open) setPayingId(null);
+        }}
+        onConfirm={confirmPay}
+        submitting={settle.isPending || registerPayment.isPending}
+      />
 
-      {form ? (
-        <DebtFormPanel
-          open
-          onOpenChange={(open) => {
-            if (!open) setForm(null);
-          }}
-          mode={form.mode}
-          value={formValue}
-          onChange={(patch) => setFormValue((v) => ({ ...v, ...patch }))}
-          accounts={accountList}
-          onSubmit={submitForm}
-          submitting={create.isPending || update.isPending}
-          dirty={form.mode === "edit"}
-        />
-      ) : null}
+      <DebtFormPanel
+        open={form !== null}
+        onOpenChange={(open) => {
+          if (!open) setForm(null);
+        }}
+        mode={retainedForm?.mode ?? "create"}
+        value={formValue}
+        onChange={(patch) => setFormValue((v) => ({ ...v, ...patch }))}
+        accounts={accountList}
+        onSubmit={submitForm}
+        submitting={create.isPending || update.isPending}
+        dirty={retainedForm?.mode === "edit"}
+      />
 
-      <ConfirmModal
-        open={deleteId !== null}
+      <DebtDeleteConfirm
+        debt={deletingDebt}
         onOpenChange={(open) => {
           if (!open) setDeleteId(null);
         }}
         onConfirm={confirmDelete}
-        title={t("common.confirmDeleteTitle")}
-        description={
-          deletingDebt
-            ? t("debts.delete.description", { name: deletingDebt.counterparty })
-            : t("common.confirmDelete")
-        }
         loading={remove.isPending}
       />
     </div>

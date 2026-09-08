@@ -105,7 +105,6 @@ function renderPanel(
   render(
     <I18nextProvider i18n={i18n}>
       <PayInstallmentPanel
-        open
         onOpenChange={vi.fn()}
         plan={thePlan}
         payment={thePayment}

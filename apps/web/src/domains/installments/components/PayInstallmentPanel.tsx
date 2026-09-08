@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
+import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { DateField } from "../../../shared/ui/date-field";
 import { DetailRow } from "../../../shared/ui/detail-row";
 import { FormSurface } from "../../../shared/ui/overlay";
@@ -21,10 +22,10 @@ export interface PayInstallmentFormValue {
 }
 
 interface Props {
-  open: boolean;
   onOpenChange: (open: boolean) => void;
-  plan: installments.InstallmentPlan;
-  payment: installments.InstallmentPayment;
+  /** The plan/payment to pay, or null when the panel is closed. */
+  plan: installments.InstallmentPlan | null;
+  payment: installments.InstallmentPayment | null;
   accounts: accountsContract.BankAccount[];
   value: PayInstallmentFormValue;
   onChange: (patch: Partial<PayInstallmentFormValue>) => void;
@@ -43,10 +44,9 @@ interface Props {
  * the account-currency one.
  */
 export function PayInstallmentPanel({
-  open,
   onOpenChange,
-  plan,
-  payment,
+  plan: planProp,
+  payment: paymentProp,
   accounts,
   value,
   onChange,
@@ -54,6 +54,15 @@ export function PayInstallmentPanel({
   submitting = false,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
+
+  // Retained through the close so the panel can play its exit animation
+  // instead of vanishing the instant `plan`/`payment` clear. Two separate
+  // calls, not one combining both into a fresh object every render — a new
+  // object is never `===` its predecessor, so `useLastNonNull` would see it
+  // as "changed" on every render and re-render forever.
+  const plan = useLastNonNull(planProp);
+  const payment = useLastNonNull(paymentProp);
+  if (plan === null || payment === null) return null;
 
   // FR-028b: settling debt with debt moves no money and would distort the pool —
   // the same refusal a transfer already makes for a credit destination. Excluded
@@ -91,7 +100,7 @@ export function PayInstallmentPanel({
 
   return (
     <FormSurface
-      open={open}
+      open={planProp !== null && paymentProp !== null}
       onOpenChange={onOpenChange}
       mode="create"
       surface="panel"

@@ -1,4 +1,4 @@
-import { CircleCheck, Pencil, PlusCircle, Trash2 } from "lucide-react";
+import { Banknote, Pencil, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import type { debts } from "@finance/contracts";
@@ -190,25 +190,19 @@ export function DebtTable({
                     onClick={(e) => e.stopPropagation()}
                   >
                     {!isSettled ? (
-                      hasInstallments && !allPaid ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          aria-label={t("debts.card.registerPayment")}
-                          onClick={() => onPay(debt)}
-                        >
-                          <PlusCircle className="h-4 w-4" aria-hidden />
-                        </Button>
-                      ) : (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          aria-label={t("debts.card.markPaid")}
-                          onClick={() => onPay(debt)}
-                        >
-                          <CircleCheck className="h-4 w-4" aria-hidden />
-                        </Button>
-                      )
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={t(
+                          hasInstallments && !allPaid
+                            ? "debts.card.registerPayment"
+                            : "debts.card.markPaid",
+                        )}
+                        className="text-accent hover:bg-accent/10"
+                        onClick={() => onPay(debt)}
+                      >
+                        <Banknote className="h-4 w-4" aria-hidden />
+                      </Button>
                     ) : null}
                     <Button
                       variant="ghost"

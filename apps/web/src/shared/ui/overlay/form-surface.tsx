@@ -22,6 +22,15 @@ interface FormSurfaceProps {
    * behind it is useful context; `modal` stays for the short, self-contained ones.
    */
   surface?: "modal" | "panel";
+  /** `panel` only: `compact` narrows it and outranks the panel it was opened
+   * FROM (see `Drawer`'s own doc) — pass it when this form is nested inside
+   * another still-open panel, so that one stays visible as a stack, not a
+   * sibling overlay Radix's dismissable layer would otherwise fight with. */
+  size?: "default" | "compact";
+  /** `panel` only: forwarded to `Drawer`'s own `nested` — elevates this form's
+   * z-index to outrank the panel it was opened FROM, independent of `size`
+   * (a nested form doesn't have to be narrower). */
+  nested?: boolean;
   /** Usually a string; a node for a form whose visible title lives in its body
    * (pass an `sr-only` span so the dialog still has an accessible name). */
   title: ReactNode;
@@ -62,6 +71,8 @@ export function FormSurface({
   onOpenChange,
   mode,
   surface = "modal",
+  size,
+  nested,
   title,
   eyebrow,
   hideCancel = false,
@@ -84,6 +95,7 @@ export function FormSurface({
     <Shell
       open={open}
       onOpenChange={onOpenChange}
+      {...(surface === "panel" ? { size: size ?? "default", nested } : {})}
       title={title}
       eyebrow={eyebrow}
       description={description}

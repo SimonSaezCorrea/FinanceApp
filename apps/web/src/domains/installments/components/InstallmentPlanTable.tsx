@@ -1,6 +1,6 @@
 import type { installments } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
-import { Pencil, Trash2 } from "lucide-react";
+import { Banknote, Pencil, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "../../../shared/ui/button";
@@ -20,6 +20,11 @@ interface InstallmentPlanTableProps {
   readonly onSelect: (id: string) => void;
   readonly onEdit: (plan: installments.InstallmentPlan) => void;
   readonly onDelete: (id: string) => void;
+  /** Quick-pay the plan's next due instalment straight from the row — same
+   * shortcut `DebtTable` offers, so a returning user doesn't have to open the
+   * detail panel just to pay. Omitted for a plan with nothing payable
+   * (`next === null`): a CREDIT-card plan settles only via its statement. */
+  readonly onPay: (planId: string, sequence: number) => void;
   /** Shown, spanning the table, when `plans` is empty — the header row stays
    * up regardless, same as `TransactionTable`'s own empty row. */
   readonly emptyTitle: string;
@@ -48,6 +53,7 @@ export function InstallmentPlanTable({
   onSelect,
   onEdit,
   onDelete,
+  onPay,
   emptyTitle,
   emptyMessage,
   error,
@@ -206,6 +212,20 @@ export function InstallmentPlanTable({
                   {/* Shared `Button`, same as every other table's row actions —
                     this used to be its own duplicate icon-button component. */}
                   <div className="flex justify-end gap-1">
+                    {next && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        aria-label={t("installments.detail.payNext", { sequence: next.sequence })}
+                        className="text-accent hover:bg-accent/10"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPay(plan.id, next.sequence);
+                        }}
+                      >
+                        <Banknote className="h-4 w-4" aria-hidden />
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"

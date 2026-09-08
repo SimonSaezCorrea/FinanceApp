@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
 import { cn } from "../../../shared/lib/cn";
+import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
 import { CategoryIcon } from "../../../shared/ui/category-icon";
 import { SidePanel } from "../../../shared/ui/overlay";
@@ -47,7 +48,7 @@ interface InstallmentDetailPanelProps {
  * list inside.
  */
 export function InstallmentDetailPanel({
-  plan,
+  plan: planProp,
   cardLabel,
   accountId,
   partiallyPaidStatementIds,
@@ -60,6 +61,9 @@ export function InstallmentDetailPanel({
 }: InstallmentDetailPanelProps) {
   const { t, i18n } = useTranslation();
 
+  // Retained through the close so the panel can play its exit animation
+  // instead of vanishing the instant `plan` clears.
+  const plan = useLastNonNull(planProp);
   if (plan === null) return null;
 
   const money = (value: string) =>
@@ -73,7 +77,7 @@ export function InstallmentDetailPanel({
 
   return (
     <SidePanel
-      open
+      open={planProp !== null}
       onOpenChange={onOpenChange}
       eyebrow={t("installments.detail.eyebrow")}
       title={plan.title}

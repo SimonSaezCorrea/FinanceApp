@@ -13,6 +13,16 @@ export interface DrawerProps extends SurfaceContent {
    * sub-task, not a whole screen.
    */
   size?: "default" | "compact";
+  /**
+   * True when this panel was opened FROM another still-open panel — elevates
+   * its z-index (overlay + content) to outrank the parent regardless of
+   * width, and is what stops Radix's dismissable layer from reading the
+   * parent as "outside" the newly-opened one. Defaults to `size === "compact"`
+   * for the common case (a nested panel is usually also narrower), but a
+   * nested panel can stay full width instead — width and stacking are
+   * independent questions.
+   */
+  nested?: boolean;
   className?: string;
 }
 
@@ -32,17 +42,18 @@ export function Drawer({
   open,
   onOpenChange,
   size = "default",
+  nested,
   className,
   ...content
 }: Readonly<DrawerProps>) {
-  // `compact` exists precisely because the panel was opened from another one, so
-  // it also decides the layer — no second flag for the same fact.
-  const nested = size === "compact";
+  // `compact` panels are nested by default (the common case); a nested panel
+  // can also opt to stay full width via `nested` on its own.
+  const isNested = nested ?? size === "compact";
   // Inline, not a class: a nested panel has to outrank the one it was opened
   // FROM (z-modal, 1300), and a Tailwind token for it lives in the config — which
   // only recompiles when the dev server restarts. A stacked panel silently
   // rendering behind its parent is too quiet a failure to leave to that.
-  const layer = nested ? { overlay: 1350, content: 1360 } : undefined;
+  const layer = isNested ? { overlay: 1350, content: 1360 } : undefined;
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
@@ -61,7 +72,7 @@ export function Drawer({
           className={cn(
             "fixed inset-y-0 right-0 min-w-[320px] focus:outline-none",
             "z-modal",
-            nested ? "w-[42%] max-w-md" : "w-[62%] max-w-2xl",
+            size === "compact" ? "w-[42%] max-w-md" : "w-[62%] max-w-2xl",
             "data-[state=open]:animate-in data-[state=open]:slide-in-from-right",
             "data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right",
             className,
