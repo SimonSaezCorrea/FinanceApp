@@ -83,6 +83,20 @@ function renderRoute() {
   );
 }
 
+/**
+ * `SavingsGoalRow` is now a `SwipeRow` — its tap is decided from a pointer
+ * gesture with (near) zero horizontal travel, not a `click` (see
+ * `swipe-row.test.tsx`'s own `drag` helper, mirrored in `DebtsRoute.test.tsx`).
+ * jsdom's `PointerEvent` drops `clientX`, so the sequence is dispatched as
+ * `MouseEvent`s the way that suite does.
+ */
+function tapRow(text: HTMLElement) {
+  const pointer = (target: HTMLElement | Document, type: string, clientX: number) =>
+    fireEvent(target, new MouseEvent(type, { clientX, bubbles: true }));
+  pointer(text, "pointerdown", 200);
+  pointer(document, "pointerup", 200);
+}
+
 describe("SavingsRoute", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -96,7 +110,6 @@ describe("SavingsRoute", () => {
     renderRoute();
 
     await waitFor(() => expect(screen.getByText(/Emergency fund/)).toBeDefined());
-    expect(screen.getByText(i18n.t("savings.status.noContributions"))).toBeDefined();
   });
 
   it("shows the empty state when there are no goals and no free-savings entries", async () => {
@@ -105,14 +118,17 @@ describe("SavingsRoute", () => {
     await waitFor(() => expect(screen.getByText(i18n.t("savings.empty"))).toBeDefined());
   });
 
-  it("clicking a goal row opens its detail panel", async () => {
+  it("clicking a goal row opens its detail panel, with its status line", async () => {
     vi.mocked(savingsApi.listGoals).mockResolvedValue([makeGoal()]);
     renderRoute();
 
     await waitFor(() => expect(screen.getByText(/Emergency fund/)).toBeDefined());
-    fireEvent.click(screen.getByText(/Emergency fund/));
+    tapRow(screen.getByText(/Emergency fund/));
 
     await waitFor(() => expect(screen.getByText(i18n.t("savings.detail.eyebrow"))).toBeDefined());
+    // The status line (pace/deadline/etc.) moved out of the compact row —
+    // long text there broke the layout — and lives only in the detail panel now.
+    expect(screen.getByText(i18n.t("savings.status.noContributions"))).toBeDefined();
   });
 
   it("a cumplida goal shows the close action", async () => {

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { accounts as accountsContract, recurring } from "@finance/contracts";
@@ -34,6 +35,9 @@ export function RecurringGroup({
 }: Props) {
   const { t, i18n } = useTranslation();
   const accountName = (id: string | null) => accounts.find((a) => a.id === id)?.name ?? null;
+  // Only one row's swipe panel open at a time within this group — opening
+  // another closes the previous one for free, since both read off this id.
+  const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
 
   const meta = paused
     ? t("recurring.groups.pausedMeta", { count: items.length })
@@ -62,6 +66,8 @@ export function RecurringGroup({
               key={r.id}
               r={r}
               accountName={accountName(r.bankAccountId)}
+              swipeOpen={openSwipeId === r.id}
+              onSwipeOpenChange={(open) => setOpenSwipeId(open ? r.id : null)}
               onSelect={() => onSelect(r)}
               onTogglePause={() => onTogglePause(r)}
               onEdit={() => onEdit(r)}

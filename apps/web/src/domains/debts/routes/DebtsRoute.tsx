@@ -323,6 +323,8 @@ export function DebtsRoute() {
               <DebtList
                 debts={filtered}
                 onSelect={selectDebt}
+                onEdit={openEdit}
+                onDelete={setDeleteId}
                 emptyTitle={t("debts.empty")}
                 emptyMessage={t("debts.emptyHint")}
                 error={error}

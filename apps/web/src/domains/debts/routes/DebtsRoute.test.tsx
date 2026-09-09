@@ -83,6 +83,20 @@ function renderRoute() {
   );
 }
 
+/**
+ * `DebtList`'s row is now a `SwipeRow` — its tap is decided from a pointer
+ * gesture with (near) zero horizontal travel, not a `click` (see
+ * `swipe-row.test.tsx`'s own `drag` helper). jsdom's `PointerEvent` drops
+ * `clientX`, so the sequence is dispatched as `MouseEvent`s the way that
+ * suite does.
+ */
+function tapRow(text: HTMLElement) {
+  const pointer = (target: HTMLElement | Document, type: string, clientX: number) =>
+    fireEvent(target, new MouseEvent(type, { clientX, bubbles: true }));
+  pointer(text, "pointerdown", 200);
+  pointer(document, "pointerup", 200);
+}
+
 describe("DebtsRoute", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -105,7 +119,7 @@ describe("DebtsRoute", () => {
     renderRoute();
 
     await waitFor(() => expect(screen.getByText(/Acme Corp/)).toBeDefined());
-    fireEvent.click(screen.getByText(/Acme Corp/));
+    tapRow(screen.getByText(/Acme Corp/));
 
     await waitFor(() => expect(screen.getByText(i18n.t("debts.detail.eyebrow"))).toBeDefined());
   });
@@ -115,7 +129,7 @@ describe("DebtsRoute", () => {
     renderRoute();
 
     await waitFor(() => expect(screen.getByText(/Acme Corp/)).toBeDefined());
-    fireEvent.click(screen.getByText(/Acme Corp/));
+    tapRow(screen.getByText(/Acme Corp/));
     await waitFor(() => expect(screen.getByText(i18n.t("debts.detail.eyebrow"))).toBeDefined());
 
     fireEvent.click(screen.getByRole("button", { name: i18n.t("common.edit") }));

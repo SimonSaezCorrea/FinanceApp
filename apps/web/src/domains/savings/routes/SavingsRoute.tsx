@@ -96,6 +96,9 @@ export function SavingsRoute() {
   );
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [freeSavingsOpen, setFreeSavingsOpen] = useState(false);
+  // Only one goal row's swipe panel open at a time — opening another closes
+  // the previous one for free, since both read off this single id.
+  const [openSwipeGoalId, setOpenSwipeGoalId] = useState<string | null>(null);
   const [closeTarget, setCloseTarget] = useState<savings.SavingsGoal | null>(null);
   const [closeValue, setCloseValue] = useState<SavingsGoalCloseValue | null>(null);
   const [deleteGoalTarget, setDeleteGoalTarget] = useState<savings.SavingsGoal | null>(null);
@@ -353,10 +356,13 @@ export function SavingsRoute() {
                       key={goal.id}
                       goal={goal}
                       currency={preferredCurrency}
+                      swipeOpen={openSwipeGoalId === goal.id}
+                      onSwipeOpenChange={(open) => setOpenSwipeGoalId(open ? goal.id : null)}
                       onSelect={() => setSelectedGoalId(goal.id)}
                       onContribute={() => openContribute(goal.id)}
                       onEdit={() => openEditGoal(goal)}
                       onClose={() => openClose(goal)}
+                      onDelete={() => setDeleteGoalTarget(goal)}
                     />
                   ))}
                 </div>
