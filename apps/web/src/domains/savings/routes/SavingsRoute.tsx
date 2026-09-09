@@ -8,6 +8,12 @@ import type { savings } from "@finance/contracts";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { cn } from "../../../shared/lib/cn";
+import {
+  ASIDE_MIN_WIDTH,
+  TABLE_ROW_MIN_WIDTH,
+  useElementWidth,
+} from "../../../shared/lib/useElementWidth";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
@@ -15,6 +21,7 @@ import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { ClosedGoalsSection } from "../components/ClosedGoalsSection";
 import { FreeSavingsDetailPanel } from "../components/FreeSavingsDetailPanel";
 import { FreeSavingsSection } from "../components/FreeSavingsSection";
+import { SavingsInsightsRail } from "../components/SavingsInsightsRail";
 import {
   emptySavingsEntryForm,
   entryFormFrom,
@@ -38,6 +45,7 @@ import {
   type SavingsGoalFormValue,
 } from "../components/SavingsGoalFormPanel";
 import { SavingsGoalRow } from "../components/SavingsGoalRow";
+import { SavingsGoalTable } from "../components/SavingsGoalTable";
 import { SavingsGroupHeader } from "../components/SavingsGroupHeader";
 import { SavingsSkeleton } from "../components/SavingsSkeleton";
 import { SavingsTotalCard } from "../components/SavingsTotalCard";
@@ -301,8 +309,21 @@ export function SavingsRoute() {
 
   const missing = summaryData?.missing ?? "0";
 
+  // Second column only where the account detail's own aside already earns
+  // one (`ASIDE_MIN_WIDTH`, measured on this view — a sidebar-driven width
+  // change a media query can't see).
+  const [shellRef, shellWidth] = useElementWidth();
+  const isDesktop = shellWidth !== null && shellWidth >= ASIDE_MIN_WIDTH;
+
+  // Table vs. compact row, measured on the goals column itself (not the
+  // whole shell): once the insights rail claims its own 300px, this column
+  // is narrower than the shell — same `TABLE_ROW_MIN_WIDTH` Deudas/Cuotas/
+  // Movimientos already share.
+  const [goalsColRef, goalsColWidth] = useElementWidth();
+  const showTable = goalsColWidth !== null && goalsColWidth >= TABLE_ROW_MIN_WIDTH;
+
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={shellRef} className="flex flex-col gap-6">
       <PageHeader
         title={t("savings.title")}
         description={
@@ -331,60 +352,77 @@ export function SavingsRoute() {
       )}
 
       {!goalsLoading && !goalsError && (goals.length > 0 || freeEntries.length > 0) ? (
-        <>
-          {summaryData ? (
-            <SavingsTotalCard
-              summary={summaryData}
-              openGoals={openGoals}
-              closedGoals={closedGoals}
-              entries={entries}
-              currency={preferredCurrency}
-            />
-          ) : null}
+        <div className={cn("flex flex-col gap-6", isDesktop && "flex-row items-start")}>
+          <div ref={goalsColRef} className="flex min-w-0 flex-1 flex-col gap-6">
+            {summaryData ? (
+              <SavingsTotalCard
+                summary={summaryData}
+                openGoals={openGoals}
+                closedGoals={closedGoals}
+                entries={entries}
+                currency={preferredCurrency}
+              />
+            ) : null}
 
-          {(["live", "late", "done"] as const).map((key) =>
-            groups[key].length > 0 ? (
-              <div key={key} className="flex flex-col gap-2">
-                <SavingsGroupHeader
-                  title={t(`savings.groups.${key}`)}
-                  amounts={groups[key].map((g) => g.goal.savedAmount)}
-                  currency={preferredCurrency}
-                />
-                <div className="overflow-hidden rounded-[9.6px] border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.28)] [&>*]:last:border-b-0">
-                  {groups[key].map(({ goal }) => (
-                    <SavingsGoalRow
-                      key={goal.id}
-                      goal={goal}
+            {(["live", "late", "done"] as const).map((key) =>
+              groups[key].length > 0 ? (
+                <div key={key} className="flex flex-col gap-2">
+                  <SavingsGroupHeader
+                    title={t(`savings.groups.${key}`)}
+                    amounts={groups[key].map((g) => g.goal.savedAmount)}
+                    currency={preferredCurrency}
+                  />
+                  {showTable ? (
+                    <SavingsGoalTable
+                      goals={groups[key].map((g) => g.goal)}
                       currency={preferredCurrency}
-                      swipeOpen={openSwipeGoalId === goal.id}
-                      onSwipeOpenChange={(open) => setOpenSwipeGoalId(open ? goal.id : null)}
-                      onSelect={() => setSelectedGoalId(goal.id)}
-                      onContribute={() => openContribute(goal.id)}
-                      onEdit={() => openEditGoal(goal)}
-                      onClose={() => openClose(goal)}
-                      onDelete={() => setDeleteGoalTarget(goal)}
+                      onSelect={(goal) => setSelectedGoalId(goal.id)}
+                      onContribute={(goal) => openContribute(goal.id)}
+                      onEdit={openEditGoal}
+                      onClose={openClose}
                     />
-                  ))}
+                  ) : (
+                    <div className="overflow-hidden rounded-[9.6px] border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.28)]">
+                      {groups[key].map(({ goal }) => (
+                        <SavingsGoalRow
+                          key={goal.id}
+                          goal={goal}
+                          currency={preferredCurrency}
+                          swipeOpen={openSwipeGoalId === goal.id}
+                          onSwipeOpenChange={(open) => setOpenSwipeGoalId(open ? goal.id : null)}
+                          onSelect={() => setSelectedGoalId(goal.id)}
+                          onContribute={() => openContribute(goal.id)}
+                          onEdit={() => openEditGoal(goal)}
+                          onClose={() => openClose(goal)}
+                          onDelete={() => setDeleteGoalTarget(goal)}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ) : null,
-          )}
+              ) : null,
+            )}
 
-          <ClosedGoalsSection
-            goals={closedGoals}
-            allGoals={goals}
-            accounts={accounts}
-            currency={preferredCurrency}
-            onReopen={reopenGoal}
-          />
+            <ClosedGoalsSection
+              goals={closedGoals}
+              allGoals={goals}
+              accounts={accounts}
+              currency={preferredCurrency}
+              onReopen={reopenGoal}
+            />
 
-          <FreeSavingsSection
-            entries={freeEntries}
-            currency={preferredCurrency}
-            onSelect={() => setFreeSavingsOpen(true)}
-            onSelectEntry={(e) => setSelectedEntryId(e.id)}
-          />
-        </>
+            <FreeSavingsSection
+              entries={freeEntries}
+              currency={preferredCurrency}
+              onSelect={() => setFreeSavingsOpen(true)}
+              onSelectEntry={(e) => setSelectedEntryId(e.id)}
+            />
+          </div>
+
+          {isDesktop ? (
+            <SavingsInsightsRail goals={openGoals} currency={preferredCurrency} />
+          ) : null}
+        </div>
       ) : null}
 
       <FreeSavingsDetailPanel

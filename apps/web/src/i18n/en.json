@@ -1038,6 +1038,12 @@
       "closeIncomplete": "Close unmet goal",
       "of": "of {{amount}}"
     },
+    "table": {
+      "goal": "Goal",
+      "progress": "Progress",
+      "amount": "Amount",
+      "actions": "Actions"
+    },
     "status": {
       "complete": "Goal met · {{amount}}",
       "overdue": "Due {{date}} · {{amount}} short",
@@ -1067,6 +1073,16 @@
       "noNote": "No note",
       "contribute": "Free contribution",
       "historyEmpty": "No free contributions recorded yet."
+    },
+    "insights": {
+      "upcoming": "Upcoming deadline",
+      "dueIn_one": "Due in {{count}} month",
+      "dueIn_other": "Due in {{count}} months",
+      "missing": "{{amount}} left",
+      "bestPace": "Best pace",
+      "paceValue": "{{amount}}/mo",
+      "ahead_one": "{{count}} month ahead",
+      "ahead_other": "{{count}} months ahead"
     },
     "detail": {
       "eyebrow": "Savings goal",

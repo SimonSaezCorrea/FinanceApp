@@ -1038,6 +1038,12 @@
       "closeIncomplete": "Cerrar meta sin cumplir",
       "of": "de {{amount}}"
     },
+    "table": {
+      "goal": "Meta",
+      "progress": "Progreso",
+      "amount": "Monto",
+      "actions": "Acciones"
+    },
     "status": {
       "complete": "Meta cumplida · {{amount}}",
       "overdue": "Venció el {{date}} · faltan {{amount}}",
@@ -1067,6 +1073,16 @@
       "noNote": "Sin nota",
       "contribute": "Aporte libre",
       "historyEmpty": "Aún no hay aportes libres registrados."
+    },
+    "insights": {
+      "upcoming": "Próximo vencimiento",
+      "dueIn_one": "Vence en {{count}} mes",
+      "dueIn_other": "Vence en {{count}} meses",
+      "missing": "faltan {{amount}}",
+      "bestPace": "Mejor ritmo",
+      "paceValue": "{{amount}}/mes",
+      "ahead_one": "llegas {{count}} mes antes",
+      "ahead_other": "llegas {{count}} meses antes"
     },
     "detail": {
       "eyebrow": "Meta de ahorro",

@@ -152,6 +152,38 @@ export function isGoalComplete(status: SavingsGoalStatus): boolean {
   return status.kind === "complete";
 }
 
+export interface UpcomingDeadline {
+  goal: savings.SavingsGoal;
+  monthsLeft: number;
+}
+
+/** Open goals with a deadline that haven't been reached yet (not complete,
+ * not overdue — those have their own, separate treatment), soonest first —
+ * the insights rail's "Próximo vencimiento" card. */
+export function upcomingDeadlines(
+  goals: savings.SavingsGoal[],
+  now: Date = new Date(),
+  limit = 2,
+): UpcomingDeadline[] {
+  return goals
+    .filter((g) => g.closedAt === null && g.deadline !== null)
+    .filter((g) => {
+      const kind = goalStatus(g, now).kind;
+      return kind !== "complete" && kind !== "overdue";
+    })
+    .map((goal) => ({ goal, monthsLeft: monthsUntil(now, new Date(goal.deadline!)) }))
+    .sort((a, b) => a.monthsLeft - b.monthsLeft)
+    .slice(0, limit);
+}
+
+/** The open goal with the strongest pace — the insights rail's "Mejor ritmo"
+ * card. `null` when no open goal has a real contribution yet. */
+export function bestPaceGoal(goals: savings.SavingsGoal[]): savings.SavingsGoal | null {
+  const withPace = goals.filter((g) => g.closedAt === null && toMoney(g.pace).greaterThan(0));
+  if (withPace.length === 0) return null;
+  return withPace.reduce((best, g) => (toMoney(g.pace).greaterThan(best.pace) ? g : best));
+}
+
 export function sumAmounts(amounts: string[]): string {
   return amounts.reduce((acc, a) => addMoney(acc, a), "0");
 }

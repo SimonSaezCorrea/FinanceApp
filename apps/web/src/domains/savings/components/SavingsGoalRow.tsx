@@ -51,92 +51,98 @@ export function SavingsGoalRow({
   const money = (v: string) => formatMoney(v, { locale: i18n.language, currency });
 
   return (
-    <SwipeRow
-      open={swipeOpen}
-      onOpenChange={onSwipeOpenChange}
-      onEdit={onEdit}
-      onDelete={onDelete}
-      onTap={onSelect}
-    >
-      <div
-        className="flex cursor-pointer items-center gap-[14px] border-b border-border p-[14px_16px] last:border-b-0"
-        style={{ borderLeft: `2px solid ${visual.color}` }}
+    <div className="border-b border-border last:border-b-0">
+      <SwipeRow
+        open={swipeOpen}
+        onOpenChange={onSwipeOpenChange}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onTap={onSelect}
       >
-        <span
-          className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground"
-          aria-hidden
+        <div
+          className="flex cursor-pointer items-center gap-[14px] p-[14px_16px]"
+          style={{ borderLeft: `2px solid ${visual.color}` }}
         >
-          <Icon className="h-4 w-4" />
-        </span>
-
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-          <div className="flex items-baseline justify-between gap-3">
-            <span className="truncate text-[15px] font-medium text-foreground">{goal.title}</span>
-            <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{pct}%</span>
-          </div>
-          <div className="h-[6px] w-full rounded-full bg-track">
-            <div
-              className="h-full rounded-full"
-              style={{ width: `${pct}%`, backgroundColor: visual.color }}
-            />
-          </div>
-        </div>
-
-        <div className="flex w-32 shrink-0 flex-col items-end">
-          <span className="text-[15px] font-semibold tabular-nums text-foreground">
-            {money(goal.savedAmount)}
-          </span>
-          <span className="text-[11px] tabular-nums text-muted-foreground">
-            {t("savings.row.of", { amount: money(goal.targetAmount) })}
-          </span>
-        </div>
-
-        {/* `data-swipe-action`: stays clickable on its own from `sm` up
-            without also registering as a tap on the row underneath. */}
-        <div data-swipe-action className="hidden shrink-0 items-center gap-1 sm:flex">
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={t("savings.row.registerContribution")}
-            onClick={(e) => {
-              e.stopPropagation();
-              onContribute();
-            }}
+          <span
+            className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground"
+            aria-hidden
           >
-            <PlusCircle className="h-4 w-4" aria-hidden />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={t("savings.row.editGoal")}
-            onClick={(e) => {
-              e.stopPropagation();
-              onEdit();
-            }}
-          >
-            <PencilLine className="h-4 w-4" aria-hidden />
-          </Button>
-          {closeable ? (
+            <Icon className="h-4 w-4" />
+          </span>
+
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="truncate text-[15px] font-medium text-foreground">
+                {goal.title}
+              </span>
+              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{pct}%</span>
+            </div>
+            <div className="h-[6px] w-full rounded-full bg-track">
+              <div
+                className="h-full rounded-full"
+                style={{ width: `${pct}%`, backgroundColor: visual.color }}
+              />
+            </div>
+          </div>
+
+          <div className="flex w-32 shrink-0 flex-col items-end">
+            <span className="text-[15px] font-semibold tabular-nums text-foreground">
+              {money(goal.savedAmount)}
+            </span>
+            <span className="text-[11px] tabular-nums text-muted-foreground">
+              {t("savings.row.of", { amount: money(goal.targetAmount) })}
+            </span>
+          </div>
+
+          {/* `data-swipe-action`: stays clickable on its own from `sm` up
+              without also registering as a tap on the row underneath. */}
+          <div data-swipe-action className="hidden shrink-0 items-center gap-1 sm:flex">
             <Button
               variant="ghost"
               size="sm"
-              aria-label={t(
-                isGoalComplete(status) ? "savings.row.closeComplete" : "savings.row.closeIncomplete",
-              )}
+              aria-label={t("savings.row.registerContribution")}
               onClick={(e) => {
                 e.stopPropagation();
-                onClose();
+                onContribute();
               }}
             >
-              {isGoalComplete(status) ? (
-                <Archive className="h-4 w-4" aria-hidden />
-              ) : (
-                <CircleX className="h-4 w-4" aria-hidden />
-              )}
+              <PlusCircle className="h-4 w-4" aria-hidden />
             </Button>
-          ) : null}
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={t("savings.row.editGoal")}
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+            >
+              <PencilLine className="h-4 w-4" aria-hidden />
+            </Button>
+            {closeable ? (
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-label={t(
+                  isGoalComplete(status)
+                    ? "savings.row.closeComplete"
+                    : "savings.row.closeIncomplete",
+                )}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                }}
+              >
+                {isGoalComplete(status) ? (
+                  <Archive className="h-4 w-4" aria-hidden />
+                ) : (
+                  <CircleX className="h-4 w-4" aria-hidden />
+                )}
+              </Button>
+            ) : null}
+          </div>
         </div>
-      </div>
-    </SwipeRow>
+      </SwipeRow>
+    </div>
   );
 }
