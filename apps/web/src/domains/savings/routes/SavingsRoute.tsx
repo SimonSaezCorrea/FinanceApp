@@ -8,17 +8,28 @@ import type { savings } from "@finance/contracts";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { ClosedGoalsSection } from "../components/ClosedGoalsSection";
+import { FreeSavingsDetailPanel } from "../components/FreeSavingsDetailPanel";
 import { FreeSavingsSection } from "../components/FreeSavingsSection";
+import {
+  emptySavingsEntryForm,
+  entryFormFrom,
+  SavingsEntryFormPanel,
+  type SavingsEntryFormValue,
+} from "../components/SavingsEntryFormPanel";
+import { SavingsEntryDeleteConfirm } from "../components/SavingsEntryDeleteConfirm";
+import { SavingsEntryDetailPanel } from "../components/SavingsEntryDetailPanel";
 import {
   defaultCloseValue,
   SavingsGoalClosePanel,
   type CloseDestination,
   type SavingsGoalCloseValue,
 } from "../components/SavingsGoalClosePanel";
+import { SavingsGoalDeleteConfirm } from "../components/SavingsGoalDeleteConfirm";
 import { SavingsGoalDetailPanel } from "../components/SavingsGoalDetailPanel";
 import {
   emptySavingsGoalForm,
@@ -29,11 +40,6 @@ import {
 import { SavingsGoalRow } from "../components/SavingsGoalRow";
 import { SavingsGroupHeader } from "../components/SavingsGroupHeader";
 import { SavingsSkeleton } from "../components/SavingsSkeleton";
-import {
-  emptySavingsEntryForm,
-  SavingsEntryFormPanel,
-  type SavingsEntryFormValue,
-} from "../components/SavingsEntryFormPanel";
 import { SavingsTotalCard } from "../components/SavingsTotalCard";
 import {
   useSavingsEntries,
@@ -82,11 +88,26 @@ export function SavingsRoute() {
   const [goalFormValue, setGoalFormValue] = useState<SavingsGoalFormValue>(() =>
     emptySavingsGoalForm(preferredCurrency),
   );
-  const [entryForm, setEntryForm] = useState<SavingsEntryFormValue | null>(null);
+  const [entryForm, setEntryForm] = useState<{ mode: "create" | "edit"; id: string | null } | null>(
+    null,
+  );
+  const [entryFormValue, setEntryFormValue] = useState<SavingsEntryFormValue>(() =>
+    emptySavingsEntryForm(todayInput()),
+  );
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [freeSavingsOpen, setFreeSavingsOpen] = useState(false);
   const [closeTarget, setCloseTarget] = useState<savings.SavingsGoal | null>(null);
   const [closeValue, setCloseValue] = useState<SavingsGoalCloseValue | null>(null);
+  const [deleteGoalTarget, setDeleteGoalTarget] = useState<savings.SavingsGoal | null>(null);
+  const [deleteEntryTarget, setDeleteEntryTarget] = useState<savings.SavingsEntry | null>(null);
+
+  // Retained through close so the form overlays play their exit animation
+  // instead of unmounting the instant their target clears.
+  const retainedGoalForm = useLastNonNull(goalForm);
+  const retainedEntryForm = useLastNonNull(entryForm);
 
   const selectedGoal = goals.find((g) => g.id === selectedGoalId) ?? null;
+  const selectedEntry = entries.find((e) => e.id === selectedEntryId) ?? null;
 
   function openCreateGoal() {
     setGoalFormValue(emptySavingsGoalForm(preferredCurrency));
@@ -153,7 +174,13 @@ export function SavingsRoute() {
   }
 
   function openContribute(goalId: string | null) {
-    setEntryForm(emptySavingsEntryForm(todayInput(), goalId ?? ""));
+    setEntryFormValue(emptySavingsEntryForm(todayInput(), goalId ?? ""));
+    setEntryForm({ mode: "create", id: null });
+  }
+
+  function openEditEntry(e: savings.SavingsEntry) {
+    setEntryFormValue(entryFormFrom(e));
+    setEntryForm({ mode: "edit", id: e.id });
   }
 
   function submitEntryForm() {
@@ -162,24 +189,64 @@ export function SavingsRoute() {
     // validates against it) — never the user's preferred one, which would be
     // wrong the moment an aporte comes from an account in another currency.
     const entryCurrency =
-      accounts.find((a) => a.id === entryForm.bankAccountId)?.currency ?? preferredCurrency;
-    mutations.createEntry.mutate(
-      {
-        body: {
-          amount: entryForm.amount.trim(),
-          currency: entryCurrency,
-          contributedAt: new Date(`${entryForm.contributedAt}T00:00:00`).toISOString(),
-          savingsGoalId: entryForm.savingsGoalId || undefined,
-          bankAccountId: entryForm.bankAccountId,
-          title: entryForm.title.trim() || undefined,
-          note: entryForm.note.trim() || undefined,
+      accounts.find((a) => a.id === entryFormValue.bankAccountId)?.currency ?? preferredCurrency;
+    const body = {
+      amount: entryFormValue.amount.trim(),
+      currency: entryCurrency,
+      contributedAt: new Date(`${entryFormValue.contributedAt}T00:00:00`).toISOString(),
+      savingsGoalId: entryFormValue.savingsGoalId || undefined,
+      bankAccountId: entryFormValue.bankAccountId,
+      title: entryFormValue.title.trim() || undefined,
+      note: entryFormValue.note.trim() || undefined,
+    };
+
+    if (entryForm.mode === "edit" && entryForm.id) {
+      mutations.updateEntry.mutate(
+        { id: entryForm.id, body, idempotencyKey: crypto.randomUUID() },
+        {
+          onSuccess: () => {
+            toast.success(t("savings.updated"));
+            setEntryForm(null);
+          },
+          onError: (err: unknown) => toast.error(errorMessage(err, t)),
         },
-        idempotencyKey: crypto.randomUUID(),
-      },
+      );
+      return;
+    }
+
+    mutations.createEntry.mutate(
+      { body, idempotencyKey: crypto.randomUUID() },
       {
         onSuccess: () => {
           toast.success(t("savings.entry.registered"));
           setEntryForm(null);
+        },
+        onError: (err: unknown) => toast.error(errorMessage(err, t)),
+      },
+    );
+  }
+
+  function confirmDeleteGoal() {
+    if (!deleteGoalTarget) return;
+    mutations.removeGoal.mutate(deleteGoalTarget.id, {
+      onSuccess: () => {
+        toast.success(t("savings.deletedGoal"));
+        if (selectedGoalId === deleteGoalTarget.id) setSelectedGoalId(null);
+        setDeleteGoalTarget(null);
+      },
+      onError: (err: unknown) => toast.error(errorMessage(err, t)),
+    });
+  }
+
+  function confirmDeleteEntry() {
+    if (!deleteEntryTarget) return;
+    mutations.removeEntry.mutate(
+      { id: deleteEntryTarget.id, idempotencyKey: crypto.randomUUID() },
+      {
+        onSuccess: () => {
+          toast.success(t("savings.entry.deleted"));
+          if (selectedEntryId === deleteEntryTarget.id) setSelectedEntryId(null);
+          setDeleteEntryTarget(null);
         },
         onError: (err: unknown) => toast.error(errorMessage(err, t)),
       },
@@ -308,10 +375,20 @@ export function SavingsRoute() {
           <FreeSavingsSection
             entries={freeEntries}
             currency={preferredCurrency}
-            onContribute={() => openContribute(null)}
+            onSelect={() => setFreeSavingsOpen(true)}
+            onSelectEntry={(e) => setSelectedEntryId(e.id)}
           />
         </>
       ) : null}
+
+      <FreeSavingsDetailPanel
+        open={freeSavingsOpen}
+        entries={freeEntries}
+        currency={preferredCurrency}
+        onOpenChange={setFreeSavingsOpen}
+        onContribute={() => openContribute(null)}
+        onSelectEntry={(e) => setSelectedEntryId(e.id)}
+      />
 
       <SavingsGoalDetailPanel
         goal={selectedGoal}
@@ -323,60 +400,88 @@ export function SavingsRoute() {
         onEdit={() => selectedGoal && openEditGoal(selectedGoal)}
         onContribute={() => selectedGoal && openContribute(selectedGoal.id)}
         onClose={() => selectedGoal && openClose(selectedGoal)}
+        onDelete={() => selectedGoal && setDeleteGoalTarget(selectedGoal)}
+        onSelectEntry={(e) => setSelectedEntryId(e.id)}
       />
 
-      {goalForm ? (
-        <SavingsGoalFormPanel
-          open
-          onOpenChange={(open) => {
-            if (!open) setGoalForm(null);
-          }}
-          mode={goalForm.mode}
-          value={goalFormValue}
-          onChange={(patch) => setGoalFormValue((v) => ({ ...v, ...patch }))}
-          currencyLocked={
-            goalForm.mode === "edit" && entries.some((e) => e.savingsGoalId === goalForm.id)
+      <SavingsEntryDetailPanel
+        entry={selectedEntry}
+        goals={goals}
+        accounts={accounts}
+        onOpenChange={(open) => {
+          if (!open) setSelectedEntryId(null);
+        }}
+        onEdit={() => selectedEntry && openEditEntry(selectedEntry)}
+        onDelete={() => selectedEntry && setDeleteEntryTarget(selectedEntry)}
+      />
+
+      <SavingsGoalFormPanel
+        open={goalForm !== null}
+        onOpenChange={(open) => {
+          if (!open) setGoalForm(null);
+        }}
+        mode={retainedGoalForm?.mode ?? "create"}
+        value={goalFormValue}
+        onChange={(patch) => setGoalFormValue((v) => ({ ...v, ...patch }))}
+        currencyLocked={
+          retainedGoalForm?.mode === "edit" &&
+          entries.some((e) => e.savingsGoalId === retainedGoalForm.id)
+        }
+        onSubmit={submitGoalForm}
+        submitting={mutations.createGoal.isPending || mutations.updateGoal.isPending}
+        dirty={retainedGoalForm?.mode === "edit"}
+      />
+
+      <SavingsEntryFormPanel
+        open={entryForm !== null}
+        onOpenChange={(open) => {
+          if (!open) setEntryForm(null);
+        }}
+        mode={retainedEntryForm?.mode ?? "create"}
+        value={entryFormValue}
+        onChange={(patch) => setEntryFormValue((v) => ({ ...v, ...patch }))}
+        openGoals={openGoals}
+        accounts={accounts}
+        onSubmit={submitEntryForm}
+        submitting={mutations.createEntry.isPending || mutations.updateEntry.isPending}
+        dirty={retainedEntryForm?.mode === "edit"}
+      />
+
+      <SavingsGoalClosePanel
+        open={closeTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCloseTarget(null);
+            setCloseValue(null);
           }
-          onSubmit={submitGoalForm}
-          submitting={mutations.createGoal.isPending || mutations.updateGoal.isPending}
-          dirty={goalForm.mode === "edit"}
-        />
-      ) : null}
+        }}
+        goal={closeTarget}
+        complete={closeTarget ? isGoalComplete(goalStatus(closeTarget, new Date())) : false}
+        value={closeValue}
+        onChange={(patch) => setCloseValue((v) => (v ? { ...v, ...patch } : v))}
+        accounts={accounts}
+        otherOpenGoals={closeTarget ? openGoals.filter((g) => g.id !== closeTarget.id) : []}
+        onSubmit={submitClose}
+        submitting={mutations.closeGoal.isPending}
+      />
 
-      {entryForm ? (
-        <SavingsEntryFormPanel
-          open
-          onOpenChange={(open) => {
-            if (!open) setEntryForm(null);
-          }}
-          value={entryForm}
-          onChange={(patch) => setEntryForm((v) => (v ? { ...v, ...patch } : v))}
-          openGoals={openGoals}
-          accounts={accounts}
-          onSubmit={submitEntryForm}
-          submitting={mutations.createEntry.isPending}
-        />
-      ) : null}
+      <SavingsGoalDeleteConfirm
+        goal={deleteGoalTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteGoalTarget(null);
+        }}
+        onConfirm={confirmDeleteGoal}
+        loading={mutations.removeGoal.isPending}
+      />
 
-      {closeTarget && closeValue ? (
-        <SavingsGoalClosePanel
-          open
-          onOpenChange={(open) => {
-            if (!open) {
-              setCloseTarget(null);
-              setCloseValue(null);
-            }
-          }}
-          goal={closeTarget}
-          complete={isGoalComplete(goalStatus(closeTarget, new Date()))}
-          value={closeValue}
-          onChange={(patch) => setCloseValue((v) => (v ? { ...v, ...patch } : v))}
-          accounts={accounts}
-          otherOpenGoals={openGoals.filter((g) => g.id !== closeTarget.id)}
-          onSubmit={submitClose}
-          submitting={mutations.closeGoal.isPending}
-        />
-      ) : null}
+      <SavingsEntryDeleteConfirm
+        entry={deleteEntryTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteEntryTarget(null);
+        }}
+        onConfirm={confirmDeleteEntry}
+        loading={mutations.removeEntry.isPending}
+      />
     </div>
   );
 }

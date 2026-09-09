@@ -1007,6 +1007,11 @@
     "updated": "Goal updated",
     "reopened": "{{title}} reopened",
     "closedToast": "{{title}} closed",
+    "deletedGoal": "Goal deleted",
+    "delete": {
+      "goalDescription": "The goal «{{title}}» will be deleted. Its recorded contributions aren't removed: they start counting as free savings.",
+      "entryDescription": "This contribution of {{amount}} will be deleted. The movement and the account's balance are reversed."
+    },
     "total": {
       "label": "Saved",
       "note_one": "{{count}} open goal · includes free savings",
@@ -1054,12 +1059,14 @@
       "destinationTransfer": "Transferred to {{goal}}"
     },
     "free": {
+      "eyebrow": "Free savings",
       "title": "FREE SAVINGS",
       "count_one": "{{count}} contribution with no goal",
       "count_other": "{{count}} contributions with no goal",
       "noMeta": "No goal assigned",
       "noNote": "No note",
-      "contribute": "Free contribution"
+      "contribute": "Free contribution",
+      "historyEmpty": "No free contributions recorded yet."
     },
     "detail": {
       "eyebrow": "Savings goal",
@@ -1077,6 +1084,17 @@
       "history": "Contribution history",
       "historyEmpty": "No contributions have been recorded for this goal yet.",
       "entryFallback": "Contribution"
+    },
+    "entryDetail": {
+      "eyebrow": "Contribution",
+      "amount": "Amount",
+      "date": "Date",
+      "account": "Source account",
+      "noAccount": "No account recorded",
+      "goal": "Goal",
+      "noGoal": "Free savings (no goal)",
+      "note": "Note",
+      "noNote": "No note"
     },
     "form": {
       "newEyebrow": "New goal",
@@ -1105,6 +1123,7 @@
     },
     "entry": {
       "eyebrow": "Add contribution",
+      "editEyebrow": "Edit contribution",
       "titleWithGoal": "Contribution to «{{goal}}»",
       "titleFree": "Contribution with no goal",
       "freeChip": "Free savings (no goal)",
@@ -1119,7 +1138,8 @@
       "noteWithGoal": "Adds to the goal's progress and is recorded as a transfer movement.",
       "noteWithoutGoal": "Recorded as free savings; you can assign it to a goal later.",
       "submit": "Add contribution",
-      "registered": "Contribution added"
+      "registered": "Contribution added",
+      "deleted": "Contribution deleted"
     },
     "close": {
       "eyebrowComplete": "Close completed goal",

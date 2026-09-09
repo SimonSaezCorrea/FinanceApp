@@ -10,7 +10,6 @@ import {
   FormTextareaField,
   FormTextField,
 } from "../../../shared/ui/form";
-import { FormChip, type FormChipOption } from "../../../shared/ui/form/FormChip";
 import { FormSurface } from "../../../shared/ui/overlay";
 
 export interface SavingsEntryFormValue {
@@ -25,29 +24,37 @@ export interface SavingsEntryFormValue {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  mode: "create" | "edit";
   value: SavingsEntryFormValue;
   onChange: (patch: Partial<SavingsEntryFormValue>) => void;
   openGoals: savings.SavingsGoal[];
   accounts: accountsContract.BankAccount[];
   onSubmit: () => void;
   submitting?: boolean;
+  dirty?: boolean;
 }
 
-const FREE_SAVINGS = "";
-
-/** Registrar aporte — README §4. Sin `surface="modal"`: es un panel lateral
- * que se apila SOBRE el de detalle, no lo reemplaza. */
+/**
+ * Registrar/editar aporte — README §4. Sin `surface="modal"`: es un panel
+ * lateral que se apila SOBRE el de detalle, no lo reemplaza. La meta de
+ * destino ya la decide el botón que abrió el panel (una meta, "aporte libre",
+ * o el propio aporte que se está editando) — no hay selector de destino
+ * aquí, sería redundante con lo que el título ya dice.
+ */
 export function SavingsEntryFormPanel({
   open,
   onOpenChange,
+  mode,
   value,
   onChange,
   openGoals,
   accounts,
   onSubmit,
   submitting = false,
+  dirty = false,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
+  const creating = mode === "create";
   const selectedGoal = openGoals.find((g) => g.id === value.savingsGoalId) ?? null;
   const selectedAccount = accounts.find((a) => a.id === value.bankAccountId) ?? null;
   // The account actually decides the real currency (it's what the backend
@@ -55,11 +62,6 @@ export function SavingsEntryFormPanel({
   // account is chosen. Ahorro libre has no currency of its own, so it follows
   // whichever account the user picks (it can differ aporte to aporte).
   const currency = selectedAccount?.currency ?? selectedGoal?.currency ?? "CLP";
-
-  const destinationOptions: FormChipOption<string>[] = [
-    { value: FREE_SAVINGS, label: t("savings.entry.freeChip") },
-    ...openGoals.map((g) => ({ value: g.id, label: g.title })),
-  ];
 
   // A goal locks a currency (the backend rejects a mismatch) — ahorro libre
   // has none of its own, so any currency's account is fair game there.
@@ -84,9 +86,9 @@ export function SavingsEntryFormPanel({
     <FormSurface
       open={open}
       onOpenChange={onOpenChange}
-      mode="create"
+      mode={mode}
       surface="panel"
-      eyebrow={t("savings.entry.eyebrow")}
+      eyebrow={creating ? t("savings.entry.eyebrow") : t("savings.entry.editEyebrow")}
       title={
         <span className="text-[28px] font-semibold tracking-tight">
           {selectedGoal
@@ -97,13 +99,14 @@ export function SavingsEntryFormPanel({
       hideCancel
       canSubmit={canSubmit}
       submitting={submitting}
-      submitLabel={t("savings.entry.submit")}
+      dirty={dirty}
+      submitLabel={creating ? t("savings.entry.submit") : undefined}
       onSubmit={onSubmit}
       className="z-[1500]"
     >
       <div className="flex flex-col gap-5">
         <div className="flex items-baseline gap-2 border-b border-border pb-3">
-          <span className="text-[30px] font-semibold text-success" aria-hidden>
+          <span className="text-[30px] font-semibold text-accent" aria-hidden>
             +
           </span>
           <input
@@ -112,22 +115,10 @@ export function SavingsEntryFormPanel({
             onChange={(e) => onChange({ amount: e.target.value.replace(/\D/g, "") })}
             placeholder="0"
             aria-label={t("savings.entry.eyebrow")}
-            className="min-w-0 max-w-[240px] flex-1 border-0 bg-transparent p-0 text-[32px] font-semibold tabular-nums text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+            className="min-w-0 max-w-[240px] flex-1 border-0 bg-transparent p-0 text-[32px] font-semibold tabular-nums text-accent placeholder:text-accent/50 focus-visible:outline-none"
           />
           <span className="ml-auto shrink-0 text-sm text-muted-foreground">{currency}</span>
         </div>
-
-        <FormChip
-          value={value.savingsGoalId}
-          onChange={(savingsGoalId) => {
-            const newGoal = openGoals.find((g) => g.id === savingsGoalId) ?? null;
-            const accountStillValid =
-              !newGoal || !selectedAccount || selectedAccount.currency === newGoal.currency;
-            onChange({ savingsGoalId, ...(accountStillValid ? {} : { bankAccountId: "" }) });
-          }}
-          options={destinationOptions}
-          aria-label={t("savings.entry.eyebrow")}
-        />
 
         <div className="flex flex-col">
           <FormTextField
@@ -180,5 +171,17 @@ export function emptySavingsEntryForm(today: string, savingsGoalId = ""): Saving
     contributedAt: today,
     bankAccountId: "",
     note: "",
+  };
+}
+
+/** The form as it opens on an existing aporte. */
+export function entryFormFrom(e: savings.SavingsEntry): SavingsEntryFormValue {
+  return {
+    amount: e.amount,
+    savingsGoalId: e.savingsGoalId ?? "",
+    title: e.title ?? "",
+    contributedAt: e.contributedAt.slice(0, 10),
+    bankAccountId: e.bankAccountId ?? "",
+    note: e.note ?? "",
   };
 }

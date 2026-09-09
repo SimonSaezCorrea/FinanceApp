@@ -1007,6 +1007,11 @@
     "updated": "Meta actualizada",
     "reopened": "{{title}} reabierta",
     "closedToast": "{{title}} cerrada",
+    "deletedGoal": "Meta eliminada",
+    "delete": {
+      "goalDescription": "Se eliminará la meta «{{title}}». Sus aportes ya registrados no se borran: pasan a contarse como ahorro libre.",
+      "entryDescription": "Se eliminará este aporte de {{amount}}. El movimiento y el saldo de la cuenta se revierten."
+    },
     "total": {
       "label": "Ahorrado",
       "note_one": "{{count}} meta abierta · incluye ahorro libre",
@@ -1054,12 +1059,14 @@
       "destinationTransfer": "Traspasado a {{goal}}"
     },
     "free": {
+      "eyebrow": "Ahorro libre",
       "title": "AHORRO LIBRE",
       "count_one": "{{count}} aporte sin meta",
       "count_other": "{{count}} aportes sin meta",
       "noMeta": "Sin meta asignada",
       "noNote": "Sin nota",
-      "contribute": "Aporte libre"
+      "contribute": "Aporte libre",
+      "historyEmpty": "Aún no hay aportes libres registrados."
     },
     "detail": {
       "eyebrow": "Meta de ahorro",
@@ -1077,6 +1084,17 @@
       "history": "Historial de aportes",
       "historyEmpty": "Aún no hay aportes registrados para esta meta.",
       "entryFallback": "Aporte"
+    },
+    "entryDetail": {
+      "eyebrow": "Aporte",
+      "amount": "Monto",
+      "date": "Fecha",
+      "account": "Cuenta de origen",
+      "noAccount": "Sin cuenta registrada",
+      "goal": "Meta",
+      "noGoal": "Ahorro libre (sin meta)",
+      "note": "Nota",
+      "noNote": "Sin nota"
     },
     "form": {
       "newEyebrow": "Nueva meta",
@@ -1105,6 +1123,7 @@
     },
     "entry": {
       "eyebrow": "Registrar aporte",
+      "editEyebrow": "Editar aporte",
       "titleWithGoal": "Aporte a «{{goal}}»",
       "titleFree": "Aporte sin meta",
       "freeChip": "Ahorro libre (sin meta)",
@@ -1119,7 +1138,8 @@
       "noteWithGoal": "Suma al progreso de la meta y queda como movimiento de traspaso.",
       "noteWithoutGoal": "Queda registrado como ahorro libre; puedes asignarlo a una meta después.",
       "submit": "Registrar aporte",
-      "registered": "Aporte registrado"
+      "registered": "Aporte registrado",
+      "deleted": "Aporte eliminado"
     },
     "close": {
       "eyebrowComplete": "Cerrar meta cumplida",

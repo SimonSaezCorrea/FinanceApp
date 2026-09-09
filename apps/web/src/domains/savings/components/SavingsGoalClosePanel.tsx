@@ -6,6 +6,7 @@ import { formatMoney } from "@finance/money";
 
 import { accountMetaLine } from "../../accounts/lib/accountMeta";
 import { cn } from "../../../shared/lib/cn";
+import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { FormDateField, FormSelectField } from "../../../shared/ui/form";
 import { FormSurface } from "../../../shared/ui/overlay";
 
@@ -21,9 +22,9 @@ export interface SavingsGoalCloseValue {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  goal: savings.SavingsGoal;
+  goal: savings.SavingsGoal | null;
   complete: boolean;
-  value: SavingsGoalCloseValue;
+  value: SavingsGoalCloseValue | null;
   onChange: (patch: Partial<SavingsGoalCloseValue>) => void;
   accounts: accountsContract.BankAccount[];
   otherOpenGoals: savings.SavingsGoal[];
@@ -45,23 +46,28 @@ export function SavingsGoalClosePanel({
   submitting = false,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
-  const money = (v: string) => formatMoney(v, { locale: i18n.language, currency: goal.currency });
+  // Retained through the close so the panel can play its exit animation
+  // instead of vanishing the instant `goal`/`value` clear.
+  const g = useLastNonNull(goal);
+  const v = useLastNonNull(value);
+  if (g === null || v === null) return null;
+  const money = (val: string) => formatMoney(val, { locale: i18n.language, currency: g.currency });
 
   const accountOptions = accounts
-    .filter((a) => a.currency === goal.currency && a.type !== "CREDIT_CARD")
+    .filter((a) => a.currency === g.currency && a.type !== "CREDIT_CARD")
     .map((a) => ({
       value: a.id,
       label: a.name,
       description: accountMetaLine(a, (type) => t(`accounts.type.${type}`)),
     }));
   const targetGoalOptions = otherOpenGoals
-    .filter((g) => g.currency === goal.currency)
-    .map((g) => ({ value: g.id, label: g.title }));
+    .filter((og) => og.currency === g.currency)
+    .map((og) => ({ value: og.id, label: og.title }));
 
   const canSubmit =
-    (value.destination === "WITHDRAW_TO_ACCOUNT" && value.accountId.trim().length > 0) ||
-    (value.destination === "TRANSFER_TO_GOAL" && value.targetGoalId.trim().length > 0) ||
-    value.destination === "FREE_SAVINGS";
+    (v.destination === "WITHDRAW_TO_ACCOUNT" && v.accountId.trim().length > 0) ||
+    (v.destination === "TRANSFER_TO_GOAL" && v.targetGoalId.trim().length > 0) ||
+    v.destination === "FREE_SAVINGS";
 
   return (
     <FormSurface
@@ -71,9 +77,7 @@ export function SavingsGoalClosePanel({
       surface="panel"
       eyebrow={t(complete ? "savings.close.eyebrowComplete" : "savings.close.eyebrowIncomplete")}
       title={
-        <span className="text-[26px] font-semibold">
-          {t("savings.close.title", { goal: goal.title })}
-        </span>
+        <span className="text-[26px] font-semibold">{t("savings.close.title", { goal: g.title })}</span>
       }
       description={t(
         complete ? "savings.close.summaryComplete" : "savings.close.summaryIncomplete",
@@ -91,7 +95,7 @@ export function SavingsGoalClosePanel({
             {t("savings.close.accumulatedLabel")}
           </span>
           <span className="text-[22px] font-semibold tabular-nums text-foreground">
-            {money(goal.savedAmount)}
+            {money(g.savedAmount)}
           </span>
         </div>
 
@@ -100,14 +104,14 @@ export function SavingsGoalClosePanel({
             {t("savings.close.destinationLabel")}
           </h3>
           <DestinationCard
-            active={value.destination === "WITHDRAW_TO_ACCOUNT"}
+            active={v.destination === "WITHDRAW_TO_ACCOUNT"}
             icon={<Banknote className="h-4 w-4" aria-hidden />}
             label={t("savings.close.withdraw")}
             hint={t("savings.close.withdrawHint")}
             onClick={() => onChange({ destination: "WITHDRAW_TO_ACCOUNT" })}
           />
           <DestinationCard
-            active={value.destination === "FREE_SAVINGS"}
+            active={v.destination === "FREE_SAVINGS"}
             icon={<PiggyBank className="h-4 w-4" aria-hidden />}
             label={t("savings.close.free")}
             hint={t("savings.close.freeHint")}
@@ -115,7 +119,7 @@ export function SavingsGoalClosePanel({
           />
           {targetGoalOptions.length > 0 ? (
             <DestinationCard
-              active={value.destination === "TRANSFER_TO_GOAL"}
+              active={v.destination === "TRANSFER_TO_GOAL"}
               icon={<ArrowRightLeft className="h-4 w-4" aria-hidden />}
               label={t("savings.close.transfer")}
               hint={t("savings.close.transferHint")}
@@ -124,21 +128,21 @@ export function SavingsGoalClosePanel({
           ) : null}
         </div>
 
-        {value.destination === "WITHDRAW_TO_ACCOUNT" ? (
+        {v.destination === "WITHDRAW_TO_ACCOUNT" ? (
           <FormSelectField
             id="close-account"
             label={t("debts.form.account")}
-            value={value.accountId}
+            value={v.accountId}
             onChange={(accountId) => onChange({ accountId })}
             options={accountOptions}
             placeholder={t("savings.entry.accountPlaceholder")}
           />
         ) : null}
-        {value.destination === "TRANSFER_TO_GOAL" ? (
+        {v.destination === "TRANSFER_TO_GOAL" ? (
           <FormSelectField
             id="close-target-goal"
             label={t("savings.close.targetGoalLabel")}
-            value={value.targetGoalId}
+            value={v.targetGoalId}
             onChange={(targetGoalId) => onChange({ targetGoalId })}
             options={targetGoalOptions}
             placeholder={t("savings.close.targetGoalPlaceholder")}
@@ -147,7 +151,7 @@ export function SavingsGoalClosePanel({
 
         <FormDateField
           label={t("savings.close.dateLabel")}
-          value={value.closedAt}
+          value={v.closedAt}
           onChange={(closedAt) => onChange({ closedAt })}
         />
 
