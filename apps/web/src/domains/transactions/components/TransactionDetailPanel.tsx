@@ -85,7 +85,12 @@ export function TransactionDetailPanel({
       ? { to: "/installments", label: t("transactions.detail.viewPlan") }
       : source.kind === "DEBT"
         ? { to: "/debts", label: t("transactions.detail.viewDebt") }
-        : null;
+        : source.kind === "STATEMENT_PAYMENT"
+          ? {
+              to: `/accounts/${source.accountId}?tab=billing&statement=${source.statementId}`,
+              label: t("transactions.detail.viewBilling"),
+            }
+          : null;
 
   return (
     <div className="flex flex-col gap-5">

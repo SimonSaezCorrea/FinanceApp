@@ -89,7 +89,9 @@ export function StatementDetailPanel({
       title={
         statement.closedAt
           ? `${date(statement.periodStart)} – ${date(statement.closedAt)}`
-          : t("accounts.detail.billingPeriodToDate", { date: date(statement.periodStart) })
+          : statement.nextClosingDate
+            ? `${date(statement.periodStart)} – ${date(statement.nextClosingDate)}`
+            : t("accounts.detail.billingPeriodToDate", { date: date(statement.periodStart) })
       }
       description={account.name}
     >

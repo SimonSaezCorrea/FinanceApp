@@ -186,6 +186,8 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
       minimumPercent: context.account.minimumPaymentPercent,
       paymentDueDay: context.account.paymentDueDay,
       paymentDueCycleType: context.account.paymentDueCycleType,
+      billingCycleDay: context.account.billingCycleDay,
+      billingCycleType: context.account.billingCycleType,
     });
 
     await this.prisma.$transaction(async (tx) => {

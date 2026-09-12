@@ -292,7 +292,12 @@
       "generateStatements": "Generate statement",
       "generateStatementsConfirm": "Generate the statement?",
       "generateStatementsConfirmDescription": "The open period will be closed and left pending payment. Later movements go to the next period.",
+      "generateStatementsPreviewTitle": "This period will close",
+      "generateStatementsPreviewAmount": "Accrued amount",
       "generateStatementsSuccess": "Statements refreshed",
+      "generateNotYetDue": "This statement's deadline hasn't arrived yet ({{date}}) — it can't be generated ahead of time.",
+      "generateNoBillingDay": "This account has no billing day configured.",
+      "generateNothingOpen": "There's no open period to bill yet.",
       "syncStatement": "Sync payments",
       "syncStatementConfirm": "Sync this statement?",
       "syncStatementConfirmDescription": "The period's amount will be recalculated from the movements dated inside it. If it was already paid, the payment movement and the used credit are adjusted to match.",
@@ -547,7 +552,8 @@
       "installmentLockedLink": "Go to Instalments",
       "source": "Source",
       "viewPlan": "View plan",
-      "viewDebt": "View debt"
+      "viewDebt": "View debt",
+      "viewBilling": "View statement"
     },
     "source": {
       "MANUAL": "Manual",
@@ -555,7 +561,8 @@
       "INSTALLMENT": "Plan instalment",
       "INSTALLMENT_INTEREST": "Plan interest",
       "FINANCE_CHARGE": "Finance charge",
-      "DEBT": "Debt"
+      "DEBT": "Debt",
+      "STATEMENT_PAYMENT": "Statement payment"
     },
     "attachments": {
       "title": "Receipts",

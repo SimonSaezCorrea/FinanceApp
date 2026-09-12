@@ -292,7 +292,12 @@
       "generateStatements": "Generar facturación",
       "generateStatementsConfirm": "¿Generar la facturación?",
       "generateStatementsConfirmDescription": "Se cerrará el periodo abierto y quedará pendiente de pago. Los movimientos posteriores irán al periodo siguiente.",
+      "generateStatementsPreviewTitle": "Se cerrará este período",
+      "generateStatementsPreviewAmount": "Monto acumulado",
       "generateStatementsSuccess": "Facturación revisada",
+      "generateNotYetDue": "Aún no llega la fecha límite de esta facturación ({{date}}) — no se puede generar por adelantado.",
+      "generateNoBillingDay": "Esta cuenta no tiene un día de facturación configurado.",
+      "generateNothingOpen": "No hay ningún período abierto para facturar todavía.",
       "syncStatement": "Sincronizar pagos",
       "syncStatementConfirm": "¿Sincronizar esta facturación?",
       "syncStatementConfirmDescription": "Se recalculará el monto del período con los movimientos que caen dentro de sus fechas. Si ya estaba pagada, también se ajustará el movimiento de pago y el cupo usado.",
@@ -547,7 +552,8 @@
       "installmentLockedLink": "Ir a Cuotas",
       "source": "Origen",
       "viewPlan": "Ver plan",
-      "viewDebt": "Ver deuda"
+      "viewDebt": "Ver deuda",
+      "viewBilling": "Ver facturación"
     },
     "source": {
       "MANUAL": "Manual",
@@ -555,7 +561,8 @@
       "INSTALLMENT": "Cuota de plan",
       "INSTALLMENT_INTEREST": "Interés de plan",
       "FINANCE_CHARGE": "Cargo financiero",
-      "DEBT": "Deuda"
+      "DEBT": "Deuda",
+      "STATEMENT_PAYMENT": "Pago de facturación"
     },
     "attachments": {
       "title": "Comprobantes",

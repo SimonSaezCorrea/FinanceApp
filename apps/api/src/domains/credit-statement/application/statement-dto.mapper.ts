@@ -1,7 +1,7 @@
 import type { accounts } from "@finance/contracts";
 import { moneyToString, subtractMoney, toMoney } from "@finance/money";
 
-import { paymentDueDate } from "../../billing-settings/domain/billing-cycle";
+import { nextBoundaryAfter, paymentDueDate } from "../../billing-settings/domain/billing-cycle";
 import type { CreditStatement } from "../domain/credit-statement.aggregate";
 
 /**
@@ -25,6 +25,10 @@ export function toStatementDto(
     paymentDueDay: number | null;
     /** How `paymentDueDay` is counted (días hábiles or day-of-month). */
     paymentDueCycleType: accounts.BillingCycleType;
+    /** The account's configured billing (generation) cycle day, or null. */
+    billingCycleDay: number | null;
+    /** How `billingCycleDay` is counted (días hábiles or day-of-month). */
+    billingCycleType: accounts.BillingCycleType;
   },
 ): accounts.CreditStatement {
   // A settled period owes nothing, even when the payment didn't cover it all:
@@ -42,6 +46,16 @@ export function toStatementDto(
           input.paymentDueCycleType,
         ).toISOString()
       : null;
+  // Only meaningful while OPEN — a closed period already has its real `closedAt`,
+  // and without a configured day there's nothing to project a boundary from.
+  const nextClosingDate =
+    !statement.closedAt && input.billingCycleDay != null
+      ? nextBoundaryAfter(
+          statement.periodStart,
+          input.billingCycleDay,
+          input.billingCycleType,
+        ).toISOString()
+      : null;
   return {
     id: statement.id,
     accountId: statement.accountId,
@@ -50,6 +64,7 @@ export function toStatementDto(
     closedAt: statement.closedAt?.toISOString() ?? null,
     paidAt: statement.paidAt?.toISOString() ?? null,
     dueDate,
+    nextClosingDate,
     amount: moneyToString(input.amount),
     paidAmount: statement.paidAmount,
     carriedOverAmount: statement.carriedOverAmount,

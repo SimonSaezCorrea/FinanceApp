@@ -51,8 +51,13 @@ export function useAccountMutations() {
       },
     }),
     payCreditStatement: useMutation({
-      mutationFn: (vars: { id: string; statementId: string; body: accounts.PayCreditStatement }) =>
-        accountsApi.payCreditStatement(vars.id, vars.statementId, vars.body),
+      mutationFn: (vars: {
+        id: string;
+        statementId: string;
+        body: accounts.PayCreditStatement;
+        idempotencyKey: string;
+      }) =>
+        accountsApi.payCreditStatement(vars.id, vars.statementId, vars.body, vars.idempotencyKey),
       onSuccess: (_, vars) => {
         invalidate();
         qc.invalidateQueries({ queryKey: ["accounts", vars.id, "credit-statements"] });

@@ -178,6 +178,17 @@ paymentDueCycleType)` gained a CALENDAR_DAY branch (the first occurrence of `pay
     (new **`src/infra/cron/`** module — `cron.module.ts` + `billing-generation.cron.ts`, using the
     new **`@nestjs/schedule`** dependency, `EVERY_DAY_AT_3AM`, iterates every user's due accounts)
     and the **manual "Generar facturación" button** (`POST /accounts/:id/generate-statements`).
+    Amendment (`CreditStatement.nextClosingDate` — projected close for an OPEN period,
+    2026-09-12): the contract gains a derived, non-persisted **`nextClosingDate`** — the account's
+    `billingCycleDay`/`billingCycleType` boundary counted from `periodStart`
+    (`billing-cycle.ts`'s `nextBoundaryAfter`, same function `closeIfDue` already uses to decide
+    whether to close), computed in `statement-dto.mapper.ts` for every call site. Null once the
+    period is closed (it has its own real `closedAt` by then) or when the account has no
+    `billingCycleDay` configured. Lets the web `BillingSection` show a real deadline ("20/7 – 20/8")
+    instead of the misleading "20/7 – hoy", and **disable "Generar facturación" before that date** —
+    the button used to fire the request regardless and rely on `closeIfDue`'s own silent no-op,
+    which left the user unsure whether anything happened. The confirm dialog also gained a preview
+    box (period range + live accumulated amount) so generating isn't a leap of faith.
     **Paying** (`POST /accounts/:id/credit-statements/:id/pay`, `{fromAccountId}`, any account type
     except `CREDIT_LINE`) atomically creates a real EXPENSE `Transaction` on that account (visible
     in its own Movimientos like any other expense), decrements the credit account's `creditUsed`
@@ -730,11 +741,28 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     `TransactionDetailPanel` gained an "Origen" row (a `Badge` for the kind, plus a "Ver
     plan"/"Ver deuda" link to `/installments`/`/debts` when the source names one) — deliberately
     NOT added to `TransactionTable`'s row or to `GET /transactions/summary`, both of which stay
-    unchanged; this is a single-movement detail concern. **Not modelled**: a statement payment
-    (`CreditStatement.paidTransactionId`) has no equivalent `sourceOf` case — detecting it would
-    need a join `sourceOf` deliberately avoids (it only reads fields already on the `Transaction`
-    row); today it's told apart only by its own `category: "Pago facturación"`, same as before
-    this amendment. No migration (`db push`).
+    unchanged; this is a single-movement detail concern. No migration (`db push`).
+    Amendment (`STATEMENT_PAYMENT` closes the one gap this left open, with a real deep link,
+    2026-09-12): a statement payment (`CreditStatement.paidTransactionId`) previously had no
+    `sourceOf` case. Resolved WITHOUT `transaction`'s own adapter ever querying `credit-statement`
+    (Constitution VI: one adapter per table) via a new narrow **`CreditStatementLookupPort`**
+    (`credit-statement/domain/ports/credit-statement-lookup.port.ts`, `paymentInfoFor(transactionIds)`
+    → `Map<transactionId, {statementId, accountId}>`) — same shape as `InstallmentPaymentLookupPort`,
+    implemented by the SAME `PrismaCreditStatementRepository` bound to a second token and exported
+    from `credit-statement.data.module.ts` (already imported by `transaction.module.ts`, so no new
+    module edge). It reads Prisma's own reverse relation of `CreditStatement.paidTransactionId`
+    (`@unique`, so at most one row per transaction) — a relation that already existed in the schema,
+    just never queried from `transaction`'s side. `ListTransactionsQueryHandler`/
+    `GetTransactionQueryHandler` call it ONCE per page (batched over that page's transaction ids,
+    not per row) and overlay the result onto `Transaction.paidStatementId`/`paidStatementAccountId` —
+    two new nullable contract fields, both null for every other movement (contributing purchases
+    included: `sourceOf` doesn't need them). `sourceOf` derives `STATEMENT_PAYMENT` from those two
+    fields directly (no more category string matching). `TransactionDetailPanel`'s "Ver facturación"
+    link is a REAL deep link, `to="/accounts/:accountId?tab=billing&statement=:statementId"` — same
+    query-param convention `InstallmentDetailPanel`'s own "ver facturación" link already established
+    — unlike "Ver plan"/"Ver deuda", which stay coarse (`/installments`, `/debts`) because neither
+    `installmentPlanId` nor `debtId` carries an account to deep-link into. No migration (`db push`);
+    the underlying relation and its data already existed, only reading it is new.
   - **transaction-attachment** (specs/010, domain 22): `TransactionAttachment` (table
     `transaction-attachment`) = a receipt/voucher file on a movement — `storageKey` (`@unique`,
     `u/<userId>/t/<txId>/<attachmentId>-<slug>`, derived from the id so two files named alike

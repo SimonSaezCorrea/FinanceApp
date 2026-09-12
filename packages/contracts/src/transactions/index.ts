@@ -47,6 +47,16 @@ export const transactionSchema = z.object({
   /** The `SavingsGoal` this movement is the "retirar a cuenta" INCOME for,
    * when the goal was closed with that destination. */
   savingsGoalId: rowId.nullable(),
+  /** The billing period this movement SETTLED, when it is that payment —
+   * resolved server-side from `CreditStatement.paidTransactionId`'s reverse
+   * relation (never stored on the row itself, so it can't drift). Both null
+   * for every other movement, contributing purchases included. */
+  paidStatementId: rowId.nullable(),
+  /** The account whose statement `paidStatementId` names — the credit
+   * account being settled, which is generally NOT `bankAccountId` (the
+   * account the payment actually left). Lets the UI link straight to
+   * `/accounts/:id?tab=billing&statement=:id` without a join of its own. */
+  paidStatementAccountId: rowId.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -72,6 +82,7 @@ export type TransactionSource =
   | { kind: "RECURRING"; recurringExpenseId: string }
   | { kind: "SAVINGS"; savingsEntryId: string }
   | { kind: "SAVINGS_WITHDRAWAL"; savingsGoalId: string }
+  | { kind: "STATEMENT_PAYMENT"; statementId: string; accountId: string }
   | { kind: "MANUAL" };
 
 export function sourceOf(
@@ -84,6 +95,8 @@ export function sourceOf(
     | "recurringExpenseId"
     | "savingsEntryId"
     | "savingsGoalId"
+    | "paidStatementId"
+    | "paidStatementAccountId"
   >,
 ): TransactionSource {
   if (t.transferGroupId !== null) return { kind: "TRANSFER" };
@@ -103,6 +116,13 @@ export function sourceOf(
   if (t.savingsEntryId !== null) return { kind: "SAVINGS", savingsEntryId: t.savingsEntryId };
   if (t.savingsGoalId !== null) {
     return { kind: "SAVINGS_WITHDRAWAL", savingsGoalId: t.savingsGoalId };
+  }
+  if (t.paidStatementId !== null && t.paidStatementAccountId !== null) {
+    return {
+      kind: "STATEMENT_PAYMENT",
+      statementId: t.paidStatementId,
+      accountId: t.paidStatementAccountId,
+    };
   }
   return { kind: "MANUAL" };
 }

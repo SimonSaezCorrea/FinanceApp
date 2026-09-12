@@ -10,6 +10,7 @@ import {
   type TransactionSumsRepositoryPort,
 } from "../../transaction/domain/ports/transaction-sums.repository.port";
 import { CreditStatement, type CreditStatementProps } from "../domain/credit-statement.aggregate";
+import type { CreditStatementLookupPort } from "../domain/ports/credit-statement-lookup.port";
 import type { CreditStatementRepositoryPort } from "../domain/ports/credit-statement.repository.port";
 
 type Row = {
@@ -50,7 +51,9 @@ function rowToProps(row: Row): CreditStatementProps {
  * live amount is a sum over `transaction`, obtained through that table's own
  * port instead of querying it here. */
 @Injectable()
-export class PrismaCreditStatementRepository implements CreditStatementRepositoryPort {
+export class PrismaCreditStatementRepository
+  implements CreditStatementRepositoryPort, CreditStatementLookupPort
+{
   constructor(
     private readonly prisma: PrismaService,
     @Inject(TRANSACTION_SUMS_REPOSITORY) private readonly sums: TransactionSumsRepositoryPort,
@@ -183,5 +186,24 @@ export class PrismaCreditStatementRepository implements CreditStatementRepositor
       this.plans.billedInstallmentsForStatement(statementId),
     ]);
     return { purchases, installments: billed.amount, installmentCount: billed.count };
+  }
+
+  async paymentInfoFor(
+    transactionIds: string[],
+  ): Promise<Map<string, { statementId: string; accountId: string }>> {
+    if (transactionIds.length === 0) return new Map();
+    const rows = await this.prisma.creditStatement.findMany({
+      where: { paidTransactionId: { in: transactionIds } },
+      select: { id: true, accountId: true, paidTransactionId: true },
+    });
+    const result = new Map<string, { statementId: string; accountId: string }>();
+    for (const row of rows) {
+      // `paidTransactionId` is unique, so this can never overwrite an earlier
+      // entry with a different statement.
+      if (row.paidTransactionId) {
+        result.set(row.paidTransactionId, { statementId: row.id, accountId: row.accountId });
+      }
+    }
+    return result;
   }
 }

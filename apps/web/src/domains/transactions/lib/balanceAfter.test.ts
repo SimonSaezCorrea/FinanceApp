@@ -29,6 +29,8 @@ const tx = (
   recurringExpenseId: null,
   savingsEntryId: null,
   savingsGoalId: null,
+  paidStatementId: null,
+  paidStatementAccountId: null,
   createdAt: "2026-08-01T00:00:00.000Z",
   updatedAt: "2026-08-01T00:00:00.000Z",
 });

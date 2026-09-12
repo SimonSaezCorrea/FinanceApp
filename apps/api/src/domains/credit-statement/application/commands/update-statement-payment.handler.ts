@@ -103,6 +103,8 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
         minimumPercent: context.account.minimumPaymentPercent,
         paymentDueDay: context.account.paymentDueDay,
         paymentDueCycleType: context.account.paymentDueCycleType,
+        billingCycleDay: context.account.billingCycleDay,
+        billingCycleType: context.account.billingCycleType,
       }),
       events: [],
     };

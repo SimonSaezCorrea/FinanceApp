@@ -565,7 +565,7 @@ export function AccountForm({
                   />
                   <Segmented
                     size="sm"
-                    className="h-8 w-40"
+                    className="h-8"
                     value={values.billingCycleType}
                     onChange={(v) => set("billingCycleType", v)}
                     options={[
@@ -616,7 +616,7 @@ export function AccountForm({
                   />
                   <Segmented
                     size="sm"
-                    className="h-8 w-40"
+                    className="h-8"
                     value={values.paymentDueCycleType}
                     onChange={(v) => set("paymentDueCycleType", v)}
                     options={[
@@ -642,7 +642,6 @@ export function AccountForm({
 
             <FormTextField
               label={t("accounts.form.minimumPercent")}
-              placeholder="5"
               value={values.minimumPaymentPercent}
               hint={t("accounts.form.minimumPercentHint")}
               onChange={(v) => {

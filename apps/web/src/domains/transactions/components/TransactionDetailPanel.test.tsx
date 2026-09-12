@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
+import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 
 import type { accounts, transactions } from "@finance/contracts";
@@ -30,6 +31,8 @@ const tx = (over: Partial<transactions.Transaction> = {}): transactions.Transact
   recurringExpenseId: null,
   savingsEntryId: null,
   savingsGoalId: null,
+  paidStatementId: null,
+  paidStatementAccountId: null,
   createdAt: "2026-08-01T00:00:00.000Z",
   updatedAt: "2026-08-01T00:00:00.000Z",
   ...over,
@@ -88,6 +91,23 @@ describe("TransactionDetailPanel", () => {
       <TransactionDetailPanel transaction={tx()} accounts={[account]} balanceAfter="9000" />,
     );
     expect(screen.getByText(i18n.t("transactions.detail.balanceAfter"))).toBeDefined();
+  });
+
+  it("links a statement-payment movement to that period's own billing tab", () => {
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <I18nextProvider i18n={i18n}>
+          <MemoryRouter>
+            <TransactionDetailPanel
+              transaction={tx({ category: "Pago facturación", paidStatementId: "s1", paidStatementAccountId: "acc2" })}
+              accounts={[account]}
+            />
+          </MemoryRouter>
+        </I18nextProvider>
+      </QueryClientProvider>,
+    );
+    const link = screen.getByText(i18n.t("transactions.detail.viewBilling"));
+    expect(link.closest("a")?.getAttribute("href")).toBe("/accounts/acc2?tab=billing&statement=s1");
   });
 });
 

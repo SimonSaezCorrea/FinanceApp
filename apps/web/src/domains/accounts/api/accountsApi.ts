@@ -34,10 +34,16 @@ export const accountsApi = {
   generateStatements: (id: string) =>
     apiFetch<accounts.CreditStatement[]>(`/accounts/${id}/generate-statements`, { method: "POST" }),
 
-  payCreditStatement: (id: string, statementId: string, body: accounts.PayCreditStatement) =>
+  payCreditStatement: (
+    id: string,
+    statementId: string,
+    body: accounts.PayCreditStatement,
+    idempotencyKey: string,
+  ) =>
     apiFetch<accounts.CreditStatement>(`/accounts/${id}/credit-statements/${statementId}/pay`, {
       method: "POST",
       body: JSON.stringify(body),
+      idempotencyKey,
     }),
 
   /** Correct what was PAID on a settled period (its total is only ever synced). */

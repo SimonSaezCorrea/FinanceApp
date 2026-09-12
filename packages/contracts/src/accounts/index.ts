@@ -456,6 +456,13 @@ export const creditStatementSchema = z.object({
    * days directly after this period's own close. Null while OPEN (nothing to
    * count from yet) or when the account has no `paymentDueDay` configured. */
   dueDate: z.string().nullable(),
+  /** When THIS period itself would close — the account's `billingCycleDay`
+   * boundary counted from `periodStart`. Only meaningful while OPEN (a
+   * closed/paid period already has its real `closedAt`); null once closed, or
+   * for an OPEN one when the account has no `billingCycleDay` configured. Lets
+   * the UI show a real deadline instead of "hasta hoy", and refuse "Generar
+   * facturación" before that date — the period can't be billed early. */
+  nextClosingDate: z.string().nullable(),
   /** Everything this period owes: its own movements PLUS `carriedOverAmount`. */
   amount: moneyString,
   /** What was actually paid. "0" until the period is paid; may be less than

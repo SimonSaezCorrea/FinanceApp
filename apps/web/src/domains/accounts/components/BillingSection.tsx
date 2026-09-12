@@ -159,6 +159,17 @@ export function BillingSection({
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
   const date = (iso: string) => new Date(iso).toLocaleDateString(i18n.language);
 
+  /** "start – end": the real close for a settled period, the PROJECTED close
+   * (the account's billing-day boundary) for an open one — never "hasta hoy",
+   * which said nothing about when it will actually close. Falls back to that
+   * only when the account has no billing day configured at all, i.e. there's
+   * genuinely no deadline to show. */
+  const periodLabel = (s: accounts.CreditStatement) => {
+    if (s.closedAt) return `${date(s.periodStart)} – ${date(s.closedAt)}`;
+    if (s.nextClosingDate) return `${date(s.periodStart)} – ${date(s.nextClosingDate)}`;
+    return t("accounts.detail.billingPeriodToDate", { date: date(s.periodStart) });
+  };
+
   // Settled = `paidAt`, not `status === "PAID"`: a period paid for less than its
   // total reports PARTIALLY_PAID and is just as closed (its shortfall is owed in
   // the next period, not here), so it belongs with the history, not the actionable
@@ -166,6 +177,20 @@ export function BillingSection({
   const isSettled = (s: accounts.CreditStatement) => s.paidAt !== null;
   const open = statements?.filter((s) => !isSettled(s)) ?? [];
   const paid = statements?.filter(isSettled) ?? [];
+
+  // The account's single OPEN period (if any) — what "Generar facturación"
+  // would act on. Can't be billed before its own projected close: the button
+  // is disabled rather than letting the click silently do nothing (the API
+  // itself already no-ops early — this just tells the user why up front).
+  const openPeriod = statements?.find((s) => s.status === "OPEN") ?? null;
+  const closingDate = openPeriod?.nextClosingDate ? new Date(openPeriod.nextClosingDate) : null;
+  const generateBlockedReason = !openPeriod
+    ? t("accounts.detail.generateNothingOpen")
+    : !closingDate
+      ? t("accounts.detail.generateNoBillingDay")
+      : new Date() < closingDate
+        ? t("accounts.detail.generateNotYetDue", { date: date(openPeriod.nextClosingDate!) })
+        : null;
 
   /** The period being accumulated/owed: the protagonist of the stacked layout. */
   function CurrentPeriodCard({ statement: s }: Readonly<{ statement: accounts.CreditStatement }>) {
@@ -176,11 +201,7 @@ export function BillingSection({
         className="flex flex-col gap-3 rounded-xl border border-border bg-surface2 p-4 text-left"
       >
         <div className="flex items-start justify-between gap-3">
-          <span className="text-sm text-muted-foreground">
-            {s.closedAt
-              ? `${date(s.periodStart)} – ${date(s.closedAt)}`
-              : t("accounts.detail.billingPeriodToDate", { date: date(s.periodStart) })}
-          </span>
+          <span className="text-sm text-muted-foreground">{periodLabel(s)}</span>
           <Badge variant={STATUS_VARIANT[s.status]}>
             {t(`accounts.detail.billingStatusValue.${s.status}`)}
           </Badge>
@@ -272,7 +293,8 @@ export function BillingSection({
           className="ml-auto"
           size="sm"
           variant="outline"
-          disabled={generateStatements.isPending}
+          disabled={generateStatements.isPending || generateBlockedReason !== null}
+          title={generateBlockedReason ?? undefined}
           // Closing a billing period is not reversible from the UI: it turns the
           // open period into one pending payment. Ask first.
           onClick={() => setConfirmGenerate(true)}
@@ -389,11 +411,7 @@ export function BillingSection({
                         without this the table grows past its container
                         instead of wrapping/truncating within it. */}
                     <TD className="w-full max-w-0">
-                      <div className="truncate">
-                        {s.closedAt
-                          ? `${date(s.periodStart)} – ${date(s.closedAt)}`
-                          : t("accounts.detail.billingPeriodToDate", { date: date(s.periodStart) })}
-                      </div>
+                      <div className="truncate">{periodLabel(s)}</div>
                     </TD>
                     <TD numeric className="max-w-[11rem]">
                       {fmt(s.amount)}
@@ -486,6 +504,7 @@ export function BillingSection({
         title={t("accounts.actions.generateStatementsConfirm")}
         description={t("accounts.actions.generateStatementsConfirmDescription")}
         confirmLabel={t("accounts.actions.generateStatements")}
+        destructive={false}
         loading={generateStatements.isPending}
         onConfirm={() =>
           generateStatements.mutate(account.id, {
@@ -496,7 +515,30 @@ export function BillingSection({
             onError: () => toast.error(t("errors.INTERNAL_ERROR")),
           })
         }
-      />
+      >
+        {/* What will actually close, so the confirmation isn't a leap of faith —
+            the same period the "Abierta" row already shows, just called out on
+            its own here. */}
+        {openPeriod ? (
+          <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {t("accounts.actions.generateStatementsPreviewTitle")}
+              </span>
+              <Badge variant={STATUS_VARIANT[openPeriod.status]}>
+                {t(`accounts.detail.billingStatusValue.${openPeriod.status}`)}
+              </Badge>
+            </div>
+            <span className="font-medium">{periodLabel(openPeriod)}</span>
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-muted-foreground">
+                {t("accounts.actions.generateStatementsPreviewAmount")}
+              </span>
+              <span className="font-semibold tabular-nums">{fmt(openPeriod.amount)}</span>
+            </div>
+          </div>
+        ) : null}
+      </ConfirmModal>
 
       <StatementDetailPanel
         account={account}

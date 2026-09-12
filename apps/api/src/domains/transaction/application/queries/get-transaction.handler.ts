@@ -4,6 +4,10 @@ import { QueryHandler } from "@nestjs/cqrs";
 import type { transactions } from "@finance/contracts";
 
 import { BaseQueryHandler } from "../../../../infra/cqrs/base-query.handler";
+import {
+  CREDIT_STATEMENT_LOOKUP,
+  type CreditStatementLookupPort,
+} from "../../../credit-statement/domain/ports/credit-statement-lookup.port";
 import { TransactionNotFoundError } from "../../domain/errors";
 import type { Transaction } from "../../domain/transaction.aggregate";
 import {
@@ -19,7 +23,10 @@ export class GetTransactionQueryHandler extends BaseQueryHandler<
   transactions.Transaction,
   Transaction
 > {
-  constructor(@Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort) {
+  constructor(
+    @Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort,
+    @Inject(CREDIT_STATEMENT_LOOKUP) private readonly statements: CreditStatementLookupPort,
+  ) {
     super();
   }
 
@@ -33,6 +40,10 @@ export class GetTransactionQueryHandler extends BaseQueryHandler<
     _query: GetTransactionQuery,
     row: Transaction,
   ): Promise<transactions.Transaction> {
-    return row.toContract();
+    const dto = row.toContract();
+    const info = (await this.statements.paymentInfoFor([dto.id])).get(dto.id);
+    return info
+      ? { ...dto, paidStatementId: info.statementId, paidStatementAccountId: info.accountId }
+      : dto;
   }
 }

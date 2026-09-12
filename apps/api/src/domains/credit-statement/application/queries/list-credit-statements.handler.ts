@@ -40,6 +40,8 @@ export class ListCreditStatementsQueryHandler extends BaseQueryHandler<
     const minimumPercent = account?.minimumPaymentPercent ?? null;
     const paymentDueDay = account?.paymentDueDay ?? null;
     const paymentDueCycleType = account?.paymentDueCycleType ?? "BUSINESS_DAY";
+    const billingCycleDay = account?.billingCycleDay ?? null;
+    const billingCycleType = account?.billingCycleType ?? "BUSINESS_DAY";
     const statements = await this.statementRepo.listForAccount(query.userId, query.accountId);
     return Promise.all(
       statements.map(async (s) => {
@@ -57,6 +59,8 @@ export class ListCreditStatementsQueryHandler extends BaseQueryHandler<
           minimumPercent,
           paymentDueDay,
           paymentDueCycleType,
+          billingCycleDay,
+          billingCycleType,
         });
       }),
     );

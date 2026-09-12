@@ -201,6 +201,10 @@ export class Transaction {
       recurringExpenseId: this.props.recurringExpenseId,
       savingsEntryId: this.props.savingsEntryId,
       savingsGoalId: this.props.savingsGoalId,
+      // Resolved by the query handler (via `CreditStatementLookupPort`), never
+      // known to the aggregate itself — this is the row's own persisted state.
+      paidStatementId: null,
+      paidStatementAccountId: null,
       createdAt: this.props.createdAt.toISOString(),
       updatedAt: this.props.updatedAt.toISOString(),
     };

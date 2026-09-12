@@ -7,6 +7,10 @@ import type { transactions } from "@finance/contracts";
 import { getCursorSigningSecret } from "../../../../infra/config/cursor.config";
 import { BaseQueryHandler } from "../../../../infra/cqrs/base-query.handler";
 import {
+  CREDIT_STATEMENT_LOOKUP,
+  type CreditStatementLookupPort,
+} from "../../../credit-statement/domain/ports/credit-statement-lookup.port";
+import {
   TRANSACTION_REPOSITORY,
   type TransactionListFilter,
   type TransactionRepositoryPort,
@@ -26,6 +30,7 @@ export class ListTransactionsQueryHandler extends BaseQueryHandler<
 
   constructor(
     @Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort,
+    @Inject(CREDIT_STATEMENT_LOOKUP) private readonly statements: CreditStatementLookupPort,
     config: ConfigService,
   ) {
     super();
@@ -45,8 +50,17 @@ export class ListTransactionsQueryHandler extends BaseQueryHandler<
       limit,
       cursor: cursor ? decodeCursor(cursor, this.cursorSecret) : undefined,
     });
+    const items = page.items.map((r) => r.toContract());
+    // One batched lookup per page (never per row) — almost always an empty
+    // result, since only a statement's own payment movement ever matches.
+    const paymentInfo = await this.statements.paymentInfoFor(items.map((i) => i.id));
     return {
-      items: page.items.map((r) => r.toContract()),
+      items: items.map((i) => {
+        const info = paymentInfo.get(i.id);
+        return info
+          ? { ...i, paidStatementId: info.statementId, paidStatementAccountId: info.accountId }
+          : i;
+      }),
       nextCursor: page.nextCursor ? encodeCursor(page.nextCursor, this.cursorSecret) : null,
     };
   }

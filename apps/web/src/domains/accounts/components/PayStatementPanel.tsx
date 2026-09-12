@@ -9,6 +9,7 @@ import { formatMoney } from "@finance/money";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
+import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
 import { cn } from "../../../shared/lib/cn";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { Badge } from "../../../shared/ui/badge";
@@ -63,6 +64,7 @@ export function PayStatementPanel({
   const { data: allAccounts } = useAccounts();
   const { data: currencies } = useCurrencies();
   const { payCreditStatement } = useAccountMutations();
+  const idempotencyKey = useIdempotencyKey();
   const [fromAccountId, setFromAccountId] = useState("");
   const [mode, setMode] = useState<PayMode>("total");
   const [customAmount, setCustomAmount] = useState("");
@@ -167,10 +169,14 @@ export function PayStatementPanel({
                     paidAt: paidAt ? new Date(paidAt).toISOString() : undefined,
                     reference: reference.trim() || undefined,
                   },
+                  idempotencyKey: idempotencyKey.current(),
                 },
                 {
                   onSuccess: () => {
                     toast.success(t("accounts.actions.payCreditSuccess"));
+                    // This attempt succeeded — reopening the panel for another
+                    // payment later needs its own, fresh key.
+                    idempotencyKey.reset();
                     close();
                   },
                   onError: (err) => {
