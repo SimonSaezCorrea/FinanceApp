@@ -1,3 +1,4 @@
+import { Pencil } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -5,14 +6,15 @@ import { toast } from "sonner";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { useCurrencies } from "../../reference/hooks/useReference";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
+import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
-import { Field } from "../../../shared/ui/field";
-import { Input } from "../../../shared/ui/input";
+import { FormDateField, FormSelectField, FormTextField } from "../../../shared/ui/form";
 import { SidePanel } from "../../../shared/ui/overlay";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { Segmented } from "../../../shared/ui/segmented";
 import { useAccountMutations, useAccounts } from "../hooks/useAccounts";
 
@@ -59,6 +61,7 @@ export function PayStatementPanel({
 }>) {
   const { t, i18n } = useTranslation();
   const { data: allAccounts } = useAccounts();
+  const { data: currencies } = useCurrencies();
   const { payCreditStatement } = useAccountMutations();
   const [fromAccountId, setFromAccountId] = useState("");
   const [mode, setMode] = useState<PayMode>("total");
@@ -213,15 +216,28 @@ export function PayStatementPanel({
           <div>
             <p className="text-xs text-muted-foreground">{t("accounts.detail.paySummaryAmount")}</p>
             {mode === "custom" ? (
-              <Input
-                className="mt-1 h-12 text-2xl font-semibold tabular-nums"
-                inputMode="decimal"
-                value={customAmount}
-                onChange={(e) => setCustomAmount(e.target.value.replace(/[^\d.]/g, ""))}
-                aria-label={t("accounts.detail.payAmountLabel")}
-              />
+              <div className="mt-0.5 flex items-baseline gap-2">
+                <span className="shrink-0 text-2xl font-bold text-accent" aria-hidden>
+                  {resolveCurrencySymbol(account.currency, currencies, i18n.language)}
+                </span>
+                <input
+                  inputMode="numeric"
+                  value={formatAmountDisplay(
+                    customAmount,
+                    groupingLocaleFor(account.currency, i18n.language),
+                  )}
+                  onChange={(e) => setCustomAmount(e.target.value.replace(/\D/g, ""))}
+                  placeholder="0"
+                  aria-label={t("accounts.detail.payAmountLabel")}
+                  className="min-w-0 flex-1 border-0 bg-transparent p-0 text-3xl font-semibold tabular-nums text-accent placeholder:text-accent/50 focus-visible:outline-none"
+                />
+                <Pencil
+                  aria-hidden
+                  className="size-4 shrink-0 self-center text-muted-foreground"
+                />
+              </div>
             ) : (
-              <p className="mt-0.5 text-3xl font-semibold tabular-nums tracking-tight">
+              <p className="mt-0.5 text-3xl font-semibold tabular-nums tracking-tight text-accent">
                 {money(String(amount), account.currency)}
               </p>
             )}
@@ -270,8 +286,10 @@ export function PayStatementPanel({
           </dl>
         </div>
 
-        <Field label={t("accounts.detail.payFromAccount")}>
-          <SearchableSelect
+        <div className="flex flex-col">
+          <FormSelectField
+            id="pay-from-account"
+            label={t("accounts.detail.payFromAccount")}
             value={selected}
             onChange={setFromAccountId}
             placeholder={t("accounts.detail.payFromAccountPlaceholder")}
@@ -282,59 +300,54 @@ export function PayStatementPanel({
                   ? `${a.name} · ${t("accounts.detail.payThisAccount")}`
                   : `${a.name} — ${money(a.currentBalance, a.currency)}`,
             }))}
-            aria-label={t("accounts.detail.payFromAccount")}
           />
-        </Field>
 
-        {from ? (
-          <div className="flex flex-col gap-1.5 text-xs">
-            {/* Only meaningful in one currency — this app applies no conversion. */}
-            {otherCurrency ? null : (
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">
-                  {t("accounts.detail.payBalanceAfter")}
-                </span>
-                <span className={cn("font-medium tabular-nums", insufficient && "text-warning")}>
-                  {money(String(Number(from.currentBalance) - amount), from.currency)}
-                </span>
-              </div>
-            )}
-            {leftAfter > 0 ? (
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">
-                  {t("accounts.detail.payRemainingAfter")}
-                </span>
-                <span className="font-medium tabular-nums text-warning">
-                  {money(String(leftAfter), account.currency)}
-                </span>
-              </div>
-            ) : null}
-            {insufficient ? (
-              <p className="text-warning">{t("accounts.detail.payInsufficient")}</p>
-            ) : null}
-            {otherCurrency ? (
-              <p className="text-muted-foreground">{t("accounts.detail.payDifferentCurrency")}</p>
-            ) : null}
-          </div>
-        ) : null}
+          {from ? (
+            <div className="flex flex-col gap-1.5 border-b border-border py-3 text-xs">
+              {/* Only meaningful in one currency — this app applies no conversion. */}
+              {otherCurrency ? null : (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">
+                    {t("accounts.detail.payBalanceAfter")}
+                  </span>
+                  <span className={cn("font-medium tabular-nums", insufficient && "text-warning")}>
+                    {money(String(Number(from.currentBalance) - amount), from.currency)}
+                  </span>
+                </div>
+              )}
+              {leftAfter > 0 ? (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">
+                    {t("accounts.detail.payRemainingAfter")}
+                  </span>
+                  <span className="font-medium tabular-nums text-warning">
+                    {money(String(leftAfter), account.currency)}
+                  </span>
+                </div>
+              ) : null}
+              {insufficient ? (
+                <p className="text-warning">{t("accounts.detail.payInsufficient")}</p>
+              ) : null}
+              {otherCurrency ? (
+                <p className="text-muted-foreground">{t("accounts.detail.payDifferentCurrency")}</p>
+              ) : null}
+            </div>
+          ) : null}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={t("accounts.detail.payDate")}>
-            <Input
-              type="date"
-              value={paidAt}
-              onChange={(e) => setPaidAt(e.target.value)}
-              aria-label={t("accounts.detail.payDate")}
-            />
-          </Field>
-          <Field label={t("accounts.detail.payReference")}>
-            <Input
-              value={reference}
-              placeholder={t("accounts.detail.payReferencePlaceholder")}
-              onChange={(e) => setReference(e.target.value)}
-              aria-label={t("accounts.detail.payReference")}
-            />
-          </Field>
+          <FormDateField
+            id="pay-date"
+            label={t("accounts.detail.payDate")}
+            value={paidAt}
+            onChange={setPaidAt}
+          />
+          <FormTextField
+            id="pay-reference"
+            label={t("accounts.detail.payReference")}
+            value={reference}
+            onChange={setReference}
+            placeholder={t("accounts.detail.payReferencePlaceholder")}
+            showEditIcon
+          />
         </div>
 
         <p className="border-l-2 border-brand/40 pl-3 text-xs text-muted-foreground">

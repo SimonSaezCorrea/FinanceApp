@@ -390,7 +390,9 @@ export function BillingSection({
                         instead of wrapping/truncating within it. */}
                     <TD className="w-full max-w-0">
                       <div className="truncate">
-                        {new Date(s.periodStart).toLocaleDateString(i18n.language)}
+                        {s.closedAt
+                          ? `${date(s.periodStart)} – ${date(s.closedAt)}`
+                          : t("accounts.detail.billingPeriodToDate", { date: date(s.periodStart) })}
                       </div>
                     </TD>
                     <TD numeric className="max-w-[11rem]">
