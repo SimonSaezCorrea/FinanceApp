@@ -12,10 +12,17 @@ import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { Button } from "../../../shared/ui/button";
 import { SidePanel } from "../../../shared/ui/overlay";
+import { DetailRow } from "../../../shared/ui/detail-row";
 import { Field } from "../../../shared/ui/field";
-import { FormBigTextField, FormSelectField, FormTextField } from "../../../shared/ui/form";
+import {
+  FormBigTextField,
+  FormMoreDetails,
+  FormSelectField,
+  FormTextField,
+} from "../../../shared/ui/form";
 import { Input } from "../../../shared/ui/input";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
+import { SectionLabel } from "../../../shared/ui/section-label";
 import { institutionOption } from "../../reference/lib/institutionOption";
 import { useCountries, useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { useAccountMutations } from "../hooks/useAccounts";
@@ -35,14 +42,6 @@ import { DraftCardTile } from "./DraftCardTile";
  * changes.
  */
 const NO_FILL = "bg-transparent border-transparent";
-
-function SectionLabel({ children }: Readonly<{ children: string }>) {
-  return (
-    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-      {children}
-    </span>
-  );
-}
 
 export function AccountCreateModal({
   open,
@@ -270,8 +269,11 @@ export function AccountCreateModal({
     <SidePanel
       open={open}
       onOpenChange={onOpenChange}
-      title={t("accounts.new")}
-      description={t("accounts.newSubtitle")}
+      // The visible title is the account name, edited inside the body (like a
+      // movement's own Descripción) — the header carries only the eyebrow
+      // naming what this surface is, same convention as TransactionCreateModal.
+      eyebrow={t("accounts.new")}
+      title={<span className="sr-only">{t("accounts.new")}</span>}
       footer={
         <div className="flex items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground max-sm:hidden">
@@ -301,20 +303,12 @@ export function AccountCreateModal({
           onChange={setName}
           placeholder={t("accounts.form.namePlaceholder")}
           aria-label={t("accounts.form.name")}
+          showEditIcon
         />
 
-        <Field label={t("accounts.form.type")}>
-          <AccountTypeToggle
-            value={type}
-            onChange={handleTypeChange}
-            disabledTypes={["INVESTMENT"]}
-            disabledReasonFor={{ INVESTMENT: t("accounts.form.investmentTypeLocked") }}
-          />
-        </Field>
-
         {/* Balance / cupo: hero figure, currency inline — same idiom as a
-            movement's own signed amount, and the next thing worth knowing
-            about a new account right after its type. */}
+            movement's own signed amount, and the first thing worth knowing
+            about a new account. */}
         <div>
           <SectionLabel>
             {isCreditLineType ? t("accounts.form.creditLimit") : t("accounts.form.initialBalance")}
@@ -356,104 +350,142 @@ export function AccountCreateModal({
             />
           </div>
         </div>
-        {/* Cupo usado inicial only makes sense for a credit line — every other
-            account type has no cupo to seed a starting balance for. */}
-        {isCreditLineType ? (
-          <>
-            <FormTextField
-              id="m-cused"
-              label={t("accounts.form.creditUsedInitial")}
-              value={formatAmountDisplay(
-                creditUsedInitial,
-                groupingLocaleFor(currency, i18n.language),
-              )}
-              onChange={(v) => setCreditUsedInitial(v.replace(/\D/g, ""))}
-            />
-            <p className="-mt-4 rounded-md border border-dashed border-ring/60 p-2 text-xs text-muted-foreground">
-              {t("accounts.form.billingNotConfiguredWarning")}
-            </p>
-          </>
-        ) : null}
 
-        {type !== "CASH" ? (
-          <div className="flex flex-col">
-            <FormSelectField
-              id="new-acc-country"
-              label={t("accounts.form.country")}
-              value={country}
-              onChange={(v) => {
-                setCountry(v);
-                // An institution belongs to its country; keeping the old one
-                // would attach a bank from another market to this account.
-                setInstitutionId("");
-              }}
-              options={(countries ?? []).map((c) => ({
-                value: c.alpha2,
-                label: `${c.name} · ${c.alpha2}`,
-                keywords: [c.alpha2, c.alpha3],
-              }))}
+        <div className="-my-3 border-t border-border" />
+
+        {/* Tipo + (cupo usado, si aplica) + país/institución/número: una sola
+            lista de filas, apretada — el espaciado entre ellas lo da solo el
+            borde de cada `DetailRow`, nunca un `gap`, para que no queden separadas
+            unas de otras como si fueran secciones distintas. */}
+        <div className="flex flex-col">
+          <DetailRow label={t("accounts.form.type")}>
+            <AccountTypeToggle
+              variant="inline"
+              className="w-auto"
+              value={type}
+              onChange={handleTypeChange}
+              disabledTypes={["INVESTMENT"]}
+              disabledReasonFor={{ INVESTMENT: t("accounts.form.investmentTypeLocked") }}
             />
-            <FormSelectField
-              id="m-inst"
-              label={t("accounts.form.institution")}
-              value={institutionId}
-              onChange={setInstitutionId}
-              options={institutionOptions}
-            />
-            {isCreditLineType ? (
-              <div className="grid grid-cols-2 gap-3 py-3">
-                <Field label={t("cards.form.last4")} error={primaryLast4Error}>
-                  <Input
-                    id="m-primary-last4"
-                    className={NO_FILL}
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="4821"
-                    maxLength={4}
-                    value={primaryLast4}
-                    onChange={(e) => setPrimaryLast4(e.target.value.replace(/\D/g, "").slice(0, 4))}
-                    aria-label={t("cards.form.last4")}
-                  />
-                </Field>
-                <Field label={t("cards.form.expiry")} error={primaryExpiryError}>
-                  <Input
-                    id="m-primary-expiry"
-                    className={NO_FILL}
-                    inputMode="numeric"
-                    placeholder="MM/AA"
-                    value={primaryExpiry}
-                    onChange={(e) => setPrimaryExpiry(cleanExpiryInput(e.target.value))}
-                    aria-label={t("cards.form.expiry")}
-                  />
-                </Field>
-              </div>
-            ) : (
-              <FormTextField
-                id="m-num"
-                label={
-                  usesAlias ? t("accounts.form.accountNumberCbu") : t("accounts.form.accountNumber")
-                }
-                value={accountNumber}
-                onChange={setAccountNumber}
-                placeholder={t("accounts.form.accountNumberPlaceholder")}
+          </DetailRow>
+
+          {type !== "CASH" ? (
+            <>
+              <FormSelectField
+                id="new-acc-country"
+                label={t("accounts.form.country")}
+                value={country}
+                onChange={(v) => {
+                  setCountry(v);
+                  // An institution belongs to its country; keeping the old one
+                  // would attach a bank from another market to this account.
+                  setInstitutionId("");
+                }}
+                options={(countries ?? []).map((c) => ({
+                  value: c.alpha2,
+                  label: `${c.name} · ${c.alpha2}`,
+                  keywords: [c.alpha2, c.alpha3],
+                }))}
               />
-            )}
-            {usesAlias && !isCreditLineType ? (
-              <FormTextField
-                id="m-alias"
-                label={t("accounts.form.accountAlias")}
-                value={accountAlias}
-                onChange={setAccountAlias}
-                placeholder={t("accounts.form.accountAliasPlaceholder")}
+              <FormSelectField
+                id="m-inst"
+                label={t("accounts.form.institution")}
+                value={institutionId}
+                onChange={setInstitutionId}
+                options={institutionOptions}
               />
-            ) : null}
-            {isCreditLineType ? (
-              <p className="pb-1 text-xs text-muted-foreground">
-                {t("accounts.form.primaryCardHint")}
+              {isCreditLineType ? (
+                <div className="grid grid-cols-2 gap-3 py-3">
+                  <Field label={t("cards.form.last4")} error={primaryLast4Error}>
+                    <Input
+                      id="m-primary-last4"
+                      className={NO_FILL}
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="4821"
+                      maxLength={4}
+                      value={primaryLast4}
+                      onChange={(e) =>
+                        setPrimaryLast4(e.target.value.replace(/\D/g, "").slice(0, 4))
+                      }
+                      aria-label={t("cards.form.last4")}
+                    />
+                  </Field>
+                  <Field label={t("cards.form.expiry")} error={primaryExpiryError}>
+                    <Input
+                      id="m-primary-expiry"
+                      className={NO_FILL}
+                      inputMode="numeric"
+                      placeholder="MM/AA"
+                      value={primaryExpiry}
+                      onChange={(e) => setPrimaryExpiry(cleanExpiryInput(e.target.value))}
+                      aria-label={t("cards.form.expiry")}
+                    />
+                  </Field>
+                </div>
+              ) : (
+                <FormTextField
+                  id="m-num"
+                  label={
+                    usesAlias
+                      ? t("accounts.form.accountNumberCbu")
+                      : t("accounts.form.accountNumber")
+                  }
+                  value={accountNumber}
+                  onChange={setAccountNumber}
+                  placeholder={t("accounts.form.accountNumberPlaceholder")}
+                  showEditIcon
+                />
+              )}
+              {usesAlias && !isCreditLineType ? (
+                <FormTextField
+                  id="m-alias"
+                  label={t("accounts.form.accountAlias")}
+                  value={accountAlias}
+                  onChange={setAccountAlias}
+                  placeholder={t("accounts.form.accountAliasPlaceholder")}
+                  showEditIcon
+                />
+              ) : null}
+              {isCreditLineType ? (
+                <p className="pb-1 pt-1 text-xs text-muted-foreground">
+                  {t("accounts.form.primaryCardHint")}
+                </p>
+              ) : null}
+            </>
+          ) : null}
+
+          {/* Cupo usado inicial only makes sense for a credit line — every other
+              account type has no cupo to seed a starting balance for. Same
+              "Más detalles" heading `AccountForm`'s edit view uses. */}
+          {isCreditLineType ? (
+            <FormMoreDetails
+              className="mt-2"
+              title={
+                <>
+                  {t("accounts.form.moreDetails")}{" "}
+                  <span className="font-normal text-muted-foreground">
+                    · {t("accounts.form.optional")}
+                  </span>
+                </>
+              }
+            >
+              <FormTextField
+                id="m-cused"
+                label={t("accounts.form.creditUsedInitial")}
+                value={formatAmountDisplay(
+                  creditUsedInitial,
+                  groupingLocaleFor(currency, i18n.language),
+                )}
+                onChange={(v) => setCreditUsedInitial(v.replace(/\D/g, ""))}
+                showEditIcon
+              />
+              <p className="-mt-2 pb-2 rounded-md border border-dashed border-ring/60 p-2 text-xs text-muted-foreground">
+                {t("accounts.form.billingNotConfiguredWarning")}
               </p>
-            ) : null}
-          </div>
-        ) : null}
+            </FormMoreDetails>
+          ) : null}
+        </div>
 
         {cardable ? (
           <div className="flex flex-col gap-2">

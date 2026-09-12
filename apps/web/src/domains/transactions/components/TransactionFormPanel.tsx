@@ -16,6 +16,7 @@ import { DetailRow } from "../../../shared/ui/detail-row";
 import {
   FormBigTextField,
   FormDateField,
+  FormMoreDetails,
   FormSelectField,
   FormSwitchField,
   FormTextField,
@@ -229,6 +230,7 @@ export function TransactionFormPanel({
         onChange={(description) => onChange({ description })}
         placeholder={t("transactions.form.description")}
         aria-label={t("transactions.form.description")}
+        showEditIcon
       />
 
       {/* Amount: sign on the left, figure as the protagonist, currency trailing.
@@ -383,13 +385,17 @@ export function TransactionFormPanel({
         <p className="-mt-2 text-xs text-destructive">{t("transactions.form.noCardsHint")}</p>
       ) : null}
 
-      <section className="flex flex-col">
-        <h3 className="pb-1 text-sm font-semibold">
-          {t("transactions.form.moreDetails")}{" "}
-          <span className="font-normal text-muted-foreground">
-            · {t("transactions.form.optional")}
-          </span>
-        </h3>
+      <FormMoreDetails
+        defaultOpen={optionalDetails.some((field) => (value[field.key] as string).trim() !== "")}
+        title={
+          <>
+            {t("transactions.form.moreDetails")}{" "}
+            <span className="font-normal text-muted-foreground">
+              · {t("transactions.form.optional")}
+            </span>
+          </>
+        }
+      >
         {optionalDetails.map((field) => (
           <FormTextField
             key={field.key}
@@ -398,9 +404,10 @@ export function TransactionFormPanel({
             value={value[field.key] as string}
             onChange={(v) => onChange({ [field.key]: v })}
             placeholder={field.placeholder}
+            showEditIcon
           />
         ))}
-      </section>
+      </FormMoreDetails>
 
       {/* A long free-text note is a paragraph, not a row value. */}
       <FormTextareaField
@@ -409,6 +416,7 @@ export function TransactionFormPanel({
         value={value.observation}
         onChange={(observation) => onChange({ observation })}
         placeholder={t("transactions.form.observationEmpty")}
+        showEditIcon
       />
 
       {attachments}

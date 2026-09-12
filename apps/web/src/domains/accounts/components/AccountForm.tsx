@@ -10,11 +10,17 @@ import { useCountries, useCurrencies, useInstitutions } from "../../reference/ho
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
 import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
-import { useElementWidth } from "../../../shared/lib/useElementWidth";
+import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { Button } from "../../../shared/ui/button";
-import { Field } from "../../../shared/ui/field";
-import { Input } from "../../../shared/ui/input";
+import { DetailRow } from "../../../shared/ui/detail-row";
+import {
+  FormBigTextField,
+  FormMoreDetails,
+  FormSelectField,
+  FormTextField,
+} from "../../../shared/ui/form";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
+import { SectionLabel } from "../../../shared/ui/section-label";
 import { Segmented } from "../../../shared/ui/segmented";
 import { Switch } from "../../../shared/ui/switch";
 import { Tabs } from "../../../shared/ui/tabs";
@@ -105,90 +111,33 @@ interface Props {
   onSubmit: (values: AccountFormValues) => void;
 }
 
-/**
- * Width the FORM itself needs before the title/description can sit in a column
- * beside the fields: the label column is 14rem plus a 2rem gap, and under this
- * the fields get squeezed into a strip too narrow for a two-up row.
- *
- * Measured on the form, not the viewport. This layout used to switch at the `xl`
- * breakpoint, which was right while editing was a full-width screen and wrong the
- * moment the same form moved into a side panel: a 1400px window with a 660px
- * panel still matched `xl`, so the labels took their column and the fields lost
- * their format.
- */
-const SECTION_LABEL_MIN_WIDTH = 860;
-
 /** Which section is showing, when the form has enough of them to warrant tabs
  * (see `hasCreditPool` below) — a plain account never grows past two sections,
  * so it never shows a tab strip at all. */
-type FormTab = "general" | "credit" | "billing";
+type FormTab = "general" | "billing";
 
 /**
- * EXPERIMENT (2026-09-05): drops a plain text/number field's filled
- * `bg-background` AND its `border-input` outline, keeping just the label
- * above it — same trial as `AccountCreateModal`'s own `NO_FILL`. Reverted on
- * every `SearchableSelect`/dropdown in this form (2026-09-05): without a
- * border it read as broken rather than intentional — a picker needs the
- * frame a plain field doesn't. To revert what's left, delete this constant
- * and its usages below; nothing else about the fields (focus ring, layout)
- * changes.
- */
-const NO_FILL = "bg-transparent border-transparent";
-
-/**
- * One titled group of fields. The title/description column splits off only when
- * the form is wide enough for it; otherwise the title sits above its fields.
- *
- * `bare` drops the heading/border/grid entirely — used when a tab strip
- * already names the section (see the tabbed layout in `AccountForm` below),
- * so repeating "Facturación" as both a tab label and a section heading would
- * be pure noise.
+ * One loose group of rows: a small muted caption (skipped when a tab strip
+ * already names the group) over a tight list of `DetailRow`-shaped fields —
+ * the same convention `AccountCreateModal` uses, so editing an account reads
+ * as the same form as creating one instead of a different, boxier one.
  */
 function FormSection({
   title,
-  description,
-  hideTitleOnMobile = false,
-  sideLabel,
   bare = false,
   children,
 }: Readonly<{
-  title: string;
-  description?: string;
-  /** The first section's heading is noise on a phone — the screen title already
-   * says what is being edited, and the fields below it are self-labelled. */
-  hideTitleOnMobile?: boolean;
-  /** Enough room to put the title beside the fields instead of above them. */
-  sideLabel?: boolean;
-  /** No heading, no border, no grid — just the fields, padded like any other
-   * section. For a section that lives under its own tab. */
+  /** Omitted when `bare` — a section whose fields already self-label (the
+   * balance hero) or that lives under its own tab needs no caption. */
+  title?: string;
   bare?: boolean;
   children: ReactNode;
 }>) {
-  if (bare) {
-    return <div className="flex flex-col gap-4 px-4 py-5 sm:px-6">{children}</div>;
-  }
   return (
-    <section
-      className={cn(
-        "grid gap-4 border-t border-border px-4 py-5 first:border-t-0 sm:px-6",
-        sideLabel && "grid-cols-[14rem_1fr] gap-8",
-      )}
-    >
-      <div className={cn(sideLabel && "pt-1", hideTitleOnMobile && "max-sm:hidden")}>
-        <h2
-          className={cn(
-            "text-sm font-semibold uppercase tracking-wide text-brand",
-            sideLabel && "text-base normal-case tracking-normal text-foreground",
-          )}
-        >
-          {title}
-        </h2>
-        {description && sideLabel ? (
-          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-        ) : null}
-      </div>
-      <div className="flex flex-col gap-4">{children}</div>
-    </section>
+    <div className="flex flex-col gap-2 border-t border-border py-5 first:border-t-0 first:pt-0">
+      {bare || !title ? null : <SectionLabel>{title}</SectionLabel>}
+      <div className="flex flex-col">{children}</div>
+    </div>
   );
 }
 
@@ -251,8 +200,10 @@ export function AccountForm({
     e.preventDefault();
     // Showing the error and saving anyway is worse than not validating at all:
     // the API refuses it too (INVALID_ACCOUNT_NUMBER / INVALID_ACCOUNT_ALIAS),
-    // so stopping here is what keeps the two answers the same.
-    if (accountNumberInvalid || accountAliasInvalid) return;
+    // so stopping here is what keeps the two answers the same. The name field
+    // is a borderless hero with no native `required` of its own (same as
+    // `AccountCreateModal`'s), so emptiness is guarded here instead.
+    if (!submitted.name.trim() || accountNumberInvalid || accountAliasInvalid) return;
     onSubmit(submitted);
   }
 
@@ -283,11 +234,6 @@ export function AccountForm({
     });
   }
 
-  const [formRef, formWidth] = useElementWidth();
-  // Until measured, stack: it works at every width, so a wrong first guess is a
-  // cosmetic downgrade rather than a squeezed two-column row.
-  const sideLabel = formWidth !== null && formWidth >= SECTION_LABEL_MIN_WIDTH;
-
   const hasCreditPool = isCreditLineType || hasCreditCard;
   const locale = groupingLocaleFor(values.currency, i18n.language);
   const limitNum = Number(values.creditLimit || 0);
@@ -295,47 +241,93 @@ export function AccountForm({
   const availablePct = limitNum > 0 ? Math.min(100, Math.max(0, (usedNum / limitNum) * 100)) : 0;
 
   return (
-    // Measured on the form itself: the same markup is rendered as a full-width
-    // screen and inside a side panel, and only its own width says which layout
-    // fits (see SECTION_LABEL_MIN_WIDTH).
-    <form ref={formRef} id={formId} className="flex flex-col" onSubmit={handleSubmit}>
+    <form id={formId} className="flex flex-col" onSubmit={handleSubmit}>
+      {/* Name: hero, no visible label — shown above the tab strip since it
+          names the account regardless of which tab (Crédito/Facturación) is
+          open, not a field that belongs to either one. */}
+      <FormBigTextField
+        id="acc-name"
+        value={values.name}
+        onChange={(v) => set("name", v)}
+        placeholder={t("accounts.form.namePlaceholder")}
+        aria-label={t("accounts.form.name")}
+        showEditIcon
+        className="mb-4"
+      />
+
       {/* A plain account never grows past Identificación + Saldo — the tab
           strip only earns its place once a credit account adds Crédito and
           Facturación on top, which is also when a single long scroll starts
           to feel like unrelated settings dumped in one place. */}
       {hasCreditPool ? (
         <Tabs
-          className="px-4 sm:px-6"
           value={tab}
           onChange={setTab}
           items={[
-            { value: "general", label: t("accounts.form.tabs.general") },
-            { value: "credit", label: t("accounts.form.tabs.credit") },
+            // Identificación and Crédito share this same tab — a credit account's
+            // limit/pool is as central to it as its name, not a settings page away.
+            { value: "general", label: t("accounts.form.tabs.credit") },
             { value: "billing", label: t("accounts.form.tabs.billing") },
           ]}
         />
       ) : null}
       <div className={cn(tab !== "general" && "hidden")}>
-        <FormSection
-          sideLabel={sideLabel}
-          bare={hasCreditPool}
-          title={t("accounts.form.sections.identification")}
-          description={t("accounts.form.sections.identificationHint")}
-          hideTitleOnMobile
-        >
-          <Field label={t("accounts.form.name")}>
-            <Input
-              id="acc-name"
-              className={NO_FILL}
-              value={values.name}
-              required
-              placeholder={t("accounts.form.namePlaceholder")}
-              onChange={(e) => set("name", e.target.value)}
-              aria-label={t("accounts.form.name")}
-            />
-          </Field>
-          <Field label={t("accounts.form.type")}>
+        {/* Same field ORDER `AccountCreateModal` uses — name, balance/cupo hero,
+            a divider, then type, then everything else — so editing an account
+            reads as a continuation of creating one, not a differently laid out
+            form. */}
+        <FormSection bare>
+          {/* Balance / cupo: hero figure, currency inline. */}
+          <div className="pt-4">
+            <SectionLabel>
+              {isCreditLineType
+                ? t("accounts.form.creditLimit")
+                : t("accounts.form.initialBalance")}
+            </SectionLabel>
+            <div className="mt-2 flex items-baseline gap-3">
+              <span className="shrink-0 text-2xl font-bold text-brand" aria-hidden>
+                {resolveCurrencySymbol(values.currency, currencies, i18n.language)}
+              </span>
+              <input
+                inputMode="numeric"
+                value={formatAmountDisplay(
+                  isCreditLineType ? values.creditLimit : values.initialBalance,
+                  locale,
+                )}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, "");
+                  if (isCreditLineType) set("creditLimit", digits);
+                  else set("initialBalance", digits);
+                }}
+                placeholder="0"
+                className="min-w-0 flex-1 border-0 bg-transparent p-0 text-3xl font-bold tabular-nums text-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label={
+                  isCreditLineType
+                    ? t("accounts.form.creditLimit")
+                    : t("accounts.form.initialBalance")
+                }
+              />
+              <SearchableSelect
+                id="acc-cur"
+                variant="inline"
+                className="w-auto shrink-0"
+                value={values.currency}
+                onChange={(v) => set("currency", v)}
+                options={currencyOptions}
+                displayValue={values.currency}
+                searchPlaceholder={t("common.search")}
+                noResultsLabel={t("common.noResults")}
+                aria-label={t("accounts.form.currency")}
+              />
+            </div>
+          </div>
+
+          <div className="my-2 border-t border-border" />
+
+          <DetailRow label={t("accounts.form.type")}>
             <AccountTypeToggle
+              variant="inline"
+              className="w-auto"
               value={values.type}
               // A prepaid account can't be converted into anything else, nor anything
               // else into one (ACCOUNT_TYPE_CHANGE_NOT_ALLOWED): the API refuses it,
@@ -368,218 +360,144 @@ export function AccountForm({
                 })
               }
             />
-          </Field>
-          {/* The overdraft is the floor of THIS balance, not a product of its own:
-            only an account that holds spendable cash can be granted one. */}
-          {accountsContract.allowsOverdraft(values.type) ? (
-            <Field label={t("accounts.form.overdraftLimit")}>
-              <Input
-                id="acc-overdraft"
-                className={cn(NO_FILL, "text-right")}
-                value={formatAmountDisplay(values.overdraftLimit, locale)}
-                inputMode="numeric"
-                onChange={(e) => set("overdraftLimit", e.target.value.replace(/\D/g, ""))}
-                aria-label={t("accounts.form.overdraftLimit")}
+          </DetailRow>
+
+          {/* A checking/sight account that grew a CREDIT card also needs the account-level
+            pool that card draws on — CREDIT_CARD already shows it above instead of a balance.
+            Once a primary card exists, its limit IS this value — edit it from the card instead. */}
+          {!isCreditLineType && hasCreditCard ? (
+            <>
+              <FormTextField
+                id="acc-climit2"
+                label={t("accounts.form.creditLimit")}
+                value={formatAmountDisplay(values.creditLimit, locale)}
+                disabled
+                onChange={() => {}}
               />
-              <p className="text-xs text-muted-foreground">
-                {t("accounts.form.overdraftLimitHint")}
-              </p>
-            </Field>
+              <FormTextField
+                id="acc-cused2"
+                label={t("accounts.form.creditUsedInitial")}
+                value={formatAmountDisplay(values.creditUsedInitial, locale)}
+                disabled
+                hint={t("accounts.form.creditLimitMirroredHint")}
+                onChange={() => {}}
+              />
+            </>
           ) : null}
           {values.type !== "CASH" ? (
-            <div className="grid gap-4 sm:grid-cols-2">
+            <>
               {/* The country decides WHICH institutions exist and what an account
                 number looks like there, so it is asked before both. */}
-              <Field label={t("accounts.form.country")}>
-                <SearchableSelect
-                  id="acc-country"
-                  value={values.country}
-                  onChange={(v) =>
-                    setValues((prev) => ({
-                      ...prev,
-                      country: v,
-                      // An institution belongs to its country: keeping it here would
-                      // silently attach a Chilean bank to an Argentine account.
-                      institutionId: "",
-                    }))
-                  }
-                  options={(countries ?? []).map((c) => ({
-                    value: c.alpha2,
-                    // Same "Name · ISO" reading whether the control is open or
-                    // closed — the old `displayValue={values.country}` showed
-                    // the bare code closed and the full name open, which read
-                    // as two different pickers.
-                    label: `${c.name} · ${c.alpha2}`,
-                    keywords: [c.alpha2, c.alpha3],
-                  }))}
-                  searchPlaceholder={t("common.search")}
-                  noResultsLabel={t("common.noResults")}
-                  aria-label={t("accounts.form.country")}
-                />
-              </Field>
-              <Field label={t("accounts.form.institution")}>
-                <SearchableSelect
-                  id="acc-inst"
-                  value={values.institutionId}
-                  onChange={(v) => set("institutionId", v)}
-                  options={institutionOptions}
-                  searchPlaceholder={t("common.search")}
-                  noResultsLabel={t("common.noResults")}
-                  aria-label={t("accounts.form.institution")}
-                />
-              </Field>
-              <Field
-                label={
-                  usesAlias ? t("accounts.form.accountNumberCbu") : t("accounts.form.accountNumber")
+              <FormSelectField
+                id="acc-country"
+                label={t("accounts.form.country")}
+                value={values.country}
+                onChange={(v) =>
+                  setValues((prev) => ({
+                    ...prev,
+                    country: v,
+                    // An institution belongs to its country: keeping it here would
+                    // silently attach a Chilean bank to an Argentine account.
+                    institutionId: "",
+                  }))
                 }
-                error={accountNumberInvalid ? t("accounts.form.accountNumberInvalid") : null}
-              >
-                <Input
+                options={(countries ?? []).map((c) => ({
+                  value: c.alpha2,
+                  label: `${c.name} · ${c.alpha2}`,
+                  keywords: [c.alpha2, c.alpha3],
+                }))}
+              />
+              <FormSelectField
+                id="acc-inst"
+                label={t("accounts.form.institution")}
+                value={values.institutionId}
+                onChange={(v) => set("institutionId", v)}
+                options={institutionOptions}
+              />
+              {/* A credit-line account has no bank account number of its own — what
+                it needs instead is its primary card (last4/expiry), managed from
+                the card panel, not this field. */}
+              {isCreditLineType ? null : (
+                <FormTextField
                   id="acc-num"
-                  className={NO_FILL}
+                  label={
+                    usesAlias
+                      ? t("accounts.form.accountNumberCbu")
+                      : t("accounts.form.accountNumber")
+                  }
                   value={values.accountNumber}
-                  inputMode="numeric"
                   required={accountsContract.isAccountNumberRequired(values.type)}
                   placeholder={
                     accountsContract.isAccountNumberRequired(values.type)
                       ? t("accounts.form.accountNumberPlaceholder")
                       : t("accounts.form.optional")
                   }
-                  onChange={(e) => set("accountNumber", e.target.value)}
-                  aria-label={t("accounts.form.accountNumber")}
+                  onChange={(v) => set("accountNumber", v)}
+                  error={accountNumberInvalid ? t("accounts.form.accountNumberInvalid") : null}
+                  showEditIcon
                 />
-              </Field>
+              )}
               {/* Only where the market actually has aliases: showing an empty field
                 labelled "alias" in Chile would invent a concept that isn't there. */}
-              {usesAlias ? (
-                <Field
+              {usesAlias && !isCreditLineType ? (
+                <FormTextField
+                  id="acc-alias"
                   label={t("accounts.form.accountAlias")}
+                  value={values.accountAlias}
+                  placeholder={t("accounts.form.accountAliasPlaceholder")}
+                  onChange={(v) => set("accountAlias", v)}
                   error={accountAliasInvalid ? t("accounts.form.accountAliasInvalid") : null}
-                >
-                  <Input
-                    id="acc-alias"
-                    className={NO_FILL}
-                    value={values.accountAlias}
-                    placeholder={t("accounts.form.accountAliasPlaceholder")}
-                    onChange={(e) => set("accountAlias", e.target.value)}
-                    aria-label={t("accounts.form.accountAlias")}
-                  />
-                </Field>
+                  showEditIcon
+                />
               ) : null}
-            </div>
+            </>
           ) : null}
-        </FormSection>
-        {dangerZone ? (
-          // Bottom of the General tab on a phone, far from the thumb's resting
-          // position — on the wider layout the same action lives in the page
-          // header instead.
-          <div className="border-t border-border px-4 py-5 sm:hidden">{dangerZone}</div>
-        ) : null}
-      </div>
 
-      <div className={cn(hasCreditPool && tab !== "credit" && "hidden")}>
-        <FormSection
-          sideLabel={sideLabel}
-          bare={hasCreditPool}
-          title={
-            hasCreditPool ? t("accounts.form.sections.credit") : t("accounts.form.sections.balance")
-          }
-          description={
-            hasCreditPool
-              ? t("accounts.form.sections.creditHint")
-              : t("accounts.form.sections.balanceHint")
-          }
-        >
-          <div className="grid grid-cols-[6.5rem_1fr] gap-3 sm:gap-4">
-            <Field label={t("accounts.form.currency")}>
-              <SearchableSelect
-                id="acc-cur"
-                value={values.currency}
-                onChange={(v) => set("currency", v)}
-                options={currencyOptions}
-                displayValue={values.currency}
-                hideDescriptionWhenClosed
-                searchPlaceholder={t("common.search")}
-                noResultsLabel={t("common.noResults")}
-                aria-label={t("accounts.form.currency")}
-              />
-            </Field>
-            {isCreditLineType ? (
-              <Field label={t("accounts.form.creditLimit")}>
-                <Input
-                  id="acc-climit"
-                  className={cn(NO_FILL, "text-right")}
-                  value={formatAmountDisplay(values.creditLimit, locale)}
-                  inputMode="numeric"
-                  disabled={hasCreditCard}
-                  onChange={(e) => set("creditLimit", e.target.value.replace(/\D/g, ""))}
-                  aria-label={t("accounts.form.creditLimit")}
+          {/* Más detalles: a checking/sight account's overdraft floor, or a
+              credit account's seeded starting usage — one extra, optional
+              figure most accounts never touch, tucked below the fields every
+              account has. */}
+          {accountsContract.allowsOverdraft(values.type) || isCreditLineType ? (
+            <FormMoreDetails
+              className="mt-2"
+              defaultOpen={
+                initialValues.overdraftLimit !== "0" || initialValues.creditUsedInitial !== "0"
+              }
+              title={
+                <>
+                  {t("accounts.form.moreDetails")}{" "}
+                  <span className="font-normal text-muted-foreground">
+                    · {t("accounts.form.optional")}
+                  </span>
+                </>
+              }
+            >
+              {accountsContract.allowsOverdraft(values.type) ? (
+                <FormTextField
+                  id="acc-overdraft"
+                  label={t("accounts.form.overdraftLimit")}
+                  value={formatAmountDisplay(values.overdraftLimit, locale)}
+                  hint={t("accounts.form.overdraftLimitHint")}
+                  onChange={(v) => set("overdraftLimit", v.replace(/\D/g, ""))}
+                  showEditIcon
                 />
-              </Field>
-            ) : (
-              <Field label={t("accounts.form.initialBalance")}>
-                <Input
-                  id="acc-bal"
-                  className={cn(NO_FILL, "text-right")}
-                  value={formatAmountDisplay(values.initialBalance, locale)}
-                  inputMode="numeric"
-                  onChange={(e) => set("initialBalance", e.target.value.replace(/\D/g, ""))}
-                  aria-label={t("accounts.form.initialBalance")}
-                />
-              </Field>
-            )}
-          </div>
-
-          {/* A checking/sight account that grew a CREDIT card also needs the account-level
-            pool that card draws on — CREDIT_CARD already shows it above instead of a balance.
-            Once a primary card exists, its limit IS this value — edit it from the card instead. */}
-          {!isCreditLineType && hasCreditCard ? (
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label={t("accounts.form.creditLimit")}>
-                <Input
-                  id="acc-climit2"
-                  className={cn(NO_FILL, "text-right")}
-                  value={formatAmountDisplay(values.creditLimit, locale)}
-                  inputMode="numeric"
-                  disabled
-                  aria-label={t("accounts.form.creditLimit")}
-                />
-              </Field>
-              <Field label={t("accounts.form.creditUsedInitial")}>
-                <Input
-                  id="acc-cused2"
-                  className={cn(NO_FILL, "text-right")}
+              ) : null}
+              {isCreditLineType ? (
+                <FormTextField
+                  id="acc-cused"
+                  label={t("accounts.form.creditUsedInitial")}
                   value={formatAmountDisplay(values.creditUsedInitial, locale)}
-                  inputMode="numeric"
-                  disabled
-                  aria-label={t("accounts.form.creditUsedInitial")}
+                  onChange={(v) => set("creditUsedInitial", v.replace(/\D/g, ""))}
+                  showEditIcon
                 />
-              </Field>
-            </div>
-          ) : null}
-          {isCreditLineType ? (
-            <Field label={t("accounts.form.creditUsedInitial")}>
-              <Input
-                id="acc-cused"
-                className={cn(NO_FILL, "text-right")}
-                value={formatAmountDisplay(values.creditUsedInitial, locale)}
-                inputMode="numeric"
-                disabled={hasCreditCard}
-                aria-label={t("accounts.form.creditUsedInitial")}
-                onChange={(e) => set("creditUsedInitial", e.target.value.replace(/\D/g, ""))}
-              />
-            </Field>
-          ) : null}
-          {hasCreditCard ? (
-            <p className="text-xs text-muted-foreground">
-              {t("accounts.form.creditLimitMirroredHint")}
-            </p>
+              ) : null}
+            </FormMoreDetails>
           ) : null}
 
           {/* What the two numbers above actually mean for the user, so the
             consequence of an edit is visible without doing the subtraction. */}
           {hasCreditPool && limitNum > 0 ? (
-            <div className="rounded-lg border border-border bg-muted/30 p-3">
+            <div className="mt-2 rounded-lg border border-border bg-muted/30 p-3">
               <div className="flex items-baseline justify-between gap-3">
                 <span className="text-sm text-muted-foreground">
                   {t("accounts.form.availableResult")}
@@ -600,183 +518,179 @@ export function AccountForm({
             </div>
           ) : null}
         </FormSection>
+        {dangerZone ? (
+          // Bottom of the tab on a phone, far from the thumb's resting
+          // position — on the wider layout the same action lives in the page
+          // header instead.
+          <div className="border-t border-border py-5 sm:hidden">{dangerZone}</div>
+        ) : null}
       </div>
 
       {hasCreditPool ? (
         <div className={cn(tab !== "billing" && "hidden")}>
-          <FormSection
-            sideLabel={sideLabel}
-            bare
-            title={t("accounts.form.sections.billing")}
-            description={t("accounts.form.sections.billingHint")}
-          >
+          <FormSection bare title={t("accounts.form.sections.billing")}>
             {/* Generación y pago se configuran cada uno con su propio tipo de ciclo
               (días hábiles o día del mes) — un emisor puede generar en un día fijo
               del mes y aun así deber el pago N días hábiles después, o viceversa.
-              El día/porcentaje va primero (lo que se escribe) y su selector de
-              tipo después, más angosto — pareja consistente en las tres filas. */}
-            <div className="flex items-end gap-4">
-              <Field
+              El día/porcentaje y su selector de tipo comparten una sola fila —
+              son una unidad, no dos ajustes distintos. */}
+            {/* Field + hint share ONE bordered block (the row's own divider
+              moves to the very bottom, after the hint) instead of a `DetailRow`
+              whose own divider would otherwise land between the two. */}
+            <div className="border-b border-border py-3 last:border-b-0">
+              <DetailRow
+                className="border-b-0 py-0"
                 label={
                   values.billingCycleType === "BUSINESS_DAY"
                     ? t("accounts.form.billingCycleDayBusiness")
                     : t("accounts.form.billingCycleDay")
                 }
               >
-                <Input
-                  className={cn(NO_FILL, "w-24")}
-                  id="acc-billing-day"
-                  inputMode="numeric"
-                  placeholder={
-                    values.billingCycleType === "BUSINESS_DAY"
-                      ? t("accounts.form.billingCycleDayBusinessPlaceholder")
-                      : t("accounts.form.billingCycleDayPlaceholder")
-                  }
-                  value={values.billingCycleDay}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
-                    set("billingCycleDay", digits && Number(digits) > 28 ? "28" : digits);
-                  }}
-                  aria-label={t("accounts.form.billingCycleDay")}
-                />
-              </Field>
-              <Field label={t("accounts.form.billingCycleType")}>
-                <Segmented
-                  size="sm"
-                  className="h-10 w-52"
-                  value={values.billingCycleType}
-                  onChange={(v) => set("billingCycleType", v)}
-                  options={[
-                    {
-                      value: "BUSINESS_DAY",
-                      label: t("accounts.form.billingCycleTypeBusinessDay"),
-                    },
-                    {
-                      value: "CALENDAR_DAY",
-                      label: t("accounts.form.billingCycleTypeCalendarDay"),
-                    },
-                  ]}
-                  aria-label={t("accounts.form.billingCycleType")}
-                />
-              </Field>
+                <div className="flex items-center gap-3">
+                  <input
+                    id="acc-billing-day"
+                    inputMode="numeric"
+                    placeholder={
+                      values.billingCycleType === "BUSINESS_DAY"
+                        ? t("accounts.form.billingCycleDayBusinessPlaceholder")
+                        : t("accounts.form.billingCycleDayPlaceholder")
+                    }
+                    value={values.billingCycleDay}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
+                      set("billingCycleDay", digits && Number(digits) > 28 ? "28" : digits);
+                    }}
+                    aria-label={t("accounts.form.billingCycleDay")}
+                    className="h-8 w-12 border-0 bg-transparent p-0 text-right text-sm font-medium tabular-nums text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+                  />
+                  <Segmented
+                    size="sm"
+                    className="h-8 w-40"
+                    value={values.billingCycleType}
+                    onChange={(v) => set("billingCycleType", v)}
+                    options={[
+                      {
+                        value: "BUSINESS_DAY",
+                        label: t("accounts.form.billingCycleTypeBusinessDay"),
+                      },
+                      {
+                        value: "CALENDAR_DAY",
+                        label: t("accounts.form.billingCycleTypeCalendarDay"),
+                      },
+                    ]}
+                    aria-label={t("accounts.form.billingCycleType")}
+                  />
+                </div>
+              </DetailRow>
+              <p className="pt-1 text-xs text-muted-foreground">
+                {values.billingCycleType === "BUSINESS_DAY"
+                  ? t("accounts.form.billingCycleDayBusinessHint")
+                  : t("accounts.form.billingCycleDayHint")}
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {values.billingCycleType === "BUSINESS_DAY"
-                ? t("accounts.form.billingCycleDayBusinessHint")
-                : t("accounts.form.billingCycleDayHint")}
-            </p>
 
-            <div className="border-t border-border" />
-
-            <div className="flex items-end gap-4">
-              <Field
+            <div className="border-b border-border py-3 last:border-b-0">
+              <DetailRow
+                className="border-b-0 py-0"
                 label={
                   values.paymentDueCycleType === "BUSINESS_DAY"
                     ? t("accounts.form.paymentDueDayBusiness")
                     : t("accounts.form.paymentDueDay")
                 }
               >
-                <Input
-                  className={cn(NO_FILL, "w-24")}
-                  inputMode="numeric"
-                  placeholder={
-                    values.paymentDueCycleType === "BUSINESS_DAY"
-                      ? t("accounts.form.paymentDueDayBusinessPlaceholder")
-                      : t("accounts.form.paymentDueDayPlaceholder")
-                  }
-                  value={values.paymentDueDay}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
-                    set("paymentDueDay", digits && Number(digits) > 28 ? "28" : digits);
-                  }}
-                  aria-label={t("accounts.form.paymentDueDay")}
-                />
-              </Field>
-              <Field label={t("accounts.form.paymentDueCycleType")}>
-                <Segmented
-                  size="sm"
-                  className="h-10 w-52"
-                  value={values.paymentDueCycleType}
-                  onChange={(v) => set("paymentDueCycleType", v)}
-                  options={[
-                    {
-                      value: "BUSINESS_DAY",
-                      label: t("accounts.form.billingCycleTypeBusinessDay"),
-                    },
-                    {
-                      value: "CALENDAR_DAY",
-                      label: t("accounts.form.billingCycleTypeCalendarDay"),
-                    },
-                  ]}
-                  aria-label={t("accounts.form.paymentDueCycleType")}
-                />
-              </Field>
+                <div className="flex items-center gap-3">
+                  <input
+                    inputMode="numeric"
+                    placeholder={
+                      values.paymentDueCycleType === "BUSINESS_DAY"
+                        ? t("accounts.form.paymentDueDayBusinessPlaceholder")
+                        : t("accounts.form.paymentDueDayPlaceholder")
+                    }
+                    value={values.paymentDueDay}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
+                      set("paymentDueDay", digits && Number(digits) > 28 ? "28" : digits);
+                    }}
+                    aria-label={t("accounts.form.paymentDueDay")}
+                    className="h-8 w-12 border-0 bg-transparent p-0 text-right text-sm font-medium tabular-nums text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+                  />
+                  <Segmented
+                    size="sm"
+                    className="h-8 w-40"
+                    value={values.paymentDueCycleType}
+                    onChange={(v) => set("paymentDueCycleType", v)}
+                    options={[
+                      {
+                        value: "BUSINESS_DAY",
+                        label: t("accounts.form.billingCycleTypeBusinessDay"),
+                      },
+                      {
+                        value: "CALENDAR_DAY",
+                        label: t("accounts.form.billingCycleTypeCalendarDay"),
+                      },
+                    ]}
+                    aria-label={t("accounts.form.paymentDueCycleType")}
+                  />
+                </div>
+              </DetailRow>
+              <p className="pt-1 text-xs text-muted-foreground">
+                {values.paymentDueCycleType === "BUSINESS_DAY"
+                  ? t("accounts.form.paymentDueDayBusinessHint")
+                  : t("accounts.form.paymentDueDayHint")}
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground">
-              {values.paymentDueCycleType === "BUSINESS_DAY"
-                ? t("accounts.form.paymentDueDayBusinessHint")
-                : t("accounts.form.paymentDueDayHint")}
-            </p>
 
-            <div className="border-t border-border" />
+            <FormTextField
+              label={t("accounts.form.minimumPercent")}
+              placeholder="5"
+              value={values.minimumPaymentPercent}
+              hint={t("accounts.form.minimumPercentHint")}
+              onChange={(v) => {
+                // 0-100, at most two decimals — the column's own precision.
+                const clean = v.replace(/[^\d.]/g, "").slice(0, 6);
+                set("minimumPaymentPercent", Number(clean) > 100 ? "100" : clean);
+              }}
+              showEditIcon
+            />
 
-            <div className="flex items-end gap-4">
-              <Field label={t("accounts.form.minimumPercent")}>
-                <Input
-                  className={cn(NO_FILL, "w-24")}
-                  inputMode="decimal"
-                  placeholder="5"
-                  value={values.minimumPaymentPercent}
-                  onChange={(e) => {
-                    // 0-100, at most two decimals — the column's own precision.
-                    const clean = e.target.value.replace(/[^\d.]/g, "").slice(0, 6);
-                    set("minimumPaymentPercent", Number(clean) > 100 ? "100" : clean);
-                  }}
-                  aria-label={t("accounts.form.minimumPercent")}
-                />
-              </Field>
-              <Field label={t("accounts.form.paymentMethod")}>
-                <Segmented
-                  size="sm"
-                  className="h-10 w-52"
-                  value={values.paymentMethod}
-                  onChange={(v) => set("paymentMethod", v)}
-                  options={[
-                    { value: "MANUAL", label: t("accounts.form.paymentMethodManual") },
-                    {
-                      value: "AUTOMATIC",
-                      label: t("accounts.form.paymentMethodAutomatic"),
-                      disabled: true,
-                      disabledReason: t("accounts.form.paymentMethodAutomaticLocked"),
-                    },
-                  ]}
-                  aria-label={t("accounts.form.paymentMethod")}
-                />
-              </Field>
-            </div>
-            <p className="text-xs text-muted-foreground">{t("accounts.form.minimumPercentHint")}</p>
+            <DetailRow label={t("accounts.form.paymentMethod")}>
+              <Segmented
+                size="sm"
+                className="h-8 w-40"
+                value={values.paymentMethod}
+                onChange={(v) => set("paymentMethod", v)}
+                options={[
+                  { value: "MANUAL", label: t("accounts.form.paymentMethodManual") },
+                  {
+                    value: "AUTOMATIC",
+                    label: t("accounts.form.paymentMethodAutomatic"),
+                    disabled: true,
+                    disabledReason: t("accounts.form.paymentMethodAutomaticLocked"),
+                  },
+                ]}
+                aria-label={t("accounts.form.paymentMethod")}
+              />
+            </DetailRow>
           </FormSection>
         </div>
       ) : null}
 
       {onStatusChange ? null : (
-        <FormSection
-          sideLabel={sideLabel}
-          title={t("accounts.form.sections.status")}
-          description={t("accounts.form.sections.statusHint")}
-        >
-          <label className="flex items-start gap-3">
+        <FormSection title={t("accounts.form.sections.status")}>
+          <label className="flex items-center justify-between gap-4 py-3 text-sm">
+            <span>
+              <span className="block font-medium text-foreground">
+                {t("accounts.form.accountActive")}
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                {t("accounts.form.accountActiveHint")}
+              </span>
+            </span>
             <Switch
               checked={values.status === "ACTIVE"}
               onCheckedChange={(checked) => set("status", checked ? "ACTIVE" : "INACTIVE")}
               aria-label={t("accounts.form.accountActive")}
             />
-            <span>
-              <span className="block text-sm font-medium">{t("accounts.form.accountActive")}</span>
-              <span className="block text-xs text-muted-foreground">
-                {t("accounts.form.accountActiveHint")}
-              </span>
-            </span>
           </label>
         </FormSection>
       )}

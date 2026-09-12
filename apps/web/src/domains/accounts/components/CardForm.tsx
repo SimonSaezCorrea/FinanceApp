@@ -242,6 +242,7 @@ export function CardForm({
         value={name}
         onChange={setName}
         placeholder={t("cards.form.namePlaceholder")}
+        showEditIcon
       />
       {/* Últimos 4 dígitos + Vencimiento share one row — both are short fields,
           and splitting them into two full-width rows just spent two dividers
@@ -484,6 +485,7 @@ export function CardForm({
               value={cardholderName}
               onChange={setCardholderName}
               placeholder={t("cards.form.cardholderPlaceholder")}
+              showEditIcon
             />
           ) : null}
           <FormSelectField

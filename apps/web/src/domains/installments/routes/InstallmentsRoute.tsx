@@ -11,6 +11,7 @@ import { cn } from "../../../shared/lib/cn";
 import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
+import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Segmented } from "../../../shared/ui/segmented";
 import { DeletePlanConfirm } from "../components/DeletePlanConfirm";
@@ -53,6 +54,13 @@ export function InstallmentsRoute() {
   const [formValue, setFormValue] = useState<InstallmentFormValue>(() =>
     emptyInstallmentForm(todayInput()),
   );
+  // What the form looked like right after opening for edit — compared against
+  // the live `formValue` so "sin guardar" only shows once something actually
+  // changed, not for the mere fact of being in edit mode.
+  const [formBaseline, setFormBaseline] = useState<InstallmentFormValue | null>(null);
+  const dirty =
+    retainedForm?.mode === "edit" && JSON.stringify(formValue) !== JSON.stringify(formBaseline);
+  const [confirmLeaveForm, setConfirmLeaveForm] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [paying, setPaying] = useState<{ planId: string; sequence: number } | null>(null);
@@ -151,12 +159,21 @@ export function InstallmentsRoute() {
 
   function openCreate() {
     setFormValue(emptyInstallmentForm(todayInput()));
+    setFormBaseline(null);
     setForm({ mode: "create", planId: null });
   }
 
   function openEdit(plan: installments.InstallmentPlan) {
-    setFormValue(installmentFormFrom(plan));
+    const value = installmentFormFrom(plan);
+    setFormValue(value);
+    setFormBaseline(value);
     setForm({ mode: "edit", planId: plan.id });
+  }
+
+  /** Dismissing the form panel: confirm first when there's something to lose. */
+  function requestCloseForm() {
+    if (dirty) setConfirmLeaveForm(true);
+    else setForm(null);
   }
 
   function selectPlan(id: string | null) {
@@ -394,7 +411,7 @@ export function InstallmentsRoute() {
       <InstallmentFormPanel
         open={form !== null}
         onOpenChange={(open) => {
-          if (!open) setForm(null);
+          if (!open) requestCloseForm();
         }}
         mode={retainedForm?.mode ?? "create"}
         value={formValue}
@@ -408,7 +425,19 @@ export function InstallmentsRoute() {
         scheduleFrozen={retainedForm?.mode === "edit" && scheduleFrozen}
         onSubmit={submitForm}
         submitting={create.isPending || update.isPending}
-        dirty={retainedForm?.mode === "edit"}
+        dirty={dirty}
+      />
+
+      <ConfirmModal
+        open={confirmLeaveForm}
+        onOpenChange={(v) => !v && setConfirmLeaveForm(false)}
+        title={t("installments.form.leaveConfirm")}
+        description={t("installments.form.leaveConfirmDescription")}
+        confirmLabel={t("installments.form.leaveDiscard")}
+        onConfirm={() => {
+          setConfirmLeaveForm(false);
+          setForm(null);
+        }}
       />
 
       <DeletePlanConfirm

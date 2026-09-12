@@ -3,7 +3,9 @@ import { useTranslation } from "react-i18next";
 import type { accounts as accountsContract, savings } from "@finance/contracts";
 
 import { accountMetaLine } from "../../accounts/lib/accountMeta";
+import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
+import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import {
   FormDateField,
   FormSelectField,
@@ -54,6 +56,7 @@ export function SavingsEntryFormPanel({
   dirty = false,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
+  const { data: currencies } = useCurrencies();
   const creating = mode === "create";
   const selectedGoal = openGoals.find((g) => g.id === value.savingsGoalId) ?? null;
   const selectedAccount = accounts.find((a) => a.id === value.bankAccountId) ?? null;
@@ -106,8 +109,8 @@ export function SavingsEntryFormPanel({
     >
       <div className="flex flex-col gap-5">
         <div className="flex items-baseline gap-2 border-b border-border pb-3">
-          <span className="text-[30px] font-semibold text-accent" aria-hidden>
-            +
+          <span className="shrink-0 text-2xl font-bold text-accent" aria-hidden>
+            {resolveCurrencySymbol(currency, currencies, i18n.language)}
           </span>
           <input
             inputMode="numeric"
@@ -117,6 +120,9 @@ export function SavingsEntryFormPanel({
             aria-label={t("savings.entry.eyebrow")}
             className="min-w-0 max-w-[240px] flex-1 border-0 bg-transparent p-0 text-[32px] font-semibold tabular-nums text-accent placeholder:text-accent/50 focus-visible:outline-none"
           />
+          {/* Not a picker: ahorro libre has no currency of its own — this
+              follows whichever source account is chosen below (FormSelectField
+              "Cuenta"), so it's read-only here, just the code as confirmation. */}
           <span className="ml-auto shrink-0 text-sm text-muted-foreground">{currency}</span>
         </div>
 
@@ -131,6 +137,7 @@ export function SavingsEntryFormPanel({
             value={value.title}
             onChange={(title) => onChange({ title })}
             placeholder={t("savings.entry.titleFieldPlaceholder")}
+            showEditIcon
           />
           <FormDateField
             label={t("savings.entry.dateLabel")}
@@ -152,6 +159,7 @@ export function SavingsEntryFormPanel({
             onChange={(note) => onChange({ note })}
             placeholder={t("savings.entry.notePlaceholder")}
             className="flex flex-col gap-1.5 pt-3"
+            showEditIcon
           />
         </div>
 

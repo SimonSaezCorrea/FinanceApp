@@ -1,3 +1,6 @@
+import { Pencil } from "lucide-react";
+
+import { cn } from "../../lib/cn";
 import { Textarea } from "../textarea";
 
 interface Props {
@@ -8,6 +11,9 @@ interface Props {
   placeholder?: string;
   rows?: number;
   disabled?: boolean;
+  /** Trailing pencil icon beside the label, always visible — same affordance
+   * as `FormTextField`'s, for a filled note in edit mode. Opt-in. */
+  showEditIcon?: boolean;
   className?: string;
 }
 
@@ -25,13 +31,22 @@ export function FormTextareaField({
   placeholder,
   rows,
   disabled,
+  showEditIcon = false,
   className,
 }: Readonly<Props>) {
   return (
     <div className={className ?? "flex flex-col gap-1.5 border-t border-border pt-4"}>
-      <label htmlFor={id} className="text-sm text-muted-foreground">
-        {label}
-      </label>
+      <div className="flex items-center justify-between gap-2">
+        <label htmlFor={id} className="text-sm text-muted-foreground">
+          {label}
+        </label>
+        {showEditIcon ? (
+          <Pencil
+            aria-hidden
+            className={cn("size-3.5 shrink-0 text-muted-foreground", disabled && "opacity-60")}
+          />
+        ) : null}
+      </div>
       <Textarea
         id={id}
         value={value}

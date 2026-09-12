@@ -1,4 +1,5 @@
 import type { accounts as accountsContract } from "@finance/contracts";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
@@ -63,23 +64,26 @@ function renderPanel(cardFrozen: boolean) {
     totalPrincipal: "1080000",
     cardId: "cCredit",
   };
+  const queryClient = new QueryClient();
   render(
-    <I18nextProvider i18n={i18n}>
-      <InstallmentFormPanel
-        open
-        onOpenChange={vi.fn()}
-        mode="edit"
-        value={value}
-        onChange={vi.fn()}
-        accounts={[creditAccount()]}
-        categoryOptions={[]}
-        cardFrozen={cardFrozen}
-        // A billed instalment freezes the schedule too (FR-006b) — real plans
-        // never have one frozen without the other.
-        scheduleFrozen={cardFrozen}
-        onSubmit={vi.fn()}
-      />
-    </I18nextProvider>,
+    <QueryClientProvider client={queryClient}>
+      <I18nextProvider i18n={i18n}>
+        <InstallmentFormPanel
+          open
+          onOpenChange={vi.fn()}
+          mode="edit"
+          value={value}
+          onChange={vi.fn()}
+          accounts={[creditAccount()]}
+          categoryOptions={[]}
+          cardFrozen={cardFrozen}
+          // A billed instalment freezes the schedule too (FR-006b) — real plans
+          // never have one frozen without the other.
+          scheduleFrozen={cardFrozen}
+          onSubmit={vi.fn()}
+        />
+      </I18nextProvider>
+    </QueryClientProvider>,
   );
 }
 

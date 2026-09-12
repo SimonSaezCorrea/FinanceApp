@@ -41,7 +41,7 @@ interface FormSurfaceProps {
   onSubmit: () => void;
   canSubmit?: boolean;
   submitting?: boolean;
-  /** `edit` only: pending-changes marker in the footer (and the header on a phone). */
+  /** `edit` only: pending-changes marker shown in the header. */
   dirty?: boolean;
   /** Extra footer action beside the submit (e.g. "save and create another"). */
   extraActions?: ReactNode;
@@ -103,7 +103,6 @@ export function FormSurface({
       className={className}
       footer={
         <div className="flex items-center justify-end gap-2">
-          {showDirty ? <UnsavedIndicator visible className="mr-auto max-sm:hidden" /> : null}
           {hideCancel ? null : (
             <Button
               variant="outline"

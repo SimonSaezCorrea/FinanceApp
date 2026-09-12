@@ -13,11 +13,14 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, description, actions, className }: PageHeaderProps) {
   return (
+    // No margin of its own: every caller already places this in a `gap-*`
+    // flex column alongside its next section — a hardcoded `mb-6` here used
+    // to stack ON TOP of that gap, doubling the space below the header.
     // Stacks on narrow viewports: side by side, the action button squeezes the
     // title until it wraps mid-word (320px).
     <div
       className={cn(
-        "mb-6 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4",
+        "flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4",
         className,
       )}
     >

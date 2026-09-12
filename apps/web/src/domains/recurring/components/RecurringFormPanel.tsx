@@ -5,6 +5,7 @@ import type { accounts as accountsContract, recurring } from "@finance/contracts
 import { accountMetaLine, cardMetaLine } from "../../accounts/lib/accountMeta";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
+import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { CategoryIcon } from "../../../shared/ui/category-icon";
 import {
@@ -17,6 +18,7 @@ import {
   FormTextareaField,
 } from "../../../shared/ui/form";
 import { FormSurface } from "../../../shared/ui/overlay";
+import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { FREQUENCY_ORDER } from "../lib/recurringMetrics";
 
 export interface RecurringFormValue {
@@ -73,6 +75,13 @@ export function RecurringFormPanel({
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
   const { data: currencies } = useCurrencies();
+  const currencyOptions = (currencies ?? []).map((c) => ({
+    value: c.code,
+    label: currencyPickerLabel(c.code),
+  }));
+  if (value.currency && !currencyOptions.some((o) => o.value === value.currency)) {
+    currencyOptions.unshift({ value: value.currency, label: currencyPickerLabel(value.currency) });
+  }
   const creating = mode === "create";
 
   const accountOptions = [
@@ -149,6 +158,7 @@ export function RecurringFormPanel({
           onChange={(label) => onChange({ label })}
           placeholder={t("recurring.form.namePlaceholder")}
           aria-label={t("recurring.form.label")}
+          showEditIcon
         />
 
         {/* A recurring series is always an outgoing expense — red like any
@@ -168,7 +178,18 @@ export function RecurringFormPanel({
             aria-label={t("recurring.form.amount")}
             className="min-w-0 max-w-[220px] flex-1 border-0 bg-transparent p-0 text-3xl font-bold tabular-nums text-destructive placeholder:text-destructive/50 focus-visible:outline-none"
           />
-          <span className="ml-auto shrink-0 text-sm text-muted-foreground">{value.currency}</span>
+          <SearchableSelect
+            id="recurring-currency"
+            variant="inline"
+            className="ml-auto w-auto shrink-0"
+            value={value.currency}
+            onChange={(currency) => onChange({ currency })}
+            options={currencyOptions}
+            displayValue={value.currency}
+            searchPlaceholder={t("common.search")}
+            noResultsLabel={t("common.noResults")}
+            aria-label={t("recurring.form.currency")}
+          />
         </div>
 
         <div className="flex flex-col">
@@ -230,6 +251,7 @@ export function RecurringFormPanel({
           value={value.notes}
           onChange={(notes) => onChange({ notes })}
           placeholder={t("recurring.form.notesPlaceholder")}
+          showEditIcon
         />
       </div>
     </FormSurface>

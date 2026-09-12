@@ -6,6 +6,7 @@ export { FormBigTextField } from "./FormBigTextField";
 export { FormCounterField } from "./FormCounterField";
 export { FormCycleField } from "./FormCycleField";
 export { FormChip, type FormChipOption } from "./FormChip";
+export { FormMoreDetails } from "./FormMoreDetails";
 export { FormNotice } from "./FormNotice";
 export { FormTextareaField } from "./FormTextareaField";
 export { FormSwitchField } from "./FormSwitchField";

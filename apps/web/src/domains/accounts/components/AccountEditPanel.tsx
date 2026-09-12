@@ -105,9 +105,11 @@ export function AccountEditPanel({
       <SidePanel
         open={open}
         onOpenChange={(next) => !next && requestClose()}
-        eyebrow={t("accounts.edit.title")}
-        title={account.name}
-        description={`${t(`accounts.type.${account.type}`)} · ${account.currency}`}
+        // The visible title is the account name, edited inside the body's own
+        // "Nombre" row — the header carries only the eyebrow naming what this
+        // surface is, same convention as TransactionCreateModal/AccountCreateModal.
+        eyebrow={t("accounts.edit.editEyebrow")}
+        title={<span className="sr-only">{t("accounts.edit.editEyebrow")}</span>}
         headerAside={
           // At the account's own level, where its state belongs: it's a property
           // of the record being edited, not one more field at the bottom of a

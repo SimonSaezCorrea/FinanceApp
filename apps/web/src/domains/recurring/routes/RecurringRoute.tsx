@@ -11,6 +11,7 @@ import { useTransactionsSummary } from "../../transactions/hooks/useTransactions
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
+import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { RecurringAutoGenerationStrip } from "../components/RecurringAutoGenerationStrip";
@@ -56,6 +57,11 @@ export function RecurringRoute() {
   const [formValue, setFormValue] = useState<RecurringFormValue>(() =>
     emptyRecurringForm(todayInput(), preferredCurrency),
   );
+  // What the form looked like right after opening for edit — compared against
+  // the live `formValue` so "sin guardar" only shows once something actually
+  // changed, not for the mere fact of being in edit mode.
+  const [formBaseline, setFormBaseline] = useState<RecurringFormValue | null>(null);
+  const [confirmLeaveForm, setConfirmLeaveForm] = useState(false);
   const [pauseTarget, setPauseTarget] = useState<recurring.RecurringExpense | null>(null);
   const [pauseDate, setPauseDate] = useState(todayInput());
   const [deleteTarget, setDeleteTarget] = useState<recurring.RecurringExpense | null>(null);
@@ -66,6 +72,8 @@ export function RecurringRoute() {
   // animation instead of unmounting the instant their target clears.
   const retainedForm = useLastNonNull(form);
   const retainedPauseTarget = useLastNonNull(pauseTarget);
+  const dirty =
+    retainedForm?.mode === "edit" && JSON.stringify(formValue) !== JSON.stringify(formBaseline);
 
   const selected = list.find((r) => r.id === selectedId) ?? null;
   const activeCount = list.filter((r) => r.active).length;
@@ -97,12 +105,21 @@ export function RecurringRoute() {
     // one (it's optional on the model), and it needs to start on "Sin cuenta
     // asociada" rather than picking one on the user's behalf.
     setFormValue(emptyRecurringForm(todayInput(), preferredCurrency));
+    setFormBaseline(null);
     setForm({ mode: "create", id: null });
   }
 
   function openEdit(r: recurring.RecurringExpense) {
-    setFormValue(recurringFormFrom(r));
+    const value = recurringFormFrom(r);
+    setFormValue(value);
+    setFormBaseline(value);
     setForm({ mode: "edit", id: r.id });
+  }
+
+  /** Dismissing the form panel: confirm first when there's something to lose. */
+  function requestCloseForm() {
+    if (dirty) setConfirmLeaveForm(true);
+    else setForm(null);
   }
 
   function openPause(r: recurring.RecurringExpense) {
@@ -244,7 +261,7 @@ export function RecurringRoute() {
       <RecurringFormPanel
         open={form !== null}
         onOpenChange={(open) => {
-          if (!open) setForm(null);
+          if (!open) requestCloseForm();
         }}
         mode={retainedForm?.mode ?? "create"}
         value={formValue}
@@ -253,7 +270,19 @@ export function RecurringRoute() {
         categoryOptions={categoryOptions}
         onSubmit={submitForm}
         submitting={create.isPending || update.isPending}
-        dirty={retainedForm?.mode === "edit"}
+        dirty={dirty}
+      />
+
+      <ConfirmModal
+        open={confirmLeaveForm}
+        onOpenChange={(v) => !v && setConfirmLeaveForm(false)}
+        title={t("recurring.form.leaveConfirm")}
+        description={t("recurring.form.leaveConfirmDescription")}
+        confirmLabel={t("recurring.form.leaveDiscard")}
+        onConfirm={() => {
+          setConfirmLeaveForm(false);
+          setForm(null);
+        }}
       />
 
       <RecurringPauseModal

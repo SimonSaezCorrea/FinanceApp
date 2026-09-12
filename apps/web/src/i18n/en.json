@@ -253,6 +253,7 @@
       "editLaterHint": "You'll be able to edit all this later.",
       "createSubmit": "Create account",
       "optional": "Optional",
+      "moreDetails": "More details",
       "availableResult": "Resulting available",
       "unsavedChanges": "Unsaved changes",
       "accountActiveHint": "Shows up in summaries, filters and new movements.",
@@ -299,10 +300,9 @@
     },
     "updated": "Account updated",
     "edit": {
-      "title": "Edit",
       "cardsNotEditable": "Not editable here",
       "cardsAsideHint": "They are managed from each card's own detail. Save the account changes to go back.",
-      "titleMobile": "Edit account",
+      "editEyebrow": "Edit account",
       "deleteAccount": "Delete account",
       "leaveConfirm": "Leave without saving?",
       "leaveConfirmDescription": "You have unsaved changes on this account. If you leave now they will be lost.",
@@ -500,7 +500,10 @@
       "editEyebrow": "Edit movement",
       "projectedCredit": "Available credit after this movement",
       "ownAccount": "My own account",
-      "currency": "Currency"
+      "currency": "Currency",
+      "leaveConfirm": "Leave without saving?",
+      "leaveConfirmDescription": "You have unsaved changes on this movement. Leaving now will discard them.",
+      "leaveDiscard": "Discard changes"
     },
     "kpi": {
       "income": "Income",
@@ -603,7 +606,10 @@
         "MONTHLY_other": "months",
         "YEARLY_one": "year",
         "YEARLY_other": "years"
-      }
+      },
+      "leaveConfirm": "Leave without saving?",
+      "leaveConfirmDescription": "You have unsaved changes on this plan. Leaving now will discard them.",
+      "leaveDiscard": "Discard changes"
     },
     "planCard": {
       "installmentAmount": "Payment",
@@ -897,7 +903,10 @@
       "directionOptions": {
         "OWED_TO_YOU": "Owed to me",
         "YOU_OWE": "I owe"
-      }
+      },
+      "leaveConfirm": "Leave without saving?",
+      "leaveConfirmDescription": "You have unsaved changes on this debt. Leaving now will discard them.",
+      "leaveDiscard": "Discard changes"
     }
   },
   "recurring": {
@@ -982,6 +991,7 @@
       "label": "Name",
       "namePlaceholder": "Recurring name",
       "amount": "Amount",
+      "currency": "Currency",
       "frequency": "Frequency",
       "interval": "Repeat every",
       "anchorDate": "First occurrence",
@@ -992,7 +1002,10 @@
       "noteActive": "A movement will be generated automatically every {{count}} {{unit}}, with no manual confirmation.",
       "notePaused": "Paused: no movements will be generated until you resume it.",
       "noCategory": "No category",
-      "categoryPlaceholder": "Choose category"
+      "categoryPlaceholder": "Choose category",
+      "leaveConfirm": "Leave without saving?",
+      "leaveConfirmDescription": "You have unsaved changes on this recurring series. Leaving now will discard them.",
+      "leaveDiscard": "Discard changes"
     }
   },
   "savings": {
@@ -1135,7 +1148,10 @@
       "notesPlaceholder": "Note (optional)",
       "noteWithDeadline": "With a deadline set you can see whether your pace is enough to make it on time.",
       "noteWithoutDeadline": "Without a deadline the goal just progresses at your own pace, with no delay warnings.",
-      "currencyLockedHint": "The currency is fixed once the goal has any contributions."
+      "currencyLockedHint": "The currency is fixed once the goal has any contributions.",
+      "leaveConfirm": "Leave without saving?",
+      "leaveConfirmDescription": "You have unsaved changes on this goal. Leaving now will discard them.",
+      "leaveDiscard": "Discard changes"
     },
     "entry": {
       "eyebrow": "Add contribution",
@@ -1155,7 +1171,10 @@
       "noteWithoutGoal": "Recorded as free savings; you can assign it to a goal later.",
       "submit": "Add contribution",
       "registered": "Contribution added",
-      "deleted": "Contribution deleted"
+      "deleted": "Contribution deleted",
+      "leaveConfirm": "Leave without saving?",
+      "leaveConfirmDescription": "You have unsaved changes on this contribution. Leaving now will discard them.",
+      "leaveDiscard": "Discard changes"
     },
     "close": {
       "eyebrowComplete": "Close completed goal",

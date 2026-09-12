@@ -1,3 +1,5 @@
+import { Pencil } from "lucide-react";
+
 import { cn } from "../../lib/cn";
 
 interface Props {
@@ -11,6 +13,9 @@ interface Props {
   /** "2xl" (default) matches a movement's/plan's title; "3xl" the heavier
    * weight a debt's/recurring's own name field uses. */
   size?: "2xl" | "3xl";
+  /** Trailing pencil icon, always visible — a filled title in edit mode
+   * otherwise reads as plain static text. Opt-in. */
+  showEditIcon?: boolean;
   className?: string;
 }
 
@@ -31,10 +36,11 @@ export function FormBigTextField({
   placeholder,
   id,
   size = "2xl",
+  showEditIcon = false,
   className,
   "aria-label": ariaLabel,
 }: Readonly<Props>) {
-  return (
+  const input = (
     <input
       id={id}
       value={value}
@@ -42,10 +48,20 @@ export function FormBigTextField({
       placeholder={placeholder}
       aria-label={ariaLabel}
       className={cn(
-        "w-full border-0 bg-transparent p-0 text-foreground placeholder:text-muted-foreground focus-visible:outline-none",
+        "w-full min-w-0 border-0 bg-transparent p-0 text-foreground placeholder:text-muted-foreground focus-visible:outline-none",
         SIZE_CLASS[size],
-        className,
+        showEditIcon ? "flex-1" : undefined,
+        !showEditIcon ? className : undefined,
       )}
     />
+  );
+
+  if (!showEditIcon) return input;
+
+  return (
+    <div className={cn("flex w-full items-center gap-2", className)}>
+      {input}
+      <Pencil aria-hidden className="size-4 shrink-0 text-muted-foreground" />
+    </div>
   );
 }

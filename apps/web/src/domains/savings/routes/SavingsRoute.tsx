@@ -16,6 +16,7 @@ import {
 } from "../../../shared/lib/useElementWidth";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
+import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { ClosedGoalsSection } from "../components/ClosedGoalsSection";
@@ -96,12 +97,19 @@ export function SavingsRoute() {
   const [goalFormValue, setGoalFormValue] = useState<SavingsGoalFormValue>(() =>
     emptySavingsGoalForm(preferredCurrency),
   );
+  // What each form looked like right after opening for edit — compared
+  // against the live value so "sin guardar" only shows once something
+  // actually changed, not for the mere fact of being in edit mode.
+  const [goalFormBaseline, setGoalFormBaseline] = useState<SavingsGoalFormValue | null>(null);
+  const [confirmLeaveGoalForm, setConfirmLeaveGoalForm] = useState(false);
   const [entryForm, setEntryForm] = useState<{ mode: "create" | "edit"; id: string | null } | null>(
     null,
   );
   const [entryFormValue, setEntryFormValue] = useState<SavingsEntryFormValue>(() =>
     emptySavingsEntryForm(todayInput()),
   );
+  const [entryFormBaseline, setEntryFormBaseline] = useState<SavingsEntryFormValue | null>(null);
+  const [confirmLeaveEntryForm, setConfirmLeaveEntryForm] = useState(false);
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const [freeSavingsOpen, setFreeSavingsOpen] = useState(false);
   // Only one goal row's swipe panel open at a time — opening another closes
@@ -116,18 +124,33 @@ export function SavingsRoute() {
   // instead of unmounting the instant their target clears.
   const retainedGoalForm = useLastNonNull(goalForm);
   const retainedEntryForm = useLastNonNull(entryForm);
+  const goalFormDirty =
+    retainedGoalForm?.mode === "edit" &&
+    JSON.stringify(goalFormValue) !== JSON.stringify(goalFormBaseline);
+  const entryFormDirty =
+    retainedEntryForm?.mode === "edit" &&
+    JSON.stringify(entryFormValue) !== JSON.stringify(entryFormBaseline);
 
   const selectedGoal = goals.find((g) => g.id === selectedGoalId) ?? null;
   const selectedEntry = entries.find((e) => e.id === selectedEntryId) ?? null;
 
   function openCreateGoal() {
     setGoalFormValue(emptySavingsGoalForm(preferredCurrency));
+    setGoalFormBaseline(null);
     setGoalForm({ mode: "create", id: null });
   }
 
   function openEditGoal(g: savings.SavingsGoal) {
-    setGoalFormValue(savingsGoalFormFrom(g));
+    const value = savingsGoalFormFrom(g);
+    setGoalFormValue(value);
+    setGoalFormBaseline(value);
     setGoalForm({ mode: "edit", id: g.id });
+  }
+
+  /** Dismissing the goal form: confirm first when there's something to lose. */
+  function requestCloseGoalForm() {
+    if (goalFormDirty) setConfirmLeaveGoalForm(true);
+    else setGoalForm(null);
   }
 
   function submitGoalForm() {
@@ -186,12 +209,21 @@ export function SavingsRoute() {
 
   function openContribute(goalId: string | null) {
     setEntryFormValue(emptySavingsEntryForm(todayInput(), goalId ?? ""));
+    setEntryFormBaseline(null);
     setEntryForm({ mode: "create", id: null });
   }
 
   function openEditEntry(e: savings.SavingsEntry) {
-    setEntryFormValue(entryFormFrom(e));
+    const value = entryFormFrom(e);
+    setEntryFormValue(value);
+    setEntryFormBaseline(value);
     setEntryForm({ mode: "edit", id: e.id });
+  }
+
+  /** Dismissing the entry form: confirm first when there's something to lose. */
+  function requestCloseEntryForm() {
+    if (entryFormDirty) setConfirmLeaveEntryForm(true);
+    else setEntryForm(null);
   }
 
   function submitEntryForm() {
@@ -462,7 +494,7 @@ export function SavingsRoute() {
       <SavingsGoalFormPanel
         open={goalForm !== null}
         onOpenChange={(open) => {
-          if (!open) setGoalForm(null);
+          if (!open) requestCloseGoalForm();
         }}
         mode={retainedGoalForm?.mode ?? "create"}
         value={goalFormValue}
@@ -473,13 +505,25 @@ export function SavingsRoute() {
         }
         onSubmit={submitGoalForm}
         submitting={mutations.createGoal.isPending || mutations.updateGoal.isPending}
-        dirty={retainedGoalForm?.mode === "edit"}
+        dirty={goalFormDirty}
+      />
+
+      <ConfirmModal
+        open={confirmLeaveGoalForm}
+        onOpenChange={(v) => !v && setConfirmLeaveGoalForm(false)}
+        title={t("savings.form.leaveConfirm")}
+        description={t("savings.form.leaveConfirmDescription")}
+        confirmLabel={t("savings.form.leaveDiscard")}
+        onConfirm={() => {
+          setConfirmLeaveGoalForm(false);
+          setGoalForm(null);
+        }}
       />
 
       <SavingsEntryFormPanel
         open={entryForm !== null}
         onOpenChange={(open) => {
-          if (!open) setEntryForm(null);
+          if (!open) requestCloseEntryForm();
         }}
         mode={retainedEntryForm?.mode ?? "create"}
         value={entryFormValue}
@@ -488,7 +532,19 @@ export function SavingsRoute() {
         accounts={accounts}
         onSubmit={submitEntryForm}
         submitting={mutations.createEntry.isPending || mutations.updateEntry.isPending}
-        dirty={retainedEntryForm?.mode === "edit"}
+        dirty={entryFormDirty}
+      />
+
+      <ConfirmModal
+        open={confirmLeaveEntryForm}
+        onOpenChange={(v) => !v && setConfirmLeaveEntryForm(false)}
+        title={t("savings.entry.leaveConfirm")}
+        description={t("savings.entry.leaveConfirmDescription")}
+        confirmLabel={t("savings.entry.leaveDiscard")}
+        onConfirm={() => {
+          setConfirmLeaveEntryForm(false);
+          setEntryForm(null);
+        }}
       />
 
       <SavingsGoalClosePanel

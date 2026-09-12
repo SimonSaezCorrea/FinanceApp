@@ -3,7 +3,10 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cardMetaLine } from "../../accounts/lib/accountMeta";
+import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
+import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
+import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { CategoryIcon } from "../../../shared/ui/category-icon";
 import {
   FormBigTextField,
@@ -14,6 +17,7 @@ import {
   FormTextareaField,
 } from "../../../shared/ui/form";
 import { FormSurface } from "../../../shared/ui/overlay";
+import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { schedulePreview } from "../lib/schedulePreview";
 import { ImmutableFieldsNotice } from "./ImmutableFieldsNotice";
 import { SchedulePreview } from "./SchedulePreview";
@@ -83,6 +87,14 @@ export function InstallmentFormPanel({
   footerExtras,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
+  const { data: currencies } = useCurrencies();
+  const currencyOptions = (currencies ?? []).map((c) => ({
+    value: c.code,
+    label: currencyPickerLabel(c.code),
+  }));
+  if (value.currency && !currencyOptions.some((o) => o.value === value.currency)) {
+    currencyOptions.unshift({ value: value.currency, label: currencyPickerLabel(value.currency) });
+  }
   const creating = mode === "create";
   // Whether the hero total/count/start-date fields are editable right now —
   // always true creating, and true editing too once nothing on the plan is
@@ -171,11 +183,15 @@ export function InstallmentFormPanel({
           onChange={(title) => onChange({ title })}
           placeholder={t("installments.form.title")}
           aria-label={t("installments.form.title")}
+          showEditIcon
         />
 
         {scheduleEditable ? (
           <>
             <div className="flex items-baseline gap-3 border-b border-border pb-3">
+              <span className="shrink-0 text-2xl font-bold text-destructive" aria-hidden>
+                {resolveCurrencySymbol(value.currency, currencies, i18n.language)}
+              </span>
               <input
                 inputMode="numeric"
                 data-testid="plan-total"
@@ -186,13 +202,19 @@ export function InstallmentFormPanel({
                 onChange={(e) => onChange({ totalPrincipal: e.target.value.replace(/\D/g, "") })}
                 placeholder="0"
                 aria-label={t("installments.form.totalPrincipal")}
-                className="min-w-0 flex-1 border-0 bg-transparent p-0 text-4xl font-bold tabular-nums text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+                className="min-w-0 flex-1 border-0 bg-transparent p-0 text-4xl font-bold tabular-nums text-destructive placeholder:text-destructive/50 focus-visible:outline-none"
               />
-              <input
+              <SearchableSelect
+                id="plan-currency"
+                variant="inline"
+                className="w-auto shrink-0"
                 value={value.currency}
-                onChange={(e) => onChange({ currency: e.target.value.toUpperCase().slice(0, 3) })}
+                onChange={(currency) => onChange({ currency })}
+                options={currencyOptions}
+                displayValue={value.currency}
+                searchPlaceholder={t("common.search")}
+                noResultsLabel={t("common.noResults")}
                 aria-label={t("installments.form.currency")}
-                className="w-12 shrink-0 border-0 bg-transparent p-0 text-right text-sm font-medium uppercase text-muted-foreground focus-visible:outline-none"
               />
             </div>
 
@@ -325,6 +347,7 @@ export function InstallmentFormPanel({
           value={value.notes}
           onChange={(notes) => onChange({ notes })}
           placeholder={t("installments.form.notesEmpty")}
+          showEditIcon
         />
 
         {scheduleEditable && (

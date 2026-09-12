@@ -1,3 +1,6 @@
+import { Pencil } from "lucide-react";
+
+import { cn } from "../../lib/cn";
 import { DetailRow } from "../detail-row";
 
 interface Props {
@@ -7,9 +10,19 @@ interface Props {
   id?: string;
   placeholder?: string;
   disabled?: boolean;
+  required?: boolean;
   /** Shown under the row, e.g. a last-4-digits or expiry validation message —
    * the row format has no room for it inline, so it drops below the divider. */
   error?: string | null;
+  /** An explanatory note about the field itself (not a validation error) —
+   * shown ABOVE the row's own divider, as part of the same block, so it
+   * reads as "this row, plus a note about it" rather than a stray line that
+   * fell after the divider. Ignored while `error` is shown. */
+  hint?: string | null;
+  /** Trailing pencil icon, always visible (not just on focus) — so a filled
+   * value in edit mode doesn't read identically to a static DetailRow. Opt-in:
+   * most callers of this row are fine without it. */
+  showEditIcon?: boolean;
   className?: string;
 }
 
@@ -23,24 +36,54 @@ export function FormTextField({
   id,
   placeholder,
   disabled,
+  required,
   error,
+  hint,
+  showEditIcon = false,
   className,
 }: Readonly<Props>) {
+  const input = (
+    <>
+      <input
+        id={id}
+        value={value}
+        disabled={disabled}
+        required={required}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        aria-label={label}
+        className={cn(
+          "h-8 min-w-0 max-w-[13rem] border-0 bg-transparent p-0 text-right text-sm font-medium text-foreground placeholder:text-muted-foreground shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-60",
+          showEditIcon ? "flex-1" : "w-full",
+        )}
+      />
+      {showEditIcon ? (
+        <Pencil
+          aria-hidden
+          className={cn("size-3.5 shrink-0 text-muted-foreground", disabled && "opacity-60")}
+        />
+      ) : null}
+    </>
+  );
+
+  if (hint && !error) {
+    return (
+      <div className={cn("border-b border-border py-3 last:border-b-0", className)}>
+        <DetailRow label={label} className="border-b-0 py-0">
+          {input}
+        </DetailRow>
+        <p className="pt-1 text-xs text-muted-foreground">{hint}</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <DetailRow label={label} className={className}>
-        <input
-          id={id}
-          value={value}
-          disabled={disabled}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={placeholder}
-          aria-label={label}
-          className="h-8 w-full max-w-[13rem] border-0 bg-transparent p-0 text-right text-sm font-medium text-foreground placeholder:text-muted-foreground shadow-none focus-visible:outline-none focus-visible:ring-0"
-        />
+        {input}
       </DetailRow>
       {error ? (
-        <p role="alert" className="-mt-2 pb-2 text-right text-xs text-destructive">
+        <p role="alert" className="pb-2 pt-1 text-right text-xs text-destructive">
           {error}
         </p>
       ) : null}

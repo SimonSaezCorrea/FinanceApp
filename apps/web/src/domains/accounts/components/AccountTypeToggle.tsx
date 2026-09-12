@@ -26,6 +26,7 @@ export function AccountTypeToggle({
   disabledReasonFor,
   className,
   panelClassName,
+  variant = "control",
 }: Readonly<{
   value: accounts.AccountType;
   onChange: (type: accounts.AccountType) => void;
@@ -40,6 +41,9 @@ export function AccountTypeToggle({
   className?: string;
   /** Forwarded to the underlying `SearchableSelect`'s OPEN dropdown panel. */
   panelClassName?: string;
+  /** "inline" for a label-left/value-right row (matches `FormSelectField`'s
+   *  other pickers); default "control" is the bordered standalone box. */
+  variant?: "control" | "inline";
 }>) {
   const { t } = useTranslation();
 
@@ -63,7 +67,8 @@ export function AccountTypeToggle({
       // `cn`, drops the earlier bg- utility) rather than in `SearchableSelect`
       // itself, since other `control` usages elsewhere DO sit directly on
       // `--background` and are correct as they are.
-      className={cn("bg-transparent", className)}
+      variant={variant}
+      className={cn(variant === "control" && "bg-transparent", className)}
       panelClassName={panelClassName}
       value={value}
       onChange={(v) => onChange(v as accounts.AccountType)}

@@ -16,7 +16,7 @@ export function ProfileRoute() {
   const { t } = useTranslation();
 
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       <PageHeader title={t("profile.title")} />
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[320px_1fr] lg:items-start">
         <div className="flex flex-col gap-4 lg:sticky lg:top-6">

@@ -8,7 +8,7 @@ import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amou
 import { cn } from "../../../shared/lib/cn";
 import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
-import { FormDateField, FormNotice, FormTextareaField } from "../../../shared/ui/form";
+import { FormBigTextField, FormDateField, FormNotice, FormTextareaField } from "../../../shared/ui/form";
 import { FormSurface } from "../../../shared/ui/overlay";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { colorForToken, GOAL_COLOR_TOKENS } from "../lib/goalVisual";
@@ -89,12 +89,13 @@ export function SavingsGoalFormPanel({
       onSubmit={onSubmit}
     >
       <div className="flex flex-col gap-5">
-        <input
+        <FormBigTextField
           value={value.title}
-          onChange={(e) => onChange({ title: e.target.value })}
+          onChange={(title) => onChange({ title })}
           placeholder={t("savings.form.titlePlaceholder")}
           aria-label={t("savings.form.titlePlaceholder")}
-          className="w-full border-0 bg-transparent p-0 text-[28px] font-semibold tracking-tight text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+          size="3xl"
+          showEditIcon
         />
 
         <div className="flex flex-col gap-1">
@@ -179,6 +180,7 @@ export function SavingsGoalFormPanel({
           value={value.notes}
           onChange={(notes) => onChange({ notes })}
           placeholder={t("savings.form.notesPlaceholder")}
+          showEditIcon
         />
       </div>
     </FormSurface>

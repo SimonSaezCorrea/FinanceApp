@@ -77,7 +77,7 @@ export class AuthController {
       new RefreshTokenCommand(token),
     );
     this.setAuthCookies(res, tokens);
-  }
+  } 
 
   @Post("logout")
   @HttpCode(204)

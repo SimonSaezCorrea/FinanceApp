@@ -10,7 +10,7 @@ import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
 import { Button } from "../../../shared/ui/button";
-import { FormSurface } from "../../../shared/ui/overlay";
+import { ConfirmModal, FormSurface } from "../../../shared/ui/overlay";
 import { transactionsApi } from "../api/transactionsApi";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useTransferMutations } from "../hooks/useTransferMutations";
@@ -107,6 +107,10 @@ export function TransactionCreateModal({
   const categoryOptions = summary?.categories ?? [];
 
   const [form, setForm] = useState<TransactionFormValue>(() => emptyForm(todayInput()));
+  // What the form looked like right after it finished prefilling — compared
+  // against the live `form` to show "sin guardar" only once something has
+  // actually changed, not for the mere fact of being in edit mode.
+  const [baseline, setBaseline] = useState<TransactionFormValue | null>(null);
   // Receipts chosen BEFORE the movement exists: the id only shows up once it's
   // been created, and the panel must not close while they're still uploading.
   const [pendingAttachments, setPendingAttachments] = useState(0);
@@ -115,8 +119,12 @@ export function TransactionCreateModal({
   // same `onOpenChange(false)`, but only the second one should return the user
   // to where they came from.
   const savedRef = useRef(false);
+  const dirty = editing && JSON.stringify(form) !== JSON.stringify(baseline);
+  // Asked before actually closing on top of pending edits — same guard
+  // `AccountEditPanel` uses for its own "sin guardar".
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
-  const handleOpenChange = useCallback(
+  const closeForReal = useCallback(
     (v: boolean) => {
       if (!v) {
         if (!savedRef.current) onDismiss?.();
@@ -125,6 +133,18 @@ export function TransactionCreateModal({
       onOpenChange(v);
     },
     [onDismiss, onOpenChange],
+  );
+  const handleOpenChange = useCallback(
+    (v: boolean) => {
+      // A successful save already closes itself (savedRef) — nothing to
+      // confirm there, only when the user is backing out with edits pending.
+      if (!v && dirty && !savedRef.current) {
+        setConfirmLeave(true);
+        return;
+      }
+      closeForReal(v);
+    },
+    [dirty, closeForReal],
   );
   const patch = useCallback(
     (p: Partial<TransactionFormValue>) => setForm((f) => ({ ...f, ...p })),
@@ -145,8 +165,7 @@ export function TransactionCreateModal({
     const source = initial ?? duplicateFrom;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
     setCreatedId(null);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
-    setForm({
+    const prefilled: TransactionFormValue = {
       ...emptyForm(initial ? dateInput(initial.occurredAt) : todayInput()),
       mode: source?.transferGroupId ? "TRANSFER" : (source?.type ?? "EXPENSE"),
       // Amounts come back as decimal strings ("32000.0000") but this input is
@@ -162,15 +181,18 @@ export function TransactionCreateModal({
       emisor: source?.emisor ?? "",
       receptor: source?.receptor ?? "",
       lugar: source?.lugar ?? "",
-    });
+    };
+    setForm(prefilled);
+    // A transfer's baseline isn't complete yet — its own effect below fills in
+    // the destination side once `transferPair` loads and updates this too.
+    setBaseline(prefilled);
   }, [open, initial, duplicateFrom, defaultBankAccountId]);
 
   // Both legs of a transfer, once loaded: the form always edits it from the
   // outgoing side, whichever row the user actually clicked.
   useEffect(() => {
     if (!open || !transferPair) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill from a fetched pair
-    setForm((f) => ({
+    const withPair = (f: TransactionFormValue): TransactionFormValue => ({
       ...f,
       mode: "TRANSFER",
       bankAccountId: transferPair.outgoing.bankAccountId ?? "",
@@ -178,7 +200,12 @@ export function TransactionCreateModal({
       currency: transferPair.outgoing.currency,
       amount: transferPair.outgoing.amount.split(".")[0] ?? "",
       amountIn: transferPair.incoming.amount.split(".")[0] ?? "",
-    }));
+    });
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill from a fetched pair
+    setForm(withPair);
+    // Part of the initial load, not a user edit — folds into the baseline the
+    // same way, or the destination side would read as an unsaved change.
+    setBaseline((b) => (b ? withPair(b) : b));
   }, [open, transferPair]);
 
   // With the selector hidden there's no account change handler to carry the
@@ -311,73 +338,90 @@ export function TransactionCreateModal({
   }
 
   return (
-    <FormSurface
-      open={open}
-      onOpenChange={handleOpenChange}
-      mode={editing ? "edit" : "create"}
-      // A movement's form is tall and is often opened from the very table it
-      // will change, which stays visible behind the panel.
-      surface="panel"
-      size={size}
-      nested={nested}
-      // The visible title is the description, edited inside the body — the
-      // header carries only the eyebrow naming what this surface is.
-      eyebrow={editing ? t("transactions.form.editEyebrow") : t("transactions.form.newEyebrow")}
-      title={
-        <span className="sr-only">{editing ? t("transactions.edit") : t("transactions.new")}</span>
-      }
-      headerAside={lockAccount ? selectedAccount?.name : undefined}
-      // The header's ✕ is already the way out; a Cancel button beside the two
-      // save actions would be a third button competing for the same corner.
-      hideCancel
-      submitLabel={t("transactions.form.submit")}
-      onSubmit={() => submit(false)}
-      canSubmit={canSubmit}
-      submitting={pending}
-      // "Save and create another" only makes sense while creating.
-      extraActions={
-        editing ? undefined : (
-          <Button
-            type="button"
-            variant="ghost"
-            className="mr-auto"
-            disabled={!canSubmit}
-            onClick={() => submit(true)}
-          >
-            {t("transactions.form.saveAndNew")}
-          </Button>
-        )
-      }
-    >
-      <TransactionFormPanel
-        value={form}
-        onChange={patch}
-        accounts={accounts}
-        selectable={selectable}
-        categoryOptions={categoryOptions}
-        editing={editing}
-        // In transfer mode this locks the ORIGIN row instead of hiding the
-        // account row: the origin is the account being viewed, only the
-        // destination is a choice.
-        accountLocked={lockAccount && !!form.bankAccountId}
-        original={initial ?? null}
-        // Offered from inside an account too: the whole pair can be created
-        // from here (this account is just the source, pre-filled), and
-        // `accountLocked` above already reveals the selector in transfer mode
-        // so the origin can still be changed.
-        allowTransfer
-        attachments={
-          <AttachmentsSection
-            transactionId={initial?.id ?? createdId ?? undefined}
-            onPendingCountChange={setPendingAttachments}
-            onPendingSettled={(allSucceeded) => {
-              // A failed upload keeps the panel open showing its Retry; a clean
-              // run closes it, since the movement itself is already saved.
-              if (allSucceeded) handleOpenChange(false);
-            }}
-          />
+    <>
+      <FormSurface
+        open={open}
+        onOpenChange={handleOpenChange}
+        mode={editing ? "edit" : "create"}
+        // A movement's form is tall and is often opened from the very table it
+        // will change, which stays visible behind the panel.
+        surface="panel"
+        size={size}
+        nested={nested}
+        // The visible title is the description, edited inside the body — the
+        // header carries only the eyebrow naming what this surface is.
+        eyebrow={editing ? t("transactions.form.editEyebrow") : t("transactions.form.newEyebrow")}
+        title={
+          <span className="sr-only">
+            {editing ? t("transactions.edit") : t("transactions.new")}
+          </span>
         }
+        headerAside={lockAccount ? selectedAccount?.name : undefined}
+        // The header's ✕ is already the way out; a Cancel button beside the two
+        // save actions would be a third button competing for the same corner.
+        hideCancel
+        submitLabel={t("transactions.form.submit")}
+        onSubmit={() => submit(false)}
+        canSubmit={canSubmit}
+        submitting={pending}
+        dirty={dirty}
+        // "Save and create another" only makes sense while creating.
+        extraActions={
+          editing ? undefined : (
+            <Button
+              type="button"
+              variant="ghost"
+              className="mr-auto"
+              disabled={!canSubmit}
+              onClick={() => submit(true)}
+            >
+              {t("transactions.form.saveAndNew")}
+            </Button>
+          )
+        }
+      >
+        <TransactionFormPanel
+          value={form}
+          onChange={patch}
+          accounts={accounts}
+          selectable={selectable}
+          categoryOptions={categoryOptions}
+          editing={editing}
+          // In transfer mode this locks the ORIGIN row instead of hiding the
+          // account row: the origin is the account being viewed, only the
+          // destination is a choice.
+          accountLocked={lockAccount && !!form.bankAccountId}
+          original={initial ?? null}
+          // Offered from inside an account too: the whole pair can be created
+          // from here (this account is just the source, pre-filled), and
+          // `accountLocked` above already reveals the selector in transfer mode
+          // so the origin can still be changed.
+          allowTransfer
+          attachments={
+            <AttachmentsSection
+              transactionId={initial?.id ?? createdId ?? undefined}
+              onPendingCountChange={setPendingAttachments}
+              onPendingSettled={(allSucceeded) => {
+                // A failed upload keeps the panel open showing its Retry; a clean
+                // run closes it, since the movement itself is already saved.
+                if (allSucceeded) handleOpenChange(false);
+              }}
+            />
+          }
+        />
+      </FormSurface>
+
+      <ConfirmModal
+        open={confirmLeave}
+        onOpenChange={(v) => !v && setConfirmLeave(false)}
+        title={t("transactions.form.leaveConfirm")}
+        description={t("transactions.form.leaveConfirmDescription")}
+        confirmLabel={t("transactions.form.leaveDiscard")}
+        onConfirm={() => {
+          setConfirmLeave(false);
+          closeForReal(false);
+        }}
       />
-    </FormSurface>
+    </>
   );
 }

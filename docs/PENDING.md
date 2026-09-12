@@ -445,6 +445,40 @@ Editar un plan no puede mostrarla ni recalcular nada con ella, que es coherente 
 sea inmutable, pero significa que el interés de un plan ya creado sólo se deduce comparando la suma de
 sus cuotas con su principal.
 
+## Envío de correos transaccionales (no implementado)
+
+La app no envía ningún correo hoy — ni verificación de cuenta al registrarse, ni recuperación de
+contraseña, ni alertas de seguridad (cambio de password, `deactivate`), ni el aviso de
+`budgetAlertThreshold` (que ya existe como campo pero está inerte, ver sección de Perfil). No hay
+proveedor configurado, no hay `EmailPort`, no hay endpoint de forgot-password.
+
+**Plataforma elegida para el MVP: Resend** (evaluado 2026-09-11 contra SES, SendGrid, Brevo,
+SendPulse). Motivo: 100% transaccional (sin ruido de marketing/newsletter, que no se necesita acá),
+mejor DX de los evaluados, free tier de 3,000 correos/mes suficiente para esta etapa. AWS SES queda
+descartado para el arranque por el modo sandbox (requiere pedir "production access" a AWS y
+verificar dominio con más fricción) pero es la opción a reconsiderar si el volumen escala fuerte
+(≈$0.10 por 1,000 correos, sin techo real) — decisión ya evaluada, no una que nadie vio.
+
+**Diseño previsto, mismo patrón que `ObjectStoragePort`/S3**: un puerto `EmailPort` en
+`infra/email/` con un adapter `ResendEmailAdapter` atrás; sin `RESEND_API_KEY`/`EMAIL_FROM`
+configurados la feature queda inerte (mismo espíritu que `503 ATTACHMENTS_UNAVAILABLE`), para que
+cambiar de proveedor a futuro (ej. migrar a SES por volumen, o agregar failover multi-proveedor) sea
+solo un adapter nuevo, sin tocar el resto de la app.
+
+**Casos de uso a cablear cuando se implemente** (ninguno empezado):
+
+1. Verificación de cuenta al registrarse (engancha en `RegisterHandler`).
+2. Recuperación de contraseña — requiere flujo nuevo: token de reset con expiración,
+   `POST /auth/forgot-password` + `POST /auth/reset-password` (no existen hoy).
+3. Alertas de seguridad sobre acciones ya existentes en `auth.controller.ts` (cambio de password,
+   `deactivate`).
+
+**Fuera de alcance del MVP, explícitamente diferido**: colas asíncronas (BullMQ/similar) para batch
+de envío, rate limiting propio, failover multi-proveedor, tabla `email-log` para auditoría propia,
+y volumen alto (100k+ usuarios activos) — todo eso solo se justifica si el volumen real lo exige;
+ver conversación de referencia para el análisis completo de costos/límites por proveedor a esa
+escala.
+
 ## Deuda de conformidad con la constitución v2.0.0 (identificadores, idempotencia, aislamiento)
 
 Esta sección es distinta al resto del documento. Las demás registran **UI que parece funcionar y no

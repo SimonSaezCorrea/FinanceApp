@@ -253,6 +253,7 @@
       "editLaterHint": "Podrás editar todos estos datos después.",
       "createSubmit": "Crear cuenta",
       "optional": "Opcional",
+      "moreDetails": "Más detalles",
       "availableResult": "Disponible resultante",
       "unsavedChanges": "Cambios sin guardar",
       "accountActiveHint": "Aparece en resúmenes, filtros y nuevos movimientos.",
@@ -299,10 +300,9 @@
     },
     "updated": "Cuenta actualizada",
     "edit": {
-      "title": "Editar",
       "cardsNotEditable": "No editables aquí",
       "cardsAsideHint": "Se administran desde el detalle de cada tarjeta. Guarda los cambios de la cuenta para volver.",
-      "titleMobile": "Editar cuenta",
+      "editEyebrow": "Editar cuenta",
       "deleteAccount": "Eliminar cuenta",
       "leaveConfirm": "¿Volver sin guardar?",
       "leaveConfirmDescription": "Tienes cambios sin guardar en esta cuenta. Si vuelves ahora se perderán.",
@@ -500,7 +500,10 @@
       "editEyebrow": "Editar movimiento",
       "projectedCredit": "Cupo disponible tras el movimiento",
       "ownAccount": "Cuenta propia",
-      "currency": "Moneda"
+      "currency": "Moneda",
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en este movimiento. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios"
     },
     "kpi": {
       "income": "Ingresos",
@@ -603,7 +606,10 @@
         "MONTHLY_other": "meses",
         "YEARLY_one": "año",
         "YEARLY_other": "años"
-      }
+      },
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en este plan. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios"
     },
     "planCard": {
       "installmentAmount": "Cuota",
@@ -897,7 +903,10 @@
       "directionOptions": {
         "OWED_TO_YOU": "Te deben",
         "YOU_OWE": "Debes"
-      }
+      },
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en esta deuda. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios"
     }
   },
   "recurring": {
@@ -982,6 +991,7 @@
       "label": "Nombre",
       "namePlaceholder": "Nombre del recurrente",
       "amount": "Monto",
+      "currency": "Moneda",
       "frequency": "Periodicidad",
       "interval": "Repetir cada",
       "anchorDate": "Primera ocurrencia",
@@ -992,7 +1002,10 @@
       "noteActive": "Se generará un movimiento automáticamente cada {{count}} {{unit}}, sin confirmación manual.",
       "notePaused": "Pausado: no se generarán movimientos hasta reactivarlo.",
       "noCategory": "Sin categoría",
-      "categoryPlaceholder": "Elegir categoría"
+      "categoryPlaceholder": "Elegir categoría",
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en este recurrente. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios"
     }
   },
   "savings": {
@@ -1135,7 +1148,10 @@
       "notesPlaceholder": "Nota (opcional)",
       "noteWithDeadline": "Con plazo definido puedes ver si tu ritmo alcanza para llegar a tiempo.",
       "noteWithoutDeadline": "Sin plazo la meta avanza a tu ritmo, sin avisos de retraso.",
-      "currencyLockedHint": "La moneda queda fija una vez que la meta tiene aportes."
+      "currencyLockedHint": "La moneda queda fija una vez que la meta tiene aportes.",
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en esta meta. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios"
     },
     "entry": {
       "eyebrow": "Registrar aporte",
@@ -1155,7 +1171,10 @@
       "noteWithoutGoal": "Queda registrado como ahorro libre; puedes asignarlo a una meta después.",
       "submit": "Registrar aporte",
       "registered": "Aporte registrado",
-      "deleted": "Aporte eliminado"
+      "deleted": "Aporte eliminado",
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en este aporte. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios"
     },
     "close": {
       "eyebrowComplete": "Cerrar meta cumplida",

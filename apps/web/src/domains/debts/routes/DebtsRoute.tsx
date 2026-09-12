@@ -11,6 +11,7 @@ import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { Button } from "../../../shared/ui/button";
+import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Segmented } from "../../../shared/ui/segmented";
 import { ErrorState } from "../../../shared/ui/states";
@@ -56,6 +57,13 @@ export function DebtsRoute() {
   const [formValue, setFormValue] = useState<DebtFormValue>(() =>
     emptyDebtForm(todayInput(), preferredCurrency),
   );
+  // What the form looked like right after opening for edit — compared against
+  // the live `formValue` so "sin guardar" only shows once something actually
+  // changed, not for the mere fact of being in edit mode.
+  const [formBaseline, setFormBaseline] = useState<DebtFormValue | null>(null);
+  const dirty =
+    retainedForm?.mode === "edit" && JSON.stringify(formValue) !== JSON.stringify(formBaseline);
+  const [confirmLeaveForm, setConfirmLeaveForm] = useState(false);
   const [payingId, setPayingId] = useState<string | null>(null);
   // Which account settle/register-payment moves the real money on/from — sent
   // as the mutation's own `accountId` body field (see `useDebtMutations`).
@@ -127,12 +135,21 @@ export function DebtsRoute() {
     const defaultAccountId =
       accountList.find((a) => a.currency === preferredCurrency)?.id ?? accountList[0]?.id ?? "";
     setFormValue(emptyDebtForm(todayInput(), preferredCurrency, defaultAccountId));
+    setFormBaseline(null);
     setForm({ mode: "create", debtId: null });
   }
 
   function openEdit(debt: debts.Debt) {
-    setFormValue(debtFormFrom(debt, todayInput()));
+    const value = debtFormFrom(debt, todayInput());
+    setFormValue(value);
+    setFormBaseline(value);
     setForm({ mode: "edit", debtId: debt.id });
+  }
+
+  /** Dismissing the form panel: confirm first when there's something to lose. */
+  function requestCloseForm() {
+    if (dirty) setConfirmLeaveForm(true);
+    else setForm(null);
   }
 
   function openPay(debt: debts.Debt) {
@@ -365,7 +382,7 @@ export function DebtsRoute() {
       <DebtFormPanel
         open={form !== null}
         onOpenChange={(open) => {
-          if (!open) setForm(null);
+          if (!open) requestCloseForm();
         }}
         mode={retainedForm?.mode ?? "create"}
         value={formValue}
@@ -373,7 +390,19 @@ export function DebtsRoute() {
         accounts={accountList}
         onSubmit={submitForm}
         submitting={create.isPending || update.isPending}
-        dirty={retainedForm?.mode === "edit"}
+        dirty={dirty}
+      />
+
+      <ConfirmModal
+        open={confirmLeaveForm}
+        onOpenChange={(v) => !v && setConfirmLeaveForm(false)}
+        title={t("debts.form.leaveConfirm")}
+        description={t("debts.form.leaveConfirmDescription")}
+        confirmLabel={t("debts.form.leaveDiscard")}
+        onConfirm={() => {
+          setConfirmLeaveForm(false);
+          setForm(null);
+        }}
       />
 
       <DebtDeleteConfirm

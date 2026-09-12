@@ -9,6 +9,7 @@ import { cn } from "../../../shared/lib/cn";
 import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import {
+  FormBigTextField,
   FormCounterField,
   FormDateField,
   FormNotice,
@@ -137,12 +138,13 @@ export function DebtFormPanel({
       onSubmit={onSubmit}
     >
       <div className="flex flex-col gap-5">
-        <input
+        <FormBigTextField
           value={value.title}
-          onChange={(e) => onChange({ title: e.target.value })}
+          onChange={(title) => onChange({ title })}
           placeholder={t("debts.form.title")}
           aria-label={t("debts.form.title")}
-          className="w-full border-0 bg-transparent p-0 text-[28px] font-semibold tracking-tight text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
+          size="3xl"
+          showEditIcon
         />
 
         <div className="flex items-baseline gap-2 border-b border-border pb-3">
@@ -204,6 +206,7 @@ export function DebtFormPanel({
             value={value.counterparty}
             onChange={(counterparty) => onChange({ counterparty })}
             placeholder={t("debts.form.personPlaceholder")}
+            showEditIcon
           />
 
           <FormSelectField
@@ -267,6 +270,7 @@ export function DebtFormPanel({
           value={value.notes}
           onChange={(notes) => onChange({ notes })}
           placeholder={t("debts.form.notesPlaceholder")}
+          showEditIcon
         />
       </div>
     </FormSurface>
