@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { accounts as accountsContract } from "@finance/contracts";
 import type { transactions } from "@finance/contracts";
 
-import { useAccounts } from "../../accounts/hooks/useAccounts";
+import { useAccountMutations, useAccounts, useCreditStatements } from "../../accounts/hooks/useAccounts";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
 import { Button } from "../../../shared/ui/button";
@@ -34,6 +34,7 @@ const emptyForm = (date: string): TransactionFormValue => ({
   bankAccountId: "",
   toBankAccountId: "",
   amountIn: "",
+  prepayFromAccountId: "",
   cardId: "",
   financeCharge: false,
   category: "",
@@ -59,6 +60,7 @@ export function TransactionCreateModal({
   initial,
   duplicateFrom,
   defaultBankAccountId,
+  initialMode,
   lockAccount = false,
   onDismiss,
   onSaved,
@@ -70,6 +72,11 @@ export function TransactionCreateModal({
   initial?: transactions.Transaction;
   duplicateFrom?: transactions.Transaction;
   defaultBankAccountId?: string;
+  /** Force the initial nav tab on a brand-new movement (never applies with
+   * `initial`/`duplicateFrom`, which always keep the source's own type) —
+   * spec 019: `BillingSection` opens straight into "Prepagar" instead of
+   * making the user pick it from the switch. */
+  initialMode?: "PREPAY";
   /** `"compact"` narrows the form when opened from a still-open detail panel;
    * this form stays `"default"` (full-size) even nested — see `nested`. */
   size?: "default" | "compact";
@@ -97,6 +104,7 @@ export function TransactionCreateModal({
   const { t } = useTranslation();
   const { create, update } = useTransactionMutations();
   const transfer = useTransferMutations();
+  const { prepayCreditStatement } = useAccountMutations();
   // One key per submission attempt, not per request — a retry of a failed
   // network call reuses it, but "Guardar y crear otro" must NOT: that would
   // reject the second record as a duplicate of the first (FR-002).
@@ -177,7 +185,7 @@ export function TransactionCreateModal({
         : "");
     const prefilled: TransactionFormValue = {
       ...emptyForm(initial ? dateInput(initial.occurredAt) : todayInput()),
-      mode: source?.transferGroupId ? "TRANSFER" : (source?.type ?? "EXPENSE"),
+      mode: source?.transferGroupId ? "TRANSFER" : (source?.type ?? initialMode ?? "EXPENSE"),
       // Amounts come back as decimal strings ("32000.0000") but this input is
       // integer-only, so keep the integer part or the grouping mangles it.
       amount: source?.amount ? (source.amount.split(".")[0] ?? "") : "",
@@ -196,7 +204,7 @@ export function TransactionCreateModal({
     // A transfer's baseline isn't complete yet — its own effect below fills in
     // the destination side once `transferPair` loads and updates this too.
     setBaseline(prefilled);
-  }, [open, initial, duplicateFrom, defaultBankAccountId, accountList]);
+  }, [open, initial, duplicateFrom, defaultBankAccountId, initialMode, accountList]);
 
   // Both legs of a transfer, once loaded: the form always edits it from the
   // outgoing side, whichever row the user actually clicked.
@@ -235,17 +243,29 @@ export function TransactionCreateModal({
     : accounts.filter((a) => a.status === "ACTIVE");
 
   const isTransfer = form.mode === "TRANSFER";
+  const isPrepay = form.mode === "PREPAY";
   const selectedAccount = accounts.find((a) => a.id === form.bankAccountId);
   const isCreditLine = selectedAccount?.type === "CREDIT_CARD";
   const needsCard = !isTransfer && form.mode === "EXPENSE" && isCreditLine;
   const noCardsAvailable = needsCard && (selectedAccount?.cards.length ?? 0) === 0;
 
+  // Spec 019: a prepago targets the account's currently OPEN period —
+  // resolved here (not typed by the user) since the form only shows the
+  // account, not a period picker.
+  const { data: prepayStatements } = useCreditStatements(isPrepay ? form.bankAccountId : "");
+  const openStatementId = prepayStatements?.find((s) => s.status === "OPEN")?.id;
+
   const pending =
-    create.isPending || update.isPending || transfer.create.isPending || transfer.update.isPending;
+    create.isPending ||
+    update.isPending ||
+    transfer.create.isPending ||
+    transfer.update.isPending ||
+    prepayCreditStatement.isPending;
   const canSubmit =
     !!form.amount &&
     !!form.bankAccountId &&
     (!isTransfer || !!form.toBankAccountId) &&
+    (!isPrepay || (!!form.prepayFromAccountId && !!openStatementId)) &&
     !(needsCard && !form.cardId) &&
     !noCardsAvailable &&
     !pending;
@@ -321,6 +341,22 @@ export function TransactionCreateModal({
           { body, idempotencyKey: idempotencyKey.current() },
           transferHandlers,
         );
+      return;
+    }
+
+    if (isPrepay) {
+      // A prepago is never edited AS a prepago through this form (editing an
+      // existing one is an ordinary "Gasto" edit — see TransactionFormPanel's
+      // own comment) — this branch only ever creates a new one.
+      prepayCreditStatement.mutate(
+        {
+          id: form.bankAccountId,
+          statementId: openStatementId!,
+          body: { fromAccountId: form.prepayFromAccountId, amount: form.amount, paidAt: occurredAt },
+          idempotencyKey: idempotencyKey.current(),
+        },
+        { onSuccess: () => done(), onError: handlers.onError },
+      );
       return;
     }
 

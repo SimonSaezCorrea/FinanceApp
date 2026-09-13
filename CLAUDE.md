@@ -1180,6 +1180,57 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
+Current plan (019 — implemented): specs/019-credit-card-prepayment/plan.md
+(Prepago de tarjeta de crédito: permitir abonar contra el período OPEN de una cuenta CREDIT_CARD
+antes de que cierre, sin esperar una facturación ya cerrada. `CreditStatement` gana
+`prepaidAmount` (acumulador), restado dentro de `totalFor()` — así el período OPEN y una eventual
+facturación PENDING derivada ya muestran la deuda neta sin ningún job adicional.
+**Hallazgo del research**: `OpenState.canPay()` ya era `true` y `BillingSection` ya ofrecía "Pagar"
+sobre el período abierto, pero `CreditStatement.payTowards()` SIEMPRE cierra/liquida el período al
+pagar — por eso el prepago necesita un método de dominio nuevo (`changePrepayment`, con gate de
+estado `canPrepay()` solo para CREAR uno nuevo, sin gate para editar/eliminar uno existente) en vez
+de reutilizar `payTowards`. `Transaction` gana `prepaymentStatementId`/`prepaymentAccountId` (FK +
+denormalizado, sin `@unique` — un período admite varios prepagos); `transactions.sourceOf()` gana
+`CREDIT_CARD_PREPAYMENT`. Nuevo `POST /accounts/:id/credit-statements/:statementId/prepay`
+(idempotente, mismo patrón que `.../pay`). **Decisión explícita del usuario**: el movimiento de un
+prepago es editable/eliminable como cualquier otro (no de solo lectura como una cuota de
+instalment) — "esto es finanzas personales, el usuario debe poder revertir/editar/borrar cualquier
+cosa que registró" — por lo que `UpdateTransactionHandler`/`RemoveTransactionHandler` ganan una
+transacción cross-agregado (`transaction`+`credit-statement`+`bank-account`) SOLO para este caso,
+reutilizando `CreditStatement.syncAmount()` para reconciliar una facturación ya cerrada. Frontend:
+`TransactionFormPanel` gana un tercer modo de UI "Prepagar" (junto a "Gasto", no un `TransactionType`
+nuevo — mismo trato que ya tiene "Traspaso"), exclusivo de cuentas CREDIT_CARD; `BillingSection`'s
+botón "Pagar" sobre el período OPEN se reemplazó por "Prepagar" (abrir `TransactionCreateModal` en
+modo `PREPAY`), tanto en la tarjeta protagonista como en la fila de la tabla ancha — ya no se puede
+liquidar el período abierto por accidente desde ahí. Sin dominio nuevo (vive en
+`credit-statement`+`transaction` existentes); sin migración de datos (`db push`).
+**Hallazgo de `/speckit-analyze` (crítico, corregido antes de implementar)**: el diseño original de
+`PrepayOpenPeriodHandler` leía el `CreditStatement` en `loadContext` (fuera de transacción) y
+computaba `grossTotal` sin bloqueo — dos prepagos concurrentes con `Idempotency-Key` distintas
+podían ambos validar contra el mismo remanente y juntos exceder lo debido, exactamente el bug que
+`debt` (specs/015) ya tuvo con `register-payment`. Se agregó `CreditStatementRepositoryPort.
+findByIdForUpdateWithTx` (`SELECT ... FOR UPDATE`, mismo mecanismo que `debt`'s
+`findOneForUpdateWithTx`), releído DENTRO de la transacción justo antes de `changePrepayment`. **Un
+segundo bug de la misma familia apareció recién al escribir el test de concurrencia** (T023b): el
+lado de la CUENTA (`context.account.adjustCreditUsed(...)` + `accountRepo.saveWithTx(...)`, una
+escritura ABSOLUTA desde una lectura anterior al lock) perdía decrementos bajo concurrencia aunque
+el lado del `CreditStatement` ya serializara correctamente — corregido usando
+`incrementCreditUsedWithTx` (delta atómico a nivel de fila), el mismo mecanismo que
+`reconcilePrepaymentWithTx` (la reversión de un prepago editado/eliminado, spec 019 FR-012/013) ya
+usaba. Verificado con un test que lanza 5 prepagos simultáneos contra un remanente que solo alcanza
+para 3: antes del fix el `creditUsed` final quedaba mal (el último commit ganaba, no el acumulado
+real); después, exactamente 3 se aceptan y `creditUsed`/`prepaidAmount` cuadran al centavo.
+Ver `specs/019-credit-card-prepayment/research.md` R8 para el detalle completo. **Verificado**:
+`pnpm --filter @finance/api test:unit` [819/819 unit+integration+e2e combinados],
+`pnpm --filter @finance/web test` [324/324], typecheck y `check:boundaries` limpios en ambos
+paquetes. **Deuda de test conocida** (documentada, no bloqueante): no se escribió un e2e HTTP
+dedicado para `POST .../prepay` (T021) — la cobertura equivalente existe vía el test de integración
+que ejercita el handler completo contra Postgres real, incluida la concurrencia; y los tests
+específicos de US3 (T042-T044: cierre normal + pago de una facturación con prepagos previos) no se
+escribieron como archivos nuevos — el comportamiento se apoya enteramente en el cambio de
+`totalFor()` (T011), ya cubierto por la suite completa existente de `pay-credit-statement`/
+`sync-statement`/`generate-statements`, que sigue en 100% verde sin cambios propios.)
+
 Prior plan: specs/018-savings-redesign/plan.md
 (Rediseño de la vista Ahorros con progreso/ritmo/proyección reales, y extensión de
 `savings-goal`/`savings-entry` para que los aportes y el cierre de una meta con destino "retirar a

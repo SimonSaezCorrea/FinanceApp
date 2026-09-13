@@ -36,6 +36,40 @@ function legData(patch: TransferLegPatch): Prisma.TransactionUpdateInput {
 
 type Row = NonNullable<Awaited<ReturnType<PrismaService["transaction"]["findFirst"]>>>;
 
+/** Shared by `saveUpdate`/`saveUpdateWithTx` — turns a domain patch into Prisma
+ * update data (relations connected/disconnected, scalars set only when present). */
+function patchToUpdateInput(
+  patch: Partial<Omit<TransactionProps, "id" | "userId" | "createdAt" | "updatedAt">> & {
+    bankAccountId?: string | null;
+    cardId?: string | null;
+    creditStatementId?: string | null;
+  },
+): Prisma.TransactionUpdateInput {
+  const data: Prisma.TransactionUpdateInput = {};
+  if (patch.type !== undefined) data.type = patch.type;
+  if (patch.amount !== undefined) data.amount = patch.amount;
+  if (patch.currency !== undefined) data.currency = patch.currency;
+  if (patch.occurredAt !== undefined) data.occurredAt = patch.occurredAt;
+  if (patch.category !== undefined) data.category = patch.category;
+  if (patch.description !== undefined) data.description = patch.description;
+  if (patch.observation !== undefined) data.observation = patch.observation;
+  if (patch.emisor !== undefined) data.emisor = patch.emisor;
+  if (patch.receptor !== undefined) data.receptor = patch.receptor;
+  if (patch.lugar !== undefined) data.lugar = patch.lugar;
+  if (patch.bankAccountId) {
+    data.bankAccount = { connect: { id: patch.bankAccountId } };
+  }
+  if (patch.cardId !== undefined) {
+    data.card = patch.cardId ? { connect: { id: patch.cardId } } : { disconnect: true };
+  }
+  if (patch.creditStatementId !== undefined) {
+    data.creditStatement = patch.creditStatementId
+      ? { connect: { id: patch.creditStatementId } }
+      : { disconnect: true };
+  }
+  return data;
+}
+
 function rowToProps(row: Row): TransactionProps {
   return {
     id: row.id,
@@ -60,6 +94,8 @@ function rowToProps(row: Row): TransactionProps {
     recurringExpenseId: row.recurringExpenseId,
     savingsEntryId: row.savingsEntryId,
     savingsGoalId: row.savingsGoalId,
+    prepaymentStatementId: row.prepaymentStatementId,
+    prepaymentAccountId: row.prepaymentAccountId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -282,39 +318,52 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     });
     if (!owned) return null;
 
-    const data: Prisma.TransactionUpdateInput = {};
-    if (patch.type !== undefined) data.type = patch.type;
-    if (patch.amount !== undefined) data.amount = patch.amount;
-    if (patch.currency !== undefined) data.currency = patch.currency;
-    if (patch.occurredAt !== undefined) data.occurredAt = patch.occurredAt;
-    if (patch.category !== undefined) data.category = patch.category;
-    if (patch.description !== undefined) data.description = patch.description;
-    if (patch.observation !== undefined) data.observation = patch.observation;
-    if (patch.emisor !== undefined) data.emisor = patch.emisor;
-    if (patch.receptor !== undefined) data.receptor = patch.receptor;
-    if (patch.lugar !== undefined) data.lugar = patch.lugar;
-    if (patch.bankAccountId) {
-      data.bankAccount = { connect: { id: patch.bankAccountId } };
-    }
-    if (patch.cardId !== undefined) {
-      data.card = patch.cardId ? { connect: { id: patch.cardId } } : { disconnect: true };
-    }
-    if (patch.creditStatementId !== undefined) {
-      data.creditStatement = patch.creditStatementId
-        ? { connect: { id: patch.creditStatementId } }
-        : { disconnect: true };
-    }
-
-    const row = await this.prisma.$transaction(async (tx) => {
-      const updated = await tx.transaction.update({ where: { id }, data });
-      for (const d of creditUsedDeltas) {
-        if (d.delta === "0") continue;
-        await this.accounts.incrementCreditUsedWithTx(tx, d.accountId, d.delta);
-      }
-      await this.applyBalanceDeltas(tx, balanceDeltas);
-      return updated;
-    });
+    const data = patchToUpdateInput(patch);
+    const row = await this.prisma.$transaction((tx) =>
+      this.saveUpdateWithTxInternal(tx, id, data, creditUsedDeltas, balanceDeltas),
+    );
     return Transaction.fromPersistence(rowToProps(row));
+  }
+
+  async saveUpdateWithTx(
+    tx: unknown,
+    id: string,
+    patch: Partial<Omit<TransactionProps, "id" | "userId" | "createdAt" | "updatedAt">> & {
+      bankAccountId?: string | null;
+      cardId?: string | null;
+      creditStatementId?: string | null;
+    },
+    creditUsedDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: { accountId: string; delta: string }[],
+  ): Promise<Transaction | null> {
+    const data = patchToUpdateInput(patch);
+    const row = await this.saveUpdateWithTxInternal(
+      tx as PrismaService,
+      id,
+      data,
+      creditUsedDeltas,
+      balanceDeltas,
+    );
+    return Transaction.fromPersistence(rowToProps(row));
+  }
+
+  /** Shared body of `saveUpdate`/`saveUpdateWithTx` — the former opens its own
+   * `$transaction` and calls this with it, the latter is handed the caller's. */
+  private async saveUpdateWithTxInternal(
+    tx: unknown,
+    id: string,
+    data: Prisma.TransactionUpdateInput,
+    creditUsedDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: { accountId: string; delta: string }[],
+  ): Promise<Row> {
+    const client = tx as PrismaService;
+    const updated = await client.transaction.update({ where: { id }, data });
+    for (const d of creditUsedDeltas) {
+      if (d.delta === "0") continue;
+      await this.accounts.incrementCreditUsedWithTx(tx, d.accountId, d.delta);
+    }
+    await this.applyBalanceDeltas(tx, balanceDeltas);
+    return updated;
   }
 
   async removeWithCreditAdjustment(
@@ -323,21 +372,36 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     creditUsedDelta: { accountId: string; delta: string } | null,
     balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<boolean> {
-    const removed = await this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx) => {
       const result = await tx.transaction.deleteMany({ where: { id, userId } });
-      if (result.count > 0 && creditUsedDelta && creditUsedDelta.delta !== "0") {
-        await this.accounts.incrementCreditUsedWithTx(
-          tx,
-          creditUsedDelta.accountId,
-          creditUsedDelta.delta,
-        );
-      }
-      if (result.count > 0) {
-        await this.applyBalanceDeltas(tx, balanceDeltas);
-      }
-      return result.count > 0;
+      if (result.count === 0) return false;
+      await this.removeWithTxInternal(tx, creditUsedDelta, balanceDeltas);
+      return true;
     });
-    return removed;
+  }
+
+  async removeWithTx(
+    tx: unknown,
+    id: string,
+    creditUsedDelta: { accountId: string; delta: string } | null,
+    balanceDeltas: { accountId: string; delta: string }[],
+  ): Promise<boolean> {
+    const client = tx as PrismaService;
+    const result = await client.transaction.deleteMany({ where: { id } });
+    if (result.count === 0) return false;
+    await this.removeWithTxInternal(client, creditUsedDelta, balanceDeltas);
+    return true;
+  }
+
+  private async removeWithTxInternal(
+    tx: unknown,
+    creditUsedDelta: { accountId: string; delta: string } | null,
+    balanceDeltas: { accountId: string; delta: string }[],
+  ): Promise<void> {
+    if (creditUsedDelta && creditUsedDelta.delta !== "0") {
+      await this.accounts.incrementCreditUsedWithTx(tx, creditUsedDelta.accountId, creditUsedDelta.delta);
+    }
+    await this.applyBalanceDeltas(tx, balanceDeltas);
   }
 
   async findTransferGroup(userId: string, transferGroupId: string): Promise<TransferPair | null> {

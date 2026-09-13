@@ -14,4 +14,8 @@ export class OpenState implements CreditStatementState {
   canPay(): boolean {
     return true;
   }
+
+  canPrepay(): boolean {
+    return true;
+  }
 }

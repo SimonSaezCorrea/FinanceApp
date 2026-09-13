@@ -27,6 +27,8 @@ const tx = (over: Partial<transactions.Transaction>): transactions.Transaction =
   savingsGoalId: null,
   paidStatementId: null,
   paidStatementAccountId: null,
+  prepaymentStatementId: null,
+  prepaymentAccountId: null,
   createdAt: "2026-08-01T00:00:00.000Z",
   updatedAt: "2026-08-01T00:00:00.000Z",
   ...over,

@@ -63,6 +63,27 @@ export function useAccountMutations() {
         qc.invalidateQueries({ queryKey: ["accounts", vars.id, "credit-statements"] });
       },
     }),
+    prepayCreditStatement: useMutation({
+      mutationFn: (vars: {
+        id: string;
+        statementId: string;
+        body: accounts.PrepayCreditStatement;
+        idempotencyKey: string;
+      }) =>
+        accountsApi.prepayCreditStatement(
+          vars.id,
+          vars.statementId,
+          vars.body,
+          vars.idempotencyKey,
+        ),
+      onSuccess: (_, vars) => {
+        // Moves the credit pool AND creates a real movement on the source
+        // account — the statements list alone is not enough.
+        invalidate();
+        qc.invalidateQueries({ queryKey: ["accounts", vars.id, "credit-statements"] });
+        qc.invalidateQueries({ queryKey: ["transactions"] });
+      },
+    }),
     updateStatementPayment: useMutation({
       mutationFn: (vars: { id: string; statementId: string; amount: string }) =>
         accountsApi.updateStatementPayment(vars.id, vars.statementId, vars.amount),

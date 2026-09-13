@@ -13,4 +13,8 @@ export class PaidState implements CreditStatementState {
   canPay(): boolean {
     return false;
   }
+
+  canPrepay(): boolean {
+    return false;
+  }
 }

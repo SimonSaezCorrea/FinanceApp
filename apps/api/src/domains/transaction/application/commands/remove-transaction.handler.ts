@@ -4,6 +4,7 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import { subtractMoney } from "@finance/money";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import { reverseBalanceDelta, reverseCashDelta } from "../../domain/balance-delta";
 import {
   BANK_ACCOUNT_REPOSITORY,
@@ -32,7 +33,12 @@ import {
   TRANSACTION_REPOSITORY,
   type TransactionRepositoryPort,
 } from "../../domain/ports/transaction.repository.port";
+import {
+  TRANSACTION_WRITER_REPOSITORY,
+  type TransactionWriterRepositoryPort,
+} from "../../domain/ports/transaction-writer.repository.port";
 import { loadAccountContext } from "../account-context.loader";
+import { reconcilePrepaymentWithTx } from "./reconcile-prepayment";
 import { netDeltas } from "./update-transfer.handler";
 import { RemoveTransactionCommand } from "./remove-transaction.command";
 
@@ -42,6 +48,9 @@ interface Context {
   /** What deleting this movement gives back to the account's cash balance
    * ("0" for one charged to a credit line, which never took cash out). */
   cashReversal: string;
+  /** Spec 019: set only when this movement is a prepago — see
+   * `update-transaction.handler.ts`'s own field of the same name. */
+  prepaymentReversal: { accountId: string; statementId: string; oldAmount: string } | null;
 }
 
 /**
@@ -65,6 +74,9 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
     @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statements: CreditStatementRepositoryPort,
     @Inject(INSTALLMENT_PAYMENT_LOOKUP)
     private readonly installmentPayments: InstallmentPaymentLookupPort,
+    @Inject(TRANSACTION_WRITER_REPOSITORY)
+    private readonly transactionWriter: TransactionWriterRepositoryPort,
+    private readonly prisma: PrismaService,
   ) {
     super(eventBus);
   }
@@ -93,6 +105,7 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
         creditUsedDelta: null,
         // A transfer never involves a card and is settled below as a pair.
         cashReversal: reverseBalanceDelta(current.type, current.amount),
+        prepaymentReversal: null,
       };
     }
 
@@ -135,10 +148,19 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
       cashReversal ??= reverseCashDelta(current.type, current.amount, account, card);
     }
 
+    // Spec 019: a prepago's own movement is fully deletable (FR-012) — never
+    // read-only like an instalment payment. Deleting it must reconcile the
+    // period it abonó in the SAME transaction as this delete.
+    const snap = current.snapshot();
+    const prepaymentReversal = snap.prepaymentStatementId
+      ? { accountId: snap.prepaymentAccountId!, statementId: snap.prepaymentStatementId, oldAmount: current.amount }
+      : null;
+
     return {
       current,
       creditUsedDelta,
       cashReversal: cashReversal ?? reverseBalanceDelta(current.type, current.amount),
+      prepaymentReversal,
     };
   }
 
@@ -168,15 +190,39 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
       return { result: undefined, events: [] };
     }
 
+    const balanceDeltas =
+      context.current.bankAccountId && context.cashReversal !== "0"
+        ? [{ accountId: context.current.bankAccountId, delta: context.cashReversal }]
+        : [];
+
+    const reversal = context.prepaymentReversal;
+    if (reversal) {
+      const ok = await this.prisma.$transaction(async (tx) => {
+        const removed = await this.repo.removeWithTx(
+          tx,
+          command.id,
+          context.creditUsedDelta,
+          balanceDeltas,
+        );
+        if (!removed) return false;
+        await reconcilePrepaymentWithTx(
+          { statements: this.statements, accounts: this.accounts, transactions: this.transactionWriter },
+          tx,
+          { userId: command.userId, ...reversal, newAmount: "0" },
+        );
+        return true;
+      });
+      if (!ok) throw new TransactionNotFoundError();
+      return { result: undefined, events: [] };
+    }
+
     const ok = await this.repo.removeWithCreditAdjustment(
       command.userId,
       command.id,
       context.creditUsedDelta,
       // Undo what this movement did to the balance — nothing, when it was
       // charged to a credit line (the cash never left; see `cashDelta`).
-      context.current.bankAccountId && context.cashReversal !== "0"
-        ? [{ accountId: context.current.bankAccountId, delta: context.cashReversal }]
-        : [],
+      balanceDeltas,
     );
     if (!ok) throw new TransactionNotFoundError();
     return { result: undefined, events: [] };

@@ -4,6 +4,7 @@ import {
   InvalidPaymentAmountError,
   PaymentExceedsRemainingError,
   StatementAlreadyPaidError,
+  StatementNotOpenError,
   StatementNotPaidError,
 } from "./errors";
 import { StatementClosedEvent } from "./events/statement-closed.event";
@@ -28,6 +29,10 @@ export interface CreditStatementProps {
   paidAmount: string;
   /** Debt brought forward from the previous period (part of what this one owes). */
   carriedOverAmount: string;
+  /** Sum of every prepago (spec 019) applied against this period. Subtracted
+   * inside `totalFor()` — never negative, never more than the period's own
+   * gross total (enforced by `changePrepayment`). */
+  prepaidAmount: string;
   /** The period this one's leftover was rolled into, if any. */
   carriedToId: string | null;
   paidFromAccountId: string | null;
@@ -81,6 +86,10 @@ export class CreditStatement {
     return moneyToString(this.props.carriedOverAmount);
   }
 
+  get prepaidAmount(): string {
+    return moneyToString(this.props.prepaidAmount);
+  }
+
   get carriedToId(): string | null {
     return this.props.carriedToId;
   }
@@ -97,8 +106,27 @@ export class CreditStatement {
    * `research.md` R1/R4). Defaults to "0" so every pre-existing call site (a
    * non-credit-card period never has instalments to add) keeps behaving exactly as
    * before without having to pass it.
+   *
+   * Spec 019, R2: `prepaidAmount` is subtracted last — every prepago already
+   * applied to this period comes off the total, whether the period is still OPEN
+   * (live figure) or already PENDING (still live until it's actually paid). Never
+   * negative: `changePrepayment` is what keeps `prepaidAmount` from ever exceeding
+   * this same gross total, but a movement edited AFTER a prepago (e.g. a purchase
+   * reduced in amount) could still transiently push the raw subtraction below
+   * zero — clamped here rather than displaying a negative "owed" figure.
    */
   totalFor(linkedAmount: string, instalmentAmount = "0"): string {
+    const net = subtractMoney(this.grossTotalFor(linkedAmount, instalmentAmount), this.props.prepaidAmount);
+    return toMoney(net).isNegative() ? moneyToString("0") : net;
+  }
+
+  /**
+   * Spec 019: the period's total BEFORE any prepago is netted out — what
+   * `changePrepayment` bounds its own cap against (the cap is "not more than
+   * what's genuinely owed", which is this figure, not `totalFor`'s already-net
+   * result). Same three summands `totalFor` itself adds, minus the subtraction.
+   */
+  grossTotalFor(linkedAmount: string, instalmentAmount = "0"): string {
     return addMoney(addMoney(linkedAmount, this.props.carriedOverAmount), instalmentAmount);
   }
 
@@ -111,6 +139,42 @@ export class CreditStatement {
   /** Records where this period's leftover went (its successor's id). */
   markCarriedTo(statementId: string): void {
     this.props.carriedToId = statementId;
+  }
+
+  /**
+   * Spec 019: apply, correct, or undo a prepago against this period's GROSS total
+   * (its movements + carry-over + instalments — i.e. `totalFor`'s result BEFORE
+   * subtracting any prepaid amount, since that is exactly what this changes).
+   *
+   * One method covers all three shapes a prepago's own lifecycle takes,
+   * expressed as old vs. new contribution — same convention
+   * `update-transaction.handler.ts` already uses for its own credit/balance
+   * deltas:
+   *   - Create:  oldContribution = "0",           newContribution = amount
+   *   - Edit:    oldContribution = previousAmount, newContribution = newAmount
+   *   - Delete:  oldContribution = previousAmount, newContribution = "0"
+   *
+   * Creating a genuinely NEW prepago (`oldContribution === "0"`) requires the
+   * period to still be OPEN (`StatementNotOpenError` otherwise) — once closed,
+   * abonar happens by paying the resulting facturación instead. Correcting or
+   * removing one already applied has NO such gate (FR-012/FR-013): the user must
+   * be able to fix/undo it regardless of what happened to the period since.
+   */
+  changePrepayment(grossTotal: string, oldContribution: string, newContribution: string): void {
+    if (toMoney(oldContribution).isZero() && !this.state.canPrepay()) {
+      throw new StatementNotOpenError();
+    }
+    if (toMoney(newContribution).isNegative()) {
+      throw new InvalidPaymentAmountError();
+    }
+    const nextPrepaid = addMoney(
+      subtractMoney(this.props.prepaidAmount, oldContribution),
+      newContribution,
+    );
+    if (toMoney(nextPrepaid).greaterThan(toMoney(grossTotal))) {
+      throw new PaymentExceedsRemainingError();
+    }
+    this.props.prepaidAmount = moneyToString(nextPrepaid);
   }
 
   /**

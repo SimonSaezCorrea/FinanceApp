@@ -17,6 +17,7 @@ import {
   fakeCardLimitRepo,
   fakeCreditStatementRepo,
   fakeInstallmentPaymentLookup,
+  fakeTransactionWriterRepo,
 } from "../../../../support/fake-ports";
 
 function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): TransactionRepositoryPort {
@@ -28,7 +29,9 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     saveNew: vi.fn(),
     saveNewWithTx: vi.fn(),
     saveUpdate: vi.fn(),
+    saveUpdateWithTx: vi.fn(),
     removeWithCreditAdjustment: vi.fn().mockResolvedValue(true),
+    removeWithTx: vi.fn().mockResolvedValue(true),
     findTransferGroup: vi.fn(async () => null),
     saveTransferPair: vi.fn(),
     saveTransferPairWithTx: vi.fn(),
@@ -62,6 +65,8 @@ function txFixture() {
     recurringExpenseId: null,
     savingsEntryId: null,
     savingsGoalId: null,
+    prepaymentStatementId: null,
+    prepaymentAccountId: null,
     createdAt: new Date("2026-03-01"),
     updatedAt: new Date("2026-03-01"),
   });
@@ -106,6 +111,9 @@ function makeHandler(
     fakeInstallmentPaymentLookup({
       isLinkedToPayment: vi.fn(async () => opts.linkedToInstallment ?? false),
     }),
+    fakeTransactionWriterRepo(),
+    // Unused unless a fixture carries `prepaymentStatementId` (none in this file do).
+    {} as never,
   );
 }
 

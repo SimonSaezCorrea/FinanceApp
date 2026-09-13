@@ -15,6 +15,7 @@ import { Skeleton, SkeletonScreen } from "../../../shared/ui/skeleton";
 import { ErrorState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
 import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
+import { TransactionCreateModal } from "../../transactions/components/TransactionCreateModal";
 import { useAccountMutations, useCreditStatements } from "../hooks/useAccounts";
 import { EditStatementPaymentPanel } from "./EditStatementPaymentPanel";
 import { PayStatementPanel } from "./PayStatementPanel";
@@ -136,6 +137,10 @@ export function BillingSection({
   const statements = isError ? undefined : rawStatements;
   const { generateStatements, syncStatement } = useAccountMutations();
   const [payTarget, setPayTarget] = useState<accounts.CreditStatement | null>(null);
+  // Spec 019: the OPEN period is never "paid" from here anymore — `payTowards`
+  // would liquidate/close it, which is not what abonar early means. It opens
+  // the ordinary movement form straight into "Prepagar" instead.
+  const [prepayOpen, setPrepayOpen] = useState(false);
   const [syncTarget, setSyncTarget] = useState<accounts.CreditStatement | null>(null);
   const [editPaymentTarget, setEditPaymentTarget] = useState<accounts.CreditStatement | null>(null);
   const [detailTarget, setDetailTarget] = useState<accounts.CreditStatement | null>(null);
@@ -234,9 +239,15 @@ export function BillingSection({
             from also opening the detail panel underneath them. */}
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <SyncButton statement={s} iconOnly size="md" />
-          <Button variant="secondary" className="flex-1" onClick={() => setPayTarget(s)}>
-            {t("accounts.actions.payCredit")}
-          </Button>
+          {s.status === "OPEN" ? (
+            <Button variant="secondary" className="flex-1" onClick={() => setPrepayOpen(true)}>
+              {t("transactions.type.PREPAY")}
+            </Button>
+          ) : (
+            <Button variant="secondary" className="flex-1" onClick={() => setPayTarget(s)}>
+              {t("accounts.actions.payCredit")}
+            </Button>
+          )}
         </div>
       </button>
     );
@@ -473,6 +484,19 @@ export function BillingSection({
                               <Pencil className="h-3.5 w-3.5" aria-hidden />
                             </Button>
                           ) : null
+                        ) : s.status === "OPEN" ? (
+                          // Spec 019: the OPEN period is never "paid" (that would
+                          // close it) — only prepagado, via the ordinary movement form.
+                          <Button
+                            variant="accent"
+                            size="sm"
+                            className="w-8 px-0"
+                            aria-label={t("transactions.type.PREPAY")}
+                            title={t("transactions.type.PREPAY")}
+                            onClick={() => setPrepayOpen(true)}
+                          >
+                            <Banknote className="h-3.5 w-3.5" aria-hidden />
+                          </Button>
                         ) : (
                           // Tinted (not a plain ghost icon): the one action on this
                           // row that moves money forward, same reasoning as the
@@ -556,6 +580,13 @@ export function BillingSection({
         account={account}
         statement={payTarget}
         onOpenChange={(v) => !v && setPayTarget(null)}
+      />
+      <TransactionCreateModal
+        open={prepayOpen}
+        onOpenChange={setPrepayOpen}
+        defaultBankAccountId={account.id}
+        lockAccount
+        initialMode="PREPAY"
       />
       <ConfirmModal
         open={syncTarget !== null}

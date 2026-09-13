@@ -37,6 +37,13 @@ export interface TransactionProps {
   /** The `SavingsGoal` this movement is the "retirar a cuenta" INCOME for —
    * set only by `savings-goal`'s close handler. */
   savingsGoalId: string | null;
+  /** Spec 019: the OPEN `CreditStatement` this movement abonó early — a real
+   * column on the row (unlike `paidStatementId`, resolved via a reverse
+   * relation), set only by `PrepayOpenPeriodHandler` writing through
+   * `TransactionWriterRepositoryPort` directly. */
+  prepaymentStatementId: string | null;
+  /** The CREDIT_CARD account `prepaymentStatementId` belongs to. */
+  prepaymentAccountId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -118,6 +125,11 @@ export class Transaction {
       recurringExpenseId: null,
       savingsEntryId: null,
       savingsGoalId: null,
+      // Only `PrepayOpenPeriodHandler` sets these, writing through
+      // `TransactionWriterRepositoryPort` directly — never through this
+      // ordinary creation path.
+      prepaymentStatementId: null,
+      prepaymentAccountId: null,
     };
   }
 
@@ -205,6 +217,8 @@ export class Transaction {
       // known to the aggregate itself — this is the row's own persisted state.
       paidStatementId: null,
       paidStatementAccountId: null,
+      prepaymentStatementId: this.props.prepaymentStatementId,
+      prepaymentAccountId: this.props.prepaymentAccountId,
       createdAt: this.props.createdAt.toISOString(),
       updatedAt: this.props.updatedAt.toISOString(),
     };

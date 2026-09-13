@@ -6,6 +6,7 @@ import { subtractMoney } from "@finance/money";
 
 import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import { cashDelta, reverseCashDelta } from "../../domain/balance-delta";
 import {
   BANK_ACCOUNT_REPOSITORY,
@@ -43,7 +44,12 @@ import {
   TRANSACTION_REPOSITORY,
   type TransactionRepositoryPort,
 } from "../../domain/ports/transaction.repository.port";
+import {
+  TRANSACTION_WRITER_REPOSITORY,
+  type TransactionWriterRepositoryPort,
+} from "../../domain/ports/transaction-writer.repository.port";
 import { loadAccountContext } from "../account-context.loader";
+import { reconcilePrepaymentWithTx } from "./reconcile-prepayment";
 import { UpdateTransactionCommand } from "./update-transaction.command";
 
 interface Context {
@@ -51,6 +57,15 @@ interface Context {
   patch: TransactionPatch;
   creditUsedDeltas: { accountId: string; delta: string }[];
   balanceDeltas: { accountId: string; delta: string }[];
+  /** Spec 019: set only when this movement is a prepago (`prepaymentStatementId`
+   * on the row) — its old/new amount, so the CreditStatement it abonó can be
+   * reconciled in the SAME transaction as the movement's own save. */
+  prepaymentReversal: {
+    accountId: string;
+    statementId: string;
+    oldAmount: string;
+    newAmount: string;
+  } | null;
 }
 
 /**
@@ -77,6 +92,9 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statements: CreditStatementRepositoryPort,
     @Inject(INSTALLMENT_PAYMENT_LOOKUP)
     private readonly installmentPayments: InstallmentPaymentLookupPort,
+    @Inject(TRANSACTION_WRITER_REPOSITORY)
+    private readonly transactionWriter: TransactionWriterRepositoryPort,
+    private readonly prisma: PrismaService,
   ) {
     super(eventBus);
   }
@@ -259,13 +277,45 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       balanceDeltas.push({ accountId: effective.bankAccountId, delta: newCash });
     }
 
-    return { current, patch, creditUsedDeltas, balanceDeltas };
+    // Spec 019: a prepago's own movement is fully editable (FR-012) — never
+    // read-only like an instalment payment. Its amount changing must reconcile
+    // the period it abonó in the SAME transaction as this save.
+    const snap = current.snapshot();
+    const prepaymentReversal = snap.prepaymentStatementId
+      ? {
+          accountId: snap.prepaymentAccountId!,
+          statementId: snap.prepaymentStatementId,
+          oldAmount: current.amount,
+          newAmount: effective.amount,
+        }
+      : null;
+
+    return { current, patch, creditUsedDeltas, balanceDeltas, prepaymentReversal };
   }
 
   protected async handle(
     command: UpdateTransactionCommand,
     context: Context,
   ): Promise<HandleResult<transactions.Transaction>> {
+    const reversal = context.prepaymentReversal;
+    if (reversal) {
+      return this.prisma.$transaction(async (tx) => {
+        const row = await this.repo.saveUpdateWithTx(
+          tx,
+          command.id,
+          context.patch,
+          context.creditUsedDeltas,
+          context.balanceDeltas,
+        );
+        if (!row) throw new TransactionNotFoundError();
+        await reconcilePrepaymentWithTx(
+          { statements: this.statements, accounts: this.accounts, transactions: this.transactionWriter },
+          tx,
+          { userId: command.userId, ...reversal },
+        );
+        return { result: row.toContract(), events: [] };
+      });
+    }
     const row = await this.repo.saveUpdate(
       command.userId,
       command.id,

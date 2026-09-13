@@ -465,7 +465,8 @@
     "type": {
       "INCOME": "Ingreso",
       "EXPENSE": "Gasto",
-      "TRANSFER": "Traspaso"
+      "TRANSFER": "Traspaso",
+      "PREPAY": "Prepagar"
     },
     "form": {
       "type": "Tipo",
@@ -505,6 +506,8 @@
       "editEyebrow": "Editar movimiento",
       "projectedCredit": "Cupo disponible tras el movimiento",
       "ownAccount": "Cuenta propia",
+      "prepayFromAccount": "Cuenta de origen",
+      "prepayCurrentlyOwed": "Debe hoy en este período",
       "currency": "Moneda",
       "leaveConfirm": "¿Volver sin guardar?",
       "leaveConfirmDescription": "Tienes cambios sin guardar en este movimiento. Si vuelves ahora se perderán.",
@@ -562,7 +565,8 @@
       "INSTALLMENT_INTEREST": "Interés de plan",
       "FINANCE_CHARGE": "Cargo financiero",
       "DEBT": "Deuda",
-      "STATEMENT_PAYMENT": "Pago de facturación"
+      "STATEMENT_PAYMENT": "Pago de facturación",
+      "CREDIT_CARD_PREPAYMENT": "Prepago de tarjeta"
     },
     "attachments": {
       "title": "Comprobantes",

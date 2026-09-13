@@ -8,6 +8,7 @@ import {
   InvalidPaymentAmountError,
   PaymentExceedsRemainingError,
   StatementAlreadyPaidError,
+  StatementNotOpenError,
   StatementNotPaidError,
 } from "../../../../../src/domains/credit-statement/domain/errors";
 import { StatementClosedEvent } from "../../../../../src/domains/credit-statement/domain/events/statement-closed.event";
@@ -23,6 +24,7 @@ function baseProps(overrides: Partial<CreditStatementProps> = {}): CreditStateme
     amount: "1000",
     paidAmount: "0",
     carriedOverAmount: "0",
+    prepaidAmount: "0",
     carriedToId: null,
     paidFromAccountId: null,
     paidTransactionId: null,
@@ -254,6 +256,101 @@ describe("CreditStatement aggregate (State pattern)", () => {
       expect(statement.amount).toBe("900.0000");
       // Still short (400 of 900), so still PARTIALLY_PAID.
       expect(statement.state.name).toBe("PARTIALLY_PAID");
+    });
+  });
+
+  // Spec 019: prepaying the OPEN period, without closing it.
+  describe("changePrepayment (prepago against the OPEN period)", () => {
+    it("creating one lowers totalFor() by the same amount, without closing the period", () => {
+      const statement = CreditStatement.fromPersistence(baseProps());
+      statement.changePrepayment("1000", "0", "300");
+
+      expect(statement.prepaidAmount).toBe("300.0000");
+      expect(statement.totalFor("1000")).toBe("700.0000");
+      expect(statement.state.name).toBe("OPEN");
+      expect(statement.closedAt).toBeNull();
+    });
+
+    it("accumulates across several prepagos on the same period", () => {
+      const statement = CreditStatement.fromPersistence(baseProps());
+      statement.changePrepayment("1000", "0", "300");
+      statement.changePrepayment("1000", "0", "250");
+
+      expect(statement.prepaidAmount).toBe("550.0000");
+      expect(statement.totalFor("1000")).toBe("450.0000");
+    });
+
+    it("rejects creating one against a period that isn't OPEN", () => {
+      const statement = CreditStatement.fromPersistence(
+        baseProps({ closedAt: new Date("2026-02-01") }),
+      );
+      expect(() => statement.changePrepayment("1000", "0", "300")).toThrow(StatementNotOpenError);
+    });
+
+    it("rejects a prepago that would exceed the period's gross total", () => {
+      const statement = CreditStatement.fromPersistence(baseProps());
+      statement.changePrepayment("1000", "0", "700");
+      expect(() => statement.changePrepayment("1000", "0", "400")).toThrow(
+        PaymentExceedsRemainingError,
+      );
+    });
+
+    it("editing an existing prepago's amount works even after the period closed (FR-012/FR-013)", () => {
+      const statement = CreditStatement.fromPersistence(baseProps());
+      statement.changePrepayment("1000", "0", "300");
+      statement.close(new Date("2026-02-01"));
+
+      // Correcting from 300 to 450 — no OPEN gate on a correction.
+      statement.changePrepayment("1000", "300", "450");
+      expect(statement.prepaidAmount).toBe("450.0000");
+      expect(statement.totalFor("1000")).toBe("550.0000");
+    });
+
+    it("deleting an existing prepago (newContribution '0') fully reverses it, even closed", () => {
+      const statement = CreditStatement.fromPersistence(baseProps());
+      statement.changePrepayment("1000", "0", "300");
+      statement.close(new Date("2026-02-01"));
+
+      statement.changePrepayment("1000", "300", "0");
+      expect(statement.prepaidAmount).toBe("0.0000");
+      expect(statement.totalFor("1000")).toBe("1000.0000");
+    });
+
+    it("rejects a negative resulting contribution", () => {
+      const statement = CreditStatement.fromPersistence(baseProps());
+      expect(() => statement.changePrepayment("1000", "0", "-50")).toThrow(
+        InvalidPaymentAmountError,
+      );
+    });
+
+    it("totalFor never goes negative even if prepaidAmount outpaces a later-shrunk gross total", () => {
+      const statement = CreditStatement.fromPersistence(baseProps({ prepaidAmount: "500" }));
+      // A purchase behind this period got edited down to 300 after the prepago —
+      // gross total is now less than what was already prepaid.
+      expect(statement.totalFor("300")).toBe("0.0000");
+    });
+  });
+
+  describe("CreditStatementState.canPrepay()", () => {
+    it("is true only for OPEN", () => {
+      expect(CreditStatement.fromPersistence(baseProps()).state.canPrepay()).toBe(true);
+    });
+
+    it("is false for PENDING, PARTIALLY_PAID and PAID", () => {
+      const pending = CreditStatement.fromPersistence(
+        baseProps({ closedAt: new Date("2026-02-01") }),
+      );
+      expect(pending.state.canPrepay()).toBe(false);
+
+      const partiallyPaid = CreditStatement.fromPersistence(
+        baseProps({ closedAt: new Date("2026-02-01") }),
+      );
+      partiallyPaid.payTowards("1000", "400", "acc_2", "tx_1", new Date("2026-02-05"));
+      expect(partiallyPaid.state.canPrepay()).toBe(false);
+
+      const paid = CreditStatement.fromPersistence(baseProps());
+      paid.payTowards("100", "100", "acc_1", "tx_1", new Date());
+      expect(paid.state.canPrepay()).toBe(false);
     });
   });
 });

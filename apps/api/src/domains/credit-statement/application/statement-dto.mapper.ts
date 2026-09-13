@@ -68,6 +68,7 @@ export function toStatementDto(
     amount: moneyToString(input.amount),
     paidAmount: statement.paidAmount,
     carriedOverAmount: statement.carriedOverAmount,
+    prepaidAmount: statement.prepaidAmount,
     carriedToId: statement.carriedToId,
     remainingAmount: toMoney(remaining).isNegative() ? moneyToString("0") : remaining,
     minimumAmount: minimumFor(input.amount, input.minimumPercent),

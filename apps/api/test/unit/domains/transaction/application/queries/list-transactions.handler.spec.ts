@@ -32,7 +32,9 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     saveNew: vi.fn(),
     saveNewWithTx: vi.fn(),
     saveUpdate: vi.fn(),
+    saveUpdateWithTx: vi.fn(),
     removeWithCreditAdjustment: vi.fn(),
+    removeWithTx: vi.fn(),
     findTransferGroup: vi.fn(async () => null),
     saveTransferPair: vi.fn(),
     saveTransferPairWithTx: vi.fn(),
@@ -65,6 +67,8 @@ const row = Transaction.fromPersistence({
   recurringExpenseId: null,
   savingsEntryId: null,
   savingsGoalId: null,
+  prepaymentStatementId: null,
+  prepaymentAccountId: null,
   createdAt: new Date("2026-03-01T00:00:00Z"),
   updatedAt: new Date("2026-03-01T00:00:00Z"),
 });

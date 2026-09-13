@@ -101,8 +101,33 @@ export interface TransactionRepositoryPort {
     creditUsedDeltas: { accountId: string; delta: string }[],
     balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<Transaction | null>;
+  /** Same write, enlisted in the CALLER's transaction. Spec 019: needed when
+   * editing a movement that funded a prepago also has to reconcile the
+   * `CreditStatement` it abonó (and, if already settled, the pool) in the SAME
+   * atomic step — see `reconcile-prepayment.ts`. Ownership is assumed already
+   * verified by the caller (`findOne` in `loadContext`), same convention every
+   * other `*WithTx` method in this codebase follows. */
+  saveUpdateWithTx(
+    tx: unknown,
+    id: string,
+    patch: Partial<Omit<TransactionProps, "id" | "userId" | "createdAt" | "updatedAt">> & {
+      bankAccountId?: string | null;
+      cardId?: string | null;
+      creditStatementId?: string | null;
+    },
+    creditUsedDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: { accountId: string; delta: string }[],
+  ): Promise<Transaction | null>;
   removeWithCreditAdjustment(
     userId: string,
+    id: string,
+    creditUsedDelta: { accountId: string; delta: string } | null,
+    balanceDeltas: { accountId: string; delta: string }[],
+  ): Promise<boolean>;
+  /** Same delete, enlisted in the CALLER's transaction (spec 019 — see
+   * `saveUpdateWithTx`'s own doc comment). */
+  removeWithTx(
+    tx: unknown,
     id: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
     balanceDeltas: { accountId: string; delta: string }[],

@@ -23,6 +23,10 @@ const tx = (over: Partial<Transaction> = {}): Transaction => ({
   recurringExpenseId: null,
   savingsEntryId: null,
   savingsGoalId: null,
+  paidStatementId: null,
+  paidStatementAccountId: null,
+  prepaymentStatementId: null,
+  prepaymentAccountId: null,
   createdAt: "2026-08-01T00:00:00.000Z",
   updatedAt: "2026-08-01T00:00:00.000Z",
   ...over,
@@ -58,5 +62,30 @@ describe("sourceOf", () => {
 
   it("is DEBT when it carries a debtId and nothing else claims it first", () => {
     expect(sourceOf(tx({ debtId: "d1" }))).toEqual({ kind: "DEBT", debtId: "d1" });
+  });
+
+  it("is STATEMENT_PAYMENT when both statement-payment fields are set", () => {
+    expect(
+      sourceOf(tx({ paidStatementId: "s1", paidStatementAccountId: "acc1" })),
+    ).toEqual({ kind: "STATEMENT_PAYMENT", statementId: "s1", accountId: "acc1" });
+  });
+
+  it("is CREDIT_CARD_PREPAYMENT when both prepayment fields are set", () => {
+    expect(
+      sourceOf(tx({ prepaymentStatementId: "s1", prepaymentAccountId: "acc1" })),
+    ).toEqual({ kind: "CREDIT_CARD_PREPAYMENT", statementId: "s1", accountId: "acc1" });
+  });
+
+  it("never confuses a prepayment with a statement payment", () => {
+    expect(
+      sourceOf(
+        tx({
+          prepaymentStatementId: "s1",
+          prepaymentAccountId: "acc1",
+          paidStatementId: null,
+          paidStatementAccountId: null,
+        }),
+      ),
+    ).toEqual({ kind: "CREDIT_CARD_PREPAYMENT", statementId: "s1", accountId: "acc1" });
   });
 });

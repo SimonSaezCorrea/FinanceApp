@@ -11,6 +11,7 @@ import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { accountIdParamsSchema } from "../../bank-account/presentation/dto/account-id.params";
 import { GenerateStatementsCommand } from "../application/commands/generate-statements.command";
 import { PayCreditStatementCommand } from "../application/commands/pay-credit-statement.command";
+import { PrepayOpenPeriodCommand } from "../application/commands/prepay-open-period.command";
 import { SyncStatementCommand } from "../application/commands/sync-statement.command";
 import { UpdateStatementPaymentCommand } from "../application/commands/update-statement-payment.command";
 import { ListCreditStatementsQuery } from "../application/queries/list-credit-statements.query";
@@ -64,6 +65,31 @@ export class CreditStatementsController {
         body.fromAccountId,
         idempotencyKey,
         body.amount,
+        body.paidAt ? new Date(body.paidAt) : undefined,
+        body.reference,
+      ),
+    );
+  }
+
+  /** Spec 019: abona against the CURRENTLY OPEN period without closing it —
+   * distinct from `pay`, which always settles (and closes, if not already). */
+  @Post(":id/credit-statements/:statementId/prepay")
+  prepayOpenPeriod(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(statementParamsSchema)) params: { id: string; statementId: string },
+    @Body(new ZodValidationPipe(accounts.prepayCreditStatementSchema))
+    body: accounts.PrepayCreditStatement,
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
+  ): Promise<accounts.CreditStatement> {
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(
+      new PrepayOpenPeriodCommand(
+        user.id,
+        params.id,
+        params.statementId,
+        body.fromAccountId,
+        body.amount,
+        idempotencyKey,
         body.paidAt ? new Date(body.paidAt) : undefined,
         body.reference,
       ),

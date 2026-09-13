@@ -50,6 +50,15 @@ export class NothingToPayError extends DomainError {
   }
 }
 
+/** A prepago (spec 019) was attempted against a period that isn't the account's
+ * currently OPEN one — either it already closed, or it belongs to another
+ * account. Defense in depth: the UI should never offer this in the first place. */
+export class StatementNotOpenError extends DomainError {
+  constructor() {
+    super("STATEMENT_NOT_OPEN", 409);
+  }
+}
+
 /** An inactive account (or one whose relevant card is inactive/removed) does
  * not generate new billing — it's left accumulating instead of being closed. */
 export class AccountInactiveError extends DomainError {

@@ -465,7 +465,8 @@
     "type": {
       "INCOME": "Income",
       "EXPENSE": "Expense",
-      "TRANSFER": "Transfer"
+      "TRANSFER": "Transfer",
+      "PREPAY": "Prepay"
     },
     "form": {
       "type": "Type",
@@ -505,6 +506,8 @@
       "editEyebrow": "Edit movement",
       "projectedCredit": "Available credit after this movement",
       "ownAccount": "My own account",
+      "prepayFromAccount": "Source account",
+      "prepayCurrentlyOwed": "Currently owed this period",
       "currency": "Currency",
       "leaveConfirm": "Leave without saving?",
       "leaveConfirmDescription": "You have unsaved changes on this movement. Leaving now will discard them.",
@@ -562,7 +565,8 @@
       "INSTALLMENT_INTEREST": "Plan interest",
       "FINANCE_CHARGE": "Finance charge",
       "DEBT": "Debt",
-      "STATEMENT_PAYMENT": "Statement payment"
+      "STATEMENT_PAYMENT": "Statement payment",
+      "CREDIT_CARD_PREPAYMENT": "Card prepayment"
     },
     "attachments": {
       "title": "Receipts",

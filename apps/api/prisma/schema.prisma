@@ -323,6 +323,11 @@ model CreditStatement {
   paidFromAccountId String?
   /// The real EXPENSE transaction created on `paidFromAccount` at pay time.
   paidTransactionId String?   @unique
+  /// Spec 019: sum of every prepago applied while this period was still OPEN (or
+  /// applied against it before it closed). Subtracted inside `totalFor()`, so a
+  /// live OPEN/PENDING period and an eventual PENDING statement already reflect
+  /// what was abonado early — no separate reconciliation job needed for that case.
+  prepaidAmount     Decimal   @default(0) @db.Decimal(18, 4)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -330,6 +335,9 @@ model CreditStatement {
   paidFromAccount    BankAccount?         @relation("CreditStatementPaidFrom", fields: [paidFromAccountId], references: [id], onDelete: SetNull)
   paidTransaction    Transaction?         @relation(fields: [paidTransactionId], references: [id], onDelete: SetNull)
   linkedTransactions Transaction[]        @relation("CreditStatementLinkedTransactions")
+  /// Every prepago transaction applied against this period (spec 019) — many per
+  /// period, unlike `paidTransaction` which is 1:1 (a period settles once).
+  prepayments        Transaction[]        @relation("CreditStatementPrepayments")
   /// The instalments this period charged (spec 014). A period's total owed is its
   /// linked transactions PLUS its carry-over PLUS these — the third summand is not a
   /// movement, for the same reason `carriedOverAmount` isn't one.
@@ -480,6 +488,16 @@ model Transaction {
   /// "historial de ocurrencias" detail view has real rows to read instead of
   /// always showing empty.
   recurringExpenseId String?
+  /// Spec 019: the OPEN (at the time) `CreditStatement` this movement abonó early —
+  /// null for every other movement, including a plan's purchase or an ordinary
+  /// contributing expense (`creditStatementId` above). NOT unique: a period can
+  /// receive many prepagos, unlike `CreditStatement.paidTransactionId` which is 1:1.
+  prepaymentStatementId String?
+  /// The CREDIT_CARD account `prepaymentStatementId` belongs to — denormalized at
+  /// creation (same spirit as `paidStatementAccountId` on the contract, but a real
+  /// column here since there's no reverse-relation trick to derive it from) so the
+  /// movement detail can deep-link straight to `/accounts/:id?tab=billing&statement=:id`.
+  prepaymentAccountId    String?
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
@@ -495,6 +513,7 @@ model Transaction {
   /// The (at most one) CreditStatement this transaction was the payment FOR (reverse
   /// of `CreditStatement.paidTransaction`) — distinct from `creditStatement` above.
   paidForStatement    CreditStatement?
+  prepaymentStatement CreditStatement?        @relation("CreditStatementPrepayments", fields: [prepaymentStatementId], references: [id], onDelete: SetNull)
   attachments         TransactionAttachment[]
   /// The (at most one) installment this movement is the payment FOR. Its presence is
   /// what makes this movement read-only from the Movements view: it is corrected by
@@ -512,6 +531,7 @@ model Transaction {
   @@index([debtId])
   @@index([recurringExpenseId])
   @@index([savingsGoalId])
+  @@index([prepaymentStatementId])
   @@map("transaction")
 }
 

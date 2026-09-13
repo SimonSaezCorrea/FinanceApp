@@ -30,6 +30,7 @@ const initialValue: TransactionFormValue = {
   bankAccountId: "a1",
   toBankAccountId: "",
   amountIn: "",
+  prepayFromAccountId: "",
   cardId: "",
   financeCharge: false,
   category: "",

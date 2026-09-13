@@ -57,6 +57,14 @@ export const transactionSchema = z.object({
    * account the payment actually left). Lets the UI link straight to
    * `/accounts/:id?tab=billing&statement=:id` without a join of its own. */
   paidStatementAccountId: rowId.nullable(),
+  /** The OPEN `CreditStatement` this movement abonó early (spec 019) — a real
+   * column on the row (unlike `paidStatementId`, which is derived from a reverse
+   * relation), since a period can receive MANY of these, not just one terminal
+   * payment. Null for every other movement. */
+  prepaymentStatementId: rowId.nullable(),
+  /** The CREDIT_CARD account `prepaymentStatementId` belongs to — lets the UI
+   * deep-link straight to it, same convention as `paidStatementAccountId`. */
+  prepaymentAccountId: rowId.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -83,6 +91,7 @@ export type TransactionSource =
   | { kind: "SAVINGS"; savingsEntryId: string }
   | { kind: "SAVINGS_WITHDRAWAL"; savingsGoalId: string }
   | { kind: "STATEMENT_PAYMENT"; statementId: string; accountId: string }
+  | { kind: "CREDIT_CARD_PREPAYMENT"; statementId: string; accountId: string }
   | { kind: "MANUAL" };
 
 export function sourceOf(
@@ -97,6 +106,8 @@ export function sourceOf(
     | "savingsGoalId"
     | "paidStatementId"
     | "paidStatementAccountId"
+    | "prepaymentStatementId"
+    | "prepaymentAccountId"
   >,
 ): TransactionSource {
   if (t.transferGroupId !== null) return { kind: "TRANSFER" };
@@ -122,6 +133,13 @@ export function sourceOf(
       kind: "STATEMENT_PAYMENT",
       statementId: t.paidStatementId,
       accountId: t.paidStatementAccountId,
+    };
+  }
+  if (t.prepaymentStatementId !== null && t.prepaymentAccountId !== null) {
+    return {
+      kind: "CREDIT_CARD_PREPAYMENT",
+      statementId: t.prepaymentStatementId,
+      accountId: t.prepaymentAccountId,
     };
   }
   return { kind: "MANUAL" };

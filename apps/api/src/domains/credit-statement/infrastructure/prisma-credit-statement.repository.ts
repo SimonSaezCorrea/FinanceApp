@@ -22,6 +22,7 @@ type Row = {
   amount: { toString(): string } | null;
   paidAmount: { toString(): string } | null;
   carriedOverAmount: { toString(): string } | null;
+  prepaidAmount: { toString(): string } | null;
   carriedToId: string | null;
   paidFromAccountId: string | null;
   paidTransactionId: string | null;
@@ -39,6 +40,7 @@ function rowToProps(row: Row): CreditStatementProps {
     amount: row.amount?.toString() ?? "0",
     paidAmount: row.paidAmount?.toString() ?? "0",
     carriedOverAmount: row.carriedOverAmount?.toString() ?? "0",
+    prepaidAmount: row.prepaidAmount?.toString() ?? "0",
     carriedToId: row.carriedToId,
     paidFromAccountId: row.paidFromAccountId,
     paidTransactionId: row.paidTransactionId,
@@ -68,6 +70,23 @@ export class PrismaCreditStatementRepository
     const row = await this.prisma.creditStatement.findFirst({
       where: { id: statementId, accountId, account: { userId } },
     });
+    return row ? CreditStatement.fromPersistence(rowToProps(row)) : null;
+  }
+
+  async findByIdForUpdateWithTx(
+    tx: unknown,
+    userId: string,
+    accountId: string,
+    statementId: string,
+  ): Promise<CreditStatement | null> {
+    const client = tx as PrismaService;
+    const rows = await client.$queryRaw<Row[]>`
+      SELECT cs.* FROM "credit-statement" cs
+      JOIN "bank-account" ba ON ba."id" = cs."accountId"
+      WHERE cs."id" = ${statementId} AND cs."accountId" = ${accountId} AND ba."userId" = ${userId}
+      FOR UPDATE OF cs
+    `;
+    const row = rows[0];
     return row ? CreditStatement.fromPersistence(rowToProps(row)) : null;
   }
 
@@ -159,6 +178,9 @@ export class PrismaCreditStatementRepository
         amount: state.paidAt ? state.amount : undefined,
         paidAmount: state.paidAmount,
         carriedOverAmount: state.carriedOverAmount,
+        // Unlike `amount`, always a real (never derived) figure — written every
+        // time, whatever the period's state.
+        prepaidAmount: state.prepaidAmount,
         carriedToId: state.carriedToId,
         paidFromAccountId: state.paidFromAccountId,
         paidTransactionId: state.paidTransactionId,

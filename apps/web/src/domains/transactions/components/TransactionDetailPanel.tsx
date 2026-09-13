@@ -85,7 +85,7 @@ export function TransactionDetailPanel({
       ? { to: "/installments", label: t("transactions.detail.viewPlan") }
       : source.kind === "DEBT"
         ? { to: "/debts", label: t("transactions.detail.viewDebt") }
-        : source.kind === "STATEMENT_PAYMENT"
+        : source.kind === "STATEMENT_PAYMENT" || source.kind === "CREDIT_CARD_PREPAYMENT"
           ? {
               to: `/accounts/${source.accountId}?tab=billing&statement=${source.statementId}`,
               label: t("transactions.detail.viewBilling"),

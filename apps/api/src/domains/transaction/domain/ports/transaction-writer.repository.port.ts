@@ -29,6 +29,11 @@ export interface TransactionPlan {
   /** The `SavingsGoal` this movement is the "retirar a cuenta" INCOME for,
    * when a goal was closed with that destination. */
   savingsGoalId?: string | null;
+  /** Spec 019: the OPEN `CreditStatement` this movement abonó early, set only
+   * by `PrepayOpenPeriodHandler`. */
+  prepaymentStatementId?: string | null;
+  /** The CREDIT_CARD account `prepaymentStatementId` belongs to. */
+  prepaymentAccountId?: string | null;
 }
 
 /** One movement this app recorded on behalf of an instalment plan. */

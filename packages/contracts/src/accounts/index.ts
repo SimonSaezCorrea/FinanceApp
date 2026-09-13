@@ -471,6 +471,11 @@ export const creditStatementSchema = z.object({
   /** Debt brought forward from the previous period, because that one was settled
    * with less than its total. Already included in `amount`. "0" normally. */
   carriedOverAmount: moneyString,
+  /** Sum of every prepago (spec 019) applied against this period while it was
+   * still OPEN — already netted OUT of `amount` above (so `amount` is always
+   * what's genuinely left to bill/pay, prepagos included). "0" for a period
+   * that never received one. */
+  prepaidAmount: moneyString,
   /** The period this one's shortfall was rolled into. Null when paid in full. */
   carriedToId: rowId.nullable(),
   /** What's still owed for this period: `amount` − `paidAmount`, never negative.
@@ -512,6 +517,22 @@ export const payCreditStatementSchema = z.object({
   reference: z.string().trim().max(200).optional(),
 });
 export type PayCreditStatement = z.infer<typeof payCreditStatementSchema>;
+
+/** Prepay (spec 019) against the account's CURRENTLY OPEN period — the tarjeta
+ * equivalent of abonar antes de la fecha de corte. Unlike `payCreditStatementSchema`,
+ * this NEVER closes the period: it only raises `CreditStatement.prepaidAmount` and
+ * lowers `creditUsed`, and can be called more than once before the period actually
+ * closes. `amount` is REQUIRED here (there is no "pay everything" shorthand — the
+ * period is still accumulating, so "everything" keeps changing). */
+export const prepayCreditStatementSchema = z.object({
+  fromAccountId: rowId,
+  amount: moneyString,
+  /** When the abono happened; defaults to now. Dates the created expense too. */
+  paidAt: z.string().optional(),
+  /** Free-text note carried onto the created movement — same field `pay` already offers. */
+  reference: z.string().trim().max(200).optional(),
+});
+export type PrepayCreditStatement = z.infer<typeof prepayCreditStatementSchema>;
 
 /** Correct what was actually paid on an ALREADY SETTLED period (`STATEMENT_NOT_PAID`
  * otherwise) — the figure was mistyped, or more was transferred later.

@@ -46,6 +46,20 @@ export const accountsApi = {
       idempotencyKey,
     }),
 
+  /** Spec 019: abona against the account's CURRENTLY OPEN period, without
+   * closing it — never "pay everything" (the period is still accumulating). */
+  prepayCreditStatement: (
+    id: string,
+    statementId: string,
+    body: accounts.PrepayCreditStatement,
+    idempotencyKey: string,
+  ) =>
+    apiFetch<accounts.CreditStatement>(`/accounts/${id}/credit-statements/${statementId}/prepay`, {
+      method: "POST",
+      body: JSON.stringify(body),
+      idempotencyKey,
+    }),
+
   /** Correct what was PAID on a settled period (its total is only ever synced). */
   updateStatementPayment: (id: string, statementId: string, amount: string) =>
     apiFetch<accounts.CreditStatement>(`/accounts/${id}/credit-statements/${statementId}/payment`, {

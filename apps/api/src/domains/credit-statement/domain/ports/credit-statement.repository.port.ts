@@ -5,6 +5,21 @@ export const CREDIT_STATEMENT_REPOSITORY = Symbol("CREDIT_STATEMENT_REPOSITORY")
 /** Domain-owned port (Adapter, FR-011) — zero Prisma imports. */
 export interface CreditStatementRepositoryPort {
   findById(userId: string, accountId: string, statementId: string): Promise<CreditStatement | null>;
+  /**
+   * Spec 019 (`research.md` R8): same as `findById`, but locks the row
+   * (`SELECT ... FOR UPDATE`) inside the caller's own transaction — the read
+   * that decides "how much is still owed" for a prepago MUST happen under this
+   * lock, or two concurrent prepagos (different idempotency keys, so the
+   * idempotency reservation alone doesn't serialize them) could each validate
+   * against the same stale remaining amount. Same mechanism `debt`'s
+   * `findOneForUpdateWithTx` already uses for the identical class of bug.
+   */
+  findByIdForUpdateWithTx(
+    tx: unknown,
+    userId: string,
+    accountId: string,
+    statementId: string,
+  ): Promise<CreditStatement | null>;
   /** The account's currently OPEN period (`closedAt: null`), if any. */
   findOpenForAccount(accountId: string): Promise<CreditStatement | null>;
   listForAccount(userId: string, accountId: string): Promise<CreditStatement[]>;

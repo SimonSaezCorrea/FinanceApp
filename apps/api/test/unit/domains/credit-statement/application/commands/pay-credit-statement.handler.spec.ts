@@ -65,6 +65,7 @@ function statementProps(overrides: Partial<CreditStatementProps> = {}): CreditSt
     amount: "0",
     paidAmount: "0",
     carriedOverAmount: "0",
+    prepaidAmount: "0",
     carriedToId: null,
     paidFromAccountId: null,
     paidTransactionId: null,
@@ -102,6 +103,7 @@ function fakeStatementRepo(
 ): CreditStatementRepositoryPort {
   const merged: CreditStatementRepositoryPort = {
     findById: vi.fn(),
+    findByIdForUpdateWithTx: vi.fn(),
     findOpenForAccount: vi.fn(),
     findOrCreateOpenForAccount: vi.fn(async () => ({ id: "st_open" })),
     findOrCreateCarryOverTargetWithTx: vi.fn(async () => ({ id: "st_next" })),

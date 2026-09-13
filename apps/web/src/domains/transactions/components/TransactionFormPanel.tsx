@@ -6,6 +6,7 @@ import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { accountMetaLine, cardMetaLine } from "../../accounts/lib/accountMeta";
+import { useCreditStatements } from "../../accounts/hooks/useAccounts";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
@@ -29,9 +30,10 @@ import { TransferFields } from "./TransferFields";
 
 /** Everything the movement form edits. Owned by the shell, rendered here. */
 export interface TransactionFormValue {
-  /** `TRANSFER` is a form mode, not a `TransactionType` — the API keeps the pair
-   * as an EXPENSE + an INCOME (see `createTransferSchema`). */
-  mode: transactions.TransactionType | "TRANSFER";
+  /** `TRANSFER`/`PREPAY` are form modes, not `TransactionType`s — the API keeps
+   * a transfer as an EXPENSE + an INCOME (see `createTransferSchema`), and a
+   * prepago goes through its own endpoint entirely (see `PrepayFields`). */
+  mode: transactions.TransactionType | "TRANSFER" | "PREPAY";
   amount: string;
   currency: string;
   bankAccountId: string;
@@ -39,6 +41,9 @@ export interface TransactionFormValue {
   toBankAccountId: string;
   /** Amount landing on the destination, transfer mode only. */
   amountIn: string;
+  /** The account funding a prepago, prepay mode only (spec 019) — `bankAccountId`
+   * is the CREDIT_CARD account being abonada, same as any other mode. */
+  prepayFromAccountId: string;
   cardId: string;
   /** Issuer charge on the credit account itself (interest, fee): no card. */
   financeCharge: boolean;
@@ -57,6 +62,7 @@ const AMOUNT_TONE_CLASS = {
   destructive: "text-destructive",
   success: "text-success",
   info: "text-info",
+  accent: "text-accent",
 } as const;
 
 /** The "0" placeholder tinted the SAME tone, just dimmed — not the neutral
@@ -67,6 +73,7 @@ const AMOUNT_PLACEHOLDER_TONE_CLASS = {
   destructive: "placeholder:text-destructive/50",
   success: "placeholder:text-success/50",
   info: "placeholder:text-info/50",
+  accent: "placeholder:text-accent/50",
 } as const;
 
 interface Props {
@@ -117,22 +124,24 @@ export function TransactionFormPanel({
   }
 
   const isTransfer = value.mode === "TRANSFER";
-  // A transfer's own side is an expense on the source account, which is what the
-  // projected balance and the card rules below need to reason about.
-  const type: transactions.TransactionType = value.mode === "TRANSFER" ? "EXPENSE" : value.mode;
+  const isPrepay = value.mode === "PREPAY";
+  // A transfer's/prepago's own side is an expense on the source account, which
+  // is what the projected balance and the card rules below need to reason about.
+  const type: transactions.TransactionType =
+    value.mode === "TRANSFER" || value.mode === "PREPAY" ? "EXPENSE" : value.mode;
   const isIncome = type === "INCOME";
   // A signed color per navigation tab, not just the sign glyph — the amount
   // reads as red/green/blue from across the panel, same as the type switch's
   // own active pill color.
-  const amountTone = isTransfer ? "info" : isIncome ? "success" : "destructive";
+  const amountTone = isTransfer ? "info" : isPrepay ? "accent" : isIncome ? "success" : "destructive";
   const selectedAccount = accountList.find((a) => a.id === value.bankAccountId);
   const isCreditLine = selectedAccount?.type === "CREDIT_CARD";
   const isCardable =
     !!selectedAccount && accountsContract.isCardableAccountType(selectedAccount.type);
   // A card is REQUIRED only for credit-line expenses; optional for other cardable
-  // accounts. A transfer never carries one (FR-019).
-  const needsCard = !isTransfer && type === "EXPENSE" && isCreditLine && !value.financeCharge;
-  const showCard = !isTransfer && type === "EXPENSE" && isCardable && !value.financeCharge;
+  // accounts. A transfer/prepago never carries one (FR-019 / spec 019).
+  const needsCard = !isTransfer && !isPrepay && type === "EXPENSE" && isCreditLine && !value.financeCharge;
+  const showCard = !isTransfer && !isPrepay && type === "EXPENSE" && isCardable && !value.financeCharge;
   const noCardsAvailable = needsCard && (selectedAccount?.cards.length ?? 0) === 0;
 
   const typeLabel = (accType: accounts.AccountType) => t(`accounts.type.${accType}`);
@@ -170,6 +179,21 @@ export function TransactionFormPanel({
 
   const locale = groupingLocaleFor(value.currency, i18n.language);
 
+  // Prepay mode (spec 019): the OPEN period of the selected CREDIT_CARD
+  // account — fetched only when relevant, to show what's currently owed
+  // (same figure `PayStatementPanel` already shows for a closed one).
+  const { data: prepayStatements } = useCreditStatements(isPrepay ? value.bankAccountId : "");
+  const openStatement = prepayStatements?.find((s) => s.status === "OPEN") ?? null;
+  // A prepago's source is any of the user's own accounts with real cash —
+  // never a CREDIT_CARD one, and never the account being prepaid itself.
+  const prepaySourceOptions = selectable
+    .filter((a) => a.type !== "CREDIT_CARD" && a.id !== value.bankAccountId)
+    .map((a) => ({
+      value: a.id,
+      label: a.status === "ACTIVE" ? a.name : `${a.name} · ${t("accounts.status.INACTIVE")}`,
+      description: accountMetaLine(a, typeLabel),
+    }));
+
   function handleAccountChange(id: string) {
     const acc = accountList.find((a) => a.id === id);
     // A CREDIT_CARD account has no "Cuenta propia" option (see `cardOptions`
@@ -182,14 +206,20 @@ export function TransactionFormPanel({
       cardId: defaultCardId,
       // Neither Ingreso nor Traspaso exist on a credit-line account (its
       // balance only moves through its own billing) — force back to Gasto.
-      ...(acc?.type === "CREDIT_CARD" && value.mode !== "EXPENSE" ? { mode: "EXPENSE" } : {}),
+      // "Prepagar" stays valid across two CREDIT_CARD accounts.
+      ...(acc?.type === "CREDIT_CARD" && (value.mode === "INCOME" || value.mode === "TRANSFER")
+        ? { mode: "EXPENSE" }
+        : {}),
+      ...(acc?.type !== "CREDIT_CARD" && value.mode === "PREPAY" ? { mode: "EXPENSE" } : {}),
       ...(acc ? { currency: acc.currency } : {}),
     });
   }
 
-  // A CREDIT_CARD account's balance only ever moves through its own billing
-  // (a statement payment, generated automatically) — there's no "ingreso" or
-  // "traspaso" to record against it directly, so only Gasto is offered.
+  // A CREDIT_CARD account's balance only ever moves through its own billing —
+  // there's no "ingreso" or "traspaso" to record against it directly, so those
+  // are replaced by "Prepagar" (spec 019: abonar the currently OPEN period
+  // early, without waiting for a closed facturación). "Gasto" stays available
+  // for an issuer charge or a manual purchase.
   const typeOptions: {
     value: TransactionFormValue["mode"];
     label: string;
@@ -201,7 +231,16 @@ export function TransactionFormPanel({
       activeClassName: "bg-destructive/15 font-semibold text-destructive",
     },
     ...(isCreditLine
-      ? []
+      ? [
+          {
+            value: "PREPAY" as const,
+            label: t("transactions.type.PREPAY"),
+            // Accent, not destructive: same tone `BillingSection`'s own "Pagar"/
+            // "Prepagar" buttons use for an action that moves money FORWARD
+            // (paying down debt), as opposed to Gasto (which creates it).
+            activeClassName: "bg-accent/15 font-semibold text-accent",
+          },
+        ]
       : [
           {
             value: "INCOME" as const,
@@ -323,24 +362,27 @@ export function TransactionFormPanel({
 
         {/* Picked from the movements' own repertoire — search box + list, not
             free text, so the same icon shows up wherever this category is
-            picked again. */}
-        <FormSelectField
-          id="tx-cat"
-          label={t("transactions.form.category")}
-          value={value.category}
-          onChange={(category) => onChange({ category })}
-          placeholder={t("transactions.form.categoryEmpty")}
-          options={[
-            { value: "", label: t("recurring.form.noCategory") },
-            ...categoryOptions.map((c) => ({
-              value: c,
-              label: c,
-              icon: (
-                <CategoryIcon category={c} className="h-4 w-4 shrink-0 text-muted-foreground" />
-              ),
-            })),
-          ]}
-        />
+            picked again. A prepago has no category of its own (the server
+            always labels it "Prepago tarjeta"), so the field would mislead. */}
+        {isPrepay ? null : (
+          <FormSelectField
+            id="tx-cat"
+            label={t("transactions.form.category")}
+            value={value.category}
+            onChange={(category) => onChange({ category })}
+            placeholder={t("transactions.form.categoryEmpty")}
+            options={[
+              { value: "", label: t("recurring.form.noCategory") },
+              ...categoryOptions.map((c) => ({
+                value: c,
+                label: c,
+                icon: (
+                  <CategoryIcon category={c} className="h-4 w-4 shrink-0 text-muted-foreground" />
+                ),
+              })),
+            ]}
+          />
+        )}
 
         {isTransfer ? (
           <TransferFields
@@ -365,7 +407,7 @@ export function TransactionFormPanel({
 
             {/* Only a credit account can receive an issuer charge, and declaring
                 one drops the card field: no card made it. */}
-            {isCreditLine && !isTransfer && type === "EXPENSE" ? (
+            {isCreditLine && !isTransfer && !isPrepay && type === "EXPENSE" ? (
               <FormSwitchField
                 label={t("transactions.form.financeCharge")}
                 checked={value.financeCharge}
@@ -373,6 +415,34 @@ export function TransactionFormPanel({
                   onChange({ financeCharge, ...(financeCharge ? { cardId: "" } : {}) })
                 }
               />
+            ) : null}
+
+            {/* Spec 019: a prepago needs where the money comes FROM (any of the
+                user's own accounts with real cash) and, when known, what the
+                period currently owes — the same figure `PayStatementPanel`
+                already shows for a closed period, here for the OPEN one. */}
+            {isPrepay ? (
+              <>
+                <FormSelectField
+                  id="tx-prepay-from"
+                  label={t("transactions.form.prepayFromAccount")}
+                  value={value.prepayFromAccountId}
+                  onChange={(prepayFromAccountId) => onChange({ prepayFromAccountId })}
+                  options={prepaySourceOptions}
+                  placeholder={t("transactions.form.selectAccount")}
+                />
+                <DetailRow
+                  label={t("transactions.form.prepayCurrentlyOwed")}
+                  value={
+                    openStatement
+                      ? formatMoney(openStatement.remainingAmount, {
+                          currency: value.currency,
+                          locale: i18n.language,
+                        })
+                      : "—"
+                  }
+                />
+              </>
             ) : null}
 
             {showCard ? (
@@ -390,22 +460,27 @@ export function TransactionFormPanel({
 
         {/* Informative: what the account looks like if this is saved — its cash
             balance, or its available credit when the movement draws on the pool.
-            An em dash when neither can be stated: never a made-up figure. */}
-        <DetailRow
-          label={
-            projected?.kind === "credit"
-              ? t("transactions.form.projectedCredit")
-              : t("transactions.form.projectedBalance")
-          }
-          value={
-            projected === null
-              ? "—"
-              : formatMoney(projected.amount, {
-                  currency: selectedAccount?.currency ?? value.currency,
-                  locale: i18n.language,
-                })
-          }
-        />
+            An em dash when neither can be stated: never a made-up figure.
+            Prepay mode shows "lo que debe hoy" above instead — a projection
+            here would need to reason about the pool shrinking, the opposite of
+            what `projectedAfterSave` computes for an ordinary EXPENSE. */}
+        {isPrepay ? null : (
+          <DetailRow
+            label={
+              projected?.kind === "credit"
+                ? t("transactions.form.projectedCredit")
+                : t("transactions.form.projectedBalance")
+            }
+            value={
+              projected === null
+                ? "—"
+                : formatMoney(projected.amount, {
+                    currency: selectedAccount?.currency ?? value.currency,
+                    locale: i18n.language,
+                  })
+            }
+          />
+        )}
       </div>
 
       {noCardsAvailable ? (
