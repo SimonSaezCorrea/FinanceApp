@@ -165,6 +165,16 @@ export function TransactionCreateModal({
     const source = initial ?? duplicateFrom;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill on open, not a derived value
     setCreatedId(null);
+    const bankAccountId = source?.bankAccountId ?? defaultBankAccountId ?? "";
+    // A brand-new expense on a CREDIT_CARD account has no "Cuenta propia"
+    // choice (see TransactionFormPanel) — default straight to its primary
+    // card instead of leaving the required field unset.
+    const defaultAccount = accountList?.find((a) => a.id === bankAccountId);
+    const defaultCardId =
+      source?.cardId ??
+      (!source && defaultAccount?.type === "CREDIT_CARD"
+        ? (defaultAccount.cards.find((c) => c.isPrimary)?.id ?? "")
+        : "");
     const prefilled: TransactionFormValue = {
       ...emptyForm(initial ? dateInput(initial.occurredAt) : todayInput()),
       mode: source?.transferGroupId ? "TRANSFER" : (source?.type ?? "EXPENSE"),
@@ -172,8 +182,8 @@ export function TransactionCreateModal({
       // integer-only, so keep the integer part or the grouping mangles it.
       amount: source?.amount ? (source.amount.split(".")[0] ?? "") : "",
       currency: source?.currency ?? "CLP",
-      bankAccountId: source?.bankAccountId ?? defaultBankAccountId ?? "",
-      cardId: source?.cardId ?? "",
+      bankAccountId,
+      cardId: defaultCardId,
       financeCharge: source?.financeCharge ?? false,
       category: source?.category ?? "",
       description: source?.description ?? "",
@@ -186,7 +196,7 @@ export function TransactionCreateModal({
     // A transfer's baseline isn't complete yet — its own effect below fills in
     // the destination side once `transferPair` loads and updates this too.
     setBaseline(prefilled);
-  }, [open, initial, duplicateFrom, defaultBankAccountId]);
+  }, [open, initial, duplicateFrom, defaultBankAccountId, accountList]);
 
   // Both legs of a transfer, once loaded: the form always edits it from the
   // outgoing side, whichever row the user actually clicked.

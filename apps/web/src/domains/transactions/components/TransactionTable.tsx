@@ -26,6 +26,11 @@ interface TransactionTableProps {
   /** Hide the "Cuenta" column — redundant on a single account's own detail
    * page, where every row is already that account by construction. */
   showAccountColumn?: boolean;
+  /** Hide the "Categoría" column — an account's own Movimientos tab drops it. */
+  showCategoryColumn?: boolean;
+  /** Hide the "Tipo" column — an account's own Movimientos tab drops it too;
+   * the amount's sign/colour already say income vs. expense there. */
+  showTypeColumn?: boolean;
   /** The load's own error, if any — shown INSIDE the table chrome (see
    * `isEmpty`'s comment below) instead of swapping the whole table out.
    * `transactions` is `[]` whenever this is set. */
@@ -74,6 +79,8 @@ export function TransactionTable({
   onDelete,
   onRowClick,
   showAccountColumn = true,
+  showCategoryColumn = true,
+  showTypeColumn = true,
   highlightId = null,
   hasMore = false,
   isLoadingMore = false,
@@ -97,10 +104,40 @@ export function TransactionTable({
   }, [highlightId]);
   const highlighted = highlightId && highlightId !== faded ? highlightId : null;
   const [containerRef, width] = useElementWidth();
-  // Before the first measurement (and in environments without ResizeObserver)
-  // fall back to the compact list: it works at every width, so a wrong guess
-  // here is a cosmetic downgrade rather than an overflowing table.
-  const wide = width !== null && width >= FULL_TABLE_MIN_WIDTH;
+  // `FULL_TABLE_MIN_WIDTH` is only a cheap first guess from the container's own
+  // width — this table's real column set varies (`showAccountColumn`,
+  // `showCardColumn`, `showActions` each add/remove a column), so a single fixed
+  // threshold can't account for every combination: it used to let the full
+  // layout switch on for a combination whose actual content needed more room
+  // than that, and the table's own `overflow-x-auto` wrapper
+  // (`shared/ui/table.tsx`) opened a lateral scrollbar instead of the container
+  // falling back to the compact list. `overflowing` is the real answer, read
+  // off the rendered DOM once the guess puts the full table on screen — see the
+  // effect below.
+  const [scrollWrapEl, setScrollWrapEl] = useState<HTMLDivElement | null>(null);
+  const [overflowing, setOverflowing] = useState(false);
+  const tentativeWide = width !== null && width >= FULL_TABLE_MIN_WIDTH;
+  // Give the guess another chance every time the container's width itself
+  // changes — otherwise, once `overflowing` latched `true` at some narrower
+  // width, the full table stays hidden (0×0, no resize to react to) even after
+  // the container grows enough to actually fit it.
+  useEffect(() => {
+    setOverflowing(false);
+  }, [width]);
+  useEffect(() => {
+    if (!scrollWrapEl || typeof ResizeObserver === "undefined") return;
+    const check = () => {
+      // Hidden right now (display:none collapses both to 0) — nothing to learn
+      // until it's shown again, which is itself a resize this observer sees.
+      if (scrollWrapEl.clientWidth === 0) return;
+      setOverflowing(scrollWrapEl.scrollWidth > scrollWrapEl.clientWidth + 1);
+    };
+    check();
+    const observer = new ResizeObserver(check);
+    observer.observe(scrollWrapEl);
+    return () => observer.disconnect();
+  }, [scrollWrapEl]);
+  const wide = tentativeWide && !overflowing;
 
   // Empty is rendered INSIDE the table chrome (headers + one spanning row), not
   // as a bare card in its place: the columns are what say what this table would
@@ -115,27 +152,48 @@ export function TransactionTable({
     (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime(),
   );
 
-  // The desktop "Tarjeta" column is only informative when the visible rows
-  // actually use more than one card — filtered down to a single card (or an
-  // account with just the one card), every row would repeat the same value.
-  const showCardColumn = new Set(sorted.map((tx) => tx.cardId).filter(Boolean)).size > 1;
+  // Always rendered (same column set regardless of how many distinct cards
+  // the visible rows happen to use) — a column set that shifts under the
+  // user depending on filtered data reads as a layout bug, not a feature.
+  const showCardColumn = true;
 
   return (
     <Card ref={containerRef} className="overflow-hidden p-0">
-      {/* Full table, one column per field — only where the columns actually fit. */}
+      {/* Full table, one column per field — only where the columns actually fit.
+          `scrollWrapEl`'s own scrollWidth-vs-clientWidth is what decides `wide`
+          for real (see the effect above) — it has to be `Table`'s OWN
+          `overflow-x-auto` wrapper (forwarded via `ref`), not this outer div:
+          this div's child is capped at `w-full`, so IT never overflows even
+          when the table genuinely does — see `shared/ui/table.tsx`'s comment. */}
       <div className={wide ? "block" : "hidden"}>
-        <Table>
+        {/* `table-fixed`: with the browser's default `table-layout: auto`, the
+            `w-*` classes below are only a hint — the real column width still
+            gets recomputed from the widest cell CURRENTLY RENDERED in that
+            column, so the same "Fecha"/"Monto" column visibly changed size
+            page to page depending on which amounts/dates happened to be
+            loaded. Fixed layout takes column widths from this header row
+            once and never revisits them — only "Descripción" is left
+            unspecified, so it alone absorbs the remaining width. */}
+        <Table ref={setScrollWrapEl} className="table-fixed">
           <THead className="bg-muted/50">
             <TR>
               <TH className="w-8" />
               <TH>{t("transactions.form.description")}</TH>
-              <TH>{t("transactions.form.category")}</TH>
-              <TH>{t("transactions.form.type")}</TH>
-              {showAccountColumn ? <TH>{t("transactions.form.account")}</TH> : null}
-              {showCardColumn ? <TH>{t("transactions.form.card")}</TH> : null}
-              <TH className="whitespace-nowrap">{t("transactions.form.date")}</TH>
-              <TH numeric>{t("transactions.form.amount")}</TH>
-              {showActions ? <TH className="w-20" /> : null}
+              {showCategoryColumn ? (
+                <TH className="w-32">{t("transactions.form.category")}</TH>
+              ) : null}
+              {showTypeColumn ? <TH className="w-24">{t("transactions.form.type")}</TH> : null}
+              {showAccountColumn ? (
+                <TH className="min-w-40">{t("transactions.form.account")}</TH>
+              ) : null}
+              {showCardColumn ? (
+                <TH className="w-28 whitespace-nowrap">{t("transactions.form.card")}</TH>
+              ) : null}
+              <TH className="w-28 whitespace-nowrap">{t("transactions.form.date")}</TH>
+              <TH numeric className="w-32">
+                {t("transactions.form.amount")}
+              </TH>
+              {showActions ? <TH className="w-28 px-3" /> : null}
             </TR>
           </THead>
           <tbody>
@@ -192,42 +250,51 @@ export function TransactionTable({
                       {tx.description ?? <span className="text-muted-foreground">—</span>}
                     </div>
                   </TD>
-                  <TD>
-                    <span className="text-sm">
-                      {tx.category ?? (
-                        <span className="text-muted-foreground">
-                          {t("transactions.table.noCategory")}
-                        </span>
-                      )}
-                    </span>
-                  </TD>
-                  <TD>
-                    <Badge variant={isTransfer ? "info" : isIncome ? "success" : "danger"}>
-                      {isTransfer
-                        ? t("transactions.type.TRANSFER")
-                        : t(`transactions.type.${tx.type}`)}
-                    </Badge>
-                  </TD>
+                  {showCategoryColumn ? (
+                    <TD>
+                      <span className="text-sm">
+                        {tx.category ?? (
+                          <span className="text-muted-foreground">
+                            {t("transactions.table.noCategory")}
+                          </span>
+                        )}
+                      </span>
+                    </TD>
+                  ) : null}
+                  {showTypeColumn ? (
+                    <TD>
+                      <Badge variant={isTransfer ? "info" : isIncome ? "success" : "danger"}>
+                        {isTransfer
+                          ? t("transactions.type.TRANSFER")
+                          : t(`transactions.type.${tx.type}`)}
+                      </Badge>
+                    </TD>
+                  ) : null}
                   {showAccountColumn ? (
-                    <TD className="text-muted-foreground">{accountName}</TD>
+                    <TD className="min-w-40 text-muted-foreground">{accountName}</TD>
                   ) : null}
                   {showCardColumn ? (
-                    <TD className="text-muted-foreground tabular-nums">
+                    <TD className="w-28 whitespace-nowrap text-muted-foreground tabular-nums">
                       {card ? `••••${card.last4}` : <span className="opacity-40">—</span>}
                     </TD>
                   ) : null}
                   {/* `whitespace-nowrap`: at narrow table widths the browser was
                       wrapping the date word-by-word ("14 / ago / 2026") instead of
                       shrinking a different column — the date reads better fixed-width. */}
-                  <TD className="whitespace-nowrap text-muted-foreground">
+                  <TD className="w-28 whitespace-nowrap text-muted-foreground">
                     {formatDate(tx.occurredAt, i18n.language)}
                   </TD>
-                  <TD numeric className={amountColor}>
+                  <TD numeric className={cn("w-32 whitespace-nowrap", amountColor)}>
                     {isIncome ? "+" : "−"}
                     {formatMoney(tx.amount, { currency: tx.currency, locale: i18n.language })}
                   </TD>
                   {showActions ? (
-                    <TD>
+                    // Fixed width (`w-28`, matching the other fixed columns) with
+                    // tighter horizontal padding (`px-3` vs. the default `px-6`)
+                    // — two ghost icon buttons plus the default padding didn't
+                    // fit `w-20`, so the pair rendered pushed up against the
+                    // amount column instead of sitting inside their own cell.
+                    <TD className="px-3">
                       <span className="flex justify-end gap-1">
                         {onEdit ? (
                           <Button
@@ -287,6 +354,9 @@ export function TransactionTable({
         <div className="divide-y">
           {sorted.map((tx) => {
             const card = tx.cardId ? cardMap.get(tx.cardId) : undefined;
+            const accountName = tx.bankAccountId
+              ? (accountMap.get(tx.bankAccountId) ?? t("transactions.table.noAccount"))
+              : t("transactions.table.noAccount");
             const isIncome = tx.type === "INCOME";
             const amountColor = isIncome ? "text-success" : "text-destructive";
             const iconWrapColor = isIncome
@@ -329,9 +399,16 @@ export function TransactionTable({
                       {card ? ` · ••••${card.last4}` : ""} ·{" "}
                       {formatDate(tx.occurredAt, i18n.language)}
                     </p>
-                    {/* Tablet subdescription: category · card · type — the date
-                        gets its own column here instead. */}
+                    {/* Tablet subdescription: cuenta · categoría · tarjeta · tipo — the
+                        date gets its own column here instead. `showAccountColumn`
+                        false (an account's own Movimientos tab) drops the account
+                        the same way the desktop columns already do; when it's
+                        true (the general Movimientos view) this is otherwise the
+                        one place that account name goes missing once the table
+                        folds into this compact layout, even though the wide
+                        format shows it as its own column. */}
                     <p className="hidden truncate text-xs text-muted-foreground sm:block">
+                      {showAccountColumn ? `${accountName} · ` : ""}
                       {category}
                       {card ? ` · ••••${card.last4}` : ""} · {t(`transactions.type.${tx.type}`)}
                     </p>

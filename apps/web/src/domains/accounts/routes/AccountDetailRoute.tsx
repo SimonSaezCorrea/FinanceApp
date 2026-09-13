@@ -563,13 +563,19 @@ function MovementsSection({
           movement" button stay pinned above it. */}
       <div className={cn("scrollbar-thin", columnScroll && "min-h-0 flex-1 overflow-y-auto")}>
         {isLoading ? (
-          <MovementsTableSkeleton showAccountColumn={false} />
+          <MovementsTableSkeleton
+            showAccountColumn={false}
+            showCategoryColumn={false}
+            showTypeColumn={false}
+          />
         ) : (
           <TransactionTable
             highlightId={savedId}
             transactions={isError ? [] : list}
             accounts={[account]}
             showAccountColumn={false}
+            showCategoryColumn={false}
+            showTypeColumn={false}
             onEdit={(tx) => {
               setEditTx(tx);
               setDuplicateTx(null);

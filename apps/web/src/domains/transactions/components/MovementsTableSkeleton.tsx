@@ -40,7 +40,14 @@ function MovementRowSkeleton() {
 export function MovementsTableSkeleton({
   rows = 6,
   showAccountColumn = true,
-}: Readonly<{ rows?: number; showAccountColumn?: boolean }>) {
+  showCategoryColumn = true,
+  showTypeColumn = true,
+}: Readonly<{
+  rows?: number;
+  showAccountColumn?: boolean;
+  showCategoryColumn?: boolean;
+  showTypeColumn?: boolean;
+}>) {
   const { t } = useTranslation();
   const [containerRef, width] = useElementWidth();
   // Same fallback as the real table: the compact list works at any width.
@@ -54,9 +61,11 @@ export function MovementsTableSkeleton({
             <TR>
               <TH className="w-8" />
               <TH>{t("transactions.form.description")}</TH>
-              <TH>{t("transactions.form.category")}</TH>
-              <TH>{t("transactions.form.type")}</TH>
-              {showAccountColumn ? <TH>{t("transactions.form.account")}</TH> : null}
+              {showCategoryColumn ? <TH>{t("transactions.form.category")}</TH> : null}
+              {showTypeColumn ? <TH>{t("transactions.form.type")}</TH> : null}
+              {showAccountColumn ? (
+                <TH className="min-w-40">{t("transactions.form.account")}</TH>
+              ) : null}
               <TH className="whitespace-nowrap">{t("transactions.form.date")}</TH>
               <TH numeric>{t("transactions.form.amount")}</TH>
               <TH className="w-20" />
@@ -71,15 +80,19 @@ export function MovementsTableSkeleton({
                 <TD>
                   <Skeleton className="h-[13px] w-40" />
                 </TD>
-                <TD>
-                  <Skeleton className="h-[13px] w-24" />
-                </TD>
-                <TD>
-                  <Skeleton className="h-[20px] w-16 rounded-full" />
-                </TD>
-                {showAccountColumn ? (
+                {showCategoryColumn ? (
                   <TD>
                     <Skeleton className="h-[13px] w-24" />
+                  </TD>
+                ) : null}
+                {showTypeColumn ? (
+                  <TD>
+                    <Skeleton className="h-[20px] w-16 rounded-full" />
+                  </TD>
+                ) : null}
+                {showAccountColumn ? (
+                  <TD className="min-w-40">
+                    <Skeleton className="h-[13px] w-32" />
                   </TD>
                 ) : null}
                 <TD>

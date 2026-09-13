@@ -170,12 +170,14 @@ export function TransactionsRoute() {
       </div>
 
       {txQuery.isLoading ? (
-        <MovementsTableSkeleton />
+        <MovementsTableSkeleton showCategoryColumn={false} showTypeColumn={false} />
       ) : (
         <TransactionTable
           highlightId={savedId}
           transactions={txQuery.isError ? [] : visibleTxs}
           accounts={accounts}
+          showCategoryColumn={false}
+          showTypeColumn={false}
           onEdit={(tx) => {
             setEditTx(tx);
             setDuplicateTx(null);

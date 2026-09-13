@@ -145,8 +145,11 @@ export function TransactionFormPanel({
   // card (paid straight out of the account — a transfer out, a cash-like
   // withdrawal) — same convention `installments`' own merged card field uses,
   // so the default reads as a real choice instead of "nothing picked yet".
+  // A CREDIT_CARD account's own expense has no such choice — it's never paid
+  // "straight out of the account" (there's no cash balance to draw from), so
+  // "Cuenta propia" is dropped and the primary card is offered as the default.
   const cardOptions = [
-    { value: "", label: t("transactions.form.ownAccount") },
+    ...(needsCard ? [] : [{ value: "", label: t("transactions.form.ownAccount") }]),
     ...(selectedAccount?.cards ?? []).map((c) => ({
       value: c.id,
       label: c.name,
@@ -169,9 +172,24 @@ export function TransactionFormPanel({
 
   function handleAccountChange(id: string) {
     const acc = accountList.find((a) => a.id === id);
-    onChange({ bankAccountId: id, cardId: "", ...(acc ? { currency: acc.currency } : {}) });
+    // A CREDIT_CARD account has no "Cuenta propia" option (see `cardOptions`
+    // above) — default straight to its primary card instead of leaving the
+    // required field unset.
+    const defaultCardId =
+      acc?.type === "CREDIT_CARD" ? (acc.cards.find((c) => c.isPrimary)?.id ?? "") : "";
+    onChange({
+      bankAccountId: id,
+      cardId: defaultCardId,
+      // Neither Ingreso nor Traspaso exist on a credit-line account (its
+      // balance only moves through its own billing) — force back to Gasto.
+      ...(acc?.type === "CREDIT_CARD" && value.mode !== "EXPENSE" ? { mode: "EXPENSE" } : {}),
+      ...(acc ? { currency: acc.currency } : {}),
+    });
   }
 
+  // A CREDIT_CARD account's balance only ever moves through its own billing
+  // (a statement payment, generated automatically) — there's no "ingreso" or
+  // "traspaso" to record against it directly, so only Gasto is offered.
   const typeOptions: {
     value: TransactionFormValue["mode"];
     label: string;
@@ -182,12 +200,16 @@ export function TransactionFormPanel({
       label: t("transactions.type.EXPENSE"),
       activeClassName: "bg-destructive/15 font-semibold text-destructive",
     },
-    {
-      value: "INCOME",
-      label: t("transactions.type.INCOME"),
-      activeClassName: "bg-success/15 font-semibold text-success",
-    },
-    ...(allowTransfer
+    ...(isCreditLine
+      ? []
+      : [
+          {
+            value: "INCOME" as const,
+            label: t("transactions.type.INCOME"),
+            activeClassName: "bg-success/15 font-semibold text-success",
+          },
+        ]),
+    ...(allowTransfer && !isCreditLine
       ? [
           {
             value: "TRANSFER" as const,
@@ -274,17 +296,22 @@ export function TransactionFormPanel({
         />
       </div>
 
-      <Segmented
-        aria-label={t("transactions.form.type")}
-        value={value.mode}
-        onChange={(v: TransactionFormValue["mode"]) =>
-          // Neither an income nor a transfer can carry a card.
-          onChange({ mode: v, ...(v === "EXPENSE" ? {} : { cardId: "" }) })
-        }
-        className="w-full"
-        variant="neutral"
-        options={typeOptions}
-      />
+      {/* A credit-line account only ever offers Gasto — a switch with one
+          option is a control with nothing to choose, so it's dropped rather
+          than shown disabled/single-pill. */}
+      {typeOptions.length > 1 ? (
+        <Segmented
+          aria-label={t("transactions.form.type")}
+          value={value.mode}
+          onChange={(v: TransactionFormValue["mode"]) =>
+            // Neither an income nor a transfer can carry a card.
+            onChange({ mode: v, ...(v === "EXPENSE" ? {} : { cardId: "" }) })
+          }
+          className="w-full"
+          variant="neutral"
+          options={typeOptions}
+        />
+      ) : null}
 
       <div className="flex flex-col">
         <FormDateField
