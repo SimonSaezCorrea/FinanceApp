@@ -13,7 +13,6 @@ vi.mock("../../auth/api/authApi", () => ({
       name: "Javier Torres",
       preferredCurrency: "CLP",
       locale: "es",
-      dateFormat: "DD/MM/YYYY",
       theme: "dark",
       memberSinceYear: 2024,
     }),

@@ -1037,6 +1037,15 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     Every non-functional piece introduced by this amendment is catalogued in
     `docs/PENDING.md` — consult it before assuming any of the above is wired to a
     real backend.
+    Amendment (`dateFormat` removed, 2026-09-18): the "Formato de fecha" preference
+    (`DD/MM/YYYY`/`MM/DD/YYYY`/`YYYY-MM-DD`) is **gone** — column, contract field,
+    `PATCH /auth/me/preferences` support and the `PreferencesSection` selector all
+    removed. It was persisted and editable since specs/008 but **no date display
+    anywhere in the app ever consulted it**: every date is rendered via
+    `toLocaleDateString(i18n.language, …)`, driven by `locale` (es/en), not by this
+    field — an audit found the gap, and rather than wire ~6 call sites to a second,
+    narrower date-format concept the product decision was to drop the dead
+    preference instead. `preferredCurrency`/`locale`/`theme` are unaffected.
 
 - **Errors:** the API returns **language-agnostic codes** `{ error: { code, field? } }` (never localized prose); the frontend maps `code` → `errors.<CODE>` in es/en. `AllExceptionsFilter` (`infra/http`) preserves the specific `code`/`field` thrown on the exception (e.g. `EMAIL_TAKEN`, `CARD_REQUIRED`) and only falls back to a generic status-derived code (`UNAUTHORIZED`, `CONFLICT`, …) when the exception carried none — a prior version of this filter discarded every domain-specific code and must not regress.
 

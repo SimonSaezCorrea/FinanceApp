@@ -1237,7 +1237,6 @@
       "monthlyMovements": "Mov./mo.",
       "memberSince": "Member since"
     },
-    "editButton": "Edit profile",
     "personalInfo": {
       "title": "Personal information",
       "notSet": "Not specified"
@@ -1325,7 +1324,19 @@
       "addressStreet": "Address (street and number)",
       "addressCity": "City",
       "addressRegion": "Region / state",
-      "addressPostalCode": "Postal code"
+      "addressPostalCode": "Postal code",
+      "address": "Address",
+      "addressStreetShort": "Street and number",
+      "identifier": "Identifier",
+      "countryHint": "Sets the phone prefix and which identifiers are offered.",
+      "invalidRut": "The RUT check digit doesn't match.",
+      "saved": "Saved",
+      "hintName": "As it appears on your documents.",
+      "hintEmail": "This is the email you sign in with.",
+      "hintPhone": "Your country's calling code is prefixed automatically.",
+      "hintIdentifier": "The check digit is validated.",
+      "hintBirthDate": "Your profile only shows your age, not the date.",
+      "hintAddress": "Street and number, city, region and postal code."
     },
     "security": {
       "title": "Security",
@@ -1357,8 +1368,7 @@
       "title": "Preferences",
       "darkTheme": "Dark theme",
       "currency": "Primary currency",
-      "language": "Language",
-      "dateFormat": "Date format"
+      "language": "Language"
     },
     "notifications": {
       "title": "Notifications",

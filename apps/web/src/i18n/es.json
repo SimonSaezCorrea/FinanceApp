@@ -1237,7 +1237,6 @@
       "monthlyMovements": "Mov./mes",
       "memberSince": "Miembro"
     },
-    "editButton": "Editar perfil",
     "personalInfo": {
       "title": "Información personal",
       "notSet": "Sin especificar"
@@ -1325,7 +1324,19 @@
       "addressStreet": "Dirección (calle y número)",
       "addressCity": "Ciudad / comuna",
       "addressRegion": "Región / estado",
-      "addressPostalCode": "Código postal"
+      "addressPostalCode": "Código postal",
+      "address": "Dirección",
+      "addressStreetShort": "Calle y número",
+      "identifier": "Identificador",
+      "countryHint": "Define el prefijo del teléfono y qué identificadores se ofrecen.",
+      "invalidRut": "El dígito verificador del RUT no cuadra.",
+      "saved": "Guardado",
+      "hintName": "Como aparece en tus documentos.",
+      "hintEmail": "Es el correo con el que inicias sesión.",
+      "hintPhone": "Se antepone el prefijo de tu país.",
+      "hintIdentifier": "Se valida el dígito verificador.",
+      "hintBirthDate": "En tu perfil solo se muestra tu edad, no la fecha.",
+      "hintAddress": "Calle y número, comuna, región y código postal."
     },
     "security": {
       "title": "Seguridad",
@@ -1357,8 +1368,7 @@
       "title": "Preferencias",
       "darkTheme": "Tema oscuro",
       "currency": "Moneda principal",
-      "language": "Idioma",
-      "dateFormat": "Formato de fecha"
+      "language": "Idioma"
     },
     "notifications": {
       "title": "Notificaciones",

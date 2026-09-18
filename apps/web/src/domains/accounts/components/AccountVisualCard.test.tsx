@@ -66,7 +66,6 @@ function renderTile(props: Partial<Parameters<typeof AccountVisualCard>[0]> = {}
     name: "Javier",
     preferredCurrency: "CLP",
     locale: "es",
-    dateFormat: "DD/MM/YYYY",
     theme: "dark",
     memberSinceYear: 2024,
     hideBalances: false,

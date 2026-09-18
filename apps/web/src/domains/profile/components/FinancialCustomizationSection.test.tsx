@@ -31,7 +31,6 @@ function baseUser(overrides: Record<string, unknown> = {}) {
     name: "Ana",
     preferredCurrency: "CLP",
     locale: "es",
-    dateFormat: "DD/MM/YYYY",
     theme: "dark",
     memberSinceYear: 2024,
     hideBalances: false,
@@ -67,10 +66,10 @@ describe("FinancialCustomizationSection", () => {
       </Providers>,
     );
     fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.financial.title") }));
-    const select = await screen.findByDisplayValue(
-      i18n.t("profile.financial.addCurrencyPlaceholder"),
+    fireEvent.click(
+      await screen.findByRole("button", { name: i18n.t("profile.financial.extraCurrencies") }),
     );
-    fireEvent.change(select, { target: { value: "USD" } });
+    fireEvent.click(await screen.findByText("USD · Dólar estadounidense"));
     fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.financial.addCurrency") }));
     await waitFor(() =>
       expect(updatePreferences).toHaveBeenCalledWith({ extraCurrencies: ["USD"] }),

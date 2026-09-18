@@ -5,13 +5,12 @@ import type { auth } from "@finance/contracts";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
-import { Select } from "../../../shared/ui/select";
+import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { Switch } from "../../../shared/ui/switch";
 import { useTheme } from "../../../theme/useTheme";
 import { useProfileMutations } from "../hooks/useProfile";
 
 const SUPPORTED_CURRENCIES: auth.CurrentUser["preferredCurrency"][] = ["CLP", "USD", "CLF"];
-const DATE_FORMATS: auth.CurrentUser["dateFormat"][] = ["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"];
 
 export function PreferencesSection() {
   const { t, i18n } = useTranslation();
@@ -44,40 +43,34 @@ export function PreferencesSection() {
       </div>
       <div className="flex items-center justify-between border-b py-3">
         <span className="text-sm">{t("profile.preferences.currency")}</span>
-        <Select
-          className="h-8 w-40"
+        <SearchableSelect
+          variant="inline"
           value={user.preferredCurrency}
           options={currencyOptions}
-          onChange={(e) =>
+          displayValue={user.preferredCurrency}
+          searchPlaceholder={t("common.search")}
+          noResultsLabel={t("common.noResults")}
+          aria-label={t("profile.preferences.currency")}
+          onChange={(v) =>
             updatePreferences.mutate({
-              preferredCurrency: e.target.value as auth.CurrentUser["preferredCurrency"],
+              preferredCurrency: v as auth.CurrentUser["preferredCurrency"],
             })
           }
         />
       </div>
-      <div className="flex items-center justify-between border-b py-3">
+      <div className="flex items-center justify-between py-3">
         <span className="text-sm">{t("profile.preferences.language")}</span>
-        <Select
-          className="h-8 w-32"
+        <SearchableSelect
+          variant="inline"
           value={user.locale}
           options={[
             { value: "es", label: "Español" },
             { value: "en", label: "English" },
           ]}
-          onChange={(e) => handleLocaleChange(e.target.value as auth.CurrentUser["locale"])}
-        />
-      </div>
-      <div className="flex items-center justify-between py-3">
-        <span className="text-sm">{t("profile.preferences.dateFormat")}</span>
-        <Select
-          className="h-8 w-36"
-          value={user.dateFormat}
-          options={DATE_FORMATS.map((f) => ({ value: f, label: f }))}
-          onChange={(e) =>
-            updatePreferences.mutate({
-              dateFormat: e.target.value as auth.CurrentUser["dateFormat"],
-            })
-          }
+          searchPlaceholder={t("common.search")}
+          noResultsLabel={t("common.noResults")}
+          aria-label={t("profile.preferences.language")}
+          onChange={(v) => handleLocaleChange(v as auth.CurrentUser["locale"])}
         />
       </div>
     </CollapsibleSection>

@@ -15,7 +15,6 @@ vi.mock("../../auth/api/authApi", () => ({
       name: "Ana",
       preferredCurrency: "CLP",
       locale: "es",
-      dateFormat: "DD/MM/YYYY",
       theme: "dark",
       memberSinceYear: 2024,
     }),

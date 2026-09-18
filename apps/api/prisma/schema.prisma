@@ -17,7 +17,6 @@ model User {
   passwordHash         String?
   preferredCurrency    String          @default("CLP")
   locale               String          @default("es")
-  dateFormat           String          @default("DD/MM/YYYY")
   theme                String          @default("dark")
   status               UserStatus      @default(ACTIVE)
   createdAt            DateTime        @default(now())

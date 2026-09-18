@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { CircleCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -6,12 +5,19 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
-import { EditProfileDialog } from "./EditProfileDialog";
+import type { PersonalFieldKey } from "./PersonalInfoSection";
 
 interface ChecklistItem {
   key: string;
   done: boolean;
 }
+
+/** Which row of "Información personal" each pending item opens. */
+const ITEM_FIELD: Record<string, PersonalFieldKey> = {
+  email: "email",
+  identity: "identifier",
+  phone: "phone",
+};
 
 function ItemAction({ item, onEdit }: Readonly<{ item: ChecklistItem; onEdit: () => void }>) {
   const { t } = useTranslation();
@@ -52,11 +58,15 @@ function ItemAction({ item, onEdit }: Readonly<{ item: ChecklistItem; onEdit: ()
  * "Completeness", not verification: each row reflects whether the field is filled in, not that it
  * was cryptographically/manually verified (no email/SMS/identity-verification infra exists yet —
  * see PENDING.md). Profile photo is always pending: this app only ever renders initials (no upload).
+ *
+ * A pending item's action opens that field's row in "Información personal" — it used to open a
+ * whole-profile dialog, which that section now replaces.
  */
-export function AccountStatusSection() {
+export function AccountStatusSection({
+  onEditField,
+}: Readonly<{ onEditField?: (field: PersonalFieldKey) => void }> = {}) {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const [editing, setEditing] = useState(false);
 
   if (!user) return null;
 
@@ -102,11 +112,16 @@ export function AccountStatusSection() {
               />
               {t(`profile.accountStatus.items.${item.key}`)}
             </span>
-            <ItemAction item={item} onEdit={() => setEditing(true)} />
+            <ItemAction
+              item={item}
+              onEdit={() => {
+                const field = ITEM_FIELD[item.key];
+                if (field) onEditField?.(field);
+              }}
+            />
           </div>
         ))}
       </div>
-      <EditProfileDialog open={editing} onOpenChange={setEditing} />
     </Card>
   );
 }

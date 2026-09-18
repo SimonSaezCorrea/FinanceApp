@@ -1,19 +1,15 @@
-import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useAuth } from "../../auth/hooks/useAuth";
 import { Badge } from "../../../shared/ui/badge";
-import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
 import { getInitials } from "../../../shared/lib/initials";
 import { useProfileStats } from "../hooks/useProfile";
-import { EditProfileDialog } from "./EditProfileDialog";
 
 export function ProfileCard() {
   const { t } = useTranslation();
   const { user } = useAuth();
   const stats = useProfileStats();
-  const [editing, setEditing] = useState(false);
 
   if (!user) return null;
 
@@ -36,10 +32,7 @@ export function ProfileCard() {
       <Badge variant="brand" className="mt-2">
         {t("profile.plan.personal")}
       </Badge>
-      <Button className="mt-4 w-full" onClick={() => setEditing(true)}>
-        {t("profile.editButton")}
-      </Button>
-      <div className="mt-4 grid grid-cols-3 divide-x border-t pt-4">
+      <div className="mt-5 grid grid-cols-3 divide-x border-t pt-4">
         <div>
           <div className="text-lg font-bold tabular-nums">
             {stats.isLoading ? "–" : stats.accountsCount}
@@ -57,7 +50,6 @@ export function ProfileCard() {
           <div className="text-xs text-muted-foreground">{t("profile.stats.memberSince")}</div>
         </div>
       </div>
-      <EditProfileDialog open={editing} onOpenChange={setEditing} />
     </Card>
   );
 }

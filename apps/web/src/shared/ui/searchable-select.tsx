@@ -66,6 +66,16 @@ interface Props {
    * with a chevron, and only the panel says it is a picker.
    */
   variant?: "control" | "inline";
+  /**
+   * Overrides an `inline` control's own default panel alignment ("end" — it
+   * assumes the control sits at the right edge of its row, the usual
+   * label/value shape). Pass "start" when the control instead sits at the
+   * LEFT of its row — e.g. a short prefix picker before another field, the
+   * way a phone's calling code sits before its number — so the panel grows
+   * rightward from the control instead of leftward past it. Ignored for
+   * `control`, which is always left-anchored to its own (usually full) width.
+   */
+  align?: "start" | "end";
   "aria-label"?: string;
 }
 
@@ -103,6 +113,7 @@ export function SearchableSelect({
   className,
   panelClassName,
   variant = "control",
+  align,
   "aria-label": ariaLabel,
 }: Readonly<Props>) {
   const [open, setOpen] = useState(false);
@@ -126,7 +137,7 @@ export function SearchableSelect({
     // them the panel rendered as a few-pixel sliver beside the row.
     const { rect: next, portalTarget: target } = anchoredPanelRect(
       el,
-      variant === "inline" ? { minWidth: PANEL_MIN_WIDTH, align: "end" } : {},
+      variant === "inline" ? { minWidth: PANEL_MIN_WIDTH, align: align ?? "end" } : {},
     );
     setPortalTarget(target);
     setRect(next);

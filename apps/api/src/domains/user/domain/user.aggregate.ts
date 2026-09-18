@@ -14,7 +14,6 @@ export interface UserProps {
   status: UserStatus;
   preferredCurrency: auth.CurrentUser["preferredCurrency"];
   locale: auth.CurrentUser["locale"];
-  dateFormat: auth.CurrentUser["dateFormat"];
   theme: auth.CurrentUser["theme"];
   createdAt: Date;
   countryId: string | null;
@@ -54,7 +53,6 @@ export type ProfilePatch = Partial<{
 export type PreferencesPatch = Partial<{
   preferredCurrency: auth.CurrentUser["preferredCurrency"];
   locale: auth.CurrentUser["locale"];
-  dateFormat: auth.CurrentUser["dateFormat"];
   theme: auth.CurrentUser["theme"];
   hideBalances: boolean;
   monthlyBudgetTarget: string | null;
@@ -151,7 +149,6 @@ export class User {
     if (patch.preferredCurrency !== undefined)
       this.props.preferredCurrency = patch.preferredCurrency;
     if (patch.locale !== undefined) this.props.locale = patch.locale;
-    if (patch.dateFormat !== undefined) this.props.dateFormat = patch.dateFormat;
     if (patch.theme !== undefined) this.props.theme = patch.theme;
     if (patch.hideBalances !== undefined) this.props.hideBalances = patch.hideBalances;
     if (patch.monthlyBudgetTarget !== undefined)
@@ -184,7 +181,6 @@ export class User {
       name: this.props.name,
       preferredCurrency: this.props.preferredCurrency,
       locale: this.props.locale,
-      dateFormat: this.props.dateFormat,
       theme: this.props.theme,
       memberSinceYear: this.props.createdAt.getFullYear(),
       countryId: this.props.countryId,

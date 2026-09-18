@@ -8,7 +8,7 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
 import { Input } from "../../../shared/ui/input";
-import { Select } from "../../../shared/ui/select";
+import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { Switch } from "../../../shared/ui/switch";
 import { useProfileMutations } from "../hooks/useProfile";
 
@@ -65,13 +65,14 @@ export function FinancialCustomizationSection() {
             {t("profile.financial.cycleStartHint")}
           </div>
         </div>
-        <Select
-          className="h-8 w-20"
+        <SearchableSelect
+          variant="inline"
           value={String(user.billingCycleStartDay ?? 1)}
           options={CYCLE_DAYS.map((d) => ({ value: String(d), label: String(d) }))}
-          onChange={(e) =>
-            updatePreferences.mutate({ billingCycleStartDay: Number(e.target.value) })
-          }
+          searchPlaceholder={t("common.search")}
+          noResultsLabel={t("common.noResults")}
+          aria-label={t("profile.financial.cycleStart")}
+          onChange={(v) => updatePreferences.mutate({ billingCycleStartDay: Number(v) })}
         />
       </div>
 
@@ -122,14 +123,18 @@ export function FinancialCustomizationSection() {
           </div>
         </div>
         <div className="mb-2 flex gap-2">
-          <Select
-            className="h-8 flex-1"
+          <SearchableSelect
+            className="flex-1"
             value={addingCurrency}
-            options={[
-              { value: "", label: t("profile.financial.addCurrencyPlaceholder") },
-              ...addableCurrencies.map((c) => ({ value: c.code, label: `${c.code} · ${c.name}` })),
-            ]}
-            onChange={(e) => setAddingCurrency(e.target.value)}
+            placeholder={t("profile.financial.addCurrencyPlaceholder")}
+            options={addableCurrencies.map((c) => ({
+              value: c.code,
+              label: `${c.code} · ${c.name}`,
+            }))}
+            searchPlaceholder={t("common.search")}
+            noResultsLabel={t("common.noResults")}
+            aria-label={t("profile.financial.extraCurrencies")}
+            onChange={setAddingCurrency}
           />
           <button
             type="button"

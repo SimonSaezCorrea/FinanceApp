@@ -16,7 +16,6 @@ function baseUser(overrides: Record<string, unknown> = {}) {
     name: "Ana",
     preferredCurrency: "CLP",
     locale: "es",
-    dateFormat: "DD/MM/YYYY",
     theme: "dark",
     memberSinceYear: 2024,
     hideBalances: false,

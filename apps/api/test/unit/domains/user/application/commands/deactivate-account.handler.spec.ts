@@ -16,7 +16,6 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     status: "ACTIVE",
     preferredCurrency: "CLP",
     locale: "es",
-    dateFormat: "DD/MM/YYYY",
     theme: "dark",
     createdAt: new Date("2024-01-01T00:00:00Z"),
     countryId: null,

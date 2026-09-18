@@ -28,7 +28,6 @@ export const preferredCurrencySchema = z.enum(["CLP", "USD", "CLF"]);
 /** Any ISO 4217 alpha code from the reference `Currency` list (not restricted like the primary currency). */
 export const currencyCodeSchema = z.string().trim().length(3);
 export const localeSchema = z.enum(["es", "en"]);
-export const dateFormatSchema = z.enum(["DD/MM/YYYY", "MM/DD/YYYY", "YYYY-MM-DD"]);
 export const themeSchema = z.enum(["dark", "light", "system"]);
 
 export const currentUserSchema = z.object({
@@ -37,7 +36,6 @@ export const currentUserSchema = z.object({
   name: z.string().nullable(),
   preferredCurrency: preferredCurrencySchema,
   locale: localeSchema,
-  dateFormat: dateFormatSchema,
   theme: themeSchema,
   memberSinceYear: z.number(),
   countryId: rowId.nullable(),
@@ -97,7 +95,6 @@ export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
 export const updatePreferencesRequestSchema = z.object({
   preferredCurrency: preferredCurrencySchema.optional(),
   locale: localeSchema.optional(),
-  dateFormat: dateFormatSchema.optional(),
   theme: themeSchema.optional(),
   hideBalances: z.boolean().optional(),
   monthlyBudgetTarget: moneyString.nullable().optional(),
