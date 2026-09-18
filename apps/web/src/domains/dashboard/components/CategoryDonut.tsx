@@ -6,6 +6,7 @@ import { formatMoney } from "@finance/money";
 
 import { cn } from "../../../shared/lib/cn";
 import { Card } from "../../../shared/ui/card";
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { PRIMARY_CURRENCY, type CategorySlice } from "../lib/metrics";
 
 // Categorical palette mapped to design tokens (no hardcoded hex).
@@ -67,7 +68,9 @@ export function CategoryDonut({ slices }: { slices: CategorySlice[] }) {
                 <span className="max-w-full truncate text-xs text-muted-foreground">
                   {hovered.name}
                 </span>
-                <span className="text-sm font-semibold tabular-nums">{fmt(hovered.value)}</span>
+                <span className="text-sm font-semibold tabular-nums">
+                  <MaskedAmount>{fmt(hovered.value)}</MaskedAmount>
+                </span>
               </div>
             ) : null}
           </div>

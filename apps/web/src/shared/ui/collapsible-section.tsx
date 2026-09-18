@@ -34,29 +34,25 @@ export function CollapsibleSection({
   }
 
   return (
-    <Card className={cn("p-5", className)}>
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={toggle}
-          aria-expanded={open}
-          className="flex-1 text-left text-sm font-semibold"
-        >
-          {title}
-        </button>
-        {/* Duplicate of the toggle above, for pointer users who aim at the
-            chevron. Hidden from assistive tech on purpose: the labelled button
-            beside it already carries the name and `aria-expanded`. */}
-        <button type="button" onClick={toggle} aria-hidden tabIndex={-1} className="shrink-0">
-          <ChevronDown
-            className={cn(
-              "h-4 w-4 text-muted-foreground transition-transform",
-              open && "rotate-180",
-            )}
-          />
-        </button>
-      </div>
-      {open ? <div className="mt-3">{children}</div> : null}
+    <Card className={cn("overflow-hidden p-0", className)}>
+      {/* The whole header bar is the hit area (not just the title text) — clicking
+          anywhere in this row, including its own padding, toggles the section. */}
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 p-5 text-left text-sm font-semibold"
+      >
+        <span className="flex-1">{title}</span>
+        <ChevronDown
+          className={cn(
+            "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+            open && "rotate-180",
+          )}
+          aria-hidden
+        />
+      </button>
+      {open ? <div className="px-5 pb-5">{children}</div> : null}
     </Card>
   );
 }

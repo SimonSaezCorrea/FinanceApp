@@ -5,6 +5,7 @@ import type { savings } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { Card } from "../../../shared/ui/card";
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { goalVisual } from "../lib/goalVisual";
 import { bestPaceGoal, goalLeft, goalStatus, upcomingDeadlines } from "../lib/savingsMetrics";
 
@@ -56,14 +57,14 @@ export function SavingsInsightsRail({ goals, currency }: Readonly<Props>) {
                     <Icon className="h-[15px] w-[15px]" style={{ color: visual.color }} />
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-[13px] font-medium text-foreground">
-                      {goal.title}
-                    </p>
+                    <p className="truncate text-[13px] font-medium text-foreground">{goal.title}</p>
                     <p className="truncate text-[11.5px] text-muted-foreground">
                       {t("savings.insights.dueIn", { count: monthsLeft })} ·{" "}
-                      {t("savings.insights.missing", {
-                        amount: money(goalLeft(goal.savedAmount, goal.targetAmount)),
-                      })}
+                      <MaskedAmount>
+                        {t("savings.insights.missing", {
+                          amount: money(goalLeft(goal.savedAmount, goal.targetAmount)),
+                        })}
+                      </MaskedAmount>
                     </p>
                   </div>
                 </div>
@@ -90,10 +91,10 @@ export function SavingsInsightsRail({ goals, currency }: Readonly<Props>) {
             <div className="min-w-0">
               <p className="truncate text-[13px] font-medium text-foreground">{pacer.title}</p>
               <p className="truncate text-[11.5px] text-muted-foreground">
-                {t("savings.insights.paceValue", { amount: money(pacer.pace) })}
-                {aheadMonths > 0
-                  ? ` · ${t("savings.insights.ahead", { count: aheadMonths })}`
-                  : ""}
+                <MaskedAmount>
+                  {t("savings.insights.paceValue", { amount: money(pacer.pace) })}
+                </MaskedAmount>
+                {aheadMonths > 0 ? ` · ${t("savings.insights.ahead", { count: aheadMonths })}` : ""}
               </p>
             </div>
           </div>

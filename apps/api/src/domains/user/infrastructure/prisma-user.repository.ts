@@ -36,8 +36,6 @@ function rowToProps(row: Row): UserProps {
     identifierValue: row.identifierValue,
     phone: row.phone,
     hideBalances: row.hideBalances,
-    monthlyBudgetTarget: row.monthlyBudgetTarget ? row.monthlyBudgetTarget.toString() : null,
-    billingCycleStartDay: row.billingCycleStartDay,
     extraCurrencies: row.extraCurrencies as UserProps["extraCurrencies"],
     budgetAlertThreshold: row.budgetAlertThreshold,
   };
@@ -89,8 +87,6 @@ export class PrismaUserRepository implements UserRepositoryPort {
           identifierValue: snap.identifierValue,
           phone: snap.phone,
           hideBalances: snap.hideBalances,
-          monthlyBudgetTarget: snap.monthlyBudgetTarget,
-          billingCycleStartDay: snap.billingCycleStartDay,
           extraCurrencies: snap.extraCurrencies,
           budgetAlertThreshold: snap.budgetAlertThreshold,
         },

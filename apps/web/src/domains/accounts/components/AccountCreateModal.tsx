@@ -8,7 +8,6 @@ import type { accounts } from "@finance/contracts";
 
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { Button } from "../../../shared/ui/button";
 import { SidePanel } from "../../../shared/ui/overlay";
@@ -21,8 +20,8 @@ import {
   FormTextField,
 } from "../../../shared/ui/form";
 import { Input } from "../../../shared/ui/input";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { SectionLabel } from "../../../shared/ui/section-label";
+import { CurrencyField } from "../../reference/components/CurrencyField";
 import { institutionOption } from "../../reference/lib/institutionOption";
 import { useCountries, useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { useAccountMutations } from "../hooks/useAccounts";
@@ -215,22 +214,6 @@ export function AccountCreateModal({
     { value: "", label: t("accounts.form.institutionNone") },
     ...(institutions ?? []).map(institutionOption),
   ];
-  // Short code as the label (CLP, UF, USD…), full name underneath — the
-  // reverse of the old "Full name (CODE)" single line, which just truncated
-  // in this field's own narrow half-column ("Dólar est…").
-  const currencyOptions = (currencies ?? []).map((c) => ({
-    value: c.code,
-    label: currencyPickerLabel(c.code),
-    description: c.name,
-  }));
-  if (currency && !currencyOptions.some((o) => o.value === currency)) {
-    currencyOptions.unshift({
-      value: currency,
-      label: currencyPickerLabel(currency),
-      description: "",
-    });
-  }
-
   // What the tile in the card panel previews: the account as typed so far. The
   // form only reads currency/limit off it, but the tile renders a whole account,
   // so the unset fields carry neutral zeros rather than invented values.
@@ -336,14 +319,12 @@ export function AccountCreateModal({
                   : t("accounts.form.initialBalance")
               }
             />
-            <SearchableSelect
+            <CurrencyField
               id="m-cur"
               variant="inline"
               className="w-auto shrink-0"
               value={currency}
               onChange={setCurrency}
-              options={currencyOptions}
-              displayValue={currency}
               searchPlaceholder={t("common.search")}
               noResultsLabel={t("common.noResults")}
               aria-label={t("accounts.form.currency")}

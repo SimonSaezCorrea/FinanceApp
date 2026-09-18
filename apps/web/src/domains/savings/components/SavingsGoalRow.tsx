@@ -6,6 +6,7 @@ import { formatMoney } from "@finance/money";
 
 import { Button } from "../../../shared/ui/button";
 import { SwipeRow } from "../../../shared/ui/swipe-row";
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { goalVisual } from "../lib/goalVisual";
 import { goalPct, goalStatus, isGoalCloseable, isGoalComplete } from "../lib/savingsMetrics";
 
@@ -72,9 +73,7 @@ export function SavingsGoalRow({
 
           <div className="flex min-w-0 flex-1 flex-col gap-1.5">
             <div className="flex items-baseline justify-between gap-3">
-              <span className="truncate text-[15px] font-medium text-foreground">
-                {goal.title}
-              </span>
+              <span className="truncate text-[15px] font-medium text-foreground">{goal.title}</span>
               <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{pct}%</span>
             </div>
             <div className="h-[6px] w-full rounded-full bg-track">
@@ -87,10 +86,12 @@ export function SavingsGoalRow({
 
           <div className="flex w-32 shrink-0 flex-col items-end">
             <span className="text-[15px] font-semibold tabular-nums text-foreground">
-              {money(goal.savedAmount)}
+              <MaskedAmount>{money(goal.savedAmount)}</MaskedAmount>
             </span>
             <span className="text-[11px] tabular-nums text-muted-foreground">
-              {t("savings.row.of", { amount: money(goal.targetAmount) })}
+              <MaskedAmount>
+                {t("savings.row.of", { amount: money(goal.targetAmount) })}
+              </MaskedAmount>
             </span>
           </div>
 

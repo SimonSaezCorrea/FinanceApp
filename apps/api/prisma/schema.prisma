@@ -32,14 +32,17 @@ model User {
   /// The identifier's value. Format is only validated when identifierType is RUT (Chilean check digit).
   identifierValue      String?
   phone                String?
-  /// Masks monetary amounts across the app when true (real effect — see PENDING.md for coverage scope).
+  /// Masks monetary amounts on the Panel, an account's own balance and Ahorros when true
+  /// (specs/020) — never Movimientos, Deudas, Recurrentes or Cuotas/Facturación.
   hideBalances         Boolean         @default(false)
-  monthlyBudgetTarget  Decimal?        @db.Decimal(18, 4)
-  /// Day of month (1-28) the user's financial cycle starts. Stored, not yet wired into "this month" calculations (see PENDING.md).
-  billingCycleStartDay Int?
-  /// Extra currencies the user wants tracked, on top of preferredCurrency. Selection only — no live FX conversion.
+  /// Extra currencies the user wants tracked, on top of preferredCurrency — also the universe
+  /// offered by every "pick a currency for a new record" selector in the app (specs/020).
+  /// Selection only — no live FX conversion. A currency can't be removed while any of the
+  /// user's own records still use it (`CURRENCY_IN_USE`).
   extraCurrencies      String[]        @default([])
-  /// % of monthlyBudgetTarget at which to warn the user. Stored for the Notifications UI; no real alert is sent yet.
+  /// % of a monthly budget target at which to warn the user. Stored for the Notifications UI;
+  /// no real alert is sent yet (the budget target itself was removed in specs/020 — this
+  /// column is a separate, still-unimplemented Notifications setting, not related to it).
   budgetAlertThreshold Int?            @default(80)
 
   country            Country?                @relation(fields: [countryId], references: [id], onDelete: SetNull)

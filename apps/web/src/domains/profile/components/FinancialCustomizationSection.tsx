@@ -1,29 +1,20 @@
-import { Pencil, Plus, X } from "lucide-react";
-import { useState } from "react";
+import { X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-
-import { formatMoney } from "@finance/money";
+import { toast } from "sonner";
 
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useCurrencies } from "../../reference/hooks/useReference";
+import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
-import { Input } from "../../../shared/ui/input";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { Switch } from "../../../shared/ui/switch";
 import { useProfileMutations } from "../hooks/useProfile";
 
-const CYCLE_DAYS = Array.from({ length: 28 }, (_, i) => i + 1);
-
 export function FinancialCustomizationSection() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data: currencies } = useCurrencies();
   const { updatePreferences } = useProfileMutations();
-  const [editingBudget, setEditingBudget] = useState(false);
-  const [budgetInput, setBudgetInput] = useState(user?.monthlyBudgetTarget ?? "");
-  const [addingCurrency, setAddingCurrency] = useState("");
-  // Local-only placeholder — no transaction-rounding logic exists yet (see PENDING.md).
-  const [roundUp, setRoundUp] = useState(false);
 
   if (!user) return null;
 
@@ -32,101 +23,48 @@ export function FinancialCustomizationSection() {
     return known ? `${known.code} · ${known.name}` : code;
   }
 
-  function saveBudget() {
-    const trimmed = budgetInput.trim();
-    if (trimmed === "") {
-      updatePreferences.mutate({ monthlyBudgetTarget: null });
-    } else if (/^\d+(\.\d+)?$/.test(trimmed)) {
-      updatePreferences.mutate({ monthlyBudgetTarget: trimmed });
-    }
-    setEditingBudget(false);
-  }
-
-  function addCurrency() {
-    if (!addingCurrency || user!.extraCurrencies.includes(addingCurrency)) return;
-    updatePreferences.mutate({ extraCurrencies: [...user!.extraCurrencies, addingCurrency] });
-    setAddingCurrency("");
+  function addCurrency(code: string) {
+    if (!code || user!.extraCurrencies.includes(code)) return;
+    updatePreferences.mutate({ extraCurrencies: [...user!.extraCurrencies, code] });
   }
 
   function removeCurrency(code: string) {
-    updatePreferences.mutate({ extraCurrencies: user!.extraCurrencies.filter((c) => c !== code) });
+    updatePreferences.mutate(
+      { extraCurrencies: user!.extraCurrencies.filter((c) => c !== code) },
+      {
+        onError: (err) => {
+          const errCode = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
+          toast.error(t(`errors.${errCode}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
+        },
+      },
+    );
   }
 
   const addableCurrencies = (currencies ?? []).filter(
     (c) => c.code !== user.preferredCurrency && !user.extraCurrencies.includes(c.code),
   );
+  const noMoreCurrencies = addableCurrencies.length === 0;
 
   return (
     <CollapsibleSection title={t("profile.financial.title")}>
-      <div className="flex items-center justify-between border-b py-3">
-        <div>
-          <div className="text-sm">{t("profile.financial.cycleStart")}</div>
-          <div className="text-xs text-muted-foreground">
-            {t("profile.financial.cycleStartHint")}
-          </div>
-        </div>
-        <SearchableSelect
-          variant="inline"
-          value={String(user.billingCycleStartDay ?? 1)}
-          options={CYCLE_DAYS.map((d) => ({ value: String(d), label: String(d) }))}
-          searchPlaceholder={t("common.search")}
-          noResultsLabel={t("common.noResults")}
-          aria-label={t("profile.financial.cycleStart")}
-          onChange={(v) => updatePreferences.mutate({ billingCycleStartDay: Number(v) })}
-        />
-      </div>
-
-      <div className="flex items-center justify-between border-b py-3">
-        <div>
-          <div className="text-sm">{t("profile.financial.budgetTarget")}</div>
-          <div className="text-xs text-muted-foreground">
-            {t("profile.financial.budgetTargetHint")}
-          </div>
-        </div>
-        {editingBudget ? (
-          <div className="flex items-center gap-2">
-            <Input
-              className="h-8 w-32 text-right"
-              inputMode="decimal"
-              autoFocus
-              value={budgetInput}
-              onChange={(e) => setBudgetInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && saveBudget()}
-              onBlur={saveBudget}
-            />
-          </div>
-        ) : (
-          <button
-            type="button"
-            className="flex items-center gap-1.5 text-sm font-medium tabular-nums text-muted-foreground hover:text-foreground"
-            onClick={() => {
-              setBudgetInput(user.monthlyBudgetTarget ?? "");
-              setEditingBudget(true);
-            }}
-          >
-            {user.monthlyBudgetTarget
-              ? formatMoney(user.monthlyBudgetTarget, {
-                  locale: i18n.language,
-                  currency: user.preferredCurrency,
-                })
-              : t("profile.personalInfo.notSet")}
-            <Pencil className="h-3 w-3" aria-hidden />
-          </button>
-        )}
-      </div>
-
       <div className="border-b py-3">
-        <div className="mb-2">
-          <div className="text-sm">{t("profile.financial.extraCurrencies")}</div>
-          <div className="text-xs text-muted-foreground">
-            {t("profile.financial.extraCurrenciesHint")}
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-sm">{t("profile.financial.extraCurrencies")}</div>
+            <div className="text-xs text-muted-foreground">
+              {t("profile.financial.extraCurrenciesHint")}
+            </div>
           </div>
-        </div>
-        <div className="mb-2 flex gap-2">
           <SearchableSelect
-            className="flex-1"
-            value={addingCurrency}
-            placeholder={t("profile.financial.addCurrencyPlaceholder")}
+            variant="inline"
+            className="shrink-0"
+            value=""
+            placeholder={t(
+              noMoreCurrencies
+                ? "profile.financial.noMoreCurrencies"
+                : "profile.financial.addCurrencyPlaceholder",
+            )}
+            disabled={noMoreCurrencies}
             options={addableCurrencies.map((c) => ({
               value: c.code,
               label: `${c.code} · ${c.name}`,
@@ -134,20 +72,11 @@ export function FinancialCustomizationSection() {
             searchPlaceholder={t("common.search")}
             noResultsLabel={t("common.noResults")}
             aria-label={t("profile.financial.extraCurrencies")}
-            onChange={setAddingCurrency}
+            onChange={addCurrency}
           />
-          <button
-            type="button"
-            onClick={addCurrency}
-            disabled={!addingCurrency}
-            className="flex h-8 shrink-0 items-center gap-1 rounded-md border border-input px-2.5 text-xs font-medium text-muted-foreground hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <Plus className="h-3.5 w-3.5" aria-hidden />
-            {t("profile.financial.addCurrency")}
-          </button>
         </div>
         {user.extraCurrencies.length > 0 ? (
-          <div className="flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap gap-2">
             {user.extraCurrencies.map((code) => (
               <span
                 key={code}
@@ -166,22 +95,10 @@ export function FinancialCustomizationSection() {
             ))}
           </div>
         ) : (
-          <p className="text-xs text-muted-foreground">
+          <p className="mt-2 text-xs text-muted-foreground">
             {t("profile.financial.noExtraCurrencies")}
           </p>
         )}
-      </div>
-
-      <div className="flex items-center justify-between border-b py-3">
-        <div>
-          <div className="text-sm">{t("profile.financial.roundUp")}</div>
-          <div className="text-xs text-muted-foreground">{t("profile.financial.roundUpHint")}</div>
-        </div>
-        <Switch
-          checked={roundUp}
-          onCheckedChange={setRoundUp}
-          aria-label={t("profile.financial.roundUp")}
-        />
       </div>
 
       <div className="flex items-center justify-between py-3">

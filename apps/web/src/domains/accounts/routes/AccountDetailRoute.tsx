@@ -1,4 +1,5 @@
 import { AlertTriangle, ChevronRight, Loader2, Pencil, Plus, Power, Trash2 } from "lucide-react";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router";
@@ -9,6 +10,7 @@ import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { useAuth } from "../../auth/hooks/useAuth";
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { useInfiniteTransactions } from "../../transactions/hooks/useTransactions";
 import { useTransactionMutations } from "../../transactions/hooks/useTransactionMutations";
 import { TransactionCreateModal } from "../../transactions/components/TransactionCreateModal";
@@ -399,7 +401,11 @@ function KpiStrip({ account, pct }: { account: accounts.BankAccount; pct: number
     // "used / limit" pair doesn't fit in a third of the row.
     <div className={cn("grid gap-3 sm:grid-cols-2", cols === 3 && "lg:grid-cols-3")}>
       {hasRealBalance ? (
-        <Kpi label={t("accounts.currentBalance")} value={fmt(account.currentBalance)} emphasis />
+        <Kpi
+          label={t("accounts.currentBalance")}
+          value={<MaskedAmount>{fmt(account.currentBalance)}</MaskedAmount>}
+          emphasis
+        />
       ) : null}
       <Kpi
         label={t("accounts.detail.change")}
@@ -452,7 +458,7 @@ function Kpi({
   tone,
 }: {
   label: string;
-  value: string;
+  value: ReactNode;
   emphasis?: boolean;
   tone?: "success" | "danger";
 }) {

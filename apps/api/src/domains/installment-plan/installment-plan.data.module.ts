@@ -1,7 +1,9 @@
 import { Module } from "@nestjs/common";
 
 import { InstallmentPaymentDataModule } from "../installment-payment/installment-payment.data.module";
+import { INSTALLMENT_PLAN_CURRENCY_USAGE } from "./domain/ports/currency-usage-lookup.port";
 import { INSTALLMENT_PLAN_REPOSITORY } from "./domain/ports/installment-plan.repository.port";
+import { PrismaInstallmentPlanCurrencyUsageLookupRepository } from "./infrastructure/prisma-installment-plan-currency-usage-lookup.repository";
 import { PrismaInstallmentPlanRepository } from "./infrastructure/prisma-installment-plan.repository";
 
 /**
@@ -17,7 +19,13 @@ import { PrismaInstallmentPlanRepository } from "./infrastructure/prisma-install
  */
 @Module({
   imports: [InstallmentPaymentDataModule],
-  providers: [{ provide: INSTALLMENT_PLAN_REPOSITORY, useClass: PrismaInstallmentPlanRepository }],
-  exports: [INSTALLMENT_PLAN_REPOSITORY],
+  providers: [
+    { provide: INSTALLMENT_PLAN_REPOSITORY, useClass: PrismaInstallmentPlanRepository },
+    {
+      provide: INSTALLMENT_PLAN_CURRENCY_USAGE,
+      useClass: PrismaInstallmentPlanCurrencyUsageLookupRepository,
+    },
+  ],
+  exports: [INSTALLMENT_PLAN_REPOSITORY, INSTALLMENT_PLAN_CURRENCY_USAGE],
 })
 export class InstallmentPlanDataModule {}

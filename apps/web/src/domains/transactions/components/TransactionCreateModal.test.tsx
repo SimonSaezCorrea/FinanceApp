@@ -7,9 +7,28 @@ import type { accounts } from "@finance/contracts";
 
 import i18n from "../../../i18n";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { AuthProvider } from "../../auth/hooks/useAuth";
 import { accountsApi } from "../../accounts/api/accountsApi";
 import { transactionsApi } from "../api/transactionsApi";
 import { TransactionCreateModal } from "./TransactionCreateModal";
+
+vi.mock("../../auth/api/authApi", () => ({
+  authApi: {
+    me: () =>
+      Promise.resolve({
+        id: "u1",
+        email: "a@b.com",
+        name: "Ana",
+        preferredCurrency: "CLP",
+        extraCurrencies: [],
+        locale: "es",
+        theme: "dark",
+        memberSinceYear: 2024,
+        hideBalances: false,
+      }),
+    logout: vi.fn(),
+  },
+}));
 
 vi.mock("../api/transactionsApi", () => ({
   transactionsApi: {
@@ -44,7 +63,9 @@ function renderModal(props: Partial<Parameters<typeof TransactionCreateModal>[0]
   return render(
     <QueryClientProvider client={client}>
       <I18nextProvider i18n={i18n}>
-        <TransactionCreateModal open onOpenChange={() => {}} {...props} />
+        <AuthProvider>
+          <TransactionCreateModal open onOpenChange={() => {}} {...props} />
+        </AuthProvider>
       </I18nextProvider>
     </QueryClientProvider>,
   );

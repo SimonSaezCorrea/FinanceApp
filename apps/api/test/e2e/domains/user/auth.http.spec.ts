@@ -116,6 +116,39 @@ describe("Auth HTTP (e2e)", () => {
     expect(res.body.locale).toBe("en");
   });
 
+  it("PATCH /auth/me/preferences rejects removing an extra currency still in use (specs/020)", async () => {
+    const added = await request(app.getHttpServer())
+      .patch("/api/v1/auth/me/preferences")
+      .set("Cookie", cookies)
+      .send({ extraCurrencies: ["USD"] });
+    expect(added.status).toBe(200);
+    expect(added.body.extraCurrencies).toEqual(["USD"]);
+
+    const account = await request(app.getHttpServer())
+      .post("/api/v1/accounts")
+      .set("Cookie", cookies)
+      .send({ name: "Cuenta USD", type: "CASH", currency: "USD" });
+    expect(account.status).toBe(201);
+
+    const rejected = await request(app.getHttpServer())
+      .patch("/api/v1/auth/me/preferences")
+      .set("Cookie", cookies)
+      .send({ extraCurrencies: [] });
+    expect(rejected.status).toBe(409);
+    expect(rejected.body.error.code).toBe("CURRENCY_IN_USE");
+
+    await request(app.getHttpServer())
+      .delete(`/api/v1/accounts/${account.body.id}`)
+      .set("Cookie", cookies);
+
+    const removed = await request(app.getHttpServer())
+      .patch("/api/v1/auth/me/preferences")
+      .set("Cookie", cookies)
+      .send({ extraCurrencies: [] });
+    expect(removed.status).toBe(200);
+    expect(removed.body.extraCurrencies).toEqual([]);
+  });
+
   it("POST /auth/refresh rotates the token pair", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/refresh")

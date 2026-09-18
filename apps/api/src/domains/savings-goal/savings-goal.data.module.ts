@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 
+import { SAVINGS_GOAL_CURRENCY_USAGE } from "./domain/ports/currency-usage-lookup.port";
 import { SAVINGS_GOAL_REPOSITORY } from "./domain/ports/savings-goal.repository.port";
+import { PrismaSavingsGoalCurrencyUsageLookupRepository } from "./infrastructure/prisma-savings-goal-currency-usage-lookup.repository";
 import { PrismaSavingsGoalRepository } from "./infrastructure/prisma-savings-goal.repository";
 
 /**
@@ -12,7 +14,13 @@ import { PrismaSavingsGoalRepository } from "./infrastructure/prisma-savings-goa
  * this leaf — same split `bank-account`/`installment-plan` already use.
  */
 @Module({
-  providers: [{ provide: SAVINGS_GOAL_REPOSITORY, useClass: PrismaSavingsGoalRepository }],
-  exports: [SAVINGS_GOAL_REPOSITORY],
+  providers: [
+    { provide: SAVINGS_GOAL_REPOSITORY, useClass: PrismaSavingsGoalRepository },
+    {
+      provide: SAVINGS_GOAL_CURRENCY_USAGE,
+      useClass: PrismaSavingsGoalCurrencyUsageLookupRepository,
+    },
+  ],
+  exports: [SAVINGS_GOAL_REPOSITORY, SAVINGS_GOAL_CURRENCY_USAGE],
 })
 export class SavingsGoalDataModule {}

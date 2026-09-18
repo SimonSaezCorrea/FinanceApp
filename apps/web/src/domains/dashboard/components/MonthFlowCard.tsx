@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { formatMoney } from "@finance/money";
 
 import { Card } from "../../../shared/ui/card";
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { PRIMARY_CURRENCY, type MonthFlow } from "../lib/metrics";
 
 export function MonthFlowCard({ flow }: { flow: MonthFlow }) {
@@ -22,7 +23,7 @@ export function MonthFlowCard({ flow }: { flow: MonthFlow }) {
             {t("transactions.type.INCOME")}
           </span>
           <span className="tabular-nums text-lg font-semibold text-success">
-            {fmt(flow.income)}
+            <MaskedAmount>{fmt(flow.income)}</MaskedAmount>
           </span>
         </div>
         <div className="flex flex-col gap-1">
@@ -31,7 +32,7 @@ export function MonthFlowCard({ flow }: { flow: MonthFlow }) {
             {t("transactions.type.EXPENSE")}
           </span>
           <span className="tabular-nums text-lg font-semibold text-destructive">
-            {fmt(flow.expense)}
+            <MaskedAmount>{fmt(flow.expense)}</MaskedAmount>
           </span>
         </div>
       </div>

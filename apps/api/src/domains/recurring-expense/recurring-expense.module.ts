@@ -10,8 +10,7 @@ import { RemoveRecurringExpenseHandler } from "./application/commands/remove-rec
 import { UpdateRecurringExpenseHandler } from "./application/commands/update-recurring-expense.handler";
 import { GetRecurringExpenseQueryHandler } from "./application/queries/get-recurring-expense.handler";
 import { ListRecurringExpensesQueryHandler } from "./application/queries/list-recurring-expenses.handler";
-import { RECURRING_EXPENSE_REPOSITORY } from "./domain/ports/recurring-expense.repository.port";
-import { PrismaRecurringExpenseRepository } from "./infrastructure/prisma-recurring-expense.repository";
+import { RecurringExpenseDataModule } from "./recurring-expense.data.module";
 import { RecurringController } from "./presentation/recurring.controller";
 
 const commandHandlers = [
@@ -23,14 +22,15 @@ const commandHandlers = [
 const queryHandlers = [ListRecurringExpensesQueryHandler, GetRecurringExpenseQueryHandler];
 
 @Module({
-  imports: [CqrsModule, JwtModule.register({}), BankAccountDataModule, CardAccountDataModule],
-  controllers: [RecurringController],
-  providers: [
-    ...commandHandlers,
-    ...queryHandlers,
-    { provide: RECURRING_EXPENSE_REPOSITORY, useClass: PrismaRecurringExpenseRepository },
-    JwtAuthGuard,
+  imports: [
+    CqrsModule,
+    JwtModule.register({}),
+    BankAccountDataModule,
+    CardAccountDataModule,
+    RecurringExpenseDataModule,
   ],
+  controllers: [RecurringController],
+  providers: [...commandHandlers, ...queryHandlers, JwtAuthGuard],
   exports: [],
 })
 export class RecurringExpenseModule {}

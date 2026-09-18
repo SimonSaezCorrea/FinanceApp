@@ -3,9 +3,9 @@ import { useTranslation } from "react-i18next";
 import type { accounts as accountsContract, recurring } from "@finance/contracts";
 
 import { accountMetaLine, cardMetaLine } from "../../accounts/lib/accountMeta";
+import { CurrencyField } from "../../reference/components/CurrencyField";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
-import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { CategoryIcon } from "../../../shared/ui/category-icon";
 import {
@@ -18,7 +18,6 @@ import {
   FormTextareaField,
 } from "../../../shared/ui/form";
 import { FormSurface } from "../../../shared/ui/overlay";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { FREQUENCY_ORDER } from "../lib/recurringMetrics";
 
 export interface RecurringFormValue {
@@ -75,13 +74,6 @@ export function RecurringFormPanel({
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
   const { data: currencies } = useCurrencies();
-  const currencyOptions = (currencies ?? []).map((c) => ({
-    value: c.code,
-    label: currencyPickerLabel(c.code),
-  }));
-  if (value.currency && !currencyOptions.some((o) => o.value === value.currency)) {
-    currencyOptions.unshift({ value: value.currency, label: currencyPickerLabel(value.currency) });
-  }
   const creating = mode === "create";
 
   const accountOptions = [
@@ -178,14 +170,12 @@ export function RecurringFormPanel({
             aria-label={t("recurring.form.amount")}
             className="min-w-0 max-w-[220px] flex-1 border-0 bg-transparent p-0 text-3xl font-bold tabular-nums text-destructive placeholder:text-destructive/50 focus-visible:outline-none"
           />
-          <SearchableSelect
+          <CurrencyField
             id="recurring-currency"
             variant="inline"
             className="ml-auto w-auto shrink-0"
             value={value.currency}
             onChange={(currency) => onChange({ currency })}
-            options={currencyOptions}
-            displayValue={value.currency}
             searchPlaceholder={t("common.search")}
             noResultsLabel={t("common.noResults")}
             aria-label={t("recurring.form.currency")}

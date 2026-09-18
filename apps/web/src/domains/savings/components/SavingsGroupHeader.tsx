@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import { formatMoney } from "@finance/money";
 
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { sumAmounts } from "../lib/savingsMetrics";
 
 interface Props {
@@ -20,10 +21,9 @@ export function SavingsGroupHeader({ title, amounts, currency }: Readonly<Props>
         {title}
       </h2>
       <span className="text-[13px] text-muted-foreground">
-        {t("savings.groups.count", {
-          count: amounts.length,
-          amount: formatMoney(total, { locale: i18n.language, currency }),
-        })}
+        {t("savings.groups.countPrefix", { count: amounts.length })}
+        <MaskedAmount>{formatMoney(total, { locale: i18n.language, currency })}</MaskedAmount>
+        {t("savings.groups.countSuffix")}
       </span>
     </div>
   );

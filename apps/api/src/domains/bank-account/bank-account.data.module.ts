@@ -5,6 +5,8 @@ import { CardAccountDataModule } from "../card-account/card-account.data.module"
 import { FinancialInstitutionDataModule } from "../financial-institution/financial-institution.data.module";
 import { BANK_ACCOUNT_LOOKUP } from "./domain/ports/bank-account-lookup.port";
 import { BANK_ACCOUNT_REPOSITORY } from "./domain/ports/bank-account.repository.port";
+import { BANK_ACCOUNT_CURRENCY_USAGE } from "./domain/ports/currency-usage-lookup.port";
+import { PrismaBankAccountCurrencyUsageLookupRepository } from "./infrastructure/prisma-bank-account-currency-usage-lookup.repository";
 import { PrismaBankAccountLookupRepository } from "./infrastructure/prisma-bank-account-lookup.repository";
 import { PrismaBankAccountRepository } from "./infrastructure/prisma-bank-account.repository";
 
@@ -21,7 +23,11 @@ import { PrismaBankAccountRepository } from "./infrastructure/prisma-bank-accoun
   providers: [
     { provide: BANK_ACCOUNT_REPOSITORY, useClass: PrismaBankAccountRepository },
     { provide: BANK_ACCOUNT_LOOKUP, useClass: PrismaBankAccountLookupRepository },
+    {
+      provide: BANK_ACCOUNT_CURRENCY_USAGE,
+      useClass: PrismaBankAccountCurrencyUsageLookupRepository,
+    },
   ],
-  exports: [BANK_ACCOUNT_REPOSITORY, BANK_ACCOUNT_LOOKUP],
+  exports: [BANK_ACCOUNT_REPOSITORY, BANK_ACCOUNT_LOOKUP, BANK_ACCOUNT_CURRENCY_USAGE],
 })
 export class BankAccountDataModule {}

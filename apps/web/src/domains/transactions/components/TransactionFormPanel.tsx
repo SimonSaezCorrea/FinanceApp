@@ -7,10 +7,10 @@ import { formatMoney } from "@finance/money";
 
 import { accountMetaLine, cardMetaLine } from "../../accounts/lib/accountMeta";
 import { useCreditStatements } from "../../accounts/hooks/useAccounts";
+import { CurrencyField } from "../../reference/components/CurrencyField";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
-import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { CategoryIcon } from "../../../shared/ui/category-icon";
 import { DetailRow } from "../../../shared/ui/detail-row";
@@ -24,7 +24,6 @@ import {
   FormTextareaField,
 } from "../../../shared/ui/form";
 import { Segmented } from "../../../shared/ui/segmented";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { projectedAfterSave } from "../lib/projectedBalance";
 import { TransferFields } from "./TransferFields";
 
@@ -115,14 +114,6 @@ export function TransactionFormPanel({
   const { t, i18n } = useTranslation();
   const { data: currencies } = useCurrencies();
 
-  const currencyOptions = (currencies ?? []).map((c) => ({
-    value: c.code,
-    label: currencyPickerLabel(c.code),
-  }));
-  if (value.currency && !currencyOptions.some((o) => o.value === value.currency)) {
-    currencyOptions.unshift({ value: value.currency, label: currencyPickerLabel(value.currency) });
-  }
-
   const isTransfer = value.mode === "TRANSFER";
   const isPrepay = value.mode === "PREPAY";
   // A transfer's/prepago's own side is an expense on the source account, which
@@ -133,15 +124,23 @@ export function TransactionFormPanel({
   // A signed color per navigation tab, not just the sign glyph — the amount
   // reads as red/green/blue from across the panel, same as the type switch's
   // own active pill color.
-  const amountTone = isTransfer ? "info" : isPrepay ? "accent" : isIncome ? "success" : "destructive";
+  const amountTone = isTransfer
+    ? "info"
+    : isPrepay
+      ? "accent"
+      : isIncome
+        ? "success"
+        : "destructive";
   const selectedAccount = accountList.find((a) => a.id === value.bankAccountId);
   const isCreditLine = selectedAccount?.type === "CREDIT_CARD";
   const isCardable =
     !!selectedAccount && accountsContract.isCardableAccountType(selectedAccount.type);
   // A card is REQUIRED only for credit-line expenses; optional for other cardable
   // accounts. A transfer/prepago never carries one (FR-019 / spec 019).
-  const needsCard = !isTransfer && !isPrepay && type === "EXPENSE" && isCreditLine && !value.financeCharge;
-  const showCard = !isTransfer && !isPrepay && type === "EXPENSE" && isCardable && !value.financeCharge;
+  const needsCard =
+    !isTransfer && !isPrepay && type === "EXPENSE" && isCreditLine && !value.financeCharge;
+  const showCard =
+    !isTransfer && !isPrepay && type === "EXPENSE" && isCardable && !value.financeCharge;
   const noCardsAvailable = needsCard && (selectedAccount?.cards.length ?? 0) === 0;
 
   const typeLabel = (accType: accounts.AccountType) => t(`accounts.type.${accType}`);
@@ -321,14 +320,12 @@ export function TransactionFormPanel({
           )}
           aria-label={t("transactions.form.amount")}
         />
-        <SearchableSelect
+        <CurrencyField
           id="tx-currency"
           variant="inline"
           className="w-auto shrink-0"
           value={value.currency}
           onChange={(currency) => onChange({ currency })}
-          options={currencyOptions}
-          displayValue={value.currency}
           searchPlaceholder={t("common.search")}
           noResultsLabel={t("common.noResults")}
           aria-label={t("transactions.form.currency")}

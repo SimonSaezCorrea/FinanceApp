@@ -1040,8 +1040,9 @@
       "label": "Ahorrado",
       "note_one": "{{count}} meta abierta · incluye ahorro libre",
       "note_other": "{{count}} metas abiertas · incluye ahorro libre",
-      "noteWithClosed_one": "{{count}} meta abierta · incluye ahorro libre · {{amount}} en metas cerradas, fuera de este total",
-      "noteWithClosed_other": "{{count}} metas abiertas · incluye ahorro libre · {{amount}} en metas cerradas, fuera de este total",
+      "noteWithClosedPrefix_one": "{{count}} meta abierta · incluye ahorro libre · ",
+      "noteWithClosedPrefix_other": "{{count}} metas abiertas · incluye ahorro libre · ",
+      "noteWithClosedSuffix": " en metas cerradas, fuera de este total",
       "thisMonth": "Este mes",
       "pace": "Ritmo",
       "paceValue": "{{amount}}/mes",
@@ -1052,8 +1053,9 @@
       "live": "En curso",
       "late": "Fuera de plazo",
       "done": "Cumplidas",
-      "count_one": "{{count}} meta · {{amount}} acumulados",
-      "count_other": "{{count}} metas · {{amount}} acumulados"
+      "countPrefix_one": "{{count}} meta · ",
+      "countPrefix_other": "{{count}} metas · ",
+      "countSuffix": " acumulados"
     },
     "row": {
       "registerContribution": "Registrar aporte",
@@ -1069,9 +1071,11 @@
       "actions": "Acciones"
     },
     "status": {
-      "complete": "Meta cumplida · {{amount}}",
-      "overdue": "Venció el {{date}} · faltan {{amount}}",
-      "shortOnPace": "A este ritmo llegas en {{eta}}, después de {{deadline}} · sube a {{needed}}/mes",
+      "completePrefix": "Meta cumplida · ",
+      "overduePrefix": "Venció el {{date}} · faltan ",
+      "overdueSuffix": "",
+      "shortOnPacePrefix": "A este ritmo llegas en {{eta}}, después de {{deadline}} · sube a ",
+      "shortOnPaceSuffix": "/mes",
       "onTrackWithDeadline": "A este ritmo llegas en {{eta}} · plazo {{deadline}}",
       "onTrackNoDeadline": "A este ritmo llegas en {{eta}} · sin plazo",
       "noContributions": "Sin aportes registrados"
@@ -1261,20 +1265,14 @@
     },
     "financial": {
       "title": "Personalización financiera",
-      "cycleStart": "Inicio del ciclo mensual",
-      "cycleStartHint": "Cuándo empieza tu mes financiero",
-      "budgetTarget": "Presupuesto mensual objetivo",
-      "budgetTargetHint": "Base del termómetro de gasto",
       "extraCurrencies": "Monedas extra",
       "extraCurrenciesHint": "Monedas adicionales que quieres seguir, además de tu moneda principal",
       "addCurrencyPlaceholder": "Elige una moneda…",
-      "addCurrency": "Agregar",
+      "noMoreCurrencies": "No quedan más monedas por agregar",
       "removeCurrency": "Quitar {{code}}",
       "noExtraCurrencies": "Sin monedas extra agregadas.",
-      "roundUp": "Redondeo para ahorro",
-      "roundUpHint": "Guarda la diferencia de cada gasto",
       "hideBalances": "Ocultar saldos",
-      "hideBalancesHint": "Difumina montos en toda la app"
+      "hideBalancesHint": "Difumina montos en el Panel, el saldo de cuenta y Ahorros"
     },
     "billing": {
       "title": "Plan, uso y facturación",
@@ -1417,6 +1415,7 @@
     "CARD_LIMIT_REQUIRED": "Ingresa un tope para esta tarjeta de crédito.",
     "PARENT_CARD_INVALID": "La tarjeta principal seleccionada no es válida.",
     "INVALID_CURRENT_PASSWORD": "La contraseña actual no es correcta.",
+    "CURRENCY_IN_USE": "No puedes quitar esta moneda: todavía la usa algún registro tuyo.",
     "ACCOUNT_DISABLED": "Esta cuenta está deshabilitada.",
     "PAYMENT_EXCEEDS_REMAINING": "El monto supera lo que queda por pagar de esta facturación.",
     "TRANSFER_SAME_ACCOUNT": "El origen y el destino deben ser cuentas distintas.",

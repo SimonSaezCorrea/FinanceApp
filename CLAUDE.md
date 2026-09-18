@@ -1189,7 +1189,54 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (019 — implemented): specs/019-credit-card-prepayment/plan.md
+Current plan (020 — implemented): specs/020-profile-financial-settings/plan.md
+(Rediseño de "Personalización financiera" en el perfil. Elimina por completo "Inicio del ciclo
+mensual" (`User.billingCycleStartDay`) y "Presupuesto mensual objetivo" (`User.monthlyBudgetTarget`)
+— columna, contrato y endpoint, no solo UI — y el switch decorativo "Redondeo para ahorro" (nunca
+persistía). Implementa de verdad "Monedas extra" (`User.extraCurrencies`): todo selector de moneda
+de la app (crear/editar cuenta, tope de tarjeta, transacción, meta de ahorro, recurrente, plan de
+cuotas, deuda) se acota al universo `preferredCurrency + extraCurrencies` del usuario logueado —
+colapsando a un valor de texto estático (sin desplegable) cuando no hay monedas extra — vía un hook
++ componente compartido nuevos en `domains/reference/` (`useAllowedCurrencies`/`CurrencyField`), en
+vez de editar cada uno de los 8 formularios por separado. **Bloqueo nuevo, decisión explícita del
+usuario**: no se puede quitar una moneda de `extraCurrencies` mientras algún registro del usuario la
+esté usando — 8 puertos de solo lectura nuevos (`CurrencyUsageLookupPort`, uno por tabla con columna
+`currency`: `bank-account`, `transaction`, `installment-plan`, `debt`, `savings-goal`,
+`savings-entry`, `recurring-expense`, `card-limit`), mismo patrón que `BankAccountLookupPort.
+accountOwned`, consultados por `UpdatePreferencesHandler` antes de aplicar el patch — nunca dentro
+del agregado `User`, que se mantiene puro. Nuevo error `CURRENCY_IN_USE` (409). Implementa de verdad
+"Ocultar saldos" (`User.hideBalances`): `MaskedAmount` (hoy sin capacidad de revelar) gana un toggle
+tipo switch **independiente por monto** (estado local, sin store global, se resetea al salir de la
+vista) y su cobertura se amplía de "solo patrimonio neto + tarjetas de cuenta" a también el saldo de
+cuenta en su vista de detalle y **toda** cifra de dinero de Ahorros (ahorrado, objetivo, ritmo,
+faltante — sin distinguir saldo real de cifras de planificación). Explícitamente NO se toca
+Movimientos, Deudas, Recurrentes ni Cuotas/Facturación. Sin validación de moneda en el backend al
+crear/editar registros (la restricción es solo de qué se *ofrece* en los selectores, FR-005 del
+spec dice "ofrecer", no "validar") — decisión de alcance para no expandir la feature a una regla de
+integridad de datos no pedida. `budgetAlertThreshold` (sección Notificaciones, distinta de
+"Personalización financiera") queda fuera de alcance a propósito. Sin migración (`db push`).
+**Hallazgos de `/speckit-analyze` corregidos antes de implementar**: (1) `debt` y `recurring-expense`
+eran los únicos 2 de los 8 dominios sin `*.data.module.ts` propio (todo el repositorio vivía en el
+módulo de orquestación) — se extrajeron primero (mismo tratamiento que `installment-plan` en
+specs/014) para que `user.module.ts` no tuviera que importar el módulo de orquestación completo solo
+para llegar al puerto nuevo. (2) El Panel mostraba dinero sin enmascarar en 3 de sus 4 widgets
+(`MonthFlowCard`, `CategoryDonut`, `UpcomingPaymentsCard`) — solo `NetWorthCard` estaba cableado;
+los tres se sumaron a la cobertura de `MaskedAmount`. Varios textos de Ahorros mezclaban un monto con
+texto no-monetario en una sola clave i18n interpolada (`noteWithClosed`, `paceValue`, `groups.count`,
+`status.complete/overdue/shortOnPace`) — se partieron en pares prefix/suffix (es+en) para poder
+enmascarar solo la cifra sin ocultar el texto alrededor. **Migrar los 8 formularios a `CurrencyField`
+rompió 7 archivos de test** que instanciaban esos componentes sin `AuthProvider` (ahora requerido
+por `useAllowedCurrencies`) o con un fixture de usuario sin `extraCurrencies` — todos corregidos
+(mock de `authApi.me` + `waitFor` donde hacía falta). **Verificado de punta a punta**: `pnpm --filter
+@finance/api test:unit` [592/592], `test:integration` [acotado a los 9 dominios tocados, 71/71] y
+`test:e2e` [140/140, incluye el nuevo escenario `CURRENCY_IN_USE`]; `pnpm --filter @finance/web test`
+[266/266]; `pnpm --filter @finance/contracts test` [86/86]; `typecheck` y `check:boundaries` limpios
+en ambos paquetes; `prettier --check`/`--write` acotado a los archivos tocados. **No verificado
+visualmente en navegador** — este entorno no tiene herramienta de automatización de navegador
+disponible (documentado en `docs/PENDING.md` §9). Ver
+`specs/020-profile-financial-settings/{spec,research,data-model,tasks}.md` para el detalle completo.)
+
+Prior plan: specs/019-credit-card-prepayment/plan.md
 (Prepago de tarjeta de crédito: permitir abonar contra el período OPEN de una cuenta CREDIT_CARD
 antes de que cierre, sin esperar una facturación ya cerrada. `CreditStatement` gana
 `prepaidAmount` (acumulador), restado dentro de `totalFor()` — así el período OPEN y una eventual

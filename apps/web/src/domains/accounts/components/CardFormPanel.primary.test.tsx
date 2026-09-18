@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
 
@@ -18,7 +18,25 @@ vi.mock("../../reference/hooks/useReference", () => ({
   useInstitutions: () => ({ data: [] }),
   useCountries: () => ({ data: [{ id: "cl", alpha2: "CL", alpha3: "CHL", name: "Chile" }] }),
 }));
-vi.mock("../../auth/api/authApi", () => ({ authApi: { me: () => Promise.resolve(null) } }));
+// The extra-currency section depends on the logged-in user's own
+// preferredCurrency + extraCurrencies (specs/020) — USD must be one of the
+// user's extras for it to appear as an option here.
+vi.mock("../../auth/api/authApi", () => ({
+  authApi: {
+    me: () =>
+      Promise.resolve({
+        id: "u1",
+        email: "a@b.com",
+        name: "Ana",
+        preferredCurrency: "CLP",
+        extraCurrencies: ["USD"],
+        locale: "es",
+        theme: "dark",
+        memberSinceYear: 2024,
+        hideBalances: false,
+      }),
+  },
+}));
 
 const account = {
   id: "a1",
@@ -69,7 +87,7 @@ const primary: accounts.Card = {
 };
 
 describe("CardFormPanel · primary card extra limits", () => {
-  it("offers the extra-currency section when editing the primary", () => {
+  it("offers the extra-currency section when editing the primary", async () => {
     render(
       <I18nextProvider i18n={i18n}>
         <AuthProvider>
@@ -84,7 +102,7 @@ describe("CardFormPanel · primary card extra limits", () => {
         </AuthProvider>
       </I18nextProvider>,
     );
-    expect(screen.getByText(i18n.t("cards.form.extraLimits"))).toBeDefined();
+    await waitFor(() => expect(screen.getByText(i18n.t("cards.form.extraLimits"))).toBeDefined());
     expect(screen.getByRole("button", { name: i18n.t("cards.form.addLimit") })).toBeDefined();
   });
 });

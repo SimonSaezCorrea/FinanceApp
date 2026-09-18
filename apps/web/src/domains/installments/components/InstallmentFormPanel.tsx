@@ -3,9 +3,9 @@ import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cardMetaLine } from "../../accounts/lib/accountMeta";
+import { CurrencyField } from "../../reference/components/CurrencyField";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
-import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { CategoryIcon } from "../../../shared/ui/category-icon";
 import {
@@ -17,7 +17,6 @@ import {
   FormTextareaField,
 } from "../../../shared/ui/form";
 import { FormSurface } from "../../../shared/ui/overlay";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { schedulePreview } from "../lib/schedulePreview";
 import { ImmutableFieldsNotice } from "./ImmutableFieldsNotice";
 import { SchedulePreview } from "./SchedulePreview";
@@ -88,13 +87,6 @@ export function InstallmentFormPanel({
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
   const { data: currencies } = useCurrencies();
-  const currencyOptions = (currencies ?? []).map((c) => ({
-    value: c.code,
-    label: currencyPickerLabel(c.code),
-  }));
-  if (value.currency && !currencyOptions.some((o) => o.value === value.currency)) {
-    currencyOptions.unshift({ value: value.currency, label: currencyPickerLabel(value.currency) });
-  }
   const creating = mode === "create";
   // Whether the hero total/count/start-date fields are editable right now —
   // always true creating, and true editing too once nothing on the plan is
@@ -204,14 +196,12 @@ export function InstallmentFormPanel({
                 aria-label={t("installments.form.totalPrincipal")}
                 className="min-w-0 flex-1 border-0 bg-transparent p-0 text-4xl font-bold tabular-nums text-destructive placeholder:text-destructive/50 focus-visible:outline-none"
               />
-              <SearchableSelect
+              <CurrencyField
                 id="plan-currency"
                 variant="inline"
                 className="w-auto shrink-0"
                 value={value.currency}
                 onChange={(currency) => onChange({ currency })}
-                options={currencyOptions}
-                displayValue={value.currency}
                 searchPlaceholder={t("common.search")}
                 noResultsLabel={t("common.noResults")}
                 aria-label={t("installments.form.currency")}

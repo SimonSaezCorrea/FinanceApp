@@ -1,10 +1,12 @@
 import { CircleCheck, ClockAlert, TrendingDown, TrendingUp } from "lucide-react";
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { savings } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { cn } from "../../../shared/lib/cn";
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import type { SavingsGoalStatus } from "../lib/savingsMetrics";
 
 interface Props {
@@ -27,30 +29,45 @@ export function SavingsGoalStatusLine({ status, goal, currency, className }: Rea
     });
 
   let icon: React.ReactNode = null;
-  let text: string;
+  let text: ReactNode;
   let toneClass = "text-muted-foreground";
 
   switch (status.kind) {
     case "complete":
       icon = <CircleCheck className="h-3 w-3" aria-hidden />;
-      text = t("savings.status.complete", { amount: money(goal.targetAmount) });
+      text = (
+        <>
+          {t("savings.status.completePrefix")}
+          <MaskedAmount>{money(goal.targetAmount)}</MaskedAmount>
+        </>
+      );
       toneClass = "text-success";
       break;
     case "overdue":
       icon = <ClockAlert className="h-3 w-3" aria-hidden />;
-      text = t("savings.status.overdue", {
-        date: goal.deadline ? dateLabel(goal.deadline) : "",
-        amount: money(status.missing),
-      });
+      text = (
+        <>
+          {t("savings.status.overduePrefix", {
+            date: goal.deadline ? dateLabel(goal.deadline) : "",
+          })}
+          <MaskedAmount>{money(status.missing)}</MaskedAmount>
+          {t("savings.status.overdueSuffix")}
+        </>
+      );
       toneClass = "text-destructive";
       break;
     case "shortOnPace":
       icon = <TrendingDown className="h-3 w-3" aria-hidden />;
-      text = t("savings.status.shortOnPace", {
-        eta: status.etaLabel,
-        deadline: goal.deadline ? dateLabel(goal.deadline) : "",
-        needed: money(status.neededPerMonth),
-      });
+      text = (
+        <>
+          {t("savings.status.shortOnPacePrefix", {
+            eta: status.etaLabel,
+            deadline: goal.deadline ? dateLabel(goal.deadline) : "",
+          })}
+          <MaskedAmount>{money(status.neededPerMonth)}</MaskedAmount>
+          {t("savings.status.shortOnPaceSuffix")}
+        </>
+      );
       toneClass = "text-warning";
       break;
     case "onTrack":

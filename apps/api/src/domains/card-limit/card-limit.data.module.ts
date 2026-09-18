@@ -1,6 +1,8 @@
 import { Module } from "@nestjs/common";
 
+import { CARD_LIMIT_CURRENCY_USAGE } from "./domain/ports/currency-usage-lookup.port";
 import { CARD_LIMIT_REPOSITORY } from "./domain/ports/card-limit.repository.port";
+import { PrismaCardLimitCurrencyUsageLookupRepository } from "./infrastructure/prisma-card-limit-currency-usage-lookup.repository";
 import { PrismaCardLimitRepository } from "./infrastructure/prisma-card-limit.repository";
 
 /**
@@ -10,7 +12,10 @@ import { PrismaCardLimitRepository } from "./infrastructure/prisma-card-limit.re
  * (orchestration modules import leaves, never the other way round).
  */
 @Module({
-  providers: [{ provide: CARD_LIMIT_REPOSITORY, useClass: PrismaCardLimitRepository }],
-  exports: [CARD_LIMIT_REPOSITORY],
+  providers: [
+    { provide: CARD_LIMIT_REPOSITORY, useClass: PrismaCardLimitRepository },
+    { provide: CARD_LIMIT_CURRENCY_USAGE, useClass: PrismaCardLimitCurrencyUsageLookupRepository },
+  ],
+  exports: [CARD_LIMIT_REPOSITORY, CARD_LIMIT_CURRENCY_USAGE],
 })
 export class CardLimitDataModule {}

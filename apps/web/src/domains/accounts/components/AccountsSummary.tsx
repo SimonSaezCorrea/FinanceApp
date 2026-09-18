@@ -4,6 +4,7 @@ import type { accounts } from "@finance/contracts";
 import { formatMoney, sumMoney } from "@finance/money";
 
 import { convertApprox } from "../../../shared/lib/fx";
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { accountsSummary, type CurrencyTotal } from "../lib/grouping";
 
 /**
@@ -55,7 +56,11 @@ export function AccountsSummary({
             card taller than the right-hand column and left it visually top-heavy. */}
         <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
           <p className="text-[26px] font-bold tabular-nums leading-none tracking-tight sm:text-[30px]">
-            {unavailable ? dash : money(inPrimary(net, heroCurrency), heroCurrency)}
+            {unavailable ? (
+              dash
+            ) : (
+              <MaskedAmount>{money(inPrimary(net, heroCurrency), heroCurrency)}</MaskedAmount>
+            )}
           </p>
           {!unavailable &&
             net
@@ -65,7 +70,7 @@ export function AccountsSummary({
                   key={n.currency}
                   className="rounded-full bg-chip px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground"
                 >
-                  {money(n.total, n.currency)}
+                  <MaskedAmount>{money(n.total, n.currency)}</MaskedAmount>
                 </span>
               ))}
         </div>
@@ -77,13 +82,21 @@ export function AccountsSummary({
         <div className="text-right">
           <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.assets")}</p>
           <p className="mt-1 text-base font-semibold tabular-nums text-success">
-            {unavailable ? dash : money(inPrimary(assets, heroCurrency), heroCurrency)}
+            {unavailable ? (
+              dash
+            ) : (
+              <MaskedAmount>{money(inPrimary(assets, heroCurrency), heroCurrency)}</MaskedAmount>
+            )}
           </p>
         </div>
         <div className="text-right">
           <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.cardDebt")}</p>
           <p className="mt-1 text-base font-semibold tabular-nums text-accent">
-            {unavailable ? dash : `−${money(inPrimary(cardDebt, heroCurrency), heroCurrency)}`}
+            {unavailable ? (
+              dash
+            ) : (
+              <MaskedAmount>{`−${money(inPrimary(cardDebt, heroCurrency), heroCurrency)}`}</MaskedAmount>
+            )}
           </p>
         </div>
       </div>

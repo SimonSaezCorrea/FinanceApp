@@ -45,6 +45,10 @@ async function seedFullUser(passwordHash: string) {
       identifierType: "RUT",
       identifierValue: "12.345.678-5",
       phone: "+56 9 8765 4321",
+      // Matches the USD accounts/debt seeded below (Tenpo savings, Fintual Global,
+      // Roberto's debt) — without this, every currency selector in the app would
+      // collapse to a static CLP field despite the user genuinely holding USD.
+      extraCurrencies: ["USD"],
     },
   });
 

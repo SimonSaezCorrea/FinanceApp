@@ -76,43 +76,61 @@ gratis), historial de facturas desde el proveedor de pagos.
   a futuro (los datos ya existen vía `transactions`), pero no se implementó en esta pasada.
 - **Respaldo automático mensual**: switch local, sin ningún job de respaldo real corriendo.
 
-### 7. Personalización financiera — partes reales vs. placeholder
+### 7. Personalización financiera — resuelto en specs/020 (2026-09-18)
 
-Persistido y real (columna `User`, editable, sin efecto de negocio adicional todavía):
+La sección se redujo a los dos controles que aportan valor real, y ambos quedaron implementados de
+verdad — no queda ningún placeholder aquí:
 
-- `billingCycleStartDay` (día de inicio del ciclo mensual) — **no está conectado** al cálculo de "mes
-  actual" del Panel (`domains/dashboard`); ese cálculo sigue usando el mes calendario.
-- `monthlyBudgetTarget` (presupuesto mensual objetivo) y `budgetAlertThreshold` (% de aviso, usado en
-  el slider de Notificaciones) — no disparan ninguna alerta real (no hay sistema de notificaciones
-  real, ver specs/008 FR-008 original).
-- `extraCurrencies` (monedas extra a seguir, cualquier moneda de la lista de referencia — no solo
-  CLP/USD/EUR) — selección persistida, con selector de agregar + chips de las ya elegidas (para no
-  mostrar más de 100 monedas como botones sueltos), pero **sin conversión de divisas en vivo**: no se
-  muestra ningún monto convertido, solo la preferencia de qué monedas seguir.
+- **"Inicio del ciclo mensual" (`billingCycleStartDay`) y "Presupuesto mensual objetivo"
+  (`monthlyBudgetTarget`/`budgetAlertThreshold`'s partner field) — eliminados por completo**: columna,
+  campo de contrato, endpoint y UI. Nunca alimentaron ningún cálculo real y se descartó la idea, no
+  solo la UI. `budgetAlertThreshold` en sí (sección Notificaciones, no "Personalización financiera")
+  sigue existiendo sin efecto — ver el punto sobre Notificaciones más abajo.
+- **"Redondeo para ahorro" — eliminado**: era 100% decorativo (estado local de React, ni se
+  persistía).
+- **"Monedas extra" (`extraCurrencies`) — implementado de verdad**: ahora acota el universo de
+  monedas que ofrece cualquier selector de moneda de la app (crear/editar cuenta, tope de tarjeta en
+  otra moneda, transacción, meta de ahorro, gasto recurrente, plan de cuotas, deuda) a
+  `preferredCurrency + extraCurrencies` del usuario — colapsando a un valor estático (sin
+  desplegable) cuando no hay monedas extra configuradas (`domains/reference/components/
+CurrencyField.tsx` + `useAllowedCurrencies`). El backend bloquea con `CURRENCY_IN_USE` (409) quitar
+  una moneda extra mientras algún registro del usuario la siga usando (8 puertos de solo lectura,
+  uno por tabla con columna `currency`). Sigue **sin conversión de divisas en vivo** — nunca se
+  muestra un monto convertido, solo se amplía qué monedas se pueden elegir.
 
-Local-only, no persistido (idéntico al patrón ya usado por el switch de 2FA):
+### 8. "Ocultar saldos" — real, cobertura ampliada en specs/020 (2026-09-18)
 
-- "Redondeo para ahorro" — no hay lógica de redondeo de transacciones ni de aporte automático a
-  metas de ahorro.
+Preferencia real y persistida (`User.hideBalances`); `MaskedAmount`
+(`domains/profile/components/MaskedAmount.tsx`) enmascara el monto cuando está activo y ahora
+soporta revelado temporal (clic/tap alterna, independiente por instancia). Cableado en:
 
-### 8. "Ocultar saldos" — real pero con cobertura parcial
+- **Panel completo**: patrimonio neto y monto por moneda (`NetWorthCard.tsx`), flujo del mes
+  (`MonthFlowCard.tsx`), tooltip de gasto por categoría (`CategoryDonut.tsx`), próximos pagos
+  (`UpcomingPaymentsCard.tsx`).
+- Tarjetas visuales de cuenta: saldo, cupo usado/límite (`AccountVisualCard.tsx`, usado en Panel/
+  Wallet, y `AccountCard.tsx`, el componente distinto que usa la vista "Cuentas" — se pasó por alto
+  en la primera pasada de specs/020 y se corrigió después).
+- Vista "Cuentas": el resumen superior (patrimonio total, activos, deuda tarjetas —
+  `AccountsSummary.tsx`) y el valor aproximado en moneda principal de cada tarjeta (`AccountCard.tsx`).
+- Detalle de cuenta: saldo actual (`AccountDetailRoute.tsx`).
+- **Ahorros completo**: total ahorrado, ritmo, faltante, ahorro libre (`SavingsTotalCard.tsx`), monto
+  ahorrado/objetivo por meta (`SavingsGoalRow.tsx`, `SavingsGoalTable.tsx`), próximos vencimientos y
+  mejor ritmo (`SavingsInsightsRail.tsx`), total por grupo (`SavingsGroupHeader.tsx`), línea de estado
+  de una meta (`SavingsGoalStatusLine.tsx`).
 
-Es una preferencia real y persistida (`User.hideBalances`), con efecto real: `MaskedAmount` (nuevo
-primitivo en `domains/profile/components/MaskedAmount.tsx`) enmascara el monto cuando está activo.
-Cableado hoy en:
-
-- Panel: patrimonio neto y montos de moneda secundaria (`NetWorthCard.tsx`).
-- Tarjetas visuales de cuenta: saldo, cupo usado/límite (`AccountVisualCard.tsx`).
-
-**No cableado todavía** (mismo patrón, solo falta aplicarlo): tablas de movimientos, KPIs de
-Cuotas/Deudas/Ahorros/Inversiones, y cualquier otro monto mostrado fuera de esos dos componentes.
-Extender la cobertura es mecánico — envolver el monto con `<MaskedAmount>` donde corresponda.
+**Deliberadamente NO cableado** (alcance acotado a propósito, no una omisión): Movimientos, Deudas,
+Recurrentes, Cuotas/Facturación — esas vistas siempre muestran montos reales, sin importar el estado
+del switch (un test de regresión basado en escaneo de código,
+`MaskedAmount.scope.test.ts`, falla si algún archivo de esos 4 dominios llega a importar
+`MaskedAmount`).
 
 ### 9. Verificación manual
 
-Todo lo anterior fue verificado en su forma actual (visual fiel al diseño, sin llamadas de red falsas,
-tests unitarios cubriendo el comportamiento real vs. el placeholder) — ver `specs/008-user-profile/`
-para el detalle de spec/plan/tasks.
+Lo anterior (specs/008) fue verificado en su forma original — ver `specs/008-user-profile/` para el
+detalle de spec/plan/tasks. La revisión de specs/020 se verificó con la suite automatizada completa
+(unit/integration/e2e de `apps/api`, unit de `apps/web`, typecheck y `check:boundaries` en ambos
+paquetes) — sin verificación visual en navegador real, ya que este entorno no cuenta con herramienta
+de automatización de navegador.
 
 ## Cuentas — facturación de crédito (períodos dinámicos + generación automática)
 

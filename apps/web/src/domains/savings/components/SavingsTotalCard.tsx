@@ -1,9 +1,11 @@
+import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { savings } from "@finance/contracts";
 import { formatMoney, toMoney } from "@finance/money";
 
 import { Card } from "../../../shared/ui/card";
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { goalVisual } from "../lib/goalVisual";
 import { sumAmounts, thisMonthTotal } from "../lib/savingsMetrics";
 
@@ -54,28 +56,38 @@ export function SavingsTotalCard({
         <div className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground">{t("savings.total.label")}</span>
           <span className="text-[38px] font-semibold tracking-tight tabular-nums text-foreground">
-            {money(summary.totalSaved)}
+            <MaskedAmount>{money(summary.totalSaved)}</MaskedAmount>
           </span>
           <span className="text-xs text-muted-foreground">
-            {toMoney(closedTotal).greaterThan(0)
-              ? t("savings.total.noteWithClosed", {
-                  count: openGoals.length,
-                  amount: money(closedTotal),
-                })
-              : t("savings.total.note", { count: openGoals.length })}
+            {toMoney(closedTotal).greaterThan(0) ? (
+              <>
+                {t("savings.total.noteWithClosedPrefix", { count: openGoals.length })}
+                <MaskedAmount>{money(closedTotal)}</MaskedAmount>
+                {t("savings.total.noteWithClosedSuffix")}
+              </>
+            ) : (
+              t("savings.total.note", { count: openGoals.length })
+            )}
           </span>
         </div>
         <div className="flex flex-wrap gap-8">
           <Stat
             label={t("savings.total.thisMonth")}
-            value={money(thisMonthTotal(entries))}
+            value={<MaskedAmount>{money(thisMonthTotal(entries))}</MaskedAmount>}
             tone="success"
           />
           <Stat
             label={t("savings.total.pace")}
-            value={t("savings.total.paceValue", { amount: money(summary.pace) })}
+            value={
+              <MaskedAmount>
+                {t("savings.total.paceValue", { amount: money(summary.pace) })}
+              </MaskedAmount>
+            }
           />
-          <Stat label={t("savings.total.missing")} value={money(summary.missing)} />
+          <Stat
+            label={t("savings.total.missing")}
+            value={<MaskedAmount>{money(summary.missing)}</MaskedAmount>}
+          />
         </div>
       </div>
 
@@ -90,12 +102,13 @@ export function SavingsTotalCard({
         {segments.map((s) => (
           <span key={s.id} className="flex items-center gap-1.5 text-xs text-muted-foreground">
             <span className="h-2 w-2 rounded-[2px]" style={{ backgroundColor: s.color }} />
-            {s.title} {money(s.amount)}
+            {s.title} <MaskedAmount>{money(s.amount)}</MaskedAmount>
           </span>
         ))}
         <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <span className="h-2 w-2 rounded-[2px] bg-track" />
-          {t("savings.total.freeSavingsLegend")} {money(summary.freeSavingsTotal)}
+          {t("savings.total.freeSavingsLegend")}{" "}
+          <MaskedAmount>{money(summary.freeSavingsTotal)}</MaskedAmount>
         </span>
       </div>
     </Card>
@@ -106,7 +119,7 @@ function Stat({
   label,
   value,
   tone,
-}: Readonly<{ label: string; value: string; tone?: "success" }>) {
+}: Readonly<{ label: string; value: ReactNode; tone?: "success" }>) {
   return (
     <div className="flex flex-col gap-[3px]">
       <span className="text-xs text-muted-foreground">{label}</span>

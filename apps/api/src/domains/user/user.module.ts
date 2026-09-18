@@ -4,7 +4,14 @@ import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
 import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
+import { CardLimitDataModule } from "../card-limit/card-limit.data.module";
 import { CountryDataModule } from "../country/country.data.module";
+import { DebtDataModule } from "../debt/debt.data.module";
+import { InstallmentPlanDataModule } from "../installment-plan/installment-plan.data.module";
+import { RecurringExpenseDataModule } from "../recurring-expense/recurring-expense.data.module";
+import { SavingsEntryDataModule } from "../savings-entry/savings-entry.data.module";
+import { SavingsGoalDataModule } from "../savings-goal/savings-goal.data.module";
+import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { ChangePasswordHandler } from "./application/commands/change-password.handler";
 import { DeactivateAccountHandler } from "./application/commands/deactivate-account.handler";
 import { LoginHandler } from "./application/commands/login.handler";
@@ -31,8 +38,21 @@ const commandHandlers = [
 const queryHandlers = [GetMeQueryHandler];
 
 @Module({
-  // Registration creates the user's cash account, so it needs that table's port.
-  imports: [CqrsModule, JwtModule.register({}), CountryDataModule, BankAccountDataModule],
+  // Registration creates the user's cash account, so it needs that table's port; the other 7
+  // leaves are only for UpdatePreferencesHandler's currency-in-use check (specs/020).
+  imports: [
+    CqrsModule,
+    JwtModule.register({}),
+    CountryDataModule,
+    BankAccountDataModule,
+    TransactionDataModule,
+    InstallmentPlanDataModule,
+    DebtDataModule,
+    SavingsGoalDataModule,
+    SavingsEntryDataModule,
+    RecurringExpenseDataModule,
+    CardLimitDataModule,
+  ],
   controllers: [AuthController],
   providers: [
     ...commandHandlers,

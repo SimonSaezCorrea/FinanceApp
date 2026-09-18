@@ -1,22 +1,50 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
 
 import type { accounts } from "@finance/contracts";
 
 import i18n from "../../../i18n";
+import { AuthProvider } from "../../auth/hooks/useAuth";
 import { CardForm } from "./CardForm";
 
-function renderForm(
+const me = vi.fn();
+vi.mock("../../auth/api/authApi", () => ({
+  authApi: { me: (...args: unknown[]) => me(...args), logout: vi.fn() },
+}));
+
+function baseUser(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "u1",
+    email: "a@b.com",
+    name: "Ana",
+    preferredCurrency: "CLP",
+    extraCurrencies: [],
+    locale: "es",
+    theme: "dark",
+    memberSinceYear: 2024,
+    hideBalances: false,
+    ...overrides,
+  };
+}
+
+async function renderForm(
   onSubmit = vi.fn(),
   props: Partial<{
     hasExistingPrimary: boolean;
     accountCurrency: string;
     accountType: accounts.AccountType;
     currencies: { id: string; code: string; numeric: string; name: string }[];
+    extraCurrencies: string[];
   }> = {},
 ) {
+  me.mockResolvedValue(
+    baseUser({
+      preferredCurrency: props.accountCurrency ?? "CLP",
+      extraCurrencies: props.extraCurrencies ?? [],
+    }),
+  );
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   if (props.currencies) {
     qc.setQueryData(["currencies"], props.currencies);
@@ -24,16 +52,21 @@ function renderForm(
   render(
     <QueryClientProvider client={qc}>
       <I18nextProvider i18n={i18n}>
-        <CardForm
-          submitLabel="add"
-          accountCurrency={props.accountCurrency ?? "CLP"}
-          accountType={props.accountType ?? "CHECKING"}
-          hasExistingPrimary={props.hasExistingPrimary ?? false}
-          onSubmit={onSubmit}
-        />
+        <AuthProvider>
+          <CardForm
+            submitLabel="add"
+            accountCurrency={props.accountCurrency ?? "CLP"}
+            accountType={props.accountType ?? "CHECKING"}
+            hasExistingPrimary={props.hasExistingPrimary ?? false}
+            onSubmit={onSubmit}
+          />
+        </AuthProvider>
       </I18nextProvider>
     </QueryClientProvider>,
   );
+  // The logged-in user resolves asynchronously (AuthProvider's own effect) —
+  // wait for the form's first field before interacting with it.
+  await waitFor(() => expect(screen.getByLabelText(i18n.t("cards.form.last4"))).toBeDefined());
   return onSubmit;
 }
 
@@ -44,14 +77,14 @@ function fillExpiry() {
 }
 
 describe("CardForm", () => {
-  it("has no field that could ever collect a full card number — only the last 4 digits", () => {
-    renderForm();
+  it("has no field that could ever collect a full card number — only the last 4 digits", async () => {
+    await renderForm();
     expect(screen.queryByLabelText(/número/i)).toBeNull();
     expect(screen.getByLabelText(i18n.t("cards.form.last4"))).toBeDefined();
   });
 
-  it("submits the last 4 digits + parsed MM/AA expiry (non-credit kind, no limit fields)", () => {
-    const onSubmit = renderForm();
+  it("submits the last 4 digits + parsed MM/AA expiry (non-credit kind, no limit fields)", async () => {
+    const onSubmit = await renderForm();
     fireEvent.change(screen.getByLabelText(i18n.t("cards.form.name")), {
       target: { value: "Visa" },
     });
@@ -68,8 +101,8 @@ describe("CardForm", () => {
     expect(payload.expiryYear).toBe(2029);
   });
 
-  it("defaults the name to the card kind when left blank", () => {
-    const onSubmit = renderForm();
+  it("defaults the name to the card kind when left blank", async () => {
+    const onSubmit = await renderForm();
     fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
       target: { value: "4821" },
     });
@@ -80,8 +113,8 @@ describe("CardForm", () => {
     expect(payload.name).toBe(i18n.t("cards.kind.DEBIT"));
   });
 
-  it("rejects a last4 that isn't exactly 4 digits", () => {
-    const onSubmit = renderForm();
+  it("rejects a last4 that isn't exactly 4 digits", async () => {
+    const onSubmit = await renderForm();
     fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
       target: { value: "12" },
     });
@@ -90,8 +123,8 @@ describe("CardForm", () => {
     expect(onSubmit).not.toHaveBeenCalled();
   });
 
-  it("rejects an out-of-range expiry month (e.g. 13/29)", () => {
-    const onSubmit = renderForm();
+  it("rejects an out-of-range expiry month (e.g. 13/29)", async () => {
+    const onSubmit = await renderForm();
     fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
       target: { value: "1234" },
     });
@@ -103,8 +136,8 @@ describe("CardForm", () => {
   });
 
   describe("CREDIT — first card on the account (becomes primary)", () => {
-    it("requires a limit before submitting", () => {
-      const onSubmit = renderForm(vi.fn(), { accountType: "CREDIT_CARD" });
+    it("requires a limit before submitting", async () => {
+      const onSubmit = await renderForm(vi.fn(), { accountType: "CREDIT_CARD" });
       fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
         target: { value: "1234" },
       });
@@ -114,8 +147,11 @@ describe("CardForm", () => {
       expect(screen.getByText(i18n.t("cards.errors.limitRequired"))).toBeDefined();
     });
 
-    it("submits with usesAccountPool: true and a limits entry in the account currency", () => {
-      const onSubmit = renderForm(vi.fn(), { accountType: "CREDIT_CARD", accountCurrency: "CLP" });
+    it("submits with usesAccountPool: true and a limits entry in the account currency", async () => {
+      const onSubmit = await renderForm(vi.fn(), {
+        accountType: "CREDIT_CARD",
+        accountCurrency: "CLP",
+      });
       fireEvent.change(screen.getByLabelText(i18n.t("cards.form.last4")), {
         target: { value: "1234" },
       });
@@ -131,10 +167,11 @@ describe("CardForm", () => {
       expect(payload.limits).toEqual([{ currency: "CLP", limitAmount: "1500000" }]);
     });
 
-    it("offers an optional extra-currency limit, excluding the account's own currency", () => {
-      const onSubmit = renderForm(vi.fn(), {
+    it("offers an optional extra-currency limit, excluding the account's own currency", async () => {
+      const onSubmit = await renderForm(vi.fn(), {
         accountType: "CREDIT_CARD",
         accountCurrency: "CLP",
+        extraCurrencies: ["EUR", "USD"],
         currencies: [
           { id: "1", code: "CLP", numeric: "152", name: "Peso chileno" },
           { id: "2", code: "EUR", numeric: "978", name: "Euro" },
@@ -170,10 +207,11 @@ describe("CardForm", () => {
       ]);
     });
 
-    it("submits successfully with the extra-currency row left empty (fully optional)", () => {
-      const onSubmit = renderForm(vi.fn(), {
+    it("submits successfully with the extra-currency row left empty (fully optional)", async () => {
+      const onSubmit = await renderForm(vi.fn(), {
         accountType: "CREDIT_CARD",
         accountCurrency: "CLP",
+        extraCurrencies: ["USD"],
         currencies: [
           { id: "1", code: "CLP", numeric: "152", name: "Peso chileno" },
           { id: "2", code: "USD", numeric: "840", name: "US Dollar" },
@@ -197,8 +235,8 @@ describe("CardForm", () => {
   });
 
   describe("CREDIT — additional card (a primary already exists)", () => {
-    it("defaults to sharing the account pool with no limit rows required", () => {
-      const onSubmit = renderForm(vi.fn(), {
+    it("defaults to sharing the account pool with no limit rows required", async () => {
+      const onSubmit = await renderForm(vi.fn(), {
         accountType: "CREDIT_CARD",
         hasExistingPrimary: true,
       });
@@ -214,8 +252,8 @@ describe("CardForm", () => {
       expect(payload.limits).toBeUndefined();
     });
 
-    it("requires at least one limit row after switching to 'own limit'", () => {
-      const onSubmit = renderForm(vi.fn(), {
+    it("requires at least one limit row after switching to 'own limit'", async () => {
+      const onSubmit = await renderForm(vi.fn(), {
         accountType: "CREDIT_CARD",
         hasExistingPrimary: true,
       });

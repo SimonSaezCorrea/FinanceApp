@@ -33,8 +33,6 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     identifierValue: null,
     phone: null,
     hideBalances: false,
-    monthlyBudgetTarget: null,
-    billingCycleStartDay: null,
     extraCurrencies: [],
     budgetAlertThreshold: 80,
     ...overrides,

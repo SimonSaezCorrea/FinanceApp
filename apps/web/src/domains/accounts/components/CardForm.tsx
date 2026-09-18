@@ -4,17 +4,16 @@ import { useTranslation } from "react-i18next";
 
 import { accounts as accountsContract, type accounts } from "@finance/contracts";
 
-import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
-import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { Button } from "../../../shared/ui/button";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
 import { DetailRow } from "../../../shared/ui/detail-row";
 import { Field } from "../../../shared/ui/field";
 import { FormSelectField, FormSwitchField, FormTextField } from "../../../shared/ui/form";
 import { Input } from "../../../shared/ui/input";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { Segmented } from "../../../shared/ui/segmented";
+import { CurrencyField } from "../../reference/components/CurrencyField";
+import { useAllowedCurrencies } from "../../reference/hooks/useAllowedCurrencies";
 import { Switch } from "../../../shared/ui/switch";
 import { cleanExpiryInput, formatExpiry, parseExpiry } from "../lib/cardExpiry";
 
@@ -102,7 +101,7 @@ export function CardForm({
   onSubmit,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
-  const { data: currencies } = useCurrencies();
+  const allowedCurrencies = useAllowedCurrencies();
   const [name, setName] = useState(initial?.name ?? "");
   const kindOptions = accountsContract.allowedCardKinds(accountType);
   // The account's type decides the ONE kind a card on it can be
@@ -160,15 +159,12 @@ export function CardForm({
 
   const willBePrimary = kind === "CREDIT" && !hasExistingPrimary;
   const isAdditionalCredit = kind === "CREDIT" && hasExistingPrimary;
-
-  const currencyOptions = (currencies ?? []).map((c) => ({
-    value: c.code,
-    label: currencyPickerLabel(c.code),
-    description: c.name,
-  }));
   // The primary's mandatory field already owns the account's own currency —
-  // its optional extra-currency rows can only add OTHER currencies.
-  const extraCurrencyOptions = currencyOptions.filter((o) => o.value !== accountCurrency);
+  // its optional extra-currency rows can only add OTHER currencies (still
+  // within the user's own preferredCurrency + extraCurrencies universe).
+  const extraCurrencyCodes = allowedCurrencies
+    .map((c) => c.code)
+    .filter((code) => code !== accountCurrency);
 
   function addLimitRow(defaultCurrency: string) {
     setLimits((prev) => [...prev, { currency: defaultCurrency, limitAmount: "" }]);
@@ -315,7 +311,7 @@ export function CardForm({
             />
           </Field>
 
-          {extraCurrencyOptions.length > 0 ? (
+          {extraCurrencyCodes.length > 0 ? (
             <div className="flex flex-col gap-2 border-t pt-2">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -326,7 +322,7 @@ export function CardForm({
                   variant="outline"
                   size="sm"
                   className="shrink-0 whitespace-nowrap"
-                  onClick={() => addLimitRow(extraCurrencyOptions[0]!.value)}
+                  onClick={() => addLimitRow(extraCurrencyCodes[0]!)}
                 >
                   <Plus className="h-3.5 w-3.5" aria-hidden />
                   {t("cards.form.addLimit")}
@@ -339,11 +335,10 @@ export function CardForm({
               {limits.map((limit, i) => (
                 <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
                   <Field label={t("cards.form.currency")}>
-                    <SearchableSelect
+                    <CurrencyField
                       value={limit.currency}
                       onChange={(v) => updateLimitRow(i, { currency: v })}
-                      options={extraCurrencyOptions}
-                      displayValue={limit.currency}
+                      exclude={[accountCurrency]}
                       searchPlaceholder={t("common.search")}
                       noResultsLabel={t("common.noResults")}
                       aria-label={t("cards.form.currency")}
@@ -420,11 +415,9 @@ export function CardForm({
               {limits.map((limit, i) => (
                 <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
                   <Field label={t("cards.form.currency")}>
-                    <SearchableSelect
+                    <CurrencyField
                       value={limit.currency}
                       onChange={(v) => updateLimitRow(i, { currency: v })}
-                      options={currencyOptions}
-                      displayValue={limit.currency}
                       searchPlaceholder={t("common.search")}
                       noResultsLabel={t("common.noResults")}
                       aria-label={t("cards.form.currency")}

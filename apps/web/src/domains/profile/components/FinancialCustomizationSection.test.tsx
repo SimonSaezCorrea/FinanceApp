@@ -34,8 +34,6 @@ function baseUser(overrides: Record<string, unknown> = {}) {
     theme: "dark",
     memberSinceYear: 2024,
     hideBalances: false,
-    monthlyBudgetTarget: null,
-    billingCycleStartDay: 1,
     extraCurrencies: [],
     budgetAlertThreshold: 80,
     ...overrides,
@@ -43,6 +41,25 @@ function baseUser(overrides: Record<string, unknown> = {}) {
 }
 
 describe("FinancialCustomizationSection", () => {
+  // specs/020, User Story 3: "Inicio del ciclo mensual", "Presupuesto mensual
+  // objetivo" and "Redondeo para ahorro" never had a real effect and were
+  // removed — only "Monedas extra" and "Ocultar saldos" remain.
+  it("only offers 'Monedas extra' and 'Ocultar saldos' — the 3 decorative controls are gone", async () => {
+    me.mockResolvedValue(baseUser());
+    render(
+      <Providers>
+        <FinancialCustomizationSection />
+      </Providers>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.financial.title") }));
+
+    expect(screen.getByText(i18n.t("profile.financial.extraCurrencies"))).toBeDefined();
+    expect(screen.getByText(i18n.t("profile.financial.hideBalances"))).toBeDefined();
+    expect(screen.queryByText(i18n.t("profile.financial.cycleStart"))).toBeNull();
+    expect(screen.queryByText(i18n.t("profile.financial.budgetTarget"))).toBeNull();
+    expect(screen.queryByText(i18n.t("profile.financial.roundUp"))).toBeNull();
+  });
+
   it("toggling 'Ocultar saldos' persists via updatePreferences (real, not a placeholder)", async () => {
     updatePreferences.mockResolvedValue(baseUser({ hideBalances: true }));
     me.mockResolvedValue(baseUser());
@@ -57,7 +74,7 @@ describe("FinancialCustomizationSection", () => {
     await waitFor(() => expect(updatePreferences).toHaveBeenCalledWith({ hideBalances: true }));
   });
 
-  it("selecting an extra currency persists the array", async () => {
+  it("selecting an extra currency from the dropdown adds it immediately (no separate 'Agregar' step)", async () => {
     updatePreferences.mockResolvedValue(baseUser({ extraCurrencies: ["USD"] }));
     me.mockResolvedValue(baseUser());
     render(
@@ -70,9 +87,23 @@ describe("FinancialCustomizationSection", () => {
       await screen.findByRole("button", { name: i18n.t("profile.financial.extraCurrencies") }),
     );
     fireEvent.click(await screen.findByText("USD · Dólar estadounidense"));
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.financial.addCurrency") }));
     await waitFor(() =>
       expect(updatePreferences).toHaveBeenCalledWith({ extraCurrencies: ["USD"] }),
     );
+  });
+
+  it("disables the dropdown once every currency is already selected", async () => {
+    me.mockResolvedValue(baseUser({ extraCurrencies: ["USD", "EUR"] }));
+    render(
+      <Providers>
+        <FinancialCustomizationSection />
+      </Providers>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.financial.title") }));
+    const dropdown = await screen.findByRole("button", {
+      name: i18n.t("profile.financial.extraCurrencies"),
+    });
+    expect(dropdown.hasAttribute("disabled")).toBe(true);
+    expect(screen.getByText(i18n.t("profile.financial.noMoreCurrencies"))).toBeDefined();
   });
 });

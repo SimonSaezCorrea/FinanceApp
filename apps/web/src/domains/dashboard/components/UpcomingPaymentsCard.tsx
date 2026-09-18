@@ -5,6 +5,7 @@ import { formatMoney } from "@finance/money";
 
 import { cn } from "../../../shared/lib/cn";
 import { Card } from "../../../shared/ui/card";
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import type { UpcomingKind, UpcomingPayment } from "../lib/metrics";
 
 // Date-chip tone per payment kind (red debt / blue recurring / amber installment).
@@ -54,7 +55,9 @@ export function UpcomingPaymentsCard({ items }: { items: UpcomingPayment[] }) {
                   </span>
                 </span>
                 <span className="shrink-0 tabular-nums text-sm font-medium">
-                  {formatMoney(p.amount, { locale: i18n.language, currency: p.currency })}
+                  <MaskedAmount>
+                    {formatMoney(p.amount, { locale: i18n.language, currency: p.currency })}
+                  </MaskedAmount>
                 </span>
               </li>
             );

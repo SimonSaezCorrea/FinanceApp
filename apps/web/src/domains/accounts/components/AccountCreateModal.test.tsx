@@ -4,6 +4,7 @@ import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import i18n from "../../../i18n";
+import { AuthProvider } from "../../auth/hooks/useAuth";
 import { accountsApi } from "../api/accountsApi";
 import { AccountCreateModal } from "./AccountCreateModal";
 
@@ -18,23 +19,43 @@ vi.mock("../../reference/api/referenceApi", () => ({
       .mockResolvedValue([{ id: "1", code: "CLP", numeric: "152", name: "Peso chileno" }]),
   },
 }));
+vi.mock("../../auth/api/authApi", () => ({
+  authApi: {
+    me: () =>
+      Promise.resolve({
+        id: "u1",
+        email: "a@b.com",
+        name: "Ana",
+        preferredCurrency: "CLP",
+        extraCurrencies: [],
+        locale: "es",
+        theme: "dark",
+        memberSinceYear: 2024,
+        hideBalances: false,
+      }),
+    logout: vi.fn(),
+  },
+}));
 
-function renderModal() {
+async function renderModal() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <QueryClientProvider client={qc}>
       <I18nextProvider i18n={i18n}>
-        <AccountCreateModal open onOpenChange={vi.fn()} />
+        <AuthProvider>
+          <AccountCreateModal open onOpenChange={vi.fn()} />
+        </AuthProvider>
       </I18nextProvider>
     </QueryClientProvider>,
   );
+  await waitFor(() => expect(screen.getByLabelText(i18n.t("accounts.form.name"))).toBeDefined());
 }
 
 describe("AccountCreateModal — CREDIT_CARD primary card shortcut", () => {
   beforeEach(() => vi.clearAllMocks());
 
   it("auto-creates the primary card from the últimos-4-dígitos/vencimiento fields, as the first card, instead of requiring a separate 'add card' step", async () => {
-    renderModal();
+    await renderModal();
 
     fireEvent.change(screen.getByLabelText(i18n.t("accounts.form.name")), {
       target: { value: "CMR Falabella" },
@@ -71,7 +92,7 @@ describe("AccountCreateModal — CREDIT_CARD primary card shortcut", () => {
   });
 
   it("blocks submission with an inline error when últimos 4 dígitos is missing for a CREDIT_CARD account", async () => {
-    renderModal();
+    await renderModal();
 
     fireEvent.change(screen.getByLabelText(i18n.t("accounts.form.name")), {
       target: { value: "CMR Falabella" },

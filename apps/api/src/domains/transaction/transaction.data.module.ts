@@ -1,7 +1,9 @@
 import { Module } from "@nestjs/common";
 
+import { TRANSACTION_CURRENCY_USAGE } from "./domain/ports/currency-usage-lookup.port";
 import { TRANSACTION_SUMS_REPOSITORY } from "./domain/ports/transaction-sums.repository.port";
 import { TRANSACTION_WRITER_REPOSITORY } from "./domain/ports/transaction-writer.repository.port";
+import { PrismaTransactionCurrencyUsageLookupRepository } from "./infrastructure/prisma-transaction-currency-usage-lookup.repository";
 import { PrismaTransactionSumsRepository } from "./infrastructure/prisma-transaction-sums.repository";
 import { PrismaTransactionWriterRepository } from "./infrastructure/prisma-transaction-writer.repository";
 
@@ -17,7 +19,11 @@ import { PrismaTransactionWriterRepository } from "./infrastructure/prisma-trans
   providers: [
     { provide: TRANSACTION_SUMS_REPOSITORY, useClass: PrismaTransactionSumsRepository },
     { provide: TRANSACTION_WRITER_REPOSITORY, useClass: PrismaTransactionWriterRepository },
+    {
+      provide: TRANSACTION_CURRENCY_USAGE,
+      useClass: PrismaTransactionCurrencyUsageLookupRepository,
+    },
   ],
-  exports: [TRANSACTION_SUMS_REPOSITORY, TRANSACTION_WRITER_REPOSITORY],
+  exports: [TRANSACTION_SUMS_REPOSITORY, TRANSACTION_WRITER_REPOSITORY, TRANSACTION_CURRENCY_USAGE],
 })
 export class TransactionDataModule {}

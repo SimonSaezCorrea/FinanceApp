@@ -15,8 +15,7 @@ import { UnsettleDebtHandler } from "./application/commands/unsettle-debt.handle
 import { UpdateDebtHandler } from "./application/commands/update-debt.handler";
 import { GetDebtQueryHandler } from "./application/queries/get-debt.handler";
 import { ListDebtsQueryHandler } from "./application/queries/list-debts.handler";
-import { DEBT_REPOSITORY } from "./domain/ports/debt.repository.port";
-import { PrismaDebtRepository } from "./infrastructure/prisma-debt.repository";
+import { DebtDataModule } from "./debt.data.module";
 import { DebtsController } from "./presentation/debts.controller";
 
 const commandHandlers = [
@@ -38,14 +37,10 @@ const queryHandlers = [ListDebtsQueryHandler, GetDebtQueryHandler];
     IdempotencyRecordDataModule,
     BankAccountDataModule,
     TransactionDataModule,
+    DebtDataModule,
   ],
   controllers: [DebtsController],
-  providers: [
-    ...commandHandlers,
-    ...queryHandlers,
-    { provide: DEBT_REPOSITORY, useClass: PrismaDebtRepository },
-    JwtAuthGuard,
-  ],
+  providers: [...commandHandlers, ...queryHandlers, JwtAuthGuard],
   exports: [],
 })
 export class DebtModule {}

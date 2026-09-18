@@ -7,6 +7,7 @@ import { formatMoney } from "@finance/money";
 
 import { cn } from "../../../shared/lib/cn";
 import { convertApprox } from "../../../shared/lib/fx";
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { ACCOUNT_ICON, isCreditType } from "./accountVisuals";
 
 /**
@@ -85,14 +86,18 @@ export function AccountCard({
           isCredit && "text-accent",
         )}
       >
-        {isCredit ? `−${money(account.creditUsed)}` : money(account.currentBalance)}
+        <MaskedAmount>
+          {isCredit ? `−${money(account.creditUsed)}` : money(account.currentBalance)}
+        </MaskedAmount>
       </p>
 
       {/* Approximate value in the user's currency (static rates — see shared/lib/fx). */}
       {approxInPrimary !== null ? (
         <p className="mt-2 text-[11px] tabular-nums text-dim">
-          ≈ {formatMoney(approxInPrimary, { locale: i18n.language, currency: primaryCurrency })}{" "}
-          {primaryCurrency}
+          <MaskedAmount>
+            ≈ {formatMoney(approxInPrimary, { locale: i18n.language, currency: primaryCurrency })}{" "}
+            {primaryCurrency}
+          </MaskedAmount>
         </p>
       ) : null}
 
@@ -137,7 +142,9 @@ export function AccountCard({
             <div className="h-full rounded-full bg-accent" style={{ width: `${usage.pct}%` }} />
           </div>
           <p className="mt-1.5 whitespace-nowrap text-[10px] tabular-nums text-dim">
-            {money(account.creditUsed)} / {money(account.creditLimit)}
+            <MaskedAmount>
+              {money(account.creditUsed)} / {money(account.creditLimit)}
+            </MaskedAmount>
           </p>
         </div>
       ) : null}

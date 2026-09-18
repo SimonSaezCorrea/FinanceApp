@@ -7,6 +7,7 @@ import { formatMoney } from "@finance/money";
 import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
+import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { goalVisual } from "../lib/goalVisual";
 import { goalPct, goalStatus, isGoalCloseable, isGoalComplete } from "../lib/savingsMetrics";
 
@@ -92,10 +93,12 @@ export function SavingsGoalTable({
 
                 <TD numeric>
                   <span className="font-medium tabular-nums text-foreground">
-                    {money(goal.savedAmount)}
+                    <MaskedAmount>{money(goal.savedAmount)}</MaskedAmount>
                   </span>
                   <span className="block text-xs tabular-nums text-muted-foreground">
-                    {t("savings.row.of", { amount: money(goal.targetAmount) })}
+                    <MaskedAmount>
+                      {t("savings.row.of", { amount: money(goal.targetAmount) })}
+                    </MaskedAmount>
                   </span>
                 </TD>
 

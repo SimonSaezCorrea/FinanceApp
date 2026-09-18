@@ -3,10 +3,10 @@ import { useTranslation } from "react-i18next";
 
 import type { accounts as accountsContract, debts, installments } from "@finance/contracts";
 import { accountMetaLine } from "../../accounts/lib/accountMeta";
+import { CurrencyField } from "../../reference/components/CurrencyField";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
-import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import {
   FormBigTextField,
@@ -19,7 +19,6 @@ import {
 } from "../../../shared/ui/form";
 import { FormSurface } from "../../../shared/ui/overlay";
 import { Segmented } from "../../../shared/ui/segmented";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
 
 export interface DebtFormValue {
   direction: debts.DebtDirection;
@@ -100,14 +99,6 @@ export function DebtFormPanel({
     ? "placeholder:text-success/50"
     : "placeholder:text-destructive/50";
 
-  const currencyOptions = (currencies ?? []).map((c) => ({
-    value: c.code,
-    label: currencyPickerLabel(c.code),
-  }));
-  if (value.currency && !currencyOptions.some((o) => o.value === value.currency)) {
-    currencyOptions.unshift({ value: value.currency, label: currencyPickerLabel(value.currency) });
-  }
-
   const accountOptions = [
     { value: "", label: t("debts.form.noAccount") },
     ...accounts.map((a) => ({
@@ -166,14 +157,12 @@ export function DebtFormPanel({
               amountPlaceholderToneClass,
             )}
           />
-          <SearchableSelect
+          <CurrencyField
             id="debt-currency"
             variant="inline"
             className="ml-auto w-auto shrink-0"
             value={value.currency}
             onChange={(currency) => onChange({ currency })}
-            options={currencyOptions}
-            displayValue={value.currency}
             searchPlaceholder={t("common.search")}
             noResultsLabel={t("common.noResults")}
             aria-label={t("debts.form.currency")}

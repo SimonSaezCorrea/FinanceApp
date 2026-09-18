@@ -5,11 +5,11 @@ import { accounts as accountsContract } from "@finance/contracts";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { CurrencyField } from "../../reference/components/CurrencyField";
 import { institutionOption } from "../../reference/lib/institutionOption";
 import { useCountries, useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
-import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { Button } from "../../../shared/ui/button";
 import { DetailRow } from "../../../shared/ui/detail-row";
@@ -19,7 +19,6 @@ import {
   FormSelectField,
   FormTextField,
 } from "../../../shared/ui/form";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { SectionLabel } from "../../../shared/ui/section-label";
 import { Segmented } from "../../../shared/ui/segmented";
 import { Switch } from "../../../shared/ui/switch";
@@ -217,23 +216,6 @@ export function AccountForm({
     const saved = allInstitutions?.find((i) => i.id === values.institutionId);
     if (saved) institutionOptions.splice(1, 0, institutionOption(saved));
   }
-  // Short code as the label (CLP, UF, USD…), full name underneath — the
-  // reverse of "Full name (CODE)" on one line, which just truncated in this
-  // field's own narrow half-column ("Dólar est…").
-  const currencyOptions = (currencies ?? []).map((c) => ({
-    value: c.code,
-    label: currencyPickerLabel(c.code),
-    description: c.name,
-  }));
-  // Ensure the current currency is selectable even before the list loads.
-  if (values.currency && !currencyOptions.some((o) => o.value === values.currency)) {
-    currencyOptions.unshift({
-      value: values.currency,
-      label: currencyPickerLabel(values.currency),
-      description: "",
-    });
-  }
-
   const hasCreditPool = isCreditLineType || hasCreditCard;
   const locale = groupingLocaleFor(values.currency, i18n.language);
   const limitNum = Number(values.creditLimit || 0);
@@ -307,14 +289,12 @@ export function AccountForm({
                     : t("accounts.form.initialBalance")
                 }
               />
-              <SearchableSelect
+              <CurrencyField
                 id="acc-cur"
                 variant="inline"
                 className="w-auto shrink-0"
                 value={values.currency}
                 onChange={(v) => set("currency", v)}
-                options={currencyOptions}
-                displayValue={values.currency}
                 searchPlaceholder={t("common.search")}
                 noResultsLabel={t("common.noResults")}
                 aria-label={t("accounts.form.currency")}

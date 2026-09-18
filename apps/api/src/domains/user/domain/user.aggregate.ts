@@ -1,5 +1,4 @@
 import type { auth } from "@finance/contracts";
-import { moneyToString } from "@finance/money";
 
 import { UserDeactivatedEvent } from "./events/user-deactivated.event";
 import { AccountDisabledError } from "./errors";
@@ -27,8 +26,6 @@ export interface UserProps {
   identifierValue: string | null;
   phone: string | null;
   hideBalances: boolean;
-  monthlyBudgetTarget: string | null;
-  billingCycleStartDay: number | null;
   extraCurrencies: string[];
   budgetAlertThreshold: number | null;
 }
@@ -55,8 +52,6 @@ export type PreferencesPatch = Partial<{
   locale: auth.CurrentUser["locale"];
   theme: auth.CurrentUser["theme"];
   hideBalances: boolean;
-  monthlyBudgetTarget: string | null;
-  billingCycleStartDay: number | null;
   extraCurrencies: string[];
   budgetAlertThreshold: number | null;
 }>;
@@ -151,10 +146,6 @@ export class User {
     if (patch.locale !== undefined) this.props.locale = patch.locale;
     if (patch.theme !== undefined) this.props.theme = patch.theme;
     if (patch.hideBalances !== undefined) this.props.hideBalances = patch.hideBalances;
-    if (patch.monthlyBudgetTarget !== undefined)
-      this.props.monthlyBudgetTarget = patch.monthlyBudgetTarget;
-    if (patch.billingCycleStartDay !== undefined)
-      this.props.billingCycleStartDay = patch.billingCycleStartDay;
     if (patch.extraCurrencies !== undefined) this.props.extraCurrencies = patch.extraCurrencies;
     if (patch.budgetAlertThreshold !== undefined)
       this.props.budgetAlertThreshold = patch.budgetAlertThreshold;
@@ -195,10 +186,6 @@ export class User {
       identifierValue: this.props.identifierValue,
       phone: this.props.phone,
       hideBalances: this.props.hideBalances,
-      monthlyBudgetTarget: this.props.monthlyBudgetTarget
-        ? moneyToString(this.props.monthlyBudgetTarget)
-        : null,
-      billingCycleStartDay: this.props.billingCycleStartDay,
       extraCurrencies: this.props.extraCurrencies,
       budgetAlertThreshold: this.props.budgetAlertThreshold,
     };

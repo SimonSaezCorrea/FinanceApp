@@ -25,8 +25,6 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     identifierValue: null,
     phone: null,
     hideBalances: false,
-    monthlyBudgetTarget: null,
-    billingCycleStartDay: null,
     extraCurrencies: [],
     budgetAlertThreshold: 80,
     ...overrides,
@@ -61,12 +59,11 @@ describe("User aggregate", () => {
     expect(contract.countryName).toBe("Chile");
   });
 
-  it("toContract() returns null age/countryName/monthlyBudgetTarget when unset", () => {
+  it("toContract() returns null age/countryName when unset", () => {
     const user = User.fromPersistence(baseProps());
     const contract = user.toContract();
     expect(contract.age).toBeNull();
     expect(contract.countryName).toBeNull();
-    expect(contract.monthlyBudgetTarget).toBeNull();
   });
 
   it("applyProfileUpdate() sets fields and derives countryName only when countryId changes", () => {
@@ -90,14 +87,11 @@ describe("User aggregate", () => {
     const user = User.fromPersistence(baseProps());
     user.applyPreferencesUpdate({
       hideBalances: true,
-      monthlyBudgetTarget: "1200000",
-      billingCycleStartDay: 5,
       extraCurrencies: ["USD", "EUR"],
       budgetAlertThreshold: 90,
     });
     const contract = user.toContract();
     expect(contract.hideBalances).toBe(true);
-    expect(contract.monthlyBudgetTarget).toBe("1200000.0000");
     expect(contract.extraCurrencies).toEqual(["USD", "EUR"]);
     expect(contract.budgetAlertThreshold).toBe(90);
   });

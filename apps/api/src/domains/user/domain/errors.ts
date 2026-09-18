@@ -59,3 +59,15 @@ export class InvalidCurrentPasswordError extends DomainError {
     super("INVALID_CURRENT_PASSWORD", 401);
   }
 }
+
+/**
+ * Thrown when a preferences patch tries to remove a currency from
+ * `extraCurrencies` that some record of the user's (account, movement,
+ * instalment plan, debt, savings goal/entry, recurring expense or card
+ * sub-limit) still uses (specs/020, FR-004a).
+ */
+export class CurrencyInUseError extends DomainError {
+  constructor() {
+    super("CURRENCY_IN_USE", 409, "extraCurrencies");
+  }
+}

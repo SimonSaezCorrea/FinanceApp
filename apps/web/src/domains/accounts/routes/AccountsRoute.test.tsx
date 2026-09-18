@@ -14,7 +14,7 @@ vi.mock("../api/accountsApi", () => ({
 
 // The route reads the signed-in user's preferred currency (for the "≈" hints).
 vi.mock("../../auth/hooks/useAuth", () => ({
-  useAuth: () => ({ user: { preferredCurrency: "CLP" } }),
+  useAuth: () => ({ user: { preferredCurrency: "CLP", extraCurrencies: [] } }),
 }));
 
 function renderRoute() {

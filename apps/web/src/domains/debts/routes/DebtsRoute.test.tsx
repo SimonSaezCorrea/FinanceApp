@@ -41,7 +41,7 @@ vi.mock("../../accounts/hooks/useAccounts", () => ({
 }));
 
 vi.mock("../../auth/hooks/useAuth", () => ({
-  useAuth: () => ({ user: { preferredCurrency: "USD" } }),
+  useAuth: () => ({ user: { preferredCurrency: "USD", extraCurrencies: [] } }),
 }));
 
 function makeDebt(overrides: Partial<debts.Debt> = {}): debts.Debt {

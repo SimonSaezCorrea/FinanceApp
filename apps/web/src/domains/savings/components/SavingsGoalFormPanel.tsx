@@ -3,14 +3,18 @@ import { useTranslation } from "react-i18next";
 
 import type { savings } from "@finance/contracts";
 
+import { CurrencyField } from "../../reference/components/CurrencyField";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
-import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
-import { FormBigTextField, FormDateField, FormNotice, FormTextareaField } from "../../../shared/ui/form";
+import {
+  FormBigTextField,
+  FormDateField,
+  FormNotice,
+  FormTextareaField,
+} from "../../../shared/ui/form";
 import { FormSurface } from "../../../shared/ui/overlay";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import { colorForToken, GOAL_COLOR_TOKENS } from "../lib/goalVisual";
 
 export interface SavingsGoalFormValue {
@@ -62,14 +66,6 @@ export function SavingsGoalFormPanel({
   const creating = mode === "create";
   const locale = groupingLocaleFor(value.currency, i18n.language);
 
-  const currencyOptions = (currencies ?? []).map((c) => ({
-    value: c.code,
-    label: currencyPickerLabel(c.code),
-  }));
-  if (currencies && !currencies.some((c) => c.code === value.currency)) {
-    currencyOptions.unshift({ value: value.currency, label: currencyPickerLabel(value.currency) });
-  }
-
   const canSubmit = value.title.trim().length > 0 && value.targetAmount.trim().length > 0;
 
   return (
@@ -113,14 +109,12 @@ export function SavingsGoalFormPanel({
                 "min-w-0 max-w-[220px] flex-1 border-0 bg-transparent p-0 text-[32px] font-semibold tabular-nums text-accent placeholder:text-accent/50 focus-visible:outline-none",
               )}
             />
-            <SearchableSelect
+            <CurrencyField
               id="savings-goal-currency"
               variant="inline"
               className="ml-auto w-auto shrink-0"
               value={value.currency}
               onChange={(currency) => onChange({ currency })}
-              options={currencyOptions}
-              displayValue={value.currency}
               searchPlaceholder={t("common.search")}
               noResultsLabel={t("common.noResults")}
               disabled={currencyLocked}

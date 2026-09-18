@@ -1040,8 +1040,9 @@
       "label": "Saved",
       "note_one": "{{count}} open goal · includes free savings",
       "note_other": "{{count}} open goals · includes free savings",
-      "noteWithClosed_one": "{{count}} open goal · includes free savings · {{amount}} in closed goals, outside this total",
-      "noteWithClosed_other": "{{count}} open goals · includes free savings · {{amount}} in closed goals, outside this total",
+      "noteWithClosedPrefix_one": "{{count}} open goal · includes free savings · ",
+      "noteWithClosedPrefix_other": "{{count}} open goals · includes free savings · ",
+      "noteWithClosedSuffix": " in closed goals, outside this total",
       "thisMonth": "This month",
       "pace": "Pace",
       "paceValue": "{{amount}}/mo",
@@ -1052,8 +1053,9 @@
       "live": "In progress",
       "late": "Overdue",
       "done": "Completed",
-      "count_one": "{{count}} goal · {{amount}} saved",
-      "count_other": "{{count}} goals · {{amount}} saved"
+      "countPrefix_one": "{{count}} goal · ",
+      "countPrefix_other": "{{count}} goals · ",
+      "countSuffix": " saved"
     },
     "row": {
       "registerContribution": "Add contribution",
@@ -1069,9 +1071,11 @@
       "actions": "Actions"
     },
     "status": {
-      "complete": "Goal met · {{amount}}",
-      "overdue": "Due {{date}} · {{amount}} short",
-      "shortOnPace": "At this pace you'll reach it in {{eta}}, after {{deadline}} · raise it to {{needed}}/mo",
+      "completePrefix": "Goal met · ",
+      "overduePrefix": "Due {{date}} · ",
+      "overdueSuffix": " short",
+      "shortOnPacePrefix": "At this pace you'll reach it in {{eta}}, after {{deadline}} · raise it to ",
+      "shortOnPaceSuffix": "/mo",
       "onTrackWithDeadline": "At this pace you'll reach it in {{eta}} · due {{deadline}}",
       "onTrackNoDeadline": "At this pace you'll reach it in {{eta}} · no deadline",
       "noContributions": "No contributions yet"
@@ -1261,20 +1265,14 @@
     },
     "financial": {
       "title": "Financial customization",
-      "cycleStart": "Monthly cycle start",
-      "cycleStartHint": "When your financial month begins",
-      "budgetTarget": "Monthly budget target",
-      "budgetTargetHint": "Base for the spending thermometer",
       "extraCurrencies": "Extra currencies",
       "extraCurrenciesHint": "Additional currencies you want to track, besides your primary one",
       "addCurrencyPlaceholder": "Choose a currency…",
-      "addCurrency": "Add",
+      "noMoreCurrencies": "No more currencies left to add",
       "removeCurrency": "Remove {{code}}",
       "noExtraCurrencies": "No extra currencies added.",
-      "roundUp": "Round-up savings",
-      "roundUpHint": "Saves the difference on every expense",
       "hideBalances": "Hide balances",
-      "hideBalancesHint": "Blurs amounts across the app"
+      "hideBalancesHint": "Blurs amounts on the Panel, account balances and Savings"
     },
     "billing": {
       "title": "Plan, usage & billing",
@@ -1417,6 +1415,7 @@
     "CARD_LIMIT_REQUIRED": "Enter a limit for this credit card.",
     "PARENT_CARD_INVALID": "The selected primary card is invalid.",
     "INVALID_CURRENT_PASSWORD": "Your current password is incorrect.",
+    "CURRENCY_IN_USE": "You can't remove this currency: some record of yours still uses it.",
     "ACCOUNT_DISABLED": "This account is disabled.",
     "PAYMENT_EXCEEDS_REMAINING": "The amount is more than what this statement still owes.",
     "TRANSFER_SAME_ACCOUNT": "Source and destination must be different accounts.",

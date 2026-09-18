@@ -1,7 +1,6 @@
 import { z } from "zod";
 
 import { isValidRut } from "./rut";
-import { moneyString } from "../common/money";
 import { rowId } from "../common/row-id";
 import { identifierTypeSchema } from "../reference";
 
@@ -52,15 +51,16 @@ export const currentUserSchema = z.object({
   identifierType: identifierTypeSchema.nullable(),
   identifierValue: z.string().nullable(),
   phone: z.string().nullable(),
-  /** Masks monetary amounts across the app when true (real effect, partial coverage — see PENDING.md). */
+  /** Masks monetary amounts on the Panel, an account's own balance and Ahorros when true
+   * (specs/020) — never Movimientos, Deudas, Recurrentes or Cuotas/Facturación. */
   hideBalances: z.boolean(),
-  monthlyBudgetTarget: moneyString.nullable(),
-  /** Day of month (1-28) the user's financial cycle starts. Stored, not yet wired anywhere (PENDING.md). */
-  billingCycleStartDay: z.number().int().min(1).max(28).nullable(),
   /** Extra currencies the user wants tracked, on top of preferredCurrency (any ISO 4217 code from
-   * the reference `Currency` list — not restricted to the primary three). Selection only — no live FX. */
+   * the reference `Currency` list — not restricted to the primary three) — also the universe
+   * offered by every "pick a currency for a new record" selector in the app. Selection only — no
+   * live FX. A currency can't be removed while any of the user's own records still use it. */
   extraCurrencies: z.array(currencyCodeSchema),
-  /** % of monthlyBudgetTarget to warn at. Stored for the Notifications UI only — no real alert is sent. */
+  /** % of a monthly budget target at which to warn the user. Stored for the Notifications UI
+   * only — no real alert is sent, and no budget-target field exists to compute it against. */
   budgetAlertThreshold: z.number().int().min(1).max(100).nullable(),
 });
 export type CurrentUser = z.infer<typeof currentUserSchema>;
@@ -97,8 +97,6 @@ export const updatePreferencesRequestSchema = z.object({
   locale: localeSchema.optional(),
   theme: themeSchema.optional(),
   hideBalances: z.boolean().optional(),
-  monthlyBudgetTarget: moneyString.nullable().optional(),
-  billingCycleStartDay: z.number().int().min(1).max(28).nullable().optional(),
   extraCurrencies: z.array(currencyCodeSchema).optional(),
   budgetAlertThreshold: z.number().int().min(1).max(100).nullable().optional(),
 });
