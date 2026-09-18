@@ -1,15 +1,77 @@
-import { type FormEvent, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Laptop, Smartphone } from "lucide-react";
+import { Eye, EyeOff, Laptop, Smartphone } from "lucide-react";
+import { toast } from "sonner";
 
 import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { cn } from "../../../shared/lib/cn";
 import { Button } from "../../../shared/ui/button";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
-import { ResponsiveSurface } from "../../../shared/ui/overlay";
+import { FormSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Switch } from "../../../shared/ui/switch";
 import { useProfileMutations } from "../hooks/useProfile";
+
+/** A password input with a show/hide toggle — the eye icon reveals it
+ * temporarily, same interaction language `MaskedAmount` already uses for
+ * balances elsewhere in the profile. */
+function PasswordField({
+  id,
+  label,
+  autoComplete,
+  value,
+  onChange,
+  error,
+  toggleLabel,
+}: Readonly<{
+  id: string;
+  label: string;
+  autoComplete: "current-password" | "new-password";
+  value: string;
+  onChange: (value: string) => void;
+  error?: string | null;
+  toggleLabel: string;
+}>) {
+  const [show, setShow] = useState(false);
+  return (
+    <Field label={label} htmlFor={id} error={error}>
+      <div className="relative">
+        <Input
+          id={id}
+          type={show ? "text" : "password"}
+          autoComplete={autoComplete}
+          value={value}
+          required
+          onChange={(e) => onChange(e.target.value)}
+          className={cn("pr-10", error && "border-destructive")}
+        />
+        <button
+          type="button"
+          onClick={() => setShow((s) => !s)}
+          aria-label={toggleLabel}
+          aria-pressed={show}
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+        >
+          {show ? (
+            <EyeOff className="h-4 w-4" aria-hidden />
+          ) : (
+            <Eye className="h-4 w-4" aria-hidden />
+          )}
+        </button>
+      </div>
+    </Field>
+  );
+}
+
+/** A single live requirement/match hint under a password field — muted while
+ * unmet, success-toned once satisfied. Only the rule the backend actually
+ * enforces (min 8 chars) is shown; no invented strength rules. */
+function PasswordHint({ ok, label }: Readonly<{ ok: boolean; label: string }>) {
+  return (
+    <p className={cn("mt-1.5 text-xs", ok ? "text-success" : "text-muted-foreground")}>{label}</p>
+  );
+}
 
 function ChangePasswordDialog({
   open,
@@ -19,62 +81,101 @@ function ChangePasswordDialog({
   const { changePassword } = useProfileMutations();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentError, setCurrentError] = useState<string | null>(null);
 
-  async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError(null);
+  const lengthOk = newPassword.length >= 8;
+  const hasConfirm = confirmPassword.length > 0;
+  const matchOk = hasConfirm && confirmPassword === newPassword;
+  const canSubmit = currentPassword.length > 0 && lengthOk && matchOk;
+
+  function reset() {
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setCurrentError(null);
+  }
+
+  function close(next: boolean) {
+    if (!next) reset();
+    onOpenChange(next);
+  }
+
+  async function handleSubmit() {
+    setCurrentError(null);
     try {
       await changePassword.mutateAsync({ currentPassword, newPassword });
-      setCurrentPassword("");
-      setNewPassword("");
-      onOpenChange(false);
+      toast.success(t("profile.security.password.updated"));
+      close(false);
     } catch (err) {
       const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
-      setError(t(`errors.${code}`));
+      // INVALID_CURRENT_PASSWORD is about the CURRENT password field — anchor
+      // it there instead of showing it under the new one (the old bug).
+      if (code === "INVALID_CURRENT_PASSWORD") {
+        setCurrentError(t(`errors.${code}`));
+      } else {
+        toast.error(t(`errors.${code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
+      }
     }
   }
 
   return (
-    <ResponsiveSurface
+    <FormSurface
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={close}
+      mode="edit"
+      surface="panel"
+      eyebrow={t("profile.security.title")}
       title={t("profile.security.password.change")}
+      description={t("profile.security.password.hint8")}
+      submitLabel={t("profile.security.password.save")}
+      onSubmit={handleSubmit}
+      canSubmit={canSubmit}
+      submitting={changePassword.isPending}
     >
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        <Field label={t("profile.security.password.current")}>
-          <Input
-            id="current-password"
-            type="password"
-            autoComplete="current-password"
-            value={currentPassword}
-            required
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            aria-label={t("profile.security.password.current")}
-          />
-        </Field>
-        <Field label={t("profile.security.password.new")} error={error}>
-          <Input
+      <div className="flex flex-col gap-5">
+        <PasswordField
+          id="current-password"
+          label={t("profile.security.password.current")}
+          autoComplete="current-password"
+          value={currentPassword}
+          onChange={setCurrentPassword}
+          error={currentError}
+          toggleLabel={t("profile.security.password.toggleCurrent")}
+        />
+        <div>
+          <PasswordField
             id="new-password"
-            type="password"
+            label={t("profile.security.password.new")}
             autoComplete="new-password"
             value={newPassword}
-            required
-            minLength={8}
-            onChange={(e) => setNewPassword(e.target.value)}
-            aria-label={t("profile.security.password.new")}
+            onChange={setNewPassword}
+            toggleLabel={t("profile.security.password.toggleNew")}
           />
-        </Field>
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-            {t("profile.edit.cancel")}
-          </Button>
-          <Button type="submit" disabled={changePassword.isPending}>
-            {t("profile.security.password.save")}
-          </Button>
+          <PasswordHint ok={lengthOk} label={t("profile.security.password.minLength")} />
         </div>
-      </form>
-    </ResponsiveSurface>
+        <div>
+          <PasswordField
+            id="confirm-password"
+            label={t("profile.security.password.confirm")}
+            autoComplete="new-password"
+            value={confirmPassword}
+            onChange={setConfirmPassword}
+            toggleLabel={t("profile.security.password.toggleConfirm")}
+          />
+          {hasConfirm ? (
+            <PasswordHint
+              ok={matchOk}
+              label={t(
+                matchOk
+                  ? "profile.security.password.matchOk"
+                  : "profile.security.password.matchMismatch",
+              )}
+            />
+          ) : null}
+        </div>
+      </div>
+    </FormSurface>
   );
 }
 

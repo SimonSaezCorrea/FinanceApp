@@ -1341,9 +1341,18 @@
       "password": {
         "label": "Password",
         "hint": "You can change it anytime.",
+        "hint8": "Use at least 8 characters.",
         "change": "Change",
         "current": "Current password",
         "new": "New password",
+        "confirm": "Confirm new password",
+        "minLength": "At least 8 characters",
+        "matchOk": "Match",
+        "matchMismatch": "Don't match",
+        "toggleCurrent": "Show or hide current password",
+        "toggleNew": "Show or hide new password",
+        "toggleConfirm": "Show or hide confirmation",
+        "updated": "Password updated",
         "save": "Save"
       },
       "twoFactor": {

@@ -1341,9 +1341,18 @@
       "password": {
         "label": "Contraseña",
         "hint": "Puedes cambiarla cuando quieras.",
+        "hint8": "Usa al menos 8 caracteres.",
         "change": "Cambiar",
         "current": "Contraseña actual",
         "new": "Nueva contraseña",
+        "confirm": "Confirmar nueva contraseña",
+        "minLength": "Mínimo 8 caracteres",
+        "matchOk": "Coinciden",
+        "matchMismatch": "No coinciden",
+        "toggleCurrent": "Mostrar u ocultar contraseña actual",
+        "toggleNew": "Mostrar u ocultar nueva contraseña",
+        "toggleConfirm": "Mostrar u ocultar confirmación",
+        "updated": "Contraseña actualizada",
         "save": "Guardar"
       },
       "twoFactor": {
