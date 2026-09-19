@@ -7,14 +7,17 @@
 (convención de todas las specs anteriores, no una excepción de esta).
 
 **Organization**: Foundational (compartido por ambas historias) → US1 (cambio de contraseña) → US2
-(desactivar MFA) → Polish. US1 y US2 son ambas P1 en el spec; se implementan en ese orden porque
-`DisableMfaHandler` ya tiene la forma transaccional que `ChangePasswordHandler` necesita construir
-desde cero — resolver primero el caso "desde cero" deja el segundo como una repetición mecánica del
-mismo patrón ya probado.
+(desactivar MFA) → Polish. US1 y US2 son ambas P1 en el spec y, según el grafo de dependencias real
+(ver "Dependencies & Execution Order"), independientes entre sí — el orden US1→US2 de este documento
+es solo una RECOMENDACIÓN para un implementador solo (resolver primero el caso "desde cero" de
+`ChangePasswordHandler` deja `DisableMfaHandler` como una repetición mecánica del mismo patrón ya
+probado), no una dependencia que deba respetarse.
 
 ## Format: `[ID] [P?] [Story] Description`
 
-- **[P]**: puede correr en paralelo (archivo distinto, sin dependencias con otra tarea pendiente)
+- **[P]**: archivo distinto de cualquier otra tarea `[P]` de su misma fase — puede asignarse a otra
+  persona en paralelo, aunque declare su propio "Depende de TXXX" (ese prerequisito debe estar
+  resuelto antes de que ESA tarea puntual empiece, no bloquea a las demás `[P]`)
 - **[Story]**: `FOUND` (foundational), `US1`, `US2`, o `POLISH`
 
 ## Path Conventions
@@ -74,9 +77,11 @@ queda cerrada, A sigue viva; un intento fallido (contraseña actual incorrecta) 
 - [ ] T006 [P] [US1] Crear `apps/api/test/integration/domains/user/application/change-password.integration.spec.ts`
       (no existía uno dedicado — ver `research.md`, nota final): contra Postgres real, con 3 sesiones
       de prueba, cambiar la contraseña desde una de ellas y verificar que las otras dos quedan con
-      `closedAt` seteado y la propia sigue con `closedAt: null`; un segundo caso fuerza un error en el
-      paso de sesiones (mock parcial del repositorio) y verifica que el `passwordHash` en la fila
-      `User` NO cambió (atomicidad, FR-007).
+      `closedAt` seteado y la propia sigue con `closedAt: null`. El caso de atomicidad (fallo del paso
+      de sesiones revierte el cambio de contraseña) NO se repite aquí — ya lo cubre T005 a nivel unit
+      con un fake de `SessionRepositoryPort`, la capa correcta para inyectar un fallo (los tests de
+      integración de este repo componen los adapters Prisma REALES, no mocks parciales — ver hallazgo
+      U1 de `/speckit-analyze`).
 - [ ] T007 [P] [US1] Crear `apps/api/test/e2e/domains/user/change-password.http.spec.ts`: escenario
       HTTP completo — login dos veces (sesión A y B), `POST /auth/me/password` con las cookies de A,
       confirmar `204`, luego confirmar que un request autenticado con las cookies de B devuelve `401`
@@ -107,7 +112,8 @@ revokeOthersWarning")}</FormNotice>` (import de `shared/ui/form/FormNotice`) vis
       `changePassword` (research.md Decision 5).
 - [ ] T013 [P] [US1] Actualizar `apps/web/src/domains/profile/components/SecuritySection.test.tsx`:
       caso "el diálogo de cambio de contraseña muestra el aviso de cierre de sesiones antes de poder
-      confirmar". Depende de T011.
+      confirmar", más un caso negativo "tras un `changePassword.mutateAsync` exitoso, no aparece
+      ningún toast/mensaje de sesiones cerradas" (SC-005, mitad "nunca posterior"). Depende de T011.
 
 **Checkpoint**: US1 funcional y testeable de forma independiente — cambiar la contraseña ya revoca
 las demás sesiones, atómicamente, con aviso previo en el frontend.
@@ -129,7 +135,8 @@ B queda cerrada, A sigue viva; una contraseña reingresada incorrecta no cierra 
       fallo del puerto de sesión revierte tanto `saveWithTx` del usuario como
       `deleteAllForUserWithTx` de los códigos de recuperación" (mismo estilo que T005).
 - [ ] T015 [P] [US2] Actualizar `apps/api/test/integration/domains/user/application/mfa-disable.integration.spec.ts`
-      con el mismo caso de 3 sesiones de T006, adaptado a desactivar MFA.
+      con el mismo caso de 3 sesiones de T006, adaptado a desactivar MFA — sin repetir el caso de
+      atomicidad (mismo motivo que T006: ya lo cubre T014 a nivel unit).
 - [ ] T016 [P] [US2] Actualizar `apps/api/test/e2e/domains/user/mfa-disable.http.spec.ts` con el mismo
       escenario HTTP de T007 (sesión A desactiva MFA, sesión B queda inválida de inmediato).
 
@@ -151,8 +158,8 @@ tone="warning">` (dentro del `ConfirmModal`, dado que ya envía `description`, a
       children antes del campo de contraseña — ver `research.md` Decision 4). Depende de T004.
 - [ ] T021 [US2] En `useProfile.ts`, agregar la misma invalidación de `["sessions"]` a la mutación
       `disableMfa`.
-- [ ] T022 [P] [US2] Actualizar `SecuritySection.test.tsx`: caso equivalente a T013 para el diálogo de
-      desactivar MFA. Depende de T020.
+- [ ] T022 [P] [US2] Actualizar `SecuritySection.test.tsx`: caso equivalente a T013 (aviso previo +
+      caso negativo de "sin toast posterior") para el diálogo de desactivar MFA. Depende de T020.
 
 **Checkpoint**: US1 y US2 funcionan de forma independiente — ambos disparadores revocan las demás
 sesiones, atómicamente, con el mismo aviso previo.
@@ -171,7 +178,11 @@ sesiones, atómicamente, con el mismo aviso previo.
       dispositivos): la limitación "cambiar la contraseña o desactivar MFA no revocan las demás
       sesiones" queda resuelta — reemplazar por la nota de qué SIGUE pendiente (notificación de nuevo
       dispositivo, límite de sesiones simultáneas, revocación por comportamiento sospechoso, correo de
-      aviso — ninguno de estos se implementa aquí).
+      aviso — ninguno de estos se implementa aquí). Nota de cobertura (hallazgo G1 de
+      `/speckit-analyze`): FR-006 ("no enviar correo/notificación") no tiene tarea de implementación
+      propia porque se satisface por ausencia total de `EmailPort` en el proyecto — no hay ningún
+      camino de código que pudiera enviar ese correo. Dejar esto dicho explícitamente en el propio
+      texto de `docs/PENDING.md` para que quede trazado, no asumido.
 - [ ] T028 [POLISH] Memory sync: actualizar `CLAUDE.md` a mano (NO con el hook genérico de
       agent-context, ver `plan.md`) agregando la entrada "Current plan (024 — implementado): ..." con
       los resultados reales de test, y degradando la entrada 023 actual a "Prior plan: ..." — mismo
@@ -235,7 +246,7 @@ Task: "change-password.http.spec.ts — escenario e2e completo"
 
 ## Notes
 
-- `[P]` = archivo distinto sin dependencia pendiente entre sí.
+- `[P]` = archivo distinto de otras tareas `[P]` de su misma fase (ver definición completa arriba).
 - Cada tarea de test debe escribirse y **fallar** antes de tocar el código de implementación
   correspondiente (T005-T007 antes de T008-T012; T014-T016 antes de T017-T021).
 - Commitear después de cada tarea o grupo lógico, no acumular todo el feature en un solo commit.
