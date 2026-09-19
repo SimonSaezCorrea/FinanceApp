@@ -35,6 +35,10 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     hideBalances: false,
     extraCurrencies: [],
     budgetAlertThreshold: 80,
+    mfaEnabled: false,
+    mfaSecret: null,
+    mfaFailedAttempts: 0,
+    mfaLockedUntil: null,
     ...overrides,
   };
 }
@@ -45,6 +49,8 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     findById: vi.fn(),
     create: vi.fn(),
     save: vi.fn(),
+    saveWithTx: vi.fn(),
+    findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn(),
     ...overrides,
   };
@@ -54,6 +60,8 @@ function fakeTokenIssuer(): TokenIssuer {
   return {
     issue: vi.fn().mockReturnValue({ accessToken: "at", refreshToken: "rt" }),
     verifyRefresh: vi.fn(),
+    issueMfaPending: vi.fn().mockReturnValue("pending-token"),
+    verifyMfaPending: vi.fn(),
   } as unknown as TokenIssuer;
 }
 
@@ -68,6 +76,7 @@ describe("LoginHandler", () => {
     const result = await handler.execute(
       new LoginCommand({ email: "a@b.com", password: "secret123" }),
     );
+    if (result.mfaRequired) throw new Error("expected a full session, got mfaRequired");
     expect(result.user.email).toBe("a@b.com");
     expect(result.tokens.accessToken).toBe("at");
   });
@@ -105,5 +114,40 @@ describe("LoginHandler", () => {
     await expect(
       handler.execute(new LoginCommand({ email: "a@b.com", password: "secret123" })),
     ).rejects.toThrow(AccountDisabledError);
+  });
+
+  it("does not issue a session for a user with MFA active — only a pending token", async () => {
+    const passwordHash = await hash("secret123", 1);
+    const repo = fakeRepo({
+      findByEmail: vi
+        .fn()
+        .mockResolvedValue(User.fromPersistence(baseProps({ passwordHash, mfaEnabled: true }))),
+    });
+    const tokenIssuer = fakeTokenIssuer();
+    const handler = new LoginHandler({ publish: vi.fn() } as never, repo, tokenIssuer);
+
+    const result = await handler.execute(
+      new LoginCommand({ email: "a@b.com", password: "secret123" }),
+    );
+    if (!result.mfaRequired) throw new Error("expected mfaRequired, got a full session");
+    expect(result.mfaPendingToken).toBe("pending-token");
+    expect(tokenIssuer.issue).not.toHaveBeenCalled();
+  });
+
+  it("a user without MFA logs in exactly as before (regression)", async () => {
+    const passwordHash = await hash("secret123", 1);
+    const repo = fakeRepo({
+      findByEmail: vi
+        .fn()
+        .mockResolvedValue(User.fromPersistence(baseProps({ passwordHash, mfaEnabled: false }))),
+    });
+    const handler = new LoginHandler({ publish: vi.fn() } as never, repo, fakeTokenIssuer());
+
+    const result = await handler.execute(
+      new LoginCommand({ email: "a@b.com", password: "secret123" }),
+    );
+    if (result.mfaRequired) throw new Error("expected a full session, got mfaRequired");
+    expect(result.user.email).toBe("a@b.com");
+    expect(result.tokens.accessToken).toBe("at");
   });
 });

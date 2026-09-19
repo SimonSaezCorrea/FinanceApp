@@ -5,7 +5,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { Providers } from "../../../app/providers";
 import i18n from "../../../i18n";
 import { NotificationsSection } from "./NotificationsSection";
-import { SecuritySection } from "./SecuritySection";
 
 vi.mock("../../auth/api/authApi", () => ({
   authApi: {
@@ -30,18 +29,8 @@ describe("Profile placeholders (FR-008)", () => {
   const fetchSpy = vi.spyOn(globalThis, "fetch");
   afterEach(() => fetchSpy.mockClear());
 
-  it("toggling the 2FA switch flips visually but calls no network request", async () => {
-    renderWithProviders(<SecuritySection />);
-    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.security.title") }));
-    const el = await waitFor(() =>
-      screen.getByRole("switch", { name: i18n.t("profile.security.twoFactor.label") }),
-    );
-    expect(el.getAttribute("aria-checked")).toBe("false");
-    fetchSpy.mockClear(); // ignore the initial /auth/me the Providers tree issues on mount
-    fireEvent.click(el);
-    expect(el.getAttribute("aria-checked")).toBe("true");
-    expect(fetchSpy).not.toHaveBeenCalled();
-  });
+  // The 2FA switch is no longer a placeholder (specs/021) — its real behavior is covered by
+  // SecuritySection.test.tsx's "SecuritySection — MFA" suite instead.
 
   it("toggling any notification switch calls no network request", async () => {
     renderWithProviders(<NotificationsSection />);

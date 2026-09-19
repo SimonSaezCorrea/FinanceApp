@@ -8,6 +8,20 @@ import {
 } from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
+import type { MfaRecoveryCodeRepositoryPort } from "../../../../../../src/domains/mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
+
+function fakeRecoveryCodeRepo(
+  overrides: Partial<MfaRecoveryCodeRepositoryPort> = {},
+): MfaRecoveryCodeRepositoryPort {
+  return {
+    createManyWithTx: vi.fn(),
+    countUnused: vi.fn().mockResolvedValue(0),
+    findUnusedByUser: vi.fn(),
+    markUsedWithTx: vi.fn(),
+    deleteAllForUserWithTx: vi.fn(),
+    ...overrides,
+  };
+}
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
   return {
@@ -33,6 +47,10 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     hideBalances: false,
     extraCurrencies: [],
     budgetAlertThreshold: 80,
+    mfaEnabled: false,
+    mfaSecret: null,
+    mfaFailedAttempts: 0,
+    mfaLockedUntil: null,
     ...overrides,
   };
 }
@@ -43,6 +61,8 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
     create: vi.fn(),
     save: vi.fn().mockResolvedValue(undefined),
+    saveWithTx: vi.fn().mockResolvedValue(undefined),
+    findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn().mockResolvedValue(null),
     ...overrides,
   };
@@ -51,7 +71,11 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
 describe("UpdateProfileHandler", () => {
   it("throws UNAUTHORIZED when the user no longer exists", async () => {
     const repo = fakeRepo({ findById: vi.fn().mockResolvedValue(null) });
-    const handler = new UpdateProfileHandler({ publish: vi.fn() } as never, repo);
+    const handler = new UpdateProfileHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeRecoveryCodeRepo(),
+    );
     await expect(handler.execute(new UpdateProfileCommand("gone", { name: "X" }))).rejects.toThrow(
       UnauthorizedError,
     );
@@ -61,7 +85,11 @@ describe("UpdateProfileHandler", () => {
     const repo = fakeRepo({
       findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ id: "other-user" }))),
     });
-    const handler = new UpdateProfileHandler({ publish: vi.fn() } as never, repo);
+    const handler = new UpdateProfileHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeRecoveryCodeRepo(),
+    );
     await expect(
       handler.execute(new UpdateProfileCommand("u1", { email: "taken@b.com" })),
     ).rejects.toThrow(EmailTakenError);
@@ -71,7 +99,11 @@ describe("UpdateProfileHandler", () => {
     const repo = fakeRepo({
       findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ id: "u1" }))),
     });
-    const handler = new UpdateProfileHandler({ publish: vi.fn() } as never, repo);
+    const handler = new UpdateProfileHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeRecoveryCodeRepo(),
+    );
     const result = await handler.execute(new UpdateProfileCommand("u1", { email: "a@b.com" }));
     expect(result.email).toBe("a@b.com");
     expect(repo.save).toHaveBeenCalled();
@@ -79,7 +111,11 @@ describe("UpdateProfileHandler", () => {
 
   it("resolves the linked country's name when countryId is set", async () => {
     const repo = fakeRepo({ countryName: vi.fn().mockResolvedValue("Chile") });
-    const handler = new UpdateProfileHandler({ publish: vi.fn() } as never, repo);
+    const handler = new UpdateProfileHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeRecoveryCodeRepo(),
+    );
     const result = await handler.execute(new UpdateProfileCommand("u1", { countryId: "cl" }));
     expect(result.countryId).toBe("cl");
     expect(result.countryName).toBe("Chile");
@@ -87,7 +123,11 @@ describe("UpdateProfileHandler", () => {
 
   it("persists a valid rename", async () => {
     const repo = fakeRepo();
-    const handler = new UpdateProfileHandler({ publish: vi.fn() } as never, repo);
+    const handler = new UpdateProfileHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeRecoveryCodeRepo(),
+    );
     const result = await handler.execute(new UpdateProfileCommand("u1", { name: "New Name" }));
     expect(result.name).toBe("New Name");
     expect(repo.save).toHaveBeenCalled();

@@ -12,6 +12,10 @@ import { SAVINGS_ENTRY_CURRENCY_USAGE } from "../../../savings-entry/domain/port
 import { SAVINGS_GOAL_CURRENCY_USAGE } from "../../../savings-goal/domain/ports/currency-usage-lookup.port";
 import { TRANSACTION_CURRENCY_USAGE } from "../../../transaction/domain/ports/currency-usage-lookup.port";
 import type { CurrencyUsageLookupPort } from "../../../bank-account/domain/ports/currency-usage-lookup.port";
+import {
+  MFA_RECOVERY_CODE_REPOSITORY,
+  type MfaRecoveryCodeRepositoryPort,
+} from "../../../mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { CurrencyInUseError, UnauthorizedError } from "../../domain/errors";
 import { User } from "../../domain/user.aggregate";
@@ -38,6 +42,8 @@ export class UpdatePreferencesHandler extends BaseCommandHandler<
     @Inject(SAVINGS_ENTRY_CURRENCY_USAGE) savingsEntryUsage: CurrencyUsageLookupPort,
     @Inject(RECURRING_EXPENSE_CURRENCY_USAGE) recurringExpenseUsage: CurrencyUsageLookupPort,
     @Inject(CARD_LIMIT_CURRENCY_USAGE) cardLimitUsage: CurrencyUsageLookupPort,
+    @Inject(MFA_RECOVERY_CODE_REPOSITORY)
+    private readonly recoveryCodes: MfaRecoveryCodeRepositoryPort,
   ) {
     super(eventBus);
     // Order is irrelevant — every port is queried for every removed currency.
@@ -71,7 +77,8 @@ export class UpdatePreferencesHandler extends BaseCommandHandler<
       await this.assertNoneInUse(command.userId, removed);
     }
     user.applyPreferencesUpdate(command.input);
-    return { result: user.toContract(), events: [] };
+    const remaining = user.mfaEnabled ? await this.recoveryCodes.countUnused(user.id) : 0;
+    return { result: user.toContract(remaining), events: [] };
   }
 
   protected override async persist(user: User): Promise<void> {

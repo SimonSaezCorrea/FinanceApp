@@ -11,25 +11,53 @@ import { useAuth } from "../hooks/useAuth";
 
 export function LoginRoute() {
   const { t } = useTranslation();
-  const { login } = useAuth();
+  const { login, verifyMfa, loginWithPasskey } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [mfaCode, setMfaCode] = useState("");
+  const [step, setStep] = useState<"credentials" | "mfa">("credentials");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [passkeyBusy, setPasskeyBusy] = useState(false);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      await login(email, password);
-      navigate("/");
+      if (step === "credentials") {
+        const { mfaRequired } = await login(email, password);
+        if (mfaRequired) {
+          setStep("mfa");
+        } else {
+          navigate("/");
+        }
+      } else {
+        await verifyMfa(mfaCode);
+        navigate("/");
+      }
     } catch (err) {
       const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
       setError(t(`errors.${code}`));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function onPasskeyLogin() {
+    setError(null);
+    setPasskeyBusy(true);
+    try {
+      // An email typed narrows the browser's picker to that account's own passkeys; left empty,
+      // the browser offers an account picker for any resident passkey on this site on its own.
+      await loginWithPasskey(email.trim() || undefined);
+      navigate("/");
+    } catch (err) {
+      const code = err instanceof ApiRequestError ? err.code : "INVALID_CREDENTIALS";
+      setError(t(`errors.${code}`, { defaultValue: t("errors.INVALID_CREDENTIALS") }));
+    } finally {
+      setPasskeyBusy(false);
     }
   }
 
@@ -40,41 +68,88 @@ export function LoginRoute() {
       </div>
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle>{t("auth.signIn")}</CardTitle>
+          <CardTitle>{step === "credentials" ? t("auth.signIn") : t("auth.mfa.title")}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="flex flex-col gap-3" onSubmit={onSubmit}>
-            <Input
-              type="email"
-              placeholder={t("auth.email")}
-              value={email}
-              required
-              autoComplete="email"
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <Input
-              type="password"
-              placeholder={t("auth.password")}
-              value={password}
-              required
-              autoComplete="current-password"
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            {error ? (
-              <p role="alert" className="text-sm text-destructive">
-                {error}
-              </p>
-            ) : null}
-            <Button type="submit" disabled={busy} className="w-full">
-              {t("auth.signIn")}
-            </Button>
-          </form>
-          <p className="mt-4 text-center text-sm text-muted-foreground">
-            {t("auth.needAccount")}{" "}
-            <Link to="/register" className="font-medium text-primary hover:underline">
-              {t("auth.register")}
-            </Link>
-          </p>
+          {step === "credentials" ? (
+            <form className="flex flex-col gap-3" onSubmit={onSubmit}>
+              <Input
+                type="email"
+                placeholder={t("auth.email")}
+                value={email}
+                required
+                autoComplete="email"
+                onChange={(e) => setEmail(e.target.value)}
+              />
+              <Input
+                type="password"
+                placeholder={t("auth.password")}
+                value={password}
+                required
+                autoComplete="current-password"
+                onChange={(e) => setPassword(e.target.value)}
+              />
+              {error ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {error}
+                </p>
+              ) : null}
+              <Button type="submit" disabled={busy} className="w-full">
+                {t("auth.signIn")}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={passkeyBusy}
+                onClick={() => void onPasskeyLogin()}
+              >
+                {t("auth.passkey.signIn")}
+              </Button>
+            </form>
+          ) : (
+            <form className="flex flex-col gap-3" onSubmit={onSubmit}>
+              <p className="text-sm text-muted-foreground">{t("auth.mfa.hint")}</p>
+              <Input
+                type="text"
+                inputMode="text"
+                placeholder={t("auth.mfa.placeholder")}
+                value={mfaCode}
+                required
+                autoFocus
+                autoComplete="one-time-code"
+                onChange={(e) => setMfaCode(e.target.value)}
+              />
+              {error ? (
+                <p role="alert" className="text-sm text-destructive">
+                  {error}
+                </p>
+              ) : null}
+              <Button type="submit" disabled={busy} className="w-full">
+                {t("auth.mfa.verify")}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full"
+                onClick={() => {
+                  setStep("credentials");
+                  setMfaCode("");
+                  setError(null);
+                }}
+              >
+                {t("auth.mfa.back")}
+              </Button>
+            </form>
+          )}
+          {step === "credentials" ? (
+            <p className="mt-4 text-center text-sm text-muted-foreground">
+              {t("auth.needAccount")}{" "}
+              <Link to="/register" className="font-medium text-primary hover:underline">
+                {t("auth.register")}
+              </Link>
+            </p>
+          ) : null}
         </CardContent>
       </Card>
     </main>

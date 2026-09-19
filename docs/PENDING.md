@@ -35,12 +35,55 @@ equivalente) integrado en el proyecto.
 endpoint de subida con validación de tipo/tamaño, y servir la imagen en vez de las iniciales cuando
 exista.
 
-### 3. Llave de acceso (Passkey / WebAuthn)
+### 3. Llave de acceso (Passkey / WebAuthn) — real desde specs/022 (2026-09-18), tres caminos quedan fuera
 
-Botón "Configurar" deshabilitado. La constitución fija la auth de este proyecto como "pure JWT
-email+password" — agregar WebAuthn es un cambio de arquitectura de autenticación, no una extensión
-menor, y requeriría su propia spec (registro de credenciales, `credentialId`/`publicKey` por usuario,
-ceremonia de attestation/assertion en el navegador).
+El botón "Configurar" **dejó de estar deshabilitado**: un usuario registra una o varias llaves de
+acceso nombradas desde su perfil (`PasskeySection.tsx`) y puede iniciar sesión con cualquiera de
+ellas desde el login — sin contraseña y, deliberadamente, **sin pasar por el paso de MFA/TOTP**
+aunque la cuenta lo tenga activo (la llave es su propio mecanismo de autenticación fuerte, decisión
+explícita del usuario en el clarify de esa spec). El login con email+contraseña (+TOTP si aplica)
+sigue funcionando exactamente igual sin importar cuántas llaves tenga o deje de tener el usuario.
+Ver `specs/022-passkey-login/` para el diseño completo. Tres caminos quedaron **explícitamente
+fuera de alcance de esa iteración**:
+
+- **Renombrar una llave ya registrada**: el nombre solo se elige una vez, al crearla — no hay un
+  endpoint `PATCH` para cambiarlo después. Para renombrar hoy habría que eliminarla y volver a
+  registrarla.
+- **Verificación de "attestation" del fabricante**: se acepta cualquier autenticador compatible con
+  el estándar (`attestationType: "none"`), sin verificar contra un catálogo de fabricantes
+  conocidos (MDS de la FIDO Alliance). Cualquier llave/biométrico que el navegador exponga vía
+  WebAuthn funciona, sin lista blanca.
+
+**Extensión (2026-09-18): login "sin escribir nada" (discoverable/usernameless), implementado.**
+El botón "Iniciar sesión con llave de acceso" funciona con el campo email vacío — el navegador
+ofrece su propio selector de cuentas sobre cualquier llave residente para este sitio (`email`
+omitido en `POST /auth/login/passkey-options`, `allowCredentials` queda sin definir a propósito), y
+`passkey-verify` resuelve la cuenta desde la credencial elegida (`Passkey.userId`) en vez de un
+email pre-resuelto. Si el usuario SÍ escribe su email, el flujo se acota a las llaves de esa cuenta
+(igual que antes). **Lo que sigue sin implementar** es la sugerencia automática vía autocompletado
+del navegador (`navigator.credentials.get({mediation: "conditional"})` cableado al propio input de
+email, que ofrecería la llave como opción de autocompletar mientras el usuario escribe, sin ni
+siquiera apretar el botón) — el botón explícito sigue siendo necesario para disparar la ceremonia.
+
+### 3b. Verificación en dos pasos — real desde specs/021 (2026-09-18), tres caminos quedan fuera
+
+El switch "Verificación en dos pasos" **dejó de ser decorativo**: activa/desactiva MFA real vía
+TOTP (app autenticadora), exige el segundo paso en cada login de una cuenta con MFA activo, y
+soporta códigos de recuperación de un solo uso. Ver `specs/021-mfa-totp/` para el diseño completo.
+Tres caminos quedaron **explícitamente fuera de alcance de esa iteración** (decisión del dueño del
+producto, no un hueco técnico encontrado después):
+
+- **Segundo factor por email o SMS**: solo TOTP por app autenticadora existe hoy. El backend no
+  tiene proveedor de email/SMS transaccional integrado (mismo hueco que el punto 1 de esta
+  sección) — agregarlo es la misma integración que ya falta ahí, más un tercer tipo de código en
+  `verify-mfa-login.handler.ts`.
+- **"Recordar este dispositivo"**: no existe un mecanismo para saltarse el segundo paso en logins
+  futuros desde el mismo navegador. Cada login de una cuenta con MFA activo pide el código
+  siempre, sin excepción. Implementarlo requeriría una cookie de dispositivo confiable de larga
+  duración (separada de las de sesión) y una tabla que la valide.
+- **Regenerar códigos de recuperación sin reactivar todo MFA**: hoy la única forma de obtener un
+  set nuevo de códigos es desactivar MFA (reingresando la contraseña) y volver a activarlo desde
+  cero — no hay un endpoint "solo regenerar códigos" que preserve el secreto TOTP vigente.
 
 ### 4. Sesiones y dispositivos
 

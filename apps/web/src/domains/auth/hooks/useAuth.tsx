@@ -3,12 +3,24 @@ import { type ReactNode, createContext, useContext, useEffect, useMemo, useState
 import type { auth } from "@finance/contracts";
 
 import { resetAuthRefresh } from "../../../shared/lib/apiClient";
+import { serializeGetResponse, toGetOptions } from "../../../shared/lib/webauthn";
 import { authApi } from "../api/authApi";
+import { passkeyApi } from "../api/passkeyApi";
 
 interface AuthContextValue {
   user: auth.CurrentUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  /** Resolves `{mfaRequired: true}` without setting a session when the account has MFA active —
+   * the caller must then collect a code and call `verifyMfa`. */
+  login: (email: string, password: string) => Promise<{ mfaRequired: boolean }>;
+  /** Completes a pending login's second factor (TOTP or recovery code, single field). */
+  verifyMfa: (code: string) => Promise<void>;
+  /** Full login via a registered passkey — no password, and never routes through MFA even if
+   * the account has it active (specs/022 FR-006/FR-007). `email` omitted = discoverable/
+   * "usernameless" login: the browser offers its own account picker for any resident passkey on
+   * this site, with nothing typed. Throws if the device ceremony is cancelled/fails or the
+   * server rejects the assertion. */
+  loginWithPasskey: (email?: string) => Promise<void>;
   register: (input: auth.RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   /** Re-fetches /auth/me and refreshes the cached user (after a profile/preferences edit). */
@@ -39,7 +51,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // failure so a dead session can't be re-asked on every request, and a fresh
       // login is exactly the event that makes it valid again.
       login: async (email, password) => {
-        const next = await authApi.login({ email, password });
+        const result = await authApi.login({ email, password });
+        if (result.mfaRequired) return { mfaRequired: true };
+        resetAuthRefresh();
+        setUser(result.user);
+        return { mfaRequired: false };
+      },
+      verifyMfa: async (code) => {
+        const { user: next } = await authApi.verifyMfaLogin({ code });
+        resetAuthRefresh();
+        setUser(next);
+      },
+      loginWithPasskey: async (email) => {
+        const { options } = await passkeyApi.startLogin({ email });
+        const credential = await navigator.credentials.get(toGetOptions(options));
+        if (!credential) throw new Error("passkey ceremony cancelled");
+        const { user: next } = await passkeyApi.verifyLogin({
+          response: serializeGetResponse(credential),
+        });
         resetAuthRefresh();
         setUser(next);
       },

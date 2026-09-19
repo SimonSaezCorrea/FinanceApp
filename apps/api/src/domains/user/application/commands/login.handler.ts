@@ -10,9 +10,18 @@ import { TokenIssuer } from "../token-issuer";
 import type { AuthResult } from "./register.handler";
 import { LoginCommand } from "./login.command";
 
+/**
+ * A user without MFA gets a real session, exactly as before. A user WITH MFA active gets
+ * neither `tokens` nor `user` — only a short-lived pending token, which the controller carries
+ * in its own httpOnly cookie (never the session cookies) until `VerifyMfaLoginCommand`
+ * completes the second factor (specs/021).
+ */
+export type LoginResult =
+  ({ mfaRequired: false } & AuthResult) | { mfaRequired: true; mfaPendingToken: string };
+
 @Injectable()
 @CommandHandler(LoginCommand)
-export class LoginHandler extends BaseCommandHandler<LoginCommand, AuthResult, User> {
+export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, User> {
   private readonly logger = new Logger(LoginHandler.name);
 
   constructor(
@@ -35,9 +44,14 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, AuthResult, U
     return user;
   }
 
-  protected async handle(_command: LoginCommand, user: User): Promise<HandleResult<AuthResult>> {
+  protected async handle(_command: LoginCommand, user: User): Promise<HandleResult<LoginResult>> {
+    if (user.mfaEnabled) {
+      this.logger.log(`password verified, awaiting MFA: ${user.id}`);
+      const mfaPendingToken = this.tokenIssuer.issueMfaPending(user.id);
+      return { result: { mfaRequired: true, mfaPendingToken }, events: [] };
+    }
     this.logger.log(`user logged in: ${user.id}`);
     const tokens = this.tokenIssuer.issue({ id: user.id, email: user.email });
-    return { result: { tokens, user: user.toContract() }, events: [] };
+    return { result: { mfaRequired: false, tokens, user: user.toContract() }, events: [] };
   }
 }

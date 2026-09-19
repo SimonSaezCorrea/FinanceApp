@@ -3,15 +3,19 @@ import { useTranslation } from "react-i18next";
 import { Eye, EyeOff, Laptop, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 
+import { useAuth } from "../../auth/hooks/useAuth";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { cn } from "../../../shared/lib/cn";
+import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
-import { FormSurface } from "../../../shared/ui/overlay";
+import { ConfirmModal, FormSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Switch } from "../../../shared/ui/switch";
-import { useProfileMutations } from "../hooks/useProfile";
+import { usePasskeysQuery, useProfileMutations } from "../hooks/useProfile";
+import { MfaEnrollmentPanel } from "./MfaEnrollmentPanel";
+import { PasskeySection } from "./PasskeySection";
 
 /** A password input with a show/hide toggle — the eye icon reveals it
  * temporarily, same interaction language `MaskedAmount` already uses for
@@ -179,6 +183,61 @@ function ChangePasswordDialog({
   );
 }
 
+function DisableMfaModal({
+  open,
+  onOpenChange,
+}: Readonly<{ open: boolean; onOpenChange: (open: boolean) => void }>) {
+  const { t } = useTranslation();
+  const { disableMfa } = useProfileMutations();
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  function close(next: boolean) {
+    if (!next) {
+      setPassword("");
+      setError(null);
+    }
+    onOpenChange(next);
+  }
+
+  async function handleDisable() {
+    setError(null);
+    try {
+      await disableMfa.mutateAsync({ password });
+      close(false);
+    } catch (err) {
+      const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
+      setError(t(`errors.${code}`));
+    }
+  }
+
+  return (
+    <ConfirmModal
+      open={open}
+      onOpenChange={close}
+      onConfirm={() => void handleDisable()}
+      title={t("profile.security.mfa.disableTitle")}
+      description={t("profile.security.mfa.disableHint")}
+      confirmLabel={t("profile.security.mfa.disableConfirm")}
+      loading={disableMfa.isPending}
+    >
+      <Field
+        label={t("profile.security.mfa.disablePasswordLabel")}
+        htmlFor="mfa-disable-password"
+        error={error}
+      >
+        <Input
+          id="mfa-disable-password"
+          type="password"
+          autoComplete="current-password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+      </Field>
+    </ConfirmModal>
+  );
+}
+
 interface Session {
   id: string;
   device: string;
@@ -195,9 +254,14 @@ const EXAMPLE_SESSIONS: Session[] = [
 
 export function SecuritySection() {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [changingPassword, setChangingPassword] = useState(false);
-  // Local-only — no backend capability exists yet (FR-008); never persisted.
-  const [twoFactor, setTwoFactor] = useState(false);
+  const [enrollingMfa, setEnrollingMfa] = useState(false);
+  const [disablingMfa, setDisablingMfa] = useState(false);
+  const [managingPasskeys, setManagingPasskeys] = useState(false);
+  const mfaEnabled = user?.mfaEnabled ?? false;
+  const { data: passkeys } = usePasskeysQuery();
+  const passkeyCount = passkeys?.length ?? 0;
   // Placeholder — local UI state only, no real session revocation (see PENDING.md).
   const [sessions, setSessions] = useState(EXAMPLE_SESSIONS);
 
@@ -216,21 +280,35 @@ export function SecuritySection() {
         <div>
           <div className="text-sm">{t("profile.security.twoFactor.label")}</div>
           <div className="text-xs text-muted-foreground">
-            {t("profile.security.twoFactor.hint")}
+            {mfaEnabled
+              ? t("profile.security.mfa.enabledHint", {
+                  count: user?.mfaRecoveryCodesRemaining ?? 0,
+                })
+              : t("profile.security.twoFactor.hint")}
           </div>
         </div>
         <Switch
-          checked={twoFactor}
-          onCheckedChange={setTwoFactor}
+          checked={mfaEnabled}
+          onCheckedChange={(checked) => {
+            if (checked) setEnrollingMfa(true);
+            else setDisablingMfa(true);
+          }}
           aria-label={t("profile.security.twoFactor.label")}
         />
       </div>
       <div className="flex items-center justify-between border-b py-3">
         <div>
-          <div className="text-sm">{t("profile.security.passkey.label")}</div>
+          <div className="flex items-center gap-2 text-sm">
+            {t("profile.security.passkey.label")}
+            {passkeyCount > 0 ? (
+              <Badge variant="success">
+                {t("profile.security.passkey.countBadge", { count: passkeyCount })}
+              </Badge>
+            ) : null}
+          </div>
           <div className="text-xs text-muted-foreground">{t("profile.security.passkey.hint")}</div>
         </div>
-        <Button variant="outline" size="sm" disabled title={t("profile.comingSoon")}>
+        <Button variant="outline" size="sm" onClick={() => setManagingPasskeys(true)}>
           {t("profile.security.passkey.configure")}
         </Button>
       </div>
@@ -280,6 +358,9 @@ export function SecuritySection() {
         </div>
       </div>
       <ChangePasswordDialog open={changingPassword} onOpenChange={setChangingPassword} />
+      <MfaEnrollmentPanel open={enrollingMfa} onOpenChange={setEnrollingMfa} />
+      <DisableMfaModal open={disablingMfa} onOpenChange={setDisablingMfa} />
+      <PasskeySection open={managingPasskeys} onOpenChange={setManagingPasskeys} />
     </CollapsibleSection>
   );
 }

@@ -1,11 +1,14 @@
 import { Inject, Injectable } from "@nestjs/common";
-import { Prisma } from "@prisma/client";
+import { ConfigService } from "@nestjs/config";
+import { Prisma, type User as UserRow } from "@prisma/client";
 
+import { getMfaEncryptionKey } from "../../../infra/config/mfa.config";
 import { PrismaService } from "../../../infra/prisma/prisma.service";
 import {
   COUNTRY_LOOKUP,
   type CountryLookupPort,
 } from "../../country/domain/ports/country-lookup.port";
+import { decryptMfaSecret, encryptMfaSecret } from "../application/mfa-secret-cipher";
 import { EmailTakenError } from "../domain/errors";
 import { User, type UserProps } from "../domain/user.aggregate";
 import type { UserRepositoryPort } from "../domain/ports/user.repository.port";
@@ -14,7 +17,7 @@ type Row = NonNullable<Awaited<ReturnType<PrismaService["user"]["findUnique"]>>>
   country?: { name: string } | null;
 };
 
-function rowToProps(row: Row): UserProps {
+function rowToProps(row: Row, mfaEncryptionKey: string): UserProps {
   return {
     id: row.id,
     email: row.email,
@@ -38,6 +41,13 @@ function rowToProps(row: Row): UserProps {
     hideBalances: row.hideBalances,
     extraCurrencies: row.extraCurrencies as UserProps["extraCurrencies"],
     budgetAlertThreshold: row.budgetAlertThreshold,
+    mfaEnabled: row.mfaEnabled,
+    // Decrypted here, at the adapter boundary — the domain layer only ever sees plaintext.
+    mfaSecret: row.mfaSecretEncrypted
+      ? decryptMfaSecret(row.mfaSecretEncrypted, mfaEncryptionKey)
+      : null,
+    mfaFailedAttempts: row.mfaFailedAttempts,
+    mfaLockedUntil: row.mfaLockedUntil,
   };
 }
 
@@ -46,28 +56,39 @@ function rowToProps(row: Row): UserProps {
 export class PrismaUserRepository implements UserRepositoryPort {
   constructor(
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
     @Inject(COUNTRY_LOOKUP) private readonly countries: CountryLookupPort,
   ) {}
 
   async findByEmail(email: string): Promise<User | null> {
     const row = await this.prisma.user.findUnique({ where: { email }, include: { country: true } });
-    return row ? User.fromPersistence(rowToProps(row as Row)) : null;
+    return row
+      ? User.fromPersistence(rowToProps(row as Row, getMfaEncryptionKey(this.config)))
+      : null;
   }
 
   async findById(id: string): Promise<User | null> {
     const row = await this.prisma.user.findUnique({ where: { id }, include: { country: true } });
-    return row ? User.fromPersistence(rowToProps(row as Row)) : null;
+    return row
+      ? User.fromPersistence(rowToProps(row as Row, getMfaEncryptionKey(this.config)))
+      : null;
   }
 
   async create(plan: { email: string; name?: string; passwordHash: string }): Promise<User> {
     const row = await this.prisma.user.create({ data: plan, include: { country: true } });
-    return User.fromPersistence(rowToProps(row as Row));
+    return User.fromPersistence(rowToProps(row as Row, getMfaEncryptionKey(this.config)));
   }
 
   async save(user: User): Promise<void> {
+    await this.saveWithTx(this.prisma, user);
+  }
+
+  async saveWithTx(tx: unknown, user: User): Promise<void> {
+    const client = tx as PrismaService;
     const snap = user.snapshot();
+    const mfaEncryptionKey = getMfaEncryptionKey(this.config);
     try {
-      await this.prisma.user.update({
+      await client.user.update({
         where: { id: snap.id },
         data: {
           name: snap.name,
@@ -89,6 +110,13 @@ export class PrismaUserRepository implements UserRepositoryPort {
           hideBalances: snap.hideBalances,
           extraCurrencies: snap.extraCurrencies,
           budgetAlertThreshold: snap.budgetAlertThreshold,
+          mfaEnabled: snap.mfaEnabled,
+          // Encrypted here, at the adapter boundary — the domain layer only ever holds plaintext.
+          mfaSecretEncrypted: snap.mfaSecret
+            ? encryptMfaSecret(snap.mfaSecret, mfaEncryptionKey)
+            : null,
+          mfaFailedAttempts: snap.mfaFailedAttempts,
+          mfaLockedUntil: snap.mfaLockedUntil,
         },
       });
     } catch (err) {
@@ -100,6 +128,24 @@ export class PrismaUserRepository implements UserRepositoryPort {
       }
       throw err;
     }
+  }
+
+  async findByIdForUpdateWithTx(tx: unknown, id: string): Promise<User | null> {
+    const client = tx as PrismaService;
+    const rows = await client.$queryRaw<UserRow[]>`
+      SELECT * FROM "user" WHERE "id" = ${id} FOR UPDATE
+    `;
+    const row = rows[0];
+    if (!row) return null;
+    // The raw query has no join — resolve countryName separately (only queried, never locked;
+    // MFA verification never mutates country, so it doesn't need to be part of the locked read).
+    const countryName = row.countryId ? await this.countries.nameById(row.countryId) : null;
+    return User.fromPersistence(
+      rowToProps(
+        { ...row, country: countryName ? { name: countryName } : null },
+        getMfaEncryptionKey(this.config),
+      ),
+    );
   }
 
   countryName(id: string): Promise<string | null> {

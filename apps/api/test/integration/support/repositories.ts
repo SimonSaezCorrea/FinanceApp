@@ -12,7 +12,9 @@ import { PrismaTransactionWriterRepository } from "../../../src/domains/transact
 import { PrismaCountryIdentifierTypeRepository } from "../../../src/domains/country-identifier-type/infrastructure/prisma-country-identifier-type.repository";
 import { PrismaCountryRepository } from "../../../src/domains/country/infrastructure/prisma-country.repository";
 import { PrismaCountryLookupRepository } from "../../../src/domains/country/infrastructure/prisma-country-lookup.repository";
+import { PrismaMfaRecoveryCodeRepository } from "../../../src/domains/mfa-recovery-code/infrastructure/prisma-mfa-recovery-code.repository";
 import { PrismaUserRepository } from "../../../src/domains/user/infrastructure/prisma-user.repository";
+import { ConfigService } from "@nestjs/config";
 import { PrismaWalletItemRepository } from "../../../src/domains/wallet-item-dashboard/infrastructure/prisma-wallet-item.repository";
 import type { PrismaService } from "../../../src/infra/prisma/prisma.service";
 
@@ -68,7 +70,15 @@ export function buildInstallmentPlanRepo(prisma: PrismaService): PrismaInstallme
 }
 
 export function buildUserRepo(prisma: PrismaService): PrismaUserRepository {
-  return new PrismaUserRepository(prisma, new PrismaCountryLookupRepository(prisma));
+  return new PrismaUserRepository(
+    prisma,
+    new ConfigService(),
+    new PrismaCountryLookupRepository(prisma),
+  );
+}
+
+export function buildMfaRecoveryCodeRepo(prisma: PrismaService): PrismaMfaRecoveryCodeRepository {
+  return new PrismaMfaRecoveryCodeRepository(prisma);
 }
 
 export function buildWalletItemRepo(prisma: PrismaService): PrismaWalletItemRepository {

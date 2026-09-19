@@ -62,6 +62,11 @@ export const currentUserSchema = z.object({
   /** % of a monthly budget target at which to warn the user. Stored for the Notifications UI
    * only — no real alert is sent, and no budget-target field exists to compute it against. */
   budgetAlertThreshold: z.number().int().min(1).max(100).nullable(),
+  /** Whether login requires a TOTP (or recovery code) second factor (specs/021). */
+  mfaEnabled: z.boolean(),
+  /** How many single-use recovery codes are still unused — never the codes themselves, which
+   * are shown exactly once, at activation confirmation. Always 0 when mfaEnabled is false. */
+  mfaRecoveryCodesRemaining: z.number().int().min(0),
 });
 export type CurrentUser = z.infer<typeof currentUserSchema>;
 
@@ -106,3 +111,91 @@ export const deactivateRequestSchema = z.object({
   password: z.string().min(1),
 });
 export type DeactivateRequest = z.infer<typeof deactivateRequestSchema>;
+
+// ---- MFA (specs/021) ----
+
+/** `POST /auth/login`'s response shape. With MFA active, no session is issued yet — only a
+ * `mfa_pending_token` cookie (set by the controller, not part of this body) — and `user` is
+ * omitted entirely rather than sent partial/placeholder data. */
+export const loginResponseSchema = z.discriminatedUnion("mfaRequired", [
+  z.object({ mfaRequired: z.literal(true) }),
+  z.object({ mfaRequired: z.literal(false), user: currentUserSchema }),
+]);
+export type LoginResponse = z.infer<typeof loginResponseSchema>;
+
+/** Single field, either a 6-digit TOTP or an `XXXX-XXXX` recovery code — the server tells them
+ * apart by format (FR-007), the client never chooses a path. Used both to confirm an enrollment
+ * (TOTP only, in practice) and to complete a pending login's second factor. */
+export const mfaCodeSchema = z.string().trim().min(6).max(20);
+
+export const startMfaEnrollmentResponseSchema = z.object({
+  qrCodeDataUrl: z.string(),
+  /** Plaintext secret, shown ONLY in this response, as the manual-entry alternative to
+   * scanning the QR — never exposed again after enrollment is confirmed. */
+  secret: z.string(),
+});
+export type StartMfaEnrollmentResponse = z.infer<typeof startMfaEnrollmentResponseSchema>;
+
+export const confirmMfaEnrollmentRequestSchema = z.object({ code: mfaCodeSchema });
+export type ConfirmMfaEnrollmentRequest = z.infer<typeof confirmMfaEnrollmentRequestSchema>;
+
+export const confirmMfaEnrollmentResponseSchema = z.object({
+  /** The 10 recovery codes, in plaintext, shown exactly once — never returned by any other
+   * endpoint or response afterward. */
+  recoveryCodes: z.array(z.string()),
+});
+export type ConfirmMfaEnrollmentResponse = z.infer<typeof confirmMfaEnrollmentResponseSchema>;
+
+export const disableMfaRequestSchema = z.object({ password: z.string().min(1) });
+export type DisableMfaRequest = z.infer<typeof disableMfaRequestSchema>;
+
+export const verifyMfaLoginRequestSchema = z.object({ code: mfaCodeSchema });
+export type VerifyMfaLoginRequest = z.infer<typeof verifyMfaLoginRequestSchema>;
+
+// ---- Passkeys / WebAuthn (specs/022) ----
+
+/** Never exposes `credentialId`/`publicKey` — those are verification details, not UI data. */
+export const passkeySchema = z.object({
+  id: rowId,
+  name: z.string(),
+  createdAt: z.string(),
+  lastUsedAt: z.string().nullable(),
+});
+export type Passkey = z.infer<typeof passkeySchema>;
+
+/** The options object is whatever `@simplewebauthn/server` generates — its exact shape is fixed
+ * by the WebAuthn standard, not by this contract; passed straight to
+ * `navigator.credentials.create()`/`.get()` in the browser. */
+export const startPasskeyRegistrationResponseSchema = z.object({ options: z.unknown() });
+export type StartPasskeyRegistrationResponse = z.infer<
+  typeof startPasskeyRegistrationResponseSchema
+>;
+
+/** `response` is `navigator.credentials.create()`'s own return value, serialized to JSON by the
+ * frontend's own base64url helpers (never validated shape-wise here — the WebAuthn library does
+ * that server-side). */
+export const confirmPasskeyRegistrationRequestSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  response: z.unknown(),
+});
+export type ConfirmPasskeyRegistrationRequest = z.infer<
+  typeof confirmPasskeyRegistrationRequestSchema
+>;
+
+export const listPasskeysResponseSchema = z.array(passkeySchema);
+export type ListPasskeysResponse = z.infer<typeof listPasskeysResponseSchema>;
+
+/** `email` omitted = discoverable/"usernameless" login: the browser offers any resident passkey
+ * for this site on its own, with no typed email at all. */
+export const startPasskeyLoginRequestSchema = z.object({ email: z.string().email().optional() });
+export type StartPasskeyLoginRequest = z.infer<typeof startPasskeyLoginRequestSchema>;
+
+/** Always the same shape whether or not the email has any passkeys (FR-005a, no
+ * user-enumeration) — `options.allowCredentials` is simply empty in that case. */
+export const startPasskeyLoginResponseSchema = z.object({ options: z.unknown() });
+export type StartPasskeyLoginResponse = z.infer<typeof startPasskeyLoginResponseSchema>;
+
+export const verifyPasskeyLoginRequestSchema = z.object({
+  response: z.unknown(),
+});
+export type VerifyPasskeyLoginRequest = z.infer<typeof verifyPasskeyLoginRequestSchema>;

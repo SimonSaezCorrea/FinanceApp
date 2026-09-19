@@ -1228,7 +1228,17 @@
     "password": "Contraseña",
     "needAccount": "¿No tienes cuenta?",
     "haveAccount": "¿Ya tienes cuenta?",
-    "logout": "Salir"
+    "logout": "Salir",
+    "mfa": {
+      "title": "Verificación en dos pasos",
+      "hint": "Ingresa el código de tu app autenticadora, o uno de tus códigos de recuperación.",
+      "placeholder": "Código de 6 dígitos o de recuperación",
+      "verify": "Verificar",
+      "back": "Volver"
+    },
+    "passkey": {
+      "signIn": "Iniciar sesión con llave de acceso"
+    }
   },
   "profile": {
     "title": "Perfil",
@@ -1357,12 +1367,55 @@
       },
       "twoFactor": {
         "label": "Verificación en dos pasos",
-        "hint": "Próximamente"
+        "hint": "Protege tu cuenta con una app autenticadora."
+      },
+      "mfa": {
+        "enabledHint": "Activa · {{count}} código(s) de recuperación disponibles",
+        "enrollTitle": "Activar verificación en dos pasos",
+        "enrollHint": "Escanea el código con tu app autenticadora e ingresa el código generado para confirmar.",
+        "loadingQr": "Generando código QR…",
+        "qrAlt": "Código QR para configurar la verificación en dos pasos",
+        "manualEntry": "¿No puedes escanear? Ingresa este código manualmente:",
+        "codeLabel": "Código de 6 dígitos",
+        "confirm": "Confirmar",
+        "codesTitle": "Guarda tus códigos de recuperación",
+        "codesHint": "Úsalos si pierdes el acceso a tu app autenticadora. No se volverán a mostrar.",
+        "copyAll": "Copiar todos",
+        "codesCopied": "Códigos copiados",
+        "done": "Listo",
+        "disableTitle": "Desactivar verificación en dos pasos",
+        "disableHint": "Ingresa tu contraseña actual para confirmar.",
+        "disableConfirm": "Desactivar",
+        "disablePasswordLabel": "Contraseña actual"
       },
       "passkey": {
         "label": "Llave de acceso (passkey)",
         "hint": "Face ID · huella · llave física",
-        "configure": "Configurar"
+        "configure": "Configurar",
+        "countBadge_one": "{{count}} activa",
+        "countBadge_other": "{{count}} activas",
+        "add": "Agregar llave de acceso",
+        "yourKeys": "Tus llaves · {{count}}",
+        "confirmedTitle": "Dispositivo confirmado",
+        "confirmedHint": "Ponle un nombre para reconocerla después en tu lista.",
+        "nameLabel": "Nombre de la llave",
+        "namePlaceholder": "Ej. MacBook de Ana",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "added": "Llave de acceso agregada",
+        "ceremonyFailed": "No se pudo confirmar con el dispositivo. Inténtalo de nuevo.",
+        "loading": "Cargando llaves…",
+        "empty": "Todavía no tienes ninguna llave de acceso registrada.",
+        "created": "Agregada el {{date}}",
+        "lastUsed": "último uso {{date}}",
+        "neverUsed": "nunca usada",
+        "alwaysHavePassword": "Tu contraseña sigue funcionando aunque elimines todas tus llaves — nunca es el único modo de entrar.",
+        "remove": {
+          "button": "Eliminar llave",
+          "title": "Eliminar llave de acceso",
+          "description": "Ya no podrás usar este dispositivo para iniciar sesión sin contraseña. Tu login con email y contraseña no se ve afectado.",
+          "confirm": "Eliminar"
+        }
       },
       "sessions": {
         "title": "Sesiones y dispositivos",
@@ -1401,6 +1454,11 @@
     "NOT_FOUND": "No se encontró el recurso.",
     "INVALID_CREDENTIALS": "Correo o contraseña incorrectos.",
     "EMAIL_TAKEN": "Ese correo ya está registrado.",
+    "INVALID_MFA_CODE": "Código incorrecto. Inténtalo de nuevo.",
+    "MFA_LOCKED": "Demasiados intentos. Espera unos minutos antes de volver a intentarlo.",
+    "MFA_NOT_PENDING": "No hay una activación pendiente que confirmar.",
+    "MFA_ALREADY_ENABLED": "La verificación en dos pasos ya está activa. Desactívala antes de volver a activarla.",
+    "MFA_PENDING_TOKEN_INVALID": "La sesión de verificación expiró. Inicia sesión de nuevo.",
     "VALIDATION_FAILED": "Revisa los datos ingresados.",
     "INVALID_ID_FORMAT": "Identificador inválido.",
     "CARD_REQUIRED": "Selecciona una tarjeta para este gasto.",

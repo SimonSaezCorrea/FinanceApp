@@ -40,7 +40,7 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
 
 **pnpm + Turborepo monorepo** with two separately-deployable apps + shared packages. TypeScript, Node 20. Migrated from the legacy single Next.js app via specs/001.
 
-- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 22 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **pure JWT email+password** — the NextAuth `Account`/`Session`/`VerificationToken` tables were removed (no OAuth adapter in the API).
+- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 24 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record, mfa-recovery-code, passkey — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **stateless JWT**, no OAuth adapter — the NextAuth `Account`/`Session`/`VerificationToken` tables were removed at the monorepo migration. A session is reached one of two ways: email+password (optionally gated by a TOTP second factor, specs/021) or a registered WebAuthn passkey (specs/022, bypasses both password and MFA entirely, its own strong authentication).
   - **bank-account** (specs/003, 007; the aggregate root of the accounts cluster — `card-account`/`card-limit`/`billing-settings`/`credit-statement` are its own table-domains, written only through it): `BankAccount` is **where money or a credit line lives**. `type` (`AccountType`: **CHECKING/SIGHT/SAVINGS/INVESTMENT/CREDIT_LINE/CASH**), `status` (ACTIVE/INACTIVE), `accountNumber` (**bank account number — free text, stored/shown in full; NOT a card PAN**; **required for CHECKING/SIGHT/SAVINGS**, optional for CREDIT_LINE/INVESTMENT/CASH — enforced via a zod refine on create and by the aggregate on update, `ACCOUNT_NUMBER_REQUIRED`), `initialBalance` (seed) + `currentBalance`, which every movement keeps in step (`initialBalance` + Σincome − Σexpense): creating/editing/deleting a transaction applies its signed balance delta inside the movement's own `$transaction` (`transaction/domain/balance-delta.ts` → `BankAccountRepositoryPort.incrementBalanceWithTx`), exactly as it already does for `creditUsed`. **The manual `POST /accounts/:id/reconcile` is gone** (command, handler, aggregate method and UI button removed) — a balance that maintains itself has nothing to reconcile. **The account-level credit pool** (`creditLimit` + `creditUsedInitial`, seed) is the **shared/master cap across every CREDIT-kind card on the account** — this applies not just to a standalone credit card (a `CREDIT_LINE` account) but to **any cardable account that's grown a CREDIT-kind card** (e.g. a checking account's bank add-on credit card); the contract exposes a **derived `creditUsed` = creditUsedInitial + Σexpense − Σincome** (income = card payments; computed on-read via `sumsByAccount`), `"0"` when the account has no credit pool. List filter `?status=active|inactive`; `POST /accounts/:id/status`. List/get also return a 30d `balanceSeries` + `balanceChangePct` (for sparklines). Deleting unlinks transactions (`onDelete: SetNull`).
   - **Investment tracking removed (2026-09-07):** the standalone `investment` table-domain (ETF/
     remunerated-account holdings: `kind`, `symbol`/`shares` or `annualRate`/`principal`, an optional
@@ -1189,7 +1189,104 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (020 — implemented): specs/020-profile-financial-settings/plan.md
+Current plan (022 — implementado): specs/022-passkey-login/plan.md
+(Llave de acceso (Passkey/WebAuthn), reemplazando el botón "Configurar" deshabilitado de
+Seguridad. Nuevo dominio-tabla `passkey` (sin `presentation/` propia, igual que
+`mfa-recovery-code` — compuesto desde `user`): `id`/`userId`/`name`/`credentialId` (identificador
+de negocio, `@unique`, NUNCA el PK)/`publicKey`/`counter` (anti-clonado)/`transports`/`createdAt`/
+`lastUsedAt`. Registro guardado (`/auth/me/passkeys/register-options`+`register-verify`) y login
+público (`/auth/login/passkey-options`+`passkey-verify`), mismo patrón de dos pasos que specs/021
+pero con una diferencia arquitectónica clave: **el login con llave NUNCA pasa por
+`mfa_pending_token`** — entrega sesión completa directo, aunque el usuario tenga MFA (TOTP) activo,
+porque la llave ya es su propio mecanismo de autenticación fuerte (decisión explícita del usuario
+en el clarify). Anti-enumeración: `passkey-options` siempre responde la misma forma exista o no el
+email, y `passkey-verify` reutiliza el `InvalidCredentialsError` (`INVALID_CREDENTIALS`) existente
+para CUALQUIER fallo — nunca un código de error propio, para que sea indistinguible de una
+contraseña incorrecta. Nueva dependencia `@simplewebauthn/server` (solo apps/api); el frontend NO
+gana dependencia nueva — `navigator.credentials.create()/get()` son APIs nativas del navegador, con
+un helper propio de ~30 líneas para codificar/decodificar base64url (mismo criterio que el QR de
+MFA se mantuvo backend-only). El desafío (`challenge`) de cada ceremonia vive en una cookie httpOnly
+firmada de 5 min (`PASSKEY_CHALLENGE_SECRET`, mismo mecanismo que `mfa_pending_token`) — sin agregar
+infraestructura nueva (no hay Redis en este proyecto). `rpId`/origen esperado se derivan de la env
+var YA EXISTENTE `CORS_ORIGIN`, sin variables nuevas. `CurrentUser` NO gana campos (a diferencia de
+MFA) — la lista de llaves se consulta aparte vía `GET /auth/me/passkeys`. Ver
+`specs/022-passkey-login/research.md` R1-R8 para el resto de las decisiones.
+**Hallazgo de `/speckit-analyze`** (LOW, no bloqueante): el wiring exacto del botón "llave de
+acceso" en `LoginRoute.tsx` no estaba fijado en el plan — se resolvió durante la implementación
+como un segundo botón bajo el de "Iniciar sesión", deshabilitado hasta que el campo email tiene
+contenido (reutiliza el mismo input de email del formulario de contraseña, sin un segundo campo).
+Fuera de alcance, documentado en `docs/PENDING.md` §3: renombrar una llave existente, login sin
+escribir nada (conditional UI / discoverable credentials), verificación de attestation del
+fabricante. **Verificado de punta a punta**: `pnpm --filter @finance/api test:unit` [636/636],
+`test:integration` [más los 4 nuevos de passkey, dentro de 924 combinados con e2e], `test:e2e`
+[incluye la regresión crítica "bypasses MFA entirely even when the account has TOTP active"],
+`pnpm --filter @finance/web test` [359/359], typecheck y `check:boundaries` limpios en ambos
+paquetes, `prettier` aplicado. Sin migración propia más allá de `db push` (dev;
+`PASSKEY_CHALLENGE_SECRET` agregado a `.env`/`.env.example`). **No verificado**: ceremonia WebAuthn
+real en navegador con un autenticador físico/biométrico — los tests (unit/integration/e2e) stubean
+`verifyRegistrationResponse`/`verifyAuthenticationResponse` de `@simplewebauthn/server` porque
+simular un autenticador real (keypair ECDSA + CBOR) está fuera de proporción para esta suite; este
+entorno tampoco tiene herramienta de automatización de navegador disponible.)
+**Extensión rápida el mismo día (2026-09-18, sin spec propia): login discoverable/"usernameless"**
+— lo que specs/022 había dejado fuera de alcance como "conditional UI" queda parcialmente resuelto:
+el botón "Iniciar sesión con llave de acceso" ahora funciona con el campo email VACÍO — el
+navegador ofrece su propio selector de cuentas sobre cualquier llave residente para el sitio
+(`StartPasskeyLoginCommand.email` pasa a ser opcional; sin email, `generateAuthenticationOptions`
+se llama SIN `allowCredentials`, dejando que el navegador decida). La pieza nueva es distinguir, en
+`VerifyPasskeyLoginHandler`, dos motivos distintos para un `userId: null` en la cookie de desafío
+— "el email no tenía llaves" (debe rechazar, FR-005a) vs "no había email que resolver" (debe
+resolver la cuenta desde la propia credencial que el navegador devolvió) — por eso
+`PasskeyChallengePayload`/`VerifyPasskeyLoginCommand` ganan un campo `discoverable: boolean`
+explícito en vez de inferir la intención del mero `userId === null`, que antes significaba una sola
+cosa y ahora significaba dos. La seguridad no se debilita: adivinar un `credentialId` válido sigue
+siendo criptográficamente inviable sin importar si hubo email o no. Si el usuario SÍ escribe su
+email, el comportamiento acotado a esa cuenta (specs/022 original) sigue intacto sin cambios.
+**Sigue pendiente** (`docs/PENDING.md` §3): la sugerencia automática vía autocompletado del propio
+input de email (`mediation: "conditional"`) — hoy sigue haciendo falta apretar el botón explícito.
+Verificado: `pnpm --filter @finance/api test:unit`/`test:integration`/`test:e2e` [927 combinados],
+`pnpm --filter @finance/web test` [360/360], typecheck y `check:boundaries` limpios.)
+
+Prior plan: specs/021-mfa-totp/plan.md
+(MFA real vía TOTP, reemplazando el switch decorativo "Verificación en dos pasos". `User` gana
+`mfaEnabled`/`mfaSecretEncrypted` (AES-256-GCM, cifrado solo en `PrismaUserRepository`, nunca en el
+dominio)/`mfaFailedAttempts`/`mfaLockedUntil`; dominio-tabla nuevo `mfa-recovery-code` (10 códigos
+hasheados con bcrypt por activación, marcado-usado atómico `UPDATE ... WHERE usedAt IS NULL`).
+Handshake de login en dos pasos: `POST /auth/login` con MFA activo devuelve `{mfaRequired:true}` +
+cookie httpOnly `mfa_pending_token` (5 min, secreto de firma propio `MFA_PENDING_TOKEN_SECRET`,
+nunca `JWT_ACCESS_SECRET`) en vez de sesión; `POST /auth/login/mfa-verify` (sin guard) valida un
+único campo que acepta TOTP o código de recuperación. Límite de intentos: 5 códigos inválidos →
+bloqueo 15 min (`MfaLockedError`, primer uso de `429` en `DomainError.httpStatus`, confirmado seguro
+sin tocar `AllExceptionsFilter`, que ya lee el status genéricamente). Nuevas deps `otpauth`+`qrcode`
+(solo apps/api — el QR se genera server-side como data URL, sin dependencia nueva en el frontend).
+Desactivar exige reingresar contraseña (mismo patrón que "Eliminar cuenta"). Fuera de alcance,
+documentado como pendiente en `docs/PENDING.md` §3b: MFA por email/SMS, "recordar este
+dispositivo", regenerar códigos de recuperación sin desactivar/reactivar completo.
+**Hallazgo crítico de concurrencia, corregido antes de cerrar la feature** (no estaba en el plan
+original): el diseño inicial de `VerifyMfaLoginCommandHandler` leía el `User` fuera de cualquier
+lock (`repo.findById`) y auto-persistía el contador de intentos fallidos directamente en `handle()`
+— dos intentos de MFA concurrentes con código inválido podían ambos leer `mfaFailedAttempts=0` y
+ambos escribir `1`, subcontando la propia carrera que el rate-limit existe para frenar (la misma
+familia de bug que `debt`'s `register-payment` tuvo antes de specs/015). Se agregó
+`UserRepositoryPort.findByIdForUpdateWithTx` (`SELECT ... FOR UPDATE`, mismo mecanismo que `debt`'s
+`findOneForUpdateWithTx`) y el handler se reescribió para correr todo el ciclo lectura-validación-
+escritura dentro de una sola `prisma.$transaction`, retornando un `Outcome` discriminado en vez de
+lanzar DENTRO de la transacción (lanzar ahí habría revertido el incremento del contador que el
+camino de falla necesita conservar) — el error de dominio correcto se lanza recién DESPUÉS de que
+la transacción confirma. Verificado con un test de integración que lanza 5 intentos inválidos
+concurrentes contra un contador fresco: sin el fix el conteo final quedaba mal, con el fix da
+exactamente 5 y la cuenta quedó bloqueada. Ver `specs/021-mfa-totp/research.md` R1-R10 para el resto
+de las decisiones técnicas (incluida la excepción de auto-persistencia en el camino de error,
+R8, que sigue vigente — solo se le agregó el lock de fila). **Verificado de punta a punta**:
+`pnpm --filter @finance/api test:unit` [617/617], `test:integration` [121/121, incluye el test de
+concurrencia del rate-limit y el de doble-uso de un código de recuperación], `test:e2e` [153/153,
+incluye 4 archivos nuevos cubriendo las 4 historias de usuario], `pnpm --filter @finance/web test`
+[351/351, incluye `LoginRoute.test.tsx` nuevo y la suite "SecuritySection — MFA" nueva], typecheck y
+`check:boundaries` limpios en ambos paquetes; `prettier --write` aplicado a los archivos tocados.
+**No verificado visualmente en navegador** — este entorno no tiene herramienta de automatización de
+navegador disponible. Sin migración de datos propia más allá de `db push` (dev; `MFA_ENCRYPTION_KEY`/
+`MFA_PENDING_TOKEN_SECRET` agregados a `.env`/`.env.example`).)
+
+Prior plan: specs/020-profile-financial-settings/plan.md
 (Rediseño de "Personalización financiera" en el perfil. Elimina por completo "Inicio del ciclo
 mensual" (`User.billingCycleStartDay`) y "Presupuesto mensual objetivo" (`User.monthlyBudgetTarget`)
 — columna, contrato y endpoint, no solo UI — y el switch decorativo "Redondeo para ahorro" (nunca

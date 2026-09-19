@@ -45,6 +45,21 @@ model User {
   /// column is a separate, still-unimplemented Notifications setting, not related to it).
   budgetAlertThreshold Int?            @default(80)
 
+  /// Single source of truth for "does login require a second factor?" (specs/021). A non-null
+  /// mfaSecretEncrypted with mfaEnabled=false means an enrollment was started but never
+  /// confirmed — nothing protects the account in that state.
+  mfaEnabled       Boolean   @default(false)
+  /// AES-256-GCM ciphertext of the TOTP secret, format "iv:authTag:ciphertext" (hex). Encrypted
+  /// (not hashed) because validating a code requires recomputing the expected HOTP from the
+  /// plaintext secret — encryption/decryption happen ONLY in PrismaUserRepository, never in the
+  /// domain layer (mirrors the existing Prisma.Decimal<->string boundary conversion for money).
+  mfaSecretEncrypted String?
+  /// Consecutive invalid second-factor attempts since the last valid one. Reset to 0 on success.
+  mfaFailedAttempts Int      @default(0)
+  /// Set once mfaFailedAttempts reaches the lockout threshold; every attempt while this is in
+  /// the future is rejected without even evaluating the code (defense against timing attacks).
+  mfaLockedUntil    DateTime?
+
   country            Country?                @relation(fields: [countryId], references: [id], onDelete: SetNull)
   bankAccounts       BankAccount[]
   transactions       Transaction[]
@@ -56,9 +71,60 @@ model User {
   walletItems        WalletItemDashboard[]
   attachments        TransactionAttachment[]
   idempotencyRecords IdempotencyRecord[]
+  mfaRecoveryCodes   MfaRecoveryCode[]
+  passkeys           Passkey[]
 
   @@index([countryId])
   @@map("user")
+}
+
+/// One single-use recovery code issued when MFA activation is confirmed (specs/021). A fresh set
+/// of 10 replaces the previous one on every (re)activation — disabling MFA deletes all of a
+/// user's rows outright, so a reactivation never reuses an old code.
+model MfaRecoveryCode {
+  id        String    @id @default(uuid(7))
+  userId    String
+  /// bcrypt hash of the "XXXX-XXXX" code — never stored in plaintext, never recoverable (same
+  /// treatment as a password: only ever compared, never decrypted back).
+  codeHash  String
+  /// null = still usable. Set via an atomic `UPDATE ... WHERE usedAt IS NULL` so two concurrent
+  /// login attempts with the same code can't both succeed.
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mfa-recovery-code")
+}
+
+/// One WebAuthn passkey registered by the user on a specific device (specs/022). Never the
+/// user's only login method — password (+MFA if active) always keeps working regardless of how
+/// many passkeys exist.
+model Passkey {
+  id           String    @id @default(uuid(7))
+  userId       String
+  /// Chosen by the user at registration time, to tell devices apart in their own list.
+  name         String
+  /// The authenticator's own credential identifier (base64url) — a BUSINESS identifier, never
+  /// this row's PK (same treatment as an institution's `code` or a CBU).
+  credentialId String    @unique
+  /// The credential's public key (base64url) — needed to verify every future login assertion.
+  publicKey    String
+  /// WebAuthn signature counter. A value that doesn't strictly increase on a login attempt is
+  /// the standard signal of a cloned authenticator.
+  counter      Int       @default(0)
+  /// Optional authenticator transport hints (usb/nfc/ble/internal) — improves the browser's own
+  /// UX on a future login, never validated by this app.
+  transports   String[]  @default([])
+  createdAt    DateTime  @default(now())
+  /// null = never used to log in yet.
+  lastUsedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("passkey")
 }
 
 /// One ATTEMPT by the user, so a retry can be told apart from a new operation

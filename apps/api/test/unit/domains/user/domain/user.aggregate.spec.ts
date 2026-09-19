@@ -27,6 +27,10 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     hideBalances: false,
     extraCurrencies: [],
     budgetAlertThreshold: 80,
+    mfaEnabled: false,
+    mfaSecret: null,
+    mfaFailedAttempts: 0,
+    mfaLockedUntil: null,
     ...overrides,
   };
 }

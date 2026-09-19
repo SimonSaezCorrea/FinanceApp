@@ -24,6 +24,10 @@ interface Props {
    * most callers of this row are fine without it. */
   showEditIcon?: boolean;
   className?: string;
+  /** Passed straight to the input; defaults to "off" since this row's whole
+   * point is a short free-text label, not a value the browser should recall
+   * or offer autofill suggestions for. */
+  autoComplete?: string;
 }
 
 /** Label/value row for a single line of free text — reads as plain text until
@@ -41,6 +45,7 @@ export function FormTextField({
   hint,
   showEditIcon = false,
   className,
+  autoComplete = "off",
 }: Readonly<Props>) {
   const input = (
     <>
@@ -52,6 +57,7 @@ export function FormTextField({
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={label}
+        autoComplete={autoComplete}
         className={cn(
           "h-8 min-w-0 max-w-[13rem] border-0 bg-transparent p-0 text-right text-sm font-medium text-foreground placeholder:text-muted-foreground shadow-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-60",
           showEditIcon ? "flex-1" : "w-full",

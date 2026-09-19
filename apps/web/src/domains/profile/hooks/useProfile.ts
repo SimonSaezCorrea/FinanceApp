@@ -1,11 +1,19 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type { auth } from "@finance/contracts";
 
 import { accountsApi } from "../../accounts/api/accountsApi";
+import { authApi } from "../../auth/api/authApi";
 import { useAuth } from "../../auth/hooks/useAuth";
+import { passkeyApi } from "../../auth/api/passkeyApi";
 import { transactionsApi } from "../../transactions/api/transactionsApi";
 import { profileApi } from "../api/profileApi";
+
+/** Own list — unlike MFA's recovery-code count, `CurrentUser` carries nothing about passkeys
+ * (specs/022 research R8), so this is a genuine query of its own. */
+export function usePasskeysQuery() {
+  return useQuery({ queryKey: ["passkeys"], queryFn: () => passkeyApi.list() });
+}
 
 function startOfMonthISO(now: Date): string {
   return new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
@@ -38,6 +46,7 @@ export function useProfileStats() {
 
 export function useProfileMutations() {
   const { refreshUser, clearUser } = useAuth();
+  const queryClient = useQueryClient();
 
   return {
     updateProfile: useMutation({
@@ -54,6 +63,29 @@ export function useProfileMutations() {
     deactivate: useMutation({
       mutationFn: (body: auth.DeactivateRequest) => profileApi.deactivate(body),
       onSuccess: () => clearUser(),
+    }),
+    startMfaEnrollment: useMutation({
+      mutationFn: () => authApi.startMfaEnrollment(),
+    }),
+    confirmMfaEnrollment: useMutation({
+      mutationFn: (body: auth.ConfirmMfaEnrollmentRequest) => authApi.confirmMfaEnrollment(body),
+      onSuccess: () => refreshUser(),
+    }),
+    disableMfa: useMutation({
+      mutationFn: (body: auth.DisableMfaRequest) => authApi.disableMfa(body),
+      onSuccess: () => refreshUser(),
+    }),
+    startPasskeyRegistration: useMutation({
+      mutationFn: () => passkeyApi.startRegistration(),
+    }),
+    confirmPasskeyRegistration: useMutation({
+      mutationFn: (body: auth.ConfirmPasskeyRegistrationRequest) =>
+        passkeyApi.confirmRegistration(body),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["passkeys"] }),
+    }),
+    removePasskey: useMutation({
+      mutationFn: (id: string) => passkeyApi.remove(id),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["passkeys"] }),
     }),
   };
 }

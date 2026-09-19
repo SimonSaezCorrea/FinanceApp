@@ -1,4 +1,16 @@
-import { Body, Controller, Get, HttpCode, Patch, Post, Req, Res, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 import { ConfigService } from "@nestjs/config";
 import type { Request, Response } from "express";
@@ -7,17 +19,38 @@ import { auth } from "@finance/contracts";
 
 import { ACCESS_COOKIE, JwtAuthGuard, REFRESH_COOKIE } from "../../../infra/auth/jwt-auth.guard";
 import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.decorator";
+import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { ChangePasswordCommand } from "../application/commands/change-password.command";
+import { ConfirmMfaEnrollmentCommand } from "../application/commands/confirm-mfa-enrollment.command";
+import { ConfirmPasskeyRegistrationCommand } from "../application/commands/confirm-passkey-registration.command";
 import { DeactivateAccountCommand } from "../application/commands/deactivate-account.command";
+import { DisableMfaCommand } from "../application/commands/disable-mfa.command";
+import type { LoginResult } from "../application/commands/login.handler";
 import { LoginCommand } from "../application/commands/login.command";
 import type { AuthResult } from "../application/commands/register.handler";
 import { RefreshTokenCommand } from "../application/commands/refresh-token.command";
 import { RegisterCommand } from "../application/commands/register.command";
+import { RemovePasskeyCommand } from "../application/commands/remove-passkey.command";
+import { StartMfaEnrollmentCommand } from "../application/commands/start-mfa-enrollment.command";
+import type { StartPasskeyLoginResult } from "../application/commands/start-passkey-login.handler";
+import { StartPasskeyLoginCommand } from "../application/commands/start-passkey-login.command";
+import { StartPasskeyRegistrationCommand } from "../application/commands/start-passkey-registration.command";
 import { UpdatePreferencesCommand } from "../application/commands/update-preferences.command";
 import { UpdateProfileCommand } from "../application/commands/update-profile.command";
-import type { TokenPair } from "../application/token-issuer";
+import { VerifyMfaLoginCommand } from "../application/commands/verify-mfa-login.command";
+import { VerifyPasskeyLoginCommand } from "../application/commands/verify-passkey-login.command";
+import { PasskeyChallengeInvalidError } from "../domain/errors";
+import { PasskeyChallengeToken } from "../application/passkey-challenge-token";
+import { TokenIssuer, type TokenPair } from "../application/token-issuer";
 import { GetMeQuery } from "../application/queries/get-me.query";
+import { ListPasskeysQuery } from "../application/queries/list-passkeys.query";
+import { passkeyIdParamsSchema } from "./dto/passkey-id.params";
+
+const MFA_PENDING_COOKIE = "mfa_pending_token";
+const MFA_PENDING_COOKIE_MAX_AGE_MS = 5 * 60 * 1000;
+const PASSKEY_CHALLENGE_COOKIE = "passkey_challenge_token";
+const PASSKEY_CHALLENGE_COOKIE_MAX_AGE_MS = 5 * 60 * 1000;
 
 function parseDurationMs(s: string): number {
   const match = /^(\d+)([smhd])$/.exec(s);
@@ -42,6 +75,8 @@ export class AuthController {
     private readonly commandBus: CommandBus,
     private readonly queryBus: QueryBus,
     private readonly config: ConfigService,
+    private readonly tokenIssuer: TokenIssuer,
+    private readonly passkeyChallenge: PasskeyChallengeToken,
   ) {}
 
   @Post("register")
@@ -61,12 +96,74 @@ export class AuthController {
   async login(
     @Body(new ZodValidationPipe(auth.loginRequestSchema)) body: auth.LoginRequest,
     @Res({ passthrough: true }) res: Response,
-  ): Promise<auth.CurrentUser> {
-    const { tokens, user } = await this.commandBus.execute<LoginCommand, AuthResult>(
-      new LoginCommand(body),
+  ): Promise<auth.LoginResponse> {
+    const result = await this.commandBus.execute<LoginCommand, LoginResult>(new LoginCommand(body));
+    if (result.mfaRequired) {
+      res.cookie(MFA_PENDING_COOKIE, result.mfaPendingToken, {
+        ...this.cookieBase(),
+        maxAge: MFA_PENDING_COOKIE_MAX_AGE_MS,
+      });
+      return { mfaRequired: true };
+    }
+    this.setAuthCookies(res, result.tokens);
+    return { mfaRequired: false, user: result.user };
+  }
+
+  @Post("login/mfa-verify")
+  @HttpCode(200)
+  async verifyMfaLogin(
+    @Req() req: Request,
+    @Body(new ZodValidationPipe(auth.verifyMfaLoginRequestSchema)) body: auth.VerifyMfaLoginRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ user: auth.CurrentUser }> {
+    const pendingToken = (req.cookies as Record<string, string> | undefined)?.[MFA_PENDING_COOKIE];
+    const { sub: userId } = this.tokenIssuer.verifyMfaPending(pendingToken ?? "");
+    const { tokens, user } = await this.commandBus.execute<VerifyMfaLoginCommand, AuthResult>(
+      new VerifyMfaLoginCommand(userId, body),
     );
+    res.clearCookie(MFA_PENDING_COOKIE, this.cookieBase());
     this.setAuthCookies(res, tokens);
-    return user;
+    return { user };
+  }
+
+  @Post("login/passkey-options")
+  @HttpCode(200)
+  async startPasskeyLogin(
+    @Body(new ZodValidationPipe(auth.startPasskeyLoginRequestSchema))
+    body: auth.StartPasskeyLoginRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<auth.StartPasskeyLoginResponse> {
+    const { options, userId, discoverable } = await this.commandBus.execute<
+      StartPasskeyLoginCommand,
+      StartPasskeyLoginResult
+    >(new StartPasskeyLoginCommand(body.email));
+    const challenge = (options as { challenge: string }).challenge;
+    res.cookie(
+      PASSKEY_CHALLENGE_COOKIE,
+      this.passkeyChallenge.issue({ challenge, userId, discoverable }),
+      { ...this.cookieBase(), maxAge: PASSKEY_CHALLENGE_COOKIE_MAX_AGE_MS },
+    );
+    return { options };
+  }
+
+  @Post("login/passkey-verify")
+  @HttpCode(200)
+  async verifyPasskeyLogin(
+    @Req() req: Request,
+    @Body(new ZodValidationPipe(auth.verifyPasskeyLoginRequestSchema))
+    body: auth.VerifyPasskeyLoginRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<{ user: auth.CurrentUser }> {
+    const cookieToken = (req.cookies as Record<string, string> | undefined)?.[
+      PASSKEY_CHALLENGE_COOKIE
+    ];
+    const { challenge, userId, discoverable } = this.passkeyChallenge.verify(cookieToken ?? "");
+    const { tokens, user } = await this.commandBus.execute<VerifyPasskeyLoginCommand, AuthResult>(
+      new VerifyPasskeyLoginCommand(body.response, challenge, userId, discoverable),
+    );
+    res.clearCookie(PASSKEY_CHALLENGE_COOKIE, this.cookieBase());
+    this.setAuthCookies(res, tokens);
+    return { user };
   }
 
   @Post("refresh")
@@ -77,7 +174,7 @@ export class AuthController {
       new RefreshTokenCommand(token),
     );
     this.setAuthCookies(res, tokens);
-  } 
+  }
 
   @Post("logout")
   @HttpCode(204)
@@ -119,6 +216,91 @@ export class AuthController {
     body: auth.UpdatePreferencesRequest,
   ): Promise<auth.CurrentUser> {
     return this.commandBus.execute(new UpdatePreferencesCommand(user.id, body));
+  }
+
+  @Post("me/mfa/enroll")
+  @UseGuards(JwtAuthGuard)
+  startMfaEnrollment(@CurrentUser() user: AuthUser): Promise<auth.StartMfaEnrollmentResponse> {
+    return this.commandBus.execute(new StartMfaEnrollmentCommand(user.id));
+  }
+
+  @Post("me/mfa/confirm")
+  @UseGuards(JwtAuthGuard)
+  confirmMfaEnrollment(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(auth.confirmMfaEnrollmentRequestSchema))
+    body: auth.ConfirmMfaEnrollmentRequest,
+  ): Promise<auth.ConfirmMfaEnrollmentResponse> {
+    return this.commandBus.execute(new ConfirmMfaEnrollmentCommand(user.id, body));
+  }
+
+  @Post("me/mfa/disable")
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  disableMfa(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(auth.disableMfaRequestSchema)) body: auth.DisableMfaRequest,
+  ): Promise<void> {
+    return this.commandBus.execute(new DisableMfaCommand(user.id, body));
+  }
+
+  @Post("me/passkeys/register-options")
+  @UseGuards(JwtAuthGuard)
+  async startPasskeyRegistration(
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<auth.StartPasskeyRegistrationResponse> {
+    const { options } = await this.commandBus.execute<
+      StartPasskeyRegistrationCommand,
+      auth.StartPasskeyRegistrationResponse
+    >(new StartPasskeyRegistrationCommand(user.id));
+    const challenge = (options as { challenge: string }).challenge;
+    res.cookie(
+      PASSKEY_CHALLENGE_COOKIE,
+      this.passkeyChallenge.issue({ challenge, userId: user.id, discoverable: false }),
+      { ...this.cookieBase(), maxAge: PASSKEY_CHALLENGE_COOKIE_MAX_AGE_MS },
+    );
+    return { options };
+  }
+
+  @Post("me/passkeys/register-verify")
+  @UseGuards(JwtAuthGuard)
+  async confirmPasskeyRegistration(
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request,
+    @Body(new ZodValidationPipe(auth.confirmPasskeyRegistrationRequestSchema))
+    body: auth.ConfirmPasskeyRegistrationRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<auth.Passkey> {
+    const cookieToken = (req.cookies as Record<string, string> | undefined)?.[
+      PASSKEY_CHALLENGE_COOKIE
+    ];
+    const { challenge, userId } = this.passkeyChallenge.verify(cookieToken ?? "");
+    if (userId !== user.id) {
+      res.clearCookie(PASSKEY_CHALLENGE_COOKIE, this.cookieBase());
+      throw new PasskeyChallengeInvalidError();
+    }
+    const created = await this.commandBus.execute<ConfirmPasskeyRegistrationCommand, auth.Passkey>(
+      new ConfirmPasskeyRegistrationCommand(user.id, body.name, body.response, challenge),
+    );
+    res.clearCookie(PASSKEY_CHALLENGE_COOKIE, this.cookieBase());
+    return created;
+  }
+
+  @Get("me/passkeys")
+  @UseGuards(JwtAuthGuard)
+  listPasskeys(@CurrentUser() user: AuthUser): Promise<auth.ListPasskeysResponse> {
+    return this.queryBus.execute(new ListPasskeysQuery(user.id));
+  }
+
+  @Delete("me/passkeys/:id")
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  removePasskey(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(passkeyIdParamsSchema)) params: { id: string },
+  ): Promise<void> {
+    return this.commandBus.execute(new RemovePasskeyCommand(user.id, params.id));
   }
 
   @Post("me/deactivate")

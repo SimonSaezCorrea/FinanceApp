@@ -4,6 +4,10 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import type { auth } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import {
+  MFA_RECOVERY_CODE_REPOSITORY,
+  type MfaRecoveryCodeRepositoryPort,
+} from "../../../mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
 import { EmailTakenError, UnauthorizedError } from "../../domain/errors";
 import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
@@ -19,6 +23,8 @@ export class UpdateProfileHandler extends BaseCommandHandler<
   constructor(
     eventBus: EventBus,
     @Inject(USER_REPOSITORY) private readonly repo: UserRepositoryPort,
+    @Inject(MFA_RECOVERY_CODE_REPOSITORY)
+    private readonly recoveryCodes: MfaRecoveryCodeRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -50,7 +56,8 @@ export class UpdateProfileHandler extends BaseCommandHandler<
       email: input.email ? input.email.toLowerCase() : undefined,
       countryName: linkedName,
     });
-    return { result: user.toContract(), events: [] };
+    const remaining = user.mfaEnabled ? await this.recoveryCodes.countUnused(user.id) : 0;
+    return { result: user.toContract(remaining), events: [] };
   }
 
   protected override async persist(user: User): Promise<void> {

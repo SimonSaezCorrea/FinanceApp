@@ -31,6 +31,10 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     hideBalances: false,
     extraCurrencies: [],
     budgetAlertThreshold: 80,
+    mfaEnabled: false,
+    mfaSecret: null,
+    mfaFailedAttempts: 0,
+    mfaLockedUntil: null,
     ...overrides,
   };
 }
@@ -41,6 +45,8 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     findById: vi.fn(),
     create: vi.fn(),
     save: vi.fn().mockResolvedValue(undefined),
+    saveWithTx: vi.fn().mockResolvedValue(undefined),
+    findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn(),
     ...overrides,
   };

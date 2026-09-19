@@ -1,7 +1,7 @@
 import type { auth } from "@finance/contracts";
 
 import { UserDeactivatedEvent } from "./events/user-deactivated.event";
-import { AccountDisabledError } from "./errors";
+import { AccountDisabledError, MfaAlreadyEnabledError, MfaNotPendingError } from "./errors";
 
 export type UserStatus = "ACTIVE" | "DISABLED";
 
@@ -28,6 +28,14 @@ export interface UserProps {
   hideBalances: boolean;
   extraCurrencies: string[];
   budgetAlertThreshold: number | null;
+  /** Single source of truth for "does login require a second factor?" (specs/021). */
+  mfaEnabled: boolean;
+  /** Plaintext in the domain layer — cipher/decipher happens only at the Prisma adapter
+   * boundary (mirrors the existing Prisma.Decimal<->string boundary conversion for money). A
+   * non-null secret with mfaEnabled=false means enrollment is pending confirmation. */
+  mfaSecret: string | null;
+  mfaFailedAttempts: number;
+  mfaLockedUntil: Date | null;
 }
 
 export type ProfilePatch = Partial<{
@@ -109,6 +117,19 @@ export class User {
   get status(): UserStatus {
     return this.props.status;
   }
+  get mfaEnabled(): boolean {
+    return this.props.mfaEnabled;
+  }
+  /** The pending (unconfirmed) or active secret — never exposed via `toContract()`. */
+  get mfaSecret(): string | null {
+    return this.props.mfaSecret;
+  }
+  get mfaFailedAttempts(): number {
+    return this.props.mfaFailedAttempts;
+  }
+  get mfaLockedUntil(): Date | null {
+    return this.props.mfaLockedUntil;
+  }
 
   /** ACCOUNT_DISABLED — a deactivated account may not authenticate (login or
    * refresh), even holding an otherwise-valid credential/token. */
@@ -151,6 +172,55 @@ export class User {
       this.props.budgetAlertThreshold = patch.budgetAlertThreshold;
   }
 
+  /**
+   * Starts (or restarts) an MFA enrollment: stores a fresh pending secret, replacing any
+   * previous unconfirmed one (a refreshed/abandoned activation screen simply gets a new QR —
+   * nothing was protecting the account with the old pending secret anyway). Rejected once MFA
+   * is already active — this app has no "replace device" path, only disable-then-reactivate.
+   */
+  startMfaEnrollment(secret: string): void {
+    if (this.props.mfaEnabled) throw new MfaAlreadyEnabledError();
+    this.props.mfaSecret = secret;
+  }
+
+  /** Confirms a pending enrollment. Requires a secret from a prior `startMfaEnrollment` — the
+   * TOTP code itself is validated by the calling handler (pure crypto, no aggregate state). */
+  confirmMfaEnrollment(): void {
+    if (this.props.mfaEnabled) throw new MfaAlreadyEnabledError();
+    if (!this.props.mfaSecret) throw new MfaNotPendingError();
+    this.props.mfaEnabled = true;
+  }
+
+  /** Invalidates the secret and resets the rate-limit counters — recovery codes are discarded
+   * by the caller (a separate aggregate/table) in the same transaction. */
+  disableMfa(): void {
+    this.props.mfaEnabled = false;
+    this.props.mfaSecret = null;
+    this.props.mfaFailedAttempts = 0;
+    this.props.mfaLockedUntil = null;
+  }
+
+  isMfaLocked(now: Date): boolean {
+    return (
+      this.props.mfaLockedUntil !== null && this.props.mfaLockedUntil.getTime() > now.getTime()
+    );
+  }
+
+  /** Increments the failed-attempt counter and, once it reaches the threshold, locks the
+   * account for `lockMinutes`. Threshold/duration are passed in (pure function of state, no
+   * config dependency in the domain layer). */
+  recordMfaFailure(threshold: number, lockMinutes: number, now: Date): void {
+    this.props.mfaFailedAttempts += 1;
+    if (this.props.mfaFailedAttempts >= threshold) {
+      this.props.mfaLockedUntil = new Date(now.getTime() + lockMinutes * 60_000);
+    }
+  }
+
+  recordMfaSuccess(): void {
+    this.props.mfaFailedAttempts = 0;
+    this.props.mfaLockedUntil = null;
+  }
+
   /** Soft-disable (FR-011: only the status flag changes, no other field/related
    * record is touched). Emits `UserDeactivatedEvent` only on a genuine
    * ACTIVE -> DISABLED transition (idempotent no-op otherwise, same spirit as
@@ -165,7 +235,12 @@ export class User {
     return this.props;
   }
 
-  toContract(): auth.CurrentUser {
+  /** `mfaRecoveryCodesRemaining` is resolved by the caller (a separate table's port,
+   * Constitution VI: this aggregate never queries `mfa-recovery-code` itself) — defaults to 0,
+   * accurate for any caller whose flow guarantees no codes exist yet (register, a non-MFA
+   * login). Callers that might already have MFA active (get-me, update-profile,
+   * update-preferences) must pass the real count. */
+  toContract(mfaRecoveryCodesRemaining = 0): auth.CurrentUser {
     return {
       id: this.props.id,
       email: this.props.email,
@@ -188,6 +263,8 @@ export class User {
       hideBalances: this.props.hideBalances,
       extraCurrencies: this.props.extraCurrencies,
       budgetAlertThreshold: this.props.budgetAlertThreshold,
+      mfaEnabled: this.props.mfaEnabled,
+      mfaRecoveryCodesRemaining,
     };
   }
 }

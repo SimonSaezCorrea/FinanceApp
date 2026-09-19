@@ -6,6 +6,17 @@ import { CurrencyInUseError } from "../../../../../../src/domains/user/domain/er
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { CurrencyUsageLookupPort } from "../../../../../../src/domains/bank-account/domain/ports/currency-usage-lookup.port";
+import type { MfaRecoveryCodeRepositoryPort } from "../../../../../../src/domains/mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
+
+function fakeRecoveryCodeRepo(): MfaRecoveryCodeRepositoryPort {
+  return {
+    createManyWithTx: vi.fn(),
+    countUnused: vi.fn().mockResolvedValue(0),
+    findUnusedByUser: vi.fn(),
+    markUsedWithTx: vi.fn(),
+    deleteAllForUserWithTx: vi.fn(),
+  };
+}
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
   return {
@@ -31,6 +42,10 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     hideBalances: false,
     extraCurrencies: ["USD"],
     budgetAlertThreshold: 80,
+    mfaEnabled: false,
+    mfaSecret: null,
+    mfaFailedAttempts: 0,
+    mfaLockedUntil: null,
     ...overrides,
   };
 }
@@ -41,6 +56,8 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
     create: vi.fn(),
     save: vi.fn().mockResolvedValue(undefined),
+    saveWithTx: vi.fn().mockResolvedValue(undefined),
+    findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn(),
     ...overrides,
   };
@@ -66,6 +83,7 @@ function makeHandler(repo: UserRepositoryPort, ports: { anyInUse: boolean }) {
       CurrencyUsageLookupPort,
       CurrencyUsageLookupPort,
     ]),
+    fakeRecoveryCodeRepo(),
   );
 }
 
@@ -132,6 +150,7 @@ describe("UpdatePreferencesHandler", () => {
       repo,
       bankAccountPort,
       ...restPorts,
+      fakeRecoveryCodeRepo(),
     );
 
     await expect(

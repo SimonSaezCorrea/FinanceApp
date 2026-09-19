@@ -9,6 +9,15 @@ export interface UserRepositoryPort {
   create(plan: { email: string; name?: string; passwordHash: string }): Promise<User>;
   /** Persists every profile/preferences/security field this aggregate owns. */
   save(user: User): Promise<void>;
+  /** Same as `save`, inside the caller's transaction — for the two MFA flows that must save
+   * `User` atomically alongside `MfaRecoveryCode` rows (confirm enrollment, disable). */
+  saveWithTx(tx: unknown, user: User): Promise<void>;
+  /** `SELECT ... FOR UPDATE` inside the caller's transaction — a second concurrent call for the
+   * SAME id blocks until the first transaction commits, instead of both reading the
+   * pre-mutation row and one silently clobbering the other's write. What actually closes the
+   * `mfaFailedAttempts += 1` race under concurrent invalid MFA attempts (specs/021, mirrors
+   * `debt`'s own `findOneForUpdateWithTx`). */
+  findByIdForUpdateWithTx(tx: unknown, id: string): Promise<User | null>;
   /** A linked country's display name (mirrors `accounts`' `institutionName` lookup). */
   countryName(id: string): Promise<string | null>;
 }
