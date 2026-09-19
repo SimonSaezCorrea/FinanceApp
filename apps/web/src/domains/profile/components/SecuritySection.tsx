@@ -11,6 +11,7 @@ import { Button } from "../../../shared/ui/button";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
 import { ConfirmModal, FormSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
+import { FormNotice } from "../../../shared/ui/form/FormNotice";
 import { Input } from "../../../shared/ui/input";
 import { Switch } from "../../../shared/ui/switch";
 import { usePasskeysQuery, useProfileMutations, useSessionsQuery } from "../hooks/useProfile";
@@ -138,6 +139,7 @@ function ChangePasswordDialog({
       submitting={changePassword.isPending}
     >
       <div className="flex flex-col gap-5">
+        <FormNotice tone="warning">{t("profile.security.sessions.revokeOthersWarning")}</FormNotice>
         <PasswordField
           id="current-password"
           label={t("profile.security.password.current")}
@@ -221,19 +223,22 @@ function DisableMfaModal({
       confirmLabel={t("profile.security.mfa.disableConfirm")}
       loading={disableMfa.isPending}
     >
-      <Field
-        label={t("profile.security.mfa.disablePasswordLabel")}
-        htmlFor="mfa-disable-password"
-        error={error}
-      >
-        <Input
-          id="mfa-disable-password"
-          type="password"
-          autoComplete="current-password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-      </Field>
+      <div className="flex flex-col gap-4">
+        <FormNotice tone="warning">{t("profile.security.sessions.revokeOthersWarning")}</FormNotice>
+        <Field
+          label={t("profile.security.mfa.disablePasswordLabel")}
+          htmlFor="mfa-disable-password"
+          error={error}
+        >
+          <Input
+            id="mfa-disable-password"
+            type="password"
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </Field>
+      </div>
     </ConfirmModal>
   );
 }
@@ -414,6 +419,12 @@ export function SecuritySection() {
             </p>
           ) : null}
         </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          {t("profile.security.sessions.attribution")}{" "}
+          <a href="https://ipinfo.io" target="_blank" rel="noreferrer" className="underline">
+            IPinfo
+          </a>
+        </p>
       </div>
       <ChangePasswordDialog open={changingPassword} onOpenChange={setChangingPassword} />
       <MfaEnrollmentPanel open={enrollingMfa} onOpenChange={setEnrollingMfa} />

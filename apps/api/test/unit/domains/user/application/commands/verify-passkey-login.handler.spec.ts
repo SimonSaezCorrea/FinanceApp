@@ -81,6 +81,7 @@ function fakePasskeys(overrides: Partial<PasskeyRepositoryPort> = {}): PasskeyRe
     findByIdOwned: vi.fn(),
     updateCounterAndLastUsedWithTx: vi.fn().mockResolvedValue(undefined),
     deleteOwned: vi.fn(),
+    renameOwned: vi.fn(),
     ...overrides,
   };
 }

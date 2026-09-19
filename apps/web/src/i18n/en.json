@@ -1415,6 +1415,11 @@
           "title": "Remove passkey",
           "description": "You won't be able to use this device to sign in without a password anymore. Your email+password login is unaffected.",
           "confirm": "Remove"
+        },
+        "rename": {
+          "button": "Rename passkey",
+          "save": "Save name",
+          "cancel": "Cancel rename"
         }
       },
       "sessions": {
@@ -1427,7 +1432,9 @@
         "unknownDevice": "Unknown device",
         "unknownLocation": "Unknown location",
         "lastActive": "last active {{date}}",
-        "closed": "Closed on {{date}}"
+        "closed": "Closed on {{date}}",
+        "revokeOthersWarning": "This will close all your other active sessions — this session will not be affected.",
+        "attribution": "Location data by"
       }
     },
     "preferences": {

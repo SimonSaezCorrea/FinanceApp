@@ -3,7 +3,11 @@ import { type ReactNode, createContext, useContext, useEffect, useMemo, useState
 import type { auth } from "@finance/contracts";
 
 import { resetAuthRefresh } from "../../../shared/lib/apiClient";
-import { serializeGetResponse, toGetOptions } from "../../../shared/lib/webauthn";
+import {
+  isConditionalMediationSupported,
+  serializeGetResponse,
+  toGetOptions,
+} from "../../../shared/lib/webauthn";
 import { authApi } from "../api/authApi";
 import { passkeyApi } from "../api/passkeyApi";
 
@@ -21,6 +25,11 @@ interface AuthContextValue {
    * this site, with nothing typed. Throws if the device ceremony is cancelled/fails or the
    * server rejects the assertion. */
   loginWithPasskey: (email?: string) => Promise<void>;
+  /** Autofill-driven login (specs/025): attempted once when the login screen mounts, never on a
+   * click. Silently does nothing on an unsupported browser, a declined/empty suggestion, or when
+   * `signal` aborts (the password form was submitted instead) — never throws, matching the
+   * "explicit button is the only required path" requirement (FR-006/FR-007). */
+  tryConditionalPasskeyLogin: (signal: AbortSignal) => Promise<void>;
   register: (input: auth.RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
   /** Re-fetches /auth/me and refreshes the cached user (after a profile/preferences edit). */
@@ -71,6 +80,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         resetAuthRefresh();
         setUser(next);
+      },
+      tryConditionalPasskeyLogin: async (signal) => {
+        if (!(await isConditionalMediationSupported())) return;
+        try {
+          const { options } = await passkeyApi.startLogin({});
+          const credential = await navigator.credentials.get(
+            toGetOptions(options, { mediation: "conditional", signal }),
+          );
+          if (!credential) return;
+          const { user: next } = await passkeyApi.verifyLogin({
+            response: serializeGetResponse(credential),
+          });
+          resetAuthRefresh();
+          setUser(next);
+        } catch {
+          // Aborted (password login submitted instead) or declined/failed — the explicit
+          // button remains the fallback, this path never surfaces an error (FR-007).
+        }
       },
       register: async (input) => {
         const next = await authApi.register(input);

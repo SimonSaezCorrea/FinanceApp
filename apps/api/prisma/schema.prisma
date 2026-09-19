@@ -224,6 +224,30 @@ enum IdempotencyStatus {
   COMPLETED
 }
 
+/// IP → country cache for session geolocation (specs/026). Global — no FK to User, a single IP
+/// looked up by different users at different times shares the same row (Key Entity, spec.md).
+/// Only populated/read while IPINFO_TOKEN is configured; inert otherwise.
+model IpGeolocationCache {
+  id String @id @default(uuid(7))
+
+  /// The real business key — NEVER the PK (Principle VIII). Exact IP as the server saw it,
+  /// never a CIDR block.
+  ip String @unique
+  /// ISO alpha-2 (e.g. "CL"), same format `Session.country` already has via MaxMind. `null`
+  /// means IPinfo answered 2xx without a `country_code` — a genuine result, cached like any
+  /// other (unlike a network error/timeout/non-2xx, which is never cached at all).
+  country String?
+
+  createdAt DateTime @default(now())
+  /// createdAt + IP_GEOLOCATION_CACHE_TTL_DAYS (60). Swept by the daily cron; a read also
+  /// filters on this column directly, so an expired-but-not-yet-purged row is never served as
+  /// fresh.
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("ip-geolocation-cache")
+}
+
 enum UserStatus {
   ACTIVE
   DISABLED

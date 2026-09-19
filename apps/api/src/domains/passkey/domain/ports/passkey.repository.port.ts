@@ -12,6 +12,9 @@ export interface PasskeyRepositoryPort {
   findByCredentialId(credentialId: string): Promise<PasskeyProps | null>;
   /** Ownership-scoped lookup for the management endpoints (delete). */
   findByIdOwned(userId: string, id: string): Promise<PasskeyProps | null>;
+  /** Changes `name`, ownership-scoped in one statement (specs/025) — `null` if the row doesn't
+   * exist or doesn't belong to `userId`, same contract as `findByIdOwned`. */
+  renameOwned(userId: string, id: string, name: string): Promise<PasskeyProps | null>;
   updateCounterAndLastUsedWithTx(
     tx: unknown,
     id: string,

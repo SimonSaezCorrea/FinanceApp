@@ -8,6 +8,7 @@ import { CardLimitDataModule } from "../card-limit/card-limit.data.module";
 import { CountryDataModule } from "../country/country.data.module";
 import { DebtDataModule } from "../debt/debt.data.module";
 import { InstallmentPlanDataModule } from "../installment-plan/installment-plan.data.module";
+import { IpGeolocationCacheDataModule } from "../ip-geolocation-cache/ip-geolocation-cache.data.module";
 import { MfaRecoveryCodeDataModule } from "../mfa-recovery-code/mfa-recovery-code.data.module";
 import { PasskeyDataModule } from "../passkey/passkey.data.module";
 import { RecurringExpenseDataModule } from "../recurring-expense/recurring-expense.data.module";
@@ -28,6 +29,7 @@ import { RefreshTokenHandler } from "./application/commands/refresh-token.handle
 import { RegisterHandler } from "./application/commands/register.handler";
 import { PurgeClosedSessionsHandler } from "./application/commands/purge-closed-sessions.handler";
 import { RemovePasskeyHandler } from "./application/commands/remove-passkey.handler";
+import { RenamePasskeyHandler } from "./application/commands/rename-passkey.handler";
 import { RevokeOtherSessionsHandler } from "./application/commands/revoke-other-sessions.handler";
 import { StartMfaEnrollmentHandler } from "./application/commands/start-mfa-enrollment.handler";
 import { StartPasskeyLoginHandler } from "./application/commands/start-passkey-login.handler";
@@ -63,6 +65,7 @@ const commandHandlers = [
   StartPasskeyRegistrationHandler,
   ConfirmPasskeyRegistrationHandler,
   RemovePasskeyHandler,
+  RenamePasskeyHandler,
   StartPasskeyLoginHandler,
   VerifyPasskeyLoginHandler,
   CloseSessionHandler,
@@ -91,6 +94,7 @@ const queryHandlers = [GetMeQueryHandler, ListPasskeysQueryHandler, ListSessions
     MfaRecoveryCodeDataModule,
     PasskeyDataModule,
     SessionDataModule,
+    IpGeolocationCacheDataModule,
   ],
   controllers: [AuthController],
   providers: [

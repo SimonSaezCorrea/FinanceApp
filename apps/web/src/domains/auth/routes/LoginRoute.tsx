@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 
@@ -11,7 +11,7 @@ import { useAuth } from "../hooks/useAuth";
 
 export function LoginRoute() {
   const { t } = useTranslation();
-  const { login, verifyMfa, loginWithPasskey } = useAuth();
+  const { login, verifyMfa, loginWithPasskey, tryConditionalPasskeyLogin, user } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -20,9 +20,28 @@ export function LoginRoute() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
+  const conditionalAbortRef = useRef<AbortController | null>(null);
+
+  // Autofill-driven passkey suggestion (specs/025) — attempted once on mount, never on a click.
+  // Aborted on unmount and right before either login path submits, so it never competes with a
+  // concurrent navigator.credentials.get() call (the browser throws InvalidStateError otherwise).
+  useEffect(() => {
+    const controller = new AbortController();
+    conditionalAbortRef.current = controller;
+    void tryConditionalPasskeyLogin(controller.signal);
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // The conditional attempt above sets `user` directly (no navigate of its own) — this reacts to
+  // that success exactly like the explicit paths do.
+  useEffect(() => {
+    if (user) navigate("/");
+  }, [user, navigate]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    conditionalAbortRef.current?.abort();
     setBusy(true);
     setError(null);
     try {
@@ -46,6 +65,7 @@ export function LoginRoute() {
   }
 
   async function onPasskeyLogin() {
+    conditionalAbortRef.current?.abort();
     setError(null);
     setPasskeyBusy(true);
     try {
@@ -78,7 +98,7 @@ export function LoginRoute() {
                 placeholder={t("auth.email")}
                 value={email}
                 required
-                autoComplete="email"
+                autoComplete="username webauthn"
                 onChange={(e) => setEmail(e.target.value)}
               />
               <Input

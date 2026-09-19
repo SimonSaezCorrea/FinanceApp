@@ -1,4 +1,34 @@
 <!--
+Sync Impact Report — 2026-09-19 (amendment 2.3.2)
+- Version change: 2.3.1 → 2.3.2 (PATCH: a new table-domain and one new dependency-free network
+  call from specs/026-ipinfo-geolocation; no principle text changed, no conformance debt closed —
+  a routine addition that already satisfies every existing data gate, same shape as 2.3.1's own
+  `session` addition).
+- ADDED: table-domain `ip-geolocation-cache` (26th table-domain; see CLAUDE.md's `apps/api`
+  architecture section for the mechanism) — its `id` is a UUID v7 per Principle VIII, its real
+  business key (`ip`) lives in its own `@@unique` column, never the PK. No HTTP endpoint was added
+  (Principle VII form (a)/(b)/(c) N/A — nothing here is a client-triggered write); the one write
+  this domain performs (`upsert` keyed on `ip`) is protected by that same unique constraint acting
+  as the concurrency guard, the same argument Principle VII form (b) already recognizes for a
+  natural key. No FK from a request body (Principle II N/A) — the table has no `userId` at all
+  (global cache, by design: the same IP looked up by different users shares one row).
+- New dependency: **none** — the call to IPinfo Lite uses Node 20's native `fetch`/
+  `AbortSignal.timeout`, confirmed by dependency audit to be this backend's first outbound HTTP
+  call to a third-party service that isn't S3 (which uses its own SDK). New optional env var
+  `IPINFO_TOKEN` — same "inert without config" precedent as `GEOIP_DB_PATH`/S3, never read via
+  `getOrThrow`, never a boot failure.
+- No migration: dev-only data, `db push` adds the table. No contract-breaking change to any
+  existing endpoint — `GeoIpLookup.lookup(ip): Promise<GeoLocation>` keeps its exact signature,
+  `SessionIssuer` is unmodified.
+- Driven by an SDD cycle (specs/026), closing `docs/PENDING.md` point 4b (a documented "for later"
+  item, not a conformance-debt entry this constitution itself tracked).
+- CORRECTED existing drift while here: Principle VIII's own body text still said "24 tablas" even
+  after the 2.3.1 amendment added the 25th (`session`) — that amendment only updated the Sync
+  Impact Report, not the principle's prose. Now reads **26 tablas**, current as of this domain.
+- Templates requiring updates: none.
+-->
+
+<!--
 Sync Impact Report — 2026-09-19 (amendment 2.3.1)
 - Version change: 2.3.0 → 2.3.1 (PATCH: a new table-domain and two new dependencies from
   specs/023-real-sessions; no principle text changed, no conformance debt closed — a routine
@@ -1536,7 +1566,7 @@ Rationale: en una app de finanzas un timeout de red reintentado no puede cobrar 
 ### VIII. Identificadores (NON-NEGOTIABLE)
 
 Existe UN formato de identificador de fila para todo el esquema, declarado en la constitución y
-uniforme en las 24 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
+uniforme en las 26 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
 localidad de índice en Postgres, estándar RFC 9562). Está prohibido que dos formatos convivan en la
 misma columna.
 
@@ -1818,4 +1848,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.3.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-19
+**Version**: 2.3.2 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-19

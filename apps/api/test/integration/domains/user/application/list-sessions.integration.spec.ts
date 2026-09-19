@@ -56,6 +56,9 @@ describe("ListSessionsQueryHandler (integration)", () => {
     expect(result.find((s) => s.id === newer.id)).toMatchObject({
       isCurrent: true,
       country: "CL",
+      // "Santiago" here is historical MaxMind-era data, seeded directly (specs/026 never
+      // resolves city for a NEW session, but must never touch an old row's stored value).
+      city: "Santiago",
     });
     expect(result.find((s) => s.id === older.id)).toMatchObject({ isCurrent: false });
   });

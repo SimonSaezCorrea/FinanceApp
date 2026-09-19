@@ -8,12 +8,14 @@ import { PasskeySection } from "./PasskeySection";
 const startRegistration = vi.fn();
 const confirmRegistration = vi.fn();
 const remove = vi.fn();
+const rename = vi.fn();
 const list = vi.fn().mockResolvedValue([]);
 vi.mock("../../auth/api/passkeyApi", () => ({
   passkeyApi: {
     startRegistration: (...args: unknown[]) => startRegistration(...args),
     confirmRegistration: (...args: unknown[]) => confirmRegistration(...args),
     remove: (...args: unknown[]) => remove(...args),
+    rename: (...args: unknown[]) => rename(...args),
     list: (...args: unknown[]) => list(...args),
   },
 }));
@@ -149,5 +151,50 @@ describe("PasskeySection", () => {
     );
 
     await waitFor(() => expect(remove).toHaveBeenCalledWith("p1"));
+  });
+
+  it("renaming a passkey calls the API with the new name and refreshes the list", async () => {
+    list.mockResolvedValue([
+      { id: "p1", name: "Old Name", createdAt: "2026-01-01T00:00:00Z", lastUsedAt: null },
+    ]);
+    rename.mockResolvedValue({
+      id: "p1",
+      name: "New Name",
+      createdAt: "2026-01-01T00:00:00Z",
+      lastUsedAt: null,
+    });
+    renderPanel();
+    await screen.findByText("Old Name");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("profile.security.passkey.rename.button") }),
+    );
+    const input = screen.getByDisplayValue("Old Name");
+    fireEvent.change(input, { target: { value: "New Name" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("profile.security.passkey.rename.save") }),
+    );
+
+    await waitFor(() => expect(rename).toHaveBeenCalledWith("p1", { name: "New Name" }));
+  });
+
+  it("cancelling a rename discards the edit without calling the API", async () => {
+    list.mockResolvedValue([
+      { id: "p1", name: "Old Name", createdAt: "2026-01-01T00:00:00Z", lastUsedAt: null },
+    ]);
+    renderPanel();
+    await screen.findByText("Old Name");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("profile.security.passkey.rename.button") }),
+    );
+    const input = screen.getByDisplayValue("Old Name");
+    fireEvent.change(input, { target: { value: "Discarded" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("profile.security.passkey.rename.cancel") }),
+    );
+
+    expect(rename).not.toHaveBeenCalled();
+    expect(await screen.findByText("Old Name")).toBeDefined();
   });
 });

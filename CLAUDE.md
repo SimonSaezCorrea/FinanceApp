@@ -40,7 +40,7 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
 
 **pnpm + Turborepo monorepo** with two separately-deployable apps + shared packages. TypeScript, Node 20. Migrated from the legacy single Next.js app via specs/001.
 
-- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 25 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record, mfa-recovery-code, passkey, session — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **JWT access+refresh, backed by a real `Session` row per login** (specs/023 — the NextAuth `Account`/`Session`/`VerificationToken` tables removed at the monorepo migration were a different, unrelated thing; this `Session` is new). A session is reached one of two ways: email+password (optionally gated by a TOTP second factor, specs/021) or a registered WebAuthn passkey (specs/022, bypasses both password and MFA entirely, its own strong authentication) — either way, that login's `Session.id` travels as a `sid` claim inside both the access and refresh token it issues, and `JwtAuthGuard` checks that row exists on every request (not just `User.status`), so closing a session revokes its access token immediately rather than only on its next refresh. See the `session` domain-table bullet below for the full mechanism.
+- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 26 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record, mfa-recovery-code, passkey, session, ip-geolocation-cache — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **JWT access+refresh, backed by a real `Session` row per login** (specs/023 — the NextAuth `Account`/`Session`/`VerificationToken` tables removed at the monorepo migration were a different, unrelated thing; this `Session` is new). A session is reached one of two ways: email+password (optionally gated by a TOTP second factor, specs/021) or a registered WebAuthn passkey (specs/022, bypasses both password and MFA entirely, its own strong authentication) — either way, that login's `Session.id` travels as a `sid` claim inside both the access and refresh token it issues, and `JwtAuthGuard` checks that row exists on every request (not just `User.status`), so closing a session revokes its access token immediately rather than only on its next refresh. See the `session` domain-table bullet below for the full mechanism.
   - **bank-account** (specs/003, 007; the aggregate root of the accounts cluster — `card-account`/`card-limit`/`billing-settings`/`credit-statement` are its own table-domains, written only through it): `BankAccount` is **where money or a credit line lives**. `type` (`AccountType`: **CHECKING/SIGHT/SAVINGS/INVESTMENT/CREDIT_LINE/CASH**), `status` (ACTIVE/INACTIVE), `accountNumber` (**bank account number — free text, stored/shown in full; NOT a card PAN**; **required for CHECKING/SIGHT/SAVINGS**, optional for CREDIT_LINE/INVESTMENT/CASH — enforced via a zod refine on create and by the aggregate on update, `ACCOUNT_NUMBER_REQUIRED`), `initialBalance` (seed) + `currentBalance`, which every movement keeps in step (`initialBalance` + Σincome − Σexpense): creating/editing/deleting a transaction applies its signed balance delta inside the movement's own `$transaction` (`transaction/domain/balance-delta.ts` → `BankAccountRepositoryPort.incrementBalanceWithTx`), exactly as it already does for `creditUsed`. **The manual `POST /accounts/:id/reconcile` is gone** (command, handler, aggregate method and UI button removed) — a balance that maintains itself has nothing to reconcile. **The account-level credit pool** (`creditLimit` + `creditUsedInitial`, seed) is the **shared/master cap across every CREDIT-kind card on the account** — this applies not just to a standalone credit card (a `CREDIT_LINE` account) but to **any cardable account that's grown a CREDIT-kind card** (e.g. a checking account's bank add-on credit card); the contract exposes a **derived `creditUsed` = creditUsedInitial + Σexpense − Σincome** (income = card payments; computed on-read via `sumsByAccount`), `"0"` when the account has no credit pool. List filter `?status=active|inactive`; `POST /accounts/:id/status`. List/get also return a 30d `balanceSeries` + `balanceChangePct` (for sparklines). Deleting unlinks transactions (`onDelete: SetNull`).
   - **Investment tracking removed (2026-09-07):** the standalone `investment` table-domain (ETF/
     remunerated-account holdings: `kind`, `symbol`/`shares` or `annualRate`/`principal`, an optional
@@ -1078,10 +1078,11 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     igual, solo sin país. `GET /auth/sessions` marca `isCurrent` comparando cada fila
     contra el `sid` del access token de esa request (nunca almacenado en la fila —
     es un atributo de la consulta, no de la sesión). **Limitación deliberada, fuera de
-    alcance**: cambiar la contraseña o desactivar MFA no revocan otras sesiones
-    existentes (`docs/PENDING.md` punto 4); tampoco hay notificación de "nuevo
-    dispositivo", límite de sesiones simultáneas, ni revocación automática por
-    comportamiento sospechoso. Sin migración (`db push`; dev-only).
+    alcance** (cambiar la contraseña o desactivar MFA revocando las demás sesiones se
+    resolvió en specs/024, ver la Amendment más abajo): tampoco hay notificación de
+    "nuevo dispositivo", límite de sesiones simultáneas, ni revocación automática por
+    comportamiento sospechoso (`docs/PENDING.md` punto 4). Sin migración (`db push`;
+    dev-only).
     Amendment (ciudad + nombre de país, 2026-09-19): `GeoIpLookup` pasó de leer una base
     GeoLite2-**Country** a una GeoLite2-**City** (`CityResponse` de `maxmind`, superset
     del shape anterior — un archivo Country-only sigue andando, solo que `city` queda
@@ -1131,6 +1132,60 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     sin botón "Cerrar" propio; "Cerrar todas las demás" solo cuenta sesiones ABIERTAS
     para decidir si mostrarse. Contrato: `Session.closedAt: string | null` nuevo.
     Sin migración propia más allá de `db push` (dev-only).
+    Amendment (revocar sesiones al cambiar contraseña o desactivar MFA — specs/024,
+    2026-09-19): cierra la limitación documentada arriba. `SessionRepositoryPort` gana
+    **`closeAllExceptForUserWithTx(tx, userId, exceptId)`** — no existía variante
+    transaccional (el doc-comment del puerto afirmaba que este dominio nunca la
+    necesitaría; quedó corregido); `closeAllExceptForUser` (la no-transaccional, que
+    sigue usando `RevokeOtherSessionsHandler`) ahora delega en ella pasándole
+    `this.prisma`, sin duplicar la query. `ChangePasswordCommand`/`DisableMfaCommand`
+    ganan un tercer parámetro `currentSessionId` (el `sid` de quien hace el cambio,
+    `AuthUser.sessionId` — mismo origen que ya usa `RevokeOtherSessionsCommand`, nunca
+    del cuerpo del request). `ChangePasswordHandler` pasó de un `persist()` sin
+    transacción a uno con `prisma.$transaction` propio (no tenía ninguno);
+    `DisableMfaHandler` ya tenía uno (User + `MfaRecoveryCode`) y solo ganó la tercera
+    llamada — en ambos casos, si el cierre de sesiones falla, **todo se revierte**
+    (decisión de producto: atomicidad, no best-effort — cambiar la contraseña/MFA y
+    dejar alguna sesión vieja viva por un error de infraestructura sería peor que
+    fallar la operación completa). Web: `ChangePasswordDialog`/`DisableMfaModal`
+    (`SecuritySection.tsx`) muestran un `FormNotice tone="warning"` (componente ya
+    existente) advirtiendo ANTES de confirmar que la acción cerrará las demás sesiones
+    — sin ningún aviso posterior (ni toast ni contador, decisión explícita de
+    producto); ambas mutaciones invalidan la query `["sessions"]` en éxito, igual que
+    ya hacían `closeSession`/`revokeOtherSessions`. Sigue pendiente, fuera de alcance:
+    correo de aviso (no hay `EmailPort` en el proyecto), notificación de "nuevo
+    dispositivo", límite de sesiones simultáneas, revocación por comportamiento
+    sospechoso. Sin cambio de contrato HTTP ni de schema. Ver
+    `specs/024-revoke-sessions-on-change/` para el detalle completo.
+
+    Amendment (geolocalización vía IPinfo con caché, reemplaza MaxMind como fuente
+    preferida — specs/026, 2026-09-19): `GeoIpLookup` (`user/application/geoip-lookup.ts`)
+    gana un segundo camino, preferido sobre el archivo `.mmdb` local cuando está
+    configurado: **IPinfo Lite** (`https://api.ipinfo.io/lite/{ip}`, gratis e ilimitada,
+    solo país+ASN — sin ciudad —, licencia **CC BY-SA 4.0** que exige atribución visible).
+    Nuevo dominio-tabla **`ip-geolocation-cache`** (mismo trato mínimo que
+    `idempotency-record`: `domain/`+`infrastructure/` sin `presentation/`, más un
+    `application/` acotado a un único comando de purga) — tabla **global** (sin `userId`,
+    clave = IP exacta) que `GeoIpLookup` consulta ANTES de llamar a IPinfo y en la que
+    escribe cada respuesta 2xx genuina, con TTL fijo de **60 días** (purgado por
+    `IpGeolocationCachePurgeCron`, `EVERY_DAY_AT_5AM`, mismo patrón que
+    `IdempotencyCleanupCron`/`SessionCleanupCron`, offset para no competir con ninguno de
+    los dos). La interfaz pública `GeoIpLookup.lookup(ip): Promise<GeoLocation>` no cambia
+    — `SessionIssuer` no se entera del swap interno. **Prioridad de fuente, nunca
+    combinadas**: `IPINFO_TOKEN` configurado → IPinfo (+caché) es la ÚNICA fuente para esa
+    llamada; sin él, cae a MaxMind si `GEOIP_DB_PATH` sigue configurado; sin ninguno, sin
+    país. Un fallo de IPinfo (red, timeout, status no-2xx — un token inválido responde 403,
+    verificado contra la API real) **nunca se cachea**, para que se autocorrija en el
+    siguiente login en vez de dejar una IP "envenenada" sin país por los 60 días completos.
+    `city` queda siempre `null` para toda sesión resuelta por este camino (Lite no lo
+    entrega) — las sesiones ya guardadas con ciudad de MaxMind conservan su dato intacto,
+    sin migración. Nueva atribución visible en `SecuritySection.tsx` (Perfil → Seguridad),
+    un enlace a ipinfo.io bajo la lista de sesiones — cumple la condición de la licencia
+    incluso con una futura sección de suscripción de pago en la app, ya que la
+    geolocalización es una función de seguridad esencial, nunca parte de un plan pago. Sin
+    cambio de contrato HTTP ni de dependencia nueva (`fetch` nativo de Node 20 — primera
+    llamada de red saliente de este backend hacia un servicio de terceros que no es S3).
+    Ver `specs/026-ipinfo-geolocation/` para el detalle completo.
 
 - **Errors:** the API returns **language-agnostic codes** `{ error: { code, field? } }` (never localized prose); the frontend maps `code` → `errors.<CODE>` in es/en. `AllExceptionsFilter` (`infra/http`) preserves the specific `code`/`field` thrown on the exception (e.g. `EMAIL_TAKEN`, `CARD_REQUIRED`) and only falls back to a generic status-derived code (`UNAUTHORIZED`, `CONFLICT`, …) when the exception carried none — a prior version of this filter discarded every domain-specific code and must not regress.
 
@@ -1274,7 +1329,138 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (023 — implementado): specs/023-real-sessions/plan.md
+Current plan (026 — implementado): specs/026-ipinfo-geolocation/plan.md
+(Migrar geolocalización de sesiones a IPinfo con caché: `GeoIpLookup` (`user/application/
+geoip-lookup.ts`) gana un segundo camino, preferido sobre el archivo `.mmdb` local de MaxMind
+cuando está configurado — **IPinfo Lite** (`https://api.ipinfo.io/lite/{ip}`, gratis e
+ilimitada, solo país+ASN — sin ciudad —, licencia CC BY-SA 4.0 que exige atribución visible).
+Nuevo dominio-tabla **`ip-geolocation-cache`** (mismo trato mínimo que `idempotency-record`:
+`domain/`+`infrastructure/` sin `presentation/`, más un `application/` acotado a un único
+comando de purga) — tabla GLOBAL (sin `userId`, clave = IP exacta, `@@unique`) que
+`GeoIpLookup` consulta ANTES de llamar a IPinfo y en la que escribe cada respuesta 2xx
+genuina, con TTL fijo de **60 días** (clarificado con el usuario — punto medio del rango
+30-90 días que traía el spec original, sin riesgo porque el plan Lite no tiene cuota que
+cuidar), purgado por `IpGeolocationCachePurgeCron` (`EVERY_DAY_AT_5AM`, mismo patrón que
+`IdempotencyCleanupCron`/`SessionCleanupCron`, offset para no competir con ninguno de los
+dos). La interfaz pública `GeoIpLookup.lookup(ip): Promise<GeoLocation>` no cambia —
+`SessionIssuer` no se entera del swap interno; verificado con la firma real de IPinfo Lite
+contra la API viva (`country_code`, sin ningún campo de ciudad). **Prioridad de fuente,
+nunca combinadas**: `IPINFO_TOKEN` configurado → IPinfo (+caché) es la ÚNICA fuente para esa
+llamada; sin él, cae a MaxMind si `GEOIP_DB_PATH` sigue configurado; sin ninguno, sin país.
+**Un fallo de IPinfo nunca se cachea** (red, timeout, status no-2xx — un token inválido
+responde 403, confirmado contra la API real durante el research) — para que se autocorrija
+en el siguiente login en vez de dejar una IP "envenenada" sin país por los 60 días completos;
+esto es una decisión de diseño propia de esta implementación, más estricta que lo que el spec
+exigía literalmente. `city` queda siempre `null` para toda sesión resuelta por este camino;
+las sesiones ya guardadas con ciudad de MaxMind conservan su dato intacto, sin migración.
+Nueva atribución visible en `SecuritySection.tsx` (Perfil → Seguridad), un enlace a ipinfo.io
+bajo la lista de sesiones — resuelve explícitamente la pregunta de si esto es compatible con
+una futura sección de suscripción de pago en la app: la geolocalización es una función de
+seguridad esencial y su atribución nunca debe quedar condicionada a un plan pago. Sin cambio
+de contrato HTTP ni dependencia nueva (`fetch` nativo de Node 20 — primera llamada de red
+saliente de este backend hacia un servicio de terceros que no es S3, confirmado por auditoría
+de `package.json`). **Verificado de punta a punta**: `pnpm --filter @finance/api test:unit`
+[676/676, incluye los 9 casos nuevos de `GeoIpLookup`/`PurgeExpiredCacheHandler`],
+`test:integration` [143/143, incluye los 5 casos nuevos del adapter Prisma de la caché],
+`test:e2e` [175/175, sin caso nuevo — esta feature no agrega ningún endpoint HTTP],
+`pnpm --filter @finance/web test` [374/374, incluye el caso nuevo de la atribución visible en
+`SecuritySection`], `typecheck`, `lint` y `check:boundaries` limpios en ambos paquetes.
+Validación manual contra la API real (con el `IPINFO_TOKEN` real del usuario, nunca
+versionado): un registro real desde el entorno de desarrollo resolvió `country: "CL"`,
+`city: null` para la sesión creada, y una fila de caché con `expiresAt` exactamente 60 días
+después de `createdAt`; logins repetidos desde la misma IP (incluidos los de la propia suite
+de tests, que comparte la IP de desarrollo) confirmaron el cache-hit — nunca más de una fila
+para esa IP pese a cientos de logins de prueba. **No verificado en vivo, cubierto solo por
+tests automatizados con mocks de `fetch`**: los escenarios de token inválido/red caída (el
+403 real de un token inválido SÍ se confirmó por separado con `curl` directo contra la API de
+IPinfo durante el research, pero no a través del flujo de login completo, que requeriría
+manipular la IP del request más allá de lo que este entorno permite). Sin migración de datos
+propia más allá de `db push` (dev-only).)
+
+Prior plan: specs/025-passkey-management/plan.md
+(Renombrar passkeys y autocompletado condicional: dos extensiones chicas sobre el dominio
+`passkey` (specs/022). (1) `PATCH /auth/me/passkeys/:id` con `{name}` — `PasskeyRepositoryPort`
+ganó `renameOwned(userId, id, name)` (ninguno de los métodos existentes servía:
+`deleteOwned` borra, `updateCounterAndLastUsedWithTx` es solo para el bookkeeping de login);
+`RenamePasskeyCommand`/`Handler` copian la forma exacta de `RemovePasskeyHandler` (sin
+transacción, un `UPDATE` de una sola tabla). Web: `PasskeySection` gana un ícono de lápiz por
+fila que convierte esa fila en edición inline (input + guardar/cancelar), sin modal nuevo —
+renombrar no es destructivo, no necesita la fricción de un `ConfirmModal`. (2) Autocompletado
+condicional en login: el mecanismo de login "discoverable" que specs/022 ya extendió el mismo
+día (sin email, cuenta resuelta por `findByCredentialId`) YA es exactamente lo que la ceremonia
+condicional necesita del backend — **cero cambios de API**. Solo cambia el frontend:
+`webauthn.ts` gana `isConditionalMediationSupported()` (feature-detecta
+`PublicKeyCredential.isConditionalMediationAvailable`, nunca lanza) y `toGetOptions` acepta
+`{mediation, signal}`; `useAuth` gana `tryConditionalPasskeyLogin(signal)`, que traga cualquier
+error internamente (nunca se muestra al usuario — el botón explícito sigue siendo el único
+camino garantizado, FR-006/FR-007); `LoginRoute` dispara esa llamada en un `useEffect` al montar
+(con su propio `AbortController`, cancelado en el cleanup y justo antes de que cualquiera de los
+dos logins explícitos (contraseña o botón de passkey) se envíe, para que nunca compitan dos
+`navigator.credentials.get()` a la vez — un segundo `get()` sin abortar el primero lanza
+`InvalidStateError` por spec). El campo de email gana `autoComplete="username webauthn"`. Sin
+cambio de schema, sin dependencia nueva (todo es API nativa del navegador). **Verificado de
+punta a punta**: `pnpm --filter @finance/api test:unit` [667/667], `test:integration` [138/138,
+incluye el nuevo `rename.integration.spec.ts`], `test:e2e` [175/175, incluye los 2 casos nuevos
+en `passkey-management.http.spec.ts`], `pnpm --filter @finance/web test` [373/373, incluye 5
+casos nuevos: 2 de renombrar en `PasskeySection.test.tsx` + 3 de autocompletado condicional en
+`LoginRoute.test.tsx`], `typecheck`, `lint` y `check:boundaries` limpios en ambos paquetes.
+Validación manual con `curl`+`psql` contra la API real confirmó renombrar de punta a punta
+(éxito, rechazo por dueño ajeno, rechazo por nombre vacío). **No verificado**: la ceremonia de
+autocompletado condicional en un navegador real (este entorno no tiene herramienta de
+automatización de navegador ni un autenticador físico/biométrico disponible) — cubierto solo
+por los tests con mocks de `PublicKeyCredential`/`navigator.credentials`. Sin migración de datos
+propia.)
+
+Prior plan: specs/024-revoke-sessions-on-change/plan.md
+(Revocar sesiones al cambiar credenciales: cuando `POST /auth/me/password` o
+`POST /auth/me/mfa/disable` completan con éxito, además cierran —dentro de la MISMA
+transacción de Postgres que el cambio de credencial— todas las demás sesiones activas
+del usuario, reutilizando el mismo mecanismo que ya usa `POST /auth/sessions/revoke-others`
+(specs/023). El `sid` de la sesión que hizo el request (`AuthUser.sessionId`, ya expuesto
+por `JwtAuthGuard`/`@CurrentUser()` desde specs/023) llegaba hasta el controller pero no se
+reenviaba a `ChangePasswordCommand`/`DisableMfaCommand` — se agregó como tercer argumento
+de ambos constructores, igual que ya hace `RevokeOtherSessionsCommand`. `SessionRepositoryPort`
+ganó `closeAllExceptForUserWithTx(tx, userId, exceptId)` (no existía variante transaccional
+— su doc-comment afirmaba que este dominio nunca la necesitaría, quedó corregido); la
+variante no-transaccional ahora delega en ella pasando `this.prisma`, sin duplicar la
+query. `ChangePasswordHandler` pasó de `persist(user)` sin transacción a
+`persist(context: {user, currentSessionId})` con un `prisma.$transaction` propio (no tenía
+ninguno antes); `DisableMfaHandler` ya tenía uno (User + MfaRecoveryCode) y solo ganó la
+tercera llamada — si el cierre de sesiones falla, TODO se revierte (decisión de clarify:
+atomicidad, no best-effort). Frontend: `ChangePasswordDialog` y `DisableMfaModal`
+(`SecuritySection.tsx`) ganan un `FormNotice tone="warning"` (componente ya existente)
+advirtiendo ANTES de confirmar que la acción cerrará las demás sesiones — sin ningún aviso
+posterior (decisión de clarify: nada de toast/contador después, solo la advertencia
+previa); `changePassword`/`disableMfa` invalidan la query `["sessions"]` en éxito, igual
+que ya hacían `closeSession`/`revokeOtherSessions`. Sin cambio de contrato HTTP (mismos
+endpoints, mismo body/response — el cambio es un efecto colateral interno) y sin
+migración de schema (`Session` no gana columnas). Ver
+`specs/024-revoke-sessions-on-change/research.md` para el detalle de cada decisión.
+**Hallazgo de `/speckit-analyze` aplicado antes de implementar**: dos de los sub-casos de
+test de integración pedían "forzar un error en el paso de sesiones" con un mock parcial
+del repositorio — pero los tests de integración de este repo componen los adapters Prisma
+REALES contra Postgres real, nunca mocks; el caso de atomicidad se dejó exclusivamente en
+el nivel unit (con fakes de puerto), que es la capa correcta para inyectar ese fallo.
+**Descubierto durante la implementación, sin relación con el plan**: los tests unitarios de
+`revoke-other-sessions`/`list-sessions`/`close-session`/`session-issuer` tenían cada uno su
+propio fake inline de `SessionRepositoryPort` (no uno compartido) — los cuatro necesitaron
+el nuevo método `closeAllExceptForUserWithTx` agregado a su objeto fake para seguir
+compilando, sin cambiar ningún comportamiento de esos tests. **Verificado de punta a
+punta** (este entorno no tenía `node_modules` ni Postgres corriendo al empezar — se
+instalaron dependencias, se levantó Postgres 16 local, se generó el cliente Prisma, se
+corrió `db push` + `db:seed`): `pnpm --filter @finance/api test:unit` [665/665],
+`test:integration` [136/136, incluye los 2 escenarios nuevos de 3-sesiones para
+cambio de contraseña y desactivar MFA], `test:e2e` [173/173, incluye
+`change-password.http.spec.ts` nuevo y el escenario de 2 sesiones agregado a
+`mfa-disable.http.spec.ts`], `pnpm --filter @finance/web test` [368/368, incluye 4 casos
+nuevos en `SecuritySection.test.tsx`], `typecheck`, `lint` y `check:boundaries` limpios en
+ambos paquetes, `prettier --write` aplicado a los archivos tocados. Además, validación
+manual end-to-end contra la API real levantada (`pnpm --filter @finance/api dev`): los 2
+escenarios de `quickstart.md` (cambio de contraseña y desactivación de MFA, cada uno con 2
+sesiones reales) confirmaron el comportamiento esperado por `curl`. Sin migración de datos
+propia.)
+
+Prior plan: specs/023-real-sessions/plan.md
 (Sesiones y dispositivos reales: reemplaza el placeholder `EXAMPLE_SESSIONS` de
 `SecuritySection` con tracking real. Cada login exitoso (password, con/sin MFA, o
 passkey) crea una fila `Session` nueva, dominio-tabla propio sin `presentation/` (mismo

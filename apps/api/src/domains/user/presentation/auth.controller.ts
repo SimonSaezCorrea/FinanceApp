@@ -34,6 +34,7 @@ import type { AuthResult } from "../application/commands/register.handler";
 import { RefreshTokenCommand } from "../application/commands/refresh-token.command";
 import { RegisterCommand } from "../application/commands/register.command";
 import { RemovePasskeyCommand } from "../application/commands/remove-passkey.command";
+import { RenamePasskeyCommand } from "../application/commands/rename-passkey.command";
 import { RevokeOtherSessionsCommand } from "../application/commands/revoke-other-sessions.command";
 import { StartMfaEnrollmentCommand } from "../application/commands/start-mfa-enrollment.command";
 import type { StartPasskeyLoginResult } from "../application/commands/start-passkey-login.handler";
@@ -222,7 +223,7 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(auth.changePasswordRequestSchema)) body: auth.ChangePasswordRequest,
   ): Promise<void> {
-    return this.commandBus.execute(new ChangePasswordCommand(user.id, body));
+    return this.commandBus.execute(new ChangePasswordCommand(user.id, body, user.sessionId));
   }
 
   @Patch("me/preferences")
@@ -258,7 +259,7 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(auth.disableMfaRequestSchema)) body: auth.DisableMfaRequest,
   ): Promise<void> {
-    return this.commandBus.execute(new DisableMfaCommand(user.id, body));
+    return this.commandBus.execute(new DisableMfaCommand(user.id, body, user.sessionId));
   }
 
   @Post("me/passkeys/register-options")
@@ -318,6 +319,16 @@ export class AuthController {
     @Param(new ZodParamsPipe(passkeyIdParamsSchema)) params: { id: string },
   ): Promise<void> {
     return this.commandBus.execute(new RemovePasskeyCommand(user.id, params.id));
+  }
+
+  @Patch("me/passkeys/:id")
+  @UseGuards(JwtAuthGuard)
+  renamePasskey(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(passkeyIdParamsSchema)) params: { id: string },
+    @Body(new ZodValidationPipe(auth.renamePasskeyRequestSchema)) body: auth.RenamePasskeyRequest,
+  ): Promise<auth.Passkey> {
+    return this.commandBus.execute(new RenamePasskeyCommand(user.id, params.id, body.name));
   }
 
   @Get("sessions")

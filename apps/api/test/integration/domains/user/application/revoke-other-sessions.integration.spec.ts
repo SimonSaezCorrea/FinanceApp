@@ -9,7 +9,7 @@ import { RevokeOtherSessionsCommand } from "../../../../../src/domains/user/appl
 import { GeoIpLookup } from "../../../../../src/domains/user/application/geoip-lookup";
 import { SessionIssuer } from "../../../../../src/domains/user/application/session-issuer";
 import { TokenIssuer } from "../../../../../src/domains/user/application/token-issuer";
-import { buildUserRepo } from "../../../support/repositories";
+import { buildUserRepo, noopIpGeolocationCacheRepo } from "../../../support/repositories";
 import { PrismaSessionRepository } from "../../../../../src/domains/session/infrastructure/prisma-session.repository";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
 
@@ -22,7 +22,11 @@ describe("RevokeOtherSessionsHandler (integration)", () => {
     JWT_REFRESH_SECRET: "test-refresh",
   });
   const tokenIssuer = new TokenIssuer(new JwtService(), config);
-  const sessionIssuer = new SessionIssuer(tokenIssuer, sessionRepo, new GeoIpLookup(config));
+  const sessionIssuer = new SessionIssuer(
+    tokenIssuer,
+    sessionRepo,
+    new GeoIpLookup(config, noopIpGeolocationCacheRepo()),
+  );
   const email = `int_revoke_others_${randomUUID()}@test.local`;
   let userId: string;
 

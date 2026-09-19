@@ -35,35 +35,26 @@ equivalente) integrado en el proyecto.
 endpoint de subida con validación de tipo/tamaño, y servir la imagen en vez de las iniciales cuando
 exista.
 
-### 3. Llave de acceso (Passkey / WebAuthn) — real desde specs/022 (2026-09-18), tres caminos quedan fuera
+### 3. Llave de acceso (Passkey / WebAuthn) — real desde specs/022, un solo camino queda fuera
 
-El botón "Configurar" **dejó de estar deshabilitado**: un usuario registra una o varias llaves de
-acceso nombradas desde su perfil (`PasskeySection.tsx`) y puede iniciar sesión con cualquiera de
-ellas desde el login — sin contraseña y, deliberadamente, **sin pasar por el paso de MFA/TOTP**
-aunque la cuenta lo tenga activo (la llave es su propio mecanismo de autenticación fuerte, decisión
-explícita del usuario en el clarify de esa spec). El login con email+contraseña (+TOTP si aplica)
-sigue funcionando exactamente igual sin importar cuántas llaves tenga o deje de tener el usuario.
-Ver `specs/022-passkey-login/` para el diseño completo. Tres caminos quedaron **explícitamente
-fuera de alcance de esa iteración**:
+Registro/login con passkey (con y sin escribir el email — discoverable/usernameless) está
+implementado de punta a punta desde specs/022 (2026-09-18); ver `specs/022-passkey-login/` para el
+diseño completo. **specs/025 (2026-09-19) cerró los otros dos gaps**: renombrar una llave ya
+registrada (`PATCH /auth/me/passkeys/:id`, sin tocar `lastUsedAt`/`createdAt`) y la sugerencia
+automática vía autocompletado del navegador (`navigator.credentials.get({mediation:"conditional"})`,
+cableada al campo de email de login — feature-detectada con `PublicKeyCredential.
+isConditionalMediationAvailable()`, así que en un navegador sin soporte no cambia nada; el botón
+explícito sigue siendo el único camino garantizado). Ver `specs/025-passkey-management/` para el
+diseño completo.
 
-- **Renombrar una llave ya registrada**: el nombre solo se elige una vez, al crearla — no hay un
-  endpoint `PATCH` para cambiarlo después. Para renombrar hoy habría que eliminarla y volver a
-  registrarla.
+Lo que queda **explícitamente pendiente**:
+
 - **Verificación de "attestation" del fabricante**: se acepta cualquier autenticador compatible con
   el estándar (`attestationType: "none"`), sin verificar contra un catálogo de fabricantes
   conocidos (MDS de la FIDO Alliance). Cualquier llave/biométrico que el navegador exponga vía
-  WebAuthn funciona, sin lista blanca.
-
-**Extensión (2026-09-18): login "sin escribir nada" (discoverable/usernameless), implementado.**
-El botón "Iniciar sesión con llave de acceso" funciona con el campo email vacío — el navegador
-ofrece su propio selector de cuentas sobre cualquier llave residente para este sitio (`email`
-omitido en `POST /auth/login/passkey-options`, `allowCredentials` queda sin definir a propósito), y
-`passkey-verify` resuelve la cuenta desde la credencial elegida (`Passkey.userId`) en vez de un
-email pre-resuelto. Si el usuario SÍ escribe su email, el flujo se acota a las llaves de esa cuenta
-(igual que antes). **Lo que sigue sin implementar** es la sugerencia automática vía autocompletado
-del navegador (`navigator.credentials.get({mediation: "conditional"})` cableado al propio input de
-email, que ofrecería la llave como opción de autocompletar mientras el usuario escribe, sin ni
-siquiera apretar el botón) — el botón explícito sigue siendo necesario para disparar la ceremonia.
+  WebAuthn funciona, sin lista blanca. Descartado explícitamente de specs/025 por ser una
+  integración pesada (descargar/parsear/verificar el BLOB firmado de metadatos FIDO, decidir qué
+  fabricantes permitir) de valor dudoso para una app de finanzas personales.
 
 ### 3b. Verificación en dos pasos — real desde specs/021 (2026-09-18), tres caminos quedan fuera
 
@@ -85,48 +76,55 @@ producto, no un hueco técnico encontrado después):
   set nuevo de códigos es desactivar MFA (reingresando la contraseña) y volver a activarlo desde
   cero — no hay un endpoint "solo regenerar códigos" que preserve el secreto TOTP vigente.
 
-### 4. Sesiones y dispositivos — real desde specs/023 (2026-09-19)
+### 4. Sesiones y dispositivos — real desde specs/023 (2026-09-19), revocación por credencial cerrada por specs/024
 
 Ya no es data de ejemplo. Cada login exitoso (password, con/sin MFA, o passkey) crea una fila
 `Session` real, cuyo `id` viaja como claim `sid` en el access y el refresh token de ese login;
 `JwtAuthGuard` verifica en cada request que esa sesión siga existiendo (revocación de inmediato, no
 solo en el próximo refresh). `SecuritySection` lista las sesiones reales (`GET /auth/sessions`,
-dispositivo/navegador derivado del User-Agent, país aproximado vía GeoLite2 si `GEOIP_DB_PATH` está
-configurado) y "Cerrar"/"Cerrar todas" llaman de verdad a `DELETE /auth/sessions/:id`/
-`POST /auth/sessions/revoke-others`. Cerrar una sesión es un DELETE real (sin historial, decisión de
-producto explícita); un cron diario purga las filas vencidas que nadie cerró a mano.
+dispositivo/navegador derivado del User-Agent, país aproximado vía IPinfo si `IPINFO_TOKEN` está
+configurado — ver el punto 4b, cerrado — o vía GeoLite2 local si solo `GEOIP_DB_PATH` lo está) y
+"Cerrar"/"Cerrar todas" llaman de verdad a `DELETE /auth/sessions/:id`/
+`POST /auth/sessions/revoke-others`. Cerrar una sesión estampa `closedAt` (se retiene 3 días, la
+purga un cron diario) — ver la enmienda de `CLAUDE.md` que reemplazó el DELETE inmediato original.
 
-**Limitación deliberada, fuera de alcance de esta iteración**: cambiar la contraseña o desactivar MFA
-no revocan las demás sesiones existentes — son acciones independientes por ahora. Tampoco hay
-notificación de "nuevo dispositivo", límite de sesiones simultáneas, ni revocación automática por
-comportamiento sospechoso (ver `specs/023-real-sessions/spec.md`, sección Assumptions).
+**Cerrado por specs/024 (2026-09-19)**: cambiar la contraseña (`POST /auth/me/password`) o
+desactivar la verificación en dos pasos (`POST /auth/me/mfa/disable`) ahora revocan automáticamente
+todas las demás sesiones activas del usuario, dejando activa solo la que hizo el cambio — en la
+MISMA transacción que el cambio de credencial (si la revocación falla, el cambio también se
+revierte). La UI (`ChangePasswordDialog`/`DisableMfaModal`) advierte esto explícitamente ANTES de
+confirmar, sin ningún aviso posterior. Ver `specs/024-revoke-sessions-on-change/` para el diseño
+completo.
+
+**Sigue pendiente, fuera de alcance de specs/024** (decisión explícita, no un hueco encontrado
+después):
+
+- **Correo/notificación avisando el cierre**: no existe ningún proveedor de envío de correo
+  transaccional en el proyecto (ver la sección "Envío de correos transaccionales" de este mismo
+  documento) — sin esa infraestructura, no hay dónde enganchar el aviso.
+- **Notificación de "nuevo dispositivo"** al iniciar sesión — requiere la misma infraestructura de
+  correo que el punto anterior.
+- **Límite de sesiones simultáneas** y **revocación automática por comportamiento sospechoso** —
+  ambas son decisiones de producto propias (qué límite, qué cuenta como sospechoso) que no se
+  asumieron en specs/023 ni en specs/024 (ver `specs/023-real-sessions/spec.md`, sección
+  Assumptions).
 
 ### 4b. Geolocalización de sesiones: migrar de MaxMind (local) a IPinfo (API) con caché
 
-Hoy `GeoIpLookup` resuelve país/ciudad contra un archivo `.mmdb` local (GeoLite2-City de MaxMind,
-`GEOIP_DB_PATH`) — funciona, pero el archivo hay que descargarlo/actualizarlo a mano y no lo trae el
-repo (gitignoreado, cada dev/entorno se lo baja aparte). Migrar a la API de **IPinfo** (u otro
-proveedor equivalente) resolvería eso a costa de depender de un servicio externo con cuota.
-
-**Estrategia recomendada para no gastar cuota de más** (la cuota gratuita de IPinfo es 50.000
-consultas/mes): agregar una capa de caché propia antes de golpear la API externa.
-
-1. El usuario inicia sesión → el server ya captura su IP (esto no cambia).
-2. **Consulta interna primero**: buscar en una tabla propia (ej. `ip_geolocation_cache`, o
-   directamente reutilizar filas de `Session` ya resueltas) si esa IP exacta ya se vio antes.
-   - **IP conocida** → usar la ciudad/país ya guardados. Consumo de API = 0.
-   - **IP nueva** → recién ahí pegarle a la API de IPinfo, guardar el resultado en la tabla de caché
-     para la próxima vez, y usarlo para esta sesión. Consumo de API = 1.
-3. Con esa lógica, aunque la app crezca a cientos de miles de usuarios, la cuota gratuita alcanza
-   por mucho tiempo — la mayoría de la gente inicia sesión siempre desde las mismas IPs (casa,
-   trabajo).
-
-**Para hacerlo real**: nueva tabla/dominio-tabla de caché IP→ubicación (con expiración razonable,
-ya que una IP puede reasignarse con el tiempo — ej. TTL de 30-90 días), `GeoIpLookup` pasa a
-consultar esa caché antes de llamar a IPinfo, y solo llama a la API externa en un cache-miss. La
-capa pública (`lookup(ip): Promise<GeoLocation>`) no necesita cambiar — es un swap interno de
-implementación, no del contrato que usa `SessionIssuer`. Mientras esto no se implemente, seguimos
-con MaxMind local (sin llamadas de red, sin cuota, pero con el archivo a mantener a mano).
+**Cerrado por specs/026 (2026-09-19)**: `GeoIpLookup` resuelve país por **IPinfo Lite** (gratis e
+ilimitada, licencia CC BY-SA 4.0 con atribución) cuando `IPINFO_TOKEN` está configurado, detrás de
+una caché propia (`ip-geolocation-cache`, TTL de 60 días, purgada por un cron diario, mismo patrón
+que `idempotency-record`) — una IP ya consultada por cualquier usuario nunca vuelve a golpear la API
+externa. Ciudad **ya no se resuelve** para sesiones nuevas (Lite no la entrega — el trade-off
+aceptado de esta migración); las sesiones ya guardadas con ciudad de MaxMind conservan su dato tal
+cual, no se migran. Un fallo transitorio del proveedor (red, timeout, token inválido) nunca se
+cachea, para que se autocorrija en el siguiente login en vez de quedar "envenenado" 60 días. Sin
+`IPINFO_TOKEN`, cae de vuelta a MaxMind local si `GEOIP_DB_PATH` sigue configurado, o sin país si
+tampoco — las dos fuentes nunca se combinan en una misma resolución. Nueva atribución visible en
+Perfil → Seguridad, bajo la lista de sesiones (cumple la condición de la licencia CC BY-SA 4.0,
+incluso con una futura sección de suscripción de pago en la app — la geolocalización es una función
+de seguridad esencial, nunca parte de un plan pago). Ver `specs/026-ipinfo-geolocation/` para el
+diseño completo.
 
 ### 5. Plan, uso y facturación
 

@@ -63,7 +63,27 @@ describe("MFA disable HTTP (e2e)", () => {
     expect(me.body.mfaEnabled).toBe(true);
   });
 
-  it("disables MFA with the correct password, and a subsequent login needs no second step", async () => {
+  it("disables MFA with the correct password: revokes every other session, keeps this one, and a subsequent login needs no second step", async () => {
+    // A second, unrelated login (specs/024) — must be locked out immediately once MFA
+    // is disabled from `cookies`, while `cookies` itself keeps working.
+    const enroll = await request(app.getHttpServer())
+      .post("/api/v1/auth/me/mfa/enroll")
+      .set("Cookie", cookies);
+    const totpCode = totpCodeFor(enroll.body.secret);
+    await request(app.getHttpServer())
+      .post("/api/v1/auth/me/mfa/confirm")
+      .set("Cookie", cookies)
+      .send({ code: totpCode });
+    const secondLoginStart = await request(app.getHttpServer())
+      .post("/api/v1/auth/login")
+      .send({ email, password });
+    expect(secondLoginStart.body.mfaRequired).toBe(true);
+    const secondLogin = await request(app.getHttpServer())
+      .post("/api/v1/auth/login/mfa-verify")
+      .set("Cookie", secondLoginStart.get("Set-Cookie") ?? [])
+      .send({ code: totpCodeFor(enroll.body.secret) });
+    const cookiesOther = secondLogin.get("Set-Cookie") ?? [];
+
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/disable")
       .set("Cookie", cookies)
@@ -73,6 +93,11 @@ describe("MFA disable HTTP (e2e)", () => {
     const me = await request(app.getHttpServer()).get("/api/v1/auth/me").set("Cookie", cookies);
     expect(me.body.mfaEnabled).toBe(false);
     expect(me.body.mfaRecoveryCodesRemaining).toBe(0);
+
+    const meOther = await request(app.getHttpServer())
+      .get("/api/v1/auth/me")
+      .set("Cookie", cookiesOther);
+    expect(meOther.status).toBe(401);
 
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
