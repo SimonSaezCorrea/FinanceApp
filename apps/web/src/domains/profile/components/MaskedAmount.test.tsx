@@ -66,7 +66,15 @@ describe("MaskedAmount", () => {
     const outerClick = vi.fn();
     render(
       <Providers>
-        <div onClick={outerClick}>
+        <div
+          tabIndex={0}
+          onClick={outerClick}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              outerClick();
+            }
+          }}
+        >
           <MaskedAmount>$1.000.000</MaskedAmount>
         </div>
       </Providers>,
