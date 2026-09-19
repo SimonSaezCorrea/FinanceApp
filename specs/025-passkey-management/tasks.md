@@ -25,49 +25,49 @@ tocan archivos disjuntos por completo (backend `passkey`/`user` vs. frontend
 
 ### Implementation for User Story 1
 
-- [ ] T001 [US1] Agregar `renameOwned(userId, id, name): Promise<PasskeyProps | null>` a
+- [X] T001 [US1] Agregar `renameOwned(userId, id, name): Promise<PasskeyProps | null>` a
       `PasskeyRepositoryPort` en `apps/api/src/domains/passkey/domain/ports/passkey.repository.port.ts`.
-- [ ] T002 [US1] Implementar `renameOwned` en
+- [X] T002 [US1] Implementar `renameOwned` en
       `apps/api/src/domains/passkey/infrastructure/prisma-passkey.repository.ts` (`updateMany` por
       `{id, userId}`, `null` si `count === 0`). Depende de T001.
-- [ ] T003 [P] [US1] Agregar `renamePasskeyRequestSchema` a `packages/contracts/src/auth/index.ts`
+- [X] T003 [P] [US1] Agregar `renamePasskeyRequestSchema` a `packages/contracts/src/auth/index.ts`
       (`z.object({ name: z.string().trim().min(1).max(60) })`, junto a los demás schemas de passkey).
-- [ ] T004 [US1] Crear `apps/api/src/domains/user/application/commands/rename-passkey.command.ts`
+- [X] T004 [US1] Crear `apps/api/src/domains/user/application/commands/rename-passkey.command.ts`
       (`RenamePasskeyCommand(userId, passkeyId, name)`).
-- [ ] T005 [US1] Crear `apps/api/src/domains/user/application/commands/rename-passkey.handler.ts`
+- [X] T005 [US1] Crear `apps/api/src/domains/user/application/commands/rename-passkey.handler.ts`
       (mirror de `remove-passkey.handler.ts`: `loadContext` → `null`, `handle` llama
       `renameOwned` y lanza `PasskeyNotFoundError` si `null`). Depende de T001, T002, T004.
-- [ ] T006 [US1] Agregar `PATCH me/passkeys/:id` en
+- [X] T006 [US1] Agregar `PATCH me/passkeys/:id` en
       `apps/api/src/domains/user/presentation/auth.controller.ts` (después de `removePasskey`,
       mismo `passkeyIdParamsSchema`, nuevo `renamePasskeyRequestSchema` en el body). Depende de T003,
       T005.
 
 ### Tests for User Story 1
 
-- [ ] T007 [P] [US1] Crear
+- [X] T007 [P] [US1] Crear
       `apps/api/test/unit/domains/user/application/commands/rename-passkey.handler.spec.ts`: caso
       éxito (nombre nuevo devuelto), caso `PasskeyNotFoundError` cuando el puerto devuelve `null`.
-- [ ] T008 [P] [US1] Crear
+- [X] T008 [P] [US1] Crear
       `apps/api/test/integration/domains/passkey/infrastructure/rename.integration.spec.ts`: contra
       Postgres real, renombrar una llave propia y verificar el cambio; intentar renombrar la de OTRO
       usuario y verificar que devuelve `null` sin tocarla.
-- [ ] T009 [P] [US1] Actualizar `apps/api/test/e2e/domains/user/passkey-management.http.spec.ts`: +
+- [X] T009 [P] [US1] Actualizar `apps/api/test/e2e/domains/user/passkey-management.http.spec.ts`: +
       caso `PATCH .../:id` exitoso, + caso 404 con id ajeno/inexistente, + caso 400 con nombre vacío.
 
 ### Frontend for User Story 1
 
-- [ ] T010 [US1] Agregar `rename(id, name)` a `apps/web/src/domains/auth/api/passkeyApi.ts`
+- [X] T010 [US1] Agregar `rename(id, name)` a `apps/web/src/domains/auth/api/passkeyApi.ts`
       (`PATCH /auth/me/passkeys/:id`, body `{name}`).
-- [ ] T011 [US1] Agregar mutación `renamePasskey` en
+- [X] T011 [US1] Agregar mutación `renamePasskey` en
       `apps/web/src/domains/profile/hooks/useProfile.ts` (invalida `["passkeys"]` en éxito, mismo
       patrón que `removePasskey`). Depende de T010.
-- [ ] T012 [US1] En `apps/web/src/domains/profile/components/PasskeySection.tsx`: agregar un botón
+- [X] T012 [US1] En `apps/web/src/domains/profile/components/PasskeySection.tsx`: agregar un botón
       "lápiz" (ícono `Pencil` de lucide-react) junto al de eliminar en cada fila; al clickearlo, esa
       fila entra en modo edición inline (input + check/cancelar) en vez de mostrar el nombre —
       research.md Decision 4. Depende de T011.
-- [ ] T013 [P] [US1] Agregar claves i18n `profile.security.passkey.rename` (botón/aria-label) y
+- [X] T013 [P] [US1] Agregar claves i18n `profile.security.passkey.rename` (botón/aria-label) y
       reutilizar `save`/`cancel` ya existentes, en `apps/web/src/i18n/{es,en}.json`.
-- [ ] T014 [P] [US1] Agregar casos a
+- [X] T014 [P] [US1] Agregar casos a
       `apps/web/src/domains/profile/components/PasskeySection.test.tsx`: renombrar una llave llama a
       la mutación con el nuevo nombre; un 404 simulado muestra el error sin perder el nombre
       anterior en pantalla. Depende de T012.
@@ -87,25 +87,25 @@ distinto a hoy.
 
 ### Implementation for User Story 2
 
-- [ ] T015 [US2] En `apps/web/src/shared/lib/webauthn.ts`: agregar una variante de `toGetOptions` que
+- [X] T015 [US2] En `apps/web/src/shared/lib/webauthn.ts`: agregar una variante de `toGetOptions` que
       incluya `mediation: "conditional"` en las opciones que se le pasan a
       `navigator.credentials.get()` (o un parámetro opcional en la función existente).
-- [ ] T016 [US2] En `apps/web/src/domains/auth/hooks/useAuth.tsx`: agregar
+- [X] T016 [US2] En `apps/web/src/domains/auth/hooks/useAuth.tsx`: agregar
       `tryConditionalPasskeyLogin(signal: AbortSignal)` — feature-detecta
       `PublicKeyCredential.isConditionalMediationAvailable`, si está disponible pide
       `passkeyApi.startLogin({})` (sin email) y llama `navigator.credentials.get({mediation:
 "conditional", publicKey: options, signal})`; al resolver, verifica igual que
       `loginWithPasskey` (`passkeyApi.verifyLogin` + `setUser`). Depende de T015.
-- [ ] T017 [US2] En `apps/web/src/domains/auth/routes/LoginRoute.tsx`: cambiar el `autoComplete` del
+- [X] T017 [US2] En `apps/web/src/domains/auth/routes/LoginRoute.tsx`: cambiar el `autoComplete` del
       campo de email a `"username webauthn"`; agregar un `useEffect` al montar que cree un
       `AbortController` y llame `tryConditionalPasskeyLogin(controller.signal)`, con `controller.
 abort()` en el cleanup del efecto. Depende de T016.
-- [ ] T018 [US2] En el mismo componente, abortar el `AbortController` de la ceremonia condicional
+- [X] T018 [US2] En el mismo componente, abortar el `AbortController` de la ceremonia condicional
       justo antes de enviar el formulario de contraseña (para que nunca compitan). Depende de T017.
 
 ### Tests for User Story 2
 
-- [ ] T019 [P] [US2] Agregar casos a `apps/web/src/domains/auth/routes/LoginRoute.test.tsx`: con
+- [X] T019 [P] [US2] Agregar casos a `apps/web/src/domains/auth/routes/LoginRoute.test.tsx`: con
       `isConditionalMediationAvailable` mockeado `true`, se llama `navigator.credentials.get` con
       `mediation:"conditional"` al montar; con `false` (o sin la API), NO se llama en absoluto y no
       se lanza ningún error; y un caso de regresión — el botón explícito "Iniciar sesión con llave de
@@ -118,17 +118,17 @@ abort()` en el cleanup del efecto. Depende de T016.
 
 ## Phase 3: Polish & Cross-Cutting Concerns
 
-- [ ] T020 [P] [POLISH] Correr `pnpm --filter @finance/api test:unit`, `test:integration`,
+- [X] T020 [P] [POLISH] Correr `pnpm --filter @finance/api test:unit`, `test:integration`,
       `test:e2e` completos.
-- [ ] T021 [P] [POLISH] Correr `pnpm --filter @finance/web test` completo.
-- [ ] T022 [P] [POLISH] `pnpm typecheck`, `pnpm lint` y `pnpm check:boundaries` en ambos paquetes.
-- [ ] T023 [POLISH] Validar manualmente el Escenario 1 de `quickstart.md` con `curl` contra la API
+- [X] T021 [P] [POLISH] Correr `pnpm --filter @finance/web test` completo.
+- [X] T022 [P] [POLISH] `pnpm typecheck`, `pnpm lint` y `pnpm check:boundaries` en ambos paquetes.
+- [X] T023 [POLISH] Validar manualmente el Escenario 1 de `quickstart.md` con `curl` contra la API
       real. El Escenario 2 (autocompletado condicional) requiere un navegador real con un
       autenticador — dejar documentado como no verificado si este entorno no tiene esa herramienta.
-- [ ] T024 [POLISH] Actualizar `docs/PENDING.md`, sección "Perfil de usuario" ítem 3 (Passkey): quitar
+- [X] T024 [POLISH] Actualizar `docs/PENDING.md`, sección "Perfil de usuario" ítem 3 (Passkey): quitar
       "renombrar" y "autocompletado condicional" de la lista de pendientes — solo queda la
       verificación de attestation FIDO MDS, explícitamente fuera de alcance.
-- [ ] T025 [POLISH] Memory sync manual de `CLAUDE.md` (nunca con el hook genérico de agent-context —
+- [X] T025 [POLISH] Memory sync manual de `CLAUDE.md` (nunca con el hook genérico de agent-context —
       ver la nota de specs/024): nueva entrada "Current plan (025 — implementado)", degradar 024 a
       "Prior plan", agregar un Amendment al bullet del dominio `passkey`/`user` sobre el nuevo método
       del puerto y el autocompletado condicional.

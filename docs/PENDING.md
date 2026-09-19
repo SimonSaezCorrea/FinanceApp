@@ -35,23 +35,26 @@ equivalente) integrado en el proyecto.
 endpoint de subida con validación de tipo/tamaño, y servir la imagen en vez de las iniciales cuando
 exista.
 
-### 3. Llave de acceso (Passkey / WebAuthn) — real desde specs/022, tres caminos quedan fuera
+### 3. Llave de acceso (Passkey / WebAuthn) — real desde specs/022, un solo camino queda fuera
 
 Registro/login con passkey (con y sin escribir el email — discoverable/usernameless) está
 implementado de punta a punta desde specs/022 (2026-09-18); ver `specs/022-passkey-login/` para el
-diseño completo. Lo que queda **explícitamente pendiente**:
+diseño completo. **specs/025 (2026-09-19) cerró los otros dos gaps**: renombrar una llave ya
+registrada (`PATCH /auth/me/passkeys/:id`, sin tocar `lastUsedAt`/`createdAt`) y la sugerencia
+automática vía autocompletado del navegador (`navigator.credentials.get({mediation:"conditional"})`,
+cableada al campo de email de login — feature-detectada con `PublicKeyCredential.
+isConditionalMediationAvailable()`, así que en un navegador sin soporte no cambia nada; el botón
+explícito sigue siendo el único camino garantizado). Ver `specs/025-passkey-management/` para el
+diseño completo.
 
-- **Renombrar una llave ya registrada**: el nombre solo se elige una vez, al crearla — no hay un
-  endpoint `PATCH` para cambiarlo después. Para renombrar hoy habría que eliminarla y volver a
-  registrarla.
+Lo que queda **explícitamente pendiente**:
+
 - **Verificación de "attestation" del fabricante**: se acepta cualquier autenticador compatible con
   el estándar (`attestationType: "none"`), sin verificar contra un catálogo de fabricantes
   conocidos (MDS de la FIDO Alliance). Cualquier llave/biométrico que el navegador exponga vía
-  WebAuthn funciona, sin lista blanca.
-- **Sugerencia automática vía autocompletado del navegador** (`navigator.credentials.get({mediation:
-"conditional"})` cableado al propio input de email, que ofrecería la llave como opción de
-  autocompletar mientras el usuario escribe, sin ni siquiera apretar el botón): el botón explícito
-  ("Iniciar sesión con llave de acceso") sigue siendo necesario para disparar la ceremonia.
+  WebAuthn funciona, sin lista blanca. Descartado explícitamente de specs/025 por ser una
+  integración pesada (descargar/parsear/verificar el BLOB firmado de metadatos FIDO, decidir qué
+  fabricantes permitir) de valor dudoso para una app de finanzas personales.
 
 ### 3b. Verificación en dos pasos — real desde specs/021 (2026-09-18), tres caminos quedan fuera
 

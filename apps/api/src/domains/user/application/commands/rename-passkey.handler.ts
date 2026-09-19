@@ -30,7 +30,11 @@ export class RenamePasskeyHandler extends BaseCommandHandler<
   }
 
   protected async handle(command: RenamePasskeyCommand): Promise<HandleResult<auth.Passkey>> {
-    const renamed = await this.passkeys.renameOwned(command.userId, command.passkeyId, command.name);
+    const renamed = await this.passkeys.renameOwned(
+      command.userId,
+      command.passkeyId,
+      command.name,
+    );
     if (!renamed) throw new PasskeyNotFoundError();
     return {
       result: {

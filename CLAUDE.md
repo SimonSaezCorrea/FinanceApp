@@ -1300,7 +1300,41 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (024 — implementado): specs/024-revoke-sessions-on-change/plan.md
+Current plan (025 — implementado): specs/025-passkey-management/plan.md
+(Renombrar passkeys y autocompletado condicional: dos extensiones chicas sobre el dominio
+`passkey` (specs/022). (1) `PATCH /auth/me/passkeys/:id` con `{name}` — `PasskeyRepositoryPort`
+ganó `renameOwned(userId, id, name)` (ninguno de los métodos existentes servía:
+`deleteOwned` borra, `updateCounterAndLastUsedWithTx` es solo para el bookkeeping de login);
+`RenamePasskeyCommand`/`Handler` copian la forma exacta de `RemovePasskeyHandler` (sin
+transacción, un `UPDATE` de una sola tabla). Web: `PasskeySection` gana un ícono de lápiz por
+fila que convierte esa fila en edición inline (input + guardar/cancelar), sin modal nuevo —
+renombrar no es destructivo, no necesita la fricción de un `ConfirmModal`. (2) Autocompletado
+condicional en login: el mecanismo de login "discoverable" que specs/022 ya extendió el mismo
+día (sin email, cuenta resuelta por `findByCredentialId`) YA es exactamente lo que la ceremonia
+condicional necesita del backend — **cero cambios de API**. Solo cambia el frontend:
+`webauthn.ts` gana `isConditionalMediationSupported()` (feature-detecta
+`PublicKeyCredential.isConditionalMediationAvailable`, nunca lanza) y `toGetOptions` acepta
+`{mediation, signal}`; `useAuth` gana `tryConditionalPasskeyLogin(signal)`, que traga cualquier
+error internamente (nunca se muestra al usuario — el botón explícito sigue siendo el único
+camino garantizado, FR-006/FR-007); `LoginRoute` dispara esa llamada en un `useEffect` al montar
+(con su propio `AbortController`, cancelado en el cleanup y justo antes de que cualquiera de los
+dos logins explícitos (contraseña o botón de passkey) se envíe, para que nunca compitan dos
+`navigator.credentials.get()` a la vez — un segundo `get()` sin abortar el primero lanza
+`InvalidStateError` por spec). El campo de email gana `autoComplete="username webauthn"`. Sin
+cambio de schema, sin dependencia nueva (todo es API nativa del navegador). **Verificado de
+punta a punta**: `pnpm --filter @finance/api test:unit` [667/667], `test:integration` [138/138,
+incluye el nuevo `rename.integration.spec.ts`], `test:e2e` [175/175, incluye los 2 casos nuevos
+en `passkey-management.http.spec.ts`], `pnpm --filter @finance/web test` [373/373, incluye 5
+casos nuevos: 2 de renombrar en `PasskeySection.test.tsx` + 3 de autocompletado condicional en
+`LoginRoute.test.tsx`], `typecheck`, `lint` y `check:boundaries` limpios en ambos paquetes.
+Validación manual con `curl`+`psql` contra la API real confirmó renombrar de punta a punta
+(éxito, rechazo por dueño ajeno, rechazo por nombre vacío). **No verificado**: la ceremonia de
+autocompletado condicional en un navegador real (este entorno no tiene herramienta de
+automatización de navegador ni un autenticador físico/biométrico disponible) — cubierto solo
+por los tests con mocks de `PublicKeyCredential`/`navigator.credentials`. Sin migración de datos
+propia.)
+
+Prior plan: specs/024-revoke-sessions-on-change/plan.md
 (Revocar sesiones al cambiar credenciales: cuando `POST /auth/me/password` o
 `POST /auth/me/mfa/disable` completan con éxito, además cierran —dentro de la MISMA
 transacción de Postgres que el cambio de credencial— todas las demás sesiones activas
