@@ -41,7 +41,9 @@ export function FreeSavingsDetailPanel({
       open={open}
       onOpenChange={onOpenChange}
       eyebrow={t("savings.free.eyebrow")}
-      title={<span className="text-[22px] font-semibold tracking-tight">{t("savings.free.title")}</span>}
+      title={
+        <span className="text-[22px] font-semibold tracking-tight">{t("savings.free.title")}</span>
+      }
       description={t("savings.free.noMeta")}
       footer={
         <Button variant="accent" className="w-full" onClick={onContribute}>
@@ -53,7 +55,9 @@ export function FreeSavingsDetailPanel({
       <div className="flex flex-col gap-6">
         <div className="flex flex-col gap-1 border-b border-border pb-3">
           <span className="text-xs text-muted-foreground">{t("savings.total.label")}</span>
-          <span className="text-3xl font-semibold tabular-nums text-foreground">{money(total)}</span>
+          <span className="text-3xl font-semibold tabular-nums text-foreground">
+            {money(total)}
+          </span>
         </div>
 
         <section className="flex flex-col gap-1">

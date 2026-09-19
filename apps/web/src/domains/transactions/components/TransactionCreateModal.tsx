@@ -6,7 +6,11 @@ import { toast } from "sonner";
 import { accounts as accountsContract } from "@finance/contracts";
 import type { transactions } from "@finance/contracts";
 
-import { useAccountMutations, useAccounts, useCreditStatements } from "../../accounts/hooks/useAccounts";
+import {
+  useAccountMutations,
+  useAccounts,
+  useCreditStatements,
+} from "../../accounts/hooks/useAccounts";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
 import { Button } from "../../../shared/ui/button";
@@ -352,7 +356,11 @@ export function TransactionCreateModal({
         {
           id: form.bankAccountId,
           statementId: openStatementId!,
-          body: { fromAccountId: form.prepayFromAccountId, amount: form.amount, paidAt: occurredAt },
+          body: {
+            fromAccountId: form.prepayFromAccountId,
+            amount: form.amount,
+            paidAt: occurredAt,
+          },
           idempotencyKey: idempotencyKey.current(),
         },
         { onSuccess: () => done(), onError: handlers.onError },

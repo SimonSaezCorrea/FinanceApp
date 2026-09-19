@@ -35,7 +35,9 @@ export function RecurringDeleteConfirm({
       onOpenChange={onOpenChange}
       onConfirm={onConfirm}
       title={t("common.confirmDeleteTitle")}
-      description={r ? t("recurring.delete.description", { name: r.label }) : t("common.confirmDelete")}
+      description={
+        r ? t("recurring.delete.description", { name: r.label }) : t("common.confirmDelete")
+      }
       loading={loading}
     >
       {r ? (

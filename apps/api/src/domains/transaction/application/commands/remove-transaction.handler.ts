@@ -153,7 +153,11 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
     // period it abonó in the SAME transaction as this delete.
     const snap = current.snapshot();
     const prepaymentReversal = snap.prepaymentStatementId
-      ? { accountId: snap.prepaymentAccountId!, statementId: snap.prepaymentStatementId, oldAmount: current.amount }
+      ? {
+          accountId: snap.prepaymentAccountId!,
+          statementId: snap.prepaymentStatementId,
+          oldAmount: current.amount,
+        }
       : null;
 
     return {
@@ -206,7 +210,11 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
         );
         if (!removed) return false;
         await reconcilePrepaymentWithTx(
-          { statements: this.statements, accounts: this.accounts, transactions: this.transactionWriter },
+          {
+            statements: this.statements,
+            accounts: this.accounts,
+            transactions: this.transactionWriter,
+          },
           tx,
           { userId: command.userId, ...reversal, newAmount: "0" },
         );

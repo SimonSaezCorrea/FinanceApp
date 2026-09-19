@@ -100,7 +100,12 @@ export function SavingsGoalDetailPanel({
       }
     >
       <div className="flex flex-col gap-6">
-        <SavingsGoalStatusLine status={status} goal={g} currency={currency} className="text-[13px]" />
+        <SavingsGoalStatusLine
+          status={status}
+          goal={g}
+          currency={currency}
+          className="text-[13px]"
+        />
 
         <div className="flex flex-col gap-3">
           <div className="h-[10px] w-full rounded-full bg-track">

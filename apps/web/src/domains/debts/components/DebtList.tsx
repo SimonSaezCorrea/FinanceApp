@@ -105,7 +105,9 @@ export function DebtList({
                 <span
                   className={cn(
                     "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-                    isOwedToYou ? "bg-success/20 text-success" : "bg-destructive/20 text-destructive",
+                    isOwedToYou
+                      ? "bg-success/20 text-success"
+                      : "bg-destructive/20 text-destructive",
                   )}
                 >
                   {initials(debt.counterparty)}

@@ -34,7 +34,14 @@ describe("editing an installment plan's schedule (integration)", () => {
   const userId = `u_${randomUUID()}`;
 
   function updateHandler() {
-    return new UpdateInstallmentPlanHandler(eventBus, planRepo, cards, accounts, transactions, prisma);
+    return new UpdateInstallmentPlanHandler(
+      eventBus,
+      planRepo,
+      cards,
+      accounts,
+      transactions,
+      prisma,
+    );
   }
 
   beforeAll(async () => {

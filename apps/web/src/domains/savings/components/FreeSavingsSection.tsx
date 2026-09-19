@@ -19,7 +19,12 @@ interface Props {
  * Sin botón de aporte propio — ya está el de la cabecera de la página y el
  * del propio panel de detalle, uno más acá era redundante.
  */
-export function FreeSavingsSection({ entries, currency, onSelect, onSelectEntry }: Readonly<Props>) {
+export function FreeSavingsSection({
+  entries,
+  currency,
+  onSelect,
+  onSelectEntry,
+}: Readonly<Props>) {
   const { t, i18n } = useTranslation();
   const money = (v: string) => formatMoney(v, { locale: i18n.language, currency });
   const total = sumAmounts(entries.map((e) => e.amount));
@@ -41,7 +46,9 @@ export function FreeSavingsSection({ entries, currency, onSelect, onSelectEntry 
         </div>
         <div className="flex flex-col gap-1">
           <span className="text-xs text-muted-foreground">{t("savings.free.noMeta")}</span>
-          <span className="text-2xl font-semibold tabular-nums text-foreground">{money(total)}</span>
+          <span className="text-2xl font-semibold tabular-nums text-foreground">
+            {money(total)}
+          </span>
         </div>
       </div>
 

@@ -86,7 +86,11 @@ export async function reconcilePrepaymentWithTx(
           subtractMoney("0", paidDelta),
         );
       }
-      await deps.accounts.incrementCreditUsedWithTx(tx, params.accountId, subtractMoney("0", paidDelta));
+      await deps.accounts.incrementCreditUsedWithTx(
+        tx,
+        params.accountId,
+        subtractMoney("0", paidDelta),
+      );
     }
     const carriedTo = statement.carriedToId;
     if (carriedTo && !toMoney(carryOverDelta).isZero()) {
@@ -98,7 +102,11 @@ export async function reconcilePrepaymentWithTx(
     // more of it.
     const delta = subtractMoney(params.newAmount, params.oldAmount);
     if (!toMoney(delta).isZero()) {
-      await deps.accounts.incrementCreditUsedWithTx(tx, params.accountId, subtractMoney("0", delta));
+      await deps.accounts.incrementCreditUsedWithTx(
+        tx,
+        params.accountId,
+        subtractMoney("0", delta),
+      );
     }
   }
 

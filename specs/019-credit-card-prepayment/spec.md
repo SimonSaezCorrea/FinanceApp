@@ -11,6 +11,7 @@
 Hoy una cuenta de tipo tarjeta de crédito (CREDIT_CARD) solo puede saldar deuda pagando una facturación ya cerrada (PENDING o parcialmente pagada). No existe forma de abonar contra el consumo del período que está corriendo actualmente (OPEN) antes de que cierre — que es exactamente lo que un usuario real puede hacer con su tarjeta de crédito (prepagar antes de la fecha de corte).
 
 Qué debe pasar:
+
 - Un usuario puede registrar un abono contra el período OPEN de una cuenta CREDIT_CARD, desde otra cuenta propia con saldo (igual que hoy funciona pagar una facturación cerrada).
 - Ese abono es dinero real: genera un gasto (EXPENSE) en la cuenta de origen y baja el cupo usado (creditUsed) de la tarjeta de inmediato.
 - Se puede abonar más de una vez dentro del mismo período abierto (varios prepagos parciales antes del cierre).
@@ -19,6 +20,7 @@ Qué debe pasar:
 - En el formulario de 'Nuevo movimiento', al elegir una cuenta de tarjeta de crédito aparece la opción de registrar este abono (junto a 'Gasto', que es la única otra opción disponible hoy para ese tipo de cuenta).
 
 Fuera de alcance:
+
 - Pagos automáticos o programados.
 - Prepago desde una cuenta CREDIT_CARD hacia otra (siempre sale de una cuenta con saldo real).
 - Cualquier noción de 'crédito a favor' o saldo positivo en la tarjeta."

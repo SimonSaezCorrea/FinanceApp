@@ -21,7 +21,12 @@ interface Props {
  * the user trust their memory of which row they clicked, right when being
  * specific matters most.
  */
-export function DebtDeleteConfirm({ debt, onOpenChange, onConfirm, loading = false }: Readonly<Props>) {
+export function DebtDeleteConfirm({
+  debt,
+  onOpenChange,
+  onConfirm,
+  loading = false,
+}: Readonly<Props>) {
   const { t, i18n } = useTranslation();
   const isOwedToYou = debt?.direction === "OWED_TO_YOU";
   const left = debt ? leftAmount(debt) : "0";
@@ -33,7 +38,9 @@ export function DebtDeleteConfirm({ debt, onOpenChange, onConfirm, loading = fal
       onConfirm={onConfirm}
       title={t("common.confirmDeleteTitle")}
       description={
-        debt ? t("debts.delete.description", { name: debt.counterparty }) : t("common.confirmDelete")
+        debt
+          ? t("debts.delete.description", { name: debt.counterparty })
+          : t("common.confirmDelete")
       }
       loading={loading}
     >

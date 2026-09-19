@@ -24,7 +24,8 @@ Recurrentes ni Cuotas/Facturación.
 **Language/Version**: TypeScript 5, Node 20
 
 **Primary Dependencies**: NestJS 11 + `@nestjs/cqrs` (apps/api), React 19 + Vite + TanStack Query
-+ react-router v8 (apps/web), Prisma 7 (`@prisma/adapter-pg`), zod (`@finance/contracts`)
+
+- react-router v8 (apps/web), Prisma 7 (`@prisma/adapter-pg`), zod (`@finance/contracts`)
 
 **Storage**: PostgreSQL vía Prisma (`apps/api` es el único dueño de la BD)
 

@@ -2,17 +2,17 @@
 
 ## `Passkey` (tabla nueva, `@@map("passkey")`, dominio `passkey`)
 
-| Columna        | Tipo      | Notas |
-|-----------------|-----------|-------|
-| `id`            | String    | `@default(uuid(7))`, PK. |
-| `userId`        | String    | FK → `User.id`, `onDelete: Cascade`. |
-| `name`          | String    | Elegido por el usuario al registrar (ej. "MacBook de Ana"). |
-| `credentialId`  | String    | `@unique` — identificador que entrega el autenticador (base64url). Identificador de **negocio**, nunca el PK (research.md R1, mismo tratamiento que el `code` de una institución). |
-| `publicKey`     | String    | Clave pública del autenticador (base64url) — se necesita para verificar cada login futuro. |
-| `counter`       | Int       | `@default(0)`. Se actualiza en cada login exitoso; un valor que retrocede indica clonado (research.md R6). |
-| `transports`    | String[]  | `@default([])`. Pistas del autenticador (`usb`/`nfc`/`ble`/`internal`) — opcional, mejora la UX del navegador en logins futuros, no se valida. |
-| `createdAt`     | DateTime  | `@default(now())`. |
-| `lastUsedAt`    | DateTime? | `null` = nunca usada para iniciar sesión. Actualizada en cada login exitoso. |
+| Columna        | Tipo      | Notas                                                                                                                                                                              |
+| -------------- | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`           | String    | `@default(uuid(7))`, PK.                                                                                                                                                           |
+| `userId`       | String    | FK → `User.id`, `onDelete: Cascade`.                                                                                                                                               |
+| `name`         | String    | Elegido por el usuario al registrar (ej. "MacBook de Ana").                                                                                                                        |
+| `credentialId` | String    | `@unique` — identificador que entrega el autenticador (base64url). Identificador de **negocio**, nunca el PK (research.md R1, mismo tratamiento que el `code` de una institución). |
+| `publicKey`    | String    | Clave pública del autenticador (base64url) — se necesita para verificar cada login futuro.                                                                                         |
+| `counter`      | Int       | `@default(0)`. Se actualiza en cada login exitoso; un valor que retrocede indica clonado (research.md R6).                                                                         |
+| `transports`   | String[]  | `@default([])`. Pistas del autenticador (`usb`/`nfc`/`ble`/`internal`) — opcional, mejora la UX del navegador en logins futuros, no se valida.                                     |
+| `createdAt`    | DateTime  | `@default(now())`.                                                                                                                                                                 |
+| `lastUsedAt`   | DateTime? | `null` = nunca usada para iniciar sesión. Actualizada en cada login exitoso.                                                                                                       |
 
 Índices: `@@index([userId])` (listar/contar las llaves de un usuario).
 
@@ -28,10 +28,10 @@ tiene llaves de acceso" (research.md R8).
 
 ## Nuevos errores de dominio (`apps/api/src/domains/user/domain/errors.ts`)
 
-| Clase                       | `code`                 | `httpStatus` | Cuándo |
-|-------------------------------|------------------------|--------------|--------|
-| `PasskeyChallengeInvalidError` | `PASSKEY_CHALLENGE_INVALID` | 401     | La cookie de desafío falta, expiró, o no corresponde a la ceremonia (firma inválida). |
-| `PasskeyNotFoundError`         | `PASSKEY_NOT_FOUND`    | 404          | `DELETE /auth/me/passkeys/:id` sobre una llave que no existe o no es del usuario. |
+| Clase                          | `code`                      | `httpStatus` | Cuándo                                                                                |
+| ------------------------------ | --------------------------- | ------------ | ------------------------------------------------------------------------------------- |
+| `PasskeyChallengeInvalidError` | `PASSKEY_CHALLENGE_INVALID` | 401          | La cookie de desafío falta, expiró, o no corresponde a la ceremonia (firma inválida). |
+| `PasskeyNotFoundError`         | `PASSKEY_NOT_FOUND`         | 404          | `DELETE /auth/me/passkeys/:id` sobre una llave que no existe o no es del usuario.     |
 
 `InvalidCredentialsError` (ya existe, `INVALID_CREDENTIALS`, 401) se **reutiliza** para todo fallo
 de `passkey-verify` (login) — nunca un código nuevo, por diseño anti-enumeración (research.md R4).

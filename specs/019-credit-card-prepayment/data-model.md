@@ -2,8 +2,8 @@
 
 ## `CreditStatement` (existente — cambios)
 
-| Campo | Tipo | Cambio |
-| --- | --- | --- |
+| Campo           | Tipo                         | Cambio                                                                                                                                                                                           |
+| --------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `prepaidAmount` | `Decimal(18,4)`, default `0` | **Nuevo.** Acumulado de todos los prepagos aplicados a este período. Nunca negativo; nunca mayor que `grossTotal` (linked + carriedOver + instalment) en el momento en que cada abono se aplicó. |
 
 **`CreditStatementRepositoryPort` — método nuevo (hallazgo de `/speckit-analyze`, ver `research.md` R8):**
@@ -27,10 +27,10 @@
 
 ## `Transaction` (existente — cambios)
 
-| Campo | Tipo | Cambio |
-| --- | --- | --- |
-| `prepaymentStatementId` | `String?` (FK → `CreditStatement`, `onDelete: SetNull`) | **Nuevo.** El período al que este movimiento abonó. `null` para cualquier otro movimiento. Sin `@unique` — un período admite muchos prepagos (a diferencia de `CreditStatement.paidTransactionId`, que es 1:1). |
-| `prepaymentAccountId` | `String?` (plano, no FK) | **Nuevo.** La cuenta CREDIT_CARD que recibió el abono — denormalizado al crear (igual que ya se hace con otros campos de solo-lectura para evitar un join en cada lectura), para que el detalle del movimiento pueda enlazar directo a `/accounts/:id?tab=billing&statement=:id` sin resolverlo en cada consulta. |
+| Campo                   | Tipo                                                    | Cambio                                                                                                                                                                                                                                                                                                            |
+| ----------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prepaymentStatementId` | `String?` (FK → `CreditStatement`, `onDelete: SetNull`) | **Nuevo.** El período al que este movimiento abonó. `null` para cualquier otro movimiento. Sin `@unique` — un período admite muchos prepagos (a diferencia de `CreditStatement.paidTransactionId`, que es 1:1).                                                                                                   |
+| `prepaymentAccountId`   | `String?` (plano, no FK)                                | **Nuevo.** La cuenta CREDIT_CARD que recibió el abono — denormalizado al crear (igual que ya se hace con otros campos de solo-lectura para evitar un join en cada lectura), para que el detalle del movimiento pueda enlazar directo a `/accounts/:id?tab=billing&statement=:id` sin resolverlo en cada consulta. |
 
 Un movimiento de prepago es, por lo demás, un `EXPENSE` ordinario: `bankAccountId` = la cuenta de origen (con saldo real), `cardId = null`, `creditStatementId = null` (no es un consumo de la tarjeta, así que nunca debe sumar en `netForStatement`/`netForPeriod`), `financeCharge = false`, `installmentPlanId = null`, `debtId = null`.
 
@@ -83,10 +83,10 @@ PENDING --(pagar el resto)--> PAID | PARTIALLY_PAID   (sin cambios de esta featu
 
 ## Reglas de validación (resumen)
 
-| Regla | Dónde se aplica |
-| --- | --- |
-| Monto > 0 | `CreditStatement.changePrepayment` (vía `InvalidPaymentAmountError`, reutilizado) |
-| Monto acumulado ≤ deuda bruta del período | `CreditStatement.changePrepayment` (vía `PaymentExceedsRemainingError`, reutilizado) |
-| Solo se puede CREAR un prepago si el período está OPEN | `CreditStatementState.canPrepay()` — `StatementNotOpenError` (nuevo) si no |
+| Regla                                                                   | Dónde se aplica                                                                                 |
+| ----------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Monto > 0                                                               | `CreditStatement.changePrepayment` (vía `InvalidPaymentAmountError`, reutilizado)               |
+| Monto acumulado ≤ deuda bruta del período                               | `CreditStatement.changePrepayment` (vía `PaymentExceedsRemainingError`, reutilizado)            |
+| Solo se puede CREAR un prepago si el período está OPEN                  | `CreditStatementState.canPrepay()` — `StatementNotOpenError` (nuevo) si no                      |
 | La cuenta de origen no puede ser CREDIT_CARD ni la misma cuenta destino | Mismo chequeo que ya usa `PayCreditStatementHandler` (`InvalidPaymentSourceError`, reutilizado) |
-| Editar/eliminar un prepago funciona aunque el período ya haya cerrado | `UpdateTransactionHandler`/`RemoveTransactionHandler`, sin gate de estado |
+| Editar/eliminar un prepago funciona aunque el período ya haya cerrado   | `UpdateTransactionHandler`/`RemoveTransactionHandler`, sin gate de estado                       |

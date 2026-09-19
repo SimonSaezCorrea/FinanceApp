@@ -146,11 +146,7 @@ export function TransactionDetailModal({
             </Button>
           ) : null}
           {onDelete && !isInstallmentPayment ? (
-            <Button
-              variant="ghost"
-              aria-label={t("common.delete")}
-              onClick={() => onDelete(tx)}
-            >
+            <Button variant="ghost" aria-label={t("common.delete")} onClick={() => onDelete(tx)}>
               <Trash2 className="h-4 w-4 text-destructive" aria-hidden />
             </Button>
           ) : null}

@@ -116,7 +116,10 @@ export class CreditStatement {
    * zero — clamped here rather than displaying a negative "owed" figure.
    */
   totalFor(linkedAmount: string, instalmentAmount = "0"): string {
-    const net = subtractMoney(this.grossTotalFor(linkedAmount, instalmentAmount), this.props.prepaidAmount);
+    const net = subtractMoney(
+      this.grossTotalFor(linkedAmount, instalmentAmount),
+      this.props.prepaidAmount,
+    );
     return toMoney(net).isNegative() ? moneyToString("0") : net;
   }
 

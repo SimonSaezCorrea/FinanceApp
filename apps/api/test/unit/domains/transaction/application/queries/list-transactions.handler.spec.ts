@@ -123,7 +123,11 @@ describe("ListTransactionsQueryHandler", () => {
   });
 
   it("rejects a cursor this API never issued instead of silently restarting", async () => {
-    const handler = new ListTransactionsQueryHandler(fakeRepo(), fakeStatementLookup(), fakeConfig());
+    const handler = new ListTransactionsQueryHandler(
+      fakeRepo(),
+      fakeStatementLookup(),
+      fakeConfig(),
+    );
     await expect(
       handler.execute(new ListTransactionsQuery("u1", { limit: 20, cursor: "not-a-cursor" })),
     ).rejects.toBeInstanceOf(InvalidCursorError);

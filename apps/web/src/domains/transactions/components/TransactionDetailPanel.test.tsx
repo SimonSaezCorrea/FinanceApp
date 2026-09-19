@@ -97,11 +97,17 @@ describe("TransactionDetailPanel", () => {
 
   it("links a statement-payment movement to that period's own billing tab", () => {
     render(
-      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
         <I18nextProvider i18n={i18n}>
           <MemoryRouter>
             <TransactionDetailPanel
-              transaction={tx({ category: "Pago facturación", paidStatementId: "s1", paidStatementAccountId: "acc2" })}
+              transaction={tx({
+                category: "Pago facturación",
+                paidStatementId: "s1",
+                paidStatementAccountId: "acc2",
+              })}
               accounts={[account]}
             />
           </MemoryRouter>

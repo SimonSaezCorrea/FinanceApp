@@ -8,6 +8,7 @@ proyecto) — ver `data-model.md` para la tabla completa código↔httpStatus.
 Request: `{email, password}` — sin cambios.
 
 Response `200`:
+
 - Sin MFA: `{mfaRequired: false, user: CurrentUser}` + cookies `access_token`/`refresh_token`
   (igual que hoy).
 - Con MFA activo: `{mfaRequired: true}` (sin `user`) + cookie `mfa_pending_token` (httpOnly, 5 min,
@@ -23,6 +24,7 @@ Response `200`: `{user: CurrentUser}` + cookies `access_token`/`refresh_token` (
 exitoso de hoy) + limpia la cookie `mfa_pending_token`.
 
 Errores:
+
 - `MFA_PENDING_TOKEN_INVALID` (401) — cookie ausente/expirada/inválida (el usuario debe volver a
   loguearse con email+contraseña).
 - `MFA_LOCKED` (429) — `mfaLockedUntil` vigente. Cuerpo del error: la forma estándar
