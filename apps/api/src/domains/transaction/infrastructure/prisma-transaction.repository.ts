@@ -399,7 +399,11 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     balanceDeltas: { accountId: string; delta: string }[],
   ): Promise<void> {
     if (creditUsedDelta && creditUsedDelta.delta !== "0") {
-      await this.accounts.incrementCreditUsedWithTx(tx, creditUsedDelta.accountId, creditUsedDelta.delta);
+      await this.accounts.incrementCreditUsedWithTx(
+        tx,
+        creditUsedDelta.accountId,
+        creditUsedDelta.delta,
+      );
     }
     await this.applyBalanceDeltas(tx, balanceDeltas);
   }

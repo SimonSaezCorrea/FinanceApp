@@ -46,7 +46,11 @@ describe("Passkey registration (integration)", () => {
     vi.mocked(verifyRegistrationResponse).mockResolvedValue({
       verified: true,
       registrationInfo: {
-        credential: { id: `cred_${randomUUID()}`, publicKey: new Uint8Array([9, 8, 7]), counter: 0 },
+        credential: {
+          id: `cred_${randomUUID()}`,
+          publicKey: new Uint8Array([9, 8, 7]),
+          counter: 0,
+        },
       },
     } as never);
 

@@ -309,7 +309,11 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
         );
         if (!row) throw new TransactionNotFoundError();
         await reconcilePrepaymentWithTx(
-          { statements: this.statements, accounts: this.accounts, transactions: this.transactionWriter },
+          {
+            statements: this.statements,
+            accounts: this.accounts,
+            transactions: this.transactionWriter,
+          },
           tx,
           { userId: command.userId, ...reversal },
         );

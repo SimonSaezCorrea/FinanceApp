@@ -37,7 +37,9 @@ export function SavingsGoalDeleteConfirm({
       onConfirm={onConfirm}
       title={t("common.confirmDeleteTitle")}
       description={
-        goal ? t("savings.delete.goalDescription", { title: goal.title }) : t("common.confirmDelete")
+        goal
+          ? t("savings.delete.goalDescription", { title: goal.title })
+          : t("common.confirmDelete")
       }
       loading={loading}
     >

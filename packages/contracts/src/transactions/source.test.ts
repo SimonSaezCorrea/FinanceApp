@@ -65,15 +65,19 @@ describe("sourceOf", () => {
   });
 
   it("is STATEMENT_PAYMENT when both statement-payment fields are set", () => {
-    expect(
-      sourceOf(tx({ paidStatementId: "s1", paidStatementAccountId: "acc1" })),
-    ).toEqual({ kind: "STATEMENT_PAYMENT", statementId: "s1", accountId: "acc1" });
+    expect(sourceOf(tx({ paidStatementId: "s1", paidStatementAccountId: "acc1" }))).toEqual({
+      kind: "STATEMENT_PAYMENT",
+      statementId: "s1",
+      accountId: "acc1",
+    });
   });
 
   it("is CREDIT_CARD_PREPAYMENT when both prepayment fields are set", () => {
-    expect(
-      sourceOf(tx({ prepaymentStatementId: "s1", prepaymentAccountId: "acc1" })),
-    ).toEqual({ kind: "CREDIT_CARD_PREPAYMENT", statementId: "s1", accountId: "acc1" });
+    expect(sourceOf(tx({ prepaymentStatementId: "s1", prepaymentAccountId: "acc1" }))).toEqual({
+      kind: "CREDIT_CARD_PREPAYMENT",
+      statementId: "s1",
+      accountId: "acc1",
+    });
   });
 
   it("never confuses a prepayment with a statement payment", () => {

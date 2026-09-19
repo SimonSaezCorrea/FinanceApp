@@ -2,15 +2,15 @@
 
 ## `Session` (table `session`, domain-table `session`)
 
-| Column        | Type                    | Notes                                                                                  |
-| ------------- | ----------------------- | --------------------------------------------------------------------------------------- |
-| `id`          | `String @default(uuid(7))` (PK) | UUID v7 — Principio VIII. **También es el claim `sid`** de los tokens de esa sesión. |
-| `userId`      | `String` (FK → `User`, `onDelete: Cascade`) | Dueño de la sesión.                                                    |
-| `deviceLabel` | `String?`                | Ej. `"Chrome · Windows"` — derivado del User-Agent al crear, nunca reparseado (R4).      |
-| `country`     | `String?`                | Alpha-2 o nombre de país, resuelto por IP al crear (R5). `null` si no se pudo resolver.  |
-| `createdAt`   | `DateTime @default(now())` | Cuándo se creó (el login que la originó).                                            |
-| `lastUsedAt`  | `DateTime @default(now())` | Se actualiza en cada refresh exitoso que usa esta sesión (FR-009).                    |
-| `expiresAt`   | `DateTime`                | `now() + JWT_REFRESH_EXPIRES` al crear; se recalcula igual en cada refresh (R6, R7).    |
+| Column        | Type                                        | Notes                                                                                   |
+| ------------- | ------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `id`          | `String @default(uuid(7))` (PK)             | UUID v7 — Principio VIII. **También es el claim `sid`** de los tokens de esa sesión.    |
+| `userId`      | `String` (FK → `User`, `onDelete: Cascade`) | Dueño de la sesión.                                                                     |
+| `deviceLabel` | `String?`                                   | Ej. `"Chrome · Windows"` — derivado del User-Agent al crear, nunca reparseado (R4).     |
+| `country`     | `String?`                                   | Alpha-2 o nombre de país, resuelto por IP al crear (R5). `null` si no se pudo resolver. |
+| `createdAt`   | `DateTime @default(now())`                  | Cuándo se creó (el login que la originó).                                               |
+| `lastUsedAt`  | `DateTime @default(now())`                  | Se actualiza en cada refresh exitoso que usa esta sesión (FR-009).                      |
+| `expiresAt`   | `DateTime`                                  | `now() + JWT_REFRESH_EXPIRES` al crear; se recalcula igual en cada refresh (R6, R7).    |
 
 Índices: `@@index([userId])` (listar por usuario), `@@index([expiresAt])` (el cron de
 purga filtra por esta columna).

@@ -150,7 +150,14 @@ describe("PrepayOpenPeriodHandler (integration)", () => {
 
   it("US1: creates a real EXPENSE on the source account and lowers creditUsed immediately, without closing the period", async () => {
     const result = await prepayHandler().execute(
-      new PrepayOpenPeriodCommand(userId, creditAccountId, statementId, fromAccountId, "50000", randomUUID()),
+      new PrepayOpenPeriodCommand(
+        userId,
+        creditAccountId,
+        statementId,
+        fromAccountId,
+        "50000",
+        randomUUID(),
+      ),
     );
 
     expect(result.status).toBe("OPEN");
@@ -169,7 +176,14 @@ describe("PrepayOpenPeriodHandler (integration)", () => {
 
   it("US2: a second prepago accumulates on the same still-OPEN period", async () => {
     const result = await prepayHandler().execute(
-      new PrepayOpenPeriodCommand(userId, creditAccountId, statementId, fromAccountId, "30000", randomUUID()),
+      new PrepayOpenPeriodCommand(
+        userId,
+        creditAccountId,
+        statementId,
+        fromAccountId,
+        "30000",
+        randomUUID(),
+      ),
     );
 
     expect(result.status).toBe("OPEN");
@@ -209,14 +223,16 @@ describe("PrepayOpenPeriodHandler (integration)", () => {
       key,
     );
     const first = await prepayHandler().execute(command);
-    const second = await prepayHandler().execute(new PrepayOpenPeriodCommand(
-      userId,
-      creditAccountId,
-      statementId,
-      fromAccountId,
-      "10000",
-      key,
-    ));
+    const second = await prepayHandler().execute(
+      new PrepayOpenPeriodCommand(
+        userId,
+        creditAccountId,
+        statementId,
+        fromAccountId,
+        "10000",
+        key,
+      ),
+    );
 
     expect(second).toEqual(first);
     const account = await accountRepo.findById(userId, creditAccountId);
@@ -253,7 +269,9 @@ describe("PrepayOpenPeriodHandler (integration)", () => {
   });
 
   it("FR-012: editing a prepago's own movement reconciles creditUsed and prepaidAmount", async () => {
-    const [firstPrepay] = (await transactionRepo.list(userId, { bankAccountId: fromAccountId })).items
+    const [firstPrepay] = (
+      await transactionRepo.list(userId, { bankAccountId: fromAccountId })
+    ).items
       .filter((t) => t.snapshot().prepaymentStatementId === statementId)
       .sort((a, b) => Number(a.amount) - Number(b.amount)); // the 10000 one
 
@@ -270,7 +288,9 @@ describe("PrepayOpenPeriodHandler (integration)", () => {
   });
 
   it("FR-012: deleting a prepago's movement fully reverses it", async () => {
-    const [firstPrepay] = (await transactionRepo.list(userId, { bankAccountId: fromAccountId })).items
+    const [firstPrepay] = (
+      await transactionRepo.list(userId, { bankAccountId: fromAccountId })
+    ).items
       .filter((t) => t.snapshot().prepaymentStatementId === statementId)
       .sort((a, b) => Number(a.amount) - Number(b.amount)); // the 15000 one now
 

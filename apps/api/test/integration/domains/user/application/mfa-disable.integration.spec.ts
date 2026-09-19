@@ -20,7 +20,13 @@ describe("MFA disable (integration)", () => {
     await prisma.$connect();
     const passwordHash = await hash("correct-pw", 4);
     const user = await prisma.user.create({
-      data: { email, name: "Disable Test", passwordHash, mfaEnabled: true, mfaSecretEncrypted: null },
+      data: {
+        email,
+        name: "Disable Test",
+        passwordHash,
+        mfaEnabled: true,
+        mfaSecretEncrypted: null,
+      },
     });
     userId = user.id;
     await prisma.mfaRecoveryCode.createMany({

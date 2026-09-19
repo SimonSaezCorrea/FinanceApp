@@ -65,16 +65,15 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 - [x] Todo endpoint de escritura nuevo declara cuál de las tres formas de idempotencia satisface.
       → Los 4 endpoints de escritura (`register-options`, `register-verify`, `passkey-verify`,
       `DELETE /passkeys/:id`) satisfacen la forma (a) — máquina de estados terminal — y ninguno
-      mueve saldo/cupo/conteo de cuotas:
-      - `register-options`: repetir la llamada solo emite un desafío nuevo (sobrescribe la cookie
-        de desafío anterior) — no hay "registro" hasta el paso de verificación.
-      - `register-verify`: una vez creada la fila `Passkey`, un reintento con la MISMA respuesta de
-        assertion falla la verificación de firma del propio WebAuthn (el desafío ya se consumió/
-        expiró) — el estándar mismo impide el replay, no hace falta un mecanismo propio.
-      - `passkey-verify` (login): igual — el desafío de un solo uso y el contador anti-clonado del
-        propio protocolo WebAuthn son la protección; un reintento con la misma respuesta falla por
-        diseño del estándar, no por lógica de esta app.
-      - `DELETE /passkeys/:id`: eliminar una fila ya eliminada es un 404 idempotente estándar.
+      mueve saldo/cupo/conteo de cuotas. `register-options`: repetir la llamada solo emite un
+      desafío nuevo (sobrescribe la cookie de desafío anterior) — no hay "registro" hasta el paso
+      de verificación. `register-verify`: una vez creada la fila `Passkey`, un reintento con la
+      MISMA respuesta de assertion falla la verificación de firma del propio WebAuthn (el desafío
+      ya se consumió/expiró) — el estándar mismo impide el replay, no hace falta un mecanismo
+      propio. `passkey-verify` (login): igual — el desafío de un solo uso y el contador
+      anti-clonado del propio protocolo WebAuthn son la protección; un reintento con la misma
+      respuesta falla por diseño del estándar, no por lógica de esta app. `DELETE /passkeys/:id`:
+      eliminar una fila ya eliminada es un 404 idempotente estándar.
 - [x] Toda FK aceptada desde el cuerpo de un request declara dónde se verifica su ownership.
       → `DELETE /auth/me/passkeys/:id` verifica que la llave pertenezca al `userId` autenticado
       antes de borrar (mismo patrón que cualquier otro dominio). Los endpoints de login público

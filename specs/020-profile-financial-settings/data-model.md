@@ -5,13 +5,13 @@ solo lectura (sin tabla propia — leen columnas `currency` que ya existen).
 
 ## `User` (tabla `user`) — cambios
 
-| Columna | Antes | Después |
-|---|---|---|
-| `preferredCurrency` | `String @default("CLP")` | Sin cambios |
-| `extraCurrencies` | `String[] @default([])` | Sin cambios en el schema; gana una regla de negocio nueva (no se puede quitar un elemento en uso — ver "Regla de negocio" abajo) |
-| `hideBalances` | `Boolean @default(false)` | Sin cambios en el schema; su cobertura de UI se amplía (ver plan.md) |
-| `monthlyBudgetTarget` | `Decimal? @db.Decimal(18,4)` | **Eliminada** |
-| `billingCycleStartDay` | `Int?` | **Eliminada** |
+| Columna                | Antes                        | Después                                                                                                                          |
+| ---------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `preferredCurrency`    | `String @default("CLP")`     | Sin cambios                                                                                                                      |
+| `extraCurrencies`      | `String[] @default([])`      | Sin cambios en el schema; gana una regla de negocio nueva (no se puede quitar un elemento en uso — ver "Regla de negocio" abajo) |
+| `hideBalances`         | `Boolean @default(false)`    | Sin cambios en el schema; su cobertura de UI se amplía (ver plan.md)                                                             |
+| `monthlyBudgetTarget`  | `Decimal? @db.Decimal(18,4)` | **Eliminada**                                                                                                                    |
+| `billingCycleStartDay` | `Int?`                       | **Eliminada**                                                                                                                    |
 
 Sin migración (`prisma/migrations` no existe en este repo — el workflow es `db push` +
 `db:seed`, datos de desarrollo únicamente, sin producción).
@@ -27,8 +27,8 @@ update-preferences.handler.ts`), antes de aplicar el patch al agregado. No vive 
 — el agregado permanece una entidad pura sin acceso a repositorios ajenos (Constitución §VI).
 
 **Algoritmo**:
-1. Si el patch trae `extraCurrencies`, calcular `removed = user.extraCurrencies.filter(c =>
-   !patch.extraCurrencies.includes(c))`.
+
+1. Si el patch trae `extraCurrencies`, calcular `removed = user.extraCurrencies.filter(c => !patch.extraCurrencies.includes(c))`.
 2. Si `removed` está vacío, continuar sin chequeo (agregar monedas, o no tocar el campo, nunca
    requiere este chequeo).
 3. Para cada moneda en `removed`, consultar en paralelo los 8 puertos
@@ -51,16 +51,16 @@ export interface CurrencyUsageLookupPort {
 }
 ```
 
-| Dominio | Símbolo | Tabla / columna consultada | Filtro `userId` |
-|---|---|---|---|
-| `bank-account` | `BANK_ACCOUNT_CURRENCY_USAGE` | `BankAccount.currency` | `userId` directo |
-| `transaction` | `TRANSACTION_CURRENCY_USAGE` | `Transaction.currency` | `userId` directo |
-| `installment-plan` | `INSTALLMENT_PLAN_CURRENCY_USAGE` | `InstallmentPlan.currency` | `userId` directo |
-| `debt` | `DEBT_CURRENCY_USAGE` | `Debt.currency` | `userId` directo |
-| `savings-goal` | `SAVINGS_GOAL_CURRENCY_USAGE` | `SavingsGoal.currency` | `userId` directo |
-| `savings-entry` | `SAVINGS_ENTRY_CURRENCY_USAGE` | `SavingsEntry.currency` | `userId` directo |
-| `recurring-expense` | `RECURRING_EXPENSE_CURRENCY_USAGE` | `RecurringExpense.currency` | `userId` directo |
-| `card-limit` | `CARD_LIMIT_CURRENCY_USAGE` | `CardLimit.currency` | vía `card.userId` (`CardAccount.userId` ya existe como columna indexada — `CardLimit` se une a `CardAccount` en la misma query) |
+| Dominio             | Símbolo                            | Tabla / columna consultada  | Filtro `userId`                                                                                                                 |
+| ------------------- | ---------------------------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `bank-account`      | `BANK_ACCOUNT_CURRENCY_USAGE`      | `BankAccount.currency`      | `userId` directo                                                                                                                |
+| `transaction`       | `TRANSACTION_CURRENCY_USAGE`       | `Transaction.currency`      | `userId` directo                                                                                                                |
+| `installment-plan`  | `INSTALLMENT_PLAN_CURRENCY_USAGE`  | `InstallmentPlan.currency`  | `userId` directo                                                                                                                |
+| `debt`              | `DEBT_CURRENCY_USAGE`              | `Debt.currency`             | `userId` directo                                                                                                                |
+| `savings-goal`      | `SAVINGS_GOAL_CURRENCY_USAGE`      | `SavingsGoal.currency`      | `userId` directo                                                                                                                |
+| `savings-entry`     | `SAVINGS_ENTRY_CURRENCY_USAGE`     | `SavingsEntry.currency`     | `userId` directo                                                                                                                |
+| `recurring-expense` | `RECURRING_EXPENSE_CURRENCY_USAGE` | `RecurringExpense.currency` | `userId` directo                                                                                                                |
+| `card-limit`        | `CARD_LIMIT_CURRENCY_USAGE`        | `CardLimit.currency`        | vía `card.userId` (`CardAccount.userId` ya existe como columna indexada — `CardLimit` se une a `CardAccount` en la misma query) |
 
 Cada adapter implementa la consulta como `count > 0` (o `findFirst` con `select: { id: true }`)
 sobre su propia tabla — un `EXISTS` acotado por índice, sin necesidad de traer filas completas.

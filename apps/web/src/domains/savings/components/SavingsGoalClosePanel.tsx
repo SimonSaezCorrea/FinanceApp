@@ -77,7 +77,9 @@ export function SavingsGoalClosePanel({
       surface="panel"
       eyebrow={t(complete ? "savings.close.eyebrowComplete" : "savings.close.eyebrowIncomplete")}
       title={
-        <span className="text-[26px] font-semibold">{t("savings.close.title", { goal: g.title })}</span>
+        <span className="text-[26px] font-semibold">
+          {t("savings.close.title", { goal: g.title })}
+        </span>
       }
       description={t(
         complete ? "savings.close.summaryComplete" : "savings.close.summaryIncomplete",

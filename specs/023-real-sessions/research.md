@@ -135,6 +135,7 @@ si "cambiar contraseña" debería cerrar todo excepto la sesión actual (mismo p
 **Decision**: tres endpoints nuevos bajo `/auth`, guardados por `JwtAuthGuard`, en el
 MISMO `AuthController` (Facade ya existente, no uno nuevo — `session` no tiene
 `presentation/` propia, ver R3):
+
 - `GET /auth/sessions` — lista las sesiones activas del usuario.
 - `DELETE /auth/sessions/:id` — cierra una sesión propia.
 - `POST /auth/sessions/revoke-others` — cierra todas menos la actual.

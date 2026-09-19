@@ -44,9 +44,7 @@ export function SavingsSkeleton({ label }: Readonly<{ label: string }>) {
           </div>
           <div className="flex flex-wrap gap-8">
             <div className="flex flex-col gap-[3px]">
-              <span className="text-xs text-muted-foreground">
-                {t("savings.total.thisMonth")}
-              </span>
+              <span className="text-xs text-muted-foreground">{t("savings.total.thisMonth")}</span>
               <Skeleton className="h-[17px] w-16" />
             </div>
             <div className="flex flex-col gap-[3px]">

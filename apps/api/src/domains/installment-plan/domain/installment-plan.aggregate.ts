@@ -290,7 +290,12 @@ export class InstallmentPlan {
     const schedule = equalPrincipalSchedule({ totalPrincipal, installmentCount });
     const planned: PlannedPayment[] = schedule.map((row) => ({
       sequence: row.sequence,
-      dueDate: addPeriod(startDate, row.sequence - 1, this.props.frequency, this.props.frequencyInterval),
+      dueDate: addPeriod(
+        startDate,
+        row.sequence - 1,
+        this.props.frequency,
+        this.props.frequencyInterval,
+      ),
       amount: row.payment,
     }));
 

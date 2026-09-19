@@ -36,7 +36,10 @@ export function SavingsEntryDeleteConfirm({
       description={
         entry
           ? t("savings.delete.entryDescription", {
-              amount: formatMoney(entry.amount, { currency: entry.currency, locale: i18n.language }),
+              amount: formatMoney(entry.amount, {
+                currency: entry.currency,
+                locale: i18n.language,
+              }),
             })
           : t("common.confirmDelete")
       }

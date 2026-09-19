@@ -95,7 +95,9 @@ export function InstallmentsRoute() {
   // when the form opened) so `scheduleFrozen` reflects reality even if paying
   // an instalment elsewhere locks it while this form is still open.
   const editingPlan =
-    retainedForm?.mode === "edit" ? (plans.find((p) => p.id === retainedForm.planId) ?? null) : null;
+    retainedForm?.mode === "edit"
+      ? (plans.find((p) => p.id === retainedForm.planId) ?? null)
+      : null;
   // Once anything is real history — a paid instalment or a billed one — the
   // schedule (total/count/start date) can no longer be regenerated (FR-006b).
   const scheduleFrozen = (editingPlan?.paidCount ?? 0) > 0 || (editingPlan?.billedCount ?? 0) > 0;

@@ -19,7 +19,10 @@ import {
   TRANSACTION_WRITER_REPOSITORY,
   type TransactionWriterRepositoryPort,
 } from "../../../transaction/domain/ports/transaction-writer.repository.port";
-import { InstallmentPlanNotFoundError, InstallmentPlanScheduleLockedError } from "../../domain/errors";
+import {
+  InstallmentPlanNotFoundError,
+  InstallmentPlanScheduleLockedError,
+} from "../../domain/errors";
 import { InstallmentPlan } from "../../domain/installment-plan.aggregate";
 import {
   INSTALLMENT_PLAN_REPOSITORY,

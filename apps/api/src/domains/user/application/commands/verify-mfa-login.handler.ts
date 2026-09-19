@@ -3,8 +3,6 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import { compare } from "bcryptjs";
 import * as OTPAuth from "otpauth";
 
-import type { auth } from "@finance/contracts";
-
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {

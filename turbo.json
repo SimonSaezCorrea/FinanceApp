@@ -19,7 +19,10 @@
         "JWT_REFRESH_SECRET",
         "JWT_ACCESS_EXPIRES",
         "JWT_REFRESH_EXPIRES",
-        "CURSOR_SIGNING_SECRET"
+        "CURSOR_SIGNING_SECRET",
+        "MFA_ENCRYPTION_KEY",
+        "MFA_PENDING_TOKEN_SECRET",
+        "PASSKEY_CHALLENGE_SECRET"
       ]
     },
     "lint": {},

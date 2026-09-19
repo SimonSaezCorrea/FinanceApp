@@ -13,6 +13,7 @@ Esto significa que el botón "Pagar" existente sobre un período OPEN hoy en rea
 **Decision**: No reutilizar `payTowards` para el prepago. Se introduce un método de dominio nuevo y distinto, y el botón "Pagar" de `BillingSection` sobre el período OPEN se reemplaza por el nuevo flujo de prepago (ver R2). El comportamiento de `payTowards` (liquidar) queda intacto para períodos PENDING/PARTIALLY_PAID — no se toca.
 
 **Alternativas consideradas**:
+
 - Añadir un flag a `payTowards` para "no cerrar" — rechazado: mezclaría dos operaciones con reglas de validación distintas (liquidar vs. abonar parcial) en un solo método, y `payTowards` ya está bien cubierto por tests que asumen que SIEMPRE liquida.
 
 ## R2 — Nuevo campo `prepaidAmount` en `CreditStatement`, no una entidad nueva
@@ -32,6 +33,7 @@ Como **todo** llamador existente de `totalFor` (el propio `pay-credit-statement.
 **Rationale**: Evita una entidad `Prepago` con su propia tabla/repositorio (dominio 25) para lo que en esencia es un acumulador simple con una lista de movimientos que lo respaldan (los movimientos mismos, vía `Transaction.prepaymentStatementId`, ya son el registro — ver R3). Menos superficie, reutiliza `totalFor`/`syncAmount` que ya son código probado.
 
 **Alternativas consideradas**:
+
 - Tabla `CreditStatementPrepayment` (id, statementId, transactionId, amount) — rechazada por ahora: no aporta nada que `Transaction.prepaymentStatementId` + `SUM()` no den ya, y el una-tabla-un-dominio (Constitution VI) obligaría a un dominio 25 nuevo solo para esto.
 
 ## R3 — El movimiento de prepago es un `Transaction` normal con una FK nueva, no un tipo de movimiento nuevo
@@ -119,6 +121,7 @@ esos números no cambian por la concurrencia de OTRO prepago (solo `prepaidAmoun
 cambiar entre dos prepagos simultáneos — que es justamente lo que el lock protege).
 
 **Alternativas consideradas**:
+
 - Confiar en que la validación de `PaymentExceedsRemainingError` en la escritura final (un
   `UPDATE ... WHERE prepaidAmount + amount <= grossTotal` condicional) detecte el conflicto —
   rechazada: más compleja de expresar en Prisma que un `FOR UPDATE` directo, y este repo ya tiene

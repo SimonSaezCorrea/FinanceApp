@@ -6,15 +6,15 @@ Declarado en `CreditStatementsController`, junto a `pay`/`sync`/`payment` (mismo
 
 ### Headers
 
-| Header | Requerido | Nota |
-| --- | --- | --- |
-| `Idempotency-Key` | Sí | Igual que `.../pay` — `IDEMPOTENCY_KEY_REQUIRED` (400) si falta. |
+| Header            | Requerido | Nota                                                             |
+| ----------------- | --------- | ---------------------------------------------------------------- |
+| `Idempotency-Key` | Sí        | Igual que `.../pay` — `IDEMPOTENCY_KEY_REQUIRED` (400) si falta. |
 
 ### Path params
 
-| Param | Tipo | Nota |
-| --- | --- | --- |
-| `id` | `rowId` | La cuenta CREDIT_CARD que recibe el abono. |
+| Param         | Tipo    | Nota                                                |
+| ------------- | ------- | --------------------------------------------------- |
+| `id`          | `rowId` | La cuenta CREDIT_CARD que recibe el abono.          |
 | `statementId` | `rowId` | Debe ser el período actualmente OPEN de esa cuenta. |
 
 ### Body — `accounts.prepayCreditStatementSchema`
@@ -33,15 +33,15 @@ Declarado en `CreditStatementsController`, junto a `pay`/`sync`/`payment` (mismo
 
 ### Errores
 
-| Código | Causa |
-| --- | --- |
-| `ACCOUNT_NOT_FOUND` | `id` o `fromAccountId` no existen / no son del usuario. |
-| `STATEMENT_NOT_FOUND` | `statementId` no existe en esa cuenta. |
-| `STATEMENT_NOT_OPEN` | **Nuevo.** `statementId` no es el período actualmente OPEN (ya cerró, o pertenece a otro). |
-| `INVALID_PAYMENT_SOURCE` | `fromAccountId` es una cuenta CREDIT_CARD, o es la misma que `id`. |
-| `INVALID_PAYMENT_AMOUNT` | `amount` ≤ 0. |
-| `PAYMENT_EXCEEDS_REMAINING` | `amount` (sumado a lo ya prepagado) supera lo que el período debe hoy. |
-| `IDEMPOTENCY_KEY_REQUIRED` / `IDEMPOTENCY_KEY_REUSED` / `IDEMPOTENCY_IN_PROGRESS` | Estándar (Constitución VII). |
+| Código                                                                            | Causa                                                                                      |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `ACCOUNT_NOT_FOUND`                                                               | `id` o `fromAccountId` no existen / no son del usuario.                                    |
+| `STATEMENT_NOT_FOUND`                                                             | `statementId` no existe en esa cuenta.                                                     |
+| `STATEMENT_NOT_OPEN`                                                              | **Nuevo.** `statementId` no es el período actualmente OPEN (ya cerró, o pertenece a otro). |
+| `INVALID_PAYMENT_SOURCE`                                                          | `fromAccountId` es una cuenta CREDIT_CARD, o es la misma que `id`.                         |
+| `INVALID_PAYMENT_AMOUNT`                                                          | `amount` ≤ 0.                                                                              |
+| `PAYMENT_EXCEEDS_REMAINING`                                                       | `amount` (sumado a lo ya prepagado) supera lo que el período debe hoy.                     |
+| `IDEMPOTENCY_KEY_REQUIRED` / `IDEMPOTENCY_KEY_REUSED` / `IDEMPOTENCY_IN_PROGRESS` | Estándar (Constitución VII).                                                               |
 
 ### Efecto (una sola transacción atómica)
 

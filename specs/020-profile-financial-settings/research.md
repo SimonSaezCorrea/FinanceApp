@@ -25,14 +25,15 @@ replica 8 veces en vez de inventar un mecanismo nuevo. `user.module.ts` ya impor
 importar leaves ya es parte de este módulo.
 
 **Alternativas consideradas**:
-- *Una tabla `CurrencyUsageIndex` mantenida por triggers/eventos* — rechazada: introduce una fuente
+
+- _Una tabla `CurrencyUsageIndex` mantenida por triggers/eventos_ — rechazada: introduce una fuente
   de verdad derivada que puede desincronizarse, y el volumen de datos por usuario es bajo (8
   consultas indexadas por `userId`, no un escaneo), así que no hay necesidad real de
   materializarlo.
-- *Una sola query cruzada con Prisma `$queryRaw` uniendo las 8 tablas* — rechazada: viola
+- _Una sola query cruzada con Prisma `$queryRaw` uniendo las 8 tablas_ — rechazada: viola
   directamente el principio de un adapter por tabla, y acopla `user` a la forma interna de 8
   dominios que no le pertenecen.
-- *Guardar `extraCurrencies` sin bloqueo y resolver el problema solo en el frontend* — rechazada:
+- _Guardar `extraCurrencies` sin bloqueo y resolver el problema solo en el frontend_ — rechazada:
   el usuario pidió explícitamente que el bloqueo sea real ("no nos interesa" dejarlo como aviso
   blando); un bloqueo solo-frontend es trivialmente evitable (DevTools, llamada directa a la API) y
   dejaría datos huérfanos exactamente como el diseño original quería evitar.
@@ -52,6 +53,7 @@ selección nueva). Documentado también como edge case aceptado en `spec.md`.
 **Decisión**: un hook nuevo `useAllowedCurrencies()` (en `domains/reference/hooks/`) que devuelve
 `{ code, name }[]` = `[preferredCurrency, ...extraCurrencies]` resuelto contra el catálogo de
 `useCurrencies()` (para el `name` de cada código), y un componente nuevo `CurrencyField` que:
+
 - si `allowed.length <= 1` → renderiza un valor estático (texto, sin interacción de selector).
 - si `allowed.length > 1` → renderiza `SearchableSelect` acotado a esas opciones.
 
@@ -69,10 +71,11 @@ regla de negocio de un solo dominio (moneda del usuario), así que el modo está
 primitivo compartido.
 
 **Alternativas consideradas**:
-- *Agregar un prop `readOnly`/`staticWhen` a `SearchableSelect` mismo* — rechazada: mezclaría una
+
+- _Agregar un prop `readOnly`/`staticWhen` a `SearchableSelect` mismo_ — rechazada: mezclaría una
   regla de negocio específica (moneda del usuario) en un primitivo de UI genérico reutilizado por
   selectores no relacionados con moneda (instituciones, categorías).
-- *Dejar cada formulario resolviendo su propio universo de monedas permitidas* — rechazada: 8
+- _Dejar cada formulario resolviendo su propio universo de monedas permitidas_ — rechazada: 8
   copias de la misma lógica de filtrado, alto riesgo de que una quede desactualizada.
 
 **Nota de alcance explícita**: el selector de la moneda PRINCIPAL en el perfil
@@ -101,10 +104,11 @@ sin necesitar contexto compartido ni store: cada instancia de `MaskedAmount` en 
 es independiente por construcción.
 
 **Alternativas consideradas**:
-- *Un store global (`hideBalancesStore`) con un set de "ids revelados"* — rechazada: sobre-
+
+- _Un store global (`hideBalancesStore`) con un set de "ids revelados"_ — rechazada: sobre-
   ingeniería para un requisito que ya cumple el estado local de React; requeriría inventar ids
   estables para cada monto sin necesidad real.
-- *`sessionStorage` para recordar qué montos están revelados entre navegaciones* — rechazada:
+- _`sessionStorage` para recordar qué montos están revelados entre navegaciones_ — rechazada:
   contradice explícitamente el edge case del spec (debe re-enmascararse al volver a la vista).
 
 ## D4 — Alcance de `MaskedAmount` en Ahorros

@@ -11,9 +11,14 @@ import { FormTextField } from "../../../shared/ui/form";
 import { SectionLabel } from "../../../shared/ui/section-label";
 import { usePasskeysQuery, useProfileMutations } from "../hooks/useProfile";
 
-function lastUsedLabel(t: (key: string, opts?: Record<string, unknown>) => string, lastUsedAt: string | null) {
+function lastUsedLabel(
+  t: (key: string, opts?: Record<string, unknown>) => string,
+  lastUsedAt: string | null,
+) {
   if (!lastUsedAt) return t("profile.security.passkey.neverUsed");
-  return t("profile.security.passkey.lastUsed", { date: new Date(lastUsedAt).toLocaleDateString() });
+  return t("profile.security.passkey.lastUsed", {
+    date: new Date(lastUsedAt).toLocaleDateString(),
+  });
 }
 
 /** Management panel (specs/022, US1+US3): list registered passkeys, add a new one (WebAuthn

@@ -6,6 +6,7 @@ un nuevo código de error posible.
 ## Request (`UpdatePreferencesRequest`)
 
 **Antes**:
+
 ```typescript
 {
   preferredCurrency?: string;
@@ -20,6 +21,7 @@ un nuevo código de error posible.
 ```
 
 **Después**:
+
 ```typescript
 {
   preferredCurrency?: string;
@@ -39,9 +41,9 @@ de respuesta que los exponga (`GET /auth/me`, la respuesta de este mismo `PATCH`
 
 ## Errores nuevos
 
-| Código | HTTP | `field` | Cuándo |
-|---|---|---|---|
-| `CURRENCY_IN_USE` | 409 | `extraCurrencies` | El patch intenta quitar de `extraCurrencies` una moneda que algún registro del usuario (cuenta, transacción, plan de cuotas, deuda, meta de ahorro, aporte de ahorro, gasto recurrente o tope de tarjeta) sigue usando. |
+| Código            | HTTP | `field`           | Cuándo                                                                                                                                                                                                                  |
+| ----------------- | ---- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `CURRENCY_IN_USE` | 409  | `extraCurrencies` | El patch intenta quitar de `extraCurrencies` una moneda que algún registro del usuario (cuenta, transacción, plan de cuotas, deuda, meta de ahorro, aporte de ahorro, gasto recurrente o tope de tarjeta) sigue usando. |
 
 ## Comportamiento no cambiado
 

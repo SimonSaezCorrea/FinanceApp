@@ -13,15 +13,16 @@ import { cn } from "../lib/cn";
  * grows past its assigned width — this bit a responsive table that measured its
  * own outer wrapper expecting to detect overflow there.
  */
-export const Table = forwardRef<HTMLDivElement, HTMLAttributes<HTMLTableElement>>(
-  function Table({ className, ...props }, scrollRef) {
-    return (
-      <div ref={scrollRef} className="scrollbar-thin w-full overflow-x-auto">
-        <table className={cn("w-full text-sm", className)} {...props} />
-      </div>
-    );
-  },
-);
+export const Table = forwardRef<HTMLDivElement, HTMLAttributes<HTMLTableElement>>(function Table(
+  { className, ...props },
+  scrollRef,
+) {
+  return (
+    <div ref={scrollRef} className="scrollbar-thin w-full overflow-x-auto">
+      <table className={cn("w-full text-sm", className)} {...props} />
+    </div>
+  );
+});
 
 export function THead({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
   return <thead className={cn("text-muted-foreground", className)} {...props} />;

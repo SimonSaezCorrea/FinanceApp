@@ -121,9 +121,11 @@ export function TransactionTable({
   // changes — otherwise, once `overflowing` latched `true` at some narrower
   // width, the full table stays hidden (0×0, no resize to react to) even after
   // the container grows enough to actually fit it.
-  useEffect(() => {
+  const [prevWidth, setPrevWidth] = useState(width);
+  if (width !== prevWidth) {
+    setPrevWidth(width);
     setOverflowing(false);
-  }, [width]);
+  }
   useEffect(() => {
     if (!scrollWrapEl || typeof ResizeObserver === "undefined") return;
     const check = () => {

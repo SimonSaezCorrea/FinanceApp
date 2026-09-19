@@ -60,16 +60,14 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
       → Los 4 endpoints de escritura nuevos (`enroll`, `confirm`, `disable`, `login/mfa-verify`)
       satisfacen la forma (a) — máquina de estados terminal — y NINGUNO mueve saldo, cupo ni
       conteo de cuotas, así que el mecanismo de dos fases (forma c, `Idempotency-Key`) reservado
-      para esos casos no aplica aquí:
-      - `enroll`: repetir la llamada solo reemplaza el secreto pendiente por uno nuevo — un
-        overwrite seguro, no un efecto duplicado (no hay "activación" hasta confirmar).
-      - `confirm`: una vez `mfaEnabled=true`, un reintento con el mismo código no puede
-        "reactivar" nada — la transición PENDIENTE→ACTIVA es terminal.
-      - `disable`: una vez `mfaEnabled=false`, un reintento es un no-op seguro — la transición
-        ACTIVA→INACTIVA es terminal.
-      - `login/mfa-verify`: un código de recuperación ya usado se rechaza igual que uno inválido
-        (su propio estado usado/sin-usar YA es la protección de una sola vez, FR-014) — reintentar
-        con el mismo código nunca lo "usa dos veces".
+      para esos casos no aplica aquí. `enroll`: repetir la llamada solo reemplaza el secreto
+      pendiente por uno nuevo — un overwrite seguro, no un efecto duplicado (no hay "activación"
+      hasta confirmar). `confirm`: una vez `mfaEnabled=true`, un reintento con el mismo código no
+      puede "reactivar" nada — la transición PENDIENTE→ACTIVA es terminal. `disable`: una vez
+      `mfaEnabled=false`, un reintento es un no-op seguro — la transición ACTIVA→INACTIVA es
+      terminal. `login/mfa-verify`: un código de recuperación ya usado se rechaza igual que uno
+      inválido (su propio estado usado/sin-usar YA es la protección de una sola vez, FR-014) —
+      reintentar con el mismo código nunca lo "usa dos veces".
 - [x] Toda FK aceptada desde el cuerpo de un request declara dónde se verifica su ownership.
       → Ningún endpoint nuevo recibe un id ajeno en el body. `enroll`/`confirm`/`disable` operan
       sobre el propio `userId` de `@CurrentUser` (sesión ya autenticada). `login/mfa-verify` no

@@ -237,10 +237,7 @@ export function PayStatementPanel({
                   aria-label={t("accounts.detail.payAmountLabel")}
                   className="min-w-0 flex-1 border-0 bg-transparent p-0 text-3xl font-semibold tabular-nums text-accent placeholder:text-accent/50 focus-visible:outline-none"
                 />
-                <Pencil
-                  aria-hidden
-                  className="size-4 shrink-0 self-center text-muted-foreground"
-                />
+                <Pencil aria-hidden className="size-4 shrink-0 self-center text-muted-foreground" />
               </div>
             ) : (
               <p className="mt-0.5 text-3xl font-semibold tabular-nums tracking-tight text-accent">
