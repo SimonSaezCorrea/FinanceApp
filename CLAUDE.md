@@ -40,7 +40,7 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
 
 **pnpm + Turborepo monorepo** with two separately-deployable apps + shared packages. TypeScript, Node 20. Migrated from the legacy single Next.js app via specs/001.
 
-- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 25 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record, mfa-recovery-code, passkey, session — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **JWT access+refresh, backed by a real `Session` row per login** (specs/023 — the NextAuth `Account`/`Session`/`VerificationToken` tables removed at the monorepo migration were a different, unrelated thing; this `Session` is new). A session is reached one of two ways: email+password (optionally gated by a TOTP second factor, specs/021) or a registered WebAuthn passkey (specs/022, bypasses both password and MFA entirely, its own strong authentication) — either way, that login's `Session.id` travels as a `sid` claim inside both the access and refresh token it issues, and `JwtAuthGuard` checks that row exists on every request (not just `User.status`), so closing a session revokes its access token immediately rather than only on its next refresh. See the `session` domain-table bullet below for the full mechanism.
+- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 26 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record, mfa-recovery-code, passkey, session, ip-geolocation-cache — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **JWT access+refresh, backed by a real `Session` row per login** (specs/023 — the NextAuth `Account`/`Session`/`VerificationToken` tables removed at the monorepo migration were a different, unrelated thing; this `Session` is new). A session is reached one of two ways: email+password (optionally gated by a TOTP second factor, specs/021) or a registered WebAuthn passkey (specs/022, bypasses both password and MFA entirely, its own strong authentication) — either way, that login's `Session.id` travels as a `sid` claim inside both the access and refresh token it issues, and `JwtAuthGuard` checks that row exists on every request (not just `User.status`), so closing a session revokes its access token immediately rather than only on its next refresh. See the `session` domain-table bullet below for the full mechanism.
   - **bank-account** (specs/003, 007; the aggregate root of the accounts cluster — `card-account`/`card-limit`/`billing-settings`/`credit-statement` are its own table-domains, written only through it): `BankAccount` is **where money or a credit line lives**. `type` (`AccountType`: **CHECKING/SIGHT/SAVINGS/INVESTMENT/CREDIT_LINE/CASH**), `status` (ACTIVE/INACTIVE), `accountNumber` (**bank account number — free text, stored/shown in full; NOT a card PAN**; **required for CHECKING/SIGHT/SAVINGS**, optional for CREDIT_LINE/INVESTMENT/CASH — enforced via a zod refine on create and by the aggregate on update, `ACCOUNT_NUMBER_REQUIRED`), `initialBalance` (seed) + `currentBalance`, which every movement keeps in step (`initialBalance` + Σincome − Σexpense): creating/editing/deleting a transaction applies its signed balance delta inside the movement's own `$transaction` (`transaction/domain/balance-delta.ts` → `BankAccountRepositoryPort.incrementBalanceWithTx`), exactly as it already does for `creditUsed`. **The manual `POST /accounts/:id/reconcile` is gone** (command, handler, aggregate method and UI button removed) — a balance that maintains itself has nothing to reconcile. **The account-level credit pool** (`creditLimit` + `creditUsedInitial`, seed) is the **shared/master cap across every CREDIT-kind card on the account** — this applies not just to a standalone credit card (a `CREDIT_LINE` account) but to **any cardable account that's grown a CREDIT-kind card** (e.g. a checking account's bank add-on credit card); the contract exposes a **derived `creditUsed` = creditUsedInitial + Σexpense − Σincome** (income = card payments; computed on-read via `sumsByAccount`), `"0"` when the account has no credit pool. List filter `?status=active|inactive`; `POST /accounts/:id/status`. List/get also return a 30d `balanceSeries` + `balanceChangePct` (for sparklines). Deleting unlinks transactions (`onDelete: SetNull`).
   - **Investment tracking removed (2026-09-07):** the standalone `investment` table-domain (ETF/
     remunerated-account holdings: `kind`, `symbol`/`shares` or `annualRate`/`principal`, an optional
@@ -1158,6 +1158,35 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     sospechoso. Sin cambio de contrato HTTP ni de schema. Ver
     `specs/024-revoke-sessions-on-change/` para el detalle completo.
 
+    Amendment (geolocalización vía IPinfo con caché, reemplaza MaxMind como fuente
+    preferida — specs/026, 2026-09-19): `GeoIpLookup` (`user/application/geoip-lookup.ts`)
+    gana un segundo camino, preferido sobre el archivo `.mmdb` local cuando está
+    configurado: **IPinfo Lite** (`https://api.ipinfo.io/lite/{ip}`, gratis e ilimitada,
+    solo país+ASN — sin ciudad —, licencia **CC BY-SA 4.0** que exige atribución visible).
+    Nuevo dominio-tabla **`ip-geolocation-cache`** (mismo trato mínimo que
+    `idempotency-record`: `domain/`+`infrastructure/` sin `presentation/`, más un
+    `application/` acotado a un único comando de purga) — tabla **global** (sin `userId`,
+    clave = IP exacta) que `GeoIpLookup` consulta ANTES de llamar a IPinfo y en la que
+    escribe cada respuesta 2xx genuina, con TTL fijo de **60 días** (purgado por
+    `IpGeolocationCachePurgeCron`, `EVERY_DAY_AT_5AM`, mismo patrón que
+    `IdempotencyCleanupCron`/`SessionCleanupCron`, offset para no competir con ninguno de
+    los dos). La interfaz pública `GeoIpLookup.lookup(ip): Promise<GeoLocation>` no cambia
+    — `SessionIssuer` no se entera del swap interno. **Prioridad de fuente, nunca
+    combinadas**: `IPINFO_TOKEN` configurado → IPinfo (+caché) es la ÚNICA fuente para esa
+    llamada; sin él, cae a MaxMind si `GEOIP_DB_PATH` sigue configurado; sin ninguno, sin
+    país. Un fallo de IPinfo (red, timeout, status no-2xx — un token inválido responde 403,
+    verificado contra la API real) **nunca se cachea**, para que se autocorrija en el
+    siguiente login en vez de dejar una IP "envenenada" sin país por los 60 días completos.
+    `city` queda siempre `null` para toda sesión resuelta por este camino (Lite no lo
+    entrega) — las sesiones ya guardadas con ciudad de MaxMind conservan su dato intacto,
+    sin migración. Nueva atribución visible en `SecuritySection.tsx` (Perfil → Seguridad),
+    un enlace a ipinfo.io bajo la lista de sesiones — cumple la condición de la licencia
+    incluso con una futura sección de suscripción de pago en la app, ya que la
+    geolocalización es una función de seguridad esencial, nunca parte de un plan pago. Sin
+    cambio de contrato HTTP ni de dependencia nueva (`fetch` nativo de Node 20 — primera
+    llamada de red saliente de este backend hacia un servicio de terceros que no es S3).
+    Ver `specs/026-ipinfo-geolocation/` para el detalle completo.
+
 - **Errors:** the API returns **language-agnostic codes** `{ error: { code, field? } }` (never localized prose); the frontend maps `code` → `errors.<CODE>` in es/en. `AllExceptionsFilter` (`infra/http`) preserves the specific `code`/`field` thrown on the exception (e.g. `EMAIL_TAKEN`, `CARD_REQUIRED`) and only falls back to a generic status-derived code (`UNAUTHORIZED`, `CONFLICT`, …) when the exception carried none — a prior version of this filter discarded every domain-specific code and must not regress.
 
 ## Conventions
@@ -1300,7 +1329,55 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (025 — implementado): specs/025-passkey-management/plan.md
+Current plan (026 — implementado): specs/026-ipinfo-geolocation/plan.md
+(Migrar geolocalización de sesiones a IPinfo con caché: `GeoIpLookup` (`user/application/
+geoip-lookup.ts`) gana un segundo camino, preferido sobre el archivo `.mmdb` local de MaxMind
+cuando está configurado — **IPinfo Lite** (`https://api.ipinfo.io/lite/{ip}`, gratis e
+ilimitada, solo país+ASN — sin ciudad —, licencia CC BY-SA 4.0 que exige atribución visible).
+Nuevo dominio-tabla **`ip-geolocation-cache`** (mismo trato mínimo que `idempotency-record`:
+`domain/`+`infrastructure/` sin `presentation/`, más un `application/` acotado a un único
+comando de purga) — tabla GLOBAL (sin `userId`, clave = IP exacta, `@@unique`) que
+`GeoIpLookup` consulta ANTES de llamar a IPinfo y en la que escribe cada respuesta 2xx
+genuina, con TTL fijo de **60 días** (clarificado con el usuario — punto medio del rango
+30-90 días que traía el spec original, sin riesgo porque el plan Lite no tiene cuota que
+cuidar), purgado por `IpGeolocationCachePurgeCron` (`EVERY_DAY_AT_5AM`, mismo patrón que
+`IdempotencyCleanupCron`/`SessionCleanupCron`, offset para no competir con ninguno de los
+dos). La interfaz pública `GeoIpLookup.lookup(ip): Promise<GeoLocation>` no cambia —
+`SessionIssuer` no se entera del swap interno; verificado con la firma real de IPinfo Lite
+contra la API viva (`country_code`, sin ningún campo de ciudad). **Prioridad de fuente,
+nunca combinadas**: `IPINFO_TOKEN` configurado → IPinfo (+caché) es la ÚNICA fuente para esa
+llamada; sin él, cae a MaxMind si `GEOIP_DB_PATH` sigue configurado; sin ninguno, sin país.
+**Un fallo de IPinfo nunca se cachea** (red, timeout, status no-2xx — un token inválido
+responde 403, confirmado contra la API real durante el research) — para que se autocorrija
+en el siguiente login en vez de dejar una IP "envenenada" sin país por los 60 días completos;
+esto es una decisión de diseño propia de esta implementación, más estricta que lo que el spec
+exigía literalmente. `city` queda siempre `null` para toda sesión resuelta por este camino;
+las sesiones ya guardadas con ciudad de MaxMind conservan su dato intacto, sin migración.
+Nueva atribución visible en `SecuritySection.tsx` (Perfil → Seguridad), un enlace a ipinfo.io
+bajo la lista de sesiones — resuelve explícitamente la pregunta de si esto es compatible con
+una futura sección de suscripción de pago en la app: la geolocalización es una función de
+seguridad esencial y su atribución nunca debe quedar condicionada a un plan pago. Sin cambio
+de contrato HTTP ni dependencia nueva (`fetch` nativo de Node 20 — primera llamada de red
+saliente de este backend hacia un servicio de terceros que no es S3, confirmado por auditoría
+de `package.json`). **Verificado de punta a punta**: `pnpm --filter @finance/api test:unit`
+[676/676, incluye los 9 casos nuevos de `GeoIpLookup`/`PurgeExpiredCacheHandler`],
+`test:integration` [143/143, incluye los 5 casos nuevos del adapter Prisma de la caché],
+`test:e2e` [175/175, sin caso nuevo — esta feature no agrega ningún endpoint HTTP],
+`pnpm --filter @finance/web test` [374/374, incluye el caso nuevo de la atribución visible en
+`SecuritySection`], `typecheck`, `lint` y `check:boundaries` limpios en ambos paquetes.
+Validación manual contra la API real (con el `IPINFO_TOKEN` real del usuario, nunca
+versionado): un registro real desde el entorno de desarrollo resolvió `country: "CL"`,
+`city: null` para la sesión creada, y una fila de caché con `expiresAt` exactamente 60 días
+después de `createdAt`; logins repetidos desde la misma IP (incluidos los de la propia suite
+de tests, que comparte la IP de desarrollo) confirmaron el cache-hit — nunca más de una fila
+para esa IP pese a cientos de logins de prueba. **No verificado en vivo, cubierto solo por
+tests automatizados con mocks de `fetch`**: los escenarios de token inválido/red caída (el
+403 real de un token inválido SÍ se confirmó por separado con `curl` directo contra la API de
+IPinfo durante el research, pero no a través del flujo de login completo, que requeriría
+manipular la IP del request más allá de lo que este entorno permite). Sin migración de datos
+propia más allá de `db push` (dev-only).)
+
+Prior plan: specs/025-passkey-management/plan.md
 (Renombrar passkeys y autocompletado condicional: dos extensiones chicas sobre el dominio
 `passkey` (specs/022). (1) `PATCH /auth/me/passkeys/:id` con `{name}` — `PasskeyRepositoryPort`
 ganó `renameOwned(userId, id, name)` (ninguno de los métodos existentes servía:

@@ -4,9 +4,11 @@ import { ScheduleModule } from "@nestjs/schedule";
 
 import { CreditStatementModule } from "../../domains/credit-statement/credit-statement.module";
 import { IdempotencyRecordModule } from "../../domains/idempotency-record/idempotency-record.module";
+import { IpGeolocationCacheModule } from "../../domains/ip-geolocation-cache/ip-geolocation-cache.module";
 import { UserModule } from "../../domains/user/user.module";
 import { BillingGenerationCron } from "./billing-generation.cron";
 import { IdempotencyCleanupCron } from "./idempotency-cleanup.cron";
+import { IpGeolocationCachePurgeCron } from "./ip-geolocation-cache-purge.cron";
 import { SessionCleanupCron } from "./session-cleanup.cron";
 
 /**
@@ -24,8 +26,14 @@ import { SessionCleanupCron } from "./session-cleanup.cron";
     CqrsModule,
     CreditStatementModule,
     IdempotencyRecordModule,
+    IpGeolocationCacheModule,
     UserModule,
   ],
-  providers: [BillingGenerationCron, IdempotencyCleanupCron, SessionCleanupCron],
+  providers: [
+    BillingGenerationCron,
+    IdempotencyCleanupCron,
+    IpGeolocationCachePurgeCron,
+    SessionCleanupCron,
+  ],
 })
 export class CronModule {}

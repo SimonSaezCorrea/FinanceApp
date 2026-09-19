@@ -16,7 +16,7 @@ import { VerifyPasskeyLoginCommand } from "../../../../../src/domains/user/appli
 import { GeoIpLookup } from "../../../../../src/domains/user/application/geoip-lookup";
 import { SessionIssuer } from "../../../../../src/domains/user/application/session-issuer";
 import { TokenIssuer } from "../../../../../src/domains/user/application/token-issuer";
-import { buildUserRepo } from "../../../support/repositories";
+import { buildUserRepo, noopIpGeolocationCacheRepo } from "../../../support/repositories";
 import { PrismaPasskeyRepository } from "../../../../../src/domains/passkey/infrastructure/prisma-passkey.repository";
 import { PrismaSessionRepository } from "../../../../../src/domains/session/infrastructure/prisma-session.repository";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
@@ -33,7 +33,11 @@ describe("Passkey login (integration)", () => {
   });
   const tokenIssuer = new TokenIssuer(new JwtService(), config);
   const sessionRepo = new PrismaSessionRepository(prisma);
-  const sessionIssuer = new SessionIssuer(tokenIssuer, sessionRepo, new GeoIpLookup(config));
+  const sessionIssuer = new SessionIssuer(
+    tokenIssuer,
+    sessionRepo,
+    new GeoIpLookup(config, noopIpGeolocationCacheRepo()),
+  );
   let userId: string;
   let passkeyId: string;
   const credentialId = `cred_${randomUUID()}`;

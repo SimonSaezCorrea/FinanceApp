@@ -1433,7 +1433,8 @@
         "unknownLocation": "Ubicación desconocida",
         "lastActive": "última actividad {{date}}",
         "closed": "Cerrada el {{date}}",
-        "revokeOthersWarning": "Esto cerrará todas tus otras sesiones activas — esta sesión no se verá afectada."
+        "revokeOthersWarning": "Esto cerrará todas tus otras sesiones activas — esta sesión no se verá afectada.",
+        "attribution": "Datos de ubicación por"
       }
     },
     "preferences": {

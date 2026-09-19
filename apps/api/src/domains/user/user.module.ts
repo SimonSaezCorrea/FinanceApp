@@ -8,6 +8,7 @@ import { CardLimitDataModule } from "../card-limit/card-limit.data.module";
 import { CountryDataModule } from "../country/country.data.module";
 import { DebtDataModule } from "../debt/debt.data.module";
 import { InstallmentPlanDataModule } from "../installment-plan/installment-plan.data.module";
+import { IpGeolocationCacheDataModule } from "../ip-geolocation-cache/ip-geolocation-cache.data.module";
 import { MfaRecoveryCodeDataModule } from "../mfa-recovery-code/mfa-recovery-code.data.module";
 import { PasskeyDataModule } from "../passkey/passkey.data.module";
 import { RecurringExpenseDataModule } from "../recurring-expense/recurring-expense.data.module";
@@ -93,6 +94,7 @@ const queryHandlers = [GetMeQueryHandler, ListPasskeysQueryHandler, ListSessions
     MfaRecoveryCodeDataModule,
     PasskeyDataModule,
     SessionDataModule,
+    IpGeolocationCacheDataModule,
   ],
   controllers: [AuthController],
   providers: [

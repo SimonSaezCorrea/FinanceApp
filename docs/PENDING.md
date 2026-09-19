@@ -82,8 +82,9 @@ Ya no es data de ejemplo. Cada login exitoso (password, con/sin MFA, o passkey) 
 `Session` real, cuyo `id` viaja como claim `sid` en el access y el refresh token de ese login;
 `JwtAuthGuard` verifica en cada request que esa sesión siga existiendo (revocación de inmediato, no
 solo en el próximo refresh). `SecuritySection` lista las sesiones reales (`GET /auth/sessions`,
-dispositivo/navegador derivado del User-Agent, país aproximado vía GeoLite2 si `GEOIP_DB_PATH` está
-configurado) y "Cerrar"/"Cerrar todas" llaman de verdad a `DELETE /auth/sessions/:id`/
+dispositivo/navegador derivado del User-Agent, país aproximado vía IPinfo si `IPINFO_TOKEN` está
+configurado — ver el punto 4b, cerrado — o vía GeoLite2 local si solo `GEOIP_DB_PATH` lo está) y
+"Cerrar"/"Cerrar todas" llaman de verdad a `DELETE /auth/sessions/:id`/
 `POST /auth/sessions/revoke-others`. Cerrar una sesión estampa `closedAt` (se retiene 3 días, la
 purga un cron diario) — ver la enmienda de `CLAUDE.md` que reemplazó el DELETE inmediato original.
 
@@ -110,30 +111,20 @@ después):
 
 ### 4b. Geolocalización de sesiones: migrar de MaxMind (local) a IPinfo (API) con caché
 
-Hoy `GeoIpLookup` resuelve país/ciudad contra un archivo `.mmdb` local (GeoLite2-City de MaxMind,
-`GEOIP_DB_PATH`) — funciona, pero el archivo hay que descargarlo/actualizarlo a mano y no lo trae el
-repo (gitignoreado, cada dev/entorno se lo baja aparte). Migrar a la API de **IPinfo** (u otro
-proveedor equivalente) resolvería eso a costa de depender de un servicio externo con cuota.
-
-**Estrategia recomendada para no gastar cuota de más** (la cuota gratuita de IPinfo es 50.000
-consultas/mes): agregar una capa de caché propia antes de golpear la API externa.
-
-1. El usuario inicia sesión → el server ya captura su IP (esto no cambia).
-2. **Consulta interna primero**: buscar en una tabla propia (ej. `ip_geolocation_cache`, o
-   directamente reutilizar filas de `Session` ya resueltas) si esa IP exacta ya se vio antes.
-   - **IP conocida** → usar la ciudad/país ya guardados. Consumo de API = 0.
-   - **IP nueva** → recién ahí pegarle a la API de IPinfo, guardar el resultado en la tabla de caché
-     para la próxima vez, y usarlo para esta sesión. Consumo de API = 1.
-3. Con esa lógica, aunque la app crezca a cientos de miles de usuarios, la cuota gratuita alcanza
-   por mucho tiempo — la mayoría de la gente inicia sesión siempre desde las mismas IPs (casa,
-   trabajo).
-
-**Para hacerlo real**: nueva tabla/dominio-tabla de caché IP→ubicación (con expiración razonable,
-ya que una IP puede reasignarse con el tiempo — ej. TTL de 30-90 días), `GeoIpLookup` pasa a
-consultar esa caché antes de llamar a IPinfo, y solo llama a la API externa en un cache-miss. La
-capa pública (`lookup(ip): Promise<GeoLocation>`) no necesita cambiar — es un swap interno de
-implementación, no del contrato que usa `SessionIssuer`. Mientras esto no se implemente, seguimos
-con MaxMind local (sin llamadas de red, sin cuota, pero con el archivo a mantener a mano).
+**Cerrado por specs/026 (2026-09-19)**: `GeoIpLookup` resuelve país por **IPinfo Lite** (gratis e
+ilimitada, licencia CC BY-SA 4.0 con atribución) cuando `IPINFO_TOKEN` está configurado, detrás de
+una caché propia (`ip-geolocation-cache`, TTL de 60 días, purgada por un cron diario, mismo patrón
+que `idempotency-record`) — una IP ya consultada por cualquier usuario nunca vuelve a golpear la API
+externa. Ciudad **ya no se resuelve** para sesiones nuevas (Lite no la entrega — el trade-off
+aceptado de esta migración); las sesiones ya guardadas con ciudad de MaxMind conservan su dato tal
+cual, no se migran. Un fallo transitorio del proveedor (red, timeout, token inválido) nunca se
+cachea, para que se autocorrija en el siguiente login en vez de quedar "envenenado" 60 días. Sin
+`IPINFO_TOKEN`, cae de vuelta a MaxMind local si `GEOIP_DB_PATH` sigue configurado, o sin país si
+tampoco — las dos fuentes nunca se combinan en una misma resolución. Nueva atribución visible en
+Perfil → Seguridad, bajo la lista de sesiones (cumple la condición de la licencia CC BY-SA 4.0,
+incluso con una futura sección de suscripción de pago en la app — la geolocalización es una función
+de seguridad esencial, nunca parte de un plan pago). Ver `specs/026-ipinfo-geolocation/` para el
+diseño completo.
 
 ### 5. Plan, uso y facturación
 

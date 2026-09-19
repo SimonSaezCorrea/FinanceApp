@@ -419,6 +419,12 @@ export function SecuritySection() {
             </p>
           ) : null}
         </div>
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          {t("profile.security.sessions.attribution")}{" "}
+          <a href="https://ipinfo.io" target="_blank" rel="noreferrer" className="underline">
+            IPinfo
+          </a>
+        </p>
       </div>
       <ChangePasswordDialog open={changingPassword} onOpenChange={setChangingPassword} />
       <MfaEnrollmentPanel open={enrollingMfa} onOpenChange={setEnrollingMfa} />

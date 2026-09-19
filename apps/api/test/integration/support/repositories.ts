@@ -5,6 +5,7 @@ import { PrismaCardLimitRepository } from "../../../src/domains/card-limit/infra
 import { PrismaIdempotencyRecordRepository } from "../../../src/domains/idempotency-record/infrastructure/prisma-idempotency-record.repository";
 import { PrismaInstallmentPaymentRepository } from "../../../src/domains/installment-payment/infrastructure/prisma-installment-payment.repository";
 import { PrismaInstallmentPlanRepository } from "../../../src/domains/installment-plan/infrastructure/prisma-installment-plan.repository";
+import type { IpGeolocationCacheRepositoryPort } from "../../../src/domains/ip-geolocation-cache/domain/ports/ip-geolocation-cache.repository.port";
 import { PrismaCreditStatementRepository } from "../../../src/domains/credit-statement/infrastructure/prisma-credit-statement.repository";
 import { PrismaFinancialInstitutionLookupRepository } from "../../../src/domains/financial-institution/infrastructure/prisma-financial-institution-lookup.repository";
 import { PrismaTransactionSumsRepository } from "../../../src/domains/transaction/infrastructure/prisma-transaction-sums.repository";
@@ -28,6 +29,17 @@ export function buildIdempotencyRecordRepo(
   prisma: PrismaService,
 ): PrismaIdempotencyRecordRepository {
   return new PrismaIdempotencyRecordRepository(prisma);
+}
+
+/** For specs constructing `GeoIpLookup` directly with no `IPINFO_TOKEN` in their `ConfigService`
+ * fixture — the cache is never actually touched in that path, so a real adapter is unnecessary
+ * ceremony; this satisfies the constructor's required second argument. */
+export function noopIpGeolocationCacheRepo(): IpGeolocationCacheRepositoryPort {
+  return {
+    findFreshByIp: async () => null,
+    upsert: async () => {},
+    deleteExpired: async () => 0,
+  };
 }
 
 export function buildBankAccountRepo(prisma: PrismaService): PrismaBankAccountRepository {

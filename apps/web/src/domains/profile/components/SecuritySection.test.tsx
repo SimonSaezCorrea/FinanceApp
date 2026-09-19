@@ -511,4 +511,24 @@ describe("SecuritySection — sessions", () => {
     });
     expect(closeButtons).toHaveLength(0);
   });
+
+  it("always shows the IPinfo attribution link, regardless of whether any session has a country (specs/026)", async () => {
+    listSessions.mockResolvedValue([
+      {
+        id: "s1",
+        deviceLabel: "Chrome · Windows",
+        country: null,
+        createdAt: "2024-01-01T00:00:00Z",
+        lastUsedAt: "2024-01-02T00:00:00Z",
+        closedAt: null,
+        isCurrent: true,
+      },
+    ]);
+    const expandButton = renderSecurity();
+    fireEvent.click(expandButton);
+
+    await screen.findByText("Chrome · Windows");
+    const link = screen.getByRole("link", { name: "IPinfo" });
+    expect(link.getAttribute("href")).toBe("https://ipinfo.io");
+  });
 });
