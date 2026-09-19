@@ -46,7 +46,11 @@ export class RenamePasskeyCommand implements UserScopedCommand {
 ```ts
 @Injectable()
 @CommandHandler(RenamePasskeyCommand)
-export class RenamePasskeyHandler extends BaseCommandHandler<RenamePasskeyCommand, auth.Passkey, null> {
+export class RenamePasskeyHandler extends BaseCommandHandler<
+  RenamePasskeyCommand,
+  auth.Passkey,
+  null
+> {
   constructor(
     eventBus: EventBus,
     @Inject(PASSKEY_REPOSITORY) private readonly passkeys: PasskeyRepositoryPort,
@@ -59,10 +63,19 @@ export class RenamePasskeyHandler extends BaseCommandHandler<RenamePasskeyComman
   }
 
   protected async handle(command: RenamePasskeyCommand): Promise<HandleResult<auth.Passkey>> {
-    const renamed = await this.passkeys.renameOwned(command.userId, command.passkeyId, command.name);
+    const renamed = await this.passkeys.renameOwned(
+      command.userId,
+      command.passkeyId,
+      command.name,
+    );
     if (!renamed) throw new PasskeyNotFoundError();
     return {
-      result: { id: renamed.id, name: renamed.name, createdAt: renamed.createdAt, lastUsedAt: renamed.lastUsedAt },
+      result: {
+        id: renamed.id,
+        name: renamed.name,
+        createdAt: renamed.createdAt,
+        lastUsedAt: renamed.lastUsedAt,
+      },
       events: [],
     };
   }

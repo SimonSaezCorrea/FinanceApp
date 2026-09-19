@@ -53,6 +53,7 @@ para que una degradación del proveedor externo nunca alargue perceptiblemente u
 NON-NEGOTIABLE (nunca debe impedir el login).
 
 **Constraints**:
+
 - El contrato público `GeoIpLookup.lookup(ip): Promise<GeoLocation>` no puede cambiar de forma
   (Assumption del spec) — `SessionIssuer` no se toca.
 - La caché es global (no por usuario) — el Key Entity del spec lo dice explícito: dos usuarios

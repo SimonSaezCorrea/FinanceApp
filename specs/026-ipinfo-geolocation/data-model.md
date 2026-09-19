@@ -44,7 +44,11 @@ export interface IpGeolocationCacheEntry {
 
 /** La fila a escribir tras una respuesta 2xx genuina de IPinfo — nunca se llama tras un fallo de
  * red/timeout/status no-2xx (research.md R4). */
-export function planCacheEntry(ip: string, country: string | null, now: Date): IpGeolocationCacheEntry {
+export function planCacheEntry(
+  ip: string,
+  country: string | null,
+  now: Date,
+): IpGeolocationCacheEntry {
   return {
     ip,
     country,
@@ -190,9 +194,7 @@ export class GeoIpLookup {
     if (!ip) return NO_LOCATION;
     const effectiveIp = this.resolveEffectiveIp(ip);
     const token = getIpinfoToken(this.config);
-    return token
-      ? this.lookupViaIpinfo(effectiveIp, token)
-      : this.lookupViaMaxMind(effectiveIp);
+    return token ? this.lookupViaIpinfo(effectiveIp, token) : this.lookupViaMaxMind(effectiveIp);
   }
 
   private resolveEffectiveIp(ip: string): string {
@@ -231,8 +233,12 @@ export class GeoIpLookup {
   }
 
   // --- camino MaxMind, sin cambios de comportamiento ---
-  private load(): Promise<Reader<CityResponse> | null> { /* idéntico a hoy */ }
-  private async lookupViaMaxMind(ip: string): Promise<GeoLocation> { /* cuerpo actual de `lookup`, sin la resolución de effectiveIp (ya hecha arriba) */ }
+  private load(): Promise<Reader<CityResponse> | null> {
+    /* idéntico a hoy */
+  }
+  private async lookupViaMaxMind(ip: string): Promise<GeoLocation> {
+    /* cuerpo actual de `lookup`, sin la resolución de effectiveIp (ya hecha arriba) */
+  }
 }
 ```
 
@@ -272,12 +278,7 @@ lista de sesiones (dentro del mismo `<div className="pt-3">`), una línea siempr
 ```tsx
 <p className="mt-2 text-[11px] text-muted-foreground">
   {t("profile.security.sessions.attribution")}{" "}
-  <a
-    href="https://ipinfo.io"
-    target="_blank"
-    rel="noreferrer"
-    className="underline"
-  >
+  <a href="https://ipinfo.io" target="_blank" rel="noreferrer" className="underline">
     IPinfo
   </a>
 </p>

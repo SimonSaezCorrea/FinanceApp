@@ -19,7 +19,7 @@ CONSECUENCIA directa de US1 — no agrega código propio, solo pruebas que lo co
 
 ## Phase 1: Setup
 
-- [X] T001 Agregar `model IpGeolocationCache` a `apps/api/prisma/schema.prisma` (ver
+- [x] T001 Agregar `model IpGeolocationCache` a `apps/api/prisma/schema.prisma` (ver
       data-model.md) y correr `pnpm --filter @finance/api exec prisma generate` +
       `pnpm db:push`.
 
@@ -35,56 +35,56 @@ rompe.
 
 ### Dominio nuevo `ip-geolocation-cache`
 
-- [X] T002 [P] [US1] Crear `apps/api/src/domains/ip-geolocation-cache/domain/
+- [x] T002 [P] [US1] Crear `apps/api/src/domains/ip-geolocation-cache/domain/
 ip-geolocation-cache.entity.ts` (`IP_GEOLOCATION_CACHE_TTL_DAYS`, `IpGeolocationCacheEntry`,
       `planCacheEntry`). Depende de T001.
-- [X] T003 [P] [US1] Crear `apps/api/src/domains/ip-geolocation-cache/domain/ports/
+- [x] T003 [P] [US1] Crear `apps/api/src/domains/ip-geolocation-cache/domain/ports/
 ip-geolocation-cache.repository.port.ts` (`findFreshByIp`, `upsert`, `deleteExpired`).
-- [X] T004 [US1] Implementar `PrismaIpGeolocationCacheRepository` en
+- [x] T004 [US1] Implementar `PrismaIpGeolocationCacheRepository` en
       `apps/api/src/domains/ip-geolocation-cache/infrastructure/
 prisma-ip-geolocation-cache.repository.ts`. Depende de T002, T003.
-- [X] T005 [US1] Crear `ip-geolocation-cache.data.module.ts` (leaf). Depende de T004.
-- [X] T006 [P] [US1] Crear `application/commands/purge-expired-cache.command.ts` (mirror de
+- [x] T005 [US1] Crear `ip-geolocation-cache.data.module.ts` (leaf). Depende de T004.
+- [x] T006 [P] [US1] Crear `application/commands/purge-expired-cache.command.ts` (mirror de
       `PurgeExpiredRecordsCommand`, `scope: "system"`).
-- [X] T007 [US1] Crear `application/commands/purge-expired-cache.handler.ts` (mirror de
+- [x] T007 [US1] Crear `application/commands/purge-expired-cache.handler.ts` (mirror de
       `PurgeExpiredRecordsHandler`). Depende de T003, T006.
-- [X] T008 [US1] Crear `ip-geolocation-cache.module.ts` (orquestación: registra el handler,
+- [x] T008 [US1] Crear `ip-geolocation-cache.module.ts` (orquestación: registra el handler,
       importa/exporta el leaf). Depende de T005, T007.
 
 ### Config + cron
 
-- [X] T009 [P] [US1] Crear `apps/api/src/infra/config/ipinfo.config.ts` (`getIpinfoToken`, mismo
+- [x] T009 [P] [US1] Crear `apps/api/src/infra/config/ipinfo.config.ts` (`getIpinfoToken`, mismo
       patrón que `getGeoIpDbPath`).
-- [X] T010 [US1] Crear `apps/api/src/infra/cron/ip-geolocation-cache-purge.cron.ts` (mirror de
+- [x] T010 [US1] Crear `apps/api/src/infra/cron/ip-geolocation-cache-purge.cron.ts` (mirror de
       `IdempotencyCleanupCron`, `EVERY_DAY_AT_5AM`). Depende de T008.
-- [X] T011 [US1] Registrar `IpGeolocationCacheModule`/`IpGeolocationCachePurgeCron` en
+- [x] T011 [US1] Registrar `IpGeolocationCacheModule`/`IpGeolocationCachePurgeCron` en
       `apps/api/src/infra/cron/cron.module.ts`. Depende de T010.
 
 ### `GeoIpLookup` reescrito
 
-- [X] T012 [US1] Reescribir `apps/api/src/domains/user/application/geoip-lookup.ts` según
+- [x] T012 [US1] Reescribir `apps/api/src/domains/user/application/geoip-lookup.ts` según
       data-model.md: inyectar `IpGeolocationCacheRepositoryPort`, extraer `resolveEffectiveIp`,
       agregar `lookupViaIpinfo`/`fetchFromIpinfo`/`lookupViaMaxMind` — `lookup(ip)` mantiene su
       firma pública exacta. Depende de T003, T009.
-- [X] T013 [US1] Agregar `IpGeolocationCacheDataModule` a los `imports` de
+- [x] T013 [US1] Agregar `IpGeolocationCacheDataModule` a los `imports` de
       `apps/api/src/domains/user/user.module.ts`. Depende de T005, T012.
-- [X] T014 [P] [US1] Agregar `IPINFO_TOKEN` (comentado, vacío) a `apps/api/.env.example`, junto al
+- [x] T014 [P] [US1] Agregar `IPINFO_TOKEN` (comentado, vacío) a `apps/api/.env.example`, junto al
       comentario existente de `GEOIP_DB_PATH` (nota: IPinfo es la fuente preferida si ambos están
       configurados).
 
 ### Tests for User Story 1
 
-- [X] T015 [P] [US1] Reescribir/ampliar
+- [x] T015 [P] [US1] Reescribir/ampliar
       `apps/api/test/unit/domains/user/application/geoip-lookup.spec.ts`: con un fake del puerto de
       caché — hit de caché no llama `fetch`; miss llama `fetch` y cachea el resultado 2xx; un fallo
       (network error / non-2xx) devuelve sin país y NO cachea nada; sin token cae al camino MaxMind
       existente sin cambios; sin ninguna fuente configurada devuelve `NO_LOCATION`. Depende de T012.
-- [X] T016 [P] [US1] Crear
+- [x] T016 [P] [US1] Crear
       `apps/api/test/integration/domains/ip-geolocation-cache/infrastructure/
 prisma-ip-geolocation-cache.repository.integration.spec.ts` contra Postgres real:
       `upsert` + `findFreshByIp` redondo; un registro con `expiresAt` pasado no se devuelve;
       `deleteExpired` borra solo lo vencido. Depende de T004.
-- [X] T017 [P] [US1] Crear
+- [x] T017 [P] [US1] Crear
       `apps/api/test/unit/domains/ip-geolocation-cache/application/commands/
 purge-expired-cache.handler.spec.ts` (mirror del test de `PurgeExpiredRecordsHandler`). Depende de
       T007.
@@ -101,10 +101,10 @@ no se ve afectada.
 
 **Independent Test**: quickstart.md Escenario 6.
 
-- [X] T018 [P] [US2] Agregar un caso a `geoip-lookup.spec.ts` (T015): el resultado de
+- [x] T018 [P] [US2] Agregar un caso a `geoip-lookup.spec.ts` (T015): el resultado de
       `lookupViaIpinfo`, tanto en hit de caché como en miss, siempre trae `city: null` — sin
       excepción. Depende de T015.
-- [X] T019 [P] [US2] Ampliar la aserción ya existente en
+- [x] T019 [P] [US2] Ampliar la aserción ya existente en
       `test/integration/domains/user/application/list-sessions.integration.spec.ts` (que ya
       sembraba una sesión con `city: "Santiago"`) para verificar explícitamente que ese dato
       histórico se lee sin cambios — en vez de un archivo nuevo, ya que el escenario coincidía
@@ -121,12 +121,12 @@ produce por construcción.
 
 **Independent Test**: quickstart.md Escenario 5.
 
-- [X] T020 [P] [US3] Agregar la línea de atribución (ver data-model.md) a
+- [x] T020 [P] [US3] Agregar la línea de atribución (ver data-model.md) a
       `apps/web/src/domains/profile/components/SecuritySection.tsx`, debajo de la lista de
       sesiones.
-- [X] T021 [P] [US3] Agregar `profile.security.sessions.attribution` a
+- [x] T021 [P] [US3] Agregar `profile.security.sessions.attribution` a
       `apps/web/src/i18n/{es,en}.json`.
-- [X] T022 [US3] Agregar un caso a
+- [x] T022 [US3] Agregar un caso a
       `apps/web/src/domains/profile/components/SecuritySection.test.tsx`: la sección siempre
       renderiza el enlace a IPinfo, independientemente de si alguna sesión mostrada tiene país
       resuelto. Depende de T020, T021.
@@ -138,21 +138,21 @@ un enlace).
 
 ## Phase 5: Polish & Cross-Cutting Concerns
 
-- [X] T023 [P] [POLISH] Correr `pnpm --filter @finance/api test:unit`, `test:integration`,
+- [x] T023 [P] [POLISH] Correr `pnpm --filter @finance/api test:unit`, `test:integration`,
       `test:e2e` completos.
-- [X] T024 [P] [POLISH] Correr `pnpm --filter @finance/web test` completo.
-- [X] T025 [P] [POLISH] `pnpm typecheck`, `pnpm lint` y `pnpm check:boundaries` en ambos paquetes.
-- [X] T026 [POLISH] Validar manualmente quickstart.md Escenarios 1-6 contra la API real (con el
+- [x] T024 [P] [POLISH] Correr `pnpm --filter @finance/web test` completo.
+- [x] T025 [P] [POLISH] `pnpm typecheck`, `pnpm lint` y `pnpm check:boundaries` en ambos paquetes.
+- [x] T026 [POLISH] Validar manualmente quickstart.md Escenarios 1-6 contra la API real (con el
       `IPINFO_TOKEN` real configurado en `.env` — nunca versionado).
-- [X] T027 [POLISH] Actualizar `docs/PENDING.md`: cerrar el punto 4b (migración a IPinfo) con el
+- [x] T027 [POLISH] Actualizar `docs/PENDING.md`: cerrar el punto 4b (migración a IPinfo) con el
       mismo criterio usado para cerrar el punto 4 (specs/023/024) — reemplazar el "Para hacerlo
       real" por una nota de "Cerrado por specs/026".
-- [X] T028 [POLISH] Memory sync manual de `CLAUDE.md` (nunca con el hook genérico de
+- [x] T028 [POLISH] Memory sync manual de `CLAUDE.md` (nunca con el hook genérico de
       agent-context): nueva entrada "Current plan (026 — implementado)", degradar 025 a "Prior
       plan", amend al bullet de `session`/`user` sobre `GeoIpLookup` + el nuevo dominio-tabla
       `ip-geolocation-cache`, y actualizar el conteo de "25 table-domains" → "26" en la lista de
       `apps/api`.
-- [X] T029 [POLISH] Sync Impact Report en `.specify/memory/constitution.md` (nueva entrada, PATCH o
+- [x] T029 [POLISH] Sync Impact Report en `.specify/memory/constitution.md` (nueva entrada, PATCH o
       MINOR según corresponda — un dominio-tabla nuevo sin principio amendado es PATCH, mismo
       criterio que specs/023 le dio a `session`) + bump del conteo de tablas si el texto de algún
       principio lo nombra explícitamente.

@@ -62,6 +62,7 @@ descartó por ser desproporcionado para cambiar un solo campo de texto ya visibl
 ## Decision 5: autocompletado condicional — feature-detectado, con `AbortController` propio
 
 **Decisión**: en `LoginRoute.tsx`, un `useEffect` al montar la pantalla:
+
 1. Verifica `window.PublicKeyCredential?.isConditionalMediationAvailable` existe Y resuelve `true` —
    si no, no hace nada (ningún error, ninguna llamada).
 2. Si está disponible, pide las opciones de login discoverable al backend (`passkeyApi.startLogin({})`,
