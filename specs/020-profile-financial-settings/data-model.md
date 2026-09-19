@@ -28,8 +28,7 @@ update-preferences.handler.ts`), antes de aplicar el patch al agregado. No vive 
 
 **Algoritmo**:
 
-1. Si el patch trae `extraCurrencies`, calcular `removed = user.extraCurrencies.filter(c =>
-!patch.extraCurrencies.includes(c))`.
+1. Si el patch trae `extraCurrencies`, calcular `removed = user.extraCurrencies.filter(c => !patch.extraCurrencies.includes(c))`.
 2. Si `removed` está vacío, continuar sin chequeo (agregar monedas, o no tocar el campo, nunca
    requiere este chequeo).
 3. Para cada moneda en `removed`, consultar en paralelo los 8 puertos

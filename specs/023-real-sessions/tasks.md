@@ -43,8 +43,7 @@ los tests de esos comandos/queries viven bajo `.../domains/user/...`.
       implementando el puerto de T006
 - [x] T008 Crear `apps/api/src/domains/session/session.data.module.ts` (leaf: exporta el binding
       puerto→adapter, mismo patrón que `passkey.data.module.ts`)
-- [x] T009 [P] Crear `apps/api/src/infra/config/geoip.config.ts`: `getGeoIpDbPath(config):
-string | null` — lee `GEOIP_DB_PATH`, `null` si no está seteada (NUNCA `getOrThrow`, a
+- [x] T009 [P] Crear `apps/api/src/infra/config/geoip.config.ts`: `getGeoIpDbPath(config): string | null` — lee `GEOIP_DB_PATH`, `null` si no está seteada (NUNCA `getOrThrow`, a
       diferencia de los demás secretos — esta es opcional por diseño)
 - [x] T010 [P] Crear `apps/api/src/domains/user/application/device-info.ts`:
       `parseDeviceLabel(userAgent: string | undefined): string | null` usando `ua-parser-js`
@@ -316,7 +315,7 @@ activa; las otras dos dan 401 de inmediato.
 
 1. Setup + Foundational → toda sesión nueva ya queda registrada (aunque nada la muestre
    todavía).
-2. - US1 → se puede VER (MVP).
-3. - US2 → se puede cerrar una por una.
-4. - US3 → se puede cerrar todas las demás de un golpe.
-5. - Polish → purga automática, docs al día.
+2. **US1** → se puede VER (MVP).
+3. **US2** → se puede cerrar una por una.
+4. **US3** → se puede cerrar todas las demás de un golpe.
+5. **Polish** → purga automática, docs al día.
