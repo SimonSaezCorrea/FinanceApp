@@ -101,6 +101,33 @@ no revocan las demás sesiones existentes — son acciones independientes por ah
 notificación de "nuevo dispositivo", límite de sesiones simultáneas, ni revocación automática por
 comportamiento sospechoso (ver `specs/023-real-sessions/spec.md`, sección Assumptions).
 
+### 4b. Geolocalización de sesiones: migrar de MaxMind (local) a IPinfo (API) con caché
+
+Hoy `GeoIpLookup` resuelve país/ciudad contra un archivo `.mmdb` local (GeoLite2-City de MaxMind,
+`GEOIP_DB_PATH`) — funciona, pero el archivo hay que descargarlo/actualizarlo a mano y no lo trae el
+repo (gitignoreado, cada dev/entorno se lo baja aparte). Migrar a la API de **IPinfo** (u otro
+proveedor equivalente) resolvería eso a costa de depender de un servicio externo con cuota.
+
+**Estrategia recomendada para no gastar cuota de más** (la cuota gratuita de IPinfo es 50.000
+consultas/mes): agregar una capa de caché propia antes de golpear la API externa.
+
+1. El usuario inicia sesión → el server ya captura su IP (esto no cambia).
+2. **Consulta interna primero**: buscar en una tabla propia (ej. `ip_geolocation_cache`, o
+   directamente reutilizar filas de `Session` ya resueltas) si esa IP exacta ya se vio antes.
+   - **IP conocida** → usar la ciudad/país ya guardados. Consumo de API = 0.
+   - **IP nueva** → recién ahí pegarle a la API de IPinfo, guardar el resultado en la tabla de caché
+     para la próxima vez, y usarlo para esta sesión. Consumo de API = 1.
+3. Con esa lógica, aunque la app crezca a cientos de miles de usuarios, la cuota gratuita alcanza
+   por mucho tiempo — la mayoría de la gente inicia sesión siempre desde las mismas IPs (casa,
+   trabajo).
+
+**Para hacerlo real**: nueva tabla/dominio-tabla de caché IP→ubicación (con expiración razonable,
+ya que una IP puede reasignarse con el tiempo — ej. TTL de 30-90 días), `GeoIpLookup` pasa a
+consultar esa caché antes de llamar a IPinfo, y solo llama a la API externa en un cache-miss. La
+capa pública (`lookup(ip): Promise<GeoLocation>`) no necesita cambiar — es un swap interno de
+implementación, no del contrato que usa `SessionIssuer`. Mientras esto no se implemente, seguimos
+con MaxMind local (sin llamadas de red, sin cuota, pero con el archivo a mantener a mano).
+
 ### 5. Plan, uso y facturación
 
 Toda la sección es un placeholder: los usos ("Cuentas 6/10", "Categorías personalizadas 8/15") son
