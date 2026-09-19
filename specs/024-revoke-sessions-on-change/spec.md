@@ -8,6 +8,15 @@
 
 **Input**: User description: "Al cambiar la contraseña del usuario (PATCH /auth/me/password) o al desactivar la verificación en dos pasos (MFA/TOTP), el sistema debe revocar automáticamente todas las demás sesiones activas del usuario, dejando activa únicamente la sesión desde la que se realizó la acción. Usa el mecanismo de sesiones reales ya existente (dominio `session`, specs/023): cerrar una sesión estampa `closedAt` (se retiene 3 días, la purga un cron), y ya existe la operación equivalente manual `POST /auth/sessions/revoke-others` que hace exactamente esto por pedido explícito del usuario — esta feature dispara esa misma revocación automáticamente en dos momentos: justo después de un cambio de contraseña exitoso, y justo después de una desactivación de MFA exitosa. Por qué: cambiar la contraseña o quitar el segundo factor son señales de que el usuario quiere invalidar accesos anteriores. Alcance: disparadores = cambio de contraseña exitoso, desactivación de MFA exitosa; se revocan todas las sesiones del usuario EXCEPTO la que originó el request; un intento fallido no cierra ninguna sesión. Explícitamente fuera de alcance: correo/notificación avisando el cierre, notificación de nuevo dispositivo, límite de sesiones simultáneas, revocación automática por comportamiento sospechoso. Criterio de aceptación: con 3 sesiones activas (A, B, C), si desde A el usuario cambia su contraseña con éxito (o desactiva MFA con éxito), B y C quedan cerradas y A sigue activa."
 
+## Clarifications
+
+### Session 2026-09-19
+
+- Q: ¿Qué pasa si falla el paso de revocar las otras sesiones justo después de que la contraseña ya
+  cambió (o MFA ya se desactivó) con éxito? → A: Atómica — si la revocación falla, se revierte
+  también el cambio de contraseña/MFA; el usuario ve un error y ninguna de las dos partes queda a
+  medias.
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - Cambiar la contraseña cierra las demás sesiones (Priority: P1)
@@ -70,6 +79,9 @@ queda cerrada y A sigue activa.
 - La revocación ocurre únicamente si la acción de negocio (cambio de contraseña / desactivación de
   MFA) se completó con éxito — cualquier fallo de validación deja todas las sesiones existentes
   intactas.
+- Si el cierre de las demás sesiones falla por un error inesperado (no de validación, sino de
+  ejecución), el cambio de contraseña/desactivación de MFA se revierte por completo — no queda a
+  medias ni la credencial cambiada ni ninguna sesión cerrada.
 
 ## Requirements _(mandatory)_
 
@@ -91,6 +103,10 @@ queda cerrada y A sigue activa.
 - **FR-006**: El sistema NO DEBE enviar ningún correo o notificación al usuario avisando que sus
   otras sesiones fueron cerradas — queda fuera de alcance de esta iteración (no existe proveedor de
   envío de correo transaccional en el proyecto).
+- **FR-007**: El cambio de contraseña (o la desactivación de MFA) y el cierre de las demás sesiones
+  DEBEN ejecutarse como una única operación atómica: si el cierre de sesiones falla por cualquier
+  motivo, el cambio de contraseña/MFA también se revierte por completo — el usuario recibe un error
+  y ninguna sesión (ni las otras, ni la propia) se ve afectada.
 
 ### Key Entities
 
