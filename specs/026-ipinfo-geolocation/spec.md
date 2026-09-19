@@ -8,6 +8,15 @@
 
 **Input**: User description: "Migrar la geolocalización de sesiones (GeoIpLookup, hoy un archivo GeoLite2 local de MaxMind vía GEOIP_DB_PATH) a la API de IPinfo Lite (gratis e ilimitada, licencia CC BY-SA 4.0 — requiere atribución visible en la app). Lite solo entrega país + ASN, no ciudad — se pierde la precisión de ciudad que hoy da MaxMind; SecuritySection pasa a mostrar solo el país. Se construye con caché propia primero (decisión explícita: por si a futuro se sube a un plan pago de IPinfo con cuota limitada) — tabla nueva ip-geolocation-cache (dominio-tabla propio, TTL 30-90 días, purgada por un cron diario nuevo, mismo patrón que idempotency-record). En cada sesión nueva: consulta primero la caché por esa IP exacta; si no está, llama a IPinfo Lite (fetch nativo de Node, sin dependencia nueva) y guarda el resultado para la próxima vez. Sin cambio de contrato público: GeoIpLookup.lookup(ip) sigue igual — SessionIssuer no se entera del cambio interno. city queda siempre null para sesiones nuevas (las viejas conservan el dato histórico de MaxMind, sin migración). Alcance: IPINFO_TOKEN nuevo, inerte sin configurar (mismo patrón que S3/GEOIP_DB_PATH hoy) — sin token, cae de vuelta a MaxMind local si GEOIP_DB_PATH sigue configurado, o sin país si tampoco. Atribución a IPinfo visible en algún lugar de la app (footer o página de perfil/about). Fuera de alcance: soporte de ciudad (no lo da Lite), cualquier otro dato de IPinfo Lite (ASN, continente)."
 
+## Clarifications
+
+### Session 2026-09-19
+
+- Q: FR-004 pide un tiempo de vida limitado para la caché, pero el spec solo decía "30-90 días" como
+  rango. ¿TTL exacto? → A: 60 días — punto medio del rango; como el plan Lite no tiene límite de
+  cuota, un TTL más largo no genera riesgo, solo implica que un cambio real de país de una IP tarde
+  hasta 60 días en reflejarse.
+
 ## User Scenarios & Testing _(mandatory)_
 
 ### User Story 1 - El país de una sesión se resuelve sin depender de un archivo local (Priority: P1)
