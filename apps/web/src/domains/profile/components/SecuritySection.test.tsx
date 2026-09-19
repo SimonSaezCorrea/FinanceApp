@@ -129,6 +129,30 @@ describe("SecuritySection — change password", () => {
       ).toBeGreaterThan(0),
     );
   });
+
+  it("warns before confirming that the change will close all other sessions", async () => {
+    await openDialog();
+    expect(screen.getByText(i18n.t("profile.security.sessions.revokeOthersWarning"))).toBeDefined();
+  });
+
+  it("shows no post-action notice about closed sessions after a successful change (SC-005)", async () => {
+    changePassword.mockResolvedValue(undefined);
+    const { current, next, confirm } = await openDialog();
+
+    fireEvent.change(current, { target: { value: "oldpassword" } });
+    fireEvent.change(next, { target: { value: "newpassword123" } });
+    fireEvent.change(confirm, { target: { value: "newpassword123" } });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.security.password.save") }));
+
+    await waitFor(() =>
+      expect(
+        screen.getAllByText(i18n.t("profile.security.password.updated")).length,
+      ).toBeGreaterThan(0),
+    );
+    // The dialog closed on success — the warning was pre-action only, never repeated
+    // as a toast/notice afterwards.
+    expect(screen.queryByText(i18n.t("profile.security.sessions.revokeOthersWarning"))).toBeNull();
+  });
 });
 
 describe("SecuritySection — MFA", () => {
@@ -239,6 +263,83 @@ describe("SecuritySection — MFA", () => {
       mfaEnabled: false,
       mfaRecoveryCodesRemaining: 0,
     });
+  });
+
+  it("warns before confirming that disabling MFA will close all other sessions", async () => {
+    meMock.mockResolvedValue({
+      id: "u1",
+      email: "a@b.com",
+      name: "Ana",
+      preferredCurrency: "CLP",
+      locale: "es",
+      theme: "dark",
+      memberSinceYear: 2024,
+      mfaEnabled: true,
+      mfaRecoveryCodesRemaining: 10,
+    });
+    const expandButton = renderSecurity();
+    fireEvent.click(expandButton);
+
+    const toggle = await screen.findByRole("switch", {
+      name: i18n.t("profile.security.twoFactor.label"),
+    });
+    await waitFor(() => expect((toggle as HTMLElement).getAttribute("aria-checked")).toBe("true"));
+    fireEvent.click(toggle);
+
+    expect(
+      await screen.findByText(i18n.t("profile.security.sessions.revokeOthersWarning")),
+    ).toBeDefined();
+  });
+
+  it("shows no post-action notice about closed sessions after disabling MFA (SC-005)", async () => {
+    meMock.mockResolvedValue({
+      id: "u1",
+      email: "a@b.com",
+      name: "Ana",
+      preferredCurrency: "CLP",
+      locale: "es",
+      theme: "dark",
+      memberSinceYear: 2024,
+      mfaEnabled: true,
+      mfaRecoveryCodesRemaining: 10,
+    });
+    disableMfa.mockResolvedValue(undefined);
+    const expandButton = renderSecurity();
+    fireEvent.click(expandButton);
+
+    const toggle = await screen.findByRole("switch", {
+      name: i18n.t("profile.security.twoFactor.label"),
+    });
+    await waitFor(() => expect((toggle as HTMLElement).getAttribute("aria-checked")).toBe("true"));
+    fireEvent.click(toggle);
+
+    await screen.findByText(i18n.t("profile.security.sessions.revokeOthersWarning"));
+    fireEvent.change(screen.getByLabelText(i18n.t("profile.security.mfa.disablePasswordLabel")), {
+      target: { value: "correct-pw" },
+    });
+    meMock.mockResolvedValue({
+      id: "u1",
+      email: "a@b.com",
+      name: "Ana",
+      preferredCurrency: "CLP",
+      locale: "es",
+      theme: "dark",
+      memberSinceYear: 2024,
+      mfaEnabled: false,
+      mfaRecoveryCodesRemaining: 0,
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("profile.security.mfa.disableConfirm") }),
+    );
+
+    await waitFor(() => expect(disableMfa).toHaveBeenCalled());
+    // The modal closed on success — the warning was pre-action only, never repeated
+    // as a toast/notice afterwards.
+    await waitFor(() =>
+      expect(
+        screen.queryByText(i18n.t("profile.security.sessions.revokeOthersWarning")),
+      ).toBeNull(),
+    );
   });
 });
 

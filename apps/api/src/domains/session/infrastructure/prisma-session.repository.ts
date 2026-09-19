@@ -72,7 +72,16 @@ export class PrismaSessionRepository implements SessionRepositoryPort {
   }
 
   async closeAllExceptForUser(userId: string, exceptId: string): Promise<number> {
-    const result = await this.prisma.session.updateMany({
+    return this.closeAllExceptForUserWithTx(this.prisma, userId, exceptId);
+  }
+
+  async closeAllExceptForUserWithTx(
+    tx: unknown,
+    userId: string,
+    exceptId: string,
+  ): Promise<number> {
+    const client = tx as PrismaService;
+    const result = await client.session.updateMany({
       where: { userId, id: { not: exceptId }, closedAt: null },
       data: { closedAt: new Date() },
     });

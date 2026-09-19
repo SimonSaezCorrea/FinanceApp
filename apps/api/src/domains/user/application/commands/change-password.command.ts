@@ -8,5 +8,9 @@ export class ChangePasswordCommand implements UserScopedCommand {
   constructor(
     public readonly userId: string,
     public readonly input: auth.ChangePasswordRequest,
+    /** The `sid` of the session that made this request (specs/024) — kept open while
+     * every other session of this user is closed. Same origin as
+     * `RevokeOtherSessionsCommand.currentSessionId` (`AuthUser.sessionId`). */
+    public readonly currentSessionId: string,
   ) {}
 }

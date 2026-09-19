@@ -61,6 +61,7 @@ export function useProfileMutations() {
     }),
     changePassword: useMutation({
       mutationFn: (body: auth.ChangePasswordRequest) => profileApi.changePassword(body),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sessions"] }),
     }),
     updatePreferences: useMutation({
       mutationFn: (body: auth.UpdatePreferencesRequest) => profileApi.updatePreferences(body),
@@ -79,7 +80,10 @@ export function useProfileMutations() {
     }),
     disableMfa: useMutation({
       mutationFn: (body: auth.DisableMfaRequest) => authApi.disableMfa(body),
-      onSuccess: () => refreshUser(),
+      onSuccess: () => {
+        refreshUser();
+        queryClient.invalidateQueries({ queryKey: ["sessions"] });
+      },
     }),
     startPasskeyRegistration: useMutation({
       mutationFn: () => passkeyApi.startRegistration(),

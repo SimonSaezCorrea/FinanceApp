@@ -7,6 +7,7 @@ import { InvalidCurrentPasswordError } from "../../../../../../src/domains/user/
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { MfaRecoveryCodeRepositoryPort } from "../../../../../../src/domains/mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
+import type { SessionRepositoryPort } from "../../../../../../src/domains/session/domain/ports/session.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
@@ -67,6 +68,22 @@ function fakeRecoveryCodeRepo(
   };
 }
 
+function fakeSessions(overrides: Partial<SessionRepositoryPort> = {}): SessionRepositoryPort {
+  return {
+    create: vi.fn(),
+    listByUser: vi.fn(),
+    touch: vi.fn(),
+    closeOwned: vi.fn(),
+    existsForUser: vi.fn(),
+    closeAllExceptForUser: vi.fn(),
+    closeAllExceptForUserWithTx: vi.fn().mockResolvedValue(1),
+    closeById: vi.fn(),
+    markExpiredAsClosed: vi.fn(),
+    purgeClosedBefore: vi.fn(),
+    ...overrides,
+  };
+}
+
 function fakePrisma(): PrismaService {
   return {
     $transaction: vi.fn(async (fn: (tx: unknown) => Promise<void>) => fn({})),
@@ -80,14 +97,16 @@ describe("DisableMfaHandler", () => {
       findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
     });
     const recoveryCodes = fakeRecoveryCodeRepo();
+    const sessions = fakeSessions();
     const handler = new DisableMfaHandler(
       { publish: vi.fn() } as never,
       repo,
       recoveryCodes,
+      sessions,
       fakePrisma(),
     );
 
-    await handler.execute(new DisableMfaCommand("u1", { password: "correct-pw" }));
+    await handler.execute(new DisableMfaCommand("u1", { password: "correct-pw" }, "session-a"));
 
     const saved = (repo.saveWithTx as ReturnType<typeof vi.fn>).mock.calls[0]![1] as User;
     expect(saved.mfaEnabled).toBe(false);
@@ -96,23 +115,78 @@ describe("DisableMfaHandler", () => {
     expect(recoveryCodes.deleteAllForUserWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
   });
 
+  it("closes every other session (never its own) inside the same transaction as disabling MFA", async () => {
+    const passwordHash = await hash("correct-pw", 1);
+    const repo = fakeRepo({
+      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
+    });
+    const recoveryCodes = fakeRecoveryCodeRepo();
+    const sessions = fakeSessions();
+    const handler = new DisableMfaHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      recoveryCodes,
+      sessions,
+      fakePrisma(),
+    );
+
+    await handler.execute(new DisableMfaCommand("u1", { password: "correct-pw" }, "session-a"));
+
+    expect(sessions.closeAllExceptForUserWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      "u1",
+      "session-a",
+    );
+  });
+
   it("rejects an incorrect password and changes nothing", async () => {
     const passwordHash = await hash("correct-pw", 1);
     const repo = fakeRepo({
       findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
     });
     const recoveryCodes = fakeRecoveryCodeRepo();
+    const sessions = fakeSessions();
     const handler = new DisableMfaHandler(
       { publish: vi.fn() } as never,
       repo,
       recoveryCodes,
+      sessions,
       fakePrisma(),
     );
 
     await expect(
-      handler.execute(new DisableMfaCommand("u1", { password: "wrong" })),
+      handler.execute(new DisableMfaCommand("u1", { password: "wrong" }, "session-a")),
     ).rejects.toThrow(InvalidCurrentPasswordError);
     expect(repo.saveWithTx).not.toHaveBeenCalled();
     expect(recoveryCodes.deleteAllForUserWithTx).not.toHaveBeenCalled();
+    expect(sessions.closeAllExceptForUserWithTx).not.toHaveBeenCalled();
+  });
+
+  it("rolls back the whole change when closing the other sessions fails", async () => {
+    const passwordHash = await hash("correct-pw", 1);
+    const repo = fakeRepo({
+      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
+    });
+    const recoveryCodes = fakeRecoveryCodeRepo();
+    const sessions = fakeSessions({
+      closeAllExceptForUserWithTx: vi.fn().mockRejectedValue(new Error("db down")),
+    });
+    const prisma = {
+      $transaction: vi.fn(async (fn: (tx: unknown) => Promise<void>) => fn({})),
+    } as unknown as PrismaService;
+    const handler = new DisableMfaHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      recoveryCodes,
+      sessions,
+      prisma,
+    );
+
+    await expect(
+      handler.execute(new DisableMfaCommand("u1", { password: "correct-pw" }, "session-a")),
+    ).rejects.toThrow("db down");
+    // All three writes happen inside the SAME $transaction callback — a real Postgres
+    // transaction would roll back `saveWithTx`/`deleteAllForUserWithTx` too (FR-007).
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
   });
 });

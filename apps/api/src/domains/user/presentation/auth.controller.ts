@@ -222,7 +222,7 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(auth.changePasswordRequestSchema)) body: auth.ChangePasswordRequest,
   ): Promise<void> {
-    return this.commandBus.execute(new ChangePasswordCommand(user.id, body));
+    return this.commandBus.execute(new ChangePasswordCommand(user.id, body, user.sessionId));
   }
 
   @Patch("me/preferences")
@@ -258,7 +258,7 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(auth.disableMfaRequestSchema)) body: auth.DisableMfaRequest,
   ): Promise<void> {
-    return this.commandBus.execute(new DisableMfaCommand(user.id, body));
+    return this.commandBus.execute(new DisableMfaCommand(user.id, body, user.sessionId));
   }
 
   @Post("me/passkeys/register-options")

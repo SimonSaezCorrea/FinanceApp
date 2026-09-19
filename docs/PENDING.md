@@ -73,7 +73,7 @@ producto, no un hueco técnico encontrado después):
   set nuevo de códigos es desactivar MFA (reingresando la contraseña) y volver a activarlo desde
   cero — no hay un endpoint "solo regenerar códigos" que preserve el secreto TOTP vigente.
 
-### 4. Sesiones y dispositivos — real desde specs/023 (2026-09-19)
+### 4. Sesiones y dispositivos — real desde specs/023 (2026-09-19), revocación por credencial cerrada por specs/024
 
 Ya no es data de ejemplo. Cada login exitoso (password, con/sin MFA, o passkey) crea una fila
 `Session` real, cuyo `id` viaja como claim `sid` en el access y el refresh token de ese login;
@@ -81,13 +81,29 @@ Ya no es data de ejemplo. Cada login exitoso (password, con/sin MFA, o passkey) 
 solo en el próximo refresh). `SecuritySection` lista las sesiones reales (`GET /auth/sessions`,
 dispositivo/navegador derivado del User-Agent, país aproximado vía GeoLite2 si `GEOIP_DB_PATH` está
 configurado) y "Cerrar"/"Cerrar todas" llaman de verdad a `DELETE /auth/sessions/:id`/
-`POST /auth/sessions/revoke-others`. Cerrar una sesión es un DELETE real (sin historial, decisión de
-producto explícita); un cron diario purga las filas vencidas que nadie cerró a mano.
+`POST /auth/sessions/revoke-others`. Cerrar una sesión estampa `closedAt` (se retiene 3 días, la
+purga un cron diario) — ver la enmienda de `CLAUDE.md` que reemplazó el DELETE inmediato original.
 
-**Limitación deliberada, fuera de alcance de esta iteración**: cambiar la contraseña o desactivar MFA
-no revocan las demás sesiones existentes — son acciones independientes por ahora. Tampoco hay
-notificación de "nuevo dispositivo", límite de sesiones simultáneas, ni revocación automática por
-comportamiento sospechoso (ver `specs/023-real-sessions/spec.md`, sección Assumptions).
+**Cerrado por specs/024 (2026-09-19)**: cambiar la contraseña (`POST /auth/me/password`) o
+desactivar la verificación en dos pasos (`POST /auth/me/mfa/disable`) ahora revocan automáticamente
+todas las demás sesiones activas del usuario, dejando activa solo la que hizo el cambio — en la
+MISMA transacción que el cambio de credencial (si la revocación falla, el cambio también se
+revierte). La UI (`ChangePasswordDialog`/`DisableMfaModal`) advierte esto explícitamente ANTES de
+confirmar, sin ningún aviso posterior. Ver `specs/024-revoke-sessions-on-change/` para el diseño
+completo.
+
+**Sigue pendiente, fuera de alcance de specs/024** (decisión explícita, no un hueco encontrado
+después):
+
+- **Correo/notificación avisando el cierre**: no existe ningún proveedor de envío de correo
+  transaccional en el proyecto (ver la sección "Envío de correos transaccionales" de este mismo
+  documento) — sin esa infraestructura, no hay dónde enganchar el aviso.
+- **Notificación de "nuevo dispositivo"** al iniciar sesión — requiere la misma infraestructura de
+  correo que el punto anterior.
+- **Límite de sesiones simultáneas** y **revocación automática por comportamiento sospechoso** —
+  ambas son decisiones de producto propias (qué límite, qué cuenta como sospechoso) que no se
+  asumieron en specs/023 ni en specs/024 (ver `specs/023-real-sessions/spec.md`, sección
+  Assumptions).
 
 ### 4b. Geolocalización de sesiones: migrar de MaxMind (local) a IPinfo (API) con caché
 

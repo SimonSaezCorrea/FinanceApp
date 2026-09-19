@@ -1078,10 +1078,11 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     igual, solo sin país. `GET /auth/sessions` marca `isCurrent` comparando cada fila
     contra el `sid` del access token de esa request (nunca almacenado en la fila —
     es un atributo de la consulta, no de la sesión). **Limitación deliberada, fuera de
-    alcance**: cambiar la contraseña o desactivar MFA no revocan otras sesiones
-    existentes (`docs/PENDING.md` punto 4); tampoco hay notificación de "nuevo
-    dispositivo", límite de sesiones simultáneas, ni revocación automática por
-    comportamiento sospechoso. Sin migración (`db push`; dev-only).
+    alcance** (cambiar la contraseña o desactivar MFA revocando las demás sesiones se
+    resolvió en specs/024, ver la Amendment más abajo): tampoco hay notificación de
+    "nuevo dispositivo", límite de sesiones simultáneas, ni revocación automática por
+    comportamiento sospechoso (`docs/PENDING.md` punto 4). Sin migración (`db push`;
+    dev-only).
     Amendment (ciudad + nombre de país, 2026-09-19): `GeoIpLookup` pasó de leer una base
     GeoLite2-**Country** a una GeoLite2-**City** (`CityResponse` de `maxmind`, superset
     del shape anterior — un archivo Country-only sigue andando, solo que `city` queda
@@ -1131,6 +1132,31 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     sin botón "Cerrar" propio; "Cerrar todas las demás" solo cuenta sesiones ABIERTAS
     para decidir si mostrarse. Contrato: `Session.closedAt: string | null` nuevo.
     Sin migración propia más allá de `db push` (dev-only).
+    Amendment (revocar sesiones al cambiar contraseña o desactivar MFA — specs/024,
+    2026-09-19): cierra la limitación documentada arriba. `SessionRepositoryPort` gana
+    **`closeAllExceptForUserWithTx(tx, userId, exceptId)`** — no existía variante
+    transaccional (el doc-comment del puerto afirmaba que este dominio nunca la
+    necesitaría; quedó corregido); `closeAllExceptForUser` (la no-transaccional, que
+    sigue usando `RevokeOtherSessionsHandler`) ahora delega en ella pasándole
+    `this.prisma`, sin duplicar la query. `ChangePasswordCommand`/`DisableMfaCommand`
+    ganan un tercer parámetro `currentSessionId` (el `sid` de quien hace el cambio,
+    `AuthUser.sessionId` — mismo origen que ya usa `RevokeOtherSessionsCommand`, nunca
+    del cuerpo del request). `ChangePasswordHandler` pasó de un `persist()` sin
+    transacción a uno con `prisma.$transaction` propio (no tenía ninguno);
+    `DisableMfaHandler` ya tenía uno (User + `MfaRecoveryCode`) y solo ganó la tercera
+    llamada — en ambos casos, si el cierre de sesiones falla, **todo se revierte**
+    (decisión de producto: atomicidad, no best-effort — cambiar la contraseña/MFA y
+    dejar alguna sesión vieja viva por un error de infraestructura sería peor que
+    fallar la operación completa). Web: `ChangePasswordDialog`/`DisableMfaModal`
+    (`SecuritySection.tsx`) muestran un `FormNotice tone="warning"` (componente ya
+    existente) advirtiendo ANTES de confirmar que la acción cerrará las demás sesiones
+    — sin ningún aviso posterior (ni toast ni contador, decisión explícita de
+    producto); ambas mutaciones invalidan la query `["sessions"]` en éxito, igual que
+    ya hacían `closeSession`/`revokeOtherSessions`. Sigue pendiente, fuera de alcance:
+    correo de aviso (no hay `EmailPort` en el proyecto), notificación de "nuevo
+    dispositivo", límite de sesiones simultáneas, revocación por comportamiento
+    sospechoso. Sin cambio de contrato HTTP ni de schema. Ver
+    `specs/024-revoke-sessions-on-change/` para el detalle completo.
 
 - **Errors:** the API returns **language-agnostic codes** `{ error: { code, field? } }` (never localized prose); the frontend maps `code` → `errors.<CODE>` in es/en. `AllExceptionsFilter` (`infra/http`) preserves the specific `code`/`field` thrown on the exception (e.g. `EMAIL_TAKEN`, `CARD_REQUIRED`) and only falls back to a generic status-derived code (`UNAUTHORIZED`, `CONFLICT`, …) when the exception carried none — a prior version of this filter discarded every domain-specific code and must not regress.
 
@@ -1274,7 +1300,56 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (023 — implementado): specs/023-real-sessions/plan.md
+Current plan (024 — implementado): specs/024-revoke-sessions-on-change/plan.md
+(Revocar sesiones al cambiar credenciales: cuando `POST /auth/me/password` o
+`POST /auth/me/mfa/disable` completan con éxito, además cierran —dentro de la MISMA
+transacción de Postgres que el cambio de credencial— todas las demás sesiones activas
+del usuario, reutilizando el mismo mecanismo que ya usa `POST /auth/sessions/revoke-others`
+(specs/023). El `sid` de la sesión que hizo el request (`AuthUser.sessionId`, ya expuesto
+por `JwtAuthGuard`/`@CurrentUser()` desde specs/023) llegaba hasta el controller pero no se
+reenviaba a `ChangePasswordCommand`/`DisableMfaCommand` — se agregó como tercer argumento
+de ambos constructores, igual que ya hace `RevokeOtherSessionsCommand`. `SessionRepositoryPort`
+ganó `closeAllExceptForUserWithTx(tx, userId, exceptId)` (no existía variante transaccional
+— su doc-comment afirmaba que este dominio nunca la necesitaría, quedó corregido); la
+variante no-transaccional ahora delega en ella pasando `this.prisma`, sin duplicar la
+query. `ChangePasswordHandler` pasó de `persist(user)` sin transacción a
+`persist(context: {user, currentSessionId})` con un `prisma.$transaction` propio (no tenía
+ninguno antes); `DisableMfaHandler` ya tenía uno (User + MfaRecoveryCode) y solo ganó la
+tercera llamada — si el cierre de sesiones falla, TODO se revierte (decisión de clarify:
+atomicidad, no best-effort). Frontend: `ChangePasswordDialog` y `DisableMfaModal`
+(`SecuritySection.tsx`) ganan un `FormNotice tone="warning"` (componente ya existente)
+advirtiendo ANTES de confirmar que la acción cerrará las demás sesiones — sin ningún aviso
+posterior (decisión de clarify: nada de toast/contador después, solo la advertencia
+previa); `changePassword`/`disableMfa` invalidan la query `["sessions"]` en éxito, igual
+que ya hacían `closeSession`/`revokeOtherSessions`. Sin cambio de contrato HTTP (mismos
+endpoints, mismo body/response — el cambio es un efecto colateral interno) y sin
+migración de schema (`Session` no gana columnas). Ver
+`specs/024-revoke-sessions-on-change/research.md` para el detalle de cada decisión.
+**Hallazgo de `/speckit-analyze` aplicado antes de implementar**: dos de los sub-casos de
+test de integración pedían "forzar un error en el paso de sesiones" con un mock parcial
+del repositorio — pero los tests de integración de este repo componen los adapters Prisma
+REALES contra Postgres real, nunca mocks; el caso de atomicidad se dejó exclusivamente en
+el nivel unit (con fakes de puerto), que es la capa correcta para inyectar ese fallo.
+**Descubierto durante la implementación, sin relación con el plan**: los tests unitarios de
+`revoke-other-sessions`/`list-sessions`/`close-session`/`session-issuer` tenían cada uno su
+propio fake inline de `SessionRepositoryPort` (no uno compartido) — los cuatro necesitaron
+el nuevo método `closeAllExceptForUserWithTx` agregado a su objeto fake para seguir
+compilando, sin cambiar ningún comportamiento de esos tests. **Verificado de punta a
+punta** (este entorno no tenía `node_modules` ni Postgres corriendo al empezar — se
+instalaron dependencias, se levantó Postgres 16 local, se generó el cliente Prisma, se
+corrió `db push` + `db:seed`): `pnpm --filter @finance/api test:unit` [665/665],
+`test:integration` [136/136, incluye los 2 escenarios nuevos de 3-sesiones para
+cambio de contraseña y desactivar MFA], `test:e2e` [173/173, incluye
+`change-password.http.spec.ts` nuevo y el escenario de 2 sesiones agregado a
+`mfa-disable.http.spec.ts`], `pnpm --filter @finance/web test` [368/368, incluye 4 casos
+nuevos en `SecuritySection.test.tsx`], `typecheck`, `lint` y `check:boundaries` limpios en
+ambos paquetes, `prettier --write` aplicado a los archivos tocados. Además, validación
+manual end-to-end contra la API real levantada (`pnpm --filter @finance/api dev`): los 2
+escenarios de `quickstart.md` (cambio de contraseña y desactivación de MFA, cada uno con 2
+sesiones reales) confirmaron el comportamiento esperado por `curl`. Sin migración de datos
+propia.)
+
+Prior plan: specs/023-real-sessions/plan.md
 (Sesiones y dispositivos reales: reemplaza el placeholder `EXAMPLE_SESSIONS` de
 `SecuritySection` con tracking real. Cada login exitoso (password, con/sin MFA, o
 passkey) crea una fila `Session` nueva, dominio-tabla propio sin `presentation/` (mismo

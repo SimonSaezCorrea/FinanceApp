@@ -1427,7 +1427,8 @@
         "unknownDevice": "Unknown device",
         "unknownLocation": "Unknown location",
         "lastActive": "last active {{date}}",
-        "closed": "Closed on {{date}}"
+        "closed": "Closed on {{date}}",
+        "revokeOthersWarning": "This will close all your other active sessions — this session will not be affected."
       }
     },
     "preferences": {

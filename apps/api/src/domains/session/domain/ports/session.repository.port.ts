@@ -5,9 +5,12 @@ export const SESSION_REPOSITORY = Symbol("SESSION_REPOSITORY");
 /** Port for the `session` table only (Adapter, Constitution VI). Named operations, not
  * generic CRUD: a session is always addressed either by its own id (the `sid` claim, no
  * user context available yet — e.g. refresh) or scoped to its owner (the management
- * endpoints). No `*WithTx` variants: unlike a movement or a statement payment, issuing a
- * session never needs to commit atomically alongside another table's write — the tokens
- * themselves are never persisted, only this row is. */
+ * endpoints). Issuing a session itself never needs `*WithTx` (the tokens themselves are
+ * never persisted, only this row is) — but `closeAllExceptForUser` does (specs/024): a
+ * password change or an MFA deactivation must revoke every other session INSIDE the same
+ * transaction as the credential change itself, so a failure here rolls back the whole
+ * thing rather than leaving a changed credential with a revocation that silently didn't
+ * happen. */
 export interface SessionRepositoryPort {
   create(plan: SessionPlan): Promise<SessionProps>;
   /** Every session of a user not yet purged (open OR recently closed, within the
@@ -32,6 +35,12 @@ export interface SessionRepositoryPort {
   /** "Cerrar todas las demás" — stamps `closedAt` on every OPEN session of a user
    * except one; returns how many were closed. */
   closeAllExceptForUser(userId: string, exceptId: string): Promise<number>;
+  /** Transactional variant of `closeAllExceptForUser` (specs/024) — `tx` is typed
+   * `unknown` and cast internally by the adapter, same convention as every other
+   * `*WithTx` port in this repo (e.g. `UserRepositoryPort.saveWithTx`). Used by
+   * `ChangePasswordHandler`/`DisableMfaHandler` so a failure here rolls back the
+   * credential change too. */
+  closeAllExceptForUserWithTx(tx: unknown, userId: string, exceptId: string): Promise<number>;
   /** Best-effort close by id alone (no ownership check — used by `logout`, which
    * already trusts a cryptographically-verified refresh token for the id/user pairing
    * and must never fail just because there was nothing left to close). */
