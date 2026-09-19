@@ -93,6 +93,47 @@ describe("Passkey management HTTP (e2e)", () => {
     expect(second.body.error.code).toBe("PASSKEY_NOT_FOUND");
   });
 
+  it("renames a passkey without touching its usage history", async () => {
+    const id = await registerPasskey("Old Name");
+
+    const rename = await request(app.getHttpServer())
+      .patch(`/api/v1/auth/me/passkeys/${id}`)
+      .set("Cookie", cookies)
+      .send({ name: "New Name" });
+    expect(rename.status).toBe(200);
+    expect(rename.body.name).toBe("New Name");
+    expect(rename.body.lastUsedAt).toBeNull();
+
+    const list = await request(app.getHttpServer())
+      .get("/api/v1/auth/me/passkeys")
+      .set("Cookie", cookies);
+    expect(list.body.find((p: { id: string }) => p.id === id)?.name).toBe("New Name");
+  });
+
+  it("rejects renaming with an empty name, and renaming a foreign/nonexistent passkey", async () => {
+    const id = await registerPasskey("Mine");
+    const otherEmail = `e2e_passkeymgmt_other_${randomUUID()}@test.local`;
+
+    const empty = await request(app.getHttpServer())
+      .patch(`/api/v1/auth/me/passkeys/${id}`)
+      .set("Cookie", cookies)
+      .send({ name: "" });
+    expect(empty.status).toBe(400);
+
+    const other = await request(app.getHttpServer())
+      .post("/api/v1/auth/register")
+      .send({ email: otherEmail, password, name: "Other" });
+    const otherCookies = other.get("Set-Cookie") ?? [];
+    const foreign = await request(app.getHttpServer())
+      .patch(`/api/v1/auth/me/passkeys/${id}`)
+      .set("Cookie", otherCookies)
+      .send({ name: "Hijacked" });
+    expect(foreign.status).toBe(404);
+    expect(foreign.body.error.code).toBe("PASSKEY_NOT_FOUND");
+
+    await prisma.user.deleteMany({ where: { email: otherEmail } });
+  });
+
   it("deleting the LAST passkey leaves password login completely unaffected", async () => {
     const list = await request(app.getHttpServer())
       .get("/api/v1/auth/me/passkeys")

@@ -1415,6 +1415,11 @@
           "title": "Eliminar llave de acceso",
           "description": "Ya no podrás usar este dispositivo para iniciar sesión sin contraseña. Tu login con email y contraseña no se ve afectado.",
           "confirm": "Eliminar"
+        },
+        "rename": {
+          "button": "Renombrar llave",
+          "save": "Guardar nombre",
+          "cancel": "Cancelar cambio de nombre"
         }
       },
       "sessions": {

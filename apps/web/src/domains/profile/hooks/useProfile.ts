@@ -97,6 +97,11 @@ export function useProfileMutations() {
       mutationFn: (id: string) => passkeyApi.remove(id),
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ["passkeys"] }),
     }),
+    renamePasskey: useMutation({
+      mutationFn: ({ id, name }: { id: string; name: string }) =>
+        passkeyApi.rename(id, { name }),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["passkeys"] }),
+    }),
     closeSession: useMutation({
       mutationFn: (id: string) => sessionsApi.close(id),
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sessions"] }),

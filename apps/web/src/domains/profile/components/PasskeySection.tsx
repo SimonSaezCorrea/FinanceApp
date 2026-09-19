@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Check, Info, KeyRound, Trash2 } from "lucide-react";
+import { Check, Info, KeyRound, Pencil, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { ApiRequestError } from "../../../shared/lib/apiClient";
@@ -29,12 +29,14 @@ export function PasskeySection({
 }: Readonly<{ open: boolean; onOpenChange: (open: boolean) => void }>) {
   const { t } = useTranslation();
   const { data: passkeys, isLoading } = usePasskeysQuery();
-  const { startPasskeyRegistration, confirmPasskeyRegistration, removePasskey } =
+  const { startPasskeyRegistration, confirmPasskeyRegistration, removePasskey, renamePasskey } =
     useProfileMutations();
   const [pendingResponse, setPendingResponse] = useState<unknown>(null);
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
 
   async function handleAdd() {
     setError(null);
@@ -66,6 +68,17 @@ export function PasskeySection({
   async function handleRemove(id: string) {
     await removePasskey.mutateAsync(id);
     setRemovingId(null);
+  }
+
+  function startRenaming(id: string, currentName: string) {
+    setRenamingId(id);
+    setRenameValue(currentName);
+  }
+
+  async function handleConfirmRename() {
+    if (!renamingId || renameValue.trim().length === 0) return;
+    await renamePasskey.mutateAsync({ id: renamingId, name: renameValue.trim() });
+    setRenamingId(null);
   }
 
   function close(next: boolean) {
@@ -172,24 +185,67 @@ export function PasskeySection({
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
                       <KeyRound className="h-[18px] w-[18px]" aria-hidden />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-medium">{p.name}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {t("profile.security.passkey.created", {
-                          date: new Date(p.createdAt).toLocaleDateString(),
-                        })}
-                        {" · "}
-                        {lastUsedLabel(t, p.lastUsedAt)}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                      aria-label={t("profile.security.passkey.remove.button")}
-                      onClick={() => setRemovingId(p.id)}
-                    >
-                      <Trash2 className="h-4 w-4" aria-hidden />
-                    </button>
+                    {renamingId === p.id ? (
+                      <>
+                        <input
+                          autoFocus
+                          className="min-w-0 flex-1 border-b border-border bg-transparent text-sm font-medium outline-none focus:border-primary"
+                          value={renameValue}
+                          maxLength={60}
+                          onChange={(e) => setRenameValue(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") void handleConfirmRename();
+                            if (e.key === "Escape") setRenamingId(null);
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-success/10 hover:text-success disabled:opacity-50"
+                          aria-label={t("profile.security.passkey.rename.save")}
+                          disabled={renameValue.trim().length === 0 || renamePasskey.isPending}
+                          onClick={() => void handleConfirmRename()}
+                        >
+                          <Check className="h-4 w-4" aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-secondary"
+                          aria-label={t("profile.security.passkey.rename.cancel")}
+                          onClick={() => setRenamingId(null)}
+                        >
+                          <X className="h-4 w-4" aria-hidden />
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium">{p.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {t("profile.security.passkey.created", {
+                              date: new Date(p.createdAt).toLocaleDateString(),
+                            })}
+                            {" · "}
+                            {lastUsedLabel(t, p.lastUsedAt)}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-secondary"
+                          aria-label={t("profile.security.passkey.rename.button")}
+                          onClick={() => startRenaming(p.id, p.name)}
+                        >
+                          <Pencil className="h-4 w-4" aria-hidden />
+                        </button>
+                        <button
+                          type="button"
+                          className="shrink-0 rounded-md p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          aria-label={t("profile.security.passkey.remove.button")}
+                          onClick={() => setRemovingId(p.id)}
+                        >
+                          <Trash2 className="h-4 w-4" aria-hidden />
+                        </button>
+                      </>
+                    )}
                   </div>
                 ))
               ) : (

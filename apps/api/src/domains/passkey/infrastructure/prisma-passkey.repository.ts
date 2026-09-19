@@ -62,4 +62,11 @@ export class PrismaPasskeyRepository implements PasskeyRepositoryPort {
     const result = await this.prisma.passkey.deleteMany({ where: { id, userId } });
     return result.count > 0;
   }
+
+  async renameOwned(userId: string, id: string, name: string): Promise<PasskeyProps | null> {
+    const result = await this.prisma.passkey.updateMany({ where: { id, userId }, data: { name } });
+    if (result.count === 0) return null;
+    const row = await this.prisma.passkey.findUniqueOrThrow({ where: { id } });
+    return rowToProps(row);
+  }
 }

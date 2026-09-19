@@ -28,6 +28,7 @@ import { RefreshTokenHandler } from "./application/commands/refresh-token.handle
 import { RegisterHandler } from "./application/commands/register.handler";
 import { PurgeClosedSessionsHandler } from "./application/commands/purge-closed-sessions.handler";
 import { RemovePasskeyHandler } from "./application/commands/remove-passkey.handler";
+import { RenamePasskeyHandler } from "./application/commands/rename-passkey.handler";
 import { RevokeOtherSessionsHandler } from "./application/commands/revoke-other-sessions.handler";
 import { StartMfaEnrollmentHandler } from "./application/commands/start-mfa-enrollment.handler";
 import { StartPasskeyLoginHandler } from "./application/commands/start-passkey-login.handler";
@@ -63,6 +64,7 @@ const commandHandlers = [
   StartPasskeyRegistrationHandler,
   ConfirmPasskeyRegistrationHandler,
   RemovePasskeyHandler,
+  RenamePasskeyHandler,
   StartPasskeyLoginHandler,
   VerifyPasskeyLoginHandler,
   CloseSessionHandler,

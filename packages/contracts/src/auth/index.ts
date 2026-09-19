@@ -185,6 +185,12 @@ export type ConfirmPasskeyRegistrationRequest = z.infer<
 export const listPasskeysResponseSchema = z.array(passkeySchema);
 export type ListPasskeysResponse = z.infer<typeof listPasskeysResponseSchema>;
 
+/** specs/025 — same validation as the name chosen at registration time. */
+export const renamePasskeyRequestSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+});
+export type RenamePasskeyRequest = z.infer<typeof renamePasskeyRequestSchema>;
+
 /** `email` omitted = discoverable/"usernameless" login: the browser offers any resident passkey
  * for this site on its own, with no typed email at all. */
 export const startPasskeyLoginRequestSchema = z.object({ email: z.string().email().optional() });

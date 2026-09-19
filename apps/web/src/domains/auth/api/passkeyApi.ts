@@ -18,6 +18,12 @@ export const passkeyApi = {
 
   remove: (id: string) => apiFetch<void>(`/auth/me/passkeys/${id}`, { method: "DELETE" }),
 
+  rename: (id: string, body: auth.RenamePasskeyRequest) =>
+    apiFetch<auth.Passkey>(`/auth/me/passkeys/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
+
   startLogin: (body: auth.StartPasskeyLoginRequest) =>
     apiFetch<auth.StartPasskeyLoginResponse>("/auth/login/passkey-options", {
       method: "POST",
