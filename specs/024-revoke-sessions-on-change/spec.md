@@ -16,6 +16,10 @@
   cambió (o MFA ya se desactivó) con éxito? → A: Atómica — si la revocación falla, se revierte
   también el cambio de contraseña/MFA; el usuario ve un error y ninguna de las dos partes queda a
   medias.
+- Q: ¿El usuario debe enterarse de cuántas sesiones se cerraron, con un aviso posterior a confirmar
+  la acción? → A: Sin aviso posterior (ni toast ni contador) — en su lugar, la UI debe advertir
+  ANTES de confirmar la acción que se cerrarán todas las demás sesiones (la actual queda a salvo),
+  para que el usuario decida con esa información y no se lleve la sorpresa después.
 
 ## User Scenarios & Testing _(mandatory)_
 
@@ -42,6 +46,9 @@ que A sigue funcionando con normalidad.
    sesión se cierra (ni A ni B).
 3. **Given** un usuario con una sola sesión activa (A, la propia), **When** cambia su contraseña con
    éxito, **Then** no hay ninguna otra sesión que cerrar y A sigue activa sin cambios.
+4. **Given** un usuario con 2 o más sesiones activas, **When** abre el formulario de cambio de
+   contraseña, **Then** ve, antes de poder confirmar, un aviso explícito de que la acción cerrará
+   todas sus demás sesiones (la actual permanece abierta).
 
 ---
 
@@ -66,6 +73,9 @@ queda cerrada y A sigue activa.
 2. **Given** un usuario con MFA activo y 2 sesiones activas (A y B), **When** intenta desactivar MFA
    desde A pero la contraseña que reingresa es incorrecta, **Then** la desactivación se rechaza y
    ninguna sesión se cierra.
+3. **Given** un usuario con MFA activo y 2 o más sesiones activas, **When** abre el flujo de
+   desactivar MFA, **Then** ve, antes de poder confirmar, un aviso explícito de que la acción
+   cerrará todas sus demás sesiones (la actual permanece abierta).
 
 ---
 
@@ -107,6 +117,11 @@ queda cerrada y A sigue activa.
   DEBEN ejecutarse como una única operación atómica: si el cierre de sesiones falla por cualquier
   motivo, el cambio de contraseña/MFA también se revierte por completo — el usuario recibe un error
   y ninguna sesión (ni las otras, ni la propia) se ve afectada.
+- **FR-008**: La interfaz DEBE advertir explícitamente al usuario, ANTES de que confirme el cambio de
+  contraseña o la desactivación de MFA, que esa acción cerrará todas sus demás sesiones activas (la
+  sesión actual no se ve afectada). El sistema NO DEBE mostrar ningún aviso posterior (toast, contador
+  de sesiones cerradas, etc.) una vez completada la acción — la única comunicación al usuario es la
+  advertencia previa.
 
 ### Key Entities
 
@@ -127,6 +142,9 @@ queda cerrada y A sigue activa.
   sesión existente se ve afectada.
 - **SC-004**: La sesión que realizó el cambio de contraseña o la desactivación de MFA sigue
   funcionando con total normalidad inmediatamente después de la acción, en el 100% de los casos.
+- **SC-005**: El 100% de los usuarios ven la advertencia de cierre de sesiones ANTES de poder
+  confirmar el cambio de contraseña o la desactivación de MFA — nunca como un aviso posterior a la
+  acción ya completada.
 
 ## Assumptions
 
