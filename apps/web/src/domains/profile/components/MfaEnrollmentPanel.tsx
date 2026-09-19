@@ -28,13 +28,20 @@ export function MfaEnrollmentPanel({
   const [error, setError] = useState<string | null>(null);
   const [recoveryCodes, setRecoveryCodes] = useState<string[]>([]);
   const [copied, setCopied] = useState(false);
+  const [prevOpen, setPrevOpen] = useState(open);
 
-  useEffect(() => {
+  if (open !== prevOpen) {
+    setPrevOpen(open);
     if (open) {
       setStep("enroll");
       setCode("");
       setError(null);
       setCopied(false);
+    }
+  }
+
+  useEffect(() => {
+    if (open) {
       startMfaEnrollment.mutate();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
