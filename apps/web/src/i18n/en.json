@@ -1421,7 +1421,13 @@
         "title": "Sessions & devices",
         "closeAll": "Sign out all",
         "thisDevice": "This device · active now",
-        "close": "Sign out"
+        "close": "Sign out",
+        "loading": "Loading sessions…",
+        "empty": "You have no active sessions.",
+        "unknownDevice": "Unknown device",
+        "unknownLocation": "Unknown location",
+        "lastActive": "last active {{date}}",
+        "closed": "Closed on {{date}}"
       }
     },
     "preferences": {

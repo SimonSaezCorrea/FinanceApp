@@ -199,3 +199,28 @@ export const verifyPasskeyLoginRequestSchema = z.object({
   response: z.unknown(),
 });
 export type VerifyPasskeyLoginRequest = z.infer<typeof verifyPasskeyLoginRequestSchema>;
+
+// ---- Sessions / devices (specs/023) ----
+
+/** `isCurrent` is never stored — it's derived per-request by comparing each row against
+ * the `sid` of the access token making the call (data-model.md). */
+export const sessionSchema = z.object({
+  id: rowId,
+  deviceLabel: z.string().nullable(),
+  country: z.string().nullable(),
+  /** Best-effort, less reliable than `country` (carrier NAT/mobile often resolves to
+   * the ISP's own city) — shown as an extra detail, never load-bearing. */
+  city: z.string().nullable(),
+  createdAt: z.string(),
+  lastUsedAt: z.string(),
+  /** `null` = open/active. Set once a session stops being usable (explicit close,
+   * revoke-others, logout, or natural time expiry) — a closed session stays visible,
+   * marked as such, for a retention window before it's purged for good
+   * (amendment 2026-09-19, supersedes the original no-history design). */
+  closedAt: z.string().nullable(),
+  isCurrent: z.boolean(),
+});
+export type Session = z.infer<typeof sessionSchema>;
+
+export const listSessionsResponseSchema = z.array(sessionSchema);
+export type ListSessionsResponse = z.infer<typeof listSessionsResponseSchema>;

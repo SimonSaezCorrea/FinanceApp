@@ -1,4 +1,5 @@
 import type { SystemCommand } from "../../../../infra/cqrs/base-command.handler";
+import type { DeviceContext } from "../session-issuer";
 
 /** No authenticated user yet — same `scope: "system"` precedent as `LoginCommand`. */
 export class VerifyPasskeyLoginCommand implements SystemCommand {
@@ -14,5 +15,6 @@ export class VerifyPasskeyLoginCommand implements SystemCommand {
      * account from whichever credential the response names instead of rejecting. */
     public readonly userId: string | null,
     public readonly discoverable: boolean,
+    public readonly device?: DeviceContext,
   ) {}
 }

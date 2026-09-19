@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { RegisterHandler } from "../../../../../../src/domains/user/application/commands/register.handler";
 import { fakeBankAccountRepo } from "../../../../support/fake-ports";
 import { RegisterCommand } from "../../../../../../src/domains/user/application/commands/register.command";
-import { TokenIssuer } from "../../../../../../src/domains/user/application/token-issuer";
+import { SessionIssuer } from "../../../../../../src/domains/user/application/session-issuer";
 import { EmailTakenError } from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
@@ -54,27 +54,33 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
   };
 }
 
-function fakeTokenIssuer(): TokenIssuer {
+function fakeSessionIssuer(): SessionIssuer {
   return {
-    issue: vi.fn().mockReturnValue({ accessToken: "at", refreshToken: "rt" }),
-    verifyRefresh: vi.fn(),
-  } as unknown as TokenIssuer;
+    establish: vi
+      .fn()
+      .mockResolvedValue({ accessToken: "at", refreshToken: "rt", sessionId: "s1" }),
+  } as unknown as SessionIssuer;
 }
 
 describe("RegisterHandler", () => {
   it("hashes the password, lower-cases the email, and issues tokens", async () => {
     const create = vi.fn().mockResolvedValue(User.fromPersistence(baseProps()));
     const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(null), create });
-    const tokenIssuer = fakeTokenIssuer();
+    const sessionIssuer = fakeSessionIssuer();
     const accounts = fakeBankAccountRepo({ createWithCards: vi.fn() });
-    const handler = new RegisterHandler({ publish: vi.fn() } as never, repo, accounts, tokenIssuer);
+    const handler = new RegisterHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      accounts,
+      sessionIssuer,
+    );
 
     const result = await handler.execute(
       new RegisterCommand({ email: "A@B.com", password: "password123" }),
     );
 
     expect(result.user.email).toBe("a@b.com");
-    expect(result.tokens).toEqual({ accessToken: "at", refreshToken: "rt" });
+    expect(result.tokens).toEqual({ accessToken: "at", refreshToken: "rt", sessionId: "s1" });
     const arg = create.mock.calls[0]![0] as { email: string; passwordHash: string };
     expect(arg.email).toBe("a@b.com");
     expect(arg.passwordHash).not.toBe("password123");
@@ -93,7 +99,7 @@ describe("RegisterHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       fakeBankAccountRepo(),
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
     );
 
     await expect(

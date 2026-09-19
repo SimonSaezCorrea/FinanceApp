@@ -5,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { VerifyMfaLoginHandler } from "../../../../../src/domains/user/application/commands/verify-mfa-login.handler";
 import { VerifyMfaLoginCommand } from "../../../../../src/domains/user/application/commands/verify-mfa-login.command";
-import { TokenIssuer } from "../../../../../src/domains/user/application/token-issuer";
+import type { SessionIssuer } from "../../../../../src/domains/user/application/session-issuer";
 import { buildMfaRecoveryCodeRepo, buildUserRepo } from "../../../support/repositories";
 import { getMfaEncryptionKey } from "../../../../../src/infra/config/mfa.config";
 import { encryptMfaSecret } from "../../../../../src/domains/user/application/mfa-secret-cipher";
@@ -21,7 +21,11 @@ describe("MFA login rate limit under concurrency (integration)", () => {
   const prisma = new PrismaService(new ConfigService());
   const userRepo = buildUserRepo(prisma);
   const recoveryCodeRepo = buildMfaRecoveryCodeRepo(prisma);
-  const tokenIssuer = new TokenIssuer({ sign: () => "t" } as never, new ConfigService());
+  // Never reached: every attempt in this suite is deliberately invalid, so the
+  // handler's success branch (the only one that calls SessionIssuer) never runs.
+  const sessionIssuer = {
+    establish: () => Promise.reject(new Error("unused")),
+  } as unknown as SessionIssuer;
   const email = `int_mfarate_${randomUUID()}@test.local`;
   let userId: string;
 
@@ -47,7 +51,7 @@ describe("MFA login rate limit under concurrency (integration)", () => {
       { publish: () => {} } as never,
       userRepo,
       recoveryCodeRepo,
-      tokenIssuer,
+      sessionIssuer,
       prisma,
     );
 

@@ -1421,7 +1421,13 @@
         "title": "Sesiones y dispositivos",
         "closeAll": "Cerrar todas",
         "thisDevice": "Este dispositivo · activo ahora",
-        "close": "Cerrar"
+        "close": "Cerrar",
+        "loading": "Cargando sesiones…",
+        "empty": "No tienes sesiones activas.",
+        "unknownDevice": "Dispositivo desconocido",
+        "unknownLocation": "Ubicación desconocida",
+        "lastActive": "última actividad {{date}}",
+        "closed": "Cerrada el {{date}}"
       }
     },
     "preferences": {

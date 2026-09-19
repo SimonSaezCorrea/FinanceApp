@@ -13,6 +13,21 @@ vi.mock("../api/profileApi", () => ({
   },
 }));
 
+vi.mock("../../auth/api/passkeyApi", () => ({
+  passkeyApi: { list: vi.fn().mockResolvedValue([]) },
+}));
+
+const listSessions = vi.fn().mockResolvedValue([]);
+const closeSession = vi.fn().mockResolvedValue(undefined);
+const revokeOtherSessions = vi.fn().mockResolvedValue(undefined);
+vi.mock("../api/sessionsApi", () => ({
+  sessionsApi: {
+    list: (...args: unknown[]) => listSessions(...args),
+    close: (...args: unknown[]) => closeSession(...args),
+    revokeOthers: (...args: unknown[]) => revokeOtherSessions(...args),
+  },
+}));
+
 const startMfaEnrollment = vi.fn();
 const confirmMfaEnrollment = vi.fn();
 const disableMfa = vi.fn();
@@ -224,5 +239,175 @@ describe("SecuritySection — MFA", () => {
       mfaEnabled: false,
       mfaRecoveryCodesRemaining: 0,
     });
+  });
+});
+
+describe("SecuritySection — sessions", () => {
+  it("renders real sessions from the API, marking the current device", async () => {
+    listSessions.mockResolvedValue([
+      {
+        id: "s1",
+        deviceLabel: "Chrome · Windows",
+        country: "CL",
+        createdAt: "2024-01-01T00:00:00Z",
+        lastUsedAt: "2024-01-02T00:00:00Z",
+        closedAt: null,
+        isCurrent: true,
+      },
+      {
+        id: "s2",
+        deviceLabel: "Safari · iPhone",
+        country: null,
+        createdAt: "2024-01-01T00:00:00Z",
+        lastUsedAt: "2024-01-03T00:00:00Z",
+        closedAt: null,
+        isCurrent: false,
+      },
+    ]);
+    const expandButton = renderSecurity();
+    fireEvent.click(expandButton);
+
+    expect(await screen.findByText("Chrome · Windows")).toBeDefined();
+    expect(
+      screen.getByText(i18n.t("profile.security.sessions.thisDevice"), { exact: false }),
+    ).toBeDefined();
+    expect(screen.getByText("Safari · iPhone")).toBeDefined();
+    expect(
+      screen.getByText(i18n.t("profile.security.sessions.unknownLocation"), { exact: false }),
+    ).toBeDefined();
+  });
+
+  it("closing a non-current session calls the API and removes it from the list", async () => {
+    listSessions.mockResolvedValue([
+      {
+        id: "s1",
+        deviceLabel: "Chrome · Windows",
+        country: "CL",
+        createdAt: "2024-01-01T00:00:00Z",
+        lastUsedAt: "2024-01-02T00:00:00Z",
+        closedAt: null,
+        isCurrent: true,
+      },
+      {
+        id: "s2",
+        deviceLabel: "Safari · iPhone",
+        country: "CL",
+        createdAt: "2024-01-01T00:00:00Z",
+        lastUsedAt: "2024-01-03T00:00:00Z",
+        closedAt: null,
+        isCurrent: false,
+      },
+    ]);
+    const expandButton = renderSecurity();
+    fireEvent.click(expandButton);
+    await screen.findByText("Safari · iPhone");
+
+    listSessions.mockResolvedValue([
+      {
+        id: "s1",
+        deviceLabel: "Chrome · Windows",
+        country: "CL",
+        createdAt: "2024-01-01T00:00:00Z",
+        lastUsedAt: "2024-01-02T00:00:00Z",
+        closedAt: null,
+        isCurrent: true,
+      },
+    ]);
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("profile.security.sessions.close") }),
+    );
+
+    await waitFor(() => expect(closeSession).toHaveBeenCalledWith("s2"));
+    await waitFor(() => expect(screen.queryByText("Safari · iPhone")).toBeNull());
+  });
+
+  it("'cerrar todas' calls revoke-others and leaves only the current session", async () => {
+    listSessions.mockResolvedValue([
+      {
+        id: "s1",
+        deviceLabel: "Chrome · Windows",
+        country: "CL",
+        createdAt: "2024-01-01T00:00:00Z",
+        lastUsedAt: "2024-01-02T00:00:00Z",
+        closedAt: null,
+        isCurrent: true,
+      },
+      {
+        id: "s2",
+        deviceLabel: "Safari · iPhone",
+        country: "CL",
+        createdAt: "2024-01-01T00:00:00Z",
+        lastUsedAt: "2024-01-03T00:00:00Z",
+        closedAt: null,
+        isCurrent: false,
+      },
+    ]);
+    const expandButton = renderSecurity();
+    fireEvent.click(expandButton);
+    await screen.findByText("Safari · iPhone");
+
+    listSessions.mockResolvedValue([
+      {
+        id: "s1",
+        deviceLabel: "Chrome · Windows",
+        country: "CL",
+        createdAt: "2024-01-01T00:00:00Z",
+        lastUsedAt: "2024-01-02T00:00:00Z",
+        closedAt: null,
+        isCurrent: true,
+      },
+    ]);
+    fireEvent.click(
+      screen.getByRole("button", { name: i18n.t("profile.security.sessions.closeAll") }),
+    );
+
+    await waitFor(() => expect(revokeOtherSessions).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText("Safari · iPhone")).toBeNull());
+  });
+
+  it("shows a closed session marked as such, with no 'Cerrar' button, and excludes it from the 'cerrar todas' threshold", async () => {
+    listSessions.mockResolvedValue([
+      {
+        id: "s1",
+        deviceLabel: "Chrome · Windows",
+        country: "CL",
+        createdAt: "2024-01-01T00:00:00Z",
+        lastUsedAt: "2024-01-02T00:00:00Z",
+        closedAt: null,
+        isCurrent: true,
+      },
+      {
+        id: "s2",
+        deviceLabel: "Safari · iPhone",
+        country: "CL",
+        createdAt: "2024-01-01T00:00:00Z",
+        lastUsedAt: "2024-01-03T00:00:00Z",
+        closedAt: "2026-09-18T00:00:00Z",
+        isCurrent: false,
+      },
+    ]);
+    const expandButton = renderSecurity();
+    fireEvent.click(expandButton);
+
+    await screen.findByText("Safari · iPhone");
+    const closedAt = new Date("2026-09-18T00:00:00Z");
+    const expectedDateTime = `${closedAt.toLocaleDateString(i18n.language)} ${closedAt.toLocaleTimeString(
+      i18n.language,
+      { hour: "2-digit", minute: "2-digit" },
+    )}`;
+    expect(
+      screen.getByText(i18n.t("profile.security.sessions.closed", { date: expectedDateTime }), {
+        exact: false,
+      }),
+    ).toBeDefined();
+    // Only one OPEN session (the current one) — "cerrar todas" requires more than one.
+    expect(
+      screen.queryByRole("button", { name: i18n.t("profile.security.sessions.closeAll") }),
+    ).toBeNull();
+    // A closed row never offers its own "Cerrar" button — nothing left to close.
+    const closeButtons = screen.queryAllByRole("button", {
+      name: i18n.t("profile.security.sessions.close"),
+    });
+    expect(closeButtons).toHaveLength(0);
   });
 });

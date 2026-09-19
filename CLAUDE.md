@@ -40,7 +40,7 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
 
 **pnpm + Turborepo monorepo** with two separately-deployable apps + shared packages. TypeScript, Node 20. Migrated from the legacy single Next.js app via specs/001.
 
-- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 24 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record, mfa-recovery-code, passkey — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **stateless JWT**, no OAuth adapter — the NextAuth `Account`/`Session`/`VerificationToken` tables were removed at the monorepo migration. A session is reached one of two ways: email+password (optionally gated by a TOTP second factor, specs/021) or a registered WebAuthn passkey (specs/022, bypasses both password and MFA entirely, its own strong authentication).
+- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 25 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record, mfa-recovery-code, passkey, session — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **JWT access+refresh, backed by a real `Session` row per login** (specs/023 — the NextAuth `Account`/`Session`/`VerificationToken` tables removed at the monorepo migration were a different, unrelated thing; this `Session` is new). A session is reached one of two ways: email+password (optionally gated by a TOTP second factor, specs/021) or a registered WebAuthn passkey (specs/022, bypasses both password and MFA entirely, its own strong authentication) — either way, that login's `Session.id` travels as a `sid` claim inside both the access and refresh token it issues, and `JwtAuthGuard` checks that row exists on every request (not just `User.status`), so closing a session revokes its access token immediately rather than only on its next refresh. See the `session` domain-table bullet below for the full mechanism.
   - **bank-account** (specs/003, 007; the aggregate root of the accounts cluster — `card-account`/`card-limit`/`billing-settings`/`credit-statement` are its own table-domains, written only through it): `BankAccount` is **where money or a credit line lives**. `type` (`AccountType`: **CHECKING/SIGHT/SAVINGS/INVESTMENT/CREDIT_LINE/CASH**), `status` (ACTIVE/INACTIVE), `accountNumber` (**bank account number — free text, stored/shown in full; NOT a card PAN**; **required for CHECKING/SIGHT/SAVINGS**, optional for CREDIT_LINE/INVESTMENT/CASH — enforced via a zod refine on create and by the aggregate on update, `ACCOUNT_NUMBER_REQUIRED`), `initialBalance` (seed) + `currentBalance`, which every movement keeps in step (`initialBalance` + Σincome − Σexpense): creating/editing/deleting a transaction applies its signed balance delta inside the movement's own `$transaction` (`transaction/domain/balance-delta.ts` → `BankAccountRepositoryPort.incrementBalanceWithTx`), exactly as it already does for `creditUsed`. **The manual `POST /accounts/:id/reconcile` is gone** (command, handler, aggregate method and UI button removed) — a balance that maintains itself has nothing to reconcile. **The account-level credit pool** (`creditLimit` + `creditUsedInitial`, seed) is the **shared/master cap across every CREDIT-kind card on the account** — this applies not just to a standalone credit card (a `CREDIT_LINE` account) but to **any cardable account that's grown a CREDIT-kind card** (e.g. a checking account's bank add-on credit card); the contract exposes a **derived `creditUsed` = creditUsedInitial + Σexpense − Σincome** (income = card payments; computed on-read via `sumsByAccount`), `"0"` when the account has no credit pool. List filter `?status=active|inactive`; `POST /accounts/:id/status`. List/get also return a 30d `balanceSeries` + `balanceChangePct` (for sparklines). Deleting unlinks transactions (`onDelete: SetNull`).
   - **Investment tracking removed (2026-09-07):** the standalone `investment` table-domain (ETF/
     remunerated-account holdings: `kind`, `symbol`/`shares` or `annualRate`/`principal`, an optional
@@ -1046,6 +1046,91 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     field — an audit found the gap, and rather than wire ~6 call sites to a second,
     narrower date-format concept the product decision was to drop the dead
     preference instead. `preferredCurrency`/`locale`/`theme` are unaffected.
+  - **session** (specs/023, "Sesiones y dispositivos reales", 2026-09-19): `Session`
+    (table `session`) is a dominio-tabla propio sin `presentation/` (mismo trato que
+    `passkey`/`mfa-recovery-code` — sus comandos/queries viven en `user`'s application
+    layer, compuesto vía `session.data.module.ts`). Reemplaza el `EXAMPLE_SESSIONS`
+    placeholder de `SecuritySection`: cada login exitoso (password, con/sin MFA, o
+    passkey) **y cada registro de cuenta** crea una fila real, cuyo `id` (UUID v7) viaja
+    como claim **`sid`** dentro de AMBOS tokens (access y refresh) de ese login —
+    `TokenIssuer.issue(user, sessionId?)` lo reutiliza en cada refresh (la rotación de
+    tokens ya existente conserva la MISMA sesión, nunca crea una nueva) o lo genera
+    nuevo en un login. **`JwtAuthGuard` reemplazó su consulta `prisma.user.findUnique`
+    por `prisma.session.findUnique({where:{id:sid}, include:{user:{select:{status}}}})`**
+    — sigue siendo UNA sola consulta por request, ahora partiendo de la sesión: si la
+    fila no existe (cerrada o purgada), rechaza igual que una cuenta `DISABLED` — esto
+    es lo que logra que cerrar una sesión revoque su access token **de inmediato**
+    (la siguiente request, no solo el próximo refresh), sin agregar una consulta nueva.
+    Cerrar una sesión —individual (`DELETE /auth/sessions/:id`), "cerrar todas las
+    demás" (`POST /auth/sessions/revoke-others`), o el propio `logout` (extendido para
+    borrar la sesión saliente antes de limpiar cookies)— es un **DELETE real, sin
+    historial** (decisión explícita del usuario en `/speckit-clarify`): la fila existe
+    si y solo si la sesión sigue activa. Un cron diario nuevo (`SessionCleanupCron`,
+    mismo patrón que `IdempotencyCleanupCron`, corrido una hora después para no competir)
+    purga filas vencidas que nadie cerró a mano — defensa en profundidad, ya que
+    `listActiveByUser` filtra `expiresAt > now` en la propia consulta de listar.
+    `deviceLabel` (ej. "Chrome · Windows") se deriva del `User-Agent` **una sola vez**
+    al crear la sesión vía **`ua-parser-js`** (dependencia nueva, solo `apps/api`) —
+    nunca reparseado en cada lectura. `country` es **opcional e "inerte sin
+    configurar"**, mismo patrón que S3 en adjuntos: lookup local (sin red) contra un
+    archivo GeoLite2 vía **`maxmind`** (dependencia nueva), ruta configurable por
+    **`GEOIP_DB_PATH`** — sin la variable o sin el archivo, las sesiones funcionan
+    igual, solo sin país. `GET /auth/sessions` marca `isCurrent` comparando cada fila
+    contra el `sid` del access token de esa request (nunca almacenado en la fila —
+    es un atributo de la consulta, no de la sesión). **Limitación deliberada, fuera de
+    alcance**: cambiar la contraseña o desactivar MFA no revocan otras sesiones
+    existentes (`docs/PENDING.md` punto 4); tampoco hay notificación de "nuevo
+    dispositivo", límite de sesiones simultáneas, ni revocación automática por
+    comportamiento sospechoso. Sin migración (`db push`; dev-only).
+    Amendment (ciudad + nombre de país, 2026-09-19): `GeoIpLookup` pasó de leer una base
+    GeoLite2-**Country** a una GeoLite2-**City** (`CityResponse` de `maxmind`, superset
+    del shape anterior — un archivo Country-only sigue andando, solo que `city` queda
+    siempre `null`). `Session` gana columna **`city`** (nullable, mismo trato "mejor
+    esfuerzo, nunca bloqueante" que `country` — GeoIP a nivel ciudad es notablemente
+    menos confiable que a nivel país, sobre todo en redes móviles/NAT de operador). El
+    nombre completo del país ("Chile" en vez de "CL") se deriva **en el frontend** vía
+    `Intl.DisplayNames` (`SecuritySection.tsx`'s `formatLocation`) — no se guarda ni se
+    calcula en el backend, así que localiza gratis con el idioma del usuario sin ida y
+    vuelta al servidor. `GeoIpLookup.lookupCountry(ip)` pasó a
+    `GeoIpLookup.lookup(ip): Promise<{country, city}>`. También se corrigió un caso real
+    encontrado al probar con IPs reales: algunas IPs (anycast, ej. `1.1.1.1`) no traen
+    `country` en absoluto, solo `registered_country` (dónde está registrado el bloque de
+    IPs) — el lookup ahora cae a ese campo en vez de devolver `null` de más.
+    **Ayuda de desarrollo temporal**: en `localhost` el server solo ve IPs loopback
+    (`127.0.0.1`/`::1`), que nunca resuelven — `GeoIpLookup` las reemplaza por una IP
+    pública de prueba fija SOLO cuando `NODE_ENV !== "production"`, para poder ver el
+    dato mientras se desarrolla contra `localhost`. Marcado explícitamente como
+    removible (`DEV_FALLBACK_IP` en `geoip-lookup.ts`).
+    Amendment (sesiones cerradas se conservan 3 días — reemplaza el DELETE inmediato,
+    2026-09-19): decisión de producto explícita que **revierte** el diseño original
+    ("real DELETE, sin historial"). `Session` gana **`closedAt`** (nullable,
+    `null` = abierta); cerrar una sesión —individual, "cerrar todas las demás", logout,
+    o vencimiento natural por tiempo una vez que el cron lo nota— **estampa `closedAt`
+    en vez de borrar la fila**, que queda visible en `GET /auth/sessions` marcada como
+    cerrada durante **`SESSION_CLOSED_RETENTION_DAYS`** (constante = 3, en
+    `session.entity.ts`, no una env var) antes de que el mismo cron la borre de verdad.
+    `JwtAuthGuard`/el refresh siguen revocando de inmediato — su chequeo pasó de
+    "¿existe la fila?" a "¿`closedAt IS NULL` y `expiresAt` no venció?", así que cerrar
+    sigue siendo instantáneo para el dispositivo afectado; lo único que cambió es que
+    ya no desaparece del todo. El cron (`SessionCleanupCron`) pasó a **dos fases**:
+    (1) `CloseExpiredSessionsCommand` — "detecta" cualquier sesión abierta cuyo
+    `expiresAt` ya pasó y le estampa `closedAt` (así el vencimiento natural entra al
+    mismo mecanismo que un cierre explícito); (2) `PurgeClosedSessionsCommand` — borra
+    lo cerrado hace más de 3 días. Corren en ese orden en el mismo tick para que una
+    sesión recién vencida no tenga que esperar al día siguiente para empezar a contar
+    su retención. La consulta de listar (`listByUser`, ya no filtra por `expiresAt`)
+    calcula el `closedAt` efectivo también para una sesión vencida-pero-no-barrida-
+    todavía (`closedAt ?? (expiresAt <= now ? expiresAt : null)`), para que la UI nunca
+    muestre como "activa" algo que ya no lo es solo porque el cron diario no pasó
+    todavía. Los métodos del puerto se renombraron para reflejar esto:
+    `deleteOwned`/`deleteAllExceptForUser`/`deleteExpired` → `closeOwned`/
+    `closeAllExceptForUser`/`markExpiredAsClosed`+`purgeClosedBefore`; `logout` usa el
+    nuevo `closeById` (sin chequeo de ownership — el `sid` ya viene de un refresh token
+    verificado criptográficamente). Web: `SecuritySection` muestra una fila cerrada
+    atenuada (`opacity-60`), con "Cerrada el {{date}}" en vez de país/última actividad,
+    sin botón "Cerrar" propio; "Cerrar todas las demás" solo cuenta sesiones ABIERTAS
+    para decidir si mostrarse. Contrato: `Session.closedAt: string | null` nuevo.
+    Sin migración propia más allá de `db push` (dev-only).
 
 - **Errors:** the API returns **language-agnostic codes** `{ error: { code, field? } }` (never localized prose); the frontend maps `code` → `errors.<CODE>` in es/en. `AllExceptionsFilter` (`infra/http`) preserves the specific `code`/`field` thrown on the exception (e.g. `EMAIL_TAKEN`, `CARD_REQUIRED`) and only falls back to a generic status-derived code (`UNAUTHORIZED`, `CONFLICT`, …) when the exception carried none — a prior version of this filter discarded every domain-specific code and must not regress.
 
@@ -1189,7 +1274,62 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (022 — implementado): specs/022-passkey-login/plan.md
+Current plan (023 — implementado): specs/023-real-sessions/plan.md
+(Sesiones y dispositivos reales: reemplaza el placeholder `EXAMPLE_SESSIONS` de
+`SecuritySection` con tracking real. Cada login exitoso (password, con/sin MFA, o
+passkey) crea una fila `Session` nueva, dominio-tabla propio sin `presentation/` (mismo
+trato que `passkey`/`mfa-recovery-code`, compuesto en `user`); su `id` (UUID v7) viaja
+como claim `sid` en AMBOS tokens (access y refresh) del login que la originó — algo que
+hoy NO existe: `TokenIssuer` firma tokens completamente sin estado, sin ningún claim de
+identidad de sesión, así que hoy es estructuralmente imposible revocar un dispositivo
+específico. Cerrar una sesión es un DELETE real de la fila (sin soft-delete, sin
+historial — decisión explícita del usuario en clarify), y `JwtAuthGuard` extiende la
+MISMA consulta a BD que ya hace por request (hoy solo `User.status`) para además
+verificar que la sesión del `sid` del access token siga existiendo — lo que logra
+revocación "de inmediato" real (el access token ya emitido deja de servir en la
+siguiente request, no solo en el próximo refresh) sin agregar un round-trip nuevo.
+Rotar el refresh token (que `RefreshTokenHandler` ya hace en cada `/auth/refresh`)
+reutiliza el mismo `sid` — es la misma sesión continuando, no una nueva — y desliza
+`Session.expiresAt`/`lastUsedAt`. Dispositivo/navegador se derivan del `User-Agent` UNA
+sola vez al crear la sesión (`ua-parser-js`, dependencia nueva solo en `apps/api`) y se
+guardan ya como texto legible (`deviceLabel`, ej. "Chrome · Windows") — nunca
+reparseados en cada lectura. País aproximado es **opcional y "inerte sin configurar"**,
+mismo patrón que los adjuntos S3: lookup local (sin red) contra un archivo GeoLite2 vía
+`maxmind` (dependencia nueva), ruta configurable por `GEOIP_DB_PATH` — sin la variable o
+sin el archivo, las sesiones funcionan igual, solo sin país. Tres endpoints nuevos bajo
+el `AuthController` existente (`GET /auth/sessions`, `DELETE /auth/sessions/:id`,
+`POST /auth/sessions/revoke-others`) más `logout` extendido para borrar también la
+sesión que cierra. Cron diario nuevo (`SessionCleanupCron`, mismo patrón que
+`IdempotencyCleanupCron`) purga filas vencidas que nadie cerró a mano — defensa en
+profundidad, ya que la propia consulta de listar filtra por `expiresAt` igual.
+Explícitamente fuera de alcance: cambiar la contraseña o desactivar MFA NO revoca otras
+sesiones existentes (decisión de producto aparte, no implícita en este pedido); nombrar
+sesiones, notificar por dispositivo nuevo, límite de sesiones simultáneas y revocación
+automática por comportamiento sospechoso quedan documentados como pendiente futuro. Ver
+`specs/023-real-sessions/research.md` R1-R10 para el detalle completo de cada decisión.
+**Hallazgos de `/speckit-analyze` corregidos antes de implementar**: (1) el chequeo nuevo
+de `JwtAuthGuard` iba a hacer una SEGUNDA consulta (`Promise.all` sobre `user`+`session`
+por separado) mientras el plan afirmaba "sin round-trip nuevo" — se corrigió a una sola
+consulta real (`session.findUnique` con `include: {user: {select: {status}}}`, requiere
+el lado inverso `Session.user` en el schema). (2) FR-001 del spec no nombraba el registro
+de cuenta como evento que crea sesión, aunque `RegisterHandler` siempre lo hizo — se
+amplió la redacción del FR. (3) el edge case explícito del spec ("cerrar la propia sesión
+actual expulsa igual que cualquier otra") no tenía un test e2e dedicado — se agregó.
+**Verificado de punta a punta**: `pnpm --filter @finance/api test:unit` [tests unitarios
+incluidos en la corrida combinada, 789 unit+integration], `test:integration` [mismo
+total, incluye los 4 escenarios nuevos: cerrar sesión + refresh posterior falla, revocar-
+otras dejando 3→1, listar con `isCurrent` correcto, purgar solo las vencidas],
+`test:e2e` [171/171, incluye 3 archivos nuevos: `list-sessions`, `close-session`
+(con el escenario de autocierre), `revoke-other-sessions`], `pnpm --filter @finance/web
+test` [363/363], `pnpm --filter @finance/contracts test` [86/86], `typecheck` y
+`check:boundaries` limpios en ambos paquetes. **No verificado**: geolocalización real
+contra un archivo GeoLite2 de verdad (este entorno no tiene una licencia MaxMind
+configurada — el camino "inerte sin `GEOIP_DB_PATH`" es el único probado; el código de
+lookup en sí (`GeoIpLookup`) se prueba solo indirectamente vía `SessionIssuer`'s propios
+tests, que mockean el resultado del lookup). Sin migración de datos propia más allá de
+`db push` (dev-only).)
+
+Prior plan: specs/022-passkey-login/plan.md
 (Llave de acceso (Passkey/WebAuthn), reemplazando el botón "Configurar" deshabilitado de
 Seguridad. Nuevo dominio-tabla `passkey` (sin `presentation/` propia, igual que
 `mfa-recovery-code` — compuesto desde `user`): `id`/`userId`/`name`/`credentialId` (identificador
@@ -1294,44 +1434,45 @@ persistía). Implementa de verdad "Monedas extra" (`User.extraCurrencies`): todo
 de la app (crear/editar cuenta, tope de tarjeta, transacción, meta de ahorro, recurrente, plan de
 cuotas, deuda) se acota al universo `preferredCurrency + extraCurrencies` del usuario logueado —
 colapsando a un valor de texto estático (sin desplegable) cuando no hay monedas extra — vía un hook
-+ componente compartido nuevos en `domains/reference/` (`useAllowedCurrencies`/`CurrencyField`), en
-vez de editar cada uno de los 8 formularios por separado. **Bloqueo nuevo, decisión explícita del
-usuario**: no se puede quitar una moneda de `extraCurrencies` mientras algún registro del usuario la
-esté usando — 8 puertos de solo lectura nuevos (`CurrencyUsageLookupPort`, uno por tabla con columna
-`currency`: `bank-account`, `transaction`, `installment-plan`, `debt`, `savings-goal`,
-`savings-entry`, `recurring-expense`, `card-limit`), mismo patrón que `BankAccountLookupPort.
+
+- componente compartido nuevos en `domains/reference/` (`useAllowedCurrencies`/`CurrencyField`), en
+  vez de editar cada uno de los 8 formularios por separado. **Bloqueo nuevo, decisión explícita del
+  usuario**: no se puede quitar una moneda de `extraCurrencies` mientras algún registro del usuario la
+  esté usando — 8 puertos de solo lectura nuevos (`CurrencyUsageLookupPort`, uno por tabla con columna
+  `currency`: `bank-account`, `transaction`, `installment-plan`, `debt`, `savings-goal`,
+  `savings-entry`, `recurring-expense`, `card-limit`), mismo patrón que `BankAccountLookupPort.
 accountOwned`, consultados por `UpdatePreferencesHandler` antes de aplicar el patch — nunca dentro
-del agregado `User`, que se mantiene puro. Nuevo error `CURRENCY_IN_USE` (409). Implementa de verdad
-"Ocultar saldos" (`User.hideBalances`): `MaskedAmount` (hoy sin capacidad de revelar) gana un toggle
-tipo switch **independiente por monto** (estado local, sin store global, se resetea al salir de la
-vista) y su cobertura se amplía de "solo patrimonio neto + tarjetas de cuenta" a también el saldo de
-cuenta en su vista de detalle y **toda** cifra de dinero de Ahorros (ahorrado, objetivo, ritmo,
-faltante — sin distinguir saldo real de cifras de planificación). Explícitamente NO se toca
-Movimientos, Deudas, Recurrentes ni Cuotas/Facturación. Sin validación de moneda en el backend al
-crear/editar registros (la restricción es solo de qué se *ofrece* en los selectores, FR-005 del
-spec dice "ofrecer", no "validar") — decisión de alcance para no expandir la feature a una regla de
-integridad de datos no pedida. `budgetAlertThreshold` (sección Notificaciones, distinta de
-"Personalización financiera") queda fuera de alcance a propósito. Sin migración (`db push`).
-**Hallazgos de `/speckit-analyze` corregidos antes de implementar**: (1) `debt` y `recurring-expense`
-eran los únicos 2 de los 8 dominios sin `*.data.module.ts` propio (todo el repositorio vivía en el
-módulo de orquestación) — se extrajeron primero (mismo tratamiento que `installment-plan` en
-specs/014) para que `user.module.ts` no tuviera que importar el módulo de orquestación completo solo
-para llegar al puerto nuevo. (2) El Panel mostraba dinero sin enmascarar en 3 de sus 4 widgets
-(`MonthFlowCard`, `CategoryDonut`, `UpcomingPaymentsCard`) — solo `NetWorthCard` estaba cableado;
-los tres se sumaron a la cobertura de `MaskedAmount`. Varios textos de Ahorros mezclaban un monto con
-texto no-monetario en una sola clave i18n interpolada (`noteWithClosed`, `paceValue`, `groups.count`,
-`status.complete/overdue/shortOnPace`) — se partieron en pares prefix/suffix (es+en) para poder
-enmascarar solo la cifra sin ocultar el texto alrededor. **Migrar los 8 formularios a `CurrencyField`
-rompió 7 archivos de test** que instanciaban esos componentes sin `AuthProvider` (ahora requerido
-por `useAllowedCurrencies`) o con un fixture de usuario sin `extraCurrencies` — todos corregidos
-(mock de `authApi.me` + `waitFor` donde hacía falta). **Verificado de punta a punta**: `pnpm --filter
+  del agregado `User`, que se mantiene puro. Nuevo error `CURRENCY_IN_USE` (409). Implementa de verdad
+  "Ocultar saldos" (`User.hideBalances`): `MaskedAmount` (hoy sin capacidad de revelar) gana un toggle
+  tipo switch **independiente por monto** (estado local, sin store global, se resetea al salir de la
+  vista) y su cobertura se amplía de "solo patrimonio neto + tarjetas de cuenta" a también el saldo de
+  cuenta en su vista de detalle y **toda** cifra de dinero de Ahorros (ahorrado, objetivo, ritmo,
+  faltante — sin distinguir saldo real de cifras de planificación). Explícitamente NO se toca
+  Movimientos, Deudas, Recurrentes ni Cuotas/Facturación. Sin validación de moneda en el backend al
+  crear/editar registros (la restricción es solo de qué se _ofrece_ en los selectores, FR-005 del
+  spec dice "ofrecer", no "validar") — decisión de alcance para no expandir la feature a una regla de
+  integridad de datos no pedida. `budgetAlertThreshold` (sección Notificaciones, distinta de
+  "Personalización financiera") queda fuera de alcance a propósito. Sin migración (`db push`).
+  **Hallazgos de `/speckit-analyze` corregidos antes de implementar**: (1) `debt` y `recurring-expense`
+  eran los únicos 2 de los 8 dominios sin `*.data.module.ts` propio (todo el repositorio vivía en el
+  módulo de orquestación) — se extrajeron primero (mismo tratamiento que `installment-plan` en
+  specs/014) para que `user.module.ts` no tuviera que importar el módulo de orquestación completo solo
+  para llegar al puerto nuevo. (2) El Panel mostraba dinero sin enmascarar en 3 de sus 4 widgets
+  (`MonthFlowCard`, `CategoryDonut`, `UpcomingPaymentsCard`) — solo `NetWorthCard` estaba cableado;
+  los tres se sumaron a la cobertura de `MaskedAmount`. Varios textos de Ahorros mezclaban un monto con
+  texto no-monetario en una sola clave i18n interpolada (`noteWithClosed`, `paceValue`, `groups.count`,
+  `status.complete/overdue/shortOnPace`) — se partieron en pares prefix/suffix (es+en) para poder
+  enmascarar solo la cifra sin ocultar el texto alrededor. **Migrar los 8 formularios a `CurrencyField`
+  rompió 7 archivos de test** que instanciaban esos componentes sin `AuthProvider` (ahora requerido
+  por `useAllowedCurrencies`) o con un fixture de usuario sin `extraCurrencies` — todos corregidos
+  (mock de `authApi.me` + `waitFor` donde hacía falta). **Verificado de punta a punta**: `pnpm --filter
 @finance/api test:unit` [592/592], `test:integration` [acotado a los 9 dominios tocados, 71/71] y
-`test:e2e` [140/140, incluye el nuevo escenario `CURRENCY_IN_USE`]; `pnpm --filter @finance/web test`
-[266/266]; `pnpm --filter @finance/contracts test` [86/86]; `typecheck` y `check:boundaries` limpios
-en ambos paquetes; `prettier --check`/`--write` acotado a los archivos tocados. **No verificado
-visualmente en navegador** — este entorno no tiene herramienta de automatización de navegador
-disponible (documentado en `docs/PENDING.md` §9). Ver
-`specs/020-profile-financial-settings/{spec,research,data-model,tasks}.md` para el detalle completo.)
+  `test:e2e` [140/140, incluye el nuevo escenario `CURRENCY_IN_USE`]; `pnpm --filter @finance/web test`
+  [266/266]; `pnpm --filter @finance/contracts test` [86/86]; `typecheck` y `check:boundaries` limpios
+  en ambos paquetes; `prettier --check`/`--write` acotado a los archivos tocados. **No verificado
+  visualmente en navegador** — este entorno no tiene herramienta de automatización de navegador
+  disponible (documentado en `docs/PENDING.md` §9). Ver
+  `specs/020-profile-financial-settings/{spec,research,data-model,tasks}.md` para el detalle completo.)
 
 Prior plan: specs/019-credit-card-prepayment/plan.md
 (Prepago de tarjeta de crédito: permitir abonar contra el período OPEN de una cuenta CREDIT_CARD

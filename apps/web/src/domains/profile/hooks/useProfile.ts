@@ -8,11 +8,17 @@ import { useAuth } from "../../auth/hooks/useAuth";
 import { passkeyApi } from "../../auth/api/passkeyApi";
 import { transactionsApi } from "../../transactions/api/transactionsApi";
 import { profileApi } from "../api/profileApi";
+import { sessionsApi } from "../api/sessionsApi";
 
 /** Own list — unlike MFA's recovery-code count, `CurrentUser` carries nothing about passkeys
  * (specs/022 research R8), so this is a genuine query of its own. */
 export function usePasskeysQuery() {
   return useQuery({ queryKey: ["passkeys"], queryFn: () => passkeyApi.list() });
+}
+
+/** Real sessions/devices (specs/023) — replaces the old `EXAMPLE_SESSIONS` placeholder. */
+export function useSessionsQuery() {
+  return useQuery({ queryKey: ["sessions"], queryFn: () => sessionsApi.list() });
 }
 
 function startOfMonthISO(now: Date): string {
@@ -86,6 +92,14 @@ export function useProfileMutations() {
     removePasskey: useMutation({
       mutationFn: (id: string) => passkeyApi.remove(id),
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ["passkeys"] }),
+    }),
+    closeSession: useMutation({
+      mutationFn: (id: string) => sessionsApi.close(id),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sessions"] }),
+    }),
+    revokeOtherSessions: useMutation({
+      mutationFn: () => sessionsApi.revokeOthers(),
+      onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sessions"] }),
     }),
   };
 }

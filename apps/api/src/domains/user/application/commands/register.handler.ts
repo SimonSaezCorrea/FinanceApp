@@ -12,7 +12,8 @@ import {
 import { EmailTakenError } from "../../domain/errors";
 import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
-import { TokenIssuer, type TokenPair } from "../token-issuer";
+import { SessionIssuer } from "../session-issuer";
+import type { TokenPair } from "../token-issuer";
 import { RegisterCommand } from "./register.command";
 
 export interface AuthResult {
@@ -31,7 +32,7 @@ export class RegisterHandler extends BaseCommandHandler<RegisterCommand, AuthRes
     eventBus: EventBus,
     @Inject(USER_REPOSITORY) private readonly repo: UserRepositoryPort,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
-    private readonly tokenIssuer: TokenIssuer,
+    private readonly sessionIssuer: SessionIssuer,
   ) {
     super(eventBus);
   }
@@ -52,7 +53,10 @@ export class RegisterHandler extends BaseCommandHandler<RegisterCommand, AuthRes
     // The user has no currency preference yet at registration time; CLP is the
     // app default (the same one `User.preferredCurrency` starts with).
     await this.createCashAccount(user.id, "CLP");
-    const tokens = this.tokenIssuer.issue({ id: user.id, email: user.email });
+    const tokens = await this.sessionIssuer.establish(
+      { id: user.id, email: user.email },
+      { userAgent: command.device?.userAgent, ip: command.device?.ip },
+    );
     return { result: { tokens, user: user.toContract() }, events: [] };
   }
 

@@ -6,6 +6,7 @@ import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/ba
 import { InvalidCredentialsError } from "../../domain/errors";
 import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
+import { SessionIssuer } from "../session-issuer";
 import { TokenIssuer } from "../token-issuer";
 import type { AuthResult } from "./register.handler";
 import { LoginCommand } from "./login.command";
@@ -28,6 +29,7 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
     eventBus: EventBus,
     @Inject(USER_REPOSITORY) private readonly repo: UserRepositoryPort,
     private readonly tokenIssuer: TokenIssuer,
+    private readonly sessionIssuer: SessionIssuer,
   ) {
     super(eventBus);
   }
@@ -44,14 +46,17 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
     return user;
   }
 
-  protected async handle(_command: LoginCommand, user: User): Promise<HandleResult<LoginResult>> {
+  protected async handle(command: LoginCommand, user: User): Promise<HandleResult<LoginResult>> {
     if (user.mfaEnabled) {
       this.logger.log(`password verified, awaiting MFA: ${user.id}`);
       const mfaPendingToken = this.tokenIssuer.issueMfaPending(user.id);
       return { result: { mfaRequired: true, mfaPendingToken }, events: [] };
     }
     this.logger.log(`user logged in: ${user.id}`);
-    const tokens = this.tokenIssuer.issue({ id: user.id, email: user.email });
+    const tokens = await this.sessionIssuer.establish(
+      { id: user.id, email: user.email },
+      { userAgent: command.device?.userAgent, ip: command.device?.ip },
+    );
     return { result: { mfaRequired: false, tokens, user: user.toContract() }, events: [] };
   }
 }

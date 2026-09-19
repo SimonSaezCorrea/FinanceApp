@@ -123,3 +123,11 @@ export class PasskeyNotFoundError extends DomainError {
     super("PASSKEY_NOT_FOUND", 404);
   }
 }
+
+/** Session (specs/023): `DELETE /auth/sessions/:id` on a session that doesn't exist or
+ * isn't the caller's own. */
+export class SessionNotFoundError extends DomainError {
+  constructor() {
+    super("SESSION_NOT_FOUND", 404);
+  }
+}

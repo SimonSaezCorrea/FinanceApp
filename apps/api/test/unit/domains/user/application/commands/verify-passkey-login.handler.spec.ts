@@ -9,7 +9,7 @@ import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 
 import { VerifyPasskeyLoginHandler } from "../../../../../../src/domains/user/application/commands/verify-passkey-login.handler";
 import { VerifyPasskeyLoginCommand } from "../../../../../../src/domains/user/application/commands/verify-passkey-login.command";
-import { TokenIssuer } from "../../../../../../src/domains/user/application/token-issuer";
+import { SessionIssuer } from "../../../../../../src/domains/user/application/session-issuer";
 import { InvalidCredentialsError } from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
@@ -85,10 +85,12 @@ function fakePasskeys(overrides: Partial<PasskeyRepositoryPort> = {}): PasskeyRe
   };
 }
 
-function fakeTokenIssuer(): TokenIssuer {
+function fakeSessionIssuer(): SessionIssuer {
   return {
-    issue: vi.fn().mockReturnValue({ accessToken: "at", refreshToken: "rt" }),
-  } as unknown as TokenIssuer;
+    establish: vi
+      .fn()
+      .mockResolvedValue({ accessToken: "at", refreshToken: "rt", sessionId: "s1" }),
+  } as unknown as SessionIssuer;
 }
 
 function config(): ConfigService {
@@ -111,12 +113,12 @@ describe("VerifyPasskeyLoginHandler", () => {
     } as never);
     const repo = fakeRepo();
     const passkeys = fakePasskeys();
-    const tokenIssuer = fakeTokenIssuer();
+    const sessionIssuer = fakeSessionIssuer();
     const handler = new VerifyPasskeyLoginHandler(
       { publish: vi.fn() } as never,
       repo,
       passkeys,
-      tokenIssuer,
+      sessionIssuer,
       config(),
       fakePrisma(),
     );
@@ -139,7 +141,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       { publish: vi.fn() } as never,
       fakeRepo(),
       fakePasskeys(),
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       config(),
       fakePrisma(),
     );
@@ -161,7 +163,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       passkeys,
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       config(),
       fakePrisma(),
     );
@@ -180,7 +182,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       { publish: vi.fn() } as never,
       fakeRepo(),
       passkeys,
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       config(),
       fakePrisma(),
     );
@@ -199,7 +201,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       { publish: vi.fn() } as never,
       fakeRepo(),
       passkeys,
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       config(),
       fakePrisma(),
     );
@@ -215,7 +217,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       { publish: vi.fn() } as never,
       fakeRepo(),
       fakePasskeys(),
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       config(),
       fakePrisma(),
     );
@@ -232,7 +234,7 @@ describe("VerifyPasskeyLoginHandler", () => {
       { publish: vi.fn() } as never,
       fakeRepo(),
       fakePasskeys(),
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       config(),
       fakePrisma(),
     );

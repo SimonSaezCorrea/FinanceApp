@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { RefreshTokenHandler } from "../../../../../../src/domains/user/application/commands/refresh-token.handler";
 import { RefreshTokenCommand } from "../../../../../../src/domains/user/application/commands/refresh-token.command";
+import { SessionIssuer } from "../../../../../../src/domains/user/application/session-issuer";
 import { TokenIssuer } from "../../../../../../src/domains/user/application/token-issuer";
 import {
   AccountDisabledError,
@@ -56,10 +57,24 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
   };
 }
 
+function fakeSessionIssuer(overrides: Partial<SessionIssuer> = {}): SessionIssuer {
+  return {
+    establish: vi
+      .fn()
+      .mockResolvedValue({ accessToken: "at2", refreshToken: "rt2", sessionId: "s1" }),
+    ...overrides,
+  } as unknown as SessionIssuer;
+}
+
 describe("RefreshTokenHandler", () => {
   it("rejects a missing refresh token", async () => {
     const tokenIssuer = { issue: vi.fn(), verifyRefresh: vi.fn() } as unknown as TokenIssuer;
-    const handler = new RefreshTokenHandler({ publish: vi.fn() } as never, fakeRepo(), tokenIssuer);
+    const handler = new RefreshTokenHandler(
+      { publish: vi.fn() } as never,
+      fakeRepo(),
+      tokenIssuer,
+      fakeSessionIssuer(),
+    );
     await expect(handler.execute(new RefreshTokenCommand(undefined))).rejects.toThrow(
       NoRefreshTokenError,
     );
@@ -72,35 +87,78 @@ describe("RefreshTokenHandler", () => {
         throw new Error("bad token");
       }),
     } as unknown as TokenIssuer;
-    const handler = new RefreshTokenHandler({ publish: vi.fn() } as never, fakeRepo(), tokenIssuer);
+    const handler = new RefreshTokenHandler(
+      { publish: vi.fn() } as never,
+      fakeRepo(),
+      tokenIssuer,
+      fakeSessionIssuer(),
+    );
     await expect(handler.execute(new RefreshTokenCommand("bogus"))).rejects.toThrow(
       InvalidRefreshTokenError,
     );
   });
 
-  it("issues a fresh token pair for a valid token", async () => {
+  it("issues a fresh token pair for a valid token, reusing the same session id", async () => {
     const tokenIssuer = {
-      issue: vi.fn().mockReturnValue({ accessToken: "at2", refreshToken: "rt2" }),
-      verifyRefresh: vi.fn().mockReturnValue({ sub: "u1" }),
+      issue: vi.fn(),
+      verifyRefresh: vi.fn().mockReturnValue({ sub: "u1", sid: "s1" }),
     } as unknown as TokenIssuer;
     const repo = fakeRepo({
       findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
     });
-    const handler = new RefreshTokenHandler({ publish: vi.fn() } as never, repo, tokenIssuer);
+    const sessionIssuer = fakeSessionIssuer();
+    const handler = new RefreshTokenHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      tokenIssuer,
+      sessionIssuer,
+    );
 
     const result = await handler.execute(new RefreshTokenCommand("valid-token"));
-    expect(result).toEqual({ accessToken: "at2", refreshToken: "rt2" });
+    expect(result).toEqual({ accessToken: "at2", refreshToken: "rt2", sessionId: "s1" });
+    expect(sessionIssuer.establish).toHaveBeenCalledWith(
+      { id: "u1", email: "a@b.com" },
+      { reuseSessionId: "s1" },
+    );
+  });
+
+  it("propagates InvalidRefreshTokenError when the session behind the token no longer exists", async () => {
+    const tokenIssuer = {
+      issue: vi.fn(),
+      verifyRefresh: vi.fn().mockReturnValue({ sub: "u1", sid: "closed-session" }),
+    } as unknown as TokenIssuer;
+    const repo = fakeRepo({
+      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
+    });
+    const sessionIssuer = fakeSessionIssuer({
+      establish: vi.fn().mockRejectedValue(new InvalidRefreshTokenError()),
+    });
+    const handler = new RefreshTokenHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      tokenIssuer,
+      sessionIssuer,
+    );
+
+    await expect(handler.execute(new RefreshTokenCommand("valid-token"))).rejects.toThrow(
+      InvalidRefreshTokenError,
+    );
   });
 
   it("rejects a DISABLED account even with a structurally valid refresh token", async () => {
     const tokenIssuer = {
       issue: vi.fn(),
-      verifyRefresh: vi.fn().mockReturnValue({ sub: "u1" }),
+      verifyRefresh: vi.fn().mockReturnValue({ sub: "u1", sid: "s1" }),
     } as unknown as TokenIssuer;
     const repo = fakeRepo({
       findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ status: "DISABLED" }))),
     });
-    const handler = new RefreshTokenHandler({ publish: vi.fn() } as never, repo, tokenIssuer);
+    const handler = new RefreshTokenHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      tokenIssuer,
+      fakeSessionIssuer(),
+    );
 
     await expect(handler.execute(new RefreshTokenCommand("valid-token"))).rejects.toThrow(
       AccountDisabledError,

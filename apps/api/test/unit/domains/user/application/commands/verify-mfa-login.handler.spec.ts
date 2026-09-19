@@ -3,7 +3,7 @@ import * as OTPAuth from "otpauth";
 
 import { VerifyMfaLoginHandler } from "../../../../../../src/domains/user/application/commands/verify-mfa-login.handler";
 import { VerifyMfaLoginCommand } from "../../../../../../src/domains/user/application/commands/verify-mfa-login.command";
-import { TokenIssuer } from "../../../../../../src/domains/user/application/token-issuer";
+import { SessionIssuer } from "../../../../../../src/domains/user/application/session-issuer";
 import {
   InvalidMfaCodeError,
   MfaLockedError,
@@ -78,10 +78,12 @@ function fakeRecoveryCodeRepo(
   };
 }
 
-function fakeTokenIssuer(): TokenIssuer {
+function fakeSessionIssuer(): SessionIssuer {
   return {
-    issue: vi.fn().mockReturnValue({ accessToken: "at", refreshToken: "rt" }),
-  } as unknown as TokenIssuer;
+    establish: vi
+      .fn()
+      .mockResolvedValue({ accessToken: "at", refreshToken: "rt", sessionId: "s1" }),
+  } as unknown as SessionIssuer;
 }
 
 function fakePrisma(): PrismaService {
@@ -101,7 +103,7 @@ describe("VerifyMfaLoginHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       fakeRecoveryCodeRepo(),
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       fakePrisma(),
     );
 
@@ -122,7 +124,7 @@ describe("VerifyMfaLoginHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       fakeRecoveryCodeRepo(),
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       fakePrisma(),
     );
 
@@ -143,7 +145,7 @@ describe("VerifyMfaLoginHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       fakeRecoveryCodeRepo(),
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       fakePrisma(),
     );
 
@@ -166,7 +168,7 @@ describe("VerifyMfaLoginHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       fakeRecoveryCodeRepo(),
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       fakePrisma(),
     );
 
@@ -190,7 +192,7 @@ describe("VerifyMfaLoginHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       recoveryCodes,
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       fakePrisma(),
     );
 
@@ -214,7 +216,7 @@ describe("VerifyMfaLoginHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       recoveryCodes,
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       fakePrisma(),
     );
 
@@ -232,7 +234,7 @@ describe("VerifyMfaLoginHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       recoveryCodes,
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       fakePrisma(),
     );
 
@@ -248,7 +250,7 @@ describe("VerifyMfaLoginHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       fakeRecoveryCodeRepo(),
-      fakeTokenIssuer(),
+      fakeSessionIssuer(),
       fakePrisma(),
     );
 

@@ -73,9 +73,57 @@ model User {
   idempotencyRecords IdempotencyRecord[]
   mfaRecoveryCodes   MfaRecoveryCode[]
   passkeys           Passkey[]
+  sessions           Session[]
 
   @@index([countryId])
   @@map("user")
+}
+
+/// A live login (specs/023). The row's own `id` travels as the `sid` claim inside BOTH
+/// tokens (access + refresh) that login issued — `JwtAuthGuard`/refresh both check
+/// `closedAt IS NULL AND expiresAt > now` on every use, which is what lets a specific
+/// device be revoked immediately. Closing a session (individually, "cerrar todas las
+/// demás", logout, or natural time expiry once the daily cron notices it) stamps
+/// `closedAt` instead of deleting — a closed row stays visible (marked as such) for a
+/// retention window (`SESSION_CLOSED_RETENTION_DAYS`) before the cron purges it for
+/// real. Amendment (2026-09-19): supersedes the original "real DELETE, no history"
+/// design — the product decision changed to keep a short visible history of recently
+/// closed sessions instead.
+model Session {
+  id     String @id @default(uuid(7))
+  userId String
+
+  /// Derived from the login request's User-Agent ONCE, at creation — never reparsed on
+  /// read (ex. "Chrome · Windows"). Null if no User-Agent was present to parse.
+  deviceLabel String?
+  /// Approximate country resolved from the login IP at creation, via a local GeoLite2
+  /// lookup (optional infra — null whenever it can't be resolved, never a failure).
+  country     String?
+  /// Approximate city, same lookup/caveats as `country` — city-level GeoIP is
+  /// meaningfully less reliable (carrier NAT/mobile often resolves to the ISP's own
+  /// city, not the user's), shown as a best-effort extra, never load-bearing.
+  city        String?
+
+  createdAt  DateTime @default(now())
+  /// Bumped on every successful refresh that uses this session (FR-009) — never on a
+  /// plain authenticated request, only on the token-renewal path.
+  lastUsedAt DateTime @default(now())
+  /// `now() + JWT_REFRESH_EXPIRES` at creation; recomputed the same way on every refresh
+  /// (the session "slides", same as the refresh token itself already does).
+  expiresAt  DateTime
+  /// Null = open (still a live, usable session). Set the moment the session stops being
+  /// usable — explicit close/logout/revoke-others stamp it immediately; a naturally
+  /// time-expired session gets it stamped by the daily cron's sweep. The row is kept
+  /// (visible, marked closed) for `SESSION_CLOSED_RETENTION_DAYS` after this before the
+  /// same cron deletes it for real.
+  closedAt   DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@index([closedAt])
+  @@map("session")
 }
 
 /// One single-use recovery code issued when MFA activation is confirmed (specs/021). A fresh set

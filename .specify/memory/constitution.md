@@ -1,4 +1,29 @@
 <!--
+Sync Impact Report — 2026-09-19 (amendment 2.3.1)
+- Version change: 2.3.0 → 2.3.1 (PATCH: a new table-domain and two new dependencies from
+  specs/023-real-sessions; no principle text changed, no conformance debt closed — a routine
+  addition that already satisfies every existing data gate).
+- ADDED: table-domain `session` (25th table-domain; see CLAUDE.md's `apps/api` architecture section
+  for the mechanism) — its `id` is a UUID v7 per Principle VIII, its `DELETE`/`revoke-others`
+  endpoints satisfy Principle VII form (a) (a terminal delete is naturally idempotent — no
+  `Idempotency-Key` required, since neither endpoint moves money/credit/instalment state), and its
+  one path param (`DELETE /auth/sessions/:id`) is ownership-checked before deletion per Principle II
+  (404 `SESSION_NOT_FOUND`, never 403). No new principle or amended rule was needed — this is
+  confirmation the existing gates already covered this shape of change, not an extension of them.
+- New dependencies (`apps/api` only): `ua-parser-js` (User-Agent → device label, parsed once at
+  session creation), `maxmind` (local `.mmdb` GeoLite2 reader, no network call). New optional env var
+  `GEOIP_DB_PATH` — deliberately NOT read via `getOrThrow` like the required secrets; absent, the
+  country-resolution feature is inert (same "inert without config" precedent S3/attachments already
+  established), never a boot failure.
+- No migration: dev-only data, `db push` adds the table. No contract-breaking change to any existing
+  endpoint — `POST /auth/refresh`/`POST /auth/logout` keep their exact request/response shape, only
+  their internal session bookkeeping changed.
+- Driven by an SDD cycle (specs/023), not a conformance-debt closure — a new feature request
+  ("Sesiones y dispositivos reales") replacing a frontend-only placeholder.
+- Templates requiring updates: none.
+-->
+
+<!--
 Sync Impact Report — 2026-09-04 (amendment 2.3.0)
 - Version change: 2.2.0 → 2.3.0 (MINOR: two documented conformance-debt items closed with a
   reference implementation; no principle text redefined — both normative rules this closes were
@@ -1793,4 +1818,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.3.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-04
+**Version**: 2.3.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-19

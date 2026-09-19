@@ -1,6 +1,7 @@
 import type { auth } from "@finance/contracts";
 
 import type { SystemCommand } from "../../../../infra/cqrs/base-command.handler";
+import type { DeviceContext } from "../session-issuer";
 
 /** Precedes having a `userId` (there is no authenticated user yet) — modeled
  * as a `SystemCommand`, the same pragmatic exception `accounts`'
@@ -8,5 +9,8 @@ import type { SystemCommand } from "../../../../infra/cqrs/base-command.handler"
 export class RegisterCommand implements SystemCommand {
   readonly scope = "system" as const;
 
-  constructor(public readonly input: auth.RegisterRequest) {}
+  constructor(
+    public readonly input: auth.RegisterRequest,
+    public readonly device?: DeviceContext,
+  ) {}
 }

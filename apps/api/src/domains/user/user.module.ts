@@ -13,16 +13,22 @@ import { PasskeyDataModule } from "../passkey/passkey.data.module";
 import { RecurringExpenseDataModule } from "../recurring-expense/recurring-expense.data.module";
 import { SavingsEntryDataModule } from "../savings-entry/savings-entry.data.module";
 import { SavingsGoalDataModule } from "../savings-goal/savings-goal.data.module";
+import { SessionDataModule } from "../session/session.data.module";
 import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { ChangePasswordHandler } from "./application/commands/change-password.handler";
+import { CloseExpiredSessionsHandler } from "./application/commands/close-expired-sessions.handler";
+import { CloseSessionHandler } from "./application/commands/close-session.handler";
 import { ConfirmMfaEnrollmentHandler } from "./application/commands/confirm-mfa-enrollment.handler";
 import { ConfirmPasskeyRegistrationHandler } from "./application/commands/confirm-passkey-registration.handler";
 import { DeactivateAccountHandler } from "./application/commands/deactivate-account.handler";
 import { DisableMfaHandler } from "./application/commands/disable-mfa.handler";
 import { LoginHandler } from "./application/commands/login.handler";
+import { LogoutHandler } from "./application/commands/logout.handler";
 import { RefreshTokenHandler } from "./application/commands/refresh-token.handler";
 import { RegisterHandler } from "./application/commands/register.handler";
+import { PurgeClosedSessionsHandler } from "./application/commands/purge-closed-sessions.handler";
 import { RemovePasskeyHandler } from "./application/commands/remove-passkey.handler";
+import { RevokeOtherSessionsHandler } from "./application/commands/revoke-other-sessions.handler";
 import { StartMfaEnrollmentHandler } from "./application/commands/start-mfa-enrollment.handler";
 import { StartPasskeyLoginHandler } from "./application/commands/start-passkey-login.handler";
 import { StartPasskeyRegistrationHandler } from "./application/commands/start-passkey-registration.handler";
@@ -32,7 +38,10 @@ import { VerifyMfaLoginHandler } from "./application/commands/verify-mfa-login.h
 import { VerifyPasskeyLoginHandler } from "./application/commands/verify-passkey-login.handler";
 import { GetMeQueryHandler } from "./application/queries/get-me.handler";
 import { ListPasskeysQueryHandler } from "./application/queries/list-passkeys.handler";
+import { ListSessionsQueryHandler } from "./application/queries/list-sessions.handler";
+import { GeoIpLookup } from "./application/geoip-lookup";
 import { PasskeyChallengeToken } from "./application/passkey-challenge-token";
+import { SessionIssuer } from "./application/session-issuer";
 import { TokenIssuer } from "./application/token-issuer";
 import { USER_REPOSITORY } from "./domain/ports/user.repository.port";
 import { PrismaUserRepository } from "./infrastructure/prisma-user.repository";
@@ -41,6 +50,7 @@ import { AuthController } from "./presentation/auth.controller";
 const commandHandlers = [
   RegisterHandler,
   LoginHandler,
+  LogoutHandler,
   RefreshTokenHandler,
   UpdateProfileHandler,
   ChangePasswordHandler,
@@ -55,9 +65,13 @@ const commandHandlers = [
   RemovePasskeyHandler,
   StartPasskeyLoginHandler,
   VerifyPasskeyLoginHandler,
+  CloseSessionHandler,
+  RevokeOtherSessionsHandler,
+  CloseExpiredSessionsHandler,
+  PurgeClosedSessionsHandler,
 ];
 
-const queryHandlers = [GetMeQueryHandler, ListPasskeysQueryHandler];
+const queryHandlers = [GetMeQueryHandler, ListPasskeysQueryHandler, ListSessionsQueryHandler];
 
 @Module({
   // Registration creates the user's cash account, so it needs that table's port; the other 7
@@ -76,6 +90,7 @@ const queryHandlers = [GetMeQueryHandler, ListPasskeysQueryHandler];
     CardLimitDataModule,
     MfaRecoveryCodeDataModule,
     PasskeyDataModule,
+    SessionDataModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -83,6 +98,8 @@ const queryHandlers = [GetMeQueryHandler, ListPasskeysQueryHandler];
     ...queryHandlers,
     TokenIssuer,
     PasskeyChallengeToken,
+    GeoIpLookup,
+    SessionIssuer,
     { provide: USER_REPOSITORY, useClass: PrismaUserRepository },
     JwtAuthGuard,
   ],

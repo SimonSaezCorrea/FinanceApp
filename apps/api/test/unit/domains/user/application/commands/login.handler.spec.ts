@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { LoginHandler } from "../../../../../../src/domains/user/application/commands/login.handler";
 import { LoginCommand } from "../../../../../../src/domains/user/application/commands/login.command";
+import { SessionIssuer } from "../../../../../../src/domains/user/application/session-issuer";
 import { TokenIssuer } from "../../../../../../src/domains/user/application/token-issuer";
 import {
   AccountDisabledError,
@@ -58,11 +59,22 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
 
 function fakeTokenIssuer(): TokenIssuer {
   return {
-    issue: vi.fn().mockReturnValue({ accessToken: "at", refreshToken: "rt" }),
+    issue: vi.fn().mockReturnValue({ accessToken: "at", refreshToken: "rt", sessionId: "s1" }),
     verifyRefresh: vi.fn(),
     issueMfaPending: vi.fn().mockReturnValue("pending-token"),
     verifyMfaPending: vi.fn(),
   } as unknown as TokenIssuer;
+}
+
+function fakeSessionIssuer(): SessionIssuer {
+  return {
+    establish: vi.fn().mockResolvedValue({
+      accessToken: "at",
+      refreshToken: "rt",
+      sessionId: "s1",
+      sessionExpiresAt: new Date("2024-01-08T00:00:00Z"),
+    }),
+  } as unknown as SessionIssuer;
 }
 
 describe("LoginHandler", () => {
@@ -71,7 +83,12 @@ describe("LoginHandler", () => {
     const repo = fakeRepo({
       findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
     });
-    const handler = new LoginHandler({ publish: vi.fn() } as never, repo, fakeTokenIssuer());
+    const handler = new LoginHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeTokenIssuer(),
+      fakeSessionIssuer(),
+    );
 
     const result = await handler.execute(
       new LoginCommand({ email: "a@b.com", password: "secret123" }),
@@ -86,7 +103,12 @@ describe("LoginHandler", () => {
     const repo = fakeRepo({
       findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
     });
-    const handler = new LoginHandler({ publish: vi.fn() } as never, repo, fakeTokenIssuer());
+    const handler = new LoginHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeTokenIssuer(),
+      fakeSessionIssuer(),
+    );
 
     await expect(
       handler.execute(new LoginCommand({ email: "a@b.com", password: "wrong" })),
@@ -95,7 +117,12 @@ describe("LoginHandler", () => {
 
   it("rejects an unknown email with INVALID_CREDENTIALS (no user-enumeration)", async () => {
     const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(null) });
-    const handler = new LoginHandler({ publish: vi.fn() } as never, repo, fakeTokenIssuer());
+    const handler = new LoginHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeTokenIssuer(),
+      fakeSessionIssuer(),
+    );
 
     await expect(
       handler.execute(new LoginCommand({ email: "nobody@b.com", password: "whatever" })),
@@ -109,7 +136,12 @@ describe("LoginHandler", () => {
         .fn()
         .mockResolvedValue(User.fromPersistence(baseProps({ passwordHash, status: "DISABLED" }))),
     });
-    const handler = new LoginHandler({ publish: vi.fn() } as never, repo, fakeTokenIssuer());
+    const handler = new LoginHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeTokenIssuer(),
+      fakeSessionIssuer(),
+    );
 
     await expect(
       handler.execute(new LoginCommand({ email: "a@b.com", password: "secret123" })),
@@ -124,7 +156,13 @@ describe("LoginHandler", () => {
         .mockResolvedValue(User.fromPersistence(baseProps({ passwordHash, mfaEnabled: true }))),
     });
     const tokenIssuer = fakeTokenIssuer();
-    const handler = new LoginHandler({ publish: vi.fn() } as never, repo, tokenIssuer);
+    const sessionIssuer = fakeSessionIssuer();
+    const handler = new LoginHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      tokenIssuer,
+      sessionIssuer,
+    );
 
     const result = await handler.execute(
       new LoginCommand({ email: "a@b.com", password: "secret123" }),
@@ -132,6 +170,7 @@ describe("LoginHandler", () => {
     if (!result.mfaRequired) throw new Error("expected mfaRequired, got a full session");
     expect(result.mfaPendingToken).toBe("pending-token");
     expect(tokenIssuer.issue).not.toHaveBeenCalled();
+    expect(sessionIssuer.establish).not.toHaveBeenCalled();
   });
 
   it("a user without MFA logs in exactly as before (regression)", async () => {
@@ -141,7 +180,12 @@ describe("LoginHandler", () => {
         .fn()
         .mockResolvedValue(User.fromPersistence(baseProps({ passwordHash, mfaEnabled: false }))),
     });
-    const handler = new LoginHandler({ publish: vi.fn() } as never, repo, fakeTokenIssuer());
+    const handler = new LoginHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeTokenIssuer(),
+      fakeSessionIssuer(),
+    );
 
     const result = await handler.execute(
       new LoginCommand({ email: "a@b.com", password: "secret123" }),

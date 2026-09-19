@@ -7,6 +7,8 @@ import { ACCESS_COOKIE, JwtAuthGuard } from "../../../../src/infra/auth/jwt-auth
 import type { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 
 const SECRET = "test-access";
+const FUTURE = new Date(Date.now() + 60_000);
+const PAST = new Date(Date.now() - 60_000);
 
 function makeGuard(prisma: Partial<PrismaService>) {
   const jwt = new JwtService({});
@@ -21,9 +23,24 @@ function contextWithCookie(token: string | undefined): ExecutionContext {
   } as unknown as ExecutionContext;
 }
 
+/** A fake `prisma.session.findUnique({ where, select })` — the ONE query the guard
+ * makes (specs/023 research.md R2): the session row's own aliveness (`closedAt`/
+ * `expiresAt`), with its owner's `status` riding along via the relation include,
+ * instead of a separate `prisma.user` query. */
+function fakeSessionFindUnique(
+  result: { closedAt: Date | null; expiresAt: Date; user: { status: string } } | null,
+) {
+  return { session: { findUnique: vi.fn().mockResolvedValue(result) } as never };
+}
+
+function openSession(status = "ACTIVE") {
+  return { closedAt: null, expiresAt: FUTURE, user: { status } };
+}
+
 describe("JwtAuthGuard", () => {
   const jwt = new JwtService({});
-  const sign = (sub: string) => jwt.sign({ sub, email: "a@b.com" }, { secret: SECRET });
+  const sign = (sub: string, sid = "s1") =>
+    jwt.sign({ sub, email: "a@b.com", sid }, { secret: SECRET });
 
   beforeEach(() => vi.clearAllMocks());
 
@@ -34,23 +51,43 @@ describe("JwtAuthGuard", () => {
     );
   });
 
-  it("allows an active user with a valid token", async () => {
-    const findUnique = vi.fn().mockResolvedValue({ status: "ACTIVE" });
-    const guard = makeGuard({ user: { findUnique } as never });
+  it("allows an active user with a valid token and a live, open session", async () => {
+    const guard = makeGuard(fakeSessionFindUnique(openSession()));
     await expect(guard.canActivate(contextWithCookie(sign("u1")))).resolves.toBe(true);
   });
 
   it("rejects a disabled account even with a still-valid access token (FR-010)", async () => {
-    const findUnique = vi.fn().mockResolvedValue({ status: "DISABLED" });
-    const guard = makeGuard({ user: { findUnique } as never });
+    const guard = makeGuard(fakeSessionFindUnique(openSession("DISABLED")));
     await expect(guard.canActivate(contextWithCookie(sign("u1")))).rejects.toMatchObject({
       response: { code: "ACCOUNT_DISABLED" },
     });
   });
 
-  it("rejects when the user no longer exists", async () => {
-    const findUnique = vi.fn().mockResolvedValue(null);
-    const guard = makeGuard({ user: { findUnique } as never });
+  it("rejects when the session no longer exists (purged)", async () => {
+    const guard = makeGuard(fakeSessionFindUnique(null));
+    await expect(guard.canActivate(contextWithCookie(sign("u1")))).rejects.toBeInstanceOf(
+      UnauthorizedException,
+    );
+  });
+
+  it("rejects a closed session's access token immediately, without a different error code (specs/023 R2)", async () => {
+    // The token's own signature/expiry are still perfectly valid — only the session
+    // behind its `sid` has been closed since (closedAt stamped, row still exists for
+    // the retention window). Same generic rejection as a missing/expired token, so a
+    // closed session can't be distinguished by response shape from any other
+    // unauthenticated state.
+    const guard = makeGuard(
+      fakeSessionFindUnique({ closedAt: PAST, expiresAt: FUTURE, user: { status: "ACTIVE" } }),
+    );
+    await expect(
+      guard.canActivate(contextWithCookie(sign("u1", "closed-session"))),
+    ).rejects.toBeInstanceOf(UnauthorizedException);
+  });
+
+  it("rejects a session past its own expiresAt even before the daily cron marks it closed", async () => {
+    const guard = makeGuard(
+      fakeSessionFindUnique({ closedAt: null, expiresAt: PAST, user: { status: "ACTIVE" } }),
+    );
     await expect(guard.canActivate(contextWithCookie(sign("u1")))).rejects.toBeInstanceOf(
       UnauthorizedException,
     );

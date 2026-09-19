@@ -14,7 +14,7 @@ import {
 } from "../../../passkey/domain/ports/passkey.repository.port";
 import { InvalidCredentialsError } from "../../domain/errors";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
-import { TokenIssuer } from "../token-issuer";
+import { SessionIssuer } from "../session-issuer";
 import type { AuthResult } from "./register.handler";
 import { VerifyPasskeyLoginCommand } from "./verify-passkey-login.command";
 
@@ -31,7 +31,7 @@ export class VerifyPasskeyLoginHandler extends BaseCommandHandler<
     eventBus: EventBus,
     @Inject(USER_REPOSITORY) private readonly userRepo: UserRepositoryPort,
     @Inject(PASSKEY_REPOSITORY) private readonly passkeys: PasskeyRepositoryPort,
-    private readonly tokenIssuer: TokenIssuer,
+    private readonly sessionIssuer: SessionIssuer,
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
   ) {
@@ -89,7 +89,10 @@ export class VerifyPasskeyLoginHandler extends BaseCommandHandler<
     );
 
     this.logger.log(`passkey login: ${user.id}`);
-    const tokens = this.tokenIssuer.issue({ id: user.id, email: user.email });
+    const tokens = await this.sessionIssuer.establish(
+      { id: user.id, email: user.email },
+      { userAgent: command.device?.userAgent, ip: command.device?.ip },
+    );
     // Never routes through mfa_pending_token / VerifyMfaLoginCommand, even if user.mfaEnabled —
     // the passkey is its own strong authentication (specs/022 FR-007).
     return { result: { tokens, user: user.toContract() }, events: [] };

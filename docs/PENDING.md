@@ -85,16 +85,21 @@ producto, no un hueco técnico encontrado después):
   set nuevo de códigos es desactivar MFA (reingresando la contraseña) y volver a activarlo desde
   cero — no hay un endpoint "solo regenerar códigos" que preserve el secreto TOTP vigente.
 
-### 4. Sesiones y dispositivos
+### 4. Sesiones y dispositivos — real desde specs/023 (2026-09-19)
 
-La lista de 3 dispositivos ("MacBook Pro", "iPhone 15", "Chrome · Windows") es **data de ejemplo fija**
-en el componente (`SecuritySection.tsx`); los botones "Cerrar"/"Cerrar todas" solo quitan filas del
-estado local de React — no revocan ninguna sesión real. Hoy la auth es JWT stateless (access+refresh
-en cookies httpOnly), sin tabla de sesiones por dispositivo.
+Ya no es data de ejemplo. Cada login exitoso (password, con/sin MFA, o passkey) crea una fila
+`Session` real, cuyo `id` viaja como claim `sid` en el access y el refresh token de ese login;
+`JwtAuthGuard` verifica en cada request que esa sesión siga existiendo (revocación de inmediato, no
+solo en el próximo refresh). `SecuritySection` lista las sesiones reales (`GET /auth/sessions`,
+dispositivo/navegador derivado del User-Agent, país aproximado vía GeoLite2 si `GEOIP_DB_PATH` está
+configurado) y "Cerrar"/"Cerrar todas" llaman de verdad a `DELETE /auth/sessions/:id`/
+`POST /auth/sessions/revoke-others`. Cerrar una sesión es un DELETE real (sin historial, decisión de
+producto explícita); un cron diario purga las filas vencidas que nadie cerró a mano.
 
-**Para hacerlo real**: se necesitaría una tabla `Session`/`RefreshToken` por dispositivo (user agent,
-IP, últimas veces vista), y que `rotateFromRefresh`/`logout` operen sobre una sesión específica en vez
-de un único par de cookies global.
+**Limitación deliberada, fuera de alcance de esta iteración**: cambiar la contraseña o desactivar MFA
+no revocan las demás sesiones existentes — son acciones independientes por ahora. Tampoco hay
+notificación de "nuevo dispositivo", límite de sesiones simultáneas, ni revocación automática por
+comportamiento sospechoso (ver `specs/023-real-sessions/spec.md`, sección Assumptions).
 
 ### 5. Plan, uso y facturación
 

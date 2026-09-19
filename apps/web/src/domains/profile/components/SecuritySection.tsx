@@ -13,7 +13,7 @@ import { ConfirmModal, FormSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "../../../shared/ui/input";
 import { Switch } from "../../../shared/ui/switch";
-import { usePasskeysQuery, useProfileMutations } from "../hooks/useProfile";
+import { usePasskeysQuery, useProfileMutations, useSessionsQuery } from "../hooks/useProfile";
 import { MfaEnrollmentPanel } from "./MfaEnrollmentPanel";
 import { PasskeySection } from "./PasskeySection";
 
@@ -238,22 +238,44 @@ function DisableMfaModal({
   );
 }
 
-interface Session {
-  id: string;
-  device: string;
-  detail: string;
-  current?: boolean;
+/** A device-shaped icon from a session's `deviceLabel` — a lightweight guess (phone
+ * OSes vs. everything else), not a real device-type field. */
+function sessionIcon(deviceLabel: string | null) {
+  const label = deviceLabel?.toLowerCase() ?? "";
+  return label.includes("iphone") || label.includes("android") ? Smartphone : Laptop;
 }
 
-// Placeholder data (PENDING.md: no real session/device tracking exists yet — see that doc).
-const EXAMPLE_SESSIONS: Session[] = [
-  { id: "s1", device: "MacBook Pro", detail: "Santiago", current: true },
-  { id: "s2", device: "iPhone 15", detail: "Hace 2 h · Santiago" },
-  { id: "s3", device: "Chrome · Windows", detail: "Ayer · Valparaíso" },
-];
+/** "Santiago, Chile" from a session's raw `city`/`country` (ISO alpha-2) — the country
+ * NAME is derived client-side via `Intl.DisplayNames` (no extra data from the API,
+ * every browser already ships this) rather than stored, so it localizes for free and
+ * a locale switch never needs a backend round-trip. Falls back to the raw code if the
+ * runtime can't resolve it (unknown/malformed code). */
+function formatLocation(
+  country: string | null,
+  city: string | null,
+  locale: string,
+): string | null {
+  if (!country) return city;
+  let countryName = country;
+  try {
+    countryName = new Intl.DisplayNames([locale], { type: "region" }).of(country) ?? country;
+  } catch {
+    // Unsupported locale/region — show the raw ISO code instead of crashing.
+  }
+  return city ? `${city}, ${countryName}` : countryName;
+}
+
+/** Day + hour:minute, localized — used for both "última actividad" and "cerrada el",
+ * so a session's timeline reads precisely instead of just "today". */
+function formatDateTime(iso: string, locale: string): string {
+  const date = new Date(iso);
+  const day = date.toLocaleDateString(locale);
+  const time = date.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+  return `${day} ${time}`;
+}
 
 export function SecuritySection() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const [changingPassword, setChangingPassword] = useState(false);
   const [enrollingMfa, setEnrollingMfa] = useState(false);
@@ -262,8 +284,10 @@ export function SecuritySection() {
   const mfaEnabled = user?.mfaEnabled ?? false;
   const { data: passkeys } = usePasskeysQuery();
   const passkeyCount = passkeys?.length ?? 0;
-  // Placeholder — local UI state only, no real session revocation (see PENDING.md).
-  const [sessions, setSessions] = useState(EXAMPLE_SESSIONS);
+  const { data: sessions, isLoading: sessionsLoading } = useSessionsQuery();
+  const { closeSession, revokeOtherSessions } = useProfileMutations();
+  const sessionList = sessions ?? [];
+  const openSessionCount = sessionList.filter((s) => !s.closedAt).length;
 
   return (
     <CollapsibleSection title={t("profile.security.title")}>
@@ -317,44 +341,78 @@ export function SecuritySection() {
           <span className="text-xs font-medium text-muted-foreground">
             {t("profile.security.sessions.title")}
           </span>
-          {sessions.length > 1 ? (
+          {openSessionCount > 1 ? (
             <button
               type="button"
-              className="text-xs font-medium text-destructive"
-              onClick={() => setSessions((prev) => prev.filter((s) => s.current))}
+              className="text-xs font-medium text-destructive disabled:opacity-60"
+              disabled={revokeOtherSessions.isPending}
+              onClick={() => revokeOtherSessions.mutate()}
             >
               {t("profile.security.sessions.closeAll")}
             </button>
           ) : null}
         </div>
         <div className="overflow-hidden rounded-lg border">
-          {sessions.map((s, i) => {
-            const Icon = s.device.toLowerCase().includes("iphone") ? Smartphone : Laptop;
-            return (
-              <div key={s.id} className={cnRow(i, sessions.length)}>
-                <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs font-medium">{s.device}</div>
-                  <div
-                    className={
-                      s.current ? "text-[11px] text-success" : "text-[11px] text-muted-foreground"
-                    }
-                  >
-                    {s.current ? t("profile.security.sessions.thisDevice") : s.detail}
+          {sessionsLoading ? (
+            <p className="px-3.5 py-2.5 text-xs text-muted-foreground">
+              {t("profile.security.sessions.loading")}
+            </p>
+          ) : (
+            sessionList.map((s, i) => {
+              const Icon = sessionIcon(s.deviceLabel);
+              const label = s.deviceLabel ?? t("profile.security.sessions.unknownDevice");
+              const location = formatLocation(s.country, s.city, i18n.language);
+              const meta = s.closedAt
+                ? [
+                    location ?? t("profile.security.sessions.unknownLocation"),
+                    t("profile.security.sessions.closed", {
+                      date: formatDateTime(s.closedAt, i18n.language),
+                    }),
+                  ].join(" · ")
+                : s.isCurrent
+                  ? [t("profile.security.sessions.thisDevice"), location]
+                      .filter(Boolean)
+                      .join(" · ")
+                  : [
+                      location ?? t("profile.security.sessions.unknownLocation"),
+                      t("profile.security.sessions.lastActive", {
+                        date: formatDateTime(s.lastUsedAt, i18n.language),
+                      }),
+                    ].join(" · ");
+              return (
+                <div key={s.id} className={cnRow(i, sessionList.length, s.closedAt !== null)}>
+                  <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-medium">{label}</div>
+                    <div
+                      className={
+                        s.isCurrent && !s.closedAt
+                          ? "text-[11px] text-success"
+                          : "text-[11px] text-muted-foreground"
+                      }
+                    >
+                      {meta}
+                    </div>
                   </div>
+                  {s.isCurrent || s.closedAt ? null : (
+                    <button
+                      type="button"
+                      className="text-[11px] font-medium text-destructive disabled:opacity-60"
+                      disabled={closeSession.isPending}
+                      onClick={() => closeSession.mutate(s.id)}
+                    >
+                      {t("profile.security.sessions.close")}
+                    </button>
+                  )}
                 </div>
-                {s.current ? null : (
-                  <button
-                    type="button"
-                    className="text-[11px] font-medium text-destructive"
-                    onClick={() => setSessions((prev) => prev.filter((x) => x.id !== s.id))}
-                  >
-                    {t("profile.security.sessions.close")}
-                  </button>
-                )}
-              </div>
-            );
-          })}
+              );
+            })
+          )}
+          {!sessionsLoading && sessionList.length === 0 ? (
+            <p className="px-3.5 py-2.5 text-xs text-muted-foreground">
+              {t("profile.security.sessions.empty")}
+            </p>
+          ) : null}
         </div>
       </div>
       <ChangePasswordDialog open={changingPassword} onOpenChange={setChangingPassword} />
@@ -365,7 +423,8 @@ export function SecuritySection() {
   );
 }
 
-function cnRow(index: number, total: number): string {
+function cnRow(index: number, total: number, closed = false): string {
   const base = "flex items-center gap-3 px-3.5 py-2.5";
-  return index < total - 1 ? `${base} border-b` : base;
+  const withBorder = index < total - 1 ? `${base} border-b` : base;
+  return closed ? `${withBorder} opacity-60` : withBorder;
 }

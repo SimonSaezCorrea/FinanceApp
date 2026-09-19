@@ -4,6 +4,9 @@ import type { Request } from "express";
 export interface AuthUser {
   id: string;
   email: string | null;
+  /** The `sid` claim of the access token that authenticated this request (specs/023) —
+   * which `Session` row is "this device" for the caller. */
+  sessionId: string;
 }
 
 /** Injects the authenticated user (set by JwtAuthGuard) into a handler param. */

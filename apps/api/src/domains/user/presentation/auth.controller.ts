@@ -22,16 +22,19 @@ import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.dec
 import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { ChangePasswordCommand } from "../application/commands/change-password.command";
+import { CloseSessionCommand } from "../application/commands/close-session.command";
 import { ConfirmMfaEnrollmentCommand } from "../application/commands/confirm-mfa-enrollment.command";
 import { ConfirmPasskeyRegistrationCommand } from "../application/commands/confirm-passkey-registration.command";
 import { DeactivateAccountCommand } from "../application/commands/deactivate-account.command";
 import { DisableMfaCommand } from "../application/commands/disable-mfa.command";
 import type { LoginResult } from "../application/commands/login.handler";
 import { LoginCommand } from "../application/commands/login.command";
+import { LogoutCommand } from "../application/commands/logout.command";
 import type { AuthResult } from "../application/commands/register.handler";
 import { RefreshTokenCommand } from "../application/commands/refresh-token.command";
 import { RegisterCommand } from "../application/commands/register.command";
 import { RemovePasskeyCommand } from "../application/commands/remove-passkey.command";
+import { RevokeOtherSessionsCommand } from "../application/commands/revoke-other-sessions.command";
 import { StartMfaEnrollmentCommand } from "../application/commands/start-mfa-enrollment.command";
 import type { StartPasskeyLoginResult } from "../application/commands/start-passkey-login.handler";
 import { StartPasskeyLoginCommand } from "../application/commands/start-passkey-login.command";
@@ -45,7 +48,9 @@ import { PasskeyChallengeToken } from "../application/passkey-challenge-token";
 import { TokenIssuer, type TokenPair } from "../application/token-issuer";
 import { GetMeQuery } from "../application/queries/get-me.query";
 import { ListPasskeysQuery } from "../application/queries/list-passkeys.query";
+import { ListSessionsQuery } from "../application/queries/list-sessions.query";
 import { passkeyIdParamsSchema } from "./dto/passkey-id.params";
+import { sessionIdParamsSchema } from "./dto/session-id.params";
 
 const MFA_PENDING_COOKIE = "mfa_pending_token";
 const MFA_PENDING_COOKIE_MAX_AGE_MS = 5 * 60 * 1000;
@@ -81,11 +86,12 @@ export class AuthController {
 
   @Post("register")
   async register(
+    @Req() req: Request,
     @Body(new ZodValidationPipe(auth.registerRequestSchema)) body: auth.RegisterRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<auth.CurrentUser> {
     const { tokens, user } = await this.commandBus.execute<RegisterCommand, AuthResult>(
-      new RegisterCommand(body),
+      new RegisterCommand(body, this.deviceFrom(req)),
     );
     this.setAuthCookies(res, tokens);
     return user;
@@ -94,10 +100,13 @@ export class AuthController {
   @Post("login")
   @HttpCode(200)
   async login(
+    @Req() req: Request,
     @Body(new ZodValidationPipe(auth.loginRequestSchema)) body: auth.LoginRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<auth.LoginResponse> {
-    const result = await this.commandBus.execute<LoginCommand, LoginResult>(new LoginCommand(body));
+    const result = await this.commandBus.execute<LoginCommand, LoginResult>(
+      new LoginCommand(body, this.deviceFrom(req)),
+    );
     if (result.mfaRequired) {
       res.cookie(MFA_PENDING_COOKIE, result.mfaPendingToken, {
         ...this.cookieBase(),
@@ -119,7 +128,7 @@ export class AuthController {
     const pendingToken = (req.cookies as Record<string, string> | undefined)?.[MFA_PENDING_COOKIE];
     const { sub: userId } = this.tokenIssuer.verifyMfaPending(pendingToken ?? "");
     const { tokens, user } = await this.commandBus.execute<VerifyMfaLoginCommand, AuthResult>(
-      new VerifyMfaLoginCommand(userId, body),
+      new VerifyMfaLoginCommand(userId, body, this.deviceFrom(req)),
     );
     res.clearCookie(MFA_PENDING_COOKIE, this.cookieBase());
     this.setAuthCookies(res, tokens);
@@ -159,7 +168,13 @@ export class AuthController {
     ];
     const { challenge, userId, discoverable } = this.passkeyChallenge.verify(cookieToken ?? "");
     const { tokens, user } = await this.commandBus.execute<VerifyPasskeyLoginCommand, AuthResult>(
-      new VerifyPasskeyLoginCommand(body.response, challenge, userId, discoverable),
+      new VerifyPasskeyLoginCommand(
+        body.response,
+        challenge,
+        userId,
+        discoverable,
+        this.deviceFrom(req),
+      ),
     );
     res.clearCookie(PASSKEY_CHALLENGE_COOKIE, this.cookieBase());
     this.setAuthCookies(res, tokens);
@@ -178,7 +193,9 @@ export class AuthController {
 
   @Post("logout")
   @HttpCode(204)
-  logout(@Res({ passthrough: true }) res: Response): void {
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<void> {
+    const token = (req.cookies as Record<string, string> | undefined)?.[REFRESH_COOKIE];
+    await this.commandBus.execute<LogoutCommand, void>(new LogoutCommand(token));
     res.clearCookie(ACCESS_COOKIE, this.cookieBase());
     res.clearCookie(REFRESH_COOKIE, this.cookieBase());
   }
@@ -303,6 +320,29 @@ export class AuthController {
     return this.commandBus.execute(new RemovePasskeyCommand(user.id, params.id));
   }
 
+  @Get("sessions")
+  @UseGuards(JwtAuthGuard)
+  listSessions(@CurrentUser() user: AuthUser): Promise<auth.ListSessionsResponse> {
+    return this.queryBus.execute(new ListSessionsQuery(user.id, user.sessionId));
+  }
+
+  @Delete("sessions/:id")
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  closeSession(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(sessionIdParamsSchema)) params: { id: string },
+  ): Promise<void> {
+    return this.commandBus.execute(new CloseSessionCommand(user.id, params.id));
+  }
+
+  @Post("sessions/revoke-others")
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  revokeOtherSessions(@CurrentUser() user: AuthUser): Promise<void> {
+    return this.commandBus.execute(new RevokeOtherSessionsCommand(user.id, user.sessionId));
+  }
+
   @Post("me/deactivate")
   @HttpCode(204)
   @UseGuards(JwtAuthGuard)
@@ -314,6 +354,12 @@ export class AuthController {
     await this.commandBus.execute(new DeactivateAccountCommand(user.id, body));
     res.clearCookie(ACCESS_COOKIE, this.cookieBase());
     res.clearCookie(REFRESH_COOKIE, this.cookieBase());
+  }
+
+  /** Extracts what a session's `deviceLabel`/`country` are later derived from — the only
+   * point this Facade reads `req.headers`/`req.ip` for anything beyond cookies. */
+  private deviceFrom(req: Request): { userAgent?: string; ip?: string } {
+    return { userAgent: req.headers["user-agent"], ip: req.ip };
   }
 
   private cookieBase() {

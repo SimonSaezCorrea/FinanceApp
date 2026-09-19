@@ -14,7 +14,7 @@ import {
 import { InvalidMfaCodeError, MfaLockedError, UnauthorizedError } from "../../domain/errors";
 import type { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
-import { TokenIssuer } from "../token-issuer";
+import { SessionIssuer } from "../session-issuer";
 import { looksLikeRecoveryCode } from "../recovery-code-generator";
 import type { AuthResult } from "./register.handler";
 import { VerifyMfaLoginCommand } from "./verify-mfa-login.command";
@@ -26,7 +26,7 @@ type Outcome =
   | { kind: "unauthorized" }
   | { kind: "locked" }
   | { kind: "invalid" }
-  | { kind: "success"; auth: AuthResult };
+  | { kind: "success"; user: User; remaining: number };
 
 /**
  * Completes a pending login's second factor. The ENTIRE read-validate-write cycle runs inside
@@ -59,7 +59,7 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
     @Inject(USER_REPOSITORY) private readonly repo: UserRepositoryPort,
     @Inject(MFA_RECOVERY_CODE_REPOSITORY)
     private readonly recoveryCodes: MfaRecoveryCodeRepositoryPort,
-    private readonly tokenIssuer: TokenIssuer,
+    private readonly sessionIssuer: SessionIssuer,
     private readonly prisma: PrismaService,
   ) {
     super(eventBus);
@@ -84,9 +84,17 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
         throw new MfaLockedError();
       case "invalid":
         throw new InvalidMfaCodeError();
-      case "success":
+      case "success": {
         this.logger.log(`MFA verified: ${context.userId}`);
-        return { result: outcome.auth, events: [] };
+        const tokens = await this.sessionIssuer.establish(
+          { id: outcome.user.id, email: outcome.user.email },
+          { userAgent: command.device?.userAgent, ip: command.device?.ip },
+        );
+        return {
+          result: { tokens, user: outcome.user.toContract(outcome.remaining) },
+          events: [],
+        };
+      }
     }
   }
 
@@ -109,9 +117,8 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
 
     user.recordMfaSuccess();
     await this.repo.saveWithTx(tx, user);
-    const tokens = this.tokenIssuer.issue({ id: user.id, email: user.email });
     const remaining = await this.recoveryCodes.countUnused(user.id);
-    return { kind: "success", auth: { tokens, user: user.toContract(remaining) } };
+    return { kind: "success", user, remaining };
   }
 
   private validateTotp(user: User, code: string): boolean {
