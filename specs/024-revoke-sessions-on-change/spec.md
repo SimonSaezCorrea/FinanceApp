@@ -99,7 +99,9 @@ queda cerrada y A sigue activa.
 
 - **FR-001**: El sistema DEBE cerrar todas las sesiones activas del usuario, excepto la sesión que
   originó la petición, inmediatamente después de un cambio de contraseña exitoso
-  (`PATCH /auth/me/password`).
+  (`POST /auth/me/password` — el endpoint real; la redacción original de este spec y de `CLAUDE.md`
+  decían `PATCH`, una imprecisión de documentación preexistente sin relación con esta feature, ver
+  `research.md`).
 - **FR-002**: El sistema DEBE cerrar todas las sesiones activas del usuario, excepto la sesión que
   originó la petición, inmediatamente después de una desactivación exitosa de la verificación en dos
   pasos (MFA/TOTP).
