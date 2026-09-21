@@ -26,6 +26,7 @@ export function RegisterRoute() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [identifierValue, setIdentifierValue] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [sensitiveDataConsent, setSensitiveDataConsent] = useState(false);
   const [guardianName, setGuardianName] = useState("");
@@ -50,9 +51,10 @@ export function RegisterRoute() {
     setError(null);
     try {
       await register({
-        name: name || undefined,
+        name,
         email,
         password,
+        identifierValue,
         birthDate: new Date(birthDate),
         sensitiveDataConsent: sensitiveDataConsent as true,
         guardianAuthorization: isMinor
@@ -88,8 +90,17 @@ export function RegisterRoute() {
               type="text"
               placeholder={t("auth.name")}
               value={name}
+              required
               autoComplete="name"
               onChange={(e) => setName(e.target.value)}
+            />
+            <Input
+              type="text"
+              placeholder={t("auth.rut")}
+              value={identifierValue}
+              required
+              autoComplete="username"
+              onChange={(e) => setIdentifierValue(e.target.value)}
             />
             <Input
               type="email"

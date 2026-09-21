@@ -3,7 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import { hash } from "bcryptjs";
 
-import type { auth } from "@finance/contracts";
+import { auth } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
@@ -19,7 +19,7 @@ import {
   CONSENT_RECORD_REPOSITORY,
   type ConsentRecordRepositoryPort,
 } from "../../../consent-record/domain/ports/consent-record.repository.port";
-import { EmailTakenError } from "../../domain/errors";
+import { EmailTakenError, IdentifierTakenError } from "../../domain/errors";
 import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { CURRENT_PRIVACY_POLICY_VERSION } from "../privacy-policy-version";
@@ -55,6 +55,11 @@ export class RegisterHandler extends BaseCommandHandler<RegisterCommand, AuthRes
     const email = command.input.email.toLowerCase();
     const existing = await this.repo.findByEmail(email);
     if (existing) throw new EmailTakenError();
+    // The RUT is now the login credential — same pre-check discipline as email above
+    // (defense-in-depth against a genuine race lives in the Prisma adapter's own P2002 catch).
+    const identifierValue = auth.normalizeRut(command.input.identifierValue);
+    const existingByIdentifier = await this.repo.findByIdentifierValue(identifierValue);
+    if (existingByIdentifier) throw new IdentifierTakenError();
     return { passwordHash: await hash(command.input.password, 12) };
   }
 

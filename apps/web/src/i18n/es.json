@@ -1223,7 +1223,8 @@
     "signIn": "Iniciar sesión",
     "createAccount": "Crear cuenta",
     "register": "Registrarse",
-    "name": "Nombre (opcional)",
+    "name": "Nombre completo",
+    "rut": "RUT",
     "email": "Correo",
     "password": "Contraseña",
     "birthDate": "Fecha de nacimiento",
@@ -1231,8 +1232,8 @@
     "guardian": {
       "title": "Autorización de tu madre, padre o tutor",
       "hint": "Como eres menor de edad, necesitamos la autorización de quien te representa legalmente.",
-      "name": "Nombre completo",
-      "identifierValue": "RUT",
+      "name": "Nombre completo del tutor",
+      "identifierValue": "RUT del tutor",
       "relationship": {
         "MOTHER": "Madre",
         "FATHER": "Padre",
@@ -1496,6 +1497,7 @@
     "NOT_FOUND": "No se encontró el recurso.",
     "INVALID_CREDENTIALS": "Correo o contraseña incorrectos.",
     "EMAIL_TAKEN": "Ese correo ya está registrado.",
+    "IDENTIFIER_TAKEN": "Ese RUT ya está registrado.",
     "INVALID_MFA_CODE": "Código incorrecto. Inténtalo de nuevo.",
     "MFA_LOCKED": "Demasiados intentos. Espera unos minutos antes de volver a intentarlo.",
     "MFA_NOT_PENDING": "No hay una activación pendiente que confirmar.",

@@ -4,8 +4,10 @@ import { calculateAgeFromBirthDate, registerRequestSchema } from "./index";
 
 function baseInput(overrides: Record<string, unknown> = {}) {
   return {
+    name: "Ana Titular",
     email: "a@b.com",
     password: "password123",
+    identifierValue: "12.345.678-5",
     birthDate: "1990-01-01",
     sensitiveDataConsent: true,
     ...overrides,
@@ -75,6 +77,16 @@ describe("registerRequestSchema — minor guardian authorization", () => {
 
   it("rejects an unchecked sensitiveDataConsent", () => {
     const result = registerRequestSchema.safeParse(baseInput({ sensitiveDataConsent: false }));
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects a missing name (now mandatory for the titular too)", () => {
+    const result = registerRequestSchema.safeParse(baseInput({ name: "" }));
+    expect(result.success).toBe(false);
+  });
+
+  it("rejects the titular's own RUT when its check digit is invalid", () => {
+    const result = registerRequestSchema.safeParse(baseInput({ identifierValue: "12.345.678-9" }));
     expect(result.success).toBe(false);
   });
 });

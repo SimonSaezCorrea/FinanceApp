@@ -2,6 +2,8 @@ import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { Prisma, type User as UserRow } from "@prisma/client";
 
+import { auth } from "@finance/contracts";
+
 import { getMfaEncryptionKey } from "../../../infra/config/mfa.config";
 import { PrismaService } from "../../../infra/prisma/prisma.service";
 import {
@@ -9,9 +11,21 @@ import {
   type CountryLookupPort,
 } from "../../country/domain/ports/country-lookup.port";
 import { decryptMfaSecret, encryptMfaSecret } from "../application/mfa-secret-cipher";
-import { EmailTakenError } from "../domain/errors";
+import { EmailTakenError, IdentifierTakenError } from "../domain/errors";
 import { User, type UserProps } from "../domain/user.aggregate";
 import type { UserRepositoryPort } from "../domain/ports/user.repository.port";
+
+/** Maps a Postgres unique-constraint violation to the right domain error by WHICH column
+ * collided — `email` and `identifierValue` are both unique, and conflating them would tell the
+ * caller the wrong field failed. */
+function rethrowUniqueViolation(err: unknown): never {
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    const target = (err.meta?.target as string[] | undefined) ?? [];
+    if (target.includes("identifierValue")) throw new IdentifierTakenError();
+    throw new EmailTakenError();
+  }
+  throw err;
+}
 
 type Row = NonNullable<Awaited<ReturnType<PrismaService["user"]["findUnique"]>>> & {
   country?: { name: string } | null;
@@ -68,6 +82,16 @@ export class PrismaUserRepository implements UserRepositoryPort {
       : null;
   }
 
+  async findByIdentifierValue(identifierValue: string): Promise<User | null> {
+    const row = await this.prisma.user.findUnique({
+      where: { identifierValue },
+      include: { country: true },
+    });
+    return row
+      ? User.fromPersistence(rowToProps(row as Row, getMfaEncryptionKey(this.config)))
+      : null;
+  }
+
   async findById(id: string): Promise<User | null> {
     const row = await this.prisma.user.findUnique({ where: { id }, include: { country: true } });
     return row
@@ -80,9 +104,24 @@ export class PrismaUserRepository implements UserRepositoryPort {
     name?: string;
     passwordHash: string;
     birthDate: Date;
+    identifierType?: auth.CurrentUser["identifierType"];
+    identifierValue?: string | null;
   }): Promise<User> {
-    const row = await this.prisma.user.create({ data: plan, include: { country: true } });
-    return User.fromPersistence(rowToProps(row as Row, getMfaEncryptionKey(this.config)));
+    // Normalized here, at the adapter boundary, same split `mfaSecret` encryption already
+    // uses — the domain layer never has to know about dots/dashes.
+    const identifierValue =
+      plan.identifierType === "RUT" && plan.identifierValue
+        ? auth.normalizeRut(plan.identifierValue)
+        : (plan.identifierValue ?? null);
+    try {
+      const row = await this.prisma.user.create({
+        data: { ...plan, identifierValue },
+        include: { country: true },
+      });
+      return User.fromPersistence(rowToProps(row as Row, getMfaEncryptionKey(this.config)));
+    } catch (err) {
+      rethrowUniqueViolation(err);
+    }
   }
 
   async save(user: User): Promise<void> {
@@ -112,7 +151,12 @@ export class PrismaUserRepository implements UserRepositoryPort {
           addressPostalCode: snap.addressPostalCode,
           birthDate: snap.birthDate,
           identifierType: snap.identifierType,
-          identifierValue: snap.identifierValue,
+          // Normalized here too — a profile edit must keep the same canonical form the login
+          // lookup expects, or a RUT re-typed with different dots/dash breaks its own login.
+          identifierValue:
+            snap.identifierType === "RUT" && snap.identifierValue
+              ? auth.normalizeRut(snap.identifierValue)
+              : snap.identifierValue,
           phone: snap.phone,
           hideBalances: snap.hideBalances,
           extraCurrencies: snap.extraCurrencies,
@@ -127,13 +171,10 @@ export class PrismaUserRepository implements UserRepositoryPort {
         },
       });
     } catch (err) {
-      // Defense-in-depth against a concurrent email change racing the
+      // Defense-in-depth against a concurrent email/RUT change racing the
       // application layer's pre-check (mirrors the pre-migration
       // `AuthService.updateProfile`'s `P2002` catch).
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
-        throw new EmailTakenError();
-      }
-      throw err;
+      rethrowUniqueViolation(err);
     }
   }
 

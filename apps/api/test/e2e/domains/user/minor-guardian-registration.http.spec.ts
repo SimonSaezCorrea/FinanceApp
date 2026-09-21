@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { randomValidRut } from "../../support/rut";
 
 /**
  * E2E test: Ley 21.719's reinforced regime for a minor titular — a real (not mocked) minimum
@@ -19,6 +20,7 @@ describe("Auth HTTP (e2e) — minor guardian registration", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const minorEmail = `e2e_minor_${randomUUID()}@test.local`;
+  const minorRut = randomValidRut();
   const password = "Sup3rSecret!";
   const tenYearsAgo = new Date();
   tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
@@ -40,15 +42,14 @@ describe("Auth HTTP (e2e) — minor guardian registration", () => {
   });
 
   it("rejects a minor registering with no guardianAuthorization", async () => {
-    const res = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({
-        email: minorEmail,
-        password,
-        name: "Kid",
-        birthDate: tenYearsAgo.toISOString(),
-        sensitiveDataConsent: true,
-      });
+    const res = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email: minorEmail,
+      password,
+      name: "Kid",
+      identifierValue: minorRut,
+      birthDate: tenYearsAgo.toISOString(),
+      sensitiveDataConsent: true,
+    });
     expect(res.status).toBe(400);
   });
 
@@ -59,6 +60,7 @@ describe("Auth HTTP (e2e) — minor guardian registration", () => {
         email: minorEmail,
         password,
         name: "Kid",
+        identifierValue: minorRut,
         birthDate: tenYearsAgo.toISOString(),
         sensitiveDataConsent: true,
         guardianAuthorization: {
@@ -86,7 +88,7 @@ describe("Auth HTTP (e2e) — minor guardian registration", () => {
   it("GET /auth/me/consents exposes the guardian's name/relationship, never the hash", async () => {
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email: minorEmail, password });
+      .send({ identifierValue: minorRut, password });
     const cookies = login.get("Set-Cookie") ?? [];
 
     const res = await request(app.getHttpServer())

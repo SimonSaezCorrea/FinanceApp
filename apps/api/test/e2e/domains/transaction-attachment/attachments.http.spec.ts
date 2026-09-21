@@ -11,6 +11,7 @@ import { OBJECT_STORAGE } from "../../../../src/domains/transaction-attachment/d
 import type { ObjectStoragePort } from "../../../../src/domains/transaction-attachment/domain/ports/object-storage.port";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { randomValidRut } from "../../support/rut";
 import { UUID_V7 } from "../../support/uuid";
 
 const PDF = Buffer.from([0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x34, 0x0a]);
@@ -25,6 +26,7 @@ describe("Attachments HTTP (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_${randomUUID()}@test.local`;
+  const rut = randomValidRut();
   const otherEmail = `e2e_${randomUUID()}@test.local`;
   let cookies: string[] = [];
   let otherCookies: string[] = [];
@@ -58,20 +60,20 @@ describe("Attachments HTTP (e2e)", () => {
     app = await bootstrap(storage);
     prisma = app.get(PrismaService);
 
-    const register = await api()
-      .post("/api/v1/auth/register")
-      .send({
-        email,
-        password: "Sup3rSecret!",
-        name: "E2E",
-        sensitiveDataConsent: true,
-        birthDate: "1990-01-01",
-      });
+    const register = await api().post("/api/v1/auth/register").send({
+      email,
+      password: "Sup3rSecret!",
+      name: "E2E",
+      identifierValue: rut,
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     cookies = register.get("Set-Cookie") ?? [];
     const registerOther = await api().post("/api/v1/auth/register").send({
       email: otherEmail,
       password: "Sup3rSecret!",
       name: "Other",
+      identifierValue: randomValidRut(),
       sensitiveDataConsent: true,
       birthDate: "1990-01-01",
     });
@@ -216,7 +218,7 @@ describe("Attachments HTTP (e2e)", () => {
     const inert = await bootstrap({ ...storage, isConfigured: () => false });
     const login = await request(inert.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password: "Sup3rSecret!" });
+      .send({ identifierValue: rut, password: "Sup3rSecret!" });
     const inertCookies = login.get("Set-Cookie") ?? [];
 
     const movement = await request(inert.getHttpServer())

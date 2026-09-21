@@ -60,6 +60,7 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     saveWithTx: vi.fn().mockResolvedValue(undefined),
     findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn(),
+    findByIdentifierValue: vi.fn(),
     deleteWithTx: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };

@@ -147,7 +147,7 @@ export class AuthController {
     const { options, userId, discoverable } = await this.commandBus.execute<
       StartPasskeyLoginCommand,
       StartPasskeyLoginResult
-    >(new StartPasskeyLoginCommand(body.email));
+    >(new StartPasskeyLoginCommand(body.identifierValue));
     const challenge = (options as { challenge: string }).challenge;
     res.cookie(
       PASSKEY_CHALLENGE_COOKIE,

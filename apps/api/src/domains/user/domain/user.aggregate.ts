@@ -99,23 +99,32 @@ export class User {
    * pure-crypto concern performed by the calling handler (bcrypt has no I/O
    * dependency, so it isn't a repository port), the hash is handed in ready.
    * `birthDate` is required at registration (not left for later in Profile) — the
-   * guardian-consent age threshold can't be evaluated without it from day one. */
+   * guardian-consent age threshold can't be evaluated without it from day one.
+   * `identifierValue` (the titular's own RUT) is required too — it's now the LOGIN
+   * credential, so `identifierType` is always "RUT" (this app's MVP is Chile-only; never
+   * asked of the caller, not part of the input). Normalization (no dots/dash) happens at the
+   * Prisma adapter boundary, same split `mfaSecret` encryption already uses. */
   static planRegistration(input: {
     email: string;
-    name?: string;
+    name: string;
     passwordHash: string;
     birthDate: Date;
+    identifierValue: string;
   }): {
     email: string;
-    name?: string;
+    name: string;
     passwordHash: string;
     birthDate: Date;
+    identifierType: "RUT";
+    identifierValue: string;
   } {
     return {
       email: input.email.toLowerCase(),
       name: input.name,
       passwordHash: input.passwordHash,
       birthDate: input.birthDate,
+      identifierType: "RUT",
+      identifierValue: input.identifierValue,
     };
   }
 

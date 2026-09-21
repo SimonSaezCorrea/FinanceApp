@@ -33,13 +33,26 @@ describe("Passkey registration HTTP (e2e)", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    const res = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
-      email,
-      password,
-      name: "Passkey Reg",
-      sensitiveDataConsent: true,
-      birthDate: "1990-01-01",
-    });
+    const res = await request(app.getHttpServer())
+      .post("/api/v1/auth/register")
+      .send({
+        email,
+        password,
+        name: "Passkey Reg",
+        sensitiveDataConsent: true,
+        birthDate: "1990-01-01",
+        identifierValue: (() => {
+          const b = String(Math.floor(1e6 + Math.random() * 24e6));
+          let s = 0,
+            m = 2;
+          for (let i = b.length - 1; i >= 0; i--) {
+            s += Number(b[i]) * m;
+            m = m === 7 ? 2 : m + 1;
+          }
+          const r = 11 - (s % 11);
+          return b + "-" + (r === 11 ? "0" : r === 10 ? "K" : String(r));
+        })(),
+      });
     cookies = res.get("Set-Cookie") ?? [];
   });
 

@@ -15,16 +15,17 @@ interface AuthContextValue {
   user: auth.CurrentUser | null;
   loading: boolean;
   /** Resolves `{mfaRequired: true}` without setting a session when the account has MFA active —
-   * the caller must then collect a code and call `verifyMfa`. */
-  login: (email: string, password: string) => Promise<{ mfaRequired: boolean }>;
+   * the caller must then collect a code and call `verifyMfa`. Login is by RUT (Chilean
+   * convention), not email — email stays on the account purely for contact/notifications. */
+  login: (identifierValue: string, password: string) => Promise<{ mfaRequired: boolean }>;
   /** Completes a pending login's second factor (TOTP or recovery code, single field). */
   verifyMfa: (code: string) => Promise<void>;
   /** Full login via a registered passkey — no password, and never routes through MFA even if
-   * the account has it active (specs/022 FR-006/FR-007). `email` omitted = discoverable/
-   * "usernameless" login: the browser offers its own account picker for any resident passkey on
-   * this site, with nothing typed. Throws if the device ceremony is cancelled/fails or the
-   * server rejects the assertion. */
-  loginWithPasskey: (email?: string) => Promise<void>;
+   * the account has it active (specs/022 FR-006/FR-007). `identifierValue` (the titular's RUT)
+   * omitted = discoverable/"usernameless" login: the browser offers its own account picker for
+   * any resident passkey on this site, with nothing typed. Throws if the device ceremony is
+   * cancelled/fails or the server rejects the assertion. */
+  loginWithPasskey: (identifierValue?: string) => Promise<void>;
   /** Autofill-driven login (specs/025): attempted once when the login screen mounts, never on a
    * click. Silently does nothing on an unsupported browser, a declined/empty suggestion, or when
    * `signal` aborts (the password form was submitted instead) — never throws, matching the
@@ -59,8 +60,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // `resetAuthRefresh` re-arms the silent refresh: it disables itself after a
       // failure so a dead session can't be re-asked on every request, and a fresh
       // login is exactly the event that makes it valid again.
-      login: async (email, password) => {
-        const result = await authApi.login({ email, password });
+      login: async (identifierValue, password) => {
+        const result = await authApi.login({ identifierValue, password });
         if (result.mfaRequired) return { mfaRequired: true };
         resetAuthRefresh();
         setUser(result.user);
@@ -71,8 +72,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         resetAuthRefresh();
         setUser(next);
       },
-      loginWithPasskey: async (email) => {
-        const { options } = await passkeyApi.startLogin({ email });
+      loginWithPasskey: async (identifierValue) => {
+        const { options } = await passkeyApi.startLogin({ identifierValue });
         const credential = await navigator.credentials.get(toGetOptions(options));
         if (!credential) throw new Error("passkey ceremony cancelled");
         const { user: next } = await passkeyApi.verifyLogin({

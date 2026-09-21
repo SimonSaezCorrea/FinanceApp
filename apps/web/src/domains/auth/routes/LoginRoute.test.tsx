@@ -57,8 +57,8 @@ function renderLogin() {
 }
 
 async function submitCredentials() {
-  fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.email")), {
-    target: { value: "a@b.com" },
+  fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.rut")), {
+    target: { value: "12345678-5" },
   });
   fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.password")), {
     target: { value: "secret123" },
@@ -126,7 +126,7 @@ describe("LoginRoute", () => {
     await submitCredentials();
 
     await waitFor(() =>
-      expect(login).toHaveBeenCalledWith({ email: "a@b.com", password: "secret123" }),
+      expect(login).toHaveBeenCalledWith({ identifierValue: "12345678-5", password: "secret123" }),
     );
     expect(screen.queryByText(i18n.t("auth.mfa.title"))).toBeNull();
   });
@@ -144,7 +144,7 @@ describe("LoginRoute", () => {
     expect(button.hasAttribute("disabled")).toBe(false);
     fireEvent.click(button);
 
-    await waitFor(() => expect(startLogin).toHaveBeenCalledWith({ email: undefined }));
+    await waitFor(() => expect(startLogin).toHaveBeenCalledWith({ identifierValue: undefined }));
     vi.unstubAllGlobals();
   });
 
@@ -157,12 +157,12 @@ describe("LoginRoute", () => {
     });
 
     renderLogin();
-    fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.email")), {
-      target: { value: "a@b.com" },
+    fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.rut")), {
+      target: { value: "12345678-5" },
     });
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.passkey.signIn") }));
 
-    await waitFor(() => expect(startLogin).toHaveBeenCalledWith({ email: "a@b.com" }));
+    await waitFor(() => expect(startLogin).toHaveBeenCalledWith({ identifierValue: "12345678-5" }));
     vi.unstubAllGlobals();
   });
 
@@ -175,8 +175,8 @@ describe("LoginRoute", () => {
     });
 
     renderLogin();
-    fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.email")), {
-      target: { value: "a@b.com" },
+    fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.rut")), {
+      target: { value: "12345678-5" },
     });
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.passkey.signIn") }));
 
@@ -192,8 +192,8 @@ describe("LoginRoute", () => {
     (navigator.credentials.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
     renderLogin();
-    fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.email")), {
-      target: { value: "a@b.com" },
+    fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.rut")), {
+      target: { value: "12345678-5" },
     });
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.passkey.signIn") }));
 
@@ -235,7 +235,7 @@ describe("LoginRoute", () => {
       // No `PublicKeyCredential` stubbed at all — same as every browser without WebAuthn support.
 
       renderLogin();
-      await screen.findByPlaceholderText(i18n.t("auth.email"));
+      await screen.findByPlaceholderText(i18n.t("auth.rut"));
 
       expect(startLogin).not.toHaveBeenCalled();
       expect(navigator.credentials.get).not.toHaveBeenCalled();
@@ -255,8 +255,8 @@ describe("LoginRoute", () => {
       });
 
       renderLogin();
-      fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.email")), {
-        target: { value: "a@b.com" },
+      fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.rut")), {
+        target: { value: "12345678-5" },
       });
       fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.passkey.signIn") }));
 

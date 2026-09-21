@@ -8,8 +8,12 @@ export * from "./rut";
 
 /** Auth domain contracts (seed; expanded during US2 auth migration). */
 
+/** Login is by RUT, not email (Chilean convention, same as most Chilean banking apps) — email
+ * stays on the account purely for contact/notifications. Not checksum-validated here on
+ * purpose: a malformed RUT should fail the SAME generic `INVALID_CREDENTIALS` a wrong password
+ * would, never a distinct "that RUT isn't even valid" response (anti-enumeration). */
 export const loginRequestSchema = z.object({
-  email: z.string().email(),
+  identifierValue: z.string().trim().min(1).max(20),
   password: z.string().min(1),
 });
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
@@ -48,9 +52,20 @@ export type GuardianAuthorization = z.infer<typeof guardianAuthorizationSchema>;
 
 export const registerRequestSchema = z
   .object({
-    name: z.string().trim().min(1).max(120).optional(),
+    name: z.string().trim().min(1).max(120),
     email: z.string().email(),
     password: z.string().min(8).max(200),
+    /** The titular's own RUT — mandatory (this app's MVP is Chile-only, so `identifierType` is
+     * always "RUT" here, never asked). Checksum-validated (unlike login's own RUT field) since
+     * this is registration, not a credential attempt — a malformed RUT here is a genuine input
+     * error, not something to hide behind a generic anti-enumeration response. Becomes the
+     * login credential (see `loginRequestSchema`), so it's unique across every account. */
+    identifierValue: z
+      .string()
+      .trim()
+      .min(1)
+      .max(20)
+      .refine(isValidRut, { message: "invalid_rut" }),
     /** Required at registration (not left for later in Profile) — the guardian-consent
      * threshold above can't be evaluated without knowing the titular's age from day one. */
     birthDate: z.coerce.date(),
@@ -274,9 +289,12 @@ export const renamePasskeyRequestSchema = z.object({
 });
 export type RenamePasskeyRequest = z.infer<typeof renamePasskeyRequestSchema>;
 
-/** `email` omitted = discoverable/"usernameless" login: the browser offers any resident passkey
- * for this site on its own, with no typed email at all. */
-export const startPasskeyLoginRequestSchema = z.object({ email: z.string().email().optional() });
+/** `identifierValue` (the titular's RUT, same login credential as password login) omitted =
+ * discoverable/"usernameless" login: the browser offers any resident passkey for this site on
+ * its own, with nothing typed. */
+export const startPasskeyLoginRequestSchema = z.object({
+  identifierValue: z.string().trim().min(1).max(20).optional(),
+});
 export type StartPasskeyLoginRequest = z.infer<typeof startPasskeyLoginRequestSchema>;
 
 /** Always the same shape whether or not the email has any passkeys (FR-005a, no

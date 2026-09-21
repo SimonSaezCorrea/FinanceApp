@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { randomValidRut } from "../../support/rut";
 
 /**
  * E2E test: `POST /auth/me/delete-account` with `keepHistory: false` — the user's own explicit
@@ -19,6 +20,7 @@ describe("Auth HTTP (e2e) — delete-account hard delete", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_hard_delete_${randomUUID()}@test.local`;
+  const rut = randomValidRut();
   const password = "Sup3rSecret!";
   let cookies: string[] = [];
   let userId: string;
@@ -37,6 +39,7 @@ describe("Auth HTTP (e2e) — delete-account hard delete", () => {
       email,
       password,
       name: "E2E Hard Delete",
+      identifierValue: rut,
       sensitiveDataConsent: true,
       birthDate: "1990-01-01",
     });
@@ -74,7 +77,7 @@ describe("Auth HTTP (e2e) — delete-account hard delete", () => {
   it("blocks further login with INVALID_CREDENTIALS", async () => {
     const loginAttempt = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     expect(loginAttempt.status).toBe(401);
     expect(loginAttempt.body.error.code).toBe("INVALID_CREDENTIALS");
   });

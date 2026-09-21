@@ -13,7 +13,7 @@ export function LoginRoute() {
   const { t } = useTranslation();
   const { login, verifyMfa, loginWithPasskey, tryConditionalPasskeyLogin, user } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
+  const [identifierValue, setIdentifierValue] = useState("");
   const [password, setPassword] = useState("");
   const [mfaCode, setMfaCode] = useState("");
   const [step, setStep] = useState<"credentials" | "mfa">("credentials");
@@ -46,7 +46,7 @@ export function LoginRoute() {
     setError(null);
     try {
       if (step === "credentials") {
-        const { mfaRequired } = await login(email, password);
+        const { mfaRequired } = await login(identifierValue, password);
         if (mfaRequired) {
           setStep("mfa");
         } else {
@@ -69,9 +69,9 @@ export function LoginRoute() {
     setError(null);
     setPasskeyBusy(true);
     try {
-      // An email typed narrows the browser's picker to that account's own passkeys; left empty,
+      // A RUT typed narrows the browser's picker to that account's own passkeys; left empty,
       // the browser offers an account picker for any resident passkey on this site on its own.
-      await loginWithPasskey(email.trim() || undefined);
+      await loginWithPasskey(identifierValue.trim() || undefined);
       navigate("/");
     } catch (err) {
       const code = err instanceof ApiRequestError ? err.code : "INVALID_CREDENTIALS";
@@ -94,12 +94,12 @@ export function LoginRoute() {
           {step === "credentials" ? (
             <form className="flex flex-col gap-3" onSubmit={onSubmit}>
               <Input
-                type="email"
-                placeholder={t("auth.email")}
-                value={email}
+                type="text"
+                placeholder={t("auth.rut")}
+                value={identifierValue}
                 required
                 autoComplete="username webauthn"
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => setIdentifierValue(e.target.value)}
               />
               <Input
                 type="password"

@@ -10,6 +10,7 @@ import { AppModule } from "../../../../src/app.module";
 import { generateRowId } from "../../../../src/infra/id/generate-row-id";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { randomValidRut } from "../../support/rut";
 
 /** E2E (specs/023, US2): closing a session revokes that device immediately — the
  * still-technically-unexpired access token stops working on its very next request,
@@ -19,6 +20,7 @@ describe("Close session HTTP (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_close_session_${randomUUID()}@test.local`;
+  const rut = randomValidRut();
   const password = "Sup3rSecret!";
 
   beforeAll(async () => {
@@ -36,6 +38,7 @@ describe("Close session HTTP (e2e)", () => {
       name: "Close Session E2E",
       sensitiveDataConsent: true,
       birthDate: "1990-01-01",
+      identifierValue: rut,
     });
   });
 
@@ -48,12 +51,12 @@ describe("Close session HTTP (e2e)", () => {
   it("closing a non-current session revokes it immediately without affecting the current one", async () => {
     const loginA = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const cookiesA = loginA.get("Set-Cookie") ?? [];
 
     const loginB = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const cookiesB = loginB.get("Set-Cookie") ?? [];
 
     const listA = await request(app.getHttpServer())
@@ -88,7 +91,7 @@ describe("Close session HTTP (e2e)", () => {
   it("closing the caller's OWN current session expels it immediately too (spec.md edge case)", async () => {
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const cookies = login.get("Set-Cookie") ?? [];
 
     const list = await request(app.getHttpServer())
@@ -109,7 +112,7 @@ describe("Close session HTTP (e2e)", () => {
   it("closing a session that isn't the caller's own answers 404 SESSION_NOT_FOUND", async () => {
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const cookies = login.get("Set-Cookie") ?? [];
 
     // A well-formed UUID v7 (matching rowId's format requirement) that simply doesn't

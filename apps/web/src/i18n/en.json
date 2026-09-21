@@ -1223,7 +1223,8 @@
     "signIn": "Sign in",
     "createAccount": "Create account",
     "register": "Register",
-    "name": "Name (optional)",
+    "name": "Full name",
+    "rut": "RUT",
     "email": "Email",
     "password": "Password",
     "birthDate": "Date of birth",
@@ -1231,8 +1232,8 @@
     "guardian": {
       "title": "Parent/guardian authorization",
       "hint": "Since you're a minor, we need authorization from your legal representative.",
-      "name": "Full name",
-      "identifierValue": "ID number",
+      "name": "Guardian's full name",
+      "identifierValue": "Guardian's RUT",
       "relationship": {
         "MOTHER": "Mother",
         "FATHER": "Father",
@@ -1496,6 +1497,7 @@
     "NOT_FOUND": "Resource not found.",
     "INVALID_CREDENTIALS": "Incorrect email or password.",
     "EMAIL_TAKEN": "That email is already registered.",
+    "IDENTIFIER_TAKEN": "That RUT is already registered.",
     "INVALID_MFA_CODE": "Incorrect code. Try again.",
     "MFA_LOCKED": "Too many attempts. Wait a few minutes before trying again.",
     "MFA_NOT_PENDING": "There's no pending activation to confirm.",

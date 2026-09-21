@@ -1121,6 +1121,33 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     `birthDate` is typed (never trusted as the actual gate — the server re-validates
     regardless); `ConsentHistorySection.tsx` shows the guardian's name/relationship (never the
     hash) alongside the reinforced-consent row it accompanies.
+    Amendment (login by RUT, not email, 2026-09-20): product decision — Chilean convention, same
+    as most Chilean banking apps. **`email` no longer authenticates anything** — it stays on the
+    account purely for contact/notifications. `loginRequestSchema` and
+    `startPasskeyLoginRequestSchema` (the passkey "narrow to this account" field) both take
+    **`identifierValue`** (the titular's own RUT) instead of `email`; `registerRequestSchema`'s
+    `name` also became mandatory in the same pass (previously optional) — a titular now always
+    provides name + RUT + email + password + birthDate at registration, no optional fields left
+    among those five. `User.identifierValue` gained a **`@unique`** constraint (it's now a login
+    credential, same uniqueness guarantee `email` already had) — normalized (no dots/dash,
+    uppercase K, via `auth.normalizeRut`) at the Prisma adapter boundary on every write (create
+    AND profile-edit update), so "12.345.678-5" and "123456785" always resolve to the same row
+    regardless of which format was typed at registration vs. login. New
+    **`IdentifierTakenError`**/`IDENTIFIER_TAKEN` (409) mirrors `EmailTakenError`; the Prisma
+    adapter's P2002 handling now inspects `err.meta.target` to throw the right one of the two
+    instead of always assuming email. `UserRepositoryPort` gained **`findByIdentifierValue`**
+    (what `LoginHandler`/`StartPasskeyLoginHandler` resolve an account by now, replacing
+    `findByEmail` for those two flows only — `findByEmail` itself is untouched, still used
+    wherever email uniqueness/lookup is genuinely about email, e.g. registration's own duplicate
+    check). Web: `LoginRoute.tsx`'s email field became a RUT field (`auth.rut` i18n key,
+    `autoComplete="username webauthn"` unchanged since it's still the login identifier slot);
+    `RegisterRoute.tsx` gained a mandatory RUT input for the titular (distinct from the
+    guardian's own, already-existing RUT field — i18n keys `auth.guardian.name`/
+    `auth.guardian.identifierValue` were reworded "…del tutor"/"Guardian's…" once both a titular
+    and a guardian RUT field could appear on the same screen, to keep placeholders unique for
+    both users and tests). No change to MFA (`login/mfa-verify`, still keyed off the pending
+    token's `sub`, never an identifier field) or to the discoverable/"usernameless" passkey path
+    (still resolves purely from the WebAuthn credential, never an identifier at all).
     Compliance posture this closes (see `.compliance/RESUMEN.md`/`state.json`): hallazgo #1
     (no consentimiento reforzado — **now closed**) and hallazgo #3 (desactivar ≠ eliminar —
     **now closed**, real supresión exists). Still open: hallazgo #2 (no age-minimum check at

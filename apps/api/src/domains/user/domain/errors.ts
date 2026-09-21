@@ -24,6 +24,14 @@ export class EmailTakenError extends DomainError {
   }
 }
 
+/** The RUT (identifierValue) is now the login credential — unique across every account, same
+ * spirit as `EmailTakenError`. */
+export class IdentifierTakenError extends DomainError {
+  constructor() {
+    super("IDENTIFIER_TAKEN", 409, "identifierValue");
+  }
+}
+
 export class InvalidCredentialsError extends DomainError {
   constructor() {
     super("INVALID_CREDENTIALS", 401);

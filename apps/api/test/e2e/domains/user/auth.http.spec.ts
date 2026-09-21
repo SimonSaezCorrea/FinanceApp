@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { randomValidRut } from "../../support/rut";
 
 /**
  * E2E test (SC-001): full register/login/refresh/profile/password/preferences/
@@ -20,6 +21,7 @@ describe("Auth HTTP (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_auth_${randomUUID()}@test.local`;
+  const rut = randomValidRut();
   const password = "Sup3rSecret!";
   let cookies: string[] = [];
   let userId: string;
@@ -47,6 +49,7 @@ describe("Auth HTTP (e2e)", () => {
       email,
       password,
       name: "E2E User",
+      identifierValue: rut,
       sensitiveDataConsent: true,
       birthDate: "1990-01-01",
     });
@@ -59,23 +62,28 @@ describe("Auth HTTP (e2e)", () => {
   });
 
   it("rejects registering the same email twice (EMAIL_TAKEN)", async () => {
-    const res = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "Dup", sensitiveDataConsent: true, birthDate: "1990-01-01" });
+    const res = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "Dup",
+      identifierValue: randomValidRut(),
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("EMAIL_TAKEN");
   });
 
-  it("logs in with correct credentials and rejects wrong ones", async () => {
+  it("logs in with correct credentials (RUT, not email) and rejects a wrong password", async () => {
     const ok = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     expect(ok.status).toBe(200);
     cookies = ok.get("Set-Cookie") ?? [];
 
     const bad = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password: "wrong" });
+      .send({ identifierValue: rut, password: "wrong" });
     expect(bad.status).toBe(401);
     expect(bad.body.error.code).toBe("INVALID_CREDENTIALS");
   });
@@ -183,12 +191,12 @@ describe("Auth HTTP (e2e)", () => {
     expect(row.passwordHash).toBeNull();
     expect(row.deletedAt).not.toBeNull();
 
-    // The email itself was scrubbed — the old address no longer resolves to any account, so
-    // this is now indistinguishable from a wrong email (never a `ACCOUNT_DISABLED` special
-    // case, which would leak that the account still exists under this email).
+    // The RUT itself was scrubbed — the old value no longer resolves to any account, so this
+    // is now indistinguishable from a wrong RUT (never a `ACCOUNT_DISABLED` special case, which
+    // would leak that the account still exists under it).
     const loginAttempt = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password: "newpassword123" });
+      .send({ identifierValue: rut, password: "newpassword123" });
     expect(loginAttempt.status).toBe(401);
     expect(loginAttempt.body.error.code).toBe("INVALID_CREDENTIALS");
   });

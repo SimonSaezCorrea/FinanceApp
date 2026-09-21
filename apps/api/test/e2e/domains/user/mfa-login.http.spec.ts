@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { randomValidRut } from "../../support/rut";
 
 function totpCodeFor(secret: string): string {
   return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
@@ -20,6 +21,7 @@ describe("MFA login HTTP (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_mfalogin_${randomUUID()}@test.local`;
+  const rut = randomValidRut();
   const password = "Sup3rSecret!";
   let secret: string;
 
@@ -38,6 +40,7 @@ describe("MFA login HTTP (e2e)", () => {
       name: "MFA Login",
       sensitiveDataConsent: true,
       birthDate: "1990-01-01",
+      identifierValue: rut,
     });
     const regCookies = registered.get("Set-Cookie") ?? [];
 
@@ -60,7 +63,7 @@ describe("MFA login HTTP (e2e)", () => {
   it("login with correct password only returns mfaRequired, no session cookies", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ mfaRequired: true });
     const cookies = res.get("Set-Cookie") ?? [];
@@ -71,7 +74,7 @@ describe("MFA login HTTP (e2e)", () => {
   it("mfa-verify with an incorrect code rejects and grants no session", async () => {
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const pendingCookies = login.get("Set-Cookie") ?? [];
 
     const res = await request(app.getHttpServer())
@@ -86,7 +89,7 @@ describe("MFA login HTTP (e2e)", () => {
   it("mfa-verify with the correct code completes the login", async () => {
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const pendingCookies = login.get("Set-Cookie") ?? [];
 
     const res = await request(app.getHttpServer())
@@ -102,7 +105,7 @@ describe("MFA login HTTP (e2e)", () => {
   it("5 consecutive invalid codes lock the account, even the correct code afterward", async () => {
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const pendingCookies = login.get("Set-Cookie") ?? [];
 
     let last;

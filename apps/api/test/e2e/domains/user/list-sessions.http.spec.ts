@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { randomValidRut } from "../../support/rut";
 
 /**
  * E2E (specs/023, US1): logging in from "two browsers" (two separate login calls, each
@@ -19,6 +20,7 @@ describe("List sessions HTTP (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_list_sessions_${randomUUID()}@test.local`;
+  const rut = randomValidRut();
   const password = "Sup3rSecret!";
 
   beforeAll(async () => {
@@ -36,6 +38,7 @@ describe("List sessions HTTP (e2e)", () => {
       name: "List Sessions E2E",
       sensitiveDataConsent: true,
       birthDate: "1990-01-01",
+      identifierValue: rut,
     });
   });
 
@@ -48,7 +51,7 @@ describe("List sessions HTTP (e2e)", () => {
   it("shows one session for a single login, marked as the current device", async () => {
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const cookies = login.get("Set-Cookie") ?? [];
 
     const res = await request(app.getHttpServer())
@@ -64,12 +67,12 @@ describe("List sessions HTTP (e2e)", () => {
   it("two separate logins each see both sessions, but mark a different one as current", async () => {
     const loginA = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const cookiesA = loginA.get("Set-Cookie") ?? [];
 
     const loginB = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const cookiesB = loginB.get("Set-Cookie") ?? [];
 
     const resA = await request(app.getHttpServer())

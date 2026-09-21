@@ -5,7 +5,10 @@ import { RegisterHandler } from "../../../../../../src/domains/user/application/
 import { fakeBankAccountRepo } from "../../../../support/fake-ports";
 import { RegisterCommand } from "../../../../../../src/domains/user/application/commands/register.command";
 import { SessionIssuer } from "../../../../../../src/domains/user/application/session-issuer";
-import { EmailTakenError } from "../../../../../../src/domains/user/domain/errors";
+import {
+  EmailTakenError,
+  IdentifierTakenError,
+} from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { ConsentRecordRepositoryPort } from "../../../../../../src/domains/consent-record/domain/ports/consent-record.repository.port";
@@ -57,6 +60,7 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     saveWithTx: vi.fn(),
     findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn(),
+    findByIdentifierValue: vi.fn(),
     deleteWithTx: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
@@ -116,8 +120,10 @@ describe("RegisterHandler", () => {
 
     const result = await handler.execute(
       new RegisterCommand({
+        name: "Test User",
         email: "A@B.com",
         password: "password123",
+        identifierValue: "12.345.678-5",
         birthDate: ADULT_BIRTHDATE,
         sensitiveDataConsent: true,
       }),
@@ -143,8 +149,10 @@ describe("RegisterHandler", () => {
 
     await handler.execute(
       new RegisterCommand({
+        name: "Test User",
         email: "a@b.com",
         password: "password123",
+        identifierValue: "12.345.678-5",
         birthDate: ADULT_BIRTHDATE,
         sensitiveDataConsent: true,
       }),
@@ -166,8 +174,10 @@ describe("RegisterHandler", () => {
 
     await handler.execute(
       new RegisterCommand({
+        name: "Test User",
         email: "kid@b.com",
         password: "password123",
+        identifierValue: "12.345.678-5",
         birthDate: MINOR_BIRTHDATE,
         sensitiveDataConsent: true,
         guardianAuthorization: {
@@ -209,8 +219,10 @@ describe("RegisterHandler", () => {
 
     await handler.execute(
       new RegisterCommand({
+        name: "Test User",
         email: "a@b.com",
         password: "password123",
+        identifierValue: "12.345.678-5",
         birthDate: ADULT_BIRTHDATE,
         sensitiveDataConsent: true,
       }),
@@ -228,12 +240,34 @@ describe("RegisterHandler", () => {
     await expect(
       handler.execute(
         new RegisterCommand({
+          name: "Test User",
           email: "a@b.com",
           password: "password123",
+          identifierValue: "12.345.678-5",
           birthDate: ADULT_BIRTHDATE,
           sensitiveDataConsent: true,
         }),
       ),
     ).rejects.toThrow(EmailTakenError);
+  });
+
+  it("throws IDENTIFIER_TAKEN when the RUT already exists (it's now the login credential)", async () => {
+    const repo = fakeRepo({
+      findByIdentifierValue: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
+    });
+    const handler = buildHandler({ repo });
+
+    await expect(
+      handler.execute(
+        new RegisterCommand({
+          name: "Test User",
+          email: "new@b.com",
+          password: "password123",
+          identifierValue: "12.345.678-5",
+          birthDate: ADULT_BIRTHDATE,
+          sensitiveDataConsent: true,
+        }),
+      ),
+    ).rejects.toThrow(IdentifierTakenError);
   });
 });

@@ -36,8 +36,12 @@ model User {
   birthDate            DateTime?
   /// National identity document type (RUT is Chile-specific; DNI/PASSPORT/OTHER cover other countries).
   identifierType       IdentifierType?
-  /// The identifier's value. Format is only validated when identifierType is RUT (Chilean check digit).
-  identifierValue      String?
+  /// The identifier's value — normalized (no dots/dash, uppercase K) before storage. Format is
+  /// only validated when identifierType is RUT (Chilean check digit). Mandatory at registration
+  /// (MVP is Chile-only: always a RUT) and, since it's also the LOGIN credential, globally
+  /// unique — null again once an account is hard-deleted or anonymized, same as `email`
+  /// (Postgres treats multiple NULLs as distinct under a unique constraint).
+  identifierValue      String?         @unique
   phone                String?
   /// Masks monetary amounts on the Panel, an account's own balance and Ahorros when true
   /// (specs/020) — never Movimientos, Deudas, Recurrentes or Cuotas/Facturación.

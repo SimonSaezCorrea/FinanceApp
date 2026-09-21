@@ -1,3 +1,5 @@
+import type { auth } from "@finance/contracts";
+
 import type { User } from "../user.aggregate";
 
 export const USER_REPOSITORY = Symbol("USER_REPOSITORY");
@@ -5,12 +7,20 @@ export const USER_REPOSITORY = Symbol("USER_REPOSITORY");
 /** Domain-owned port (Adapter, FR-011) — zero Prisma imports. */
 export interface UserRepositoryPort {
   findByEmail(email: string): Promise<User | null>;
+  /** The RUT (identifierValue), normalized, is now the login credential — this is what
+   * `LoginHandler`/`StartPasskeyLoginHandler` resolve an account by. */
+  findByIdentifierValue(identifierValue: string): Promise<User | null>;
   findById(id: string): Promise<User | null>;
   create(plan: {
     email: string;
     name?: string;
     passwordHash: string;
     birthDate: Date;
+    /** Optional here (a fixture-only `create()` call outside real registration has no reason
+     * to set one) — `RegisterHandler` always supplies both, enforced by
+     * `registerRequestSchema`, not by this port's own type. */
+    identifierType?: auth.CurrentUser["identifierType"];
+    identifierValue?: string | null;
   }): Promise<User>;
   /** Persists every profile/preferences/security field this aggregate owns. */
   save(user: User): Promise<void>;

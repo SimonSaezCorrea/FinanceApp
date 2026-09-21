@@ -21,6 +21,7 @@ import { verifyAuthenticationResponse, verifyRegistrationResponse } from "@simpl
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { randomValidRut } from "../../support/rut";
 
 function totpCodeFor(secret: string): string {
   return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
@@ -30,6 +31,7 @@ describe("Passkey login HTTP (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_passkeylogin_${randomUUID()}@test.local`;
+  const rut = randomValidRut();
   const password = "Sup3rSecret!";
   const credentialId = `cred_${randomUUID()}`;
 
@@ -48,6 +50,7 @@ describe("Passkey login HTTP (e2e)", () => {
       name: "Passkey Login",
       sensitiveDataConsent: true,
       birthDate: "1990-01-01",
+      identifierValue: rut,
     });
     const cookies = registered.get("Set-Cookie") ?? [];
 
@@ -77,10 +80,10 @@ describe("Passkey login HTTP (e2e)", () => {
   it("passkey-options always responds the same shape whether or not the email has passkeys", async () => {
     const known = await request(app.getHttpServer())
       .post("/api/v1/auth/login/passkey-options")
-      .send({ email });
+      .send({ identifierValue: rut });
     const unknown = await request(app.getHttpServer())
       .post("/api/v1/auth/login/passkey-options")
-      .send({ email: `nobody_${randomUUID()}@test.local` });
+      .send({ identifierValue: randomValidRut() });
 
     expect(known.status).toBe(200);
     expect(unknown.status).toBe(200);
@@ -92,7 +95,7 @@ describe("Passkey login HTTP (e2e)", () => {
   it("passkey-verify with an unknown email rejects generically (no enumeration)", async () => {
     const options = await request(app.getHttpServer())
       .post("/api/v1/auth/login/passkey-options")
-      .send({ email: `nobody_${randomUUID()}@test.local` });
+      .send({ identifierValue: randomValidRut() });
     const optCookies = options.get("Set-Cookie") ?? [];
 
     const res = await request(app.getHttpServer())
@@ -127,7 +130,7 @@ describe("Passkey login HTTP (e2e)", () => {
   it("completes login without a password, entering the session directly", async () => {
     const options = await request(app.getHttpServer())
       .post("/api/v1/auth/login/passkey-options")
-      .send({ email });
+      .send({ identifierValue: rut });
     const optCookies = options.get("Set-Cookie") ?? [];
 
     vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
@@ -138,7 +141,7 @@ describe("Passkey login HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/login/passkey-verify")
       .set("Cookie", optCookies)
-      .send({ email, response: { id: credentialId } });
+      .send({ response: { id: credentialId } });
     expect(res.status).toBe(200);
     expect(res.body.user.email).toBe(email.toLowerCase());
     const sessionCookies = res.get("Set-Cookie") ?? [];
@@ -148,7 +151,7 @@ describe("Passkey login HTTP (e2e)", () => {
   it("bypasses MFA entirely even when the account has TOTP active (regression FR-007)", async () => {
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const sessionCookies = login.get("Set-Cookie") ?? [];
     const enroll = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")
@@ -161,13 +164,13 @@ describe("Passkey login HTTP (e2e)", () => {
     // Password login now requires the TOTP step.
     const passwordLogin = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     expect(passwordLogin.body).toEqual({ mfaRequired: true });
 
     // Passkey login still goes straight through — no TOTP prompt, ever.
     const options = await request(app.getHttpServer())
       .post("/api/v1/auth/login/passkey-options")
-      .send({ email });
+      .send({ identifierValue: rut });
     const optCookies = options.get("Set-Cookie") ?? [];
     vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
       verified: true,
@@ -176,7 +179,7 @@ describe("Passkey login HTTP (e2e)", () => {
     const passkeyLogin = await request(app.getHttpServer())
       .post("/api/v1/auth/login/passkey-verify")
       .set("Cookie", optCookies)
-      .send({ email, response: { id: credentialId } });
+      .send({ response: { id: credentialId } });
     expect(passkeyLogin.status).toBe(200);
     expect(passkeyLogin.body.user.email).toBe(email.toLowerCase());
 

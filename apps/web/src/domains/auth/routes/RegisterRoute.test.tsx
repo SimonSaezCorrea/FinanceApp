@@ -26,6 +26,12 @@ function renderRegister() {
 }
 
 function fillCommonFields() {
+  fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.name")), {
+    target: { value: "Ana Titular" },
+  });
+  fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.rut")), {
+    target: { value: "12.345.678-5" },
+  });
   fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.email")), {
     target: { value: "a@b.com" },
   });

@@ -10,6 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { randomValidRut } from "../../support/rut";
 
 function totpCodeFor(secret: string): string {
   return new OTPAuth.TOTP({ algorithm: "SHA1", digits: 6, period: 30, secret }).generate();
@@ -20,6 +21,7 @@ describe("MFA disable HTTP (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_mfadisable_${randomUUID()}@test.local`;
+  const rut = randomValidRut();
   const password = "Sup3rSecret!";
   let cookies: string[] = [];
 
@@ -38,6 +40,7 @@ describe("MFA disable HTTP (e2e)", () => {
       name: "MFA Disable",
       sensitiveDataConsent: true,
       birthDate: "1990-01-01",
+      identifierValue: rut,
     });
     cookies = registered.get("Set-Cookie") ?? [];
     const enroll = await request(app.getHttpServer())
@@ -80,7 +83,7 @@ describe("MFA disable HTTP (e2e)", () => {
       .send({ code: totpCode });
     const secondLoginStart = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     expect(secondLoginStart.body.mfaRequired).toBe(true);
     const secondLogin = await request(app.getHttpServer())
       .post("/api/v1/auth/login/mfa-verify")
@@ -105,7 +108,7 @@ describe("MFA disable HTTP (e2e)", () => {
 
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     expect(login.body).toEqual({ mfaRequired: false, user: login.body.user });
     expect(login.body.user.email).toBe(email.toLowerCase());
   });
