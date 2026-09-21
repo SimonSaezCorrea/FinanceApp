@@ -43,9 +43,13 @@ describe("Auth HTTP (e2e)", () => {
   });
 
   it("registers a new user and sets httpOnly auth cookies", async () => {
-    const res = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E User", sensitiveDataConsent: true });
+    const res = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "E2E User",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     expect(res.status).toBe(201);
     expect(res.body.email).toBe(email.toLowerCase());
     userId = res.body.id;
@@ -57,7 +61,7 @@ describe("Auth HTTP (e2e)", () => {
   it("rejects registering the same email twice (EMAIL_TAKEN)", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "Dup", sensitiveDataConsent: true });
+      .send({ email, password, name: "Dup", sensitiveDataConsent: true, birthDate: "1990-01-01" });
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("EMAIL_TAKEN");
   });

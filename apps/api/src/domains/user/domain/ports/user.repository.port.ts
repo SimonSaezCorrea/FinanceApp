@@ -6,7 +6,12 @@ export const USER_REPOSITORY = Symbol("USER_REPOSITORY");
 export interface UserRepositoryPort {
   findByEmail(email: string): Promise<User | null>;
   findById(id: string): Promise<User | null>;
-  create(plan: { email: string; name?: string; passwordHash: string }): Promise<User>;
+  create(plan: {
+    email: string;
+    name?: string;
+    passwordHash: string;
+    birthDate: Date;
+  }): Promise<User>;
   /** Persists every profile/preferences/security field this aggregate owns. */
   save(user: User): Promise<void>;
   /** Same as `save`, inside the caller's transaction — for the two MFA flows that must save

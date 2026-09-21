@@ -1085,12 +1085,42 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
       received and honored — deliberately **no FK to `User`** (for a hard delete the `User` row
       is gone by the time this writes) and **never a raw identifier**: `identifierHash` is an
       HMAC-SHA256 of whatever RUT/DNI the account had at request time, keyed by
-      **`ACCOUNT_DELETION_HMAC_SECRET`** (new required env var,
-      `infra/config/account-deletion.config.ts`) — captured from the aggregate BEFORE
-      `User.delete()` scrubs it. Honestly documented limitation: a RUT's keyspace is small
-      (~8 digits + check digit), so this resists casual DB inspection, not a targeted brute
-      force by anyone who also holds the secret — proof-of-occurrence, not a vault. No API
-      surface; written inside `DeleteAccountHandler`'s own transaction only.
+      **`IDENTIFIER_HASH_SECRET`** (new required env var, shared with the minor-guardian
+      amendment below — `infra/config/identifier-hash.config.ts`) — captured from the aggregate
+      BEFORE `User.delete()` scrubs it. Honestly documented limitation: a RUT's keyspace is
+      small (~8 digits + check digit), so this resists casual DB inspection, not a targeted
+      brute force by anyone who also holds the secret — proof-of-occurrence, not a vault. No
+      API surface; written inside `DeleteAccountHandler`'s own transaction only.
+    Amendment (minor guardian authorization, 2026-09-20): closes compliance-cl hallazgo #2 (a
+    minor could register with no age control at all) WITHOUT gating registration to adults —
+    Ley 21.719's reinforced regime for minors just needs a different consent mechanism, not a
+    ban. `registerRequestSchema` gains **`birthDate`** (now required at registration, not left
+    for later in Profile — the threshold below can't be evaluated without it from day one) and
+    an optional **`guardianAuthorization`** block (`name`, `identifierValue`, `relationship`:
+    MOTHER/FATHER/GUARDIAN/OTHER, `accepted: z.literal(true)`), enforced by a cross-field
+    `.refine()`: **`calculateAgeFromBirthDate(birthDate) < MINOR_GUARDIAN_THRESHOLD_AGE (18)`**
+    requires `guardianAuthorization` to be present — both exported from `@finance/contracts`'
+    `auth` module so the API's validation and the web registration form (deciding whether to
+    show the guardian block) can never disagree. `RegisterHandler` records the guardian's
+    authorization as a SECOND `ConsentRecord` (`type: MINOR_GUARDIAN_AUTHORIZATION`, in addition
+    to — never instead of — the titular's own `SENSITIVE_DATA_PROCESSING` consent), on new
+    nullable `ConsentRecord.guardianName`/`guardianIdentifierHash`/`guardianRelationship`
+    columns: name/relationship in the clear (shown in "Mis consentimientos"), the guardian's own
+    RUT/DNI only as an HMAC via the same `hashIdentifier`/`IDENTIFIER_HASH_SECRET` the
+    account-deletion log uses (the config module was renamed
+    `account-deletion.config.ts` → **`identifier-hash.config.ts`** to reflect the shared use —
+    never the guardian's raw identifier, a third party who isn't even the app's user).
+    **Honestly documented limitation, not solved and not solvable without a KYC flow this MVP
+    doesn't have**: this is declarative, not identity-verified — nothing confirms the person
+    filling the guardian block is really the parent/tutor, the same residual risk every
+    consumer app without document/biometric verification carries. `MINOR_GUARDIAN_THRESHOLD_AGE
+    = 18` (Chile's mayoría de edad) is a working assumption from compliance-cl's own generated
+    docs, **not independently verified against the statute's exact text for this specific
+    threshold** — flagged for legal review before relying on it in production. Web:
+    `RegisterRoute.tsx` computes the same age client-side to reveal the guardian block live as
+    `birthDate` is typed (never trusted as the actual gate — the server re-validates
+    regardless); `ConsentHistorySection.tsx` shows the guardian's name/relationship (never the
+    hash) alongside the reinforced-consent row it accompanies.
     Compliance posture this closes (see `.compliance/RESUMEN.md`/`state.json`): hallazgo #1
     (no consentimiento reforzado — **now closed**) and hallazgo #3 (desactivar ≠ eliminar —
     **now closed**, real supresión exists). Still open: hallazgo #2 (no age-minimum check at

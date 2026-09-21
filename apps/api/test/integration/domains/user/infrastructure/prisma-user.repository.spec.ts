@@ -31,7 +31,12 @@ describe("PrismaUserRepository (integration)", () => {
   });
 
   it("creates a user and finds it by email/id", async () => {
-    const created = await repo.create({ email: emailA, name: "Int Test", passwordHash: "x" });
+    const created = await repo.create({
+      email: emailA,
+      name: "Int Test",
+      passwordHash: "x",
+      birthDate: new Date("1990-01-01"),
+    });
     expect(created.email).toBe(emailA);
 
     const byEmail = await repo.findByEmail(emailA);
@@ -42,7 +47,12 @@ describe("PrismaUserRepository (integration)", () => {
   });
 
   it("persists a profile/preferences update via save()", async () => {
-    const created = await repo.create({ email: emailB, name: "Before", passwordHash: "x" });
+    const created = await repo.create({
+      email: emailB,
+      name: "Before",
+      passwordHash: "x",
+      birthDate: new Date("1990-01-01"),
+    });
     created.applyProfileUpdate({ name: "After" });
     created.applyPreferencesUpdate({ hideBalances: true, theme: "light" });
     await repo.save(created);
@@ -54,7 +64,12 @@ describe("PrismaUserRepository (integration)", () => {
   });
 
   it("save() maps a concurrent unique-email conflict to EmailTakenError", async () => {
-    const created = await repo.create({ email: emailC, name: "Taker", passwordHash: "x" });
+    const created = await repo.create({
+      email: emailC,
+      name: "Taker",
+      passwordHash: "x",
+      birthDate: new Date("1990-01-01"),
+    });
     // emailA is already taken by another row — forcing a P2002 on update.
     created.applyProfileUpdate({ email: emailA });
     await expect(repo.save(created)).rejects.toBeInstanceOf(EmailTakenError);

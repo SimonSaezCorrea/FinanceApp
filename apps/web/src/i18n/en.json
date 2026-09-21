@@ -1226,7 +1226,21 @@
     "name": "Name (optional)",
     "email": "Email",
     "password": "Password",
+    "birthDate": "Date of birth",
     "sensitiveDataConsent": "I agree that FinanceApp will process my financial data (balances, movements, debts) as sensitive data, per the Privacy Policy.",
+    "guardian": {
+      "title": "Parent/guardian authorization",
+      "hint": "Since you're a minor, we need authorization from your legal representative.",
+      "name": "Full name",
+      "identifierValue": "ID number",
+      "relationship": {
+        "MOTHER": "Mother",
+        "FATHER": "Father",
+        "GUARDIAN": "Legal guardian",
+        "OTHER": "Other"
+      },
+      "accept": "I authorize the processing of my child's/dependent's financial data in FinanceApp."
+    },
     "needAccount": "Need an account?",
     "haveAccount": "Already have an account?",
     "logout": "Log out",
@@ -1318,7 +1332,8 @@
       "grantedAt": "Granted on {{date}} · version {{version}}",
       "revokedAt": "revoked on {{date}}",
       "type": {
-        "sensitiveDataProcessing": "Sensitive financial data processing"
+        "sensitiveDataProcessing": "Sensitive financial data processing",
+        "minorGuardianAuthorization": "Parent/guardian authorization"
       }
     },
     "edit": {

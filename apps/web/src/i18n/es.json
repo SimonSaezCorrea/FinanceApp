@@ -1226,7 +1226,21 @@
     "name": "Nombre (opcional)",
     "email": "Correo",
     "password": "Contraseña",
+    "birthDate": "Fecha de nacimiento",
     "sensitiveDataConsent": "Acepto que FinanceApp trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la Política de Privacidad.",
+    "guardian": {
+      "title": "Autorización de tu madre, padre o tutor",
+      "hint": "Como eres menor de edad, necesitamos la autorización de quien te representa legalmente.",
+      "name": "Nombre completo",
+      "identifierValue": "RUT",
+      "relationship": {
+        "MOTHER": "Madre",
+        "FATHER": "Padre",
+        "GUARDIAN": "Tutor/a legal",
+        "OTHER": "Otro"
+      },
+      "accept": "Autorizo el tratamiento de los datos financieros de mi hijo/a o representado/a en FinanceApp."
+    },
     "needAccount": "¿No tienes cuenta?",
     "haveAccount": "¿Ya tienes cuenta?",
     "logout": "Salir",
@@ -1318,7 +1332,8 @@
       "grantedAt": "Otorgado el {{date}} · versión {{version}}",
       "revokedAt": "revocado el {{date}}",
       "type": {
-        "sensitiveDataProcessing": "Tratamiento de datos financieros sensibles"
+        "sensitiveDataProcessing": "Tratamiento de datos financieros sensibles",
+        "minorGuardianAuthorization": "Autorización de madre/padre/tutor"
       }
     },
     "edit": {

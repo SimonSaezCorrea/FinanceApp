@@ -2,7 +2,12 @@ import { Injectable } from "@nestjs/common";
 import type { ConsentRecord as ConsentRecordRow } from "@prisma/client";
 
 import { PrismaService } from "../../../infra/prisma/prisma.service";
-import type { ConsentRecordProps, ConsentType } from "../domain/consent-record.entity";
+import type {
+  ConsentRecordProps,
+  ConsentType,
+  GuardianAuthorizationPlan,
+  GuardianRelationship,
+} from "../domain/consent-record.entity";
 import type { ConsentRecordRepositoryPort } from "../domain/ports/consent-record.repository.port";
 
 function rowToProps(row: ConsentRecordRow): ConsentRecordProps {
@@ -13,6 +18,9 @@ function rowToProps(row: ConsentRecordRow): ConsentRecordProps {
     policyVersion: row.policyVersion,
     grantedAt: row.grantedAt.toISOString(),
     revokedAt: row.revokedAt ? row.revokedAt.toISOString() : null,
+    guardianName: row.guardianName,
+    guardianIdentifierHash: row.guardianIdentifierHash,
+    guardianRelationship: row.guardianRelationship as GuardianRelationship | null,
   };
 }
 
@@ -26,9 +34,19 @@ export class PrismaConsentRecordRepository implements ConsentRecordRepositoryPor
     userId: string,
     type: ConsentType,
     policyVersion: string,
+    guardian?: GuardianAuthorizationPlan,
   ): Promise<void> {
     const client = tx as PrismaService;
-    await client.consentRecord.create({ data: { userId, type, policyVersion } });
+    await client.consentRecord.create({
+      data: {
+        userId,
+        type,
+        policyVersion,
+        guardianName: guardian?.guardianName ?? null,
+        guardianIdentifierHash: guardian?.guardianIdentifierHash ?? null,
+        guardianRelationship: guardian?.guardianRelationship ?? null,
+      },
+    });
   }
 
   async listByUser(userId: string): Promise<ConsentRecordProps[]> {

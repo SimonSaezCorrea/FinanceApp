@@ -54,9 +54,13 @@ describe("Savings goal close/reopen (e2e)", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    const registerRes = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E Close User", sensitiveDataConsent: true });
+    const registerRes = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "E2E Close User",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     const accountRes = await request(app.getHttpServer())

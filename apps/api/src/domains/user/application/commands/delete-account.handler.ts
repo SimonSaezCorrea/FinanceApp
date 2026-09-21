@@ -5,9 +5,9 @@ import { compare } from "bcryptjs";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
-  getAccountDeletionHmacSecret,
+  getIdentifierHashSecret,
   hashIdentifier,
-} from "../../../../infra/config/account-deletion.config";
+} from "../../../../infra/config/identifier-hash.config";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {
   ACCOUNT_DELETION_LOG_REPOSITORY,
@@ -89,7 +89,7 @@ export class DeleteAccountHandler extends BaseCommandHandler<DeleteAccountComman
 
   protected override async persist(context: Context): Promise<void> {
     const identifierHash = context.identifierValueAtRequest
-      ? hashIdentifier(context.identifierValueAtRequest, getAccountDeletionHmacSecret(this.config))
+      ? hashIdentifier(context.identifierValueAtRequest, getIdentifierHashSecret(this.config))
       : null;
 
     await this.prisma.$transaction(async (tx) => {

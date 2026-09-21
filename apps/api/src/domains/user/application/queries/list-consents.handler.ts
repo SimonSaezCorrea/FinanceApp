@@ -35,6 +35,8 @@ export class ListConsentsQueryHandler extends BaseQueryHandler<
       policyVersion: c.policyVersion,
       grantedAt: c.grantedAt,
       revokedAt: c.revokedAt,
+      guardianName: c.guardianName,
+      guardianRelationship: c.guardianRelationship,
     }));
   }
 }

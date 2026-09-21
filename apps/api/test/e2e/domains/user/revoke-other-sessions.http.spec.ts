@@ -28,9 +28,13 @@ describe("Revoke other sessions HTTP (e2e)", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "Revoke Others E2E", sensitiveDataConsent: true });
+    await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "Revoke Others E2E",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
   });
 
   afterAll(async () => {

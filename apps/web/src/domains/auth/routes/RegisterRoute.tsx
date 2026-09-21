@@ -1,13 +1,23 @@
-import { type FormEvent, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
+
+import { auth } from "@finance/contracts";
 
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../shared/ui/card";
 import { Input } from "../../../shared/ui/input";
+import { Select } from "../../../shared/ui/select";
 import { ThemeToggle } from "../../../shared/ui/theme-toggle";
 import { useAuth } from "../hooks/useAuth";
+
+const GUARDIAN_RELATIONSHIP_OPTIONS: { value: auth.GuardianAuthorization["relationship"] }[] = [
+  { value: "MOTHER" },
+  { value: "FATHER" },
+  { value: "GUARDIAN" },
+  { value: "OTHER" },
+];
 
 export function RegisterRoute() {
   const { t } = useTranslation();
@@ -16,9 +26,23 @@ export function RegisterRoute() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [birthDate, setBirthDate] = useState("");
   const [sensitiveDataConsent, setSensitiveDataConsent] = useState(false);
+  const [guardianName, setGuardianName] = useState("");
+  const [guardianIdentifierValue, setGuardianIdentifierValue] = useState("");
+  const [guardianRelationship, setGuardianRelationship] =
+    useState<auth.GuardianAuthorization["relationship"]>("MOTHER");
+  const [guardianAccepted, setGuardianAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Same threshold/computation the API validates against (auth.calculateAgeFromBirthDate) —
+  // shown here purely to decide whether to reveal the guardian block, never trusted as the
+  // actual gate (the server re-checks with its own clock regardless).
+  const isMinor = useMemo(() => {
+    if (!birthDate) return false;
+    return auth.calculateAgeFromBirthDate(new Date(birthDate)) < auth.MINOR_GUARDIAN_THRESHOLD_AGE;
+  }, [birthDate]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -29,7 +53,16 @@ export function RegisterRoute() {
         name: name || undefined,
         email,
         password,
+        birthDate: new Date(birthDate),
         sensitiveDataConsent: sensitiveDataConsent as true,
+        guardianAuthorization: isMinor
+          ? {
+              name: guardianName,
+              identifierValue: guardianIdentifierValue,
+              relationship: guardianRelationship,
+              accepted: guardianAccepted as true,
+            }
+          : undefined,
       });
       navigate("/");
     } catch (err) {
@@ -75,6 +108,17 @@ export function RegisterRoute() {
               autoComplete="new-password"
               onChange={(e) => setPassword(e.target.value)}
             />
+            <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+              {t("auth.birthDate")}
+              <Input
+                type="date"
+                value={birthDate}
+                required
+                max={new Date().toISOString().slice(0, 10)}
+                autoComplete="bday"
+                onChange={(e) => setBirthDate(e.target.value)}
+              />
+            </label>
             <label className="flex items-start gap-2 text-xs text-muted-foreground">
               <input
                 type="checkbox"
@@ -86,6 +130,49 @@ export function RegisterRoute() {
               />
               <span>{t("auth.sensitiveDataConsent")}</span>
             </label>
+            {isMinor ? (
+              <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3">
+                <p className="text-xs font-medium">{t("auth.guardian.title")}</p>
+                <p className="text-[11px] text-muted-foreground">{t("auth.guardian.hint")}</p>
+                <Input
+                  type="text"
+                  placeholder={t("auth.guardian.name")}
+                  value={guardianName}
+                  required
+                  onChange={(e) => setGuardianName(e.target.value)}
+                />
+                <Input
+                  type="text"
+                  placeholder={t("auth.guardian.identifierValue")}
+                  value={guardianIdentifierValue}
+                  required
+                  onChange={(e) => setGuardianIdentifierValue(e.target.value)}
+                />
+                <Select
+                  value={guardianRelationship}
+                  onChange={(e) =>
+                    setGuardianRelationship(
+                      e.target.value as auth.GuardianAuthorization["relationship"],
+                    )
+                  }
+                  options={GUARDIAN_RELATIONSHIP_OPTIONS.map((o) => ({
+                    value: o.value,
+                    label: t(`auth.guardian.relationship.${o.value}`),
+                  }))}
+                />
+                <label className="flex items-start gap-2 text-xs text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    required
+                    checked={guardianAccepted}
+                    onChange={(e) => setGuardianAccepted(e.target.checked)}
+                    className="mt-0.5"
+                    aria-label={t("auth.guardian.accept")}
+                  />
+                  <span>{t("auth.guardian.accept")}</span>
+                </label>
+              </div>
+            ) : null}
             {error ? (
               <p role="alert" className="text-sm text-destructive">
                 {error}

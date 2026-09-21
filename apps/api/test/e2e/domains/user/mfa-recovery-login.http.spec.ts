@@ -32,9 +32,13 @@ describe("MFA recovery-code login HTTP (e2e)", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    const registered = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "MFA Recovery", sensitiveDataConsent: true });
+    const registered = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "MFA Recovery",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     const cookies = registered.get("Set-Cookie") ?? [];
     const enroll = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")

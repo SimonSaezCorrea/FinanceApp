@@ -14,26 +14,81 @@ export const loginRequestSchema = z.object({
 });
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
-export const registerRequestSchema = z.object({
-  name: z.string().trim().min(1).max(120).optional(),
-  email: z.string().email(),
-  password: z.string().min(8).max(200),
-  /** Ley 21.719 Art. 16 reinforced consent: this app's financial data (balances, movements,
-   * debts) is "situación socioeconómica", sensitive under Art. 2 letra g) — a bundled generic
-   * "I accept the terms" checkbox isn't enough. Must be exactly `true` (an unchecked/omitted
-   * checkbox fails validation outright, never silently defaults). */
-  sensitiveDataConsent: z.literal(true),
+/** Full years elapsed as of `now` — pure, shared by the API's own registration validation and
+ * the web registration form (deciding whether to show the guardian block), so the two can
+ * never disagree about someone's age. Mirrors `User.toContract()`'s own `age` derivation. */
+export function calculateAgeFromBirthDate(birthDate: Date, now = new Date()): number {
+  let age = now.getFullYear() - birthDate.getFullYear();
+  const monthDiff = now.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) age--;
+  return age;
+}
+
+/** Ley 21.719's reinforced regime for a minor's sensitive data: below this age, a guardian's
+ * own authorization is required IN ADDITION to (never instead of) the titular's own
+ * `sensitiveDataConsent`. Chile's mayoría de edad (18) — not independently verified against
+ * the statute's own text for this specific threshold; treat as a working assumption pending
+ * legal review, same caveat every compliance-cl-generated document in this repo carries. */
+export const MINOR_GUARDIAN_THRESHOLD_AGE = 18;
+
+export const guardianRelationshipSchema = z.enum(["MOTHER", "FATHER", "GUARDIAN", "OTHER"]);
+
+export const guardianAuthorizationSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  /** RUT/DNI of the guardian — hashed (never stored raw) at the API boundary, same mechanism
+   * as `AccountDeletionLog.identifierHash`. A third party's data, kept to the minimum. */
+  identifierValue: z.string().trim().min(1).max(20),
+  relationship: guardianRelationshipSchema,
+  /** Must be exactly `true` — same unchecked-by-default checkbox discipline as
+   * `sensitiveDataConsent` below. This authorization is declarative, not identity-verified:
+   * nothing here confirms the person filling the form is really the guardian. */
+  accepted: z.literal(true),
 });
+export type GuardianAuthorization = z.infer<typeof guardianAuthorizationSchema>;
+
+export const registerRequestSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120).optional(),
+    email: z.string().email(),
+    password: z.string().min(8).max(200),
+    /** Required at registration (not left for later in Profile) — the guardian-consent
+     * threshold above can't be evaluated without knowing the titular's age from day one. */
+    birthDate: z.coerce.date(),
+    /** Ley 21.719 Art. 16 reinforced consent: this app's financial data (balances, movements,
+     * debts) is "situación socioeconómica", sensitive under Art. 2 letra g) — a bundled generic
+     * "I accept the terms" checkbox isn't enough. Must be exactly `true` (an unchecked/omitted
+     * checkbox fails validation outright, never silently defaults). */
+    sensitiveDataConsent: z.literal(true),
+    /** Required (and only meaningful) when `birthDate` puts the titular under
+     * `MINOR_GUARDIAN_THRESHOLD_AGE` — see the cross-field `.refine()` below. */
+    guardianAuthorization: guardianAuthorizationSchema.optional(),
+  })
+  .refine(
+    (v) =>
+      calculateAgeFromBirthDate(v.birthDate) >= MINOR_GUARDIAN_THRESHOLD_AGE ||
+      v.guardianAuthorization !== undefined,
+    {
+      message: "guardian authorization is required for a titular under the age threshold",
+      path: ["guardianAuthorization"],
+    },
+  );
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
 
 /** One consent the user granted, as shown back to them (e.g. a "mis consentimientos" screen). */
-export const consentTypeSchema = z.enum(["SENSITIVE_DATA_PROCESSING"]);
+export const consentTypeSchema = z.enum([
+  "SENSITIVE_DATA_PROCESSING",
+  "MINOR_GUARDIAN_AUTHORIZATION",
+]);
 export const consentRecordSchema = z.object({
   id: rowId,
   type: consentTypeSchema,
   policyVersion: z.string(),
   grantedAt: z.string(),
   revokedAt: z.string().nullable(),
+  /** Only set on a `MINOR_GUARDIAN_AUTHORIZATION` row — never the guardian's identifier, which
+   * is never sent back past registration (only its hash is stored, server-side only). */
+  guardianName: z.string().nullable(),
+  guardianRelationship: guardianRelationshipSchema.nullable(),
 });
 export type ConsentRecord = z.infer<typeof consentRecordSchema>;
 export const listConsentsResponseSchema = z.array(consentRecordSchema);

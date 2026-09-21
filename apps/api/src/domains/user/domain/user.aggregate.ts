@@ -97,13 +97,26 @@ export class User {
   /** Factory Method (FR-008): plans a brand-new user row — email is always
    * lower-cased, matching the pre-migration service. Password hashing is a
    * pure-crypto concern performed by the calling handler (bcrypt has no I/O
-   * dependency, so it isn't a repository port), the hash is handed in ready. */
-  static planRegistration(input: { email: string; name?: string; passwordHash: string }): {
+   * dependency, so it isn't a repository port), the hash is handed in ready.
+   * `birthDate` is required at registration (not left for later in Profile) — the
+   * guardian-consent age threshold can't be evaluated without it from day one. */
+  static planRegistration(input: {
     email: string;
     name?: string;
     passwordHash: string;
+    birthDate: Date;
+  }): {
+    email: string;
+    name?: string;
+    passwordHash: string;
+    birthDate: Date;
   } {
-    return { email: input.email.toLowerCase(), name: input.name, passwordHash: input.passwordHash };
+    return {
+      email: input.email.toLowerCase(),
+      name: input.name,
+      passwordHash: input.passwordHash,
+      birthDate: input.birthDate,
+    };
   }
 
   get id(): string {

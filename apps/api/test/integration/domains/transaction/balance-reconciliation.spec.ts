@@ -36,9 +36,13 @@ describe("Balance reconciles after a batch of retries (integration, SC-006)", ()
     await app.init();
     prisma = app.get(PrismaService);
 
-    const registerRes = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "Reconciliation test", sensitiveDataConsent: true });
+    const registerRes = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "Reconciliation test",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     const sourceRes = await request(app.getHttpServer())

@@ -33,9 +33,13 @@ describe("Auth HTTP (e2e) — delete-account hard delete", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    const registered = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E Hard Delete", sensitiveDataConsent: true });
+    const registered = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "E2E Hard Delete",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     userId = registered.body.id;
     cookies = registered.get("Set-Cookie") ?? [];
 

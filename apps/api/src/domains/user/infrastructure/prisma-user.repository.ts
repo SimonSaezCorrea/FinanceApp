@@ -75,7 +75,12 @@ export class PrismaUserRepository implements UserRepositoryPort {
       : null;
   }
 
-  async create(plan: { email: string; name?: string; passwordHash: string }): Promise<User> {
+  async create(plan: {
+    email: string;
+    name?: string;
+    passwordHash: string;
+    birthDate: Date;
+  }): Promise<User> {
     const row = await this.prisma.user.create({ data: plan, include: { country: true } });
     return User.fromPersistence(rowToProps(row as Row, getMfaEncryptionKey(this.config)));
   }

@@ -51,9 +51,13 @@ describe("Passkey management HTTP (e2e)", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    const res = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "Passkey Mgmt", sensitiveDataConsent: true });
+    const res = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "Passkey Mgmt",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     cookies = res.get("Set-Cookie") ?? [];
   });
 
@@ -120,9 +124,13 @@ describe("Passkey management HTTP (e2e)", () => {
       .send({ name: "" });
     expect(empty.status).toBe(400);
 
-    const other = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email: otherEmail, password, name: "Other", sensitiveDataConsent: true });
+    const other = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email: otherEmail,
+      password,
+      name: "Other",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     const otherCookies = other.get("Set-Cookie") ?? [];
     const foreign = await request(app.getHttpServer())
       .patch(`/api/v1/auth/me/passkeys/${id}`)

@@ -35,14 +35,22 @@ describe("Savings entry correction (e2e)", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    const registerA = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email: emailA, password, name: "E2E Entry Owner", sensitiveDataConsent: true });
+    const registerA = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email: emailA,
+      password,
+      name: "E2E Entry Owner",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     cookiesA = registerA.get("Set-Cookie") ?? [];
 
-    const registerB = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email: emailB, password, name: "E2E Entry Stranger", sensitiveDataConsent: true });
+    const registerB = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email: emailB,
+      password,
+      name: "E2E Entry Stranger",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     cookiesB = registerB.get("Set-Cookie") ?? [];
 
     const accountRes = await request(app.getHttpServer())

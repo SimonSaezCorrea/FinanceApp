@@ -8,11 +8,11 @@
 
 | Marco | Score | Controles requeridos | ✅ Pass | ⚠️ Partial | ❌ Fail | ❓ Unknown |
 |---|---|---|---|---|---|---|
-| **Ley 21.719** (Protección de Datos, vigencia 1-dic-2026) | **54%** | 24 | 9 | 8 | 6 | 1 |
+| **Ley 21.719** (Protección de Datos, vigencia 1-dic-2026) | **56%** | 24 | 10 | 7 | 6 | 1 |
 | **Ley 21.595** (Delitos Económicos, ya vigente) | **50%** | 8 | 2 | 4 | 2 | 0 |
 
 > Actualizado 2026-09-20 (fuera de una corrida de compliance-cl, a mano): se cerraron los
-> hallazgos #1 y #3 de abajo. Ver `state.json` para el detalle control por control.
+> hallazgos #1, #2 y #3 de abajo. Ver `state.json` para el detalle control por control.
 
 Con **micro-empresa (Ley 20.416)**, los primeros 12 meses tras el 1-dic-2026 la Agencia puede aplicar amonestación en vez de multa (Art. sexto transitorio) — hay margen real para cerrar las brechas de la Ley 21.719 antes de que el riesgo de sanción se materialice. La Ley 21.595 ya está vigente hoy.
 
@@ -29,9 +29,11 @@ FinanceApp llega con una base técnica de seguridad **mucho más fuerte que el p
 La Ley 21.719 (Art. 2 letra g) incluye la **situación socioeconómica** dentro de "datos personales sensibles" — a diferencia del GDPR. Los saldos, movimientos y deudas que FinanceApp gestiona **son**, por definición legal, dato sensible para el 100% de sus usuarios. Eso activa el **Art. 16** (consentimiento expreso y reforzado, separado del genérico).
 → **Implementado**: `registerRequestSchema` exige `sensitiveDataConsent: z.literal(true)` (checkbox no premarcado en `RegisterRoute.tsx`); cada registro crea un `ConsentRecord` (tabla `consent-record`: tipo, versión de política, timestamp) — visible en Perfil → "Mis consentimientos". La EIPD (Art. 15 ter) sigue sin cerrar del todo — ver hallazgo #2, todavía pendiente.
 
-### 2. Posibles menores usando la app, sin ningún control de edad
-El modelo `User` tiene `birthDate` pero el registro no exige ni valida una edad mínima. La ley tiene régimen reforzado para datos sensibles de adolescentes menores de 16 años — sin verificación, FinanceApp no puede descartar estar tratando esos datos sin la base legal correcta.
-→ Remediación: agregar una declaración de mayoría de edad en el registro, como mínimo.
+### 2. ✅ RESUELTO (2026-09-20) — Posibles menores usando la app, sin ningún control de edad
+El modelo `User` tenía `birthDate` pero el registro no exigía ni validaba edad. La decisión de producto fue explícita: **no limitar la app a mayores de edad** — un menor puede usarla, pero con el mecanismo de consentimiento distinto que la ley exige.
+→ **Implementado**: `birthDate` ahora es obligatorio en el registro (antes se pedía después, en Perfil — sin eso no se puede evaluar edad desde el día uno). Si el titular es menor de 18 años, el registro exige además un bloque de autorización del padre/madre/tutor (nombre + RUT + relación + checkbox), registrado como un segundo `ConsentRecord` (`MINOR_GUARDIAN_AUTHORIZATION`) — nunca reemplaza el consentimiento del propio titular, se suma a él. El RUT del tutor se guarda solo como HMAC, nunca en claro (mismo mecanismo que el log de borrado de cuenta).
+→ **Límite honesto, no resuelto ni resoluble sin un flujo de verificación de identidad**: esto es declarativo — nada confirma que quien completa el bloque es realmente el tutor. Es el mismo límite que tiene cualquier app de consumo sin KYC.
+→ **Pendiente de confirmar con abogado**: el umbral usado (18 años, mayoría de edad chilena) es un supuesto de trabajo de los documentos que generó compliance-cl — no se verificó contra el texto exacto de la ley si el régimen reforzado aplica desde los 14, 16 o 18 años.
 
 ### 3. ⚠️ PARCIALMENTE RESUELTO (2026-09-20) — "Desactivar cuenta" no era "eliminar mis datos" — y sigue sin forma de exportarlos
 El derecho de **supresión** y **portabilidad** (Art. 11) no estaban implementados: `POST /auth/me/deactivate` solo desactivaba (`User.status: DISABLED`), no borraba nada; no existe ningún endpoint de exportación.
@@ -56,8 +58,8 @@ El derecho de **supresión** y **portabilidad** (Art. 11) no estaban implementad
 La **supervisión externa anual del Modelo de Prevención de Delitos** (Ley 21.595) — requiere contratar a un tercero independiente (~UF 3-5, no necesariamente abogado). Es el único componente de todo este diagnóstico que la skill no puede resolver por ti.
 
 ## Siguiente paso único
-Hallazgos #1 y #3 quedaron resueltos el 2026-09-20 (ver arriba). Lo que sigue, en orden de prioridad:
-1. **Hallazgo #2** (aún abierto): sin control de edad mínima en el registro — es lo único que falta para poder cerrar la EIPD del todo.
+Hallazgos #1, #2 y #3 quedaron resueltos el 2026-09-20 (ver arriba) — los tres hallazgos originalmente priorizados están cerrados. Lo que sigue, en orden de prioridad:
+1. **Confirmar con abogado** el umbral de edad usado (18 años) para el régimen reforzado de menores — es un supuesto de trabajo, no una cita verificada de la ley.
 2. **Portabilidad**: `GET /auth/me/export` (JSON/CSV) — no implementado.
 3. Publicar la política de privacidad en una ruta real (`gov-politicas`/`data-info`, siguen en `fail`).
 

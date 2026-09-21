@@ -1179,6 +1179,19 @@ model ConsentRecord {
   /// other (Art. 11 oposición) — this is the record of that, distinct from account deletion.
   revokedAt DateTime?
 
+  /// Only populated on a `MINOR_GUARDIAN_AUTHORIZATION` row (null on every other type) — the
+  /// person exercising patria potestad/tutela on behalf of a titular registering under the
+  /// guardian-consent age threshold (`auth.MINOR_GUARDIAN_THRESHOLD_AGE`, contracts). This is a
+  /// THIRD PARTY's data, not the account holder's — kept to the minimum needed as evidence:
+  /// name + relationship in the clear (for display, e.g. "Mis consentimientos"), the
+  /// identifier (RUT/DNI) only as an HMAC (same mechanism/caveat as
+  /// `AccountDeletionLog.identifierHash` — never the raw value). Declarative, not verified:
+  /// nothing here confirms the person typing is really the guardian, same honest limitation
+  /// every consumer app without a KYC flow has.
+  guardianName             String?
+  guardianIdentifierHash   String?
+  guardianRelationship     GuardianRelationship?
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
@@ -1189,6 +1202,17 @@ enum ConsentType {
   /// Art. 16's reinforced consent — this app's financial data (balances, movements, debts)
   /// is "situación socioeconómica", sensitive under Art. 2 letra g). Required at registration.
   SENSITIVE_DATA_PROCESSING
+  /// Required in ADDITION to the above whenever the titular is under
+  /// `auth.MINOR_GUARDIAN_THRESHOLD_AGE` at registration — the guardian's own authorization,
+  /// never a replacement for the minor's own consent record.
+  MINOR_GUARDIAN_AUTHORIZATION
+}
+
+enum GuardianRelationship {
+  MOTHER
+  FATHER
+  GUARDIAN
+  OTHER
 }
 
 /// Compliance evidence that an account-deletion request was received and honored (Ley 21.719

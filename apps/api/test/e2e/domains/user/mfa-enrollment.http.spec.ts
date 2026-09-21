@@ -32,9 +32,13 @@ describe("MFA enrollment HTTP (e2e)", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    const res = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "MFA Enroll", sensitiveDataConsent: true });
+    const res = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "MFA Enroll",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     cookies = res.get("Set-Cookie") ?? [];
   });
 

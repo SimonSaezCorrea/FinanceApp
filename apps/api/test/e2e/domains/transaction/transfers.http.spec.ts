@@ -53,9 +53,13 @@ describe("Transfers HTTP (e2e)", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    const registerRes = await api()
-      .post("/api/v1/auth/register")
-      .send({ email, password: "Sup3rSecret!", name: "E2E User", sensitiveDataConsent: true });
+    const registerRes = await api().post("/api/v1/auth/register").send({
+      email,
+      password: "Sup3rSecret!",
+      name: "E2E User",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     origen = await createAccount("Origen", "10000");

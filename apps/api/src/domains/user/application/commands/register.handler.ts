@@ -1,10 +1,15 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import { hash } from "bcryptjs";
 
 import type { auth } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import {
+  getIdentifierHashSecret,
+  hashIdentifier,
+} from "../../../../infra/config/identifier-hash.config";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {
   BANK_ACCOUNT_REPOSITORY,
@@ -41,6 +46,7 @@ export class RegisterHandler extends BaseCommandHandler<RegisterCommand, AuthRes
     @Inject(CONSENT_RECORD_REPOSITORY) private readonly consents: ConsentRecordRepositoryPort,
     private readonly sessionIssuer: SessionIssuer,
     private readonly prisma: PrismaService,
+    private readonly config: ConfigService,
   ) {
     super(eventBus);
   }
@@ -70,6 +76,27 @@ export class RegisterHandler extends BaseCommandHandler<RegisterCommand, AuthRes
       "SENSITIVE_DATA_PROCESSING",
       CURRENT_PRIVACY_POLICY_VERSION,
     );
+    // Ley 21.719 reinforced regime for minors: below the threshold, the request already
+    // failed validation without a `guardianAuthorization` block (registerRequestSchema's own
+    // cross-field refine) — this is the ADDITIONAL record proving the guardian's own
+    // authorization, never a replacement for the titular's own consent above.
+    if (command.input.guardianAuthorization) {
+      const { name, identifierValue, relationship } = command.input.guardianAuthorization;
+      await this.consents.createWithTx(
+        this.prisma,
+        user.id,
+        "MINOR_GUARDIAN_AUTHORIZATION",
+        CURRENT_PRIVACY_POLICY_VERSION,
+        {
+          guardianName: name,
+          guardianIdentifierHash: hashIdentifier(
+            identifierValue,
+            getIdentifierHashSecret(this.config),
+          ),
+          guardianRelationship: relationship,
+        },
+      );
+    }
     const tokens = await this.sessionIssuer.establish(
       { id: user.id, email: user.email },
       { userAgent: command.device?.userAgent, ip: command.device?.ip },

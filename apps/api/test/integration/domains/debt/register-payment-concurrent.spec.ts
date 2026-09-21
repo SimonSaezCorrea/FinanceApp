@@ -37,9 +37,13 @@ describe("POST /debts/:id/register-payment — concurrent distinct attempts (int
     await app.init();
     prisma = app.get(PrismaService);
 
-    const registerRes = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "Debt race test", sensitiveDataConsent: true });
+    const registerRes = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "Debt race test",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     const accountRes = await request(app.getHttpServer())

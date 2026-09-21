@@ -19,7 +19,12 @@ describe("ListSessionsQueryHandler (integration)", () => {
 
   beforeAll(async () => {
     await prisma.$connect();
-    const user = await userRepo.create({ email, name: "List Sessions Test", passwordHash: "x" });
+    const user = await userRepo.create({
+      email,
+      name: "List Sessions Test",
+      passwordHash: "x",
+      birthDate: new Date("1990-01-01"),
+    });
     userId = user.id;
   });
 

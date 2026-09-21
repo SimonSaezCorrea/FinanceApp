@@ -36,14 +36,22 @@ describe("Recurring HTTP (e2e)", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    const registerRes = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E Recurring User", sensitiveDataConsent: true });
+    const registerRes = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "E2E Recurring User",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
-    const registerOther = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email: otherEmail, password, name: "Other", sensitiveDataConsent: true });
+    const registerOther = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email: otherEmail,
+      password,
+      name: "Other",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     const otherCookies = registerOther.get("Set-Cookie") ?? [];
     const otherAccount = await request(app.getHttpServer())
       .post("/api/v1/accounts")
