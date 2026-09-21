@@ -1,6 +1,6 @@
 import type { auth } from "@finance/contracts";
 
-import { UserDeactivatedEvent } from "./events/user-deactivated.event";
+import { UserAccountDeletedEvent } from "./events/user-account-deleted.event";
 import { AccountDisabledError, MfaAlreadyEnabledError, MfaNotPendingError } from "./errors";
 
 export type UserStatus = "ACTIVE" | "DISABLED";
@@ -11,6 +11,10 @@ export interface UserProps {
   name: string | null;
   passwordHash: string | null;
   status: UserStatus;
+  /** Set once (Ley 21.719 Art. 11 supresión) — never cleared. A non-null value means every
+   * other PII field on this row was already scrubbed to null; financial rows elsewhere keep
+   * this same `userId` on purpose (anonymized history, not personal data anymore). */
+  deletedAt: Date | null;
   preferredCurrency: auth.CurrentUser["preferredCurrency"];
   locale: auth.CurrentUser["locale"];
   theme: auth.CurrentUser["theme"];
@@ -130,6 +134,11 @@ export class User {
   get mfaLockedUntil(): Date | null {
     return this.props.mfaLockedUntil;
   }
+  /** Read before `delete()` scrubs it — e.g. by `DeleteAccountHandler`, to hash it into the
+   * account-deletion compliance log before it's gone. */
+  get identifierValue(): string | null {
+    return this.props.identifierValue;
+  }
 
   /** ACCOUNT_DISABLED — a deactivated account may not authenticate (login or
    * refresh), even holding an otherwise-valid credential/token. */
@@ -221,14 +230,38 @@ export class User {
     this.props.mfaLockedUntil = null;
   }
 
-  /** Soft-disable (FR-011: only the status flag changes, no other field/related
-   * record is touched). Emits `UserDeactivatedEvent` only on a genuine
-   * ACTIVE -> DISABLED transition (idempotent no-op otherwise, same spirit as
-   * `BankAccount.setStatus`). */
-  deactivate(): UserDeactivatedEvent | null {
-    const wasActive = this.props.status === "ACTIVE";
+  /** Account deletion (Ley 21.719 Art. 11 supresión): scrubs every PII field to null and
+   * flips the account permanently unreachable — but does NOT touch any other table.
+   * Financial rows (BankAccount, Transaction, Debt, …) stay linked to this same `userId`
+   * on purpose: once this row carries no identifying field, they're anonymized historical
+   * data, not personal data anymore, and this app has a legitimate interest in keeping
+   * that history intact rather than losing it. Security artifacts that WOULD let someone
+   * back in (sessions/passkeys/recovery codes) are the caller's job to hard-delete in the
+   * same transaction — this method only owns the `User` row itself. Idempotent: a second
+   * call on an already-deleted account is a silent no-op (no new event), same spirit as
+   * `BankAccount.setStatus`. */
+  delete(): UserAccountDeletedEvent | null {
+    if (this.props.deletedAt) return null;
+    this.props.deletedAt = new Date();
     this.props.status = "DISABLED";
-    return wasActive ? new UserDeactivatedEvent(this.props.id) : null;
+    this.props.email = null;
+    this.props.name = null;
+    this.props.passwordHash = null;
+    this.props.phone = null;
+    this.props.addressStreet = null;
+    this.props.addressCity = null;
+    this.props.addressRegion = null;
+    this.props.addressPostalCode = null;
+    this.props.birthDate = null;
+    this.props.identifierType = null;
+    this.props.identifierValue = null;
+    this.props.countryId = null;
+    this.props.countryName = null;
+    this.props.mfaEnabled = false;
+    this.props.mfaSecret = null;
+    this.props.mfaFailedAttempts = 0;
+    this.props.mfaLockedUntil = null;
+    return new UserAccountDeletedEvent(this.props.id);
   }
 
   snapshot(): Readonly<UserProps> {

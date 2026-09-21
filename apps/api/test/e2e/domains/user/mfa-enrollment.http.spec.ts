@@ -34,7 +34,7 @@ describe("MFA enrollment HTTP (e2e)", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "MFA Enroll" });
+      .send({ email, password, name: "MFA Enroll", sensitiveDataConsent: true });
     cookies = res.get("Set-Cookie") ?? [];
   });
 

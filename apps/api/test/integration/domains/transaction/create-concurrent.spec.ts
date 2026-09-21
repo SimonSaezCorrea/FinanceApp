@@ -39,7 +39,7 @@ describe("POST /transactions — concurrent identical attempts (integration)", (
 
     const registerRes = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "Concurrency test" });
+      .send({ email, password, name: "Concurrency test", sensitiveDataConsent: true });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     const accountRes = await request(app.getHttpServer())

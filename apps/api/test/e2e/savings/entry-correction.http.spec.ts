@@ -37,12 +37,12 @@ describe("Savings entry correction (e2e)", () => {
 
     const registerA = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email: emailA, password, name: "E2E Entry Owner" });
+      .send({ email: emailA, password, name: "E2E Entry Owner", sensitiveDataConsent: true });
     cookiesA = registerA.get("Set-Cookie") ?? [];
 
     const registerB = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email: emailB, password, name: "E2E Entry Stranger" });
+      .send({ email: emailB, password, name: "E2E Entry Stranger", sensitiveDataConsent: true });
     cookiesB = registerB.get("Set-Cookie") ?? [];
 
     const accountRes = await request(app.getHttpServer())

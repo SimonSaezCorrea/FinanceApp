@@ -69,4 +69,9 @@ export class PrismaPasskeyRepository implements PasskeyRepositoryPort {
     const row = await this.prisma.passkey.findUniqueOrThrow({ where: { id } });
     return rowToProps(row);
   }
+
+  async deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void> {
+    const client = tx as PrismaService;
+    await client.passkey.deleteMany({ where: { userId } });
+  }
 }

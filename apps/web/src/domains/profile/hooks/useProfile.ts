@@ -7,6 +7,7 @@ import { authApi } from "../../auth/api/authApi";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { passkeyApi } from "../../auth/api/passkeyApi";
 import { transactionsApi } from "../../transactions/api/transactionsApi";
+import { consentsApi } from "../api/consentsApi";
 import { profileApi } from "../api/profileApi";
 import { sessionsApi } from "../api/sessionsApi";
 
@@ -19,6 +20,12 @@ export function usePasskeysQuery() {
 /** Real sessions/devices (specs/023) — replaces the old `EXAMPLE_SESSIONS` placeholder. */
 export function useSessionsQuery() {
   return useQuery({ queryKey: ["sessions"], queryFn: () => sessionsApi.list() });
+}
+
+/** Every consent the user has granted (Ley 21.719 Art. 16) — today just the one recorded at
+ * registration; a "mis consentimientos" list, not an editable preference. */
+export function useConsentsQuery() {
+  return useQuery({ queryKey: ["consents"], queryFn: () => consentsApi.list() });
 }
 
 function startOfMonthISO(now: Date): string {
@@ -67,8 +74,8 @@ export function useProfileMutations() {
       mutationFn: (body: auth.UpdatePreferencesRequest) => profileApi.updatePreferences(body),
       onSuccess: () => refreshUser(),
     }),
-    deactivate: useMutation({
-      mutationFn: (body: auth.DeactivateRequest) => profileApi.deactivate(body),
+    deleteAccount: useMutation({
+      mutationFn: (body: auth.DeleteAccountRequest) => profileApi.deleteAccount(body),
       onSuccess: () => clearUser(),
     }),
     startMfaEnrollment: useMutation({

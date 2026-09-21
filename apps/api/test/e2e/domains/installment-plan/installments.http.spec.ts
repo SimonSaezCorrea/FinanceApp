@@ -42,7 +42,7 @@ describe("Installments HTTP (e2e)", () => {
 
     const registerRes = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E Installments User" });
+      .send({ email, password, name: "E2E Installments User", sensitiveDataConsent: true });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     // Paying an instalment moves real money, so the flow needs a real account —
@@ -72,7 +72,7 @@ describe("Installments HTTP (e2e)", () => {
 
     const registerOther = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email: otherEmail, password, name: "Other" });
+      .send({ email: otherEmail, password, name: "Other", sensitiveDataConsent: true });
     const otherCookies = registerOther.get("Set-Cookie") ?? [];
     const otherAccount = await request(app.getHttpServer())
       .post("/api/v1/accounts")

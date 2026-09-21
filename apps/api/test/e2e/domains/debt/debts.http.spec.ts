@@ -37,7 +37,7 @@ describe("Debts HTTP (e2e)", () => {
 
     const registerRes = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E Debts User" });
+      .send({ email, password, name: "E2E Debts User", sensitiveDataConsent: true });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     const accountRes = await request(app.getHttpServer())

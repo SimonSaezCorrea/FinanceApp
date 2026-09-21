@@ -32,7 +32,7 @@ describe("Close session HTTP (e2e)", () => {
 
     await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "Close Session E2E" });
+      .send({ email, password, name: "Close Session E2E", sensitiveDataConsent: true });
   });
 
   afterAll(async () => {

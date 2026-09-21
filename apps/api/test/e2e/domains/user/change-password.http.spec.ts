@@ -30,7 +30,7 @@ describe("Change password HTTP (e2e)", () => {
 
     await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "Change Password E2E" });
+      .send({ email, password, name: "Change Password E2E", sensitiveDataConsent: true });
   });
 
   afterAll(async () => {

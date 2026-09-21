@@ -60,11 +60,16 @@ describe("Attachments HTTP (e2e)", () => {
 
     const register = await api()
       .post("/api/v1/auth/register")
-      .send({ email, password: "Sup3rSecret!", name: "E2E" });
+      .send({ email, password: "Sup3rSecret!", name: "E2E", sensitiveDataConsent: true });
     cookies = register.get("Set-Cookie") ?? [];
     const registerOther = await api()
       .post("/api/v1/auth/register")
-      .send({ email: otherEmail, password: "Sup3rSecret!", name: "Other" });
+      .send({
+        email: otherEmail,
+        password: "Sup3rSecret!",
+        name: "Other",
+        sensitiveDataConsent: true,
+      });
     otherCookies = registerOther.get("Set-Cookie") ?? [];
 
     const account = await api().post("/api/v1/accounts").set("Cookie", cookies).send({

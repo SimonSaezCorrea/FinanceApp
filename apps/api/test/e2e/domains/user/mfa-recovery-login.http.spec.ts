@@ -34,7 +34,7 @@ describe("MFA recovery-code login HTTP (e2e)", () => {
 
     const registered = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "MFA Recovery" });
+      .send({ email, password, name: "MFA Recovery", sensitiveDataConsent: true });
     const cookies = registered.get("Set-Cookie") ?? [];
     const enroll = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")

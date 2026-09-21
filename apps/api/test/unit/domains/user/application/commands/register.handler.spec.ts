@@ -8,6 +8,8 @@ import { SessionIssuer } from "../../../../../../src/domains/user/application/se
 import { EmailTakenError } from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
+import type { ConsentRecordRepositoryPort } from "../../../../../../src/domains/consent-record/domain/ports/consent-record.repository.port";
+import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
   return {
@@ -16,6 +18,7 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     name: null,
     passwordHash: "hashed",
     status: "ACTIVE",
+    deletedAt: null,
     preferredCurrency: "CLP",
     locale: "es",
     theme: "dark",
@@ -50,6 +53,7 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     saveWithTx: vi.fn(),
     findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn(),
+    deleteWithTx: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -62,21 +66,42 @@ function fakeSessionIssuer(): SessionIssuer {
   } as unknown as SessionIssuer;
 }
 
+function fakeConsents(
+  overrides: Partial<ConsentRecordRepositoryPort> = {},
+): ConsentRecordRepositoryPort {
+  return {
+    createWithTx: vi.fn().mockResolvedValue(undefined),
+    listByUser: vi.fn(),
+    ...overrides,
+  };
+}
+
+function fakePrisma(): PrismaService {
+  return {} as unknown as PrismaService;
+}
+
 describe("RegisterHandler", () => {
   it("hashes the password, lower-cases the email, and issues tokens", async () => {
     const create = vi.fn().mockResolvedValue(User.fromPersistence(baseProps()));
     const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(null), create });
     const sessionIssuer = fakeSessionIssuer();
     const accounts = fakeBankAccountRepo({ createWithCards: vi.fn() });
+    const consents = fakeConsents();
     const handler = new RegisterHandler(
       { publish: vi.fn() } as never,
       repo,
       accounts,
+      consents,
       sessionIssuer,
+      fakePrisma(),
     );
 
     const result = await handler.execute(
-      new RegisterCommand({ email: "A@B.com", password: "password123" }),
+      new RegisterCommand({
+        email: "A@B.com",
+        password: "password123",
+        sensitiveDataConsent: true,
+      }),
     );
 
     expect(result.user.email).toBe("a@b.com");
@@ -91,6 +116,35 @@ describe("RegisterHandler", () => {
     expect(cash).toMatchObject({ type: "CASH", name: "Efectivo" });
   });
 
+  it("records the reinforced consent (Ley 21.719 Art. 16) for the new user", async () => {
+    const create = vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ id: "u9" })));
+    const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(null), create });
+    const consents = fakeConsents();
+    const handler = new RegisterHandler(
+      { publish: vi.fn() } as never,
+      repo,
+      fakeBankAccountRepo({ createWithCards: vi.fn() }),
+      consents,
+      fakeSessionIssuer(),
+      fakePrisma(),
+    );
+
+    await handler.execute(
+      new RegisterCommand({
+        email: "a@b.com",
+        password: "password123",
+        sensitiveDataConsent: true,
+      }),
+    );
+
+    expect(consents.createWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      "u9",
+      "SENSITIVE_DATA_PROCESSING",
+      expect.any(String),
+    );
+  });
+
   it("throws EMAIL_TAKEN when the email already exists", async () => {
     const repo = fakeRepo({
       findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
@@ -99,11 +153,19 @@ describe("RegisterHandler", () => {
       { publish: vi.fn() } as never,
       repo,
       fakeBankAccountRepo(),
+      fakeConsents(),
       fakeSessionIssuer(),
+      fakePrisma(),
     );
 
     await expect(
-      handler.execute(new RegisterCommand({ email: "a@b.com", password: "password123" })),
+      handler.execute(
+        new RegisterCommand({
+          email: "a@b.com",
+          password: "password123",
+          sensitiveDataConsent: true,
+        }),
+      ),
     ).rejects.toThrow(EmailTakenError);
   });
 });

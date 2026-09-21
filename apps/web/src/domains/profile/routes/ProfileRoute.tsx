@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { AccountStatusSection } from "../components/AccountStatusSection";
 import type { PersonalFieldKey } from "../components/PersonalInfoSection";
+import { ConsentHistorySection } from "../components/ConsentHistorySection";
 import { DangerZone } from "../components/DangerZone";
 import { DataPrivacySection } from "../components/DataPrivacySection";
 import { FinancialCustomizationSection } from "../components/FinancialCustomizationSection";
@@ -37,6 +38,7 @@ export function ProfileRoute() {
           <PlanBillingSection />
           <NotificationsSection />
           <DataPrivacySection />
+          <ConsentHistorySection />
           <DangerZone />
         </div>
       </div>

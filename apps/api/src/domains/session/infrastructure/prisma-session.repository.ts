@@ -109,4 +109,9 @@ export class PrismaSessionRepository implements SessionRepositoryPort {
     });
     return result.count;
   }
+
+  async deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void> {
+    const client = tx as PrismaService;
+    await client.session.deleteMany({ where: { userId } });
+  }
 }

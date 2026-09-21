@@ -55,7 +55,7 @@ describe("Transfers HTTP (e2e)", () => {
 
     const registerRes = await api()
       .post("/api/v1/auth/register")
-      .send({ email, password: "Sup3rSecret!", name: "E2E User" });
+      .send({ email, password: "Sup3rSecret!", name: "E2E User", sensitiveDataConsent: true });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     origen = await createAccount("Origen", "10000");

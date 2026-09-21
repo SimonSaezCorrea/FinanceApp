@@ -18,8 +18,26 @@ export const registerRequestSchema = z.object({
   name: z.string().trim().min(1).max(120).optional(),
   email: z.string().email(),
   password: z.string().min(8).max(200),
+  /** Ley 21.719 Art. 16 reinforced consent: this app's financial data (balances, movements,
+   * debts) is "situación socioeconómica", sensitive under Art. 2 letra g) — a bundled generic
+   * "I accept the terms" checkbox isn't enough. Must be exactly `true` (an unchecked/omitted
+   * checkbox fails validation outright, never silently defaults). */
+  sensitiveDataConsent: z.literal(true),
 });
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
+
+/** One consent the user granted, as shown back to them (e.g. a "mis consentimientos" screen). */
+export const consentTypeSchema = z.enum(["SENSITIVE_DATA_PROCESSING"]);
+export const consentRecordSchema = z.object({
+  id: rowId,
+  type: consentTypeSchema,
+  policyVersion: z.string(),
+  grantedAt: z.string(),
+  revokedAt: z.string().nullable(),
+});
+export type ConsentRecord = z.infer<typeof consentRecordSchema>;
+export const listConsentsResponseSchema = z.array(consentRecordSchema);
+export type ListConsentsResponse = z.infer<typeof listConsentsResponseSchema>;
 
 /** Moneda principal del usuario. El MVP opera en Chile con tres monedas: peso,
  * dólar y `CLF` (el código ISO 4217 de la UF, que la app nunca convierte a pesos). */
@@ -107,10 +125,20 @@ export const updatePreferencesRequestSchema = z.object({
 });
 export type UpdatePreferencesRequest = z.infer<typeof updatePreferencesRequestSchema>;
 
-export const deactivateRequestSchema = z.object({
+/** Ley 21.719 Art. 11 supresión. The account can never log in again either way — `keepHistory`
+ * is the user's own explicit choice, made at deletion time, never a default:
+ * - `false` (hard delete): every row this user owns, across every table, is deleted (the
+ *   existing `onDelete: Cascade` on every `userId` FK does the actual removal).
+ * - `true` (anonymize): only this `User` row is scrubbed of PII (see `User.delete()`'s
+ *   doc-comment) — financial history stays, under the same userId, for the user's own
+ *   statistics/history. Security artifacts (sessions/passkeys/recovery codes) are hard-deleted
+ *   either way — they only ever exist to let someone log back in.
+ * Replaces the old `deactivateRequestSchema`, which never actually deleted anything. */
+export const deleteAccountRequestSchema = z.object({
   password: z.string().min(1),
+  keepHistory: z.boolean(),
 });
-export type DeactivateRequest = z.infer<typeof deactivateRequestSchema>;
+export type DeleteAccountRequest = z.infer<typeof deleteAccountRequestSchema>;
 
 // ---- MFA (specs/021) ----
 

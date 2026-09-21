@@ -44,7 +44,7 @@ describe("Passkey login HTTP (e2e)", () => {
 
     const registered = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "Passkey Login" });
+      .send({ email, password, name: "Passkey Login", sensitiveDataConsent: true });
     const cookies = registered.get("Set-Cookie") ?? [];
 
     const options = await request(app.getHttpServer())

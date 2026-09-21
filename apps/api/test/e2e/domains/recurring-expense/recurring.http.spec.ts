@@ -38,12 +38,12 @@ describe("Recurring HTTP (e2e)", () => {
 
     const registerRes = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E Recurring User" });
+      .send({ email, password, name: "E2E Recurring User", sensitiveDataConsent: true });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     const registerOther = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email: otherEmail, password, name: "Other" });
+      .send({ email: otherEmail, password, name: "Other", sensitiveDataConsent: true });
     const otherCookies = registerOther.get("Set-Cookie") ?? [];
     const otherAccount = await request(app.getHttpServer())
       .post("/api/v1/accounts")

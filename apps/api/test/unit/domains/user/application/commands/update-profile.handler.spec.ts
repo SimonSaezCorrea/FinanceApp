@@ -30,6 +30,7 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     name: "Ana Bravo",
     passwordHash: "hashed",
     status: "ACTIVE",
+    deletedAt: null,
     preferredCurrency: "CLP",
     locale: "es",
     theme: "dark",
@@ -64,6 +65,7 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     saveWithTx: vi.fn().mockResolvedValue(undefined),
     findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn().mockResolvedValue(null),
+    deleteWithTx: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }

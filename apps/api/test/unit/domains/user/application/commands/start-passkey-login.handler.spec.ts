@@ -14,6 +14,7 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     name: null,
     passwordHash: "hashed",
     status: "ACTIVE",
+    deletedAt: null,
     preferredCurrency: "CLP",
     locale: "es",
     theme: "dark",
@@ -48,6 +49,7 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     saveWithTx: vi.fn(),
     findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn(),
+    deleteWithTx: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -60,6 +62,7 @@ function fakePasskeys(overrides: Partial<PasskeyRepositoryPort> = {}): PasskeyRe
     findByIdOwned: vi.fn(),
     updateCounterAndLastUsedWithTx: vi.fn(),
     deleteOwned: vi.fn(),
+    deleteAllForUserWithTx: vi.fn().mockResolvedValue(undefined),
     renameOwned: vi.fn(),
     ...overrides,
   };

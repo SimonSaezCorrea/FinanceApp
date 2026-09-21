@@ -46,7 +46,7 @@ describe("Credit-card instalment plan billing, full lifecycle (e2e)", () => {
 
     const registerRes = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E Billing User" });
+      .send({ email, password, name: "E2E Billing User", sensitiveDataConsent: true });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     const from = await request(app.getHttpServer())

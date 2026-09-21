@@ -20,6 +20,13 @@ model User {
   theme                String          @default("dark")
   status               UserStatus      @default(ACTIVE)
   createdAt            DateTime        @default(now())
+  /// When set, this account was deleted (Ley 21.719 Art. 11 supresión) — every PII field above
+  /// was scrubbed to null and every security artifact (sessions/passkeys/recovery codes) was
+  /// hard-deleted in the same transaction. Financial rows (BankAccount, Transaction, Debt, …)
+  /// are DELIBERATELY kept, still scoped to this same `userId` — anonymized historical data,
+  /// not personal data anymore once this row carries no identifying field. `status` flips to
+  /// DISABLED at the same time (an anonymized account can never log in again).
+  deletedAt            DateTime?
   /// Optional link to the user's country of residence (reuses the reference `Country` table).
   countryId            String?
   addressStreet        String?
@@ -74,6 +81,7 @@ model User {
   mfaRecoveryCodes   MfaRecoveryCode[]
   passkeys           Passkey[]
   sessions           Session[]
+  consentRecords     ConsentRecord[]
 
   @@index([countryId])
   @@map("user")
@@ -1147,4 +1155,58 @@ model InstitutionAccountType {
   @@unique([institutionId, type])
   @@index([institutionId])
   @@map("institution-account-type")
+}
+
+/// One row per explicit consent the user granted (Ley 21.719 Art. 16: sensitive-data
+/// processing — situación socioeconómica, per the app's own data — needs its own reinforced,
+/// separate consent, not a bundled "I accept the terms" checkbox). This table only ever
+/// records that a specific, versioned request for consent was accepted or later withdrawn —
+/// it never itself carries what changed at that moment (name/RUT/etc.), only `userId` +
+/// `type` + `policyVersion` + when. Kept ON PURPOSE through account anonymization
+/// (`keepHistory: true`) — the row is not more identifying than any other financial row left
+/// under that same userId — but `onDelete: Cascade` still means a hard delete (`keepHistory:
+/// false`) removes it with everything else, since at that point nothing is being kept at all.
+model ConsentRecord {
+  id        String      @id @default(uuid(7))
+  userId    String
+  type      ConsentType
+  /// A fixed, server-defined identifier for whatever text/policy was shown at the moment of
+  /// consent (e.g. a date string) — never client-supplied, so it can't be spoofed to claim an
+  /// earlier/different version was accepted.
+  policyVersion String
+  grantedAt DateTime    @default(now())
+  /// Null while still in effect. A user can withdraw a specific consent without touching any
+  /// other (Art. 11 oposición) — this is the record of that, distinct from account deletion.
+  revokedAt DateTime?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("consent-record")
+}
+
+enum ConsentType {
+  /// Art. 16's reinforced consent — this app's financial data (balances, movements, debts)
+  /// is "situación socioeconómica", sensitive under Art. 2 letra g). Required at registration.
+  SENSITIVE_DATA_PROCESSING
+}
+
+/// Compliance evidence that an account-deletion request was received and honored (Ley 21.719
+/// Art. 11) — NOT a per-user queryable log, and deliberately carries no FK to `User`: for a
+/// hard delete (`keepHistory: false`) the `User` row is gone by the time this is written, so a
+/// live FK would either block the deletion or itself violate it. `identifierHash` is an HMAC
+/// of whatever identifier (RUT/DNI/etc.) the account had at the moment of deletion, keyed by a
+/// server-only secret — NEVER the raw value: this proves "a specific identity's deletion was
+/// processed" without keeping that identity readable, which would defeat the deletion itself.
+/// Caveat, documented rather than hidden: a RUT's keyspace is small (~8 digits + check digit),
+/// so this hash resists casual DB inspection but is NOT cryptographically hard to reverse by
+/// brute force for anyone who also has the HMAC secret — it is proof-of-occurrence, not a
+/// vault.
+model AccountDeletionLog {
+  id             String   @id @default(uuid(7))
+  occurredAt     DateTime @default(now())
+  keepHistory    Boolean
+  identifierHash String?
+
+  @@map("account-deletion-log")
 }

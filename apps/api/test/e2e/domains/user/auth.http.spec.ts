@@ -12,7 +12,7 @@ import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 
 /**
  * E2E test (SC-001): full register/login/refresh/profile/password/preferences/
- * deactivate HTTP flows through the migrated Facade controller — must behave
+ * delete-account HTTP flows through the migrated Facade controller — must behave
  * identically to the pre-migration `AuthController`/`AuthService`. Requires a
  * reachable Postgres (real test DB), not part of `test:unit`.
  */
@@ -22,6 +22,7 @@ describe("Auth HTTP (e2e)", () => {
   const email = `e2e_auth_${randomUUID()}@test.local`;
   const password = "Sup3rSecret!";
   let cookies: string[] = [];
+  let userId: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -34,16 +35,20 @@ describe("Auth HTTP (e2e)", () => {
   });
 
   afterAll(async () => {
-    await prisma.user.deleteMany({ where: { email } });
+    // The delete-account test below (keepHistory=true) scrubs the email, so cleanup is by id
+    // (captured at registration), not by the now-gone email — an anonymized row is expected to
+    // still exist and is dev-DB test debris, not a leak, but we still don't want it lingering.
+    await prisma.user.deleteMany({ where: { id: userId } });
     await app.close();
   });
 
   it("registers a new user and sets httpOnly auth cookies", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E User" });
+      .send({ email, password, name: "E2E User", sensitiveDataConsent: true });
     expect(res.status).toBe(201);
     expect(res.body.email).toBe(email.toLowerCase());
+    userId = res.body.id;
     cookies = res.get("Set-Cookie") ?? [];
     expect(cookies.some((c) => c.startsWith("access_token="))).toBe(true);
     expect(cookies.some((c) => c.startsWith("refresh_token="))).toBe(true);
@@ -52,7 +57,7 @@ describe("Auth HTTP (e2e)", () => {
   it("rejects registering the same email twice (EMAIL_TAKEN)", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "Dup" });
+      .send({ email, password, name: "Dup", sensitiveDataConsent: true });
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("EMAIL_TAKEN");
   });
@@ -159,18 +164,29 @@ describe("Auth HTTP (e2e)", () => {
     cookies = fresh;
   });
 
-  it("POST /auth/me/deactivate soft-disables the account and clears cookies, blocking further login", async () => {
+  it("POST /auth/me/delete-account (keepHistory=true) scrubs PII, keeps the row, clears cookies and blocks further login", async () => {
     const res = await request(app.getHttpServer())
-      .post("/api/v1/auth/me/deactivate")
+      .post("/api/v1/auth/me/delete-account")
       .set("Cookie", cookies)
-      .send({ password: "newpassword123" });
+      .send({ password: "newpassword123", keepHistory: true });
     expect(res.status).toBe(204);
 
+    // The row survives (Ley 21.719 Art. 11 opt-in: "conservar mi historial anonimizado") but
+    // every PII field is null.
+    const row = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    expect(row.email).toBeNull();
+    expect(row.name).toBeNull();
+    expect(row.passwordHash).toBeNull();
+    expect(row.deletedAt).not.toBeNull();
+
+    // The email itself was scrubbed — the old address no longer resolves to any account, so
+    // this is now indistinguishable from a wrong email (never a `ACCOUNT_DISABLED` special
+    // case, which would leak that the account still exists under this email).
     const loginAttempt = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
       .send({ email, password: "newpassword123" });
     expect(loginAttempt.status).toBe(401);
-    expect(loginAttempt.body.error.code).toBe("ACCOUNT_DISABLED");
+    expect(loginAttempt.body.error.code).toBe("INVALID_CREDENTIALS");
   });
 
   it("POST /auth/logout clears cookies (204, no body)", async () => {

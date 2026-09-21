@@ -38,7 +38,7 @@ describe("Balance reconciles after a batch of retries (integration, SC-006)", ()
 
     const registerRes = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "Reconciliation test" });
+      .send({ email, password, name: "Reconciliation test", sensitiveDataConsent: true });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     const sourceRes = await request(app.getHttpServer())

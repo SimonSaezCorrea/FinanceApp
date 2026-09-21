@@ -3,8 +3,10 @@ import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
+import { AccountDeletionLogDataModule } from "../account-deletion-log/account-deletion-log.data.module";
 import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
 import { CardLimitDataModule } from "../card-limit/card-limit.data.module";
+import { ConsentRecordDataModule } from "../consent-record/consent-record.data.module";
 import { CountryDataModule } from "../country/country.data.module";
 import { DebtDataModule } from "../debt/debt.data.module";
 import { InstallmentPlanDataModule } from "../installment-plan/installment-plan.data.module";
@@ -21,7 +23,7 @@ import { CloseExpiredSessionsHandler } from "./application/commands/close-expire
 import { CloseSessionHandler } from "./application/commands/close-session.handler";
 import { ConfirmMfaEnrollmentHandler } from "./application/commands/confirm-mfa-enrollment.handler";
 import { ConfirmPasskeyRegistrationHandler } from "./application/commands/confirm-passkey-registration.handler";
-import { DeactivateAccountHandler } from "./application/commands/deactivate-account.handler";
+import { DeleteAccountHandler } from "./application/commands/delete-account.handler";
 import { DisableMfaHandler } from "./application/commands/disable-mfa.handler";
 import { LoginHandler } from "./application/commands/login.handler";
 import { LogoutHandler } from "./application/commands/logout.handler";
@@ -39,6 +41,7 @@ import { UpdateProfileHandler } from "./application/commands/update-profile.hand
 import { VerifyMfaLoginHandler } from "./application/commands/verify-mfa-login.handler";
 import { VerifyPasskeyLoginHandler } from "./application/commands/verify-passkey-login.handler";
 import { GetMeQueryHandler } from "./application/queries/get-me.handler";
+import { ListConsentsQueryHandler } from "./application/queries/list-consents.handler";
 import { ListPasskeysQueryHandler } from "./application/queries/list-passkeys.handler";
 import { ListSessionsQueryHandler } from "./application/queries/list-sessions.handler";
 import { GeoIpLookup } from "./application/geoip-lookup";
@@ -57,7 +60,7 @@ const commandHandlers = [
   UpdateProfileHandler,
   ChangePasswordHandler,
   UpdatePreferencesHandler,
-  DeactivateAccountHandler,
+  DeleteAccountHandler,
   StartMfaEnrollmentHandler,
   ConfirmMfaEnrollmentHandler,
   DisableMfaHandler,
@@ -74,7 +77,12 @@ const commandHandlers = [
   PurgeClosedSessionsHandler,
 ];
 
-const queryHandlers = [GetMeQueryHandler, ListPasskeysQueryHandler, ListSessionsQueryHandler];
+const queryHandlers = [
+  GetMeQueryHandler,
+  ListPasskeysQueryHandler,
+  ListSessionsQueryHandler,
+  ListConsentsQueryHandler,
+];
 
 @Module({
   // Registration creates the user's cash account, so it needs that table's port; the other 7
@@ -95,6 +103,8 @@ const queryHandlers = [GetMeQueryHandler, ListPasskeysQueryHandler, ListSessions
     PasskeyDataModule,
     SessionDataModule,
     IpGeolocationCacheDataModule,
+    ConsentRecordDataModule,
+    AccountDeletionLogDataModule,
   ],
   controllers: [AuthController],
   providers: [

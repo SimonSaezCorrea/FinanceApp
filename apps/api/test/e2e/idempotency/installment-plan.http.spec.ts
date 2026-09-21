@@ -37,7 +37,7 @@ describe("POST /installments — idempotency (e2e)", () => {
 
     const registerRes = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E Idempotency Plan User" });
+      .send({ email, password, name: "E2E Idempotency Plan User", sensitiveDataConsent: true });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     const accountRes = await request(app.getHttpServer())

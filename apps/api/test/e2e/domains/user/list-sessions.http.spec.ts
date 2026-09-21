@@ -32,7 +32,7 @@ describe("List sessions HTTP (e2e)", () => {
 
     await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "List Sessions E2E" });
+      .send({ email, password, name: "List Sessions E2E", sensitiveDataConsent: true });
   });
 
   afterAll(async () => {

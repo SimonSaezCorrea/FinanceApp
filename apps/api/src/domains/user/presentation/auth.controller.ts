@@ -25,7 +25,7 @@ import { ChangePasswordCommand } from "../application/commands/change-password.c
 import { CloseSessionCommand } from "../application/commands/close-session.command";
 import { ConfirmMfaEnrollmentCommand } from "../application/commands/confirm-mfa-enrollment.command";
 import { ConfirmPasskeyRegistrationCommand } from "../application/commands/confirm-passkey-registration.command";
-import { DeactivateAccountCommand } from "../application/commands/deactivate-account.command";
+import { DeleteAccountCommand } from "../application/commands/delete-account.command";
 import { DisableMfaCommand } from "../application/commands/disable-mfa.command";
 import type { LoginResult } from "../application/commands/login.handler";
 import { LoginCommand } from "../application/commands/login.command";
@@ -48,6 +48,7 @@ import { PasskeyChallengeInvalidError } from "../domain/errors";
 import { PasskeyChallengeToken } from "../application/passkey-challenge-token";
 import { TokenIssuer, type TokenPair } from "../application/token-issuer";
 import { GetMeQuery } from "../application/queries/get-me.query";
+import { ListConsentsQuery } from "../application/queries/list-consents.query";
 import { ListPasskeysQuery } from "../application/queries/list-passkeys.query";
 import { ListSessionsQuery } from "../application/queries/list-sessions.query";
 import { passkeyIdParamsSchema } from "./dto/passkey-id.params";
@@ -305,6 +306,12 @@ export class AuthController {
     return created;
   }
 
+  @Get("me/consents")
+  @UseGuards(JwtAuthGuard)
+  listConsents(@CurrentUser() user: AuthUser): Promise<auth.ListConsentsResponse> {
+    return this.queryBus.execute(new ListConsentsQuery(user.id));
+  }
+
   @Get("me/passkeys")
   @UseGuards(JwtAuthGuard)
   listPasskeys(@CurrentUser() user: AuthUser): Promise<auth.ListPasskeysResponse> {
@@ -354,15 +361,15 @@ export class AuthController {
     return this.commandBus.execute(new RevokeOtherSessionsCommand(user.id, user.sessionId));
   }
 
-  @Post("me/deactivate")
+  @Post("me/delete-account")
   @HttpCode(204)
   @UseGuards(JwtAuthGuard)
-  async deactivate(
+  async deleteAccount(
     @CurrentUser() user: AuthUser,
-    @Body(new ZodValidationPipe(auth.deactivateRequestSchema)) body: auth.DeactivateRequest,
+    @Body(new ZodValidationPipe(auth.deleteAccountRequestSchema)) body: auth.DeleteAccountRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
-    await this.commandBus.execute(new DeactivateAccountCommand(user.id, body));
+    await this.commandBus.execute(new DeleteAccountCommand(user.id, body));
     res.clearCookie(ACCESS_COOKIE, this.cookieBase());
     res.clearCookie(REFRESH_COOKIE, this.cookieBase());
   }

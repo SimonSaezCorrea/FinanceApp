@@ -39,7 +39,7 @@ describe("Prepaid account HTTP (e2e)", () => {
 
     const registered = await api()
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E Prepaid" });
+      .send({ email, password, name: "E2E Prepaid", sensitiveDataConsent: true });
     cookies = registered.get("Set-Cookie") ?? [];
 
     const checking = await api().post("/api/v1/accounts").set("Cookie", cookies).send({

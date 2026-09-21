@@ -37,7 +37,7 @@ describe("Accounts HTTP (e2e)", () => {
 
     const registerRes = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E User" });
+      .send({ email, password, name: "E2E User", sensitiveDataConsent: true });
     cookies = registerRes.get("Set-Cookie") ?? [];
   });
 

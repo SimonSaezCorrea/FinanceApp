@@ -20,4 +20,9 @@ export interface UserRepositoryPort {
   findByIdForUpdateWithTx(tx: unknown, id: string): Promise<User | null>;
   /** A linked country's display name (mirrors `accounts`' `institutionName` lookup). */
   countryName(id: string): Promise<string | null>;
+  /** Hard-deletes the row itself — every other table's `onDelete: Cascade` on its `userId` FK
+   * does the rest. Used only by account deletion when the user opted OUT of keeping their
+   * history (`keepHistory: false`); the `keepHistory: true` path never calls this, it calls
+   * `saveWithTx` with an already-scrubbed `User` instead. */
+  deleteWithTx(tx: unknown, id: string): Promise<void>;
 }

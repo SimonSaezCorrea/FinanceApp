@@ -16,6 +16,7 @@ export function RegisterRoute() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [sensitiveDataConsent, setSensitiveDataConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -24,7 +25,12 @@ export function RegisterRoute() {
     setBusy(true);
     setError(null);
     try {
-      await register({ name: name || undefined, email, password });
+      await register({
+        name: name || undefined,
+        email,
+        password,
+        sensitiveDataConsent: sensitiveDataConsent as true,
+      });
       navigate("/");
     } catch (err) {
       const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
@@ -69,6 +75,17 @@ export function RegisterRoute() {
               autoComplete="new-password"
               onChange={(e) => setPassword(e.target.value)}
             />
+            <label className="flex items-start gap-2 text-xs text-muted-foreground">
+              <input
+                type="checkbox"
+                required
+                checked={sensitiveDataConsent}
+                onChange={(e) => setSensitiveDataConsent(e.target.checked)}
+                className="mt-0.5"
+                aria-label={t("auth.sensitiveDataConsent")}
+              />
+              <span>{t("auth.sensitiveDataConsent")}</span>
+            </label>
             {error ? (
               <p role="alert" className="text-sm text-destructive">
                 {error}

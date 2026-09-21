@@ -39,7 +39,7 @@ describe("POST /debts/:id/register-payment — concurrent distinct attempts (int
 
     const registerRes = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "Debt race test" });
+      .send({ email, password, name: "Debt race test", sensitiveDataConsent: true });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     const accountRes = await request(app.getHttpServer())

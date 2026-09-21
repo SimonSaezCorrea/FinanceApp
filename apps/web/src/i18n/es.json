@@ -1226,6 +1226,7 @@
     "name": "Nombre (opcional)",
     "email": "Correo",
     "password": "Contraseña",
+    "sensitiveDataConsent": "Acepto que FinanceApp trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la Política de Privacidad.",
     "needAccount": "¿No tienes cuenta?",
     "haveAccount": "¿Ya tienes cuenta?",
     "logout": "Salir",
@@ -1308,6 +1309,17 @@
       "export": "Exportar movimientos",
       "autoBackup": "Respaldo automático mensual",
       "autoBackupHint": "Guarda una copia de tus datos"
+    },
+    "consents": {
+      "title": "Mis consentimientos",
+      "description": "Registro de los consentimientos que has otorgado para el tratamiento de tus datos (Ley 21.719).",
+      "loading": "Cargando…",
+      "empty": "Sin consentimientos registrados.",
+      "grantedAt": "Otorgado el {{date}} · versión {{version}}",
+      "revokedAt": "revocado el {{date}}",
+      "type": {
+        "sensitiveDataProcessing": "Tratamiento de datos financieros sensibles"
+      }
     },
     "edit": {
       "title": "Editar perfil",
@@ -1456,9 +1468,11 @@
       "logout": "Cerrar sesión",
       "deactivate": "Eliminar cuenta",
       "confirmTitle": "¿Eliminar tu cuenta?",
-      "confirmDescription": "Tu cuenta quedará deshabilitada y no podrás volver a iniciar sesión. Tus datos financieros no se borran.",
+      "confirmDescription": "Se borrarán tu nombre, correo, contraseña y demás datos personales, y no podrás volver a iniciar sesión. Esta acción no se puede deshacer.",
       "passwordLabel": "Confirma tu contraseña",
-      "confirmButton": "Desactivar cuenta"
+      "keepHistoryLabel": "Conservar mi historial de forma anónima",
+      "keepHistoryDescription": "Tus cuentas y movimientos se conservan (sin ningún dato que te identifique) para estadísticas. Si no activas esto, se borra todo sin excepción.",
+      "confirmButton": "Eliminar cuenta"
     }
   },
   "errors": {

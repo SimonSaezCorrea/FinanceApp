@@ -1226,6 +1226,7 @@
     "name": "Name (optional)",
     "email": "Email",
     "password": "Password",
+    "sensitiveDataConsent": "I agree that FinanceApp will process my financial data (balances, movements, debts) as sensitive data, per the Privacy Policy.",
     "needAccount": "Need an account?",
     "haveAccount": "Already have an account?",
     "logout": "Log out",
@@ -1308,6 +1309,17 @@
       "export": "Export transactions",
       "autoBackup": "Automatic monthly backup",
       "autoBackupHint": "Keeps a copy of your data"
+    },
+    "consents": {
+      "title": "My consents",
+      "description": "Record of the consents you've granted for how your data is processed (Ley 21.719).",
+      "loading": "Loading…",
+      "empty": "No consents recorded.",
+      "grantedAt": "Granted on {{date}} · version {{version}}",
+      "revokedAt": "revoked on {{date}}",
+      "type": {
+        "sensitiveDataProcessing": "Sensitive financial data processing"
+      }
     },
     "edit": {
       "title": "Edit profile",
@@ -1456,9 +1468,11 @@
       "logout": "Log out",
       "deactivate": "Delete account",
       "confirmTitle": "Delete your account?",
-      "confirmDescription": "Your account will be disabled and you won't be able to sign in again. Your financial data is not deleted.",
+      "confirmDescription": "Your name, email, password and other personal data will be erased, and you won't be able to sign in again. This action cannot be undone.",
       "passwordLabel": "Confirm your password",
-      "confirmButton": "Deactivate account"
+      "keepHistoryLabel": "Keep my history anonymized",
+      "keepHistoryDescription": "Your accounts and movements are kept (with no data that identifies you) for statistics. If you leave this off, everything is deleted with no exception.",
+      "confirmButton": "Delete account"
     }
   },
   "errors": {

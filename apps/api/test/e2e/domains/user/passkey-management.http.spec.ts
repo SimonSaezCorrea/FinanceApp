@@ -53,7 +53,7 @@ describe("Passkey management HTTP (e2e)", () => {
 
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "Passkey Mgmt" });
+      .send({ email, password, name: "Passkey Mgmt", sensitiveDataConsent: true });
     cookies = res.get("Set-Cookie") ?? [];
   });
 
@@ -122,7 +122,7 @@ describe("Passkey management HTTP (e2e)", () => {
 
     const other = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email: otherEmail, password, name: "Other" });
+      .send({ email: otherEmail, password, name: "Other", sensitiveDataConsent: true });
     const otherCookies = other.get("Set-Cookie") ?? [];
     const foreign = await request(app.getHttpServer())
       .patch(`/api/v1/auth/me/passkeys/${id}`)

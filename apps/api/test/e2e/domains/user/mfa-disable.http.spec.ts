@@ -34,7 +34,7 @@ describe("MFA disable HTTP (e2e)", () => {
 
     const registered = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "MFA Disable" });
+      .send({ email, password, name: "MFA Disable", sensitiveDataConsent: true });
     cookies = registered.get("Set-Cookie") ?? [];
     const enroll = await request(app.getHttpServer())
       .post("/api/v1/auth/me/mfa/enroll")

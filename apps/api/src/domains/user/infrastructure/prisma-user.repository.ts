@@ -24,6 +24,7 @@ function rowToProps(row: Row, mfaEncryptionKey: string): UserProps {
     name: row.name,
     passwordHash: row.passwordHash,
     status: row.status,
+    deletedAt: row.deletedAt,
     preferredCurrency: row.preferredCurrency as UserProps["preferredCurrency"],
     locale: row.locale as UserProps["locale"],
     theme: row.theme as UserProps["theme"],
@@ -95,6 +96,7 @@ export class PrismaUserRepository implements UserRepositoryPort {
           email: snap.email,
           passwordHash: snap.passwordHash,
           status: snap.status,
+          deletedAt: snap.deletedAt,
           preferredCurrency: snap.preferredCurrency,
           locale: snap.locale,
           theme: snap.theme,
@@ -150,5 +152,10 @@ export class PrismaUserRepository implements UserRepositoryPort {
 
   countryName(id: string): Promise<string | null> {
     return this.countries.nameById(id);
+  }
+
+  async deleteWithTx(tx: unknown, id: string): Promise<void> {
+    const client = tx as PrismaService;
+    await client.user.delete({ where: { id } });
   }
 }

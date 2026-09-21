@@ -8,8 +8,11 @@
 
 | Marco | Score | Controles requeridos | ✅ Pass | ⚠️ Partial | ❌ Fail | ❓ Unknown |
 |---|---|---|---|---|---|---|
-| **Ley 21.719** (Protección de Datos, vigencia 1-dic-2026) | **46%** | 24 | 7 | 8 | 8 | 1 |
+| **Ley 21.719** (Protección de Datos, vigencia 1-dic-2026) | **54%** | 24 | 9 | 8 | 6 | 1 |
 | **Ley 21.595** (Delitos Económicos, ya vigente) | **50%** | 8 | 2 | 4 | 2 | 0 |
+
+> Actualizado 2026-09-20 (fuera de una corrida de compliance-cl, a mano): se cerraron los
+> hallazgos #1 y #3 de abajo. Ver `state.json` para el detalle control por control.
 
 Con **micro-empresa (Ley 20.416)**, los primeros 12 meses tras el 1-dic-2026 la Agencia puede aplicar amonestación en vez de multa (Art. sexto transitorio) — hay margen real para cerrar las brechas de la Ley 21.719 antes de que el riesgo de sanción se materialice. La Ley 21.595 ya está vigente hoy.
 
@@ -22,17 +25,19 @@ FinanceApp llega con una base técnica de seguridad **mucho más fuerte que el p
 
 ## Los 3 hallazgos que más importan (priorizados)
 
-### 1. El dato central de FinanceApp es legalmente "sensible" — y no tiene el consentimiento reforzado que exige
-La Ley 21.719 (Art. 2 letra g) incluye la **situación socioeconómica** dentro de "datos personales sensibles" — a diferencia del GDPR. Los saldos, movimientos y deudas que FinanceApp gestiona **son**, por definición legal, dato sensible para el 100% de sus usuarios. Eso activa el **Art. 16** (consentimiento expreso y reforzado, separado del genérico) y hace que la **EIPD sea obligatoria** (Art. 15 ter — aplicada, ver `.compliance/docs/21719-eipd.md`). Hoy: **cero checkbox de consentimiento** en el registro (`apps/web/src/domains/auth`).
-→ Documentos: `21719-consentimiento.md`, `21719-eipd.md`. Remediación: agregar el checkbox reforzado + registrar prueba de consentimiento (timestamp + versión de política).
+### 1. ✅ RESUELTO (2026-09-20) — El dato central de FinanceApp es legalmente "sensible" — y no tenía el consentimiento reforzado que exige
+La Ley 21.719 (Art. 2 letra g) incluye la **situación socioeconómica** dentro de "datos personales sensibles" — a diferencia del GDPR. Los saldos, movimientos y deudas que FinanceApp gestiona **son**, por definición legal, dato sensible para el 100% de sus usuarios. Eso activa el **Art. 16** (consentimiento expreso y reforzado, separado del genérico).
+→ **Implementado**: `registerRequestSchema` exige `sensitiveDataConsent: z.literal(true)` (checkbox no premarcado en `RegisterRoute.tsx`); cada registro crea un `ConsentRecord` (tabla `consent-record`: tipo, versión de política, timestamp) — visible en Perfil → "Mis consentimientos". La EIPD (Art. 15 ter) sigue sin cerrar del todo — ver hallazgo #2, todavía pendiente.
 
 ### 2. Posibles menores usando la app, sin ningún control de edad
 El modelo `User` tiene `birthDate` pero el registro no exige ni valida una edad mínima. La ley tiene régimen reforzado para datos sensibles de adolescentes menores de 16 años — sin verificación, FinanceApp no puede descartar estar tratando esos datos sin la base legal correcta.
 → Remediación: agregar una declaración de mayoría de edad en el registro, como mínimo.
 
-### 3. "Desactivar cuenta" no es "eliminar mis datos" — y no hay forma de exportarlos
-El derecho de **supresión** y **portabilidad** (Art. 11) no están implementados: `POST /auth/me/deactivate` solo desactiva (`User.status: DISABLED`), no borra nada; no existe ningún endpoint de exportación. Si llega una solicitud ARCO real hoy, se resolvería manualmente contra la base de datos.
-→ Documento: `21719-canal-derechos.md`. Remediación: implementar exportación (JSON/CSV) y borrado definitivo real.
+### 3. ⚠️ PARCIALMENTE RESUELTO (2026-09-20) — "Desactivar cuenta" no era "eliminar mis datos" — y sigue sin forma de exportarlos
+El derecho de **supresión** y **portabilidad** (Art. 11) no estaban implementados: `POST /auth/me/deactivate` solo desactivaba (`User.status: DISABLED`), no borraba nada; no existe ningún endpoint de exportación.
+→ **Supresión: implementada de verdad.** `POST /auth/me/delete-account` reemplaza `/deactivate` y exige una elección explícita, `keepHistory` (checkbox desmarcado por defecto): `false` = borrado total en cascada real (`prisma.user.delete()`); `true` = anonimización opt-in (PII scrubbeado, historial financiero conservado bajo el mismo `userId` — límite legal documentado en `data-pseudonym`, no es anonimización plena). Queda registro de auditoría del borrado (tabla `account-deletion-log`, sin RUT en claro — solo un HMAC).
+→ **Portabilidad: sigue sin implementar.** No existe `GET /auth/me/export`. Si llega una solicitud ARCO de acceso/portabilidad hoy, se resuelve manualmente contra la base de datos.
+→ Documento: `21719-canal-derechos.md`. Remediación pendiente: implementar exportación (JSON/CSV).
 
 ## Otros hallazgos relevantes
 - **Transferencia internacional activa sin mecanismo formal**: IPinfo.io recibe la IP de login (si `IPINFO_TOKEN` está configurado) sin que las cláusulas contractuales modelo del Min. Economía estén incorporadas todavía (`21719-anexo-transferencias.md`).
@@ -51,7 +56,10 @@ El derecho de **supresión** y **portabilidad** (Art. 11) no están implementado
 La **supervisión externa anual del Modelo de Prevención de Delitos** (Ley 21.595) — requiere contratar a un tercero independiente (~UF 3-5, no necesariamente abogado). Es el único componente de todo este diagnóstico que la skill no puede resolver por ti.
 
 ## Siguiente paso único
-Implementar el **checkbox de consentimiento reforzado en el registro** (hallazgo #1) — es la pieza que, sin ella, deja sin base legal válida al dato que es el corazón del producto. ¿Quieres que lo construya ahora (rama nueva, con tests y los gates del repo, siguiendo `references/build/`)?
+Hallazgos #1 y #3 quedaron resueltos el 2026-09-20 (ver arriba). Lo que sigue, en orden de prioridad:
+1. **Hallazgo #2** (aún abierto): sin control de edad mínima en el registro — es lo único que falta para poder cerrar la EIPD del todo.
+2. **Portabilidad**: `GET /auth/me/export` (JSON/CSV) — no implementado.
+3. Publicar la política de privacidad en una ruta real (`gov-politicas`/`data-info`, siguen en `fail`).
 
 ---
 *Generado con [compliance-cl](https://github.com/Lelemon-studio/compliance-cl). No constituye asesoría legal.*
