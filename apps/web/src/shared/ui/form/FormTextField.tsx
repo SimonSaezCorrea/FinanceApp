@@ -8,9 +8,14 @@ interface Props {
   value: string;
   onChange: (value: string) => void;
   id?: string;
+  /** Defaults to "text" — pass "email"/"password"/"tel" etc. for the browser's own
+   * keyboard/masking/validation behavior (a password row still needs real masking even
+   * though it reads as plain text everywhere else in this row format). */
+  type?: string;
   placeholder?: string;
   disabled?: boolean;
   required?: boolean;
+  minLength?: number;
   /** Shown under the row, e.g. a last-4-digits or expiry validation message —
    * the row format has no room for it inline, so it drops below the divider. */
   error?: string | null;
@@ -38,9 +43,11 @@ export function FormTextField({
   value,
   onChange,
   id,
+  type = "text",
   placeholder,
   disabled,
   required,
+  minLength,
   error,
   hint,
   showEditIcon = false,
@@ -51,9 +58,11 @@ export function FormTextField({
     <>
       <input
         id={id}
+        type={type}
         value={value}
         disabled={disabled}
         required={required}
+        minLength={minLength}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={label}

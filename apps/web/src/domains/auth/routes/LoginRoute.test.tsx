@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -9,10 +9,12 @@ import { LoginRoute } from "./LoginRoute";
 
 const login = vi.fn();
 const verifyMfaLogin = vi.fn();
+const register = vi.fn();
 vi.mock("../../auth/api/authApi", () => ({
   authApi: {
     login: (...args: unknown[]) => login(...args),
     verifyMfaLogin: (...args: unknown[]) => verifyMfaLogin(...args),
+    register: (...args: unknown[]) => register(...args),
     me: vi.fn().mockRejectedValue(new Error("not signed in")),
     logout: vi.fn(),
   },
@@ -57,10 +59,10 @@ function renderLogin() {
 }
 
 async function submitCredentials() {
-  fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.rut")), {
+  fireEvent.change(screen.getByLabelText(i18n.t("auth.rut")), {
     target: { value: "12345678-5" },
   });
-  fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.password")), {
+  fireEvent.change(screen.getByLabelText(i18n.t("auth.password")), {
     target: { value: "secret123" },
   });
   fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.signIn") }));
@@ -70,8 +72,50 @@ describe("LoginRoute", () => {
   beforeEach(() => {
     login.mockReset();
     verifyMfaLogin.mockReset();
+    register.mockReset();
     startLogin.mockReset();
     verifyLogin.mockReset();
+  });
+
+  it("'Registrarse' opens the register form as a side panel, without navigating away", async () => {
+    renderLogin();
+
+    expect(screen.queryByRole("dialog")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.register") }));
+
+    // Same screen (LoginRoute) stays mounted underneath (Radix marks it inert/aria-hidden
+    // while the panel is open, but never unmounts it) — a panel, not a navigation.
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByLabelText(i18n.t("auth.birthDate"))).toBeDefined();
+    expect(document.body.textContent).toContain(i18n.t("auth.signIn"));
+  });
+
+  it("completing registration from the panel signs the user in", async () => {
+    register.mockResolvedValue(undefined);
+    renderLogin();
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.register") }));
+    const dialog = await screen.findByRole("dialog");
+    const form = within(dialog);
+
+    fireEvent.change(form.getByLabelText(i18n.t("auth.name")), {
+      target: { value: "Ana Titular" },
+    });
+    fireEvent.change(form.getByLabelText(i18n.t("auth.rut")), {
+      target: { value: "12.345.678-5" },
+    });
+    fireEvent.change(form.getByLabelText(i18n.t("auth.email")), {
+      target: { value: "a@b.com" },
+    });
+    fireEvent.change(form.getByLabelText(i18n.t("auth.password")), {
+      target: { value: "password123" },
+    });
+    fireEvent.change(form.getByLabelText(i18n.t("auth.birthDate")), {
+      target: { value: "1990-01-01" },
+    });
+    fireEvent.click(form.getByRole("switch", { name: i18n.t("auth.sensitiveDataConsentLabel") }));
+    fireEvent.click(form.getByRole("button", { name: i18n.t("auth.createAccount") }));
+
+    await waitFor(() => expect(register).toHaveBeenCalled());
   });
 
   it("with MFA required, shows the second step instead of navigating away", async () => {
@@ -81,7 +125,7 @@ describe("LoginRoute", () => {
     await submitCredentials();
 
     expect(await screen.findByText(i18n.t("auth.mfa.title"))).toBeDefined();
-    expect(screen.queryByPlaceholderText(i18n.t("auth.password"))).toBeNull();
+    expect(screen.queryByLabelText(i18n.t("auth.password"))).toBeNull();
   });
 
   it("an invalid MFA code shows an error and stays on the second step", async () => {
@@ -126,7 +170,10 @@ describe("LoginRoute", () => {
     await submitCredentials();
 
     await waitFor(() =>
-      expect(login).toHaveBeenCalledWith({ identifierValue: "12345678-5", password: "secret123" }),
+      expect(login).toHaveBeenCalledWith({
+        identifierValue: "12.345.678-5",
+        password: "secret123",
+      }),
     );
     expect(screen.queryByText(i18n.t("auth.mfa.title"))).toBeNull();
   });
@@ -157,12 +204,14 @@ describe("LoginRoute", () => {
     });
 
     renderLogin();
-    fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.rut")), {
+    fireEvent.change(screen.getByLabelText(i18n.t("auth.rut")), {
       target: { value: "12345678-5" },
     });
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.passkey.signIn") }));
 
-    await waitFor(() => expect(startLogin).toHaveBeenCalledWith({ identifierValue: "12345678-5" }));
+    await waitFor(() =>
+      expect(startLogin).toHaveBeenCalledWith({ identifierValue: "12.345.678-5" }),
+    );
     vi.unstubAllGlobals();
   });
 
@@ -175,7 +224,7 @@ describe("LoginRoute", () => {
     });
 
     renderLogin();
-    fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.rut")), {
+    fireEvent.change(screen.getByLabelText(i18n.t("auth.rut")), {
       target: { value: "12345678-5" },
     });
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.passkey.signIn") }));
@@ -192,7 +241,7 @@ describe("LoginRoute", () => {
     (navigator.credentials.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
 
     renderLogin();
-    fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.rut")), {
+    fireEvent.change(screen.getByLabelText(i18n.t("auth.rut")), {
       target: { value: "12345678-5" },
     });
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.passkey.signIn") }));
@@ -235,7 +284,7 @@ describe("LoginRoute", () => {
       // No `PublicKeyCredential` stubbed at all — same as every browser without WebAuthn support.
 
       renderLogin();
-      await screen.findByPlaceholderText(i18n.t("auth.rut"));
+      await screen.findByLabelText(i18n.t("auth.rut"));
 
       expect(startLogin).not.toHaveBeenCalled();
       expect(navigator.credentials.get).not.toHaveBeenCalled();
@@ -255,7 +304,7 @@ describe("LoginRoute", () => {
       });
 
       renderLogin();
-      fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.rut")), {
+      fireEvent.change(screen.getByLabelText(i18n.t("auth.rut")), {
         target: { value: "12345678-5" },
       });
       fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.passkey.signIn") }));

@@ -950,6 +950,24 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
   connection drop right after a list loaded once would otherwise show real (old) numbers next to
   "se nos cortó la conexión" — `AccountsRoute`/`InstallmentsRoute`/`BillingSection` now derive their
   displayed list as `isError ? [] : (data ?? [])` before it reaches any summary, count or table.
+  Amendment (public landing, 2026-09-23 — port of `docs/prototypes/landing.html`): **`/` is no
+  longer a protected route.** `app/HomeRoute.tsx` renders the public landing for a visitor and the
+  Panel (`AppLayout` + `DashboardPage`) for a signed-in user — same URL, no redirect, so signing in
+  from the landing flips it in place. New frontend-only domain **`domains/landing`** with public
+  routes under Spanish slugs (Chilean market): `/producto/:view?` (one tab per app nav item —
+  `cuentas`/`movimientos`/`cuotas`/`deudas`/`recurrentes`/`ahorros` — each its own URL; unknown
+  slug → `/producto`), `/nosotros`, `/privacidad`, `/precios`, `/preguntas`. Every page wraps itself
+  in `LandingLayout` (sticky header + footer + access panel); a PUSH/REPLACE navigation scrolls to
+  top and focuses the page's `h1`, POP (first load, Back) doesn't (`useNavigationType`, not a
+  first-render ref — each page mounts its own layout). Access is a side panel, not a page:
+  `auth/components/AuthPanel` (a `SidePanel` with Iniciar sesión / Crear cuenta tabs) hosts the
+  REAL `LoginForm` (extracted from `LoginRoute`: RUT+password, MFA step, passkey button, conditional
+  autofill) and `RegisterForm`; CTAs open it via `useOpenAuth()`. `/login` and `/register` still
+  exist (RequireAuth still redirects to `/login`). Every figure on the landing is **sample data**,
+  formatted with the real `formatMoney`/locale dates (`landing/hooks/useSampleFormat`); the product
+  views are hand-built from shared primitives (`Card`, `Badge`, `Table`, `Tabs`, `CARD_KIND_STYLE`),
+  NOT the real domain components (those need live DTOs). Illustrative actions (Pagar, Sincronizar
+  pagos, Cerrar sesión) render `disabled`. All copy lives under `landing.*` in es/en.
   Amendment (overlay family, 2026-08-05): `shared/ui/dialog.tsx` and `shared/ui/confirm-dialog.tsx`
   are **gone**, replaced by `shared/ui/overlay/` (barrel `index.ts`): **`SurfaceChrome`** (the shared
   frame — header `leading`/title/description/`headerAside`/close → one scrolling body → pinned

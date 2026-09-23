@@ -1,0 +1,2056 @@
+<!--
+  Prototipo de la landing pública de FinanceApp (2026-09-22).
+
+  Qué es: una landing de seis páginas con paginación por URL (`#/producto`,
+  `#/nosotros`, `#/privacidad`, `#/precios`, `#/preguntas`), donde "Producto"
+  tiene una pestaña por ítem de la navegación real de la app — Cuentas,
+  Movimientos, Cuotas, Deudas, Recurrentes, Ahorros — cada una con su propia URL
+  (`#/producto/cuotas`). El acceso es un panel lateral, no una página.
+
+  Por qué este archivo NO es la implementación: usa Tailwind por CDN y replica a
+  mano el markup de los componentes (`AccountCard`, `AccountsSummary`,
+  `TransactionTable`, `SurfaceChrome`/`Drawer`, `Tabs`, `Badge`, `Card`). Los
+  tokens de `apps/web/src/styles/index.css` están copiados valor por valor, así
+  que al portarlo a `apps/web` cada bloque se reemplaza por su componente real y
+  los colores ya calzan. Toda cifra de estas pantallas es de ejemplo.
+
+  Abrirlo: sirve tal cual en el navegador (el navegador implica html/head/body).
+  Necesita internet para el CDN de Tailwind y las fuentes de Google.
+
+  Pendiente al portarlo: textos a `i18n/es.json` + `en.json`, el ítem "Panel" de
+  la navegación (habría que armar el dashboard con sus cuatro widgets), y decidir
+  si los botones ilustrativos de Facturación ("Pagar", "Sincronizar pagos") se
+  muestran deshabilitados.
+-->
+<title>Recorrido FinanceApp</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Geist:wght@300;400;500;600;700&display=swap">
+
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          background: "hsl(var(--background) / <alpha-value>)",
+          foreground: "hsl(var(--foreground) / <alpha-value>)",
+          card: { DEFAULT: "hsl(var(--card) / <alpha-value>)", foreground: "hsl(var(--card-foreground) / <alpha-value>)" },
+          primary: { DEFAULT: "hsl(var(--primary) / <alpha-value>)", foreground: "hsl(var(--primary-foreground) / <alpha-value>)" },
+          secondary: { DEFAULT: "hsl(var(--secondary) / <alpha-value>)", foreground: "hsl(var(--secondary-foreground) / <alpha-value>)" },
+          accent: { DEFAULT: "hsl(var(--accent) / <alpha-value>)", foreground: "hsl(var(--accent-foreground) / <alpha-value>)" },
+          muted: { DEFAULT: "hsl(var(--muted) / <alpha-value>)", foreground: "hsl(var(--muted-foreground) / <alpha-value>)" },
+          success: { DEFAULT: "hsl(var(--success) / <alpha-value>)", foreground: "hsl(var(--success-foreground) / <alpha-value>)" },
+          warning: { DEFAULT: "hsl(var(--warning) / <alpha-value>)", foreground: "hsl(var(--warning-foreground) / <alpha-value>)" },
+          destructive: { DEFAULT: "hsl(var(--destructive) / <alpha-value>)", foreground: "hsl(var(--destructive-foreground) / <alpha-value>)" },
+          info: { DEFAULT: "hsl(var(--info) / <alpha-value>)", foreground: "hsl(var(--info-foreground) / <alpha-value>)" },
+          brand: "hsl(var(--brand) / <alpha-value>)",
+          border: "hsl(var(--border) / <alpha-value>)",
+          input: "hsl(var(--input) / <alpha-value>)",
+          ring: "hsl(var(--ring) / <alpha-value>)",
+          surface2: "hsl(var(--surface-2) / <alpha-value>)",
+          chip: "hsl(var(--chip) / <alpha-value>)",
+          track: "hsl(var(--track) / <alpha-value>)",
+          border2: "hsl(var(--border-2) / <alpha-value>)",
+          dim: "hsl(var(--text-dim) / <alpha-value>)"
+        },
+        borderRadius: { lg: "var(--radius)", md: "calc(var(--radius) - 2px)", sm: "calc(var(--radius) - 4px)" },
+        fontFamily: {
+          sans: ['Geist', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+          mono: ['"Geist Mono"', 'ui-monospace', 'monospace']
+        }
+      }
+    },
+    future: { hoverOnlyWhenSupported: true }
+  };
+</script>
+
+<style>
+  /*
+   * Los mismos tokens de apps/web/src/styles/index.css, valor por valor.
+   * El contrato de esta página pide la paleta clara en :root; la app la tiene
+   * al revés (oscuro por defecto), así que el toggle arranca en oscuro para
+   * conservar la identidad del producto.
+   */
+  :root {
+    --background: 195 22% 96%;
+    --foreground: 191 21% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 191 21% 10%;
+    --primary: 183 86% 19%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 12 76% 61%;
+    --accent-foreground: 0 0% 100%;
+    --secondary: 190 30% 96%;
+    --secondary-foreground: 191 21% 10%;
+    --muted: 190 30% 96%;
+    --muted-foreground: 189 100% 14%;
+    --border: 188 38% 68%;
+    --input: 188 38% 68%;
+    --ring: 184 60% 30%;
+    --success: 152 55% 32%;
+    --success-foreground: 0 0% 100%;
+    --warning: 35 92% 40%;
+    --warning-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --info: 200 80% 38%;
+    --info-foreground: 0 0% 100%;
+    --brand: 183 86% 19%;
+    --radius: 0.6rem;
+    --surface-2: 192 24% 93%;
+    --chip: 190 28% 91%;
+    --track: 192 24% 86%;
+    --border-2: 188 33% 55%;
+    --text-dim: 190 12% 42%;
+    --credit-surface: 180 33% 91%;
+    --credit-ink: 183 86% 19%;
+    --debit-surface: 22 79% 93%;
+    --debit-ink: 17 68% 38%;
+    --prepaid-surface: 194 17% 92%;
+    --prepaid-ink: 197 22% 32%;
+    color-scheme: light;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --background: 194 37% 7%;
+      --foreground: 180 16% 92%;
+      --card: 190 38% 9%;
+      --card-foreground: 180 16% 92%;
+      --primary: 187 30% 54%;
+      --primary-foreground: 189 54% 7%;
+      --accent: 27 87% 67%;
+      --accent-foreground: 29 69% 10%;
+      --secondary: 192 26% 15%;
+      --secondary-foreground: 180 16% 92%;
+      --muted: 195 26% 18%;
+      --muted-foreground: 185 11% 59%;
+      --border: 192 25% 16%;
+      --input: 192 24% 21%;
+      --ring: 187 34% 60%;
+      --success: 153 44% 49%;
+      --success-foreground: 153 45% 8%;
+      --warning: 38 92% 55%;
+      --warning-foreground: 38 92% 10%;
+      --destructive: 0 58% 71%;
+      --destructive-foreground: 0 45% 10%;
+      --info: 200 75% 55%;
+      --info-foreground: 200 75% 10%;
+      --brand: 183 86% 19%;
+      --surface-2: 196 38% 12%;
+      --chip: 192 26% 15%;
+      --track: 195 26% 18%;
+      --border-2: 192 24% 21%;
+      --text-dim: 188 10% 54%;
+      --credit-surface: 185 52% 11%;
+      --credit-ink: 185 36% 68%;
+      --debit-surface: 31 42% 12%;
+      --debit-ink: 33 79% 77%;
+      --prepaid-surface: 197 27% 13%;
+      --prepaid-ink: 190 18% 77%;
+      color-scheme: dark;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --background: 194 37% 7%;
+    --foreground: 180 16% 92%;
+    --card: 190 38% 9%;
+    --card-foreground: 180 16% 92%;
+    --primary: 187 30% 54%;
+    --primary-foreground: 189 54% 7%;
+    --accent: 27 87% 67%;
+    --accent-foreground: 29 69% 10%;
+    --secondary: 192 26% 15%;
+    --secondary-foreground: 180 16% 92%;
+    --muted: 195 26% 18%;
+    --muted-foreground: 185 11% 59%;
+    --border: 192 25% 16%;
+    --input: 192 24% 21%;
+    --ring: 187 34% 60%;
+    --success: 153 44% 49%;
+    --success-foreground: 153 45% 8%;
+    --warning: 38 92% 55%;
+    --warning-foreground: 38 92% 10%;
+    --destructive: 0 58% 71%;
+    --destructive-foreground: 0 45% 10%;
+    --info: 200 75% 55%;
+    --info-foreground: 200 75% 10%;
+    --brand: 183 86% 19%;
+    --surface-2: 196 38% 12%;
+    --chip: 192 26% 15%;
+    --track: 195 26% 18%;
+    --border-2: 192 24% 21%;
+    --text-dim: 188 10% 54%;
+    --credit-surface: 185 52% 11%;
+    --credit-ink: 185 36% 68%;
+    --debit-surface: 31 42% 12%;
+    --debit-ink: 33 79% 77%;
+    --prepaid-surface: 197 27% 13%;
+    --prepaid-ink: 190 18% 77%;
+    color-scheme: dark;
+  }
+
+  /* Pre-Tailwind: que el primer frame ya tenga fondo y tipografía del producto. */
+  body {
+    margin: 0;
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: Geist, ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  * { border-color: hsl(var(--border)); }
+
+  /* Composición isométrica del hero: el transform vive acá para poder apagarlo
+     bajo 900px, donde las tarjetas se apilan derechas y siguen legibles. */
+  .iso { perspective: 1600px; }
+  .iso-stage { transform-style: preserve-3d; }
+  @media (min-width: 900px) {
+    .iso-stage { transform: rotateX(46deg) rotateZ(-38deg); }
+    .iso-lift-1 { transform: translateZ(70px); }
+    .iso-lift-2 { transform: translateZ(28px); }
+    .iso-lift-3 { transform: translateZ(0); }
+  }
+  .iso-glow {
+    background: radial-gradient(60% 55% at 55% 40%, hsl(var(--primary) / .22), transparent 70%);
+  }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<!-- ══════════════════════════════════ NAV ══════════════════════════════════ -->
+<header class="sticky z-40 border-b bg-background/85 backdrop-blur" style="top: env(safe-area-inset-top, 0px)">
+  <div class="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
+    <a href="#/" class="mr-auto flex items-center gap-2.5">
+      <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-brand to-primary text-sm font-bold text-white">FA</span>
+      <span class="text-base font-semibold tracking-tight">FinanceApp</span>
+    </a>
+
+    <nav class="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm" aria-label="Secciones">
+      <a data-nav="/producto" href="#/producto" class="font-medium text-muted-foreground transition-colors hover:text-foreground">Producto</a>
+      <a data-nav="/nosotros" href="#/nosotros" class="font-medium text-muted-foreground transition-colors hover:text-foreground">Nosotros</a>
+      <a data-nav="/privacidad" href="#/privacidad" class="font-medium text-muted-foreground transition-colors hover:text-foreground">Privacidad y Datos</a>
+      <a data-nav="/precios" href="#/precios" class="font-medium text-muted-foreground transition-colors hover:text-foreground">Precios</a>
+      <a data-nav="/preguntas" href="#/preguntas" class="font-medium text-muted-foreground transition-colors hover:text-foreground">Preguntas Frecuentes</a>
+    </nav>
+
+    <div class="flex items-center gap-2">
+      <div class="inline-flex overflow-hidden rounded-md border border-input" role="group" aria-label="Tema">
+        <button type="button" data-theme-set="light" aria-pressed="false" aria-label="Tema claro" title="Claro" class="grid h-8 w-8 place-items-center text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-pressed:bg-primary aria-pressed:text-primary-foreground">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+        </button>
+        <button type="button" data-theme-set="dark" aria-pressed="false" aria-label="Tema oscuro" title="Oscuro" class="grid h-8 w-8 place-items-center border-l border-input text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-pressed:bg-primary aria-pressed:text-primary-foreground">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+        <button type="button" data-theme-set="system" aria-pressed="false" aria-label="Seguir el sistema" title="Sistema" class="grid h-8 w-8 place-items-center border-l border-input text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-pressed:bg-primary aria-pressed:text-primary-foreground">
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+        </button>
+      </div>
+      <button type="button" data-auth="login" class="inline-flex h-9 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Iniciar Sesión</button>
+    </div>
+  </div>
+</header>
+
+<main class="mx-auto max-w-[1240px] px-4">
+
+  <!-- ═══════════════════════ 1 · QUÉ ES ═══════════════════════ -->
+  <section data-page="/" aria-labelledby="t1">
+    <div class="grid items-center gap-10 py-10 lg:grid-cols-[minmax(0,.92fr)_minmax(0,1.08fr)] lg:gap-14 lg:py-16">
+      <div>
+        <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Finanzas personales · Chile</span>
+        <h1 id="t1" tabindex="-1" class="mt-4 text-4xl font-bold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
+          Tus finanzas con las<br><span class="text-primary">reglas de tu banco</span>
+        </h1>
+        <p class="mt-6 max-w-[46ch] text-base text-muted-foreground sm:text-lg">
+          Cupo compartido entre tarjetas, cierre en días hábiles con feriados chilenos, cuotas que
+          comprometen el cupo el día de la compra, arrastre de lo que no alcanzaste a pagar.
+          Lo que otras apps simplifican hasta que deja de cuadrar.
+        </p>
+        <p class="mt-4 max-w-[48ch] text-sm text-muted-foreground">
+          Sin conectar bancos y sin sincronización automática: nada entra a tu cuenta que no hayas
+          registrado vos. Pesos, dólares y UF, sin conversiones inventadas.
+        </p>
+
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <button type="button" data-auth="register" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-accent px-6 text-base font-medium text-accent-foreground transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            Crear cuenta
+            <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          </button>
+          <a href="#/producto" class="inline-flex h-11 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-6 text-base font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            Ver el producto
+          </a>
+        </div>
+      </div>
+
+      <!-- Composición isométrica hecha con las tarjetas reales de la app -->
+      <div class="iso relative">
+        <div class="iso-glow pointer-events-none absolute inset-0 -z-10"></div>
+        <div class="iso-stage grid gap-5 sm:gap-6">
+
+          <!-- AccountVisualCard · CREDIT (tarjeta titular) -->
+          <div class="iso-lift-1 relative flex w-full max-w-md shrink-0 flex-col overflow-hidden rounded-2xl border border-[hsl(var(--credit-ink)/0.45)] bg-[hsl(var(--credit-surface))] p-4 text-left text-[hsl(var(--credit-ink))] shadow-md sm:p-5 min-h-[11rem] sm:min-h-[12.5rem]">
+            <div class="flex h-full flex-col justify-between gap-2 sm:gap-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-semibold leading-tight">BCI</p>
+                  <p class="truncate text-xs opacity-80">Tarjeta de crédito · CLP</p>
+                </div>
+                <span class="shrink-0 rounded-full bg-[color-mix(in_srgb,currentColor_15%,transparent)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">Crédito</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                <div class="flex items-center gap-2">
+                  <p class="text-sm font-medium opacity-90">Visa Signature</p>
+                  <span class="rounded-full bg-[color-mix(in_srgb,currentColor_15%,transparent)] px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide">Principal</span>
+                </div>
+                <p class="text-base font-medium tabular-nums tracking-widest">•••• •••• •••• 4417</p>
+                <div class="flex flex-col gap-1">
+                  <span class="text-xs opacity-70">Cupo utilizado</span>
+                  <p class="whitespace-nowrap tabular-nums">
+                    <span class="text-base font-semibold">$486.190</span>
+                    <span class="text-xs opacity-70"> / $1.800.000</span>
+                  </p>
+                  <div class="mt-0.5 flex items-center gap-2">
+                    <div class="h-1.5 flex-1 overflow-hidden rounded-full bg-[color-mix(in_srgb,currentColor_20%,transparent)]">
+                      <div class="h-full rounded-full bg-current" style="width:27%"></div>
+                    </div>
+                    <span class="text-xs font-medium tabular-nums opacity-90">27%</span>
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-end justify-between">
+                <span class="text-xs font-medium uppercase tracking-wide opacity-90">S. Sáez</span>
+                <span class="text-xs tabular-nums opacity-90">09/29</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- AccountVisualCard · DEBIT -->
+          <div class="iso-lift-2 relative ml-auto flex w-full max-w-md shrink-0 flex-col overflow-hidden rounded-2xl border border-[hsl(var(--debit-ink)/0.45)] bg-[hsl(var(--debit-surface))] p-4 text-left text-[hsl(var(--debit-ink))] shadow-md sm:p-5 min-h-[11rem] sm:min-h-[12.5rem]">
+            <div class="flex h-full flex-col justify-between gap-2 sm:gap-3">
+              <div class="flex items-start justify-between gap-2">
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-semibold leading-tight">Banco de Chile</p>
+                  <p class="truncate text-xs opacity-80">Cuenta corriente · CLP</p>
+                </div>
+                <span class="shrink-0 rounded-full bg-[color-mix(in_srgb,currentColor_15%,transparent)] px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">Débito</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                <p class="text-sm font-medium opacity-90">Cuenta corriente</p>
+                <p class="text-base font-medium tabular-nums tracking-widest">•••• •••• •••• 8821</p>
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-xs opacity-70">Saldo</span>
+                  <p class="text-base font-semibold tabular-nums">$1.240.000</p>
+                </div>
+              </div>
+              <div class="flex items-end justify-between">
+                <span class="text-xs font-medium uppercase tracking-wide opacity-90">S. Sáez</span>
+                <span class="text-xs tabular-nums opacity-90">03/28</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TransactionKpiStrip real -->
+          <div class="iso-lift-3 flex max-w-md flex-wrap items-center justify-between gap-6 rounded-lg border bg-card p-4 shadow-sm">
+            <div class="flex flex-col gap-1">
+              <span class="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">Balance de agosto</span>
+              <span class="text-2xl font-bold tabular-nums text-destructive">−$350.110</span>
+            </div>
+            <div class="flex items-center gap-8">
+              <div class="flex flex-col gap-1">
+                <span class="flex items-center gap-1.5 text-xs text-muted-foreground"><span class="h-1.5 w-1.5 rounded-full bg-success" aria-hidden></span>Ingresos</span>
+                <span class="text-sm font-semibold tabular-nums">$1.420.000</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                <span class="flex items-center gap-1.5 text-xs text-muted-foreground"><span class="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden></span>Gastos</span>
+                <span class="text-sm font-semibold tabular-nums">$1.770.110</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- claims -->
+    <div class="grid gap-x-8 gap-y-10 border-t pb-16 pt-12 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground">
+            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5"/><path d="M16 12h.01"/></svg>
+          </span>
+          <h2 class="text-base font-semibold leading-snug tracking-tight">Distintos tipos de cuenta</h2>
+        </div>
+        <p class="mt-3 text-sm text-muted-foreground">
+          Corriente, vista, ahorro, tarjeta de crédito, prepago y efectivo. Cada una se comporta
+          como en tu banco.
+        </p>
+      </div>
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground">
+            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg>
+          </span>
+          <h2 class="text-base font-semibold leading-snug tracking-tight">Los días hábiles que tú defines</h2>
+        </div>
+        <p class="mt-3 text-sm text-muted-foreground">
+          Tú eliges cuántos días hábiles hay hasta el cierre y cuántos hasta el pago. Los feriados
+          de Chile ya están contados.
+        </p>
+      </div>
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground">
+            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6"/><path d="M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
+          </span>
+          <h2 class="text-base font-semibold leading-snug tracking-tight">Pesos, dólares y UF</h2>
+        </div>
+        <p class="mt-3 text-sm text-muted-foreground">
+          Cada cuenta en su moneda y con su propio total. Sin conversiones que tu banco no
+          reconocería.
+        </p>
+      </div>
+      <div>
+        <div class="flex items-center gap-3">
+          <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground">
+            <svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M12 3l8 3v6c0 4.5-3.2 7.9-8 9-4.8-1.1-8-4.5-8-9V6l8-3z"/><path d="M9 12l2 2 4-4"/></svg>
+          </span>
+          <h2 class="text-base font-semibold leading-snug tracking-tight">Sin bancos conectados</h2>
+        </div>
+        <p class="mt-3 text-sm text-muted-foreground">
+          Nada entra que no registres tú. Entras con tu RUT y cierras tus sesiones cuando quieras.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ 2 · PRODUCTO (una sección, cuatro vistas) ═══════════════════════ -->
+  <section data-page="/producto" hidden>
+    <div class="flex flex-col gap-6 pt-10">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div class="min-w-0">
+          <h1 id="t2" tabindex="-1" class="text-2xl font-semibold tracking-tight">El producto</h1>
+          <p class="mt-1 text-sm text-muted-foreground">
+            Las pantallas reales de la app, con datos de ejemplo. Cada vista trae las reglas que la
+            gobiernan.
+          </p>
+        </div>
+        <span class="inline-flex shrink-0 items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">Interfaz real · datos de ejemplo</span>
+      </div>
+
+      <nav class="flex flex-wrap gap-x-5 border-b" aria-label="Vistas del producto">
+        <a data-tab="cuentas" href="#/producto/cuentas" class="-mb-px border-b-2 px-1 py-2 text-sm font-medium transition-colors">Cuentas</a>
+        <a data-tab="movimientos" href="#/producto/movimientos" class="-mb-px border-b-2 px-1 py-2 text-sm font-medium transition-colors">Movimientos</a>
+        <a data-tab="cuotas" href="#/producto/cuotas" class="-mb-px border-b-2 px-1 py-2 text-sm font-medium transition-colors">Cuotas</a>
+        <a data-tab="deudas" href="#/producto/deudas" class="-mb-px border-b-2 px-1 py-2 text-sm font-medium transition-colors">Deudas</a>
+        <a data-tab="recurrentes" href="#/producto/recurrentes" class="-mb-px border-b-2 px-1 py-2 text-sm font-medium transition-colors">Recurrentes</a>
+        <a data-tab="ahorros" href="#/producto/ahorros" class="-mb-px border-b-2 px-1 py-2 text-sm font-medium transition-colors">Ahorros</a>
+      </nav>
+    </div>
+
+    <!-- ── vista: cuentas y tarjetas ── -->
+    <div data-panel="cuentas" hidden>
+    <div class="flex flex-col gap-8 py-8">
+      <div class="min-w-0">
+        <h2 class="text-lg font-semibold tracking-tight">Cuentas</h2>
+        <p class="mt-1 text-sm text-muted-foreground">Donde vive la plata, y donde vive la deuda. No son lo mismo.</p>
+      </div>
+
+      <div class="flex flex-col gap-10">
+        <div class="grid max-w-5xl gap-8 lg:grid-cols-2 lg:gap-12">
+          <div class="flex flex-col gap-4">
+          <p class="text-base text-muted-foreground">
+            Una cuenta es donde hay saldo o una línea de crédito. Tu tarjeta de crédito
+            <strong class="font-medium text-foreground">es su propia cuenta</strong>, no un canal
+            sobre tu corriente: el banco las vende juntas, pero la compra no saca plata — abre deuda
+            rotativa con su propio estado de cuenta, ciclo y pago mínimo.
+          </p>
+          <p class="text-base text-muted-foreground">
+            De cada plástico se guardan solo los últimos cuatro dígitos. El número completo nunca
+            sale de tu navegador y el CVV no se pide. La primera tarjeta de crédito de una cuenta
+            hereda su cupo; las siguientes eligen entre compartirlo o tener tope propio por moneda.
+          </p>
+          <p class="text-base text-muted-foreground">
+            La cuenta en efectivo se crea con tu usuario y la última no se puede eliminar: los
+            billetes de tu billetera existen lo modele la app o no.
+          </p>
+          </div>
+
+          <div class="rounded-lg border bg-card p-4 shadow-sm">
+            <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cupos de la cuenta</span>
+            <div class="mt-4 flex flex-col gap-4">
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-baseline justify-between gap-3">
+                  <span class="text-sm font-medium">Cupo compartido · CLP</span>
+                  <span class="text-sm tabular-nums text-muted-foreground">$486.190 / $1.800.000</span>
+                </div>
+                <div class="h-2 overflow-hidden rounded-full bg-track">
+                  <div class="h-full rounded-full bg-accent" style="width:27%"></div>
+                </div>
+                <p class="text-xs text-muted-foreground">Titular y adicional descuentan de acá</p>
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <div class="flex items-baseline justify-between gap-3">
+                  <span class="text-sm font-medium">Adicional ···· 2210 · tope propio</span>
+                  <span class="text-sm tabular-nums text-muted-foreground">US$ 240 / US$ 900</span>
+                </div>
+                <div class="h-2 overflow-hidden rounded-full bg-track">
+                  <div class="h-full rounded-full bg-primary" style="width:27%"></div>
+                </div>
+                <p class="text-xs text-muted-foreground">Otra moneda: pool independiente, sin conversión</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <!-- AccountsSummary: patrimonio total + activos + deuda de tarjetas -->
+          <div class="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card px-4 py-5 sm:px-6">
+            <div class="min-w-0">
+              <p class="text-xs text-muted-foreground">
+                Patrimonio total <span class="text-dim">· neto, aprox. en CLP</span>
+              </p>
+              <div class="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
+                <p class="text-[26px] font-bold leading-none tracking-tight tabular-nums sm:text-[30px]">$3.297.610</p>
+                <span class="rounded-full bg-chip px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">US$ 310</span>
+              </div>
+            </div>
+            <div class="flex flex-wrap gap-x-6 gap-y-2 sm:gap-8">
+              <div class="text-right">
+                <p class="text-[11.5px] text-muted-foreground">Activos</p>
+                <p class="mt-1 text-base font-semibold tabular-nums text-success">$3.783.800</p>
+              </div>
+              <div class="text-right">
+                <p class="text-[11.5px] text-muted-foreground">Deuda tarjetas</p>
+                <p class="mt-1 text-base font-semibold tabular-nums text-accent">−$486.190</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- encabezado de grupo + grilla de AccountCard, como en /accounts -->
+          <div class="flex flex-col gap-3">
+            <div class="flex items-center gap-3">
+              <h3 class="text-[11px] font-semibold uppercase tracking-[0.09em] text-dim">
+                Todas las cuentas
+                <span class="ml-2 font-normal normal-case tracking-normal">5 cuentas</span>
+              </h3>
+              <span class="h-px flex-1 bg-border"></span>
+              <span class="text-[12.5px] font-semibold tabular-nums">$3.297.610</span>
+            </div>
+
+            <div class="grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3.5">
+
+              <!-- cuenta corriente -->
+              <div class="group flex flex-col rounded-xl border bg-card p-4 shadow-sm transition-colors hover:border-primary/40">
+                <div class="mb-3.5 flex items-start justify-between">
+                  <span class="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-chip text-muted-foreground">
+                    <svg class="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M3 22h18M6 18v-7M10 18v-7M14 18v-7M18 18v-7M2 9l10-6 10 6H2z"/></svg>
+                  </span>
+                  <span class="rounded-full bg-chip px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">Corriente</span>
+                </div>
+                <p class="text-[13.5px] font-semibold leading-tight">Cuenta corriente</p>
+                <p class="mt-0.5 text-[11px] text-dim">Banco de Chile · ···· 8821</p>
+                <p class="mt-3 text-[19px] font-bold tracking-tight tabular-nums">$1.240.000</p>
+                <p class="mt-2 flex items-center gap-1.5 text-[11px] text-success">
+                  <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>
+                  +3,2% este mes
+                </p>
+              </div>
+
+              <!-- cuenta de ahorro -->
+              <div class="group flex flex-col rounded-xl border bg-card p-4 shadow-sm transition-colors hover:border-primary/40">
+                <div class="mb-3.5 flex items-start justify-between">
+                  <span class="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-chip text-muted-foreground">
+                    <svg class="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/></svg>
+                  </span>
+                  <span class="rounded-full bg-chip px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">Ahorro</span>
+                </div>
+                <p class="text-[13.5px] font-semibold leading-tight">Ahorro vivienda</p>
+                <p class="mt-0.5 text-[11px] text-dim">Coopeuch · ···· 5093</p>
+                <p class="mt-3 text-[19px] font-bold tracking-tight tabular-nums">$2.410.000</p>
+                <p class="mt-2 flex items-center gap-1.5 text-[11px] text-success">
+                  <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m22 7-8.5 8.5-5-5L2 17"/><path d="M16 7h6v6"/></svg>
+                  +1,4% este mes
+                </p>
+              </div>
+
+              <!-- tarjeta de crédito: no tiene saldo, tiene deuda -->
+              <div class="group flex flex-col rounded-xl border border-accent/30 bg-card p-4 shadow-sm transition-colors hover:border-accent/60">
+                <div class="mb-3.5 flex items-start justify-between">
+                  <span class="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-chip text-accent">
+                    <svg class="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                  </span>
+                  <span class="rounded-full bg-accent/15 px-2.5 py-0.5 text-[10px] font-medium text-accent">Tarjeta de crédito</span>
+                </div>
+                <p class="text-[13.5px] font-semibold leading-tight">Visa Signature</p>
+                <p class="mt-0.5 text-[11px] text-dim">BCI · ···· 4417</p>
+                <p class="mt-3 text-[19px] font-bold tracking-tight tabular-nums text-accent">−$486.190</p>
+                <p class="mt-2 text-[11px] text-dim">Facturado a 20 días hábiles</p>
+                <div class="mt-auto border-t pt-2.5">
+                  <div class="mb-1.5 flex items-center justify-between gap-2 text-[10.5px] text-muted-foreground">
+                    <span class="flex min-w-0 items-center gap-1.5">
+                      <svg class="h-[11px] w-[11px] shrink-0 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
+                      <span class="truncate">Cupo usado</span>
+                    </span>
+                    <span class="shrink-0 tabular-nums">27%</span>
+                  </div>
+                  <div class="h-1 overflow-hidden rounded-full bg-track">
+                    <div class="h-full rounded-full bg-accent" style="width:27%"></div>
+                  </div>
+                  <p class="mt-1.5 whitespace-nowrap text-[10px] tabular-nums text-dim">$486.190 / $1.800.000</p>
+                </div>
+              </div>
+
+              <!-- cuenta de pago -->
+              <div class="group flex flex-col rounded-xl border bg-card p-4 shadow-sm transition-colors hover:border-primary/40">
+                <div class="mb-3.5 flex items-start justify-between">
+                  <span class="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-chip text-muted-foreground">
+                    <svg class="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 9h20M16 14h2"/></svg>
+                  </span>
+                  <span class="rounded-full bg-chip px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">Prepago</span>
+                </div>
+                <p class="text-[13.5px] font-semibold leading-tight">Tenpo Prepago</p>
+                <p class="mt-0.5 text-[11px] text-dim">Tenpo · ···· 2210</p>
+                <p class="mt-3 text-[19px] font-bold tracking-tight tabular-nums">$47.500</p>
+                <p class="mt-2 flex items-center gap-1.5 text-[11px] text-destructive">
+                  <svg class="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m22 17-8.5-8.5-5 5L2 7"/><path d="M16 17h6v-6"/></svg>
+                  −12,5% este mes
+                </p>
+              </div>
+
+              <!-- efectivo: la única cuenta que existe la modele la app o no -->
+              <div class="group flex flex-col rounded-xl border bg-card p-4 shadow-sm transition-colors hover:border-primary/40">
+                <div class="mb-3.5 flex items-start justify-between">
+                  <span class="flex h-[34px] w-[34px] items-center justify-center rounded-[9px] bg-chip text-muted-foreground">
+                    <svg class="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></svg>
+                  </span>
+                  <span class="rounded-full bg-chip px-2.5 py-0.5 text-[10px] font-medium text-muted-foreground">Efectivo</span>
+                </div>
+                <p class="text-[13.5px] font-semibold leading-tight">Efectivo</p>
+                <p class="mt-0.5 text-[11px] text-dim">CLP</p>
+                <p class="mt-3 text-[19px] font-bold tracking-tight tabular-nums">$86.300</p>
+                <p class="mt-2 text-[11px] text-dim">Se crea con tu usuario y no se puede eliminar</p>
+              </div>
+            </div>
+          </div>
+
+          <p class="text-xs text-muted-foreground">
+            Cada tarjeta lleva a la cuenta, donde viven sus plásticos, su facturación y sus
+            movimientos. Una tarjeta de crédito muestra deuda en lugar de saldo, en color de
+            atención y con su cupo usado al pie.
+          </p>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-6 border-t pt-10">
+        <div class="max-w-[62ch]">
+          <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dentro de una cuenta de crédito</span>
+          <h3 class="mt-2 text-lg font-semibold tracking-tight">Facturación</h3>
+          <p class="mt-2 text-sm text-muted-foreground">
+            No es una sección aparte del menú: vive dentro de la cuenta, junto a sus movimientos.
+            El período abierto acumula y su total es la suma viva de sus movimientos, así que
+            corriges uno y el total se corrige solo. A los 20 días hábiles del corte anterior
+            cierra, y desde ahí corren 10 días hábiles hasta el vencimiento.
+          </p>
+          <p class="mt-3 text-sm text-muted-foreground">
+            Cualquier pago liquida el período. Lo que no cubriste pasa al siguiente como saldo
+            anterior, con registro de a dónde fue, y el cupo baja solo por lo que pagaste de
+            verdad: el resto sigue siendo deuda.
+          </p>
+        </div>
+        <div class="grid gap-5 xl:grid-cols-2">
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="flex flex-col gap-1.5 p-6">
+              <div class="flex flex-wrap items-center gap-2">
+                <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Período en curso</span>
+                <span class="inline-flex items-center rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary">Pendiente</span>
+              </div>
+              <h2 class="text-xl font-semibold tracking-tight">21 jul — 20 ago 2026</h2>
+            </div>
+            <div class="p-6 pt-0">
+              <div class="grid gap-5 sm:grid-cols-2">
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-xs text-muted-foreground">Total facturado</span>
+                  <span class="text-3xl font-bold tabular-nums">$486.190</span>
+                </div>
+                <div class="flex flex-col gap-0.5">
+                  <span class="text-xs text-muted-foreground">Pago mínimo · 15%</span>
+                  <span class="text-3xl font-bold tabular-nums text-accent">$72.929</span>
+                </div>
+              </div>
+
+              <div class="mt-6 flex flex-col divide-y">
+                <div class="flex items-center justify-between gap-4 py-3">
+                  <span class="text-sm text-muted-foreground">Compras del período</span>
+                  <span class="text-sm tabular-nums">$312.400</span>
+                </div>
+                <div class="flex items-center justify-between gap-4 py-3">
+                  <span class="text-sm text-muted-foreground">Cuotas vencidas · 2 planes</span>
+                  <span class="text-sm tabular-nums">$173.790</span>
+                </div>
+                <div class="flex items-center justify-between gap-4 py-3">
+                  <span class="text-sm text-muted-foreground">Saldo de la facturación anterior</span>
+                  <span class="text-sm tabular-nums">$224.880</span>
+                </div>
+                <div class="flex items-center justify-between gap-4 py-3">
+                  <span class="text-sm text-muted-foreground">Vence</span>
+                  <span class="text-sm font-medium tabular-nums">5 sep 2026</span>
+                </div>
+              </div>
+
+              <div class="mt-5 flex flex-wrap gap-2">
+                <button type="button" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-accent px-4 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><rect x="2" y="6" width="20" height="12" rx="2"/><circle cx="12" cy="12" r="2"/></svg>
+                  Pagar
+                </button>
+                <button type="button" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Sincronizar pagos</button>
+              </div>
+              <p class="mt-3 text-xs text-muted-foreground">
+                Sin una cifra de intereses inventada: el modelo no tiene ese concepto. Un cobro del
+                emisor se registra como cargo financiero y entra al total como cualquier otro.
+              </p>
+            </div>
+          </div>
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="w-full overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-muted/50 text-muted-foreground">
+                  <tr class="border-b last:border-0">
+                    <th class="w-8 px-6 py-3"></th>
+                    <th class="px-6 py-3 text-left font-medium">Período</th>
+                    <th class="px-6 py-3 text-left font-medium">Estado</th>
+                    <th class="w-28 whitespace-nowrap px-6 py-3 text-left font-medium">Vence</th>
+                    <th class="w-32 px-6 py-3 text-right font-medium tabular-nums">Monto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-chip text-muted-foreground"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></span></td>
+                    <td class="px-6 py-4 font-medium">21 jul — 20 ago</td>
+                    <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary">Pendiente</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 text-muted-foreground">5 sep</td>
+                    <td class="w-32 px-6 py-4 text-right tabular-nums">$486.190</td>
+                  </tr>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-chip text-muted-foreground"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></span></td>
+                    <td class="px-6 py-4 font-medium">21 jun — 20 jul</td>
+                    <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-warning/15 px-2.5 py-0.5 text-xs font-medium text-warning">Pagada en parte</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 text-muted-foreground">5 ago</td>
+                    <td class="w-32 px-6 py-4 text-right tabular-nums">
+                      $524.880
+                      <span class="block text-xs font-normal text-muted-foreground">pagado $300.000 · arrastró $224.880</span>
+                    </td>
+                  </tr>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-chip text-muted-foreground"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18M8 2v4M16 2v4"/></svg></span></td>
+                    <td class="px-6 py-4 font-medium">21 may — 20 jun</td>
+                    <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success">Pagada</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 text-muted-foreground">5 jul</td>
+                    <td class="w-32 px-6 py-4 text-right tabular-nums">$398.140</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- ── vista: movimientos ── -->
+    <div data-panel="movimientos" hidden>
+    <div class="flex flex-col gap-8 py-8">
+      <div class="min-w-0">
+        <h2 class="text-lg font-semibold tracking-tight">Movimientos</h2>
+        <p class="mt-1 text-sm text-muted-foreground">7 movimientos · agosto 2026</p>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,.8fr)_minmax(0,1.2fr)] lg:gap-10">
+        <div class="flex flex-col gap-4">
+          <p class="text-base text-muted-foreground">
+            Gasto, ingreso o traspaso entre tus propias cuentas. Cada movimiento se valida contra
+            tu cupo, tu línea de sobregiro declarada y el techo de saldo de una cuenta vista: nada
+            que tu banco rechazaría entra como si hubiera pasado.
+          </p>
+          <p class="text-base text-muted-foreground">
+            Un gasto con tarjeta de crédito
+            <strong class="font-medium text-foreground">no baja el saldo de tu cuenta</strong>: sube
+            el cupo usado, y la plata sale una sola vez cuando pagás la facturación.
+          </p>
+          <p class="text-base text-muted-foreground">
+            Un traspaso son dos filas unidas por un grupo — gasto en el origen, ingreso en el
+            destino — así cada cuenta ve su propio lado. Quedan afuera de los totales por categoría
+            para que no inflen tus gastos del mes.
+          </p>
+          <div class="rounded-lg border bg-card p-4 shadow-sm">
+            <p class="text-sm font-medium">Cargo financiero</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Un cobro del emisor —interés del rotativo, comisión, seguro— no lo hace ningún
+              plástico. La app nunca lo calcula: lo leés de tu estado de cuenta y lo anotás. Es lo
+              que permite que el saldo arrastrado te cuadre con la cartola real.
+            </p>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <!-- TransactionKpiStrip -->
+          <div class="flex flex-wrap items-center justify-between gap-6 rounded-lg border bg-card p-4 shadow-sm">
+            <div class="flex flex-col gap-1">
+              <span class="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">Balance de agosto<span class="font-medium">· CLP</span></span>
+              <span class="text-2xl font-bold tabular-nums text-destructive">−$350.110</span>
+            </div>
+            <div class="flex items-center gap-8">
+              <div class="flex flex-col gap-1">
+                <span class="flex items-center gap-1.5 text-xs text-muted-foreground"><span class="h-1.5 w-1.5 rounded-full bg-success" aria-hidden></span>Ingresos</span>
+                <span class="text-sm font-semibold tabular-nums">$1.420.000</span>
+              </div>
+              <div class="flex flex-col gap-1">
+                <span class="flex items-center gap-1.5 text-xs text-muted-foreground"><span class="h-1.5 w-1.5 rounded-full bg-accent" aria-hidden></span>Gastos</span>
+                <span class="text-sm font-semibold tabular-nums">$1.770.110</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- TransactionTable -->
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="w-full overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-muted/50 text-muted-foreground">
+                  <tr class="border-b last:border-0">
+                    <th class="w-8 px-6 py-3"></th>
+                    <th class="px-6 py-3 text-left font-medium">Descripción</th>
+                    <th class="w-32 px-6 py-3 text-left font-medium">Categoría</th>
+                    <th class="w-24 px-6 py-3 text-left font-medium">Tipo</th>
+                    <th class="w-28 whitespace-nowrap px-6 py-3 text-left font-medium">Tarjeta</th>
+                    <th class="w-28 whitespace-nowrap px-6 py-3 text-left font-medium">Fecha</th>
+                    <th class="w-32 px-6 py-3 text-right font-medium tabular-nums">Monto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M2 9h20M6 14h4"/><rect x="2" y="5" width="20" height="14" rx="2"/></svg></span></td>
+                    <td class="w-full max-w-0 px-6 py-4 font-medium"><div class="truncate">Pago facturación BCI</div></td>
+                    <td class="px-6 py-4"><span class="text-sm">Pago</span></td>
+                    <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive">Gasto</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 tabular-nums text-muted-foreground"><span class="opacity-40">—</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 text-muted-foreground">20 ago 2026</td>
+                    <td class="w-32 whitespace-nowrap px-6 py-4 text-right tabular-nums text-destructive">−$300.000</td>
+                  </tr>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M19 5c-1.5 0-2.8 1.4-3 2-3.5-1.5-11-.3-11 5 0 1.8 0 3 2 4.5V20h4v-2h3v2h4v-4c1-.5 1.7-1 2-2h2v-4h-2c0-1-.5-1.5-1-2V5z"/><path d="M2 9v1c0 1.1.9 2 2 2h1"/><path d="M16 11h0"/></svg></span></td>
+                    <td class="w-full max-w-0 px-6 py-4 font-medium"><div class="truncate">Aporte meta «Viaje a Bariloche»</div></td>
+                    <td class="px-6 py-4"><span class="text-sm">Ahorro</span></td>
+                    <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive">Gasto</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 tabular-nums text-muted-foreground"><span class="opacity-40">—</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 text-muted-foreground">18 ago 2026</td>
+                    <td class="w-32 whitespace-nowrap px-6 py-4 text-right tabular-nums text-destructive">−$120.000</td>
+                  </tr>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-info/15 text-info"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg></span></td>
+                    <td class="w-full max-w-0 px-6 py-4 font-medium"><div class="truncate">Traspaso a Tenpo Prepago</div></td>
+                    <td class="px-6 py-4"><span class="text-sm text-muted-foreground">Sin categoría</span></td>
+                    <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-info/15 px-2.5 py-0.5 text-xs font-medium text-info">Traspaso</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 tabular-nums text-muted-foreground"><span class="opacity-40">—</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 text-muted-foreground">16 ago 2026</td>
+                    <td class="w-32 whitespace-nowrap px-6 py-4 text-right tabular-nums text-destructive">−$50.000</td>
+                  </tr>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m13 2-9 12h7l-1 8 9-12h-7l1-8z"/></svg></span></td>
+                    <td class="w-full max-w-0 px-6 py-4 font-medium"><div class="truncate">Boleta luz Enel</div></td>
+                    <td class="px-6 py-4"><span class="text-sm">Servicios</span></td>
+                    <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive">Gasto</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 tabular-nums text-muted-foreground"><span class="opacity-40">—</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 text-muted-foreground">12 ago 2026</td>
+                    <td class="w-32 whitespace-nowrap px-6 py-4 text-right tabular-nums text-destructive">−$41.870</td>
+                  </tr>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></span></td>
+                    <td class="w-full max-w-0 px-6 py-4 font-medium"><div class="truncate">Interés rotativo</div></td>
+                    <td class="px-6 py-4"><span class="text-sm">Cargo financiero</span></td>
+                    <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive">Gasto</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 tabular-nums text-muted-foreground"><span class="opacity-40">—</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 text-muted-foreground">7 ago 2026</td>
+                    <td class="w-32 whitespace-nowrap px-6 py-4 text-right tabular-nums text-destructive">−$18.240</td>
+                  </tr>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-muted-foreground"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20"/></svg></span></td>
+                    <td class="w-full max-w-0 px-6 py-4 font-medium"><div class="truncate">Notebook ASUS · 12 cuotas</div></td>
+                    <td class="px-6 py-4"><span class="text-sm">Tecnología</span></td>
+                    <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive">Gasto</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 tabular-nums text-muted-foreground">••••4417</td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 text-muted-foreground">2 ago 2026</td>
+                    <td class="w-32 whitespace-nowrap px-6 py-4 text-right tabular-nums text-destructive">−$1.290.000</td>
+                  </tr>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-success/15 text-success"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M12 19V5M5 12l7-7 7 7"/></svg></span></td>
+                    <td class="w-full max-w-0 px-6 py-4 font-medium"><div class="truncate">Sueldo julio</div></td>
+                    <td class="px-6 py-4"><span class="text-sm">Ingreso</span></td>
+                    <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success">Ingreso</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 tabular-nums text-muted-foreground"><span class="opacity-40">—</span></td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 text-muted-foreground">25 jul 2026</td>
+                    <td class="w-32 whitespace-nowrap px-6 py-4 text-right tabular-nums text-success">+$1.420.000</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="text-xs text-muted-foreground">
+            El traspaso de $50.000 aparece como fila en cada cuenta, pero no suma a los $1.770.110
+            de gastos del mes: mover plata entre tus cuentas no es un gasto.
+          </p>
+        </div>
+      </div>
+    </div>
+    </div>
+
+
+    <!-- ── vista: metas, deudas y recurrentes ── -->
+    <!-- ── vista: cuotas ── -->
+    <div data-panel="cuotas" hidden>
+    <div class="flex flex-col gap-8 py-8">
+      <div class="min-w-0">
+        <h2 class="text-lg font-semibold tracking-tight">Cuotas</h2>
+        <p class="mt-1 text-sm text-muted-foreground">3 planes activos · próximo pago 5 sep 2026</p>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,.7fr)] lg:gap-10">
+        <div class="flex flex-col gap-5">
+          <div class="flex flex-col gap-3">
+            <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cuotas</span>
+            <div class="grid gap-3 sm:grid-cols-3">
+              <div class="rounded-lg border bg-card p-4 shadow-sm">
+                <p class="text-xs text-muted-foreground">Planes activos</p>
+                <p class="mt-1 text-xl font-bold tabular-nums">3</p>
+              </div>
+              <div class="rounded-lg border bg-card p-4 shadow-sm">
+                <p class="text-xs text-muted-foreground">Por pagar · CLP</p>
+                <p class="mt-1 text-xl font-bold tabular-nums">$1.331.100</p>
+              </div>
+              <div class="rounded-lg border bg-card p-4 shadow-sm">
+                <p class="text-xs text-muted-foreground">Próxima cuota</p>
+                <p class="mt-1 text-xl font-bold tabular-nums">$107.500</p>
+              </div>
+            </div>
+            <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+              <div class="w-full overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead class="bg-muted/50 text-muted-foreground">
+                    <tr class="border-b last:border-0">
+                      <th class="w-8 px-6 py-3"></th>
+                      <th class="px-6 py-3 text-left font-medium">Plan</th>
+                      <th class="px-6 py-3 text-left font-medium">Cuotas</th>
+                      <th class="w-28 px-6 py-3 text-left font-medium">Tarjeta</th>
+                      <th class="w-32 px-6 py-3 text-right font-medium tabular-nums">Restante</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr class="border-b last:border-0 hover:bg-muted/40">
+                      <td class="px-6 py-4"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-chip text-muted-foreground"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20"/></svg></span></td>
+                      <td class="px-6 py-4 font-medium">Notebook ASUS<span class="block text-xs font-normal text-muted-foreground">Tecnología · $107.500 por cuota</span></td>
+                      <td class="px-6 py-4 text-muted-foreground">3 facturadas · 9 por facturar</td>
+                      <td class="w-28 px-6 py-4 tabular-nums text-muted-foreground">••••4417</td>
+                      <td class="w-32 px-6 py-4 text-right tabular-nums">$967.500</td>
+                    </tr>
+                    <tr class="border-b last:border-0 hover:bg-muted/40">
+                      <td class="px-6 py-4"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-chip text-muted-foreground"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M3 3h18v18H3zM3 10h18"/></svg></span></td>
+                      <td class="px-6 py-4 font-medium">Refrigerador Mademsa<span class="block text-xs font-normal text-muted-foreground">Hogar · con interés · $89.900 por cuota</span></td>
+                      <td class="px-6 py-4 text-muted-foreground">2 pagadas · 4 por pagar</td>
+                      <td class="w-28 px-6 py-4 tabular-nums text-muted-foreground">••••4417</td>
+                      <td class="w-32 px-6 py-4 text-right tabular-nums">$359.600</td>
+                    </tr>
+                    <tr class="border-b last:border-0 hover:bg-muted/40">
+                      <td class="px-6 py-4"><span class="flex h-8 w-8 items-center justify-center rounded-full bg-chip text-muted-foreground"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg></span></td>
+                      <td class="px-6 py-4 font-medium">Aspiradora Robot<span class="block text-xs font-normal text-muted-foreground">Hogar · paga con Cuenta corriente</span></td>
+                      <td class="px-6 py-4 text-muted-foreground">1 pagada · 2 por pagar</td>
+                      <td class="w-28 px-6 py-4 tabular-nums text-muted-foreground">••••8821</td>
+                      <td class="w-32 px-6 py-4 text-right tabular-nums">$106.600</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <div class="rounded-lg border bg-card p-4 shadow-sm">
+            <p class="text-sm font-medium">Con tarjeta de crédito</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              El cupo se compromete completo el día de la compra, como hace tu emisor, pero la
+              facturación cobra solo la cuota vencida. La compra queda excluida del total del
+              período para no cobrarla dos veces. Una cuota pasa de programada a facturada y a
+              pagada por el cierre y el pago del período, nunca a mano.
+            </p>
+          </div>
+          <div class="rounded-lg border bg-card p-4 shadow-sm">
+            <p class="text-sm font-medium">Sin tarjeta de crédito</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Cada cuota es un gasto real de la cuenta que elijas. Si pagas de menos, el faltante
+              pasa a la cuota siguiente sin reescribir el calendario.
+            </p>
+          </div>
+          <div class="rounded-lg border bg-card p-4 shadow-sm">
+            <p class="text-sm font-medium">Borrar un plan</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Revierte todo su historial: elimina sus gastos, devuelve el saldo a cada cuenta y
+              libera el cupo. La confirmación te dice cuánto va a mover antes de hacerlo.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- ── vista: deudas ── -->
+    <div data-panel="deudas" hidden>
+    <div class="flex flex-col gap-8 py-8">
+      <div class="min-w-0">
+        <h2 class="text-lg font-semibold tracking-tight">Deudas</h2>
+        <p class="mt-1 text-sm text-muted-foreground">2 deudas activas · 2 personas</p>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,.7fr)] lg:gap-10">
+        <div class="flex flex-col gap-3">
+          <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Deudas con personas</span>
+          <p class="text-sm text-muted-foreground">
+            Marcar pagada mueve plata de verdad — crea el movimiento y ajusta el saldo de la cuenta.
+            Deshacerlo lo revierte por el mismo monto, porque queda registrado exactamente qué movió.
+          </p>
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="w-full overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-muted/50 text-muted-foreground">
+                  <tr class="border-b last:border-0">
+                    <th class="px-6 py-3 text-left font-medium">Deuda</th>
+                    <th class="px-6 py-3 text-left font-medium">Estado</th>
+                    <th class="w-32 px-6 py-3 text-right font-medium tabular-nums">Pendiente</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4 font-medium">Camila · entradas del recital<span class="block text-xs font-normal text-muted-foreground">Me deben · 3 cuotas, 1 pagada</span></td>
+                    <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success">Me deben</span></td>
+                    <td class="w-32 px-6 py-4 text-right tabular-nums text-success">$120.000</td>
+                  </tr>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4 font-medium">Arriendo a Rodrigo<span class="block text-xs font-normal text-muted-foreground">Yo debo · pago único</span></td>
+                    <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-destructive/15 px-2.5 py-0.5 text-xs font-medium text-destructive">Yo debo</span></td>
+                    <td class="w-32 px-6 py-4 text-right tabular-nums text-destructive">$420.000</td>
+                  </tr>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4 font-medium">Almuerzo equipo<span class="block text-xs font-normal text-muted-foreground">Me deben · liquidada el 12 ago</span></td>
+                    <td class="px-6 py-4"><span class="inline-flex items-center rounded-full bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">Liquidada</span></td>
+                    <td class="w-32 px-6 py-4 text-right tabular-nums text-muted-foreground">$0</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <div class="rounded-lg border bg-card p-4 shadow-sm">
+            <p class="text-sm font-medium">Pagar mueve plata de verdad</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Marcar una deuda como pagada crea el movimiento y ajusta el saldo de la cuenta.
+              El monto no lo escribes tú: sale del calendario de la propia deuda.
+            </p>
+          </div>
+          <div class="rounded-lg border bg-card p-4 shadow-sm">
+            <p class="text-sm font-medium">Y deshacerlo lo devuelve</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Queda registrado exactamente qué movió cada pago, así que revertirlo borra ese
+              movimiento y repone el saldo por el mismo monto.
+            </p>
+          </div>
+          <div class="rounded-lg border bg-card p-4 shadow-sm">
+            <p class="text-sm font-medium">Sin pagar deuda con deuda</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              No puedes saldar una deuda desde una cuenta de tarjeta de crédito, y la cuenta debe
+              estar en la misma moneda: no hay conversión.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- ── vista: recurrentes ── -->
+    <div data-panel="recurrentes" hidden>
+    <div class="flex flex-col gap-8 py-8">
+      <div class="min-w-0">
+        <h2 class="text-lg font-semibold tracking-tight">Recurrentes</h2>
+        <p class="mt-1 text-sm text-muted-foreground">2 activos · 1 pausado</p>
+      </div>
+
+      <div class="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,.7fr)] lg:gap-10">
+        <div class="flex flex-col gap-3">
+          <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Gastos recurrentes</span>
+          <p class="text-sm text-muted-foreground">
+            Suscripciones, arriendo, seguros. La próxima fecha se calcula desde el ancla de la serie,
+            y podés pausar una sin perder su historial.
+          </p>
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="w-full overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="bg-muted/50 text-muted-foreground">
+                  <tr class="border-b last:border-0">
+                    <th class="px-6 py-3 text-left font-medium">Serie</th>
+                    <th class="px-6 py-3 text-left font-medium">Frecuencia</th>
+                    <th class="w-28 whitespace-nowrap px-6 py-3 text-left font-medium">Próximo</th>
+                    <th class="w-28 px-6 py-3 text-right font-medium tabular-nums">Monto</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4 font-medium">Arriendo<span class="block text-xs font-normal text-muted-foreground">Cuenta corriente</span></td>
+                    <td class="px-6 py-4 text-muted-foreground">Mensual</td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 text-muted-foreground">1 sep</td>
+                    <td class="w-28 px-6 py-4 text-right tabular-nums">$420.000</td>
+                  </tr>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4 font-medium">Netflix<span class="block text-xs font-normal text-muted-foreground">Visa ••••4417</span></td>
+                    <td class="px-6 py-4 text-muted-foreground">Mensual</td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 text-muted-foreground">5 sep</td>
+                    <td class="w-28 px-6 py-4 text-right tabular-nums">$9.990</td>
+                  </tr>
+                  <tr class="border-b last:border-0 hover:bg-muted/40">
+                    <td class="px-6 py-4 font-medium">Seguro del auto<span class="block text-xs font-normal text-muted-foreground">Pausada</span></td>
+                    <td class="px-6 py-4 text-muted-foreground">Anual</td>
+                    <td class="w-28 whitespace-nowrap px-6 py-4 text-muted-foreground">14 mar</td>
+                    <td class="w-28 px-6 py-4 text-right tabular-nums">$89.000</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-4">
+          <div class="rounded-lg border bg-card p-4 shadow-sm">
+            <p class="text-sm font-medium">Un recordatorio, no un cobro</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Una serie no genera movimientos por su cuenta: te dice qué viene y cuándo, y el
+              gasto lo registras cuando ocurre de verdad.
+            </p>
+          </div>
+          <div class="rounded-lg border bg-card p-4 shadow-sm">
+            <p class="text-sm font-medium">Semanal, mensual o anual</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Con intervalo propio — cada dos semanas, cada tres meses — y la próxima fecha
+              calculada desde el ancla de la serie.
+            </p>
+          </div>
+          <div class="rounded-lg border bg-card p-4 shadow-sm">
+            <p class="text-sm font-medium">Pausar sin perder el historial</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Una serie pausada deja de aparecer en lo que viene, pero sigue ahí para reanudarla
+              cuando la contrates de nuevo.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <!-- ── vista: ahorros ── -->
+    <div data-panel="ahorros" hidden>
+    <div class="flex flex-col gap-8 py-8">
+      <div class="min-w-0">
+        <h2 class="text-lg font-semibold tracking-tight">Ahorros</h2>
+        <p class="mt-1 text-sm text-muted-foreground">3 metas · 2 en curso, 1 cumplida</p>
+      </div>
+
+      <div class="flex flex-col gap-4">
+        <div class="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Total ahorrado</span>
+            <p class="mt-1 text-3xl font-bold tabular-nums">$3.550.000</p>
+            <p class="text-sm text-muted-foreground">Ritmo de los últimos 3 meses: $185.000 por mes</p>
+          </div>
+          <p class="max-w-[42ch] text-sm text-muted-foreground">
+            El progreso y el ritmo se derivan siempre de tus aportes reales — cada uno es un gasto
+            en la cuenta de origen, así que no se pueden inflar.
+          </p>
+        </div>
+        <div class="flex h-3 overflow-hidden rounded-full bg-track">
+          <div class="h-full bg-primary" style="width:32%"></div>
+          <div class="h-full bg-accent" style="width:26%"></div>
+          <div class="h-full bg-success" style="width:12%"></div>
+        </div>
+
+        <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="flex flex-col gap-1.5 p-6">
+              <div class="flex items-start justify-between gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-full bg-primary/15 text-primary"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M17.8 19.2 16 11l3.5-3.5a2.1 2.1 0 0 0-3-3L13 8 4.8 6.2a.5.5 0 0 0-.5.8l3.2 4-2 2 3 1 1 3 2-2 4 3.2a.5.5 0 0 0 .8-.5z"/></svg></span>
+                <span class="inline-flex items-center rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary">En curso</span>
+              </div>
+              <h3 class="mt-2 text-lg font-semibold tracking-tight">Viaje a Bariloche</h3>
+            </div>
+            <div class="p-6 pt-0">
+              <p class="text-2xl font-bold tabular-nums">$1.140.000<span class="text-sm font-normal text-muted-foreground"> / $1.800.000</span></p>
+              <div class="mt-3 h-2 overflow-hidden rounded-full bg-track"><div class="h-full rounded-full bg-primary" style="width:63%"></div></div>
+              <div class="mt-4 flex flex-col divide-y text-sm">
+                <div class="flex justify-between gap-3 py-2"><span class="text-muted-foreground">Faltan</span><span class="tabular-nums">$660.000</span></div>
+                <div class="flex justify-between gap-3 py-2"><span class="text-muted-foreground">Ritmo</span><span class="tabular-nums">$120.000 / mes</span></div>
+                <div class="flex justify-between gap-3 py-2"><span class="text-muted-foreground">Plazo</span><span class="tabular-nums">dic 2026</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="flex flex-col gap-1.5 p-6">
+              <div class="flex items-start justify-between gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-full bg-accent/15 text-accent"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M12 2a10 10 0 1 0 10 10h-10z"/><path d="M12 2v10h10A10 10 0 0 0 12 2z"/></svg></span>
+                <span class="inline-flex items-center rounded-full bg-accent/15 px-2.5 py-0.5 text-xs font-medium text-accent">Fuera de plazo</span>
+              </div>
+              <h3 class="mt-2 text-lg font-semibold tracking-tight">Fondo de emergencia</h3>
+            </div>
+            <div class="p-6 pt-0">
+              <p class="text-2xl font-bold tabular-nums">$2.410.000<span class="text-sm font-normal text-muted-foreground"> / $3.000.000</span></p>
+              <div class="mt-3 h-2 overflow-hidden rounded-full bg-track"><div class="h-full rounded-full bg-accent" style="width:80%"></div></div>
+              <div class="mt-4 flex flex-col divide-y text-sm">
+                <div class="flex justify-between gap-3 py-2"><span class="text-muted-foreground">Faltan</span><span class="tabular-nums">$590.000</span></div>
+                <div class="flex justify-between gap-3 py-2"><span class="text-muted-foreground">Ritmo</span><span class="tabular-nums">$65.000 / mes</span></div>
+                <div class="flex justify-between gap-3 py-2"><span class="text-muted-foreground">A ese ritmo</span><span class="tabular-nums">9 meses tarde</span></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="flex flex-col gap-1.5 p-6">
+              <div class="flex items-start justify-between gap-3">
+                <span class="flex h-10 w-10 items-center justify-center rounded-full bg-success/15 text-success"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M20 6 9 17l-5-5"/></svg></span>
+                <span class="inline-flex items-center rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success">Cumplida</span>
+              </div>
+              <h3 class="mt-2 text-lg font-semibold tracking-tight">Notebook nuevo</h3>
+            </div>
+            <div class="p-6 pt-0">
+              <p class="text-2xl font-bold tabular-nums">$1.290.000<span class="text-sm font-normal text-muted-foreground"> / $1.290.000</span></p>
+              <div class="mt-3 h-2 overflow-hidden rounded-full bg-track"><div class="h-full rounded-full bg-success" style="width:100%"></div></div>
+              <div class="mt-4 flex flex-col divide-y text-sm">
+                <div class="flex justify-between gap-3 py-2"><span class="text-muted-foreground">Aportes</span><span class="tabular-nums">14</span></div>
+                <div class="flex justify-between gap-3 py-2"><span class="text-muted-foreground">Al cerrar</span><span>Retirar a una cuenta</span></div>
+                <div class="flex justify-between gap-3 py-2"><span class="text-muted-foreground">Reversible</span><span>Sí, reabriendo</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid max-w-5xl gap-4 sm:grid-cols-3">
+        <div class="rounded-lg border bg-card p-4 shadow-sm">
+          <p class="text-sm font-medium">Aportar es un gasto real</p>
+          <p class="mt-1 text-sm text-muted-foreground">
+            Cada aporte sale de una cuenta tuya y queda como movimiento, así que el progreso no
+            se puede inflar escribiendo un número.
+          </p>
+        </div>
+        <div class="rounded-lg border bg-card p-4 shadow-sm">
+          <p class="text-sm font-medium">El ritmo lo calculan tus aportes</p>
+          <p class="mt-1 text-sm text-muted-foreground">
+            Es el promedio de los últimos tres meses calendario completos, no una meta que te
+            propusiste al crear la meta.
+          </p>
+        </div>
+        <div class="rounded-lg border bg-card p-4 shadow-sm">
+          <p class="text-sm font-medium">Cerrar tiene tres destinos</p>
+          <p class="mt-1 text-sm text-muted-foreground">
+            Retirar a una cuenta, pasar a ahorro libre o traspasar a otra meta. El retiro es
+            reversible: reabrir deshace el movimiento que creó.
+          </p>
+        </div>
+      </div>
+    </div>
+    </div>
+
+
+  </section>
+
+  <!-- ═══════════════════════ 3 · NOSOTROS ═══════════════════════ -->
+  <section data-page="/nosotros" hidden>
+    <div class="flex flex-col gap-10 py-10">
+      <div class="max-w-[62ch]">
+        <h1 id="t3" tabindex="-1" class="text-2xl font-semibold tracking-tight">Por qué existe FinanceApp</h1>
+        <p class="mt-4 text-base text-muted-foreground">
+          Casi todas las apps de finanzas personales tratan la tarjeta de crédito como si fuera una
+          cuenta más: la compra descuenta tu saldo, las doce cuotas aparecen enteras en el mes, el
+          cierre cae el mismo día del mes para todos y el “disponible” suma pesos con dólares.
+          Ninguna de esas cosas es cierta, y basta un mes para que tus números dejen de cuadrar con
+          los del banco.
+        </p>
+        <p class="mt-4 text-base text-muted-foreground">
+          FinanceApp está construida al revés: primero las reglas del producto real —cupo
+          compartido, cierre en días hábiles, cuota facturada, arrastre del saldo impago— y después
+          la pantalla. Si el modelo no puede sostener una cifra con honestidad, la app no la
+          muestra.
+        </p>
+      </div>
+
+      <div>
+        <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cómo decidimos qué entra</span>
+        <div class="mt-5 grid gap-x-8 gap-y-8 sm:grid-cols-2">
+          <div>
+            <h2 class="text-base font-semibold tracking-tight">Nada automático que no puedas revisar</h2>
+            <p class="mt-2 text-sm text-muted-foreground">
+              No hay sincronización con bancos. Tú registras, y por eso el dato es tuyo y sabes
+              de dónde salió.
+            </p>
+          </div>
+          <div>
+            <h2 class="text-base font-semibold tracking-tight">Ninguna cifra inventada</h2>
+            <p class="mt-2 text-sm text-muted-foreground">
+              La app no calcula los intereses de tu banco ni convierte monedas. Cuando falta un
+              dato, lo dice en vez de rellenarlo con una estimación.
+            </p>
+          </div>
+          <div>
+            <h2 class="text-base font-semibold tracking-tight">Todo reversible</h2>
+            <p class="mt-2 text-sm text-muted-foreground">
+              Deshacer el pago de una deuda devuelve el saldo. Borrar un plan en cuotas revierte su
+              historial completo, y te dice cuánto va a mover antes de hacerlo.
+            </p>
+          </div>
+          <div>
+            <h2 class="text-base font-semibold tracking-tight">Chile primero, bien hecho</h2>
+            <p class="mt-2 text-sm text-muted-foreground">
+              Feriados legales, RUT con dígito verificador, UF, bancos y cooperativas del catálogo
+              local. Antes que muchos países a medias, uno completo.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="max-w-[62ch] border-t pt-8">
+        <h2 class="text-base font-semibold tracking-tight">En qué está hoy</h2>
+        <p class="mt-2 text-sm text-muted-foreground">
+          Funciona con cuentas, tarjetas, movimientos, facturación, cuotas, metas, deudas y gastos
+          recurrentes, en pesos, dólares y UF. Lo que todavía no existe no aparece disfrazado de
+          función: el seguimiento de inversiones está en pausa y la exportación de tus datos aún no
+          está lista.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ 4 · PRIVACIDAD Y DATOS ═══════════════════════ -->
+  <section data-page="/privacidad" hidden>
+    <div class="flex flex-col gap-8 py-10">
+      <div class="min-w-0">
+        <h1 id="t4" tabindex="-1" class="text-2xl font-semibold tracking-tight">Privacidad y datos</h1>
+        <p class="mt-1 text-sm text-muted-foreground">Qué se guarda, quién entra y cómo te vas</p>
+      </div>
+
+      <div class="grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,.95fr)] lg:gap-12">
+        <div class="flex flex-col gap-5">
+          <p class="text-base text-muted-foreground">
+            Tus saldos, movimientos y deudas describen tu situación económica, así que se tratan
+            como dato sensible: el permiso para procesarlos se pide aparte, explícito y con su
+            versión, nunca escondido dentro de un “acepto los términos”. Tu historial de
+            consentimientos queda consultable en tu perfil.
+          </p>
+          <p class="text-base text-muted-foreground">
+            Entras con tu RUT, como en tu banco — el correo queda solo para avisos. Si tu
+            dispositivo lo soporta, con una llave de acceso en vez de contraseña.
+          </p>
+
+          <!-- SecuritySection: sesiones reales -->
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="flex flex-col gap-1.5 p-6">
+              <h2 class="text-xl font-semibold tracking-tight">Sesiones y dispositivos</h2>
+              <p class="text-sm text-muted-foreground">Cerrás una y su acceso muere en la petición siguiente, no al próximo refresh.</p>
+            </div>
+            <div class="p-6 pt-0">
+              <div class="flex flex-col divide-y">
+                <div class="flex items-center justify-between gap-4 py-3">
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-medium">Chrome · Windows</p>
+                    <p class="truncate text-xs text-muted-foreground">Chile · activa ahora</p>
+                  </div>
+                  <span class="inline-flex shrink-0 items-center rounded-full bg-primary/15 px-2.5 py-0.5 text-xs font-medium text-primary">Esta sesión</span>
+                </div>
+                <div class="flex items-center justify-between gap-4 py-3">
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-medium">Safari · iPhone</p>
+                    <p class="truncate text-xs text-muted-foreground">Chile · hace 2 días</p>
+                  </div>
+                  <button type="button" class="inline-flex h-8 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Cerrar</button>
+                </div>
+                <div class="flex items-center justify-between gap-4 py-3 opacity-60">
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-medium">Firefox · Windows</p>
+                    <p class="truncate text-xs text-muted-foreground">Cerrada el 18 sep</p>
+                  </div>
+                </div>
+              </div>
+              <p class="mt-3 text-xs text-muted-foreground">
+                Una sesión cerrada se conserva 3 días para que la veas, y después se borra.
+                Geolocalización aproximada por IP.
+              </p>
+            </div>
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-2">
+            <div class="rounded-lg border bg-card p-4 shadow-sm">
+              <p class="text-sm font-medium">Llave de acceso</p>
+              <p class="mt-1 text-sm text-muted-foreground">Passkey: salta contraseña y segundo factor, porque ya es autenticación fuerte por sí misma.</p>
+            </div>
+            <div class="rounded-lg border bg-card p-4 shadow-sm">
+              <p class="text-sm font-medium">Segundo factor</p>
+              <p class="mt-1 text-sm text-muted-foreground">TOTP con códigos de recuperación. Cambiarlo cierra todas las demás sesiones, en la misma transacción.</p>
+            </div>
+            <div class="rounded-lg border bg-card p-4 shadow-sm">
+              <p class="text-sm font-medium">Eliminar la cuenta</p>
+              <p class="mt-1 text-sm text-muted-foreground">Supresión total, o anonimización si preferís conservar el historial sin nada que te identifique.</p>
+            </div>
+            <div class="rounded-lg border bg-card p-4 shadow-sm">
+              <p class="text-sm font-medium">Menores de edad</p>
+              <p class="mt-1 text-sm text-muted-foreground">Registro con autorización de madre, padre o tutor, guardada como un consentimiento aparte.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- columna derecha: qué se guarda y qué no -->
+        <div class="flex flex-col gap-4">
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="flex flex-col gap-1.5 p-6">
+              <h2 class="text-xl font-semibold tracking-tight">Qué no hacemos</h2>
+            </div>
+            <div class="p-6 pt-0">
+              <div class="flex flex-col divide-y">
+                <div class="py-3">
+                  <p class="text-sm font-medium">No nos conectamos a tu banco</p>
+                  <p class="mt-1 text-sm text-muted-foreground">No existe sincronización automática ni permiso de lectura sobre tus productos. Nada entra que no registres tú.</p>
+                </div>
+                <div class="py-3">
+                  <p class="text-sm font-medium">No guardamos el número de tu tarjeta</p>
+                  <p class="mt-1 text-sm text-muted-foreground">Solo los últimos cuatro dígitos. El número completo nunca sale de tu navegador y el CVV no se pide nunca.</p>
+                </div>
+                <div class="py-3">
+                  <p class="text-sm font-medium">No calculamos ni estimamos por ti</p>
+                  <p class="mt-1 text-sm text-muted-foreground">Ni intereses, ni tipo de cambio, ni gastos “proyectados” que no hayas anotado.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="rounded-lg border bg-card p-4 shadow-sm">
+            <p class="text-sm font-medium">Tus comprobantes</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Se validan por su contenido real, no por la extensión del archivo, y se abren con un
+              enlace firmado que caduca en cinco minutos. El nombre con que se guardan no revela
+              quién eres ni a qué movimiento pertenecen.
+            </p>
+          </div>
+
+          <div class="rounded-lg border bg-card p-4 shadow-sm">
+            <p class="text-sm font-medium">Ocultar saldos</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Un interruptor en tu perfil enmascara los montos de la app, y puedes revelar uno
+              puntual cuando lo necesites. Útil para mirar tus cuentas donde hay más gente.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ 5 · PRECIOS ═══════════════════════ -->
+  <section data-page="/precios" hidden>
+    <div class="flex flex-col gap-8 py-10">
+      <div class="min-w-0">
+        <h1 id="t5" tabindex="-1" class="text-2xl font-semibold tracking-tight">Precios</h1>
+        <p class="mt-1 text-sm text-muted-foreground">Una sola respuesta, sin tabla comparativa</p>
+      </div>
+
+      <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-12">
+        <div class="flex flex-col gap-5">
+          <div class="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div class="flex flex-col gap-1.5 p-6">
+              <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Plan único</span>
+              <p class="text-4xl font-bold tracking-tight">Gratis</p>
+              <p class="text-sm text-muted-foreground">Sin planes, sin límites artificiales y sin funciones bloqueadas.</p>
+            </div>
+            <div class="p-6 pt-0">
+              <div class="flex flex-col divide-y text-sm">
+                <div class="flex items-center gap-3 py-2.5">
+                  <svg class="h-4 w-4 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden><path d="M20 6 9 17l-5-5"/></svg>
+                  <span>Todas las cuentas y tarjetas que tengas</span>
+                </div>
+                <div class="flex items-center gap-3 py-2.5">
+                  <svg class="h-4 w-4 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden><path d="M20 6 9 17l-5-5"/></svg>
+                  <span>Movimientos, traspasos y comprobantes sin tope</span>
+                </div>
+                <div class="flex items-center gap-3 py-2.5">
+                  <svg class="h-4 w-4 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden><path d="M20 6 9 17l-5-5"/></svg>
+                  <span>Facturación, cuotas, metas, deudas y recurrentes</span>
+                </div>
+                <div class="flex items-center gap-3 py-2.5">
+                  <svg class="h-4 w-4 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden><path d="M20 6 9 17l-5-5"/></svg>
+                  <span>Llave de acceso, segundo factor y control de sesiones</span>
+                </div>
+                <div class="flex items-center gap-3 py-2.5">
+                  <svg class="h-4 w-4 shrink-0 text-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden><path d="M20 6 9 17l-5-5"/></svg>
+                  <span>Pesos, dólares y UF</span>
+                </div>
+              </div>
+              <button type="button" data-auth="register" class="mt-6 inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-accent px-4 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Crear mi cuenta</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-5">
+          <div>
+            <h2 class="text-base font-semibold tracking-tight">Por qué no cuesta</h2>
+            <p class="mt-2 text-sm text-muted-foreground">
+              Lo caro de una app de finanzas es conectarse a los bancos: se le paga a un
+              intermediario por cada cuenta sincronizada, y ese costo se te cobra a ti o se paga
+              con tus datos. Acá no hay esa conexión, así que no hay ese costo.
+            </p>
+          </div>
+          <div>
+            <h2 class="text-base font-semibold tracking-tight">Tus datos no son el precio</h2>
+            <p class="mt-2 text-sm text-muted-foreground">
+              No hay publicidad, no hay perfilado para terceros y no se venden tus movimientos.
+              Gratis acá significa gratis, no “pagado de otra forma”.
+            </p>
+          </div>
+          <div>
+            <h2 class="text-base font-semibold tracking-tight">Si algo cambia, te lo digo antes</h2>
+            <p class="mt-2 text-sm text-muted-foreground">
+              Si alguna vez alguna parte tiene un costo real —por ejemplo, guardar muchos
+              comprobantes—, se avisa antes de que ocurra y con la opción de llevarte tus datos.
+              Nada se vuelve de pago de un día para otro.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════ 6 · PREGUNTAS FRECUENTES ═══════════════════════ -->
+  <section data-page="/preguntas" hidden>
+    <div class="flex flex-col gap-8 py-10">
+      <div class="max-w-3xl">
+        <h1 id="t6" tabindex="-1" class="text-2xl font-semibold tracking-tight">Preguntas frecuentes</h1>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Las dudas que aparecen el primer mes, agrupadas por tema. Si algo no está acá, casi
+          siempre la respuesta es la misma: la app no muestra una cifra que no pueda sostener.
+        </p>
+      </div>
+
+      <div class="flex max-w-3xl flex-col gap-8">
+
+        <!-- ── grupo: cómo funciona ── -->
+        <div class="flex flex-col gap-3">
+          <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Cómo funciona</span>
+          <div class="divide-y overflow-hidden rounded-lg border bg-card shadow-sm">
+            <details open class="group transition-colors hover:bg-muted/30">
+              <summary class="flex w-full cursor-pointer list-none items-center gap-4 px-5 py-4 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span class="flex-1">¿Se conecta con mi banco?</span>
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="max-w-[68ch] px-5 pb-5 pr-12 text-sm leading-relaxed text-muted-foreground">
+                No. Tú registras tus cuentas y tus movimientos. Es más trabajo el primer día y, a
+                cambio, ninguna app tiene permiso de lectura sobre tus productos.
+              </div>
+            </details>
+
+            <details class="group transition-colors hover:bg-muted/30">
+              <summary class="flex w-full cursor-pointer list-none items-center gap-4 px-5 py-4 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span class="flex-1">¿Tengo que configurar todo antes de usarla?</span>
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="max-w-[68ch] px-5 pb-5 pr-12 text-sm leading-relaxed text-muted-foreground">
+                No. Tu cuenta en efectivo se crea contigo, en cero, así que puedes anotar un gasto
+                el primer día y sumar tus cuentas y tarjetas cuando tengas tiempo.
+              </div>
+            </details>
+
+            <details class="group transition-colors hover:bg-muted/30">
+              <summary class="flex w-full cursor-pointer list-none items-center gap-4 px-5 py-4 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span class="flex-1">¿Convierte entre pesos, dólares y UF?</span>
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="max-w-[68ch] px-5 pb-5 pr-12 text-sm leading-relaxed text-muted-foreground">
+                No. Cada cuenta vive en su moneda y cada total se muestra por separado, para no
+                darte una suma que tu banco no reconocería.
+              </div>
+            </details>
+
+            <details class="group transition-colors hover:bg-muted/30">
+              <summary class="flex w-full cursor-pointer list-none items-center gap-4 px-5 py-4 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span class="flex-1">¿Sirve para mis inversiones?</span>
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="max-w-[68ch] px-5 pb-5 pr-12 text-sm leading-relaxed text-muted-foreground">
+                Puedes tener una cuenta de inversión y registrar sus movimientos, pero el
+                seguimiento de instrumentos y rentabilidad todavía no existe. Preferimos decirlo a
+                mostrarte una pantalla vacía.
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <!-- ── grupo: tarjetas y facturación ── -->
+        <div class="flex flex-col gap-3">
+          <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tarjetas y facturación</span>
+          <div class="divide-y overflow-hidden rounded-lg border bg-card shadow-sm">
+            <details class="group transition-colors hover:bg-muted/30">
+              <summary class="flex w-full cursor-pointer list-none items-center gap-4 px-5 py-4 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span class="flex-1">¿Por qué mi compra con tarjeta de crédito no bajó mi saldo?</span>
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="max-w-[68ch] px-5 pb-5 pr-12 text-sm leading-relaxed text-muted-foreground">
+                Porque no debería. Una compra a crédito sube tu cupo usado, no baja tu saldo: la
+                plata sale una sola vez, después, cuando pagas la facturación.
+              </div>
+            </details>
+
+            <details class="group transition-colors hover:bg-muted/30">
+              <summary class="flex w-full cursor-pointer list-none items-center gap-4 px-5 py-4 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span class="flex-1">¿Cuándo cierra mi facturación?</span>
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="max-w-[68ch] px-5 pb-5 pr-12 text-sm leading-relaxed text-muted-foreground">
+                Cuando tú digas: configuras cuántos días hábiles pasan desde el corte anterior, o
+                un día fijo del mes si tu emisor trabaja así. Los feriados de Chile ya están
+                contados, y la fecha de pago se configura aparte.
+              </div>
+            </details>
+
+            <details class="group transition-colors hover:bg-muted/30">
+              <summary class="flex w-full cursor-pointer list-none items-center gap-4 px-5 py-4 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span class="flex-1">¿Qué pasa si pago menos que el total?</span>
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="max-w-[68ch] px-5 pb-5 pr-12 text-sm leading-relaxed text-muted-foreground">
+                El período queda liquidado y lo que no cubriste pasa al siguiente como saldo
+                anterior, con registro de a dónde fue. Tu cupo se libera solo por lo que pagaste
+                de verdad.
+              </div>
+            </details>
+
+            <details class="group transition-colors hover:bg-muted/30">
+              <summary class="flex w-full cursor-pointer list-none items-center gap-4 px-5 py-4 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span class="flex-1">¿La tarjeta adicional gasta de mi mismo cupo?</span>
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="max-w-[68ch] px-5 pb-5 pr-12 text-sm leading-relaxed text-muted-foreground">
+                Sí, igual que en tu banco — salvo que le des un tope propio, que de todos modos
+                sigue limitado por el cupo de la cuenta. Cada tarjeta muestra además cuánto gastó
+                ella.
+              </div>
+            </details>
+
+            <details class="group transition-colors hover:bg-muted/30">
+              <summary class="flex w-full cursor-pointer list-none items-center gap-4 px-5 py-4 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span class="flex-1">¿Calcula los intereses que me cobran?</span>
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="max-w-[68ch] px-5 pb-5 pr-12 text-sm leading-relaxed text-muted-foreground">
+                No, y es a propósito: inventar una tasa haría que tus números dejaran de coincidir
+                con tu estado de cuenta. Lo anotas como cargo financiero y queda sumado donde
+                corresponde.
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <!-- ── grupo: tu cuenta y tus datos ── -->
+        <div class="flex flex-col gap-3">
+          <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Tu cuenta y tus datos</span>
+          <div class="divide-y overflow-hidden rounded-lg border bg-card shadow-sm">
+            <details class="group transition-colors hover:bg-muted/30">
+              <summary class="flex w-full cursor-pointer list-none items-center gap-4 px-5 py-4 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span class="flex-1">¿Cómo entro a mi cuenta?</span>
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="max-w-[68ch] px-5 pb-5 pr-12 text-sm leading-relaxed text-muted-foreground">
+                Con tu RUT y tu contraseña, o con una llave de acceso si tu dispositivo la soporta.
+                El correo queda solo para avisos.
+              </div>
+            </details>
+
+            <details class="group transition-colors hover:bg-muted/30">
+              <summary class="flex w-full cursor-pointer list-none items-center gap-4 px-5 py-4 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span class="flex-1">¿Puedo eliminar mi cuenta de verdad?</span>
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="max-w-[68ch] px-5 pb-5 pr-12 text-sm leading-relaxed text-muted-foreground">
+                Sí. Puedes borrarlo todo, o conservar el historial sin ningún dato que te
+                identifique. En los dos casos tus sesiones y llaves de acceso se eliminan.
+              </div>
+            </details>
+
+            <details class="group transition-colors hover:bg-muted/30">
+              <summary class="flex w-full cursor-pointer list-none items-center gap-4 px-5 py-4 text-left text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                <span class="flex-1">Soy menor de edad, ¿puedo usarla?</span>
+                <svg class="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="m6 9 6 6 6-6"/></svg>
+              </summary>
+              <div class="max-w-[68ch] px-5 pb-5 pr-12 text-sm leading-relaxed text-muted-foreground">
+                Sí, con la autorización de tu madre, padre o tutor. El formulario de registro la
+                pide solo. Su RUT se guarda cifrado, porque es un tercero y no un usuario de la app.
+              </div>
+            </details>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-between gap-4 rounded-lg border bg-card p-5 shadow-sm">
+          <div class="min-w-0">
+            <p class="text-sm font-semibold">¿Te quedó otra duda?</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Crear la cuenta toma un minuto y no te compromete a nada: el primer gasto lo puedes
+              anotar en efectivo.
+            </p>
+          </div>
+          <button type="button" data-auth="register" class="inline-flex h-10 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-accent px-4 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Crear cuenta</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Panel lateral de acceso: mismo Drawer que usa la app (borde izquierdo,
+       62% del ancho hasta 2xl, pantalla completa bajo sm, fondo oscurecido). -->
+  <div id="auth-overlay" hidden>
+    <div id="auth-scrim" class="fixed inset-0 z-40 bg-black/50 backdrop-blur-md"></div>
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="auth-title"
+      class="fixed inset-y-0 right-0 z-50 flex w-full min-w-[320px] max-w-2xl flex-col border-l border-border bg-card focus:outline-none sm:w-[62%]"
+    >
+      <!-- SurfaceChrome, variante window: header con regla, cuerpo que scrollea -->
+      <div class="flex shrink-0 items-center gap-4 border-b border-border px-4 py-3">
+        <div class="min-w-0 flex-1">
+          <p class="text-[11px] font-semibold uppercase tracking-wide text-brand">Acceso</p>
+          <h2 id="auth-title" class="text-lg font-semibold tracking-tight">Iniciar sesión</h2>
+          <p id="auth-desc" class="mt-1 text-sm text-muted-foreground">Con tu RUT, como en tu banco</p>
+        </div>
+        <button type="button" id="auth-close" aria-label="Cerrar" class="rounded-md p-1 text-muted-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="scrollbar-thin min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 pt-4 [scrollbar-gutter:stable]">
+        <div class="flex flex-col gap-4">
+          <div role="tablist" class="flex gap-4 border-b">
+            <button type="button" role="tab" id="tab-login" aria-selected="true" class="-mb-px border-b-2 border-primary px-1 py-2 text-sm font-medium text-foreground transition-colors">Iniciar sesión</button>
+            <button type="button" role="tab" id="tab-register" aria-selected="false" class="-mb-px border-b-2 border-transparent px-1 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground">Crear cuenta</button>
+          </div>
+
+          <div>
+              <form id="form-login" novalidate class="flex flex-col">
+                <div class="flex items-baseline justify-between gap-4 border-b py-3">
+                  <label for="l-rut" class="shrink-0 text-sm text-muted-foreground">RUT</label>
+                  <input id="l-rut" data-rut autocomplete="username webauthn" placeholder="12.345.678-9" class="h-8 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-sm font-medium tabular-nums text-foreground shadow-none placeholder:text-muted-foreground focus-visible:outline-none">
+                </div>
+                <div class="flex items-baseline justify-between gap-4 border-b py-3">
+                  <label for="l-pass" class="shrink-0 text-sm text-muted-foreground">Contraseña</label>
+                  <input id="l-pass" type="password" autocomplete="current-password" placeholder="Mínimo 8 caracteres" class="h-8 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-sm font-medium text-foreground shadow-none placeholder:text-muted-foreground focus-visible:outline-none">
+                </div>
+                <p id="l-msg" role="alert" hidden class="pt-3 text-sm text-destructive"></p>
+                <button type="submit" class="mt-4 inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Iniciar sesión</button>
+                <button type="button" class="mt-2 inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Iniciar sesión con llave de acceso</button>
+              </form>
+
+              <form id="form-register" novalidate hidden class="flex flex-col">
+                <div class="flex items-baseline justify-between gap-4 border-b py-3">
+                  <label for="r-name" class="shrink-0 text-sm text-muted-foreground">Nombre completo</label>
+                  <input id="r-name" autocomplete="name" placeholder="Ej: Juan Pérez" class="h-8 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-sm font-medium text-foreground placeholder:text-muted-foreground focus-visible:outline-none">
+                </div>
+                <div class="flex items-baseline justify-between gap-4 border-b py-3">
+                  <label for="r-rut" class="shrink-0 text-sm text-muted-foreground">RUT</label>
+                  <input id="r-rut" data-rut autocomplete="username" placeholder="12.345.678-9" class="h-8 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-sm font-medium tabular-nums text-foreground placeholder:text-muted-foreground focus-visible:outline-none">
+                </div>
+                <div class="flex items-baseline justify-between gap-4 border-b py-3">
+                  <label for="r-email" class="shrink-0 text-sm text-muted-foreground">Correo</label>
+                  <input id="r-email" type="email" autocomplete="email" placeholder="tucorreo@ejemplo.com" class="h-8 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-sm font-medium text-foreground placeholder:text-muted-foreground focus-visible:outline-none">
+                </div>
+                <div class="flex items-baseline justify-between gap-4 border-b py-3">
+                  <label for="r-pass" class="shrink-0 text-sm text-muted-foreground">Contraseña</label>
+                  <input id="r-pass" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" class="h-8 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-sm font-medium text-foreground placeholder:text-muted-foreground focus-visible:outline-none">
+                </div>
+                <div class="flex items-baseline justify-between gap-4 border-b py-3">
+                  <label for="r-birth" class="shrink-0 text-sm text-muted-foreground">Fecha de nacimiento</label>
+                  <input id="r-birth" type="date" class="h-8 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-sm font-medium tabular-nums text-foreground focus-visible:outline-none">
+                </div>
+
+                <div class="py-3">
+                  <div class="flex items-start justify-between gap-4">
+                    <span id="r-consent-label" class="text-sm text-muted-foreground">Datos sensibles</span>
+                    <button type="button" id="r-consent" role="switch" aria-checked="false" aria-labelledby="r-consent-label" class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full border border-input bg-muted transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-checked:border-primary aria-checked:bg-primary">
+                      <span class="pointer-events-none ml-0.5 block h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform"></span>
+                    </button>
+                  </div>
+                  <p class="mt-2 rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
+                    Acepto que FinanceApp trate mis datos financieros (saldos, movimientos, deudas)
+                    como dato sensible, según la Política de Privacidad.
+                  </p>
+                </div>
+
+                <div id="guardian" hidden class="mt-1 rounded-md border bg-muted/30 p-3">
+                  <p class="text-xs font-semibold">Autorización de tu madre, padre o tutor</p>
+                  <p class="mb-1 mt-1 text-[11px] text-muted-foreground">
+                    Como sos menor de edad, necesitamos la autorización de quien te representa
+                    legalmente. Su RUT se guarda solo como hash: es un tercero, no un usuario.
+                  </p>
+                  <div class="flex items-baseline justify-between gap-4 border-b py-3">
+                    <label for="g-name" class="shrink-0 text-sm text-muted-foreground">Nombre del tutor</label>
+                    <input id="g-name" placeholder="Ej: María Pérez" class="h-8 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-sm font-medium text-foreground placeholder:text-muted-foreground focus-visible:outline-none">
+                  </div>
+                  <div class="flex items-baseline justify-between gap-4 border-b py-3">
+                    <label for="g-rut" class="shrink-0 text-sm text-muted-foreground">RUT del tutor</label>
+                    <input id="g-rut" data-rut placeholder="12.345.678-9" class="h-8 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-sm font-medium tabular-nums text-foreground placeholder:text-muted-foreground focus-visible:outline-none">
+                  </div>
+                  <div class="flex items-baseline justify-between gap-4 py-3">
+                    <label for="g-rel" class="shrink-0 text-sm text-muted-foreground">Relación</label>
+                    <select id="g-rel" class="h-8 min-w-0 flex-1 border-0 bg-transparent p-0 text-right text-sm font-medium text-foreground focus-visible:outline-none">
+                      <option value="MOTHER">Madre</option>
+                      <option value="FATHER">Padre</option>
+                      <option value="GUARDIAN">Tutor/a legal</option>
+                      <option value="OTHER">Otro</option>
+                    </select>
+                  </div>
+                </div>
+
+                <p id="r-msg" role="alert" hidden class="pt-3 text-sm text-destructive"></p>
+                <button type="submit" class="mt-4 inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-accent px-4 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Crear cuenta</button>
+              </form>
+
+          </div>
+
+          <div class="rounded-md bg-muted/50 p-3">
+            <p class="text-sm font-medium">Tu cuenta en efectivo ya viene lista</p>
+            <p class="mt-1 text-sm text-muted-foreground">
+              Se crea contigo, en cero, así que puedes anotar el primer gasto sin configurar nada.
+            </p>
+          </div>
+
+          <p class="text-xs text-muted-foreground">
+            Estos son los formularios de la app, con su validación real de RUT y el bloque de tutor
+            que aparece según tu fecha de nacimiento. La sesión se crea en la app, no acá.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="flex flex-wrap gap-x-6 gap-y-2 border-t py-8 text-xs text-muted-foreground">
+    <span>FinanceApp · Chile · CLP, USD y CLF (UF)</span>
+    <span>Cuentas, tarjetas y montos de estas pantallas: ejemplo, no datos reales</span>
+    <a href="#/preguntas" class="ml-auto transition-colors hover:text-foreground">Preguntas frecuentes</a>
+  </footer>
+</main>
+
+<script>
+  const el = (id) => document.getElementById(id);
+
+  /* ───────────────── tema (claro / oscuro / sistema) ───────────────── */
+  const THEME_KEY = "fa-recorrido-theme";
+  const themeButtons = Array.from(document.querySelectorAll("[data-theme-set]"));
+  function applyTheme(mode) {
+    if (mode === "system") document.documentElement.removeAttribute("data-theme");
+    else document.documentElement.setAttribute("data-theme", mode);
+    themeButtons.forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.themeSet === mode)));
+    try { localStorage.setItem(THEME_KEY, mode); } catch (e) { /* ventana privada */ }
+  }
+  let storedTheme = "dark"; // la app es oscura por defecto; una elección explícita siempre gana
+  try { storedTheme = localStorage.getItem(THEME_KEY) || "dark"; } catch (e) { /* ignorar */ }
+  applyTheme(storedTheme);
+  themeButtons.forEach((b) => b.addEventListener("click", () => applyTheme(b.dataset.themeSet)));
+
+  /* ───────────────── ruteo por hash: URL real, historial real ─────────────────
+     Producto es UNA página con cuatro vistas, y cada vista tiene su propia URL
+     (#/producto/movimientos) para poder enlazarla directo. */
+  const PAGES = ["/", "/producto", "/nosotros", "/privacidad", "/precios", "/preguntas"];
+  const PANELS = ["cuentas", "movimientos", "cuotas", "deudas", "recurrentes", "ahorros"];
+
+  const sections = new Map(
+    Array.from(document.querySelectorAll("[data-page]")).map((s) => [s.dataset.page, s])
+  );
+
+  const NAV_ACTIVE = "font-medium text-foreground underline decoration-primary decoration-2 underline-offset-8";
+  const NAV_IDLE = "font-medium text-muted-foreground transition-colors hover:text-foreground";
+  const TAB_ACTIVE = "-mb-px border-b-2 border-primary px-1 py-2 text-sm font-medium text-foreground transition-colors";
+  const TAB_IDLE = "-mb-px border-b-2 border-transparent px-1 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground";
+
+  /** "#/producto/movimientos" → { path: "/producto", panel: "movimientos" } */
+  function parseHash() {
+    const raw = location.hash.replace(/^#/, "");
+    const [, first, second] = raw.split("/");
+    const path = "/" + (first || "");
+    if (!PAGES.includes(path)) return { path: "/", panel: PANELS[0] };
+    const panel = PANELS.includes(second) ? second : PANELS[0];
+    return { path, panel };
+  }
+
+  function render(firstLoad) {
+    const { path, panel } = parseHash();
+
+    sections.forEach((section, key) => { section.hidden = key !== path; });
+    document.querySelectorAll("[data-panel]").forEach((p) => { p.hidden = p.dataset.panel !== panel; });
+
+    document.querySelectorAll("[data-nav]").forEach((a) => {
+      const active = a.dataset.nav === path;
+      a.className = active ? NAV_ACTIVE : NAV_IDLE;
+      if (active) a.setAttribute("aria-current", "page");
+      else a.removeAttribute("aria-current");
+    });
+
+    document.querySelectorAll("[data-tab]").forEach((a) => {
+      const active = a.dataset.tab === panel;
+      a.className = active ? TAB_ACTIVE : TAB_IDLE;
+      if (active) a.setAttribute("aria-current", "true");
+      else a.removeAttribute("aria-current");
+    });
+
+    /* foco y scroll: en la primera carga no movemos nada, para que un enlace
+       directo se vea desde arriba sin robarle el foco al lector */
+    if (!firstLoad) {
+      const heading = sections.get(path).querySelector("h1");
+      if (heading) heading.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
+  window.addEventListener("hashchange", () => render(false));
+  render(true);
+
+  /* ───────────────── RUT: formato y dígito verificador, como en la app ───────────────── */
+  function formatRut(value) {
+    const clean = value.replace(/[^0-9kK]/g, "").toUpperCase().slice(0, 9);
+    if (clean.length <= 1) return clean;
+    return clean.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, ".") + "-" + clean.slice(-1);
+  }
+  function isValidRut(value) {
+    const clean = value.replace(/[^0-9kK]/g, "").toUpperCase();
+    if (clean.length < 2) return false;
+    const body = clean.slice(0, -1);
+    const dv = clean.slice(-1);
+    if (!/^\d+$/.test(body)) return false;
+    let sum = 0, mul = 2;
+    for (let i = body.length - 1; i >= 0; i--) {
+      sum += Number(body[i]) * mul;
+      mul = mul === 7 ? 2 : mul + 1;
+    }
+    const rest = 11 - (sum % 11);
+    const expected = rest === 11 ? "0" : rest === 10 ? "K" : String(rest);
+    return expected === dv;
+  }
+  document.querySelectorAll("[data-rut]").forEach((input) => {
+    input.addEventListener("input", () => { input.value = formatRut(input.value); });
+  });
+
+  /* ───────────────── panel lateral de acceso ───────────────── */
+  const tabLogin = el("tab-login");
+  const tabRegister = el("tab-register");
+  const formLogin = el("form-login");
+  const formRegister = el("form-register");
+  const overlay = el("auth-overlay");
+  const ACTIVE_TAB = "-mb-px border-b-2 border-primary px-1 py-2 text-sm font-medium text-foreground transition-colors";
+  const IDLE_TAB = "-mb-px border-b-2 border-transparent px-1 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground";
+  let lastFocused = null;
+
+  function showTab(which, focusField) {
+    const isLogin = which === "login";
+    tabLogin.setAttribute("aria-selected", String(isLogin));
+    tabRegister.setAttribute("aria-selected", String(!isLogin));
+    tabLogin.className = isLogin ? ACTIVE_TAB : IDLE_TAB;
+    tabRegister.className = isLogin ? IDLE_TAB : ACTIVE_TAB;
+    formLogin.hidden = !isLogin;
+    formRegister.hidden = isLogin;
+    el("auth-title").textContent = isLogin ? "Iniciar sesión" : "Crear cuenta";
+    el("auth-desc").textContent = isLogin
+      ? "Con tu RUT, como en tu banco"
+      : "Cinco datos y tu consentimiento explícito";
+    if (focusField) (isLogin ? el("l-rut") : el("r-name")).focus();
+  }
+  tabLogin.addEventListener("click", () => showTab("login", true));
+  tabRegister.addEventListener("click", () => showTab("register", true));
+
+  function openAuth(which) {
+    lastFocused = document.activeElement;
+    overlay.hidden = false;
+    /* el fondo no scrollea mientras el panel está abierto, igual que el Drawer real */
+    document.documentElement.style.overflow = "hidden";
+    showTab(which, true);
+  }
+  function closeAuth() {
+    overlay.hidden = true;
+    document.documentElement.style.overflow = "";
+    if (lastFocused) lastFocused.focus();
+  }
+  document.querySelectorAll("[data-auth]").forEach((b) => {
+    b.addEventListener("click", () => openAuth(b.dataset.auth));
+  });
+  el("auth-close").addEventListener("click", closeAuth);
+  el("auth-scrim").addEventListener("click", closeAuth);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !overlay.hidden) closeAuth();
+  });
+  /* el foco no se escapa del panel mientras está abierto */
+  document.addEventListener("focusin", (e) => {
+    if (overlay.hidden || overlay.contains(e.target)) return;
+    el("auth-close").focus();
+  });
+
+  /* switch de consentimiento (la app usa un botón, no un checkbox) */
+  const consent = el("r-consent");
+  const knob = consent.querySelector("span");
+  consent.addEventListener("click", () => {
+    const on = consent.getAttribute("aria-checked") === "true";
+    consent.setAttribute("aria-checked", String(!on));
+    knob.className = on
+      ? "pointer-events-none ml-0.5 block h-3.5 w-3.5 rounded-full bg-muted-foreground transition-transform"
+      : "pointer-events-none ml-0.5 block h-3.5 w-3.5 translate-x-4 rounded-full bg-primary-foreground transition-transform";
+  });
+
+  /* bloque de tutor: aparece según la edad, igual que en el registro real */
+  function ageFrom(value) {
+    const date = new Date(value);
+    if (isNaN(date)) return null;
+    const now = new Date();
+    let age = now.getFullYear() - date.getFullYear();
+    const months = now.getMonth() - date.getMonth();
+    if (months < 0 || (months === 0 && now.getDate() < date.getDate())) age--;
+    return age;
+  }
+  el("r-birth").addEventListener("change", (e) => {
+    const age = ageFrom(e.target.value);
+    el("guardian").hidden = !(age !== null && age < 18);
+  });
+
+  function tell(id, message, tone) {
+    const node = el(id);
+    node.textContent = message;
+    node.hidden = !message;
+    node.className = "pt-3 text-sm " + (tone === "ok" ? "text-success" : "text-destructive");
+  }
+
+  formLogin.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if (!isValidRut(el("l-rut").value)) return tell("l-msg", "Ese RUT no pasa el dígito verificador. Revisalo.");
+    if (el("l-pass").value.length < 8) return tell("l-msg", "La contraseña tiene al menos 8 caracteres.");
+    tell("l-msg", "Datos completos y RUT válido. La sesión se crea en la app.", "ok");
+  });
+
+  formRegister.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const age = ageFrom(el("r-birth").value);
+    if (!el("r-name").value.trim()) return tell("r-msg", "Falta tu nombre completo.");
+    if (!isValidRut(el("r-rut").value)) return tell("r-msg", "Ese RUT no pasa el dígito verificador. Revisalo.");
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(el("r-email").value.trim())) return tell("r-msg", "Revisá el correo: falta el @ o el dominio.");
+    if (el("r-pass").value.length < 8) return tell("r-msg", "La contraseña necesita al menos 8 caracteres.");
+    if (age === null) return tell("r-msg", "Falta tu fecha de nacimiento.");
+    if (consent.getAttribute("aria-checked") !== "true") return tell("r-msg", "Para continuar tenés que aceptar el tratamiento de datos sensibles.");
+    if (age < 18) {
+      if (!el("g-name").value.trim()) return tell("r-msg", "Falta el nombre de tu madre, padre o tutor.");
+      if (!isValidRut(el("g-rut").value)) return tell("r-msg", "El RUT del tutor no pasa el dígito verificador.");
+    }
+    tell("r-msg", age < 18
+      ? "Datos completos: se registrarían dos consentimientos, el tuyo y la autorización de tu tutor. La cuenta se crea en la app."
+      : "Datos completos y consentimiento aceptado. La cuenta se crea en la app.", "ok");
+  });
+</script>

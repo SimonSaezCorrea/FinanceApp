@@ -26,19 +26,19 @@ function renderRegister() {
 }
 
 function fillCommonFields() {
-  fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.name")), {
+  fireEvent.change(screen.getByLabelText(i18n.t("auth.name")), {
     target: { value: "Ana Titular" },
   });
-  fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.rut")), {
+  fireEvent.change(screen.getByLabelText(i18n.t("auth.rut")), {
     target: { value: "12.345.678-5" },
   });
-  fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.email")), {
+  fireEvent.change(screen.getByLabelText(i18n.t("auth.email")), {
     target: { value: "a@b.com" },
   });
-  fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.password")), {
+  fireEvent.change(screen.getByLabelText(i18n.t("auth.password")), {
     target: { value: "password123" },
   });
-  fireEvent.click(screen.getByLabelText(i18n.t("auth.sensitiveDataConsent")));
+  fireEvent.click(screen.getByRole("switch", { name: i18n.t("auth.sensitiveDataConsentLabel") }));
 }
 
 describe("RegisterRoute — minor guardian authorization", () => {
@@ -64,13 +64,13 @@ describe("RegisterRoute — minor guardian authorization", () => {
 
     expect(await screen.findByText(i18n.t("auth.guardian.title"))).toBeDefined();
 
-    fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.guardian.name")), {
+    fireEvent.change(screen.getByLabelText(i18n.t("auth.guardian.name")), {
       target: { value: "Ana Madre" },
     });
-    fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.guardian.identifierValue")), {
+    fireEvent.change(screen.getByLabelText(i18n.t("auth.guardian.identifierValue")), {
       target: { value: "11.111.111-1" },
     });
-    fireEvent.click(screen.getByLabelText(i18n.t("auth.guardian.accept")));
+    fireEvent.click(screen.getByRole("switch", { name: i18n.t("auth.guardian.acceptLabel") }));
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.createAccount") }));
 
     await waitFor(() =>
