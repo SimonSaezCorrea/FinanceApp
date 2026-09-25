@@ -1304,10 +1304,8 @@
     }
   },
   "landing": {
-    "sampleAction": "Sample button",
     "nav": {
       "label": "Sections",
-      "product": "Product",
       "about": "About",
       "privacy": "Privacy & data",
       "pricing": "Pricing",
@@ -1316,414 +1314,199 @@
     },
     "footer": {
       "tagline": "Cuadra · Chile · CLP, USD and CLF (UF)",
-      "sample": "Accounts, cards and amounts on these screens are examples, not real data"
+      "sample": "Accounts, cards and amounts on these screens: sample data, not real"
     },
     "home": {
       "eyebrow": "Personal finance · Chile",
       "titleLead": "Your finances with",
-      "titleAccent": "your bank's rules",
-      "lead": "A credit line shared across cards, billing that closes on business days with Chilean holidays, installments that commit the credit line on purchase day, carry-over of what you couldn't pay. What other apps simplify until the numbers stop adding up.",
-      "sub": "No bank connections and no automatic sync: nothing enters your account that you didn't record. Pesos, dollars and UF, with no made-up conversions.",
-      "seeProduct": "See the product",
-      "claims": {
-        "accountTypes": {
-          "title": "Different account types",
-          "body": "Checking, sight, savings, credit card, prepaid and cash. Each one behaves like it does at your bank."
+      "titleAccent": "your bank's own rules",
+      "lead": "A credit pool shared across cards, a closing date counted in business days with Chilean holidays, an instalment that commits the pool the day you buy, a shortfall carried to the next period. What other apps simplify until it stops adding up.",
+      "why": {
+        "1": {
+          "title": "No invented figures",
+          "body": "We don't calculate your bank's interest or convert currencies for you. When a figure is missing, we say so instead of guessing."
         },
-        "businessDays": {
-          "title": "Business days, your way",
-          "body": "You choose how many business days until the closing date and how many until payment. Chilean holidays are already counted."
+        "2": {
+          "title": "Everything reversible",
+          "body": "Undoing a debt payment gives the balance back. Deleting an instalment plan reverses its whole history, and tells you what it will move before it does."
+        },
+        "3": {
+          "title": "Chile first, done properly",
+          "body": "Legal holidays, RUT check digit, the UF, the local bank and cooperative catalogue — one country done right, before many done halfway."
+        },
+        "eyebrow": "Why Cuadra",
+        "title": "Built so your numbers match your bank's"
+      },
+      "features": {
+        "eyebrow": "What sets it apart",
+        "titleLead": "The detail other apps",
+        "titleAccent": "simplify until it breaks",
+        "cards": {
+          "tag": "Cards & credit",
+          "title": "One shared pool, like your bank's",
+          "body": "The primary card and its add-ons draw from the same pool, unless you give one its own sub-limit per currency. Never an available amount your bank wouldn't recognize."
+        },
+        "calendar": {
+          "tag": "Billing",
+          "title": "Closes in business days, with Chilean holidays",
+          "body": "You choose how many business days pass until closing, and how many until payment is due. Chile's legal holidays are already counted, so the date matches your real statement."
         },
         "currencies": {
-          "title": "Pesos, dollars and UF",
-          "body": "Each account in its own currency with its own total. No conversions your bank wouldn't recognize."
-        },
-        "noBanks": {
-          "title": "No connected banks",
-          "body": "Nothing comes in unless you record it. You sign in with your RUT and close your sessions whenever you want."
-        }
-      },
-      "preview": {
-        "creditCardClp": "Credit card · CLP",
-        "credit": "Credit",
-        "primary": "Primary",
-        "creditUsed": "Credit used",
-        "checkingClp": "Checking account · CLP",
-        "debit": "Debit",
-        "checking": "Checking account",
-        "balance": "Balance",
-        "monthBalance": "August balance",
-        "income": "Income",
-        "expenses": "Expenses"
-      }
-    },
-    "product": {
-      "title": "The product",
-      "subtitle": "The app's real screens, with sample data. Each view comes with the rules that govern it.",
-      "badge": "Real interface · sample data",
-      "accounts": {
-        "title": "Accounts",
-        "subtitle": "Where the money lives, and where the debt lives. They're not the same.",
-        "p1": "An account is where there's a balance or a credit line. Your credit card <b>is its own account</b>, not a channel over your checking account: the bank sells them together, but a purchase doesn't take money out — it opens revolving debt with its own statement, cycle and minimum payment.",
-        "p2": "Only the last four digits of each card are stored. The full number never leaves your browser and the CVV is never asked for. An account's first credit card inherits its credit line; the next ones choose between sharing it or having their own limit per currency.",
-        "p3": "The cash account is created with your user and the last one can't be deleted: the bills in your wallet exist whether the app models them or not.",
-        "pools": {
-          "title": "Account credit lines",
-          "shared": "Shared credit line · CLP",
-          "sharedHint": "Primary and additional cards both draw from here",
-          "additional": "Additional ···· 2210 · own limit",
-          "additionalHint": "Another currency: independent pool, no conversion"
-        },
-        "summary": {
-          "netWorth": "Total net worth",
-          "netWorthHint": "· net, approx. in CLP",
-          "assets": "Assets",
-          "cardDebt": "Card debt"
-        },
-        "group": {
-          "all": "All accounts",
-          "count_one": "{{count}} account",
-          "count_other": "{{count}} accounts"
-        },
-        "types": {
-          "checking": "Checking",
-          "savings": "Savings",
-          "credit": "Credit card",
-          "prepaid": "Prepaid",
-          "cash": "Cash"
-        },
-        "cards": {
-          "checkingName": "Checking account",
-          "savingsName": "Home savings",
-          "monthChange": "{{value}} this month",
-          "billedAt": "Billed every 20 business days",
-          "creditUsed": "Credit used",
-          "cashName": "Cash",
-          "cashNote": "Created with your user and can't be deleted"
-        },
-        "footnote": "Each tile leads to the account, where its cards, billing and movements live. A credit card shows debt instead of a balance, in an attention color and with its credit used at the bottom.",
-        "billing": {
-          "eyebrow": "Inside a credit account",
-          "title": "Billing",
-          "p1": "It isn't a separate menu section: it lives inside the account, next to its movements. The open period accumulates and its total is the live sum of its movements, so you fix one and the total fixes itself. It closes 20 business days after the previous cut-off, and from there 10 business days run until the due date.",
-          "p2": "Any payment settles the period. What you didn't cover moves to the next one as a previous balance, with a record of where it went, and the credit line frees up only by what you actually paid: the rest is still debt.",
-          "current": "Current period",
-          "pending": "Pending",
-          "partiallyPaid": "Partially paid",
-          "paid": "Paid",
-          "total": "Total billed",
-          "minimum": "Minimum payment · {{percent}}%",
-          "purchases": "Purchases this period",
-          "installments_one": "Installments due · {{count}} plan",
-          "installments_other": "Installments due · {{count}} plans",
-          "previous": "Previous statement balance",
-          "due": "Due",
-          "pay": "Pay",
-          "sync": "Sync payments",
-          "note": "No made-up interest figure: the model has no such concept. An issuer charge is recorded as a finance charge and counts toward the total like any other.",
-          "partialDetail": "paid {{paid}} · carried {{carried}}",
-          "table": {
-            "period": "Period",
-            "status": "Status",
-            "due": "Due",
-            "amount": "Amount"
-          }
-        }
-      },
-      "movements": {
-        "title": "Movements",
-        "subtitle": "7 movements · August 2026",
-        "p1": "Expense, income or a transfer between your own accounts. Each movement is checked against your credit line, your declared overdraft and the balance ceiling of a sight account: nothing your bank would reject gets in as if it had happened.",
-        "p2": "A credit card expense <b>doesn't lower your account balance</b>: it raises credit used, and the money leaves only once, when you pay the statement.",
-        "p3": "A transfer is two rows joined by a group — an expense at the source, income at the destination — so each account sees its own side. They're left out of category totals so they don't inflate your monthly spending.",
-        "financeCharge": {
-          "title": "Finance charge",
-          "body": "An issuer charge — revolving interest, a fee, insurance — isn't made by any card. The app never calculates it: you read it from your statement and record it. That's what lets the carried-over balance match your real statement."
-        },
-        "table": {
-          "description": "Description",
-          "category": "Category",
-          "type": "Type",
-          "card": "Card",
-          "date": "Date",
-          "amount": "Amount"
-        },
-        "rows": {
-          "statementPayment": "BCI statement payment",
-          "savings": "Contribution to “Trip to Bariloche”",
-          "transfer": "Transfer to Tenpo Prepaid",
-          "electricity": "Enel electricity bill",
-          "interest": "Revolving interest",
-          "notebook": "ASUS laptop · 12 installments",
-          "salary": "July salary"
-        },
-        "categories": {
-          "payment": "Payment",
-          "savings": "Savings",
-          "utilities": "Utilities",
-          "financeCharge": "Finance charge",
-          "technology": "Technology",
-          "income": "Income",
-          "none": "Uncategorized"
-        },
-        "kinds": {
-          "expense": "Expense",
-          "income": "Income",
-          "transfer": "Transfer"
-        },
-        "footnote": "The {{transfer}} transfer shows up as a row in each account, but doesn't count toward the {{expenses}} of monthly expenses: moving money between your accounts isn't spending."
-      },
-      "installments": {
-        "title": "Installments",
-        "subtitle": "3 active plans · next payment {{date}}",
-        "kpis": {
-          "active": "Active plans",
-          "toPay": "Left to pay · CLP",
-          "next": "Next installment"
-        },
-        "plans": {
-          "notebook": "Technology · {{amount}} per installment",
-          "notebookProgress": "3 billed · 9 to bill",
-          "fridge": "Home · with interest · {{amount}} per installment",
-          "fridgeProgress": "2 paid · 4 to pay",
-          "vacuumName": "Robot vacuum",
-          "vacuum": "Home · paid from Checking account",
-          "vacuumProgress": "1 paid · 2 to pay"
-        },
-        "table": {
-          "plan": "Plan",
-          "installments": "Installments",
-          "card": "Card",
-          "remaining": "Remaining"
-        },
-        "rules": {
-          "credit": {
-            "title": "With a credit card",
-            "body": "The whole credit line is committed on purchase day, like your issuer does, but billing only charges the installment that's due. The purchase is excluded from the period total so it isn't charged twice. An installment goes from scheduled to billed to paid through the period's closing and payment, never by hand."
-          },
-          "noCredit": {
-            "title": "Without a credit card",
-            "body": "Each installment is a real expense from the account you choose. If you pay less, the shortfall moves to the next installment without rewriting the schedule."
-          },
-          "delete": {
-            "title": "Deleting a plan",
-            "body": "Reverts its whole history: removes its expenses, returns the balance to each account and frees the credit line. The confirmation tells you how much it will move before doing it."
-          }
-        }
-      },
-      "debts": {
-        "title": "Debts",
-        "subtitle": "2 active debts · 2 people",
-        "eyebrow": "Debts with people",
-        "intro": "Marking one paid moves real money — it creates the movement and adjusts the account balance. Undoing it reverts it by the same amount, because exactly what it moved is recorded.",
-        "owedToYou": "Owed to me",
-        "youOwe": "I owe",
-        "settled": "Settled",
-        "table": {
-          "debt": "Debt",
-          "status": "Status",
-          "pending": "Pending"
-        },
-        "rows": {
-          "concert": {
-            "title": "Camila · concert tickets",
-            "detail": "Owed to me · 3 installments, 1 paid"
-          },
-          "rent": {
-            "title": "Rent to Rodrigo",
-            "detail": "I owe · single payment"
-          },
-          "lunch": {
-            "title": "Team lunch",
-            "detail": "Owed to me · settled on {{date}}"
-          }
-        },
-        "rules": {
-          "real": {
-            "title": "Paying moves real money",
-            "body": "Marking a debt as paid creates the movement and adjusts the account balance. You don't type the amount: it comes from the debt's own schedule."
-          },
-          "undo": {
-            "title": "And undoing it gives it back",
-            "body": "Exactly what each payment moved is recorded, so reverting it deletes that movement and restores the balance by the same amount."
-          },
-          "noDebt": {
-            "title": "No paying debt with debt",
-            "body": "You can't settle a debt from a credit card account, and the account must be in the same currency: there's no conversion."
-          }
-        }
-      },
-      "recurring": {
-        "title": "Recurring",
-        "subtitle": "2 active · 1 paused",
-        "eyebrow": "Recurring expenses",
-        "intro": "Subscriptions, rent, insurance. The next date is calculated from the series' anchor, and you can pause one without losing its history.",
-        "monthly": "Monthly",
-        "yearly": "Yearly",
-        "paused": "Paused",
-        "table": {
-          "series": "Series",
-          "frequency": "Frequency",
-          "next": "Next",
-          "amount": "Amount"
-        },
-        "rows": {
-          "rent": "Rent",
-          "rentAccount": "Checking account",
-          "netflix": "Netflix",
-          "carInsurance": "Car insurance"
-        },
-        "rules": {
-          "reminder": {
-            "title": "A reminder, not a charge",
-            "body": "A series doesn't create movements on its own: it tells you what's coming and when, and you record the expense when it really happens."
-          },
-          "frequency": {
-            "title": "Weekly, monthly or yearly",
-            "body": "With its own interval — every two weeks, every three months — and the next date calculated from the series' anchor."
-          },
-          "pause": {
-            "title": "Pause without losing history",
-            "body": "A paused series stops showing up in what's coming, but it's still there to resume when you subscribe again."
-          }
-        }
-      },
-      "savings": {
-        "title": "Savings",
-        "subtitle": "3 goals · 2 in progress, 1 complete",
-        "totalSaved": "Total saved",
-        "paceSummary": "Pace over the last 3 months: {{amount}} per month",
-        "intro": "Progress and pace always derive from your real contributions — each one is an expense in the source account, so they can't be inflated.",
-        "inProgress": "In progress",
-        "overdue": "Overdue",
-        "complete": "Complete",
-        "missing": "Left",
-        "pace": "Pace",
-        "perMonth": "{{amount}} / month",
-        "deadline": "Deadline",
-        "atThatPace": "At that pace",
-        "monthsLate_one": "{{count}} month late",
-        "monthsLate_other": "{{count}} months late",
-        "contributions": "Contributions",
-        "onClose": "On close",
-        "withdrawToAccount": "Withdraw to an account",
-        "reversible": "Reversible",
-        "reversibleYes": "Yes, by reopening",
-        "goals": {
-          "trip": "Trip to Bariloche",
-          "emergency": "Emergency fund",
-          "notebook": "New laptop"
-        },
-        "rules": {
-          "real": {
-            "title": "Contributing is a real expense",
-            "body": "Each contribution comes out of one of your accounts and is recorded as a movement, so progress can't be inflated by typing a number."
-          },
-          "pace": {
-            "title": "Your contributions set the pace",
-            "body": "It's the average of the last three full calendar months, not a target you set when you created the goal."
-          },
-          "close": {
-            "title": "Closing has three destinations",
-            "body": "Withdraw to an account, move to free savings or transfer to another goal. Withdrawing is reversible: reopening undoes the movement it created."
-          }
+          "tag": "Currencies",
+          "title": "Pesos, dollars and UF, each on their own",
+          "body": "Every account lives in its own currency with its own total. No automatic conversion mixing figures that were never meant to add up."
         }
       }
     },
     "about": {
-      "title": "Why FinanceApp exists",
-      "p1": "Almost every personal finance app treats the credit card as just another account: the purchase lowers your balance, all twelve installments land in the same month, the closing date falls on the same day of the month for everyone and “available” adds pesos to dollars. None of that is true, and one month is enough for your numbers to stop matching the bank's.",
-      "p2": "FinanceApp is built the other way around: first the rules of the real product — shared credit line, closing on business days, billed installment, carry-over of the unpaid balance — and then the screen. If the model can't honestly back a figure, the app doesn't show it.",
+      "eyebrow": "About us",
+      "titleLead": "We built the app",
+      "titleAccent": "we ourselves needed",
+      "lead": "Almost every personal-finance app treats a credit card like just another account: the purchase debits your balance, twelve instalments show up whole in one month, closing falls on the same day for everyone. None of that is true.",
+      "p1": "Cuadra is built backwards: the real product rules first —a shared credit pool, a business-day close, a billed instalment, a carried-over shortfall— and the screen after. If the model can't honestly support a figure, the app doesn't show it.",
+      "receipts": {
+        "bank": "Your bank"
+      },
+      "how": {
+        "eyebrow": "How we built it",
+        "titleLead": "Rules first,",
+        "titleAccent": "screen second",
+        "body": "Every feature starts from a real rule of a Chilean bank or issuer, never from whatever looks simplest in a mockup. When the model has no way to support a figure honestly, the app says so instead of inventing it."
+      },
       "principlesTitle": "How we decide what goes in",
+      "principlesHeading": "Three rules we don't bend",
       "principles": {
-        "reviewable": {
-          "title": "Nothing automatic you can't review",
-          "body": "There's no bank sync. You record things, which is why the data is yours and you know where it came from."
-        },
         "noInvented": {
-          "title": "No made-up figures",
-          "body": "The app doesn't calculate your bank's interest or convert currencies. When a piece of data is missing, it says so instead of filling it with an estimate."
+          "title": "No invented figures",
+          "body": "We don't calculate your bank's interest or convert currencies. When a figure is missing, we say so instead of guessing."
         },
         "reversible": {
           "title": "Everything reversible",
-          "body": "Undoing a debt payment returns the balance. Deleting an installment plan reverts its whole history, and tells you how much it will move before doing it."
+          "body": "Undoing a debt payment gives the balance back. Deleting an instalment plan reverses its whole history, and tells you what it will move before it does."
         },
         "chileFirst": {
-          "title": "Chile first, done right",
-          "body": "Legal holidays, RUT with check digit, UF, banks and credit unions from the local catalogue. One country done fully rather than many done halfway."
+          "title": "Chile first, done properly",
+          "body": "Legal holidays, RUT check digit, the UF, the local bank and cooperative catalogue. One country done right, before many done halfway."
         }
       },
-      "todayTitle": "Where it is today",
-      "todayBody": "It works with accounts, cards, movements, billing, installments, goals, debts and recurring expenses, in pesos, dollars and UF. What doesn't exist yet isn't dressed up as a feature: investment tracking is on hold and exporting your data isn't ready yet."
+      "today": {
+        "eyebrow": "Honest status",
+        "title": "Where it stands today",
+        "available": {
+          "title": "Available",
+          "body": "Accounts, cards, movements, billing, instalments, goals, debts and recurring expenses, in pesos, dollars and UF."
+        },
+        "paused": {
+          "title": "Paused",
+          "body": "Investment tracking (returns, prices) is paused: the investment account type still exists, tracking doesn't yet."
+        },
+        "pending": {
+          "title": "Pending",
+          "body": "Exporting your data and automatic bank sync don't exist yet — and the second one may never."
+        }
+      }
     },
     "privacy": {
+      "center": "Your data",
       "title": "Privacy & data",
-      "subtitle": "What's stored, who gets in and how you leave",
-      "p1": "Your balances, movements and debts describe your financial situation, so they're treated as sensitive data: permission to process them is asked for separately, explicitly and versioned, never hidden inside an “I accept the terms”. Your consent history can be reviewed in your profile.",
-      "p2": "You sign in with your RUT, just like your bank — email is only for notices. If your device supports it, with a passkey instead of a password.",
-      "sessions": {
-        "title": "Sessions & devices",
-        "subtitle": "Close one and its access dies on the very next request, not at the next refresh.",
-        "activeNow": "Chile · active now",
-        "current": "This session",
-        "daysAgo_one": "Chile · {{count}} day ago",
-        "daysAgo_other": "Chile · {{count}} days ago",
-        "close": "Close",
-        "closedOn": "Closed on {{date}}",
-        "note": "A closed session is kept for 3 days so you can see it, then deleted. Approximate geolocation by IP."
-      },
-      "security": {
-        "passkey": {
-          "title": "Passkey",
-          "body": "Skips password and second factor, because it's already strong authentication on its own."
+      "titleLead": "Your data, in layers you can",
+      "titleAccent": "review one at a time",
+      "lead": "Your balances, movements and debts describe your financial situation, so they're treated as sensitive data: consent to process them is asked for separately, explicit and versioned, never buried inside an “I accept the terms”.",
+      "layersEyebrow": "Layer by layer",
+      "layersTitle": "What each ring protects",
+      "layerLabel": "Layer {{n}}",
+      "layers": {
+        "consent": {
+          "title": "Consent",
+          "lead": "Consent to process your financial information is asked for separately, never dissolved into an “I accept the terms”.",
+          "a": {
+            "title": "Explicit and versioned",
+            "body": "Every consent is dated and tagged with the policy version you accepted, viewable from your profile."
+          },
+          "b": {
+            "title": "Minors",
+            "body": "Registration with a parent or guardian's authorization, stored as a consent of its own."
+          }
         },
-        "mfa": {
-          "title": "Second factor",
-          "body": "TOTP with recovery codes. Changing it closes every other session, in the same transaction."
+        "access": {
+          "title": "How you sign in",
+          "lead": "You sign in with your RUT, like at your bank — email is only for notices.",
+          "a": {
+            "title": "Passkey",
+            "body": "If your device supports it, a passkey skips both password and second factor: it's already strong authentication on its own."
+          },
+          "b": {
+            "title": "Second factor",
+            "body": "TOTP with recovery codes. Changing it closes every other session, in the same transaction."
+          }
         },
-        "deletion": {
-          "title": "Deleting your account",
-          "body": "Full erasure, or anonymization if you'd rather keep the history with nothing that identifies you."
+        "sessions": {
+          "title": "Sessions you close instantly",
+          "lead": "Closing a session kills its access on the very next request, not on its next refresh.",
+          "a": {
+            "title": "One device per row",
+            "body": "See where you signed in from and how long ago, and close any of them except the one you're using."
+          },
+          "b": {
+            "title": "Kept, not erased",
+            "body": "A closed session stays visible for 3 days before it's deleted, so you can confirm it was you."
+          }
         },
-        "minors": {
-          "title": "Minors",
-          "body": "Sign-up with authorization from a mother, father or guardian, stored as a separate consent."
+        "visible": {
+          "title": "What only you see",
+          "lead": "A switch in your profile masks the app's amounts, with a one-off reveal whenever you need it.",
+          "a": {
+            "title": "Hide balances",
+            "body": "Useful for checking your accounts when there's people around."
+          },
+          "b": {
+            "title": "Your receipts",
+            "body": "Validated by their real content, not their file extension, and opened through a signed link that expires in five minutes."
+          }
+        },
+        "leave": {
+          "title": "How you leave",
+          "lead": "Deleting your account is a real action, not a checkbox that disables it.",
+          "a": {
+            "title": "Full deletion",
+            "body": "Erases your account and everything you recorded, with nothing left behind."
+          },
+          "b": {
+            "title": "Or anonymization",
+            "body": "Keeps your financial history with nothing left that identifies you, if you'd rather keep that."
+          }
         }
       },
       "dont": {
         "title": "What we don't do",
-        "banks": {
-          "title": "We don't connect to your bank",
-          "body": "There's no automatic sync and no read access to your products. Nothing comes in unless you record it."
-        },
         "cardNumber": {
-          "title": "We don't store your card number",
+          "tag": "Cards",
+          "title": "We don't store the full number",
           "body": "Only the last four digits. The full number never leaves your browser and the CVV is never asked for."
         },
         "estimates": {
+          "tag": "Calculations",
           "title": "We don't calculate or estimate for you",
-          "body": "No interest, no exchange rate, no “projected” expenses you haven't recorded."
+          "body": "No interest, no exchange rate, no “projected” expense you never entered."
+        },
+        "banks": {
+          "tag": "Banks",
+          "title": "We don't connect to your bank",
+          "body": "There's no automatic sync and no read permission over your products. Nothing enters that you didn't record yourself."
         }
-      },
-      "attachments": {
-        "title": "Your receipts",
-        "body": "They're validated by their real content, not the file extension, and opened through a signed link that expires in five minutes. The name they're stored under doesn't reveal who you are or which movement they belong to."
-      },
-      "hideBalances": {
-        "title": "Hide balances",
-        "body": "A switch in your profile masks the app's amounts, and you can reveal a single one when you need it. Handy for checking your accounts around other people."
       }
     },
     "pricing": {
       "title": "Pricing",
-      "subtitle": "One answer, no comparison table",
-      "plan": "Single plan",
+      "titleLead": "One plan,",
+      "titleAccent": "no fine print",
+      "lead": "One answer, no comparison table: this is what you get, and it's free.",
       "free": "Free",
       "freeHint": "No tiers, no artificial limits and no locked features.",
       "included": {
         "accounts": "Every account and card you have",
         "movements": "Movements, transfers and receipts with no cap",
-        "billing": "Billing, installments, goals, debts and recurring",
+        "billing": "Billing, instalments, goals, debts and recurring expenses",
         "security": "Passkey, second factor and session control",
         "currencies": "Pesos, dollars and UF"
       },
@@ -1731,79 +1514,82 @@
       "reasons": {
         "whyFree": {
           "title": "Why it doesn't cost anything",
-          "body": "The expensive part of a finance app is connecting to banks: an intermediary is paid for every synced account, and that cost is charged to you or paid with your data. There's no such connection here, so there's no such cost."
+          "body": "What makes a finance app expensive is connecting to banks: a middleman gets paid per synced account, and that cost lands on you or on your data. There's no such connection here, so there's no such cost."
         },
         "notYourData": {
           "title": "Your data isn't the price",
-          "body": "No ads, no profiling for third parties and your movements aren't sold. Free here means free, not “paid some other way”."
+          "body": "No ads, no profiling for third parties and your movements are never sold. Free here means free, not “paid for some other way”."
         },
         "changes": {
-          "title": "If something changes, we'll tell you first",
-          "body": "If some part ever has a real cost — storing lots of receipts, for example — you'll be told before it happens, with the option to take your data with you. Nothing becomes paid overnight."
+          "title": "If anything changes, we say so first",
+          "body": "If some part ever has a real cost —storing a lot of receipts, say— it's announced before it happens, with the option to take your data with you. Nothing turns paid overnight."
         }
       }
     },
     "faq": {
       "title": "Frequently asked questions",
-      "subtitle": "The questions that come up in the first month, grouped by topic. If something isn't here, the answer is almost always the same: the app doesn't show a figure it can't back.",
+      "titleLead": "Before you",
+      "titleAccent": "ask",
+      "subtitle": "The doubts that come up in the first month, grouped by topic. If something's missing here, the answer is almost always the same: the app doesn't show a figure it can't back up.",
+      "topics": "Topics",
       "groups": {
         "howItWorks": "How it works",
         "cardsBilling": "Cards & billing",
-        "yourData": "Your account & your data"
+        "yourData": "Your account & data"
       },
       "items": {
         "bankSync": {
           "q": "Does it connect to my bank?",
-          "a": "No. You record your accounts and movements. It's more work on day one and, in exchange, no app has read access to your products."
+          "a": "No. You record your own accounts and movements. It's more work on day one, and in exchange, no app has read access over your products."
         },
         "setup": {
           "q": "Do I have to set everything up before using it?",
-          "a": "No. Your cash account is created with you, at zero, so you can log an expense on day one and add your accounts and cards when you have time."
+          "a": "No. Your cash account is created with you, at zero, so you can log an expense on day one and add your accounts and cards whenever you have time."
         },
         "conversion": {
           "q": "Does it convert between pesos, dollars and UF?",
-          "a": "No. Each account lives in its own currency and each total is shown separately, so you never get a sum your bank wouldn't recognize."
+          "a": "No. Each account lives in its own currency and every total is shown separately, so you never get a sum your bank wouldn't recognize."
         },
         "investments": {
           "q": "Does it work for my investments?",
-          "a": "You can have an investment account and record its movements, but tracking instruments and returns doesn't exist yet. We'd rather say so than show you an empty screen."
+          "a": "You can have an investment account and record its movements, but tracking of instruments and returns doesn't exist yet. We'd rather say so than show you an empty screen."
         },
         "creditBalance": {
           "q": "Why didn't my credit card purchase lower my balance?",
-          "a": "Because it shouldn't. A credit purchase raises your credit used, it doesn't lower your balance: the money leaves only once, later, when you pay the statement."
+          "a": "Because it shouldn't. A credit purchase raises your used credit, not your balance: the money moves once, later, when you pay the statement."
         },
         "closing": {
           "q": "When does my statement close?",
-          "a": "When you say: you set how many business days pass since the previous cut-off, or a fixed day of the month if your issuer works that way. Chilean holidays are already counted, and the payment date is configured separately."
+          "a": "Whenever you say: you set how many business days pass since the previous close, or a fixed day of the month if your issuer works that way. Chile's holidays are already counted, and the due date is configured separately."
         },
         "partialPayment": {
           "q": "What happens if I pay less than the total?",
-          "a": "The period is settled and what you didn't cover moves to the next one as a previous balance, with a record of where it went. Your credit line frees up only by what you actually paid."
+          "a": "The period settles and whatever you didn't cover carries to the next one as a prior balance, with a record of where it went. Your credit only frees up by what you actually paid."
         },
         "additionalCard": {
-          "q": "Does the additional card spend from my same credit line?",
-          "a": "Yes, just like at your bank — unless you give it its own limit, which is still capped by the account's credit line. Each card also shows how much it spent."
+          "q": "Does an additional card spend from my same pool?",
+          "a": "Yes, same as your bank — unless you give it its own sub-limit, which is still capped by the account's own pool. Each card also shows how much it spent on its own."
         },
         "interest": {
           "q": "Does it calculate the interest I'm charged?",
-          "a": "No, and on purpose: making up a rate would make your numbers stop matching your statement. You record it as a finance charge and it's added where it belongs."
+          "a": "No, on purpose: inventing a rate would make your numbers stop matching your real statement. You log it as a finance charge and it's added in where it belongs."
         },
         "signIn": {
           "q": "How do I sign in?",
-          "a": "With your RUT and password, or with a passkey if your device supports it. Email is only for notices."
+          "a": "With your RUT and password, or a passkey if your device supports it. Email is only used for notices."
         },
         "deleteAccount": {
           "q": "Can I really delete my account?",
-          "a": "Yes. You can erase everything, or keep the history with no data that identifies you. Either way your sessions and passkeys are deleted."
+          "a": "Yes. You can erase everything, or keep your history with nothing left that identifies you. Either way your sessions and passkeys are removed."
         },
         "minors": {
           "q": "I'm a minor, can I use it?",
-          "a": "Yes, with authorization from your mother, father or guardian. The sign-up form asks for it on its own. Their RUT is stored only as a hash, because they're a third party and not an app user."
+          "a": "Yes, with your parent or guardian's authorization. The sign-up form asks for it directly. Their RUT is stored only as a hash, since they're a third party, not an app user."
         }
       },
       "cta": {
         "title": "Still have a question?",
-        "body": "Creating the account takes a minute and commits you to nothing: you can log your first expense in cash."
+        "body": "Creating an account takes a minute and commits you to nothing: you can log your first expense in cash."
       }
     }
   },

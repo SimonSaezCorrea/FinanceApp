@@ -83,6 +83,23 @@
     --ridge-snow: 180 19% 92%; /* #e6eeee */
     --ridge-snow-shade: 185 22% 69%; /* #9fbfc2 */
     --ridge-line: 175 51% 63%; /* #6fd0c8 */
+
+    /* Landing illustrations (sunset arch, feature vignettes, matching receipts, privacy rings):
+       hand-drawn line art painted with theme tokens only, never a hardcoded hex. */
+    --illus-sky-warm: 27 87% 67%; /* #F4A261 */
+    --illus-sky-mid: 12 76% 61%; /* #E76F51 */
+    --illus-sky-low: 187 49% 16%; /* #15393e */
+    --illus-sun: 40 90% 68%; /* #f2c369 */
+    --illus-sun-cut: 190 43% 10%; /* #0f2226, matches --ridge-far */
+    --illus-sun-deep: 12 76% 45%; /* darker clay, for a shaded rim */
+    --illus-paper: 190 24% 23%; /* matches --logo-rule */
+    --illus-print: 175 51% 63%; /* matches --ridge-line */
+    --illus-seal: 27 87% 67%; /* matches --illus-sky-warm */
+    --illus-coin-edge: 40 90% 68%; /* matches --illus-sun */
+    --illus-ink: 180 19% 92%; /* matches --ridge-snow */
+    --illus-ink-soft: 185 22% 69%; /* matches --ridge-snow-shade */
+    --illus-rule: 190 24% 23%;
+    --illus-shadow: 187 49% 16%;
   }
 
   [data-theme="light"] {
@@ -155,6 +172,22 @@
     --ridge-snow: 0 0% 100%;
     --ridge-snow-shade: 186 31% 87%; /* #d3e6e8 */
     --ridge-line: 183 86% 19%; /* #07575b */
+
+    /* Landing illustrations — light values (see :root). */
+    --illus-sky-warm: 27 70% 52%; /* #d9772f */
+    --illus-sky-mid: 12 60% 48%;
+    --illus-sky-low: 185 37% 79%;
+    --illus-sun: 40 80% 60%;
+    --illus-sun-cut: 189 28% 91%;
+    --illus-sun-deep: 12 60% 38%;
+    --illus-paper: 180 15% 82%;
+    --illus-print: 183 86% 19%;
+    --illus-seal: 27 70% 52%;
+    --illus-coin-edge: 40 80% 60%;
+    --illus-ink: 191 21% 10%;
+    --illus-ink-soft: 190 12% 42%;
+    --illus-rule: 180 15% 82%;
+    --illus-shadow: 185 28% 56%;
   }
 
   * {

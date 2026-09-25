@@ -1304,10 +1304,8 @@
     }
   },
   "landing": {
-    "sampleAction": "Botón de ejemplo",
     "nav": {
       "label": "Secciones",
-      "product": "Producto",
       "about": "Nosotros",
       "privacy": "Privacidad y datos",
       "pricing": "Precios",
@@ -1323,326 +1321,64 @@
       "titleLead": "Tus finanzas con las",
       "titleAccent": "reglas de tu banco",
       "lead": "Cupo compartido entre tarjetas, cierre en días hábiles con feriados chilenos, cuotas que comprometen el cupo el día de la compra, arrastre de lo que no alcanzaste a pagar. Lo que otras apps simplifican hasta que deja de cuadrar.",
-      "sub": "Sin conectar bancos y sin sincronización automática: nada entra a tu cuenta que no hayas registrado tú. Pesos, dólares y UF, sin conversiones inventadas.",
-      "seeProduct": "Ver el producto",
-      "claims": {
-        "accountTypes": {
-          "title": "Distintos tipos de cuenta",
-          "body": "Corriente, vista, ahorro, tarjeta de crédito, prepago y efectivo. Cada una se comporta como en tu banco."
+      "why": {
+        "1": {
+          "title": "Ninguna cifra inventada",
+          "body": "No calculamos los intereses de tu banco ni convertimos monedas por ti. Cuando falta un dato, lo decimos en vez de rellenarlo con una estimación."
         },
-        "businessDays": {
-          "title": "Los días hábiles que tú defines",
-          "body": "Tú eliges cuántos días hábiles hay hasta el cierre y cuántos hasta el pago. Los feriados de Chile ya están contados."
+        "2": {
+          "title": "Todo reversible",
+          "body": "Deshacer el pago de una deuda devuelve el saldo. Borrar un plan en cuotas revierte su historial completo, y te dice cuánto va a mover antes de hacerlo."
+        },
+        "3": {
+          "title": "Chile primero, bien hecho",
+          "body": "Feriados legales, RUT con dígito verificador, UF, bancos y cooperativas del catálogo local — antes que muchos países a medias, uno completo."
+        },
+        "eyebrow": "Por qué Cuadra",
+        "title": "Hecha para que tus números calcen con los del banco"
+      },
+      "features": {
+        "eyebrow": "Lo que la hace distinta",
+        "titleLead": "El detalle que otras apps",
+        "titleAccent": "simplifican hasta romperlo",
+        "cards": {
+          "tag": "Tarjetas y cupo",
+          "title": "Un cupo compartido, como en tu banco",
+          "body": "La tarjeta titular y sus adicionales descuentan del mismo cupo, salvo que definas un tope propio por moneda. Nunca se inventa un disponible que el banco no reconocería."
+        },
+        "calendar": {
+          "tag": "Facturación",
+          "title": "Cierre en días hábiles, con feriados chilenos",
+          "body": "Tú eliges cuántos días hábiles hay hasta el cierre y cuántos hasta el pago. Los feriados legales de Chile ya están contados, así que la fecha calza con la de tu cartola."
         },
         "currencies": {
-          "title": "Pesos, dólares y UF",
-          "body": "Cada cuenta en su moneda y con su propio total. Sin conversiones que tu banco no reconocería."
-        },
-        "noBanks": {
-          "title": "Sin bancos conectados",
-          "body": "Nada entra que no registres tú. Entras con tu RUT y cierras tus sesiones cuando quieras."
-        }
-      },
-      "preview": {
-        "creditCardClp": "Tarjeta de crédito · CLP",
-        "credit": "Crédito",
-        "primary": "Principal",
-        "creditUsed": "Cupo utilizado",
-        "checkingClp": "Cuenta corriente · CLP",
-        "debit": "Débito",
-        "checking": "Cuenta corriente",
-        "balance": "Saldo",
-        "monthBalance": "Balance de agosto",
-        "income": "Ingresos",
-        "expenses": "Gastos"
-      }
-    },
-    "product": {
-      "title": "El producto",
-      "subtitle": "Las pantallas reales de la app, con datos de ejemplo. Cada vista trae las reglas que la gobiernan.",
-      "badge": "Interfaz real · datos de ejemplo",
-      "accounts": {
-        "title": "Cuentas",
-        "subtitle": "Donde vive la plata, y donde vive la deuda. No son lo mismo.",
-        "p1": "Una cuenta es donde hay saldo o una línea de crédito. Tu tarjeta de crédito <b>es su propia cuenta</b>, no un canal sobre tu corriente: el banco las vende juntas, pero la compra no saca plata — abre deuda rotativa con su propio estado de cuenta, ciclo y pago mínimo.",
-        "p2": "De cada plástico se guardan solo los últimos cuatro dígitos. El número completo nunca sale de tu navegador y el CVV no se pide. La primera tarjeta de crédito de una cuenta hereda su cupo; las siguientes eligen entre compartirlo o tener tope propio por moneda.",
-        "p3": "La cuenta en efectivo se crea con tu usuario y la última no se puede eliminar: los billetes de tu billetera existen lo modele la app o no.",
-        "pools": {
-          "title": "Cupos de la cuenta",
-          "shared": "Cupo compartido · CLP",
-          "sharedHint": "Titular y adicional descuentan de acá",
-          "additional": "Adicional ···· 2210 · tope propio",
-          "additionalHint": "Otra moneda: pool independiente, sin conversión"
-        },
-        "summary": {
-          "netWorth": "Patrimonio total",
-          "netWorthHint": "· neto, aprox. en CLP",
-          "assets": "Activos",
-          "cardDebt": "Deuda tarjetas"
-        },
-        "group": {
-          "all": "Todas las cuentas",
-          "count_one": "{{count}} cuenta",
-          "count_other": "{{count}} cuentas"
-        },
-        "types": {
-          "checking": "Corriente",
-          "savings": "Ahorro",
-          "credit": "Tarjeta de crédito",
-          "prepaid": "Prepago",
-          "cash": "Efectivo"
-        },
-        "cards": {
-          "checkingName": "Cuenta corriente",
-          "savingsName": "Ahorro vivienda",
-          "monthChange": "{{value}} este mes",
-          "billedAt": "Facturado a 20 días hábiles",
-          "creditUsed": "Cupo usado",
-          "cashName": "Efectivo",
-          "cashNote": "Se crea con tu usuario y no se puede eliminar"
-        },
-        "footnote": "Cada tarjeta lleva a la cuenta, donde viven sus plásticos, su facturación y sus movimientos. Una tarjeta de crédito muestra deuda en lugar de saldo, en color de atención y con su cupo usado al pie.",
-        "billing": {
-          "eyebrow": "Dentro de una cuenta de crédito",
-          "title": "Facturación",
-          "p1": "No es una sección aparte del menú: vive dentro de la cuenta, junto a sus movimientos. El período abierto acumula y su total es la suma viva de sus movimientos, así que corriges uno y el total se corrige solo. A los 20 días hábiles del corte anterior cierra, y desde ahí corren 10 días hábiles hasta el vencimiento.",
-          "p2": "Cualquier pago liquida el período. Lo que no cubriste pasa al siguiente como saldo anterior, con registro de a dónde fue, y el cupo baja solo por lo que pagaste de verdad: el resto sigue siendo deuda.",
-          "current": "Período en curso",
-          "pending": "Pendiente",
-          "partiallyPaid": "Pagada en parte",
-          "paid": "Pagada",
-          "total": "Total facturado",
-          "minimum": "Pago mínimo · {{percent}}%",
-          "purchases": "Compras del período",
-          "installments_one": "Cuotas vencidas · {{count}} plan",
-          "installments_other": "Cuotas vencidas · {{count}} planes",
-          "previous": "Saldo de la facturación anterior",
-          "due": "Vence",
-          "pay": "Pagar",
-          "sync": "Sincronizar pagos",
-          "note": "Sin una cifra de intereses inventada: el modelo no tiene ese concepto. Un cobro del emisor se registra como cargo financiero y entra al total como cualquier otro.",
-          "partialDetail": "pagado {{paid}} · arrastró {{carried}}",
-          "table": {
-            "period": "Período",
-            "status": "Estado",
-            "due": "Vence",
-            "amount": "Monto"
-          }
-        }
-      },
-      "movements": {
-        "title": "Movimientos",
-        "subtitle": "7 movimientos · agosto 2026",
-        "p1": "Gasto, ingreso o traspaso entre tus propias cuentas. Cada movimiento se valida contra tu cupo, tu línea de sobregiro declarada y el techo de saldo de una cuenta vista: nada que tu banco rechazaría entra como si hubiera pasado.",
-        "p2": "Un gasto con tarjeta de crédito <b>no baja el saldo de tu cuenta</b>: sube el cupo usado, y la plata sale una sola vez cuando pagas la facturación.",
-        "p3": "Un traspaso son dos filas unidas por un grupo — gasto en el origen, ingreso en el destino — así cada cuenta ve su propio lado. Quedan afuera de los totales por categoría para que no inflen tus gastos del mes.",
-        "financeCharge": {
-          "title": "Cargo financiero",
-          "body": "Un cobro del emisor —interés del rotativo, comisión, seguro— no lo hace ningún plástico. La app nunca lo calcula: lo lees de tu estado de cuenta y lo anotas. Es lo que permite que el saldo arrastrado te cuadre con la cartola real."
-        },
-        "table": {
-          "description": "Descripción",
-          "category": "Categoría",
-          "type": "Tipo",
-          "card": "Tarjeta",
-          "date": "Fecha",
-          "amount": "Monto"
-        },
-        "rows": {
-          "statementPayment": "Pago facturación BCI",
-          "savings": "Aporte meta «Viaje a Bariloche»",
-          "transfer": "Traspaso a Tenpo Prepago",
-          "electricity": "Boleta luz Enel",
-          "interest": "Interés rotativo",
-          "notebook": "Notebook ASUS · 12 cuotas",
-          "salary": "Sueldo julio"
-        },
-        "categories": {
-          "payment": "Pago",
-          "savings": "Ahorro",
-          "utilities": "Servicios",
-          "financeCharge": "Cargo financiero",
-          "technology": "Tecnología",
-          "income": "Ingreso",
-          "none": "Sin categoría"
-        },
-        "kinds": {
-          "expense": "Gasto",
-          "income": "Ingreso",
-          "transfer": "Traspaso"
-        },
-        "footnote": "El traspaso de {{transfer}} aparece como fila en cada cuenta, pero no suma a los {{expenses}} de gastos del mes: mover plata entre tus cuentas no es un gasto."
-      },
-      "installments": {
-        "title": "Cuotas",
-        "subtitle": "3 planes activos · próximo pago {{date}}",
-        "kpis": {
-          "active": "Planes activos",
-          "toPay": "Por pagar · CLP",
-          "next": "Próxima cuota"
-        },
-        "plans": {
-          "notebook": "Tecnología · {{amount}} por cuota",
-          "notebookProgress": "3 facturadas · 9 por facturar",
-          "fridge": "Hogar · con interés · {{amount}} por cuota",
-          "fridgeProgress": "2 pagadas · 4 por pagar",
-          "vacuumName": "Aspiradora Robot",
-          "vacuum": "Hogar · paga con Cuenta corriente",
-          "vacuumProgress": "1 pagada · 2 por pagar"
-        },
-        "table": {
-          "plan": "Plan",
-          "installments": "Cuotas",
-          "card": "Tarjeta",
-          "remaining": "Restante"
-        },
-        "rules": {
-          "credit": {
-            "title": "Con tarjeta de crédito",
-            "body": "El cupo se compromete completo el día de la compra, como hace tu emisor, pero la facturación cobra solo la cuota vencida. La compra queda excluida del total del período para no cobrarla dos veces. Una cuota pasa de programada a facturada y a pagada por el cierre y el pago del período, nunca a mano."
-          },
-          "noCredit": {
-            "title": "Sin tarjeta de crédito",
-            "body": "Cada cuota es un gasto real de la cuenta que elijas. Si pagas de menos, el faltante pasa a la cuota siguiente sin reescribir el calendario."
-          },
-          "delete": {
-            "title": "Borrar un plan",
-            "body": "Revierte todo su historial: elimina sus gastos, devuelve el saldo a cada cuenta y libera el cupo. La confirmación te dice cuánto va a mover antes de hacerlo."
-          }
-        }
-      },
-      "debts": {
-        "title": "Deudas",
-        "subtitle": "2 deudas activas · 2 personas",
-        "eyebrow": "Deudas con personas",
-        "intro": "Marcar pagada mueve plata de verdad — crea el movimiento y ajusta el saldo de la cuenta. Deshacerlo lo revierte por el mismo monto, porque queda registrado exactamente qué movió.",
-        "owedToYou": "Me deben",
-        "youOwe": "Yo debo",
-        "settled": "Liquidada",
-        "table": {
-          "debt": "Deuda",
-          "status": "Estado",
-          "pending": "Pendiente"
-        },
-        "rows": {
-          "concert": {
-            "title": "Camila · entradas del recital",
-            "detail": "Me deben · 3 cuotas, 1 pagada"
-          },
-          "rent": {
-            "title": "Arriendo a Rodrigo",
-            "detail": "Yo debo · pago único"
-          },
-          "lunch": {
-            "title": "Almuerzo equipo",
-            "detail": "Me deben · liquidada el {{date}}"
-          }
-        },
-        "rules": {
-          "real": {
-            "title": "Pagar mueve plata de verdad",
-            "body": "Marcar una deuda como pagada crea el movimiento y ajusta el saldo de la cuenta. El monto no lo escribes tú: sale del calendario de la propia deuda."
-          },
-          "undo": {
-            "title": "Y deshacerlo lo devuelve",
-            "body": "Queda registrado exactamente qué movió cada pago, así que revertirlo borra ese movimiento y repone el saldo por el mismo monto."
-          },
-          "noDebt": {
-            "title": "Sin pagar deuda con deuda",
-            "body": "No puedes saldar una deuda desde una cuenta de tarjeta de crédito, y la cuenta debe estar en la misma moneda: no hay conversión."
-          }
-        }
-      },
-      "recurring": {
-        "title": "Recurrentes",
-        "subtitle": "2 activos · 1 pausado",
-        "eyebrow": "Gastos recurrentes",
-        "intro": "Suscripciones, arriendo, seguros. La próxima fecha se calcula desde el ancla de la serie, y puedes pausar una sin perder su historial.",
-        "monthly": "Mensual",
-        "yearly": "Anual",
-        "paused": "Pausada",
-        "table": {
-          "series": "Serie",
-          "frequency": "Frecuencia",
-          "next": "Próximo",
-          "amount": "Monto"
-        },
-        "rows": {
-          "rent": "Arriendo",
-          "rentAccount": "Cuenta corriente",
-          "netflix": "Netflix",
-          "carInsurance": "Seguro del auto"
-        },
-        "rules": {
-          "reminder": {
-            "title": "Un recordatorio, no un cobro",
-            "body": "Una serie no genera movimientos por su cuenta: te dice qué viene y cuándo, y el gasto lo registras cuando ocurre de verdad."
-          },
-          "frequency": {
-            "title": "Semanal, mensual o anual",
-            "body": "Con intervalo propio — cada dos semanas, cada tres meses — y la próxima fecha calculada desde el ancla de la serie."
-          },
-          "pause": {
-            "title": "Pausar sin perder el historial",
-            "body": "Una serie pausada deja de aparecer en lo que viene, pero sigue ahí para reanudarla cuando la contrates de nuevo."
-          }
-        }
-      },
-      "savings": {
-        "title": "Ahorros",
-        "subtitle": "3 metas · 2 en curso, 1 cumplida",
-        "totalSaved": "Total ahorrado",
-        "paceSummary": "Ritmo de los últimos 3 meses: {{amount}} por mes",
-        "intro": "El progreso y el ritmo se derivan siempre de tus aportes reales — cada uno es un gasto en la cuenta de origen, así que no se pueden inflar.",
-        "inProgress": "En curso",
-        "overdue": "Fuera de plazo",
-        "complete": "Cumplida",
-        "missing": "Faltan",
-        "pace": "Ritmo",
-        "perMonth": "{{amount}} / mes",
-        "deadline": "Plazo",
-        "atThatPace": "A ese ritmo",
-        "monthsLate_one": "{{count}} mes tarde",
-        "monthsLate_other": "{{count}} meses tarde",
-        "contributions": "Aportes",
-        "onClose": "Al cerrar",
-        "withdrawToAccount": "Retirar a una cuenta",
-        "reversible": "Reversible",
-        "reversibleYes": "Sí, reabriendo",
-        "goals": {
-          "trip": "Viaje a Bariloche",
-          "emergency": "Fondo de emergencia",
-          "notebook": "Notebook nuevo"
-        },
-        "rules": {
-          "real": {
-            "title": "Aportar es un gasto real",
-            "body": "Cada aporte sale de una cuenta tuya y queda como movimiento, así que el progreso no se puede inflar escribiendo un número."
-          },
-          "pace": {
-            "title": "El ritmo lo calculan tus aportes",
-            "body": "Es el promedio de los últimos tres meses calendario completos, no una meta que te propusiste al crear la meta."
-          },
-          "close": {
-            "title": "Cerrar tiene tres destinos",
-            "body": "Retirar a una cuenta, pasar a ahorro libre o traspasar a otra meta. El retiro es reversible: reabrir deshace el movimiento que creó."
-          }
+          "tag": "Monedas",
+          "title": "Pesos, dólares y UF, cada uno por su lado",
+          "body": "Cada cuenta vive en su moneda y con su propio total. Sin conversiones automáticas que sumarían peras con manzanas."
         }
       }
     },
     "about": {
-      "title": "Por qué existe FinanceApp",
-      "p1": "Casi todas las apps de finanzas personales tratan la tarjeta de crédito como si fuera una cuenta más: la compra descuenta tu saldo, las doce cuotas aparecen enteras en el mes, el cierre cae el mismo día del mes para todos y el “disponible” suma pesos con dólares. Ninguna de esas cosas es cierta, y basta un mes para que tus números dejen de cuadrar con los del banco.",
-      "p2": "FinanceApp está construida al revés: primero las reglas del producto real —cupo compartido, cierre en días hábiles, cuota facturada, arrastre del saldo impago— y después la pantalla. Si el modelo no puede sostener una cifra con honestidad, la app no la muestra.",
+      "eyebrow": "Nosotros",
+      "titleLead": "Construimos la app que",
+      "titleAccent": "nosotros mismos necesitábamos",
+      "lead": "Casi todas las apps de finanzas personales tratan la tarjeta de crédito como si fuera una cuenta más: la compra descuenta tu saldo, las doce cuotas aparecen enteras en el mes, el cierre cae el mismo día para todos. Ninguna de esas cosas es cierta.",
+      "p1": "Cuadra está construida al revés: primero las reglas del producto real —cupo compartido, cierre en días hábiles, cuota facturada, arrastre del saldo impago— y después la pantalla. Si el modelo no puede sostener una cifra con honestidad, la app no la muestra.",
+      "receipts": {
+        "bank": "Tu banco"
+      },
+      "how": {
+        "eyebrow": "Cómo la construimos",
+        "titleLead": "Reglas primero,",
+        "titleAccent": "pantalla después",
+        "body": "Cada función nace de una regla real de un banco o emisor chileno, no de lo que se ve más simple en una maqueta. Cuando el modelo no tiene cómo sostener una cifra, la app lo dice en vez de inventarla."
+      },
       "principlesTitle": "Cómo decidimos qué entra",
+      "principlesHeading": "Tres reglas que no negociamos",
       "principles": {
-        "reviewable": {
-          "title": "Nada automático que no puedas revisar",
-          "body": "No hay sincronización con bancos. Tú registras, y por eso el dato es tuyo y sabes de dónde salió."
-        },
         "noInvented": {
           "title": "Ninguna cifra inventada",
-          "body": "La app no calcula los intereses de tu banco ni convierte monedas. Cuando falta un dato, lo dice en vez de rellenarlo con una estimación."
+          "body": "No calculamos los intereses de tu banco ni convertimos monedas. Cuando falta un dato, lo decimos en vez de rellenarlo con una estimación."
         },
         "reversible": {
           "title": "Todo reversible",
@@ -1653,71 +1389,118 @@
           "body": "Feriados legales, RUT con dígito verificador, UF, bancos y cooperativas del catálogo local. Antes que muchos países a medias, uno completo."
         }
       },
-      "todayTitle": "En qué está hoy",
-      "todayBody": "Funciona con cuentas, tarjetas, movimientos, facturación, cuotas, metas, deudas y gastos recurrentes, en pesos, dólares y UF. Lo que todavía no existe no aparece disfrazado de función: el seguimiento de inversiones está en pausa y la exportación de tus datos aún no está lista."
+      "today": {
+        "eyebrow": "Honestidad de estado",
+        "title": "En qué está hoy",
+        "available": {
+          "title": "Disponible",
+          "body": "Cuentas, tarjetas, movimientos, facturación, cuotas, metas, deudas y gastos recurrentes, en pesos, dólares y UF."
+        },
+        "paused": {
+          "title": "En pausa",
+          "body": "El seguimiento de inversiones (rentabilidad, precios) está pausado: la cuenta de inversión existe, el seguimiento todavía no."
+        },
+        "pending": {
+          "title": "Pendiente",
+          "body": "Exportar tus datos y sincronizar bancos automáticamente no existen todavía — y lo segundo puede que a futuro sí llegue."
+        }
+      }
     },
     "privacy": {
+      "center": "Tus datos",
       "title": "Privacidad y datos",
-      "subtitle": "Qué se guarda, quién entra y cómo te vas",
-      "p1": "Tus saldos, movimientos y deudas describen tu situación económica, así que se tratan como dato sensible: el permiso para procesarlos se pide aparte, explícito y con su versión, nunca escondido dentro de un “acepto los términos”. Tu historial de consentimientos queda consultable en tu perfil.",
-      "p2": "Entras con tu RUT, como en tu banco — el correo queda solo para avisos. Si tu dispositivo lo soporta, con una llave de acceso en vez de contraseña.",
-      "sessions": {
-        "title": "Sesiones y dispositivos",
-        "subtitle": "Cierras una y su acceso muere en la petición siguiente, no al próximo refresh.",
-        "activeNow": "Chile · activa ahora",
-        "current": "Esta sesión",
-        "daysAgo_one": "Chile · hace {{count}} día",
-        "daysAgo_other": "Chile · hace {{count}} días",
-        "close": "Cerrar",
-        "closedOn": "Cerrada el {{date}}",
-        "note": "Una sesión cerrada se conserva 3 días para que la veas, y después se borra. Geolocalización aproximada por IP."
-      },
-      "security": {
-        "passkey": {
-          "title": "Llave de acceso",
-          "body": "Passkey: salta contraseña y segundo factor, porque ya es autenticación fuerte por sí misma."
+      "titleLead": "Tus datos, en capas que",
+      "titleAccent": "puedes revisar una por una",
+      "lead": "Tus saldos, movimientos y deudas describen tu situación económica, así que se tratan como dato sensible: el permiso para procesarlos se pide aparte, explícito y con su versión, nunca escondido dentro de un “acepto los términos”.",
+      "layersEyebrow": "Capa por capa",
+      "layersTitle": "Qué protege cada anillo",
+      "layerLabel": "Capa {{n}}",
+      "layers": {
+        "consent": {
+          "title": "Consentimiento",
+          "lead": "El permiso para tratar tu información financiera se pide aparte, nunca disuelto en un “acepto los términos”.",
+          "a": {
+            "title": "Explícito y versionado",
+            "body": "Cada consentimiento queda fechado y con la versión de la política que aceptaste, consultable desde tu perfil."
+          },
+          "b": {
+            "title": "Menores de edad",
+            "body": "Con autorización de madre, padre o tutor, guardada como un consentimiento aparte del tuyo."
+          }
         },
-        "mfa": {
-          "title": "Segundo factor",
-          "body": "TOTP con códigos de recuperación. Cambiarlo cierra todas las demás sesiones, en la misma transacción."
+        "access": {
+          "title": "Cómo entras",
+          "lead": "Entras con tu RUT, como en tu banco — el correo queda solo para avisos.",
+          "a": {
+            "title": "Llave de acceso",
+            "body": "Si tu dispositivo la soporta, una passkey salta contraseña y segundo factor: ya es autenticación fuerte por sí misma."
+          },
+          "b": {
+            "title": "Segundo factor",
+            "body": "TOTP con códigos de recuperación. Cambiarlo cierra todas las demás sesiones, en la misma transacción."
+          }
         },
-        "deletion": {
-          "title": "Eliminar la cuenta",
-          "body": "Supresión total, o anonimización si prefieres conservar el historial sin nada que te identifique."
+        "sessions": {
+          "title": "Sesiones que cierras al instante",
+          "lead": "Cerrar una sesión mata su acceso en la petición siguiente, no en el próximo refresh.",
+          "a": {
+            "title": "Un dispositivo por fila",
+            "body": "Ves desde dónde entraste y hace cuánto, y puedes cerrar cualquiera menos la que estás usando."
+          },
+          "b": {
+            "title": "Se conservan, no desaparecen",
+            "body": "Una sesión cerrada queda visible 3 días antes de borrarse, para que confirmes que fuiste tú."
+          }
         },
-        "minors": {
-          "title": "Menores de edad",
-          "body": "Registro con autorización de madre, padre o tutor, guardada como un consentimiento aparte."
+        "visible": {
+          "title": "Lo que ves tú, y solo tú",
+          "lead": "Un interruptor en tu perfil enmascara los montos de la app, con revelado puntual cuando lo necesites.",
+          "a": {
+            "title": "Ocultar saldos",
+            "body": "Útil para mirar tus cuentas donde hay más gente alrededor."
+          },
+          "b": {
+            "title": "Tus comprobantes",
+            "body": "Se validan por su contenido real, no por la extensión del archivo, y se abren con un enlace firmado que caduca en cinco minutos."
+          }
+        },
+        "leave": {
+          "title": "Cómo te vas",
+          "lead": "Eliminar tu cuenta es una acción real, no un casillero que la desactiva.",
+          "a": {
+            "title": "Supresión total",
+            "body": "Borra tu cuenta y todo lo que registraste, sin dejar rastro."
+          },
+          "b": {
+            "title": "O anonimización",
+            "body": "Conserva tu historial financiero sin ningún dato que te identifique, si prefieres eso."
+          }
         }
       },
       "dont": {
         "title": "Qué no hacemos",
-        "banks": {
-          "title": "No nos conectamos a tu banco",
-          "body": "No existe sincronización automática ni permiso de lectura sobre tus productos. Nada entra que no registres tú."
-        },
         "cardNumber": {
-          "title": "No guardamos el número de tu tarjeta",
+          "tag": "Tarjetas",
+          "title": "No guardamos el número completo",
           "body": "Solo los últimos cuatro dígitos. El número completo nunca sale de tu navegador y el CVV no se pide nunca."
         },
         "estimates": {
+          "tag": "Cálculos",
           "title": "No calculamos ni estimamos por ti",
           "body": "Ni intereses, ni tipo de cambio, ni gastos “proyectados” que no hayas anotado."
+        },
+        "banks": {
+          "tag": "Bancos",
+          "title": "No nos conectamos a tu banco",
+          "body": "No existe sincronización automática ni permiso de lectura sobre tus productos. Nada entra que no registres tú."
         }
-      },
-      "attachments": {
-        "title": "Tus comprobantes",
-        "body": "Se validan por su contenido real, no por la extensión del archivo, y se abren con un enlace firmado que caduca en cinco minutos. El nombre con que se guardan no revela quién eres ni a qué movimiento pertenecen."
-      },
-      "hideBalances": {
-        "title": "Ocultar saldos",
-        "body": "Un interruptor en tu perfil enmascara los montos de la app, y puedes revelar uno puntual cuando lo necesites. Útil para mirar tus cuentas donde hay más gente."
       }
     },
     "pricing": {
       "title": "Precios",
-      "subtitle": "Una sola respuesta, sin tabla comparativa",
-      "plan": "Plan único",
+      "titleLead": "Un plan,",
+      "titleAccent": "sin letra chica",
+      "lead": "Una sola respuesta, sin tabla comparativa: esto es lo que hay, y es gratis.",
       "free": "Gratis",
       "freeHint": "Sin planes, sin límites artificiales y sin funciones bloqueadas.",
       "included": {
@@ -1745,7 +1528,10 @@
     },
     "faq": {
       "title": "Preguntas frecuentes",
+      "titleLead": "Antes de que",
+      "titleAccent": "preguntes",
       "subtitle": "Las dudas que aparecen el primer mes, agrupadas por tema. Si algo no está acá, casi siempre la respuesta es la misma: la app no muestra una cifra que no pueda sostener.",
+      "topics": "Temas",
       "groups": {
         "howItWorks": "Cómo funciona",
         "cardsBilling": "Tarjetas y facturación",
@@ -1754,7 +1540,7 @@
       "items": {
         "bankSync": {
           "q": "¿Se conecta con mi banco?",
-          "a": "No. Tú registras tus cuentas y tus movimientos. Es más trabajo el primer día y, a cambio, ninguna app tiene permiso de lectura sobre tus productos."
+          "a": "Hoy no. Tú registras tus cuentas y tus movimientos a mano. Es más trabajo el primer día y, a cambio, ninguna app tiene permiso de lectura sobre tus productos."
         },
         "setup": {
           "q": "¿Tengo que configurar todo antes de usarla?",

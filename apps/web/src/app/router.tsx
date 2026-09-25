@@ -12,7 +12,6 @@ import { AboutRoute } from "../domains/landing/routes/AboutRoute";
 import { FaqRoute } from "../domains/landing/routes/FaqRoute";
 import { PricingRoute } from "../domains/landing/routes/PricingRoute";
 import { PrivacyRoute } from "../domains/landing/routes/PrivacyRoute";
-import { ProductRoute } from "../domains/landing/routes/ProductRoute";
 import { ProfileRoute } from "../domains/profile/routes/ProfileRoute";
 import { RecurringRoute } from "../domains/recurring/routes/RecurringRoute";
 import { SavingsRoute } from "../domains/savings/routes/SavingsRoute";
@@ -33,7 +32,6 @@ export const router = createBrowserRouter([
   // Public landing pages (Spanish slugs: the landing is for the Chilean market). `/` itself
   // is the landing for a visitor and the Panel once signed in — see HomeRoute.
   { path: "/", element: <HomeRoute /> },
-  { path: "/producto/:view?", element: <ProductRoute /> },
   { path: "/nosotros", element: <AboutRoute /> },
   { path: "/privacidad", element: <PrivacyRoute /> },
   { path: "/precios", element: <PricingRoute /> },

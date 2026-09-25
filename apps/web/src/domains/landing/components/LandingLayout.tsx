@@ -26,7 +26,6 @@ import {
 import { LandingAuthContext } from "../hooks/useOpenAuth";
 
 const NAV = [
-  { to: "/producto", key: "landing.nav.product" },
   { to: "/nosotros", key: "landing.nav.about" },
   { to: "/privacidad", key: "landing.nav.privacy" },
   { to: "/precios", key: "landing.nav.pricing" },

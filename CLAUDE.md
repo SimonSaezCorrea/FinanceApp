@@ -993,6 +993,33 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
   replaced the isometric card stack (`HeroStack`), whose `landing.home.preview.*` card keys were
   dropped. Illustrative actions (Pagar, Sincronizar
   pagos, Cerrar sesión) render `disabled`. All copy lives under `landing.*` in es/en.
+  Amendment (product tour removed, pages illustrated instead, 2026-09-25): the `/producto/:view?`
+  guided tour of sample product screens is **gone** — `ProductRoute.tsx`, the six
+  `components/product/*View.tsx` files, `MonthKpiStrip.tsx` and `landing/hooks/useSampleFormat.ts`
+  are deleted, the router entry and the "Producto" nav item are removed, and `landing.product`/
+  `landing.sampleAction` are dropped from both i18n catalogs — it duplicated the real app's screens
+  with sample data and drifted from them every time the real ones changed. In its place, the home,
+  Nosotros, Privacidad, Precios and Preguntas pages each got a hand-illustrated redesign (canvas
+  option rounds C→E for home, N for Nosotros, P for Privacidad, PL for Precios, F for Preguntas),
+  all under **`domains/landing/components/illustrations/`** (`paint.ts`'s `paint(name, alpha?)`
+  helper — every fill/stroke goes through `style` since SVG presentation attributes can't resolve
+  CSS variables — plus `SunsetArch`, `FeatureVignettes`, `MatchingReceipts`, `PrivacyRings`), backed
+  by a new `--illus-*` token set (both theme blocks in `styles/index.css`). Home: `WhySection` +
+  `FeaturesSection` (`components/HomeSections.tsx`) replace the old claims/preview blocks —
+  `WhySection` is the sunset arch beside three numbered "por qué Cuadra" points
+  (`landing.home.why.*`), `FeaturesSection` is three alternating illustrated rows
+  (`landing.home.features.*`: cards/calendar/currencies). Nosotros: two matching receipts, a ridge
+  band under "cómo la construimos", three numbered principles and an honest available/paused/
+  pending status board (`landing.about.*`) — deliberately doesn't rule out a future bank sync,
+  unlike an earlier draft. Privacidad: `PrivacyRings` (data at the centre of five rings) beside a
+  five-layer index, then one detailed row per layer with a matching mini-ring
+  (`landing.privacy.layers.{consent,access,sessions,visible,leave}.*`) and a "qué no hacemos" strip
+  — the layer order and the ring lighting are the same sequence, fixed after an earlier draft put
+  the sessions explanation on the wrong layer. Precios: **shows only the free plan** — a paid tier
+  is an unresolved assumption, recorded in `docs/PENDING.md` under "Monetización", never promised
+  publicly; one plan card beside three numbered reasons it's free (`landing.pricing.reasons.*`).
+  Preguntas: from `lg` a sticky topic index + sign-up card beside grouped `<details>` questions
+  (`landing.faq.groups`/`items.*`), **every question starts collapsed** (no `open` by default).
   Amendment (overlay family, 2026-08-05): `shared/ui/dialog.tsx` and `shared/ui/confirm-dialog.tsx`
   are **gone**, replaced by `shared/ui/overlay/` (barrel `index.ts`): **`SurfaceChrome`** (the shared
   frame — header `leading`/title/description/`headerAside`/close → one scrolling body → pinned
