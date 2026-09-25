@@ -10,7 +10,6 @@ import { DataPrivacySection } from "../components/DataPrivacySection";
 import { FinancialCustomizationSection } from "../components/FinancialCustomizationSection";
 import { NotificationsSection } from "../components/NotificationsSection";
 import { PersonalInfoSection } from "../components/PersonalInfoSection";
-import { PlanBillingSection } from "../components/PlanBillingSection";
 import { PreferencesSection } from "../components/PreferencesSection";
 import { ProfileCard } from "../components/ProfileCard";
 import { SecuritySection } from "../components/SecuritySection";
@@ -29,17 +28,23 @@ export function ProfileRoute() {
         <div className="flex flex-col gap-4 lg:sticky lg:top-6">
           <ProfileCard />
           <AccountStatusSection onEditField={(field) => setEditRequest({ field })} />
+          {/* Left column from lg; below that it moves to the end of the page (see below), so a
+              destructive action isn't the first thing on a phone. */}
+          <div className="hidden lg:block">
+            <DangerZone />
+          </div>
         </div>
         <div className="flex flex-col gap-4">
           <PersonalInfoSection editRequest={editRequest} />
           <PreferencesSection />
           <FinancialCustomizationSection />
           <SecuritySection />
-          <PlanBillingSection />
           <NotificationsSection />
           <DataPrivacySection />
           <ConsentHistorySection />
-          <DangerZone />
+          <div className="lg:hidden">
+            <DangerZone />
+          </div>
         </div>
       </div>
     </div>

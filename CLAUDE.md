@@ -1107,6 +1107,21 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     Every non-functional piece introduced by this amendment is catalogued in
     `docs/PENDING.md` — consult it before assuming any of the above is wired to a
     real backend.
+    Amendment (two placeholder sections removed, "Eliminar cuenta" moved, 2026-09-25):
+    `PlanBillingSection` ("Plan, uso y facturación" — example usage numbers, a disabled "Ver Pro"
+    upsell, a fake payment method and invoice history) and the "Bancos vinculados" list inside
+    `DataPrivacySection` (example banks with local-only sync switches, a disabled "Vincular otro
+    banco") are **deleted** — both showed limits, plans or connections that don't exist, and the
+    billing format itself isn't decided yet (see `docs/PENDING.md`'s new "Monetización" section,
+    which records the paid-plan assumptions explored on the Precios canvas so they're not lost, but
+    keeps them out of any UI until a real decision is made). `DataPrivacySection`'s title dropped
+    "conexiones" to match (`profile.dataPrivacy.title`). `PlanBillingSection.tsx` and every
+    `profile.billing.*`/`dataPrivacy.{linkedBanks,synced,paused,linkAnother}` i18n key are gone; the
+    `ProfileCard`'s "Plan personal" badge (a fixed label, no billing model behind it either) is
+    unaffected. Separately, `DangerZone`'s "Cerrar sesión" button is gone — signing out already
+    lives in the sidebar's user menu, so the profile page doesn't repeat it — and "Eliminar cuenta"
+    moved to `ProfileRoute`'s **left** column (with `AccountStatusSection`, from `lg`; it renders in
+    the right column's end on a phone, so a destructive action isn't the first thing there).
     Amendment (`dateFormat` removed, 2026-09-18): the "Formato de fecha" preference
     (`DD/MM/YYYY`/`MM/DD/YYYY`/`YYYY-MM-DD`) is **gone** — column, contract field,
     `PATCH /auth/me/preferences` support and the `PreferencesSection` selector all

@@ -1651,27 +1651,8 @@
       "hideBalances": "Hide balances",
       "hideBalancesHint": "Blurs amounts on the Panel, account balances and Savings"
     },
-    "billing": {
-      "title": "Plan, usage & billing",
-      "planFree": "Personal plan · Free",
-      "usage": {
-        "accounts": "Accounts",
-        "categories": "Custom categories"
-      },
-      "upsellTitle": "Upgrade to Pro",
-      "upsellBody": "Unlimited accounts, bank sync, and reports.",
-      "upsellCta": "See Pro",
-      "paymentMethod": "Visa •••• 4242",
-      "change": "Change",
-      "invoiceHistory": "Invoice history",
-      "view": "View"
-    },
     "dataPrivacy": {
-      "title": "Data, connections & privacy",
-      "linkedBanks": "Linked banks",
-      "synced": "Synced",
-      "paused": "Paused",
-      "linkAnother": "Link another bank",
+      "title": "Data & privacy",
       "export": "Export transactions",
       "autoBackup": "Automatic monthly backup",
       "autoBackupHint": "Keeps a copy of your data"
@@ -1832,7 +1813,6 @@
       "hint": "Coming soon"
     },
     "danger": {
-      "logout": "Log out",
       "deactivate": "Delete account",
       "confirmTitle": "Delete your account?",
       "confirmDescription": "Your name, email, password and other personal data will be erased, and you won't be able to sign in again. This action cannot be undone.",

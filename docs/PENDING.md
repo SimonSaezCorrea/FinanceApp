@@ -126,25 +126,28 @@ incluso con una futura sección de suscripción de pago en la app — la geoloca
 de seguridad esencial, nunca parte de un plan pago). Ver `specs/026-ipinfo-geolocation/` para el
 diseño completo.
 
-### 5. Plan, uso y facturación
+### 5. Plan, uso y facturación — **sección retirada del Perfil (2026-09-25)**
 
-Toda la sección es un placeholder: los usos ("Cuentas 6/10", "Categorías personalizadas 8/15") son
-números fijos de ejemplo (no reflejan límites reales — no existe ningún límite de plan hoy), el botón
-"Ver Pro" y "Cambiar" (método de pago) y "Ver" (historial de facturas) están deshabilitados. No hay
-integración de pagos (Stripe o similar), ni modelo de planes/suscripciones en la base de datos. El
-badge "Plan personal" en el resto de la app ya era, desde antes de esta feature, un texto fijo sin
-modelo de billing detrás.
+Era un placeholder completo: usos fijos de ejemplo ("Cuentas 6/10", "Categorías personalizadas
+8/15") que insinuaban límites que no existen, un "Pásate a Pro" con "Ver Pro" deshabilitado, un
+método de pago de ejemplo ("Visa •••• 4242") y un historial de facturas sin nada detrás. Se **eliminó**
+(`PlanBillingSection` y las claves `profile.billing.*`) porque el formato de cobro está sin decidir
+(ver "Monetización — plan de pago") y la página de Precios ya dice "sin límites artificiales": mostrar
+límites y un plan Pro de ejemplo contradecía eso. Queda el badge "Plan personal" del `ProfileCard`,
+un texto fijo sin modelo de billing detrás.
 
-**Para hacerlo real**: modelo `Plan`/`Subscription`, integración con un proveedor de pagos, límites
-reales aplicados en los servicios de cada dominio (ej. rechazar creación de cuenta #11 en el plan
-gratis), historial de facturas desde el proveedor de pagos.
+**Para volver a tenerla**: cuando se decida el plan de pago — modelo `Plan`/`Subscription`,
+integración con un proveedor de pagos, límites reales aplicados en cada dominio (si los hay) e
+historial de facturas desde el proveedor. Recién entonces reconstruir la sección con datos reales.
 
-### 6. Datos, conexiones y privacidad
+### 6. Datos y privacidad (antes "Datos, conexiones y privacidad")
 
-- **Bancos vinculados**: "Banco Estado"/"Falabella CMR" son ejemplos fijos; los switches de
-  sincronización son locales (no llaman a ningún banco). "Vincular otro banco" está deshabilitado. No
-  hay integración de open banking (tipo Plaid/Belvo) — las cuentas de este app siempre se cargan
-  manualmente.
+- **Bancos vinculados — retirado del Perfil (2026-09-25)**: era una lista de ejemplo fija ("Banco
+  Estado"/"Falabella CMR") con switches locales que no llamaban a ningún banco y un "Vincular otro
+  banco" deshabilitado. Se eliminó (y la sección perdió el "conexiones" de su título) porque la
+  sincronización con bancos no existe y su formato —incluido si sería de pago— está sin decidir: ver
+  "Monetización — plan de pago". No hay integración de open banking (tipo Plaid/Belvo); las cuentas se
+  cargan siempre a mano. Si se implementa, esta vista se reconstruye con conexiones reales.
 - **Exportar movimientos** (CSV/Excel/PDF): botones deshabilitados. Es lo más tratable de esta sección
   a futuro (los datos ya existen vía `transactions`), pero no se implementó en esta pasada.
 - **Respaldo automático mensual**: switch local, sin ningún job de respaldo real corriendo.
@@ -755,3 +758,32 @@ para que sea una decisión postergada y no una que nadie vio.
 **Para hacerlo real**: escribir la cláusula ANTES de que exista el primer consumidor externo. Los puntos
 1, 2 y 6 de esta sección (ya cerrados) fueron cambios de contrato/formato interno; si aparece un
 consumidor externo, cualquier cambio equivalente en el futuro debe resolver esto primero.
+
+## Monetización — plan de pago (supuesto, no decidido)
+
+La página pública de Precios (`/precios`) muestra **solo el plan gratis** y no menciona ningún plan de
+pago: lo que sigue son supuestos de trabajo, no compromisos, y no deben aparecer en la landing hasta
+que se decidan. Se exploraron en el lienzo "Cuadra · Precios" (variantes PL2, PL2a y PL2b).
+
+- **Nombre provisorio**: "Cumbre" (sigue la cordillera de la marca; también se barajaron Plus/Pro).
+  El plan gratis se llamó "Base" en el lienzo, pero en la página pública no lleva nombre, para no
+  insinuar que existen otros.
+- **Precio**: sin definir.
+- **Qué sumaría el plan de pago** (nada de esto existe hoy):
+  - _Organización_: espacios separados (personal, negocio, la casa), etiquetas propias además de la
+    categoría, plantillas de movimientos frecuentes (ver "Movimientos · 1. Plantillas").
+  - _Automatización_: reglas que categorizan solas, recurrentes que se registran el día que tocan (hoy
+    los recurrentes son solo informativos), recordatorios antes de cada vencimiento.
+  - _Conexión_: sincronización con bancos — el único ítem con un costo real por cuenta (se le paga a un
+    intermediario), por eso sería de pago.
+- **Límites que NO se cruzan**: exportar tus datos debe quedar en el plan gratis — la portabilidad es un
+  derecho del titular (Ley 21.719), no una función premium.
+- **Promesas consideradas, sin aprobar**: nada de lo gratis se mueve al plan de pago; sin publicidad ni
+  venta de datos en ningún plan; si alguien deja el plan de pago no se borra nada, solo se detiene lo
+  automático. Antes de publicar cualquiera, validarla como decisión de negocio.
+- **Relacionado**: "Perfil · 5. Plan, uso y facturación" — la sección de ejemplo (límites "6/10" y
+  un "Ver Pro") se retiró del Perfil el 2026-09-25 por contradecir "sin límites artificiales"; se
+  reconstruye cuando esto se decida.
+
+**Para hacerlo real**: decidir nombre, precio y lista; modelo `Plan`/`Subscription` + proveedor de
+pagos (ver Perfil · 5); recién entonces volver a mostrar el plan de pago en `/precios`.

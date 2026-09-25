@@ -1651,27 +1651,8 @@
       "hideBalances": "Ocultar saldos",
       "hideBalancesHint": "Difumina montos en el Panel, el saldo de cuenta y Ahorros"
     },
-    "billing": {
-      "title": "Plan, uso y facturación",
-      "planFree": "Plan personal · Gratis",
-      "usage": {
-        "accounts": "Cuentas",
-        "categories": "Categorías personalizadas"
-      },
-      "upsellTitle": "Pásate a Pro",
-      "upsellBody": "Cuentas ilimitadas, sincronización bancaria y reportes.",
-      "upsellCta": "Ver Pro",
-      "paymentMethod": "Visa •••• 4242",
-      "change": "Cambiar",
-      "invoiceHistory": "Historial de facturas",
-      "view": "Ver"
-    },
     "dataPrivacy": {
-      "title": "Datos, conexiones y privacidad",
-      "linkedBanks": "Bancos vinculados",
-      "synced": "Sincronizado",
-      "paused": "Pausado",
-      "linkAnother": "Vincular otro banco",
+      "title": "Datos y privacidad",
       "export": "Exportar movimientos",
       "autoBackup": "Respaldo automático mensual",
       "autoBackupHint": "Guarda una copia de tus datos"
@@ -1832,7 +1813,6 @@
       "hint": "Próximamente"
     },
     "danger": {
-      "logout": "Cerrar sesión",
       "deactivate": "Eliminar cuenta",
       "confirmTitle": "¿Eliminar tu cuenta?",
       "confirmDescription": "Se borrarán tu nombre, correo, contraseña y demás datos personales, y no podrás volver a iniciar sesión. Esta acción no se puede deshacer.",

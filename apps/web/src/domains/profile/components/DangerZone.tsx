@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 
-import { useAuth } from "../../auth/hooks/useAuth";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { Button } from "../../../shared/ui/button";
 import { ConfirmModal } from "../../../shared/ui/overlay";
@@ -11,26 +10,22 @@ import { Input } from "../../../shared/ui/input";
 import { Switch } from "../../../shared/ui/switch";
 import { useProfileMutations } from "../hooks/useProfile";
 
+/** "Eliminar cuenta", in the profile's left column. Signing out lives in the sidebar's user menu, so
+ * it isn't repeated here. */
 export function DangerZone() {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { logout } = useAuth();
   const { deleteAccount } = useProfileMutations();
   const [confirming, setConfirming] = useState(false);
   const [password, setPassword] = useState("");
   const [keepHistory, setKeepHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleLogout() {
-    await logout();
-    navigate("/login");
-  }
-
   async function handleDelete() {
     setError(null);
     try {
       await deleteAccount.mutateAsync({ password, keepHistory });
-      navigate("/login");
+      navigate("/");
     } catch (err) {
       const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
       setError(t(`errors.${code}`));
@@ -38,13 +33,10 @@ export function DangerZone() {
   }
 
   return (
-    <div className="flex gap-2">
-      <Button variant="outline" className="flex-1" onClick={() => void handleLogout()}>
-        {t("profile.danger.logout")}
-      </Button>
+    <>
       <Button
         variant="outline"
-        className="flex-1 border-destructive/20 bg-destructive/15 text-destructive hover:bg-destructive/25"
+        className="w-full border-destructive/20 bg-destructive/15 text-destructive hover:bg-destructive/25"
         onClick={() => {
           setPassword("");
           setKeepHistory(false);
@@ -93,6 +85,6 @@ export function DangerZone() {
           />
         </div>
       </ConfirmModal>
-    </div>
+    </>
   );
 }
