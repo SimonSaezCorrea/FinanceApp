@@ -1,18 +1,27 @@
-import { type FormEvent, useMemo, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Check } from "lucide-react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 
 import { auth } from "@finance/contracts";
 
 import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { cn } from "../../../shared/lib/cn";
 import { formatRutInput } from "../../../shared/lib/formatRut";
 import { Button } from "../../../shared/ui/button";
-import {
-  FormNotice,
-  FormSelectField,
-  FormSwitchField,
-  FormTextField,
-} from "../../../shared/ui/form";
+import { FormSelectField } from "../../../shared/ui/form";
 import { useAuth } from "../hooks/useAuth";
+import {
+  PASSWORD_MIN_LENGTH,
+  type ValidationError,
+  passwordRules,
+  validateBirthDate,
+  validateEmail,
+  validateNewPassword,
+  validateRequired,
+  validateRut,
+} from "../lib/validation";
+import { CheckCard } from "./CheckCard";
+import { UnderlineField } from "./UnderlineField";
 
 const GUARDIAN_RELATIONSHIP_OPTIONS: { value: auth.GuardianAuthorization["relationship"] }[] = [
   { value: "MOTHER" },
@@ -21,26 +30,38 @@ const GUARDIAN_RELATIONSHIP_OPTIONS: { value: auth.GuardianAuthorization["relati
   { value: "OTHER" },
 ];
 
+type Field = "name" | "rut" | "email" | "password" | "birthDate" | "guardianName" | "guardianRut";
+
 interface RegisterFormProps {
-  /** Called after a successful registration (the session is already set at that point) — the
-   * two hosts (the standalone `/register` page, the side panel opened from `LoginRoute`) each
-   * decide what happens next (navigate, close the panel) rather than this form owning either. */
+  /** Called after a successful registration (the session is already set at that point). */
   onSuccess: () => void;
-  className?: string;
+  /** Optional controlled RUT, shared with the login view of the access panel. */
+  identifierValue?: string;
+  onIdentifierValueChange?: (value: string) => void;
+  /** When set, the form renders no submit button of its own: the host pins one in its footer
+   * with `form={formId}`, and follows `onBusyChange` to label it while the request runs. */
+  formId?: string;
+  onBusyChange?: (busy: boolean) => void;
 }
 
-/** The actual registration form — shared by the standalone `/register` route (direct
- * navigation, bookmarks, password-manager autofill) and the side panel `LoginRoute` opens for
- * "Registrarse" (same content, no full navigation away from the login screen). Built from the
- * same label/value row primitives (`shared/ui/form`) every other form in the app uses — a row
- * per field, thin dividers, no boxed inputs — instead of a plain stack of bordered `<Input>`s. */
-export function RegisterForm({ onSuccess, className }: Readonly<RegisterFormProps>) {
+/** Sign-up: underline fields, the password's rules checked live as it's typed, and the
+ * reinforced consent as an explicit checkbox card. Each field validates on blur (everything on
+ * submit) with the same rules the API applies. */
+export function RegisterForm({
+  onSuccess,
+  identifierValue: controlledRut,
+  onIdentifierValueChange,
+  formId,
+  onBusyChange,
+}: Readonly<RegisterFormProps>) {
   const { t } = useTranslation();
   const { register } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [identifierValue, setIdentifierValue] = useState("");
+  const [localRut, setLocalRut] = useState("");
+  const identifierValue = controlledRut ?? localRut;
+  const setIdentifierValue = onIdentifierValueChange ?? setLocalRut;
   const [birthDate, setBirthDate] = useState("");
   const [sensitiveDataConsent, setSensitiveDataConsent] = useState(false);
   const [guardianName, setGuardianName] = useState("");
@@ -50,6 +71,12 @@ export function RegisterForm({ onSuccess, className }: Readonly<RegisterFormProp
   const [guardianAccepted, setGuardianAccepted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({});
+  const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    onBusyChange?.(busy);
+  }, [busy, onBusyChange]);
 
   // Same threshold/computation the API validates against (auth.calculateAgeFromBirthDate) —
   // shown here purely to decide whether to reveal the guardian block, never trusted as the
@@ -59,12 +86,32 @@ export function RegisterForm({ onSuccess, className }: Readonly<RegisterFormProp
     return auth.calculateAgeFromBirthDate(new Date(birthDate)) < auth.MINOR_GUARDIAN_THRESHOLD_AGE;
   }, [birthDate]);
 
+  const rules = passwordRules(password, identifierValue);
+  const errors: Record<Field, ValidationError | null> = {
+    name: validateRequired(name),
+    rut: validateRut(identifierValue),
+    email: validateEmail(email),
+    password: validateNewPassword(password, identifierValue),
+    birthDate: validateBirthDate(birthDate),
+    guardianName: isMinor ? validateRequired(guardianName) : null,
+    guardianRut: isMinor ? validateRut(guardianIdentifierValue) : null,
+  };
+
+  // A malformed value shows once the field is left; "required" only after a submit attempt.
+  function fieldProps(field: Field) {
+    const code = errors[field];
+    const show = code && (submitted || (touched[field] && code !== "required"));
+    return {
+      onBlur: () => setTouched((prev) => ({ ...prev, [field]: true })),
+      error: show ? t(`auth.validation.${code}`, { min: PASSWORD_MIN_LENGTH }) : null,
+    };
+  }
+
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
-    // The consent/authorization switches aren't real form controls (unlike the old checkboxes,
-    // a `Switch` is a button), so the browser's own `required` can't block submission for
-    // them — checked by hand instead.
+    setSubmitted(true);
+    if (Object.values(errors).some(Boolean)) return;
     if (!sensitiveDataConsent) {
       setError(t("auth.consentRequired"));
       return;
@@ -76,15 +123,15 @@ export function RegisterForm({ onSuccess, className }: Readonly<RegisterFormProp
     setBusy(true);
     try {
       await register({
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim(),
         password,
         identifierValue,
         birthDate: new Date(birthDate),
         sensitiveDataConsent: sensitiveDataConsent as true,
         guardianAuthorization: isMinor
           ? {
-              name: guardianName,
+              name: guardianName.trim(),
               identifierValue: guardianIdentifierValue,
               relationship: guardianRelationship,
               accepted: guardianAccepted as true,
@@ -101,76 +148,116 @@ export function RegisterForm({ onSuccess, className }: Readonly<RegisterFormProp
   }
 
   return (
-    <form className={className ?? "flex flex-col gap-1"} onSubmit={onSubmit}>
-      <FormTextField
+    <form id={formId} className="flex flex-col gap-5" onSubmit={onSubmit} noValidate>
+      <div className="flex flex-col gap-1.5">
+        <h2 className="text-2xl font-bold tracking-tight">{t("auth.signup.title")}</h2>
+        <p className="text-sm text-muted-foreground">{t("auth.signup.subtitle")}</p>
+      </div>
+
+      <UnderlineField
         label={t("auth.name")}
         value={name}
         onChange={setName}
+        {...fieldProps("name")}
         placeholder={t("auth.placeholders.name")}
-        required
         autoComplete="name"
+        autoFocus
       />
-      <FormTextField
+      <UnderlineField
         label={t("auth.rut")}
         value={identifierValue}
         onChange={(v) => setIdentifierValue(formatRutInput(v))}
+        {...fieldProps("rut")}
+        valid={!errors.rut}
         placeholder={t("auth.placeholders.rut")}
-        required
         autoComplete="username"
+        numeric
       />
-      <FormTextField
+      <UnderlineField
         label={t("auth.email")}
         value={email}
         onChange={setEmail}
+        {...fieldProps("email")}
         type="email"
+        inputMode="email"
         placeholder={t("auth.placeholders.email")}
-        required
         autoComplete="email"
       />
-      <FormTextField
-        label={t("auth.password")}
-        value={password}
-        onChange={setPassword}
-        type="password"
-        placeholder={t("auth.placeholders.password")}
-        required
-        minLength={8}
-        autoComplete="new-password"
-      />
-      <FormTextField
+      <div className="flex flex-col gap-3">
+        <UnderlineField
+          label={t("auth.password")}
+          value={password}
+          onChange={setPassword}
+          {...fieldProps("password")}
+          type="password"
+          placeholder={t("auth.placeholders.password")}
+          autoComplete="new-password"
+        />
+        <ul
+          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+          aria-label={t("auth.passwordRules.label")}
+        >
+          <Rule ok={rules.length}>
+            {t("auth.passwordRules.length", { min: PASSWORD_MIN_LENGTH })}
+          </Rule>
+          <Rule ok={rules.letterNumber}>{t("auth.passwordRules.letterNumber")}</Rule>
+          <Rule ok={rules.symbol}>{t("auth.passwordRules.symbol")}</Rule>
+          <Rule ok={Boolean(password) && rules.notRut}>{t("auth.passwordRules.notRut")}</Rule>
+        </ul>
+      </div>
+      <UnderlineField
         label={t("auth.birthDate")}
         value={birthDate}
         onChange={setBirthDate}
+        {...fieldProps("birthDate")}
         type="date"
-        required
+        max={new Date().toISOString().slice(0, 10)}
+        autoComplete="bday"
+        numeric
       />
 
-      <div className="py-3">
-        <FormSwitchField
-          label={t("auth.sensitiveDataConsentLabel")}
-          checked={sensitiveDataConsent}
-          onChange={setSensitiveDataConsent}
+      <CheckCard
+        title={t("auth.sensitiveDataConsentLabel")}
+        checked={sensitiveDataConsent}
+        onChange={setSensitiveDataConsent}
+      >
+        <Trans
+          i18nKey="auth.sensitiveDataConsent"
+          components={{
+            privacy: (
+              // A new tab: following it in place would throw away the half-filled form.
+              <a
+                href="/privacidad"
+                target="_blank"
+                rel="noreferrer"
+                className="font-medium text-primary underline-offset-2 hover:underline"
+              />
+            ),
+          }}
         />
-        <FormNotice className="mt-2">{t("auth.sensitiveDataConsent")}</FormNotice>
-      </div>
+      </CheckCard>
 
       {isMinor ? (
-        <div className="flex flex-col gap-1 rounded-lg border border-border bg-muted/30 p-3">
-          <p className="mb-1 text-xs font-semibold">{t("auth.guardian.title")}</p>
-          <p className="mb-2 text-[11px] text-muted-foreground">{t("auth.guardian.hint")}</p>
-          <FormTextField
+        <div className="flex flex-col gap-4 rounded-xl border border-border bg-muted/30 p-4">
+          <div>
+            <p className="text-sm font-semibold">{t("auth.guardian.title")}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{t("auth.guardian.hint")}</p>
+          </div>
+          <UnderlineField
             label={t("auth.guardian.name")}
             value={guardianName}
             onChange={setGuardianName}
+            {...fieldProps("guardianName")}
             placeholder={t("auth.placeholders.guardianName")}
-            required
           />
-          <FormTextField
+          <UnderlineField
             label={t("auth.guardian.identifierValue")}
             value={guardianIdentifierValue}
             onChange={(v) => setGuardianIdentifierValue(formatRutInput(v))}
+            {...fieldProps("guardianRut")}
+            valid={!errors.guardianRut}
             placeholder={t("auth.placeholders.guardianRut")}
-            required
+            numeric
           />
           <FormSelectField
             label={t("auth.guardian.relationshipLabel")}
@@ -183,25 +270,51 @@ export function RegisterForm({ onSuccess, className }: Readonly<RegisterFormProp
               label: t(`auth.guardian.relationship.${o.value}`),
             }))}
           />
-          <div className="py-3">
-            <FormSwitchField
-              label={t("auth.guardian.acceptLabel")}
-              checked={guardianAccepted}
-              onChange={setGuardianAccepted}
-            />
-            <FormNotice className="mt-2">{t("auth.guardian.accept")}</FormNotice>
-          </div>
+          <CheckCard
+            title={t("auth.guardian.acceptLabel")}
+            checked={guardianAccepted}
+            onChange={setGuardianAccepted}
+          >
+            {t("auth.guardian.accept")}
+          </CheckCard>
         </div>
       ) : null}
 
       {error ? (
-        <p role="alert" className="pt-3 text-sm text-destructive">
+        <p role="alert" className="text-sm text-destructive">
           {error}
         </p>
       ) : null}
-      <Button type="submit" disabled={busy} className="mt-4 w-full">
-        {t("auth.createAccount")}
-      </Button>
+      {formId ? null : (
+        <Button type="submit" variant="accent" size="lg" disabled={busy} className="w-full">
+          {busy ? t("auth.creatingAccount") : t("auth.createAccount")}
+        </Button>
+      )}
     </form>
+  );
+}
+
+function Rule({ ok, children }: Readonly<{ ok: boolean; children: string }>) {
+  const { t } = useTranslation();
+  return (
+    <li
+      className={cn(
+        "flex items-center gap-2 text-[13px]",
+        ok ? "text-foreground" : "text-muted-foreground",
+      )}
+    >
+      {ok ? (
+        <Check className="size-3.5 shrink-0 text-success" strokeWidth={3} aria-hidden />
+      ) : (
+        <span className="size-3.5 shrink-0 rounded-full border-[1.5px] border-dim" aria-hidden />
+      )}
+      <span>
+        {children}
+        <span className="sr-only">
+          {" · "}
+          {ok ? t("auth.passwordRules.met") : t("auth.passwordRules.pending")}
+        </span>
+      </span>
+    </li>
   );
 }

@@ -64,6 +64,25 @@
     --debit-ink: 33 79% 77%; /* #f3c795 */
     --prepaid-surface: 197 27% 13%; /* #18262b */
     --prepaid-ink: 190 18% 77%; /* #b9ccd0 */
+
+    /* Brand mark "Cordillera" (design 2A): an outlined receipt whose top edge is the Andes,
+       with printed rows, the total and the amount carried over (arrastre). */
+    --logo-body: 189 44% 11%; /* #10262a boleta */
+    --logo-outline: 184 33% 58%; /* #6fb3b8 cordillera */
+    --logo-cap: 180 17% 92%; /* #e6eeee nieve */
+    --logo-rule: 190 24% 23%; /* #2c4247 */
+    --logo-total: 184 33% 58%; /* #6fb3b8 */
+    --logo-carry: 27 87% 67%; /* #F4A261 arrastre */
+
+    /* Landing hero "cordillera chart": the chart line is the ridge of a faceted massif (lit face,
+       mid crease, shadow face, a far range behind it, snow on the summits). */
+    --ridge-lit: 184 46% 34%; /* #2f7a80 */
+    --ridge-mid: 186 51% 25%; /* #1f5a60 */
+    --ridge-shade: 187 49% 16%; /* #15393e */
+    --ridge-far: 190 43% 10%; /* #0f2226 */
+    --ridge-snow: 180 19% 92%; /* #e6eeee */
+    --ridge-snow-shade: 185 22% 69%; /* #9fbfc2 */
+    --ridge-line: 175 51% 63%; /* #6fd0c8 */
   }
 
   [data-theme="light"] {
@@ -119,6 +138,23 @@
     --debit-ink: 17 68% 38%; /* #a4401f */
     --prepaid-surface: 194 17% 92%; /* #e6edef */
     --prepaid-ink: 197 22% 32%; /* #3f5b64 */
+
+    /* Brand mark — light values (see :root). */
+    --logo-body: 0 0% 100%;
+    --logo-outline: 185 62% 15%; /* #0e3b40 */
+    --logo-cap: 185 62% 15%;
+    --logo-rule: 180 15% 82%; /* #c9d6d6 */
+    --logo-total: 184 58% 29%; /* #1f6e74 */
+    --logo-carry: 26 70% 52%; /* #d9772f */
+
+    /* Landing hero ridge — light values (see :root). */
+    --ridge-lit: 185 37% 72%; /* #9ccdd1 */
+    --ridge-mid: 185 37% 79%; /* #b7dbde */
+    --ridge-shade: 185 28% 56%; /* #6fa9ae */
+    --ridge-far: 189 28% 91%; /* #e1ecee */
+    --ridge-snow: 0 0% 100%;
+    --ridge-snow-shade: 186 31% 87%; /* #d3e6e8 */
+    --ridge-line: 183 86% 19%; /* #07575b */
   }
 
   * {

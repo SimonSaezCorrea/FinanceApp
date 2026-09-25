@@ -1,11 +1,11 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Providers } from "../../../app/providers";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import i18n from "../../../i18n";
-import { LoginRoute } from "./LoginRoute";
+import { LoginForm } from "./LoginForm";
 
 const login = vi.fn();
 const verifyMfaLogin = vi.fn();
@@ -48,11 +48,13 @@ const fakeAssertion = {
   getClientExtensionResults: () => ({}),
 };
 
+const onSuccess = vi.fn();
+
 function renderLogin() {
   render(
-    <MemoryRouter initialEntries={["/login"]}>
+    <MemoryRouter>
       <Providers>
-        <LoginRoute />
+        <LoginForm onSuccess={onSuccess} />
       </Providers>
     </MemoryRouter>,
   );
@@ -68,54 +70,48 @@ async function submitCredentials() {
   fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.signIn") }));
 }
 
-describe("LoginRoute", () => {
+describe("LoginForm", () => {
   beforeEach(() => {
     login.mockReset();
     verifyMfaLogin.mockReset();
     register.mockReset();
+    onSuccess.mockReset();
     startLogin.mockReset();
     verifyLogin.mockReset();
   });
 
-  it("'Registrarse' opens the register form as a side panel, without navigating away", async () => {
+  it("a RUT with a wrong check digit is flagged next to the field, without calling the API", async () => {
     renderLogin();
+    fireEvent.change(screen.getByLabelText(i18n.t("auth.rut")), {
+      target: { value: "12345678-9" },
+    });
+    fireEvent.change(screen.getByLabelText(i18n.t("auth.password")), {
+      target: { value: "secret123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.signIn") }));
 
-    expect(screen.queryByRole("dialog")).toBeNull();
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.register") }));
-
-    // Same screen (LoginRoute) stays mounted underneath (Radix marks it inert/aria-hidden
-    // while the panel is open, but never unmounts it) — a panel, not a navigation.
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByLabelText(i18n.t("auth.birthDate"))).toBeDefined();
-    expect(document.body.textContent).toContain(i18n.t("auth.signIn"));
+    expect(await screen.findByText(i18n.t("auth.validation.rut"))).toBeDefined();
+    expect(login).not.toHaveBeenCalled();
   });
 
-  it("completing registration from the panel signs the user in", async () => {
-    register.mockResolvedValue(undefined);
+  it("an empty submit flags the required fields instead of reaching the server", async () => {
     renderLogin();
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.register") }));
-    const dialog = await screen.findByRole("dialog");
-    const form = within(dialog);
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.signIn") }));
 
-    fireEvent.change(form.getByLabelText(i18n.t("auth.name")), {
-      target: { value: "Ana Titular" },
-    });
-    fireEvent.change(form.getByLabelText(i18n.t("auth.rut")), {
-      target: { value: "12.345.678-5" },
-    });
-    fireEvent.change(form.getByLabelText(i18n.t("auth.email")), {
-      target: { value: "a@b.com" },
-    });
-    fireEvent.change(form.getByLabelText(i18n.t("auth.password")), {
-      target: { value: "password123" },
-    });
-    fireEvent.change(form.getByLabelText(i18n.t("auth.birthDate")), {
-      target: { value: "1990-01-01" },
-    });
-    fireEvent.click(form.getByRole("switch", { name: i18n.t("auth.sensitiveDataConsentLabel") }));
-    fireEvent.click(form.getByRole("button", { name: i18n.t("auth.createAccount") }));
+    expect(await screen.findAllByText(i18n.t("auth.validation.required"))).toHaveLength(2);
+    expect(login).not.toHaveBeenCalled();
+  });
 
-    await waitFor(() => expect(register).toHaveBeenCalled());
+  it("the password can be revealed and hidden again", () => {
+    renderLogin();
+    const input = screen.getByLabelText(i18n.t("auth.password"));
+    expect(input.getAttribute("type")).toBe("password");
+
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("common.showPassword") }));
+    expect(input.getAttribute("type")).toBe("text");
+
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("common.hidePassword") }));
+    expect(input.getAttribute("type")).toBe("password");
   });
 
   it("with MFA required, shows the second step instead of navigating away", async () => {
@@ -124,7 +120,7 @@ describe("LoginRoute", () => {
 
     await submitCredentials();
 
-    expect(await screen.findByText(i18n.t("auth.mfa.title"))).toBeDefined();
+    expect(await screen.findByText(i18n.t("auth.mfa.hint"))).toBeDefined();
     expect(screen.queryByLabelText(i18n.t("auth.password"))).toBeNull();
   });
 
@@ -133,7 +129,7 @@ describe("LoginRoute", () => {
     verifyMfaLogin.mockRejectedValue(new ApiRequestError("INVALID_MFA_CODE", 401));
     renderLogin();
     await submitCredentials();
-    await screen.findByText(i18n.t("auth.mfa.title"));
+    await screen.findByText(i18n.t("auth.mfa.hint"));
 
     fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.mfa.placeholder")), {
       target: { value: "000000" },
@@ -141,7 +137,7 @@ describe("LoginRoute", () => {
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.mfa.verify") }));
 
     await waitFor(() => expect(screen.getByText(i18n.t("errors.INVALID_MFA_CODE"))).toBeDefined());
-    expect(screen.getByText(i18n.t("auth.mfa.title"))).toBeDefined();
+    expect(screen.getByText(i18n.t("auth.mfa.hint"))).toBeDefined();
   });
 
   it("a valid MFA code completes the login", async () => {
@@ -151,7 +147,7 @@ describe("LoginRoute", () => {
     });
     renderLogin();
     await submitCredentials();
-    await screen.findByText(i18n.t("auth.mfa.title"));
+    await screen.findByText(i18n.t("auth.mfa.hint"));
 
     fireEvent.change(screen.getByPlaceholderText(i18n.t("auth.mfa.placeholder")), {
       target: { value: "123456" },
@@ -175,7 +171,7 @@ describe("LoginRoute", () => {
         password: "secret123",
       }),
     );
-    expect(screen.queryByText(i18n.t("auth.mfa.title"))).toBeNull();
+    expect(screen.queryByText(i18n.t("auth.mfa.hint"))).toBeNull();
   });
 
   it("passkey button works with no email typed — discoverable/usernameless login", async () => {

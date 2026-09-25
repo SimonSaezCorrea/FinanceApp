@@ -82,7 +82,7 @@ describe("PasskeySection", () => {
 
   const fakeOptions = {
     challenge: "Y2hhbGxlbmdl",
-    rp: { id: "localhost", name: "FinanceApp" },
+    rp: { id: "localhost", name: "Cuadra" },
     user: { id: "dXNlcg", name: "a@b.com", displayName: "a@b.com" },
     pubKeyCredParams: [{ type: "public-key", alg: -7 }],
   };
@@ -117,7 +117,7 @@ describe("PasskeySection", () => {
     startRegistration.mockResolvedValue({
       options: {
         challenge: "Y2hhbGxlbmdl",
-        rp: { id: "localhost", name: "FinanceApp" },
+        rp: { id: "localhost", name: "Cuadra" },
         user: { id: "dXNlcg", name: "a@b.com", displayName: "a@b.com" },
         pubKeyCredParams: [{ type: "public-key", alg: -7 }],
       },

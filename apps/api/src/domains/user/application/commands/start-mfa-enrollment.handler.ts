@@ -11,7 +11,7 @@ import { UnauthorizedError } from "../../domain/errors";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { StartMfaEnrollmentCommand } from "./start-mfa-enrollment.command";
 
-const ISSUER = "FinanceApp";
+const ISSUER = "Cuadra";
 
 @Injectable()
 @CommandHandler(StartMfaEnrollmentCommand)

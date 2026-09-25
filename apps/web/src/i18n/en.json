@@ -1,6 +1,7 @@
 {
   "brand": {
-    "name": "FinanceApp"
+    "name": "Cuadra",
+    "slogan": "The backbone of your finances"
   },
   "app": {
     "loading": "Loading…",
@@ -62,7 +63,9 @@
       "nextMonth": "Next month"
     },
     "decrease": "Decrease",
-    "increase": "Increase"
+    "increase": "Increase",
+    "hidePassword": "Hide password",
+    "showPassword": "Show password"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -1222,7 +1225,6 @@
   "auth": {
     "signIn": "Sign in",
     "createAccount": "Create account",
-    "register": "Register",
     "name": "Full name",
     "rut": "RUT",
     "email": "Email",
@@ -1237,7 +1239,7 @@
       "guardianRut": "12.345.678-9"
     },
     "sensitiveDataConsentLabel": "Sensitive data",
-    "sensitiveDataConsent": "I agree that FinanceApp will process my financial data (balances, movements, debts) as sensitive data, per the Privacy Policy.",
+    "sensitiveDataConsent": "I agree that Cuadra processes my financial data (balances, movements, debts) as sensitive data, under the <privacy>Privacy Policy</privacy>.",
     "consentRequired": "You must accept the sensitive-data processing to continue.",
     "guardian": {
       "title": "Parent/guardian authorization",
@@ -1251,22 +1253,54 @@
         "OTHER": "Other"
       },
       "acceptLabel": "Authorization",
-      "accept": "I authorize the processing of my child's/dependent's financial data in FinanceApp.",
+      "accept": "I authorize the processing of my child's/dependent's financial data in Cuadra.",
       "acceptRequired": "The guardian's authorization is missing.",
       "relationshipLabel": "Relationship"
     },
-    "needAccount": "Need an account?",
-    "haveAccount": "Already have an account?",
     "logout": "Log out",
     "mfa": {
       "title": "Two-factor verification",
       "hint": "Enter the code from your authenticator app, or one of your recovery codes.",
       "placeholder": "6-digit or recovery code",
       "verify": "Verify",
-      "back": "Back"
+      "back": "Back",
+      "verifying": "Verifying…",
+      "codeLabel": "Code"
     },
     "passkey": {
-      "signIn": "Sign in with a passkey"
+      "signIn": "Continue with a passkey",
+      "waiting": "Waiting for your device…"
+    },
+    "signingIn": "Signing in…",
+    "creatingAccount": "Creating account…",
+    "validation": {
+      "required": "Fill in this field",
+      "rut": "Invalid RUT: check the verification digit",
+      "email": "Check the email: the @ or domain is missing",
+      "passwordLength": "At least {{min}} characters",
+      "birthDateFuture": "The date can't be in the future",
+      "passwordLetterNumber": "Use at least one letter and one number",
+      "passwordIsRut": "Your password can't be your RUT"
+    },
+    "login": {
+      "title": "Sign in with one tap",
+      "subtitle": "With this device's fingerprint or face. No password and no second factor.",
+      "orWithRut": "or with your RUT"
+    },
+    "signup": {
+      "title": "Create your account",
+      "subtitle": "You can add a passkey to sign in afterwards."
+    },
+    "firstTime": "First time here?",
+    "haveAccount": "Already have an account?",
+    "passwordRules": {
+      "label": "Password requirements",
+      "length": "{{min}} characters or more",
+      "letterNumber": "A letter and a number",
+      "symbol": "A symbol (recommended)",
+      "notRut": "Not your RUT",
+      "met": "met",
+      "pending": "pending"
     }
   },
   "landing": {
@@ -1281,15 +1315,8 @@
       "goToApp": "Go to the app"
     },
     "footer": {
-      "tagline": "FinanceApp · Chile · CLP, USD and CLF (UF)",
+      "tagline": "Cuadra · Chile · CLP, USD and CLF (UF)",
       "sample": "Accounts, cards and amounts on these screens are examples, not real data"
-    },
-    "auth": {
-      "eyebrow": "Access",
-      "loginDescription": "With your RUT, just like your bank",
-      "registerDescription": "Five details and your explicit consent",
-      "cashTitle": "Your cash account comes ready",
-      "cashBody": "It's created with you, at zero, so you can log your first expense without setting anything up."
     },
     "home": {
       "eyebrow": "Personal finance · Chile",

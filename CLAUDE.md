@@ -962,11 +962,36 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
   first-render ref — each page mounts its own layout). Access is a side panel, not a page:
   `auth/components/AuthPanel` (a `SidePanel` with Iniciar sesión / Crear cuenta tabs) hosts the
   REAL `LoginForm` (extracted from `LoginRoute`: RUT+password, MFA step, passkey button, conditional
-  autofill) and `RegisterForm`; CTAs open it via `useOpenAuth()`. `/login` and `/register` still
-  exist (RequireAuth still redirects to `/login`). Every figure on the landing is **sample data**,
+  autofill) and `RegisterForm`; CTAs open it via `useOpenAuth()`. **The panel is URL-driven**
+  (`auth/lib/authRedirect.ts`): `?acceso=login|registro` opens it on that tab, `volver=<path>`
+  (same-app paths only, `safeReturnTo`) is where a successful sign-in lands. `LoginRoute`/
+  `RegisterRoute` are gone — `/login` and `/register` are `AuthRedirectRoute`s to
+  `/?acceso=…` (bookmarks/password managers keep working), and `RequireAuth` redirects a
+  signed-out visit to `authPath("login", <requested path>)`, so signing in returns to it. Both
+  forms validate per field with the API's own rules (`auth/lib/validation.ts`: RUT check digit via
+  `auth.isValidRut`, email, password ≥ 8, birth date; a malformed value shows on blur, "required"
+  only after a submit attempt), share the typed RUT between login and sign-up, and show busy
+  labels. `FormTextField` gained `onBlur`/`autoFocus` and a show/hide toggle on every
+  `type="password"` row. **Visual model "E · Llave primero" (2026-09-23, chosen from 5 mockups):**
+  no tabs and no visible chrome title (sr-only); login leads with a hero + "Continuar con llave de
+  acceso" as the primary action, RUT + password below as the alternative (outline submit);
+  sign-up uses `auth/components/UnderlineField` (label above, large value on an underline, check
+  on a valid RUT, own password toggle), a live password checklist (`passwordRules`: ≥ 8 is the
+  API's rule; letter+number and "not your RUT" are this form's own floor; a symbol is only
+  recommended) and consents as `CheckCard` (a real checkbox) whose text links to `/privacidad`
+  in a new tab. The sign-up submit is pinned in the panel footer (`formId` + `form=`). Login ⇄
+  sign-up switch through a link at the foot of each view. Every figure on the landing is **sample data**,
   formatted with the real `formatMoney`/locale dates (`landing/hooks/useSampleFormat`); the product
   views are hand-built from shared primitives (`Card`, `Badge`, `Table`, `Tabs`, `CARD_KIND_STYLE`),
-  NOT the real domain components (those need live DTOs). Illustrative actions (Pagar, Sincronizar
+  NOT the real domain components (those need live DTOs). The home hero's visual (2026-09-24, canvas design H4) is
+  `landing/components/HeroRidge.tsx`: a line chart whose line is the ridge of a faceted cordillera
+  (lit/mid/shadow faces, snow, a far range, summit marker, end point ("today"); no baseline rule, tooltip, axis or guide rows) — from `lg` it is
+  stretched to the viewport less 4rem per side, behind the copy (`preserveAspectRatio="none"`, 26rem tall, non-scaling
+  strokes, both dots are HTML so they stay round); below that a block under the copy at its
+  drawn proportions. Geometry is static data in
+  `landing/lib/ridgeGeometry.ts`; every color is a `--ridge-*` token (both theme blocks). It
+  replaced the isometric card stack (`HeroStack`), whose `landing.home.preview.*` card keys were
+  dropped. Illustrative actions (Pagar, Sincronizar
   pagos, Cerrar sesión) render `disabled`. All copy lives under `landing.*` in es/en.
   Amendment (overlay family, 2026-08-05): `shared/ui/dialog.tsx` and `shared/ui/confirm-dialog.tsx`
   are **gone**, replaced by `shared/ui/overlay/` (barrel `index.ts`): **`SurfaceChrome`** (the shared
@@ -1351,6 +1376,19 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
   viewport-driven cases.
   Tailwind also sets `future.hoverOnlyWhenSupported` so every `hover:` compiles inside
   `@media (hover: hover)` — without it a tap on a touch device leaves the hover state stuck on.
+  Amendment (brand mark "Cordillera", 2026-09-24 — design 2A): `shared/ui/brand-mark.tsx`
+  (`BrandMark`, `variant: "compact" | "full"`) replaces the Lucide `Receipt` icon and the landing's
+  "FA" tile in the sidebar, mobile header/drawer, landing header and `AppSplash`. Every color comes
+  from new `--logo-*` tokens (both theme blocks): dark = outlined receipt on #10262a with a
+  #6fb3b8 edge/total, light = white body with a #0e3b40 edge. `compact` (outline + snow + total,
+  heavier stroke) is for nav sizes; `full` (printed rows, arrastre arrow) for ~48px and up.
+  `apps/web/public/favicon.svg` is the static compact cut (line-only, no fill; switches to deep
+  teal under `prefers-color-scheme: light`). **Product name is "Cuadra"** (was "FinanceApp"),
+  slogan **"La columna de tus finanzas"** (`brand.name`/`brand.slogan` in es/en; shown in the
+  landing header/footer and `AppSplash`). The TOTP issuer (`start-mfa-enrollment.handler.ts`) and
+  the WebAuthn `rp.name` (`start-passkey-registration.handler.ts`) say "Cuadra" too — an MFA entry
+  enrolled before the rename keeps its old "FinanceApp" label in the authenticator app. Package
+  names (`@finance/*`) and the repo folder were deliberately left as they are.
   Amendment (one row format for every table, 2026-08-24): Movimientos, Cuotas and Facturación each
   had their own table conventions — different leading-icon shapes (circle vs. rounded-square vs.
   none), a shaded header only on Movimientos, three different table↔list breakpoints (860/860/640px

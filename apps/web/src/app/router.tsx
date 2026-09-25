@@ -4,8 +4,7 @@ import { createBrowserRouter } from "react-router";
 import { AccountDetailRoute } from "../domains/accounts/routes/AccountDetailRoute";
 import { AccountsRoute } from "../domains/accounts/routes/AccountsRoute";
 import { RequireAuth } from "../domains/auth/components/RequireAuth";
-import { LoginRoute } from "../domains/auth/routes/LoginRoute";
-import { RegisterRoute } from "../domains/auth/routes/RegisterRoute";
+import { AuthRedirectRoute } from "../domains/auth/routes/AuthRedirectRoute";
 import { DebtsRoute } from "../domains/debts/routes/DebtsRoute";
 import { ImportRoute } from "../domains/import/routes/ImportRoute";
 import { InstallmentsRoute } from "../domains/installments/routes/InstallmentsRoute";
@@ -28,8 +27,9 @@ const protect = (element: ReactElement) => (
 );
 
 export const router = createBrowserRouter([
-  { path: "/login", element: <LoginRoute /> },
-  { path: "/register", element: <RegisterRoute /> },
+  // Access is a side panel over the landing (`/?acceso=login|registro`); these stay as URLs.
+  { path: "/login", element: <AuthRedirectRoute mode="login" /> },
+  { path: "/register", element: <AuthRedirectRoute mode="register" /> },
   // Public landing pages (Spanish slugs: the landing is for the Chilean market). `/` itself
   // is the landing for a visitor and the Panel once signed in — see HomeRoute.
   { path: "/", element: <HomeRoute /> },

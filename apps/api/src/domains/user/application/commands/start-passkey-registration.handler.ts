@@ -17,7 +17,7 @@ import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { StartPasskeyRegistrationCommand } from "./start-passkey-registration.command";
 
-const RP_NAME = "FinanceApp";
+const RP_NAME = "Cuadra";
 
 @Injectable()
 @CommandHandler(StartPasskeyRegistrationCommand)

@@ -10,7 +10,6 @@ import {
   type LucideIcon,
   Menu,
   PiggyBank,
-  Receipt,
   Repeat,
   TrendingUp,
   Upload,
@@ -25,6 +24,7 @@ import { useAuth } from "../domains/auth/hooks/useAuth";
 import { ThemeSync } from "../domains/profile/components/ThemeSync";
 import { cn } from "../shared/lib/cn";
 import { getInitials } from "../shared/lib/initials";
+import { BrandMark } from "../shared/ui/brand-mark";
 
 function UserAvatar({
   name,
@@ -151,8 +151,8 @@ export function AppLayout({ children }: { children: ReactNode }) {
         )}
       >
         <aside className="scrollbar-thin flex h-full flex-col overflow-y-auto border-r bg-card p-4">
-          <div className="flex items-center py-3 pl-[13.5px]">
-            <Receipt className="h-5 w-5 shrink-0 text-brand" aria-hidden />
+          <div className="flex items-center py-3 pl-[11.5px]">
+            <BrandMark className="h-6 w-6" />
             <span
               className={cn(
                 "min-w-0 overflow-hidden whitespace-nowrap text-lg font-semibold transition-all duration-200",
@@ -229,7 +229,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             <RadixDialog.Title className="sr-only">{t("nav.menu")}</RadixDialog.Title>
             <div className="flex items-center justify-between gap-2 px-2 py-3">
               <span className="flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-brand" aria-hidden />
+                <BrandMark className="h-6 w-6" />
                 <span className="text-lg font-semibold">{t("brand.name")}</span>
               </span>
               <RadixDialog.Close
@@ -286,7 +286,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
             >
               <Menu className="h-5 w-5" aria-hidden />
             </button>
-            <Receipt className="h-5 w-5 text-brand" aria-hidden />
+            <BrandMark className="h-6 w-6" />
             <span className="font-semibold">{t("brand.name")}</span>
           </div>
         </header>

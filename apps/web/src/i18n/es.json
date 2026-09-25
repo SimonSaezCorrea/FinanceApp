@@ -1,6 +1,7 @@
 {
   "brand": {
-    "name": "FinanceApp"
+    "name": "Cuadra",
+    "slogan": "La columna de tus finanzas"
   },
   "app": {
     "loading": "Cargando…",
@@ -62,7 +63,9 @@
       "nextMonth": "Mes siguiente"
     },
     "decrease": "Disminuir",
-    "increase": "Aumentar"
+    "increase": "Aumentar",
+    "hidePassword": "Ocultar contraseña",
+    "showPassword": "Mostrar contraseña"
   },
   "nav": {
     "dashboard": "Panel",
@@ -1222,7 +1225,6 @@
   "auth": {
     "signIn": "Iniciar sesión",
     "createAccount": "Crear cuenta",
-    "register": "Registrarse",
     "name": "Nombre completo",
     "rut": "RUT",
     "email": "Correo",
@@ -1237,7 +1239,7 @@
       "guardianRut": "12.345.678-9"
     },
     "sensitiveDataConsentLabel": "Datos sensibles",
-    "sensitiveDataConsent": "Acepto que FinanceApp trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la Política de Privacidad.",
+    "sensitiveDataConsent": "Acepto que Cuadra trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la <privacy>Política de Privacidad</privacy>.",
     "consentRequired": "Debes aceptar el tratamiento de datos sensibles para continuar.",
     "guardian": {
       "title": "Autorización de tu madre, padre o tutor",
@@ -1251,22 +1253,54 @@
         "OTHER": "Otro"
       },
       "acceptLabel": "Autorización",
-      "accept": "Autorizo el tratamiento de los datos financieros de mi hijo/a o representado/a en FinanceApp.",
+      "accept": "Autorizo el tratamiento de los datos financieros de mi hijo/a o representado/a en Cuadra.",
       "acceptRequired": "Falta la autorización del tutor.",
       "relationshipLabel": "Relación"
     },
-    "needAccount": "¿No tienes cuenta?",
-    "haveAccount": "¿Ya tienes cuenta?",
     "logout": "Salir",
     "mfa": {
       "title": "Verificación en dos pasos",
       "hint": "Ingresa el código de tu app autenticadora, o uno de tus códigos de recuperación.",
       "placeholder": "Código de 6 dígitos o de recuperación",
       "verify": "Verificar",
-      "back": "Volver"
+      "back": "Volver",
+      "verifying": "Verificando…",
+      "codeLabel": "Código"
     },
     "passkey": {
-      "signIn": "Iniciar sesión con llave de acceso"
+      "signIn": "Continuar con llave de acceso",
+      "waiting": "Esperando tu dispositivo…"
+    },
+    "signingIn": "Ingresando…",
+    "creatingAccount": "Creando cuenta…",
+    "validation": {
+      "required": "Completa este campo",
+      "rut": "RUT inválido: revisa el dígito verificador",
+      "email": "Revisa el correo: falta el @ o el dominio",
+      "passwordLength": "Mínimo {{min}} caracteres",
+      "birthDateFuture": "La fecha no puede ser futura",
+      "passwordLetterNumber": "Usa al menos una letra y un número",
+      "passwordIsRut": "La contraseña no puede ser tu RUT"
+    },
+    "login": {
+      "title": "Entra en un toque",
+      "subtitle": "Con la huella o el rostro de este dispositivo. Sin contraseña y sin segundo factor.",
+      "orWithRut": "o con tu RUT"
+    },
+    "signup": {
+      "title": "Crea tu cuenta",
+      "subtitle": "Después podrás entrar con una llave de acceso."
+    },
+    "firstTime": "¿Primera vez?",
+    "haveAccount": "¿Ya tienes cuenta?",
+    "passwordRules": {
+      "label": "Requisitos de la contraseña",
+      "length": "{{min}} caracteres o más",
+      "letterNumber": "Una letra y un número",
+      "symbol": "Un símbolo (recomendado)",
+      "notRut": "No es tu RUT",
+      "met": "cumplido",
+      "pending": "pendiente"
     }
   },
   "landing": {
@@ -1281,15 +1315,8 @@
       "goToApp": "Ir a la app"
     },
     "footer": {
-      "tagline": "FinanceApp · Chile · CLP, USD y CLF (UF)",
+      "tagline": "Cuadra · Chile · CLP, USD y CLF (UF)",
       "sample": "Cuentas, tarjetas y montos de estas pantallas: ejemplo, no datos reales"
-    },
-    "auth": {
-      "eyebrow": "Acceso",
-      "loginDescription": "Con tu RUT, como en tu banco",
-      "registerDescription": "Cinco datos y tu consentimiento explícito",
-      "cashTitle": "Tu cuenta en efectivo ya viene lista",
-      "cashBody": "Se crea contigo, en cero, así que puedes anotar el primer gasto sin configurar nada."
     },
     "home": {
       "eyebrow": "Finanzas personales · Chile",
