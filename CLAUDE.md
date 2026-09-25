@@ -1416,6 +1416,28 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
   the WebAuthn `rp.name` (`start-passkey-registration.handler.ts`) say "Cuadra" too — an MFA entry
   enrolled before the rename keeps its old "FinanceApp" label in the authenticator app. Package
   names (`@finance/*`) and the repo folder were deliberately left as they are.
+  Amendment (per-route tab titles, a real 404 page, a crash boundary, and a scrollbar-gutter
+  fix, 2026-09-25): the router gained a pathless root, **`app/DocumentTitle.tsx`**, that keeps
+  `document.title` in step with the deepest matched route's `handle` (`app/tabTitle.ts`'s
+  `tabTitle(brand, section)` → "Cuadra · Precios", or the brand alone with no section) — every
+  route in `router.tsx` now carries a `handle: { title }` (an i18n key) next to its `path`, and `/`
+  additionally carries `handle: { signedInTitle: "nav.dashboard" }` since it's the landing for a
+  visitor and the Panel for a signed-in user (see `HomeRoute`) with two different tab titles for
+  the same URL. **`app/NotFoundRoute.tsx`** replaces the blank screen any unmatched URL used to
+  fall through to — same chrome split as `/`: `LandingLayout` for a visitor, `AppLayout` for a
+  signed-in user, so a dead link doesn't also drop the navigation — with the attempted path shown,
+  a link back and a Back button when there's app history to return to. **`app/
+RouteErrorBoundary.tsx`** is the router's `errorElement` (was react-router's own default
+  "Unexpected Application Error!" page): a thrown 404 route-error response renders
+  `NotFoundRoute`, anything else renders a minimal crash screen with NO app/landing chrome at all
+  (the layout itself may be what broke) — just the brand mark, a reload button and a plain `<a
+href="/">` (a full navigation, not the router, since its state can't be trusted after a crash).
+  New `app.notFound.*`/`app.crash.*` i18n keys. Unrelated small fix bundled in the same pass:
+  the header/nav no longer shifts horizontally when navigating from a page that scrolls to one
+  that doesn't — `html { scrollbar-gutter: stable }` reserves the scrollbar's width on every page,
+  and `body[data-scroll-locked] { padding-right: 0 !important }` cancels Radix's own compensating
+  padding (added to `<body>` while a dialog locks scroll) so the two reservations don't stack into
+  a bigger, second shift when an overlay opens.
   Amendment (one row format for every table, 2026-08-24): Movimientos, Cuotas and Facturación each
   had their own table conventions — different leading-icon shapes (circle vs. rounded-square vs.
   none), a shaded header only on Movimientos, three different table↔list breakpoints (860/860/640px

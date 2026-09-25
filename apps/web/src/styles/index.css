@@ -194,6 +194,12 @@
     border-color: hsl(var(--border));
   }
 
+  html {
+    /* Reserve the scrollbar's width on every page, short or tall, so the header/nav doesn't
+       shift horizontally when navigating between a page that scrolls and one that doesn't. */
+    scrollbar-gutter: stable;
+  }
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
@@ -207,6 +213,13 @@
       Roboto,
       sans-serif;
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* Radix locks scroll by hiding the real scrollbar and adding its OWN compensating
+     `padding-right` to <body> (marked with this attribute) — stacked on top of the gutter
+     `html` already reserves above, that doubled the shift this section exists to prevent. */
+  body[data-scroll-locked] {
+    padding-right: 0 !important;
   }
 }
 

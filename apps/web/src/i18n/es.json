@@ -7,7 +7,21 @@
     "loading": "Cargando…",
     "loadingMore": "Cargando más…",
     "welcome": "Panel de finanzas personales",
-    "bootstrapping": "Preparando tu sesión…"
+    "bootstrapping": "Preparando tu sesión…",
+    "notFound": {
+      "eyebrow": "Error 404",
+      "title": "Esta página no existe",
+      "message": "Revisa el enlace o vuelve a un lugar conocido.",
+      "toHome": "Ir al inicio",
+      "toPanel": "Ir al panel",
+      "back": "Volver atrás"
+    },
+    "crash": {
+      "title": "Algo salió mal",
+      "message": "La página encontró un error inesperado. Puedes recargar o volver al inicio.",
+      "reload": "Recargar",
+      "home": "Ir al inicio"
+    }
   },
   "states": {
     "error": {

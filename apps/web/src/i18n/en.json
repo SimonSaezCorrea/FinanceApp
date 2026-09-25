@@ -7,7 +7,21 @@
     "loading": "Loading…",
     "loadingMore": "Loading more…",
     "welcome": "Personal finance dashboard",
-    "bootstrapping": "Setting up your session…"
+    "bootstrapping": "Setting up your session…",
+    "notFound": {
+      "eyebrow": "404 error",
+      "title": "This page does not exist",
+      "message": "Check the link, or head back somewhere familiar.",
+      "toHome": "Go home",
+      "toPanel": "Go to the Panel",
+      "back": "Go back"
+    },
+    "crash": {
+      "title": "Something went wrong",
+      "message": "The page hit an unexpected error. You can reload or go back home.",
+      "reload": "Reload",
+      "home": "Go home"
+    }
   },
   "states": {
     "error": {
