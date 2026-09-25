@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Eye, EyeOff, Laptop, Smartphone } from "lucide-react";
+import type { auth } from "@finance/contracts";
+import { ChevronDown, Eye, EyeOff, Laptop, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 
 import { useAuth } from "../../auth/hooks/useAuth";
@@ -17,6 +18,7 @@ import { Switch } from "../../../shared/ui/switch";
 import { usePasskeysQuery, useProfileMutations, useSessionsQuery } from "../hooks/useProfile";
 import { MfaEnrollmentPanel } from "./MfaEnrollmentPanel";
 import { PasskeySection } from "./PasskeySection";
+import { StepUpPanel } from "./StepUpPanel";
 
 /** A password input with a show/hide toggle — the eye icon reveals it
  * temporarily, same interaction language `MaskedAmount` already uses for
@@ -245,9 +247,9 @@ function DisableMfaModal({
 
 /** A device-shaped icon from a session's `deviceLabel` — a lightweight guess (phone
  * OSes vs. everything else), not a real device-type field. */
-function sessionIcon(deviceLabel: string | null) {
+function isPhone(deviceLabel: string | null) {
   const label = deviceLabel?.toLowerCase() ?? "";
-  return label.includes("iphone") || label.includes("android") ? Smartphone : Laptop;
+  return label.includes("iphone") || label.includes("android");
 }
 
 /** "Santiago, Chile" from a session's raw `city`/`country` (ISO alpha-2) — the country
@@ -280,7 +282,7 @@ function formatDateTime(iso: string, locale: string): string {
 }
 
 export function SecuritySection() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [changingPassword, setChangingPassword] = useState(false);
   const [enrollingMfa, setEnrollingMfa] = useState(false);
@@ -292,7 +294,32 @@ export function SecuritySection() {
   const { data: sessions, isLoading: sessionsLoading } = useSessionsQuery();
   const { closeSession, revokeOtherSessions } = useProfileMutations();
   const sessionList = sessions ?? [];
-  const openSessionCount = sessionList.filter((s) => !s.closedAt).length;
+  const openSessions = sessionList.filter((s) => !s.closedAt);
+  const closedSessions = sessionList.filter((s) => s.closedAt);
+  const openSessionCount = openSessions.length;
+
+  // Closing ANOTHER session or "cerrar todas" needs a recent step-up (2026-09-25) — the server
+  // re-checks this on every call regardless; `verifiedUntilRef` only avoids re-prompting for
+  // actions taken back to back inside that window. `pendingActionRef` is what the panel runs
+  // once verification succeeds.
+  const [stepUpOpen, setStepUpOpen] = useState(false);
+  const verifiedUntilRef = useRef(0);
+  const pendingActionRef = useRef<(() => void) | null>(null);
+
+  function withStepUp(action: () => void) {
+    if (Date.now() < verifiedUntilRef.current) {
+      action();
+      return;
+    }
+    pendingActionRef.current = action;
+    setStepUpOpen(true);
+  }
+
+  function handleStepUpVerified(verifiedUntil: Date) {
+    verifiedUntilRef.current = verifiedUntil.getTime();
+    pendingActionRef.current?.();
+    pendingActionRef.current = null;
+  }
 
   return (
     <CollapsibleSection title={t("profile.security.title")}>
@@ -351,7 +378,7 @@ export function SecuritySection() {
               type="button"
               className="text-xs font-medium text-destructive disabled:opacity-60"
               disabled={revokeOtherSessions.isPending}
-              onClick={() => revokeOtherSessions.mutate()}
+              onClick={() => withStepUp(() => revokeOtherSessions.mutate())}
             >
               {t("profile.security.sessions.closeAll")}
             </button>
@@ -363,62 +390,40 @@ export function SecuritySection() {
               {t("profile.security.sessions.loading")}
             </p>
           ) : (
-            sessionList.map((s, i) => {
-              const Icon = sessionIcon(s.deviceLabel);
-              const label = s.deviceLabel ?? t("profile.security.sessions.unknownDevice");
-              const location = formatLocation(s.country, s.city, i18n.language);
-              const meta = s.closedAt
-                ? [
-                    location ?? t("profile.security.sessions.unknownLocation"),
-                    t("profile.security.sessions.closed", {
-                      date: formatDateTime(s.closedAt, i18n.language),
-                    }),
-                  ].join(" · ")
-                : s.isCurrent
-                  ? [t("profile.security.sessions.thisDevice"), location]
-                      .filter(Boolean)
-                      .join(" · ")
-                  : [
-                      location ?? t("profile.security.sessions.unknownLocation"),
-                      t("profile.security.sessions.lastActive", {
-                        date: formatDateTime(s.lastUsedAt, i18n.language),
-                      }),
-                    ].join(" · ");
-              return (
-                <div key={s.id} className={cnRow(i, sessionList.length, s.closedAt !== null)}>
-                  <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-xs font-medium">{label}</div>
-                    <div
-                      className={
-                        s.isCurrent && !s.closedAt
-                          ? "text-[11px] text-success"
-                          : "text-[11px] text-muted-foreground"
-                      }
-                    >
-                      {meta}
-                    </div>
-                  </div>
-                  {s.isCurrent || s.closedAt ? null : (
-                    <button
-                      type="button"
-                      className="text-[11px] font-medium text-destructive disabled:opacity-60"
-                      disabled={closeSession.isPending}
-                      onClick={() => closeSession.mutate(s.id)}
-                    >
-                      {t("profile.security.sessions.close")}
-                    </button>
-                  )}
-                </div>
-              );
-            })
+            openSessions.map((s, i) => (
+              <SessionRow
+                key={s.id}
+                session={s}
+                last={i === openSessions.length - 1}
+                closing={closeSession.isPending}
+                onClose={() => withStepUp(() => closeSession.mutate(s.id))}
+              />
+            ))
           )}
-          {!sessionsLoading && sessionList.length === 0 ? (
+          {!sessionsLoading && openSessions.length === 0 ? (
             <p className="px-3.5 py-2.5 text-xs text-muted-foreground">
               {t("profile.security.sessions.empty")}
             </p>
           ) : null}
         </div>
+        {closedSessions.length > 0 ? (
+          // Closed sessions stay visible for 3 days (Session.closedAt) — tucked into a collapsed
+          // group so they don't crowd the ones that still matter.
+          <details className="group mt-2 overflow-hidden rounded-lg border">
+            <summary className="flex cursor-pointer list-none items-center gap-2 px-3.5 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring [&::-webkit-details-marker]:hidden">
+              <ChevronDown
+                className="h-3.5 w-3.5 transition-transform group-open:rotate-180"
+                aria-hidden
+              />
+              {t("profile.security.sessions.closedGroup", { count: closedSessions.length })}
+            </summary>
+            <div className="border-t">
+              {closedSessions.map((s, i) => (
+                <SessionRow key={s.id} session={s} last={i === closedSessions.length - 1} />
+              ))}
+            </div>
+          </details>
+        ) : null}
         <p className="mt-2 text-[11px] text-muted-foreground">
           {t("profile.security.sessions.attribution")}{" "}
           <a href="https://ipinfo.io" target="_blank" rel="noreferrer" className="underline">
@@ -430,12 +435,77 @@ export function SecuritySection() {
       <MfaEnrollmentPanel open={enrollingMfa} onOpenChange={setEnrollingMfa} />
       <DisableMfaModal open={disablingMfa} onOpenChange={setDisablingMfa} />
       <PasskeySection open={managingPasskeys} onOpenChange={setManagingPasskeys} />
+      <StepUpPanel
+        open={stepUpOpen}
+        onOpenChange={setStepUpOpen}
+        onVerified={handleStepUpVerified}
+      />
     </CollapsibleSection>
   );
 }
 
-function cnRow(index: number, total: number, closed = false): string {
-  const base = "flex items-center gap-3 px-3.5 py-2.5";
-  const withBorder = index < total - 1 ? `${base} border-b` : base;
-  return closed ? `${withBorder} opacity-60` : withBorder;
+/** One session: device, where and when, and — for another device still open — its "Cerrar". */
+function SessionRow({
+  session: s,
+  last,
+  closing,
+  onClose,
+}: Readonly<{ session: auth.Session; last: boolean; closing?: boolean; onClose?: () => void }>) {
+  const { t, i18n } = useTranslation();
+  const phone = isPhone(s.deviceLabel);
+  const label = s.deviceLabel ?? t("profile.security.sessions.unknownDevice");
+  const location = formatLocation(s.country, s.city, i18n.language);
+  const meta = s.closedAt
+    ? [
+        location ?? t("profile.security.sessions.unknownLocation"),
+        t("profile.security.sessions.closed", {
+          date: formatDateTime(s.closedAt, i18n.language),
+        }),
+      ].join(" · ")
+    : s.isCurrent
+      ? [t("profile.security.sessions.thisDevice"), location].filter(Boolean).join(" · ")
+      : [
+          location ?? t("profile.security.sessions.unknownLocation"),
+          t("profile.security.sessions.lastActive", {
+            date: formatDateTime(s.lastUsedAt, i18n.language),
+          }),
+        ].join(" · ");
+
+  return (
+    <div
+      className={cn(
+        "flex items-center gap-3 px-3.5 py-2.5",
+        !last && "border-b",
+        s.closedAt && "opacity-60",
+      )}
+    >
+      {phone ? (
+        <Smartphone className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+      ) : (
+        <Laptop className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="text-xs font-medium">{label}</div>
+        <div
+          className={
+            s.isCurrent && !s.closedAt
+              ? "text-[11px] text-success"
+              : "text-[11px] text-muted-foreground"
+          }
+        >
+          {meta}
+        </div>
+      </div>
+      {s.isCurrent || s.closedAt || !onClose ? null : (
+        <button
+          type="button"
+          className="text-[11px] font-medium text-destructive disabled:opacity-60"
+          disabled={closing}
+          onClick={onClose}
+        >
+          {t("profile.security.sessions.close")}
+        </button>
+      )}
+    </div>
+  );
 }

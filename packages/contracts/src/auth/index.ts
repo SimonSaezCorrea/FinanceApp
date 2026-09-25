@@ -331,3 +331,44 @@ export type Session = z.infer<typeof sessionSchema>;
 
 export const listSessionsResponseSchema = z.array(sessionSchema);
 export type ListSessionsResponse = z.infer<typeof listSessionsResponseSchema>;
+
+// ---- Step-up before closing sessions (2026-09-25) ----
+
+/** How long a step-up verification lets the session that did it close other sessions. */
+export const STEP_UP_WINDOW_MINUTES = 5;
+
+export const stepUpMethodSchema = z.enum(["totp", "passkey", "password"]);
+export type StepUpMethod = z.infer<typeof stepUpMethodSchema>;
+
+/** Which methods may verify a step-up: a second factor when the user has one (TOTP and/or a
+ * passkey — then the password alone is NOT enough), the password only when they have neither.
+ * Shared by the API (which enforces it) and the web (which offers exactly these). */
+export function stepUpMethodsFor(input: {
+  mfaEnabled: boolean;
+  passkeyCount: number;
+}): StepUpMethod[] {
+  const methods: StepUpMethod[] = [];
+  if (input.mfaEnabled) methods.push("totp");
+  if (input.passkeyCount > 0) methods.push("passkey");
+  return methods.length > 0 ? methods : ["password"];
+}
+
+/** `POST /auth/sessions/step-up` — TOTP code or password. A passkey goes through its own
+ * two-step ceremony (`/step-up/passkey-options` → `/step-up/passkey-verify`). */
+export const stepUpRequestSchema = z.discriminatedUnion("method", [
+  z.object({
+    method: z.literal("totp"),
+    code: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/),
+  }),
+  z.object({ method: z.literal("password"), password: z.string().min(1) }),
+]);
+export type StepUpRequest = z.infer<typeof stepUpRequestSchema>;
+
+export const stepUpResponseSchema = z.object({
+  /** ISO instant until which this session may close others without verifying again. */
+  verifiedUntil: z.string(),
+});
+export type StepUpResponse = z.infer<typeof stepUpResponseSchema>;

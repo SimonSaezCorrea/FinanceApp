@@ -36,10 +36,13 @@ import { RevokeOtherSessionsHandler } from "./application/commands/revoke-other-
 import { StartMfaEnrollmentHandler } from "./application/commands/start-mfa-enrollment.handler";
 import { StartPasskeyLoginHandler } from "./application/commands/start-passkey-login.handler";
 import { StartPasskeyRegistrationHandler } from "./application/commands/start-passkey-registration.handler";
+import { StartStepUpPasskeyHandler } from "./application/commands/start-step-up-passkey.handler";
 import { UpdatePreferencesHandler } from "./application/commands/update-preferences.handler";
 import { UpdateProfileHandler } from "./application/commands/update-profile.handler";
 import { VerifyMfaLoginHandler } from "./application/commands/verify-mfa-login.handler";
 import { VerifyPasskeyLoginHandler } from "./application/commands/verify-passkey-login.handler";
+import { VerifyStepUpPasskeyHandler } from "./application/commands/verify-step-up-passkey.handler";
+import { VerifyStepUpHandler } from "./application/commands/verify-step-up.handler";
 import { GetMeQueryHandler } from "./application/queries/get-me.handler";
 import { ListConsentsQueryHandler } from "./application/queries/list-consents.handler";
 import { ListPasskeysQueryHandler } from "./application/queries/list-passkeys.handler";
@@ -65,6 +68,9 @@ const commandHandlers = [
   ConfirmMfaEnrollmentHandler,
   DisableMfaHandler,
   VerifyMfaLoginHandler,
+  VerifyStepUpHandler,
+  StartStepUpPasskeyHandler,
+  VerifyStepUpPasskeyHandler,
   StartPasskeyRegistrationHandler,
   ConfirmPasskeyRegistrationHandler,
   RemovePasskeyHandler,

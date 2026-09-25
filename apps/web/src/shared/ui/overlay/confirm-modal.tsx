@@ -15,6 +15,9 @@ interface ConfirmModalProps {
    * a delete or a discard, which is also the safer default to get wrong. */
   destructive?: boolean;
   loading?: boolean;
+  /** Disables just the confirm button (e.g. a required field isn't filled yet) — cancel stays
+   * enabled so the user can still back out. */
+  confirmDisabled?: boolean;
   /** Extra content between the description and the buttons (e.g. a required field). */
   children?: ReactNode;
 }
@@ -37,6 +40,7 @@ export function ConfirmModal({
   confirmLabel,
   destructive = true,
   loading,
+  confirmDisabled,
   children,
 }: Readonly<ConfirmModalProps>) {
   const { t } = useTranslation();
@@ -62,7 +66,7 @@ export function ConfirmModal({
             variant={destructive ? "destructive" : "primary"}
             size="sm"
             onClick={onConfirm}
-            disabled={loading}
+            disabled={loading || confirmDisabled}
           >
             {confirmLabel ?? t("common.delete")}
           </Button>

@@ -1,4 +1,37 @@
 <!--
+Sync Impact Report — 2026-09-25 (amendment 2.3.3)
+- Version change: 2.3.2 → 2.3.3 (PATCH: a new column on the existing `session` table-domain plus
+  three new endpoints under it, from a step-up-authentication feature; no principle text changed,
+  no conformance debt closed — a routine addition that already satisfies every existing data gate,
+  same shape as 2.3.1's own `session` addition and 2.3.2's `ip-geolocation-cache` one).
+- ADDED: `Session.stepUpAt` (nullable) + the narrow port `SessionStepUpPort` (same adapter,
+  second token — the precedent `CreditStatementLookupPort` already set) and three endpoints:
+  `POST /auth/sessions/step-up` (TOTP code or password), `POST /auth/sessions/step-up/passkey-options`
+  + `.../passkey-verify` (the passkey ceremony's two steps, reusing the existing challenge-cookie
+  mechanism). Closing a session OTHER than the caller's own, or "cerrar todas las demás", now
+  requires this session to have stepped up within 5 minutes (`STEP_UP_REQUIRED`, 403) — closing
+  your OWN session (signing out) is exempt, unaffected.
+  - **Principle VII (idempotent writes)**: form (a) applies without an `Idempotency-Key` header —
+    `markSteppedUp` overwrites `stepUpAt` with a fresh `now()`, and repeating that write with the
+    same or a later timestamp is harmless (no counter delta, no double side effect), the identical
+    argument that already exempted `DELETE /auth/sessions/:id`/`revoke-others` in the 2.3.1 entry.
+  - **Principle VIII (identifiers)**: no new identifier — `stepUpAt` isn't one, and every session id
+    involved is validated exactly as before.
+  - **Principle II (isolation)**: no new FK from a request body — a step-up is stamped on the
+    caller's OWN `sid` (from its verified JWT), never a body-supplied session id; the passkey
+    ceremony resolves and checks credential ownership the same way the existing passkey-login path
+    already does.
+  - New shared helper `user/application/totp.ts` extracted from the pre-existing MFA-login TOTP
+    validation (same lockout threshold/window) so this feature reuses it instead of duplicating it
+    — a refactor, not a new mechanism.
+- New dependency: **none** — reuses `otpauth`, `@simplewebauthn/server` and `bcryptjs`, already
+  dependencies of this domain.
+- No migration beyond `db push` (dev-only data). No contract-breaking change to any existing
+  endpoint.
+- Templates requiring updates: none.
+-->
+
+<!--
 Sync Impact Report — 2026-09-19 (amendment 2.3.2)
 - Version change: 2.3.1 → 2.3.2 (PATCH: a new table-domain and one new dependency-free network
   call from specs/026-ipinfo-geolocation; no principle text changed, no conformance debt closed —
@@ -1848,4 +1881,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.3.2 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-19
+**Version**: 2.3.3 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-25

@@ -129,6 +129,11 @@ model Session {
   /// (visible, marked closed) for `SESSION_CLOSED_RETENTION_DAYS` after this before the
   /// same cron deletes it for real.
   closedAt   DateTime?
+  /// Last step-up verification done FROM this session (TOTP, passkey, or password when the
+  /// user has neither) — closing another session or revoking the others requires it to be
+  /// within `STEP_UP_WINDOW_MINUTES` (2026-09-25). Bound to the session, not the user, so a
+  /// verification on one device never unlocks another.
+  stepUpAt   DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

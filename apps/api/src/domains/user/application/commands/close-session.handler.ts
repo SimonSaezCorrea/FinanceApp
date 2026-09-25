@@ -6,7 +6,12 @@ import {
   SESSION_REPOSITORY,
   type SessionRepositoryPort,
 } from "../../../session/domain/ports/session.repository.port";
+import {
+  SESSION_STEP_UP,
+  type SessionStepUpPort,
+} from "../../../session/domain/ports/session-step-up.port";
 import { SessionNotFoundError } from "../../domain/errors";
+import { assertRecentStepUp } from "../step-up";
 import { CloseSessionCommand } from "./close-session.command";
 
 /**
@@ -17,6 +22,9 @@ import { CloseSessionCommand } from "./close-session.command";
  * edge case) — no exception either way. Idempotent: closing an already-closed session
  * is a harmless no-op (204), never re-stamps `closedAt` — only a truly foreign or
  * nonexistent id is an error (404).
+ *
+ * Closing a DIFFERENT session needs a recent step-up from the caller's own session (2026-09-25,
+ * `STEP_UP_REQUIRED` 403 otherwise); closing your own is just signing out, and stays free.
  */
 @Injectable()
 @CommandHandler(CloseSessionCommand)
@@ -24,6 +32,7 @@ export class CloseSessionHandler extends BaseCommandHandler<CloseSessionCommand,
   constructor(
     eventBus: EventBus,
     @Inject(SESSION_REPOSITORY) private readonly sessions: SessionRepositoryPort,
+    @Inject(SESSION_STEP_UP) private readonly stepUp: SessionStepUpPort,
   ) {
     super(eventBus);
   }
@@ -35,6 +44,9 @@ export class CloseSessionHandler extends BaseCommandHandler<CloseSessionCommand,
   protected async handle(command: CloseSessionCommand): Promise<HandleResult<void>> {
     const exists = await this.sessions.existsForUser(command.userId, command.sessionId);
     if (!exists) throw new SessionNotFoundError();
+    if (command.sessionId !== command.currentSessionId) {
+      await assertRecentStepUp(this.stepUp, command.userId, command.currentSessionId);
+    }
     await this.sessions.closeOwned(command.userId, command.sessionId);
     return { result: undefined, events: [] };
   }

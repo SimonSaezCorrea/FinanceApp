@@ -1350,6 +1350,53 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     sospechoso. Sin cambio de contrato HTTP ni de schema. Ver
     `specs/024-revoke-sessions-on-change/` para el detalle completo.
 
+    Amendment (step-up antes de cerrar la sesión de otro dispositivo, 2026-09-25): cerrar
+    **cualquier** sesión que no sea la propia — un botón "Cerrar" individual sobre otro
+    dispositivo, o "Cerrar todas las demás" — ahora exige haber verificado la identidad
+    recientemente, para que un token robado no pueda expulsar al dueño real de sus propios
+    dispositivos con solo el access token en la mano. **Cerrar la sesión PROPIA (cerrar sesión)
+    queda exenta** — eso ya lo decide quien la está usando. `Session` gana **`stepUpAt`**
+    (nullable): se estampa al verificar con éxito y, si tiene menos de **5 minutos**, autoriza
+    cualquier cierre de otra sesión sin volver a pedir verificación — una ventana de "libre
+    cierre" corta a propósito, no una sesión de administrador de duración indefinida. Verificación
+    por **TOTP, llave de acceso o contraseña** — `auth.stepUpMethodsFor({mfaEnabled,
+    passkeyCount})` decide cuáles ofrecer (TOTP y/o passkey si están configurados; contraseña
+    siempre como respaldo, y la única opción si no hay ninguno de los otros dos, por decisión
+    explícita del usuario en la clarificación de este feature). Tres endpoints nuevos bajo
+    `AuthController`: `POST /auth/sessions/step-up` (código TOTP o contraseña),
+    `POST /auth/sessions/step-up/passkey-options` + `.../passkey-verify` (la ceremonia de passkey
+    en dos pasos, reutilizando el mismo mecanismo de cookie de desafío firmada que ya usa el login
+    con llave de specs/022). El puerto **`SessionStepUpPort`** (`markSteppedUp`/`steppedUpAt`) es
+    un segundo token sobre el MISMO `PrismaSessionRepository` — el precedente de
+    `CreditStatementLookupPort` (un segundo puerto angosto sobre un adapter ya existente en vez de
+    una consulta cruzada de dominio) aplicado aquí. `CloseSessionHandler`/
+    `RevokeOtherSessionsHandler` llaman a un helper compartido nuevo,
+    `user/application/step-up.ts`'s `assertRecentStepUp(stepUp, userId, sessionId)`, que lanza
+    **`StepUpRequiredError`** (`STEP_UP_REQUIRED`, 403) — el primer uso de 403 en
+    `DomainError.httpStatus` desde el rate-limit de MFA (2xx). La validación de TOTP se extrajo a
+    `user/application/totp.ts` (`isValidTotp`, `MFA_LOCKOUT_THRESHOLD`/`MFA_LOCKOUT_MINUTES`) desde
+    `verify-mfa-login.handler.ts`, que ahora la importa — mismo mecanismo de lockout (5 intentos,
+    15 minutos), reutilizado en vez de duplicado, mismo candado de fila (`SELECT ... FOR UPDATE`)
+    que ya usaba el login con MFA para la carrera de intentos concurrentes. Web:
+    `StepUpPanel.tsx` (un `ConfirmModal`) decide qué campo mostrar según los métodos disponibles;
+    `SecuritySection.tsx`'s `withStepUp(action)` envuelve tanto el "Cerrar" individual como "Cerrar
+    todas las demás" — recuerda la última verificación exitosa en un ref (`verifiedUntilRef`) para
+    no volver a pedirla dentro de la ventana de 5 minutos, aunque el servidor igual la revalida en
+    cada llamada. **Sin migración propia** más allá de `db push` (dev-only) — la columna
+    `stepUpAt` se agregó con el consentimiento explícito del usuario para esta acción de agente de
+    IA potencialmente destructiva sobre la base de datos local (`PRISMA_USER_CONSENT_FOR_
+DANGEROUS_AI_ACTION`), confirmado no ser producción.
+
+    Amendment (sesiones cerradas colapsadas en un desplegable, 2026-09-25): la lista de
+    "Sesiones y dispositivos" separaba sesiones abiertas y cerradas en dos bloques siempre
+    visibles — con varias sesiones cerradas (que se conservan 3 días, ver la amendment de arriba)
+    la lista se volvía larga sin que la mayoría de esas filas importara. `SecuritySection.tsx`
+    ahora muestra solo las sesiones ABIERTAS en la lista principal y agrupa las cerradas dentro de
+    un `<details>` colapsado por defecto (`profile.security.sessions.closedGroup`, con el conteo),
+    reutilizando el mismo `SessionRow` para ambos grupos — una fila cerrada se atenúa
+    (`opacity-60`) y muestra "Cerrada el {{date}}" en vez de un botón "Cerrar". Puramente de
+    presentación: ningún endpoint ni comportamiento de retención cambia.
+
     Amendment (geolocalización vía IPinfo con caché, reemplaza MaxMind como fuente
     preferida — specs/026, 2026-09-19): `GeoIpLookup` (`user/application/geoip-lookup.ts`)
     gana un segundo camino, preferido sobre el archivo `.mmdb` local cuando está

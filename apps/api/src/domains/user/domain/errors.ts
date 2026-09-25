@@ -10,7 +10,7 @@
 export class DomainError extends Error {
   constructor(
     public readonly code: string,
-    public readonly httpStatus: 400 | 401 | 404 | 409 | 429 = 400,
+    public readonly httpStatus: 400 | 401 | 403 | 404 | 409 | 429 = 400,
     public readonly field?: string,
   ) {
     super(code);
@@ -137,5 +137,23 @@ export class PasskeyNotFoundError extends DomainError {
 export class SessionNotFoundError extends DomainError {
   constructor() {
     super("SESSION_NOT_FOUND", 404);
+  }
+}
+
+/** Step-up (2026-09-25): closing another session or revoking the others needs a TOTP, passkey or
+ * (only when the user has neither) password verification from THIS session within
+ * `STEP_UP_WINDOW_MINUTES`. 403, never 401: the caller IS authenticated, it just hasn't
+ * re-proved it recently — and a 401 would read as "session gone". */
+export class StepUpRequiredError extends DomainError {
+  constructor() {
+    super("STEP_UP_REQUIRED", 403);
+  }
+}
+
+/** Step-up: a method this user can't use — e.g. the password when they have TOTP or a passkey
+ * (a second factor is then required), or TOTP/passkey when they have none configured. */
+export class StepUpMethodNotAllowedError extends DomainError {
+  constructor() {
+    super("STEP_UP_METHOD_NOT_ALLOWED", 400, "method");
   }
 }

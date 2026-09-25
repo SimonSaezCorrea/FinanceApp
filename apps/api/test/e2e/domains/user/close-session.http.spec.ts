@@ -65,6 +65,13 @@ describe("Close session HTTP (e2e)", () => {
     const sessionB = listA.body.find((s: { isCurrent: boolean }) => !s.isCurrent);
     expect(sessionB).toBeDefined();
 
+    // Closing ANOTHER session needs A's own recent step-up first (2026-09-25).
+    const stepUp = await request(app.getHttpServer())
+      .post("/api/v1/auth/sessions/step-up")
+      .set("Cookie", cookiesA)
+      .send({ method: "password", password });
+    expect(stepUp.status).toBe(200);
+
     const closeRes = await request(app.getHttpServer())
       .delete(`/api/v1/auth/sessions/${sessionB.id}`)
       .set("Cookie", cookiesA);

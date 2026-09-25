@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { SESSION_REPOSITORY } from "./domain/ports/session.repository.port";
+import { SESSION_STEP_UP } from "./domain/ports/session-step-up.port";
 import { PrismaSessionRepository } from "./infrastructure/prisma-session.repository";
 
 /**
@@ -8,7 +9,12 @@ import { PrismaSessionRepository } from "./infrastructure/prisma-session.reposit
  * port→adapter binding and imports no other domain — `user` composes this leaf directly.
  */
 @Module({
-  providers: [{ provide: SESSION_REPOSITORY, useClass: PrismaSessionRepository }],
-  exports: [SESSION_REPOSITORY],
+  providers: [
+    PrismaSessionRepository,
+    { provide: SESSION_REPOSITORY, useExisting: PrismaSessionRepository },
+    // Same adapter, second (narrow) port — the step-up stamp on a session (2026-09-25).
+    { provide: SESSION_STEP_UP, useExisting: PrismaSessionRepository },
+  ],
+  exports: [SESSION_REPOSITORY, SESSION_STEP_UP],
 })
 export class SessionDataModule {}

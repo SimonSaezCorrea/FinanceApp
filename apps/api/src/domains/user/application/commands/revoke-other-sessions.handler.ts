@@ -6,6 +6,11 @@ import {
   SESSION_REPOSITORY,
   type SessionRepositoryPort,
 } from "../../../session/domain/ports/session.repository.port";
+import {
+  SESSION_STEP_UP,
+  type SessionStepUpPort,
+} from "../../../session/domain/ports/session-step-up.port";
+import { assertRecentStepUp } from "../step-up";
 import { RevokeOtherSessionsCommand } from "./revoke-other-sessions.command";
 
 /**
@@ -14,6 +19,8 @@ import { RevokeOtherSessionsCommand } from "./revoke-other-sessions.command";
  * as `CloseSessionHandler` (never deletes) — the caller's own session is structurally
  * excluded by the `WHERE id != exceptId` in the repository, not by re-checking after
  * the fact.
+ *
+ * Needs a recent step-up from the caller's own session (2026-09-25, `STEP_UP_REQUIRED` 403).
  */
 @Injectable()
 @CommandHandler(RevokeOtherSessionsCommand)
@@ -25,6 +32,7 @@ export class RevokeOtherSessionsHandler extends BaseCommandHandler<
   constructor(
     eventBus: EventBus,
     @Inject(SESSION_REPOSITORY) private readonly sessions: SessionRepositoryPort,
+    @Inject(SESSION_STEP_UP) private readonly stepUp: SessionStepUpPort,
   ) {
     super(eventBus);
   }
@@ -34,6 +42,7 @@ export class RevokeOtherSessionsHandler extends BaseCommandHandler<
   }
 
   protected async handle(command: RevokeOtherSessionsCommand): Promise<HandleResult<void>> {
+    await assertRecentStepUp(this.stepUp, command.userId, command.currentSessionId);
     await this.sessions.closeAllExceptForUser(command.userId, command.currentSessionId);
     return { result: undefined, events: [] };
   }

@@ -57,6 +57,12 @@ describe("Revoke other sessions HTTP (e2e)", () => {
     const cookiesB = await loginFor();
     const cookiesC = await loginFor();
 
+    // "Cerrar todas las demás" needs A's own recent step-up first (2026-09-25).
+    await request(app.getHttpServer())
+      .post("/api/v1/auth/sessions/step-up")
+      .set("Cookie", cookiesA)
+      .send({ method: "password", password });
+
     const revokeRes = await request(app.getHttpServer())
       .post("/api/v1/auth/sessions/revoke-others")
       .set("Cookie", cookiesA);
@@ -83,6 +89,11 @@ describe("Revoke other sessions HTTP (e2e)", () => {
       .post("/api/v1/auth/login")
       .send({ identifierValue: rut, password });
     const cookies = login.get("Set-Cookie") ?? [];
+
+    await request(app.getHttpServer())
+      .post("/api/v1/auth/sessions/step-up")
+      .set("Cookie", cookies)
+      .send({ method: "password", password });
 
     // Clear out whatever sessions the previous test left behind for this email so this
     // one starts from a known "single active session" state.

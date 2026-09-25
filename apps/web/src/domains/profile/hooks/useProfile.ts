@@ -116,5 +116,16 @@ export function useProfileMutations() {
       mutationFn: () => sessionsApi.revokeOthers(),
       onSuccess: () => queryClient.invalidateQueries({ queryKey: ["sessions"] }),
     }),
+    // Step-up before closing another session or "cerrar todas" (2026-09-25) — success just
+    // returns `verifiedUntil`; nothing to invalidate, the caller keeps that timestamp itself.
+    stepUp: useMutation({
+      mutationFn: (body: auth.StepUpRequest) => sessionsApi.stepUp(body),
+    }),
+    stepUpPasskeyOptions: useMutation({
+      mutationFn: () => sessionsApi.stepUpPasskeyOptions(),
+    }),
+    stepUpPasskeyVerify: useMutation({
+      mutationFn: (response: unknown) => sessionsApi.stepUpPasskeyVerify(response),
+    }),
   };
 }

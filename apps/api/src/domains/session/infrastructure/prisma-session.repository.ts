@@ -4,6 +4,7 @@ import type { Session as SessionRow } from "@prisma/client";
 import { PrismaService } from "../../../infra/prisma/prisma.service";
 import type { SessionPlan, SessionProps } from "../domain/session.entity";
 import type { SessionRepositoryPort } from "../domain/ports/session.repository.port";
+import type { SessionStepUpPort } from "../domain/ports/session-step-up.port";
 
 function rowToProps(row: SessionRow): SessionProps {
   return {
@@ -21,8 +22,23 @@ function rowToProps(row: SessionRow): SessionProps {
 
 /** Adapter — the ONLY file that touches `prisma.session`. */
 @Injectable()
-export class PrismaSessionRepository implements SessionRepositoryPort {
+export class PrismaSessionRepository implements SessionRepositoryPort, SessionStepUpPort {
   constructor(private readonly prisma: PrismaService) {}
+
+  async markSteppedUp(userId: string, sessionId: string, at: Date): Promise<void> {
+    await this.prisma.session.updateMany({
+      where: { id: sessionId, userId, closedAt: null },
+      data: { stepUpAt: at },
+    });
+  }
+
+  async steppedUpAt(userId: string, sessionId: string): Promise<Date | null> {
+    const row = await this.prisma.session.findFirst({
+      where: { id: sessionId, userId },
+      select: { stepUpAt: true },
+    });
+    return row?.stepUpAt ?? null;
+  }
 
   async create(plan: SessionPlan): Promise<SessionProps> {
     const row = await this.prisma.session.create({
