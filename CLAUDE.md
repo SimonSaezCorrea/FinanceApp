@@ -1701,7 +1701,16 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (026 — implementado): specs/026-ipinfo-geolocation/plan.md
+Current plan (027 — en planificación): specs/027-import-template/plan.md
+(Plantilla oficial de importación en bloque: `.xlsx` generado en el navegador con `exceljs`
+[dependencia nueva, solo web, bajo demanda] con las cuentas/tarjetas/categorías del usuario; hojas
+Movimientos, Traspasos, Deudas, Pagos de deudas, Cuotas, Pagos de cuotas, Recurrentes, Metas y
+Aportes. `POST /import/template/preview` (sin escribir) + `POST /import/template` (idempotente,
+`import.template`, todo o nada en una `$transaction`). Cuotas de plan con crédito pagadas fuera de la
+app nunca se facturan (`listUnbilledDueForPlans` + `paidAt: null`) y liberan cupo; modo de saldo por
+cuenta "ya incluye" (ajusta saldo de apertura) / "súmalos". Ver research.md R1-R11.)
+
+Prior plan: specs/026-ipinfo-geolocation/plan.md
 (Migrar geolocalización de sesiones a IPinfo con caché: `GeoIpLookup` (`user/application/
 geoip-lookup.ts`) gana un segundo camino, preferido sobre el archivo `.mmdb` local de MaxMind
 cuando está configurado — **IPinfo Lite** (`https://api.ipinfo.io/lite/{ip}`, gratis e
