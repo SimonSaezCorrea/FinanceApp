@@ -15,7 +15,7 @@ function makeExpense(id: string) {
     label: "Arriendo",
     amount: "520000",
     currency: "CLP",
-    category: null,
+    categoryId: null,
     frequency: "MONTHLY",
     interval: 1,
     anchorDate: new Date("2026-01-05T00:00:00Z"),

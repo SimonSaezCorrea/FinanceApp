@@ -1,3 +1,4 @@
+import { buildCategoryLookup, categoryIdFor } from "../../support/repositories";
 import { randomUUID } from "node:crypto";
 
 import { ConfigService } from "@nestjs/config";
@@ -41,6 +42,7 @@ describe("editing an installment plan's schedule (integration)", () => {
       accounts,
       transactions,
       prisma,
+      buildCategoryLookup(prisma),
     );
   }
 
@@ -87,7 +89,7 @@ describe("editing an installment plan's schedule (integration)", () => {
       frequency: "MONTHLY",
       frequencyInterval: 1,
       cardId: null,
-      category: "Educación",
+      categoryId: await categoryIdFor(prisma, "EDUCATION"),
       paymentAccountId: account.id,
       notes: null,
       payments: Array.from({ length: 6 }, (_, i) => ({
@@ -140,7 +142,7 @@ describe("editing an installment plan's schedule (integration)", () => {
       frequency: "MONTHLY",
       frequencyInterval: 1,
       cardId: null,
-      category: null,
+      categoryId: null,
       paymentAccountId: account.id,
       notes: null,
       payments: [

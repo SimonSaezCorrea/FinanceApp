@@ -85,8 +85,9 @@ export class PrismaTransactionWriterRepository implements TransactionWriterRepos
     return row?.bankAccountId ?? null;
   }
 
-  async createMany(rows: Omit<TransactionPlan, "id">[]): Promise<number> {
-    const result = await this.prisma.transaction.createMany({ data: rows });
+  async createManyWithTx(tx: unknown, rows: Omit<TransactionPlan, "id">[]): Promise<number> {
+    const client = tx as PrismaService;
+    const result = await client.transaction.createMany({ data: rows });
     return result.count;
   }
 }

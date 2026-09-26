@@ -10,7 +10,7 @@ const tx = (over: Partial<transactions.Transaction>): transactions.Transaction =
   amount: "1000",
   currency: "CLP",
   occurredAt: "2026-08-01T00:00:00.000Z",
-  category: "Comida",
+  categoryId: "cat-food",
   description: null,
   observation: null,
   emisor: null,
@@ -35,8 +35,8 @@ const tx = (over: Partial<transactions.Transaction>): transactions.Transaction =
 });
 
 const transferPair = [
-  tx({ id: "x1", type: "EXPENSE", amount: "5000", transferGroupId: "g1", category: "Traspaso" }),
-  tx({ id: "x2", type: "INCOME", amount: "5000", transferGroupId: "g1", category: "Traspaso" }),
+  tx({ id: "x1", type: "EXPENSE", amount: "5000", transferGroupId: "g1" }),
+  tx({ id: "x2", type: "INCOME", amount: "5000", transferGroupId: "g1" }),
 ];
 
 describe("dashboard metrics exclude transfers", () => {
@@ -51,7 +51,7 @@ describe("dashboard metrics exclude transfers", () => {
 
   it("the category donut ignores the outgoing leg", () => {
     const slices = expensesByCategory([tx({ id: "a" }), ...transferPair]);
-    expect(slices).toEqual([{ category: "Comida", total: "1000.0000" }]);
+    expect(slices).toEqual([{ categoryId: "cat-food", total: "1000.0000" }]);
   });
 
   it("excludeTransfers keeps ordinary movements", () => {

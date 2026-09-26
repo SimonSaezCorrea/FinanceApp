@@ -33,7 +33,8 @@ export function activeOnly(list: recurring.RecurringExpense[]): recurring.Recurr
 }
 
 export interface CategoryShare {
-  category: string;
+  /** Catalogue category id, `""` for uncategorised. */
+  categoryId: string;
   amount: string;
   sharePct: number;
 }
@@ -45,13 +46,13 @@ export interface CategoryShare {
 export function categoryBreakdown(list: recurring.RecurringExpense[]): CategoryShare[] {
   const map = new Map<string, Decimal>();
   for (const r of list) {
-    const key = r.category ?? "";
+    const key = r.categoryId ?? "";
     map.set(key, (map.get(key) ?? new Decimal(0)).plus(new Decimal(monthlyAmount(r))));
   }
   const total = Array.from(map.values()).reduce((acc, v) => acc.plus(v), new Decimal(0));
   return Array.from(map.entries())
-    .map(([category, amount]) => ({
-      category,
+    .map(([categoryId, amount]) => ({
+      categoryId,
       amount: amount.toFixed(4),
       sharePct: total.isZero() ? 0 : Math.round(amount.dividedBy(total).times(100).toNumber()),
     }))

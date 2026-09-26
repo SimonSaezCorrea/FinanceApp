@@ -1,3 +1,4 @@
+import { buildCategoryLookup } from "../../../support/repositories";
 import { randomUUID } from "node:crypto";
 
 import { ConfigService } from "@nestjs/config";
@@ -44,6 +45,7 @@ describe("PrepayOpenPeriodHandler (integration)", () => {
       statementRepo,
       transactionWriter,
       prisma,
+      buildCategoryLookup(prisma),
     );
   }
 
@@ -58,6 +60,7 @@ describe("PrepayOpenPeriodHandler (integration)", () => {
       installmentPaymentLookup,
       transactionWriter,
       prisma,
+      buildCategoryLookup(prisma),
     );
   }
 

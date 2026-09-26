@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
 import { cn } from "../../../shared/lib/cn";
-import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { ErrorState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
 import { nextDuePayment, paidCount, progressRatio } from "../lib/installmentMetrics";
@@ -126,7 +126,7 @@ export function InstallmentPlanTable({
                 <TD className="w-full max-w-0">
                   <div className="flex items-center gap-3">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground">
-                      <CategoryIcon category={plan.category} className="h-4 w-4" />
+                      <CategoryIcon categoryId={plan.categoryId} className="h-4 w-4" />
                     </span>
                     <div className="min-w-0">
                       <p className="truncate font-medium text-foreground">{plan.title}</p>

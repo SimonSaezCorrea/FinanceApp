@@ -28,6 +28,20 @@ vi.mock("../../auth/api/authApi", () => ({
   },
 }));
 
+// The global category catalogue: one of each shape the picker must tell apart.
+const CATEGORIES = [
+  { id: "cat-super", code: "SUPERMARKET", kind: "EXPENSE", isSystem: false, sortOrder: 10 },
+  { id: "cat-salary", code: "SALARY", kind: "INCOME", isSystem: false, sortOrder: 20 },
+  { id: "cat-other", code: "OTHER", kind: "BOTH", isSystem: false, sortOrder: 30 },
+  { id: "cat-savings", code: "SAVINGS", kind: "BOTH", isSystem: true, sortOrder: 40 },
+];
+vi.mock("../../reference/api/referenceApi", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../../reference/api/referenceApi")>();
+  return {
+    referenceApi: { ...original.referenceApi, categories: () => Promise.resolve(CATEGORIES) },
+  };
+});
+
 const account = (over: Partial<accounts.BankAccount> = {}): accounts.BankAccount =>
   ({
     id: "a1",
@@ -52,7 +66,7 @@ const initialValue: TransactionFormValue = {
   prepayFromAccountId: "",
   cardId: "",
   financeCharge: false,
-  category: "",
+  categoryId: "",
   description: "",
   observation: "",
   emisor: "",
@@ -81,7 +95,6 @@ function Harness({
             onChange={(p) => setValue((v) => ({ ...v, ...p }))}
             accounts={list}
             selectable={list}
-            categoryOptions={["Comida", "Transporte"]}
             editing={editing}
           />
         </AuthProvider>
@@ -120,8 +133,9 @@ describe("TransactionFormPanel", () => {
   it("shows the category icon beside the value and in every option", async () => {
     await renderHarness({
       accounts: [account()],
-      start: { ...initialValue, category: "Comida" },
+      start: { ...initialValue, categoryId: "cat-super" },
     });
+    await screen.findByText(i18n.t("categories.SUPERMARKET"));
 
     const field = screen.getByLabelText(i18n.t("transactions.form.category"));
     // The adornment sits inside the control, next to the value — not adrift at
@@ -132,8 +146,33 @@ describe("TransactionFormPanel", () => {
     // A `SearchableSelect`, not a free-text `Combobox`: its panel opens on
     // click, not on focus.
     fireEvent.click(field);
-    const option = screen.getByRole("button", { name: /Comida/ });
+    const option = screen.getByRole("button", { name: new RegExp(i18n.t("categories.OTHER")) });
     expect(option.querySelector("svg")).not.toBeNull();
+  });
+
+  it("offers only the catalogue categories that fit the type — never a system one", async () => {
+    await renderHarness({ accounts: [account()] });
+    fireEvent.click(screen.getByLabelText(i18n.t("transactions.form.category")));
+    await screen.findByRole("button", { name: new RegExp(i18n.t("categories.SUPERMARKET")) });
+    expect(
+      screen.getByRole("button", { name: new RegExp(i18n.t("categories.OTHER")) }),
+    ).toBeDefined();
+    expect(
+      screen.queryByRole("button", { name: new RegExp(i18n.t("categories.SALARY")) }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole("button", { name: new RegExp(i18n.t("categories.SAVINGS")) }),
+    ).toBeNull();
+  });
+
+  it("switching to income drops an expense-only category", async () => {
+    await renderHarness({
+      accounts: [account()],
+      start: { ...initialValue, categoryId: "cat-super" },
+    });
+    await screen.findByText(i18n.t("categories.SUPERMARKET"));
+    fireEvent.click(screen.getByText(i18n.t("transactions.type.INCOME")));
+    expect(screen.queryByText(i18n.t("categories.SUPERMARKET"))).toBeNull();
   });
 
   it("switching to income drops the card field", async () => {

@@ -49,7 +49,7 @@ function txFixture() {
     amount: "100000",
     currency: "CLP",
     occurredAt: new Date("2026-03-01"),
-    category: null,
+    categoryId: null,
     description: null,
     observation: null,
     emisor: null,

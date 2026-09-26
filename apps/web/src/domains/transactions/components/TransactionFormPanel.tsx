@@ -12,7 +12,7 @@ import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "../../../shared/lib/cn";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
-import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { DetailRow } from "../../../shared/ui/detail-row";
 import {
   FormBigTextField,
@@ -46,7 +46,8 @@ export interface TransactionFormValue {
   cardId: string;
   /** Issuer charge on the credit account itself (interest, fee): no card. */
   financeCharge: boolean;
-  category: string;
+  /** Catalogue category id, `""` for none. */
+  categoryId: string;
   description: string;
   observation: string;
   emisor: string;
@@ -81,7 +82,6 @@ interface Props {
   accounts: accounts.BankAccount[];
   /** Accounts offered in the selectors (active ones + the edited movement's own). */
   selectable: accounts.BankAccount[];
-  categoryOptions: string[];
   editing: boolean;
   /** Hidden account selector: the form was opened from inside one account. */
   accountLocked?: boolean;
@@ -104,7 +104,6 @@ export function TransactionFormPanel({
   onChange,
   accounts: accountList,
   selectable,
-  categoryOptions,
   editing,
   accountLocked = false,
   original,
@@ -113,6 +112,7 @@ export function TransactionFormPanel({
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
   const { data: currencies } = useCurrencies();
+  const { optionsFor } = useCategoryCatalog();
 
   const isTransfer = value.mode === "TRANSFER";
   const isPrepay = value.mode === "PREPAY";
@@ -339,10 +339,19 @@ export function TransactionFormPanel({
         <Segmented
           aria-label={t("transactions.form.type")}
           value={value.mode}
-          onChange={(v: TransactionFormValue["mode"]) =>
+          onChange={(v: TransactionFormValue["mode"]) => {
+            // A category that doesn't fit the new type (an expense one on an
+            // income) is dropped rather than left for the API to refuse.
+            const nextType = v === "INCOME" || v === "EXPENSE" ? v : undefined;
+            const keepsCategory =
+              !value.categoryId || optionsFor(nextType).some((o) => o.value === value.categoryId);
             // Neither an income nor a transfer can carry a card.
-            onChange({ mode: v, ...(v === "EXPENSE" ? {} : { cardId: "" }) })
-          }
+            onChange({
+              mode: v,
+              ...(v === "EXPENSE" ? {} : { cardId: "" }),
+              ...(keepsCategory ? {} : { categoryId: "" }),
+            });
+          }}
           className="w-full"
           variant="neutral"
           options={typeOptions}
@@ -357,26 +366,20 @@ export function TransactionFormPanel({
           onChange={(date) => onChange({ date })}
         />
 
-        {/* Picked from the movements' own repertoire — search box + list, not
-            free text, so the same icon shows up wherever this category is
-            picked again. A prepago has no category of its own (the server
-            always labels it "Prepago tarjeta"), so the field would mislead. */}
+        {/* Picked from the global catalogue — only the categories that fit this
+            movement's type (a transfer is neither, so it gets every non-system
+            one). A prepago has no category of its own (the server always labels
+            it "Prepago tarjeta"), so the field would mislead. */}
         {isPrepay ? null : (
           <FormSelectField
             id="tx-cat"
             label={t("transactions.form.category")}
-            value={value.category}
-            onChange={(category) => onChange({ category })}
+            value={value.categoryId}
+            onChange={(categoryId) => onChange({ categoryId })}
             placeholder={t("transactions.form.categoryEmpty")}
             options={[
               { value: "", label: t("recurring.form.noCategory") },
-              ...categoryOptions.map((c) => ({
-                value: c,
-                label: c,
-                icon: (
-                  <CategoryIcon category={c} className="h-4 w-4 shrink-0 text-muted-foreground" />
-                ),
-              })),
+              ...optionsFor(isTransfer ? undefined : type, original?.categoryId),
             ]}
           />
         )}

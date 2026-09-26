@@ -1,3 +1,4 @@
+import { categoryIdFor } from "../../../support/repositories";
 import { randomUUID } from "node:crypto";
 
 import { ConfigService } from "@nestjs/config";
@@ -35,7 +36,7 @@ describe("PrismaRecurringExpenseRepository (integration)", () => {
       label: "Arriendo",
       amount: "520000",
       currency: "CLP",
-      category: "Vivienda",
+      categoryId: await categoryIdFor(prisma, "HOUSING"),
       frequency: "MONTHLY",
       interval: 1,
       anchorDate: new Date("2026-01-05T00:00:00.000Z"),

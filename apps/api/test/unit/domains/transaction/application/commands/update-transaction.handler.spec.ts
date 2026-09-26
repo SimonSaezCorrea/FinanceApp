@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 
 import { UpdateTransactionHandler } from "../../../../../../src/domains/transaction/application/commands/update-transaction.handler";
@@ -49,7 +50,7 @@ function txFixture(overrides: Partial<Parameters<typeof Transaction.fromPersiste
     amount: "100000",
     currency: "CLP",
     occurredAt: new Date("2026-03-01"),
-    category: null,
+    categoryId: null,
     description: null,
     observation: null,
     emisor: null,
@@ -121,6 +122,7 @@ function makeHandler(
     fakeTransactionWriterRepo(),
     // Unused unless a fixture carries `prepaymentStatementId` (none in this file do).
     {} as never,
+    fakeCategoryLookup(),
   );
 }
 

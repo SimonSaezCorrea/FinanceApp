@@ -52,7 +52,7 @@ export interface InstallmentPlanProps {
   /** The card the purchase was made with, when there was one. */
   cardId: string | null;
   /** Free text, same repertoire as a movement's category. */
-  category: string | null;
+  categoryId: string | null;
   /** The account remembered to pre-fill each payment form. */
   paymentAccountId: string | null;
   notes: string | null;
@@ -67,7 +67,7 @@ export type InstallmentPlanPatch = Partial<{
   frequency: installments.InstallmentFrequency;
   frequencyInterval: number;
   cardId: string | null;
-  category: string | null;
+  categoryId: string | null;
   paymentAccountId: string | null;
   notes: string | null;
   /** The schedule itself — see `applyUpdate`'s own doc for when this is allowed. */
@@ -115,7 +115,7 @@ export class InstallmentPlan {
     frequencyInterval: number;
     aprPerPeriod?: string;
     cardId?: string | null;
-    category?: string | null;
+    categoryId?: string | null;
     paymentAccountId?: string | null;
     notes?: string | null;
   }): {
@@ -127,7 +127,7 @@ export class InstallmentPlan {
     frequency: installments.InstallmentFrequency;
     frequencyInterval: number;
     cardId: string | null;
-    category: string | null;
+    categoryId: string | null;
     paymentAccountId: string | null;
     notes: string | null;
     payments: PlannedPayment[];
@@ -156,7 +156,7 @@ export class InstallmentPlan {
       frequency: input.frequency,
       frequencyInterval: input.frequencyInterval,
       cardId: input.cardId ?? null,
-      category: input.category ?? null,
+      categoryId: input.categoryId ?? null,
       paymentAccountId: input.paymentAccountId ?? null,
       notes: input.notes ?? null,
       payments,
@@ -264,7 +264,7 @@ export class InstallmentPlan {
     if (patch.frequencyInterval !== undefined)
       this.props.frequencyInterval = patch.frequencyInterval;
     if (patch.cardId !== undefined) this.props.cardId = patch.cardId;
-    if (patch.category !== undefined) this.props.category = patch.category;
+    if (patch.categoryId !== undefined) this.props.categoryId = patch.categoryId;
     if (patch.paymentAccountId !== undefined) this.props.paymentAccountId = patch.paymentAccountId;
     if (patch.notes !== undefined) this.props.notes = patch.notes;
 
@@ -526,7 +526,7 @@ export class InstallmentPlan {
       frequency: this.props.frequency,
       frequencyInterval: this.props.frequencyInterval,
       cardId: this.props.cardId,
-      category: this.props.category,
+      categoryId: this.props.categoryId,
       paymentAccountId: this.props.paymentAccountId,
       notes: this.props.notes,
       payments: this.props.payments.map((p) => ({

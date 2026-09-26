@@ -4,6 +4,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer } from "recharts";
 
 import { formatMoney } from "@finance/money";
 
+import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { cn } from "../../../shared/lib/cn";
 import { Card } from "../../../shared/ui/card";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
@@ -21,12 +22,13 @@ const PALETTE = [
 
 export function CategoryDonut({ slices }: { slices: CategorySlice[] }) {
   const { t, i18n } = useTranslation();
+  const { nameOf: categoryName } = useCategoryCatalog();
   const [active, setActive] = useState<number | null>(null);
   const fmt = (v: number) =>
     formatMoney(String(v), { locale: i18n.language, currency: PRIMARY_CURRENCY });
 
-  const label = (c: string | null) => c ?? t("transactions.uncategorized");
-  const data = slices.map((s) => ({ name: label(s.category), value: Number(s.total) }));
+  const label = (id: string | null) => categoryName(id) ?? t("transactions.uncategorized");
+  const data = slices.map((s) => ({ name: label(s.categoryId), value: Number(s.total) }));
   const total = data.reduce((sum, d) => sum + d.value, 0);
   const hovered = active !== null ? data[active] : null;
 

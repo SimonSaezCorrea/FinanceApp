@@ -36,7 +36,7 @@ function plan(over: Partial<installments.InstallmentPlan> = {}): installments.In
     frequency: "MONTHLY",
     frequencyInterval: 1,
     cardId: null,
-    category: null,
+    categoryId: null,
     paymentAccountId: "aChecking",
     notes: null,
     payments: [payment()],

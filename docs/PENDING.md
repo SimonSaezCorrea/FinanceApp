@@ -342,28 +342,37 @@ adicional.
 
 No existe la posibilidad de crear, usar o editar una **plantilla de movimiento** reutilizable (cuenta,
 categoría, descripción, tarjeta, etc. predefinidos para crear movimientos similares rápido — ej.
-"Bencina", "Arriendo mensual"). Hoy la única "reutilización" es indirecta: el combobox de categoría en
-`TransactionCreateModal` sugiere valores ya usados en el historial (`uniqueCategories`), pero no hay
+"Bencina", "Arriendo mensual"). Hoy no hay ninguna reutilización: la categoría sale de un catálogo global (ver punto 2), pero no hay
 modelo de plantilla ni acciones "Guardar como plantilla" / "Usar plantilla" en el formulario.
 
 **Para hacerlo real**: modelo `TransactionTemplate` (userId, nombre, y los mismos campos opcionales de
 una transacción salvo monto/fecha), endpoint CRUD, y en el formulario de creación un selector "Usar
 plantilla" que prellene los campos más un botón "Guardar como plantilla".
 
-### 2. Categorías personalizadas como entidad propia
+### 2. Categorías personalizadas (creadas por el usuario)
 
-Las categorías son **texto libre** (`Transaction.category: String?`), no un modelo propio: no existe
-`Category` con id, ícono, color o presupuesto asociado. El combobox de categoría solo sugiere strings ya
-usados por el propio usuario en sus transacciones (`uniqueCategories`) — no hay pantalla para crear,
-renombrar, fusionar o eliminar categorías, y "renombrar" hoy implicaría editar transacción por
-transacción (no hay operación en lote). Esto es distinto del placeholder "Categorías personalizadas
-8/15" de Perfil → Plan y facturación (sección 5 más arriba), que es solo un número de ejemplo para un
-límite de plan que no existe.
+**Desde 2026-09-25 las categorías SÍ son una entidad propia**, pero **global**: la tabla `category`
+tiene un catálogo único, sembrado y de solo lectura, igual para todos los usuarios (28 filas: 23
+elegibles + 5 de sistema que asigna el servidor, como "Ahorro" o "Pago facturación").
+`Transaction`/`InstallmentPlan`/`RecurringExpense` guardan un `categoryId` (FK, `SetNull`) y el nombre
+visible sale de i18n (`categories.<CODE>`) en la web. Un usuario nuevo ya ve todas las categorías
+desde el primer movimiento: el selector dejó de depender de su historial.
 
-**Para hacerlo real**: modelo `Category` (userId, nombre, ícono, color, presupuesto opcional) con FK
-opcional desde `Transaction` (migrando el string libre existente), pantalla de gestión
-(crear/renombrar/fusionar/eliminar) y actualizar el combobox para listar categorías reales en vez de
-strings derivados del historial.
+**Lo que queda pendiente, a propósito**: que el usuario **cree, renombre, oculte o fusione** sus
+propias categorías. Se dejó para cuando se definan los planes y la personalización. El modelo ya está
+pensado para crecer sin romper nada: una categoría propia sería una fila más de `category` con
+`userId` + `name` nullable (null = fila global del catálogo), y el mismo `categoryId` sigue
+apuntándole. Hacerlo real implica:
+
+- columnas `userId`/`name` en `category`, con el aislamiento por usuario de la constitución §II
+  aplicado en `CategoryLookupPort.findById` (una categoría ajena debe responder
+  `CATEGORY_NOT_FOUND`) y en `GET /categories` (catálogo global + las propias);
+- CRUD propio y una pantalla de gestión, donde fusionar reasigna `categoryId` en lote;
+- en la web, que `useCategoryCatalog().nameOf` use `name` cuando exista en vez de la clave i18n;
+- si tiene límite por plan, conectarlo con "Monetización — plan de pago".
+
+Tampoco hay ícono ni color por categoría guardados en la base: el ícono sale de un mapa fijo por
+código (`shared/lib/categoryIcons.ts`), así que una categoría propia también necesitará elegir el suyo.
 
 ## Movimientos — traspasos, comprobantes y paneles (specs/010)
 
@@ -474,6 +483,25 @@ La exclusión de traspasos de los agregados de ingreso/gasto está centralizada 
 `excludeTransfers` (web, `domains/dashboard/lib/metrics.ts`). **Cualquier agregado nuevo de
 ingreso/gasto debe aplicarlo**: al no cambiar el enum `TransactionType`, ninguna suma lo excluye por sí
 sola.
+
+### 10. Importar movimientos desde Excel/CSV — lo que quedó fuera
+
+El botón "Importar" (detalle de cuenta → Movimientos) lee `.xlsx` y `.csv`, detecta columnas y aplica
+los movimientos como si se hubieran creado a mano (saldo, cupo, reglas, todo o nada). Quedó fuera:
+
+- **`.xls` antiguo (binario)**: no se lee. Hoy el usuario lo abre en Excel y lo guarda como `.xlsx`.
+  Leerlo exige SheetJS desde su tarball oficial (la versión de npm está abandonada y con advisories
+  `high` que botarían `pnpm audit`) — se descartó por decisión, se puede revisar.
+- **Detección de duplicados**: reimportar el mismo archivo lo importa de nuevo. Se decidió importar
+  todo (dos cafés iguales el mismo día existen); una marca de "posible duplicado" en la vista previa
+  sería el paso siguiente si molesta.
+- **Recordar el mapeo por banco**: cada importación vuelve a adivinar las columnas; guardar el mapeo
+  confirmado por cuenta ahorraría pasos con el mismo banco.
+- **Tarjeta de un gasto en cuenta de crédito**: si el archivo trae una columna de tarjeta, se
+  reconoce por sus últimos 4 dígitos; si no, se usa la tarjeta por defecto elegida en el panel o, en
+  una cuenta de crédito, la principal.
+- **Categoría por fila en la vista previa**: hoy la categoría sale de una columna del archivo o de la
+  categoría por defecto; no se puede corregir fila por fila antes de importar.
 
 ## Inversiones
 

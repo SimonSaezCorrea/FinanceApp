@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 
 import type { debts } from "@finance/contracts";
@@ -81,6 +82,7 @@ describe("RegisterDebtPaymentHandler", () => {
       accounts,
       fakeTransactionWriterRepo(),
       prisma,
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(new RegisterDebtPaymentCommand("u1", "ghost", KEY, PAY)),
@@ -98,6 +100,7 @@ describe("RegisterDebtPaymentHandler", () => {
       accounts,
       fakeTransactionWriterRepo(),
       prisma,
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(new RegisterDebtPaymentCommand("u1", "d1", KEY, PAY)),
@@ -117,6 +120,7 @@ describe("RegisterDebtPaymentHandler", () => {
       accounts,
       fakeTransactionWriterRepo(),
       prisma,
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(new RegisterDebtPaymentCommand("u1", "d1", KEY, PAY)),
@@ -140,6 +144,7 @@ describe("RegisterDebtPaymentHandler", () => {
       fakeBankAccountRepo({ findById: vi.fn().mockResolvedValue(account), incrementBalanceWithTx }),
       fakeTransactionWriterRepo({ createWithTx }),
       prisma,
+      fakeCategoryLookup(),
     );
     const result = await handler.execute(new RegisterDebtPaymentCommand("u1", "d1", KEY, PAY));
     expect(result.paidInstallments).toBe(2);
@@ -167,6 +172,7 @@ describe("RegisterDebtPaymentHandler", () => {
       accounts,
       fakeTransactionWriterRepo(),
       prisma,
+      fakeCategoryLookup(),
     );
     const result = await handler.execute(new RegisterDebtPaymentCommand("u1", "d1", KEY, PAY));
     expect(result.paidInstallments).toBe(3);
@@ -189,6 +195,7 @@ describe("RegisterDebtPaymentHandler", () => {
       accounts,
       fakeTransactionWriterRepo(),
       prisma,
+      fakeCategoryLookup(),
     );
     const command = new RegisterDebtPaymentCommand("u1", "d1", KEY, PAY);
 

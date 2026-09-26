@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 
 import type { BankAccountLookupPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account-lookup.port";
@@ -58,6 +59,7 @@ describe("CreateRecurringExpenseHandler", () => {
       repo,
       fakeAccounts(),
       fakeCards(),
+      fakeCategoryLookup(),
     );
 
     const result = await handler.execute(

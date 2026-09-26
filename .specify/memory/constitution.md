@@ -1,4 +1,50 @@
 <!--
+Sync Impact Report — 2026-09-26 (amendment 2.3.5)
+- Version change: 2.3.4 → 2.3.5 (PATCH: an existing write endpoint rewritten and brought under
+  Principle VII; no principle text changed).
+- CHANGED: `POST /import/transactions` now imports into ONE account (`{ bankAccountId, rows[] }`)
+  and applies rows like hand-made movements (balance, credit pool, open billing period,
+  `MovementPolicy` over a running total), all-or-nothing in one `$transaction`.
+  - **Principle VII (idempotent writes)**: it now MOVES MONEY, so it adopts form (c) —
+    `Idempotency-Key` + `BaseIdempotentCommandHandler`, operation `import.transactions`, the effect
+    and the COMPLETED mark in the same transaction. This closes the one money-adjacent write the
+    specs/015 rollout had deliberately left out (it had no client and no delta then; it has both now).
+  - **Principle II (isolation)**: the body's `bankAccountId` is ownership-verified before anything
+    is persisted (a foreign account answers 404); `categoryId`s go through `assertSelectableCategory`.
+  - **Principle VI (one adapter per table)**: the `import` folder still owns no table — rows go
+    through `TransactionWriterRepositoryPort.createManyWithTx`, deltas through `BankAccountRepositoryPort`.
+- New dependency: **`read-excel-file`** (apps/web only, loaded on demand) to read `.xlsx` in the
+  browser; `.csv` is parsed in-house. No backend dependency, no schema change.
+-->
+<!--
+Sync Impact Report — 2026-09-25 (amendment 2.3.4)
+- Version change: 2.3.3 → 2.3.4 (PATCH: a new global reference table-domain, `category`, plus a
+  FK column on three existing tables; no principle text changed beyond correcting Principle VIII's
+  stale table count — a routine addition that satisfies every existing data gate).
+- ADDED: table-domain **`category`** (global, seeded, read-only — same treatment as `currency`:
+  `domain/`+`application/`+`infrastructure/`+`presentation/`, `GET /categories`) and its leaf
+  `category.data.module.ts` exporting the narrow `CategoryLookupPort` (`findById`,
+  `idForSystemCode`). `Transaction`, `InstallmentPlan` and `RecurringExpense` lose their free-text
+  `category` column for a **`categoryId`** FK (`onDelete: SetNull`). The catalogue is the SAME for
+  every user; user-defined categories are deferred (`docs/PENDING.md`).
+  - **Principle VIII (identifiers)**: `category.id` is UUID v7 like every row; the business key is
+    `code` (`@unique`, what the seed upserts by), never the PK. Every body `categoryId` is `rowId`.
+  - **Principle II (isolation)**: the table is global (no `userId`), so there is no ownership to
+    verify — but a body-supplied `categoryId` IS verified before persisting
+    (`assertSelectableCategory`: must exist → `CATEGORY_NOT_FOUND`, must not be a system row nor of
+    the other movement type → `CATEGORY_NOT_ALLOWED`), the same "never persist an unchecked FK"
+    rule applied to a reference table.
+  - **Principle VI (one adapter per table)**: the domains storing a `categoryId` and the handlers
+    that assign a system category ("Ahorro", "Deudas", "Intereses", "Pago facturación", "Prepago
+    tarjeta" — now `isSystem` rows resolved by code) compose `CategoryLookupPort`; none queries the
+    `category` table itself.
+  - **Principle VII (idempotent writes)**: no new write endpoint.
+  - No localized text crosses the API: a category exposes only `code`; its name lives in the web's
+    i18n (`categories.<CODE>`).
+- CORRECTED drift: Principle VIII's body said "26 tablas"; the schema has **29** models now.
+- New dependency: none. No migration beyond `db push` + `db:seed` (dev-only data).
+-->
+<!--
 Sync Impact Report — 2026-09-25 (amendment 2.3.3)
 - Version change: 2.3.2 → 2.3.3 (PATCH: a new column on the existing `session` table-domain plus
   three new endpoints under it, from a step-up-authentication feature; no principle text changed,
@@ -1599,7 +1645,7 @@ Rationale: en una app de finanzas un timeout de red reintentado no puede cobrar 
 ### VIII. Identificadores (NON-NEGOTIABLE)
 
 Existe UN formato de identificador de fila para todo el esquema, declarado en la constitución y
-uniforme en las 26 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
+uniforme en las 29 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
 localidad de índice en Postgres, estándar RFC 9562). Está prohibido que dos formatos convivan en la
 misma columna.
 
@@ -1881,4 +1927,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.3.3 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-25
+**Version**: 2.3.5 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-26

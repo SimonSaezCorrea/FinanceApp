@@ -74,7 +74,13 @@
       "today": "today",
       "clear": "Clear",
       "previousMonth": "Previous month",
-      "nextMonth": "Next month"
+      "nextMonth": "Next month",
+      "chooseMonth": "Choose month",
+      "chooseYear": "Choose year",
+      "previousYear": "Previous year",
+      "nextYear": "Next year",
+      "previousYears": "Previous years",
+      "nextYears": "Next years"
     },
     "decrease": "Decrease",
     "increase": "Increase",
@@ -600,6 +606,36 @@
       "comingSoon": "Coming soon",
       "comingSoonReason": "Receipts will be available once file storage is enabled."
     }
+  },
+  "categories": {
+    "SUPERMARKET": "Groceries",
+    "RESTAURANTS": "Restaurants",
+    "TRANSPORT": "Transport",
+    "HOUSING": "Housing",
+    "UTILITIES": "Utilities",
+    "HOME": "Home",
+    "HEALTH": "Health",
+    "EDUCATION": "Education",
+    "SHOPPING": "Shopping",
+    "ENTERTAINMENT": "Entertainment",
+    "SUBSCRIPTIONS": "Subscriptions",
+    "TECHNOLOGY": "Technology",
+    "TRAVEL": "Travel",
+    "SPORTS": "Sports",
+    "PETS": "Pets",
+    "INSURANCE": "Insurance",
+    "FAMILY": "Family",
+    "FEES": "Fees",
+    "SALARY": "Salary",
+    "FREELANCE": "Freelance",
+    "REFUND": "Refunds",
+    "GIFTS": "Gifts",
+    "OTHER": "Other",
+    "SAVINGS": "Savings",
+    "DEBTS": "Debts",
+    "INTEREST": "Interest",
+    "STATEMENT_PAYMENT": "Statement payment",
+    "CARD_PREPAYMENT": "Card prepayment"
   },
   "installments": {
     "title": "Installments",
@@ -1234,7 +1270,91 @@
   },
   "import": {
     "title": "Import",
-    "info": "Upload transactions from Excel (file upload coming soon)."
+    "pageDescription": "Load movements from the statement your bank exports, as Excel (.xlsx) or CSV.",
+    "pickAccount": "Which account are you importing into?",
+    "panelTitle": "Import movements",
+    "panelDescription": "From the statement you export from your bank, as Excel (.xlsx) or CSV.",
+    "changeFile": "Change file",
+    "submit_one": "Import {{count}} movement",
+    "submit_other": "Import {{count}} movements",
+    "submitting": "Importing…",
+    "success_one": "{{count}} movement imported",
+    "success_other": "{{count}} movements imported",
+    "rowError": "Row {{row}} of the file: {{message}}",
+    "pick": {
+      "title": "Choose or drop your file",
+      "hint": "Excel (.xlsx) or CSV. If your bank gives you .xls, open it in Excel and save it as .xlsx.",
+      "reading": "Reading file…"
+    },
+    "readError": {
+      "unsupported": "That format can't be read. Use an .xlsx or .csv file.",
+      "empty": "The file has no data.",
+      "unreadable": "The file couldn't be read. Is it damaged or password-protected?"
+    },
+    "map": {
+      "headerRow": "Header row",
+      "unnamed": "(unnamed)",
+      "roleFor": "What column {{column}} is",
+      "invertSign": "Flip the amount's sign",
+      "incomplete": "Point out the date column and the amount column (or the debit and credit ones)."
+    },
+    "roles": {
+      "ignore": "Don't import",
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount (signed)",
+      "debit": "Debits (expenses)",
+      "credit": "Credits (income)",
+      "type": "Type (debit/credit)",
+      "category": "Category",
+      "card": "Card (last 4)",
+      "observation": "Note",
+      "emisor": "Payer",
+      "receptor": "Payee",
+      "lugar": "Place",
+      "financeCharge": "Issuer charge (yes/no)"
+    },
+    "preview": {
+      "issues_one": "{{count}} row couldn't be read and won't be imported: {{rows}}.",
+      "issues_other": "{{count}} rows couldn't be read and won't be imported: {{rows}}.",
+      "tooMany": "The file has more than {{max}} movements. Split it into smaller parts.",
+      "cardsUnmatched_one": "{{count}} row names a card this account doesn't have; it uses the default card.",
+      "cardsUnmatched_other": "{{count}} rows name a card this account doesn't have; they use the default card."
+    },
+    "issue": {
+      "invalidDate": "invalid date",
+      "invalidAmount": "invalid amount",
+      "ambiguousAmount": "both debit and credit",
+      "invalidType": "unrecognised type"
+    },
+    "notice": {
+      "balance": "Every imported movement moves the account's balance. If the initial balance already includes these movements, they'll be counted twice.",
+      "creditCard": "Expenses go on the primary card and the open billing period; credits free up the limit."
+    },
+    "sheets": {
+      "title": "Sheets in the file",
+      "unnamed": "Sheet {{n}}",
+      "rows_one": "{{count}} row",
+      "rows_other": "{{count}} rows"
+    },
+    "defaults": {
+      "category": "Category",
+      "card": "Card",
+      "noCard": "No card"
+    },
+    "eyebrow": "{{account}} · Import",
+    "ready_one": "{{count}} ready",
+    "ready_other": "{{count}} ready",
+    "withIssues_one": "{{count}} with problems",
+    "withIssues_other": "{{count}} with problems",
+    "grid": {
+      "hint": "Choose what each column is, right on your spreadsheet. Unassigned columns are dimmed.",
+      "noValue": "no value",
+      "unmatched": "Not recognised: “{{fallback}}” is used",
+      "categoriesUnmatched_one": "{{count}} category doesn't match the catalogue → {{fallback}}",
+      "categoriesUnmatched_other": "{{count}} categories don't match the catalogue → {{fallback}}",
+      "truncated": "Showing the first {{shown}} rows; all of them are imported."
+    }
   },
   "auth": {
     "signIn": "Sign in",
@@ -1900,6 +2020,8 @@
     "NO_PAYMENTS_TO_UNDO": "There are no payments to undo on this debt.",
     "DEBT_PAYMENT_CURRENCY_MISMATCH": "The chosen account is in a different currency than the debt.",
     "DEBT_PAYMENT_FROM_CREDIT_ACCOUNT": "You can't pay a debt from a credit card account.",
-    "ACCOUNT_NOT_FOUND": "The account wasn't found."
+    "ACCOUNT_NOT_FOUND": "The account wasn't found.",
+    "CATEGORY_NOT_FOUND": "The chosen category doesn't exist.",
+    "CATEGORY_NOT_ALLOWED": "That category can't be used for this movement."
   }
 }

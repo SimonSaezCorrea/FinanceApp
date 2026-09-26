@@ -14,7 +14,7 @@ export type CreateInstallmentPlanPlan = {
   frequency: installments.InstallmentFrequency;
   frequencyInterval: number;
   cardId: string | null;
-  category: string | null;
+  categoryId: string | null;
   paymentAccountId: string | null;
   notes: string | null;
   payments: PlannedPayment[];

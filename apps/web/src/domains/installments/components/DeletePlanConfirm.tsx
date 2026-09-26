@@ -2,7 +2,7 @@ import type { accounts as accountsContract, installments } from "@finance/contra
 import { formatMoney } from "@finance/money";
 import { useTranslation } from "react-i18next";
 
-import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { ConfirmModal } from "../../../shared/ui/overlay";
 import { useInstallmentPlan } from "../hooks/useInstallments";
 import { paidCount } from "../lib/installmentMetrics";
@@ -80,7 +80,7 @@ export function DeletePlanConfirm({
       {plan ? (
         <div className="flex items-center gap-3 rounded-md border bg-muted/30 p-3">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-chip text-muted-foreground">
-            <CategoryIcon category={plan.category} className="h-4 w-4" />
+            <CategoryIcon categoryId={plan.categoryId} className="h-4 w-4" />
           </span>
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
             <span className="truncate text-sm font-medium text-foreground">{plan.title}</span>

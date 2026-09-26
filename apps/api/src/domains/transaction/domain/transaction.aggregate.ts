@@ -8,7 +8,7 @@ export interface TransactionProps {
   amount: string;
   currency: string;
   occurredAt: Date;
-  category: string | null;
+  categoryId: string | null;
   description: string | null;
   observation: string | null;
   emisor: string | null;
@@ -53,7 +53,7 @@ export type TransactionPatch = Partial<{
   amount: string;
   currency: string;
   occurredAt: Date;
-  category: string | null;
+  categoryId: string | null;
   description: string | null;
   observation: string | null;
   emisor: string | null;
@@ -90,7 +90,7 @@ export class Transaction {
     amount: string;
     currency: string;
     occurredAt: Date;
-    category?: string | null;
+    categoryId?: string | null;
     description?: string | null;
     observation?: string | null;
     emisor?: string | null;
@@ -107,7 +107,7 @@ export class Transaction {
       amount: input.amount,
       currency: input.currency,
       occurredAt: input.occurredAt,
-      category: input.category ?? null,
+      categoryId: input.categoryId ?? null,
       description: input.description ?? null,
       observation: input.observation ?? null,
       emisor: input.emisor ?? null,
@@ -173,7 +173,7 @@ export class Transaction {
     if (patch.amount !== undefined) this.props.amount = patch.amount;
     if (patch.currency !== undefined) this.props.currency = patch.currency;
     if (patch.occurredAt !== undefined) this.props.occurredAt = patch.occurredAt;
-    if (patch.category !== undefined) this.props.category = patch.category;
+    if (patch.categoryId !== undefined) this.props.categoryId = patch.categoryId;
     if (patch.description !== undefined) this.props.description = patch.description;
     if (patch.observation !== undefined) this.props.observation = patch.observation;
     if (patch.emisor !== undefined) this.props.emisor = patch.emisor;
@@ -198,7 +198,7 @@ export class Transaction {
       amount: moneyToString(this.props.amount),
       currency: this.props.currency,
       occurredAt: this.props.occurredAt.toISOString(),
-      category: this.props.category,
+      categoryId: this.props.categoryId,
       description: this.props.description,
       observation: this.props.observation,
       emisor: this.props.emisor,

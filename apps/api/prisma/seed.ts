@@ -27,7 +27,114 @@ const DEMO_PASSWORD = "demo1234";
  * installment plans, debts both ways, and savings goals.
  * Balances are derived from transactions so the dashboard stays internally consistent.
  */
+/**
+ * The GLOBAL movement-category catalogue — identical for every user (custom
+ * categories are deferred, `docs/PENDING.md`). `code` is the business key the
+ * seed upserts by; the display name lives in the web's i18n (`categories.<code>`),
+ * never here. `isSystem` rows are assigned by the server itself and never offered
+ * in a picker. `sortOrder` is the picker order.
+ */
+const CATEGORY_CATALOGUE: {
+  code: string;
+  kind: "EXPENSE" | "INCOME" | "BOTH";
+  isSystem?: boolean;
+}[] = [
+  { code: "SUPERMARKET", kind: "EXPENSE" },
+  { code: "RESTAURANTS", kind: "EXPENSE" },
+  { code: "TRANSPORT", kind: "EXPENSE" },
+  { code: "HOUSING", kind: "EXPENSE" },
+  { code: "UTILITIES", kind: "EXPENSE" },
+  { code: "HOME", kind: "EXPENSE" },
+  { code: "HEALTH", kind: "EXPENSE" },
+  { code: "EDUCATION", kind: "EXPENSE" },
+  { code: "SHOPPING", kind: "EXPENSE" },
+  { code: "ENTERTAINMENT", kind: "EXPENSE" },
+  { code: "SUBSCRIPTIONS", kind: "EXPENSE" },
+  { code: "TECHNOLOGY", kind: "EXPENSE" },
+  { code: "TRAVEL", kind: "EXPENSE" },
+  { code: "SPORTS", kind: "EXPENSE" },
+  { code: "PETS", kind: "EXPENSE" },
+  { code: "INSURANCE", kind: "EXPENSE" },
+  { code: "FAMILY", kind: "EXPENSE" },
+  { code: "FEES", kind: "EXPENSE" },
+  { code: "SALARY", kind: "INCOME" },
+  { code: "FREELANCE", kind: "INCOME" },
+  { code: "REFUND", kind: "INCOME" },
+  { code: "GIFTS", kind: "BOTH" },
+  { code: "OTHER", kind: "BOTH" },
+  // Assigned by the server (see `reference.SYSTEM_CATEGORY`).
+  { code: "SAVINGS", kind: "BOTH", isSystem: true },
+  { code: "DEBTS", kind: "BOTH", isSystem: true },
+  { code: "INTEREST", kind: "EXPENSE", isSystem: true },
+  { code: "STATEMENT_PAYMENT", kind: "EXPENSE", isSystem: true },
+  { code: "CARD_PREPAYMENT", kind: "EXPENSE", isSystem: true },
+];
+
+/** Spanish label used across the demo data below → catalogue code (`null` = the
+ * movement stays uncategorised, e.g. a transfer between own accounts). */
+const SEED_CATEGORY_LABELS: Record<string, string | null> = {
+  Supermercado: "SUPERMARKET",
+  Restaurantes: "RESTAURANTS",
+  Transporte: "TRANSPORT",
+  Vivienda: "HOUSING",
+  Servicios: "UTILITIES",
+  Hogar: "HOME",
+  Salud: "HEALTH",
+  Educación: "EDUCATION",
+  Compras: "SHOPPING",
+  Entretenimiento: "ENTERTAINMENT",
+  Entretención: "ENTERTAINMENT",
+  Suscripciones: "SUBSCRIPTIONS",
+  Tecnología: "TECHNOLOGY",
+  Viajes: "TRAVEL",
+  Deporte: "SPORTS",
+  Seguros: "INSURANCE",
+  Familia: "FAMILY",
+  Comisiones: "FEES",
+  Sueldo: "SALARY",
+  Otros: "OTHER",
+  Ahorro: "SAVINGS",
+  Deudas: "DEBTS",
+  Intereses: "INTEREST",
+  "Tarjeta de crédito": "STATEMENT_PAYMENT",
+  Traspaso: null,
+  Transferencias: null,
+};
+
+/** Upserts the catalogue by `code` and deletes any row no longer in it (its
+ * movements keep existing, uncategorised — the FK is `SetNull`). */
+async function seedCategories() {
+  for (const [index, c] of CATEGORY_CATALOGUE.entries()) {
+    const data = { kind: c.kind, isSystem: c.isSystem ?? false, sortOrder: (index + 1) * 10 };
+    await prisma.category.upsert({
+      where: { code: c.code },
+      create: { code: c.code, ...data },
+      update: data,
+    });
+  }
+  await prisma.category.deleteMany({
+    where: { code: { notIn: CATEGORY_CATALOGUE.map((c) => c.code) } },
+  });
+}
+
 async function seedFullUser(passwordHash: string) {
+  // The demo data is written with the Spanish label a user would read; each one
+  // resolves to its catalogue row here (seeded by `seedCategories`). An unknown
+  // label throws instead of silently uncategorising the movement.
+  const categoryIdByCode = new Map(
+    (await prisma.category.findMany({ select: { id: true, code: true } })).map((c) => [
+      c.code,
+      c.id,
+    ]),
+  );
+  const cat = (label: string): string | null => {
+    if (!(label in SEED_CATEGORY_LABELS)) throw new Error(`Unknown seed category "${label}"`);
+    const code = SEED_CATEGORY_LABELS[label];
+    if (code === null) return null;
+    const id = categoryIdByCode.get(code);
+    if (!id) throw new Error(`Category "${code}" is not seeded`);
+    return id;
+  };
   // Resolved first so the profile fields below (countryId) can be set at creation time.
   const chile = await prisma.country.findUnique({ where: { alpha2: "CL" } });
 
@@ -43,7 +150,11 @@ async function seedFullUser(passwordHash: string) {
       addressPostalCode: "7500000",
       birthDate: new Date("1990-04-22T00:00:00Z"),
       identifierType: "RUT",
-      identifierValue: "12.345.678-5",
+      // Stored NORMALIZED (no dots/dash), the form `PrismaUserRepository` writes and
+      // login looks up by (`auth.normalizeRut`). The seed writes through Prisma
+      // directly, bypassing that adapter — "12.345.678-5" here made the demo
+      // account unreachable by RUT. The user can still type it with dots.
+      identifierValue: "123456785",
       phone: "+56 9 8765 4321",
       // Matches the USD accounts/debt seeded below (Tenpo savings, Fintual Global,
       // Roberto's debt) — without this, every currency selector in the app would
@@ -117,7 +228,7 @@ async function seedFullUser(passwordHash: string) {
     type: "INCOME" | "EXPENSE";
     amount: number;
     at: string;
-    category: string;
+    categoryId: string | null;
     description: string;
     /** Both legs of a transfer share this — two ordinary rows, no new type. */
     transferGroup?: string;
@@ -133,7 +244,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 2_100_000,
       at: "2026-04-01T09:00:00Z",
-      category: "Sueldo",
+      categoryId: cat("Sueldo"),
       description: "Sueldo abril",
     },
     {
@@ -141,7 +252,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 210_000,
       at: "2026-04-22T10:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Devolución impuestos · Operación Renta",
     },
     {
@@ -150,7 +261,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 61_200,
       at: "2026-04-03T19:30:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Jumbo Costanera",
     },
     {
@@ -158,7 +269,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 34_800,
       at: "2026-04-05T12:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de luz · Enel",
     },
     {
@@ -166,7 +277,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 20_600,
       at: "2026-04-05T12:05:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de agua · Aguas Andinas",
     },
     {
@@ -174,7 +285,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 29_990,
       at: "2026-04-06T10:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Internet · VTR",
     },
     {
@@ -183,7 +294,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 42_500,
       at: "2026-04-07T08:15:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Bencina · Copec",
     },
     {
@@ -192,7 +303,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 31_200,
       at: "2026-04-04T21:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Cena Bellavista · Semana Santa",
     },
     {
@@ -201,7 +312,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 12_900,
       at: "2026-04-10T17:00:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Farmacia Cruz Verde",
     },
     {
@@ -209,7 +320,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 9_990,
       at: "2026-04-10T07:00:00Z",
-      category: "Entretenimiento",
+      categoryId: cat("Entretenimiento"),
       description: "Netflix",
     },
     {
@@ -217,7 +328,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 5_990,
       at: "2026-04-10T07:01:00Z",
-      category: "Entretenimiento",
+      categoryId: cat("Entretenimiento"),
       description: "Spotify",
     },
     {
@@ -225,7 +336,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 80_000,
       at: "2026-04-11T16:00:00Z",
-      category: "Transferencias",
+      categoryId: cat("Transferencias"),
       description: "Transferencia a Pedro",
     },
     {
@@ -233,7 +344,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 18_000,
       at: "2026-04-13T08:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Carga Bip!",
     },
     {
@@ -242,7 +353,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 49_800,
       at: "2026-04-15T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Líder Express",
     },
     {
@@ -251,7 +362,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 6_500,
       at: "2026-04-16T11:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Café Starbucks",
     },
     {
@@ -259,7 +370,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 32_000,
       at: "2026-04-17T07:30:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Gimnasio Smart Fit",
     },
     {
@@ -268,7 +379,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 21_500,
       at: "2026-04-08T11:00:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Farmacia Ahumada · Camila",
     },
     {
@@ -277,7 +388,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 47_300,
       at: "2026-04-19T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Jumbo Ñuñoa · Camila",
     },
     {
@@ -286,7 +397,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 34_900,
       at: "2026-04-09T15:00:00Z",
-      category: "Educación",
+      categoryId: cat("Educación"),
       description: "Materiales U · Sofía",
     },
     {
@@ -295,7 +406,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 11_200,
       at: "2026-04-20T13:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Almuerzo campus · Sofía",
     },
     {
@@ -304,7 +415,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 23_000,
       at: "2026-04-14T09:00:00Z",
-      category: "Hogar",
+      categoryId: cat("Hogar"),
       description: "Insumos aseo · Rosa",
     },
     {
@@ -312,7 +423,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 7_200,
       at: "2026-04-12T13:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Uber",
     },
     {
@@ -320,7 +431,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 15_900,
       at: "2026-04-25T20:30:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "PedidosYa",
     },
     {
@@ -329,7 +440,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 95_000,
       at: "2026-04-06T18:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Parka invierno · Falabella",
     },
     {
@@ -338,7 +449,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 42_000,
       at: "2026-04-18T21:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Restaurante Providencia",
     },
     {
@@ -347,7 +458,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 58_000,
       at: "2026-04-24T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Tottus",
     },
     {
@@ -356,7 +467,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 39_900,
       at: "2026-04-21T17:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Falabella Parque Arauco · Camila",
     },
     {
@@ -365,7 +476,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 19_900,
       at: "2026-04-13T20:00:00Z",
-      category: "Entretenimiento",
+      categoryId: cat("Entretenimiento"),
       description: "Cine Falabella · Sofía",
     },
     {
@@ -373,7 +484,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 10_000,
       at: "2026-04-06T10:30:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Feria libre",
     },
     {
@@ -381,7 +492,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 3_000,
       at: "2026-04-13T14:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Estacionamiento",
     },
 
@@ -391,7 +502,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 2_150_000,
       at: "2026-06-01T09:00:00Z",
-      category: "Sueldo",
+      categoryId: cat("Sueldo"),
       description: "Sueldo junio",
     },
     {
@@ -399,7 +510,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 45_000,
       at: "2026-06-12T18:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Reembolso colega",
     },
     {
@@ -408,7 +519,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 67_430,
       at: "2026-06-03T20:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Jumbo Costanera",
     },
     {
@@ -416,7 +527,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 38_900,
       at: "2026-06-05T12:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de luz · Enel",
     },
     {
@@ -424,7 +535,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 22_100,
       at: "2026-06-05T12:05:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de agua · Aguas Andinas",
     },
     {
@@ -432,7 +543,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 29_990,
       at: "2026-06-06T10:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Internet · VTR",
     },
     {
@@ -441,7 +552,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 45_000,
       at: "2026-06-07T08:30:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Bencina · Copec",
     },
     {
@@ -450,7 +561,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 28_500,
       at: "2026-06-08T21:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Cena Ñuñoa",
     },
     {
@@ -459,7 +570,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 15_300,
       at: "2026-06-09T17:00:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Farmacia Cruz Verde",
     },
     {
@@ -467,7 +578,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 9_990,
       at: "2026-06-10T07:00:00Z",
-      category: "Entretenimiento",
+      categoryId: cat("Entretenimiento"),
       description: "Netflix",
     },
     {
@@ -475,7 +586,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 5_990,
       at: "2026-06-10T07:01:00Z",
-      category: "Entretenimiento",
+      categoryId: cat("Entretenimiento"),
       description: "Spotify",
     },
     {
@@ -483,7 +594,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 120_000,
       at: "2026-06-11T16:00:00Z",
-      category: "Transferencias",
+      categoryId: cat("Transferencias"),
       description: "Transferencia a María",
     },
     {
@@ -491,7 +602,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 20_000,
       at: "2026-06-13T08:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Carga Bip!",
     },
     {
@@ -500,7 +611,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 54_200,
       at: "2026-06-15T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Líder Express",
     },
     {
@@ -509,7 +620,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 6_800,
       at: "2026-06-16T11:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Café Starbucks",
     },
     {
@@ -517,7 +628,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 32_000,
       at: "2026-06-17T07:30:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Gimnasio Smart Fit",
     },
     // ==================== May 2026 (complete month) ====================
@@ -526,7 +637,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 2_150_000,
       at: "2026-05-01T09:00:00Z",
-      category: "Sueldo",
+      categoryId: cat("Sueldo"),
       description: "Sueldo mayo",
     },
     {
@@ -535,7 +646,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 66_700,
       at: "2026-05-04T20:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Jumbo Costanera",
     },
     {
@@ -543,7 +654,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 40_100,
       at: "2026-05-05T12:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de luz · Enel",
     },
     {
@@ -551,7 +662,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 22_300,
       at: "2026-05-05T12:05:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de agua · Aguas Andinas",
     },
     {
@@ -559,7 +670,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 29_990,
       at: "2026-05-06T10:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Internet · VTR",
     },
     {
@@ -568,7 +679,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 46_000,
       at: "2026-05-07T08:30:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Bencina · Copec",
     },
     {
@@ -577,7 +688,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 27_800,
       at: "2026-05-08T21:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Cena Ñuñoa",
     },
     {
@@ -586,7 +697,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 16_200,
       at: "2026-05-09T17:00:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Farmacia Cruz Verde",
     },
     {
@@ -594,7 +705,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 9_990,
       at: "2026-05-10T07:00:00Z",
-      category: "Entretenimiento",
+      categoryId: cat("Entretenimiento"),
       description: "Netflix",
     },
     {
@@ -602,7 +713,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 5_990,
       at: "2026-05-10T07:01:00Z",
-      category: "Entretenimiento",
+      categoryId: cat("Entretenimiento"),
       description: "Spotify",
     },
     {
@@ -610,7 +721,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 45_000,
       at: "2026-05-10T15:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Regalo Día de la Madre",
     },
     {
@@ -618,7 +729,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 100_000,
       at: "2026-05-11T16:00:00Z",
-      category: "Transferencias",
+      categoryId: cat("Transferencias"),
       description: "Transferencia a María",
     },
     {
@@ -626,7 +737,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 20_000,
       at: "2026-05-13T08:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Carga Bip!",
     },
     {
@@ -635,7 +746,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 52_900,
       at: "2026-05-15T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Líder Express",
     },
     {
@@ -644,7 +755,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 7_100,
       at: "2026-05-16T11:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Café Starbucks",
     },
     {
@@ -652,7 +763,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 32_000,
       at: "2026-05-17T07:30:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Gimnasio Smart Fit",
     },
     {
@@ -661,7 +772,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 28_700,
       at: "2026-05-07T11:00:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Farmacia Ahumada · Camila",
     },
     {
@@ -670,7 +781,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 51_200,
       at: "2026-05-18T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Jumbo Ñuñoa · Camila",
     },
     {
@@ -679,7 +790,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 15_600,
       at: "2026-05-11T15:00:00Z",
-      category: "Educación",
+      categoryId: cat("Educación"),
       description: "Fotocopias U · Sofía",
     },
     {
@@ -688,7 +799,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 11_900,
       at: "2026-05-19T13:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Almuerzo campus · Sofía",
     },
     {
@@ -697,7 +808,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 24_500,
       at: "2026-05-12T09:00:00Z",
-      category: "Hogar",
+      categoryId: cat("Hogar"),
       description: "Insumos aseo · Rosa",
     },
     {
@@ -705,7 +816,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 9_600,
       at: "2026-05-06T13:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Uber",
     },
     {
@@ -713,7 +824,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 16_700,
       at: "2026-05-14T20:30:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "PedidosYa",
     },
     {
@@ -722,7 +833,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 62_000,
       at: "2026-05-02T18:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Zapatillas running",
     },
     {
@@ -731,7 +842,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 41_000,
       at: "2026-05-16T21:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Restaurante Las Condes",
     },
     {
@@ -740,7 +851,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 44_900,
       at: "2026-05-09T17:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Falabella Parque Arauco · Camila",
     },
     {
@@ -749,7 +860,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 21_900,
       at: "2026-05-20T20:00:00Z",
-      category: "Entretenimiento",
+      categoryId: cat("Entretenimiento"),
       description: "Cine Falabella · Sofía",
     },
     {
@@ -757,7 +868,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 11_000,
       at: "2026-05-06T10:30:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Feria libre",
     },
     {
@@ -765,7 +876,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 3_500,
       at: "2026-05-13T14:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Estacionamiento",
     },
 
@@ -775,7 +886,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 60_000,
       at: "2026-05-28T15:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Venta usados",
     },
     {
@@ -784,7 +895,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 48_000,
       at: "2026-05-24T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Unimarc",
     },
     {
@@ -793,7 +904,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 40_000,
       at: "2026-05-26T09:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Bencina · Shell",
     },
     {
@@ -802,7 +913,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 25_000,
       at: "2026-05-30T21:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Pizzería",
     },
 
@@ -813,7 +924,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 32_990,
       at: "2026-06-04T11:00:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Farmacia Ahumada · Camila",
     },
     {
@@ -822,7 +933,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 55_400,
       at: "2026-06-11T19:30:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Jumbo Ñuñoa · Camila",
     },
     {
@@ -831,7 +942,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 18_990,
       at: "2026-06-06T16:00:00Z",
-      category: "Educación",
+      categoryId: cat("Educación"),
       description: "Fotocopias U · Sofía",
     },
     {
@@ -840,7 +951,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 12_500,
       at: "2026-06-14T13:20:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Almuerzo campus · Sofía",
     },
     {
@@ -849,7 +960,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 25_000,
       at: "2026-06-09T09:00:00Z",
-      category: "Hogar",
+      categoryId: cat("Hogar"),
       description: "Insumos aseo · Rosa",
     },
 
@@ -859,7 +970,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 8_900,
       at: "2026-06-14T13:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Uber",
     },
     {
@@ -867,7 +978,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 17_400,
       at: "2026-06-18T20:30:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "PedidosYa",
     },
 
@@ -878,7 +989,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 89_990,
       at: "2026-06-02T18:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Ropa · Falabella",
     },
     {
@@ -887,7 +998,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 350_000,
       at: "2026-06-04T16:00:00Z",
-      category: "Hogar",
+      categoryId: cat("Hogar"),
       description: "Microondas · Sodimac",
     },
     {
@@ -896,7 +1007,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 45_000,
       at: "2026-06-09T15:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Zapatillas",
     },
     {
@@ -905,7 +1016,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 38_000,
       at: "2026-06-12T21:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Restaurante Las Condes",
     },
     {
@@ -914,7 +1025,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 72_000,
       at: "2026-06-16T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Tottus",
     },
     {
@@ -923,7 +1034,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 150_000,
       at: "2026-05-23T12:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Compras varias",
     },
     {
@@ -932,7 +1043,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 280_000,
       at: "2026-05-25T10:00:00Z",
-      category: "Viajes",
+      categoryId: cat("Viajes"),
       description: "Pasajes LATAM",
     },
 
@@ -943,7 +1054,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 68_990,
       at: "2026-06-07T17:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Falabella Parque Arauco · Camila",
     },
     {
@@ -952,7 +1063,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 24_990,
       at: "2026-06-13T20:00:00Z",
-      category: "Entretenimiento",
+      categoryId: cat("Entretenimiento"),
       description: "Cine Falabella · Sofía",
     },
 
@@ -962,7 +1073,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 12_000,
       at: "2026-06-06T10:30:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Feria libre",
     },
     {
@@ -970,7 +1081,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 3_000,
       at: "2026-06-13T14:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Estacionamiento",
     },
 
@@ -980,7 +1091,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 2_150_000,
       at: "2026-07-01T09:00:00Z",
-      category: "Sueldo",
+      categoryId: cat("Sueldo"),
       description: "Sueldo julio",
     },
     {
@@ -989,7 +1100,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 69_300,
       at: "2026-07-03T19:45:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Jumbo Costanera",
     },
     {
@@ -997,7 +1108,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 41_500,
       at: "2026-07-05T12:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de luz · Enel",
     },
     {
@@ -1005,7 +1116,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 21_900,
       at: "2026-07-05T12:05:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de agua · Aguas Andinas",
     },
     {
@@ -1013,7 +1124,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 29_990,
       at: "2026-07-06T10:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Internet · VTR",
     },
     {
@@ -1022,7 +1133,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 44_700,
       at: "2026-07-07T08:20:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Bencina · Copec",
     },
     {
@@ -1031,7 +1142,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 29_400,
       at: "2026-07-08T21:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Cena Ñuñoa",
     },
     {
@@ -1040,7 +1151,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 13_800,
       at: "2026-07-09T17:00:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Farmacia Cruz Verde",
     },
     {
@@ -1048,7 +1159,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 9_990,
       at: "2026-07-10T07:00:00Z",
-      category: "Entretenimiento",
+      categoryId: cat("Entretenimiento"),
       description: "Netflix",
     },
     {
@@ -1056,7 +1167,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 5_990,
       at: "2026-07-10T07:01:00Z",
-      category: "Entretenimiento",
+      categoryId: cat("Entretenimiento"),
       description: "Spotify",
     },
     {
@@ -1064,7 +1175,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 90_000,
       at: "2026-07-11T16:00:00Z",
-      category: "Transferencias",
+      categoryId: cat("Transferencias"),
       description: "Transferencia a María",
     },
     {
@@ -1072,7 +1183,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 19_000,
       at: "2026-07-13T08:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Carga Bip!",
     },
     {
@@ -1081,7 +1192,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 53_600,
       at: "2026-07-15T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Líder Express",
     },
     {
@@ -1090,7 +1201,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 6_900,
       at: "2026-07-16T11:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Café Starbucks",
     },
     {
@@ -1098,7 +1209,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 32_000,
       at: "2026-07-17T07:30:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Gimnasio Smart Fit",
     },
     {
@@ -1107,7 +1218,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 19_900,
       at: "2026-07-08T11:00:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Farmacia Ahumada · Camila",
     },
     {
@@ -1116,7 +1227,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 13_200,
       at: "2026-07-14T13:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Almuerzo campus · Sofía",
     },
     {
@@ -1125,7 +1236,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 25_900,
       at: "2026-07-09T09:00:00Z",
-      category: "Hogar",
+      categoryId: cat("Hogar"),
       description: "Insumos aseo · Rosa",
     },
     {
@@ -1133,7 +1244,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 8_400,
       at: "2026-07-07T13:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Uber",
     },
     {
@@ -1142,7 +1253,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 78_000,
       at: "2026-07-06T18:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Compras invierno · Falabella",
     },
     {
@@ -1151,7 +1262,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 35_000,
       at: "2026-07-12T21:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Restaurante Las Condes",
     },
     {
@@ -1160,7 +1271,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 29_900,
       at: "2026-07-15T17:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Falabella Parque Arauco · Camila",
     },
     {
@@ -1168,7 +1279,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 9_000,
       at: "2026-07-04T10:30:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Feria libre",
     },
     // ===== Cargos del emisor sobre las cuentas de crédito (sin tarjeta) =====
@@ -1177,7 +1288,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 18_400,
       at: "2026-06-16T09:00:00Z",
-      category: "Intereses",
+      categoryId: cat("Intereses"),
       description: "Interés por saldo rotativo",
       financeCharge: true,
     },
@@ -1186,7 +1297,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 4_990,
       at: "2026-07-16T09:00:00Z",
-      category: "Comisiones",
+      categoryId: cat("Comisiones"),
       description: "Comisión de administración",
       financeCharge: true,
     },
@@ -1199,7 +1310,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 30_000,
       at: "2026-05-10T12:00:00Z",
-      category: "Intereses",
+      categoryId: cat("Intereses"),
       description: "Interés del plan · Refrigerador Mademsa",
       financeCharge: true,
     },
@@ -1210,7 +1321,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 129_990,
       at: "2026-04-11T16:20:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Audífonos · Falabella",
     },
     {
@@ -1219,7 +1330,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 58_400,
       at: "2026-05-02T20:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Cena aniversario",
     },
     {
@@ -1228,7 +1339,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 213_500,
       at: "2026-05-19T11:00:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Exámenes médicos · Clínica Alemana",
     },
     {
@@ -1237,7 +1348,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 76_800,
       at: "2026-06-08T19:30:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Ropa · H&M",
     },
     {
@@ -1246,7 +1357,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 44_900,
       at: "2026-06-24T14:00:00Z",
-      category: "Entretención",
+      categoryId: cat("Entretención"),
       description: "Steam · videojuegos",
     },
     {
@@ -1255,7 +1366,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 91_200,
       at: "2026-07-02T18:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Mantención auto",
     },
     // ==================== Late July 2026 ====================
@@ -1265,7 +1376,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 89_900,
       at: "2026-07-18T20:10:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Zapatillas · Sparta",
     },
     {
@@ -1274,7 +1385,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 47_300,
       at: "2026-07-19T13:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Líder Kennedy · Camila",
     },
     {
@@ -1283,7 +1394,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 34_500,
       at: "2026-07-20T21:30:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Cena · Ñuñoa",
     },
     {
@@ -1292,7 +1403,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 12_900,
       at: "2026-07-22T09:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Carga Bip!",
     },
     {
@@ -1301,7 +1412,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 52_400,
       at: "2026-07-23T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Tottus Falabella",
     },
     {
@@ -1309,7 +1420,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 620_000,
       at: "2026-07-25T09:00:00Z",
-      category: "Vivienda",
+      categoryId: cat("Vivienda"),
       description: "Arriendo julio",
     },
     {
@@ -1318,7 +1429,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 41_990,
       at: "2026-07-27T18:40:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Farmacia Ahumada",
     },
     {
@@ -1326,7 +1437,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 7_500,
       at: "2026-07-28T11:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Almuerzo",
     },
     {
@@ -1335,7 +1446,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 38_700,
       at: "2026-07-29T17:20:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Falabella · Sofía",
     },
     // ==================== August 2026 ====================
@@ -1344,7 +1455,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 2_100_000,
       at: "2026-08-01T09:00:00Z",
-      category: "Sueldo",
+      categoryId: cat("Sueldo"),
       description: "Sueldo agosto",
     },
     {
@@ -1352,7 +1463,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 180_000,
       at: "2026-08-01T10:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Transferencia desde cuenta corriente",
     },
     {
@@ -1361,7 +1472,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 58_400,
       at: "2026-08-01T19:15:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Jumbo Costanera",
     },
     // ============ August 2026 (continued) ============
@@ -1370,7 +1481,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 33_900,
       at: "2026-08-03T12:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de luz · Enel",
     },
     {
@@ -1378,7 +1489,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 19_800,
       at: "2026-08-03T12:05:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de agua · Aguas Andinas",
     },
     {
@@ -1386,7 +1497,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 29_990,
       at: "2026-08-04T10:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Internet · VTR",
     },
     {
@@ -1395,7 +1506,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 74_500,
       at: "2026-08-05T20:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Ropa de invierno · Paris",
     },
     {
@@ -1404,7 +1515,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 44_200,
       at: "2026-08-06T08:20:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Bencina · Copec",
     },
     {
@@ -1413,7 +1524,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 27_900,
       at: "2026-08-07T21:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Delivery · PedidosYa",
     },
     {
@@ -1422,7 +1533,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 96_000,
       at: "2026-08-08T18:30:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Electrodomésticos · Falabella",
     },
     {
@@ -1431,7 +1542,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 23_400,
       at: "2026-08-09T16:00:00Z",
-      category: "Entretención",
+      categoryId: cat("Entretención"),
       description: "Cine · Sofía",
     },
     {
@@ -1439,7 +1550,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 12_000,
       at: "2026-08-10T11:30:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Feria libre",
     },
     {
@@ -1448,7 +1559,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 118_000,
       at: "2026-08-11T19:45:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Consulta dental",
     },
     {
@@ -1457,7 +1568,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 9_990,
       at: "2026-08-12T09:30:00Z",
-      category: "Suscripciones",
+      categoryId: cat("Suscripciones"),
       description: "Spotify Familiar",
     },
     {
@@ -1466,7 +1577,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 45_600,
       at: "2026-08-13T17:10:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Falabella Plaza Egaña · Camila",
     },
     {
@@ -1475,7 +1586,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 66_700,
       at: "2026-08-14T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Unimarc",
     },
     {
@@ -1483,7 +1594,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 340_000,
       at: "2026-08-15T10:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Proyecto freelance",
     },
     {
@@ -1492,7 +1603,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 63_200,
       at: "2026-08-16T15:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Librería Antártica",
     },
     {
@@ -1501,7 +1612,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 18_600,
       at: "2026-08-17T13:40:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Uber · Rosa",
     },
     {
@@ -1510,7 +1621,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 31_500,
       at: "2026-08-18T20:20:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Sushi Providencia",
     },
     {
@@ -1519,7 +1630,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 55_300,
       at: "2026-08-19T18:00:00Z",
-      category: "Entretención",
+      categoryId: cat("Entretención"),
       description: "Concierto · Puntoticket",
     },
     {
@@ -1527,7 +1638,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 6_500,
       at: "2026-08-20T12:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Café",
     },
     {
@@ -1535,7 +1646,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 620_000,
       at: "2026-08-21T09:00:00Z",
-      category: "Vivienda",
+      categoryId: cat("Vivienda"),
       description: "Arriendo agosto",
     },
 
@@ -1545,7 +1656,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 2_100_000,
       at: "2026-09-01T09:00:00Z",
-      category: "Sueldo",
+      categoryId: cat("Sueldo"),
       description: "Sueldo septiembre",
     },
     {
@@ -1553,7 +1664,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 180_000,
       at: "2026-09-01T10:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Transferencia desde cuenta corriente",
     },
     {
@@ -1562,7 +1673,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 61_200,
       at: "2026-09-01T19:15:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Jumbo Costanera",
     },
     {
@@ -1570,7 +1681,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 35_400,
       at: "2026-09-03T12:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de luz · Enel",
     },
     {
@@ -1578,7 +1689,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 20_100,
       at: "2026-09-03T12:05:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de agua · Aguas Andinas",
     },
     {
@@ -1586,7 +1697,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 29_990,
       at: "2026-09-04T10:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Internet · VTR",
     },
     {
@@ -1595,7 +1706,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 82_300,
       at: "2026-09-05T20:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Ropa de primavera · Paris",
     },
     {
@@ -1604,7 +1715,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 42_800,
       at: "2026-09-06T08:20:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Bencina · Copec",
     },
     {
@@ -1613,7 +1724,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 31_200,
       at: "2026-09-07T21:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Delivery · PedidosYa",
     },
     {
@@ -1622,7 +1733,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 102_000,
       at: "2026-09-08T18:30:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Electrodomésticos · Falabella",
     },
     {
@@ -1631,7 +1742,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 25_600,
       at: "2026-09-09T16:00:00Z",
-      category: "Entretención",
+      categoryId: cat("Entretención"),
       description: "Cine · Sofía",
     },
     {
@@ -1639,7 +1750,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 13_500,
       at: "2026-09-10T11:30:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Feria libre",
     },
     {
@@ -1648,7 +1759,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 95_000,
       at: "2026-09-11T19:45:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Consulta dental",
     },
     {
@@ -1657,7 +1768,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 9_990,
       at: "2026-09-12T09:30:00Z",
-      category: "Suscripciones",
+      categoryId: cat("Suscripciones"),
       description: "Spotify Familiar",
     },
     {
@@ -1666,7 +1777,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 51_400,
       at: "2026-09-13T17:10:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Falabella Plaza Egaña · Camila",
     },
     {
@@ -1675,7 +1786,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 70_300,
       at: "2026-09-14T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Unimarc",
     },
     {
@@ -1683,7 +1794,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 210_000,
       at: "2026-09-15T10:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Proyecto freelance",
     },
     {
@@ -1692,7 +1803,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 47_800,
       at: "2026-09-16T15:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Librería Antártica",
     },
     {
@@ -1701,7 +1812,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 21_300,
       at: "2026-09-17T13:40:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Uber · Rosa",
     },
     {
@@ -1710,7 +1821,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 34_900,
       at: "2026-09-18T20:20:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Sushi Providencia",
     },
     {
@@ -1719,7 +1830,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 62_700,
       at: "2026-09-19T18:00:00Z",
-      category: "Entretención",
+      categoryId: cat("Entretención"),
       description: "Concierto · Puntoticket",
     },
     {
@@ -1727,7 +1838,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 7_200,
       at: "2026-09-20T12:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Café",
     },
     {
@@ -1735,7 +1846,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 620_000,
       at: "2026-09-21T09:00:00Z",
-      category: "Vivienda",
+      categoryId: cat("Vivienda"),
       description: "Arriendo septiembre",
     },
     {
@@ -1744,7 +1855,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 38_900,
       at: "2026-09-24T17:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Santa Isabel",
     },
     {
@@ -1752,7 +1863,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 15_000,
       at: "2026-09-27T14:00:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Taxi",
     },
     {
@@ -1761,7 +1872,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 22_400,
       at: "2026-09-29T19:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Almuerzo equipo",
     },
     {
@@ -1769,7 +1880,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 45_000,
       at: "2026-09-30T20:00:00Z",
-      category: "Entretención",
+      categoryId: cat("Entretención"),
       description: "Streaming anual",
     },
 
@@ -1779,7 +1890,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 2_100_000,
       at: "2026-10-01T09:00:00Z",
-      category: "Sueldo",
+      categoryId: cat("Sueldo"),
       description: "Sueldo octubre",
     },
     {
@@ -1787,7 +1898,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 180_000,
       at: "2026-10-01T10:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Transferencia desde cuenta corriente",
     },
     {
@@ -1796,7 +1907,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 59_700,
       at: "2026-10-01T19:15:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Jumbo Costanera",
     },
     {
@@ -1804,7 +1915,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 36_800,
       at: "2026-10-03T12:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de luz · Enel",
     },
     {
@@ -1812,7 +1923,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 20_500,
       at: "2026-10-03T12:05:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Cuenta de agua · Aguas Andinas",
     },
     {
@@ -1820,7 +1931,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 29_990,
       at: "2026-10-04T10:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Internet · VTR",
     },
     {
@@ -1829,7 +1940,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 68_900,
       at: "2026-10-05T20:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Zapatillas · Paris",
     },
     {
@@ -1838,7 +1949,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 43_600,
       at: "2026-10-06T08:20:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Bencina · Copec",
     },
     {
@@ -1847,7 +1958,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 29_300,
       at: "2026-10-07T21:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Delivery · PedidosYa",
     },
     {
@@ -1856,7 +1967,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 88_500,
       at: "2026-10-08T18:30:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Ropa de oficina · Falabella",
     },
     {
@@ -1865,7 +1976,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 24_100,
       at: "2026-10-09T16:00:00Z",
-      category: "Entretención",
+      categoryId: cat("Entretención"),
       description: "Cine · Sofía",
     },
     {
@@ -1873,7 +1984,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 12_800,
       at: "2026-10-10T11:30:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Feria libre",
     },
     {
@@ -1882,7 +1993,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 74_000,
       at: "2026-10-11T19:45:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Control médico",
     },
     {
@@ -1891,7 +2002,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 9_990,
       at: "2026-10-12T09:30:00Z",
-      category: "Suscripciones",
+      categoryId: cat("Suscripciones"),
       description: "Spotify Familiar",
     },
     {
@@ -1900,7 +2011,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 48_600,
       at: "2026-10-13T17:10:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Falabella Plaza Egaña · Camila",
     },
     {
@@ -1909,7 +2020,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 65_200,
       at: "2026-10-14T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Unimarc",
     },
     {
@@ -1917,7 +2028,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 275_000,
       at: "2026-10-15T10:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Proyecto freelance",
     },
     {
@@ -1926,7 +2037,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 55_300,
       at: "2026-10-16T15:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Librería Antártica",
     },
     {
@@ -1935,7 +2046,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 19_900,
       at: "2026-10-17T13:40:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Uber · Rosa",
     },
     {
@@ -1944,7 +2055,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 33_700,
       at: "2026-10-18T20:20:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Sushi Providencia",
     },
     {
@@ -1953,7 +2064,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 58_400,
       at: "2026-10-19T18:00:00Z",
-      category: "Entretención",
+      categoryId: cat("Entretención"),
       description: "Concierto · Puntoticket",
     },
     {
@@ -1961,7 +2072,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 6_900,
       at: "2026-10-20T12:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Café",
     },
     {
@@ -1969,7 +2080,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 620_000,
       at: "2026-10-21T09:00:00Z",
-      category: "Vivienda",
+      categoryId: cat("Vivienda"),
       description: "Arriendo octubre",
     },
     {
@@ -1978,7 +2089,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 41_300,
       at: "2026-10-24T17:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Santa Isabel",
     },
     {
@@ -1987,7 +2098,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 39_900,
       at: "2026-10-27T14:00:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Regalo cumpleaños",
     },
     {
@@ -1995,7 +2106,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 18_200,
       at: "2026-10-29T19:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Cena Halloween",
     },
     {
@@ -2003,7 +2114,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 27_500,
       at: "2026-10-31T20:00:00Z",
-      category: "Entretención",
+      categoryId: cat("Entretención"),
       description: "Streaming mensual",
     },
 
@@ -2017,7 +2128,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 380_000,
       at: "2026-04-03T09:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Honorarios freelance · abril",
     },
     {
@@ -2025,7 +2136,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 85_000,
       at: "2026-04-05T11:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Gastos comunes · depto",
     },
     {
@@ -2034,7 +2145,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 42_300,
       at: "2026-04-12T18:30:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Líder Express",
     },
     {
@@ -2043,7 +2154,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 35_000,
       at: "2026-04-08T08:15:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Bencina Copec",
     },
     {
@@ -2052,7 +2163,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 68_000,
       at: "2026-04-25T21:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Cena aniversario",
     },
     {
@@ -2060,7 +2171,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 380_000,
       at: "2026-05-03T09:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Honorarios freelance · mayo",
     },
     {
@@ -2068,7 +2179,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 85_000,
       at: "2026-05-05T11:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Gastos comunes · depto",
     },
     {
@@ -2077,7 +2188,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 18_900,
       at: "2026-05-16T20:00:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Pizzería Google",
     },
     {
@@ -2086,7 +2197,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 210_000,
       at: "2026-05-14T15:00:00Z",
-      category: "Viajes",
+      categoryId: cat("Viajes"),
       description: "Vuelos LATAM · Calama",
     },
     {
@@ -2094,7 +2205,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 380_000,
       at: "2026-06-03T09:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Honorarios freelance · junio",
     },
     {
@@ -2102,7 +2213,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 87_000,
       at: "2026-06-05T11:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Gastos comunes · depto",
     },
     {
@@ -2111,7 +2222,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 39_500,
       at: "2026-06-14T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Jumbo Ñuñoa",
     },
     {
@@ -2120,7 +2231,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 54_500,
       at: "2026-06-09T17:30:00Z",
-      category: "Compras",
+      categoryId: cat("Compras"),
       description: "Falabella · ropa de invierno",
     },
     {
@@ -2128,7 +2239,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 380_000,
       at: "2026-07-03T09:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Honorarios freelance · julio",
     },
     {
@@ -2136,7 +2247,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 87_000,
       at: "2026-07-05T11:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Gastos comunes · depto",
     },
     {
@@ -2145,7 +2256,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 15_200,
       at: "2026-07-20T10:00:00Z",
-      category: "Salud",
+      categoryId: cat("Salud"),
       description: "Farmacia Cruz Verde",
     },
     {
@@ -2154,7 +2265,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 47_800,
       at: "2026-07-05T19:00:00Z",
-      category: "Supermercado",
+      categoryId: cat("Supermercado"),
       description: "Santa Isabel",
     },
     // Already in the CURRENT (still open) period: the July 20 boundary already
@@ -2165,7 +2276,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 18_500,
       at: "2026-07-25T14:00:00Z",
-      category: "Educación",
+      categoryId: cat("Educación"),
       description: "Librería Antártica",
     },
     {
@@ -2174,7 +2285,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 22_000,
       at: "2026-07-30T06:30:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Uber al aeropuerto",
     },
     {
@@ -2182,7 +2293,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 380_000,
       at: "2026-08-03T09:00:00Z",
-      category: "Otros",
+      categoryId: cat("Otros"),
       description: "Honorarios freelance · agosto",
     },
     {
@@ -2190,7 +2301,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 87_000,
       at: "2026-08-05T11:00:00Z",
-      category: "Servicios",
+      categoryId: cat("Servicios"),
       description: "Gastos comunes · depto",
     },
     // Consolidating idle funds into the main checking account — an ordinary
@@ -2200,7 +2311,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 150_000,
       at: "2026-08-10T10:00:00Z",
-      category: "Traspaso",
+      categoryId: cat("Traspaso"),
       description: "Traspaso a Cuenta Corriente",
       transferGroup: "tg_bci_consolidate",
     },
@@ -2209,7 +2320,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 150_000,
       at: "2026-08-10T10:00:00Z",
-      category: "Traspaso",
+      categoryId: cat("Traspaso"),
       description: "Traspaso desde BCI",
       transferGroup: "tg_bci_consolidate",
     },
@@ -2223,7 +2334,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 80_000,
       at: "2026-08-05T10:00:00Z",
-      category: "Traspaso",
+      categoryId: cat("Traspaso"),
       description: "Carga Cuenta Prepago",
       transferGroup: "tg_prepaid_load",
     },
@@ -2232,7 +2343,7 @@ async function seedFullUser(passwordHash: string) {
       type: "INCOME",
       amount: 80_000,
       at: "2026-08-05T10:00:00Z",
-      category: "Traspaso",
+      categoryId: cat("Traspaso"),
       description: "Carga desde Banco de Chile",
       transferGroup: "tg_prepaid_load",
     },
@@ -2243,7 +2354,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 24_900,
       at: "2026-08-07T13:30:00Z",
-      category: "Restaurantes",
+      categoryId: cat("Restaurantes"),
       description: "Almuerzo · Prepago",
     },
     {
@@ -2252,7 +2363,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 12_900,
       at: "2026-08-11T21:15:00Z",
-      category: "Suscripciones",
+      categoryId: cat("Suscripciones"),
       description: "Suscripción online · tarjeta virtual",
     },
     {
@@ -2260,7 +2371,7 @@ async function seedFullUser(passwordHash: string) {
       type: "EXPENSE",
       amount: 3_700,
       at: "2026-08-14T08:20:00Z",
-      category: "Transporte",
+      categoryId: cat("Transporte"),
       description: "Recarga Bip! (sin tarjeta)",
     },
   ];
@@ -2674,7 +2785,7 @@ async function seedFullUser(passwordHash: string) {
       amount: dec(String(t.amount)),
       currency: "CLP",
       occurredAt: new Date(t.at),
-      category: t.category,
+      categoryId: t.categoryId,
       description: t.description,
     })),
   });
@@ -2852,7 +2963,7 @@ async function seedFullUser(passwordHash: string) {
             amount: dec(total.toFixed(4)),
             currency: "CLP",
             occurredAt: paidAt,
-            category: "Tarjeta de crédito",
+            categoryId: cat("Tarjeta de crédito"),
             description: `Pago facturación · ${closedAt.toISOString().slice(0, 10)}`,
           },
         });
@@ -2985,7 +3096,7 @@ async function seedFullUser(passwordHash: string) {
               amount: dec(total),
               currency: "CLP",
               occurredAt: paidAt,
-              category: "Tarjeta de crédito",
+              categoryId: cat("Tarjeta de crédito"),
               description: "Pago facturación",
             },
           });
@@ -3136,7 +3247,7 @@ async function seedFullUser(passwordHash: string) {
       // Bought with the CMR card: the plan records which card, so the card's own
       // detail can say what it still owes in instalments.
       cardId: creditCard.id,
-      category: "Tecnología",
+      categoryId: cat("Tecnología"),
       notes: "12 cuotas sin interés",
     },
   });
@@ -3165,7 +3276,7 @@ async function seedFullUser(passwordHash: string) {
       amount: dec("1080000.0000"),
       currency: "CLP",
       occurredAt: notebookDue[0]!,
-      category: "Tecnología",
+      categoryId: cat("Tecnología"),
       description: notebook.title,
       installmentPlanId: notebook.id,
     },
@@ -3201,7 +3312,7 @@ async function seedFullUser(passwordHash: string) {
       startDate: new Date("2026-05-10T00:00:00Z"),
       currency: "CLP",
       cardId: creditCardBch.id,
-      category: "Hogar",
+      categoryId: cat("Hogar"),
       // 6 x 65.000 = 390.000: la compra en cuotas CON interés compromete más que el
       // precio, y esa diferencia va al cupo como cargo financiero (ver TX), nunca
       // calculada por la app — se anota, tal como llega en la cartola real.
@@ -3231,7 +3342,7 @@ async function seedFullUser(passwordHash: string) {
       amount: dec("360000.0000"),
       currency: "CLP",
       occurredAt: fridgeDue[0]!,
-      category: "Hogar",
+      categoryId: cat("Hogar"),
       description: fridge.title,
       installmentPlanId: fridge.id,
     },
@@ -3279,7 +3390,7 @@ async function seedFullUser(passwordHash: string) {
       startDate: new Date("2026-04-10T00:00:00Z"),
       currency: "CLP",
       cardId: creditCardBci.id,
-      category: "Tecnología",
+      categoryId: cat("Tecnología"),
       notes: "6 cuotas sin interés",
     },
   });
@@ -3306,7 +3417,7 @@ async function seedFullUser(passwordHash: string) {
       amount: dec("480000.0000"),
       currency: "CLP",
       occurredAt: tvDue[0]!,
-      category: "Tecnología",
+      categoryId: cat("Tecnología"),
       description: tv.title,
       installmentPlanId: tv.id,
     },
@@ -3348,7 +3459,7 @@ async function seedFullUser(passwordHash: string) {
       startDate: new Date("2026-04-15T00:00:00Z"),
       currency: "CLP",
       cardId: debitCard.id,
-      category: "Hogar",
+      categoryId: cat("Hogar"),
       notes: "4 cuotas, pagadas con la débito de la cuenta corriente",
     },
   });
@@ -3378,7 +3489,7 @@ async function seedFullUser(passwordHash: string) {
         amount: dec("60000.0000"),
         currency: "CLP",
         occurredAt: paidAt,
-        category: "Hogar",
+        categoryId: cat("Hogar"),
         description: `${bicycle2.title} · ${seq}/4`,
         installmentPlanId: bicycle2.id,
       },
@@ -3407,7 +3518,7 @@ async function seedFullUser(passwordHash: string) {
   /** Creates a plan whose paid instalments each recorded a real expense on `checking`. */
   async function mkPaidPlan(spec: {
     title: string;
-    category: string;
+    categoryId: string | null;
     total: string;
     count: number;
     amount: string;
@@ -3424,7 +3535,7 @@ async function seedFullUser(passwordHash: string) {
         installmentCount: spec.count,
         startDate: new Date(spec.start),
         currency: "CLP",
-        category: spec.category,
+        categoryId: spec.categoryId,
         paymentAccountId: checking.id,
         notes: spec.notes ?? null,
       },
@@ -3448,7 +3559,7 @@ async function seedFullUser(passwordHash: string) {
             amount: dec(paidAmount),
             currency: "CLP",
             occurredAt: paidAt,
-            category: spec.category,
+            categoryId: spec.categoryId,
             description: `${spec.title} · ${seq}/${spec.count}`,
             installmentPlanId: plan.id,
           },
@@ -3481,7 +3592,7 @@ async function seedFullUser(passwordHash: string) {
   // In progress: two of four instalments paid in full, from the remembered account.
   await mkPaidPlan({
     title: "Bicicleta Trek",
-    category: "Deporte",
+    categoryId: cat("Deporte"),
     total: "200000.0000",
     count: 4,
     amount: "50000.0000",
@@ -3493,7 +3604,7 @@ async function seedFullUser(passwordHash: string) {
   // the next one as its own figure, shown apart from the scheduled amount.
   await mkPaidPlan({
     title: "Tratamiento dental",
-    category: "Salud",
+    categoryId: cat("Salud"),
     total: "180000.0000",
     count: 3,
     amount: "60000.0000",
@@ -3505,7 +3616,7 @@ async function seedFullUser(passwordHash: string) {
   // Finished: every instalment paid — the case the "Pagados" filter is for.
   await mkPaidPlan({
     title: "Celular Samsung",
-    category: "Tecnología",
+    categoryId: cat("Tecnología"),
     total: "300000.0000",
     count: 3,
     amount: "100000.0000",
@@ -3517,7 +3628,7 @@ async function seedFullUser(passwordHash: string) {
   // what puts the "próxima cuota" indicator in alert.
   await mkPaidPlan({
     title: "Curso de inglés",
-    category: "Educación",
+    categoryId: cat("Educación"),
     total: "240000.0000",
     count: 6,
     amount: "40000.0000",
@@ -3665,7 +3776,7 @@ async function seedFullUser(passwordHash: string) {
       amount: dec("40000.0000"),
       currency: "CLP",
       occurredAt: mariaPaidAt,
-      category: "Deudas",
+      categoryId: cat("Deudas"),
       description: `${debtMaria.counterparty} · ${debtMaria.notes} · 1/3`,
       debtId: debtMaria.id,
     },
@@ -3692,7 +3803,7 @@ async function seedFullUser(passwordHash: string) {
         amount: dec("50000.0000"),
         currency: "CLP",
         occurredAt: paidAt,
-        category: "Deudas",
+        categoryId: cat("Deudas"),
         description: `${debtCarmen.counterparty} · ${debtCarmen.notes} · ${seq}/4`,
         debtId: debtCarmen.id,
       },
@@ -3749,7 +3860,7 @@ async function seedFullUser(passwordHash: string) {
         amount: dec(amount),
         currency: "CLP",
         occurredAt: contributedAt,
-        category: "Ahorro",
+        categoryId: cat("Ahorro"),
         description: title ?? (goalId ? "Aporte a meta de ahorro" : "Aporte a ahorro libre"),
         savingsEntryId: entry.id,
       },
@@ -3841,7 +3952,7 @@ async function seedFullUser(passwordHash: string) {
       amount: dec("600000.0000"),
       currency: "CLP",
       occurredAt: new Date("2026-07-02T08:00:00Z"),
-      category: "Ahorro",
+      categoryId: cat("Ahorro"),
       description: "Retiro de meta «Curso de inglés»",
       savingsGoalId: englishCourse.id,
     },
@@ -3880,7 +3991,7 @@ async function seedFullUser(passwordHash: string) {
       label: "Arriendo",
       amount: dec("520000.0000"),
       currency: "CLP",
-      category: "Vivienda",
+      categoryId: cat("Vivienda"),
       frequency: "MONTHLY",
       interval: 1,
       anchorDate: new Date("2026-01-05T00:00:00Z"),
@@ -3894,7 +4005,7 @@ async function seedFullUser(passwordHash: string) {
       label: "Netflix",
       amount: dec("9990.0000"),
       currency: "CLP",
-      category: "Suscripciones",
+      categoryId: cat("Suscripciones"),
       frequency: "MONTHLY",
       interval: 1,
       anchorDate: new Date("2026-01-10T00:00:00Z"),
@@ -3907,7 +4018,7 @@ async function seedFullUser(passwordHash: string) {
       label: "Spotify",
       amount: dec("5990.0000"),
       currency: "CLP",
-      category: "Suscripciones",
+      categoryId: cat("Suscripciones"),
       frequency: "MONTHLY",
       interval: 1,
       anchorDate: new Date("2026-01-10T00:00:00Z"),
@@ -3920,7 +4031,7 @@ async function seedFullUser(passwordHash: string) {
       label: "Gimnasio Smart Fit",
       amount: dec("32000.0000"),
       currency: "CLP",
-      category: "Salud",
+      categoryId: cat("Salud"),
       frequency: "MONTHLY",
       interval: 1,
       anchorDate: new Date("2026-01-17T00:00:00Z"),
@@ -3933,7 +4044,7 @@ async function seedFullUser(passwordHash: string) {
       label: "Mesada a hijo",
       amount: dec("100000.0000"),
       currency: "CLP",
-      category: "Familia",
+      categoryId: cat("Familia"),
       frequency: "MONTHLY",
       interval: 1,
       anchorDate: new Date("2026-01-25T00:00:00Z"),
@@ -3946,7 +4057,7 @@ async function seedFullUser(passwordHash: string) {
       label: "Aseo semanal",
       amount: dec("25000.0000"),
       currency: "CLP",
-      category: "Hogar",
+      categoryId: cat("Hogar"),
       frequency: "WEEKLY",
       interval: 1,
       anchorDate: new Date("2026-06-02T00:00:00Z"),
@@ -3958,7 +4069,7 @@ async function seedFullUser(passwordHash: string) {
       label: "Seguro automóvil",
       amount: dec("360000.0000"),
       currency: "CLP",
-      category: "Seguros",
+      categoryId: cat("Seguros"),
       frequency: "YEARLY",
       interval: 1,
       anchorDate: new Date("2026-03-15T00:00:00Z"),
@@ -3982,7 +4093,7 @@ async function seedFullUser(passwordHash: string) {
         amount: dec("520000.0000"),
         currency: "CLP",
         occurredAt: new Date("2026-06-05T12:00:00Z"),
-        category: "Vivienda",
+        categoryId: cat("Vivienda"),
         description: "Arriendo",
         observation: "Movimiento generado automáticamente",
       },
@@ -3994,7 +4105,7 @@ async function seedFullUser(passwordHash: string) {
         amount: dec("520000.0000"),
         currency: "CLP",
         occurredAt: new Date("2026-07-05T12:00:00Z"),
-        category: "Vivienda",
+        categoryId: cat("Vivienda"),
         description: "Arriendo",
         observation: "Movimiento generado automáticamente",
       },
@@ -4006,7 +4117,7 @@ async function seedFullUser(passwordHash: string) {
         amount: dec("520000.0000"),
         currency: "CLP",
         occurredAt: new Date("2026-08-05T12:00:00Z"),
-        category: "Vivienda",
+        categoryId: cat("Vivienda"),
         description: "Arriendo",
         observation: "Movimiento generado automáticamente",
       },
@@ -4018,7 +4129,7 @@ async function seedFullUser(passwordHash: string) {
         amount: dec("32000.0000"),
         currency: "CLP",
         occurredAt: new Date("2026-07-17T12:00:00Z"),
-        category: "Salud",
+        categoryId: cat("Salud"),
         description: "Gimnasio Smart Fit",
         observation: "Movimiento generado automáticamente",
       },
@@ -4030,7 +4141,7 @@ async function seedFullUser(passwordHash: string) {
         amount: dec("32000.0000"),
         currency: "CLP",
         occurredAt: new Date("2026-08-17T12:00:00Z"),
-        category: "Salud",
+        categoryId: cat("Salud"),
         description: "Gimnasio Smart Fit",
         observation: "Movimiento generado automáticamente",
       },
@@ -4642,6 +4753,7 @@ async function seedReferenceData() {
 
 async function main() {
   await seedReferenceData();
+  await seedCategories();
 
   await prisma.user.deleteMany({
     where: { email: { in: [...DEMO_EMAILS] } },

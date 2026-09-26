@@ -74,7 +74,13 @@
       "today": "hoy",
       "clear": "Borrar",
       "previousMonth": "Mes anterior",
-      "nextMonth": "Mes siguiente"
+      "nextMonth": "Mes siguiente",
+      "chooseMonth": "Elegir mes",
+      "chooseYear": "Elegir año",
+      "previousYear": "Año anterior",
+      "nextYear": "Año siguiente",
+      "previousYears": "Años anteriores",
+      "nextYears": "Años siguientes"
     },
     "decrease": "Disminuir",
     "increase": "Aumentar",
@@ -600,6 +606,36 @@
       "comingSoon": "Próximamente",
       "comingSoonReason": "Los comprobantes estarán disponibles cuando se habilite el almacenamiento de archivos."
     }
+  },
+  "categories": {
+    "SUPERMARKET": "Supermercado",
+    "RESTAURANTS": "Restaurantes",
+    "TRANSPORT": "Transporte",
+    "HOUSING": "Vivienda",
+    "UTILITIES": "Servicios básicos",
+    "HOME": "Hogar",
+    "HEALTH": "Salud",
+    "EDUCATION": "Educación",
+    "SHOPPING": "Compras",
+    "ENTERTAINMENT": "Entretención",
+    "SUBSCRIPTIONS": "Suscripciones",
+    "TECHNOLOGY": "Tecnología",
+    "TRAVEL": "Viajes",
+    "SPORTS": "Deporte",
+    "PETS": "Mascotas",
+    "INSURANCE": "Seguros",
+    "FAMILY": "Familia",
+    "FEES": "Comisiones",
+    "SALARY": "Sueldo",
+    "FREELANCE": "Honorarios",
+    "REFUND": "Reembolsos",
+    "GIFTS": "Regalos",
+    "OTHER": "Otros",
+    "SAVINGS": "Ahorro",
+    "DEBTS": "Deudas",
+    "INTEREST": "Intereses",
+    "STATEMENT_PAYMENT": "Pago facturación",
+    "CARD_PREPAYMENT": "Prepago tarjeta"
   },
   "installments": {
     "title": "Cuotas",
@@ -1234,7 +1270,91 @@
   },
   "import": {
     "title": "Importar",
-    "info": "Sube movimientos desde Excel (carga de archivo próximamente)."
+    "pageDescription": "Carga movimientos desde la cartola que exportas de tu banco, en Excel (.xlsx) o CSV.",
+    "pickAccount": "¿A qué cuenta los importas?",
+    "panelTitle": "Importar movimientos",
+    "panelDescription": "Desde la cartola que exportas de tu banco, en Excel (.xlsx) o CSV.",
+    "changeFile": "Cambiar archivo",
+    "submit_one": "Importar {{count}} movimiento",
+    "submit_other": "Importar {{count}} movimientos",
+    "submitting": "Importando…",
+    "success_one": "Se importó {{count}} movimiento",
+    "success_other": "Se importaron {{count}} movimientos",
+    "rowError": "Fila {{row}} del archivo: {{message}}",
+    "pick": {
+      "title": "Elige o arrastra tu archivo",
+      "hint": "Excel (.xlsx) o CSV. Si tu banco entrega .xls, ábrelo en Excel y guárdalo como .xlsx.",
+      "reading": "Leyendo archivo…"
+    },
+    "readError": {
+      "unsupported": "Ese formato no se puede leer. Usa un archivo .xlsx o .csv.",
+      "empty": "El archivo no tiene datos.",
+      "unreadable": "No se pudo leer el archivo. ¿Está dañado o protegido con contraseña?"
+    },
+    "map": {
+      "headerRow": "Fila de encabezados",
+      "unnamed": "(sin nombre)",
+      "roleFor": "Qué es la columna {{column}}",
+      "invertSign": "Invertir signo del monto",
+      "incomplete": "Indica la columna de fecha y la del monto (o las de cargos y abonos)."
+    },
+    "roles": {
+      "ignore": "No importar",
+      "date": "Fecha",
+      "description": "Descripción",
+      "amount": "Monto (con signo)",
+      "debit": "Cargos (gastos)",
+      "credit": "Abonos (ingresos)",
+      "type": "Tipo (cargo/abono)",
+      "category": "Categoría",
+      "card": "Tarjeta (últimos 4)",
+      "observation": "Observación",
+      "emisor": "Emisor",
+      "receptor": "Receptor",
+      "lugar": "Lugar",
+      "financeCharge": "Cargo del emisor (sí/no)"
+    },
+    "preview": {
+      "issues_one": "{{count}} fila no se pudo leer y no se importará: {{rows}}.",
+      "issues_other": "{{count}} filas no se pudieron leer y no se importarán: {{rows}}.",
+      "tooMany": "El archivo tiene más de {{max}} movimientos. Divídelo en partes más chicas.",
+      "cardsUnmatched_one": "{{count}} fila nombra una tarjeta que esta cuenta no tiene; usa la tarjeta por defecto.",
+      "cardsUnmatched_other": "{{count}} filas nombran una tarjeta que esta cuenta no tiene; usan la tarjeta por defecto."
+    },
+    "issue": {
+      "invalidDate": "fecha inválida",
+      "invalidAmount": "monto inválido",
+      "ambiguousAmount": "cargo y abono a la vez",
+      "invalidType": "tipo no reconocido"
+    },
+    "notice": {
+      "balance": "Cada movimiento importado mueve el saldo de la cuenta. Si el saldo inicial ya incluye estos movimientos, se contarán dos veces.",
+      "creditCard": "Los gastos se cargan a la tarjeta principal y a la facturación abierta; los abonos liberan cupo."
+    },
+    "sheets": {
+      "title": "Hojas del archivo",
+      "unnamed": "Hoja {{n}}",
+      "rows_one": "{{count}} fila",
+      "rows_other": "{{count}} filas"
+    },
+    "defaults": {
+      "category": "Categoría",
+      "card": "Tarjeta",
+      "noCard": "Sin tarjeta"
+    },
+    "eyebrow": "{{account}} · Importar",
+    "ready_one": "{{count}} listo",
+    "ready_other": "{{count}} listos",
+    "withIssues_one": "{{count}} con problemas",
+    "withIssues_other": "{{count}} con problemas",
+    "grid": {
+      "hint": "Elige qué es cada columna directamente sobre tu planilla. Las columnas sin asignar se ven apagadas.",
+      "noValue": "sin valor",
+      "unmatched": "No se reconoce: se usa «{{fallback}}»",
+      "categoriesUnmatched_one": "{{count}} categoría no calza con el catálogo → {{fallback}}",
+      "categoriesUnmatched_other": "{{count}} categorías no calzan con el catálogo → {{fallback}}",
+      "truncated": "Se muestran las primeras {{shown}} filas; se importan todas."
+    }
   },
   "auth": {
     "signIn": "Iniciar sesión",
@@ -1900,6 +2020,8 @@
     "NO_PAYMENTS_TO_UNDO": "No hay pagos que deshacer en esta deuda.",
     "DEBT_PAYMENT_CURRENCY_MISMATCH": "La cuenta elegida está en otra moneda que la deuda.",
     "DEBT_PAYMENT_FROM_CREDIT_ACCOUNT": "No puedes pagar una deuda desde una cuenta de tarjeta de crédito.",
-    "ACCOUNT_NOT_FOUND": "No se encontró la cuenta."
+    "ACCOUNT_NOT_FOUND": "No se encontró la cuenta.",
+    "CATEGORY_NOT_FOUND": "La categoría elegida no existe.",
+    "CATEGORY_NOT_ALLOWED": "Esa categoría no se puede usar para este movimiento."
   }
 }

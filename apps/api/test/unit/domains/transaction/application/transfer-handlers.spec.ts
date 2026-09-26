@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../support/fake-ports";
 import { EventBus } from "@nestjs/cqrs";
 import { describe, expect, it, vi } from "vitest";
 
@@ -38,7 +39,7 @@ function leg(over: Partial<Parameters<typeof Transaction.fromPersistence>[0]> = 
     amount: "1000",
     currency: "CLP",
     occurredAt: new Date("2026-08-01"),
-    category: null,
+    categoryId: null,
     description: null,
     observation: null,
     emisor: null,
@@ -116,6 +117,7 @@ describe("CreateTransferHandler", () => {
       repo,
       fakeAccounts({ a1: "CHECKING", a2: "SAVINGS" }),
       prisma,
+      fakeCategoryLookup(),
     );
 
     await handler.execute(transferCmd(input));
@@ -140,6 +142,7 @@ describe("CreateTransferHandler", () => {
       fakeRepo(),
       fakeAccounts({ a1: "CHECKING", a2: "CREDIT_CARD" }),
       prisma,
+      fakeCategoryLookup(),
     );
     await expect(handler.execute(transferCmd(input))).rejects.toThrow(/TRANSFER_TO_CREDIT_ACCOUNT/);
   });
@@ -151,6 +154,7 @@ describe("CreateTransferHandler", () => {
       fakeRepo(),
       fakeAccounts({ a1: "CHECKING" }),
       prisma,
+      fakeCategoryLookup(),
     );
     await expect(handler.execute(transferCmd(input))).rejects.toThrow(/TRANSFER_ACCOUNT_NOT_FOUND/);
   });
@@ -163,6 +167,7 @@ describe("UpdateTransferHandler", () => {
       eventBus,
       repo,
       fakeAccounts({ a1: "CHECKING", a3: "SAVINGS" }),
+      fakeCategoryLookup(),
     );
 
     await handler.execute(
@@ -186,6 +191,7 @@ describe("UpdateTransferHandler", () => {
       eventBus,
       fakeRepo({ findTransferGroup: vi.fn(async () => null) }),
       fakeAccounts({}),
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(new UpdateTransferCommand("u1", "nope", { amountOut: "5" })),

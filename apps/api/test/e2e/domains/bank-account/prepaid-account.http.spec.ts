@@ -1,3 +1,4 @@
+import { categoryIdFor } from "../../../integration/support/repositories";
 import { randomUUID } from "node:crypto";
 
 import type { INestApplication } from "@nestjs/common";
@@ -158,7 +159,7 @@ describe("Prepaid account HTTP (e2e)", () => {
         amount: "20000",
         currency: "CLP",
         occurredAt: new Date().toISOString(),
-        category: "Restaurantes",
+        categoryId: await categoryIdFor(prisma, "RESTAURANTS"),
         description: "Almuerzo",
         bankAccountId: prepaidId,
         cardId: prepaidCardId,
@@ -177,7 +178,7 @@ describe("Prepaid account HTTP (e2e)", () => {
         amount: "30000.01",
         currency: "CLP",
         occurredAt: new Date().toISOString(),
-        category: "Otros",
+        categoryId: await categoryIdFor(prisma, "OTHER"),
         description: "Demasiado",
         bankAccountId: prepaidId,
         cardId: prepaidCardId,
@@ -194,7 +195,7 @@ describe("Prepaid account HTTP (e2e)", () => {
         amount: "999999",
         currency: "CLP",
         occurredAt: new Date().toISOString(),
-        category: "Otros",
+        categoryId: await categoryIdFor(prisma, "OTHER"),
         description: "Sin tarjeta",
         bankAccountId: prepaidId,
       });
@@ -214,7 +215,6 @@ describe("Prepaid account HTTP (e2e)", () => {
         currencyOut: "CLP",
         currencyIn: "CLP",
         occurredAt: new Date().toISOString(),
-        category: "Traspaso",
         description: "Carga",
       });
     expect(load.status).toBe(201);
@@ -234,7 +234,6 @@ describe("Prepaid account HTTP (e2e)", () => {
         currencyOut: "CLP",
         currencyIn: "CLP",
         occurredAt: new Date().toISOString(),
-        category: "Traspaso",
         description: "De vuelta",
       });
     expect(tooMuch.body.error?.code).toBe("PREPAID_INSUFFICIENT_BALANCE");

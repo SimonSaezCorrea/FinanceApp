@@ -59,17 +59,17 @@ model User {
   /// Single source of truth for "does login require a second factor?" (specs/021). A non-null
   /// mfaSecretEncrypted with mfaEnabled=false means an enrollment was started but never
   /// confirmed — nothing protects the account in that state.
-  mfaEnabled       Boolean   @default(false)
+  mfaEnabled         Boolean   @default(false)
   /// AES-256-GCM ciphertext of the TOTP secret, format "iv:authTag:ciphertext" (hex). Encrypted
   /// (not hashed) because validating a code requires recomputing the expected HOTP from the
   /// plaintext secret — encryption/decryption happen ONLY in PrismaUserRepository, never in the
   /// domain layer (mirrors the existing Prisma.Decimal<->string boundary conversion for money).
   mfaSecretEncrypted String?
   /// Consecutive invalid second-factor attempts since the last valid one. Reset to 0 on success.
-  mfaFailedAttempts Int      @default(0)
+  mfaFailedAttempts  Int       @default(0)
   /// Set once mfaFailedAttempts reaches the lockout threshold; every attempt while this is in
   /// the future is rejected without even evaluating the code (defense against timing attacks).
-  mfaLockedUntil    DateTime?
+  mfaLockedUntil     DateTime?
 
   country            Country?                @relation(fields: [countryId], references: [id], onDelete: SetNull)
   bankAccounts       BankAccount[]
@@ -116,10 +116,10 @@ model Session {
   /// city, not the user's), shown as a best-effort extra, never load-bearing.
   city        String?
 
-  createdAt  DateTime @default(now())
+  createdAt  DateTime  @default(now())
   /// Bumped on every successful refresh that uses this session (FR-009) — never on a
   /// plain authenticated request, only on the token-renewal path.
-  lastUsedAt DateTime @default(now())
+  lastUsedAt DateTime  @default(now())
   /// `now() + JWT_REFRESH_EXPIRES` at creation; recomputed the same way on every refresh
   /// (the session "slides", same as the refresh token itself already does).
   expiresAt  DateTime
@@ -249,7 +249,7 @@ model IpGeolocationCache {
 
   /// The real business key — NEVER the PK (Principle VIII). Exact IP as the server saw it,
   /// never a CIDR block.
-  ip String @unique
+  ip      String  @unique
   /// ISO alpha-2 (e.g. "CL"), same format `Session.country` already has via MaxMind. `null`
   /// means IPinfo answered 2xx without a `country_code` — a genuine result, cached like any
   /// other (unlike a network error/timeout/non-2xx, which is never cached at all).
@@ -595,56 +595,58 @@ model WalletItemDashboard {
 /// the statement and recorded, which is what keeps the carried-over balance square
 /// with the bank's own figure without this domain inventing interest rates.
 model Transaction {
-  id                 String          @id @default(uuid(7))
-  userId             String
-  bankAccountId      String?
-  cardId             String?
+  id                    String          @id @default(uuid(7))
+  userId                String
+  bankAccountId         String?
+  cardId                String?
   /// True for an issuer charge on the credit account itself — interest on a revolved
   /// balance, an annual fee, insurance. EXPENSE, no card, only on a CREDIT_CARD
   /// account, and it feeds the credit pool. The app never COMPUTES it: it is read off
   /// the statement and recorded, which is what keeps the carried-over balance square
   /// with the bank without this domain inventing interest rates.
-  financeCharge      Boolean         @default(false)
-  type               TransactionType
-  amount             Decimal         @db.Decimal(18, 4)
-  currency           String          @default("USD")
-  occurredAt         DateTime
-  category           String?
-  description        String?
-  observation        String?
-  emisor             String?
-  receptor           String?
-  lugar              String?
-  installmentPlanId  String?
+  financeCharge         Boolean         @default(false)
+  type                  TransactionType
+  amount                Decimal         @db.Decimal(18, 4)
+  currency              String          @default("USD")
+  occurredAt            DateTime
+  /// FK into the global `Category` catalogue. `SetNull`: retiring a category never
+  /// deletes the movements that used it, it only uncategorises them.
+  categoryId            String?
+  description           String?
+  observation           String?
+  emisor                String?
+  receptor              String?
+  lugar                 String?
+  installmentPlanId     String?
   /// The `SavingsEntry` this movement IS — the real EXPENSE a contribution generates
   /// on its source account. `@unique`: a 1:1 relation, unlike the other provenance
   /// FKs on this row.
-  savingsEntryId     String?             @unique
+  savingsEntryId        String?         @unique
   /// The `SavingsGoal` this movement is the "retirar a cuenta" INCOME for, when the
   /// goal was closed with that destination. Not unique — a goal can be closed and
   /// reopened more than once over its life, each time with its own transaction.
-  savingsGoalId      String?
+  savingsGoalId         String?
   /// The credit-pool billing period this movement contributes to, if any — assigned
   /// ONCE at creation (whichever statement was OPEN for the account at that moment),
   /// never reassigned by date on edit. See `CreditStatement`.
-  creditStatementId  String?
+  creditStatementId     String?
   /// Ties the two rows of a transfer together (EXPENSE on the source account +
   /// INCOME on the destination). `null` on ordinary income/expense. A row that
   /// carries it never has a card nor a credit statement (FR-019), and income/expense
   /// AGGREGATES must exclude these rows (`EXCLUDE_TRANSFERS`) — money moved between
   /// the user's own accounts is neither.
-  transferGroupId    String?
+  transferGroupId       String?
   /// The person-to-person `Debt` this movement is a payment for/against — set by
   /// `RegisterDebtPaymentHandler`/`SettleDebtHandler`, the same way `installmentPlanId`
   /// is set by their `installment-plan` counterparts. Lets the Movements view say
   /// "viene de una deuda" instead of leaving the movement looking manual.
-  debtId             String?
+  debtId                String?
   /// The `RecurringExpense` this movement was generated FOR — set only when a
   /// real automatic-generation mechanism writes the row (none exists yet; see
   /// `RecurringExpense`'s own doc comment). Seeded by hand today so the
   /// "historial de ocurrencias" detail view has real rows to read instead of
   /// always showing empty.
-  recurringExpenseId String?
+  recurringExpenseId    String?
   /// Spec 019: the OPEN (at the time) `CreditStatement` this movement abonó early —
   /// null for every other movement, including a plan's purchase or an ordinary
   /// contributing expense (`creditStatementId` above). NOT unique: a period can
@@ -654,13 +656,14 @@ model Transaction {
   /// creation (same spirit as `paidStatementAccountId` on the contract, but a real
   /// column here since there's no reverse-relation trick to derive it from) so the
   /// movement detail can deep-link straight to `/accounts/:id?tab=billing&statement=:id`.
-  prepaymentAccountId    String?
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
+  prepaymentAccountId   String?
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
 
   user                User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   bankAccount         BankAccount?            @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
   card                CardAccount?            @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  category            Category?               @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   installmentPlan     InstallmentPlan?        @relation(fields: [installmentPlanId], references: [id], onDelete: SetNull)
   debt                Debt?                   @relation(fields: [debtId], references: [id], onDelete: SetNull)
   savingsEntry        SavingsEntry?           @relation(fields: [savingsEntryId], references: [id], onDelete: SetNull)
@@ -683,7 +686,7 @@ model Transaction {
   @@index([creditStatementId])
   @@index([occurredAt])
   @@index([installmentPlanId])
-  @@index([category])
+  @@index([categoryId])
   @@index([transferGroupId])
   @@index([debtId])
   @@index([recurringExpenseId])
@@ -728,10 +731,10 @@ model InstallmentPlan {
   /// also be a bank loan or an informal agreement with no card behind it.
   /// `SetNull` — deleting a card must not delete the debt it created.
   cardId            String?
-  /// Free text, drawn from the SAME repertoire as `Transaction.category` — not a
-  /// catalogue of its own. Purely descriptive: the row's icon is derived from it
-  /// with the shared category→icon map, and no calculation reads it.
-  category          String?
+  /// FK into the SAME global `Category` catalogue movements use. Purely
+  /// descriptive: the row's icon comes from it and no calculation reads it — it
+  /// is copied onto the movements the plan generates.
+  categoryId        String?
   /// The account whose money pays this plan's installments — remembered so each
   /// payment form comes pre-filled. `SetNull`: deleting the account must not delete
   /// the debt, it only makes the form ask again. Changing it affects FUTURE payments
@@ -745,6 +748,7 @@ model InstallmentPlan {
 
   user           User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   card           CardAccount?         @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  category       Category?            @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   paymentAccount BankAccount?         @relation("InstallmentPlanPaymentAccount", fields: [paymentAccountId], references: [id], onDelete: SetNull)
   payments       InstallmentPayment[]
   transactions   Transaction[]
@@ -882,37 +886,37 @@ enum SavingsGoalCloseDestination {
 }
 
 model SavingsGoal {
-  id           String    @id @default(uuid(7))
-  userId       String
-  title        String
-  targetAmount Decimal   @db.Decimal(18, 4)
-  currency     String    @default("USD")
-  deadline     DateTime?
-  notes        String?
+  id                 String                       @id @default(uuid(7))
+  userId             String
+  title              String
+  targetAmount       Decimal                      @db.Decimal(18, 4)
+  currency           String                       @default("USD")
+  deadline           DateTime?
+  notes              String?
   /// User-picked accent token (one of `SavingsGoalColor`) for the chip/bar/
   /// legend — `null` = automatic, a deterministic hash of the goal's own id
   /// decides it instead (`goalVisual.ts`). The icon is always automatic;
   /// only the color is ever user-chosen.
-  color        String?
+  color              String?
   /// `null` = the goal is open. Set together with `closeDestination` by
   /// `CloseSavingsGoalHandler`; both cleared by `ReopenSavingsGoalHandler`.
-  closedAt         DateTime?
-  closeDestination SavingsGoalCloseDestination?
+  closedAt           DateTime?
+  closeDestination   SavingsGoalCloseDestination?
   /// Plain bookkeeping (not FKs) — only populated for `WITHDRAW_TO_ACCOUNT`, mirrors
   /// `Debt.lastPaymentAccountId`/`lastPaymentTransactionId`/`lastPaymentAmount`: what
   /// "reabrir" needs to reverse the real money movement, surviving the deletion of
   /// the account/transaction it points at.
   closeAccountId     String?
   closeTransactionId String?
-  closeAmount        Decimal? @db.Decimal(18, 4)
+  closeAmount        Decimal?                     @db.Decimal(18, 4)
   /// Plain bookkeeping (not FK) — only for `TRANSFER_TO_GOAL`, display-only
   /// ("traspasado a «{meta}»"); degrades gracefully if that goal is later deleted.
-  closeTargetGoalId String?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  closeTargetGoalId  String?
+  createdAt          DateTime                     @default(now())
+  updatedAt          DateTime                     @updatedAt
 
-  user                 User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entries              SavingsEntry[]
+  user                   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries                SavingsEntry[]
   withdrawalTransactions Transaction[]
 
   @@index([userId])
@@ -969,7 +973,8 @@ model RecurringExpense {
   label         String
   amount        Decimal             @db.Decimal(18, 4)
   currency      String              @default("USD")
-  category      String?
+  /// FK into the global `Category` catalogue (`SetNull`, like movements).
+  categoryId    String?
   frequency     RecurrenceFrequency
   /// Every N periods (1 = every week/month/year).
   interval      Int                 @default(1)
@@ -989,6 +994,7 @@ model RecurringExpense {
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   bankAccount  BankAccount?  @relation(fields: [bankAccountId], references: [id], onDelete: SetNull)
   card         CardAccount?  @relation(fields: [cardId], references: [id], onDelete: SetNull)
+  category     Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   /// Movements generated FOR this series — see `Transaction.recurringExpenseId`.
   transactions Transaction[]
 
@@ -997,6 +1003,38 @@ model RecurringExpense {
   @@index([cardId])
   @@index([active])
   @@map("recurring-expense")
+}
+
+// --- Reference data: movement categories ---
+
+/// Which movement type a category applies to (`BOTH`: a gift, "otros").
+enum CategoryKind {
+  EXPENSE
+  INCOME
+  BOTH
+}
+
+/// GLOBAL movement-category catalogue — the same rows for every user, seeded and
+/// read-only (user-defined categories are deferred: when they arrive they'll be
+/// rows here with a nullable `userId` + `name`, which is why this is a table and
+/// not an enum). The display name is NOT stored: the API never returns localized
+/// text, so `code` is resolved by the web to `categories.<code>` in es/en. `code`
+/// is the business key — the seed upserts by it — never the PK.
+model Category {
+  id        String       @id @default(uuid(7))
+  code      String       @unique
+  kind      CategoryKind
+  /// Assigned by the server itself (a savings contribution, a statement payment…),
+  /// never offered in a picker nor accepted from a request body.
+  isSystem  Boolean      @default(false)
+  /// Picker order within its group.
+  sortOrder Int          @default(0)
+
+  transactions     Transaction[]
+  installmentPlans InstallmentPlan[]
+  recurring        RecurringExpense[]
+
+  @@map("category")
 }
 
 // --- Reference data: countries + banks ---
@@ -1176,17 +1214,17 @@ model InstitutionAccountType {
 /// under that same userId — but `onDelete: Cascade` still means a hard delete (`keepHistory:
 /// false`) removes it with everything else, since at that point nothing is being kept at all.
 model ConsentRecord {
-  id        String      @id @default(uuid(7))
-  userId    String
-  type      ConsentType
+  id            String      @id @default(uuid(7))
+  userId        String
+  type          ConsentType
   /// A fixed, server-defined identifier for whatever text/policy was shown at the moment of
   /// consent (e.g. a date string) — never client-supplied, so it can't be spoofed to claim an
   /// earlier/different version was accepted.
   policyVersion String
-  grantedAt DateTime    @default(now())
+  grantedAt     DateTime    @default(now())
   /// Null while still in effect. A user can withdraw a specific consent without touching any
   /// other (Art. 11 oposición) — this is the record of that, distinct from account deletion.
-  revokedAt DateTime?
+  revokedAt     DateTime?
 
   /// Only populated on a `MINOR_GUARDIAN_AUTHORIZATION` row (null on every other type) — the
   /// person exercising patria potestad/tutela on behalf of a titular registering under the
@@ -1197,9 +1235,9 @@ model ConsentRecord {
   /// `AccountDeletionLog.identifierHash` — never the raw value). Declarative, not verified:
   /// nothing here confirms the person typing is really the guardian, same honest limitation
   /// every consumer app without a KYC flow has.
-  guardianName             String?
-  guardianIdentifierHash   String?
-  guardianRelationship     GuardianRelationship?
+  guardianName           String?
+  guardianIdentifierHash String?
+  guardianRelationship   GuardianRelationship?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

@@ -5,6 +5,11 @@ import type { installments } from "@finance/contracts";
 
 import { moneyToString, subtractMoney, sumMoney, toMoney } from "@finance/money";
 
+import { assertSelectableCategory } from "../../../category/domain/category-policy";
+import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
 import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
   BaseIdempotentCommandHandler,
@@ -80,6 +85,7 @@ export class CreateInstallmentPlanHandler extends BaseIdempotentCommandHandler<
     private readonly transactions: TransactionWriterRepositoryPort,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
   ) {
     super(eventBus, records);
   }
@@ -90,6 +96,8 @@ export class CreateInstallmentPlanHandler extends BaseIdempotentCommandHandler<
 
   protected async loadContext(command: CreateInstallmentPlanCommand): Promise<Context> {
     const { input } = command;
+    // A plan is a purchase: only expense categories fit it.
+    await assertSelectableCategory(this.categories, input.categoryId, "EXPENSE");
     const cardKind = input.cardId
       ? await this.cards.kindForCard(command.userId, input.cardId)
       : null;
@@ -116,7 +124,7 @@ export class CreateInstallmentPlanHandler extends BaseIdempotentCommandHandler<
       frequencyInterval: input.frequencyInterval,
       aprPerPeriod: input.aprPerPeriod,
       cardId: input.cardId,
-      category: input.category,
+      categoryId: input.categoryId,
       paymentAccountId: input.paymentAccountId,
       notes: input.notes,
     });
@@ -163,7 +171,7 @@ export class CreateInstallmentPlanHandler extends BaseIdempotentCommandHandler<
       amount: plan.totalPrincipal,
       currency: plan.currency,
       occurredAt: new Date(plan.startDate),
-      category: plan.category,
+      categoryId: plan.categoryId,
       description: plan.title,
       cardId: plan.cardId,
       installmentPlanId: plan.id,
@@ -178,7 +186,7 @@ export class CreateInstallmentPlanHandler extends BaseIdempotentCommandHandler<
       amount: moneyToString(interest),
       currency: plan.currency,
       occurredAt: new Date(plan.startDate),
-      category: "Intereses",
+      categoryId: await this.categories.idForSystemCode("INTEREST"),
       description: plan.title,
       // An issuer charge: no card made it, and it bills in its own period like any
       // ordinary charge — hence no `installmentPlanId`.
@@ -197,7 +205,7 @@ export class CreateInstallmentPlanHandler extends BaseIdempotentCommandHandler<
       amount: string;
       currency: string;
       occurredAt: Date;
-      category: string | null;
+      categoryId: string | null;
       description: string;
       cardId?: string | null;
       installmentPlanId?: string;
@@ -212,7 +220,7 @@ export class CreateInstallmentPlanHandler extends BaseIdempotentCommandHandler<
       amount: input.amount,
       currency: input.currency,
       occurredAt: input.occurredAt,
-      category: input.category,
+      categoryId: input.categoryId,
       description: input.description,
       ...(input.cardId ? { cardId: input.cardId } : {}),
       ...(input.installmentPlanId ? { installmentPlanId: input.installmentPlanId } : {}),

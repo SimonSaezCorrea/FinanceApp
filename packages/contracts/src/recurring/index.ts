@@ -13,7 +13,8 @@ export const recurringExpenseSchema = z.object({
   label: z.string(),
   amount: moneyString,
   currency: z.string(),
-  category: z.string().nullable(),
+  /** FK into the global category catalogue (`reference.Category`). */
+  categoryId: rowId.nullable(),
   frequency: recurrenceFrequency,
   interval: z.number().int().positive(),
   anchorDate: z.string(),
@@ -34,7 +35,7 @@ export const createRecurringExpenseSchema = z.object({
   label: z.string().trim().min(1).max(160),
   amount: moneyString,
   currency: z.string().trim().length(3).default("USD"),
-  category: z.string().trim().max(120).optional(),
+  categoryId: rowId.optional(),
   frequency: recurrenceFrequency,
   interval: z.number().int().min(1).max(366).default(1),
   anchorDate: z.string().datetime(),
@@ -52,5 +53,7 @@ export type CreateRecurringExpense = z.infer<typeof createRecurringExpenseSchema
 export const updateRecurringExpenseSchema = createRecurringExpenseSchema.partial().extend({
   currency: z.string().trim().length(3).optional(),
   interval: z.number().int().min(1).max(366).optional(),
+  /** `null` clears the category; omitted leaves it as it is. */
+  categoryId: rowId.nullable().optional(),
 });
 export type UpdateRecurringExpense = z.infer<typeof updateRecurringExpenseSchema>;

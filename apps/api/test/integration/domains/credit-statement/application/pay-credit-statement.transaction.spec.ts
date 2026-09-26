@@ -1,3 +1,4 @@
+import { buildCategoryLookup } from "../../../support/repositories";
 import { randomUUID } from "node:crypto";
 
 import { ConfigService } from "@nestjs/config";
@@ -106,6 +107,7 @@ describe("PayCreditStatementHandler cross-aggregate transaction (integration)", 
       buildTransactionWriterRepo(prisma),
       buildInstallmentPlanRepo(prisma),
       prisma,
+      buildCategoryLookup(prisma),
     );
     // Force the third save (BankAccount) to fail by breaking its saveWithTx.
     vi.spyOn(accountRepo, "saveWithTx").mockRejectedValueOnce(new Error("forced failure"));

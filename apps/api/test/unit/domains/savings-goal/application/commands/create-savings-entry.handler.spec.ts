@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 
 import { CreateSavingsEntryHandler } from "../../../../../../src/domains/savings-entry/application/commands/create-savings-entry.handler";
@@ -68,6 +69,7 @@ describe("CreateSavingsEntryHandler", () => {
       fakeBankAccountRepo({ findById: vi.fn().mockResolvedValue(account), incrementBalanceWithTx }),
       fakeTransactionWriterRepo({ createWithTx: createTransaction }),
       prisma,
+      fakeCategoryLookup(),
     );
 
     const result = await handler.execute(
@@ -105,6 +107,7 @@ describe("CreateSavingsEntryHandler", () => {
       accounts,
       fakeTransactionWriterRepo(),
       prisma,
+      fakeCategoryLookup(),
     );
 
     await expect(
@@ -133,6 +136,7 @@ describe("CreateSavingsEntryHandler", () => {
       accounts,
       fakeTransactionWriterRepo(),
       prisma,
+      fakeCategoryLookup(),
     );
 
     await expect(
@@ -162,6 +166,7 @@ describe("CreateSavingsEntryHandler", () => {
       fakeBankAccountRepo({ findById: vi.fn().mockResolvedValue(creditAccount) }),
       fakeTransactionWriterRepo(),
       prisma,
+      fakeCategoryLookup(),
     );
 
     await expect(
@@ -200,6 +205,7 @@ describe("CreateSavingsEntryHandler", () => {
       accounts,
       fakeTransactionWriterRepo(),
       prisma,
+      fakeCategoryLookup(),
     );
     const command = new CreateSavingsEntryCommand(
       "u1",

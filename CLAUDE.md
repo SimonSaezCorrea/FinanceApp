@@ -40,7 +40,7 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
 
 **pnpm + Turborepo monorepo** with two separately-deployable apps + shared packages. TypeScript, Node 20. Migrated from the legacy single Next.js app via specs/001.
 
-- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 28 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record, mfa-recovery-code, passkey, session, ip-geolocation-cache, consent-record, account-deletion-log — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **JWT access+refresh, backed by a real `Session` row per login** (specs/023 — the NextAuth `Account`/`Session`/`VerificationToken` tables removed at the monorepo migration were a different, unrelated thing; this `Session` is new). A session is reached one of two ways: email+password (optionally gated by a TOTP second factor, specs/021) or a registered WebAuthn passkey (specs/022, bypasses both password and MFA entirely, its own strong authentication) — either way, that login's `Session.id` travels as a `sid` claim inside both the access and refresh token it issues, and `JwtAuthGuard` checks that row exists on every request (not just `User.status`), so closing a session revokes its access token immediately rather than only on its next refresh. See the `session` domain-table bullet below for the full mechanism.
+- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 29 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record, mfa-recovery-code, passkey, session, ip-geolocation-cache, consent-record, account-deletion-log, category — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **JWT access+refresh, backed by a real `Session` row per login** (specs/023 — the NextAuth `Account`/`Session`/`VerificationToken` tables removed at the monorepo migration were a different, unrelated thing; this `Session` is new). A session is reached one of two ways: email+password (optionally gated by a TOTP second factor, specs/021) or a registered WebAuthn passkey (specs/022, bypasses both password and MFA entirely, its own strong authentication) — either way, that login's `Session.id` travels as a `sid` claim inside both the access and refresh token it issues, and `JwtAuthGuard` checks that row exists on every request (not just `User.status`), so closing a session revokes its access token immediately rather than only on its next refresh. See the `session` domain-table bullet below for the full mechanism.
   - **bank-account** (specs/003, 007; the aggregate root of the accounts cluster — `card-account`/`card-limit`/`billing-settings`/`credit-statement` are its own table-domains, written only through it): `BankAccount` is **where money or a credit line lives**. `type` (`AccountType`: **CHECKING/SIGHT/SAVINGS/INVESTMENT/CREDIT_LINE/CASH**), `status` (ACTIVE/INACTIVE), `accountNumber` (**bank account number — free text, stored/shown in full; NOT a card PAN**; **required for CHECKING/SIGHT/SAVINGS**, optional for CREDIT_LINE/INVESTMENT/CASH — enforced via a zod refine on create and by the aggregate on update, `ACCOUNT_NUMBER_REQUIRED`), `initialBalance` (seed) + `currentBalance`, which every movement keeps in step (`initialBalance` + Σincome − Σexpense): creating/editing/deleting a transaction applies its signed balance delta inside the movement's own `$transaction` (`transaction/domain/balance-delta.ts` → `BankAccountRepositoryPort.incrementBalanceWithTx`), exactly as it already does for `creditUsed`. **The manual `POST /accounts/:id/reconcile` is gone** (command, handler, aggregate method and UI button removed) — a balance that maintains itself has nothing to reconcile. **The account-level credit pool** (`creditLimit` + `creditUsedInitial`, seed) is the **shared/master cap across every CREDIT-kind card on the account** — this applies not just to a standalone credit card (a `CREDIT_LINE` account) but to **any cardable account that's grown a CREDIT-kind card** (e.g. a checking account's bank add-on credit card); the contract exposes a **derived `creditUsed` = creditUsedInitial + Σexpense − Σincome** (income = card payments; computed on-read via `sumsByAccount`), `"0"` when the account has no credit pool. List filter `?status=active|inactive`; `POST /accounts/:id/status`. List/get also return a 30d `balanceSeries` + `balanceChangePct` (for sparklines). Deleting unlinks transactions (`onDelete: SetNull`).
   - **Investment tracking removed (2026-09-07):** the standalone `investment` table-domain (ETF/
     remunerated-account holdings: `kind`, `symbol`/`shares` or `annualRate`/`principal`, an optional
@@ -912,9 +912,105 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     **`accountType` (the zod enum) now lives in `packages/contracts/src/common/account-type.ts`** and
     is re-exported from `accounts`: `reference` needs it and `accounts` already imports `reference`,
     so a shared module is what avoids the cycle (same move as `identifierTypeSchema`). Call sites unchanged. **`BankAccount.institutionId`** FK → `FinancialInstitution` (the "institution" selector; scalar `institution` text mirrors its name for display; relation field is `financialInstitution`); web forms use `useInstitutions`/`useCurrencies` selects (`apps/web`'s `domains/reference` — the FRONTEND keeps one reference module; only the backend is split per table).
+  - **import** (spreadsheet import into one account, 2026-09-26; table-less, writes through
+    `transaction`'s writer port): the sidebar's **"Importar"** section (`/import`,
+    `domains/import/routes/ImportRoute`) lists the user's active accounts; picking one opens
+    `domains/import/components/ImportMovementsPanel` for it (every account type, credit card
+    included). (It started as a button in the account detail's Movimientos section; moved to its
+    own section 2026-09-26.) **The file is read in the browser**:
+    `.xlsx` via the new **`read-excel-file`** dependency (web only, `import()`-ed on demand so it's
+    its own ~66 KB chunk), `.csv` via our own parser (`lib/importParsing.ts`'s `parseCsv`:
+    delimiter sniffed — Chilean exports use `;` — quotes, and `lib/readSpreadsheet.ts` re-reads as
+    Windows-1252 when UTF-8 yields replacement chars, since many banks export Latin-1). The old
+    binary `.xls` is NOT supported (decision: no SheetJS; the npm build is abandoned with high
+    advisories that would fail `pnpm audit`). Nothing assumes a layout: `detectHeaderRow` picks the
+    row (of the first 30) naming the most known columns — below the bank's preamble — and
+    `guessRoles` assigns each column a role (`date`/`description`/`amount` signed/`debit`/`credit`/
+    `ignore`) by header keyword (normalized, accents stripped; `saldo`/`balance` are forced to
+    `ignore` so a running balance is never taken for the amount), then by content for what's left.
+    The panel is a **"mirror sheet"** (design B of the 5 explored on the canvas, 2026-09-26): the
+    user's own spreadsheet is drawn as-is in a near-full-screen surface, a role chip above each column,
+    ignored columns dimmed, a broken row highlighted with its bad cell wavy-underlined, an
+    unrecognised category/card flagged in its cell, sheet tabs along the bottom edge, and the
+    ready/with-problems counts + Import button in the header — the grid IS the preview. The user sees and can change every guess (header row select + one role select per column with
+    sample values, an "invertir signo" switch for a signed amount column) with a **live preview**
+    (`buildRows`: day-first dates incl. Excel date cells and serials, Chilean `1.234.567`/`1.234,56`/
+    `(123)`/trailing-minus amounts; a date cell with no digits — "Total" — is furniture, skipped
+    silently; a row that looks like a movement but can't be read is listed as an issue and left out).
+    **API**: `POST /import/transactions` was rewritten — body is now `{ bankAccountId, rows[] }`
+    (`imports.importTransactionsRequestSchema`, ≤ `IMPORT_MAX_ROWS` = 2000, positive amounts, the
+    account's own currency; per-row `bankAccountId`/`currency` are gone), **idempotent**
+    (`Idempotency-Key`, operation `import.transactions`) and **applied like hand-made movements**:
+    `import/domain/import-plan.ts`'s pure `planImport` runs `MovementPolicy.validate` row by row over
+    a RUNNING copy of the account context (so a prepaid balance / overdraft floor / credit limit is
+    enforced on the cumulative total, not per row), charges a credit card account's expenses to its
+    **primary CREDIT card** (a statement doesn't name the plastic) and flags which rows draw on the
+    pool. A rule violation fails the WHOLE import with the rule's own code and `field: "rows.<i>"`
+    (`ImportRowRejectedError`) — the web maps it back to the file's line ("Fila 12 del archivo: …").
+    `ImportTransactionsHandler` writes everything in one `$transaction`: a bulk
+    `TransactionWriterRepositoryPort.createManyWithTx` (replaced the old non-transactional
+    `createMany`; `TransactionPlan` gained `cardId`/`creditStatementId`) + ONE
+    `incrementBalanceWithTx` + ONE `incrementCreditUsedWithTx` + the idempotency mark; pool-drawing
+    rows link to the account's open billing period (`findOrCreateOpenForAccount`). The old
+    `ImportBatch`/`ImportTransactionsRepositoryPort`/`PrismaImportRepository` were removed. **No
+    duplicate detection, by decision**: re-importing the same file later imports it again (two
+    identical coffees are real); the panel warns that an initial balance already including these
+    movements would count them twice.
+    Amendment (every movement field is mappable, 2026-09-26): a column can be ANY field a
+    hand-made movement carries — `type` (a "Cargo/Abono", "D/C", "+/-" column that decides the sign of
+    an always-positive amount, `parseType`; unreadable ⇒ issue `invalidType`), `category`, `card`,
+    `observation`, `emisor`, `receptor`, `lugar`, `financeCharge` (a yes/no column; honoured only on a
+    credit card account) — each guessed by header keyword like the rest. The file's words are
+    resolved in the browser by the pure `lib/resolveRows.ts`: a category by name against the
+    catalogue in es AND en plus its code (`matchCategory`: exact, then containment), never a system
+    one and never one of the other movement type (`reference.isCategorySelectable`); a card by its
+    last four digits against the account's own cards (`matchCard`); plus user-chosen **defaults**
+    (category, card) for rows that don't carry the value or whose value isn't recognised. The
+    preview shows the resolved category/card per row and how many categories matched. API:
+    `importRowSchema` gained `observation`/`emisor`/`receptor`/`lugar`/`cardId`/`financeCharge`;
+    `planImport` now takes the account's cards (`ImportCard`: kind, `isPrimary`, its own `CardLimit`
+    in the account currency and its cycle usage via `sumsForCard` — `ImportModule` binds
+    `PrismaTransactionRepository` for it, the same class, not a second adapter) and keeps a running
+    usage per card, so an additional card with its own sub-limit stays out of the shared pool and is
+    capped by its own limit across rows (`CARD_SUBLIMIT_EXCEEDED`); a `cardId` that isn't the
+    account's answers `CARD_ACCOUNT_MISMATCH` for that row. `TransactionPlan` gained
+    `emisor`/`receptor`/`lugar`.
+  - **category** (global movement-category catalogue, 2026-09-25): `Category` (table `category`) =
+    ONE seeded, read-only catalogue shared by every user — `code` (`@unique` business key the seed
+    upserts by, never the PK), `kind` (`CategoryKind`: EXPENSE/INCOME/BOTH), `isSystem`, `sortOrder`.
+    **No display name is stored**: the API never returns localized text, so the web resolves `code`
+    to `categories.<CODE>` in es/en (and to an icon via `shared/lib/categoryIcons.ts`'s code map).
+    `Transaction`/`InstallmentPlan`/`RecurringExpense` replaced their free-text `category` column
+    with a **`categoryId`** FK (`onDelete: SetNull`); every contract/filter followed
+    (`transactionFiltersSchema.categoryId` is an exact match, `GET /transactions/summary` returns
+    `categoryIds`, update schemas take `categoryId: null` to clear). `GET /categories` (its own
+    Facade, same shape as `/currencies`). Writers validate a body `categoryId` through
+    `category/domain/category-policy.ts`'s `assertSelectableCategory` over the leaf
+    `CategoryDataModule`'s `CategoryLookupPort` — must exist (`CATEGORY_NOT_FOUND`) and satisfy
+    `reference.isCategorySelectable(category, type)` (`CATEGORY_NOT_ALLOWED`: a system row, or one
+    of the other movement type; a transfer passes no type, so only system rows are refused; plans
+    and recurring series are always `EXPENSE`). An UPDATE only validates a CHANGED category, so
+    re-sending a server-assigned one passes. **System categories** (`reference.SYSTEM_CATEGORY`:
+    SAVINGS, DEBTS, INTEREST, STATEMENT_PAYMENT, CARD_PREPAYMENT) are catalogue rows the server
+    assigns itself — the eight handlers that used to hardcode "Ahorro"/"Deudas"/"Intereses"/"Pago
+    facturación"/"Prepago tarjeta" now call `CategoryLookupPort.idForSystemCode(...)`; they're
+    returned by `GET /categories` (so the web can label them) but never offered in a picker. Web:
+    `domains/reference`'s `useCategories` + **`useCategoryCatalog()`** (`nameOf`/`codeOf`/
+    `optionsFor(type, currentId)` — the picker options, filtered by the same contract predicate,
+    plus the current value so an edit never drops a server-assigned category) and a by-id
+    `CategoryIcon` (the shared `shared/ui/category-icon.tsx` is now `CategoryCodeIcon`, by code);
+    every movement/plan/series picker lists the catalogue instead of the user's own history — the
+    old history-derived list made a brand-new user's picker empty with no way to create a first
+    category. Switching a movement's type drops a category that no longer fits it. Seed: the 28
+    rows (`CATEGORY_CATALOGUE`, upserted by `seedCategories()`, anything not in it deleted) plus
+    `SEED_CATEGORY_LABELS` mapping the demo data's Spanish labels to codes (transfer legs stay
+    uncategorised). **Deferred on purpose**: user-created categories (rename/hide/merge) — planned
+    as `category` rows with a nullable `userId`/`name`, see `docs/PENDING.md` (Movimientos §2).
+    Test helpers: `fakeCategoryLookup()` (unit) and `buildCategoryLookup`/`categoryIdFor(prisma,
+code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + `db:seed`.
   - **wallet-item-dashboard**: `WalletItemDashboard` (table `wallet-item-dashboard`) `(accountId? | cardId?, order)` — a user-curated set of pinned cards **or** accounts for the dashboard "wallet" (exactly one of card/account; XOR enforced in its aggregate; `onDelete: Cascade`). Endpoints `GET/POST /wallet`, `PATCH /wallet/reorder` (`{ids[]}`), `DELETE /wallet/:id`.
-  - **idempotency-record** (specs/015, Constitution Principle VII form (c)): `IdempotencyRecord` (table `idempotency-record`) `(userId, key)` with `@@unique([userId, key])` — the mutual-exclusion lock itself, not a validation on top of one. Every money-moving write listed below reads a required `Idempotency-Key` request header (`packages/contracts/src/idempotency`, `requireIdempotencyKey` in `infra/http/idempotency-key.ts`; missing ⇒ `IDEMPOTENCY_KEY_REQUIRED` 400) and goes through `BaseIdempotentCommandHandler` (`infra/cqrs/base-idempotent-command.handler.ts`), a two-phase protocol: **(1) RESERVE** — `reserve(userId, key)` attempts the unique insert in its own transaction; a genuine collision comes back `EXISTS` and the record decides whether to **replay** the stored response (same operation, same request-hash — a canonical-JSON SHA-256 over the body, `infra/cqrs/request-hash.ts`), reject with `IDEMPOTENCY_KEY_REUSED` (409, different data under the same key — what protects "two identical coffees" from being conflated: identity is the KEY, never the content), answer `IDEMPOTENCY_IN_PROGRESS` (409, the original attempt is still running), or **take over** an abandoned reservation once it's stale (>60s, `IDEMPOTENCY_IN_FLIGHT_TIMEOUT_SECONDS`); **(2) EXECUTE** — the handler's `handleIdempotent()` opens ONE `prisma.$transaction` covering both the real effect (the movement, the debt payment, the statement payment, …) and `complete(tx, body, status)`, which stamps the record `COMPLETED` **inside that same transaction**. This ordering is the entire safety argument (`research.md` §3): `IN_FLIGHT` always implies the effect never committed, which is what makes taking over a stale reservation safe — completing AFTER the effect's own transaction (two separate commits) would leave a window where a crash applies the money but never marks it done, and a retry would duplicate it. Ten operations are protected this way: `POST /transactions`, `POST /transactions/transfers`, `POST /installments`, `POST /installments/:id/payments/:seq/pay`, `POST /accounts/:id/credit-statements/:id/pay`, `POST /debts/:id/settle`, `POST /debts/:id/unsettle`, `POST /debts/:id/payments`, `DELETE /debts/:id/payments` (undo), `POST /savings/entries`. A write that mutates state alongside the idempotency mark needs a `*WithTx(tx, …)` repository method (established precedent: `installment-plan`'s `create`/`createWithTx`) — this pushed transaction ownership from the adapter into the handler for `transaction`/`debt`/`savings-entry`, previously the adapter's own job. **`debt`'s four commands additionally do the entire read-mutate-write cycle inside that one transaction**, via `findOneForUpdateWithTx` (`SELECT … FOR UPDATE`) — wrapping only the write is NOT enough to close a concurrent-request race when the read happens in `loadContext()` beforehand (confirmed empirically: 6 concurrent `register-payment` requests advanced the counter by only 2 until the read moved inside the lock; fixed, 6 concurrent → exactly 6). A daily cron (`infra/cron/idempotency-cleanup.cron.ts`, mirroring `billing-generation.cron.ts`) purges attempts past their retention window via `PurgeExpiredRecordsCommand` (`scope: "system"`, the domain's own named exception to per-user scoping). The mechanism is invisible over HTTP by design — no controller of its own. **Known limitation, deliberately out of scope**: reloading the page mid-submit loses the in-memory key (`useIdempotencyKey`), so the resubmitted form is a genuinely new attempt and can duplicate — avoiding that requires persisting drafts, a separate feature. `POST /import/transactions` was also left unprotected: it has no client (the web import route is a placeholder) and applies no balance/credit delta, so it carried no risk this feature needed to close.
-- **`apps/web`** — **Vite + React 19 SPA**, consumes the API over HTTP only (`shared/lib/apiClient.ts`, `VITE_API_URL`). Domain-first: `src/domains/<domain>/{api,hooks,components,routes}`. Routing **react-router v8** (single `react-router` package — `react-router-dom` no longer exists in v8; every import comes from `react-router`), data via TanStack Query, **owns the es/en i18n catalogs** (`src/i18n`). **Styling: Tailwind CSS** (design tokens as CSS variables in `src/styles/index.css`, dark-mode ready) with shadcn-style primitives in `src/shared/ui` (`button`, `input`, `label`, `field`, `select`, `searchable-select` [button + portaled, fixed-height (`max-h-60`) custom-scrollbar (`scrollbar-thin`) panel with an in-panel search box — for long option lists a native `<select>` can't restyle/height-cap, e.g. institutions (~20 banks) or currencies (168 ISO codes); `displayValue` prop lets the closed control show something narrower than the list label, e.g. a currency's bare ISO code while the open list reads "Name (CODE)"], `combobox` [free-text input + the same portaled dropdown pattern, for fields that accept a value not in the list, e.g. transaction category], `card`, `badge`, `table`, `page-header`, `states` (kind-aware error/empty/loading — see the amendment
+  - **idempotency-record** (specs/015, Constitution Principle VII form (c)): `IdempotencyRecord` (table `idempotency-record`) `(userId, key)` with `@@unique([userId, key])` — the mutual-exclusion lock itself, not a validation on top of one. Every money-moving write listed below reads a required `Idempotency-Key` request header (`packages/contracts/src/idempotency`, `requireIdempotencyKey` in `infra/http/idempotency-key.ts`; missing ⇒ `IDEMPOTENCY_KEY_REQUIRED` 400) and goes through `BaseIdempotentCommandHandler` (`infra/cqrs/base-idempotent-command.handler.ts`), a two-phase protocol: **(1) RESERVE** — `reserve(userId, key)` attempts the unique insert in its own transaction; a genuine collision comes back `EXISTS` and the record decides whether to **replay** the stored response (same operation, same request-hash — a canonical-JSON SHA-256 over the body, `infra/cqrs/request-hash.ts`), reject with `IDEMPOTENCY_KEY_REUSED` (409, different data under the same key — what protects "two identical coffees" from being conflated: identity is the KEY, never the content), answer `IDEMPOTENCY_IN_PROGRESS` (409, the original attempt is still running), or **take over** an abandoned reservation once it's stale (>60s, `IDEMPOTENCY_IN_FLIGHT_TIMEOUT_SECONDS`); **(2) EXECUTE** — the handler's `handleIdempotent()` opens ONE `prisma.$transaction` covering both the real effect (the movement, the debt payment, the statement payment, …) and `complete(tx, body, status)`, which stamps the record `COMPLETED` **inside that same transaction**. This ordering is the entire safety argument (`research.md` §3): `IN_FLIGHT` always implies the effect never committed, which is what makes taking over a stale reservation safe — completing AFTER the effect's own transaction (two separate commits) would leave a window where a crash applies the money but never marks it done, and a retry would duplicate it. Eleven operations are protected this way: `POST /transactions`, `POST /transactions/transfers`, `POST /installments`, `POST /installments/:id/payments/:seq/pay`, `POST /accounts/:id/credit-statements/:id/pay`, `POST /debts/:id/settle`, `POST /debts/:id/unsettle`, `POST /debts/:id/payments`, `DELETE /debts/:id/payments` (undo), `POST /savings/entries`, `POST /import/transactions` (since 2026-09-26, see the `import` bullet). A write that mutates state alongside the idempotency mark needs a `*WithTx(tx, …)` repository method (established precedent: `installment-plan`'s `create`/`createWithTx`) — this pushed transaction ownership from the adapter into the handler for `transaction`/`debt`/`savings-entry`, previously the adapter's own job. **`debt`'s four commands additionally do the entire read-mutate-write cycle inside that one transaction**, via `findOneForUpdateWithTx` (`SELECT … FOR UPDATE`) — wrapping only the write is NOT enough to close a concurrent-request race when the read happens in `loadContext()` beforehand (confirmed empirically: 6 concurrent `register-payment` requests advanced the counter by only 2 until the read moved inside the lock; fixed, 6 concurrent → exactly 6). A daily cron (`infra/cron/idempotency-cleanup.cron.ts`, mirroring `billing-generation.cron.ts`) purges attempts past their retention window via `PurgeExpiredRecordsCommand` (`scope: "system"`, the domain's own named exception to per-user scoping). The mechanism is invisible over HTTP by design — no controller of its own. **Known limitation, deliberately out of scope**: reloading the page mid-submit loses the in-memory key (`useIdempotencyKey`), so the resubmitted form is a genuinely new attempt and can duplicate — avoiding that requires persisting drafts, a separate feature. (`POST /import/transactions` was left out at first — it had no client and applied no delta — and was brought under the same protocol once it got both, 2026-09-26.)
+- **`apps/web`** — **Vite + React 19 SPA**, consumes the API over HTTP only (`shared/lib/apiClient.ts`, `VITE_API_URL`). Domain-first: `src/domains/<domain>/{api,hooks,components,routes}`. Routing **react-router v8** (single `react-router` package — `react-router-dom` no longer exists in v8; every import comes from `react-router`), data via TanStack Query, **owns the es/en i18n catalogs** (`src/i18n`). **Styling: Tailwind CSS** (design tokens as CSS variables in `src/styles/index.css`, dark-mode ready) with shadcn-style primitives in `src/shared/ui` (`button`, `input`, `label`, `field`, `select`, `searchable-select` [button + portaled, fixed-height (`max-h-60`) custom-scrollbar (`scrollbar-thin`) panel with an in-panel search box — for long option lists a native `<select>` can't restyle/height-cap, e.g. institutions (~20 banks) or currencies (168 ISO codes); `displayValue` prop lets the closed control show something narrower than the list label, e.g. a currency's bare ISO code while the open list reads "Name (CODE)"], `combobox` [free-text input + the same portaled dropdown pattern, for fields that accept a value not in the list — no longer used for categories, which are a fixed catalogue picked with `FormSelectField`], `card`, `badge`, `table`, `page-header`, `states` (kind-aware error/empty/loading — see the amendment
   below), `theme-toggle`, `switch`, `unsaved-indicator`, `overlay/` [the dialog family — Modal/Window/Drawer/ResponsiveSurface/FormSurface/ConfirmModal, see the overlay amendment below], `tabs`, `segmented`, `sparkline`) + `cn` helper (`shared/lib/cn.ts`); authed routes wrapped by `app/AppLayout.tsx`. The **Panel** (`app/DashboardPage.tsx` + `domains/dashboard`) is a frontend-only aggregation (net worth, month flow, category donut, upcoming payments, wallet). Libraries: **Recharts** (charts), **sonner** (toasts; `<Toaster/>` in `app/providers`), **@dnd-kit** (wallet drag-reorder). No DB access, never imports backend internals.
   Amendment (kind-aware error/empty states + "keep the chrome" convention, 2026-08-25):
   `shared/ui/states.tsx`'s `ErrorState` stopped being one generic sentence everywhere. Pass the
@@ -1152,8 +1248,8 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
       the same `userId` correlating dozens of financial rows is arguably seudonimización, not
       true anonymization (re-identification by behavioral pattern isn't structurally
       impossible) — this was an explicit product trade-off, not a compliance sign-off.
-    Two new table-domains, both minimal (no `presentation/` of their own — composed into
-    `user`'s own `AuthController`/handlers, same treatment as `mfa-recovery-code`/`passkey`):
+      Two new table-domains, both minimal (no `presentation/` of their own — composed into
+      `user`'s own `AuthController`/handlers, same treatment as `mfa-recovery-code`/`passkey`):
     - **`consent-record`**: one row per explicit, versioned consent (Ley 21.719 Art. 16
       reinforced consent — this app's financial data is "situación socioeconómica", sensitive
       under Art. 2 letra g), so a bundled "accept the terms" checkbox isn't enough).
@@ -1176,68 +1272,68 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
       small (~8 digits + check digit), so this resists casual DB inspection, not a targeted
       brute force by anyone who also holds the secret — proof-of-occurrence, not a vault. No
       API surface; written inside `DeleteAccountHandler`'s own transaction only.
-    Amendment (minor guardian authorization, 2026-09-20): closes compliance-cl hallazgo #2 (a
-    minor could register with no age control at all) WITHOUT gating registration to adults —
-    Ley 21.719's reinforced regime for minors just needs a different consent mechanism, not a
-    ban. `registerRequestSchema` gains **`birthDate`** (now required at registration, not left
-    for later in Profile — the threshold below can't be evaluated without it from day one) and
-    an optional **`guardianAuthorization`** block (`name`, `identifierValue`, `relationship`:
-    MOTHER/FATHER/GUARDIAN/OTHER, `accepted: z.literal(true)`), enforced by a cross-field
-    `.refine()`: **`calculateAgeFromBirthDate(birthDate) < MINOR_GUARDIAN_THRESHOLD_AGE (18)`**
-    requires `guardianAuthorization` to be present — both exported from `@finance/contracts`'
-    `auth` module so the API's validation and the web registration form (deciding whether to
-    show the guardian block) can never disagree. `RegisterHandler` records the guardian's
-    authorization as a SECOND `ConsentRecord` (`type: MINOR_GUARDIAN_AUTHORIZATION`, in addition
-    to — never instead of — the titular's own `SENSITIVE_DATA_PROCESSING` consent), on new
-    nullable `ConsentRecord.guardianName`/`guardianIdentifierHash`/`guardianRelationship`
-    columns: name/relationship in the clear (shown in "Mis consentimientos"), the guardian's own
-    RUT/DNI only as an HMAC via the same `hashIdentifier`/`IDENTIFIER_HASH_SECRET` the
-    account-deletion log uses (the config module was renamed
-    `account-deletion.config.ts` → **`identifier-hash.config.ts`** to reflect the shared use —
-    never the guardian's raw identifier, a third party who isn't even the app's user).
-    **Honestly documented limitation, not solved and not solvable without a KYC flow this MVP
-    doesn't have**: this is declarative, not identity-verified — nothing confirms the person
-    filling the guardian block is really the parent/tutor, the same residual risk every
-    consumer app without document/biometric verification carries. `MINOR_GUARDIAN_THRESHOLD_AGE
-    = 18` (Chile's mayoría de edad) is a working assumption from compliance-cl's own generated
-    docs, **not independently verified against the statute's exact text for this specific
-    threshold** — flagged for legal review before relying on it in production. Web:
-    `RegisterRoute.tsx` computes the same age client-side to reveal the guardian block live as
-    `birthDate` is typed (never trusted as the actual gate — the server re-validates
-    regardless); `ConsentHistorySection.tsx` shows the guardian's name/relationship (never the
-    hash) alongside the reinforced-consent row it accompanies.
-    Amendment (login by RUT, not email, 2026-09-20): product decision — Chilean convention, same
-    as most Chilean banking apps. **`email` no longer authenticates anything** — it stays on the
-    account purely for contact/notifications. `loginRequestSchema` and
-    `startPasskeyLoginRequestSchema` (the passkey "narrow to this account" field) both take
-    **`identifierValue`** (the titular's own RUT) instead of `email`; `registerRequestSchema`'s
-    `name` also became mandatory in the same pass (previously optional) — a titular now always
-    provides name + RUT + email + password + birthDate at registration, no optional fields left
-    among those five. `User.identifierValue` gained a **`@unique`** constraint (it's now a login
-    credential, same uniqueness guarantee `email` already had) — normalized (no dots/dash,
-    uppercase K, via `auth.normalizeRut`) at the Prisma adapter boundary on every write (create
-    AND profile-edit update), so "12.345.678-5" and "123456785" always resolve to the same row
-    regardless of which format was typed at registration vs. login. New
-    **`IdentifierTakenError`**/`IDENTIFIER_TAKEN` (409) mirrors `EmailTakenError`; the Prisma
-    adapter's P2002 handling now inspects `err.meta.target` to throw the right one of the two
-    instead of always assuming email. `UserRepositoryPort` gained **`findByIdentifierValue`**
-    (what `LoginHandler`/`StartPasskeyLoginHandler` resolve an account by now, replacing
-    `findByEmail` for those two flows only — `findByEmail` itself is untouched, still used
-    wherever email uniqueness/lookup is genuinely about email, e.g. registration's own duplicate
-    check). Web: `LoginRoute.tsx`'s email field became a RUT field (`auth.rut` i18n key,
-    `autoComplete="username webauthn"` unchanged since it's still the login identifier slot);
-    `RegisterRoute.tsx` gained a mandatory RUT input for the titular (distinct from the
-    guardian's own, already-existing RUT field — i18n keys `auth.guardian.name`/
-    `auth.guardian.identifierValue` were reworded "…del tutor"/"Guardian's…" once both a titular
-    and a guardian RUT field could appear on the same screen, to keep placeholders unique for
-    both users and tests). No change to MFA (`login/mfa-verify`, still keyed off the pending
-    token's `sub`, never an identifier field) or to the discoverable/"usernameless" passkey path
-    (still resolves purely from the WebAuthn credential, never an identifier at all).
-    Compliance posture this closes (see `.compliance/RESUMEN.md`/`state.json`): hallazgo #1
-    (no consentimiento reforzado — **now closed**) and hallazgo #3 (desactivar ≠ eliminar —
-    **now closed**, real supresión exists). Still open: hallazgo #2 (no age-minimum check at
-    registration), portabilidad/export (no `GET /auth/me/export` yet), and the seudonimización
-    caveat above.
+      Amendment (minor guardian authorization, 2026-09-20): closes compliance-cl hallazgo #2 (a
+      minor could register with no age control at all) WITHOUT gating registration to adults —
+      Ley 21.719's reinforced regime for minors just needs a different consent mechanism, not a
+      ban. `registerRequestSchema` gains **`birthDate`** (now required at registration, not left
+      for later in Profile — the threshold below can't be evaluated without it from day one) and
+      an optional **`guardianAuthorization`** block (`name`, `identifierValue`, `relationship`:
+      MOTHER/FATHER/GUARDIAN/OTHER, `accepted: z.literal(true)`), enforced by a cross-field
+      `.refine()`: **`calculateAgeFromBirthDate(birthDate) < MINOR_GUARDIAN_THRESHOLD_AGE (18)`**
+      requires `guardianAuthorization` to be present — both exported from `@finance/contracts`'
+      `auth` module so the API's validation and the web registration form (deciding whether to
+      show the guardian block) can never disagree. `RegisterHandler` records the guardian's
+      authorization as a SECOND `ConsentRecord` (`type: MINOR_GUARDIAN_AUTHORIZATION`, in addition
+      to — never instead of — the titular's own `SENSITIVE_DATA_PROCESSING` consent), on new
+      nullable `ConsentRecord.guardianName`/`guardianIdentifierHash`/`guardianRelationship`
+      columns: name/relationship in the clear (shown in "Mis consentimientos"), the guardian's own
+      RUT/DNI only as an HMAC via the same `hashIdentifier`/`IDENTIFIER_HASH_SECRET` the
+      account-deletion log uses (the config module was renamed
+      `account-deletion.config.ts` → **`identifier-hash.config.ts`** to reflect the shared use —
+      never the guardian's raw identifier, a third party who isn't even the app's user).
+      **Honestly documented limitation, not solved and not solvable without a KYC flow this MVP
+      doesn't have**: this is declarative, not identity-verified — nothing confirms the person
+      filling the guardian block is really the parent/tutor, the same residual risk every
+      consumer app without document/biometric verification carries. `MINOR_GUARDIAN_THRESHOLD_AGE
+= 18` (Chile's mayoría de edad) is a working assumption from compliance-cl's own generated
+      docs, **not independently verified against the statute's exact text for this specific
+      threshold** — flagged for legal review before relying on it in production. Web:
+      `RegisterRoute.tsx` computes the same age client-side to reveal the guardian block live as
+      `birthDate` is typed (never trusted as the actual gate — the server re-validates
+      regardless); `ConsentHistorySection.tsx` shows the guardian's name/relationship (never the
+      hash) alongside the reinforced-consent row it accompanies.
+      Amendment (login by RUT, not email, 2026-09-20): product decision — Chilean convention, same
+      as most Chilean banking apps. **`email` no longer authenticates anything** — it stays on the
+      account purely for contact/notifications. `loginRequestSchema` and
+      `startPasskeyLoginRequestSchema` (the passkey "narrow to this account" field) both take
+      **`identifierValue`** (the titular's own RUT) instead of `email`; `registerRequestSchema`'s
+      `name` also became mandatory in the same pass (previously optional) — a titular now always
+      provides name + RUT + email + password + birthDate at registration, no optional fields left
+      among those five. `User.identifierValue` gained a **`@unique`** constraint (it's now a login
+      credential, same uniqueness guarantee `email` already had) — normalized (no dots/dash,
+      uppercase K, via `auth.normalizeRut`) at the Prisma adapter boundary on every write (create
+      AND profile-edit update), so "12.345.678-5" and "123456785" always resolve to the same row
+      regardless of which format was typed at registration vs. login. New
+      **`IdentifierTakenError`**/`IDENTIFIER_TAKEN` (409) mirrors `EmailTakenError`; the Prisma
+      adapter's P2002 handling now inspects `err.meta.target` to throw the right one of the two
+      instead of always assuming email. `UserRepositoryPort` gained **`findByIdentifierValue`**
+      (what `LoginHandler`/`StartPasskeyLoginHandler` resolve an account by now, replacing
+      `findByEmail` for those two flows only — `findByEmail` itself is untouched, still used
+      wherever email uniqueness/lookup is genuinely about email, e.g. registration's own duplicate
+      check). Web: `LoginRoute.tsx`'s email field became a RUT field (`auth.rut` i18n key,
+      `autoComplete="username webauthn"` unchanged since it's still the login identifier slot);
+      `RegisterRoute.tsx` gained a mandatory RUT input for the titular (distinct from the
+      guardian's own, already-existing RUT field — i18n keys `auth.guardian.name`/
+      `auth.guardian.identifierValue` were reworded "…del tutor"/"Guardian's…" once both a titular
+      and a guardian RUT field could appear on the same screen, to keep placeholders unique for
+      both users and tests). No change to MFA (`login/mfa-verify`, still keyed off the pending
+      token's `sub`, never an identifier field) or to the discoverable/"usernameless" passkey path
+      (still resolves purely from the WebAuthn credential, never an identifier at all).
+      Compliance posture this closes (see `.compliance/RESUMEN.md`/`state.json`): hallazgo #1
+      (no consentimiento reforzado — **now closed**) and hallazgo #3 (desactivar ≠ eliminar —
+      **now closed**, real supresión exists). Still open: hallazgo #2 (no age-minimum check at
+      registration), portabilidad/export (no `GET /auth/me/export` yet), and the seudonimización
+      caveat above.
   - **session** (specs/023, "Sesiones y dispositivos reales", 2026-09-19): `Session`
     (table `session`) is a dominio-tabla propio sin `presentation/` (mismo trato que
     `passkey`/`mfa-recovery-code` — sus comandos/queries viven en `user`'s application
@@ -1360,7 +1456,7 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     cualquier cierre de otra sesión sin volver a pedir verificación — una ventana de "libre
     cierre" corta a propósito, no una sesión de administrador de duración indefinida. Verificación
     por **TOTP, llave de acceso o contraseña** — `auth.stepUpMethodsFor({mfaEnabled,
-    passkeyCount})` decide cuáles ofrecer (TOTP y/o passkey si están configurados; contraseña
+passkeyCount})` decide cuáles ofrecer (TOTP y/o passkey si están configurados; contraseña
     siempre como respaldo, y la única opción si no hay ninguno de los otros dos, por decisión
     explícita del usuario en la clarificación de este feature). Tres endpoints nuevos bajo
     `AuthController`: `POST /auth/sessions/step-up` (código TOTP o contraseña),
@@ -1432,7 +1528,7 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
 
 - **Money:** never floats. Cross the boundary as **decimal strings** (zod `moneyString` in contracts); compute with `@finance/money` (`decimal.js`) / `Prisma.Decimal` at schema precision.
 - **Validation:** request bodies/queries validated with **zod** schemas from `@finance/contracts` via `ZodValidationPipe` (NOT Nest's class-validator).
-- **Identifiers (specs/016):** every row's `id`, across all 24 tables, is **UUID v7** — `schema.prisma`'s `@default(uuid(7))` (Prisma 7 generates it client-side, no native Postgres v7 function needed); the handful of write paths that mint an id explicitly (a cross-referenced value needed before insert, or a non-PK correlation value like `transferGroupId`) go through the one shared helper `apps/api/src/infra/id/generate-row-id.ts`, never a bare `randomUUID()`. Validated at the boundary via the shared zod schema `rowId` (`packages/contracts/src/common/row-id.ts`, `z.uuidv7()`) — every path param and every id-shaped body field uses it, never a bare `z.string()`; a malformed id, or a well-formed UUID of the wrong version, is rejected `400 INVALID_ID_FORMAT` before any query runs (`ZodValidationPipe`/`ZodParamsPipe`). Business identifiers (institution `code`, CBU, `RUT-`/`PSP-`/`AGF-` catalogue keys) are untouched by this — separate columns, their own validation, never the row's PK. **The keyset pagination cursor and the attachment storage key are NOT row identifiers and are deliberately opaque in a different way (specs/017):** `transaction/application/queries/transaction-cursor.ts`'s `encodeCursor`/`decodeCursor` sign the cursor — `base64url("<version>|<occurredAt>|<id>") + "." + base64url(HMAC-SHA256(secret, payload))`, secret from the required env var **`CURSOR_SIGNING_SECRET`** (`infra/config/cursor.config.ts`'s `getCursorSigningSecret`, `ConfigService.getOrThrow`, fails fast at boot like the JWT secrets) — any tampered/unversioned/malformed cursor throws `InvalidCursorError` (`INVALID_CURSOR`). `transaction-attachment/domain/attachment-policy.ts`'s `storageKeyFor()` returns a flat `randomUUID()` (v4, not the row's own v7 id — v7 embeds a timestamp that would leak upload time) with no relation to `userId`/`transactionId`/`attachmentId`/filename, since that key egresses verbatim inside the presigned URL handed to the browser.
+- **Identifiers (specs/016):** every row's `id`, across all 29 tables, is **UUID v7** — `schema.prisma`'s `@default(uuid(7))` (Prisma 7 generates it client-side, no native Postgres v7 function needed); the handful of write paths that mint an id explicitly (a cross-referenced value needed before insert, or a non-PK correlation value like `transferGroupId`) go through the one shared helper `apps/api/src/infra/id/generate-row-id.ts`, never a bare `randomUUID()`. Validated at the boundary via the shared zod schema `rowId` (`packages/contracts/src/common/row-id.ts`, `z.uuidv7()`) — every path param and every id-shaped body field uses it, never a bare `z.string()`; a malformed id, or a well-formed UUID of the wrong version, is rejected `400 INVALID_ID_FORMAT` before any query runs (`ZodValidationPipe`/`ZodParamsPipe`). Business identifiers (institution `code`, CBU, `RUT-`/`PSP-`/`AGF-` catalogue keys) are untouched by this — separate columns, their own validation, never the row's PK. **The keyset pagination cursor and the attachment storage key are NOT row identifiers and are deliberately opaque in a different way (specs/017):** `transaction/application/queries/transaction-cursor.ts`'s `encodeCursor`/`decodeCursor` sign the cursor — `base64url("<version>|<occurredAt>|<id>") + "." + base64url(HMAC-SHA256(secret, payload))`, secret from the required env var **`CURSOR_SIGNING_SECRET`** (`infra/config/cursor.config.ts`'s `getCursorSigningSecret`, `ConfigService.getOrThrow`, fails fast at boot like the JWT secrets) — any tampered/unversioned/malformed cursor throws `InvalidCursorError` (`INVALID_CURSOR`). `transaction-attachment/domain/attachment-policy.ts`'s `storageKeyFor()` returns a flat `randomUUID()` (v4, not the row's own v7 id — v7 embeds a timestamp that would leak upload time) with no relation to `userId`/`transactionId`/`attachmentId`/filename, since that key egresses verbatim inside the presigned URL handed to the browser.
 - **Per-user isolation:** every repository query is scoped by `userId`; controllers use `@CurrentUser`.
 - **i18n:** every UI string in BOTH `apps/web/src/i18n/es.json` and `en.json` (identical keys); the API never returns localized text.
 - **Styling / design system:** Tailwind utility classes + `src/shared/ui` primitives (button, input, label, field, card, badge, table, page-header, states, theme-toggle, overlay (Modal/Window/ResponsiveSurface/FormSurface/ConfirmModal), tabs, segmented, sparkline). **Tokens are the only source** of color/size (CSS variables in `src/styles/index.css`); never hardcode `#hex`/`rgb()` — use token classes (`bg-background`, `text-muted-foreground`, `text-brand`, `bg-accent`, …). Palette includes the **clay `--accent`** channel (`#F4A261` dark / `#E76F51` light). Theming via `data-theme` on `<html>` (**dark default**, light, system) through `src/theme/ThemeProvider`; icons from **Lucide**, font **Geist** (`@fontsource-variable/geist`, Inter fallback). Full guide: `docs/{english,spanish}/DESIGN_SYSTEM.md`.
@@ -1525,7 +1621,7 @@ NumberFormat("es", …)` has no currency-symbol mapping for CLP and fell back to
 - **Commits:** only when the user explicitly asks.
 - **Markdown:** don't add `.md` files unless requested.
 
-**Deferred (not yet implemented):** `import` multipart/xlsx file upload (the endpoint accepts pre-parsed JSON rows for now).
+**Deferred (not yet implemented):** reading the old binary `.xls` in the importer (only `.xlsx`/`.csv`), duplicate detection on import, and remembering a confirmed column mapping per bank — see `docs/PENDING.md` (Movimientos §10).
 
 ## Spec-Driven Development (SDD / Spec Kit)
 
@@ -1538,8 +1634,10 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.1.0**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.3.5**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
+- **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
+  `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.
 - **Constitution v2.1.0 (2026-09-03) — §VI domain count fixed (24), Principle VII gets its reference
   implementation.** specs/015 closed Principle VII (idempotent writes) end to end and fixed a
   preexisting drift in §VI's own text (its header said "23 domains" while a sentence below it said

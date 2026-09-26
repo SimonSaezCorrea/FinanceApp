@@ -546,22 +546,24 @@ function MovementsSection({
               aria-label={t("transactions.form.selectCard")}
             />
           ) : null}
-          <Button
-            variant="accent"
-            size="sm"
-            className="shrink-0"
-            onClick={() => {
-              setEditTx(null);
-              setDuplicateTx(null);
-              setReturnToDetail(null);
-              setModalOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" aria-hidden />
-            {/* Icon-only on the narrowest phones: the label doesn't fit next to the
-                filter below the `sm` breakpoint. */}
-            <span className="sr-only sm:not-sr-only">{t("transactions.new")}</span>
-          </Button>
+          <span className="flex shrink-0 items-center gap-2">
+            <Button
+              variant="accent"
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                setEditTx(null);
+                setDuplicateTx(null);
+                setReturnToDetail(null);
+                setModalOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+              {/* Icon-only on the narrowest phones: the label doesn't fit next to the
+                  filter below the `sm` breakpoint. */}
+              <span className="sr-only sm:not-sr-only">{t("transactions.new")}</span>
+            </Button>
+          </span>
         </div>
       </div>
 

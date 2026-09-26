@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 
 import { UpdateInstallmentPlanHandler } from "../../../../../../src/domains/installment-plan/application/commands/update-installment-plan.handler";
@@ -29,7 +30,7 @@ function makePlan() {
     frequency: "MONTHLY",
     frequencyInterval: 1,
     cardId: null,
-    category: null,
+    categoryId: null,
     paymentAccountId: null,
     notes: null,
     payments: [],
@@ -73,6 +74,7 @@ function makeUpdateHandler(
     }),
     fakeTransactionWriterRepo({ listForInstallmentPlan: vi.fn(async () => []) }),
     { $transaction: async (fn: (tx: unknown) => Promise<unknown>) => fn({}) } as never,
+    fakeCategoryLookup(),
   );
 }
 
@@ -101,11 +103,11 @@ describe("UpdateInstallmentPlanHandler", () => {
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(makePlan()), save });
     const result = await makeUpdateHandler(repo).execute(
       new UpdateInstallmentPlanCommand("u1", "p1", {
-        category: "Hogar",
+        categoryId: "Hogar",
         paymentAccountId: "a1",
       }),
     );
-    expect(result.category).toBe("Hogar");
+    expect(result.categoryId).toBe("Hogar");
     expect(result.paymentAccountId).toBe("a1");
   });
 

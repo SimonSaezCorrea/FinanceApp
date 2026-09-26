@@ -24,7 +24,9 @@ function legData(patch: TransferLegPatch): Prisma.TransactionUpdateInput {
   if (patch.amount !== undefined) data.amount = patch.amount;
   if (patch.currency !== undefined) data.currency = patch.currency;
   if (patch.occurredAt !== undefined) data.occurredAt = patch.occurredAt;
-  if (patch.category !== undefined) data.category = patch.category;
+  if (patch.categoryId !== undefined) {
+    data.category = patch.categoryId ? { connect: { id: patch.categoryId } } : { disconnect: true };
+  }
   if (patch.description !== undefined) data.description = patch.description;
   if (patch.observation !== undefined) data.observation = patch.observation;
   if (patch.emisor !== undefined) data.emisor = patch.emisor;
@@ -50,7 +52,9 @@ function patchToUpdateInput(
   if (patch.amount !== undefined) data.amount = patch.amount;
   if (patch.currency !== undefined) data.currency = patch.currency;
   if (patch.occurredAt !== undefined) data.occurredAt = patch.occurredAt;
-  if (patch.category !== undefined) data.category = patch.category;
+  if (patch.categoryId !== undefined) {
+    data.category = patch.categoryId ? { connect: { id: patch.categoryId } } : { disconnect: true };
+  }
   if (patch.description !== undefined) data.description = patch.description;
   if (patch.observation !== undefined) data.observation = patch.observation;
   if (patch.emisor !== undefined) data.emisor = patch.emisor;
@@ -78,7 +82,7 @@ function rowToProps(row: Row): TransactionProps {
     amount: row.amount.toString(),
     currency: row.currency,
     occurredAt: row.occurredAt,
-    category: row.category,
+    categoryId: row.categoryId,
     description: row.description,
     observation: row.observation,
     emisor: row.emisor,
@@ -140,9 +144,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     if (where.cardId) prismaWhere.cardId = where.cardId;
     if (where.creditStatementId) prismaWhere.creditStatementId = where.creditStatementId;
     if (where.recurringExpenseId) prismaWhere.recurringExpenseId = where.recurringExpenseId;
-    if (where.category) {
-      prismaWhere.category = { contains: where.category, mode: "insensitive" };
-    }
+    if (where.categoryId) prismaWhere.categoryId = where.categoryId;
     if (where.occurredFrom || where.occurredTo) {
       prismaWhere.occurredAt = {
         ...(where.occurredFrom ? { gte: where.occurredFrom } : {}),
@@ -207,17 +209,17 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         _sum: { amount: true },
       }),
       this.prisma.transaction.findMany({
-        where: { ...aggregateWhere, category: { not: null } },
-        distinct: ["category"],
-        select: { category: true },
-        orderBy: { category: "asc" },
+        where: { ...aggregateWhere, categoryId: { not: null } },
+        distinct: ["categoryId"],
+        select: { categoryId: true },
+        orderBy: { categoryId: "asc" },
       }),
     ]);
 
     return {
       total,
       currencyTotals: foldCurrencyTotals(grouped),
-      categories: categories.map((c) => c.category).filter((c): c is string => c !== null),
+      categoryIds: categories.map((c) => c.categoryId).filter((c): c is string => c !== null),
     };
   }
 
@@ -278,7 +280,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         amount: plan.amount,
         currency: plan.currency,
         occurredAt: plan.occurredAt,
-        category: plan.category,
+        categoryId: plan.categoryId,
         description: plan.description,
         observation: plan.observation,
         emisor: plan.emisor,
@@ -447,7 +449,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
             amount: leg.amount,
             currency: leg.currency,
             occurredAt: leg.occurredAt,
-            category: leg.category,
+            categoryId: leg.categoryId,
             description: leg.description,
             observation: leg.observation,
             emisor: leg.emisor,

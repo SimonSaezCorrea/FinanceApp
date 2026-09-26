@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { cn } from "../../../shared/lib/cn";
 import { ConfirmModal } from "../../../shared/ui/overlay";
 
@@ -30,6 +31,7 @@ export function TransactionDeleteConfirm({
   onConfirm: () => void;
 }>) {
   const { t, i18n } = useTranslation();
+  const { nameOf: categoryName } = useCategoryCatalog();
 
   const account = transaction
     ? accountList.find((a) => a.id === transaction.bankAccountId)
@@ -51,7 +53,9 @@ export function TransactionDeleteConfirm({
         <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/40 p-3">
           <div className="flex items-baseline justify-between gap-3">
             <span className="min-w-0 truncate text-sm font-medium">
-              {transaction.description ?? transaction.category ?? t("transactions.uncategorized")}
+              {transaction.description ??
+                categoryName(transaction.categoryId) ??
+                t("transactions.uncategorized")}
             </span>
             <span
               className={cn(

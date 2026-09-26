@@ -6,10 +6,11 @@ import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { RowActionsMenu } from "./RowActionsMenu";
+import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
-import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { cn } from "../../../shared/lib/cn";
 import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { InfiniteScrollSentinel } from "../../../shared/ui/infinite-scroll-sentinel";
@@ -89,6 +90,7 @@ export function TransactionTable({
   onRetry,
 }: TransactionTableProps) {
   const { t, i18n } = useTranslation();
+  const { nameOf: categoryName } = useCategoryCatalog();
   const showActions = Boolean(onEdit || onDelete);
   // Only one row's swipe panel open at a time — opening another closes the
   // previous one for free, since both read off this single id.
@@ -236,7 +238,7 @@ export function TransactionTable({
                       {isTransfer ? (
                         <ArrowLeftRight className="h-4 w-4" aria-hidden />
                       ) : (
-                        <CategoryIcon category={tx.category} className="h-4 w-4" />
+                        <CategoryIcon categoryId={tx.categoryId} className="h-4 w-4" />
                       )}
                     </span>
                   </TD>
@@ -255,7 +257,7 @@ export function TransactionTable({
                   {showCategoryColumn ? (
                     <TD>
                       <span className="text-sm">
-                        {tx.category ?? (
+                        {categoryName(tx.categoryId) ?? (
                           <span className="text-muted-foreground">
                             {t("transactions.table.noCategory")}
                           </span>
@@ -364,7 +366,7 @@ export function TransactionTable({
             const iconWrapColor = isIncome
               ? "bg-success/15 text-success"
               : "bg-muted text-muted-foreground";
-            const category = tx.category ?? t("transactions.table.noCategory");
+            const category = categoryName(tx.categoryId) ?? t("transactions.table.noCategory");
 
             return (
               <SwipeRow
@@ -385,7 +387,7 @@ export function TransactionTable({
                   <span
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconWrapColor}`}
                   >
-                    <CategoryIcon category={tx.category} className="h-4 w-4" />
+                    <CategoryIcon categoryId={tx.categoryId} className="h-4 w-4" />
                   </span>
 
                   <div className="min-w-0 flex-1">

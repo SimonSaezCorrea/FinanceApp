@@ -94,7 +94,8 @@ export function monthFlow(txs: transactions.Transaction[]): MonthFlow {
 }
 
 export interface CategorySlice {
-  category: string | null;
+  /** Catalogue category id, `null` for uncategorised. */
+  categoryId: string | null;
   total: string;
 }
 
@@ -103,13 +104,13 @@ export function expensesByCategory(txs: transactions.Transaction[]): CategorySli
   const map = new Map<string | null, string[]>();
   for (const t of excludeTransfers(txs)) {
     if (t.type !== "EXPENSE" || t.currency !== PRIMARY_CURRENCY) continue;
-    const key = t.category ?? null;
+    const key = t.categoryId ?? null;
     const bucket = map.get(key) ?? [];
     bucket.push(t.amount);
     map.set(key, bucket);
   }
   return [...map.entries()]
-    .map(([category, vals]) => ({ category, total: sumMoney(vals) }))
+    .map(([categoryId, vals]) => ({ categoryId, total: sumMoney(vals) }))
     .sort((a, b) => Number(b.total) - Number(a.total));
 }
 

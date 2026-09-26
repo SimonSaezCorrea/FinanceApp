@@ -26,7 +26,7 @@ function plan(over: { cardId?: string | null; currency?: string; billed?: boolea
     frequency: "MONTHLY",
     frequencyInterval: 1,
     cardId: over.cardId === undefined ? "c1" : over.cardId,
-    category: null,
+    categoryId: null,
     paymentAccountId: null,
     notes: null,
     payments: [

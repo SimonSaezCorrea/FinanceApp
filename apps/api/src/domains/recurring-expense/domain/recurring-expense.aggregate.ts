@@ -7,7 +7,7 @@ export interface RecurringExpenseProps {
   label: string;
   amount: string;
   currency: string;
-  category: string | null;
+  categoryId: string | null;
   frequency: recurring.RecurrenceFrequency;
   interval: number;
   anchorDate: Date;
@@ -23,7 +23,7 @@ export type RecurringExpensePatch = Partial<{
   label: string;
   amount: string;
   currency: string;
-  category: string | null;
+  categoryId: string | null;
   frequency: recurring.RecurrenceFrequency;
   interval: number;
   anchorDate: Date;
@@ -93,7 +93,7 @@ export class RecurringExpense {
     label: string;
     amount: string;
     currency: string;
-    category?: string;
+    categoryId?: string;
     frequency: recurring.RecurrenceFrequency;
     interval: number;
     anchorDate: Date;
@@ -106,7 +106,7 @@ export class RecurringExpense {
       label: input.label,
       amount: input.amount,
       currency: input.currency,
-      category: input.category ?? null,
+      categoryId: input.categoryId ?? null,
       frequency: input.frequency,
       interval: input.interval,
       anchorDate: input.anchorDate,
@@ -129,7 +129,7 @@ export class RecurringExpense {
     if (patch.label !== undefined) this.props.label = patch.label;
     if (patch.amount !== undefined) this.props.amount = patch.amount;
     if (patch.currency !== undefined) this.props.currency = patch.currency;
-    if (patch.category !== undefined) this.props.category = patch.category;
+    if (patch.categoryId !== undefined) this.props.categoryId = patch.categoryId;
     if (patch.frequency !== undefined) this.props.frequency = patch.frequency;
     if (patch.interval !== undefined) this.props.interval = patch.interval;
     if (patch.anchorDate !== undefined) this.props.anchorDate = patch.anchorDate;
@@ -149,7 +149,7 @@ export class RecurringExpense {
       label: this.props.label,
       amount: moneyToString(this.props.amount),
       currency: this.props.currency,
-      category: this.props.category,
+      categoryId: this.props.categoryId,
       frequency: this.props.frequency,
       interval: this.props.interval,
       anchorDate: this.props.anchorDate.toISOString(),

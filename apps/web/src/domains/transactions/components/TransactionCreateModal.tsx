@@ -18,7 +18,6 @@ import { ConfirmModal, FormSurface } from "../../../shared/ui/overlay";
 import { transactionsApi } from "../api/transactionsApi";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useTransferMutations } from "../hooks/useTransferMutations";
-import { useTransactionsSummary } from "../hooks/useTransactions";
 import { AttachmentsSection } from "./AttachmentsSection";
 import { TransactionFormPanel, type TransactionFormValue } from "./TransactionFormPanel";
 
@@ -41,7 +40,7 @@ const emptyForm = (date: string): TransactionFormValue => ({
   prepayFromAccountId: "",
   cardId: "",
   financeCharge: false,
-  category: "",
+  categoryId: "",
   description: "",
   observation: "",
   emisor: "",
@@ -114,9 +113,7 @@ export function TransactionCreateModal({
   // reject the second record as a duplicate of the first (FR-002).
   const idempotencyKey = useIdempotencyKey();
   const { data: accountList } = useAccounts();
-  const { data: summary } = useTransactionsSummary();
   const editing = Boolean(initial);
-  const categoryOptions = summary?.categories ?? [];
 
   const [form, setForm] = useState<TransactionFormValue>(() => emptyForm(todayInput()));
   // What the form looked like right after it finished prefilling — compared
@@ -197,7 +194,7 @@ export function TransactionCreateModal({
       bankAccountId,
       cardId: defaultCardId,
       financeCharge: source?.financeCharge ?? false,
-      category: source?.category ?? "",
+      categoryId: source?.categoryId ?? "",
       description: source?.description ?? "",
       observation: source?.observation ?? "",
       emisor: source?.emisor ?? "",
@@ -281,7 +278,7 @@ export function TransactionCreateModal({
       amount: "",
       amountIn: "",
       description: "",
-      category: "",
+      categoryId: "",
       observation: "",
       emisor: "",
       receptor: "",
@@ -330,7 +327,7 @@ export function TransactionCreateModal({
         currencyIn: destination?.currency ?? form.currency,
         occurredAt,
         description: form.description || undefined,
-        category: form.category || undefined,
+        categoryId: form.categoryId || undefined,
         observation: form.observation || undefined,
         emisor: form.emisor || undefined,
         receptor: form.receptor || undefined,
@@ -339,7 +336,12 @@ export function TransactionCreateModal({
 
       // A transfer's own surface has no attachment step, so it just closes.
       const transferHandlers = { onSuccess: () => done(), onError: handlers.onError };
-      if (groupId) transfer.update.mutate({ groupId, body }, transferHandlers);
+      // An edit sends `null` to CLEAR the category; a create just omits it.
+      if (groupId)
+        transfer.update.mutate(
+          { groupId, body: { ...body, categoryId: form.categoryId || null } },
+          transferHandlers,
+        );
       else
         transfer.create.mutate(
           { body, idempotencyKey: idempotencyKey.current() },
@@ -379,7 +381,7 @@ export function TransactionCreateModal({
       bankAccountId: form.bankAccountId,
       cardId: form.mode === "INCOME" || !cardable ? undefined : form.cardId || undefined,
       financeCharge: form.financeCharge || undefined,
-      category: form.category || undefined,
+      categoryId: form.categoryId || undefined,
       description: form.description || undefined,
       observation: form.observation || undefined,
       emisor: form.emisor || undefined,
@@ -387,7 +389,11 @@ export function TransactionCreateModal({
       lugar: form.lugar || undefined,
     } satisfies transactions.CreateTransaction;
 
-    if (editing && initial) update.mutate({ id: initial.id, body }, handlers);
+    if (editing && initial)
+      update.mutate(
+        { id: initial.id, body: { ...body, categoryId: form.categoryId || null } },
+        handlers,
+      );
     else create.mutate({ body, idempotencyKey: idempotencyKey.current() }, handlers);
   }
 
@@ -439,7 +445,6 @@ export function TransactionCreateModal({
           onChange={patch}
           accounts={accounts}
           selectable={selectable}
-          categoryOptions={categoryOptions}
           editing={editing}
           // In transfer mode this locks the ORIGIN row instead of hiding the
           // account row: the origin is the account being viewed, only the

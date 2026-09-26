@@ -7,10 +7,11 @@ import { transactions } from "@finance/contracts";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
 import { DetailRow } from "../../../shared/ui/detail-row";
-import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { CategoryIcon } from "../../reference/components/CategoryIcon";
 
 export function formatLongDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, {
@@ -46,6 +47,7 @@ export function TransactionDetailPanel({
   children,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
+  const { nameOf: categoryName } = useCategoryCatalog();
 
   const account = tx.bankAccountId ? accounts.find((a) => a.id === tx.bankAccountId) : undefined;
   const card = tx.cardId ? account?.cards.find((c) => c.id === tx.cardId) : undefined;
@@ -68,9 +70,11 @@ export function TransactionDetailPanel({
   ];
   const hasExtraDetails = extraDetails.some((d) => d.value);
 
-  const meta = [formatLongDate(tx.occurredAt, i18n.language), tx.category, account?.name].filter(
-    Boolean,
-  );
+  const meta = [
+    formatLongDate(tx.occurredAt, i18n.language),
+    categoryName(tx.categoryId),
+    account?.name,
+  ].filter(Boolean);
 
   const accountValue = account
     ? [account.name, t(`accounts.type.${account.type}`)].join(" · ")
@@ -104,7 +108,7 @@ export function TransactionDetailPanel({
           {isTransfer ? (
             <ArrowLeftRight className="h-5 w-5" aria-hidden />
           ) : (
-            <CategoryIcon category={tx.category} className="h-5 w-5" />
+            <CategoryIcon categoryId={tx.categoryId} className="h-5 w-5" />
           )}
         </span>
         <div className="min-w-0">
@@ -173,8 +177,8 @@ export function TransactionDetailPanel({
             movement's identity, this one names the category being read. */}
         <DetailRow label={t("transactions.form.category")}>
           <span className="flex items-center gap-2">
-            <CategoryIcon category={tx.category} className="h-4 w-4 text-muted-foreground" />
-            {tx.category ?? t("transactions.table.noCategory")}
+            <CategoryIcon categoryId={tx.categoryId} className="h-4 w-4 text-muted-foreground" />
+            {categoryName(tx.categoryId) ?? t("transactions.table.noCategory")}
           </span>
         </DetailRow>
         <DetailRow label={accountLabel} value={accountValue} />

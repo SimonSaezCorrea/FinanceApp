@@ -1,4 +1,5 @@
 import type { installments } from "@finance/contracts";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
@@ -36,7 +37,7 @@ function plan(over: Partial<installments.InstallmentPlan> = {}): installments.In
     frequency: "MONTHLY",
     frequencyInterval: 1,
     cardId: "cCredit",
-    category: "Tecnología",
+    categoryId: null,
     paymentAccountId: null,
     notes: null,
     payments: [payment()],
@@ -58,18 +59,20 @@ function plan(over: Partial<installments.InstallmentPlan> = {}): installments.In
 
 function renderTable(plans: installments.InstallmentPlan[]) {
   render(
-    <I18nextProvider i18n={i18n}>
-      <InstallmentPlanTable
-        plans={plans}
-        cardLabels={new Map()}
-        selectedId={null}
-        onSelect={vi.fn()}
-        onEdit={vi.fn()}
-        onDelete={vi.fn()}
-        onPay={vi.fn()}
-        emptyTitle="No plans"
-      />
-    </I18nextProvider>,
+    <QueryClientProvider client={new QueryClient()}>
+      <I18nextProvider i18n={i18n}>
+        <InstallmentPlanTable
+          plans={plans}
+          cardLabels={new Map()}
+          selectedId={null}
+          onSelect={vi.fn()}
+          onEdit={vi.fn()}
+          onDelete={vi.fn()}
+          onPay={vi.fn()}
+          emptyTitle="No plans"
+        />
+      </I18nextProvider>
+    </QueryClientProvider>,
   );
 }
 

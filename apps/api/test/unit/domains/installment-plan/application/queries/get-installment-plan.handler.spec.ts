@@ -25,7 +25,7 @@ function makePlan(id: string) {
     frequency: "MONTHLY",
     frequencyInterval: 1,
     cardId: null,
-    category: null,
+    categoryId: null,
     paymentAccountId: null,
     notes: null,
     payments: [],

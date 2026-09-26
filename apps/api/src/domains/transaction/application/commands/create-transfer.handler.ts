@@ -3,6 +3,11 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { transactions } from "@finance/contracts";
 
+import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
+import { assertSelectableCategory } from "../../../category/domain/category-policy";
 import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
   BaseIdempotentCommandHandler,
@@ -55,6 +60,7 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
     @Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
   ) {
     super(eventBus, records);
   }
@@ -64,6 +70,7 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
   }
 
   protected async loadContext(command: CreateTransferCommand): Promise<Context> {
+    await assertSelectableCategory(this.categories, command.input.categoryId);
     return loadTransferAccounts(
       this.accounts,
       command.userId,
@@ -85,7 +92,7 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
     const shared = {
       userId,
       occurredAt,
-      category: input.category ?? null,
+      categoryId: input.categoryId ?? null,
       description: input.description ?? null,
       observation: input.observation ?? null,
       emisor: input.emisor ?? null,

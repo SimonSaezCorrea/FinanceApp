@@ -3,6 +3,10 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import { subtractMoney } from "@finance/money";
 
+import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
 import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
   BaseIdempotentCommandHandler,
@@ -77,6 +81,7 @@ export class SettleDebtHandler extends BaseIdempotentCommandHandler<
     @Inject(TRANSACTION_WRITER_REPOSITORY)
     private readonly transactions: TransactionWriterRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
   ) {
     super(eventBus, records);
   }
@@ -125,7 +130,7 @@ export class SettleDebtHandler extends BaseIdempotentCommandHandler<
         amount,
         currency: account.currency,
         occurredAt: command.input.paidAt ? new Date(command.input.paidAt) : new Date(),
-        category: "Deudas",
+        categoryId: await this.categories.idForSystemCode("DEBTS"),
         description: snap.title ? `${snap.counterparty} · ${snap.title}` : snap.counterparty,
         debtId: command.id,
       });

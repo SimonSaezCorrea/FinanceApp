@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "../../../shared/lib/cn";
-import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { ErrorState } from "../../../shared/ui/states";
 import { SwipeRow } from "../../../shared/ui/swipe-row";
 import { nextDuePayment, paidCount, progressRatio } from "../lib/installmentMetrics";
@@ -93,7 +93,7 @@ export function InstallmentPlanList({
                 )}
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground">
-                  <CategoryIcon category={plan.category} className="h-4 w-4" />
+                  <CategoryIcon categoryId={plan.categoryId} className="h-4 w-4" />
                 </span>
 
                 <span className="flex min-w-0 flex-1 flex-col gap-1">

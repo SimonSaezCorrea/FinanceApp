@@ -15,7 +15,7 @@ export interface TransactionListFilter {
   recurringExpenseId?: string;
   occurredFrom?: Date;
   occurredTo?: Date;
-  category?: string;
+  categoryId?: string;
 }
 
 /** Decoded keyset cursor — the last row of the previous page. */
@@ -39,7 +39,7 @@ export interface TransactionPage {
 export interface TransactionSummaryResult {
   total: number;
   currencyTotals: { currency: string; income: string; expense: string }[];
-  categories: string[];
+  categoryIds: string[];
 }
 
 /**
@@ -178,7 +178,7 @@ export type TransferLegPatch = Partial<{
   amount: string;
   currency: string;
   occurredAt: Date;
-  category: string | null;
+  categoryId: string | null;
   description: string | null;
   observation: string | null;
   emisor: string | null;

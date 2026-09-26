@@ -4,6 +4,11 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import type { recurring } from "@finance/contracts";
 
 import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
+import { assertSelectableCategory } from "../../../category/domain/category-policy";
+import {
   BANK_ACCOUNT_LOOKUP,
   type BankAccountLookupPort,
 } from "../../../bank-account/domain/ports/bank-account-lookup.port";
@@ -33,6 +38,7 @@ export class UpdateRecurringExpenseHandler extends BaseCommandHandler<
     @Inject(RECURRING_EXPENSE_REPOSITORY) private readonly repo: RecurringExpenseRepositoryPort,
     @Inject(BANK_ACCOUNT_LOOKUP) private readonly accounts: BankAccountLookupPort,
     @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
   ) {
     super(eventBus);
   }
@@ -40,6 +46,10 @@ export class UpdateRecurringExpenseHandler extends BaseCommandHandler<
   protected async loadContext(command: UpdateRecurringExpenseCommand): Promise<RecurringExpense> {
     const expense = await this.repo.findOne(command.userId, command.id);
     if (!expense) throw new RecurringExpenseNotFoundError();
+    const { categoryId } = command.input;
+    if (categoryId !== undefined && categoryId !== expense.snapshot().categoryId) {
+      await assertSelectableCategory(this.categories, categoryId, "EXPENSE");
+    }
     if (
       command.input.bankAccountId &&
       !(await this.accounts.accountOwned(command.userId, command.input.bankAccountId))
@@ -64,7 +74,7 @@ export class UpdateRecurringExpenseHandler extends BaseCommandHandler<
       ...(input.label !== undefined ? { label: input.label } : {}),
       ...(input.amount !== undefined ? { amount: input.amount } : {}),
       ...(input.currency !== undefined ? { currency: input.currency } : {}),
-      ...(input.category !== undefined ? { category: input.category } : {}),
+      ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
       ...(input.frequency !== undefined ? { frequency: input.frequency } : {}),
       ...(input.interval !== undefined ? { interval: input.interval } : {}),
       ...(input.anchorDate !== undefined ? { anchorDate: new Date(input.anchorDate) } : {}),

@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
+import { CategoryDataModule } from "../category/category.data.module";
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
 import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
 import { CardAccountDataModule } from "../card-account/card-account.data.module";
@@ -32,6 +33,7 @@ const queryHandlers = [ListInstallmentPlansQueryHandler, GetInstallmentPlanQuery
   imports: [
     CqrsModule,
     JwtModule.register({}),
+    CategoryDataModule,
     // The plan's own table binding, plus the schedule rows its adapter composes.
     InstallmentPlanDataModule,
     // Handlers here also write instalment rows directly inside a caller-owned

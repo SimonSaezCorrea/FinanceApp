@@ -1,3 +1,4 @@
+import { categoryIdFor } from "../../../integration/support/repositories";
 import { randomUUID } from "node:crypto";
 
 import type { INestApplication } from "@nestjs/common";
@@ -157,7 +158,7 @@ describe("Installments HTTP (e2e)", () => {
         currency: "USD",
         frequency: "MONTHLY",
         frequencyInterval: 1,
-        category: "Tecnologia",
+        categoryId: await categoryIdFor(prisma, "TECHNOLOGY"),
       });
     expect(res.status).toBe(201);
     planId = res.body.id;
@@ -334,7 +335,7 @@ describe("Installments HTTP (e2e)", () => {
     expect(expense).toBeDefined();
     expect(expense.type).toBe("EXPENSE");
     expect(expense.amount).toBe("400.0000");
-    expect(expense.category).toBe("Tecnologia");
+    expect(expense.categoryId).toBe(await categoryIdFor(prisma, "TECHNOLOGY"));
     expect(expense.description).toContain("1/3");
     // specs/016 US2: the transaction pay-installment mints is UUID v7, not v4.
     expect(expense.id).toMatch(UUID_V7);

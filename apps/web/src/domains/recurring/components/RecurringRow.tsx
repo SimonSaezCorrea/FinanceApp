@@ -6,7 +6,7 @@ import type { recurring } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { cn } from "../../../shared/lib/cn";
-import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { SwipeRow } from "../../../shared/ui/swipe-row";
 import {
   dueNote,
@@ -86,7 +86,7 @@ export function RecurringRow({
           )}
         >
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground">
-            <CategoryIcon category={r.category} className="h-4 w-4" />
+            <CategoryIcon categoryId={r.categoryId} className="h-4 w-4" />
           </span>
 
           <span className="flex min-w-0 flex-1 flex-col">

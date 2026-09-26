@@ -140,8 +140,9 @@ export const installmentPlanSchema = z.object({
   /** The card this purchase was put on, when there was one — a plan can equally
    * be a bank loan with no card behind it. */
   cardId: rowId.nullable(),
-  /** Free text, same repertoire as a movement's category; the row's icon comes from it. */
-  category: z.string().nullable(),
+  /** FK into the global category catalogue, same one movements use; the row's
+   * icon comes from it. */
+  categoryId: rowId.nullable(),
   /** The account remembered to pre-fill each payment form. Null on a CREDIT-card plan. */
   paymentAccountId: rowId.nullable(),
   notes: z.string().nullable(),
@@ -188,7 +189,7 @@ export const createInstallmentPlanSchema = z.object({
   frequencyInterval: z.number().int().min(1).max(999).default(1),
   aprPerPeriod: moneyString.optional(),
   cardId: rowId.nullish(),
-  category: z.string().trim().max(120).nullish(),
+  categoryId: rowId.nullish(),
   paymentAccountId: rowId.nullish(),
   notes: z.string().trim().max(500).optional(),
 });
@@ -200,7 +201,7 @@ export const updateInstallmentPlanSchema = z.object({
   frequency: installmentFrequency.optional(),
   frequencyInterval: z.number().int().min(1).max(999).optional(),
   cardId: rowId.nullable().optional(),
-  category: z.string().trim().max(120).nullable().optional(),
+  categoryId: rowId.nullable().optional(),
   paymentAccountId: rowId.nullable().optional(),
   notes: z.string().trim().max(500).nullable().optional(),
   /**

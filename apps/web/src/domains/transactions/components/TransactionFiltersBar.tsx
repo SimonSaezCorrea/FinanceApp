@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 
 import type { accounts } from "@finance/contracts";
 
+import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { Switch } from "../../../shared/ui/switch";
 import { DateRangeButton } from "./DateRangeButton";
 import type { TransactionViewFilters } from "../lib/transactionMetrics";
@@ -13,7 +14,8 @@ interface TransactionFiltersBarProps {
   filters: TransactionViewFilters;
   onChange: (filters: TransactionViewFilters) => void;
   accounts: accounts.BankAccount[];
-  categories: string[];
+  /** Categories used in the filtered set — the filter's options. */
+  categoryIds: string[];
 }
 
 function PillSelect({
@@ -49,9 +51,10 @@ export function TransactionFiltersBar({
   filters,
   onChange,
   accounts,
-  categories,
+  categoryIds,
 }: TransactionFiltersBarProps) {
   const { t } = useTranslation();
+  const { nameOf: categoryName } = useCategoryCatalog();
 
   function handleAccountChange(value: string) {
     onChange({ ...filters, bankAccountId: value || undefined, selectedCardId: undefined });
@@ -99,15 +102,18 @@ export function TransactionFiltersBar({
       </PillSelect>
 
       <PillSelect
-        value={filters.categorySearch}
-        onChange={(value) => onChange({ ...filters, categorySearch: value })}
+        value={filters.categoryId}
+        onChange={(value) => onChange({ ...filters, categoryId: value })}
       >
         <option value="">{t("transactions.filters.allCategories")}</option>
-        {categories.map((c) => (
-          <option key={c} value={c}>
-            {c}
-          </option>
-        ))}
+        {[...categoryIds]
+          // The API returns them by id; the user reads them by name.
+          .sort((a, b) => (categoryName(a) ?? "").localeCompare(categoryName(b) ?? ""))
+          .map((id) => (
+            <option key={id} value={id}>
+              {categoryName(id) ?? id}
+            </option>
+          ))}
       </PillSelect>
 
       <DateRangeButton

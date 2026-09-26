@@ -3,6 +3,11 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { transactions } from "@finance/contracts";
 
+import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
+import { assertSelectableCategory } from "../../../category/domain/category-policy";
 import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
@@ -80,6 +85,7 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
     @Inject(CARD_LIMIT_REPOSITORY) private readonly cardLimits: CardLimitRepositoryPort,
     @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statements: CreditStatementRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
   ) {
     super(eventBus, records);
   }
@@ -90,6 +96,7 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
 
   protected async loadContext(command: CreateTransactionCommand): Promise<Context> {
     const { input } = command;
+    await assertSelectableCategory(this.categories, input.categoryId, input.type);
     const loaded = await loadAccountContext(this.accounts, command.userId, input.bankAccountId);
     if (!loaded) throw new AccountNotFoundError();
     const { context: account, createdAt: accountCreatedAt } = loaded;
@@ -149,7 +156,7 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
       amount: input.amount,
       currency: input.currency,
       occurredAt: new Date(input.occurredAt),
-      category: input.category,
+      categoryId: input.categoryId,
       description: input.description,
       observation: input.observation,
       emisor: input.emisor,

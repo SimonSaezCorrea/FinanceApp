@@ -1,3 +1,4 @@
+import { buildCategoryLookup } from "../../../support/repositories";
 import { randomUUID } from "node:crypto";
 
 import { ConfigService } from "@nestjs/config";
@@ -187,6 +188,7 @@ describe("PayCreditStatementHandler settles instalments (integration)", () => {
       buildTransactionWriterRepo(prisma),
       planRepo,
       prisma,
+      buildCategoryLookup(prisma),
     );
     await payHandler.execute(
       new PayCreditStatementCommand(

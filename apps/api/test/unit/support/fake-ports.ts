@@ -6,6 +6,7 @@ import {
 } from "../../../src/domains/bank-account/domain/bank-account.aggregate";
 import type { BankAccountRepositoryPort } from "../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CardAccountRepositoryPort } from "../../../src/domains/card-account/domain/ports/card-account.repository.port";
+import type { CategoryLookupPort } from "../../../src/domains/category/domain/ports/category-lookup.port";
 import type { CardLimitRepositoryPort } from "../../../src/domains/card-limit/domain/ports/card-limit.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
 import type { InstallmentPaymentLookupPort } from "../../../src/domains/installment-payment/domain/ports/installment-payment-lookup.port";
@@ -69,7 +70,7 @@ export function fakeTransactionWriterRepo(
     listForInstallmentPlan: vi.fn(async () => []),
     deleteManyWithTx: vi.fn(),
     accountIdForTransaction: vi.fn(async () => null),
-    createMany: vi.fn(async () => 0),
+    createManyWithTx: vi.fn(async () => 0),
     ...overrides,
   };
 }
@@ -298,4 +299,24 @@ export function fakePrismaTransaction(): {
   $transaction: (cb: (tx: unknown) => unknown) => unknown;
 } {
   return { $transaction: (cb) => cb({ __fakeTx: true }) };
+}
+
+/**
+ * Category catalogue lookup: every id resolves to a selectable `BOTH` category
+ * (so a spec that sends any `categoryId` passes validation), and a system code
+ * resolves to a readable `system-<CODE>` id. Override per spec to test refusals.
+ */
+export function fakeCategoryLookup(
+  overrides: Partial<CategoryLookupPort> = {},
+): CategoryLookupPort {
+  return {
+    findById: vi.fn(async (id: string) => ({
+      id,
+      code: "OTHER",
+      kind: "BOTH" as const,
+      isSystem: false,
+    })),
+    idForSystemCode: vi.fn(async (code: string) => `system-${code}`),
+    ...overrides,
+  };
 }

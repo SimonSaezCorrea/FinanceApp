@@ -4,6 +4,11 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import type { transactions } from "@finance/contracts";
 import { sumMoney } from "@finance/money";
 
+import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
+import { assertSelectableCategory } from "../../../category/domain/category-policy";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
   BANK_ACCOUNT_REPOSITORY,
@@ -44,6 +49,7 @@ export class UpdateTransferHandler extends BaseCommandHandler<
     eventBus: EventBus,
     @Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
   ) {
     super(eventBus);
   }
@@ -51,6 +57,10 @@ export class UpdateTransferHandler extends BaseCommandHandler<
   protected async loadContext(command: UpdateTransferCommand): Promise<Context> {
     const existing = await this.repo.findTransferGroup(command.userId, command.transferGroupId);
     if (!existing) throw new TransferNotFoundError();
+    const { categoryId } = command.input;
+    if (categoryId !== undefined && categoryId !== existing.outgoing.snapshot().categoryId) {
+      await assertSelectableCategory(this.categories, categoryId);
+    }
 
     const fromId = command.input.fromBankAccountId ?? existing.outgoing.bankAccountId!;
     const toId = command.input.toBankAccountId ?? existing.incoming.bankAccountId!;
@@ -80,7 +90,7 @@ export class UpdateTransferHandler extends BaseCommandHandler<
 
     const shared = {
       ...(input.occurredAt !== undefined ? { occurredAt: new Date(input.occurredAt) } : {}),
-      ...(input.category !== undefined ? { category: input.category } : {}),
+      ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
       ...(input.description !== undefined ? { description: input.description } : {}),
       ...(input.observation !== undefined ? { observation: input.observation } : {}),
       ...(input.emisor !== undefined ? { emisor: input.emisor } : {}),

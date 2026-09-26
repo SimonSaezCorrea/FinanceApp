@@ -1,3 +1,4 @@
+import { categoryIdFor } from "../../../integration/support/repositories";
 import { randomUUID } from "node:crypto";
 
 import type { INestApplication } from "@nestjs/common";
@@ -141,7 +142,7 @@ describe("Credit-card instalment plan billing, full lifecycle (e2e)", () => {
         currency: "CLP",
         frequency: "MONTHLY",
         frequencyInterval: 1,
-        category: "Tecnologia",
+        categoryId: await categoryIdFor(prisma, "TECHNOLOGY"),
         cardId,
       });
     expect(plan.status).toBe(201);

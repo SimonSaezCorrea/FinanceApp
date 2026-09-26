@@ -9,7 +9,7 @@ import { TransactionTable } from "../../transactions/components/TransactionTable
 import { useInstallments } from "../../installments/hooks/useInstallments";
 import { SidePanel } from "../../../shared/ui/overlay";
 import { Badge } from "../../../shared/ui/badge";
-import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { LoadingState } from "../../../shared/ui/states";
 
 const STATUS_VARIANT = {
@@ -175,7 +175,7 @@ export function StatementDetailPanel({
               {billedInstalments.map(({ plan, payment }) => (
                 <li key={payment.id} className="flex items-center gap-3 p-3">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-chip text-muted-foreground">
-                    <CategoryIcon category={plan.category} className="h-4 w-4" />
+                    <CategoryIcon categoryId={plan.categoryId} className="h-4 w-4" />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium text-foreground">{plan.title}</p>

@@ -30,7 +30,7 @@ export function toListFilter(filters: transactions.TransactionFilters): Transact
     cardId: filters.cardId,
     creditStatementId: filters.creditStatementId,
     recurringExpenseId: filters.recurringExpenseId,
-    category: filters.category,
+    categoryId: filters.categoryId,
     occurredFrom: filters.from ? new Date(filters.from) : undefined,
     occurredTo: filters.to ? new Date(filters.to) : undefined,
   };

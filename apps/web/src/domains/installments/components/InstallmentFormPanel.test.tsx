@@ -95,7 +95,6 @@ function renderPanel(cardFrozen: boolean) {
             value={value}
             onChange={vi.fn()}
             accounts={[creditAccount()]}
-            categoryOptions={[]}
             cardFrozen={cardFrozen}
             // A billed instalment freezes the schedule too (FR-006b) — real plans
             // never have one frozen without the other.

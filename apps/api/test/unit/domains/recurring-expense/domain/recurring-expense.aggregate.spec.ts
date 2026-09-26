@@ -15,7 +15,7 @@ function makeExpense(
     label: "Arriendo",
     amount: "520000",
     currency: "CLP",
-    category: "Vivienda",
+    categoryId: "Vivienda",
     frequency: "MONTHLY",
     interval: 1,
     anchorDate: new Date("2026-01-05T00:00:00Z"),
@@ -90,7 +90,7 @@ describe("RecurringExpense.planCreation", () => {
       interval: 1,
       anchorDate: new Date("2026-01-05T00:00:00Z"),
     });
-    expect(planned.category).toBeNull();
+    expect(planned.categoryId).toBeNull();
     expect(planned.bankAccountId).toBeNull();
     expect(planned.notes).toBeNull();
     expect(planned.active).toBe(true);
@@ -119,7 +119,7 @@ describe("RecurringExpense.toContract", () => {
       label: "Arriendo",
       amount: "520000.0000",
       currency: "CLP",
-      category: "Vivienda",
+      categoryId: "Vivienda",
       frequency: "MONTHLY",
       interval: 1,
       anchorDate: "2026-01-05T00:00:00.000Z",
@@ -144,10 +144,10 @@ describe("RecurringExpense.applyUpdate", () => {
   });
 
   it("allows clearing category/notes/bankAccountId back to null", () => {
-    const expense = makeExpense({ category: "Vivienda", notes: "x", bankAccountId: "acc1" });
-    expense.applyUpdate({ category: null, notes: null, bankAccountId: null });
+    const expense = makeExpense({ categoryId: "Vivienda", notes: "x", bankAccountId: "acc1" });
+    expense.applyUpdate({ categoryId: null, notes: null, bankAccountId: null });
     const contract = expense.toContract(new Date("2026-06-21T00:00:00Z"));
-    expect(contract.category).toBeNull();
+    expect(contract.categoryId).toBeNull();
     expect(contract.notes).toBeNull();
     expect(contract.bankAccountId).toBeNull();
   });

@@ -3,6 +3,10 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import { subtractMoney, toMoney } from "@finance/money";
 
+import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
 import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
   BaseIdempotentCommandHandler,
@@ -98,6 +102,7 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
     private readonly transactions: TransactionWriterRepositoryPort,
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly plans: InstallmentPlanRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
   ) {
     super(eventBus, records);
   }
@@ -199,7 +204,7 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
         amount: context.amount,
         currency: context.account.snapshot().currency,
         occurredAt: context.occurredAt,
-        category: "Pago facturación",
+        categoryId: await this.categories.idForSystemCode("STATEMENT_PAYMENT"),
         description: context.account.name,
         // The user's reference for this payment (a transfer number, say) rides on
         // the movement itself, where they'll look for it later.

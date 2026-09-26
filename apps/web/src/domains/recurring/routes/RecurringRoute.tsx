@@ -7,7 +7,6 @@ import type { recurring } from "@finance/contracts";
 
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { useTransactionsSummary } from "../../transactions/hooks/useTransactions";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
@@ -47,10 +46,6 @@ export function RecurringRoute() {
   const { user } = useAuth();
   const preferredCurrency = user?.preferredCurrency ?? "CLP";
   const { create, update, remove } = useRecurringMutations();
-  // The same category vocabulary Movimientos offers — one shared list, not a
-  // second one this domain invents.
-  const { data: summary } = useTransactionsSummary();
-  const categoryOptions = summary?.categories ?? [];
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<{ mode: "create" | "edit"; id: string | null } | null>(null);
@@ -152,7 +147,7 @@ export function RecurringRoute() {
       label: formValue.label.trim(),
       amount: formValue.amount.trim(),
       currency: formValue.currency.trim().toUpperCase(),
-      category: formValue.category.trim() || undefined,
+      categoryId: formValue.categoryId || undefined,
       frequency: formValue.frequency,
       interval: formValue.interval,
       anchorDate: new Date(`${formValue.anchorDate}T00:00:00`).toISOString(),
@@ -164,7 +159,8 @@ export function RecurringRoute() {
 
     if (form.mode === "edit" && form.id) {
       update.mutate(
-        { id: form.id, body },
+        // An edit sends `null` to CLEAR the category; a create just omits it.
+        { id: form.id, body: { ...body, categoryId: formValue.categoryId || null } },
         {
           onSuccess: () => {
             toast.success(t("recurring.updated"));
@@ -267,7 +263,6 @@ export function RecurringRoute() {
         value={formValue}
         onChange={(patch) => setFormValue((v) => ({ ...v, ...patch }))}
         accounts={accountList}
-        categoryOptions={categoryOptions}
         onSubmit={submitForm}
         submitting={create.isPending || update.isPending}
         dirty={dirty}

@@ -16,7 +16,9 @@ export const transactionSchema = z.object({
   amount: moneyString,
   currency: z.string(),
   occurredAt: z.string(),
-  category: z.string().nullable(),
+  /** FK into the global category catalogue (`reference.Category`); the web
+   * resolves it to a name and icon. */
+  categoryId: rowId.nullable(),
   description: z.string().nullable(),
   observation: z.string().nullable(),
   emisor: z.string().nullable(),
@@ -161,7 +163,9 @@ const transactionFieldsSchema = z.object({
   amount: moneyString,
   currency: z.string().trim().length(3).default("USD"),
   occurredAt: z.string().datetime(),
-  category: z.string().trim().max(120).optional(),
+  /** A catalogue category the user may pick for this `type` (never a system
+   * one) — enforced server-side (`CATEGORY_NOT_FOUND`/`CATEGORY_NOT_ALLOWED`). */
+  categoryId: rowId.optional(),
   description: z.string().trim().max(500).optional(),
   observation: z.string().trim().max(500).optional(),
   emisor: z.string().trim().max(200).optional(),
@@ -202,7 +206,11 @@ export type CreateTransaction = z.infer<typeof createTransactionSchema>;
 // real value). Re-declared without the default here.
 export const updateTransactionSchema = transactionFieldsSchema
   .partial()
-  .extend({ currency: z.string().trim().length(3).optional() })
+  .extend({
+    currency: z.string().trim().length(3).optional(),
+    /** `null` clears the category; omitted leaves it as it is. */
+    categoryId: rowId.nullable().optional(),
+  })
   .refine((t) => t.type !== "INCOME" || !t.cardId, {
     message: "income cannot be linked to a card",
     path: ["cardId"],
@@ -225,7 +233,7 @@ const transferFieldsSchema = z.object({
   currencyIn: z.string().trim().length(3),
   occurredAt: z.string().datetime(),
   description: z.string().trim().max(500).optional(),
-  category: z.string().trim().max(120).optional(),
+  categoryId: rowId.optional(),
   observation: z.string().trim().max(500).optional(),
   emisor: z.string().trim().max(200).optional(),
   receptor: z.string().trim().max(200).optional(),
@@ -243,6 +251,7 @@ export type CreateTransfer = z.infer<typeof createTransferSchema>;
 
 export const updateTransferSchema = transferFieldsSchema
   .partial()
+  .extend({ categoryId: rowId.nullable().optional() })
   .refine(
     (t) => !t.fromBankAccountId || !t.toBankAccountId || t.fromBankAccountId !== t.toBankAccountId,
     {
@@ -277,10 +286,9 @@ export const transactionFiltersSchema = z.object({
   recurringExpenseId: rowId.optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
-  /** Case-insensitive substring match on `category`. Server-side because the
-   * list is paginated — filtering the loaded page in the browser would only
-   * ever search the rows already fetched. */
-  category: z.string().trim().max(120).optional(),
+  /** Exact category. Server-side because the list is paginated — filtering the
+   * loaded page in the browser would only ever search the rows already fetched. */
+  categoryId: rowId.optional(),
   /**
    * Page size. **Omit to get every match in one response** (no pagination),
    * which is what the aggregate-only consumers rely on (e.g. the dashboard's
@@ -308,7 +316,7 @@ export type TransactionPage = z.infer<typeof transactionPageSchema>;
  * have to stay correct no matter how few pages are loaded, so they can't be
  * derived from the rows currently in the browser.
  *
- * `currencyTotals` and `categories` EXCLUDE transfer legs (FR-017): moving money
+ * `currencyTotals` and `categoryIds` EXCLUDE transfer legs (FR-017): moving money
  * between your own accounts is neither income nor expense. `total` counts them —
  * they are real rows of the filtered set the list shows.
  */
@@ -321,6 +329,8 @@ export const transactionSummarySchema = z.object({
       expense: moneyString,
     }),
   ),
-  categories: z.array(z.string()),
+  /** Every category used in the filtered set (transfers excluded) — the category
+   * filter's options. */
+  categoryIds: z.array(rowId),
 });
 export type TransactionSummary = z.infer<typeof transactionSummarySchema>;

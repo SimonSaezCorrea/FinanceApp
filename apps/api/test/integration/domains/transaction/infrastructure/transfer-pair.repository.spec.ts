@@ -6,7 +6,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { EXCLUDE_TRANSFERS } from "../../../../../src/domains/transaction/application/queries/transaction-list-filter";
 import { PrismaTransactionRepository } from "../../../../../src/domains/transaction/infrastructure/prisma-transaction.repository";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
-import { buildBankAccountRepo, buildCardAccountRepo } from "../../../support/repositories";
+import {
+  buildBankAccountRepo,
+  buildCardAccountRepo,
+  categoryIdFor,
+} from "../../../support/repositories";
 
 /** Real-test-DB integration test — needs a reachable Postgres (`pnpm db:reset`). */
 describe("transfer pair (integration)", () => {
@@ -49,7 +53,7 @@ describe("transfer pair (integration)", () => {
     amount: "1000",
     currency: "CLP",
     occurredAt: new Date("2026-08-01"),
-    category: null,
+    categoryId: null,
     description: null,
     observation: null,
     emisor: null,
@@ -181,7 +185,7 @@ describe("transfer pair (integration)", () => {
         amount: "500",
         currency: "CLP",
         occurredAt: new Date("2026-08-02"),
-        category: "Comida",
+        categoryId: await categoryIdFor(prisma, "RESTAURANTS"),
         bankAccountId: a1,
       },
     });
@@ -189,15 +193,15 @@ describe("transfer pair (integration)", () => {
     const groupId = randomUUID();
     await txRepo.saveTransferPair(
       userId,
-      leg({ transferGroupId: groupId, category: "Traspaso" }),
-      leg({ type: "INCOME", bankAccountId: a2, transferGroupId: groupId, category: "Traspaso" }),
+      leg({ transferGroupId: groupId }),
+      leg({ type: "INCOME", bankAccountId: a2, transferGroupId: groupId }),
       [],
     );
 
     const summary = await txRepo.summary(userId, {});
     expect(summary.total).toBe(3);
     expect(summary.currencyTotals).toEqual([{ currency: "CLP", income: "0", expense: "500" }]);
-    expect(summary.categories).toEqual(["Comida"]);
+    expect(summary.categoryIds).toEqual([await categoryIdFor(prisma, "RESTAURANTS")]);
     // The predicate itself is what the summary applies.
     expect(EXCLUDE_TRANSFERS).toEqual({ transferGroupId: null });
   });

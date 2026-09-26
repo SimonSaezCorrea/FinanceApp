@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 import {
   fakeIdempotencyRecordRepo,
@@ -190,6 +191,7 @@ describe("PayCreditStatementHandler", () => {
       fakeTransactionWriterRepo(),
       fakePlanRepo(),
       prisma as never,
+      fakeCategoryLookup(),
     );
 
     const result = await handler.execute(
@@ -220,6 +222,7 @@ describe("PayCreditStatementHandler", () => {
       fakeTransactionWriterRepo(),
       fakePlanRepo(),
       fakePrisma() as never,
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(
@@ -252,6 +255,7 @@ describe("PayCreditStatementHandler", () => {
       fakeTransactionWriterRepo(),
       fakePlanRepo(),
       fakePrisma() as never,
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(
@@ -282,6 +286,7 @@ describe("PayCreditStatementHandler", () => {
       fakeTransactionWriterRepo(),
       fakePlanRepo(),
       fakePrisma() as never,
+      fakeCategoryLookup(),
     );
 
     const result = await handler.execute(
@@ -337,6 +342,7 @@ describe("PayCreditStatementHandler", () => {
         fakeTransactionWriterRepo(),
         planRepo,
         fakePrisma() as never,
+        fakeCategoryLookup(),
       );
 
       await handler.execute(
@@ -378,6 +384,7 @@ describe("PayCreditStatementHandler", () => {
         fakeTransactionWriterRepo(),
         planRepo,
         fakePrisma() as never,
+        fakeCategoryLookup(),
       );
 
       const result = await handler.execute(
@@ -429,6 +436,7 @@ describe("PayCreditStatementHandler", () => {
           fakeTransactionWriterRepo(),
           fakePlanRepo({ settleForStatementWithTx }),
           fakePrisma() as never,
+          fakeCategoryLookup(),
         );
         await handler.execute(
           new PayCreditStatementCommand(

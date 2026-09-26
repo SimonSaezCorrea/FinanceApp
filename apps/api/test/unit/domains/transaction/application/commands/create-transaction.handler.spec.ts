@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 
 import { CreateTransactionCommand } from "../../../../../../src/domains/transaction/application/commands/create-transaction.command";
@@ -97,6 +98,7 @@ function makeHandler(
     fakeCardLimitRepo(),
     statements,
     fakePrismaTransaction() as unknown as PrismaService,
+    fakeCategoryLookup(),
   );
 }
 

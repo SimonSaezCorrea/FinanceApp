@@ -1,3 +1,4 @@
+import { categoryIdFor } from "../../../integration/support/repositories";
 import { randomUUID } from "node:crypto";
 
 import type { INestApplication } from "@nestjs/common";
@@ -131,7 +132,7 @@ describe("Accounts HTTP (e2e)", () => {
         amount: "10000",
         currency: "CLP",
         occurredAt: new Date().toISOString(),
-        category: "Test",
+        categoryId: await categoryIdFor(prisma, "OTHER"),
       });
 
     const generateRes = await request(app.getHttpServer())

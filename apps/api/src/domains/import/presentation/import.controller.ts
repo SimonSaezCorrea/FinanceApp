@@ -1,10 +1,12 @@
-import { Body, Controller, Post, UseGuards } from "@nestjs/common";
+import { Body, Controller, Headers, Post, UseGuards } from "@nestjs/common";
 import { CommandBus } from "@nestjs/cqrs";
 
 import * as contracts from "@finance/contracts";
+import { idempotency } from "@finance/contracts";
 
 import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.decorator";
 import { JwtAuthGuard } from "../../../infra/auth/jwt-auth.guard";
+import { requireIdempotencyKey } from "../../../infra/http/idempotency-key";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { ImportTransactionsCommand } from "../application/commands/import-transactions.command";
 
@@ -22,7 +24,10 @@ export class ImportController {
     @CurrentUser() user: AuthUser,
     @Body(new ZodValidationPipe(contracts.imports.importTransactionsRequestSchema))
     body: contracts.imports.ImportTransactionsRequest,
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
   ): Promise<contracts.imports.ImportResult> {
-    return this.commandBus.execute(new ImportTransactionsCommand(user.id, body));
+    // Moves money like any movement does, so it is retry-safe the same way.
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(new ImportTransactionsCommand(user.id, body, idempotencyKey));
   }
 }

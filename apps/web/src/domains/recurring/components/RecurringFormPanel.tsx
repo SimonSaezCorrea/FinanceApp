@@ -7,7 +7,7 @@ import { CurrencyField } from "../../reference/components/CurrencyField";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
-import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import {
   FormBigTextField,
   FormCounterField,
@@ -24,7 +24,8 @@ export interface RecurringFormValue {
   label: string;
   amount: string;
   currency: string;
-  category: string;
+  /** Catalogue category id, `""` for none. */
+  categoryId: string;
   frequency: recurring.RecurrenceFrequency;
   interval: number;
   anchorDate: string;
@@ -43,9 +44,6 @@ interface Props {
   value: RecurringFormValue;
   onChange: (patch: Partial<RecurringFormValue>) => void;
   accounts: accountsContract.BankAccount[];
-  /** The same category vocabulary Movimientos offers (`GET /transactions/summary`'s
-   * `categories`) — one shared list, not a second one this domain invents. */
-  categoryOptions: string[];
   onSubmit: () => void;
   submitting?: boolean;
   dirty?: boolean;
@@ -67,12 +65,12 @@ export function RecurringFormPanel({
   value,
   onChange,
   accounts,
-  categoryOptions,
   onSubmit,
   submitting = false,
   dirty = false,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
+  const { optionsFor } = useCategoryCatalog();
   const { data: currencies } = useCurrencies();
   const creating = mode === "create";
 
@@ -102,25 +100,12 @@ export function RecurringFormPanel({
     })),
   ];
 
-  // The same category vocabulary Movimientos offers, picked from a list —
-  // typing lives inside the panel's own search box, not in the closed
-  // control. `value.category` is folded in when it isn't already there (an
-  // existing series edited before its category ever appeared in Movimientos),
-  // same convention `DebtFormPanel`'s currency picker uses.
-  const categoryIcon = (c: string) => (
-    <CategoryIcon category={c} className="h-4 w-4 shrink-0 text-muted-foreground" />
-  );
+  // The same global catalogue Movimientos uses — a recurring series is always
+  // an outflow, so only expense categories are offered.
   const categoryPickerOptions = [
     { value: "", label: t("recurring.form.noCategory") },
-    ...categoryOptions.map((c) => ({ value: c, label: c, icon: categoryIcon(c) })),
+    ...optionsFor("EXPENSE", value.categoryId),
   ];
-  if (value.category && !categoryOptions.includes(value.category)) {
-    categoryPickerOptions.push({
-      value: value.category,
-      label: value.category,
-      icon: categoryIcon(value.category),
-    });
-  }
 
   const unit = t(`debts.form.intervalUnit.${value.frequency}`, { count: value.interval });
   const noteText = value.active
@@ -186,8 +171,8 @@ export function RecurringFormPanel({
           <FormSelectField
             id="recurring-category"
             label={t("transactions.form.category")}
-            value={value.category}
-            onChange={(category) => onChange({ category })}
+            value={value.categoryId}
+            onChange={(categoryId) => onChange({ categoryId })}
             options={categoryPickerOptions}
             placeholder={t("recurring.form.categoryPlaceholder")}
           />
@@ -254,7 +239,7 @@ export function emptyRecurringForm(today: string, currency = "CLP"): RecurringFo
     label: "",
     amount: "",
     currency,
-    category: "",
+    categoryId: "",
     frequency: "MONTHLY",
     interval: 1,
     anchorDate: today,
@@ -271,7 +256,7 @@ export function recurringFormFrom(r: recurring.RecurringExpense): RecurringFormV
     label: r.label,
     amount: r.amount,
     currency: r.currency,
-    category: r.category ?? "",
+    categoryId: r.categoryId ?? "",
     frequency: r.frequency,
     interval: r.interval,
     anchorDate: r.anchorDate.slice(0, 10),

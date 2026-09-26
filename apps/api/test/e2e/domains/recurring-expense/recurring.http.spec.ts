@@ -1,3 +1,4 @@
+import { categoryIdFor } from "../../../integration/support/repositories";
 import { randomUUID } from "node:crypto";
 
 import type { INestApplication } from "@nestjs/common";
@@ -119,7 +120,7 @@ describe("Recurring HTTP (e2e)", () => {
         label: "Arriendo",
         amount: "520000",
         currency: "CLP",
-        category: "Vivienda",
+        categoryId: await categoryIdFor(prisma, "HOUSING"),
         frequency: "MONTHLY",
         interval: 1,
         anchorDate: "2026-01-05T00:00:00.000Z",

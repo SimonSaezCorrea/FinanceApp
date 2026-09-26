@@ -19,7 +19,11 @@ export function useInstallmentMutations() {
   };
 
   return {
-    create: useMutation({ mutationFn: installmentsApi.create, onSuccess: invalidate }),
+    create: useMutation({
+      mutationFn: (vars: { body: installments.CreateInstallmentPlan; idempotencyKey: string }) =>
+        installmentsApi.create(vars.body, vars.idempotencyKey),
+      onSuccess: invalidate,
+    }),
     update: useMutation({
       mutationFn: ({
         id,
@@ -38,11 +42,13 @@ export function useInstallmentMutations() {
         planId,
         sequence,
         body,
+        idempotencyKey,
       }: {
         planId: string;
         sequence: number;
         body: installments.PayInstallment;
-      }) => installmentsApi.pay(planId, sequence, body),
+        idempotencyKey: string;
+      }) => installmentsApi.pay(planId, sequence, body, idempotencyKey),
       onSuccess: invalidateMoney,
     }),
     unpay: useMutation({

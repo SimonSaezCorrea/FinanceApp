@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { accounts as accountsContract, recurring } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { useTransactions } from "../../transactions/hooks/useTransactions";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Badge } from "../../../shared/ui/badge";
@@ -42,6 +43,7 @@ export function RecurringDetailPanel({
   onDelete,
 }: Props) {
   const { t, i18n } = useTranslation();
+  const { nameOf: categoryName } = useCategoryCatalog();
   // Retained through the close so the panel can play its exit animation
   // instead of vanishing the instant `r` clears — see the hook's own doc.
   const d = useLastNonNull(r);
@@ -66,7 +68,7 @@ export function RecurringDetailPanel({
           unit: t(`debts.form.intervalUnit.${d.frequency}`, { count: d.interval }),
         })
       : null,
-    d.category ?? t("transactions.uncategorized"),
+    categoryName(d.categoryId) ?? t("transactions.uncategorized"),
   ]
     .filter(Boolean)
     .join(" · ");
@@ -128,7 +130,10 @@ export function RecurringDetailPanel({
         </div>
 
         <div className="flex flex-col">
-          <DetailRow label={t("transactions.form.category")} value={d.category ?? "—"} />
+          <DetailRow
+            label={t("transactions.form.category")}
+            value={categoryName(d.categoryId) ?? "—"}
+          />
           <DetailRow
             label={t("recurring.form.frequency")}
             value={t(`common.frequency.${d.frequency}`)}

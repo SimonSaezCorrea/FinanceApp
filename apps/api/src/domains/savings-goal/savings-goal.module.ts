@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
+import { CategoryDataModule } from "../category/category.data.module";
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
 import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
 import { IdempotencyRecordDataModule } from "../idempotency-record/idempotency-record.data.module";
@@ -57,6 +58,7 @@ const queryHandlers = [
   imports: [
     CqrsModule,
     JwtModule.register({}),
+    CategoryDataModule,
     SavingsGoalDataModule,
     SavingsEntryDataModule,
     IdempotencyRecordDataModule,

@@ -10,13 +10,24 @@ export interface TransactionPlan {
   amount: string;
   currency: string;
   occurredAt: Date;
-  category: string | null;
+  categoryId: string | null;
   description: string | null;
   /** Free-text note on the movement (a statement payment carries its reference
    * here — the field the movement detail already shows). */
   observation?: string | null;
+  /** Who paid / who got paid / where — the movement's free-text details, carried
+   * over from an import's mapped columns. */
+  emisor?: string | null;
+  receptor?: string | null;
+  lugar?: string | null;
   /** Issuer charge on a credit account itself: no card, feeds the credit pool. */
   financeCharge?: boolean;
+  /** The card that made it — set by an import onto a credit card account, whose
+   * expenses need one (the account's primary card). */
+  cardId?: string | null;
+  /** The OPEN billing period this movement contributes to, when it draws on a
+   * credit pool — same link `CreateTransactionHandler` sets. */
+  creditStatementId?: string | null;
   /** The installment plan this movement belongs to — set both on the finance charge
    * recorded when a plan with interest is created, and on the expense recorded when
    * one of its installments is paid, so either is recognisable among the movements. */
@@ -85,7 +96,8 @@ export interface TransactionWriterRepositoryPort {
    * THAT account's balance, not the plan's currently remembered one — those can
    * differ, and crediting the wrong account is worse than crediting none. */
   accountIdForTransaction(userId: string, id: string): Promise<string | null>;
-  /** Bulk insert, used by the `import` domain (a spreadsheet/statement import
-   * creates many movements at once, with no credit-pool effect). */
-  createMany(rows: Omit<TransactionPlan, "id">[]): Promise<number>;
+  /** Bulk insert inside the caller's transaction, used by the `import` domain —
+   * which applies the balance/credit-pool deltas itself, in that same
+   * transaction, so an import is all-or-nothing. */
+  createManyWithTx(tx: unknown, rows: Omit<TransactionPlan, "id">[]): Promise<number>;
 }
