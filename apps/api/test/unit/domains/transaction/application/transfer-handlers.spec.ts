@@ -57,6 +57,7 @@ function leg(over: Partial<Parameters<typeof Transaction.fromPersistence>[0]> = 
     savingsGoalId: null,
     prepaymentStatementId: null,
     prepaymentAccountId: null,
+    settlesStatementId: null,
     createdAt: new Date("2026-08-01"),
     updatedAt: new Date("2026-08-01"),
     ...over,

@@ -1,5 +1,5 @@
 import type { debts } from "@finance/contracts";
-import { toMoney } from "@finance/money";
+import { equalPrincipalSchedule, toMoney } from "@finance/money";
 
 export type DebtInstallmentStatus = "paid" | "next" | "pending";
 
@@ -29,13 +29,11 @@ export interface DebtInstallment {
  */
 export function debtSchedule(debt: debts.Debt): DebtInstallment[] {
   const count = Math.max(1, debt.totalInstallments);
-  const perInstallment =
-    debt.installmentAmount ?? toMoney(debt.principal).dividedBy(count).toFixed(4);
+  const amounts = debtInstallmentAmounts(debt);
   const start = debt.dueAt ? new Date(debt.dueAt) : debt.openedAt ? new Date(debt.openedAt) : null;
 
   return Array.from({ length: count }, (_, index) => {
     const dueDate = start ? addPeriod(start, index, debt.frequency, debt.frequencyInterval) : null;
-    const isLast = index === count - 1;
     const status: DebtInstallmentStatus =
       debt.settledAt !== null || index < debt.paidInstallments
         ? "paid"
@@ -46,21 +44,29 @@ export function debtSchedule(debt: debts.Debt): DebtInstallment[] {
     return {
       sequence: index + 1,
       dueDate,
-      amount: isLast ? lastInstallmentAmount(debt, perInstallment, count) : perInstallment,
+      amount: amounts[index]!,
       status,
     };
   });
 }
 
-/** The last instalment absorbs whatever an even split of `principal` doesn't cover
- * exactly — same convention the server's `equalPrincipalSchedule` uses. Only applies
- * when the debt has no explicit `installmentAmount` of its own (that one is taken
- * literally for every instalment, including the last). */
-function lastInstallmentAmount(debt: debts.Debt, perInstallment: string, count: number): string {
-  if (debt.installmentAmount !== null) return perInstallment;
-  const total = toMoney(debt.principal);
-  const others = toMoney(perInstallment).times(count - 1);
-  return total.minus(others).toFixed(4);
+/**
+ * Every instalment's amount, exactly as the server's `Debt.nextInstallmentAmount()`
+ * charges them: an explicit `installmentAmount` is taken literally for each one;
+ * otherwise `principal` is split with `equalPrincipalSchedule` in the debt's currency
+ * — whole pesos for CLP, the last instalment absorbing the remainder.
+ */
+export function debtInstallmentAmounts(debt: debts.Debt): string[] {
+  const count = Math.max(1, debt.totalInstallments);
+  if (debt.installmentAmount !== null) {
+    return Array.from({ length: count }, () => toMoney(debt.installmentAmount!).toFixed(4));
+  }
+  if (toMoney(debt.principal).lte(0)) return Array.from({ length: count }, () => "0.0000");
+  return equalPrincipalSchedule({
+    totalPrincipal: debt.principal,
+    installmentCount: count,
+    currency: debt.currency,
+  }).map((r) => r.payment);
 }
 
 function addPeriod(

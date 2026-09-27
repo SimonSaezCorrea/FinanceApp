@@ -22,4 +22,8 @@ export class PartiallyPaidState implements CreditStatementState {
   canPrepay(): boolean {
     return false;
   }
+
+  canTransfer(): boolean {
+    return false;
+  }
 }

@@ -485,6 +485,25 @@ model CreditStatement {
   /// live OPEN/PENDING period and an eventual PENDING statement already reflect
   /// what was abonado early — no separate reconciliation job needed for that case.
   prepaidAmount     Decimal   @default(0) @db.Decimal(18, 4)
+  /// Spec 028: the period's currency. An account whose primary card holds limits in
+  /// other currencies keeps one OPEN period per currency. The default only exists so
+  /// `db push` can add this column to rows saved before it (all CLP); every period
+  /// created since is given its currency explicitly.
+  currency                String    @default("CLP")
+  /// Spec 028: when an overdue period in another currency was converted by the bank
+  /// and charged to the account-currency period ("Traspasada"). Terminal, like paid.
+  transferredAt           DateTime?
+  /// What the bank charged, in the ACCOUNT's currency — typed by the user, never
+  /// computed (this app has no exchange rate).
+  transferredAmount       Decimal?  @db.Decimal(18, 4)
+  /// The account-currency EXPENSE the transfer created (issuer charge). Plain id, like
+  /// `Debt.lastPaymentTransactionId`: kept to reverse it exactly.
+  transferTransactionId   String?   @unique
+  /// The INCOME, in this period's currency, that settled its card's own limit (a
+  /// foreign-currency payment or a transfer) — see `Transaction.settlesStatementId`.
+  settlementTransactionId String?   @unique
+  /// The account-currency period that received the transfer's charge.
+  transferredToId         String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
@@ -499,8 +518,12 @@ model CreditStatement {
   /// linked transactions PLUS its carry-over PLUS these — the third summand is not a
   /// movement, for the same reason `carriedOverAmount` isn't one.
   billedInstallments InstallmentPayment[]
+  /// Spec 028: the settlement INCOMEs this period received (foreign-currency payment
+  /// or transfer). Never linked to a period and never summed by one.
+  settlements        Transaction[]        @relation("CreditStatementSettlements")
 
   @@index([accountId])
+  @@index([accountId, currency, closedAt])
   @@index([paidFromAccountId])
   @@map("credit-statement")
 }
@@ -657,6 +680,11 @@ model Transaction {
   /// column here since there's no reverse-relation trick to derive it from) so the
   /// movement detail can deep-link straight to `/accounts/:id?tab=billing&statement=:id`.
   prepaymentAccountId   String?
+  /// Spec 028: this INCOME settles a period in another currency (paid from another
+  /// account, or transferred): it lowers its card's own-limit usage, is never linked
+  /// to a period (`creditStatementId` stays null), is excluded from every period sum
+  /// and from "Sincronizar pagos", and is read-only in Movimientos.
+  settlesStatementId    String?
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
 
@@ -674,6 +702,7 @@ model Transaction {
   /// of `CreditStatement.paidTransaction`) — distinct from `creditStatement` above.
   paidForStatement    CreditStatement?
   prepaymentStatement CreditStatement?        @relation("CreditStatementPrepayments", fields: [prepaymentStatementId], references: [id], onDelete: SetNull)
+  settlesStatement    CreditStatement?        @relation("CreditStatementSettlements", fields: [settlesStatementId], references: [id], onDelete: SetNull)
   attachments         TransactionAttachment[]
   /// The (at most one) installment this movement is the payment FOR. Its presence is
   /// what makes this movement read-only from the Movements view: it is corrected by
@@ -692,6 +721,7 @@ model Transaction {
   @@index([recurringExpenseId])
   @@index([savingsGoalId])
   @@index([prepaymentStatementId])
+  @@index([settlesStatementId])
   @@map("transaction")
 }
 

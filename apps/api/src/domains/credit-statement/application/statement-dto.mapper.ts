@@ -1,4 +1,4 @@
-import type { accounts } from "@finance/contracts";
+import { accounts as accountsRules, type accounts } from "@finance/contracts";
 import { moneyToString, subtractMoney, toMoney } from "@finance/money";
 
 import { nextBoundaryAfter, paymentDueDate } from "../../billing-settings/domain/billing-cycle";
@@ -29,13 +29,20 @@ export function toStatementDto(
     billingCycleDay: number | null;
     /** How `billingCycleDay` is counted (días hábiles or day-of-month). */
     billingCycleType: accounts.BillingCycleType;
+    /** Spec 028: the account's own currency — decides whether the period is a
+     * foreign-currency one, and so whether it can be transferred. */
+    accountCurrency: string;
+    /** "Now" for the transfer rule's due-date check; defaults to the real now. */
+    today?: Date;
   },
 ): accounts.CreditStatement {
   // A settled period owes nothing, even when the payment didn't cover it all:
-  // the shortfall moved to the next period (`carriedToId`) and is owed there.
-  const remaining = statement.paidAt
-    ? moneyToString("0")
-    : subtractMoney(input.amount, statement.paidAmount);
+  // the shortfall moved to the next period (`carriedToId`) and is owed there. A
+  // transferred one owes nothing here either — its debt became a charge elsewhere.
+  const remaining =
+    statement.paidAt || statement.transferredAt
+      ? moneyToString("0")
+      : subtractMoney(input.amount, statement.paidAmount);
   // Nothing to count from until the period actually closes — an OPEN period
   // has no due date yet, and neither does an account with no due-day configured.
   const dueDate =
@@ -56,13 +63,35 @@ export function toStatementDto(
           input.billingCycleType,
         ).toISOString()
       : null;
+  const remainingAmount = toMoney(remaining).isNegative() ? moneyToString("0") : remaining;
+  const closedAt = statement.closedAt?.toISOString() ?? null;
+  const paidAt = statement.paidAt?.toISOString() ?? null;
+  const transferredAt = statement.transferredAt?.toISOString() ?? null;
   return {
     id: statement.id,
     accountId: statement.accountId,
     status: statement.state.name,
+    currency: statement.currency,
+    transferredAt,
+    transferredAmount: statement.transferredAmount,
+    transferredToId: statement.transferredToId,
+    // The SAME rule the API enforces on the transfer endpoint.
+    canTransfer: accountsRules.canTransferStatement(
+      {
+        currency: statement.currency,
+        closedAt,
+        paidAt,
+        transferredAt,
+        remainingAmount,
+        dueDate,
+      },
+      input.accountCurrency,
+      input.today ?? new Date(),
+    ),
+    transferReversal: null,
     periodStart: statement.periodStart.toISOString(),
-    closedAt: statement.closedAt?.toISOString() ?? null,
-    paidAt: statement.paidAt?.toISOString() ?? null,
+    closedAt,
+    paidAt,
     dueDate,
     nextClosingDate,
     amount: moneyToString(input.amount),
@@ -70,7 +99,7 @@ export function toStatementDto(
     carriedOverAmount: statement.carriedOverAmount,
     prepaidAmount: statement.prepaidAmount,
     carriedToId: statement.carriedToId,
-    remainingAmount: toMoney(remaining).isNegative() ? moneyToString("0") : remaining,
+    remainingAmount,
     minimumAmount: minimumFor(input.amount, input.minimumPercent),
     breakdown: {
       purchases: moneyToString(input.breakdown.purchases),

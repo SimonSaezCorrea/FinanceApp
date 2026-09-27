@@ -268,6 +268,7 @@ describe("planTemplateImport — movements and transfers (US2)", () => {
     expect(Number(effect(result, TC).netCredit)).toBe(30000);
     expect(result.movements[0]!.cardId).toBe(PRIMARY);
     expect(result.movements[0]!.drawsOnCredit).toBe(true);
+    expect(result.movements[0]!.statementCurrency).toBe("CLP");
   });
 
   it("refuses a card of another account, and an expense over the credit limit", () => {
@@ -306,10 +307,13 @@ describe("planTemplateImport — movements and transfers (US2)", () => {
     );
     expect(result.issues).toEqual([]);
     expect(Number(effect(result, TC).netCredit)).toBe(0);
-    expect(result.movements.map((m) => [m.currency, m.cardId, m.drawsOnCredit])).toEqual([
-      ["USD", PRIMARY, false],
-      ["USD", PRIMARY, false],
-      ["USD", PRIMARY, false],
+    // Spec 028: never the CLP pool — but every row belongs to the OPEN USD period.
+    expect(
+      result.movements.map((m) => [m.currency, m.cardId, m.drawsOnCredit, m.statementCurrency]),
+    ).toEqual([
+      ["USD", PRIMARY, false, "USD"],
+      ["USD", PRIMARY, false, "USD"],
+      ["USD", PRIMARY, false, "USD"],
     ]);
   });
 

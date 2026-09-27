@@ -56,6 +56,7 @@ export async function loadTemplateContext(
         creditUsed: account.creditUsed,
         billingCycleDay: snap.billingCycleDay,
         billingCycleType: snap.billingCycleType,
+        currency: snap.currency,
       },
       currency: snap.currency,
       status: snap.status,

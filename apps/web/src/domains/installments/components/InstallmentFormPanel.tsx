@@ -139,6 +139,7 @@ export function InstallmentFormPanel({
         // and the API has no formula to recompute it against a new total) — a
         // regenerated schedule is always plain equal-principal.
         aprPerPeriod: creating ? value.aprPerPeriod : undefined,
+        currency: value.currency,
       })
     : null;
 

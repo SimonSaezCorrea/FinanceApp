@@ -105,6 +105,7 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
         paymentDueCycleType: context.account.paymentDueCycleType,
         billingCycleDay: context.account.billingCycleDay,
         billingCycleType: context.account.billingCycleType,
+        accountCurrency: context.account.snapshot().currency,
       }),
       events: [],
     };
@@ -152,6 +153,7 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
       accountId: context.account.id,
       excludeStatementId: context.statement.id,
       periodStart: context.statement.closedAt ?? context.statement.periodStart,
+      currency: context.statement.currency,
     });
     context.statement.markCarriedTo(target.id);
     return target.id;

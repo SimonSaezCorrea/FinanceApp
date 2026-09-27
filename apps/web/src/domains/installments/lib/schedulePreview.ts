@@ -9,6 +9,8 @@ export interface SchedulePreviewInput {
   frequencyInterval: number;
   /** Interest per period, as the plan declares it. */
   aprPerPeriod?: string;
+  /** The plan's currency — instalments round to its minor unit, as on the server. */
+  currency?: string;
 }
 
 export interface SchedulePreview {
@@ -53,6 +55,7 @@ export function schedulePreview(input: SchedulePreviewInput): SchedulePreview | 
       totalPrincipal: principal,
       installmentCount: input.installmentCount,
       aprPerPeriod: input.aprPerPeriod?.trim() || undefined,
+      currency: input.currency,
     });
   } catch {
     // A non-positive total or a non-integer count: not an error to report, just

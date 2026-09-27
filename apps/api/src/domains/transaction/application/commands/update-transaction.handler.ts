@@ -251,7 +251,11 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       // Re-link (or unlink) the billing period this movement contributes to.
       if (sameAccount && oldContribution === "0" && newContribution !== "0" && oldAccountId) {
         patch.creditStatementId = (
-          await this.statements.findOrCreateOpenForAccount(oldAccountId, accountCreatedAt)
+          await this.statements.findOrCreateOpenForAccount(
+            oldAccountId,
+            accountCreatedAt,
+            oldAccount?.currency ?? effective.currency,
+          )
         ).id;
       } else if (sameAccount && oldContribution !== "0" && newContribution === "0") {
         patch.creditStatementId = null;
@@ -261,6 +265,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
             await this.statements.findOrCreateOpenForAccount(
               effective.bankAccountId,
               accountCreatedAt,
+              newAccount?.currency ?? effective.currency,
             )
           ).id;
         } else if (oldContribution !== "0") {

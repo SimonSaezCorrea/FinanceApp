@@ -80,13 +80,21 @@ describe("PrismaTransactionRepository (integration)", () => {
   });
 
   it("findOrCreateOpenForAccount creates one, then reuses it", async () => {
-    const first = await statementRepo.findOrCreateOpenForAccount(creditAccountId, new Date());
-    const second = await statementRepo.findOrCreateOpenForAccount(creditAccountId, new Date());
+    const first = await statementRepo.findOrCreateOpenForAccount(
+      creditAccountId,
+      new Date(),
+      "CLP",
+    );
+    const second = await statementRepo.findOrCreateOpenForAccount(
+      creditAccountId,
+      new Date(),
+      "CLP",
+    );
     expect(second.id).toBe(first.id);
   });
 
   it("saveNew creates the transaction and atomically increments creditUsed", async () => {
-    const stmt = await statementRepo.findOrCreateOpenForAccount(creditAccountId, new Date());
+    const stmt = await statementRepo.findOrCreateOpenForAccount(creditAccountId, new Date(), "CLP");
     const created = await txRepo.saveNew(
       userId,
       {
@@ -113,6 +121,7 @@ describe("PrismaTransactionRepository (integration)", () => {
         savingsGoalId: null,
         prepaymentStatementId: null,
         prepaymentAccountId: null,
+        settlesStatementId: null,
       },
       { accountId: creditAccountId, delta: "50000" },
       [],
@@ -123,7 +132,7 @@ describe("PrismaTransactionRepository (integration)", () => {
   });
 
   it("removeWithCreditAdjustment deletes the row and reverts the delta", async () => {
-    const stmt = await statementRepo.findOrCreateOpenForAccount(creditAccountId, new Date());
+    const stmt = await statementRepo.findOrCreateOpenForAccount(creditAccountId, new Date(), "CLP");
     const created = await txRepo.saveNew(
       userId,
       {
@@ -150,6 +159,7 @@ describe("PrismaTransactionRepository (integration)", () => {
         savingsGoalId: null,
         prepaymentStatementId: null,
         prepaymentAccountId: null,
+        settlesStatementId: null,
       },
       { accountId: creditAccountId, delta: "10000" },
       [],

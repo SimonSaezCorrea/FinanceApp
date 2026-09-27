@@ -1,5 +1,5 @@
 import type { debts } from "@finance/contracts";
-import { moneyToString, toMoney } from "@finance/money";
+import { equalPrincipalSchedule, moneyToString, sumMoney, toMoney } from "@finance/money";
 
 import {
   AllInstallmentsPaidError,
@@ -171,22 +171,44 @@ export class Debt {
   }
 
   /** One instalment's worth — `installmentAmount` when the schedule declared
-   * one, otherwise `principal` split evenly. Same figure the "Registrar
-   * abono" panel already previews before confirming. */
+   * one, otherwise the next row of `principal` split evenly in the currency's
+   * minor unit (whole pesos: 64.990 in 3 is 21.663 + 21.663 + 21.664). Same
+   * figure the "Registrar abono" panel already previews before confirming. */
   nextInstallmentAmount(): string {
-    return moneyToString(
-      this.props.installmentAmount ??
-        toMoney(this.props.principal).dividedBy(this.props.totalInstallments),
+    if (this.props.installmentAmount !== null) return moneyToString(this.props.installmentAmount);
+    const rows = this.evenSchedule();
+    return rows[Math.min(this.props.paidInstallments, rows.length - 1)]!.payment;
+  }
+
+  /** Everything still owed right now: the instalments not yet paid. What
+   * `settle()` moves — whether this debt has never had an instalment (a single
+   * payment) or is having its last one paid off in one shot. An evenly split
+   * debt sums its own remaining rows, so paying everything adds up to exactly
+   * `principal`. */
+  pendingAmount(): string {
+    const remaining = Math.max(this.props.totalInstallments - this.props.paidInstallments, 0);
+    if (this.props.installmentAmount !== null) {
+      return moneyToString(toMoney(this.props.installmentAmount).times(remaining));
+    }
+    if (remaining === 0) return moneyToString(0);
+    return sumMoney(
+      this.evenSchedule()
+        .slice(-remaining)
+        .map((r) => r.payment),
     );
   }
 
-  /** Everything still owed right now: the instalments not yet paid, at one
-   * instalment's worth each. What `settle()` moves — whether this debt has
-   * never had an instalment (a single payment) or is having its last one
-   * paid off in one shot. */
-  pendingAmount(): string {
-    const remaining = this.props.totalInstallments - this.props.paidInstallments;
-    return moneyToString(toMoney(this.nextInstallmentAmount()).times(Math.max(remaining, 0)));
+  private evenSchedule(): { payment: string }[] {
+    if (toMoney(this.props.principal).lte(0)) {
+      return Array.from({ length: Math.max(this.props.totalInstallments, 1) }, () => ({
+        payment: moneyToString(0),
+      }));
+    }
+    return equalPrincipalSchedule({
+      totalPrincipal: this.props.principal,
+      installmentCount: Math.max(this.props.totalInstallments, 1),
+      currency: this.props.currency,
+    });
   }
 
   /** Apply a partial patch to the debt's own scalar fields. */

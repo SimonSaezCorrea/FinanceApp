@@ -105,6 +105,7 @@ function rowToProps(row: Row): TransactionProps {
     savingsGoalId: row.savingsGoalId,
     prepaymentStatementId: row.prepaymentStatementId,
     prepaymentAccountId: row.prepaymentAccountId,
+    settlesStatementId: row.settlesStatementId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };

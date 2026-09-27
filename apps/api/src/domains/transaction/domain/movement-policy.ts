@@ -40,6 +40,10 @@ export interface AccountContext {
   creditUsed: string;
   billingCycleDay: number | null;
   billingCycleType: accounts.BillingCycleType;
+  /** The account's own currency (spec 028: a credit card account keeps one billing
+   * period per currency). Optional only so older fixtures that never needed it keep
+   * compiling; every loader sets it. */
+  currency?: string;
 }
 
 export interface CardContext {

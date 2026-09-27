@@ -256,7 +256,10 @@ export function TransactionCreateModal({
   // resolved here (not typed by the user) since the form only shows the
   // account, not a period picker.
   const { data: prepayStatements } = useCreditStatements(isPrepay ? form.bankAccountId : "");
-  const openStatementId = prepayStatements?.find((s) => s.status === "OPEN")?.id;
+  // Spec 028: only the account-currency period takes a prepago.
+  const openStatementId = prepayStatements?.find(
+    (s) => s.status === "OPEN" && s.currency === selectedAccount?.currency,
+  )?.id;
 
   const pending =
     create.isPending ||

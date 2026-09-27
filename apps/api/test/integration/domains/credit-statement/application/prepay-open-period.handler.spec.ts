@@ -132,7 +132,11 @@ describe("PrepayOpenPeriodHandler (integration)", () => {
   });
 
   it("opens a real gross total on the account's OPEN period (a $200.000 purchase)", async () => {
-    const statement = await statementRepo.findOrCreateOpenForAccount(creditAccountId, new Date());
+    const statement = await statementRepo.findOrCreateOpenForAccount(
+      creditAccountId,
+      new Date(),
+      "CLP",
+    );
     statementId = statement.id;
     await prisma.transaction.create({
       data: {

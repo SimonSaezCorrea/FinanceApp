@@ -20,21 +20,30 @@ export interface CreditStatementRepositoryPort {
     accountId: string,
     statementId: string,
   ): Promise<CreditStatement | null>;
-  /** The account's currently OPEN period (`closedAt: null`), if any. */
-  findOpenForAccount(accountId: string): Promise<CreditStatement | null>;
+  /** The account's currently OPEN period IN THAT CURRENCY (`closedAt: null`), if any.
+   * Spec 028: an account keeps one open period per currency. */
+  findOpenForAccount(accountId: string, currency: string): Promise<CreditStatement | null>;
+  /** Every OPEN period of the account, one per currency (spec 028) — what a cycle
+   * close seals, all on the same day. */
+  listOpenForAccount(accountId: string): Promise<CreditStatement[]>;
   listForAccount(userId: string, accountId: string): Promise<CreditStatement[]>;
   /** The account's OPEN period, created lazily if none exists — called by the
    * `transaction` domain when a contributing movement is recorded.
    * `fallbackPeriodStart` (the account's own `createdAt`) is only used for the
    * very first period, when no earlier statement has been closed yet; the caller
    * passes it in because this domain must not read the `bank-account` table. */
-  findOrCreateOpenForAccount(accountId: string, fallbackPeriodStart: Date): Promise<{ id: string }>;
+  findOrCreateOpenForAccount(
+    accountId: string,
+    fallbackPeriodStart: Date,
+    currency: string,
+  ): Promise<{ id: string }>;
   /** Same, inside the caller's transaction — so a period created for an import
    * that then fails is rolled back with it, never left behind open and empty. */
   findOrCreateOpenForAccountWithTx(
     tx: unknown,
     accountId: string,
     fallbackPeriodStart: Date,
+    currency: string,
   ): Promise<{ id: string }>;
   /**
    * The period that receives a settled period's shortfall: the account's OPEN
@@ -46,7 +55,7 @@ export interface CreditStatementRepositoryPort {
    */
   findOrCreateCarryOverTargetWithTx(
     tx: unknown,
-    params: { accountId: string; excludeStatementId: string; periodStart: Date },
+    params: { accountId: string; excludeStatementId: string; periodStart: Date; currency: string },
   ): Promise<{ id: string }>;
   /** Adds to a period's `carriedOverAmount` (never overwrites: two periods in a
    * row can each roll their shortfall into the same open one). */

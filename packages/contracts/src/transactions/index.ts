@@ -67,6 +67,14 @@ export const transactionSchema = z.object({
   /** The CREDIT_CARD account `prepaymentStatementId` belongs to — lets the UI
    * deep-link straight to it, same convention as `paidStatementAccountId`. */
   prepaymentAccountId: rowId.nullable(),
+  /** Spec 028: the statement in another currency this INCOME settled (paid from
+   * another account, or transferred) — lowers its card's own-limit usage, belongs
+   * to no period and is read-only. Null for every other movement. */
+  settlesStatementId: rowId.nullable(),
+  /** Spec 028: the statement in another currency whose transfer this charge IS —
+   * resolved server-side from `CreditStatement.transferTransactionId`, like
+   * `paidStatementId`. Null for every other movement. */
+  transferStatementId: rowId.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -94,6 +102,8 @@ export type TransactionSource =
   | { kind: "SAVINGS_WITHDRAWAL"; savingsGoalId: string }
   | { kind: "STATEMENT_PAYMENT"; statementId: string; accountId: string }
   | { kind: "CREDIT_CARD_PREPAYMENT"; statementId: string; accountId: string }
+  | { kind: "STATEMENT_SETTLEMENT"; statementId: string; accountId: string }
+  | { kind: "CURRENCY_TRANSFER"; statementId: string; accountId: string }
   | { kind: "MANUAL" };
 
 export function sourceOf(
@@ -110,9 +120,29 @@ export function sourceOf(
     | "paidStatementAccountId"
     | "prepaymentStatementId"
     | "prepaymentAccountId"
+    | "settlesStatementId"
+    | "transferStatementId"
+    | "bankAccountId"
   >,
 ): TransactionSource {
   if (t.transferGroupId !== null) return { kind: "TRANSFER" };
+  // Spec 028: both live on the credit card account itself, so that is the account
+  // their statement belongs to. Checked before FINANCE_CHARGE: a transfer's charge
+  // IS an issuer charge, but naming it as such would hide which statement it came from.
+  if (t.settlesStatementId !== null && t.bankAccountId !== null) {
+    return {
+      kind: "STATEMENT_SETTLEMENT",
+      statementId: t.settlesStatementId,
+      accountId: t.bankAccountId,
+    };
+  }
+  if (t.transferStatementId !== null && t.bankAccountId !== null) {
+    return {
+      kind: "CURRENCY_TRANSFER",
+      statementId: t.transferStatementId,
+      accountId: t.bankAccountId,
+    };
+  }
   if (t.installmentPlanId !== null) {
     return t.financeCharge
       ? { kind: "INSTALLMENT_INTEREST", installmentPlanId: t.installmentPlanId }

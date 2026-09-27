@@ -4,7 +4,7 @@ import { cn } from "../../../shared/lib/cn";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import type { accounts } from "@finance/contracts";
+import { accounts as accountsContract, type accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { Badge } from "../../../shared/ui/badge";
@@ -20,14 +20,7 @@ import { useAccountMutations, useCreditStatements } from "../hooks/useAccounts";
 import { EditStatementPaymentPanel } from "./EditStatementPaymentPanel";
 import { PayStatementPanel } from "./PayStatementPanel";
 import { StatementDetailPanel } from "./StatementDetailPanel";
-
-const STATUS_VARIANT = {
-  OPEN: "info",
-  PENDING: "warning",
-  // Settled, but not for its full amount — success would overstate it.
-  PARTIALLY_PAID: "warning",
-  PAID: "success",
-} as const;
+import { STATEMENT_STATUS_VARIANT, statementsByCurrency } from "../lib/statementStatus";
 
 /** "Facturación" tab: every billing period for this account's credit pool — open
  * (still accumulating), pending (closed, awaiting payment) or paid — with actions
@@ -161,7 +154,10 @@ export function BillingSection({
   // is a cosmetic downgrade rather than a table overflowing its column.
   const wide = width !== null && width >= TABLE_ROW_MIN_WIDTH;
 
-  const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
+  // Spec 028: every figure in the statement's OWN currency — a USD period's amounts
+  // are dollars, never pesos, and are never converted or summed with the CLP ones.
+  const fmt = (v: string, currency: string = account.currency) =>
+    formatMoney(v, { locale: i18n.language, currency });
   const date = (iso: string) => new Date(iso).toLocaleDateString(i18n.language);
 
   /** "start – end": the real close for a settled period, the PROJECTED close
@@ -175,19 +171,22 @@ export function BillingSection({
     return t("accounts.detail.billingPeriodToDate", { date: date(s.periodStart) });
   };
 
-  // Settled = `paidAt`, not `status === "PAID"`: a period paid for less than its
-  // total reports PARTIALLY_PAID and is just as closed (its shortfall is owed in
-  // the next period, not here), so it belongs with the history, not the actionable
-  // ones. `isSettled` is also what hides the "Pagar" action.
-  const isSettled = (s: accounts.CreditStatement) => s.paidAt !== null;
-  const open = statements?.filter((s) => !isSettled(s)) ?? [];
-  const paid = statements?.filter(isSettled) ?? [];
+  // Settled = paid OR transferred (`accounts.isSettled`), never `status === "PAID"`:
+  // a period paid for less than its total reports PARTIALLY_PAID and one the bank
+  // converted reports TRANSFERRED, and both are just as closed, so they belong with
+  // the history, not the actionable ones. It is also what hides the "Pagar" action.
+  const isSettled = accountsContract.isSettled;
+  const isForeign = (s: accounts.CreditStatement) => s.currency !== account.currency;
+  const groups = statementsByCurrency(statements ?? [], account.currency);
 
-  // The account's single OPEN period (if any) — what "Generar facturación"
-  // would act on. Can't be billed before its own projected close: the button
-  // is disabled rather than letting the click silently do nothing (the API
-  // itself already no-ops early — this just tells the user why up front).
-  const openPeriod = statements?.find((s) => s.status === "OPEN") ?? null;
+  // Spec 028: one OPEN period per currency, all closing together — "Generar
+  // facturación" seals every one of them. Its deadline is the account-currency
+  // period's (they share one cycle); a foreign-only cycle falls back to its own.
+  // Can't be billed before its projected close: the button is disabled rather
+  // than letting the click silently do nothing (the API no-ops early too).
+  const openPeriods = statements?.filter((s) => s.status === "OPEN") ?? [];
+  const openPeriod =
+    openPeriods.find((s) => s.currency === account.currency) ?? openPeriods[0] ?? null;
   const closingDate = openPeriod?.nextClosingDate ? new Date(openPeriod.nextClosingDate) : null;
   const generateBlockedReason = !openPeriod
     ? t("accounts.detail.generateNothingOpen")
@@ -207,12 +206,12 @@ export function BillingSection({
       >
         <div className="flex items-start justify-between gap-3">
           <span className="text-sm text-muted-foreground">{periodLabel(s)}</span>
-          <Badge variant={STATUS_VARIANT[s.status]}>
+          <Badge variant={STATEMENT_STATUS_VARIANT[s.status]}>
             {t(`accounts.detail.billingStatusValue.${s.status}`)}
           </Badge>
         </div>
 
-        <p className="text-3xl font-semibold tabular-nums">{fmt(s.amount)}</p>
+        <p className="text-3xl font-semibold tabular-nums">{fmt(s.amount, s.currency)}</p>
         {!isSettled(s) && s.dueDate ? (
           <p className="-mt-2 text-xs text-muted-foreground">
             {t("accounts.detail.billingDueDate", { date: date(s.dueDate) })}
@@ -220,7 +219,9 @@ export function BillingSection({
         ) : null}
         {Number(s.carriedOverAmount) > 0 ? (
           <p className="-mt-2 text-xs text-muted-foreground">
-            {t("accounts.detail.billingIncludesCarryOver", { amount: fmt(s.carriedOverAmount) })}
+            {t("accounts.detail.billingIncludesCarryOver", {
+              amount: fmt(s.carriedOverAmount, s.currency),
+            })}
           </p>
         ) : null}
         {/* Spec 014, FR-011: purchases and instalments come from two disjoint
@@ -228,8 +229,8 @@ export function BillingSection({
         {Number(s.breakdown.installmentCount) > 0 ? (
           <p className="-mt-2 text-xs text-muted-foreground">
             {t("accounts.detail.billingBreakdown", {
-              purchases: fmt(s.breakdown.purchases),
-              installments: fmt(s.breakdown.installments),
+              purchases: fmt(s.breakdown.purchases, s.currency),
+              installments: fmt(s.breakdown.installments, s.currency),
               count: s.breakdown.installmentCount,
             })}
           </p>
@@ -239,15 +240,7 @@ export function BillingSection({
             from also opening the detail panel underneath them. */}
         <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
           <SyncButton statement={s} iconOnly size="md" />
-          {s.status === "OPEN" ? (
-            <Button variant="secondary" className="flex-1" onClick={() => setPrepayOpen(true)}>
-              {t("transactions.type.PREPAY")}
-            </Button>
-          ) : (
-            <Button variant="secondary" className="flex-1" onClick={() => setPayTarget(s)}>
-              {t("accounts.actions.payCredit")}
-            </Button>
-          )}
+          <PeriodAction statement={s} variant="card" />
         </div>
       </button>
     );
@@ -287,6 +280,216 @@ export function BillingSection({
     );
   }
 
+  /**
+   * The one money action a period offers, decided in ONE place for both layouts:
+   * - settled short (PARTIALLY_PAID): correct the payment;
+   * - OPEN in the account's currency: prepagar (spec 019 — paying would close it);
+   * - PENDING in the account's currency: pay;
+   * - a period in another currency: nothing yet — paying it from pesos and
+   *   transferring it arrive with spec 028's US2/US3.
+   */
+  function PeriodAction({
+    statement: s,
+    variant,
+  }: Readonly<{ statement: accounts.CreditStatement; variant: "card" | "row" }>) {
+    if (isForeign(s)) return null;
+    let action: {
+      label: string;
+      icon: typeof Banknote;
+      onClick: () => void;
+      tone: "accent" | "ghost";
+    };
+    if (isSettled(s)) {
+      if (s.status !== "PARTIALLY_PAID") return null;
+      action = {
+        label: t("accounts.actions.editStatementPayment"),
+        icon: Pencil,
+        onClick: () => setEditPaymentTarget(s),
+        tone: "ghost",
+      };
+    } else if (s.status === "OPEN") {
+      action = {
+        label: t("transactions.type.PREPAY"),
+        icon: Banknote,
+        onClick: () => setPrepayOpen(true),
+        tone: "accent",
+      };
+    } else {
+      action = {
+        label: t("accounts.actions.payCredit"),
+        icon: Banknote,
+        onClick: () => setPayTarget(s),
+        tone: "accent",
+      };
+    }
+    if (variant === "card") {
+      return (
+        <Button variant="secondary" className="flex-1" onClick={action.onClick}>
+          {action.label}
+        </Button>
+      );
+    }
+    const Icon = action.icon;
+    return (
+      // Tinted (not a plain ghost icon) when it moves money forward, same
+      // reasoning as the accent "Nuevo" buttons elsewhere.
+      <Button
+        variant={action.tone}
+        size="sm"
+        className="w-8 px-0"
+        aria-label={action.label}
+        title={action.label}
+        onClick={action.onClick}
+      >
+        <Icon className="h-3.5 w-3.5" aria-hidden />
+      </Button>
+    );
+  }
+
+  /** Stacked layout of one currency's periods: the unsettled ones as cards, the
+   * settled ones as a compact history list. */
+  function PeriodsStack({ list }: Readonly<{ list: accounts.CreditStatement[] }>) {
+    const open = list.filter((s) => !isSettled(s));
+    const paid = list.filter(isSettled);
+    return (
+      <div className="flex flex-col gap-5">
+        {open.map((s) => (
+          <CurrentPeriodCard key={s.id} statement={s} />
+        ))}
+
+        {paid.length > 0 ? (
+          <div className="flex flex-col gap-1">
+            <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {t("accounts.detail.billingPaidPeriods")}
+            </h3>
+            {paid.map((s) => (
+              <button
+                type="button"
+                key={s.id}
+                onClick={() => setDetailTarget(s)}
+                className="flex w-full items-center gap-3 border-b border-border py-3 text-left last:border-0"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground">
+                  <CreditCard className="h-4 w-4" aria-hidden />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium">{date(s.periodStart)}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {s.paidAt
+                      ? t("accounts.detail.billingPaidOn", { date: date(s.paidAt) })
+                      : t(`accounts.detail.billingStatusValue.${s.status}`)}
+                  </p>
+                  {/* Only when the payment fell short: on a fully paid period
+                      "pagado X de X" says nothing the amount doesn't. */}
+                  {s.status === "PARTIALLY_PAID" ? (
+                    <p className="text-xs tabular-nums text-muted-foreground">
+                      {t("accounts.detail.billingPaidAmount", {
+                        amount: fmt(s.paidAmount, s.currency),
+                      })}
+                    </p>
+                  ) : null}
+                </div>
+                <div
+                  className="flex shrink-0 items-center gap-2"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="font-semibold tabular-nums">{fmt(s.amount, s.currency)}</span>
+                  <SyncButton statement={s} iconOnly />
+                  <PeriodAction statement={s} variant="row" />
+                </div>
+              </button>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  /** Wide layout of one currency's periods. */
+  function PeriodsTable({ list }: Readonly<{ list: accounts.CreditStatement[] }>) {
+    return (
+      // Same `Card` surface every other table wraps itself in — bare
+      // `Table` has no background/border of its own.
+      <Card className="overflow-hidden p-0">
+        <Table>
+          <THead className="bg-muted/50">
+            <TR>
+              <TH className="w-8" />
+              <TH>{t("accounts.detail.billingPeriod")}</TH>
+              <TH numeric>{t("accounts.detail.billingAmount")}</TH>
+              <TH>{t("accounts.detail.billingStatus")}</TH>
+              <TH>{t("accounts.detail.billingPaidAt")}</TH>
+              <TH>{t("accounts.detail.billingActions")}</TH>
+            </TR>
+          </THead>
+          <tbody>
+            {list.map((s) => (
+              <TR key={s.id} onClick={() => setDetailTarget(s)} className="cursor-pointer">
+                <TD>
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-chip text-muted-foreground">
+                    <CreditCard className="h-4 w-4" aria-hidden />
+                  </span>
+                </TD>
+                {/* `w-full max-w-0` + a truncating child: same fix
+                    `TransactionTable` needed for Descripción — the only
+                    column with no fixed-content minimum of its own, so
+                    without this the table grows past its container
+                    instead of wrapping/truncating within it. */}
+                <TD className="w-full max-w-0">
+                  <div className="truncate">{periodLabel(s)}</div>
+                </TD>
+                <TD numeric className="max-w-[11rem]">
+                  {fmt(s.amount, s.currency)}
+                  {/* Only what this period INHERITED: its figure is no longer
+                      just its own movements. What it rolled over is deliberately
+                      not repeated here — it is the same money, already shown as
+                      "incluye …" on the period that now owes it. */}
+                  {Number(s.carriedOverAmount) > 0 ? (
+                    <span className="block truncate text-xs font-normal text-muted-foreground">
+                      {t("accounts.detail.billingIncludesCarryOver", {
+                        amount: fmt(s.carriedOverAmount, s.currency),
+                      })}
+                    </span>
+                  ) : null}
+                  {/* Muted, not coloured: the badge beside it already carries the
+                      colour, and two warning-toned things in one row read as an
+                      error. Only the covered figure — the total is right above. */}
+                  {s.status === "PARTIALLY_PAID" ? (
+                    <span className="block truncate text-xs font-normal tabular-nums text-muted-foreground">
+                      {t("accounts.detail.billingPaidAmount", {
+                        amount: fmt(s.paidAmount, s.currency),
+                      })}
+                    </span>
+                  ) : null}
+                </TD>
+                <TD>
+                  {/* `nowrap`: "Pago parcial" wrapped to two lines and made the
+                      row taller than every other one. */}
+                  <Badge variant={STATEMENT_STATUS_VARIANT[s.status]} className="whitespace-nowrap">
+                    {t(`accounts.detail.billingStatusValue.${s.status}`)}
+                  </Badge>
+                  {!isSettled(s) && s.dueDate ? (
+                    <span className="mt-1 block whitespace-nowrap text-xs font-normal text-muted-foreground">
+                      {t("accounts.detail.billingDueDate", { date: date(s.dueDate) })}
+                    </span>
+                  ) : null}
+                </TD>
+                <TD>{s.paidAt ? new Date(s.paidAt).toLocaleDateString(i18n.language) : "—"}</TD>
+                <TD>
+                  {/* Sync is the ICON alone and FIRST, left-aligned, so it sits at
+                      the same x in every row whatever follows it. */}
+                  <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                    <SyncButton statement={s} iconOnly />
+                    <PeriodAction statement={s} variant="row" />
+                  </div>
+                </TD>
+              </TR>
+            ))}
+          </tbody>
+        </Table>
+      </Card>
+    );
+  }
   return (
     <div ref={containerRef} className="flex flex-col gap-3 xl:min-h-0 xl:flex-1">
       <div className="flex flex-wrap items-center justify-between gap-3 xl:shrink-0">
@@ -320,205 +523,34 @@ export function BillingSection({
       <div className="xl:min-h-0 xl:flex-1 xl:overflow-y-auto scrollbar-thin">
         {isLoading ? (
           <BillingTableSkeleton label={t("app.loading")} />
-        ) : !wide ? (
-          <div className="flex flex-col gap-5">
-            {!statements || statements.length === 0 ? (
+        ) : !statements || statements.length === 0 ? (
+          wide ? (
+            <Card className="overflow-hidden p-0">
               <BillingEmptyMessage error={isError ? error : undefined} onRetry={() => refetch()} />
-            ) : null}
-            {open.map((s) => (
-              <CurrentPeriodCard key={s.id} statement={s} />
-            ))}
-
-            {paid.length > 0 ? (
-              <div className="flex flex-col gap-1">
-                <h3 className="mb-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                  {t("accounts.detail.billingPaidPeriods")}
-                </h3>
-                {paid.map((s) => (
-                  <button
-                    type="button"
-                    key={s.id}
-                    onClick={() => setDetailTarget(s)}
-                    className="flex w-full items-center gap-3 border-b border-border py-3 text-left last:border-0"
-                  >
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground">
-                      <CreditCard className="h-4 w-4" aria-hidden />
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium">{date(s.periodStart)}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {s.paidAt
-                          ? t("accounts.detail.billingPaidOn", { date: date(s.paidAt) })
-                          : t(`accounts.detail.billingStatusValue.${s.status}`)}
-                      </p>
-                      {/* Only when the payment fell short: on a fully paid period
-                          "pagado X de X" says nothing the amount doesn't. */}
-                      {s.status === "PARTIALLY_PAID" ? (
-                        <p className="text-xs tabular-nums text-muted-foreground">
-                          {t("accounts.detail.billingPaidAmount", { amount: fmt(s.paidAmount) })}
-                        </p>
-                      ) : null}
-                    </div>
-                    <div
-                      className="flex shrink-0 items-center gap-2"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <span className="font-semibold tabular-nums">{fmt(s.amount)}</span>
-                      <SyncButton statement={s} iconOnly />
-                      {s.status === "PARTIALLY_PAID" ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="w-8 px-0"
-                          aria-label={t("accounts.actions.editStatementPayment")}
-                          title={t("accounts.actions.editStatementPayment")}
-                          onClick={() => setEditPaymentTarget(s)}
-                        >
-                          <Pencil className="h-3.5 w-3.5" aria-hidden />
-                        </Button>
-                      ) : null}
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </div>
+            </Card>
+          ) : (
+            <BillingEmptyMessage error={isError ? error : undefined} onRetry={() => refetch()} />
+          )
         ) : (
-          // Same `Card` surface every other table wraps itself in — bare
-          // `Table` has no background/border of its own.
-          <Card className="overflow-hidden p-0">
-            <Table>
-              <THead className="bg-muted/50">
-                <TR>
-                  <TH className="w-8" />
-                  <TH>{t("accounts.detail.billingPeriod")}</TH>
-                  <TH numeric>{t("accounts.detail.billingAmount")}</TH>
-                  <TH>{t("accounts.detail.billingStatus")}</TH>
-                  <TH>{t("accounts.detail.billingPaidAt")}</TH>
-                  <TH>{t("accounts.detail.billingActions")}</TH>
-                </TR>
-              </THead>
-              <tbody>
-                {!statements || statements.length === 0 ? (
-                  <TR>
-                    <TD colSpan={6} className="p-0">
-                      <BillingEmptyMessage
-                        error={isError ? error : undefined}
-                        onRetry={() => refetch()}
-                      />
-                    </TD>
-                  </TR>
+          // Spec 028: one block per currency — the account's own first. Amounts are
+          // never converted or summed across blocks. With a single currency there is
+          // no heading at all: the section reads exactly as it always did.
+          <div className="flex flex-col gap-6">
+            {groups.map((group) => (
+              <section key={group.currency} className="flex flex-col gap-3">
+                {groups.length > 1 ? (
+                  <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    {t("accounts.detail.billingCurrencyGroup", { currency: group.currency })}
+                  </h3>
                 ) : null}
-                {(statements ?? []).map((s) => (
-                  <TR key={s.id} onClick={() => setDetailTarget(s)} className="cursor-pointer">
-                    <TD>
-                      <span className="flex h-8 w-8 items-center justify-center rounded-full bg-chip text-muted-foreground">
-                        <CreditCard className="h-4 w-4" aria-hidden />
-                      </span>
-                    </TD>
-                    {/* `w-full max-w-0` + a truncating child: same fix
-                        `TransactionTable` needed for Descripción — the only
-                        column with no fixed-content minimum of its own, so
-                        without this the table grows past its container
-                        instead of wrapping/truncating within it. */}
-                    <TD className="w-full max-w-0">
-                      <div className="truncate">{periodLabel(s)}</div>
-                    </TD>
-                    <TD numeric className="max-w-[11rem]">
-                      {fmt(s.amount)}
-                      {/* Only what this period INHERITED: its figure is no longer
-                        just its own movements. What it rolled over is deliberately
-                        not repeated here — it is the same money, already shown as
-                        "incluye …" on the period that now owes it. */}
-                      {Number(s.carriedOverAmount) > 0 ? (
-                        <span className="block truncate text-xs font-normal text-muted-foreground">
-                          {t("accounts.detail.billingIncludesCarryOver", {
-                            amount: fmt(s.carriedOverAmount),
-                          })}
-                        </span>
-                      ) : null}
-                      {/* Muted, not coloured: the badge beside it already carries the
-                        colour, and two warning-toned things in one row read as an
-                        error. Only the covered figure — the total is right above. */}
-                      {s.status === "PARTIALLY_PAID" ? (
-                        <span className="block truncate text-xs font-normal tabular-nums text-muted-foreground">
-                          {t("accounts.detail.billingPaidAmount", { amount: fmt(s.paidAmount) })}
-                        </span>
-                      ) : null}
-                    </TD>
-                    <TD>
-                      {/* `nowrap`: "Pago parcial" wrapped to two lines and made the
-                        row taller than every other one. */}
-                      <Badge variant={STATUS_VARIANT[s.status]} className="whitespace-nowrap">
-                        {t(`accounts.detail.billingStatusValue.${s.status}`)}
-                      </Badge>
-                      {!isSettled(s) && s.dueDate ? (
-                        <span className="mt-1 block whitespace-nowrap text-xs font-normal text-muted-foreground">
-                          {t("accounts.detail.billingDueDate", { date: date(s.dueDate) })}
-                        </span>
-                      ) : null}
-                    </TD>
-                    <TD>{s.paidAt ? new Date(s.paidAt).toLocaleDateString(i18n.language) : "—"}</TD>
-                    <TD>
-                      {/* Sync is the ICON alone: repeating "Sincronizar pagos" down
-                        every row made a column of text wider than the data it acts
-                        on, and left the one row with a real decision looking like
-                        the rest. Sync FIRST and LEFT-aligned (not `justify-end`),
-                        so its button sits at the same x in every row instead of
-                        sliding sideways depending on what follows it. */}
-                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                        <SyncButton statement={s} iconOnly />
-                        {isSettled(s) ? (
-                          // A period settled for less than its total: the payment is
-                          // the only correctable figure (its amount comes from the
-                          // movements, via sync).
-                          s.status === "PARTIALLY_PAID" ? (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="w-8 px-0"
-                              aria-label={t("accounts.actions.editStatementPayment")}
-                              title={t("accounts.actions.editStatementPayment")}
-                              onClick={() => setEditPaymentTarget(s)}
-                            >
-                              <Pencil className="h-3.5 w-3.5" aria-hidden />
-                            </Button>
-                          ) : null
-                        ) : s.status === "OPEN" ? (
-                          // Spec 019: the OPEN period is never "paid" (that would
-                          // close it) — only prepagado, via the ordinary movement form.
-                          <Button
-                            variant="accent"
-                            size="sm"
-                            className="w-8 px-0"
-                            aria-label={t("transactions.type.PREPAY")}
-                            title={t("transactions.type.PREPAY")}
-                            onClick={() => setPrepayOpen(true)}
-                          >
-                            <Banknote className="h-3.5 w-3.5" aria-hidden />
-                          </Button>
-                        ) : (
-                          // Tinted (not a plain ghost icon): the one action on this
-                          // row that moves money forward, same reasoning as the
-                          // accent "Nuevo" buttons elsewhere.
-                          <Button
-                            variant="accent"
-                            size="sm"
-                            className="w-8 px-0"
-                            aria-label={t("accounts.actions.payCredit")}
-                            title={t("accounts.actions.payCredit")}
-                            onClick={() => setPayTarget(s)}
-                          >
-                            <Banknote className="h-3.5 w-3.5" aria-hidden />
-                          </Button>
-                        )}
-                      </div>
-                    </TD>
-                  </TR>
-                ))}
-              </tbody>
-            </Table>
-          </Card>
+                {wide ? (
+                  <PeriodsTable list={group.statements} />
+                ) : (
+                  <PeriodsStack list={group.statements} />
+                )}
+              </section>
+            ))}
+          </div>
         )}
       </div>
 
@@ -549,17 +581,25 @@ export function BillingSection({
               <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {t("accounts.actions.generateStatementsPreviewTitle")}
               </span>
-              <Badge variant={STATUS_VARIANT[openPeriod.status]}>
+              <Badge variant={STATEMENT_STATUS_VARIANT[openPeriod.status]}>
                 {t(`accounts.detail.billingStatusValue.${openPeriod.status}`)}
               </Badge>
             </div>
             <span className="font-medium">{periodLabel(openPeriod)}</span>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-muted-foreground">
-                {t("accounts.actions.generateStatementsPreviewAmount")}
-              </span>
-              <span className="font-semibold tabular-nums">{fmt(openPeriod.amount)}</span>
-            </div>
+            {/* Spec 028: every currency's open period closes together — each amount
+                in its own currency, one line each, never summed. */}
+            {openPeriods.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">
+                  {openPeriods.length > 1
+                    ? t("accounts.actions.generateStatementsPreviewAmountIn", {
+                        currency: p.currency,
+                      })
+                    : t("accounts.actions.generateStatementsPreviewAmount")}
+                </span>
+                <span className="font-semibold tabular-nums">{fmt(p.amount, p.currency)}</span>
+              </div>
+            ))}
           </div>
         ) : null}
       </ConfirmModal>

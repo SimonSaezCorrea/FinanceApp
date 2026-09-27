@@ -45,6 +45,9 @@ export interface TransactionPlan {
   prepaymentStatementId?: string | null;
   /** The CREDIT_CARD account `prepaymentStatementId` belongs to. */
   prepaymentAccountId?: string | null;
+  /** Spec 028: the foreign-currency statement this INCOME settles — set only by
+   * the statement pay/transfer commands. */
+  settlesStatementId?: string | null;
 }
 
 /** One movement this app recorded on behalf of an instalment plan. */
@@ -77,6 +80,8 @@ export interface TransactionWriterRepositoryPort {
       cardIds: string[] | null;
       from: Date;
       to: Date;
+      /** Spec 028: same currency/settlement scoping as `netForPeriod`. */
+      currency: string;
     },
   ): Promise<void>;
   /** Correct one movement's amount — used to keep a statement's payment movement

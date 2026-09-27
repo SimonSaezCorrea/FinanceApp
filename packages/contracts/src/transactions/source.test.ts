@@ -27,12 +27,30 @@ const tx = (over: Partial<Transaction> = {}): Transaction => ({
   paidStatementAccountId: null,
   prepaymentStatementId: null,
   prepaymentAccountId: null,
+  settlesStatementId: null,
+  transferStatementId: null,
   createdAt: "2026-08-01T00:00:00.000Z",
   updatedAt: "2026-08-01T00:00:00.000Z",
   ...over,
 });
 
 describe("sourceOf", () => {
+  it("is STATEMENT_SETTLEMENT for the income that settles a statement in another currency", () => {
+    expect(sourceOf(tx({ type: "INCOME", bankAccountId: "tc", settlesStatementId: "s1" }))).toEqual(
+      {
+        kind: "STATEMENT_SETTLEMENT",
+        statementId: "s1",
+        accountId: "tc",
+      },
+    );
+  });
+
+  it("is CURRENCY_TRANSFER for a transfer's charge, even though it is an issuer charge", () => {
+    expect(
+      sourceOf(tx({ bankAccountId: "tc", financeCharge: true, transferStatementId: "s1" })),
+    ).toEqual({ kind: "CURRENCY_TRANSFER", statementId: "s1", accountId: "tc" });
+  });
+
   it("is MANUAL when nothing links the movement anywhere", () => {
     expect(sourceOf(tx())).toEqual({ kind: "MANUAL" });
   });

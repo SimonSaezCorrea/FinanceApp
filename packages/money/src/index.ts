@@ -43,6 +43,29 @@ export function subtractMoney(a: MoneyInput, b: MoneyInput, scale: number = MONE
   return toMoney(a).minus(toMoney(b)).toFixed(scale, Decimal.ROUND_HALF_EVEN);
 }
 
+/** Minor-unit decimals of the MVP's currencies — pinned so a runtime's ICU data
+ * can't change what an instalment is worth (the UF, CLF, is quoted to 4). */
+const CURRENCY_SCALES: Record<string, number> = { CLP: 0, USD: 2, CLF: 4 };
+
+/**
+ * How many decimals an amount in `currency` can really have: a peso has no
+ * cents, so an instalment of "21.663,3333" is money nobody can transfer. Any
+ * other ISO code falls back to its ISO 4217 minor unit; an unknown one to
+ * MONEY_SCALE, which never rounds anything away.
+ */
+export function currencyScale(currency: string): number {
+  const pinned = CURRENCY_SCALES[currency.toUpperCase()];
+  if (pinned !== undefined) return pinned;
+  try {
+    return (
+      new Intl.NumberFormat("en", { style: "currency", currency }).resolvedOptions()
+        .maximumFractionDigits ?? MONEY_SCALE
+    );
+  } catch {
+    return MONEY_SCALE;
+  }
+}
+
 /**
  * Format a money value for display in a given locale/currency.
  *

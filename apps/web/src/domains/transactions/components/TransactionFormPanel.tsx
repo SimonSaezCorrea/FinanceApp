@@ -187,7 +187,11 @@ export function TransactionFormPanel({
   // account — fetched only when relevant, to show what's currently owed
   // (same figure `PayStatementPanel` already shows for a closed one).
   const { data: prepayStatements } = useCreditStatements(isPrepay ? value.bankAccountId : "");
-  const openStatement = prepayStatements?.find((s) => s.status === "OPEN") ?? null;
+  // Spec 028: a prepago only ever targets the ACCOUNT-currency period (a card's
+  // limit in another currency has no prepago), never an open foreign one.
+  const prepayCurrency = accountList.find((a) => a.id === value.bankAccountId)?.currency;
+  const openStatement =
+    prepayStatements?.find((s) => s.status === "OPEN" && s.currency === prepayCurrency) ?? null;
   // A prepago's source is any of the user's own accounts with real cash —
   // never a CREDIT_CARD one, and never the account being prepaid itself.
   const prepaySourceOptions = selectable

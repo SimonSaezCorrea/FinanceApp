@@ -44,6 +44,9 @@ export interface TransactionProps {
   prepaymentStatementId: string | null;
   /** The CREDIT_CARD account `prepaymentStatementId` belongs to. */
   prepaymentAccountId: string | null;
+  /** Spec 028: the foreign-currency statement this INCOME settles (written only by
+   * the statement pay/transfer commands, through the writer port). */
+  settlesStatementId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -132,6 +135,7 @@ export class Transaction {
       // ordinary creation path.
       prepaymentStatementId: null,
       prepaymentAccountId: null,
+      settlesStatementId: null,
     };
   }
 
@@ -223,6 +227,9 @@ export class Transaction {
       paidStatementAccountId: null,
       prepaymentStatementId: this.props.prepaymentStatementId,
       prepaymentAccountId: this.props.prepaymentAccountId,
+      settlesStatementId: this.props.settlesStatementId,
+      // Resolved by the query handler, like `paidStatementId`.
+      transferStatementId: null,
       createdAt: this.props.createdAt.toISOString(),
       updatedAt: this.props.updatedAt.toISOString(),
     };

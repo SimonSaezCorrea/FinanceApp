@@ -140,6 +140,7 @@ describe("PayCreditStatementHandler settles instalments (integration)", () => {
     const statement = await statementRepo.findOrCreateOpenForAccount(
       creditAccountId,
       new Date("2026-01-01T00:00:00.000Z"),
+      "CLP",
     );
     statementId = statement.id;
     await prisma.transaction.create({

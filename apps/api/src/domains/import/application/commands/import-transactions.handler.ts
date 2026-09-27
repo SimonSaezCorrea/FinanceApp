@@ -122,7 +122,13 @@ export class ImportTransactionsHandler extends BaseIdempotentCommandHandler<
     const plan = planImport(input.rows, { ...loaded.context, currency }, cards);
 
     const creditStatementId = plan.rows.some((r) => r.drawsOnCredit)
-      ? (await this.statements.findOrCreateOpenForAccount(input.bankAccountId, loaded.createdAt)).id
+      ? (
+          await this.statements.findOrCreateOpenForAccount(
+            input.bankAccountId,
+            loaded.createdAt,
+            currency,
+          )
+        ).id
       : null;
 
     return { plan, currency, creditStatementId };

@@ -78,6 +78,8 @@ describe("TransactionsRoute", () => {
           paidStatementAccountId: null,
           prepaymentStatementId: null,
           prepaymentAccountId: null,
+          settlesStatementId: null,
+          transferStatementId: null,
           createdAt: "2026-03-01T00:00:00.000Z",
           updatedAt: "2026-03-01T00:00:00.000Z",
         },

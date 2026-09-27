@@ -60,6 +60,7 @@ describe("Transaction.applyUpdate", () => {
       savingsGoalId: null,
       prepaymentStatementId: null,
       prepaymentAccountId: null,
+      settlesStatementId: null,
       createdAt: new Date("2026-01-01"),
       updatedAt: new Date("2026-01-01"),
     });

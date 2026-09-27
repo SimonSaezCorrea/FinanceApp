@@ -66,3 +66,34 @@ export class AccountInactiveError extends DomainError {
     super("ACCOUNT_INACTIVE");
   }
 }
+
+/** Spec 028: transfer offered only for a closed, overdue, unsettled period in
+ * another currency (`accounts.canTransferStatement`). */
+export class StatementNotTransferableError extends DomainError {
+  constructor() {
+    super("STATEMENT_NOT_TRANSFERABLE", 409);
+  }
+}
+
+/** Spec 028: undoing a transfer needs a TRANSFERRED period. */
+export class StatementNotTransferredError extends DomainError {
+  constructor() {
+    super("STATEMENT_NOT_TRANSFERRED", 409);
+  }
+}
+
+/** Spec 028 (research R9): the account-currency period that received the transfer's
+ * charge is already settled — undoing it would rewrite a paid period. */
+export class TransferAlreadyBilledError extends DomainError {
+  constructor() {
+    super("TRANSFER_ALREADY_BILLED", 409);
+  }
+}
+
+/** Spec 028: paying a statement in another currency from an account in yet another
+ * one needs what left that account too — the two are never compared. */
+export class StatementPaymentCurrencyAmbiguousError extends DomainError {
+  constructor() {
+    super("STATEMENT_PAYMENT_CURRENCY_AMBIGUOUS", 400, "chargedAmount");
+  }
+}

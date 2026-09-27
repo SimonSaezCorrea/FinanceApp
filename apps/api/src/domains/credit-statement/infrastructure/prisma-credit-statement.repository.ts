@@ -26,6 +26,12 @@ type Row = {
   carriedToId: string | null;
   paidFromAccountId: string | null;
   paidTransactionId: string | null;
+  currency: string;
+  transferredAt: Date | null;
+  transferredAmount: { toString(): string } | null;
+  transferTransactionId: string | null;
+  settlementTransactionId: string | null;
+  transferredToId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -44,6 +50,12 @@ function rowToProps(row: Row): CreditStatementProps {
     carriedToId: row.carriedToId,
     paidFromAccountId: row.paidFromAccountId,
     paidTransactionId: row.paidTransactionId,
+    currency: row.currency,
+    transferredAt: row.transferredAt,
+    transferredAmount: row.transferredAmount?.toString() ?? null,
+    transferTransactionId: row.transferTransactionId,
+    settlementTransactionId: row.settlementTransactionId,
+    transferredToId: row.transferredToId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -90,11 +102,19 @@ export class PrismaCreditStatementRepository
     return row ? CreditStatement.fromPersistence(rowToProps(row)) : null;
   }
 
-  async findOpenForAccount(accountId: string): Promise<CreditStatement | null> {
+  async findOpenForAccount(accountId: string, currency: string): Promise<CreditStatement | null> {
     const row = await this.prisma.creditStatement.findFirst({
-      where: { accountId, closedAt: null },
+      where: { accountId, currency, closedAt: null },
     });
     return row ? CreditStatement.fromPersistence(rowToProps(row)) : null;
+  }
+
+  async listOpenForAccount(accountId: string): Promise<CreditStatement[]> {
+    const rows = await this.prisma.creditStatement.findMany({
+      where: { accountId, closedAt: null },
+      orderBy: { currency: "asc" },
+    });
+    return rows.map((r) => CreditStatement.fromPersistence(rowToProps(r)));
   }
 
   async listForAccount(userId: string, accountId: string): Promise<CreditStatement[]> {
@@ -108,40 +128,51 @@ export class PrismaCreditStatementRepository
   findOrCreateOpenForAccount(
     accountId: string,
     fallbackPeriodStart: Date,
+    currency: string,
   ): Promise<{ id: string }> {
-    return this.findOrCreateOpenForAccountWithTx(this.prisma, accountId, fallbackPeriodStart);
+    return this.findOrCreateOpenForAccountWithTx(
+      this.prisma,
+      accountId,
+      fallbackPeriodStart,
+      currency,
+    );
   }
 
   async findOrCreateOpenForAccountWithTx(
     tx: unknown,
     accountId: string,
     fallbackPeriodStart: Date,
+    currency: string,
   ): Promise<{ id: string }> {
     const client = tx as PrismaService;
     const open = await client.creditStatement.findFirst({
-      where: { accountId, closedAt: null },
+      where: { accountId, currency, closedAt: null },
       select: { id: true },
     });
     if (open) return open;
+    // Spec 028 (research R2): the cycle belongs to the ACCOUNT — every currency's
+    // period starts where the account last closed, whichever currency that was, so
+    // they all reach the same boundary and close on the same day.
     const last = await client.creditStatement.findFirst({
-      where: { accountId },
-      orderBy: { createdAt: "desc" },
+      where: { accountId, closedAt: { not: null } },
+      orderBy: { closedAt: "desc" },
       select: { closedAt: true },
     });
     return client.creditStatement.create({
-      data: { accountId, periodStart: last?.closedAt ?? fallbackPeriodStart },
+      data: { accountId, currency, periodStart: last?.closedAt ?? fallbackPeriodStart },
       select: { id: true },
     });
   }
 
   async findOrCreateCarryOverTargetWithTx(
     tx: unknown,
-    params: { accountId: string; excludeStatementId: string; periodStart: Date },
+    params: { accountId: string; excludeStatementId: string; periodStart: Date; currency: string },
   ): Promise<{ id: string }> {
     const client = tx as PrismaService;
     const open = await client.creditStatement.findFirst({
       where: {
         accountId: params.accountId,
+        currency: params.currency,
         closedAt: null,
         id: { not: params.excludeStatementId },
       },
@@ -149,7 +180,11 @@ export class PrismaCreditStatementRepository
     });
     if (open) return open;
     return client.creditStatement.create({
-      data: { accountId: params.accountId, periodStart: params.periodStart },
+      data: {
+        accountId: params.accountId,
+        currency: params.currency,
+        periodStart: params.periodStart,
+      },
       select: { id: true },
     });
   }
@@ -193,6 +228,11 @@ export class PrismaCreditStatementRepository
         carriedToId: state.carriedToId,
         paidFromAccountId: state.paidFromAccountId,
         paidTransactionId: state.paidTransactionId,
+        transferredAt: state.transferredAt,
+        transferredAmount: state.transferredAmount,
+        transferTransactionId: state.transferTransactionId,
+        settlementTransactionId: state.settlementTransactionId,
+        transferredToId: state.transferredToId,
       },
     });
   }

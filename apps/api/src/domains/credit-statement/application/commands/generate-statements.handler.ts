@@ -72,29 +72,46 @@ async function seedPeriodFromSchedule(
     (min, c) => (c.dueDate.getTime() < min.getTime() ? c.dueDate : min),
     candidates[0].dueDate,
   );
+  // Instalment plans are only ever in the account's own currency (spec 028 R14).
+  const currency = account.snapshot().currency;
   await statementRepo.findOrCreateOpenForAccount(
     account.id,
     new Date(earliestDue.getTime() - ONE_DAY_MS),
+    currency,
   );
-  return statementRepo.findOpenForAccount(account.id);
+  return statementRepo.findOpenForAccount(account.id, currency);
 }
 
+/**
+ * Spec 028: an account keeps one OPEN period per currency, and the cycle belongs to
+ * the ACCOUNT — every open period closes on the SAME boundary, computed from the
+ * account-currency period's start (they all share it, research R2; a foreign-only
+ * cycle computes it from its own). Only the account-currency period is ever seeded
+ * from the instalment schedule, and only it stamps instalments: plans are always in
+ * the account's own currency. A currency with no usage has no open period, so it
+ * simply isn't closed — no empty statement is ever created.
+ */
 async function closeIfDue(
   account: BankAccount,
   statementRepo: CreditStatementRepositoryPort,
   planRepo: InstallmentPlanRepositoryPort,
   prisma: PrismaService,
-): Promise<StatementClosedEvent | null> {
+): Promise<StatementClosedEvent[]> {
   const day = account.billingCycleDay;
-  if (!day) return null;
+  if (!day) return [];
 
-  const open =
-    (await statementRepo.findOpenForAccount(account.id)) ??
-    (await seedPeriodFromSchedule(account, statementRepo, planRepo));
-  if (!open) return null; // no usage since the last close, and nothing scheduled either
+  const accountCurrency = account.snapshot().currency;
+  const opens = await statementRepo.listOpenForAccount(account.id);
+  let primary = opens.find((s) => s.currency === accountCurrency) ?? null;
+  if (!primary) {
+    primary = await seedPeriodFromSchedule(account, statementRepo, planRepo);
+    if (primary) opens.push(primary);
+  }
+  if (opens.length === 0) return []; // no usage since the last close, nothing scheduled
 
-  const boundary = nextBoundaryAfter(open.periodStart, day, account.billingCycleType);
-  if (new Date() < boundary) return null;
+  const anchor = (primary ?? opens[0]).periodStart;
+  const boundary = nextBoundaryAfter(anchor, day, account.billingCycleType);
+  if (new Date() < boundary) return [];
 
   const eligible = resolveBillingEligibility({
     accountType: account.type,
@@ -105,24 +122,26 @@ async function closeIfDue(
       isActive: c.isActive,
     })),
   });
-  if (!eligible) return null; // leave it accumulating, don't seal it this cycle
+  if (!eligible) return []; // leave them accumulating, don't seal them this cycle
 
-  const event = open.close(boundary);
+  const events = opens.map((s) => s.close(boundary));
   const creditCardIds = account.cards.filter((c) => c.kind === "CREDIT").map((c) => c.id);
   const billable =
-    creditCardIds.length > 0 ? await planRepo.listBillableForCards(creditCardIds, boundary) : [];
+    primary && creditCardIds.length > 0
+      ? await planRepo.listBillableForCards(creditCardIds, boundary)
+      : [];
 
   await prisma.$transaction(async (tx) => {
-    await statementRepo.saveWithTx(tx, open);
-    if (billable.length > 0) {
+    for (const s of opens) await statementRepo.saveWithTx(tx, s);
+    if (primary && billable.length > 0) {
       await planRepo.stampBillableWithTx(
         tx,
         billable.map((c) => c.paymentId),
-        open.id,
+        primary.id,
       );
     }
   });
-  return event;
+  return events;
 }
 
 @Injectable()
@@ -154,8 +173,8 @@ export class GenerateStatementsHandler extends BaseCommandHandler<
     _command: GenerateStatementsCommand,
     account: BankAccount,
   ): Promise<HandleResult<boolean>> {
-    const event = await closeIfDue(account, this.statementRepo, this.planRepo, this.prisma);
-    return { result: event !== null, events: event ? [event] : [] };
+    const events = await closeIfDue(account, this.statementRepo, this.planRepo, this.prisma);
+    return { result: events.length > 0, events };
   }
 }
 
@@ -189,11 +208,15 @@ export class GenerateAllDueStatementsHandler extends BaseCommandHandler<
     _command: GenerateAllDueStatementsCommand,
     accounts: BankAccount[],
   ): Promise<HandleResult<number>> {
-    const events = [];
+    const events: StatementClosedEvent[] = [];
+    // The count is of ACCOUNTS closed this run — a cycle closing both its CLP and
+    // USD periods is one account billed.
+    let accountsClosed = 0;
     for (const account of accounts) {
-      const event = await closeIfDue(account, this.statementRepo, this.planRepo, this.prisma);
-      if (event) events.push(event);
+      const closed = await closeIfDue(account, this.statementRepo, this.planRepo, this.prisma);
+      if (closed.length > 0) accountsClosed++;
+      events.push(...closed);
     }
-    return { result: events.length, events };
+    return { result: accountsClosed, events };
   }
 }

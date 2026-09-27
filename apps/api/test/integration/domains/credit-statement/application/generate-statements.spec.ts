@@ -32,6 +32,81 @@ import {
  * DI — same reasoning as the other integration specs in this tier: it is the real
  * adapters wired together by hand that are under test, not the HTTP layer.
  */
+describe("GenerateStatementsHandler closes every currency together (integration, spec 028)", () => {
+  const prisma = new PrismaService(new ConfigService());
+  const accountRepo = buildBankAccountRepo(prisma);
+  const statementRepo = buildCreditStatementRepo(prisma);
+  const handler = new GenerateStatementsHandler(
+    { publish: () => undefined } as never,
+    accountRepo,
+    statementRepo,
+    buildInstallmentPlanRepo(prisma),
+    prisma,
+  );
+  const userId = `u_${randomUUID()}`;
+
+  beforeAll(async () => {
+    await prisma.$connect();
+    await prisma.user.create({
+      data: { id: userId, email: `${userId}@test.local`, passwordHash: "x", name: "Test" },
+    });
+  });
+
+  afterAll(async () => {
+    await prisma.bankAccount.deleteMany({ where: { userId } });
+    await prisma.user.deleteMany({ where: { id: userId } });
+    await prisma.$disconnect();
+  });
+
+  it("a CLP and a USD open period close with the identical closedAt", async () => {
+    const account = await accountRepo.createWithCards(userId, {
+      name: "BCI Crédito",
+      type: "CREDIT_CARD",
+      status: "ACTIVE",
+      currency: "CLP",
+      institution: null,
+      institutionId: null,
+      accountNumber: undefined,
+      accountAlias: null,
+      initialBalance: "0",
+      overdraftLimit: "0",
+      balanceCeiling: null,
+      creditLimit: "900000",
+      creditUsedInitial: "0",
+      billingCycleDay: 20,
+      billingCycleType: "CALENDAR_DAY",
+      paymentMethod: "MANUAL",
+      cards: [
+        {
+          name: "Visa",
+          kind: "CREDIT",
+          last4: "7758",
+          expiryMonth: 6,
+          expiryYear: 2031,
+          isActive: true,
+          isPrimary: true,
+          isVirtual: false,
+          isAdditional: false,
+          cardholderName: null,
+          network: "VISA",
+          limits: [{ currency: "USD", limitAmount: "100", usedInitial: "0" }],
+        },
+      ],
+    });
+    // Both periods opened long ago, on the same anchor: their boundary has passed.
+    const start = new Date("2025-01-01T00:00:00.000Z");
+    await statementRepo.findOrCreateOpenForAccount(account.id, start, "CLP");
+    await statementRepo.findOrCreateOpenForAccount(account.id, start, "USD");
+
+    expect(await handler.execute(new GenerateStatementsCommand(userId, account.id))).toBe(true);
+
+    const rows = await prisma.creditStatement.findMany({ where: { accountId: account.id } });
+    expect(rows.map((r) => r.currency).sort()).toEqual(["CLP", "USD"]);
+    expect(rows.every((r) => r.closedAt !== null)).toBe(true);
+    expect(rows[0]!.closedAt!.getTime()).toBe(rows[1]!.closedAt!.getTime());
+  });
+});
+
 describe("GenerateStatementsHandler stamps instalments (integration)", () => {
   const prisma = new PrismaService(new ConfigService());
   const accountRepo = buildBankAccountRepo(prisma);
@@ -194,6 +269,7 @@ describe("GenerateStatementsHandler stamps instalments (integration)", () => {
     const reopened = await statementRepo.findOrCreateOpenForAccount(
       accountId,
       new Date("2026-02-05T00:00:00.000Z"), // fallback, unused: a prior close exists
+      "CLP",
     );
     const reopenedRow = await prisma.creditStatement.findUnique({ where: { id: reopened.id } });
     expect(reopenedRow?.periodStart).toEqual(new Date("2026-02-05T00:00:00.000Z"));
@@ -202,7 +278,11 @@ describe("GenerateStatementsHandler stamps instalments (integration)", () => {
     expect(await billedSequences(planId)).toEqual([1, 2]);
 
     // And once more: the third and last instalment.
-    const reopenedAgain = await statementRepo.findOrCreateOpenForAccount(accountId, new Date());
+    const reopenedAgain = await statementRepo.findOrCreateOpenForAccount(
+      accountId,
+      new Date(),
+      "CLP",
+    );
     expect(reopenedAgain.id).not.toBe(reopened.id);
     await handler.execute(new GenerateStatementsCommand(userId, accountId));
     expect(await billedSequences(planId)).toEqual([1, 2, 3]);
@@ -218,7 +298,11 @@ describe("GenerateStatementsHandler stamps instalments (integration)", () => {
     await handler.execute(new GenerateStatementsCommand(userId, accountId));
     expect(await billedSequences(planId)).toEqual([1]);
 
-    await statementRepo.findOrCreateOpenForAccount(accountId, new Date("2026-05-05T00:00:00.000Z"));
+    await statementRepo.findOrCreateOpenForAccount(
+      accountId,
+      new Date("2026-05-05T00:00:00.000Z"),
+      "CLP",
+    );
     await handler.execute(new GenerateStatementsCommand(userId, accountId));
     expect(await billedSequences(planId)).toEqual([1]); // unchanged: nothing left to bill
   });

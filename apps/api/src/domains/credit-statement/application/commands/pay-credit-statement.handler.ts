@@ -193,6 +193,7 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
       paymentDueCycleType: context.account.paymentDueCycleType,
       billingCycleDay: context.account.billingCycleDay,
       billingCycleType: context.account.billingCycleType,
+      accountCurrency: context.account.snapshot().currency,
     });
 
     await this.prisma.$transaction(async (tx) => {
@@ -226,6 +227,7 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
           accountId: context.account.id,
           excludeStatementId: context.statement.id,
           periodStart: context.statement.closedAt ?? context.occurredAt,
+          currency: context.statement.currency,
         });
         context.statement.markCarriedTo(target.id);
         await this.statementRepo.addCarriedOverWithTx(tx, target.id, context.carryOver);

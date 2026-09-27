@@ -80,6 +80,10 @@ export interface TemplateMovementWrite {
   financeCharge: boolean;
   /** Draws on a credit card pool — linked to the account's open billing period. */
   drawsOnCredit: boolean;
+  /** Spec 028: the currency of the OPEN billing period this movement belongs to —
+   * the account's when it draws on the pool, its own when it is a foreign-currency
+   * movement against a card's own limit; null when it belongs to no period. */
+  statementCurrency: string | null;
   transferGroupId: string | null;
   link:
     | { kind: "debt"; index: number }
@@ -275,9 +279,16 @@ export function planTemplateImport(
     return false;
   };
   const movement = (
-    fields: Omit<TemplateMovementWrite, "id" | "drawsOnCredit"> & { id?: string },
+    fields: Omit<TemplateMovementWrite, "id" | "drawsOnCredit" | "statementCurrency"> & {
+      id?: string;
+    },
   ): TemplateMovementWrite => {
-    const write = { id: fields.id ?? newId(), drawsOnCredit: false, ...fields };
+    const write = {
+      id: fields.id ?? newId(),
+      drawsOnCredit: false,
+      statementCurrency: null as string | null,
+      ...fields,
+    };
     movements.push(write);
     return write;
   };
@@ -944,6 +955,15 @@ export function planTemplateImport(
     ctx.creditUsed = addMoney(ctx.creditUsed, effect.credit);
     if (e.write && e.kind === "movement" && Number(effect.credit) !== 0) {
       e.write.drawsOnCredit = true;
+      e.write.statementCurrency = lookup.accounts.get(e.accountId)!.currency;
+    } else if (
+      e.write &&
+      e.kind === "movement" &&
+      e.cardLimit &&
+      e.currency !== lookup.accounts.get(e.accountId)!.currency
+    ) {
+      // A foreign-currency row against its card's own limit: its own statement.
+      e.write.statementCurrency = e.currency!;
     }
     if (e.kind === "movement" && e.card && e.cardLimit) {
       const usage = cardUsage.get(usageKey(e)) ?? initialUsage(e);

@@ -136,6 +136,7 @@ export class InstallmentPlan {
       totalPrincipal: input.totalPrincipal,
       installmentCount: input.installmentCount,
       aprPerPeriod: input.aprPerPeriod,
+      currency: input.currency,
     });
     const payments: PlannedPayment[] = schedule.map((row) => ({
       sequence: row.sequence,
@@ -287,7 +288,11 @@ export class InstallmentPlan {
     const totalPrincipal = patch.totalPrincipal ?? this.props.totalPrincipal;
     const installmentCount = patch.installmentCount ?? this.props.installmentCount;
     const startDate = patch.startDate ?? this.props.startDate;
-    const schedule = equalPrincipalSchedule({ totalPrincipal, installmentCount });
+    const schedule = equalPrincipalSchedule({
+      totalPrincipal,
+      installmentCount,
+      currency: this.props.currency,
+    });
     const planned: PlannedPayment[] = schedule.map((row) => ({
       sequence: row.sequence,
       dueDate: addPeriod(

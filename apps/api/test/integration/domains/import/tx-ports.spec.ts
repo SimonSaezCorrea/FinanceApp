@@ -159,15 +159,26 @@ describe("ports enlisted in the template import's transaction (integration)", ()
         tx,
         accountId,
         new Date("2026-01-01T00:00:00Z"),
+        "CLP",
       );
       expect(open.id).toBeTruthy();
     });
     expect(await prisma.creditStatement.count({ where: { accountId } })).toBe(0);
     const first = await prisma.$transaction((tx) =>
-      statements.findOrCreateOpenForAccountWithTx(tx, accountId, new Date("2026-01-01T00:00:00Z")),
+      statements.findOrCreateOpenForAccountWithTx(
+        tx,
+        accountId,
+        new Date("2026-01-01T00:00:00Z"),
+        "CLP",
+      ),
     );
     const again = await prisma.$transaction((tx) =>
-      statements.findOrCreateOpenForAccountWithTx(tx, accountId, new Date("2026-01-01T00:00:00Z")),
+      statements.findOrCreateOpenForAccountWithTx(
+        tx,
+        accountId,
+        new Date("2026-01-01T00:00:00Z"),
+        "CLP",
+      ),
     );
     expect(again.id).toBe(first.id);
   });

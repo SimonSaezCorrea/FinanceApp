@@ -1,4 +1,5 @@
 import {
+  ArrowRightLeft,
   Banknote,
   BriefcaseBusiness,
   Car,
@@ -64,6 +65,7 @@ const CATEGORY_ICONS: Record<string, LucideIcon> = {
   INTEREST: Percent,
   STATEMENT_PAYMENT: CreditCard,
   CARD_PREPAYMENT: Landmark,
+  CURRENCY_TRANSFER: ArrowRightLeft,
 };
 
 export function categoryIcon(code: string | null | undefined): LucideIcon {

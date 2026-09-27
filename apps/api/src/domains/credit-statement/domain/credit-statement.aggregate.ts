@@ -14,6 +14,7 @@ import { OpenState } from "./states/open-state";
 import { PaidState } from "./states/paid-state";
 import { PartiallyPaidState } from "./states/partially-paid-state";
 import { PendingState } from "./states/pending-state";
+import { TransferredState } from "./states/transferred-state";
 
 export interface CreditStatementProps {
   id: string;
@@ -37,6 +38,19 @@ export interface CreditStatementProps {
   carriedToId: string | null;
   paidFromAccountId: string | null;
   paidTransactionId: string | null;
+  /** Spec 028: the period's currency — the account's, or one its primary card holds
+   * a limit in. Every amount above is in it. */
+  currency: string;
+  /** Spec 028: set when this (foreign-currency) period was transferred. */
+  transferredAt: Date | null;
+  /** What the bank charged for it, in the ACCOUNT's currency. */
+  transferredAmount: string | null;
+  /** The account-currency EXPENSE the transfer created. */
+  transferTransactionId: string | null;
+  /** The INCOME in this period's currency that settled its card's own limit. */
+  settlementTransactionId: string | null;
+  /** The account-currency period that received the transfer's charge. */
+  transferredToId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -193,6 +207,32 @@ export class CreditStatement {
     return toMoney(remaining).isNegative() ? moneyToString("0") : remaining;
   }
 
+  get currency(): string {
+    return this.props.currency;
+  }
+
+  get transferredAt(): Date | null {
+    return this.props.transferredAt;
+  }
+
+  get transferredAmount(): string | null {
+    return this.props.transferredAmount === null
+      ? null
+      : moneyToString(this.props.transferredAmount);
+  }
+
+  get transferTransactionId(): string | null {
+    return this.props.transferTransactionId;
+  }
+
+  get settlementTransactionId(): string | null {
+    return this.props.settlementTransactionId;
+  }
+
+  get transferredToId(): string | null {
+    return this.props.transferredToId;
+  }
+
   get paidFromAccountId(): string | null {
     return this.props.paidFromAccountId;
   }
@@ -214,6 +254,7 @@ export class CreditStatement {
    * PARTIALLY_PAID: any payment settles the period (see `payTowards`), so this is
    * a label on a terminal state, not a payable stage of its own. */
   get state(): CreditStatementState {
+    if (this.props.transferredAt) return new TransferredState();
     if (this.props.paidAt) {
       return toMoney(this.props.paidAmount).lessThan(toMoney(this.props.amount))
         ? new PartiallyPaidState()

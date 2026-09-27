@@ -146,3 +146,12 @@ export class TransactionLinkedToInstallmentError extends DomainError {
     super("TRANSACTION_LINKED_TO_INSTALLMENT", 409);
   }
 }
+
+/** Spec 028: the movement backs a statement's payment or transfer in another
+ * currency — corrected from that statement (correct the payment, undo the
+ * transfer), never edited or deleted in place. */
+export class TransactionLinkedToStatementError extends DomainError {
+  constructor() {
+    super("TRANSACTION_LINKED_TO_STATEMENT", 409);
+  }
+}

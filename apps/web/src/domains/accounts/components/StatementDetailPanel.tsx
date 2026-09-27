@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { accounts } from "@finance/contracts";
+import { accounts as accountsContract, type accounts } from "@finance/contracts";
 import { formatMoney, subtractMoney } from "@finance/money";
 
 import { useTransactions } from "../../transactions/hooks/useTransactions";
@@ -11,13 +11,7 @@ import { SidePanel } from "../../../shared/ui/overlay";
 import { Badge } from "../../../shared/ui/badge";
 import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { LoadingState } from "../../../shared/ui/states";
-
-const STATUS_VARIANT = {
-  OPEN: "info",
-  PENDING: "warning",
-  PARTIALLY_PAID: "warning",
-  PAID: "success",
-} as const;
+import { STATEMENT_STATUS_VARIANT } from "../lib/statementStatus";
 
 interface StatementDetailPanelProps {
   readonly account: accounts.BankAccount;
@@ -67,15 +61,19 @@ export function StatementDetailPanel({
 
   if (statement === null) return null;
 
-  const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
+  // Spec 028: in the statement's OWN currency (a USD period shows dollars).
+  const fmt = (v: string) =>
+    formatMoney(v, { locale: i18n.language, currency: statement.currency });
   const date = (iso: string) => new Date(iso).toLocaleDateString(i18n.language);
-  const isSettled = statement.paidAt !== null;
+  // Paid or transferred (spec 028) — both are final.
+  const isSettled = accountsContract.isSettled(statement);
   // `remainingAmount` is always "0" once settled BY DESIGN — a shortfall isn't
   // owed on THIS period any more, it rolled into the next one. Showing that "0"
   // as a bare "Restante" reads as a contradiction next to "Pagado" being less
   // than "Monto", so a settled period shows where the difference actually went
   // instead of repeating the same zero the badge already implies.
-  const shortfall = isSettled ? subtractMoney(statement.amount, statement.paidAmount) : "0";
+  // Only a PAYMENT can fall short; a transferred period's debt went elsewhere whole.
+  const shortfall = statement.paidAt ? subtractMoney(statement.amount, statement.paidAmount) : "0";
   const carriedTo =
     statement.carriedToId && statements
       ? statements.find((s) => s.id === statement.carriedToId)
@@ -97,7 +95,7 @@ export function StatementDetailPanel({
     >
       <div className="flex flex-col gap-5">
         <div className="flex items-center justify-between gap-3">
-          <Badge variant={STATUS_VARIANT[statement.status]}>
+          <Badge variant={STATEMENT_STATUS_VARIANT[statement.status]}>
             {t(`accounts.detail.billingStatusValue.${statement.status}`)}
           </Badge>
           {isSettled && statement.paidAt ? (

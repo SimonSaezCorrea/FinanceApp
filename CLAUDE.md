@@ -807,7 +807,7 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     one). `RECURRING_END_BEFORE_START` (400) on create/update; PATCH `endDate: null` reopens it.
     Every "is it running" check reads `status === "ACTIVE"`, never `active` alone (totals,
     `activeOnly`, `isOverdue`, the dashboard's upcoming payments). **Linking payments**: `POST/PATCH
-    /transactions` accept `recurringExpenseId` (ownership-verified via
+/transactions` accept `recurringExpenseId` (ownership-verified via
     `RecurringExpenseRepositoryPort.findOne`, `RECURRING_NOT_FOUND`; PATCH `null` unlinks) — the
     first path that writes `Transaction.recurringExpenseId` besides the seed, so a series' "historial
     de ocurrencias" (`GET /transactions?recurringExpenseId=`) finally fills from real use;
@@ -1009,10 +1009,10 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     recognises sheets/headers in es AND en); `resolveTemplate` turns names into ids and reports
     local issues per sheet/row. Contract: `imports.templateImportRequestSchema` (every row carries
     its Excel `row`; ≤ `TEMPLATE_IMPORT_MAX_ROWS` = 5000; `balanceModes[]`). API: `POST
-    /import/template/preview` (200, writes NOTHING — returns counts, per-account effect and EVERY
+/import/template/preview` (200, writes NOTHING — returns counts, per-account effect and EVERY
     issue `{code, sheet, row}`) and `POST /import/template` (idempotent, operation
     `import.template`, all-or-nothing, a failure answers the rule's own code with `field:
-    "<sheet>.<row>"`). The pure `import/domain/template-plan.ts`'s `planTemplateImport` builds each
+"<sheet>.<row>"`). The pure `import/domain/template-plan.ts`'s `planTemplateImport` builds each
     record with its aggregate's own `planCreation`, applies payments with the aggregate's methods
     (`Debt.registerPayment`, `InstallmentPlan.payInstallment`), and validates every money effect with
     `MovementPolicy`/`TransferPolicy` on a timeline per account (date → sheet → row).
@@ -1600,7 +1600,7 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
 
 ## Conventions
 
-- **Money:** never floats. Cross the boundary as **decimal strings** (zod `moneyString` in contracts); compute with `@finance/money` (`decimal.js`) / `Prisma.Decimal` at schema precision.
+- **Money:** never floats. Cross the boundary as **decimal strings** (zod `moneyString` in contracts); compute with `@finance/money` (`decimal.js`) / `Prisma.Decimal` at schema precision. **Instalments are whole units of their currency** (2026-09-27): `equalPrincipalSchedule({ …, currency })` rounds each instalment (and its interest) to `currencyScale(currency)` — CLP 0, USD 2, CLF 4 — and the last one absorbs the remainder (64.990 CLP in 3 = 21.663 + 21.663 + 21.664). Used by `InstallmentPlan` (create/regenerate), `Debt.nextInstallmentAmount`/`pendingAmount` (an even split charges row by row), and the web mirrors (`schedulePreview`, `debtSchedule`'s `debtInstallmentAmounts`, `calcRemaining`) — never divide a principal by hand. Already-stored schedules keep their old amounts (no migration).
 - **Validation:** request bodies/queries validated with **zod** schemas from `@finance/contracts` via `ZodValidationPipe` (NOT Nest's class-validator).
 - **Identifiers (specs/016):** every row's `id`, across all 29 tables, is **UUID v7** — `schema.prisma`'s `@default(uuid(7))` (Prisma 7 generates it client-side, no native Postgres v7 function needed); the handful of write paths that mint an id explicitly (a cross-referenced value needed before insert, or a non-PK correlation value like `transferGroupId`) go through the one shared helper `apps/api/src/infra/id/generate-row-id.ts`, never a bare `randomUUID()`. Validated at the boundary via the shared zod schema `rowId` (`packages/contracts/src/common/row-id.ts`, `z.uuidv7()`) — every path param and every id-shaped body field uses it, never a bare `z.string()`; a malformed id, or a well-formed UUID of the wrong version, is rejected `400 INVALID_ID_FORMAT` before any query runs (`ZodValidationPipe`/`ZodParamsPipe`). Business identifiers (institution `code`, CBU, `RUT-`/`PSP-`/`AGF-` catalogue keys) are untouched by this — separate columns, their own validation, never the row's PK. **The keyset pagination cursor and the attachment storage key are NOT row identifiers and are deliberately opaque in a different way (specs/017):** `transaction/application/queries/transaction-cursor.ts`'s `encodeCursor`/`decodeCursor` sign the cursor — `base64url("<version>|<occurredAt>|<id>") + "." + base64url(HMAC-SHA256(secret, payload))`, secret from the required env var **`CURSOR_SIGNING_SECRET`** (`infra/config/cursor.config.ts`'s `getCursorSigningSecret`, `ConfigService.getOrThrow`, fails fast at boot like the JWT secrets) — any tampered/unversioned/malformed cursor throws `InvalidCursorError` (`INVALID_CURSOR`). `transaction-attachment/domain/attachment-policy.ts`'s `storageKeyFor()` returns a flat `randomUUID()` (v4, not the row's own v7 id — v7 embeds a timestamp that would leak upload time) with no relation to `userId`/`transactionId`/`attachmentId`/filename, since that key egresses verbatim inside the presigned URL handed to the browser.
 - **Per-user isolation:** every repository query is scoped by `userId`; controllers use `@CurrentUser`.
@@ -1708,7 +1708,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.3.8**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.3.9**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
 - **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
   `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.
@@ -1775,7 +1775,15 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (027 — implementado): specs/027-import-template/plan.md
+Current plan (028 — en planificación): specs/028-multi-currency-billing/plan.md
+(Facturación separada por moneda: `CreditStatement.currency`, un período abierto por moneda anclado
+al mismo `periodStart` y cerrado el mismo día; pago de una facturación en otra moneda con dos montos
+— liquidado y debitado — que crea un ingreso de liquidación `Transaction.settlesStatementId` con la
+tarjeta dueña del tope; traspaso manual de una facturación vencida a la moneda de la cuenta (cargo del
+emisor en el período en pesos abierto), estado `TRANSFERRED`, reversible mientras el período en pesos
+no se liquide. Ver research.md R1–R14.)
+
+Prior plan (027 — implementado): specs/027-import-template/plan.md
 (Plantilla oficial de importación en bloque: `.xlsx` generado en el navegador con `exceljs`
 [dependencia nueva, solo web, bajo demanda] con las cuentas/tarjetas/categorías del usuario; hojas
 Movimientos, Traspasos, Deudas, Pagos de deudas, Cuotas, Pagos de cuotas, Recurrentes, Metas y

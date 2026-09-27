@@ -195,6 +195,7 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
         paymentDueCycleType: context.account.paymentDueCycleType,
         billingCycleDay: context.account.billingCycleDay,
         billingCycleType: context.account.billingCycleType,
+        accountCurrency: context.account.snapshot().currency,
       });
       await complete(tx, result);
       return { result, events: [] };

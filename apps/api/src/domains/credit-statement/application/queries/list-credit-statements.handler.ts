@@ -42,7 +42,17 @@ export class ListCreditStatementsQueryHandler extends BaseQueryHandler<
     const paymentDueCycleType = account?.paymentDueCycleType ?? "BUSINESS_DAY";
     const billingCycleDay = account?.billingCycleDay ?? null;
     const billingCycleType = account?.billingCycleType ?? "BUSINESS_DAY";
-    const statements = await this.statementRepo.listForAccount(query.userId, query.accountId);
+    const accountCurrency = account?.snapshot().currency ?? "CLP";
+    // Spec 028: every currency's periods, newest first; within one cycle the
+    // account's own currency leads (its periods share `periodStart`, research R2).
+    const statements = (
+      await this.statementRepo.listForAccount(query.userId, query.accountId)
+    ).sort(
+      (a, b) =>
+        b.periodStart.getTime() - a.periodStart.getTime() ||
+        Number(b.currency === accountCurrency) - Number(a.currency === accountCurrency) ||
+        a.currency.localeCompare(b.currency),
+    );
     return Promise.all(
       statements.map(async (s) => {
         // Settled periods carry their frozen figure; the rest are still live sums
@@ -50,9 +60,10 @@ export class ListCreditStatementsQueryHandler extends BaseQueryHandler<
         // schedule billed (spec 014, FR-010) — the breakdown is fetched first
         // because an unsettled period's total is built FROM it, not alongside it.
         const breakdown = await this.statementRepo.breakdown(s.id);
-        const amount = s.paidAt
-          ? s.amount
-          : s.totalFor(breakdown.purchases, breakdown.installments);
+        const amount =
+          s.paidAt || s.transferredAt
+            ? s.amount
+            : s.totalFor(breakdown.purchases, breakdown.installments);
         return toStatementDto(s, {
           amount,
           breakdown,
@@ -61,6 +72,7 @@ export class ListCreditStatementsQueryHandler extends BaseQueryHandler<
           paymentDueCycleType,
           billingCycleDay,
           billingCycleType,
+          accountCurrency,
         });
       }),
     );

@@ -175,7 +175,8 @@
         "OPEN": "Abierta",
         "PENDING": "Pendiente",
         "PARTIALLY_PAID": "Pago parcial",
-        "PAID": "Pagada"
+        "PAID": "Pagada",
+        "TRANSFERRED": "Traspasada"
       },
       "payFromAccount": "Pagar con",
       "payFromAccountPlaceholder": "Selecciona una cuenta",
@@ -216,7 +217,8 @@
       "statementPaid": "Pagado",
       "statementRemaining": "Restante",
       "statementPurchases": "Compras",
-      "statementInstallments": "Cuotas facturadas"
+      "statementInstallments": "Cuotas facturadas",
+      "billingCurrencyGroup": "Facturación · {{currency}}"
     },
     "filter": {
       "label": "Filtrar por estado",
@@ -324,7 +326,8 @@
       "syncStatement": "Sincronizar pagos",
       "syncStatementConfirm": "¿Sincronizar esta facturación?",
       "syncStatementConfirmDescription": "Se recalculará el monto del período con los movimientos que caen dentro de sus fechas. Si ya estaba pagada, también se ajustará el movimiento de pago y el cupo usado.",
-      "syncStatementSuccess": "Facturación sincronizada"
+      "syncStatementSuccess": "Facturación sincronizada",
+      "generateStatementsPreviewAmountIn": "Monto acumulado en {{currency}}"
     },
     "updated": "Cuenta actualizada",
     "edit": {
@@ -594,7 +597,9 @@
       "DEBT": "Deuda",
       "STATEMENT_PAYMENT": "Pago de facturación",
       "CREDIT_CARD_PREPAYMENT": "Prepago de tarjeta",
-      "RECURRING": "Recurrente"
+      "RECURRING": "Recurrente",
+      "STATEMENT_SETTLEMENT": "Liquidación de facturación",
+      "CURRENCY_TRANSFER": "Traspaso de moneda"
     },
     "attachments": {
       "title": "Comprobantes",
@@ -640,7 +645,8 @@
     "DEBTS": "Deudas",
     "INTEREST": "Intereses",
     "STATEMENT_PAYMENT": "Pago facturación",
-    "CARD_PREPAYMENT": "Prepago tarjeta"
+    "CARD_PREPAYMENT": "Prepago tarjeta",
+    "CURRENCY_TRANSFER": "Traspaso de moneda"
   },
   "installments": {
     "title": "Cuotas",
@@ -2386,6 +2392,12 @@
     "IMPORT_PAYMENT_BEFORE_START": "El pago es anterior a la fecha de su deuda o plan.",
     "IMPORT_PAYMENT_AMOUNT_MISMATCH": "El monto no coincide con el de la cuota.",
     "IMPORT_PLAN_PAYMENT_FIELDS": "Un pago de cuota con tarjeta de crédito no lleva cuenta ni monto; uno sin tarjeta de crédito lleva ambos.",
-    "RECURRING_END_BEFORE_START": "El último pago no puede ser anterior al primero."
+    "RECURRING_END_BEFORE_START": "El último pago no puede ser anterior al primero.",
+    "STATEMENT_NOT_TRANSFERABLE": "Esta facturación no se puede traspasar: solo una facturación en otra moneda, cerrada, vencida y sin liquidar.",
+    "STATEMENT_NOT_TRANSFERRED": "Esta facturación no fue traspasada.",
+    "TRANSFER_ALREADY_BILLED": "No se puede deshacer: la facturación en pesos que recibió el traspaso ya fue pagada.",
+    "STATEMENT_PAYMENT_CURRENCY_AMBIGUOUS": "Indica también cuánto se debitó de la cuenta de origen: está en otra moneda.",
+    "TRANSACTION_LINKED_TO_STATEMENT": "Este movimiento respalda el pago o el traspaso de una facturación. Para cambiarlo, hazlo desde su facturación.",
+    "CARD_LIMIT_HAS_DEBT": "No puedes quitar el tope en esa moneda mientras tenga deuda o una facturación sin liquidar."
   }
 }

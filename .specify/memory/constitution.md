@@ -1,4 +1,17 @@
 <!--
+Sync Impact Report — 2026-09-27 (amendment 2.3.9)
+- Version change: 2.3.8 → 2.3.9 (PATCH: a rounding rule made explicit under Principle I; no
+  schema change, no contract change).
+- CHANGED (Principle I): instalments are rounded to the currency's minor unit, the last one
+  absorbing the remainder. `@finance/money` gains `currencyScale(currency)` (CLP 0 / USD 2 / CLF 4,
+  ISO 4217 minor unit otherwise) and `equalPrincipalSchedule` an optional `currency` (omitted keeps
+  MONEY_SCALE). Callers: `InstallmentPlan.planCreation`/`applyUpdate`, `Debt.nextInstallmentAmount`/
+  `pendingAmount` (an even split now charges row by row and settles exactly the remaining rows),
+  web `schedulePreview`, `debtSchedule`/`debtInstallmentAmounts`, `calcRemaining`. Found reconciling
+  real statements: a 64.990 CLP debt in 3 left 0,6666 peso on an account forever.
+- Not migrated: schedules already stored keep their old amounts (dev data; `db:seed`/reimport).
+-->
+<!--
 Sync Impact Report — 2026-09-26 (amendment 2.3.8)
 - Version change: 2.3.7 → 2.3.8 (PATCH: one movement rule relaxed, one optional template column;
   no principle text changed, no schema change).
@@ -1539,6 +1552,14 @@ Rounding MUST be explicit and consistent with the stored precision.
 Rationale: a finance app is only trustworthy if totals reconcile to the cent. Binary
 floats silently lose precision and corrupt balances, interest, and amortization.
 
+**An instalment is money someone can actually transfer.** Every split of a total into
+instalments (instalment plans, debts paid in cuotas) MUST round each instalment — principal and
+interest — to the currency's minor unit (`currencyScale`: CLP 0, USD 2, CLF 4), with the LAST
+instalment absorbing the remainder so they sum exactly to the total: 64.990 CLP in 3 is
+21.663 + 21.663 + 21.664, never 21.663,3333 ×3. There is ONE implementation,
+`equalPrincipalSchedule({ …, currency })` in `@finance/money`, called by the server aggregates
+and by every client preview alike.
+
 **An unpaid remainder is a figure, never a rewrite.** When a payment fails to cover what was owed,
 the shortfall MUST be carried onto the next unpaid item as a column of its own
 (`CreditStatement.carriedOverAmount`, `InstallmentPayment.carriedOverAmount`); the SCHEDULE — the
@@ -1986,4 +2007,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.3.8 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-26
+**Version**: 2.3.9 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-27

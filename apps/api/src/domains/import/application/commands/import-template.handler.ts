@@ -187,15 +187,19 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
         // 2. The movements, in one bulk insert. Those drawing on a credit pool join
         //    the account's open billing period — resolved INSIDE this transaction
         //    so a failed import can't leave one behind.
+        //    Spec 028: one open period per (account, currency).
         const openPeriod = new Map<string, string>();
+        const periodKey = (m: { accountId: string; statementCurrency: string | null }) =>
+          `${m.accountId}|${m.statementCurrency}`;
         for (const m of plan.movements) {
-          if (!m.drawsOnCredit || openPeriod.has(m.accountId)) continue;
+          if (!m.statementCurrency || openPeriod.has(periodKey(m))) continue;
           const open = await this.statements.findOrCreateOpenForAccountWithTx(
             tx,
             m.accountId,
             context.createdAt.get(m.accountId)!,
+            m.statementCurrency,
           );
-          openPeriod.set(m.accountId, open.id);
+          openPeriod.set(periodKey(m), open.id);
         }
         await this.writer.createManyWithTx(
           tx,
@@ -217,7 +221,7 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
               : m.categoryId,
             cardId: m.cardId,
             financeCharge: m.financeCharge,
-            creditStatementId: m.drawsOnCredit ? openPeriod.get(m.accountId)! : null,
+            creditStatementId: m.statementCurrency ? openPeriod.get(periodKey(m))! : null,
             transferGroupId: m.transferGroupId,
             debtId: m.link?.kind === "debt" ? (createdDebts[m.link.index]?.id ?? null) : null,
             installmentPlanId:

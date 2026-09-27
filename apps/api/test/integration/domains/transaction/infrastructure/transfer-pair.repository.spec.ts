@@ -71,6 +71,7 @@ describe("transfer pair (integration)", () => {
     savingsGoalId: null,
     prepaymentStatementId: null,
     prepaymentAccountId: null,
+    settlesStatementId: null,
     ...over,
   });
 

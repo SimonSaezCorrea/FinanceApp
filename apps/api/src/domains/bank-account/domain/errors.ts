@@ -115,3 +115,11 @@ export class CashAccountRequiredError extends DomainError {
     super("CASH_ACCOUNT_REQUIRED", 409, "type");
   }
 }
+
+/** Spec 028 (FR-016): a card's limit in a currency can't be removed while that
+ * currency still has usage or an unsettled statement. */
+export class CardLimitHasDebtError extends DomainError {
+  constructor() {
+    super("CARD_LIMIT_HAS_DEBT", 409, "limits");
+  }
+}

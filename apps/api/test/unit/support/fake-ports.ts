@@ -119,6 +119,7 @@ export function fakeCreditStatementRepo(
     findById: vi.fn(),
     findByIdForUpdateWithTx: vi.fn(),
     findOpenForAccount: vi.fn(),
+    listOpenForAccount: vi.fn(async () => []),
     listForAccount: vi.fn(),
     findOrCreateOpenForAccount: vi.fn(async () => ({ id: "st_open" })),
     findOrCreateOpenForAccountWithTx: vi.fn(async () => ({ id: "st_open" })),

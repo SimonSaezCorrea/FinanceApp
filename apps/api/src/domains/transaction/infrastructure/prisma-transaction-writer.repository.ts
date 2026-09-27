@@ -6,6 +6,7 @@ import type {
   TransactionPlan,
   TransactionWriterRepositoryPort,
 } from "../domain/ports/transaction-writer.repository.port";
+import { EXCLUDE_SETTLEMENTS } from "./prisma-transaction-sums.repository";
 
 /** Adapter for the cross-domain write half of the `transaction` table. */
 @Injectable()
@@ -25,12 +26,15 @@ export class PrismaTransactionWriterRepository implements TransactionWriterRepos
       cardIds: string[] | null;
       from: Date;
       to: Date;
+      currency: string;
     },
   ): Promise<void> {
     const client = tx as PrismaService;
     const window = {
       bankAccountId: input.accountId,
       occurredAt: { gte: input.from, lt: input.to },
+      currency: input.currency,
+      ...EXCLUDE_SETTLEMENTS,
     };
     await client.transaction.updateMany({
       where:

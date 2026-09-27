@@ -68,6 +68,8 @@ const CATEGORY_CATALOGUE: {
   { code: "INTEREST", kind: "EXPENSE", isSystem: true },
   { code: "STATEMENT_PAYMENT", kind: "EXPENSE", isSystem: true },
   { code: "CARD_PREPAYMENT", kind: "EXPENSE", isSystem: true },
+  // Spec 028: the account-currency charge of a foreign-currency statement's transfer.
+  { code: "CURRENCY_TRANSFER", kind: "EXPENSE", isSystem: true },
 ];
 
 /** Spanish label used across the demo data below → catalogue code (`null` = the
@@ -2977,6 +2979,8 @@ async function seedFullUser(passwordHash: string) {
       const statement = await prisma.creditStatement.create({
         data: {
           accountId: spec.accountId,
+          // Every seeded credit account is in CLP.
+          currency: "CLP",
           periodStart,
           closedAt,
           paidAt,
@@ -3114,6 +3118,7 @@ async function seedFullUser(passwordHash: string) {
         const created = await prisma.creditStatement.create({
           data: {
             accountId: input.accountId,
+            currency: "CLP",
             periodStart,
             closedAt,
             paidAt,

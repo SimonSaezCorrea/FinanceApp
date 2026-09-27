@@ -175,7 +175,8 @@
         "OPEN": "Open",
         "PENDING": "Pending",
         "PARTIALLY_PAID": "Partially paid",
-        "PAID": "Paid"
+        "PAID": "Paid",
+        "TRANSFERRED": "Transferred"
       },
       "payFromAccount": "Pay with",
       "payFromAccountPlaceholder": "Select an account",
@@ -216,7 +217,8 @@
       "statementPaid": "Paid",
       "statementRemaining": "Remaining",
       "statementPurchases": "Purchases",
-      "statementInstallments": "Billed instalments"
+      "statementInstallments": "Billed instalments",
+      "billingCurrencyGroup": "Statements · {{currency}}"
     },
     "filter": {
       "label": "Filter by status",
@@ -324,7 +326,8 @@
       "syncStatement": "Sync payments",
       "syncStatementConfirm": "Sync this statement?",
       "syncStatementConfirmDescription": "The period's amount will be recalculated from the movements dated inside it. If it was already paid, the payment movement and the used credit are adjusted to match.",
-      "syncStatementSuccess": "Statement synced"
+      "syncStatementSuccess": "Statement synced",
+      "generateStatementsPreviewAmountIn": "Accumulated in {{currency}}"
     },
     "updated": "Account updated",
     "edit": {
@@ -594,7 +597,9 @@
       "DEBT": "Debt",
       "STATEMENT_PAYMENT": "Statement payment",
       "CREDIT_CARD_PREPAYMENT": "Card prepayment",
-      "RECURRING": "Recurring"
+      "RECURRING": "Recurring",
+      "STATEMENT_SETTLEMENT": "Statement settlement",
+      "CURRENCY_TRANSFER": "Currency transfer"
     },
     "attachments": {
       "title": "Receipts",
@@ -640,7 +645,8 @@
     "DEBTS": "Debts",
     "INTEREST": "Interest",
     "STATEMENT_PAYMENT": "Statement payment",
-    "CARD_PREPAYMENT": "Card prepayment"
+    "CARD_PREPAYMENT": "Card prepayment",
+    "CURRENCY_TRANSFER": "Currency transfer"
   },
   "installments": {
     "title": "Installments",
@@ -2386,6 +2392,12 @@
     "IMPORT_PAYMENT_BEFORE_START": "The payment is dated before its debt or plan.",
     "IMPORT_PAYMENT_AMOUNT_MISMATCH": "The amount doesn't match the instalment's.",
     "IMPORT_PLAN_PAYMENT_FIELDS": "A credit card instalment payment takes no account or amount; one without a credit card takes both.",
-    "RECURRING_END_BEFORE_START": "The last payment can't be before the first one."
+    "RECURRING_END_BEFORE_START": "The last payment can't be before the first one.",
+    "STATEMENT_NOT_TRANSFERABLE": "This statement can't be transferred: only a closed, overdue, unsettled statement in another currency can.",
+    "STATEMENT_NOT_TRANSFERRED": "This statement wasn't transferred.",
+    "TRANSFER_ALREADY_BILLED": "Can't undo: the statement that received the transfer has already been paid.",
+    "STATEMENT_PAYMENT_CURRENCY_AMBIGUOUS": "Also enter how much was debited from the source account: it's in another currency.",
+    "TRANSACTION_LINKED_TO_STATEMENT": "This transaction backs a statement's payment or transfer. Change it from its statement.",
+    "CARD_LIMIT_HAS_DEBT": "You can't remove the limit in that currency while it has debt or an unsettled statement."
   }
 }

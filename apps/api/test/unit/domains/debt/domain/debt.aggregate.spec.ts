@@ -106,6 +106,17 @@ describe("Debt.nextInstallmentAmount / pendingAmount", () => {
     expect(debt.pendingAmount()).toBe("1000.0000");
   });
 
+  it("charges whole pesos, the last instalment absorbing the remainder", () => {
+    const at = (paidInstallments: number) =>
+      makeDebt({ principal: "64990", currency: "CLP", totalInstallments: 3, paidInstallments });
+    expect(at(0).nextInstallmentAmount()).toBe("21663.0000");
+    expect(at(1).nextInstallmentAmount()).toBe("21663.0000");
+    expect(at(2).nextInstallmentAmount()).toBe("21664.0000");
+    // Settling after one payment owes exactly what's left of the 64.990.
+    expect(at(1).pendingAmount()).toBe("43327.0000");
+    expect(at(3).pendingAmount()).toBe("0.0000");
+  });
+
   it("is the full principal for a single-payment debt", () => {
     const debt = makeDebt({ principal: "45000", totalInstallments: 1, paidInstallments: 0 });
     expect(debt.pendingAmount()).toBe("45000.0000");

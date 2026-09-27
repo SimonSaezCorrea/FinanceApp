@@ -69,6 +69,7 @@ const row = Transaction.fromPersistence({
   savingsGoalId: null,
   prepaymentStatementId: null,
   prepaymentAccountId: null,
+  settlesStatementId: null,
   createdAt: new Date("2026-03-01T00:00:00Z"),
   updatedAt: new Date("2026-03-01T00:00:00Z"),
 });
