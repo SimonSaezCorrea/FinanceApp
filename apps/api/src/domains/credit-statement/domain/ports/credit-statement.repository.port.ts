@@ -29,6 +29,13 @@ export interface CreditStatementRepositoryPort {
    * very first period, when no earlier statement has been closed yet; the caller
    * passes it in because this domain must not read the `bank-account` table. */
   findOrCreateOpenForAccount(accountId: string, fallbackPeriodStart: Date): Promise<{ id: string }>;
+  /** Same, inside the caller's transaction — so a period created for an import
+   * that then fails is rolled back with it, never left behind open and empty. */
+  findOrCreateOpenForAccountWithTx(
+    tx: unknown,
+    accountId: string,
+    fallbackPeriodStart: Date,
+  ): Promise<{ id: string }>;
   /**
    * The period that receives a settled period's shortfall: the account's OPEN
    * one, or a fresh one starting where the settled period closed.

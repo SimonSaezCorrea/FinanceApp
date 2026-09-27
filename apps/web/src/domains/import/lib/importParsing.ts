@@ -167,7 +167,7 @@ function detectDelimiter(text: string): string {
 // ---------------------------------------------------------------------------
 
 /** Lowercase, no accents, no punctuation — "Descripción" and "DESCRIPCION." match. */
-function normalize(value: Cell): string {
+export function normalize(value: Cell): string {
   return String(value ?? "")
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -474,7 +474,7 @@ export function parseType(cell: Cell): "INCOME" | "EXPENSE" | null {
 }
 
 /** A yes/no-ish cell ("Sí", "x", "1", "true", "interés"…) as a flag. */
-function parseFlag(cell: Cell): boolean {
+export function parseFlag(cell: Cell): boolean {
   if (typeof cell === "boolean") return cell;
   const text = normalize(cell);
   return ["si", "s", "yes", "y", "x", "1", "true", "verdadero"].includes(text);

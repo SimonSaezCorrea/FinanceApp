@@ -42,6 +42,7 @@ function fakeRepo(overrides: Partial<DebtRepositoryPort> = {}): DebtRepositoryPo
     findOne: vi.fn(),
     findOneForUpdateWithTx: vi.fn(),
     create: vi.fn(),
+    createWithTx: vi.fn(),
     save: vi.fn(),
     saveWithTx: vi.fn(),
     remove: vi.fn(),

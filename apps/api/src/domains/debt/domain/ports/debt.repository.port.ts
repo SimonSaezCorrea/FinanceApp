@@ -8,6 +8,8 @@ export interface DebtRepositoryPort {
   list(userId: string): Promise<Debt[]>;
   findOne(userId: string, id: string): Promise<Debt | null>;
   create(userId: string, plan: PlannedDebt): Promise<Debt>;
+  /** Same insert, enlisted in the caller's transaction. */
+  createWithTx(tx: unknown, userId: string, plan: PlannedDebt): Promise<Debt>;
   save(aggregate: Debt): Promise<void>;
   /** Same write, enlisted in the caller's transaction — so the debt's new state
    * and the idempotency record's COMPLETED mark commit together. */

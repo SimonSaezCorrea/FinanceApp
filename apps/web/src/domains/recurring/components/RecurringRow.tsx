@@ -47,17 +47,23 @@ export function RecurringRow({
 }: Props) {
   const { t, i18n } = useTranslation();
   const overdue = isOverdue(r);
-  const paused = !r.active;
+  const finished = r.status === "FINISHED";
+  const paused = r.status !== "ACTIVE";
 
   let meta: ReactNode;
-  if (paused) {
+  if (finished) {
+    meta = t("recurring.row.finishedMeta", {
+      frequency: t(`common.frequency.${r.frequency}`),
+      date: formatLongDate(r.endDate ?? r.updatedAt, i18n.language),
+    });
+  } else if (paused) {
     meta = t("recurring.row.pausedMeta", {
       frequency: t(`common.frequency.${r.frequency}`),
       date: formatLongDate(r.updatedAt, i18n.language),
     });
-  } else if (overdue) {
+  } else if (overdue && r.nextDueAt) {
     meta = t("recurring.row.overdueMeta", { date: formatShortDate(r.nextDueAt, i18n.language) });
-  } else {
+  } else if (r.nextDueAt) {
     const { days } = dueNote(r.nextDueAt);
     const note =
       days === 0
@@ -109,11 +115,13 @@ export function RecurringRow({
               up without also registering as a tap on the row (which would
               open the detail panel behind it). */}
           <span data-swipe-action className="flex shrink-0 items-center gap-1 max-sm:hidden">
-            <RowAction
-              icon={paused ? Play : Pause}
-              label={t(paused ? "recurring.actions.resume" : "recurring.actions.pause")}
-              onClick={onTogglePause}
-            />
+            {finished ? null : (
+              <RowAction
+                icon={paused ? Play : Pause}
+                label={t(paused ? "recurring.actions.resume" : "recurring.actions.pause")}
+                onClick={onTogglePause}
+              />
+            )}
             <RowAction icon={Pencil} label={t("recurring.actions.edit")} onClick={onEdit} />
             <RowAction
               icon={Trash2}

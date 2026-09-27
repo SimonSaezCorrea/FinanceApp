@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { CalendarClock, Link2, Plus, Repeat } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
 import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
-import { EmptyState, ErrorState } from "../../../shared/ui/states";
+import { ErrorState, GettingStartedState } from "../../../shared/ui/states";
 import { RecurringAutoGenerationStrip } from "../components/RecurringAutoGenerationStrip";
 import { RecurringDeleteConfirm } from "../components/RecurringDeleteConfirm";
 import { RecurringDetailPanel } from "../components/RecurringDetailPanel";
@@ -71,9 +71,20 @@ export function RecurringRoute() {
     retainedForm?.mode === "edit" && JSON.stringify(formValue) !== JSON.stringify(formBaseline);
 
   const selected = list.find((r) => r.id === selectedId) ?? null;
-  const activeCount = list.filter((r) => r.active).length;
+  const activeCount = list.filter((r) => r.status === "ACTIVE").length;
   const pausedList = useMemo(
-    () => list.filter((r) => !r.active).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    () =>
+      list
+        .filter((r) => r.status === "PAUSED")
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    [list],
+  );
+  // Ended series: kept for their history, listed apart, most recently ended first.
+  const finishedList = useMemo(
+    () =>
+      list
+        .filter((r) => r.status === "FINISHED")
+        .sort((a, b) => (b.endDate ?? "").localeCompare(a.endDate ?? "")),
     [list],
   );
 
@@ -82,8 +93,8 @@ export function RecurringRoute() {
       FREQUENCY_ORDER.map((freq) => ({
         freq,
         items: list
-          .filter((r) => r.active && r.frequency === freq)
-          .sort((a, b) => a.nextDueAt.localeCompare(b.nextDueAt)),
+          .filter((r) => r.status === "ACTIVE" && r.frequency === freq)
+          .sort((a, b) => (a.nextDueAt ?? "").localeCompare(b.nextDueAt ?? "")),
       })).filter((g) => g.items.length > 0),
     [list],
   );
@@ -91,7 +102,8 @@ export function RecurringRoute() {
   const currencyGroups = useMemo(() => recurringByCurrency(list), [list]);
 
   const subtitle =
-    !isLoading && !isError
+    // "0 activos · 0 pausado(s)" says nothing the empty state doesn't.
+    !isLoading && !isError && list.length > 0
       ? t("recurring.subtitle", { active: activeCount, paused: pausedList.length })
       : undefined;
 
@@ -151,6 +163,9 @@ export function RecurringRoute() {
       frequency: formValue.frequency,
       interval: formValue.interval,
       anchorDate: new Date(`${formValue.anchorDate}T00:00:00`).toISOString(),
+      endDate: formValue.endDate
+        ? new Date(`${formValue.endDate}T00:00:00`).toISOString()
+        : undefined,
       bankAccountId: formValue.bankAccountId || undefined,
       cardId: formValue.cardId || undefined,
       active: formValue.active,
@@ -160,7 +175,15 @@ export function RecurringRoute() {
     if (form.mode === "edit" && form.id) {
       update.mutate(
         // An edit sends `null` to CLEAR the category; a create just omits it.
-        { id: form.id, body: { ...body, categoryId: formValue.categoryId || null } },
+        {
+          id: form.id,
+          // `null` also reopens a series whose end date was cleared.
+          body: {
+            ...body,
+            categoryId: formValue.categoryId || null,
+            endDate: body.endDate ?? null,
+          },
+        },
         {
           onSuccess: () => {
             toast.success(t("recurring.updated"));
@@ -208,7 +231,36 @@ export function RecurringRoute() {
 
       {isLoading && <RecurringSkeleton label={t("app.loading")} />}
       {!isLoading && isError && <ErrorState error={error} onRetry={() => refetch()} />}
-      {!isLoading && !isError && list.length === 0 && <EmptyState title={t("recurring.empty")} />}
+      {!isLoading && !isError && list.length === 0 && (
+        <GettingStartedState
+          icon={Repeat}
+          title={t("recurring.empty")}
+          message={t("recurring.emptyMessage")}
+          steps={[
+            {
+              icon: Plus,
+              title: t("recurring.emptySteps.create.title"),
+              text: t("recurring.emptySteps.create.text"),
+            },
+            {
+              icon: CalendarClock,
+              title: t("recurring.emptySteps.upcoming.title"),
+              text: t("recurring.emptySteps.upcoming.text"),
+            },
+            {
+              icon: Link2,
+              title: t("recurring.emptySteps.link.title"),
+              text: t("recurring.emptySteps.link.text"),
+            },
+          ]}
+          actions={
+            <Button variant="accent" onClick={openCreate}>
+              <Plus className="h-4 w-4" aria-hidden />
+              {t("recurring.new")}
+            </Button>
+          }
+        />
+      )}
 
       {!isLoading && !isError && list.length > 0 && (
         <>
@@ -234,6 +286,20 @@ export function RecurringRoute() {
               items={pausedList}
               accounts={accountList}
               paused
+              onSelect={(r) => setSelectedId(r.id)}
+              onTogglePause={openPause}
+              onEdit={openEdit}
+              onDelete={setDeleteTarget}
+            />
+          ) : null}
+
+          {finishedList.length > 0 ? (
+            <RecurringGroup
+              title={t("recurring.groups.FINISHED")}
+              items={finishedList}
+              accounts={accountList}
+              paused
+              finished
               onSelect={(r) => setSelectedId(r.id)}
               onTogglePause={openPause}
               onEdit={openEdit}

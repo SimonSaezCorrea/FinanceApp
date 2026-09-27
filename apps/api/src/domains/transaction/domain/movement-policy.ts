@@ -100,7 +100,14 @@ export class MovementPolicy {
     this.assertWithinCeiling(m, account, prepaidOffset);
 
     if (m.type === "INCOME") {
-      if (m.cardId) throw new CardNotAllowedError();
+      // An income normally belongs to the account. The one exception is paying a
+      // credit card's OWN limit (a foreign-currency one, say USD on a CLP card):
+      // that debt isn't in the account's pool, so the payment must name the card
+      // whose limit it settles — and it leaves the account pool untouched.
+      if (m.cardId && !this.paysCardOwnLimit(m, account, card, cardLimit)) {
+        if (!card && account.type === "CREDIT_CARD") throw new CardAccountMismatchError();
+        throw new CardNotAllowedError();
+      }
     } else if (account.type === "CASH") {
       if (m.cardId) throw new CardNotAllowedError();
       return "0";
@@ -155,6 +162,8 @@ export class MovementPolicy {
   ): string {
     if (account.type === "CASH") return "0";
     if (m.type === "INCOME") {
+      // A payment towards a card's own limit settles that limit, not the pool.
+      if (card && cardLimit) return "0";
       return account.type === "CREDIT_CARD" ? subtractMoney("0", m.amount) : "0";
     }
     // Same rule as `validate`, kept in step so an edit/delete reverts exactly
@@ -162,6 +171,26 @@ export class MovementPolicy {
     if (m.financeCharge) return account.type === "CREDIT_CARD" ? m.amount : "0";
     if (!card || card.kind !== "CREDIT") return "0";
     return cardLimit ? "0" : m.amount;
+  }
+
+  /**
+   * An income carrying a card is a payment towards that card's own limit in the
+   * movement's currency — only meaningful on a credit card account, through one
+   * of its CREDIT cards that HAS such a limit (`cardLimit` was looked up for this
+   * card and currency by the caller).
+   */
+  private static paysCardOwnLimit(
+    m: EffectiveMovement,
+    account: Pick<AccountContext, "type">,
+    card: CardContext | null,
+    cardLimit: CardLimitContext | null,
+  ): boolean {
+    return (
+      m.type === "INCOME" &&
+      account.type === "CREDIT_CARD" &&
+      card?.kind === "CREDIT" &&
+      cardLimit !== null
+    );
   }
 
   /**

@@ -57,7 +57,8 @@ export function RecurringDetailPanel({
   const card = d.cardId
     ? (accounts.flatMap((a) => a.cards).find((c) => c.id === d.cardId) ?? null)
     : null;
-  const paused = !d.active;
+  const finished = d.status === "FINISHED";
+  const paused = d.status === "PAUSED";
   const money = (v: string) => formatMoney(v, { locale: i18n.language, currency: d.currency });
 
   const subtitle = [
@@ -82,21 +83,29 @@ export function RecurringDetailPanel({
       description={subtitle}
       headerAside={
         <div className="flex items-center gap-2">
-          <Badge variant={paused ? "neutral" : "success"}>
-            {t(paused ? "recurring.inactive" : "recurring.detail.active")}
-          </Badge>
-          <Button
-            variant="ghost"
-            size="sm"
-            aria-label={t(paused ? "recurring.actions.resume" : "recurring.actions.pause")}
-            onClick={onTogglePause}
-          >
-            {paused ? (
-              <Play className="h-4 w-4" aria-hidden />
-            ) : (
-              <Pause className="h-4 w-4" aria-hidden />
+          <Badge variant={d.status === "ACTIVE" ? "success" : "neutral"}>
+            {t(
+              finished
+                ? "recurring.finished"
+                : paused
+                  ? "recurring.inactive"
+                  : "recurring.detail.active",
             )}
-          </Button>
+          </Badge>
+          {finished ? null : (
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-label={t(paused ? "recurring.actions.resume" : "recurring.actions.pause")}
+              onClick={onTogglePause}
+            >
+              {paused ? (
+                <Play className="h-4 w-4" aria-hidden />
+              ) : (
+                <Pause className="h-4 w-4" aria-hidden />
+              )}
+            </Button>
+          )}
         </div>
       }
       footer={
@@ -115,18 +124,24 @@ export function RecurringDetailPanel({
         <div className="flex flex-wrap gap-6">
           <Stat label={t("recurring.detail.amount")} value={money(d.amount)} />
           <Stat label={t("recurring.detail.perMonth")} value={money(monthlyAmount(d))} />
-          {paused ? (
+          {finished ? (
+            <Stat
+              label={t("recurring.detail.endedOn")}
+              value={formatLongDate(d.endDate ?? d.updatedAt, i18n.language)}
+              muted
+            />
+          ) : paused ? (
             <Stat
               label={t("recurring.detail.pausedSince")}
               value={formatLongDate(d.updatedAt, i18n.language)}
               muted
             />
-          ) : (
+          ) : d.nextDueAt ? (
             <Stat
               label={t("recurring.detail.next")}
               value={formatLongDate(d.nextDueAt, i18n.language)}
             />
-          )}
+          ) : null}
         </div>
 
         <div className="flex flex-col">
@@ -138,6 +153,12 @@ export function RecurringDetailPanel({
             label={t("recurring.form.frequency")}
             value={t(`common.frequency.${d.frequency}`)}
           />
+          {d.endDate && !finished ? (
+            <DetailRow
+              label={t("recurring.form.endDate")}
+              value={formatLongDate(d.endDate, i18n.language)}
+            />
+          ) : null}
           <DetailRow
             label={t("debts.form.account")}
             value={account?.name ?? t("recurring.form.noAccount")}

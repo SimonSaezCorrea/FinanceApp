@@ -225,6 +225,22 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     });
   }
 
+  async adjustOpeningWithTx(
+    tx: unknown,
+    accountId: string,
+    balanceDelta: string,
+    creditDelta: string,
+  ): Promise<void> {
+    const client = tx as PrismaService;
+    await client.bankAccount.update({
+      where: { id: accountId },
+      data: {
+        initialBalance: { increment: balanceDelta },
+        creditUsedInitial: { increment: creditDelta },
+      },
+    });
+  }
+
   async incrementCreditUsedWithTx(tx: unknown, accountId: string, delta: string): Promise<void> {
     const client = tx as PrismaService;
     await client.bankAccount.update({

@@ -166,7 +166,8 @@ export function upcomingPayments(
   }
 
   for (const rec of recurrings) {
-    if (!rec.active) continue;
+    // Paused and finished series have nothing coming up.
+    if (rec.status !== "ACTIVE" || rec.nextDueAt === null) continue;
     if (new Date(rec.nextDueAt).getTime() < todayMs) continue;
     out.push({
       id: rec.id,

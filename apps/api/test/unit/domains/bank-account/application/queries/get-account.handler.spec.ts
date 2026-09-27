@@ -85,6 +85,7 @@ function fakeAccountRepo(
     removeCard: vi.fn(),
     incrementCreditUsedWithTx: vi.fn(),
     incrementBalanceWithTx: vi.fn(),
+    adjustOpeningWithTx: vi.fn(),
     ...overrides,
   };
 }

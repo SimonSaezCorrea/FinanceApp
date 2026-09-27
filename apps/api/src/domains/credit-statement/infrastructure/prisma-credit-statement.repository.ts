@@ -105,21 +105,30 @@ export class PrismaCreditStatementRepository
     return rows.map((r) => CreditStatement.fromPersistence(rowToProps(r)));
   }
 
-  async findOrCreateOpenForAccount(
+  findOrCreateOpenForAccount(
     accountId: string,
     fallbackPeriodStart: Date,
   ): Promise<{ id: string }> {
-    const open = await this.prisma.creditStatement.findFirst({
+    return this.findOrCreateOpenForAccountWithTx(this.prisma, accountId, fallbackPeriodStart);
+  }
+
+  async findOrCreateOpenForAccountWithTx(
+    tx: unknown,
+    accountId: string,
+    fallbackPeriodStart: Date,
+  ): Promise<{ id: string }> {
+    const client = tx as PrismaService;
+    const open = await client.creditStatement.findFirst({
       where: { accountId, closedAt: null },
       select: { id: true },
     });
     if (open) return open;
-    const last = await this.prisma.creditStatement.findFirst({
+    const last = await client.creditStatement.findFirst({
       where: { accountId },
       orderBy: { createdAt: "desc" },
       select: { closedAt: true },
     });
-    return this.prisma.creditStatement.create({
+    return client.creditStatement.create({
       data: { accountId, periodStart: last?.closedAt ?? fallbackPeriodStart },
       select: { id: true },
     });

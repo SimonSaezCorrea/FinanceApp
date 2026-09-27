@@ -172,21 +172,22 @@ const transactionFieldsSchema = z.object({
   receptor: z.string().trim().max(200).optional(),
   lugar: z.string().trim().max(200).optional(),
   // Bank is required for new movements; card rules are enforced server-side
-  // (needs the account type: EXPENSE on a non-cash account requires a card,
-  // cash/INCOME forbid one).
+  // (needs the account type and the card's limits: EXPENSE on a credit card
+  // account requires a card, cash forbids one, and an INCOME may name one only
+  // to pay that credit card's own limit in its currency — e.g. its USD one).
   bankAccountId: rowId,
   cardId: rowId.optional(),
   /** An issuer charge on the credit account itself (interest, annual fee,
    * insurance): no card made it, so the "a credit-line expense needs a card"
    * rule doesn't apply. It still feeds the credit pool. */
   financeCharge: z.boolean().optional(),
+  /** The recurring series this movement is a payment of (one of the user's own —
+   * `RECURRING_EXPENSE_NOT_FOUND` otherwise). Links it into the series'
+   * occurrence history; moves nothing by itself. */
+  recurringExpenseId: rowId.optional(),
 });
 
 export const createTransactionSchema = transactionFieldsSchema
-  .refine((t) => t.type !== "INCOME" || !t.cardId, {
-    message: "income cannot be linked to a card",
-    path: ["cardId"],
-  })
   .refine((t) => !t.financeCharge || t.type === "EXPENSE", {
     message: "a finance charge is always an expense",
     path: ["financeCharge"],
@@ -198,23 +199,19 @@ export const createTransactionSchema = transactionFieldsSchema
 export type CreateTransaction = z.infer<typeof createTransactionSchema>;
 
 // `.partial()` isn't available on a ZodEffects (refined) schema, so derive the
-// update shape from the plain fields and re-apply the income/card refinement.
+// update shape from the plain fields.
 //
 // zod v4's `.partial()` keeps a `.default(...)` active even when the key is
 // absent, unlike v3 — left alone, an omitted `currency` on a PATCH would silently
 // reset it to "USD" (`patch.currency !== undefined` can't tell that apart from a
 // real value). Re-declared without the default here.
-export const updateTransactionSchema = transactionFieldsSchema
-  .partial()
-  .extend({
-    currency: z.string().trim().length(3).optional(),
-    /** `null` clears the category; omitted leaves it as it is. */
-    categoryId: rowId.nullable().optional(),
-  })
-  .refine((t) => t.type !== "INCOME" || !t.cardId, {
-    message: "income cannot be linked to a card",
-    path: ["cardId"],
-  });
+export const updateTransactionSchema = transactionFieldsSchema.partial().extend({
+  currency: z.string().trim().length(3).optional(),
+  /** `null` clears the category; omitted leaves it as it is. */
+  categoryId: rowId.nullable().optional(),
+  /** `null` unlinks it from its recurring series. */
+  recurringExpenseId: rowId.nullable().optional(),
+});
 export type UpdateTransaction = z.infer<typeof updateTransactionSchema>;
 
 /**

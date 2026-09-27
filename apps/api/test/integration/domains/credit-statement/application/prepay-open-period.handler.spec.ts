@@ -1,6 +1,7 @@
 import { buildCategoryLookup } from "../../../support/repositories";
 import { randomUUID } from "node:crypto";
 
+import { PrismaRecurringExpenseRepository } from "../../../../../src/domains/recurring-expense/infrastructure/prisma-recurring-expense.repository";
 import { ConfigService } from "@nestjs/config";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -61,6 +62,7 @@ describe("PrepayOpenPeriodHandler (integration)", () => {
       transactionWriter,
       prisma,
       buildCategoryLookup(prisma),
+      new PrismaRecurringExpenseRepository(prisma),
     );
   }
 

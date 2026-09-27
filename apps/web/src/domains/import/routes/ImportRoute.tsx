@@ -1,31 +1,86 @@
-import { ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { ChevronRight, Download, FileSpreadsheet, Upload } from "lucide-react";
+import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import type { accounts } from "@finance/contracts";
 
+import { toast } from "sonner";
+
 import { cn } from "../../../shared/lib/cn";
+import { Button } from "../../../shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
 import { accountMetaLine } from "../../accounts/lib/accountMeta";
 import { ACCOUNT_ICON, isCreditType } from "../../accounts/components/accountVisuals";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
+import { useAllowedCurrencies } from "../../reference/hooks/useAllowedCurrencies";
+import { useCategories } from "../../reference/hooks/useReference";
 import { ImportMovementsPanel } from "../components/ImportMovementsPanel";
+import { TemplateImportPanel } from "../components/TemplateImportPanel";
+import { buildTemplate, type TemplateRefs } from "../lib/buildTemplate";
 
 /**
  * The "Importar" section: a spreadsheet is always imported into ONE account, so
  * the page first asks which one, then opens the import panel for it. Only active
  * accounts are offered — an inactive one takes no new movements.
+ *
+ * Above it, the Cuadra template (specs/027): download a spreadsheet built with the
+ * user's own accounts, cards and categories, fill it, upload it — for bringing a
+ * whole personal spreadsheet (debts, instalments, goals…) in one go.
  */
 export function ImportRoute() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const query = useAccounts({ status: "active" });
   const [target, setTarget] = useState<accounts.BankAccount | null>(null);
   // Kept after closing so the panel's exit animation still has an account to render.
   const [open, setOpen] = useState(false);
 
-  const list = query.isError ? [] : (query.data ?? []);
+  const list = useMemo(
+    () => (query.isError ? [] : (query.data ?? [])),
+    [query.isError, query.data],
+  );
   const typeLabel = (type: accounts.AccountType) => t(`accounts.type.${type}`);
+
+  const categories = useCategories();
+  const allowedCurrencies = useAllowedCurrencies();
+  const [templateOpen, setTemplateOpen] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const refs = useMemo<TemplateRefs>(
+    () => ({
+      accounts: list.map((a) => ({ id: a.id, name: a.name, type: a.type, currency: a.currency })),
+      cards: list.flatMap((a) =>
+        (a.cards ?? []).map((c) => ({
+          id: c.id,
+          accountId: a.id,
+          accountName: a.name,
+          last4: c.last4,
+        })),
+      ),
+      categories: categories.data ?? [],
+      // The user's own currencies plus any an account already uses.
+      currencies: [
+        ...new Set([...allowedCurrencies.map((c) => c.code), ...list.map((a) => a.currency)]),
+      ],
+    }),
+    [list, categories.data, allowedCurrencies],
+  );
+
+  async function download() {
+    setDownloading(true);
+    try {
+      const blob = await buildTemplate({ refs, t, locale: i18n.language });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${t("import.template.cardTitle")}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error(t("import.template.downloadError"));
+    } finally {
+      setDownloading(false);
+    }
+  }
 
   function pick(account: accounts.BankAccount) {
     setTarget(account);
@@ -35,6 +90,36 @@ export function ImportRoute() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title={t("import.title")} description={t("import.pageDescription")} />
+
+      <section className="flex flex-col gap-4 rounded-xl border bg-card p-5 shadow-sm sm:flex-row sm:items-center">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground">
+          <FileSpreadsheet className="h-5 w-5" aria-hidden />
+        </span>
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <h2 className="text-sm font-medium">{t("import.template.cardTitle")}</h2>
+          <p className="text-sm text-muted-foreground">{t("import.template.cardDescription")}</p>
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={downloading || !query.data || !categories.data}
+            onClick={() => void download()}
+          >
+            <Download className="h-4 w-4" aria-hidden />
+            {downloading ? t("import.template.downloading") : t("import.template.download")}
+          </Button>
+          <Button
+            variant="accent"
+            size="sm"
+            disabled={!query.data}
+            onClick={() => setTemplateOpen(true)}
+          >
+            <Upload className="h-4 w-4" aria-hidden />
+            {t("import.template.upload")}
+          </Button>
+        </div>
+      </section>
 
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">{t("import.pickAccount")}</h2>
@@ -84,6 +169,8 @@ export function ImportRoute() {
           </ul>
         )}
       </section>
+
+      <TemplateImportPanel open={templateOpen} onOpenChange={setTemplateOpen} refs={refs} />
 
       {target ? (
         <ImportMovementsPanel key={target.id} open={open} onOpenChange={setOpen} account={target} />

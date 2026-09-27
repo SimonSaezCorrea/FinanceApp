@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { generateRowId } from "../../../../src/infra/id/generate-row-id";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
@@ -179,5 +180,68 @@ describe("Recurring HTTP (e2e)", () => {
       .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("RECURRING_NOT_FOUND");
+  });
+
+  describe("end date and linked payments", () => {
+    const createSeries = (body: Record<string, unknown>) =>
+      request(app.getHttpServer())
+        .post("/api/v1/recurring")
+        .set("Cookie", cookies)
+        .send({
+          label: "Spotify",
+          amount: "6990",
+          currency: "CLP",
+          frequency: "MONTHLY",
+          anchorDate: "2026-01-01T00:00:00.000Z",
+          ...body,
+        });
+
+    it("a series that ended is FINISHED, with no next due date", async () => {
+      const res = await createSeries({ endDate: "2026-04-01T00:00:00.000Z" });
+      expect(res.status).toBe(201);
+      expect(res.body.status).toBe("FINISHED");
+      expect(res.body.nextDueAt).toBeNull();
+      // Reopening it (endDate: null) brings it back.
+      const reopened = await request(app.getHttpServer())
+        .patch(`/api/v1/recurring/${res.body.id}`)
+        .set("Cookie", cookies)
+        .send({ endDate: null });
+      expect(reopened.body.status).toBe("ACTIVE");
+      expect(reopened.body.nextDueAt).not.toBeNull();
+    });
+
+    it("refuses an end before the first occurrence", async () => {
+      const res = await createSeries({ endDate: "2025-12-01T00:00:00.000Z" });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe("RECURRING_END_BEFORE_START");
+    });
+
+    it("a movement can be linked to one of the user's own series, never to another's", async () => {
+      const series = (await createSeries({})).body;
+      const accounts = await request(app.getHttpServer())
+        .get("/api/v1/accounts")
+        .set("Cookie", cookies);
+      const cash = accounts.body.find((a: { type: string }) => a.type === "CASH");
+      const movement = (recurringExpenseId: string) =>
+        request(app.getHttpServer())
+          .post("/api/v1/transactions")
+          .set("Cookie", cookies)
+          .set("Idempotency-Key", randomUUID())
+          .send({
+            type: "EXPENSE",
+            amount: "6990",
+            currency: "CLP",
+            occurredAt: "2026-01-01T00:00:00.000Z",
+            bankAccountId: cash.id,
+            recurringExpenseId,
+          });
+      const linked = await movement(series.id);
+      expect(linked.status).toBe(201);
+      expect(linked.body.recurringExpenseId).toBe(series.id);
+      const foreign = await movement(generateRowId());
+      expect(foreign.status).toBe(404);
+      expect(foreign.body.error.code).toBe("RECURRING_NOT_FOUND");
+      await prisma.transaction.deleteMany({ where: { recurringExpenseId: series.id } });
+    });
   });
 });

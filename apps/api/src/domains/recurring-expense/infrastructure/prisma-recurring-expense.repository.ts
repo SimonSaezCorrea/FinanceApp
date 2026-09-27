@@ -23,6 +23,7 @@ function rowToProps(row: RecurringExpenseRow): RecurringExpenseProps {
     bankAccountId: row.bankAccountId,
     cardId: row.cardId,
     active: row.active,
+    endDate: row.endDate,
     notes: row.notes,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
@@ -48,7 +49,18 @@ export class PrismaRecurringExpenseRepository implements RecurringExpenseReposit
     return row ? RecurringExpense.fromPersistence(rowToProps(row)) : null;
   }
 
-  async create(userId: string, plan: PlannedRecurringExpense): Promise<RecurringExpense> {
+  create(userId: string, plan: PlannedRecurringExpense): Promise<RecurringExpense> {
+    return this.createWithTx(this.prisma, userId, plan);
+  }
+
+  /** Same insert, enlisted in the caller's transaction (the template import
+   * creates many of these atomically with their movements). */
+  async createWithTx(
+    tx: unknown,
+    userId: string,
+    plan: PlannedRecurringExpense,
+  ): Promise<RecurringExpense> {
+    const client = tx as PrismaService;
     const data: Prisma.RecurringExpenseUncheckedCreateInput = {
       userId,
       label: plan.label,
@@ -61,9 +73,10 @@ export class PrismaRecurringExpenseRepository implements RecurringExpenseReposit
       bankAccountId: plan.bankAccountId,
       cardId: plan.cardId,
       active: plan.active,
+      endDate: plan.endDate,
       notes: plan.notes,
     };
-    const row = await this.prisma.recurringExpense.create({ data });
+    const row = await client.recurringExpense.create({ data });
     return RecurringExpense.fromPersistence(rowToProps(row));
   }
 
@@ -80,6 +93,7 @@ export class PrismaRecurringExpenseRepository implements RecurringExpenseReposit
       bankAccountId: snap.bankAccountId,
       cardId: snap.cardId,
       active: snap.active,
+      endDate: snap.endDate,
       notes: snap.notes,
     };
     await this.prisma.recurringExpense.updateMany({

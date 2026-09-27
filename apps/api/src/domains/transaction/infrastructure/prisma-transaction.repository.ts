@@ -71,6 +71,11 @@ function patchToUpdateInput(
       ? { connect: { id: patch.creditStatementId } }
       : { disconnect: true };
   }
+  if (patch.recurringExpenseId !== undefined) {
+    data.recurringExpense = patch.recurringExpenseId
+      ? { connect: { id: patch.recurringExpenseId } }
+      : { disconnect: true };
+  }
   return data;
 }
 
@@ -290,6 +295,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         cardId: plan.cardId,
         financeCharge: plan.financeCharge,
         creditStatementId: plan.creditStatementId,
+        recurringExpenseId: plan.recurringExpenseId,
       },
     });
     if (creditUsedDelta) {

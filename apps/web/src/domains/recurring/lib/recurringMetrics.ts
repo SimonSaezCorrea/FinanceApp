@@ -26,10 +26,10 @@ export function monthlyAmount(r: recurring.RecurringExpense): string {
   return moneyToString(new Decimal(r.amount).times(PER_MONTH[r.frequency]));
 }
 
-/** Active (non-paused) items only — paused series never count toward a total,
+/** Running series only — paused and finished ones never count toward a total,
  * a breakdown, or a periodicity group's own sum. */
 export function activeOnly(list: recurring.RecurringExpense[]): recurring.RecurringExpense[] {
-  return list.filter((r) => r.active);
+  return list.filter((r) => r.status === "ACTIVE");
 }
 
 export interface CategoryShare {
@@ -107,7 +107,7 @@ export function dueNote(nextDueAt: string, now: Date = new Date()): DueNote {
 }
 
 export function isOverdue(r: recurring.RecurringExpense, now: Date = new Date()): boolean {
-  return r.active && dueNote(r.nextDueAt, now).overdue;
+  return r.status === "ACTIVE" && r.nextDueAt !== null && dueNote(r.nextDueAt, now).overdue;
 }
 
 /** "3 sep" — day + short month, no year (the design's row meta format). */

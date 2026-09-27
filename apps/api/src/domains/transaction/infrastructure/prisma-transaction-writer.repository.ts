@@ -85,7 +85,13 @@ export class PrismaTransactionWriterRepository implements TransactionWriterRepos
     return row?.bankAccountId ?? null;
   }
 
-  async createManyWithTx(tx: unknown, rows: Omit<TransactionPlan, "id">[]): Promise<number> {
+  /** A row may carry its own `id` (pre-minted by the caller so a payment or a
+   * contribution can point at its movement without reading it back); one that
+   * doesn't gets the schema's UUID v7 default. */
+  async createManyWithTx(
+    tx: unknown,
+    rows: (Omit<TransactionPlan, "id"> & { id?: string })[],
+  ): Promise<number> {
     const client = tx as PrismaService;
     const result = await client.transaction.createMany({ data: rows });
     return result.count;

@@ -41,6 +41,7 @@ const emptyForm = (date: string): TransactionFormValue => ({
   cardId: "",
   financeCharge: false,
   categoryId: "",
+  recurringExpenseId: "",
   description: "",
   observation: "",
   emisor: "",
@@ -195,6 +196,7 @@ export function TransactionCreateModal({
       cardId: defaultCardId,
       financeCharge: source?.financeCharge ?? false,
       categoryId: source?.categoryId ?? "",
+      recurringExpenseId: source?.recurringExpenseId ?? "",
       description: source?.description ?? "",
       observation: source?.observation ?? "",
       emisor: source?.emisor ?? "",
@@ -382,6 +384,7 @@ export function TransactionCreateModal({
       cardId: form.mode === "INCOME" || !cardable ? undefined : form.cardId || undefined,
       financeCharge: form.financeCharge || undefined,
       categoryId: form.categoryId || undefined,
+      recurringExpenseId: form.recurringExpenseId || undefined,
       description: form.description || undefined,
       observation: form.observation || undefined,
       emisor: form.emisor || undefined,
@@ -391,7 +394,14 @@ export function TransactionCreateModal({
 
     if (editing && initial)
       update.mutate(
-        { id: initial.id, body: { ...body, categoryId: form.categoryId || null } },
+        {
+          id: initial.id,
+          body: {
+            ...body,
+            categoryId: form.categoryId || null,
+            recurringExpenseId: form.recurringExpenseId || null,
+          },
+        },
         handlers,
       );
     else create.mutate({ body, idempotencyKey: idempotencyKey.current() }, handlers);

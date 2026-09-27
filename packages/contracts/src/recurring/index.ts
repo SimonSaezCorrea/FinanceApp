@@ -8,6 +8,12 @@ import { rowId } from "../common/row-id";
 export const recurrenceFrequency = z.enum(["WEEKLY", "MONTHLY", "YEARLY"]);
 export type RecurrenceFrequency = z.infer<typeof recurrenceFrequency>;
 
+/** Derived, never stored: FINISHED once `endDate` has passed, PAUSED while
+ * `active` is false, ACTIVE otherwise. Only ACTIVE series count toward totals
+ * and have a next due date. */
+export const recurringStatus = z.enum(["ACTIVE", "PAUSED", "FINISHED"]);
+export type RecurringStatus = z.infer<typeof recurringStatus>;
+
 export const recurringExpenseSchema = z.object({
   id: rowId,
   label: z.string(),
@@ -23,9 +29,13 @@ export const recurringExpenseSchema = z.object({
    * `bankAccountId` — purely informational, same spirit as `Debt.paymentAccountId`. */
   cardId: rowId.nullable(),
   active: z.boolean(),
+  /** Last occurrence (inclusive) of a series that ended; null = open-ended. */
+  endDate: z.string().nullable(),
+  status: recurringStatus,
   notes: z.string().nullable(),
-  /** Next occurrence on/after today, computed from anchorDate + frequency × interval. */
-  nextDueAt: z.string(),
+  /** Next occurrence on/after today, computed from anchorDate + frequency × interval.
+   * Null once the series is FINISHED — there is no next one. */
+  nextDueAt: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -42,6 +52,9 @@ export const createRecurringExpenseSchema = z.object({
   bankAccountId: rowId.optional(),
   cardId: rowId.optional(),
   active: z.boolean().optional(),
+  /** Last occurrence (inclusive); must not be before `anchorDate`
+   * (`RECURRING_END_BEFORE_START`). */
+  endDate: z.string().datetime().optional(),
   notes: z.string().trim().max(500).optional(),
 });
 export type CreateRecurringExpense = z.infer<typeof createRecurringExpenseSchema>;
@@ -55,5 +68,7 @@ export const updateRecurringExpenseSchema = createRecurringExpenseSchema.partial
   interval: z.number().int().min(1).max(366).optional(),
   /** `null` clears the category; omitted leaves it as it is. */
   categoryId: rowId.nullable().optional(),
+  /** `null` reopens an ended series; omitted leaves it as it is. */
+  endDate: z.string().datetime().nullable().optional(),
 });
 export type UpdateRecurringExpense = z.infer<typeof updateRecurringExpenseSchema>;

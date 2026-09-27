@@ -8,6 +8,11 @@ import {
   type CategoryLookupPort,
 } from "../../../category/domain/ports/category-lookup.port";
 import { assertSelectableCategory } from "../../../category/domain/category-policy";
+import { RecurringExpenseNotFoundError } from "../../../recurring-expense/domain/errors";
+import {
+  RECURRING_EXPENSE_REPOSITORY,
+  type RecurringExpenseRepositoryPort,
+} from "../../../recurring-expense/domain/ports/recurring-expense.repository.port";
 import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
@@ -86,6 +91,8 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
     @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statements: CreditStatementRepositoryPort,
     private readonly prisma: PrismaService,
     @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
+    @Inject(RECURRING_EXPENSE_REPOSITORY)
+    private readonly recurring: RecurringExpenseRepositoryPort,
   ) {
     super(eventBus, records);
   }
@@ -97,6 +104,13 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
   protected async loadContext(command: CreateTransactionCommand): Promise<Context> {
     const { input } = command;
     await assertSelectableCategory(this.categories, input.categoryId, input.type);
+    // Principle II: a series in the body must be the caller's own before it's linked.
+    if (
+      input.recurringExpenseId &&
+      !(await this.recurring.findOne(command.userId, input.recurringExpenseId))
+    ) {
+      throw new RecurringExpenseNotFoundError();
+    }
     const loaded = await loadAccountContext(this.accounts, command.userId, input.bankAccountId);
     if (!loaded) throw new AccountNotFoundError();
     const { context: account, createdAt: accountCreatedAt } = loaded;
@@ -166,6 +180,7 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
       cardId: input.cardId,
       financeCharge: input.financeCharge,
       creditStatementId: context.creditStatementId,
+      recurringExpenseId: input.recurringExpenseId ?? null,
     });
 
     const result = await this.prisma.$transaction(async (tx) => {

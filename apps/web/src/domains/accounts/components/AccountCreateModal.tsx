@@ -29,6 +29,8 @@ import { cleanExpiryInput, parseExpiry } from "../lib/cardExpiry";
 import { AccountTypeToggle } from "./AccountTypeToggle";
 import { CardFormPanel } from "./CardFormPanel";
 import { DraftCardTile } from "./DraftCardTile";
+import { ExtraCurrencyLimits } from "./ExtraCurrencyLimits";
+import { cleanExtraLimits, type CurrencyLimitDraft } from "../lib/extraLimits";
 
 /**
  * EXPERIMENT (2026-09-05): drops a plain text/number field's filled
@@ -72,6 +74,8 @@ export function AccountCreateModal({
   const [currency, setCurrency] = useState("CLP");
   const [initialBalance, setInitialBalance] = useState("0");
   const [creditLimit, setCreditLimit] = useState("0");
+  // The primary card's limits in other currencies (its USD one), sent with it.
+  const [extraLimits, setExtraLimits] = useState<CurrencyLimitDraft[]>([]);
   const [creditUsedInitial, setCreditUsedInitial] = useState("0");
   // For a CREDIT_CARD account, these identify its PRIMARY card directly (in
   // place of a bank "account number", which doesn't apply — there's no
@@ -104,6 +108,7 @@ export function AccountCreateModal({
     setCurrency("CLP");
     setInitialBalance("0");
     setCreditLimit("0");
+    setExtraLimits([]);
     setCreditUsedInitial("0");
     setPrimaryLast4("");
     setPrimaryExpiry("");
@@ -175,7 +180,10 @@ export function AccountCreateModal({
             isVirtual: false,
             isAdditional: false,
             usesAccountPool: true,
-            limits: [{ currency, limitAmount: creditLimit || "0" }],
+            limits: [
+              { currency, limitAmount: creditLimit || "0" },
+              ...cleanExtraLimits(extraLimits, currency),
+            ],
           }
         : undefined;
     const allCards = autoPrimaryCard ? [autoPrimaryCard, ...cards] : cards;
@@ -330,6 +338,15 @@ export function AccountCreateModal({
               aria-label={t("accounts.form.currency")}
             />
           </div>
+          {isCreditLineType ? (
+            <div className="mt-3">
+              <ExtraCurrencyLimits
+                accountCurrency={currency}
+                limits={extraLimits}
+                onChange={setExtraLimits}
+              />
+            </div>
+          ) : null}
         </div>
 
         <div className="-my-3 border-t border-border" />

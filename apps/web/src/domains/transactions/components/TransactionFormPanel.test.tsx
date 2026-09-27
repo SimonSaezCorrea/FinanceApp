@@ -67,6 +67,7 @@ const initialValue: TransactionFormValue = {
   cardId: "",
   financeCharge: false,
   categoryId: "",
+  recurringExpenseId: "",
   description: "",
   observation: "",
   emisor: "",

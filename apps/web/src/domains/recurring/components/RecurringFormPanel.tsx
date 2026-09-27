@@ -29,6 +29,8 @@ export interface RecurringFormValue {
   frequency: recurring.RecurrenceFrequency;
   interval: number;
   anchorDate: string;
+  /** Last payment of a series that ended (`yyyy-mm-dd`); `""` = still running. */
+  endDate: string;
   bankAccountId: string;
   /** The card this series is paid with, when it isn't a plain transfer out of
    * the account above — optional, purely informational. `""` = none. */
@@ -200,6 +202,12 @@ export function RecurringFormPanel({
             onChange={(anchorDate) => onChange({ anchorDate })}
           />
 
+          <FormDateField
+            label={t("recurring.form.endDate")}
+            value={value.endDate}
+            onChange={(endDate) => onChange({ endDate })}
+          />
+
           <FormSelectField
             id="recurring-account"
             label={t("debts.form.account")}
@@ -243,6 +251,7 @@ export function emptyRecurringForm(today: string, currency = "CLP"): RecurringFo
     frequency: "MONTHLY",
     interval: 1,
     anchorDate: today,
+    endDate: "",
     bankAccountId: "",
     cardId: "",
     active: true,
@@ -260,6 +269,7 @@ export function recurringFormFrom(r: recurring.RecurringExpense): RecurringFormV
     frequency: r.frequency,
     interval: r.interval,
     anchorDate: r.anchorDate.slice(0, 10),
+    endDate: r.endDate ? r.endDate.slice(0, 10) : "",
     bankAccountId: r.bankAccountId ?? "",
     cardId: r.cardId ?? "",
     active: r.active,

@@ -123,6 +123,7 @@ function makeHandler(
     // Unused unless a fixture carries `prepaymentStatementId` (none in this file do).
     {} as never,
     fakeCategoryLookup(),
+    { findOne: vi.fn(async () => null) } as never,
   );
 }
 

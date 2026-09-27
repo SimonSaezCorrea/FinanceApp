@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
+import { RecurringExpenseDataModule } from "../recurring-expense/recurring-expense.data.module";
 import { CategoryDataModule } from "../category/category.data.module";
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
 import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
@@ -63,6 +64,8 @@ const queryHandlers = [
     InstallmentPaymentDataModule,
     // Retry-safety for `create`/`createTransfer` (Constitution Principle VII).
     IdempotencyRecordDataModule,
+    // A movement may name the recurring series it pays — ownership-checked here.
+    RecurringExpenseDataModule,
   ],
   controllers: [TransactionsController],
   providers: [

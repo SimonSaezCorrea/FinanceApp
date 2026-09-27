@@ -1,4 +1,63 @@
 <!--
+Sync Impact Report — 2026-09-26 (amendment 2.3.8)
+- Version change: 2.3.7 → 2.3.8 (PATCH: one movement rule relaxed, one optional template column;
+  no principle text changed, no schema change).
+- CHANGED: an INCOME may now carry a card — ONLY on a `CREDIT_CARD` account, through one of its
+  CREDIT cards that has its own `CardLimit` in the movement's currency: it is a payment towards that
+  limit (e.g. the USD limit of a CLP card) and contributes "0" to the account pool
+  (`MovementPolicy.validate`/`contribution`). Anything else still answers `CARD_NOT_ALLOWED`. The
+  contract's blanket "income cannot be linked to a card" refine was removed from
+  `create/updateTransactionSchema` — the domain is the only side that knows the account type and the
+  card's limits.
+- CHANGED (specs/027 template): Movimientos gains an optional `Moneda` column (empty = the account's
+  currency). Another currency is only accepted on a credit card account whose card (explicit, or the
+  primary) has its own limit in it — charges and payments go against that limit, never the pool;
+  otherwise `IMPORT_CURRENCY_MISMATCH`. `TemplateCard.otherLimits` carries those limits and their
+  usage; the planner tracks usage per (card, currency). `TEMPLATE_VERSION` unchanged.
+-->
+<!--
+Sync Impact Report — 2026-09-26 (amendment 2.3.7)
+- Version change: 2.3.6 → 2.3.7 (PATCH: one nullable column, one body FK; no principle text changed).
+- ADDED: `RecurringExpense.endDate` (nullable) — the LAST occurrence (inclusive) of a series that
+  ended. The contract gains a derived `status` (ACTIVE / PAUSED / FINISHED, never stored) and
+  `nextDueAt` becomes nullable (null once FINISHED). `RECURRING_END_BEFORE_START` (400).
+- ADDED: `POST/PATCH /transactions` accept `recurringExpenseId` — links a movement into its
+  series' occurrence history (the column existed since the recurring redesign but nothing wrote
+  it). **Principle II**: ownership-verified through `RecurringExpenseRepositoryPort.findOne`
+  before persisting (`RECURRING_NOT_FOUND`, 404); `transaction` imports the leaf
+  `RecurringExpenseDataModule` (**Principle VI**, graph stays acyclic).
+- CHANGED (specs/027 template): Recurrentes gains `Referencia` + `Último pago`; Movimientos gains
+  `Recurrente` (the series' reference) — `TEMPLATE_VERSION` unchanged, older files still read.
+-->
+<!--
+Sync Impact Report — 2026-09-26 (amendment 2.3.6)
+- Version change: 2.3.5 → 2.3.6 (PATCH: a new write endpoint under an existing principle, one
+  billing query narrowed, no principle text changed).
+- ADDED (specs/027): the Cuadra template — `POST /import/template/preview` (validates, writes
+  nothing) and `POST /import/template` (applies movements, transfers, debts + payments, instalment
+  plans + payments, recurring series, savings goals + contributions, all-or-nothing in ONE
+  `$transaction` with a 60 s timeout).
+  - **Principle VII (idempotent writes)**: form (c), `Idempotency-Key` + `BaseIdempotentCommandHandler`,
+    operation `import.template`, the effect and the COMPLETED mark in the same transaction. The
+    preview is a POST only for body size and writes nothing (no key).
+  - **Principle II (isolation)**: every FK in the body resolves against the user's OWN accounts and
+    cards (loaded once, `listByUser`); anything else is "not found", never "empty".
+  - **Principle VI (one adapter per table)**: `import` still owns no table; each table is written
+    through its domain's port. New `*WithTx`: `DebtRepositoryPort.createWithTx`,
+    `RecurringExpenseRepositoryPort.createWithTx`, `SavingsGoalRepositoryPort.createWithTx`,
+    `BankAccountRepositoryPort.adjustOpeningWithTx`,
+    `CreditStatementRepositoryPort.findOrCreateOpenForAccountWithTx`; `createManyWithTx` takes an
+    optional pre-minted `id` (still UUID v7 — Principle VIII).
+  - **Principle III (i18n)**: the template (sheet names, headers, values) is generated in the
+    BROWSER precisely so the API keeps returning codes only.
+- CHANGED: `installment-payment.listUnbilledDueForPlans` also requires `paidAt: null` — an
+  instalment paid outside the app (imported) is never billed. No effect on plans bought in-app.
+- CHANGED: the API's JSON body limit is 5 MB (`infra/http/body-limit.ts`, was Express's 100 KB,
+  which already refused a 2.000-row statement import).
+- New dependency: **`exceljs`** (apps/web only, loaded on demand) to WRITE the template with
+  dropdowns. No schema change.
+-->
+<!--
 Sync Impact Report — 2026-09-26 (amendment 2.3.5)
 - Version change: 2.3.4 → 2.3.5 (PATCH: an existing write endpoint rewritten and brought under
   Principle VII; no principle text changed).
@@ -1927,4 +1986,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.3.5 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-26
+**Version**: 2.3.8 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-26

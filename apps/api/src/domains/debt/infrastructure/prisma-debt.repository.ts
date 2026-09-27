@@ -52,7 +52,14 @@ export class PrismaDebtRepository implements DebtRepositoryPort {
     return row ? Debt.fromPersistence(rowToProps(row)) : null;
   }
 
-  async create(userId: string, plan: PlannedDebt): Promise<Debt> {
+  create(userId: string, plan: PlannedDebt): Promise<Debt> {
+    return this.createWithTx(this.prisma, userId, plan);
+  }
+
+  /** Same insert, enlisted in the caller's transaction (the template import
+   * creates many of these atomically with their movements). */
+  async createWithTx(tx: unknown, userId: string, plan: PlannedDebt): Promise<Debt> {
+    const client = tx as PrismaService;
     const data: Prisma.DebtUncheckedCreateInput = {
       userId,
       direction: plan.direction,
@@ -73,7 +80,7 @@ export class PrismaDebtRepository implements DebtRepositoryPort {
       lastPaymentAccountId: plan.lastPaymentAccountId,
       lastPaymentAmount: plan.lastPaymentAmount,
     };
-    const row = await this.prisma.debt.create({ data });
+    const row = await client.debt.create({ data });
     return Debt.fromPersistence(rowToProps(row));
   }
 

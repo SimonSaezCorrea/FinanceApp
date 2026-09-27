@@ -99,5 +99,8 @@ export interface TransactionWriterRepositoryPort {
   /** Bulk insert inside the caller's transaction, used by the `import` domain —
    * which applies the balance/credit-pool deltas itself, in that same
    * transaction, so an import is all-or-nothing. */
-  createManyWithTx(tx: unknown, rows: Omit<TransactionPlan, "id">[]): Promise<number>;
+  createManyWithTx(
+    tx: unknown,
+    rows: (Omit<TransactionPlan, "id"> & { id?: string })[],
+  ): Promise<number>;
 }

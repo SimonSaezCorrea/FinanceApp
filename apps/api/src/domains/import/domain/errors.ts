@@ -36,3 +36,33 @@ export class ImportRowRejectedError extends DomainError {
     return error;
   }
 }
+
+/**
+ * A template row (specs/027) broke a rule. Same idea as `ImportRowRejectedError`,
+ * but pointing at a SHEET and an Excel row: `field` is `"<sheet>.<row>"`, e.g.
+ * `"movements.12"`, which the web maps back to "Movimientos · fila 12". The rule's
+ * own code is kept — the web already has a message for each.
+ */
+export class TemplateRowRejectedError extends DomainError {
+  constructor(
+    code: string,
+    httpStatus: 400 | 404 | 409,
+    public readonly sheet: string,
+    public readonly row: number,
+  ) {
+    super(code, httpStatus, `${sheet}.${row}`);
+  }
+}
+
+/** Codes the template import raises on its own (the rest are reused rules). */
+export const TEMPLATE_CODES = {
+  ACCOUNT_INACTIVE: "IMPORT_ACCOUNT_INACTIVE",
+  CURRENCY_MISMATCH: "IMPORT_CURRENCY_MISMATCH",
+  DUPLICATE_REF: "IMPORT_DUPLICATE_REF",
+  UNKNOWN_REF: "IMPORT_UNKNOWN_REF",
+  TOO_MANY_PAYMENTS: "IMPORT_TOO_MANY_PAYMENTS",
+  INVALID_SEQUENCE: "IMPORT_INVALID_SEQUENCE",
+  PAYMENT_BEFORE_START: "IMPORT_PAYMENT_BEFORE_START",
+  PAYMENT_AMOUNT_MISMATCH: "IMPORT_PAYMENT_AMOUNT_MISMATCH",
+  PLAN_PAYMENT_FIELDS: "IMPORT_PLAN_PAYMENT_FIELDS",
+} as const;

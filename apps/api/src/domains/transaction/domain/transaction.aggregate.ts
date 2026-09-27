@@ -63,6 +63,7 @@ export type TransactionPatch = Partial<{
   cardId: string | null;
   financeCharge: boolean;
   creditStatementId: string | null;
+  recurringExpenseId: string | null;
 }>;
 
 /**
@@ -100,6 +101,7 @@ export class Transaction {
     cardId?: string | null;
     financeCharge?: boolean;
     creditStatementId: string | null;
+    recurringExpenseId?: string | null;
   }): Omit<TransactionProps, "id" | "createdAt" | "updatedAt"> {
     return {
       userId: input.userId,
@@ -122,7 +124,7 @@ export class Transaction {
       // `Transfer.planPair` and written by the transfer commands.
       transferGroupId: null,
       debtId: null,
-      recurringExpenseId: null,
+      recurringExpenseId: input.recurringExpenseId ?? null,
       savingsEntryId: null,
       savingsGoalId: null,
       // Only `PrepayOpenPeriodHandler` sets these, writing through
@@ -185,6 +187,8 @@ export class Transaction {
     }
     if (patch.creditStatementId !== undefined)
       this.props.creditStatementId = patch.creditStatementId;
+    if (patch.recurringExpenseId !== undefined)
+      this.props.recurringExpenseId = patch.recurringExpenseId;
   }
 
   snapshot(): Readonly<TransactionProps> {

@@ -112,6 +112,7 @@ function fakeAccountRepo(
     removeCard: vi.fn(),
     incrementCreditUsedWithTx: vi.fn(),
     incrementBalanceWithTx: vi.fn(),
+    adjustOpeningWithTx: vi.fn(),
     ...overrides,
   };
 }
@@ -124,6 +125,7 @@ function fakeStatementRepo(
     findByIdForUpdateWithTx: vi.fn(),
     findOpenForAccount: vi.fn(),
     findOrCreateOpenForAccount: vi.fn(async () => ({ id: "st_open" })),
+    findOrCreateOpenForAccountWithTx: vi.fn(async () => ({ id: "st_open" })),
     findOrCreateCarryOverTargetWithTx: vi.fn(async () => ({ id: "st_next" })),
     addCarriedOverWithTx: vi.fn(),
     isPaid: vi.fn(async () => false),

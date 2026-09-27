@@ -154,7 +154,7 @@
     "detail": {
       "change": "Variación",
       "credit": "Crédito",
-      "creditPools": "Topes por moneda",
+      "creditIn": "Crédito · {{currency}}",
       "billingSettingsTitle": "Configurar facturación",
       "billingSettingsSubtitle": "Día de facturación y método de pago de esta cuenta.",
       "billingTitle": "Facturación",
@@ -399,6 +399,7 @@
       "primaryLimitHint": "Es la primera tarjeta de crédito de la cuenta: su tope pasa a ser el cupo compartido de la cuenta.",
       "extraLimits": "Topes en otras monedas",
       "extraLimitsHint": "Opcional. Añade un tope adicional si esta tarjeta también se usa en otra moneda (sin conversión entre monedas).",
+      "extraLimitsNoCurrencies": "Para agregar un tope en otra moneda (ej. USD), primero actívala en Perfil → Personalización financiera → Monedas extra.",
       "usesPool": "Cupo de la cuenta",
       "usesPoolHint": "Esta tarjeta comparte el cupo total de la cuenta.",
       "ownLimit": "Tope propio",
@@ -534,7 +535,9 @@
       "currency": "Moneda",
       "leaveConfirm": "¿Volver sin guardar?",
       "leaveConfirmDescription": "Tienes cambios sin guardar en este movimiento. Si vuelves ahora se perderán.",
-      "leaveDiscard": "Descartar cambios"
+      "leaveDiscard": "Descartar cambios",
+      "recurring": "Recurrente",
+      "noRecurring": "Ninguno"
     },
     "kpi": {
       "income": "Ingresos",
@@ -579,7 +582,8 @@
       "source": "Origen",
       "viewPlan": "Ver plan",
       "viewDebt": "Ver deuda",
-      "viewBilling": "Ver facturación"
+      "viewBilling": "Ver facturación",
+      "viewRecurring": "Ver recurrente"
     },
     "source": {
       "MANUAL": "Manual",
@@ -589,7 +593,8 @@
       "FINANCE_CHARGE": "Cargo financiero",
       "DEBT": "Deuda",
       "STATEMENT_PAYMENT": "Pago de facturación",
-      "CREDIT_CARD_PREPAYMENT": "Prepago de tarjeta"
+      "CREDIT_CARD_PREPAYMENT": "Prepago de tarjeta",
+      "RECURRING": "Recurrente"
     },
     "attachments": {
       "title": "Comprobantes",
@@ -978,7 +983,22 @@
     "subtitle": "{{active}} activos · {{paused}} pausado(s)",
     "new": "Nuevo recurrente",
     "edit": "Editar recurrente",
-    "empty": "Aún no tienes gastos recurrentes.",
+    "empty": "Aún no tienes gastos recurrentes",
+    "emptyMessage": "Registra suscripciones, arriendo o cuentas que pagas cada semana, mes o año, y ve de un vistazo cuánto tienes comprometido y qué pago viene.",
+    "emptySteps": {
+      "create": {
+        "title": "Crea la serie",
+        "text": "Monto, frecuencia y fecha del primer pago. Si tiene fin, indica el último."
+      },
+      "upcoming": {
+        "title": "Mira qué viene",
+        "text": "Cada serie calcula su próximo pago y suma al total comprometido del mes."
+      },
+      "link": {
+        "title": "Vincula tus pagos",
+        "text": "Al registrar un movimiento, asócialo a la serie para ver su historial."
+      }
+    },
     "created": "Recurrente creado",
     "updated": "Recurrente actualizado",
     "deleted": "Recurrente eliminado",
@@ -1001,7 +1021,9 @@
       "YEARLY": "Anuales",
       "PAUSED": "Pausados",
       "activeMeta": "{{count}} activo(s) · {{sum}} al mes",
-      "pausedMeta": "{{count}} · no genera movimientos"
+      "pausedMeta": "{{count}} · no genera movimientos",
+      "FINISHED": "Finalizados",
+      "finishedMeta": "{{count}} · ya no se cobran"
     },
     "due": {
       "today": "hoy",
@@ -1010,7 +1032,8 @@
     },
     "row": {
       "overdueMeta": "Venció {{date}} · sin movimiento",
-      "pausedMeta": "{{frequency}} · pausado desde {{date}}"
+      "pausedMeta": "{{frequency}} · pausado desde {{date}}",
+      "finishedMeta": "{{frequency}} · último pago el {{date}}"
     },
     "actions": {
       "pause": "Pausar",
@@ -1034,7 +1057,8 @@
       "historyEmpty": "Sin ocurrencias generadas",
       "historyEmptyHint": "Aún no se ha generado ningún movimiento a partir de este recurrente.",
       "historyNote": "Movimiento generado automáticamente · {{account}}",
-      "historyBadge": "Generado"
+      "historyBadge": "Generado",
+      "endedOn": "Último pago"
     },
     "pause": {
       "titlePause": "Pausar «{{name}}»",
@@ -1069,12 +1093,29 @@
       "categoryPlaceholder": "Elegir categoría",
       "leaveConfirm": "¿Volver sin guardar?",
       "leaveConfirmDescription": "Tienes cambios sin guardar en este recurrente. Si vuelves ahora se perderán.",
-      "leaveDiscard": "Descartar cambios"
-    }
+      "leaveDiscard": "Descartar cambios",
+      "endDate": "Último pago (si terminó)"
+    },
+    "finished": "Finalizado"
   },
   "savings": {
     "title": "Ahorros",
-    "empty": "Aún no tienes metas de ahorro.",
+    "empty": "Aún no tienes metas de ahorro",
+    "emptyMessage": "Ponle nombre y monto a lo que quieres juntar. Cada aporte sale de una de tus cuentas, así el avance que ves es el real. ¿Sin meta todavía? Un aporte libre también cuenta.",
+    "emptySteps": {
+      "goal": {
+        "title": "Define la meta",
+        "text": "Monto objetivo y, si quieres, una fecha para lograrlo."
+      },
+      "contribute": {
+        "title": "Aporta desde una cuenta",
+        "text": "Cada aporte descuenta el saldo de la cuenta de origen."
+      },
+      "pace": {
+        "title": "Sigue tu ritmo",
+        "text": "Ve cuánto llevas, tu aporte mensual promedio y cuánto falta."
+      }
+    },
     "subtitle_one": "{{count}} meta abierta · {{missing}} por reunir",
     "subtitle_other": "{{count}} metas abiertas · {{missing}} por reunir",
     "freeContribution": "Aporte libre",
@@ -1354,6 +1395,318 @@
       "categoriesUnmatched_one": "{{count}} categoría no calza con el catálogo → {{fallback}}",
       "categoriesUnmatched_other": "{{count}} categorías no calzan con el catálogo → {{fallback}}",
       "truncated": "Se muestran las primeras {{shown}} filas; se importan todas."
+    },
+    "template": {
+      "cardTitle": "Plantilla Cuadra",
+      "cardDescription": "¿Llevas tus finanzas en tu propio Excel? Descarga la plantilla, copia en ella tus movimientos, traspasos, deudas, cuotas, recurrentes y metas, y súbela. Cada hoja dice qué es cada fila, así que no hay nada que adivinar.",
+      "download": "Descargar plantilla",
+      "downloading": "Preparando plantilla…",
+      "upload": "Subir plantilla",
+      "downloadError": "No se pudo generar la plantilla.",
+      "panelTitle": "Importar plantilla Cuadra",
+      "panelDescription": "Sube la plantilla que descargaste desde esta página, ya llena.",
+      "eyebrow": "Importar · Plantilla",
+      "pickTitle": "Elige o arrastra tu plantilla",
+      "pickHint": "El archivo .xlsx que descargaste desde Importar.",
+      "reading": "Leyendo plantilla…",
+      "validating": "Revisando con tus datos…",
+      "changeFile": "Cambiar archivo",
+      "summaryTitle": "Qué se va a importar",
+      "accountsTitle": "Efecto en tus cuentas",
+      "modeIncluded": "Mi saldo ya incluye esto",
+      "modeAdd": "Súmalo a mi saldo",
+      "modeHint": "Si creaste la cuenta con su saldo real de hoy, esos movimientos ya están en él: elige la primera opción para que el saldo no cambie.",
+      "net": "Efecto",
+      "balanceAfter": "Saldo después",
+      "creditUsedAfter": "Cupo usado después",
+      "issuesTitle_one": "{{count}} problema por corregir",
+      "issuesTitle_other": "{{count}} problemas por corregir",
+      "issuesHint": "Corrige el archivo y vuelve a subirlo. No se importará nada hasta que no quede ninguno.",
+      "issueLine": "{{sheet}} · fila {{row}}: {{message}}",
+      "reimportWarning": "Si más adelante vuelves a subir este mismo archivo, todo se creará de nuevo: la plantilla no detecta duplicados.",
+      "submit": "Importar",
+      "submitting": "Importando…",
+      "success": "Plantilla importada",
+      "notTemplate": "Este archivo no es una plantilla de Cuadra. Para una cartola de tu banco usa el importador de cartolas, eligiendo la cuenta en esta página.",
+      "outdated": "Esta plantilla es de una versión anterior. Descarga la plantilla actual y copia en ella tus datos.",
+      "empty": "La plantilla no tiene filas que importar.",
+      "tooMany": "La plantilla tiene más de {{max}} filas. Divídela en varios archivos.",
+      "readError": "No se pudo leer el archivo. ¿Está dañado o protegido con contraseña?",
+      "sheets": {
+        "instructions": "Instrucciones",
+        "movements": "Movimientos",
+        "transfers": "Traspasos",
+        "debts": "Deudas",
+        "debtPayments": "Pagos de deudas",
+        "plans": "Cuotas",
+        "planPayments": "Pagos de cuotas",
+        "recurring": "Recurrentes",
+        "goals": "Metas",
+        "contributions": "Aportes",
+        "reference": "Referencia"
+      },
+      "columns": {
+        "movements": {
+          "date": "Fecha",
+          "type": "Tipo",
+          "amount": "Monto",
+          "currency": "Moneda",
+          "account": "Cuenta",
+          "card": "Tarjeta",
+          "category": "Categoría",
+          "description": "Descripción",
+          "observation": "Observación",
+          "emisor": "Emisor",
+          "receptor": "Receptor",
+          "lugar": "Lugar",
+          "financeCharge": "Cargo del emisor",
+          "recurring": "Recurrente"
+        },
+        "transfers": {
+          "date": "Fecha",
+          "fromAccount": "Cuenta origen",
+          "toAccount": "Cuenta destino",
+          "amount": "Monto",
+          "incomingAmount": "Monto recibido",
+          "description": "Descripción"
+        },
+        "debts": {
+          "ref": "Referencia",
+          "direction": "Dirección",
+          "counterparty": "Contraparte",
+          "title": "Título",
+          "principal": "Monto total",
+          "currency": "Moneda",
+          "openedAt": "Fecha",
+          "dueAt": "Vencimiento",
+          "installments": "Cuotas",
+          "frequency": "Frecuencia",
+          "every": "Cada",
+          "account": "Cuenta asociada",
+          "notes": "Notas"
+        },
+        "debtPayments": {
+          "ref": "Referencia",
+          "date": "Fecha",
+          "account": "Cuenta",
+          "amount": "Monto"
+        },
+        "plans": {
+          "ref": "Referencia",
+          "title": "Descripción",
+          "startDate": "Fecha de compra",
+          "totalPrincipal": "Monto total",
+          "installments": "Cuotas",
+          "currency": "Moneda",
+          "frequency": "Frecuencia",
+          "every": "Cada",
+          "interest": "Interés por período",
+          "card": "Tarjeta",
+          "category": "Categoría",
+          "account": "Cuenta de pago"
+        },
+        "planPayments": {
+          "ref": "Referencia",
+          "sequence": "N° cuota",
+          "date": "Fecha",
+          "account": "Cuenta",
+          "amount": "Monto"
+        },
+        "recurring": {
+          "label": "Nombre",
+          "amount": "Monto",
+          "currency": "Moneda",
+          "frequency": "Frecuencia",
+          "every": "Cada",
+          "anchorDate": "Primera fecha",
+          "account": "Cuenta",
+          "card": "Tarjeta",
+          "category": "Categoría",
+          "notes": "Notas",
+          "ref": "Referencia",
+          "endDate": "Último pago"
+        },
+        "goals": {
+          "ref": "Referencia",
+          "title": "Meta",
+          "targetAmount": "Objetivo",
+          "currency": "Moneda",
+          "deadline": "Fecha límite",
+          "notes": "Notas"
+        },
+        "contributions": {
+          "ref": "Referencia",
+          "date": "Fecha",
+          "amount": "Monto",
+          "account": "Cuenta"
+        }
+      },
+      "columnHelp": {
+        "movements": {
+          "date": "Día en que ocurrió el movimiento (dd/mm/aaaa).",
+          "type": "Gasto o Ingreso. Define el signo: el Monto siempre va positivo.",
+          "amount": "Monto sin signo (15000 o 15.000), en la Moneda de la fila o, si va vacía, en la de la cuenta.",
+          "currency": "Vacío = la moneda de la cuenta. Otra moneda (ej. USD) solo en una cuenta de tarjeta de crédito cuya tarjeta tenga un tope en esa moneda: el cargo o el pago va contra ese tope, no contra el cupo.",
+          "account": "Cuenta donde ocurrió. Elígela de la lista: son tus cuentas activas.",
+          "card": "Tarjeta con que se pagó; debe ser de esa misma cuenta. En una cuenta de tarjeta de crédito, si la dejas vacía se usa la tarjeta principal.",
+          "category": "Categoría del catálogo. Debe servir para el Tipo: una de gasto para un gasto, una de ingreso para un ingreso.",
+          "description": "Texto corto que identifica el movimiento, por ejemplo el comercio.",
+          "observation": "Nota libre, más larga.",
+          "emisor": "Quién hizo el pago o la transferencia. Solo informativo.",
+          "receptor": "Quién recibió el pago. Solo informativo.",
+          "lugar": "Dónde ocurrió: ciudad, comercio o sitio web. Solo informativo.",
+          "financeCharge": "Sí cuando es un cobro del banco sobre una cuenta de tarjeta de crédito (intereses, comisión de mantención, seguro), copiado del estado de cuenta. Va sin tarjeta. En otras cuentas se ignora.",
+          "recurring": "Si este movimiento paga un recurrente, la Referencia de esa fila en la hoja Recurrentes."
+        },
+        "transfers": {
+          "date": "Día del traspaso.",
+          "fromAccount": "Cuenta de donde sale la plata.",
+          "toAccount": "Cuenta a la que llega. No puede ser una tarjeta de crédito: eso es pagar su facturación.",
+          "amount": "Monto que sale de la cuenta origen, en su moneda.",
+          "incomingAmount": "Monto que llega, solo si la cuenta destino está en otra moneda. Vacío = igual al Monto.",
+          "description": "Texto corto opcional."
+        },
+        "debts": {
+          "ref": "Código corto y único (ej. VICTOR) para unir la deuda con sus pagos.",
+          "direction": "Me deben (alguien te debe a ti) o Debo (tú le debes a alguien).",
+          "counterparty": "Nombre de la otra persona.",
+          "title": "Nombre corto de la deuda, ej. Préstamo auto.",
+          "principal": "Monto total de la deuda.",
+          "currency": "Moneda de la deuda. Sus pagos deben hacerse desde cuentas en esa moneda.",
+          "openedAt": "Día en que nació la deuda. Crearla no mueve dinero: si hubo un préstamo, anótalo aparte en Movimientos.",
+          "dueAt": "Fecha límite para saldarla, si la hay.",
+          "installments": "En cuántas cuotas se paga. Vacío = 1 (un solo pago).",
+          "frequency": "Cada cuánto se paga una cuota. Vacío = Mensual.",
+          "every": "Cada cuántos períodos de esa frecuencia (2 con Mensual = cada 2 meses). Vacío = 1.",
+          "account": "Cuenta sugerida para registrar sus pagos. Solo una preferencia.",
+          "notes": "Nota libre."
+        },
+        "debtPayments": {
+          "ref": "Referencia de la deuda en la hoja Deudas.",
+          "date": "Día del pago. No puede ser anterior a la fecha de la deuda.",
+          "account": "Cuenta donde entra el dinero (si te pagan) o de donde sale (si pagas). No puede ser una tarjeta de crédito y debe estar en la moneda de la deuda.",
+          "amount": "Opcional. Cada fila es una cuota completa (Monto total ÷ Cuotas); si lo escribes, debe coincidir."
+        },
+        "plans": {
+          "ref": "Código corto y único (ej. NOTEBOOK) para unir el plan con sus pagos.",
+          "title": "Qué compraste, ej. Notebook.",
+          "startDate": "Día de la compra. Los vencimientos se calculan desde aquí.",
+          "totalPrincipal": "Precio total, sin intereses.",
+          "installments": "Cantidad de cuotas.",
+          "currency": "Moneda del plan.",
+          "frequency": "Cada cuánto vence una cuota. Vacío = Mensual.",
+          "every": "Cada cuántos períodos de esa frecuencia (2 con Mensual = cada 2 meses). Vacío = 1.",
+          "interest": "Tasa de interés por período, con % (ej. 1,5%). Vacío = sin interés.",
+          "card": "Tarjeta con que se compró. Si es de crédito, la compra se carga a su cupo y las cuotas se facturan en esa cuenta.",
+          "category": "Categoría de gasto del catálogo.",
+          "account": "Cuenta desde la que pagas las cuotas. No aplica a planes con tarjeta de crédito."
+        },
+        "planPayments": {
+          "ref": "Referencia del plan en la hoja Cuotas.",
+          "sequence": "Número de la cuota pagada (1, 2, 3…). Cada cuota se paga una sola vez.",
+          "date": "Día del pago. No puede ser anterior a la compra.",
+          "account": "Cuenta de donde salió el pago. Obligatoria, salvo en planes con tarjeta de crédito, donde va vacía.",
+          "amount": "Monto pagado. Obligatorio, salvo en planes con tarjeta de crédito, donde va vacío. Si pagas menos que la cuota, el resto pasa a la siguiente."
+        },
+        "recurring": {
+          "ref": "Código corto para vincularle pagos desde la columna Recurrente de Movimientos.",
+          "label": "Nombre del gasto, ej. Spotify.",
+          "amount": "Monto de cada pago.",
+          "currency": "Moneda del gasto.",
+          "frequency": "Semanal, Mensual o Anual.",
+          "every": "Cada cuántos períodos de esa frecuencia (2 con Mensual = cada 2 meses). Vacío = 1.",
+          "anchorDate": "Día del primer pago; desde ahí se calculan los siguientes.",
+          "endDate": "Día del último pago, si ya terminó o tiene fin. Vacío = sigue vigente.",
+          "account": "Cuenta desde la que se paga.",
+          "card": "Tarjeta con que se paga, si no sale directo de la cuenta.",
+          "category": "Categoría de gasto del catálogo.",
+          "notes": "Nota libre."
+        },
+        "goals": {
+          "ref": "Código corto y único (ej. VIAJE) para unir la meta con sus aportes.",
+          "title": "Nombre de la meta.",
+          "targetAmount": "Monto que quieres juntar.",
+          "currency": "Moneda de la meta. Sus aportes deben venir de cuentas en esa moneda.",
+          "deadline": "Fecha para lograrla, si la hay.",
+          "notes": "Nota libre."
+        },
+        "contributions": {
+          "ref": "Referencia de la meta en la hoja Metas.",
+          "date": "Día del aporte.",
+          "amount": "Monto aportado.",
+          "account": "Cuenta de donde sale el aporte: se descuenta de su saldo."
+        }
+      },
+      "values": {
+        "movementType": {
+          "EXPENSE": "Gasto",
+          "INCOME": "Ingreso"
+        },
+        "direction": {
+          "OWED_TO_YOU": "Me deben",
+          "YOU_OWE": "Debo"
+        },
+        "planFrequency": {
+          "MONTHLY": "Mensual",
+          "WEEKLY": "Semanal",
+          "YEARLY": "Anual",
+          "DAILY": "Diaria"
+        },
+        "recurrenceFrequency": {
+          "MONTHLY": "Mensual",
+          "WEEKLY": "Semanal",
+          "YEARLY": "Anual"
+        },
+        "yesNo": {
+          "YES": "Sí",
+          "NO": "No"
+        }
+      },
+      "reference": {
+        "accounts": "Cuentas",
+        "cards": "Tarjetas",
+        "categories": "Categorías",
+        "currencies": "Monedas",
+        "type": "Tipo",
+        "currency": "Moneda"
+      },
+      "instructions": {
+        "title": "Plantilla Cuadra",
+        "intro": "Llena una hoja por tipo de dato y sube el archivo desde Importar. Deja vacías las hojas que no uses. Las celdas con lista desplegable solo aceptan tus propias cuentas, tarjetas y categorías; si las escribes a mano, que coincidan.",
+        "rules": "Qué mueve dinero: un movimiento, un traspaso, un pago de deuda, un pago de cuota sin tarjeta de crédito y un aporte mueven el saldo de su cuenta. Crear una deuda, un plan o una meta no mueve dinero. Un pago de cuota de un plan con tarjeta de crédito solo la marca pagada y libera su cupo: esa cuota nunca se facturará.",
+        "refs": "Referencias: escribe un código corto en la columna Referencia de una deuda, cuota, meta o recurrente (por ejemplo VICTOR) y repítelo en sus pagos, aportes o movimientos para unirlos. Debe ser único en su hoja.",
+        "allOrNothing": "Si una fila tiene un problema no se importa nada: verás cada problema con su hoja y su fila.",
+        "reimport": "Subir dos veces el mismo archivo lo importa dos veces.",
+        "exampleTitle": "Ejemplos (no se importan)",
+        "examples": {
+          "movements": "Movimientos: 28/11/2025 · Gasto · 15000 · BCI · · Supermercado · Jumbo (si paga un recurrente, su Referencia en la columna Recurrente)",
+          "transfers": "Traspasos: 01/12/2025 · BCI · MACH · 50000",
+          "debts": "Deudas: VICTOR · Me deben · Victor · Préstamo · 200000 · CLP · 14/02/2026 · · 4 · Mensual · 1",
+          "debtPayments": "Pagos de deudas: VICTOR · 14/03/2026 · BCI",
+          "plans": "Cuotas: NOTEBOOK · Notebook · 28/11/2025 · 623992 · 6 · CLP · Mensual · 1 · · BCI Visa · ····4827",
+          "planPayments": "Pagos de cuotas: NOTEBOOK · 1 · 28/12/2025 (con tarjeta de crédito, sin cuenta ni monto)",
+          "recurring": "Recurrentes: SPOTIFY · Spotify · 6990 · CLP · Mensual · 1 · 01/01/2026 · 01/04/2026 · BCI (Último pago vacío si sigue vigente)",
+          "goals": "Metas: VIAJE · Viaje a Japón · 1500000 · CLP · 31/12/2026",
+          "contributions": "Aportes: VIAJE · 01/02/2026 · 50000 · BCI"
+        },
+        "columnsTitle": "Qué va en cada columna",
+        "columnsHint": "También puedes ver la descripción de una columna posando el mouse sobre su encabezado (la marca roja de la esquina).",
+        "required": "obligatoria",
+        "optional": "opcional"
+      },
+      "issues": {
+        "required": "falta {{column}}",
+        "invalidDate": "{{column}} no es una fecha",
+        "invalidAmount": "{{column}} no es un monto",
+        "invalidNumber": "{{column}} no es un número entero",
+        "unknownAccount": "la cuenta «{{value}}» no existe",
+        "ambiguousAccount": "hay dos cuentas llamadas «{{value}}»; cambia el nombre de una",
+        "unknownCard": "la tarjeta «{{value}}» no existe",
+        "unknownCategory": "la categoría «{{value}}» no existe",
+        "unknownValue": "«{{value}}» no es un valor válido para {{column}}",
+        "duplicateRef": "la referencia «{{value}}» se repite en esta hoja",
+        "unknownRef": "no hay ninguna fila con la referencia «{{value}}»"
+      }
     }
   },
   "auth": {
@@ -2022,6 +2375,17 @@
     "DEBT_PAYMENT_FROM_CREDIT_ACCOUNT": "No puedes pagar una deuda desde una cuenta de tarjeta de crédito.",
     "ACCOUNT_NOT_FOUND": "No se encontró la cuenta.",
     "CATEGORY_NOT_FOUND": "La categoría elegida no existe.",
-    "CATEGORY_NOT_ALLOWED": "Esa categoría no se puede usar para este movimiento."
+    "CATEGORY_NOT_ALLOWED": "Esa categoría no se puede usar para este movimiento.",
+    "CARD_NOT_FOUND": "Esa tarjeta no existe.",
+    "IMPORT_ACCOUNT_INACTIVE": "Esa cuenta está inactiva: actívala antes de importar en ella.",
+    "IMPORT_CURRENCY_MISMATCH": "La moneda no coincide con la de la cuenta.",
+    "IMPORT_DUPLICATE_REF": "Esa referencia se repite en su hoja.",
+    "IMPORT_UNKNOWN_REF": "No hay ninguna fila con esa referencia.",
+    "IMPORT_TOO_MANY_PAYMENTS": "Hay más pagos que cuotas.",
+    "IMPORT_INVALID_SEQUENCE": "Esa cuota no existe o ya tiene un pago.",
+    "IMPORT_PAYMENT_BEFORE_START": "El pago es anterior a la fecha de su deuda o plan.",
+    "IMPORT_PAYMENT_AMOUNT_MISMATCH": "El monto no coincide con el de la cuota.",
+    "IMPORT_PLAN_PAYMENT_FIELDS": "Un pago de cuota con tarjeta de crédito no lleva cuenta ni monto; uno sin tarjeta de crédito lleva ambos.",
+    "RECURRING_END_BEFORE_START": "El último pago no puede ser anterior al primero."
   }
 }

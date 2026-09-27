@@ -9,6 +9,11 @@ import {
   type CategoryLookupPort,
 } from "../../../category/domain/ports/category-lookup.port";
 import { assertSelectableCategory } from "../../../category/domain/category-policy";
+import { RecurringExpenseNotFoundError } from "../../../recurring-expense/domain/errors";
+import {
+  RECURRING_EXPENSE_REPOSITORY,
+  type RecurringExpenseRepositoryPort,
+} from "../../../recurring-expense/domain/ports/recurring-expense.repository.port";
 import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
@@ -101,6 +106,8 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     private readonly transactionWriter: TransactionWriterRepositoryPort,
     private readonly prisma: PrismaService,
     @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
+    @Inject(RECURRING_EXPENSE_REPOSITORY)
+    private readonly recurring: RecurringExpenseRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -127,6 +134,13 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     const effectiveType = input.type ?? current.type;
     // Only a CHANGED category is validated: re-sending the one the movement already
     // has must pass even when it's a system one the server assigned (e.g. "Deudas").
+    if (
+      input.recurringExpenseId &&
+      input.recurringExpenseId !== current.snapshot().recurringExpenseId &&
+      !(await this.recurring.findOne(command.userId, input.recurringExpenseId))
+    ) {
+      throw new RecurringExpenseNotFoundError();
+    }
     if (input.categoryId !== undefined && input.categoryId !== current.snapshot().categoryId) {
       await assertSelectableCategory(this.categories, input.categoryId, effectiveType);
     }
@@ -221,6 +235,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     if (input.currency !== undefined) patch.currency = input.currency;
     if (input.occurredAt !== undefined) patch.occurredAt = new Date(input.occurredAt);
     if (input.categoryId !== undefined) patch.categoryId = input.categoryId;
+    if (input.recurringExpenseId !== undefined) patch.recurringExpenseId = input.recurringExpenseId;
     if (input.description !== undefined) patch.description = input.description;
     if (input.observation !== undefined) patch.observation = input.observation;
     if (input.emisor !== undefined) patch.emisor = input.emisor;

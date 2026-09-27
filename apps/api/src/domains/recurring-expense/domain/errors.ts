@@ -21,3 +21,10 @@ export class RecurringExpenseNotFoundError extends DomainError {
     super("RECURRING_NOT_FOUND", 404);
   }
 }
+
+/** A series can't end before its first occurrence. */
+export class RecurringEndBeforeStartError extends DomainError {
+  constructor() {
+    super("RECURRING_END_BEFORE_START", 400, "endDate");
+  }
+}

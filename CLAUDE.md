@@ -59,7 +59,7 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
     session. The AGF/fund-manager institution catalogue (`InstitutionKind.FUND_MANAGER`,
     `institution-account-type` rows offering `INVESTMENT`) is reference data, not this feature, and
     was left untouched.
-  - **card-account** / **card-limit** (specs/004, 007): `CardAccount` (table `card-account`) = the physical **payment instrument** (plastic), **always belongs to a `BankAccount`** (`onDelete: Cascade`) — `kind` (`CardKind`: **CREDIT/DEBIT/PREPAID**), `last4` (**only the last 4 digits ever transmitted/stored — full PAN never leaves the browser; no CVV**), `expiryMonth`/`expiryYear`, `isActive`. **Every CREDIT card must resolve to a determinate limit before it can be saved** (mandatory — `CardsService.resolveCreditLimits`, mirrored in `AccountsService.create`'s inline `cards[]` path): the account's **first** CREDIT card becomes its `isPrimary` card (boolean, `@default(false)`, assigned automatically — never user-toggled, at most one `true` per account) — its limit **IS** the account's own `creditLimit`/`creditUsedInitial`, editable from either side (the account's own edit form, or the primary card's own edit form; same underlying value, no `CardLimit` row for it, `limits` always `[]`). Any **additional** CREDIT card on the same account chooses, via `usesAccountPool` (boolean, default `true`), between sharing that same pool (no `CardLimit` rows) or `false` = its own independent sub-limit — one **`CardLimit`** row per currency (table `card-limit`: `limitAmount` + `usedInitial`, exposes a derived `used` the same way the account does), still capped against the account's pool in the account's own currency (`CARD_SUBLIMIT_EXCEEDS_ACCOUNT`); sub-limits in other currencies aren't cross-checked (no FX conversion in this app). Missing/zero limit where one is required throws `CARD_LIMIT_REQUIRED`. **Only CHECKING/SIGHT/CREDIT_LINE accounts can have cards** (`accounts.CARDABLE_ACCOUNT_TYPES`/`isCardableAccountType` in `@finance/contracts`) — SAVINGS, INVESTMENT and CASH never carry a card of their own (real-world: their funds move via transfer into a cardable account first); enforced in `CardsService.create` and `AccountsService.create`'s inline `cards[]` (error code `ACCOUNT_CANNOT_HAVE_CARD`), and mirrored in the web UI (`CardsAside`'s add button, `TransactionCreateModal`'s card field) — both hide/reject for non-cardable types. Nested endpoints `POST/PATCH/DELETE /accounts/:id/cards[/:cardId]`; `POST /accounts` accepts inline `cards[]`. Display masked as `•••• last4`; `CardsAside` in the account-detail view shows every card as a `AccountVisualCard` tile (gradient keyed by `kind`, matching the create-account draft tiles, plus a small "Principal"/"Adicional" badge on CREDIT cards) — clicking one opens `CardDetailModal` (enlarged, centered) with Editar/Eliminar, instead of always-visible buttons under each tile. `CardForm` is a 3-state UI (non-CREDIT: no limit section; CREDIT-becomes-primary: one mandatory amount field in the account's currency, plus an optional repeatable "topes en otras monedas" section excluding that currency; CREDIT-additional: a "Cupo de la cuenta"/"Tope propio" toggle, the latter revealing the repeatable currency/amount rows). `AccountCreateModal`'s account-level cupo fields become read-only once a CREDIT card is drafted (mirrors that card's own limit); `AccountForm` (editing an existing account) likewise disables its cupo fields once a primary card exists. **The primary card can ALSO carry `CardLimit` rows — only for currencies other than the account's own** (that one stays exclusively on `BankAccount.creditLimit`, never duplicated) — an independent, non-cross-checked pool per extra currency (no FX in this app), same mechanism a non-primary card's own sub-limit already uses. The contract exposes a derived **`BankAccount.creditPools: {currency, limit, used}[]`** (the account's own-currency pool + the primary's extra ones; empty for non-credit accounts) — shown as a list in `AccountDetailRoute` whenever there's more than one, and per-card in `CardDetailModal`. Because a single card can now share the pool in one currency while being independently limited in another, `TransactionsRepository.sumsForAccount`/`AccountsRepository.sumsByAccount` are scoped to the account's own currency and only exclude a card from that sum if its `CardLimit` is in _that same currency_ (not "any currency" — a bug this fixed). **`Card.ownUsed`** (derived, moneyString) is a CREDIT card's own Σexpense−Σincome in the account's own currency regardless of whether it shares the pool or has its own `CardLimit` — so a pool-sharing card can display its own individual contribution instead of the fully-combined pool total (which only the no-`card` account-level tile shows); no seed baseline exists per-card the way `creditUsedInitial`/`CardLimit.usedInitial` do, so pre-existing debt not tied to a transaction is invisible here even though it's included in the account's own `creditUsed`. `AccountVisualCard` uses `card.ownUsed` (not `account.creditUsed`) as the "used" half of a pool-sharing card's progress bar.
+  - **card-account** / **card-limit** (specs/004, 007): `CardAccount` (table `card-account`) = the physical **payment instrument** (plastic), **always belongs to a `BankAccount`** (`onDelete: Cascade`) — `kind` (`CardKind`: **CREDIT/DEBIT/PREPAID**), `last4` (**only the last 4 digits ever transmitted/stored — full PAN never leaves the browser; no CVV**), `expiryMonth`/`expiryYear`, `isActive`. **Every CREDIT card must resolve to a determinate limit before it can be saved** (mandatory — `CardsService.resolveCreditLimits`, mirrored in `AccountsService.create`'s inline `cards[]` path): the account's **first** CREDIT card becomes its `isPrimary` card (boolean, `@default(false)`, assigned automatically — never user-toggled, at most one `true` per account) — its limit **IS** the account's own `creditLimit`/`creditUsedInitial`, editable from either side (the account's own edit form, or the primary card's own edit form; same underlying value, no `CardLimit` row for it, `limits` always `[]`). Any **additional** CREDIT card on the same account chooses, via `usesAccountPool` (boolean, default `true`), between sharing that same pool (no `CardLimit` rows) or `false` = its own independent sub-limit — one **`CardLimit`** row per currency (table `card-limit`: `limitAmount` + `usedInitial`, exposes a derived `used` the same way the account does), still capped against the account's pool in the account's own currency (`CARD_SUBLIMIT_EXCEEDS_ACCOUNT`); sub-limits in other currencies aren't cross-checked (no FX conversion in this app). Missing/zero limit where one is required throws `CARD_LIMIT_REQUIRED`. **Only CHECKING/SIGHT/CREDIT_LINE accounts can have cards** (`accounts.CARDABLE_ACCOUNT_TYPES`/`isCardableAccountType` in `@finance/contracts`) — SAVINGS, INVESTMENT and CASH never carry a card of their own (real-world: their funds move via transfer into a cardable account first); enforced in `CardsService.create` and `AccountsService.create`'s inline `cards[]` (error code `ACCOUNT_CANNOT_HAVE_CARD`), and mirrored in the web UI (`CardsAside`'s add button, `TransactionCreateModal`'s card field) — both hide/reject for non-cardable types. Nested endpoints `POST/PATCH/DELETE /accounts/:id/cards[/:cardId]`; `POST /accounts` accepts inline `cards[]`. Display masked as `•••• last4`; `CardsAside` in the account-detail view shows every card as a `AccountVisualCard` tile (gradient keyed by `kind`, matching the create-account draft tiles, plus a small "Principal"/"Adicional" badge on CREDIT cards) — clicking one opens `CardDetailModal` (enlarged, centered) with Editar/Eliminar, instead of always-visible buttons under each tile. `CardForm` is a 3-state UI (non-CREDIT: no limit section; CREDIT-becomes-primary: one mandatory amount field in the account's currency, plus an optional repeatable "topes en otras monedas" section excluding that currency; CREDIT-additional: a "Cupo de la cuenta"/"Tope propio" toggle, the latter revealing the repeatable currency/amount rows). `AccountCreateModal`'s account-level cupo fields become read-only once a CREDIT card is drafted (mirrors that card's own limit); `AccountForm` (editing an existing account) likewise disables its cupo fields once a primary card exists. **The primary card can ALSO carry `CardLimit` rows — only for currencies other than the account's own** (that one stays exclusively on `BankAccount.creditLimit`, never duplicated) — an independent, non-cross-checked pool per extra currency (no FX in this app), same mechanism a non-primary card's own sub-limit already uses. The contract exposes a derived **`BankAccount.creditPools: {currency, limit, used}[]`** (the account's own-currency pool + the primary's extra ones; empty for non-credit accounts) — shown in `AccountDetailRoute` as one "Crédito · <moneda>" KPI per pool in the header (since 2026-09-26; it used to be a list in the side column, which also reserved that column for it), and per-card in `CardDetailModal`. The extra-currency limits are editable from the credit card account itself too (`ExtraCurrencyLimits`, under the cupo in `AccountForm`/`AccountCreateModal` — saved onto the primary card), and the block says to enable a currency in Perfil when none is available instead of hiding. Because a single card can now share the pool in one currency while being independently limited in another, `TransactionsRepository.sumsForAccount`/`AccountsRepository.sumsByAccount` are scoped to the account's own currency and only exclude a card from that sum if its `CardLimit` is in _that same currency_ (not "any currency" — a bug this fixed). **`Card.ownUsed`** (derived, moneyString) is a CREDIT card's own Σexpense−Σincome in the account's own currency regardless of whether it shares the pool or has its own `CardLimit` — so a pool-sharing card can display its own individual contribution instead of the fully-combined pool total (which only the no-`card` account-level tile shows); no seed baseline exists per-card the way `creditUsedInitial`/`CardLimit.usedInitial` do, so pre-existing debt not tied to a transaction is invisible here even though it's included in the account's own `creditUsed`. `AccountVisualCard` uses `card.ownUsed` (not `account.creditUsed`) as the "used" half of a pool-sharing card's progress bar.
     Amendment (`ownUsed` reconciles exactly to `creditUsed`, 2026-08-23): the PRIMARY card's `ownUsed`
     is no longer its own Σexpense−Σincome — it's **`creditUsed` minus every ADDITIONAL CREDIT card's
     own `ownUsed`** (`account-dto.mapper.ts`, `accountToDto`). The primary has no ledger of its own
@@ -798,6 +798,27 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     own Activo/Pausado chip was removed — a new series always starts active, and pausing/resuming
     an existing one already has its own dedicated flow (`RecurringPauseModal`), so the form never
     duplicated it.
+    Amendment (a series can END, and movements link to it, 2026-09-26): **`endDate`** (nullable) =
+    the LAST occurrence, inclusive — "Spotify del 01-01-2026 al 01-04-2026" is anchor 01-01 +
+    endDate 01-04. The contract adds a derived **`status`** — `FINISHED` once the next occurrence
+    would fall after `endDate`, `PAUSED` while `active` is false, `ACTIVE` otherwise (finished wins
+    over paused) — computed in `RecurringExpense.status(today)`, never stored, so a series ends by
+    itself when its date passes; **`nextDueAt` is `null` for a FINISHED series** (there is no next
+    one). `RECURRING_END_BEFORE_START` (400) on create/update; PATCH `endDate: null` reopens it.
+    Every "is it running" check reads `status === "ACTIVE"`, never `active` alone (totals,
+    `activeOnly`, `isOverdue`, the dashboard's upcoming payments). **Linking payments**: `POST/PATCH
+    /transactions` accept `recurringExpenseId` (ownership-verified via
+    `RecurringExpenseRepositoryPort.findOne`, `RECURRING_NOT_FOUND`; PATCH `null` unlinks) — the
+    first path that writes `Transaction.recurringExpenseId` besides the seed, so a series' "historial
+    de ocurrencias" (`GET /transactions?recurringExpenseId=`) finally fills from real use;
+    `transactions.sourceOf` already returned `RECURRING` (now labelled, with a "Ver recurrente"
+    link). Web: `RecurringFormPanel` gains "Último pago (si terminó)"; `RecurringRoute` lists a
+    **Finalizados** group (dimmed, no pause action, "último pago el …"); `RecurringDetailPanel`
+    shows Finalizado + the last payment; `TransactionFormPanel` gains a "Recurrente" picker
+    (income/expense only; finished series stay pickable — their past payments are what gets
+    linked). The template (specs/027) gains Recurrentes `Referencia` + `Último pago` and a
+    Movimientos `Recurrente` column naming the series a movement pays. Not done on purpose: warning
+    about missing occurrences ("esperaba 4, hay 3").
   - **debt** (person-to-person debts, "Deudas"): `Debt` gains **`paymentAccountId`** (nullable FK → `BankAccount`, `onDelete: SetNull`) — the payment panel's DEFAULT suggestion for which account a payment moves on. Ownership-verified before persisting (create/update, via the lightweight `BankAccountLookupPort.accountOwned`, same pattern `recurring-expense` uses) — `AccountNotFoundError` if the id isn't the caller's own. `null`/absent is valid (a debt need not name one). Web: `DebtFormPanel` has a "Cuenta asociada" row (`SearchableSelect`, explicit "Sin cuenta" `""` option); `DebtDetailPanel` shows the linked account's name/type/institution/number when set.
     Amendment (settle/register-payment move real money, 2026-09-05): answers "¿No genera
     movimiento marcarla como pagada?" — **`POST /debts/:id/settle` and `/register-payment` now
@@ -975,6 +996,59 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     capped by its own limit across rows (`CARD_SUBLIMIT_EXCEEDED`); a `cardId` that isn't the
     account's answers `CARD_ACCOUNT_MISMATCH` for that row. `TransactionPlan` gained
     `emisor`/`receptor`/`lugar`.
+    Amendment (the Cuadra template, specs/027, 2026-09-26): for migrating a whole personal
+    spreadsheet — not just one account's statement — `/import` also offers an official **template**
+    (card "Plantilla Cuadra": download / upload). It is generated **in the browser** with the new
+    **`exceljs`** dependency (web only, `import()`-ed on demand; the API never returns localized
+    text, and the file is all labels), personalized with the user's ACTIVE accounts, their cards
+    (`"<account> · ····last4"`) and the selectable categories in dropdowns on a Reference sheet,
+    plus a `veryHidden` `_cuadra` sheet carrying `TEMPLATE_VERSION`. Nine data sheets —
+    Movimientos, Traspasos, Deudas, Pagos de deudas, Cuotas, Pagos de cuotas, Recurrentes, Metas,
+    Aportes — come EMPTY (examples live on Instrucciones so none gets imported by mistake). One spec,
+    `domains/import/lib/templateSpec.ts`, drives both `buildTemplate` and `readTemplate` (which
+    recognises sheets/headers in es AND en); `resolveTemplate` turns names into ids and reports
+    local issues per sheet/row. Contract: `imports.templateImportRequestSchema` (every row carries
+    its Excel `row`; ≤ `TEMPLATE_IMPORT_MAX_ROWS` = 5000; `balanceModes[]`). API: `POST
+    /import/template/preview` (200, writes NOTHING — returns counts, per-account effect and EVERY
+    issue `{code, sheet, row}`) and `POST /import/template` (idempotent, operation
+    `import.template`, all-or-nothing, a failure answers the rule's own code with `field:
+    "<sheet>.<row>"`). The pure `import/domain/template-plan.ts`'s `planTemplateImport` builds each
+    record with its aggregate's own `planCreation`, applies payments with the aggregate's methods
+    (`Debt.registerPayment`, `InstallmentPlan.payInstallment`), and validates every money effect with
+    `MovementPolicy`/`TransferPolicy` on a timeline per account (date → sheet → row).
+    `ImportTemplateHandler` writes in FK order in one `$transaction` (60 s timeout): debts, plans,
+    goals + savings entries, recurring → movements in bulk (links filled in) → debt/plan payment
+    state → each account's net effect. Rules the template adds: a debt creates NO movement (its
+    disbursement is an ordinary row in Movimientos); a debt payment is one whole instalment
+    (INCOME if owed to me, EXPENSE if I owe); a non-credit plan payment is a real EXPENSE with
+    carry-over; a **credit-card plan's paid instalment moves no money, is never billed and frees
+    its share of the pool** (`listUnbilledDueForPlans` now also requires `paidAt: null`); its
+    purchase is NOT limit-checked (same as creating a plan by hand). **Balance mode per account**
+    (`INCLUDED` default / `ADD`): with `INCLUDED` ("my balance already includes this history") the
+    net goes to `BankAccountRepositoryPort.adjustOpeningWithTx` (moves `initialBalance`/
+    `creditUsedInitial`) so today's balance doesn't change, and the rules replay from the opening
+    balance; the replay does not interleave movements already in the app (documented limitation).
+    No duplicate detection between two uploads (the panel warns). New codes `IMPORT_*`
+    (`ACCOUNT_INACTIVE`, `CURRENCY_MISMATCH`, `DUPLICATE_REF`, `UNKNOWN_REF`, `TOO_MANY_PAYMENTS`,
+    `INVALID_SEQUENCE`, `PAYMENT_BEFORE_START`, `PAYMENT_AMOUNT_MISMATCH`, `PLAN_PAYMENT_FIELDS`).
+    Also: the API's JSON body limit is now **5 MB** (`infra/http/body-limit.ts`'s
+    `useJsonBodyLimit`, called from `main.ts` — an e2e building its own app must call it too);
+    Express's 100 KB default already refused a 2.000-row statement.
+    Amendment (column descriptions + foreign-currency card limits, 2026-09-26): every template
+    column carries a description (`import.template.columnHelp.<sheet>.<column>`, es/en, enforced by
+    a test) — listed on Instrucciones ("Qué va en cada columna", with required/optional) and set as
+    each header's Excel note. Movimientos gains an optional **`Moneda`** column (empty = the
+    account's currency): another currency is only accepted on a credit card account whose card —
+    explicit, or the primary — has its own `CardLimit` in it (`TemplateCard.otherLimits`, loaded
+    with its usage); both the charge AND the payment go against that limit, never the pool, and
+    usage is tracked per (card, currency); anything else answers `IMPORT_CURRENCY_MISMATCH`. This
+    rests on a **`MovementPolicy` change**: an INCOME may now carry a card, but ONLY on a
+    `CREDIT_CARD` account, through a CREDIT card with its own limit in the movement's currency —
+    it pays that limit (e.g. the USD one of a CLP card) and contributes "0" to the pool; anything
+    else still answers `CARD_NOT_ALLOWED`. The contract's blanket "income cannot be linked to a
+    card" refine was removed from `create/updateTransactionSchema` (the domain is the side that
+    knows the account and the card's limits). Not done: the web movement form still hides the card
+    field on an income, so such a payment is only reachable through the template or the API.
   - **category** (global movement-category catalogue, 2026-09-25): `Category` (table `category`) =
     ONE seeded, read-only catalogue shared by every user — `code` (`@unique` business key the seed
     upserts by, never the PK), `kind` (`CategoryKind`: EXPENSE/INCOME/BOTH), `isSystem`, `sortOrder`.
@@ -1634,7 +1708,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.3.5**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.3.8**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
 - **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
   `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.
@@ -1701,14 +1775,19 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (027 — en planificación): specs/027-import-template/plan.md
+Current plan (027 — implementado): specs/027-import-template/plan.md
 (Plantilla oficial de importación en bloque: `.xlsx` generado en el navegador con `exceljs`
 [dependencia nueva, solo web, bajo demanda] con las cuentas/tarjetas/categorías del usuario; hojas
 Movimientos, Traspasos, Deudas, Pagos de deudas, Cuotas, Pagos de cuotas, Recurrentes, Metas y
 Aportes. `POST /import/template/preview` (sin escribir) + `POST /import/template` (idempotente,
 `import.template`, todo o nada en una `$transaction`). Cuotas de plan con crédito pagadas fuera de la
 app nunca se facturan (`listUnbilledDueForPlans` + `paidAt: null`) y liberan cupo; modo de saldo por
-cuenta "ya incluye" (ajusta saldo de apertura) / "súmalos". Ver research.md R1-R11.)
+cuenta "ya incluye" (ajusta saldo de apertura) / "súmalos". Ver research.md R1-R13.
+**Verificado**: unit/integration/e2e de los dominios tocados [611/611, incluye 2.000 filas en
+< 10 s], contracts [102/102], web `import` + i18n [70/70, incluye ida y vuelta real .xlsx con
+exceljs → read-excel-file], typecheck, lint, `check:boundaries`, `pnpm audit --audit-level=high`.
+**No verificado**: navegador real (sin herramienta de automatización) ni la migración completa
+de `Finanzas Completo.xlsx` (SC-001), que requiere copiar la hoja a la plantilla a mano.)
 
 Prior plan: specs/026-ipinfo-geolocation/plan.md
 (Migrar geolocalización de sesiones a IPinfo con caché: `GeoIpLookup` (`user/application/

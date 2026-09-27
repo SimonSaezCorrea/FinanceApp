@@ -43,6 +43,7 @@ describe("PrismaRecurringExpenseRepository (integration)", () => {
       bankAccountId: null,
       cardId: null,
       active: true,
+      endDate: null,
       notes: null,
     });
     expenseId = created.id;

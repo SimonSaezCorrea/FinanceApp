@@ -154,7 +154,7 @@
     "detail": {
       "change": "Change",
       "credit": "Credit",
-      "creditPools": "Limits by currency",
+      "creditIn": "Credit · {{currency}}",
       "billingSettingsTitle": "Configure billing",
       "billingSettingsSubtitle": "This account's billing day and payment method.",
       "billingTitle": "Statements",
@@ -399,6 +399,7 @@
       "primaryLimitHint": "This is the account's first credit card: its limit becomes the account's shared pool.",
       "extraLimits": "Limits in other currencies",
       "extraLimitsHint": "Optional. Add an extra limit if this card is also used in another currency (no cross-currency conversion).",
+      "extraLimitsNoCurrencies": "To add a limit in another currency (e.g. USD), first enable it in Profile → Financial customization → Extra currencies.",
       "usesPool": "Account pool",
       "usesPoolHint": "This card shares the account's full pool.",
       "ownLimit": "Own limit",
@@ -534,7 +535,9 @@
       "currency": "Currency",
       "leaveConfirm": "Leave without saving?",
       "leaveConfirmDescription": "You have unsaved changes on this movement. Leaving now will discard them.",
-      "leaveDiscard": "Discard changes"
+      "leaveDiscard": "Discard changes",
+      "recurring": "Recurring",
+      "noRecurring": "None"
     },
     "kpi": {
       "income": "Income",
@@ -579,7 +582,8 @@
       "source": "Source",
       "viewPlan": "View plan",
       "viewDebt": "View debt",
-      "viewBilling": "View statement"
+      "viewBilling": "View statement",
+      "viewRecurring": "View recurring"
     },
     "source": {
       "MANUAL": "Manual",
@@ -589,7 +593,8 @@
       "FINANCE_CHARGE": "Finance charge",
       "DEBT": "Debt",
       "STATEMENT_PAYMENT": "Statement payment",
-      "CREDIT_CARD_PREPAYMENT": "Card prepayment"
+      "CREDIT_CARD_PREPAYMENT": "Card prepayment",
+      "RECURRING": "Recurring"
     },
     "attachments": {
       "title": "Receipts",
@@ -978,7 +983,22 @@
     "subtitle": "{{active}} active · {{paused}} paused",
     "new": "New recurring",
     "edit": "Edit recurring",
-    "empty": "No recurring expenses yet.",
+    "empty": "No recurring expenses yet",
+    "emptyMessage": "Track subscriptions, rent or bills you pay every week, month or year, and see at a glance how much is committed and which payment comes next.",
+    "emptySteps": {
+      "create": {
+        "title": "Create the series",
+        "text": "Amount, frequency and first payment date. If it ends, set the last one."
+      },
+      "upcoming": {
+        "title": "See what's next",
+        "text": "Each series works out its next payment and adds to the month's committed total."
+      },
+      "link": {
+        "title": "Link your payments",
+        "text": "When you record a transaction, link it to the series to build its history."
+      }
+    },
     "created": "Recurring created",
     "updated": "Recurring updated",
     "deleted": "Recurring deleted",
@@ -1001,7 +1021,9 @@
       "YEARLY": "Yearly",
       "PAUSED": "Paused",
       "activeMeta": "{{count}} active · {{sum}} per month",
-      "pausedMeta": "{{count}} · doesn't generate movements"
+      "pausedMeta": "{{count}} · doesn't generate movements",
+      "FINISHED": "Finished",
+      "finishedMeta": "{{count}} · no longer charged"
     },
     "due": {
       "today": "today",
@@ -1010,7 +1032,8 @@
     },
     "row": {
       "overdueMeta": "Due {{date}} · no movement",
-      "pausedMeta": "{{frequency}} · paused since {{date}}"
+      "pausedMeta": "{{frequency}} · paused since {{date}}",
+      "finishedMeta": "{{frequency}} · last paid {{date}}"
     },
     "actions": {
       "pause": "Pause",
@@ -1034,7 +1057,8 @@
       "historyEmpty": "No generated occurrences",
       "historyEmptyHint": "No movement has been generated from this recurring yet.",
       "historyNote": "Movement generated automatically · {{account}}",
-      "historyBadge": "Generated"
+      "historyBadge": "Generated",
+      "endedOn": "Last payment"
     },
     "pause": {
       "titlePause": "Pause «{{name}}»",
@@ -1069,12 +1093,29 @@
       "categoryPlaceholder": "Choose category",
       "leaveConfirm": "Leave without saving?",
       "leaveConfirmDescription": "You have unsaved changes on this recurring series. Leaving now will discard them.",
-      "leaveDiscard": "Discard changes"
-    }
+      "leaveDiscard": "Discard changes",
+      "endDate": "Last payment (if it ended)"
+    },
+    "finished": "Finished"
   },
   "savings": {
     "title": "Savings",
-    "empty": "You don't have any savings goals yet.",
+    "empty": "You don't have any savings goals yet",
+    "emptyMessage": "Name what you want to save for and how much. Every contribution comes out of one of your accounts, so the progress you see is real. No goal yet? A free contribution counts too.",
+    "emptySteps": {
+      "goal": {
+        "title": "Set the goal",
+        "text": "A target amount and, optionally, a date to reach it."
+      },
+      "contribute": {
+        "title": "Contribute from an account",
+        "text": "Each contribution comes out of the source account's balance."
+      },
+      "pace": {
+        "title": "Track your pace",
+        "text": "See how much you've saved, your average monthly contribution and what's left."
+      }
+    },
     "subtitle_one": "{{count}} open goal · {{missing}} left to reach",
     "subtitle_other": "{{count}} open goals · {{missing}} left to reach",
     "freeContribution": "Free contribution",
@@ -1354,6 +1395,318 @@
       "categoriesUnmatched_one": "{{count}} category doesn't match the catalogue → {{fallback}}",
       "categoriesUnmatched_other": "{{count}} categories don't match the catalogue → {{fallback}}",
       "truncated": "Showing the first {{shown}} rows; all of them are imported."
+    },
+    "template": {
+      "cardTitle": "Cuadra template",
+      "cardDescription": "Keep your finances in your own spreadsheet? Download the template, copy your movements, transfers, debts, instalments, recurring payments and goals into it, and upload it. Each sheet says what its rows are, so nothing has to be guessed.",
+      "download": "Download template",
+      "downloading": "Preparing template…",
+      "upload": "Upload template",
+      "downloadError": "The template couldn't be generated.",
+      "panelTitle": "Import a Cuadra template",
+      "panelDescription": "Upload the template you downloaded from this page, filled in.",
+      "eyebrow": "Import · Template",
+      "pickTitle": "Choose or drop your template",
+      "pickHint": "The .xlsx file you downloaded from Import.",
+      "reading": "Reading template…",
+      "validating": "Checking it against your data…",
+      "changeFile": "Change file",
+      "summaryTitle": "What will be imported",
+      "accountsTitle": "Effect on your accounts",
+      "modeIncluded": "My balance already includes this",
+      "modeAdd": "Add it to my balance",
+      "modeHint": "If you created the account with today's real balance, these movements are already part of it: choose the first option so the balance doesn't change.",
+      "net": "Effect",
+      "balanceAfter": "Balance after",
+      "creditUsedAfter": "Credit used after",
+      "issuesTitle_one": "{{count}} problem to fix",
+      "issuesTitle_other": "{{count}} problems to fix",
+      "issuesHint": "Fix the file and upload it again. Nothing is imported until none are left.",
+      "issueLine": "{{sheet}} · row {{row}}: {{message}}",
+      "reimportWarning": "If you upload this same file again later, everything will be created again: the template doesn't detect duplicates.",
+      "submit": "Import",
+      "submitting": "Importing…",
+      "success": "Template imported",
+      "notTemplate": "This file isn't a Cuadra template. For a bank statement use the statement importer, choosing the account on this page.",
+      "outdated": "This template is from an earlier version. Download the current template and copy your data into it.",
+      "empty": "The template has no rows to import.",
+      "tooMany": "The template has more than {{max}} rows. Split it into several files.",
+      "readError": "The file couldn't be read. Is it damaged or password-protected?",
+      "sheets": {
+        "instructions": "Instructions",
+        "movements": "Movements",
+        "transfers": "Transfers",
+        "debts": "Debts",
+        "debtPayments": "Debt payments",
+        "plans": "Instalments",
+        "planPayments": "Instalment payments",
+        "recurring": "Recurring",
+        "goals": "Goals",
+        "contributions": "Contributions",
+        "reference": "Reference"
+      },
+      "columns": {
+        "movements": {
+          "date": "Date",
+          "type": "Type",
+          "amount": "Amount",
+          "currency": "Currency",
+          "account": "Account",
+          "card": "Card",
+          "category": "Category",
+          "description": "Description",
+          "observation": "Note",
+          "emisor": "Payer",
+          "receptor": "Payee",
+          "lugar": "Place",
+          "financeCharge": "Issuer charge",
+          "recurring": "Recurring"
+        },
+        "transfers": {
+          "date": "Date",
+          "fromAccount": "From account",
+          "toAccount": "To account",
+          "amount": "Amount",
+          "incomingAmount": "Amount received",
+          "description": "Description"
+        },
+        "debts": {
+          "ref": "Reference",
+          "direction": "Direction",
+          "counterparty": "Counterparty",
+          "title": "Title",
+          "principal": "Total amount",
+          "currency": "Currency",
+          "openedAt": "Date",
+          "dueAt": "Due date",
+          "installments": "Instalments",
+          "frequency": "Frequency",
+          "every": "Every",
+          "account": "Linked account",
+          "notes": "Notes"
+        },
+        "debtPayments": {
+          "ref": "Reference",
+          "date": "Date",
+          "account": "Account",
+          "amount": "Amount"
+        },
+        "plans": {
+          "ref": "Reference",
+          "title": "Description",
+          "startDate": "Purchase date",
+          "totalPrincipal": "Total amount",
+          "installments": "Instalments",
+          "currency": "Currency",
+          "frequency": "Frequency",
+          "every": "Every",
+          "interest": "Interest per period",
+          "card": "Card",
+          "category": "Category",
+          "account": "Payment account"
+        },
+        "planPayments": {
+          "ref": "Reference",
+          "sequence": "Instalment #",
+          "date": "Date",
+          "account": "Account",
+          "amount": "Amount"
+        },
+        "recurring": {
+          "label": "Name",
+          "amount": "Amount",
+          "currency": "Currency",
+          "frequency": "Frequency",
+          "every": "Every",
+          "anchorDate": "First date",
+          "account": "Account",
+          "card": "Card",
+          "category": "Category",
+          "notes": "Notes",
+          "ref": "Reference",
+          "endDate": "Last payment"
+        },
+        "goals": {
+          "ref": "Reference",
+          "title": "Goal",
+          "targetAmount": "Target",
+          "currency": "Currency",
+          "deadline": "Deadline",
+          "notes": "Notes"
+        },
+        "contributions": {
+          "ref": "Reference",
+          "date": "Date",
+          "amount": "Amount",
+          "account": "Account"
+        }
+      },
+      "columnHelp": {
+        "movements": {
+          "date": "Day the transaction happened (dd/mm/yyyy).",
+          "type": "Expense or Income. It sets the sign: Amount is always positive.",
+          "amount": "Amount without a sign (15000 or 15,000), in the row's Currency or, if empty, the account's.",
+          "currency": "Empty = the account's currency. Another one (e.g. USD) only on a credit card account whose card has a limit in that currency: the charge or payment goes against that limit, not the main one.",
+          "account": "Account it happened on. Pick it from the list: those are your active accounts.",
+          "card": "Card used to pay; it must belong to that same account. On a credit card account, leaving it empty uses the primary card.",
+          "category": "Category from the catalogue. It must fit the Type: an expense one for an expense, an income one for income.",
+          "description": "Short text that identifies the transaction, such as the merchant.",
+          "observation": "Free, longer note.",
+          "emisor": "Who made the payment or transfer. Informational only.",
+          "receptor": "Who received the payment. Informational only.",
+          "lugar": "Where it happened: city, store or website. Informational only.",
+          "financeCharge": "Yes when it's a charge from the bank on a credit card account (interest, maintenance fee, insurance), copied from the statement. It goes without a card. Ignored on other accounts.",
+          "recurring": "If this transaction pays a recurring expense, that row's Reference on the Recurring sheet."
+        },
+        "transfers": {
+          "date": "Day of the transfer.",
+          "fromAccount": "Account the money leaves.",
+          "toAccount": "Account the money arrives in. It can't be a credit card: that's paying its statement.",
+          "amount": "Amount that leaves the source account, in its currency.",
+          "incomingAmount": "Amount that arrives, only if the destination account is in another currency. Empty = same as Amount.",
+          "description": "Optional short text."
+        },
+        "debts": {
+          "ref": "Short, unique code (e.g. VICTOR) that ties the debt to its payments.",
+          "direction": "Owed to me (someone owes you) or I owe (you owe someone).",
+          "counterparty": "The other person's name.",
+          "title": "Short name for the debt, e.g. Car loan.",
+          "principal": "Total amount of the debt.",
+          "currency": "Currency of the debt. Its payments must come from accounts in that currency.",
+          "openedAt": "Day the debt started. Creating it moves no money: if there was a loan, record it separately in Transactions.",
+          "dueAt": "Deadline to settle it, if any.",
+          "installments": "How many instalments it's paid in. Empty = 1 (a single payment).",
+          "frequency": "How often an instalment is paid. Empty = Monthly.",
+          "every": "Every how many periods of that frequency (2 with Monthly = every 2 months). Empty = 1.",
+          "account": "Suggested account for recording its payments. Just a preference.",
+          "notes": "Free note."
+        },
+        "debtPayments": {
+          "ref": "The debt's Reference on the Debts sheet.",
+          "date": "Day of the payment. It can't be before the debt's date.",
+          "account": "Account the money goes into (if you're paid) or leaves (if you pay). It can't be a credit card and must be in the debt's currency.",
+          "amount": "Optional. Each row is one whole instalment (Total amount ÷ Instalments); if you fill it in, it must match."
+        },
+        "plans": {
+          "ref": "Short, unique code (e.g. NOTEBOOK) that ties the plan to its payments.",
+          "title": "What you bought, e.g. Laptop.",
+          "startDate": "Day of the purchase. Due dates are worked out from here.",
+          "totalPrincipal": "Total price, without interest.",
+          "installments": "Number of instalments.",
+          "currency": "Currency of the plan.",
+          "frequency": "How often an instalment falls due. Empty = Monthly.",
+          "every": "Every how many periods of that frequency (2 with Monthly = every 2 months). Empty = 1.",
+          "interest": "Interest rate per period, with % (e.g. 1.5%). Empty = no interest.",
+          "card": "Card used for the purchase. If it's a credit card, the purchase is charged to its limit and the instalments are billed on that account.",
+          "category": "Expense category from the catalogue.",
+          "account": "Account you pay the instalments from. Not for plans on a credit card."
+        },
+        "planPayments": {
+          "ref": "The plan's Reference on the Instalments sheet.",
+          "sequence": "Number of the instalment paid (1, 2, 3…). Each instalment is paid only once.",
+          "date": "Day of the payment. It can't be before the purchase.",
+          "account": "Account the payment came from. Required, except for plans on a credit card, where it stays empty.",
+          "amount": "Amount paid. Required, except for plans on a credit card, where it stays empty. If you pay less than the instalment, the rest moves to the next one."
+        },
+        "recurring": {
+          "ref": "Short code for linking payments to it from the Recurring column in Transactions.",
+          "label": "Name of the expense, e.g. Spotify.",
+          "amount": "Amount of each payment.",
+          "currency": "Currency of the expense.",
+          "frequency": "Weekly, Monthly or Yearly.",
+          "every": "Every how many periods of that frequency (2 with Monthly = every 2 months). Empty = 1.",
+          "anchorDate": "Day of the first payment; the next ones are worked out from it.",
+          "endDate": "Day of the last payment, if it ended or has an end. Empty = still running.",
+          "account": "Account it's paid from.",
+          "card": "Card it's paid with, if it doesn't come straight out of the account.",
+          "category": "Expense category from the catalogue.",
+          "notes": "Free note."
+        },
+        "goals": {
+          "ref": "Short, unique code (e.g. TRIP) that ties the goal to its contributions.",
+          "title": "Name of the goal.",
+          "targetAmount": "Amount you want to save.",
+          "currency": "Currency of the goal. Its contributions must come from accounts in that currency.",
+          "deadline": "Date to reach it, if any.",
+          "notes": "Free note."
+        },
+        "contributions": {
+          "ref": "The goal's Reference on the Goals sheet.",
+          "date": "Day of the contribution.",
+          "amount": "Amount contributed.",
+          "account": "Account the contribution comes from: it's taken out of its balance."
+        }
+      },
+      "values": {
+        "movementType": {
+          "EXPENSE": "Expense",
+          "INCOME": "Income"
+        },
+        "direction": {
+          "OWED_TO_YOU": "Owed to me",
+          "YOU_OWE": "I owe"
+        },
+        "planFrequency": {
+          "MONTHLY": "Monthly",
+          "WEEKLY": "Weekly",
+          "YEARLY": "Yearly",
+          "DAILY": "Daily"
+        },
+        "recurrenceFrequency": {
+          "MONTHLY": "Monthly",
+          "WEEKLY": "Weekly",
+          "YEARLY": "Yearly"
+        },
+        "yesNo": {
+          "YES": "Yes",
+          "NO": "No"
+        }
+      },
+      "reference": {
+        "accounts": "Accounts",
+        "cards": "Cards",
+        "categories": "Categories",
+        "currencies": "Currencies",
+        "type": "Type",
+        "currency": "Currency"
+      },
+      "instructions": {
+        "title": "Cuadra template",
+        "intro": "Fill in one sheet per kind of data and upload the file from Import. Leave the sheets you don't use empty. Cells with a dropdown only accept your own accounts, cards and categories; if you type them, make them match.",
+        "rules": "What moves money: a movement, a transfer, a debt payment, an instalment payment without a credit card and a contribution move their account's balance. Creating a debt, a plan or a goal moves nothing. An instalment payment of a credit card plan only marks it paid and frees its credit: that instalment will never be billed.",
+        "refs": "References: write a short code in the Reference column of a debt, plan, goal or recurring series (for example VICTOR) and repeat it on its payments, contributions or movements to link them. It must be unique in its sheet.",
+        "allOrNothing": "If any row has a problem nothing is imported: you'll see every problem with its sheet and row.",
+        "reimport": "Uploading the same file twice imports it twice.",
+        "exampleTitle": "Examples (not imported)",
+        "examples": {
+          "movements": "Movements: 28/11/2025 · Expense · 15000 · BCI · · Groceries · Jumbo (if it pays a recurring series, that series' Reference in the Recurring column)",
+          "transfers": "Transfers: 01/12/2025 · BCI · MACH · 50000",
+          "debts": "Debts: VICTOR · Owed to me · Victor · Loan · 200000 · CLP · 14/02/2026 · · 4 · Monthly · 1",
+          "debtPayments": "Debt payments: VICTOR · 14/03/2026 · BCI",
+          "plans": "Instalments: NOTEBOOK · Notebook · 28/11/2025 · 623992 · 6 · CLP · Monthly · 1 · · BCI Visa · ····4827",
+          "planPayments": "Instalment payments: NOTEBOOK · 1 · 28/12/2025 (credit card: no account or amount)",
+          "recurring": "Recurring: SPOTIFY · Spotify · 6990 · CLP · Monthly · 1 · 01/01/2026 · 01/04/2026 · BCI (leave Last payment empty if it's still running)",
+          "goals": "Goals: TRIP · Trip to Japan · 1500000 · CLP · 31/12/2026",
+          "contributions": "Contributions: TRIP · 01/02/2026 · 50000 · BCI"
+        },
+        "columnsTitle": "What goes in each column",
+        "columnsHint": "You can also see a column's description by hovering over its header (the red mark in the corner).",
+        "required": "required",
+        "optional": "optional"
+      },
+      "issues": {
+        "required": "{{column}} is missing",
+        "invalidDate": "{{column}} isn't a date",
+        "invalidAmount": "{{column}} isn't an amount",
+        "invalidNumber": "{{column}} isn't a whole number",
+        "unknownAccount": "there's no account called “{{value}}”",
+        "ambiguousAccount": "two accounts are called “{{value}}”; rename one of them",
+        "unknownCard": "there's no card “{{value}}”",
+        "unknownCategory": "there's no category “{{value}}”",
+        "unknownValue": "“{{value}}” isn't a valid value for {{column}}",
+        "duplicateRef": "the reference “{{value}}” is repeated in this sheet",
+        "unknownRef": "no row has the reference “{{value}}”"
+      }
     }
   },
   "auth": {
@@ -2022,6 +2375,17 @@
     "DEBT_PAYMENT_FROM_CREDIT_ACCOUNT": "You can't pay a debt from a credit card account.",
     "ACCOUNT_NOT_FOUND": "The account wasn't found.",
     "CATEGORY_NOT_FOUND": "The chosen category doesn't exist.",
-    "CATEGORY_NOT_ALLOWED": "That category can't be used for this movement."
+    "CATEGORY_NOT_ALLOWED": "That category can't be used for this movement.",
+    "CARD_NOT_FOUND": "That card doesn't exist.",
+    "IMPORT_ACCOUNT_INACTIVE": "That account is inactive: activate it before importing into it.",
+    "IMPORT_CURRENCY_MISMATCH": "The currency doesn't match the account's.",
+    "IMPORT_DUPLICATE_REF": "That reference is repeated in its sheet.",
+    "IMPORT_UNKNOWN_REF": "No row has that reference.",
+    "IMPORT_TOO_MANY_PAYMENTS": "There are more payments than instalments.",
+    "IMPORT_INVALID_SEQUENCE": "That instalment doesn't exist or already has a payment.",
+    "IMPORT_PAYMENT_BEFORE_START": "The payment is dated before its debt or plan.",
+    "IMPORT_PAYMENT_AMOUNT_MISMATCH": "The amount doesn't match the instalment's.",
+    "IMPORT_PLAN_PAYMENT_FIELDS": "A credit card instalment payment takes no account or amount; one without a credit card takes both.",
+    "RECURRING_END_BEFORE_START": "The last payment can't be before the first one."
   }
 }

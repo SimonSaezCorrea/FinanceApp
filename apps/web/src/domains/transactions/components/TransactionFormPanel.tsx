@@ -13,6 +13,7 @@ import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amou
 import { cn } from "../../../shared/lib/cn";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
+import { useRecurring } from "../../recurring/hooks/useRecurring";
 import { DetailRow } from "../../../shared/ui/detail-row";
 import {
   FormBigTextField,
@@ -48,6 +49,9 @@ export interface TransactionFormValue {
   financeCharge: boolean;
   /** Catalogue category id, `""` for none. */
   categoryId: string;
+  /** The recurring series this movement pays, `""` for none — it then shows in
+   * that series' occurrence history. */
+  recurringExpenseId: string;
   description: string;
   observation: string;
   emisor: string;
@@ -113,6 +117,7 @@ export function TransactionFormPanel({
   const { t, i18n } = useTranslation();
   const { data: currencies } = useCurrencies();
   const { optionsFor } = useCategoryCatalog();
+  const { data: series } = useRecurring();
 
   const isTransfer = value.mode === "TRANSFER";
   const isPrepay = value.mode === "PREPAY";
@@ -380,6 +385,27 @@ export function TransactionFormPanel({
             options={[
               { value: "", label: t("recurring.form.noCategory") },
               ...optionsFor(isTransfer ? undefined : type, original?.categoryId),
+            ]}
+          />
+        )}
+
+        {/* Which recurring series this movement pays, if any — only an
+            ordinary income/expense can be one (a transfer or a prepago never is).
+            A finished series stays pickable: its past payments are exactly what
+            gets linked to it. */}
+        {isTransfer || isPrepay || !series || series.length === 0 ? null : (
+          <FormSelectField
+            id="tx-recurring"
+            label={t("transactions.form.recurring")}
+            value={value.recurringExpenseId}
+            onChange={(recurringExpenseId) => onChange({ recurringExpenseId })}
+            options={[
+              { value: "", label: t("transactions.form.noRecurring") },
+              ...series.map((r) => ({
+                value: r.id,
+                label:
+                  r.status === "FINISHED" ? `${r.label} · ${t("recurring.finished")}` : r.label,
+              })),
             ]}
           />
         )}

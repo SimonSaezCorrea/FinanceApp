@@ -24,6 +24,8 @@ import { Segmented } from "../../../shared/ui/segmented";
 import { Switch } from "../../../shared/ui/switch";
 import { Tabs } from "../../../shared/ui/tabs";
 import { AccountTypeToggle } from "./AccountTypeToggle";
+import { ExtraCurrencyLimits } from "./ExtraCurrencyLimits";
+import type { CurrencyLimitDraft } from "../lib/extraLimits";
 
 export interface AccountFormValues {
   name: string;
@@ -59,6 +61,9 @@ export interface AccountFormValues {
   /** "" = this account has no minimum payment; else a percentage like "5". */
   minimumPaymentPercent: string;
   paymentMethod: accounts.BillingPaymentMethod;
+  /** A credit card account's limits in OTHER currencies (its USD one), stored on
+   * its primary card — the host saves them there. */
+  extraLimits: CurrencyLimitDraft[];
 }
 
 const EMPTY: AccountFormValues = {
@@ -81,6 +86,7 @@ const EMPTY: AccountFormValues = {
   paymentDueCycleType: "BUSINESS_DAY",
   minimumPaymentPercent: "",
   paymentMethod: "MANUAL",
+  extraLimits: [],
 };
 
 interface Props {
@@ -91,6 +97,9 @@ interface Props {
    * after account creation) — broadens the credit-pool fields the same way a
    * CREDIT_CARD account gets them, without hiding this account's own balance. */
   hasCreditCard?: boolean;
+  /** Offer the extra-currency limits under the cupo — only when the host can save
+   * them, i.e. the credit card account already has its primary card. */
+  showExtraLimits?: boolean;
   /** Rendered next to the submit button; without it the footer has submit only. */
   onCancel?: () => void;
   /** Destructive action shown at the very end of the form, phone widths only. */
@@ -145,6 +154,7 @@ export function AccountForm({
   submitting,
   submitLabel,
   hasCreditCard = false,
+  showExtraLimits = false,
   onCancel,
   dangerZone,
   formId,
@@ -188,7 +198,7 @@ export function AccountForm({
   // Compared against the values the form opened with, so undoing an edit by hand
   // clears the warning instead of leaving it stuck on for the rest of the session.
   const dirty = (Object.keys(submitted) as (keyof AccountFormValues)[]).some(
-    (k) => submitted[k] !== initialValues[k],
+    (k) => JSON.stringify(submitted[k]) !== JSON.stringify(initialValues[k]),
   );
 
   useEffect(() => {
@@ -301,6 +311,16 @@ export function AccountForm({
               />
             </div>
           </div>
+
+          {isCreditLineType && showExtraLimits ? (
+            <div className="mt-3">
+              <ExtraCurrencyLimits
+                accountCurrency={values.currency}
+                limits={values.extraLimits}
+                onChange={(next) => set("extraLimits", next)}
+              />
+            </div>
+          ) : null}
 
           <div className="my-2 border-t border-border" />
 

@@ -99,6 +99,7 @@ function makeHandler(
     statements,
     fakePrismaTransaction() as unknown as PrismaService,
     fakeCategoryLookup(),
+    { findOne: vi.fn(async () => null) } as never,
   );
 }
 

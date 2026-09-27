@@ -79,6 +79,7 @@ export class CreateRecurringExpenseHandler extends BaseCommandHandler<
       bankAccountId: input.bankAccountId,
       cardId: input.cardId,
       active: input.active,
+      endDate: input.endDate ? new Date(input.endDate) : null,
       notes: input.notes,
     });
     return { plan };

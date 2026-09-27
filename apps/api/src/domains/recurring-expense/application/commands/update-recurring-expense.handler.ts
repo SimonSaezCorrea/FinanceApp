@@ -81,6 +81,9 @@ export class UpdateRecurringExpenseHandler extends BaseCommandHandler<
       ...(input.bankAccountId !== undefined ? { bankAccountId: input.bankAccountId } : {}),
       ...(input.cardId !== undefined ? { cardId: input.cardId } : {}),
       ...(input.active !== undefined ? { active: input.active } : {}),
+      ...(input.endDate !== undefined
+        ? { endDate: input.endDate === null ? null : new Date(input.endDate) }
+        : {}),
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
     });
     return { result: expense.toContract(startOfTodayUTC(new Date())), events: [] };

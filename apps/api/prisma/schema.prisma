@@ -987,6 +987,11 @@ model RecurringExpense {
   /// deleting the card must not delete the series it was attached to.
   cardId        String?
   active        Boolean             @default(true)
+  /// The LAST occurrence the series ran for (inclusive) — a subscription that
+  /// ended. Null = open-ended. Past it the series is FINISHED (derived, never
+  /// stored): no next due date, and it counts toward no total. Distinct from
+  /// `active = false`, which is a pause that may resume.
+  endDate       DateTime?
   notes         String?
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt

@@ -63,6 +63,38 @@ describe("MovementPolicy.validate", () => {
     ).toThrow(CardNotAllowedError);
   });
 
+  it("accepts an income on a credit card that pays that card's own limit, leaving the pool alone", () => {
+    const usdLimit: CardLimitContext = { limitAmount: "100", usedInitial: "0" };
+    const contribution = MovementPolicy.validate(
+      { type: "INCOME", currency: "USD", bankAccountId: "aC", cardId: "cC", amount: "70" },
+      { ...creditAccount, creditUsed: "50000" },
+      creditCard,
+      usdLimit,
+      { income: "0", expense: "80" },
+    );
+    expect(contribution).toBe("0");
+    expect(
+      MovementPolicy.contribution(
+        { type: "INCOME", amount: "70" },
+        creditAccount,
+        creditCard,
+        usdLimit,
+      ),
+    ).toBe("0");
+  });
+
+  it("rejects an income with a credit card that has no own limit in that currency", () => {
+    expect(() =>
+      MovementPolicy.validate(
+        { ...base, type: "INCOME", bankAccountId: "aC", cardId: "cC", amount: "1000" },
+        creditAccount,
+        creditCard,
+        null,
+        noUsage,
+      ),
+    ).toThrow(CardNotAllowedError);
+  });
+
   it("rejects a card on a cash-account expense", () => {
     expect(() =>
       MovementPolicy.validate(

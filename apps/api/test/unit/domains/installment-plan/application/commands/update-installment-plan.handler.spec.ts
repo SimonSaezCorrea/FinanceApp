@@ -150,6 +150,7 @@ function makeRemoveHandler(
   const calls = opts.calls ?? {
     deleteManyWithTx: vi.fn(),
     incrementBalanceWithTx: vi.fn(),
+    adjustOpeningWithTx: vi.fn(),
     incrementCreditUsedWithTx: vi.fn(),
   };
   return new RemoveInstallmentPlanHandler(
@@ -191,6 +192,7 @@ describe("RemoveInstallmentPlanHandler", () => {
     const calls = {
       deleteManyWithTx: vi.fn(),
       incrementBalanceWithTx: vi.fn(),
+      adjustOpeningWithTx: vi.fn(),
       incrementCreditUsedWithTx: vi.fn(),
     };
     const repo = fakeRepo({ findOne: vi.fn().mockResolvedValue(makePlan()) });

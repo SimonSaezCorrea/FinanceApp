@@ -15,6 +15,7 @@ function fakeRepo(
     list: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),
+    createWithTx: vi.fn(),
     save: vi.fn(),
     remove: vi.fn(),
     ...overrides,

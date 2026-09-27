@@ -1,6 +1,8 @@
 import type { recurring } from "@finance/contracts";
 import { moneyToString } from "@finance/money";
 
+import { RecurringEndBeforeStartError } from "./errors";
+
 export interface RecurringExpenseProps {
   id: string;
   userId: string;
@@ -14,6 +16,8 @@ export interface RecurringExpenseProps {
   bankAccountId: string | null;
   cardId: string | null;
   active: boolean;
+  /** Last occurrence (inclusive) of a series that ended; null = open-ended. */
+  endDate: Date | null;
   notes: string | null;
   createdAt: Date;
   updatedAt: Date;
@@ -30,6 +34,7 @@ export type RecurringExpensePatch = Partial<{
   bankAccountId: string | null;
   cardId: string | null;
   active: boolean;
+  endDate: Date | null;
   notes: string | null;
 }>;
 
@@ -100,8 +105,10 @@ export class RecurringExpense {
     bankAccountId?: string;
     cardId?: string;
     active?: boolean;
+    endDate?: Date | null;
     notes?: string;
   }): PlannedRecurringExpense {
+    RecurringExpense.assertEndNotBeforeStart(input.anchorDate, input.endDate ?? null);
     return {
       label: input.label,
       amount: input.amount,
@@ -113,8 +120,16 @@ export class RecurringExpense {
       bankAccountId: input.bankAccountId ?? null,
       cardId: input.cardId ?? null,
       active: input.active ?? true,
+      endDate: input.endDate ?? null,
       notes: input.notes ?? null,
     };
+  }
+
+  /** `RECURRING_END_BEFORE_START`: a series ends on or after its first occurrence. */
+  private static assertEndNotBeforeStart(anchorDate: Date, endDate: Date | null): void {
+    if (endDate && endDate.getTime() < anchorDate.getTime()) {
+      throw new RecurringEndBeforeStartError();
+    }
   }
 
   get id(): string {
@@ -136,7 +151,20 @@ export class RecurringExpense {
     if (patch.bankAccountId !== undefined) this.props.bankAccountId = patch.bankAccountId;
     if (patch.cardId !== undefined) this.props.cardId = patch.cardId;
     if (patch.active !== undefined) this.props.active = patch.active;
+    if (patch.endDate !== undefined) this.props.endDate = patch.endDate;
     if (patch.notes !== undefined) this.props.notes = patch.notes;
+    RecurringExpense.assertEndNotBeforeStart(this.props.anchorDate, this.props.endDate);
+  }
+
+  /**
+   * FINISHED once its last occurrence (`endDate`) is behind `today` — the next one
+   * would fall after it; PAUSED while switched off; ACTIVE otherwise. Derived on
+   * every read so a series ends by itself when its date passes.
+   */
+  status(today: Date): recurring.RecurringStatus {
+    const next = nextDue(this.props.anchorDate, this.props.frequency, this.props.interval, today);
+    if (this.props.endDate && next.getTime() > this.props.endDate.getTime()) return "FINISHED";
+    return this.props.active ? "ACTIVE" : "PAUSED";
   }
 
   snapshot(): Readonly<RecurringExpenseProps> {
@@ -144,6 +172,7 @@ export class RecurringExpense {
   }
 
   toContract(today: Date): recurring.RecurringExpense {
+    const status = this.status(today);
     return {
       id: this.props.id,
       label: this.props.label,
@@ -156,13 +185,18 @@ export class RecurringExpense {
       bankAccountId: this.props.bankAccountId,
       cardId: this.props.cardId,
       active: this.props.active,
+      endDate: this.props.endDate?.toISOString() ?? null,
+      status,
       notes: this.props.notes,
-      nextDueAt: nextDue(
-        this.props.anchorDate,
-        this.props.frequency,
-        this.props.interval,
-        today,
-      ).toISOString(),
+      nextDueAt:
+        status === "FINISHED"
+          ? null
+          : nextDue(
+              this.props.anchorDate,
+              this.props.frequency,
+              this.props.interval,
+              today,
+            ).toISOString(),
       createdAt: this.props.createdAt.toISOString(),
       updatedAt: this.props.updatedAt.toISOString(),
     };

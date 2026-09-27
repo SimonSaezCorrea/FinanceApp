@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { PiggyBank, Plus, Target, TrendingUp, Wallet } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -18,7 +18,7 @@ import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
 import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
-import { EmptyState, ErrorState } from "../../../shared/ui/states";
+import { ErrorState, GettingStartedState } from "../../../shared/ui/states";
 import { ClosedGoalsSection } from "../components/ClosedGoalsSection";
 import { FreeSavingsDetailPanel } from "../components/FreeSavingsDetailPanel";
 import { FreeSavingsSection } from "../components/FreeSavingsSection";
@@ -340,6 +340,7 @@ export function SavingsRoute() {
   }
 
   const missing = summaryData?.missing ?? "0";
+  const isEmpty = !goalsError && goals.length === 0 && freeEntries.length === 0;
 
   // Second column only where the account detail's own aside already earns
   // one (`ASIDE_MIN_WIDTH`, measured on this view — a sidebar-driven width
@@ -359,7 +360,7 @@ export function SavingsRoute() {
       <PageHeader
         title={t("savings.title")}
         description={
-          !goalsLoading && !goalsError
+          !goalsLoading && !goalsError && !isEmpty
             ? t("savings.subtitle", { count: openGoals.length, missing })
             : undefined
         }
@@ -379,8 +380,41 @@ export function SavingsRoute() {
 
       {goalsLoading && <SavingsSkeleton label={t("app.loading")} />}
       {!goalsLoading && goalsError && <ErrorState error={goalsErr} onRetry={() => refetch()} />}
-      {!goalsLoading && !goalsError && goals.length === 0 && freeEntries.length === 0 && (
-        <EmptyState title={t("savings.empty")} />
+      {!goalsLoading && isEmpty && (
+        <GettingStartedState
+          icon={PiggyBank}
+          title={t("savings.empty")}
+          message={t("savings.emptyMessage")}
+          steps={[
+            {
+              icon: Target,
+              title: t("savings.emptySteps.goal.title"),
+              text: t("savings.emptySteps.goal.text"),
+            },
+            {
+              icon: Wallet,
+              title: t("savings.emptySteps.contribute.title"),
+              text: t("savings.emptySteps.contribute.text"),
+            },
+            {
+              icon: TrendingUp,
+              title: t("savings.emptySteps.pace.title"),
+              text: t("savings.emptySteps.pace.text"),
+            },
+          ]}
+          actions={
+            <>
+              <Button variant="accent" onClick={openCreateGoal}>
+                <Plus className="h-4 w-4" aria-hidden />
+                {t("savings.new")}
+              </Button>
+              <Button variant="outline" onClick={() => openContribute(null)}>
+                <Plus className="h-3.5 w-3.5" aria-hidden />
+                {t("savings.freeContribution")}
+              </Button>
+            </>
+          }
+        />
       )}
 
       {!goalsLoading && !goalsError && (goals.length > 0 || freeEntries.length > 0) ? (

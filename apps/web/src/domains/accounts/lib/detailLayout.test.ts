@@ -24,11 +24,8 @@ describe("hasCardsAside", () => {
     expect(hasCardsAside(account("INVESTMENT"), false)).toBe(false);
   });
 
-  it("keeps it for an account with more than one credit pool, cards or not", () => {
-    expect(hasCardsAside(account("CREDIT_CARD", [pool("CLP"), pool("USD")]), false)).toBe(true);
-  });
-
-  it("a single pool isn't enough: that figure already lives in the header", () => {
+  it("credit pools never claim it: each one is a Crédito KPI in the header", () => {
+    expect(hasCardsAside(account("CREDIT_CARD", [pool("CLP"), pool("USD")]), false)).toBe(false);
     expect(hasCardsAside(account("SAVINGS", [pool("CLP")]), false)).toBe(false);
   });
 });
