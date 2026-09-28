@@ -73,5 +73,14 @@ export const accountsApi = {
       method: "POST",
     }),
 
-  remove: (id: string) => apiFetch<void>(`/accounts/${id}`, { method: "DELETE" }),
+  /** What deleting the account could take with it, counted before confirming. */
+  deletionImpact: (id: string) =>
+    apiFetch<accounts.AccountDeletionImpact>(`/accounts/${id}/deletion-impact`),
+
+  /** Delete the account and, as chosen, what hangs off it. */
+  remove: (id: string, options?: accounts.RemoveAccount) =>
+    apiFetch<void>(`/accounts/${id}`, {
+      method: "DELETE",
+      ...(options ? { body: JSON.stringify(options satisfies accounts.RemoveAccount) } : {}),
+    }),
 };

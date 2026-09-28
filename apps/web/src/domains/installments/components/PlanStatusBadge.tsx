@@ -13,6 +13,10 @@ import { Badge, type BadgeProps } from "../../../shared/ui/badge";
  */
 const VARIANTS: Record<installments.InstallmentPlanStatus, BadgeProps["variant"]> = {
   OVERDUE: "danger",
+  // Credit-card plans: the statement charges it — informational, not a debt the
+  // user is late on; "billed" is owed on a statement, so it asks for attention.
+  TO_BILL: "info",
+  BILLED: "warning",
   DUE_SOON: "accent",
   ON_TRACK: "neutral",
   PARTIALLY_PAID: "warning",

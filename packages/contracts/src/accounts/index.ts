@@ -427,6 +427,59 @@ export type UpdateBankAccount = z.infer<typeof updateBankAccountSchema>;
 export const setAccountStatusSchema = z.object({ status: accountStatus });
 export type SetAccountStatus = z.infer<typeof setAccountStatusSchema>;
 
+/** Money that goes back to ANOTHER account when something related is deleted. */
+export const accountRestorationSchema = z.object({
+  accountId: rowId,
+  /** Signed: what that account's balance moves by. */
+  amount: moneyString,
+  currency: z.string(),
+});
+export type AccountRestoration = z.infer<typeof accountRestorationSchema>;
+
+/**
+ * What deleting an account can take with it, counted before the user decides
+ * (`GET /accounts/:id/deletion-impact`). Each group is optional in the delete
+ * request; whatever is not chosen stays in the app, unlinked from the account.
+ */
+export const accountDeletionImpactSchema = z.object({
+  movements: z.object({
+    /** The account's own movements. */
+    count: z.number().int().nonnegative(),
+    /** Transfers with another account: both legs go. */
+    transfers: z.number().int().nonnegative(),
+    /** Payments/prepayments of its billing periods made from other accounts. */
+    paymentsFromOtherAccounts: z.number().int().nonnegative(),
+    restorations: z.array(accountRestorationSchema),
+  }),
+  installmentPlans: z.object({
+    count: z.number().int().nonnegative(),
+    /** Their movements outside this account, undone like deleting the plan. */
+    restorations: z.array(accountRestorationSchema),
+  }),
+  recurring: z.object({ count: z.number().int().nonnegative() }),
+  savingsEntries: z.object({ count: z.number().int().nonnegative() }),
+  /** Never deleted with the account — only unlinked. */
+  linkedDebts: z.object({ count: z.number().int().nonnegative() }),
+});
+export type AccountDeletionImpact = z.infer<typeof accountDeletionImpactSchema>;
+
+/** `DELETE /accounts/:id` body: which related data goes with the account.
+ * Everything defaults to `false` — the account alone, as before. */
+export const removeAccountSchema = z
+  .object({
+    movements: z.boolean().default(false),
+    installmentPlans: z.boolean().default(false),
+    recurring: z.boolean().default(false),
+    savingsEntries: z.boolean().default(false),
+  })
+  .default({
+    movements: false,
+    installmentPlans: false,
+    recurring: false,
+    savingsEntries: false,
+  });
+export type RemoveAccount = z.infer<typeof removeAccountSchema>;
+
 /** Derived (not persisted) lifecycle of a `CreditStatement`: OPEN (still accumulating
  * — transactions keep linking to it), PENDING (closed by generation, awaiting
  * payment), PAID. */

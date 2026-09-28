@@ -61,6 +61,18 @@ export interface InstallmentPlanMovement {
   financeCharge: boolean;
 }
 
+/** One movement removed together with an account (see `listForAccountDeletion`). */
+export interface AccountDeletionMovement {
+  id: string;
+  bankAccountId: string | null;
+  type: "INCOME" | "EXPENSE";
+  /** moneyString */
+  amount: string;
+  currency: string;
+  /** A leg of a transfer (its pair is removed with it). */
+  transfer: boolean;
+}
+
 /**
  * Write port over the `transaction` table for the domains that must create
  * movements they don't own: `credit-statement` (paying a statement creates a real
@@ -101,6 +113,17 @@ export interface TransactionWriterRepositoryPort {
    * THAT account's balance, not the plan's currently remembered one — those can
    * differ, and crediting the wrong account is worse than crediting none. */
   accountIdForTransaction(userId: string, id: string): Promise<string | null>;
+  /** Every movement that goes away when an account is deleted with its movements:
+   * the account's own, the OTHER leg of each transfer it took part in, the
+   * prepayments other accounts made into its billing periods, and `extraIds` —
+   * movements another domain knows belong to it (its statements' payments, made
+   * from other accounts). Rows outside the account carry their own account, whose
+   * balance the caller restores. */
+  listForAccountDeletion(
+    userId: string,
+    accountId: string,
+    extraIds: string[],
+  ): Promise<AccountDeletionMovement[]>;
   /** Bulk insert inside the caller's transaction, used by the `import` domain —
    * which applies the balance/credit-pool deltas itself, in that same
    * transaction, so an import is all-or-nothing. */

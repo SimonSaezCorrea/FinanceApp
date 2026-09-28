@@ -159,22 +159,32 @@ export class MovementPolicy {
    * must always be revertible even if limits shrank since.
    */
   static contribution(
-    m: { type: transactions.TransactionType; amount: string; financeCharge?: boolean },
-    account: Pick<AccountContext, "type">,
+    m: {
+      type: transactions.TransactionType;
+      amount: string;
+      financeCharge?: boolean;
+      currency?: string;
+    },
+    account: Pick<AccountContext, "type" | "currency">,
     card: CardContext | null,
     cardLimit: CardLimitContext | null,
   ): string {
     if (account.type === "CASH") return "0";
+    // A card's own limit IN THE ACCOUNT'S CURRENCY is a sub-limit carved out of
+    // the account's global cupo — what the card spends still uses the global one
+    // (the bank caps the card AND the account). Only a limit in ANOTHER currency
+    // is a separate pool the account's cupo knows nothing about.
+    const ownPool = cardLimit !== null && isForeign(m, account);
     if (m.type === "INCOME") {
-      // A payment towards a card's own limit settles that limit, not the pool.
-      if (card && cardLimit) return "0";
+      // A payment towards a card's foreign-currency limit settles that limit, not the pool.
+      if (card && ownPool) return "0";
       return account.type === "CREDIT_CARD" ? subtractMoney("0", m.amount) : "0";
     }
     // Same rule as `validate`, kept in step so an edit/delete reverts exactly
     // what the movement contributed.
     if (m.financeCharge) return account.type === "CREDIT_CARD" ? m.amount : "0";
     if (!card || card.kind !== "CREDIT") return "0";
-    return cardLimit ? "0" : m.amount;
+    return ownPool ? "0" : m.amount;
   }
 
   /**
@@ -281,4 +291,12 @@ export class MovementPolicy {
       throw new CardSubLimitExceededError();
     }
   }
+}
+
+/** Is this movement in a currency other than its account's own? Unknown on either
+ * side (an older caller that never passed one) reads as the account's own. */
+function isForeign(m: { currency?: string }, account: { currency?: string }): boolean {
+  return (
+    m.currency !== undefined && account.currency !== undefined && m.currency !== account.currency
+  );
 }

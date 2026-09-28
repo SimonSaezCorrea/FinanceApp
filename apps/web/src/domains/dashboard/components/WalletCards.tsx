@@ -25,6 +25,7 @@ import {
   ChevronLeft,
   ChevronRight,
   GripVertical,
+  Pencil,
   Plus,
   Trash2,
 } from "lucide-react";
@@ -37,9 +38,11 @@ import type { accounts, wallet } from "@finance/contracts";
 
 import { cn } from "../../../shared/lib/cn";
 import { Button } from "../../../shared/ui/button";
+import { ErrorState } from "../../../shared/ui/states";
 import { AccountVisualCard } from "../../accounts/components/AccountVisualCard";
 import { CardTileSkeleton } from "../../accounts/components/CardTileSkeleton";
 import { useWallet, useWalletMutations } from "../hooks/useWallet";
+import { WALLET_MAX } from "../lib/walletDraft";
 import { WalletAddModal } from "./WalletAddModal";
 
 // `[&>*]:max-w-md` caps each CELL: AccountVisualCard no longer caps itself (the
@@ -84,15 +87,24 @@ export function WalletCards({
   holder?: string;
 }) {
   const { t } = useTranslation();
-  const { data: walletItems, isLoading } = useWallet();
+  const { data: walletItems, isLoading, isError, error, refetch } = useWallet();
   const { reorder, remove } = useWalletMutations();
   const [addOpen, setAddOpen] = useState(false);
+  // Bumped on every open: remounts the editor so its draft starts from the saved wallet.
+  const [editorSession, setEditorSession] = useState(0);
+  const openEditor = () => {
+    setEditorSession((n) => n + 1);
+    setAddOpen(true);
+  };
   const [organizing, setOrganizing] = useState(false);
 
   const items = walletItems ?? [];
+  // At most WALLET_MAX on the Panel, even for a wallet saved before the limit.
   const resolved = items
     .map((i) => resolve(i, accountList))
-    .filter((r): r is Resolved => r !== null);
+    .filter((r): r is Resolved => r !== null)
+    .slice(0, WALLET_MAX);
+  const full = resolved.length >= WALLET_MAX;
 
   function onRemove(id: string) {
     remove.mutate(id, { onSuccess: () => toast.success(t("wallet.removed")) });
@@ -106,23 +118,38 @@ export function WalletCards({
             down. Hidden while loading: whether it belongs depends on whether the
             wallet turns out to have anything pinned. */}
         {!isLoading && resolved.length > 0 ? (
-          <Button variant="ghost" size="sm" onClick={() => setOrganizing((v) => !v)}>
-            {organizing ? (
-              <>
-                <Check className="h-4 w-4" aria-hidden />
-                {t("wallet.done")}
-              </>
-            ) : (
-              <>
-                <ArrowLeftRight className="h-4 w-4" aria-hidden />
-                {t("wallet.organize")}
-              </>
-            )}
-          </Button>
+          <span className="flex items-center gap-1">
+            {/* A full wallet has no "Añadir" tile, so editing lives up here. */}
+            {full && !organizing ? (
+              <Button variant="ghost" size="sm" onClick={openEditor}>
+                <Pencil className="h-4 w-4" aria-hidden />
+                {t("wallet.editor.edit")}
+              </Button>
+            ) : null}
+            <Button variant="ghost" size="sm" onClick={() => setOrganizing((v) => !v)}>
+              {organizing ? (
+                <>
+                  <Check className="h-4 w-4" aria-hidden />
+                  {t("wallet.done")}
+                </>
+              ) : (
+                <>
+                  <ArrowLeftRight className="h-4 w-4" aria-hidden />
+                  {t("wallet.organize")}
+                </>
+              )}
+            </Button>
+          </span>
         ) : null}
       </div>
 
-      <WalletAddModal open={addOpen} onOpenChange={setAddOpen} pinned={items} />
+      <WalletAddModal
+        key={editorSession}
+        open={addOpen}
+        onOpenChange={setAddOpen}
+        pinned={items}
+        holder={holder}
+      />
 
       <div className="scrollbar-thin -m-1 max-h-[28rem] overflow-y-auto p-1">
         {/* Until the pins are known, an empty grid would render the genuine "your
@@ -133,6 +160,10 @@ export function WalletCards({
             <CardTileSkeleton />
             <CardTileSkeleton />
           </div>
+        ) : isError ? (
+          // A failed load is not an empty wallet: offering "Añadir" here would
+          // invite overwriting pins the user already has.
+          <ErrorState inline error={error} onRetry={() => void refetch()} />
         ) : organizing ? (
           <WalletOrganizer
             resolved={resolved}
@@ -148,14 +179,16 @@ export function WalletCards({
                 <AccountVisualCard account={r.account} card={r.card} holder={holder} />
               </Link>
             ))}
-            <button
-              type="button"
-              onClick={() => setAddOpen(true)}
-              className="flex h-[12.5rem] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
-            >
-              <Plus className="h-6 w-6" aria-hidden />
-              <span className="text-sm font-medium">{t("wallet.add")}</span>
-            </button>
+            {full ? null : (
+              <button
+                type="button"
+                onClick={openEditor}
+                className="flex h-[12.5rem] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
+              >
+                <Plus className="h-6 w-6" aria-hidden />
+                <span className="text-sm font-medium">{t("wallet.add")}</span>
+              </button>
+            )}
           </div>
         )}
       </div>

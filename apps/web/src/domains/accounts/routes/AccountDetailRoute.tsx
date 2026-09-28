@@ -41,6 +41,7 @@ import { CardForm } from "../components/CardForm";
 import { ACCOUNT_ICON } from "../components/accountVisuals";
 import { hasCardsAside } from "../lib/detailLayout";
 import { useAccount, useAccountMutations, useAccounts } from "../hooks/useAccounts";
+import { DeleteAccountConfirm } from "../components/DeleteAccountConfirm";
 import { useCardMutations } from "../hooks/useCards";
 
 export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boolean }>) {
@@ -312,27 +313,19 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
         onOpenChange={setBillingModalOpen}
       />
 
-      <ConfirmModal
-        open={confirmDelete}
+      <DeleteAccountConfirm
+        account={confirmDelete ? acc : null}
         onOpenChange={setConfirmDelete}
-        title={t("accounts.deleteConfirm")}
-        description={t("accounts.deleteConfirmDescription")}
-        confirmLabel={t("accounts.actions.delete")}
-        loading={remove.isPending}
-        onConfirm={() =>
-          remove.mutate(id, {
-            onSuccess: () => {
-              toast.success(t("accounts.deleted"));
-              setConfirmDelete(false);
-              // Leave first: the account this route reads no longer exists.
-              navigate("/accounts");
-            },
-            onError: (err) => {
-              const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
-              toast.error(t(`errors.${code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
-            },
-          })
-        }
+        onDeleted={() => {
+          toast.success(t("accounts.deleted"));
+          setConfirmDelete(false);
+          // Leave first: the account this route reads no longer exists.
+          navigate("/accounts");
+        }}
+        onError={(err) => {
+          const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
+          toast.error(t(`errors.${code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
+        }}
       />
     </div>
   );

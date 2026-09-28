@@ -21,10 +21,10 @@ interface Props {
 }
 
 /**
- * Source/destination accounts and both amounts of a transfer. No card field:
- * a transfer never touches a credit pool (FR-019), and the destination can never
- * be a `CREDIT_CARD` — money doesn't land in a credit line, paying one is a
- * statement payment, which has its own flow.
+ * Source/destination accounts and both amounts of a transfer. No card field
+ * (FR-019). The destination MAY be a `CREDIT_CARD` account: that is paying the
+ * card — it lowers its used credit, and like every transfer it is money moving
+ * between your own accounts, never income or spending.
  */
 export function TransferFields({
   value,
@@ -43,7 +43,7 @@ export function TransferFields({
     .filter((a) => a.id !== value.toBankAccountId)
     .map((a) => ({ value: a.id, label: a.name, description: accountMetaLine(a, typeLabel) }));
   const toOptions = selectable
-    .filter((a) => a.id !== value.bankAccountId && a.type !== "CREDIT_CARD")
+    .filter((a) => a.id !== value.bankAccountId)
     .map((a) => ({ value: a.id, label: a.name, description: accountMetaLine(a, typeLabel) }));
 
   return (

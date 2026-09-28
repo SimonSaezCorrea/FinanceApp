@@ -197,6 +197,22 @@ export class PrismaCreditStatementRepository
     });
   }
 
+  async paymentTransactionIdsFromOtherAccounts(
+    userId: string,
+    accountId: string,
+  ): Promise<string[]> {
+    const rows = await this.prisma.creditStatement.findMany({
+      where: {
+        accountId,
+        account: { userId },
+        paidTransactionId: { not: null },
+        NOT: { paidFromAccountId: accountId },
+      },
+      select: { paidTransactionId: true },
+    });
+    return rows.map((r) => r.paidTransactionId).filter((id): id is string => id !== null);
+  }
+
   async isPaid(statementId: string): Promise<boolean> {
     const row = await this.prisma.creditStatement.findUnique({
       where: { id: statementId },

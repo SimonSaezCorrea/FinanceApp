@@ -107,7 +107,28 @@
     "empty": "You don't have any accounts yet.",
     "deleted": "Account deleted",
     "deleteConfirm": "Delete this account?",
-    "deleteConfirmDescription": "It will be permanently deleted, along with its cards and billing.",
+    "deleteConfirmDescription": "It will be permanently deleted, along with its cards and billing. Choose what else to delete with it: whatever you don't choose stays, with no account.",
+    "deleteWith": {
+      "title": "Also delete",
+      "loading": "Checking what is tied to this account…",
+      "nothing": "No movements or data are tied to this account.",
+      "movements_one": "{{count}} movement",
+      "movements_other": "{{count}} movements",
+      "transfers_one": "Includes {{count}} transfer with another account: both legs are deleted.",
+      "transfers_other": "Includes {{count}} transfers with other accounts: both legs are deleted.",
+      "payments_one": "Includes {{count}} payment of its billing made from another account.",
+      "payments_other": "Includes {{count}} payments of its billing made from other accounts.",
+      "restores": "Gives back to {{restorations}}",
+      "installmentPlans_one": "{{count}} instalment plan",
+      "installmentPlans_other": "{{count}} instalment plans",
+      "recurring_one": "{{count}} recurring series",
+      "recurring_other": "{{count}} recurring series",
+      "savingsEntries_one": "{{count}} savings contribution",
+      "savingsEntries_other": "{{count}} savings contributions",
+      "linkedDebts_one": "{{count}} debt tied to this account stays, without the account.",
+      "linkedDebts_other": "{{count}} debts tied to this account stay, without the account.",
+      "unknownAccount": "another account"
+    },
     "new": "New account",
     "newSubtitle": "Register a bank account, card, or cash",
     "currentBalance": "Current balance",
@@ -129,15 +150,17 @@
     "card": {
       "usage": "{{pct}}% used",
       "creditUsed": "Credit used",
+      "creditUsedShared": "Credit used · shared",
       "cardPool": "Card ···· {{last4}}",
       "trend": "{{pct}}% this month",
       "billedOn": "Billed on the {{day}}th of each month"
     },
     "overview": {
-      "netWorth": "Total net worth",
+      "netWorth": "Net worth",
       "netWorthHint": "· net, approx. in {{currency}}",
       "assets": "Assets",
-      "cardDebt": "Card debt"
+      "cardDebt": "Card debt",
+      "debts": "Debts"
     },
     "groupBy": {
       "label": "Group by:",
@@ -218,7 +241,7 @@
       "statementRemaining": "Remaining",
       "statementPurchases": "Purchases",
       "statementInstallments": "Billed instalments",
-      "billingCurrencyGroup": "Statements · {{currency}}"
+      "billingCurrencyTabs": "Statements by currency"
     },
     "filter": {
       "label": "Filter by status",
@@ -406,7 +429,7 @@
       "usesPool": "Account pool",
       "usesPoolHint": "This card shares the account's full pool.",
       "ownLimit": "Own limit",
-      "ownLimitHint": "Set an independent limit for this card (can't exceed the account's pool in the same currency).",
+      "ownLimitHint": "Caps this card within the account's pool: what it spends also uses the account's pool, and the cap can't exceed it in the same currency.",
       "ownLimitRowsHint": "Add at least one limit per currency.",
       "active": "Card active",
       "activeHint": "An inactive card keeps its history but no longer appears when recording movements."
@@ -472,7 +495,27 @@
     "done": "Done",
     "moveLeft": "Move left",
     "moveRight": "Move right",
-    "accountItem": "Account"
+    "accountItem": "Account",
+    "editor": {
+      "title": "Build your wallet",
+      "description": "Up to {{max}}. Pick the whole account or just one of its cards.",
+      "edit": "Edit wallet",
+      "preview": "How it will look on your Dashboard",
+      "count": "{{count}} of {{max}}",
+      "chipAccount": "Account",
+      "chipCard": "Card",
+      "inPanel": "{{n}} · On the Dashboard",
+      "full": "Wallet full",
+      "primary": "Primary",
+      "additional": "Additional",
+      "emptySlot": "{{n}} · Empty slot",
+      "moveEarlier": "Move earlier",
+      "moveLater": "Move later",
+      "duplicate": "Card {{card}} shows the same balance as {{account}}.",
+      "removeCard": "Remove the card",
+      "creditHint": "Picking a credit card account shows its whole limit; picking one of its cards shows just that plastic.",
+      "saved": "Wallet saved"
+    }
   },
   "transactions": {
     "title": "Transactions",
@@ -720,6 +763,8 @@
     },
     "status": {
       "OVERDUE": "Overdue",
+      "TO_BILL": "To be billed",
+      "BILLED": "Billed",
       "DUE_SOON": "Due soon",
       "ON_TRACK": "On track",
       "PARTIALLY_PAID": "Partially paid",
@@ -753,6 +798,8 @@
     "noneMatchFilters": "No plan matches these filters.",
     "statusWithDate": {
       "OVERDUE": "Overdue {{date}}",
+      "TO_BILL": "To be billed {{date}}",
+      "BILLED": "Billed {{date}}",
       "DUE_SOON": "Due {{date}}",
       "ON_TRACK": "{{date}}",
       "PARTIALLY_PAID": "Partially paid",
@@ -990,21 +1037,7 @@
     "new": "New recurring",
     "edit": "Edit recurring",
     "empty": "No recurring expenses yet",
-    "emptyMessage": "Track subscriptions, rent or bills you pay every week, month or year, and see at a glance how much is committed and which payment comes next.",
-    "emptySteps": {
-      "create": {
-        "title": "Create the series",
-        "text": "Amount, frequency and first payment date. If it ends, set the last one."
-      },
-      "upcoming": {
-        "title": "See what's next",
-        "text": "Each series works out its next payment and adds to the month's committed total."
-      },
-      "link": {
-        "title": "Link your payments",
-        "text": "When you record a transaction, link it to the series to build its history."
-      }
-    },
+    "emptyHint": "Add a subscription, rent or any payment that repeats to see how much is committed.",
     "created": "Recurring created",
     "updated": "Recurring updated",
     "deleted": "Recurring deleted",
@@ -1107,21 +1140,7 @@
   "savings": {
     "title": "Savings",
     "empty": "You don't have any savings goals yet",
-    "emptyMessage": "Name what you want to save for and how much. Every contribution comes out of one of your accounts, so the progress you see is real. No goal yet? A free contribution counts too.",
-    "emptySteps": {
-      "goal": {
-        "title": "Set the goal",
-        "text": "A target amount and, optionally, a date to reach it."
-      },
-      "contribute": {
-        "title": "Contribute from an account",
-        "text": "Each contribution comes out of the source account's balance."
-      },
-      "pace": {
-        "title": "Track your pace",
-        "text": "See how much you've saved, your average monthly contribution and what's left."
-      }
-    },
+    "emptyHint": "Create a goal or record a free contribution to start tracking your progress.",
     "subtitle_one": "{{count}} open goal · {{missing}} left to reach",
     "subtitle_other": "{{count}} open goals · {{missing}} left to reach",
     "freeContribution": "Free contribution",
@@ -2340,7 +2359,6 @@
     "ACCOUNT_DISABLED": "This account is disabled.",
     "PAYMENT_EXCEEDS_REMAINING": "The amount is more than what this statement still owes.",
     "TRANSFER_SAME_ACCOUNT": "Source and destination must be different accounts.",
-    "TRANSFER_TO_CREDIT_ACCOUNT": "You can't transfer money into a credit line.",
     "TRANSFER_ACCOUNT_NOT_FOUND": "One of the transfer's accounts was not found.",
     "TRANSFER_NOT_FOUND": "Transfer not found.",
     "TRANSFER_EDIT_AS_PAIR": "A transfer is edited as a whole, from both of its sides.",
@@ -2398,6 +2416,7 @@
     "TRANSFER_ALREADY_BILLED": "Can't undo: the statement that received the transfer has already been paid.",
     "STATEMENT_PAYMENT_CURRENCY_AMBIGUOUS": "Also enter how much was debited from the source account: it's in another currency.",
     "TRANSACTION_LINKED_TO_STATEMENT": "This transaction backs a statement's payment or transfer. Change it from its statement.",
-    "CARD_LIMIT_HAS_DEBT": "You can't remove the limit in that currency while it has debt or an unsettled statement."
+    "CARD_LIMIT_HAS_DEBT": "You can't remove the limit in that currency while it has debt or an unsettled statement.",
+    "WALLET_FULL": "Your wallet already holds the maximum of 4."
   }
 }

@@ -2,6 +2,7 @@ import { Injectable } from "@nestjs/common";
 
 import { PrismaService } from "../../../infra/prisma/prisma.service";
 import type {
+  AccountDeletionMovement,
   InstallmentPlanMovement,
   TransactionPlan,
   TransactionWriterRepositoryPort,
@@ -79,6 +80,48 @@ export class PrismaTransactionWriterRepository implements TransactionWriterRepos
     if (ids.length === 0) return;
     const client = tx as PrismaService;
     await client.transaction.deleteMany({ where: { id: { in: ids } } });
+  }
+
+  async listForAccountDeletion(
+    userId: string,
+    accountId: string,
+    extraIds: string[],
+  ): Promise<AccountDeletionMovement[]> {
+    const select = {
+      id: true,
+      bankAccountId: true,
+      type: true,
+      amount: true,
+      currency: true,
+      transferGroupId: true,
+    } as const;
+    const own = await this.prisma.transaction.findMany({
+      where: { userId, bankAccountId: accountId },
+      select,
+    });
+    const groups = [
+      ...new Set(own.map((r) => r.transferGroupId).filter((g): g is string => g !== null)),
+    ];
+    const elsewhere = await this.prisma.transaction.findMany({
+      where: {
+        userId,
+        NOT: { bankAccountId: accountId },
+        OR: [
+          ...(groups.length > 0 ? [{ transferGroupId: { in: groups } }] : []),
+          { prepaymentAccountId: accountId },
+          ...(extraIds.length > 0 ? [{ id: { in: extraIds } }] : []),
+        ],
+      },
+      select,
+    });
+    return [...own, ...elsewhere].map((r) => ({
+      id: r.id,
+      bankAccountId: r.bankAccountId,
+      type: r.type,
+      amount: r.amount.toString(),
+      currency: r.currency,
+      transfer: r.transferGroupId !== null,
+    }));
   }
 
   async accountIdForTransaction(userId: string, id: string): Promise<string | null> {

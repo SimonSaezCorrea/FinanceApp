@@ -42,6 +42,7 @@ const creditAccount: AccountContext = {
   creditUsed: "0",
   billingCycleDay: null,
   billingCycleType: "BUSINESS_DAY",
+  currency: "CLP",
 };
 
 const creditCard: CardContext = { id: "cC", kind: "CREDIT" };
@@ -75,7 +76,7 @@ describe("MovementPolicy.validate", () => {
     expect(contribution).toBe("0");
     expect(
       MovementPolicy.contribution(
-        { type: "INCOME", amount: "70" },
+        { type: "INCOME", amount: "70", currency: "USD" },
         creditAccount,
         creditCard,
         usdLimit,
@@ -198,7 +199,9 @@ describe("MovementPolicy.validate", () => {
       limit,
       { income: "0", expense: "500000" },
     );
-    expect(contribution).toBe("0"); // has its own sub-limit -> stays out of the account pool
+    // A sub-limit in the account's currency is carved out of the global cupo: the
+    // card's spending still uses the account pool.
+    expect(contribution).toBe("100000");
   });
 
   it("rejects an expense that fits the account pool but exceeds the card's own sub-limit", () => {
@@ -268,12 +271,25 @@ describe("MovementPolicy.contribution", () => {
     ).toBe("0");
   });
 
-  it("is 0 for a CREDIT card with its own sub-limit (stays out of the shared pool)", () => {
+  it("counts a CREDIT card's own sub-limit in the account's currency toward the pool", () => {
     expect(
-      MovementPolicy.contribution({ type: "EXPENSE", amount: "100" }, creditAccount, creditCard, {
-        limitAmount: "1",
-        usedInitial: "0",
-      }),
+      MovementPolicy.contribution(
+        { type: "EXPENSE", amount: "100", currency: "CLP" },
+        creditAccount,
+        creditCard,
+        { limitAmount: "1", usedInitial: "0" },
+      ),
+    ).toBe("100");
+  });
+
+  it("is 0 for a charge against a card's limit in ANOTHER currency (its own pool)", () => {
+    expect(
+      MovementPolicy.contribution(
+        { type: "EXPENSE", amount: "100", currency: "USD" },
+        creditAccount,
+        creditCard,
+        { limitAmount: "1", usedInitial: "0" },
+      ),
     ).toBe("0");
   });
 });

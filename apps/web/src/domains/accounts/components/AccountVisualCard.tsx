@@ -66,19 +66,21 @@ export function AccountVisualCard({
       ? `${String(card.expiryMonth).padStart(2, "0")}/${String(card.expiryYear).slice(-2)}`
       : null);
 
-  // A card with its OWN sub-limit (for the account's currency) shows that instead
-  // of the shared account pool. A card that shares the pool (no sub-limit of its
-  // own) still shows the shared LIMIT, but its own individual usage (`ownUsed`)
-  // rather than the fully-combined pool total — each card tracks its own spend
-  // for management/analysis, while the account-level view (no specific `card`)
-  // is the only place the true combined total is shown.
+  // A card with its OWN sub-limit (for the account's currency) shows that limit and
+  // its own usage. A card that SHARES the pool shows the pool itself — used and
+  // limit of the account — the way the bank shows it: payments are made to the
+  // account, never to one plastic, so a per-card "used" for a shared card has no
+  // real meaning (it would pile up that card's purchases and never see a payment).
   const cardLimit = card?.limits.find((l) => l.currency === account.currency);
+  const sharesPool = card !== undefined && card.kind === "CREDIT" && !cardLimit;
   const poolLimitAmount = cardLimit ? cardLimit.limitAmount : account.creditLimit;
-  const poolUsedAmount = cardLimit ? cardLimit.used : card ? card.ownUsed : account.creditUsed;
+  const poolUsedAmount = cardLimit ? cardLimit.used : account.creditUsed;
   const limit = Number(poolLimitAmount);
   const used = Number(poolUsedAmount);
   const usagePct =
-    showCreditInfo && limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : null;
+    showCreditInfo && limit > 0
+      ? Math.max(0, Math.min(100, Math.round((used / limit) * 100)))
+      : null;
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
   // Every tile shows the ACCOUNT's balance — a prepaid card included: the money
   // lives in the prepaid account, and its cards spend it exactly like a debit card
@@ -206,7 +208,9 @@ export function AccountVisualCard({
 
           {showCreditInfo ? (
             <div className="flex flex-col gap-1">
-              <span className="text-xs opacity-70">{t("accounts.card.creditUsed")}</span>
+              <span className="text-xs opacity-70">
+                {sharesPool ? t("accounts.card.creditUsedShared") : t("accounts.card.creditUsed")}
+              </span>
               <p className="tabular-nums whitespace-nowrap">
                 <span className="text-base font-semibold">
                   <MaskedAmount>{fmt(poolUsedAmount)}</MaskedAmount>

@@ -86,6 +86,27 @@ export function isTransfer(t: Pick<Transaction, "transferGroupId">): boolean {
 }
 
 /**
+ * Money moving between the user's own accounts rather than income or spending:
+ * a transfer (paying a credit card with one included), a statement payment, a
+ * prepayment, or a foreign-currency statement's settlement. Paying the card is
+ * not spending — its purchases were counted as spending when they were made.
+ * Same set the API drops from `GET /transactions/summary`'s totals.
+ */
+export function isInternalFlow(
+  t: Pick<
+    Transaction,
+    "transferGroupId" | "paidStatementId" | "prepaymentStatementId" | "settlesStatementId"
+  >,
+): boolean {
+  return (
+    t.transferGroupId != null ||
+    t.paidStatementId != null ||
+    t.prepaymentStatementId != null ||
+    t.settlesStatementId != null
+  );
+}
+
+/**
  * Where a movement came from — derived from the fields already on the row,
  * never stored on its own (so it can't drift from the fields it reads). Used
  * by the Movements detail view to answer "¿de dónde viene esto?" instead of

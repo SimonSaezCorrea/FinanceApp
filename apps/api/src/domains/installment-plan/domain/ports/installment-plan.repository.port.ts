@@ -95,4 +95,7 @@ export interface InstallmentPlanRepositoryPort {
    * its whole money history (expenses, balances, pool) and the plan itself must go
    * with it or none of it does (FR-050a). Its instalments follow by cascade. */
   removeWithTx(tx: unknown, userId: string, id: string): Promise<boolean>;
+  /** Plans bought with one of `cardIds` or paid from `accountId` — what can go
+   * with the account when it is deleted. */
+  listIdsForAccount(userId: string, accountId: string, cardIds: string[]): Promise<string[]>;
 }

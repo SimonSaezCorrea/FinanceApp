@@ -15,6 +15,7 @@ import { UnsavedIndicator } from "../../../shared/ui/unsaved-indicator";
 import { accounts as accountsContract } from "@finance/contracts";
 
 import { useAccountMutations, useAccounts } from "../hooks/useAccounts";
+import { DeleteAccountConfirm } from "./DeleteAccountConfirm";
 import { useCardMutations } from "../hooks/useCards";
 import { AccountForm } from "./AccountForm";
 import { cleanExtraLimits } from "../lib/extraLimits";
@@ -295,25 +296,17 @@ export function AccountEditPanel({
         }}
       />
 
-      <ConfirmModal
-        open={confirmDelete}
+      <DeleteAccountConfirm
+        account={confirmDelete ? account : null}
         onOpenChange={setConfirmDelete}
-        title={t("accounts.deleteConfirm")}
-        description={t("accounts.deleteConfirmDescription")}
-        confirmLabel={t("accounts.actions.delete")}
-        loading={remove.isPending}
-        onConfirm={() =>
-          remove.mutate(account.id, {
-            onSuccess: () => {
-              toast.success(t("accounts.deleted"));
-              setConfirmDelete(false);
-              // Deleting discards the edits by definition — don't ask again.
-              leavingRef.current = true;
-              onDeleted();
-            },
-            onError: fail,
-          })
-        }
+        onDeleted={() => {
+          toast.success(t("accounts.deleted"));
+          setConfirmDelete(false);
+          // Deleting discards the edits by definition — don't ask again.
+          leavingRef.current = true;
+          onDeleted();
+        }}
+        onError={fail}
       />
     </>
   );

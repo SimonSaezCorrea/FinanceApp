@@ -6,7 +6,6 @@ import {
   PrepaidInsufficientBalanceError,
   TransferAccountNotFoundError,
   TransferSameAccountError,
-  TransferToCreditAccountError,
 } from "./errors";
 
 /** The little a transfer needs to know about each of its two accounts. */
@@ -16,6 +15,9 @@ export interface TransferAccountContext {
   /** Only read for a PREPAID source: its outgoing leg is bounded by it, exactly
    * like an expense would be (the rule belongs to the product, not the channel). */
   currentBalance?: string;
+  /** A credit card leg joins the account's open period, in its currency. */
+  currency?: string;
+  createdAt?: Date;
 }
 
 export interface TransferInput {
@@ -23,7 +25,8 @@ export interface TransferInput {
   toBankAccountId: string;
   amountOut: string;
   amountIn: string;
-  /** Never allowed on either leg (FR-019) — a transfer touches no credit pool. */
+  /** Never allowed on either leg (FR-019). A transfer into a credit card account
+   * is paying the card: it moves the pool, but through the account, not a card. */
   cardId?: string | null;
 }
 
@@ -45,7 +48,6 @@ export const TransferPolicy = {
   ): void {
     if (input.fromBankAccountId === input.toBankAccountId) throw new TransferSameAccountError();
     if (!from || !to) throw new TransferAccountNotFoundError();
-    if (to.type === "CREDIT_CARD") throw new TransferToCreditAccountError();
     if (input.cardId) throw new CardNotAllowedError();
     if (toMoney(input.amountOut).lte(0) || toMoney(input.amountIn).lte(0)) {
       throw new InvalidAmountError();

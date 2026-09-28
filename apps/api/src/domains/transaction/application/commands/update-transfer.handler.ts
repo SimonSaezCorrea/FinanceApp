@@ -14,7 +14,15 @@ import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
 } from "../../../bank-account/domain/ports/bank-account.repository.port";
-import { balanceDelta, reverseBalanceDelta } from "../../domain/balance-delta";
+import {
+  CREDIT_STATEMENT_REPOSITORY,
+  type CreditStatementRepositoryPort,
+} from "../../../credit-statement/domain/ports/credit-statement.repository.port";
+import {
+  reverseTransferLegDelta,
+  transferLegDelta,
+  type LegDelta,
+} from "../../domain/balance-delta";
 import { TransferNotFoundError } from "../../domain/errors";
 import { TransferPolicy, type TransferAccountContext } from "../../domain/transfer-policy";
 import {
@@ -29,6 +37,9 @@ interface Context {
   existing: TransferPair;
   from: TransferAccountContext | null;
   to: TransferAccountContext | null;
+  /** The accounts the pair sits on BEFORE the edit — what gets reverted. */
+  oldFrom: TransferAccountContext | null;
+  oldTo: TransferAccountContext | null;
   fromId: string;
   toId: string;
 }
@@ -50,6 +61,8 @@ export class UpdateTransferHandler extends BaseCommandHandler<
     @Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
     @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
+    @Inject(CREDIT_STATEMENT_REPOSITORY)
+    private readonly statements: CreditStatementRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -65,7 +78,13 @@ export class UpdateTransferHandler extends BaseCommandHandler<
     const fromId = command.input.fromBankAccountId ?? existing.outgoing.bankAccountId!;
     const toId = command.input.toBankAccountId ?? existing.incoming.bankAccountId!;
     const { from, to } = await loadTransferAccounts(this.accounts, command.userId, fromId, toId);
-    return { existing, from, to, fromId, toId };
+    const old = await loadTransferAccounts(
+      this.accounts,
+      command.userId,
+      existing.outgoing.bankAccountId ?? undefined,
+      existing.incoming.bankAccountId ?? undefined,
+    );
+    return { existing, from, to, oldFrom: old.from, oldTo: old.to, fromId, toId };
   }
 
   protected async handle(
@@ -101,17 +120,33 @@ export class UpdateTransferHandler extends BaseCommandHandler<
     // Revert what the old pair did, then apply the new one — netted per account
     // so an account that appears on both sides gets one delta, not two.
     const deltas = netDeltas([
-      {
-        accountId: existing.outgoing.bankAccountId!,
-        delta: reverseBalanceDelta("EXPENSE", existing.outgoing.amount),
-      },
-      {
-        accountId: existing.incoming.bankAccountId!,
-        delta: reverseBalanceDelta("INCOME", existing.incoming.amount),
-      },
-      { accountId: fromId, delta: balanceDelta("EXPENSE", amountOut) },
-      { accountId: toId, delta: balanceDelta("INCOME", amountIn) },
+      ...(context.oldFrom
+        ? [reverseTransferLegDelta("EXPENSE", existing.outgoing.amount, context.oldFrom)]
+        : []),
+      ...(context.oldTo
+        ? [reverseTransferLegDelta("INCOME", existing.incoming.amount, context.oldTo)]
+        : []),
+      transferLegDelta("EXPENSE", amountOut, context.from!),
+      transferLegDelta("INCOME", amountIn, context.to!),
     ]);
+
+    // A leg that stays on the same credit card account keeps its period; one that
+    // moves onto one joins that account's open period; any other carries none.
+    const statementFor = async (
+      account: TransferAccountContext,
+      leg: TransferPair["outgoing"],
+    ): Promise<string | null> => {
+      if (account.type !== "CREDIT_CARD") return null;
+      if (leg.bankAccountId === account.id && leg.creditStatementId) return leg.creditStatementId;
+      const period = await this.statements.findOrCreateOpenForAccount(
+        account.id,
+        account.createdAt ?? new Date(),
+        account.currency ?? "CLP",
+      );
+      return period.id;
+    };
+    const outStatement = await statementFor(context.from!, existing.outgoing);
+    const inStatement = await statementFor(context.to!, existing.incoming);
 
     const pair = await this.repo.updateTransferPair(
       userId,
@@ -121,12 +156,14 @@ export class UpdateTransferHandler extends BaseCommandHandler<
         amount: amountOut,
         ...(input.currencyOut !== undefined ? { currency: input.currencyOut } : {}),
         bankAccountId: fromId,
+        creditStatementId: outStatement,
       },
       {
         ...shared,
         amount: amountIn,
         ...(input.currencyIn !== undefined ? { currency: input.currencyIn } : {}),
         bankAccountId: toId,
+        creditStatementId: inStatement,
       },
       deltas,
     );
@@ -136,16 +173,19 @@ export class UpdateTransferHandler extends BaseCommandHandler<
   }
 }
 
-/** Collapses several deltas on the same account into one. */
-export function netDeltas(
-  deltas: { accountId: string; delta: string }[],
-): { accountId: string; delta: string }[] {
-  const byAccount = new Map<string, string[]>();
+/** Collapses several deltas on the same account (and the same target: cash or
+ * credit pool) into one. */
+export function netDeltas(deltas: LegDelta[]): LegDelta[] {
+  const byKey = new Map<string, { accountId: string; pool: boolean; values: string[] }>();
   for (const d of deltas) {
-    byAccount.set(d.accountId, [...(byAccount.get(d.accountId) ?? []), d.delta]);
+    const key = `${d.accountId}|${d.pool ? 1 : 0}`;
+    const entry = byKey.get(key) ?? { accountId: d.accountId, pool: Boolean(d.pool), values: [] };
+    entry.values.push(d.delta);
+    byKey.set(key, entry);
   }
-  return [...byAccount.entries()].map(([accountId, values]) => ({
+  return [...byKey.values()].map(({ accountId, pool, values }) => ({
     accountId,
     delta: sumMoney(values),
+    ...(pool ? { pool } : {}),
   }));
 }

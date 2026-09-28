@@ -261,6 +261,20 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
     return this.payments.sumBilledForStatement(statementId);
   }
 
+  async listIdsForAccount(userId: string, accountId: string, cardIds: string[]): Promise<string[]> {
+    const rows = await this.prisma.installmentPlan.findMany({
+      where: {
+        userId,
+        OR: [
+          { paymentAccountId: accountId },
+          ...(cardIds.length > 0 ? [{ cardId: { in: cardIds } }] : []),
+        ],
+      },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
+  }
+
   async remove(userId: string, id: string): Promise<boolean> {
     const result = await this.prisma.installmentPlan.deleteMany({ where: { id, userId } });
     return result.count > 0;

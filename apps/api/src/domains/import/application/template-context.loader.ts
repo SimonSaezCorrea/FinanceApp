@@ -65,15 +65,15 @@ export async function loadTemplateContext(
 
     const since = currentCycleStart(snap.billingCycleDay, snap.billingCycleType, now);
     for (const card of account.cards) {
-      // A CREDIT card with its own sub-limit in the account's currency stays out of
-      // the shared pool and is capped by that instead — same inputs a single
-      // movement loads (`ImportTransactionsHandler.accountCards`).
+      // A CREDIT card with its own sub-limit in the account's currency is capped by
+      // it AND by the account's pool, which its spending still uses — same inputs a
+      // single movement loads (`ImportTransactionsHandler.accountCards`).
       const own =
         card.kind === "CREDIT"
           ? (card.limits.find((l) => l.currency === snap.currency) ?? null)
           : null;
       const usage = own
-        ? await deps.movements.sumsForCard(userId, card.id, snap.currency, since)
+        ? await deps.movements.sumsForCard(userId, card.id, snap.currency, since, undefined, true)
         : { income: "0", expense: "0" };
       // Its limits in other currencies (a CLP card's USD one): a movement in that
       // currency goes against them, never the account's pool.

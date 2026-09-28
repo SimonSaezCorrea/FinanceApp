@@ -42,6 +42,16 @@ export function useWalletMutations() {
       },
       onSuccess: (list) => qc.setQueryData<wallet.WalletItem[]>(KEY, list),
     }),
+    replace: useMutation({
+      mutationFn: walletApi.replace,
+      // Show what was saved right away, then confirm it with the server: the
+      // write also clears a wallet query that had failed to load (it is not left
+      // showing an empty wallet next to the one just saved).
+      onSuccess: (list) => {
+        qc.setQueryData<wallet.WalletItem[]>(KEY, list);
+        void qc.invalidateQueries({ queryKey: KEY });
+      },
+    }),
     remove: useMutation({
       mutationFn: walletApi.remove,
       onSuccess: (_data, id) =>

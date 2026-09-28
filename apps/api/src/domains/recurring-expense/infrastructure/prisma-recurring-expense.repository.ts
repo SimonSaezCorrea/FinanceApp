@@ -102,6 +102,26 @@ export class PrismaRecurringExpenseRepository implements RecurringExpenseReposit
     });
   }
 
+  async listIdsForAccount(userId: string, accountId: string, cardIds: string[]): Promise<string[]> {
+    const rows = await this.prisma.recurringExpense.findMany({
+      where: {
+        userId,
+        OR: [
+          { bankAccountId: accountId },
+          ...(cardIds.length > 0 ? [{ cardId: { in: cardIds } }] : []),
+        ],
+      },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
+  }
+
+  async removeManyWithTx(tx: unknown, userId: string, ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    const client = tx as PrismaService;
+    await client.recurringExpense.deleteMany({ where: { userId, id: { in: ids } } });
+  }
+
   async remove(userId: string, id: string): Promise<boolean> {
     const result = await this.prisma.recurringExpense.deleteMany({ where: { id, userId } });
     return result.count > 0;

@@ -1,5 +1,8 @@
 import type { accounts, debts, installments, recurring, transactions } from "@finance/contracts";
+import { transactions as transactionsContract } from "@finance/contracts";
 import { sumMoney } from "@finance/money";
+
+import { leftAmount } from "../../debts/lib/debtMetrics";
 
 /** No FX rates available — the dashboard aggregates only the primary currency. */
 export const PRIMARY_CURRENCY = "CLP";
@@ -8,7 +11,9 @@ export const PRIMARY_CURRENCY = "CLP";
  * Net worth = what you have minus what you owe, in the primary currency:
  *   Σ currentBalance de las cuentas
  *   − Σ creditUsed (deuda rotativa ya usada)
- *   − Σ deudas no liquidadas que YO debo (+ las que me deben suman)
+ *   − lo que queda por pagar de las deudas que YO debo (+ lo pendiente de las que
+ *     me deben) — lo PENDIENTE, no el monto original: una deuda cobrada en parte
+ *     solo vale lo que falta
  *
  * The credit pool is counted here and the installment plans are NOT: a plan bought
  * with a card already shows up as movements on its credit account, so adding it
@@ -31,7 +36,7 @@ export function netWorth(
   const total = sumMoney([
     ...primary.map((a) => a.currentBalance),
     ...primary.map((a) => `-${a.creditUsed}`),
-    ...owed.map((d) => (d.direction === "YOU_OWE" ? `-${d.principal}` : d.principal)),
+    ...owed.map((d) => (d.direction === "YOU_OWE" ? `-${leftAmount(d)}` : leftAmount(d))),
   ]);
   const points = primary[0]?.balanceSeries.length ?? 0;
   const series = Array.from({ length: points }, (_, i) =>
@@ -74,12 +79,13 @@ export interface MonthFlow {
 }
 
 /**
- * Money moved between the user's own accounts is neither income nor expense, so
- * every aggregate here drops it — the same rule the API applies to
- * `GET /transactions/summary` (`EXCLUDE_TRANSFERS`).
+ * Money moved between the user's own accounts — a transfer, or paying a credit
+ * card — is neither income nor expense, so every aggregate here drops it: the
+ * same rule the API applies to `GET /transactions/summary`
+ * (`transactions.isInternalFlow`).
  */
 export function excludeTransfers(txs: transactions.Transaction[]): transactions.Transaction[] {
-  return txs.filter((t) => t.transferGroupId === null);
+  return txs.filter((t) => !transactionsContract.isInternalFlow(t));
 }
 
 /** Income/expense totals (primary currency) for the given transactions. */

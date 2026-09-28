@@ -121,7 +121,7 @@ describe("planImport", () => {
     ).toThrow(expect.objectContaining({ code: "CARD_ACCOUNT_MISMATCH", field: "rows.0" }));
   });
 
-  it("keeps an additional card with its own sub-limit out of the shared pool, capped by its own", () => {
+  it("charges an additional card with its own sub-limit to the shared pool too, capped by both", () => {
     const additional: ImportCard = {
       id: "additional",
       kind: "CREDIT",
@@ -138,7 +138,8 @@ describe("planImport", () => {
       primary,
       additional,
     ]);
-    expect(Number(plan.creditTotal)).toBe(0);
+    // Its sub-limit is carved out of the account's cupo: the charge uses the pool.
+    expect(Number(plan.creditTotal)).toBe(5000);
     // 40.000 used + 5.000 + 6.000 goes past its own 50.000, on the running total.
     expect(() =>
       planImport(

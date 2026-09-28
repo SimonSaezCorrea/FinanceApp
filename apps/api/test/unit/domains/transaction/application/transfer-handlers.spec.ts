@@ -16,11 +16,16 @@ import { Transaction } from "../../../../../src/domains/transaction/domain/trans
 import type { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
 import {
   accountAggregate,
+  fakeCreditStatementRepo,
   fakeIdempotencyRecordRepo,
   fakePrismaTransaction,
 } from "../../../support/fake-ports";
 
 const eventBus = { publish: vi.fn() } as unknown as EventBus;
+const statements = fakeCreditStatementRepo({
+  findOrCreateOpenForAccount: vi.fn(async () => ({ id: "open-period" })),
+  findOrCreateOpenForAccountWithTx: vi.fn(async () => ({ id: "open-period" })),
+});
 const prisma = fakePrismaTransaction() as unknown as PrismaService;
 
 /** Every scenario needs SOME key; only its stability across calls matters
@@ -119,6 +124,7 @@ describe("CreateTransferHandler", () => {
       fakeAccounts({ a1: "CHECKING", a2: "SAVINGS" }),
       prisma,
       fakeCategoryLookup(),
+      statements,
     );
 
     await handler.execute(transferCmd(input));
@@ -136,16 +142,27 @@ describe("CreateTransferHandler", () => {
     ]);
   });
 
-  it("refuses a destination that is a credit line", async () => {
+  it("pays a credit card: the destination leg lowers the pool and joins its open period", async () => {
+    const repo = fakeRepo();
     const handler = new CreateTransferHandler(
       eventBus,
       fakeIdempotencyRecordRepo(),
-      fakeRepo(),
+      repo,
       fakeAccounts({ a1: "CHECKING", a2: "CREDIT_CARD" }),
       prisma,
       fakeCategoryLookup(),
+      statements,
     );
-    await expect(handler.execute(transferCmd(input))).rejects.toThrow(/TRANSFER_TO_CREDIT_ACCOUNT/);
+
+    await handler.execute(transferCmd(input));
+
+    const [, , outgoing, incoming, deltas] = vi.mocked(repo.saveTransferPairWithTx).mock.calls[0]!;
+    expect(outgoing.creditStatementId).toBeNull();
+    expect(incoming.creditStatementId).toBe("open-period");
+    expect(deltas).toEqual([
+      { accountId: "a1", delta: "-1000.0000" },
+      { accountId: "a2", delta: "-1000.0000", pool: true },
+    ]);
   });
 
   it("refuses an account that isn't the user's", async () => {
@@ -156,6 +173,7 @@ describe("CreateTransferHandler", () => {
       fakeAccounts({ a1: "CHECKING" }),
       prisma,
       fakeCategoryLookup(),
+      statements,
     );
     await expect(handler.execute(transferCmd(input))).rejects.toThrow(/TRANSFER_ACCOUNT_NOT_FOUND/);
   });
@@ -167,8 +185,9 @@ describe("UpdateTransferHandler", () => {
     const handler = new UpdateTransferHandler(
       eventBus,
       repo,
-      fakeAccounts({ a1: "CHECKING", a3: "SAVINGS" }),
+      fakeAccounts({ a1: "CHECKING", a2: "SAVINGS", a3: "SAVINGS" }),
       fakeCategoryLookup(),
+      statements,
     );
 
     await handler.execute(
@@ -193,6 +212,7 @@ describe("UpdateTransferHandler", () => {
       fakeRepo({ findTransferGroup: vi.fn(async () => null) }),
       fakeAccounts({}),
       fakeCategoryLookup(),
+      statements,
     );
     await expect(
       handler.execute(new UpdateTransferCommand("u1", "nope", { amountOut: "5" })),
@@ -203,13 +223,33 @@ describe("UpdateTransferHandler", () => {
 describe("RemoveTransferHandler", () => {
   it("gives both accounts their money back", async () => {
     const repo = fakeRepo();
-    const handler = new RemoveTransferHandler(eventBus, repo);
+    const handler = new RemoveTransferHandler(
+      eventBus,
+      repo,
+      fakeAccounts({ a1: "CHECKING", a2: "SAVINGS" }),
+    );
 
     await handler.execute(new RemoveTransferCommand("u1", "g1"));
 
     expect(vi.mocked(repo.removeTransferPair).mock.calls[0]![2]).toEqual([
       { accountId: "a1", delta: "1000.0000" },
       { accountId: "a2", delta: "-1000.0000" },
+    ]);
+  });
+
+  it("gives a paid credit card its used credit back", async () => {
+    const repo = fakeRepo();
+    const handler = new RemoveTransferHandler(
+      eventBus,
+      repo,
+      fakeAccounts({ a1: "CHECKING", a2: "CREDIT_CARD" }),
+    );
+
+    await handler.execute(new RemoveTransferCommand("u1", "g1"));
+
+    expect(vi.mocked(repo.removeTransferPair).mock.calls[0]![2]).toEqual([
+      { accountId: "a1", delta: "1000.0000" },
+      { accountId: "a2", delta: "1000.0000", pool: true },
     ]);
   });
 });

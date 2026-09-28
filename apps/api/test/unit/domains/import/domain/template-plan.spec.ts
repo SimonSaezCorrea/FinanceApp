@@ -40,7 +40,8 @@ function account(
   over: Partial<AccountContext> = {},
   extra: Partial<TemplateAccount> = {},
 ): [string, TemplateAccount] {
-  return [id, { context: ctx(id, over), currency: "CLP", status: "ACTIVE", ...extra }];
+  const currency = extra.currency ?? "CLP";
+  return [id, { context: ctx(id, { currency, ...over }), currency, status: "ACTIVE", ...extra }];
 }
 
 const noUsage = { income: "0", expense: "0" };
@@ -375,7 +376,7 @@ describe("planTemplateImport — movements and transfers (US2)", () => {
     expect(Number(effect(result, MACH).netCash)).toBe(40000);
   });
 
-  it("refuses a transfer INTO a credit card account", () => {
+  it("pays a credit card with a transfer: the pool drops, and neither leg is income or spending", () => {
     const result = planTemplateImport(
       req({
         transfers: [
@@ -384,15 +385,26 @@ describe("planTemplateImport — movements and transfers (US2)", () => {
             occurredAt: date("2026-03-01"),
             fromAccountId: BCI,
             toAccountId: TC,
-            outgoingAmount: "1",
-            incomingAmount: "1",
+            outgoingAmount: "5000",
+            incomingAmount: "5000",
           },
+        ],
+        balanceModes: [
+          { accountId: BCI, mode: "ADD" },
+          { accountId: TC, mode: "ADD" },
         ],
       }),
       lookup(),
       options(),
     );
-    expect(codes(result)).toEqual(["transfers:2:TRANSFER_TO_CREDIT_ACCOUNT"]);
+    expect(codes(result)).toEqual([]);
+    const tc = result.accounts.find((a) => a.accountId === TC)!;
+    expect(tc.netCash).toBe("0.0000");
+    expect(tc.netCredit).toBe("-5000.0000");
+    const leg = result.movements.find((m) => m.accountId === TC)!;
+    expect(leg.transferGroupId).not.toBeNull();
+    // It joins the card account's open billing period.
+    expect(leg.statementCurrency).toBe("CLP");
   });
 });
 

@@ -169,7 +169,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     const oldContribution =
       oldAccount != null
         ? MovementPolicy.contribution(
-            { type: current.type, amount: current.amount },
+            { type: current.type, amount: current.amount, currency: current.currency },
             oldAccount,
             oldCard,
             oldCardLimit,
@@ -212,6 +212,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
             effective.currency,
             currentCycleStart(account.billingCycleDay, account.billingCycleType, new Date()),
             id,
+            effective.currency === account.currency,
           )
         : { income: "0", expense: "0" };
       newContribution = MovementPolicy.validate(

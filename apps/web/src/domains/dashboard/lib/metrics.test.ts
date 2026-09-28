@@ -76,6 +76,9 @@ describe("netWorth con deuda", () => {
       principal: "50000",
       currency: "CLP",
       settledAt: null,
+      totalInstallments: 1,
+      paidInstallments: 0,
+      installmentAmount: null,
       ...over,
     }) as debts.Debt;
 
@@ -86,6 +89,16 @@ describe("netWorth con deuda", () => {
   it("resta un préstamo pendiente y suma lo que a mí me deben", () => {
     expect(netWorth([account()], [debt()]).total).toBe("50000.0000");
     expect(netWorth([account()], [debt({ direction: "OWED_TO_YOU" })]).total).toBe("150000.0000");
+  });
+
+  it("cuenta solo lo pendiente de una deuda pagada en parte", () => {
+    const partial = debt({
+      direction: "OWED_TO_YOU",
+      principal: "200000",
+      totalInstallments: 4,
+      paidInstallments: 3,
+    });
+    expect(netWorth([account()], [partial]).total).toBe("150000.0000");
   });
 
   it("ignora deudas liquidadas y las de otra moneda", () => {

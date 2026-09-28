@@ -20,6 +20,11 @@ export type InstallmentFrequency = z.infer<typeof installmentFrequency>;
  */
 export const installmentPlanStatus = z.enum([
   "OVERDUE",
+  // Credit-card plans only: the next instalment's date passed, but it is not the
+  // user's to pay on its own — the card's statement charges it. "Por facturar" until
+  // a period bills it, "Facturada" while that period is unpaid. Never "overdue".
+  "TO_BILL",
+  "BILLED",
   "DUE_SOON",
   "ON_TRACK",
   "PARTIALLY_PAID",
@@ -276,12 +281,16 @@ export function planStatus(
   nextDueDate: string | null,
   now: Date,
   hasUnsettledShortfall: boolean,
+  /** Credit-card plan: whether its next instalment is already on a statement.
+   * Omitted (undefined) for any other plan. */
+  creditCard?: { nextBilled: boolean },
 ): InstallmentPlanStatus {
   if (nextDueDate === null) return "PAID";
   if (hasUnsettledShortfall) return "PARTIALLY_PAID";
   const due = new Date(nextDueDate).getTime();
   const today = now.getTime();
-  if (due < today) return "OVERDUE";
+  if (creditCard?.nextBilled) return "BILLED";
+  if (due < today) return creditCard ? "TO_BILL" : "OVERDUE";
   return due <= today + DUE_SOON_DAYS * 86_400_000 ? "DUE_SOON" : "ON_TRACK";
 }
 

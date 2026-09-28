@@ -1,12 +1,14 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { type Prisma, TransactionType } from "@prisma/client";
+import { toMoney } from "@finance/money";
 
 import { PrismaService } from "../../../infra/prisma/prisma.service";
-import { EXCLUDE_TRANSFERS } from "../application/queries/transaction-list-filter";
+import { excludeInternalFlows } from "../application/queries/transaction-list-filter";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
 } from "../../bank-account/domain/ports/bank-account.repository.port";
+import type { LegDelta } from "../domain/balance-delta";
 import { Transaction, type TransactionProps } from "../domain/transaction.aggregate";
 import type {
   TransactionListFilter,
@@ -33,6 +35,11 @@ function legData(patch: TransferLegPatch): Prisma.TransactionUpdateInput {
   if (patch.receptor !== undefined) data.receptor = patch.receptor;
   if (patch.lugar !== undefined) data.lugar = patch.lugar;
   if (patch.bankAccountId) data.bankAccount = { connect: { id: patch.bankAccountId } };
+  if (patch.creditStatementId !== undefined) {
+    data.creditStatement = patch.creditStatementId
+      ? { connect: { id: patch.creditStatementId } }
+      : { disconnect: true };
+  }
   return data;
 }
 
@@ -199,12 +206,17 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     };
   }
 
-  async summary(userId: string, where: TransactionListFilter): Promise<TransactionSummaryResult> {
+  async summary(
+    userId: string,
+    where: TransactionListFilter,
+    internalCategoryIds: string[] = [],
+  ): Promise<TransactionSummaryResult> {
     const prismaWhere = this.buildWhere(userId, where);
     // Money moved between the user's own accounts is neither income nor expense,
     // so the TOTALS and the category vocabulary drop it — but `total` does NOT:
     // both legs are real rows of the set the list is paging through.
-    const aggregateWhere = { ...prismaWhere, ...EXCLUDE_TRANSFERS };
+    // The same goes for paying a credit card (see `excludeInternalFlows`).
+    const aggregateWhere = { AND: [prismaWhere, excludeInternalFlows(internalCategoryIds)] };
     // Aggregated in the database — summing in JS would mean fetching every row,
     // which is the exact cost pagination exists to avoid.
     const [total, grouped, categories] = await Promise.all([
@@ -240,6 +252,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     currency: string,
     since: Date | null,
     excludeTxId?: string,
+    openOnly = false,
   ): Promise<{ income: string; expense: string }> {
     const grouped = await this.prisma.transaction.groupBy({
       by: ["type"],
@@ -249,6 +262,9 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         currency,
         ...(since ? { occurredAt: { gte: since } } : {}),
         ...(excludeTxId ? { id: { not: excludeTxId } } : {}),
+        ...(openOnly
+          ? { OR: [{ creditStatementId: null }, { creditStatement: { paidAt: null } }] }
+          : {}),
       },
       _sum: { amount: true },
     });
@@ -264,7 +280,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     userId: string,
     plan: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     creditUsedDelta: { accountId: string; delta: string } | null,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<Transaction> {
     return this.prisma.$transaction((tx) =>
       this.saveNewWithTx(tx, userId, plan, creditUsedDelta, balanceDeltas),
@@ -276,7 +292,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     userId: string,
     plan: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     creditUsedDelta: { accountId: string; delta: string } | null,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<Transaction> {
     const client = tx as PrismaService;
     const row = await client.transaction.create({
@@ -319,7 +335,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
       creditStatementId?: string | null;
     },
     creditUsedDeltas: { accountId: string; delta: string }[],
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<Transaction | null> {
     const owned = await this.prisma.transaction.findFirst({
       where: { id, userId },
@@ -343,7 +359,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
       creditStatementId?: string | null;
     },
     creditUsedDeltas: { accountId: string; delta: string }[],
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<Transaction | null> {
     const data = patchToUpdateInput(patch);
     const row = await this.saveUpdateWithTxInternal(
@@ -363,7 +379,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     id: string,
     data: Prisma.TransactionUpdateInput,
     creditUsedDeltas: { accountId: string; delta: string }[],
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<Row> {
     const client = tx as PrismaService;
     const updated = await client.transaction.update({ where: { id }, data });
@@ -379,7 +395,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     userId: string,
     id: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
       const result = await tx.transaction.deleteMany({ where: { id, userId } });
@@ -393,7 +409,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     tx: unknown,
     id: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<boolean> {
     const client = tx as PrismaService;
     const result = await client.transaction.deleteMany({ where: { id } });
@@ -405,7 +421,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
   private async removeWithTxInternal(
     tx: unknown,
     creditUsedDelta: { accountId: string; delta: string } | null,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<void> {
     if (creditUsedDelta && creditUsedDelta.delta !== "0") {
       await this.accounts.incrementCreditUsedWithTx(
@@ -430,7 +446,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     userId: string,
     outgoing: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     incoming: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<TransferPair> {
     return this.prisma.$transaction((tx) =>
       this.saveTransferPairWithTx(tx, userId, outgoing, incoming, balanceDeltas),
@@ -442,7 +458,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     userId: string,
     outgoing: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     incoming: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<TransferPair> {
     const client = tx as PrismaService;
     const groupId = outgoing.transferGroupId!;
@@ -463,7 +479,10 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
             receptor: leg.receptor,
             lugar: leg.lugar,
             bankAccountId: leg.bankAccountId,
-            // A transfer never carries a card nor a billing period (FR-019).
+            // Never a card (FR-019). A leg on a credit card account (paying the
+            // card, or a cash advance) joins its open billing period like any
+            // other movement there; every other leg carries none.
+            creditStatementId: leg.creditStatementId,
             transferGroupId: leg.transferGroupId,
           },
         }),
@@ -478,7 +497,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     transferGroupId: string,
     outgoing: TransferLegPatch,
     incoming: TransferLegPatch,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<TransferPair | null> {
     const existing = await this.prisma.transaction.findMany({
       where: { userId, transferGroupId },
@@ -505,7 +524,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
   async removeTransferPair(
     userId: string,
     transferGroupId: string,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<boolean> {
     return this.prisma.$transaction(async (tx) => {
       const result = await tx.transaction.deleteMany({ where: { userId, transferGroupId } });
@@ -529,13 +548,11 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
 
   /** Cash-balance moves go through the `bank-account` port, inside whichever
    *  `$transaction` the caller opened — one table, one adapter, still atomic. */
-  private async applyBalanceDeltas(
-    tx: unknown,
-    deltas: { accountId: string; delta: string }[],
-  ): Promise<void> {
+  private async applyBalanceDeltas(tx: unknown, deltas: LegDelta[]): Promise<void> {
     for (const d of deltas) {
-      if (d.delta === "0") continue;
-      await this.accounts.incrementBalanceWithTx(tx, d.accountId, d.delta);
+      if (toMoney(d.delta).isZero()) continue;
+      if (d.pool) await this.accounts.incrementCreditUsedWithTx(tx, d.accountId, d.delta);
+      else await this.accounts.incrementBalanceWithTx(tx, d.accountId, d.delta);
     }
   }
 }

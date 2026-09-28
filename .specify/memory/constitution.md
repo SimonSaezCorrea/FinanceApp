@@ -1,4 +1,42 @@
 <!--
+Sync Impact Report — 2026-09-27 (amendment 2.3.12)
+- Version change: 2.3.11 → 2.3.12 (PATCH: a limit and a write endpoint; no principle text changed,
+  no schema change).
+- ADDED: the dashboard wallet holds at most 4 entries (`WALLET_FULL`), and `PUT /wallet` replaces
+  it whole, in order. **Principle II**: every account/card in the body is ownership-verified before
+  anything is written. **Principle VII**: form (b)-like — the final state is a function of the
+  body alone (delete + recreate in one `$transaction`), so a retry leaves the same wallet.
+-->
+<!--
+Sync Impact Report — 2026-09-27 (amendment 2.3.11)
+- Version change: 2.3.10 → 2.3.11 (PATCH: one transfer rule reversed, totals and net worth
+  corrected; no principle text changed, no schema change).
+- CHANGED: a transfer may land on a CREDIT_CARD account (paying the card): that leg moves the credit
+  pool, not cash, and joins the open billing period (`TRANSFER_TO_CREDIT_ACCOUNT` removed).
+- CHANGED: income/expense totals (API summary + dashboard) exclude every internal flow — transfers,
+  statement payments, prepayments, spec-028 settlements — since paying a card is not spending.
+- FIXED: net worth counted a debt's original principal instead of what is still pending; the
+  Cuentas screen now includes pending debts too, so both screens agree.
+-->
+<!--
+Sync Impact Report — 2026-09-27 (amendment 2.3.10)
+- Version change: 2.3.9 → 2.3.10 (PATCH: one write endpoint extended, one read endpoint added; no
+  principle text changed, no schema change).
+- CHANGED: `DELETE /accounts/:id` takes an optional body choosing what goes with the account
+  (movements — incl. the other leg of its transfers and payments other accounts made into its
+  periods —, instalment plans, recurring series, savings contributions); every other account those
+  touched gets its money back in the same `$transaction`. New `GET /accounts/:id/deletion-impact`
+  declares it first, from the same computation the delete runs.
+  - **Principle VII**: form (a) — the account row is deleted FIRST inside the transaction; a
+    concurrent retry blocks on its lock, deletes nothing and rolls back (`ACCOUNT_NOT_FOUND`), so
+    no balance is restored twice.
+  - **Principle VI**: `bank-account` composes the leaves of `credit-statement`,
+    `recurring-expense`, `savings-entry` and `debt` through new narrow port methods; no adapter
+    queries another's table.
+- FIXED: a debt whose last payment moved money on a deleted account can be undone again
+  (`Debt.lastPayment*` is cleared on account deletion, so undo only moves the counter back).
+-->
+<!--
 Sync Impact Report — 2026-09-27 (amendment 2.3.9)
 - Version change: 2.3.8 → 2.3.9 (PATCH: a rounding rule made explicit under Principle I; no
   schema change, no contract change).
@@ -2007,4 +2045,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.3.9 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-27
+**Version**: 2.3.12 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-27

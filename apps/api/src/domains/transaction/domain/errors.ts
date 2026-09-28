@@ -74,14 +74,6 @@ export class TransferSameAccountError extends DomainError {
   }
 }
 
-/** Money doesn't land in a credit line: settling one is a statement payment,
- * which has its own flow and its own accounting. */
-export class TransferToCreditAccountError extends DomainError {
-  constructor() {
-    super("TRANSFER_TO_CREDIT_ACCOUNT", 400, "toBankAccountId");
-  }
-}
-
 export class TransferAccountNotFoundError extends DomainError {
   constructor() {
     super("TRANSFER_ACCOUNT_NOT_FOUND", 404);

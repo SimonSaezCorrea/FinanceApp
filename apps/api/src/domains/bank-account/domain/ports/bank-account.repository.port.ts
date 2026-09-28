@@ -86,6 +86,10 @@ export interface BankAccountRepositoryPort {
     creditDelta: string,
   ): Promise<void>;
   remove(userId: string, id: string): Promise<boolean>;
+  /** Same as `remove`, inside the caller's transaction. The row lock the DELETE
+   * takes is what serialises two concurrent deletions of the same account: the
+   * second finds nothing to delete and must roll back. */
+  removeWithTx(tx: unknown, userId: string, id: string): Promise<boolean>;
   addCard(userId: string, accountId: string, plan: CreateCardPlan): Promise<BankAccount>;
   updateCard(
     userId: string,

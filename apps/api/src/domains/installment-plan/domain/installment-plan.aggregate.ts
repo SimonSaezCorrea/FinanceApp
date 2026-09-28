@@ -557,6 +557,9 @@ export class InstallmentPlan {
         next ? next.dueDate.toISOString() : null,
         now,
         hasUnsettledShortfall,
+        // A credit-card plan's instalment is charged by the card's statement, never
+        // paid on its own — so it is "to bill"/"billed", never overdue.
+        cardKind === "CREDIT" ? { nextBilled: next?.creditStatementId != null } : undefined,
       ),
       generatesMovementOnPay: installments.generatesMovementOnPay(cardKind),
       ...installments.planCounters(

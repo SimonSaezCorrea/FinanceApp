@@ -200,7 +200,7 @@ export class ImportTransactionsHandler extends BaseIdempotentCommandHandler<
             ? { limitAmount: own.limitAmount, usedInitial: own.usedInitial }
             : null;
         const usage = limit
-          ? await this.movements.sumsForCard(userId, c.id, currency, since)
+          ? await this.movements.sumsForCard(userId, c.id, currency, since, undefined, true)
           : { income: "0", expense: "0" };
         return { id: c.id, kind: c.kind, isPrimary: c.isPrimary, limit, usage };
       }),

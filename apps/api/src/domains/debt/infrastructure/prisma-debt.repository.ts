@@ -137,6 +137,27 @@ export class PrismaDebtRepository implements DebtRepositoryPort {
     return row ? Debt.fromPersistence(rowToProps(row)) : null;
   }
 
+  async countForAccount(userId: string, accountId: string): Promise<number> {
+    return this.prisma.debt.count({
+      where: {
+        userId,
+        OR: [{ paymentAccountId: accountId }, { lastPaymentAccountId: accountId }],
+      },
+    });
+  }
+
+  async clearLastPaymentForAccountWithTx(
+    tx: unknown,
+    userId: string,
+    accountId: string,
+  ): Promise<void> {
+    const client = tx as PrismaService;
+    await client.debt.updateMany({
+      where: { userId, lastPaymentAccountId: accountId },
+      data: { lastPaymentTransactionId: null, lastPaymentAccountId: null, lastPaymentAmount: null },
+    });
+  }
+
   async remove(userId: string, id: string): Promise<boolean> {
     const result = await this.prisma.debt.deleteMany({ where: { id, userId } });
     return result.count > 0;

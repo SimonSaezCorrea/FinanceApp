@@ -26,4 +26,11 @@ export interface DebtRepositoryPort {
    */
   findOneForUpdateWithTx(tx: unknown, userId: string, id: string): Promise<Debt | null>;
   remove(userId: string, id: string): Promise<boolean>;
+  /** Debts that name `accountId` — as their payment account or as where their
+   * last payment moved. They are never deleted with the account, only unlinked. */
+  countForAccount(userId: string, accountId: string): Promise<number>;
+  /** Forget a last payment recorded on `accountId` (being deleted): undoing it can
+   * no longer reverse a movement or a balance that won't exist, so undo only moves
+   * the counter back, same as a payment recorded before those columns existed. */
+  clearLastPaymentForAccountWithTx(tx: unknown, userId: string, accountId: string): Promise<void>;
 }

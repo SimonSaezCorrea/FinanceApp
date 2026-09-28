@@ -25,6 +25,7 @@ function fakeRepo(
   overrides: Partial<InstallmentPlanRepositoryPort> = {},
 ): InstallmentPlanRepositoryPort {
   return {
+    listIdsForAccount: vi.fn(async () => []),
     list: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),

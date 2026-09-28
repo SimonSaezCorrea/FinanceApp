@@ -155,4 +155,37 @@ describe("Wallet HTTP (e2e)", () => {
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("WALLET_ITEM_NOT_FOUND");
   });
+
+  it("replaces the whole wallet in the order given (PUT)", async () => {
+    const all = await request(app.getHttpServer()).get("/api/v1/accounts").set("Cookie", cookies);
+    const cashId = (all.body as { id: string; type: string }[]).find((a) => a.type === "CASH")!.id;
+
+    const res = await request(app.getHttpServer())
+      .put("/api/v1/wallet")
+      .set("Cookie", cookies)
+      .send({ items: [{ accountId: cashId }, { accountId }] });
+    expect(res.status).toBe(200);
+    expect(res.body.map((i: { accountId: string }) => i.accountId)).toEqual([cashId, accountId]);
+
+    const listed = await request(app.getHttpServer()).get("/api/v1/wallet").set("Cookie", cookies);
+    expect(listed.body.map((i: { accountId: string }) => i.accountId)).toEqual([cashId, accountId]);
+
+    // Each entry once, and at most 4.
+    const dup = await request(app.getHttpServer())
+      .put("/api/v1/wallet")
+      .set("Cookie", cookies)
+      .send({ items: [{ accountId }, { accountId }] });
+    expect(dup.status).toBe(400);
+    const five = await request(app.getHttpServer())
+      .put("/api/v1/wallet")
+      .set("Cookie", cookies)
+      .send({ items: Array.from({ length: 5 }, () => ({ accountId })) });
+    expect(five.status).toBe(400);
+
+    const cleared = await request(app.getHttpServer())
+      .put("/api/v1/wallet")
+      .set("Cookie", cookies)
+      .send({ items: [] });
+    expect(cleared.body).toEqual([]);
+  });
 });

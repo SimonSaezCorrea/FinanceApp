@@ -128,6 +128,8 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
           input.cardId!,
           input.currency,
           currentCycleStart(account.billingCycleDay, account.billingCycleType, new Date()),
+          undefined,
+          input.currency === account.currency,
         )
       : { income: "0", expense: "0" };
 

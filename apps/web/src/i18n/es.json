@@ -107,7 +107,28 @@
     "empty": "Aún no tienes cuentas.",
     "deleted": "Cuenta eliminada",
     "deleteConfirm": "¿Eliminar esta cuenta?",
-    "deleteConfirmDescription": "Se eliminará de forma permanente, junto con sus tarjetas y su facturación.",
+    "deleteConfirmDescription": "Se eliminará de forma permanente, junto con sus tarjetas y su facturación. Elige qué más eliminar con ella: lo que no elijas se mantiene, sin cuenta asociada.",
+    "deleteWith": {
+      "title": "Eliminar también",
+      "loading": "Revisando qué está relacionado con esta cuenta…",
+      "nothing": "No hay movimientos ni datos relacionados con esta cuenta.",
+      "movements_one": "{{count}} movimiento",
+      "movements_other": "{{count}} movimientos",
+      "transfers_one": "Incluye {{count}} traspaso con otra cuenta: se borran sus dos partes.",
+      "transfers_other": "Incluye {{count}} traspasos con otras cuentas: se borran sus dos partes.",
+      "payments_one": "Incluye {{count}} pago de su facturación hecho desde otra cuenta.",
+      "payments_other": "Incluye {{count}} pagos de su facturación hechos desde otras cuentas.",
+      "restores": "Devuelve a {{restorations}}",
+      "installmentPlans_one": "{{count}} plan de cuotas",
+      "installmentPlans_other": "{{count}} planes de cuotas",
+      "recurring_one": "{{count}} recurrente",
+      "recurring_other": "{{count}} recurrentes",
+      "savingsEntries_one": "{{count}} aporte de ahorro",
+      "savingsEntries_other": "{{count}} aportes de ahorro",
+      "linkedDebts_one": "{{count}} deuda asociada a esta cuenta se mantiene, sin la cuenta.",
+      "linkedDebts_other": "{{count}} deudas asociadas a esta cuenta se mantienen, sin la cuenta.",
+      "unknownAccount": "otra cuenta"
+    },
     "new": "Nueva cuenta",
     "newSubtitle": "Registra una cuenta bancaria, tarjeta o efectivo",
     "currentBalance": "Saldo actual",
@@ -129,15 +150,17 @@
     "card": {
       "usage": "{{pct}}% cupo",
       "creditUsed": "Cupo usado",
+      "creditUsedShared": "Cupo usado · compartido",
       "cardPool": "Tarjeta ···· {{last4}}",
       "trend": "{{pct}}% este mes",
       "billedOn": "Facturado el {{day}} de cada mes"
     },
     "overview": {
-      "netWorth": "Patrimonio total",
+      "netWorth": "Patrimonio neto",
       "netWorthHint": "· neto, aprox. en {{currency}}",
       "assets": "Activos",
-      "cardDebt": "Deuda tarjetas"
+      "cardDebt": "Deuda tarjetas",
+      "debts": "Deudas"
     },
     "groupBy": {
       "label": "Agrupar:",
@@ -218,7 +241,7 @@
       "statementRemaining": "Restante",
       "statementPurchases": "Compras",
       "statementInstallments": "Cuotas facturadas",
-      "billingCurrencyGroup": "Facturación · {{currency}}"
+      "billingCurrencyTabs": "Facturación por moneda"
     },
     "filter": {
       "label": "Filtrar por estado",
@@ -406,7 +429,7 @@
       "usesPool": "Cupo de la cuenta",
       "usesPoolHint": "Esta tarjeta comparte el cupo total de la cuenta.",
       "ownLimit": "Tope propio",
-      "ownLimitHint": "Define un tope independiente para esta tarjeta (no puede superar el cupo de la cuenta en su misma moneda).",
+      "ownLimitHint": "Limita esta tarjeta dentro del cupo de la cuenta: lo que gaste usa también el cupo de la cuenta, y el tope no puede superarlo en su misma moneda.",
       "ownLimitRowsHint": "Agrega al menos un tope por moneda.",
       "active": "Tarjeta activa",
       "activeHint": "Una tarjeta inactiva se conserva con su historial, pero no aparece al registrar movimientos."
@@ -472,7 +495,27 @@
     "done": "Listo",
     "moveLeft": "Mover a la izquierda",
     "moveRight": "Mover a la derecha",
-    "accountItem": "Cuenta"
+    "accountItem": "Cuenta",
+    "editor": {
+      "title": "Arma tu cartera",
+      "description": "Hasta {{max}}. Elige la cuenta entera o solo una de sus tarjetas.",
+      "edit": "Editar cartera",
+      "preview": "Así se verá en tu Panel",
+      "count": "{{count}} de {{max}}",
+      "chipAccount": "Cuenta",
+      "chipCard": "Tarjeta",
+      "inPanel": "{{n}} · En el Panel",
+      "full": "Cartera llena",
+      "primary": "Principal",
+      "additional": "Adicional",
+      "emptySlot": "{{n}} · Espacio libre",
+      "moveEarlier": "Mover antes",
+      "moveLater": "Mover después",
+      "duplicate": "La tarjeta {{card}} muestra el mismo saldo que {{account}}.",
+      "removeCard": "Quitar la tarjeta",
+      "creditHint": "Elegir la cuenta de una tarjeta de crédito muestra el cupo total; elegir una de sus tarjetas, solo ese plástico.",
+      "saved": "Cartera guardada"
+    }
   },
   "transactions": {
     "title": "Movimientos",
@@ -720,6 +763,8 @@
     },
     "status": {
       "OVERDUE": "Vencida",
+      "TO_BILL": "Por facturar",
+      "BILLED": "Facturada",
       "DUE_SOON": "Próxima",
       "ON_TRACK": "Al día",
       "PARTIALLY_PAID": "Pagado en parte",
@@ -753,6 +798,8 @@
     "noneMatchFilters": "Ningún plan coincide con estos filtros.",
     "statusWithDate": {
       "OVERDUE": "Vencida {{date}}",
+      "TO_BILL": "Por facturar {{date}}",
+      "BILLED": "Facturada {{date}}",
       "DUE_SOON": "Próxima {{date}}",
       "ON_TRACK": "{{date}}",
       "PARTIALLY_PAID": "Pagado en parte",
@@ -990,21 +1037,7 @@
     "new": "Nuevo recurrente",
     "edit": "Editar recurrente",
     "empty": "Aún no tienes gastos recurrentes",
-    "emptyMessage": "Registra suscripciones, arriendo o cuentas que pagas cada semana, mes o año, y ve de un vistazo cuánto tienes comprometido y qué pago viene.",
-    "emptySteps": {
-      "create": {
-        "title": "Crea la serie",
-        "text": "Monto, frecuencia y fecha del primer pago. Si tiene fin, indica el último."
-      },
-      "upcoming": {
-        "title": "Mira qué viene",
-        "text": "Cada serie calcula su próximo pago y suma al total comprometido del mes."
-      },
-      "link": {
-        "title": "Vincula tus pagos",
-        "text": "Al registrar un movimiento, asócialo a la serie para ver su historial."
-      }
-    },
+    "emptyHint": "Registra una suscripción, el arriendo o cualquier pago que se repite para ver cuánto tienes comprometido.",
     "created": "Recurrente creado",
     "updated": "Recurrente actualizado",
     "deleted": "Recurrente eliminado",
@@ -1107,21 +1140,7 @@
   "savings": {
     "title": "Ahorros",
     "empty": "Aún no tienes metas de ahorro",
-    "emptyMessage": "Ponle nombre y monto a lo que quieres juntar. Cada aporte sale de una de tus cuentas, así el avance que ves es el real. ¿Sin meta todavía? Un aporte libre también cuenta.",
-    "emptySteps": {
-      "goal": {
-        "title": "Define la meta",
-        "text": "Monto objetivo y, si quieres, una fecha para lograrlo."
-      },
-      "contribute": {
-        "title": "Aporta desde una cuenta",
-        "text": "Cada aporte descuenta el saldo de la cuenta de origen."
-      },
-      "pace": {
-        "title": "Sigue tu ritmo",
-        "text": "Ve cuánto llevas, tu aporte mensual promedio y cuánto falta."
-      }
-    },
+    "emptyHint": "Crea una meta o registra un aporte libre para empezar a ver tu avance.",
     "subtitle_one": "{{count}} meta abierta · {{missing}} por reunir",
     "subtitle_other": "{{count}} metas abiertas · {{missing}} por reunir",
     "freeContribution": "Aporte libre",
@@ -2340,7 +2359,6 @@
     "ACCOUNT_DISABLED": "Esta cuenta está deshabilitada.",
     "PAYMENT_EXCEEDS_REMAINING": "El monto supera lo que queda por pagar de esta facturación.",
     "TRANSFER_SAME_ACCOUNT": "El origen y el destino deben ser cuentas distintas.",
-    "TRANSFER_TO_CREDIT_ACCOUNT": "No puedes traspasar dinero hacia una línea de crédito.",
     "TRANSFER_ACCOUNT_NOT_FOUND": "No se encontró alguna de las cuentas del traspaso.",
     "TRANSFER_NOT_FOUND": "No se encontró el traspaso.",
     "TRANSFER_EDIT_AS_PAIR": "Un traspaso se edita completo, desde sus dos lados.",
@@ -2398,6 +2416,7 @@
     "TRANSFER_ALREADY_BILLED": "No se puede deshacer: la facturación en pesos que recibió el traspaso ya fue pagada.",
     "STATEMENT_PAYMENT_CURRENCY_AMBIGUOUS": "Indica también cuánto se debitó de la cuenta de origen: está en otra moneda.",
     "TRANSACTION_LINKED_TO_STATEMENT": "Este movimiento respalda el pago o el traspaso de una facturación. Para cambiarlo, hazlo desde su facturación.",
-    "CARD_LIMIT_HAS_DEBT": "No puedes quitar el tope en esa moneda mientras tenga deuda o una facturación sin liquidar."
+    "CARD_LIMIT_HAS_DEBT": "No puedes quitar el tope en esa moneda mientras tenga deuda o una facturación sin liquidar.",
+    "WALLET_FULL": "Tu cartera ya tiene el máximo de 4."
   }
 }

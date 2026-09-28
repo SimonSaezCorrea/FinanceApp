@@ -63,6 +63,9 @@ export interface CreditStatementRepositoryPort {
   /** Whether a statement is already PAID — governs the "never touch `creditUsed`
    * again for a movement whose period is settled" edit/delete rule. */
   isPaid(statementId: string): Promise<boolean>;
+  /** The movements OTHER accounts made to pay this account's periods — what goes
+   * back to them when the account is deleted with its movements. */
+  paymentTransactionIdsFromOtherAccounts(userId: string, accountId: string): Promise<string[]>;
   save(aggregate: CreditStatement): Promise<void>;
   saveWithTx(tx: unknown, aggregate: CreditStatement): Promise<void>;
   /** Live sum (Σexpense − Σincome) of every transaction currently linked to

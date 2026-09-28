@@ -1,4 +1,4 @@
-import { CalendarClock, Link2, Plus, Repeat } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
@@ -12,8 +12,9 @@ import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
 import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
-import { ErrorState, GettingStartedState } from "../../../shared/ui/states";
+import { ErrorState } from "../../../shared/ui/states";
 import { RecurringAutoGenerationStrip } from "../components/RecurringAutoGenerationStrip";
+import { RecurringEmptyRow } from "../components/RecurringEmptyRow";
 import { RecurringDeleteConfirm } from "../components/RecurringDeleteConfirm";
 import { RecurringDetailPanel } from "../components/RecurringDetailPanel";
 import {
@@ -102,8 +103,7 @@ export function RecurringRoute() {
   const currencyGroups = useMemo(() => recurringByCurrency(list), [list]);
 
   const subtitle =
-    // "0 activos · 0 pausado(s)" says nothing the empty state doesn't.
-    !isLoading && !isError && list.length > 0
+    !isLoading && !isError
       ? t("recurring.subtitle", { active: activeCount, paused: pausedList.length })
       : undefined;
 
@@ -232,34 +232,12 @@ export function RecurringRoute() {
       {isLoading && <RecurringSkeleton label={t("app.loading")} />}
       {!isLoading && isError && <ErrorState error={error} onRetry={() => refetch()} />}
       {!isLoading && !isError && list.length === 0 && (
-        <GettingStartedState
-          icon={Repeat}
-          title={t("recurring.empty")}
-          message={t("recurring.emptyMessage")}
-          steps={[
-            {
-              icon: Plus,
-              title: t("recurring.emptySteps.create.title"),
-              text: t("recurring.emptySteps.create.text"),
-            },
-            {
-              icon: CalendarClock,
-              title: t("recurring.emptySteps.upcoming.title"),
-              text: t("recurring.emptySteps.upcoming.text"),
-            },
-            {
-              icon: Link2,
-              title: t("recurring.emptySteps.link.title"),
-              text: t("recurring.emptySteps.link.text"),
-            },
-          ]}
-          actions={
-            <Button variant="accent" onClick={openCreate}>
-              <Plus className="h-4 w-4" aria-hidden />
-              {t("recurring.new")}
-            </Button>
-          }
-        />
+        <>
+          <RecurringAutoGenerationStrip />
+          <div className="overflow-hidden rounded-[9.6px] border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,.28)]">
+            <RecurringEmptyRow title={t("recurring.empty")} message={t("recurring.emptyHint")} />
+          </div>
+        </>
       )}
 
       {!isLoading && !isError && list.length > 0 && (

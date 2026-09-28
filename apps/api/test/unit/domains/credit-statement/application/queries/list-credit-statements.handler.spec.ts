@@ -77,6 +77,7 @@ function fakeAccountRepo(
   overrides: Partial<BankAccountRepositoryPort> = {},
 ): BankAccountRepositoryPort {
   return {
+    removeWithTx: vi.fn(async () => true),
     findById: vi.fn(),
     listByUser: vi.fn(),
     listDueForBilling: vi.fn(),
@@ -101,6 +102,7 @@ function fakeStatementRepo(
   overrides: Partial<CreditStatementRepositoryPort> = {},
 ): CreditStatementRepositoryPort {
   return {
+    paymentTransactionIdsFromOtherAccounts: vi.fn(async () => []),
     findById: vi.fn(),
     findByIdForUpdateWithTx: vi.fn(),
     findOpenForAccount: vi.fn(),

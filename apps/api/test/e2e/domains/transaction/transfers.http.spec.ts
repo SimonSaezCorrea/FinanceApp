@@ -201,6 +201,52 @@ describe("Transfers HTTP (e2e)", () => {
     expect(list.body.items).toHaveLength(0);
   });
 
+  it("pays a credit card: the pool drops, no cash lands, and it is not income or spending", async () => {
+    // A purchase first, so there is used credit to pay.
+    const cardId = (await api().get(`/api/v1/accounts/${creditLine}`).set("Cookie", cookies)).body
+      .cards[0].id as string;
+    const purchase = await api()
+      .post("/api/v1/transactions")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({
+        type: "EXPENSE",
+        amount: "8000",
+        currency: "CLP",
+        occurredAt: "2026-08-02T00:00:00.000Z",
+        bankAccountId: creditLine,
+        cardId,
+      });
+    expect(purchase.status).toBe(201);
+
+    const pay = await api()
+      .post("/api/v1/transactions/transfers")
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({ ...body(), toBankAccountId: creditLine, amountOut: "5000", amountIn: "5000" });
+    expect(pay.status).toBe(201);
+    expect(pay.body.incoming.creditStatementId).not.toBeNull();
+
+    const card = await api().get(`/api/v1/accounts/${creditLine}`).set("Cookie", cookies);
+    expect(card.body.creditUsed).toBe("3000.0000");
+    expect(card.body.currentBalance).toBe("0.0000");
+
+    // Only the purchase counts as spending on the card account; the payment
+    // is neither income there nor spending on the paying account.
+    const summary = await api()
+      .get(`/api/v1/transactions/summary?bankAccountId=${creditLine}`)
+      .set("Cookie", cookies);
+    const clp = summary.body.currencyTotals.find((c: { currency: string }) => c.currency === "CLP");
+    expect(Number(clp.income)).toBe(0);
+    expect(Number(clp.expense)).toBe(8000);
+
+    await api()
+      .delete(`/api/v1/transactions/transfers/${pay.body.transferGroupId}`)
+      .set("Cookie", cookies);
+    const after = await api().get(`/api/v1/accounts/${creditLine}`).set("Cookie", cookies);
+    expect(after.body.creditUsed).toBe("8000.0000");
+  });
+
   it("rejects what the policy forbids", async () => {
     const post = (over: Record<string, unknown>) =>
       api()
@@ -211,10 +257,6 @@ describe("Transfers HTTP (e2e)", () => {
 
     // Same account on both sides — caught by the contract's own refine.
     expect((await post({ toBankAccountId: origen })).status).toBe(400);
-    // Destination is a credit line.
-    const credit = await post({ toBankAccountId: creditLine });
-    expect(credit.status).toBe(400);
-    expect(credit.body.error.code).toBe("TRANSFER_TO_CREDIT_ACCOUNT");
     // An account that isn't the user's (well-formed id, specs/016 — a
     // malformed one is now rejected earlier with INVALID_ID_FORMAT).
     const foreign = await post({ toBankAccountId: "018f6b9a-2c3e-7c21-9e4a-1f2b3c4d5e6f" });

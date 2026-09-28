@@ -254,6 +254,12 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     return result.count > 0;
   }
 
+  async removeWithTx(tx: unknown, userId: string, id: string): Promise<boolean> {
+    const client = tx as PrismaService;
+    const result = await client.bankAccount.deleteMany({ where: { id, userId } });
+    return result.count > 0;
+  }
+
   async addCard(userId: string, accountId: string, plan: CreateCardPlan): Promise<BankAccount> {
     await this.cards.create(userId, accountId, plan);
     const fresh = await this.findById(userId, accountId);

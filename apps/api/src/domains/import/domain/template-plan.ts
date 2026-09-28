@@ -15,7 +15,7 @@ import {
   SavingsGoal,
   type PlannedSavingsGoal,
 } from "../../savings-goal/domain/savings-goal.aggregate";
-import { balanceDelta, cashDelta } from "../../transaction/domain/balance-delta";
+import { cashDelta, transferLegDelta } from "../../transaction/domain/balance-delta";
 import type { AccountContext, CardLimitContext } from "../../transaction/domain/movement-policy";
 import { MovementPolicy } from "../../transaction/domain/movement-policy";
 import { TransferPolicy } from "../../transaction/domain/transfer-policy";
@@ -442,14 +442,14 @@ export function planTemplateImport(
     const transferGroupId = newId();
     const occurredAt = new Date(t.occurredAt);
     const shared = { ...blank, occurredAt, description: text(t.description), transferGroupId };
-    movement({
+    const outWrite = movement({
       ...shared,
       accountId: t.fromAccountId,
       type: "EXPENSE",
       amount: t.outgoingAmount,
       currency: from.currency,
     });
-    movement({
+    const inWrite = movement({
       ...shared,
       accountId: t.toAccountId,
       type: "INCOME",
@@ -467,6 +467,7 @@ export function planTemplateImport(
       creditDelta: "0",
       toAccountId: t.toAccountId,
       amountIn: t.incomingAmount,
+      write: outWrite,
     });
     push({
       ...base,
@@ -476,6 +477,7 @@ export function planTemplateImport(
       amount: t.incomingAmount,
       financeCharge: false,
       creditDelta: "0",
+      write: inWrite,
     });
   }
 
@@ -861,7 +863,12 @@ export function planTemplateImport(
         return {
           cash: cashDelta(e.type, e.amount, ctx, e.card),
           credit: MovementPolicy.contribution(
-            { type: e.type, amount: e.amount, financeCharge: e.financeCharge },
+            {
+              type: e.type,
+              amount: e.amount,
+              financeCharge: e.financeCharge,
+              currency: e.currency,
+            },
             ctx,
             e.card,
             e.cardLimit ?? null,
@@ -869,8 +876,12 @@ export function planTemplateImport(
         };
       case "credit":
         return { cash: "0", credit: e.creditDelta };
-      default:
-        return { cash: balanceDelta(e.type, e.amount), credit: "0" };
+      default: {
+        // A transfer leg on a credit card account (paying the card) moves the
+        // pool, not cash — the same rule the transfer endpoint follows.
+        const leg = transferLegDelta(e.type, e.amount, ctx);
+        return leg.pool ? { cash: "0", credit: leg.delta } : { cash: leg.delta, credit: "0" };
+      }
     }
   };
 
@@ -953,7 +964,11 @@ export function planTemplateImport(
     const effect = effectOf(e, ctx);
     ctx.currentBalance = addMoney(ctx.currentBalance, effect.cash);
     ctx.creditUsed = addMoney(ctx.creditUsed, effect.credit);
-    if (e.write && e.kind === "movement" && Number(effect.credit) !== 0) {
+    if (
+      e.write &&
+      (e.kind === "movement" || e.kind === "transferIn" || e.kind === "transferOut") &&
+      Number(effect.credit) !== 0
+    ) {
       e.write.drawsOnCredit = true;
       e.write.statementCurrency = lookup.accounts.get(e.accountId)!.currency;
     } else if (

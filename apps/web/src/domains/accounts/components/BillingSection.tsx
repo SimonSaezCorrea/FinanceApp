@@ -138,11 +138,18 @@ export function BillingSection({
   const [editPaymentTarget, setEditPaymentTarget] = useState<accounts.CreditStatement | null>(null);
   const [detailTarget, setDetailTarget] = useState<accounts.CreditStatement | null>(null);
   const [confirmGenerate, setConfirmGenerate] = useState(false);
+  // Spec 028: which currency's periods are on screen — one window-style tab per
+  // currency. `null` = the account's own (the first tab).
+  const [selectedCurrency, setSelectedCurrency] = useState<string | null>(null);
 
   useEffect(() => {
     if (!openStatementId || !statements) return;
     const match = statements.find((s) => s.id === openStatementId);
-    if (match) setDetailTarget(match);
+    if (match) {
+      setDetailTarget(match);
+      // A deep link to a USD period lands on the USD tab, not behind the CLP one.
+      setSelectedCurrency(match.currency);
+    }
     onConsumeOpenStatement?.();
     // Only once the periods for THIS deep link have arrived — re-running on
     // every `statements` refetch would reopen a panel the user already closed.
@@ -178,6 +185,8 @@ export function BillingSection({
   const isSettled = accountsContract.isSettled;
   const isForeign = (s: accounts.CreditStatement) => s.currency !== account.currency;
   const groups = statementsByCurrency(statements ?? [], account.currency);
+  // A currency that vanished (its last period deleted) falls back to the first tab.
+  const activeGroup = groups.find((g) => g.currency === selectedCurrency) ?? groups[0] ?? null;
 
   // Spec 028: one OPEN period per currency, all closing together — "Generar
   // facturación" seals every one of them. Its deadline is the account-currency
@@ -532,25 +541,76 @@ export function BillingSection({
             <BillingEmptyMessage error={isError ? error : undefined} onRetry={() => refetch()} />
           )
         ) : (
-          // Spec 028: one block per currency — the account's own first. Amounts are
-          // never converted or summed across blocks. With a single currency there is
-          // no heading at all: the section reads exactly as it always did.
-          <div className="flex flex-col gap-6">
-            {groups.map((group) => (
-              <section key={group.currency} className="flex flex-col gap-3">
-                {groups.length > 1 ? (
-                  <h3 className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                    {t("accounts.detail.billingCurrencyGroup", { currency: group.currency })}
-                  </h3>
-                ) : null}
+          // Spec 028: one window-style tab per currency — the account's own first —
+          // and only the selected currency's periods on screen. Amounts are never
+          // converted or summed across tabs. With a single currency there are no
+          // tabs at all: the section reads exactly as it always did.
+          activeGroup &&
+          (groups.length > 1 ? (
+            <div className="flex flex-col">
+              <div
+                role="tablist"
+                aria-label={t("accounts.detail.billingCurrencyTabs")}
+                className="flex items-end gap-1 overflow-x-auto border-b scrollbar-thin"
+              >
+                {groups.map((group) => {
+                  const selected = group.currency === activeGroup.currency;
+                  const pending = group.statements.filter((s) => !isSettled(s)).length;
+                  return (
+                    <button
+                      key={group.currency}
+                      type="button"
+                      role="tab"
+                      id={`billing-tab-${group.currency}`}
+                      aria-selected={selected}
+                      aria-controls={`billing-panel-${group.currency}`}
+                      onClick={() => setSelectedCurrency(group.currency)}
+                      className={cn(
+                        "-mb-px flex shrink-0 items-center gap-2 rounded-t-lg border px-4 py-2 text-sm font-medium transition-colors",
+                        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        selected
+                          ? "border-b-card bg-card text-foreground"
+                          : "border-transparent bg-muted/40 text-muted-foreground hover:bg-muted/70 hover:text-foreground",
+                      )}
+                    >
+                      {group.currency}
+                      {pending > 0 ? (
+                        <span
+                          className={cn(
+                            "rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
+                            selected ? "bg-primary/15 text-primary" : "bg-chip",
+                          )}
+                        >
+                          {pending}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+              <section
+                role="tabpanel"
+                id={`billing-panel-${activeGroup.currency}`}
+                aria-labelledby={`billing-tab-${activeGroup.currency}`}
+                className={cn(
+                  "flex flex-col gap-3",
+                  // Stacked cards float on the page; give them the window's frame.
+                  !wide && "rounded-b-xl border border-t-0 bg-card p-3",
+                  wide && "[&>*:first-child]:rounded-t-none [&>*:first-child]:border-t-0",
+                )}
+              >
                 {wide ? (
-                  <PeriodsTable list={group.statements} />
+                  <PeriodsTable list={activeGroup.statements} />
                 ) : (
-                  <PeriodsStack list={group.statements} />
+                  <PeriodsStack list={activeGroup.statements} />
                 )}
               </section>
-            ))}
-          </div>
+            </div>
+          ) : wide ? (
+            <PeriodsTable list={activeGroup.statements} />
+          ) : (
+            <PeriodsStack list={activeGroup.statements} />
+          ))
         )}
       </div>
 

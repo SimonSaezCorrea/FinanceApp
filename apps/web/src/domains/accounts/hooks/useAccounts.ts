@@ -11,6 +11,16 @@ export function useAccounts(filters?: accounts.AccountFilters) {
   });
 }
 
+/** What deleting `id` could take with it; only fetched while asking. */
+export function useAccountDeletionImpact(id: string | null) {
+  return useQuery({
+    queryKey: ["accounts", id, "deletion-impact"],
+    queryFn: () => accountsApi.deletionImpact(id!),
+    enabled: id !== null,
+    staleTime: 0,
+  });
+}
+
 export function useAccount(id: string) {
   return useQuery({
     queryKey: ["accounts", id],
@@ -107,13 +117,19 @@ export function useAccountMutations() {
       },
     }),
     remove: useMutation({
-      mutationFn: accountsApi.remove,
-      onSuccess: (_, id) => {
+      mutationFn: (vars: { id: string; options?: accounts.RemoveAccount }) =>
+        accountsApi.remove(vars.id, vars.options),
+      onSuccess: (_, { id }) => {
         // Drop the deleted account's own entries BEFORE invalidating, or the
         // blanket `["accounts"]` invalidation refetches `["accounts", id]` and
         // the detail view flips to a 404 error state while it's still mounted.
         qc.removeQueries({ queryKey: ["accounts", id] });
         invalidate();
+        // Whatever went with it (movements, plans, series, contributions) and the
+        // debts it unlinked are other views' data.
+        for (const key of ["transactions", "installments", "recurring", "savings", "debts"]) {
+          qc.invalidateQueries({ queryKey: [key] });
+        }
       },
     }),
   };

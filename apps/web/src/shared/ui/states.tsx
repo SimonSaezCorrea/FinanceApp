@@ -255,64 +255,6 @@ export function ErrorState({
   );
 }
 
-export type GettingStartedStep = { icon: LucideIcon; title: string; text: string };
-
-/**
- * First-run empty state for a whole section (nothing created yet, not a
- * filter that matched nothing): says what the section is FOR, how it works in
- * a few steps, and offers the action that fills it — a bare "no tienes X"
- * sentence left a new user with nothing to go on. Plain `EmptyState` stays
- * the right choice inside a table or a filtered list.
- */
-export function GettingStartedState({
-  icon: Icon,
-  title,
-  message,
-  steps,
-  actions,
-}: {
-  icon: LucideIcon;
-  title: string;
-  message: string;
-  steps: GettingStartedStep[];
-  actions?: ReactNode;
-}) {
-  return (
-    <section className="mx-auto flex w-full max-w-[760px] flex-col items-center gap-6 rounded-xl border border-border bg-card px-6 py-10 text-center shadow-sm sm:px-10 sm:py-12">
-      <div className="relative flex h-16 w-16 items-center justify-center">
-        <div className="absolute inset-0 rounded-full bg-accent/20 blur-xl" />
-        <div className="relative flex h-12 w-12 items-center justify-center rounded-full bg-accent/15 text-accent">
-          <Icon className="h-6 w-6" aria-hidden />
-        </div>
-      </div>
-      <div className="flex flex-col gap-2">
-        <h2 className="text-lg font-semibold">{title}</h2>
-        <p className="mx-auto max-w-md text-sm text-muted-foreground">{message}</p>
-      </div>
-      {actions ? (
-        <div className="flex flex-wrap items-center justify-center gap-2">{actions}</div>
-      ) : null}
-      <ol className="grid w-full gap-3 text-left sm:grid-cols-3">
-        {steps.map((step, i) => (
-          <li
-            key={step.title}
-            className="flex flex-col gap-2 rounded-lg border border-border bg-background/40 p-4"
-          >
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground">
-                <step.icon className="h-3.5 w-3.5" aria-hidden />
-              </span>
-              <span className="text-xs font-medium text-muted-foreground">{i + 1}</span>
-            </div>
-            <p className="text-sm font-medium">{step.title}</p>
-            <p className="text-xs text-muted-foreground">{step.text}</p>
-          </li>
-        ))}
-      </ol>
-    </section>
-  );
-}
-
 /** Not an error — the request succeeded and there's genuinely nothing to
  * show. Kept as its own name (many call sites already read that way) but
  * built on the same shell as `ErrorState` (`kind="empty"`) instead of a

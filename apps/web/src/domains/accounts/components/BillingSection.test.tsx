@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -72,43 +72,41 @@ function renderSection() {
 
 const money = (v: string, currency: string) => formatMoney(v, { locale: i18n.language, currency });
 
-describe("BillingSection — one block per currency (spec 028)", () => {
+describe("BillingSection — one tab per currency (spec 028)", () => {
   beforeEach(() => vi.clearAllMocks());
 
-  it("lists the CLP and the USD statement in their own blocks, each in its currency", async () => {
+  it("shows one window tab per currency, the account's own first and open", async () => {
     vi.mocked(accountsApi.creditStatements).mockResolvedValue([
       statement({ id: "clp" }),
       statement({ id: "usd", currency: "USD", amount: "30", remainingAmount: "30" }),
     ]);
     renderSection();
 
-    const usdHeading = await screen.findByText(
-      i18n.t("accounts.detail.billingCurrencyGroup", { currency: "USD" }),
-    );
-    const clpHeading = screen.getByText(
-      i18n.t("accounts.detail.billingCurrencyGroup", { currency: "CLP" }),
-    );
-    // CLP (the account's own) comes first.
-    expect(
-      clpHeading.compareDocumentPosition(usdHeading) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    const tabs = await screen.findAllByRole("tab");
+    expect(tabs.map((tab) => tab.textContent)).toEqual(["CLP1", "USD1"]);
+    expect(tabs[0]!.getAttribute("aria-selected")).toBe("true");
 
-    const usdBlock = usdHeading.closest("section")!;
-    const clpBlock = clpHeading.closest("section")!;
-    expect(within(usdBlock).getByText(money("30", "USD"))).toBeDefined();
-    expect(within(clpBlock).getByText(money("120000", "CLP"))).toBeDefined();
+    // Only the selected currency's periods are on screen.
+    const panel = screen.getByRole("tabpanel");
+    expect(within(panel).getAllByText(money("120000", "CLP")).length).toBeGreaterThan(0);
+    expect(screen.queryByText(money("30", "USD"))).toBeNull();
+
+    fireEvent.click(tabs[1]!);
+    expect(screen.getAllByRole("tab")[1]!.getAttribute("aria-selected")).toBe("true");
+    expect(
+      within(screen.getByRole("tabpanel")).getAllByText(money("30", "USD")).length,
+    ).toBeGreaterThan(0);
+    expect(screen.queryByText(money("120000", "CLP"))).toBeNull();
     // Never summed into one figure.
     expect(screen.queryByText(money("120030", "CLP"))).toBeNull();
   });
 
-  it("with a single currency there is no per-currency heading at all", async () => {
+  it("with a single currency there are no tabs at all", async () => {
     vi.mocked(accountsApi.creditStatements).mockResolvedValue([statement({ id: "clp" })]);
     renderSection();
     await waitFor(() =>
       expect(screen.getAllByText(money("120000", "CLP")).length).toBeGreaterThan(0),
     );
-    expect(
-      screen.queryByText(i18n.t("accounts.detail.billingCurrencyGroup", { currency: "CLP" })),
-    ).toBeNull();
+    expect(screen.queryByRole("tab")).toBeNull();
   });
 });

@@ -9,6 +9,8 @@ function fakeRepo(
   overrides: Partial<RecurringExpenseRepositoryPort> = {},
 ): RecurringExpenseRepositoryPort {
   return {
+    listIdsForAccount: vi.fn(async () => []),
+    removeManyWithTx: vi.fn(),
     list: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),
