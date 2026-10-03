@@ -42,7 +42,7 @@
     "rxjs": "^7.8.1",
     "ua-parser-js": "^2.0.10",
     "uuid": "^11.1.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@finance/config": "workspace:*",
