@@ -14,6 +14,10 @@ updates:
       # typecheck y build pasan; solo falta el soporte de typescript-eslint. Reabrir al llegar.
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # Tailwind 4 exige migrar a @tailwindcss/postcss y reescribir la config; el build falla
+      # con la v4 hoy. Se aborda como migracion aparte, no como bump automatico.
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
     groups:
       nestjs:
         patterns:
