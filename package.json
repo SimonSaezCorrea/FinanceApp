@@ -32,7 +32,7 @@
       "postcss": "^8.5.18",
       "nanoid": "^3.3.18",
       "js-yaml": "^4.3.2",
-      "brace-expansion": "^5.0.9",
+      "brace-expansion": "^5.0.11",
       "deepmerge-ts": "^8.0.0",
       "browserslist": "^4.28.7",
       "mysql2": "^3.22.0",
@@ -47,7 +47,8 @@
         "GHSA-72gw-mp4g-v24j",
         "GHSA-c2c7-rcm5-vvqj",
         "GHSA-r5fr-rjxr-66jc",
-        "GHSA-ph9p-34f9-6g65"
+        "GHSA-ph9p-34f9-6g65",
+        "GHSA-vfj7-8cjw-p6xm"
       ]
     }
   },
