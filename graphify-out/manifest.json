@@ -8584,5 +8584,113 @@
     "seen": 1790975919.296262,
     "ast_hash": "3c5833998fb92edecb75d1fe9dbfb4d9",
     "semantic_hash": "3c5833998fb92edecb75d1fe9dbfb4d9"
+  },
+  ".specify/extensions/agent-context/commands/speckit.agent-context.update.md": {
+    "mtime": 1781418130.5891798,
+    "seen": 1790993660.9431627,
+    "ast_hash": "7eecbfbef236c6af3e4003b32c6ffd2a",
+    "semantic_hash": "7eecbfbef236c6af3e4003b32c6ffd2a"
+  },
+  ".specify/templates/checklist-template.md": {
+    "mtime": 1782783912.9297302,
+    "seen": 1790993660.9431663,
+    "ast_hash": "f3658c718343613cc4b5a9e45813ba38",
+    "semantic_hash": "f3658c718343613cc4b5a9e45813ba38"
+  },
+  ".specify/templates/constitution-template.md": {
+    "mtime": 1782783912.935249,
+    "seen": 1790993660.9431672,
+    "ast_hash": "f8b29a13f5d30527b894e73de923be0c",
+    "semantic_hash": "f8b29a13f5d30527b894e73de923be0c"
+  },
+  ".specify/templates/plan-template.md": {
+    "mtime": 1788595225.576689,
+    "seen": 1790993660.9431682,
+    "ast_hash": "0b5507a1f7babb165f8dbf54463879a8",
+    "semantic_hash": "0b5507a1f7babb165f8dbf54463879a8"
+  },
+  ".specify/templates/spec-template.md": {
+    "mtime": 1782783912.9576554,
+    "seen": 1790993660.943169,
+    "ast_hash": "b65d4174dc6889c27e852676e3568916",
+    "semantic_hash": "b65d4174dc6889c27e852676e3568916"
+  },
+  ".specify/templates/tasks-template.md": {
+    "mtime": 1782783912.9893312,
+    "seen": 1790993660.9431698,
+    "ast_hash": "b464d2c1c058b292178a2a2bef84e278",
+    "semantic_hash": "b464d2c1c058b292178a2a2bef84e278"
+  },
+  "specs/005-transactions-redesign/checklists/requirements.md": {
+    "mtime": 1782703182.4251983,
+    "seen": 1790993660.9432194,
+    "ast_hash": "c6740016adacc36d95e8d22610a09699",
+    "semantic_hash": "c6740016adacc36d95e8d22610a09699"
+  },
+  "specs/005-transactions-redesign/contracts/frontend-ui-contract.md": {
+    "mtime": 1782783917.7077985,
+    "seen": 1790993660.9432204,
+    "ast_hash": "9bf2a5055a105dcc0e2b780ab3d84f62",
+    "semantic_hash": "9bf2a5055a105dcc0e2b780ab3d84f62"
+  },
+  "specs/005-transactions-redesign/tasks.md": {
+    "mtime": 1782705279.2470677,
+    "seen": 1790993660.9432259,
+    "ast_hash": "90a00db3ab7742adb597acc73fa09045",
+    "semantic_hash": "90a00db3ab7742adb597acc73fa09045"
+  },
+  "specs/006-debts-installments-view/checklists/requirements.md": {
+    "mtime": 1782707141.370099,
+    "seen": 1790993660.9432266,
+    "ast_hash": "9e4c0c8575726741a3fa06e8ad08a451",
+    "semantic_hash": "9e4c0c8575726741a3fa06e8ad08a451"
+  },
+  "specs/006-debts-installments-view/contracts/api-contracts.md": {
+    "mtime": 1782784379.47689,
+    "seen": 1790993660.9432273,
+    "ast_hash": "1ae87a75b645219f17e6d7eed3ff1e25",
+    "semantic_hash": "1ae87a75b645219f17e6d7eed3ff1e25"
+  },
+  "specs/006-debts-installments-view/research.md": {
+    "mtime": 1782783917.8814988,
+    "seen": 1790993660.9432306,
+    "ast_hash": "8e2df0d733a7b23fdb41ab972dc37c7e",
+    "semantic_hash": "8e2df0d733a7b23fdb41ab972dc37c7e"
+  },
+  "specs/006-debts-installments-view/tasks.md": {
+    "mtime": 1782783917.9345562,
+    "seen": 1790993660.9432323,
+    "ast_hash": "c318287df996d7a9a1d42fa9c31dd73e",
+    "semantic_hash": "c318287df996d7a9a1d42fa9c31dd73e"
+  },
+  "specs/007-accounts-movements-redesign/checklists/requirements.md": {
+    "mtime": 1785468583.337378,
+    "seen": 1790993660.943233,
+    "ast_hash": "d9fac758fbbca78e671be41192a8e1fd",
+    "semantic_hash": "d9fac758fbbca78e671be41192a8e1fd"
+  },
+  "specs/007-accounts-movements-redesign/contracts/accounts.md": {
+    "mtime": 1785468583.3495624,
+    "seen": 1790993660.9432335,
+    "ast_hash": "7b6675cc29cd468a9ec59725bb224403",
+    "semantic_hash": "7b6675cc29cd468a9ec59725bb224403"
+  },
+  "specs/007-accounts-movements-redesign/contracts/transactions.md": {
+    "mtime": 1785468583.3595173,
+    "seen": 1790993660.9432342,
+    "ast_hash": "7bb908e5ab30633b9d978db6e04d0df7",
+    "semantic_hash": "7bb908e5ab30633b9d978db6e04d0df7"
+  },
+  "specs/007-accounts-movements-redesign/research.md": {
+    "mtime": 1785468583.4546497,
+    "seen": 1790993660.9432375,
+    "ast_hash": "e198fd91a43d42e255e1460cf5ad569d",
+    "semantic_hash": "e198fd91a43d42e255e1460cf5ad569d"
+  },
+  "specs/007-accounts-movements-redesign/tasks.md": {
+    "mtime": 1785468583.5425048,
+    "seen": 1790993660.9432397,
+    "ast_hash": "1a3e9eb65b15d45b887d2a8f5aeb43a6",
+    "semantic_hash": "1a3e9eb65b15d45b887d2a8f5aeb43a6"
   }
 }
