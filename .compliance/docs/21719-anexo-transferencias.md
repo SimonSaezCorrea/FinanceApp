@@ -17,16 +17,20 @@
 ## Transferencia potencial: almacenamiento S3 de adjuntos
 
 **Hoy inerte** (sin `S3_BUCKET` configurado, la función de adjuntos está deshabilitada — `503 ATTACHMENTS_UNAVAILABLE`). Si en el futuro se activa con:
+
 - Un proveedor con datacenter **en Chile o Latinoamérica con presencia legal local**: evaluar si aplica transferencia internacional.
 - **AWS S3 en una región fuera de Chile** (lo más probable, ej. `us-east-1` o `sa-east-1` en Brasil): **sí aplica** — replicar el mismo mecanismo (cláusulas contractuales modelo) antes de activar el bucket en producción con datos reales de usuarios.
 
 **Recomendación**: si se busca minimizar el riesgo de esta sección, considerar un proveedor S3-compatible con datacenter físico en Chile o exigir contractualmente el mecanismo antes de subir el primer archivo real.
 
 ## Compromisos del importador (aplican a cualquier proveedor extranjero que se use)
+
 Tratar los datos solo según instrucciones, aplicar medidas de seguridad equivalentes, no transferir a terceros sin garantías, y colaborar ante solicitudes de los titulares y de la Agencia.
 
 ## Declaración en la política
+
 Esta transferencia (IPinfo) ya se declara en `21719-politica-privacidad.md`, sección 4.
 
 ---
-*Borrador generado con compliance-cl (pack ley-21719). No constituye asesoría legal; revisar con un abogado.*
+
+_Borrador generado con compliance-cl (pack ley-21719). No constituye asesoría legal; revisar con un abogado._

@@ -82,7 +82,7 @@ Movimiento de liquidación o cargo de traspaso → `TRANSACTION_LINKED_TO_STATEM
 
 ```ts
 settlesStatementId: string | null;
-transferStatementId: string | null;        // derivado vía CreditStatementLookupPort
+transferStatementId: string | null; // derivado vía CreditStatementLookupPort
 transferStatementAccountId: string | null;
 ```
 

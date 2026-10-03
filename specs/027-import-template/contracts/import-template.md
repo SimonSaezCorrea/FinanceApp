@@ -13,12 +13,27 @@ Valida sin escribir.
 ```json
 {
   "valid": true,
-  "counts": { "movements": 280, "transfers": 12, "debts": 4, "debtPayments": 7,
-              "plans": 5, "planPayments": 19, "recurring": 6, "goals": 2, "contributions": 9 },
+  "counts": {
+    "movements": 280,
+    "transfers": 12,
+    "debts": 4,
+    "debtPayments": 7,
+    "plans": 5,
+    "planPayments": 19,
+    "recurring": 6,
+    "goals": 2,
+    "contributions": 9
+  },
   "accounts": [
-    { "accountId": "…", "currency": "CLP", "mode": "INCLUDED",
-      "netCash": "-152340", "netCredit": "410000",
-      "balanceAfter": "812400", "creditUsedAfter": "95000" }
+    {
+      "accountId": "…",
+      "currency": "CLP",
+      "mode": "INCLUDED",
+      "netCash": "-152340",
+      "netCredit": "410000",
+      "balanceAfter": "812400",
+      "creditUsedAfter": "95000"
+    }
   ],
   "errors": []
 }
@@ -60,11 +75,10 @@ y datos desde la fila 2:
 
 1. **Instrucciones** — cómo llenar cada hoja con un ejemplo por hoja, qué mueve dinero, el aviso de
    reimportación. Las hojas de datos vienen vacías (un ejemplo en ellas se importaría por olvido).
-2. **Movimientos** · 3. **Traspasos** · 4. **Deudas** · 5. **Pagos de deudas** · 6. **Cuotas** ·
-   7. **Pagos de cuotas** · 8. **Recurrentes** · 9. **Metas** · 10. **Aportes**
-11. **Referencia** — cuentas activas (nombre, tipo, moneda), tarjetas (`<cuenta> · ····1234`),
-    categorías elegibles, y las listas cerradas (tipos, direcciones, frecuencias, monedas).
-12. **`_cuadra`** (oculta) — `version`, `locale`.
+2. **Movimientos** · 3. **Traspasos** · 4. **Deudas** · 5. **Pagos de deudas** · 6. **Cuotas** · 7. **Pagos de cuotas** · 8. **Recurrentes** · 9. **Metas** · 10. **Aportes**
+3. **Referencia** — cuentas activas (nombre, tipo, moneda), tarjetas (`<cuenta> · ····1234`),
+   categorías elegibles, y las listas cerradas (tipos, direcciones, frecuencias, monedas).
+4. **`_cuadra`** (oculta) — `version`, `locale`.
 
 Listas desplegables (`exceljs` data validation, rango de la hoja Referencia) en: tipo, cuenta(s),
 tarjeta, categoría, dirección, frecuencia, moneda. Columnas de fecha con formato de fecha; de monto,

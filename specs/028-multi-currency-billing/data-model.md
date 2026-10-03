@@ -5,15 +5,15 @@ Identificadores: todos UUID v7 (Principio VIII), sin cambios de formato.
 
 ## CreditStatement (tabla `credit-statement`)
 
-| Campo | Tipo | Nuevo | Regla |
-|---|---|---|---|
-| `currency` | String(3) `@default("CLP")` | ✔ | Moneda del período. El default solo sirve para agregar la columna a filas existentes (todas CLP); todo período nuevo se crea con su moneda explícita. Máx. un período abierto por `(accountId, currency)`. Índice `@@index([accountId, currency, closedAt])`. |
-| `transferredAt` | DateTime? | ✔ | Fecha del traspaso. `!= null` ⇒ estado `TRANSFERRED` (terminal). Excluyente con `paidAt` como origen de la liquidación final. |
-| `transferredAmount` | Decimal(18,4)? | ✔ | Monto en la moneda de la CUENTA que cargó el banco. |
-| `transferTransactionId` | String? `@unique` | ✔ | El GASTO en pesos (cargo del emisor) creado por el traspaso. |
-| `settlementTransactionId` | String? `@unique` | ✔ | El INGRESO de liquidación en la moneda del período (pago en otra moneda o traspaso). |
-| `transferredToId` | String? | ✔ | Período en la moneda de la cuenta que recibió el cargo (para el enlace y para R9). |
-| resto | — | — | Sin cambios (`paidAmount`, `carriedOverAmount`, `prepaidAmount`, …). |
+| Campo                     | Tipo                        | Nuevo | Regla                                                                                                                                                                                                                                                         |
+| ------------------------- | --------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `currency`                | String(3) `@default("CLP")` | ✔     | Moneda del período. El default solo sirve para agregar la columna a filas existentes (todas CLP); todo período nuevo se crea con su moneda explícita. Máx. un período abierto por `(accountId, currency)`. Índice `@@index([accountId, currency, closedAt])`. |
+| `transferredAt`           | DateTime?                   | ✔     | Fecha del traspaso. `!= null` ⇒ estado `TRANSFERRED` (terminal). Excluyente con `paidAt` como origen de la liquidación final.                                                                                                                                 |
+| `transferredAmount`       | Decimal(18,4)?              | ✔     | Monto en la moneda de la CUENTA que cargó el banco.                                                                                                                                                                                                           |
+| `transferTransactionId`   | String? `@unique`           | ✔     | El GASTO en pesos (cargo del emisor) creado por el traspaso.                                                                                                                                                                                                  |
+| `settlementTransactionId` | String? `@unique`           | ✔     | El INGRESO de liquidación en la moneda del período (pago en otra moneda o traspaso).                                                                                                                                                                          |
+| `transferredToId`         | String?                     | ✔     | Período en la moneda de la cuenta que recibió el cargo (para el enlace y para R9).                                                                                                                                                                            |
+| resto                     | —                           | —     | Sin cambios (`paidAmount`, `carriedOverAmount`, `prepaidAmount`, …).                                                                                                                                                                                          |
 
 **Estado derivado** (`CreditStatement.state`):
 
@@ -33,10 +33,10 @@ una vez cerrado y vencido—, nunca sobre uno ya liquidado. Por eso un período 
 **Métodos nuevos del agregado**:
 
 - `transferTowards(periodAmount, transferredAmount, settlementTxId, transferTxId, toStatementId,
-  when)` → `{ settled }`: exige `state.canTransfer()` (solo PENDING), `transferredAmount > 0`;
+when)` → `{ settled }`: exige `state.canTransfer()` (solo PENDING), `transferredAmount > 0`;
   congela `amount = periodAmount`, `settled = remainingFor(periodAmount)`.
 - `transferReversal()` → `{ restoredAmount, restoredCurrency, removedAmount, removedCurrency,
-  receivingStatementId, settlementTransactionId, transferTransactionId }`: puro, solo desde campos
+receivingStatementId, settlementTransactionId, transferTransactionId }`: puro, solo desde campos
   guardados; exige `TRANSFERRED`. Es lo que el DTO expone para la confirmación Y lo que
   `UndoTransferStatementHandler` aplica (Principio I).
 - `undoTransfer()` → aplica `transferReversal()` al propio período (limpia los cinco campos de
@@ -46,9 +46,9 @@ una vez cerrado y vencido—, nunca sobre uno ya liquidado. Por eso un período 
 
 ## Transaction (tabla `transaction`)
 
-| Campo | Tipo | Nuevo | Regla |
-|---|---|---|---|
-| `settlesStatementId` | String? FK → `CreditStatement`, `onDelete: SetNull`, `@@index` | ✔ | Movimiento de liquidación (R3/R4). Nunca enlazado a un período; excluido de `netForPeriod` y `relinkToStatementWithTx`; solo lectura. |
+| Campo                | Tipo                                                           | Nuevo | Regla                                                                                                                                 |
+| -------------------- | -------------------------------------------------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `settlesStatementId` | String? FK → `CreditStatement`, `onDelete: SetNull`, `@@index` | ✔     | Movimiento de liquidación (R3/R4). Nunca enlazado a un período; excluido de `netForPeriod` y `relinkToStatementWithTx`; solo lectura. |
 
 `transactions.sourceOf` gana `STATEMENT_SETTLEMENT` (tiene `settlesStatementId`) y
 `CURRENCY_TRANSFER` (es el `transferTransactionId` de un período — resuelto como hoy

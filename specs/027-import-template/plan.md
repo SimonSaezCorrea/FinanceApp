@@ -46,16 +46,16 @@ cero texto localizado desde el API
 
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-| Principio | Cómo se cumple |
-|---|---|
-| I. Money Precision | Montos `moneyString` en el contrato; toda suma con `@finance/money`; nada en `number`. |
-| II. Per-User Isolation | `loadContext` verifica ownership de cada FK del body antes de persistir (contrato §Ownership); tarjeta ajena ≠ "sin tarjeta". |
-| III. i18n Parity | Plantilla y pantallas con textos en `es.json`/`en.json` (research R1: por eso se genera en web); el API solo devuelve códigos. `parity.test.ts` lo cubre. |
-| IV. Test-First | Tests por capa antes de la implementación (ver tasks). |
-| V. SDD & Living Memory | Esta spec; CLAUDE.md + constitución al cerrar. |
+| Principio                              | Cómo se cumple                                                                                                                                                                                                                                |
+| -------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I. Money Precision                     | Montos `moneyString` en el contrato; toda suma con `@finance/money`; nada en `number`.                                                                                                                                                        |
+| II. Per-User Isolation                 | `loadContext` verifica ownership de cada FK del body antes de persistir (contrato §Ownership); tarjeta ajena ≠ "sin tarjeta".                                                                                                                 |
+| III. i18n Parity                       | Plantilla y pantallas con textos en `es.json`/`en.json` (research R1: por eso se genera en web); el API solo devuelve códigos. `parity.test.ts` lo cubre.                                                                                     |
+| IV. Test-First                         | Tests por capa antes de la implementación (ver tasks).                                                                                                                                                                                        |
+| V. SDD & Living Memory                 | Esta spec; CLAUDE.md + constitución al cerrar.                                                                                                                                                                                                |
 | VI. DDD + CQRS, una tabla = un dominio | Comando en `import` (sin tabla); cada tabla se escribe por el puerto de su dominio (`*WithTx`); agregados dueños de sus reglas (`planCreation`). Precedente de transacción cruzada: `PayCreditStatementHandler`, `ImportTransactionsHandler`. |
-| VII. Idempotencia | `POST /import/template`: forma (c), `Idempotency-Key`, operación `import.template`. `preview` no escribe. |
-| VIII. Identificadores | Sin entidades nuevas; ids nuevos UUID v7 (`@default(uuid(7))`/`generateRowId()`); todo id del body es `rowId`. |
+| VII. Idempotencia                      | `POST /import/template`: forma (c), `Idempotency-Key`, operación `import.template`. `preview` no escribe.                                                                                                                                     |
+| VIII. Identificadores                  | Sin entidades nuevas; ids nuevos UUID v7 (`@default(uuid(7))`/`generateRowId()`); todo id del body es `rowId`.                                                                                                                                |
 
 **Data gates:**
 

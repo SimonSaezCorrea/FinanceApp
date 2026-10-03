@@ -104,7 +104,7 @@ columna Moneda de la plantilla.
 ## R8 — Cuándo se ofrece el traspaso
 
 - **Decision**: función pura en el contrato `canTransferStatement(statement, accountCurrency,
-  today)`: moneda ≠ la de la cuenta, cerrada, no liquidada, con saldo pendiente > 0, y
+today)`: moneda ≠ la de la cuenta, cerrada, no liquidada, con saldo pendiente > 0, y
   (`dueDate` pasada **o** `dueDate` null). El servidor la aplica igual
   (`STATEMENT_NOT_TRANSFERABLE`). Un pago parcial previo no impide el traspaso: se traspasa solo lo
   que falta.
@@ -120,7 +120,7 @@ columna Moneda de la plantilla.
   pago primero.
 - **Una sola fuente para lo que se revierte (Principio I)**: función pura del agregado
   `transferReversal()` → `{ restoredAmount, restoredCurrency, removedAmount, removedCurrency,
-  receivingStatementId }`, calculada solo con campos guardados en el período (`remainingFor(amount)`
+receivingStatementId }`, calculada solo con campos guardados en el período (`remainingFor(amount)`
   al momento del traspaso = `amount − paidAmount`, y `transferredAmount`). El handler de deshacer
   revierte EXACTAMENTE esas cifras, y el DTO las expone como `transferReversal` para que el
   `ConfirmModal` muestre lo mismo que ocurrirá — nunca una segunda implementación.
