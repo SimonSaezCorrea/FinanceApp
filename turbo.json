@@ -22,7 +22,8 @@
         "CURSOR_SIGNING_SECRET",
         "MFA_ENCRYPTION_KEY",
         "MFA_PENDING_TOKEN_SECRET",
-        "PASSKEY_CHALLENGE_SECRET"
+        "PASSKEY_CHALLENGE_SECRET",
+        "IDENTIFIER_HASH_SECRET"
       ]
     },
     "lint": {},

@@ -29,6 +29,9 @@ jobs:
       MFA_ENCRYPTION_KEY: "2f569ed803c2f4dbd6db9c7bf104d228e3a04e3effe6cc133d1c38ed0e7c7dc8"
       MFA_PENDING_TOKEN_SECRET: "ci-mfa-pending-secret"
       PASSKEY_CHALLENGE_SECRET: "ci-passkey-challenge-secret"
+      # compliance-cl: registration (guardian consent) and account deletion HMAC the
+      # RUT/DNI with this key, so the e2e tier needs it too.
+      IDENTIFIER_HASH_SECRET: "ci-identifier-hash-secret"
     services:
       postgres:
         image: postgres:16-alpine
