@@ -20,6 +20,11 @@ export type InstallmentFrequency = z.infer<typeof installmentFrequency>;
  */
 export const installmentPlanStatus = z.enum([
   "OVERDUE",
+  // Credit-card plans only: the next instalment's date passed, but it is not the
+  // user's to pay on its own — the card's statement charges it. "Por facturar" until
+  // a period bills it, "Facturada" while that period is unpaid. Never "overdue".
+  "TO_BILL",
+  "BILLED",
   "DUE_SOON",
   "ON_TRACK",
   "PARTIALLY_PAID",
@@ -140,8 +145,9 @@ export const installmentPlanSchema = z.object({
   /** The card this purchase was put on, when there was one — a plan can equally
    * be a bank loan with no card behind it. */
   cardId: rowId.nullable(),
-  /** Free text, same repertoire as a movement's category; the row's icon comes from it. */
-  category: z.string().nullable(),
+  /** FK into the global category catalogue, same one movements use; the row's
+   * icon comes from it. */
+  categoryId: rowId.nullable(),
   /** The account remembered to pre-fill each payment form. Null on a CREDIT-card plan. */
   paymentAccountId: rowId.nullable(),
   notes: z.string().nullable(),
@@ -188,7 +194,7 @@ export const createInstallmentPlanSchema = z.object({
   frequencyInterval: z.number().int().min(1).max(999).default(1),
   aprPerPeriod: moneyString.optional(),
   cardId: rowId.nullish(),
-  category: z.string().trim().max(120).nullish(),
+  categoryId: rowId.nullish(),
   paymentAccountId: rowId.nullish(),
   notes: z.string().trim().max(500).optional(),
 });
@@ -200,7 +206,7 @@ export const updateInstallmentPlanSchema = z.object({
   frequency: installmentFrequency.optional(),
   frequencyInterval: z.number().int().min(1).max(999).optional(),
   cardId: rowId.nullable().optional(),
-  category: z.string().trim().max(120).nullable().optional(),
+  categoryId: rowId.nullable().optional(),
   paymentAccountId: rowId.nullable().optional(),
   notes: z.string().trim().max(500).nullable().optional(),
   /**
@@ -275,12 +281,16 @@ export function planStatus(
   nextDueDate: string | null,
   now: Date,
   hasUnsettledShortfall: boolean,
+  /** Credit-card plan: whether its next instalment is already on a statement.
+   * Omitted (undefined) for any other plan. */
+  creditCard?: { nextBilled: boolean },
 ): InstallmentPlanStatus {
   if (nextDueDate === null) return "PAID";
   if (hasUnsettledShortfall) return "PARTIALLY_PAID";
   const due = new Date(nextDueDate).getTime();
   const today = now.getTime();
-  if (due < today) return "OVERDUE";
+  if (creditCard?.nextBilled) return "BILLED";
+  if (due < today) return creditCard ? "TO_BILL" : "OVERDUE";
   return due <= today + DUE_SOON_DAYS * 86_400_000 ? "DUE_SOON" : "ON_TRACK";
 }
 

@@ -1,12 +1,27 @@
 {
   "brand": {
-    "name": "FinanceApp"
+    "name": "Cuadra",
+    "slogan": "The backbone of your finances"
   },
   "app": {
     "loading": "Loading…",
     "loadingMore": "Loading more…",
     "welcome": "Personal finance dashboard",
-    "bootstrapping": "Setting up your session…"
+    "bootstrapping": "Setting up your session…",
+    "notFound": {
+      "eyebrow": "404 error",
+      "title": "This page does not exist",
+      "message": "Check the link, or head back somewhere familiar.",
+      "toHome": "Go home",
+      "toPanel": "Go to the Panel",
+      "back": "Go back"
+    },
+    "crash": {
+      "title": "Something went wrong",
+      "message": "The page hit an unexpected error. You can reload or go back home.",
+      "reload": "Reload",
+      "home": "Go home"
+    }
   },
   "states": {
     "error": {
@@ -59,10 +74,18 @@
       "today": "today",
       "clear": "Clear",
       "previousMonth": "Previous month",
-      "nextMonth": "Next month"
+      "nextMonth": "Next month",
+      "chooseMonth": "Choose month",
+      "chooseYear": "Choose year",
+      "previousYear": "Previous year",
+      "nextYear": "Next year",
+      "previousYears": "Previous years",
+      "nextYears": "Next years"
     },
     "decrease": "Decrease",
-    "increase": "Increase"
+    "increase": "Increase",
+    "hidePassword": "Hide password",
+    "showPassword": "Show password"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -84,7 +107,28 @@
     "empty": "You don't have any accounts yet.",
     "deleted": "Account deleted",
     "deleteConfirm": "Delete this account?",
-    "deleteConfirmDescription": "It will be permanently deleted, along with its cards and billing.",
+    "deleteConfirmDescription": "It will be permanently deleted, along with its cards and billing. Choose what else to delete with it: whatever you don't choose stays, with no account.",
+    "deleteWith": {
+      "title": "Also delete",
+      "loading": "Checking what is tied to this account…",
+      "nothing": "No movements or data are tied to this account.",
+      "movements_one": "{{count}} movement",
+      "movements_other": "{{count}} movements",
+      "transfers_one": "Includes {{count}} transfer with another account: both legs are deleted.",
+      "transfers_other": "Includes {{count}} transfers with other accounts: both legs are deleted.",
+      "payments_one": "Includes {{count}} payment of its billing made from another account.",
+      "payments_other": "Includes {{count}} payments of its billing made from other accounts.",
+      "restores": "Gives back to {{restorations}}",
+      "installmentPlans_one": "{{count}} instalment plan",
+      "installmentPlans_other": "{{count}} instalment plans",
+      "recurring_one": "{{count}} recurring series",
+      "recurring_other": "{{count}} recurring series",
+      "savingsEntries_one": "{{count}} savings contribution",
+      "savingsEntries_other": "{{count}} savings contributions",
+      "linkedDebts_one": "{{count}} debt tied to this account stays, without the account.",
+      "linkedDebts_other": "{{count}} debts tied to this account stay, without the account.",
+      "unknownAccount": "another account"
+    },
     "new": "New account",
     "newSubtitle": "Register a bank account, card, or cash",
     "currentBalance": "Current balance",
@@ -106,15 +150,17 @@
     "card": {
       "usage": "{{pct}}% used",
       "creditUsed": "Credit used",
+      "creditUsedShared": "Credit used · shared",
       "cardPool": "Card ···· {{last4}}",
       "trend": "{{pct}}% this month",
       "billedOn": "Billed on the {{day}}th of each month"
     },
     "overview": {
-      "netWorth": "Total net worth",
+      "netWorth": "Net worth",
       "netWorthHint": "· net, approx. in {{currency}}",
       "assets": "Assets",
-      "cardDebt": "Card debt"
+      "cardDebt": "Card debt",
+      "debts": "Debts"
     },
     "groupBy": {
       "label": "Group by:",
@@ -131,7 +177,7 @@
     "detail": {
       "change": "Change",
       "credit": "Credit",
-      "creditPools": "Limits by currency",
+      "creditIn": "Credit · {{currency}}",
       "billingSettingsTitle": "Configure billing",
       "billingSettingsSubtitle": "This account's billing day and payment method.",
       "billingTitle": "Statements",
@@ -152,7 +198,8 @@
         "OPEN": "Open",
         "PENDING": "Pending",
         "PARTIALLY_PAID": "Partially paid",
-        "PAID": "Paid"
+        "PAID": "Paid",
+        "TRANSFERRED": "Transferred"
       },
       "payFromAccount": "Pay with",
       "payFromAccountPlaceholder": "Select an account",
@@ -193,7 +240,8 @@
       "statementPaid": "Paid",
       "statementRemaining": "Remaining",
       "statementPurchases": "Purchases",
-      "statementInstallments": "Billed instalments"
+      "statementInstallments": "Billed instalments",
+      "billingCurrencyTabs": "Statements by currency"
     },
     "filter": {
       "label": "Filter by status",
@@ -301,7 +349,8 @@
       "syncStatement": "Sync payments",
       "syncStatementConfirm": "Sync this statement?",
       "syncStatementConfirmDescription": "The period's amount will be recalculated from the movements dated inside it. If it was already paid, the payment movement and the used credit are adjusted to match.",
-      "syncStatementSuccess": "Statement synced"
+      "syncStatementSuccess": "Statement synced",
+      "generateStatementsPreviewAmountIn": "Accumulated in {{currency}}"
     },
     "updated": "Account updated",
     "edit": {
@@ -376,10 +425,11 @@
       "primaryLimitHint": "This is the account's first credit card: its limit becomes the account's shared pool.",
       "extraLimits": "Limits in other currencies",
       "extraLimitsHint": "Optional. Add an extra limit if this card is also used in another currency (no cross-currency conversion).",
+      "extraLimitsNoCurrencies": "To add a limit in another currency (e.g. USD), first enable it in Profile → Financial customization → Extra currencies.",
       "usesPool": "Account pool",
       "usesPoolHint": "This card shares the account's full pool.",
       "ownLimit": "Own limit",
-      "ownLimitHint": "Set an independent limit for this card (can't exceed the account's pool in the same currency).",
+      "ownLimitHint": "Caps this card within the account's pool: what it spends also uses the account's pool, and the cap can't exceed it in the same currency.",
       "ownLimitRowsHint": "Add at least one limit per currency.",
       "active": "Card active",
       "activeHint": "An inactive card keeps its history but no longer appears when recording movements."
@@ -445,7 +495,27 @@
     "done": "Done",
     "moveLeft": "Move left",
     "moveRight": "Move right",
-    "accountItem": "Account"
+    "accountItem": "Account",
+    "editor": {
+      "title": "Build your wallet",
+      "description": "Up to {{max}}. Pick the whole account or just one of its cards.",
+      "edit": "Edit wallet",
+      "preview": "How it will look on your Dashboard",
+      "count": "{{count}} of {{max}}",
+      "chipAccount": "Account",
+      "chipCard": "Card",
+      "inPanel": "{{n}} · On the Dashboard",
+      "full": "Wallet full",
+      "primary": "Primary",
+      "additional": "Additional",
+      "emptySlot": "{{n}} · Empty slot",
+      "moveEarlier": "Move earlier",
+      "moveLater": "Move later",
+      "duplicate": "Card {{card}} shows the same balance as {{account}}.",
+      "removeCard": "Remove the card",
+      "creditHint": "Picking a credit card account shows its whole limit; picking one of its cards shows just that plastic.",
+      "saved": "Wallet saved"
+    }
   },
   "transactions": {
     "title": "Transactions",
@@ -511,7 +581,9 @@
       "currency": "Currency",
       "leaveConfirm": "Leave without saving?",
       "leaveConfirmDescription": "You have unsaved changes on this movement. Leaving now will discard them.",
-      "leaveDiscard": "Discard changes"
+      "leaveDiscard": "Discard changes",
+      "recurring": "Recurring",
+      "noRecurring": "None"
     },
     "kpi": {
       "income": "Income",
@@ -556,7 +628,8 @@
       "source": "Source",
       "viewPlan": "View plan",
       "viewDebt": "View debt",
-      "viewBilling": "View statement"
+      "viewBilling": "View statement",
+      "viewRecurring": "View recurring"
     },
     "source": {
       "MANUAL": "Manual",
@@ -566,7 +639,10 @@
       "FINANCE_CHARGE": "Finance charge",
       "DEBT": "Debt",
       "STATEMENT_PAYMENT": "Statement payment",
-      "CREDIT_CARD_PREPAYMENT": "Card prepayment"
+      "CREDIT_CARD_PREPAYMENT": "Card prepayment",
+      "RECURRING": "Recurring",
+      "STATEMENT_SETTLEMENT": "Statement settlement",
+      "CURRENCY_TRANSFER": "Currency transfer"
     },
     "attachments": {
       "title": "Receipts",
@@ -583,6 +659,37 @@
       "comingSoon": "Coming soon",
       "comingSoonReason": "Receipts will be available once file storage is enabled."
     }
+  },
+  "categories": {
+    "SUPERMARKET": "Groceries",
+    "RESTAURANTS": "Restaurants",
+    "TRANSPORT": "Transport",
+    "HOUSING": "Housing",
+    "UTILITIES": "Utilities",
+    "HOME": "Home",
+    "HEALTH": "Health",
+    "EDUCATION": "Education",
+    "SHOPPING": "Shopping",
+    "ENTERTAINMENT": "Entertainment",
+    "SUBSCRIPTIONS": "Subscriptions",
+    "TECHNOLOGY": "Technology",
+    "TRAVEL": "Travel",
+    "SPORTS": "Sports",
+    "PETS": "Pets",
+    "INSURANCE": "Insurance",
+    "FAMILY": "Family",
+    "FEES": "Fees",
+    "SALARY": "Salary",
+    "FREELANCE": "Freelance",
+    "REFUND": "Refunds",
+    "GIFTS": "Gifts",
+    "OTHER": "Other",
+    "SAVINGS": "Savings",
+    "DEBTS": "Debts",
+    "INTEREST": "Interest",
+    "STATEMENT_PAYMENT": "Statement payment",
+    "CARD_PREPAYMENT": "Card prepayment",
+    "CURRENCY_TRANSFER": "Currency transfer"
   },
   "installments": {
     "title": "Installments",
@@ -656,6 +763,8 @@
     },
     "status": {
       "OVERDUE": "Overdue",
+      "TO_BILL": "To be billed",
+      "BILLED": "Billed",
       "DUE_SOON": "Due soon",
       "ON_TRACK": "On track",
       "PARTIALLY_PAID": "Partially paid",
@@ -689,6 +798,8 @@
     "noneMatchFilters": "No plan matches these filters.",
     "statusWithDate": {
       "OVERDUE": "Overdue {{date}}",
+      "TO_BILL": "To be billed {{date}}",
+      "BILLED": "Billed {{date}}",
       "DUE_SOON": "Due {{date}}",
       "ON_TRACK": "{{date}}",
       "PARTIALLY_PAID": "Partially paid",
@@ -925,7 +1036,8 @@
     "subtitle": "{{active}} active · {{paused}} paused",
     "new": "New recurring",
     "edit": "Edit recurring",
-    "empty": "No recurring expenses yet.",
+    "empty": "No recurring expenses yet",
+    "emptyHint": "Add a subscription, rent or any payment that repeats to see how much is committed.",
     "created": "Recurring created",
     "updated": "Recurring updated",
     "deleted": "Recurring deleted",
@@ -948,7 +1060,9 @@
       "YEARLY": "Yearly",
       "PAUSED": "Paused",
       "activeMeta": "{{count}} active · {{sum}} per month",
-      "pausedMeta": "{{count}} · doesn't generate movements"
+      "pausedMeta": "{{count}} · doesn't generate movements",
+      "FINISHED": "Finished",
+      "finishedMeta": "{{count}} · no longer charged"
     },
     "due": {
       "today": "today",
@@ -957,7 +1071,8 @@
     },
     "row": {
       "overdueMeta": "Due {{date}} · no movement",
-      "pausedMeta": "{{frequency}} · paused since {{date}}"
+      "pausedMeta": "{{frequency}} · paused since {{date}}",
+      "finishedMeta": "{{frequency}} · last paid {{date}}"
     },
     "actions": {
       "pause": "Pause",
@@ -981,7 +1096,8 @@
       "historyEmpty": "No generated occurrences",
       "historyEmptyHint": "No movement has been generated from this recurring yet.",
       "historyNote": "Movement generated automatically · {{account}}",
-      "historyBadge": "Generated"
+      "historyBadge": "Generated",
+      "endedOn": "Last payment"
     },
     "pause": {
       "titlePause": "Pause «{{name}}»",
@@ -1016,12 +1132,15 @@
       "categoryPlaceholder": "Choose category",
       "leaveConfirm": "Leave without saving?",
       "leaveConfirmDescription": "You have unsaved changes on this recurring series. Leaving now will discard them.",
-      "leaveDiscard": "Discard changes"
-    }
+      "leaveDiscard": "Discard changes",
+      "endDate": "Last payment (if it ended)"
+    },
+    "finished": "Finished"
   },
   "savings": {
     "title": "Savings",
-    "empty": "You don't have any savings goals yet.",
+    "empty": "You don't have any savings goals yet",
+    "emptyHint": "Create a goal or record a free contribution to start tracking your progress.",
     "subtitle_one": "{{count}} open goal · {{missing}} left to reach",
     "subtitle_other": "{{count}} open goals · {{missing}} left to reach",
     "freeContribution": "Free contribution",
@@ -1217,27 +1336,773 @@
   },
   "import": {
     "title": "Import",
-    "info": "Upload transactions from Excel (file upload coming soon)."
+    "pageDescription": "Load movements from the statement your bank exports, as Excel (.xlsx) or CSV.",
+    "pickAccount": "Which account are you importing into?",
+    "panelTitle": "Import movements",
+    "panelDescription": "From the statement you export from your bank, as Excel (.xlsx) or CSV.",
+    "changeFile": "Change file",
+    "submit_one": "Import {{count}} movement",
+    "submit_other": "Import {{count}} movements",
+    "submitting": "Importing…",
+    "success_one": "{{count}} movement imported",
+    "success_other": "{{count}} movements imported",
+    "rowError": "Row {{row}} of the file: {{message}}",
+    "pick": {
+      "title": "Choose or drop your file",
+      "hint": "Excel (.xlsx) or CSV. If your bank gives you .xls, open it in Excel and save it as .xlsx.",
+      "reading": "Reading file…"
+    },
+    "readError": {
+      "unsupported": "That format can't be read. Use an .xlsx or .csv file.",
+      "empty": "The file has no data.",
+      "unreadable": "The file couldn't be read. Is it damaged or password-protected?"
+    },
+    "map": {
+      "headerRow": "Header row",
+      "unnamed": "(unnamed)",
+      "roleFor": "What column {{column}} is",
+      "invertSign": "Flip the amount's sign",
+      "incomplete": "Point out the date column and the amount column (or the debit and credit ones)."
+    },
+    "roles": {
+      "ignore": "Don't import",
+      "date": "Date",
+      "description": "Description",
+      "amount": "Amount (signed)",
+      "debit": "Debits (expenses)",
+      "credit": "Credits (income)",
+      "type": "Type (debit/credit)",
+      "category": "Category",
+      "card": "Card (last 4)",
+      "observation": "Note",
+      "emisor": "Payer",
+      "receptor": "Payee",
+      "lugar": "Place",
+      "financeCharge": "Issuer charge (yes/no)"
+    },
+    "preview": {
+      "issues_one": "{{count}} row couldn't be read and won't be imported: {{rows}}.",
+      "issues_other": "{{count}} rows couldn't be read and won't be imported: {{rows}}.",
+      "tooMany": "The file has more than {{max}} movements. Split it into smaller parts.",
+      "cardsUnmatched_one": "{{count}} row names a card this account doesn't have; it uses the default card.",
+      "cardsUnmatched_other": "{{count}} rows name a card this account doesn't have; they use the default card."
+    },
+    "issue": {
+      "invalidDate": "invalid date",
+      "invalidAmount": "invalid amount",
+      "ambiguousAmount": "both debit and credit",
+      "invalidType": "unrecognised type"
+    },
+    "notice": {
+      "balance": "Every imported movement moves the account's balance. If the initial balance already includes these movements, they'll be counted twice.",
+      "creditCard": "Expenses go on the primary card and the open billing period; credits free up the limit."
+    },
+    "sheets": {
+      "title": "Sheets in the file",
+      "unnamed": "Sheet {{n}}",
+      "rows_one": "{{count}} row",
+      "rows_other": "{{count}} rows"
+    },
+    "defaults": {
+      "category": "Category",
+      "card": "Card",
+      "noCard": "No card"
+    },
+    "eyebrow": "{{account}} · Import",
+    "ready_one": "{{count}} ready",
+    "ready_other": "{{count}} ready",
+    "withIssues_one": "{{count}} with problems",
+    "withIssues_other": "{{count}} with problems",
+    "grid": {
+      "hint": "Choose what each column is, right on your spreadsheet. Unassigned columns are dimmed.",
+      "noValue": "no value",
+      "unmatched": "Not recognised: “{{fallback}}” is used",
+      "categoriesUnmatched_one": "{{count}} category doesn't match the catalogue → {{fallback}}",
+      "categoriesUnmatched_other": "{{count}} categories don't match the catalogue → {{fallback}}",
+      "truncated": "Showing the first {{shown}} rows; all of them are imported."
+    },
+    "template": {
+      "cardTitle": "Cuadra template",
+      "cardDescription": "Keep your finances in your own spreadsheet? Download the template, copy your movements, transfers, debts, instalments, recurring payments and goals into it, and upload it. Each sheet says what its rows are, so nothing has to be guessed.",
+      "download": "Download template",
+      "downloading": "Preparing template…",
+      "upload": "Upload template",
+      "downloadError": "The template couldn't be generated.",
+      "panelTitle": "Import a Cuadra template",
+      "panelDescription": "Upload the template you downloaded from this page, filled in.",
+      "eyebrow": "Import · Template",
+      "pickTitle": "Choose or drop your template",
+      "pickHint": "The .xlsx file you downloaded from Import.",
+      "reading": "Reading template…",
+      "validating": "Checking it against your data…",
+      "changeFile": "Change file",
+      "summaryTitle": "What will be imported",
+      "accountsTitle": "Effect on your accounts",
+      "modeIncluded": "My balance already includes this",
+      "modeAdd": "Add it to my balance",
+      "modeHint": "If you created the account with today's real balance, these movements are already part of it: choose the first option so the balance doesn't change.",
+      "net": "Effect",
+      "balanceAfter": "Balance after",
+      "creditUsedAfter": "Credit used after",
+      "issuesTitle_one": "{{count}} problem to fix",
+      "issuesTitle_other": "{{count}} problems to fix",
+      "issuesHint": "Fix the file and upload it again. Nothing is imported until none are left.",
+      "issueLine": "{{sheet}} · row {{row}}: {{message}}",
+      "reimportWarning": "If you upload this same file again later, everything will be created again: the template doesn't detect duplicates.",
+      "submit": "Import",
+      "submitting": "Importing…",
+      "success": "Template imported",
+      "notTemplate": "This file isn't a Cuadra template. For a bank statement use the statement importer, choosing the account on this page.",
+      "outdated": "This template is from an earlier version. Download the current template and copy your data into it.",
+      "empty": "The template has no rows to import.",
+      "tooMany": "The template has more than {{max}} rows. Split it into several files.",
+      "readError": "The file couldn't be read. Is it damaged or password-protected?",
+      "sheets": {
+        "instructions": "Instructions",
+        "movements": "Movements",
+        "transfers": "Transfers",
+        "debts": "Debts",
+        "debtPayments": "Debt payments",
+        "plans": "Instalments",
+        "planPayments": "Instalment payments",
+        "recurring": "Recurring",
+        "goals": "Goals",
+        "contributions": "Contributions",
+        "reference": "Reference"
+      },
+      "columns": {
+        "movements": {
+          "date": "Date",
+          "type": "Type",
+          "amount": "Amount",
+          "currency": "Currency",
+          "account": "Account",
+          "card": "Card",
+          "category": "Category",
+          "description": "Description",
+          "observation": "Note",
+          "emisor": "Payer",
+          "receptor": "Payee",
+          "lugar": "Place",
+          "financeCharge": "Issuer charge",
+          "recurring": "Recurring"
+        },
+        "transfers": {
+          "date": "Date",
+          "fromAccount": "From account",
+          "toAccount": "To account",
+          "amount": "Amount",
+          "incomingAmount": "Amount received",
+          "description": "Description"
+        },
+        "debts": {
+          "ref": "Reference",
+          "direction": "Direction",
+          "counterparty": "Counterparty",
+          "title": "Title",
+          "principal": "Total amount",
+          "currency": "Currency",
+          "openedAt": "Date",
+          "dueAt": "Due date",
+          "installments": "Instalments",
+          "frequency": "Frequency",
+          "every": "Every",
+          "account": "Linked account",
+          "notes": "Notes"
+        },
+        "debtPayments": {
+          "ref": "Reference",
+          "date": "Date",
+          "account": "Account",
+          "amount": "Amount"
+        },
+        "plans": {
+          "ref": "Reference",
+          "title": "Description",
+          "startDate": "Purchase date",
+          "totalPrincipal": "Total amount",
+          "installments": "Instalments",
+          "currency": "Currency",
+          "frequency": "Frequency",
+          "every": "Every",
+          "interest": "Interest per period",
+          "card": "Card",
+          "category": "Category",
+          "account": "Payment account"
+        },
+        "planPayments": {
+          "ref": "Reference",
+          "sequence": "Instalment #",
+          "date": "Date",
+          "account": "Account",
+          "amount": "Amount"
+        },
+        "recurring": {
+          "label": "Name",
+          "amount": "Amount",
+          "currency": "Currency",
+          "frequency": "Frequency",
+          "every": "Every",
+          "anchorDate": "First date",
+          "account": "Account",
+          "card": "Card",
+          "category": "Category",
+          "notes": "Notes",
+          "ref": "Reference",
+          "endDate": "Last payment"
+        },
+        "goals": {
+          "ref": "Reference",
+          "title": "Goal",
+          "targetAmount": "Target",
+          "currency": "Currency",
+          "deadline": "Deadline",
+          "notes": "Notes"
+        },
+        "contributions": {
+          "ref": "Reference",
+          "date": "Date",
+          "amount": "Amount",
+          "account": "Account"
+        }
+      },
+      "columnHelp": {
+        "movements": {
+          "date": "Day the transaction happened (dd/mm/yyyy).",
+          "type": "Expense or Income. It sets the sign: Amount is always positive.",
+          "amount": "Amount without a sign (15000 or 15,000), in the row's Currency or, if empty, the account's.",
+          "currency": "Empty = the account's currency. Another one (e.g. USD) only on a credit card account whose card has a limit in that currency: the charge or payment goes against that limit, not the main one.",
+          "account": "Account it happened on. Pick it from the list: those are your active accounts.",
+          "card": "Card used to pay; it must belong to that same account. On a credit card account, leaving it empty uses the primary card.",
+          "category": "Category from the catalogue. It must fit the Type: an expense one for an expense, an income one for income.",
+          "description": "Short text that identifies the transaction, such as the merchant.",
+          "observation": "Free, longer note.",
+          "emisor": "Who made the payment or transfer. Informational only.",
+          "receptor": "Who received the payment. Informational only.",
+          "lugar": "Where it happened: city, store or website. Informational only.",
+          "financeCharge": "Yes when it's a charge from the bank on a credit card account (interest, maintenance fee, insurance), copied from the statement. It goes without a card. Ignored on other accounts.",
+          "recurring": "If this transaction pays a recurring expense, that row's Reference on the Recurring sheet."
+        },
+        "transfers": {
+          "date": "Day of the transfer.",
+          "fromAccount": "Account the money leaves.",
+          "toAccount": "Account the money arrives in. It can't be a credit card: that's paying its statement.",
+          "amount": "Amount that leaves the source account, in its currency.",
+          "incomingAmount": "Amount that arrives, only if the destination account is in another currency. Empty = same as Amount.",
+          "description": "Optional short text."
+        },
+        "debts": {
+          "ref": "Short, unique code (e.g. VICTOR) that ties the debt to its payments.",
+          "direction": "Owed to me (someone owes you) or I owe (you owe someone).",
+          "counterparty": "The other person's name.",
+          "title": "Short name for the debt, e.g. Car loan.",
+          "principal": "Total amount of the debt.",
+          "currency": "Currency of the debt. Its payments must come from accounts in that currency.",
+          "openedAt": "Day the debt started. Creating it moves no money: if there was a loan, record it separately in Transactions.",
+          "dueAt": "Deadline to settle it, if any.",
+          "installments": "How many instalments it's paid in. Empty = 1 (a single payment).",
+          "frequency": "How often an instalment is paid. Empty = Monthly.",
+          "every": "Every how many periods of that frequency (2 with Monthly = every 2 months). Empty = 1.",
+          "account": "Suggested account for recording its payments. Just a preference.",
+          "notes": "Free note."
+        },
+        "debtPayments": {
+          "ref": "The debt's Reference on the Debts sheet.",
+          "date": "Day of the payment. It can't be before the debt's date.",
+          "account": "Account the money goes into (if you're paid) or leaves (if you pay). It can't be a credit card and must be in the debt's currency.",
+          "amount": "Optional. Each row is one whole instalment (Total amount ÷ Instalments); if you fill it in, it must match."
+        },
+        "plans": {
+          "ref": "Short, unique code (e.g. NOTEBOOK) that ties the plan to its payments.",
+          "title": "What you bought, e.g. Laptop.",
+          "startDate": "Day of the purchase. Due dates are worked out from here.",
+          "totalPrincipal": "Total price, without interest.",
+          "installments": "Number of instalments.",
+          "currency": "Currency of the plan.",
+          "frequency": "How often an instalment falls due. Empty = Monthly.",
+          "every": "Every how many periods of that frequency (2 with Monthly = every 2 months). Empty = 1.",
+          "interest": "Interest rate per period, with % (e.g. 1.5%). Empty = no interest.",
+          "card": "Card used for the purchase. If it's a credit card, the purchase is charged to its limit and the instalments are billed on that account.",
+          "category": "Expense category from the catalogue.",
+          "account": "Account you pay the instalments from. Not for plans on a credit card."
+        },
+        "planPayments": {
+          "ref": "The plan's Reference on the Instalments sheet.",
+          "sequence": "Number of the instalment paid (1, 2, 3…). Each instalment is paid only once.",
+          "date": "Day of the payment. It can't be before the purchase.",
+          "account": "Account the payment came from. Required, except for plans on a credit card, where it stays empty.",
+          "amount": "Amount paid. Required, except for plans on a credit card, where it stays empty. If you pay less than the instalment, the rest moves to the next one."
+        },
+        "recurring": {
+          "ref": "Short code for linking payments to it from the Recurring column in Transactions.",
+          "label": "Name of the expense, e.g. Spotify.",
+          "amount": "Amount of each payment.",
+          "currency": "Currency of the expense.",
+          "frequency": "Weekly, Monthly or Yearly.",
+          "every": "Every how many periods of that frequency (2 with Monthly = every 2 months). Empty = 1.",
+          "anchorDate": "Day of the first payment; the next ones are worked out from it.",
+          "endDate": "Day of the last payment, if it ended or has an end. Empty = still running.",
+          "account": "Account it's paid from.",
+          "card": "Card it's paid with, if it doesn't come straight out of the account.",
+          "category": "Expense category from the catalogue.",
+          "notes": "Free note."
+        },
+        "goals": {
+          "ref": "Short, unique code (e.g. TRIP) that ties the goal to its contributions.",
+          "title": "Name of the goal.",
+          "targetAmount": "Amount you want to save.",
+          "currency": "Currency of the goal. Its contributions must come from accounts in that currency.",
+          "deadline": "Date to reach it, if any.",
+          "notes": "Free note."
+        },
+        "contributions": {
+          "ref": "The goal's Reference on the Goals sheet.",
+          "date": "Day of the contribution.",
+          "amount": "Amount contributed.",
+          "account": "Account the contribution comes from: it's taken out of its balance."
+        }
+      },
+      "values": {
+        "movementType": {
+          "EXPENSE": "Expense",
+          "INCOME": "Income"
+        },
+        "direction": {
+          "OWED_TO_YOU": "Owed to me",
+          "YOU_OWE": "I owe"
+        },
+        "planFrequency": {
+          "MONTHLY": "Monthly",
+          "WEEKLY": "Weekly",
+          "YEARLY": "Yearly",
+          "DAILY": "Daily"
+        },
+        "recurrenceFrequency": {
+          "MONTHLY": "Monthly",
+          "WEEKLY": "Weekly",
+          "YEARLY": "Yearly"
+        },
+        "yesNo": {
+          "YES": "Yes",
+          "NO": "No"
+        }
+      },
+      "reference": {
+        "accounts": "Accounts",
+        "cards": "Cards",
+        "categories": "Categories",
+        "currencies": "Currencies",
+        "type": "Type",
+        "currency": "Currency"
+      },
+      "instructions": {
+        "title": "Cuadra template",
+        "intro": "Fill in one sheet per kind of data and upload the file from Import. Leave the sheets you don't use empty. Cells with a dropdown only accept your own accounts, cards and categories; if you type them, make them match.",
+        "rules": "What moves money: a movement, a transfer, a debt payment, an instalment payment without a credit card and a contribution move their account's balance. Creating a debt, a plan or a goal moves nothing. An instalment payment of a credit card plan only marks it paid and frees its credit: that instalment will never be billed.",
+        "refs": "References: write a short code in the Reference column of a debt, plan, goal or recurring series (for example VICTOR) and repeat it on its payments, contributions or movements to link them. It must be unique in its sheet.",
+        "allOrNothing": "If any row has a problem nothing is imported: you'll see every problem with its sheet and row.",
+        "reimport": "Uploading the same file twice imports it twice.",
+        "exampleTitle": "Examples (not imported)",
+        "examples": {
+          "movements": "Movements: 28/11/2025 · Expense · 15000 · BCI · · Groceries · Jumbo (if it pays a recurring series, that series' Reference in the Recurring column)",
+          "transfers": "Transfers: 01/12/2025 · BCI · MACH · 50000",
+          "debts": "Debts: VICTOR · Owed to me · Victor · Loan · 200000 · CLP · 14/02/2026 · · 4 · Monthly · 1",
+          "debtPayments": "Debt payments: VICTOR · 14/03/2026 · BCI",
+          "plans": "Instalments: NOTEBOOK · Notebook · 28/11/2025 · 623992 · 6 · CLP · Monthly · 1 · · BCI Visa · ····4827",
+          "planPayments": "Instalment payments: NOTEBOOK · 1 · 28/12/2025 (credit card: no account or amount)",
+          "recurring": "Recurring: SPOTIFY · Spotify · 6990 · CLP · Monthly · 1 · 01/01/2026 · 01/04/2026 · BCI (leave Last payment empty if it's still running)",
+          "goals": "Goals: TRIP · Trip to Japan · 1500000 · CLP · 31/12/2026",
+          "contributions": "Contributions: TRIP · 01/02/2026 · 50000 · BCI"
+        },
+        "columnsTitle": "What goes in each column",
+        "columnsHint": "You can also see a column's description by hovering over its header (the red mark in the corner).",
+        "required": "required",
+        "optional": "optional"
+      },
+      "issues": {
+        "required": "{{column}} is missing",
+        "invalidDate": "{{column}} isn't a date",
+        "invalidAmount": "{{column}} isn't an amount",
+        "invalidNumber": "{{column}} isn't a whole number",
+        "unknownAccount": "there's no account called “{{value}}”",
+        "ambiguousAccount": "two accounts are called “{{value}}”; rename one of them",
+        "unknownCard": "there's no card “{{value}}”",
+        "unknownCategory": "there's no category “{{value}}”",
+        "unknownValue": "“{{value}}” isn't a valid value for {{column}}",
+        "duplicateRef": "the reference “{{value}}” is repeated in this sheet",
+        "unknownRef": "no row has the reference “{{value}}”"
+      }
+    }
   },
   "auth": {
     "signIn": "Sign in",
     "createAccount": "Create account",
-    "register": "Register",
-    "name": "Name (optional)",
+    "name": "Full name",
+    "rut": "RUT",
     "email": "Email",
     "password": "Password",
-    "needAccount": "Need an account?",
-    "haveAccount": "Already have an account?",
+    "birthDate": "Date of birth",
+    "placeholders": {
+      "name": "e.g. John Smith",
+      "rut": "12.345.678-9",
+      "email": "you@example.com",
+      "password": "At least 8 characters",
+      "guardianName": "e.g. Jane Smith",
+      "guardianRut": "12.345.678-9"
+    },
+    "sensitiveDataConsentLabel": "Sensitive data",
+    "sensitiveDataConsent": "I agree that Cuadra processes my financial data (balances, movements, debts) as sensitive data, under the <privacy>Privacy Policy</privacy>.",
+    "consentRequired": "You must accept the sensitive-data processing to continue.",
+    "guardian": {
+      "title": "Parent/guardian authorization",
+      "hint": "Since you're a minor, we need authorization from your legal representative.",
+      "name": "Guardian's full name",
+      "identifierValue": "Guardian's RUT",
+      "relationship": {
+        "MOTHER": "Mother",
+        "FATHER": "Father",
+        "GUARDIAN": "Legal guardian",
+        "OTHER": "Other"
+      },
+      "acceptLabel": "Authorization",
+      "accept": "I authorize the processing of my child's/dependent's financial data in Cuadra.",
+      "acceptRequired": "The guardian's authorization is missing.",
+      "relationshipLabel": "Relationship"
+    },
     "logout": "Log out",
     "mfa": {
       "title": "Two-factor verification",
       "hint": "Enter the code from your authenticator app, or one of your recovery codes.",
       "placeholder": "6-digit or recovery code",
       "verify": "Verify",
-      "back": "Back"
+      "back": "Back",
+      "verifying": "Verifying…",
+      "codeLabel": "Code"
     },
     "passkey": {
-      "signIn": "Sign in with a passkey"
+      "signIn": "Continue with a passkey",
+      "waiting": "Waiting for your device…"
+    },
+    "signingIn": "Signing in…",
+    "creatingAccount": "Creating account…",
+    "validation": {
+      "required": "Fill in this field",
+      "rut": "Invalid RUT: check the verification digit",
+      "email": "Check the email: the @ or domain is missing",
+      "passwordLength": "At least {{min}} characters",
+      "birthDateFuture": "The date can't be in the future",
+      "passwordLetterNumber": "Use at least one letter and one number",
+      "passwordIsRut": "Your password can't be your RUT"
+    },
+    "login": {
+      "title": "Sign in with one tap",
+      "subtitle": "With this device's fingerprint or face. No password and no second factor.",
+      "orWithRut": "or with your RUT"
+    },
+    "signup": {
+      "title": "Create your account",
+      "subtitle": "You can add a passkey to sign in afterwards."
+    },
+    "firstTime": "First time here?",
+    "haveAccount": "Already have an account?",
+    "passwordRules": {
+      "label": "Password requirements",
+      "length": "{{min}} characters or more",
+      "letterNumber": "A letter and a number",
+      "symbol": "A symbol (recommended)",
+      "notRut": "Not your RUT",
+      "met": "met",
+      "pending": "pending"
+    }
+  },
+  "landing": {
+    "nav": {
+      "label": "Sections",
+      "about": "About",
+      "privacy": "Privacy & data",
+      "pricing": "Pricing",
+      "faq": "FAQ",
+      "goToApp": "Go to the app"
+    },
+    "footer": {
+      "tagline": "Cuadra · Chile · CLP, USD and CLF (UF)",
+      "sample": "Accounts, cards and amounts on these screens: sample data, not real"
+    },
+    "home": {
+      "eyebrow": "Personal finance · Chile",
+      "titleLead": "Your finances with",
+      "titleAccent": "your bank's own rules",
+      "lead": "A credit pool shared across cards, a closing date counted in business days with Chilean holidays, an instalment that commits the pool the day you buy, a shortfall carried to the next period. What other apps simplify until it stops adding up.",
+      "why": {
+        "1": {
+          "title": "No invented figures",
+          "body": "We don't calculate your bank's interest or convert currencies for you. When a figure is missing, we say so instead of guessing."
+        },
+        "2": {
+          "title": "Everything reversible",
+          "body": "Undoing a debt payment gives the balance back. Deleting an instalment plan reverses its whole history, and tells you what it will move before it does."
+        },
+        "3": {
+          "title": "Chile first, done properly",
+          "body": "Legal holidays, RUT check digit, the UF, the local bank and cooperative catalogue — one country done right, before many done halfway."
+        },
+        "eyebrow": "Why Cuadra",
+        "title": "Built so your numbers match your bank's"
+      },
+      "features": {
+        "eyebrow": "What sets it apart",
+        "titleLead": "The detail other apps",
+        "titleAccent": "simplify until it breaks",
+        "cards": {
+          "tag": "Cards & credit",
+          "title": "One shared pool, like your bank's",
+          "body": "The primary card and its add-ons draw from the same pool, unless you give one its own sub-limit per currency. Never an available amount your bank wouldn't recognize."
+        },
+        "calendar": {
+          "tag": "Billing",
+          "title": "Closes in business days, with Chilean holidays",
+          "body": "You choose how many business days pass until closing, and how many until payment is due. Chile's legal holidays are already counted, so the date matches your real statement."
+        },
+        "currencies": {
+          "tag": "Currencies",
+          "title": "Pesos, dollars and UF, each on their own",
+          "body": "Every account lives in its own currency with its own total. No automatic conversion mixing figures that were never meant to add up."
+        }
+      }
+    },
+    "about": {
+      "eyebrow": "About us",
+      "titleLead": "We built the app",
+      "titleAccent": "we ourselves needed",
+      "lead": "Almost every personal-finance app treats a credit card like just another account: the purchase debits your balance, twelve instalments show up whole in one month, closing falls on the same day for everyone. None of that is true.",
+      "p1": "Cuadra is built backwards: the real product rules first —a shared credit pool, a business-day close, a billed instalment, a carried-over shortfall— and the screen after. If the model can't honestly support a figure, the app doesn't show it.",
+      "receipts": {
+        "bank": "Your bank"
+      },
+      "how": {
+        "eyebrow": "How we built it",
+        "titleLead": "Rules first,",
+        "titleAccent": "screen second",
+        "body": "Every feature starts from a real rule of a Chilean bank or issuer, never from whatever looks simplest in a mockup. When the model has no way to support a figure honestly, the app says so instead of inventing it."
+      },
+      "principlesTitle": "How we decide what goes in",
+      "principlesHeading": "Three rules we don't bend",
+      "principles": {
+        "noInvented": {
+          "title": "No invented figures",
+          "body": "We don't calculate your bank's interest or convert currencies. When a figure is missing, we say so instead of guessing."
+        },
+        "reversible": {
+          "title": "Everything reversible",
+          "body": "Undoing a debt payment gives the balance back. Deleting an instalment plan reverses its whole history, and tells you what it will move before it does."
+        },
+        "chileFirst": {
+          "title": "Chile first, done properly",
+          "body": "Legal holidays, RUT check digit, the UF, the local bank and cooperative catalogue. One country done right, before many done halfway."
+        }
+      },
+      "today": {
+        "eyebrow": "Honest status",
+        "title": "Where it stands today",
+        "available": {
+          "title": "Available",
+          "body": "Accounts, cards, movements, billing, instalments, goals, debts and recurring expenses, in pesos, dollars and UF."
+        },
+        "paused": {
+          "title": "Paused",
+          "body": "Investment tracking (returns, prices) is paused: the investment account type still exists, tracking doesn't yet."
+        },
+        "pending": {
+          "title": "Pending",
+          "body": "Exporting your data and automatic bank sync don't exist yet — and the second one may never."
+        }
+      }
+    },
+    "privacy": {
+      "center": "Your data",
+      "title": "Privacy & data",
+      "titleLead": "Your data, in layers you can",
+      "titleAccent": "review one at a time",
+      "lead": "Your balances, movements and debts describe your financial situation, so they're treated as sensitive data: consent to process them is asked for separately, explicit and versioned, never buried inside an “I accept the terms”.",
+      "layersEyebrow": "Layer by layer",
+      "layersTitle": "What each ring protects",
+      "layerLabel": "Layer {{n}}",
+      "layers": {
+        "consent": {
+          "title": "Consent",
+          "lead": "Consent to process your financial information is asked for separately, never dissolved into an “I accept the terms”.",
+          "a": {
+            "title": "Explicit and versioned",
+            "body": "Every consent is dated and tagged with the policy version you accepted, viewable from your profile."
+          },
+          "b": {
+            "title": "Minors",
+            "body": "Registration with a parent or guardian's authorization, stored as a consent of its own."
+          }
+        },
+        "access": {
+          "title": "How you sign in",
+          "lead": "You sign in with your RUT, like at your bank — email is only for notices.",
+          "a": {
+            "title": "Passkey",
+            "body": "If your device supports it, a passkey skips both password and second factor: it's already strong authentication on its own."
+          },
+          "b": {
+            "title": "Second factor",
+            "body": "TOTP with recovery codes. Changing it closes every other session, in the same transaction."
+          }
+        },
+        "sessions": {
+          "title": "Sessions you close instantly",
+          "lead": "Closing a session kills its access on the very next request, not on its next refresh.",
+          "a": {
+            "title": "One device per row",
+            "body": "See where you signed in from and how long ago, and close any of them except the one you're using."
+          },
+          "b": {
+            "title": "Kept, not erased",
+            "body": "A closed session stays visible for 3 days before it's deleted, so you can confirm it was you."
+          }
+        },
+        "visible": {
+          "title": "What only you see",
+          "lead": "A switch in your profile masks the app's amounts, with a one-off reveal whenever you need it.",
+          "a": {
+            "title": "Hide balances",
+            "body": "Useful for checking your accounts when there's people around."
+          },
+          "b": {
+            "title": "Your receipts",
+            "body": "Validated by their real content, not their file extension, and opened through a signed link that expires in five minutes."
+          }
+        },
+        "leave": {
+          "title": "How you leave",
+          "lead": "Deleting your account is a real action, not a checkbox that disables it.",
+          "a": {
+            "title": "Full deletion",
+            "body": "Erases your account and everything you recorded, with nothing left behind."
+          },
+          "b": {
+            "title": "Or anonymization",
+            "body": "Keeps your financial history with nothing left that identifies you, if you'd rather keep that."
+          }
+        }
+      },
+      "dont": {
+        "title": "What we don't do",
+        "cardNumber": {
+          "tag": "Cards",
+          "title": "We don't store the full number",
+          "body": "Only the last four digits. The full number never leaves your browser and the CVV is never asked for."
+        },
+        "estimates": {
+          "tag": "Calculations",
+          "title": "We don't calculate or estimate for you",
+          "body": "No interest, no exchange rate, no “projected” expense you never entered."
+        },
+        "banks": {
+          "tag": "Banks",
+          "title": "We don't connect to your bank",
+          "body": "There's no automatic sync and no read permission over your products. Nothing enters that you didn't record yourself."
+        }
+      }
+    },
+    "pricing": {
+      "title": "Pricing",
+      "titleLead": "One plan,",
+      "titleAccent": "no fine print",
+      "lead": "One answer, no comparison table: this is what you get, and it's free.",
+      "free": "Free",
+      "freeHint": "No tiers, no artificial limits and no locked features.",
+      "included": {
+        "accounts": "Every account and card you have",
+        "movements": "Movements, transfers and receipts with no cap",
+        "billing": "Billing, instalments, goals, debts and recurring expenses",
+        "security": "Passkey, second factor and session control",
+        "currencies": "Pesos, dollars and UF"
+      },
+      "cta": "Create my account",
+      "reasons": {
+        "whyFree": {
+          "title": "Why it doesn't cost anything",
+          "body": "What makes a finance app expensive is connecting to banks: a middleman gets paid per synced account, and that cost lands on you or on your data. There's no such connection here, so there's no such cost."
+        },
+        "notYourData": {
+          "title": "Your data isn't the price",
+          "body": "No ads, no profiling for third parties and your movements are never sold. Free here means free, not “paid for some other way”."
+        },
+        "changes": {
+          "title": "If anything changes, we say so first",
+          "body": "If some part ever has a real cost —storing a lot of receipts, say— it's announced before it happens, with the option to take your data with you. Nothing turns paid overnight."
+        }
+      }
+    },
+    "faq": {
+      "title": "Frequently asked questions",
+      "titleLead": "Before you",
+      "titleAccent": "ask",
+      "subtitle": "The doubts that come up in the first month, grouped by topic. If something's missing here, the answer is almost always the same: the app doesn't show a figure it can't back up.",
+      "topics": "Topics",
+      "groups": {
+        "howItWorks": "How it works",
+        "cardsBilling": "Cards & billing",
+        "yourData": "Your account & data"
+      },
+      "items": {
+        "bankSync": {
+          "q": "Does it connect to my bank?",
+          "a": "No. You record your own accounts and movements. It's more work on day one, and in exchange, no app has read access over your products."
+        },
+        "setup": {
+          "q": "Do I have to set everything up before using it?",
+          "a": "No. Your cash account is created with you, at zero, so you can log an expense on day one and add your accounts and cards whenever you have time."
+        },
+        "conversion": {
+          "q": "Does it convert between pesos, dollars and UF?",
+          "a": "No. Each account lives in its own currency and every total is shown separately, so you never get a sum your bank wouldn't recognize."
+        },
+        "investments": {
+          "q": "Does it work for my investments?",
+          "a": "You can have an investment account and record its movements, but tracking of instruments and returns doesn't exist yet. We'd rather say so than show you an empty screen."
+        },
+        "creditBalance": {
+          "q": "Why didn't my credit card purchase lower my balance?",
+          "a": "Because it shouldn't. A credit purchase raises your used credit, not your balance: the money moves once, later, when you pay the statement."
+        },
+        "closing": {
+          "q": "When does my statement close?",
+          "a": "Whenever you say: you set how many business days pass since the previous close, or a fixed day of the month if your issuer works that way. Chile's holidays are already counted, and the due date is configured separately."
+        },
+        "partialPayment": {
+          "q": "What happens if I pay less than the total?",
+          "a": "The period settles and whatever you didn't cover carries to the next one as a prior balance, with a record of where it went. Your credit only frees up by what you actually paid."
+        },
+        "additionalCard": {
+          "q": "Does an additional card spend from my same pool?",
+          "a": "Yes, same as your bank — unless you give it its own sub-limit, which is still capped by the account's own pool. Each card also shows how much it spent on its own."
+        },
+        "interest": {
+          "q": "Does it calculate the interest I'm charged?",
+          "a": "No, on purpose: inventing a rate would make your numbers stop matching your real statement. You log it as a finance charge and it's added in where it belongs."
+        },
+        "signIn": {
+          "q": "How do I sign in?",
+          "a": "With your RUT and password, or a passkey if your device supports it. Email is only used for notices."
+        },
+        "deleteAccount": {
+          "q": "Can I really delete my account?",
+          "a": "Yes. You can erase everything, or keep your history with nothing left that identifies you. Either way your sessions and passkeys are removed."
+        },
+        "minors": {
+          "q": "I'm a minor, can I use it?",
+          "a": "Yes, with your parent or guardian's authorization. The sign-up form asks for it directly. Their RUT is stored only as a hash, since they're a third party, not an app user."
+        }
+      },
+      "cta": {
+        "title": "Still have a question?",
+        "body": "Creating an account takes a minute and commits you to nothing: you can log your first expense in cash."
+      }
     }
   },
   "profile": {
@@ -1284,30 +2149,23 @@
       "hideBalances": "Hide balances",
       "hideBalancesHint": "Blurs amounts on the Panel, account balances and Savings"
     },
-    "billing": {
-      "title": "Plan, usage & billing",
-      "planFree": "Personal plan · Free",
-      "usage": {
-        "accounts": "Accounts",
-        "categories": "Custom categories"
-      },
-      "upsellTitle": "Upgrade to Pro",
-      "upsellBody": "Unlimited accounts, bank sync, and reports.",
-      "upsellCta": "See Pro",
-      "paymentMethod": "Visa •••• 4242",
-      "change": "Change",
-      "invoiceHistory": "Invoice history",
-      "view": "View"
-    },
     "dataPrivacy": {
-      "title": "Data, connections & privacy",
-      "linkedBanks": "Linked banks",
-      "synced": "Synced",
-      "paused": "Paused",
-      "linkAnother": "Link another bank",
+      "title": "Data & privacy",
       "export": "Export transactions",
       "autoBackup": "Automatic monthly backup",
       "autoBackupHint": "Keeps a copy of your data"
+    },
+    "consents": {
+      "title": "My consents",
+      "description": "Record of the consents you've granted for how your data is processed (Ley 21.719).",
+      "loading": "Loading…",
+      "empty": "No consents recorded.",
+      "grantedAt": "Granted on {{date}} · version {{version}}",
+      "revokedAt": "revoked on {{date}}",
+      "type": {
+        "sensitiveDataProcessing": "Sensitive financial data processing",
+        "minorGuardianAuthorization": "Parent/guardian authorization"
+      }
     },
     "edit": {
       "title": "Edit profile",
@@ -1453,12 +2311,13 @@
       "hint": "Coming soon"
     },
     "danger": {
-      "logout": "Log out",
       "deactivate": "Delete account",
       "confirmTitle": "Delete your account?",
-      "confirmDescription": "Your account will be disabled and you won't be able to sign in again. Your financial data is not deleted.",
+      "confirmDescription": "Your name, email, password and other personal data will be erased, and you won't be able to sign in again. This action cannot be undone.",
       "passwordLabel": "Confirm your password",
-      "confirmButton": "Deactivate account"
+      "keepHistoryLabel": "Keep my history anonymized",
+      "keepHistoryDescription": "Your accounts and movements are kept (with no data that identifies you) for statistics. If you leave this off, everything is deleted with no exception.",
+      "confirmButton": "Delete account"
     }
   },
   "errors": {
@@ -1467,6 +2326,7 @@
     "NOT_FOUND": "Resource not found.",
     "INVALID_CREDENTIALS": "Incorrect email or password.",
     "EMAIL_TAKEN": "That email is already registered.",
+    "IDENTIFIER_TAKEN": "That RUT is already registered.",
     "INVALID_MFA_CODE": "Incorrect code. Try again.",
     "MFA_LOCKED": "Too many attempts. Wait a few minutes before trying again.",
     "MFA_NOT_PENDING": "There's no pending activation to confirm.",
@@ -1499,7 +2359,6 @@
     "ACCOUNT_DISABLED": "This account is disabled.",
     "PAYMENT_EXCEEDS_REMAINING": "The amount is more than what this statement still owes.",
     "TRANSFER_SAME_ACCOUNT": "Source and destination must be different accounts.",
-    "TRANSFER_TO_CREDIT_ACCOUNT": "You can't transfer money into a credit line.",
     "TRANSFER_ACCOUNT_NOT_FOUND": "One of the transfer's accounts was not found.",
     "TRANSFER_NOT_FOUND": "Transfer not found.",
     "TRANSFER_EDIT_AS_PAIR": "A transfer is edited as a whole, from both of its sides.",
@@ -1538,6 +2397,26 @@
     "NO_PAYMENTS_TO_UNDO": "There are no payments to undo on this debt.",
     "DEBT_PAYMENT_CURRENCY_MISMATCH": "The chosen account is in a different currency than the debt.",
     "DEBT_PAYMENT_FROM_CREDIT_ACCOUNT": "You can't pay a debt from a credit card account.",
-    "ACCOUNT_NOT_FOUND": "The account wasn't found."
+    "ACCOUNT_NOT_FOUND": "The account wasn't found.",
+    "CATEGORY_NOT_FOUND": "The chosen category doesn't exist.",
+    "CATEGORY_NOT_ALLOWED": "That category can't be used for this movement.",
+    "CARD_NOT_FOUND": "That card doesn't exist.",
+    "IMPORT_ACCOUNT_INACTIVE": "That account is inactive: activate it before importing into it.",
+    "IMPORT_CURRENCY_MISMATCH": "The currency doesn't match the account's.",
+    "IMPORT_DUPLICATE_REF": "That reference is repeated in its sheet.",
+    "IMPORT_UNKNOWN_REF": "No row has that reference.",
+    "IMPORT_TOO_MANY_PAYMENTS": "There are more payments than instalments.",
+    "IMPORT_INVALID_SEQUENCE": "That instalment doesn't exist or already has a payment.",
+    "IMPORT_PAYMENT_BEFORE_START": "The payment is dated before its debt or plan.",
+    "IMPORT_PAYMENT_AMOUNT_MISMATCH": "The amount doesn't match the instalment's.",
+    "IMPORT_PLAN_PAYMENT_FIELDS": "A credit card instalment payment takes no account or amount; one without a credit card takes both.",
+    "RECURRING_END_BEFORE_START": "The last payment can't be before the first one.",
+    "STATEMENT_NOT_TRANSFERABLE": "This statement can't be transferred: only a closed, overdue, unsettled statement in another currency can.",
+    "STATEMENT_NOT_TRANSFERRED": "This statement wasn't transferred.",
+    "TRANSFER_ALREADY_BILLED": "Can't undo: the statement that received the transfer has already been paid.",
+    "STATEMENT_PAYMENT_CURRENCY_AMBIGUOUS": "Also enter how much was debited from the source account: it's in another currency.",
+    "TRANSACTION_LINKED_TO_STATEMENT": "This transaction backs a statement's payment or transfer. Change it from its statement.",
+    "CARD_LIMIT_HAS_DEBT": "You can't remove the limit in that currency while it has debt or an unsettled statement.",
+    "WALLET_FULL": "Your wallet already holds the maximum of 4."
   }
 }

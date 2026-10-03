@@ -22,6 +22,10 @@ import type { TransactionSumsRepositoryPort } from "../domain/ports/transaction-
  */
 const EXCLUDE_PLAN_PURCHASES = { installmentPlanId: null } as const;
 
+/** Spec 028 (research R4): the INCOME that settles a foreign-currency statement
+ * belongs to no period — counting it would take the same payment off twice. */
+export const EXCLUDE_SETTLEMENTS = { settlesStatementId: null } as const;
+
 /** Adapter for the read/aggregation half of the `transaction` table. */
 @Injectable()
 export class PrismaTransactionSumsRepository implements TransactionSumsRepositoryPort {
@@ -103,7 +107,7 @@ export class PrismaTransactionSumsRepository implements TransactionSumsRepositor
   async netForStatement(statementId: string): Promise<string> {
     const grouped = await this.prisma.transaction.groupBy({
       by: ["type"],
-      where: { creditStatementId: statementId, ...EXCLUDE_PLAN_PURCHASES },
+      where: { creditStatementId: statementId, ...EXCLUDE_PLAN_PURCHASES, ...EXCLUDE_SETTLEMENTS },
       _sum: { amount: true },
     });
     const find = (t: "INCOME" | "EXPENSE") =>
@@ -116,10 +120,13 @@ export class PrismaTransactionSumsRepository implements TransactionSumsRepositor
     cardIds: string[] | null;
     from: Date;
     to: Date;
+    currency: string;
   }): Promise<string> {
     const window = {
       bankAccountId: input.accountId,
       occurredAt: { gte: input.from, lt: input.to },
+      currency: input.currency,
+      ...EXCLUDE_SETTLEMENTS,
     };
     const where =
       input.cardIds === null

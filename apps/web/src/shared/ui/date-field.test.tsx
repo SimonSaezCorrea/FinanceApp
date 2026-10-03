@@ -43,6 +43,47 @@ describe("DateField", () => {
     expect(screen.getByText("septiembre de 2026")).toBeDefined();
   });
 
+  it("jumps to another year and month through the title, then picks a day", () => {
+    render(<Harness />);
+    open();
+    // Days → months: the title is the way up.
+    fireEvent.click(screen.getByLabelText(i18n.t("common.date.chooseMonth")));
+    expect(screen.getByText("2026")).toBeDefined();
+    // The day grid is gone, not just visually hidden (a CSS `hidden` lost to
+    // Tailwind's `grid` class once and left both grids stacked on screen).
+    expect(screen.queryByRole("button", { name: "21" })).toBeNull();
+    // Every month is three letters — es abbreviates September as "sept".
+    expect(screen.getByRole("button", { name: /^sep$/i })).toBeDefined();
+    // Months → years.
+    fireEvent.click(screen.getByLabelText(i18n.t("common.date.chooseYear")));
+    expect(screen.getByText("2016 – 2027")).toBeDefined();
+    fireEvent.click(screen.getByLabelText(i18n.t("common.date.previousYears")));
+    expect(screen.getByText("2004 – 2015")).toBeDefined();
+    // Picking a year goes back down to its months, a month to its days.
+    fireEvent.click(screen.getByRole("button", { name: "2010" }));
+    fireEvent.click(screen.getByRole("button", { name: /mar/i }));
+    expect(screen.getByText("marzo de 2010")).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: "15" }));
+    expect(screen.getByTestId("value").textContent).toBe("2010-03-15");
+  });
+
+  it("walks whole years in the month view", () => {
+    render(<Harness />);
+    open();
+    fireEvent.click(screen.getByLabelText(i18n.t("common.date.chooseMonth")));
+    fireEvent.click(screen.getByLabelText(i18n.t("common.date.nextYear")));
+    expect(screen.getByText("2027")).toBeDefined();
+  });
+
+  it("reopens on the day view, not where it was left", () => {
+    render(<Harness />);
+    open();
+    fireEvent.click(screen.getByLabelText(i18n.t("common.date.chooseMonth")));
+    fireEvent.keyDown(document, { key: "Escape" });
+    open();
+    expect(screen.getByText("agosto de 2026")).toBeDefined();
+  });
+
   it("clears the value when allowed", () => {
     render(<Harness />);
     open();

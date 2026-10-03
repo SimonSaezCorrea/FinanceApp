@@ -16,7 +16,9 @@ export const transactionSchema = z.object({
   amount: moneyString,
   currency: z.string(),
   occurredAt: z.string(),
-  category: z.string().nullable(),
+  /** FK into the global category catalogue (`reference.Category`); the web
+   * resolves it to a name and icon. */
+  categoryId: rowId.nullable(),
   description: z.string().nullable(),
   observation: z.string().nullable(),
   emisor: z.string().nullable(),
@@ -65,6 +67,14 @@ export const transactionSchema = z.object({
   /** The CREDIT_CARD account `prepaymentStatementId` belongs to — lets the UI
    * deep-link straight to it, same convention as `paidStatementAccountId`. */
   prepaymentAccountId: rowId.nullable(),
+  /** Spec 028: the statement in another currency this INCOME settled (paid from
+   * another account, or transferred) — lowers its card's own-limit usage, belongs
+   * to no period and is read-only. Null for every other movement. */
+  settlesStatementId: rowId.nullable(),
+  /** Spec 028: the statement in another currency whose transfer this charge IS —
+   * resolved server-side from `CreditStatement.transferTransactionId`, like
+   * `paidStatementId`. Null for every other movement. */
+  transferStatementId: rowId.nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -73,6 +83,27 @@ export type Transaction = z.infer<typeof transactionSchema>;
 /** A movement is a transfer leg when it carries a group id. */
 export function isTransfer(t: Pick<Transaction, "transferGroupId">): boolean {
   return t.transferGroupId != null;
+}
+
+/**
+ * Money moving between the user's own accounts rather than income or spending:
+ * a transfer (paying a credit card with one included), a statement payment, a
+ * prepayment, or a foreign-currency statement's settlement. Paying the card is
+ * not spending — its purchases were counted as spending when they were made.
+ * Same set the API drops from `GET /transactions/summary`'s totals.
+ */
+export function isInternalFlow(
+  t: Pick<
+    Transaction,
+    "transferGroupId" | "paidStatementId" | "prepaymentStatementId" | "settlesStatementId"
+  >,
+): boolean {
+  return (
+    t.transferGroupId != null ||
+    t.paidStatementId != null ||
+    t.prepaymentStatementId != null ||
+    t.settlesStatementId != null
+  );
 }
 
 /**
@@ -92,6 +123,8 @@ export type TransactionSource =
   | { kind: "SAVINGS_WITHDRAWAL"; savingsGoalId: string }
   | { kind: "STATEMENT_PAYMENT"; statementId: string; accountId: string }
   | { kind: "CREDIT_CARD_PREPAYMENT"; statementId: string; accountId: string }
+  | { kind: "STATEMENT_SETTLEMENT"; statementId: string; accountId: string }
+  | { kind: "CURRENCY_TRANSFER"; statementId: string; accountId: string }
   | { kind: "MANUAL" };
 
 export function sourceOf(
@@ -108,9 +141,29 @@ export function sourceOf(
     | "paidStatementAccountId"
     | "prepaymentStatementId"
     | "prepaymentAccountId"
+    | "settlesStatementId"
+    | "transferStatementId"
+    | "bankAccountId"
   >,
 ): TransactionSource {
   if (t.transferGroupId !== null) return { kind: "TRANSFER" };
+  // Spec 028: both live on the credit card account itself, so that is the account
+  // their statement belongs to. Checked before FINANCE_CHARGE: a transfer's charge
+  // IS an issuer charge, but naming it as such would hide which statement it came from.
+  if (t.settlesStatementId !== null && t.bankAccountId !== null) {
+    return {
+      kind: "STATEMENT_SETTLEMENT",
+      statementId: t.settlesStatementId,
+      accountId: t.bankAccountId,
+    };
+  }
+  if (t.transferStatementId !== null && t.bankAccountId !== null) {
+    return {
+      kind: "CURRENCY_TRANSFER",
+      statementId: t.transferStatementId,
+      accountId: t.bankAccountId,
+    };
+  }
   if (t.installmentPlanId !== null) {
     return t.financeCharge
       ? { kind: "INSTALLMENT_INTEREST", installmentPlanId: t.installmentPlanId }
@@ -161,28 +214,31 @@ const transactionFieldsSchema = z.object({
   amount: moneyString,
   currency: z.string().trim().length(3).default("USD"),
   occurredAt: z.string().datetime(),
-  category: z.string().trim().max(120).optional(),
+  /** A catalogue category the user may pick for this `type` (never a system
+   * one) — enforced server-side (`CATEGORY_NOT_FOUND`/`CATEGORY_NOT_ALLOWED`). */
+  categoryId: rowId.optional(),
   description: z.string().trim().max(500).optional(),
   observation: z.string().trim().max(500).optional(),
   emisor: z.string().trim().max(200).optional(),
   receptor: z.string().trim().max(200).optional(),
   lugar: z.string().trim().max(200).optional(),
   // Bank is required for new movements; card rules are enforced server-side
-  // (needs the account type: EXPENSE on a non-cash account requires a card,
-  // cash/INCOME forbid one).
+  // (needs the account type and the card's limits: EXPENSE on a credit card
+  // account requires a card, cash forbids one, and an INCOME may name one only
+  // to pay that credit card's own limit in its currency — e.g. its USD one).
   bankAccountId: rowId,
   cardId: rowId.optional(),
   /** An issuer charge on the credit account itself (interest, annual fee,
    * insurance): no card made it, so the "a credit-line expense needs a card"
    * rule doesn't apply. It still feeds the credit pool. */
   financeCharge: z.boolean().optional(),
+  /** The recurring series this movement is a payment of (one of the user's own —
+   * `RECURRING_EXPENSE_NOT_FOUND` otherwise). Links it into the series'
+   * occurrence history; moves nothing by itself. */
+  recurringExpenseId: rowId.optional(),
 });
 
 export const createTransactionSchema = transactionFieldsSchema
-  .refine((t) => t.type !== "INCOME" || !t.cardId, {
-    message: "income cannot be linked to a card",
-    path: ["cardId"],
-  })
   .refine((t) => !t.financeCharge || t.type === "EXPENSE", {
     message: "a finance charge is always an expense",
     path: ["financeCharge"],
@@ -194,19 +250,19 @@ export const createTransactionSchema = transactionFieldsSchema
 export type CreateTransaction = z.infer<typeof createTransactionSchema>;
 
 // `.partial()` isn't available on a ZodEffects (refined) schema, so derive the
-// update shape from the plain fields and re-apply the income/card refinement.
+// update shape from the plain fields.
 //
 // zod v4's `.partial()` keeps a `.default(...)` active even when the key is
 // absent, unlike v3 — left alone, an omitted `currency` on a PATCH would silently
 // reset it to "USD" (`patch.currency !== undefined` can't tell that apart from a
 // real value). Re-declared without the default here.
-export const updateTransactionSchema = transactionFieldsSchema
-  .partial()
-  .extend({ currency: z.string().trim().length(3).optional() })
-  .refine((t) => t.type !== "INCOME" || !t.cardId, {
-    message: "income cannot be linked to a card",
-    path: ["cardId"],
-  });
+export const updateTransactionSchema = transactionFieldsSchema.partial().extend({
+  currency: z.string().trim().length(3).optional(),
+  /** `null` clears the category; omitted leaves it as it is. */
+  categoryId: rowId.nullable().optional(),
+  /** `null` unlinks it from its recurring series. */
+  recurringExpenseId: rowId.nullable().optional(),
+});
 export type UpdateTransaction = z.infer<typeof updateTransactionSchema>;
 
 /**
@@ -225,7 +281,7 @@ const transferFieldsSchema = z.object({
   currencyIn: z.string().trim().length(3),
   occurredAt: z.string().datetime(),
   description: z.string().trim().max(500).optional(),
-  category: z.string().trim().max(120).optional(),
+  categoryId: rowId.optional(),
   observation: z.string().trim().max(500).optional(),
   emisor: z.string().trim().max(200).optional(),
   receptor: z.string().trim().max(200).optional(),
@@ -243,6 +299,7 @@ export type CreateTransfer = z.infer<typeof createTransferSchema>;
 
 export const updateTransferSchema = transferFieldsSchema
   .partial()
+  .extend({ categoryId: rowId.nullable().optional() })
   .refine(
     (t) => !t.fromBankAccountId || !t.toBankAccountId || t.fromBankAccountId !== t.toBankAccountId,
     {
@@ -277,10 +334,9 @@ export const transactionFiltersSchema = z.object({
   recurringExpenseId: rowId.optional(),
   from: z.string().datetime().optional(),
   to: z.string().datetime().optional(),
-  /** Case-insensitive substring match on `category`. Server-side because the
-   * list is paginated — filtering the loaded page in the browser would only
-   * ever search the rows already fetched. */
-  category: z.string().trim().max(120).optional(),
+  /** Exact category. Server-side because the list is paginated — filtering the
+   * loaded page in the browser would only ever search the rows already fetched. */
+  categoryId: rowId.optional(),
   /**
    * Page size. **Omit to get every match in one response** (no pagination),
    * which is what the aggregate-only consumers rely on (e.g. the dashboard's
@@ -308,7 +364,7 @@ export type TransactionPage = z.infer<typeof transactionPageSchema>;
  * have to stay correct no matter how few pages are loaded, so they can't be
  * derived from the rows currently in the browser.
  *
- * `currencyTotals` and `categories` EXCLUDE transfer legs (FR-017): moving money
+ * `currencyTotals` and `categoryIds` EXCLUDE transfer legs (FR-017): moving money
  * between your own accounts is neither income nor expense. `total` counts them —
  * they are real rows of the filtered set the list shows.
  */
@@ -321,6 +377,8 @@ export const transactionSummarySchema = z.object({
       expense: moneyString,
     }),
   ),
-  categories: z.array(z.string()),
+  /** Every category used in the filtered set (transfers excluded) — the category
+   * filter's options. */
+  categoryIds: z.array(rowId),
 });
 export type TransactionSummary = z.infer<typeof transactionSummarySchema>;

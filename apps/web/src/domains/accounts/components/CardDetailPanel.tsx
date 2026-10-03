@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { Skeleton } from "../../../shared/ui/skeleton";
 import { useInstallments } from "../../installments/hooks/useInstallments";
 import { useCardMovements } from "../hooks/useCardMovements";
@@ -60,6 +61,7 @@ export function CardDetailPanel({
   movementsHint?: string;
 }>) {
   const { t, i18n } = useTranslation();
+  const { nameOf: categoryName } = useCategoryCatalog();
   const locale = i18n.language;
   const money = (v: string, currency = account.currency) => formatMoney(v, { locale, currency });
   const inline = variant === "inline";
@@ -85,10 +87,12 @@ export function CardDetailPanel({
 
   const ownLimit = card.limits.find((l) => l.currency === account.currency);
   const limitAmount = ownLimit ? ownLimit.limitAmount : account.creditLimit;
-  const usedAmount = ownLimit ? ownLimit.used : card.ownUsed;
+  // A card sharing the pool shows the pool: payments land on the account, not on
+  // one plastic (see AccountVisualCard).
+  const usedAmount = ownLimit ? ownLimit.used : account.creditUsed;
   const limit = Number(limitAmount);
   const used = Number(usedAmount);
-  const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
+  const pct = limit > 0 ? Math.max(0, Math.min(100, Math.round((used / limit) * 100))) : 0;
   const isCredit = card.kind === "CREDIT";
   const available = money(String(Math.max(0, limit - used)));
   // Extra pools = a CardLimit in any OTHER currency (the primary's extra
@@ -153,7 +157,7 @@ export function CardDetailPanel({
           >
             <span className="min-w-0">
               <span className="block truncate text-sm font-medium">
-                {tx.description ?? tx.category ?? t("transactions.uncategorized")}
+                {tx.description ?? categoryName(tx.categoryId) ?? t("transactions.uncategorized")}
               </span>
               <span className="block text-xs text-muted-foreground">
                 {new Date(tx.occurredAt).toLocaleDateString(locale, {
@@ -185,7 +189,9 @@ export function CardDetailPanel({
     <div className={inline ? "flex flex-col gap-3" : "flex flex-col gap-4"}>
       {isCredit && !inline ? (
         <div>
-          <p className="text-xs text-muted-foreground">{t("accounts.card.creditUsed")}</p>
+          <p className="text-xs text-muted-foreground">
+            {ownLimit ? t("accounts.card.creditUsed") : t("accounts.card.creditUsedShared")}
+          </p>
           {loading ? (
             <>
               <Skeleton className="mt-1 h-[28px] w-56" />

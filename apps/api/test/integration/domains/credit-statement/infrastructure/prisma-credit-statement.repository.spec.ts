@@ -71,7 +71,7 @@ describe("PrismaCreditStatementRepository (integration)", () => {
   });
 
   it("finds no OPEN statement before any transaction has ever linked to one", async () => {
-    const open = await statementRepo.findOpenForAccount(accountId);
+    const open = await statementRepo.findOpenForAccount(accountId, "CLP");
     expect(open).toBeNull();
   });
 
@@ -80,7 +80,7 @@ describe("PrismaCreditStatementRepository (integration)", () => {
       data: { accountId, periodStart: new Date("2026-01-01") },
     });
 
-    const open = await statementRepo.findOpenForAccount(accountId);
+    const open = await statementRepo.findOpenForAccount(accountId, "CLP");
     expect(open?.id).toBe(created.id);
 
     open!.close(new Date("2026-02-01"));
@@ -117,5 +117,81 @@ describe("PrismaCreditStatementRepository (integration)", () => {
     });
     const sum = await statementRepo.sumLinkedTransactions(created.id);
     expect(sum).toBe("0");
+  });
+
+  describe("per currency (spec 028)", () => {
+    let multiId: string;
+
+    beforeAll(async () => {
+      const account = await accountRepo.createWithCards(userId, {
+        name: "CLP card with a USD limit",
+        type: "CREDIT_CARD",
+        status: "ACTIVE",
+        currency: "CLP",
+        institution: null,
+        institutionId: null,
+        accountNumber: undefined,
+        accountAlias: null,
+        initialBalance: "0",
+        overdraftLimit: "0",
+        balanceCeiling: null,
+        creditLimit: "900000",
+        creditUsedInitial: "0",
+        billingCycleDay: null,
+        paymentMethod: "MANUAL",
+        cards: [],
+      });
+      multiId = account.id;
+    });
+
+    it("keeps one open period per currency", async () => {
+      const fallback = new Date("2026-07-01");
+      const clp = await statementRepo.findOrCreateOpenForAccount(multiId, fallback, "CLP");
+      const usd = await statementRepo.findOrCreateOpenForAccount(multiId, fallback, "USD");
+      expect(usd.id).not.toBe(clp.id);
+      expect((await statementRepo.findOrCreateOpenForAccount(multiId, fallback, "USD")).id).toBe(
+        usd.id,
+      );
+      expect((await statementRepo.findOpenForAccount(multiId, "USD"))?.currency).toBe("USD");
+      expect((await statementRepo.findOpenForAccount(multiId, "CLP"))?.id).toBe(clp.id);
+      expect(
+        (await statementRepo.listOpenForAccount(multiId)).map((s) => s.currency).sort(),
+      ).toEqual(["CLP", "USD"]);
+    });
+
+    it("anchors a new period to the latest close across ALL currencies", async () => {
+      const clp = await statementRepo.findOpenForAccount(multiId, "CLP");
+      const usd = await statementRepo.findOpenForAccount(multiId, "USD");
+      clp!.close(new Date("2026-08-20"));
+      usd!.close(new Date("2026-08-20"));
+      await statementRepo.save(clp!);
+      await statementRepo.save(usd!);
+      // Only the CLP account has closed so far in THIS test's sense — the USD period
+      // must still start where the account's cycle last closed.
+      const nextUsd = await statementRepo.findOrCreateOpenForAccount(
+        multiId,
+        new Date("2026-07-01"),
+        "USD",
+      );
+      const loaded = await statementRepo.findById(userId, multiId, nextUsd.id);
+      expect(loaded?.periodStart.toISOString()).toBe(new Date("2026-08-20").toISOString());
+      expect(loaded?.currency).toBe("USD");
+    });
+
+    it("a carry-over target is the open period of the SAME currency", async () => {
+      const usdClosed = (await statementRepo.listForAccount(userId, multiId)).find(
+        (s) => s.currency === "USD" && s.closedAt !== null,
+      )!;
+      await statementRepo.findOrCreateOpenForAccount(multiId, new Date("2026-07-01"), "CLP");
+      const target = await prisma.$transaction((tx) =>
+        statementRepo.findOrCreateCarryOverTargetWithTx(tx, {
+          accountId: multiId,
+          excludeStatementId: usdClosed.id,
+          periodStart: new Date("2026-08-20"),
+          currency: "USD",
+        }),
+      );
+      expect((await statementRepo.findById(userId, multiId, target.id))?.currency).toBe("USD");
+    });
   });
 });

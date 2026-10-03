@@ -36,7 +36,7 @@ function makePlan(paymentOverride: ReturnType<typeof payment> = payment()) {
     frequency: "MONTHLY",
     frequencyInterval: 1,
     cardId: "cCredit",
-    category: null,
+    categoryId: null,
     paymentAccountId: null,
     notes: null,
     payments: [paymentOverride],
@@ -49,6 +49,7 @@ function fakeRepo(
   overrides: Partial<InstallmentPlanRepositoryPort> = {},
 ): InstallmentPlanRepositoryPort {
   return {
+    listIdsForAccount: vi.fn(async () => []),
     list: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),

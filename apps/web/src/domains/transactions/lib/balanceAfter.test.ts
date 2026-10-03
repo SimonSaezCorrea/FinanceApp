@@ -14,7 +14,7 @@ const tx = (
   amount,
   currency: "CLP",
   occurredAt: "2026-08-01T00:00:00.000Z",
-  category: null,
+  categoryId: null,
   description: null,
   observation: null,
   emisor: null,
@@ -33,6 +33,8 @@ const tx = (
   paidStatementAccountId: null,
   prepaymentStatementId: null,
   prepaymentAccountId: null,
+  settlesStatementId: null,
+  transferStatementId: null,
   createdAt: "2026-08-01T00:00:00.000Z",
   updatedAt: "2026-08-01T00:00:00.000Z",
 });

@@ -38,3 +38,12 @@ export function useCurrencies() {
     staleTime: STALE,
   });
 }
+
+/** The global movement-category catalogue — the same rows for every user. */
+export function useCategories() {
+  return useQuery({
+    queryKey: ["categories"],
+    queryFn: referenceApi.categories,
+    staleTime: STALE,
+  });
+}

@@ -90,7 +90,11 @@ describe("statement sums exclude a plan's purchase movement (integration)", () =
     });
     planId = plan.id;
 
-    const statement = await statementRepo.findOrCreateOpenForAccount(accountId, PERIOD_START);
+    const statement = await statementRepo.findOrCreateOpenForAccount(
+      accountId,
+      PERIOD_START,
+      "CLP",
+    );
     statementId = statement.id;
 
     // 1. The plan's purchase: the whole commitment, linked to the open period.
@@ -157,6 +161,7 @@ describe("statement sums exclude a plan's purchase movement (integration)", () =
     // `cardIds: null` = a CREDIT_CARD account, where every movement is a credit-line
     // one by construction.
     const net = await sums.netForPeriod({
+      currency: "CLP",
       accountId,
       cardIds: null,
       from: PERIOD_START,

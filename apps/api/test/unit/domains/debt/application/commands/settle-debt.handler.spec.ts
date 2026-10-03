@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 
 import type { debts } from "@finance/contracts";
@@ -60,10 +61,13 @@ function makeDebt(settledAt: Date | null = null) {
 
 function fakeRepo(overrides: Partial<DebtRepositoryPort> = {}): DebtRepositoryPort {
   return {
+    countForAccount: vi.fn(async () => 0),
+    clearLastPaymentForAccountWithTx: vi.fn(),
     list: vi.fn(),
     findOne: vi.fn(),
     findOneForUpdateWithTx: vi.fn(),
     create: vi.fn(),
+    createWithTx: vi.fn(),
     save: vi.fn(),
     saveWithTx: vi.fn(),
     remove: vi.fn(),
@@ -82,6 +86,7 @@ describe("SettleDebtHandler", () => {
       noAccount,
       fakeTransactionWriterRepo(),
       prisma,
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(new SettleDebtCommand("u1", "d1", KEY, PAY)),
@@ -97,6 +102,7 @@ describe("SettleDebtHandler", () => {
       accounts,
       fakeTransactionWriterRepo(),
       prisma,
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(new SettleDebtCommand("u1", "ghost", KEY, PAY)),
@@ -114,6 +120,7 @@ describe("SettleDebtHandler", () => {
       mismatched,
       fakeTransactionWriterRepo(),
       prisma,
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(new SettleDebtCommand("u1", "d1", KEY, { accountId: "acc2" })),
@@ -135,6 +142,7 @@ describe("SettleDebtHandler", () => {
       fakeBankAccountRepo({ findById: vi.fn().mockResolvedValue(account), incrementBalanceWithTx }),
       fakeTransactionWriterRepo({ createWithTx }),
       prisma,
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(new SettleDebtCommand("u1", "d1", KEY, PAY)),
@@ -161,6 +169,7 @@ describe("SettleDebtHandler", () => {
       accounts,
       fakeTransactionWriterRepo(),
       prisma,
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(new SettleDebtCommand("u1", "d1", KEY, PAY)),

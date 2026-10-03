@@ -6,11 +6,11 @@ import type { accounts } from "@finance/contracts";
  * The column is 320-480px of the viewport, so reserving it for an account that
  * carries no cards (cash, investment) left the movements table squeezed against
  * an empty half of the screen. It earns its width only when there are cards to
- * list, or more than one credit pool to break down.
+ * list — every credit pool, one per currency, lives in the header's Crédito KPIs.
  */
 export function hasCardsAside(
-  account: Pick<accounts.BankAccount, "type" | "creditPools">,
+  _account: Pick<accounts.BankAccount, "type">,
   isCardable: boolean,
 ): boolean {
-  return isCardable || account.creditPools.length > 1;
+  return isCardable;
 }

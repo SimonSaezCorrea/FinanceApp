@@ -11,7 +11,7 @@ function toQuery(filters: transactions.TransactionFilters = {}): string {
   if (filters.recurringExpenseId) params.set("recurringExpenseId", filters.recurringExpenseId);
   if (filters.from) params.set("from", filters.from);
   if (filters.to) params.set("to", filters.to);
-  if (filters.category) params.set("category", filters.category);
+  if (filters.categoryId) params.set("categoryId", filters.categoryId);
   if (filters.limit !== undefined) params.set("limit", String(filters.limit));
   if (filters.cursor) params.set("cursor", filters.cursor);
   const qs = params.toString();

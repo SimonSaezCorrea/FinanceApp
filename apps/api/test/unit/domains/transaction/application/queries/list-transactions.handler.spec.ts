@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import type { ConfigService } from "@nestjs/config";
 import { describe, expect, it, vi } from "vitest";
 
@@ -51,7 +52,7 @@ const row = Transaction.fromPersistence({
   amount: "33.3",
   currency: "CLP",
   occurredAt: new Date("2026-03-01T00:00:00Z"),
-  category: "food",
+  categoryId: "food",
   description: null,
   observation: null,
   emisor: null,
@@ -69,6 +70,7 @@ const row = Transaction.fromPersistence({
   savingsGoalId: null,
   prepaymentStatementId: null,
   prepaymentAccountId: null,
+  settlesStatementId: null,
   createdAt: new Date("2026-03-01T00:00:00Z"),
   updatedAt: new Date("2026-03-01T00:00:00Z"),
 });
@@ -150,17 +152,22 @@ describe("SummarizeTransactionsQueryHandler", () => {
     const summary = vi
       .fn()
       .mockResolvedValue({ total: 42, currencyTotals: [], categories: ["food"] });
-    const handler = new SummarizeTransactionsQueryHandler(fakeRepo({ summary }));
+    const handler = new SummarizeTransactionsQueryHandler(
+      fakeRepo({ summary }),
+      fakeCategoryLookup(),
+    );
 
     const result = await handler.execute(
-      new SummarizeTransactionsQuery("u1", { limit: 20, cursor: "whatever", category: "fo" }),
+      new SummarizeTransactionsQuery("u1", { limit: 20, cursor: "whatever", categoryId: "fo" }),
     );
 
     expect(result.total).toBe(42);
     const where = summary.mock.calls[0]![1] as Record<string, unknown>;
-    expect(where.category).toBe("fo");
+    expect(where.categoryId).toBe("fo");
     expect(where).not.toHaveProperty("limit");
     expect(where).not.toHaveProperty("cursor");
+    // Card payments are excluded from the totals by their system categories.
+    expect(summary.mock.calls[0]![2]).toHaveLength(2);
   });
 });
 

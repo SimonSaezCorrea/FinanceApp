@@ -42,7 +42,7 @@ describe("Transaction.applyUpdate", () => {
       amount: "1000",
       currency: "CLP",
       occurredAt: new Date("2026-01-01"),
-      category: null,
+      categoryId: null,
       description: null,
       observation: null,
       emisor: null,
@@ -60,6 +60,7 @@ describe("Transaction.applyUpdate", () => {
       savingsGoalId: null,
       prepaymentStatementId: null,
       prepaymentAccountId: null,
+      settlesStatementId: null,
       createdAt: new Date("2026-01-01"),
       updatedAt: new Date("2026-01-01"),
     });

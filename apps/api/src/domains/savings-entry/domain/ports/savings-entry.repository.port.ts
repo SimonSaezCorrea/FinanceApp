@@ -26,6 +26,9 @@ export interface SavingsEntryRepositoryPort {
   saveWithTx(tx: unknown, aggregate: SavingsEntry): Promise<void>;
   remove(userId: string, id: string): Promise<boolean>;
   removeWithTx(tx: unknown, userId: string, id: string): Promise<boolean>;
+  /** Contributions made from `accountId`. */
+  listIdsForAccount(userId: string, accountId: string): Promise<string[]>;
+  removeManyWithTx(tx: unknown, userId: string, ids: string[]): Promise<void>;
   /** How many aportes a goal has — what `SavingsGoal.applyUpdate`'s currency
    * lock needs (a table `savings-goal` itself can't see). */
   countByGoal(userId: string, goalId: string): Promise<number>;

@@ -3,6 +3,11 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { transactions } from "@finance/contracts";
 
+import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
+import { assertSelectableCategory } from "../../../category/domain/category-policy";
 import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
   BaseIdempotentCommandHandler,
@@ -18,7 +23,12 @@ import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
 } from "../../../bank-account/domain/ports/bank-account.repository.port";
-import { balanceDelta } from "../../domain/balance-delta";
+import {
+  CREDIT_STATEMENT_REPOSITORY,
+  type CreditStatementRepositoryPort,
+} from "../../../credit-statement/domain/ports/credit-statement.repository.port";
+import { transferLegDelta } from "../../domain/balance-delta";
+import { transferLegStatementId } from "../transfer-legs";
 import { TransferPolicy, type TransferAccountContext } from "../../domain/transfer-policy";
 import {
   TRANSACTION_REPOSITORY,
@@ -36,8 +46,11 @@ interface Context {
  * on the source and an INCOME on the destination, written with both balance
  * moves in one atomic step.
  *
- * Neither leg carries a `cardId` nor a `creditStatementId` (FR-019): moving your
- * own money never draws on a credit pool, so nothing here touches billing.
+ * Neither leg carries a `cardId` (FR-019). A transfer INTO a credit card account
+ * is paying the card: that leg lowers the pool instead of adding cash and joins
+ * the account's open period — and like every transfer it is left out of income
+ * and spending (`EXCLUDE_TRANSFERS`), because moving money between your own
+ * accounts is neither.
  */
 @Injectable()
 @CommandHandler(CreateTransferCommand)
@@ -55,6 +68,9 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
     @Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
+    @Inject(CREDIT_STATEMENT_REPOSITORY)
+    private readonly statements: CreditStatementRepositoryPort,
   ) {
     super(eventBus, records);
   }
@@ -64,6 +80,7 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
   }
 
   protected async loadContext(command: CreateTransferCommand): Promise<Context> {
+    await assertSelectableCategory(this.categories, command.input.categoryId);
     return loadTransferAccounts(
       this.accounts,
       command.userId,
@@ -85,7 +102,7 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
     const shared = {
       userId,
       occurredAt,
-      category: input.category ?? null,
+      categoryId: input.categoryId ?? null,
       description: input.description ?? null,
       observation: input.observation ?? null,
       emisor: input.emisor ?? null,
@@ -102,9 +119,12 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
       savingsGoalId: null,
       prepaymentStatementId: null,
       prepaymentAccountId: null,
+      settlesStatementId: null,
     };
 
     const result = await this.prisma.$transaction(async (tx) => {
+      const outStatement = await transferLegStatementId(this.statements, tx, context.from);
+      const inStatement = await transferLegStatementId(this.statements, tx, context.to);
       const pair = await this.repo.saveTransferPairWithTx(
         tx,
         userId,
@@ -114,6 +134,7 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
           amount: input.amountOut,
           currency: input.currencyOut,
           bankAccountId: input.fromBankAccountId,
+          creditStatementId: outStatement,
         },
         {
           ...shared,
@@ -121,10 +142,11 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
           amount: input.amountIn,
           currency: input.currencyIn,
           bankAccountId: input.toBankAccountId,
+          creditStatementId: inStatement,
         },
         [
-          { accountId: input.fromBankAccountId, delta: balanceDelta("EXPENSE", input.amountOut) },
-          { accountId: input.toBankAccountId, delta: balanceDelta("INCOME", input.amountIn) },
+          transferLegDelta("EXPENSE", input.amountOut, context.from!),
+          transferLegDelta("INCOME", input.amountIn, context.to!),
         ],
       );
       const contract = toTransferContract(pair);
@@ -149,7 +171,13 @@ export async function loadTransferAccounts(
     if (!account) return null;
     const snap = account.snapshot();
     // `currentBalance` is what bounds a PREPAID source's outgoing leg.
-    return { id: snap.id, type: snap.type, currentBalance: account.currentBalance };
+    return {
+      id: snap.id,
+      type: snap.type,
+      currentBalance: account.currentBalance,
+      currency: snap.currency,
+      createdAt: snap.createdAt,
+    };
   };
   return { from: await load(fromId), to: await load(toId) };
 }

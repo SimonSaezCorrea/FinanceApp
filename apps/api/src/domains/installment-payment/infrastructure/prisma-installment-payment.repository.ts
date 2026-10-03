@@ -48,6 +48,12 @@ export class PrismaInstallmentPaymentRepository
       where: {
         installmentPlanId: { in: planIds },
         creditStatementId: null,
+        // Paid without ever being billed = settled outside the app (an instalment
+        // marked paid in an imported template, specs/027 R7): billing it now would
+        // charge the same money twice. On a plan bought in the app `paidAt` is only
+        // ever set by settling the period that billed it, so this changes nothing
+        // there.
+        paidAt: null,
         dueDate: { lte: dueBy },
       },
       orderBy: { sequence: "asc" },

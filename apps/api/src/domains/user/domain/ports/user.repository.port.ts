@@ -1,3 +1,5 @@
+import type { auth } from "@finance/contracts";
+
 import type { User } from "../user.aggregate";
 
 export const USER_REPOSITORY = Symbol("USER_REPOSITORY");
@@ -5,8 +7,21 @@ export const USER_REPOSITORY = Symbol("USER_REPOSITORY");
 /** Domain-owned port (Adapter, FR-011) — zero Prisma imports. */
 export interface UserRepositoryPort {
   findByEmail(email: string): Promise<User | null>;
+  /** The RUT (identifierValue), normalized, is now the login credential — this is what
+   * `LoginHandler`/`StartPasskeyLoginHandler` resolve an account by. */
+  findByIdentifierValue(identifierValue: string): Promise<User | null>;
   findById(id: string): Promise<User | null>;
-  create(plan: { email: string; name?: string; passwordHash: string }): Promise<User>;
+  create(plan: {
+    email: string;
+    name?: string;
+    passwordHash: string;
+    birthDate: Date;
+    /** Optional here (a fixture-only `create()` call outside real registration has no reason
+     * to set one) — `RegisterHandler` always supplies both, enforced by
+     * `registerRequestSchema`, not by this port's own type. */
+    identifierType?: auth.CurrentUser["identifierType"];
+    identifierValue?: string | null;
+  }): Promise<User>;
   /** Persists every profile/preferences/security field this aggregate owns. */
   save(user: User): Promise<void>;
   /** Same as `save`, inside the caller's transaction — for the two MFA flows that must save
@@ -20,4 +35,9 @@ export interface UserRepositoryPort {
   findByIdForUpdateWithTx(tx: unknown, id: string): Promise<User | null>;
   /** A linked country's display name (mirrors `accounts`' `institutionName` lookup). */
   countryName(id: string): Promise<string | null>;
+  /** Hard-deletes the row itself — every other table's `onDelete: Cascade` on its `userId` FK
+   * does the rest. Used only by account deletion when the user opted OUT of keeping their
+   * history (`keepHistory: false`); the `keepHistory: true` path never calls this, it calls
+   * `saveWithTx` with an already-scrubbed `User` instead. */
+  deleteWithTx(tx: unknown, id: string): Promise<void>;
 }

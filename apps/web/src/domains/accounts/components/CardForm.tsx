@@ -13,9 +13,9 @@ import { FormSelectField, FormSwitchField, FormTextField } from "../../../shared
 import { Input } from "../../../shared/ui/input";
 import { Segmented } from "../../../shared/ui/segmented";
 import { CurrencyField } from "../../reference/components/CurrencyField";
-import { useAllowedCurrencies } from "../../reference/hooks/useAllowedCurrencies";
 import { Switch } from "../../../shared/ui/switch";
 import { cleanExpiryInput, formatExpiry, parseExpiry } from "../lib/cardExpiry";
+import { ExtraCurrencyLimits } from "./ExtraCurrencyLimits";
 
 interface Props {
   submitLabel: string;
@@ -101,7 +101,6 @@ export function CardForm({
   onSubmit,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
-  const allowedCurrencies = useAllowedCurrencies();
   const [name, setName] = useState(initial?.name ?? "");
   const kindOptions = accountsContract.allowedCardKinds(accountType);
   // The account's type decides the ONE kind a card on it can be
@@ -159,13 +158,6 @@ export function CardForm({
 
   const willBePrimary = kind === "CREDIT" && !hasExistingPrimary;
   const isAdditionalCredit = kind === "CREDIT" && hasExistingPrimary;
-  // The primary's mandatory field already owns the account's own currency —
-  // its optional extra-currency rows can only add OTHER currencies (still
-  // within the user's own preferredCurrency + extraCurrencies universe).
-  const extraCurrencyCodes = allowedCurrencies
-    .map((c) => c.code)
-    .filter((code) => code !== accountCurrency);
-
   function addLimitRow(defaultCurrency: string) {
     setLimits((prev) => [...prev, { currency: defaultCurrency, limitAmount: "" }]);
   }
@@ -311,67 +303,11 @@ export function CardForm({
             />
           </Field>
 
-          {extraCurrencyCodes.length > 0 ? (
-            <div className="flex flex-col gap-2 border-t pt-2">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                  {t("cards.form.extraLimits")}
-                </span>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="shrink-0 whitespace-nowrap"
-                  onClick={() => addLimitRow(extraCurrencyCodes[0]!)}
-                >
-                  <Plus className="h-3.5 w-3.5" aria-hidden />
-                  {t("cards.form.addLimit")}
-                </Button>
-              </div>
-              <p className="-mt-1 text-xs text-muted-foreground">
-                {t("cards.form.extraLimitsHint")}
-              </p>
-
-              {limits.map((limit, i) => (
-                <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
-                  <Field label={t("cards.form.currency")}>
-                    <CurrencyField
-                      value={limit.currency}
-                      onChange={(v) => updateLimitRow(i, { currency: v })}
-                      exclude={[accountCurrency]}
-                      searchPlaceholder={t("common.search")}
-                      noResultsLabel={t("common.noResults")}
-                      aria-label={t("cards.form.currency")}
-                    />
-                  </Field>
-                  <Field label={t("cards.form.limit")}>
-                    <Input
-                      className={NO_FILL}
-                      inputMode="numeric"
-                      placeholder="0"
-                      value={formatAmountDisplay(
-                        limit.limitAmount,
-                        groupingLocaleFor(limit.currency, i18n.language),
-                      )}
-                      onChange={(e) =>
-                        updateLimitRow(i, { limitAmount: e.target.value.replace(/\D/g, "") })
-                      }
-                      aria-label={t("cards.form.limit")}
-                    />
-                  </Field>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => removeLimitRow(i)}
-                    aria-label={t("common.delete")}
-                  >
-                    <X className="h-4 w-4" aria-hidden />
-                  </Button>
-                </div>
-              ))}
-            </div>
-          ) : null}
+          <ExtraCurrencyLimits
+            accountCurrency={accountCurrency}
+            limits={limits}
+            onChange={setLimits}
+          />
         </div>
       ) : null}
 

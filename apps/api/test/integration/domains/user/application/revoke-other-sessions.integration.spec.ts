@@ -32,7 +32,12 @@ describe("RevokeOtherSessionsHandler (integration)", () => {
 
   beforeAll(async () => {
     await prisma.$connect();
-    const user = await userRepo.create({ email, name: "Revoke Others Test", passwordHash: "x" });
+    const user = await userRepo.create({
+      email,
+      name: "Revoke Others Test",
+      passwordHash: "x",
+      birthDate: new Date("1990-01-01"),
+    });
     userId = user.id;
   });
 
@@ -47,7 +52,12 @@ describe("RevokeOtherSessionsHandler (integration)", () => {
     const b = await sessionIssuer.establish({ id: userId, email });
     const c = await sessionIssuer.establish({ id: userId, email });
 
-    const handler = new RevokeOtherSessionsHandler({ publish: () => {} } as never, sessionRepo);
+    const handler = new RevokeOtherSessionsHandler(
+      { publish: () => {} } as never,
+      sessionRepo,
+      sessionRepo,
+    );
+    await sessionRepo.markSteppedUp(userId, a.sessionId, new Date());
     await handler.execute(new RevokeOtherSessionsCommand(userId, a.sessionId));
 
     // All three rows still exist (nothing is deleted here — only the daily cron's

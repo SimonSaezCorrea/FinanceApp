@@ -94,6 +94,20 @@ export class PrismaSavingsEntryRepository implements SavingsEntryRepositoryPort 
     await client.savingsEntry.updateMany({ where: { id: snap.id, userId: snap.userId }, data });
   }
 
+  async listIdsForAccount(userId: string, accountId: string): Promise<string[]> {
+    const rows = await this.prisma.savingsEntry.findMany({
+      where: { userId, bankAccountId: accountId },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
+  }
+
+  async removeManyWithTx(tx: unknown, userId: string, ids: string[]): Promise<void> {
+    if (ids.length === 0) return;
+    const client = tx as PrismaService;
+    await client.savingsEntry.deleteMany({ where: { userId, id: { in: ids } } });
+  }
+
   async remove(userId: string, id: string): Promise<boolean> {
     return this.removeWithTx(this.prisma, userId, id);
   }

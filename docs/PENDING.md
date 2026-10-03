@@ -126,25 +126,28 @@ incluso con una futura sección de suscripción de pago en la app — la geoloca
 de seguridad esencial, nunca parte de un plan pago). Ver `specs/026-ipinfo-geolocation/` para el
 diseño completo.
 
-### 5. Plan, uso y facturación
+### 5. Plan, uso y facturación — **sección retirada del Perfil (2026-09-25)**
 
-Toda la sección es un placeholder: los usos ("Cuentas 6/10", "Categorías personalizadas 8/15") son
-números fijos de ejemplo (no reflejan límites reales — no existe ningún límite de plan hoy), el botón
-"Ver Pro" y "Cambiar" (método de pago) y "Ver" (historial de facturas) están deshabilitados. No hay
-integración de pagos (Stripe o similar), ni modelo de planes/suscripciones en la base de datos. El
-badge "Plan personal" en el resto de la app ya era, desde antes de esta feature, un texto fijo sin
-modelo de billing detrás.
+Era un placeholder completo: usos fijos de ejemplo ("Cuentas 6/10", "Categorías personalizadas
+8/15") que insinuaban límites que no existen, un "Pásate a Pro" con "Ver Pro" deshabilitado, un
+método de pago de ejemplo ("Visa •••• 4242") y un historial de facturas sin nada detrás. Se **eliminó**
+(`PlanBillingSection` y las claves `profile.billing.*`) porque el formato de cobro está sin decidir
+(ver "Monetización — plan de pago") y la página de Precios ya dice "sin límites artificiales": mostrar
+límites y un plan Pro de ejemplo contradecía eso. Queda el badge "Plan personal" del `ProfileCard`,
+un texto fijo sin modelo de billing detrás.
 
-**Para hacerlo real**: modelo `Plan`/`Subscription`, integración con un proveedor de pagos, límites
-reales aplicados en los servicios de cada dominio (ej. rechazar creación de cuenta #11 en el plan
-gratis), historial de facturas desde el proveedor de pagos.
+**Para volver a tenerla**: cuando se decida el plan de pago — modelo `Plan`/`Subscription`,
+integración con un proveedor de pagos, límites reales aplicados en cada dominio (si los hay) e
+historial de facturas desde el proveedor. Recién entonces reconstruir la sección con datos reales.
 
-### 6. Datos, conexiones y privacidad
+### 6. Datos y privacidad (antes "Datos, conexiones y privacidad")
 
-- **Bancos vinculados**: "Banco Estado"/"Falabella CMR" son ejemplos fijos; los switches de
-  sincronización son locales (no llaman a ningún banco). "Vincular otro banco" está deshabilitado. No
-  hay integración de open banking (tipo Plaid/Belvo) — las cuentas de este app siempre se cargan
-  manualmente.
+- **Bancos vinculados — retirado del Perfil (2026-09-25)**: era una lista de ejemplo fija ("Banco
+  Estado"/"Falabella CMR") con switches locales que no llamaban a ningún banco y un "Vincular otro
+  banco" deshabilitado. Se eliminó (y la sección perdió el "conexiones" de su título) porque la
+  sincronización con bancos no existe y su formato —incluido si sería de pago— está sin decidir: ver
+  "Monetización — plan de pago". No hay integración de open banking (tipo Plaid/Belvo); las cuentas se
+  cargan siempre a mano. Si se implementa, esta vista se reconstruye con conexiones reales.
 - **Exportar movimientos** (CSV/Excel/PDF): botones deshabilitados. Es lo más tratable de esta sección
   a futuro (los datos ya existen vía `transactions`), pero no se implementó en esta pasada.
 - **Respaldo automático mensual**: switch local, sin ningún job de respaldo real corriendo.
@@ -339,28 +342,37 @@ adicional.
 
 No existe la posibilidad de crear, usar o editar una **plantilla de movimiento** reutilizable (cuenta,
 categoría, descripción, tarjeta, etc. predefinidos para crear movimientos similares rápido — ej.
-"Bencina", "Arriendo mensual"). Hoy la única "reutilización" es indirecta: el combobox de categoría en
-`TransactionCreateModal` sugiere valores ya usados en el historial (`uniqueCategories`), pero no hay
+"Bencina", "Arriendo mensual"). Hoy no hay ninguna reutilización: la categoría sale de un catálogo global (ver punto 2), pero no hay
 modelo de plantilla ni acciones "Guardar como plantilla" / "Usar plantilla" en el formulario.
 
 **Para hacerlo real**: modelo `TransactionTemplate` (userId, nombre, y los mismos campos opcionales de
 una transacción salvo monto/fecha), endpoint CRUD, y en el formulario de creación un selector "Usar
 plantilla" que prellene los campos más un botón "Guardar como plantilla".
 
-### 2. Categorías personalizadas como entidad propia
+### 2. Categorías personalizadas (creadas por el usuario)
 
-Las categorías son **texto libre** (`Transaction.category: String?`), no un modelo propio: no existe
-`Category` con id, ícono, color o presupuesto asociado. El combobox de categoría solo sugiere strings ya
-usados por el propio usuario en sus transacciones (`uniqueCategories`) — no hay pantalla para crear,
-renombrar, fusionar o eliminar categorías, y "renombrar" hoy implicaría editar transacción por
-transacción (no hay operación en lote). Esto es distinto del placeholder "Categorías personalizadas
-8/15" de Perfil → Plan y facturación (sección 5 más arriba), que es solo un número de ejemplo para un
-límite de plan que no existe.
+**Desde 2026-09-25 las categorías SÍ son una entidad propia**, pero **global**: la tabla `category`
+tiene un catálogo único, sembrado y de solo lectura, igual para todos los usuarios (28 filas: 23
+elegibles + 5 de sistema que asigna el servidor, como "Ahorro" o "Pago facturación").
+`Transaction`/`InstallmentPlan`/`RecurringExpense` guardan un `categoryId` (FK, `SetNull`) y el nombre
+visible sale de i18n (`categories.<CODE>`) en la web. Un usuario nuevo ya ve todas las categorías
+desde el primer movimiento: el selector dejó de depender de su historial.
 
-**Para hacerlo real**: modelo `Category` (userId, nombre, ícono, color, presupuesto opcional) con FK
-opcional desde `Transaction` (migrando el string libre existente), pantalla de gestión
-(crear/renombrar/fusionar/eliminar) y actualizar el combobox para listar categorías reales en vez de
-strings derivados del historial.
+**Lo que queda pendiente, a propósito**: que el usuario **cree, renombre, oculte o fusione** sus
+propias categorías. Se dejó para cuando se definan los planes y la personalización. El modelo ya está
+pensado para crecer sin romper nada: una categoría propia sería una fila más de `category` con
+`userId` + `name` nullable (null = fila global del catálogo), y el mismo `categoryId` sigue
+apuntándole. Hacerlo real implica:
+
+- columnas `userId`/`name` en `category`, con el aislamiento por usuario de la constitución §II
+  aplicado en `CategoryLookupPort.findById` (una categoría ajena debe responder
+  `CATEGORY_NOT_FOUND`) y en `GET /categories` (catálogo global + las propias);
+- CRUD propio y una pantalla de gestión, donde fusionar reasigna `categoryId` en lote;
+- en la web, que `useCategoryCatalog().nameOf` use `name` cuando exista en vez de la clave i18n;
+- si tiene límite por plan, conectarlo con "Monetización — plan de pago".
+
+Tampoco hay ícono ni color por categoría guardados en la base: el ícono sale de un mapa fijo por
+código (`shared/lib/categoryIcons.ts`), así que una categoría propia también necesitará elegir el suyo.
 
 ## Movimientos — traspasos, comprobantes y paneles (specs/010)
 
@@ -471,6 +483,25 @@ La exclusión de traspasos de los agregados de ingreso/gasto está centralizada 
 `excludeTransfers` (web, `domains/dashboard/lib/metrics.ts`). **Cualquier agregado nuevo de
 ingreso/gasto debe aplicarlo**: al no cambiar el enum `TransactionType`, ninguna suma lo excluye por sí
 sola.
+
+### 10. Importar movimientos desde Excel/CSV — lo que quedó fuera
+
+El botón "Importar" (detalle de cuenta → Movimientos) lee `.xlsx` y `.csv`, detecta columnas y aplica
+los movimientos como si se hubieran creado a mano (saldo, cupo, reglas, todo o nada). Quedó fuera:
+
+- **`.xls` antiguo (binario)**: no se lee. Hoy el usuario lo abre en Excel y lo guarda como `.xlsx`.
+  Leerlo exige SheetJS desde su tarball oficial (la versión de npm está abandonada y con advisories
+  `high` que botarían `pnpm audit`) — se descartó por decisión, se puede revisar.
+- **Detección de duplicados**: reimportar el mismo archivo lo importa de nuevo. Se decidió importar
+  todo (dos cafés iguales el mismo día existen); una marca de "posible duplicado" en la vista previa
+  sería el paso siguiente si molesta.
+- **Recordar el mapeo por banco**: cada importación vuelve a adivinar las columnas; guardar el mapeo
+  confirmado por cuenta ahorraría pasos con el mismo banco.
+- **Tarjeta de un gasto en cuenta de crédito**: si el archivo trae una columna de tarjeta, se
+  reconoce por sus últimos 4 dígitos; si no, se usa la tarjeta por defecto elegida en el panel o, en
+  una cuenta de crédito, la principal.
+- **Categoría por fila en la vista previa**: hoy la categoría sale de una columna del archivo o de la
+  categoría por defecto; no se puede corregir fila por fila antes de importar.
 
 ## Inversiones
 
@@ -755,3 +786,32 @@ para que sea una decisión postergada y no una que nadie vio.
 **Para hacerlo real**: escribir la cláusula ANTES de que exista el primer consumidor externo. Los puntos
 1, 2 y 6 de esta sección (ya cerrados) fueron cambios de contrato/formato interno; si aparece un
 consumidor externo, cualquier cambio equivalente en el futuro debe resolver esto primero.
+
+## Monetización — plan de pago (supuesto, no decidido)
+
+La página pública de Precios (`/precios`) muestra **solo el plan gratis** y no menciona ningún plan de
+pago: lo que sigue son supuestos de trabajo, no compromisos, y no deben aparecer en la landing hasta
+que se decidan. Se exploraron en el lienzo "Cuadra · Precios" (variantes PL2, PL2a y PL2b).
+
+- **Nombre provisorio**: "Cumbre" (sigue la cordillera de la marca; también se barajaron Plus/Pro).
+  El plan gratis se llamó "Base" en el lienzo, pero en la página pública no lleva nombre, para no
+  insinuar que existen otros.
+- **Precio**: sin definir.
+- **Qué sumaría el plan de pago** (nada de esto existe hoy):
+  - _Organización_: espacios separados (personal, negocio, la casa), etiquetas propias además de la
+    categoría, plantillas de movimientos frecuentes (ver "Movimientos · 1. Plantillas").
+  - _Automatización_: reglas que categorizan solas, recurrentes que se registran el día que tocan (hoy
+    los recurrentes son solo informativos), recordatorios antes de cada vencimiento.
+  - _Conexión_: sincronización con bancos — el único ítem con un costo real por cuenta (se le paga a un
+    intermediario), por eso sería de pago.
+- **Límites que NO se cruzan**: exportar tus datos debe quedar en el plan gratis — la portabilidad es un
+  derecho del titular (Ley 21.719), no una función premium.
+- **Promesas consideradas, sin aprobar**: nada de lo gratis se mueve al plan de pago; sin publicidad ni
+  venta de datos en ningún plan; si alguien deja el plan de pago no se borra nada, solo se detiene lo
+  automático. Antes de publicar cualquiera, validarla como decisión de negocio.
+- **Relacionado**: "Perfil · 5. Plan, uso y facturación" — la sección de ejemplo (límites "6/10" y
+  un "Ver Pro") se retiró del Perfil el 2026-09-25 por contradecir "sin límites artificiales"; se
+  reconstruye cuando esto se decida.
+
+**Para hacerlo real**: decidir nombre, precio y lista; modelo `Plan`/`Subscription` + proveedor de
+pagos (ver Perfil · 5); recién entonces volver a mostrar el plan de pago en `/precios`.

@@ -28,6 +28,12 @@ function statementProps(overrides: Partial<CreditStatementProps> = {}): CreditSt
     carriedToId: null,
     paidFromAccountId: null,
     paidTransactionId: null,
+    currency: "CLP",
+    transferredAt: null,
+    transferredAmount: null,
+    transferTransactionId: null,
+    settlementTransactionId: null,
+    transferredToId: null,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
     ...overrides,
@@ -120,5 +126,47 @@ describe("SyncStatementHandler", () => {
 
     expect(writer.updateAmountWithTx).toHaveBeenCalledWith(expect.anything(), "tx_pay", "800.0000");
     expect(account.creditUsed).toBe("5200.0000");
+  });
+
+  describe("a statement in another currency (spec 028)", () => {
+    it("recomputes and re-links only its own currency", async () => {
+      const statement = CreditStatement.fromPersistence(statementProps({ currency: "USD" }));
+      const { handler, sums, writer } = setup(statement, "39.06");
+
+      await handler.execute(new SyncStatementCommand("u1", "acc_1", "st_1"));
+
+      expect(sums.netForPeriod).toHaveBeenCalledWith(expect.objectContaining({ currency: "USD" }));
+      expect(writer.relinkToStatementWithTx).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ currency: "USD" }),
+      );
+    });
+
+    it("a settled one moves its USD settlement, never the CLP payment, the source balance or the CLP pool", async () => {
+      const statement = CreditStatement.fromPersistence(
+        statementProps({
+          currency: "USD",
+          paidAt: new Date("2026-02-05"),
+          amount: "30",
+          paidAmount: "30",
+          paidFromAccountId: "acc_2",
+          paidTransactionId: "tx_pay_clp",
+          settlementTransactionId: "tx_settle_usd",
+        }),
+      );
+      const { handler, account, accountRepo, writer } = setup(statement, "32");
+
+      const result = await handler.execute(new SyncStatementCommand("u1", "acc_1", "st_1"));
+
+      expect(result.status).toBe("PAID");
+      expect(writer.updateAmountWithTx).toHaveBeenCalledTimes(1);
+      expect(writer.updateAmountWithTx).toHaveBeenCalledWith(
+        expect.anything(),
+        "tx_settle_usd",
+        "32.0000",
+      );
+      expect(accountRepo.incrementBalanceWithTx).not.toHaveBeenCalled();
+      expect(account.creditUsed).toBe("5000.0000");
+    });
   });
 });

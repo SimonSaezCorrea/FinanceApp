@@ -2,6 +2,8 @@ import Decimal from "decimal.js";
 
 import type { debts } from "@finance/contracts";
 
+import { debtInstallmentAmounts } from "./debtSchedule";
+
 export interface DebtKpi {
   currency: string;
   totalOwedToYou: string;
@@ -34,13 +36,15 @@ export function summarizeDebtsByCurrency(list: debts.Debt[]): DebtKpi[] {
   }));
 }
 
+/** The instalments not yet paid — the same rows the server's `pendingAmount()` sums,
+ * so an evenly split debt left with its last whole-peso instalment shows exactly that. */
 export function calcRemaining(debt: debts.Debt): string {
-  const pending = new Decimal(debt.totalInstallments - debt.paidInstallments);
-  const perInstallment =
-    debt.installmentAmount !== null
-      ? new Decimal(debt.installmentAmount)
-      : new Decimal(debt.principal).dividedBy(debt.totalInstallments);
-  return pending.times(perInstallment).toFixed(4);
+  const pending = Math.max(debt.totalInstallments - debt.paidInstallments, 0);
+  if (pending === 0) return "0.0000";
+  return debtInstallmentAmounts(debt)
+    .slice(-pending)
+    .reduce((acc, a) => acc.plus(a), new Decimal(0))
+    .toFixed(4);
 }
 
 /** What is genuinely still owed: zero once the debt is settled — `calcRemaining`

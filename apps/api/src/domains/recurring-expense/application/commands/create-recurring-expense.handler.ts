@@ -4,6 +4,11 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import type { recurring } from "@finance/contracts";
 
 import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
+import { assertSelectableCategory } from "../../../category/domain/category-policy";
+import {
   BANK_ACCOUNT_LOOKUP,
   type BankAccountLookupPort,
 } from "../../../bank-account/domain/ports/bank-account-lookup.port";
@@ -45,12 +50,15 @@ export class CreateRecurringExpenseHandler extends BaseCommandHandler<
     @Inject(RECURRING_EXPENSE_REPOSITORY) private readonly repo: RecurringExpenseRepositoryPort,
     @Inject(BANK_ACCOUNT_LOOKUP) private readonly accounts: BankAccountLookupPort,
     @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
   ) {
     super(eventBus);
   }
 
   protected async loadContext(command: CreateRecurringExpenseCommand): Promise<Context> {
     const { input } = command;
+    // A recurring series is always an outflow: only expense categories fit it.
+    await assertSelectableCategory(this.categories, input.categoryId, "EXPENSE");
     if (
       input.bankAccountId &&
       !(await this.accounts.accountOwned(command.userId, input.bankAccountId))
@@ -64,13 +72,14 @@ export class CreateRecurringExpenseHandler extends BaseCommandHandler<
       label: input.label,
       amount: input.amount,
       currency: input.currency,
-      category: input.category,
+      categoryId: input.categoryId,
       frequency: input.frequency,
       interval: input.interval,
       anchorDate: new Date(input.anchorDate),
       bankAccountId: input.bankAccountId,
       cardId: input.cardId,
       active: input.active,
+      endDate: input.endDate ? new Date(input.endDate) : null,
       notes: input.notes,
     });
     return { plan };

@@ -8,16 +8,25 @@ export const installmentsApi = {
   /** The detail response — the only one carrying `deletionImpact` (FR-050b). */
   get: (id: string) => apiFetch<installments.InstallmentPlan>(`/installments/${id}`),
 
-  create: (body: installments.CreateInstallmentPlan) =>
+  /** Money-moving writes carry the attempt's `Idempotency-Key` (specs/015): the
+   * API refuses them without one (`IDEMPOTENCY_KEY_REQUIRED`). */
+  create: (body: installments.CreateInstallmentPlan, idempotencyKey: string) =>
     apiFetch<installments.InstallmentPlan>("/installments", {
       method: "POST",
       body: JSON.stringify(body),
+      idempotencyKey,
     }),
 
-  pay: (planId: string, sequence: number, body: installments.PayInstallment) =>
+  pay: (
+    planId: string,
+    sequence: number,
+    body: installments.PayInstallment,
+    idempotencyKey: string,
+  ) =>
     apiFetch<void>(`/installments/${planId}/payments/${sequence}/pay`, {
       method: "POST",
       body: JSON.stringify(body),
+      idempotencyKey,
     }),
 
   unpay: (planId: string, sequence: number) =>

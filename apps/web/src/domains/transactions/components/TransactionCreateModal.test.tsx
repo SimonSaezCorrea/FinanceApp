@@ -78,7 +78,7 @@ describe("TransactionCreateModal", () => {
     vi.mocked(transactionsApi.summary).mockResolvedValue({
       total: 0,
       currencyTotals: [],
-      categories: [],
+      categoryIds: [],
     });
     vi.mocked(transactionsApi.create).mockResolvedValue({ id: "t1" } as never);
     vi.mocked(transactionsApi.attachments.list).mockResolvedValue([]);

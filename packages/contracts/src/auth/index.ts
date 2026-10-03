@@ -8,18 +8,106 @@ export * from "./rut";
 
 /** Auth domain contracts (seed; expanded during US2 auth migration). */
 
+/** Login is by RUT, not email (Chilean convention, same as most Chilean banking apps) — email
+ * stays on the account purely for contact/notifications. Not checksum-validated here on
+ * purpose: a malformed RUT should fail the SAME generic `INVALID_CREDENTIALS` a wrong password
+ * would, never a distinct "that RUT isn't even valid" response (anti-enumeration). */
 export const loginRequestSchema = z.object({
-  email: z.string().email(),
+  identifierValue: z.string().trim().min(1).max(20),
   password: z.string().min(1),
 });
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
 
-export const registerRequestSchema = z.object({
-  name: z.string().trim().min(1).max(120).optional(),
-  email: z.string().email(),
-  password: z.string().min(8).max(200),
+/** Full years elapsed as of `now` — pure, shared by the API's own registration validation and
+ * the web registration form (deciding whether to show the guardian block), so the two can
+ * never disagree about someone's age. Mirrors `User.toContract()`'s own `age` derivation. */
+export function calculateAgeFromBirthDate(birthDate: Date, now = new Date()): number {
+  let age = now.getFullYear() - birthDate.getFullYear();
+  const monthDiff = now.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) age--;
+  return age;
+}
+
+/** Ley 21.719's reinforced regime for a minor's sensitive data: below this age, a guardian's
+ * own authorization is required IN ADDITION to (never instead of) the titular's own
+ * `sensitiveDataConsent`. Chile's mayoría de edad (18) — not independently verified against
+ * the statute's own text for this specific threshold; treat as a working assumption pending
+ * legal review, same caveat every compliance-cl-generated document in this repo carries. */
+export const MINOR_GUARDIAN_THRESHOLD_AGE = 18;
+
+export const guardianRelationshipSchema = z.enum(["MOTHER", "FATHER", "GUARDIAN", "OTHER"]);
+
+export const guardianAuthorizationSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  /** RUT/DNI of the guardian — hashed (never stored raw) at the API boundary, same mechanism
+   * as `AccountDeletionLog.identifierHash`. A third party's data, kept to the minimum. */
+  identifierValue: z.string().trim().min(1).max(20),
+  relationship: guardianRelationshipSchema,
+  /** Must be exactly `true` — same unchecked-by-default checkbox discipline as
+   * `sensitiveDataConsent` below. This authorization is declarative, not identity-verified:
+   * nothing here confirms the person filling the form is really the guardian. */
+  accepted: z.literal(true),
 });
+export type GuardianAuthorization = z.infer<typeof guardianAuthorizationSchema>;
+
+export const registerRequestSchema = z
+  .object({
+    name: z.string().trim().min(1).max(120),
+    email: z.string().email(),
+    password: z.string().min(8).max(200),
+    /** The titular's own RUT — mandatory (this app's MVP is Chile-only, so `identifierType` is
+     * always "RUT" here, never asked). Checksum-validated (unlike login's own RUT field) since
+     * this is registration, not a credential attempt — a malformed RUT here is a genuine input
+     * error, not something to hide behind a generic anti-enumeration response. Becomes the
+     * login credential (see `loginRequestSchema`), so it's unique across every account. */
+    identifierValue: z
+      .string()
+      .trim()
+      .min(1)
+      .max(20)
+      .refine(isValidRut, { message: "invalid_rut" }),
+    /** Required at registration (not left for later in Profile) — the guardian-consent
+     * threshold above can't be evaluated without knowing the titular's age from day one. */
+    birthDate: z.coerce.date(),
+    /** Ley 21.719 Art. 16 reinforced consent: this app's financial data (balances, movements,
+     * debts) is "situación socioeconómica", sensitive under Art. 2 letra g) — a bundled generic
+     * "I accept the terms" checkbox isn't enough. Must be exactly `true` (an unchecked/omitted
+     * checkbox fails validation outright, never silently defaults). */
+    sensitiveDataConsent: z.literal(true),
+    /** Required (and only meaningful) when `birthDate` puts the titular under
+     * `MINOR_GUARDIAN_THRESHOLD_AGE` — see the cross-field `.refine()` below. */
+    guardianAuthorization: guardianAuthorizationSchema.optional(),
+  })
+  .refine(
+    (v) =>
+      calculateAgeFromBirthDate(v.birthDate) >= MINOR_GUARDIAN_THRESHOLD_AGE ||
+      v.guardianAuthorization !== undefined,
+    {
+      message: "guardian authorization is required for a titular under the age threshold",
+      path: ["guardianAuthorization"],
+    },
+  );
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
+
+/** One consent the user granted, as shown back to them (e.g. a "mis consentimientos" screen). */
+export const consentTypeSchema = z.enum([
+  "SENSITIVE_DATA_PROCESSING",
+  "MINOR_GUARDIAN_AUTHORIZATION",
+]);
+export const consentRecordSchema = z.object({
+  id: rowId,
+  type: consentTypeSchema,
+  policyVersion: z.string(),
+  grantedAt: z.string(),
+  revokedAt: z.string().nullable(),
+  /** Only set on a `MINOR_GUARDIAN_AUTHORIZATION` row — never the guardian's identifier, which
+   * is never sent back past registration (only its hash is stored, server-side only). */
+  guardianName: z.string().nullable(),
+  guardianRelationship: guardianRelationshipSchema.nullable(),
+});
+export type ConsentRecord = z.infer<typeof consentRecordSchema>;
+export const listConsentsResponseSchema = z.array(consentRecordSchema);
+export type ListConsentsResponse = z.infer<typeof listConsentsResponseSchema>;
 
 /** Moneda principal del usuario. El MVP opera en Chile con tres monedas: peso,
  * dólar y `CLF` (el código ISO 4217 de la UF, que la app nunca convierte a pesos). */
@@ -107,10 +195,20 @@ export const updatePreferencesRequestSchema = z.object({
 });
 export type UpdatePreferencesRequest = z.infer<typeof updatePreferencesRequestSchema>;
 
-export const deactivateRequestSchema = z.object({
+/** Ley 21.719 Art. 11 supresión. The account can never log in again either way — `keepHistory`
+ * is the user's own explicit choice, made at deletion time, never a default:
+ * - `false` (hard delete): every row this user owns, across every table, is deleted (the
+ *   existing `onDelete: Cascade` on every `userId` FK does the actual removal).
+ * - `true` (anonymize): only this `User` row is scrubbed of PII (see `User.delete()`'s
+ *   doc-comment) — financial history stays, under the same userId, for the user's own
+ *   statistics/history. Security artifacts (sessions/passkeys/recovery codes) are hard-deleted
+ *   either way — they only ever exist to let someone log back in.
+ * Replaces the old `deactivateRequestSchema`, which never actually deleted anything. */
+export const deleteAccountRequestSchema = z.object({
   password: z.string().min(1),
+  keepHistory: z.boolean(),
 });
-export type DeactivateRequest = z.infer<typeof deactivateRequestSchema>;
+export type DeleteAccountRequest = z.infer<typeof deleteAccountRequestSchema>;
 
 // ---- MFA (specs/021) ----
 
@@ -191,9 +289,12 @@ export const renamePasskeyRequestSchema = z.object({
 });
 export type RenamePasskeyRequest = z.infer<typeof renamePasskeyRequestSchema>;
 
-/** `email` omitted = discoverable/"usernameless" login: the browser offers any resident passkey
- * for this site on its own, with no typed email at all. */
-export const startPasskeyLoginRequestSchema = z.object({ email: z.string().email().optional() });
+/** `identifierValue` (the titular's RUT, same login credential as password login) omitted =
+ * discoverable/"usernameless" login: the browser offers any resident passkey for this site on
+ * its own, with nothing typed. */
+export const startPasskeyLoginRequestSchema = z.object({
+  identifierValue: z.string().trim().min(1).max(20).optional(),
+});
 export type StartPasskeyLoginRequest = z.infer<typeof startPasskeyLoginRequestSchema>;
 
 /** Always the same shape whether or not the email has any passkeys (FR-005a, no
@@ -230,3 +331,44 @@ export type Session = z.infer<typeof sessionSchema>;
 
 export const listSessionsResponseSchema = z.array(sessionSchema);
 export type ListSessionsResponse = z.infer<typeof listSessionsResponseSchema>;
+
+// ---- Step-up before closing sessions (2026-09-25) ----
+
+/** How long a step-up verification lets the session that did it close other sessions. */
+export const STEP_UP_WINDOW_MINUTES = 5;
+
+export const stepUpMethodSchema = z.enum(["totp", "passkey", "password"]);
+export type StepUpMethod = z.infer<typeof stepUpMethodSchema>;
+
+/** Which methods may verify a step-up: a second factor when the user has one (TOTP and/or a
+ * passkey — then the password alone is NOT enough), the password only when they have neither.
+ * Shared by the API (which enforces it) and the web (which offers exactly these). */
+export function stepUpMethodsFor(input: {
+  mfaEnabled: boolean;
+  passkeyCount: number;
+}): StepUpMethod[] {
+  const methods: StepUpMethod[] = [];
+  if (input.mfaEnabled) methods.push("totp");
+  if (input.passkeyCount > 0) methods.push("passkey");
+  return methods.length > 0 ? methods : ["password"];
+}
+
+/** `POST /auth/sessions/step-up` — TOTP code or password. A passkey goes through its own
+ * two-step ceremony (`/step-up/passkey-options` → `/step-up/passkey-verify`). */
+export const stepUpRequestSchema = z.discriminatedUnion("method", [
+  z.object({
+    method: z.literal("totp"),
+    code: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/),
+  }),
+  z.object({ method: z.literal("password"), password: z.string().min(1) }),
+]);
+export type StepUpRequest = z.infer<typeof stepUpRequestSchema>;
+
+export const stepUpResponseSchema = z.object({
+  /** ISO instant until which this session may close others without verifying again. */
+  verifiedUntil: z.string(),
+});
+export type StepUpResponse = z.infer<typeof stepUpResponseSchema>;

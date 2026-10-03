@@ -2,6 +2,8 @@ import { Inject, Injectable, Logger } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import { compare } from "bcryptjs";
 
+import { auth } from "@finance/contracts";
+
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { InvalidCredentialsError } from "../../domain/errors";
 import { User } from "../../domain/user.aggregate";
@@ -35,10 +37,12 @@ export class LoginHandler extends BaseCommandHandler<LoginCommand, LoginResult, 
   }
 
   protected async loadContext(command: LoginCommand): Promise<User> {
-    const email = command.input.email.toLowerCase();
-    const user = await this.repo.findByEmail(email);
+    // Login is by RUT, not email (Chilean convention) — normalized the same way it was at
+    // registration, so "12.345.678-5" and "123456785" resolve to the same account.
+    const identifierValue = auth.normalizeRut(command.input.identifierValue);
+    const user = await this.repo.findByIdentifierValue(identifierValue);
     if (!user?.passwordHash || !(await compare(command.input.password, user.passwordHash))) {
-      this.logger.warn(`failed login attempt for ${email}`);
+      this.logger.warn(`failed login attempt for ${identifierValue}`);
       throw new InvalidCredentialsError();
     }
     // ACCOUNT_DISABLED — rejected even with otherwise-valid credentials (FR-... ported unchanged).

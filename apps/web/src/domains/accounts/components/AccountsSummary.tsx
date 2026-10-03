@@ -1,9 +1,10 @@
 import { useTranslation } from "react-i18next";
 
-import type { accounts } from "@finance/contracts";
-import { formatMoney, sumMoney } from "@finance/money";
+import type { accounts, debts } from "@finance/contracts";
+import { formatMoney, subtractMoney, sumMoney } from "@finance/money";
 
 import { convertApprox } from "../../../shared/lib/fx";
+import { leftAmount } from "../../debts/lib/debtMetrics";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { accountsSummary, type CurrencyTotal } from "../lib/grouping";
 
@@ -21,6 +22,19 @@ function inPrimary(totals: CurrencyTotal[], primary: string): string {
   );
 }
 
+/** What people owe you minus what you owe them, still pending, in `primary` —
+ * the same figure the Panel folds into its net worth, so both agree. */
+function debtsInPrimary(list: debts.Debt[], primary: string): string {
+  return sumMoney(
+    list
+      .filter((d) => d.settledAt === null)
+      .map((d) => {
+        const left = d.direction === "YOU_OWE" ? subtractMoney("0", leftAmount(d)) : leftAmount(d);
+        return d.currency === primary ? left : (convertApprox(left, d.currency, primary) ?? "0");
+      }),
+  );
+}
+
 export function AccountsSummary({
   list,
   primaryCurrency,
@@ -30,7 +44,14 @@ export function AccountsSummary({
    * much do you have", and showing a real-looking number for data that's
    * currently unreachable is worse than showing nothing at all. */
   unavailable = false,
-}: Readonly<{ list: accounts.BankAccount[]; primaryCurrency: string; unavailable?: boolean }>) {
+  /** Debts between people: part of the net worth (pending amounts only). */
+  debtList = [],
+}: Readonly<{
+  list: accounts.BankAccount[];
+  primaryCurrency: string;
+  unavailable?: boolean;
+  debtList?: debts.Debt[];
+}>) {
   const { t, i18n } = useTranslation();
   // Genuinely no accounts (not an error): nothing to summarize.
   if (list.length === 0 && !unavailable) return null;
@@ -42,6 +63,8 @@ export function AccountsSummary({
     ? { net: [], assets: [], cardDebt: [] }
     : accountsSummary(list);
   const dash = "—";
+  const debtsNet = debtsInPrimary(debtList, heroCurrency);
+  const hasDebts = debtList.some((d) => d.settledAt === null);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card px-4 py-5 sm:px-6">
@@ -59,7 +82,9 @@ export function AccountsSummary({
             {unavailable ? (
               dash
             ) : (
-              <MaskedAmount>{money(inPrimary(net, heroCurrency), heroCurrency)}</MaskedAmount>
+              <MaskedAmount>
+                {money(sumMoney([inPrimary(net, heroCurrency), debtsNet]), heroCurrency)}
+              </MaskedAmount>
             )}
           </p>
           {!unavailable &&
@@ -99,6 +124,20 @@ export function AccountsSummary({
             )}
           </p>
         </div>
+        {hasDebts ? (
+          <div className="text-right">
+            <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.debts")}</p>
+            <p
+              className={
+                Number(debtsNet) < 0
+                  ? "mt-1 text-base font-semibold tabular-nums text-accent"
+                  : "mt-1 text-base font-semibold tabular-nums text-success"
+              }
+            >
+              {unavailable ? dash : <MaskedAmount>{money(debtsNet, heroCurrency)}</MaskedAmount>}
+            </p>
+          </div>
+        ) : null}
       </div>
     </div>
   );

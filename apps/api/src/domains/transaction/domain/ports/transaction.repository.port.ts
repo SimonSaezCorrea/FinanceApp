@@ -1,5 +1,6 @@
 import type { transactions } from "@finance/contracts";
 
+import type { LegDelta } from "../balance-delta";
 import type { Transaction, TransactionProps } from "../transaction.aggregate";
 
 export const TRANSACTION_REPOSITORY = Symbol("TRANSACTION_REPOSITORY");
@@ -15,7 +16,7 @@ export interface TransactionListFilter {
   recurringExpenseId?: string;
   occurredFrom?: Date;
   occurredTo?: Date;
-  category?: string;
+  categoryId?: string;
 }
 
 /** Decoded keyset cursor — the last row of the previous page. */
@@ -39,7 +40,7 @@ export interface TransactionPage {
 export interface TransactionSummaryResult {
   total: number;
   currencyTotals: { currency: string; income: string; expense: string }[];
-  categories: string[];
+  categoryIds: string[];
 }
 
 /**
@@ -56,16 +57,26 @@ export interface TransactionRepositoryPort {
     where: TransactionListFilter,
     page?: TransactionPageRequest,
   ): Promise<TransactionPage>;
-  summary(userId: string, where: TransactionListFilter): Promise<TransactionSummaryResult>;
+  /** `internalCategoryIds`: the system categories that mark a card payment,
+   * excluded from the totals with transfers (`excludeInternalFlows`). */
+  summary(
+    userId: string,
+    where: TransactionListFilter,
+    internalCategoryIds?: string[],
+  ): Promise<TransactionSummaryResult>;
   findOne(userId: string, id: string): Promise<Transaction | null>;
   /** Σ income/expense for one card in one currency, optionally scoped to a
-   * billing cycle (`since`) and excluding one tx (for edits). */
+   * billing cycle (`since`) and excluding one tx (for edits). `openOnly`: leave
+   * out rows on an already-PAID statement — for a sub-limit in the account's own
+   * currency, whose purchases are billed with the account and freed by paying it
+   * (a payment goes to the account, never to one plastic). */
   sumsForCard(
     userId: string,
     cardId: string,
     currency: string,
     since: Date | null,
     excludeTxId?: string,
+    openOnly?: boolean,
   ): Promise<{ income: string; expense: string }>;
 
   /** Cross-aggregate persistence (FR-020): saves the transaction row + the
@@ -77,7 +88,7 @@ export interface TransactionRepositoryPort {
     userId: string,
     plan: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     creditUsedDelta: { accountId: string; delta: string } | null,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<Transaction>;
   /** Same write, enlisted in the CALLER's transaction. Needed when something
    * outside this table must commit together with the movement — the idempotency
@@ -88,7 +99,7 @@ export interface TransactionRepositoryPort {
     userId: string,
     plan: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     creditUsedDelta: { accountId: string; delta: string } | null,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<Transaction>;
   saveUpdate(
     userId: string,
@@ -99,7 +110,7 @@ export interface TransactionRepositoryPort {
       creditStatementId?: string | null;
     },
     creditUsedDeltas: { accountId: string; delta: string }[],
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<Transaction | null>;
   /** Same write, enlisted in the CALLER's transaction. Spec 019: needed when
    * editing a movement that funded a prepago also has to reconcile the
@@ -116,13 +127,13 @@ export interface TransactionRepositoryPort {
       creditStatementId?: string | null;
     },
     creditUsedDeltas: { accountId: string; delta: string }[],
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<Transaction | null>;
   removeWithCreditAdjustment(
     userId: string,
     id: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<boolean>;
   /** Same delete, enlisted in the CALLER's transaction (spec 019 — see
    * `saveUpdateWithTx`'s own doc comment). */
@@ -130,7 +141,7 @@ export interface TransactionRepositoryPort {
     tx: unknown,
     id: string,
     creditUsedDelta: { accountId: string; delta: string } | null,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<boolean>;
 
   /* Transfers — always written as a PAIR, in one `$transaction`, together with
@@ -143,7 +154,7 @@ export interface TransactionRepositoryPort {
     userId: string,
     outgoing: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     incoming: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<TransferPair>;
   /** Same pair, enlisted in the caller's transaction (see `saveNewWithTx`). */
   saveTransferPairWithTx(
@@ -151,7 +162,7 @@ export interface TransactionRepositoryPort {
     userId: string,
     outgoing: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
     incoming: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<TransferPair>;
   updateTransferPair(
     userId: string,
@@ -159,12 +170,12 @@ export interface TransactionRepositoryPort {
     outgoing: TransferLegPatch,
     incoming: TransferLegPatch,
     /** Reverts of the old legs plus the new legs' effects, already netted. */
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<TransferPair | null>;
   removeTransferPair(
     userId: string,
     transferGroupId: string,
-    balanceDeltas: { accountId: string; delta: string }[],
+    balanceDeltas: LegDelta[],
   ): Promise<boolean>;
 }
 
@@ -178,11 +189,13 @@ export type TransferLegPatch = Partial<{
   amount: string;
   currency: string;
   occurredAt: Date;
-  category: string | null;
+  categoryId: string | null;
   description: string | null;
   observation: string | null;
   emisor: string | null;
   receptor: string | null;
   lugar: string | null;
   bankAccountId: string;
+  /** The open billing period of a leg that lands on a credit card account. */
+  creditStatementId: string | null;
 }>;

@@ -32,7 +32,12 @@ describe("Passkey registration (integration)", () => {
 
   beforeAll(async () => {
     await prisma.$connect();
-    const user = await userRepo.create({ email, name: "Passkey Reg Test", passwordHash: "x" });
+    const user = await userRepo.create({
+      email,
+      name: "Passkey Reg Test",
+      passwordHash: "x",
+      birthDate: new Date("1990-01-01"),
+    });
     userId = user.id;
   });
 

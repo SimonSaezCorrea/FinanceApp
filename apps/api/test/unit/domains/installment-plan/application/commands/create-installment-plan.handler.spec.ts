@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 
 import { CreateInstallmentPlanCommand } from "../../../../../../src/domains/installment-plan/application/commands/create-installment-plan.command";
@@ -24,6 +25,7 @@ function fakeRepo(
   overrides: Partial<InstallmentPlanRepositoryPort> = {},
 ): InstallmentPlanRepositoryPort {
   return {
+    listIdsForAccount: vi.fn(async () => []),
     list: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),
@@ -70,6 +72,7 @@ function makeHandler(
       findById: vi.fn(async () => accountAggregate({ id: "a1", type: "CHECKING" })),
     }),
     fakePrisma() as never,
+    fakeCategoryLookup(),
   );
   return { handler, createWithTx, incrementCreditUsedWithTx, incrementBalanceWithTx };
 }
@@ -93,7 +96,7 @@ function persistedPlan() {
       frequency: plan.frequency,
       frequencyInterval: plan.frequencyInterval,
       cardId: plan.cardId ?? null,
-      category: plan.category ?? null,
+      categoryId: plan.categoryId ?? null,
       paymentAccountId: plan.paymentAccountId ?? null,
       notes: plan.notes,
       payments: plan.payments.map(
@@ -178,14 +181,14 @@ describe("CreateInstallmentPlanHandler", () => {
         currency: "USD",
         frequency: "MONTHLY",
         frequencyInterval: 1,
-        category: "Hogar",
+        categoryId: "Hogar",
         paymentAccountId: "a1",
       }),
     );
     expect(createWithTx).toHaveBeenCalledWith(
       expect.anything(),
       "u1",
-      expect.objectContaining({ category: "Hogar", paymentAccountId: "a1" }),
+      expect.objectContaining({ categoryId: "Hogar", paymentAccountId: "a1" }),
     );
   });
 

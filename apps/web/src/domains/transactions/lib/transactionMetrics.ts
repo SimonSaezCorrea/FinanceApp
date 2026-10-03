@@ -14,7 +14,8 @@ export interface TransactionViewFilters {
   bankAccountId?: string;
   from?: string;
   to?: string;
-  categorySearch: string;
+  /** Catalogue category id, `""` for all. */
+  categoryId: string;
   selectedCardId?: string;
   showInactiveAccounts: boolean;
 }

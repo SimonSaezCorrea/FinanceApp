@@ -8,7 +8,7 @@ export interface TransactionProps {
   amount: string;
   currency: string;
   occurredAt: Date;
-  category: string | null;
+  categoryId: string | null;
   description: string | null;
   observation: string | null;
   emisor: string | null;
@@ -44,6 +44,9 @@ export interface TransactionProps {
   prepaymentStatementId: string | null;
   /** The CREDIT_CARD account `prepaymentStatementId` belongs to. */
   prepaymentAccountId: string | null;
+  /** Spec 028: the foreign-currency statement this INCOME settles (written only by
+   * the statement pay/transfer commands, through the writer port). */
+  settlesStatementId: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -53,7 +56,7 @@ export type TransactionPatch = Partial<{
   amount: string;
   currency: string;
   occurredAt: Date;
-  category: string | null;
+  categoryId: string | null;
   description: string | null;
   observation: string | null;
   emisor: string | null;
@@ -63,6 +66,7 @@ export type TransactionPatch = Partial<{
   cardId: string | null;
   financeCharge: boolean;
   creditStatementId: string | null;
+  recurringExpenseId: string | null;
 }>;
 
 /**
@@ -90,7 +94,7 @@ export class Transaction {
     amount: string;
     currency: string;
     occurredAt: Date;
-    category?: string | null;
+    categoryId?: string | null;
     description?: string | null;
     observation?: string | null;
     emisor?: string | null;
@@ -100,6 +104,7 @@ export class Transaction {
     cardId?: string | null;
     financeCharge?: boolean;
     creditStatementId: string | null;
+    recurringExpenseId?: string | null;
   }): Omit<TransactionProps, "id" | "createdAt" | "updatedAt"> {
     return {
       userId: input.userId,
@@ -107,7 +112,7 @@ export class Transaction {
       amount: input.amount,
       currency: input.currency,
       occurredAt: input.occurredAt,
-      category: input.category ?? null,
+      categoryId: input.categoryId ?? null,
       description: input.description ?? null,
       observation: input.observation ?? null,
       emisor: input.emisor ?? null,
@@ -122,7 +127,7 @@ export class Transaction {
       // `Transfer.planPair` and written by the transfer commands.
       transferGroupId: null,
       debtId: null,
-      recurringExpenseId: null,
+      recurringExpenseId: input.recurringExpenseId ?? null,
       savingsEntryId: null,
       savingsGoalId: null,
       // Only `PrepayOpenPeriodHandler` sets these, writing through
@@ -130,6 +135,7 @@ export class Transaction {
       // ordinary creation path.
       prepaymentStatementId: null,
       prepaymentAccountId: null,
+      settlesStatementId: null,
     };
   }
 
@@ -173,7 +179,7 @@ export class Transaction {
     if (patch.amount !== undefined) this.props.amount = patch.amount;
     if (patch.currency !== undefined) this.props.currency = patch.currency;
     if (patch.occurredAt !== undefined) this.props.occurredAt = patch.occurredAt;
-    if (patch.category !== undefined) this.props.category = patch.category;
+    if (patch.categoryId !== undefined) this.props.categoryId = patch.categoryId;
     if (patch.description !== undefined) this.props.description = patch.description;
     if (patch.observation !== undefined) this.props.observation = patch.observation;
     if (patch.emisor !== undefined) this.props.emisor = patch.emisor;
@@ -185,6 +191,8 @@ export class Transaction {
     }
     if (patch.creditStatementId !== undefined)
       this.props.creditStatementId = patch.creditStatementId;
+    if (patch.recurringExpenseId !== undefined)
+      this.props.recurringExpenseId = patch.recurringExpenseId;
   }
 
   snapshot(): Readonly<TransactionProps> {
@@ -198,7 +206,7 @@ export class Transaction {
       amount: moneyToString(this.props.amount),
       currency: this.props.currency,
       occurredAt: this.props.occurredAt.toISOString(),
-      category: this.props.category,
+      categoryId: this.props.categoryId,
       description: this.props.description,
       observation: this.props.observation,
       emisor: this.props.emisor,
@@ -219,6 +227,9 @@ export class Transaction {
       paidStatementAccountId: null,
       prepaymentStatementId: this.props.prepaymentStatementId,
       prepaymentAccountId: this.props.prepaymentAccountId,
+      settlesStatementId: this.props.settlesStatementId,
+      // Resolved by the query handler, like `paidStatementId`.
+      transferStatementId: null,
       createdAt: this.props.createdAt.toISOString(),
       updatedAt: this.props.updatedAt.toISOString(),
     };

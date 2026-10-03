@@ -3,6 +3,16 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { transactions } from "@finance/contracts";
 
+import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
+import { assertSelectableCategory } from "../../../category/domain/category-policy";
+import { RecurringExpenseNotFoundError } from "../../../recurring-expense/domain/errors";
+import {
+  RECURRING_EXPENSE_REPOSITORY,
+  type RecurringExpenseRepositoryPort,
+} from "../../../recurring-expense/domain/ports/recurring-expense.repository.port";
 import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
@@ -80,6 +90,9 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
     @Inject(CARD_LIMIT_REPOSITORY) private readonly cardLimits: CardLimitRepositoryPort,
     @Inject(CREDIT_STATEMENT_REPOSITORY) private readonly statements: CreditStatementRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
+    @Inject(RECURRING_EXPENSE_REPOSITORY)
+    private readonly recurring: RecurringExpenseRepositoryPort,
   ) {
     super(eventBus, records);
   }
@@ -90,6 +103,14 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
 
   protected async loadContext(command: CreateTransactionCommand): Promise<Context> {
     const { input } = command;
+    await assertSelectableCategory(this.categories, input.categoryId, input.type);
+    // Principle II: a series in the body must be the caller's own before it's linked.
+    if (
+      input.recurringExpenseId &&
+      !(await this.recurring.findOne(command.userId, input.recurringExpenseId))
+    ) {
+      throw new RecurringExpenseNotFoundError();
+    }
     const loaded = await loadAccountContext(this.accounts, command.userId, input.bankAccountId);
     if (!loaded) throw new AccountNotFoundError();
     const { context: account, createdAt: accountCreatedAt } = loaded;
@@ -107,6 +128,8 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
           input.cardId!,
           input.currency,
           currentCycleStart(account.billingCycleDay, account.billingCycleType, new Date()),
+          undefined,
+          input.currency === account.currency,
         )
       : { income: "0", expense: "0" };
 
@@ -127,11 +150,20 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
     // Contributing movements link live to whichever billing period is
     // currently OPEN for the account — creates one if this is the first
     // contribution since the last close (see `CreditStatement`).
-    const creditStatementId =
-      contribution !== "0"
-        ? (await this.statements.findOrCreateOpenForAccount(input.bankAccountId, accountCreatedAt))
-            .id
-        : null;
+    //
+    // Spec 028: a movement in ANOTHER currency on a credit card account goes
+    // through its card's own limit (so it contributes "0" to the pool) and belongs
+    // to the OPEN period of THAT currency — its own statement, never the pool's.
+    const statementCurrency = billingCurrencyOf(input.currency, account, cardLimit, contribution);
+    const creditStatementId = statementCurrency
+      ? (
+          await this.statements.findOrCreateOpenForAccount(
+            input.bankAccountId,
+            accountCreatedAt,
+            statementCurrency,
+          )
+        ).id
+      : null;
 
     return { account, card, cardLimit, contribution, creditStatementId };
   }
@@ -149,7 +181,7 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
       amount: input.amount,
       currency: input.currency,
       occurredAt: new Date(input.occurredAt),
-      category: input.category,
+      categoryId: input.categoryId,
       description: input.description,
       observation: input.observation,
       emisor: input.emisor,
@@ -159,6 +191,7 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
       cardId: input.cardId,
       financeCharge: input.financeCharge,
       creditStatementId: context.creditStatementId,
+      recurringExpenseId: input.recurringExpenseId ?? null,
     });
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -185,4 +218,22 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
 
     return { result, events: [] };
   }
+}
+
+/**
+ * Which billing period a new movement belongs to, by currency — or null when it
+ * belongs to none. The account-currency period when it draws on the pool; the
+ * period of its own currency when it is a foreign-currency movement on a credit
+ * card account that goes through a card's own limit in that currency (spec 028).
+ */
+export function billingCurrencyOf(
+  currency: string,
+  account: Pick<AccountContext, "type" | "currency">,
+  cardLimit: CardLimitContext | null,
+  contribution: string,
+): string | null {
+  const accountCurrency = account.currency ?? currency;
+  if (contribution !== "0") return accountCurrency;
+  if (account.type === "CREDIT_CARD" && currency !== accountCurrency && cardLimit) return currency;
+  return null;
 }

@@ -14,5 +14,9 @@ export const walletApi = {
       body: JSON.stringify({ ids }),
     }),
 
+  /** The whole wallet at once, in display order. */
+  replace: (body: wallet.ReplaceWallet) =>
+    apiFetch<wallet.WalletItem[]>("/wallet", { method: "PUT", body: JSON.stringify(body) }),
+
   remove: (id: string) => apiFetch<void>(`/wallet/${id}`, { method: "DELETE" }),
 };

@@ -2,7 +2,7 @@ import type { reference } from "@finance/contracts";
 
 import { apiFetch } from "../../../shared/lib/apiClient";
 
-/** Global read-only reference data (countries, banks, currencies). */
+/** Global read-only reference data (countries, banks, currencies, categories). */
 export const referenceApi = {
   countries: () => apiFetch<reference.Country[]>("/countries"),
   institutions: (filters?: reference.InstitutionFilters) => {
@@ -15,4 +15,5 @@ export const referenceApi = {
     return apiFetch<reference.Institution[]>(`/institutions${qs ? `?${qs}` : ""}`);
   },
   currencies: () => apiFetch<reference.Currency[]>("/currencies"),
+  categories: () => apiFetch<reference.Category[]>("/categories"),
 };

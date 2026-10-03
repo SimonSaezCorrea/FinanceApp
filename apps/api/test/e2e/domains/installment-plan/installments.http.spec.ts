@@ -1,3 +1,4 @@
+import { categoryIdFor } from "../../../integration/support/repositories";
 import { randomUUID } from "node:crypto";
 
 import type { INestApplication } from "@nestjs/common";
@@ -42,7 +43,24 @@ describe("Installments HTTP (e2e)", () => {
 
     const registerRes = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E Installments User" });
+      .send({
+        email,
+        password,
+        name: "E2E Installments User",
+        sensitiveDataConsent: true,
+        birthDate: "1990-01-01",
+        identifierValue: (() => {
+          const b = String(Math.floor(1e6 + Math.random() * 24e6));
+          let s = 0,
+            m = 2;
+          for (let i = b.length - 1; i >= 0; i--) {
+            s += Number(b[i]) * m;
+            m = m === 7 ? 2 : m + 1;
+          }
+          const r = 11 - (s % 11);
+          return b + "-" + (r === 11 ? "0" : r === 10 ? "K" : String(r));
+        })(),
+      });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     // Paying an instalment moves real money, so the flow needs a real account —
@@ -72,7 +90,24 @@ describe("Installments HTTP (e2e)", () => {
 
     const registerOther = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email: otherEmail, password, name: "Other" });
+      .send({
+        email: otherEmail,
+        password,
+        name: "Other",
+        sensitiveDataConsent: true,
+        birthDate: "1990-01-01",
+        identifierValue: (() => {
+          const b = String(Math.floor(1e6 + Math.random() * 24e6));
+          let s = 0,
+            m = 2;
+          for (let i = b.length - 1; i >= 0; i--) {
+            s += Number(b[i]) * m;
+            m = m === 7 ? 2 : m + 1;
+          }
+          const r = 11 - (s % 11);
+          return b + "-" + (r === 11 ? "0" : r === 10 ? "K" : String(r));
+        })(),
+      });
     const otherCookies = registerOther.get("Set-Cookie") ?? [];
     const otherAccount = await request(app.getHttpServer())
       .post("/api/v1/accounts")
@@ -123,7 +158,7 @@ describe("Installments HTTP (e2e)", () => {
         currency: "USD",
         frequency: "MONTHLY",
         frequencyInterval: 1,
-        category: "Tecnologia",
+        categoryId: await categoryIdFor(prisma, "TECHNOLOGY"),
       });
     expect(res.status).toBe(201);
     planId = res.body.id;
@@ -300,7 +335,7 @@ describe("Installments HTTP (e2e)", () => {
     expect(expense).toBeDefined();
     expect(expense.type).toBe("EXPENSE");
     expect(expense.amount).toBe("400.0000");
-    expect(expense.category).toBe("Tecnologia");
+    expect(expense.categoryId).toBe(await categoryIdFor(prisma, "TECHNOLOGY"));
     expect(expense.description).toContain("1/3");
     // specs/016 US2: the transaction pay-installment mints is UUID v7, not v4.
     expect(expense.id).toMatch(UUID_V7);

@@ -4,6 +4,16 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import type { accounts, transactions } from "@finance/contracts";
 import { subtractMoney } from "@finance/money";
 
+import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
+import { assertSelectableCategory } from "../../../category/domain/category-policy";
+import { RecurringExpenseNotFoundError } from "../../../recurring-expense/domain/errors";
+import {
+  RECURRING_EXPENSE_REPOSITORY,
+  type RecurringExpenseRepositoryPort,
+} from "../../../recurring-expense/domain/ports/recurring-expense.repository.port";
 import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
@@ -95,6 +105,9 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     @Inject(TRANSACTION_WRITER_REPOSITORY)
     private readonly transactionWriter: TransactionWriterRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
+    @Inject(RECURRING_EXPENSE_REPOSITORY)
+    private readonly recurring: RecurringExpenseRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -119,6 +132,18 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     }
 
     const effectiveType = input.type ?? current.type;
+    // Only a CHANGED category is validated: re-sending the one the movement already
+    // has must pass even when it's a system one the server assigned (e.g. "Deudas").
+    if (
+      input.recurringExpenseId &&
+      input.recurringExpenseId !== current.snapshot().recurringExpenseId &&
+      !(await this.recurring.findOne(command.userId, input.recurringExpenseId))
+    ) {
+      throw new RecurringExpenseNotFoundError();
+    }
+    if (input.categoryId !== undefined && input.categoryId !== current.snapshot().categoryId) {
+      await assertSelectableCategory(this.categories, input.categoryId, effectiveType);
+    }
     const effective: EffectiveMovement = {
       type: effectiveType,
       bankAccountId: input.bankAccountId ?? current.bankAccountId ?? "",
@@ -144,7 +169,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     const oldContribution =
       oldAccount != null
         ? MovementPolicy.contribution(
-            { type: current.type, amount: current.amount },
+            { type: current.type, amount: current.amount, currency: current.currency },
             oldAccount,
             oldCard,
             oldCardLimit,
@@ -187,6 +212,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
             effective.currency,
             currentCycleStart(account.billingCycleDay, account.billingCycleType, new Date()),
             id,
+            effective.currency === account.currency,
           )
         : { income: "0", expense: "0" };
       newContribution = MovementPolicy.validate(
@@ -209,7 +235,8 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     if (input.amount !== undefined) patch.amount = input.amount;
     if (input.currency !== undefined) patch.currency = input.currency;
     if (input.occurredAt !== undefined) patch.occurredAt = new Date(input.occurredAt);
-    if (input.category !== undefined) patch.category = input.category;
+    if (input.categoryId !== undefined) patch.categoryId = input.categoryId;
+    if (input.recurringExpenseId !== undefined) patch.recurringExpenseId = input.recurringExpenseId;
     if (input.description !== undefined) patch.description = input.description;
     if (input.observation !== undefined) patch.observation = input.observation;
     if (input.emisor !== undefined) patch.emisor = input.emisor;
@@ -225,7 +252,11 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       // Re-link (or unlink) the billing period this movement contributes to.
       if (sameAccount && oldContribution === "0" && newContribution !== "0" && oldAccountId) {
         patch.creditStatementId = (
-          await this.statements.findOrCreateOpenForAccount(oldAccountId, accountCreatedAt)
+          await this.statements.findOrCreateOpenForAccount(
+            oldAccountId,
+            accountCreatedAt,
+            oldAccount?.currency ?? effective.currency,
+          )
         ).id;
       } else if (sameAccount && oldContribution !== "0" && newContribution === "0") {
         patch.creditStatementId = null;
@@ -235,6 +266,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
             await this.statements.findOrCreateOpenForAccount(
               effective.bankAccountId,
               accountCreatedAt,
+              newAccount?.currency ?? effective.currency,
             )
           ).id;
         } else if (oldContribution !== "0") {

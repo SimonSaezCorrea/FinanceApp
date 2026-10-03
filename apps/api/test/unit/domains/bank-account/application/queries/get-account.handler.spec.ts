@@ -15,6 +15,7 @@ function fakePlanRepo(
   overrides: Partial<InstallmentPlanRepositoryPort> = {},
 ): InstallmentPlanRepositoryPort {
   return {
+    listIdsForAccount: vi.fn(async () => []),
     list: vi.fn(async () => []),
     findOne: vi.fn(),
     create: vi.fn(),
@@ -70,6 +71,7 @@ function fakeAccountRepo(
   overrides: Partial<BankAccountRepositoryPort> = {},
 ): BankAccountRepositoryPort {
   return {
+    removeWithTx: vi.fn(async () => true),
     findById: vi.fn(),
     listByUser: vi.fn(),
     listDueForBilling: vi.fn(),
@@ -85,6 +87,7 @@ function fakeAccountRepo(
     removeCard: vi.fn(),
     incrementCreditUsedWithTx: vi.fn(),
     incrementBalanceWithTx: vi.fn(),
+    adjustOpeningWithTx: vi.fn(),
     ...overrides,
   };
 }

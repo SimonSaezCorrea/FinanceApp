@@ -16,11 +16,13 @@ import { verifyRegistrationResponse } from "@simplewebauthn/server";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { randomValidRut } from "../../support/rut";
 
 describe("Passkey management HTTP (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_passkeymgmt_${randomUUID()}@test.local`;
+  const rut = randomValidRut();
   const password = "Sup3rSecret!";
   let cookies: string[] = [];
 
@@ -51,9 +53,14 @@ describe("Passkey management HTTP (e2e)", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    const res = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "Passkey Mgmt" });
+    const res = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "Passkey Mgmt",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+      identifierValue: rut,
+    });
     cookies = res.get("Set-Cookie") ?? [];
   });
 
@@ -120,9 +127,14 @@ describe("Passkey management HTTP (e2e)", () => {
       .send({ name: "" });
     expect(empty.status).toBe(400);
 
-    const other = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email: otherEmail, password, name: "Other" });
+    const other = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email: otherEmail,
+      password,
+      name: "Other",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+      identifierValue: randomValidRut(),
+    });
     const otherCookies = other.get("Set-Cookie") ?? [];
     const foreign = await request(app.getHttpServer())
       .patch(`/api/v1/auth/me/passkeys/${id}`)
@@ -151,7 +163,7 @@ describe("Passkey management HTTP (e2e)", () => {
 
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     expect(login.status).toBe(200);
     expect(login.body).toEqual({ mfaRequired: false, user: login.body.user });
   });

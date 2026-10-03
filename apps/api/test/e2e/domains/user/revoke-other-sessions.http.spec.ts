@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { randomValidRut } from "../../support/rut";
 
 /** E2E (specs/023, US3): "cerrar todas las demás" from one of several active logins
  * revokes every other one immediately, while the acting session keeps working
@@ -17,6 +18,7 @@ describe("Revoke other sessions HTTP (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_revoke_others_${randomUUID()}@test.local`;
+  const rut = randomValidRut();
   const password = "Sup3rSecret!";
 
   beforeAll(async () => {
@@ -28,9 +30,14 @@ describe("Revoke other sessions HTTP (e2e)", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "Revoke Others E2E" });
+    await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "Revoke Others E2E",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+      identifierValue: rut,
+    });
   });
 
   afterAll(async () => {
@@ -43,12 +50,18 @@ describe("Revoke other sessions HTTP (e2e)", () => {
     const loginFor = async () => {
       const res = await request(app.getHttpServer())
         .post("/api/v1/auth/login")
-        .send({ email, password });
+        .send({ identifierValue: rut, password });
       return res.get("Set-Cookie") ?? [];
     };
     const cookiesA = await loginFor();
     const cookiesB = await loginFor();
     const cookiesC = await loginFor();
+
+    // "Cerrar todas las demás" needs A's own recent step-up first (2026-09-25).
+    await request(app.getHttpServer())
+      .post("/api/v1/auth/sessions/step-up")
+      .set("Cookie", cookiesA)
+      .send({ method: "password", password });
 
     const revokeRes = await request(app.getHttpServer())
       .post("/api/v1/auth/sessions/revoke-others")
@@ -74,8 +87,13 @@ describe("Revoke other sessions HTTP (e2e)", () => {
   it("with only the current session active, revoking others is a harmless no-op", async () => {
     const login = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const cookies = login.get("Set-Cookie") ?? [];
+
+    await request(app.getHttpServer())
+      .post("/api/v1/auth/sessions/step-up")
+      .set("Cookie", cookies)
+      .send({ method: "password", password });
 
     // Clear out whatever sessions the previous test left behind for this email so this
     // one starts from a known "single active session" state.

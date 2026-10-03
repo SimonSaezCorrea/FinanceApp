@@ -25,7 +25,7 @@ import { ChangePasswordCommand } from "../application/commands/change-password.c
 import { CloseSessionCommand } from "../application/commands/close-session.command";
 import { ConfirmMfaEnrollmentCommand } from "../application/commands/confirm-mfa-enrollment.command";
 import { ConfirmPasskeyRegistrationCommand } from "../application/commands/confirm-passkey-registration.command";
-import { DeactivateAccountCommand } from "../application/commands/deactivate-account.command";
+import { DeleteAccountCommand } from "../application/commands/delete-account.command";
 import { DisableMfaCommand } from "../application/commands/disable-mfa.command";
 import type { LoginResult } from "../application/commands/login.handler";
 import { LoginCommand } from "../application/commands/login.command";
@@ -40,14 +40,18 @@ import { StartMfaEnrollmentCommand } from "../application/commands/start-mfa-enr
 import type { StartPasskeyLoginResult } from "../application/commands/start-passkey-login.handler";
 import { StartPasskeyLoginCommand } from "../application/commands/start-passkey-login.command";
 import { StartPasskeyRegistrationCommand } from "../application/commands/start-passkey-registration.command";
+import { StartStepUpPasskeyCommand } from "../application/commands/start-step-up-passkey.command";
 import { UpdatePreferencesCommand } from "../application/commands/update-preferences.command";
 import { UpdateProfileCommand } from "../application/commands/update-profile.command";
 import { VerifyMfaLoginCommand } from "../application/commands/verify-mfa-login.command";
 import { VerifyPasskeyLoginCommand } from "../application/commands/verify-passkey-login.command";
+import { VerifyStepUpPasskeyCommand } from "../application/commands/verify-step-up-passkey.command";
+import { VerifyStepUpCommand } from "../application/commands/verify-step-up.command";
 import { PasskeyChallengeInvalidError } from "../domain/errors";
 import { PasskeyChallengeToken } from "../application/passkey-challenge-token";
 import { TokenIssuer, type TokenPair } from "../application/token-issuer";
 import { GetMeQuery } from "../application/queries/get-me.query";
+import { ListConsentsQuery } from "../application/queries/list-consents.query";
 import { ListPasskeysQuery } from "../application/queries/list-passkeys.query";
 import { ListSessionsQuery } from "../application/queries/list-sessions.query";
 import { passkeyIdParamsSchema } from "./dto/passkey-id.params";
@@ -57,6 +61,8 @@ const MFA_PENDING_COOKIE = "mfa_pending_token";
 const MFA_PENDING_COOKIE_MAX_AGE_MS = 5 * 60 * 1000;
 const PASSKEY_CHALLENGE_COOKIE = "passkey_challenge_token";
 const PASSKEY_CHALLENGE_COOKIE_MAX_AGE_MS = 5 * 60 * 1000;
+/** Its own cookie, apart from the login ceremony's, so the two can never clobber each other. */
+const STEP_UP_CHALLENGE_COOKIE = "step_up_challenge_token";
 
 function parseDurationMs(s: string): number {
   const match = /^(\d+)([smhd])$/.exec(s);
@@ -146,7 +152,7 @@ export class AuthController {
     const { options, userId, discoverable } = await this.commandBus.execute<
       StartPasskeyLoginCommand,
       StartPasskeyLoginResult
-    >(new StartPasskeyLoginCommand(body.email));
+    >(new StartPasskeyLoginCommand(body.identifierValue));
     const challenge = (options as { challenge: string }).challenge;
     res.cookie(
       PASSKEY_CHALLENGE_COOKIE,
@@ -305,6 +311,12 @@ export class AuthController {
     return created;
   }
 
+  @Get("me/consents")
+  @UseGuards(JwtAuthGuard)
+  listConsents(@CurrentUser() user: AuthUser): Promise<auth.ListConsentsResponse> {
+    return this.queryBus.execute(new ListConsentsQuery(user.id));
+  }
+
   @Get("me/passkeys")
   @UseGuards(JwtAuthGuard)
   listPasskeys(@CurrentUser() user: AuthUser): Promise<auth.ListPasskeysResponse> {
@@ -344,7 +356,7 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(sessionIdParamsSchema)) params: { id: string },
   ): Promise<void> {
-    return this.commandBus.execute(new CloseSessionCommand(user.id, params.id));
+    return this.commandBus.execute(new CloseSessionCommand(user.id, params.id, user.sessionId));
   }
 
   @Post("sessions/revoke-others")
@@ -354,15 +366,69 @@ export class AuthController {
     return this.commandBus.execute(new RevokeOtherSessionsCommand(user.id, user.sessionId));
   }
 
-  @Post("me/deactivate")
+  /** Step-up before closing sessions (2026-09-25): TOTP code or password (password only when the
+   * user has neither TOTP nor a passkey). Stamps the caller's own session. */
+  @Post("sessions/step-up")
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  verifyStepUp(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(auth.stepUpRequestSchema)) body: auth.StepUpRequest,
+  ): Promise<auth.StepUpResponse> {
+    return this.commandBus.execute(new VerifyStepUpCommand(user.id, user.sessionId, body));
+  }
+
+  @Post("sessions/step-up/passkey-options")
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  async startStepUpPasskey(
+    @CurrentUser() user: AuthUser,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<auth.StartPasskeyLoginResponse> {
+    const options = await this.commandBus.execute<StartStepUpPasskeyCommand, { challenge: string }>(
+      new StartStepUpPasskeyCommand(user.id),
+    );
+    res.cookie(
+      STEP_UP_CHALLENGE_COOKIE,
+      this.passkeyChallenge.issue({
+        challenge: options.challenge,
+        userId: user.id,
+        discoverable: false,
+      }),
+      { ...this.cookieBase(), maxAge: PASSKEY_CHALLENGE_COOKIE_MAX_AGE_MS },
+    );
+    return { options };
+  }
+
+  @Post("sessions/step-up/passkey-verify")
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  async verifyStepUpPasskey(
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request,
+    @Body(new ZodValidationPipe(auth.verifyPasskeyLoginRequestSchema))
+    body: auth.VerifyPasskeyLoginRequest,
+    @Res({ passthrough: true }) res: Response,
+  ): Promise<auth.StepUpResponse> {
+    const cookieToken = (req.cookies as Record<string, string> | undefined)?.[
+      STEP_UP_CHALLENGE_COOKIE
+    ];
+    const { challenge, userId } = this.passkeyChallenge.verify(cookieToken ?? "");
+    res.clearCookie(STEP_UP_CHALLENGE_COOKIE, this.cookieBase());
+    return this.commandBus.execute(
+      new VerifyStepUpPasskeyCommand(user.id, user.sessionId, body.response, challenge, userId),
+    );
+  }
+
+  @Post("me/delete-account")
   @HttpCode(204)
   @UseGuards(JwtAuthGuard)
-  async deactivate(
+  async deleteAccount(
     @CurrentUser() user: AuthUser,
-    @Body(new ZodValidationPipe(auth.deactivateRequestSchema)) body: auth.DeactivateRequest,
+    @Body(new ZodValidationPipe(auth.deleteAccountRequestSchema)) body: auth.DeleteAccountRequest,
     @Res({ passthrough: true }) res: Response,
   ): Promise<void> {
-    await this.commandBus.execute(new DeactivateAccountCommand(user.id, body));
+    await this.commandBus.execute(new DeleteAccountCommand(user.id, body));
     res.clearCookie(ACCESS_COOKIE, this.cookieBase());
     res.clearCookie(REFRESH_COOKIE, this.cookieBase());
   }

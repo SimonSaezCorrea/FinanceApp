@@ -49,7 +49,7 @@ function txFixture() {
     amount: "100000",
     currency: "CLP",
     occurredAt: new Date("2026-03-01"),
-    category: null,
+    categoryId: null,
     description: null,
     observation: null,
     emisor: null,
@@ -67,6 +67,7 @@ function txFixture() {
     savingsGoalId: null,
     prepaymentStatementId: null,
     prepaymentAccountId: null,
+    settlesStatementId: null,
     createdAt: new Date("2026-03-01"),
     updatedAt: new Date("2026-03-01"),
   });

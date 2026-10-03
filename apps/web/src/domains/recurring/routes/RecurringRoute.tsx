@@ -7,14 +7,14 @@ import type { recurring } from "@finance/contracts";
 
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { useTransactionsSummary } from "../../transactions/hooks/useTransactions";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
 import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
-import { EmptyState, ErrorState } from "../../../shared/ui/states";
+import { ErrorState } from "../../../shared/ui/states";
 import { RecurringAutoGenerationStrip } from "../components/RecurringAutoGenerationStrip";
+import { RecurringEmptyRow } from "../components/RecurringEmptyRow";
 import { RecurringDeleteConfirm } from "../components/RecurringDeleteConfirm";
 import { RecurringDetailPanel } from "../components/RecurringDetailPanel";
 import {
@@ -47,10 +47,6 @@ export function RecurringRoute() {
   const { user } = useAuth();
   const preferredCurrency = user?.preferredCurrency ?? "CLP";
   const { create, update, remove } = useRecurringMutations();
-  // The same category vocabulary Movimientos offers — one shared list, not a
-  // second one this domain invents.
-  const { data: summary } = useTransactionsSummary();
-  const categoryOptions = summary?.categories ?? [];
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<{ mode: "create" | "edit"; id: string | null } | null>(null);
@@ -76,9 +72,20 @@ export function RecurringRoute() {
     retainedForm?.mode === "edit" && JSON.stringify(formValue) !== JSON.stringify(formBaseline);
 
   const selected = list.find((r) => r.id === selectedId) ?? null;
-  const activeCount = list.filter((r) => r.active).length;
+  const activeCount = list.filter((r) => r.status === "ACTIVE").length;
   const pausedList = useMemo(
-    () => list.filter((r) => !r.active).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    () =>
+      list
+        .filter((r) => r.status === "PAUSED")
+        .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
+    [list],
+  );
+  // Ended series: kept for their history, listed apart, most recently ended first.
+  const finishedList = useMemo(
+    () =>
+      list
+        .filter((r) => r.status === "FINISHED")
+        .sort((a, b) => (b.endDate ?? "").localeCompare(a.endDate ?? "")),
     [list],
   );
 
@@ -87,8 +94,8 @@ export function RecurringRoute() {
       FREQUENCY_ORDER.map((freq) => ({
         freq,
         items: list
-          .filter((r) => r.active && r.frequency === freq)
-          .sort((a, b) => a.nextDueAt.localeCompare(b.nextDueAt)),
+          .filter((r) => r.status === "ACTIVE" && r.frequency === freq)
+          .sort((a, b) => (a.nextDueAt ?? "").localeCompare(b.nextDueAt ?? "")),
       })).filter((g) => g.items.length > 0),
     [list],
   );
@@ -152,10 +159,13 @@ export function RecurringRoute() {
       label: formValue.label.trim(),
       amount: formValue.amount.trim(),
       currency: formValue.currency.trim().toUpperCase(),
-      category: formValue.category.trim() || undefined,
+      categoryId: formValue.categoryId || undefined,
       frequency: formValue.frequency,
       interval: formValue.interval,
       anchorDate: new Date(`${formValue.anchorDate}T00:00:00`).toISOString(),
+      endDate: formValue.endDate
+        ? new Date(`${formValue.endDate}T00:00:00`).toISOString()
+        : undefined,
       bankAccountId: formValue.bankAccountId || undefined,
       cardId: formValue.cardId || undefined,
       active: formValue.active,
@@ -164,7 +174,16 @@ export function RecurringRoute() {
 
     if (form.mode === "edit" && form.id) {
       update.mutate(
-        { id: form.id, body },
+        // An edit sends `null` to CLEAR the category; a create just omits it.
+        {
+          id: form.id,
+          // `null` also reopens a series whose end date was cleared.
+          body: {
+            ...body,
+            categoryId: formValue.categoryId || null,
+            endDate: body.endDate ?? null,
+          },
+        },
         {
           onSuccess: () => {
             toast.success(t("recurring.updated"));
@@ -212,7 +231,14 @@ export function RecurringRoute() {
 
       {isLoading && <RecurringSkeleton label={t("app.loading")} />}
       {!isLoading && isError && <ErrorState error={error} onRetry={() => refetch()} />}
-      {!isLoading && !isError && list.length === 0 && <EmptyState title={t("recurring.empty")} />}
+      {!isLoading && !isError && list.length === 0 && (
+        <>
+          <RecurringAutoGenerationStrip />
+          <div className="overflow-hidden rounded-[9.6px] border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,.28)]">
+            <RecurringEmptyRow title={t("recurring.empty")} message={t("recurring.emptyHint")} />
+          </div>
+        </>
+      )}
 
       {!isLoading && !isError && list.length > 0 && (
         <>
@@ -244,6 +270,20 @@ export function RecurringRoute() {
               onDelete={setDeleteTarget}
             />
           ) : null}
+
+          {finishedList.length > 0 ? (
+            <RecurringGroup
+              title={t("recurring.groups.FINISHED")}
+              items={finishedList}
+              accounts={accountList}
+              paused
+              finished
+              onSelect={(r) => setSelectedId(r.id)}
+              onTogglePause={openPause}
+              onEdit={openEdit}
+              onDelete={setDeleteTarget}
+            />
+          ) : null}
         </>
       )}
 
@@ -267,7 +307,6 @@ export function RecurringRoute() {
         value={formValue}
         onChange={(patch) => setFormValue((v) => ({ ...v, ...patch }))}
         accounts={accountList}
-        categoryOptions={categoryOptions}
         onSubmit={submitForm}
         submitting={create.isPending || update.isPending}
         dirty={dirty}

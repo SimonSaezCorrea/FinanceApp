@@ -25,6 +25,7 @@ import { RemoveCardCommand } from "../application/commands/remove-card.command";
 import { SetAccountStatusCommand } from "../application/commands/set-account-status.command";
 import { UpdateAccountCommand } from "../application/commands/update-account.command";
 import { UpdateCardCommand } from "../application/commands/update-card.command";
+import { GetAccountDeletionImpactQuery } from "../application/queries/get-account-deletion-impact.query";
 import { GetAccountQuery } from "../application/queries/get-account.query";
 import { ListAccountsQuery } from "../application/queries/list-accounts.query";
 import { accountIdParamsSchema } from "./dto/account-id.params";
@@ -89,13 +90,23 @@ export class AccountsController {
   // are served by `domains/credit-statement`'s own Facade — same URLs, different
   // table, different domain.
 
+  /** What deleting the account could take with it — asked before confirming. */
+  @Get(":id/deletion-impact")
+  deletionImpact(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(accountIdParamsSchema)) params: { id: string },
+  ): Promise<accounts.AccountDeletionImpact> {
+    return this.queryBus.execute(new GetAccountDeletionImpactQuery(user.id, params.id));
+  }
+
   @Delete(":id")
   @HttpCode(204)
   remove(
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(accountIdParamsSchema)) params: { id: string },
+    @Body(new ZodValidationPipe(accounts.removeAccountSchema)) body: accounts.RemoveAccount,
   ): Promise<void> {
-    return this.commandBus.execute(new RemoveAccountCommand(user.id, params.id));
+    return this.commandBus.execute(new RemoveAccountCommand(user.id, params.id, body));
   }
 
   // --- Cards (sub-resource) ---

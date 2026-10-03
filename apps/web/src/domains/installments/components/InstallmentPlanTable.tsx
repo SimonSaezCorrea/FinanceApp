@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "../../../shared/ui/button";
 import { Card } from "../../../shared/ui/card";
 import { cn } from "../../../shared/lib/cn";
-import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { ErrorState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
 import { nextDuePayment, paidCount, progressRatio } from "../lib/installmentMetrics";
@@ -73,13 +73,15 @@ export function InstallmentPlanTable({
             cuota wrapping and Tarjeta truncating even though there was plenty of
             room on screen. */}
         <colgroup>
-          <col className="w-[28%]" />
-          <col className="w-[15%]" />
-          <col className="w-[13%]" />
+          <col className="w-[27%]" />
+          <col className="w-[14%]" />
+          <col className="w-[14%]" />
+          <col className="w-[11%]" />
           <col className="w-[10%]" />
-          <col className="w-[10%]" />
-          <col className="w-[18%]" />
-          <col className="w-[6%]" />
+          <col className="w-[16%]" />
+          {/* Fixed, not a percentage: sized for its three buttons (pay, edit,
+              delete), so it never lets them spill into Tarjeta. */}
+          <col className="w-[8.5rem]" />
         </colgroup>
         <THead className="bg-muted/50">
           <TR>
@@ -126,7 +128,7 @@ export function InstallmentPlanTable({
                 <TD className="w-full max-w-0">
                   <div className="flex items-center gap-3">
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-chip text-muted-foreground">
-                      <CategoryIcon category={plan.category} className="h-4 w-4" />
+                      <CategoryIcon categoryId={plan.categoryId} className="h-4 w-4" />
                     </span>
                     <div className="min-w-0">
                       <p className="truncate font-medium text-foreground">{plan.title}</p>
@@ -196,7 +198,7 @@ export function InstallmentPlanTable({
                   })}
                 </TD>
 
-                <TD className="text-muted-foreground">
+                <TD className="pr-4 text-muted-foreground">
                   {/* `truncate` on the `<td>` itself doesn't reliably clip in a
                       table-cell box — the block-level span is what actually
                       contains overflow instead of letting it bleed into the
@@ -212,7 +214,9 @@ export function InstallmentPlanTable({
                   {/* Shared `Button`, same as every other table's row actions —
                     this used to be its own duplicate icon-button component. */}
                   <div className="flex justify-end gap-1">
-                    {next && (
+                    {/* A credit-card plan's instalment is charged by the card's
+                        statement — never paid on its own (the API refuses it). */}
+                    {next && plan.generatesMovementOnPay && (
                       <Button
                         variant="ghost"
                         size="sm"

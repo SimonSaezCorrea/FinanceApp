@@ -30,10 +30,10 @@ describe("TransferPolicy", () => {
     ).toThrowError(/TRANSFER_SAME_ACCOUNT/);
   });
 
-  it("rejects a destination that is a credit line", () => {
+  it("accepts a credit card account as the destination (paying the card)", () => {
     expect(() =>
       TransferPolicy.validate(input, from, { id: "a2", type: "CREDIT_CARD" }),
-    ).toThrowError(/TRANSFER_TO_CREDIT_ACCOUNT/);
+    ).not.toThrow();
   });
 
   it("rejects an account that isn't the user's (or doesn't exist)", () => {

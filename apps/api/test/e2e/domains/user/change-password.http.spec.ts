@@ -9,6 +9,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { randomValidRut } from "../../support/rut";
 
 /** E2E (specs/024): changing the password from one of several active logins revokes
  * every other one immediately, while the acting session keeps working throughout — the
@@ -17,6 +18,7 @@ describe("Change password HTTP (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_change_password_${randomUUID()}@test.local`;
+  const rut = randomValidRut();
   const password = "Sup3rSecret!";
 
   beforeAll(async () => {
@@ -28,9 +30,14 @@ describe("Change password HTTP (e2e)", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "Change Password E2E" });
+    await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "Change Password E2E",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+      identifierValue: rut,
+    });
   });
 
   afterAll(async () => {
@@ -42,11 +49,11 @@ describe("Change password HTTP (e2e)", () => {
   it("an incorrect current password changes nothing and closes no session", async () => {
     const loginA = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const cookiesA = loginA.get("Set-Cookie") ?? [];
     const loginB = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const cookiesB = loginB.get("Set-Cookie") ?? [];
 
     const res = await request(app.getHttpServer())
@@ -65,11 +72,11 @@ describe("Change password HTTP (e2e)", () => {
   it("2 logins (A, B): changing the password from A leaves B locked out immediately", async () => {
     const loginA = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const cookiesA = loginA.get("Set-Cookie") ?? [];
     const loginB = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     const cookiesB = loginB.get("Set-Cookie") ?? [];
 
     const newPassword = "NewSup3rSecret!";
@@ -88,11 +95,11 @@ describe("Change password HTTP (e2e)", () => {
     // committed, not just the session revocation.
     const reloginOld = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     expect(reloginOld.status).toBe(401);
     const reloginNew = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password: newPassword });
+      .send({ identifierValue: rut, password: newPassword });
     expect(reloginNew.status).toBe(200);
   });
 });

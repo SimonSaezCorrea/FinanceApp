@@ -13,6 +13,7 @@ import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { AccountCard } from "../components/AccountCard";
 import { AccountCreateModal } from "../components/AccountCreateModal";
 import { AccountsSkeleton } from "../components/AccountsSkeleton";
+import { useDebts } from "../../debts/hooks/useDebts";
 import { AccountsSummary } from "../components/AccountsSummary";
 import { GroupByMenu } from "../components/GroupByMenu";
 import { useAuth } from "../../auth/hooks/useAuth";
@@ -28,6 +29,7 @@ export function AccountsRoute() {
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [groupBy, setGroupBy] = useState<GroupBy>("currency");
   const [modalOpen, setModalOpen] = useState(false);
+  const { data: debtList } = useDebts();
   const { data, isLoading, isError, error, refetch } = useAccounts(
     filter === "all" ? undefined : { status: filter },
   );
@@ -128,7 +130,12 @@ export function AccountsRoute() {
               dashes instead of real (stale) figures, so the filter row below
               it — and the "Nueva cuenta" button above — get to stay live too,
               instead of the whole page swapping out for a lone error card. */}
-          <AccountsSummary list={list} primaryCurrency={primaryCurrency} unavailable={isError} />
+          <AccountsSummary
+            list={list}
+            primaryCurrency={primaryCurrency}
+            unavailable={isError}
+            debtList={debtList ?? []}
+          />
 
           {filterRow}
 

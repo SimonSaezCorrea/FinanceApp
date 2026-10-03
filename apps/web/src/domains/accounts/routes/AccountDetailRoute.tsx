@@ -41,10 +41,11 @@ import { CardForm } from "../components/CardForm";
 import { ACCOUNT_ICON } from "../components/accountVisuals";
 import { hasCardsAside } from "../lib/detailLayout";
 import { useAccount, useAccountMutations, useAccounts } from "../hooks/useAccounts";
+import { DeleteAccountConfirm } from "../components/DeleteAccountConfirm";
 import { useCardMutations } from "../hooks/useCards";
 
 export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boolean }>) {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { id = "" } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -294,26 +295,6 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
             // header stays pinned.
             columnScroll
           />
-
-          {acc.creditPools.length > 1 ? (
-            <Card className="p-4">
-              <span className="mb-3 block text-sm font-semibold">
-                {t("accounts.detail.creditPools")}
-              </span>
-              <dl className="flex flex-col gap-2 text-sm">
-                {acc.creditPools.map((p) => (
-                  <div key={p.currency} className="flex items-center justify-between">
-                    <dt className="text-muted-foreground">{p.currency}</dt>
-                    <dd className="font-medium tabular-nums">
-                      {formatMoney(p.used, { locale: i18n.language, currency: p.currency })}
-                      {" / "}
-                      {formatMoney(p.limit, { locale: i18n.language, currency: p.currency })}
-                    </dd>
-                  </div>
-                ))}
-              </dl>
-            </Card>
-          ) : null}
         </aside>
       </div>
 
@@ -332,27 +313,19 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
         onOpenChange={setBillingModalOpen}
       />
 
-      <ConfirmModal
-        open={confirmDelete}
+      <DeleteAccountConfirm
+        account={confirmDelete ? acc : null}
         onOpenChange={setConfirmDelete}
-        title={t("accounts.deleteConfirm")}
-        description={t("accounts.deleteConfirmDescription")}
-        confirmLabel={t("accounts.actions.delete")}
-        loading={remove.isPending}
-        onConfirm={() =>
-          remove.mutate(id, {
-            onSuccess: () => {
-              toast.success(t("accounts.deleted"));
-              setConfirmDelete(false);
-              // Leave first: the account this route reads no longer exists.
-              navigate("/accounts");
-            },
-            onError: (err) => {
-              const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
-              toast.error(t(`errors.${code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
-            },
-          })
-        }
+        onDeleted={() => {
+          toast.success(t("accounts.deleted"));
+          setConfirmDelete(false);
+          // Leave first: the account this route reads no longer exists.
+          navigate("/accounts");
+        }}
+        onError={(err) => {
+          const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
+          toast.error(t(`errors.${code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
+        }}
       />
     </div>
   );
@@ -395,11 +368,26 @@ function KpiStrip({ account, pct }: { account: accounts.BankAccount; pct: number
   const hasRealBalance = account.type !== "CREDIT_CARD";
   const hasCreditPool =
     account.type === "CREDIT_CARD" || account.cards.some((c) => c.kind === "CREDIT");
-  const cols = (hasRealBalance ? 1 : 0) + 1 + (hasCreditPool ? 1 : 0);
+  // One Crédito card per currency: the account's own pool first, then each limit
+  // its primary card holds in another currency (its USD one) — never converted,
+  // so each gets its own used / limit figure, side by side.
+  const pools = hasCreditPool
+    ? [
+        { currency: account.currency, used: account.creditUsed, limit: account.creditLimit },
+        ...account.creditPools.filter((p) => p.currency !== account.currency),
+      ]
+    : [];
+  const cols = (hasRealBalance ? 1 : 0) + 1 + pools.length;
   return (
-    // Three across only from `lg`: at tablet widths the credit KPI's
+    // Three or more across only from `lg`: at tablet widths the credit KPI's
     // "used / limit" pair doesn't fit in a third of the row.
-    <div className={cn("grid gap-3 sm:grid-cols-2", cols === 3 && "lg:grid-cols-3")}>
+    <div
+      className={cn(
+        "grid gap-3 sm:grid-cols-2",
+        cols === 3 && "lg:grid-cols-3",
+        cols >= 4 && "lg:grid-cols-4",
+      )}
+    >
       {hasRealBalance ? (
         <Kpi
           label={t("accounts.currentBalance")}
@@ -416,30 +404,52 @@ function KpiStrip({ account, pct }: { account: accounts.BankAccount; pct: number
         }
         tone={pct === null ? undefined : pct < 0 ? "danger" : "success"}
       />
-      {hasCreditPool ? <CreditKpi account={account} /> : null}
+      {pools.map((p) => (
+        <CreditKpi
+          key={p.currency}
+          currency={p.currency}
+          used={p.used}
+          limit={p.limit}
+          // The currency only needs naming once there's more than one pool.
+          label={
+            pools.length > 1
+              ? t("accounts.detail.creditIn", { currency: p.currency })
+              : t("accounts.detail.credit")
+          }
+        />
+      ))}
     </div>
   );
 }
 
-/** The account's own-currency credit pool as a progress bar — the combined total
- * across every card sharing it, never a single card's own usage (see AccountVisualCard). */
-function CreditKpi({ account }: { account: accounts.BankAccount }) {
-  const { t, i18n } = useTranslation();
-  const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: account.currency });
-  const limit = Number(account.creditLimit);
-  const used = Number(account.creditUsed);
+/** One credit pool as a progress bar — the account's own-currency pool (the
+ * combined total across every card sharing it, never a single card's own usage,
+ * see AccountVisualCard) or a limit the primary card holds in another currency. */
+function CreditKpi({
+  currency,
+  used: usedValue,
+  limit: limitValue,
+  label,
+}: {
+  currency: string;
+  used: string;
+  limit: string;
+  label: string;
+}) {
+  const { i18n } = useTranslation();
+  const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency });
+  const limit = Number(limitValue);
+  const used = Number(usedValue);
   const pct = limit > 0 ? Math.min(100, Math.round((used / limit) * 100)) : 0;
   return (
     // Capped between `sm` and `lg`: with 3 KPIs on a 2-col grid this card is alone
     // on its row and would otherwise stretch to the full row width instead of
     // matching its siblings' size. From `lg` the 3-col grid fits it naturally.
     <Card className="flex flex-col gap-2 p-4 sm:max-w-sm lg:max-w-none">
-      <span className="text-xs font-medium text-muted-foreground">
-        {t("accounts.detail.credit")}
-      </span>
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <p className="tabular-nums">
-        <span className="text-xl font-semibold tracking-tight">{fmt(account.creditUsed)}</span>
-        <span className="text-sm text-muted-foreground"> / {fmt(account.creditLimit)}</span>
+        <span className="text-xl font-semibold tracking-tight">{fmt(usedValue)}</span>
+        <span className="text-sm text-muted-foreground"> / {fmt(limitValue)}</span>
       </p>
       <div className="flex items-center gap-2">
         <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
@@ -546,22 +556,24 @@ function MovementsSection({
               aria-label={t("transactions.form.selectCard")}
             />
           ) : null}
-          <Button
-            variant="accent"
-            size="sm"
-            className="shrink-0"
-            onClick={() => {
-              setEditTx(null);
-              setDuplicateTx(null);
-              setReturnToDetail(null);
-              setModalOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" aria-hidden />
-            {/* Icon-only on the narrowest phones: the label doesn't fit next to the
-                filter below the `sm` breakpoint. */}
-            <span className="sr-only sm:not-sr-only">{t("transactions.new")}</span>
-          </Button>
+          <span className="flex shrink-0 items-center gap-2">
+            <Button
+              variant="accent"
+              size="sm"
+              className="shrink-0"
+              onClick={() => {
+                setEditTx(null);
+                setDuplicateTx(null);
+                setReturnToDetail(null);
+                setModalOpen(true);
+              }}
+            >
+              <Plus className="h-4 w-4" aria-hidden />
+              {/* Icon-only on the narrowest phones: the label doesn't fit next to the
+                  filter below the `sm` breakpoint. */}
+              <span className="sr-only sm:not-sr-only">{t("transactions.new")}</span>
+            </Button>
+          </span>
         </div>
       </div>
 

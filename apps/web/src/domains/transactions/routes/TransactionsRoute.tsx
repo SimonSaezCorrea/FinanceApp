@@ -24,7 +24,7 @@ import { formatDateRangeLabel } from "../components/DateRangeButton";
 const now = new Date();
 
 const DEFAULT_FILTERS: TransactionViewFilters = {
-  categorySearch: "",
+  categoryId: "",
   showInactiveAccounts: false,
   from: startOfMonth(now),
   to: endOfMonth(now),
@@ -54,15 +54,15 @@ export function TransactionsRoute() {
   const accounts = accountsQuery.data ?? [];
 
   const apiAccountId = filters.selectedCardId ? undefined : filters.bankAccountId;
-  // The category search is a server-side filter now: with the list paginated,
-  // matching in the browser would only ever search the pages already loaded.
+  // The category is a server-side filter: with the list paginated, matching in
+  // the browser would only ever search the pages already loaded.
   const apiFilters = {
     type: filters.type,
     bankAccountId: apiAccountId,
     cardId: filters.selectedCardId,
     from: filters.from,
     to: filters.to,
-    category: filters.categorySearch.trim() || undefined,
+    categoryId: filters.categoryId || undefined,
   };
   const txQuery = useInfiniteTransactions(apiFilters);
   // Count, per-currency totals and the category options describe the whole
@@ -75,7 +75,7 @@ export function TransactionsRoute() {
     [txQuery.data],
   );
 
-  const categories = summaryQuery.data?.categories ?? [];
+  const categoryIds = summaryQuery.data?.categoryIds ?? [];
 
   const periodLabel = useMemo(() => {
     const count = summaryQuery.data?.total ?? 0;
@@ -165,7 +165,7 @@ export function TransactionsRoute() {
           filters={filters}
           onChange={setFilters}
           accounts={accounts}
-          categories={categories}
+          categoryIds={categoryIds}
         />
       </div>
 

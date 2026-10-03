@@ -43,7 +43,7 @@ function rowToProps(row: Row): InstallmentPlanProps {
     frequency: row.frequency,
     frequencyInterval: row.frequencyInterval,
     cardId: row.cardId,
-    category: row.category,
+    categoryId: row.categoryId,
     paymentAccountId: row.paymentAccountId,
     notes: row.notes,
     payments: row.payments.map((p): InstallmentPaymentProps => ({
@@ -125,7 +125,7 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
         frequency: plan.frequency,
         frequencyInterval: plan.frequencyInterval,
         cardId: plan.cardId,
-        category: plan.category,
+        categoryId: plan.categoryId,
         paymentAccountId: plan.paymentAccountId,
         notes: plan.notes,
       },
@@ -163,7 +163,7 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
         frequency: snap.frequency,
         frequencyInterval: snap.frequencyInterval,
         cardId: snap.cardId,
-        category: snap.category,
+        categoryId: snap.categoryId,
         paymentAccountId: snap.paymentAccountId,
         notes: snap.notes,
       },
@@ -188,7 +188,7 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
         frequency: snap.frequency,
         frequencyInterval: snap.frequencyInterval,
         cardId: snap.cardId,
-        category: snap.category,
+        categoryId: snap.categoryId,
         paymentAccountId: snap.paymentAccountId,
         notes: snap.notes,
       },
@@ -259,6 +259,20 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
 
   billedInstallmentsForStatement(statementId: string): Promise<{ amount: string; count: number }> {
     return this.payments.sumBilledForStatement(statementId);
+  }
+
+  async listIdsForAccount(userId: string, accountId: string, cardIds: string[]): Promise<string[]> {
+    const rows = await this.prisma.installmentPlan.findMany({
+      where: {
+        userId,
+        OR: [
+          { paymentAccountId: accountId },
+          ...(cardIds.length > 0 ? [{ cardId: { in: cardIds } }] : []),
+        ],
+      },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
   }
 
   async remove(userId: string, id: string): Promise<boolean> {

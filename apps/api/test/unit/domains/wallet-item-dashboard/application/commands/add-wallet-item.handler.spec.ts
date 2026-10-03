@@ -6,6 +6,7 @@ import { WalletItem } from "../../../../../../src/domains/wallet-item-dashboard/
 import {
   WalletAccountNotFoundError,
   WalletCardNotFoundError,
+  WalletFullError,
   WalletItemExistsError,
 } from "../../../../../../src/domains/wallet-item-dashboard/domain/errors";
 import type { WalletItemRepositoryPort } from "../../../../../../src/domains/wallet-item-dashboard/domain/ports/wallet-item.repository.port";
@@ -20,6 +21,7 @@ function fakeRepo(overrides: Partial<WalletItemRepositoryPort> = {}): WalletItem
     create: vi.fn(),
     reorder: vi.fn(),
     remove: vi.fn(),
+    replace: vi.fn(),
     ...overrides,
   };
 }
@@ -82,5 +84,17 @@ describe("AddWalletItemHandler", () => {
     await expect(
       handler.execute(new AddWalletItemCommand("u1", { accountId: "a1" })),
     ).rejects.toBeInstanceOf(WalletItemExistsError);
+  });
+
+  it("refuses a fifth entry: the wallet holds at most 4", async () => {
+    const repo = fakeRepo({
+      count: vi.fn().mockResolvedValue(4),
+      cardOwned: vi.fn().mockResolvedValue(true),
+    });
+    const handler = new AddWalletItemHandler({ publish: vi.fn() } as never, repo);
+    await expect(
+      handler.execute(new AddWalletItemCommand("u1", { cardId: "c9" })),
+    ).rejects.toBeInstanceOf(WalletFullError);
+    expect(repo.create).not.toHaveBeenCalled();
   });
 });

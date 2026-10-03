@@ -18,14 +18,7 @@ import { FormDateField, FormSelectField, FormTextField } from "../../../shared/u
 import { SidePanel } from "../../../shared/ui/overlay";
 import { Segmented } from "../../../shared/ui/segmented";
 import { useAccountMutations, useAccounts } from "../hooks/useAccounts";
-
-const STATUS_VARIANT = {
-  OPEN: "info",
-  PENDING: "warning",
-  // Settled, but not for its full amount — success would overstate it.
-  PARTIALLY_PAID: "warning",
-  PAID: "success",
-} as const;
+import { STATEMENT_STATUS_VARIANT } from "../lib/statementStatus";
 
 type PayMode = "total" | "minimum" | "custom";
 
@@ -197,7 +190,7 @@ export function PayStatementPanel({
       }
     >
       <div className="flex flex-col gap-5">
-        <Badge variant={STATUS_VARIANT[statement.status]} className="self-start">
+        <Badge variant={STATEMENT_STATUS_VARIANT[statement.status]} className="self-start">
           {t(`accounts.detail.billingStatusValue.${statement.status}`)}
         </Badge>
 

@@ -427,6 +427,59 @@ export type UpdateBankAccount = z.infer<typeof updateBankAccountSchema>;
 export const setAccountStatusSchema = z.object({ status: accountStatus });
 export type SetAccountStatus = z.infer<typeof setAccountStatusSchema>;
 
+/** Money that goes back to ANOTHER account when something related is deleted. */
+export const accountRestorationSchema = z.object({
+  accountId: rowId,
+  /** Signed: what that account's balance moves by. */
+  amount: moneyString,
+  currency: z.string(),
+});
+export type AccountRestoration = z.infer<typeof accountRestorationSchema>;
+
+/**
+ * What deleting an account can take with it, counted before the user decides
+ * (`GET /accounts/:id/deletion-impact`). Each group is optional in the delete
+ * request; whatever is not chosen stays in the app, unlinked from the account.
+ */
+export const accountDeletionImpactSchema = z.object({
+  movements: z.object({
+    /** The account's own movements. */
+    count: z.number().int().nonnegative(),
+    /** Transfers with another account: both legs go. */
+    transfers: z.number().int().nonnegative(),
+    /** Payments/prepayments of its billing periods made from other accounts. */
+    paymentsFromOtherAccounts: z.number().int().nonnegative(),
+    restorations: z.array(accountRestorationSchema),
+  }),
+  installmentPlans: z.object({
+    count: z.number().int().nonnegative(),
+    /** Their movements outside this account, undone like deleting the plan. */
+    restorations: z.array(accountRestorationSchema),
+  }),
+  recurring: z.object({ count: z.number().int().nonnegative() }),
+  savingsEntries: z.object({ count: z.number().int().nonnegative() }),
+  /** Never deleted with the account — only unlinked. */
+  linkedDebts: z.object({ count: z.number().int().nonnegative() }),
+});
+export type AccountDeletionImpact = z.infer<typeof accountDeletionImpactSchema>;
+
+/** `DELETE /accounts/:id` body: which related data goes with the account.
+ * Everything defaults to `false` — the account alone, as before. */
+export const removeAccountSchema = z
+  .object({
+    movements: z.boolean().default(false),
+    installmentPlans: z.boolean().default(false),
+    recurring: z.boolean().default(false),
+    savingsEntries: z.boolean().default(false),
+  })
+  .default({
+    movements: false,
+    installmentPlans: false,
+    recurring: false,
+    savingsEntries: false,
+  });
+export type RemoveAccount = z.infer<typeof removeAccountSchema>;
+
 /** Derived (not persisted) lifecycle of a `CreditStatement`: OPEN (still accumulating
  * — transactions keep linking to it), PENDING (closed by generation, awaiting
  * payment), PAID. */
@@ -435,8 +488,49 @@ export type SetAccountStatus = z.infer<typeof setAccountStatusSchema>;
  * period settled with less than its total is therefore not payable either, but it
  * reports **PARTIALLY_PAID** rather than PAID: what was actually covered
  * (`paidAmount`) is a fact worth naming instead of hiding behind "Pagada". */
-export const creditStatementStatus = z.enum(["OPEN", "PENDING", "PARTIALLY_PAID", "PAID"]);
+/** Spec 028: TRANSFERRED is the third terminal state — a period in another currency
+ * that went overdue unpaid and was converted by the bank into a charge on the
+ * account-currency period. */
+export const creditStatementStatus = z.enum([
+  "OPEN",
+  "PENDING",
+  "PARTIALLY_PAID",
+  "PAID",
+  "TRANSFERRED",
+]);
 export type CreditStatementStatus = z.infer<typeof creditStatementStatus>;
+
+/** Whether a period is settled — paid (in full or short) or transferred. Test THIS,
+ * never `status === "PAID"`: a short payment settles as PARTIALLY_PAID and a
+ * transfer as TRANSFERRED, and both are just as final. */
+export function isSettled(s: { paidAt: string | null; transferredAt: string | null }): boolean {
+  return s.paidAt !== null || s.transferredAt !== null;
+}
+
+/**
+ * Spec 028 (FR-011): whether a period can be transferred to the account's currency —
+ * the API refuses it with the same rule (`STATEMENT_NOT_TRANSFERABLE`), so the
+ * button and the endpoint can never disagree. A period in ANOTHER currency, closed,
+ * not settled, still owing something, and past its due date (or with no due date
+ * configured at all, in which case closing is enough).
+ */
+export function canTransferStatement(
+  s: {
+    currency: string;
+    closedAt: string | null;
+    paidAt: string | null;
+    transferredAt: string | null;
+    remainingAmount: string;
+    dueDate: string | null;
+  },
+  accountCurrency: string,
+  today: Date,
+): boolean {
+  if (s.currency === accountCurrency) return false;
+  if (s.closedAt === null || isSettled(s)) return false;
+  if (!(Number(s.remainingAmount) > 0)) return false;
+  return s.dueDate === null || new Date(s.dueDate).getTime() < today.getTime();
+}
 
 /** A billing period ("facturación") for an account's shared credit pool. While
  * unpaid, `amount` is the LIVE sum of transactions linked to it (computed
@@ -496,6 +590,28 @@ export const creditStatementSchema = z.object({
   paidFromAccountId: rowId.nullable(),
   /** The real EXPENSE transaction created on `paidFromAccountId` at pay time. */
   paidTransactionId: rowId.nullable(),
+  /** Spec 028: the period's currency — the account's own, or one its primary card
+   * holds a limit in. Amounts above are in THIS currency, never converted. */
+  currency: z.string(),
+  /** Spec 028: when the bank converted this (foreign-currency) period into a charge
+   * on the account-currency one. Null otherwise. */
+  transferredAt: z.string().nullable(),
+  /** What that charge was, in the ACCOUNT's currency. Null unless transferred. */
+  transferredAmount: moneyString.nullable(),
+  /** The account-currency period that received the charge. Null unless transferred. */
+  transferredToId: rowId.nullable(),
+  /** Whether "Traspasar" is offered right now — `canTransferStatement`. */
+  canTransfer: z.boolean(),
+  /** Only while TRANSFERRED: exactly what "Deshacer traspaso" will revert, computed
+   * by the same function the server applies (Constitution Principle I). */
+  transferReversal: z
+    .object({
+      restoredAmount: moneyString,
+      restoredCurrency: z.string(),
+      removedAmount: moneyString,
+      removedCurrency: z.string(),
+    })
+    .nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -510,7 +626,12 @@ export type CreditStatement = z.infer<typeof creditStatementSchema>;
  * figure in a money form must not be quietly "corrected". */
 export const payCreditStatementSchema = z.object({
   fromAccountId: rowId,
+  /** In the STATEMENT's currency. */
   amount: moneyString.optional(),
+  /** Spec 028: what left the source account, in ITS currency — required when that
+   * differs from the statement's (`STATEMENT_PAYMENT_CURRENCY_AMBIGUOUS`); the two
+   * are never compared, this app has no exchange rate. */
+  chargedAmount: moneyString.optional(),
   /** When the payment happened; defaults to now. Dates the created expense too. */
   paidAt: z.string().optional(),
   /** Free-text note carried onto the payment movement (e.g. a transfer number). */
@@ -545,8 +666,21 @@ export type PrepayCreditStatement = z.infer<typeof prepayCreditStatementSchema>;
  * total (`PAYMENT_EXCEEDS_REMAINING`); paying the total makes the period PAID. */
 export const updateStatementPaymentSchema = z.object({
   amount: moneyString,
+  /** Spec 028: for a statement in another currency, the corrected debit in the
+   * source account's currency. */
+  chargedAmount: moneyString.optional(),
 });
 export type UpdateStatementPayment = z.infer<typeof updateStatementPaymentSchema>;
+
+/** Spec 028: transfer an overdue period in another currency to the account's
+ * currency. `amount` is what the bank charged, in the ACCOUNT's currency — typed by
+ * the user from their statement, never computed. */
+export const transferCreditStatementSchema = z.object({
+  amount: moneyString,
+  /** When the bank applied it; defaults to now. Dates the created charge. */
+  transferredAt: z.string().optional(),
+});
+export type TransferCreditStatement = z.infer<typeof transferCreditStatementSchema>;
 
 /** List query filters. */
 export const accountFiltersSchema = z.object({

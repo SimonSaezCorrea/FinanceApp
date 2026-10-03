@@ -13,4 +13,6 @@ export interface WalletItemRepositoryPort {
   create(userId: string, plan: PlannedWalletItem): Promise<WalletItem>;
   reorder(userId: string, ids: string[]): Promise<void>;
   remove(userId: string, id: string): Promise<boolean>;
+  /** Replace the whole wallet with `plans` (already in display order), atomically. */
+  replace(userId: string, plans: PlannedWalletItem[]): Promise<WalletItem[]>;
 }

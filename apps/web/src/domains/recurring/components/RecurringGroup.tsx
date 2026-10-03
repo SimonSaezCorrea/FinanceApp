@@ -13,6 +13,8 @@ interface Props {
   readonly items: recurring.RecurringExpense[];
   readonly accounts: accountsContract.BankAccount[];
   readonly paused?: boolean;
+  /** The group of series that ended: rows show when, and can't be paused. */
+  readonly finished?: boolean;
   readonly onSelect: (r: recurring.RecurringExpense) => void;
   readonly onTogglePause: (r: recurring.RecurringExpense) => void;
   readonly onEdit: (r: recurring.RecurringExpense) => void;
@@ -28,6 +30,7 @@ export function RecurringGroup({
   items,
   accounts,
   paused = false,
+  finished = false,
   onSelect,
   onTogglePause,
   onEdit,
@@ -39,12 +42,14 @@ export function RecurringGroup({
   // another closes the previous one for free, since both read off this id.
   const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
 
-  const meta = paused
-    ? t("recurring.groups.pausedMeta", { count: items.length })
-    : t("recurring.groups.activeMeta", {
-        count: items.length,
-        sum: sumByCurrency(items, i18n.language),
-      });
+  const meta = finished
+    ? t("recurring.groups.finishedMeta", { count: items.length })
+    : paused
+      ? t("recurring.groups.pausedMeta", { count: items.length })
+      : t("recurring.groups.activeMeta", {
+          count: items.length,
+          sum: sumByCurrency(items, i18n.language),
+        });
 
   return (
     <div className="flex flex-col gap-2">

@@ -25,7 +25,7 @@ function makePlan(id: string) {
     frequency: "MONTHLY",
     frequencyInterval: 1,
     cardId: null,
-    category: null,
+    categoryId: null,
     paymentAccountId: null,
     notes: null,
     payments: [],
@@ -38,6 +38,7 @@ function fakeRepo(
   overrides: Partial<InstallmentPlanRepositoryPort> = {},
 ): InstallmentPlanRepositoryPort {
   return {
+    listIdsForAccount: vi.fn(async () => []),
     list: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),

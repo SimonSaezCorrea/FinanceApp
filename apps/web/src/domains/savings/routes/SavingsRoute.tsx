@@ -18,10 +18,11 @@ import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
 import { ConfirmModal } from "../../../shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
-import { EmptyState, ErrorState } from "../../../shared/ui/states";
+import { ErrorState } from "../../../shared/ui/states";
 import { ClosedGoalsSection } from "../components/ClosedGoalsSection";
 import { FreeSavingsDetailPanel } from "../components/FreeSavingsDetailPanel";
 import { FreeSavingsSection } from "../components/FreeSavingsSection";
+import { SavingsEmptyRow } from "../components/SavingsEmptyRow";
 import { SavingsInsightsRail } from "../components/SavingsInsightsRail";
 import {
   emptySavingsEntryForm,
@@ -340,6 +341,7 @@ export function SavingsRoute() {
   }
 
   const missing = summaryData?.missing ?? "0";
+  const isEmpty = !goalsError && goals.length === 0 && freeEntries.length === 0;
 
   // Second column only where the account detail's own aside already earns
   // one (`ASIDE_MIN_WIDTH`, measured on this view — a sidebar-driven width
@@ -379,8 +381,28 @@ export function SavingsRoute() {
 
       {goalsLoading && <SavingsSkeleton label={t("app.loading")} />}
       {!goalsLoading && goalsError && <ErrorState error={goalsErr} onRetry={() => refetch()} />}
-      {!goalsLoading && !goalsError && goals.length === 0 && freeEntries.length === 0 && (
-        <EmptyState title={t("savings.empty")} />
+      {!goalsLoading && isEmpty && (
+        <div className="flex flex-col gap-6">
+          {summaryData ? (
+            <SavingsTotalCard
+              summary={summaryData}
+              openGoals={openGoals}
+              closedGoals={closedGoals}
+              entries={entries}
+              currency={preferredCurrency}
+            />
+          ) : null}
+          <div className="flex flex-col gap-2">
+            <SavingsGroupHeader
+              title={t("savings.groups.live")}
+              amounts={[]}
+              currency={preferredCurrency}
+            />
+            <div className="overflow-hidden rounded-[9.6px] border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.28)]">
+              <SavingsEmptyRow title={t("savings.empty")} message={t("savings.emptyHint")} />
+            </div>
+          </div>
+        </div>
       )}
 
       {!goalsLoading && !goalsError && (goals.length > 0 || freeEntries.length > 0) ? (

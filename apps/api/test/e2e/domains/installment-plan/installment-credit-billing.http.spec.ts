@@ -1,3 +1,4 @@
+import { categoryIdFor } from "../../../integration/support/repositories";
 import { randomUUID } from "node:crypto";
 
 import type { INestApplication } from "@nestjs/common";
@@ -46,7 +47,24 @@ describe("Credit-card instalment plan billing, full lifecycle (e2e)", () => {
 
     const registerRes = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E Billing User" });
+      .send({
+        email,
+        password,
+        name: "E2E Billing User",
+        sensitiveDataConsent: true,
+        birthDate: "1990-01-01",
+        identifierValue: (() => {
+          const b = String(Math.floor(1e6 + Math.random() * 24e6));
+          let s = 0,
+            m = 2;
+          for (let i = b.length - 1; i >= 0; i--) {
+            s += Number(b[i]) * m;
+            m = m === 7 ? 2 : m + 1;
+          }
+          const r = 11 - (s % 11);
+          return b + "-" + (r === 11 ? "0" : r === 10 ? "K" : String(r));
+        })(),
+      });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     const from = await request(app.getHttpServer())
@@ -124,7 +142,7 @@ describe("Credit-card instalment plan billing, full lifecycle (e2e)", () => {
         currency: "CLP",
         frequency: "MONTHLY",
         frequencyInterval: 1,
-        category: "Tecnologia",
+        categoryId: await categoryIdFor(prisma, "TECHNOLOGY"),
         cardId,
       });
     expect(plan.status).toBe(201);

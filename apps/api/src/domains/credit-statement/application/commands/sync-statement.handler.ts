@@ -106,7 +106,13 @@ export class SyncStatementHandler extends BaseCommandHandler<
         : snap.cards.filter((c) => c.kind === "CREDIT").map((c) => c.id);
 
     const [recomputedAmount, breakdown] = await Promise.all([
-      this.sums.netForPeriod({ accountId: account.id, cardIds, from, to }),
+      this.sums.netForPeriod({
+        accountId: account.id,
+        cardIds,
+        from,
+        to,
+        currency: statement.currency,
+      }),
       this.statementRepo.breakdown(statement.id),
     ]);
 
@@ -136,7 +142,9 @@ export class SyncStatementHandler extends BaseCommandHandler<
     // A settled period that turned out bigger means MORE of the pool was really
     // used than the payment released — and vice versa. Editing those movements
     // left the pool untouched on purpose, so this is where it gets corrected.
-    if (!toMoney(paidDelta).isZero()) {
+    // Spec 028: a period in another currency never touches the pool — its usage
+    // follows its settlement movement instead (see `persist`).
+    if (!toMoney(paidDelta).isZero() && !isForeign(context)) {
       context.account.adjustCreditUsed(toMoney(paidDelta).negated().toString());
     }
     return {
@@ -148,6 +156,7 @@ export class SyncStatementHandler extends BaseCommandHandler<
         paymentDueCycleType: context.account.paymentDueCycleType,
         billingCycleDay: context.account.billingCycleDay,
         billingCycleType: context.account.billingCycleType,
+        accountCurrency: context.account.snapshot().currency,
       }),
       events: [],
     };
@@ -162,10 +171,25 @@ export class SyncStatementHandler extends BaseCommandHandler<
         cardIds: context.cardIds,
         from: context.from,
         to: context.to,
+        currency: context.statement.currency,
       });
       const paymentId = context.statement.paidTransactionId;
-      // Only a settled period has a payment movement to keep in step.
-      if (paymentId && context.statement.paidAt) {
+      const settlementId = context.statement.settlementTransactionId;
+      if (isForeign(context)) {
+        // Spec 028: what the source account paid in ITS currency is a fact this app
+        // can't recompute (no exchange rate), so it stays as it happened; the
+        // settlement in the period's own currency follows the new figure, and with
+        // it the card's own-limit usage (derived from it). Neither the source
+        // balance nor the account-currency pool moves.
+        if (settlementId && context.statement.paidAt && !toMoney(context.paidDelta).isZero()) {
+          await this.transactions.updateAmountWithTx(
+            tx,
+            settlementId,
+            context.statement.paidAmount,
+          );
+        }
+      } else if (paymentId && context.statement.paidAt) {
+        // Only a settled period has a payment movement to keep in step.
         await this.transactions.updateAmountWithTx(tx, paymentId, context.statement.paidAmount);
         // That movement is an EXPENSE on the source account, so its balance
         // follows the correction — the same rule the manual payment correction
@@ -186,9 +210,14 @@ export class SyncStatementHandler extends BaseCommandHandler<
         await this.statementRepo.addCarriedOverWithTx(tx, carriedTo, context.carryOverDelta);
       }
       await this.statementRepo.saveWithTx(tx, context.statement);
-      if (!toMoney(context.paidDelta).isZero()) {
+      if (!toMoney(context.paidDelta).isZero() && !isForeign(context)) {
         await this.accountRepo.saveWithTx(tx, context.account);
       }
     });
   }
+}
+
+/** Spec 028: a period in a currency other than its account's. */
+function isForeign(context: Context): boolean {
+  return context.statement.currency !== context.account.snapshot().currency;
 }

@@ -88,6 +88,22 @@ export class PrismaWalletItemRepository implements WalletItemRepositoryPort {
     );
   }
 
+  async replace(userId: string, plans: PlannedWalletItem[]): Promise<WalletItem[]> {
+    const rows = await this.prisma.$transaction(async (tx) => {
+      await tx.walletItemDashboard.deleteMany({ where: { userId } });
+      const created: WalletItemRow[] = [];
+      for (const plan of plans) {
+        created.push(
+          await tx.walletItemDashboard.create({
+            data: { userId, order: plan.order, accountId: plan.accountId, cardId: plan.cardId },
+          }),
+        );
+      }
+      return created;
+    });
+    return rows.map((row) => WalletItem.fromPersistence(rowToProps(row)));
+  }
+
   async remove(userId: string, id: string): Promise<boolean> {
     const result = await this.prisma.walletItemDashboard.deleteMany({ where: { id, userId } });
     return result.count > 0;

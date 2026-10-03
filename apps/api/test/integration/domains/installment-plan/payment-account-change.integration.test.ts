@@ -1,3 +1,4 @@
+import { buildCategoryLookup } from "../../support/repositories";
 import { randomUUID } from "node:crypto";
 
 import { ConfigService } from "@nestjs/config";
@@ -77,7 +78,7 @@ describe("changing a plan's payment account (integration)", () => {
       frequency: "MONTHLY",
       frequencyInterval: 1,
       cardId: null,
-      category: null,
+      categoryId: null,
       paymentAccountId: firstAccountId,
       notes: null,
       payments: [
@@ -128,6 +129,7 @@ describe("changing a plan's payment account (integration)", () => {
       accounts,
       transactions,
       prisma,
+      buildCategoryLookup(prisma),
     ).execute(
       new UpdateInstallmentPlanCommand(userId, planId, { paymentAccountId: secondAccountId }),
     );

@@ -1,69 +1,73 @@
 import {
+  ArrowRightLeft,
   Banknote,
-  Bus,
+  BriefcaseBusiness,
   Car,
   Clapperboard,
+  CreditCard,
   Dumbbell,
   Gift,
   GraduationCap,
+  HandCoins,
   HeartPulse,
   Home,
+  Landmark,
   type LucideIcon,
   PawPrint,
+  PiggyBank,
   Plane,
+  Percent,
   Receipt,
+  RotateCcw,
   Shield,
-  Shirt,
   ShoppingBag,
   ShoppingCart,
   Smartphone,
+  Sofa,
   Tag,
   Tv,
+  Users,
   UtensilsCrossed,
-  Wifi,
   Zap,
 } from "lucide-react";
 
-interface CategoryIconEntry {
-  keywords: string[];
-  icon: LucideIcon;
-}
+/**
+ * One icon per code of the global category catalogue (`reference.Category.code`).
+ * A code this map doesn't know (a catalogue row added before the web caught up)
+ * falls back to the generic tag rather than breaking the row.
+ */
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  SUPERMARKET: ShoppingCart,
+  RESTAURANTS: UtensilsCrossed,
+  TRANSPORT: Car,
+  HOUSING: Home,
+  UTILITIES: Zap,
+  HOME: Sofa,
+  HEALTH: HeartPulse,
+  EDUCATION: GraduationCap,
+  SHOPPING: ShoppingBag,
+  ENTERTAINMENT: Clapperboard,
+  SUBSCRIPTIONS: Tv,
+  TECHNOLOGY: Smartphone,
+  TRAVEL: Plane,
+  SPORTS: Dumbbell,
+  PETS: PawPrint,
+  INSURANCE: Shield,
+  FAMILY: Users,
+  FEES: Receipt,
+  SALARY: Banknote,
+  FREELANCE: BriefcaseBusiness,
+  REFUND: RotateCcw,
+  GIFTS: Gift,
+  OTHER: Tag,
+  SAVINGS: PiggyBank,
+  DEBTS: HandCoins,
+  INTEREST: Percent,
+  STATEMENT_PAYMENT: CreditCard,
+  CARD_PREPAYMENT: Landmark,
+  CURRENCY_TRANSFER: ArrowRightLeft,
+};
 
-const CATEGORY_ICON_MAP: CategoryIconEntry[] = [
-  { keywords: ["super", "mercado", "almacén", "almacen", "feria"], icon: ShoppingCart },
-  { keywords: ["compra", "shopping", "tienda"], icon: ShoppingBag },
-  { keywords: ["ropa", "vestuario", "zapato"], icon: Shirt },
-  { keywords: ["comida", "restaurant", "café", "cafe", "food"], icon: UtensilsCrossed },
-  {
-    keywords: ["transport", "metro", "uber", "taxi", "bencin", "gasolin", "peaje"],
-    icon: Car,
-  },
-  { keywords: ["micro", "bus", "bip", "locomoción", "locomocion"], icon: Bus },
-  { keywords: ["salud", "médico", "medico", "farmacia", "doctor"], icon: HeartPulse },
-  { keywords: ["arriendo", "rent", "alquiler", "hogar", "casa", "depto"], icon: Home },
-  { keywords: ["netflix", "spotify", "suscri", "streaming"], icon: Tv },
-  // "Entretención"/"Entretenimiento" both start with this stem.
-  { keywords: ["entreten", "cine", "concierto", "juego", "ocio"], icon: Clapperboard },
-  { keywords: ["sueldo", "salario", "ingreso"], icon: Banknote },
-  { keywords: ["luz", "agua", "gas", "electrici"], icon: Zap },
-  { keywords: ["viaje", "vuelo", "hotel"], icon: Plane },
-  { keywords: ["educación", "educacion", "colegio", "universidad"], icon: GraduationCap },
-  { keywords: ["gym", "gimnasio", "deporte"], icon: Dumbbell },
-  { keywords: ["seguro", "insurance", "póliza", "poliza"], icon: Shield },
-  { keywords: ["mascota"], icon: PawPrint },
-  { keywords: ["regalo", "gift"], icon: Gift },
-  { keywords: ["internet", "wifi", "fibra"], icon: Wifi },
-  { keywords: ["celular", "teléfono", "telefono", "plan móvil", "movil"], icon: Smartphone },
-  { keywords: ["factura", "cuenta", "pago", "boleta"], icon: Receipt },
-];
-
-export function categoryIcon(category: string | null): LucideIcon {
-  if (!category) return Tag;
-  const lower = category.toLowerCase();
-  for (const entry of CATEGORY_ICON_MAP) {
-    if (entry.keywords.some((kw) => lower.includes(kw))) {
-      return entry.icon;
-    }
-  }
-  return Tag;
+export function categoryIcon(code: string | null | undefined): LucideIcon {
+  return (code && CATEGORY_ICONS[code]) || Tag;
 }

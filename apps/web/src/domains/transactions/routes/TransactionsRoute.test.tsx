@@ -9,6 +9,19 @@ import i18n from "../../../i18n";
 import { transactionsApi } from "../api/transactionsApi";
 import { TransactionsRoute } from "./TransactionsRoute";
 
+vi.mock("../../reference/api/referenceApi", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../../reference/api/referenceApi")>();
+  return {
+    referenceApi: {
+      ...original.referenceApi,
+      categories: () =>
+        Promise.resolve([
+          { id: "cat-food", code: "RESTAURANTS", kind: "EXPENSE", isSystem: false, sortOrder: 1 },
+        ]),
+    },
+  };
+});
+
 vi.mock("../api/transactionsApi", () => ({
   transactionsApi: {
     list: vi.fn(),
@@ -21,7 +34,7 @@ vi.mock("../api/transactionsApi", () => ({
   },
 }));
 
-const emptySummary = { total: 0, currencyTotals: [], categories: [] };
+const emptySummary = { total: 0, currencyTotals: [], categoryIds: [] };
 
 function renderRoute() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -46,7 +59,7 @@ describe("TransactionsRoute", () => {
           amount: "33.3000",
           currency: "USD",
           occurredAt: "2026-03-01T00:00:00.000Z",
-          category: "food",
+          categoryId: "cat-food",
           description: null,
           observation: null,
           emisor: null,
@@ -65,6 +78,8 @@ describe("TransactionsRoute", () => {
           paidStatementAccountId: null,
           prepaymentStatementId: null,
           prepaymentAccountId: null,
+          settlesStatementId: null,
+          transferStatementId: null,
           createdAt: "2026-03-01T00:00:00.000Z",
           updatedAt: "2026-03-01T00:00:00.000Z",
         },
@@ -74,7 +89,12 @@ describe("TransactionsRoute", () => {
     vi.mocked(transactionsApi.summary).mockResolvedValue(emptySummary);
 
     renderRoute();
-    await waitFor(() => expect(screen.getAllByText(/food/).length).toBeGreaterThan(0));
+    // The row shows the category by its catalogue NAME, never its id.
+    await waitFor(() =>
+      expect(
+        screen.getAllByText(new RegExp(i18n.t("categories.RESTAURANTS"))).length,
+      ).toBeGreaterThan(0),
+    );
   });
 
   it("requests a bounded page rather than the whole table", async () => {

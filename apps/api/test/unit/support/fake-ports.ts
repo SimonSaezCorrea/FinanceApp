@@ -6,6 +6,7 @@ import {
 } from "../../../src/domains/bank-account/domain/bank-account.aggregate";
 import type { BankAccountRepositoryPort } from "../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CardAccountRepositoryPort } from "../../../src/domains/card-account/domain/ports/card-account.repository.port";
+import type { CategoryLookupPort } from "../../../src/domains/category/domain/ports/category-lookup.port";
 import type { CardLimitRepositoryPort } from "../../../src/domains/card-limit/domain/ports/card-limit.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
 import type { InstallmentPaymentLookupPort } from "../../../src/domains/installment-payment/domain/ports/installment-payment-lookup.port";
@@ -36,11 +37,13 @@ export function fakeBankAccountRepo(
     save: vi.fn(),
     saveWithTx: vi.fn(),
     remove: vi.fn(),
+    removeWithTx: vi.fn(async () => true),
     addCard: vi.fn(),
     updateCard: vi.fn(),
     removeCard: vi.fn(),
     incrementCreditUsedWithTx: vi.fn(),
     incrementBalanceWithTx: vi.fn(),
+    adjustOpeningWithTx: vi.fn(),
     ...overrides,
   };
 }
@@ -67,9 +70,10 @@ export function fakeTransactionWriterRepo(
     updateAmountWithTx: vi.fn(),
     deleteWithTx: vi.fn(),
     listForInstallmentPlan: vi.fn(async () => []),
+    listForAccountDeletion: vi.fn(async () => []),
     deleteManyWithTx: vi.fn(),
     accountIdForTransaction: vi.fn(async () => null),
-    createMany: vi.fn(async () => 0),
+    createManyWithTx: vi.fn(async () => 0),
     ...overrides,
   };
 }
@@ -81,6 +85,7 @@ export function fakeSavingsGoalRepo(
     list: vi.fn(async () => []),
     findOne: vi.fn(),
     create: vi.fn(),
+    createWithTx: vi.fn(),
     save: vi.fn(),
     saveWithTx: vi.fn(),
     findOneForUpdateWithTx: vi.fn(),
@@ -101,6 +106,8 @@ export function fakeSavingsEntryRepo(
     saveWithTx: vi.fn(),
     remove: vi.fn(),
     removeWithTx: vi.fn(),
+    listIdsForAccount: vi.fn(async () => []),
+    removeManyWithTx: vi.fn(),
     countByGoal: vi.fn(async () => 0),
     reassignGoalWithTx: vi.fn(),
     sumsByGoal: vi.fn(async () => new Map()),
@@ -116,11 +123,14 @@ export function fakeCreditStatementRepo(
     findById: vi.fn(),
     findByIdForUpdateWithTx: vi.fn(),
     findOpenForAccount: vi.fn(),
+    listOpenForAccount: vi.fn(async () => []),
     listForAccount: vi.fn(),
     findOrCreateOpenForAccount: vi.fn(async () => ({ id: "st_open" })),
+    findOrCreateOpenForAccountWithTx: vi.fn(async () => ({ id: "st_open" })),
     findOrCreateCarryOverTargetWithTx: vi.fn(async () => ({ id: "st_next" })),
     addCarriedOverWithTx: vi.fn(),
     isPaid: vi.fn(async () => false),
+    paymentTransactionIdsFromOtherAccounts: vi.fn(async () => []),
     save: vi.fn(),
     saveWithTx: vi.fn(),
     sumLinkedTransactions: vi.fn(async () => "0"),
@@ -298,4 +308,24 @@ export function fakePrismaTransaction(): {
   $transaction: (cb: (tx: unknown) => unknown) => unknown;
 } {
   return { $transaction: (cb) => cb({ __fakeTx: true }) };
+}
+
+/**
+ * Category catalogue lookup: every id resolves to a selectable `BOTH` category
+ * (so a spec that sends any `categoryId` passes validation), and a system code
+ * resolves to a readable `system-<CODE>` id. Override per spec to test refusals.
+ */
+export function fakeCategoryLookup(
+  overrides: Partial<CategoryLookupPort> = {},
+): CategoryLookupPort {
+  return {
+    findById: vi.fn(async (id: string) => ({
+      id,
+      code: "OTHER",
+      kind: "BOTH" as const,
+      isSystem: false,
+    })),
+    idForSystemCode: vi.fn(async (code: string) => `system-${code}`),
+    ...overrides,
+  };
 }

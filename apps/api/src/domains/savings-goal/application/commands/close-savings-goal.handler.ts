@@ -3,6 +3,10 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { savings } from "@finance/contracts";
 
+import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
 import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
   BaseIdempotentCommandHandler,
@@ -79,6 +83,7 @@ export class CloseSavingsGoalHandler extends BaseIdempotentCommandHandler<
     @Inject(TRANSACTION_WRITER_REPOSITORY)
     private readonly transactions: TransactionWriterRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
   ) {
     super(eventBus, records);
   }
@@ -141,7 +146,7 @@ export class CloseSavingsGoalHandler extends BaseIdempotentCommandHandler<
           amount: sums.total,
           currency: account.currency,
           occurredAt: closedAt,
-          category: "Ahorro",
+          categoryId: await this.categories.idForSystemCode("SAVINGS"),
           description: `Retiro de meta «${goalSnap.title}»`,
           savingsGoalId: goal.id,
         });

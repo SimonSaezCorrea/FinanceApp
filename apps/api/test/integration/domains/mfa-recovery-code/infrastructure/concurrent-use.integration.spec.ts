@@ -20,7 +20,12 @@ describe("MfaRecoveryCode concurrent use (integration)", () => {
 
   beforeAll(async () => {
     await prisma.$connect();
-    const user = await userRepo.create({ email, name: "Race Test", passwordHash: "x" });
+    const user = await userRepo.create({
+      email,
+      name: "Race Test",
+      passwordHash: "x",
+      birthDate: new Date("1990-01-01"),
+    });
     userId = user.id;
     const row = await prisma.mfaRecoveryCode.create({ data: { userId, codeHash: "irrelevant" } });
     codeId = row.id;

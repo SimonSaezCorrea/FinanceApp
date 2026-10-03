@@ -71,7 +71,7 @@ function makePlan(over: Partial<InstallmentPlanProps> = {}) {
     frequency: "MONTHLY",
     frequencyInterval: 1,
     cardId: null,
-    category: null,
+    categoryId: null,
     paymentAccountId: null,
     notes: null,
     payments: [
@@ -156,7 +156,7 @@ describe("InstallmentPlan.applyUpdate", () => {
   it("still allows editing descriptive fields once billed — only the commitment freezes", () => {
     const plan = billedPlan();
     expect(() =>
-      plan.applyUpdate({ title: "Renamed", category: "Otro", notes: "updated" }),
+      plan.applyUpdate({ title: "Renamed", categoryId: "Otro", notes: "updated" }),
     ).not.toThrow();
     expect(plan.title).toBe("Renamed");
   });

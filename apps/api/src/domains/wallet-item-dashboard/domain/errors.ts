@@ -44,6 +44,13 @@ export class WalletItemExistsError extends DomainError {
   }
 }
 
+/** The wallet already holds `WALLET_MAX_ITEMS` entries. */
+export class WalletFullError extends DomainError {
+  constructor() {
+    super("WALLET_FULL", 409);
+  }
+}
+
 export class WalletItemNotFoundError extends DomainError {
   constructor() {
     super("WALLET_ITEM_NOT_FOUND", 404);

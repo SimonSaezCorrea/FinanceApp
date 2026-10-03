@@ -7,9 +7,9 @@ import { ApiRequestError } from "../../../shared/lib/apiClient";
 import i18n from "../../../i18n";
 import { DangerZone } from "./DangerZone";
 
-const deactivate = vi.fn();
+const deleteAccount = vi.fn();
 vi.mock("../api/profileApi", () => ({
-  profileApi: { deactivate: (...args: unknown[]) => deactivate(...args) },
+  profileApi: { deleteAccount: (...args: unknown[]) => deleteAccount(...args) },
 }));
 vi.mock("../../auth/api/authApi", () => ({
   authApi: {
@@ -36,9 +36,9 @@ function renderDangerZone() {
   );
 }
 
-describe("DangerZone — deactivate account (US5)", () => {
+describe("DangerZone — delete account (Ley 21.719 Art. 11 supresión)", () => {
   it("requires re-entering the password and shows an error on an incorrect one", async () => {
-    deactivate.mockRejectedValue(new ApiRequestError("INVALID_CURRENT_PASSWORD", 401));
+    deleteAccount.mockRejectedValue(new ApiRequestError("INVALID_CURRENT_PASSWORD", 401));
     renderDangerZone();
 
     fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.danger.deactivate") }));
@@ -50,11 +50,11 @@ describe("DangerZone — deactivate account (US5)", () => {
     await waitFor(() =>
       expect(screen.getByText(i18n.t("errors.INVALID_CURRENT_PASSWORD"))).toBeDefined(),
     );
-    expect(deactivate).toHaveBeenCalledWith({ password: "wrong" });
+    expect(deleteAccount).toHaveBeenCalledWith({ password: "wrong", keepHistory: false });
   });
 
-  it("deactivates the account and ends the session on a correct password", async () => {
-    deactivate.mockResolvedValue(undefined);
+  it("defaults to keepHistory=false (hard delete) when the switch is left untouched", async () => {
+    deleteAccount.mockResolvedValue(undefined);
     renderDangerZone();
 
     fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.danger.deactivate") }));
@@ -63,6 +63,26 @@ describe("DangerZone — deactivate account (US5)", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.danger.confirmButton") }));
 
-    await waitFor(() => expect(deactivate).toHaveBeenCalledWith({ password: "correct-pw" }));
+    await waitFor(() =>
+      expect(deleteAccount).toHaveBeenCalledWith({ password: "correct-pw", keepHistory: false }),
+    );
+  });
+
+  it("sends keepHistory=true once the 'keep my history' switch is turned on", async () => {
+    deleteAccount.mockResolvedValue(undefined);
+    renderDangerZone();
+
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.danger.deactivate") }));
+    fireEvent.change(await screen.findByLabelText(i18n.t("profile.danger.passwordLabel")), {
+      target: { value: "correct-pw" },
+    });
+    fireEvent.click(
+      screen.getByRole("switch", { name: i18n.t("profile.danger.keepHistoryLabel") }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.danger.confirmButton") }));
+
+    await waitFor(() =>
+      expect(deleteAccount).toHaveBeenCalledWith({ password: "correct-pw", keepHistory: true }),
+    );
   });
 });

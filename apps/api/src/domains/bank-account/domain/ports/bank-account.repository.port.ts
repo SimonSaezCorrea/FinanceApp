@@ -74,7 +74,22 @@ export interface BankAccountRepositoryPort {
    * the caller's transaction. Every movement keeps this in step, so the balance
    * is never a figure waiting for someone to press "reconcile". */
   incrementBalanceWithTx(tx: unknown, accountId: string, delta: string): Promise<void>;
+  /** Move the account's OPENING figures — `initialBalance` and
+   * `creditUsedInitial` — by signed deltas, leaving `currentBalance`/`creditUsed`
+   * alone. Used when imported history is already part of today's balance: the
+   * opening moves back by what the history adds, so `currentBalance =
+   * initialBalance + Σ movements` still holds and today's figure doesn't change. */
+  adjustOpeningWithTx(
+    tx: unknown,
+    accountId: string,
+    balanceDelta: string,
+    creditDelta: string,
+  ): Promise<void>;
   remove(userId: string, id: string): Promise<boolean>;
+  /** Same as `remove`, inside the caller's transaction. The row lock the DELETE
+   * takes is what serialises two concurrent deletions of the same account: the
+   * second finds nothing to delete and must roll back. */
+  removeWithTx(tx: unknown, userId: string, id: string): Promise<boolean>;
   addCard(userId: string, accountId: string, plan: CreateCardPlan): Promise<BankAccount>;
   updateCard(
     userId: string,

@@ -26,7 +26,12 @@ describe("MFA enrollment (integration)", () => {
 
   beforeAll(async () => {
     await prisma.$connect();
-    const user = await userRepo.create({ email, name: "MFA Test", passwordHash: "x" });
+    const user = await userRepo.create({
+      email,
+      name: "MFA Test",
+      passwordHash: "x",
+      birthDate: new Date("1990-01-01"),
+    });
     userId = user.id;
   });
 

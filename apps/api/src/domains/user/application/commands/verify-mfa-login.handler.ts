@@ -1,7 +1,6 @@
 import { Inject, Injectable, Logger } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import { compare } from "bcryptjs";
-import * as OTPAuth from "otpauth";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
@@ -13,12 +12,10 @@ import { InvalidMfaCodeError, MfaLockedError, UnauthorizedError } from "../../do
 import type { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { SessionIssuer } from "../session-issuer";
+import { isValidTotp, MFA_LOCKOUT_MINUTES, MFA_LOCKOUT_THRESHOLD } from "../totp";
 import { looksLikeRecoveryCode } from "../recovery-code-generator";
 import type { AuthResult } from "./register.handler";
 import { VerifyMfaLoginCommand } from "./verify-mfa-login.command";
-
-const LOCKOUT_THRESHOLD = 5;
-const LOCKOUT_MINUTES = 15;
 
 type Outcome =
   | { kind: "unauthorized" }
@@ -105,10 +102,10 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
 
     const valid = looksLikeRecoveryCode(code)
       ? await this.tryRecoveryCode(tx, user, code)
-      : this.validateTotp(user, code);
+      : isValidTotp(user.mfaSecret, code);
 
     if (!valid) {
-      user.recordMfaFailure(LOCKOUT_THRESHOLD, LOCKOUT_MINUTES, now);
+      user.recordMfaFailure(MFA_LOCKOUT_THRESHOLD, MFA_LOCKOUT_MINUTES, now);
       await this.repo.saveWithTx(tx, user);
       return { kind: user.isMfaLocked(now) ? "locked" : "invalid" };
     }
@@ -117,16 +114,6 @@ export class VerifyMfaLoginHandler extends BaseCommandHandler<
     await this.repo.saveWithTx(tx, user);
     const remaining = await this.recoveryCodes.countUnused(user.id);
     return { kind: "success", user, remaining };
-  }
-
-  private validateTotp(user: User, code: string): boolean {
-    const totp = new OTPAuth.TOTP({
-      algorithm: "SHA1",
-      digits: 6,
-      period: 30,
-      secret: OTPAuth.Secret.fromBase32(user.mfaSecret ?? ""),
-    });
-    return totp.validate({ token: code, window: 1 }) !== null;
   }
 
   /** Atomically claims a recovery code inside the SAME outer transaction — a lost race (someone

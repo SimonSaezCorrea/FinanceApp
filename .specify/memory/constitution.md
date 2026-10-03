@@ -1,4 +1,193 @@
 <!--
+Sync Impact Report — 2026-09-27 (amendment 2.3.12)
+- Version change: 2.3.11 → 2.3.12 (PATCH: a limit and a write endpoint; no principle text changed,
+  no schema change).
+- ADDED: the dashboard wallet holds at most 4 entries (`WALLET_FULL`), and `PUT /wallet` replaces
+  it whole, in order. **Principle II**: every account/card in the body is ownership-verified before
+  anything is written. **Principle VII**: form (b)-like — the final state is a function of the
+  body alone (delete + recreate in one `$transaction`), so a retry leaves the same wallet.
+-->
+<!--
+Sync Impact Report — 2026-09-27 (amendment 2.3.11)
+- Version change: 2.3.10 → 2.3.11 (PATCH: one transfer rule reversed, totals and net worth
+  corrected; no principle text changed, no schema change).
+- CHANGED: a transfer may land on a CREDIT_CARD account (paying the card): that leg moves the credit
+  pool, not cash, and joins the open billing period (`TRANSFER_TO_CREDIT_ACCOUNT` removed).
+- CHANGED: income/expense totals (API summary + dashboard) exclude every internal flow — transfers,
+  statement payments, prepayments, spec-028 settlements — since paying a card is not spending.
+- FIXED: net worth counted a debt's original principal instead of what is still pending; the
+  Cuentas screen now includes pending debts too, so both screens agree.
+-->
+<!--
+Sync Impact Report — 2026-09-27 (amendment 2.3.10)
+- Version change: 2.3.9 → 2.3.10 (PATCH: one write endpoint extended, one read endpoint added; no
+  principle text changed, no schema change).
+- CHANGED: `DELETE /accounts/:id` takes an optional body choosing what goes with the account
+  (movements — incl. the other leg of its transfers and payments other accounts made into its
+  periods —, instalment plans, recurring series, savings contributions); every other account those
+  touched gets its money back in the same `$transaction`. New `GET /accounts/:id/deletion-impact`
+  declares it first, from the same computation the delete runs.
+  - **Principle VII**: form (a) — the account row is deleted FIRST inside the transaction; a
+    concurrent retry blocks on its lock, deletes nothing and rolls back (`ACCOUNT_NOT_FOUND`), so
+    no balance is restored twice.
+  - **Principle VI**: `bank-account` composes the leaves of `credit-statement`,
+    `recurring-expense`, `savings-entry` and `debt` through new narrow port methods; no adapter
+    queries another's table.
+- FIXED: a debt whose last payment moved money on a deleted account can be undone again
+  (`Debt.lastPayment*` is cleared on account deletion, so undo only moves the counter back).
+-->
+<!--
+Sync Impact Report — 2026-09-27 (amendment 2.3.9)
+- Version change: 2.3.8 → 2.3.9 (PATCH: a rounding rule made explicit under Principle I; no
+  schema change, no contract change).
+- CHANGED (Principle I): instalments are rounded to the currency's minor unit, the last one
+  absorbing the remainder. `@finance/money` gains `currencyScale(currency)` (CLP 0 / USD 2 / CLF 4,
+  ISO 4217 minor unit otherwise) and `equalPrincipalSchedule` an optional `currency` (omitted keeps
+  MONEY_SCALE). Callers: `InstallmentPlan.planCreation`/`applyUpdate`, `Debt.nextInstallmentAmount`/
+  `pendingAmount` (an even split now charges row by row and settles exactly the remaining rows),
+  web `schedulePreview`, `debtSchedule`/`debtInstallmentAmounts`, `calcRemaining`. Found reconciling
+  real statements: a 64.990 CLP debt in 3 left 0,6666 peso on an account forever.
+- Not migrated: schedules already stored keep their old amounts (dev data; `db:seed`/reimport).
+-->
+<!--
+Sync Impact Report — 2026-09-26 (amendment 2.3.8)
+- Version change: 2.3.7 → 2.3.8 (PATCH: one movement rule relaxed, one optional template column;
+  no principle text changed, no schema change).
+- CHANGED: an INCOME may now carry a card — ONLY on a `CREDIT_CARD` account, through one of its
+  CREDIT cards that has its own `CardLimit` in the movement's currency: it is a payment towards that
+  limit (e.g. the USD limit of a CLP card) and contributes "0" to the account pool
+  (`MovementPolicy.validate`/`contribution`). Anything else still answers `CARD_NOT_ALLOWED`. The
+  contract's blanket "income cannot be linked to a card" refine was removed from
+  `create/updateTransactionSchema` — the domain is the only side that knows the account type and the
+  card's limits.
+- CHANGED (specs/027 template): Movimientos gains an optional `Moneda` column (empty = the account's
+  currency). Another currency is only accepted on a credit card account whose card (explicit, or the
+  primary) has its own limit in it — charges and payments go against that limit, never the pool;
+  otherwise `IMPORT_CURRENCY_MISMATCH`. `TemplateCard.otherLimits` carries those limits and their
+  usage; the planner tracks usage per (card, currency). `TEMPLATE_VERSION` unchanged.
+-->
+<!--
+Sync Impact Report — 2026-09-26 (amendment 2.3.7)
+- Version change: 2.3.6 → 2.3.7 (PATCH: one nullable column, one body FK; no principle text changed).
+- ADDED: `RecurringExpense.endDate` (nullable) — the LAST occurrence (inclusive) of a series that
+  ended. The contract gains a derived `status` (ACTIVE / PAUSED / FINISHED, never stored) and
+  `nextDueAt` becomes nullable (null once FINISHED). `RECURRING_END_BEFORE_START` (400).
+- ADDED: `POST/PATCH /transactions` accept `recurringExpenseId` — links a movement into its
+  series' occurrence history (the column existed since the recurring redesign but nothing wrote
+  it). **Principle II**: ownership-verified through `RecurringExpenseRepositoryPort.findOne`
+  before persisting (`RECURRING_NOT_FOUND`, 404); `transaction` imports the leaf
+  `RecurringExpenseDataModule` (**Principle VI**, graph stays acyclic).
+- CHANGED (specs/027 template): Recurrentes gains `Referencia` + `Último pago`; Movimientos gains
+  `Recurrente` (the series' reference) — `TEMPLATE_VERSION` unchanged, older files still read.
+-->
+<!--
+Sync Impact Report — 2026-09-26 (amendment 2.3.6)
+- Version change: 2.3.5 → 2.3.6 (PATCH: a new write endpoint under an existing principle, one
+  billing query narrowed, no principle text changed).
+- ADDED (specs/027): the Cuadra template — `POST /import/template/preview` (validates, writes
+  nothing) and `POST /import/template` (applies movements, transfers, debts + payments, instalment
+  plans + payments, recurring series, savings goals + contributions, all-or-nothing in ONE
+  `$transaction` with a 60 s timeout).
+  - **Principle VII (idempotent writes)**: form (c), `Idempotency-Key` + `BaseIdempotentCommandHandler`,
+    operation `import.template`, the effect and the COMPLETED mark in the same transaction. The
+    preview is a POST only for body size and writes nothing (no key).
+  - **Principle II (isolation)**: every FK in the body resolves against the user's OWN accounts and
+    cards (loaded once, `listByUser`); anything else is "not found", never "empty".
+  - **Principle VI (one adapter per table)**: `import` still owns no table; each table is written
+    through its domain's port. New `*WithTx`: `DebtRepositoryPort.createWithTx`,
+    `RecurringExpenseRepositoryPort.createWithTx`, `SavingsGoalRepositoryPort.createWithTx`,
+    `BankAccountRepositoryPort.adjustOpeningWithTx`,
+    `CreditStatementRepositoryPort.findOrCreateOpenForAccountWithTx`; `createManyWithTx` takes an
+    optional pre-minted `id` (still UUID v7 — Principle VIII).
+  - **Principle III (i18n)**: the template (sheet names, headers, values) is generated in the
+    BROWSER precisely so the API keeps returning codes only.
+- CHANGED: `installment-payment.listUnbilledDueForPlans` also requires `paidAt: null` — an
+  instalment paid outside the app (imported) is never billed. No effect on plans bought in-app.
+- CHANGED: the API's JSON body limit is 5 MB (`infra/http/body-limit.ts`, was Express's 100 KB,
+  which already refused a 2.000-row statement import).
+- New dependency: **`exceljs`** (apps/web only, loaded on demand) to WRITE the template with
+  dropdowns. No schema change.
+-->
+<!--
+Sync Impact Report — 2026-09-26 (amendment 2.3.5)
+- Version change: 2.3.4 → 2.3.5 (PATCH: an existing write endpoint rewritten and brought under
+  Principle VII; no principle text changed).
+- CHANGED: `POST /import/transactions` now imports into ONE account (`{ bankAccountId, rows[] }`)
+  and applies rows like hand-made movements (balance, credit pool, open billing period,
+  `MovementPolicy` over a running total), all-or-nothing in one `$transaction`.
+  - **Principle VII (idempotent writes)**: it now MOVES MONEY, so it adopts form (c) —
+    `Idempotency-Key` + `BaseIdempotentCommandHandler`, operation `import.transactions`, the effect
+    and the COMPLETED mark in the same transaction. This closes the one money-adjacent write the
+    specs/015 rollout had deliberately left out (it had no client and no delta then; it has both now).
+  - **Principle II (isolation)**: the body's `bankAccountId` is ownership-verified before anything
+    is persisted (a foreign account answers 404); `categoryId`s go through `assertSelectableCategory`.
+  - **Principle VI (one adapter per table)**: the `import` folder still owns no table — rows go
+    through `TransactionWriterRepositoryPort.createManyWithTx`, deltas through `BankAccountRepositoryPort`.
+- New dependency: **`read-excel-file`** (apps/web only, loaded on demand) to read `.xlsx` in the
+  browser; `.csv` is parsed in-house. No backend dependency, no schema change.
+-->
+<!--
+Sync Impact Report — 2026-09-25 (amendment 2.3.4)
+- Version change: 2.3.3 → 2.3.4 (PATCH: a new global reference table-domain, `category`, plus a
+  FK column on three existing tables; no principle text changed beyond correcting Principle VIII's
+  stale table count — a routine addition that satisfies every existing data gate).
+- ADDED: table-domain **`category`** (global, seeded, read-only — same treatment as `currency`:
+  `domain/`+`application/`+`infrastructure/`+`presentation/`, `GET /categories`) and its leaf
+  `category.data.module.ts` exporting the narrow `CategoryLookupPort` (`findById`,
+  `idForSystemCode`). `Transaction`, `InstallmentPlan` and `RecurringExpense` lose their free-text
+  `category` column for a **`categoryId`** FK (`onDelete: SetNull`). The catalogue is the SAME for
+  every user; user-defined categories are deferred (`docs/PENDING.md`).
+  - **Principle VIII (identifiers)**: `category.id` is UUID v7 like every row; the business key is
+    `code` (`@unique`, what the seed upserts by), never the PK. Every body `categoryId` is `rowId`.
+  - **Principle II (isolation)**: the table is global (no `userId`), so there is no ownership to
+    verify — but a body-supplied `categoryId` IS verified before persisting
+    (`assertSelectableCategory`: must exist → `CATEGORY_NOT_FOUND`, must not be a system row nor of
+    the other movement type → `CATEGORY_NOT_ALLOWED`), the same "never persist an unchecked FK"
+    rule applied to a reference table.
+  - **Principle VI (one adapter per table)**: the domains storing a `categoryId` and the handlers
+    that assign a system category ("Ahorro", "Deudas", "Intereses", "Pago facturación", "Prepago
+    tarjeta" — now `isSystem` rows resolved by code) compose `CategoryLookupPort`; none queries the
+    `category` table itself.
+  - **Principle VII (idempotent writes)**: no new write endpoint.
+  - No localized text crosses the API: a category exposes only `code`; its name lives in the web's
+    i18n (`categories.<CODE>`).
+- CORRECTED drift: Principle VIII's body said "26 tablas"; the schema has **29** models now.
+- New dependency: none. No migration beyond `db push` + `db:seed` (dev-only data).
+-->
+<!--
+Sync Impact Report — 2026-09-25 (amendment 2.3.3)
+- Version change: 2.3.2 → 2.3.3 (PATCH: a new column on the existing `session` table-domain plus
+  three new endpoints under it, from a step-up-authentication feature; no principle text changed,
+  no conformance debt closed — a routine addition that already satisfies every existing data gate,
+  same shape as 2.3.1's own `session` addition and 2.3.2's `ip-geolocation-cache` one).
+- ADDED: `Session.stepUpAt` (nullable) + the narrow port `SessionStepUpPort` (same adapter,
+  second token — the precedent `CreditStatementLookupPort` already set) and three endpoints:
+  `POST /auth/sessions/step-up` (TOTP code or password), `POST /auth/sessions/step-up/passkey-options`
+  + `.../passkey-verify` (the passkey ceremony's two steps, reusing the existing challenge-cookie
+  mechanism). Closing a session OTHER than the caller's own, or "cerrar todas las demás", now
+  requires this session to have stepped up within 5 minutes (`STEP_UP_REQUIRED`, 403) — closing
+  your OWN session (signing out) is exempt, unaffected.
+  - **Principle VII (idempotent writes)**: form (a) applies without an `Idempotency-Key` header —
+    `markSteppedUp` overwrites `stepUpAt` with a fresh `now()`, and repeating that write with the
+    same or a later timestamp is harmless (no counter delta, no double side effect), the identical
+    argument that already exempted `DELETE /auth/sessions/:id`/`revoke-others` in the 2.3.1 entry.
+  - **Principle VIII (identifiers)**: no new identifier — `stepUpAt` isn't one, and every session id
+    involved is validated exactly as before.
+  - **Principle II (isolation)**: no new FK from a request body — a step-up is stamped on the
+    caller's OWN `sid` (from its verified JWT), never a body-supplied session id; the passkey
+    ceremony resolves and checks credential ownership the same way the existing passkey-login path
+    already does.
+  - New shared helper `user/application/totp.ts` extracted from the pre-existing MFA-login TOTP
+    validation (same lockout threshold/window) so this feature reuses it instead of duplicating it
+    — a refactor, not a new mechanism.
+- New dependency: **none** — reuses `otpauth`, `@simplewebauthn/server` and `bcryptjs`, already
+  dependencies of this domain.
+- No migration beyond `db push` (dev-only data). No contract-breaking change to any existing
+  endpoint.
+- Templates requiring updates: none.
+-->
+
+<!--
 Sync Impact Report — 2026-09-19 (amendment 2.3.2)
 - Version change: 2.3.1 → 2.3.2 (PATCH: a new table-domain and one new dependency-free network
   call from specs/026-ipinfo-geolocation; no principle text changed, no conformance debt closed —
@@ -1401,6 +1590,14 @@ Rounding MUST be explicit and consistent with the stored precision.
 Rationale: a finance app is only trustworthy if totals reconcile to the cent. Binary
 floats silently lose precision and corrupt balances, interest, and amortization.
 
+**An instalment is money someone can actually transfer.** Every split of a total into
+instalments (instalment plans, debts paid in cuotas) MUST round each instalment — principal and
+interest — to the currency's minor unit (`currencyScale`: CLP 0, USD 2, CLF 4), with the LAST
+instalment absorbing the remainder so they sum exactly to the total: 64.990 CLP in 3 is
+21.663 + 21.663 + 21.664, never 21.663,3333 ×3. There is ONE implementation,
+`equalPrincipalSchedule({ …, currency })` in `@finance/money`, called by the server aggregates
+and by every client preview alike.
+
 **An unpaid remainder is a figure, never a rewrite.** When a payment fails to cover what was owed,
 the shortfall MUST be carried onto the next unpaid item as a column of its own
 (`CreditStatement.carriedOverAmount`, `InstallmentPayment.carriedOverAmount`); the SCHEDULE — the
@@ -1566,7 +1763,7 @@ Rationale: en una app de finanzas un timeout de red reintentado no puede cobrar 
 ### VIII. Identificadores (NON-NEGOTIABLE)
 
 Existe UN formato de identificador de fila para todo el esquema, declarado en la constitución y
-uniforme en las 26 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
+uniforme en las 29 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
 localidad de índice en Postgres, estándar RFC 9562). Está prohibido que dos formatos convivan en la
 misma columna.
 
@@ -1848,4 +2045,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.3.2 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-19
+**Version**: 2.3.12 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-27

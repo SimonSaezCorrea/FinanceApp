@@ -18,7 +18,12 @@ describe("CloseExpiredSessionsHandler (integration)", () => {
 
   beforeAll(async () => {
     await prisma.$connect();
-    const user = await userRepo.create({ email, name: "Close Expired Test", passwordHash: "x" });
+    const user = await userRepo.create({
+      email,
+      name: "Close Expired Test",
+      passwordHash: "x",
+      birthDate: new Date("1990-01-01"),
+    });
     userId = user.id;
   });
 

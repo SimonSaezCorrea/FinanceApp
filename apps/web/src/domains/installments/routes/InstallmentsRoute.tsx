@@ -6,7 +6,6 @@ import { toast } from "sonner";
 
 import { useAccounts, useCreditStatements } from "../../accounts/hooks/useAccounts";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { useTransactionsSummary } from "../../transactions/hooks/useTransactions";
 import { cn } from "../../../shared/lib/cn";
 import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
@@ -32,6 +31,7 @@ import {
   toPayBody,
   type PayInstallmentFormValue,
 } from "../components/PayInstallmentPanel";
+import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
 import { useInstallmentMutations } from "../hooks/useInstallmentMutations";
 import { useInstallments } from "../hooks/useInstallments";
 import type { PlanFilter } from "../lib/installmentMetrics";
@@ -43,8 +43,11 @@ export function InstallmentsRoute() {
   const { t } = useTranslation();
   const { data, isLoading, isError, error, refetch } = useInstallments();
   const { data: accounts } = useAccounts();
-  const { data: summary } = useTransactionsSummary();
   const { create, update, remove, pay, unpay } = useInstallmentMutations();
+  // One key per attempt (specs/015): stable across retries of the same submit,
+  // renewed when a new form/panel opens or after a success.
+  const createKey = useIdempotencyKey();
+  const payKey = useIdempotencyKey();
 
   const [form, setForm] = useState<{ mode: "create" | "edit"; planId: string | null } | null>(null);
   // Retained through the close so the panel can play its exit animation
@@ -162,6 +165,7 @@ export function InstallmentsRoute() {
   function openCreate() {
     setFormValue(emptyInstallmentForm(todayInput()));
     setFormBaseline(null);
+    createKey.reset();
     setForm({ mode: "create", planId: null });
   }
 
@@ -195,6 +199,7 @@ export function InstallmentsRoute() {
     const payment = plan?.payments.find((p) => p.sequence === sequence);
     if (!plan || !payment) return;
     setPayValue(initialPayValue(plan, payment, todayInput(), accountList));
+    payKey.reset();
     setPaying({ planId, sequence });
   }
 
@@ -206,9 +211,11 @@ export function InstallmentsRoute() {
         planId: paying.planId,
         sequence: paying.sequence,
         body: toPayBody(payValue, payingPlan, account),
+        idempotencyKey: payKey.current(),
       },
       {
         onSuccess: () => {
+          payKey.reset();
           toast.success(t("installments.paid"));
           setPaying(null);
         },
@@ -235,7 +242,7 @@ export function InstallmentsRoute() {
       frequency: formValue.frequency,
       frequencyInterval: formValue.frequencyInterval,
       cardId: formValue.cardId || null,
-      category: formValue.category.trim() || null,
+      categoryId: formValue.categoryId || null,
       paymentAccountId: formValue.paymentAccountId || null,
       notes: formValue.notes.trim() || null,
     };
@@ -266,15 +273,19 @@ export function InstallmentsRoute() {
 
     create.mutate(
       {
-        ...common,
-        totalPrincipal: formValue.totalPrincipal.trim(),
-        installmentCount: formValue.installmentCount,
-        startDate: new Date(formValue.startDate).toISOString(),
-        aprPerPeriod: formValue.aprPerPeriod.trim() || undefined,
-        notes: formValue.notes.trim() || undefined,
+        body: {
+          ...common,
+          totalPrincipal: formValue.totalPrincipal.trim(),
+          installmentCount: formValue.installmentCount,
+          startDate: new Date(formValue.startDate).toISOString(),
+          aprPerPeriod: formValue.aprPerPeriod.trim() || undefined,
+          notes: formValue.notes.trim() || undefined,
+        },
+        idempotencyKey: createKey.current(),
       },
       {
         onSuccess: () => {
+          createKey.reset();
           toast.success(t("installments.created"));
           setForm(null);
         },
@@ -419,7 +430,6 @@ export function InstallmentsRoute() {
         value={formValue}
         onChange={(patch) => setFormValue((v) => ({ ...v, ...patch }))}
         accounts={accountList}
-        categoryOptions={summary?.categories ?? []}
         cardFrozen={
           retainedForm?.mode === "edit" &&
           (plans.find((p) => p.id === retainedForm.planId)?.billedCount ?? 0) > 0

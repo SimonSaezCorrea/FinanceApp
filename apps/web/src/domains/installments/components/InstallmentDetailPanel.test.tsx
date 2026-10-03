@@ -1,4 +1,5 @@
 import type { installments } from "@finance/contracts";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router";
@@ -37,7 +38,7 @@ function plan(over: Partial<installments.InstallmentPlan> = {}): installments.In
     frequency: "MONTHLY",
     frequencyInterval: 1,
     cardId: null,
-    category: "Tecnología",
+    categoryId: null,
     paymentAccountId: null,
     notes: null,
     payments: [
@@ -75,16 +76,18 @@ function renderPanel(
   };
   render(
     <MemoryRouter>
-      <I18nextProvider i18n={i18n}>
-        <InstallmentDetailPanel
-          plan={plan(over)}
-          cardLabel={null}
-          accountId={extra.accountId ?? null}
-          partiallyPaidStatementIds={extra.partiallyPaidStatementIds ?? new Set()}
-          busySequence={busy}
-          {...handlers}
-        />
-      </I18nextProvider>
+      <QueryClientProvider client={new QueryClient()}>
+        <I18nextProvider i18n={i18n}>
+          <InstallmentDetailPanel
+            plan={plan(over)}
+            cardLabel={null}
+            accountId={extra.accountId ?? null}
+            partiallyPaidStatementIds={extra.partiallyPaidStatementIds ?? new Set()}
+            busySequence={busy}
+            {...handlers}
+          />
+        </I18nextProvider>
+      </QueryClientProvider>
     </MemoryRouter>,
   );
   return handlers;

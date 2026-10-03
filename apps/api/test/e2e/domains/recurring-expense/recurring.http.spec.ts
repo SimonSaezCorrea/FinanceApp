@@ -1,3 +1,4 @@
+import { categoryIdFor } from "../../../integration/support/repositories";
 import { randomUUID } from "node:crypto";
 
 import type { INestApplication } from "@nestjs/common";
@@ -6,6 +7,7 @@ import cookieParser from "cookie-parser";
 import request from "supertest";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
+import { generateRowId } from "../../../../src/infra/id/generate-row-id";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
@@ -38,12 +40,46 @@ describe("Recurring HTTP (e2e)", () => {
 
     const registerRes = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E Recurring User" });
+      .send({
+        email,
+        password,
+        name: "E2E Recurring User",
+        sensitiveDataConsent: true,
+        birthDate: "1990-01-01",
+        identifierValue: (() => {
+          const b = String(Math.floor(1e6 + Math.random() * 24e6));
+          let s = 0,
+            m = 2;
+          for (let i = b.length - 1; i >= 0; i--) {
+            s += Number(b[i]) * m;
+            m = m === 7 ? 2 : m + 1;
+          }
+          const r = 11 - (s % 11);
+          return b + "-" + (r === 11 ? "0" : r === 10 ? "K" : String(r));
+        })(),
+      });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     const registerOther = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email: otherEmail, password, name: "Other" });
+      .send({
+        email: otherEmail,
+        password,
+        name: "Other",
+        sensitiveDataConsent: true,
+        birthDate: "1990-01-01",
+        identifierValue: (() => {
+          const b = String(Math.floor(1e6 + Math.random() * 24e6));
+          let s = 0,
+            m = 2;
+          for (let i = b.length - 1; i >= 0; i--) {
+            s += Number(b[i]) * m;
+            m = m === 7 ? 2 : m + 1;
+          }
+          const r = 11 - (s % 11);
+          return b + "-" + (r === 11 ? "0" : r === 10 ? "K" : String(r));
+        })(),
+      });
     const otherCookies = registerOther.get("Set-Cookie") ?? [];
     const otherAccount = await request(app.getHttpServer())
       .post("/api/v1/accounts")
@@ -85,7 +121,7 @@ describe("Recurring HTTP (e2e)", () => {
         label: "Arriendo",
         amount: "520000",
         currency: "CLP",
-        category: "Vivienda",
+        categoryId: await categoryIdFor(prisma, "HOUSING"),
         frequency: "MONTHLY",
         interval: 1,
         anchorDate: "2026-01-05T00:00:00.000Z",
@@ -144,5 +180,68 @@ describe("Recurring HTTP (e2e)", () => {
       .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("RECURRING_NOT_FOUND");
+  });
+
+  describe("end date and linked payments", () => {
+    const createSeries = (body: Record<string, unknown>) =>
+      request(app.getHttpServer())
+        .post("/api/v1/recurring")
+        .set("Cookie", cookies)
+        .send({
+          label: "Spotify",
+          amount: "6990",
+          currency: "CLP",
+          frequency: "MONTHLY",
+          anchorDate: "2026-01-01T00:00:00.000Z",
+          ...body,
+        });
+
+    it("a series that ended is FINISHED, with no next due date", async () => {
+      const res = await createSeries({ endDate: "2026-04-01T00:00:00.000Z" });
+      expect(res.status).toBe(201);
+      expect(res.body.status).toBe("FINISHED");
+      expect(res.body.nextDueAt).toBeNull();
+      // Reopening it (endDate: null) brings it back.
+      const reopened = await request(app.getHttpServer())
+        .patch(`/api/v1/recurring/${res.body.id}`)
+        .set("Cookie", cookies)
+        .send({ endDate: null });
+      expect(reopened.body.status).toBe("ACTIVE");
+      expect(reopened.body.nextDueAt).not.toBeNull();
+    });
+
+    it("refuses an end before the first occurrence", async () => {
+      const res = await createSeries({ endDate: "2025-12-01T00:00:00.000Z" });
+      expect(res.status).toBe(400);
+      expect(res.body.error.code).toBe("RECURRING_END_BEFORE_START");
+    });
+
+    it("a movement can be linked to one of the user's own series, never to another's", async () => {
+      const series = (await createSeries({})).body;
+      const accounts = await request(app.getHttpServer())
+        .get("/api/v1/accounts")
+        .set("Cookie", cookies);
+      const cash = accounts.body.find((a: { type: string }) => a.type === "CASH");
+      const movement = (recurringExpenseId: string) =>
+        request(app.getHttpServer())
+          .post("/api/v1/transactions")
+          .set("Cookie", cookies)
+          .set("Idempotency-Key", randomUUID())
+          .send({
+            type: "EXPENSE",
+            amount: "6990",
+            currency: "CLP",
+            occurredAt: "2026-01-01T00:00:00.000Z",
+            bankAccountId: cash.id,
+            recurringExpenseId,
+          });
+      const linked = await movement(series.id);
+      expect(linked.status).toBe(201);
+      expect(linked.body.recurringExpenseId).toBe(series.id);
+      const foreign = await movement(generateRowId());
+      expect(foreign.status).toBe(404);
+      expect(foreign.body.error.code).toBe("RECURRING_NOT_FOUND");
+      await prisma.transaction.deleteMany({ where: { recurringExpenseId: series.id } });
+    });
   });
 });

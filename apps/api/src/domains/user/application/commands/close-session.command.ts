@@ -6,5 +6,7 @@ export class CloseSessionCommand implements UserScopedCommand {
   constructor(
     public readonly userId: string,
     public readonly sessionId: string,
+    /** The caller's own `sid` — closing any OTHER session needs its recent step-up. */
+    public readonly currentSessionId: string,
   ) {}
 }

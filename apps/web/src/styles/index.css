@@ -64,6 +64,42 @@
     --debit-ink: 33 79% 77%; /* #f3c795 */
     --prepaid-surface: 197 27% 13%; /* #18262b */
     --prepaid-ink: 190 18% 77%; /* #b9ccd0 */
+
+    /* Brand mark "Cordillera" (design 2A): an outlined receipt whose top edge is the Andes,
+       with printed rows, the total and the amount carried over (arrastre). */
+    --logo-body: 189 44% 11%; /* #10262a boleta */
+    --logo-outline: 184 33% 58%; /* #6fb3b8 cordillera */
+    --logo-cap: 180 17% 92%; /* #e6eeee nieve */
+    --logo-rule: 190 24% 23%; /* #2c4247 */
+    --logo-total: 184 33% 58%; /* #6fb3b8 */
+    --logo-carry: 27 87% 67%; /* #F4A261 arrastre */
+
+    /* Landing hero "cordillera chart": the chart line is the ridge of a faceted massif (lit face,
+       mid crease, shadow face, a far range behind it, snow on the summits). */
+    --ridge-lit: 184 46% 34%; /* #2f7a80 */
+    --ridge-mid: 186 51% 25%; /* #1f5a60 */
+    --ridge-shade: 187 49% 16%; /* #15393e */
+    --ridge-far: 190 43% 10%; /* #0f2226 */
+    --ridge-snow: 180 19% 92%; /* #e6eeee */
+    --ridge-snow-shade: 185 22% 69%; /* #9fbfc2 */
+    --ridge-line: 175 51% 63%; /* #6fd0c8 */
+
+    /* Landing illustrations (sunset arch, feature vignettes, matching receipts, privacy rings):
+       hand-drawn line art painted with theme tokens only, never a hardcoded hex. */
+    --illus-sky-warm: 27 87% 67%; /* #F4A261 */
+    --illus-sky-mid: 12 76% 61%; /* #E76F51 */
+    --illus-sky-low: 187 49% 16%; /* #15393e */
+    --illus-sun: 40 90% 68%; /* #f2c369 */
+    --illus-sun-cut: 190 43% 10%; /* #0f2226, matches --ridge-far */
+    --illus-sun-deep: 12 76% 45%; /* darker clay, for a shaded rim */
+    --illus-paper: 190 24% 23%; /* matches --logo-rule */
+    --illus-print: 175 51% 63%; /* matches --ridge-line */
+    --illus-seal: 27 87% 67%; /* matches --illus-sky-warm */
+    --illus-coin-edge: 40 90% 68%; /* matches --illus-sun */
+    --illus-ink: 180 19% 92%; /* matches --ridge-snow */
+    --illus-ink-soft: 185 22% 69%; /* matches --ridge-snow-shade */
+    --illus-rule: 190 24% 23%;
+    --illus-shadow: 187 49% 16%;
   }
 
   [data-theme="light"] {
@@ -119,10 +155,49 @@
     --debit-ink: 17 68% 38%; /* #a4401f */
     --prepaid-surface: 194 17% 92%; /* #e6edef */
     --prepaid-ink: 197 22% 32%; /* #3f5b64 */
+
+    /* Brand mark — light values (see :root). */
+    --logo-body: 0 0% 100%;
+    --logo-outline: 185 62% 15%; /* #0e3b40 */
+    --logo-cap: 185 62% 15%;
+    --logo-rule: 180 15% 82%; /* #c9d6d6 */
+    --logo-total: 184 58% 29%; /* #1f6e74 */
+    --logo-carry: 26 70% 52%; /* #d9772f */
+
+    /* Landing hero ridge — light values (see :root). */
+    --ridge-lit: 185 37% 72%; /* #9ccdd1 */
+    --ridge-mid: 185 37% 79%; /* #b7dbde */
+    --ridge-shade: 185 28% 56%; /* #6fa9ae */
+    --ridge-far: 189 28% 91%; /* #e1ecee */
+    --ridge-snow: 0 0% 100%;
+    --ridge-snow-shade: 186 31% 87%; /* #d3e6e8 */
+    --ridge-line: 183 86% 19%; /* #07575b */
+
+    /* Landing illustrations — light values (see :root). */
+    --illus-sky-warm: 27 70% 52%; /* #d9772f */
+    --illus-sky-mid: 12 60% 48%;
+    --illus-sky-low: 185 37% 79%;
+    --illus-sun: 40 80% 60%;
+    --illus-sun-cut: 189 28% 91%;
+    --illus-sun-deep: 12 60% 38%;
+    --illus-paper: 180 15% 82%;
+    --illus-print: 183 86% 19%;
+    --illus-seal: 27 70% 52%;
+    --illus-coin-edge: 40 80% 60%;
+    --illus-ink: 191 21% 10%;
+    --illus-ink-soft: 190 12% 42%;
+    --illus-rule: 180 15% 82%;
+    --illus-shadow: 185 28% 56%;
   }
 
   * {
     border-color: hsl(var(--border));
+  }
+
+  html {
+    /* Reserve the scrollbar's width on every page, short or tall, so the header/nav doesn't
+       shift horizontally when navigating between a page that scrolls and one that doesn't. */
+    scrollbar-gutter: stable;
   }
 
   body {
@@ -138,6 +213,13 @@
       Roboto,
       sans-serif;
     -webkit-font-smoothing: antialiased;
+  }
+
+  /* Radix locks scroll by hiding the real scrollbar and adding its OWN compensating
+     `padding-right` to <body> (marked with this attribute) — stacked on top of the gutter
+     `html` already reserves above, that doubled the shift this section exists to prevent. */
+  body[data-scroll-locked] {
+    padding-right: 0 !important;
   }
 }
 

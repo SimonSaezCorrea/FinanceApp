@@ -63,3 +63,39 @@ export function reverseCashDelta(
 ): string {
   return isChargedToCredit(account, card) ? "0" : reverseBalanceDelta(type, amount);
 }
+
+/** One account move a transfer leg causes: its cash balance, or — on a credit
+ * card account, which has no cash — its credit pool (`pool`). */
+export interface LegDelta {
+  accountId: string;
+  delta: string;
+  pool?: boolean;
+}
+
+/**
+ * What one leg of a transfer does to its account. A transfer INTO a credit card
+ * account is paying the card: it lowers `creditUsed` instead of adding cash, and
+ * one OUT of it (a cash advance) raises it — exactly like any other income or
+ * expense on that account. Either way it is still a transfer: money moving
+ * between the user's own accounts, never income or spending.
+ */
+export function transferLegDelta(
+  type: "INCOME" | "EXPENSE",
+  amount: string,
+  account: { id: string; type: string },
+): LegDelta {
+  if (account.type === "CREDIT_CARD") {
+    return { accountId: account.id, delta: reverseBalanceDelta(type, amount), pool: true };
+  }
+  return { accountId: account.id, delta: balanceDelta(type, amount) };
+}
+
+/** Undo a transfer leg's effect on its account. */
+export function reverseTransferLegDelta(
+  type: "INCOME" | "EXPENSE",
+  amount: string,
+  account: { id: string; type: string },
+): LegDelta {
+  const leg = transferLegDelta(type, amount, account);
+  return { ...leg, delta: subtractMoney("0", leg.delta) };
+}

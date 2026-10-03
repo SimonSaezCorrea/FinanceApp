@@ -10,7 +10,7 @@ const tx = (over: Partial<transactions.Transaction>): transactions.Transaction =
   amount: "1000",
   currency: "CLP",
   occurredAt: "2026-08-01T00:00:00.000Z",
-  category: "Comida",
+  categoryId: "cat-food",
   description: null,
   observation: null,
   emisor: null,
@@ -29,14 +29,16 @@ const tx = (over: Partial<transactions.Transaction>): transactions.Transaction =
   paidStatementAccountId: null,
   prepaymentStatementId: null,
   prepaymentAccountId: null,
+  settlesStatementId: null,
+  transferStatementId: null,
   createdAt: "2026-08-01T00:00:00.000Z",
   updatedAt: "2026-08-01T00:00:00.000Z",
   ...over,
 });
 
 const transferPair = [
-  tx({ id: "x1", type: "EXPENSE", amount: "5000", transferGroupId: "g1", category: "Traspaso" }),
-  tx({ id: "x2", type: "INCOME", amount: "5000", transferGroupId: "g1", category: "Traspaso" }),
+  tx({ id: "x1", type: "EXPENSE", amount: "5000", transferGroupId: "g1" }),
+  tx({ id: "x2", type: "INCOME", amount: "5000", transferGroupId: "g1" }),
 ];
 
 describe("dashboard metrics exclude transfers", () => {
@@ -51,7 +53,7 @@ describe("dashboard metrics exclude transfers", () => {
 
   it("the category donut ignores the outgoing leg", () => {
     const slices = expensesByCategory([tx({ id: "a" }), ...transferPair]);
-    expect(slices).toEqual([{ category: "Comida", total: "1000.0000" }]);
+    expect(slices).toEqual([{ categoryId: "cat-food", total: "1000.0000" }]);
   });
 
   it("excludeTransfers keeps ordinary movements", () => {
@@ -74,6 +76,9 @@ describe("netWorth con deuda", () => {
       principal: "50000",
       currency: "CLP",
       settledAt: null,
+      totalInstallments: 1,
+      paidInstallments: 0,
+      installmentAmount: null,
       ...over,
     }) as debts.Debt;
 
@@ -84,6 +89,16 @@ describe("netWorth con deuda", () => {
   it("resta un préstamo pendiente y suma lo que a mí me deben", () => {
     expect(netWorth([account()], [debt()]).total).toBe("50000.0000");
     expect(netWorth([account()], [debt({ direction: "OWED_TO_YOU" })]).total).toBe("150000.0000");
+  });
+
+  it("cuenta solo lo pendiente de una deuda pagada en parte", () => {
+    const partial = debt({
+      direction: "OWED_TO_YOU",
+      principal: "200000",
+      totalInstallments: 4,
+      paidInstallments: 3,
+    });
+    expect(netWorth([account()], [partial]).total).toBe("150000.0000");
   });
 
   it("ignora deudas liquidadas y las de otra moneda", () => {

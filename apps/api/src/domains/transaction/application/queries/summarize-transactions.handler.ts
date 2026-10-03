@@ -5,6 +5,10 @@ import type { transactions } from "@finance/contracts";
 
 import { BaseQueryHandler } from "../../../../infra/cqrs/base-query.handler";
 import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
+import {
   TRANSACTION_REPOSITORY,
   type TransactionListFilter,
   type TransactionRepositoryPort,
@@ -19,7 +23,10 @@ export class SummarizeTransactionsQueryHandler extends BaseQueryHandler<
   transactions.TransactionSummary,
   TransactionListFilter
 > {
-  constructor(@Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort) {
+  constructor(
+    @Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
+  ) {
     super();
   }
 
@@ -31,6 +38,10 @@ export class SummarizeTransactionsQueryHandler extends BaseQueryHandler<
     query: SummarizeTransactionsQuery,
     where: TransactionListFilter,
   ): Promise<transactions.TransactionSummary> {
-    return this.repo.summary(query.userId, where);
+    const internal = await Promise.all([
+      this.categories.idForSystemCode("STATEMENT_PAYMENT"),
+      this.categories.idForSystemCode("CARD_PREPAYMENT"),
+    ]);
+    return this.repo.summary(query.userId, where, internal);
   }
 }

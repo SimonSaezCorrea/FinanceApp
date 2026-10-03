@@ -7,7 +7,7 @@ import { Link } from "react-router";
 import { cn } from "../../../shared/lib/cn";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "../../../shared/ui/button";
-import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { SidePanel } from "../../../shared/ui/overlay";
 import {
   billingWarningKey,
@@ -116,7 +116,7 @@ export function InstallmentDetailPanel({
       <div className="flex flex-col gap-5">
         <header className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-chip text-muted-foreground">
-            <CategoryIcon category={plan.category} className="h-5 w-5" />
+            <CategoryIcon categoryId={plan.categoryId} className="h-5 w-5" />
           </span>
           <div className="flex-1">
             <div className="flex items-center justify-between gap-2">

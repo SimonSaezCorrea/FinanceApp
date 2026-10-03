@@ -21,8 +21,8 @@ export const profileApi = {
       body: JSON.stringify(body),
     }),
 
-  deactivate: (body: auth.DeactivateRequest) =>
-    apiFetch<void>("/auth/me/deactivate", {
+  deleteAccount: (body: auth.DeleteAccountRequest) =>
+    apiFetch<void>("/auth/me/delete-account", {
       method: "POST",
       body: JSON.stringify(body),
     }),

@@ -18,12 +18,18 @@ describe("PrismaPasskeyRepository.renameOwned (integration)", () => {
 
   beforeAll(async () => {
     await prisma.$connect();
-    const user = await userRepo.create({ email, name: "Rename Test", passwordHash: "x" });
+    const user = await userRepo.create({
+      email,
+      name: "Rename Test",
+      passwordHash: "x",
+      birthDate: new Date("1990-01-01"),
+    });
     userId = user.id;
     const other = await userRepo.create({
       email: `int_passkey_rename_other_${randomUUID()}@test.local`,
       name: "Other",
       passwordHash: "x",
+      birthDate: new Date("1990-01-01"),
     });
     otherUserId = other.id;
     const row = await prisma.passkey.create({

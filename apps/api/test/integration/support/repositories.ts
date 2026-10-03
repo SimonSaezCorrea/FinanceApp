@@ -1,5 +1,6 @@
 import { PrismaBankAccountRepository } from "../../../src/domains/bank-account/infrastructure/prisma-bank-account.repository";
 import { PrismaBillingSettingsRepository } from "../../../src/domains/billing-settings/infrastructure/prisma-billing-settings.repository";
+import { PrismaCategoryRepository } from "../../../src/domains/category/infrastructure/prisma-category.repository";
 import { PrismaCardAccountRepository } from "../../../src/domains/card-account/infrastructure/prisma-card-account.repository";
 import { PrismaCardLimitRepository } from "../../../src/domains/card-limit/infrastructure/prisma-card-limit.repository";
 import { PrismaIdempotencyRecordRepository } from "../../../src/domains/idempotency-record/infrastructure/prisma-idempotency-record.repository";
@@ -100,4 +101,17 @@ export function buildWalletItemRepo(prisma: PrismaService): PrismaWalletItemRepo
 
 export function buildCountryRepo(prisma: PrismaService): PrismaCountryRepository {
   return new PrismaCountryRepository(prisma, new PrismaCountryIdentifierTypeRepository(prisma));
+}
+
+/** The real category catalogue adapter (reads the seeded `category` table). */
+export function buildCategoryLookup(prisma: PrismaService): PrismaCategoryRepository {
+  return new PrismaCategoryRepository(prisma);
+}
+
+/** The id of a seeded catalogue category, by code — specs that write a category
+ * need a real FK, not a label. */
+export async function categoryIdFor(prisma: PrismaService, code: string): Promise<string> {
+  const row = await prisma.category.findUnique({ where: { code }, select: { id: true } });
+  if (!row) throw new Error(`Category "${code}" is not seeded — run the seed first`);
+  return row.id;
 }

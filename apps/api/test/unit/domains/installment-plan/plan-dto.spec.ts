@@ -43,7 +43,7 @@ function plan(payments: InstallmentPaymentProps[], cardKind: "CREDIT" | "DEBIT" 
     frequency: "MONTHLY",
     frequencyInterval: 1,
     cardId: cardKind ? "c1" : null,
-    category: "Tecnología",
+    categoryId: "Tecnología",
     paymentAccountId: null,
     notes: null,
     payments,

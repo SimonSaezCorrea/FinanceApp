@@ -14,6 +14,7 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     name: null,
     passwordHash: "hashed",
     status: "ACTIVE",
+    deletedAt: null,
     preferredCurrency: "CLP",
     locale: "es",
     theme: "dark",
@@ -48,6 +49,8 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     saveWithTx: vi.fn(),
     findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn(),
+    findByIdentifierValue: vi.fn(),
+    deleteWithTx: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -60,6 +63,7 @@ function fakePasskeys(overrides: Partial<PasskeyRepositoryPort> = {}): PasskeyRe
     findByIdOwned: vi.fn(),
     updateCounterAndLastUsedWithTx: vi.fn(),
     deleteOwned: vi.fn(),
+    deleteAllForUserWithTx: vi.fn().mockResolvedValue(undefined),
     renameOwned: vi.fn(),
     ...overrides,
   };
@@ -70,9 +74,9 @@ function config(): ConfigService {
 }
 
 describe("StartPasskeyLoginHandler", () => {
-  it("resolves a real userId and allowCredentials when the email has passkeys", async () => {
+  it("resolves a real userId and allowCredentials when the RUT has passkeys", async () => {
     const repo = fakeRepo({
-      findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
+      findByIdentifierValue: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
     });
     const passkeys = fakePasskeys({
       findByUserId: vi.fn().mockResolvedValue([
@@ -96,15 +100,15 @@ describe("StartPasskeyLoginHandler", () => {
       config(),
     );
 
-    const result = await handler.execute(new StartPasskeyLoginCommand("a@b.com"));
+    const result = await handler.execute(new StartPasskeyLoginCommand("12345678-5"));
 
     expect(result.userId).toBe("u1");
     const options = result.options as { allowCredentials?: { id: string }[] };
     expect(options.allowCredentials?.[0]?.id).toBe("cred1");
   });
 
-  it("returns the SAME shape (empty allowCredentials, userId null) for an unknown email", async () => {
-    const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(null) });
+  it("returns the SAME shape (empty allowCredentials, userId null) for an unknown RUT", async () => {
+    const repo = fakeRepo({ findByIdentifierValue: vi.fn().mockResolvedValue(null) });
     const handler = new StartPasskeyLoginHandler(
       { publish: vi.fn() } as never,
       repo,
@@ -112,16 +116,16 @@ describe("StartPasskeyLoginHandler", () => {
       config(),
     );
 
-    const result = await handler.execute(new StartPasskeyLoginCommand("nobody@b.com"));
+    const result = await handler.execute(new StartPasskeyLoginCommand("99999999-9"));
 
     expect(result.userId).toBeNull();
     const options = result.options as { allowCredentials?: unknown[] };
     expect(options.allowCredentials).toEqual([]);
   });
 
-  it("returns the SAME shape for a known email with zero passkeys", async () => {
+  it("returns the SAME shape for a known RUT with zero passkeys", async () => {
     const repo = fakeRepo({
-      findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
+      findByIdentifierValue: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
     });
     const handler = new StartPasskeyLoginHandler(
       { publish: vi.fn() } as never,
@@ -130,7 +134,7 @@ describe("StartPasskeyLoginHandler", () => {
       config(),
     );
 
-    const result = await handler.execute(new StartPasskeyLoginCommand("a@b.com"));
+    const result = await handler.execute(new StartPasskeyLoginCommand("12345678-5"));
 
     expect(result.userId).toBeNull();
     const options = result.options as { allowCredentials?: unknown[] };

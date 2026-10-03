@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 import {
   fakeIdempotencyRecordRepo,
@@ -69,6 +70,12 @@ function statementProps(overrides: Partial<CreditStatementProps> = {}): CreditSt
     carriedToId: null,
     paidFromAccountId: null,
     paidTransactionId: null,
+    currency: "CLP",
+    transferredAt: null,
+    transferredAmount: null,
+    transferTransactionId: null,
+    settlementTransactionId: null,
+    transferredToId: null,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -79,6 +86,7 @@ function fakeAccountRepo(
   overrides: Partial<BankAccountRepositoryPort> = {},
 ): BankAccountRepositoryPort {
   return {
+    removeWithTx: vi.fn(async () => true),
     findById: vi.fn(),
     listByUser: vi.fn(),
     listDueForBilling: vi.fn(),
@@ -94,6 +102,7 @@ function fakeAccountRepo(
     removeCard: vi.fn(),
     incrementCreditUsedWithTx: vi.fn(),
     incrementBalanceWithTx: vi.fn(),
+    adjustOpeningWithTx: vi.fn(),
     ...overrides,
   };
 }
@@ -102,10 +111,13 @@ function fakeStatementRepo(
   overrides: Partial<CreditStatementRepositoryPort> = {},
 ): CreditStatementRepositoryPort {
   const merged: CreditStatementRepositoryPort = {
+    paymentTransactionIdsFromOtherAccounts: vi.fn(async () => []),
     findById: vi.fn(),
     findByIdForUpdateWithTx: vi.fn(),
     findOpenForAccount: vi.fn(),
+    listOpenForAccount: vi.fn(async () => []),
     findOrCreateOpenForAccount: vi.fn(async () => ({ id: "st_open" })),
+    findOrCreateOpenForAccountWithTx: vi.fn(async () => ({ id: "st_open" })),
     findOrCreateCarryOverTargetWithTx: vi.fn(async () => ({ id: "st_next" })),
     addCarriedOverWithTx: vi.fn(),
     isPaid: vi.fn(async () => false),
@@ -190,6 +202,7 @@ describe("PayCreditStatementHandler", () => {
       fakeTransactionWriterRepo(),
       fakePlanRepo(),
       prisma as never,
+      fakeCategoryLookup(),
     );
 
     const result = await handler.execute(
@@ -220,6 +233,7 @@ describe("PayCreditStatementHandler", () => {
       fakeTransactionWriterRepo(),
       fakePlanRepo(),
       fakePrisma() as never,
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(
@@ -252,6 +266,7 @@ describe("PayCreditStatementHandler", () => {
       fakeTransactionWriterRepo(),
       fakePlanRepo(),
       fakePrisma() as never,
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(
@@ -282,6 +297,7 @@ describe("PayCreditStatementHandler", () => {
       fakeTransactionWriterRepo(),
       fakePlanRepo(),
       fakePrisma() as never,
+      fakeCategoryLookup(),
     );
 
     const result = await handler.execute(
@@ -337,6 +353,7 @@ describe("PayCreditStatementHandler", () => {
         fakeTransactionWriterRepo(),
         planRepo,
         fakePrisma() as never,
+        fakeCategoryLookup(),
       );
 
       await handler.execute(
@@ -378,6 +395,7 @@ describe("PayCreditStatementHandler", () => {
         fakeTransactionWriterRepo(),
         planRepo,
         fakePrisma() as never,
+        fakeCategoryLookup(),
       );
 
       const result = await handler.execute(
@@ -429,6 +447,7 @@ describe("PayCreditStatementHandler", () => {
           fakeTransactionWriterRepo(),
           fakePlanRepo({ settleForStatementWithTx }),
           fakePrisma() as never,
+          fakeCategoryLookup(),
         );
         await handler.execute(
           new PayCreditStatementCommand(

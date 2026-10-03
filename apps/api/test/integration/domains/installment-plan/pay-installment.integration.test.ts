@@ -14,6 +14,7 @@ import {
   buildIdempotencyRecordRepo,
   buildInstallmentPlanRepo,
   buildTransactionWriterRepo,
+  categoryIdFor,
 } from "../../support/repositories";
 
 /**
@@ -91,7 +92,7 @@ describe("PayInstallmentHandler (integration)", () => {
       frequency: "MONTHLY",
       frequencyInterval: 1,
       cardId: null,
-      category: "Tecnología",
+      categoryId: await categoryIdFor(prisma, "TECHNOLOGY"),
       paymentAccountId: accountId,
       notes: null,
       payments: [
@@ -123,7 +124,7 @@ describe("PayInstallmentHandler (integration)", () => {
     expect(movements[0]!.type).toBe("EXPENSE");
     // Recognisable in Movements as this plan's instalment (FR-027).
     expect(movements[0]!.installmentPlanId).toBe(planId);
-    expect(movements[0]!.category).toBe("Tecnología");
+    expect(movements[0]!.categoryId).toBe(await categoryIdFor(prisma, "TECHNOLOGY"));
 
     const account = await prisma.bankAccount.findUniqueOrThrow({ where: { id: accountId } });
     expect(Number(account.currentBalance)).toBe(960000.0);

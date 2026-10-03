@@ -9,10 +9,11 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AppModule } from "../../../../src/app.module";
 import { AllExceptionsFilter } from "../../../../src/infra/http/all-exceptions.filter";
 import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
+import { randomValidRut } from "../../support/rut";
 
 /**
  * E2E test (SC-001): full register/login/refresh/profile/password/preferences/
- * deactivate HTTP flows through the migrated Facade controller — must behave
+ * delete-account HTTP flows through the migrated Facade controller — must behave
  * identically to the pre-migration `AuthController`/`AuthService`. Requires a
  * reachable Postgres (real test DB), not part of `test:unit`.
  */
@@ -20,8 +21,10 @@ describe("Auth HTTP (e2e)", () => {
   let app: INestApplication;
   let prisma: PrismaService;
   const email = `e2e_auth_${randomUUID()}@test.local`;
+  const rut = randomValidRut();
   const password = "Sup3rSecret!";
   let cookies: string[] = [];
+  let userId: string;
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
@@ -34,39 +37,53 @@ describe("Auth HTTP (e2e)", () => {
   });
 
   afterAll(async () => {
-    await prisma.user.deleteMany({ where: { email } });
+    // The delete-account test below (keepHistory=true) scrubs the email, so cleanup is by id
+    // (captured at registration), not by the now-gone email — an anonymized row is expected to
+    // still exist and is dev-DB test debris, not a leak, but we still don't want it lingering.
+    await prisma.user.deleteMany({ where: { id: userId } });
     await app.close();
   });
 
   it("registers a new user and sets httpOnly auth cookies", async () => {
-    const res = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E User" });
+    const res = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "E2E User",
+      identifierValue: rut,
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     expect(res.status).toBe(201);
     expect(res.body.email).toBe(email.toLowerCase());
+    userId = res.body.id;
     cookies = res.get("Set-Cookie") ?? [];
     expect(cookies.some((c) => c.startsWith("access_token="))).toBe(true);
     expect(cookies.some((c) => c.startsWith("refresh_token="))).toBe(true);
   });
 
   it("rejects registering the same email twice (EMAIL_TAKEN)", async () => {
-    const res = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({ email, password, name: "Dup" });
+    const res = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password,
+      name: "Dup",
+      identifierValue: randomValidRut(),
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+    });
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("EMAIL_TAKEN");
   });
 
-  it("logs in with correct credentials and rejects wrong ones", async () => {
+  it("logs in with correct credentials (RUT, not email) and rejects a wrong password", async () => {
     const ok = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password });
+      .send({ identifierValue: rut, password });
     expect(ok.status).toBe(200);
     cookies = ok.get("Set-Cookie") ?? [];
 
     const bad = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password: "wrong" });
+      .send({ identifierValue: rut, password: "wrong" });
     expect(bad.status).toBe(401);
     expect(bad.body.error.code).toBe("INVALID_CREDENTIALS");
   });
@@ -159,18 +176,29 @@ describe("Auth HTTP (e2e)", () => {
     cookies = fresh;
   });
 
-  it("POST /auth/me/deactivate soft-disables the account and clears cookies, blocking further login", async () => {
+  it("POST /auth/me/delete-account (keepHistory=true) scrubs PII, keeps the row, clears cookies and blocks further login", async () => {
     const res = await request(app.getHttpServer())
-      .post("/api/v1/auth/me/deactivate")
+      .post("/api/v1/auth/me/delete-account")
       .set("Cookie", cookies)
-      .send({ password: "newpassword123" });
+      .send({ password: "newpassword123", keepHistory: true });
     expect(res.status).toBe(204);
 
+    // The row survives (Ley 21.719 Art. 11 opt-in: "conservar mi historial anonimizado") but
+    // every PII field is null.
+    const row = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    expect(row.email).toBeNull();
+    expect(row.name).toBeNull();
+    expect(row.passwordHash).toBeNull();
+    expect(row.deletedAt).not.toBeNull();
+
+    // The RUT itself was scrubbed — the old value no longer resolves to any account, so this
+    // is now indistinguishable from a wrong RUT (never a `ACCOUNT_DISABLED` special case, which
+    // would leak that the account still exists under it).
     const loginAttempt = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
-      .send({ email, password: "newpassword123" });
+      .send({ identifierValue: rut, password: "newpassword123" });
     expect(loginAttempt.status).toBe(401);
-    expect(loginAttempt.body.error.code).toBe("ACCOUNT_DISABLED");
+    expect(loginAttempt.body.error.code).toBe("INVALID_CREDENTIALS");
   });
 
   it("POST /auth/logout clears cookies (204, no body)", async () => {

@@ -16,7 +16,7 @@ const tx = (over: Partial<transactions.Transaction> = {}): transactions.Transact
   amount: "1000.0000",
   currency: "CLP",
   occurredAt: "2026-08-01T00:00:00.000Z",
-  category: "Comida",
+  categoryId: "cat-food",
   description: "Almuerzo",
   observation: null,
   emisor: null,
@@ -35,6 +35,8 @@ const tx = (over: Partial<transactions.Transaction> = {}): transactions.Transact
   paidStatementAccountId: null,
   prepaymentStatementId: null,
   prepaymentAccountId: null,
+  settlesStatementId: null,
+  transferStatementId: null,
   createdAt: "2026-08-01T00:00:00.000Z",
   updatedAt: "2026-08-01T00:00:00.000Z",
   ...over,
@@ -104,7 +106,6 @@ describe("TransactionDetailPanel", () => {
           <MemoryRouter>
             <TransactionDetailPanel
               transaction={tx({
-                category: "Pago facturación",
                 paidStatementId: "s1",
                 paidStatementAccountId: "acc2",
               })}

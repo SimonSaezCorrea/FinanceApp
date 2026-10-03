@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 
 import type { BankAccountLookupPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account-lookup.port";
@@ -15,13 +16,14 @@ function makeExpense() {
     label: "Arriendo",
     amount: "520000",
     currency: "CLP",
-    category: null,
+    categoryId: null,
     frequency: "MONTHLY",
     interval: 1,
     anchorDate: new Date("2026-01-05T00:00:00Z"),
     bankAccountId: null,
     cardId: null,
     active: true,
+    endDate: null,
     notes: null,
     createdAt: new Date("2026-01-01T00:00:00Z"),
     updatedAt: new Date("2026-01-01T00:00:00Z"),
@@ -32,9 +34,12 @@ function fakeRepo(
   overrides: Partial<RecurringExpenseRepositoryPort> = {},
 ): RecurringExpenseRepositoryPort {
   return {
+    listIdsForAccount: vi.fn(async () => []),
+    removeManyWithTx: vi.fn(),
     list: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),
+    createWithTx: vi.fn(),
     save: vi.fn(),
     remove: vi.fn(),
     ...overrides,
@@ -70,6 +75,7 @@ describe("UpdateRecurringExpenseHandler", () => {
       repo,
       fakeAccounts(),
       fakeCards(),
+      fakeCategoryLookup(),
     );
     await expect(
       handler.execute(new UpdateRecurringExpenseCommand("u1", "ghost", {})),
@@ -84,6 +90,7 @@ describe("UpdateRecurringExpenseHandler", () => {
       repo,
       fakeAccounts(),
       fakeCards(),
+      fakeCategoryLookup(),
     );
 
     const result = await handler.execute(

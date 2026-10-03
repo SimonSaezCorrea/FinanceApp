@@ -36,7 +36,24 @@ describe("Wallet HTTP (e2e)", () => {
 
     const registerRes = await request(app.getHttpServer())
       .post("/api/v1/auth/register")
-      .send({ email, password, name: "E2E Wallet User" });
+      .send({
+        email,
+        password,
+        name: "E2E Wallet User",
+        sensitiveDataConsent: true,
+        birthDate: "1990-01-01",
+        identifierValue: (() => {
+          const b = String(Math.floor(1e6 + Math.random() * 24e6));
+          let s = 0,
+            m = 2;
+          for (let i = b.length - 1; i >= 0; i--) {
+            s += Number(b[i]) * m;
+            m = m === 7 ? 2 : m + 1;
+          }
+          const r = 11 - (s % 11);
+          return b + "-" + (r === 11 ? "0" : r === 10 ? "K" : String(r));
+        })(),
+      });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     const accountRes = await request(app.getHttpServer())
@@ -137,5 +154,38 @@ describe("Wallet HTTP (e2e)", () => {
       .set("Cookie", cookies);
     expect(res.status).toBe(404);
     expect(res.body.error.code).toBe("WALLET_ITEM_NOT_FOUND");
+  });
+
+  it("replaces the whole wallet in the order given (PUT)", async () => {
+    const all = await request(app.getHttpServer()).get("/api/v1/accounts").set("Cookie", cookies);
+    const cashId = (all.body as { id: string; type: string }[]).find((a) => a.type === "CASH")!.id;
+
+    const res = await request(app.getHttpServer())
+      .put("/api/v1/wallet")
+      .set("Cookie", cookies)
+      .send({ items: [{ accountId: cashId }, { accountId }] });
+    expect(res.status).toBe(200);
+    expect(res.body.map((i: { accountId: string }) => i.accountId)).toEqual([cashId, accountId]);
+
+    const listed = await request(app.getHttpServer()).get("/api/v1/wallet").set("Cookie", cookies);
+    expect(listed.body.map((i: { accountId: string }) => i.accountId)).toEqual([cashId, accountId]);
+
+    // Each entry once, and at most 4.
+    const dup = await request(app.getHttpServer())
+      .put("/api/v1/wallet")
+      .set("Cookie", cookies)
+      .send({ items: [{ accountId }, { accountId }] });
+    expect(dup.status).toBe(400);
+    const five = await request(app.getHttpServer())
+      .put("/api/v1/wallet")
+      .set("Cookie", cookies)
+      .send({ items: Array.from({ length: 5 }, () => ({ accountId })) });
+    expect(five.status).toBe(400);
+
+    const cleared = await request(app.getHttpServer())
+      .put("/api/v1/wallet")
+      .set("Cookie", cookies)
+      .send({ items: [] });
+    expect(cleared.body).toEqual([]);
   });
 });

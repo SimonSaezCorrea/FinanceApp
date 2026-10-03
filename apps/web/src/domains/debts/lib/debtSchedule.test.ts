@@ -80,4 +80,16 @@ describe("debtSchedule", () => {
     const total = schedule.reduce((sum, s) => sum + Number(s.amount), 0);
     expect(total).toBeCloseTo(1000, 4);
   });
+
+  it("splits a CLP debt into whole pesos, like the server charges it", () => {
+    const schedule = debtSchedule(
+      makeDebt({
+        totalInstallments: 3,
+        principal: "64990.0000",
+        currency: "CLP",
+        installmentAmount: null,
+      }),
+    );
+    expect(schedule.map((s) => s.amount)).toEqual(["21663.0000", "21663.0000", "21664.0000"]);
+  });
 });

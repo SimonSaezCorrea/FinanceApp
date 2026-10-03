@@ -214,7 +214,7 @@ export class PayInstallmentHandler extends BaseIdempotentCommandHandler<
         // left this account (FR-030).
         currency: account.currency,
         occurredAt: context.paidAt,
-        category: plan.category,
+        categoryId: plan.categoryId,
         description: `${plan.title} · ${context.sequence}/${plan.installmentCount}`,
         installmentPlanId: plan.id,
       });

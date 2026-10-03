@@ -16,4 +16,8 @@ export class PendingState implements CreditStatementState {
   canPrepay(): boolean {
     return false;
   }
+
+  canTransfer(): boolean {
+    return true;
+  }
 }

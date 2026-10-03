@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 
 import { CreateTransactionCommand } from "../../../../../../src/domains/transaction/application/commands/create-transaction.command";
@@ -81,6 +82,8 @@ function makeHandler(
     account?: BankAccount | null;
     card?: CardProps | null;
     statements?: ReturnType<typeof fakeCreditStatementRepo>;
+    /** The card's own limit in the movement's currency (spec 028: its USD one). */
+    cardLimit?: { limitAmount: string; usedInitial: string } | null;
   } = {},
 ) {
   const accounts = fakeBankAccountRepo({ findById: vi.fn(async () => opts.account ?? null) });
@@ -94,9 +97,13 @@ function makeHandler(
     repo,
     accounts,
     cards,
-    fakeCardLimitRepo(),
+    fakeCardLimitRepo({
+      findForCardCurrency: vi.fn(async () => (opts.cardLimit ?? null) as never),
+    }),
     statements,
     fakePrismaTransaction() as unknown as PrismaService,
+    fakeCategoryLookup(),
+    { findOne: vi.fn(async () => null) } as never,
   );
 }
 
@@ -235,5 +242,108 @@ describe("CreateTransactionHandler", () => {
       null,
       [{ accountId: "a1", delta: "-1000.0000" }],
     );
+  });
+
+  describe("foreign-currency movements on a credit card account (spec 028)", () => {
+    const usdLimit = { limitAmount: "100", usedInitial: "0" };
+    const saving = () =>
+      vi.fn().mockImplementation(async (_tx, userId, plan) =>
+        Transaction.fromPersistence({
+          id: "t1",
+          userId,
+          ...plan,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }),
+      );
+
+    it("links a USD charge to the OPEN USD period and leaves the CLP pool alone", async () => {
+      const saveNewWithTx = saving();
+      const statements = fakeCreditStatementRepo({
+        findOrCreateOpenForAccount: vi.fn(async () => ({ id: "stmt-usd" })),
+      });
+      const handler = makeHandler(fakeRepo({ saveNewWithTx }), {
+        account: creditAccount(),
+        card: creditCard,
+        statements,
+        cardLimit: usdLimit,
+      });
+      await handler.execute(
+        cmd({
+          ...base,
+          currency: "USD",
+          type: "EXPENSE",
+          amount: "9.06",
+          bankAccountId: "aC",
+          cardId: "cC",
+        }),
+      );
+      expect(statements.findOrCreateOpenForAccount).toHaveBeenCalledWith(
+        "aC",
+        expect.any(Date),
+        "USD",
+      );
+      expect(saveNewWithTx).toHaveBeenCalledWith(
+        expect.anything(),
+        "u1",
+        expect.objectContaining({ creditStatementId: "stmt-usd", currency: "USD" }),
+        null,
+        [],
+      );
+    });
+
+    it("a manual USD income with the card (a refund) also belongs to the USD period", async () => {
+      const saveNewWithTx = saving();
+      const statements = fakeCreditStatementRepo({
+        findOrCreateOpenForAccount: vi.fn(async () => ({ id: "stmt-usd" })),
+      });
+      const handler = makeHandler(fakeRepo({ saveNewWithTx }), {
+        account: creditAccount(),
+        card: creditCard,
+        statements,
+        cardLimit: usdLimit,
+      });
+      await handler.execute(
+        cmd({
+          ...base,
+          currency: "USD",
+          type: "INCOME",
+          amount: "12.29",
+          bankAccountId: "aC",
+          cardId: "cC",
+        }),
+      );
+      expect(statements.findOrCreateOpenForAccount).toHaveBeenCalledWith(
+        "aC",
+        expect.any(Date),
+        "USD",
+      );
+      expect(saveNewWithTx).toHaveBeenCalledWith(
+        expect.anything(),
+        "u1",
+        expect.objectContaining({ creditStatementId: "stmt-usd" }),
+        null,
+        [],
+      );
+    });
+
+    it("an account-currency charge still links to the CLP period", async () => {
+      const statements = fakeCreditStatementRepo({
+        findOrCreateOpenForAccount: vi.fn(async () => ({ id: "stmt-clp" })),
+      });
+      const handler = makeHandler(fakeRepo({ saveNewWithTx: saving() }), {
+        account: creditAccount(),
+        card: creditCard,
+        statements,
+      });
+      await handler.execute(
+        cmd({ ...base, type: "EXPENSE", amount: "1000", bankAccountId: "aC", cardId: "cC" }),
+      );
+      expect(statements.findOrCreateOpenForAccount).toHaveBeenCalledWith(
+        "aC",
+        expect.any(Date),
+        "CLP",
+      );
+    });
   });
 });

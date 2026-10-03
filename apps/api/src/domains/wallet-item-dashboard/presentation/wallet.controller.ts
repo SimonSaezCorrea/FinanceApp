@@ -7,6 +7,7 @@ import {
   Param,
   Patch,
   Post,
+  Put,
   UseGuards,
 } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
@@ -20,6 +21,7 @@ import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { AddWalletItemCommand } from "../application/commands/add-wallet-item.command";
 import { RemoveWalletItemCommand } from "../application/commands/remove-wallet-item.command";
 import { ReorderWalletCommand } from "../application/commands/reorder-wallet.command";
+import { ReplaceWalletCommand } from "../application/commands/replace-wallet.command";
 import { ListWalletQuery } from "../application/queries/list-wallet.query";
 import { walletItemIdParamsSchema } from "./dto/wallet-item-id.params";
 
@@ -47,6 +49,15 @@ export class WalletController {
     @Body(new ZodValidationPipe(wallet.createWalletItemSchema)) body: wallet.CreateWalletItem,
   ): Promise<wallet.WalletItem> {
     return this.commandBus.execute(new AddWalletItemCommand(user.id, body));
+  }
+
+  /** The whole wallet at once, in display order (at most `WALLET_MAX_ITEMS`). */
+  @Put()
+  replace(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(wallet.replaceWalletSchema)) body: wallet.ReplaceWallet,
+  ): Promise<wallet.WalletItem[]> {
+    return this.commandBus.execute(new ReplaceWalletCommand(user.id, body.items));
   }
 
   @Patch("reorder")

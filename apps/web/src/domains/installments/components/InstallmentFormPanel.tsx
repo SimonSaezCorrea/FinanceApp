@@ -7,7 +7,7 @@ import { CurrencyField } from "../../reference/components/CurrencyField";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
-import { CategoryIcon } from "../../../shared/ui/category-icon";
+import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import {
   FormBigTextField,
   FormCounterField,
@@ -30,7 +30,8 @@ export interface InstallmentFormValue {
   frequency: installments.InstallmentFrequency;
   frequencyInterval: number;
   aprPerPeriod: string;
-  category: string;
+  /** Catalogue category id, `""` for none. */
+  categoryId: string;
   cardId: string;
   paymentAccountId: string;
   notes: string;
@@ -45,7 +46,6 @@ interface Props {
   value: InstallmentFormValue;
   onChange: (patch: Partial<InstallmentFormValue>) => void;
   accounts: accountsContract.BankAccount[];
-  categoryOptions: string[];
   /** Spec 014, FR-006b: the plan's card is frozen once it has billed an instalment
    * — always false while creating. */
   cardFrozen?: boolean;
@@ -77,7 +77,6 @@ export function InstallmentFormPanel({
   value,
   onChange,
   accounts,
-  categoryOptions,
   cardFrozen = false,
   scheduleFrozen = false,
   onSubmit,
@@ -87,6 +86,7 @@ export function InstallmentFormPanel({
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
   const { data: currencies } = useCurrencies();
+  const { optionsFor } = useCategoryCatalog();
   const creating = mode === "create";
   // Whether the hero total/count/start-date fields are editable right now —
   // always true creating, and true editing too once nothing on the plan is
@@ -139,6 +139,7 @@ export function InstallmentFormPanel({
         // and the API has no formula to recompute it against a new total) — a
         // regenerated schedule is always plain equal-principal.
         aprPerPeriod: creating ? value.aprPerPeriod : undefined,
+        currency: value.currency,
       })
     : null;
 
@@ -269,24 +270,16 @@ export function InstallmentFormPanel({
             })}
           />
 
-          {/* FR-051: the movements' own repertoire — the same categories, so the
-              same icon shows up in both views. Picked from a list, same as
-              Recurrentes' own category field: typing lives in the panel's own
-              search box, not in the closed control. */}
+          {/* FR-051: the same global catalogue movements use — a plan is a
+              purchase, so only expense categories are offered. */}
           <FormSelectField
             id="plan-category"
             label={t("installments.form.category")}
-            value={value.category}
-            onChange={(category) => onChange({ category })}
+            value={value.categoryId}
+            onChange={(categoryId) => onChange({ categoryId })}
             options={[
               { value: "", label: t("recurring.form.noCategory") },
-              ...categoryOptions.map((c) => ({
-                value: c,
-                label: c,
-                icon: (
-                  <CategoryIcon category={c} className="h-4 w-4 shrink-0 text-muted-foreground" />
-                ),
-              })),
+              ...optionsFor("EXPENSE", value.categoryId),
             ]}
           />
 
@@ -365,7 +358,7 @@ export function emptyInstallmentForm(today: string): InstallmentFormValue {
     frequency: "MONTHLY",
     frequencyInterval: 1,
     aprPerPeriod: "",
-    category: "",
+    categoryId: "",
     cardId: "",
     paymentAccountId: "",
     notes: "",
@@ -383,7 +376,7 @@ export function installmentFormFrom(plan: installments.InstallmentPlan): Install
     frequency: plan.frequency,
     frequencyInterval: plan.frequencyInterval,
     aprPerPeriod: "",
-    category: plan.category ?? "",
+    categoryId: plan.categoryId ?? "",
     cardId: plan.cardId ?? "",
     paymentAccountId: plan.paymentAccountId ?? "",
     notes: plan.notes ?? "",

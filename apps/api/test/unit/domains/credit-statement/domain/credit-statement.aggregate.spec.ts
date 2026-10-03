@@ -28,6 +28,12 @@ function baseProps(overrides: Partial<CreditStatementProps> = {}): CreditStateme
     carriedToId: null,
     paidFromAccountId: null,
     paidTransactionId: null,
+    currency: "CLP",
+    transferredAt: null,
+    transferredAmount: null,
+    transferTransactionId: null,
+    settlementTransactionId: null,
+    transferredToId: null,
     createdAt: new Date("2026-01-01"),
     updatedAt: new Date("2026-01-01"),
     ...overrides,
@@ -35,6 +41,35 @@ function baseProps(overrides: Partial<CreditStatementProps> = {}): CreditStateme
 }
 
 describe("CreditStatement aggregate (State pattern)", () => {
+  it("exposes its currency", () => {
+    expect(CreditStatement.fromPersistence(baseProps({ currency: "USD" })).currency).toBe("USD");
+  });
+
+  it("a transferred period is TRANSFERRED and terminal (spec 028)", () => {
+    const statement = CreditStatement.fromPersistence(
+      baseProps({
+        currency: "USD",
+        closedAt: new Date("2026-08-20"),
+        transferredAt: new Date("2026-09-10"),
+        transferredAmount: "66052",
+      }),
+    );
+    expect(statement.state.name).toBe("TRANSFERRED");
+    expect(statement.state.canPay()).toBe(false);
+    expect(statement.state.canClose()).toBe(false);
+    expect(statement.state.canPrepay()).toBe(false);
+    expect(statement.state.canTransfer()).toBe(false);
+  });
+
+  it("only a PENDING period can be transferred", () => {
+    expect(CreditStatement.fromPersistence(baseProps()).state.canTransfer()).toBe(false);
+    expect(
+      CreditStatement.fromPersistence(
+        baseProps({ closedAt: new Date("2026-08-20") }),
+      ).state.canTransfer(),
+    ).toBe(true);
+  });
+
   it("OPEN -> PENDING via close(), emitting StatementClosedEvent", () => {
     const statement = CreditStatement.fromPersistence(baseProps());
     expect(statement.state.name).toBe("OPEN");

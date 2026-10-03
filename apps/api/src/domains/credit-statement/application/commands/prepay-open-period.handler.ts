@@ -3,6 +3,10 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import { subtractMoney } from "@finance/money";
 
+import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
 import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
   BaseIdempotentCommandHandler,
@@ -83,6 +87,7 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
     @Inject(TRANSACTION_WRITER_REPOSITORY)
     private readonly transactions: TransactionWriterRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
   ) {
     super(eventBus, records);
   }
@@ -156,7 +161,7 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
         amount: command.amount,
         currency: context.account.snapshot().currency,
         occurredAt: context.occurredAt,
-        category: "Prepago tarjeta",
+        categoryId: await this.categories.idForSystemCode("CARD_PREPAYMENT"),
         description: context.account.name,
         observation: context.reference,
         prepaymentStatementId: statement.id,
@@ -190,6 +195,7 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
         paymentDueCycleType: context.account.paymentDueCycleType,
         billingCycleDay: context.account.billingCycleDay,
         billingCycleType: context.account.billingCycleType,
+        accountCurrency: context.account.snapshot().currency,
       });
       await complete(tx, result);
       return { result, events: [] };

@@ -4,6 +4,11 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import type { installments } from "@finance/contracts";
 import { subtractMoney } from "@finance/money";
 
+import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
+import { assertSelectableCategory } from "../../../category/domain/category-policy";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {
@@ -71,6 +76,7 @@ export class UpdateInstallmentPlanHandler extends BaseCommandHandler<
     @Inject(TRANSACTION_WRITER_REPOSITORY)
     private readonly transactions: TransactionWriterRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
   ) {
     super(eventBus);
   }
@@ -80,6 +86,9 @@ export class UpdateInstallmentPlanHandler extends BaseCommandHandler<
     if (!plan) throw new InstallmentPlanNotFoundError();
 
     const { input } = command;
+    if (input.categoryId !== undefined && input.categoryId !== plan.snapshot().categoryId) {
+      await assertSelectableCategory(this.categories, input.categoryId, "EXPENSE");
+    }
     const scheduleChanging =
       input.totalPrincipal !== undefined ||
       input.installmentCount !== undefined ||
@@ -141,7 +150,7 @@ export class UpdateInstallmentPlanHandler extends BaseCommandHandler<
         ? { frequencyInterval: input.frequencyInterval }
         : {}),
       ...(input.cardId !== undefined ? { cardId: input.cardId } : {}),
-      ...(input.category !== undefined ? { category: input.category } : {}),
+      ...(input.categoryId !== undefined ? { categoryId: input.categoryId } : {}),
       ...(input.paymentAccountId !== undefined ? { paymentAccountId: input.paymentAccountId } : {}),
       ...(input.notes !== undefined ? { notes: input.notes } : {}),
       ...(input.totalPrincipal !== undefined ? { totalPrincipal: input.totalPrincipal } : {}),

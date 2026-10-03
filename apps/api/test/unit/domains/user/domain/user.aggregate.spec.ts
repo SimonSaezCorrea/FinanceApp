@@ -10,6 +10,7 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     name: "Ana Bravo",
     passwordHash: "hashed",
     status: "ACTIVE",
+    deletedAt: null,
     preferredCurrency: "CLP",
     locale: "es",
     theme: "dark",
@@ -106,27 +107,42 @@ describe("User aggregate", () => {
     expect(user.passwordHash).toBe("new-hash");
   });
 
-  describe("deactivate()", () => {
-    it("flips ACTIVE -> DISABLED and emits UserDeactivatedEvent", () => {
+  describe("delete()", () => {
+    it("flips ACTIVE -> DISABLED, stamps deletedAt and emits UserAccountDeletedEvent", () => {
       const user = User.fromPersistence(baseProps({ status: "ACTIVE" }));
-      const event = user.deactivate();
+      const event = user.delete();
       expect(user.status).toBe("DISABLED");
       expect(event).not.toBeNull();
       expect(event?.userId).toBe("u1");
     });
 
-    it("is idempotent: deactivating an already-DISABLED account emits no event", () => {
-      const user = User.fromPersistence(baseProps({ status: "DISABLED" }));
-      const event = user.deactivate();
+    it("is idempotent: deleting an already-deleted account emits no event", () => {
+      const user = User.fromPersistence(baseProps({ status: "DISABLED", deletedAt: new Date() }));
+      const event = user.delete();
       expect(event).toBeNull();
     });
 
-    it("touches no other field (FR-011: no data is deleted or modified)", () => {
-      const user = User.fromPersistence(baseProps({ name: "Ana Bravo", email: "a@b.com" }));
-      user.deactivate();
+    it("scrubs every PII field (Ley 21.719 Art. 11 supresión)", () => {
+      const user = User.fromPersistence(
+        baseProps({
+          name: "Ana Bravo",
+          email: "a@b.com",
+          phone: "+56911111111",
+          addressStreet: "Av. Siempre Viva 123",
+          birthDate: new Date("1990-01-01"),
+          identifierType: "RUT",
+          identifierValue: "11.111.111-1",
+        }),
+      );
+      user.delete();
       const contract = user.toContract();
-      expect(contract.name).toBe("Ana Bravo");
-      expect(contract.email).toBe("a@b.com");
+      expect(contract.name).toBeNull();
+      expect(contract.email).toBeNull();
+      expect(contract.phone).toBeNull();
+      expect(contract.addressStreet).toBeNull();
+      expect(contract.birthDate).toBeNull();
+      expect(contract.identifierValue).toBeNull();
+      expect(user.passwordHash).toBeNull();
     });
   });
 });

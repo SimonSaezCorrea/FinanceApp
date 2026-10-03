@@ -3,7 +3,8 @@ import { z } from "zod";
 import { accountType } from "../common/account-type";
 import { rowId } from "../common/row-id";
 
-/** Reference data contracts: countries, financial institutions, currencies (ISO 4217). Global, read-only. */
+/** Reference data contracts: countries, financial institutions, currencies (ISO 4217),
+ * movement categories. Global, read-only. */
 
 /** National identity document vocabulary — which types a country supports is data (see
  * `Country.identifierTypes` below), not fixed per value; a country may support more than one. */
@@ -94,6 +95,58 @@ export const currencySchema = z.object({
   symbol: z.string().nullable(),
 });
 export type Currency = z.infer<typeof currencySchema>;
+
+/**
+ * Which movement type a category applies to. `BOTH` covers the ones that make
+ * sense either way (a gift given or received, "otros").
+ */
+export const categoryKind = z.enum(["EXPENSE", "INCOME", "BOTH"]);
+export type CategoryKind = z.infer<typeof categoryKind>;
+
+/**
+ * A movement category from the GLOBAL catalogue — the same rows for every user
+ * (user-defined categories are deferred, see `docs/PENDING.md`). The API never
+ * returns its display name: `code` is a stable key the web resolves to
+ * `categories.<code>` in es/en, and to an icon.
+ *
+ * `isSystem` rows are assigned by the server itself (a savings contribution, a
+ * statement payment, …) and are never offered in a picker — choosing "Pago
+ * facturación" by hand for a random expense would describe something that
+ * didn't happen.
+ */
+export const categorySchema = z.object({
+  id: rowId,
+  code: z.string(),
+  kind: categoryKind,
+  isSystem: z.boolean(),
+  sortOrder: z.number().int(),
+});
+export type Category = z.infer<typeof categorySchema>;
+
+/** Codes of the categories the server assigns on its own (`isSystem: true`). */
+export const SYSTEM_CATEGORY = {
+  SAVINGS: "SAVINGS",
+  DEBTS: "DEBTS",
+  INTEREST: "INTEREST",
+  STATEMENT_PAYMENT: "STATEMENT_PAYMENT",
+  CARD_PREPAYMENT: "CARD_PREPAYMENT",
+  CURRENCY_TRANSFER: "CURRENCY_TRANSFER",
+} as const;
+export type SystemCategoryCode = (typeof SYSTEM_CATEGORY)[keyof typeof SYSTEM_CATEGORY];
+
+/**
+ * Whether a user may pick `category` for a movement of `type`. The API's
+ * validation and the web's pickers both call this, so they can't disagree.
+ * `type` omitted (a transfer, which is neither) only rules out system rows.
+ */
+export function isCategorySelectable(
+  category: Pick<Category, "kind" | "isSystem">,
+  type?: "INCOME" | "EXPENSE",
+): boolean {
+  if (category.isSystem) return false;
+  if (!type || category.kind === "BOTH") return true;
+  return category.kind === type;
+}
 
 /**
  * Institution list filters: by country ISO alpha-2, kind and/or the account

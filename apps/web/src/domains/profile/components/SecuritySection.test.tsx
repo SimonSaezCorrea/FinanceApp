@@ -20,13 +20,31 @@ vi.mock("../../auth/api/passkeyApi", () => ({
 const listSessions = vi.fn().mockResolvedValue([]);
 const closeSession = vi.fn().mockResolvedValue(undefined);
 const revokeOtherSessions = vi.fn().mockResolvedValue(undefined);
+const stepUp = vi
+  .fn()
+  .mockResolvedValue({ verifiedUntil: new Date(Date.now() + 5 * 60_000).toISOString() });
 vi.mock("../api/sessionsApi", () => ({
   sessionsApi: {
     list: (...args: unknown[]) => listSessions(...args),
     close: (...args: unknown[]) => closeSession(...args),
     revokeOthers: (...args: unknown[]) => revokeOtherSessions(...args),
+    stepUp: (...args: unknown[]) => stepUp(...args),
+    stepUpPasskeyOptions: vi.fn(),
+    stepUpPasskeyVerify: vi.fn(),
   },
 }));
+
+/** Verifies via the step-up modal's password field (the test user has no MFA/passkeys, so
+ * that's the only method offered) — every "close another session" / "cerrar todas" action goes
+ * through this since 2026-09-25. */
+async function completeStepUp() {
+  const passwordInput = await screen.findByLabelText(
+    i18n.t("profile.security.stepUp.passwordLabel"),
+  );
+  fireEvent.change(passwordInput, { target: { value: "whatever" } });
+  fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.security.stepUp.confirm") }));
+  await waitFor(() => expect(stepUp).toHaveBeenCalled());
+}
 
 const startMfaEnrollment = vi.fn();
 const confirmMfaEnrollment = vi.fn();
@@ -417,9 +435,33 @@ describe("SecuritySection — sessions", () => {
     fireEvent.click(
       screen.getByRole("button", { name: i18n.t("profile.security.sessions.close") }),
     );
+    await completeStepUp();
 
     await waitFor(() => expect(closeSession).toHaveBeenCalledWith("s2"));
     await waitFor(() => expect(screen.queryByText("Safari · iPhone")).toBeNull());
+  });
+
+  it("closing the caller's OWN current session never opens the step-up panel", async () => {
+    listSessions.mockResolvedValue([
+      {
+        id: "s1",
+        deviceLabel: "Chrome · Windows",
+        country: "CL",
+        createdAt: "2024-01-01T00:00:00Z",
+        lastUsedAt: "2024-01-02T00:00:00Z",
+        closedAt: null,
+        isCurrent: true,
+      },
+    ]);
+    const expandButton = renderSecurity();
+    fireEvent.click(expandButton);
+    await screen.findByText("Chrome · Windows");
+
+    // The current session's own row never offers a "Cerrar" button at all — signing out lives
+    // elsewhere (the sidebar), not here — so there is nothing to click that could open the panel.
+    expect(
+      screen.queryByRole("button", { name: i18n.t("profile.security.sessions.close") }),
+    ).toBeNull();
   });
 
   it("'cerrar todas' calls revoke-others and leaves only the current session", async () => {
@@ -461,6 +503,7 @@ describe("SecuritySection — sessions", () => {
     fireEvent.click(
       screen.getByRole("button", { name: i18n.t("profile.security.sessions.closeAll") }),
     );
+    await completeStepUp();
 
     await waitFor(() => expect(revokeOtherSessions).toHaveBeenCalled());
     await waitFor(() => expect(screen.queryByText("Safari · iPhone")).toBeNull());
@@ -510,6 +553,13 @@ describe("SecuritySection — sessions", () => {
       name: i18n.t("profile.security.sessions.close"),
     });
     expect(closeButtons).toHaveLength(0);
+    // Closed sessions are tucked into a collapsed group, apart from the open ones.
+    const group = screen
+      .getByText(i18n.t("profile.security.sessions.closedGroup", { count: 1 }))
+      .closest("details") as HTMLDetailsElement;
+    expect(group.open).toBe(false);
+    expect(group.textContent).toContain("Safari · iPhone");
+    expect(group.textContent).not.toContain("Chrome · Windows");
   });
 
   it("always shows the IPinfo attribution link, regardless of whether any session has a country (specs/026)", async () => {

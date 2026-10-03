@@ -19,6 +19,43 @@ describe("equalPrincipalSchedule", () => {
     expect(sumMoney(rows.map((r) => r.principal))).toBe("100.0000");
   });
 
+  it("rounds to whole pesos for CLP, the last instalment absorbing the rest", () => {
+    const rows = equalPrincipalSchedule({
+      totalPrincipal: "64990",
+      installmentCount: 3,
+      currency: "CLP",
+    });
+    expect(rows.map((r) => r.payment)).toEqual(["21663.0000", "21663.0000", "21664.0000"]);
+    expect(sumMoney(rows.map((r) => r.payment))).toBe("64990.0000");
+  });
+
+  it("rounds to cents for USD and to 4 decimals for the UF", () => {
+    const usd = equalPrincipalSchedule({
+      totalPrincipal: "100",
+      installmentCount: 3,
+      currency: "USD",
+    });
+    expect(usd.map((r) => r.payment)).toEqual(["33.3300", "33.3300", "33.3400"]);
+    const uf = equalPrincipalSchedule({
+      totalPrincipal: "1",
+      installmentCount: 3,
+      currency: "CLF",
+    });
+    expect(uf.map((r) => r.payment)).toEqual(["0.3333", "0.3333", "0.3334"]);
+  });
+
+  it("rounds interest to the currency too", () => {
+    const rows = equalPrincipalSchedule({
+      totalPrincipal: "100001",
+      installmentCount: 2,
+      aprPerPeriod: "0.015",
+      currency: "CLP",
+    });
+    // interest on 100001 = 1500.015 → 1500; on 50001 = 750.015 → 750
+    expect(rows.map((r) => r.interest)).toEqual(["1500.0000", "750.0000"]);
+    expect(rows.map((r) => r.payment)).toEqual(["51500.0000", "50751.0000"]);
+  });
+
   it("applies simple interest on the outstanding balance", () => {
     const rows = equalPrincipalSchedule({
       totalPrincipal: "1000",

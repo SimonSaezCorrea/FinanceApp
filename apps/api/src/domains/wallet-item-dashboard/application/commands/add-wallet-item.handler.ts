@@ -1,13 +1,14 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
-import type { wallet } from "@finance/contracts";
+import { wallet } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { WalletItem, type PlannedWalletItem } from "../../domain/wallet-item.aggregate";
 import {
   WalletAccountNotFoundError,
   WalletCardNotFoundError,
+  WalletFullError,
   WalletItemExistsError,
 } from "../../domain/errors";
 import {
@@ -53,6 +54,7 @@ export class AddWalletItemHandler extends BaseCommandHandler<
       throw new WalletItemExistsError();
 
     const order = await this.repo.count(userId);
+    if (order >= wallet.WALLET_MAX_ITEMS) throw new WalletFullError();
     const plan = WalletItem.planCreation({
       accountId: input.accountId,
       cardId: input.cardId,

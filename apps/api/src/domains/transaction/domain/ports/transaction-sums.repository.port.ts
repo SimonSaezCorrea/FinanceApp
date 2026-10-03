@@ -45,5 +45,8 @@ export interface TransactionSumsRepositoryPort {
     cardIds: string[] | null;
     from: Date;
     to: Date;
+    /** Spec 028: only the period's own currency counts, and a settlement INCOME
+     * (`settlesStatementId`) never does. */
+    currency: string;
   }): Promise<string>;
 }

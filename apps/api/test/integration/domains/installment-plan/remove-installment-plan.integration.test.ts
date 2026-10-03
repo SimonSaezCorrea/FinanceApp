@@ -81,7 +81,7 @@ describe("RemoveInstallmentPlanHandler (integration)", () => {
       frequency: "MONTHLY",
       frequencyInterval: 1,
       cardId: null,
-      category: null,
+      categoryId: null,
       paymentAccountId: accountId,
       notes: null,
       payments: [

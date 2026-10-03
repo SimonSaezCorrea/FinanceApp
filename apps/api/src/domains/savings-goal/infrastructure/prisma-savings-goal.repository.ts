@@ -49,7 +49,14 @@ export class PrismaSavingsGoalRepository implements SavingsGoalRepositoryPort {
     return row ? SavingsGoal.fromPersistence(rowToProps(row)) : null;
   }
 
-  async create(userId: string, plan: PlannedSavingsGoal): Promise<SavingsGoal> {
+  create(userId: string, plan: PlannedSavingsGoal): Promise<SavingsGoal> {
+    return this.createWithTx(this.prisma, userId, plan);
+  }
+
+  /** Same insert, enlisted in the caller's transaction (the template import
+   * creates many of these atomically with their movements). */
+  async createWithTx(tx: unknown, userId: string, plan: PlannedSavingsGoal): Promise<SavingsGoal> {
+    const client = tx as PrismaService;
     const data: Prisma.SavingsGoalUncheckedCreateInput = {
       userId,
       title: plan.title,
@@ -59,7 +66,7 @@ export class PrismaSavingsGoalRepository implements SavingsGoalRepositoryPort {
       notes: plan.notes,
       color: plan.color,
     };
-    const row = await this.prisma.savingsGoal.create({ data });
+    const row = await client.savingsGoal.create({ data });
     return SavingsGoal.fromPersistence(rowToProps(row));
   }
 

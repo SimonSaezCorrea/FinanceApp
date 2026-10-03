@@ -8,6 +8,8 @@ export interface SavingsGoalRepositoryPort {
   list(userId: string): Promise<SavingsGoal[]>;
   findOne(userId: string, id: string): Promise<SavingsGoal | null>;
   create(userId: string, plan: PlannedSavingsGoal): Promise<SavingsGoal>;
+  /** Same insert, enlisted in the caller's transaction. */
+  createWithTx(tx: unknown, userId: string, plan: PlannedSavingsGoal): Promise<SavingsGoal>;
   save(aggregate: SavingsGoal): Promise<void>;
   /** Same write, enlisted in the caller's transaction — so the goal's new
    * state and the idempotency record's COMPLETED mark commit together. */

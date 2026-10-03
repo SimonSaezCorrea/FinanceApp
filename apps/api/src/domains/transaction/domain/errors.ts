@@ -74,14 +74,6 @@ export class TransferSameAccountError extends DomainError {
   }
 }
 
-/** Money doesn't land in a credit line: settling one is a statement payment,
- * which has its own flow and its own accounting. */
-export class TransferToCreditAccountError extends DomainError {
-  constructor() {
-    super("TRANSFER_TO_CREDIT_ACCOUNT", 400, "toBankAccountId");
-  }
-}
-
 export class TransferAccountNotFoundError extends DomainError {
   constructor() {
     super("TRANSFER_ACCOUNT_NOT_FOUND", 404);
@@ -144,5 +136,14 @@ export class BalanceCeilingExceededError extends DomainError {
 export class TransactionLinkedToInstallmentError extends DomainError {
   constructor() {
     super("TRANSACTION_LINKED_TO_INSTALLMENT", 409);
+  }
+}
+
+/** Spec 028: the movement backs a statement's payment or transfer in another
+ * currency — corrected from that statement (correct the payment, undo the
+ * transfer), never edited or deleted in place. */
+export class TransactionLinkedToStatementError extends DomainError {
+  constructor() {
+    super("TRANSACTION_LINKED_TO_STATEMENT", 409);
   }
 }

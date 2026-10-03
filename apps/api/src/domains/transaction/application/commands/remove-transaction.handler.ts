@@ -5,7 +5,11 @@ import { subtractMoney } from "@finance/money";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
-import { reverseBalanceDelta, reverseCashDelta } from "../../domain/balance-delta";
+import {
+  reverseBalanceDelta,
+  reverseCashDelta,
+  reverseTransferLegDelta,
+} from "../../domain/balance-delta";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
@@ -39,6 +43,7 @@ import {
 } from "../../domain/ports/transaction-writer.repository.port";
 import { loadAccountContext } from "../account-context.loader";
 import { reconcilePrepaymentWithTx } from "./reconcile-prepayment";
+import { loadTransferAccounts } from "./create-transfer.handler";
 import { netDeltas } from "./update-transfer.handler";
 import { RemoveTransactionCommand } from "./remove-transaction.command";
 
@@ -133,7 +138,7 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
           : null;
       const contribution = account
         ? MovementPolicy.contribution(
-            { type: current.type, amount: current.amount },
+            { type: current.type, amount: current.amount, currency: current.currency },
             account,
             card,
             cardLimit,
@@ -176,18 +181,21 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
     if (current.isTransferLeg) {
       const pair = await this.repo.findTransferGroup(command.userId, current.transferGroupId!);
       if (!pair) throw new TransactionNotFoundError();
+      // A leg on a credit card account gives back pool, not cash.
+      const legs = await loadTransferAccounts(
+        this.accounts,
+        command.userId,
+        pair.outgoing.bankAccountId ?? undefined,
+        pair.incoming.bankAccountId ?? undefined,
+      );
       const removed = await this.repo.removeTransferPair(
         command.userId,
         current.transferGroupId!,
         netDeltas([
-          {
-            accountId: pair.outgoing.bankAccountId!,
-            delta: reverseBalanceDelta("EXPENSE", pair.outgoing.amount),
-          },
-          {
-            accountId: pair.incoming.bankAccountId!,
-            delta: reverseBalanceDelta("INCOME", pair.incoming.amount),
-          },
+          ...(legs.from
+            ? [reverseTransferLegDelta("EXPENSE", pair.outgoing.amount, legs.from)]
+            : []),
+          ...(legs.to ? [reverseTransferLegDelta("INCOME", pair.incoming.amount, legs.to)] : []),
         ]),
       );
       if (!removed) throw new TransactionNotFoundError();

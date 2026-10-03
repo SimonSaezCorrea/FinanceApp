@@ -7,6 +7,8 @@ import type {
   PublicKeyCredentialRequestOptionsJSON,
 } from "@simplewebauthn/server";
 
+import { auth } from "@finance/contracts";
+
 import { getPasskeyRpId } from "../../../../infra/config/passkey.config";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
@@ -48,10 +50,10 @@ export class StartPasskeyLoginHandler extends BaseCommandHandler<
   protected async handle(
     command: StartPasskeyLoginCommand,
   ): Promise<HandleResult<StartPasskeyLoginResult>> {
-    // No email at all: discoverable/"usernameless" flow — leave allowCredentials unset so the
+    // No RUT at all: discoverable/"usernameless" flow — leave allowCredentials unset so the
     // browser offers any resident passkey for this site's rpID on its own, account unresolved
     // until the user actually picks one (verify resolves it from the credential itself).
-    if (!command.email) {
+    if (!command.identifierValue) {
       const options = await generateAuthenticationOptions({
         rpID: getPasskeyRpId(this.config),
         userVerification: "preferred",
@@ -59,10 +61,12 @@ export class StartPasskeyLoginHandler extends BaseCommandHandler<
       return { result: { options, userId: null, discoverable: true }, events: [] };
     }
 
-    const user = await this.userRepo.findByEmail(command.email.toLowerCase());
+    const user = await this.userRepo.findByIdentifierValue(
+      auth.normalizeRut(command.identifierValue),
+    );
     const existing = user ? await this.passkeys.findByUserId(user.id) : [];
 
-    // Same shape whether the email doesn't exist or simply has no passkeys — an empty
+    // Same shape whether the RUT doesn't exist or simply has no passkeys — an empty
     // allowCredentials list is indistinguishable from either case to the caller.
     const options = await generateAuthenticationOptions({
       rpID: getPasskeyRpId(this.config),

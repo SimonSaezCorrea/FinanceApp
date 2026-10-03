@@ -35,6 +35,22 @@ function sameDay(a: Date, b: Date): boolean {
   );
 }
 
+/** Years shown per page of the year view — a 3×4 grid, same shape as the months. */
+const YEARS_PER_PAGE = 12;
+
+/** First year of the 12-year page containing `year`, aligned to multiples of 12
+ * so paging back and forth always lands on the same pages. */
+function yearPageStart(year: number): number {
+  return year - (((year % YEARS_PER_PAGE) + YEARS_PER_PAGE) % YEARS_PER_PAGE);
+}
+
+/**
+ * What the open calendar is showing. The header title steps UP a level
+ * (days → months → years); picking a cell steps back DOWN, so jumping to a date
+ * years away is three clicks instead of dozens of month arrows.
+ */
+type View = "days" | "months" | "years";
+
 /** The 42 cells of a month grid, weeks starting on Monday. */
 function monthGrid(month: Date): Date[] {
   const first = new Date(month.getFullYear(), month.getMonth(), 1);
@@ -93,6 +109,7 @@ export function DateField({
   const [month, setMonth] = useState<Date>(
     () => selected ?? new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   );
+  const [view, setView] = useState<View>("days");
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const today = new Date();
@@ -140,6 +157,7 @@ export function DateField({
   function openPanel() {
     if (disabled) return;
     setMonth(selected ?? new Date(today.getFullYear(), today.getMonth(), 1));
+    setView("days");
     setOpen(true);
   }
 
@@ -155,6 +173,45 @@ export function DateField({
         year: "numeric",
       })
     : t("common.date.choose");
+
+  const year = month.getFullYear();
+  const pageStart = yearPageStart(year);
+
+  // Per view: what the title says, what it steps up to, and how far the arrows move.
+  const header = {
+    days: {
+      title: month.toLocaleDateString(i18n.language, { month: "long", year: "numeric" }),
+      up: "months" as View | null,
+      upLabel: t("common.date.chooseMonth"),
+      prevLabel: t("common.date.previousMonth"),
+      nextLabel: t("common.date.nextMonth"),
+      step: (dir: number) => setMonth(new Date(year, month.getMonth() + dir, 1)),
+    },
+    months: {
+      title: String(year),
+      up: "years" as View | null,
+      upLabel: t("common.date.chooseYear"),
+      prevLabel: t("common.date.previousYear"),
+      nextLabel: t("common.date.nextYear"),
+      step: (dir: number) => setMonth(new Date(year + dir, month.getMonth(), 1)),
+    },
+    years: {
+      title: `${pageStart} – ${pageStart + YEARS_PER_PAGE - 1}`,
+      up: null as View | null,
+      upLabel: "",
+      prevLabel: t("common.date.previousYears"),
+      nextLabel: t("common.date.nextYears"),
+      step: (dir: number) => setMonth(new Date(year + dir * YEARS_PER_PAGE, month.getMonth(), 1)),
+    },
+  }[view];
+
+  const monthNames = Array.from({ length: 12 }, (_, i) =>
+    // Three letters each: es abbreviates September as "sept", which breaks the grid.
+    new Date(2024, i, 1)
+      .toLocaleDateString(i18n.language, { month: "short" })
+      .replace(".", "")
+      .slice(0, 3),
+  );
 
   const weekdays = Array.from({ length: 7 }, (_, i) =>
     // 2024-01-01 was a Monday, so this walks Monday→Sunday in any locale.
@@ -199,61 +256,138 @@ export function DateField({
               className="fixed rounded-lg border border-border bg-card p-3 shadow-md"
             >
               <div className="mb-2 flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold capitalize">
-                  {month.toLocaleDateString(i18n.language, { month: "long", year: "numeric" })}
-                </span>
+                {header.up ? (
+                  // The title IS the way up a level — a real button with a chevron,
+                  // not a label, so it reads as something to press.
+                  <button
+                    type="button"
+                    aria-label={header.upLabel}
+                    className="-ml-1 flex items-center gap-1 rounded-md px-1 py-0.5 text-sm font-semibold capitalize hover:bg-muted"
+                    onClick={() => setView(header.up!)}
+                  >
+                    {header.title}
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+                  </button>
+                ) : (
+                  <span className="text-sm font-semibold tabular-nums">{header.title}</span>
+                )}
                 <span className="flex items-center gap-1">
                   <button
                     type="button"
-                    aria-label={t("common.date.previousMonth")}
+                    aria-label={header.prevLabel}
                     className="rounded-md p-1 text-muted-foreground hover:bg-muted"
-                    onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))}
+                    onClick={() => header.step(-1)}
                   >
                     <ChevronLeft className="h-4 w-4" aria-hidden />
                   </button>
                   <button
                     type="button"
-                    aria-label={t("common.date.nextMonth")}
+                    aria-label={header.nextLabel}
                     className="rounded-md p-1 text-muted-foreground hover:bg-muted"
-                    onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))}
+                    onClick={() => header.step(1)}
                   >
                     <ChevronRight className="h-4 w-4" aria-hidden />
                   </button>
                 </span>
               </div>
 
-              <div className="grid grid-cols-7 gap-0.5 text-center">
-                {weekdays.map((w, i) => (
-                  <span
-                    key={`${w}-${i}`}
-                    className="pb-1 text-[11px] font-medium uppercase text-muted-foreground"
-                  >
-                    {w}
-                  </span>
-                ))}
-                {monthGrid(month).map((day) => {
-                  const outside = day.getMonth() !== month.getMonth();
-                  const isSelected = selected ? sameDay(day, selected) : false;
-                  const isToday = sameDay(day, today);
-                  return (
-                    <button
-                      key={day.toISOString()}
-                      type="button"
-                      onClick={() => pick(day)}
-                      className={cn(
-                        "h-8 rounded-md text-sm tabular-nums hover:bg-muted",
-                        outside && "text-muted-foreground/50",
-                        isToday && !isSelected && "ring-1 ring-inset ring-border",
-                        isSelected &&
-                          "bg-accent font-semibold text-accent-foreground hover:bg-accent",
-                      )}
-                      aria-current={isToday ? "date" : undefined}
+              {view === "months" ? (
+                <div className="grid grid-cols-3 gap-1">
+                  {monthNames.map((name, i) => {
+                    const isSelected =
+                      !!selected && selected.getFullYear() === year && selected.getMonth() === i;
+                    const isCurrent = today.getFullYear() === year && today.getMonth() === i;
+                    return (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => {
+                          setMonth(new Date(year, i, 1));
+                          setView("days");
+                        }}
+                        className={cn(
+                          "capitalize",
+                          cn(
+                            "h-[52px] rounded-md text-sm hover:bg-muted",
+                            isCurrent && !isSelected && "ring-1 ring-inset ring-border",
+                            isSelected &&
+                              "bg-accent font-semibold text-accent-foreground hover:bg-accent",
+                          ),
+                        )}
+                        aria-current={isCurrent ? "date" : undefined}
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {view === "years" ? (
+                <div className="grid grid-cols-3 gap-1">
+                  {Array.from({ length: YEARS_PER_PAGE }, (_, i) => pageStart + i).map((y) => {
+                    const isSelected = selected?.getFullYear() === y;
+                    const isCurrent = today.getFullYear() === y;
+                    return (
+                      <button
+                        key={y}
+                        type="button"
+                        onClick={() => {
+                          setMonth(new Date(y, month.getMonth(), 1));
+                          setView("months");
+                        }}
+                        className={cn(
+                          "tabular-nums",
+                          cn(
+                            "h-[52px] rounded-md text-sm hover:bg-muted",
+                            isCurrent && !isSelected && "ring-1 ring-inset ring-border",
+                            isSelected &&
+                              "bg-accent font-semibold text-accent-foreground hover:bg-accent",
+                          ),
+                        )}
+                        aria-current={isCurrent ? "date" : undefined}
+                      >
+                        {y}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {view === "days" ? (
+                <div className="grid grid-cols-7 gap-0.5 text-center">
+                  {weekdays.map((w, i) => (
+                    <span
+                      key={`${w}-${i}`}
+                      className="pb-1 text-[11px] font-medium uppercase text-muted-foreground"
                     >
-                      {day.getDate()}
-                    </button>
-                  );
-                })}
-              </div>
+                      {w}
+                    </span>
+                  ))}
+                  {monthGrid(month).map((day) => {
+                    const outside = day.getMonth() !== month.getMonth();
+                    const isSelected = selected ? sameDay(day, selected) : false;
+                    const isToday = sameDay(day, today);
+                    return (
+                      <button
+                        key={day.toISOString()}
+                        type="button"
+                        onClick={() => pick(day)}
+                        className={cn(
+                          "h-8 rounded-md text-sm tabular-nums hover:bg-muted",
+                          outside && "text-muted-foreground/50",
+                          isToday && !isSelected && "ring-1 ring-inset ring-border",
+                          isSelected &&
+                            "bg-accent font-semibold text-accent-foreground hover:bg-accent",
+                        )}
+                        aria-current={isToday ? "date" : undefined}
+                      >
+                        {day.getDate()}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
 
               <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
                 {clearable ? (

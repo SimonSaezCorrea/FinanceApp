@@ -52,4 +52,8 @@ export interface SessionRepositoryPort {
    * instant (i.e. `closedAt <= now - SESSION_CLOSED_RETENTION_DAYS`) — returns how many
    * were removed. */
   purgeClosedBefore(cutoff: Date): Promise<number>;
+  /** Hard-deletes every session row of a user, open or closed — used only by account
+   * deletion (specs pending), where the 3-day retention window is meaningless because the
+   * account it would let back in no longer exists. */
+  deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void>;
 }

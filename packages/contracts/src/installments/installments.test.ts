@@ -34,6 +34,16 @@ describe("planStatus", () => {
     expect(planStatus("2026-08-10T00:00:00.000Z", NOW, false)).toBe("OVERDUE");
   });
 
+  it("never calls a credit-card plan overdue: its statement charges the instalment", () => {
+    const past = "2026-08-10T00:00:00.000Z";
+    expect(planStatus(past, NOW, false, { nextBilled: false })).toBe("TO_BILL");
+    expect(planStatus(past, NOW, false, { nextBilled: true })).toBe("BILLED");
+    // A future one reads like any plan's.
+    expect(planStatus("2026-12-01T00:00:00.000Z", NOW, false, { nextBilled: false })).toBe(
+      "ON_TRACK",
+    );
+  });
+
   it("is DUE_SOON within the next 7 days", () => {
     expect(planStatus("2026-08-20T00:00:00.000Z", NOW, false)).toBe("DUE_SOON");
   });

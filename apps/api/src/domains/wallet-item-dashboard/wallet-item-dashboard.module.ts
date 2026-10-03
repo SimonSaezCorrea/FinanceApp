@@ -8,12 +8,18 @@ import { CardAccountDataModule } from "../card-account/card-account.data.module"
 import { AddWalletItemHandler } from "./application/commands/add-wallet-item.handler";
 import { RemoveWalletItemHandler } from "./application/commands/remove-wallet-item.handler";
 import { ReorderWalletHandler } from "./application/commands/reorder-wallet.handler";
+import { ReplaceWalletHandler } from "./application/commands/replace-wallet.handler";
 import { ListWalletQueryHandler } from "./application/queries/list-wallet.handler";
 import { WALLET_ITEM_REPOSITORY } from "./domain/ports/wallet-item.repository.port";
 import { PrismaWalletItemRepository } from "./infrastructure/prisma-wallet-item.repository";
 import { WalletController } from "./presentation/wallet.controller";
 
-const commandHandlers = [AddWalletItemHandler, ReorderWalletHandler, RemoveWalletItemHandler];
+const commandHandlers = [
+  AddWalletItemHandler,
+  ReorderWalletHandler,
+  RemoveWalletItemHandler,
+  ReplaceWalletHandler,
+];
 
 const queryHandlers = [ListWalletQueryHandler];
 

@@ -2,18 +2,21 @@ import "reflect-metadata";
 import { Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import cookieParser from "cookie-parser";
 
 import { AppModule } from "./app.module";
 import { registerArtificialDelay } from "./infra/http/artificial-delay.interceptor";
 import { AllExceptionsFilter } from "./infra/http/all-exceptions.filter";
+import { useJsonBodyLimit } from "./infra/http/body-limit";
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = app.get(ConfigService);
 
   app.setGlobalPrefix("api/v1");
   app.use(cookieParser());
+  useJsonBodyLimit(app);
   // Request validation is done with zod (packages/contracts) via per-domain pipes (US2),
   // not Nest's class-validator ValidationPipe.
   app.useGlobalFilters(new AllExceptionsFilter());

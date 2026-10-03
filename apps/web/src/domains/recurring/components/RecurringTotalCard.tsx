@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { formatMoney } from "@finance/money";
 
+import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { Tabs } from "../../../shared/ui/tabs";
 import type { RecurringCurrencyGroup } from "../lib/recurringMetrics";
 
@@ -19,6 +20,7 @@ interface Props {
  */
 export function RecurringTotalCard({ groups }: Props) {
   const { t, i18n } = useTranslation();
+  const { nameOf: categoryName } = useCategoryCatalog();
   const [selected, setSelected] = useState<string | null>(null);
 
   if (groups.length === 0) return null;
@@ -53,7 +55,7 @@ export function RecurringTotalCard({ groups }: Props) {
             <div className="flex h-[10px] w-full overflow-hidden rounded-full bg-track">
               {g.breakdown.map((b, i) => (
                 <div
-                  key={b.category}
+                  key={b.categoryId}
                   className={PALETTE[i % PALETTE.length]}
                   style={{ width: `${b.sharePct}%` }}
                 />
@@ -61,12 +63,12 @@ export function RecurringTotalCard({ groups }: Props) {
             </div>
             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
               {g.breakdown.map((b, i) => (
-                <span key={b.category} className="flex items-center gap-1.5">
+                <span key={b.categoryId} className="flex items-center gap-1.5">
                   <span
                     className={`h-2 w-2 shrink-0 rounded-[2px] ${PALETTE[i % PALETTE.length]}`}
                     aria-hidden
                   />
-                  {b.category || t("transactions.uncategorized")} {money(b.amount)}
+                  {categoryName(b.categoryId) ?? t("transactions.uncategorized")} {money(b.amount)}
                 </span>
               ))}
             </div>

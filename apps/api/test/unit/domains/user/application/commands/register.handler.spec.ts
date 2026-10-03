@@ -5,9 +5,18 @@ import { RegisterHandler } from "../../../../../../src/domains/user/application/
 import { fakeBankAccountRepo } from "../../../../support/fake-ports";
 import { RegisterCommand } from "../../../../../../src/domains/user/application/commands/register.command";
 import { SessionIssuer } from "../../../../../../src/domains/user/application/session-issuer";
-import { EmailTakenError } from "../../../../../../src/domains/user/domain/errors";
+import {
+  EmailTakenError,
+  IdentifierTakenError,
+} from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
+import type { ConsentRecordRepositoryPort } from "../../../../../../src/domains/consent-record/domain/ports/consent-record.repository.port";
+import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
+import type { ConfigService } from "@nestjs/config";
+
+const ADULT_BIRTHDATE = new Date("1990-01-01T00:00:00Z");
+const MINOR_BIRTHDATE = new Date(new Date().getFullYear() - 10, 0, 1); // always ~10 years old
 
 function baseProps(overrides: Partial<UserProps> = {}): UserProps {
   return {
@@ -16,6 +25,7 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     name: null,
     passwordHash: "hashed",
     status: "ACTIVE",
+    deletedAt: null,
     preferredCurrency: "CLP",
     locale: "es",
     theme: "dark",
@@ -50,6 +60,8 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
     saveWithTx: vi.fn(),
     findByIdForUpdateWithTx: vi.fn(),
     countryName: vi.fn(),
+    findByIdentifierValue: vi.fn(),
+    deleteWithTx: vi.fn().mockResolvedValue(undefined),
     ...overrides,
   };
 }
@@ -62,21 +74,59 @@ function fakeSessionIssuer(): SessionIssuer {
   } as unknown as SessionIssuer;
 }
 
+function fakeConsents(
+  overrides: Partial<ConsentRecordRepositoryPort> = {},
+): ConsentRecordRepositoryPort {
+  return {
+    createWithTx: vi.fn().mockResolvedValue(undefined),
+    listByUser: vi.fn(),
+    ...overrides,
+  };
+}
+
+function fakeConfig(): ConfigService {
+  return { getOrThrow: vi.fn().mockReturnValue("test-hmac-secret") } as unknown as ConfigService;
+}
+
+function fakePrisma(): PrismaService {
+  return {} as unknown as PrismaService;
+}
+
+function buildHandler(
+  overrides: {
+    repo?: UserRepositoryPort;
+    accounts?: ReturnType<typeof fakeBankAccountRepo>;
+    consents?: ConsentRecordRepositoryPort;
+    sessionIssuer?: SessionIssuer;
+  } = {},
+) {
+  return new RegisterHandler(
+    { publish: vi.fn() } as never,
+    overrides.repo ?? fakeRepo(),
+    overrides.accounts ?? fakeBankAccountRepo({ createWithCards: vi.fn() }),
+    overrides.consents ?? fakeConsents(),
+    overrides.sessionIssuer ?? fakeSessionIssuer(),
+    fakePrisma(),
+    fakeConfig(),
+  );
+}
+
 describe("RegisterHandler", () => {
   it("hashes the password, lower-cases the email, and issues tokens", async () => {
     const create = vi.fn().mockResolvedValue(User.fromPersistence(baseProps()));
     const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(null), create });
-    const sessionIssuer = fakeSessionIssuer();
     const accounts = fakeBankAccountRepo({ createWithCards: vi.fn() });
-    const handler = new RegisterHandler(
-      { publish: vi.fn() } as never,
-      repo,
-      accounts,
-      sessionIssuer,
-    );
+    const handler = buildHandler({ repo, accounts });
 
     const result = await handler.execute(
-      new RegisterCommand({ email: "A@B.com", password: "password123" }),
+      new RegisterCommand({
+        name: "Test User",
+        email: "A@B.com",
+        password: "password123",
+        identifierValue: "12.345.678-5",
+        birthDate: ADULT_BIRTHDATE,
+        sensitiveDataConsent: true,
+      }),
     );
 
     expect(result.user.email).toBe("a@b.com");
@@ -91,19 +141,133 @@ describe("RegisterHandler", () => {
     expect(cash).toMatchObject({ type: "CASH", name: "Efectivo" });
   });
 
+  it("records the reinforced consent (Ley 21.719 Art. 16) for the new user", async () => {
+    const create = vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ id: "u9" })));
+    const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(null), create });
+    const consents = fakeConsents();
+    const handler = buildHandler({ repo, consents });
+
+    await handler.execute(
+      new RegisterCommand({
+        name: "Test User",
+        email: "a@b.com",
+        password: "password123",
+        identifierValue: "12.345.678-5",
+        birthDate: ADULT_BIRTHDATE,
+        sensitiveDataConsent: true,
+      }),
+    );
+
+    expect(consents.createWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      "u9",
+      "SENSITIVE_DATA_PROCESSING",
+      expect.any(String),
+    );
+  });
+
+  it("also records the guardian authorization for a minor titular", async () => {
+    const create = vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ id: "u10" })));
+    const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(null), create });
+    const consents = fakeConsents();
+    const handler = buildHandler({ repo, consents });
+
+    await handler.execute(
+      new RegisterCommand({
+        name: "Test User",
+        email: "kid@b.com",
+        password: "password123",
+        identifierValue: "12.345.678-5",
+        birthDate: MINOR_BIRTHDATE,
+        sensitiveDataConsent: true,
+        guardianAuthorization: {
+          name: "Ana Madre",
+          identifierValue: "11.111.111-1",
+          relationship: "MOTHER",
+          accepted: true,
+        },
+      }),
+    );
+
+    expect(consents.createWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      "u10",
+      "SENSITIVE_DATA_PROCESSING",
+      expect.any(String),
+    );
+    expect(consents.createWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      "u10",
+      "MINOR_GUARDIAN_AUTHORIZATION",
+      expect.any(String),
+      expect.objectContaining({
+        guardianName: "Ana Madre",
+        guardianRelationship: "MOTHER",
+        guardianIdentifierHash: expect.any(String),
+      }),
+    );
+    const [, , , , guardianPlan] = (consents.createWithTx as ReturnType<typeof vi.fn>).mock
+      .calls[1]!;
+    expect(guardianPlan.guardianIdentifierHash).not.toBe("11.111.111-1");
+  });
+
+  it("does not record a guardian authorization for an adult titular", async () => {
+    const create = vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ id: "u11" })));
+    const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(null), create });
+    const consents = fakeConsents();
+    const handler = buildHandler({ repo, consents });
+
+    await handler.execute(
+      new RegisterCommand({
+        name: "Test User",
+        email: "a@b.com",
+        password: "password123",
+        identifierValue: "12.345.678-5",
+        birthDate: ADULT_BIRTHDATE,
+        sensitiveDataConsent: true,
+      }),
+    );
+
+    expect(consents.createWithTx).toHaveBeenCalledTimes(1);
+  });
+
   it("throws EMAIL_TAKEN when the email already exists", async () => {
     const repo = fakeRepo({
       findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
     });
-    const handler = new RegisterHandler(
-      { publish: vi.fn() } as never,
-      repo,
-      fakeBankAccountRepo(),
-      fakeSessionIssuer(),
-    );
+    const handler = buildHandler({ repo });
 
     await expect(
-      handler.execute(new RegisterCommand({ email: "a@b.com", password: "password123" })),
+      handler.execute(
+        new RegisterCommand({
+          name: "Test User",
+          email: "a@b.com",
+          password: "password123",
+          identifierValue: "12.345.678-5",
+          birthDate: ADULT_BIRTHDATE,
+          sensitiveDataConsent: true,
+        }),
+      ),
     ).rejects.toThrow(EmailTakenError);
+  });
+
+  it("throws IDENTIFIER_TAKEN when the RUT already exists (it's now the login credential)", async () => {
+    const repo = fakeRepo({
+      findByIdentifierValue: vi.fn().mockResolvedValue(User.fromPersistence(baseProps())),
+    });
+    const handler = buildHandler({ repo });
+
+    await expect(
+      handler.execute(
+        new RegisterCommand({
+          name: "Test User",
+          email: "new@b.com",
+          password: "password123",
+          identifierValue: "12.345.678-5",
+          birthDate: ADULT_BIRTHDATE,
+          sensitiveDataConsent: true,
+        }),
+      ),
+    ).rejects.toThrow(IdentifierTakenError);
   });
 });

@@ -1,3 +1,4 @@
+import { fakeCategoryLookup } from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 
 import type { BankAccountLookupPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account-lookup.port";
@@ -11,9 +12,12 @@ function fakeRepo(
   overrides: Partial<RecurringExpenseRepositoryPort> = {},
 ): RecurringExpenseRepositoryPort {
   return {
+    listIdsForAccount: vi.fn(async () => []),
+    removeManyWithTx: vi.fn(),
     list: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),
+    createWithTx: vi.fn(),
     save: vi.fn(),
     remove: vi.fn(),
     ...overrides,
@@ -58,6 +62,7 @@ describe("CreateRecurringExpenseHandler", () => {
       repo,
       fakeAccounts(),
       fakeCards(),
+      fakeCategoryLookup(),
     );
 
     const result = await handler.execute(

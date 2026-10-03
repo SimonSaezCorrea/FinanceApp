@@ -4,6 +4,10 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import type { savings } from "@finance/contracts";
 import { subtractMoney } from "@finance/money";
 
+import {
+  CATEGORY_LOOKUP,
+  type CategoryLookupPort,
+} from "../../../category/domain/ports/category-lookup.port";
 import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
   BaseIdempotentCommandHandler,
@@ -76,6 +80,7 @@ export class CreateSavingsEntryHandler extends BaseIdempotentCommandHandler<
     @Inject(TRANSACTION_WRITER_REPOSITORY)
     private readonly transactions: TransactionWriterRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
   ) {
     super(eventBus, records);
   }
@@ -143,7 +148,7 @@ export class CreateSavingsEntryHandler extends BaseIdempotentCommandHandler<
         amount: input.amount,
         currency: account.currency,
         occurredAt: plan.contributedAt,
-        category: "Ahorro",
+        categoryId: await this.categories.idForSystemCode("SAVINGS"),
         description:
           input.title?.trim() ||
           (context.goalTitle ? `Aporte a «${context.goalTitle}»` : "Aporte a ahorro libre"),

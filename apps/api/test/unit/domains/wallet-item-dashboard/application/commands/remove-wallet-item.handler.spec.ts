@@ -15,6 +15,7 @@ function fakeRepo(overrides: Partial<WalletItemRepositoryPort> = {}): WalletItem
     create: vi.fn(),
     reorder: vi.fn(),
     remove: vi.fn(),
+    replace: vi.fn(),
     ...overrides,
   };
 }

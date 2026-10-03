@@ -18,7 +18,12 @@ describe("PurgeClosedSessionsHandler (integration)", () => {
 
   beforeAll(async () => {
     await prisma.$connect();
-    const user = await userRepo.create({ email, name: "Purge Closed Test", passwordHash: "x" });
+    const user = await userRepo.create({
+      email,
+      name: "Purge Closed Test",
+      passwordHash: "x",
+      birthDate: new Date("1990-01-01"),
+    });
     userId = user.id;
   });
 

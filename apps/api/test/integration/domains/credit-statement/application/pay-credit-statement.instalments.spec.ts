@@ -1,3 +1,4 @@
+import { buildCategoryLookup } from "../../../support/repositories";
 import { randomUUID } from "node:crypto";
 
 import { ConfigService } from "@nestjs/config";
@@ -139,6 +140,7 @@ describe("PayCreditStatementHandler settles instalments (integration)", () => {
     const statement = await statementRepo.findOrCreateOpenForAccount(
       creditAccountId,
       new Date("2026-01-01T00:00:00.000Z"),
+      "CLP",
     );
     statementId = statement.id;
     await prisma.transaction.create({
@@ -187,6 +189,7 @@ describe("PayCreditStatementHandler settles instalments (integration)", () => {
       buildTransactionWriterRepo(prisma),
       planRepo,
       prisma,
+      buildCategoryLookup(prisma),
     );
     await payHandler.execute(
       new PayCreditStatementCommand(
