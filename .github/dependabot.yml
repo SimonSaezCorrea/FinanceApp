@@ -7,6 +7,13 @@ updates:
       interval: "weekly"
       day: "monday"
     open-pull-requests-limit: 5
+    ignore:
+      # TypeScript 7 (compilador nativo) aun no es adoptable: typescript-eslint aborta con
+      # "does not support TS 7.0", asi que `lint` no corre. Probado: con `module`/`moduleResolution`
+      # en `nodenext`, sin `baseUrl`/`ignoreDeprecations` y un import estatico en un spec,
+      # typecheck y build pasan; solo falta el soporte de typescript-eslint. Reabrir al llegar.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       nestjs:
         patterns:
