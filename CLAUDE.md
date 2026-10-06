@@ -1459,6 +1459,26 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
       both users and tests). No change to MFA (`login/mfa-verify`, still keyed off the pending
       token's `sub`, never an identifier field) or to the discoverable/"usernameless" passkey path
       (still resolves purely from the WebAuthn credential, never an identifier at all).
+      Amendment (login lockout + access panel fixes, 2026-10-06): password login is rate-limited
+      like the second factor — `LoginHandler` checks the password on the user row locked with
+      `findByIdForUpdateWithTx` inside one `$transaction`, counting into new
+      `User.loginFailedAttempts`/`loginLockedUntil` (separate from the MFA counter); 5 wrong in a
+      row (`application/login-lockout.ts`) lock it for 15 minutes with **`LOGIN_LOCKED`** (429),
+      the right password included; a success resets it (and writes only if something changed).
+      Failed attempts log only the RUT's last 4 characters (`maskRut`). Web, same pass:
+      `errors.INVALID_CREDENTIALS` says "RUT o contraseña" (it said "correo"); a passkey ceremony
+      that doesn't finish (closed prompt or no passkey on the device — the browser reports both as
+      `NotAllowedError`, so one copy covers both) shows an informational
+      `auth.passkey.notCompleted` instead of "wrong credentials"; "¿Olvidaste tu contraseña?" opens
+      an honest note (no password recovery exists — no email is sent; see `docs/PENDING.md`);
+      `LoginForm` reports success once (`reportSuccess`, guarded). `RegisterForm`: a failed submit
+      focuses the first problem in screen order (the submit lives in the panel's footer); the
+      consent and the guardian authorization show their error on their own `CheckCard`, whose
+      checkbox is now named by its title and DESCRIBED by its full text; `IDENTIFIER_TAKEN`/
+      `EMAIL_TAKEN` land on their field, the RUT one with an "Iniciar sesión →" switch (RUT kept);
+      the symbol is a hint outside the password checklist; the birth date is read as a LOCAL date
+      (`parseLocalDate`/`localIsoDate` in `auth/lib/validation.ts`) so the minor check and the
+      `max` don't slip a day in Chile. The register button is `primary` (teal).
       Compliance posture this closes (see `.compliance/RESUMEN.md`/`state.json`): hallazgo #1
       (no consentimiento reforzado — **now closed**) and hallazgo #3 (desactivar ≠ eliminar —
       **now closed**, real supresión exists). Still open: hallazgo #2 (no age-minimum check at
@@ -1764,7 +1784,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.3.12**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.3.13**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
 - **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
   `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.

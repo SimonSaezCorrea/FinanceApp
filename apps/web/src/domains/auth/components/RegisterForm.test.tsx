@@ -15,14 +15,18 @@ vi.mock("../api/authApi", () => ({
   },
 }));
 
-function renderRegister() {
+function renderRegister(onSwitchToLogin?: () => void) {
   return render(
     <Providers>
       <MemoryRouter>
-        <RegisterForm onSuccess={vi.fn()} />
+        <RegisterForm onSuccess={vi.fn()} onSwitchToLogin={onSwitchToLogin} />
       </MemoryRouter>
     </Providers>,
   );
+}
+
+function fillBirthDate(value = "1990-05-20") {
+  fireEvent.change(screen.getByLabelText(i18n.t("auth.birthDate")), { target: { value } });
 }
 
 function fillCommonFields() {
@@ -159,5 +163,71 @@ describe("RegisterForm — minor guardian authorization", () => {
         }),
       ),
     );
+  });
+});
+
+describe("RegisterForm — submit feedback", () => {
+  it("a missing consent is flagged on its own card, which gets focus", async () => {
+    register.mockReset();
+    renderRegister();
+    fillCommonFields();
+    // untick the consent fillCommonFields ticked
+    const consent = screen.getByRole("checkbox", {
+      name: i18n.t("auth.sensitiveDataConsentLabel"),
+    });
+    fireEvent.click(consent);
+    fillBirthDate();
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.createAccount") }));
+
+    expect(await screen.findByText(i18n.t("auth.consentRequired"))).toBeDefined();
+    expect(consent.getAttribute("aria-invalid")).toBe("true");
+    expect(document.activeElement).toBe(consent);
+    expect(register).not.toHaveBeenCalled();
+  });
+
+  it("the consent checkbox is described by its full text, not only its title", () => {
+    renderRegister();
+    const consent = screen.getByRole("checkbox", {
+      name: i18n.t("auth.sensitiveDataConsentLabel"),
+    });
+    const describedBy = consent.getAttribute("aria-describedby") ?? "";
+    const text = describedBy
+      .split(" ")
+      .map((id) => document.getElementById(id)?.textContent)
+      .join(" ");
+    expect(text).toContain("Política de Privacidad");
+  });
+
+  it("an invalid field above gets focus first", async () => {
+    renderRegister();
+    fillCommonFields();
+    fireEvent.change(screen.getByLabelText(i18n.t("auth.email")), { target: { value: "a@b" } });
+    fillBirthDate();
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.createAccount") }));
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByLabelText(i18n.t("auth.email"))),
+    );
+  });
+
+  it("a RUT that already has an account says so on the field and offers to sign in", async () => {
+    const { ApiRequestError } = await import("../../../shared/lib/apiClient");
+    register.mockReset();
+    register.mockRejectedValue(new ApiRequestError("IDENTIFIER_TAKEN", 409));
+    const onSwitchToLogin = vi.fn();
+    renderRegister(onSwitchToLogin);
+    fillCommonFields();
+    fillBirthDate();
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.createAccount") }));
+
+    expect(await screen.findByText(i18n.t("auth.signup.rutTaken"), { exact: false })).toBeDefined();
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(i18n.t("auth.signIn")) }));
+    expect(onSwitchToLogin).toHaveBeenCalledTimes(1);
+  });
+
+  it("the symbol is a recommendation outside the checklist", () => {
+    renderRegister();
+    const list = screen.getByRole("list", { name: i18n.t("auth.passwordRules.label") });
+    expect(list.textContent).not.toMatch(/símbolo|symbol/i);
+    expect(screen.getByText(i18n.t("auth.passwordRules.symbolHint"))).toBeDefined();
   });
 });

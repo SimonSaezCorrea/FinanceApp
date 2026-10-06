@@ -1,5 +1,5 @@
 import { Check, Eye, EyeOff } from "lucide-react";
-import { type HTMLAttributes, useId, useState } from "react";
+import { type HTMLAttributes, type ReactNode, type Ref, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "../../../shared/lib/cn";
@@ -15,13 +15,15 @@ interface Props {
   autoFocus?: boolean;
   inputMode?: HTMLAttributes<HTMLInputElement>["inputMode"];
   max?: string;
-  /** Validation message, shown under the line (which turns red). */
-  error?: string | null;
+  /** Validation message, shown under the line (which turns red). May carry an action (a link). */
+  error?: ReactNode;
   /** Draws a check at the end of the line — the value passed its own validation (a RUT's
    * check digit), so the user knows before submitting. */
   valid?: boolean;
   /** Digits line up (RUT, dates). */
   numeric?: boolean;
+  /** The input itself, so a form can move focus to its first invalid field. */
+  ref?: Ref<HTMLInputElement>;
 }
 
 /**
@@ -43,6 +45,7 @@ export function UnderlineField({
   error,
   valid,
   numeric,
+  ref,
 }: Readonly<Props>) {
   const { t } = useTranslation();
   const id = useId();
@@ -63,6 +66,7 @@ export function UnderlineField({
         )}
       >
         <input
+          ref={ref}
           id={id}
           type={isPassword && revealed ? "text" : type}
           value={value}

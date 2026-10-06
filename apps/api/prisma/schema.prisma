@@ -70,6 +70,13 @@ model User {
   /// Set once mfaFailedAttempts reaches the lockout threshold; every attempt while this is in
   /// the future is rejected without even evaluating the code (defense against timing attacks).
   mfaLockedUntil     DateTime?
+  /// Consecutive wrong passwords at login (by RUT) since the last correct one. Reset to 0 on
+  /// success. Same mechanism and limits as the second factor's counter, kept separate so a
+  /// wrong password never eats into the TOTP attempts or vice versa.
+  loginFailedAttempts Int      @default(0)
+  /// Set once loginFailedAttempts reaches the lockout threshold; every login while this is in
+  /// the future is rejected without comparing the password.
+  loginLockedUntil   DateTime?
 
   country            Country?                @relation(fields: [countryId], references: [id], onDelete: SetNull)
   bankAccounts       BankAccount[]

@@ -63,6 +63,8 @@ function rowToProps(row: Row, mfaEncryptionKey: string): UserProps {
       : null,
     mfaFailedAttempts: row.mfaFailedAttempts,
     mfaLockedUntil: row.mfaLockedUntil,
+    loginFailedAttempts: row.loginFailedAttempts,
+    loginLockedUntil: row.loginLockedUntil,
   };
 }
 
@@ -168,6 +170,8 @@ export class PrismaUserRepository implements UserRepositoryPort {
             : null,
           mfaFailedAttempts: snap.mfaFailedAttempts,
           mfaLockedUntil: snap.mfaLockedUntil,
+          loginFailedAttempts: snap.loginFailedAttempts,
+          loginLockedUntil: snap.loginLockedUntil,
         },
       });
     } catch (err) {

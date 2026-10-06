@@ -77,7 +77,6 @@ export function AuthPanel({ mode, onModeChange, onAuthenticated }: Readonly<Auth
             <Button
               type="submit"
               form={REGISTER_FORM_ID}
-              variant="accent"
               size="lg"
               disabled={registerBusy}
               className="w-full"
@@ -104,6 +103,7 @@ export function AuthPanel({ mode, onModeChange, onAuthenticated }: Readonly<Auth
             onIdentifierValueChange={setIdentifierValue}
             formId={REGISTER_FORM_ID}
             onBusyChange={setRegisterBusy}
+            onSwitchToLogin={() => onModeChange("login")}
           />
         )}
         {isLogin && loginStep === "credentials" ? switchLink : null}

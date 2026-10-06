@@ -40,6 +40,9 @@ export interface UserProps {
   mfaSecret: string | null;
   mfaFailedAttempts: number;
   mfaLockedUntil: Date | null;
+  /** Wrong-password counter for login, same shape as the MFA one (see `recordLoginFailure`). */
+  loginFailedAttempts: number;
+  loginLockedUntil: Date | null;
 }
 
 export type ProfilePatch = Partial<{
@@ -252,6 +255,29 @@ export class User {
     this.props.mfaLockedUntil = null;
   }
 
+  /** Login by RUT + password is rate-limited exactly like the second factor: N consecutive
+   * wrong passwords lock the account for a while, during which even the right one is refused. */
+  isLoginLocked(now: Date): boolean {
+    return (
+      this.props.loginLockedUntil !== null && this.props.loginLockedUntil.getTime() > now.getTime()
+    );
+  }
+
+  recordLoginFailure(threshold: number, lockMinutes: number, now: Date): void {
+    this.props.loginFailedAttempts += 1;
+    if (this.props.loginFailedAttempts >= threshold) {
+      this.props.loginLockedUntil = new Date(now.getTime() + lockMinutes * 60_000);
+    }
+  }
+
+  /** Returns whether anything changed, so a clean login doesn't write the row. */
+  recordLoginSuccess(): boolean {
+    if (this.props.loginFailedAttempts === 0 && this.props.loginLockedUntil === null) return false;
+    this.props.loginFailedAttempts = 0;
+    this.props.loginLockedUntil = null;
+    return true;
+  }
+
   /** Account deletion (Ley 21.719 Art. 11 supresión): scrubs every PII field to null and
    * flips the account permanently unreachable — but does NOT touch any other table.
    * Financial rows (BankAccount, Transaction, Debt, …) stay linked to this same `userId`
@@ -283,6 +309,8 @@ export class User {
     this.props.mfaSecret = null;
     this.props.mfaFailedAttempts = 0;
     this.props.mfaLockedUntil = null;
+    this.props.loginFailedAttempts = 0;
+    this.props.loginLockedUntil = null;
     return new UserAccountDeletedEvent(this.props.id);
   }
 

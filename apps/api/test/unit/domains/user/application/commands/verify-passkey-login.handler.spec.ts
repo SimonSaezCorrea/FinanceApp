@@ -45,6 +45,8 @@ function baseProps(overrides: Partial<UserProps> = {}): UserProps {
     mfaSecret: "JBSWY3DPEHPK3PXP",
     mfaFailedAttempts: 0,
     mfaLockedUntil: null,
+    loginFailedAttempts: 0,
+    loginLockedUntil: null,
     ...overrides,
   };
 }
