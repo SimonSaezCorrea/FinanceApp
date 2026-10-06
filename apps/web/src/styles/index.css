@@ -247,4 +247,43 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--muted-foreground) / 0.65);
   }
+
+  /* The landing hero's cordillera plots itself left to right once, on load: the balance line
+     climbing to its summit and ending at "today". The resting state is the full drawing, so with
+     reduced motion (or before this CSS loads) nothing is hidden. The negative insets keep the
+     summit/end dots, which sit on the edges, unclipped at rest. */
+  @media (prefers-reduced-motion: no-preference) {
+    .ridge-draw {
+      animation: ridge-draw 1.8s cubic-bezier(0.23, 1, 0.32, 1) 0.15s both;
+    }
+  }
+
+  /* Scroll-driven entry for landing sections: CSS only, tied to the element entering the
+     viewport. Starts from a faint (never invisible) state, and where `view()` timelines aren't
+     supported the element simply renders in place. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .reveal {
+        animation: reveal-rise linear both;
+        animation-timeline: view();
+        animation-range: entry 0% entry 55%;
+      }
+    }
+  }
+}
+
+@keyframes ridge-draw {
+  from {
+    clip-path: inset(-1rem 100% -1rem -1rem);
+  }
+  to {
+    clip-path: inset(-1rem -1rem -1rem -1rem);
+  }
+}
+
+@keyframes reveal-rise {
+  from {
+    opacity: 0.25;
+    transform: translateY(28px);
+  }
 }

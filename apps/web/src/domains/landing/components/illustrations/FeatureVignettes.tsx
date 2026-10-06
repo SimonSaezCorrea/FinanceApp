@@ -2,7 +2,7 @@ import { type ReactNode, useId } from "react";
 
 import { paint, sparkle } from "./paint";
 
-/** Shared frame of the three feature vignettes: a card-colored tile with a soft glow. */
+/** Shared frame of the feature vignettes: a card-colored tile with a soft glow. */
 function Tile({
   glow,
   className,
@@ -175,101 +175,6 @@ export function CalendarVignette({ className }: Readonly<{ className?: string }>
       <g style={{ fill: paint("illus-sun", 0.75) }}>
         <path d={sparkle(470, 96, 12)} />
         <path d={sparkle(100, 256, 8)} />
-      </g>
-    </Tile>
-  );
-}
-
-/** Three coins — $, US$ and UF — stacked into a small summit. */
-export function CoinsVignette({ className }: Readonly<{ className?: string }>) {
-  const id = useId().replaceAll(":", "");
-  const coins = [
-    {
-      cx: 205,
-      cy: 204,
-      from: "ridge-line",
-      to: "ridge-lit",
-      edge: "ridge-mid",
-      ink: "background",
-      label: "$",
-    },
-    {
-      cx: 375,
-      cy: 198,
-      from: "illus-sun",
-      to: "illus-sun-deep",
-      edge: "illus-coin-edge",
-      ink: "illus-ink",
-      label: "US$",
-    },
-    {
-      cx: 290,
-      cy: 124,
-      from: "illus-paper",
-      to: "illus-rule",
-      edge: "illus-ink-soft",
-      ink: "illus-ink",
-      label: "UF",
-    },
-  ];
-  return (
-    <Tile glow="ridge-line" className={className}>
-      <defs>
-        {coins.map((coin, index) => (
-          <linearGradient key={coin.label} id={`${id}-coin${index}`} x1="0" x2="1" y1="0" y2="1">
-            <stop offset="0" style={{ stopColor: paint(coin.from) }} />
-            <stop offset="1" style={{ stopColor: paint(coin.to) }} />
-          </linearGradient>
-        ))}
-      </defs>
-      <polyline
-        points="60,270 150,240 210,250 290,150 370,236 440,220 520,250"
-        fill="none"
-        strokeWidth={2}
-        strokeLinejoin="round"
-        style={{ stroke: paint("ridge-mid") }}
-      />
-      {coins.map((coin, index) => (
-        <g key={coin.label}>
-          <rect
-            x={coin.cx - 55}
-            y={coin.cy}
-            width="110"
-            height="26"
-            style={{ fill: paint(coin.edge) }}
-          />
-          <ellipse
-            cx={coin.cx}
-            cy={coin.cy + 26}
-            rx="55"
-            ry="18"
-            style={{ fill: paint(coin.edge) }}
-          />
-          <ellipse cx={coin.cx} cy={coin.cy} rx="55" ry="18" fill={`url(#${id}-coin${index})`} />
-          <ellipse
-            cx={coin.cx}
-            cy={coin.cy}
-            rx="42"
-            ry="12"
-            fill="none"
-            style={{ stroke: paint("illus-paper", 0.45) }}
-          />
-          <text
-            x={coin.cx}
-            y={coin.cy + 5}
-            textAnchor="middle"
-            className="font-mono"
-            fontSize="14"
-            fontWeight="600"
-            style={{ fill: paint(coin.ink) }}
-          >
-            {coin.label}
-          </text>
-        </g>
-      ))}
-      <g style={{ fill: paint("ridge-line", 0.75) }}>
-        <path d={sparkle(120, 102, 12)} />
-        <path d={sparkle(470, 118, 8)} />
       </g>
     </Tile>
   );

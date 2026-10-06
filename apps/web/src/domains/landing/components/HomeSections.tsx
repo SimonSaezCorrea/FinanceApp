@@ -1,39 +1,37 @@
+import { formatMoney } from "@finance/money";
+import { ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "../../../shared/lib/cn";
-import { CalendarVignette, CardsVignette, CoinsVignette } from "./illustrations/FeatureVignettes";
-import { SunsetArch } from "./illustrations/SunsetArch";
+import { Button } from "../../../shared/ui/button";
+import { useOpenAuth } from "../hooks/useOpenAuth";
+import { CalendarVignette, CardsVignette } from "./illustrations/FeatureVignettes";
+import { StripedSun } from "./illustrations/StripedSun";
 
 /*
- * The home's illustrated sections (canvas series "E"): one hand-drawn illustration on one side,
- * informative copy on the other. Illustrations are decorative (`aria-hidden`) and painted with
- * theme tokens only; below `lg` each section stacks, copy first.
+ * The home's sections below the hero. Each uses a different layout family, so the page never runs
+ * more than two text-beside-picture blocks in a row: a full-width band (why), two alternating rows
+ * (features), a split strip (currencies) and a closing band. Illustrations are decorative
+ * (`aria-hidden`) and painted with theme tokens only; below `lg` everything stacks, copy first.
+ * `reveal` is the scroll-driven entry from `styles/index.css` (a no-op without support or with
+ * reduced motion).
  */
 
 const P = "landing.home";
-
-function Eyebrow({ children, className }: Readonly<{ children: string; className?: string }>) {
-  return (
-    <span
-      className={cn(
-        "text-xs font-semibold uppercase tracking-wide text-muted-foreground",
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
-}
 
 function SectionTitle({
   id,
   lead,
   accent,
-}: Readonly<{ id: string; lead: string; accent?: string }>) {
+  className,
+}: Readonly<{ id: string; lead: string; accent?: string; className?: string }>) {
   return (
     <h2
       id={id}
-      className="text-balance text-3xl font-bold leading-[1.05] tracking-tight sm:text-[2.75rem]"
+      className={cn(
+        "text-balance text-3xl font-bold leading-[1.05] tracking-tight sm:text-[2.75rem]",
+        className,
+      )}
     >
       {lead}
       {accent ? (
@@ -46,35 +44,47 @@ function SectionTitle({
   );
 }
 
-/** E1 — why Cuadra: the sunset arch beside three numbered points. */
+/** Why Cuadra: a full-width band, the striped sun beside the title and the three reasons in an
+ * asymmetric row. The reasons aren't a sequence, so they carry a short rule, not a number. */
 export function WhySection() {
   const { t } = useTranslation();
   return (
+    // Edge to edge: the band breaks out of `main`'s column (the layout clips any horizontal
+    // overflow), while its content goes back to the same 1240px column as everything else, so the
+    // title lines up with the hero's copy.
     <section
       aria-labelledby="landing-why-title"
-      className="grid items-center gap-12 py-16 lg:grid-cols-12 lg:gap-8 lg:py-24"
+      className="relative left-1/2 w-screen -translate-x-1/2 border-y bg-surface2 py-14 lg:py-16"
     >
-      <SunsetArch className="order-2 mx-auto w-full max-w-md lg:order-1 lg:col-span-5 lg:max-w-none" />
-      <div className="flex flex-col gap-9 lg:order-2 lg:col-span-6 lg:col-start-7">
-        <div className="flex flex-col gap-4">
-          <Eyebrow className="text-accent">{t(`${P}.why.eyebrow`)}</Eyebrow>
-          <SectionTitle id="landing-why-title" lead={t(`${P}.why.title`)} />
+      <div className="mx-auto max-w-[1240px] px-4">
+        <div className="reveal grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
+          <SectionTitle
+            id="landing-why-title"
+            lead={t(`${P}.why.title`)}
+            className="max-w-[20ch]"
+          />
+          <StripedSun className="w-40 justify-self-start lg:w-60 lg:justify-self-end" />
         </div>
-        <ol className="flex flex-col gap-6">
+        <ul className="mt-10 grid gap-8 lg:grid-cols-[1.35fr_1fr_1fr] lg:gap-10">
           {(["1", "2", "3"] as const).map((n) => (
-            <li key={n} className="grid grid-cols-[4rem_minmax(0,1fr)] items-center gap-x-5">
-              <span className="font-mono text-4xl font-bold leading-none tracking-tight text-primary">
-                0{n}
-              </span>
-              <div className="flex flex-col gap-1.5">
-                <h3 className="text-lg font-semibold">{t(`${P}.why.${n}.title`)}</h3>
-                <p className="text-[15px] leading-relaxed text-muted-foreground">
-                  {t(`${P}.why.${n}.body`)}
-                </p>
-              </div>
+            <li
+              key={n}
+              className="reveal relative flex flex-col gap-2 pt-5 before:absolute before:left-0 before:top-0 before:h-[3px] before:w-9 before:rounded-full before:bg-primary"
+            >
+              <h3 className={cn("font-semibold", n === "1" ? "text-xl" : "text-lg")}>
+                {t(`${P}.why.${n}.title`)}
+              </h3>
+              <p
+                className={cn(
+                  "max-w-[46ch] leading-relaxed text-muted-foreground",
+                  n === "1" ? "text-base" : "text-[15px]",
+                )}
+              >
+                {t(`${P}.why.${n}.body`)}
+              </p>
             </li>
           ))}
-        </ol>
+        </ul>
       </div>
     </section>
   );
@@ -83,10 +93,9 @@ export function WhySection() {
 const FEATURES = [
   { key: "cards", Art: CardsVignette },
   { key: "calendar", Art: CalendarVignette },
-  { key: "currencies", Art: CoinsVignette },
 ] as const;
 
-/** E2 — three alternating rows, each an illustrated vignette beside its explanation. */
+/** Two alternating rows, each an illustrated vignette beside its explanation. */
 export function FeaturesSection() {
   const { t } = useTranslation();
   return (
@@ -94,18 +103,16 @@ export function FeaturesSection() {
       aria-labelledby="landing-features-title"
       className="flex flex-col gap-16 py-16 lg:gap-24 lg:py-24"
     >
-      <div className="flex max-w-3xl flex-col gap-3.5">
-        <Eyebrow>{t(`${P}.features.eyebrow`)}</Eyebrow>
-        <SectionTitle
-          id="landing-features-title"
-          lead={t(`${P}.features.titleLead`)}
-          accent={t(`${P}.features.titleAccent`)}
-        />
-      </div>
+      <SectionTitle
+        id="landing-features-title"
+        lead={t(`${P}.features.titleLead`)}
+        accent={t(`${P}.features.titleAccent`)}
+        className="reveal max-w-3xl"
+      />
       {FEATURES.map(({ key, Art }, index) => {
         const artFirst = index % 2 === 0;
         return (
-          <div key={key} className="grid items-center gap-8 lg:grid-cols-12 lg:gap-8">
+          <div key={key} className="reveal grid items-center gap-8 lg:grid-cols-12 lg:gap-8">
             <Art
               className={cn(
                 "order-2 w-full lg:order-none lg:col-span-6",
@@ -118,9 +125,6 @@ export function FeaturesSection() {
                 artFirst ? "lg:col-start-8" : "lg:col-start-1 lg:row-start-1",
               )}
             >
-              <span className="font-mono text-base font-medium tracking-wide text-primary sm:text-lg">
-                0{index + 1} · {t(`${P}.features.${key}.tag`)}
-              </span>
               <h3 className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
                 {t(`${P}.features.${key}.title`)}
               </h3>
@@ -131,6 +135,78 @@ export function FeaturesSection() {
           </div>
         );
       })}
+    </section>
+  );
+}
+
+/** Sample totals, one per MVP currency; CLF shows the UF's four decimals, as the app does. */
+const SAMPLE_TOTALS = [
+  { currency: "CLP", amount: "1284350" },
+  { currency: "USD", amount: "412.80" },
+  { currency: "CLF", amount: "38.4120" },
+] as const;
+
+/** Currencies: copy beside three separate totals, so the rule shows instead of being described. */
+export function CurrenciesStrip() {
+  const { t, i18n } = useTranslation();
+  return (
+    <section
+      aria-labelledby="landing-currencies-title"
+      className="reveal grid gap-8 border-t py-16 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.4fr)] lg:items-center lg:gap-14 lg:py-20"
+    >
+      <div className="flex max-w-[52ch] flex-col gap-3.5">
+        <SectionTitle id="landing-currencies-title" lead={t(`${P}.currencies.title`)} />
+        <p className="text-base leading-relaxed text-muted-foreground">
+          {t(`${P}.currencies.body`)}
+        </p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <ul className="grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3">
+          {SAMPLE_TOTALS.map(({ currency, amount }) => (
+            <li key={currency} className="flex flex-col gap-1.5 bg-card p-5">
+              <span className="font-mono text-xs font-medium text-primary">{currency}</span>
+              <span className="text-2xl font-semibold tabular-nums tracking-tight">
+                {formatMoney(amount, { locale: i18n.language, currency })}
+              </span>
+              <span className="text-sm text-muted-foreground">
+                {t(`${P}.currencies.items.${currency}`)}
+              </span>
+            </li>
+          ))}
+        </ul>
+        <span className="self-end font-mono text-[11px] text-dim">
+          {t(`${P}.currencies.sample`)}
+        </span>
+      </div>
+    </section>
+  );
+}
+
+/** The page's last word: the same sign-up as the hero, with a fact the visitor can act on. */
+export function ClosingCta() {
+  const { t } = useTranslation();
+  const openAuth = useOpenAuth();
+  return (
+    <section aria-labelledby="landing-closing-title" className="pb-16 pt-4">
+      <div className="reveal grid gap-6 rounded-2xl bg-primary px-7 py-9 text-primary-foreground lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:px-12 lg:py-12">
+        <div className="flex flex-col gap-3">
+          <h2
+            id="landing-closing-title"
+            className="max-w-[20ch] text-balance text-3xl font-bold leading-[1.08] tracking-tight sm:text-4xl"
+          >
+            {t(`${P}.closing.title`)}
+          </h2>
+          <p className="max-w-[46ch] text-base opacity-85">{t(`${P}.closing.body`)}</p>
+        </div>
+        <Button
+          size="lg"
+          className="justify-self-start bg-background text-foreground hover:bg-background/90"
+          onClick={() => openAuth("register")}
+        >
+          {t("auth.createAccount")}
+          <ArrowRight className="h-4 w-4" aria-hidden />
+        </Button>
+      </div>
     </section>
   );
 }

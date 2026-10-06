@@ -32,13 +32,19 @@ const NAV = [
   { to: "/preguntas", key: "landing.nav.faq" },
 ] as const;
 
-/** Public chrome of the landing: sticky header (brand, sections, theme, access), footer and the
- * access side panel. Every public page renders inside it. */
+const FOOTER_LINKS = [
+  { to: "/privacidad", key: "landing.nav.privacy" },
+  { to: "/precios", key: "landing.nav.pricing" },
+  { to: "/preguntas", key: "landing.nav.faq" },
+] as const;
+
+/** Public chrome of the landing: skip link, sticky header (brand, sections, theme, access),
+ * footer and the access side panel. Every public page renders inside it. */
 export function LandingLayout({ children }: Readonly<{ children: ReactNode }>) {
   const { t } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const mainRef = useRef<HTMLElement>(null);
   const lastPathname = useRef<string | null>(null);
@@ -71,7 +77,8 @@ export function LandingLayout({ children }: Readonly<{ children: ReactNode }>) {
   useEffect(() => {
     const changed = lastPathname.current !== pathname;
     lastPathname.current = pathname;
-    if (!changed || navigationType === "POP") return;
+    // A link with an anchor (`/preguntas#faq-minors`) lands on that anchor, not the top.
+    if (!changed || navigationType === "POP" || hash) return;
     // With the panel open, focus belongs to it.
     if (!authMode) mainRef.current?.querySelector("h1")?.focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -83,6 +90,12 @@ export function LandingLayout({ children }: Readonly<{ children: ReactNode }>) {
       {/* `overflow-x-clip` at the viewport, not per section: the home hero's tilted cards may
           reach past the content column, just never past the screen. */}
       <div className="min-h-dvh overflow-x-clip bg-background text-foreground">
+        <a
+          href="#landing-main"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-foreground focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-background"
+        >
+          {t("landing.skipToContent")}
+        </a>
         <header className="sticky top-0 z-40 border-b bg-background/85 backdrop-blur">
           <div className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
             <Link to="/" className="mr-auto flex items-center gap-2.5">
@@ -128,17 +141,30 @@ export function LandingLayout({ children }: Readonly<{ children: ReactNode }>) {
           </div>
         </header>
 
-        <main ref={mainRef} className="mx-auto max-w-[1240px] px-4">
+        <main
+          ref={mainRef}
+          id="landing-main"
+          tabIndex={-1}
+          className="mx-auto max-w-[1240px] px-4 focus:outline-none"
+        >
           {children}
 
-          <footer className="flex flex-wrap gap-x-6 gap-y-2 border-t py-8 text-xs text-muted-foreground">
-            <span>
-              {t("brand.slogan")} · {t("landing.footer.tagline")}
-            </span>
-            <span>{t("landing.footer.sample")}</span>
-            <Link to="/preguntas" className="ml-auto transition-colors hover:text-foreground">
-              {t("landing.nav.faq")}
-            </Link>
+          <footer className="flex flex-wrap items-center gap-x-6 gap-y-2 border-t py-8 text-xs text-muted-foreground">
+            <span>{t("landing.footer.tagline")}</span>
+            <nav
+              aria-label={t("landing.footer.nav")}
+              className="flex flex-wrap gap-x-5 gap-y-1 sm:ml-auto"
+            >
+              {FOOTER_LINKS.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="transition-colors hover:text-foreground"
+                >
+                  {t(item.key)}
+                </Link>
+              ))}
+            </nav>
           </footer>
         </main>
 

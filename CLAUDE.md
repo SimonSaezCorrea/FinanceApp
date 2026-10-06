@@ -1229,13 +1229,13 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   option rounds C→E for home, N for Nosotros, P for Privacidad, PL for Precios, F for Preguntas),
   all under **`domains/landing/components/illustrations/`** (`paint.ts`'s `paint(name, alpha?)`
   helper — every fill/stroke goes through `style` since SVG presentation attributes can't resolve
-  CSS variables — plus `SunsetArch`, `FeatureVignettes`, `MatchingReceipts`, `PrivacyRings`), backed
+  CSS variables — plus `StripedSun`, `FeatureVignettes`, `MatchingReceipts`, `PrivacyRings`), backed
   by a new `--illus-*` token set (both theme blocks in `styles/index.css`). Home: `WhySection` +
   `FeaturesSection` (`components/HomeSections.tsx`) replace the old claims/preview blocks —
-  `WhySection` is the sunset arch beside three numbered "por qué Cuadra" points
+  `WhySection` is the striped sun beside three numbered "por qué Cuadra" points
   (`landing.home.why.*`), `FeaturesSection` is three alternating illustrated rows
   (`landing.home.features.*`: cards/calendar/currencies). Nosotros: two matching receipts, a ridge
-  band under "cómo la construimos", three numbered principles and an honest available/paused/
+  band under "cómo la construimos", three principles and an honest available/paused/
   pending status board (`landing.about.*`) — deliberately doesn't rule out a future bank sync,
   unlike an earlier draft. Privacidad: `PrivacyRings` (data at the centre of five rings) beside a
   five-layer index, then one detailed row per layer with a matching mini-ring
@@ -1243,9 +1243,38 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   — the layer order and the ring lighting are the same sequence, fixed after an earlier draft put
   the sessions explanation on the wrong layer. Precios: **shows only the free plan** — a paid tier
   is an unresolved assumption, recorded in `docs/PENDING.md` under "Monetización", never promised
-  publicly; one plan card beside three numbered reasons it's free (`landing.pricing.reasons.*`).
+  publicly; one plan card beside three reasons it's free (`landing.pricing.reasons.*`).
   Preguntas: from `lg` a sticky topic index + sign-up card beside grouped `<details>` questions
   (`landing.faq.groups`/`items.*`), **every question starts collapsed** (no `open` by default).
+  Amendment (home reworked against the `.agents` design skills, 2026-10-06): the home now runs
+  hero → `WhySection` (a full-width `bg-surface2` band, the sun beside the title, the three
+  reasons in an asymmetric row with a short rule instead of `01/02/03`; the old `SunsetArch` was
+  replaced by `StripedSun`, a striped sun behind a ridge whose bands are painted `--surface-2`, the
+  band's own color) → `FeaturesSection` (TWO
+  alternating rows, cards/calendar; `CoinsVignette` deleted) → `CurrenciesStrip` (one sample
+  total per MVP currency via `formatMoney`, `landing.home.currencies.*`) → `ClosingCta` (the
+  hero's "Crear cuenta" again, same label), so no more than two text-beside-picture blocks run in
+  a row. Rules applied: hero subtitle ≤ 20 words; one eyebrow on the page (the hero's — the
+  why/features eyebrows and the per-row tags are gone); the hero CTA is `primary` (teal), clay
+  stays in illustrations; **no em/en dashes in any `landing.*` string** (enforced for the home by
+  a test). Motion: the hero ridge plots itself once (`.ridge-draw`, a `clip-path` wipe) and
+  sections use `.reveal` (CSS `animation-timeline: view()`, starts at opacity 0.25, never hidden),
+  both in `styles/index.css` and off under reduced motion; `Button` gained `active:scale-[0.97]`
+  app-wide. `LandingLayout` gained a skip link to `#landing-main`, and its footer dropped the stale
+  "montos de estas pantallas" note (`landing.footer.sample`, gone with the product tour) for a
+  tagline + privacy/pricing/FAQ links. `index.html` got Open Graph tags (no `og:image` yet).
+  Same pass on Nosotros/Privacidad/Precios/Preguntas: no page repeats its own name as an eyebrow
+  (Nosotros keeps only "Cómo la construimos"); every `h1` uses `bits.tsx`'s `HERO_TITLE` (one
+  scale for the five pages); clay left the UI (eyebrows, last-number accents, ring 5, CTAs);
+  surfaces are `rounded-2xl` with solid borders; sections use `.reveal`; sign-up is always
+  `auth.createAccount` (`landing.pricing.cta` deleted). Nosotros: one hero paragraph, principles
+  unnumbered with an "En la app" example each (`landing.about.principles.*.example`), status in
+  pills, `ClosingCta` at the end. Privacidad: the hero index links to each layer
+  (`#privacy-layer-<key>`; the 1-5 numbers stay, they ARE the ring order), layer details are
+  plain blocks, "Qué no hacemos" has a visible `h2`, `ClosingCta` at the end. Precios: header
+  left-aligned, reasons unnumbered. Preguntas: each question has its own anchor
+  (`/preguntas#faq-minors` opens just that one; `LandingLayout` skips its scroll-to-top when the
+  URL has a hash), and "Tu cuenta y tus datos" links to /privacidad.
   Amendment (overlay family, 2026-08-05): `shared/ui/dialog.tsx` and `shared/ui/confirm-dialog.tsx`
   are **gone**, replaced by `shared/ui/overlay/` (barrel `index.ts`): **`SurfaceChrome`** (the shared
   frame — header `leading`/title/description/`headerAside`/close → one scrolling body → pinned

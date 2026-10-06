@@ -2,47 +2,46 @@ import { useId } from "react";
 import { useTranslation } from "react-i18next";
 
 import { cn } from "../../../shared/lib/cn";
-import { Eyebrow } from "../components/bits";
+import { Eyebrow, HERO_TITLE } from "../components/bits";
+import { ClosingCta } from "../components/HomeSections";
 import { MatchingReceipts } from "../components/illustrations/MatchingReceipts";
 import { paint } from "../components/illustrations/paint";
 import { LandingLayout } from "../components/LandingLayout";
 
 const P = "landing.about";
 
-/** Order is the numbering (01, 02, 03); the last one wears the accent. */
+/** Not a sequence, so no numbers: each rule is a title beside its explanation and a concrete case
+ * from the app, the one thing this page adds over the home's "por qué Cuadra". */
 const PRINCIPLES = ["noInvented", "reversible", "chileFirst"] as const;
 
+/** The dot is a real state (available / paused / pending), the one case a colored dot earns. */
 const STATUS = [
-  { key: "available", dot: "bg-[hsl(var(--ridge-line))]", card: "border bg-card sm:col-span-2" },
-  { key: "paused", dot: "bg-accent", card: "border border-dashed border-border2" },
-  {
-    key: "pending",
-    dot: "border-2 border-muted-foreground",
-    card: "border border-dashed border-border2",
-  },
+  { key: "available", dot: "bg-[hsl(var(--ridge-line))]", card: "bg-card" },
+  { key: "paused", dot: "bg-accent", card: "bg-surface2" },
+  { key: "pending", dot: "border-2 border-muted-foreground", card: "bg-surface2" },
 ] as const;
 
+const H2 = "text-3xl font-bold leading-[1.1] tracking-tight sm:text-[2.5rem]";
+
 /**
- * "Nosotros" (canvas combination N1 + N2): the two receipts that cuadran, the founding idea on a
- * ridge band, three numbered rules, and an honest status board of what exists today.
+ * "Nosotros": the two receipts that cuadran beside the problem, the founding idea on a ridge
+ * card, three rules with an example each, an honest status board of what exists today, and the
+ * same closing sign-up as the home.
  */
 export function AboutRoute() {
   const { t } = useTranslation();
 
   return (
     <LandingLayout>
-      <div className="flex flex-col gap-24 pb-20 pt-10 lg:gap-32 lg:pb-28 lg:pt-16">
+      <div className="flex flex-col gap-24 pb-4 pt-10 lg:gap-32 lg:pt-16">
         <section className="grid items-center gap-12 lg:grid-cols-12 lg:gap-8">
           <div className="flex flex-col gap-6 lg:col-span-6">
-            <Eyebrow className="text-accent">{t(`${P}.eyebrow`)}</Eyebrow>
-            <h1
-              tabIndex={-1}
-              className="text-4xl font-bold leading-none tracking-tight focus:outline-none sm:text-6xl"
-            >
+            <h1 tabIndex={-1} className={HERO_TITLE}>
               {t(`${P}.titleLead`)} <span className="text-primary">{t(`${P}.titleAccent`)}</span>
             </h1>
-            <p className="text-lg leading-relaxed text-foreground/85">{t(`${P}.lead`)}</p>
-            <p className="text-base leading-relaxed text-muted-foreground">{t(`${P}.p1`)}</p>
+            <p className="max-w-[48ch] text-lg leading-relaxed text-muted-foreground">
+              {t(`${P}.lead`)}
+            </p>
           </div>
           <MatchingReceipts
             bankLabel={t(`${P}.receipts.bank`)}
@@ -53,15 +52,12 @@ export function AboutRoute() {
 
         <section
           aria-labelledby="about-how-title"
-          className="relative overflow-hidden rounded-3xl border bg-card px-6 pb-36 pt-10 sm:px-12 sm:pt-14 lg:px-20 lg:pt-[4.5rem]"
+          className="reveal relative overflow-hidden rounded-2xl border bg-card px-6 pb-36 pt-10 sm:px-12 sm:pt-14 lg:px-20 lg:pt-[4.5rem]"
         >
           <RidgeBand />
           <div className="relative flex max-w-3xl flex-col gap-5">
             <Eyebrow>{t(`${P}.how.eyebrow`)}</Eyebrow>
-            <h2
-              id="about-how-title"
-              className="text-3xl font-bold leading-[1.1] tracking-tight sm:text-[2.5rem]"
-            >
+            <h2 id="about-how-title" className={H2}>
               {t(`${P}.how.titleLead`)}{" "}
               <span className="text-primary">{t(`${P}.how.titleAccent`)}</span>
             </h2>
@@ -72,55 +68,43 @@ export function AboutRoute() {
         </section>
 
         <section aria-labelledby="about-principles-title" className="flex flex-col gap-10">
-          <div className="flex flex-col gap-3">
-            <Eyebrow>{t(`${P}.principlesTitle`)}</Eyebrow>
-            <h2
-              id="about-principles-title"
-              className="text-3xl font-bold leading-[1.1] tracking-tight sm:text-[2.5rem]"
-            >
-              {t(`${P}.principlesHeading`)}
-            </h2>
-          </div>
-          <ol className="flex flex-col border-b border-border2">
-            {PRINCIPLES.map((key, index) => (
+          <h2 id="about-principles-title" className={cn("reveal", H2)}>
+            {t(`${P}.principlesHeading`)}
+          </h2>
+          <ul className="flex flex-col border-b border-border2">
+            {PRINCIPLES.map((key) => (
               <li
                 key={key}
-                className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-5 gap-y-3 border-t border-border2 py-8 md:grid-cols-[6rem_minmax(0,2fr)_minmax(0,3fr)] md:gap-x-10"
+                className="reveal grid gap-x-10 gap-y-3 border-t border-border2 py-8 md:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]"
               >
-                <span
-                  className={cn(
-                    "font-mono text-4xl font-bold leading-none md:text-5xl",
-                    index === PRINCIPLES.length - 1 ? "text-accent" : "text-primary",
-                  )}
-                >
-                  0{index + 1}
-                </span>
                 <h3 className="text-xl font-bold leading-tight tracking-tight md:text-[1.75rem]">
                   {t(`${P}.principles.${key}.title`)}
                 </h3>
-                <p className="col-start-2 text-[15px] leading-relaxed text-muted-foreground md:col-start-3 md:text-base">
-                  {t(`${P}.principles.${key}.body`)}
-                </p>
+                <div className="flex flex-col gap-4">
+                  <p className="text-[15px] leading-relaxed text-muted-foreground md:text-base">
+                    {t(`${P}.principles.${key}.body`)}
+                  </p>
+                  <p className="flex flex-col gap-1 border-l-2 border-primary pl-4 text-[15px] leading-relaxed">
+                    <span className="font-mono text-xs font-semibold text-primary">
+                      {t(`${P}.inTheApp`)}
+                    </span>
+                    {t(`${P}.principles.${key}.example`)}
+                  </p>
+                </div>
               </li>
             ))}
-          </ol>
+          </ul>
         </section>
 
         <section aria-labelledby="about-today-title" className="flex flex-col gap-8">
-          <div className="flex flex-col gap-3">
-            <Eyebrow>{t(`${P}.today.eyebrow`)}</Eyebrow>
-            <h2
-              id="about-today-title"
-              className="text-3xl font-bold leading-[1.1] tracking-tight sm:text-[2.5rem]"
-            >
-              {t(`${P}.today.title`)}
-            </h2>
-          </div>
-          <div className="grid gap-5 sm:grid-cols-4">
+          <h2 id="about-today-title" className={cn("reveal", H2)}>
+            {t(`${P}.today.title`)}
+          </h2>
+          <div className="reveal grid gap-5 sm:grid-cols-[2fr_1fr_1fr]">
             {STATUS.map(({ key, dot, card }) => (
-              <div key={key} className={cn("flex flex-col gap-4 rounded-2xl p-7", card)}>
-                <span className="flex items-center gap-2.5 text-[15px] font-semibold">
-                  <span aria-hidden className={cn("h-2.5 w-2.5 rounded-full", dot)} />
+              <div key={key} className={cn("flex flex-col gap-4 rounded-2xl border p-7", card)}>
+                <span className="inline-flex items-center gap-2 self-start rounded-full border border-border2 bg-background py-1 pl-2.5 pr-3 text-sm font-semibold">
+                  <span aria-hidden className={cn("h-2 w-2 rounded-full", dot)} />
                   {t(`${P}.today.${key}.title`)}
                 </span>
                 <p className="text-[15px] leading-relaxed text-muted-foreground">
@@ -130,6 +114,8 @@ export function AboutRoute() {
             ))}
           </div>
         </section>
+
+        <ClosingCta />
       </div>
     </LandingLayout>
   );
