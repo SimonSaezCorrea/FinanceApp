@@ -90,11 +90,15 @@
   "nav": {
     "dashboard": "Dashboard",
     "menu": "Menu",
-    "open": "Open menu",
-    "close": "Close menu",
     "collapse": "Collapse sidebar",
     "expand": "Expand sidebar",
-    "comingSoon": "Coming soon"
+    "groups": {
+      "money": "Your money",
+      "commitments": "Commitments",
+      "goals": "Goals"
+    },
+    "more": "More",
+    "moreSections": "More sections"
   },
   "theme": {
     "label": "Theme",
@@ -467,21 +471,43 @@
     "title": "Dashboard",
     "netWorth": "Net worth",
     "wallet": "Your wallet",
-    "monthFlow": "This month's flow",
-    "savingsRate": "Savings rate",
-    "spendByCategory": "Spending by category",
-    "total": "Total",
+    "spendByCategory": "Where it went",
     "noSpend": "No spending this month.",
     "upcoming": "Upcoming payments",
     "upcomingEmpty": "No upcoming payments.",
-    "seeAll": "See all",
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
-    "thisMonth": "Current month",
     "upcomingKind": {
       "installment": "Installment plan",
       "debt": "Debt",
-      "recurring": "Recurring expense"
+      "recurring": "Recurring expense",
+      "debtOwedToYou": "Owed to you"
+    },
+    "greeting": "Hi, {{name}}",
+    "backToThisMonth": "Back to this month",
+    "attention": {
+      "title": "Needs attention",
+      "none": "Nothing is due in the next few days.",
+      "count": "{{current}} of {{total}}",
+      "dueToday": "Due today",
+      "dueTomorrow": "Due tomorrow",
+      "dueOn": "Due {{date}}",
+      "overdueOn": "Was due {{date}}",
+      "statement": "{{account}} statement"
+    },
+    "netWorthSince": "since {{date}}",
+    "netWorthChart": "Daily net worth from {{from}} to {{to}}",
+    "otherCurrencies": "Other currencies, not converted",
+    "in": "In",
+    "out": "Out",
+    "savingsSentence": "You're saving {{pct}}% of what came in.",
+    "overspent": "More went out than came in this month.",
+    "otherCategories": "Other categories",
+    "tabs": {
+      "label": "Detail",
+      "month": "Month",
+      "payments": "Payments",
+      "wallet": "Wallet"
     }
   },
   "wallet": {

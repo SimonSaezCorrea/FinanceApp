@@ -90,11 +90,15 @@
   "nav": {
     "dashboard": "Panel",
     "menu": "Menú",
-    "open": "Abrir menú",
-    "close": "Cerrar menú",
     "collapse": "Colapsar barra lateral",
     "expand": "Expandir barra lateral",
-    "comingSoon": "Próximamente"
+    "groups": {
+      "money": "Tu dinero",
+      "commitments": "Compromisos",
+      "goals": "Metas"
+    },
+    "more": "Más",
+    "moreSections": "Más secciones"
   },
   "theme": {
     "label": "Tema",
@@ -467,21 +471,43 @@
     "title": "Panel",
     "netWorth": "Patrimonio neto",
     "wallet": "Tu cartera",
-    "monthFlow": "Flujo del mes",
-    "savingsRate": "Tasa de ahorro",
-    "spendByCategory": "Gasto por categoría",
-    "total": "Total",
+    "spendByCategory": "En qué se fue",
     "noSpend": "Sin gastos este mes.",
     "upcoming": "Próximos pagos",
     "upcomingEmpty": "Sin pagos próximos.",
-    "seeAll": "Ver todos",
     "prevMonth": "Mes anterior",
     "nextMonth": "Mes siguiente",
-    "thisMonth": "Mes actual",
     "upcomingKind": {
       "installment": "Plan en cuotas",
       "debt": "Deuda",
-      "recurring": "Gasto recurrente"
+      "recurring": "Gasto recurrente",
+      "debtOwedToYou": "Te deben"
+    },
+    "greeting": "Hola, {{name}}",
+    "backToThisMonth": "Volver a este mes",
+    "attention": {
+      "title": "Requiere atención",
+      "none": "Nada vence en los próximos días.",
+      "count": "{{current}} de {{total}}",
+      "dueToday": "Vence hoy",
+      "dueTomorrow": "Vence mañana",
+      "dueOn": "Vence el {{date}}",
+      "overdueOn": "Venció el {{date}}",
+      "statement": "Facturación {{account}}"
+    },
+    "netWorthSince": "desde el {{date}}",
+    "netWorthChart": "Patrimonio neto diario del {{from}} al {{to}}",
+    "otherCurrencies": "Otras monedas, sin convertir",
+    "in": "Entró",
+    "out": "Salió",
+    "savingsSentence": "Ahorras el {{pct}}% de lo que entró.",
+    "overspent": "Salió más de lo que entró este mes.",
+    "otherCategories": "Otras categorías",
+    "tabs": {
+      "label": "Detalle",
+      "month": "Mes",
+      "payments": "Pagos",
+      "wallet": "Cartera"
     }
   },
   "wallet": {

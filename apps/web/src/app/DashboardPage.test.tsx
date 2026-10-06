@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
@@ -37,6 +37,27 @@ describe("DashboardPage", () => {
       </Providers>,
     );
     expect(screen.getByRole("heading", { name: i18n.t("dashboard.title") })).toBeDefined();
-    await waitFor(() => expect(screen.getByText(i18n.t("dashboard.netWorth"))).toBeDefined());
+    await waitFor(() =>
+      expect(screen.getByText(new RegExp(`^${i18n.t("dashboard.netWorth")}`))).toBeDefined(),
+    );
+    // Nothing due: the strip says so instead of disappearing (the skeleton has the net-worth
+    // label too, so wait for the loaded view itself).
+    expect(await screen.findByText(i18n.t("dashboard.attention.none"))).toBeDefined();
+  });
+
+  it("on a narrow Panel the month, payments and wallet are tabs", async () => {
+    // jsdom measures 0px, which is the phone layout.
+    render(
+      <Providers>
+        <MemoryRouter>
+          <DashboardPage />
+        </MemoryRouter>
+      </Providers>,
+    );
+    const tabs = await screen.findByRole("group", { name: i18n.t("dashboard.tabs.label") });
+    expect(screen.getByText(i18n.t("dashboard.in"))).toBeDefined();
+    fireEvent.click(within(tabs).getByRole("button", { name: i18n.t("dashboard.tabs.payments") }));
+    expect(screen.getByText(i18n.t("dashboard.upcomingEmpty"))).toBeDefined();
+    expect(screen.queryByText(i18n.t("dashboard.in"))).toBeNull();
   });
 });

@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 
 import type { accounts, debts, transactions } from "@finance/contracts";
 
-import { excludeTransfers, expensesByCategory, monthFlow, netWorth } from "./metrics";
+import {
+  type DueStatement,
+  type UpcomingPayment,
+  attentionItems,
+  excludeTransfers,
+  expensesByCategory,
+  monthFlow,
+  netWorth,
+} from "./metrics";
 
 const tx = (over: Partial<transactions.Transaction>): transactions.Transaction => ({
   id: "t1",
@@ -106,5 +114,85 @@ describe("netWorth con deuda", () => {
       "100000.0000",
     );
     expect(netWorth([account()], [debt({ currency: "USD" })]).total).toBe("100000.0000");
+  });
+});
+
+describe("attentionItems", () => {
+  // Tuesday 6 October 2026, local noon.
+  const now = new Date(2026, 9, 6, 12);
+  const day = (d: number) => new Date(2026, 9, d).toISOString();
+
+  const statement = (over: Partial<accounts.CreditStatement> = {}): DueStatement => ({
+    accountId: "acc-visa",
+    accountName: "Visa Crédito",
+    statement: {
+      id: "st1",
+      currency: "CLP",
+      closedAt: day(1),
+      dueDate: day(13),
+      paidAt: null,
+      transferredAt: null,
+      remainingAmount: "612400",
+      ...over,
+    } as accounts.CreditStatement,
+  });
+  const payment = (over: Partial<UpcomingPayment> = {}): UpcomingPayment => ({
+    id: "p1",
+    label: "Notebook",
+    date: day(9),
+    amount: "54990",
+    currency: "CLP",
+    kind: "installment",
+    inflow: false,
+    ...over,
+  });
+
+  it("brings a statement due within a week, linked to its billing tab", () => {
+    const [item] = attentionItems([statement()], [], now);
+    expect(item).toMatchObject({ kind: "statement", amount: "612400", overdue: false });
+    expect(item?.href).toBe("/accounts/acc-visa?tab=billing&statement=st1");
+  });
+
+  it("leaves out settled, still-open, far-off and fully paid statements", () => {
+    const items = attentionItems(
+      [
+        statement({ paidAt: day(2) }),
+        statement({ transferredAt: day(2) }),
+        statement({ closedAt: null }),
+        statement({ dueDate: day(30) }),
+        statement({ remainingAmount: "0" }),
+      ],
+      [],
+      now,
+    );
+    expect(items).toEqual([]);
+  });
+
+  it("brings payments due within 3 days, never money coming in", () => {
+    const items = attentionItems(
+      [],
+      [
+        payment(),
+        payment({ id: "far", date: day(20) }),
+        payment({ id: "in", kind: "debt", inflow: true }),
+      ],
+      now,
+    );
+    expect(items.map((i) => i.id)).toEqual(["p1"]);
+    expect(items[0]?.href).toBe("/installments");
+  });
+
+  it("puts what is overdue first, then by date, and keeps at most three", () => {
+    const items = attentionItems(
+      [statement({ id: "late", dueDate: day(2) })],
+      [
+        payment({ id: "a", date: day(8) }),
+        payment({ id: "b", date: day(7) }),
+        payment({ id: "c", date: day(9) }),
+      ],
+      now,
+    );
+    expect(items.map((i) => i.id)).toEqual(["late", "b", "a"]);
+    expect(items[0]?.overdue).toBe(true);
   });
 });
