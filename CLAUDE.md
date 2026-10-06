@@ -1743,9 +1743,11 @@ href="/">` (a full navigation, not the router, since its state can't be trusted 
   New `app.notFound.*`/`app.crash.*` i18n keys. Unrelated small fix bundled in the same pass:
   the header/nav no longer shifts horizontally when navigating from a page that scrolls to one
   that doesn't — `html { scrollbar-gutter: stable }` reserves the scrollbar's width on every page,
-  and `body[data-scroll-locked] { padding-right: 0 !important }` cancels Radix's own compensating
-  padding (added to `<body>` while a dialog locks scroll) so the two reservations don't stack into
-  a bigger, second shift when an overlay opens.
+  and while an overlay locks scroll `html:has(> body[data-scroll-locked])` drops the gutter
+  (`scrollbar-gutter: auto`) so Radix's own compensation on `<body>` (exactly the gutter's width)
+  takes its place: the content doesn't move, and the scrim/side panel reach the right edge instead
+  of leaving an uncovered 15px strip (2026-10-06; the earlier `padding-right: 0 !important`
+  override is gone).
   Amendment (one row format for every table, 2026-08-24): Movimientos, Cuotas and Facturación each
   had their own table conventions — different leading-icon shapes (circle vs. rounded-square vs.
   none), a shaded header only on Movimientos, three different table↔list breakpoints (860/860/640px

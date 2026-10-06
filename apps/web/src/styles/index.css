@@ -215,11 +215,13 @@
     -webkit-font-smoothing: antialiased;
   }
 
-  /* Radix locks scroll by hiding the real scrollbar and adding its OWN compensating
-     `padding-right` to <body> (marked with this attribute) — stacked on top of the gutter
-     `html` already reserves above, that doubled the shift this section exists to prevent. */
-  body[data-scroll-locked] {
-    padding-right: 0 !important;
+  /* While an overlay locks scroll, Radix hides the scrollbar and compensates on <body> (marked
+     with this attribute) by exactly the gutter's width (`innerWidth - clientWidth`). Keeping the
+     gutter reserved on top of that left an empty 15px strip at the right edge that fixed
+     elements (the scrim, a side panel) can't cover. So the gutter is released only while
+     locked: Radix's compensation takes its place and the content doesn't move. */
+  html:has(> body[data-scroll-locked]) {
+    scrollbar-gutter: auto;
   }
 }
 
