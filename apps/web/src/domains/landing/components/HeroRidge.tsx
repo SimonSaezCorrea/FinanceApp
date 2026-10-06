@@ -24,14 +24,15 @@ const HEIGHT = BASELINE - TOP;
  * The drawing STRETCHES to whatever box `className` gives it (`preserveAspectRatio="none"`), so
  * the range always runs edge to edge at a height of the caller's choosing; strokes keep their
  * width (`non-scaling-stroke`) and the summit and end markers are HTML dots placed by percentage, since an
- * SVG circle would stretch into an ellipse.
+ * SVG circle would stretch into an ellipse. On load it plots itself left to right once
+ * (`ridge-draw`, `styles/index.css`), skipped under reduced motion.
  */
 export function HeroRidge({ className }: Readonly<{ className?: string }>) {
   const id = useId().replaceAll(":", "");
   const clip = `M 0,${BASELINE} L ${RIDGE_LINE.replaceAll(" ", " L ")} L ${WIDTH},${BASELINE} Z`;
 
   return (
-    <div aria-hidden className={cn("pointer-events-none relative", className)}>
+    <div aria-hidden className={cn("ridge-draw pointer-events-none relative", className)}>
       <svg
         viewBox={`0 ${TOP} ${WIDTH} ${HEIGHT}`}
         preserveAspectRatio="none"

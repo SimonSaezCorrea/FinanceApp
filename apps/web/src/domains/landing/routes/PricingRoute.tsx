@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { cn } from "../../../shared/lib/cn";
 import { Button } from "../../../shared/ui/button";
-import { Eyebrow } from "../components/bits";
+import { HERO_TITLE } from "../components/bits";
 import { paint } from "../components/illustrations/paint";
 import { LandingLayout } from "../components/LandingLayout";
 import { useOpenAuth } from "../hooks/useOpenAuth";
@@ -14,7 +14,7 @@ const REASONS = ["whyFree", "notYourData", "changes"] as const;
 
 /**
  * "Precios" (canvas "Cuadra · Precios", PL2 reduced to the free plan): one plan card beside three
- * numbered reasons. It deliberately says nothing about a paid plan — that is an undecided
+ * reasons (not a sequence, so not numbered). It deliberately says nothing about a paid plan — that is an undecided
  * assumption, recorded in docs/PENDING.md ("Monetización"), not something to promise publicly.
  */
 export function PricingRoute() {
@@ -24,12 +24,8 @@ export function PricingRoute() {
   return (
     <LandingLayout>
       <div className="flex flex-col gap-14 pb-20 pt-10 lg:gap-20 lg:pb-28 lg:pt-16">
-        <header className="flex flex-col gap-5 lg:items-center lg:text-center">
-          <Eyebrow className="text-accent">{t(`${P}.title`)}</Eyebrow>
-          <h1
-            tabIndex={-1}
-            className="max-w-4xl text-4xl font-bold leading-[1.02] tracking-tight focus:outline-none sm:text-6xl"
-          >
+        <header className="flex flex-col gap-4">
+          <h1 tabIndex={-1} className={cn("max-w-4xl", HERO_TITLE)}>
             {t(`${P}.titleLead`)} <span className="text-primary">{t(`${P}.titleAccent`)}</span>
           </h1>
           <p className="max-w-[58ch] text-base leading-relaxed text-muted-foreground sm:text-lg">
@@ -37,14 +33,11 @@ export function PricingRoute() {
           </p>
         </header>
 
-        <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-8">
-          <article className="flex flex-col gap-6 rounded-[1.75rem] border-2 border-[hsl(var(--ridge-lit))] bg-card p-7 sm:p-10 lg:col-span-6">
+        <div className="grid items-start gap-12 lg:grid-cols-12 lg:gap-8">
+          <article className="reveal flex flex-col gap-6 rounded-2xl border-2 border-primary bg-card p-7 sm:p-10 lg:col-span-6">
             <PenReceipt className="h-28 w-full" />
             <div className="flex flex-col gap-1.5">
-              <span className="font-mono text-sm font-bold text-[hsl(var(--ridge-line))]">
-                {t("brand.name").toUpperCase()}
-              </span>
-              <strong className="text-5xl font-extrabold tracking-tight">{t(`${P}.free`)}</strong>
+              <strong className="text-5xl font-bold tracking-tight">{t(`${P}.free`)}</strong>
               <span className="text-[15px] text-muted-foreground">{t(`${P}.freeHint`)}</span>
             </div>
             <ul className="flex flex-col border-b">
@@ -62,37 +55,24 @@ export function PricingRoute() {
                 </li>
               ))}
             </ul>
-            <Button variant="accent" size="lg" onClick={() => openAuth("register")}>
-              {t(`${P}.cta`)}
+            <Button size="lg" onClick={() => openAuth("register")}>
+              {t("auth.createAccount")}
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Button>
           </article>
 
-          <ol className="flex flex-col border-b border-border2 lg:col-span-5 lg:col-start-8">
-            {REASONS.map((key, index) => (
-              <li
-                key={key}
-                className="grid grid-cols-[3.5rem_minmax(0,1fr)] items-center gap-x-5 border-t border-border2 py-7"
-              >
-                <span
-                  className={cn(
-                    "font-mono text-4xl font-bold leading-none",
-                    index === REASONS.length - 1 ? "text-accent" : "text-primary",
-                  )}
-                >
-                  0{index + 1}
-                </span>
-                <div className="flex flex-col gap-1.5">
-                  <h2 className="text-xl font-bold tracking-tight">
-                    {t(`${P}.reasons.${key}.title`)}
-                  </h2>
-                  <p className="text-[15px] leading-relaxed text-muted-foreground">
-                    {t(`${P}.reasons.${key}.body`)}
-                  </p>
-                </div>
+          <ul className="reveal flex flex-col border-b border-border2 lg:col-span-5 lg:col-start-8">
+            {REASONS.map((key) => (
+              <li key={key} className="flex flex-col gap-1.5 border-t border-border2 py-7">
+                <h2 className="text-xl font-bold tracking-tight">
+                  {t(`${P}.reasons.${key}.title`)}
+                </h2>
+                <p className="text-[15px] leading-relaxed text-muted-foreground">
+                  {t(`${P}.reasons.${key}.body`)}
+                </p>
               </li>
             ))}
-          </ol>
+          </ul>
         </div>
       </div>
     </LandingLayout>

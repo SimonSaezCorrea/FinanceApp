@@ -1,14 +1,22 @@
 import { ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { cn } from "../../../shared/lib/cn";
 import { Button } from "../../../shared/ui/button";
+import { HERO_TITLE } from "../components/bits";
 import { HeroRidge } from "../components/HeroRidge";
-import { FeaturesSection, WhySection } from "../components/HomeSections";
+import {
+  ClosingCta,
+  CurrenciesStrip,
+  FeaturesSection,
+  WhySection,
+} from "../components/HomeSections";
 import { LandingLayout } from "../components/LandingLayout";
 import { useOpenAuth } from "../hooks/useOpenAuth";
 
 /** Public home: what the app is, a cordillera that doubles as a balance chart, then why Cuadra
- * (sunset arch) and what sets it apart (three illustrated rows). */
+ * (a full-width band), what sets it apart (two illustrated rows), one total per currency, and a
+ * closing sign-up. */
 export function LandingHomeRoute() {
   return (
     <LandingLayout>
@@ -33,11 +41,7 @@ function LandingHome() {
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t("landing.home.eyebrow")}
             </span>
-            <h1
-              id="landing-home-title"
-              tabIndex={-1}
-              className="mt-4 text-4xl font-bold leading-[1.05] tracking-tight focus:outline-none sm:text-5xl"
-            >
+            <h1 id="landing-home-title" tabIndex={-1} className={cn("mt-4", HERO_TITLE)}>
               {t("landing.home.titleLead")}
               <br />
               <span className="text-primary">{t("landing.home.titleAccent")}</span>
@@ -47,7 +51,7 @@ function LandingHome() {
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button variant="accent" size="lg" onClick={() => openAuth("register")}>
+              <Button size="lg" onClick={() => openAuth("register")}>
                 {t("auth.createAccount")}
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </Button>
@@ -61,6 +65,10 @@ function LandingHome() {
       <WhySection />
 
       <FeaturesSection />
+
+      <CurrenciesStrip />
+
+      <ClosingCta />
     </>
   );
 }

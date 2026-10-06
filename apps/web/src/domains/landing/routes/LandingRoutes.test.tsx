@@ -68,13 +68,26 @@ describe("public landing", () => {
     expect(screen.getByRole("heading", { name: i18n.t("auth.login.title") })).toBeTruthy();
   });
 
-  it("below the hero the home goes why → features", async () => {
+  it("below the hero the home goes why → features → currencies → closing sign-up", async () => {
     renderAt("/");
     await screen.findByRole("heading", { level: 1 });
     expect(screen.getAllByRole("heading", { level: 2 }).map((h) => h.id)).toEqual([
       "landing-why-title",
       "landing-features-title",
+      "landing-currencies-title",
+      "landing-closing-title",
     ]);
+    // The closing band repeats the hero's sign-up, with the same label.
+    expect(screen.getAllByRole("button", { name: i18n.t("auth.createAccount") })).toHaveLength(2);
+  });
+
+  it("the home has no long dashes and a skip link to the content", async () => {
+    renderAt("/");
+    await screen.findByRole("heading", { level: 1 });
+    expect(document.body.textContent).not.toMatch(/[—–]/);
+    expect(
+      screen.getByRole("link", { name: i18n.t("landing.skipToContent") }).getAttribute("href"),
+    ).toBe("#landing-main");
   });
 
   it("/nosotros lists three numbered rules and an honest status board", async () => {
@@ -126,6 +139,17 @@ describe("public landing", () => {
     expect(within(topics).getAllByRole("link")).toHaveLength(3);
     for (const details of document.querySelectorAll("details")) expect(details.open).toBe(false);
     expect(i18n.t("landing.faq.items.bankSync.a")).toMatch(/^Hoy no/);
+  });
+
+  it("/preguntas#faq-minors opens only that question, and the data group links to privacy", async () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    renderAt("/preguntas#faq-minors");
+    await screen.findByRole("heading", { level: 1 });
+    const open = [...document.querySelectorAll("details")].filter((d) => d.open);
+    expect(open.map((d) => d.id)).toEqual(["faq-minors"]);
+    expect(
+      screen.getByRole("link", { name: i18n.t("landing.faq.morePrivacy") }).getAttribute("href"),
+    ).toBe("/privacidad");
   });
 
   it("an unknown URL shows the not-found page inside the landing", async () => {

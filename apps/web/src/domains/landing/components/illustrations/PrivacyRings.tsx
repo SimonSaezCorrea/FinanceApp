@@ -87,7 +87,6 @@ export function PrivacyRings({
         {centerLabel.toUpperCase()}
       </text>
       {HERO_RADII.map((r, index) => {
-        const last = index === HERO_RADII.length - 1;
         const x = 280 + r * Math.cos(angle);
         const y = 280 + r * Math.sin(angle);
         return (
@@ -99,10 +98,10 @@ export function PrivacyRings({
               strokeWidth={2.5}
               style={{
                 fill: paint("background"),
-                stroke: paint(last ? "accent" : "ridge-line"),
+                stroke: paint("ridge-line"),
               }}
             />
-            <text x={x} y={y + 4} style={{ fill: paint(last ? "accent" : "foreground") }}>
+            <text x={x} y={y + 4} style={{ fill: paint("foreground") }}>
               {index + 1}
             </text>
           </g>
@@ -119,7 +118,6 @@ export function LayerRings({
   active,
   className,
 }: Readonly<{ active: number; className?: string }>) {
-  const last = active === LAYER_COUNT - 1;
   return (
     <svg viewBox="0 0 88 88" aria-hidden className={className}>
       {[...MINI_RADII].reverse().map((r) => {
@@ -134,7 +132,7 @@ export function LayerRings({
             strokeWidth={on ? 3 : 1}
             style={{
               fill: fill(index),
-              stroke: paint(on ? (last ? "accent" : "ridge-line") : "border-2"),
+              stroke: paint(on ? "ridge-line" : "border-2"),
             }}
           />
         );

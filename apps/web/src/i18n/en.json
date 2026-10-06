@@ -1825,14 +1825,14 @@
       "goToApp": "Go to the app"
     },
     "footer": {
-      "tagline": "Cuadra · Chile · CLP, USD and CLF (UF)",
-      "sample": "Accounts, cards and amounts on these screens: sample data, not real"
+      "tagline": "Made in Chile for pesos, dollars and UF.",
+      "nav": "Legal and help"
     },
     "home": {
-      "eyebrow": "Personal finance · Chile",
+      "eyebrow": "Personal finance in Chile",
       "titleLead": "Your finances with",
       "titleAccent": "your bank's own rules",
-      "lead": "A credit pool shared across cards, a closing date counted in business days with Chilean holidays, an instalment that commits the pool the day you buy, a shortfall carried to the next period. What other apps simplify until it stops adding up.",
+      "lead": "A shared credit pool, business-day closings and instalments, the way your bank charges them. No invented figures.",
       "why": {
         "1": {
           "title": "No invented figures",
@@ -1844,38 +1844,41 @@
         },
         "3": {
           "title": "Chile first, done properly",
-          "body": "Legal holidays, RUT check digit, the UF, the local bank and cooperative catalogue — one country done right, before many done halfway."
+          "body": "Legal holidays, RUT check digit, the UF, the local bank and cooperative catalogue. Better one country done right than many done halfway."
         },
-        "eyebrow": "Why Cuadra",
         "title": "Built so your numbers match your bank's"
       },
       "features": {
-        "eyebrow": "What sets it apart",
         "titleLead": "The detail other apps",
         "titleAccent": "simplify until it breaks",
         "cards": {
-          "tag": "Cards & credit",
           "title": "One shared pool, like your bank's",
           "body": "The primary card and its add-ons draw from the same pool, unless you give one its own sub-limit per currency. Never an available amount your bank wouldn't recognize."
         },
         "calendar": {
-          "tag": "Billing",
           "title": "Closes in business days, with Chilean holidays",
           "body": "You choose how many business days pass until closing, and how many until payment is due. Chile's legal holidays are already counted, so the date matches your real statement."
-        },
-        "currencies": {
-          "tag": "Currencies",
-          "title": "Pesos, dollars and UF, each on their own",
-          "body": "Every account lives in its own currency with its own total. No automatic conversion mixing figures that were never meant to add up."
         }
+      },
+      "currencies": {
+        "title": "Pesos, dollars and UF, each on their own",
+        "body": "Every account lives in its own currency with its own total. No automatic conversion mixing figures that were never meant to add up.",
+        "sample": "Sample",
+        "items": {
+          "CLP": "Checking account and cash",
+          "USD": "Dollar sight account",
+          "CLF": "Savings in UF"
+        }
+      },
+      "closing": {
+        "title": "Your cash account comes ready",
+        "body": "Log your first expense today and add your banks and cards whenever you like."
       }
     },
     "about": {
-      "eyebrow": "About us",
       "titleLead": "We built the app",
       "titleAccent": "we ourselves needed",
-      "lead": "Almost every personal-finance app treats a credit card like just another account: the purchase debits your balance, twelve instalments show up whole in one month, closing falls on the same day for everyone. None of that is true.",
-      "p1": "Cuadra is built backwards: the real product rules first —a shared credit pool, a business-day close, a billed instalment, a carried-over shortfall— and the screen after. If the model can't honestly support a figure, the app doesn't show it.",
+      "lead": "Almost every app treats a credit card as just another account. A purchase lowers your balance and instalments show up in full. Your bank doesn't work that way.",
       "receipts": {
         "bank": "Your bank"
       },
@@ -1885,24 +1888,25 @@
         "titleAccent": "screen second",
         "body": "Every feature starts from a real rule of a Chilean bank or issuer, never from whatever looks simplest in a mockup. When the model has no way to support a figure honestly, the app says so instead of inventing it."
       },
-      "principlesTitle": "How we decide what goes in",
       "principlesHeading": "Three rules we don't bend",
       "principles": {
         "noInvented": {
           "title": "No invented figures",
-          "body": "We don't calculate your bank's interest or convert currencies. When a figure is missing, we say so instead of guessing."
+          "body": "We don't calculate your bank's interest or convert currencies. When a figure is missing, we say so instead of guessing.",
+          "example": "Revolving interest is copied from your statement as a finance charge. The app never calculates a rate."
         },
         "reversible": {
           "title": "Everything reversible",
-          "body": "Undoing a debt payment gives the balance back. Deleting an instalment plan reverses its whole history, and tells you what it will move before it does."
+          "body": "Undoing a debt payment gives the balance back. Deleting an instalment plan reverses its whole history, and tells you what it will move before it does.",
+          "example": "Before deleting an instalment plan you see how much goes back to each account, and only then confirm."
         },
         "chileFirst": {
           "title": "Chile first, done properly",
-          "body": "Legal holidays, RUT check digit, the UF, the local bank and cooperative catalogue. One country done right, before many done halfway."
+          "body": "Legal holidays, RUT check digit, the UF, the local bank and cooperative catalogue. One country done right, before many done halfway.",
+          "example": "A card that closes every 20 business days skips September 18 and 19 without you fixing the date."
         }
       },
       "today": {
-        "eyebrow": "Honest status",
         "title": "Where it stands today",
         "available": {
           "title": "Available",
@@ -1914,19 +1918,17 @@
         },
         "pending": {
           "title": "Pending",
-          "body": "Exporting your data and automatic bank sync don't exist yet — and the second one may never."
+          "body": "Exporting your data and automatic bank sync don't exist yet. The second one may come later."
         }
-      }
+      },
+      "inTheApp": "In the app"
     },
     "privacy": {
       "center": "Your data",
-      "title": "Privacy & data",
       "titleLead": "Your data, in layers you can",
       "titleAccent": "review one at a time",
-      "lead": "Your balances, movements and debts describe your financial situation, so they're treated as sensitive data: consent to process them is asked for separately, explicit and versioned, never buried inside an “I accept the terms”.",
-      "layersEyebrow": "Layer by layer",
+      "lead": "Your balances, movements and debts describe your financial situation. That's why they're treated as sensitive data, protected in five layers.",
       "layersTitle": "What each ring protects",
-      "layerLabel": "Layer {{n}}",
       "layers": {
         "consent": {
           "title": "Consent",
@@ -1942,7 +1944,7 @@
         },
         "access": {
           "title": "How you sign in",
-          "lead": "You sign in with your RUT, like at your bank — email is only for notices.",
+          "lead": "You sign in with your RUT, like at your bank. Email is only for notices.",
           "a": {
             "title": "Passkey",
             "body": "If your device supports it, a passkey skips both password and second factor: it's already strong authentication on its own."
@@ -1992,27 +1994,24 @@
       "dont": {
         "title": "What we don't do",
         "cardNumber": {
-          "tag": "Cards",
           "title": "We don't store the full number",
           "body": "Only the last four digits. The full number never leaves your browser and the CVV is never asked for."
         },
         "estimates": {
-          "tag": "Calculations",
           "title": "We don't calculate or estimate for you",
           "body": "No interest, no exchange rate, no “projected” expense you never entered."
         },
         "banks": {
-          "tag": "Banks",
           "title": "We don't connect to your bank",
           "body": "There's no automatic sync and no read permission over your products. Nothing enters that you didn't record yourself."
         }
-      }
+      },
+      "layersIndex": "Layers"
     },
     "pricing": {
-      "title": "Pricing",
       "titleLead": "One plan,",
       "titleAccent": "no fine print",
-      "lead": "One answer, no comparison table: this is what you get, and it's free.",
+      "lead": "Today there's a single option, and it's free.",
       "free": "Free",
       "freeHint": "No tiers, no artificial limits and no locked features.",
       "included": {
@@ -2022,11 +2021,10 @@
         "security": "Passkey, second factor and session control",
         "currencies": "Pesos, dollars and UF"
       },
-      "cta": "Create my account",
       "reasons": {
         "whyFree": {
           "title": "Why it doesn't cost anything",
-          "body": "What makes a finance app expensive is connecting to banks: a middleman gets paid per synced account, and that cost lands on you or on your data. There's no such connection here, so there's no such cost."
+          "body": "The expensive part of a finance app is connecting to banks: an intermediary is paid for every account. Cuadra doesn't connect, so it doesn't carry that cost."
         },
         "notYourData": {
           "title": "Your data isn't the price",
@@ -2034,12 +2032,11 @@
         },
         "changes": {
           "title": "If anything changes, we say so first",
-          "body": "If some part ever has a real cost —storing a lot of receipts, say— it's announced before it happens, with the option to take your data with you. Nothing turns paid overnight."
+          "body": "If some part ever has a real cost (storing a lot of receipts, say), it's announced before it happens, with the option to take your data with you. Nothing turns paid overnight."
         }
       }
     },
     "faq": {
-      "title": "Frequently asked questions",
       "titleLead": "Before you",
       "titleAccent": "ask",
       "subtitle": "The doubts that come up in the first month, grouped by topic. If something's missing here, the answer is almost always the same: the app doesn't show a figure it can't back up.",
@@ -2080,7 +2077,7 @@
         },
         "additionalCard": {
           "q": "Does an additional card spend from my same pool?",
-          "a": "Yes, same as your bank — unless you give it its own sub-limit, which is still capped by the account's own pool. Each card also shows how much it spent on its own."
+          "a": "Yes, same as your bank, unless you give it its own sub-limit, which is still capped by the account's own pool. Each card also shows how much it spent on its own."
         },
         "interest": {
           "q": "Does it calculate the interest I'm charged?",
@@ -2096,14 +2093,16 @@
         },
         "minors": {
           "q": "I'm a minor, can I use it?",
-          "a": "Yes, with your parent or guardian's authorization. The sign-up form asks for it directly. Their RUT is stored only as a hash, since they're a third party, not an app user."
+          "a": "Yes, with authorization from your mother, father or guardian. The sign-up form asks for it on its own. Their RUT isn't stored as is, only a fingerprint that can't be turned back into it, because they're a third party and not a user of the app."
         }
       },
       "cta": {
         "title": "Still have a question?",
         "body": "Creating an account takes a minute and commits you to nothing: you can log your first expense in cash."
-      }
-    }
+      },
+      "morePrivacy": "More on this in Privacy and data"
+    },
+    "skipToContent": "Skip to content"
   },
   "profile": {
     "title": "Profile",
