@@ -46,6 +46,8 @@ function props(overrides: Partial<UserProps> = {}): UserProps {
     mfaSecret: null,
     mfaFailedAttempts: 0,
     mfaLockedUntil: null,
+    loginFailedAttempts: 0,
+    loginLockedUntil: null,
     ...overrides,
   };
 }

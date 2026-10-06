@@ -1,4 +1,4 @@
-import { Check } from "lucide-react";
+import { Check, Info } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 
@@ -12,6 +12,8 @@ import { FormSelectField } from "../../../shared/ui/form";
 import { useAuth } from "../hooks/useAuth";
 import {
   PASSWORD_MIN_LENGTH,
+  localIsoDate,
+  parseLocalDate,
   type ValidationError,
   passwordRules,
   validateBirthDate,
@@ -32,6 +34,20 @@ const GUARDIAN_RELATIONSHIP_OPTIONS: { value: auth.GuardianAuthorization["relati
 
 type Field = "name" | "rut" | "email" | "password" | "birthDate" | "guardianName" | "guardianRut";
 
+/** Top-to-bottom order of everything that can be wrong: where focus goes after a failed submit. */
+const FOCUS_ORDER = [
+  "name",
+  "rut",
+  "email",
+  "password",
+  "birthDate",
+  "consent",
+  "guardianName",
+  "guardianRut",
+  "guardianAccept",
+] as const;
+type Focusable = (typeof FOCUS_ORDER)[number];
+
 interface RegisterFormProps {
   /** Called after a successful registration (the session is already set at that point). */
   onSuccess: () => void;
@@ -42,6 +58,8 @@ interface RegisterFormProps {
    * with `form={formId}`, and follows `onBusyChange` to label it while the request runs. */
   formId?: string;
   onBusyChange?: (busy: boolean) => void;
+  /** "That RUT already has an account" offers to sign in instead, with the RUT kept. */
+  onSwitchToLogin?: () => void;
 }
 
 /** Sign-up: underline fields, the password's rules checked live as it's typed, and the
@@ -53,6 +71,7 @@ export function RegisterForm({
   onIdentifierValueChange,
   formId,
   onBusyChange,
+  onSwitchToLogin,
 }: Readonly<RegisterFormProps>) {
   const { t } = useTranslation();
   const { register } = useAuth();
@@ -73,6 +92,15 @@ export function RegisterForm({
   const [busy, setBusy] = useState(false);
   const [touched, setTouched] = useState<Partial<Record<Field, boolean>>>({});
   const [submitted, setSubmitted] = useState(false);
+  // Taken by another account, as answered by the server — cleared as soon as the value changes.
+  const [takenRut, setTakenRut] = useState<string | null>(null);
+  const [takenEmail, setTakenEmail] = useState<string | null>(null);
+  // Each focusable input, filled by its ref callback. A stable Map (not a ref read during
+  // render): only the callbacks and the submit handler ever touch it.
+  const [fieldEls] = useState(() => new Map<Focusable, HTMLInputElement | null>());
+  const refFor = (key: Focusable) => (el: HTMLInputElement | null) => {
+    fieldEls.set(key, el);
+  };
 
   useEffect(() => {
     onBusyChange?.(busy);
@@ -83,7 +111,10 @@ export function RegisterForm({
   // actual gate (the server re-checks with its own clock regardless).
   const isMinor = useMemo(() => {
     if (!birthDate) return false;
-    return auth.calculateAgeFromBirthDate(new Date(birthDate)) < auth.MINOR_GUARDIAN_THRESHOLD_AGE;
+    // Parsed as a LOCAL date: `new Date("2008-10-07")` is UTC midnight, which in Chile is still
+    // the 6th, and would call someone 18 a day early.
+    const date = parseLocalDate(birthDate);
+    return date ? auth.calculateAgeFromBirthDate(date) < auth.MINOR_GUARDIAN_THRESHOLD_AGE : false;
   }, [birthDate]);
 
   const rules = passwordRules(password, identifierValue);
@@ -102,22 +133,46 @@ export function RegisterForm({
     const code = errors[field];
     const show = code && (submitted || (touched[field] && code !== "required"));
     return {
+      ref: refFor(field),
       onBlur: () => setTouched((prev) => ({ ...prev, [field]: true })),
       error: show ? t(`auth.validation.${code}`, { min: PASSWORD_MIN_LENGTH }) : null,
     };
+  }
+
+  const rutTaken = takenRut !== null && takenRut === identifierValue;
+  const emailTaken = takenEmail !== null && takenEmail === email;
+  const consentMissing = submitted && !sensitiveDataConsent;
+  const guardianAcceptMissing = submitted && isMinor && !guardianAccepted;
+
+  /** The first thing currently wrong, in screen order. */
+  function firstProblem(): Focusable | null {
+    const wrong: Record<Focusable, boolean> = {
+      name: Boolean(errors.name),
+      rut: Boolean(errors.rut) || rutTaken,
+      email: Boolean(errors.email) || emailTaken,
+      password: Boolean(errors.password),
+      birthDate: Boolean(errors.birthDate),
+      consent: !sensitiveDataConsent,
+      guardianName: Boolean(errors.guardianName),
+      guardianRut: Boolean(errors.guardianRut),
+      guardianAccept: isMinor && !guardianAccepted,
+    };
+    return FOCUS_ORDER.find((key) => wrong[key]) ?? null;
+  }
+
+  // The submit button lives in the panel's footer, so a problem above the fold would otherwise
+  // go unseen: focusing it also scrolls it into view.
+  function focusProblem(key: Focusable) {
+    fieldEls.get(key)?.focus();
   }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitted(true);
-    if (Object.values(errors).some(Boolean)) return;
-    if (!sensitiveDataConsent) {
-      setError(t("auth.consentRequired"));
-      return;
-    }
-    if (isMinor && !guardianAccepted) {
-      setError(t("auth.guardian.acceptRequired"));
+    const problem = firstProblem();
+    if (problem) {
+      focusProblem(problem);
       return;
     }
     setBusy(true);
@@ -141,7 +196,16 @@ export function RegisterForm({
       onSuccess();
     } catch (err) {
       const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
-      setError(t(`errors.${code}`));
+      // A taken RUT/email belongs to its field, not to a message at the bottom.
+      if (code === "IDENTIFIER_TAKEN") {
+        setTakenRut(identifierValue);
+        focusProblem("rut");
+      } else if (code === "EMAIL_TAKEN") {
+        setTakenEmail(email);
+        focusProblem("email");
+      } else {
+        setError(t(`errors.${code}`));
+      }
     } finally {
       setBusy(false);
     }
@@ -168,7 +232,25 @@ export function RegisterForm({
         value={identifierValue}
         onChange={(v) => setIdentifierValue(formatRutInput(v))}
         {...fieldProps("rut")}
-        valid={!errors.rut}
+        {...(rutTaken
+          ? {
+              error: (
+                <>
+                  {t("auth.signup.rutTaken")}{" "}
+                  {onSwitchToLogin ? (
+                    <button
+                      type="button"
+                      onClick={onSwitchToLogin}
+                      className="font-semibold text-primary hover:underline"
+                    >
+                      {t("auth.signIn")} →
+                    </button>
+                  ) : null}
+                </>
+              ),
+            }
+          : {})}
+        valid={!errors.rut && !rutTaken}
         placeholder={t("auth.placeholders.rut")}
         autoComplete="username"
         numeric
@@ -178,6 +260,7 @@ export function RegisterForm({
         value={email}
         onChange={setEmail}
         {...fieldProps("email")}
+        {...(emailTaken ? { error: t("auth.signup.emailTaken") } : {})}
         type="email"
         inputMode="email"
         placeholder={t("auth.placeholders.email")}
@@ -201,9 +284,15 @@ export function RegisterForm({
             {t("auth.passwordRules.length", { min: PASSWORD_MIN_LENGTH })}
           </Rule>
           <Rule ok={rules.letterNumber}>{t("auth.passwordRules.letterNumber")}</Rule>
-          <Rule ok={rules.symbol}>{t("auth.passwordRules.symbol")}</Rule>
           <Rule ok={Boolean(password) && rules.notRut}>{t("auth.passwordRules.notRut")}</Rule>
         </ul>
+        {/* A suggestion, not a rule: kept out of the checklist so it never reads as missing. */}
+        {rules.symbol ? null : (
+          <p className="flex items-center gap-1.5 text-xs text-dim">
+            <Info className="size-3.5 shrink-0" aria-hidden />
+            {t("auth.passwordRules.symbolHint")}
+          </p>
+        )}
       </div>
       <UnderlineField
         label={t("auth.birthDate")}
@@ -211,7 +300,7 @@ export function RegisterForm({
         onChange={setBirthDate}
         {...fieldProps("birthDate")}
         type="date"
-        max={new Date().toISOString().slice(0, 10)}
+        max={localIsoDate(new Date())}
         autoComplete="bday"
         numeric
       />
@@ -220,6 +309,8 @@ export function RegisterForm({
         title={t("auth.sensitiveDataConsentLabel")}
         checked={sensitiveDataConsent}
         onChange={setSensitiveDataConsent}
+        error={consentMissing ? t("auth.consentRequired") : null}
+        ref={refFor("consent")}
       >
         <Trans
           i18nKey="auth.sensitiveDataConsent"
@@ -274,6 +365,8 @@ export function RegisterForm({
             title={t("auth.guardian.acceptLabel")}
             checked={guardianAccepted}
             onChange={setGuardianAccepted}
+            error={guardianAcceptMissing ? t("auth.guardian.acceptRequired") : null}
+            ref={refFor("guardianAccept")}
           >
             {t("auth.guardian.accept")}
           </CheckCard>
@@ -286,7 +379,7 @@ export function RegisterForm({
         </p>
       ) : null}
       {formId ? null : (
-        <Button type="submit" variant="accent" size="lg" disabled={busy} className="w-full">
+        <Button type="submit" size="lg" disabled={busy} className="w-full">
           {busy ? t("auth.creatingAccount") : t("auth.createAccount")}
         </Button>
       )}

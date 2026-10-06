@@ -1,4 +1,16 @@
 <!--
+Sync Impact Report — 2026-10-06 (amendment 2.3.13)
+- Version change: 2.3.12 → 2.3.13 (PATCH: one write path hardened, two columns; no principle text
+  changed).
+- ADDED: login by RUT + password is rate-limited like the second factor — 5 consecutive wrong
+  passwords lock the account for 15 minutes (`LOGIN_LOCKED`, 429), during which the right password
+  is refused too. New `User.loginFailedAttempts` / `loginLockedUntil` (`db push`, defaults 0/null),
+  separate from the MFA counter. The check and the counter update run on the user row locked with
+  `SELECT … FOR UPDATE` in one `$transaction` (same shape as `VerifyMfaLoginHandler`), proven by an
+  integration test: 5 concurrent wrong passwords count 5. Failed attempts are logged with only the
+  RUT's last 4 characters.
+-->
+<!--
 Sync Impact Report — 2026-09-27 (amendment 2.3.12)
 - Version change: 2.3.11 → 2.3.12 (PATCH: a limit and a write endpoint; no principle text changed,
   no schema change).
@@ -2045,4 +2057,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.3.12 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-09-27
+**Version**: 2.3.13 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-06

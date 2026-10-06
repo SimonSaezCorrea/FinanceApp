@@ -55,7 +55,22 @@ export function validateNewPassword(value: string, rut = ""): ValidationError | 
   return null;
 }
 
+/** Today (or any date) as `YYYY-MM-DD` in the user's own timezone. `toISOString()` is UTC, which
+ * from 21:00 in Chile is already tomorrow. */
+export function localIsoDate(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** A date input's `YYYY-MM-DD` as local midnight (`new Date("YYYY-MM-DD")` is UTC midnight,
+ * the previous day in Chile). `null` for anything that isn't a complete date. */
+export function parseLocalDate(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
 export function validateBirthDate(value: string): ValidationError | null {
   if (!value) return "required";
-  return value > new Date().toISOString().slice(0, 10) ? "birthDateFuture" : null;
+  return value > localIsoDate(new Date()) ? "birthDateFuture" : null;
 }

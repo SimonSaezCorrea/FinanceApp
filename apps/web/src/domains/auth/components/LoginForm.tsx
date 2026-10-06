@@ -5,6 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { formatRutInput } from "../../../shared/lib/formatRut";
 import { Button } from "../../../shared/ui/button";
+import { FormNotice } from "../../../shared/ui/form";
 import { useAuth } from "../hooks/useAuth";
 import { validateRequired, validateRut } from "../lib/validation";
 import { UnderlineField } from "./UnderlineField";
@@ -13,7 +14,8 @@ export type LoginStep = "credentials" | "mfa";
 
 interface LoginFormProps {
   /** Called once a session exists — by password (+MFA), by the passkey button, or by the
-   * browser's own autofill suggestion. The host decides what happens next. */
+   * browser's own autofill suggestion. Called exactly once per sign-in. The host decides what
+   * happens next. */
   onSuccess: () => void;
   /** Lets the host retitle itself while the second factor is being asked for. */
   onStepChange?: (step: LoginStep) => void;
@@ -42,6 +44,10 @@ export function LoginForm({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [passkeyBusy, setPasskeyBusy] = useState(false);
+  /** Informational, not an error: the passkey ceremony didn't finish (cancelled, or no passkey
+   * on this device — the browser reports both the same way, so the copy covers both). */
+  const [passkeyNotice, setPasskeyNotice] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
   const [touched, setTouched] = useState({ rut: false, password: false });
   const [submitted, setSubmitted] = useState(false);
   const conditionalAbortRef = useRef<AbortController | null>(null);
@@ -49,6 +55,15 @@ export function LoginForm({
   useEffect(() => {
     onSuccessRef.current = onSuccess;
   });
+  // A session can be reported by an explicit path AND by the effect below watching `user`; the
+  // host must hear it once (it navigates). The explicit call can't be dropped: setting the
+  // session closes the panel, which may unmount this form before its effect ever runs.
+  const reportedRef = useRef(false);
+  function reportSuccess() {
+    if (reportedRef.current) return;
+    reportedRef.current = true;
+    onSuccessRef.current();
+  }
 
   const rutError = validateRut(identifierValue);
   const passwordError = validateRequired(password);
@@ -75,15 +90,15 @@ export function LoginForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // The conditional attempt above sets `user` directly (no callback of its own) — this reacts to
-  // that success exactly like the explicit paths do.
+  // The autofill passkey (above) sets `user` with no callback of its own — this reports it.
   useEffect(() => {
-    if (user) onSuccessRef.current();
+    if (user) reportSuccess();
   }, [user]);
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setPasskeyNotice(false);
     if (step === "credentials") {
       // Caught here instead of by the server: a mistyped check digit would otherwise come back
       // as the same "RUT o contraseña incorrectos" as a wrong password.
@@ -95,14 +110,11 @@ export function LoginForm({
     try {
       if (step === "credentials") {
         const { mfaRequired } = await login(identifierValue, password);
-        if (mfaRequired) {
-          setStep("mfa");
-        } else {
-          onSuccess();
-        }
+        if (mfaRequired) setStep("mfa");
+        else reportSuccess();
       } else {
         await verifyMfa(mfaCode);
-        onSuccess();
+        reportSuccess();
       }
     } catch (err) {
       const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
@@ -114,6 +126,7 @@ export function LoginForm({
 
   async function onPasskeyLogin() {
     setError(null);
+    setPasskeyNotice(false);
     // An empty RUT is fine (the browser offers its own account picker); a malformed one isn't.
     if (identifierValue.trim() && rutError) {
       setTouched((prev) => ({ ...prev, rut: true }));
@@ -125,10 +138,15 @@ export function LoginForm({
       // A RUT typed narrows the browser's picker to that account's own passkeys; left empty,
       // the browser offers an account picker for any resident passkey on this site on its own.
       await loginWithPasskey(identifierValue.trim() || undefined);
-      onSuccess();
+      reportSuccess();
     } catch (err) {
-      const code = err instanceof ApiRequestError ? err.code : "INVALID_CREDENTIALS";
-      setError(t(`errors.${code}`, { defaultValue: t("errors.INVALID_CREDENTIALS") }));
+      // The ceremony didn't finish (closed prompt, no passkey here, or the server didn't match it):
+      // not "wrong credentials" — say what to do instead. Anything else (network…) is an error.
+      if (!(err instanceof ApiRequestError) || err.code === "INVALID_CREDENTIALS") {
+        setPasskeyNotice(true);
+      } else {
+        setError(t(`errors.${err.code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
+      }
     } finally {
       setPasskeyBusy(false);
     }
@@ -186,6 +204,11 @@ export function LoginForm({
         <KeyRound className="size-[18px]" aria-hidden />
         {passkeyBusy ? t("auth.passkey.waiting") : t("auth.passkey.signIn")}
       </Button>
+      {passkeyNotice ? (
+        <FormNotice icon={KeyRound} className="-mt-2">
+          <span role="status">{t("auth.passkey.notCompleted")}</span>
+        </FormNotice>
+      ) : null}
 
       <div className="flex items-center gap-3 text-xs text-dim">
         <span className="h-px flex-1 bg-border" aria-hidden />
@@ -215,6 +238,15 @@ export function LoginForm({
           placeholder={t("auth.placeholders.password")}
           autoComplete="current-password"
         />
+        <button
+          type="button"
+          onClick={() => setForgotOpen((open) => !open)}
+          aria-expanded={forgotOpen}
+          className="-mt-3 self-end text-[13px] font-medium text-primary hover:underline"
+        >
+          {t("auth.forgot.link")}
+        </button>
+        {forgotOpen ? <FormNotice>{t("auth.forgot.body")}</FormNotice> : null}
         {error ? (
           <p role="alert" className="-mt-1 text-sm text-destructive">
             {error}

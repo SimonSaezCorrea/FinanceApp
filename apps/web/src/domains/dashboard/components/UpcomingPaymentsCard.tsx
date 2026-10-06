@@ -1,69 +1,59 @@
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
 
 import { formatMoney } from "@finance/money";
 
 import { cn } from "../../../shared/lib/cn";
-import { Card } from "../../../shared/ui/card";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
-import type { UpcomingKind, UpcomingPayment } from "../lib/metrics";
+import type { UpcomingPayment } from "../lib/metrics";
 
-// Date-chip tone per payment kind (red debt / blue recurring / amber installment).
-const KIND_CHIP: Record<UpcomingKind, string> = {
-  debt: "bg-destructive/15 text-destructive",
-  recurring: "bg-info/15 text-info",
-  installment: "bg-warning/15 text-warning",
-};
-
-export function UpcomingPaymentsCard({ items }: { items: UpcomingPayment[] }) {
+/**
+ * The next payments, soonest first. The date chip is neutral for every kind: red used to mark
+ * debts, but red means "something went wrong", and a debt someone owes YOU was red too. Money
+ * coming in shows with a "+" in green instead. No "ver todos": the list mixes instalments, debts
+ * and recurring series, which have no single page to send it to.
+ */
+export function UpcomingPayments({ items }: Readonly<{ items: UpcomingPayment[] }>) {
   const { t, i18n } = useTranslation();
 
-  return (
-    <Card className="flex flex-col gap-2.5 p-4">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-semibold">{t("dashboard.upcoming")}</span>
-        <Link to="/transactions" className="text-xs font-medium text-primary hover:underline">
-          {t("dashboard.seeAll")}
-        </Link>
-      </div>
+  if (items.length === 0) {
+    return <p className="text-sm text-muted-foreground">{t("dashboard.upcomingEmpty")}</p>;
+  }
 
-      {items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">{t("dashboard.upcomingEmpty")}</p>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {items.map((p) => {
-            const date = new Date(p.date);
-            return (
-              <li key={p.id} className="flex items-center justify-between gap-3">
-                <span className="flex min-w-0 items-center gap-3">
-                  <span
-                    className={cn(
-                      "flex h-9 w-10 shrink-0 flex-col items-center justify-center rounded-md text-center leading-none",
-                      KIND_CHIP[p.kind],
-                    )}
-                  >
-                    <span className="text-sm font-semibold tabular-nums">{date.getDate()}</span>
-                    <span className="text-[10px] uppercase">
-                      {date.toLocaleDateString(i18n.language, { month: "short" })}
-                    </span>
-                  </span>
-                  <span className="flex min-w-0 flex-col">
-                    <span className="truncate text-sm font-medium">{p.label}</span>
-                    <span className="truncate text-xs text-muted-foreground">
-                      {t(`dashboard.upcomingKind.${p.kind}`)}
-                    </span>
-                  </span>
+  return (
+    <ul className="flex flex-col divide-y">
+      {items.map((p) => {
+        const date = new Date(p.date);
+        const kind = p.inflow
+          ? t("dashboard.upcomingKind.debtOwedToYou")
+          : t(`dashboard.upcomingKind.${p.kind}`);
+        return (
+          <li key={`${p.kind}-${p.id}`} className="flex items-center justify-between gap-3 py-2.5">
+            <span className="flex min-w-0 items-center gap-3">
+              <span className="flex h-10 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-muted text-center leading-none">
+                <span className="text-sm font-semibold tabular-nums">{date.getDate()}</span>
+                <span className="mt-0.5 text-[10px] uppercase text-muted-foreground">
+                  {date.toLocaleDateString(i18n.language, { month: "short" })}
                 </span>
-                <span className="shrink-0 tabular-nums text-sm font-medium">
-                  <MaskedAmount>
-                    {formatMoney(p.amount, { locale: i18n.language, currency: p.currency })}
-                  </MaskedAmount>
-                </span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </Card>
+              </span>
+              <span className="flex min-w-0 flex-col">
+                <span className="truncate text-sm font-medium">{p.label}</span>
+                <span className="truncate text-xs text-muted-foreground">{kind}</span>
+              </span>
+            </span>
+            <span
+              className={cn(
+                "shrink-0 text-sm font-semibold tabular-nums",
+                p.inflow && "text-success",
+              )}
+            >
+              <MaskedAmount>
+                {p.inflow ? "+" : ""}
+                {formatMoney(p.amount, { locale: i18n.language, currency: p.currency })}
+              </MaskedAmount>
+            </span>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

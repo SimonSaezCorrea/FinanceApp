@@ -38,6 +38,14 @@ export class InvalidCredentialsError extends DomainError {
   }
 }
 
+/** Login: too many wrong passwords in a row — every attempt is refused, the right password
+ * included, until the lock expires. */
+export class LoginLockedError extends DomainError {
+  constructor() {
+    super("LOGIN_LOCKED", 429);
+  }
+}
+
 export class AccountDisabledError extends DomainError {
   constructor() {
     super("ACCOUNT_DISABLED", 401);

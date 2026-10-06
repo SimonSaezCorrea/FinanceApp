@@ -82,9 +82,13 @@ function resolve(item: wallet.WalletItem, list: accounts.BankAccount[]): Resolve
 export function WalletCards({
   accountList,
   holder,
+  fill = false,
 }: {
   accountList: accounts.BankAccount[];
   holder?: string;
+  /** Take the parent's full height and scroll the tiles inside it (the Panel's one-screen
+   * desktop layout), instead of capping at a fixed height. */
+  fill?: boolean;
 }) {
   const { t } = useTranslation();
   const { data: walletItems, isLoading, isError, error, refetch } = useWallet();
@@ -111,8 +115,8 @@ export function WalletCards({
   }
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex h-8 items-center justify-between">
+    <div className={cn("flex flex-col gap-3", fill && "min-h-0 flex-1")}>
+      <div className="flex h-8 shrink-0 items-center justify-between">
         <span className="text-sm font-medium text-muted-foreground">{t("dashboard.wallet")}</span>
         {/* Height reserved above so this button's arrival doesn't push the grid
             down. Hidden while loading: whether it belongs depends on whether the
@@ -151,7 +155,12 @@ export function WalletCards({
         holder={holder}
       />
 
-      <div className="scrollbar-thin -m-1 max-h-[28rem] overflow-y-auto p-1">
+      <div
+        className={cn(
+          "scrollbar-thin -m-1 overflow-y-auto p-1",
+          fill ? "min-h-0 flex-1" : "max-h-[28rem]",
+        )}
+      >
         {/* Until the pins are known, an empty grid would render the genuine "your
             wallet is empty, add something" state — a claim we can't make yet, and
             one the arriving cards then contradict. Placeholders instead. */}

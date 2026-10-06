@@ -231,7 +231,7 @@ describe("LoginForm", () => {
     vi.unstubAllGlobals();
   });
 
-  it("a rejected/cancelled passkey ceremony shows a generic error, same as a wrong password", async () => {
+  it("a cancelled passkey ceremony is not 'wrong credentials': it says to use the RUT instead", async () => {
     vi.stubGlobal("navigator", { ...navigator, credentials: { get: vi.fn(), create: vi.fn() } });
     startLogin.mockResolvedValue({ options: fakeOptions });
     (navigator.credentials.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
@@ -243,9 +243,55 @@ describe("LoginForm", () => {
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.passkey.signIn") }));
 
     await waitFor(() =>
-      expect(screen.getByText(i18n.t("errors.INVALID_CREDENTIALS"))).toBeDefined(),
+      expect(screen.getByText(i18n.t("auth.passkey.notCompleted"))).toBeDefined(),
     );
+    expect(screen.queryByText(i18n.t("errors.INVALID_CREDENTIALS"))).toBeNull();
+    expect(onSuccess).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  it("the browser's NotAllowedError (prompt closed) gets the same notice, not an error", async () => {
+    vi.stubGlobal("navigator", { ...navigator, credentials: { get: vi.fn(), create: vi.fn() } });
+    startLogin.mockResolvedValue({ options: fakeOptions });
+    (navigator.credentials.get as ReturnType<typeof vi.fn>).mockRejectedValue(
+      new DOMException("closed", "NotAllowedError"),
+    );
+
+    renderLogin();
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.passkey.signIn") }));
+
+    await waitFor(() =>
+      expect(screen.getByText(i18n.t("auth.passkey.notCompleted"))).toBeDefined(),
+    );
+    expect(screen.queryByRole("alert")).toBeNull();
+    vi.unstubAllGlobals();
+  });
+
+  it("'¿Olvidaste tu contraseña?' explains what can be done today", () => {
+    renderLogin();
+    const link = screen.getByRole("button", { name: i18n.t("auth.forgot.link") });
+    expect(screen.queryByText(i18n.t("auth.forgot.body"))).toBeNull();
+    fireEvent.click(link);
+    expect(screen.getByText(i18n.t("auth.forgot.body"))).toBeDefined();
+    expect(link.getAttribute("aria-expanded")).toBe("true");
+  });
+
+  it("a successful login reports success exactly once", async () => {
+    login.mockResolvedValue({
+      mfaRequired: false,
+      user: { id: "u1", email: "a@b.com", mfaEnabled: false, mfaRecoveryCodesRemaining: 0 },
+    });
+    renderLogin();
+    fireEvent.change(screen.getByLabelText(i18n.t("auth.rut")), {
+      target: { value: "12.345.678-5" },
+    });
+    fireEvent.change(screen.getByLabelText(i18n.t("auth.password")), {
+      target: { value: "secret123" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.signIn") }));
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 20));
+    expect(onSuccess).toHaveBeenCalledTimes(1);
   });
 
   describe("conditional mediation (autofill-driven passkey suggestion)", () => {

@@ -129,6 +129,8 @@ export interface UpcomingPayment {
   amount: string;
   currency: string;
   kind: UpcomingKind;
+  /** Money coming IN: a debt someone owes you. Everything else is an outflow. */
+  inflow: boolean;
 }
 
 /** Soonest unpaid installment per plan + unsettled debts + active recurring expenses, sorted by date. */
@@ -154,6 +156,7 @@ export function upcomingPayments(
         amount: next.amount,
         currency: plan.currency,
         kind: "installment",
+        inflow: false,
       });
     }
   }
@@ -165,9 +168,11 @@ export function upcomingPayments(
       id: debt.id,
       label: debt.counterparty,
       date: debt.dueAt,
-      amount: debt.principal,
+      // What is still pending, not the original principal: a debt paid in part only owes the rest.
+      amount: leftAmount(debt),
       currency: debt.currency,
       kind: "debt",
+      inflow: debt.direction === "OWED_TO_YOU",
     });
   }
 
@@ -182,10 +187,101 @@ export function upcomingPayments(
       amount: rec.amount,
       currency: rec.currency,
       kind: "recurring",
+      inflow: false,
     });
   }
 
   return out
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+    .slice(0, limit);
+}
+
+/** One thing on the Panel that needs a decision soon: a billing period to pay, or a payment due
+ * in the next few days. */
+export interface AttentionItem {
+  id: string;
+  kind: "statement" | UpcomingKind;
+  label: string;
+  date: string;
+  amount: string;
+  currency: string;
+  /** Its date has already passed. */
+  overdue: boolean;
+  /** Where acting on it happens. */
+  href: string;
+}
+
+/** A credit card account's billing period, with the account it belongs to. */
+export interface DueStatement {
+  accountId: string;
+  accountName: string;
+  statement: accounts.CreditStatement;
+}
+
+const DAY_MS = 86_400_000;
+const PAYMENT_HREF: Record<UpcomingKind, string> = {
+  installment: "/installments",
+  debt: "/debts",
+  recurring: "/recurring",
+};
+
+/**
+ * What the Panel puts first, before any figure:
+ *  - every closed, unsettled billing period that still owes something and is due within
+ *    `statementDays` (or already past due);
+ *  - every outgoing payment (instalment, debt you owe, recurring) due within `paymentDays`.
+ * Overdue first, then by date; at most `limit`. Money coming in (a debt owed to you) never
+ * needs a decision, so it is left out. "Settled" is `paidAt`/`transferredAt`, never the status
+ * name (a short payment settles as PARTIALLY_PAID).
+ */
+export function attentionItems(
+  statements: DueStatement[],
+  upcoming: UpcomingPayment[],
+  now: Date,
+  { statementDays = 7, paymentDays = 3, limit = 3 } = {},
+): AttentionItem[] {
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const out: AttentionItem[] = [];
+
+  for (const { accountId, accountName, statement: s } of statements) {
+    if (s.closedAt === null || s.dueDate === null) continue;
+    if (s.paidAt !== null || s.transferredAt !== null) continue;
+    if (!(Number(s.remainingAmount) > 0)) continue;
+    const due = new Date(s.dueDate).getTime();
+    if (due > today + statementDays * DAY_MS) continue;
+    out.push({
+      id: s.id,
+      kind: "statement",
+      label: accountName,
+      date: s.dueDate,
+      amount: s.remainingAmount,
+      currency: s.currency,
+      overdue: due < today,
+      href: `/accounts/${accountId}?tab=billing&statement=${s.id}`,
+    });
+  }
+
+  for (const p of upcoming) {
+    if (p.inflow) continue;
+    const due = new Date(p.date).getTime();
+    if (due > today + paymentDays * DAY_MS) continue;
+    out.push({
+      id: p.id,
+      kind: p.kind,
+      label: p.label,
+      date: p.date,
+      amount: p.amount,
+      currency: p.currency,
+      overdue: due < today,
+      href: PAYMENT_HREF[p.kind],
+    });
+  }
+
+  return out
+    .sort(
+      (a, b) =>
+        Number(b.overdue) - Number(a.overdue) ||
+        new Date(a.date).getTime() - new Date(b.date).getTime(),
+    )
     .slice(0, limit);
 }

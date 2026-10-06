@@ -1,51 +1,64 @@
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { formatMoney } from "@finance/money";
 
-import { Card } from "../../../shared/ui/card";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { PRIMARY_CURRENCY, type MonthFlow } from "../lib/metrics";
 
-export function MonthFlowCard({ flow }: { flow: MonthFlow }) {
+/**
+ * What came in and what went out this month, as two bars on ONE scale (the larger is full
+ * width), so the gap between them is visible before reading a number. The sentence below says
+ * the same in words. No card of its own: it sits inside the Panel's month block.
+ */
+export function MonthFlowSummary({ flow }: Readonly<{ flow: MonthFlow }>) {
   const { t, i18n } = useTranslation();
   const fmt = (v: string) => formatMoney(v, { locale: i18n.language, currency: PRIMARY_CURRENCY });
-  const ratePct = Math.round(flow.savingsRate * 100);
+  const income = Number(flow.income);
+  const expense = Number(flow.expense);
+  const max = Math.max(income, expense, 1);
+
+  const rows = [
+    {
+      key: "in",
+      label: t("dashboard.in"),
+      value: flow.income,
+      width: income / max,
+      tone: "bg-success",
+    },
+    {
+      key: "out",
+      label: t("dashboard.out"),
+      value: flow.expense,
+      width: expense / max,
+      tone: "bg-destructive",
+    },
+  ];
+
+  let sentence: string | null = null;
+  if (income > 0 && expense > income) sentence = t("dashboard.overspent");
+  else if (income > 0)
+    sentence = t("dashboard.savingsSentence", { pct: Math.round(flow.savingsRate * 1000) / 10 });
 
   return (
-    <Card className="flex flex-col gap-3 p-4">
-      <span className="text-sm font-semibold">{t("dashboard.monthFlow")}</span>
-
-      <div className="grid grid-cols-2 gap-3">
-        <div className="flex flex-col gap-1">
-          <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-            <ArrowUpRight className="h-3.5 w-3.5 text-success" aria-hidden />
-            {t("transactions.type.INCOME")}
+    <div className="flex flex-col gap-2.5">
+      {rows.map((r) => (
+        <div
+          key={r.key}
+          className="grid grid-cols-[3.5rem_minmax(0,1fr)_auto] items-center gap-3 text-sm"
+        >
+          <span className="text-muted-foreground">{r.label}</span>
+          <span className="h-2.5 overflow-hidden" aria-hidden>
+            <span
+              className={`block h-full rounded-r ${r.tone}`}
+              style={{ width: `${(r.width * 100).toFixed(1)}%` }}
+            />
           </span>
-          <span className="tabular-nums text-lg font-semibold text-success">
-            <MaskedAmount>{fmt(flow.income)}</MaskedAmount>
-          </span>
-        </div>
-        <div className="flex flex-col gap-1">
-          <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-            <ArrowDownLeft className="h-3.5 w-3.5 text-destructive" aria-hidden />
-            {t("transactions.type.EXPENSE")}
-          </span>
-          <span className="tabular-nums text-lg font-semibold text-destructive">
-            <MaskedAmount>{fmt(flow.expense)}</MaskedAmount>
+          <span className="text-right font-semibold tabular-nums">
+            <MaskedAmount>{fmt(r.value)}</MaskedAmount>
           </span>
         </div>
-      </div>
-
-      <div className="flex flex-col gap-1.5">
-        <div className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-          <span>{t("dashboard.savingsRate")}</span>
-          <span className="tabular-nums text-foreground">{ratePct}%</span>
-        </div>
-        <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-primary" style={{ width: `${ratePct}%` }} />
-        </div>
-      </div>
-    </Card>
+      ))}
+      {sentence ? <p className="text-sm text-muted-foreground">{sentence}</p> : null}
+    </div>
   );
 }

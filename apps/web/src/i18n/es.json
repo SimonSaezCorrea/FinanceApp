@@ -90,11 +90,15 @@
   "nav": {
     "dashboard": "Panel",
     "menu": "Menú",
-    "open": "Abrir menú",
-    "close": "Cerrar menú",
     "collapse": "Colapsar barra lateral",
     "expand": "Expandir barra lateral",
-    "comingSoon": "Próximamente"
+    "groups": {
+      "money": "Tu dinero",
+      "commitments": "Compromisos",
+      "goals": "Metas"
+    },
+    "more": "Más",
+    "moreSections": "Más secciones"
   },
   "theme": {
     "label": "Tema",
@@ -467,21 +471,43 @@
     "title": "Panel",
     "netWorth": "Patrimonio neto",
     "wallet": "Tu cartera",
-    "monthFlow": "Flujo del mes",
-    "savingsRate": "Tasa de ahorro",
-    "spendByCategory": "Gasto por categoría",
-    "total": "Total",
+    "spendByCategory": "En qué se fue",
     "noSpend": "Sin gastos este mes.",
     "upcoming": "Próximos pagos",
     "upcomingEmpty": "Sin pagos próximos.",
-    "seeAll": "Ver todos",
     "prevMonth": "Mes anterior",
     "nextMonth": "Mes siguiente",
-    "thisMonth": "Mes actual",
     "upcomingKind": {
       "installment": "Plan en cuotas",
       "debt": "Deuda",
-      "recurring": "Gasto recurrente"
+      "recurring": "Gasto recurrente",
+      "debtOwedToYou": "Te deben"
+    },
+    "greeting": "Hola, {{name}}",
+    "backToThisMonth": "Volver a este mes",
+    "attention": {
+      "title": "Requiere atención",
+      "none": "Nada vence en los próximos días.",
+      "count": "{{current}} de {{total}}",
+      "dueToday": "Vence hoy",
+      "dueTomorrow": "Vence mañana",
+      "dueOn": "Vence el {{date}}",
+      "overdueOn": "Venció el {{date}}",
+      "statement": "Facturación {{account}}"
+    },
+    "netWorthSince": "desde el {{date}}",
+    "netWorthChart": "Patrimonio neto diario del {{from}} al {{to}}",
+    "otherCurrencies": "Otras monedas, sin convertir",
+    "in": "Entró",
+    "out": "Salió",
+    "savingsSentence": "Ahorras el {{pct}}% de lo que entró.",
+    "overspent": "Salió más de lo que entró este mes.",
+    "otherCategories": "Otras categorías",
+    "tabs": {
+      "label": "Detalle",
+      "month": "Mes",
+      "payments": "Pagos",
+      "wallet": "Cartera"
     }
   },
   "wallet": {
@@ -1752,7 +1778,7 @@
     },
     "sensitiveDataConsentLabel": "Datos sensibles",
     "sensitiveDataConsent": "Acepto que Cuadra trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la <privacy>Política de Privacidad</privacy>.",
-    "consentRequired": "Debes aceptar el tratamiento de datos sensibles para continuar.",
+    "consentRequired": "Marca esta casilla para crear tu cuenta.",
     "guardian": {
       "title": "Autorización de tu madre, padre o tutor",
       "hint": "Como eres menor de edad, necesitamos la autorización de quien te representa legalmente.",
@@ -1766,7 +1792,7 @@
       },
       "acceptLabel": "Autorización",
       "accept": "Autorizo el tratamiento de los datos financieros de mi hijo/a o representado/a en Cuadra.",
-      "acceptRequired": "Falta la autorización del tutor.",
+      "acceptRequired": "Falta la autorización del tutor: marca esta casilla.",
       "relationshipLabel": "Relación"
     },
     "logout": "Salir",
@@ -1781,7 +1807,8 @@
     },
     "passkey": {
       "signIn": "Continuar con llave de acceso",
-      "waiting": "Esperando tu dispositivo…"
+      "waiting": "Esperando tu dispositivo…",
+      "notCompleted": "No se completó el ingreso con llave de acceso. Si no tienes una en este dispositivo, entra con tu RUT y contraseña; después puedes crear una en Perfil."
     },
     "signingIn": "Ingresando…",
     "creatingAccount": "Creando cuenta…",
@@ -1801,7 +1828,9 @@
     },
     "signup": {
       "title": "Crea tu cuenta",
-      "subtitle": "Después podrás entrar con una llave de acceso."
+      "subtitle": "Después podrás entrar con una llave de acceso.",
+      "rutTaken": "Ese RUT ya tiene una cuenta.",
+      "emailTaken": "Ese correo ya está registrado en otra cuenta."
     },
     "firstTime": "¿Primera vez?",
     "haveAccount": "¿Ya tienes cuenta?",
@@ -1809,10 +1838,14 @@
       "label": "Requisitos de la contraseña",
       "length": "{{min}} caracteres o más",
       "letterNumber": "Una letra y un número",
-      "symbol": "Un símbolo (recomendado)",
       "notRut": "No es tu RUT",
       "met": "cumplido",
-      "pending": "pendiente"
+      "pending": "pendiente",
+      "symbolHint": "Recomendado: suma un símbolo para hacerla más difícil de adivinar."
+    },
+    "forgot": {
+      "link": "¿Olvidaste tu contraseña?",
+      "body": "Si tienes una llave de acceso en este dispositivo, entra con ella. Recuperar la contraseña todavía no es posible porque Cuadra no envía correos."
     }
   },
   "landing": {
@@ -2324,7 +2357,7 @@
     "INTERNAL_ERROR": "Ocurrió un error. Inténtalo de nuevo.",
     "UNAUTHORIZED": "Inicia sesión para continuar.",
     "NOT_FOUND": "No se encontró el recurso.",
-    "INVALID_CREDENTIALS": "Correo o contraseña incorrectos.",
+    "INVALID_CREDENTIALS": "RUT o contraseña incorrectos.",
     "EMAIL_TAKEN": "Ese correo ya está registrado.",
     "IDENTIFIER_TAKEN": "Ese RUT ya está registrado.",
     "INVALID_MFA_CODE": "Código incorrecto. Inténtalo de nuevo.",
@@ -2417,6 +2450,7 @@
     "STATEMENT_PAYMENT_CURRENCY_AMBIGUOUS": "Indica también cuánto se debitó de la cuenta de origen: está en otra moneda.",
     "TRANSACTION_LINKED_TO_STATEMENT": "Este movimiento respalda el pago o el traspaso de una facturación. Para cambiarlo, hazlo desde su facturación.",
     "CARD_LIMIT_HAS_DEBT": "No puedes quitar el tope en esa moneda mientras tenga deuda o una facturación sin liquidar.",
-    "WALLET_FULL": "Tu cartera ya tiene el máximo de 4."
+    "WALLET_FULL": "Tu cartera ya tiene el máximo de 4.",
+    "LOGIN_LOCKED": "Demasiados intentos. Espera 15 minutos antes de volver a intentarlo."
   }
 }

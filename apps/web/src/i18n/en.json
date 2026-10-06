@@ -90,11 +90,15 @@
   "nav": {
     "dashboard": "Dashboard",
     "menu": "Menu",
-    "open": "Open menu",
-    "close": "Close menu",
     "collapse": "Collapse sidebar",
     "expand": "Expand sidebar",
-    "comingSoon": "Coming soon"
+    "groups": {
+      "money": "Your money",
+      "commitments": "Commitments",
+      "goals": "Goals"
+    },
+    "more": "More",
+    "moreSections": "More sections"
   },
   "theme": {
     "label": "Theme",
@@ -467,21 +471,43 @@
     "title": "Dashboard",
     "netWorth": "Net worth",
     "wallet": "Your wallet",
-    "monthFlow": "This month's flow",
-    "savingsRate": "Savings rate",
-    "spendByCategory": "Spending by category",
-    "total": "Total",
+    "spendByCategory": "Where it went",
     "noSpend": "No spending this month.",
     "upcoming": "Upcoming payments",
     "upcomingEmpty": "No upcoming payments.",
-    "seeAll": "See all",
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
-    "thisMonth": "Current month",
     "upcomingKind": {
       "installment": "Installment plan",
       "debt": "Debt",
-      "recurring": "Recurring expense"
+      "recurring": "Recurring expense",
+      "debtOwedToYou": "Owed to you"
+    },
+    "greeting": "Hi, {{name}}",
+    "backToThisMonth": "Back to this month",
+    "attention": {
+      "title": "Needs attention",
+      "none": "Nothing is due in the next few days.",
+      "count": "{{current}} of {{total}}",
+      "dueToday": "Due today",
+      "dueTomorrow": "Due tomorrow",
+      "dueOn": "Due {{date}}",
+      "overdueOn": "Was due {{date}}",
+      "statement": "{{account}} statement"
+    },
+    "netWorthSince": "since {{date}}",
+    "netWorthChart": "Daily net worth from {{from}} to {{to}}",
+    "otherCurrencies": "Other currencies, not converted",
+    "in": "In",
+    "out": "Out",
+    "savingsSentence": "You're saving {{pct}}% of what came in.",
+    "overspent": "More went out than came in this month.",
+    "otherCategories": "Other categories",
+    "tabs": {
+      "label": "Detail",
+      "month": "Month",
+      "payments": "Payments",
+      "wallet": "Wallet"
     }
   },
   "wallet": {
@@ -1752,7 +1778,7 @@
     },
     "sensitiveDataConsentLabel": "Sensitive data",
     "sensitiveDataConsent": "I agree that Cuadra processes my financial data (balances, movements, debts) as sensitive data, under the <privacy>Privacy Policy</privacy>.",
-    "consentRequired": "You must accept the sensitive-data processing to continue.",
+    "consentRequired": "Tick this box to create your account.",
     "guardian": {
       "title": "Parent/guardian authorization",
       "hint": "Since you're a minor, we need authorization from your legal representative.",
@@ -1766,7 +1792,7 @@
       },
       "acceptLabel": "Authorization",
       "accept": "I authorize the processing of my child's/dependent's financial data in Cuadra.",
-      "acceptRequired": "The guardian's authorization is missing.",
+      "acceptRequired": "The guardian's authorization is missing: tick this box.",
       "relationshipLabel": "Relationship"
     },
     "logout": "Log out",
@@ -1781,7 +1807,8 @@
     },
     "passkey": {
       "signIn": "Continue with a passkey",
-      "waiting": "Waiting for your device…"
+      "waiting": "Waiting for your device…",
+      "notCompleted": "Signing in with a passkey didn't finish. If you don't have one on this device, sign in with your RUT and password; you can create one in Profile afterwards."
     },
     "signingIn": "Signing in…",
     "creatingAccount": "Creating account…",
@@ -1801,7 +1828,9 @@
     },
     "signup": {
       "title": "Create your account",
-      "subtitle": "You can add a passkey to sign in afterwards."
+      "subtitle": "You can add a passkey to sign in afterwards.",
+      "rutTaken": "That RUT already has an account.",
+      "emailTaken": "That email is already registered to another account."
     },
     "firstTime": "First time here?",
     "haveAccount": "Already have an account?",
@@ -1809,10 +1838,14 @@
       "label": "Password requirements",
       "length": "{{min}} characters or more",
       "letterNumber": "A letter and a number",
-      "symbol": "A symbol (recommended)",
       "notRut": "Not your RUT",
       "met": "met",
-      "pending": "pending"
+      "pending": "pending",
+      "symbolHint": "Recommended: add a symbol to make it harder to guess."
+    },
+    "forgot": {
+      "link": "Forgot your password?",
+      "body": "If you have a passkey on this device, sign in with it. Recovering a password isn't possible yet because Cuadra doesn't send email."
     }
   },
   "landing": {
@@ -2324,7 +2357,7 @@
     "INTERNAL_ERROR": "Something went wrong. Please try again.",
     "UNAUTHORIZED": "Sign in to continue.",
     "NOT_FOUND": "Resource not found.",
-    "INVALID_CREDENTIALS": "Incorrect email or password.",
+    "INVALID_CREDENTIALS": "Incorrect RUT or password.",
     "EMAIL_TAKEN": "That email is already registered.",
     "IDENTIFIER_TAKEN": "That RUT is already registered.",
     "INVALID_MFA_CODE": "Incorrect code. Try again.",
@@ -2417,6 +2450,7 @@
     "STATEMENT_PAYMENT_CURRENCY_AMBIGUOUS": "Also enter how much was debited from the source account: it's in another currency.",
     "TRANSACTION_LINKED_TO_STATEMENT": "This transaction backs a statement's payment or transfer. Change it from its statement.",
     "CARD_LIMIT_HAS_DEBT": "You can't remove the limit in that currency while it has debt or an unsettled statement.",
-    "WALLET_FULL": "Your wallet already holds the maximum of 4."
+    "WALLET_FULL": "Your wallet already holds the maximum of 4.",
+    "LOGIN_LOCKED": "Too many attempts. Wait 15 minutes before trying again."
   }
 }
