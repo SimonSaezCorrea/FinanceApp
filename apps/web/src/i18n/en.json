@@ -1855,7 +1855,9 @@
       "privacy": "Privacy & data",
       "pricing": "Pricing",
       "faq": "FAQ",
-      "goToApp": "Go to the app"
+      "goToApp": "Go to the app",
+      "menu": "Menu",
+      "openMenu": "Open menu"
     },
     "footer": {
       "tagline": "Made in Chile for pesos, dollars and UF.",

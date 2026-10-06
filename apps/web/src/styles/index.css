@@ -198,6 +198,27 @@
     /* Reserve the scrollbar's width on every page, short or tall, so the header/nav doesn't
        shift horizontally when navigating between a page that scrolls and one that doesn't. */
     scrollbar-gutter: stable;
+    /* Phone tells that make the app read as "a website": the gray flash over anything tapped
+       (every control has its own :active state instead) and font inflation in landscape. */
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* No double-tap-to-zoom wait on controls, so a tap fires at once; and a long press on a
+     control doesn't select its label. Content text stays selectable. */
+  button,
+  a,
+  summary,
+  [role="button"],
+  [role="tab"] {
+    touch-action: manipulation;
+  }
+  button,
+  summary,
+  [role="button"],
+  [role="tab"] {
+    -webkit-user-select: none;
+    user-select: none;
   }
 
   body {
@@ -213,6 +234,10 @@
       Roboto,
       sans-serif;
     -webkit-font-smoothing: antialiased;
+    /* With viewport-fit=cover a phone in landscape draws the page under the notch; keep the
+       content out of it. Zero everywhere else. */
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
   }
 
   /* While an overlay locks scroll, Radix hides the scrollbar and compensates on <body> (marked

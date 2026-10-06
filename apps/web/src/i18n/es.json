@@ -1855,7 +1855,9 @@
       "privacy": "Privacidad y datos",
       "pricing": "Precios",
       "faq": "Preguntas frecuentes",
-      "goToApp": "Ir a la app"
+      "goToApp": "Ir a la app",
+      "menu": "Menú",
+      "openMenu": "Abrir menú"
     },
     "footer": {
       "tagline": "Hecha en Chile para pesos, dólares y UF.",

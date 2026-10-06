@@ -14,7 +14,17 @@ function readStoredMode(): ThemeMode {
 }
 
 function apply(resolved: ResolvedTheme): void {
-  document.documentElement.dataset.theme = resolved;
+  const root = document.documentElement;
+  root.dataset.theme = resolved;
+  // The phone's status bar / browser chrome takes this color. The theme is picked in the app,
+  // not only by the OS, so a per-scheme media query in index.html can't follow it: write the
+  // resolved theme's own background token instead.
+  const background = getComputedStyle(root).getPropertyValue("--background").trim();
+  if (background) {
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute("content", `hsl(${background})`);
+  }
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

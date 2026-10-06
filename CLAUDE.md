@@ -1246,6 +1246,26 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   publicly; one plan card beside three reasons it's free (`landing.pricing.reasons.*`).
   Preguntas: from `lg` a sticky topic index + sign-up card beside grouped `<details>` questions
   (`landing.faq.groups`/`items.*`), **every question starts collapsed** (no `open` by default).
+  Amendment (landing on tablet and phone, 2026-10-06, canvas "Cuadra · Landing responsiva"):
+  the landing header used to `flex-wrap` its four sections and broke into 2-3 rows on a phone.
+  `LandingLayout` now has three forms with ONE `<nav>`: below `sm` the nav is hidden and a menu
+  button opens `LandingMenu` (a full-screen `Window`: sections with rules only between them; at
+  the foot `MenuThemeSwitch`, three labelled 44px segments with no visible heading; then Crear cuenta /
+  Iniciar sesión; i18n `landing.nav.menu`/`openMenu`); `sm`-`lg` the nav drops to its own
+  scrollable row of 44px tabs; from `lg` one row as before. The header publishes its measured
+  height as `--landing-header` (ResizeObserver) for whatever sticks below it: `/preguntas` turns
+  its topic list into a sticky chip row below `lg` (its `aside` is `contents` there so the row
+  can stick for the whole page). Pages switch to two columns at `md` instead of `lg` (features,
+  Nosotros hero, Precios), Privacidad places rings beside the index on a tablet and the mini
+  rings beside each layer title on a phone, and the hero/closing CTAs go full width on a phone.
+  Platform layer (skill `mobile-native`): `index.html`'s viewport gained `viewport-fit=cover`
+  (without it every `env(safe-area-inset-*)` already in `AppLayout` resolved to 0) and
+  `interactive-widget=resizes-content`; `theme-color` is ONE tag rewritten to the resolved
+  theme's `--background` by `ThemeProvider` (and by the pre-paint script), since the theme is
+  picked in the app, not only by the OS; global CSS kills the tap highlight and text inflation,
+  sets `touch-action: manipulation` on controls and `user-select: none` on buttons/summary/tabs,
+  and pads `body` by the landscape notch insets. `Input`/`Select`/`Textarea` are 16px below `sm`
+  (`text-base`, then `sm:text-sm`): iOS zooms into any field under 16px and never zooms back.
   Amendment (home reworked against the `.agents` design skills, 2026-10-06): the home now runs
   hero → `WhySection` (a full-width `bg-surface2` band, the sun beside the title, the three
   reasons in an asymmetric row with a short rule instead of `01/02/03`; the old `SunsetArch` was

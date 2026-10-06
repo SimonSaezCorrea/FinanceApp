@@ -33,9 +33,9 @@ export function AboutRoute() {
 
   return (
     <LandingLayout>
-      <div className="flex flex-col gap-24 pb-4 pt-10 lg:gap-32 lg:pt-16">
-        <section className="grid items-center gap-12 lg:grid-cols-12 lg:gap-8">
-          <div className="flex flex-col gap-6 lg:col-span-6">
+      <div className="flex flex-col gap-16 pb-4 pt-8 sm:gap-24 sm:pt-10 lg:gap-32 lg:pt-16">
+        <section className="grid items-center gap-10 md:grid-cols-12 md:gap-8">
+          <div className="flex flex-col gap-6 md:col-span-7 lg:col-span-6">
             <h1 tabIndex={-1} className={HERO_TITLE}>
               {t(`${P}.titleLead`)} <span className="text-primary">{t(`${P}.titleAccent`)}</span>
             </h1>
@@ -46,13 +46,13 @@ export function AboutRoute() {
           <MatchingReceipts
             bankLabel={t(`${P}.receipts.bank`)}
             appLabel={t("brand.name")}
-            className="mx-auto w-full max-w-md lg:col-span-5 lg:col-start-8 lg:max-w-none"
+            className="mx-auto w-full max-w-md md:col-span-5 md:max-w-none lg:col-start-8"
           />
         </section>
 
         <section
           aria-labelledby="about-how-title"
-          className="reveal relative overflow-hidden rounded-2xl border bg-card px-6 pb-36 pt-10 sm:px-12 sm:pt-14 lg:px-20 lg:pt-[4.5rem]"
+          className="reveal relative overflow-hidden rounded-2xl border bg-card px-6 pb-28 pt-9 sm:px-12 sm:pb-36 sm:pt-14 lg:px-20 lg:pt-[4.5rem]"
         >
           <RidgeBand />
           <div className="relative flex max-w-3xl flex-col gap-5">
@@ -100,9 +100,18 @@ export function AboutRoute() {
           <h2 id="about-today-title" className={cn("reveal", H2)}>
             {t(`${P}.today.title`)}
           </h2>
-          <div className="reveal grid gap-5 sm:grid-cols-[2fr_1fr_1fr]">
+          {/* Three columns only from `lg`: at tablet width the two small ones wrapped every line.
+              In between, "available" spans the row and the other two share the next. */}
+          <div className="reveal grid gap-4 sm:grid-cols-2 sm:gap-5 lg:grid-cols-[2fr_1fr_1fr]">
             {STATUS.map(({ key, dot, card }) => (
-              <div key={key} className={cn("flex flex-col gap-4 rounded-2xl border p-7", card)}>
+              <div
+                key={key}
+                className={cn(
+                  "flex flex-col gap-4 rounded-2xl border p-6 sm:p-7",
+                  key === "available" && "sm:col-span-2 lg:col-span-1",
+                  card,
+                )}
+              >
                 <span className="inline-flex items-center gap-2 self-start rounded-full border border-border2 bg-background py-1 pl-2.5 pr-3 text-sm font-semibold">
                   <span aria-hidden className={cn("h-2 w-2 rounded-full", dot)} />
                   {t(`${P}.today.${key}.title`)}

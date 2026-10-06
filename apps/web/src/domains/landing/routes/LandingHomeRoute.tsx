@@ -51,7 +51,12 @@ function LandingHome() {
             </p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button size="lg" onClick={() => openAuth("register")}>
+              {/* Full width on a phone: the one action of the hero, under the thumb. */}
+              <Button
+                size="lg"
+                className="h-12 w-full sm:h-11 sm:w-auto"
+                onClick={() => openAuth("register")}
+              >
                 {t("auth.createAccount")}
                 <ArrowRight className="h-4 w-4" aria-hidden />
               </Button>

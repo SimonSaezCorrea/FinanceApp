@@ -198,4 +198,20 @@ describe("public landing", () => {
 
     expect(await screen.findByText("protected accounts page")).toBeTruthy();
   });
+
+  it("the phone menu holds every section, the theme and both ways in, and its sign-up opens the panel", async () => {
+    renderAt("/");
+    await screen.findByRole("heading", { level: 1 });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("landing.nav.openMenu") }));
+
+    const menu = await screen.findByRole("dialog", { name: i18n.t("landing.nav.menu") });
+    for (const key of ["about", "privacy", "pricing", "faq"]) {
+      expect(within(menu).getByRole("link", { name: i18n.t(`landing.nav.${key}`) })).toBeTruthy();
+    }
+    expect(within(menu).getByRole("group", { name: i18n.t("theme.label") })).toBeTruthy();
+    expect(within(menu).getByRole("button", { name: i18n.t("auth.signIn") })).toBeTruthy();
+
+    fireEvent.click(within(menu).getByRole("button", { name: i18n.t("auth.createAccount") }));
+    expect(await screen.findByLabelText(i18n.t("auth.birthDate"))).toBeTruthy();
+  });
 });

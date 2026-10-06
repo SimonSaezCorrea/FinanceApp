@@ -23,7 +23,7 @@ export function PricingRoute() {
 
   return (
     <LandingLayout>
-      <div className="flex flex-col gap-14 pb-20 pt-10 lg:gap-20 lg:pb-28 lg:pt-16">
+      <div className="flex flex-col gap-10 pb-16 pt-8 sm:gap-14 sm:pb-20 sm:pt-10 lg:gap-20 lg:pb-28 lg:pt-16">
         <header className="flex flex-col gap-4">
           <h1 tabIndex={-1} className={cn("max-w-4xl", HERO_TITLE)}>
             {t(`${P}.titleLead`)} <span className="text-primary">{t(`${P}.titleAccent`)}</span>
@@ -33,8 +33,9 @@ export function PricingRoute() {
           </p>
         </header>
 
-        <div className="grid items-start gap-12 lg:grid-cols-12 lg:gap-8">
-          <article className="reveal flex flex-col gap-6 rounded-2xl border-2 border-primary bg-card p-7 sm:p-10 lg:col-span-6">
+        {/* Plan and reasons side by side from `md`; stacked on a phone. */}
+        <div className="grid items-start gap-10 md:grid-cols-12 md:gap-8">
+          <article className="reveal flex flex-col gap-6 rounded-2xl border-2 border-primary bg-card p-6 sm:p-10 md:col-span-7 md:p-7 lg:col-span-6 lg:p-10">
             <PenReceipt className="h-28 w-full" />
             <div className="flex flex-col gap-1.5">
               <strong className="text-5xl font-bold tracking-tight">{t(`${P}.free`)}</strong>
@@ -55,13 +56,13 @@ export function PricingRoute() {
                 </li>
               ))}
             </ul>
-            <Button size="lg" onClick={() => openAuth("register")}>
+            <Button size="lg" className="h-12 sm:h-11" onClick={() => openAuth("register")}>
               {t("auth.createAccount")}
               <ArrowRight className="h-4 w-4" aria-hidden />
             </Button>
           </article>
 
-          <ul className="reveal flex flex-col border-b border-border2 lg:col-span-5 lg:col-start-8">
+          <ul className="reveal flex flex-col border-b border-border2 md:col-span-5 lg:col-start-8">
             {REASONS.map((key) => (
               <li key={key} className="flex flex-col gap-1.5 border-t border-border2 py-7">
                 <h2 className="text-xl font-bold tracking-tight">

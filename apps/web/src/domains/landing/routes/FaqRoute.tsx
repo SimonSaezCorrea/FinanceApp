@@ -63,8 +63,11 @@ function Faq() {
   }, [hash]);
 
   return (
-    <div className="grid gap-12 pb-20 pt-10 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start lg:gap-20 lg:pb-28 lg:pt-16">
-      <aside className="flex flex-col gap-9 lg:sticky lg:top-24">
+    <div className="grid gap-8 pb-16 pt-8 sm:pb-20 sm:pt-10 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start lg:gap-20 lg:pb-28 lg:pt-16">
+      {/* Below `lg` the aside dissolves (`contents`) so its topic row becomes a child of the page
+          grid and can stick under the header for the whole list of questions; inside the aside
+          it would unstick as soon as the title scrolled away. */}
+      <aside className="contents lg:sticky lg:top-24 lg:flex lg:flex-col lg:gap-9">
         <div className="flex flex-col gap-4">
           <h1 tabIndex={-1} className={HERO_TITLE}>
             {t(`${P}.titleLead`)} <span className="text-primary">{t(`${P}.titleAccent`)}</span>
@@ -72,12 +75,16 @@ function Faq() {
           <p className="text-base leading-relaxed text-muted-foreground">{t(`${P}.subtitle`)}</p>
         </div>
 
-        <nav aria-label={t(`${P}.topics`)} className="flex flex-col gap-1">
+        {/* Phone and tablet: a sticky row of chips that scrolls sideways. Desktop: the column. */}
+        <nav
+          aria-label={t(`${P}.topics`)}
+          className="sticky top-[var(--landing-header,4.5rem)] z-30 -mx-4 flex snap-x gap-2 overflow-x-auto border-y bg-background/90 px-4 py-2.5 backdrop-blur [scrollbar-width:none] lg:static lg:mx-0 lg:flex-col lg:gap-1 lg:overflow-visible lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none"
+        >
           {GROUPS.map(({ key, icon, items }) => (
             <a
               key={key}
               href={`#faq-${key}`}
-              className="grid grid-cols-[2.75rem_minmax(0,1fr)_auto] items-center gap-3.5 rounded-2xl border border-transparent p-3 text-[15px] font-medium transition-colors hover:border-border hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="grid min-h-11 shrink-0 snap-start grid-cols-[auto_auto_auto] items-center gap-2 rounded-full border bg-card py-1 pl-1 pr-3.5 text-sm font-medium transition-colors hover:border-border hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:grid-cols-[2.75rem_minmax(0,1fr)_auto] lg:gap-3.5 lg:rounded-2xl lg:border-transparent lg:bg-transparent lg:p-3 lg:text-[15px]"
             >
               <TopicIcon icon={icon} />
               {t(`${P}.groups.${key}`)}
@@ -95,7 +102,8 @@ function Faq() {
             key={key}
             id={`faq-${key}`}
             aria-labelledby={`faq-${key}-title`}
-            className="reveal flex scroll-mt-24 flex-col gap-2"
+            // Below `lg` the header AND the sticky topic row cover the top of the screen.
+            className="reveal flex scroll-mt-[calc(var(--landing-header,4.5rem)+4.5rem)] flex-col gap-2 lg:scroll-mt-24"
           >
             <div className="mb-3 flex items-center gap-4">
               <TopicIcon icon={icon} large />
@@ -108,14 +116,18 @@ function Faq() {
             </div>
             <div className="border-b">
               {items.map((item) => (
-                <details key={item} id={questionId(item)} className="group scroll-mt-24 border-t">
+                <details
+                  key={item}
+                  id={questionId(item)}
+                  className="group scroll-mt-[calc(var(--landing-header,4.5rem)+4.5rem)] border-t lg:scroll-mt-24"
+                >
                   <summary className="grid cursor-pointer list-none grid-cols-[minmax(0,1fr)_2rem] items-center gap-4 px-1 py-5 text-base font-semibold leading-snug focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:text-lg [&::-webkit-details-marker]:hidden">
                     {t(`${P}.items.${item}.q`)}
                     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-chip text-[hsl(var(--ridge-line))] transition-[transform,background-color,color] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)] group-open:rotate-45 group-open:bg-[hsl(var(--ridge-line))] group-open:text-background motion-reduce:transition-none">
                       <Plus className="h-4 w-4" strokeWidth={2.5} aria-hidden />
                     </span>
                   </summary>
-                  <p className="max-w-[68ch] px-1 pb-6 pr-14 text-[15px] leading-relaxed text-muted-foreground sm:text-base">
+                  <p className="max-w-[68ch] px-1 pb-6 pr-2 text-[15px] leading-relaxed text-muted-foreground sm:pr-14 sm:text-base">
                     {t(`${P}.items.${item}.a`)}
                   </p>
                 </details>
@@ -144,10 +156,16 @@ function TopicIcon({ icon: Icon, large }: Readonly<{ icon: LucideIcon; large?: b
     <span
       className={cn(
         "flex shrink-0 items-center justify-center bg-chip text-[hsl(var(--ridge-line))]",
-        large ? "h-14 w-14 rounded-2xl" : "h-11 w-11 rounded-xl",
+        // The small one sits in a chip below `lg`, so it's round and chip-sized there.
+        large
+          ? "h-12 w-12 rounded-2xl sm:h-14 sm:w-14"
+          : "h-8 w-8 rounded-full lg:h-11 lg:w-11 lg:rounded-xl",
       )}
     >
-      <Icon className={large ? "h-[26px] w-[26px]" : "h-[22px] w-[22px]"} aria-hidden />
+      <Icon
+        className={large ? "h-6 w-6 sm:h-[26px] sm:w-[26px]" : "h-4 w-4 lg:h-[22px] lg:w-[22px]"}
+        aria-hidden
+      />
     </span>
   );
 }

@@ -57,19 +57,27 @@ export function WhySection() {
       className="relative left-1/2 w-screen -translate-x-1/2 border-y bg-surface2 py-14 lg:py-16"
     >
       <div className="mx-auto max-w-[1240px] px-4">
-        <div className="reveal grid items-center gap-8 lg:grid-cols-[minmax(0,1fr)_auto]">
+        {/* Title and sunset side by side at every width, centered on each other. The sunset is
+            wide (240×132), so on a phone it keeps 8rem (narrower reads as a sliver) and the title
+            steps down to 1.75rem to fit the remaining column in four lines. */}
+        <div className="reveal grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 sm:gap-8">
           <SectionTitle
             id="landing-why-title"
             lead={t(`${P}.why.title`)}
-            className="max-w-[20ch]"
+            className="max-w-[20ch] text-[1.75rem] sm:text-[2.75rem]"
           />
-          <StripedSun className="w-40 justify-self-start lg:w-60 lg:justify-self-end" />
+          <StripedSun className="w-32 justify-self-end sm:w-48 lg:w-60" />
         </div>
-        <ul className="mt-10 grid gap-8 lg:grid-cols-[1.35fr_1fr_1fr] lg:gap-10">
+        {/* Phone: one column. Tablet: the lead reason across, the other two side by side.
+            Desktop: the asymmetric row. */}
+        <ul className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-[1.35fr_1fr_1fr] lg:gap-10">
           {(["1", "2", "3"] as const).map((n) => (
             <li
               key={n}
-              className="reveal relative flex flex-col gap-2 pt-5 before:absolute before:left-0 before:top-0 before:h-[3px] before:w-9 before:rounded-full before:bg-primary"
+              className={cn(
+                "reveal relative flex flex-col gap-2 pt-5 before:absolute before:left-0 before:top-0 before:h-[3px] before:w-9 before:rounded-full before:bg-primary",
+                n === "1" && "sm:col-span-2 lg:col-span-1",
+              )}
             >
               <h3 className={cn("font-semibold", n === "1" ? "text-xl" : "text-lg")}>
                 {t(`${P}.why.${n}.title`)}
@@ -112,17 +120,19 @@ export function FeaturesSection() {
       {FEATURES.map(({ key, Art }, index) => {
         const artFirst = index % 2 === 0;
         return (
-          <div key={key} className="reveal grid items-center gap-8 lg:grid-cols-12 lg:gap-8">
+          // Side by side from `md`: a tablet has the room, and a stacked vignette there ran the
+          // width of the screen for a picture meant as a companion to the text.
+          <div key={key} className="reveal grid items-center gap-8 md:grid-cols-12">
             <Art
               className={cn(
-                "order-2 w-full lg:order-none lg:col-span-6",
-                !artFirst && "lg:col-start-7 lg:row-start-1",
+                "order-2 w-full md:order-none md:col-span-6",
+                !artFirst && "md:col-start-7 md:row-start-1",
               )}
             />
             <div
               className={cn(
-                "flex flex-col gap-3.5 lg:col-span-5",
-                artFirst ? "lg:col-start-8" : "lg:col-start-1 lg:row-start-1",
+                "flex flex-col gap-3.5 md:col-span-6 lg:col-span-5",
+                artFirst ? "md:col-start-7 lg:col-start-8" : "md:col-start-1 md:row-start-1",
               )}
             >
               <h3 className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
@@ -163,9 +173,14 @@ export function CurrenciesStrip() {
       <div className="flex flex-col gap-2">
         <ul className="grid gap-px overflow-hidden rounded-xl border bg-border sm:grid-cols-3">
           {SAMPLE_TOTALS.map(({ currency, amount }) => (
-            <li key={currency} className="flex flex-col gap-1.5 bg-card p-5">
+            // Phone: a row per currency, label left and total right, like a statement line.
+            // From `sm`: three tiles.
+            <li
+              key={currency}
+              className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 bg-card px-4 py-4 sm:flex sm:flex-col sm:items-start sm:gap-1.5 sm:p-5"
+            >
               <span className="font-mono text-xs font-medium text-primary">{currency}</span>
-              <span className="text-2xl font-semibold tabular-nums tracking-tight">
+              <span className="row-span-2 text-xl font-semibold tabular-nums tracking-tight sm:text-2xl">
                 {formatMoney(amount, { locale: i18n.language, currency })}
               </span>
               <span className="text-sm text-muted-foreground">
@@ -188,7 +203,7 @@ export function ClosingCta() {
   const openAuth = useOpenAuth();
   return (
     <section aria-labelledby="landing-closing-title" className="pb-16 pt-4">
-      <div className="reveal grid gap-6 rounded-2xl bg-primary px-7 py-9 text-primary-foreground lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center lg:px-12 lg:py-12">
+      <div className="reveal grid gap-6 rounded-2xl bg-primary px-6 py-8 text-primary-foreground sm:px-9 sm:py-10 md:grid-cols-[minmax(0,1fr)_auto] md:items-center lg:px-12 lg:py-12">
         <div className="flex flex-col gap-3">
           <h2
             id="landing-closing-title"
@@ -200,7 +215,7 @@ export function ClosingCta() {
         </div>
         <Button
           size="lg"
-          className="justify-self-start bg-background text-foreground hover:bg-background/90"
+          className="h-12 w-full justify-self-start bg-background text-foreground hover:bg-background/90 sm:h-11 sm:w-auto"
           onClick={() => openAuth("register")}
         >
           {t("auth.createAccount")}

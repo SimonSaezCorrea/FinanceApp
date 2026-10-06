@@ -25,21 +25,24 @@ export function PrivacyRoute() {
 
   return (
     <LandingLayout>
-      <div className="flex flex-col gap-24 pb-4 pt-10 lg:gap-28 lg:pt-16">
-        <section className="grid items-center gap-12 lg:grid-cols-12 lg:gap-8">
+      <div className="flex flex-col gap-16 pb-4 pt-8 sm:gap-24 sm:pt-10 lg:gap-28 lg:pt-16">
+        {/* Three pieces placed per width. Phone: copy, rings, index stacked. Tablet: copy
+            across, then the rings beside the index they number. Desktop: the rings on the left
+            spanning both rows, copy and index on the right. */}
+        <section className="grid items-center gap-8 md:grid-cols-[15rem_minmax(0,1fr)] md:gap-x-10 lg:grid-cols-12 lg:gap-x-8 lg:gap-y-7">
+          <div className="flex flex-col gap-4 md:col-span-2 lg:col-span-6 lg:col-start-7 lg:row-start-1 lg:self-end">
+            <h1 tabIndex={-1} className={HERO_TITLE}>
+              {t(`${P}.titleLead`)} <span className="text-primary">{t(`${P}.titleAccent`)}</span>
+            </h1>
+            <p className="text-base leading-relaxed text-muted-foreground sm:text-[17px]">
+              {t(`${P}.lead`)}
+            </p>
+          </div>
           <PrivacyRings
             centerLabel={t(`${P}.center`)}
-            className="order-2 mx-auto w-full max-w-md lg:order-1 lg:col-span-5 lg:max-w-none"
+            className="mx-auto w-full max-w-[15rem] md:max-w-none lg:col-span-5 lg:col-start-1 lg:row-span-2 lg:row-start-1"
           />
-          <div className="flex flex-col gap-7 lg:order-2 lg:col-span-6 lg:col-start-7">
-            <div className="flex flex-col gap-4">
-              <h1 tabIndex={-1} className={HERO_TITLE}>
-                {t(`${P}.titleLead`)} <span className="text-primary">{t(`${P}.titleAccent`)}</span>
-              </h1>
-              <p className="text-base leading-relaxed text-muted-foreground sm:text-[17px]">
-                {t(`${P}.lead`)}
-              </p>
-            </div>
+          <div className="lg:col-span-6 lg:col-start-7 lg:row-start-2 lg:self-start">
             <nav aria-label={t(`${P}.layersIndex`)}>
               <ol className="flex flex-col border-b">
                 {LAYERS.map((key, index) => (
@@ -73,9 +76,15 @@ export function PrivacyRoute() {
               <li
                 key={key}
                 id={layerId(key)}
-                className="reveal grid scroll-mt-24 gap-6 border-t border-border2 py-9 md:grid-cols-[5.5rem_minmax(0,4fr)_minmax(0,7fr)] md:gap-9"
+                // Phone: the mini rings beside the title, details full width below. Tablet: the
+                // rings in their own column, text and details stacked beside them. Desktop: three
+                // columns.
+                className="reveal grid scroll-mt-[calc(var(--landing-header,4.5rem)+1rem)] grid-cols-[3rem_minmax(0,1fr)] gap-x-4 gap-y-5 border-t border-border2 py-8 md:grid-cols-[4.5rem_minmax(0,1fr)] md:gap-x-7 md:py-9 lg:grid-cols-[5.5rem_minmax(0,4fr)_minmax(0,7fr)] lg:gap-9"
               >
-                <LayerRings active={index} className="h-16 w-16 md:h-[5.5rem] md:w-[5.5rem]" />
+                <LayerRings
+                  active={index}
+                  className="h-12 w-12 md:h-[4.5rem] md:w-[4.5rem] lg:h-[5.5rem] lg:w-[5.5rem]"
+                />
                 <div className="flex flex-col gap-2.5">
                   <div className="flex items-baseline gap-2.5">
                     <span aria-hidden className="font-mono text-sm font-semibold text-primary">
@@ -89,7 +98,7 @@ export function PrivacyRoute() {
                     {t(`${P}.layers.${key}.lead`)}
                   </p>
                 </div>
-                <div className="grid gap-5 sm:grid-cols-2">
+                <div className="col-span-2 grid gap-5 sm:grid-cols-2 md:col-span-1 md:col-start-2 lg:col-start-auto">
                   {(["a", "b"] as const).map((detail) => (
                     <div
                       key={detail}
@@ -111,7 +120,7 @@ export function PrivacyRoute() {
 
         <section
           aria-labelledby="privacy-dont-title"
-          className="reveal flex flex-col gap-7 rounded-2xl border bg-card p-7 sm:p-10"
+          className="reveal flex flex-col gap-7 rounded-2xl border bg-card p-6 sm:p-10"
         >
           <h2
             id="privacy-dont-title"
@@ -119,7 +128,8 @@ export function PrivacyRoute() {
           >
             {t(`${P}.dont.title`)}
           </h2>
-          <ul className="grid gap-6 md:grid-cols-3 md:gap-8">
+          {/* Rows until `lg`: three columns on a tablet squeezed each answer into a sliver. */}
+          <ul className="grid gap-6 lg:grid-cols-3 lg:gap-8">
             {DONT.map((key) => (
               <li key={key} className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-3.5 gap-y-1">
                 <span className="row-span-2 flex h-8 w-8 items-center justify-center rounded-full bg-chip text-muted-foreground">
