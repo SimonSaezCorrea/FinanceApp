@@ -360,10 +360,6 @@
     },
     "pay": {
       "debitedLabel": "Amount debited in {{currency}}",
-      "estimatedHint": "Estimated with the dollar of {{date}} ({{rate}} per dollar). Edit it to what your bank charged.",
-      "estimatedHintCarried": "Estimated with the last published value, from {{date}} ({{rate}} per dollar). Edit it to what your bank charged.",
-      "noRate": "No dollar value is recorded: type what your bank charged.",
-      "useEstimate": "Use the estimate",
       "foreignCreatesMovement": "An expense will be recorded on the selected account and a dollar credit on your card; the peso limit does not change.",
       "prepayEyebrow": "Prepay statement",
       "prepayTitle": "Prepayment · period from {{date}}",
@@ -2753,6 +2749,15 @@
     "empty": "No values recorded yet.",
     "source": "Source: mindicador.cl",
     "carriedShort": "carried",
-    "jumpTitle": "Value on a day"
+    "jumpTitle": "Value on a day",
+    "estimatedOn": "estimate, value of {{date}}",
+    "estimatedTitle": "Estimate with the latest recorded dollar value; it is not a stored amount.",
+    "estimatedTotal": "≈ {{amount}} · all in CLP (estimate, value of {{date}})",
+    "suggestion": {
+      "estimatedCarried": "Estimated with the last published value, from {{date}} ({{rate}} per dollar). Edit it to what your bank charged.",
+      "estimated": "Estimated with the dollar of {{date}} ({{rate}} per dollar). Edit it to what your bank charged.",
+      "noRate": "No dollar value is recorded: type what your bank charged.",
+      "useEstimate": "Use the estimate"
+    }
   }
 }

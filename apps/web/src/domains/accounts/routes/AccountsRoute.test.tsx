@@ -5,8 +5,13 @@ import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import i18n from "../../../i18n";
+import { exchangeRatesApi } from "../../exchange-rates/api/exchangeRatesApi";
 import { accountsApi } from "../api/accountsApi";
 import { AccountsRoute } from "./AccountsRoute";
+
+vi.mock("../../exchange-rates/api/exchangeRatesApi", () => ({
+  exchangeRatesApi: { list: vi.fn() },
+}));
 
 vi.mock("../api/accountsApi", () => ({
   accountsApi: { list: vi.fn(), create: vi.fn() },
@@ -62,7 +67,24 @@ const account = {
 };
 
 describe("AccountsRoute", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(exchangeRatesApi.list).mockResolvedValue({
+      items: [],
+      latest: {
+        USD: { currency: "USD", date: "2026-10-08", value: "950", valueDate: "2026-10-08" },
+        CLF: null,
+      },
+    });
+  });
+
+  it("a USD account tile shows its balance in pesos, estimated, from the recorded dollar", async () => {
+    vi.mocked(accountsApi.list).mockResolvedValue([account]);
+    renderRoute();
+
+    // 1.240,50 USD x 950 = 1.178.475 pesos (the account fixture is a USD one).
+    expect((await screen.findAllByText(/≈ \$1\.178\.475/)).length).toBeGreaterThan(0);
+  });
 
   it("renders an account tile with name and type", async () => {
     vi.mocked(accountsApi.list).mockResolvedValue([account]);

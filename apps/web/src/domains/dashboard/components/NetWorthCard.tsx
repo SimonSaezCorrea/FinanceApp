@@ -12,6 +12,7 @@ import {
 
 import { formatMoney } from "@finance/money";
 
+import { EstimatedTotalLine } from "../../accounts/components/EstimatedTotalLine";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { cn } from "../../../shared/lib/cn";
@@ -104,6 +105,14 @@ export function NetWorthCard({
           <span className="text-xs text-muted-foreground">{t("dashboard.otherCurrencies")}</span>
         </div>
       ) : null}
+      {/* Spec 030: the one estimated total in pesos, beside (never replacing) the figures above. */}
+      <EstimatedTotalLine
+        nets={[
+          { currency: PRIMARY_CURRENCY, net: String(worth.total) },
+          ...secondary.map((s) => ({ currency: s.currency, net: String(s.total) })),
+        ]}
+        className="text-xs text-muted-foreground"
+      />
 
       {points.length >= 2 ? (
         <div

@@ -198,9 +198,9 @@ export function EditStatementPaymentPanel({
               />
               <Pencil aria-hidden className="size-4 shrink-0 self-center text-muted-foreground" />
             </div>
-            {charge.suggestion ? null : (
-              <p className="text-xs text-muted-foreground">{t("accounts.pay.noRate")}</p>
-            )}
+            {charge.noRate ? (
+              <p className="text-xs text-muted-foreground">{t("exchangeRates.suggestion.noRate")}</p>
+            ) : null}
           </div>
         ) : null}
 

@@ -1,5 +1,5 @@
-import type { accounts, debts } from "@finance/contracts";
-import { subtractMoney, sumMoney } from "@finance/money";
+import { exchangeRates, type accounts, type debts } from "@finance/contracts";
+import { moneyToString, subtractMoney, sumMoney, toMoney } from "@finance/money";
 
 import { leftAmount } from "../../debts/lib/debtMetrics";
 import { accountAssets } from "./grouping";
@@ -70,4 +70,52 @@ export function netWorthByCurrency(
           ? 1
           : a.currency.localeCompare(b.currency),
     );
+}
+
+/** The single "≈ todo en CLP" figure of the net worth (spec 030). */
+export interface EstimatedTotalClp {
+  /** Whole pesos, as a decimal string. */
+  total: string;
+  /** The oldest day a value used here was published — the estimate is only as fresh as this. */
+  valueDate: string;
+  /** Whether any of the values used was carried forward. */
+  carried: boolean;
+}
+
+/**
+ * ONE estimated total in pesos, shown BESIDE (never instead of) the per-currency nets: the
+ * pesos net plus every other currency at its latest recorded rate, rounded once at the end.
+ *
+ * It is null — never a partial sum that quietly leaves a balance out — when there is nothing
+ * foreign to estimate, or when any foreign currency with a balance has no recorded rate or
+ * is one the app has no rate for. A UF net enters here, and only here (constitution, MVP-scope
+ * clause (c)): its account never shows a per-account hint.
+ */
+export function estimatedTotalClp(
+  nets: readonly Pick<CurrencyNetWorth, "currency" | "net">[],
+  rates: Readonly<Partial<Record<exchangeRates.ExchangeCurrency, exchangeRates.ExchangeRate | null>>>,
+): EstimatedTotalClp | null {
+  let pesos = toMoney("0");
+  let foreign = false;
+  const used: exchangeRates.ExchangeRate[] = [];
+  for (const n of nets) {
+    if (n.currency === "CLP") {
+      pesos = pesos.plus(n.net);
+      continue;
+    }
+    if (toMoney(n.net).isZero()) continue;
+    const currency = exchangeRates.exchangeCurrency.safeParse(n.currency);
+    if (!currency.success) return null;
+    const rate = rates[currency.data];
+    if (!rate) return null;
+    foreign = true;
+    used.push(rate);
+    pesos = pesos.plus(toMoney(n.net).times(rate.value));
+  }
+  if (!foreign) return null;
+  return {
+    total: moneyToString(pesos, 0),
+    valueDate: used.map((r) => r.valueDate).sort()[0]!,
+    carried: used.some((r) => exchangeRates.isCarried(r)),
+  };
 }

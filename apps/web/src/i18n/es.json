@@ -360,10 +360,6 @@
     },
     "pay": {
       "debitedLabel": "Monto debitado en {{currency}}",
-      "estimatedHint": "Estimado con el dólar del {{date}} ({{rate}} por dólar). Edítalo con lo que cobró tu banco.",
-      "estimatedHintCarried": "Estimado con el último valor publicado, del {{date}} ({{rate}} por dólar). Edítalo con lo que cobró tu banco.",
-      "noRate": "No hay un valor del dólar registrado: escribe lo que cobró tu banco.",
-      "useEstimate": "Usar el estimado",
       "foreignCreatesMovement": "Se registrará un gasto en la cuenta seleccionada y un abono en dólares en tu tarjeta; el cupo en pesos no cambia.",
       "prepayEyebrow": "Prepagar facturación",
       "prepayTitle": "Prepago · período desde {{date}}",
@@ -2753,6 +2749,15 @@
     "empty": "Aún no hay valores registrados.",
     "source": "Fuente: mindicador.cl",
     "carriedShort": "arrastrado",
-    "jumpTitle": "Valor de un día"
+    "jumpTitle": "Valor de un día",
+    "estimatedOn": "estimado, valor del {{date}}",
+    "estimatedTitle": "Estimación con el último valor del dólar registrado; no es un monto guardado.",
+    "estimatedTotal": "≈ {{amount}} · todo en CLP (estimado, valor del {{date}})",
+    "suggestion": {
+      "estimatedCarried": "Estimado con el último valor publicado, del {{date}} ({{rate}} por dólar). Edítalo con lo que cobró tu banco.",
+      "estimated": "Estimado con el dólar del {{date}} ({{rate}} por dólar). Edítalo con lo que cobró tu banco.",
+      "noRate": "No hay un valor del dólar registrado: escribe lo que cobró tu banco.",
+      "useEstimate": "Usar el estimado"
+    }
   }
 }

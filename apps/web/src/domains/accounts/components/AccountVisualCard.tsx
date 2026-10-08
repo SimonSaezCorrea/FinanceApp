@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { ApproxAmount } from "../../exchange-rates/components/ApproxAmount";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { cn } from "../../../shared/lib/cn";
 import { CARD_INACTIVE_STYLE, CARD_KIND_STYLE, isCreditType } from "./accountVisuals";
@@ -243,6 +244,11 @@ export function AccountVisualCard({
               >
                 <MaskedAmount>{fmt(shownBalance)}</MaskedAmount>
               </p>
+              <ApproxAmount
+                amount={shownBalance}
+                currency={account.currency}
+                className="text-[11px] tabular-nums opacity-70"
+              />
             </div>
           )}
         </div>

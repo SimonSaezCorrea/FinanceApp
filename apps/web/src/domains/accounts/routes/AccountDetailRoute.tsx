@@ -10,6 +10,7 @@ import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { useAuth } from "../../auth/hooks/useAuth";
+import { ApproxAmount } from "../../exchange-rates/components/ApproxAmount";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { useInfiniteTransactions } from "../../transactions/hooks/useTransactions";
 import { useTransactionMutations } from "../../transactions/hooks/useTransactionMutations";
@@ -352,7 +353,16 @@ function KpiStrip({ account, pct }: { account: accounts.BankAccount; pct: number
       {hasRealBalance ? (
         <Kpi
           label={t("accounts.currentBalance")}
-          value={<MaskedAmount>{fmt(account.currentBalance)}</MaskedAmount>}
+          value={
+            <>
+              <MaskedAmount>{fmt(account.currentBalance)}</MaskedAmount>
+              <ApproxAmount
+                amount={account.currentBalance}
+                currency={account.currency}
+                className="mt-0.5 block text-xs font-normal text-muted-foreground"
+              />
+            </>
+          }
           emphasis
         />
       ) : null}

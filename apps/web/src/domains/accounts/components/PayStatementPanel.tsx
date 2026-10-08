@@ -400,8 +400,8 @@ export function PayStatementPanel({
                 <p className="text-xs text-muted-foreground">
                   {t(
                     charge.suggestion.carried
-                      ? "accounts.pay.estimatedHintCarried"
-                      : "accounts.pay.estimatedHint",
+                      ? "exchangeRates.suggestion.estimatedCarried"
+                      : "exchangeRates.suggestion.estimated",
                     {
                       date: rateDay(
                         charge.suggestion.carried
@@ -412,16 +412,16 @@ export function PayStatementPanel({
                     },
                   )}
                 </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">{t("accounts.pay.noRate")}</p>
-              )}
+              ) : charge.noRate ? (
+                <p className="text-xs text-muted-foreground">{t("exchangeRates.suggestion.noRate")}</p>
+              ) : null}
               {charge.edited && charge.suggestion ? (
                 <button
                   type="button"
                   onClick={charge.reset}
                   className="self-start text-xs font-medium text-brand underline-offset-2 hover:underline"
                 >
-                  {t("accounts.pay.useEstimate")}
+                  {t("exchangeRates.suggestion.useEstimate")}
                 </button>
               ) : null}
             </div>

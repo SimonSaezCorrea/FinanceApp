@@ -5,6 +5,7 @@ import { formatMoney } from "@finance/money";
 
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { netWorthByCurrency } from "../lib/netWorth";
+import { EstimatedTotalLine } from "./EstimatedTotalLine";
 
 /**
  * Net worth, the SAME figure the Panel shows (`netWorthByCurrency`): the hero is
@@ -69,6 +70,9 @@ export function AccountsSummary({
               </span>
             ))}
         </div>
+        {unavailable ? null : (
+          <EstimatedTotalLine nets={[hero!, ...others]} className="mt-1.5 text-xs text-dim" />
+        )}
       </div>
 
       {/* At 320px these two amounts no longer fit on one line beside each other:

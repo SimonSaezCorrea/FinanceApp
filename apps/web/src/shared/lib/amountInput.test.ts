@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { formatTypedAmount, parseTypedAmount } from "./amountInput";
+import { amountToInput, formatTypedAmount, limitDecimals, parseTypedAmount } from "./amountInput";
 
 describe("parseTypedAmount", () => {
   it("keeps digits only when no decimals are allowed (a peso has no cents)", () => {
@@ -62,5 +62,24 @@ describe("formatTypedAmount", () => {
     for (const canonical of ["1234567", "50.41", "0.5", "50."]) {
       expect(parseTypedAmount(formatTypedAmount(canonical, "es-CL"), "es-CL", 2)).toBe(canonical);
     }
+  });
+});
+
+describe("amountToInput", () => {
+  it("drops the zeros the API pads with, keeping real cents", () => {
+    expect(amountToInput("54500.0000")).toBe("54500");
+    expect(amountToInput("9.0600")).toBe("9.06");
+    expect(amountToInput("0.5000")).toBe("0.5");
+    expect(amountToInput("1200")).toBe("1200");
+  });
+});
+
+describe("limitDecimals", () => {
+  it("cuts the decimals to what the currency has", () => {
+    expect(limitDecimals("50.419", 2)).toBe("50.41");
+    expect(limitDecimals("50.41", 0)).toBe("50");
+    expect(limitDecimals("50.", 0)).toBe("50");
+    expect(limitDecimals("50", 2)).toBe("50");
+    expect(limitDecimals("50.4", 2)).toBe("50.4");
   });
 });

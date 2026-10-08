@@ -115,17 +115,17 @@
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T047 [P] [US3] Failing web tests for `ApproxAmount` (shared component): renders "≈ $950.000" with an "estimado · {{date}}" label and a carried marker when the rate is carried; renders nothing when there is no rate or when the currency is CLP; masks the figure when "ocultar saldos" is on — in apps/web/src/shared/ui/approx-amount.test.tsx
-- [ ] T048 [P] [US3] Failing unit tests for `estimatedTotalClp(netsByCurrency, rates)` in apps/web/src/domains/accounts/lib/netWorth.test.ts: sums the CLP net plus each other currency converted at its latest rate (USD and CLF), rounds once at the end, returns `null` when any non-zero currency has no rate, ignores currencies whose net is "0", and leaves `netWorthByCurrency`'s per-currency result untouched
-- [ ] T049 [P] [US3] Failing web tests: a USD `AccountVisualCard`/`AccountCard` shows the equivalent and a CLP one does not; the account detail balance KPI shows it for a USD account; the net worth widgets (`NetWorthCard`, `AccountsSummary`) show the "≈ todo en CLP (estimado)" total next to the per-currency figures and hide it without rates — in apps/web/src/domains/accounts/components/AccountVisualCard.test.tsx, apps/web/src/domains/accounts/routes/AccountsRoute.test.tsx and apps/web/src/domains/dashboard/components/NetWorthCard.test.tsx
+- [x] T047 [P] [US3] Failing web tests for `ApproxAmount` (shared component): renders "≈ $950.000" with an "estimado · {{date}}" label and a carried marker when the rate is carried; renders nothing when there is no rate or when the currency is CLP; masks the figure when "ocultar saldos" is on — in apps/web/src/domains/exchange-rates/components/ApproxAmount.test.tsx
+- [x] T048 [P] [US3] Failing unit tests for `estimatedTotalClp(netsByCurrency, rates)` in apps/web/src/domains/accounts/lib/netWorth.test.ts: sums the CLP net plus each other currency converted at its latest rate (USD and CLF), rounds once at the end, returns `null` when any non-zero currency has no rate, ignores currencies whose net is "0", and leaves `netWorthByCurrency`'s per-currency result untouched
+- [x] T049 [P] [US3] Failing web tests: a USD `AccountVisualCard`/`AccountCard` shows the equivalent and a CLP one does not; the account detail balance KPI shows it for a USD account; the net worth widgets (`NetWorthCard`, `AccountsSummary`) show the "≈ todo en CLP (estimado)" total next to the per-currency figures and hide it without rates — in apps/web/src/domains/accounts/components/AccountVisualCard.test.tsx, apps/web/src/domains/accounts/routes/AccountsRoute.test.tsx and apps/web/src/domains/dashboard/components/NetWorthCard.test.tsx
 
 ### Implementation for User Story 3
 
-- [ ] T050 [US3] Create `ApproxAmount` (props `amount`, `currency`; reads `useLatestRates`; uses `convertAmount`; wraps the figure in `MaskedAmount`) — makes T047 pass — in apps/web/src/shared/ui/approx-amount.tsx
-- [ ] T051 [US3] Add `estimatedTotalClp` — makes T048 pass — in apps/web/src/domains/accounts/lib/netWorth.ts
-- [ ] T052 [US3] Wire `ApproxAmount` under the balance of USD accounts in apps/web/src/domains/accounts/components/AccountVisualCard.tsx, apps/web/src/domains/accounts/components/AccountCard.tsx and the balance KPI of apps/web/src/domains/accounts/routes/AccountDetailRoute.tsx
-- [ ] T053 [US3] Wire the estimated total into apps/web/src/domains/dashboard/components/NetWorthCard.tsx and apps/web/src/domains/accounts/components/AccountsSummary.tsx (separate line "≈ todo en CLP (estimado)" with the rate date; per-currency figures unchanged) — makes T049 pass; add `exchangeRates.estimatedTotal` and `exchangeRates.approxOn` i18n (es + en) in apps/web/src/i18n/es.json and en.json
-- [ ] T054 [US3] Run the US3 tests (web `accounts`, `dashboard`, `shared`, `i18n`) and walk quickstart §6; all green
+- [x] T050 [US3] Create `ApproxAmount` (props `amount`, `currency`; reads `useLatestRates`; uses `convertAmount`; wraps the figure in `MaskedAmount`) — makes T047 pass — in apps/web/src/domains/exchange-rates/components/ApproxAmount.tsx (domain-first: `shared/ui` must not read a domain hook)
+- [x] T051 [US3] Add `estimatedTotalClp` — makes T048 pass — in apps/web/src/domains/accounts/lib/netWorth.ts
+- [x] T052 [US3] Wire `ApproxAmount` under the balance of USD accounts in apps/web/src/domains/accounts/components/AccountVisualCard.tsx, apps/web/src/domains/accounts/components/AccountCard.tsx and the balance KPI of apps/web/src/domains/accounts/routes/AccountDetailRoute.tsx
+- [x] T053 [US3] Wire the estimated total into apps/web/src/domains/dashboard/components/NetWorthCard.tsx and apps/web/src/domains/accounts/components/AccountsSummary.tsx (separate line "≈ todo en CLP (estimado)" with the rate date; per-currency figures unchanged) — makes T049 pass; add `exchangeRates.estimatedTotal` and `exchangeRates.approxOn` i18n (es + en) in apps/web/src/i18n/es.json and en.json
+- [x] T054 [US3] Run the US3 tests (web `accounts`, `dashboard`, `shared`, `i18n`) and walk quickstart §6; all green
 
 ---
 
@@ -137,12 +137,12 @@
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T055 [P] [US4] Failing web tests for `TransferFields`: with a USD origin and a CLP destination, typing the origin amount fills the destination with `convertAmount` of the rate for the movement's date and labels it "estimado · <fecha>"; editing the destination stops the suggestion and never changes the origin amount; changing the date re-suggests while the destination is untouched; same-currency transfers and any pair other than USD→CLP (e.g. CLP→USD) show no suggestion; the submit payload carries exactly the displayed/confirmed `amountOut`/`amountIn` (FR-013) — in apps/web/src/domains/transactions/components/TransferFields.test.tsx
+- [x] T055 [P] [US4] Failing web tests for `TransferFields`: with a USD origin and a CLP destination, typing the origin amount fills the destination with `convertAmount` of the rate for the movement's date and labels it "estimado · <fecha>"; editing the destination stops the suggestion and never changes the origin amount; changing the date re-suggests while the destination is untouched; same-currency transfers and any pair other than USD→CLP (e.g. CLP→USD) show no suggestion; the submit payload carries exactly the displayed/confirmed `amountOut`/`amountIn` (FR-013) — in apps/web/src/domains/transactions/components/TransferFields.test.tsx
 
 ### Implementation for User Story 4
 
-- [ ] T056 [US4] Use `useSuggestedAmount` (T042) in `TransferFields` for the destination amount ONLY when the origin account is USD and the destination account is CLP (FR-011 and the spec cover just this direction; any other currency pair shows no suggestion); the origin amount the person types is the base (clarify Q4) and the destination is the editable suggestion — makes T055 pass — in apps/web/src/domains/transactions/components/TransferFields.tsx and apps/web/src/domains/transactions/components/TransactionFormPanel.tsx
-- [ ] T057 [US4] Run the US4 tests (web `transactions`, `i18n`) and walk quickstart §7; all green
+- [x] T056 [US4] Use `useSuggestedAmount` (T042) in `TransferFields` for the destination amount ONLY when the origin account is USD and the destination account is CLP (FR-011 and the spec cover just this direction; any other currency pair shows no suggestion); the origin amount the person types is the base (clarify Q4) and the destination is the editable suggestion — makes T055 pass — in apps/web/src/domains/transactions/components/TransferFields.tsx and apps/web/src/domains/transactions/components/TransactionFormPanel.tsx
+- [x] T057 [US4] Run the US4 tests (web `transactions`, `i18n`) and walk quickstart §7; all green
 
 ---
 

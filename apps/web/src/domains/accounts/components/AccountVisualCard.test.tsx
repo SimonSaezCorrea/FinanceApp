@@ -1,10 +1,15 @@
 import { render, screen, waitFor } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { accounts } from "@finance/contracts";
 
 import { Providers } from "../../../app/providers";
+import { exchangeRatesApi } from "../../exchange-rates/api/exchangeRatesApi";
 import { AccountVisualCard } from "./AccountVisualCard";
+
+vi.mock("../../exchange-rates/api/exchangeRatesApi", () => ({
+  exchangeRatesApi: { list: vi.fn() },
+}));
 
 const me = vi.fn();
 vi.mock("../../auth/api/authApi", () => ({
@@ -94,5 +99,48 @@ describe("AccountVisualCard", () => {
   it("under `accountOnly`, shows the account's combined creditUsed, not any single card's ownUsed", async () => {
     renderTile({ accountOnly: true });
     await waitFor(() => expect(screen.getByText(/1\.686\.470/)).toBeDefined());
+  });
+});
+
+describe("AccountVisualCard — pesos equivalent (spec 030)", () => {
+  const checking = (over: Partial<accounts.BankAccount>): accounts.BankAccount => ({
+    ...account,
+    type: "CHECKING",
+    creditLimit: "0",
+    creditUsed: "0",
+    creditPools: [],
+    cards: [],
+    ...over,
+  });
+
+  beforeEach(() => {
+    vi.mocked(exchangeRatesApi.list).mockReset();
+    vi.mocked(exchangeRatesApi.list).mockResolvedValue({
+      items: [],
+      latest: {
+        USD: { currency: "USD", date: "2026-10-08", value: "950", valueDate: "2026-10-08" },
+        CLF: null,
+      },
+    });
+  });
+
+  it("a USD account shows the estimated pesos under its balance", async () => {
+    renderTile({
+      account: checking({ currency: "USD", currentBalance: "1000.0000" }),
+      accountOnly: true,
+    });
+
+    expect(await screen.findByText(/≈ \$950\.000/)).toBeDefined();
+  });
+
+  it("a CLP account shows none", async () => {
+    renderTile({
+      account: checking({ currency: "CLP", currentBalance: "1000000.0000" }),
+      accountOnly: true,
+    });
+
+    // The shared test client may already hold the rates (cached): wait on the tile instead.
+    await screen.findByText("Falabella");
+    expect(screen.queryByText(/≈/)).toBeNull();
   });
 });

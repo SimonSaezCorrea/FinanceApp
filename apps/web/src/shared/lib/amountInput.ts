@@ -58,3 +58,18 @@ export function formatTypedAmount(canonical: string, locale: string): string {
   const grouped = integer === "" ? "" : Number(integer).toLocaleString(locale);
   return at === -1 ? grouped : `${grouped}${decimal}${canonical.slice(at + 1)}`;
 }
+
+/** An amount from the API ("9.0600", "54500.0000") as a person types it ("9.06", "54500"):
+ * the cents a movement really has survive an edit, trailing zeros are noise. */
+export function amountToInput(amount: string): string {
+  return amount.includes(".") ? amount.replace(/\.?0+$/, "") : amount;
+}
+
+/** `canonical` cut to at most `decimals` decimals — what a form field holds when the
+ * currency picked after typing has fewer (a peso has none): the cents go, never the pesos. */
+export function limitDecimals(canonical: string, decimals: number): string {
+  const at = canonical.indexOf(".");
+  if (at === -1) return canonical;
+  if (decimals <= 0) return canonical.slice(0, at);
+  return canonical.slice(0, at + 1 + decimals);
+}
