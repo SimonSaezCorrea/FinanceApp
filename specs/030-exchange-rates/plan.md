@@ -64,12 +64,11 @@ _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 **Re-check post-diseño**: sin violaciones. La única tensión es de redacción, no de código: la regla vigente
 "la app no convierte" se enmienda a "puede sugerir; nunca compara ni valida entre monedas" (R13).
 
-## Pendiente de aprobación
+## Decisiones cerradas en el análisis
 
-1. **CLF en "≈ todo en CLP (estimado)"** (FR-016 hoy dice solo USD). Propuesta: incluir también cuentas/deudas
-   en UF usando su valor registrado; si no, el total omitiría su saldo o tendría que ocultarse. Requiere
-   ajustar FR-016 y la Assumption "la UF no se usa para sugerir" (sigue siendo cierto: solo entra en este total).
+1. **CLF en "≈ todo en CLP (estimado)"**: incluido. Exige enmendar la cláusula (c) del alcance MVP de la constitución ("la UF no recibe pista aproximada en CLP"), cuya premisa era "no hay fuente de FX". Tarea T064, antes de T051/T053. Una cuenta en UF sigue sin pista por cuenta, y la UF nunca se ofrece como sugerencia de pago o traspaso.
 2. **Alcance absorbido de 028**: US2 + prepago USD entran; 028 US3 no.
+3. **Tarjeta de la liquidación**: la principal de la cuenta, que debe tener `CardLimit` en esa moneda (`CARD_LIMIT_NOT_FOUND` si no); nunca se elige entre adicionales.
 
 ## Project Structure
 

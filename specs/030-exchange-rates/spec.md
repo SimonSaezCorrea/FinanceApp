@@ -133,6 +133,7 @@ comprobar que ambas piernas quedan con los montos confirmados.
   fecha elegida del pago (o el más cercano anterior), no el de hoy.
 - ¿Qué pasa si la persona edita el monto sugerido a algo muy distinto? Se acepta; la app no valida
   contra la tasa (la persona manda), pero sí mantiene la regla de monto positivo.
+- ¿Qué pasa si se consulta una fecha anterior al primer valor registrado? La pantalla indica "sin dato para esa fecha"; no se muestra un valor inventado ni uno vacío.
 - ¿Qué pasa si el mismo día se intenta registrar dos veces el valor (reintento)? Queda un solo valor
   por moneda y día.
 - ¿Qué pasa con movimientos y pagos ya hechos antes de esta función? No cambian ni se reconvierten.
