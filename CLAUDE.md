@@ -2131,7 +2131,10 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (029 — implementado): specs/029-profile-settings-redesign/plan.md
+Current plan (030 — en planificación): specs/030-exchange-rates/plan.md
+(Tipos de cambio: tabla global `exchange-rate` [USD observado y UF, un valor por moneda y día de Chile, `valueDate` distingue el "dato arrastrado"], cron 08:00–20:00 America/Santiago contra mindicador.cl, pantalla "Tipos de cambio", y sugerencias SIEMPRE editables de conversión en pago/prepago de facturación USD, equivalente en cuentas USD, patrimonio "≈ todo en CLP" y traspaso USD→CLP. Absorbe 028 US2 [pago USD con dos montos], que no estaba implementada. La regla "la app no convierte" pasa a "puede sugerir; nunca compara ni persiste una conversión sin confirmación". Ver research.md R1–R13.)
+
+Prior plan (029 — implementado): specs/029-profile-settings-redesign/plan.md
 (Perfil como ajustes por secciones: `/profile` pasa a rutas hijas `personal`/`security`/
 `preferences`/`privacy` con índice = Resumen y comodín → `/profile`. `ProfileLayout` decide la forma
 por el ancho de su contenedor (`PROFILE_PANES_MIN_WIDTH` = 820): dos paneles (navegación agrupada con
