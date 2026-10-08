@@ -700,6 +700,10 @@ export function suggestedPeriodStart(
 export const prepayCreditStatementSchema = z.object({
   fromAccountId: rowId,
   amount: moneyString,
+  /** Spec 030: for a period in ANOTHER currency, what left the source account, in ITS
+   * currency — required when that differs from the period's (the two amounts are never
+   * compared). Ignored for a period in the account's own currency. */
+  chargedAmount: moneyString.optional(),
   /** When the abono happened; defaults to now. Dates the created expense too. */
   paidAt: z.string().optional(),
   /** Free-text note carried onto the created movement — same field `pay` already offers. */

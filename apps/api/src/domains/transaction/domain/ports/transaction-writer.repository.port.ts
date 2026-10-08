@@ -113,6 +113,10 @@ export interface TransactionWriterRepositoryPort {
    * THAT account's balance, not the plan's currently remembered one — those can
    * differ, and crediting the wrong account is worse than crediting none. */
   accountIdForTransaction(userId: string, id: string): Promise<string | null>;
+  /** What a movement is worth right now (moneyString), or null when it is not the user's.
+   * Correcting a statement's payment needs the figure that was debited BEFORE it moves the
+   * source account's balance by the difference. */
+  amountForTransaction(userId: string, id: string): Promise<string | null>;
   /** Every movement that goes away when an account is deleted with its movements:
    * the account's own, the OTHER leg of each transfer it took part in, the
    * prepayments other accounts made into its billing periods, and `extraIds` —

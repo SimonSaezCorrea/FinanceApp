@@ -98,6 +98,15 @@ export class StatementPaymentCurrencyAmbiguousError extends DomainError {
   }
 }
 
+/** Spec 030: a statement in another currency is settled on the card that owns the limit
+ * in it — the account's PRIMARY card. When that card holds no limit in the statement's
+ * currency there is nothing to settle against, so nothing is written. */
+export class CardLimitNotFoundError extends DomainError {
+  constructor() {
+    super("CARD_LIMIT_NOT_FOUND", 409);
+  }
+}
+
 /** "Generar facturación" on an account that can't be billed: not a credit card
  * account, inactive, or without an active primary credit card. */
 export class StatementGenerationNotAllowedError extends DomainError {

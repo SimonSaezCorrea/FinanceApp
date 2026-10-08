@@ -80,6 +80,7 @@ export function fakeTransactionWriterRepo(
     listForAccountDeletion: vi.fn(async () => []),
     deleteManyWithTx: vi.fn(),
     accountIdForTransaction: vi.fn(async () => null),
+    amountForTransaction: vi.fn(async () => null),
     createManyWithTx: vi.fn(async () => 0),
     ...overrides,
   };

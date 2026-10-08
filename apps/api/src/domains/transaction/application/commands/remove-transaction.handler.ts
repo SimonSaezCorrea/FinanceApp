@@ -30,7 +30,11 @@ import {
   INSTALLMENT_PAYMENT_LOOKUP,
   type InstallmentPaymentLookupPort,
 } from "../../../installment-payment/domain/ports/installment-payment-lookup.port";
-import { TransactionLinkedToInstallmentError, TransactionNotFoundError } from "../../domain/errors";
+import {
+  TransactionLinkedToInstallmentError,
+  TransactionLinkedToStatementError,
+  TransactionNotFoundError,
+} from "../../domain/errors";
 import { MovementPolicy } from "../../domain/movement-policy";
 import type { Transaction } from "../../domain/transaction.aggregate";
 import {
@@ -100,6 +104,10 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
       (await this.installmentPayments.isLinkedToPayment(command.userId, command.id))
     ) {
       throw new TransactionLinkedToInstallmentError();
+    }
+    // Spec 030 (028 R10): a statement's settlement is undone from the statement, not here.
+    if (current.snapshot().settlesStatementId !== null) {
+      throw new TransactionLinkedToStatementError();
     }
 
     // A transfer leg is deleted as a PAIR (FR-015): the user deletes from the row

@@ -78,6 +78,7 @@ export class CreditStatementsController {
         body.amount,
         body.paidAt ? new Date(body.paidAt) : undefined,
         body.reference,
+        body.chargedAmount,
       ),
     );
   }
@@ -103,6 +104,7 @@ export class CreditStatementsController {
         idempotencyKey,
         body.paidAt ? new Date(body.paidAt) : undefined,
         body.reference,
+        body.chargedAmount,
       ),
     );
   }
@@ -138,7 +140,13 @@ export class CreditStatementsController {
     body: accounts.UpdateStatementPayment,
   ): Promise<accounts.CreditStatement> {
     return this.commandBus.execute(
-      new UpdateStatementPaymentCommand(user.id, params.id, params.statementId, body.amount),
+      new UpdateStatementPaymentCommand(
+        user.id,
+        params.id,
+        params.statementId,
+        body.amount,
+        body.chargedAmount,
+      ),
     );
   }
 

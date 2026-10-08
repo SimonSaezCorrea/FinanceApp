@@ -350,6 +350,9 @@ export class CreditStatement {
     fromAccountId: string,
     paymentTransactionId: string,
     when: Date,
+    /** Spec 030: the INCOME that settled this period's limit on the card — only a period in
+     * ANOTHER currency has one (the account-currency pool needs no movement to move). */
+    settlementTransactionId: string | null = null,
   ): { event: StatementPaidEvent; carryOver: string } {
     if (!this.state.canPay()) {
       throw new StatementAlreadyPaidError();
@@ -369,6 +372,7 @@ export class CreditStatement {
     this.props.paidAt = when;
     this.props.paidFromAccountId = fromAccountId;
     this.props.paidTransactionId = paymentTransactionId;
+    this.props.settlementTransactionId = settlementTransactionId;
     this.props.closedAt = this.props.closedAt ?? when;
     return {
       event: new StatementPaidEvent(

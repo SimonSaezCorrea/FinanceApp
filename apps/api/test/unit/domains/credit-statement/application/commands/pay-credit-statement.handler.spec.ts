@@ -16,8 +16,12 @@ import {
   type CreditStatementProps,
 } from "../../../../../../src/domains/credit-statement/domain/credit-statement.aggregate";
 import {
+  CardLimitNotFoundError,
   InvalidPaymentSourceError,
   NothingToPayError,
+  PaymentExceedsRemainingError,
+  StatementAlreadyPaidError,
+  StatementPaymentCurrencyAmbiguousError,
 } from "../../../../../../src/domains/credit-statement/domain/errors";
 import type { BankAccountRepositoryPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
@@ -143,6 +147,14 @@ function fakeStatementRepo(
       installments: "0",
       installmentCount: 0,
     }));
+  }
+  // `PayCreditStatementHandler` re-reads the period under a lock inside its transaction
+  // (spec 030, concurrent payments). A spec that only stubs `findById` means the same row.
+  if (!overrides.findByIdForUpdateWithTx && overrides.findById) {
+    const findById = overrides.findById;
+    merged.findByIdForUpdateWithTx = vi.fn(async (_tx: unknown, ...args: Parameters<typeof findById>) =>
+      findById(...args),
+    );
   }
   return merged;
 }
@@ -471,5 +483,203 @@ describe("PayCreditStatementHandler", () => {
       expect(await settleCallsFor(undefined)).toBe(1); // full payment -> PAID
       expect(await settleCallsFor("4000")).toBe(1); // short payment -> PARTIALLY_PAID
     });
+  });
+});
+
+// --- spec 030 (absorbs 028 US2): paying a statement in ANOTHER currency ---
+
+describe("PayCreditStatementHandler — statement in another currency", () => {
+  const usdCard = (overrides: Record<string, unknown> = {}) => ({
+    id: "card_1",
+    name: "Visa",
+    kind: "CREDIT" as const,
+    last4: "7774",
+    expiryMonth: 6,
+    expiryYear: 2031,
+    isActive: true,
+    isPrimary: true,
+    isVirtual: false,
+    isAdditional: false,
+    cardholderName: null,
+    network: null,
+    limits: [{ id: "lim_1", currency: "USD", limitAmount: "100", usedInitial: "0" }],
+    ...overrides,
+  });
+
+  function setup(
+    opts: {
+      cards?: ReturnType<typeof usdCard>[];
+      fromCurrency?: string;
+      statement?: Partial<CreditStatementProps>;
+      owed?: string;
+    } = {},
+  ) {
+    const creditAccount = BankAccount.fromPersistence(
+      accountProps({ cards: opts.cards ?? [usdCard()] }),
+    );
+    const fromAccount = BankAccount.fromPersistence(
+      accountProps({
+        id: "acc_2",
+        type: "CHECKING",
+        creditLimit: "0",
+        currency: opts.fromCurrency ?? "CLP",
+        name: "Cuenta corriente",
+      }),
+    );
+    const statement = CreditStatement.fromPersistence(
+      statementProps({ currency: "USD", ...opts.statement }),
+    );
+    const accountRepo = fakeAccountRepo({
+      findById: vi.fn(async (_u: string, id: string) =>
+        id === "acc_1" ? creditAccount : fromAccount,
+      ),
+      incrementBalanceWithTx: vi.fn(),
+      incrementCreditUsedWithTx: vi.fn(),
+    });
+    const statementRepo = fakeStatementRepo({
+      findById: vi.fn(async () => statement),
+      findByIdForUpdateWithTx: vi.fn(async () => statement),
+      breakdown: vi.fn(async () => ({
+        purchases: opts.owed ?? "50.41",
+        installments: "0",
+        installmentCount: 0,
+      })),
+    });
+    const transactions = fakeTransactionWriterRepo();
+    const handler = new PayCreditStatementHandler(
+      { publish: vi.fn() } as never,
+      fakeIdempotencyRecordRepo(),
+      accountRepo,
+      statementRepo,
+      transactions,
+      fakePlanRepo(),
+      fakePrisma() as never,
+      fakeCategoryLookup(),
+    );
+    const pay = (amount?: string, chargedAmount?: string) =>
+      handler.execute(
+        new PayCreditStatementCommand(
+          "u1",
+          "acc_1",
+          "st_1",
+          "acc_2",
+          "test-key-0000000000001",
+          amount,
+          undefined,
+          undefined,
+          chargedAmount,
+        ),
+      );
+    return { creditAccount, fromAccount, statement, accountRepo, statementRepo, transactions, pay };
+  }
+
+  const created = (transactions: ReturnType<typeof fakeTransactionWriterRepo>) =>
+    vi.mocked(transactions.createWithTx).mock.calls.map((c) => c[1]);
+
+  it("needs the amount debited when the source account is in another currency", async () => {
+    const { pay, transactions } = setup();
+
+    await expect(pay()).rejects.toThrow(StatementPaymentCurrencyAmbiguousError);
+    expect(transactions.createWithTx).not.toHaveBeenCalled();
+  });
+
+  it("records the pesos that left the source and a USD settlement on the card that owns the limit", async () => {
+    const { pay, transactions, statement, accountRepo, creditAccount } = setup();
+
+    const result = await pay(undefined, "49394");
+
+    const [expense, income] = created(transactions);
+    expect(expense).toMatchObject({
+      bankAccountId: "acc_2",
+      type: "EXPENSE",
+      amount: "49394",
+      currency: "CLP",
+      categoryId: "system-STATEMENT_PAYMENT",
+    });
+    expect(income).toMatchObject({
+      bankAccountId: "acc_1",
+      type: "INCOME",
+      amount: "50.4100",
+      currency: "USD",
+      cardId: "card_1",
+      settlesStatementId: "st_1",
+      creditStatementId: null,
+    });
+    expect(statement.paidTransactionId).toBe(expense!.id);
+    expect(statement.settlementTransactionId).toBe(income!.id);
+    expect(result.status).toBe("PAID");
+    expect(accountRepo.incrementBalanceWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      "acc_2",
+      "-49394.0000",
+    );
+    // The CLP pool is not this statement's: it must not move.
+    expect(creditAccount.creditUsed).toBe("50000.0000");
+    expect(accountRepo.incrementCreditUsedWithTx).not.toHaveBeenCalled();
+  });
+
+  it("a source account in the statement's own currency needs one amount", async () => {
+    const { pay, transactions } = setup({ fromCurrency: "USD" });
+
+    await pay();
+
+    const [expense, income] = created(transactions);
+    expect(expense).toMatchObject({ type: "EXPENSE", amount: "50.4100", currency: "USD" });
+    expect(income).toMatchObject({ type: "INCOME", amount: "50.4100", currency: "USD" });
+  });
+
+  it("a short payment carries the shortfall into the OPEN period of the SAME currency", async () => {
+    const { pay, statementRepo, statement } = setup();
+
+    const result = await pay("30", "28500");
+
+    expect(statementRepo.findOrCreateCarryOverTargetWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ accountId: "acc_1", currency: "USD" }),
+    );
+    expect(statementRepo.addCarriedOverWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      "st_next",
+      "20.4100",
+    );
+    expect(statement.carriedToId).toBe("st_next");
+    expect(result.status).toBe("PARTIALLY_PAID");
+  });
+
+  it("refuses paying more dollars than the period owes", async () => {
+    const { pay, transactions } = setup();
+
+    await expect(pay("60", "57000")).rejects.toThrow(PaymentExceedsRemainingError);
+    expect(transactions.createWithTx).not.toHaveBeenCalled();
+  });
+
+  it("refuses when the primary card holds no limit in that currency, writing nothing", async () => {
+    const { pay, transactions } = setup({ cards: [usdCard({ limits: [] })] });
+
+    await expect(pay(undefined, "49394")).rejects.toThrow(CardLimitNotFoundError);
+    expect(transactions.createWithTx).not.toHaveBeenCalled();
+  });
+
+  it("always settles on the PRIMARY card, never on an additional one holding a limit too", async () => {
+    const extra = usdCard({ id: "card_2", isPrimary: false, isAdditional: true });
+    const { pay, transactions } = setup({ cards: [extra, usdCard()] });
+
+    await pay(undefined, "49394");
+
+    expect(created(transactions)[1]).toMatchObject({ cardId: "card_1" });
+  });
+
+  it("re-reads the statement under a row lock inside the transaction (concurrent payments)", async () => {
+    const { pay, statementRepo } = setup();
+
+    await pay(undefined, "49394");
+
+    expect(statementRepo.findByIdForUpdateWithTx).toHaveBeenCalledTimes(1);
+  });
+
+  it("a second payment against an already-settled period is refused", async () => {
+    const { pay } = setup({ statement: { paidAt: new Date("2026-02-05"), amount: "50.41", paidAmount: "50.41" } });
+
+    await expect(pay(undefined, "49394")).rejects.toThrow(StatementAlreadyPaidError);
   });
 });

@@ -35,6 +35,7 @@ import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
 } from "../../domain/ports/credit-statement.repository.port";
+import { planForeignSettlement } from "../foreign-settlement";
 import { toStatementDto } from "../statement-dto.mapper";
 import { PrepayOpenPeriodCommand } from "./prepay-open-period.command";
 
@@ -46,6 +47,8 @@ interface Context {
    * `prepaidAmount` (which the lock DOES protect — see `handleIdempotent`). */
   breakdown: { purchases: string; installments: string; installmentCount: number };
   paymentTransactionId: string;
+  /** Spec 030: id of the settlement INCOME of a period in another currency. */
+  settlementTransactionId: string;
   now: Date;
   occurredAt: Date;
   reference?: string;
@@ -100,6 +103,7 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
       amount: command.amount,
       paidAt: command.paidAt,
       reference: command.reference,
+      chargedAmount: command.chargedAmount,
     };
   }
 
@@ -125,6 +129,7 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
       fromAccount,
       breakdown,
       paymentTransactionId: generateRowId(),
+      settlementTransactionId: generateRowId(),
       now,
       occurredAt: command.paidAt ?? now,
       reference: command.reference,
@@ -153,38 +158,67 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
       );
       statement.changePrepayment(grossTotal, "0", command.amount);
 
-      await this.transactions.createWithTx(tx, {
-        id: context.paymentTransactionId,
-        userId: context.account.userId,
-        bankAccountId: context.fromAccount.id,
-        type: "EXPENSE",
-        amount: command.amount,
-        currency: context.account.snapshot().currency,
-        occurredAt: context.occurredAt,
-        categoryId: await this.categories.idForSystemCode("CARD_PREPAYMENT"),
-        description: context.account.name,
-        observation: context.reference,
-        prepaymentStatementId: statement.id,
-        prepaymentAccountId: context.account.id,
-      });
-      await this.accountRepo.incrementBalanceWithTx(
-        tx,
-        context.fromAccount.id,
-        subtractMoney("0", command.amount),
-      );
-      // Atomic relative update (`creditUsed = creditUsed - amount`), NOT
-      // `context.account`'s in-memory `adjustCreditUsed` + `saveWithTx` (an
-      // absolute overwrite from a snapshot read BEFORE the lock above) — two
-      // concurrent prepagos would otherwise both compute their delta off the
-      // same stale figure and the loser's write would clobber the winner's,
-      // silently losing a decrement even though the STATEMENT side serialized
-      // correctly. `research.md` R8 covers the statement; this is its account
-      // side counterpart, found by `T023b`'s own concurrency test.
-      await this.accountRepo.incrementCreditUsedWithTx(
-        tx,
-        context.account.id,
-        subtractMoney("0", command.amount),
-      );
+      if (statement.currency !== context.account.snapshot().currency) {
+        // Spec 030: a period in ANOTHER currency has its own limit and no share of the
+        // account's pool. The prepago is the same two movements a payment writes — the
+        // pesos that left the source and the USD settlement on the card that owns the
+        // limit — and `creditUsed` stays where it is. Both are marked as part of the
+        // settlement (`settlesStatementId`), which also keeps them out of any period's sum.
+        const settlement = planForeignSettlement({
+          account: context.account,
+          fromAccount: context.fromAccount,
+          statementId: statement.id,
+          currency: statement.currency,
+          amount: command.amount,
+          chargedAmount: command.chargedAmount,
+          occurredAt: context.occurredAt,
+          reference: context.reference,
+          categoryId: await this.categories.idForSystemCode("CARD_PREPAYMENT"),
+          expenseId: context.paymentTransactionId,
+          incomeId: context.settlementTransactionId,
+          markExpenseAsSettlement: true,
+        });
+        await this.transactions.createWithTx(tx, settlement.expense);
+        await this.transactions.createWithTx(tx, settlement.income);
+        await this.accountRepo.incrementBalanceWithTx(
+          tx,
+          context.fromAccount.id,
+          subtractMoney("0", settlement.charged),
+        );
+      } else {
+        await this.transactions.createWithTx(tx, {
+          id: context.paymentTransactionId,
+          userId: context.account.userId,
+          bankAccountId: context.fromAccount.id,
+          type: "EXPENSE",
+          amount: command.amount,
+          currency: context.account.snapshot().currency,
+          occurredAt: context.occurredAt,
+          categoryId: await this.categories.idForSystemCode("CARD_PREPAYMENT"),
+          description: context.account.name,
+          observation: context.reference,
+          prepaymentStatementId: statement.id,
+          prepaymentAccountId: context.account.id,
+        });
+        await this.accountRepo.incrementBalanceWithTx(
+          tx,
+          context.fromAccount.id,
+          subtractMoney("0", command.amount),
+        );
+        // Atomic relative update (`creditUsed = creditUsed - amount`), NOT
+        // `context.account`'s in-memory `adjustCreditUsed` + `saveWithTx` (an
+        // absolute overwrite from a snapshot read BEFORE the lock above) — two
+        // concurrent prepagos would otherwise both compute their delta off the
+        // same stale figure and the loser's write would clobber the winner's,
+        // silently losing a decrement even though the STATEMENT side serialized
+        // correctly. `research.md` R8 covers the statement; this is its account
+        // side counterpart, found by `T023b`'s own concurrency test.
+        await this.accountRepo.incrementCreditUsedWithTx(
+          tx,
+          context.account.id,
+          subtractMoney("0", command.amount),
+        );
+      }
       await this.statementRepo.saveWithTx(tx, statement);
 
       const result = toStatementDto(statement, {
