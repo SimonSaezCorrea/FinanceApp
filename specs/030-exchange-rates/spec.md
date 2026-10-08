@@ -166,7 +166,7 @@ comprobar que ambas piernas quedan con los montos confirmados.
   estimado y con la fecha del valor usado; las cuentas en otras monedas no muestran equivalente.
 - **FR-010**: El equivalente en pesos MUST respetar la preferencia de ocultar saldos.
 - **FR-016**: El patrimonio neto MUST mantener sus cifras por moneda sin convertir y MUST agregar un
-  total adicional "≈ todo en CLP (estimado)" que incluya las cuentas y deudas en USD al valor vigente,
+  total adicional "≈ todo en CLP (estimado)" que incluya las cuentas y deudas en USD (y en UF, con su valor registrado) al valor vigente,
   rotulado como estimado y con su fecha; sin valor registrado, ese total no se muestra.
 - **FR-011**: Al crear un traspaso entre una cuenta USD y una CLP, el sistema MUST tomar los dólares
   de origen como cifra base, sugerir los pesos de destino (dólares × valor vigente), editables sin
@@ -214,7 +214,7 @@ comprobar que ambas piernas quedan con los montos confirmados.
 - Hora de Chile (America/Santiago) para el registro de las 8:00; el valor "vigente" es el de la fecha
   de hoy en Chile (o el último registrado si hoy aún no hay).
 - La UF se registra y consulta como parte del historial pedido; en esta entrega no se usa para
-  sugerir montos (sus usos futuros, por ejemplo cuentas o planes en UF, quedan fuera de alcance).
+  sugerir montos en pagos ni traspasos: solo entra en el total estimado del patrimonio (FR-016).
 - Esta función reemplaza la regla vigente "sin conversión de moneda" (spec 028) únicamente en la
   forma de sugerencias editables; ninguna conversión se escribe sin confirmación.
 - Fuera de alcance: otras monedas distintas de USD y UF, compra/venta con spread de un banco,
