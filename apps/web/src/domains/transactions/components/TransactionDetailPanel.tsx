@@ -91,7 +91,9 @@ export function TransactionDetailPanel({
         ? { to: "/debts", label: t("transactions.detail.viewDebt") }
         : source.kind === "RECURRING"
           ? { to: "/recurring", label: t("transactions.detail.viewRecurring") }
-          : source.kind === "STATEMENT_PAYMENT" || source.kind === "CREDIT_CARD_PREPAYMENT"
+          : source.kind === "STATEMENT_PAYMENT" ||
+              source.kind === "CREDIT_CARD_PREPAYMENT" ||
+              source.kind === "STATEMENT_SETTLEMENT"
             ? {
                 to: `/accounts/${source.accountId}?tab=billing&statement=${source.statementId}`,
                 label: t("transactions.detail.viewBilling"),
@@ -156,6 +158,15 @@ export function TransactionDetailPanel({
               {t("transactions.detail.installmentLockedLink")}
             </Link>
           </span>
+        </p>
+      )}
+
+      {/* Spec 030: this row settles a statement in another currency. It is corrected
+          from that statement (its payment), never here — saying so beats a missing button. */}
+      {tx.settlesStatementId !== null && (
+        <p className="flex gap-2 rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <span>{t("transactions.detail.statementLocked")}</span>
         </p>
       )}
 

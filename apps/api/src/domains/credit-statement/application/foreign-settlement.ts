@@ -80,6 +80,9 @@ export function planForeignSettlement(input: ForeignSettlementInput): ForeignSet
       description: input.account.name,
       observation: input.reference,
       settlesStatementId: input.markExpenseAsSettlement ? input.statementId : null,
+      // Names the CREDIT account the settlement belongs to, so a link from this movement
+      // lands on the right billing tab (the movement itself sits on the source account).
+      prepaymentAccountId: input.markExpenseAsSettlement ? input.account.id : null,
     },
     income: {
       id: input.incomeId,

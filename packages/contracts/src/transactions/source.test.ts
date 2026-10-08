@@ -45,6 +45,19 @@ describe("sourceOf", () => {
     );
   });
 
+  it("points a prepago's source expense at the CREDIT account, not at the account it left", () => {
+    expect(
+      sourceOf(
+        tx({
+          type: "EXPENSE",
+          bankAccountId: "checking",
+          settlesStatementId: "s1",
+          prepaymentAccountId: "tc",
+        }),
+      ),
+    ).toEqual({ kind: "STATEMENT_SETTLEMENT", statementId: "s1", accountId: "tc" });
+  });
+
   it("is CURRENCY_TRANSFER for a transfer's charge, even though it is an issuer charge", () => {
     expect(
       sourceOf(tx({ bankAccountId: "tc", financeCharge: true, transferStatementId: "s1" })),

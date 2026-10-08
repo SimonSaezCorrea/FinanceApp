@@ -139,6 +139,8 @@ export function BillingSection({
   // would liquidate/close it, which is not what abonar early means. It opens
   // the ordinary movement form straight into "Prepagar" instead.
   const [prepayOpen, setPrepayOpen] = useState(false);
+  // Spec 030: the OPEN period of another currency is prepaid in the payment panel.
+  const [prepayTarget, setPrepayTarget] = useState<accounts.CreditStatement | null>(null);
   const [syncTarget, setSyncTarget] = useState<accounts.CreditStatement | null>(null);
   const [editPaymentTarget, setEditPaymentTarget] = useState<accounts.CreditStatement | null>(null);
   const [detailTarget, setDetailTarget] = useState<accounts.CreditStatement | null>(null);
@@ -334,16 +336,16 @@ export function BillingSection({
    * The one money action a period offers, decided in ONE place for both layouts:
    * - settled short (PARTIALLY_PAID): correct the payment;
    * - OPEN in the account's currency: prepagar (spec 019 — paying would close it);
-   * - PENDING in the account's currency: pay;
-   * - a period in another currency: nothing yet — paying it from pesos and
-   *   transferring it arrive with spec 028's US2/US3.
+   * - PENDING: pay;
+   * - OPEN in another currency (spec 030): prepagar, in the payment panel itself — the
+   *   transaction form is bound to the credit account's own currency;
+   * - transferring an overdue period to pesos arrives with spec 028's US3.
    */
   function PeriodAction({
     statement: s,
     variant,
   }: Readonly<{ statement: accounts.CreditStatement; variant: "card" | "row" }>) {
     const none = variant === "row" ? <ActionSlot /> : null;
-    if (isForeign(s)) return none;
     let action: {
       label: string;
       icon: typeof Banknote;
@@ -362,7 +364,8 @@ export function BillingSection({
       action = {
         label: t("transactions.type.PREPAY"),
         icon: Banknote,
-        onClick: () => setPrepayOpen(true),
+        // Another currency has its own panel (two amounts); the account's own keeps the form.
+        onClick: () => (isForeign(s) ? setPrepayTarget(s) : setPrepayOpen(true)),
         tone: "accent",
       };
     } else {
@@ -729,8 +732,13 @@ export function BillingSection({
       />
       <PayStatementPanel
         account={account}
-        statement={payTarget}
-        onOpenChange={(v) => !v && setPayTarget(null)}
+        statement={prepayTarget ?? payTarget}
+        intent={prepayTarget ? "prepay" : "pay"}
+        onOpenChange={(v) => {
+          if (v) return;
+          setPayTarget(null);
+          setPrepayTarget(null);
+        }}
       />
       <TransactionCreateModal
         open={prepayOpen}

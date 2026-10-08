@@ -357,6 +357,20 @@
       "unbilled": "Por facturar",
       "scheduleDescription": "No cierra la facturación: se generará sola cuando llegue la fecha de cierre. Para cerrarla antes, usa «Generar facturación».",
       "scheduleSuccess": "Fechas guardadas: la facturación se generará al llegar el cierre"
+    },
+    "pay": {
+      "debitedLabel": "Monto debitado en {{currency}}",
+      "estimatedHint": "Estimado con el dólar del {{date}} ({{rate}} por dólar). Edítalo con lo que cobró tu banco.",
+      "estimatedHintCarried": "Estimado con el último valor publicado, del {{date}} ({{rate}} por dólar). Edítalo con lo que cobró tu banco.",
+      "noRate": "No hay un valor del dólar registrado: escribe lo que cobró tu banco.",
+      "useEstimate": "Usar el estimado",
+      "foreignCreatesMovement": "Se registrará un gasto en la cuenta seleccionada y un abono en dólares en tu tarjeta; el cupo en pesos no cambia.",
+      "prepayEyebrow": "Prepagar facturación",
+      "prepayTitle": "Prepago · período desde {{date}}",
+      "prepayAction": "Prepagar {{amount}}",
+      "prepayHint": "Abona antes del cierre: no cierra el período.",
+      "prepaySuccess": "Prepago registrado",
+      "prepayCreatesMovement": "Se registrará un gasto en la cuenta seleccionada y un abono en dólares en tu tarjeta; el período sigue abierto."
     }
   },
   "cards": {
@@ -647,7 +661,8 @@
       "viewPlan": "Ver plan",
       "viewDebt": "Ver deuda",
       "viewBilling": "Ver facturación",
-      "viewRecurring": "Ver recurrente"
+      "viewRecurring": "Ver recurrente",
+      "statementLocked": "Este movimiento respalda el pago de una facturación en otra moneda. Para cambiarlo, corrige el pago desde su facturación."
     },
     "source": {
       "MANUAL": "Manual",

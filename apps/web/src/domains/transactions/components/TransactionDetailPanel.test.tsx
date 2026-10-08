@@ -120,6 +120,79 @@ describe("TransactionDetailPanel", () => {
   });
 });
 
+describe("a movement that settles a statement (spec 030)", () => {
+  const settling = (over: Partial<transactions.Transaction> = {}) =>
+    tx({
+      type: "INCOME",
+      currency: "USD",
+      bankAccountId: "a1",
+      settlesStatementId: "s1",
+      ...over,
+    });
+
+  function renderRouted(ui: React.ReactElement) {
+    return render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <I18nextProvider i18n={i18n}>
+          <MemoryRouter>{ui}</MemoryRouter>
+        </I18nextProvider>
+      </QueryClientProvider>,
+    );
+  }
+
+  it("names its origin and links to the billing tab of the credit account", () => {
+    renderRouted(<TransactionDetailPanel transaction={settling()} accounts={[account]} />);
+
+    expect(screen.getByText(i18n.t("transactions.source.STATEMENT_SETTLEMENT"))).toBeDefined();
+    const link = screen.getByText(i18n.t("transactions.detail.viewBilling")).closest("a");
+    expect(link?.getAttribute("href")).toBe("/accounts/a1?tab=billing&statement=s1");
+  });
+
+  it("explains why it cannot be edited instead of leaving the person to guess", () => {
+    renderRouted(<TransactionDetailPanel transaction={settling()} accounts={[account]} />);
+
+    expect(screen.getByText(i18n.t("transactions.detail.statementLocked"))).toBeDefined();
+  });
+
+  it("offers neither Editar nor Eliminar in the surface", () => {
+    renderRouted(
+      <TransactionDetailModal
+        transaction={settling()}
+        accounts={[account]}
+        open
+        onOpenChange={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
+        items={[settling()]}
+        hasNextPage={false}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: i18n.t("common.edit") })).toBeNull();
+    expect(screen.queryByRole("button", { name: i18n.t("common.delete") })).toBeNull();
+  });
+
+  it("an ordinary movement keeps both actions", () => {
+    renderRouted(
+      <TransactionDetailModal
+        transaction={tx()}
+        accounts={[account]}
+        open
+        onOpenChange={() => {}}
+        onEdit={() => {}}
+        onDelete={() => {}}
+        items={[tx()]}
+        hasNextPage={false}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: i18n.t("common.edit") })).toBeDefined();
+    expect(screen.getByRole("button", { name: i18n.t("common.delete") })).toBeDefined();
+  });
+});
+
 describe("TransactionDetailModal navigation", () => {
   const items = [tx(), tx({ id: "t2" }), tx({ id: "t3" })];
 

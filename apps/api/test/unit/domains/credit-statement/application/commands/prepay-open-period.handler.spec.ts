@@ -189,8 +189,10 @@ describe("PrepayOpenPeriodHandler — period in another currency (spec 030)", ()
       categoryId: "system-CARD_PREPAYMENT",
       settlesStatementId: "st_1",
     });
-    // Not a prepago of the account-currency kind: that kind reconciles `creditUsed` on edit.
+    // Not a prepago of the account-currency kind (that kind reconciles `creditUsed` on edit),
+    // but it still names the credit account its settlement belongs to.
     expect(expense!.prepaymentStatementId).toBeUndefined();
+    expect(expense!.prepaymentAccountId).toBe("acc_1");
     expect(income).toMatchObject({
       bankAccountId: "acc_1",
       type: "INCOME",

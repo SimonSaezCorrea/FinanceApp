@@ -110,8 +110,19 @@ export function useAccountMutations() {
       },
     }),
     updateStatementPayment: useMutation({
-      mutationFn: (vars: { id: string; statementId: string; amount: string }) =>
-        accountsApi.updateStatementPayment(vars.id, vars.statementId, vars.amount),
+      mutationFn: (vars: {
+        id: string;
+        statementId: string;
+        amount: string;
+        /** Spec 030: the corrected debit of a period in another currency, in the source's. */
+        chargedAmount?: string;
+      }) =>
+        accountsApi.updateStatementPayment(
+          vars.id,
+          vars.statementId,
+          vars.amount,
+          vars.chargedAmount,
+        ),
       onSuccess: (_, vars) => {
         // Moves the credit pool, the payment movement AND the source account's
         // balance, so the statements list alone is not enough.

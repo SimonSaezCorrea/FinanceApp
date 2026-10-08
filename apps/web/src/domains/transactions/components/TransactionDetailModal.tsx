@@ -70,7 +70,9 @@ export function TransactionDetailModal({
   const account = tx.bankAccountId ? accounts.find((a) => a.id === tx.bankAccountId) : undefined;
   // The API refuses to edit or delete this row (FR-028a); offering the buttons would
   // only produce an error. The panel says why and where to go instead.
-  const isInstallmentPayment = tx.installmentPlanId !== null;
+  // Spec 030 adds the movements that settle a statement in another currency: they are
+  // corrected from their statement, so they get no buttons here either.
+  const isInstallmentPayment = tx.installmentPlanId !== null || tx.settlesStatementId !== null;
 
   const balanceAfter =
     index >= 0 ? balanceAfterTransaction({ items, index, account, dateFiltered }) : null;
