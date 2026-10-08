@@ -28,7 +28,8 @@ vi.mock("./PayStatementPanel", () => ({
   }: {
     statement: { id: string } | null;
     intent?: string;
-  }) => (statement ? <div data-testid="pay-panel">{`${statement.id}:${intent ?? "pay"}`}</div> : null),
+  }) =>
+    statement ? <div data-testid="pay-panel">{`${statement.id}:${intent ?? "pay"}`}</div> : null,
 }));
 vi.mock("./EditStatementPaymentPanel", () => ({
   EditStatementPaymentPanel: ({ statement }: { statement: { id: string } | null }) =>
@@ -229,9 +230,7 @@ describe("BillingSection — periods in another currency can be settled (spec 03
     renderSection();
 
     fireEvent.click(
-      (
-        await screen.findAllByRole("button", { name: i18n.t("accounts.actions.payCredit") })
-      )[0]!,
+      (await screen.findAllByRole("button", { name: i18n.t("accounts.actions.payCredit") }))[0]!,
     );
 
     expect(screen.getByTestId("pay-panel").textContent).toBe("clp:pay");

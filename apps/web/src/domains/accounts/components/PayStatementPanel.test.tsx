@@ -45,8 +45,22 @@ function account(overrides: Record<string, unknown>): accounts.BankAccount {
 
 const CREDIT = account({});
 const SOURCES = [
-  account({ id: "acc_clp", name: "Cuenta CLP", type: "CHECKING", currency: "CLP", currentBalance: "1000000", cards: [] }),
-  account({ id: "acc_usd", name: "Cuenta USD", type: "CHECKING", currency: "USD", currentBalance: "500.00", cards: [] }),
+  account({
+    id: "acc_clp",
+    name: "Cuenta CLP",
+    type: "CHECKING",
+    currency: "CLP",
+    currentBalance: "1000000",
+    cards: [],
+  }),
+  account({
+    id: "acc_usd",
+    name: "Cuenta USD",
+    type: "CHECKING",
+    currency: "USD",
+    currentBalance: "500.00",
+    cards: [],
+  }),
 ];
 
 function statement(overrides: Record<string, unknown> = {}): accounts.CreditStatement {
@@ -194,12 +208,19 @@ describe("PayStatementPanel — statement in another currency", () => {
     fireEvent.click(payButton());
 
     await waitFor(() => expect(accountsApi.payCreditStatement).toHaveBeenCalled());
-    expect(vi.mocked(accountsApi.payCreditStatement).mock.calls[0]![2].chargedAmount).toBeUndefined();
+    expect(
+      vi.mocked(accountsApi.payCreditStatement).mock.calls[0]![2].chargedAmount,
+    ).toBeUndefined();
   });
 
   it("a payment in the account's own currency is unchanged: no pesos field, no chargedAmount", async () => {
     renderPanel({
-      statement: statement({ currency: "CLP", amount: "100000.0000", remainingAmount: "100000.0000", breakdown: { purchases: "100000.0000", installments: "0", installmentCount: 0 } }),
+      statement: statement({
+        currency: "CLP",
+        amount: "100000.0000",
+        remainingAmount: "100000.0000",
+        breakdown: { purchases: "100000.0000", installments: "0", installmentCount: 0 },
+      }),
     });
     await pickSource("Cuenta CLP");
 
@@ -207,7 +228,9 @@ describe("PayStatementPanel — statement in another currency", () => {
     fireEvent.click(payButton());
 
     await waitFor(() => expect(accountsApi.payCreditStatement).toHaveBeenCalled());
-    expect(vi.mocked(accountsApi.payCreditStatement).mock.calls[0]![2].chargedAmount).toBeUndefined();
+    expect(
+      vi.mocked(accountsApi.payCreditStatement).mock.calls[0]![2].chargedAmount,
+    ).toBeUndefined();
   });
 
   it("prepay intent calls the prepay endpoint with the typed dollars and the pesos", async () => {
@@ -239,7 +262,9 @@ describe("PayStatementPanel — statement in another currency", () => {
     fireEvent.change(await screen.findByLabelText("Monto"), { target: { value: "30,5" } });
 
     await waitFor(() =>
-      expect((screen.getByLabelText("Monto debitado en CLP") as HTMLInputElement).value).toBe("29.885"),
+      expect((screen.getByLabelText("Monto debitado en CLP") as HTMLInputElement).value).toBe(
+        "29.885",
+      ),
     );
     fireEvent.click(payButton());
     await waitFor(() => expect(accountsApi.payCreditStatement).toHaveBeenCalled());

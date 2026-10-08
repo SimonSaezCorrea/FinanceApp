@@ -413,7 +413,9 @@ export function PayStatementPanel({
                   )}
                 </p>
               ) : charge.noRate ? (
-                <p className="text-xs text-muted-foreground">{t("exchangeRates.suggestion.noRate")}</p>
+                <p className="text-xs text-muted-foreground">
+                  {t("exchangeRates.suggestion.noRate")}
+                </p>
               ) : null}
               {charge.edited && charge.suggestion ? (
                 <button
@@ -480,7 +482,11 @@ export function PayStatementPanel({
 
         <p className="border-l-2 border-brand/40 pl-3 text-xs text-muted-foreground">
           {foreign
-            ? t(prepay ? "accounts.pay.prepayCreatesMovement" : "accounts.pay.foreignCreatesMovement")
+            ? t(
+                prepay
+                  ? "accounts.pay.prepayCreatesMovement"
+                  : "accounts.pay.foreignCreatesMovement",
+              )
             : t("accounts.detail.payCreatesMovement")}
         </p>
       </div>

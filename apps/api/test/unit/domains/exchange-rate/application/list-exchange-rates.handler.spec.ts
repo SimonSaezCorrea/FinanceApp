@@ -78,19 +78,25 @@ describe("ListExchangeRatesQueryHandler", () => {
 
   it("rejects from > to with INVALID_DATE_RANGE", async () => {
     await expect(
-      handler().execute(new ListExchangeRatesQuery({ from: "2026-10-09", to: "2026-10-01" }, TODAY)),
+      handler().execute(
+        new ListExchangeRatesQuery({ from: "2026-10-09", to: "2026-10-01" }, TODAY),
+      ),
     ).rejects.toMatchObject({ code: "INVALID_DATE_RANGE" });
   });
 
   it("rejects a range of more than 400 days with EXCHANGE_RANGE_TOO_LARGE", async () => {
     await expect(
-      handler().execute(new ListExchangeRatesQuery({ from: "2025-01-01", to: "2026-10-01" }, TODAY)),
+      handler().execute(
+        new ListExchangeRatesQuery({ from: "2025-01-01", to: "2026-10-01" }, TODAY),
+      ),
     ).rejects.toMatchObject({ code: "EXCHANGE_RANGE_TOO_LARGE" });
   });
 
   it("accepts exactly 400 days", async () => {
     await expect(
-      handler().execute(new ListExchangeRatesQuery({ from: "2025-08-31", to: "2026-10-04" }, TODAY)),
+      handler().execute(
+        new ListExchangeRatesQuery({ from: "2025-08-31", to: "2026-10-04" }, TODAY),
+      ),
     ).resolves.toBeDefined();
   });
 });

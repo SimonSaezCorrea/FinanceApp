@@ -102,7 +102,10 @@ export function ExchangeRatesRoute() {
                     <span className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       {t("exchangeRates.valueOn", { date: date(rate.date) })}
                       {exchangeRates.isCarried(rate) ? (
-                        <Badge variant="warning" title={t("exchangeRates.carriedHint", { date: date(rate.valueDate) })}>
+                        <Badge
+                          variant="warning"
+                          title={t("exchangeRates.carriedHint", { date: date(rate.valueDate) })}
+                        >
                           {t("exchangeRates.carried")}
                         </Badge>
                       ) : null}

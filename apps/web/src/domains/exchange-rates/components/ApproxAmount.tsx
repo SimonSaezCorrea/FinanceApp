@@ -49,7 +49,10 @@ export function ApproxAmount({
       <MaskedAmount>
         ≈ {negative ? "−" : ""}
         {shown}
-        <span className="font-normal text-dim"> · {t("exchangeRates.estimatedOn", { date: day })}</span>
+        <span className="font-normal text-dim">
+          {" "}
+          · {t("exchangeRates.estimatedOn", { date: day })}
+        </span>
       </MaskedAmount>
     </span>
   );

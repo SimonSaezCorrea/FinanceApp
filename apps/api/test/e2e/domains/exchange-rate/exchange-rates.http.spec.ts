@@ -36,24 +36,37 @@ describe("Exchange rates HTTP (e2e)", () => {
     await app.init();
     prisma = app.get(PrismaService);
 
-    const registerRes = await request(app.getHttpServer())
-      .post("/api/v1/auth/register")
-      .send({
-        email,
-        password: "Sup3rSecret!",
-        name: "E2E Rates User",
-        sensitiveDataConsent: true,
-        birthDate: "1990-01-01",
-        identifierValue: randomValidRut(),
-      });
+    const registerRes = await request(app.getHttpServer()).post("/api/v1/auth/register").send({
+      email,
+      password: "Sup3rSecret!",
+      name: "E2E Rates User",
+      sensitiveDataConsent: true,
+      birthDate: "1990-01-01",
+      identifierValue: randomValidRut(),
+    });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
     await clean();
     await prisma.exchangeRate.createMany({
       data: [
-        { currency: "USD", date: new Date("2097-03-01"), value: "950", valueDate: new Date("2097-03-01") },
-        { currency: "USD", date: new Date("2097-03-02"), value: "950", valueDate: new Date("2097-03-01") },
-        { currency: "CLF", date: new Date("2097-03-02"), value: "41000", valueDate: new Date("2097-03-02") },
+        {
+          currency: "USD",
+          date: new Date("2097-03-01"),
+          value: "950",
+          valueDate: new Date("2097-03-01"),
+        },
+        {
+          currency: "USD",
+          date: new Date("2097-03-02"),
+          value: "950",
+          valueDate: new Date("2097-03-01"),
+        },
+        {
+          currency: "CLF",
+          date: new Date("2097-03-02"),
+          value: "41000",
+          valueDate: new Date("2097-03-02"),
+        },
       ],
     });
   });
@@ -76,11 +89,9 @@ describe("Exchange rates HTTP (e2e)", () => {
     const res = await get("?from=2097-03-01&to=2097-03-02");
 
     expect(res.status).toBe(200);
-    expect(res.body.items.map((r: { currency: string; date: string }) => `${r.currency}|${r.date}`)).toEqual([
-      "CLF|2097-03-02",
-      "USD|2097-03-02",
-      "USD|2097-03-01",
-    ]);
+    expect(
+      res.body.items.map((r: { currency: string; date: string }) => `${r.currency}|${r.date}`),
+    ).toEqual(["CLF|2097-03-02", "USD|2097-03-02", "USD|2097-03-01"]);
     const carried = res.body.items.find(
       (r: { currency: string; date: string }) => r.currency === "USD" && r.date === "2097-03-02",
     );

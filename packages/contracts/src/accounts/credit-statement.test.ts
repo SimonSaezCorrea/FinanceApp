@@ -126,9 +126,9 @@ describe("prepayCreditStatementSchema (spec 030)", () => {
   const body = { fromAccountId: "0199e7c5-0000-7000-8000-000000000001", amount: "20.00" };
 
   it("still requires an amount", () => {
-    expect(prepayCreditStatementSchema.safeParse({ fromAccountId: body.fromAccountId }).success).toBe(
-      false,
-    );
+    expect(
+      prepayCreditStatementSchema.safeParse({ fromAccountId: body.fromAccountId }).success,
+    ).toBe(false);
   });
 
   it("accepts the amount debited from the source account, in ITS currency", () => {
@@ -141,6 +141,8 @@ describe("prepayCreditStatementSchema (spec 030)", () => {
   });
 
   it("rejects a non-decimal chargedAmount", () => {
-    expect(prepayCreditStatementSchema.safeParse({ ...body, chargedAmount: "abc" }).success).toBe(false);
+    expect(prepayCreditStatementSchema.safeParse({ ...body, chargedAmount: "abc" }).success).toBe(
+      false,
+    );
   });
 });

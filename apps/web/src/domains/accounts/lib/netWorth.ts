@@ -93,7 +93,9 @@ export interface EstimatedTotalClp {
  */
 export function estimatedTotalClp(
   nets: readonly Pick<CurrencyNetWorth, "currency" | "net">[],
-  rates: Readonly<Partial<Record<exchangeRates.ExchangeCurrency, exchangeRates.ExchangeRate | null>>>,
+  rates: Readonly<
+    Partial<Record<exchangeRates.ExchangeCurrency, exchangeRates.ExchangeRate | null>>
+  >,
 ): EstimatedTotalClp | null {
   let pesos = toMoney("0");
   let foreign = false;

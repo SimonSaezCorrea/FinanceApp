@@ -3034,6 +3034,59 @@ async function seedFullUser(passwordHash: string) {
     });
   }
 
+  // --- Spec 030: a USD limit on the BCI credit card, to pay and prepay in dollars ---------
+  // The card holds a US$100 limit besides the account's pesos pool. One generated USD period
+  // (payable, due next week) and the OPEN one beside it, each with a charge on the card —
+  // what "Pagar" and "Prepagar" in the USD tab of Facturación act on. The exchange rates
+  // themselves are never seeded: the recorder fills them from mindicador.cl at start-up, and a
+  // fabricated history would sit in the table looking like real values forever.
+  await prisma.cardLimit.create({
+    data: {
+      cardId: creditCardBci.id,
+      currency: "USD",
+      limitAmount: dec("100"),
+      usedInitial: dec("0"),
+    },
+  });
+  const usdNow = new Date();
+  const usdClosedAt = new Date(usdNow.getTime() - 3 * 86_400_000);
+  const usdPeriodStart = new Date(usdNow.getTime() - 33 * 86_400_000);
+  const usdClosed = await prisma.creditStatement.create({
+    data: {
+      accountId: bciCredit.id,
+      currency: "USD",
+      periodStart: usdPeriodStart,
+      closedAt: usdClosedAt,
+      dueDate: new Date(usdNow.getTime() + 7 * 86_400_000),
+    },
+  });
+  const usdOpen = await prisma.creditStatement.create({
+    data: {
+      accountId: bciCredit.id,
+      currency: "USD",
+      periodStart: new Date(usdClosedAt.getTime() + 1),
+    },
+  });
+  for (const [statementId, amount, daysAgo, description] of [
+    [usdClosed.id, "50.41", 12, "Spotify + Netflix"],
+    [usdOpen.id, "20.00", 1, "Steam"],
+  ] as const) {
+    await prisma.transaction.create({
+      data: {
+        userId: javier.id,
+        bankAccountId: bciCredit.id,
+        cardId: creditCardBci.id,
+        type: "EXPENSE",
+        amount: dec(amount),
+        currency: "USD",
+        occurredAt: new Date(usdNow.getTime() - daysAgo * 86_400_000),
+        categoryId: cat("Otros"),
+        description,
+        creditStatementId: statementId,
+      },
+    });
+  }
+
   // --- Credit-card instalment plans (spec 014) -----------------------------------
   // A plan bought with a CREDIT card behaves like the real thing: the purchase
   // consumes the pool IN FULL on day one (a movement of its own, excluded from any

@@ -17,7 +17,10 @@ import {
   type TransactionWriterRepositoryPort,
 } from "../../../transaction/domain/ports/transaction-writer.repository.port";
 import type { CreditStatement } from "../../domain/credit-statement.aggregate";
-import { StatementNotFoundError, StatementPaymentCurrencyAmbiguousError } from "../../domain/errors";
+import {
+  StatementNotFoundError,
+  StatementPaymentCurrencyAmbiguousError,
+} from "../../domain/errors";
 import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,

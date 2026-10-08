@@ -505,6 +505,32 @@ todavía — la ruta web de importación es un placeholder) y recargar la págin
 clave en memoria, `useIdempotencyKey`, se pierde — un reenvío es un intento genuinamente nuevo). Ambos
 catalogados en `docs/PENDING.md`.
 
+## 12d. Tipos de cambio (specs/030)
+
+Un dominio-tabla nuevo, `exchange-rate` (`apps/api/src/domains/exchange-rate/`): el valor diario del
+dólar observado (`USD`) y de la UF (`CLF`) en pesos, **dato de referencia global** (sin `userId`;
+autenticado y de solo lectura por HTTP: `GET /exchange-rates`). Una fila por moneda y día de calendario
+de Chile, única por `(currency, date)`; `valueDate` es el día en que la fuente publicó el valor, así que
+`valueDate < date` es un "dato arrastrado" (derivado, nunca un flag guardado).
+
+- **Registro.** `ExchangeRateCron` (un disparador delgado en `infra/cron`) despacha el comando de sistema
+  `RecordExchangeRatesCommand` cada hora de 08:00 a 20:00 America/Santiago, y una vez al arrancar (no en
+  tests). El dólar del día casi nunca está publicado a las 8:00, así que los ticks posteriores son como el
+  valor real reemplaza al arrastrado. Una llamada fallida no escribe nada; solo el tick de las 20:00
+  copia hacia adelante el último valor conocido. Cada escritura es un upsert atómico por
+  `(currency, date)` que solo puede subir `valueDate`. La fuente es un puerto (`ExchangeRateSourcePort`,
+  adaptador `MindicadorSource`, URL base reemplazable con `EXCHANGE_RATE_SOURCE_URL`).
+- **Solo sugerencias.** La web convierte un valor en una _propuesta editable_ — `convertAmount` en
+  `@finance/money`, `useSuggestedAmount`/`useAmountSuggestion` — para el pago/prepago de una facturación
+  USD, un traspaso USD→CLP y el "≈ $" de una cuenta USD; el patrimonio suma un total estimado junto a sus
+  cifras por moneda. **Ninguna regla del dominio compara montos de dos monedas y nada convertido se
+  persiste sin que la persona lo confirme** (el API recibe los dos montos que ella vio).
+- **Pagar una facturación en otra moneda** (`credit-statement`): dos montos — el de la facturación y lo
+  que salió de la cuenta de origen en su moneda (`chargedAmount`). Escribe el GASTO de origen y un
+  INGRESO de liquidación en la tarjeta principal de la cuenta (que debe tener tope en esa moneda), no
+  toca `creditUsed`, relee la facturación bajo candado de fila, y ambos movimientos son de solo lectura
+  en Movimientos (`TRANSACTION_LINKED_TO_STATEMENT`).
+
 ## 12. Agregar un dominio nuevo (resumen)
 
 1. Agrega esquemas zod + tipos en `packages/contracts/src/<dominio>/` y expórtalos desde `src/index.ts`.

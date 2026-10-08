@@ -81,8 +81,18 @@ describe("PrismaExchangeRateRepository (integration)", () => {
 
   it("findLatest returns the newest row of that currency only", async () => {
     await repo.upsertMany([
-      { currency: "CLF", date: `${FAR_FUTURE}05`, value: "99999.0000", valueDate: `${FAR_FUTURE}05` },
-      { currency: "USD", date: `${FAR_FUTURE}06`, value: "99998.0000", valueDate: `${FAR_FUTURE}06` },
+      {
+        currency: "CLF",
+        date: `${FAR_FUTURE}05`,
+        value: "99999.0000",
+        valueDate: `${FAR_FUTURE}05`,
+      },
+      {
+        currency: "USD",
+        date: `${FAR_FUTURE}06`,
+        value: "99998.0000",
+        valueDate: `${FAR_FUTURE}06`,
+      },
     ]);
 
     expect((await repo.findLatest("CLF"))?.date).toBe(`${FAR_FUTURE}05`);

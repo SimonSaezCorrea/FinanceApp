@@ -103,7 +103,10 @@ describe("list query", () => {
 
 describe("resolveExchangeRange", () => {
   it("defaults to the last 30 days ending today", () => {
-    expect(resolveExchangeRange({}, "2026-10-08")).toEqual({ from: "2026-09-08", to: "2026-10-08" });
+    expect(resolveExchangeRange({}, "2026-10-08")).toEqual({
+      from: "2026-09-08",
+      to: "2026-10-08",
+    });
   });
 
   it("keeps what the caller asked for", () => {

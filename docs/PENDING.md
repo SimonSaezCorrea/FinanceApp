@@ -476,20 +476,22 @@ contrato, pero **ningún endpoint filtra por ella y ningún componente la muestr
 es la taxonomía real del regulador chileno y porque agrupar el selector por ella (bancos /
 sucursales extranjeras / emisores / cooperativas) es la mejora natural cuando el catálogo crezca.
 
-### 7. Sin conversión de moneda
+### 7. Conversión de moneda — solo sugerencias editables desde la spec 030
 
-No existe ninguna tasa de cambio en el sistema. El patrimonio neto y los totales multi-moneda son
-**sumas separadas por moneda**, nunca un único número convertido; los topes de tarjeta en otras
-monedas tampoco se cruzan contra el cupo de la cuenta. Con dos países en el catálogo esto se nota más.
+Desde la spec 030 SÍ existe el valor diario del dólar observado y de la UF (`exchange-rate`, mindicador.cl),
+pero la regla de fondo se mantiene: **ningún dominio compara ni valida montos de monedas distintas**, y
+lo que se guarda es siempre lo que la persona confirmó. Los valores solo alimentan sugerencias (pesos de
+un pago/prepago USD, pesos de un traspaso USD→CLP), el "≈ $" de las cuentas USD y el total estimado del
+patrimonio. Los topes de tarjeta en otras monedas tampoco se cruzan contra el cupo de la cuenta.
 
 Consecuencia concreta en tarjetas: un emisor real opera con **un solo cupo** y convierte la compra en
 moneda extranjera contra él. Aquí los topes por moneda son independientes, así que el disponible que
 muestra la app no coincide con el del banco cuando hay compras en otra moneda. `CardDetailPanel` lo
 advierte en vez de simular la conversión.
 
-**Para hacerlo real**: una fuente de tasas (con su propia caché, como `EtfPriceCache`) y una decisión
-de producto sobre qué tasa usar y con qué fecha — un patrimonio convertido con la tasa de hoy no es
-comparable con el de ayer.
+**Lo que sigue pendiente**: un cupo único multi-moneda como el del emisor (hoy los topes son
+independientes) y un patrimonio histórico convertido (la serie del Panel sigue siendo de la moneda
+principal; el histórico de valores ya existe para hacerlo cuando se decida con qué tasa).
 
 ### 8. "Saldo tras el movimiento" con cobertura parcial
 
@@ -841,3 +843,37 @@ que se decidan. Se exploraron en el lienzo "Cuadra · Precios" (variantes PL2, P
 
 **Para hacerlo real**: decidir nombre, precio y lista; modelo `Plan`/`Subscription` + proveedor de
 pagos (ver Perfil · 5); recién entonces volver a mostrar el plan de pago en `/precios`.
+
+## Tipos de cambio y facturación en otra moneda (spec 030)
+
+### 1. La fuente es un tercero (mindicador.cl), sin SLA
+
+El registro diario depende de `https://mindicador.cl/api`. Si cae, el reintento horario (8:00–20:00,
+hora de Chile) y el arrastre del último valor cubren el día, pero nada avisa a la persona: solo se ve
+"dato arrastrado" en la pantalla Tipos de cambio y en los estimados. Se puede apuntar a otra fuente con
+`EXCHANGE_RATE_SOURCE_URL`; cambiarla de verdad (Banco Central) exige credenciales.
+
+### 2. Un pago parcial en otra moneda no deja el uso del tope al día
+
+Pagar menos de lo adeudado en una facturación USD la liquida y traslada el faltante como
+`carriedOverAmount` del siguiente período USD, pero el **uso del tope USD** se deriva de movimientos y
+esa deuda arrastrada no es un movimiento: el "Crédito · USD" queda subestimado por el faltante hasta que
+se paga el período siguiente. Para pagos por partes conviene **prepagar** (que sí deja el período abierto
+y la deuda a la vista).
+
+### 3. Pago y prepago en otra moneda no se deshacen desde Movimientos
+
+Los dos movimientos de un pago/prepago USD son de solo lectura (`TRANSACTION_LINKED_TO_STATEMENT`). Un
+pago se corrige con "Modificar pago"; **un prepago USD no tiene deshacer** todavía (el prepago en la
+moneda de la cuenta sí se edita/elimina, spec 019).
+
+### 4. Traspasar una facturación USD vencida a pesos (spec 028 US3) sigue pendiente
+
+Pagar y prepagar en USD ya existen (spec 030 absorbió la US2 de la 028). Lo que no existe es el flujo
+del banco que convierte la deuda vencida y la carga a la facturación en pesos: tareas T043–T058 de
+`specs/028-multi-currency-billing/tasks.md`.
+
+### 5. Los valores son uno por día y moneda, no por hora
+
+El dólar observado es el valor oficial del día; el de hoy suele publicarse a media jornada, así que el
+"vigente" de la mañana es el de ayer (marcado arrastrado hasta que llega el real).

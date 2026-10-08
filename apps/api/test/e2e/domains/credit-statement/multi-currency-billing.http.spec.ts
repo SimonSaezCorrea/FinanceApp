@@ -51,16 +51,13 @@ describe("Statements in another currency (e2e)", () => {
     });
     cookies = registerRes.get("Set-Cookie") ?? [];
 
-    const from = await http()
-      .post("/api/v1/accounts")
-      .set("Cookie", cookies)
-      .send({
-        name: "Cuenta Corriente",
-        type: "CHECKING",
-        currency: "CLP",
-        accountNumber: "123",
-        initialBalance: "1000000",
-      });
+    const from = await http().post("/api/v1/accounts").set("Cookie", cookies).send({
+      name: "Cuenta Corriente",
+      type: "CHECKING",
+      currency: "CLP",
+      accountNumber: "123",
+      initialBalance: "1000000",
+    });
     fromAccountId = from.body.id;
 
     const credit = await http()

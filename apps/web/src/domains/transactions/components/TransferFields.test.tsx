@@ -70,7 +70,9 @@ function Harness({ initial = {} }: Readonly<{ initial?: Partial<TransactionFormV
         selectable={ACCOUNTS}
       />
       <button onClick={() => setValue((v) => ({ ...v, amount: "250" }))}>set-amount-250</button>
-      <button onClick={() => setValue((v) => ({ ...v, date: "2026-10-01" }))}>set-date-oct-1</button>
+      <button onClick={() => setValue((v) => ({ ...v, date: "2026-10-01" }))}>
+        set-date-oct-1
+      </button>
       <output data-testid="amount">{value.amount}</output>
       <output data-testid="amountIn">{value.amountIn}</output>
       <output data-testid="edited">{String(value.amountInEdited)}</output>
@@ -152,7 +154,10 @@ describe("TransferFields — amount on the other side (spec 030)", () => {
   });
 
   it("with no recorded rate leaves it empty and says so", async () => {
-    vi.mocked(exchangeRatesApi.list).mockResolvedValue({ items: [], latest: { USD: null, CLF: null } });
+    vi.mocked(exchangeRatesApi.list).mockResolvedValue({
+      items: [],
+      latest: { USD: null, CLF: null },
+    });
     renderHarness({ amount: "100" });
 
     expect(await screen.findByText(/No hay un valor del dólar registrado/)).toBeDefined();
@@ -161,7 +166,12 @@ describe("TransferFields — amount on the other side (spec 030)", () => {
   });
 
   it("is not shown at all when both accounts share a currency", async () => {
-    renderHarness({ currency: "CLP", bankAccountId: "clp", toBankAccountId: "clp2", amount: "5000" });
+    renderHarness({
+      currency: "CLP",
+      bankAccountId: "clp",
+      toBankAccountId: "clp2",
+      amount: "5000",
+    });
 
     await waitFor(() => expect(screen.getByLabelText("Cuenta de destino")).toBeDefined());
     expect(screen.queryByLabelText(/Monto que entra/)).toBeNull();
@@ -169,7 +179,12 @@ describe("TransferFields — amount on the other side (spec 030)", () => {
   });
 
   it("any other pair has the field but suggests nothing (only USD to CLP is estimated)", async () => {
-    renderHarness({ currency: "CLP", bankAccountId: "clp", toBankAccountId: "usd", amount: "95000" });
+    renderHarness({
+      currency: "CLP",
+      bankAccountId: "clp",
+      toBankAccountId: "usd",
+      amount: "95000",
+    });
 
     const field = (await screen.findByLabelText("Monto que entra (USD)")) as HTMLInputElement;
     await new Promise((r) => setTimeout(r, 30));

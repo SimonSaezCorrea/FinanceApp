@@ -119,8 +119,8 @@ Notas:
 - `COU` es la Unidad de Valor Real colombiana: el mismo concepto que la UF, y la razón por la que el
   modelo acepta más de una moneda por país.
 - La app **nunca suma monedas distintas**: los totales van agrupados por moneda. Los "≈ CLP" que se
-  muestran junto a montos extranjeros salen de tasas estáticas escritas a mano en
-  `apps/web/src/shared/lib/fx.ts`, jamás de una conversión persistida.
+  muestran junto a montos extranjeros salen de los valores diarios de la tabla `exchange-rate`
+  (spec 030; la tabla estática `shared/lib/fx.ts` ya no existe), jamás de una conversión persistida.
 
 ## 6. Reglas de catálogo que valen para cualquier mercado
 

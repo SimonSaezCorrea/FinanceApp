@@ -7,7 +7,10 @@ import {
 import type { BankAccountRepositoryPort } from "../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CardAccountRepositoryPort } from "../../../src/domains/card-account/domain/ports/card-account.repository.port";
 import type { CategoryLookupPort } from "../../../src/domains/category/domain/ports/category-lookup.port";
-import type { ExchangeRateEntry, RateCurrency } from "../../../src/domains/exchange-rate/domain/exchange-rate.entity";
+import type {
+  ExchangeRateEntry,
+  RateCurrency,
+} from "../../../src/domains/exchange-rate/domain/exchange-rate.entity";
 import type { ExchangeRateRepositoryPort } from "../../../src/domains/exchange-rate/domain/ports/exchange-rate.repository.port";
 import type { CardLimitRepositoryPort } from "../../../src/domains/card-limit/domain/ports/card-limit.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";

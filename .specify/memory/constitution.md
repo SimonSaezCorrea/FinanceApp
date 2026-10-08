@@ -7,8 +7,25 @@ Sync Impact Report — 2026-10-08 (amendment 2.4.0)
   so the premise is gone: a UF amount may enter the net worth's single estimated total, labelled as an
   estimate with its value date. Unchanged: a UF account shows no per-account CLP hint, the UF is never
   a payment/transfer suggestion, and no conversion is persisted unless the person confirmed it.
-- Follow-up (closed by specs/030's last task): the new `exchange-rate` table-domain, its system cron
-  and the "suggest, never compare or persist unconfirmed" rule for the old "no FX" statements.
+- ADDED: table-domain **`exchange-rate`** (30th; global reference data, no `userId`, authed and
+  read-only over HTTP — same treatment as `currency`): the daily dólar observado (`USD`) and UF (`CLF`)
+  in pesos, one row per currency and Chile calendar day, `@@unique([currency, date])`; `valueDate` makes
+  a carried value derivable (`valueDate < date`) instead of a stored flag. Its only writer is the system
+  command `RecordExchangeRatesCommand` (`scope: "system"`, a named exception to Principle II like the
+  other crons), dispatched hourly 08:00–20:00 America/Santiago by `ExchangeRateCron` and once at boot.
+  Idempotency (Principle VII) is form (b): an atomic upsert on the natural key that can only raise
+  `valueDate`. Identifier (Principle VIII): UUID v7.
+- CLARIFIED the old "this app has no FX / does not convert" statements (Principle I's neighbours, the
+  transfer and statement rules, `docs/PENDING.md`): the app MAY now SUGGEST a conversion — an editable
+  proposal derived from the recorded rate (`convertAmount` in `@finance/money`, the ONE implementation) —
+  but **no rule of any domain compares or validates amounts of two currencies, and nothing converted is
+  persisted unless the person confirmed the figure they saw.** `TransferPolicy`, `MovementPolicy` and the
+  payment rules still never compare the two sides.
+- ADDED behavior (not a new principle): paying or prepaying a statement in ANOTHER currency than its
+  account's (specs/030, absorbing 028 US2) takes two amounts (`amount` in the statement's currency,
+  `chargedAmount` in the source account's), writes the source EXPENSE plus an INCOME settlement on the
+  account's PRIMARY card (it must hold a limit in that currency), never touches `creditUsed`, and
+  re-reads the statement under a row lock inside the transaction (the precedent of specs/019 R8).
 -->
 <!--
 Sync Impact Report — 2026-10-07 (amendment 2.3.19)

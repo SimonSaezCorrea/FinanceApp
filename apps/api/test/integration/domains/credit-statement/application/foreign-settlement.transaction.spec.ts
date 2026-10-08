@@ -87,11 +87,7 @@ describe("Settling a statement in another currency (integration)", () => {
 
   /** A USD period with a US$50 purchase on the card; `closed` makes it a statement to pay. */
   async function usdPeriod(closed: boolean): Promise<string> {
-    const open = await statementRepo.findOrCreateOpenForAccount(
-      creditAccountId,
-      new Date(),
-      "USD",
-    );
+    const open = await statementRepo.findOrCreateOpenForAccount(creditAccountId, new Date(), "USD");
     await prisma.transaction.create({
       data: {
         userId,
@@ -128,7 +124,9 @@ describe("Settling a statement in another currency (integration)", () => {
   }
 
   const balanceOfSource = async () =>
-    (await prisma.bankAccount.findUniqueOrThrow({ where: { id: fromAccountId } })).currentBalance.toFixed(0);
+    (
+      await prisma.bankAccount.findUniqueOrThrow({ where: { id: fromAccountId } })
+    ).currentBalance.toFixed(0);
 
   beforeAll(async () => {
     await prisma.$connect();
@@ -206,7 +204,10 @@ describe("Settling a statement in another currency (integration)", () => {
     expect(result.status).toBe("PAID");
     expect(await balanceOfSource()).toBe("950606"); // 1.000.000 − 49.394
     const moved = await prisma.transaction.findMany({
-      where: { userId, OR: [{ settlesStatementId: statementId }, { id: result.paidTransactionId! }] },
+      where: {
+        userId,
+        OR: [{ settlesStatementId: statementId }, { id: result.paidTransactionId! }],
+      },
       orderBy: { type: "asc" },
     });
     const income = moved.find((t) => t.type === "INCOME")!;
@@ -236,7 +237,9 @@ describe("Settling a statement in another currency (integration)", () => {
 
     expect(await prisma.transaction.count({ where: { userId } })).toBe(before);
     expect(await balanceOfSource()).toBe("1000000");
-    expect((await prisma.creditStatement.findUniqueOrThrow({ where: { id: statementId } })).paidAt).toBeNull();
+    expect(
+      (await prisma.creditStatement.findUniqueOrThrow({ where: { id: statementId } })).paidAt,
+    ).toBeNull();
   });
 
   it("three simultaneous payments with different keys: exactly one is accepted, the rest see it settled", async () => {
@@ -253,7 +256,9 @@ describe("Settling a statement in another currency (integration)", () => {
 
     expect(outcomes.filter((o) => o === "ok")).toHaveLength(1);
     expect(await balanceOfSource()).toBe("951000"); // debited ONCE
-    expect(await prisma.transaction.count({ where: { userId, settlesStatementId: statementId } })).toBe(1);
+    expect(
+      await prisma.transaction.count({ where: { userId, settlesStatementId: statementId } }),
+    ).toBe(1);
   });
 
   it("a short payment rolls the shortfall into the OPEN period of the SAME currency", async () => {
@@ -282,7 +287,9 @@ describe("Settling a statement in another currency (integration)", () => {
     expect(await balanceOfSource()).toBe("980400");
     const credit = await prisma.bankAccount.findUniqueOrThrow({ where: { id: creditAccountId } });
     expect(credit.creditUsed.toFixed(0)).toBe("0");
-    expect(await prisma.transaction.count({ where: { userId, settlesStatementId: statementId } })).toBe(2);
+    expect(
+      await prisma.transaction.count({ where: { userId, settlesStatementId: statementId } }),
+    ).toBe(2);
   });
 
   it("five simultaneous prepayments never exceed what the period owes", async () => {

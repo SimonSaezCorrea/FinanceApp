@@ -29,7 +29,8 @@ describe("RecordExchangeRatesHandler (integration)", () => {
     series: vi.fn(async () => []),
   };
 
-  const makeHandler = () => new RecordExchangeRatesHandler({ publish: vi.fn() } as never, repo, source);
+  const makeHandler = () =>
+    new RecordExchangeRatesHandler({ publish: vi.fn() } as never, repo, source);
 
   beforeAll(async () => {
     await prisma.$connect();

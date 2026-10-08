@@ -6,11 +6,11 @@ Prefijo global `/api/v1`. Todas las rutas con `JwtAuthGuard`. Los errores siguen
 
 Valores diarios del dólar y la UF.
 
-| Query      | Tipo                   | Notas                                                                  |
-| ---------- | ---------------------- | ---------------------------------------------------------------------- |
-| `currency` | `"USD" \| "CLF"`       | opcional; sin él, ambas                                                |
-| `from`     | `YYYY-MM-DD`           | opcional; por defecto `to` − 30 días                                   |
-| `to`       | `YYYY-MM-DD`           | opcional; por defecto hoy (Chile)                                      |
+| Query      | Tipo             | Notas                                |
+| ---------- | ---------------- | ------------------------------------ |
+| `currency` | `"USD" \| "CLF"` | opcional; sin él, ambas              |
+| `from`     | `YYYY-MM-DD`     | opcional; por defecto `to` − 30 días |
+| `to`       | `YYYY-MM-DD`     | opcional; por defecto hoy (Chile)    |
 
 - Máximo 400 días por consulta (`EXCHANGE_RANGE_TOO_LARGE`, 400); `from > to` → `INVALID_DATE_RANGE`.
 - Respuesta `200`: `{ items: ExchangeRate[], latest: { USD: ExchangeRate | null, CLF: ExchangeRate | null } }`,
@@ -44,12 +44,12 @@ facturación en otra moneda.
 
 ## Errores nuevos
 
-| Código                                   | HTTP | Cuándo                                                                 |
-| ---------------------------------------- | ---- | ---------------------------------------------------------------------- |
-| `EXCHANGE_RANGE_TOO_LARGE`               | 400  | rango de consulta > 400 días                                           |
-| `INVALID_DATE_RANGE`                     | 400  | `from > to`                                                            |
-| `STATEMENT_PAYMENT_CURRENCY_AMBIGUOUS`   | 400  | pago/prepago entre monedas distintas sin `chargedAmount` (ya definido en 028) |
-| `TRANSACTION_LINKED_TO_STATEMENT`        | 409  | editar/borrar un movimiento de liquidación (ya definido en 028)        |
+| Código                                 | HTTP | Cuándo                                                                        |
+| -------------------------------------- | ---- | ----------------------------------------------------------------------------- |
+| `EXCHANGE_RANGE_TOO_LARGE`             | 400  | rango de consulta > 400 días                                                  |
+| `INVALID_DATE_RANGE`                   | 400  | `from > to`                                                                   |
+| `STATEMENT_PAYMENT_CURRENCY_AMBIGUOUS` | 400  | pago/prepago entre monedas distintas sin `chargedAmount` (ya definido en 028) |
+| `TRANSACTION_LINKED_TO_STATEMENT`      | 409  | editar/borrar un movimiento de liquidación (ya definido en 028)               |
 
 Todo código nuevo tiene su clave `errors.<CODE>` en `es.json` y `en.json`.
 

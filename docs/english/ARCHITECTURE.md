@@ -492,6 +492,33 @@ domain's one `scope: "system"` command, mirroring `billing-generation.cron.ts`.
 route is a placeholder) and reloading the page mid-submit (the in-memory key, `useIdempotencyKey`, is
 lost — a resubmission is a genuinely new attempt). Both are catalogued in `docs/PENDING.md`.
 
+## 12d. Exchange rates (specs/030)
+
+A new table-domain, `exchange-rate` (`apps/api/src/domains/exchange-rate/`): the daily value of the
+observed dollar (`USD`) and the UF (`CLF`) in pesos, **global reference data** (no `userId`; authed,
+read-only over HTTP: `GET /exchange-rates`). One row per currency and Chile calendar day, unique on
+`(currency, date)`; `valueDate` is the day the source published the value, so `valueDate < date` is a
+"dato arrastrado" (derived, never a stored flag).
+
+- **Recording.** `ExchangeRateCron` (a thin trigger in `infra/cron`) dispatches the system command
+  `RecordExchangeRatesCommand` every hour from 08:00 to 20:00 America/Santiago, and once at boot (not in
+  tests). The dollar of the day is rarely published at 08:00, so the later ticks are how the real value
+  replaces a carried one. A failed call writes nothing; only the 20:00 tick copies the last known value
+  forward. Writes are one atomic upsert per `(currency, date)` that can only raise `valueDate`.
+  The source is a port (`ExchangeRateSourcePort`, adapter `MindicadorSource`, base URL overridable
+  with `EXCHANGE_RATE_SOURCE_URL`).
+- **Suggestions only.** The web turns a rate into an _editable proposal_ — `convertAmount` in
+  `@finance/money`, `useSuggestedAmount`/`useAmountSuggestion` — for a USD statement payment/prepayment,
+  a USD→CLP transfer and the "≈ $" of a USD account; the net worth gets one estimated total beside its
+  per-currency figures. **No rule of the domain compares amounts of two currencies, and nothing
+  converted is persisted unless the person confirmed it** (what the API receives are the two amounts
+  they saw).
+- **Paying a statement in another currency** (`credit-statement`): two amounts — the statement's own
+  and what left the source account in its currency (`chargedAmount`). It writes the source EXPENSE and
+  an INCOME settlement on the account's primary card (which must hold a limit in that currency), never
+  touches `creditUsed`, re-reads the statement under a row lock, and both movements are read-only in
+  Movimientos (`TRANSACTION_LINKED_TO_STATEMENT`).
+
 ## 12. Adding a new domain (recap)
 
 1. Add zod schemas + types in `packages/contracts/src/<domain>/` and export from `src/index.ts`.

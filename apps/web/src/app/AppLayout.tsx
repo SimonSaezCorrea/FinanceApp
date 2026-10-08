@@ -46,7 +46,11 @@ const INSTALLMENTS: NavItem = { to: "/installments", key: "installments.title", 
 const DEBTS: NavItem = { to: "/debts", key: "debts.title", icon: HandCoins };
 const RECURRING: NavItem = { to: "/recurring", key: "recurring.title", icon: Repeat };
 const SAVINGS: NavItem = { to: "/savings", key: "savings.title", icon: PiggyBank };
-const EXCHANGE_RATES: NavItem = { to: "/exchange-rates", key: "nav.exchangeRates", icon: CircleDollarSign };
+const EXCHANGE_RATES: NavItem = {
+  to: "/exchange-rates",
+  key: "nav.exchangeRates",
+  icon: CircleDollarSign,
+};
 
 /** Grouped by what each section IS for the user: their money, what they've committed to, their
  * goals. Investments is left out until it exists (an item that leads nowhere is daily noise). */

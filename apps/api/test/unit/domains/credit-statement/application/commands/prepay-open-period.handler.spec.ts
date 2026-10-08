@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { BankAccount, type BankAccountProps } from "../../../../../../src/domains/bank-account/domain/bank-account.aggregate";
+import {
+  BankAccount,
+  type BankAccountProps,
+} from "../../../../../../src/domains/bank-account/domain/bank-account.aggregate";
 import { PrepayOpenPeriodCommand } from "../../../../../../src/domains/credit-statement/application/commands/prepay-open-period.command";
 import { PrepayOpenPeriodHandler } from "../../../../../../src/domains/credit-statement/application/commands/prepay-open-period.handler";
 import {
@@ -105,7 +108,9 @@ function setup(
     owed?: string;
   } = {},
 ) {
-  const creditAccount = BankAccount.fromPersistence(accountProps({ cards: opts.cards ?? [card()] }));
+  const creditAccount = BankAccount.fromPersistence(
+    accountProps({ cards: opts.cards ?? [card()] }),
+  );
   const fromAccount = BankAccount.fromPersistence(
     accountProps({
       id: "acc_2",
@@ -119,7 +124,9 @@ function setup(
   );
   const statement = CreditStatement.fromPersistence(statementProps(opts.statement));
   const accountRepo = {
-    findById: vi.fn(async (_u: string, id: string) => (id === "acc_1" ? creditAccount : fromAccount)),
+    findById: vi.fn(async (_u: string, id: string) =>
+      id === "acc_1" ? creditAccount : fromAccount,
+    ),
     incrementBalanceWithTx: vi.fn(),
     incrementCreditUsedWithTx: vi.fn(),
     saveWithTx: vi.fn(),

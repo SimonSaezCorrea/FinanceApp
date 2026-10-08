@@ -30,8 +30,18 @@ const account = (over: Record<string, unknown>) =>
   ({ id: "a", currency: "CLP", cards: [], ...over }) as unknown as accounts.BankAccount;
 
 const CREDIT = account({ id: "acc_credit", type: "CREDIT_CARD" });
-const SOURCE_CLP = account({ id: "acc_clp", type: "CHECKING", currency: "CLP", name: "Cuenta CLP" });
-const SOURCE_USD = account({ id: "acc_usd", type: "CHECKING", currency: "USD", name: "Cuenta USD" });
+const SOURCE_CLP = account({
+  id: "acc_clp",
+  type: "CHECKING",
+  currency: "CLP",
+  name: "Cuenta CLP",
+});
+const SOURCE_USD = account({
+  id: "acc_usd",
+  type: "CHECKING",
+  currency: "USD",
+  name: "Cuenta USD",
+});
 
 function statement(over: Record<string, unknown> = {}): accounts.CreditStatement {
   return {
@@ -115,7 +125,10 @@ describe("EditStatementPaymentPanel — statement in another currency (spec 030)
   });
 
   it("blocks saving until the corrected pesos are known", async () => {
-    vi.mocked(exchangeRatesApi.list).mockResolvedValue({ items: [], latest: { USD: null, CLF: null } });
+    vi.mocked(exchangeRatesApi.list).mockResolvedValue({
+      items: [],
+      latest: { USD: null, CLF: null },
+    });
     renderPanel(statement());
 
     fireEvent.change(await screen.findByLabelText("Monto"), { target: { value: "40" } });

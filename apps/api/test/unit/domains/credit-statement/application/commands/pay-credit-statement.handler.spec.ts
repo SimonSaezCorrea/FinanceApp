@@ -152,8 +152,8 @@ function fakeStatementRepo(
   // (spec 030, concurrent payments). A spec that only stubs `findById` means the same row.
   if (!overrides.findByIdForUpdateWithTx && overrides.findById) {
     const findById = overrides.findById;
-    merged.findByIdForUpdateWithTx = vi.fn(async (_tx: unknown, ...args: Parameters<typeof findById>) =>
-      findById(...args),
+    merged.findByIdForUpdateWithTx = vi.fn(
+      async (_tx: unknown, ...args: Parameters<typeof findById>) => findById(...args),
     );
   }
   return merged;
@@ -678,7 +678,9 @@ describe("PayCreditStatementHandler — statement in another currency", () => {
   });
 
   it("a second payment against an already-settled period is refused", async () => {
-    const { pay } = setup({ statement: { paidAt: new Date("2026-02-05"), amount: "50.41", paidAmount: "50.41" } });
+    const { pay } = setup({
+      statement: { paidAt: new Date("2026-02-05"), amount: "50.41", paidAmount: "50.41" },
+    });
 
     await expect(pay(undefined, "49394")).rejects.toThrow(StatementAlreadyPaidError);
   });

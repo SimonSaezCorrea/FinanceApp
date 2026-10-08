@@ -68,26 +68,42 @@ describe("estimatedTotalClp (spec 030)", () => {
     debts: "0",
     net: value,
   });
-  const usd = { currency: "USD" as const, date: "2026-10-08", value: "950", valueDate: "2026-10-08" };
-  const clf = { currency: "CLF" as const, date: "2026-10-08", value: "41000", valueDate: "2026-10-08" };
+  const usd = {
+    currency: "USD" as const,
+    date: "2026-10-08",
+    value: "950",
+    valueDate: "2026-10-08",
+  };
+  const clf = {
+    currency: "CLF" as const,
+    date: "2026-10-08",
+    value: "41000",
+    valueDate: "2026-10-08",
+  };
 
   it("adds the pesos net to every other currency at its latest rate", () => {
-    const total = estimatedTotalClp([net("CLP", "750000"), net("USD", "400")], { USD: usd, CLF: clf });
+    const total = estimatedTotalClp([net("CLP", "750000"), net("USD", "400")], {
+      USD: usd,
+      CLF: clf,
+    });
 
     expect(total?.total).toBe("1130000"); // 750.000 + 400 × 950
   });
 
   it("includes the UF at its own value", () => {
-    const total = estimatedTotalClp(
-      [net("CLP", "750000"), net("CLF", "2")],
-      { USD: usd, CLF: clf },
-    );
+    const total = estimatedTotalClp([net("CLP", "750000"), net("CLF", "2")], {
+      USD: usd,
+      CLF: clf,
+    });
 
     expect(total?.total).toBe("832000"); // 750.000 + 2 × 41.000
   });
 
   it("subtracts a negative net (more debt than assets in that currency)", () => {
-    const total = estimatedTotalClp([net("CLP", "100000"), net("USD", "-20")], { USD: usd, CLF: clf });
+    const total = estimatedTotalClp([net("CLP", "100000"), net("USD", "-20")], {
+      USD: usd,
+      CLF: clf,
+    });
 
     expect(total?.total).toBe("81000");
   });
@@ -103,15 +119,22 @@ describe("estimatedTotalClp (spec 030)", () => {
   });
 
   it("is null when a currency with a balance has no recorded rate (it would silently drop it)", () => {
-    expect(estimatedTotalClp([net("CLP", "1"), net("USD", "400")], { USD: null, CLF: clf })).toBeNull();
+    expect(
+      estimatedTotalClp([net("CLP", "1"), net("USD", "400")], { USD: null, CLF: clf }),
+    ).toBeNull();
   });
 
   it("is null for a currency it cannot convert (no invented number)", () => {
-    expect(estimatedTotalClp([net("CLP", "1"), net("EUR", "10")], { USD: usd, CLF: clf })).toBeNull();
+    expect(
+      estimatedTotalClp([net("CLP", "1"), net("EUR", "10")], { USD: usd, CLF: clf }),
+    ).toBeNull();
   });
 
   it("ignores a currency whose net is zero, rate or not", () => {
-    const total = estimatedTotalClp([net("CLP", "5000"), net("USD", "0")], { USD: null, CLF: null });
+    const total = estimatedTotalClp([net("CLP", "5000"), net("USD", "0")], {
+      USD: null,
+      CLF: null,
+    });
 
     expect(total).toBeNull(); // nothing foreign to estimate: the pesos figure already IS the total
   });
@@ -131,7 +154,10 @@ describe("estimatedTotalClp (spec 030)", () => {
   });
 
   it("works when the primary currency is not pesos (only the CLP net counts as pesos)", () => {
-    const total = estimatedTotalClp([net("USD", "100"), net("CLP", "1000")], { USD: usd, CLF: clf });
+    const total = estimatedTotalClp([net("USD", "100"), net("CLP", "1000")], {
+      USD: usd,
+      CLF: clf,
+    });
 
     expect(total?.total).toBe("96000");
   });

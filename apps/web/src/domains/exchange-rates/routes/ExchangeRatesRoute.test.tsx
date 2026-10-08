@@ -14,18 +14,21 @@ vi.mock("../api/exchangeRatesApi", () => ({ exchangeRatesApi: { list: vi.fn() } 
 // The charts need a real layout engine; their data is what matters here.
 vi.mock("recharts", async () => {
   const actual = await vi.importActual<typeof import("recharts")>("recharts");
-  return { ...actual, ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div> };
+  return {
+    ...actual,
+    ResponsiveContainer: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  };
 });
 
 const list = vi.mocked(exchangeRatesApi.list);
 const TODAY = localDay();
 
-const row = (
-  currency: "USD" | "CLF",
-  date: string,
-  value: string,
-  valueDate: string = date,
-) => ({ currency, date, value, valueDate });
+const row = (currency: "USD" | "CLF", date: string, value: string, valueDate: string = date) => ({
+  currency,
+  date,
+  value,
+  valueDate,
+});
 
 function respond(items: ReturnType<typeof row>[]) {
   const latest = {
