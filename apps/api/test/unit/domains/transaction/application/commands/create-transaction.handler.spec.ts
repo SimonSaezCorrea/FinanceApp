@@ -282,6 +282,7 @@ describe("CreateTransactionHandler", () => {
         "aC",
         expect.any(Date),
         "USD",
+        expect.any(Date),
       );
       expect(saveNewWithTx).toHaveBeenCalledWith(
         expect.anything(),
@@ -317,6 +318,7 @@ describe("CreateTransactionHandler", () => {
         "aC",
         expect.any(Date),
         "USD",
+        expect.any(Date),
       );
       expect(saveNewWithTx).toHaveBeenCalledWith(
         expect.anything(),
@@ -343,6 +345,7 @@ describe("CreateTransactionHandler", () => {
         "aC",
         expect.any(Date),
         "CLP",
+        expect.any(Date),
       );
     });
   });

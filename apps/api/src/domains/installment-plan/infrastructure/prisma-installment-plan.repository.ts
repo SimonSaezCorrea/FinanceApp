@@ -226,9 +226,14 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
     return this.payments.setPaidAt(userId, planId, sequence, paidAt);
   }
 
-  async listBillableForCards(cardIds: string[], dueBy: Date): Promise<BillableCandidate[]> {
+  async listBillableForCards(
+    cardIds: string[],
+    dueBy: Date,
+    tx?: unknown,
+  ): Promise<BillableCandidate[]> {
     if (cardIds.length === 0) return [];
-    const plans = await this.prisma.installmentPlan.findMany({
+    const client = (tx as PrismaService | undefined) ?? this.prisma;
+    const plans = await client.installmentPlan.findMany({
       where: { cardId: { in: cardIds } },
       select: { id: true, currency: true },
     });
@@ -237,6 +242,7 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
     const rows = await this.payments.listUnbilledDueForPlans(
       plans.map((p) => p.id),
       dueBy,
+      tx,
     );
     return rows.map((row) => ({
       planId: row.installmentPlanId,
@@ -253,12 +259,19 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
     return this.payments.stampWithTx(tx, paymentIds, statementId);
   }
 
+  unstampDueAfterWithTx(tx: unknown, statementId: string, dueAfter: Date): Promise<void> {
+    return this.payments.unstampDueAfterWithTx(tx, statementId, dueAfter);
+  }
+
   settleForStatementWithTx(tx: unknown, statementId: string, paidAt: Date): Promise<void> {
     return this.payments.settleForStatementWithTx(tx, statementId, paidAt);
   }
 
-  billedInstallmentsForStatement(statementId: string): Promise<{ amount: string; count: number }> {
-    return this.payments.sumBilledForStatement(statementId);
+  billedInstallmentsForStatement(
+    statementId: string,
+    tx?: unknown,
+  ): Promise<{ amount: string; count: number }> {
+    return this.payments.sumBilledForStatement(statementId, tx);
   }
 
   async listIdsForAccount(userId: string, accountId: string, cardIds: string[]): Promise<string[]> {
@@ -284,5 +297,13 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
     const client = tx as PrismaService;
     const result = await client.installmentPlan.deleteMany({ where: { id, userId } });
     return result.count > 0;
+  }
+
+  async countForUser(userId: string): Promise<number> {
+    return this.prisma.installmentPlan.count({ where: { userId } });
+  }
+
+  async deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void> {
+    await (tx as PrismaService).installmentPlan.deleteMany({ where: { userId } });
   }
 }

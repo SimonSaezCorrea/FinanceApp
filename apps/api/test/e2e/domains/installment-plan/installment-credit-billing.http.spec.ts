@@ -201,6 +201,30 @@ describe("Credit-card instalment plan billing, full lifecycle (e2e)", () => {
     expect(deleted.body.error.code).toBe("TRANSACTION_LINKED_TO_INSTALLMENT");
   });
 
+  /** "Generar facturación" from the day after the last close (or a date before the
+   * plan) up to `closeDay`, the way the panel pre-fills it. */
+  async function generateUntil(closeDay: string) {
+    const list = await request(app.getHttpServer())
+      .get(`/api/v1/accounts/${creditAccountId}/credit-statements`)
+      .set("Cookie", cookies);
+    const closes = (list.body as { closedAt: string | null }[])
+      .map((s) => s.closedAt)
+      .filter((c): c is string => c !== null)
+      .map((c) => Date.parse(c));
+    const periodStart =
+      closes.length > 0
+        ? new Date(Math.max(...closes) + 1).toISOString()
+        : "2019-12-01T00:00:00.000Z";
+    return request(app.getHttpServer())
+      .post(`/api/v1/accounts/${creditAccountId}/generate-statements`)
+      .set("Cookie", cookies)
+      .send({
+        periodStart,
+        closedAt: `${closeDay}T23:59:59.999Z`,
+        dueDate: `${closeDay}T23:59:59.999Z`,
+      });
+  }
+
   it("bills and settles every instalment exactly once across the plan's life, including a gap (US2/US3, SC-003)", async () => {
     // Each close only ever reaches the immediate next boundary after the account's
     // currently open period — so billing all four instalments takes several rounds
@@ -217,13 +241,13 @@ describe("Credit-card instalment plan billing, full lifecycle (e2e)", () => {
     for (let round = 1; round <= MAX_ROUNDS && plan.body.paidCount < INSTALLMENTS; round += 1) {
       if (round === 2) continue; // the gap: no generation this round
 
-      const generated = await request(app.getHttpServer())
-        .post(`/api/v1/accounts/${creditAccountId}/generate-statements`)
-        .set("Cookie", cookies);
+      // Monthly statements closing on the 20th (instalments fall due on the 5th);
+      // skipping round 2 means round 3's statement spans two of them.
+      const generated = await generateUntil(`2020-${String(round).padStart(2, "0")}-20`);
       expect(generated.status).toBe(201);
 
       for (const statement of generated.body) {
-        if (statement.paidAt) continue;
+        if (statement.paidAt || !statement.closedAt) continue;
         const pay = await request(app.getHttpServer())
           .post(`/api/v1/accounts/${creditAccountId}/credit-statements/${statement.id}/pay`)
           .set("Cookie", cookies)
@@ -255,9 +279,7 @@ describe("Credit-card instalment plan billing, full lifecycle (e2e)", () => {
       .set("Cookie", cookies);
     const statementCountBefore = before.body.length;
 
-    await request(app.getHttpServer())
-      .post(`/api/v1/accounts/${creditAccountId}/generate-statements`)
-      .set("Cookie", cookies);
+    await generateUntil("2020-12-20");
 
     const plan = await request(app.getHttpServer())
       .get(`/api/v1/installments/${planId}`)

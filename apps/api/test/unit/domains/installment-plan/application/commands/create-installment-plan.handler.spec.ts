@@ -25,6 +25,8 @@ function fakeRepo(
   overrides: Partial<InstallmentPlanRepositoryPort> = {},
 ): InstallmentPlanRepositoryPort {
   return {
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     listIdsForAccount: vi.fn(async () => []),
     list: vi.fn(),
     findOne: vi.fn(),
@@ -32,6 +34,7 @@ function fakeRepo(
     createWithTx: vi.fn(),
     listBillableForCards: vi.fn(async () => []),
     stampBillableWithTx: vi.fn(),
+    unstampDueAfterWithTx: vi.fn(),
     settleForStatementWithTx: vi.fn(),
     billedInstallmentsForStatement: vi.fn(async () => ({ amount: "0", count: 0 })),
     save: vi.fn(),

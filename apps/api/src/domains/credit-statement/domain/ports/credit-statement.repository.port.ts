@@ -22,20 +22,41 @@ export interface CreditStatementRepositoryPort {
   ): Promise<CreditStatement | null>;
   /** The account's currently OPEN period IN THAT CURRENCY (`closedAt: null`), if any.
    * Spec 028: an account keeps one open period per currency. */
-  findOpenForAccount(accountId: string, currency: string): Promise<CreditStatement | null>;
+  findOpenForAccount(
+    accountId: string,
+    currency: string,
+    tx?: unknown,
+  ): Promise<CreditStatement | null>;
   /** Every OPEN period of the account, one per currency (spec 028) — what a cycle
    * close seals, all on the same day. */
   listOpenForAccount(accountId: string): Promise<CreditStatement[]>;
   listForAccount(userId: string, accountId: string): Promise<CreditStatement[]>;
+  /** The accounts with an OPEN period whose scheduled close has arrived (`plannedCloseAt
+   * <= now`) and that has a due date: what the hourly job generates. One entry per
+   * account — its currencies close together. */
+  listDueScheduled(now: Date): Promise<
+    {
+      userId: string;
+      accountId: string;
+      periodStart: Date;
+      closedAt: Date;
+      dueDate: Date;
+    }[]
+  >;
   /** The account's OPEN period, created lazily if none exists — called by the
    * `transaction` domain when a contributing movement is recorded.
    * `fallbackPeriodStart` (the account's own `createdAt`) is only used for the
    * very first period, when no earlier statement has been closed yet; the caller
-   * passes it in because this domain must not read the `bank-account` table. */
+   * passes it in because this domain must not read the `bank-account` table.
+   *
+   * `occurredAt` (the movement's own date): a period generated with a close date
+   * still in the future keeps receiving the movements dated inside it until that
+   * day comes — a statement can be generated before the bank's cut-off. */
   findOrCreateOpenForAccount(
     accountId: string,
     fallbackPeriodStart: Date,
     currency: string,
+    occurredAt?: Date,
   ): Promise<{ id: string }>;
   /** Same, inside the caller's transaction — so a period created for an import
    * that then fails is rolled back with it, never left behind open and empty. */
@@ -44,6 +65,7 @@ export interface CreditStatementRepositoryPort {
     accountId: string,
     fallbackPeriodStart: Date,
     currency: string,
+    occurredAt?: Date,
   ): Promise<{ id: string }>;
   /**
    * The period that receives a settled period's shortfall: the account's OPEN
@@ -70,9 +92,12 @@ export interface CreditStatementRepositoryPort {
   saveWithTx(tx: unknown, aggregate: CreditStatement): Promise<void>;
   /** Live sum (Σexpense − Σincome) of every transaction currently linked to
    * this statement — the displayed `amount` while unpaid. */
-  sumLinkedTransactions(statementId: string): Promise<string>;
+  sumLinkedTransactions(statementId: string, tx?: unknown): Promise<string>;
   /** What the period is made of (purchases vs installment charges). */
   breakdown(
     statementId: string,
   ): Promise<{ purchases: string; installments: string; installmentCount: number }>;
+  /** How many rows of this table the user has: what replacing everything from a
+   * template (specs/027, REPLACE) would delete, shown before confirming. */
+  countForUser(userId: string): Promise<number>;
 }

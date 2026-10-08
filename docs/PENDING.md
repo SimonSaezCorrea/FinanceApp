@@ -210,6 +210,32 @@ de automatización de navegador.
 
 ## Cuentas — facturación de crédito (períodos dinámicos + generación automática)
 
+### 0. Configuración del ciclo de facturación — retirada de la UI (2026-10-06), pendiente de investigación
+
+La configuración de facturación de una tarjeta de crédito (día/días hábiles de generación, su tipo de
+ciclo, fecha de pago y su tipo, método de pago) **se sacó de la app** porque modelar bien los ciclos
+de cada emisor requiere investigación más profunda. Se eliminaron: la pestaña "Facturación" de
+`AccountForm`, `BillingSettingsModal`, el aviso "facturación sin configurar" junto al nombre de la
+cuenta y en `AccountCreateModal`, y la línea "Factura el día N" de `AccountCard`. El "% de pago
+mínimo" se conservó y pasó a "Más detalles" del formulario de la cuenta. También se eliminó el
+**cron diario** de generación automática (`billing-generation.cron.ts`,
+`GenerateAllDueStatementsCommand`/Handler, `BankAccountRepositoryPort.listDueForBilling`,
+`BillingSettingsRepositoryPort.accountIdsWithCycleDay`): nada se cierra solo.
+
+En su lugar, **"Generar facturación" pide las tres fechas del estado de cuenta del banco** — inicio,
+cierre y fecha de pago (`POST /accounts/:id/generate-statements` con `accounts.generateStatementSchema`).
+El inicio se propone como el día siguiente al cierre de la facturación anterior
+(`accounts.suggestedPeriodStart`). La fecha de pago queda guardada en la nueva columna
+`CreditStatement.dueDate`.
+
+**Lo que sigue en la base sin uso desde la UI**: las columnas de `BillingSettings`
+(`billingCycleDay`, `cycleType`, `paymentDueDay`, `paymentDueCycleType`, `paymentMethod`), los
+campos del contrato que las exponen, y `billing-cycle.ts` (`nextBoundaryAfter`/`paymentDueDate`),
+que solo sirven de respaldo para mostrar `nextClosingDate`/`dueDate` de cuentas configuradas antes.
+**Para retomarlo**: investigar los ciclos reales por emisor (días hábiles vs día fijo, feriados,
+cómo se corre el cierre), y decidir si la app propone las fechas en el panel de generación o vuelve
+a cerrar sola.
+
 ### 1. Fecha de pago de la facturación (`paymentDueDay`) — implementada (días hábiles y día del mes, independiente de la generación), 2026-08-29
 
 `BillingSettings.paymentDueDay` dejó de ser una columna reservada: es la cuenta (según
@@ -244,7 +270,7 @@ facturación, nunca la paga — pagar siempre requiere elegir manualmente una cu
 (ya calculada, punto 1), pague automáticamente eligiendo alguna cuenta
 por defecto para las facturaciones con `paymentMethod: AUTOMATIC`.
 
-### 3. Generación automática de facturación — cron diario + botón manual
+### 3. Generación automática de facturación — cron diario + botón manual (**retirado 2026-10-06**, ver punto 0)
 
 `BillingSettings.cycleType` (`BUSINESS_DAY`, el default para cuentas nuevas, o `CALENDAR_DAY`) decide
 cómo se cuenta `billingCycleDay`: BUSINESS_DAY cuenta días hábiles chilenos (sin sábados, domingos ni

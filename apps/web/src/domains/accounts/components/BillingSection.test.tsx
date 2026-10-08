@@ -110,3 +110,34 @@ describe("BillingSection — one tab per currency (spec 028)", () => {
     expect(screen.queryByRole("tab")).toBeNull();
   });
 });
+
+describe("BillingSection — the open period is a row of its own", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("lists the open period first, beside a pending statement", async () => {
+    vi.mocked(accountsApi.creditStatements).mockResolvedValue([
+      statement({ id: "pending" }),
+      statement({
+        id: "open",
+        status: "OPEN",
+        periodStart: "2026-08-21T04:00:00.000Z",
+        closedAt: null,
+        amount: "107000",
+        remainingAmount: "107000",
+      }),
+    ]);
+    renderSection();
+    const badges = await screen.findAllByText(
+      new RegExp(
+        `^(${i18n.t("accounts.detail.billingStatusValue.OPEN")}|${i18n.t(
+          "accounts.detail.billingStatusValue.PENDING",
+        )})$`,
+      ),
+    );
+    expect(badges.map((b) => b.textContent)).toEqual([
+      i18n.t("accounts.detail.billingStatusValue.OPEN"),
+      i18n.t("accounts.detail.billingStatusValue.PENDING"),
+    ]);
+    expect(screen.getAllByText(money("107000", "CLP")).length).toBeGreaterThan(0);
+  });
+});

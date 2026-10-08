@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { cardKind, cardNetwork, accountStatus } from "../accounts/index";
+import { accountType } from "../common/account-type";
 import { moneyString } from "../common/money";
 import { rowId } from "../common/row-id";
 import { debtDirection } from "../debts/index";
@@ -21,7 +23,7 @@ import { recurrenceFrequency } from "../recurring/index";
 
 /** Bumped whenever sheets or columns change incompatibly; a file stamped with
  * another version is refused with "download the current template". */
-export const TEMPLATE_VERSION = 1;
+export const TEMPLATE_VERSION = 2;
 
 /** Most rows one template may carry, across all sheets. */
 export const TEMPLATE_IMPORT_MAX_ROWS = 5000;
@@ -30,6 +32,8 @@ export const TEMPLATE_IMPORT_MAX_ROWS = 5000;
  * localized sheet names. Order = the order sheets appear in the file, which is
  * also the tie-breaker when two money movements share a date. */
 export const templateSheetKey = z.enum([
+  "accounts",
+  "cards",
   "movements",
   "transfers",
   "debts",
@@ -39,6 +43,7 @@ export const templateSheetKey = z.enum([
   "recurring",
   "goals",
   "contributions",
+  "statements",
 ]);
 export type TemplateSheetKey = z.infer<typeof templateSheetKey>;
 export const TEMPLATE_SHEET_KEYS = templateSheetKey.options;
@@ -139,6 +144,11 @@ export const templatePlanPaymentSchema = z.object({
    * through the card's statement — an imported one is "already settled"). */
   accountId: rowId.optional(),
   amount: positiveMoney.optional(),
+  /** Credit card plans only: whether marking it paid gives its share of the pool
+   * back. Default yes (it was settled outside the app). No when the card payment
+   * that covered it is itself in the file (a transfer to the card), which already
+   * lowered the pool: freeing it again would count that money twice. */
+  freesCredit: z.boolean().optional(),
 });
 export type TemplatePlanPayment = z.infer<typeof templatePlanPaymentSchema>;
 
@@ -181,6 +191,91 @@ export const templateContributionSchema = z.object({
 });
 export type TemplateContribution = z.infer<typeof templateContributionSchema>;
 
+/**
+ * An account the file defines (version 2). `id` is a TEMPORARY key minted by the
+ * browser so the other sheets can point at it before it exists; the API never
+ * stores it — it creates the account with an id of its own and translates every
+ * reference. `openingBalance` is the balance BEFORE the first imported movement
+ * (credit card accounts: `creditUsedInitial`, the debt before them).
+ */
+export const templateAccountSchema = z.object({
+  row: excelRow,
+  id: rowId,
+  name: z.string().trim().min(1).max(120),
+  type: accountType,
+  status: accountStatus.default("ACTIVE"),
+  currency,
+  institution: text(120),
+  institutionId: rowId.optional(),
+  accountNumber: text(50),
+  openingBalance: moneyString.default("0"),
+  overdraftLimit: moneyString.optional(),
+  balanceCeiling: moneyString.optional(),
+  creditLimit: moneyString.optional(),
+  creditUsedInitial: moneyString.optional(),
+  minimumPaymentPercent: moneyString.optional(),
+});
+export type TemplateAccount = z.infer<typeof templateAccountSchema>;
+
+/** A card the file defines; `id` is temporary, like an account's. The first
+ * CREDIT card of an account is its primary one (its limit IS the account's
+ * `creditLimit`); another one shares that pool unless it declares its own limit. */
+export const templateCardSchema = z.object({
+  row: excelRow,
+  id: rowId,
+  accountId: rowId,
+  kind: cardKind,
+  last4: z.string().regex(/^\d{4}$/),
+  expiryMonth: z.number().int().min(1).max(12),
+  expiryYear: z.number().int().min(2000).max(2100),
+  name: text(80),
+  network: cardNetwork.optional(),
+  isVirtual: z.boolean().optional(),
+  isAdditional: z.boolean().optional(),
+  cardholderName: text(120),
+  isActive: z.boolean().optional(),
+  /** Its own limit in the account's currency (an additional CREDIT card that
+   * doesn't share the pool). Omitted = shares the account's pool. */
+  ownLimit: positiveMoney.optional(),
+  /** A limit in another currency (e.g. the USD one of a CLP card). */
+  extraLimitCurrency: currency.optional(),
+  extraLimit: positiveMoney.optional(),
+});
+export type TemplateCard = z.infer<typeof templateCardSchema>;
+
+/** A billing period of a credit card account, with the dates printed on the
+ * bank's statement — what "Generar facturación" records. Paying it is
+ * bookkeeping only: the money that paid it is a transfer in the Transfers sheet. */
+export const templateStatementSchema = z
+  .object({
+    row: excelRow,
+    accountId: rowId,
+    /** Omitted = the account's own currency. */
+    currency: currency.optional(),
+    periodStart: z.string().datetime(),
+    closedAt: z.string().datetime(),
+    dueDate: z.string().datetime(),
+    paidAt: z.string().datetime().optional(),
+    /** Omitted with `paidAt` = paid in full. Less than the total rolls the rest
+     * into the next period. */
+    paidAmount: positiveMoney.optional(),
+    /** The account the payment came out of: then the import records it like the
+     * "Pagar" button (an expense there, the card's pool down). Omitted = the money
+     * is already a transfer in the Transfers sheet and this only marks it paid. */
+    paidFromAccountId: rowId.optional(),
+  })
+  .refine((s) => !s.paidFromAccountId || (!!s.paidAt && !!s.paidAmount), {
+    message: "a payment from an account needs its date and amount",
+    path: ["paidFromAccountId"],
+  });
+export type TemplateStatement = z.infer<typeof templateStatementSchema>;
+
+/** `MERGE` adds the file's rows to what the app already holds. `REPLACE` deletes
+ * every account, card and record of the user first and rebuilds them from the
+ * file — the file is then the whole history. */
+export const templateImportMode = z.enum(["MERGE", "REPLACE"]);
+export type TemplateImportMode = z.infer<typeof templateImportMode>;
+
 /** Per account: does its CURRENT balance already include what's being imported
  * (the usual case when migrating — the account was created with today's real
  * balance) or should the import add to it? `INCLUDED` moves the opening balance
@@ -194,8 +289,12 @@ const sheet = <T extends z.ZodTypeAny>(schema: T) => z.array(schema).default([])
 
 export const templateImportRequestSchema = z
   .object({
-    /** An affected account missing here is `INCLUDED`. */
+    mode: templateImportMode.default("MERGE"),
+    /** An affected account missing here is `INCLUDED`. Accounts the file itself
+     * defines are always `ADD`: their opening balance is in the Accounts sheet. */
     balanceModes: z.array(balanceModeSchema).default([]),
+    accounts: sheet(templateAccountSchema),
+    cards: sheet(templateCardSchema),
     movements: sheet(templateMovementSchema),
     transfers: sheet(templateTransferSchema),
     debts: sheet(templateDebtSchema),
@@ -205,6 +304,7 @@ export const templateImportRequestSchema = z
     recurring: sheet(templateRecurringSchema),
     goals: sheet(templateGoalSchema),
     contributions: sheet(templateContributionSchema),
+    statements: sheet(templateStatementSchema),
   })
   .refine(
     (req) => {
@@ -248,8 +348,23 @@ export const templateAccountEffectSchema = z.object({
 });
 export type TemplateAccountEffect = z.infer<typeof templateAccountEffectSchema>;
 
+/** What a `REPLACE` import deletes before rebuilding — counted, so the user sees
+ * it before confirming. Null on a `MERGE`. */
+export const templateReplacementSchema = z.object({
+  accounts: z.number().int().nonnegative(),
+  cards: z.number().int().nonnegative(),
+  movements: z.number().int().nonnegative(),
+  debts: z.number().int().nonnegative(),
+  plans: z.number().int().nonnegative(),
+  recurring: z.number().int().nonnegative(),
+  goals: z.number().int().nonnegative(),
+  statements: z.number().int().nonnegative(),
+});
+export type TemplateReplacement = z.infer<typeof templateReplacementSchema>;
+
 export const templatePreviewResponseSchema = z.object({
   valid: z.boolean(),
+  replaces: templateReplacementSchema.nullable().default(null),
   counts: templateSheetCountsSchema,
   accounts: z.array(templateAccountEffectSchema),
   errors: z.array(templateIssueSchema),

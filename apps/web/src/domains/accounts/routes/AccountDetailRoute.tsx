@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronRight, Loader2, Pencil, Plus, Power, Trash2 } from "lucide-react";
+import { ChevronRight, Loader2, Pencil, Plus, Power, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -32,7 +32,6 @@ import { AccountDetailSkeleton } from "../components/AccountDetailSkeleton";
 import { AccountEditPanel } from "../components/AccountEditPanel";
 import { Tabs } from "../../../shared/ui/tabs";
 import { BillingSection } from "../components/BillingSection";
-import { BillingSettingsModal } from "../components/BillingSettingsModal";
 import { AccountVisualCard } from "../components/AccountVisualCard";
 import { CardCreateModal } from "../components/CardCreateModal";
 import { CardDetailPanel } from "../components/CardDetailPanel";
@@ -50,7 +49,6 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Shared by the movements table's own filter and (on desktop) the cards aside:
   // expanding a card there filters this table by it, which is the whole point of
@@ -167,10 +165,6 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
                   >
                     {t(`accounts.status.${acc.status}`)}
                   </Badge>
-                  <BillingNotConfiguredBadge
-                    account={acc}
-                    onConfigure={() => setBillingModalOpen(true)}
-                  />
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   {t(`accounts.type.${acc.type}`)} · {acc.currency}
@@ -307,12 +301,6 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
         onDeleted={() => navigate("/accounts")}
       />
 
-      <BillingSettingsModal
-        account={acc}
-        open={billingModalOpen}
-        onOpenChange={setBillingModalOpen}
-      />
-
       <DeleteAccountConfirm
         account={confirmDelete ? acc : null}
         onOpenChange={setConfirmDelete}
@@ -328,33 +316,6 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
         }}
       />
     </div>
-  );
-}
-
-/** Small reminder icon next to the account name (not just at creation time) while a
- * credit-pool account still has no billing day configured — click opens a dedicated
- * settings modal (not the full account-edit form). */
-function BillingNotConfiguredBadge({
-  account,
-  onConfigure,
-}: {
-  account: accounts.BankAccount;
-  onConfigure: () => void;
-}) {
-  const { t } = useTranslation();
-  const hasCreditPool =
-    account.type === "CREDIT_CARD" || account.cards.some((c) => c.kind === "CREDIT");
-  if (!hasCreditPool || account.billingCycleDay !== null) return null;
-  return (
-    <button
-      type="button"
-      onClick={onConfigure}
-      title={t("accounts.form.billingNotConfiguredWarning")}
-      aria-label={t("accounts.form.billingNotConfiguredWarning")}
-      className="flex h-6 w-6 items-center justify-center rounded-full bg-warning/15 text-warning hover:bg-warning/25"
-    >
-      <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
-    </button>
   );
 }
 

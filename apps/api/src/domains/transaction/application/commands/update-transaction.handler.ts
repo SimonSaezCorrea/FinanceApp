@@ -256,6 +256,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
             oldAccountId,
             accountCreatedAt,
             oldAccount?.currency ?? effective.currency,
+            new Date(input.occurredAt ?? current.snapshot().occurredAt),
           )
         ).id;
       } else if (sameAccount && oldContribution !== "0" && newContribution === "0") {
@@ -267,6 +268,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
               effective.bankAccountId,
               accountCreatedAt,
               newAccount?.currency ?? effective.currency,
+              new Date(input.occurredAt ?? current.snapshot().occurredAt),
             )
           ).id;
         } else if (oldContribution !== "0") {

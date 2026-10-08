@@ -162,9 +162,18 @@ describe("PayCreditStatementHandler settles instalments (integration)", () => {
       accountRepo,
       statementRepo,
       planRepo,
+      buildTransactionWriterRepo(prisma),
       prisma,
     );
-    await generateHandler.execute(new GenerateStatementsCommand(userId, creditAccountId));
+    await generateHandler.execute(
+      new GenerateStatementsCommand(
+        userId,
+        creditAccountId,
+        new Date("2026-01-01T00:00:00.000Z"),
+        new Date("2026-01-10T23:59:59.999Z"),
+        new Date("2026-01-20T23:59:59.999Z"),
+      ),
+    );
   });
 
   afterAll(async () => {

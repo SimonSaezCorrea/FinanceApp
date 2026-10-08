@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Providers } from "../../../app/providers";
 import i18n from "../../../i18n";
+import { renderRouted } from "../testing/renderRouted";
 import { PersonalInfoSection } from "./PersonalInfoSection";
 
 function mockUser(overrides: Record<string, unknown> = {}) {
@@ -38,10 +39,9 @@ vi.mock("../api/profileApi", () => ({
   profileApi: { updateProfile: (...args: unknown[]) => updateProfile(...args) },
 }));
 
+/** Rows are visible right away (no accordion since specs/029): wait for the user to load. */
 async function openSection() {
-  fireEvent.click(
-    await screen.findByRole("button", { name: i18n.t("profile.personalInfo.title") }),
-  );
+  await screen.findByText(i18n.t("profile.edit.name"));
 }
 
 /** Opens ONE row by clicking it — each row is its own editor now. */
@@ -55,7 +55,7 @@ describe("PersonalInfoSection", () => {
 
   it("shows the not-specified fallback when nothing is set", async () => {
     me.mockResolvedValue(mockUser());
-    render(
+    renderRouted(
       <Providers>
         <PersonalInfoSection />
       </Providers>,
@@ -78,7 +78,7 @@ describe("PersonalInfoSection", () => {
         identifierValue: "12.345.678-5",
       }),
     );
-    render(
+    renderRouted(
       <Providers>
         <PersonalInfoSection />
       </Providers>,
@@ -93,7 +93,7 @@ describe("PersonalInfoSection", () => {
   it("opens one row, saves only that field, and confirms on the row", async () => {
     me.mockResolvedValue(mockUser({ name: "Ana" }));
     updateProfile.mockResolvedValue(mockUser({ name: "Ana Bravo" }));
-    render(
+    renderRouted(
       <Providers>
         <PersonalInfoSection />
       </Providers>,
@@ -114,7 +114,7 @@ describe("PersonalInfoSection", () => {
   it("Enter saves the open row without reaching for the button", async () => {
     me.mockResolvedValue(mockUser({ name: "Ana" }));
     updateProfile.mockResolvedValue(mockUser({ name: "Ana Bravo" }));
-    render(
+    renderRouted(
       <Providers>
         <PersonalInfoSection />
       </Providers>,
@@ -130,7 +130,7 @@ describe("PersonalInfoSection", () => {
 
   it("cancelling the open row persists nothing and restores the value", async () => {
     me.mockResolvedValue(mockUser({ name: "Ana" }));
-    render(
+    renderRouted(
       <Providers>
         <PersonalInfoSection />
       </Providers>,
@@ -151,7 +151,7 @@ describe("PersonalInfoSection", () => {
       mockUser({ addressStreet: "Av. Siempre Viva 742", addressCity: "Santiago" }),
     );
     updateProfile.mockResolvedValue(mockUser());
-    render(
+    renderRouted(
       <Providers>
         <PersonalInfoSection />
       </Providers>,
@@ -175,7 +175,7 @@ describe("PersonalInfoSection", () => {
 
   it("a bad RUT check digit blocks the save and names the problem", async () => {
     me.mockResolvedValue(mockUser({ identifierType: "RUT", identifierValue: "12.345.678-5" }));
-    render(
+    renderRouted(
       <Providers>
         <PersonalInfoSection />
       </Providers>,
@@ -191,15 +191,16 @@ describe("PersonalInfoSection", () => {
     expect((await screen.findByRole("alert")).textContent).toBe(i18n.t("profile.edit.invalidRut"));
   });
 
-  it("opens straight into edit mode when the checklist asks for it", async () => {
+  it("opens straight into edit mode when the summary asks for it (?edit=phone)", async () => {
     me.mockResolvedValue(mockUser({ phone: null }));
-    render(
+    renderRouted(
       <Providers>
-        <PersonalInfoSection editRequest={{ field: "phone" }} />
+        <PersonalInfoSection />
       </Providers>,
+      "/profile/personal?edit=phone",
     );
 
-    // No click on the header: the request expanded the section AND opened that row.
+    // No click: the address asked for that row.
     expect(await screen.findByLabelText(i18n.t("profile.edit.phone"))).toBeDefined();
   });
 });

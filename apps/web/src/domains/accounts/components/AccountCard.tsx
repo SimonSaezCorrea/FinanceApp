@@ -119,12 +119,6 @@ export function AccountCard({
         </p>
       ) : null}
 
-      {isCredit && account.billingCycleDay !== null ? (
-        <p className="mt-2 text-[11px] text-dim">
-          {t("accounts.card.billedOn", { day: account.billingCycleDay })}
-        </p>
-      ) : null}
-
       {usage ? (
         <div className="mt-auto border-t pt-2.5">
           <div className="mb-1.5 flex items-center justify-between gap-2 text-[10.5px] text-muted-foreground">

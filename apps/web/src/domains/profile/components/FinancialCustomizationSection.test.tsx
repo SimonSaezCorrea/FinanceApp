@@ -51,9 +51,8 @@ describe("FinancialCustomizationSection", () => {
         <FinancialCustomizationSection />
       </Providers>,
     );
-    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.financial.title") }));
 
-    expect(screen.getByText(i18n.t("profile.financial.extraCurrencies"))).toBeDefined();
+    expect(await screen.findByText(i18n.t("profile.financial.extraCurrencies"))).toBeDefined();
     expect(screen.getByText(i18n.t("profile.financial.hideBalances"))).toBeDefined();
     expect(screen.queryByText(i18n.t("profile.financial.cycleStart"))).toBeNull();
     expect(screen.queryByText(i18n.t("profile.financial.budgetTarget"))).toBeNull();
@@ -68,8 +67,9 @@ describe("FinancialCustomizationSection", () => {
         <FinancialCustomizationSection />
       </Providers>,
     );
-    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.financial.title") }));
-    const el = screen.getByRole("switch", { name: i18n.t("profile.financial.hideBalances") });
+    const el = await screen.findByRole("switch", {
+      name: i18n.t("profile.financial.hideBalances"),
+    });
     fireEvent.click(el);
     await waitFor(() => expect(updatePreferences).toHaveBeenCalledWith({ hideBalances: true }));
   });
@@ -82,7 +82,6 @@ describe("FinancialCustomizationSection", () => {
         <FinancialCustomizationSection />
       </Providers>,
     );
-    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.financial.title") }));
     fireEvent.click(
       await screen.findByRole("button", { name: i18n.t("profile.financial.extraCurrencies") }),
     );
@@ -99,7 +98,6 @@ describe("FinancialCustomizationSection", () => {
         <FinancialCustomizationSection />
       </Providers>,
     );
-    fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.financial.title") }));
     const dropdown = await screen.findByRole("button", {
       name: i18n.t("profile.financial.extraCurrencies"),
     });

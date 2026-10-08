@@ -27,9 +27,12 @@ export function fakeBankAccountRepo(
   overrides: Partial<BankAccountRepositoryPort> = {},
 ): BankAccountRepositoryPort {
   return {
+    createWithCardsWithTx: vi.fn(async () => ({ id: "acc", cardIds: [] })),
+    setStatusWithTx: vi.fn(async () => {}),
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     findById: vi.fn(),
     listByUser: vi.fn(),
-    listDueForBilling: vi.fn(),
     institutionName: vi.fn(),
     institutionCountry: vi.fn(async () => null),
     countByType: vi.fn(async () => 2),
@@ -65,6 +68,8 @@ export function fakeTransactionWriterRepo(
   overrides: Partial<TransactionWriterRepositoryPort> = {},
 ): TransactionWriterRepositoryPort {
   return {
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     createWithTx: vi.fn(),
     relinkToStatementWithTx: vi.fn(),
     updateAmountWithTx: vi.fn(),
@@ -82,6 +87,8 @@ export function fakeSavingsGoalRepo(
   overrides: Partial<SavingsGoalRepositoryPort> = {},
 ): SavingsGoalRepositoryPort {
   return {
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     list: vi.fn(async () => []),
     findOne: vi.fn(),
     create: vi.fn(),
@@ -98,6 +105,8 @@ export function fakeSavingsEntryRepo(
   overrides: Partial<SavingsEntryRepositoryPort> = {},
 ): SavingsEntryRepositoryPort {
   return {
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     list: vi.fn(async () => []),
     findOne: vi.fn(),
     create: vi.fn(),
@@ -120,6 +129,8 @@ export function fakeCreditStatementRepo(
   overrides: Partial<CreditStatementRepositoryPort> = {},
 ): CreditStatementRepositoryPort {
   return {
+    listDueScheduled: vi.fn(async () => []),
+    countForUser: vi.fn(async () => 0),
     findById: vi.fn(),
     findByIdForUpdateWithTx: vi.fn(),
     findOpenForAccount: vi.fn(),
@@ -143,6 +154,8 @@ export function fakeCardAccountRepo(
   overrides: Partial<CardAccountRepositoryPort> = {},
 ): CardAccountRepositoryPort {
   return {
+    createWithTx: vi.fn(async () => "card"),
+    countForUser: vi.fn(async () => 0),
     listByAccounts: vi.fn(async () => []),
     findOnAccount: vi.fn(async () => null),
     existsForUser: vi.fn(async () => true),
@@ -171,6 +184,7 @@ export function fakeCardLimitRepo(
   overrides: Partial<CardLimitRepositoryPort> = {},
 ): CardLimitRepositoryPort {
   return {
+    createForCardWithTx: vi.fn(async () => {}),
     listByCards: vi.fn(async () => []),
     findForCardCurrency: vi.fn(async () => null),
     createForCard: vi.fn(),

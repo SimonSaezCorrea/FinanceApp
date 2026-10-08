@@ -1,14 +1,19 @@
+import { CalendarDays } from "lucide-react";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 
 import { accounts as accountsContract, type accounts } from "@finance/contracts";
 import { formatMoney, subtractMoney } from "@finance/money";
 
-import { useTransactions } from "../../transactions/hooks/useTransactions";
+import {
+  useInfiniteTransactions,
+  useTransactionsSummary,
+} from "../../transactions/hooks/useTransactions";
 import { TransactionTable } from "../../transactions/components/TransactionTable";
 import { useInstallments } from "../../installments/hooks/useInstallments";
 import { SidePanel } from "../../../shared/ui/overlay";
 import { Badge } from "../../../shared/ui/badge";
+import { Button } from "../../../shared/ui/button";
 import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { LoadingState } from "../../../shared/ui/states";
 import { STATEMENT_STATUS_VARIANT } from "../lib/statementStatus";
@@ -21,6 +26,8 @@ interface StatementDetailPanelProps {
    * clickable statement, so a shortfall figure can jump to where it landed. */
   readonly statements?: readonly accounts.CreditStatement[];
   readonly onSelectStatement?: (statement: accounts.CreditStatement) => void;
+  /** "Editar fechas": moves a generated period's dates, or schedules the open one's. */
+  readonly onEditDates?: (statement: accounts.CreditStatement) => void;
 }
 
 /**
@@ -38,12 +45,20 @@ export function StatementDetailPanel({
   onOpenChange,
   statements,
   onSelectStatement,
+  onEditDates,
 }: StatementDetailPanelProps) {
   const { t, i18n } = useTranslation();
-  const { data: movements, isLoading } = useTransactions(
-    { creditStatementId: statement?.id },
-    { enabled: statement !== null },
+  // A period can hold hundreds of movements: they load a page at a time ("Mostrar
+  // más"), and the total comes from the API's own count, not from what's loaded.
+  const filters = { creditStatementId: statement?.id };
+  const enabled = statement !== null;
+  const movementsQuery = useInfiniteTransactions(filters, { enabled });
+  const { data: summary } = useTransactionsSummary(filters, { enabled });
+  const movements = useMemo(
+    () => movementsQuery.data?.pages.flatMap((page) => page.items) ?? [],
+    [movementsQuery.data],
   );
+  const { isLoading } = movementsQuery;
   // A CREDIT-card plan's instalments never create a `Transaction` row (FR-011):
   // what a period actually owes is real purchases PLUS whatever the schedule
   // billed into it, so the movements list alone never adds up to `amount`. The
@@ -102,8 +117,37 @@ export function StatementDetailPanel({
             <span className="text-sm text-muted-foreground">
               {t("accounts.detail.billingPaidOn", { date: date(statement.paidAt) })}
             </span>
+          ) : !isSettled && statement.dueDate ? (
+            <span className="text-sm text-muted-foreground">
+              {t("accounts.detail.billingDueDate", { date: date(statement.dueDate) })}
+            </span>
           ) : null}
         </div>
+
+        {statement.closedAt && onEditDates ? (
+          <Button
+            variant="outline"
+            size="sm"
+            className="self-start"
+            onClick={() => onEditDates(statement)}
+          >
+            <CalendarDays className="h-4 w-4" aria-hidden />
+            {t("accounts.generate.editTitle")}
+          </Button>
+        ) : !statement.closedAt && onEditDates ? (
+          <div className="flex flex-col gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="self-start"
+              onClick={() => onEditDates(statement)}
+            >
+              <CalendarDays className="h-4 w-4" aria-hidden />
+              {t("accounts.generate.editTitle")}
+            </Button>
+            <p className="text-xs text-muted-foreground">{t("accounts.generate.openHint")}</p>
+          </div>
+        ) : null}
 
         <div className="grid grid-cols-3 gap-3">
           <Figure label={t("accounts.detail.billingAmount")} value={fmt(statement.amount)} />
@@ -154,11 +198,35 @@ export function StatementDetailPanel({
           {isLoading ? (
             <LoadingState title={t("app.loading")} />
           ) : (
-            <TransactionTable
-              transactions={movements ?? []}
-              accounts={[account]}
-              showAccountColumn={false}
-            />
+            <>
+              <TransactionTable
+                transactions={movements}
+                accounts={[account]}
+                showAccountColumn={false}
+              />
+              {movementsQuery.hasNextPage ? (
+                <div className="flex flex-col items-center gap-1.5 pt-1">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={movementsQuery.isFetchingNextPage}
+                    onClick={() => void movementsQuery.fetchNextPage()}
+                  >
+                    {movementsQuery.isFetchingNextPage
+                      ? t("app.loading")
+                      : t("accounts.detail.statementShowMore")}
+                  </Button>
+                  {summary ? (
+                    <span className="text-xs text-muted-foreground">
+                      {t("accounts.detail.statementShown", {
+                        shown: movements.length,
+                        total: summary.total,
+                      })}
+                    </span>
+                  ) : null}
+                </div>
+              ) : null}
+            </>
           )}
         </section>
 

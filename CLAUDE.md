@@ -40,7 +40,7 @@ Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRE
 
 **pnpm + Turborepo monorepo** with two separately-deployable apps + shared packages. TypeScript, Node 20. Migrated from the legacy single Next.js app via specs/001.
 
-- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 29 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record, mfa-recovery-code, passkey, session, ip-geolocation-cache, consent-record, account-deletion-log, category — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand`). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **JWT access+refresh, backed by a real `Session` row per login** (specs/023 — the NextAuth `Account`/`Session`/`VerificationToken` tables removed at the monorepo migration were a different, unrelated thing; this `Session` is new). A session is reached one of two ways: email+password (optionally gated by a TOTP second factor, specs/021) or a registered WebAuthn passkey (specs/022, bypasses both password and MFA entirely, its own strong authentication) — either way, that login's `Session.id` travels as a `sid` claim inside both the access and refresh token it issues, and `JwtAuthGuard` checks that row exists on every request (not just `User.status`), so closing a session revokes its access token immediately rather than only on its next refresh. See the `session` domain-table bullet below for the full mechanism.
+- **`apps/api`** — **NestJS 11** (Express 5), the **sole owner of the database** (Prisma 7 / PostgreSQL, connected via the `@prisma/adapter-pg` driver adapter — Prisma 7 no longer accepts a `datasource.url` in `schema.prisma`; the connection string lives in `apps/api/prisma.config.ts` (CLI) and is passed to `PrismaService`'s constructor via `ConfigService` (app runtime); `prisma/seed.ts` builds its own adapter the same way). **Table-first: one DB table = one folder under `src/domains/<table>/`** (kebab-case, matching the table's `@@map`), each split into the four DDD layers `domain/`, `application/`, `infrastructure/`, `presentation/` (specs/009 + the one-table-one-domain amendment below; the old flat `*.service.ts`/`*.repository.ts` skeleton is gone, and tests live in `apps/api/test/{unit,integration,e2e}/` mirroring `src/`). The 29 table-domains: bank-account, billing-settings, credit-statement, card-account, card-limit, transaction, wallet-item-dashboard, installment-plan, installment-payment, debt, savings-goal, savings-entry, recurring-expense, user, country, currency, country-currency, country-identifier-type, financial-institution, institution-account-type, transaction-attachment, idempotency-record, mfa-recovery-code, passkey, session, ip-geolocation-cache, consent-record, account-deletion-log, category — plus `import` and `health`, the only folders that own no table. (The `investment` and `etf-price-cache` table-domains existed 2026-08-15 through 2026-09-07 and were removed — see the "Investment tracking removed" amendment below; `AccountType.INVESTMENT` itself is untouched, still a valid `bank-account` type, just not offered when creating/editing an account for now.) Cross-cutting in `src/infra/` (`prisma` single client, `auth` `JwtAuthGuard` + `@CurrentUser`, `http` error filter + `ZodValidationPipe`, `config`, `cron` scheduled automations via `@nestjs/schedule` — each `*.cron.ts` is a thin trigger dispatching a `scope: "system"` command into its domain, e.g. `billing-generation.cron.ts` → `credit-statement`'s `GenerateAllDueStatementsCommand` [that cron was removed; `statement-generation.cron.ts` now generates only statements whose close was scheduled]). Global prefix `/api/v1`. **DB table names are kebab-case via `@@map`** (e.g. `bank-account`, `card-account`, `wallet-item-dashboard`); Prisma model names stay PascalCase. Auth is **JWT access+refresh, backed by a real `Session` row per login** (specs/023 — the NextAuth `Account`/`Session`/`VerificationToken` tables removed at the monorepo migration were a different, unrelated thing; this `Session` is new). A session is reached one of two ways: email+password (optionally gated by a TOTP second factor, specs/021) or a registered WebAuthn passkey (specs/022, bypasses both password and MFA entirely, its own strong authentication) — either way, that login's `Session.id` travels as a `sid` claim inside both the access and refresh token it issues, and `JwtAuthGuard` checks that row exists on every request (not just `User.status`), so closing a session revokes its access token immediately rather than only on its next refresh. See the `session` domain-table bullet below for the full mechanism.
   - **bank-account** (specs/003, 007; the aggregate root of the accounts cluster — `card-account`/`card-limit`/`billing-settings`/`credit-statement` are its own table-domains, written only through it): `BankAccount` is **where money or a credit line lives**. `type` (`AccountType`: **CHECKING/SIGHT/SAVINGS/INVESTMENT/CREDIT_LINE/CASH**), `status` (ACTIVE/INACTIVE), `accountNumber` (**bank account number — free text, stored/shown in full; NOT a card PAN**; **required for CHECKING/SIGHT/SAVINGS**, optional for CREDIT_LINE/INVESTMENT/CASH — enforced via a zod refine on create and by the aggregate on update, `ACCOUNT_NUMBER_REQUIRED`), `initialBalance` (seed) + `currentBalance`, which every movement keeps in step (`initialBalance` + Σincome − Σexpense): creating/editing/deleting a transaction applies its signed balance delta inside the movement's own `$transaction` (`transaction/domain/balance-delta.ts` → `BankAccountRepositoryPort.incrementBalanceWithTx`), exactly as it already does for `creditUsed`. **The manual `POST /accounts/:id/reconcile` is gone** (command, handler, aggregate method and UI button removed) — a balance that maintains itself has nothing to reconcile. **The account-level credit pool** (`creditLimit` + `creditUsedInitial`, seed) is the **shared/master cap across every CREDIT-kind card on the account** — this applies not just to a standalone credit card (a `CREDIT_LINE` account) but to **any cardable account that's grown a CREDIT-kind card** (e.g. a checking account's bank add-on credit card); the contract exposes a **derived `creditUsed` = creditUsedInitial + Σexpense − Σincome** (income = card payments; computed on-read via `sumsByAccount`), `"0"` when the account has no credit pool. List filter `?status=active|inactive`; `POST /accounts/:id/status`. List/get also return a 30d `balanceSeries` + `balanceChangePct` (for sparklines). Deleting unlinks transactions (`onDelete: SetNull`).
   - **Investment tracking removed (2026-09-07):** the standalone `investment` table-domain (ETF/
     remunerated-account holdings: `kind`, `symbol`/`shares` or `annualRate`/`principal`, an optional
@@ -178,6 +178,94 @@ paymentDueCycleType)` gained a CALENDAR_DAY branch (the first occurrence of `pay
     (new **`src/infra/cron/`** module — `cron.module.ts` + `billing-generation.cron.ts`, using the
     new **`@nestjs/schedule`** dependency, `EVERY_DAY_AT_3AM`, iterates every user's due accounts)
     and the **manual "Generar facturación" button** (`POST /accounts/:id/generate-statements`).
+    Amendment (statements generated with the bank's dates; billing configuration removed,
+    2026-10-06): **supersedes every automatic-generation rule above.** The billing-cycle
+    configuration (billing day + its cycle type, payment due day + its cycle type, payment method)
+    is **gone from the UI** — `AccountForm`'s "Facturación" tab, `BillingSettingsModal`, the
+    "facturación sin configurar" badge/notice and `AccountCard`'s "Factura el día N" line were
+    deleted; "% pago mínimo" stays, moved to `AccountForm`'s "Más detalles". Deferred until the
+    real issuer cycles are researched (`docs/PENDING.md`, Cuentas — facturación §0); the
+    `BillingSettings` columns and `billing-cycle.ts` remain only as a fallback for
+    `nextClosingDate`/`dueDate` of accounts configured before. **The daily billing cron is removed**
+    (`billing-generation.cron.ts`, `GenerateAllDueStatementsCommand`/Handler,
+    `listDueForBilling`, `accountIdsWithCycleDay`): nothing closes on its own. **`POST
+    /accounts/:id/generate-statements` now requires a body** (`accounts.generateStatementSchema`:
+    `periodStart`, `closedAt`, `dueDate` — instants; the web sends the START of the first day and
+    the END of the close/due days in the user's zone, so a movement recorded at local midnight on
+    the closing day falls inside the window `[periodStart, closedAt)`). `GenerateStatementsHandler`:
+    refuses an ineligible account (`STATEMENT_GENERATION_NOT_ALLOWED`), dates out of order
+    (`STATEMENT_DATES_INVALID`) and a start
+    before the account's last close (`STATEMENT_PERIOD_OVERLAPS` — also what makes a replay safe);
+    creates the account-currency open period if there's none; then in ONE `$transaction`, for every
+    open period (one per currency): `CreditStatement.generate(dates)` (moves `periodStart`, sets
+    `closedAt` and the new persisted **`CreditStatement.dueDate`**), re-links movements dated in
+    `[start, close)` to it, opens the next period at `closedAt + 1ms`
+    (`findOrCreateCarryOverTargetWithTx`) and moves every movement dated after the close there, and
+    stamps the instalments due by the close (account currency). `statement-dto.mapper.ts` returns
+    the stored `dueDate` first, the legacy derived one otherwise. Web: "Generar facturación" opens
+    **`GenerateStatementPanel`** (a `FormSurface` panel: Fecha de inicio — pre-filled by
+    `accounts.suggestedPeriodStart`, the day after the latest close —, Fecha de cierre — today —,
+    Fecha de pago — required), with local checks mirroring the server's and the open periods'
+    accumulated amounts. i18n `accounts.generate.*`.
+    Amendment (editing a statement's dates, 2026-10-07): **`PATCH
+    /accounts/:id/credit-statements/:statementId/dates`** (`accounts.updateStatementDatesSchema`,
+    same shape/rules as generating; answers the whole list) — `UpdateStatementDatesCommand`/Handler.
+    Applies to the statement AND its siblings in other currencies (same `closedAt`, generated
+    together). The due date can always change; start/close only while none of them is settled
+    and the close only on the latest closed statement (`STATEMENT_DATES_LOCKED`, 409); an OPEN
+    period answers `STATEMENT_NOT_CLOSED`; plus the generation checks (`STATEMENT_DATES_INVALID`,
+    `STATEMENT_PERIOD_OVERLAPS` against the previous close). When the
+    window moves, one `$transaction` re-links `[start, close)` to it, re-anchors the open period
+    at `close + 1ms` (`CreditStatement.reanchor`) and moves later movements there, and moves the
+    instalments with the close: new
+    `InstallmentPlanRepositoryPort`/`InstallmentPaymentRepositoryPort.unstampDueAfterWithTx`
+    un-bills unpaid ones now due after it, `stampBillableWithTx` bills those now due before it.
+    Web: `StatementDetailPanel` shows "Vence el …" and an "Editar fechas" button for a generated
+    period, which opens `GenerateStatementPanel` in edit mode (`statement` prop: fills the three
+    dates, disables start/close as the server would, sends an untouched day back as its original
+    instant so legacy closes never read as a move). i18n `accounts.generate.edit*`/`locked*`.
+    Amendment (dates ahead allowed, 2026-10-07): start, close and due date may all be in the
+    future — a statement can be generated before the bank's cut-off (`STATEMENT_CLOSE_IN_FUTURE`
+    and its web check are gone). Such a period is closed (PENDING) but still RECEIVES what is
+    dated inside it until the close comes: `findOrCreateOpenForAccount(…, occurredAt)` first looks
+    for an unsettled, untransferred period with `periodStart <= occurredAt <= closedAt` and
+    `closedAt > now`, and create/update movement and create/update transfer pass the movement's
+    date (the statement importers still link to the open period). Instalments due by that close
+    are stamped "Facturada" at generation, as before.
+    Amendment (editing the open period schedules, never closes, 2026-10-07): **editing dates
+    never generates a statement.** `PATCH …/credit-statements/:id/dates` on the OPEN period
+    (previously `STATEMENT_NOT_CLOSED`) only SCHEDULES: new nullable
+    **`CreditStatement.plannedCloseAt`** + the period's `dueDate` + `periodStart` are saved on it
+    and its siblings in other currencies (`CreditStatement.scheduleClose`); it stays open, no
+    period is created, no movement moves. The close arrives → **`StatementGenerationCron`**
+    (`infra/cron/`, hourly, thin trigger) dispatches the system command
+    `GenerateScheduledStatementsCommand` → `GenerateScheduledStatementsHandler`, which reads
+    `CreditStatementRepositoryPort.listDueScheduled(now)` (open, `plannedCloseAt <= now`, has a due
+    date; one entry per account) and runs the SAME user-scoped `GenerateStatementsCommand` a person
+    triggers, per account; one failing account is logged and skipped, never stops the rest.
+    `generate()` clears `plannedCloseAt`. **"Generar facturación" still forces it at any time** and
+    now starts from what is scheduled (close/due prefilled). The DTO's `nextClosingDate` returns
+    `plannedCloseAt` first, then the legacy billing-day projection. Editing a CLOSED statement's
+    dates is unchanged (real move; it re-anchors the existing open period, never creates one).
+    Web: `GenerateStatementPanel` takes the open period too (`scheduling`: no locks, own
+    description/toast `accounts.generate.schedule*`), the row's "Editar fechas" calendar icon and
+    header's "Generar facturación" button forces the close; the open period's row icon and detail
+    panel offer only "Editar fechas" (the detail panel's "Generar facturación" was removed).
+    `StatementDetailPanel` lists a period's movements a page at a time: `useInfiniteTransactions`
+    (now takes `{ enabled }`) filtered by `creditStatementId`, a "Mostrar más" button, and
+    "Mostrando N de M" from `useTransactionsSummary`'s `total` (i18n
+    `accounts.detail.statementShowMore`/`statementShown`).
+    Also a calendar icon "Editar fechas" in every generated period's row (both layouts) of
+    `BillingSection`; an OPEN period's detail offers "Generar facturación" instead (it has no
+    dates of its own until generated, `accounts.generate.openHint`).
+    **The billing table**: one row per generated statement, newest first, with the OPEN period on
+    top as its own "Abierta" row ("29 sept 2026 – hoy", Pago "Por facturar", its Prepagar in the
+    row). Columns Período · Pago (due date, red "Vencida" once past, or the paid date) · Estado ·
+    Monto · actions in fixed slots (sync, editar fechas, pagar/prepagar; `ActionSlot` keeps the
+    columns aligned). Seed:
+    every credit card account carries a chain of generated statements (closes on its day at the
+    end of the day in Chile, next starts the following local midnight, `dueDate` = close + 12
+    days, older ones paid) and its `BillingSettings` row holds only defaults (no cycle).
     Amendment (`CreditStatement.nextClosingDate` — projected close for an OPEN period,
     2026-09-12): the contract gains a derived, non-persisted **`nextClosingDate`** — the account's
     `billingCycleDay`/`billingCycleType` boundary counted from `periodStart`
@@ -818,7 +906,25 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     **Net worth:** `dashboard/lib/metrics.ts`'s `netWorth` counted a debt's full `principal` even when
     partly paid — it now uses the PENDING amount (`debts/lib/debtMetrics`'s `leftAmount`), and the
     Cuentas `AccountsSummary` folds the same pending debts in (new "Deudas" figure,
-    `accounts.overview.debts`), relabelled "Patrimonio neto" so both screens show one number.
+    `accounts.overview.debts`), relabelled "Patrimonio neto" so both screens show one number. **Amendment (2026-10-07):** they still
+    disagreed — Cuentas converted other currencies (static `shared/lib/fx` rates) into its hero and
+    folded USD debts in, while the Panel didn't, and the Panel counted a credit card account's own
+    `currentBalance`. Now ONE function, `accounts/lib/netWorth.ts`'s **`netWorthByCurrency`**
+    (assets via `accountAssets`, − `creditUsed`, ± pending debts; one net per currency, never
+    converted, primary first), feeds the Panel's hero + chips (`netWorth`/`secondaryTotals`) and
+    Cuentas' hero, chips and its Activos / Deuda tarjetas / Deudas breakdown (primary currency
+    only, so they add up to the hero). `accounts.overview.netWorthHint` says "otras monedas sin
+    convertir". **The Panel's chart is that same net worth**, not a sum of balances: it used
+    to add up each primary account's `balanceSeries` (no card debt, no debts, a credit card
+    account's own balance counted, future-dated movements reversed out of today), so its last
+    point never matched the hero. `dashboard/lib/metrics.ts`'s **`netWorthSeries(netNow, txs,
+    now)`** walks back `SERIES_DAYS` (30) from the hero: a day's point is the hero minus every
+    primary-currency movement after that day ended and up to now (an income raised net worth, an
+    expense — a card purchase included — lowered it), skipping internal flows
+    (`transactions.isInternalFlow`) and debt payments (`debtId`: cash and debt move together);
+    today's point IS the hero. `DashboardPage` fetches those movements (`seriesStart(now)` → now)
+    and passes them to `netWorth(list, debts, {txs, now})`; the API's `balanceSeries` is no longer
+    read by the Panel.
   - **transaction-attachment** (specs/010, domain 22): `TransactionAttachment` (table
     `transaction-attachment`) = a receipt/voucher file on a movement — `storageKey` (`@unique`,
     `u/<userId>/t/<txId>/<attachmentId>-<slug>`, derived from the id so two files named alike
@@ -1105,6 +1211,75 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     card" refine was removed from `create/updateTransactionSchema` (the domain is the side that
     knows the account and the card's limits). Not done: the web movement form still hides the card
     field on an income, so such a payment is only reachable through the template or the API.
+    Amendment (pre-filled template, 2026-10-07): "Descargar plantilla" opens
+    `DownloadTemplateDialog` — **Vacía** (as before) or **Con mis datos actuales**. The latter
+    fetches every account/movement/debt/plan/recurring/goal/entry and `lib/templateData.ts`'s
+    `existingRows` writes them on their sheets (Movimientos only takes MANUAL/RECURRING/
+    FINANCE_CHARGE movements; transfer pairs → Traspasos; debt payments = movements with
+    `debtId`; refs generated D1/C1/R1/M1; plan interest left blank, the DTO has no rate). Each
+    such row carries the record's id in a last **"ID Cuadra"** column
+    (`import.template.existingId.*`), and `parseTemplateSheets` **skips any row with one**, so
+    uploading the file again imports only rows added below. Limitation: a new payment row for a
+    debt/plan that already exists can't reference it (its row is skipped → `unknownRef`); those
+    payments are recorded in the app.
+    Amendment (template v2: accounts, cards, statements and "Reemplazar todo", 2026-10-07):
+    `TEMPLATE_VERSION` = 2 (a v1 file is refused as outdated). Three new sheets, defined in
+    `templateSpec.ts`: **Cuentas** (name, type, currency, institution [linked to the catalogue by
+    name when it matches], number, `openingBalance` = the balance BEFORE the first movement,
+    credit limit/initial used, overdraft, ceiling, minimum %, status), **Tarjetas** (account,
+    kind, last4, expiry mm/aaaa, network, virtual, additional, holder, own limit, one extra-currency
+    limit, active; the first CREDIT card of an account is its primary) and **Facturaciones**
+    (account, currency, start, close, due, paid on, amount paid, paid from). The browser mints a
+    UUID v7 TEMP id per defined account/card (`lib/tempRowId.ts`); `planTemplateImport`'s
+    `planDefinitions` validates them with `BankAccount.planCreation` + the account-number,
+    overdraft and credit-settings rules and adds them to the lookup, so every other sheet is checked
+    against them like existing ones (defined accounts are always `ADD`). The handler creates them
+    (`BankAccountRepositoryPort.createWithCardsWithTx`, card/limit `createWithTx` variants) and maps
+    temp → real ids everywhere. New request field **`mode`**: `MERGE` (default) or **`REPLACE`**,
+    which first empties the user's data in the same `$transaction`
+    (`application/template-replacement.ts`'s `purgeUserDataWithTx`: movements, plans, debts,
+    recurring, savings entries/goals, then accounts — cards, limits, billing settings, periods and
+    wallet go by cascade; attachment FILES in S3 are not removed), creates an "Efectivo" if the file
+    has no CASH account, and (REPLACE only, `IMPORT_STATEMENTS_REPLACE_ONLY` otherwise) rebuilds
+    each billing period with the steps of "Generar facturación" and, when paid, of "Pagar"
+    (`paidFrom` set: a STATEMENT_PAYMENT expense on that account + pool down, via `payTowards`) or
+    bookkeeping only (`CreditStatement.settleImported`, the money already being a transfer).
+    Imported closes/dues are the END of the day in UTC (imported movements sit at UTC midnight).
+    The preview's new `replaces` counts what would be deleted (each port's `countForUser`).
+    **Dates are the user's zone, not UTC** (fixed 2026-10-08): `resolveTemplate`'s `iso(ymd)` is
+    `new Date("<ymd>T00:00:00")` (START of the typed day, local) and `isoEnd` the local
+    `23:59:59.999`, like every form of the app and the statement importer. The first version used
+    midnight UTC, which in Chile is the previous evening: every imported movement and statement
+    start showed a day early ("4 jul" for a period that starts 5 jul). The pre-filled export's
+    `day()` reads both (an instant at exactly UTC midnight → its UTC day, any other → its local
+    day), so data imported before the fix still exports on the right day; to repair it, re-apply
+    the file with "Reemplazar todo".
+    **Foreign-currency statements** (USD of a CLP card): their Facturaciones row carries
+    `Moneda`; the bank's "traspaso deuda internacional" lines are NOT part of a period's amount
+    (they move a period's debt into the next CLP statement), so they are not movements of the
+    file — a USD period is simply marked paid (`Pagada el` + `Monto pagado`, no `Pagada desde`:
+    `settleImported`, bookkeeping only; the CLP side is an ordinary row). Because the card's own
+    USD limit would otherwise keep every charge ever made, the planner emits a **`settle`
+    event** (`MoneyEvent.kind`) at `paidAt` for such a period — its declared amount or its own
+    net in the window — that lowers the running usage of that card's limit in that currency,
+    mirroring how a PAID period drops out of `sumsForCard` in the app.
+    Pagos de cuotas gains **"Libera cupo"** (`freesCredit`, default yes): No = the card payment
+    that covered a credit-plan instalment is in the file already, so marking it paid must not free
+    the pool again. The pre-filled export (`templateData.ts`) fills the three sheets, writes a
+    statement's payment on its row, prepayments as transfers, plan interest as an issuer charge,
+    skips credit-plan instalments settled by a statement (rebuilt with it) and sets "Libera cupo"
+    to No when the card's pool equals its opening debt plus its movements. `BankAccount` DTO gains
+    optional `creditUsedInitial`. Reads take an optional trailing `tx` (`findOpenForAccount`,
+    `sumLinkedTransactions`, `netForStatement`, `listBillableForCards`,
+    `billedInstallmentsForStatement`, `listUnbilledDueForPlans`, `sumBilledForStatement`) so the
+    rebuild sees its own uncommitted writes. Rows with "ID Cuadra" are no longer dropped by the
+    reader: flagged `existing`, skipped on MERGE, the history on REPLACE. Web:
+    `TemplateImportPanel` gains an Agregar / Reemplazar todo selector (a file with only existing
+    rows opens in Reemplazar), shows what gets deleted and enables the destructive submit only
+    after typing REEMPLAZAR; defined accounts show "nueva" and no balance-mode toggle. i18n
+    `import.template.{sheets,columns,columnHelp,values}.*` for the new sheets and
+    `import.template.ui.*`. Verified on real local data: export → REPLACE preview reproduces every
+    account's balance and credit used exactly.
   - **category** (global movement-category catalogue, 2026-09-25): `Category` (table `category`) =
     ONE seeded, read-only catalogue shared by every user — `code` (`@unique` business key the seed
     upserts by, never the PK), `kind` (`CategoryKind`: EXPENSE/INCOME/BOTH), `isSystem`, `sortOrder`.
@@ -1141,7 +1316,7 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   - **wallet-item-dashboard**: `WalletItemDashboard` (table `wallet-item-dashboard`) `(accountId? | cardId?, order)` — a user-curated set of pinned cards **or** accounts for the dashboard "wallet" (exactly one of card/account; XOR enforced in its aggregate; `onDelete: Cascade`). Endpoints `GET/POST /wallet`, `PATCH /wallet/reorder` (`{ids[]}`), `DELETE /wallet/:id`. Amendment ("Arma tu cartera", 2026-09-27): the wallet holds **at most `wallet.WALLET_MAX_ITEMS` = 4** (`POST` answers `WALLET_FULL` 409 past it) and gains **`PUT /wallet`** (`wallet.replaceWalletSchema`: the whole wallet, in display order, each account/card once, ownership-verified per entry) — `ReplaceWalletHandler` → `WalletItemRepositoryPort.replace` (delete + recreate in one `$transaction`; retry-safe, the result depends on the body alone). Web: `WalletAddModal` is now the "Arma tu cartera" editor (canvas design F2): left, every active account with its cards nested under it, each row labelled Cuenta/Tarjeta and showing "N · En el Panel" once picked (the rest lock at 4); right, the wallet as the Panel draws it (the same `AccountVisualCard`) with reorder/remove, and a notice when a debit/prepaid card repeats its own account's balance. The draft logic is pure (`dashboard/lib/walletDraft.ts`) and saved with one `PUT`; `WalletCards` remounts the editor on each open (`key`) so a cancelled edit leaves nothing, and the Panel shows at most 4 tiles (a wallet saved before the limit is cut to its first 4): once full the "Añadir" tile disappears and an "Editar cartera" button sits in the header next to "Organizar". i18n `wallet.editor.*`, `errors.WALLET_FULL`.
   - **idempotency-record** (specs/015, Constitution Principle VII form (c)): `IdempotencyRecord` (table `idempotency-record`) `(userId, key)` with `@@unique([userId, key])` — the mutual-exclusion lock itself, not a validation on top of one. Every money-moving write listed below reads a required `Idempotency-Key` request header (`packages/contracts/src/idempotency`, `requireIdempotencyKey` in `infra/http/idempotency-key.ts`; missing ⇒ `IDEMPOTENCY_KEY_REQUIRED` 400) and goes through `BaseIdempotentCommandHandler` (`infra/cqrs/base-idempotent-command.handler.ts`), a two-phase protocol: **(1) RESERVE** — `reserve(userId, key)` attempts the unique insert in its own transaction; a genuine collision comes back `EXISTS` and the record decides whether to **replay** the stored response (same operation, same request-hash — a canonical-JSON SHA-256 over the body, `infra/cqrs/request-hash.ts`), reject with `IDEMPOTENCY_KEY_REUSED` (409, different data under the same key — what protects "two identical coffees" from being conflated: identity is the KEY, never the content), answer `IDEMPOTENCY_IN_PROGRESS` (409, the original attempt is still running), or **take over** an abandoned reservation once it's stale (>60s, `IDEMPOTENCY_IN_FLIGHT_TIMEOUT_SECONDS`); **(2) EXECUTE** — the handler's `handleIdempotent()` opens ONE `prisma.$transaction` covering both the real effect (the movement, the debt payment, the statement payment, …) and `complete(tx, body, status)`, which stamps the record `COMPLETED` **inside that same transaction**. This ordering is the entire safety argument (`research.md` §3): `IN_FLIGHT` always implies the effect never committed, which is what makes taking over a stale reservation safe — completing AFTER the effect's own transaction (two separate commits) would leave a window where a crash applies the money but never marks it done, and a retry would duplicate it. Eleven operations are protected this way: `POST /transactions`, `POST /transactions/transfers`, `POST /installments`, `POST /installments/:id/payments/:seq/pay`, `POST /accounts/:id/credit-statements/:id/pay`, `POST /debts/:id/settle`, `POST /debts/:id/unsettle`, `POST /debts/:id/payments`, `DELETE /debts/:id/payments` (undo), `POST /savings/entries`, `POST /import/transactions` (since 2026-09-26, see the `import` bullet). A write that mutates state alongside the idempotency mark needs a `*WithTx(tx, …)` repository method (established precedent: `installment-plan`'s `create`/`createWithTx`) — this pushed transaction ownership from the adapter into the handler for `transaction`/`debt`/`savings-entry`, previously the adapter's own job. **`debt`'s four commands additionally do the entire read-mutate-write cycle inside that one transaction**, via `findOneForUpdateWithTx` (`SELECT … FOR UPDATE`) — wrapping only the write is NOT enough to close a concurrent-request race when the read happens in `loadContext()` beforehand (confirmed empirically: 6 concurrent `register-payment` requests advanced the counter by only 2 until the read moved inside the lock; fixed, 6 concurrent → exactly 6). A daily cron (`infra/cron/idempotency-cleanup.cron.ts`, mirroring `billing-generation.cron.ts`) purges attempts past their retention window via `PurgeExpiredRecordsCommand` (`scope: "system"`, the domain's own named exception to per-user scoping). The mechanism is invisible over HTTP by design — no controller of its own. **Known limitation, deliberately out of scope**: reloading the page mid-submit loses the in-memory key (`useIdempotencyKey`), so the resubmitted form is a genuinely new attempt and can duplicate — avoiding that requires persisting drafts, a separate feature. (`POST /import/transactions` was left out at first — it had no client and applied no delta — and was brought under the same protocol once it got both, 2026-09-26.)
 - **`apps/web`** — **Vite + React 19 SPA**, consumes the API over HTTP only (`shared/lib/apiClient.ts`, `VITE_API_URL`). Domain-first: `src/domains/<domain>/{api,hooks,components,routes}`. Routing **react-router v8** (single `react-router` package — `react-router-dom` no longer exists in v8; every import comes from `react-router`), data via TanStack Query, **owns the es/en i18n catalogs** (`src/i18n`). **Styling: Tailwind CSS** (design tokens as CSS variables in `src/styles/index.css`, dark-mode ready) with shadcn-style primitives in `src/shared/ui` (`button`, `input`, `label`, `field`, `select`, `searchable-select` [button + portaled, fixed-height (`max-h-60`) custom-scrollbar (`scrollbar-thin`) panel with an in-panel search box — for long option lists a native `<select>` can't restyle/height-cap, e.g. institutions (~20 banks) or currencies (168 ISO codes); `displayValue` prop lets the closed control show something narrower than the list label, e.g. a currency's bare ISO code while the open list reads "Name (CODE)"], `combobox` [free-text input + the same portaled dropdown pattern, for fields that accept a value not in the list — no longer used for categories, which are a fixed catalogue picked with `FormSelectField`], `card`, `badge`, `table`, `page-header`, `states` (kind-aware error/empty/loading — see the amendment
-  below), `theme-toggle`, `switch`, `unsaved-indicator`, `overlay/` [the dialog family — Modal/Window/Drawer/ResponsiveSurface/FormSurface/ConfirmModal, see the overlay amendment below], `tabs`, `segmented`, `sparkline`) + `cn` helper (`shared/lib/cn.ts`); authed routes wrapped by `app/AppLayout.tsx`. The **Panel** (`app/DashboardPage.tsx` + `domains/dashboard`) is a frontend-only aggregation, "lo urgente primero" (2026-10-06): a "Requiere atención" strip (`attentionItems` in `lib/metrics.ts`: unsettled closed statements due within 7 days or overdue, read per credit card account by `useDueStatements` on the same query key as `useCreditStatements`, plus outgoing payments due within 3 days; each card links where it gets resolved), net worth with a Recharts chart (y scale, today marked, value on hover, nothing shown with hideBalances) and other currencies beside it unconverted, the month as two bars on one scale plus categories as single-hue ranked bars (the donut is gone: it used status colors as categories), upcoming payments (neutral date chips; a debt owed to you shows as an inflow, its amount is what is still pending) and the wallet. Layout by the Panel's own width: from 1100px two columns (and, with a viewport at least 720px tall, everything on one screen with no page scroll: net worth across two columns with a fixed 170px chart (a line chart stretched tall exaggerates every move), the month and the upcoming payments side by side under it, the wallet down the right; each box scrolls inside itself, the urgent cards sit on one line each, overdue in red with the short date), from 640px one column with side-scrolling cards, below that Mes/Pagos/Cartera tabs. Its header greets by first name and offers "Volver a este mes" when another month is shown; "Nuevo movimiento" moved to the shell. Libraries: **Recharts** (charts), **sonner** (toasts; `<Toaster/>` in `app/providers`), **@dnd-kit** (wallet drag-reorder). No DB access, never imports backend internals.
+  below), `theme-toggle`, `switch`, `unsaved-indicator`, `overlay/` [the dialog family — Modal/Window/Drawer/ResponsiveSurface/FormSurface/ConfirmModal, see the overlay amendment below], `tabs`, `segmented`, `sparkline`) + `cn` helper (`shared/lib/cn.ts`); authed routes wrapped by `app/AppLayout.tsx`. The **Panel** (`app/DashboardPage.tsx` + `domains/dashboard`) is a frontend-only aggregation, "lo urgente primero" (2026-10-06): a "Requiere atención" strip (`attentionItems` in `lib/metrics.ts`: unsettled closed statements due within 7 days or overdue, read per credit card account by `useDueStatements` on the same query key as `useCreditStatements`, plus outgoing payments due within 3 days; each card links where it gets resolved), net worth with a Recharts chart (y scale, today marked, value on hover, nothing shown with hideBalances) and other currencies beside it unconverted, the month as two bars on one scale plus categories as single-hue ranked bars (the donut is gone: it used status colors as categories), upcoming payments (neutral date chips; a debt owed to you shows as an inflow, its amount is what is still pending) and the wallet. Layout by the Panel's own width: from 1100px two columns (and, with a viewport at least 720px tall, everything on one screen with no page scroll: net worth across two columns with a fixed 170px chart (a line chart stretched tall exaggerates every move), the month and the upcoming payments side by side under it, the wallet down the right; each box scrolls inside itself, the urgent cards sit on one line each, overdue in red with the short date), from 640px one column with side-scrolling cards, below that Mes/Pagos/Cartera tabs. Its header greets by first name and offers "Volver a este mes" when another month is shown, beside `shared/ui/month-picker.tsx`'s `MonthPicker` (one rounded group ‹ · month · ›; the middle opens a year of months in `DateField`'s calendar style, with "Este mes"); "Nuevo movimiento" moved to the shell. Libraries: **Recharts** (charts), **sonner** (toasts; `<Toaster/>` in `app/providers`), **@dnd-kit** (wallet drag-reorder). No DB access, never imports backend internals.
   Amendment (kind-aware error/empty states + "keep the chrome" convention, 2026-08-25):
   `shared/ui/states.tsx`'s `ErrorState` stopped being one generic sentence everywhere. Pass the
   query/mutation's own `error` (preferred over a hardcoded `title`) and it derives a **`kind`**:
@@ -1397,6 +1572,43 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     lives in the sidebar's user menu, so the profile page doesn't repeat it — and "Eliminar cuenta"
     moved to `ProfileRoute`'s **left** column (with `AccountStatusSection`, from `lg`; it renders in
     the right column's end on a phone, so a destructive action isn't the first thing there).
+    Amendment (Perfil as settings sections with a protection summary — specs/029, 2026-10-06,
+    supersedes the layout described in the amendments above): the seven collapsed accordions are
+    gone. `/profile` is a parent route (`ProfileLayout`) with children `index` (Resumen),
+    `personal`, `security`, `preferences`, `privacy` and `*` → `/profile`
+    (`domains/profile/routes/profileRoutes.tsx`, shared by `router.tsx` and the tests; each child
+    has its own tab title). `ProfileLayout` picks its shape by its OWN width (`useElementWidth` vs.
+    `PROFILE_PANES_MIN_WIDTH` = 820): two panes or one column. Two panes (hierarchy "A+C", canvas
+    "Cuadra · Perfil, jerarquía", 2026-10-06): a page header (`ProfileIdentity variant="header"`:
+    "Perfil" + name · email · stats on one line), then a text-only secondary index
+    (`ProfileSectionNav variant="panel"`: grouped "Tu cuenta / App / Privacidad", status line and
+    pending count, no icons, the open section marked by a 2px left bar so it doesn't compete with
+    the app sidebar) beside the section, capped at 760px, the whole block centred (max 1040px); section titles are `text-xl`. Or one column
+    (start view = identity + `ProfileSummary showQuickSettings={false}` + the section list; each
+    section its own screen with a "volver" link to `/profile`). Opening a section focuses its `h1`.
+    `ProfileSummary`: protection as 3 fixed-order stages (password → passkey → two-step;
+    `isPasskeySupported()` in `shared/lib/webauthn.ts` makes the passkey "not available on this
+    device" and moves the next step on), contact details out of 3 (email, identity, phone — never
+    the photo; actions link to `/profile/personal?edit=<field>`, which opens that row and then drops
+    the parameter), up to 3 open sessions (current first, "y N más") and quick theme/hide-balances
+    settings. Next-step and session actions link to anchors in Security (`#password`,
+    `#two-factor`, `#passkeys`, `#sessions`, scrolled to and focused on arrival). All of it is
+    derived by pure functions in `domains/profile/lib/profileStatus.ts` (`protectionStages`,
+    `nextProtectionStep`, `contactCompleteness`, `sessionsPreview`, `sectionStatuses`), used by the
+    summary, the section list and the start view alike (`hooks/useProfileStatuses`). An unsaved
+    edit in Información personal blocks in-app navigation with `useBlocker` + "¿Descartar cambios?"
+    (`ConfirmModal` gained `cancelLabel`); a reload or a closed tab discards silently — no
+    `beforeunload`, by decision. The theme is `shared/ui/theme-segmented.tsx` (Claro / Oscuro /
+    Sistema, 44px, also used by the landing's phone menu); Preferences is two blocks ("Apariencia e
+    idioma", "Monedas y montos" with `FinancialCustomizationSection`'s rows); Datos y privacidad is
+    `ConsentHistorySection` + `DangerZone` as its own destructive block. **Removed**:
+    `NotificationsSection`, `DataPrivacySection`, `AccountStatusSection`, `ProfileCard` (→
+    `ProfileIdentity`, now with this month's movements), `ProfileRoute`, and their i18n keys
+    (`profile.notifications.*`, `profile.dataPrivacy.*`, `profile.accountStatus.*`, `profile.plan.*`,
+    `profile.preferences.darkTheme`); what doesn't exist yet is one text line,
+    `profile.comingSoon.list`. `buttonClasses` lives in `shared/ui/button-classes.ts` (a `Link` that
+    reads as a button). Profile tests needing the URL use `domains/profile/testing/renderRouted`.
+    Frontend only: no API, schema or contract change.
     Amendment (`dateFormat` removed, 2026-09-18): the "Formato de fecha" preference
     (`DD/MM/YYYY`/`MM/DD/YYYY`/`YYYY-MM-DD`) is **gone** — column, contract field,
     `PATCH /auth/me/preferences` support and the `PreferencesSection` selector all
@@ -1806,7 +2018,14 @@ href="/">` (a full navigation, not the router, since its state can't be trusted 
   (`scrollbar-gutter: auto`) so Radix's own compensation on `<body>` (exactly the gutter's width)
   takes its place: the content doesn't move, and the scrim/side panel reach the right edge instead
   of leaving an uncovered 15px strip (2026-10-06; the earlier `padding-right: 0 !important`
-  override is gone).
+  override is gone). Amendment (2026-10-07): **the signed-in app has no page gutter** — its shell
+  (`AppLayout`'s root, marked `app-shell`) is one viewport tall and only `<main>` scrolls, so a
+  reserved gutter was an empty strip, and releasing it on lock widened the layout: every modal
+  nudged the centred content ~7px right. `html:has(.app-shell) { scrollbar-gutter: auto }`. The
+  landing pages keep the gutter; on lock `<body>` takes `--scrollbar-gap` as `margin-right`
+  (`html:not(:has(.app-shell)) body[data-scroll-locked]`, outranking Radix's injected rule),
+  measured on a scrolling probe by `shared/lib/scrollbarGap.ts` (`trackScrollbarGap`, from
+  `main.tsx`).
   Amendment (one row format for every table, 2026-08-24): Movimientos, Cuotas and Facturación each
   had their own table conventions — different leading-icon shapes (circle vs. rounded-square vs.
   none), a shaded header only on Movimientos, three different table↔list breakpoints (860/860/640px
@@ -1832,7 +2051,7 @@ NumberFormat("es", …)` has no currency-symbol mapping for CLP and fell back to
 - **Commits:** only when the user explicitly asks.
 - **Markdown:** don't add `.md` files unless requested.
 
-**Deferred (not yet implemented):** reading the old binary `.xls` in the importer (only `.xlsx`/`.csv`), duplicate detection on import, and remembering a confirmed column mapping per bank — see `docs/PENDING.md` (Movimientos §10).
+**Deferred (not yet implemented):** reading the old binary `.xls` in the importer (only `.xlsx`/`.csv`), duplicate detection on import, and remembering a confirmed column mapping per bank — see `docs/PENDING.md` (Movimientos §10). Also deferred: the credit-card billing-cycle configuration (statements are generated with the dates the user types) — `docs/PENDING.md` (Cuentas — facturación §0).
 
 ## Spec-Driven Development (SDD / Spec Kit)
 
@@ -1845,7 +2064,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.3.13**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.3.19**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
 - **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
   `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.
@@ -1912,7 +2131,26 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (028 — en planificación): specs/028-multi-currency-billing/plan.md
+Current plan (029 — implementado): specs/029-profile-settings-redesign/plan.md
+(Perfil como ajustes por secciones: `/profile` pasa a rutas hijas `personal`/`security`/
+`preferences`/`privacy` con índice = Resumen y comodín → `/profile`. `ProfileLayout` decide la forma
+por el ancho de su contenedor (`PROFILE_PANES_MIN_WIDTH` = 820): dos paneles (navegación agrupada con
+línea de estado + sección) o una columna (vista inicial con identidad, Resumen sin ajustes rápidos
+y lista; cada sección como pantalla con "volver"). Resumen: protección en 3 etapas (contraseña → llave de acceso →
+dos pasos) con siguiente paso realizable (sin soporte WebAuthn salta a dos pasos), completitud de
+datos sobre 3 sin foto, hasta 3 sesiones abiertas + "y N más", ajustes rápidos de tema y ocultar
+saldos. Lógica pura en `domains/profile/lib/profileStatus.ts`. Tema Claro/Oscuro/Sistema con
+`shared/ui/theme-segmented.tsx`; se eliminan los placeholders inertes; "Eliminar cuenta" en Datos y
+privacidad; edición sin guardar → `useBlocker` + "¿Descartar cambios?" (sin `beforeunload`). Solo
+frontend: cero cambios de API, esquema o contrato. Ver research.md R1–R10.
+**Verificado**: vitest de `domains/profile`, `shared`, `i18n`, `domains/landing` y `app` [218/218,
+incluye rutas directas y comodín, forma ancha/angosta, acciones del Resumen, guard de "¿Descartar
+cambios?" y paridad es/en], `tsc --noEmit`, `eslint`, `prettier --check`, `vite build`,
+`check:boundaries`. **No verificado**: navegador ni teléfono reales (sin herramienta de
+automatización): el cambio de forma al contraer la barra lateral y el desplazamiento a las anclas
+solo están cubiertos por tests con el ancho simulado.)
+
+Prior plan (028 — en planificación): specs/028-multi-currency-billing/plan.md
 (Facturación separada por moneda: `CreditStatement.currency`, un período abierto por moneda anclado
 al mismo `periodStart` y cerrado el mismo día; pago de una facturación en otra moneda con dos montos
 — liquidado y debitado — que crea un ingreso de liquidación `Transaction.settlesStatementId` con la

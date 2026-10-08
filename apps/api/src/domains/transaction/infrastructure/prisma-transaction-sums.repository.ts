@@ -104,8 +104,9 @@ export class PrismaTransactionSumsRepository implements TransactionSumsRepositor
     return result;
   }
 
-  async netForStatement(statementId: string): Promise<string> {
-    const grouped = await this.prisma.transaction.groupBy({
+  async netForStatement(statementId: string, tx?: unknown): Promise<string> {
+    const client = (tx as PrismaService | undefined) ?? this.prisma;
+    const grouped = await client.transaction.groupBy({
       by: ["type"],
       where: { creditStatementId: statementId, ...EXCLUDE_PLAN_PURCHASES, ...EXCLUDE_SETTLEMENTS },
       _sum: { amount: true },

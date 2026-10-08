@@ -9,7 +9,6 @@ import { CurrencyField } from "../../reference/components/CurrencyField";
 import { institutionOption } from "../../reference/lib/institutionOption";
 import { useCountries, useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
-import { cn } from "../../../shared/lib/cn";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { Button } from "../../../shared/ui/button";
 import { DetailRow } from "../../../shared/ui/detail-row";
@@ -20,9 +19,7 @@ import {
   FormTextField,
 } from "../../../shared/ui/form";
 import { SectionLabel } from "../../../shared/ui/section-label";
-import { Segmented } from "../../../shared/ui/segmented";
 import { Switch } from "../../../shared/ui/switch";
-import { Tabs } from "../../../shared/ui/tabs";
 import { AccountTypeToggle } from "./AccountTypeToggle";
 import { ExtraCurrencyLimits } from "./ExtraCurrencyLimits";
 import type { CurrencyLimitDraft } from "../lib/extraLimits";
@@ -47,20 +44,8 @@ export interface AccountFormValues {
   balanceCeiling: string;
   creditLimit: string;
   creditUsedInitial: string;
-  /** "" = no cycle configured (all-time usage), else a day-of-month or a count
-   * of business days, depending on `billingCycleType`. */
-  billingCycleDay: string;
-  /** Días hábiles (default) or a fixed day-of-month. */
-  billingCycleType: accounts.BillingCycleType;
-  /** "" = no due date configured; else a day-of-month or a count of business
-   * days, depending on `paymentDueCycleType`. */
-  paymentDueDay: string;
-  /** Días hábiles (default) or a fixed day-of-month — independent of
-   * `billingCycleType` (generation may be one and payment the other). */
-  paymentDueCycleType: accounts.BillingCycleType;
   /** "" = this account has no minimum payment; else a percentage like "5". */
   minimumPaymentPercent: string;
-  paymentMethod: accounts.BillingPaymentMethod;
   /** A credit card account's limits in OTHER currencies (its USD one), stored on
    * its primary card — the host saves them there. */
   extraLimits: CurrencyLimitDraft[];
@@ -80,12 +65,7 @@ const EMPTY: AccountFormValues = {
   balanceCeiling: "",
   creditLimit: "0",
   creditUsedInitial: "0",
-  billingCycleDay: "",
-  billingCycleType: "BUSINESS_DAY",
-  paymentDueDay: "",
-  paymentDueCycleType: "BUSINESS_DAY",
   minimumPaymentPercent: "",
-  paymentMethod: "MANUAL",
   extraLimits: [],
 };
 
@@ -118,11 +98,6 @@ interface Props {
   onStatusChange?: (status: accounts.AccountStatus) => void;
   onSubmit: (values: AccountFormValues) => void;
 }
-
-/** Which section is showing, when the form has enough of them to warrant tabs
- * (see `hasCreditPool` below) — a plain account never grows past two sections,
- * so it never shows a tab strip at all. */
-type FormTab = "general" | "billing";
 
 /**
  * One loose group of rows: a small muted caption (skipped when a tab strip
@@ -167,7 +142,6 @@ export function AccountForm({
   const { t, i18n } = useTranslation();
   const [initialValues] = useState<AccountFormValues>({ ...EMPTY, ...initial });
   const [values, setValues] = useState<AccountFormValues>(initialValues);
-  const [tab, setTab] = useState<FormTab>("general");
   const isCreditLineType = values.type === "CREDIT_CARD";
   const { data: institutions } = useInstitutions(
     values.country,
@@ -234,9 +208,7 @@ export function AccountForm({
 
   return (
     <form id={formId} className="flex flex-col" onSubmit={handleSubmit}>
-      {/* Name: hero, no visible label — shown above the tab strip since it
-          names the account regardless of which tab (Crédito/Facturación) is
-          open, not a field that belongs to either one. */}
+      {/* Name: hero, no visible label. */}
       <FormBigTextField
         id="acc-name"
         value={values.name}
@@ -247,23 +219,7 @@ export function AccountForm({
         className="mb-4"
       />
 
-      {/* A plain account never grows past Identificación + Saldo — the tab
-          strip only earns its place once a credit account adds Crédito and
-          Facturación on top, which is also when a single long scroll starts
-          to feel like unrelated settings dumped in one place. */}
-      {hasCreditPool ? (
-        <Tabs
-          value={tab}
-          onChange={setTab}
-          items={[
-            // Identificación and Crédito share this same tab — a credit account's
-            // limit/pool is as central to it as its name, not a settings page away.
-            { value: "general", label: t("accounts.form.tabs.credit") },
-            { value: "billing", label: t("accounts.form.tabs.billing") },
-          ]}
-        />
-      ) : null}
-      <div className={cn(tab !== "general" && "hidden")}>
+      <div>
         {/* Same field ORDER `AccountCreateModal` uses — name, balance/cupo hero,
             a divider, then type, then everything else — so editing an account
             reads as a continuation of creating one, not a differently laid out
@@ -461,7 +417,9 @@ export function AccountForm({
             <FormMoreDetails
               className="mt-2"
               defaultOpen={
-                initialValues.overdraftLimit !== "0" || initialValues.creditUsedInitial !== "0"
+                initialValues.overdraftLimit !== "0" ||
+                initialValues.creditUsedInitial !== "0" ||
+                initialValues.minimumPaymentPercent !== ""
               }
               title={
                 <>
@@ -488,6 +446,20 @@ export function AccountForm({
                   label={t("accounts.form.creditUsedInitial")}
                   value={formatAmountDisplay(values.creditUsedInitial, locale)}
                   onChange={(v) => set("creditUsedInitial", v.replace(/\D/g, ""))}
+                  showEditIcon
+                />
+              ) : null}
+              {isCreditLineType ? (
+                <FormTextField
+                  id="acc-min-percent"
+                  label={t("accounts.form.minimumPercent")}
+                  value={values.minimumPaymentPercent}
+                  hint={t("accounts.form.minimumPercentHint")}
+                  onChange={(v) => {
+                    // 0-100, at most two decimals — the column's own precision.
+                    const clean = v.replace(/[^\d.]/g, "").slice(0, 6);
+                    set("minimumPaymentPercent", Number(clean) > 100 ? "100" : clean);
+                  }}
                   showEditIcon
                 />
               ) : null}
@@ -525,154 +497,6 @@ export function AccountForm({
           <div className="border-t border-border py-5 sm:hidden">{dangerZone}</div>
         ) : null}
       </div>
-
-      {hasCreditPool ? (
-        <div className={cn(tab !== "billing" && "hidden")}>
-          <FormSection bare title={t("accounts.form.sections.billing")}>
-            {/* Generación y pago se configuran cada uno con su propio tipo de ciclo
-              (días hábiles o día del mes) — un emisor puede generar en un día fijo
-              del mes y aun así deber el pago N días hábiles después, o viceversa.
-              El día/porcentaje y su selector de tipo comparten una sola fila —
-              son una unidad, no dos ajustes distintos. */}
-            {/* Field + hint share ONE bordered block (the row's own divider
-              moves to the very bottom, after the hint) instead of a `DetailRow`
-              whose own divider would otherwise land between the two. */}
-            <div className="border-b border-border py-3 last:border-b-0">
-              <DetailRow
-                className="border-b-0 py-0"
-                label={
-                  values.billingCycleType === "BUSINESS_DAY"
-                    ? t("accounts.form.billingCycleDayBusiness")
-                    : t("accounts.form.billingCycleDay")
-                }
-              >
-                <div className="flex items-center gap-3">
-                  <input
-                    id="acc-billing-day"
-                    inputMode="numeric"
-                    placeholder={
-                      values.billingCycleType === "BUSINESS_DAY"
-                        ? t("accounts.form.billingCycleDayBusinessPlaceholder")
-                        : t("accounts.form.billingCycleDayPlaceholder")
-                    }
-                    value={values.billingCycleDay}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
-                      set("billingCycleDay", digits && Number(digits) > 28 ? "28" : digits);
-                    }}
-                    aria-label={t("accounts.form.billingCycleDay")}
-                    className="h-8 w-12 border-0 bg-transparent p-0 text-right text-sm font-medium tabular-nums text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
-                  />
-                  <Segmented
-                    size="sm"
-                    className="h-8"
-                    value={values.billingCycleType}
-                    onChange={(v) => set("billingCycleType", v)}
-                    options={[
-                      {
-                        value: "BUSINESS_DAY",
-                        label: t("accounts.form.billingCycleTypeBusinessDay"),
-                      },
-                      {
-                        value: "CALENDAR_DAY",
-                        label: t("accounts.form.billingCycleTypeCalendarDay"),
-                      },
-                    ]}
-                    aria-label={t("accounts.form.billingCycleType")}
-                  />
-                </div>
-              </DetailRow>
-              <p className="pt-1 text-xs text-muted-foreground">
-                {values.billingCycleType === "BUSINESS_DAY"
-                  ? t("accounts.form.billingCycleDayBusinessHint")
-                  : t("accounts.form.billingCycleDayHint")}
-              </p>
-            </div>
-
-            <div className="border-b border-border py-3 last:border-b-0">
-              <DetailRow
-                className="border-b-0 py-0"
-                label={
-                  values.paymentDueCycleType === "BUSINESS_DAY"
-                    ? t("accounts.form.paymentDueDayBusiness")
-                    : t("accounts.form.paymentDueDay")
-                }
-              >
-                <div className="flex items-center gap-3">
-                  <input
-                    inputMode="numeric"
-                    placeholder={
-                      values.paymentDueCycleType === "BUSINESS_DAY"
-                        ? t("accounts.form.paymentDueDayBusinessPlaceholder")
-                        : t("accounts.form.paymentDueDayPlaceholder")
-                    }
-                    value={values.paymentDueDay}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
-                      set("paymentDueDay", digits && Number(digits) > 28 ? "28" : digits);
-                    }}
-                    aria-label={t("accounts.form.paymentDueDay")}
-                    className="h-8 w-12 border-0 bg-transparent p-0 text-right text-sm font-medium tabular-nums text-foreground placeholder:text-muted-foreground focus-visible:outline-none"
-                  />
-                  <Segmented
-                    size="sm"
-                    className="h-8"
-                    value={values.paymentDueCycleType}
-                    onChange={(v) => set("paymentDueCycleType", v)}
-                    options={[
-                      {
-                        value: "BUSINESS_DAY",
-                        label: t("accounts.form.billingCycleTypeBusinessDay"),
-                      },
-                      {
-                        value: "CALENDAR_DAY",
-                        label: t("accounts.form.billingCycleTypeCalendarDay"),
-                      },
-                    ]}
-                    aria-label={t("accounts.form.paymentDueCycleType")}
-                  />
-                </div>
-              </DetailRow>
-              <p className="pt-1 text-xs text-muted-foreground">
-                {values.paymentDueCycleType === "BUSINESS_DAY"
-                  ? t("accounts.form.paymentDueDayBusinessHint")
-                  : t("accounts.form.paymentDueDayHint")}
-              </p>
-            </div>
-
-            <FormTextField
-              label={t("accounts.form.minimumPercent")}
-              value={values.minimumPaymentPercent}
-              hint={t("accounts.form.minimumPercentHint")}
-              onChange={(v) => {
-                // 0-100, at most two decimals — the column's own precision.
-                const clean = v.replace(/[^\d.]/g, "").slice(0, 6);
-                set("minimumPaymentPercent", Number(clean) > 100 ? "100" : clean);
-              }}
-              showEditIcon
-            />
-
-            <DetailRow label={t("accounts.form.paymentMethod")}>
-              <Segmented
-                size="sm"
-                className="h-8 w-40"
-                value={values.paymentMethod}
-                onChange={(v) => set("paymentMethod", v)}
-                options={[
-                  { value: "MANUAL", label: t("accounts.form.paymentMethodManual") },
-                  {
-                    value: "AUTOMATIC",
-                    label: t("accounts.form.paymentMethodAutomatic"),
-                    disabled: true,
-                    disabledReason: t("accounts.form.paymentMethodAutomaticLocked"),
-                  },
-                ]}
-                aria-label={t("accounts.form.paymentMethod")}
-              />
-            </DetailRow>
-          </FormSection>
-        </div>
-      ) : null}
 
       {onStatusChange ? null : (
         <FormSection title={t("accounts.form.sections.status")}>

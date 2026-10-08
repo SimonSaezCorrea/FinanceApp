@@ -131,4 +131,10 @@ export interface TransactionWriterRepositoryPort {
     tx: unknown,
     rows: (Omit<TransactionPlan, "id"> & { id?: string })[],
   ): Promise<number>;
+  /** How many rows of this table the user has: what replacing everything from a
+   * template (specs/027, REPLACE) would delete, shown before confirming. */
+  countForUser(userId: string): Promise<number>;
+  /** Deletes every row of this table the user owns, inside the caller's
+   * transaction: replacing everything from a template rebuilds them from the file. */
+  deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void>;
 }

@@ -15,6 +15,8 @@ function fakePlanRepo(
   overrides: Partial<InstallmentPlanRepositoryPort> = {},
 ): InstallmentPlanRepositoryPort {
   return {
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     listIdsForAccount: vi.fn(async () => []),
     list: vi.fn(async () => []),
     findOne: vi.fn(),
@@ -22,6 +24,7 @@ function fakePlanRepo(
     createWithTx: vi.fn(),
     listBillableForCards: vi.fn(),
     stampBillableWithTx: vi.fn(),
+    unstampDueAfterWithTx: vi.fn(),
     settleForStatementWithTx: vi.fn(),
     billedInstallmentsForStatement: vi.fn(),
     save: vi.fn(),
@@ -71,10 +74,13 @@ function fakeAccountRepo(
   overrides: Partial<BankAccountRepositoryPort> = {},
 ): BankAccountRepositoryPort {
   return {
+    createWithCardsWithTx: vi.fn(async () => ({ id: "acc", cardIds: [] })),
+    setStatusWithTx: vi.fn(async () => {}),
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     removeWithTx: vi.fn(async () => true),
     findById: vi.fn(),
     listByUser: vi.fn(),
-    listDueForBilling: vi.fn(),
     institutionName: vi.fn(),
     institutionCountry: vi.fn(async () => null),
     countByType: vi.fn(async () => 2),

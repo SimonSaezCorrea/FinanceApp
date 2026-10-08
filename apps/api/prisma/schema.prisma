@@ -467,6 +467,15 @@ model CreditStatement {
   /// then can `amount` be corrected manually (no cascade to the linked payment
   /// transaction or to `creditUsed` — a deliberate, personal-use simplification).
   paidAt            DateTime?
+  /// When payment is due, as the user typed it from the bank's statement at
+  /// "Generar facturación" (end of that day, user's time zone). Null for a period
+  /// still OPEN, or one closed before this column existed (its due date is then
+  /// derived from `BillingSettings.paymentDueDay`, if configured).
+  dueDate           DateTime?
+  /// The close the user scheduled for an OPEN period ("Editar fechas" on it): the
+  /// statement is generated with these dates when it arrives (hourly cron) or earlier
+  /// from "Generar facturación". Null once closed, or when nothing was scheduled.
+  plannedCloseAt    DateTime?
   /// Frozen snapshot amount, set at pay time. Null/ignored while unpaid — the
   /// live amount is computed by summing linked transactions instead.
   amount            Decimal?  @db.Decimal(18, 4)

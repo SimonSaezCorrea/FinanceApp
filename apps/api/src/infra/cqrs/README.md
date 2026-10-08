@@ -17,7 +17,6 @@ Every migrated domain's `*.module.ts` follows this shape (`accounts.module.ts` i
     // commands
     PayCreditStatementHandler,
     GenerateStatementsHandler,
-    GenerateAllDueStatementsHandler,
     SyncStatementHandler,
     // queries
     ListCreditStatementsQueryHandler,

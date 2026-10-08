@@ -10,8 +10,8 @@ import { Input } from "../../../shared/ui/input";
 import { Switch } from "../../../shared/ui/switch";
 import { useProfileMutations } from "../hooks/useProfile";
 
-/** "Eliminar cuenta", in the profile's left column. Signing out lives in the sidebar's user menu, so
- * it isn't repeated here. */
+/** "Eliminar cuenta", the last block of "Datos y privacidad" (specs/029) — never next to the user's
+ * identity. Signing out lives in the sidebar's user menu, so it isn't repeated here. */
 export function DangerZone() {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -33,10 +33,19 @@ export function DangerZone() {
   }
 
   return (
-    <>
+    <section
+      aria-labelledby="profile-danger-title"
+      className="flex flex-col gap-3 rounded-2xl border border-destructive/30 p-5 sm:flex-row sm:items-center"
+    >
+      <div className="flex-1">
+        <h2 id="profile-danger-title" className="text-base font-semibold">
+          {t("profile.danger.deactivate")}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t("profile.danger.description")}</p>
+      </div>
       <Button
         variant="outline"
-        className="w-full border-destructive/20 bg-destructive/15 text-destructive hover:bg-destructive/25"
+        className="h-11 border-destructive/40 text-destructive hover:bg-destructive/15 sm:h-10"
         onClick={() => {
           setPassword("");
           setKeepHistory(false);
@@ -85,6 +94,6 @@ export function DangerZone() {
           />
         </div>
       </ConfirmModal>
-    </>
+    </section>
   );
 }

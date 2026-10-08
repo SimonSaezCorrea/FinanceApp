@@ -50,4 +50,10 @@ export interface SavingsEntryRepositoryPort {
   ): Promise<Map<string, SavingsGoalEntrySums>>;
   /** Σ every aporte with no goal (ahorro libre) — for `GET /savings/summary`. */
   freeSavingsTotal(userId: string): Promise<string>;
+  /** How many rows of this table the user has: what replacing everything from a
+   * template (specs/027, REPLACE) would delete, shown before confirming. */
+  countForUser(userId: string): Promise<number>;
+  /** Deletes every row of this table the user owns, inside the caller's
+   * transaction: replacing everything from a template rebuilds them from the file. */
+  deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void>;
 }

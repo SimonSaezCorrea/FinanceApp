@@ -1,4 +1,4 @@
-import { imports } from "@finance/contracts";
+import { accounts, imports } from "@finance/contracts";
 
 /**
  * The Cuadra template (specs/027), described ONCE: `buildTemplate` writes a
@@ -21,7 +21,11 @@ export type ListKey =
   | "direction"
   | "planFrequency"
   | "recurrenceFrequency"
-  | "yesNo";
+  | "yesNo"
+  | "accountType"
+  | "cardKind"
+  | "cardNetwork"
+  | "accountStatus";
 
 export interface TemplateColumn {
   key: string;
@@ -70,6 +74,41 @@ const list = (key: string, of: ListKey, required = false, width = 22): TemplateC
 });
 
 export const TEMPLATE_SHEETS: TemplateSheetSpec[] = [
+  {
+    key: "accounts",
+    columns: [
+      txt("name", true, 26),
+      list("type", "accountType", true, 18),
+      list("currency", "currency", true, 10),
+      txt("institution", false, 20),
+      txt("accountNumber", false, 18),
+      money("openingBalance", false),
+      money("creditLimit", false),
+      money("creditUsedInitial", false),
+      money("overdraftLimit", false),
+      money("balanceCeiling", false),
+      txt("minimumPaymentPercent", false, 12),
+      list("status", "accountStatus", false, 12),
+    ],
+  },
+  {
+    key: "cards",
+    columns: [
+      list("account", "account", true),
+      list("kind", "cardKind", true, 12),
+      txt("last4", true, 10),
+      txt("expiry", true, 12),
+      txt("name", false, 16),
+      list("network", "cardNetwork", false, 14),
+      list("isVirtual", "yesNo", false, 10),
+      list("isAdditional", "yesNo", false, 10),
+      txt("cardholderName", false, 20),
+      money("ownLimit", false),
+      list("extraLimitCurrency", "currency", false, 12),
+      money("extraLimit", false),
+      list("isActive", "yesNo", false, 10),
+    ],
+  },
   {
     key: "movements",
     columns: [
@@ -152,6 +191,7 @@ export const TEMPLATE_SHEETS: TemplateSheetSpec[] = [
       date("date"),
       list("account", "account"),
       money("amount", false),
+      list("freesCredit", "yesNo", false, 12),
     ],
   },
   {
@@ -191,6 +231,19 @@ export const TEMPLATE_SHEETS: TemplateSheetSpec[] = [
       list("account", "account", true),
     ],
   },
+  {
+    key: "statements",
+    columns: [
+      list("account", "account", true),
+      list("currency", "currency", false, 10),
+      date("periodStart"),
+      date("closedAt"),
+      date("dueDate"),
+      date("paidAt", false),
+      money("paidAmount", false),
+      list("paidFrom", "account"),
+    ],
+  },
 ];
 
 /** Fixed lists: their stored values, each shown as `import.template.values.<list>.<value>`. */
@@ -200,6 +253,10 @@ export const FIXED_LISTS: Partial<Record<ListKey, readonly string[]>> = {
   planFrequency: ["MONTHLY", "WEEKLY", "YEARLY", "DAILY"],
   recurrenceFrequency: ["MONTHLY", "WEEKLY", "YEARLY"],
   yesNo: ["YES", "NO"],
+  accountType: accounts.accountType.options,
+  cardKind: accounts.cardKind.options,
+  cardNetwork: accounts.cardNetwork.options,
+  accountStatus: accounts.accountStatus.options,
 };
 
 /** Hidden sheet that marks a file as a Cuadra template. */
@@ -209,6 +266,11 @@ export const INSTRUCTIONS_KEY = "instructions";
 export const REFERENCE_KEY = "reference";
 
 export const TEMPLATE_VERSION = imports.TEMPLATE_VERSION;
+
+/** Last column of a pre-filled template: the id of the record a row came from.
+ * A row that carries one is already in the app, so the reader skips it. */
+export const EXISTING_ID_HEADER_KEY = "import.template.existingId.header";
+export const EXISTING_ID_HELP_KEY = "import.template.existingId.help";
 
 /** i18n key of a sheet's visible name. */
 export const sheetNameKey = (sheet: string) => `import.template.sheets.${sheet}`;

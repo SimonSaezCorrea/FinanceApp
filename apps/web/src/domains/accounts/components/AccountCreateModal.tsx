@@ -478,9 +478,6 @@ export function AccountCreateModal({
                 onChange={(v) => setCreditUsedInitial(v.replace(/\D/g, ""))}
                 showEditIcon
               />
-              <p className="-mt-2 pb-2 rounded-md border border-dashed border-ring/60 p-2 text-xs text-muted-foreground">
-                {t("accounts.form.billingNotConfiguredWarning")}
-              </p>
             </FormMoreDetails>
           ) : null}
         </div>

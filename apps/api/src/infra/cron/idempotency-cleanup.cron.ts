@@ -5,8 +5,8 @@ import { Cron, CronExpression } from "@nestjs/schedule";
 import { PurgeExpiredRecordsCommand } from "../../domains/idempotency-record/application/commands/purge-expired-records.command";
 
 /** Daily sweep of idempotency attempts past their retention window (FR-016),
- * so the table doesn't grow without bound. Same thin-trigger shape as
- * `BillingGenerationCron`. */
+ * so the table doesn't grow without bound. A thin trigger: it only dispatches
+ * the command. */
 @Injectable()
 export class IdempotencyCleanupCron {
   private readonly logger = new Logger(IdempotencyCleanupCron.name);

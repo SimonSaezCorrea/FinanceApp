@@ -49,9 +49,6 @@ export type CreateAccountPlan = {
 export interface BankAccountRepositoryPort {
   findById(userId: string, id: string): Promise<BankAccount | null>;
   listByUser(userId: string, where: { status?: accounts.AccountStatus }): Promise<BankAccount[]>;
-  /** System-wide: every account (any user) with a billing day configured — the
-   * cron's universe, not a per-request scoped query. */
-  listDueForBilling(): Promise<BankAccount[]>;
   /** How many accounts of a type the user holds — the cash one is guaranteed to
    * exist, so removing the last of them is refused. */
   countByType(userId: string, type: accounts.AccountType): Promise<number>;
@@ -59,6 +56,15 @@ export interface BankAccountRepositoryPort {
   /** ISO alpha-2 of the institution's country — decides the account-number format. */
   institutionCountry(id: string): Promise<string | null>;
   createWithCards(userId: string, plan: CreateAccountPlan): Promise<BankAccount>;
+  /** Same write, inside the caller's transaction (cards, their limits and the
+   * billing settings too). Returns the new ids, the cards in the plan's order. */
+  createWithCardsWithTx(
+    tx: unknown,
+    userId: string,
+    plan: CreateAccountPlan & { minimumPaymentPercent?: string | null },
+  ): Promise<{ id: string; cardIds: string[] }>;
+  /** Sets the status inside the caller's transaction. */
+  setStatusWithTx(tx: unknown, accountId: string, status: accounts.AccountStatus): Promise<void>;
   /** Persists the account's own scalar fields + its billing settings (never its
    * cards — those go through addCard/updateCard/removeCard so existing
    * transaction links to a card are never disturbed by an unrelated save). */
@@ -98,4 +104,10 @@ export interface BankAccountRepositoryPort {
     plan: CreateCardPlan,
   ): Promise<BankAccount | null>;
   removeCard(userId: string, accountId: string, cardId: string): Promise<boolean>;
+  /** How many rows of this table the user has: what replacing everything from a
+   * template (specs/027, REPLACE) would delete, shown before confirming. */
+  countForUser(userId: string): Promise<number>;
+  /** Deletes every row of this table the user owns, inside the caller's
+   * transaction: replacing everything from a template rebuilds them from the file. */
+  deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void>;
 }

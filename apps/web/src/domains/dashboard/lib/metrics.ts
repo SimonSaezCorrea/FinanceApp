@@ -2,14 +2,16 @@ import type { accounts, debts, installments, recurring, transactions } from "@fi
 import { transactions as transactionsContract } from "@finance/contracts";
 import { sumMoney } from "@finance/money";
 
+import { netWorthByCurrency } from "../../accounts/lib/netWorth";
 import { leftAmount } from "../../debts/lib/debtMetrics";
 
 /** No FX rates available — the dashboard aggregates only the primary currency. */
 export const PRIMARY_CURRENCY = "CLP";
 
 /**
- * Net worth = what you have minus what you owe, in the primary currency:
- *   Σ currentBalance de las cuentas
+ * Net worth = what you have minus what you owe, in the primary currency — computed
+ * by `netWorthByCurrency`, the same function Cuentas uses, so both screens agree:
+ *   Σ saldo de las cuentas que guardan dinero (no las de tarjeta de crédito)
  *   − Σ creditUsed (deuda rotativa ya usada)
  *   − lo que queda por pagar de las deudas que YO debo (+ lo pendiente de las que
  *     me deben) — lo PENDIENTE, no el monto original: una deuda cobrada en parte
@@ -20,46 +22,86 @@ export const PRIMARY_CURRENCY = "CLP";
  * again would count the same debt twice. A `Debt` row, on the other hand, is a
  * standalone loan or a personal one that no account reflects.
  *
- * `series`/`changePct` stay balance-only: there is no per-day history of debt, and
- * a trend that mixes a daily series with a static figure would describe nothing.
+ * `series` is that SAME net worth, one point per day for the last `SERIES_DAYS`
+ * days, ending exactly at `total` (see `netWorthSeries`) — the chart and the hero
+ * can never disagree.
  */
 export function netWorth(
   list: accounts.BankAccount[],
   debtList: debts.Debt[] = [],
+  recent: { txs: transactions.Transaction[]; now: Date } | null = null,
 ): {
   total: string;
   series: string[];
   changePct: number | null;
 } {
-  const primary = list.filter((a) => a.currency === PRIMARY_CURRENCY);
-  const owed = debtList.filter((d) => d.settledAt === null && d.currency === PRIMARY_CURRENCY);
-  const total = sumMoney([
-    ...primary.map((a) => a.currentBalance),
-    ...primary.map((a) => `-${a.creditUsed}`),
-    ...owed.map((d) => (d.direction === "YOU_OWE" ? `-${leftAmount(d)}` : leftAmount(d))),
-  ]);
-  const points = primary[0]?.balanceSeries.length ?? 0;
-  const series = Array.from({ length: points }, (_, i) =>
-    sumMoney(primary.map((a) => a.balanceSeries[i] ?? "0")),
-  );
+  // The same figure Cuentas shows: one shared definition (`netWorthByCurrency`).
+  const total = netWorthByCurrency(list, debtList, PRIMARY_CURRENCY)[0]!.net;
+  const series = recent ? netWorthSeries(total, recent.txs, recent.now) : [];
   const first = Number(series[0] ?? 0);
   const last = Number(series.at(-1) ?? 0);
-  const changePct = points >= 2 && first !== 0 ? ((last - first) / Math.abs(first)) * 100 : null;
+  const changePct =
+    series.length >= 2 && first !== 0 ? ((last - first) / Math.abs(first)) * 100 : null;
   return { total, series, changePct };
 }
 
-/** Other-currency balances (chips alongside the primary hero). */
+/** Days of history the net-worth chart covers (today included). */
+export const SERIES_DAYS = 30;
+
+/** First instant the net-worth chart needs movements from (local midnight). */
+export function seriesStart(now: Date): Date {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() - (SERIES_DAYS - 1));
+}
+
+/**
+ * Net worth at the end of each of the last `SERIES_DAYS` days, oldest first.
+ *
+ * Walks BACK from today's net worth (`netNow`): a day's point is `netNow` minus every
+ * movement recorded after that day ended and up to now — an income raised net worth,
+ * an expense lowered it, whatever account it was on (a purchase on a credit card is
+ * debt, it counts the moment it happens). Today's point IS `netNow`; a future-dated
+ * movement already counted in it is never undone.
+ *
+ * Left out: other currencies (never converted), movements with no account, and
+ * internal flows that don't change net worth — transfers between own accounts,
+ * paying or prepaying a card (`transactions.isInternalFlow`) and paying or
+ * collecting a person-to-person debt (`debtId`: the cash and the debt move together).
+ */
+export function netWorthSeries(
+  netNow: string,
+  txs: transactions.Transaction[],
+  now: Date,
+): string[] {
+  const nowMs = now.getTime();
+  const relevant = txs.filter(
+    (t) =>
+      t.currency === PRIMARY_CURRENCY &&
+      t.bankAccountId !== null &&
+      t.debtId == null &&
+      !transactionsContract.isInternalFlow(t),
+  );
+  return Array.from({ length: SERIES_DAYS }, (_, i) => {
+    const day = SERIES_DAYS - 1 - i; // days before today
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day + 1).getTime();
+    const undo = relevant
+      .filter((t) => {
+        const at = new Date(t.occurredAt).getTime();
+        return at >= endOfDay && at <= nowMs;
+      })
+      .map((t) => (t.type === "INCOME" ? `-${t.amount}` : t.amount));
+    return sumMoney([netNow, ...undo]);
+  });
+}
+
+/** Net worth in each other currency, unconverted (chips beside the primary hero) —
+ * same definition as the hero and as Cuentas' chips. */
 export function secondaryTotals(
   list: accounts.BankAccount[],
+  debtList: debts.Debt[] = [],
 ): { currency: string; total: string }[] {
-  const map = new Map<string, string[]>();
-  for (const a of list) {
-    if (a.currency === PRIMARY_CURRENCY) continue;
-    const bucket = map.get(a.currency) ?? [];
-    bucket.push(a.currentBalance);
-    map.set(a.currency, bucket);
-  }
-  return [...map.entries()].map(([currency, vals]) => ({ currency, total: sumMoney(vals) }));
+  return netWorthByCurrency(list, debtList, PRIMARY_CURRENCY)
+    .filter((n) => n.currency !== PRIMARY_CURRENCY)
+    .map((n) => ({ currency: n.currency, total: n.net }));
 }
 
 /** ISO timestamp for the first day of the given month (local). */

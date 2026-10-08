@@ -45,14 +45,20 @@ export interface InstallmentPlanRepositoryPort {
    * `create`/`hydrate` already compose it, so there is still exactly one path
    * from `credit-statement` down to the `installment-payment` table.
    */
-  listBillableForCards(cardIds: string[], dueBy: Date): Promise<BillableCandidate[]>;
+  listBillableForCards(cardIds: string[], dueBy: Date, tx?: unknown): Promise<BillableCandidate[]>;
   /** Stamps the given instalments with the period that just charged them. */
   stampBillableWithTx(tx: unknown, paymentIds: string[], statementId: string): Promise<void>;
+  /** Un-bills the unpaid instalments of a period that are due after its (moved)
+   * close — see `InstallmentPaymentRepositoryPort.unstampDueAfterWithTx`. */
+  unstampDueAfterWithTx(tx: unknown, statementId: string, dueAfter: Date): Promise<void>;
   /** Settles every instalment a period charged, once that period is paid (FR-014). */
   settleForStatementWithTx(tx: unknown, statementId: string, paidAt: Date): Promise<void>;
   /** Composes `installment-payment`'s sum for the statement breakdown (FR-011) —
    * `credit-statement` calls this rather than reaching past this domain. */
-  billedInstallmentsForStatement(statementId: string): Promise<{ amount: string; count: number }>;
+  billedInstallmentsForStatement(
+    statementId: string,
+    tx?: unknown,
+  ): Promise<{ amount: string; count: number }>;
   /** Persists the plan's own scalar fields (title/currency/frequency/
    * frequencyInterval/notes) — never its payments (those are immutable once
    * scheduled; only their `paidAt` changes, via `setPaymentPaidAt`). */
@@ -98,4 +104,10 @@ export interface InstallmentPlanRepositoryPort {
   /** Plans bought with one of `cardIds` or paid from `accountId` — what can go
    * with the account when it is deleted. */
   listIdsForAccount(userId: string, accountId: string, cardIds: string[]): Promise<string[]>;
+  /** How many rows of this table the user has: what replacing everything from a
+   * template (specs/027, REPLACE) would delete, shown before confirming. */
+  countForUser(userId: string): Promise<number>;
+  /** Deletes every row of this table the user owns, inside the caller's
+   * transaction: replacing everything from a template rebuilds them from the file. */
+  deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void>;
 }

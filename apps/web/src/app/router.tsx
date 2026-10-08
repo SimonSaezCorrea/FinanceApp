@@ -12,7 +12,8 @@ import { AboutRoute } from "../domains/landing/routes/AboutRoute";
 import { FaqRoute } from "../domains/landing/routes/FaqRoute";
 import { PricingRoute } from "../domains/landing/routes/PricingRoute";
 import { PrivacyRoute } from "../domains/landing/routes/PrivacyRoute";
-import { ProfileRoute } from "../domains/profile/routes/ProfileRoute";
+import { ProfileLayout } from "../domains/profile/routes/ProfileLayout";
+import { PROFILE_CHILD_ROUTES } from "../domains/profile/routes/profileRoutes";
 import { RecurringRoute } from "../domains/recurring/routes/RecurringRoute";
 import { SavingsRoute } from "../domains/savings/routes/SavingsRoute";
 import { TransactionsRoute } from "../domains/transactions/routes/TransactionsRoute";
@@ -107,9 +108,11 @@ export const router = createBrowserRouter([
         handle: handle({ title: "import.title" }),
       },
       {
+        // One route per section (specs/029): `/profile` is the summary, the rest are children.
         path: "/profile",
-        element: protect(<ProfileRoute />),
+        element: protect(<ProfileLayout />),
         handle: handle({ title: "profile.title" }),
+        children: PROFILE_CHILD_ROUTES,
       },
       { path: "*", element: <NotFoundRoute /> },
     ],

@@ -97,3 +97,41 @@ export class StatementPaymentCurrencyAmbiguousError extends DomainError {
     super("STATEMENT_PAYMENT_CURRENCY_AMBIGUOUS", 400, "chargedAmount");
   }
 }
+
+/** "Generar facturación" on an account that can't be billed: not a credit card
+ * account, inactive, or without an active primary credit card. */
+export class StatementGenerationNotAllowedError extends DomainError {
+  constructor() {
+    super("STATEMENT_GENERATION_NOT_ALLOWED");
+  }
+}
+
+/** The declared start falls before the account's last close: two periods would
+ * claim the same days (and the same movements). */
+export class StatementPeriodOverlapsError extends DomainError {
+  constructor() {
+    super("STATEMENT_PERIOD_OVERLAPS", 400);
+  }
+}
+
+/** Close not after start, or due date before close. */
+export class StatementDatesInvalidError extends DomainError {
+  constructor() {
+    super("STATEMENT_DATES_INVALID", 400);
+  }
+}
+
+/** Editing the dates of a period that hasn't been generated yet (still OPEN). */
+export class StatementNotClosedError extends DomainError {
+  constructor() {
+    super("STATEMENT_NOT_CLOSED", 409);
+  }
+}
+
+/** Moving the start/close of a settled period (its money already moved), or the
+ * close of one that is followed by another closed period. */
+export class StatementDatesLockedError extends DomainError {
+  constructor() {
+    super("STATEMENT_DATES_LOCKED", 409);
+  }
+}

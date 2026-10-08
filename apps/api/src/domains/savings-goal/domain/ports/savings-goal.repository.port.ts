@@ -19,4 +19,10 @@ export interface SavingsGoalRepositoryPort {
    * `close`/`reopen` on the SAME goal must block, not race. */
   findOneForUpdateWithTx(tx: unknown, userId: string, id: string): Promise<SavingsGoal | null>;
   remove(userId: string, id: string): Promise<boolean>;
+  /** How many rows of this table the user has: what replacing everything from a
+   * template (specs/027, REPLACE) would delete, shown before confirming. */
+  countForUser(userId: string): Promise<number>;
+  /** Deletes every row of this table the user owns, inside the caller's
+   * transaction: replacing everything from a template rebuilds them from the file. */
+  deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void>;
 }

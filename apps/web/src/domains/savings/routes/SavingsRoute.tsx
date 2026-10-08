@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import type { savings } from "@finance/contracts";
+import { formatMoney } from "@finance/money";
 
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { useAuth } from "../../auth/hooks/useAuth";
@@ -66,7 +67,7 @@ function errorMessage(error: unknown, t: (key: string) => string): string {
 }
 
 export function SavingsRoute() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const preferredCurrency = user?.preferredCurrency ?? "CLP";
 
@@ -355,6 +356,10 @@ export function SavingsRoute() {
   // Movimientos already share.
   const [goalsColRef, goalsColWidth] = useElementWidth();
   const showTable = goalsColWidth !== null && goalsColWidth >= TABLE_ROW_MIN_WIDTH;
+  // While loading the goals column doesn't exist yet: derive its width from the shell (less the
+  // 300px rail and its 24px gap) so the skeleton takes the same table/list form.
+  const skeletonTable =
+    shellWidth !== null && shellWidth - (isDesktop ? 324 : 0) >= TABLE_ROW_MIN_WIDTH;
 
   return (
     <div ref={shellRef} className="flex flex-col gap-6">
@@ -362,7 +367,12 @@ export function SavingsRoute() {
         title={t("savings.title")}
         description={
           !goalsLoading && !goalsError
-            ? t("savings.subtitle", { count: openGoals.length, missing })
+            ? t("savings.subtitle", {
+                count: openGoals.length,
+                missing: user?.hideBalances
+                  ? "••••"
+                  : formatMoney(missing, { locale: i18n.language, currency: preferredCurrency }),
+              })
             : undefined
         }
         actions={
@@ -379,7 +389,9 @@ export function SavingsRoute() {
         }
       />
 
-      {goalsLoading && <SavingsSkeleton label={t("app.loading")} />}
+      {goalsLoading && (
+        <SavingsSkeleton label={t("app.loading")} columns={isDesktop} table={skeletonTable} />
+      )}
       {!goalsLoading && goalsError && <ErrorState error={goalsErr} onRetry={() => refetch()} />}
       {!goalsLoading && isEmpty && (
         <div className="flex flex-col gap-6">

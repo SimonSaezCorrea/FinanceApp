@@ -1,4 +1,4 @@
-import { ChevronRight, Menu, Monitor, Moon, Sun } from "lucide-react";
+import { ChevronRight, Menu } from "lucide-react";
 import {
   type CSSProperties,
   type ReactNode,
@@ -21,8 +21,8 @@ import { cn } from "../../../shared/lib/cn";
 import { BrandMark } from "../../../shared/ui/brand-mark";
 import { Button } from "../../../shared/ui/button";
 import { Window } from "../../../shared/ui/overlay";
+import { ThemeSegmented } from "../../../shared/ui/theme-segmented";
 import { ThemeToggle } from "../../../shared/ui/theme-toggle";
-import { type ThemeMode, useTheme } from "../../../theme/useTheme";
 import { AuthPanel } from "../../auth/components/AuthPanel";
 import { useAuth } from "../../auth/hooks/useAuth";
 import {
@@ -321,49 +321,14 @@ function LandingMenu({
   );
 }
 
-const THEME_OPTIONS: { mode: ThemeMode; icon: typeof Sun; key: string }[] = [
-  { mode: "light", icon: Sun, key: "theme.light" },
-  { mode: "dark", icon: Moon, key: "theme.dark" },
-  { mode: "system", icon: Monitor, key: "theme.system" },
-];
-
 /** The theme choice at phone size: the shared `ThemeToggle` is a compact icon strip for the
- * sidebar (28px targets), too small to tap and too terse in a sheet with room to spare. Here
- * it's three full-width, 44px segments with their names. */
+ * sidebar (28px targets), too small to tap and too terse in a sheet with room to spare, so the
+ * sheet uses the named 44px segments. No visible label: the three named options say what this is;
+ * the group keeps its accessible name for screen readers. */
 function MenuThemeSwitch() {
-  const { t } = useTranslation();
-  const { mode, setMode } = useTheme();
   return (
     <div className="mt-auto pt-8">
-      {/* No visible label: the three named options say what this is. The group keeps its
-          accessible name for screen readers. */}
-      <div
-        role="group"
-        aria-label={t("theme.label")}
-        className="grid grid-cols-3 gap-1 rounded-xl border bg-background p-1"
-      >
-        {THEME_OPTIONS.map(({ mode: option, icon: Icon, key }) => {
-          const active = mode === option;
-          return (
-            <button
-              key={option}
-              type="button"
-              aria-pressed={active}
-              onClick={() => setMode(option)}
-              className={cn(
-                "flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-medium transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                active
-                  ? "bg-primary/15 text-foreground"
-                  : "text-muted-foreground active:bg-muted/60",
-              )}
-            >
-              <Icon className={cn("h-4 w-4", active && "text-primary")} aria-hidden />
-              {t(key)}
-            </button>
-          );
-        })}
-      </div>
+      <ThemeSegmented />
     </div>
   );
 }

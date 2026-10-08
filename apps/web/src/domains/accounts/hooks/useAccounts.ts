@@ -54,10 +54,25 @@ export function useAccountMutations() {
       onSuccess: invalidate,
     }),
     generateStatements: useMutation({
-      mutationFn: accountsApi.generateStatements,
-      onSuccess: (_, id) => {
+      mutationFn: (vars: { id: string; body: accounts.GenerateStatement }) =>
+        accountsApi.generateStatements(vars.id, vars.body),
+      onSuccess: (_, { id }) => {
         invalidate();
         qc.invalidateQueries({ queryKey: ["accounts", id, "credit-statements"] });
+      },
+    }),
+    updateStatementDates: useMutation({
+      mutationFn: (vars: {
+        id: string;
+        statementId: string;
+        body: accounts.UpdateStatementDates;
+      }) => accountsApi.updateStatementDates(vars.id, vars.statementId, vars.body),
+      // Moving a close re-links movements and instalments, so those lists move too.
+      onSuccess: (_, { id }) => {
+        invalidate();
+        qc.invalidateQueries({ queryKey: ["accounts", id, "credit-statements"] });
+        qc.invalidateQueries({ queryKey: ["transactions"] });
+        qc.invalidateQueries({ queryKey: ["installments"] });
       },
     }),
     payCreditStatement: useMutation({

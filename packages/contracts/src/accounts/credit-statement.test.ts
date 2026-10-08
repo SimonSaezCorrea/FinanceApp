@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   canTransferStatement,
   creditStatementStatus,
+  generateStatementSchema,
   isSettled,
+  suggestedPeriodStart,
   payCreditStatementSchema,
   transferCreditStatementSchema,
   updateStatementPaymentSchema,
@@ -80,5 +82,41 @@ describe("statement write schemas", () => {
     expect(
       updateStatementPaymentSchema.parse({ amount: "30", chargedAmount: "28000" }).chargedAmount,
     ).toBe("28000");
+  });
+});
+
+describe("generateStatementSchema", () => {
+  const ok = {
+    periodStart: "2026-08-21T04:00:00.000Z",
+    closedAt: "2026-09-21T02:59:59.999Z",
+    dueDate: "2026-10-06T02:59:59.999Z",
+  };
+  it("accepts start < close <= due", () => {
+    expect(generateStatementSchema.safeParse(ok).success).toBe(true);
+  });
+  it("rejects a close before the start and a due date before the close", () => {
+    expect(generateStatementSchema.safeParse({ ...ok, closedAt: ok.periodStart }).success).toBe(
+      false,
+    );
+    expect(generateStatementSchema.safeParse({ ...ok, dueDate: ok.periodStart }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe("suggestedPeriodStart", () => {
+  it("is the local day after the latest close, whatever the currency", () => {
+    const close = new Date(2026, 7, 20, 23, 59, 59, 999);
+    const older = new Date(2026, 6, 20, 23, 59, 59, 999);
+    expect(
+      suggestedPeriodStart([
+        { closedAt: older.toISOString() },
+        { closedAt: close.toISOString() },
+        { closedAt: null },
+      ]),
+    ).toBe("2026-08-21");
+  });
+  it("is null when the account was never billed", () => {
+    expect(suggestedPeriodStart([{ closedAt: null }])).toBeNull();
   });
 });

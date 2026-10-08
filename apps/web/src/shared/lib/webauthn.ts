@@ -20,6 +20,15 @@ function bufferToBase64url(buffer: ArrayBuffer): string {
   return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+/** Whether this browser can register a passkey at all (specs/029): the minimum for
+ * `navigator.credentials.create()` to exist. Synchronous on purpose, and deliberately NOT
+ * `isUserVerifyingPlatformAuthenticatorAvailable()` — a USB/NFC security key is a valid passkey even
+ * on a machine with no built-in biometrics. Used to decide whether "add a passkey" can be offered as
+ * the profile summary's next step. */
+export function isPasskeySupported(): boolean {
+  return typeof window !== "undefined" && typeof window.PublicKeyCredential === "function";
+}
+
 /** Feature-detects WebAuthn conditional mediation (autofill-driven passkey suggestions,
  * specs/025) — Chrome/Edge 109+ and Safari 16+ support it, Firefox doesn't at all. Never throws:
  * an unsupported browser (missing the static method entirely) or any runtime error both resolve

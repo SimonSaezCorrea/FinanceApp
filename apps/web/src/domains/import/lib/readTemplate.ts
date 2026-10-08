@@ -5,6 +5,7 @@ import { imports } from "@finance/contracts";
 import { normalize, type Cell, type Sheet } from "./importParsing";
 import { readSpreadsheet, SpreadsheetReadError } from "./readSpreadsheet";
 import {
+  EXISTING_ID_HEADER_KEY,
   MARKER_SHEET,
   TEMPLATE_SHEETS,
   TEMPLATE_VERSION,
@@ -25,6 +26,9 @@ export class TemplateReadError extends Error {
 export interface TemplateCellRow {
   row: number;
   cells: Record<string, Cell>;
+  /** Carries an "ID Cuadra": it came from a pre-filled template and is already in
+   * the app. Skipped when adding; the history itself when replacing everything. */
+  existing?: boolean;
 }
 
 export type TemplateSheetsRead = Record<imports.TemplateSheetKey, TemplateCellRow[]>;
@@ -40,7 +44,8 @@ const isEmpty = (cell: Cell) => cell === null || cell === undefined || String(ce
  * data sheet's non-empty rows, cells keyed by column. Sheets and columns are
  * matched by their labels in EVERY language, so what's read never depends on
  * the language the app happens to be in. A column the template doesn't know is
- * ignored; one the user deleted just reads as empty.
+ * ignored; one the user deleted just reads as empty. A row with an "ID Cuadra"
+ * (a pre-filled template's existing data) is flagged `existing`.
  */
 export function parseTemplateSheets(sheets: Sheet[], labelers: Labelers): TemplateSheetsRead {
   const marker = sheets.find((s) => s.name === MARKER_SHEET);
@@ -58,6 +63,9 @@ export function parseTemplateSheets(sheets: Sheet[], labelers: Labelers): Templa
     if (!sheet || sheet.matrix.length === 0) continue;
 
     const header = sheet.matrix[0] ?? [];
+    // A pre-filled template tags the rows already in the app: never import them again.
+    const idLabels = new Set(labelers.map((t) => normalize(t(EXISTING_ID_HEADER_KEY))));
+    const idColumn = header.findIndex((cell) => idLabels.has(normalize(cell)));
     const columnAt = new Map<number, string>();
     header.forEach((cell, index) => {
       const text = normalize(cell);
@@ -69,7 +77,8 @@ export function parseTemplateSheets(sheets: Sheet[], labelers: Labelers): Templa
 
     sheet.matrix.slice(1).forEach((cells, i) => {
       if (cells.every(isEmpty)) return;
-      const row: TemplateCellRow = { row: i + 2, cells: {} };
+      const existing = idColumn >= 0 && !isEmpty(cells[idColumn] ?? null);
+      const row: TemplateCellRow = { row: i + 2, cells: {}, ...(existing ? { existing } : {}) };
       columnAt.forEach((key, index) => {
         const cell = cells[index] ?? null;
         row.cells[key] = typeof cell === "string" ? cell.trim() || null : cell;

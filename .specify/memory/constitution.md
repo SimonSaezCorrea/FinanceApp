@@ -1,4 +1,69 @@
 <!--
+Sync Impact Report — 2026-10-07 (amendment 2.3.19)
+- Version change: 2.3.18 → 2.3.19 (PATCH: one write endpoint's behavior and one scheduled job; no
+  principle text changed).
+- CHANGED: `PATCH /accounts/:id/credit-statements/:statementId/dates` on the OPEN period now
+  schedules the close (`CreditStatement.plannedCloseAt`) instead of refusing; it closes nothing.
+  Absolute state, so a replay converges (Principle VII form (a)).
+- ADDED: hourly `StatementGenerationCron` → `GenerateScheduledStatementsCommand`
+  (`scope: "system"`, a named exception to Principle II like the other crons), which dispatches the
+  per-user `GenerateStatementsCommand` for each account whose scheduled close has arrived.
+-->
+<!--
+Sync Impact Report — 2026-10-07 (amendment 2.3.18)
+- Version change: 2.3.17 → 2.3.18 (PATCH: a validation removed from two write endpoints; no
+  principle text changed).
+- CHANGED: `POST /accounts/:id/generate-statements` and `PATCH …/credit-statements/:id/dates`
+  accept dates in the future (`STATEMENT_CLOSE_IN_FUTURE` removed). Retry-safety unchanged
+  (form (a): a replay overlaps the close it just recorded). Movements dated inside a period whose
+  close is still ahead link to it, not to the open one.
+-->
+<!--
+Sync Impact Report — 2026-10-07 (amendment 2.3.17)
+- Version change: 2.3.16 → 2.3.17 (PATCH: one write endpoint extended; no principle text changed).
+- CHANGED: `POST /import/template` (+ `/preview`) — template v2 gains a `mode`: `MERGE` (as before)
+  or `REPLACE`, which deletes every account, card and record of the user and rebuilds them from
+  the file, in the SAME transaction as the import and its idempotency record (Principle VII form
+  (c), operation `import.template` unchanged). Each table is emptied through its own port's new
+  `deleteAllForUserWithTx` (Principle VI), and counted for the preview with `countForUser`.
+- IDENTIFIERS (Principle VIII): accounts/cards the file defines carry a browser-minted UUID v7 as a
+  TEMPORARY key only; the API creates the rows with ids of its own (`generateRowId`) and translates
+  every reference. A client-sent id is never stored as a PK.
+-->
+<!--
+Sync Impact Report — 2026-10-07 (amendment 2.3.16)
+- Version change: 2.3.15 → 2.3.16 (PATCH: one write endpoint added; no principle text changed).
+- ADDED: `PATCH /accounts/:id/credit-statements/:statementId/dates` (edit a generated statement's
+  start/close/due date). Retry-safe by form (a)/absolute state: it writes the dates themselves, so
+  replaying the same body converges to the same rows.
+-->
+<!--
+Sync Impact Report — 2026-10-06 (amendment 2.3.15)
+- Version change: 2.3.14 → 2.3.15 (PATCH: one write endpoint changed, one column, one cron
+  removed; no principle text changed).
+- CHANGED: `POST /accounts/:id/generate-statements` now takes the statement's dates
+  (`accounts.generateStatementSchema`: periodStart/closedAt/dueDate) instead of deriving them from
+  `BillingSettings`; new column `CreditStatement.dueDate`. Retry-safety (Principle VII) is form (a):
+  replaying the same dates is refused with `STATEMENT_PERIOD_OVERLAPS`.
+- REMOVED: the daily billing cron (`GenerateAllDueStatementsCommand`, the last `scope: "system"`
+  command in `credit-statement`) and the billing-cycle configuration UI — deferred, see
+  `docs/PENDING.md` (Cuentas — facturación, punto 0).
+-->
+<!--
+Sync Impact Report — 2026-10-06 (amendment 2.3.14)
+- Version change: 2.3.13 → 2.3.14 (PATCH: a routing convention and a wording fix; no principle's
+  meaning changed).
+- ADDED (specs/029, frontend only): a settings-style view gets one route per section under its
+  base path (`/profile`, `/profile/personal|security|preferences|privacy`, unknown child → the
+  base), and decides two panes vs. list → screen by its OWN measured width
+  (`PROFILE_PANES_MIN_WIDTH` = 820, via `useElementWidth`), never a viewport breakpoint — the same
+  container-width rule `CLAUDE.md` already states. Its status lines/pending counts come from pure,
+  tested functions (`domains/profile/lib/profileStatus.ts`). No API, schema or contract change.
+- FIXED (Principle III wording): it still named `messages/*.json` and `@/i18n/navigation` from the
+  retired Next.js app. Now names the real catalogs (`apps/web/src/i18n/{es,en}.json`), the parity
+  test that enforces them, and react-router links. Same rule, same strength.
+-->
+<!--
 Sync Impact Report — 2026-10-06 (amendment 2.3.13)
 - Version change: 2.3.12 → 2.3.13 (PATCH: one write path hardened, two columns; no principle text
   changed).
@@ -1663,10 +1728,11 @@ puede conflarse con "el campo venía vacío".
 
 ### III. i18n Parity (NON-NEGOTIABLE)
 
-Every user-facing string MUST exist in BOTH `messages/es.json` and `messages/en.json` under
-identical keys. Locale-aware navigation MUST use `@/i18n/navigation` (`Link`, `redirect`);
-bare `next/link` for internal routes is FORBIDDEN. Default locale is `es`; `localePrefix` is
-`always`.
+Every user-facing string MUST exist in BOTH `apps/web/src/i18n/es.json` and
+`apps/web/src/i18n/en.json` under identical keys; `apps/web/src/i18n/parity.test.ts` enforces it.
+The API never returns localized text (it answers language-agnostic error codes the web maps to
+`errors.<CODE>`). Internal navigation uses react-router (`Link`/`NavLink`/`useNavigate`). Default
+locale is `es`.
 
 Rationale: the app ships Spanish and English as first-class. A key present in one catalog
 but missing in the other is a user-visible defect (raw key or crash).
@@ -2057,4 +2123,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.3.13 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-06
+**Version**: 2.3.19 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-07

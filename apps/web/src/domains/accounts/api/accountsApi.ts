@@ -31,8 +31,17 @@ export const accountsApi = {
   creditStatements: (id: string) =>
     apiFetch<accounts.CreditStatement[]>(`/accounts/${id}/credit-statements`),
 
-  generateStatements: (id: string) =>
-    apiFetch<accounts.CreditStatement[]>(`/accounts/${id}/generate-statements`, { method: "POST" }),
+  generateStatements: (id: string, body: accounts.GenerateStatement) =>
+    apiFetch<accounts.CreditStatement[]>(`/accounts/${id}/generate-statements`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  updateStatementDates: (id: string, statementId: string, body: accounts.UpdateStatementDates) =>
+    apiFetch<accounts.CreditStatement[]>(`/accounts/${id}/credit-statements/${statementId}/dates`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
 
   payCreditStatement: (
     id: string,

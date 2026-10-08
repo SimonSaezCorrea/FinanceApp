@@ -1,5 +1,6 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useLocation } from "react-router";
 import type { auth } from "@finance/contracts";
 import { ChevronDown, Eye, EyeOff, Laptop, Smartphone } from "lucide-react";
 import { toast } from "sonner";
@@ -9,7 +10,6 @@ import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { cn } from "../../../shared/lib/cn";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "../../../shared/ui/button";
-import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
 import { ConfirmModal, FormSurface } from "../../../shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { FormNotice } from "../../../shared/ui/form/FormNotice";
@@ -321,58 +321,88 @@ export function SecuritySection() {
     pendingActionRef.current = null;
   }
 
+  // The summary links straight to a block (`#two-factor`, `#passkeys`, `#sessions`, specs/029 R8):
+  // bring it into view and give it focus, so the action the user came for is right there.
+  const { hash } = useLocation();
+  useEffect(() => {
+    if (!hash) return;
+    const target = document.getElementById(hash.slice(1));
+    target?.scrollIntoView?.({ block: "start" });
+    target?.focus({ preventScroll: true });
+  }, [hash]);
+
   return (
-    <CollapsibleSection title={t("profile.security.title")}>
-      <div className="flex items-center justify-between border-b py-3">
-        <div>
-          <div className="text-sm">{t("profile.security.password.label")}</div>
-          <div className="text-xs text-muted-foreground">{t("profile.security.password.hint")}</div>
-        </div>
-        <Button variant="outline" size="sm" onClick={() => setChangingPassword(true)}>
-          {t("profile.security.password.change")}
-        </Button>
-      </div>
-      <div className="flex items-center justify-between border-b py-3">
-        <div>
-          <div className="text-sm">{t("profile.security.twoFactor.label")}</div>
-          <div className="text-xs text-muted-foreground">
-            {mfaEnabled
-              ? t("profile.security.mfa.enabledHint", {
-                  count: user?.mfaRecoveryCodesRemaining ?? 0,
-                })
-              : t("profile.security.twoFactor.hint")}
+    <div className="flex flex-col gap-4">
+      <div className="rounded-2xl border bg-card px-5">
+        <div
+          id="password"
+          tabIndex={-1}
+          className="flex min-h-16 scroll-mt-24 items-center justify-between gap-4 border-b py-3 focus:outline-none"
+        >
+          <div>
+            <div className="text-sm">{t("profile.security.password.label")}</div>
+            <div className="text-xs text-muted-foreground">
+              {t("profile.security.password.hint")}
+            </div>
           </div>
+          <Button variant="outline" size="sm" onClick={() => setChangingPassword(true)}>
+            {t("profile.security.password.change")}
+          </Button>
         </div>
-        <Switch
-          checked={mfaEnabled}
-          onCheckedChange={(checked) => {
-            if (checked) setEnrollingMfa(true);
-            else setDisablingMfa(true);
-          }}
-          aria-label={t("profile.security.twoFactor.label")}
-        />
-      </div>
-      <div className="flex items-center justify-between border-b py-3">
-        <div>
-          <div className="flex items-center gap-2 text-sm">
-            {t("profile.security.passkey.label")}
-            {passkeyCount > 0 ? (
-              <Badge variant="success">
-                {t("profile.security.passkey.countBadge", { count: passkeyCount })}
-              </Badge>
-            ) : null}
+        <div
+          id="two-factor"
+          tabIndex={-1}
+          className="flex min-h-16 scroll-mt-24 items-center justify-between gap-4 border-b py-3 focus:outline-none"
+        >
+          <div>
+            <div className="text-sm">{t("profile.security.twoFactor.label")}</div>
+            <div className="text-xs text-muted-foreground">
+              {mfaEnabled
+                ? t("profile.security.mfa.enabledHint", {
+                    count: user?.mfaRecoveryCodesRemaining ?? 0,
+                  })
+                : t("profile.security.twoFactor.hint")}
+            </div>
           </div>
-          <div className="text-xs text-muted-foreground">{t("profile.security.passkey.hint")}</div>
+          <Switch
+            checked={mfaEnabled}
+            onCheckedChange={(checked) => {
+              if (checked) setEnrollingMfa(true);
+              else setDisablingMfa(true);
+            }}
+            aria-label={t("profile.security.twoFactor.label")}
+          />
         </div>
-        <Button variant="outline" size="sm" onClick={() => setManagingPasskeys(true)}>
-          {t("profile.security.passkey.configure")}
-        </Button>
+        <div
+          id="passkeys"
+          tabIndex={-1}
+          className="flex min-h-16 scroll-mt-24 items-center justify-between gap-4 py-3 focus:outline-none"
+        >
+          <div>
+            <div className="flex items-center gap-2 text-sm">
+              {t("profile.security.passkey.label")}
+              {passkeyCount > 0 ? (
+                <Badge variant="success">
+                  {t("profile.security.passkey.countBadge", { count: passkeyCount })}
+                </Badge>
+              ) : null}
+            </div>
+            <div className="text-xs text-muted-foreground">
+              {t("profile.security.passkey.hint")}
+            </div>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setManagingPasskeys(true)}>
+            {t("profile.security.passkey.configure")}
+          </Button>
+        </div>
       </div>
-      <div className="pt-3">
+      <div
+        id="sessions"
+        tabIndex={-1}
+        className="scroll-mt-24 rounded-2xl border bg-card p-5 focus:outline-none"
+      >
         <div className="mb-2 flex items-center justify-between">
-          <span className="text-xs font-medium text-muted-foreground">
-            {t("profile.security.sessions.title")}
-          </span>
+          <h2 className="text-sm font-semibold">{t("profile.security.sessions.title")}</h2>
           {openSessionCount > 1 ? (
             <button
               type="button"
@@ -440,7 +470,7 @@ export function SecuritySection() {
         onOpenChange={setStepUpOpen}
         onVerified={handleStepUpVerified}
       />
-    </CollapsibleSection>
+    </div>
   );
 }
 

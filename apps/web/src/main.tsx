@@ -7,7 +7,10 @@ import "@fontsource-variable/inter";
 
 import { Providers } from "./app/providers";
 import { router } from "./app/router";
+import { trackScrollbarGap } from "./shared/lib/scrollbarGap";
 import "./styles/index.css";
+
+trackScrollbarGap();
 
 const rootEl = document.getElementById("root");
 if (!rootEl) throw new Error("Root element #root not found");

@@ -10,11 +10,17 @@ import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { cn } from "../../../shared/lib/cn";
 import { Button } from "../../../shared/ui/button";
+import { Input } from "../../../shared/ui/input";
 import { ResponsiveSurface } from "../../../shared/ui/overlay";
 import { Segmented } from "../../../shared/ui/segmented";
 import { useTemplateImport } from "../hooks/useTemplateImport";
 import type { TemplateRefs } from "../lib/buildTemplate";
-import { readTemplate, TemplateReadError, type TemplateReadFailure } from "../lib/readTemplate";
+import {
+  readTemplate,
+  TemplateReadError,
+  type TemplateReadFailure,
+  type TemplateSheetsRead,
+} from "../lib/readTemplate";
 import { resolveTemplate, type LocalIssue } from "../lib/resolveTemplate";
 import { columnKey, sheetNameKey } from "../lib/templateSpec";
 
@@ -37,6 +43,10 @@ interface ShownIssue {
  * nothing) and shows what it would do — counts per sheet, the effect on each
  * account under a chosen balance mode — or every problem, on its sheet and row.
  * Importing is all-or-nothing and retry-safe.
+ *
+ * Template v2: the file can either ADD to what the app holds or REPLACE all of it
+ * (accounts, cards and records are deleted and rebuilt from the file). Replacing
+ * shows what it deletes and asks for the confirmation word before it's enabled.
  */
 export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
@@ -53,8 +63,15 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
   const [localIssues, setLocalIssues] = useState<LocalIssue[]>([]);
   const [modes, setModes] = useState<Record<string, imports.BalanceMode>>({});
   const [commitIssue, setCommitIssue] = useState<ShownIssue | null>(null);
+  const [read, setRead] = useState<TemplateSheetsRead | null>(null);
+  const [importMode, setImportMode] = useState<imports.TemplateImportMode>("MERGE");
+  const [confirmText, setConfirmText] = useState("");
 
-  const accountName = (id: string) => refs.accounts.find((a) => a.id === id)?.name ?? id;
+  const defined = (id: string) => request?.accounts.find((a) => a.id === id);
+  const accountName = (id: string) =>
+    refs.accounts.find((a) => a.id === id)?.name ?? defined(id)?.name ?? id;
+  const accountType = (id: string) =>
+    refs.accounts.find((a) => a.id === id)?.type ?? defined(id)?.type;
   const sheetName = (sheet: string) => t(sheetNameKey(sheet));
 
   function reset() {
@@ -64,8 +81,34 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
     setLocalIssues([]);
     setModes({});
     setCommitIssue(null);
+    setRead(null);
+    setImportMode("MERGE");
+    setConfirmText("");
     preview.reset();
     idempotencyKey.reset();
+  }
+
+  const totalRows = (body: imports.TemplateImportRequest) =>
+    imports.TEMPLATE_SHEET_KEYS.reduce((n, k) => n + body[k].length, 0);
+
+  /** Resolves the read file under a mode and asks the server for its preview. */
+  function apply(file: TemplateSheetsRead, mode: imports.TemplateImportMode) {
+    const resolved = resolveTemplate(file, refs, labelers, mode);
+    setImportMode(mode);
+    setModes({});
+    setConfirmText("");
+    setCommitIssue(null);
+    idempotencyKey.reset();
+    preview.reset();
+    if (totalRows(resolved.request) > imports.TEMPLATE_IMPORT_MAX_ROWS) {
+      setFailure("tooMany");
+      return;
+    }
+    setRequest(resolved.request);
+    setLocalIssues(resolved.issues);
+    // Only a file with nothing wrong locally goes to the server: its problems
+    // would only repeat the ones already listed.
+    if (resolved.issues.length === 0) preview.mutate(resolved.request);
   }
 
   function close(next: boolean) {
@@ -87,19 +130,20 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
     reset();
     setReading(true);
     try {
-      const read = await readTemplate(file, labelers);
-      const resolved = resolveTemplate(read, refs, labelers);
+      const file_ = await readTemplate(file, labelers);
       setFileName(file.name);
-      const total = imports.TEMPLATE_SHEET_KEYS.reduce((n, k) => n + resolved.request[k].length, 0);
-      if (total > imports.TEMPLATE_IMPORT_MAX_ROWS) {
-        setFailure("tooMany");
+      setRead(file_);
+      // A pre-filled template with nothing added: only replacing makes sense.
+      const rows = Object.values(file_).flat();
+      if (rows.every((r) => r.existing)) {
+        if (rows.length === 0) {
+          setFailure("empty");
+          return;
+        }
+        apply(file_, "REPLACE");
         return;
       }
-      setRequest(resolved.request);
-      setLocalIssues(resolved.issues);
-      // Only a file with nothing wrong locally goes to the server: its problems
-      // would only repeat the ones already listed.
-      if (resolved.issues.length === 0) preview.mutate(resolved.request);
+      apply(file_, "MERGE");
     } catch (error) {
       setFailure(error instanceof TemplateReadError ? error.reason : "unreadable");
     } finally {
@@ -163,7 +207,12 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
     })),
     ...(commitIssue ? [commitIssue] : []),
   ];
-  const ready = !!request && localIssues.length === 0 && !!result?.valid && !commitIssue;
+  const replacing = importMode === "REPLACE";
+  const confirmed =
+    !replacing ||
+    confirmText.trim().toUpperCase() === t("import.template.ui.replaceConfirmWord").toUpperCase();
+  const ready =
+    !!request && localIssues.length === 0 && !!result?.valid && !commitIssue && confirmed;
   const busy = preview.isPending || commit.isPending;
   const loaded = !!request || !!failure;
 
@@ -189,8 +238,16 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
               <Upload className="h-4 w-4" aria-hidden />
               {t("import.template.changeFile")}
             </Button>
-            <Button variant="accent" disabled={!ready || busy} onClick={submit}>
-              {commit.isPending ? t("import.template.submitting") : t("import.template.submit")}
+            <Button
+              variant={replacing ? "destructive" : "accent"}
+              disabled={!ready || busy}
+              onClick={submit}
+            >
+              {commit.isPending
+                ? t("import.template.submitting")
+                : replacing
+                  ? t("import.template.ui.submitReplace")
+                  : t("import.template.submit")}
             </Button>
           </div>
         ) : undefined
@@ -252,6 +309,28 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
         </div>
       ) : (
         <div className="flex flex-col gap-6">
+          {read ? (
+            <section className="flex flex-col gap-2">
+              <h3 className="text-sm font-medium">{t("import.template.ui.modeTitle")}</h3>
+              <Segmented
+                size="sm"
+                variant="neutral"
+                aria-label={t("import.template.ui.modeTitle")}
+                value={importMode}
+                onChange={(mode) => apply(read, mode)}
+                options={[
+                  { value: "MERGE", label: t("import.template.ui.modeMerge") },
+                  { value: "REPLACE", label: t("import.template.ui.modeReplace") },
+                ]}
+              />
+              <p className="text-xs text-muted-foreground">
+                {replacing
+                  ? t("import.template.ui.modeReplaceHint")
+                  : t("import.template.ui.modeMergeHint")}
+              </p>
+            </section>
+          ) : null}
+
           {issues.length > 0 ? (
             <section role="alert" className="flex flex-col gap-2">
               <h3 className="flex items-center gap-2 text-sm font-medium text-destructive">
@@ -305,16 +384,20 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
                       const money = (v: string) =>
                         formatMoney(v, { currency: a.currency, locale: i18n.language });
                       // A credit card account holds no cash: its figure is the credit used.
-                      const credit =
-                        refs.accounts.find((r) => r.id === a.accountId)?.type === "CREDIT_CARD";
+                      const credit = accountType(a.accountId) === "CREDIT_CARD";
                       return (
                         <li
                           key={a.accountId}
                           className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5"
                         >
                           <div className="flex min-w-0 flex-col">
-                            <span className="truncate text-sm font-medium">
+                            <span className="flex items-center gap-2 truncate text-sm font-medium">
                               {accountName(a.accountId)}
+                              {defined(a.accountId) ? (
+                                <span className="rounded-full bg-chip px-1.5 text-[11px] font-normal text-muted-foreground">
+                                  {t("import.template.ui.newAccount")}
+                                </span>
+                              ) : null}
                             </span>
                             <span className="text-xs text-muted-foreground">
                               {t("import.template.net")}:{" "}
@@ -331,17 +414,19 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
                               </span>
                             </span>
                           </div>
-                          <Segmented
-                            size="sm"
-                            variant="neutral"
-                            aria-label={accountName(a.accountId)}
-                            value={a.mode}
-                            onChange={(mode) => changeMode(a.accountId, mode)}
-                            options={[
-                              { value: "INCLUDED", label: t("import.template.modeIncluded") },
-                              { value: "ADD", label: t("import.template.modeAdd") },
-                            ]}
-                          />
+                          {defined(a.accountId) ? null : (
+                            <Segmented
+                              size="sm"
+                              variant="neutral"
+                              aria-label={accountName(a.accountId)}
+                              value={a.mode}
+                              onChange={(mode) => changeMode(a.accountId, mode)}
+                              options={[
+                                { value: "INCLUDED", label: t("import.template.modeIncluded") },
+                                { value: "ADD", label: t("import.template.modeAdd") },
+                              ]}
+                            />
+                          )}
                         </li>
                       );
                     })}
@@ -349,10 +434,34 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
                 </section>
               ) : null}
 
-              <p className="flex items-start gap-2 rounded-md bg-warning/10 p-3 text-sm text-warning">
-                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-                {t("import.template.reimportWarning")}
-              </p>
+              {replacing && result.replaces ? (
+                <section className="flex flex-col gap-3 rounded-md border border-destructive/40 bg-destructive/5 p-3">
+                  <h3 className="flex items-center gap-2 text-sm font-medium text-destructive">
+                    <AlertTriangle className="h-4 w-4" aria-hidden />
+                    {t("import.template.ui.replaceTitle")}
+                  </h3>
+                  <p className="text-sm">
+                    {t("import.template.ui.replaceCounts", result.replaces)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t("import.template.ui.replaceWarning")}
+                  </p>
+                  <label className="flex flex-col gap-1.5 text-xs font-medium">
+                    {t("import.template.ui.replaceConfirmLabel")}
+                    <Input
+                      value={confirmText}
+                      onChange={(e) => setConfirmText(e.target.value)}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </label>
+                </section>
+              ) : (
+                <p className="flex items-start gap-2 rounded-md bg-warning/10 p-3 text-sm text-warning">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                  {t("import.template.reimportWarning")}
+                </p>
+              )}
             </>
           ) : null}
         </div>

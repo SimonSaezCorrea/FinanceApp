@@ -402,7 +402,9 @@ export function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   const openNew = () => setNewOpen(true);
 
   return (
-    <div className="flex h-dvh overflow-hidden">
+    // `app-shell`: the document itself never scrolls here (only <main> does), so
+    // `styles/index.css` drops the page-scrollbar gutter for it.
+    <div className="app-shell flex h-dvh overflow-hidden">
       <ThemeSync />
       {isTablet ? (
         <aside

@@ -2,7 +2,10 @@ import type { TFunction } from "i18next";
 
 import { reference, type accounts } from "@finance/contracts";
 
+import type { ExistingRows } from "./templateData";
 import {
+  EXISTING_ID_HEADER_KEY,
+  EXISTING_ID_HELP_KEY,
   FIXED_LISTS,
   INSTRUCTIONS_KEY,
   MARKER_SHEET,
@@ -24,7 +27,12 @@ export interface TemplateRefs {
   cards: { id: string; accountId: string; accountName: string; last4: string }[];
   categories: reference.Category[];
   currencies: string[];
+  /** The institution catalogue, to link an account's Institution by name. */
+  institutions?: { id: string; name: string }[];
 }
+
+/** Rows of Accounts/Cards the Reference dropdowns follow (rows added later too). */
+const DEFINITION_ROWS = 200;
 
 interface RangeValidations {
   dataValidations: {
@@ -53,6 +61,10 @@ function referenceLists(refs: TemplateRefs, t: TFunction): Record<ListKey, strin
     planFrequency: fixed("planFrequency"),
     recurrenceFrequency: fixed("recurrenceFrequency"),
     yesNo: fixed("yesNo"),
+    accountType: fixed("accountType"),
+    cardKind: fixed("cardKind"),
+    cardNetwork: fixed("cardNetwork"),
+    accountStatus: fixed("accountStatus"),
   };
 }
 
@@ -66,6 +78,10 @@ const LIST_ORDER: ListKey[] = [
   "planFrequency",
   "recurrenceFrequency",
   "yesNo",
+  "accountType",
+  "cardKind",
+  "cardNetwork",
+  "accountStatus",
 ];
 
 const columnLetter = (index: number): string => {
@@ -88,14 +104,17 @@ const quoted = (name: string) => `'${name.replace(/'/g, "''")}'`;
  * imported on demand: it only ever loads when someone downloads a template.
  *
  * Data sheets come EMPTY — examples live on the Instructions sheet, where they
- * can never be imported by mistake.
+ * can never be imported by mistake — unless `existing` is given: then they come
+ * pre-filled with the user's current data, each row tagged in a last "ID Cuadra"
+ * column that makes the reader skip it (only rows added below get imported).
  */
 export async function buildTemplate(input: {
   refs: TemplateRefs;
   t: TFunction;
   locale: string;
+  existing?: ExistingRows;
 }): Promise<Blob> {
-  const { refs, t, locale } = input;
+  const { refs, t, locale, existing } = input;
   const { default: ExcelJS } = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Cuadra";
@@ -111,6 +130,11 @@ export async function buildTemplate(input: {
     [t("import.template.instructions.refs"), false],
     [t("import.template.instructions.allOrNothing"), false],
     [t("import.template.instructions.reimport"), false],
+    [t("import.template.instructions.accountsSheets"), false],
+    [t("import.template.instructions.replace"), false],
+    ...(existing
+      ? ([[t("import.template.instructions.prefilled"), false]] as [string, boolean][])
+      : []),
     ["", false],
     [t("import.template.instructions.exampleTitle"), true],
     ...TEMPLATE_SHEETS.map((s): [string, boolean] => [
@@ -154,8 +178,35 @@ export async function buildTemplate(input: {
   const ref = workbook.addWorksheet(referenceName);
   const lists = referenceLists(refs, t);
   const ranges = new Map<ListKey, string>();
+  // Accounts and cards are also those the file's own Accounts/Cards sheets define:
+  // their dropdowns follow those sheets by formula, so a row added there shows up
+  // right away. A pre-filled template already lists every account there; an empty
+  // one still offers the app's own (static), above the formulas.
+  const accountsSheet = quoted(t(sheetNameKey("accounts")));
+  const cardsSheet = quoted(t(sheetNameKey("cards")));
+  const existingAccounts = existing?.accounts ?? [];
+  const existingCards = existing?.cards ?? [];
+  const accountName = (r: number) => existingAccounts[r]?.cells.name ?? "";
+  const cardLabelAt = (r: number) => {
+    const c = existingCards[r];
+    return c ? cardLabel(String(c.cells.account ?? ""), String(c.cells.last4 ?? "")) : "";
+  };
+  const followed: Partial<
+    Record<ListKey, { formula: (row: number) => string; cached: (r: number) => string }>
+  > = {
+    account: {
+      formula: (row) => `IF(${accountsSheet}!A${row}="","",${accountsSheet}!A${row})`,
+      cached: (r) => String(accountName(r) ?? ""),
+    },
+    card: {
+      formula: (row) =>
+        `IF(${cardsSheet}!C${row}="","",${cardsSheet}!A${row}&" · ····"&${cardsSheet}!C${row})`,
+      cached: cardLabelAt,
+    },
+  };
   LIST_ORDER.forEach((key, i) => {
-    const values = lists[key];
+    const follow = followed[key];
+    const values = follow && existing ? [] : lists[key];
     const letter = columnLetter(i);
     ref.getColumn(i + 1).width = key === "card" || key === "account" ? 30 : 20;
     const header = ref.getCell(1, i + 1);
@@ -164,18 +215,54 @@ export async function buildTemplate(input: {
     values.forEach((v, row) => {
       ref.getCell(row + 2, i + 1).value = v;
     });
+    if (follow) {
+      for (let r = 0; r < DEFINITION_ROWS; r++) {
+        ref.getCell(values.length + r + 2, i + 1).value = {
+          formula: follow.formula(r + 2),
+          result: follow.cached(r),
+        };
+      }
+      const last = values.length + DEFINITION_ROWS + 1;
+      ranges.set(key, `${quoted(referenceName)}!$${letter}$2:$${letter}$${last}`);
+      return;
+    }
     if (values.length > 0) {
       ranges.set(key, `${quoted(referenceName)}!$${letter}$2:$${letter}$${values.length + 1}`);
     }
   });
 
   for (const { spec, sheet } of dataSheets) {
+    if (existing) {
+      const rows = existing[spec.key];
+      const idColumn = spec.columns.length + 1;
+      const header = sheet.getCell(1, idColumn);
+      header.value = t(EXISTING_ID_HEADER_KEY);
+      header.font = { bold: true, color: { argb: "FF888888" } };
+      header.note = t(EXISTING_ID_HELP_KEY);
+      sheet.getColumn(idColumn).width = 38;
+      rows.forEach((row, r) => {
+        const excelRow = sheet.getRow(r + 2);
+        spec.columns.forEach((column, c) => {
+          const value = row.cells[column.key];
+          if (value !== null && value !== undefined && value !== "") {
+            excelRow.getCell(c + 1).value = value;
+          }
+        });
+        const id = excelRow.getCell(idColumn);
+        id.value = row.id;
+        id.font = { color: { argb: "FF888888" } };
+      });
+    }
     spec.columns.forEach((column, i) => {
       const letter = columnLetter(i);
       const col = sheet.getColumn(i + 1);
       col.width = column.width ?? 18;
       if (column.kind === "date") col.numFmt = "dd/mm/yyyy";
       if (column.kind === "money") col.numFmt = "#,##0.##";
+      // Typed as text: "0867" keeps its zero and "06/2031" doesn't become a date.
+      if (spec.key === "cards" && (column.key === "last4" || column.key === "expiry")) {
+        col.numFmt = "@";
+      }
       const header = sheet.getCell(1, i + 1);
       header.value = t(columnKey(spec.key, column.key));
       header.font = { bold: true };
@@ -220,4 +307,8 @@ const REFERENCE_HEADERS: Record<ListKey, string> = {
   planFrequency: columnKey("plans", "frequency"),
   recurrenceFrequency: columnKey("recurring", "frequency"),
   yesNo: columnKey("movements", "financeCharge"),
+  accountType: "import.template.reference.accountTypes",
+  cardKind: "import.template.reference.cardKinds",
+  cardNetwork: "import.template.reference.cardNetworks",
+  accountStatus: "import.template.reference.accountStatuses",
 };

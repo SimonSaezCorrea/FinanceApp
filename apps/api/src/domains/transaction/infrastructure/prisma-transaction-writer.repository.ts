@@ -143,4 +143,12 @@ export class PrismaTransactionWriterRepository implements TransactionWriterRepos
     const result = await client.transaction.createMany({ data: rows });
     return result.count;
   }
+
+  async countForUser(userId: string): Promise<number> {
+    return this.prisma.transaction.count({ where: { userId } });
+  }
+
+  async deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void> {
+    await (tx as PrismaService).transaction.deleteMany({ where: { userId } });
+  }
 }

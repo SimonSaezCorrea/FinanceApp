@@ -10,6 +10,7 @@ import {
   type CategoryCandidate,
 } from "./importParsing";
 import type { Labelers, TemplateCellRow, TemplateSheetsRead } from "./readTemplate";
+import { tempRowId } from "./tempRowId";
 import { FIXED_LISTS, TEMPLATE_SHEETS, cardLabel, valueKey, type ListKey } from "./templateSpec";
 
 type Sheet = imports.TemplateSheetKey;
@@ -40,7 +41,13 @@ export interface ResolvedTemplate {
   issues: LocalIssue[];
 }
 
-const iso = (ymd: string) => `${ymd}T00:00:00.000Z`;
+/** A typed day as an instant: the START of that day in the USER's zone, like every
+ * date field of the app (and the statement importer). Midnight UTC is the previous
+ * evening in Chile, so a movement would show — and a statement start — a day early. */
+const iso = (ymd: string) => new Date(`${ymd}T00:00:00`).toISOString();
+/** The END of a day in the user's zone: a billing period closes after every movement
+ * dated that day, whatever its time. */
+const isoEnd = (ymd: string) => new Date(`${ymd}T23:59:59.999`).toISOString();
 const text = (cell: Cell | undefined): string =>
   cell === null || cell === undefined ? "" : String(cell).trim();
 
@@ -52,20 +59,36 @@ const text = (cell: Cell | undefined): string =>
  * nowhere. Business rules (balances, limits, instalment counts) stay the API's.
  */
 export function resolveTemplate(
-  read: TemplateSheetsRead,
+  file: TemplateSheetsRead,
   refs: TemplateRefs,
   labelers: Labelers,
+  mode: imports.TemplateImportMode = "MERGE",
 ): ResolvedTemplate {
   const issues: LocalIssue[] = [];
+  // Rows a pre-filled template marked as already in the app: skipped when adding,
+  // the whole history when replacing everything.
+  const read = Object.fromEntries(
+    Object.entries(file).map(([k, rows]) => [
+      k,
+      mode === "REPLACE" ? rows : rows.filter((r) => !r.existing),
+    ]),
+  ) as TemplateSheetsRead;
 
   // ── Lookups, by normalized label in every language ──────────────────────────
+  // A REPLACE deletes the app's accounts: only the file's own are valid names.
+  const appAccounts = mode === "REPLACE" ? [] : refs.accounts;
+  const appCards = mode === "REPLACE" ? [] : refs.cards;
   const accountsByName = new Map<string, string[]>();
-  for (const a of refs.accounts) {
-    const key = normalize(a.name);
-    accountsByName.set(key, [...(accountsByName.get(key) ?? []), a.id]);
-  }
+  const addAccount = (name: string, id: string) => {
+    const key = normalize(name);
+    accountsByName.set(key, [...(accountsByName.get(key) ?? []), id]);
+  };
+  for (const a of appAccounts) addAccount(a.name, a.id);
+  const allCards: { id: string; accountId: string; accountName: string; last4: string }[] = [
+    ...appCards,
+  ];
   const cardsByLabel = new Map(
-    refs.cards.map((c) => [normalize(cardLabel(c.accountName, c.last4)), c.id]),
+    appCards.map((c) => [normalize(cardLabel(c.accountName, c.last4)), c.id]),
   );
   const categories: CategoryCandidate[] = refs.categories
     .filter((c) => reference.isCategorySelectable(c))
@@ -106,12 +129,16 @@ export function resolveTemplate(
         return failed;
       },
       str: (column: string) => present(column),
-      date: (column: string) => {
+      date: (column: string, end = false) => {
         if (!present(column)) return undefined;
         const ymd = parseDate(r.cells[column] ?? null);
-        return ymd ? iso(ymd) : fail({ code: "invalidDate", column });
+        if (!ymd) return fail({ code: "invalidDate", column });
+        return end ? isoEnd(ymd) : iso(ymd);
       },
-      money: (column: string, opts: { absolute?: boolean; percent?: boolean } = {}) => {
+      money: (
+        column: string,
+        opts: { absolute?: boolean; percent?: boolean; signed?: boolean } = {},
+      ) => {
         const raw = present(column);
         if (!raw) return undefined;
         const cell = r.cells[column] ?? null;
@@ -120,7 +147,9 @@ export function resolveTemplate(
         if (amount === null) return fail({ code: "invalidAmount", column });
         if (opts.absolute && amount.startsWith("-")) amount = amount.slice(1);
         if (isPercent) amount = String(Number(amount) / 100);
-        if (!opts.percent && !(Number(amount) > 0)) return fail({ code: "invalidAmount", column });
+        if (!opts.percent && !opts.signed && !(Number(amount) > 0)) {
+          return fail({ code: "invalidAmount", column });
+        }
         return amount;
       },
       int: (column: string, fallback?: number) => {
@@ -159,7 +188,7 @@ export function resolveTemplate(
         const digits = raw.replace(/\D/g, "");
         if (digits.length >= 4) {
           const last4 = digits.slice(-4);
-          const matches = refs.cards.filter(
+          const matches = allCards.filter(
             (c) => c.last4 === last4 && (!accountId || c.accountId === accountId),
           );
           if (matches.length === 1) return matches[0]!.id;
@@ -200,7 +229,11 @@ export function resolveTemplate(
   };
 
   const request: imports.TemplateImportRequest = {
+    mode,
     balanceModes: [],
+    accounts: [],
+    cards: [],
+    statements: [],
     movements: [],
     transfers: [],
     debts: [],
@@ -211,6 +244,100 @@ export function resolveTemplate(
     goals: [],
     contributions: [],
   };
+
+  // Accounts and cards the file defines come first: every other sheet names them.
+  const institutionsByName = new Map(
+    (refs.institutions ?? []).map((i) => [normalize(i.name), i.id]),
+  );
+  const definedNames = new Map<string, string>();
+  for (const r of read.accounts) {
+    const get = reader("accounts", r);
+    const name = get.str("name");
+    const institution = get.str("institution");
+    const row = {
+      row: r.row,
+      id: tempRowId(),
+      name,
+      type: get.list("type", "accountType"),
+      status: get.list("status", "accountStatus", "ACTIVE"),
+      currency: get.currency("currency"),
+      institution,
+      institutionId: institution ? institutionsByName.get(normalize(institution)) : undefined,
+      accountNumber: get.str("accountNumber") ?? numberText(r.cells.accountNumber),
+      openingBalance: get.money("openingBalance", { signed: true }) ?? "0",
+      creditLimit: get.money("creditLimit", { signed: true }),
+      creditUsedInitial: get.money("creditUsedInitial", { signed: true }),
+      overdraftLimit: get.money("overdraftLimit", { signed: true }),
+      balanceCeiling: get.money("balanceCeiling", { signed: true }),
+      minimumPaymentPercent: percentText(r.cells.minimumPaymentPercent),
+    };
+    if (get.failed || !name) continue;
+    if (accountsByName.has(normalize(name))) {
+      issues.push({
+        sheet: "accounts",
+        row: r.row,
+        code: "duplicateRef",
+        column: "name",
+        value: name,
+      });
+      continue;
+    }
+    addAccount(name, row.id);
+    definedNames.set(row.id, name);
+    request.accounts.push(row as imports.TemplateAccount);
+  }
+  for (const r of read.cards) {
+    const get = reader("cards", r);
+    const accountId = get.account("account");
+    const last4 = digitsText(r.cells.last4);
+    const expiry = parseExpiry(r.cells.expiry);
+    if (!last4 && text(r.cells.last4)) {
+      issues.push({
+        sheet: "cards",
+        row: r.row,
+        code: "unknownValue",
+        column: "last4",
+        value: text(r.cells.last4),
+      });
+    }
+    if (!expiry && text(r.cells.expiry)) {
+      issues.push({ sheet: "cards", row: r.row, code: "invalidDate", column: "expiry" });
+    }
+    const row = {
+      row: r.row,
+      id: tempRowId(),
+      accountId,
+      kind: get.list("kind", "cardKind"),
+      last4,
+      expiryMonth: expiry?.month,
+      expiryYear: expiry?.year,
+      name: get.str("name"),
+      network: get.list("network", "cardNetwork"),
+      isVirtual: get.list("isVirtual", "yesNo") === "YES" || undefined,
+      isAdditional: get.list("isAdditional", "yesNo") === "YES" || undefined,
+      cardholderName: get.str("cardholderName"),
+      ownLimit: get.money("ownLimit"),
+      extraLimitCurrency: get.currency("extraLimitCurrency"),
+      extraLimit: get.money("extraLimit"),
+      isActive: get.list("isActive", "yesNo") === "NO" ? false : undefined,
+    };
+    if (get.failed || !last4 || !expiry || !accountId) continue;
+    // Only an account defined in this same file can take a new card.
+    const accountName = definedNames.get(accountId);
+    if (!accountName) {
+      issues.push({
+        sheet: "cards",
+        row: r.row,
+        code: "unknownAccount",
+        column: "account",
+        value: text(r.cells.account),
+      });
+      continue;
+    }
+    allCards.push({ id: row.id, accountId, accountName, last4 });
+    cardsByLabel.set(normalize(cardLabel(accountName, last4)), row.id);
+    request.cards.push(row as imports.TemplateCard);
+  }
 
   // Recurring references first: a movement may name the series it pays.
   const recurringRefs = refsOf("recurring", read.recurring);
@@ -318,6 +445,7 @@ export function resolveTemplate(
       paidAt: get.date("date"),
       accountId: get.account("account"),
       amount: get.money("amount"),
+      freesCredit: get.list("freesCredit", "yesNo") === "NO" ? false : undefined,
     };
     if (checkRef("planPayments", r, planRefs) && !get.failed) {
       request.planPayments.push(row as imports.TemplatePlanPayment);
@@ -373,6 +501,22 @@ export function resolveTemplate(
     }
   }
 
+  for (const r of read.statements) {
+    const get = reader("statements", r);
+    const row = {
+      row: r.row,
+      accountId: get.account("account"),
+      currency: get.currency("currency"),
+      periodStart: get.date("periodStart"),
+      closedAt: get.date("closedAt", true),
+      dueDate: get.date("dueDate", true),
+      paidAt: get.date("paidAt"),
+      paidAmount: get.money("paidAmount"),
+      paidFromAccountId: get.account("paidFrom"),
+    };
+    if (!get.failed) request.statements.push(row as imports.TemplateStatement);
+  }
+
   // Undefined optional fields are dropped by JSON; keep the request tidy anyway.
   for (const key of imports.TEMPLATE_SHEET_KEYS) {
     request[key] = request[key].map((row) =>
@@ -381,4 +525,38 @@ export function resolveTemplate(
   }
 
   return { request, issues };
+}
+
+/** A cell that may hold a number Excel stripped of its text form (an account
+ * number typed as 00123 comes back as 123 unless the column is text). */
+function numberText(cell: Cell | undefined): string | undefined {
+  return typeof cell === "number" ? String(cell) : undefined;
+}
+
+/** Four digits, restoring a leading zero Excel dropped (0867 → 867). */
+function digitsText(cell: Cell | undefined): string | undefined {
+  if (cell === null || cell === undefined) return undefined;
+  const digits = String(cell).replace(/\D/g, "");
+  if (digits.length === 0 || digits.length > 4) return undefined;
+  return digits.padStart(4, "0");
+}
+
+/** "06/2031", "6-31", or a date cell Excel made of it. */
+function parseExpiry(cell: Cell | undefined): { month: number; year: number } | undefined {
+  if (cell instanceof Date && !Number.isNaN(cell.getTime())) {
+    return { month: cell.getUTCMonth() + 1, year: cell.getUTCFullYear() };
+  }
+  const m = /^(\d{1,2})\s*[/.-]\s*(\d{2}|\d{4})$/.exec(text(cell));
+  if (!m) return undefined;
+  const month = Number(m[1]);
+  const year = m[2]!.length === 2 ? 2000 + Number(m[2]) : Number(m[2]);
+  return month >= 1 && month <= 12 ? { month, year } : undefined;
+}
+
+/** "5%", "5" or 0.05 → "5" (the percentage, as the account stores it). */
+function percentText(cell: Cell | undefined): string | undefined {
+  if (cell === null || cell === undefined || text(cell) === "") return undefined;
+  if (typeof cell === "number") return String(cell < 1 ? +(cell * 100).toFixed(4) : cell);
+  const amount = parseAmount(text(cell).replace("%", "").trim());
+  return amount ?? undefined;
 }

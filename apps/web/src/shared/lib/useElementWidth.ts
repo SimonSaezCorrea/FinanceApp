@@ -58,3 +58,13 @@ export const ASIDE_MIN_WIDTH = 1100;
  * layouts drift into three different shapes instead of one shared row format.
  */
 export const TABLE_ROW_MIN_WIDTH = 760;
+
+/**
+ * Width the profile needs before it shows its settings as two panes (section list beside the
+ * open section) instead of a list that opens each section as its own screen (specs/029):
+ * 280px of section list + 32px gap + ~508px of content, the least at which a security row (icon,
+ * title, status, button) still fits on one line. Measured on the profile itself, for the same
+ * reason as the others: at a 1024px viewport it gets ~736px with the sidebar expanded (one
+ * column) and ~900px with it collapsed (two panes).
+ */
+export const PROFILE_PANES_MIN_WIDTH = 820;

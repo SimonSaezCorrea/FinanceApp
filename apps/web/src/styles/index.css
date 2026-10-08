@@ -240,13 +240,27 @@
     padding-right: env(safe-area-inset-right, 0px);
   }
 
-  /* While an overlay locks scroll, Radix hides the scrollbar and compensates on <body> (marked
-     with this attribute) by exactly the gutter's width (`innerWidth - clientWidth`). Keeping the
-     gutter reserved on top of that left an empty 15px strip at the right edge that fixed
-     elements (the scrim, a side panel) can't cover. So the gutter is released only while
-     locked: Radix's compensation takes its place and the content doesn't move. */
+  /* The signed-in app never scrolls the document: its shell is one viewport tall and only
+     <main> scrolls. A reserved gutter there was an empty strip on the right, and releasing it
+     when an overlay locked scroll widened the layout — every modal nudged the centred content
+     ~7px to the right. So the app has no page gutter at all (nothing to release, nothing moves);
+     the landing pages, which do scroll the document, keep it. */
+  html:has(.app-shell) {
+    scrollbar-gutter: auto;
+  }
+
+  /* Landing pages: while an overlay locks scroll, the gutter is released (kept, it left an empty
+     15px strip at the right edge that fixed elements — the scrim, a side panel — can't cover) and
+     <body> takes a right margin of exactly the scrollbar's width instead, so nothing behind the
+     overlay moves. The width is `--scrollbar-gap` (`shared/lib/scrollbarGap.ts`), not Radix's own
+     compensation, which is measured at lock time and isn't reliable. The selector outranks the
+     rule Radix injects at runtime (same `!important`, later in the document). */
   html:has(> body[data-scroll-locked]) {
     scrollbar-gutter: auto;
+  }
+  html:not(:has(.app-shell)) body[data-scroll-locked] {
+    margin-right: var(--scrollbar-gap, 0px) !important;
+    padding-right: env(safe-area-inset-right, 0px) !important;
   }
 }
 

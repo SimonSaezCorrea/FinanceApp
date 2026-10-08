@@ -86,10 +86,13 @@ function fakeAccountRepo(
   overrides: Partial<BankAccountRepositoryPort> = {},
 ): BankAccountRepositoryPort {
   return {
+    createWithCardsWithTx: vi.fn(async () => ({ id: "acc", cardIds: [] })),
+    setStatusWithTx: vi.fn(async () => {}),
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     removeWithTx: vi.fn(async () => true),
     findById: vi.fn(),
     listByUser: vi.fn(),
-    listDueForBilling: vi.fn(),
     institutionName: vi.fn(),
     institutionCountry: vi.fn(async () => null),
     countByType: vi.fn(async () => 2),
@@ -111,6 +114,8 @@ function fakeStatementRepo(
   overrides: Partial<CreditStatementRepositoryPort> = {},
 ): CreditStatementRepositoryPort {
   const merged: CreditStatementRepositoryPort = {
+    listDueScheduled: vi.fn(async () => []),
+    countForUser: vi.fn(async () => 0),
     paymentTransactionIdsFromOtherAccounts: vi.fn(async () => []),
     findById: vi.fn(),
     findByIdForUpdateWithTx: vi.fn(),
@@ -160,6 +165,7 @@ function fakePlanRepo(overrides: Partial<InstallmentPlanRepositoryPort> = {}) {
     createWithTx: vi.fn(),
     listBillableForCards: vi.fn(async () => []),
     stampBillableWithTx: vi.fn(),
+    unstampDueAfterWithTx: vi.fn(),
     settleForStatementWithTx: vi.fn(),
     billedInstallmentsForStatement: vi.fn(async () => ({ amount: "0", count: 0 })),
     save: vi.fn(),

@@ -1,6 +1,14 @@
 import { addMoney, moneyToString, subtractMoney, sumMoney, toMoney } from "@finance/money";
 
-import { imports } from "@finance/contracts";
+import { accounts as accountRules, imports } from "@finance/contracts";
+
+import { BankAccount } from "../../bank-account/domain/bank-account.aggregate";
+import {
+  AccountNumberRequiredError,
+  CreditSettingsNotAllowedError,
+  OverdraftNotAllowedError,
+} from "../../bank-account/domain/errors";
+import type { CardPlan } from "../../card-account/domain/card-account.entity";
 
 import { Debt, type DebtProps, type PlannedDebt } from "../../debt/domain/debt.aggregate";
 import {
@@ -75,7 +83,7 @@ export interface TemplateMovementWrite {
   lugar: string | null;
   categoryId: string | null;
   /** A category the server assigns (debt payments, contributions, plan interest). */
-  systemCategory: "DEBTS" | "SAVINGS" | "INTEREST" | null;
+  systemCategory: "DEBTS" | "SAVINGS" | "INTEREST" | "STATEMENT_PAYMENT" | null;
   cardId: string | null;
   financeCharge: boolean;
   /** Draws on a credit card pool — linked to the account's open billing period. */
@@ -90,6 +98,7 @@ export interface TemplateMovementWrite {
     | { kind: "plan"; index: number }
     | { kind: "contribution"; goalIndex: number; contributionIndex: number }
     | { kind: "recurring"; index: number }
+    | { kind: "statement"; index: number }
     | null;
 }
 
@@ -121,8 +130,50 @@ export interface TemplateGoalWrite {
   }[];
 }
 
+/** An account the file defines, with its cards, ready to create. `tempId`s are the
+ * browser's keys: the handler creates real rows and translates every reference. */
+export interface TemplateNewAccount {
+  tempId: string;
+  row: number;
+  /** Created ACTIVE (its history must be writable) and set to this at the end. */
+  finalStatus: "ACTIVE" | "INACTIVE";
+  plan: {
+    name: string;
+    type: imports.TemplateAccount["type"];
+    currency: string;
+    institution: string | null;
+    institutionId: string | null;
+    accountNumber: string | null;
+    initialBalance: string;
+    overdraftLimit: string;
+    balanceCeiling: string | null;
+    creditLimit: string;
+    creditUsedInitial: string;
+    minimumPaymentPercent: string | null;
+  };
+  cards: { tempId: string; plan: CardPlan }[];
+}
+
+/** A billing period to rebuild (REPLACE only), in close order. */
+export interface TemplateStatementWrite {
+  row: number;
+  accountId: string;
+  currency: string;
+  periodStart: Date;
+  closedAt: Date;
+  dueDate: Date;
+  paidAt: Date | null;
+  paidAmount: string | null;
+  /** Paid from this account like the "Pagar" button; null = bookkeeping only. */
+  paidFromAccountId: string | null;
+  /** The payment movement this import creates when `paidFromAccountId` is set. */
+  paymentTransactionId: string | null;
+}
+
 export interface TemplatePlanResult {
   counts: imports.TemplateSheetCounts;
+  newAccounts: TemplateNewAccount[];
+  statements: TemplateStatementWrite[];
   issues: (imports.TemplateIssue & { status: Status })[];
   accounts: imports.TemplateAccountEffect[];
   movements: TemplateMovementWrite[];
@@ -157,7 +208,7 @@ interface MoneyEvent {
   /** Order of creation — keeps a transfer's outgoing leg before its incoming one. */
   seq: number;
   accountId: string;
-  kind: "movement" | "simple" | "transferOut" | "transferIn" | "credit";
+  kind: "movement" | "simple" | "transferOut" | "transferIn" | "credit" | "settle";
   type: "INCOME" | "EXPENSE";
   amount: string;
   card: TemplateCard | null;
@@ -235,11 +286,19 @@ function asCoded(error: unknown): { code: string; status: Status } | null {
  */
 export function planTemplateImport(
   req: imports.TemplateImportRequest,
-  lookup: TemplateLookup,
+  base: TemplateLookup,
   options: TemplatePlanOptions,
 ): TemplatePlanResult {
   const issues = new Issues(options.mode);
   const { newId } = options;
+  // The file's own accounts and cards join the lookup under their temporary ids,
+  // so every other sheet is checked against them exactly like existing ones.
+  const lookup: TemplateLookup = {
+    accounts: new Map(base.accounts),
+    cards: new Map(base.cards),
+    categoryErrors: base.categoryErrors,
+  };
+  const newAccounts = planDefinitions(req, lookup, issues);
   const events: MoneyEvent[] = [];
   const movements: TemplateMovementWrite[] = [];
   let seq = 0;
@@ -732,6 +791,8 @@ export function planTemplateImport(
       if (!ok) continue;
       seen.add(key);
       plan.payments.push({ sequence: p.sequence, amount: null, paidAt, transactionId: null });
+      // Already paid by a card payment the file also carries: the pool fell then.
+      if (p.freesCredit === false) continue;
       push({
         date: paidAt,
         sheet: "planPayments",
@@ -848,6 +909,111 @@ export function planTemplateImport(
     });
   }
 
+  // ── Billing periods (REPLACE) and their payments from an account ───────────
+  const statements = planStatements(req, lookup, issues);
+  for (const [index, st] of statements.entries()) {
+    if (!st.paidFromAccountId || !st.paidAt || !st.paidAmount) continue;
+    const from = account("statements", st.row, st.paidFromAccountId);
+    const credit = lookup.accounts.get(st.accountId)!;
+    if (!from) {
+      st.paidFromAccountId = null;
+      continue;
+    }
+    if (from.context.type === "CREDIT_CARD") {
+      issues.add("statements", st.row, "INVALID_PAYMENT_SOURCE", 400, "paidFromAccountId");
+      st.paidFromAccountId = null;
+      continue;
+    }
+    // Same currency on both ends, like the "Pagar" button (a period in another
+    // currency is settled with two amounts — not something this sheet records).
+    if (
+      !sameCurrency("statements", st.row, credit.currency, st.currency) ||
+      !sameCurrency("statements", st.row, from.currency, st.currency)
+    ) {
+      st.paidFromAccountId = null;
+      continue;
+    }
+    const write = movement({
+      ...blank,
+      accountId: st.paidFromAccountId,
+      type: "EXPENSE",
+      amount: st.paidAmount,
+      currency: from.currency,
+      occurredAt: st.paidAt,
+      description: null,
+      systemCategory: "STATEMENT_PAYMENT",
+      link: { kind: "statement", index },
+    });
+    st.paymentTransactionId = write.id;
+    const base = { date: st.paidAt, sheet: "statements" as const, row: st.row, card: null };
+    push({
+      ...base,
+      accountId: st.paidFromAccountId,
+      kind: "simple",
+      type: "EXPENSE",
+      amount: st.paidAmount,
+      financeCharge: false,
+      creditDelta: "0",
+      write,
+    });
+    push({
+      ...base,
+      accountId: st.accountId,
+      kind: "credit",
+      type: "INCOME",
+      amount: st.paidAmount,
+      financeCharge: false,
+      creditDelta: subtractMoney("0", st.paidAmount),
+    });
+  }
+
+  // A period in ANOTHER currency marked paid (the bank converted it, or it was paid in
+  // pesos): it moves no money here — the CLP side is an ordinary row — but it frees
+  // that card's own limit in that currency from its date on, exactly as a PAID period
+  // drops out of the limit's usage in the app. Without this the running usage of the
+  // timeline would keep every USD charge ever made against a 100 USD limit.
+  for (const st of statements) {
+    const acct = lookup.accounts.get(st.accountId);
+    if (!acct || !st.paidAt || st.paidFromAccountId || st.currency === acct.currency) continue;
+    const card = [...lookup.cards.values()]
+      .filter((c) => c.accountId === st.accountId && c.otherLimits[st.currency])
+      .sort((a, b) => Number(b.isPrimary) - Number(a.isPrimary))[0];
+    if (!card) continue;
+    // Declared, or the period's own net: its charges minus its credits, in its window.
+    let amount = st.paidAmount;
+    if (!amount) {
+      const end = st.closedAt.getTime();
+      const start = st.periodStart.getTime();
+      const net = movements
+        .filter(
+          (m) =>
+            m.accountId === st.accountId &&
+            m.currency === st.currency &&
+            m.occurredAt.getTime() >= start &&
+            m.occurredAt.getTime() <= end,
+        )
+        .reduce(
+          (sum, m) => addMoney(sum, m.type === "EXPENSE" ? m.amount : subtractMoney("0", m.amount)),
+          "0",
+        );
+      amount = moneyToString(net);
+    }
+    if (!toMoney(amount).greaterThan(0)) continue;
+    push({
+      date: st.paidAt,
+      sheet: "statements",
+      row: st.row,
+      accountId: st.accountId,
+      kind: "settle",
+      type: "INCOME",
+      amount,
+      card,
+      currency: st.currency,
+      financeCharge: false,
+      creditDelta: "0",
+    });
+  }
+
   // ── The timeline: every money effect, validated in order per account ────────
   events.sort(
     (a, b) =>
@@ -876,6 +1042,8 @@ export function planTemplateImport(
         };
       case "credit":
         return { cash: "0", credit: e.creditDelta };
+      case "settle":
+        return { cash: "0", credit: "0" };
       default: {
         // A transfer leg on a credit card account (paying the card) moves the
         // pool, not cash — the same rule the transfer endpoint follows.
@@ -898,7 +1066,11 @@ export function planTemplateImport(
     });
   }
   const modes = new Map(req.balanceModes.map((m) => [m.accountId, m.mode]));
-  const modeOf = (id: string): imports.BalanceMode => modes.get(id) ?? "INCLUDED";
+  // An account the file defines starts at its declared opening balance: the
+  // history always adds to it.
+  const defined = new Set(newAccounts.map((a) => a.tempId));
+  const modeOf = (id: string): imports.BalanceMode =>
+    defined.has(id) ? "ADD" : (modes.get(id) ?? "INCLUDED");
 
   // Pass 2: validate against the running figures.
   const running = new Map<string, AccountContext>();
@@ -922,6 +1094,12 @@ export function planTemplateImport(
       : { ...e.card!.otherLimits[e.currency!]!.usage };
   };
   for (const e of events) {
+    if (e.kind === "settle") {
+      const usage = cardUsage.get(usageKey(e)) ?? initialUsage(e);
+      usage.income = addMoney(usage.income, e.amount);
+      cardUsage.set(usageKey(e), usage);
+      continue;
+    }
     const ctx = running.get(e.accountId)!;
     const ok = issues.guard(e.sheet, e.row, () => {
       if (e.kind === "movement") {
@@ -988,6 +1166,10 @@ export function planTemplateImport(
     }
   }
 
+  // Defined accounts with no movement still belong in the summary.
+  for (const a of newAccounts) {
+    if (!net.has(a.tempId)) net.set(a.tempId, { cash: "0", credit: "0" });
+  }
   const accounts: imports.TemplateAccountEffect[] = [...net.entries()].map(([id, n]) => {
     const acct = lookup.accounts.get(id)!;
     const mode = modeOf(id);
@@ -1009,6 +1191,8 @@ export function planTemplateImport(
 
   return {
     counts,
+    newAccounts,
+    statements,
     issues: issues.list,
     accounts,
     movements,
@@ -1017,4 +1201,263 @@ export function planTemplateImport(
     recurring,
     goals,
   };
+}
+
+/**
+ * The Accounts and Cards sheets (template v2): each account is checked with the
+ * same rules as creating it by hand (`BankAccount.planCreation`: opening balance,
+ * the card-kind matrix, a CREDIT card's mandatory limit and which one is primary;
+ * plus the account-number, overdraft and credit-settings rules) and then added to
+ * `lookup` under its temporary id, with a context built from its opening figures.
+ */
+function planDefinitions(
+  req: imports.TemplateImportRequest,
+  lookup: TemplateLookup,
+  issues: Issues,
+): TemplateNewAccount[] {
+  const created: TemplateNewAccount[] = [];
+  const names = new Set<string>();
+  const seenIds = new Set<string>();
+  const cardsOf = new Map<string, imports.TemplateCard[]>();
+  for (const c of req.cards) cardsOf.set(c.accountId, [...(cardsOf.get(c.accountId) ?? []), c]);
+  const definedIds = new Set(req.accounts.map((a) => a.id));
+  for (const c of req.cards) {
+    if (!definedIds.has(c.accountId)) {
+      issues.add("cards", c.row, TEMPLATE_CODES.UNKNOWN_REF, 400, "accountId");
+    }
+  }
+
+  for (const a of req.accounts) {
+    const nameKey = normRef(a.name);
+    if (seenIds.has(a.id) || lookup.accounts.has(a.id) || names.has(nameKey)) {
+      issues.add("accounts", a.row, TEMPLATE_CODES.DUPLICATE_REF, 400, "name");
+      continue;
+    }
+    seenIds.add(a.id);
+    names.add(nameKey);
+    const cardRows = cardsOf.get(a.id) ?? [];
+    let primaryAssigned = false;
+    const inputs = cardRows.map((c) => {
+      const extra =
+        c.extraLimitCurrency && c.extraLimit
+          ? [{ currency: c.extraLimitCurrency, limitAmount: c.extraLimit }]
+          : [];
+      let limits: { currency: string; limitAmount: string; usedInitial?: string }[] = extra;
+      let usesAccountPool = true;
+      if (c.kind === "CREDIT" && !primaryAssigned) {
+        // The primary card's limit IS the account's credit line.
+        primaryAssigned = true;
+        limits = [
+          {
+            currency: a.currency,
+            limitAmount: a.creditLimit ?? "0",
+            usedInitial: a.creditUsedInitial ?? "0",
+          },
+          ...extra,
+        ];
+      } else if (c.kind === "CREDIT" && c.ownLimit) {
+        usesAccountPool = false;
+        limits = [{ currency: a.currency, limitAmount: c.ownLimit }, ...extra];
+      }
+      return {
+        row: c,
+        input: {
+          name: c.name ?? "",
+          kind: c.kind,
+          last4: c.last4,
+          expiryMonth: c.expiryMonth,
+          expiryYear: c.expiryYear,
+          isActive: c.isActive ?? true,
+          isVirtual: c.isVirtual ?? false,
+          isAdditional: c.isAdditional ?? false,
+          cardholderName: c.cardholderName ?? null,
+          network: c.network ?? null,
+          usesAccountPool,
+          limits,
+        },
+      };
+    });
+
+    let planned: ReturnType<typeof BankAccount.planCreation> | null = null;
+    issues.guard("accounts", a.row, () => {
+      if (accountRules.isAccountNumberRequired(a.type) && !a.accountNumber?.trim()) {
+        throw new AccountNumberRequiredError();
+      }
+      const nonZero = (v: string | undefined) => !!v && Number(v) !== 0;
+      if (nonZero(a.overdraftLimit) && !accountRules.allowsOverdraft(a.type)) {
+        throw new OverdraftNotAllowedError();
+      }
+      if (
+        a.type !== "CREDIT_CARD" &&
+        (nonZero(a.creditLimit) || nonZero(a.creditUsedInitial) || !!a.minimumPaymentPercent)
+      ) {
+        throw new CreditSettingsNotAllowedError();
+      }
+      planned = BankAccount.planCreation({
+        type: a.type,
+        currency: a.currency,
+        initialBalance: a.openingBalance,
+        creditLimit: a.creditLimit,
+        creditUsedInitial: a.creditUsedInitial,
+        cards: inputs.map((i) => i.input),
+      });
+    });
+    if (!planned) continue;
+    const plan: ReturnType<typeof BankAccount.planCreation> = planned;
+
+    const isCredit = a.type === "CREDIT_CARD";
+    lookup.accounts.set(a.id, {
+      context: {
+        id: a.id,
+        type: a.type,
+        currentBalance: isCredit ? "0" : a.openingBalance,
+        overdraftLimit: a.overdraftLimit ?? "0",
+        balanceCeiling: a.balanceCeiling ?? null,
+        creditLimit: plan.creditLimit,
+        creditUsed: plan.creditUsedInitial,
+        billingCycleDay: null,
+        billingCycleType: "BUSINESS_DAY",
+        currency: a.currency,
+      },
+      currency: a.currency,
+      // Created active (its history must be writable) whatever its final status.
+      status: "ACTIVE",
+    });
+    const cards = plan.cards.map((c, i) => {
+      const row = inputs[i]!.row;
+      const own =
+        c.kind === "CREDIT" && !c.isPrimary
+          ? (c.cardLimits.find((l) => l.currency === a.currency) ?? null)
+          : null;
+      const otherLimits: TemplateCard["otherLimits"] = {};
+      for (const l of c.cardLimits.filter((x) => x.currency !== a.currency)) {
+        otherLimits[l.currency] = {
+          limit: { limitAmount: l.limitAmount, usedInitial: l.usedInitial },
+          usage: { income: "0", expense: "0" },
+        };
+      }
+      lookup.cards.set(row.id, {
+        id: row.id,
+        kind: c.kind,
+        isPrimary: c.isPrimary,
+        limit: own ? { limitAmount: own.limitAmount, usedInitial: own.usedInitial } : null,
+        usage: { income: "0", expense: "0" },
+        accountId: a.id,
+        otherLimits,
+      });
+      const cardPlan: CardPlan = {
+        name: c.name,
+        kind: c.kind,
+        last4: c.last4,
+        expiryMonth: c.expiryMonth,
+        expiryYear: c.expiryYear,
+        isActive: c.isActive ?? true,
+        isPrimary: c.isPrimary,
+        isVirtual: c.isVirtual ?? false,
+        isAdditional: c.isAdditional ?? false,
+        cardholderName: c.cardholderName ?? null,
+        network: c.network ?? null,
+        limits: c.cardLimits.map((l) => ({
+          currency: l.currency,
+          limitAmount: l.limitAmount,
+          usedInitial: l.usedInitial,
+        })),
+      };
+      return { tempId: row.id, plan: cardPlan };
+    });
+    created.push({
+      tempId: a.id,
+      row: a.row,
+      finalStatus: a.status,
+      plan: {
+        name: a.name,
+        type: a.type,
+        currency: a.currency,
+        institution: a.institution ?? null,
+        institutionId: a.institutionId ?? null,
+        accountNumber: a.accountNumber ?? null,
+        initialBalance: isCredit ? "0" : a.openingBalance,
+        overdraftLimit: a.overdraftLimit ?? "0",
+        balanceCeiling: a.balanceCeiling ?? null,
+        creditLimit: plan.creditLimit,
+        creditUsedInitial: plan.creditUsedInitial,
+        minimumPaymentPercent: a.minimumPaymentPercent ?? null,
+      },
+      cards,
+    });
+  }
+  return created;
+}
+
+/**
+ * The Billing periods sheet (REPLACE only): each period must be on a credit card
+ * account, in its currency or one a card has its own limit in, with its dates in
+ * order (start < close <= due, close not in the future) and not overlapping the
+ * account's previous period in that currency. Returned in close order.
+ */
+function planStatements(
+  req: imports.TemplateImportRequest,
+  lookup: TemplateLookup,
+  issues: Issues,
+): TemplateStatementWrite[] {
+  if (req.statements.length === 0) return [];
+  if (req.mode !== "REPLACE") {
+    for (const s of req.statements) {
+      issues.add("statements", s.row, TEMPLATE_CODES.STATEMENTS_REPLACE_ONLY);
+    }
+    return [];
+  }
+  const writes: TemplateStatementWrite[] = [];
+  for (const s of req.statements) {
+    const acct = lookup.accounts.get(s.accountId);
+    if (!acct) {
+      issues.add("statements", s.row, "ACCOUNT_NOT_FOUND", 404);
+      continue;
+    }
+    if (acct.context.type !== "CREDIT_CARD") {
+      issues.add("statements", s.row, TEMPLATE_CODES.STATEMENT_NOT_CREDIT);
+      continue;
+    }
+    const currency = s.currency ?? acct.currency;
+    if (
+      currency !== acct.currency &&
+      ![...lookup.cards.values()].some(
+        (c) => c.accountId === s.accountId && c.otherLimits[currency] !== undefined,
+      )
+    ) {
+      issues.add("statements", s.row, TEMPLATE_CODES.CURRENCY_MISMATCH, 400, "currency");
+      continue;
+    }
+    const periodStart = new Date(s.periodStart);
+    const closedAt = new Date(s.closedAt);
+    const dueDate = new Date(s.dueDate);
+    if (closedAt <= periodStart || dueDate < closedAt) {
+      issues.add("statements", s.row, "STATEMENT_DATES_INVALID");
+      continue;
+    }
+    writes.push({
+      row: s.row,
+      accountId: s.accountId,
+      currency,
+      periodStart,
+      closedAt,
+      dueDate,
+      paidAt: s.paidAt ? new Date(s.paidAt) : null,
+      paidAmount: s.paidAmount ?? null,
+      paidFromAccountId: s.paidFromAccountId ?? null,
+      paymentTransactionId: null,
+    });
+  }
+  writes.sort((a, b) => a.closedAt.getTime() - b.closedAt.getTime() || a.row - b.row);
+  const lastClose = new Map<string, Date>();
+  return writes.filter((w) => {
+    const key = `${w.accountId}|${w.currency}`;
+    const previous = lastClose.get(key);
+    if (previous && w.periodStart < previous) {
+      issues.add("statements", w.row, "STATEMENT_PERIOD_OVERLAPS");
+      return false;
+    }
+    lastClose.set(key, w.closedAt);
+    return true;
+  });
 }

@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
 import { MemoryRouter } from "react-router";
 import { beforeAll, describe, expect, it, vi } from "vitest";
@@ -73,8 +73,12 @@ describe("ImportRoute", () => {
     const button = await screen.findByRole("button", { name: "Descargar plantilla" });
     await waitFor(() => expect(button.hasAttribute("disabled")).toBe(false));
     fireEvent.click(button);
+    // Empty is the default choice.
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Descargar" }));
     await waitFor(() => expect(buildTemplate).toHaveBeenCalled());
-    const [{ refs, locale }] = vi.mocked(buildTemplate).mock.calls[0]!;
+    const [{ refs, locale, existing }] = vi.mocked(buildTemplate).mock.calls[0]!;
+    expect(existing).toBeUndefined();
     expect(locale).toBe("es");
     expect(refs.accounts).toEqual([
       { id: "acc-bci", name: "BCI", type: "CHECKING", currency: "CLP" },

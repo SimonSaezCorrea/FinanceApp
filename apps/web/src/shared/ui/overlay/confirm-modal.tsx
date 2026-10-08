@@ -11,6 +11,9 @@ interface ConfirmModalProps {
   title: string;
   description?: string;
   confirmLabel?: string;
+  /** Label of the button that backs out ("Cancelar" by default) — for a question where backing out
+   * means something more specific, like "Seguir editando". */
+  cancelLabel?: string;
   /** Confirm button tone. Destructive by default — most confirmations here are
    * a delete or a discard, which is also the safer default to get wrong. */
   destructive?: boolean;
@@ -38,6 +41,7 @@ export function ConfirmModal({
   title,
   description,
   confirmLabel,
+  cancelLabel,
   destructive = true,
   loading,
   confirmDisabled,
@@ -60,7 +64,7 @@ export function ConfirmModal({
             onClick={() => onOpenChange(false)}
             disabled={loading}
           >
-            {t("common.cancel")}
+            {cancelLabel ?? t("common.cancel")}
           </Button>
           <Button
             variant={destructive ? "destructive" : "primary"}

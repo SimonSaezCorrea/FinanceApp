@@ -4,18 +4,21 @@ import type { auth } from "@finance/contracts";
 
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useCurrencies } from "../../reference/hooks/useReference";
-import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
-import { Switch } from "../../../shared/ui/switch";
-import { useTheme } from "../../../theme/useTheme";
+import { ThemeSegmented } from "../../../shared/ui/theme-segmented";
 import { useProfileMutations } from "../hooks/useProfile";
+import { FinancialCustomizationSection } from "./FinancialCustomizationSection";
 
 const SUPPORTED_CURRENCIES: auth.CurrentUser["preferredCurrency"][] = ["CLP", "USD", "CLF"];
 
+/**
+ * Preferences (specs/029): "Apariencia e idioma" (theme with all three options, language) and
+ * "Monedas y montos" (main currency, extra currencies, hide balances). Each control saves at once,
+ * so nothing here can hold unsaved changes.
+ */
 export function PreferencesSection() {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
-  const { mode, setMode } = useTheme();
   const { data: currencies } = useCurrencies();
   const { updatePreferences } = useProfileMutations();
 
@@ -32,47 +35,61 @@ export function PreferencesSection() {
   }
 
   return (
-    <CollapsibleSection title={t("profile.preferences.title")}>
-      <div className="flex items-center justify-between border-b py-3">
-        <span className="text-sm">{t("profile.preferences.darkTheme")}</span>
-        <Switch
-          checked={mode === "dark"}
-          onCheckedChange={(checked) => setMode(checked ? "dark" : "light")}
-          aria-label={t("profile.preferences.darkTheme")}
-        />
-      </div>
-      <div className="flex items-center justify-between border-b py-3">
-        <span className="text-sm">{t("profile.preferences.currency")}</span>
-        <SearchableSelect
-          variant="inline"
-          value={user.preferredCurrency}
-          options={currencyOptions}
-          displayValue={user.preferredCurrency}
-          searchPlaceholder={t("common.search")}
-          noResultsLabel={t("common.noResults")}
-          aria-label={t("profile.preferences.currency")}
-          onChange={(v) =>
-            updatePreferences.mutate({
-              preferredCurrency: v as auth.CurrentUser["preferredCurrency"],
-            })
-          }
-        />
-      </div>
-      <div className="flex items-center justify-between py-3">
-        <span className="text-sm">{t("profile.preferences.language")}</span>
-        <SearchableSelect
-          variant="inline"
-          value={user.locale}
-          options={[
-            { value: "es", label: "Español" },
-            { value: "en", label: "English" },
-          ]}
-          searchPlaceholder={t("common.search")}
-          noResultsLabel={t("common.noResults")}
-          aria-label={t("profile.preferences.language")}
-          onChange={(v) => handleLocaleChange(v as auth.CurrentUser["locale"])}
-        />
-      </div>
-    </CollapsibleSection>
+    <>
+      <section
+        aria-labelledby="profile-pref-appearance"
+        className="flex flex-col gap-3 rounded-2xl border bg-card p-5"
+      >
+        <h2 id="profile-pref-appearance" className="text-base font-semibold">
+          {t("profile.preferences.blocks.appearance")}
+        </h2>
+        <div className="flex flex-col gap-2">
+          <span className="text-sm">{t("theme.label")}</span>
+          <ThemeSegmented />
+        </div>
+        <div className="flex min-h-14 items-center justify-between gap-4 border-t pt-3">
+          <span className="text-sm">{t("profile.preferences.language")}</span>
+          <SearchableSelect
+            variant="inline"
+            value={user.locale}
+            options={[
+              { value: "es", label: "Español" },
+              { value: "en", label: "English" },
+            ]}
+            searchPlaceholder={t("common.search")}
+            noResultsLabel={t("common.noResults")}
+            aria-label={t("profile.preferences.language")}
+            onChange={(v) => handleLocaleChange(v as auth.CurrentUser["locale"])}
+          />
+        </div>
+      </section>
+
+      <section
+        aria-labelledby="profile-pref-money"
+        className="flex flex-col rounded-2xl border bg-card p-5"
+      >
+        <h2 id="profile-pref-money" className="pb-1 text-base font-semibold">
+          {t("profile.preferences.blocks.money")}
+        </h2>
+        <div className="flex min-h-14 items-center justify-between gap-4 border-b py-3">
+          <span className="text-sm">{t("profile.preferences.currency")}</span>
+          <SearchableSelect
+            variant="inline"
+            value={user.preferredCurrency}
+            options={currencyOptions}
+            displayValue={user.preferredCurrency}
+            searchPlaceholder={t("common.search")}
+            noResultsLabel={t("common.noResults")}
+            aria-label={t("profile.preferences.currency")}
+            onChange={(v) =>
+              updatePreferences.mutate({
+                preferredCurrency: v as auth.CurrentUser["preferredCurrency"],
+              })
+            }
+          />
+        </div>
+        <FinancialCustomizationSection />
+      </section>
+    </>
   );
 }

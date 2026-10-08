@@ -1,6 +1,7 @@
 import { Check, Pencil } from "lucide-react";
 import { type KeyboardEvent, type ReactNode, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useBlocker, useSearchParams } from "react-router";
 
 import { auth as authContract } from "@finance/contracts";
 import type { auth } from "@finance/contracts";
@@ -10,7 +11,7 @@ import { useCountries } from "../../reference/hooks/useReference";
 import { ApiRequestError } from "../../../shared/lib/apiClient";
 import { cn } from "../../../shared/lib/cn";
 import { Button } from "../../../shared/ui/button";
-import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
+import { ConfirmModal } from "../../../shared/ui/overlay";
 import { SearchableSelect } from "../../../shared/ui/searchable-select";
 import {
   combinePhone,
@@ -114,22 +115,39 @@ function FieldLine({ label, children }: Readonly<{ label: string; children: Reac
   );
 }
 
-export function PersonalInfoSection({
-  editRequest,
-}: Readonly<{ editRequest?: { field: PersonalFieldKey } | null }> = {}) {
+/** The draft parts each row edits — what decides whether an open row has unsaved changes. */
+const FIELD_PARTS: Record<PersonalFieldKey, readonly PartKey[]> = {
+  name: ["name"],
+  email: ["email"],
+  phone: ["phone"],
+  identifier: ["identifierType", "identifierValue"],
+  birthDate: ["birthDate"],
+  address: ["addressStreet", "addressCity", "addressRegion", "addressPostalCode"],
+  country: ["countryId"],
+};
+
+/** Rows the profile summary can ask to open (`/profile/personal?edit=phone`, specs/029 R8). */
+const EDITABLE_FROM_URL: readonly PersonalFieldKey[] = ["email", "phone", "identifier"];
+
+function requestedField(value: string | null): PersonalFieldKey | null {
+  return EDITABLE_FROM_URL.find((field) => field === value) ?? null;
+}
+
+export function PersonalInfoSection() {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { data: countries } = useCountries();
   const { updateProfile } = useProfileMutations();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<PersonalFieldKey | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState<PersonalFieldKey | null>(null);
-  const [handledRequest, setHandledRequest] = useState<object | null>(null);
+  // Read once, on arrival: the URL parameter is cleared right after (below), so a reload doesn't
+  // reopen the row.
+  const [pendingEdit, setPendingEdit] = useState(() => requestedField(searchParams.get("edit")));
   const savedTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const sectionRef = useRef<HTMLDivElement>(null);
 
   const availableIdentifierTypes = useAvailableIdentifierTypes(user?.countryId ?? null);
   const callingCode = useCountryCallingCode(user?.countryId ?? null);
@@ -142,22 +160,41 @@ export function PersonalInfoSection({
     setEditing(field);
   }
 
-  // Adjusting state while rendering, not in an effect: the supported "a prop
-  // changed, derive from it" path. The request is an object, so asking for the
-  // same field twice is two distinct requests.
-  if (editRequest && editRequest !== handledRequest && user) {
-    setHandledRequest(editRequest);
-    setOpen(true);
-    startEditing(editRequest.field);
+  // Adjusting state while rendering, not in an effect: the row can only open once the user (and
+  // so the draft) has loaded, and that is a render, not an event.
+  if (pendingEdit && user) {
+    setPendingEdit(null);
+    startEditing(pendingEdit);
   }
 
+  // Drop `?edit=` from the address as soon as it has been read: it asked for one opening, and a
+  // reload or a shared link shouldn't repeat it.
   useEffect(() => {
-    if (!handledRequest) return;
-    sectionRef.current?.scrollIntoView?.({ block: "center", behavior: "smooth" });
-  }, [handledRequest]);
+    if (!searchParams.has("edit")) return;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("edit");
+        return next;
+      },
+      { replace: true },
+    );
+    // Only on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // The badge outlives the save, so its timer can outlive the component.
   useEffect(() => () => clearTimeout(savedTimer.current), []);
+
+  // An open row with something typed that isn't saved yet. Leaving through the app (another
+  // section, "volver", the browser's back) asks first; a reload or a closed tab discards without
+  // asking — no `beforeunload` on purpose (specs/029 clarification 2, FR-007a).
+  const baseline = user ? draftFrom(user, callingCode, availableIdentifierTypes[0] ?? "RUT") : null;
+  const dirty =
+    editing !== null &&
+    baseline !== null &&
+    FIELD_PARTS[editing].some((part) => draft[part] !== baseline[part]);
+  const blocker = useBlocker(dirty);
 
   if (!user) return null;
 
@@ -439,10 +476,10 @@ export function PersonalInfoSection({
   ];
 
   return (
-    <CollapsibleSection title={t("profile.personalInfo.title")} open={open} onOpenChange={setOpen}>
-      <div ref={sectionRef}>
-        {rows.map((row) => (
-          <div key={row.key} className="-mx-5 border-t border-border">
+    <div className="overflow-hidden rounded-2xl border bg-card">
+      <div>
+        {rows.map((row, index) => (
+          <div key={row.key} className={cn(index > 0 && "border-t border-border")}>
             {editing === row.key ? (
               <div className="flex flex-col gap-2.5 bg-muted/30 px-5 py-3.5">
                 {row.lines}
@@ -470,7 +507,7 @@ export function PersonalInfoSection({
               <button
                 type="button"
                 onClick={() => startEditing(row.key)}
-                className="flex w-full items-center justify-between gap-4 px-5 py-3.5 text-left transition-colors hover:bg-muted/30"
+                className="flex min-h-14 w-full items-center justify-between gap-4 px-5 py-3.5 text-left transition-colors hover:bg-muted/30"
               >
                 <span className="whitespace-nowrap text-sm text-muted-foreground">{row.label}</span>
                 <span className="flex min-w-0 items-center gap-2.5">
@@ -495,6 +532,17 @@ export function PersonalInfoSection({
           </div>
         ))}
       </div>
-    </CollapsibleSection>
+      <ConfirmModal
+        open={blocker.state === "blocked"}
+        onOpenChange={(open) => {
+          if (!open) blocker.reset?.();
+        }}
+        onConfirm={() => blocker.proceed?.()}
+        title={t("profile.discard.title")}
+        description={t("profile.discard.description")}
+        confirmLabel={t("profile.discard.confirm")}
+        cancelLabel={t("profile.discard.cancel")}
+      />
+    </div>
   );
 }

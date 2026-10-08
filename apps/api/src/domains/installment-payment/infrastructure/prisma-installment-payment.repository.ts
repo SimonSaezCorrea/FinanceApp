@@ -42,9 +42,14 @@ export class PrismaInstallmentPaymentRepository
     });
   }
 
-  async listUnbilledDueForPlans(planIds: string[], dueBy: Date): Promise<InstallmentPaymentRow[]> {
+  async listUnbilledDueForPlans(
+    planIds: string[],
+    dueBy: Date,
+    tx?: unknown,
+  ): Promise<InstallmentPaymentRow[]> {
     if (planIds.length === 0) return [];
-    const rows = await this.prisma.installmentPayment.findMany({
+    const client = (tx as PrismaService | undefined) ?? this.prisma;
+    const rows = await client.installmentPayment.findMany({
       where: {
         installmentPlanId: { in: planIds },
         creditStatementId: null,
@@ -83,6 +88,14 @@ export class PrismaInstallmentPaymentRepository
     });
   }
 
+  async unstampDueAfterWithTx(tx: unknown, statementId: string, dueAfter: Date): Promise<void> {
+    const client = tx as PrismaService;
+    await client.installmentPayment.updateMany({
+      where: { creditStatementId: statementId, dueDate: { gt: dueAfter }, paidAt: null },
+      data: { creditStatementId: null },
+    });
+  }
+
   async settleForStatementWithTx(tx: unknown, statementId: string, paidAt: Date): Promise<void> {
     const client = tx as PrismaService;
     // `paidAmount` must become each row's OWN scheduled amount (FR-014): the
@@ -101,8 +114,12 @@ export class PrismaInstallmentPaymentRepository
     }
   }
 
-  async sumBilledForStatement(statementId: string): Promise<{ amount: string; count: number }> {
-    const rows = await this.prisma.installmentPayment.aggregate({
+  async sumBilledForStatement(
+    statementId: string,
+    tx?: unknown,
+  ): Promise<{ amount: string; count: number }> {
+    const client = (tx as PrismaService | undefined) ?? this.prisma;
+    const rows = await client.installmentPayment.aggregate({
       where: { creditStatementId: statementId },
       _sum: { amount: true },
       _count: { _all: true },

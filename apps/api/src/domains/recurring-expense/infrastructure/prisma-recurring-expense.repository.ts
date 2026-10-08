@@ -126,4 +126,12 @@ export class PrismaRecurringExpenseRepository implements RecurringExpenseReposit
     const result = await this.prisma.recurringExpense.deleteMany({ where: { id, userId } });
     return result.count > 0;
   }
+
+  async countForUser(userId: string): Promise<number> {
+    return this.prisma.recurringExpense.count({ where: { userId } });
+  }
+
+  async deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void> {
+    await (tx as PrismaService).recurringExpense.deleteMany({ where: { userId } });
+  }
 }
