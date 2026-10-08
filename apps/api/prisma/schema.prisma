@@ -272,6 +272,28 @@ model IpGeolocationCache {
   @@map("ip-geolocation-cache")
 }
 
+/// Spec 030: daily value of the dólar observado (USD) and the UF (CLF) in pesos. Global
+/// reference data (no `userId`, no FK) — written only by the system cron, read by any
+/// signed-in user. One row per (currency, Chile calendar day); `valueDate` says which day the
+/// source actually published `value`, so `valueDate < date` is a "dato arrastrado" (derived,
+/// never a stored flag) and a later real publication simply raises `valueDate`.
+model ExchangeRate {
+  id        String   @id @default(uuid(7))
+  /// "USD" (dólar observado) or "CLF" (UF). `value` = CLP per ONE unit.
+  currency  String   @db.VarChar(3)
+  /// The calendar day this row answers for, in Chile (America/Santiago).
+  date      DateTime @db.Date
+  value     Decimal  @db.Decimal(18, 4)
+  /// The day the source published `value`; never after `date`.
+  valueDate DateTime @db.Date
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([currency, date])
+  @@index([currency, date(sort: Desc)])
+  @@map("exchange-rate")
+}
+
 enum UserStatus {
   ACTIVE
   DISABLED

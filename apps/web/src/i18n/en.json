@@ -99,7 +99,8 @@
       "goals": "Goals"
     },
     "more": "More",
-    "moreSections": "More sections"
+    "moreSections": "More sections",
+    "exchangeRates": "Exchange rates"
   },
   "theme": {
     "label": "Theme",
@@ -2707,6 +2708,33 @@
     "STATEMENT_NOT_CLOSED": "That period is still open: it has no dates to edit yet.",
     "STATEMENT_DATES_LOCKED": "Those dates can't move anymore: the statement is settled or a later one exists.",
     "IMPORT_STATEMENT_NOT_CREDIT": "A statement can only belong to a credit card account.",
-    "IMPORT_STATEMENTS_REPLACE_ONLY": "Statements are only imported when replacing everything."
+    "IMPORT_STATEMENTS_REPLACE_ONLY": "Statements are only imported when replacing everything.",
+    "EXCHANGE_RANGE_TOO_LARGE": "The requested range is too long (400 days at most).",
+    "INVALID_DATE_RANGE": "The start date cannot be after the end date.",
+    "CARD_LIMIT_NOT_FOUND": "This account's main card has no limit in that currency."
+  },
+  "exchangeRates": {
+    "title": "Exchange rates",
+    "subtitle": "Daily value of the observed dollar and the UF, in pesos.",
+    "today": "Current value",
+    "carried": "Carried-forward value",
+    "carriedHint": "Last published value, from {{date}}",
+    "estimated": "estimate",
+    "valueOn": "value of {{date}}",
+    "usd": "Observed dollar",
+    "uf": "UF",
+    "range": {
+      "30d": "30 days",
+      "1y": "1 year"
+    },
+    "table": {
+      "date": "Date",
+      "usd": "Dollar",
+      "uf": "UF"
+    },
+    "jumpToDate": "Go to a date",
+    "noDataForDate": "No data for that date",
+    "empty": "No values recorded yet.",
+    "source": "Source: mindicador.cl"
   }
 }

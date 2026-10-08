@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   addMoney,
+  convertAmount,
   currencySymbol,
   formatMoney,
   moneyToString,
@@ -72,5 +73,37 @@ describe("money", () => {
     it("falls back to the ISO code for CLF, which has no real symbol", () => {
       expect(currencySymbol("CLF", "es")).toBe("CLF");
     });
+  });
+});
+
+describe("convertAmount", () => {
+  it("converts dollars to whole pesos at the given rate", () => {
+    expect(convertAmount("100", "950", "CLP")).toBe("95000");
+  });
+
+  it("rounds to the target currency's minor unit (a peso has no cents)", () => {
+    // 50,41 × 979,85 = 49.394,2385 → 49.394
+    expect(convertAmount("50.41", "979.85", "CLP")).toBe("49394");
+  });
+
+  it("keeps two decimals when the target is USD and four for the UF", () => {
+    expect(convertAmount("10", "0.0010526", "USD")).toBe("0.01");
+    expect(convertAmount("10", "0.0010526", "CLF")).toBe("0.0105");
+  });
+
+  it("is exact where float arithmetic drifts", () => {
+    // 0.1 * 3 === 0.30000000000000004 in float.
+    expect(convertAmount("0.1", "3", "CLF")).toBe("0.3000");
+    expect(convertAmount("1.1", "1000", "CLP")).toBe("1100");
+  });
+
+  it("rejects a zero, negative or non-numeric rate", () => {
+    expect(() => convertAmount("100", "0", "CLP")).toThrow();
+    expect(() => convertAmount("100", "-950", "CLP")).toThrow();
+    expect(() => convertAmount("100", "abc", "CLP")).toThrow();
+  });
+
+  it("keeps the sign of the amount (a debt converts to a negative figure)", () => {
+    expect(convertAmount("-20", "980", "CLP")).toBe("-19600");
   });
 });

@@ -99,7 +99,8 @@
       "goals": "Metas"
     },
     "more": "Más",
-    "moreSections": "Más secciones"
+    "moreSections": "Más secciones",
+    "exchangeRates": "Tipos de cambio"
   },
   "theme": {
     "label": "Tema",
@@ -2707,6 +2708,33 @@
     "STATEMENT_NOT_CLOSED": "Ese período sigue abierto: todavía no tiene fechas que editar.",
     "STATEMENT_DATES_LOCKED": "Esas fechas ya no se pueden mover: la facturación está liquidada o hay otra posterior.",
     "IMPORT_STATEMENT_NOT_CREDIT": "Una facturación solo puede ser de una cuenta de tarjeta de crédito.",
-    "IMPORT_STATEMENTS_REPLACE_ONLY": "Las facturaciones solo se importan al reemplazar todo."
+    "IMPORT_STATEMENTS_REPLACE_ONLY": "Las facturaciones solo se importan al reemplazar todo.",
+    "EXCHANGE_RANGE_TOO_LARGE": "El rango pedido es demasiado largo (máximo 400 días).",
+    "INVALID_DATE_RANGE": "La fecha de inicio no puede ser posterior a la de término.",
+    "CARD_LIMIT_NOT_FOUND": "La tarjeta principal de esta cuenta no tiene un tope en esa moneda."
+  },
+  "exchangeRates": {
+    "title": "Tipos de cambio",
+    "subtitle": "Valor diario del dólar observado y de la UF, en pesos.",
+    "today": "Valor vigente",
+    "carried": "Dato arrastrado",
+    "carriedHint": "Último valor publicado, de {{date}}",
+    "estimated": "estimado",
+    "valueOn": "valor del {{date}}",
+    "usd": "Dólar observado",
+    "uf": "UF",
+    "range": {
+      "30d": "30 días",
+      "1y": "1 año"
+    },
+    "table": {
+      "date": "Fecha",
+      "usd": "Dólar",
+      "uf": "UF"
+    },
+    "jumpToDate": "Ir a una fecha",
+    "noDataForDate": "Sin dato para esa fecha",
+    "empty": "Aún no hay valores registrados.",
+    "source": "Fuente: mindicador.cl"
   }
 }

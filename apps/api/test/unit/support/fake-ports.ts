@@ -7,6 +7,8 @@ import {
 import type { BankAccountRepositoryPort } from "../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CardAccountRepositoryPort } from "../../../src/domains/card-account/domain/ports/card-account.repository.port";
 import type { CategoryLookupPort } from "../../../src/domains/category/domain/ports/category-lookup.port";
+import type { ExchangeRateEntry, RateCurrency } from "../../../src/domains/exchange-rate/domain/exchange-rate.entity";
+import type { ExchangeRateRepositoryPort } from "../../../src/domains/exchange-rate/domain/ports/exchange-rate.repository.port";
 import type { CardLimitRepositoryPort } from "../../../src/domains/card-limit/domain/ports/card-limit.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
 import type { InstallmentPaymentLookupPort } from "../../../src/domains/installment-payment/domain/ports/installment-payment-lookup.port";
@@ -340,6 +342,42 @@ export function fakeCategoryLookup(
       isSystem: false,
     })),
     idForSystemCode: vi.fn(async (code: string) => `system-${code}`),
+    ...overrides,
+  };
+}
+
+/**
+ * In-memory `exchange-rate` table keyed on (currency, date), with the same upsert rule as the
+ * real adapter (a write never lowers `valueDate`). `rows` is exposed so a spec can assert what
+ * ended up stored; `upsert`/`upsertMany` are spies.
+ */
+export function fakeExchangeRateRepo(
+  seed: readonly ExchangeRateEntry[] = [],
+  overrides: Partial<ExchangeRateRepositoryPort> = {},
+): ExchangeRateRepositoryPort & { rows: Map<string, ExchangeRateEntry> } {
+  const rows = new Map<string, ExchangeRateEntry>();
+  const key = (e: Pick<ExchangeRateEntry, "currency" | "date">) => `${e.currency}|${e.date}`;
+  for (const e of seed) rows.set(key(e), { ...e });
+  const put = (e: ExchangeRateEntry) => {
+    const current = rows.get(key(e));
+    if (current && e.valueDate < current.valueDate) return;
+    rows.set(key(e), { ...e });
+  };
+  const sorted = (currency?: RateCurrency) =>
+    [...rows.values()]
+      .filter((r) => !currency || r.currency === currency)
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  return {
+    rows,
+    upsert: vi.fn(async (e: ExchangeRateEntry) => put(e)),
+    upsertMany: vi.fn(async (entries: readonly ExchangeRateEntry[]) => {
+      for (const e of entries) put(e);
+    }),
+    findLatest: vi.fn(async (currency: RateCurrency) => sorted(currency)[0] ?? null),
+    findRange: vi.fn(async (currency: RateCurrency | undefined, from: string, to: string) =>
+      sorted(currency).filter((r) => r.date >= from && r.date <= to),
+    ),
+    lastDate: vi.fn(async (currency: RateCurrency) => sorted(currency)[0]?.date ?? null),
     ...overrides,
   };
 }

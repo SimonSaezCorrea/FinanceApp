@@ -1,4 +1,16 @@
 <!--
+Sync Impact Report — 2026-10-08 (amendment 2.4.0)
+- Version change: 2.3.19 → 2.4.0 (MINOR: a normative clause of "Technology & Operational Constraints"
+  is materially amended; specs/030 exchange rates).
+- AMENDED: MVP-scope clause (c). It said the UF "gets no approximate CLP hint, because there is no
+  FX source". Spec 030 adds a daily exchange-rate table (dólar observado and UF, from mindicador.cl),
+  so the premise is gone: a UF amount may enter the net worth's single estimated total, labelled as an
+  estimate with its value date. Unchanged: a UF account shows no per-account CLP hint, the UF is never
+  a payment/transfer suggestion, and no conversion is persisted unless the person confirmed it.
+- Follow-up (closed by specs/030's last task): the new `exchange-rate` table-domain, its system cron
+  and the "suggest, never compare or persist unconfirmed" rule for the old "no FX" statements.
+-->
+<!--
 Sync Impact Report — 2026-10-07 (amendment 2.3.19)
 - Version change: 2.3.18 → 2.3.19 (PATCH: one write endpoint's behavior and one scheduled job; no
   principle text changed).
@@ -1870,8 +1882,12 @@ identificador adivinable o no.
   defines a catalogue MUST also retire the complement, or an already-seeded database keeps the wider
   scope; (b) **research that leaves the code is written down before it is deleted**
   (`docs/CATALOGO_REGIONAL.md`), so re-expanding is copy-back, not re-research; (c) the **UF is a unit
-  of account, not a spendable currency** — with no FX source, a UF amount is stored and shown in UF and
-  gets no approximate CLP hint, because there is no honest number to write down.
+  of account, not a spendable currency** — a UF amount is stored and shown in UF, and its account gets
+  NO per-account approximate CLP hint. Since specs/030 there IS a source for the value (the daily
+  `exchange-rate` table, `CLF`), so the ONE place a UF amount is converted is the net worth's single
+  estimated total ("≈ todo en CLP (estimado)", always labelled an estimate and dated with the value it
+  used); the UF is never offered as a payment or transfer suggestion, and nothing converted is ever
+  persisted without the person's confirmation.
 - **Target architecture (ratified — specs/001):** a **pnpm + Turborepo monorepo** with two
   separately deployable apps and shared packages:
   - `apps/api` — **NestJS** backend, **Prisma 7 / PostgreSQL** (sole DB owner, connected via the
@@ -2123,4 +2139,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.3.19 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-07
+**Version**: 2.4.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-08

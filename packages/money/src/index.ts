@@ -102,5 +102,21 @@ export function currencySymbol(currency: string, locale: string = "es"): string 
   return parts.find((p) => p.type === "currency")?.value ?? currency;
 }
 
+/**
+ * Spec 030 — what `amount` is worth at `rate` (pesos per ONE unit of the amount's currency),
+ * expressed in `toCurrency`, rounded to THAT currency's minor unit (a peso has no cents).
+ *
+ * The one conversion implementation: the web uses it to SUGGEST an editable figure (a USD
+ * payment's pesos, a USD account's "≈ $…", the estimated net-worth total); the server never
+ * persists a result of it that the person did not confirm. `rate` must be a positive number.
+ */
+export function convertAmount(amount: MoneyInput, rate: MoneyInput, toCurrency: string): string {
+  const r = toMoney(rate);
+  if (!r.isPositive() || r.isZero()) {
+    throw new Error(`Invalid exchange rate: ${String(rate)}`);
+  }
+  return moneyToString(toMoney(amount).times(r), currencyScale(toCurrency));
+}
+
 export * from "./installments";
 export * from "./interest";
