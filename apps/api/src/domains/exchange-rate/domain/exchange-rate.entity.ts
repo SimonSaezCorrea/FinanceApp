@@ -23,11 +23,29 @@ export interface ExchangeRateEntry extends PublishedValue {
   date: string;
 }
 
-/** `YYYY-MM-DD` of the day after `day` (UTC arithmetic on a plain calendar date). */
-export function nextDay(day: string): string {
+/** `YYYY-MM-DD` of the day `n` days after `day` (negative: before) — UTC arithmetic on a plain
+ * calendar date, so no time zone or DST can move it. */
+export function addDays(day: string, n: number): string {
   const d = new Date(`${day}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + 1);
+  d.setUTCDate(d.getUTCDate() + n);
   return d.toISOString().slice(0, 10);
+}
+
+/** `YYYY-MM-DD` of the day after `day`. */
+export function nextDay(day: string): string {
+  return addDays(day, 1);
+}
+
+/** The calendar day it is in Chile at `now` (America/Santiago, DST included). This is the day a
+ * row is filed under, whatever the server's own time zone. */
+export function chileDay(now: Date): string {
+  // The en-CA locale formats a date as YYYY-MM-DD.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "America/Santiago",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
 }
 
 /** The days `from`..`to`, both included, in order. Empty when `from` is after `to`. */

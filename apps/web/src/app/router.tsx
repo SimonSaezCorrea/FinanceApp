@@ -15,6 +15,7 @@ import { PrivacyRoute } from "../domains/landing/routes/PrivacyRoute";
 import { ProfileLayout } from "../domains/profile/routes/ProfileLayout";
 import { PROFILE_CHILD_ROUTES } from "../domains/profile/routes/profileRoutes";
 import { RecurringRoute } from "../domains/recurring/routes/RecurringRoute";
+import { ExchangeRatesRoute } from "../domains/exchange-rates/routes/ExchangeRatesRoute";
 import { SavingsRoute } from "../domains/savings/routes/SavingsRoute";
 import { TransactionsRoute } from "../domains/transactions/routes/TransactionsRoute";
 import { AppLayout } from "./AppLayout";
@@ -101,6 +102,11 @@ export const router = createBrowserRouter([
         path: "/savings",
         element: protect(<SavingsRoute />),
         handle: handle({ title: "savings.title" }),
+      },
+      {
+        path: "/exchange-rates",
+        element: protect(<ExchangeRatesRoute />),
+        handle: handle({ title: "nav.exchangeRates" }),
       },
       {
         path: "/import",

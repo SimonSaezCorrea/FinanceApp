@@ -2725,7 +2725,8 @@
     "uf": "UF",
     "range": {
       "30d": "30 días",
-      "1y": "1 año"
+      "1y": "1 año",
+      "label": "Rango del gráfico"
     },
     "table": {
       "date": "Fecha",
@@ -2735,6 +2736,8 @@
     "jumpToDate": "Ir a una fecha",
     "noDataForDate": "Sin dato para esa fecha",
     "empty": "Aún no hay valores registrados.",
-    "source": "Fuente: mindicador.cl"
+    "source": "Fuente: mindicador.cl",
+    "carriedShort": "arrastrado",
+    "jumpTitle": "Valor de un día"
   }
 }

@@ -9,8 +9,12 @@ import { daysBefore, localDay } from "../lib/day";
 const STALE = 1000 * 60 * 10;
 
 /** A bounded window of rates; omitted bounds default to the last 30 days (server-side). */
-export function useExchangeRates(params: exchangeRates.ListExchangeRatesQuery = {}) {
+export function useExchangeRates(
+  params: exchangeRates.ListExchangeRatesQuery = {},
+  options: { enabled?: boolean } = {},
+) {
   return useQuery({
+    enabled: options.enabled ?? true,
     queryKey: ["exchange-rates", params.currency ?? "all", params.from ?? "", params.to ?? ""],
     queryFn: () => exchangeRatesApi.list(params),
     staleTime: STALE,

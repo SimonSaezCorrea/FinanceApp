@@ -2,9 +2,11 @@ import { Module } from "@nestjs/common";
 import { CqrsModule } from "@nestjs/cqrs";
 import { ScheduleModule } from "@nestjs/schedule";
 
+import { ExchangeRateModule } from "../../domains/exchange-rate/exchange-rate.module";
 import { IdempotencyRecordModule } from "../../domains/idempotency-record/idempotency-record.module";
 import { IpGeolocationCacheModule } from "../../domains/ip-geolocation-cache/ip-geolocation-cache.module";
 import { UserModule } from "../../domains/user/user.module";
+import { ExchangeRateCron } from "./exchange-rate.cron";
 import { IdempotencyCleanupCron } from "./idempotency-cleanup.cron";
 import { IpGeolocationCachePurgeCron } from "./ip-geolocation-cache-purge.cron";
 import { SessionCleanupCron } from "./session-cleanup.cron";
@@ -27,11 +29,13 @@ import { StatementGenerationCron } from "./statement-generation.cron";
   imports: [
     ScheduleModule.forRoot(),
     CqrsModule,
+    ExchangeRateModule,
     IdempotencyRecordModule,
     IpGeolocationCacheModule,
     UserModule,
   ],
   providers: [
+    ExchangeRateCron,
     IdempotencyCleanupCron,
     IpGeolocationCachePurgeCron,
     SessionCleanupCron,

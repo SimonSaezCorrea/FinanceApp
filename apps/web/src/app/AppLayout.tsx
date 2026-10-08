@@ -1,6 +1,7 @@
 import * as RadixDialog from "@radix-ui/react-dialog";
 import {
   ArrowLeftRight,
+  CircleDollarSign,
   CreditCard,
   HandCoins,
   LayoutDashboard,
@@ -45,19 +46,20 @@ const INSTALLMENTS: NavItem = { to: "/installments", key: "installments.title", 
 const DEBTS: NavItem = { to: "/debts", key: "debts.title", icon: HandCoins };
 const RECURRING: NavItem = { to: "/recurring", key: "recurring.title", icon: Repeat };
 const SAVINGS: NavItem = { to: "/savings", key: "savings.title", icon: PiggyBank };
+const EXCHANGE_RATES: NavItem = { to: "/exchange-rates", key: "nav.exchangeRates", icon: CircleDollarSign };
 
 /** Grouped by what each section IS for the user: their money, what they've committed to, their
  * goals. Investments is left out until it exists (an item that leads nowhere is daily noise). */
 const GROUPS: { key: string | null; items: NavItem[] }[] = [
   { key: null, items: [PANEL] },
-  { key: "nav.groups.money", items: [ACCOUNTS, MOVEMENTS, IMPORT] },
+  { key: "nav.groups.money", items: [ACCOUNTS, MOVEMENTS, EXCHANGE_RATES, IMPORT] },
   { key: "nav.groups.commitments", items: [INSTALLMENTS, DEBTS, RECURRING] },
   { key: "nav.groups.goals", items: [SAVINGS] },
 ];
 
 /** Phone: four destinations and "+" in the tab bar; everything else in the "Más" sheet. */
 const TAB_ITEMS: NavItem[] = [PANEL, ACCOUNTS, MOVEMENTS];
-const SHEET_ITEMS: NavItem[] = [INSTALLMENTS, DEBTS, RECURRING, SAVINGS, IMPORT];
+const SHEET_ITEMS: NavItem[] = [INSTALLMENTS, DEBTS, RECURRING, SAVINGS, EXCHANGE_RATES, IMPORT];
 
 const SIDEBAR_COLLAPSED_KEY = "finance.sidebarCollapsed";
 

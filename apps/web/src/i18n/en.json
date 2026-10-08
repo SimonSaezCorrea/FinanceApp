@@ -2725,7 +2725,8 @@
     "uf": "UF",
     "range": {
       "30d": "30 days",
-      "1y": "1 year"
+      "1y": "1 year",
+      "label": "Chart range"
     },
     "table": {
       "date": "Date",
@@ -2735,6 +2736,8 @@
     "jumpToDate": "Go to a date",
     "noDataForDate": "No data for that date",
     "empty": "No values recorded yet.",
-    "source": "Source: mindicador.cl"
+    "source": "Source: mindicador.cl",
+    "carriedShort": "carried",
+    "jumpTitle": "Value on a day"
   }
 }
