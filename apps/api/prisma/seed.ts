@@ -4,7 +4,20 @@ import { PrismaClient, Prisma } from "@prisma/client";
 import { hash } from "bcryptjs";
 import { config as loadEnv } from "dotenv";
 
+import { ConfigService } from "@nestjs/config";
+
 import { addMoney, subtractMoney, toMoney } from "@finance/money";
+
+import { ExchangeRateSourceUnavailableError } from "../src/domains/exchange-rate/application/exchange-rate-source";
+import {
+  RATE_CURRENCIES,
+  addDays,
+  chileDay,
+  daysBetween,
+  latestPublishedOn,
+  type PublishedValue,
+} from "../src/domains/exchange-rate/domain/exchange-rate.entity";
+import { MindicadorSource } from "../src/domains/exchange-rate/infrastructure/mindicador-source";
 
 // tsx doesn't load apps/api/.env on its own.
 loadEnv({ path: path.join(__dirname, "..", ".env") });
@@ -4904,9 +4917,73 @@ async function seedReferenceData() {
   );
 }
 
+/** How many months of history `seedExchangeRates` loads before today. */
+const RATES_HISTORY_MONTHS = 4;
+/** The most days past today a seed may reach (the UF is published about a month ahead). */
+const RATES_MAX_AHEAD_DAYS = 30;
+
+/**
+ * Fills `exchange-rate` (USD observado + UF) from the real API (mindicador.cl) for the window
+ * `[today - 4 months, today + ahead]`, all relative to the day the seed runs, never fixed dates.
+ *
+ * `ahead` comes from `SEED_RATES_AHEAD_DAYS` (default 0 = up to today; max 30). A day after today
+ * is written only when the source really published a value for that exact day (the UF does, the
+ * dollar doesn't), so nothing is invented. Days up to today with no publication of their own
+ * (weekends, holidays) carry the last value, with its older `valueDate` marking them as carried.
+ * Idempotent: upserts on `(currency, date)`. A source outage only warns; the rest of the seed
+ * does not depend on it.
+ */
+async function seedExchangeRates() {
+  const today = chileDay(new Date());
+  const rawAhead = Number(process.env.SEED_RATES_AHEAD_DAYS ?? 0);
+  const ahead = Number.isInteger(rawAhead)
+    ? Math.min(Math.max(rawAhead, 0), RATES_MAX_AHEAD_DAYS)
+    : 0;
+
+  const start = new Date(`${today}T00:00:00Z`);
+  start.setUTCMonth(start.getUTCMonth() - RATES_HISTORY_MONTHS);
+  const from = start.toISOString().slice(0, 10);
+  const to = addDays(today, ahead);
+
+  const source = new MindicadorSource(new ConfigService());
+  const toDate = (day: string) => new Date(`${day}T00:00:00Z`);
+  let written = 0;
+
+  try {
+    for (const currency of RATE_CURRENCIES) {
+      const published: PublishedValue[] = [];
+      for (let year = Number(from.slice(0, 4)); year <= Number(to.slice(0, 4)); year++) {
+        published.push(...(await source.series(currency, year)));
+      }
+
+      for (const date of daysBetween(from, to)) {
+        const value = latestPublishedOn(published, date);
+        if (!value) continue;
+        if (date > today && value.valueDate !== date) continue;
+        await prisma.exchangeRate.upsert({
+          where: { currency_date: { currency, date: toDate(date) } },
+          create: {
+            currency,
+            date: toDate(date),
+            value: dec(value.value),
+            valueDate: toDate(value.valueDate),
+          },
+          update: { value: dec(value.value), valueDate: toDate(value.valueDate) },
+        });
+        written++;
+      }
+    }
+    console.log(`Exchange rates OK: ${written} rows, ${from} to ${to} (${ahead} days ahead)`);
+  } catch (err) {
+    if (!(err instanceof ExchangeRateSourceUnavailableError)) throw err;
+    console.warn(`Exchange rates skipped: source unavailable (${err.message})`);
+  }
+}
+
 async function main() {
   await seedReferenceData();
   await seedCategories();
+  await seedExchangeRates();
 
   await prisma.user.deleteMany({
     where: { email: { in: [...DEMO_EMAILS] } },
