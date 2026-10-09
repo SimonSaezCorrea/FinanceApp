@@ -1,4 +1,5 @@
 import { ArrowLeft, Home } from "lucide-react";
+import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router";
 
@@ -7,7 +8,7 @@ import { HeroRidge } from "../domains/landing/components/HeroRidge";
 import { LandingLayout } from "../domains/landing/components/LandingLayout";
 import { AppSplash } from "../shared/ui/app-splash";
 import { Button } from "../shared/ui/button";
-import { AppLayout } from "./AppLayout";
+import { AppLayout } from "./lazyPages";
 
 /** Any URL no route claims. Same chrome split as `/` (see HomeRoute): a visitor gets it inside
  * the landing, a signed-in user inside the app — a dead link shouldn't also drop the navigation. */
@@ -23,9 +24,11 @@ export function NotFoundRoute() {
     );
   }
   return (
-    <AppLayout>
-      <NotFoundPage signedIn />
-    </AppLayout>
+    <Suspense fallback={<AppSplash />}>
+      <AppLayout>
+        <NotFoundPage signedIn />
+      </AppLayout>
+    </Suspense>
   );
 }
 
