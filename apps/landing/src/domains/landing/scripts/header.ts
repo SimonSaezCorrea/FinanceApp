@@ -90,7 +90,27 @@ export function openLinkedDetails(): void {
   addEventListener("hashchange", open);
 }
 
+/** The language dropdown is a native `<details>`: this only adds what a menu is expected to do —
+ * close on a click outside it or on Escape (returning focus to its button). */
+export function initLanguageMenu(): void {
+  const menus = () =>
+    document.querySelectorAll<HTMLDetailsElement>("details[data-language-menu][open]");
+  document.addEventListener("click", (event) => {
+    for (const menu of menus()) {
+      if (!menu.contains(event.target as Node)) menu.open = false;
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    for (const menu of menus()) {
+      menu.open = false;
+      menu.querySelector("summary")?.focus();
+    }
+  });
+}
+
 initTheme();
 initMenu();
+initLanguageMenu();
 initHeaderHeight();
 openLinkedDetails();

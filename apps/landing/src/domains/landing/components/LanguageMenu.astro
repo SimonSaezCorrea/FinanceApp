@@ -1,0 +1,55 @@
+---
+import { Check, ChevronDown, Globe } from "lucide-react";
+
+import { t } from "../../../i18n";
+import { LANGUAGES, type Language, type Page, pagePath } from "../../../lib/language";
+
+/**
+ * The header's language picker: a compact "ES ▾" that opens the list of languages, each named in
+ * its own language and linking to THIS page in it. A native `<details>`, so it works without
+ * script; `scripts/header.ts` only closes it on an outside click or Escape. Same height as the
+ * theme switch beside it.
+ */
+interface Props {
+  lang: Language;
+  page: Page;
+}
+const { lang, page } = Astro.props;
+const NAMES: Record<Language, string> = { es: "Español", en: "English" };
+---
+
+<details data-language-menu class="group relative">
+  <summary
+    aria-label={t(lang, "landing.nav.language")}
+    class="flex h-[34px] cursor-pointer list-none items-center gap-1.5 rounded-md border bg-background px-2.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-open:text-foreground [&::-webkit-details-marker]:hidden"
+  >
+    <Globe className="h-4 w-4" aria-hidden />
+    <span class="uppercase">{lang}</span>
+    <ChevronDown className="h-3.5 w-3.5 transition-transform group-open:rotate-180" aria-hidden />
+  </summary>
+  <ul
+    class="absolute right-0 z-50 mt-2 min-w-40 rounded-lg border bg-card p-1 shadow-lg"
+    aria-label={t(lang, "landing.nav.language")}
+  >
+    {
+      LANGUAGES.map((code) => (
+        <li>
+          <a
+            href={pagePath(code, page)}
+            hreflang={code}
+            lang={code}
+            aria-current={code === lang ? "true" : undefined}
+            class:list={[
+              "flex min-h-10 items-center gap-3 rounded-md px-2.5 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              code === lang ? "font-medium text-foreground" : "text-muted-foreground hover:text-foreground",
+            ]}
+          >
+            <span class="w-6 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{code}</span>
+            <span class="flex-1">{NAMES[code]}</span>
+            {code === lang ? <Check className="h-4 w-4 text-primary" aria-hidden /> : null}
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</details>

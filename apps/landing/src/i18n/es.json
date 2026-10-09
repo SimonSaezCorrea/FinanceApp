@@ -10,8 +10,8 @@
       "menu": "Menú",
       "openMenu": "Abrir menú",
       "otherLanguage": "English",
-      "otherLanguageLabel": "Ver en inglés",
-      "closeMenu": "Cerrar menú"
+      "closeMenu": "Cerrar menú",
+      "language": "Idioma"
     },
     "footer": {
       "tagline": "Hecha en Chile para pesos, dólares y UF.",

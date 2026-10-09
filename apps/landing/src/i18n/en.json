@@ -10,8 +10,8 @@
       "menu": "Menu",
       "openMenu": "Open menu",
       "otherLanguage": "Español",
-      "otherLanguageLabel": "View in Spanish",
-      "closeMenu": "Close menu"
+      "closeMenu": "Close menu",
+      "language": "Language"
     },
     "footer": {
       "tagline": "Made in Chile for pesos, dollars and UF.",

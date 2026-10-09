@@ -5,6 +5,16 @@ import "../styles/global.css";
 
 import { PRE_PAINT_SCRIPT } from "@finance/ui/prepaint.mjs";
 
+// Development only: the access panel is React loaded on demand, and @vitejs/plugin-react's Fast
+// Refresh refuses to run a component module unless the page installed its preamble — which Astro
+// only does on pages with hydrated islands, and these have none. Without it the panel never opens
+// under `astro dev` (production builds carry no Fast Refresh code).
+const REACT_REFRESH_PREAMBLE = `import RefreshRuntime from "/@react-refresh";
+RefreshRuntime.injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;
+window.__vite_plugin_react_preamble_installed__ = true;`;
+
 import Footer from "../domains/landing/components/Footer.astro";
 import Header from "../domains/landing/components/Header.astro";
 import MobileMenu from "../domains/landing/components/MobileMenu.astro";
@@ -43,6 +53,7 @@ const image = `${site}/og/cuadra-${lang}.png`;
     />
     <meta name="theme-color" content="#0b1518" />
     <script is:inline set:html={PRE_PAINT_SCRIPT} />
+    {import.meta.env.DEV && <script type="module" is:inline set:html={REACT_REFRESH_PREAMBLE} />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
     <meta name="description" content={description} />

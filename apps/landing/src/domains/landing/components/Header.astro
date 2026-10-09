@@ -7,6 +7,7 @@ import { buttonClasses } from "@finance/ui/src/shared/ui/button-classes";
 import { t } from "../../../i18n";
 import { APP_URL } from "../../../lib/config";
 import { type Language, type Page, pagePath } from "../../../lib/language";
+import LanguageMenu from "./LanguageMenu.astro";
 import ThemeSwitch from "./ThemeSwitch.astro";
 
 /**
@@ -26,7 +27,6 @@ const NAV = [
   { page: "pricing", key: "landing.nav.pricing" },
   { page: "faq", key: "landing.nav.faq" },
 ] as const;
-const other: Language = lang === "es" ? "en" : "es";
 ---
 
 <header
@@ -67,15 +67,9 @@ const other: Language = lang === "es" ? "en" : "es";
     </nav>
 
     <div class="flex items-center gap-2">
-      <a
-        href={pagePath(other, page)}
-        hreflang={other}
-        lang={other}
-        aria-label={t(lang, "landing.nav.otherLanguageLabel")}
-        class="hidden min-h-11 items-center px-1 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
-      >
-        {t(lang, "landing.nav.otherLanguage")}
-      </a>
+      <div class="hidden sm:block">
+        <LanguageMenu lang={lang} page={page} />
+      </div>
       <div class="hidden sm:block">
         <ThemeSwitch lang={lang} variant="compact" />
       </div>

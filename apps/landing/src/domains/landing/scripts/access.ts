@@ -42,14 +42,21 @@ export function initAccess(loader: Loader = defaultLoader): void {
   };
 
   const panel = (initialMode: AuthPanelMode | null) => {
-    controller ??= loader().then(({ mountAccessPanel }) =>
-      mountAccessPanel(root, {
-        lang,
-        initialMode,
-        onModeChange: (mode) => writeAddress(mode, false),
-        returnTo: () => new URLSearchParams(location.search).get(RETURN_PARAM),
-      }),
-    );
+    controller ??= loader()
+      .then(({ mountAccessPanel }) =>
+        mountAccessPanel(root, {
+          lang,
+          initialMode,
+          onModeChange: (mode) => writeAddress(mode, false),
+          returnTo: () => new URLSearchParams(location.search).get(RETURN_PARAM),
+        }),
+      )
+      .catch((error: unknown) => {
+        // Never fail silently: say why, and let the next click try again.
+        console.error("The access panel could not be loaded", error);
+        controller = null;
+        throw error;
+      });
     return controller;
   };
 
