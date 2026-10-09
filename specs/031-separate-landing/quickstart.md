@@ -6,7 +6,7 @@
 pnpm install
 # apps/api/.env:     CORS_ORIGIN="http://localhost:4321,http://localhost:5173"   (PASSKEY_RP_ID se omite → localhost)
 # apps/web/.env:     VITE_API_URL=http://localhost:3001/api/v1   VITE_LANDING_URL=http://localhost:4321
-# apps/landing/.env: PUBLIC_API_URL=http://localhost:3001/api/v1 PUBLIC_APP_URL=http://localhost:5173
+# apps/landing/.env: PUBLIC_API_URL=http://localhost:3001 PUBLIC_APP_URL=http://localhost:5173
 #                    PUBLIC_SITE_URL=http://localhost:4321
 pnpm dev            # landing :4321, app :5173, api :3001
 ```
@@ -45,3 +45,26 @@ pnpm --filter @finance/api test:unit
 pnpm --filter @finance/api exec vitest run test/e2e/<registro y llaves>
 pnpm --filter @finance/ui test && pnpm --filter @finance/i18n test && pnpm --filter @finance/client test
 ```
+
+## Mediciones (2026-10-09)
+
+**SC-002 — JS que descarga la portada sin abrir el panel** (build de producción, sin caché):
+
+|                                                              | JS al cargar                                                           | gzip    |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------- | ------- |
+| Antes: `/` de la SPA en `bf45415` (ya con páginas diferidas) | 538 KB de entrada + el chunk de la portada                             | ~170 KB |
+| Después: `/es/` de `apps/landing`                            | 4,6 KB (tema, menú, acceso diferido, sesión) + el pre-pintado en línea | 2,1 KB  |
+
+≈ 0,9 % del anterior (meta ≤ 20 %). Sin React ni chunks de la app (lo verifica `test:build`). El CSS
+es un archivo de 45 KB (9,9 KB gzip).
+
+Al abrir el panel se descargan, solo entonces: el panel (159 KB, 51 KB gzip), React DOM (220 KB,
+68 KB gzip) y el catálogo del idioma de la página (13 KB, 5 KB gzip). El panel bajó de 96 a 51 KB
+gzip al sacar zod y los catálogos completos: `@finance/contracts/http` y `/auth-rules` son entradas
+sin zod, y el panel carga solo los espacios de nombres que muestra en un solo idioma.
+
+**SC-003 — LCP con Lighthouse móvil: NO medido.** Este entorno no tiene Chrome automatizable; queda
+por correr `lighthouse http://localhost:4322/es/ --preset=perf --form-factor=mobile` sobre
+`pnpm --filter @finance/landing preview` para las 5 páginas.
+
+**App** (`apps/web`) sin la landing: entrada de 538 KB a 509 KB (161 KB gzip).

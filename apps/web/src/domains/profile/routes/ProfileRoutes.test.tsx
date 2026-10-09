@@ -132,11 +132,14 @@ describe("two panes or one column, by the profile's own width", () => {
   it("narrow: a section is its own screen, with a way back to the start view", async () => {
     layout.width = 600;
     const router = renderAt("/profile/security");
+    // Security is a lazy chunk (profileSections.ts) and the first test to open it pays its cold
+    // transform, which can pass the default 1 s on a loaded machine.
     expect(
-      await screen.findByRole("heading", {
-        level: 1,
-        name: i18n.t("profile.sections.security.title"),
-      }),
+      await screen.findByRole(
+        "heading",
+        { level: 1, name: i18n.t("profile.sections.security.title") },
+        { timeout: 5000 },
+      ),
     ).toBeTruthy();
     expect(screen.queryByRole("navigation", { name: i18n.t("profile.nav.label") })).toBeNull();
     fireEvent.click(screen.getByRole("link", { name: i18n.t("profile.nav.back") }));

@@ -17,8 +17,13 @@ Sync Impact Report — 2026-10-09 (amendment 2.5.0)
   (`breakpoints.ts`, `src/shared/ui/overlay/`). The public site's phone menu is a native `<dialog>`
   (it opens on every page load, where loading React would defeat the site's purpose); everything the
   public site renders with React (the access panel) still uses the overlay family.
-- Remaining items of this amendment (approved libraries, env vars, Node 22) are recorded at the
-  close of specs/031.
+- ADDED (close of specs/031): approved libraries for the public site — **Astro**, `@astrojs/react`
+  (React rendered at build, never hydrated on arrival), `@astrojs/sitemap`, and dev-only
+  `@astrojs/check` and `@resvg/resvg-js` (Open Graph images); environment variables `CORS_ORIGIN` as
+  a comma-separated list, optional `PASSKEY_RP_ID`, `VITE_LANDING_URL` (web) and `PUBLIC_API_URL`/
+  `PUBLIC_APP_URL`/`PUBLIC_SITE_URL` (landing); the build runtime moves to **Node 22** (Astro needs
+  ≥ 22.12; CI updated). `@finance/contracts` gains zod-free entry points (`/http`, `/auth-rules`) so
+  the access panel loads small. Registration accepts an optional `locale` (FR-010a).
 -->
 <!--
 Sync Impact Report — 2026-10-08 (amendment 2.4.0)
@@ -2137,7 +2142,9 @@ identificador adivinable o no.
   frontend-only aggregation over these domains. New domains mirror the module skeleton.
 - **Approved frontend libraries:** charts via **Recharts**; toasts via **sonner**; drag-and-drop via
   **@dnd-kit** (`core`/`sortable`/`utilities`); typography **Geist** (`@fontsource-variable/geist`).
-  Design tokens include the **clay `--accent`** channel (HSL, dark/light). Adding a new runtime
+  Design tokens include the **clay `--accent`** channel (HSL, dark/light). The public site
+  (`apps/landing`, specs/031) is built with **Astro** + `@astrojs/react` (render at build only) +
+  `@astrojs/sitemap`; dev-only `@astrojs/check` and `@resvg/resvg-js`. Adding a new runtime
   dependency is a Principle V change (record it here and in `CLAUDE.md` the same session).
 - **Migration status:** the specs/001 monorepo migration has **merged to `main`** (PR #1); the legacy
   single Next.js app is removed. (Principle II was rewritten to the NestJS/CQRS mechanism in 2.0.0.
@@ -2145,8 +2152,10 @@ identificador adivinable o no.
   `@/i18n/navigation` — where the real catalogs are `apps/web/src/i18n/{es,en}.json` and routing is
   react-router v8 with no locale prefix; intent is unchanged and parity is enforced by
   `src/i18n/parity.test.ts`. Pending its own amendment.)
-- **Environment:** per `.env.example` — `DATABASE_URL`, JWT secrets, CORS origin (api), and
-  `VITE_API_URL` (web); optional `GOOGLE_CLIENT_*`, `ALPHA_VANTAGE_API_KEY`. Secrets MUST NOT be
+- **Runtime:** Node **22** (≥ 22.12, required by Astro; CI runs 22).
+- **Environment:** per `.env.example` — `DATABASE_URL`, JWT secrets, `CORS_ORIGIN` (api; a
+  comma-separated list: the public site and the app) and optional `PASSKEY_RP_ID`, `VITE_API_URL`
+  and `VITE_LANDING_URL` (web), `PUBLIC_API_URL`/`PUBLIC_APP_URL`/`PUBLIC_SITE_URL` (landing); optional `GOOGLE_CLIENT_*`, `ALPHA_VANTAGE_API_KEY`. Secrets MUST NOT be
   committed; `.env` stays out of version control.
 - **Major stack changes** (framework, ORM, auth strategy, package manager, monorepo tooling) are
   governance amendments and require a version bump here plus a `CLAUDE.md` update.

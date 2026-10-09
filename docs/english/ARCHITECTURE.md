@@ -9,12 +9,16 @@ stack/routing details predate this migration and are historical). The formal spe
 
 ## 1. Overview
 
-FinanceApp is a personal-finance tracker built as a **pnpm + Turborepo monorepo** with two
+FinanceApp is a personal-finance tracker built as a **pnpm + Turborepo monorepo** with three
 **separately deployable** applications and shared packages:
 
 - **`apps/api`** — NestJS backend, the **sole owner of the database**, exposes a versioned HTTP API.
-- **`apps/web`** — Vite + React SPA, consumes the API over HTTP only, owns the UI and translations.
-- **`packages/*`** — shared contracts (zod), money math (decimal.js), and TS config.
+- **`apps/web`** — Vite + React SPA (the signed-in app, `app.cuadra.cl`), consumes the API over HTTP
+  only. `noindex`: it is not for search engines.
+- **`apps/landing`** — the public site (`cuadra.cl`, spec 031): static Astro pages in `/es/…` and
+  `/en/…`, rendered at build with no React on arrival; hosts signing in and registering.
+- **`packages/*`** — shared contracts (zod), money math (decimal.js), the design system (`ui`), the
+  API client (`client`), the shared es/en catalogs (`i18n`), and TS config.
 
 The two apps share one repository but no runtime coupling: they communicate exclusively through a
 published HTTP contract. This maximizes maintainability (domain-first layout), scalability
@@ -180,6 +184,27 @@ finance-app/
 - **i18n:** the frontend **owns** the es/en catalogs (`src/i18n`). API error `code`s are mapped to
   `errors.<CODE>` messages client-side. Keys must stay in parity across es/en.
 
+## 4b. Public site (`apps/landing`, spec 031)
+
+- **Astro 7, static output.** Five pages × two languages (`/es/`, `/en/pricing/`, … — English slugs
+  in both), each with its own title, description, canonical, `hreflang` and Open Graph image;
+  sitemap and robots; the old Spanish addresses (`/precios`, …) and the root redirect with a static
+  page that keeps `?query`/`#hash`. React components from `@finance/ui` render **at build only**.
+- **On arrival** a page runs ~2 KB of plain script: theme, the phone menu (a native `<dialog>`), the
+  header height, and two scripts — `access.ts` and `session.ts`.
+- **Access panel on demand:** "Iniciar sesión"/"Crear cuenta" are links to `?acceso=login|registro`;
+  a click (or that parameter on load) imports `mountAccessPanel` — React, the forms, and only the
+  page language's strings — which signs in against the API and then
+  `location.assign(APP_URL + safeReturnPath(volver))`.
+- **Session handoff:** the API's httpOnly cookies are `SameSite=Lax` and the three apps share one
+  site, so the cookies set by a sign-in on the landing are sent by the app; only a **path** travels
+  in the URL (`volver`), never a token. Registration sends the page's `locale`.
+- **"Ir a la app":** `session.ts` asks `/auth/me` (renewing once, 2 s timeout) after paint and
+  swaps the access actions for a link to the app; any failure leaves them.
+- **The app's side:** without a session every address of `apps/web` (including `/login`,
+  `/register` and unknown paths) `location.replace`s to the landing's access panel with
+  `volver` = path + query + hash (`shared/lib/landingUrl.ts`); signing out ends on the landing home.
+
 ## 5. Shared packages (`packages/*`)
 
 - **`@finance/contracts`** — zod schemas + inferred TS types; the single source of truth for the
@@ -190,6 +215,17 @@ finance-app/
   (equal-principal amortization, last installment absorbs the rounding remainder), and interest
   helpers (`simpleFutureValue`, `compoundFutureValue`, `simpleInterestAccrued`,
   `nominalAnnualToMonthlyRate`). Returns fixed-scale (4dp) decimal strings.
+- **`@finance/ui`** — the design system, source-only: Tailwind preset + `cuadra.css` tokens, the
+  pre-paint theme script, `shared/ui` primitives (overlay family, form fields, button…),
+  `ThemeProvider`. Imported by path (`@finance/ui/src/shared/ui/button`).
+- **`@finance/client`** — the API client both front ends use: `apiFetch` (silent refresh),
+  `authApi`, `passkeyApi`, WebAuthn helpers and `safeReturnPath` (the one return-path rule).
+  `configureClient({ baseUrl })` at startup.
+- **`@finance/i18n`** — the shared es/en catalogs (`createI18n`) with their parity test; the
+  landing adds its own `landing.*` catalog.
+- **`@finance/contracts`** also has zod-free entry points for a page that must stay small:
+  `@finance/contracts/http` (`API_BASE_PATH`, `IDEMPOTENCY_HEADER`) and `/auth-rules` (RUT check
+  digit, age, guardian threshold).
 - **`@finance/config`** — shared `tsconfig.base.json`.
 
 **Dependency direction (one-way):** `apps → packages`; `packages` depend on nothing in the repo;
@@ -202,9 +238,11 @@ backend could be extracted to its own repository mechanically.
   `POST /auth/register|login|refresh|logout`, `GET /auth/me`. Refresh rotates the pair.
 - `JwtAuthGuard` validates the access cookie and attaches the user; `@CurrentUser` injects it.
   Every domain endpoint is scoped to the authenticated `userId` (per-user data isolation).
-- The frontend `AuthProvider` hydrates from `/auth/me`, exposes `login/register/logout`, and
-  `RequireAuth` gates protected routes.
-- CORS allows the web origin with credentials. (CSRF protection for cookie auth is a planned hardening.)
+- Signing in and registering happen on the public site (§4b); the app's `AuthProvider` only reads
+  the session from `/auth/me`, and `RequireAuth` sends a signed-out visit to the landing.
+- CORS allows every origin in `CORS_ORIGIN` (a comma-separated list: the landing and the app) with
+  credentials; passkeys use `PASSKEY_RP_ID` (the shared registrable domain) and accept every listed
+  origin. (CSRF protection for cookie auth is a planned hardening.)
 
 ## 7. Money & precision
 
@@ -219,8 +257,8 @@ schema precision (`Decimal(18,4)` for amounts). Rounding is explicit (banker's r
 - **Tests:** Vitest across apps and packages (NestJS e2e via SWC plugin for decorator metadata;
   React via Testing Library + jsdom).
 - **Boundaries:** `pnpm check:boundaries` (`scripts/check-boundaries.mjs`) fails the build if
-  `apps/web` imports the backend or a DB client, if `apps/api` imports the frontend, or if any
-  `packages/*` imports an app.
+  `apps/web` imports the backend, a DB client or the landing, if `apps/api` imports a front end, if
+  `apps/landing` imports the app, the backend or a DB client, or if any `packages/*` imports an app.
 - **CI** (`.github/workflows/ci.yml`): install → `check:boundaries` → `turbo typecheck test build`
   (affected-filtered on PRs so each app builds/tests independently).
 - **Definition of done:** `check:boundaries`, typecheck, tests, and build all pass.
@@ -229,7 +267,10 @@ schema precision (`Decimal(18,4)` for amounts). Rounding is explicit (banker's r
 
 - **`apps/api`** → Node container (`apps/api/Dockerfile`, built from repo root); serves `/api/v1`.
 - **`apps/web`** → static bundle behind nginx (`apps/web/Dockerfile` + `nginx.conf`, SPA fallback);
-  configured at build time with `VITE_API_URL`.
+  configured at build time with `VITE_API_URL` and `VITE_LANDING_URL`.
+- **`apps/landing`** → plain static files (`dist/`), configured at build time with `PUBLIC_API_URL`,
+  `PUBLIC_APP_URL`, `PUBLIC_SITE_URL`. Requires Node ≥ 22.12 to build. The three must share one
+  registrable domain (see `docs/PENDING.md`).
 - Each app has its own build/deploy lifecycle (separately deployable).
 
 ## 10. Environment
@@ -239,7 +280,9 @@ schema precision (`Decimal(18,4)` for amounts). Rounding is explicit (banker's r
   (`S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`,
   `S3_FORCE_PATH_STYLE`) — absent, attachments answer `503 ATTACHMENTS_UNAVAILABLE` and nothing else
   is affected.
-- `apps/web/.env`: `VITE_API_URL`.
+  `CORS_ORIGIN` is a comma-separated list; optional `PASSKEY_RP_ID`.
+- `apps/web/.env`: `VITE_API_URL`, `VITE_LANDING_URL`.
+- `apps/landing/.env`: `PUBLIC_API_URL` (no `/api/v1`), `PUBLIC_APP_URL`, `PUBLIC_SITE_URL`.
 - Secrets are never committed; see each app's `.env.example`.
 
 ## 11. Known deferrals

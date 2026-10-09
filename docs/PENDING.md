@@ -877,3 +877,39 @@ del banco que convierte la deuda vencida y la carga a la facturación en pesos: 
 
 El dólar observado es el valor oficial del día; el de hoy suele publicarse a media jornada, así que el
 "vigente" de la mañana es el de ayer (marcado arrastrado hasta que llega el real).
+
+## Sitio público separado (spec 031)
+
+La landing es su propia app estática (`apps/landing`, Astro) y la app (`apps/web`) ya no la contiene.
+Lo que el código no puede resolver solo y queda para el despliegue:
+
+### 1. Redirecciones HTTP reales en el hosting
+
+Hoy la raíz (`/` → `/es/` o `/en/` según el idioma del navegador) y las direcciones antiguas
+(`/precios`, `/nosotros`, `/privacidad`, `/preguntas` → `/es/pricing/`, …) se resuelven con una
+página estática (`meta refresh` + script que conserva `?query` y `#hash`). Funciona sin servidor,
+pero para buscadores lo correcto es un **301** para las antiguas y un **302** por idioma en la raíz
+(con `Vary: Accept-Language`), configurados en el hosting (Netlify/Vercel/Cloudflare `_redirects`
+o equivalente). Las páginas de redirección pueden quedar como respaldo.
+
+### 2. El API debe compartir dominio registrable con la landing y la app
+
+El traspaso de sesión funciona porque las cookies del API son `SameSite=Lax` y las tres viven bajo
+el mismo sitio (`cuadra.cl`, `app.cuadra.cl`, `api.cuadra.cl`; en desarrollo, `localhost` con
+puertos distintos). Un API en otro dominio (p. ej. un `*.onrender.com`) rompería el inicio de
+sesión desde la landing: el navegador no enviaría las cookies desde `app.cuadra.cl`. `CORS_ORIGIN`
+debe listar la landing y la app.
+
+### 3. Llaves de acceso con otro `rpId`
+
+Una llave de acceso queda atada al `rpId` con que se registró. Con `PASSKEY_RP_ID` = `cuadra.cl`
+sirve en la landing y en la app; una llave registrada en desarrollo o antes de fijar
+`PASSKEY_RP_ID` (con `rpId` = `localhost` o `app.cuadra.cl`) no funciona en la landing y hay que
+registrarla de nuevo desde Perfil.
+
+### 4. Verificación en navegador y Lighthouse pendientes
+
+Las pruebas automáticas cubren el build (metadatos, hreflang, sitemap, sin React al cargar), el
+panel, el script de sesión y las redirecciones de la app, pero nada se recorrió en un navegador real
+(sin herramienta de automatización en el entorno de desarrollo): faltan los escenarios del
+`quickstart.md` de la spec 031 y el LCP móvil (SC-003).
