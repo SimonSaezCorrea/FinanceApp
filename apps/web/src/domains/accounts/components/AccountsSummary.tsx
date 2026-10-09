@@ -64,7 +64,7 @@ export function AccountsSummary({
             others.map((n) => (
               <span
                 key={n.currency}
-                className="rounded-full bg-chip px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground"
+                className="rounded-full bg-chip px-2 py-0.5 text-xs sm:text-[11px] tabular-nums text-muted-foreground"
               >
                 <MaskedAmount>{money(n.net, n.currency)}</MaskedAmount>
               </span>
@@ -79,13 +79,17 @@ export function AccountsSummary({
           they wrap to their own rows instead of overflowing the card. */}
       <div className="flex flex-wrap gap-x-6 gap-y-2 sm:gap-8">
         <div className="text-right">
-          <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.assets")}</p>
+          <p className="text-xs sm:text-[11.5px] text-muted-foreground">
+            {t("accounts.overview.assets")}
+          </p>
           <p className="mt-1 text-base font-semibold tabular-nums text-success">
             {unavailable ? dash : <MaskedAmount>{money(hero!.assets, heroCurrency)}</MaskedAmount>}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.cardDebt")}</p>
+          <p className="text-xs sm:text-[11.5px] text-muted-foreground">
+            {t("accounts.overview.cardDebt")}
+          </p>
           <p className="mt-1 text-base font-semibold tabular-nums text-accent">
             {unavailable ? (
               dash
@@ -96,7 +100,9 @@ export function AccountsSummary({
         </div>
         {hasDebts ? (
           <div className="text-right">
-            <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.debts")}</p>
+            <p className="text-xs sm:text-[11.5px] text-muted-foreground">
+              {t("accounts.overview.debts")}
+            </p>
             <p
               className={
                 Number(hero!.debts) < 0

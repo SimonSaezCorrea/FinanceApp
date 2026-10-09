@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
 import { registerArtificialDelay } from "./infra/http/artificial-delay.interceptor";
 import { AllExceptionsFilter } from "./infra/http/all-exceptions.filter";
+import { useCompression } from "./infra/http/compression";
 import { useCors } from "./infra/http/cors";
 import { useJsonBodyLimit } from "./infra/http/body-limit";
 
@@ -16,6 +17,7 @@ async function bootstrap() {
   const config = app.get(ConfigService);
 
   app.setGlobalPrefix("api/v1");
+  useCompression(app);
   app.use(cookieParser());
   useJsonBodyLimit(app);
   // Request validation is done with zod (packages/contracts) via per-domain pipes (US2),

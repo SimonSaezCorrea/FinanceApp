@@ -4,6 +4,7 @@ import type { transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { cn } from "@finance/ui/src/shared/lib/cn";
+import { useAuth } from "../../auth/hooks/useAuth";
 import { isFullMonthRange, toCurrencyKpis } from "../lib/transactionMetrics";
 import type { CurrencyKpi } from "../lib/transactionMetrics";
 
@@ -56,6 +57,7 @@ export function TransactionKpiStrip({
   to,
 }: Readonly<TransactionKpiStripProps>) {
   const { t, i18n } = useTranslation();
+  const { user } = useAuth();
   const groups = toCurrencyKpis(currencyTotals);
   const fullMonth = isFullMonthRange(from, to);
 
@@ -64,24 +66,35 @@ export function TransactionKpiStrip({
       ? t("transactions.kpi.balanceOf", { month: monthLabel(from, i18n.language) })
       : t("transactions.kpi.balance");
 
-  const rows: (CurrencyKpi | null)[] = groups.length > 0 ? groups : [null];
+  // One row per currency the person uses (primary first), known before the totals arrive — so the
+  // strip has its final height on the first paint instead of growing a row when a second currency
+  // lands (a layout shift that pushed the filters and the table down). A currency with no movement
+  // in the period keeps its row with a dash; one that has movements but isn't among the user's
+  // currencies still gets its own row after them.
+  const known = user ? [user.preferredCurrency, ...user.extraCurrencies] : [];
+  const codes = [...known, ...groups.map((g) => g.currency).filter((c) => !known.includes(c))];
+  const rows: { currency: string | null; kpi: CurrencyKpi | null }[] =
+    codes.length > 0
+      ? codes.map((c) => ({ currency: c, kpi: groups.find((g) => g.currency === c) ?? null }))
+      : [{ currency: null, kpi: null }];
 
   return (
     <div className="flex flex-col gap-3">
-      {rows.map((g) => {
+      {rows.map(({ currency, kpi: g }) => {
         const isNegative = g ? Number.parseFloat(g.netBalance) < 0 : false;
-        const currency = g?.currency ?? null;
 
         return (
           <div
-            key={g?.currency ?? "empty"}
-            className="flex flex-wrap items-center justify-between gap-6 rounded-lg border bg-card p-4"
+            key={currency ?? "empty"}
+            // Stacked on a phone whatever the figures are: wrapping only once real amounts landed made
+            // each row a line taller then, pushing the filters down (Lighthouse CLS 0.15).
+            className="flex flex-col gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-6"
           >
             <div className="flex flex-col gap-1">
               <span className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
                 {balanceLabel}
-                {groups.length > 1 && g ? (
-                  <span className="font-medium">· {g.currency}</span>
+                {rows.length > 1 && currency ? (
+                  <span className="font-medium">· {currency}</span>
                 ) : null}
               </span>
               {g ? (

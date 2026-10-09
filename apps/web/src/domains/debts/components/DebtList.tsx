@@ -128,7 +128,7 @@ export function DebtList({
                     {isOwedToYou ? "+" : "−"}
                     {formatMoney(left, { locale: i18n.language, currency: debt.currency })}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">{dueNote}</span>
+                  <span className="text-xs sm:text-[11px] text-muted-foreground">{dueNote}</span>
                 </span>
               </div>
             </SwipeRow>

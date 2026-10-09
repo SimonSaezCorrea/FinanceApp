@@ -95,7 +95,7 @@ export function SurfaceChrome({
         ) : null}
         <div className="min-w-0 flex-1">
           {eyebrow ? (
-            <p className="text-[11px] font-semibold uppercase tracking-wide text-brand">
+            <p className="text-xs sm:text-[11px] font-semibold uppercase tracking-wide text-brand">
               {eyebrow}
             </p>
           ) : null}

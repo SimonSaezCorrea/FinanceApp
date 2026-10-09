@@ -635,7 +635,9 @@
       "today": "Hoy",
       "from": "Desde",
       "to": "Hasta",
-      "showInactive": "Incluir cuentas/tarjetas inactivas"
+      "showInactive": "Incluir cuentas/tarjetas inactivas",
+      "accountLabel": "Cuenta",
+      "cardLabel": "Tarjeta"
     },
     "table": {
       "noCategory": "Sin categoría",
@@ -981,7 +983,8 @@
       "active": "Activas",
       "settled": "Pagadas",
       "allStatus": "Todas",
-      "sortByDue": "Por vencimiento"
+      "sortByDue": "Por vencimiento",
+      "statusLabel": "Estado"
     },
     "updated": "Deuda actualizada",
     "deleted": "Deuda eliminada",

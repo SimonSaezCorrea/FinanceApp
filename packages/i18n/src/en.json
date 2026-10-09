@@ -635,7 +635,9 @@
       "today": "Today",
       "from": "From",
       "to": "To",
-      "showInactive": "Include inactive accounts/cards"
+      "showInactive": "Include inactive accounts/cards",
+      "accountLabel": "Account",
+      "cardLabel": "Card"
     },
     "table": {
       "noCategory": "Uncategorized",
@@ -981,7 +983,8 @@
       "active": "Active",
       "settled": "Paid",
       "allStatus": "All",
-      "sortByDue": "By due date"
+      "sortByDue": "By due date",
+      "statusLabel": "Status"
     },
     "updated": "Debt updated",
     "deleted": "Debt deleted",

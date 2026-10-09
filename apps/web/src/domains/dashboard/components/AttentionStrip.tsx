@@ -125,7 +125,10 @@ export function AttentionStrip({
                       </span>
                     </span>
                     <span
-                      className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", tone)}
+                      className={cn(
+                        "rounded-full px-2 py-0.5 text-xs sm:text-[11px] font-semibold",
+                        tone,
+                      )}
                     >
                       {dueLabel(item.date, now)}
                     </span>
@@ -150,7 +153,7 @@ export function AttentionStrip({
                   </span>
                   <span
                     className={cn(
-                      "justify-self-start rounded-full px-2 py-0.5 text-[11px] font-semibold",
+                      "justify-self-start rounded-full px-2 py-0.5 text-xs sm:text-[11px] font-semibold",
                       tone,
                     )}
                   >

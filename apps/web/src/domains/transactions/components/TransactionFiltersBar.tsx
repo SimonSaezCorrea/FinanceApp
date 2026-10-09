@@ -23,17 +23,21 @@ function PillSelect({
   onChange,
   children,
   disabled,
+  label,
 }: Readonly<{
   value: string;
   onChange: (value: string) => void;
   children: ReactNode;
   disabled?: boolean;
+  /** The select's accessible name: its first option is a value ("Todas…"), not a label. */
+  label: string;
 }>) {
   return (
     <div className="relative">
       <select
         value={value}
         disabled={disabled}
+        aria-label={label}
         onChange={(e) => onChange(e.target.value)}
         className="h-9 appearance-none rounded-md border bg-card py-0 pl-3 pr-8 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
       >
@@ -71,7 +75,11 @@ export function TransactionFiltersBar({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <PillSelect value={filters.bankAccountId ?? ""} onChange={handleAccountChange}>
+      <PillSelect
+        value={filters.bankAccountId ?? ""}
+        onChange={handleAccountChange}
+        label={t("transactions.filters.accountLabel")}
+      >
         <option value="">{t("transactions.form.selectAccount")}</option>
         {activeAccounts.map((a) => (
           <option key={a.id} value={a.id}>
@@ -92,6 +100,7 @@ export function TransactionFiltersBar({
         value={filters.selectedCardId ?? ""}
         onChange={handleCardChange}
         disabled={cardOptions.length === 0}
+        label={t("transactions.filters.cardLabel")}
       >
         <option value="">{t("transactions.form.selectCard")}</option>
         {cardOptions.map((c) => (
@@ -104,6 +113,7 @@ export function TransactionFiltersBar({
       <PillSelect
         value={filters.categoryId}
         onChange={(value) => onChange({ ...filters, categoryId: value })}
+        label={t("transactions.filters.category")}
       >
         <option value="">{t("transactions.filters.allCategories")}</option>
         {[...categoryIds]

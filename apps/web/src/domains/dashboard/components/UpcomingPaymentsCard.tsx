@@ -31,7 +31,7 @@ export function UpcomingPayments({ items }: Readonly<{ items: UpcomingPayment[] 
             <span className="flex min-w-0 items-center gap-3">
               <span className="flex h-10 w-11 shrink-0 flex-col items-center justify-center rounded-lg bg-muted text-center leading-none">
                 <span className="text-sm font-semibold tabular-nums">{date.getDate()}</span>
-                <span className="mt-0.5 text-[10px] uppercase text-muted-foreground">
+                <span className="mt-0.5 text-xs sm:text-[10px] uppercase text-muted-foreground">
                   {date.toLocaleDateString(i18n.language, { month: "short" })}
                 </span>
               </span>

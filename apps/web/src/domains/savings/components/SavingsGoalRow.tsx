@@ -88,7 +88,7 @@ export function SavingsGoalRow({
             <span className="text-[15px] font-semibold tabular-nums text-foreground">
               <MaskedAmount>{money(goal.savedAmount)}</MaskedAmount>
             </span>
-            <span className="text-[11px] tabular-nums text-muted-foreground">
+            <span className="text-xs sm:text-[11px] tabular-nums text-muted-foreground">
               <MaskedAmount>
                 {t("savings.row.of", { amount: money(goal.targetAmount) })}
               </MaskedAmount>

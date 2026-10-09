@@ -361,7 +361,7 @@ export function DateField({
                   {weekdays.map((w, i) => (
                     <span
                       key={`${w}-${i}`}
-                      className="pb-1 text-[11px] font-medium uppercase text-muted-foreground"
+                      className="pb-1 text-xs sm:text-[11px] font-medium uppercase text-muted-foreground"
                     >
                       {w}
                     </span>

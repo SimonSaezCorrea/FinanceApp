@@ -52,14 +52,14 @@ export function ConsentHistorySection() {
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-medium">{t(CONSENT_TYPE_KEYS[c.type] ?? c.type)}</div>
                 {c.guardianName ? (
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-xs sm:text-[11px] text-muted-foreground">
                     {c.guardianName}
                     {c.guardianRelationship
                       ? ` · ${t(GUARDIAN_RELATIONSHIP_KEYS[c.guardianRelationship] ?? c.guardianRelationship)}`
                       : ""}
                   </div>
                 ) : null}
-                <div className="text-[11px] text-muted-foreground">
+                <div className="text-xs sm:text-[11px] text-muted-foreground">
                   {t("profile.consents.grantedAt", {
                     date: new Date(c.grantedAt).toLocaleDateString(i18n.language),
                     version: c.policyVersion,

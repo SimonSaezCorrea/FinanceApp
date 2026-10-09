@@ -1598,9 +1598,14 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   `appUrl(volver)` (`PUBLIC_APP_URL + safeReturnPath(volver)`): **only a path in the URL, never a
   token** — the session is the API's `SameSite=Lax` cookies, valid because the three apps share one
   site. Registration sends `locale` = the page language (`registerRequestSchema.locale` optional,
-  default `es`). **"Ir a la app"** (`scripts/session.ts`): after paint, `/auth/me` (one refresh on
-  401, 2 s timeout) → each `[data-access-slot]` is replaced by its `<template data-app-template>`;
-  any failure leaves the sign-in actions. Its own catalog `src/i18n/{es,en}.json` (`landing.*`,
+  default `es`). **"Ir a la app"** (`scripts/session.ts`): after paint, ONE `GET /auth/session` (2 s
+  timeout) → each `[data-access-slot]` is replaced by its `<template data-app-template>`; any failure
+  leaves the sign-in actions. **`GET /auth/session`** (no guard, `GetSessionStatusQuery`, a
+  `scope: "system"` query) always answers 200 `{ signedIn }` — access token valid and its session
+  alive, or else the refresh token valid and its session alive; nothing rotated — so a signed-out
+  visitor leaves no 401 in the console (Lighthouse "Recomendaciones" was 96 for that alone); it
+  reads the session through the narrow `SessionStatusPort.isAlive` (`SESSION_STATUS`, same
+  `PrismaSessionRepository`, like `SessionStepUpPort`). Its own catalog `src/i18n/{es,en}.json` (`landing.*`,
   parity test) merged over `@finance/i18n`. Sizes: `/es/` loads ~4.6 KB of JS (2.1 KB gzip); the panel
   adds ~51+68+5 KB gzip only when opened. Tests: `vitest` (jsdom) for scripts/forms, and
   `test/build.test.ts` over `dist/`. **The app's side:** `apps/web` has no landing any more — without
@@ -1611,6 +1616,31 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   `useAuth` keeps only `user/loading/logout/refreshUser/clearUser`; `index.html` is
   `noindex, nofollow` with no description/OG. Hosting-level 301/302s, the shared registrable domain
   and re-registering dev passkeys are in `docs/PENDING.md` ("Sitio público separado").
+  Amendment (Lighthouse pass on the app, 2026-10-09): measured on the production build, mobile
+  profile, signed in. **Language:** only Spanish ships in the entry bundle — `apps/web/src/i18n`
+  builds its own instance with `es.json` and `setLanguage(lang)`/`loadLanguage(lang)` fetch the
+  other catalog through `@finance/i18n/src/load.ts`'s `loadCatalog` (its own chunk); the
+  importer's lazy chunk also loads English (it reads names in both); test setup adds English up
+  front. **`AuthProvider` now applies `user.locale` before the splash leaves** — the app used to
+  start in Spanish whatever the account said (only Preferences switched it), so a sign-up from
+  `/en/` landed in Spanish. **Startup:** `main.tsx` calls `primeSession()` (`/auth/me` starts
+  before React renders) and `preloadPage(location.pathname)` (`lazyPages.ts`'s `PAGE_CHUNKS`: the
+  shell and the page's chunk download while the session is asked); `vite.config.ts` adds a
+  `preconnect` to `VITE_API_URL`'s origin; `public/robots.txt` allows crawling on purpose (a
+  crawler must fetch a page to see its `noindex`). **API:** responses are gzip-compressed
+  (`compression`, `infra/http/compression.ts`'s `useCompression`, in `main.ts` — an e2e that
+  builds its own app doesn't need it): `GET /transactions` 221 KB → 14 KB. **Layout shifts:**
+  Savings waits for its summary too and reserves the subtitle line (CLS 0.30 → 0); Installments
+  reserves its subtitle; the Movimientos KPI strip renders one row per currency of the person
+  (`preferredCurrency` + `extraCurrencies`, "—" when a currency has no movement) from the first
+  paint and stacks on a phone (CLS 0.15 → 0). **A11y:** the Movimientos/Deudas filter selects have
+  names (`transactions.filters.accountLabel`/`cardLabel`, `debts.filters.statusLabel`) and the
+  MonthPicker button is named by its visible month + an sr-only "Elegir mes". **Type size:** every
+  `text-[10px]`/`[10.5px]`/`[11px]`/`[11.5px]` is now `text-xs sm:text-[Npx]` (12px on a phone,
+  unchanged from `sm`). Result: Accessibility 100 on every screen, CLS ≤ 0.03, Performance 69–77
+  (LCP ~5 s on the throttled mobile profile, mostly the data waterfall). A Lighthouse run against
+  `vite preview` in VS Code can report "charset too late": the Console Ninja extension injects a
+  script ahead of `<meta charset>` — not the build.
 - **`packages/`** — `contracts` (zod schemas + inferred types = the API contract; one module per domain; built to dist CJS + `import` condition → src for Vite; zod-free entry points `@finance/contracts/http` [`API_BASE_PATH`, `IDEMPOTENCY_HEADER`] and `@finance/contracts/auth-rules` [RUT check digit, age, guardian threshold] for pages that must stay small), `money` (`decimal.js`: money helpers, `equalPrincipalSchedule`, interest), `config` (shared `tsconfig.base.json`), and three **source-only** packages (specs/031) imported by path: **`ui`** (Tailwind preset, `src/styles/cuadra.css` tokens, `prepaint.mjs` theme script, `breakpoints.ts`, `src/shared/{ui,lib}` primitives incl. the overlay family, `ThemeProvider`), **`client`** (`configureClient({baseUrl})`, `apiFetch`/`ApiRequestError`/`resetAuthRefresh`, `authApi`, `passkeyApi`, WebAuthn helpers, `safeReturnPath` — the ONE return-path rule) and **`i18n`** (the shared es/en catalogs, `createI18n`, `LANGUAGES` in `src/languages.ts`, parity test). One-way deps: `apps → packages`; `api ↛ web/landing`; `web ↛ landing`; `landing ↛ web/api/db`; `packages ↛ apps` (enforced by `check:boundaries`).
 - **Auth:** backend issues **JWT access+refresh tokens in httpOnly cookies** (`domains/auth`); `JwtAuthGuard` validates the access cookie **and** (per-request DB check) that the account's `status` is still `ACTIVE`, rejecting `DISABLED` accounts (`ACCOUNT_DISABLED`) even with an otherwise-valid token. Every endpoint is scoped to the authenticated `userId`. The frontend `AuthProvider`/`useAuth` + `RequireAuth` gate routes.
   - **profile** (specs/008, folded into the `auth` domain — no separate backend module, `User` already lives there): `User` gains `preferredCurrency` (CLP/USD/CLF — las tres del MVP; `CLF` es la UF), `locale` (es/en), `dateFormat`, `theme` (dark/light/system — same preference the sidebar `ThemeToggle` controls, now persisted per-user in addition to `localStorage`), `status` (`UserStatus`: ACTIVE/DISABLED), `createdAt` (→ contract's derived `memberSinceYear`). Endpoints: `PATCH /auth/me` (name/email, unique-email race guarded by catching Prisma `P2002` in addition to the pre-check), `POST /auth/me/password` (current+new, bcrypt), `PATCH /auth/me/preferences`, `POST /auth/me/deactivate` (requires re-entering the password; soft-disables the account — no data is deleted; clears cookies like `logout`). Frontend: new `domains/profile` (route `/profile`, reached by clicking the sidebar user block), `ThemeSync` component reconciles the shared theme preference between `localStorage` and the backend. New error codes `INVALID_CURRENT_PASSWORD`, `ACCOUNT_DISABLED`. 2FA switch + the 3 notification switches shown in the design are **intentionally inert** (local UI state only, no backend capability yet).

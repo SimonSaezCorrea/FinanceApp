@@ -298,7 +298,7 @@ function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
 
   const tab = (active: boolean) =>
     cn(
-      "flex flex-col items-center gap-0.5 rounded-lg py-1 text-[11px] transition-colors",
+      "flex flex-col items-center gap-0.5 rounded-lg py-1 text-xs sm:text-[11px] transition-colors",
       active ? "font-semibold text-primary" : "text-muted-foreground",
     );
 

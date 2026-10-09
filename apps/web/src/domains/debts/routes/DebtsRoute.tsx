@@ -313,6 +313,7 @@ export function DebtsRoute() {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                aria-label={t("debts.filters.statusLabel")}
                 className="rounded-[7.6px] border bg-card px-3 py-1.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="active">{t("debts.filters.active")}</option>

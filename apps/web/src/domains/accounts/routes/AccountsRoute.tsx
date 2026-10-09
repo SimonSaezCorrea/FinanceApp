@@ -146,7 +146,7 @@ export function AccountsRoute() {
               return (
                 <section key={group.key} className="flex flex-col gap-3">
                   <div className="flex items-center gap-3">
-                    <h2 className="text-[11px] font-semibold uppercase tracking-[0.09em] text-dim">
+                    <h2 className="text-xs sm:text-[11px] font-semibold uppercase tracking-[0.09em] text-dim">
                       {group.title}
                       <span className="ml-2 font-normal normal-case tracking-normal">
                         {t("accounts.groupBy.count", { count: group.accounts.length })}

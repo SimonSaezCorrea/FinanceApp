@@ -101,7 +101,7 @@ export function ClosedGoalsSection({
                 <span className="text-[15px] font-medium tabular-nums text-foreground">
                   {money(g.savedAmount)}
                 </span>
-                <span className="text-[11px] tabular-nums text-muted-foreground">
+                <span className="text-xs sm:text-[11px] tabular-nums text-muted-foreground">
                   {t("savings.closedBlock.pctOf", {
                     pct: goalPct(g.savedAmount, g.targetAmount),
                     amount: money(g.targetAmount),

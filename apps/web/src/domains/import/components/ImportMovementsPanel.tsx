@@ -585,7 +585,7 @@ export function ImportMovementsPanel({ open, onOpenChange, account }: Readonly<P
                     })}
                   </tr>
                   <tr>
-                    <th className="border-b border-r border-border px-2.5 py-1.5 text-right font-mono text-[11px] font-normal text-muted-foreground/70">
+                    <th className="border-b border-r border-border px-2.5 py-1.5 text-right font-mono text-xs sm:text-[11px] font-normal text-muted-foreground/70">
                       {mapping.headerRow + 1}
                     </th>
                     {Array.from({ length: width }, (_, col) => (
@@ -623,7 +623,7 @@ export function ImportMovementsPanel({ open, onOpenChange, account }: Readonly<P
                       >
                         <td
                           className={cn(
-                            "border-r border-border px-2.5 py-1.5 text-right font-mono text-[11px]",
+                            "border-r border-border px-2.5 py-1.5 text-right font-mono text-xs sm:text-[11px]",
                             issue ? "text-warning" : "text-muted-foreground/70",
                           )}
                         >

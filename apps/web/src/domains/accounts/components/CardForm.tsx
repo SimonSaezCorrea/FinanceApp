@@ -238,7 +238,7 @@ export function CardForm({
       <DetailRow label={t("cards.form.cardDetails")} className="items-end py-2">
         <div className="flex items-end gap-5">
           <div className="flex flex-col items-end">
-            <span className="text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
+            <span className="text-xs sm:text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
               {t("cards.form.last4")}
             </span>
             <input
@@ -254,7 +254,7 @@ export function CardForm({
             />
           </div>
           <div className="flex flex-col items-end">
-            <span className="text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
+            <span className="text-xs sm:text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
               {t("cards.form.expiry")}
             </span>
             <input

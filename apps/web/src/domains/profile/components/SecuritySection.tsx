@@ -454,7 +454,7 @@ export function SecuritySection() {
             </div>
           </details>
         ) : null}
-        <p className="mt-2 text-[11px] text-muted-foreground">
+        <p className="mt-2 text-xs sm:text-[11px] text-muted-foreground">
           {t("profile.security.sessions.attribution")}{" "}
           <a href="https://ipinfo.io" target="_blank" rel="noreferrer" className="underline">
             IPinfo
@@ -519,8 +519,8 @@ function SessionRow({
         <div
           className={
             s.isCurrent && !s.closedAt
-              ? "text-[11px] text-success"
-              : "text-[11px] text-muted-foreground"
+              ? "text-xs sm:text-[11px] text-success"
+              : "text-xs sm:text-[11px] text-muted-foreground"
           }
         >
           {meta}
@@ -529,7 +529,7 @@ function SessionRow({
       {s.isCurrent || s.closedAt || !onClose ? null : (
         <button
           type="button"
-          className="text-[11px] font-medium text-destructive disabled:opacity-60"
+          className="text-xs sm:text-[11px] font-medium text-destructive disabled:opacity-60"
           disabled={closing}
           onClick={onClose}
         >

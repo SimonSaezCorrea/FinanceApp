@@ -4,6 +4,7 @@ import type { auth } from "@finance/contracts";
 
 import { authApi } from "@finance/client";
 
+import { setLanguage } from "../../../i18n";
 import { assignLocation } from "../../../shared/lib/leaveApp";
 import { landingHomeUrl } from "../../../shared/lib/landingUrl";
 
@@ -25,14 +26,32 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+let initialSession: Promise<auth.CurrentUser> | null = null;
+
+/**
+ * Starts asking the API for the session as soon as the entry script runs (`main.tsx`, right after
+ * `configureClient`), instead of after React's first render — the request then overlaps the
+ * rendering and the page's code loading rather than waiting for them. `AuthProvider` uses this
+ * request on mount; without it (tests) it asks itself.
+ */
+export function primeSession(): void {
+  initialSession ??= authApi.me();
+  // Handled by the provider; this keeps an early rejection from being reported as unhandled.
+  initialSession.catch(() => undefined);
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<auth.CurrentUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    authApi
-      .me()
-      .then(setUser)
+    (initialSession ?? authApi.me())
+      .then(async (me) => {
+        // The account's language (set at sign-up on the public site, or in Preferences) — applied
+        // before the splash leaves, so an English session never flashes Spanish first.
+        await setLanguage(me.locale).catch(() => undefined);
+        setUser(me);
+      })
       .catch(() => setUser(null)) // any failure (401, network, no fetch) → signed out
       .finally(() => setLoading(false));
   }, []);

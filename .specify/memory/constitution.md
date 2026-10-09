@@ -24,6 +24,9 @@ Sync Impact Report — 2026-10-09 (amendment 2.5.0)
   `PUBLIC_APP_URL`/`PUBLIC_SITE_URL` (landing); the build runtime moves to **Node 22** (Astro needs
   ≥ 22.12; CI updated). `@finance/contracts` gains zod-free entry points (`/http`, `/auth-rules`) so
   the access panel loads small. Registration accepts an optional `locale` (FR-010a).
+- ADDED (2026-10-09, after a Lighthouse pass): approved dependency **`compression`** (api, gzip for
+  every response); `GET /auth/session` (always 200 `{ signedIn }`) for the public site's "Ir a la
+  app". No principle text changed.
 -->
 <!--
 Sync Impact Report — 2026-10-08 (amendment 2.4.0)
@@ -2144,7 +2147,8 @@ identificador adivinable o no.
   **@dnd-kit** (`core`/`sortable`/`utilities`); typography **Geist** (`@fontsource-variable/geist`).
   Design tokens include the **clay `--accent`** channel (HSL, dark/light). The public site
   (`apps/landing`, specs/031) is built with **Astro** + `@astrojs/react` (render at build only) +
-  `@astrojs/sitemap`; dev-only `@astrojs/check` and `@resvg/resvg-js`. Adding a new runtime
+  `@astrojs/sitemap`; dev-only `@astrojs/check` and `@resvg/resvg-js`. The API compresses its
+  responses with **`compression`** (Express middleware, 2026-10-09). Adding a new runtime
   dependency is a Principle V change (record it here and in `CLAUDE.md` the same session).
 - **Migration status:** the specs/001 monorepo migration has **merged to `main`** (PR #1); the legacy
   single Next.js app is removed. (Principle II was rewritten to the NestJS/CQRS mechanism in 2.0.0.

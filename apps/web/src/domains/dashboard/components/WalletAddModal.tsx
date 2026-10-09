@@ -277,7 +277,7 @@ function PickRow({
       </span>
       <span
         className={cn(
-          "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+          "shrink-0 rounded-full px-2 py-0.5 text-xs sm:text-[11px] font-semibold",
           selected ? "bg-primary text-primary-foreground" : "bg-chip text-muted-foreground",
         )}
       >

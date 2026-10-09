@@ -114,7 +114,6 @@ export function MonthPicker({ value, onChange, prevLabel, nextLabel, className }
         type="button"
         aria-haspopup="dialog"
         aria-expanded={open}
-        aria-label={t("common.date.chooseMonth")}
         onClick={() => {
           setYear(value.getFullYear());
           setOpen((o) => !o);
@@ -130,6 +129,8 @@ export function MonthPicker({ value, onChange, prevLabel, nextLabel, className }
           aria-hidden
         />
         <span className="first-letter:uppercase">{label}</span>
+        {/* Named by what it shows, then what it does — an aria-label would hide the month. */}
+        <span className="sr-only">, {t("common.date.chooseMonth")}</span>
       </button>
       <button
         type="button"

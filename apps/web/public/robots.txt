@@ -1,0 +1,4 @@
+# The app is behind a sign-in and carries <meta name="robots" content="noindex, nofollow">.
+# Crawling is allowed on purpose: a crawler must be able to fetch a page to see that noindex.
+User-agent: *
+Disallow:

@@ -656,7 +656,7 @@ export function BillingSection({
                       {pending > 0 ? (
                         <span
                           className={cn(
-                            "rounded-full px-1.5 text-[11px] font-semibold tabular-nums",
+                            "rounded-full px-1.5 text-xs sm:text-[11px] font-semibold tabular-nums",
                             selected ? "bg-primary/15 text-primary" : "bg-chip",
                           )}
                         >

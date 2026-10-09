@@ -28,7 +28,9 @@ describe("MonthPicker", () => {
 
   it("opens a year of months and picks one in another year", () => {
     render(<Harness />);
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("common.date.chooseMonth") }));
+    fireEvent.click(
+      screen.getByRole("button", { name: new RegExp(i18n.t("common.date.chooseMonth")) }),
+    );
     expect(screen.getByText("2026")).toBeDefined();
     fireEvent.click(screen.getByLabelText(i18n.t("common.date.previousYear")));
     fireEvent.click(screen.getByRole("button", { name: /^mar$/i }));

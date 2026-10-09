@@ -12,6 +12,7 @@ import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Button } from "@finance/ui/src/shared/ui/button";
 import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
+import { Skeleton } from "../../../shared/ui/skeleton";
 import { Segmented } from "../../../shared/ui/segmented";
 import { DeletePlanConfirm } from "../components/DeletePlanConfirm";
 import { InstallmentDetailPanel } from "../components/InstallmentDetailPanel";
@@ -311,9 +312,12 @@ export function InstallmentsRoute() {
       <PageHeader
         title={t("installments.title")}
         description={
-          !isLoading && !isError
-            ? t("installments.subtitleCount", { count: plans.length })
-            : undefined
+          // Reserved while loading, so the count landing late doesn't push the page down.
+          isLoading ? (
+            <Skeleton className="mt-1.5 h-[13px] w-40" />
+          ) : !isError ? (
+            t("installments.subtitleCount", { count: plans.length })
+          ) : undefined
         }
         actions={
           <Button variant="accent" onClick={openCreate}>

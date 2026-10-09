@@ -92,11 +92,15 @@ export function AccountsSkeleton({
         </div>
         <div className="flex flex-wrap gap-x-6 gap-y-2 sm:gap-8">
           <div className="flex flex-col items-end">
-            <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.assets")}</p>
+            <p className="text-xs sm:text-[11.5px] text-muted-foreground">
+              {t("accounts.overview.assets")}
+            </p>
             <Skeleton className="mt-1.5 h-[16px] w-28" />
           </div>
           <div className="flex flex-col items-end">
-            <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.cardDebt")}</p>
+            <p className="text-xs sm:text-[11.5px] text-muted-foreground">
+              {t("accounts.overview.cardDebt")}
+            </p>
             <Skeleton className="mt-1.5 h-[16px] w-24" />
           </div>
         </div>

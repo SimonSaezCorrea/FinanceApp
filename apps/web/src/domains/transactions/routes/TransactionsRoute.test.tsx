@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { transactions as contract } from "@finance/contracts";
 
 import i18n from "../../../i18n";
+import { AuthProvider } from "../../auth/hooks/useAuth";
 import { transactionsApi } from "../api/transactionsApi";
 import { TransactionsRoute } from "./TransactionsRoute";
 
@@ -21,6 +22,11 @@ vi.mock("../../reference/api/referenceApi", async (importOriginal) => {
     },
   };
 });
+
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
+  authApi: { me: vi.fn().mockRejectedValue(new Error("not signed in")), logout: vi.fn() },
+}));
 
 vi.mock("../api/transactionsApi", () => ({
   transactionsApi: {
@@ -41,7 +47,9 @@ function renderRoute() {
   return render(
     <QueryClientProvider client={client}>
       <I18nextProvider i18n={i18n}>
-        <TransactionsRoute />
+        <AuthProvider>
+          <TransactionsRoute />
+        </AuthProvider>
       </I18nextProvider>
     </QueryClientProvider>,
   );

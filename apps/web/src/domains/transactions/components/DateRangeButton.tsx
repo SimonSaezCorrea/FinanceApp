@@ -204,7 +204,7 @@ export function DateRangeButton({ from, to, onChange }: Readonly<DateRangeButton
 
           <div className="grid grid-cols-7 gap-y-1 text-center">
             {weekdays.map((wd) => (
-              <span key={wd} className="text-[11px] uppercase text-muted-foreground">
+              <span key={wd} className="text-xs sm:text-[11px] uppercase text-muted-foreground">
                 {wd}
               </span>
             ))}

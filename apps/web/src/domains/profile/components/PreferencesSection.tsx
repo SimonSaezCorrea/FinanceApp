@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next";
+import { setLanguage } from "../../../i18n";
 
 import type { auth } from "@finance/contracts";
 
@@ -17,7 +18,7 @@ const SUPPORTED_CURRENCIES: auth.CurrentUser["preferredCurrency"][] = ["CLP", "U
  * so nothing here can hold unsaved changes.
  */
 export function PreferencesSection() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { data: currencies } = useCurrencies();
   const { updatePreferences } = useProfileMutations();
@@ -30,7 +31,7 @@ export function PreferencesSection() {
   });
 
   async function handleLocaleChange(locale: auth.CurrentUser["locale"]) {
-    await i18n.changeLanguage(locale);
+    await setLanguage(locale);
     updatePreferences.mutate({ locale });
   }
 

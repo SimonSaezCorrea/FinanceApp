@@ -394,7 +394,7 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
                             <span className="flex items-center gap-2 truncate text-sm font-medium">
                               {accountName(a.accountId)}
                               {defined(a.accountId) ? (
-                                <span className="rounded-full bg-chip px-1.5 text-[11px] font-normal text-muted-foreground">
+                                <span className="rounded-full bg-chip px-1.5 text-xs sm:text-[11px] font-normal text-muted-foreground">
                                   {t("import.template.ui.newAccount")}
                                 </span>
                               ) : null}

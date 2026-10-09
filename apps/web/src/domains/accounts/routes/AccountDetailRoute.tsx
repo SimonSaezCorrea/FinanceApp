@@ -789,7 +789,7 @@ function CardsAside({
                       <div className="border-t border-brand/20 bg-card p-4">
                         {inlineEditing ? (
                           <>
-                            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-brand">
+                            <p className="mb-3 text-xs sm:text-[11px] font-semibold uppercase tracking-wide text-brand">
                               {t("cards.detail.editingThis")}
                             </p>
                             <CardForm
