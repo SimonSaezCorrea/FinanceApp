@@ -201,12 +201,12 @@ inicia sesión, luego redirige a la app con `volver`.
 
 ### Tests for User Story 5 ⚠️
 
-- [ ] T059 [P] [US5] Test `apps/landing/src/domains/landing/scripts/session.test.ts`: `me` 200 → `[data-access-slot]` muestra "Ir a la app" con `href = PUBLIC_APP_URL`; 401 (incluido tras un `refresh` fallido), error de red o > 2 s → deja "Iniciar sesión / Crear cuenta"
+- [X] T059 [P] [US5] Test `apps/landing/src/domains/landing/scripts/session.test.ts`: `me` 200 → `[data-access-slot]` muestra "Ir a la app" con `href = PUBLIC_APP_URL`; 401 (incluido tras un `refresh` fallido), error de red o > 2 s → deja "Iniciar sesión / Crear cuenta"
 
 ### Implementation for User Story 5
 
-- [ ] T060 [US5] `apps/landing/src/domains/landing/scripts/session.ts` (usa `@finance/client` con `AbortSignal.timeout(2000)`) incluido desde `PageLayout.astro`; en `Header.astro` y `MobileMenu.astro` la versión "Ir a la app" va en un `<template>` del mismo ancho que la de acceso; claves `landing.nav.goToApp` es/en
-- [ ] T061 [US5] Correr T059 en verde; probar en navegador con y sin sesión y con el API detenido
+- [X] T060 [US5] `apps/landing/src/domains/landing/scripts/session.ts` (usa `@finance/client` con `AbortSignal.timeout(2000)`) incluido desde `PageLayout.astro`; en `Header.astro` y `MobileMenu.astro` la versión "Ir a la app" va en un `<template>` del mismo ancho que la de acceso; claves `landing.nav.goToApp` es/en
+- [ ] T061 [US5] Correr T059 en verde; probar en navegador con y sin sesión y con el API detenido — **automático en verde; navegador real NO verificado**
 
 ---
 

@@ -4,6 +4,7 @@ import { ChevronRight, X } from "lucide-react";
 import { buttonClasses } from "@finance/ui/src/shared/ui/button-classes";
 
 import { t } from "../../../i18n";
+import { APP_URL } from "../../../lib/config";
 import { type Language, type Page, pagePath } from "../../../lib/language";
 import ThemeSwitch from "./ThemeSwitch.astro";
 
@@ -87,6 +88,11 @@ const other: Language = lang === "es" ? "en" : "es";
       >
         {t(lang, "auth.signIn")}
       </a>
+      <template data-app-template>
+        <a href={APP_URL + "/"} class={buttonClasses({ size: "lg", className: "w-full" })}>
+          {t(lang, "landing.nav.goToApp")}
+        </a>
+      </template>
     </div>
   </div>
 </dialog>

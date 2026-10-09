@@ -90,8 +90,10 @@ const image = `${site}/og/cuadra-${lang}.png`;
     <script>
       import "../domains/landing/scripts/header";
       import { initAccess } from "../domains/landing/scripts/access";
+      import { initSession } from "../domains/landing/scripts/session";
 
       initAccess();
+      void initSession();
     </script>
   </body>
 </html>
