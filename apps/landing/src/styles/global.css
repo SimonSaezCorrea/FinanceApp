@@ -1,0 +1,2 @@
+/* Every token, base rule and shared utility comes from @finance/ui (one source with the app, FR-008). */
+@import "@finance/ui/src/styles/cuadra.css";

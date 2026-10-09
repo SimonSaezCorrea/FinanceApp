@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="70 68 300 318" fill="none">
+  <style>
+    .edge { stroke: #6fb3b8; }
+    .snow { fill: #e6eeee; }
+    @media (prefers-color-scheme: light) {
+      .edge { stroke: #1f6e74; }
+      .snow { fill: #0e3b40; }
+    }
+  </style>
+  <path class="edge" d="M 90 170 L 120 136 L 138 150 L 178 86 L 204 130 L 222 116 L 248 146 L 274 118 L 298 138 L 322 124 L 350 170 L 350 352 Q 350 372 330 372 L 110 372 Q 90 372 90 352 Z" stroke-width="22" stroke-linejoin="round"/>
+  <path class="snow" d="M 178 86 L 192 110 L 184 106 L 178 114 L 172 106 L 164 110 Z"/>
+  <line class="edge" x1="130" y1="300" x2="260" y2="300" stroke-width="26" stroke-linecap="round"/>
+</svg>

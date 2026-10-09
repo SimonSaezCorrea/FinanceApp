@@ -113,6 +113,7 @@ export class User {
     passwordHash: string;
     birthDate: Date;
     identifierValue: string;
+    locale?: auth.CurrentUser["locale"];
   }): {
     email: string;
     name: string;
@@ -120,6 +121,7 @@ export class User {
     birthDate: Date;
     identifierType: "RUT";
     identifierValue: string;
+    locale: auth.CurrentUser["locale"];
   } {
     return {
       email: input.email.toLowerCase(),
@@ -128,6 +130,9 @@ export class User {
       birthDate: input.birthDate,
       identifierType: "RUT",
       identifierValue: input.identifierValue,
+      // The language of the page the account was created from (spec 031); Spanish otherwise,
+      // the app's default market.
+      locale: input.locale ?? "es",
     };
   }
 

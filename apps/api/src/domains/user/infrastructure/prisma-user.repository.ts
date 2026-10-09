@@ -108,6 +108,7 @@ export class PrismaUserRepository implements UserRepositoryPort {
     birthDate: Date;
     identifierType?: auth.CurrentUser["identifierType"];
     identifierValue?: string | null;
+    locale?: auth.CurrentUser["locale"];
   }): Promise<User> {
     // Normalized here, at the adapter boundary, same split `mfaSecret` encryption already
     // uses — the domain layer never has to know about dots/dashes.

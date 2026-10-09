@@ -1,0 +1,322 @@
+{
+  "landing": {
+    "nav": {
+      "label": "Secciones",
+      "about": "Nosotros",
+      "privacy": "Privacidad y datos",
+      "pricing": "Precios",
+      "faq": "Preguntas frecuentes",
+      "goToApp": "Ir a la app",
+      "menu": "Menú",
+      "openMenu": "Abrir menú",
+      "otherLanguage": "English",
+      "otherLanguageLabel": "Ver en inglés",
+      "closeMenu": "Cerrar menú"
+    },
+    "footer": {
+      "tagline": "Hecha en Chile para pesos, dólares y UF.",
+      "nav": "Legal y ayuda"
+    },
+    "home": {
+      "eyebrow": "Finanzas personales en Chile",
+      "titleLead": "Tus finanzas con las",
+      "titleAccent": "reglas de tu banco",
+      "lead": "Cupo compartido, cierre en días hábiles y cuotas, tal como los cobra tu banco. Sin cifras inventadas.",
+      "why": {
+        "1": {
+          "title": "Ninguna cifra inventada",
+          "body": "No calculamos los intereses de tu banco ni convertimos monedas por ti. Cuando falta un dato, lo decimos en vez de rellenarlo con una estimación."
+        },
+        "2": {
+          "title": "Todo reversible",
+          "body": "Deshacer el pago de una deuda devuelve el saldo. Borrar un plan en cuotas revierte su historial completo, y te dice cuánto va a mover antes de hacerlo."
+        },
+        "3": {
+          "title": "Chile primero, bien hecho",
+          "body": "Feriados legales, RUT con dígito verificador, UF, bancos y cooperativas del catálogo local. Mejor un país completo que muchos a medias."
+        },
+        "title": "Hecha para que tus números calcen con los del banco"
+      },
+      "features": {
+        "titleLead": "El detalle que otras apps",
+        "titleAccent": "simplifican hasta romperlo",
+        "cards": {
+          "title": "Un cupo compartido, como en tu banco",
+          "body": "La tarjeta titular y sus adicionales descuentan del mismo cupo, salvo que definas un tope propio por moneda. Nunca se inventa un disponible que el banco no reconocería."
+        },
+        "calendar": {
+          "title": "Cierre en días hábiles, con feriados chilenos",
+          "body": "Tú eliges cuántos días hábiles hay hasta el cierre y cuántos hasta el pago. Los feriados legales de Chile ya están contados, así que la fecha calza con la de tu cartola."
+        }
+      },
+      "currencies": {
+        "title": "Pesos, dólares y UF, cada uno por su lado",
+        "body": "Cada cuenta vive en su moneda y con su propio total. Sin conversiones automáticas que sumarían peras con manzanas.",
+        "sample": "Ejemplo",
+        "items": {
+          "CLP": "Cuenta corriente y efectivo",
+          "USD": "Cuenta vista en dólares",
+          "CLF": "Ahorro en UF"
+        }
+      },
+      "closing": {
+        "title": "Tu cuenta de efectivo ya viene creada",
+        "body": "Anota tu primer gasto hoy y suma tus bancos y tarjetas cuando quieras."
+      }
+    },
+    "about": {
+      "titleLead": "Construimos la app que",
+      "titleAccent": "nosotros mismos necesitábamos",
+      "lead": "Casi todas las apps tratan la tarjeta de crédito como una cuenta más. La compra baja tu saldo y las cuotas aparecen enteras. Tu banco no funciona así.",
+      "receipts": {
+        "bank": "Tu banco"
+      },
+      "how": {
+        "eyebrow": "Cómo la construimos",
+        "titleLead": "Reglas primero,",
+        "titleAccent": "pantalla después",
+        "body": "Cada función nace de una regla real de un banco o emisor chileno, no de lo que se ve más simple en una maqueta. Cuando el modelo no tiene cómo sostener una cifra, la app lo dice en vez de inventarla."
+      },
+      "principlesHeading": "Tres reglas que no negociamos",
+      "principles": {
+        "noInvented": {
+          "title": "Ninguna cifra inventada",
+          "body": "No calculamos los intereses de tu banco ni convertimos monedas. Cuando falta un dato, lo decimos en vez de rellenarlo con una estimación.",
+          "example": "Los intereses del rotativo se copian de tu estado de cuenta como cargo financiero. La app no calcula ninguna tasa."
+        },
+        "reversible": {
+          "title": "Todo reversible",
+          "body": "Deshacer el pago de una deuda devuelve el saldo. Borrar un plan en cuotas revierte su historial completo, y te dice cuánto va a mover antes de hacerlo.",
+          "example": "Antes de borrar un plan en cuotas ves cuánto vuelve a cada cuenta, y solo entonces confirmas."
+        },
+        "chileFirst": {
+          "title": "Chile primero, bien hecho",
+          "body": "Feriados legales, RUT con dígito verificador, UF, bancos y cooperativas del catálogo local. Antes que muchos países a medias, uno completo.",
+          "example": "Una tarjeta que cierra cada 20 días hábiles se salta el 18 y el 19 de septiembre sin que corrijas la fecha."
+        }
+      },
+      "today": {
+        "title": "En qué está hoy",
+        "available": {
+          "title": "Disponible",
+          "body": "Cuentas, tarjetas, movimientos, facturación, cuotas, metas, deudas y gastos recurrentes, en pesos, dólares y UF."
+        },
+        "paused": {
+          "title": "En pausa",
+          "body": "El seguimiento de inversiones (rentabilidad, precios) está pausado: la cuenta de inversión existe, el seguimiento todavía no."
+        },
+        "pending": {
+          "title": "Pendiente",
+          "body": "Exportar tus datos y sincronizar bancos automáticamente no existen todavía. Lo segundo puede llegar a futuro."
+        }
+      },
+      "inTheApp": "En la app"
+    },
+    "privacy": {
+      "center": "Tus datos",
+      "titleLead": "Tus datos, en capas que",
+      "titleAccent": "puedes revisar una por una",
+      "lead": "Tus saldos, movimientos y deudas describen tu situación económica. Por eso se tratan como dato sensible, protegido en cinco capas.",
+      "layersTitle": "Qué protege cada anillo",
+      "layers": {
+        "consent": {
+          "title": "Consentimiento",
+          "lead": "El permiso para tratar tu información financiera se pide aparte, nunca disuelto en un “acepto los términos”.",
+          "a": {
+            "title": "Explícito y versionado",
+            "body": "Cada consentimiento queda fechado y con la versión de la política que aceptaste, consultable desde tu perfil."
+          },
+          "b": {
+            "title": "Menores de edad",
+            "body": "Con autorización de madre, padre o tutor, guardada como un consentimiento aparte del tuyo."
+          }
+        },
+        "access": {
+          "title": "Cómo entras",
+          "lead": "Entras con tu RUT, como en tu banco. El correo queda solo para avisos.",
+          "a": {
+            "title": "Llave de acceso",
+            "body": "Si tu dispositivo la soporta, una passkey salta contraseña y segundo factor: ya es autenticación fuerte por sí misma."
+          },
+          "b": {
+            "title": "Segundo factor",
+            "body": "TOTP con códigos de recuperación. Cambiarlo cierra todas las demás sesiones, en la misma transacción."
+          }
+        },
+        "sessions": {
+          "title": "Sesiones que cierras al instante",
+          "lead": "Cerrar una sesión mata su acceso en la petición siguiente, no en el próximo refresh.",
+          "a": {
+            "title": "Un dispositivo por fila",
+            "body": "Ves desde dónde entraste y hace cuánto, y puedes cerrar cualquiera menos la que estás usando."
+          },
+          "b": {
+            "title": "Se conservan, no desaparecen",
+            "body": "Una sesión cerrada queda visible 3 días antes de borrarse, para que confirmes que fuiste tú."
+          }
+        },
+        "visible": {
+          "title": "Lo que ves tú, y solo tú",
+          "lead": "Un interruptor en tu perfil enmascara los montos de la app, con revelado puntual cuando lo necesites.",
+          "a": {
+            "title": "Ocultar saldos",
+            "body": "Útil para mirar tus cuentas donde hay más gente alrededor."
+          },
+          "b": {
+            "title": "Tus comprobantes",
+            "body": "Se validan por su contenido real, no por la extensión del archivo, y se abren con un enlace firmado que caduca en cinco minutos."
+          }
+        },
+        "leave": {
+          "title": "Cómo te vas",
+          "lead": "Eliminar tu cuenta es una acción real, no un casillero que la desactiva.",
+          "a": {
+            "title": "Supresión total",
+            "body": "Borra tu cuenta y todo lo que registraste, sin dejar rastro."
+          },
+          "b": {
+            "title": "O anonimización",
+            "body": "Conserva tu historial financiero sin ningún dato que te identifique, si prefieres eso."
+          }
+        }
+      },
+      "dont": {
+        "title": "Qué no hacemos",
+        "cardNumber": {
+          "title": "No guardamos el número completo",
+          "body": "Solo los últimos cuatro dígitos. El número completo nunca sale de tu navegador y el CVV no se pide nunca."
+        },
+        "estimates": {
+          "title": "No calculamos ni estimamos por ti",
+          "body": "Ni intereses, ni tipo de cambio, ni gastos “proyectados” que no hayas anotado."
+        },
+        "banks": {
+          "title": "No nos conectamos a tu banco",
+          "body": "No existe sincronización automática ni permiso de lectura sobre tus productos. Nada entra que no registres tú."
+        }
+      },
+      "layersIndex": "Capas"
+    },
+    "pricing": {
+      "titleLead": "Un plan,",
+      "titleAccent": "sin letra chica",
+      "lead": "Hoy hay una sola opción, y es gratis.",
+      "free": "Gratis",
+      "freeHint": "Sin planes, sin límites artificiales y sin funciones bloqueadas.",
+      "included": {
+        "accounts": "Todas las cuentas y tarjetas que tengas",
+        "movements": "Movimientos, traspasos y comprobantes sin tope",
+        "billing": "Facturación, cuotas, metas, deudas y recurrentes",
+        "security": "Llave de acceso, segundo factor y control de sesiones",
+        "currencies": "Pesos, dólares y UF"
+      },
+      "reasons": {
+        "whyFree": {
+          "title": "Por qué no cuesta",
+          "body": "Lo caro de una app de finanzas es conectarse a los bancos: se le paga a un intermediario por cada cuenta. Cuadra no se conecta, así que no tiene ese costo."
+        },
+        "notYourData": {
+          "title": "Tus datos no son el precio",
+          "body": "No hay publicidad, no hay perfilado para terceros y no se venden tus movimientos. Gratis acá significa gratis, no “pagado de otra forma”."
+        },
+        "changes": {
+          "title": "Si algo cambia, te lo decimos antes",
+          "body": "Si alguna vez una parte tiene un costo real (por ejemplo, guardar muchos comprobantes), se avisa antes de que ocurra y con la opción de llevarte tus datos. Nada se vuelve de pago de un día para otro."
+        }
+      }
+    },
+    "faq": {
+      "titleLead": "Antes de que",
+      "titleAccent": "preguntes",
+      "subtitle": "Las dudas que aparecen el primer mes, agrupadas por tema. Si algo no está acá, casi siempre la respuesta es la misma: la app no muestra una cifra que no pueda sostener.",
+      "topics": "Temas",
+      "groups": {
+        "howItWorks": "Cómo funciona",
+        "cardsBilling": "Tarjetas y facturación",
+        "yourData": "Tu cuenta y tus datos"
+      },
+      "items": {
+        "bankSync": {
+          "q": "¿Se conecta con mi banco?",
+          "a": "Hoy no. Tú registras tus cuentas y tus movimientos a mano. Es más trabajo el primer día y, a cambio, ninguna app tiene permiso de lectura sobre tus productos."
+        },
+        "setup": {
+          "q": "¿Tengo que configurar todo antes de usarla?",
+          "a": "No. Tu cuenta en efectivo se crea contigo, en cero, así que puedes anotar un gasto el primer día y sumar tus cuentas y tarjetas cuando tengas tiempo."
+        },
+        "conversion": {
+          "q": "¿Convierte entre pesos, dólares y UF?",
+          "a": "No. Cada cuenta vive en su moneda y cada total se muestra por separado, para no darte una suma que tu banco no reconocería."
+        },
+        "investments": {
+          "q": "¿Sirve para mis inversiones?",
+          "a": "Puedes tener una cuenta de inversión y registrar sus movimientos, pero el seguimiento de instrumentos y rentabilidad todavía no existe. Preferimos decirlo a mostrarte una pantalla vacía."
+        },
+        "creditBalance": {
+          "q": "¿Por qué mi compra con tarjeta de crédito no bajó mi saldo?",
+          "a": "Porque no debería. Una compra a crédito sube tu cupo usado, no baja tu saldo: la plata sale una sola vez, después, cuando pagas la facturación."
+        },
+        "closing": {
+          "q": "¿Cuándo cierra mi facturación?",
+          "a": "Cuando tú digas: configuras cuántos días hábiles pasan desde el corte anterior, o un día fijo del mes si tu emisor trabaja así. Los feriados de Chile ya están contados, y la fecha de pago se configura aparte."
+        },
+        "partialPayment": {
+          "q": "¿Qué pasa si pago menos que el total?",
+          "a": "El período queda liquidado y lo que no cubriste pasa al siguiente como saldo anterior, con registro de a dónde fue. Tu cupo se libera solo por lo que pagaste de verdad."
+        },
+        "additionalCard": {
+          "q": "¿La tarjeta adicional gasta de mi mismo cupo?",
+          "a": "Sí, igual que en tu banco, salvo que le des un tope propio, que de todos modos sigue limitado por el cupo de la cuenta. Cada tarjeta muestra además cuánto gastó ella."
+        },
+        "interest": {
+          "q": "¿Calcula los intereses que me cobran?",
+          "a": "No, y es a propósito: inventar una tasa haría que tus números dejaran de coincidir con tu estado de cuenta. Lo anotas como cargo financiero y queda sumado donde corresponde."
+        },
+        "signIn": {
+          "q": "¿Cómo entro a mi cuenta?",
+          "a": "Con tu RUT y tu contraseña, o con una llave de acceso si tu dispositivo la soporta. El correo queda solo para avisos."
+        },
+        "deleteAccount": {
+          "q": "¿Puedo eliminar mi cuenta de verdad?",
+          "a": "Sí. Puedes borrarlo todo, o conservar el historial sin ningún dato que te identifique. En los dos casos tus sesiones y llaves de acceso se eliminan."
+        },
+        "minors": {
+          "q": "Soy menor de edad, ¿puedo usarla?",
+          "a": "Sí, con la autorización de tu madre, padre o tutor. El formulario de registro la pide solo. Su RUT no se guarda tal cual, solo una huella que no permite recuperarlo, porque es un tercero y no un usuario de la app."
+        }
+      },
+      "cta": {
+        "title": "¿Te quedó otra duda?",
+        "body": "Crear la cuenta toma un minuto y no te compromete a nada: el primer gasto lo puedes anotar en efectivo."
+      },
+      "morePrivacy": "Más sobre esto en Privacidad y datos"
+    },
+    "skipToContent": "Saltar al contenido",
+    "meta": {
+      "home": {
+        "title": "Cuadra · La columna de tus finanzas",
+        "description": "Finanzas personales en Chile con las reglas de tu banco: cupo compartido, cierre en días hábiles y cuotas, en pesos, dólares y UF."
+      },
+      "about": {
+        "title": "Nosotros · Cuadra",
+        "description": "Por qué hicimos Cuadra: una app que lleva tu tarjeta de crédito, tus cuotas y tu facturación como las lleva tu banco."
+      },
+      "privacy": {
+        "title": "Privacidad y datos · Cuadra",
+        "description": "Cómo protegemos tus saldos, movimientos y deudas: cinco capas, desde tu consentimiento hasta borrar tu cuenta."
+      },
+      "pricing": {
+        "title": "Precios · Cuadra",
+        "description": "Cuadra es gratis. Un solo plan, sin anuncios ni venta de datos."
+      },
+      "faq": {
+        "title": "Preguntas frecuentes · Cuadra",
+        "description": "Respuestas sobre cómo funciona Cuadra, tus tarjetas y facturaciones, y tus datos."
+      },
+      "imageAlt": "Cuadra, la columna de tus finanzas, sobre una cordillera"
+    },
+    "access": {
+      "noscript": "Para iniciar sesión o crear una cuenta, activa JavaScript en tu navegador."
+    }
+  }
+}

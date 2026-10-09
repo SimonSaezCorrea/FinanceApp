@@ -1,0 +1,9 @@
+---
+import RedirectLayout from "../layouts/RedirectLayout.astro";
+import { legacyTarget } from "../lib/language";
+
+// The Spanish address this page had before specs/031.
+const target = legacyTarget("/nosotros")!;
+---
+
+<RedirectLayout target={target} />

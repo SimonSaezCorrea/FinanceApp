@@ -10,8 +10,8 @@ import { z } from "zod";
  * while a retry of one attempt carries the same key and applies once.
  */
 
-/** Request header carrying the key. Lowercase — that is how Node normalizes it. */
-export const IDEMPOTENCY_HEADER = "idempotency-key";
+/** Request header carrying the key (defined with the zod-free HTTP constants). */
+export { IDEMPOTENCY_HEADER } from "../http";
 
 /**
  * Opaque to the server: the only requirement is that it be long enough not to

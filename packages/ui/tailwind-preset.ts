@@ -5,7 +5,7 @@ import type { Config } from "tailwindcss";
 // theme (incl. dark mode) is swappable without touching component classes.
 /** Cuadra Tailwind preset: every app adds only its own `content` globs. */
 export default {
-  darkMode: "class",
+  darkMode: "class" as const,
   // Compile every `hover:` to `@media (hover: hover)`. Without this a tap on a
   // touch device leaves the hover state applied until you tap elsewhere, which
   // read as "the button stayed selected" after closing a menu.

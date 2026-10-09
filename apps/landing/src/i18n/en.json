@@ -1,0 +1,322 @@
+{
+  "landing": {
+    "nav": {
+      "label": "Sections",
+      "about": "About",
+      "privacy": "Privacy & data",
+      "pricing": "Pricing",
+      "faq": "FAQ",
+      "goToApp": "Go to the app",
+      "menu": "Menu",
+      "openMenu": "Open menu",
+      "otherLanguage": "Español",
+      "otherLanguageLabel": "View in Spanish",
+      "closeMenu": "Close menu"
+    },
+    "footer": {
+      "tagline": "Made in Chile for pesos, dollars and UF.",
+      "nav": "Legal and help"
+    },
+    "home": {
+      "eyebrow": "Personal finance in Chile",
+      "titleLead": "Your finances with",
+      "titleAccent": "your bank's own rules",
+      "lead": "A shared credit pool, business-day closings and instalments, the way your bank charges them. No invented figures.",
+      "why": {
+        "1": {
+          "title": "No invented figures",
+          "body": "We don't calculate your bank's interest or convert currencies for you. When a figure is missing, we say so instead of guessing."
+        },
+        "2": {
+          "title": "Everything reversible",
+          "body": "Undoing a debt payment gives the balance back. Deleting an instalment plan reverses its whole history, and tells you what it will move before it does."
+        },
+        "3": {
+          "title": "Chile first, done properly",
+          "body": "Legal holidays, RUT check digit, the UF, the local bank and cooperative catalogue. Better one country done right than many done halfway."
+        },
+        "title": "Built so your numbers match your bank's"
+      },
+      "features": {
+        "titleLead": "The detail other apps",
+        "titleAccent": "simplify until it breaks",
+        "cards": {
+          "title": "One shared pool, like your bank's",
+          "body": "The primary card and its add-ons draw from the same pool, unless you give one its own sub-limit per currency. Never an available amount your bank wouldn't recognize."
+        },
+        "calendar": {
+          "title": "Closes in business days, with Chilean holidays",
+          "body": "You choose how many business days pass until closing, and how many until payment is due. Chile's legal holidays are already counted, so the date matches your real statement."
+        }
+      },
+      "currencies": {
+        "title": "Pesos, dollars and UF, each on their own",
+        "body": "Every account lives in its own currency with its own total. No automatic conversion mixing figures that were never meant to add up.",
+        "sample": "Sample",
+        "items": {
+          "CLP": "Checking account and cash",
+          "USD": "Dollar sight account",
+          "CLF": "Savings in UF"
+        }
+      },
+      "closing": {
+        "title": "Your cash account comes ready",
+        "body": "Log your first expense today and add your banks and cards whenever you like."
+      }
+    },
+    "about": {
+      "titleLead": "We built the app",
+      "titleAccent": "we ourselves needed",
+      "lead": "Almost every app treats a credit card as just another account. A purchase lowers your balance and instalments show up in full. Your bank doesn't work that way.",
+      "receipts": {
+        "bank": "Your bank"
+      },
+      "how": {
+        "eyebrow": "How we built it",
+        "titleLead": "Rules first,",
+        "titleAccent": "screen second",
+        "body": "Every feature starts from a real rule of a Chilean bank or issuer, never from whatever looks simplest in a mockup. When the model has no way to support a figure honestly, the app says so instead of inventing it."
+      },
+      "principlesHeading": "Three rules we don't bend",
+      "principles": {
+        "noInvented": {
+          "title": "No invented figures",
+          "body": "We don't calculate your bank's interest or convert currencies. When a figure is missing, we say so instead of guessing.",
+          "example": "Revolving interest is copied from your statement as a finance charge. The app never calculates a rate."
+        },
+        "reversible": {
+          "title": "Everything reversible",
+          "body": "Undoing a debt payment gives the balance back. Deleting an instalment plan reverses its whole history, and tells you what it will move before it does.",
+          "example": "Before deleting an instalment plan you see how much goes back to each account, and only then confirm."
+        },
+        "chileFirst": {
+          "title": "Chile first, done properly",
+          "body": "Legal holidays, RUT check digit, the UF, the local bank and cooperative catalogue. One country done right, before many done halfway.",
+          "example": "A card that closes every 20 business days skips September 18 and 19 without you fixing the date."
+        }
+      },
+      "today": {
+        "title": "Where it stands today",
+        "available": {
+          "title": "Available",
+          "body": "Accounts, cards, movements, billing, instalments, goals, debts and recurring expenses, in pesos, dollars and UF."
+        },
+        "paused": {
+          "title": "Paused",
+          "body": "Investment tracking (returns, prices) is paused: the investment account type still exists, tracking doesn't yet."
+        },
+        "pending": {
+          "title": "Pending",
+          "body": "Exporting your data and automatic bank sync don't exist yet. The second one may come later."
+        }
+      },
+      "inTheApp": "In the app"
+    },
+    "privacy": {
+      "center": "Your data",
+      "titleLead": "Your data, in layers you can",
+      "titleAccent": "review one at a time",
+      "lead": "Your balances, movements and debts describe your financial situation. That's why they're treated as sensitive data, protected in five layers.",
+      "layersTitle": "What each ring protects",
+      "layers": {
+        "consent": {
+          "title": "Consent",
+          "lead": "Consent to process your financial information is asked for separately, never dissolved into an “I accept the terms”.",
+          "a": {
+            "title": "Explicit and versioned",
+            "body": "Every consent is dated and tagged with the policy version you accepted, viewable from your profile."
+          },
+          "b": {
+            "title": "Minors",
+            "body": "Registration with a parent or guardian's authorization, stored as a consent of its own."
+          }
+        },
+        "access": {
+          "title": "How you sign in",
+          "lead": "You sign in with your RUT, like at your bank. Email is only for notices.",
+          "a": {
+            "title": "Passkey",
+            "body": "If your device supports it, a passkey skips both password and second factor: it's already strong authentication on its own."
+          },
+          "b": {
+            "title": "Second factor",
+            "body": "TOTP with recovery codes. Changing it closes every other session, in the same transaction."
+          }
+        },
+        "sessions": {
+          "title": "Sessions you close instantly",
+          "lead": "Closing a session kills its access on the very next request, not on its next refresh.",
+          "a": {
+            "title": "One device per row",
+            "body": "See where you signed in from and how long ago, and close any of them except the one you're using."
+          },
+          "b": {
+            "title": "Kept, not erased",
+            "body": "A closed session stays visible for 3 days before it's deleted, so you can confirm it was you."
+          }
+        },
+        "visible": {
+          "title": "What only you see",
+          "lead": "A switch in your profile masks the app's amounts, with a one-off reveal whenever you need it.",
+          "a": {
+            "title": "Hide balances",
+            "body": "Useful for checking your accounts when there's people around."
+          },
+          "b": {
+            "title": "Your receipts",
+            "body": "Validated by their real content, not their file extension, and opened through a signed link that expires in five minutes."
+          }
+        },
+        "leave": {
+          "title": "How you leave",
+          "lead": "Deleting your account is a real action, not a checkbox that disables it.",
+          "a": {
+            "title": "Full deletion",
+            "body": "Erases your account and everything you recorded, with nothing left behind."
+          },
+          "b": {
+            "title": "Or anonymization",
+            "body": "Keeps your financial history with nothing left that identifies you, if you'd rather keep that."
+          }
+        }
+      },
+      "dont": {
+        "title": "What we don't do",
+        "cardNumber": {
+          "title": "We don't store the full number",
+          "body": "Only the last four digits. The full number never leaves your browser and the CVV is never asked for."
+        },
+        "estimates": {
+          "title": "We don't calculate or estimate for you",
+          "body": "No interest, no exchange rate, no “projected” expense you never entered."
+        },
+        "banks": {
+          "title": "We don't connect to your bank",
+          "body": "There's no automatic sync and no read permission over your products. Nothing enters that you didn't record yourself."
+        }
+      },
+      "layersIndex": "Layers"
+    },
+    "pricing": {
+      "titleLead": "One plan,",
+      "titleAccent": "no fine print",
+      "lead": "Today there's a single option, and it's free.",
+      "free": "Free",
+      "freeHint": "No tiers, no artificial limits and no locked features.",
+      "included": {
+        "accounts": "Every account and card you have",
+        "movements": "Movements, transfers and receipts with no cap",
+        "billing": "Billing, instalments, goals, debts and recurring expenses",
+        "security": "Passkey, second factor and session control",
+        "currencies": "Pesos, dollars and UF"
+      },
+      "reasons": {
+        "whyFree": {
+          "title": "Why it doesn't cost anything",
+          "body": "The expensive part of a finance app is connecting to banks: an intermediary is paid for every account. Cuadra doesn't connect, so it doesn't carry that cost."
+        },
+        "notYourData": {
+          "title": "Your data isn't the price",
+          "body": "No ads, no profiling for third parties and your movements are never sold. Free here means free, not “paid for some other way”."
+        },
+        "changes": {
+          "title": "If anything changes, we say so first",
+          "body": "If some part ever has a real cost (storing a lot of receipts, say), it's announced before it happens, with the option to take your data with you. Nothing turns paid overnight."
+        }
+      }
+    },
+    "faq": {
+      "titleLead": "Before you",
+      "titleAccent": "ask",
+      "subtitle": "The doubts that come up in the first month, grouped by topic. If something's missing here, the answer is almost always the same: the app doesn't show a figure it can't back up.",
+      "topics": "Topics",
+      "groups": {
+        "howItWorks": "How it works",
+        "cardsBilling": "Cards & billing",
+        "yourData": "Your account & data"
+      },
+      "items": {
+        "bankSync": {
+          "q": "Does it connect to my bank?",
+          "a": "No. You record your own accounts and movements. It's more work on day one, and in exchange, no app has read access over your products."
+        },
+        "setup": {
+          "q": "Do I have to set everything up before using it?",
+          "a": "No. Your cash account is created with you, at zero, so you can log an expense on day one and add your accounts and cards whenever you have time."
+        },
+        "conversion": {
+          "q": "Does it convert between pesos, dollars and UF?",
+          "a": "No. Each account lives in its own currency and every total is shown separately, so you never get a sum your bank wouldn't recognize."
+        },
+        "investments": {
+          "q": "Does it work for my investments?",
+          "a": "You can have an investment account and record its movements, but tracking of instruments and returns doesn't exist yet. We'd rather say so than show you an empty screen."
+        },
+        "creditBalance": {
+          "q": "Why didn't my credit card purchase lower my balance?",
+          "a": "Because it shouldn't. A credit purchase raises your used credit, not your balance: the money moves once, later, when you pay the statement."
+        },
+        "closing": {
+          "q": "When does my statement close?",
+          "a": "Whenever you say: you set how many business days pass since the previous close, or a fixed day of the month if your issuer works that way. Chile's holidays are already counted, and the due date is configured separately."
+        },
+        "partialPayment": {
+          "q": "What happens if I pay less than the total?",
+          "a": "The period settles and whatever you didn't cover carries to the next one as a prior balance, with a record of where it went. Your credit only frees up by what you actually paid."
+        },
+        "additionalCard": {
+          "q": "Does an additional card spend from my same pool?",
+          "a": "Yes, same as your bank, unless you give it its own sub-limit, which is still capped by the account's own pool. Each card also shows how much it spent on its own."
+        },
+        "interest": {
+          "q": "Does it calculate the interest I'm charged?",
+          "a": "No, on purpose: inventing a rate would make your numbers stop matching your real statement. You log it as a finance charge and it's added in where it belongs."
+        },
+        "signIn": {
+          "q": "How do I sign in?",
+          "a": "With your RUT and password, or a passkey if your device supports it. Email is only used for notices."
+        },
+        "deleteAccount": {
+          "q": "Can I really delete my account?",
+          "a": "Yes. You can erase everything, or keep your history with nothing left that identifies you. Either way your sessions and passkeys are removed."
+        },
+        "minors": {
+          "q": "I'm a minor, can I use it?",
+          "a": "Yes, with authorization from your mother, father or guardian. The sign-up form asks for it on its own. Their RUT isn't stored as is, only a fingerprint that can't be turned back into it, because they're a third party and not a user of the app."
+        }
+      },
+      "cta": {
+        "title": "Still have a question?",
+        "body": "Creating an account takes a minute and commits you to nothing: you can log your first expense in cash."
+      },
+      "morePrivacy": "More on this in Privacy and data"
+    },
+    "skipToContent": "Skip to content",
+    "meta": {
+      "home": {
+        "title": "Cuadra · The backbone of your finances",
+        "description": "Personal finance in Chile with your bank's own rules: a shared credit pool, business-day closings and instalments, in pesos, dollars and UF."
+      },
+      "about": {
+        "title": "About · Cuadra",
+        "description": "Why we built Cuadra: an app that keeps your credit card, instalments and statements the way your bank does."
+      },
+      "privacy": {
+        "title": "Privacy and data · Cuadra",
+        "description": "How we protect your balances, movements and debts: five layers, from your consent to deleting your account."
+      },
+      "pricing": {
+        "title": "Pricing · Cuadra",
+        "description": "Cuadra is free. One plan, no ads, no selling your data."
+      },
+      "faq": {
+        "title": "Frequently asked questions · Cuadra",
+        "description": "Answers about how Cuadra works, your cards and statements, and your data."
+      },
+      "imageAlt": "Cuadra, the backbone of your finances, over a mountain range"
+    },
+    "access": {
+      "noscript": "To sign in or create an account, turn on JavaScript in your browser."
+    }
+  }
+}

@@ -143,6 +143,27 @@ describe("RegisterHandler", () => {
     expect(cash).toMatchObject({ type: "CASH", name: "Efectivo" });
   });
 
+  it("creates the account in the language it was registered from, Spanish when none is sent", async () => {
+    const create = vi.fn().mockResolvedValue(User.fromPersistence(baseProps()));
+    const handler = buildHandler({
+      repo: fakeRepo({ findByEmail: vi.fn().mockResolvedValue(null), create }),
+    });
+    const input = {
+      name: "Test User",
+      email: "a@b.com",
+      password: "password123",
+      identifierValue: "12.345.678-5",
+      birthDate: ADULT_BIRTHDATE,
+      sensitiveDataConsent: true as const,
+    };
+
+    await handler.execute(new RegisterCommand({ ...input, locale: "en" }));
+    await handler.execute(new RegisterCommand(input));
+
+    expect(create.mock.calls[0]![0]).toMatchObject({ locale: "en" });
+    expect(create.mock.calls[1]![0]).toMatchObject({ locale: "es" });
+  });
+
   it("records the reinforced consent (Ley 21.719 Art. 16) for the new user", async () => {
     const create = vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ id: "u9" })));
     const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(null), create });

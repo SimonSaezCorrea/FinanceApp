@@ -3,10 +3,9 @@ import i18next, { type Module, type Resource, type i18n as I18nInstance } from "
 import en from "./en.json";
 import es from "./es.json";
 
-/** The languages Cuadra ships. The app and the public site both default to Spanish. */
-export const LANGUAGES = ["es", "en"] as const;
-export type Language = (typeof LANGUAGES)[number];
-export const DEFAULT_LANGUAGE: Language = "es";
+import { DEFAULT_LANGUAGE, LANGUAGES, type Language } from "./languages";
+
+export { DEFAULT_LANGUAGE, LANGUAGES, type Language };
 
 /** The shared catalogs: everything both the app and the public site may render (Principle III). */
 export const catalogs = { es, en } as const;

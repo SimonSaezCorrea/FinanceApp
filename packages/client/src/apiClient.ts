@@ -1,4 +1,5 @@
-import { API_BASE_PATH, idempotency, type ApiError } from "@finance/contracts";
+import type { ApiError } from "@finance/contracts";
+import { API_BASE_PATH, IDEMPOTENCY_HEADER } from "@finance/contracts/http";
 
 /**
  * The ONLY way the frontend talks to the backend (FR-003): HTTP, credentials
@@ -107,7 +108,7 @@ export async function apiFetch<T>(path: string, init: ApiRequestInit = {}): Prom
   const request: RequestInit = idempotencyKey
     ? {
         ...rest,
-        headers: { ...rest.headers, [idempotency.IDEMPOTENCY_HEADER]: idempotencyKey },
+        headers: { ...rest.headers, [IDEMPOTENCY_HEADER]: idempotencyKey },
       }
     : rest;
 

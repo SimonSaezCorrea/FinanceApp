@@ -1,10 +1,10 @@
 import { z } from "zod";
 
-import { isValidRut } from "./rut";
+import { MINOR_GUARDIAN_THRESHOLD_AGE, calculateAgeFromBirthDate, isValidRut } from "./rules";
 import { rowId } from "../common/row-id";
 import { identifierTypeSchema } from "../reference";
 
-export * from "./rut";
+export * from "./rules";
 
 /** Auth domain contracts (seed; expanded during US2 auth migration). */
 
@@ -17,23 +17,6 @@ export const loginRequestSchema = z.object({
   password: z.string().min(1),
 });
 export type LoginRequest = z.infer<typeof loginRequestSchema>;
-
-/** Full years elapsed as of `now` — pure, shared by the API's own registration validation and
- * the web registration form (deciding whether to show the guardian block), so the two can
- * never disagree about someone's age. Mirrors `User.toContract()`'s own `age` derivation. */
-export function calculateAgeFromBirthDate(birthDate: Date, now = new Date()): number {
-  let age = now.getFullYear() - birthDate.getFullYear();
-  const monthDiff = now.getMonth() - birthDate.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && now.getDate() < birthDate.getDate())) age--;
-  return age;
-}
-
-/** Ley 21.719's reinforced regime for a minor's sensitive data: below this age, a guardian's
- * own authorization is required IN ADDITION to (never instead of) the titular's own
- * `sensitiveDataConsent`. Chile's mayoría de edad (18) — not independently verified against
- * the statute's own text for this specific threshold; treat as a working assumption pending
- * legal review, same caveat every compliance-cl-generated document in this repo carries. */
-export const MINOR_GUARDIAN_THRESHOLD_AGE = 18;
 
 export const guardianRelationshipSchema = z.enum(["MOTHER", "FATHER", "GUARDIAN", "OTHER"]);
 
@@ -49,6 +32,8 @@ export const guardianAuthorizationSchema = z.object({
   accepted: z.literal(true),
 });
 export type GuardianAuthorization = z.infer<typeof guardianAuthorizationSchema>;
+
+export const localeSchema = z.enum(["es", "en"]);
 
 export const registerRequestSchema = z
   .object({
@@ -77,6 +62,9 @@ export const registerRequestSchema = z
     /** Required (and only meaningful) when `birthDate` puts the titular under
      * `MINOR_GUARDIAN_THRESHOLD_AGE` — see the cross-field `.refine()` below. */
     guardianAuthorization: guardianAuthorizationSchema.optional(),
+    /** The language of the page the account was created from (spec 031): the public site sends
+     * it so the app opens in that language. Absent, the account starts in Spanish. */
+    locale: localeSchema.optional(),
   })
   .refine(
     (v) =>
@@ -114,7 +102,6 @@ export type ListConsentsResponse = z.infer<typeof listConsentsResponseSchema>;
 export const preferredCurrencySchema = z.enum(["CLP", "USD", "CLF"]);
 /** Any ISO 4217 alpha code from the reference `Currency` list (not restricted like the primary currency). */
 export const currencyCodeSchema = z.string().trim().length(3);
-export const localeSchema = z.enum(["es", "en"]);
 export const themeSchema = z.enum(["dark", "light", "system"]);
 
 export const currentUserSchema = z.object({
