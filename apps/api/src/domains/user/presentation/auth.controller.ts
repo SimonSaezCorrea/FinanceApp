@@ -51,6 +51,7 @@ import { PasskeyChallengeInvalidError } from "../domain/errors";
 import { PasskeyChallengeToken } from "../application/passkey-challenge-token";
 import { TokenIssuer, type TokenPair } from "../application/token-issuer";
 import { GetMeQuery } from "../application/queries/get-me.query";
+import { GetSessionStatusQuery } from "../application/queries/get-session-status.query";
 import { ListConsentsQuery } from "../application/queries/list-consents.query";
 import { ListPasskeysQuery } from "../application/queries/list-passkeys.query";
 import { ListSessionsQuery } from "../application/queries/list-sessions.query";
@@ -205,6 +206,16 @@ export class AuthController {
     await this.commandBus.execute<LogoutCommand, void>(new LogoutCommand(token));
     res.clearCookie(ACCESS_COOKIE, this.cookieBase());
     res.clearCookie(REFRESH_COOKIE, this.cookieBase());
+  }
+
+  /** Whether this browser holds a live session, as a 200 `{ signedIn }` instead of a 401 (spec
+   * 031): the public site asks on every page to offer "Ir a la app". No guard on purpose. */
+  @Get("session")
+  session(@Req() req: Request): Promise<auth.SessionStatus> {
+    const cookies = req.cookies as Record<string, string> | undefined;
+    return this.queryBus.execute(
+      new GetSessionStatusQuery(cookies?.[ACCESS_COOKIE], cookies?.[REFRESH_COOKIE]),
+    );
   }
 
   @Get("me")

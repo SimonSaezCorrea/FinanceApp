@@ -212,7 +212,7 @@ inicia sesión, luego redirige a la app con `volver`.
 
 ## Phase 9: Polish & Cross-Cutting Concerns
 
-- [ ] T062 Medir SC-002: bytes de JS que descarga `/es/` sin abrir el panel (después) contra `/` de la SPA actual en `bf45415` (antes); y SC-003: LCP de las 5 páginas `/es/` con Lighthouse en perfil móvil (≤ 2 s) sobre `astro preview`; anotar todo en `specs/031-separate-landing/quickstart.md` — **SC-002 medido (≈ 0,9 %); SC-003 (Lighthouse) NO medido, ver quickstart**
+- [X] T062 Medir SC-002: bytes de JS que descarga `/es/` sin abrir el panel (después) contra `/` de la SPA actual en `bf45415` (antes); y SC-003: LCP de las 5 páginas `/es/` con Lighthouse en perfil móvil (≤ 2 s) sobre `astro preview`; anotar todo en `specs/031-separate-landing/quickstart.md` — **SC-002 ≈ 0,9 %; SC-003 LCP 1,4–1,5 s (Lighthouse móvil sobre `astro preview`)**
 - [x] T063 [P] Agregar a `docs/PENDING.md`: redirecciones HTTP reales (301 para direcciones antiguas, 302 por idioma en la raíz) a configurar en el hosting; API bajo el mismo dominio registrable; llaves de acceso de desarrollo con otro `rpId` deben registrarse de nuevo
 - [x] T064 [P] Actualizar `.github/workflows/ci.yml`: build de `@finance/landing` (con `PUBLIC_*` de prueba) y `test:build`; incluir los paquetes nuevos en typecheck/test
 - [x] T065 [P] Actualizar `docs/english/ARCHITECTURE.md` y `docs/spanish/ARCHITECTURE.md` con la tercera app, los tres paquetes y el traspaso de sesión

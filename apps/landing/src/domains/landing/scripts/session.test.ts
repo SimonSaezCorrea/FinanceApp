@@ -1,9 +1,10 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { APP_URL } from "../../../lib/config";
 import { hasSession, initSession } from "./session";
 
-const status = (code: number) => new Response(null, { status: code });
+const json = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
 function page() {
   document.body.innerHTML = `
@@ -19,38 +20,32 @@ describe("session script", () => {
     fetchMock.mockReset();
     vi.stubGlobal("fetch", fetchMock);
     page();
+    return () => vi.unstubAllGlobals();
   });
-  afterEach(() => vi.unstubAllGlobals());
 
-  it("a signed-in visitor gets 'Ir a la app' pointing at the app", async () => {
-    fetchMock.mockResolvedValue(status(200));
+  it("asks once, with the cookies, and a signed-in visitor gets 'Ir a la app'", async () => {
+    fetchMock.mockResolvedValue(json({ signedIn: true }));
     await initSession();
 
     const link = document.querySelector("[data-access-slot] a")!;
     expect(link.textContent).toBe("Ir a la app");
     expect(link.getAttribute("href")).toBe(`${APP_URL}/`);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]![0])).toMatch(/\/api\/v1\/auth\/session$/);
     expect(fetchMock.mock.calls[0]![1]).toMatchObject({ credentials: "include" });
   });
 
-  it("renews an expired access token once before deciding", async () => {
-    fetchMock
-      .mockResolvedValueOnce(status(401))
-      .mockResolvedValueOnce(status(200))
-      .mockResolvedValueOnce(status(200));
-    expect(await hasSession()).toBe(true);
-    expect(String(fetchMock.mock.calls[1]![0])).toMatch(/\/auth\/refresh$/);
-  });
-
-  it("keeps the sign-in actions when signed out, even after a failed renewal", async () => {
-    fetchMock.mockResolvedValueOnce(status(401)).mockResolvedValueOnce(status(401));
+  it("keeps the sign-in actions when signed out", async () => {
+    fetchMock.mockResolvedValue(json({ signedIn: false }));
     await initSession();
     expect(document.querySelector("[data-access]")).not.toBeNull();
   });
 
-  it("keeps them when the API is down", async () => {
-    fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
-    await initSession();
-    expect(document.querySelector("[data-access]")).not.toBeNull();
+  it("keeps them when the API answers an error or is down", async () => {
+    fetchMock.mockResolvedValueOnce(json({}, 500));
+    expect(await hasSession()).toBe(false);
+    fetchMock.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    expect(await hasSession()).toBe(false);
   });
 
   it("gives up after the timeout instead of waiting on a slow API", async () => {

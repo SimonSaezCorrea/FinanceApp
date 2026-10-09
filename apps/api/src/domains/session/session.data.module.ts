@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 
 import { SESSION_REPOSITORY } from "./domain/ports/session.repository.port";
+import { SESSION_STATUS } from "./domain/ports/session-status.port";
 import { SESSION_STEP_UP } from "./domain/ports/session-step-up.port";
 import { PrismaSessionRepository } from "./infrastructure/prisma-session.repository";
 
@@ -14,7 +15,9 @@ import { PrismaSessionRepository } from "./infrastructure/prisma-session.reposit
     { provide: SESSION_REPOSITORY, useExisting: PrismaSessionRepository },
     // Same adapter, second (narrow) port — the step-up stamp on a session (2026-09-25).
     { provide: SESSION_STEP_UP, useExisting: PrismaSessionRepository },
+    // Third narrow port — whether a session is alive, for `GET /auth/session` (spec 031).
+    { provide: SESSION_STATUS, useExisting: PrismaSessionRepository },
   ],
-  exports: [SESSION_REPOSITORY, SESSION_STEP_UP],
+  exports: [SESSION_REPOSITORY, SESSION_STEP_UP, SESSION_STATUS],
 })
 export class SessionDataModule {}

@@ -77,6 +77,11 @@ export const registerRequestSchema = z
   );
 export type RegisterRequest = z.infer<typeof registerRequestSchema>;
 
+/** `GET /auth/session` (spec 031): whether this browser holds a live session — always a 200, so the
+ * public site can ask on every page without a 401 in the console for a signed-out visitor. */
+export const sessionStatusSchema = z.object({ signedIn: z.boolean() });
+export type SessionStatus = z.infer<typeof sessionStatusSchema>;
+
 /** One consent the user granted, as shown back to them (e.g. a "mis consentimientos" screen). */
 export const consentTypeSchema = z.enum([
   "SENSITIVE_DATA_PROCESSING",

@@ -4,6 +4,7 @@ import type { Session as SessionRow } from "@prisma/client";
 import { PrismaService } from "../../../infra/prisma/prisma.service";
 import type { SessionPlan, SessionProps } from "../domain/session.entity";
 import type { SessionRepositoryPort } from "../domain/ports/session.repository.port";
+import type { SessionStatusPort } from "../domain/ports/session-status.port";
 import type { SessionStepUpPort } from "../domain/ports/session-step-up.port";
 
 function rowToProps(row: SessionRow): SessionProps {
@@ -22,7 +23,9 @@ function rowToProps(row: SessionRow): SessionProps {
 
 /** Adapter — the ONLY file that touches `prisma.session`. */
 @Injectable()
-export class PrismaSessionRepository implements SessionRepositoryPort, SessionStepUpPort {
+export class PrismaSessionRepository
+  implements SessionRepositoryPort, SessionStepUpPort, SessionStatusPort
+{
   constructor(private readonly prisma: PrismaService) {}
 
   async markSteppedUp(userId: string, sessionId: string, at: Date): Promise<void> {
@@ -77,6 +80,20 @@ export class PrismaSessionRepository implements SessionRepositoryPort, SessionSt
       where: { id, userId, closedAt: null },
       data: { closedAt: new Date() },
     });
+  }
+
+  async isAlive(userId: string, sessionId: string, now: Date): Promise<boolean> {
+    const row = await this.prisma.session.findFirst({
+      where: {
+        id: sessionId,
+        userId,
+        closedAt: null,
+        expiresAt: { gt: now },
+        user: { status: "ACTIVE" },
+      },
+      select: { id: true },
+    });
+    return row !== null;
   }
 
   async existsForUser(userId: string, id: string): Promise<boolean> {

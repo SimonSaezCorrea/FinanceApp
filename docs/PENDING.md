@@ -913,3 +913,10 @@ Las pruebas automáticas cubren el build (metadatos, hreflang, sitemap, sin Reac
 panel, el script de sesión y las redirecciones de la app, pero nada se recorrió en un navegador real
 (sin herramienta de automatización en el entorno de desarrollo): faltan los escenarios del
 `quickstart.md` de la spec 031 y el LCP móvil (SC-003).
+
+### 5. ~~La consulta de sesión deja errores en la consola~~ — resuelto (2026-10-09)
+
+La landing consultaba `GET /auth/me` y, ante un 401, `POST /auth/refresh`: para un visitante sin
+sesión eran dos 401 que Chrome registra como errores (Lighthouse "Recomendaciones" 96). Ahora
+consulta **`GET /auth/session`**, sin guard, que siempre responde 200 con `{ signedIn }` (access
+token válido con su sesión viva, o si venció, refresh token válido con la suya; no rota nada).

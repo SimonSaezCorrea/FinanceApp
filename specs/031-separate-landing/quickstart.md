@@ -63,8 +63,14 @@ Al abrir el panel se descargan, solo entonces: el panel (159 KB, 51 KB gzip), Re
 gzip al sacar zod y los catálogos completos: `@finance/contracts/http` y `/auth-rules` son entradas
 sin zod, y el panel carga solo los espacios de nombres que muestra en un solo idioma.
 
-**SC-003 — LCP con Lighthouse móvil: NO medido.** Este entorno no tiene Chrome automatizable; queda
-por correr `lighthouse http://localhost:4322/es/ --preset=perf --form-factor=mobile` sobre
-`pnpm --filter @finance/landing preview` para las 5 páginas.
+**SC-003 — LCP con Lighthouse 12.8 móvil** (build de producción servido con `astro preview`, Chrome sin
+interfaz, 2026-10-09): LCP 1,4 s en `/es/` y 1,5 s en `/es/about/`, `/es/privacy/`, `/es/pricing/` y
+`/es/faq/` (meta ≤ 2 s). Las cinco: Rendimiento 100, Accesibilidad 100, SEO 100, Recomendaciones 96,
+TBT 0 ms, CLS 0. Lo único que resta es el error de consola de la consulta de sesión (ver
+`docs/PENDING.md`) y el CSS que bloquea el render (~300 ms estimados).
+
+Ojo: medir sobre `astro dev` (`:4321`) da cifras que no son del sitio (cliente de Vite, barra de
+herramientas de Astro, React Refresh, sin minificar): ~1,4 MB de JS "sin usar" y avisos de
+accesibilidad de la barra de herramientas.
 
 **App** (`apps/web`) sin la landing: entrada de 538 KB a 509 KB (161 KB gzip).
