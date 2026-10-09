@@ -37,7 +37,9 @@
       "deepmerge-ts": "^8.0.0",
       "browserslist": "^4.28.7",
       "mysql2": "^3.22.0",
-      "multer": "^2.3.0"
+      "multer": "^2.3.0",
+      "exceljs>uuid": "^11.1.1",
+      "moment": "^2.31.0"
     },
     "auditConfig": {
       "ignoreGhsas": [
@@ -49,7 +51,8 @@
         "GHSA-c2c7-rcm5-vvqj",
         "GHSA-r5fr-rjxr-66jc",
         "GHSA-ph9p-34f9-6g65",
-        "GHSA-vfj7-8cjw-p6xm"
+        "GHSA-vfj7-8cjw-p6xm",
+        "GHSA-rj75-hqrm-r3gf"
       ]
     }
   },
