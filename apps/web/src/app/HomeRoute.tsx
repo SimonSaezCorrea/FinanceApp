@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 
 import { useAuth } from "../domains/auth/hooks/useAuth";
-import { AppSplash } from "../shared/ui/app-splash";
+import { AppSplash } from "@finance/ui/src/shared/ui/app-splash";
 import { AppLayout, DashboardPage, LandingHomeRoute } from "./lazyPages";
 
 /** `/` is two pages behind one URL: the public landing for a visitor, the Panel for a signed-in

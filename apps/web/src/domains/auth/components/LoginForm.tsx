@@ -2,9 +2,9 @@ import { KeyRound, ShieldCheck } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { formatRutInput } from "../../../shared/lib/formatRut";
-import { Button } from "../../../shared/ui/button";
+import { ApiRequestError } from "@finance/client";
+import { formatRutInput } from "@finance/ui/src/shared/lib/formatRut";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { FormNotice } from "../../../shared/ui/form";
 import { useAuth } from "../hooks/useAuth";
 import { validateRequired, validateRut } from "../lib/validation";

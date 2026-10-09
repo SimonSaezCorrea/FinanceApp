@@ -5,7 +5,7 @@ import { Link } from "react-router";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { ApproxAmount } from "../../exchange-rates/components/ApproxAmount";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { ACCOUNT_ICON, isCreditType } from "./accountVisuals";

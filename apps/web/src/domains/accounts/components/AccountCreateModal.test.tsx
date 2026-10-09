@@ -19,7 +19,8 @@ vi.mock("../../reference/api/referenceApi", () => ({
       .mockResolvedValue([{ id: "1", code: "CLP", numeric: "152", name: "Peso chileno" }]),
   },
 }));
-vi.mock("../../auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: {
     me: () =>
       Promise.resolve({

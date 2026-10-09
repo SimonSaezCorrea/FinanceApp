@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 import type { TextareaHTMLAttributes } from "react";
 
-import { cn } from "../lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 export const Textarea = forwardRef<
   HTMLTextAreaElement,

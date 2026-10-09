@@ -2,7 +2,7 @@ import { Check, Eye, EyeOff } from "lucide-react";
 import { type HTMLAttributes, type ReactNode, type Ref, useId, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 interface Props {
   label: string;

@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import { AppModule } from "./app.module";
 import { registerArtificialDelay } from "./infra/http/artificial-delay.interceptor";
 import { AllExceptionsFilter } from "./infra/http/all-exceptions.filter";
+import { useCors } from "./infra/http/cors";
 import { useJsonBodyLimit } from "./infra/http/body-limit";
 
 async function bootstrap() {
@@ -23,8 +24,8 @@ async function bootstrap() {
   // Dev-only: simulates production latency so loading states are testable locally.
   registerArtificialDelay(app, config);
 
-  const webOrigin = config.get<string>("CORS_ORIGIN") ?? "http://localhost:5173";
-  app.enableCors({ origin: webOrigin, credentials: true });
+  // The public site and the app (CORS_ORIGIN, comma-separated) — specs/031.
+  useCors(app);
 
   const port = config.get<number>("PORT") ?? 3001;
   await app.listen(port);

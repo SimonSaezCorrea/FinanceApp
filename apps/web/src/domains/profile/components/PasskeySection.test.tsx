@@ -10,7 +10,8 @@ const confirmRegistration = vi.fn();
 const remove = vi.fn();
 const rename = vi.fn();
 const list = vi.fn().mockResolvedValue([]);
-vi.mock("../../auth/api/passkeyApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   passkeyApi: {
     startRegistration: (...args: unknown[]) => startRegistration(...args),
     confirmRegistration: (...args: unknown[]) => confirmRegistration(...args),
@@ -18,8 +19,6 @@ vi.mock("../../auth/api/passkeyApi", () => ({
     rename: (...args: unknown[]) => rename(...args),
     list: (...args: unknown[]) => list(...args),
   },
-}));
-vi.mock("../../auth/api/authApi", () => ({
   authApi: {
     me: vi.fn().mockResolvedValue({
       id: "u1",

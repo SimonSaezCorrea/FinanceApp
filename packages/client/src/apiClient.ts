@@ -9,7 +9,7 @@ import { API_BASE_PATH, idempotency, type ApiError } from "@finance/contracts";
  * succeeds the original request is retried transparently. If the refresh also
  * fails (refresh token expired / missing) the error propagates normally.
  */
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3001";
+import { getBaseUrl } from "./config";
 
 export class ApiRequestError extends Error {
   constructor(
@@ -23,7 +23,7 @@ export class ApiRequestError extends Error {
 }
 
 function buildUrl(path: string): string {
-  return `${API_URL}${API_BASE_PATH}${path}`;
+  return `${getBaseUrl()}${API_BASE_PATH}${path}`;
 }
 
 async function rawFetch(path: string, init: RequestInit): Promise<Response> {

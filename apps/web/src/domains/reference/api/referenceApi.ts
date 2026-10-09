@@ -1,6 +1,6 @@
 import type { reference } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "@finance/client";
 
 /** Global read-only reference data (countries, banks, currencies, categories). */
 export const referenceApi = {

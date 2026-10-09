@@ -1,4 +1,26 @@
 <!--
+Sync Impact Report — 2026-10-09 (amendment 2.5.0)
+- Version change: 2.4.0 → 2.5.0 (MINOR: the target architecture gains a third app and three shared
+  packages; Principle III's catalog location is redefined; specs/031 separate public site).
+- AMENDED Principle III (i18n parity): the catalogs no longer live in `apps/web`. Shared strings are
+  in `packages/i18n/src/{es,en}.json` (`@finance/i18n`), consumed by the app AND the public site; the
+  public site's own `landing.*` strings are in `apps/landing/src/i18n/{es,en}.json`. Each catalog pair
+  has its own parity test. Navigation wording updated: the app routes with react-router; the public
+  site is static pages under `/es/…` and `/en/…`.
+- AMENDED "Target architecture": three separately deployable apps — `apps/api`, `apps/web` (the
+  signed-in app, `app.cuadra.cl`, not indexed) and **`apps/landing`** (the public site, `cuadra.cl`,
+  Astro static) — plus source-only packages **`@finance/ui`** (tokens, Tailwind preset, theme,
+  breakpoints, shared primitives and the overlay family), **`@finance/client`** (HTTP client, WebAuthn
+  helpers, auth calls, the return-path rule) and **`@finance/i18n`**. One-way deps extended:
+  `landing ↛ web/api`, `web ↛ landing`, enforced by `check:boundaries`.
+- AMENDED "Breakpoint stages" and "One overlay family": their single sources moved to `@finance/ui`
+  (`breakpoints.ts`, `src/shared/ui/overlay/`). The public site's phone menu is a native `<dialog>`
+  (it opens on every page load, where loading React would defeat the site's purpose); everything the
+  public site renders with React (the access panel) still uses the overlay family.
+- Remaining items of this amendment (approved libraries, env vars, Node 22) are recorded at the
+  close of specs/031.
+-->
+<!--
 Sync Impact Report — 2026-10-08 (amendment 2.4.0)
 - Version change: 2.3.19 → 2.4.0 (MINOR: a normative clause of "Technology & Operational Constraints"
   is materially amended; specs/030 exchange rates).
@@ -1757,11 +1779,13 @@ puede conflarse con "el campo venía vacío".
 
 ### III. i18n Parity (NON-NEGOTIABLE)
 
-Every user-facing string MUST exist in BOTH `apps/web/src/i18n/es.json` and
-`apps/web/src/i18n/en.json` under identical keys; `apps/web/src/i18n/parity.test.ts` enforces it.
-The API never returns localized text (it answers language-agnostic error codes the web maps to
-`errors.<CODE>`). Internal navigation uses react-router (`Link`/`NavLink`/`useNavigate`). Default
-locale is `es`.
+Every user-facing string MUST exist in BOTH languages under identical keys, in the catalog that
+owns it: strings shared by the app and the public site in `packages/i18n/src/{es,en}.json`
+(`@finance/i18n`, parity enforced by `packages/i18n/src/parity.test.ts`); the public site's own
+`landing.*` strings in `apps/landing/src/i18n/{es,en}.json` (its own parity test). The API never
+returns localized text (it answers language-agnostic error codes the web maps to `errors.<CODE>`).
+The app navigates with react-router (`Link`/`NavLink`/`useNavigate`); the public site is static
+pages, one per language under `/es/…` and `/en/…`. Default locale is `es`.
 
 Rationale: the app ships Spanish and English as first-class. A key present in one catalog
 but missing in the other is a user-visible defect (raw key or crash).
@@ -1905,16 +1929,24 @@ identificador adivinable o no.
   estimated total ("≈ todo en CLP (estimado)", always labelled an estimate and dated with the value it
   used); the UF is never offered as a payment or transfer suggestion, and nothing converted is ever
   persisted without the person's confirmation.
-- **Target architecture (ratified — specs/001):** a **pnpm + Turborepo monorepo** with two
-  separately deployable apps and shared packages:
+- **Target architecture (ratified — specs/001, extended by specs/031):** a **pnpm + Turborepo
+  monorepo** with three separately deployable apps and shared packages (the third app and the
+  `ui`/`client`/`i18n` packages are described after this list):
   - `apps/api` — **NestJS** backend, **Prisma 7 / PostgreSQL** (sole DB owner, connected via the
     **`@prisma/adapter-pg` driver adapter** + `prisma.config.ts` — Prisma 7 no longer accepts a
     `datasource.url` in `schema.prisma`), domain-first modules; auth issues **JWT access+refresh
     tokens in httpOnly cookies**.
   - `apps/web` — **Vite + React 19 SPA**, domain-first features, consumes the API over HTTP only;
     **owns the es/en i18n catalogs** (the API returns data + language-agnostic error codes).
+  - `apps/landing` — the **public site** (`cuadra.cl`): **Astro**, static output, pages per language
+    (`/es/…`, `/en/…`) with full HTML and per-page metadata. No React runs on page load; the access
+    panel (React) is imported only when opened, signs in against the API and sends the person to the
+    app with a return PATH (never a token in the URL). `apps/web` is then the signed-in app only
+    (`app.cuadra.cl`, `noindex`), redirecting every signed-out visit to the public site's panel.
   - `packages/*` — shared **contracts** (zod schemas + types), **money** (`decimal.js`),
-    config. One-way deps: apps → packages; `api ↛ web`.
+    config, and the source-only **`ui`** (design system), **`client`** (API client, WebAuthn, auth
+    calls, `safeReturnPath`) and **`i18n`** (shared catalogs). One-way deps: apps → packages;
+    `api ↛ web`; `landing ↛ web/api`; `web ↛ landing`.
   - **Testing:** **Vitest** across apps and packages.
 - **Architecture norms (NON-NEGOTIABLE, enforced):**
   - **Domain-first:** both apps organize code under `src/domains/<domain>/`; the backend follows the
@@ -1942,7 +1974,7 @@ identificador adivinable o no.
     per step: base = phone, `sm` (640) = end of phone/start of tablet, `md` (768) = tablet, `lg` (1024)
     = tablet, `xl` (1280) = widest tablet, `2xl` (1536) = desktop.
     Custom screens, arbitrary `min-[NNNpx]:` classes and inline `(min-width: NNNpx)` strings are NOT
-    used; `apps/web/breakpoints.ts` documents the stages and is the single source the JS media queries
+    used; `@finance/ui`'s `breakpoints.ts` (moved from `apps/web`, specs/031) documents the stages and is the single source the JS media queries
     derive from (`minWidth(name)`), so a view's CSS and its structural JS always switch at the same
     width. Rationale: the gap between a CSS breakpoint and a differing JS one is a state nobody
     designed — a shipped instance hid a desktop aside and its mobile tab at once, making the content
@@ -1952,7 +1984,7 @@ identificador adivinable o no.
     element's own measured width (`shared/lib/useElementWidth.ts`) rather than a breakpoint. A media
     query cannot distinguish "1024px with the sidebar collapsed" from "1024px with it expanded", so a
     breakpoint-only rule necessarily gets one of the two wrong.
-  - **One overlay family (web):** every dialog is built from `apps/web/src/shared/ui/overlay/` and
+  - **One overlay family (web):** every dialog is built from `@finance/ui`'s `src/shared/ui/overlay/` (moved from `apps/web`, specs/031; the public site's native phone-menu `<dialog>` is the one recorded exception) and
     MUST NOT hand-roll its own frame. `ResponsiveSurface` is the default (full-screen `Window` below
     420px, centered `Modal` above; the choice is a media query, so only one structure is mounted);
     `ConfirmModal` is **always** a modal — an alert interrupts, may stack on top of another surface,
@@ -2156,4 +2188,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.4.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-08
+**Version**: 2.5.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-09

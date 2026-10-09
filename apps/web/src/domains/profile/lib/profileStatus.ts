@@ -2,7 +2,7 @@ import type { TFunction } from "i18next";
 
 import type { auth } from "@finance/contracts";
 
-import type { ThemeMode } from "../../../theme/useTheme";
+import type { ThemeMode } from "@finance/ui/src/theme/useTheme";
 import type { ProfileSectionKey } from "./profileSections";
 
 /*

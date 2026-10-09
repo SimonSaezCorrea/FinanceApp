@@ -9,8 +9,8 @@ import { formatMoney } from "@finance/money";
 
 import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { Badge } from "../../../shared/ui/badge";
-import { Button } from "../../../shared/ui/button";
-import { DetailRow } from "../../../shared/ui/detail-row";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import { CategoryIcon } from "../../reference/components/CategoryIcon";
 
 export function formatLongDate(iso: string, locale: string): string {

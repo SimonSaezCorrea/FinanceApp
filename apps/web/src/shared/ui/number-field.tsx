@@ -1,7 +1,7 @@
 import { Minus, Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "../lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 interface Props {
   id?: string;

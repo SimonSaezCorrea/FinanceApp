@@ -6,8 +6,8 @@ import type { accounts } from "@finance/contracts";
 
 import { toast } from "sonner";
 
-import { cn } from "../../../shared/lib/cn";
-import { Button } from "../../../shared/ui/button";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Skeleton, SkeletonScreen } from "../../../shared/ui/skeleton";
 import { EmptyState, ErrorState } from "../../../shared/ui/states";

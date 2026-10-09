@@ -3,8 +3,8 @@ import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation } from "react-router";
 
-import { cn } from "../../../shared/lib/cn";
-import { Button } from "../../../shared/ui/button";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { HERO_TITLE } from "../components/bits";
 import { LandingLayout } from "../components/LandingLayout";
 import { useOpenAuth } from "../hooks/useOpenAuth";

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "../../../shared/ui/button";
-import { SidePanel } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import type { AuthPanelMode } from "../lib/authRedirect";
 import { LoginForm, type LoginStep } from "./LoginForm";
 import { RegisterForm } from "./RegisterForm";

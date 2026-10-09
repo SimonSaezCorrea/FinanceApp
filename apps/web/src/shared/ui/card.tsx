@@ -1,6 +1,6 @@
 import type { ComponentProps, HTMLAttributes } from "react";
 
-import { cn } from "../lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 // `ComponentProps<"div">` (not `HTMLAttributes`) so a caller can pass `ref` —
 // React 19 hands it through as an ordinary prop, and the spread below applies it.

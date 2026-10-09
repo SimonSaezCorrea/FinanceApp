@@ -4,10 +4,10 @@ import { Trans, useTranslation } from "react-i18next";
 
 import { auth } from "@finance/contracts";
 
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { cn } from "../../../shared/lib/cn";
-import { formatRutInput } from "../../../shared/lib/formatRut";
-import { Button } from "../../../shared/ui/button";
+import { ApiRequestError } from "@finance/client";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { formatRutInput } from "@finance/ui/src/shared/lib/formatRut";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { FormSelectField } from "../../../shared/ui/form";
 import { useAuth } from "../hooks/useAuth";
 import {

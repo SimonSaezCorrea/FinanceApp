@@ -4,8 +4,8 @@ import { toast } from "sonner";
 
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useCurrencies } from "../../reference/hooks/useReference";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
+import { ApiRequestError } from "@finance/client";
+import { SearchableSelect } from "@finance/ui/src/shared/ui/searchable-select";
 import { Switch } from "../../../shared/ui/switch";
 import { useProfileMutations } from "../hooks/useProfile";
 

@@ -4,12 +4,12 @@ import { toast } from "sonner";
 
 import type { accounts } from "@finance/contracts";
 
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { ActiveToggle } from "../../../shared/ui/active-toggle";
 import { Badge } from "../../../shared/ui/badge";
-import { Button } from "../../../shared/ui/button";
-import { SidePanel } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { useCardMovements } from "../hooks/useCardMovements";
 import { useCardMutations } from "../hooks/useCards";
 import { AccountVisualCard } from "./AccountVisualCard";

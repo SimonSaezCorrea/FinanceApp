@@ -7,11 +7,11 @@ import { imports } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { cn } from "../../../shared/lib/cn";
-import { Button } from "../../../shared/ui/button";
-import { Input } from "../../../shared/ui/input";
-import { ResponsiveSurface } from "../../../shared/ui/overlay";
+import { ApiRequestError } from "@finance/client";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { Input } from "@finance/ui/src/shared/ui/input";
+import { ResponsiveSurface } from "@finance/ui/src/shared/ui/overlay";
 import { Segmented } from "../../../shared/ui/segmented";
 import { useTemplateImport } from "../hooks/useTemplateImport";
 import type { TemplateRefs } from "../lib/buildTemplate";

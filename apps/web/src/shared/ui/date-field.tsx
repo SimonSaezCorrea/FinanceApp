@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
-import { anchoredPanelRect, type PanelRect } from "../lib/anchoredPanel";
-import { cn } from "../lib/cn";
+import { anchoredPanelRect, type PanelRect } from "@finance/ui/src/shared/lib/anchoredPanel";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 const PANEL_WIDTH = 280;
 const PANEL_HEIGHT = 340;

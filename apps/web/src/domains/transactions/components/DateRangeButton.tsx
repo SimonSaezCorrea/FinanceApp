@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CalendarRange, ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 interface DateRangeButtonProps {
   from?: string;

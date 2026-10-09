@@ -4,7 +4,7 @@ import { formatMoney } from "@finance/money";
 
 import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { PRIMARY_CURRENCY, type CategorySlice } from "../lib/metrics";
 
 const SHOWN = 5;

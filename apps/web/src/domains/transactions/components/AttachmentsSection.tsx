@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 
 import { transactions as contract } from "@finance/contracts";
 
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { Button } from "../../../shared/ui/button";
+import { ApiRequestError } from "@finance/client";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { useAttachments } from "../hooks/useAttachments";
 
 interface PendingFile {

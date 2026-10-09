@@ -3,7 +3,7 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi } from "vitest";
 
 import { Providers } from "../../../app/providers";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import i18n from "../../../i18n";
 import { DangerZone } from "./DangerZone";
 
@@ -11,7 +11,8 @@ const deleteAccount = vi.fn();
 vi.mock("../api/profileApi", () => ({
   profileApi: { deleteAccount: (...args: unknown[]) => deleteAccount(...args) },
 }));
-vi.mock("../../auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: {
     me: vi.fn().mockResolvedValue({
       id: "u1",

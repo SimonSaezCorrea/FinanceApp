@@ -3,7 +3,7 @@ import type { PointerEvent, ReactNode } from "react";
 import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "../lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 const ACTION_WIDTH = 144;
 // Snap open only past the halfway point of the reveal — a small nudge settles

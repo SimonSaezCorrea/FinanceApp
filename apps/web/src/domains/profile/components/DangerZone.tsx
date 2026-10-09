@@ -2,11 +2,11 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { Button } from "../../../shared/ui/button";
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { ApiRequestError } from "@finance/client";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
-import { Input } from "../../../shared/ui/input";
+import { Input } from "@finance/ui/src/shared/ui/input";
 import { Switch } from "../../../shared/ui/switch";
 import { useProfileMutations } from "../hooks/useProfile";
 

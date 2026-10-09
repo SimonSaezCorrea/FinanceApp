@@ -1,6 +1,6 @@
 import type { accounts } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "@finance/client";
 
 function toQuery(filters?: accounts.AccountFilters): string {
   if (!filters?.status) return "";

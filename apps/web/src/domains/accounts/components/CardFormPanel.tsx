@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 import type { accounts } from "@finance/contracts";
 
 import { ActiveToggle } from "../../../shared/ui/active-toggle";
-import { Button } from "../../../shared/ui/button";
-import { SidePanel } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { AccountVisualCard } from "./AccountVisualCard";
 import { type CardDraft, CardForm } from "./CardForm";
 

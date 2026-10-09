@@ -7,11 +7,11 @@ import { toast } from "sonner";
 import type { accounts } from "@finance/contracts";
 
 import { useCountries, useInstitutions } from "../../reference/hooks/useReference";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { Button } from "../../../shared/ui/button";
+import { ApiRequestError } from "@finance/client";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { ActiveToggle } from "../../../shared/ui/active-toggle";
-import { ConfirmModal, SidePanel } from "../../../shared/ui/overlay";
-import { UnsavedIndicator } from "../../../shared/ui/unsaved-indicator";
+import { ConfirmModal, SidePanel } from "@finance/ui/src/shared/ui/overlay";
+import { UnsavedIndicator } from "@finance/ui/src/shared/ui/unsaved-indicator";
 import { accounts as accountsContract } from "@finance/contracts";
 
 import { useAccountMutations, useAccounts } from "../hooks/useAccounts";

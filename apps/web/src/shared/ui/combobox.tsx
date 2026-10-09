@@ -3,9 +3,9 @@ import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDown } from "lucide-react";
 
-import { anchoredPanelRect, type PanelRect } from "../lib/anchoredPanel";
-import { cn } from "../lib/cn";
-import { Input } from "./input";
+import { anchoredPanelRect, type PanelRect } from "@finance/ui/src/shared/lib/anchoredPanel";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { Input } from "@finance/ui/src/shared/ui/input";
 
 /** Enough room for the icon + a long category on one line ("Pago facturación"). */
 const PANEL_MIN_WIDTH = 240;

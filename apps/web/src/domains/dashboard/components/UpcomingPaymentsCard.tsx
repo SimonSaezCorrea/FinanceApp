@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import { formatMoney } from "@finance/money";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import type { UpcomingPayment } from "../lib/metrics";
 

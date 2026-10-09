@@ -36,8 +36,8 @@ import { toast } from "sonner";
 
 import type { accounts, wallet } from "@finance/contracts";
 
-import { cn } from "../../../shared/lib/cn";
-import { Button } from "../../../shared/ui/button";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { ErrorState } from "../../../shared/ui/states";
 import { AccountVisualCard } from "../../accounts/components/AccountVisualCard";
 import { CardTileSkeleton } from "../../accounts/components/CardTileSkeleton";

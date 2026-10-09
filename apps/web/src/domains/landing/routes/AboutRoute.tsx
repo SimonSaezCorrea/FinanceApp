@@ -1,7 +1,7 @@
 import { useId } from "react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { Eyebrow, HERO_TITLE } from "../components/bits";
 import { ClosingCta } from "../components/HomeSections";
 import { MatchingReceipts } from "../components/illustrations/MatchingReceipts";

@@ -1,0 +1,26 @@
+{
+  "name": "@finance/client",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "HTTP client for the Cuadra API shared by the app and the public site: session refresh, WebAuthn helpers, auth calls, return-path rule. Source-only.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@finance/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@finance/config": "workspace:*",
+    "@typescript-eslint/eslint-plugin": "^8.71.0",
+    "@typescript-eslint/parser": "^8.71.0",
+    "eslint": "^10.11.0",
+    "jsdom": "^25.0.1",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.2"
+  }
+}

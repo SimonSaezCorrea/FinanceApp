@@ -7,7 +7,8 @@ import { DocumentTitle } from "./DocumentTitle";
 import { Providers } from "./providers";
 import { tabTitle } from "./tabTitle";
 
-vi.mock("../domains/auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: {
     me: vi.fn().mockRejectedValue(new Error("not signed in")),
     logout: vi.fn(),

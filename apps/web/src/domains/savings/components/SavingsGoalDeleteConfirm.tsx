@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { savings } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { goalVisual } from "../lib/goalVisual";
 
 interface Props {

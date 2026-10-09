@@ -1,6 +1,6 @@
 import type { SelectHTMLAttributes } from "react";
 
-import { cn } from "../lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 export interface SelectOption {
   value: string;

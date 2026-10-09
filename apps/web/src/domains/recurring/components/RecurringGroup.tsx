@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { accounts as accountsContract, recurring } from "@finance/contracts";
 import { formatMoney, sumMoney } from "@finance/money";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { monthlyAmount } from "../lib/recurringMetrics";
 import { RecurringRow } from "./RecurringRow";
 

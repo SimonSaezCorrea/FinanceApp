@@ -4,7 +4,7 @@ import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 import { useTranslation } from "react-i18next";
 
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { Switch } from "../../../shared/ui/switch";
 import { useAccountDeletionImpact, useAccountMutations, useAccounts } from "../hooks/useAccounts";
 

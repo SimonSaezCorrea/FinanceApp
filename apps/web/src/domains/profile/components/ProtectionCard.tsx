@@ -2,8 +2,8 @@ import { Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
-import { cn } from "../../../shared/lib/cn";
-import { buttonClasses } from "../../../shared/ui/button-classes";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { buttonClasses } from "@finance/ui/src/shared/ui/button-classes";
 import { Skeleton } from "../../../shared/ui/skeleton";
 import { ErrorState } from "../../../shared/ui/states";
 import { doneStageCount, nextProtectionStep, type ProtectionStage } from "../lib/profileStatus";

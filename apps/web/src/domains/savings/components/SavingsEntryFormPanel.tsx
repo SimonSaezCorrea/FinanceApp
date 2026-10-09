@@ -12,7 +12,7 @@ import {
   FormTextareaField,
   FormTextField,
 } from "../../../shared/ui/form";
-import { FormSurface } from "../../../shared/ui/overlay";
+import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
 
 export interface SavingsEntryFormValue {
   amount: string;

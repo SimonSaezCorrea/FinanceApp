@@ -5,8 +5,8 @@ import { useTranslation } from "react-i18next";
 import type { accounts, transactions } from "@finance/contracts";
 
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
-import { Button } from "../../../shared/ui/button";
-import { SidePanel } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { balanceAfterTransaction } from "../lib/balanceAfter";
 import { panelNavigation } from "../lib/panelNavigation";
 import { AttachmentsSection } from "./AttachmentsSection";

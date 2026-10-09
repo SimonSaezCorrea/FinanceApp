@@ -21,7 +21,8 @@ vi.mock("../../reference/hooks/useReference", () => ({
 // The extra-currency section depends on the logged-in user's own
 // preferredCurrency + extraCurrencies (specs/020) — USD must be one of the
 // user's extras for it to appear as an option here.
-vi.mock("../../auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: {
     me: () =>
       Promise.resolve({

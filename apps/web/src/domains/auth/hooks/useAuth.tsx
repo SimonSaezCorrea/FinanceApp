@@ -2,14 +2,14 @@ import { type ReactNode, createContext, useContext, useEffect, useMemo, useState
 
 import type { auth } from "@finance/contracts";
 
-import { resetAuthRefresh } from "../../../shared/lib/apiClient";
+import { resetAuthRefresh } from "@finance/client";
 import {
   isConditionalMediationSupported,
   serializeGetResponse,
   toGetOptions,
-} from "../../../shared/lib/webauthn";
-import { authApi } from "../api/authApi";
-import { passkeyApi } from "../api/passkeyApi";
+} from "@finance/client";
+import { authApi } from "@finance/client";
+import { passkeyApi } from "@finance/client";
 
 interface AuthContextValue {
   user: auth.CurrentUser | null;

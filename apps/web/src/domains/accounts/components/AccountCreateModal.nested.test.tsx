@@ -10,7 +10,8 @@ import { AccountCreateModal } from "./AccountCreateModal";
 // The preview tile renders `MaskedAmount`, which reads the user's
 // hide-balances preference — so the tree needs a real AuthProvider, with the
 // session call stubbed out.
-vi.mock("../../auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: { me: () => Promise.resolve(null) },
 }));
 

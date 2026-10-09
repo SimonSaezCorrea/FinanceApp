@@ -4,7 +4,7 @@ import { createBrowserRouter } from "react-router";
 import { RequireAuth } from "../domains/auth/components/RequireAuth";
 import { AuthRedirectRoute } from "../domains/auth/routes/AuthRedirectRoute";
 import { PROFILE_CHILD_ROUTES } from "../domains/profile/routes/profileRoutes";
-import { AppSplash } from "../shared/ui/app-splash";
+import { AppSplash } from "@finance/ui/src/shared/ui/app-splash";
 import { DocumentTitle } from "./DocumentTitle";
 import { HomeRoute } from "./HomeRoute";
 import {

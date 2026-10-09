@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import type { accounts } from "@finance/contracts";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { CARD_KIND_STYLE } from "./accountVisuals";
 
 /** A locally-drafted (not yet saved) card, shown as a mini card-visual tile. */

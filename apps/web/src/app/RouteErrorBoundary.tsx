@@ -3,8 +3,8 @@ import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { isRouteErrorResponse, useRouteError } from "react-router";
 
-import { BrandMark } from "../shared/ui/brand-mark";
-import { Button } from "../shared/ui/button";
+import { BrandMark } from "@finance/ui/src/shared/ui/brand-mark";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { NotFoundRoute } from "./lazyPages";
 
 /** Replaces react-router's default "Unexpected Application Error!" screen. A 404 thrown by the

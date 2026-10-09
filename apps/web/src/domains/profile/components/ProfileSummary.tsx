@@ -3,13 +3,13 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
-import { isPasskeySupported } from "../../../shared/lib/webauthn";
+import { isPasskeySupported } from "@finance/client";
 import { Badge } from "../../../shared/ui/badge";
-import { buttonClasses } from "../../../shared/ui/button-classes";
+import { buttonClasses } from "@finance/ui/src/shared/ui/button-classes";
 import { Skeleton } from "../../../shared/ui/skeleton";
 import { ErrorState } from "../../../shared/ui/states";
 import { Switch } from "../../../shared/ui/switch";
-import { ThemeSegmented } from "../../../shared/ui/theme-segmented";
+import { ThemeSegmented } from "@finance/ui/src/shared/ui/theme-segmented";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { usePasskeysQuery, useProfileMutations, useSessionsQuery } from "../hooks/useProfile";
 import { contactCompleteness, protectionStages, sessionsPreview } from "../lib/profileStatus";

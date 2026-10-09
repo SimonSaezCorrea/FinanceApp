@@ -2,7 +2,7 @@ import { formatMoney } from "@finance/money";
 import { Lock } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { DetailRow } from "../../../shared/ui/detail-row";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 
 interface Props {
   totalPrincipal: string;

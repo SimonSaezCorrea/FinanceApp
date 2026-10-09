@@ -7,11 +7,11 @@ import { accounts as accountsContract } from "@finance/contracts";
 import type { accounts } from "@finance/contracts";
 
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
-import { Button } from "../../../shared/ui/button";
-import { SidePanel } from "../../../shared/ui/overlay";
-import { DetailRow } from "../../../shared/ui/detail-row";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import { Field } from "../../../shared/ui/field";
 import {
   FormBigTextField,
@@ -19,7 +19,7 @@ import {
   FormSelectField,
   FormTextField,
 } from "../../../shared/ui/form";
-import { Input } from "../../../shared/ui/input";
+import { Input } from "@finance/ui/src/shared/ui/input";
 import { SectionLabel } from "../../../shared/ui/section-label";
 import { CurrencyField } from "../../reference/components/CurrencyField";
 import { institutionOption } from "../../reference/lib/institutionOption";

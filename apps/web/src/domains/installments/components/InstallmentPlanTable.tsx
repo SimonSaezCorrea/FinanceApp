@@ -3,9 +3,9 @@ import { formatMoney } from "@finance/money";
 import { Banknote, Pencil, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { Card } from "../../../shared/ui/card";
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { ErrorState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";

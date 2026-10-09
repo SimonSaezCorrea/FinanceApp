@@ -6,8 +6,8 @@ import { Link, useLocation, useNavigate } from "react-router";
 import { useAuth } from "../domains/auth/hooks/useAuth";
 import { HeroRidge } from "../domains/landing/components/HeroRidge";
 import { LandingLayout } from "../domains/landing/components/LandingLayout";
-import { AppSplash } from "../shared/ui/app-splash";
-import { Button } from "../shared/ui/button";
+import { AppSplash } from "@finance/ui/src/shared/ui/app-splash";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { AppLayout } from "./lazyPages";
 
 /** Any URL no route claims. Same chrome split as `/` (see HomeRoute): a visitor gets it inside

@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { isFullMonthRange, toCurrencyKpis } from "../lib/transactionMetrics";
 import type { CurrencyKpi } from "../lib/transactionMetrics";
 

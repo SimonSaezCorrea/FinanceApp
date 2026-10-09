@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { savings } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 
 interface Props {
   /** The aporte to delete, or null when nothing is being deleted. */

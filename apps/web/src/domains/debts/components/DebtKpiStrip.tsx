@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { debts } from "@finance/contracts";
 import { formatMoney, subtractMoney, toMoney } from "@finance/money";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { Tabs } from "../../../shared/ui/tabs";
 import { summarizeDebts } from "../lib/debtMetrics";
 

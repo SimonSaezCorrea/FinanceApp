@@ -2178,7 +2178,16 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (030 — implementado): specs/030-exchange-rates/plan.md
+Current plan (031 — en planificación): specs/031-separate-landing/plan.md
+(Separar el sitio público de la app: nueva `apps/landing` Astro estática en cuadra.cl, páginas en
+`/es/…` y `/en/…` con slugs en inglés y metadatos por página, sin React al cargar; el panel de acceso
+[movido desde apps/web] se importa al abrirse e inicia sesión contra el API, luego redirige a
+app.cuadra.cl con `volver` [ruta, nunca token]. Paquetes de fuente nuevos `@finance/ui`,
+`@finance/client`, `@finance/i18n`. API: `CORS_ORIGIN` como lista, `PASSKEY_RP_ID` opcional,
+`locale` opcional al registrarse. La app queda `noindex` y redirige el acceso sin sesión a la landing.
+Ver research.md R1–R14.)
+
+Prior plan (030 — implementado): specs/030-exchange-rates/plan.md
 (Tipos de cambio: tabla global `exchange-rate` [USD observado y UF, un valor por moneda y día de Chile, `valueDate` distingue el "dato arrastrado"], cron 08:00–20:00 America/Santiago contra mindicador.cl, pantalla "Tipos de cambio", y sugerencias SIEMPRE editables de conversión en pago/prepago de facturación USD, equivalente en cuentas USD, patrimonio "≈ todo en CLP" y traspaso USD→CLP. Absorbe 028 US2 [pago USD con dos montos], que no estaba implementada. La regla "la app no convierte" pasa a "puede sugerir; nunca compara ni persiste una conversión sin confirmación". Ver research.md R1–R13.
 **Verificado** (2026-10-08): `@finance/money` [36], `@finance/contracts` [144], api unit [828], integration [180/181: la
 única falla, `idempotency-record` `deleteExpired`, es una carrera de tabla global entre suites en paralelo y pasa sola

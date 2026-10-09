@@ -7,19 +7,19 @@ import type { accounts } from "@finance/contracts";
 import { currencyScale, formatMoney, subtractMoney, toMoney } from "@finance/money";
 
 import { useCurrencies } from "../../reference/hooks/useReference";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import {
   formatTypedAmount,
   groupingLocaleFor,
   parseTypedAmount,
 } from "../../../shared/lib/amountInput";
 import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { Badge } from "../../../shared/ui/badge";
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { FormDateField, FormSelectField, FormTextField } from "../../../shared/ui/form";
-import { SidePanel } from "../../../shared/ui/overlay";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { Segmented } from "../../../shared/ui/segmented";
 import { formatRate } from "../../exchange-rates/lib/formatRate";
 import { useAccountMutations, useAccounts } from "../hooks/useAccounts";

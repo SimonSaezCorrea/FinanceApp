@@ -8,7 +8,8 @@ import i18n from "../../../i18n";
 import { AuthProvider } from "../../auth/hooks/useAuth";
 import { InstallmentFormPanel, emptyInstallmentForm } from "./InstallmentFormPanel";
 
-vi.mock("../../auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: {
     me: () =>
       Promise.resolve({

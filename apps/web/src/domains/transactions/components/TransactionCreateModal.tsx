@@ -11,11 +11,11 @@ import {
   useAccounts,
   useCreditStatements,
 } from "../../accounts/hooks/useAccounts";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import { amountToInput } from "../../../shared/lib/amountInput";
 import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
-import { Button } from "../../../shared/ui/button";
-import { ConfirmModal, FormSurface } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { ConfirmModal, FormSurface } from "@finance/ui/src/shared/ui/overlay";
 import { transactionsApi } from "../api/transactionsApi";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useTransferMutations } from "../hooks/useTransferMutations";

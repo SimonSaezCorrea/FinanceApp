@@ -1,8 +1,19 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
+import { PRE_PAINT_SCRIPT } from "@finance/ui/prepaint.mjs";
+
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      // The theme pre-paint script is shared with the public site; inline it here so the first
+      // paint already has the stored theme.
+      name: "cuadra-theme-prepaint",
+      transformIndexHtml: (html) =>
+        html.replace(/<!-- theme-prepaint:[^>]*-->/, `<script>${PRE_PAINT_SCRIPT}</script>`),
+    },
+  ],
   // Force a single React instance (pnpm can surface a second hoisted copy,
   // which breaks hooks in libs like sonner/recharts).
   resolve: { dedupe: ["react", "react-dom"] },

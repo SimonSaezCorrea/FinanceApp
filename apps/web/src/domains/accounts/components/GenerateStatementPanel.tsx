@@ -5,9 +5,9 @@ import { toast } from "sonner";
 import { accounts as accountsContract, type accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import { FormDateField, FormNotice } from "../../../shared/ui/form";
-import { FormSurface } from "../../../shared/ui/overlay";
+import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
 import { useAccountMutations } from "../hooks/useAccounts";
 
 /** `yyyy-mm-dd` of a LOCAL date — what the date fields exchange. */

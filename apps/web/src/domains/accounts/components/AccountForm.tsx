@@ -10,8 +10,8 @@ import { institutionOption } from "../../reference/lib/institutionOption";
 import { useCountries, useCurrencies, useInstitutions } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
-import { Button } from "../../../shared/ui/button";
-import { DetailRow } from "../../../shared/ui/detail-row";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import {
   FormBigTextField,
   FormMoreDetails,

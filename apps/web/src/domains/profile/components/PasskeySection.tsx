@@ -3,10 +3,10 @@ import { useTranslation } from "react-i18next";
 import { Check, Info, KeyRound, Pencil, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { serializeCreateResponse, toCreateOptions } from "../../../shared/lib/webauthn";
-import { Button } from "../../../shared/ui/button";
-import { ConfirmModal, SidePanel } from "../../../shared/ui/overlay";
+import { ApiRequestError } from "@finance/client";
+import { serializeCreateResponse, toCreateOptions } from "@finance/client";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { ConfirmModal, SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { FormTextField } from "../../../shared/ui/form";
 import { SectionLabel } from "../../../shared/ui/section-label";
 import { usePasskeysQuery, useProfileMutations } from "../hooks/useProfile";

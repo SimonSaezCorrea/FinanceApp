@@ -4,8 +4,8 @@ import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
-import { cn } from "../../../shared/lib/cn";
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 
 /**
  * Confirm deleting a movement — showing WHICH movement.

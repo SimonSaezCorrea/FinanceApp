@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { debts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { ErrorState } from "../../../shared/ui/states";
 import { SwipeRow } from "../../../shared/ui/swipe-row";
 import { dueInfo, formatDebtDate, initials, isOverdue, leftAmount } from "../lib/debtMetrics";

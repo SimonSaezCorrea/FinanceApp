@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import { toast } from "sonner";
 
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Segmented } from "../../../shared/ui/segmented";
 import { useAccounts } from "../../accounts/hooks/useAccounts";

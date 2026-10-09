@@ -15,7 +15,7 @@ import { formatMoney } from "@finance/money";
 import { EstimatedTotalLine } from "../../accounts/components/EstimatedTotalLine";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { Card } from "../../../shared/ui/card";
 import { PRIMARY_CURRENCY, type netWorth, type secondaryTotals } from "../lib/metrics";
 

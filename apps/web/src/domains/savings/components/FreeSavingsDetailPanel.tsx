@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 import type { savings } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { Button } from "../../../shared/ui/button";
-import { SidePanel } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { sumAmounts } from "../lib/savingsMetrics";
 
 interface Props {

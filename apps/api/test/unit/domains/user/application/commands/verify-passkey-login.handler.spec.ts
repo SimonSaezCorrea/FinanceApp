@@ -143,6 +143,33 @@ describe("VerifyPasskeyLoginHandler", () => {
     );
   });
 
+  it("accepts the ceremony from any allowed origin, under the shared rpId (specs/031)", async () => {
+    vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 6 },
+    } as never);
+    const handler = new VerifyPasskeyLoginHandler(
+      { publish: vi.fn() } as never,
+      fakeRepo(),
+      fakePasskeys(),
+      fakeSessionIssuer(),
+      new ConfigService({
+        CORS_ORIGIN: "https://cuadra.cl,https://app.cuadra.cl",
+        PASSKEY_RP_ID: "cuadra.cl",
+      }),
+      fakePrisma(),
+    );
+
+    await handler.execute(new VerifyPasskeyLoginCommand({ id: "cred1" }, "challenge", "u1", false));
+
+    expect(verifyAuthenticationResponse).toHaveBeenCalledWith(
+      expect.objectContaining({
+        expectedOrigin: ["https://cuadra.cl", "https://app.cuadra.cl"],
+        expectedRPID: "cuadra.cl",
+      }),
+    );
+  });
+
   it("rejects with INVALID_CREDENTIALS when userId is null (email had no passkeys)", async () => {
     const handler = new VerifyPasskeyLoginHandler(
       { publish: vi.fn() } as never,

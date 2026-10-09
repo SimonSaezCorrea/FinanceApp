@@ -2,8 +2,8 @@ import { formatMoney } from "@finance/money";
 import { ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "../../../shared/lib/cn";
-import { Button } from "../../../shared/ui/button";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { useOpenAuth } from "../hooks/useOpenAuth";
 import { CalendarVignette, CardsVignette } from "./illustrations/FeatureVignettes";
 import { StripedSun } from "./illustrations/StripedSun";

@@ -1,6 +1,6 @@
 import type { recurring } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "@finance/client";
 
 export const recurringApi = {
   list: () => apiFetch<recurring.RecurringExpense[]>("/recurring"),

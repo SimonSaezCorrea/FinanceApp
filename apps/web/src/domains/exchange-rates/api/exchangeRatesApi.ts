@@ -1,6 +1,6 @@
 import type { exchangeRates } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "@finance/client";
 
 /** Global read-only reference data (spec 030): the daily dólar observado and UF. */
 export const exchangeRatesApi = {

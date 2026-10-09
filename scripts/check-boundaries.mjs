@@ -3,7 +3,9 @@
 //   - apps/web must NOT import the backend (@finance/api / apps/api) or any DB client.
 //   - apps/api must NOT import the frontend (@finance/web / apps/web).
 //   - packages/* must NOT import any app (@finance/* app or apps/*).
-// Shared code is consumed only via @finance/contracts, @finance/money, @finance/config.
+//   - apps/landing (public site, specs/031) must NOT import the app or the backend, and the app
+//     must NOT import the public site: shared code goes through packages/{ui,client,i18n}.
+// Shared code is consumed only via packages (@finance/contracts, money, config, ui, client, i18n).
 //
 // No external deps: walks the tree and inspects import/require/from specifiers.
 
@@ -11,7 +13,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 
 const ROOT = process.cwd();
-const SRC_EXT = new Set([".ts", ".tsx", ".mts", ".cts"]);
+const SRC_EXT = new Set([".ts", ".tsx", ".mts", ".cts", ".astro"]);
 
 const RULES = [
   {
@@ -20,6 +22,8 @@ const RULES = [
     forbidden: [
       /@finance\/api/,
       /apps\/api/,
+      /@finance\/landing/,
+      /apps\/landing/,
       /["']@prisma\/client["']/,
       /["']\.?\.?\/?prisma["']/,
       /from ["']@finance\/api/,
@@ -28,12 +32,17 @@ const RULES = [
   {
     name: "api ↛ frontend",
     root: "apps/api/src",
-    forbidden: [/@finance\/web/, /apps\/web/],
+    forbidden: [/@finance\/(web|landing)/, /apps\/(web|landing)/],
   },
   {
     name: "packages ↛ apps",
     root: "packages",
-    forbidden: [/@finance\/(api|web)/, /apps\//],
+    forbidden: [/@finance\/(api|web|landing)/, /apps\//],
+  },
+  {
+    name: "landing ↛ app / backend / DB",
+    root: "apps/landing/src",
+    forbidden: [/@finance\/(api|web)/, /apps\//, /["']@prisma\/client["']/],
   },
 ];
 
@@ -78,4 +87,4 @@ if (violations.length > 0) {
   console.error("✗ Architecture boundary violations:\n" + violations.join("\n"));
   process.exit(1);
 }
-console.log("✓ Architecture boundaries OK (web↛api/db, api↛web, packages↛apps)");
+console.log("✓ Architecture boundaries OK (web↛api/db/landing, api↛web/landing, landing↛web/api/db, packages↛apps)");

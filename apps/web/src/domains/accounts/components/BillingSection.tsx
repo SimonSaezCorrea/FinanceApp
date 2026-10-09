@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Banknote, CalendarDays, CreditCard, Inbox, Pencil, RefreshCw } from "lucide-react";
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
@@ -8,9 +8,9 @@ import { accounts as accountsContract, type accounts } from "@finance/contracts"
 import { formatMoney } from "@finance/money";
 
 import { Badge } from "../../../shared/ui/badge";
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { Card } from "../../../shared/ui/card";
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { Skeleton, SkeletonScreen } from "../../../shared/ui/skeleton";
 import { ErrorState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";

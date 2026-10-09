@@ -6,7 +6,8 @@ import i18n from "../../../i18n";
 import { ProfileIdentity } from "./ProfileIdentity";
 
 const me = vi.fn();
-vi.mock("../../auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: { me: (...args: unknown[]) => me(...args), logout: vi.fn() },
 }));
 vi.mock("../../accounts/api/accountsApi", () => ({

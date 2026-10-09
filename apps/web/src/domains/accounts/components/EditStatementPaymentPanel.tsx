@@ -7,14 +7,14 @@ import type { accounts } from "@finance/contracts";
 import { currencyScale, formatMoney, subtractMoney, toMoney } from "@finance/money";
 
 import { useCurrencies } from "../../reference/hooks/useReference";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import {
   formatTypedAmount,
   groupingLocaleFor,
   parseTypedAmount,
 } from "../../../shared/lib/amountInput";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
-import { FormSurface } from "../../../shared/ui/overlay";
+import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
 import { localDay } from "../../exchange-rates/lib/day";
 import { useAccountMutations, useAccounts } from "../hooks/useAccounts";
 import { useSuggestedAmount } from "../hooks/useSuggestedAmount";

@@ -21,15 +21,15 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router";
 
-import { minWidth } from "../../breakpoints";
+import { minWidth } from "@finance/ui/breakpoints";
 import { useAuth } from "../domains/auth/hooks/useAuth";
 import { ThemeSync } from "../domains/profile/components/ThemeSync";
 import { TransactionCreateModal } from "../domains/transactions/components/TransactionCreateModal";
-import { cn } from "../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { getInitials } from "../shared/lib/initials";
-import { useMediaQuery } from "../shared/lib/useMediaQuery";
-import { BrandMark } from "../shared/ui/brand-mark";
-import { Button } from "../shared/ui/button";
+import { useMediaQuery } from "@finance/ui/src/shared/lib/useMediaQuery";
+import { BrandMark } from "@finance/ui/src/shared/ui/brand-mark";
+import { Button } from "@finance/ui/src/shared/ui/button";
 
 interface NavItem {
   to: string;

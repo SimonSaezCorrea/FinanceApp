@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 
-import { isPasskeySupported } from "../../../shared/lib/webauthn";
-import { useTheme } from "../../../theme/useTheme";
+import { isPasskeySupported } from "@finance/client";
+import { useTheme } from "@finance/ui/src/theme/useTheme";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { type SectionStatuses, sectionStatuses } from "../lib/profileStatus";
 import { useConsentsQuery, usePasskeysQuery, useSessionsQuery } from "./useProfile";

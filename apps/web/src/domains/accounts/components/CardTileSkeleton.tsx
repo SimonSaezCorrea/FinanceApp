@@ -1,4 +1,4 @@
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { Skeleton } from "../../../shared/ui/skeleton";
 
 /**

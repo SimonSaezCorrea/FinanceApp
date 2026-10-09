@@ -5,7 +5,7 @@ import { verifyAuthenticationResponse } from "@simplewebauthn/server";
 import { isoBase64URL } from "@simplewebauthn/server/helpers";
 import type { AuthenticationResponseJSON, WebAuthnCredential } from "@simplewebauthn/server";
 
-import { getPasskeyExpectedOrigin, getPasskeyRpId } from "../../../../infra/config/passkey.config";
+import { getPasskeyExpectedOrigins, getPasskeyRpId } from "../../../../infra/config/passkey.config";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {
@@ -69,7 +69,7 @@ export class VerifyPasskeyLoginHandler extends BaseCommandHandler<
       verification = await verifyAuthenticationResponse({
         response,
         expectedChallenge: command.expectedChallenge,
-        expectedOrigin: getPasskeyExpectedOrigin(this.config),
+        expectedOrigin: getPasskeyExpectedOrigins(this.config),
         expectedRPID: getPasskeyRpId(this.config),
         credential,
       });

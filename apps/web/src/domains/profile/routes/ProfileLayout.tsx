@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Outlet, useLocation, useMatch } from "react-router";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { PROFILE_PANES_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { ComingSoonNote } from "../components/ComingSoonNote";
 import { ProfileIdentity } from "../components/ProfileIdentity";

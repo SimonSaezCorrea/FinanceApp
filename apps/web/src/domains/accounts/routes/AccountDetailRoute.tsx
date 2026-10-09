@@ -19,13 +19,13 @@ import { TransactionDetailModal } from "../../transactions/components/Transactio
 import { TransactionDeleteConfirm } from "../../transactions/components/TransactionDeleteConfirm";
 import { TransactionTable } from "../../transactions/components/TransactionTable";
 import { MovementsTableSkeleton } from "../../transactions/components/MovementsTableSkeleton";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { cn } from "../../../shared/lib/cn";
+import { ApiRequestError } from "@finance/client";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { ASIDE_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { Badge } from "../../../shared/ui/badge";
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { Card } from "../../../shared/ui/card";
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { Select } from "../../../shared/ui/select";
 import { Switch } from "../../../shared/ui/switch";
 import { ErrorState } from "../../../shared/ui/states";

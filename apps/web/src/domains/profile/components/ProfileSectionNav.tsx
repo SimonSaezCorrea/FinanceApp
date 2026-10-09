@@ -2,7 +2,7 @@ import { ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink } from "react-router";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { PROFILE_GROUPS, PROFILE_SECTIONS, sectionHref } from "../lib/profileSections";
 import type { SectionStatuses } from "../lib/profileStatus";
 

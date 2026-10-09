@@ -2,7 +2,7 @@ import { formatMoney } from "@finance/money";
 import type { installments } from "@finance/contracts";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { type PlanKpis, planKpis } from "../lib/installmentMetrics";
 
 interface InstallmentKpiStripProps {

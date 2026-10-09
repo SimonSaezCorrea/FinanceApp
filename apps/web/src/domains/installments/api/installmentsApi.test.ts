@@ -2,10 +2,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { installments } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "@finance/client";
 import { installmentsApi } from "./installmentsApi";
 
-vi.mock("../../../shared/lib/apiClient", () => ({ apiFetch: vi.fn() }));
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
+  apiFetch: vi.fn(),
+}));
 
 /**
  * Both money-moving writes are protected by the API (specs/015) and refused with

@@ -3,11 +3,11 @@ import { useTranslation } from "react-i18next";
 import { Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { Button } from "../../../shared/ui/button";
-import { FormSurface } from "../../../shared/ui/overlay";
+import { ApiRequestError } from "@finance/client";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
-import { Input } from "../../../shared/ui/input";
+import { Input } from "@finance/ui/src/shared/ui/input";
 import { useProfileMutations } from "../hooks/useProfile";
 
 type Step = "enroll" | "codes";

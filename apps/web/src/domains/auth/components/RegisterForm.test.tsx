@@ -7,7 +7,8 @@ import i18n from "../../../i18n";
 import { RegisterForm } from "./RegisterForm";
 
 const register = vi.fn();
-vi.mock("../api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: {
     register: (...args: unknown[]) => register(...args),
     me: vi.fn().mockRejectedValue(new Error("not signed in")),
@@ -210,7 +211,7 @@ describe("RegisterForm — submit feedback", () => {
   });
 
   it("a RUT that already has an account says so on the field and offers to sign in", async () => {
-    const { ApiRequestError } = await import("../../../shared/lib/apiClient");
+    const { ApiRequestError } = await import("@finance/client");
     register.mockReset();
     register.mockRejectedValue(new ApiRequestError("IDENTIFIER_TAKEN", 409));
     const onSwitchToLogin = vi.fn();

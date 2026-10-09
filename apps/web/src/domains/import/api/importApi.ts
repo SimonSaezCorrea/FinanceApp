@@ -1,6 +1,6 @@
 import type { imports } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "@finance/client";
 
 export const importApi = {
   /** Moves money like any movement does, so it carries the attempt's

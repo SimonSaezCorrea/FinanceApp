@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { formatMoney } from "@finance/money";
 
 import { ApproxAmount } from "../../exchange-rates/components/ApproxAmount";
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Segmented } from "../../../shared/ui/segmented";
 import { Skeleton } from "../../../shared/ui/skeleton";

@@ -1,10 +1,10 @@
 import { Pause } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { DateField } from "../../../shared/ui/date-field";
-import { DetailRow } from "../../../shared/ui/detail-row";
-import { Modal } from "../../../shared/ui/overlay";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
+import { Modal } from "@finance/ui/src/shared/ui/overlay";
 
 interface Props {
   readonly open: boolean;

@@ -1,7 +1,7 @@
 import { forwardRef } from "react";
 import type { HTMLAttributes, TdHTMLAttributes, ThHTMLAttributes } from "react";
 
-import { cn } from "../lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 /**
  * `scrollRef` (optional) forwards to the actual `overflow-x-auto` wrapper — the

@@ -1,6 +1,6 @@
 import type { auth } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "./apiClient";
 
 export const authApi = {
   register: (body: auth.RegisterRequest) =>

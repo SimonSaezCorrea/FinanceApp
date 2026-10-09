@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 /** The one type scale every public page's `h1` uses, so moving between pages never changes the
  * size of the headline. `tabIndex={-1}` headings also get no focus ring (focus is programmatic). */

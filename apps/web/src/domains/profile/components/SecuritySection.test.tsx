@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { Providers } from "../../../app/providers";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import i18n from "../../../i18n";
 import { renderRouted } from "../testing/renderRouted";
 import { SecuritySection } from "./SecuritySection";
@@ -14,8 +14,16 @@ vi.mock("../api/profileApi", () => ({
   },
 }));
 
-vi.mock("../../auth/api/passkeyApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   passkeyApi: { list: vi.fn().mockResolvedValue([]) },
+  authApi: {
+    me: (...args: unknown[]) => meMock(...args),
+    logout: vi.fn(),
+    startMfaEnrollment: (...args: unknown[]) => startMfaEnrollment(...args),
+    confirmMfaEnrollment: (...args: unknown[]) => confirmMfaEnrollment(...args),
+    disableMfa: (...args: unknown[]) => disableMfa(...args),
+  },
 }));
 
 const listSessions = vi.fn().mockResolvedValue([]);
@@ -61,15 +69,6 @@ const meMock = vi.fn().mockResolvedValue({
   mfaEnabled: false,
   mfaRecoveryCodesRemaining: 0,
 });
-vi.mock("../../auth/api/authApi", () => ({
-  authApi: {
-    me: (...args: unknown[]) => meMock(...args),
-    logout: vi.fn(),
-    startMfaEnrollment: (...args: unknown[]) => startMfaEnrollment(...args),
-    confirmMfaEnrollment: (...args: unknown[]) => confirmMfaEnrollment(...args),
-    disableMfa: (...args: unknown[]) => disableMfa(...args),
-  },
-}));
 
 function renderSecurity() {
   renderRouted(

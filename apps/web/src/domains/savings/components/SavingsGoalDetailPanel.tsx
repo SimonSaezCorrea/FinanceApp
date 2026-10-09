@@ -5,9 +5,9 @@ import type { savings } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
-import { Button } from "../../../shared/ui/button";
-import { DetailRow } from "../../../shared/ui/detail-row";
-import { SidePanel } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { goalVisual } from "../lib/goalVisual";
 import { goalPct, isGoalCloseable, isGoalComplete, goalStatus } from "../lib/savingsMetrics";
 import { SavingsGoalStatusLine } from "./SavingsGoalStatusLine";

@@ -7,10 +7,10 @@ import { type accounts, imports } from "@finance/contracts";
 import { formatMoney, sumMoney } from "@finance/money";
 
 import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { cn } from "../../../shared/lib/cn";
-import { Button } from "../../../shared/ui/button";
-import { ResponsiveSurface } from "../../../shared/ui/overlay";
+import { ApiRequestError } from "@finance/client";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { ResponsiveSurface } from "@finance/ui/src/shared/ui/overlay";
 import { Switch } from "../../../shared/ui/switch";
 import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { useImportTransactions } from "../hooks/useImportTransactions";

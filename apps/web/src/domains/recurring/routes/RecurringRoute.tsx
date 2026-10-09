@@ -7,10 +7,10 @@ import type { recurring } from "@finance/contracts";
 
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
-import { Button } from "../../../shared/ui/button";
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { ErrorState } from "../../../shared/ui/states";
 import { RecurringAutoGenerationStrip } from "../components/RecurringAutoGenerationStrip";

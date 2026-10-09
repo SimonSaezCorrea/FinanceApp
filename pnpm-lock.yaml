@@ -186,12 +186,21 @@ importers:
       '@dnd-kit/utilities':
         specifier: ^3.2.2
         version: 3.2.2(react@19.3.0)
+      '@finance/client':
+        specifier: workspace:*
+        version: link:../../packages/client
       '@finance/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
+      '@finance/i18n':
+        specifier: workspace:*
+        version: link:../../packages/i18n
       '@finance/money':
         specifier: workspace:*
         version: link:../../packages/money
+      '@finance/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       '@fontsource-variable/geist':
         specifier: ^5.2.9
         version: 5.2.9
@@ -299,6 +308,34 @@ importers:
         specifier: ^5.0.2
         version: 5.0.2(@types/node@26.6.4)(jsdom@25.0.1)(vite@8.3.1(@types/node@26.6.4)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.49.0)(tsx@4.23.1))
 
+  packages/client:
+    dependencies:
+      '@finance/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+    devDependencies:
+      '@finance/config':
+        specifier: workspace:*
+        version: link:../config
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^8.71.0
+        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@10.11.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.11.0(jiti@2.7.0))(typescript@6.0.3)
+      '@typescript-eslint/parser':
+        specifier: ^8.71.0
+        version: 8.71.0(eslint@10.11.0(jiti@2.7.0))(typescript@6.0.3)
+      eslint:
+        specifier: ^10.11.0
+        version: 10.11.0(jiti@2.7.0)
+      jsdom:
+        specifier: ^25.0.1
+        version: 25.0.1
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^5.0.2
+        version: 5.0.2(@types/node@26.6.4)(jsdom@25.0.1)(vite@8.3.1(@types/node@26.6.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1))
+
   packages/config: {}
 
   packages/contracts:
@@ -320,6 +357,31 @@ importers:
         specifier: ^5.0.2
         version: 5.0.2(@types/node@26.6.4)(jsdom@25.0.1)(vite@8.3.1(@types/node@26.6.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1))
 
+  packages/i18n:
+    dependencies:
+      i18next:
+        specifier: ^26.4.2
+        version: 26.4.2(typescript@6.0.3)
+    devDependencies:
+      '@finance/config':
+        specifier: workspace:*
+        version: link:../config
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^8.71.0
+        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@10.11.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.11.0(jiti@2.7.0))(typescript@6.0.3)
+      '@typescript-eslint/parser':
+        specifier: ^8.71.0
+        version: 8.71.0(eslint@10.11.0(jiti@2.7.0))(typescript@6.0.3)
+      eslint:
+        specifier: ^10.11.0
+        version: 10.11.0(jiti@2.7.0)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^5.0.2
+        version: 5.0.2(@types/node@26.6.4)(jsdom@25.0.1)(vite@8.3.1(@types/node@26.6.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1))
+
   packages/money:
     dependencies:
       decimal.js:
@@ -332,6 +394,85 @@ importers:
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
+      vitest:
+        specifier: ^5.0.2
+        version: 5.0.2(@types/node@26.6.4)(jsdom@25.0.1)(vite@8.3.1(@types/node@26.6.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1))
+
+  packages/ui:
+    dependencies:
+      '@radix-ui/react-dialog':
+        specifier: ^1.1.16
+        version: 1.1.16(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      lucide-react:
+        specifier: ^1.49.0
+        version: 1.50.0(@types/react@19.3.0)(react@19.3.0)
+      tailwind-merge:
+        specifier: ^3.6.0
+        version: 3.6.0
+      tailwindcss-animate:
+        specifier: ^1.0.7
+        version: 1.0.7(tailwindcss@3.4.19(tsx@4.23.1))
+    devDependencies:
+      '@finance/config':
+        specifier: workspace:*
+        version: link:../config
+      '@finance/i18n':
+        specifier: workspace:*
+        version: link:../i18n
+      '@testing-library/react':
+        specifier: ^16.1.0
+        version: 16.3.2(@testing-library/dom@10.4.1)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@types/react':
+        specifier: ^19.3.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.3.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@typescript-eslint/eslint-plugin':
+        specifier: ^8.71.0
+        version: 8.71.0(@typescript-eslint/parser@8.71.0(eslint@10.11.0(jiti@2.7.0))(typescript@6.0.3))(eslint@10.11.0(jiti@2.7.0))(typescript@6.0.3)
+      '@typescript-eslint/parser':
+        specifier: ^8.71.0
+        version: 8.71.0(eslint@10.11.0(jiti@2.7.0))(typescript@6.0.3)
+      '@vitejs/plugin-react':
+        specifier: ^6.1.1
+        version: 6.1.1(vite@8.3.1(@types/node@26.6.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1))
+      eslint:
+        specifier: ^10.11.0
+        version: 10.11.0(jiti@2.7.0)
+      eslint-plugin-react-hooks:
+        specifier: ^7.1.1
+        version: 7.1.1(eslint@10.11.0(jiti@2.7.0))
+      eslint-plugin-react-refresh:
+        specifier: ^0.5.7
+        version: 0.5.7(eslint@10.11.0(jiti@2.7.0))
+      i18next:
+        specifier: ^26.4.2
+        version: 26.4.2(typescript@6.0.3)
+      jsdom:
+        specifier: ^25.0.1
+        version: 25.0.1
+      react:
+        specifier: ^19.3.0
+        version: 19.3.0
+      react-dom:
+        specifier: ^19.3.0
+        version: 19.3.0(react@19.3.0)
+      react-i18next:
+        specifier: ^17.0.15
+        version: 17.0.15(i18next@26.4.2(typescript@6.0.3))(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)
+      tailwindcss:
+        specifier: ^3.4.19
+        version: 3.4.19(tsx@4.23.1)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vite:
+        specifier: ^8.3.1
+        version: 8.3.1(@types/node@26.6.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1)
       vitest:
         specifier: ^5.0.2
         version: 5.0.2(@types/node@26.6.4)(jsdom@25.0.1)(vite@8.3.1(@types/node@26.6.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1))
@@ -7151,6 +7292,11 @@ snapshots:
       '@rolldown/pluginutils': 1.0.1
       vite: 8.3.1(@types/node@26.6.4)(esbuild@0.28.1)(jiti@1.21.7)(terser@5.49.0)(tsx@4.23.1)
 
+  '@vitejs/plugin-react@6.1.1(vite@8.3.1(@types/node@26.6.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1))':
+    dependencies:
+      '@rolldown/pluginutils': 1.0.1
+      vite: 8.3.1(@types/node@26.6.4)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1)
+
   '@vitest/mocker@5.0.2(vite@8.3.1(@types/node@26.1.2)(esbuild@0.28.1)(jiti@2.7.0)(terser@5.49.0)(tsx@4.23.1))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
@@ -8000,9 +8146,24 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  eslint-plugin-react-hooks@7.1.1(eslint@10.11.0(jiti@2.7.0)):
+    dependencies:
+      '@babel/core': 7.29.7
+      '@babel/parser': 7.29.7
+      eslint: 10.11.0(jiti@2.7.0)
+      hermes-parser: 0.25.1
+      zod: 4.5.4
+      zod-validation-error: 4.0.2(zod@4.5.4)
+    transitivePeerDependencies:
+      - supports-color
+
   eslint-plugin-react-refresh@0.5.7(eslint@10.11.0(jiti@1.21.7)):
     dependencies:
       eslint: 10.11.0(jiti@1.21.7)
+
+  eslint-plugin-react-refresh@0.5.7(eslint@10.11.0(jiti@2.7.0)):
+    dependencies:
+      eslint: 10.11.0(jiti@2.7.0)
 
   eslint-scope@5.1.1:
     dependencies:

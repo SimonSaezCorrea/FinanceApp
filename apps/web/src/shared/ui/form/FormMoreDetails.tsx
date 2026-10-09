@@ -1,7 +1,7 @@
 import { ChevronDown } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
-import { cn } from "../../lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 interface Props {
   /** Already-composed heading, e.g. "Más detalles" + a muted "· opcional" span —

@@ -1,8 +1,8 @@
 import { ArrowRight, Check } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "../../../shared/lib/cn";
-import { Button } from "../../../shared/ui/button";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { HERO_TITLE } from "../components/bits";
 import { paint } from "../components/illustrations/paint";
 import { LandingLayout } from "../components/LandingLayout";

@@ -1,6 +1,6 @@
 import type { transactions } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "@finance/client";
 
 function toQuery(filters: transactions.TransactionFilters = {}): string {
   const params = new URLSearchParams();

@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 import type { accounts } from "@finance/contracts";
 
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import { useCardMutations } from "../hooks/useCards";
 import { CardFormPanel } from "./CardFormPanel";
 

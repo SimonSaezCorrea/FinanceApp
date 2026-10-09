@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { savings } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { SwipeRow } from "../../../shared/ui/swipe-row";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { goalVisual } from "../lib/goalVisual";

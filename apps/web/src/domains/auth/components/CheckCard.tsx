@@ -1,7 +1,7 @@
 import { Check } from "lucide-react";
 import { type ReactNode, type Ref, useId } from "react";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 interface Props {
   title: string;

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation } from "react-router";
 
-import { AppSplash } from "../../../shared/ui/app-splash";
+import { AppSplash } from "@finance/ui/src/shared/ui/app-splash";
 import { useAuth } from "../hooks/useAuth";
 import { authPath } from "../lib/authRedirect";
 

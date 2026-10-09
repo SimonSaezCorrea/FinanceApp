@@ -17,7 +17,7 @@ import {
   FormSelectField,
   FormTextareaField,
 } from "../../../shared/ui/form";
-import { FormSurface } from "../../../shared/ui/overlay";
+import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
 import { FREQUENCY_ORDER } from "../lib/recurringMetrics";
 
 export interface RecurringFormValue {

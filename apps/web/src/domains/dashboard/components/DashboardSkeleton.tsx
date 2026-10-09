@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { Card } from "../../../shared/ui/card";
 import { Skeleton, SkeletonScreen } from "../../../shared/ui/skeleton";
 import { PRIMARY_CURRENCY } from "../lib/metrics";

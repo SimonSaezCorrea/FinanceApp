@@ -7,14 +7,14 @@ import i18n from "../../../i18n";
 import { ProfileSummary } from "./ProfileSummary";
 
 const me = vi.fn();
-vi.mock("../../auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: { me: (...args: unknown[]) => me(...args), logout: vi.fn() },
+  passkeyApi: { list: (...args: unknown[]) => listPasskeys(...args) },
+  isPasskeySupported: () => passkeySupport.supported,
 }));
 
 const listPasskeys = vi.fn();
-vi.mock("../../auth/api/passkeyApi", () => ({
-  passkeyApi: { list: (...args: unknown[]) => listPasskeys(...args) },
-}));
 
 const listSessions = vi.fn();
 vi.mock("../api/sessionsApi", () => ({
@@ -27,9 +27,6 @@ vi.mock("../api/profileApi", () => ({
 }));
 
 const passkeySupport = vi.hoisted(() => ({ supported: true }));
-vi.mock("../../../shared/lib/webauthn", () => ({
-  isPasskeySupported: () => passkeySupport.supported,
-}));
 
 function mockUser(overrides: Record<string, unknown> = {}) {
   return {

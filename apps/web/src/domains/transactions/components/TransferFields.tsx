@@ -13,8 +13,8 @@ import {
   groupingLocaleFor,
   parseTypedAmount,
 } from "../../../shared/lib/amountInput";
-import { DetailRow } from "../../../shared/ui/detail-row";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
+import { SearchableSelect } from "@finance/ui/src/shared/ui/searchable-select";
 import type { TransactionFormValue } from "./TransactionFormPanel";
 
 interface Props {

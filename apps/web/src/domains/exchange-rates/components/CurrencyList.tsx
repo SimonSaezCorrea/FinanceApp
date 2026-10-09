@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import type { exchangeRates } from "@finance/contracts";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import type { CurrencySummary } from "../lib/currencySummary";
 import { formatRateChange } from "../lib/formatChange";
 import { formatRate } from "../lib/formatRate";

@@ -1,7 +1,7 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { DetailRow } from "../detail-row";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import { StepButton } from "../step-button";
 
 interface Props<T extends string> {

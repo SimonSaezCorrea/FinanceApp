@@ -16,7 +16,7 @@ import {
   FormSelectField,
   FormTextareaField,
 } from "../../../shared/ui/form";
-import { FormSurface } from "../../../shared/ui/overlay";
+import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
 import { schedulePreview } from "../lib/schedulePreview";
 import { ImmutableFieldsNotice } from "./ImmutableFieldsNotice";
 import { SchedulePreview } from "./SchedulePreview";

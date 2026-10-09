@@ -14,7 +14,8 @@ import { PricingRoute } from "./PricingRoute";
 import { PrivacyRoute } from "./PrivacyRoute";
 
 const login = vi.fn();
-vi.mock("../../auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: {
     me: vi.fn().mockRejectedValue(new Error("not signed in")),
     login: (...args: unknown[]) => login(...args),

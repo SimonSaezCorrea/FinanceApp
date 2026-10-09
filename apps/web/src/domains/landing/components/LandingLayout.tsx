@@ -17,12 +17,12 @@ import {
   useSearchParams,
 } from "react-router";
 
-import { cn } from "../../../shared/lib/cn";
-import { BrandMark } from "../../../shared/ui/brand-mark";
-import { Button } from "../../../shared/ui/button";
-import { Window } from "../../../shared/ui/overlay";
-import { ThemeSegmented } from "../../../shared/ui/theme-segmented";
-import { ThemeToggle } from "../../../shared/ui/theme-toggle";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { BrandMark } from "@finance/ui/src/shared/ui/brand-mark";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { Window } from "@finance/ui/src/shared/ui/overlay";
+import { ThemeSegmented } from "@finance/ui/src/shared/ui/theme-segmented";
+import { ThemeToggle } from "@finance/ui/src/shared/ui/theme-toggle";
 import { AuthPanel } from "../../auth/components/AuthPanel";
 import { useAuth } from "../../auth/hooks/useAuth";
 import {

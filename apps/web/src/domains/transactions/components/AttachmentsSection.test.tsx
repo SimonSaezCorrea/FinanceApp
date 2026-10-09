@@ -4,7 +4,7 @@ import { I18nextProvider } from "react-i18next";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import i18n from "../../../i18n";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import { transactionsApi } from "../api/transactionsApi";
 import { AttachmentsSection } from "./AttachmentsSection";
 

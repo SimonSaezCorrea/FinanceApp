@@ -7,7 +7,7 @@ import type { AuthenticationResponseJSON, WebAuthnCredential } from "@simpleweba
 
 import type { auth } from "@finance/contracts";
 
-import { getPasskeyExpectedOrigin, getPasskeyRpId } from "../../../../infra/config/passkey.config";
+import { getPasskeyExpectedOrigins, getPasskeyRpId } from "../../../../infra/config/passkey.config";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {
@@ -70,7 +70,7 @@ export class VerifyStepUpPasskeyHandler extends BaseCommandHandler<
       verification = await verifyAuthenticationResponse({
         response,
         expectedChallenge: command.expectedChallenge,
-        expectedOrigin: getPasskeyExpectedOrigin(this.config),
+        expectedOrigin: getPasskeyExpectedOrigins(this.config),
         expectedRPID: getPasskeyRpId(this.config),
         credential,
       });

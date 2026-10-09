@@ -6,7 +6,7 @@ import { formatMoney } from "@finance/money";
 
 import { ApproxAmount } from "../../exchange-rates/components/ApproxAmount";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { CARD_INACTIVE_STYLE, CARD_KIND_STYLE, isCreditType } from "./accountVisuals";
 
 /**

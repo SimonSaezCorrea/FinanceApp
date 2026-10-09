@@ -3,7 +3,7 @@ import { formatMoney } from "@finance/money";
 import { useTranslation } from "react-i18next";
 
 import { CategoryIcon } from "../../reference/components/CategoryIcon";
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { useInstallmentPlan } from "../hooks/useInstallments";
 import { paidCount } from "../lib/installmentMetrics";
 

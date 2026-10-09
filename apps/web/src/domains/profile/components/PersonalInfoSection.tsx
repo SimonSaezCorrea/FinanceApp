@@ -8,11 +8,11 @@ import type { auth } from "@finance/contracts";
 
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useCountries } from "../../reference/hooks/useReference";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { cn } from "../../../shared/lib/cn";
-import { Button } from "../../../shared/ui/button";
-import { ConfirmModal } from "../../../shared/ui/overlay";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
+import { ApiRequestError } from "@finance/client";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
+import { SearchableSelect } from "@finance/ui/src/shared/ui/searchable-select";
 import {
   combinePhone,
   stripCallingCode,

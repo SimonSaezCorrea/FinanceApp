@@ -3,14 +3,15 @@ import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { Providers } from "../../../app/providers";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import i18n from "../../../i18n";
 import { LoginForm } from "./LoginForm";
 
 const login = vi.fn();
 const verifyMfaLogin = vi.fn();
 const register = vi.fn();
-vi.mock("../../auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: {
     login: (...args: unknown[]) => login(...args),
     verifyMfaLogin: (...args: unknown[]) => verifyMfaLogin(...args),
@@ -18,16 +19,14 @@ vi.mock("../../auth/api/authApi", () => ({
     me: vi.fn().mockRejectedValue(new Error("not signed in")),
     logout: vi.fn(),
   },
-}));
-
-const startLogin = vi.fn();
-const verifyLogin = vi.fn();
-vi.mock("../../auth/api/passkeyApi", () => ({
   passkeyApi: {
     startLogin: (...args: unknown[]) => startLogin(...args),
     verifyLogin: (...args: unknown[]) => verifyLogin(...args),
   },
 }));
+
+const startLogin = vi.fn();
+const verifyLogin = vi.fn();
 
 const fakeOptions = {
   challenge: "Y2hhbGxlbmdl",

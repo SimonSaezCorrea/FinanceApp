@@ -5,12 +5,12 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import { useAccounts, useCreditStatements } from "../../accounts/hooks/useAccounts";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { cn } from "../../../shared/lib/cn";
+import { ApiRequestError } from "@finance/client";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
-import { Button } from "../../../shared/ui/button";
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Segmented } from "../../../shared/ui/segmented";
 import { DeletePlanConfirm } from "../components/DeletePlanConfirm";

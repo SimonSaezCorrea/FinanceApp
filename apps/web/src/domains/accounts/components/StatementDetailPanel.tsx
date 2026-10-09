@@ -11,9 +11,9 @@ import {
 } from "../../transactions/hooks/useTransactions";
 import { TransactionTable } from "../../transactions/components/TransactionTable";
 import { useInstallments } from "../../installments/hooks/useInstallments";
-import { SidePanel } from "../../../shared/ui/overlay";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { Badge } from "../../../shared/ui/badge";
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { LoadingState } from "../../../shared/ui/states";
 import { STATEMENT_STATUS_VARIANT } from "../lib/statementStatus";

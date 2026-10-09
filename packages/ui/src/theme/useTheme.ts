@@ -9,7 +9,8 @@ export interface ThemeContextValue {
   setMode: (mode: ThemeMode) => void;
 }
 
-export const THEME_STORAGE_KEY = "finance.theme";
+// One key for the pre-paint script and the provider (they must agree or the theme flashes).
+export { THEME_STORAGE_KEY } from "../../prepaint.mjs";
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null);
 

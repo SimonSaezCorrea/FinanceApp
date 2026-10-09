@@ -15,11 +15,11 @@ import {
   limitDecimals,
   parseTypedAmount,
 } from "../../../shared/lib/amountInput";
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { useRecurring } from "../../recurring/hooks/useRecurring";
-import { DetailRow } from "../../../shared/ui/detail-row";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import {
   FormBigTextField,
   FormDateField,

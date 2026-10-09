@@ -5,12 +5,12 @@ import { useTranslation } from "react-i18next";
 import { accounts as accountsContract, type accounts } from "@finance/contracts";
 
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
-import { DetailRow } from "../../../shared/ui/detail-row";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import { Field } from "../../../shared/ui/field";
 import { FormSelectField, FormSwitchField, FormTextField } from "../../../shared/ui/form";
-import { Input } from "../../../shared/ui/input";
+import { Input } from "@finance/ui/src/shared/ui/input";
 import { Segmented } from "../../../shared/ui/segmented";
 import { CurrencyField } from "../../reference/components/CurrencyField";
 import { Switch } from "../../../shared/ui/switch";

@@ -11,9 +11,9 @@ import {
 import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ApiRequestError } from "../lib/apiClient";
-import { cn } from "../lib/cn";
-import { Button } from "./button";
+import { ApiRequestError } from "@finance/client";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { Button } from "@finance/ui/src/shared/ui/button";
 
 /** Muted (empty/informational) vs. destructive (something is actually wrong) —
  * the only two tones a shell's icon chip needs; everything else is identical. */

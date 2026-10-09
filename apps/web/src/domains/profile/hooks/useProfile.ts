@@ -3,9 +3,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { auth } from "@finance/contracts";
 
 import { accountsApi } from "../../accounts/api/accountsApi";
-import { authApi } from "../../auth/api/authApi";
+import { authApi } from "@finance/client";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { passkeyApi } from "../../auth/api/passkeyApi";
+import { passkeyApi } from "@finance/client";
 import { transactionsApi } from "../../transactions/api/transactionsApi";
 import { consentsApi } from "../api/consentsApi";
 import { profileApi } from "../api/profileApi";

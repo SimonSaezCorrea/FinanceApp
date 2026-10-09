@@ -2,8 +2,8 @@ import { Check, FileSpreadsheet, Info, Sheet } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "../../../shared/lib/cn";
-import { FormSurface } from "../../../shared/ui/overlay";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
 
 export type TemplateContent = "empty" | "prefilled";
 

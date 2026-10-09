@@ -4,8 +4,8 @@ import type { auth } from "@finance/contracts";
 
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useCurrencies } from "../../reference/hooks/useReference";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
-import { ThemeSegmented } from "../../../shared/ui/theme-segmented";
+import { SearchableSelect } from "@finance/ui/src/shared/ui/searchable-select";
+import { ThemeSegmented } from "@finance/ui/src/shared/ui/theme-segmented";
 import { useProfileMutations } from "../hooks/useProfile";
 import { FinancialCustomizationSection } from "./FinancialCustomizationSection";
 
