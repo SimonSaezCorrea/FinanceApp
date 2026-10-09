@@ -235,9 +235,11 @@ export function DateField({
         )}
       >
         {selected && sameDay(selected, today) ? (
-          <span className="text-muted-foreground">{t("common.date.today")} ·</span>
+          <span className="whitespace-nowrap text-muted-foreground">
+            {t("common.date.today")} ·
+          </span>
         ) : null}
-        <span className="tabular-nums">{label}</span>
+        <span className="whitespace-nowrap tabular-nums">{label}</span>
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
       </button>
 

@@ -2008,7 +2008,8 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
   which the user can contract to the rail (`localStorage` `finance.sidebarCollapsed`) from a button
   beside the brand; switching is instant (no width animation — a frequent gesture would slide the
   whole page). Sections are grouped (Panel; Tu dinero: Cuentas/Movimientos/Importar; Compromisos:
-  Cuotas/Deudas/Recurrentes; Metas: Ahorros, keys `nav.groups.*`); Inversiones is no longer listed.
+  Cuotas/Deudas/Recurrentes; Metas: Ahorros; Indicadores: Tipos de cambio — reference data, not the
+  user's own money — keys `nav.groups.*`); Inversiones is no longer listed.
   The active section is a soft `bg-primary/10` fill with a 3px edge mark, not a solid block. The rail
   labels its icons with its own `RailTip` (hover AND keyboard focus; the rail doesn't scroll so the
   labels can stick out). "Nuevo movimiento" is in every form (button / rail "+" / tab "+") and its

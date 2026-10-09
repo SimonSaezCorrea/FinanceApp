@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 
 import { exchangeRates } from "@finance/contracts";
 
 import { exchangeRatesApi } from "../api/exchangeRatesApi";
-import { daysBefore, localDay } from "../lib/day";
+import { daysBefore, localDay, splitRange } from "../lib/day";
 
 // The recorder runs hourly at most, so a value cannot change faster than that.
 const STALE = 1000 * 60 * 10;
@@ -11,14 +11,40 @@ const STALE = 1000 * 60 * 10;
 /** A bounded window of rates; omitted bounds default to the last 30 days (server-side). */
 export function useExchangeRates(
   params: exchangeRates.ListExchangeRatesQuery = {},
-  options: { enabled?: boolean } = {},
+  options: { enabled?: boolean; keepPrevious?: boolean } = {},
 ) {
   return useQuery({
     enabled: options.enabled ?? true,
+    // Kept only within the same currency: another currency's rows would flash under the new name.
+    placeholderData: (previous, previousQuery) =>
+      options.keepPrevious && previousQuery?.queryKey[1] === (params.currency ?? "all")
+        ? keepPreviousData(previous)
+        : undefined,
     queryKey: ["exchange-rates", params.currency ?? "all", params.from ?? "", params.to ?? ""],
-    queryFn: () => exchangeRatesApi.list(params),
+    queryFn: () => listInChunks(params),
     staleTime: STALE,
   });
+}
+
+/**
+ * One request when the range fits the API's per-request ceiling (`EXCHANGE_RANGE_MAX_DAYS`), else
+ * one per window of at most that many days, fetched in parallel and merged newest first — so a
+ * range of any length works while every single query the API answers stays bounded.
+ */
+async function listInChunks(
+  params: exchangeRates.ListExchangeRatesQuery,
+): Promise<exchangeRates.ListExchangeRatesResponse> {
+  if (!params.from || !params.to) return exchangeRatesApi.list(params);
+  const windows = splitRange(params.from, params.to, exchangeRates.EXCHANGE_RANGE_MAX_DAYS);
+  if (windows.length <= 1) return exchangeRatesApi.list(params);
+  const pages = await Promise.all(
+    windows.map((w) => exchangeRatesApi.list({ ...params, from: w.from, to: w.to })),
+  );
+  return {
+    items: pages.flatMap((p) => p.items).sort((a, b) => (a.date < b.date ? 1 : -1)),
+    // `latest` doesn't depend on the range: any page carries it.
+    latest: pages[0]!.latest,
+  };
 }
 
 /** The newest row of each currency — "el valor vigente". */

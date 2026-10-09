@@ -96,7 +96,8 @@
     "groups": {
       "money": "Your money",
       "commitments": "Commitments",
-      "goals": "Goals"
+      "goals": "Goals",
+      "indicators": "Indicators"
     },
     "more": "More",
     "moreSections": "More sections",
@@ -360,6 +361,7 @@
     },
     "pay": {
       "debitedLabel": "Amount debited in {{currency}}",
+      "clpPreview": "≈ {{amount}} at the dollar of {{date}} ({{rate}}). Pick the source account to adjust it.",
       "foreignCreatesMovement": "An expense will be recorded on the selected account and a dollar credit on your card; the peso limit does not change.",
       "prepayEyebrow": "Prepay statement",
       "prepayTitle": "Prepayment · period from {{date}}",
@@ -2726,30 +2728,42 @@
   },
   "exchangeRates": {
     "title": "Exchange rates",
-    "subtitle": "Daily value of the observed dollar and the UF, in pesos.",
-    "today": "Current value",
+    "subtitle": "Daily value of each currency, in pesos.",
     "carried": "Carried-forward value",
     "carriedHint": "Last published value, from {{date}}",
     "estimated": "estimate",
     "valueOn": "value of {{date}}",
-    "usd": "Observed dollar",
-    "uf": "UF",
     "range": {
       "30d": "30 days",
       "1y": "1 year",
-      "label": "Chart range"
+      "label": "Chart range",
+      "90d": "90 days",
+      "6m": "6 months",
+      "ytd": "This year",
+      "custom": "Custom",
+      "7d": "7 days",
+      "short": {
+        "7d": "1W",
+        "30d": "1M",
+        "90d": "3M",
+        "6m": "6M",
+        "1y": "1Y",
+        "ytd": "YTD"
+      },
+      "since": {
+        "7d": "last 7 days",
+        "30d": "last 30 days",
+        "90d": "last 90 days",
+        "6m": "last 6 months",
+        "1y": "last year",
+        "ytd": "year to date",
+        "custom": "from {{from}} to {{to}}"
+      }
     },
-    "table": {
-      "date": "Date",
-      "usd": "Dollar",
-      "uf": "UF"
-    },
-    "jumpToDate": "Go to a date",
     "noDataForDate": "No data for that date",
     "empty": "No values recorded yet.",
     "source": "Source: mindicador.cl",
     "carriedShort": "carried",
-    "jumpTitle": "Value on a day",
     "estimatedOn": "estimate, value of {{date}}",
     "estimatedTitle": "Estimate with the latest recorded dollar value; it is not a stored amount.",
     "estimatedTotal": "≈ {{amount}} · all in CLP (estimate, value of {{date}})",
@@ -2758,6 +2772,46 @@
       "estimated": "Estimated with the dollar of {{date}} ({{rate}} per dollar). Edit it to what your bank charged.",
       "noRate": "No dollar value is recorded: type what your bank charged.",
       "useEstimate": "Use the estimate"
-    }
+    },
+    "stats": {
+      "min": "Low",
+      "max": "High",
+      "average": "Average",
+      "dailyMove": "Average daily move"
+    },
+    "custom": {
+      "from": "From",
+      "to": "To",
+      "inverted": "The start date must be before the end date."
+    },
+    "compare": {
+      "title": "Compare two dates",
+      "from": "First date",
+      "to": "Second date",
+      "between": "Between",
+      "and": "and",
+      "moved": "{{currency}} went from {{from}} to {{to}}."
+    },
+    "names": {
+      "USD": "Observed dollar",
+      "CLF": "UF"
+    },
+    "picker": {
+      "label": "Currency",
+      "search": "Search currency",
+      "change": "Change currency (now {{currency}})",
+      "noResults": "No currency matches"
+    },
+    "valueOnLong": "Value on {{date}}",
+    "dayBefore": "day before {{value}}",
+    "chart": {
+      "today": "today",
+      "high": "high {{value}}"
+    },
+    "inSentence": {
+      "USD": "the dollar",
+      "CLF": "the UF"
+    },
+    "dataSince": "Values are recorded since {{date}}."
   }
 }

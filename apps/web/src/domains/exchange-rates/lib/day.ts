@@ -12,3 +12,25 @@ export function daysBefore(day: string, days: number): string {
   d.setUTCDate(d.getUTCDate() - days);
   return d.toISOString().slice(0, 10);
 }
+
+/** The calendar day `days` after `day`. */
+function daysAfter(day: string, days: number): string {
+  return daysBefore(day, -days);
+}
+
+/**
+ * `from`..`to` (both included) cut into consecutive windows of at most `maxDays` days, oldest
+ * first. Empty when the range is inverted.
+ */
+export function splitRange(
+  from: string,
+  to: string,
+  maxDays: number,
+): { from: string; to: string }[] {
+  const windows: { from: string; to: string }[] = [];
+  for (let start = from; start <= to; start = daysAfter(start, maxDays)) {
+    const end = daysAfter(start, maxDays - 1);
+    windows.push({ from: start, to: end < to ? end : to });
+  }
+  return windows;
+}

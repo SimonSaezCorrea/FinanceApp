@@ -23,7 +23,7 @@ import { SidePanel } from "../../../shared/ui/overlay";
 import { Segmented } from "../../../shared/ui/segmented";
 import { formatRate } from "../../exchange-rates/lib/formatRate";
 import { useAccountMutations, useAccounts } from "../hooks/useAccounts";
-import { useSuggestedAmount } from "../hooks/useSuggestedAmount";
+import { useAmountSuggestion, useSuggestedAmount } from "../hooks/useSuggestedAmount";
 import { STATEMENT_STATUS_VARIANT } from "../lib/statementStatus";
 
 type PayMode = "total" | "minimum" | "custom";
@@ -125,6 +125,14 @@ export function PayStatementPanel({
     amount: invalidAmount ? "" : amount.toString(),
     fromCurrency: currency,
     toCurrency: from?.currency ?? "",
+    date: paidAt,
+  });
+  // Before a source is chosen the pesos can't be edited yet, but the conversion is already
+  // worth showing: what this payment comes to in pesos at the rate of the payment date.
+  const preview = useAmountSuggestion({
+    amount: invalidAmount || !foreign || from !== undefined ? "" : amount.toString(),
+    fromCurrency: currency,
+    toCurrency: "CLP",
     date: paidAt,
   });
   const charged = needsCharged ? charge.value : "";
@@ -322,6 +330,19 @@ export function PayStatementPanel({
             >
               {modeHint()}
             </p>
+            {preview.suggested && preview.suggestion ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                {t("accounts.pay.clpPreview", {
+                  amount: money(preview.suggested, "CLP"),
+                  date: rateDay(
+                    preview.suggestion.carried
+                      ? preview.suggestion.valueDate
+                      : preview.suggestion.rateDate,
+                  ),
+                  rate: formatRate(preview.suggestion.rate, i18n.language),
+                })}
+              </p>
+            ) : null}
           </div>
 
           {/* What the period is made of — derived from its own movements. */}

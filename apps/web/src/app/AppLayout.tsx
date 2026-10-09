@@ -53,17 +53,19 @@ const EXCHANGE_RATES: NavItem = {
 };
 
 /** Grouped by what each section IS for the user: their money, what they've committed to, their
- * goals. Investments is left out until it exists (an item that leads nowhere is daily noise). */
+ * goals, and the economic indicators (reference data, not theirs — dólar, UF, and later others).
+ * Investments is left out until it exists (an item that leads nowhere is daily noise). */
 const GROUPS: { key: string | null; items: NavItem[] }[] = [
   { key: null, items: [PANEL] },
-  { key: "nav.groups.money", items: [ACCOUNTS, MOVEMENTS, EXCHANGE_RATES, IMPORT] },
+  { key: "nav.groups.money", items: [ACCOUNTS, MOVEMENTS, IMPORT] },
   { key: "nav.groups.commitments", items: [INSTALLMENTS, DEBTS, RECURRING] },
   { key: "nav.groups.goals", items: [SAVINGS] },
+  { key: "nav.groups.indicators", items: [EXCHANGE_RATES] },
 ];
 
 /** Phone: four destinations and "+" in the tab bar; everything else in the "Más" sheet. */
 const TAB_ITEMS: NavItem[] = [PANEL, ACCOUNTS, MOVEMENTS];
-const SHEET_ITEMS: NavItem[] = [INSTALLMENTS, DEBTS, RECURRING, SAVINGS, EXCHANGE_RATES, IMPORT];
+const SHEET_ITEMS: NavItem[] = [INSTALLMENTS, DEBTS, RECURRING, SAVINGS, IMPORT, EXCHANGE_RATES];
 
 const SIDEBAR_COLLAPSED_KEY = "finance.sidebarCollapsed";
 
