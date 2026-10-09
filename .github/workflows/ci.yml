@@ -53,9 +53,10 @@ jobs:
 
       - uses: pnpm/action-setup@v6.1.0
 
+      # Node 22: the public site (apps/landing, Astro 7) needs >= 22.12 (spec 031).
       - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
@@ -92,7 +93,8 @@ jobs:
       - name: Seed reference data
         run: pnpm --filter @finance/api prisma:seed
 
-      # Architecture boundaries: web↛api/db, api↛web, packages↛apps (SC-004/SC-007).
+      # Architecture boundaries: web↛api/db/landing, api↛web/landing, landing↛web/api/db,
+      # packages↛apps (SC-004/SC-007, spec 031).
       - run: pnpm check:boundaries
 
       - name: Audit (informational)
@@ -112,3 +114,16 @@ jobs:
 
       - run: pnpm exec turbo run typecheck test build
         if: github.event_name != 'pull_request'
+
+      # The public site (spec 031): build it with throwaway public origins and check the static
+      # output itself (every page's metadata, hreflang, sitemap/robots, and that no page ships
+      # React on arrival). Built here even when a PR didn't touch it, since the shared packages
+      # it renders can change under it.
+      - name: Public site build output
+        env:
+          PUBLIC_API_URL: "https://api.example.test"
+          PUBLIC_APP_URL: "https://app.example.test"
+          PUBLIC_SITE_URL: "https://example.test"
+        run: |
+          pnpm --filter @finance/landing build
+          pnpm --filter @finance/landing test:build

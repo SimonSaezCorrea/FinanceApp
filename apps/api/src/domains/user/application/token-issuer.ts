@@ -86,6 +86,15 @@ export class TokenIssuer {
     };
   }
 
+  /** The access token's claims; throws (jsonwebtoken's own error) on an invalid/expired one.
+   * `JwtAuthGuard` verifies it itself; this is for `GET /auth/session`, which answers instead of
+   * throwing (spec 031). */
+  verifyAccess(token: string): { sub: string; sid: string } {
+    return this.jwt.verify<{ sub: string; sid: string }>(token, {
+      secret: this.config.getOrThrow<string>("JWT_ACCESS_SECRET"),
+    });
+  }
+
   /** Throws (jsonwebtoken's own error) on an invalid/expired token — callers
    * translate that into `InvalidRefreshTokenError`. */
   verifyRefresh(token: string): { sub: string; sid: string } {

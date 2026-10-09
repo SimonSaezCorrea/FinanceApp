@@ -4,6 +4,7 @@ import {
   InvalidPaymentAmountError,
   PaymentExceedsRemainingError,
   StatementAlreadyPaidError,
+  StatementNotClosedError,
   StatementNotOpenError,
   StatementNotPaidError,
 } from "./errors";
@@ -22,6 +23,11 @@ export interface CreditStatementProps {
   periodStart: Date;
   closedAt: Date | null;
   paidAt: Date | null;
+  /** Payment due date typed at generation; null while OPEN or for a period
+   * closed before it was recorded. */
+  dueDate?: Date | null;
+  /** The close scheduled for an OPEN period; generated with it when it arrives. */
+  plannedCloseAt?: Date | null;
   /** Frozen only once PAID; while OPEN/PENDING this is the live linked-transactions
    * sum, supplied by the repository adapter (see `sumLinkedTransactions`). */
   amount: string;
@@ -268,6 +274,52 @@ export class CreditStatement {
     return { ...this.props };
   }
 
+  get dueDate(): Date | null {
+    return this.props.dueDate ?? null;
+  }
+
+  /** "Generar facturación": seals an OPEN period with the dates the user read off
+   * the bank's statement. The period's start moves to the declared one (an open
+   * period starts where the previous close left it, which needn't match the
+   * bank's own start date). Date-order and overlap checks happen in the handler,
+   * which knows the account's other periods. */
+  generate(dates: { periodStart: Date; closedAt: Date; dueDate: Date }): StatementClosedEvent {
+    this.props.periodStart = dates.periodStart;
+    this.props.dueDate = dates.dueDate;
+    this.props.plannedCloseAt = null;
+    return this.close(dates.closedAt);
+  }
+
+  get plannedCloseAt(): Date | null {
+    return this.props.plannedCloseAt ?? null;
+  }
+
+  /** "Editar fechas" of the OPEN period: schedules its close and due date WITHOUT
+   * closing it — the statement is generated when that close arrives (or earlier, from
+   * "Generar facturación"). */
+  scheduleClose(dates: { periodStart: Date; closedAt: Date; dueDate: Date }): void {
+    if (this.props.closedAt) throw new StatementAlreadyPaidError();
+    this.props.periodStart = dates.periodStart;
+    this.props.plannedCloseAt = dates.closedAt;
+    this.props.dueDate = dates.dueDate;
+  }
+
+  /** Correct a generated period's dates. Only a closed period has all three; the
+   * caller decides which of them may still move (settled, latest-close rules). */
+  changeDates(dates: { periodStart: Date; closedAt: Date; dueDate: Date }): void {
+    if (!this.props.closedAt) throw new StatementNotClosedError();
+    this.props.periodStart = dates.periodStart;
+    this.props.closedAt = dates.closedAt;
+    this.props.dueDate = dates.dueDate;
+  }
+
+  /** An OPEN period follows the close of the one before it: when that close moves,
+   * so does this start. */
+  reanchor(periodStart: Date): void {
+    if (this.props.closedAt) throw new StatementAlreadyPaidError();
+    this.props.periodStart = periodStart;
+  }
+
   /** Seals an OPEN statement (generation, manual or cron). Eligibility/due-date
    * gating happens in the caller (via `BillingEligibilityStrategy` +
    * `nextBoundaryAfter`) before this is called — the aggregate only enforces
@@ -298,6 +350,9 @@ export class CreditStatement {
     fromAccountId: string,
     paymentTransactionId: string,
     when: Date,
+    /** Spec 030: the INCOME that settled this period's limit on the card — only a period in
+     * ANOTHER currency has one (the account-currency pool needs no movement to move). */
+    settlementTransactionId: string | null = null,
   ): { event: StatementPaidEvent; carryOver: string } {
     if (!this.state.canPay()) {
       throw new StatementAlreadyPaidError();
@@ -317,6 +372,7 @@ export class CreditStatement {
     this.props.paidAt = when;
     this.props.paidFromAccountId = fromAccountId;
     this.props.paidTransactionId = paymentTransactionId;
+    this.props.settlementTransactionId = settlementTransactionId;
     this.props.closedAt = this.props.closedAt ?? when;
     return {
       event: new StatementPaidEvent(
@@ -328,6 +384,25 @@ export class CreditStatement {
       ),
       carryOver: subtractMoney(periodAmount, amount),
     };
+  }
+
+  /**
+   * A period imported as already paid (template REPLACE, specs/027): same outcome as
+   * `payTowards` — settled, total frozen, the shortfall returned to carry forward —
+   * but with no payment movement of its own: the money that paid it is a transfer
+   * in the same import, already counted in the account's pool.
+   */
+  settleImported(periodAmount: string, amount: string, when: Date): { carryOver: string } {
+    if (!this.state.canPay()) throw new StatementAlreadyPaidError();
+    if (toMoney(amount).lessThanOrEqualTo(0)) throw new InvalidPaymentAmountError();
+    if (toMoney(amount).greaterThan(toMoney(this.remainingFor(periodAmount)))) {
+      throw new PaymentExceedsRemainingError();
+    }
+    this.props.paidAmount = moneyToString(amount);
+    this.props.amount = moneyToString(periodAmount);
+    this.props.paidAt = when;
+    this.props.closedAt = this.props.closedAt ?? when;
+    return { carryOver: subtractMoney(periodAmount, amount) };
   }
 
   /**

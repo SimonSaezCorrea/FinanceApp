@@ -44,6 +44,7 @@ import { VerifyPasskeyLoginHandler } from "./application/commands/verify-passkey
 import { VerifyStepUpPasskeyHandler } from "./application/commands/verify-step-up-passkey.handler";
 import { VerifyStepUpHandler } from "./application/commands/verify-step-up.handler";
 import { GetMeQueryHandler } from "./application/queries/get-me.handler";
+import { GetSessionStatusQueryHandler } from "./application/queries/get-session-status.handler";
 import { ListConsentsQueryHandler } from "./application/queries/list-consents.handler";
 import { ListPasskeysQueryHandler } from "./application/queries/list-passkeys.handler";
 import { ListSessionsQueryHandler } from "./application/queries/list-sessions.handler";
@@ -85,6 +86,7 @@ const commandHandlers = [
 
 const queryHandlers = [
   GetMeQueryHandler,
+  GetSessionStatusQueryHandler,
   ListPasskeysQueryHandler,
   ListSessionsQueryHandler,
   ListConsentsQueryHandler,

@@ -1,6 +1,6 @@
 import type { accounts } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "@finance/client";
 
 function toQuery(filters?: accounts.AccountFilters): string {
   if (!filters?.status) return "";
@@ -31,8 +31,17 @@ export const accountsApi = {
   creditStatements: (id: string) =>
     apiFetch<accounts.CreditStatement[]>(`/accounts/${id}/credit-statements`),
 
-  generateStatements: (id: string) =>
-    apiFetch<accounts.CreditStatement[]>(`/accounts/${id}/generate-statements`, { method: "POST" }),
+  generateStatements: (id: string, body: accounts.GenerateStatement) =>
+    apiFetch<accounts.CreditStatement[]>(`/accounts/${id}/generate-statements`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  updateStatementDates: (id: string, statementId: string, body: accounts.UpdateStatementDates) =>
+    apiFetch<accounts.CreditStatement[]>(`/accounts/${id}/credit-statements/${statementId}/dates`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
 
   payCreditStatement: (
     id: string,
@@ -61,10 +70,15 @@ export const accountsApi = {
     }),
 
   /** Correct what was PAID on a settled period (its total is only ever synced). */
-  updateStatementPayment: (id: string, statementId: string, amount: string) =>
+  updateStatementPayment: (
+    id: string,
+    statementId: string,
+    amount: string,
+    chargedAmount?: string,
+  ) =>
     apiFetch<accounts.CreditStatement>(`/accounts/${id}/credit-statements/${statementId}/payment`, {
       method: "PATCH",
-      body: JSON.stringify({ amount } satisfies accounts.UpdateStatementPayment),
+      body: JSON.stringify({ amount, chargedAmount } satisfies accounts.UpdateStatementPayment),
     }),
 
   /** Reconcile a period against the movements dated inside it. */

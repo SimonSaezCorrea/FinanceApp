@@ -10,10 +10,11 @@ import {
   buildBankAccountRepo,
   buildCreditStatementRepo,
   buildInstallmentPlanRepo,
+  buildTransactionWriterRepo,
 } from "../../../support/repositories";
 
 /**
- * Spec 014, T027: forces a failure on the stamping half of `closeIfDue`'s
+ * Spec 014, T027: forces a failure on the stamping half of the generation's
  * transaction and asserts the CLOSE is ALSO rolled back — proves atomicity, not
  * just that both writes succeed on the happy path. A period closed with its
  * instalments left unstamped would either double-bill them on the very next close
@@ -119,13 +120,22 @@ describe("GenerateStatementsHandler close+stamp transaction (integration)", () =
       accountRepo,
       statementRepo,
       planRepo,
+      buildTransactionWriterRepo(prisma),
       prisma,
     );
     vi.spyOn(planRepo, "stampBillableWithTx").mockRejectedValueOnce(new Error("forced failure"));
 
-    await expect(handler.execute(new GenerateStatementsCommand(userId, accountId))).rejects.toThrow(
-      "forced failure",
-    );
+    await expect(
+      handler.execute(
+        new GenerateStatementsCommand(
+          userId,
+          accountId,
+          new Date("2026-01-01T00:00:00.000Z"),
+          new Date("2026-01-10T23:59:59.999Z"),
+          new Date("2026-01-20T23:59:59.999Z"),
+        ),
+      ),
+    ).rejects.toThrow("forced failure");
 
     const statement = await prisma.creditStatement.findUnique({ where: { id: statementId } });
     expect(statement?.closedAt).toBeNull(); // NOT closed — rolled back
@@ -142,10 +152,19 @@ describe("GenerateStatementsHandler close+stamp transaction (integration)", () =
       accountRepo,
       statementRepo,
       planRepo,
+      buildTransactionWriterRepo(prisma),
       prisma,
     );
 
-    const closed = await handler.execute(new GenerateStatementsCommand(userId, accountId));
+    const closed = await handler.execute(
+      new GenerateStatementsCommand(
+        userId,
+        accountId,
+        new Date("2026-01-01T00:00:00.000Z"),
+        new Date("2026-01-10T23:59:59.999Z"),
+        new Date("2026-01-20T23:59:59.999Z"),
+      ),
+    );
     expect(closed).toBe(true);
 
     const statement = await prisma.creditStatement.findUnique({ where: { id: statementId } });

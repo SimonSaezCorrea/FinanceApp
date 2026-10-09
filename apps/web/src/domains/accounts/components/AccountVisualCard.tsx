@@ -4,8 +4,9 @@ import { useTranslation } from "react-i18next";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { ApproxAmount } from "../../exchange-rates/components/ApproxAmount";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { CARD_INACTIVE_STYLE, CARD_KIND_STYLE, isCreditType } from "./accountVisuals";
 
 /**
@@ -147,13 +148,13 @@ export function AccountVisualCard({
           <div className="flex shrink-0 items-center gap-1.5">
             {/* Type chip: the card's own kind when there's a card, else the account type. */}
             {inactiveCard ? (
-              <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+              <span className="rounded-full bg-foreground/10 px-2 py-0.5 text-xs sm:text-[10px] font-medium uppercase tracking-wide">
                 {t("cards.inactiveBadge")}
               </span>
             ) : null}
             <span
               className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                "rounded-full px-2 py-0.5 text-xs sm:text-[10px] font-medium uppercase tracking-wide",
                 inactiveCard
                   ? "bg-foreground/10"
                   : "bg-[color-mix(in_srgb,currentColor_15%,transparent)]",
@@ -243,6 +244,11 @@ export function AccountVisualCard({
               >
                 <MaskedAmount>{fmt(shownBalance)}</MaskedAmount>
               </p>
+              <ApproxAmount
+                amount={shownBalance}
+                currency={account.currency}
+                className="text-xs sm:text-[11px] tabular-nums opacity-70"
+              />
             </div>
           )}
         </div>

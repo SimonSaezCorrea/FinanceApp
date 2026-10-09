@@ -1,6 +1,6 @@
 import type { debts } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "@finance/client";
 
 export const debtsApi = {
   list: () => apiFetch<debts.Debt[]>("/debts"),

@@ -6,18 +6,27 @@ import type { accounts } from "@finance/contracts";
 
 import { toast } from "sonner";
 
-import { cn } from "../../../shared/lib/cn";
-import { Button } from "../../../shared/ui/button";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
-import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
+import { Skeleton, SkeletonScreen } from "../../../shared/ui/skeleton";
+import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { accountMetaLine } from "../../accounts/lib/accountMeta";
 import { ACCOUNT_ICON, isCreditType } from "../../accounts/components/accountVisuals";
+import { accountsApi } from "../../accounts/api/accountsApi";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
+import { debtsApi } from "../../debts/api/debtsApi";
+import { installmentsApi } from "../../installments/api/installmentsApi";
+import { recurringApi } from "../../recurring/api/recurringApi";
+import { savingsApi } from "../../savings/api/savingsApi";
+import { transactionsApi } from "../../transactions/api/transactionsApi";
 import { useAllowedCurrencies } from "../../reference/hooks/useAllowedCurrencies";
-import { useCategories } from "../../reference/hooks/useReference";
+import { useCategories, useInstitutions } from "../../reference/hooks/useReference";
+import { DownloadTemplateDialog, type TemplateContent } from "../components/DownloadTemplateDialog";
 import { ImportMovementsPanel } from "../components/ImportMovementsPanel";
 import { TemplateImportPanel } from "../components/TemplateImportPanel";
 import { buildTemplate, type TemplateRefs } from "../lib/buildTemplate";
+import { existingRows } from "../lib/templateData";
 
 /**
  * The "Importar" section: a spreadsheet is always imported into ONE account, so
@@ -42,8 +51,10 @@ export function ImportRoute() {
   const typeLabel = (type: accounts.AccountType) => t(`accounts.type.${type}`);
 
   const categories = useCategories();
+  const institutions = useInstitutions("CL");
   const allowedCurrencies = useAllowedCurrencies();
   const [templateOpen, setTemplateOpen] = useState(false);
+  const [downloadOpen, setDownloadOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const refs = useMemo<TemplateRefs>(
     () => ({
@@ -61,20 +72,57 @@ export function ImportRoute() {
       currencies: [
         ...new Set([...allowedCurrencies.map((c) => c.code), ...list.map((a) => a.currency)]),
       ],
+      institutions: (institutions.data ?? []).map((i) => ({ id: i.id, name: i.name })),
     }),
-    [list, categories.data, allowedCurrencies],
+    [list, categories.data, allowedCurrencies, institutions.data],
   );
 
-  async function download() {
+  /** Everything the user has, fetched only when a pre-filled template is asked for. */
+  async function loadExisting() {
+    const [allAccounts, txPage, debtList, plans, series, goals, entries] = await Promise.all([
+      accountsApi.list(),
+      transactionsApi.list(),
+      debtsApi.list(),
+      installmentsApi.list(),
+      recurringApi.list(),
+      savingsApi.listGoals(),
+      savingsApi.listEntries(),
+    ]);
+    const statements = (
+      await Promise.all(
+        allAccounts
+          .filter((a) => a.type === "CREDIT_CARD")
+          .map((a) => accountsApi.creditStatements(a.id)),
+      )
+    ).flat();
+    return existingRows(
+      {
+        statements,
+        accounts: allAccounts,
+        transactions: txPage.items,
+        debts: debtList,
+        plans,
+        recurring: series,
+        goals,
+        entries,
+        categories: categories.data ?? [],
+      },
+      t,
+    );
+  }
+
+  async function download(content: TemplateContent) {
     setDownloading(true);
     try {
-      const blob = await buildTemplate({ refs, t, locale: i18n.language });
+      const existing = content === "prefilled" ? await loadExisting() : undefined;
+      const blob = await buildTemplate({ refs, t, locale: i18n.language, existing });
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       link.download = `${t("import.template.cardTitle")}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
+      setDownloadOpen(false);
     } catch {
       toast.error(t("import.template.downloadError"));
     } finally {
@@ -103,11 +151,11 @@ export function ImportRoute() {
           <Button
             variant="outline"
             size="sm"
-            disabled={downloading || !query.data || !categories.data}
-            onClick={() => void download()}
+            disabled={!query.data || !categories.data}
+            onClick={() => setDownloadOpen(true)}
           >
             <Download className="h-4 w-4" aria-hidden />
-            {downloading ? t("import.template.downloading") : t("import.template.download")}
+            {t("import.template.download")}
           </Button>
           <Button
             variant="accent"
@@ -124,7 +172,7 @@ export function ImportRoute() {
       <section className="flex flex-col gap-3">
         <h2 className="text-sm font-medium text-muted-foreground">{t("import.pickAccount")}</h2>
         {query.isLoading ? (
-          <LoadingState title={t("app.loading")} />
+          <AccountGridSkeleton label={t("app.loading")} />
         ) : query.isError ? (
           <ErrorState inline error={query.error} onRetry={() => void query.refetch()} />
         ) : list.length === 0 ? (
@@ -170,11 +218,42 @@ export function ImportRoute() {
         )}
       </section>
 
+      <DownloadTemplateDialog
+        open={downloadOpen}
+        onOpenChange={setDownloadOpen}
+        downloading={downloading}
+        onDownload={(content) => void download(content)}
+      />
       <TemplateImportPanel open={templateOpen} onOpenChange={setTemplateOpen} refs={refs} />
 
       {target ? (
         <ImportMovementsPanel key={target.id} open={open} onOpenChange={setOpen} account={target} />
       ) : null}
     </div>
+  );
+}
+
+/** Loading shape of the account picker: the same grid and row height as the real buttons, so
+ * the list lands without moving anything (icon tile, name, meta line, chevron). */
+function AccountGridSkeleton({ label }: Readonly<{ label: string }>) {
+  return (
+    <SkeletonScreen label={label}>
+      <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        {["w-32", "w-40", "w-28", "w-36", "w-24", "w-44"].map((w) => (
+          <li
+            key={w}
+            className="flex items-center gap-3 rounded-xl border bg-card p-4 shadow-sm"
+            aria-hidden
+          >
+            <Skeleton className="h-[34px] w-[34px] shrink-0 rounded-[9px]" />
+            <span className="flex min-w-0 flex-1 flex-col gap-1.5">
+              <Skeleton className={cn("h-3.5", w)} />
+              <Skeleton className="h-3 w-3/4" />
+            </span>
+            <Skeleton className="h-4 w-4 shrink-0 rounded-sm" />
+          </li>
+        ))}
+      </ul>
+    </SkeletonScreen>
   );
 }

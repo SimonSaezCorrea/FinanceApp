@@ -13,6 +13,7 @@ import { GenerateStatementsCommand } from "../application/commands/generate-stat
 import { PayCreditStatementCommand } from "../application/commands/pay-credit-statement.command";
 import { PrepayOpenPeriodCommand } from "../application/commands/prepay-open-period.command";
 import { SyncStatementCommand } from "../application/commands/sync-statement.command";
+import { UpdateStatementDatesCommand } from "../application/commands/update-statement-dates.command";
 import { UpdateStatementPaymentCommand } from "../application/commands/update-statement-payment.command";
 import { ListCreditStatementsQuery } from "../application/queries/list-credit-statements.query";
 import { statementParamsSchema } from "./dto/statement.params";
@@ -35,8 +36,18 @@ export class CreditStatementsController {
   async generateStatements(
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(accountIdParamsSchema)) params: { id: string },
+    @Body(new ZodValidationPipe(accounts.generateStatementSchema))
+    body: accounts.GenerateStatement,
   ): Promise<accounts.CreditStatement[]> {
-    await this.commandBus.execute(new GenerateStatementsCommand(user.id, params.id));
+    await this.commandBus.execute(
+      new GenerateStatementsCommand(
+        user.id,
+        params.id,
+        new Date(body.periodStart),
+        new Date(body.closedAt),
+        new Date(body.dueDate),
+      ),
+    );
     return this.queryBus.execute(new ListCreditStatementsQuery(user.id, params.id));
   }
 
@@ -67,6 +78,7 @@ export class CreditStatementsController {
         body.amount,
         body.paidAt ? new Date(body.paidAt) : undefined,
         body.reference,
+        body.chargedAmount,
       ),
     );
   }
@@ -92,8 +104,31 @@ export class CreditStatementsController {
         idempotencyKey,
         body.paidAt ? new Date(body.paidAt) : undefined,
         body.reference,
+        body.chargedAmount,
       ),
     );
+  }
+
+  /** Correct a generated statement's dates (start, close, payment due). Answers the
+   * whole list, like generating: moving a close also moves the next period. */
+  @Patch(":id/credit-statements/:statementId/dates")
+  async updateStatementDates(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(statementParamsSchema)) params: { id: string; statementId: string },
+    @Body(new ZodValidationPipe(accounts.updateStatementDatesSchema))
+    body: accounts.UpdateStatementDates,
+  ): Promise<accounts.CreditStatement[]> {
+    await this.commandBus.execute(
+      new UpdateStatementDatesCommand(
+        user.id,
+        params.id,
+        params.statementId,
+        new Date(body.periodStart),
+        new Date(body.closedAt),
+        new Date(body.dueDate),
+      ),
+    );
+    return this.queryBus.execute(new ListCreditStatementsQuery(user.id, params.id));
   }
 
   /** Correct what was PAID on a settled period (not its amount — that is `sync`). */
@@ -105,7 +140,13 @@ export class CreditStatementsController {
     body: accounts.UpdateStatementPayment,
   ): Promise<accounts.CreditStatement> {
     return this.commandBus.execute(
-      new UpdateStatementPaymentCommand(user.id, params.id, params.statementId, body.amount),
+      new UpdateStatementPaymentCommand(
+        user.id,
+        params.id,
+        params.statementId,
+        body.amount,
+        body.chargedAmount,
+      ),
     );
   }
 

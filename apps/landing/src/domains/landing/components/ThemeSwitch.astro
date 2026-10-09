@@ -1,0 +1,55 @@
+---
+import { Monitor, Moon, Sun } from "lucide-react";
+
+import { t } from "../../../i18n";
+import type { Language } from "../../../lib/language";
+
+/**
+ * Light · Dark · System, without React: the header script (`scripts/header.ts`) marks the stored
+ * choice with `aria-pressed` and saves a click, the same storage key the app reads. `compact` is
+ * the icon strip of the header (as the app's ThemeToggle); `full` the named 44px segments of the
+ * phone menu (as ThemeSegmented). Static HTML says nothing is pressed until the script runs.
+ */
+interface Props {
+  lang: Language;
+  variant: "compact" | "full";
+}
+const { lang, variant } = Astro.props;
+const OPTIONS = [
+  { mode: "light", Icon: Sun, key: "theme.light" },
+  { mode: "dark", Icon: Moon, key: "theme.dark" },
+  { mode: "system", Icon: Monitor, key: "theme.system" },
+] as const;
+---
+
+{
+  variant === "compact" ? (
+    <div class="inline-flex rounded-md border bg-background p-0.5" role="group" aria-label={t(lang, "theme.label")}>
+      {OPTIONS.map(({ mode, Icon, key }) => (
+        <button
+          type="button"
+          data-theme-option={mode}
+          aria-pressed="false"
+          aria-label={t(lang, key)}
+          class="inline-flex h-7 w-8 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-pressed:bg-primary aria-pressed:text-primary-foreground"
+        >
+          <Icon className="h-4 w-4" aria-hidden />
+        </button>
+      ))}
+    </div>
+  ) : (
+    <div role="group" aria-label={t(lang, "theme.label")} class="grid grid-cols-3 gap-1 rounded-xl border bg-background p-1">
+      {OPTIONS.map(({ mode, Icon, key }) => (
+        <button
+          type="button"
+          data-theme-option={mode}
+          aria-pressed="false"
+          class="group flex h-11 min-w-0 items-center justify-center gap-2 rounded-lg px-2 text-sm font-medium text-muted-foreground transition-colors active:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring aria-pressed:bg-primary/15 aria-pressed:text-foreground"
+        >
+          <Icon className="h-4 w-4 shrink-0 group-aria-pressed:text-primary" aria-hidden />
+          <span class="truncate">{t(lang, key)}</span>
+        </button>
+      ))}
+    </div>
+  )
+}

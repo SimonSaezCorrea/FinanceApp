@@ -58,7 +58,7 @@ export function SavingsInsightsRail({ goals, currency }: Readonly<Props>) {
                   </span>
                   <div className="min-w-0">
                     <p className="truncate text-[13px] font-medium text-foreground">{goal.title}</p>
-                    <p className="truncate text-[11.5px] text-muted-foreground">
+                    <p className="truncate text-xs sm:text-[11.5px] text-muted-foreground">
                       {t("savings.insights.dueIn", { count: monthsLeft })} ·{" "}
                       <MaskedAmount>
                         {t("savings.insights.missing", {
@@ -90,7 +90,7 @@ export function SavingsInsightsRail({ goals, currency }: Readonly<Props>) {
             </span>
             <div className="min-w-0">
               <p className="truncate text-[13px] font-medium text-foreground">{pacer.title}</p>
-              <p className="truncate text-[11.5px] text-muted-foreground">
+              <p className="truncate text-xs sm:text-[11.5px] text-muted-foreground">
                 <MaskedAmount>
                   {t("savings.insights.paceValue", { amount: money(pacer.pace) })}
                 </MaskedAmount>

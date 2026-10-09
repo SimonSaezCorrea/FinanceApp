@@ -132,6 +132,14 @@ export class PrismaTransactionWriterRepository implements TransactionWriterRepos
     return row?.bankAccountId ?? null;
   }
 
+  async amountForTransaction(userId: string, id: string): Promise<string | null> {
+    const row = await this.prisma.transaction.findFirst({
+      where: { id, userId },
+      select: { amount: true },
+    });
+    return row ? row.amount.toFixed(4) : null;
+  }
+
   /** A row may carry its own `id` (pre-minted by the caller so a payment or a
    * contribution can point at its movement without reading it back); one that
    * doesn't gets the schema's UUID v7 default. */
@@ -142,5 +150,13 @@ export class PrismaTransactionWriterRepository implements TransactionWriterRepos
     const client = tx as PrismaService;
     const result = await client.transaction.createMany({ data: rows });
     return result.count;
+  }
+
+  async countForUser(userId: string): Promise<number> {
+    return this.prisma.transaction.count({ where: { userId } });
+  }
+
+  async deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void> {
+    await (tx as PrismaService).transaction.deleteMany({ where: { userId } });
   }
 }

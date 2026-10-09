@@ -12,6 +12,7 @@ import { ImportModule } from "./domains/import/import.module";
 import { InstallmentPlanModule } from "./domains/installment-plan/installment-plan.module";
 import { RecurringExpenseModule } from "./domains/recurring-expense/recurring-expense.module";
 import { CountryModule } from "./domains/country/country.module";
+import { ExchangeRateModule } from "./domains/exchange-rate/exchange-rate.module";
 import { CategoryModule } from "./domains/category/category.module";
 import { CurrencyModule } from "./domains/currency/currency.module";
 import { FinancialInstitutionModule } from "./domains/financial-institution/financial-institution.module";
@@ -41,6 +42,7 @@ import { PrismaModule } from "./infra/prisma/prisma.module";
     RecurringExpenseModule,
     WalletItemDashboardModule,
     CountryModule,
+    ExchangeRateModule,
     CategoryModule,
     CurrencyModule,
     FinancialInstitutionModule,

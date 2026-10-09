@@ -1,10 +1,11 @@
 import { Home, RefreshCw } from "lucide-react";
+import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { isRouteErrorResponse, useRouteError } from "react-router";
 
-import { BrandMark } from "../shared/ui/brand-mark";
-import { Button } from "../shared/ui/button";
-import { NotFoundRoute } from "./NotFoundRoute";
+import { BrandMark } from "@finance/ui/src/shared/ui/brand-mark";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { NotFoundRoute } from "./lazyPages";
 
 /** Replaces react-router's default "Unexpected Application Error!" screen. A 404 thrown by the
  * router gets the real not-found page; anything else is a crash, shown WITHOUT the app/landing
@@ -13,7 +14,12 @@ export function RouteErrorBoundary() {
   const error = useRouteError();
   const { t } = useTranslation();
 
-  if (isRouteErrorResponse(error) && error.status === 404) return <NotFoundRoute />;
+  if (isRouteErrorResponse(error) && error.status === 404)
+    return (
+      <Suspense fallback={null}>
+        <NotFoundRoute />
+      </Suspense>
+    );
   if (import.meta.env.DEV) console.error(error);
 
   return (

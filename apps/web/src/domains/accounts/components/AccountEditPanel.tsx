@@ -7,11 +7,11 @@ import { toast } from "sonner";
 import type { accounts } from "@finance/contracts";
 
 import { useCountries, useInstitutions } from "../../reference/hooks/useReference";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { Button } from "../../../shared/ui/button";
+import { ApiRequestError } from "@finance/client";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { ActiveToggle } from "../../../shared/ui/active-toggle";
-import { ConfirmModal, SidePanel } from "../../../shared/ui/overlay";
-import { UnsavedIndicator } from "../../../shared/ui/unsaved-indicator";
+import { ConfirmModal, SidePanel } from "@finance/ui/src/shared/ui/overlay";
+import { UnsavedIndicator } from "@finance/ui/src/shared/ui/unsaved-indicator";
 import { accounts as accountsContract } from "@finance/contracts";
 
 import { useAccountMutations, useAccounts } from "../hooks/useAccounts";
@@ -191,12 +191,7 @@ export function AccountEditPanel({
             balanceCeiling: account.balanceCeiling ?? "",
             creditLimit: account.creditLimit,
             creditUsedInitial: account.creditUsed,
-            billingCycleDay: account.billingCycleDay?.toString() ?? "",
-            billingCycleType: account.billingCycleType,
-            paymentDueDay: account.paymentDueDay?.toString() ?? "",
-            paymentDueCycleType: account.paymentDueCycleType,
             minimumPaymentPercent: account.minimumPaymentPercent ?? "",
-            paymentMethod: account.paymentMethod,
             extraLimits: initialExtraLimits,
           }}
           onSubmit={(v) =>
@@ -216,14 +211,9 @@ export function AccountEditPanel({
                   balanceCeiling: v.balanceCeiling.trim() || null,
                   creditLimit: v.creditLimit || "0",
                   creditUsedInitial: v.creditUsedInitial || "0",
-                  billingCycleDay: v.billingCycleDay ? Number(v.billingCycleDay) : null,
-                  billingCycleType: v.billingCycleType,
-                  paymentDueDay: v.paymentDueDay ? Number(v.paymentDueDay) : null,
-                  paymentDueCycleType: v.paymentDueCycleType,
                   // Empty = this account has no minimum, which is a real value
                   // (not "unchanged"), so it's sent as an explicit null.
                   minimumPaymentPercent: v.minimumPaymentPercent.trim() || null,
-                  paymentMethod: v.paymentMethod,
                 },
               },
               {

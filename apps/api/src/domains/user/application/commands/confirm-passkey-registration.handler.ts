@@ -7,7 +7,7 @@ import type { RegistrationResponseJSON } from "@simplewebauthn/server";
 
 import type { auth } from "@finance/contracts";
 
-import { getPasskeyExpectedOrigin, getPasskeyRpId } from "../../../../infra/config/passkey.config";
+import { getPasskeyExpectedOrigins, getPasskeyRpId } from "../../../../infra/config/passkey.config";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {
@@ -45,7 +45,7 @@ export class ConfirmPasskeyRegistrationHandler extends BaseCommandHandler<
       verification = await verifyRegistrationResponse({
         response: command.response as RegistrationResponseJSON,
         expectedChallenge: command.expectedChallenge,
-        expectedOrigin: getPasskeyExpectedOrigin(this.config),
+        expectedOrigin: getPasskeyExpectedOrigins(this.config),
         expectedRPID: getPasskeyRpId(this.config),
       });
     } catch {

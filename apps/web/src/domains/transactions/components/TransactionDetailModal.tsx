@@ -5,8 +5,8 @@ import { useTranslation } from "react-i18next";
 import type { accounts, transactions } from "@finance/contracts";
 
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
-import { Button } from "../../../shared/ui/button";
-import { SidePanel } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { balanceAfterTransaction } from "../lib/balanceAfter";
 import { panelNavigation } from "../lib/panelNavigation";
 import { AttachmentsSection } from "./AttachmentsSection";
@@ -70,7 +70,9 @@ export function TransactionDetailModal({
   const account = tx.bankAccountId ? accounts.find((a) => a.id === tx.bankAccountId) : undefined;
   // The API refuses to edit or delete this row (FR-028a); offering the buttons would
   // only produce an error. The panel says why and where to go instead.
-  const isInstallmentPayment = tx.installmentPlanId !== null;
+  // Spec 030 adds the movements that settle a statement in another currency: they are
+  // corrected from their statement, so they get no buttons here either.
+  const isInstallmentPayment = tx.installmentPlanId !== null || tx.settlesStatementId !== null;
 
   const balanceAfter =
     index >= 0 ? balanceAfterTransaction({ items, index, account, dateFiltered }) : null;

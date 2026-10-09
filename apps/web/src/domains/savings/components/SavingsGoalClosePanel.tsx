@@ -5,10 +5,10 @@ import type { accounts as accountsContract, savings } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { accountMetaLine } from "../../accounts/lib/accountMeta";
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { FormDateField, FormSelectField } from "../../../shared/ui/form";
-import { FormSurface } from "../../../shared/ui/overlay";
+import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
 
 export type CloseDestination = "WITHDRAW_TO_ACCOUNT" | "FREE_SAVINGS" | "TRANSFER_TO_GOAL";
 

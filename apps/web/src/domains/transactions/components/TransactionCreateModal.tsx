@@ -11,10 +11,11 @@ import {
   useAccounts,
   useCreditStatements,
 } from "../../accounts/hooks/useAccounts";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
+import { amountToInput } from "../../../shared/lib/amountInput";
 import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
-import { Button } from "../../../shared/ui/button";
-import { ConfirmModal, FormSurface } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { ConfirmModal, FormSurface } from "@finance/ui/src/shared/ui/overlay";
 import { transactionsApi } from "../api/transactionsApi";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useTransferMutations } from "../hooks/useTransferMutations";
@@ -37,6 +38,7 @@ const emptyForm = (date: string): TransactionFormValue => ({
   bankAccountId: "",
   toBankAccountId: "",
   amountIn: "",
+  amountInEdited: false,
   prepayFromAccountId: "",
   cardId: "",
   financeCharge: false,
@@ -188,9 +190,9 @@ export function TransactionCreateModal({
     const prefilled: TransactionFormValue = {
       ...emptyForm(initial ? dateInput(initial.occurredAt) : todayInput()),
       mode: source?.transferGroupId ? "TRANSFER" : (source?.type ?? initialMode ?? "EXPENSE"),
-      // Amounts come back as decimal strings ("32000.0000") but this input is
-      // integer-only, so keep the integer part or the grouping mangles it.
-      amount: source?.amount ? (source.amount.split(".")[0] ?? "") : "",
+      // Amounts come back as decimal strings ("32000.0000", "9.0600"): the form holds
+      // them as typed — no padding zeros, but the cents a dollar movement really has.
+      amount: source?.amount ? amountToInput(source.amount) : "",
       currency: source?.currency ?? "CLP",
       bankAccountId,
       cardId: defaultCardId,
@@ -219,8 +221,10 @@ export function TransactionCreateModal({
       bankAccountId: transferPair.outgoing.bankAccountId ?? "",
       toBankAccountId: transferPair.incoming.bankAccountId ?? "",
       currency: transferPair.outgoing.currency,
-      amount: transferPair.outgoing.amount.split(".")[0] ?? "",
-      amountIn: transferPair.incoming.amount.split(".")[0] ?? "",
+      amount: amountToInput(transferPair.outgoing.amount),
+      amountIn: amountToInput(transferPair.incoming.amount),
+      // What a saved transfer holds is the person's, never to be re-estimated.
+      amountInEdited: true,
     });
     // eslint-disable-next-line react-hooks/set-state-in-effect -- prefill from a fetched pair
     setForm(withPair);
@@ -267,10 +271,18 @@ export function TransactionCreateModal({
     transfer.create.isPending ||
     transfer.update.isPending ||
     prepayCreditStatement.isPending;
+  // Spec 030: across currencies the destination amount is its own figure, and the
+  // submit must never fall back to the origin's (US$100 is not $100).
+  const transferDestination = isTransfer
+    ? accountList?.find((a) => a.id === form.toBankAccountId)
+    : undefined;
+  const transferCrossCurrency =
+    transferDestination !== undefined && transferDestination.currency !== form.currency;
   const canSubmit =
     !!form.amount &&
     !!form.bankAccountId &&
     (!isTransfer || !!form.toBankAccountId) &&
+    (!transferCrossCurrency || Number(form.amountIn) > 0) &&
     (!isPrepay || (!!form.prepayFromAccountId && !!openStatementId)) &&
     !(needsCard && !form.cardId) &&
     !noCardsAvailable &&
@@ -282,6 +294,7 @@ export function TransactionCreateModal({
       ...f,
       amount: "",
       amountIn: "",
+      amountInEdited: false,
       description: "",
       categoryId: "",
       observation: "",

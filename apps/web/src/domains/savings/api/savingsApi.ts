@@ -1,6 +1,6 @@
 import type { savings } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "@finance/client";
 
 export const savingsApi = {
   listGoals: () => apiFetch<savings.SavingsGoal[]>("/savings/goals"),

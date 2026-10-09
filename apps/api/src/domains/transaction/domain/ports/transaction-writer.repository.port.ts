@@ -113,6 +113,10 @@ export interface TransactionWriterRepositoryPort {
    * THAT account's balance, not the plan's currently remembered one — those can
    * differ, and crediting the wrong account is worse than crediting none. */
   accountIdForTransaction(userId: string, id: string): Promise<string | null>;
+  /** What a movement is worth right now (moneyString), or null when it is not the user's.
+   * Correcting a statement's payment needs the figure that was debited BEFORE it moves the
+   * source account's balance by the difference. */
+  amountForTransaction(userId: string, id: string): Promise<string | null>;
   /** Every movement that goes away when an account is deleted with its movements:
    * the account's own, the OTHER leg of each transfer it took part in, the
    * prepayments other accounts made into its billing periods, and `extraIds` —
@@ -131,4 +135,10 @@ export interface TransactionWriterRepositoryPort {
     tx: unknown,
     rows: (Omit<TransactionPlan, "id"> & { id?: string })[],
   ): Promise<number>;
+  /** How many rows of this table the user has: what replacing everything from a
+   * template (specs/027, REPLACE) would delete, shown before confirming. */
+  countForUser(userId: string): Promise<number>;
+  /** Deletes every row of this table the user owns, inside the caller's
+   * transaction: replacing everything from a template rebuilds them from the file. */
+  deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void>;
 }

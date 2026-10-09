@@ -25,15 +25,18 @@ El catálogo de instituciones, monedas y tipos de identificación se reduce a Ch
 ### 2. Tres monedas: CLP, USD y UF
 
 - `CLP` (peso), `USD` (dólar) y **`CLF`, que es el código ISO 4217 de la Unidad de Fomento**.
-- **La UF no se convierte a pesos.** Es una unidad de cuenta reajustable y esta app no tiene
-  proveedor de tipo de cambio: un monto en UF se guarda y se muestra en UF. Sumar UF con CLP sería
-  inventar una cifra.
+- **La UF no se convierte a pesos, salvo en una estimación.** Es una unidad de cuenta reajustable:
+  un monto en UF se guarda y se muestra en UF, y su cuenta no lleva "≈ $" propio. Desde la spec 030
+  la app registra cada día su valor (y el del dólar observado) desde mindicador.cl, y el único lugar
+  donde entra a una suma es el total estimado del patrimonio ("≈ todo en CLP"), rotulado como
+  estimado y con la fecha del valor usado.
 - Los totales **nunca mezclan monedas**: se agrupan por moneda, como ya hace el resumen de
   movimientos (`currencyTotals`).
-- Los "≈ $X CLP" que acompañan montos en dólares salen de una tabla de tasas **estáticas escritas a
-  mano** (`apps/web/src/shared/lib/fx.ts`) y solo se usan como pista visual, nunca para validar,
-  comparar contra un límite ni persistir. **La UF no está en esa tabla**: no hay un valor confiable
-  que escribir, así que un monto en UF simplemente no muestra equivalencia.
+- Los "≈ $X CLP" que acompañan montos en dólares salen de la tabla `exchange-rate` (el valor diario
+  del dólar observado, spec 030) y solo se usan como pista visual o como **sugerencia editable**
+  (pagar o prepagar una facturación en USD, traspasar de USD a CLP), nunca para validar, comparar
+  contra un límite ni persistir sin que la persona lo confirme. La tabla estática `shared/lib/fx.ts`
+  se eliminó.
 - **Se sacó del seed**: las 168 monedas ISO. La lista completa está en el commit `2df6f71`.
 
 ### 3. Inversiones al final

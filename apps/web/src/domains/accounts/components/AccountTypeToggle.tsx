@@ -2,8 +2,8 @@ import { useTranslation } from "react-i18next";
 
 import type { accounts } from "@finance/contracts";
 
-import { cn } from "../../../shared/lib/cn";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { SearchableSelect } from "@finance/ui/src/shared/ui/searchable-select";
 import { ACCOUNT_ICON } from "./accountVisuals";
 
 const TYPES: accounts.AccountType[] = [

@@ -15,5 +15,8 @@ export class PayCreditStatementCommand implements IdempotentCommand {
     public readonly paidAt?: Date,
     /** Free-text note carried onto the payment movement. */
     public readonly reference?: string,
+    /** Spec 030: what left the SOURCE account, in ITS currency — required when that
+     * differs from the statement's (the two amounts are never compared). */
+    public readonly chargedAmount?: string,
   ) {}
 }

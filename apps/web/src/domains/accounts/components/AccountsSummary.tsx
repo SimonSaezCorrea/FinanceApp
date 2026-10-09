@@ -1,40 +1,18 @@
 import { useTranslation } from "react-i18next";
 
 import type { accounts, debts } from "@finance/contracts";
-import { formatMoney, subtractMoney, sumMoney } from "@finance/money";
+import { formatMoney } from "@finance/money";
 
-import { convertApprox } from "../../../shared/lib/fx";
-import { leftAmount } from "../../debts/lib/debtMetrics";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
-import { accountsSummary, type CurrencyTotal } from "../lib/grouping";
+import { netWorthByCurrency } from "../lib/netWorth";
+import { EstimatedTotalLine } from "./EstimatedTotalLine";
 
 /**
- * Net worth across the whole account list, expressed in the user's primary
- * currency. Foreign balances are folded in through the STATIC approximate rates
- * in `shared/lib/fx` (there is no live FX provider) — hence "≈"; the untouched
- * per-currency amounts are still listed as chips underneath.
+ * Net worth, the SAME figure the Panel shows (`netWorthByCurrency`): the hero is
+ * the primary currency (accounts − card debt ± pending debts) and every other
+ * currency is a chip of its own net, never converted — this app has no exchange
+ * rate. Activos / Deuda tarjetas / Deudas break the hero down, so they add up to it.
  */
-function inPrimary(totals: CurrencyTotal[], primary: string): string {
-  return sumMoney(
-    totals.map((x) =>
-      x.currency === primary ? x.total : (convertApprox(x.total, x.currency, primary) ?? "0"),
-    ),
-  );
-}
-
-/** What people owe you minus what you owe them, still pending, in `primary` —
- * the same figure the Panel folds into its net worth, so both agree. */
-function debtsInPrimary(list: debts.Debt[], primary: string): string {
-  return sumMoney(
-    list
-      .filter((d) => d.settledAt === null)
-      .map((d) => {
-        const left = d.direction === "YOU_OWE" ? subtractMoney("0", leftAmount(d)) : leftAmount(d);
-        return d.currency === primary ? left : (convertApprox(left, d.currency, primary) ?? "0");
-      }),
-  );
-}
-
 export function AccountsSummary({
   list,
   primaryCurrency,
@@ -59,12 +37,13 @@ export function AccountsSummary({
   const heroCurrency = primaryCurrency;
   const money = (value: string, currency: string) =>
     formatMoney(value, { locale: i18n.language, currency });
-  const { net, assets, cardDebt } = unavailable
-    ? { net: [], assets: [], cardDebt: [] }
-    : accountsSummary(list);
   const dash = "—";
-  const debtsNet = debtsInPrimary(debtList, heroCurrency);
-  const hasDebts = debtList.some((d) => d.settledAt === null);
+  const [hero, ...others] = netWorthByCurrency(
+    unavailable ? [] : list,
+    unavailable ? [] : debtList,
+    heroCurrency,
+  );
+  const hasDebts = debtList.some((d) => d.settledAt === null && d.currency === heroCurrency);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card px-4 py-5 sm:px-6">
@@ -79,62 +58,59 @@ export function AccountsSummary({
             card taller than the right-hand column and left it visually top-heavy. */}
         <div className="mt-1 flex flex-wrap items-baseline gap-x-3 gap-y-1.5">
           <p className="text-[26px] font-bold tabular-nums leading-none tracking-tight sm:text-[30px]">
-            {unavailable ? (
-              dash
-            ) : (
-              <MaskedAmount>
-                {money(sumMoney([inPrimary(net, heroCurrency), debtsNet]), heroCurrency)}
-              </MaskedAmount>
-            )}
+            {unavailable ? dash : <MaskedAmount>{money(hero!.net, heroCurrency)}</MaskedAmount>}
           </p>
           {!unavailable &&
-            net
-              .filter((n) => n.currency !== heroCurrency)
-              .map((n) => (
-                <span
-                  key={n.currency}
-                  className="rounded-full bg-chip px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground"
-                >
-                  <MaskedAmount>{money(n.total, n.currency)}</MaskedAmount>
-                </span>
-              ))}
+            others.map((n) => (
+              <span
+                key={n.currency}
+                className="rounded-full bg-chip px-2 py-0.5 text-xs sm:text-[11px] tabular-nums text-muted-foreground"
+              >
+                <MaskedAmount>{money(n.net, n.currency)}</MaskedAmount>
+              </span>
+            ))}
         </div>
+        {unavailable ? null : (
+          <EstimatedTotalLine nets={[hero!, ...others]} className="mt-1.5 text-xs text-dim" />
+        )}
       </div>
 
       {/* At 320px these two amounts no longer fit on one line beside each other:
           they wrap to their own rows instead of overflowing the card. */}
       <div className="flex flex-wrap gap-x-6 gap-y-2 sm:gap-8">
         <div className="text-right">
-          <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.assets")}</p>
+          <p className="text-xs sm:text-[11.5px] text-muted-foreground">
+            {t("accounts.overview.assets")}
+          </p>
           <p className="mt-1 text-base font-semibold tabular-nums text-success">
-            {unavailable ? (
-              dash
-            ) : (
-              <MaskedAmount>{money(inPrimary(assets, heroCurrency), heroCurrency)}</MaskedAmount>
-            )}
+            {unavailable ? dash : <MaskedAmount>{money(hero!.assets, heroCurrency)}</MaskedAmount>}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.cardDebt")}</p>
+          <p className="text-xs sm:text-[11.5px] text-muted-foreground">
+            {t("accounts.overview.cardDebt")}
+          </p>
           <p className="mt-1 text-base font-semibold tabular-nums text-accent">
             {unavailable ? (
               dash
             ) : (
-              <MaskedAmount>{`−${money(inPrimary(cardDebt, heroCurrency), heroCurrency)}`}</MaskedAmount>
+              <MaskedAmount>{`−${money(hero!.cardDebt, heroCurrency)}`}</MaskedAmount>
             )}
           </p>
         </div>
         {hasDebts ? (
           <div className="text-right">
-            <p className="text-[11.5px] text-muted-foreground">{t("accounts.overview.debts")}</p>
+            <p className="text-xs sm:text-[11.5px] text-muted-foreground">
+              {t("accounts.overview.debts")}
+            </p>
             <p
               className={
-                Number(debtsNet) < 0
+                Number(hero!.debts) < 0
                   ? "mt-1 text-base font-semibold tabular-nums text-accent"
                   : "mt-1 text-base font-semibold tabular-nums text-success"
               }
             >
-              {unavailable ? dash : <MaskedAmount>{money(debtsNet, heroCurrency)}</MaskedAmount>}
+              {unavailable ? dash : <MaskedAmount>{money(hero!.debts, heroCurrency)}</MaskedAmount>}
             </p>
           </div>
         ) : null}

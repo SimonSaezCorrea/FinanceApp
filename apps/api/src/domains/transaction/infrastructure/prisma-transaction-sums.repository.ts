@@ -26,6 +26,20 @@ const EXCLUDE_PLAN_PURCHASES = { installmentPlanId: null } as const;
  * belongs to no period — counting it would take the same payment off twice. */
 export const EXCLUDE_SETTLEMENTS = { settlesStatementId: null } as const;
 
+/**
+ * A card's tally of what is "still owed" leaves out whatever belongs to a statement that was
+ * already PAID: its purchases (the debt left the pool at payment time) AND, since spec 030, the
+ * settlement INCOME that paid it — the two cancel, so keeping only one of them would leave a
+ * negative usage. A settlement of a period still unpaid (a prepago of the open period) keeps
+ * counting: it really did lower what is owed so far.
+ */
+export const STILL_OWED: Prisma.TransactionWhereInput = {
+  AND: [
+    { OR: [{ creditStatementId: null }, { creditStatement: { paidAt: null } }] },
+    { OR: [{ settlesStatementId: null }, { settlesStatement: { paidAt: null } }] },
+  ],
+};
+
 /** Adapter for the read/aggregation half of the `transaction` table. */
 @Injectable()
 export class PrismaTransactionSumsRepository implements TransactionSumsRepositoryPort {
@@ -83,7 +97,7 @@ export class PrismaTransactionSumsRepository implements TransactionSumsRepositor
           // (`creditUsed`) it's a breakdown of. Once a statement is PAID, its debt
           // already left the pool — leaving these rows in would count it forever,
           // which is what made a card's usage bar drift past the account's own.
-          OR: [{ creditStatementId: null }, { creditStatement: { paidAt: null } }],
+          ...STILL_OWED,
           // The plan's purchase reserves the pool once, on day one (spec 014); what
           // gets paid off after that is tracked per-instalment/period, never against
           // this one row — summing it here would double it against that tracking
@@ -104,8 +118,9 @@ export class PrismaTransactionSumsRepository implements TransactionSumsRepositor
     return result;
   }
 
-  async netForStatement(statementId: string): Promise<string> {
-    const grouped = await this.prisma.transaction.groupBy({
+  async netForStatement(statementId: string, tx?: unknown): Promise<string> {
+    const client = (tx as PrismaService | undefined) ?? this.prisma;
+    const grouped = await client.transaction.groupBy({
       by: ["type"],
       where: { creditStatementId: statementId, ...EXCLUDE_PLAN_PURCHASES, ...EXCLUDE_SETTLEMENTS },
       _sum: { amount: true },

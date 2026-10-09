@@ -49,3 +49,6 @@ graphify-out/*.sig
 graphify-out/.graphify_labels.json.sig
 graphify-out/20[0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
 graphify-out/.rebuild.lock
+
+# astro
+apps/landing/.astro

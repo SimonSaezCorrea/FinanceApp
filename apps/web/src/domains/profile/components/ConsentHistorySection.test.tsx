@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { Providers } from "../../../app/providers";
@@ -30,7 +30,6 @@ describe("ConsentHistorySection", () => {
       },
     ]);
     renderSection();
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.consents.title") }));
 
     expect(
       await screen.findByText(i18n.t("profile.consents.type.sensitiveDataProcessing")),
@@ -41,7 +40,6 @@ describe("ConsentHistorySection", () => {
   it("shows the empty state when there are no consents", async () => {
     listConsents.mockResolvedValue([]);
     renderSection();
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.consents.title") }));
 
     expect(await screen.findByText(i18n.t("profile.consents.empty"))).toBeDefined();
   });

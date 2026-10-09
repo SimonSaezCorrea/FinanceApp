@@ -4,8 +4,8 @@ import { useTranslation } from "react-i18next";
 
 import { formatMoney } from "@finance/money";
 
-import { convertApprox } from "../../../shared/lib/fx";
-import { Button } from "../../../shared/ui/button";
+import { ApproxAmount } from "../../exchange-rates/components/ApproxAmount";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { Segmented } from "../../../shared/ui/segmented";
 import { Skeleton } from "../../../shared/ui/skeleton";
@@ -58,16 +58,13 @@ export function AccountsRoute() {
     [list, groupBy, primaryCurrency, t],
   );
 
-  /** Group total, plus its "≈ in my currency" hint when the group is foreign-only. */
+  /** Group total, plus a "≈ pesos" hint (spec 030) when the group is a single USD figure. */
   const groupTotal = (totals: { currency: string; total: string }[]) => {
     const money = (value: string, currency: string) =>
       formatMoney(value, { locale: i18n.language, currency });
     const native = totals.map((x) => money(x.total, x.currency)).join(" · ");
-    const approx =
-      totals.length === 1 && totals[0] && totals[0].currency !== primaryCurrency
-        ? convertApprox(totals[0].total, totals[0].currency, primaryCurrency)
-        : null;
-    return { native, approx: approx === null ? null : money(approx, primaryCurrency) };
+    const single = totals.length === 1 ? totals[0] : undefined;
+    return { native, single };
   };
 
   // Rendered by both the loaded view and the skeleton: these controls are client
@@ -149,7 +146,7 @@ export function AccountsRoute() {
               return (
                 <section key={group.key} className="flex flex-col gap-3">
                   <div className="flex items-center gap-3">
-                    <h2 className="text-[11px] font-semibold uppercase tracking-[0.09em] text-dim">
+                    <h2 className="text-xs sm:text-[11px] font-semibold uppercase tracking-[0.09em] text-dim">
                       {group.title}
                       <span className="ml-2 font-normal normal-case tracking-normal">
                         {t("accounts.groupBy.count", { count: group.accounts.length })}
@@ -159,14 +156,18 @@ export function AccountsRoute() {
                     {/* A multi-currency group lists one total per currency (no summing across). */}
                     <span className="text-[12.5px] font-semibold tabular-nums">
                       {total.native}
-                      {total.approx ? (
-                        <span className="font-normal text-dim"> ≈ {total.approx}</span>
+                      {total.single ? (
+                        <ApproxAmount
+                          amount={total.single.total}
+                          currency={total.single.currency}
+                          className="ml-1.5 font-normal text-dim"
+                        />
                       ) : null}
                     </span>
                   </div>
                   <div className="grid grid-cols-[repeat(auto-fill,minmax(248px,1fr))] gap-3.5">
                     {group.accounts.map((acc) => (
-                      <AccountCard key={acc.id} account={acc} primaryCurrency={primaryCurrency} />
+                      <AccountCard key={acc.id} account={acc} />
                     ))}
                   </div>
                 </section>

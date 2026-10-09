@@ -33,4 +33,10 @@ export interface DebtRepositoryPort {
    * no longer reverse a movement or a balance that won't exist, so undo only moves
    * the counter back, same as a payment recorded before those columns existed. */
   clearLastPaymentForAccountWithTx(tx: unknown, userId: string, accountId: string): Promise<void>;
+  /** How many rows of this table the user has: what replacing everything from a
+   * template (specs/027, REPLACE) would delete, shown before confirming. */
+  countForUser(userId: string): Promise<number>;
+  /** Deletes every row of this table the user owns, inside the caller's
+   * transaction: replacing everything from a template rebuilds them from the file. */
+  deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void>;
 }

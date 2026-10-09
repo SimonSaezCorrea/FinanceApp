@@ -1,7 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
-import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
 import { useConsentsQuery } from "../hooks/useProfile";
 
 const CONSENT_TYPE_KEYS: Record<string, string> = {
@@ -31,8 +30,16 @@ export function ConsentHistorySection() {
   const list = consents ?? [];
 
   return (
-    <CollapsibleSection title={t("profile.consents.title")}>
-      <p className="mb-3 text-xs text-muted-foreground">{t("profile.consents.description")}</p>
+    <section
+      aria-labelledby="profile-consents-title"
+      className="flex flex-col gap-3 rounded-2xl border bg-card p-5"
+    >
+      <div className="flex flex-col gap-1">
+        <h2 id="profile-consents-title" className="text-base font-semibold">
+          {t("profile.consents.title")}
+        </h2>
+        <p className="text-xs text-muted-foreground">{t("profile.consents.description")}</p>
+      </div>
       <div className="overflow-hidden rounded-lg border">
         {isLoading ? (
           <p className="px-3.5 py-2.5 text-xs text-muted-foreground">
@@ -45,14 +52,14 @@ export function ConsentHistorySection() {
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-medium">{t(CONSENT_TYPE_KEYS[c.type] ?? c.type)}</div>
                 {c.guardianName ? (
-                  <div className="text-[11px] text-muted-foreground">
+                  <div className="text-xs sm:text-[11px] text-muted-foreground">
                     {c.guardianName}
                     {c.guardianRelationship
                       ? ` · ${t(GUARDIAN_RELATIONSHIP_KEYS[c.guardianRelationship] ?? c.guardianRelationship)}`
                       : ""}
                   </div>
                 ) : null}
-                <div className="text-[11px] text-muted-foreground">
+                <div className="text-xs sm:text-[11px] text-muted-foreground">
                   {t("profile.consents.grantedAt", {
                     date: new Date(c.grantedAt).toLocaleDateString(i18n.language),
                     version: c.policyVersion,
@@ -73,6 +80,6 @@ export function ConsentHistorySection() {
           </p>
         ) : null}
       </div>
-    </CollapsibleSection>
+    </section>
   );
 }

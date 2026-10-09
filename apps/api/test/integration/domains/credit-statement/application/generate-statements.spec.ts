@@ -8,6 +8,7 @@ import { GenerateStatementsHandler } from "../../../../../src/domains/credit-sta
 import { SyncStatementCommand } from "../../../../../src/domains/credit-statement/application/commands/sync-statement.command";
 import { SyncStatementHandler } from "../../../../../src/domains/credit-statement/application/commands/sync-statement.handler";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
+
 import {
   buildBankAccountRepo,
   buildCreditStatementRepo,
@@ -16,9 +17,22 @@ import {
   buildTransactionWriterRepo,
 } from "../../../support/repositories";
 
+/** A statement as the user types it: start of `start`'s day, end of `close`'s and
+ * `due`'s (UTC here — the browser sends its own zone's). */
+function gen(userId: string, accountId: string, start: string, close: string, due: string) {
+  return new GenerateStatementsCommand(
+    userId,
+    accountId,
+    new Date(`${start}T00:00:00.000Z`),
+    new Date(`${close}T23:59:59.999Z`),
+    new Date(`${due}T23:59:59.999Z`),
+  );
+}
+
 /**
- * Spec 014 — closing a period stamps the instalments it charges, and does so
- * EXACTLY ONCE across gaps in period generation (FR-008, FR-009, FR-012, FR-013).
+ * "Generar facturación" with user-declared dates: closes every currency together,
+ * stamps the instalments due by the close exactly once (spec 014), and keeps each
+ * movement in the period its date belongs to.
  * Requires a reachable Postgres (real test DB; not part of `test:unit`).
  *
  * Each `it` gets its OWN account: `findOrCreateOpenForAccount` chains a new
@@ -41,6 +55,7 @@ describe("GenerateStatementsHandler closes every currency together (integration,
     accountRepo,
     statementRepo,
     buildInstallmentPlanRepo(prisma),
+    buildTransactionWriterRepo(prisma),
     prisma,
   );
   const userId = `u_${randomUUID()}`;
@@ -98,12 +113,25 @@ describe("GenerateStatementsHandler closes every currency together (integration,
     await statementRepo.findOrCreateOpenForAccount(account.id, start, "CLP");
     await statementRepo.findOrCreateOpenForAccount(account.id, start, "USD");
 
-    expect(await handler.execute(new GenerateStatementsCommand(userId, account.id))).toBe(true);
+    expect(
+      await handler.execute(gen(userId, account.id, "2025-01-03", "2025-02-02", "2025-02-15")),
+    ).toBe(true);
 
-    const rows = await prisma.creditStatement.findMany({ where: { accountId: account.id } });
+    const rows = await prisma.creditStatement.findMany({
+      where: { accountId: account.id, closedAt: { not: null } },
+    });
     expect(rows.map((r) => r.currency).sort()).toEqual(["CLP", "USD"]);
-    expect(rows.every((r) => r.closedAt !== null)).toBe(true);
-    expect(rows[0]!.closedAt!.getTime()).toBe(rows[1]!.closedAt!.getTime());
+    for (const r of rows) {
+      expect(r.periodStart).toEqual(new Date("2025-01-03T00:00:00.000Z"));
+      expect(r.closedAt).toEqual(new Date("2025-02-02T23:59:59.999Z"));
+      expect(r.dueDate).toEqual(new Date("2025-02-15T23:59:59.999Z"));
+    }
+    // The next period of each currency starts right after the close.
+    const next = await prisma.creditStatement.findMany({
+      where: { accountId: account.id, closedAt: null },
+    });
+    expect(next.map((r) => r.currency).sort()).toEqual(["CLP", "USD"]);
+    expect(next.every((r) => r.periodStart.getTime() === Date.UTC(2025, 1, 3))).toBe(true);
   });
 });
 
@@ -117,6 +145,7 @@ describe("GenerateStatementsHandler stamps instalments (integration)", () => {
     accountRepo,
     statementRepo,
     planRepo,
+    buildTransactionWriterRepo(prisma),
     prisma,
   );
   const userId = `u_${randomUUID()}`;
@@ -235,57 +264,65 @@ describe("GenerateStatementsHandler stamps instalments (integration)", () => {
     const planId = await createPlan(cardId, new Date("2026-01-05T00:00:00.000Z"), 12);
     await openPeriodAt(accountId, new Date("2026-01-01T00:00:00.000Z"));
 
-    const closed = await handler.execute(new GenerateStatementsCommand(userId, accountId));
+    const closed = await handler.execute(
+      gen(userId, accountId, "2026-01-01", "2026-01-10", "2026-01-25"),
+    );
     expect(closed).toBe(true);
     expect(await billedSequences(planId)).toEqual([1]);
   });
 
-  // FR-009 — the gap case that justifies the whole column: a whole cycle passes with
-  // no card activity, so no period is EVER generated for it. Once activity resumes,
-  // the instalment that fell due during the gap must still be charged exactly once —
-  // never lost, never doubled up with the one after it.
-  //
-  // Walked as TWO closes, because that is what actually happens in production: each
-  // close only reaches the immediate next boundary after its period's start, and the
-  // account's next OPEN period always continues from where the last one closed
-  // (`findOrCreateOpenForAccount`). A gap of silence doesn't change that mechanics —
-  // it just means the period that eventually reopens still starts where the last
-  // close left off, so nothing in between is skipped.
-  it("charges everything still unbilled across a gap with no generated period, exactly once", async () => {
+  it("bills one instalment per generated statement, each exactly once", async () => {
     const { accountId, cardId } = await createAccount();
     const planId = await createPlan(cardId, new Date("2026-02-05T00:00:00.000Z"), 3);
 
-    // Cycle 1: closes at Feb 5, billing instalment 1. No card activity in the cycles
-    // that follow — nothing forces a new period for a while (the gap).
-    await openPeriodAt(accountId, new Date("2026-02-01T00:00:00.000Z"));
-    await handler.execute(new GenerateStatementsCommand(userId, accountId));
+    await handler.execute(gen(userId, accountId, "2026-02-01", "2026-02-20", "2026-03-05"));
     expect(await billedSequences(planId)).toEqual([1]);
-
-    // Activity resumes. No card activity meant no OPEN period existed in the
-    // meantime; the account had none to reuse (its last one closed at Feb 5), so
-    // the new one continues exactly there — the real chaining mechanism, not a
-    // date this test hands it. Closing it reaches its own next boundary (Mar 5)
-    // and must bill instalment 2 — not instalment 1 again.
-    const reopened = await statementRepo.findOrCreateOpenForAccount(
-      accountId,
-      new Date("2026-02-05T00:00:00.000Z"), // fallback, unused: a prior close exists
-      "CLP",
-    );
-    const reopenedRow = await prisma.creditStatement.findUnique({ where: { id: reopened.id } });
-    expect(reopenedRow?.periodStart).toEqual(new Date("2026-02-05T00:00:00.000Z"));
-
-    await handler.execute(new GenerateStatementsCommand(userId, accountId));
+    await handler.execute(gen(userId, accountId, "2026-02-21", "2026-03-20", "2026-04-05"));
     expect(await billedSequences(planId)).toEqual([1, 2]);
-
-    // And once more: the third and last instalment.
-    const reopenedAgain = await statementRepo.findOrCreateOpenForAccount(
-      accountId,
-      new Date(),
-      "CLP",
-    );
-    expect(reopenedAgain.id).not.toBe(reopened.id);
-    await handler.execute(new GenerateStatementsCommand(userId, accountId));
+    await handler.execute(gen(userId, accountId, "2026-03-21", "2026-04-20", "2026-05-05"));
     expect(await billedSequences(planId)).toEqual([1, 2, 3]);
+  });
+
+  it("refuses a start before the last close; a close still ahead is fine", async () => {
+    const { accountId } = await createAccount();
+    await handler.execute(gen(userId, accountId, "2026-02-01", "2026-02-20", "2026-03-05"));
+    await expect(
+      handler.execute(gen(userId, accountId, "2026-02-15", "2026-03-20", "2026-04-05")),
+    ).rejects.toMatchObject({ code: "STATEMENT_PERIOD_OVERLAPS" });
+    await expect(
+      handler.execute(gen(userId, accountId, "2026-02-21", "2999-01-01", "2999-01-10")),
+    ).resolves.toBe(true);
+  });
+
+  it("bills what is dated inside the period and moves later movements to the next one", async () => {
+    const { accountId, cardId } = await createAccount();
+    const openId = await openPeriodAt(accountId, new Date("2026-03-01T00:00:00.000Z"));
+    const movement = (day: string, amount: string) =>
+      prisma.transaction.create({
+        data: {
+          userId,
+          bankAccountId: accountId,
+          cardId,
+          type: "EXPENSE",
+          amount,
+          currency: "CLP",
+          occurredAt: new Date(`${day}T00:00:00.000Z`),
+          creditStatementId: openId,
+        },
+        select: { id: true },
+      });
+    const inside = await movement("2026-03-20", "1000");
+    const after = await movement("2026-03-22", "2000");
+
+    await handler.execute(gen(userId, accountId, "2026-03-01", "2026-03-20", "2026-04-05"));
+
+    const rows = await prisma.transaction.findMany({
+      where: { id: { in: [inside.id, after.id] } },
+      select: { id: true, creditStatementId: true },
+    });
+    const next = await prisma.creditStatement.findFirst({ where: { accountId, closedAt: null } });
+    expect(rows.find((r) => r.id === inside.id)?.creditStatementId).toBe(openId);
+    expect(rows.find((r) => r.id === after.id)?.creditStatementId).toBe(next?.id);
   });
 
   // FR-013 — after the last instalment, the plan contributes nothing more. No
@@ -295,15 +332,10 @@ describe("GenerateStatementsHandler stamps instalments (integration)", () => {
     const planId = await createPlan(cardId, new Date("2026-05-05T00:00:00.000Z"), 1);
     await openPeriodAt(accountId, new Date("2026-05-01T00:00:00.000Z"));
 
-    await handler.execute(new GenerateStatementsCommand(userId, accountId));
+    await handler.execute(gen(userId, accountId, "2026-05-01", "2026-05-10", "2026-05-25"));
     expect(await billedSequences(planId)).toEqual([1]);
 
-    await statementRepo.findOrCreateOpenForAccount(
-      accountId,
-      new Date("2026-05-05T00:00:00.000Z"),
-      "CLP",
-    );
-    await handler.execute(new GenerateStatementsCommand(userId, accountId));
+    await handler.execute(gen(userId, accountId, "2026-05-11", "2026-06-10", "2026-06-25"));
     expect(await billedSequences(planId)).toEqual([1]); // unchanged: nothing left to bill
   });
 
@@ -315,7 +347,7 @@ describe("GenerateStatementsHandler stamps instalments (integration)", () => {
     const planId = await createPlan(cardId, new Date("2026-07-05T00:00:00.000Z"), 1);
     const statementId = await openPeriodAt(accountId, new Date("2026-07-01T00:00:00.000Z"));
 
-    await handler.execute(new GenerateStatementsCommand(userId, accountId));
+    await handler.execute(gen(userId, accountId, "2026-07-01", "2026-07-10", "2026-07-25"));
     expect(await billedSequences(planId)).toEqual([1]);
     const billedBefore = await prisma.installmentPayment.findFirst({
       where: { installmentPlanId: planId },
@@ -336,5 +368,32 @@ describe("GenerateStatementsHandler stamps instalments (integration)", () => {
       where: { installmentPlanId: planId },
     });
     expect(billedAfter?.creditStatementId).toBe(statementId);
+  });
+
+  it("a statement closing ahead keeps receiving the movements dated inside it", async () => {
+    const { accountId } = await createAccount();
+    const ymd = (d: Date) => d.toISOString().slice(0, 10);
+    const close = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000);
+    const due = new Date(close.getTime() + 10 * 24 * 60 * 60 * 1000);
+    await handler.execute(gen(userId, accountId, "2026-02-01", ymd(close), ymd(due)));
+    const generated = await prisma.creditStatement.findFirstOrThrow({
+      where: { accountId, closedAt: { not: null } },
+    });
+
+    const today = await statementRepo.findOrCreateOpenForAccount(
+      accountId,
+      new Date(),
+      "CLP",
+      new Date(),
+    );
+    expect(today.id).toBe(generated.id);
+    // Dated after that close: the period that follows it.
+    const later = await statementRepo.findOrCreateOpenForAccount(
+      accountId,
+      new Date(),
+      "CLP",
+      new Date(close.getTime() + 2 * 24 * 60 * 60 * 1000),
+    );
+    expect(later.id).not.toBe(generated.id);
   });
 });

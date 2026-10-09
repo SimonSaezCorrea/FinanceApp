@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { debts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { ErrorState } from "../../../shared/ui/states";
 import { SwipeRow } from "../../../shared/ui/swipe-row";
 import { dueInfo, formatDebtDate, initials, isOverdue, leftAmount } from "../lib/debtMetrics";
@@ -128,7 +128,7 @@ export function DebtList({
                     {isOwedToYou ? "+" : "−"}
                     {formatMoney(left, { locale: i18n.language, currency: debt.currency })}
                   </span>
-                  <span className="text-[11px] text-muted-foreground">{dueNote}</span>
+                  <span className="text-xs sm:text-[11px] text-muted-foreground">{dueNote}</span>
                 </span>
               </div>
             </SwipeRow>

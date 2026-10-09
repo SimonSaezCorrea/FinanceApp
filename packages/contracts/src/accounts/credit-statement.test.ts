@@ -3,8 +3,11 @@ import { describe, expect, it } from "vitest";
 import {
   canTransferStatement,
   creditStatementStatus,
+  generateStatementSchema,
   isSettled,
+  suggestedPeriodStart,
   payCreditStatementSchema,
+  prepayCreditStatementSchema,
   transferCreditStatementSchema,
   updateStatementPaymentSchema,
 } from "./index";
@@ -80,5 +83,66 @@ describe("statement write schemas", () => {
     expect(
       updateStatementPaymentSchema.parse({ amount: "30", chargedAmount: "28000" }).chargedAmount,
     ).toBe("28000");
+  });
+});
+
+describe("generateStatementSchema", () => {
+  const ok = {
+    periodStart: "2026-08-21T04:00:00.000Z",
+    closedAt: "2026-09-21T02:59:59.999Z",
+    dueDate: "2026-10-06T02:59:59.999Z",
+  };
+  it("accepts start < close <= due", () => {
+    expect(generateStatementSchema.safeParse(ok).success).toBe(true);
+  });
+  it("rejects a close before the start and a due date before the close", () => {
+    expect(generateStatementSchema.safeParse({ ...ok, closedAt: ok.periodStart }).success).toBe(
+      false,
+    );
+    expect(generateStatementSchema.safeParse({ ...ok, dueDate: ok.periodStart }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe("suggestedPeriodStart", () => {
+  it("is the local day after the latest close, whatever the currency", () => {
+    const close = new Date(2026, 7, 20, 23, 59, 59, 999);
+    const older = new Date(2026, 6, 20, 23, 59, 59, 999);
+    expect(
+      suggestedPeriodStart([
+        { closedAt: older.toISOString() },
+        { closedAt: close.toISOString() },
+        { closedAt: null },
+      ]),
+    ).toBe("2026-08-21");
+  });
+  it("is null when the account was never billed", () => {
+    expect(suggestedPeriodStart([{ closedAt: null }])).toBeNull();
+  });
+});
+
+describe("prepayCreditStatementSchema (spec 030)", () => {
+  const body = { fromAccountId: "0199e7c5-0000-7000-8000-000000000001", amount: "20.00" };
+
+  it("still requires an amount", () => {
+    expect(
+      prepayCreditStatementSchema.safeParse({ fromAccountId: body.fromAccountId }).success,
+    ).toBe(false);
+  });
+
+  it("accepts the amount debited from the source account, in ITS currency", () => {
+    const parsed = prepayCreditStatementSchema.parse({ ...body, chargedAmount: "19600" });
+    expect(parsed.chargedAmount).toBe("19600");
+  });
+
+  it("keeps working without it (a prepago in the account's own currency)", () => {
+    expect(prepayCreditStatementSchema.safeParse(body).success).toBe(true);
+  });
+
+  it("rejects a non-decimal chargedAmount", () => {
+    expect(prepayCreditStatementSchema.safeParse({ ...body, chargedAmount: "abc" }).success).toBe(
+      false,
+    );
   });
 });

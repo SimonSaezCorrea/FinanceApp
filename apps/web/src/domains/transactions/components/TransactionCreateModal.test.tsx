@@ -6,13 +6,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { accounts } from "@finance/contracts";
 
 import i18n from "../../../i18n";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import { AuthProvider } from "../../auth/hooks/useAuth";
 import { accountsApi } from "../../accounts/api/accountsApi";
 import { transactionsApi } from "../api/transactionsApi";
 import { TransactionCreateModal } from "./TransactionCreateModal";
 
-vi.mock("../../auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: {
     me: () =>
       Promise.resolve({

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 import { useAuth } from "../../auth/hooks/useAuth";
-import { useTheme } from "../../../theme/useTheme";
+import { useTheme } from "@finance/ui/src/theme/useTheme";
 import { useProfileMutations } from "../hooks/useProfile";
 
 /**

@@ -4,11 +4,11 @@ import { Check, Clock, Info, Pencil, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { CategoryIcon } from "../../reference/components/CategoryIcon";
-import { SidePanel } from "../../../shared/ui/overlay";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import {
   billingWarningKey,
   nextDuePayment,

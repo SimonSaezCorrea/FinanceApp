@@ -137,14 +137,30 @@ describe("Accounts HTTP (e2e)", () => {
 
     const generateRes = await request(app.getHttpServer())
       .post(`/api/v1/accounts/${creditAccountId}/generate-statements`)
-      .set("Cookie", cookies);
+      .set("Cookie", cookies)
+      .send({
+        periodStart: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        closedAt: new Date(Date.now() + 60 * 1000).toISOString(),
+        dueDate: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000).toISOString(),
+      });
     expect(generateRes.status).toBe(201);
 
     const statements = await request(app.getHttpServer())
       .get(`/api/v1/accounts/${creditAccountId}/credit-statements`)
       .set("Cookie", cookies);
     expect(statements.body.length).toBeGreaterThan(0);
-    const statementId = statements.body[0].id;
+    // Generating also opens the next (empty) period: pay the one just closed.
+    const statementId = statements.body.find((s: { closedAt: string | null }) => s.closedAt).id;
+
+    // "Editar fechas": only the due date here, the window stays.
+    const closed = statements.body.find((s: { id: string }) => s.id === statementId);
+    const newDue = new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString();
+    const datesRes = await request(app.getHttpServer())
+      .patch(`/api/v1/accounts/${creditAccountId}/credit-statements/${statementId}/dates`)
+      .set("Cookie", cookies)
+      .send({ periodStart: closed.periodStart, closedAt: closed.closedAt, dueDate: newDue });
+    expect(datesRes.status).toBe(200);
+    expect(datesRes.body.find((s: { id: string }) => s.id === statementId).dueDate).toBe(newDue);
 
     const payRes = await request(app.getHttpServer())
       .post(`/api/v1/accounts/${creditAccountId}/credit-statements/${statementId}/pay`)

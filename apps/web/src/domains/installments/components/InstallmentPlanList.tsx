@@ -3,7 +3,7 @@ import { formatMoney } from "@finance/money";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { ErrorState } from "../../../shared/ui/states";
 import { SwipeRow } from "../../../shared/ui/swipe-row";

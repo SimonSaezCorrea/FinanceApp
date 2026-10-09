@@ -5,12 +5,12 @@ import { useTranslation } from "react-i18next";
 import { accounts as accountsContract, type accounts } from "@finance/contracts";
 
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
-import { DetailRow } from "../../../shared/ui/detail-row";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import { Field } from "../../../shared/ui/field";
 import { FormSelectField, FormSwitchField, FormTextField } from "../../../shared/ui/form";
-import { Input } from "../../../shared/ui/input";
+import { Input } from "@finance/ui/src/shared/ui/input";
 import { Segmented } from "../../../shared/ui/segmented";
 import { CurrencyField } from "../../reference/components/CurrencyField";
 import { Switch } from "../../../shared/ui/switch";
@@ -238,7 +238,7 @@ export function CardForm({
       <DetailRow label={t("cards.form.cardDetails")} className="items-end py-2">
         <div className="flex items-end gap-5">
           <div className="flex flex-col items-end">
-            <span className="text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
+            <span className="text-xs sm:text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
               {t("cards.form.last4")}
             </span>
             <input
@@ -254,7 +254,7 @@ export function CardForm({
             />
           </div>
           <div className="flex flex-col items-end">
-            <span className="text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
+            <span className="text-xs sm:text-[10px] font-medium uppercase leading-tight tracking-wide text-muted-foreground">
               {t("cards.form.expiry")}
             </span>
             <input

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import type { recurring } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { CategoryIcon } from "../../reference/components/CategoryIcon";
 import { SwipeRow } from "../../../shared/ui/swipe-row";
 import {

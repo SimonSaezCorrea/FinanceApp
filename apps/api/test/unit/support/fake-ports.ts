@@ -7,6 +7,11 @@ import {
 import type { BankAccountRepositoryPort } from "../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CardAccountRepositoryPort } from "../../../src/domains/card-account/domain/ports/card-account.repository.port";
 import type { CategoryLookupPort } from "../../../src/domains/category/domain/ports/category-lookup.port";
+import type {
+  ExchangeRateEntry,
+  RateCurrency,
+} from "../../../src/domains/exchange-rate/domain/exchange-rate.entity";
+import type { ExchangeRateRepositoryPort } from "../../../src/domains/exchange-rate/domain/ports/exchange-rate.repository.port";
 import type { CardLimitRepositoryPort } from "../../../src/domains/card-limit/domain/ports/card-limit.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
 import type { InstallmentPaymentLookupPort } from "../../../src/domains/installment-payment/domain/ports/installment-payment-lookup.port";
@@ -27,9 +32,12 @@ export function fakeBankAccountRepo(
   overrides: Partial<BankAccountRepositoryPort> = {},
 ): BankAccountRepositoryPort {
   return {
+    createWithCardsWithTx: vi.fn(async () => ({ id: "acc", cardIds: [] })),
+    setStatusWithTx: vi.fn(async () => {}),
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     findById: vi.fn(),
     listByUser: vi.fn(),
-    listDueForBilling: vi.fn(),
     institutionName: vi.fn(),
     institutionCountry: vi.fn(async () => null),
     countByType: vi.fn(async () => 2),
@@ -65,6 +73,8 @@ export function fakeTransactionWriterRepo(
   overrides: Partial<TransactionWriterRepositoryPort> = {},
 ): TransactionWriterRepositoryPort {
   return {
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     createWithTx: vi.fn(),
     relinkToStatementWithTx: vi.fn(),
     updateAmountWithTx: vi.fn(),
@@ -73,6 +83,7 @@ export function fakeTransactionWriterRepo(
     listForAccountDeletion: vi.fn(async () => []),
     deleteManyWithTx: vi.fn(),
     accountIdForTransaction: vi.fn(async () => null),
+    amountForTransaction: vi.fn(async () => null),
     createManyWithTx: vi.fn(async () => 0),
     ...overrides,
   };
@@ -82,6 +93,8 @@ export function fakeSavingsGoalRepo(
   overrides: Partial<SavingsGoalRepositoryPort> = {},
 ): SavingsGoalRepositoryPort {
   return {
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     list: vi.fn(async () => []),
     findOne: vi.fn(),
     create: vi.fn(),
@@ -98,6 +111,8 @@ export function fakeSavingsEntryRepo(
   overrides: Partial<SavingsEntryRepositoryPort> = {},
 ): SavingsEntryRepositoryPort {
   return {
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     list: vi.fn(async () => []),
     findOne: vi.fn(),
     create: vi.fn(),
@@ -120,6 +135,8 @@ export function fakeCreditStatementRepo(
   overrides: Partial<CreditStatementRepositoryPort> = {},
 ): CreditStatementRepositoryPort {
   return {
+    listDueScheduled: vi.fn(async () => []),
+    countForUser: vi.fn(async () => 0),
     findById: vi.fn(),
     findByIdForUpdateWithTx: vi.fn(),
     findOpenForAccount: vi.fn(),
@@ -143,6 +160,8 @@ export function fakeCardAccountRepo(
   overrides: Partial<CardAccountRepositoryPort> = {},
 ): CardAccountRepositoryPort {
   return {
+    createWithTx: vi.fn(async () => "card"),
+    countForUser: vi.fn(async () => 0),
     listByAccounts: vi.fn(async () => []),
     findOnAccount: vi.fn(async () => null),
     existsForUser: vi.fn(async () => true),
@@ -171,6 +190,7 @@ export function fakeCardLimitRepo(
   overrides: Partial<CardLimitRepositoryPort> = {},
 ): CardLimitRepositoryPort {
   return {
+    createForCardWithTx: vi.fn(async () => {}),
     listByCards: vi.fn(async () => []),
     findForCardCurrency: vi.fn(async () => null),
     createForCard: vi.fn(),
@@ -326,6 +346,42 @@ export function fakeCategoryLookup(
       isSystem: false,
     })),
     idForSystemCode: vi.fn(async (code: string) => `system-${code}`),
+    ...overrides,
+  };
+}
+
+/**
+ * In-memory `exchange-rate` table keyed on (currency, date), with the same upsert rule as the
+ * real adapter (a write never lowers `valueDate`). `rows` is exposed so a spec can assert what
+ * ended up stored; `upsert`/`upsertMany` are spies.
+ */
+export function fakeExchangeRateRepo(
+  seed: readonly ExchangeRateEntry[] = [],
+  overrides: Partial<ExchangeRateRepositoryPort> = {},
+): ExchangeRateRepositoryPort & { rows: Map<string, ExchangeRateEntry> } {
+  const rows = new Map<string, ExchangeRateEntry>();
+  const key = (e: Pick<ExchangeRateEntry, "currency" | "date">) => `${e.currency}|${e.date}`;
+  for (const e of seed) rows.set(key(e), { ...e });
+  const put = (e: ExchangeRateEntry) => {
+    const current = rows.get(key(e));
+    if (current && e.valueDate < current.valueDate) return;
+    rows.set(key(e), { ...e });
+  };
+  const sorted = (currency?: RateCurrency) =>
+    [...rows.values()]
+      .filter((r) => !currency || r.currency === currency)
+      .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+  return {
+    rows,
+    upsert: vi.fn(async (e: ExchangeRateEntry) => put(e)),
+    upsertMany: vi.fn(async (entries: readonly ExchangeRateEntry[]) => {
+      for (const e of entries) put(e);
+    }),
+    findLatest: vi.fn(async (currency: RateCurrency) => sorted(currency)[0] ?? null),
+    findRange: vi.fn(async (currency: RateCurrency | undefined, from: string, to: string) =>
+      sorted(currency).filter((r) => r.date >= from && r.date <= to),
+    ),
+    lastDate: vi.fn(async (currency: RateCurrency) => sorted(currency)[0]?.date ?? null),
     ...overrides,
   };
 }

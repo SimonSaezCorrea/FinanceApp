@@ -195,4 +195,12 @@ export class PrismaSavingsEntryRepository implements SavingsEntryRepositoryPort 
     });
     return (result._sum.amount ?? 0).toString();
   }
+
+  async countForUser(userId: string): Promise<number> {
+    return this.prisma.savingsEntry.count({ where: { userId } });
+  }
+
+  async deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void> {
+    await (tx as PrismaService).savingsEntry.deleteMany({ where: { userId } });
+  }
 }

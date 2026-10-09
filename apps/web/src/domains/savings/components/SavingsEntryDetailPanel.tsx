@@ -5,9 +5,9 @@ import type { accounts as accountsContract, savings } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
-import { Button } from "../../../shared/ui/button";
-import { DetailRow } from "../../../shared/ui/detail-row";
-import { SidePanel } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 
 interface Props {
   readonly entry: savings.SavingsEntry | null;

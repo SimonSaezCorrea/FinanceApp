@@ -272,6 +272,28 @@ model IpGeolocationCache {
   @@map("ip-geolocation-cache")
 }
 
+/// Spec 030: daily value of the dólar observado (USD) and the UF (CLF) in pesos. Global
+/// reference data (no `userId`, no FK) — written only by the system cron, read by any
+/// signed-in user. One row per (currency, Chile calendar day); `valueDate` says which day the
+/// source actually published `value`, so `valueDate < date` is a "dato arrastrado" (derived,
+/// never a stored flag) and a later real publication simply raises `valueDate`.
+model ExchangeRate {
+  id        String   @id @default(uuid(7))
+  /// "USD" (dólar observado) or "CLF" (UF). `value` = CLP per ONE unit.
+  currency  String   @db.VarChar(3)
+  /// The calendar day this row answers for, in Chile (America/Santiago).
+  date      DateTime @db.Date
+  value     Decimal  @db.Decimal(18, 4)
+  /// The day the source published `value`; never after `date`.
+  valueDate DateTime @db.Date
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([currency, date])
+  @@index([currency, date(sort: Desc)])
+  @@map("exchange-rate")
+}
+
 enum UserStatus {
   ACTIVE
   DISABLED
@@ -467,6 +489,15 @@ model CreditStatement {
   /// then can `amount` be corrected manually (no cascade to the linked payment
   /// transaction or to `creditUsed` — a deliberate, personal-use simplification).
   paidAt            DateTime?
+  /// When payment is due, as the user typed it from the bank's statement at
+  /// "Generar facturación" (end of that day, user's time zone). Null for a period
+  /// still OPEN, or one closed before this column existed (its due date is then
+  /// derived from `BillingSettings.paymentDueDay`, if configured).
+  dueDate           DateTime?
+  /// The close the user scheduled for an OPEN period ("Editar fechas" on it): the
+  /// statement is generated with these dates when it arrives (hourly cron) or earlier
+  /// from "Generar facturación". Null once closed, or when nothing was scheduled.
+  plannedCloseAt    DateTime?
   /// Frozen snapshot amount, set at pay time. Null/ignored while unpaid — the
   /// live amount is computed by summing linked transactions instead.
   amount            Decimal?  @db.Decimal(18, 4)

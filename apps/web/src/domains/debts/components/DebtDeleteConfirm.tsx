@@ -3,8 +3,8 @@ import { useTranslation } from "react-i18next";
 import type { debts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { cn } from "../../../shared/lib/cn";
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { initials, leftAmount } from "../lib/debtMetrics";
 
 interface Props {

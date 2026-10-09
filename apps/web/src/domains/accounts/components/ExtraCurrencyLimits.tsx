@@ -2,9 +2,9 @@ import { Plus, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { Field } from "../../../shared/ui/field";
-import { Input } from "../../../shared/ui/input";
+import { Input } from "@finance/ui/src/shared/ui/input";
 import { CurrencyField } from "../../reference/components/CurrencyField";
 import { useAllowedCurrencies } from "../../reference/hooks/useAllowedCurrencies";
 import type { CurrencyLimitDraft } from "../lib/extraLimits";

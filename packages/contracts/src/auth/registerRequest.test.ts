@@ -85,6 +85,11 @@ describe("registerRequestSchema — minor guardian authorization", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts an optional locale and rejects an unknown one", () => {
+    expect(registerRequestSchema.safeParse(baseInput({ locale: "en" })).success).toBe(true);
+    expect(registerRequestSchema.safeParse(baseInput({ locale: "fr" })).success).toBe(false);
+  });
+
   it("rejects the titular's own RUT when its check digit is invalid", () => {
     const result = registerRequestSchema.safeParse(baseInput({ identifierValue: "12.345.678-9" }));
     expect(result.success).toBe(false);

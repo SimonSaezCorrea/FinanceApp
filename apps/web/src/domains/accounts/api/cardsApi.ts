@@ -1,6 +1,6 @@
 import type { accounts } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "@finance/client";
 
 /** Cards are a sub-resource of an account. Payloads carry only last4 (never the full PAN). */
 export const cardsApi = {

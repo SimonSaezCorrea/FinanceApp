@@ -12,6 +12,8 @@ function fakeRepo(
   overrides: Partial<RecurringExpenseRepositoryPort> = {},
 ): RecurringExpenseRepositoryPort {
   return {
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     listIdsForAccount: vi.fn(async () => []),
     removeManyWithTx: vi.fn(),
     list: vi.fn(),
@@ -33,6 +35,8 @@ function fakeAccounts(overrides: Partial<BankAccountLookupPort> = {}): BankAccou
 
 function fakeCards(overrides: Partial<CardAccountRepositoryPort> = {}): CardAccountRepositoryPort {
   return {
+    createWithTx: vi.fn(async () => "card"),
+    countForUser: vi.fn(async () => 0),
     listByAccounts: vi.fn(),
     findOnAccount: vi.fn(),
     existsForUser: vi.fn().mockResolvedValue(true),

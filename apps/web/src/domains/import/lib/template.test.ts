@@ -7,7 +7,11 @@ import { buildTemplate, type TemplateRefs } from "./buildTemplate";
 import type { Matrix, Sheet } from "./importParsing";
 import { parseTemplateSheets, readTemplate, TemplateReadError } from "./readTemplate";
 import { resolveTemplate } from "./resolveTemplate";
-import { columnHelpKey, MARKER_SHEET, TEMPLATE_SHEETS } from "./templateSpec";
+import { existingRows, type ExistingData } from "./templateData";
+import { columnHelpKey, MARKER_SHEET, TEMPLATE_SHEETS, TEMPLATE_VERSION } from "./templateSpec";
+
+/** A typed day as the resolver sends it: the start of that day in the local zone. */
+const localStart = (ymd: string) => new Date(`${ymd}T00:00:00`).toISOString();
 
 const es = i18n.getFixedT("es");
 const en = i18n.getFixedT("en");
@@ -51,7 +55,7 @@ function xlsxFile(bytes: ArrayBuffer): File {
 }
 
 /** A workbook as `readSpreadsheet` returns it, built by hand. */
-function workbook(sheets: Record<string, Matrix>, version: number = 1): Sheet[] {
+function workbook(sheets: Record<string, Matrix>, version: number = TEMPLATE_VERSION): Sheet[] {
   return [
     ...Object.entries(sheets).map(([name, matrix]) => ({ name, matrix })),
     {
@@ -90,6 +94,8 @@ describe("buildTemplate → readTemplate (real .xlsx round trip)", () => {
     await wb.xlsx.load(bytes);
     expect(wb.worksheets.map((w) => w.name)).toEqual([
       "Instrucciones",
+      "Cuentas",
+      "Tarjetas",
       "Movimientos",
       "Traspasos",
       "Deudas",
@@ -99,6 +105,7 @@ describe("buildTemplate → readTemplate (real .xlsx round trip)", () => {
       "Recurrentes",
       "Metas",
       "Aportes",
+      "Facturaciones",
       "Referencia",
       MARKER_SHEET,
     ]);
@@ -106,14 +113,23 @@ describe("buildTemplate → readTemplate (real .xlsx round trip)", () => {
     // Each header carries its description, also listed on Instructions.
     const financeHelp = es(columnHelpKey("movements", "financeCharge"));
     const financeColumn =
-      TEMPLATE_SHEETS[0]!.columns.findIndex((c) => c.key === "financeCharge") + 1;
+      TEMPLATE_SHEETS.find((sh) => sh.key === "movements")!.columns.findIndex(
+        (c) => c.key === "financeCharge",
+      ) + 1;
     expect(wb.getWorksheet("Movimientos")!.getCell(1, financeColumn).note).toBe(financeHelp);
     const helpLines = wb.getWorksheet("Instrucciones")!.getColumn(1).values.map(String);
     expect(helpLines.some((line) => line.endsWith(financeHelp))).toBe(true);
     // Only the user's active accounts and non-system categories are offered.
     const ref = wb.getWorksheet("Referencia")!;
-    expect(ref.getColumn(1).values.slice(2)).toEqual(["BCI", "MACH", "BCI Visa"]);
-    expect(ref.getColumn(2).values.slice(2)).toEqual(["BCI Visa · ····4827"]);
+    // The app's own first, then formulas following the file's Accounts/Cards sheets.
+    const plain = (col: number) =>
+      ref
+        .getColumn(col)
+        .values.slice(2)
+        .filter((v) => typeof v === "string");
+    expect(plain(1)).toEqual(["BCI", "MACH", "BCI Visa"]);
+    expect(plain(2)).toEqual(["BCI Visa · ····4827"]);
+    expect(ref.getCell(5, 1).formula).toContain("Cuentas");
     expect(ref.getColumn(3).values.slice(2)).toEqual([es("categories.SUPERMARKET")]);
 
     // Filled in by the user, then read back.
@@ -143,7 +159,7 @@ describe("buildTemplate → readTemplate (real .xlsx round trip)", () => {
     expect(issues).toEqual([]);
     expect(request.movements[0]).toMatchObject({
       row: 2,
-      occurredAt: "2025-11-28T00:00:00.000Z",
+      occurredAt: localStart("2025-11-28"),
       type: "EXPENSE",
       amount: "15000",
       bankAccountId: BCI,
@@ -156,6 +172,100 @@ describe("buildTemplate → readTemplate (real .xlsx round trip)", () => {
       amount: "13.07",
       bankAccountId: TC,
     });
+  }, 30_000);
+});
+
+describe("pre-filled template", () => {
+  const tx = (over: Record<string, unknown>) => ({
+    id: "tx",
+    type: "EXPENSE",
+    amount: "15000",
+    currency: "CLP",
+    occurredAt: "2025-11-28T15:00:00.000Z",
+    bankAccountId: BCI,
+    cardId: null,
+    categoryId: SUPER,
+    description: "Jumbo",
+    observation: null,
+    emisor: null,
+    receptor: null,
+    lugar: null,
+    financeCharge: false,
+    transferGroupId: null,
+    installmentPlanId: null,
+    debtId: null,
+    recurringExpenseId: null,
+    savingsEntryId: null,
+    savingsGoalId: null,
+    paidStatementId: null,
+    paidStatementAccountId: null,
+    prepaymentStatementId: null,
+    prepaymentAccountId: null,
+    settlesStatementId: null,
+    transferStatementId: null,
+    ...over,
+  });
+  const data = {
+    accounts: refs.accounts.map((a) => ({ ...a, cards: [] })),
+    transactions: [
+      tx({ id: "t-1" }),
+      // A transfer pair: one row on Traspasos, not two movements.
+      tx({ id: "t-2", transferGroupId: "g-1", categoryId: null, description: null }),
+      tx({ id: "t-3", type: "INCOME", bankAccountId: MACH, transferGroupId: "g-1" }),
+    ],
+    debts: [],
+    plans: [],
+    recurring: [],
+    goals: [],
+    entries: [],
+    categories: refs.categories,
+    statements: [],
+  } as unknown as ExistingData;
+
+  it("writes the user's data tagged with its id, and imports only rows added below", async () => {
+    const existing = existingRows(data, es);
+    expect(existing.movements.map((r) => r.id)).toEqual(["t-1"]);
+    expect(existing.transfers).toEqual([
+      {
+        id: "g-1",
+        cells: expect.objectContaining({ fromAccount: "BCI", toAccount: "MACH", amount: 15000 }),
+      },
+    ]);
+
+    expect(existing.accounts.map((r) => r.cells.name)).toEqual(["BCI", "MACH", "BCI Visa"]);
+
+    const bytes = await bytesOf(await buildTemplate({ refs, t: es, locale: "es", existing }));
+    // Only existing rows: adding finds nothing new.
+    const untouched = await readTemplate(xlsxFile(bytes), labelers);
+    expect(resolveTemplate(untouched, refs, labelers).request.movements).toEqual([]);
+
+    const { default: ExcelJS } = await import("exceljs");
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(bytes);
+    const movements = wb.getWorksheet("Movimientos")!;
+    const idColumn = TEMPLATE_SHEETS.find((sh) => sh.key === "movements")!.columns.length + 1;
+    expect(movements.getCell(1, idColumn).value).toBe("ID Cuadra");
+    expect(movements.getCell(2, idColumn).value).toBe("t-1");
+    expect(movements.getCell(2, 5).value).toBe("BCI");
+    movements.getRow(3).values = [new Date(Date.UTC(2025, 11, 1)), "Gasto", 2000, null, "MACH"];
+    const filled = await wb.xlsx.writeBuffer();
+    const read = await readTemplate(xlsxFile(filled as ArrayBuffer), labelers);
+    // Adding: only the new row.
+    const merged = resolveTemplate(read, refs, labelers);
+    expect(merged.issues).toEqual([]);
+    expect(merged.request.movements.map((m) => m.row)).toEqual([3]);
+    expect(merged.request.transfers).toEqual([]);
+    expect(merged.request.accounts).toEqual([]);
+    // Replacing: the whole history, on accounts the file itself defines.
+    const replaced = resolveTemplate(read, refs, labelers, "REPLACE");
+    expect(replaced.issues).toEqual([]);
+    expect(replaced.request.mode).toBe("REPLACE");
+    expect(replaced.request.accounts.map((a) => a.name)).toEqual(["BCI", "MACH", "BCI Visa"]);
+    expect(replaced.request.movements.map((m) => m.row)).toEqual([2, 3]);
+    expect(replaced.request.transfers).toHaveLength(1);
+    const bci = replaced.request.accounts.find((a) => a.name === "BCI")!;
+    expect(replaced.request.movements[0]!.bankAccountId).toBe(bci.id);
+    expect(bci.id).not.toBe(BCI);
   }, 30_000);
 });
 
@@ -204,7 +314,7 @@ describe("resolveTemplate", () => {
     );
     expect(issues).toEqual([]);
     expect(request.movements[0]).toMatchObject({
-      occurredAt: "2025-11-28T00:00:00.000Z",
+      occurredAt: localStart("2025-11-28"),
       type: "INCOME",
       amount: "1234567",
     });
@@ -292,7 +402,7 @@ describe("resolveTemplate", () => {
       frequencyInterval: 1,
     });
     expect(request.debtPayments).toEqual([
-      { row: 2, debtRef: "Victor", paidAt: "2026-03-14T00:00:00.000Z", accountId: BCI },
+      { row: 2, debtRef: "Victor", paidAt: localStart("2026-03-14"), accountId: BCI },
     ]);
   });
 
@@ -345,7 +455,7 @@ describe("resolveTemplate", () => {
     );
     expect(request.recurring[0]).toMatchObject({
       ref: "SPOTIFY",
-      endDate: "2026-04-01T00:00:00.000Z",
+      endDate: localStart("2026-04-01"),
     });
     expect(request.movements).toEqual([expect.objectContaining({ recurringRef: "spotify" })]);
     expect(issues.map((i) => `${i.sheet}:${i.row}:${i.column}:${i.code}`)).toEqual([

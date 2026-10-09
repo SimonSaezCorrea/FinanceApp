@@ -1,19 +1,23 @@
-import { useAuth } from "../domains/auth/hooks/useAuth";
-import { LandingHomeRoute } from "../domains/landing/routes/LandingHomeRoute";
-import { AppSplash } from "../shared/ui/app-splash";
-import { AppLayout } from "./AppLayout";
-import { DashboardPage } from "./DashboardPage";
+import { Suspense } from "react";
 
-/** `/` is two pages behind one URL: the public landing for a visitor, the Panel for a signed-in
- * user. Signing in from the landing's access panel flips it in place, with no redirect. */
+import { LeaveForLanding } from "../domains/auth/components/LeaveForLanding";
+import { useAuth } from "../domains/auth/hooks/useAuth";
+import { landingAccessUrl } from "../shared/lib/landingUrl";
+import { AppSplash } from "@finance/ui/src/shared/ui/app-splash";
+import { AppLayout, DashboardPage } from "./lazyPages";
+
+/** `/` is the Panel. The public landing is its own site (spec 031), so a signed-out visit leaves
+ * for its access panel instead. */
 export function HomeRoute() {
   const { user, loading } = useAuth();
 
   if (loading) return <AppSplash />;
-  if (!user) return <LandingHomeRoute />;
+  if (!user) return <LeaveForLanding url={landingAccessUrl("login")} />;
   return (
-    <AppLayout>
-      <DashboardPage />
-    </AppLayout>
+    <Suspense fallback={<AppSplash />}>
+      <AppLayout>
+        <DashboardPage />
+      </AppLayout>
+    </Suspense>
   );
 }

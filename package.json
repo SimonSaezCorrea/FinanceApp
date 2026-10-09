@@ -7,6 +7,7 @@
     "dev": "turbo run dev",
     "dev:api": "pnpm --filter @finance/api dev",
     "dev:web": "pnpm --filter @finance/web dev",
+    "dev:landing": "pnpm --filter @finance/landing dev",
     "build": "turbo run build",
     "test": "turbo run test",
     "lint": "turbo run lint",

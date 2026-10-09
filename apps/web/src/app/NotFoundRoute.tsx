@@ -1,35 +1,34 @@
 import { ArrowLeft, Home } from "lucide-react";
+import { Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useLocation, useNavigate } from "react-router";
 
 import { useAuth } from "../domains/auth/hooks/useAuth";
-import { HeroRidge } from "../domains/landing/components/HeroRidge";
-import { LandingLayout } from "../domains/landing/components/LandingLayout";
-import { AppSplash } from "../shared/ui/app-splash";
-import { Button } from "../shared/ui/button";
-import { AppLayout } from "./AppLayout";
+import { LeaveForLanding } from "../domains/auth/components/LeaveForLanding";
+import { landingAccessUrl } from "../shared/lib/landingUrl";
+import { AppSplash } from "@finance/ui/src/shared/ui/app-splash";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { AppLayout } from "./lazyPages";
 
-/** Any URL no route claims. Same chrome split as `/` (see HomeRoute): a visitor gets it inside
- * the landing, a signed-in user inside the app — a dead link shouldn't also drop the navigation. */
+/** Any URL no route claims. A signed-in user gets it inside the app (a dead link shouldn't also drop
+ * the navigation); a signed-out visit is sent to sign in first, like any other address of the app
+ * (spec 031), and lands back here afterwards. */
 export function NotFoundRoute() {
   const { user, loading } = useAuth();
+  const { pathname, search, hash } = useLocation();
 
   if (loading) return <AppSplash />;
-  if (!user) {
-    return (
-      <LandingLayout>
-        <NotFoundPage signedIn={false} />
-      </LandingLayout>
-    );
-  }
+  if (!user) return <LeaveForLanding url={landingAccessUrl("login", pathname + search + hash)} />;
   return (
-    <AppLayout>
-      <NotFoundPage signedIn />
-    </AppLayout>
+    <Suspense fallback={<AppSplash />}>
+      <AppLayout>
+        <NotFoundPage />
+      </AppLayout>
+    </Suspense>
   );
 }
 
-function NotFoundPage({ signedIn }: Readonly<{ signedIn: boolean }>) {
+function NotFoundPage() {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const navigate = useNavigate();
@@ -65,7 +64,7 @@ function NotFoundPage({ signedIn }: Readonly<{ signedIn: boolean }>) {
           className="inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-md bg-accent px-4 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <Home className="h-4 w-4" aria-hidden />
-          {t(signedIn ? "app.notFound.toPanel" : "app.notFound.toHome")}
+          {t("app.notFound.toPanel")}
         </Link>
         {canGoBack ? (
           <Button variant="outline" onClick={() => navigate(-1)}>
@@ -74,8 +73,6 @@ function NotFoundPage({ signedIn }: Readonly<{ signedIn: boolean }>) {
           </Button>
         ) : null}
       </div>
-
-      <HeroRidge className="mt-12 aspect-[1440/528] w-full max-w-3xl opacity-70" />
     </section>
   );
 }

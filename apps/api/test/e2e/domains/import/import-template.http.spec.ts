@@ -352,7 +352,12 @@ describe("Import template HTTP (e2e)", () => {
 
     await request(app.getHttpServer())
       .post(`/api/v1/accounts/${tc}/generate-statements`)
-      .set("Cookie", cookies);
+      .set("Cookie", cookies)
+      .send({
+        periodStart: "2026-08-01T00:00:00.000Z",
+        closedAt: "2026-09-30T23:59:59.999Z",
+        dueDate: "2026-10-15T23:59:59.999Z",
+      });
     const billed = await prisma.installmentPayment.findMany({
       where: { installmentPlanId: notebook.id, creditStatementId: { not: null } },
     });

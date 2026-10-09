@@ -4,9 +4,8 @@ import { toast } from "sonner";
 
 import { useAuth } from "../../auth/hooks/useAuth";
 import { useCurrencies } from "../../reference/hooks/useReference";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { CollapsibleSection } from "../../../shared/ui/collapsible-section";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
+import { ApiRequestError } from "@finance/client";
+import { SearchableSelect } from "@finance/ui/src/shared/ui/searchable-select";
 import { Switch } from "../../../shared/ui/switch";
 import { useProfileMutations } from "../hooks/useProfile";
 
@@ -45,8 +44,10 @@ export function FinancialCustomizationSection() {
   );
   const noMoreCurrencies = addableCurrencies.length === 0;
 
+  // Rows only: they sit inside Preferences' "Monedas y montos" block (specs/029), under the main
+  // currency.
   return (
-    <CollapsibleSection title={t("profile.financial.title")}>
+    <>
       <div className="border-b py-3">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -114,6 +115,6 @@ export function FinancialCustomizationSection() {
           aria-label={t("profile.financial.hideBalances")}
         />
       </div>
-    </CollapsibleSection>
+    </>
   );
 }

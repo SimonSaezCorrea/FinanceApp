@@ -142,6 +142,9 @@ export class UpdateTransferHandler extends BaseCommandHandler<
         account.id,
         account.createdAt ?? new Date(),
         account.currency ?? "CLP",
+        input.occurredAt !== undefined
+          ? new Date(input.occurredAt)
+          : existing.outgoing.snapshot().occurredAt,
       );
       return period.id;
     };

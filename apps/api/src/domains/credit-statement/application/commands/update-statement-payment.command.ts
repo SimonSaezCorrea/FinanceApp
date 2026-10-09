@@ -10,5 +10,8 @@ export class UpdateStatementPaymentCommand implements UserScopedCommand {
     public readonly accountId: string,
     public readonly statementId: string,
     public readonly amount: string,
+    /** Spec 030: for a period in ANOTHER currency, the corrected debit in the SOURCE
+     * account's currency — required when that differs from the period's. */
+    public readonly chargedAmount?: string,
   ) {}
 }

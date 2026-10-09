@@ -118,4 +118,12 @@ export class PrismaSavingsGoalRepository implements SavingsGoalRepositoryPort {
     const result = await this.prisma.savingsGoal.deleteMany({ where: { id, userId } });
     return result.count > 0;
   }
+
+  async countForUser(userId: string): Promise<number> {
+    return this.prisma.savingsGoal.count({ where: { userId } });
+  }
+
+  async deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void> {
+    await (tx as PrismaService).savingsGoal.deleteMany({ where: { userId } });
+  }
 }

@@ -5,7 +5,7 @@ import { formatMoney } from "@finance/money";
 
 import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { CategoryIcon } from "../../reference/components/CategoryIcon";
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { monthlyAmount } from "../lib/recurringMetrics";
 
 interface Props {

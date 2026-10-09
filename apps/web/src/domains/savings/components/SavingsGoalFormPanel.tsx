@@ -6,7 +6,7 @@ import type { savings } from "@finance/contracts";
 import { CurrencyField } from "../../reference/components/CurrencyField";
 import { useCurrencies } from "../../reference/hooks/useReference";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import {
   FormBigTextField,
@@ -14,7 +14,7 @@ import {
   FormNotice,
   FormTextareaField,
 } from "../../../shared/ui/form";
-import { FormSurface } from "../../../shared/ui/overlay";
+import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
 import { colorForToken, GOAL_COLOR_TOKENS } from "../lib/goalVisual";
 
 export interface SavingsGoalFormValue {

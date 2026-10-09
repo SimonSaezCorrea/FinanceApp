@@ -1,0 +1,27 @@
+---
+import { buttonClasses } from "@finance/ui/src/shared/ui/button-classes";
+
+import PageLayout from "../layouts/PageLayout.astro";
+import { t } from "../i18n";
+import { pagePath } from "../lib/language";
+---
+
+<PageLayout lang="es" page="home" notFound>
+  <section class="flex flex-col items-center py-16 text-center">
+    <span class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+      {t("es", "app.notFound.eyebrow")}
+    </span>
+    <h1 class="mt-4 max-w-[20ch] text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
+      {t("es", "app.notFound.title")}
+    </h1>
+    <p class="mt-4 max-w-[46ch] text-base text-muted-foreground">{t("es", "app.notFound.message")}</p>
+    <div class="mt-8 flex flex-wrap justify-center gap-3">
+      <a href={pagePath("es", "home")} class={buttonClasses({ variant: "accent" })}>
+        {t("es", "app.notFound.toHome")}
+      </a>
+      <a href={pagePath("en", "home")} lang="en" class={buttonClasses({ variant: "outline" })}>
+        {t("en", "app.notFound.toHome")}
+      </a>
+    </div>
+  </section>
+</PageLayout>

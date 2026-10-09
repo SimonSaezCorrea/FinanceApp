@@ -43,10 +43,12 @@ export function toStatementDto(
     statement.paidAt || statement.transferredAt
       ? moneyToString("0")
       : subtractMoney(input.amount, statement.paidAmount);
-  // Nothing to count from until the period actually closes — an OPEN period
-  // has no due date yet, and neither does an account with no due-day configured.
-  const dueDate =
-    statement.closedAt && input.paymentDueDay != null
+  // The date typed at "Generar facturación" wins. Only a period closed before
+  // that existed falls back to deriving it from the (legacy) configured due day —
+  // an OPEN period has no due date yet, and neither does an unconfigured account.
+  const dueDate = statement.dueDate
+    ? statement.dueDate.toISOString()
+    : statement.closedAt && input.paymentDueDay != null
       ? paymentDueDate(
           statement.closedAt,
           input.paymentDueDay,
@@ -55,14 +57,17 @@ export function toStatementDto(
       : null;
   // Only meaningful while OPEN — a closed period already has its real `closedAt`,
   // and without a configured day there's nothing to project a boundary from.
-  const nextClosingDate =
-    !statement.closedAt && input.billingCycleDay != null
-      ? nextBoundaryAfter(
-          statement.periodStart,
-          input.billingCycleDay,
-          input.billingCycleType,
-        ).toISOString()
-      : null;
+  const nextClosingDate = statement.closedAt
+    ? null
+    : statement.plannedCloseAt
+      ? statement.plannedCloseAt.toISOString()
+      : input.billingCycleDay != null
+        ? nextBoundaryAfter(
+            statement.periodStart,
+            input.billingCycleDay,
+            input.billingCycleType,
+          ).toISOString()
+        : null;
   const remainingAmount = toMoney(remaining).isNegative() ? moneyToString("0") : remaining;
   const closedAt = statement.closedAt?.toISOString() ?? null;
   const paidAt = statement.paidAt?.toISOString() ?? null;

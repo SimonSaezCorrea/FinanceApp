@@ -3,13 +3,13 @@ import { I18nextProvider } from "react-i18next";
 import { describe, expect, it, vi } from "vitest";
 
 import i18n from "../../i18n";
-import { ThemeProvider } from "../../theme/ThemeProvider";
+import { ThemeProvider } from "@finance/ui/src/theme/ThemeProvider";
 import { Badge } from "./badge";
-import { Button } from "./button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { CollapsibleSection } from "./collapsible-section";
 import { EmptyState } from "./states";
 import { Switch } from "./switch";
-import { ThemeToggle } from "./theme-toggle";
+import { ThemeToggle } from "@finance/ui/src/shared/ui/theme-toggle";
 
 describe("ui primitives", () => {
   it("renders Button variants", () => {

@@ -150,11 +150,14 @@ export function sourceOf(
   // Spec 028: both live on the credit card account itself, so that is the account
   // their statement belongs to. Checked before FINANCE_CHARGE: a transfer's charge
   // IS an issuer charge, but naming it as such would hide which statement it came from.
-  if (t.settlesStatementId !== null && t.bankAccountId !== null) {
+  // The prepago's source EXPENSE (spec 030) sits on ANOTHER account and names the credit
+  // account in `prepaymentAccountId`; the settlement INCOME sits on the credit account itself.
+  const settledAccountId = t.prepaymentAccountId ?? t.bankAccountId;
+  if (t.settlesStatementId !== null && settledAccountId !== null) {
     return {
       kind: "STATEMENT_SETTLEMENT",
       statementId: t.settlesStatementId,
-      accountId: t.bankAccountId,
+      accountId: settledAccountId,
     };
   }
   if (t.transferStatementId !== null && t.bankAccountId !== null) {

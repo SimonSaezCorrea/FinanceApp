@@ -9,11 +9,10 @@ import { IdempotencyRecordDataModule } from "../idempotency-record/idempotency-r
 import { InstallmentPlanDataModule } from "../installment-plan/installment-plan.data.module";
 import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { SyncStatementHandler } from "./application/commands/sync-statement.handler";
+import { UpdateStatementDatesHandler } from "./application/commands/update-statement-dates.handler";
 import { UpdateStatementPaymentHandler } from "./application/commands/update-statement-payment.handler";
-import {
-  GenerateAllDueStatementsHandler,
-  GenerateStatementsHandler,
-} from "./application/commands/generate-statements.handler";
+import { GenerateScheduledStatementsHandler } from "./application/commands/generate-scheduled-statements.handler";
+import { GenerateStatementsHandler } from "./application/commands/generate-statements.handler";
 import { PayCreditStatementHandler } from "./application/commands/pay-credit-statement.handler";
 import { PrepayOpenPeriodHandler } from "./application/commands/prepay-open-period.handler";
 import { LogStatementPaidListener } from "./application/events/log-statement-paid.listener";
@@ -25,9 +24,10 @@ const commandHandlers = [
   PayCreditStatementHandler,
   PrepayOpenPeriodHandler,
   GenerateStatementsHandler,
-  GenerateAllDueStatementsHandler,
+  GenerateScheduledStatementsHandler,
   SyncStatementHandler,
   UpdateStatementPaymentHandler,
+  UpdateStatementDatesHandler,
 ];
 
 /**
@@ -35,10 +35,7 @@ const commandHandlers = [
  * generation and payment. Depends on `bank-account`'s DATA module (it must load
  * and adjust the account's credit pool) — never on its orchestration module, so
  * the graph stays acyclic.
- *
- * `GenerateAllDueStatementsHandler` is invoked by `src/infra/cron` (daily job)
- * via `CommandBus.execute(new GenerateAllDueStatementsCommand())` — the same code
- * path as the manual "Generar facturación" button, no duplicated rules.
+
  */
 @Module({
   imports: [

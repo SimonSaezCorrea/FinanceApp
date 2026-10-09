@@ -1,0 +1,30 @@
+---
+import { t } from "../../../i18n";
+import { type Language, pagePath } from "../../../lib/language";
+
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const LINKS = [
+  { page: "privacy", key: "landing.nav.privacy" },
+  { page: "pricing", key: "landing.nav.pricing" },
+  { page: "faq", key: "landing.nav.faq" },
+] as const;
+---
+
+<footer class="flex flex-wrap items-center gap-x-6 gap-y-2 border-t py-8 text-xs text-muted-foreground">
+  <span>{t(lang, "landing.footer.tagline")}</span>
+  <nav aria-label={t(lang, "landing.footer.nav")} class="flex flex-wrap gap-x-5 gap-y-1 sm:ml-auto">
+    {
+      LINKS.map((item) => (
+        <a
+          href={pagePath(lang, item.page)}
+          class="inline-flex min-h-11 items-center transition-colors hover:text-foreground sm:min-h-0"
+        >
+          {t(lang, item.key)}
+        </a>
+      ))
+    }
+  </nav>
+</footer>

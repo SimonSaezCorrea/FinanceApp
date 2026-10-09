@@ -6,10 +6,10 @@ import { toast } from "sonner";
 import type { accounts, wallet } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { cn } from "../../../shared/lib/cn";
-import { Button } from "../../../shared/ui/button";
-import { FormSurface } from "../../../shared/ui/overlay";
+import { ApiRequestError } from "@finance/client";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
 import { AccountVisualCard } from "../../accounts/components/AccountVisualCard";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
@@ -277,7 +277,7 @@ function PickRow({
       </span>
       <span
         className={cn(
-          "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+          "shrink-0 rounded-full px-2 py-0.5 text-xs sm:text-[11px] font-semibold",
           selected ? "bg-primary text-primary-foreground" : "bg-chip text-muted-foreground",
         )}
       >

@@ -1,6 +1,6 @@
 import { currencyPickerLabel } from "../../../shared/lib/currencyLabel";
-import { cn } from "../../../shared/lib/cn";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { SearchableSelect } from "@finance/ui/src/shared/ui/searchable-select";
 import { useAllowedCurrencies } from "../hooks/useAllowedCurrencies";
 
 interface Props {

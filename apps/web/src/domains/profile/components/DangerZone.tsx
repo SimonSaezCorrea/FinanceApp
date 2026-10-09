@@ -1,20 +1,20 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
 
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { Button } from "../../../shared/ui/button";
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { ApiRequestError } from "@finance/client";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
-import { Input } from "../../../shared/ui/input";
+import { Input } from "@finance/ui/src/shared/ui/input";
 import { Switch } from "../../../shared/ui/switch";
 import { useProfileMutations } from "../hooks/useProfile";
+import { landingHomeUrl } from "../../../shared/lib/landingUrl";
+import { assignLocation } from "../../../shared/lib/leaveApp";
 
-/** "Eliminar cuenta", in the profile's left column. Signing out lives in the sidebar's user menu, so
- * it isn't repeated here. */
+/** "Eliminar cuenta", the last block of "Datos y privacidad" (specs/029) — never next to the user's
+ * identity. Signing out lives in the sidebar's user menu, so it isn't repeated here. */
 export function DangerZone() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { deleteAccount } = useProfileMutations();
   const [confirming, setConfirming] = useState(false);
   const [password, setPassword] = useState("");
@@ -25,7 +25,8 @@ export function DangerZone() {
     setError(null);
     try {
       await deleteAccount.mutateAsync({ password, keepHistory });
-      navigate("/");
+      // The account is gone: the person ends on the public site, not on a gate to sign in again.
+      assignLocation(landingHomeUrl());
     } catch (err) {
       const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
       setError(t(`errors.${code}`));
@@ -33,10 +34,19 @@ export function DangerZone() {
   }
 
   return (
-    <>
+    <section
+      aria-labelledby="profile-danger-title"
+      className="flex flex-col gap-3 rounded-2xl border border-destructive/30 p-5 sm:flex-row sm:items-center"
+    >
+      <div className="flex-1">
+        <h2 id="profile-danger-title" className="text-base font-semibold">
+          {t("profile.danger.deactivate")}
+        </h2>
+        <p className="text-sm text-muted-foreground">{t("profile.danger.description")}</p>
+      </div>
       <Button
         variant="outline"
-        className="w-full border-destructive/20 bg-destructive/15 text-destructive hover:bg-destructive/25"
+        className="h-11 border-destructive/40 text-destructive hover:bg-destructive/15 sm:h-10"
         onClick={() => {
           setPassword("");
           setKeepHistory(false);
@@ -85,6 +95,6 @@ export function DangerZone() {
           />
         </div>
       </ConfirmModal>
-    </>
+    </section>
   );
 }

@@ -1,0 +1,15 @@
+---
+import { LandingPage } from "../../domains/landing/pages/LandingPage";
+import PageLayout from "../../layouts/PageLayout.astro";
+import { type Language, LANGUAGES } from "../../lib/language";
+
+export function getStaticPaths() {
+  return LANGUAGES.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Language;
+---
+
+<PageLayout lang={lang} page="pricing">
+  <LandingPage lang={lang} page="pricing" />
+</PageLayout>

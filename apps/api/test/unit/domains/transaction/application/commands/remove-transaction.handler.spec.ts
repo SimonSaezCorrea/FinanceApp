@@ -4,6 +4,7 @@ import { RemoveTransactionHandler } from "../../../../../../src/domains/transact
 import { RemoveTransactionCommand } from "../../../../../../src/domains/transaction/application/commands/remove-transaction.command";
 import {
   TransactionLinkedToInstallmentError,
+  TransactionLinkedToStatementError,
   TransactionNotFoundError,
 } from "../../../../../../src/domains/transaction/domain/errors";
 import { Transaction } from "../../../../../../src/domains/transaction/domain/transaction.aggregate";
@@ -185,5 +186,21 @@ describe("RemoveTransactionHandler", () => {
     return expect(handler.execute(new RemoveTransactionCommand("u1", "tX"))).rejects.toBeInstanceOf(
       TransactionLinkedToInstallmentError,
     );
+  });
+  // Spec 030 (028 R10): see the update spec — a settlement is undone from its statement.
+  it("refuses to delete a movement that settles a statement", async () => {
+    const removeWithCreditAdjustment = vi.fn();
+    const settling = Transaction.fromPersistence({
+      ...txFixture().snapshot(),
+      settlesStatementId: "st1",
+    });
+    const handler = makeHandler(
+      fakeRepo({ findOne: vi.fn().mockResolvedValue(settling), removeWithCreditAdjustment }),
+      { account: creditAccount(), card: creditCard },
+    );
+    await expect(handler.execute(new RemoveTransactionCommand("u1", "tX"))).rejects.toBeInstanceOf(
+      TransactionLinkedToStatementError,
+    );
+    expect(removeWithCreditAdjustment).not.toHaveBeenCalled();
   });
 });

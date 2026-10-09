@@ -12,11 +12,15 @@ formal está en [specs/001-api-frontend-monorepo/](../../specs/001-api-frontend-
 ## 1. Visión general
 
 FinanceApp es un gestor de finanzas personales construido como un **monorepo pnpm + Turborepo** con
-dos aplicaciones **desplegables por separado** y paquetes compartidos:
+tres aplicaciones **desplegables por separado** y paquetes compartidos:
 
 - **`apps/api`** — backend NestJS, **único dueño de la base de datos**, expone una API HTTP versionada.
-- **`apps/web`** — SPA Vite + React, consume la API solo por HTTP, dueña de la UI y las traducciones.
-- **`packages/*`** — contratos compartidos (zod), matemática de dinero (decimal.js) y config de TS.
+- **`apps/web`** — SPA Vite + React (la app con sesión, `app.cuadra.cl`), consume la API solo por
+  HTTP. `noindex`: no es para buscadores.
+- **`apps/landing`** — el sitio público (`cuadra.cl`, spec 031): páginas Astro estáticas en `/es/…` y
+  `/en/…`, renderizadas en el build sin React al cargar; aloja el inicio de sesión y el registro.
+- **`packages/*`** — contratos compartidos (zod), matemática de dinero (decimal.js), el sistema de
+  diseño (`ui`), el cliente del API (`client`), los catálogos es/en compartidos (`i18n`) y config de TS.
 
 Las dos apps comparten un repositorio pero **ningún acoplamiento en runtime**: se comunican solo a
 través de un contrato HTTP publicado. Esto maximiza mantenibilidad (organización por dominio),
@@ -185,6 +189,28 @@ finance-app/
 - **i18n:** el frontend es **dueño** de los catálogos es/en (`src/i18n`). Los `code` de error de la API
   se mapean a mensajes `errors.<CODE>` en el cliente. Las claves deben mantener paridad es/en.
 
+## 4b. Sitio público (`apps/landing`, spec 031)
+
+- **Astro 7, salida estática.** Cinco páginas × dos idiomas (`/es/`, `/en/pricing/`, … — slugs en
+  inglés en ambos), cada una con título, descripción, canonical, `hreflang` e imagen Open Graph
+  propios; sitemap y robots; las direcciones antiguas en español (`/precios`, …) y la raíz redirigen
+  con una página estática que conserva `?query`/`#hash`. Los componentes React de `@finance/ui` se
+  renderizan **solo en el build**.
+- **Al cargar**, una página corre ~2 KB de script plano: tema, menú de teléfono (`<dialog>`
+  nativo), alto del encabezado y dos scripts — `access.ts` y `session.ts`.
+- **Panel de acceso bajo demanda:** "Iniciar sesión"/"Crear cuenta" son enlaces a
+  `?acceso=login|registro`; un clic (o ese parámetro al cargar) importa `mountAccessPanel` —React,
+  los formularios y solo los textos del idioma de la página—, que inicia sesión contra el API y luego
+  hace `location.assign(APP_URL + safeReturnPath(volver))`.
+- **Traspaso de sesión:** las cookies httpOnly del API son `SameSite=Lax` y las tres apps comparten
+  sitio, así que las cookies que deja un inicio de sesión en la landing las envía la app; por la URL
+  viaja solo una **ruta** (`volver`), nunca un token. El registro envía el `locale` de la página.
+- **"Ir a la app":** `session.ts` consulta `/auth/me` (renovando una vez, 2 s de límite) después de
+  pintar y cambia las acciones de acceso por un enlace a la app; cualquier falla las deja.
+- **Lado de la app:** sin sesión, toda dirección de `apps/web` (incluidas `/login`, `/register` y
+  rutas inexistentes) hace `location.replace` al panel de acceso de la landing con `volver` = ruta +
+  query + hash (`shared/lib/landingUrl.ts`); cerrar sesión termina en la portada de la landing.
+
 ## 5. Paquetes compartidos (`packages/*`)
 
 - **`@finance/contracts`** — esquemas zod + tipos TS inferidos; única fuente de verdad del contrato
@@ -195,6 +221,17 @@ finance-app/
   `equalPrincipalSchedule` (amortización de capital constante; la última cuota absorbe el remanente de
   redondeo) y helpers de interés (`simpleFutureValue`, `compoundFutureValue`, `simpleInterestAccrued`,
   `nominalAnnualToMonthlyRate`). Devuelve strings decimales de escala fija (4 decimales).
+- **`@finance/ui`** — el sistema de diseño, solo fuente: preset de Tailwind + tokens `cuadra.css`,
+  script de pre-pintado del tema, primitivas `shared/ui` (familia overlay, campos, botón…),
+  `ThemeProvider`. Se importa por ruta (`@finance/ui/src/shared/ui/button`).
+- **`@finance/client`** — el cliente del API de ambos frontends: `apiFetch` (refresco silencioso),
+  `authApi`, `passkeyApi`, helpers WebAuthn y `safeReturnPath` (la única regla de ruta de retorno).
+  `configureClient({ baseUrl })` al arrancar.
+- **`@finance/i18n`** — los catálogos es/en compartidos (`createI18n`) con su test de paridad; la
+  landing agrega su propio catálogo `landing.*`.
+- **`@finance/contracts`** tiene además entradas sin zod para páginas que deben quedar livianas:
+  `@finance/contracts/http` (`API_BASE_PATH`, `IDEMPOTENCY_HEADER`) y `/auth-rules` (dígito
+  verificador del RUT, edad, umbral de tutor).
 - **`@finance/config`** — `tsconfig.base.json` compartido.
 
 **Dirección de dependencias (unidireccional):** `apps → packages`; los `packages` no dependen de nada
@@ -207,9 +244,11 @@ autocontenido, de modo que el backend podría extraerse a su propio repositorio 
   `POST /auth/register|login|refresh|logout`, `GET /auth/me`. El refresh rota el par.
 - `JwtAuthGuard` valida la cookie de acceso y adjunta el usuario; `@CurrentUser` lo inyecta.
   Cada endpoint de dominio está acotado al `userId` autenticado (aislamiento de datos por usuario).
-- El `AuthProvider` del frontend hidrata desde `/auth/me`, expone `login/register/logout`, y
-  `RequireAuth` protege las rutas.
-- CORS permite el origen web con credenciales. (La protección CSRF para auth por cookies es endurecimiento planificado.)
+- El inicio de sesión y el registro ocurren en el sitio público (§4b); el `AuthProvider` de la app
+  solo lee la sesión de `/auth/me`, y `RequireAuth` manda una visita sin sesión a la landing.
+- CORS permite con credenciales cada origen de `CORS_ORIGIN` (lista separada por comas: la landing y
+  la app); las llaves de acceso usan `PASSKEY_RP_ID` (el dominio registrable compartido) y aceptan
+  cada origen listado. (La protección CSRF para auth por cookies es endurecimiento planificado.)
 
 ## 7. Dinero y precisión
 
@@ -224,8 +263,8 @@ del schema (`Decimal(18,4)` para montos). El redondeo es explícito (banquero, 4
 - **Tests:** Vitest en apps y paquetes (e2e de NestJS vía plugin SWC para metadata de decoradores;
   React vía Testing Library + jsdom).
 - **Límites:** `pnpm check:boundaries` (`scripts/check-boundaries.mjs`) falla el build si `apps/web`
-  importa el backend o un cliente de DB, si `apps/api` importa el frontend, o si algún `packages/*`
-  importa una app.
+  importa el backend, un cliente de DB o la landing, si `apps/api` importa un frontend, si
+  `apps/landing` importa la app, el backend o un cliente de DB, o si algún `packages/*` importa una app.
 - **CI** (`.github/workflows/ci.yml`): install → `check:boundaries` → `turbo typecheck test build`
   (filtrado por afectados en PRs, para que cada app se construya/pruebe independientemente).
 - **Definición de listo:** `check:boundaries`, typecheck, tests y build pasan.
@@ -234,7 +273,10 @@ del schema (`Decimal(18,4)` para montos). El redondeo es explícito (banquero, 4
 
 - **`apps/api`** → contenedor Node (`apps/api/Dockerfile`, construido desde la raíz); sirve `/api/v1`.
 - **`apps/web`** → bundle estático tras nginx (`apps/web/Dockerfile` + `nginx.conf`, fallback SPA);
-  configurado en build con `VITE_API_URL`.
+  configurado en build con `VITE_API_URL` y `VITE_LANDING_URL`.
+- **`apps/landing`** → archivos estáticos (`dist/`), configurados en build con `PUBLIC_API_URL`,
+  `PUBLIC_APP_URL`, `PUBLIC_SITE_URL`. Requiere Node ≥ 22.12 para construir. Las tres deben compartir
+  dominio registrable (ver `docs/PENDING.md`).
 - Cada app tiene su propio ciclo de build/deploy (desplegables por separado).
 
 ## 10. Entorno
@@ -244,7 +286,9 @@ del schema (`Decimal(18,4)` para montos). El redondeo es explícito (banquero, 4
   (`S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`,
   `S3_FORCE_PATH_STYLE`) — si faltan, los adjuntos responden `503 ATTACHMENTS_UNAVAILABLE` y nada más
   se ve afectado.
-- `apps/web/.env`: `VITE_API_URL`.
+  `CORS_ORIGIN` es una lista separada por comas; `PASSKEY_RP_ID` opcional.
+- `apps/web/.env`: `VITE_API_URL`, `VITE_LANDING_URL`.
+- `apps/landing/.env`: `PUBLIC_API_URL` (sin `/api/v1`), `PUBLIC_APP_URL`, `PUBLIC_SITE_URL`.
 - Los secretos nunca se commitean; ver el `.env.example` de cada app.
 
 ## 11. Pendientes conocidos (diferidos)
@@ -504,6 +548,32 @@ comando `scope: "system"` del dominio, siguiendo el molde de `billing-generation
 todavía — la ruta web de importación es un placeholder) y recargar la página a mitad de un envío (la
 clave en memoria, `useIdempotencyKey`, se pierde — un reenvío es un intento genuinamente nuevo). Ambos
 catalogados en `docs/PENDING.md`.
+
+## 12d. Tipos de cambio (specs/030)
+
+Un dominio-tabla nuevo, `exchange-rate` (`apps/api/src/domains/exchange-rate/`): el valor diario del
+dólar observado (`USD`) y de la UF (`CLF`) en pesos, **dato de referencia global** (sin `userId`;
+autenticado y de solo lectura por HTTP: `GET /exchange-rates`). Una fila por moneda y día de calendario
+de Chile, única por `(currency, date)`; `valueDate` es el día en que la fuente publicó el valor, así que
+`valueDate < date` es un "dato arrastrado" (derivado, nunca un flag guardado).
+
+- **Registro.** `ExchangeRateCron` (un disparador delgado en `infra/cron`) despacha el comando de sistema
+  `RecordExchangeRatesCommand` cada hora de 08:00 a 20:00 America/Santiago, y una vez al arrancar (no en
+  tests). El dólar del día casi nunca está publicado a las 8:00, así que los ticks posteriores son como el
+  valor real reemplaza al arrastrado. Una llamada fallida no escribe nada; solo el tick de las 20:00
+  copia hacia adelante el último valor conocido. Cada escritura es un upsert atómico por
+  `(currency, date)` que solo puede subir `valueDate`. La fuente es un puerto (`ExchangeRateSourcePort`,
+  adaptador `MindicadorSource`, URL base reemplazable con `EXCHANGE_RATE_SOURCE_URL`).
+- **Solo sugerencias.** La web convierte un valor en una _propuesta editable_ — `convertAmount` en
+  `@finance/money`, `useSuggestedAmount`/`useAmountSuggestion` — para el pago/prepago de una facturación
+  USD, un traspaso USD→CLP y el "≈ $" de una cuenta USD; el patrimonio suma un total estimado junto a sus
+  cifras por moneda. **Ninguna regla del dominio compara montos de dos monedas y nada convertido se
+  persiste sin que la persona lo confirme** (el API recibe los dos montos que ella vio).
+- **Pagar una facturación en otra moneda** (`credit-statement`): dos montos — el de la facturación y lo
+  que salió de la cuenta de origen en su moneda (`chargedAmount`). Escribe el GASTO de origen y un
+  INGRESO de liquidación en la tarjeta principal de la cuenta (que debe tener tope en esa moneda), no
+  toca `creditUsed`, relee la facturación bajo candado de fila, y ambos movimientos son de solo lectura
+  en Movimientos (`TRANSACTION_LINKED_TO_STATEMENT`).
 
 ## 12. Agregar un dominio nuevo (resumen)
 

@@ -3,18 +3,23 @@ import { useTranslation } from "react-i18next";
 
 import { accounts as accountsContract } from "@finance/contracts";
 import type { accounts, transactions } from "@finance/contracts";
-import { formatMoney } from "@finance/money";
+import { currencyScale, formatMoney } from "@finance/money";
 
 import { accountMetaLine, cardMetaLine } from "../../accounts/lib/accountMeta";
 import { useCreditStatements } from "../../accounts/hooks/useAccounts";
 import { CurrencyField } from "../../reference/components/CurrencyField";
 import { useCurrencies } from "../../reference/hooks/useReference";
-import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
-import { cn } from "../../../shared/lib/cn";
+import {
+  formatTypedAmount,
+  groupingLocaleFor,
+  limitDecimals,
+  parseTypedAmount,
+} from "../../../shared/lib/amountInput";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { resolveCurrencySymbol } from "../../../shared/lib/currencySymbol";
 import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { useRecurring } from "../../recurring/hooks/useRecurring";
-import { DetailRow } from "../../../shared/ui/detail-row";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import {
   FormBigTextField,
   FormDateField,
@@ -39,8 +44,12 @@ export interface TransactionFormValue {
   bankAccountId: string;
   /** Destination account, transfer mode only. */
   toBankAccountId: string;
-  /** Amount landing on the destination, transfer mode only. */
+  /** Amount landing on the destination, transfer mode only. Only meaningful across
+   * currencies (a same-currency transfer moves the origin's amount). */
   amountIn: string;
+  /** The person typed `amountIn` (or it came from a saved transfer): the estimate must stop
+   * rewriting it. Spec 030. */
+  amountInEdited: boolean;
   /** The account funding a prepago, prepay mode only (spec 019) — `bankAccountId`
    * is the CREDIT_CARD account being abonada, same as any other mode. */
   prepayFromAccountId: string;
@@ -317,10 +326,15 @@ export function TransactionFormPanel({
           {resolveCurrencySymbol(value.currency, currencies, i18n.language)}
         </span>
         <input
-          inputMode="numeric"
+          inputMode={currencyScale(value.currency) > 0 ? "decimal" : "numeric"}
           data-testid="tx-amount"
-          value={formatAmountDisplay(value.amount, locale)}
-          onChange={(e) => onChange({ amount: e.target.value.replace(/\D/g, "") })}
+          value={formatTypedAmount(value.amount, locale)}
+          // A peso has no cents, a dollar has two: the cents a movement really has can be typed.
+          onChange={(e) =>
+            onChange({
+              amount: parseTypedAmount(e.target.value, locale, currencyScale(value.currency)),
+            })
+          }
           placeholder="0"
           className={cn(
             "min-w-0 flex-1 border-0 bg-transparent p-0 text-4xl font-bold tabular-nums focus-visible:outline-none",
@@ -334,7 +348,10 @@ export function TransactionFormPanel({
           variant="inline"
           className="w-auto shrink-0"
           value={value.currency}
-          onChange={(currency) => onChange({ currency })}
+          onChange={(currency) =>
+            // Cents the new currency does not have go with the old one.
+            onChange({ currency, amount: limitDecimals(value.amount, currencyScale(currency)) })
+          }
           searchPlaceholder={t("common.search")}
           noResultsLabel={t("common.noResults")}
           aria-label={t("transactions.form.currency")}

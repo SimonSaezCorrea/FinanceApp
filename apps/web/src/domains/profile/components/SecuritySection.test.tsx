@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { Providers } from "../../../app/providers";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import i18n from "../../../i18n";
+import { renderRouted } from "../testing/renderRouted";
 import { SecuritySection } from "./SecuritySection";
 
 const changePassword = vi.fn();
@@ -13,8 +14,16 @@ vi.mock("../api/profileApi", () => ({
   },
 }));
 
-vi.mock("../../auth/api/passkeyApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   passkeyApi: { list: vi.fn().mockResolvedValue([]) },
+  authApi: {
+    me: (...args: unknown[]) => meMock(...args),
+    logout: vi.fn(),
+    startMfaEnrollment: (...args: unknown[]) => startMfaEnrollment(...args),
+    confirmMfaEnrollment: (...args: unknown[]) => confirmMfaEnrollment(...args),
+    disableMfa: (...args: unknown[]) => disableMfa(...args),
+  },
 }));
 
 const listSessions = vi.fn().mockResolvedValue([]);
@@ -60,32 +69,21 @@ const meMock = vi.fn().mockResolvedValue({
   mfaEnabled: false,
   mfaRecoveryCodesRemaining: 0,
 });
-vi.mock("../../auth/api/authApi", () => ({
-  authApi: {
-    me: (...args: unknown[]) => meMock(...args),
-    logout: vi.fn(),
-    startMfaEnrollment: (...args: unknown[]) => startMfaEnrollment(...args),
-    confirmMfaEnrollment: (...args: unknown[]) => confirmMfaEnrollment(...args),
-    disableMfa: (...args: unknown[]) => disableMfa(...args),
-  },
-}));
 
 function renderSecurity() {
-  render(
+  renderRouted(
     <Providers>
       <SecuritySection />
     </Providers>,
   );
-  return screen.getByRole("button", { name: i18n.t("profile.security.title") });
 }
 
 async function openDialog() {
-  render(
+  renderRouted(
     <Providers>
       <SecuritySection />
     </Providers>,
   );
-  fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.security.title") })); // expand
   fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.security.password.change") }));
   return {
     current: await screen.findByLabelText(i18n.t("profile.security.password.current")),
@@ -179,8 +177,7 @@ describe("SecuritySection — MFA", () => {
       qrCodeDataUrl: "data:image/png;base64,xyz",
       secret: "JBSWY3DPEHPK3PXP",
     });
-    const expandButton = renderSecurity();
-    fireEvent.click(expandButton);
+    renderSecurity();
 
     const toggle = await screen.findByRole("switch", {
       name: i18n.t("profile.security.twoFactor.label"),
@@ -197,8 +194,7 @@ describe("SecuritySection — MFA", () => {
       secret: "JBSWY3DPEHPK3PXP",
     });
     confirmMfaEnrollment.mockRejectedValue(new ApiRequestError("INVALID_MFA_CODE", 401));
-    const expandButton = renderSecurity();
-    fireEvent.click(expandButton);
+    renderSecurity();
     fireEvent.click(
       await screen.findByRole("switch", { name: i18n.t("profile.security.twoFactor.label") }),
     );
@@ -221,8 +217,7 @@ describe("SecuritySection — MFA", () => {
     confirmMfaEnrollment.mockResolvedValue({
       recoveryCodes: ["AAAA-1111", "BBBB-2222"],
     });
-    const expandButton = renderSecurity();
-    fireEvent.click(expandButton);
+    renderSecurity();
     fireEvent.click(
       await screen.findByRole("switch", { name: i18n.t("profile.security.twoFactor.label") }),
     );
@@ -250,8 +245,7 @@ describe("SecuritySection — MFA", () => {
       mfaRecoveryCodesRemaining: 10,
     });
     disableMfa.mockRejectedValue(new ApiRequestError("INVALID_CURRENT_PASSWORD", 401));
-    const expandButton = renderSecurity();
-    fireEvent.click(expandButton);
+    renderSecurity();
 
     const toggle = await screen.findByRole("switch", {
       name: i18n.t("profile.security.twoFactor.label"),
@@ -295,8 +289,7 @@ describe("SecuritySection — MFA", () => {
       mfaEnabled: true,
       mfaRecoveryCodesRemaining: 10,
     });
-    const expandButton = renderSecurity();
-    fireEvent.click(expandButton);
+    renderSecurity();
 
     const toggle = await screen.findByRole("switch", {
       name: i18n.t("profile.security.twoFactor.label"),
@@ -322,8 +315,7 @@ describe("SecuritySection — MFA", () => {
       mfaRecoveryCodesRemaining: 10,
     });
     disableMfa.mockResolvedValue(undefined);
-    const expandButton = renderSecurity();
-    fireEvent.click(expandButton);
+    renderSecurity();
 
     const toggle = await screen.findByRole("switch", {
       name: i18n.t("profile.security.twoFactor.label"),
@@ -383,8 +375,7 @@ describe("SecuritySection — sessions", () => {
         isCurrent: false,
       },
     ]);
-    const expandButton = renderSecurity();
-    fireEvent.click(expandButton);
+    renderSecurity();
 
     expect(await screen.findByText("Chrome · Windows")).toBeDefined();
     expect(
@@ -417,8 +408,7 @@ describe("SecuritySection — sessions", () => {
         isCurrent: false,
       },
     ]);
-    const expandButton = renderSecurity();
-    fireEvent.click(expandButton);
+    renderSecurity();
     await screen.findByText("Safari · iPhone");
 
     listSessions.mockResolvedValue([
@@ -453,8 +443,7 @@ describe("SecuritySection — sessions", () => {
         isCurrent: true,
       },
     ]);
-    const expandButton = renderSecurity();
-    fireEvent.click(expandButton);
+    renderSecurity();
     await screen.findByText("Chrome · Windows");
 
     // The current session's own row never offers a "Cerrar" button at all — signing out lives
@@ -485,8 +474,7 @@ describe("SecuritySection — sessions", () => {
         isCurrent: false,
       },
     ]);
-    const expandButton = renderSecurity();
-    fireEvent.click(expandButton);
+    renderSecurity();
     await screen.findByText("Safari · iPhone");
 
     listSessions.mockResolvedValue([
@@ -530,8 +518,7 @@ describe("SecuritySection — sessions", () => {
         isCurrent: false,
       },
     ]);
-    const expandButton = renderSecurity();
-    fireEvent.click(expandButton);
+    renderSecurity();
 
     await screen.findByText("Safari · iPhone");
     const closedAt = new Date("2026-09-18T00:00:00Z");
@@ -574,8 +561,7 @@ describe("SecuritySection — sessions", () => {
         isCurrent: true,
       },
     ]);
-    const expandButton = renderSecurity();
-    fireEvent.click(expandButton);
+    renderSecurity();
 
     await screen.findByText("Chrome · Windows");
     const link = screen.getByRole("link", { name: "IPinfo" });

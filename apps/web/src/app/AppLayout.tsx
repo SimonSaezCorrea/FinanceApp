@@ -1,6 +1,7 @@
 import * as RadixDialog from "@radix-ui/react-dialog";
 import {
   ArrowLeftRight,
+  CircleDollarSign,
   CreditCard,
   HandCoins,
   LayoutDashboard,
@@ -20,15 +21,15 @@ import { type ReactNode, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { NavLink, useLocation } from "react-router";
 
-import { minWidth } from "../../breakpoints";
+import { minWidth } from "@finance/ui/breakpoints";
 import { useAuth } from "../domains/auth/hooks/useAuth";
 import { ThemeSync } from "../domains/profile/components/ThemeSync";
 import { TransactionCreateModal } from "../domains/transactions/components/TransactionCreateModal";
-import { cn } from "../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { getInitials } from "../shared/lib/initials";
-import { useMediaQuery } from "../shared/lib/useMediaQuery";
-import { BrandMark } from "../shared/ui/brand-mark";
-import { Button } from "../shared/ui/button";
+import { useMediaQuery } from "@finance/ui/src/shared/lib/useMediaQuery";
+import { BrandMark } from "@finance/ui/src/shared/ui/brand-mark";
+import { Button } from "@finance/ui/src/shared/ui/button";
 
 interface NavItem {
   to: string;
@@ -45,19 +46,26 @@ const INSTALLMENTS: NavItem = { to: "/installments", key: "installments.title", 
 const DEBTS: NavItem = { to: "/debts", key: "debts.title", icon: HandCoins };
 const RECURRING: NavItem = { to: "/recurring", key: "recurring.title", icon: Repeat };
 const SAVINGS: NavItem = { to: "/savings", key: "savings.title", icon: PiggyBank };
+const EXCHANGE_RATES: NavItem = {
+  to: "/exchange-rates",
+  key: "nav.exchangeRates",
+  icon: CircleDollarSign,
+};
 
 /** Grouped by what each section IS for the user: their money, what they've committed to, their
- * goals. Investments is left out until it exists (an item that leads nowhere is daily noise). */
+ * goals, and the economic indicators (reference data, not theirs — dólar, UF, and later others).
+ * Investments is left out until it exists (an item that leads nowhere is daily noise). */
 const GROUPS: { key: string | null; items: NavItem[] }[] = [
   { key: null, items: [PANEL] },
   { key: "nav.groups.money", items: [ACCOUNTS, MOVEMENTS, IMPORT] },
   { key: "nav.groups.commitments", items: [INSTALLMENTS, DEBTS, RECURRING] },
   { key: "nav.groups.goals", items: [SAVINGS] },
+  { key: "nav.groups.indicators", items: [EXCHANGE_RATES] },
 ];
 
 /** Phone: four destinations and "+" in the tab bar; everything else in the "Más" sheet. */
 const TAB_ITEMS: NavItem[] = [PANEL, ACCOUNTS, MOVEMENTS];
-const SHEET_ITEMS: NavItem[] = [INSTALLMENTS, DEBTS, RECURRING, SAVINGS, IMPORT];
+const SHEET_ITEMS: NavItem[] = [INSTALLMENTS, DEBTS, RECURRING, SAVINGS, IMPORT, EXCHANGE_RATES];
 
 const SIDEBAR_COLLAPSED_KEY = "finance.sidebarCollapsed";
 
@@ -290,7 +298,7 @@ function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
 
   const tab = (active: boolean) =>
     cn(
-      "flex flex-col items-center gap-0.5 rounded-lg py-1 text-[11px] transition-colors",
+      "flex flex-col items-center gap-0.5 rounded-lg py-1 text-xs sm:text-[11px] transition-colors",
       active ? "font-semibold text-primary" : "text-muted-foreground",
     );
 
@@ -402,7 +410,9 @@ export function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
   const openNew = () => setNewOpen(true);
 
   return (
-    <div className="flex h-dvh overflow-hidden">
+    // `app-shell`: the document itself never scrolls here (only <main> does), so
+    // `styles/index.css` drops the page-scrollbar gutter for it.
+    <div className="app-shell flex h-dvh overflow-hidden">
       <ThemeSync />
       {isTablet ? (
         <aside

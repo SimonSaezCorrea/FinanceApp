@@ -1,6 +1,6 @@
 import type { wallet } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "@finance/client";
 
 export const walletApi = {
   list: () => apiFetch<wallet.WalletItem[]>("/wallet"),

@@ -4,6 +4,7 @@ import { toMoney } from "@finance/money";
 
 import { PrismaService } from "../../../infra/prisma/prisma.service";
 import { excludeInternalFlows } from "../application/queries/transaction-list-filter";
+import { STILL_OWED } from "./prisma-transaction-sums.repository";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
@@ -262,9 +263,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         currency,
         ...(since ? { occurredAt: { gte: since } } : {}),
         ...(excludeTxId ? { id: { not: excludeTxId } } : {}),
-        ...(openOnly
-          ? { OR: [{ creditStatementId: null }, { creditStatement: { paidAt: null } }] }
-          : {}),
+        ...(openOnly ? STILL_OWED : {}),
       },
       _sum: { amount: true },
     });

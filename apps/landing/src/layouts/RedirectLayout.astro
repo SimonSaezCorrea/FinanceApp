@@ -1,0 +1,48 @@
+---
+/**
+ * A page that only sends the visitor on (spec 031, contracts/routes.md): the script keeps the
+ * query (`?acceso=…&volver=…`) and the anchor (`#faq-minors`), which a meta refresh would drop;
+ * the meta refresh covers a visitor without JavaScript; the canonical tells a crawler where the
+ * content lives. A real HTTP redirect configured on the host should replace this in production.
+ */
+interface Props {
+  /** Where to go; for the root, the Spanish home (the script may pick English instead). */
+  target: string;
+  /** The root picks the language from the browser instead of always going to `target`. */
+  pickLanguage?: boolean;
+}
+const { target, pickLanguage = false } = Astro.props;
+const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, follow" />
+    <title>Cuadra</title>
+    <link rel="canonical" href={`${site}${target}`} />
+    {
+      pickLanguage && (
+        <>
+          <link rel="alternate" hreflang="es" href={`${site}/es/`} />
+          <link rel="alternate" hreflang="en" href={`${site}/en/`} />
+          <link rel="alternate" hreflang="x-default" href={`${site}/`} />
+        </>
+      )
+    }
+    <meta http-equiv="refresh" content={`0;url=${target}`} />
+    <script is:inline define:vars={{ target, pickLanguage }}>
+      var path = target;
+      if (pickLanguage) {
+        var first = ((navigator.languages && navigator.languages[0]) || navigator.language || "").toLowerCase();
+        path = first.indexOf("en") === 0 ? "/en/" : "/es/";
+      }
+      location.replace(path + location.search + location.hash);
+    </script>
+  </head>
+  <body>
+    <p><a href={target}>Cuadra</a></p>
+  </body>
+</html>

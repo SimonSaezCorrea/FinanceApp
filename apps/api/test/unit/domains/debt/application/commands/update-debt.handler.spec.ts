@@ -40,6 +40,8 @@ function makeDebt() {
 
 function fakeRepo(overrides: Partial<DebtRepositoryPort> = {}): DebtRepositoryPort {
   return {
+    countForUser: vi.fn(async () => 0),
+    deleteAllForUserWithTx: vi.fn(async () => {}),
     countForAccount: vi.fn(async () => 0),
     clearLastPaymentForAccountWithTx: vi.fn(),
     list: vi.fn(),

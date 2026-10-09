@@ -162,4 +162,12 @@ export class PrismaDebtRepository implements DebtRepositoryPort {
     const result = await this.prisma.debt.deleteMany({ where: { id, userId } });
     return result.count > 0;
   }
+
+  async countForUser(userId: string): Promise<number> {
+    return this.prisma.debt.count({ where: { userId } });
+  }
+
+  async deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void> {
+    await (tx as PrismaService).debt.deleteMany({ where: { userId } });
+  }
 }

@@ -5,8 +5,8 @@ import { Link } from "react-router";
 import type { accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { cn } from "../../../shared/lib/cn";
-import { convertApprox } from "../../../shared/lib/fx";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { ApproxAmount } from "../../exchange-rates/components/ApproxAmount";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { ACCOUNT_ICON, isCreditType } from "./accountVisuals";
 
@@ -25,10 +25,7 @@ function creditUsage(
   return { used, limit, pct: Math.min(100, Math.round((used / limit) * 100)) };
 }
 
-export function AccountCard({
-  account,
-  primaryCurrency,
-}: Readonly<{ account: accounts.BankAccount; primaryCurrency: string }>) {
+export function AccountCard({ account }: Readonly<{ account: accounts.BankAccount }>) {
   const { t, i18n } = useTranslation();
   const Icon = ACCOUNT_ICON[account.type];
   // A standalone credit card holds no money: the card reads as debt, in the accent color.
@@ -37,11 +34,6 @@ export function AccountCard({
   const pct = account.balanceChangePct === null ? null : Number(account.balanceChangePct);
   const money = (value: string) =>
     formatMoney(value, { locale: i18n.language, currency: account.currency });
-  const approxInPrimary = convertApprox(
-    isCredit ? `-${account.creditUsed}` : account.currentBalance,
-    account.currency,
-    primaryCurrency,
-  );
 
   const subtitle = [account.institutionName ?? account.institution, account.cards[0]?.last4]
     .filter(Boolean)
@@ -67,7 +59,7 @@ export function AccountCard({
         </span>
         <span
           className={cn(
-            "rounded-full px-2.5 py-0.5 text-[10px] font-medium",
+            "rounded-full px-2.5 py-0.5 text-xs sm:text-[10px] font-medium",
             isCredit ? "bg-accent/15 text-accent" : "bg-chip text-muted-foreground",
           )}
         >
@@ -78,7 +70,7 @@ export function AccountCard({
       </div>
 
       <p className="text-[13.5px] font-semibold leading-tight">{account.name}</p>
-      <p className="mt-0.5 text-[11px] text-dim">{subtitle || account.currency}</p>
+      <p className="mt-0.5 text-xs sm:text-[11px] text-dim">{subtitle || account.currency}</p>
 
       <p
         className={cn(
@@ -91,20 +83,18 @@ export function AccountCard({
         </MaskedAmount>
       </p>
 
-      {/* Approximate value in the user's currency (static rates — see shared/lib/fx). */}
-      {approxInPrimary !== null ? (
-        <p className="mt-2 text-[11px] tabular-nums text-dim">
-          <MaskedAmount>
-            ≈ {formatMoney(approxInPrimary, { locale: i18n.language, currency: primaryCurrency })}{" "}
-            {primaryCurrency}
-          </MaskedAmount>
-        </p>
-      ) : null}
+      {/* Approximate value in pesos, from the recorded dollar (spec 030); renders
+          nothing for any account that isn't in USD or while no value is recorded. */}
+      <ApproxAmount
+        amount={isCredit ? `-${account.creditUsed}` : account.currentBalance}
+        currency={account.currency}
+        className="mt-2 block text-xs sm:text-[11px] tabular-nums text-dim"
+      />
 
       {!isCredit && pct !== null ? (
         <p
           className={cn(
-            "mt-2 flex items-center gap-1.5 text-[11px]",
+            "mt-2 flex items-center gap-1.5 text-xs sm:text-[11px]",
             pct < 0 ? "text-destructive" : "text-success",
           )}
         >
@@ -119,15 +109,9 @@ export function AccountCard({
         </p>
       ) : null}
 
-      {isCredit && account.billingCycleDay !== null ? (
-        <p className="mt-2 text-[11px] text-dim">
-          {t("accounts.card.billedOn", { day: account.billingCycleDay })}
-        </p>
-      ) : null}
-
       {usage ? (
         <div className="mt-auto border-t pt-2.5">
-          <div className="mb-1.5 flex items-center justify-between gap-2 text-[10.5px] text-muted-foreground">
+          <div className="mb-1.5 flex items-center justify-between gap-2 text-xs sm:text-[10.5px] text-muted-foreground">
             <span className="flex min-w-0 items-center gap-1.5">
               <CreditCard className="h-[11px] w-[11px] shrink-0 text-accent" aria-hidden />
               <span className="truncate">
@@ -141,7 +125,7 @@ export function AccountCard({
           <div className="h-1 overflow-hidden rounded-full bg-track">
             <div className="h-full rounded-full bg-accent" style={{ width: `${usage.pct}%` }} />
           </div>
-          <p className="mt-1.5 whitespace-nowrap text-[10px] tabular-nums text-dim">
+          <p className="mt-1.5 whitespace-nowrap text-xs sm:text-[10px] tabular-nums text-dim">
             <MaskedAmount>
               {money(account.creditUsed)} / {money(account.creditLimit)}
             </MaskedAmount>

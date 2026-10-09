@@ -105,6 +105,7 @@ export function DebtsSkeleton({ label }: Readonly<{ label: string }>) {
           />
           <select
             disabled
+            aria-label={t("debts.filters.statusLabel")}
             className="rounded-[7.6px] border bg-card px-3 py-1.5 text-sm text-muted-foreground disabled:cursor-not-allowed"
           >
             <option>{t("debts.filters.active")}</option>

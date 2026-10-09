@@ -1,0 +1,2529 @@
+{
+  "brand": {
+    "name": "Cuadra",
+    "slogan": "La columna de tus finanzas"
+  },
+  "app": {
+    "loading": "Cargando…",
+    "loadingMore": "Cargando más…",
+    "welcome": "Panel de finanzas personales",
+    "bootstrapping": "Preparando tu sesión…",
+    "notFound": {
+      "eyebrow": "Error 404",
+      "title": "Esta página no existe",
+      "message": "Revisa el enlace o vuelve a un lugar conocido.",
+      "toHome": "Ir al inicio",
+      "toPanel": "Ir al panel",
+      "back": "Volver atrás"
+    },
+    "crash": {
+      "title": "Algo salió mal",
+      "message": "La página encontró un error inesperado. Puedes recargar o volver al inicio.",
+      "reload": "Recargar",
+      "home": "Ir al inicio"
+    }
+  },
+  "states": {
+    "error": {
+      "connection": {
+        "title": "Se nos cortó la conexión",
+        "message": "No pudimos comunicarnos con el servidor. Revisa tu conexión e inténtalo de nuevo."
+      },
+      "server": {
+        "title": "Ocurrió un error",
+        "message": "Inténtalo de nuevo."
+      },
+      "notFound": {
+        "title": "No encontramos lo que buscabas",
+        "message": "Puede que se haya movido o eliminado.",
+        "action": "Volver al panel"
+      },
+      "unauthorized": {
+        "title": "Tu sesión expiró",
+        "message": "Inicia sesión de nuevo para continuar.",
+        "action": "Iniciar sesión"
+      },
+      "empty": {
+        "title": "No hay información para mostrar",
+        "message": ""
+      }
+    }
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "retry": "Reintentar",
+    "save": "Guardar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "options": "Opciones",
+    "confirmDeleteTitle": "¿Eliminar elemento?",
+    "confirmDelete": "Esta acción no se puede deshacer.",
+    "noResults": "Sin resultados.",
+    "search": "Buscar…",
+    "frequency": {
+      "DAILY": "Diaria",
+      "WEEKLY": "Semanal",
+      "MONTHLY": "Mensual",
+      "YEARLY": "Anual"
+    },
+    "unsaved": "Sin guardar",
+    "saveChanges": "Guardar cambios",
+    "create": "Crear",
+    "date": {
+      "choose": "Elegir fecha",
+      "today": "hoy",
+      "clear": "Borrar",
+      "previousMonth": "Mes anterior",
+      "nextMonth": "Mes siguiente",
+      "chooseMonth": "Elegir mes",
+      "chooseYear": "Elegir año",
+      "previousYear": "Año anterior",
+      "nextYear": "Año siguiente",
+      "previousYears": "Años anteriores",
+      "nextYears": "Años siguientes",
+      "thisMonth": "Este mes"
+    },
+    "decrease": "Disminuir",
+    "increase": "Aumentar",
+    "hidePassword": "Ocultar contraseña",
+    "showPassword": "Mostrar contraseña"
+  },
+  "nav": {
+    "dashboard": "Panel",
+    "menu": "Menú",
+    "collapse": "Colapsar barra lateral",
+    "expand": "Expandir barra lateral",
+    "groups": {
+      "money": "Tu dinero",
+      "commitments": "Compromisos",
+      "goals": "Metas",
+      "indicators": "Indicadores"
+    },
+    "more": "Más",
+    "moreSections": "Más secciones",
+    "exchangeRates": "Tipos de cambio"
+  },
+  "theme": {
+    "label": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema"
+  },
+  "accounts": {
+    "title": "Cuentas",
+    "empty": "Aún no tienes cuentas.",
+    "deleted": "Cuenta eliminada",
+    "deleteConfirm": "¿Eliminar esta cuenta?",
+    "deleteConfirmDescription": "Se eliminará de forma permanente, junto con sus tarjetas y su facturación. Elige qué más eliminar con ella: lo que no elijas se mantiene, sin cuenta asociada.",
+    "deleteWith": {
+      "title": "Eliminar también",
+      "loading": "Revisando qué está relacionado con esta cuenta…",
+      "nothing": "No hay movimientos ni datos relacionados con esta cuenta.",
+      "movements_one": "{{count}} movimiento",
+      "movements_other": "{{count}} movimientos",
+      "transfers_one": "Incluye {{count}} traspaso con otra cuenta: se borran sus dos partes.",
+      "transfers_other": "Incluye {{count}} traspasos con otras cuentas: se borran sus dos partes.",
+      "payments_one": "Incluye {{count}} pago de su facturación hecho desde otra cuenta.",
+      "payments_other": "Incluye {{count}} pagos de su facturación hechos desde otras cuentas.",
+      "restores": "Devuelve a {{restorations}}",
+      "installmentPlans_one": "{{count}} plan de cuotas",
+      "installmentPlans_other": "{{count}} planes de cuotas",
+      "recurring_one": "{{count}} recurrente",
+      "recurring_other": "{{count}} recurrentes",
+      "savingsEntries_one": "{{count}} aporte de ahorro",
+      "savingsEntries_other": "{{count}} aportes de ahorro",
+      "linkedDebts_one": "{{count}} deuda asociada a esta cuenta se mantiene, sin la cuenta.",
+      "linkedDebts_other": "{{count}} deudas asociadas a esta cuenta se mantienen, sin la cuenta.",
+      "unknownAccount": "otra cuenta"
+    },
+    "new": "Nueva cuenta",
+    "newSubtitle": "Registra una cuenta bancaria, tarjeta o efectivo",
+    "currentBalance": "Saldo actual",
+    "summary": "{{accounts}} cuentas · {{currencies}} monedas",
+    "type": {
+      "CHECKING": "Corriente",
+      "SIGHT": "Vista",
+      "SAVINGS": "Ahorro",
+      "INVESTMENT": "Inversiones",
+      "CREDIT_CARD": "Tarjeta de crédito",
+      "PREPAID": "Prepago",
+      "CASH": "Efectivo"
+    },
+    "status": {
+      "label": "Estado",
+      "ACTIVE": "Activa",
+      "INACTIVE": "Inactiva"
+    },
+    "card": {
+      "usage": "{{pct}}% cupo",
+      "creditUsed": "Cupo usado",
+      "creditUsedShared": "Cupo usado · compartido",
+      "cardPool": "Tarjeta ···· {{last4}}",
+      "trend": "{{pct}}% este mes"
+    },
+    "overview": {
+      "netWorth": "Patrimonio neto",
+      "netWorthHint": "· neto en {{currency}}, otras monedas sin convertir",
+      "assets": "Activos",
+      "cardDebt": "Deuda tarjetas",
+      "debts": "Deudas"
+    },
+    "groupBy": {
+      "label": "Agrupar:",
+      "currency": "Moneda",
+      "type": "Tipo de cuenta",
+      "institution": "Institución",
+      "status": "Estado",
+      "none": "Sin agrupar",
+      "noInstitution": "Sin institución",
+      "allAccounts": "Todas las cuentas",
+      "count": "{{count}} cuenta(s)"
+    },
+    "balanceLabel": "Saldo",
+    "detail": {
+      "change": "Variación",
+      "credit": "Crédito",
+      "creditIn": "Crédito · {{currency}}",
+      "billingTitle": "Facturación",
+      "billingEmpty": "Todavía no hay facturaciones. Genera la primera con las fechas de tu estado de cuenta.",
+      "billingPeriod": "Período",
+      "billingAmount": "Monto",
+      "billingStatus": "Estado",
+      "billingActions": "Acciones",
+      "billingCurrentPeriod": "Período actual",
+      "billingPaidPeriods": "Períodos liquidados",
+      "billingPeriodToDate": "{{date}} – hoy",
+      "billingPaidOn": "Pagada el {{date}}",
+      "billingDueDate": "Vence el {{date}}",
+      "billingIncludesCarryOver": "incluye {{amount}} de la anterior",
+      "billingPaidAmount": "pagado {{amount}}",
+      "billingStatusValue": {
+        "OPEN": "Abierta",
+        "PENDING": "Pendiente",
+        "PARTIALLY_PAID": "Pago parcial",
+        "PAID": "Pagada",
+        "TRANSFERRED": "Traspasada"
+      },
+      "payFromAccount": "Pagar con",
+      "payFromAccountPlaceholder": "Selecciona una cuenta",
+      "payTitle": "Pagar facturación",
+      "paySummaryAmount": "Monto a pagar",
+      "payToAccount": "Facturación de",
+      "payThisAccount": "Esta cuenta",
+      "payInsufficient": "El saldo de esta cuenta es menor que el monto a pagar.",
+      "payDifferentCurrency": "Esta cuenta está en otra moneda; no se aplica conversión.",
+      "payCreatesMovement": "Se registrará un gasto en la cuenta seleccionada y la facturación quedará pagada.",
+      "payEyebrow": "Pagar facturación",
+      "payPeriodTitle": "Período {{date}}",
+      "payBalanceAfter": "Saldo después del pago",
+      "payAction": "Pagar {{amount}}",
+      "payModeTotal": "Total",
+      "payModeMinimum": "Mínimo",
+      "payModeCustom": "Otro monto",
+      "payCoversTotal": "Cubre el total de la facturación.",
+      "payCoversMinimum": "Es el mínimo de esta cuenta ({{percent}}% del período); el resto pasa a la próxima.",
+      "payCoversCustom": "El resto pasará a la próxima facturación.",
+      "payBreakdownPurchases": "Compras del período",
+      "payBreakdownInstallments": "Cuotas del mes ({{count}})",
+      "payAmountLabel": "Monto",
+      "payRemainingAfter": "Pasa a la próxima facturación",
+      "payDate": "Fecha de pago",
+      "payReference": "Referencia (opcional)",
+      "payReferencePlaceholder": "Ej. Transferencia 4412",
+      "payCarriedOver": "Saldo de la facturación anterior",
+      "editPaymentEyebrow": "Modificar pago",
+      "editPaymentDescription": "Corrige cuánto se pagó realmente en este período. El monto del período no se edita a mano: se recalcula con \"Sincronizar pagos\".",
+      "editPaymentCurrent": "Pagado hasta ahora",
+      "editPaymentCascadeHint": "Se ajustan el movimiento del pago, el saldo de la cuenta de origen, el cupo usado y lo que pasa a la próxima facturación.",
+      "editPaymentSuccess": "Pago actualizado",
+      "payMinimumUnset": "Esta cuenta no tiene pago mínimo configurado. Puedes definirlo en la facturación de la cuenta (Pago mínimo %).",
+      "payMinimumCovered": "Ya pagaste más que el mínimo de este período.",
+      "billingBreakdown": "{{purchases}} en compras · {{installments}} en {{count}} cuota",
+      "billingBreakdown_other": "{{purchases}} en compras · {{installments}} en {{count}} cuotas",
+      "statementPaid": "Pagado",
+      "statementRemaining": "Restante",
+      "statementPurchases": "Compras",
+      "statementInstallments": "Cuotas facturadas",
+      "billingCurrencyTabs": "Facturación por moneda",
+      "billingPayment": "Pago",
+      "billingPaidLabel": "Pagada",
+      "billingDueLabel": "Vence",
+      "billingOverdue": "Vencida",
+      "statementShowMore": "Mostrar más",
+      "statementShown": "Mostrando {{shown}} de {{total}}"
+    },
+    "filter": {
+      "label": "Filtrar por estado",
+      "all": "Todas",
+      "active": "Activas",
+      "inactive": "Inactivas"
+    },
+    "form": {
+      "name": "Nombre",
+      "type": "Tipo",
+      "status": "Estado",
+      "institution": "Institución",
+      "institutionNone": "Sin institución / manual",
+      "country": "País",
+      "accountNumberCbu": "CBU / CVU",
+      "accountNumberInvalid": "El CBU/CVU no es válido (22 dígitos con dígito verificador).",
+      "accountAlias": "Alias",
+      "accountAliasInvalid": "El alias no es válido (6-20 caracteres, sin espacios).",
+      "accountAliasPlaceholder": "mate.tango.mp",
+      "accountNumber": "Número de cuenta",
+      "primaryCardHint": "Estos datos identifican la tarjeta principal de esta cuenta — su tope es el cupo total definido abajo.",
+      "currency": "Moneda",
+      "balanceCeiling": "Saldo máximo",
+      "balanceCeilingHint": "Tope regulatorio de esta cuenta. Vacío = sin tope declarado.",
+      "overdraftLimit": "Línea de sobregiro",
+      "overdraftLimitHint": "Cuánto puede bajar de cero esta cuenta. 0 = sin sobregiro.",
+      "initialBalance": "Saldo inicial",
+      "creditLimit": "Cupo total",
+      "creditLimitMirroredHint": "Se sincroniza con el tope de la tarjeta principal.",
+      "creditUsedInitial": "Cupo usado inicial",
+      "accountActive": "Cuenta activa",
+      "investmentTypeLocked": "Próximamente — inversiones todavía no está disponible.",
+      "sectionAccountData": "Datos de la cuenta",
+      "sectionBalanceCurrency": "Saldo y moneda",
+      "preview": "Vista previa",
+      "editLaterHint": "Podrás editar todos estos datos después.",
+      "createSubmit": "Crear cuenta",
+      "optional": "Opcional",
+      "moreDetails": "Más detalles",
+      "availableResult": "Disponible resultante",
+      "unsavedChanges": "Cambios sin guardar",
+      "accountActiveHint": "Aparece en resúmenes, filtros y nuevos movimientos.",
+      "sections": {
+        "identification": "Identificación",
+        "identificationHint": "Cómo aparece la cuenta en listas, filtros y movimientos.",
+        "credit": "Crédito",
+        "creditHint": "El cupo total se sincroniza con el tope de la tarjeta principal.",
+        "balance": "Saldo",
+        "balanceHint": "Moneda de la cuenta y saldo con el que se creó.",
+        "billingHint": "Al llegar el día de facturación se genera el estado de cuenta pendiente de pago.",
+        "status": "Estado",
+        "statusHint": "Una cuenta inactiva se oculta de los resúmenes pero conserva su historial."
+      },
+      "minimumPercent": "Pago mínimo (%)",
+      "minimumPercentHint": "Porcentaje del período que tu emisor acepta como pago mínimo. Vacío = sin mínimo.",
+      "namePlaceholder": "Ej. Cuenta Corriente",
+      "accountNumberPlaceholder": "Ej. 001-2345678-90"
+    },
+    "actions": {
+      "edit": "Editar",
+      "save": "Guardar",
+      "delete": "Eliminar",
+      "activate": "Activar",
+      "deactivate": "Desactivar",
+      "payCredit": "Pagar facturación",
+      "editStatementPayment": "Modificar pago",
+      "payCreditConfirm": "¿Pagar {{amount}} de facturación? Se descontará del cupo usado.",
+      "payCreditSuccess": "Facturación pagada",
+      "generateStatements": "Generar facturación",
+      "generateStatementsPreviewAmount": "Monto acumulado",
+      "generateStatementsSuccess": "Facturación revisada",
+      "syncStatement": "Sincronizar pagos",
+      "syncStatementConfirm": "¿Sincronizar esta facturación?",
+      "syncStatementConfirmDescription": "Se recalculará el monto del período con los movimientos que caen dentro de sus fechas. Si ya estaba pagada, también se ajustará el movimiento de pago y el cupo usado.",
+      "syncStatementSuccess": "Facturación sincronizada",
+      "generateStatementsPreviewAmountIn": "Monto acumulado en {{currency}}"
+    },
+    "updated": "Cuenta actualizada",
+    "edit": {
+      "cardsNotEditable": "No editables aquí",
+      "cardsAsideHint": "Se administran desde el detalle de cada tarjeta. Guarda los cambios de la cuenta para volver.",
+      "editEyebrow": "Editar cuenta",
+      "deleteAccount": "Eliminar cuenta",
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en esta cuenta. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios"
+    },
+    "generate": {
+      "title": "Generar facturación",
+      "description": "Copia las fechas del estado de cuenta que emitió el banco.",
+      "periodStart": "Fecha de inicio",
+      "closedAt": "Fecha de cierre",
+      "dueDate": "Fecha de pago",
+      "startHint": "Por defecto, el día siguiente al cierre de la facturación anterior.",
+      "accumulated": "Período abierto",
+      "relinkHint": "Los movimientos con fecha posterior al cierre pasan al período siguiente.",
+      "overlaps": "La facturación anterior ya cubre esas fechas: el inicio debe ser el {{date}} o después.",
+      "closeBeforeStart": "La fecha de cierre no puede ser anterior a la de inicio.",
+      "dueBeforeClose": "La fecha de pago no puede ser anterior al cierre.",
+      "editTitle": "Editar fechas",
+      "editSuccess": "Fechas de la facturación actualizadas",
+      "lockedSettled": "Esta facturación ya está liquidada: solo se puede cambiar la fecha de pago.",
+      "lockedLater": "Ya hay una facturación posterior: el cierre no se puede mover sin pisar sus fechas.",
+      "openHint": "Este período sigue abierto. Agenda su cierre con «Editar fechas» y se generará solo.",
+      "unbilled": "Por facturar",
+      "scheduleDescription": "No cierra la facturación: se generará sola cuando llegue la fecha de cierre. Para cerrarla antes, usa «Generar facturación».",
+      "scheduleSuccess": "Fechas guardadas: la facturación se generará al llegar el cierre"
+    },
+    "pay": {
+      "debitedLabel": "Monto debitado en {{currency}}",
+      "clpPreview": "≈ {{amount}} al dólar del {{date}} ({{rate}}). Elige la cuenta de origen para ajustarlo.",
+      "foreignCreatesMovement": "Se registrará un gasto en la cuenta seleccionada y un abono en dólares en tu tarjeta; el cupo en pesos no cambia.",
+      "prepayEyebrow": "Prepagar facturación",
+      "prepayTitle": "Prepago · período desde {{date}}",
+      "prepayAction": "Prepagar {{amount}}",
+      "prepayHint": "Abona antes del cierre: no cierra el período.",
+      "prepaySuccess": "Prepago registrado",
+      "prepayCreatesMovement": "Se registrará un gasto en la cuenta seleccionada y un abono en dólares en tu tarjeta; el período sigue abierto."
+    }
+  },
+  "cards": {
+    "actions": {},
+    "title": "Tarjetas",
+    "additionalTitle": "Tarjetas adicionales",
+    "add": "Añadir tarjeta",
+    "addShort": "Añadir",
+    "newTitle": "Nueva tarjeta",
+    "editTitle": "Editar tarjeta",
+    "empty": "Sin tarjetas asociadas.",
+    "emptyHint": "Puedes añadirlas ahora o más tarde.",
+    "count": "{{count}} tarjeta(s)",
+    "expires": "Vence {{date}}",
+    "secondary": "Secundaria",
+    "primaryBadge": "Principal",
+    "additionalBadge": "Adicional",
+    "created": "Tarjeta creada",
+    "updated": "Tarjeta actualizada",
+    "deleted": "Tarjeta eliminada",
+    "deleteConfirm": "¿Eliminar esta tarjeta?",
+    "kind": {
+      "CREDIT": "Crédito",
+      "DEBIT": "Débito",
+      "PREPAID": "Prepago"
+    },
+    "network": {
+      "VISA": "Visa",
+      "MASTERCARD": "Mastercard",
+      "AMEX": "American Express",
+      "REDCOMPRA": "Redcompra",
+      "OTHER": "Otra"
+    },
+    "form": {
+      "name": "Nombre de la tarjeta (opcional)",
+      "namePlaceholder": "Ej. Tarjeta principal",
+      "kind": "Tipo",
+      "parent": "Tarjeta principal (secundaria)",
+      "parentNone": "Ninguna (es principal)",
+      "expiry": "Vence",
+      "expiryPlaceholder": "MM/AA",
+      "last4": "Últimos 4 dígitos",
+      "virtual": "Tarjeta virtual",
+      "virtualHint": "Sin plástico. Varias virtuales pueden compartir la misma cuenta.",
+      "additional": "Tarjeta adicional",
+      "additionalHint": "Emitida a otra persona sobre la misma cuenta o línea.",
+      "cardholder": "Titular de la tarjeta",
+      "cardholderPlaceholder": "Ej. Camila Rojas",
+      "network": "Red",
+      "networkNone": "Sin especificar",
+      "last4Hint": "Solo se guardan los últimos 4 dígitos.",
+      "cardDetails": "Datos de la tarjeta",
+      "moreDetails": "Más detalles",
+      "limits": "Topes por moneda",
+      "limitsHint": "Opcional. Sin topes propios, la tarjeta puede usar todo el cupo de la cuenta.",
+      "currency": "Moneda",
+      "limit": "Tope",
+      "used": "Usado",
+      "initialUsed": "Usado inicial",
+      "addLimit": "Añadir tope",
+      "primaryLimit": "Tope de la tarjeta ({{currency}})",
+      "primaryLimitHint": "Es la primera tarjeta de crédito de la cuenta: su tope pasa a ser el cupo compartido de la cuenta.",
+      "extraLimits": "Topes en otras monedas",
+      "extraLimitsHint": "Opcional. Añade un tope adicional si esta tarjeta también se usa en otra moneda (sin conversión entre monedas).",
+      "extraLimitsNoCurrencies": "Para agregar un tope en otra moneda (ej. USD), primero actívala en Perfil → Personalización financiera → Monedas extra.",
+      "usesPool": "Cupo de la cuenta",
+      "usesPoolHint": "Esta tarjeta comparte el cupo total de la cuenta.",
+      "ownLimit": "Tope propio",
+      "ownLimitHint": "Limita esta tarjeta dentro del cupo de la cuenta: lo que gaste usa también el cupo de la cuenta, y el tope no puede superarlo en su misma moneda.",
+      "ownLimitRowsHint": "Agrega al menos un tope por moneda.",
+      "active": "Tarjeta activa",
+      "activeHint": "Una tarjeta inactiva se conserva con su historial, pero no aparece al registrar movimientos."
+    },
+    "errors": {
+      "last4": "Ingresa los últimos 4 dígitos.",
+      "expiry": "Ingresa una fecha de vencimiento válida (MM/AA).",
+      "limitRequired": "Ingresa un tope válido para esta tarjeta."
+    },
+    "deleteConfirmDescription": "Se eliminará de forma permanente, junto con todo lo relacionado a ella.",
+    "detail": {
+      "title": "Detalle de tarjeta",
+      "available": "Disponible {{amount}}",
+      "role": "Rol",
+      "holder": "Titular",
+      "format": "Formato",
+      "issuedTo": "Emisión",
+      "limitSource": "Origen del tope",
+      "ownLimit": "Tope propio",
+      "accountPool": "Cupo de la cuenta",
+      "movements": "Últimos movimientos",
+      "editingThis": "Editando esta tarjeta",
+      "filteringTable": "Filtrando la tabla ←",
+      "filteringTableHint": "La tabla de la izquierda ya está filtrada por esta tarjeta",
+      "expiry": "Vence",
+      "activePlans": "Cuotas activas",
+      "activePlansCount": "{{count}} plan(es)",
+      "separatePoolsHint": "Cada moneda lleva su tope por separado: sin tipo de cambio, la app no descuenta una compra en otra moneda del cupo principal, como sí suele hacer el emisor.",
+      "availableLabel": "Disponible"
+    },
+    "showInactive": "Ver inactivas",
+    "inactiveBadge": "Inactiva"
+  },
+  "dashboard": {
+    "title": "Panel",
+    "netWorth": "Patrimonio neto",
+    "wallet": "Tu cartera",
+    "spendByCategory": "En qué se fue",
+    "noSpend": "Sin gastos este mes.",
+    "upcoming": "Próximos pagos",
+    "upcomingEmpty": "Sin pagos próximos.",
+    "prevMonth": "Mes anterior",
+    "nextMonth": "Mes siguiente",
+    "upcomingKind": {
+      "installment": "Plan en cuotas",
+      "debt": "Deuda",
+      "recurring": "Gasto recurrente",
+      "debtOwedToYou": "Te deben"
+    },
+    "greeting": "Hola, {{name}}",
+    "backToThisMonth": "Volver a este mes",
+    "attention": {
+      "title": "Requiere atención",
+      "none": "Nada vence en los próximos días.",
+      "count": "{{current}} de {{total}}",
+      "dueToday": "Vence hoy",
+      "dueTomorrow": "Vence mañana",
+      "dueOn": "Vence el {{date}}",
+      "overdueOn": "Venció el {{date}}",
+      "statement": "Facturación {{account}}"
+    },
+    "netWorthSince": "desde el {{date}}",
+    "netWorthChart": "Patrimonio neto diario del {{from}} al {{to}}",
+    "otherCurrencies": "Otras monedas, sin convertir",
+    "in": "Entró",
+    "out": "Salió",
+    "savingsSentence": "Ahorras el {{pct}}% de lo que entró.",
+    "overspent": "Salió más de lo que entró este mes.",
+    "otherCategories": "Otras categorías",
+    "tabs": {
+      "label": "Detalle",
+      "month": "Mes",
+      "payments": "Pagos",
+      "wallet": "Cartera"
+    }
+  },
+  "wallet": {
+    "add": "Añadir",
+    "addTitle": "Añadir a la cartera",
+    "addEmpty": "No hay tarjetas ni cuentas para añadir.",
+    "added": "Añadido a la cartera",
+    "removed": "Quitado de la cartera",
+    "remove": "Quitar de la cartera",
+    "organize": "Organizar",
+    "done": "Listo",
+    "moveLeft": "Mover a la izquierda",
+    "moveRight": "Mover a la derecha",
+    "accountItem": "Cuenta",
+    "editor": {
+      "title": "Arma tu cartera",
+      "description": "Hasta {{max}}. Elige la cuenta entera o solo una de sus tarjetas.",
+      "edit": "Editar cartera",
+      "preview": "Así se verá en tu Panel",
+      "count": "{{count}} de {{max}}",
+      "chipAccount": "Cuenta",
+      "chipCard": "Tarjeta",
+      "inPanel": "{{n}} · En el Panel",
+      "full": "Cartera llena",
+      "primary": "Principal",
+      "additional": "Adicional",
+      "emptySlot": "{{n}} · Espacio libre",
+      "moveEarlier": "Mover antes",
+      "moveLater": "Mover después",
+      "duplicate": "La tarjeta {{card}} muestra el mismo saldo que {{account}}.",
+      "removeCard": "Quitar la tarjeta",
+      "creditHint": "Elegir la cuenta de una tarjeta de crédito muestra el cupo total; elegir una de sus tarjetas, solo ese plástico.",
+      "saved": "Cartera guardada"
+    }
+  },
+  "transactions": {
+    "title": "Movimientos",
+    "new": "Nuevo movimiento",
+    "edit": "Editar movimiento",
+    "created": "Movimiento creado",
+    "updated": "Movimiento actualizado",
+    "deleted": "Movimiento eliminado",
+    "deleteConfirm": "¿Eliminar este movimiento?",
+    "deleteConfirmDescription": "Se eliminará de forma permanente y el saldo de la cuenta (y el cupo usado, si aplica) volverá a ajustarse.",
+    "empty": "Aún no tienes movimientos.",
+    "emptyHint": "Los movimientos que registres en esta cuenta aparecerán aquí.",
+    "uncategorized": "Sin categoría",
+    "subtitle": "{{month}} · {{count}} movimientos",
+    "subtitleRange": "{{range}} · {{count}} movimientos",
+    "subtitleAll": "Todos los períodos · {{count}} movimientos",
+    "type": {
+      "INCOME": "Ingreso",
+      "EXPENSE": "Gasto",
+      "TRANSFER": "Traspaso",
+      "PREPAY": "Prepagar"
+    },
+    "form": {
+      "type": "Tipo",
+      "amount": "Monto",
+      "account": "Cuenta",
+      "noAccount": "Sin cuenta",
+      "selectAccount": "Selecciona una cuenta",
+      "card": "Tarjeta",
+      "noCard": "Sin tarjeta",
+      "financeCharge": "Cargo financiero (interés, comisión)",
+      "selectCard": "Selecciona una tarjeta",
+      "noCardsHint": "Esta cuenta no tiene tarjetas. Crea una tarjeta para registrar un gasto.",
+      "category": "Categoría",
+      "date": "Fecha",
+      "description": "Descripción",
+      "descriptionPlaceholder": "Ej. Jumbo Costanera",
+      "moreDetails": "Más detalles",
+      "submit": "Guardar movimiento",
+      "observation": "Observación",
+      "emisor": "Emisor",
+      "receptor": "Receptor",
+      "lugar": "Lugar",
+      "projectedBalance": "Saldo proyectado",
+      "saveAndNew": "Guardar y crear otro",
+      "fromAccount": "Cuenta de origen",
+      "toAccount": "Cuenta de destino",
+      "amountOut": "Monto que sale",
+      "amountIn": "Monto que entra",
+      "optional": "opcional",
+      "dateToday": "hoy",
+      "categoryEmpty": "Elegir categoría",
+      "emisorEmpty": "Sin emisor",
+      "receptorEmpty": "Sin receptor",
+      "lugarEmpty": "Sin lugar",
+      "observationEmpty": "Agrega una nota (opcional)",
+      "newEyebrow": "Nuevo movimiento",
+      "editEyebrow": "Editar movimiento",
+      "projectedCredit": "Cupo disponible tras el movimiento",
+      "ownAccount": "Cuenta propia",
+      "prepayFromAccount": "Cuenta de origen",
+      "prepayCurrentlyOwed": "Debe hoy en este período",
+      "currency": "Moneda",
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en este movimiento. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios",
+      "recurring": "Recurrente",
+      "noRecurring": "Ninguno"
+    },
+    "kpi": {
+      "income": "Ingresos",
+      "expense": "Gastos",
+      "balance": "Balance neto",
+      "balanceOf": "Balance de {{month}}"
+    },
+    "filters": {
+      "all": "Todos",
+      "income": "Ingresos",
+      "expense": "Gastos",
+      "account": "Cuenta / Tarjeta",
+      "allAccounts": "Todas las cuentas",
+      "category": "Categoría",
+      "categoryPlaceholder": "Buscar categoría…",
+      "allCategories": "Todas las categorías",
+      "dateRange": "Fecha",
+      "clearDates": "Limpiar fechas",
+      "today": "Hoy",
+      "from": "Desde",
+      "to": "Hasta",
+      "showInactive": "Incluir cuentas/tarjetas inactivas",
+      "accountLabel": "Cuenta",
+      "cardLabel": "Tarjeta"
+    },
+    "table": {
+      "noCategory": "Sin categoría",
+      "noAccount": "Sin cuenta",
+      "import": "Importar"
+    },
+    "count": "{{count}} movimientos",
+    "detailTitle": "Detalle del movimiento",
+    "detail": {
+      "balanceAfter": "Saldo tras el movimiento",
+      "duplicate": "Duplicar",
+      "navPosition": "{{position}} de {{count}}",
+      "noDetails": "Este movimiento no tiene detalles adicionales.",
+      "addDetails": "Agregar detalles",
+      "transferCounterpart": "Traspaso desde/hacia",
+      "transferFrom": "Desde",
+      "transferTo": "Hacia",
+      "installmentLocked": "Este movimiento respalda una cuota de un plan. Para cambiarlo, deshaz el pago de esa cuota desde su plan.",
+      "installmentLockedLink": "Ir a Cuotas",
+      "source": "Origen",
+      "viewPlan": "Ver plan",
+      "viewDebt": "Ver deuda",
+      "viewBilling": "Ver facturación",
+      "viewRecurring": "Ver recurrente",
+      "statementLocked": "Este movimiento respalda el pago de una facturación en otra moneda. Para cambiarlo, corrige el pago desde su facturación."
+    },
+    "source": {
+      "MANUAL": "Manual",
+      "TRANSFER": "Traspaso",
+      "INSTALLMENT": "Cuota de plan",
+      "INSTALLMENT_INTEREST": "Interés de plan",
+      "FINANCE_CHARGE": "Cargo financiero",
+      "DEBT": "Deuda",
+      "STATEMENT_PAYMENT": "Pago de facturación",
+      "CREDIT_CARD_PREPAYMENT": "Prepago de tarjeta",
+      "RECURRING": "Recurrente",
+      "STATEMENT_SETTLEMENT": "Liquidación de facturación",
+      "CURRENCY_TRANSFER": "Traspaso de moneda"
+    },
+    "attachments": {
+      "title": "Comprobantes",
+      "dropzone": "Arrastra un archivo aquí",
+      "browse": "Elegir archivo",
+      "uploading": "Subiendo…",
+      "empty": "Sin comprobantes.",
+      "delete": "Eliminar comprobante",
+      "saveFirst": "Se subirán al guardar el movimiento.",
+      "retry": "Reintentar",
+      "failed": "No se pudo subir.",
+      "hint": "JPG, PNG, WebP o PDF · hasta 5 MB",
+      "open": "Abrir",
+      "comingSoon": "Próximamente",
+      "comingSoonReason": "Los comprobantes estarán disponibles cuando se habilite el almacenamiento de archivos."
+    }
+  },
+  "categories": {
+    "SUPERMARKET": "Supermercado",
+    "RESTAURANTS": "Restaurantes",
+    "TRANSPORT": "Transporte",
+    "HOUSING": "Vivienda",
+    "UTILITIES": "Servicios básicos",
+    "HOME": "Hogar",
+    "HEALTH": "Salud",
+    "EDUCATION": "Educación",
+    "SHOPPING": "Compras",
+    "ENTERTAINMENT": "Entretención",
+    "SUBSCRIPTIONS": "Suscripciones",
+    "TECHNOLOGY": "Tecnología",
+    "TRAVEL": "Viajes",
+    "SPORTS": "Deporte",
+    "PETS": "Mascotas",
+    "INSURANCE": "Seguros",
+    "FAMILY": "Familia",
+    "FEES": "Comisiones",
+    "SALARY": "Sueldo",
+    "FREELANCE": "Honorarios",
+    "REFUND": "Reembolsos",
+    "GIFTS": "Regalos",
+    "OTHER": "Otros",
+    "SAVINGS": "Ahorro",
+    "DEBTS": "Deudas",
+    "INTEREST": "Intereses",
+    "STATEMENT_PAYMENT": "Pago facturación",
+    "CARD_PREPAYMENT": "Prepago tarjeta",
+    "CURRENCY_TRANSFER": "Traspaso de moneda"
+  },
+  "installments": {
+    "title": "Cuotas",
+    "empty": "Aún no tienes planes de cuotas.",
+    "progress": "{{paid}}/{{total}} pagadas",
+    "new": "Nuevo plan",
+    "created": "Plan de cuotas creado",
+    "updated": "Plan actualizado",
+    "deleted": "Plan eliminado",
+    "form": {
+      "card": "Tarjeta de pago",
+      "cardNone": "Sin tarjeta",
+      "title": "Título",
+      "frequency": "Periodicidad",
+      "frequencyInterval": "Repetir cada",
+      "eyebrowCreate": "Nuevo plan",
+      "eyebrowEdit": "Editar plan",
+      "totalPrincipal": "Monto total",
+      "currency": "Moneda",
+      "installmentCount": "Número de cuotas",
+      "startDate": "Primera cuota",
+      "category": "Categoría",
+      "aprPerPeriod": "Interés por período",
+      "notes": "Notas",
+      "notesEmpty": "Agrega una nota (opcional)",
+      "intervalUnit": {
+        "DAILY_one": "día",
+        "DAILY_other": "días",
+        "WEEKLY_one": "semana",
+        "WEEKLY_other": "semanas",
+        "MONTHLY_one": "mes",
+        "MONTHLY_other": "meses",
+        "YEARLY_one": "año",
+        "YEARLY_other": "años"
+      },
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en este plan. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios"
+    },
+    "planCard": {
+      "installmentAmount": "Cuota",
+      "installments": "cuotas",
+      "nextDue": "Vence {{date}}",
+      "progress": "{{paid}}/{{total}} pagadas",
+      "perMonth": "/mes"
+    },
+    "table": {
+      "plan": "Plan",
+      "progress": "Progreso",
+      "nextDue": "Próxima cuota",
+      "instalment": "Cuota",
+      "remaining": "Restante",
+      "card": "Tarjeta",
+      "ofTotal": "de {{total}}",
+      "unknownCard": "Tarjeta desconocida"
+    },
+    "kpi": {
+      "thisMonth": "Este mes",
+      "pending": "Pendiente total",
+      "nextDue": "Próxima cuota",
+      "activePlans": "Planes activos",
+      "nothingDue": "Sin cuotas pendientes",
+      "overdueOn": "Vencida · {{date}}"
+    },
+    "filters": {
+      "all": "Todas",
+      "upcoming": "Por vencer",
+      "paid": "Pagadas",
+      "allPlans": "Todos los planes",
+      "next3months": "Próx. 3 meses"
+    },
+    "status": {
+      "OVERDUE": "Vencida",
+      "TO_BILL": "Por facturar",
+      "BILLED": "Facturada",
+      "DUE_SOON": "Próxima",
+      "ON_TRACK": "Al día",
+      "PARTIALLY_PAID": "Pagado en parte",
+      "PAID": "Pagado"
+    },
+    "payment": {
+      "pay": "Confirmar pago",
+      "unpay": "Deshacer pago"
+    },
+    "subtitle": "{{count}} planes activos · próximo pago {{date}}",
+    "subtitleNoNextDue": "{{count}} planes activos",
+    "calendar": {
+      "seq": "Cuota",
+      "seqFmt": "{{seq}} de {{total}}",
+      "header": "Calendario",
+      "startDate": "Inicio {{date}}",
+      "date": "Vencimiento",
+      "amount": "Monto",
+      "status": "Estado",
+      "paid": "Pagada",
+      "upcoming": "Próxima",
+      "pending": "Pendiente",
+      "partial": "Pagada en parte",
+      "billed": "Facturada"
+    },
+    "subtitleCount_one": "{{count}} plan de cuotas",
+    "subtitleCount_other": "{{count}} planes de cuotas",
+    "visibleCount_one": "{{count}} plan",
+    "visibleCount_other": "{{count}} planes",
+    "emptyHint": "Registra una compra en cuotas para seguir cuánto te queda por pagar.",
+    "noneMatchFilters": "Ningún plan coincide con estos filtros.",
+    "statusWithDate": {
+      "OVERDUE": "Vencida {{date}}",
+      "TO_BILL": "Por facturar {{date}}",
+      "BILLED": "Facturada {{date}}",
+      "DUE_SOON": "Próxima {{date}}",
+      "ON_TRACK": "{{date}}",
+      "PARTIALLY_PAID": "Pagado en parte",
+      "PAID": "Pagado"
+    },
+    "list": {
+      "remaining": "Restan {{amount}}",
+      "progressAndStatus": "{{paid}}/{{total}} · {{status}}"
+    },
+    "detail": {
+      "eyebrow": "Detalle del plan",
+      "paid": "Pagado",
+      "remaining": "Restante",
+      "total": "Total",
+      "instalments": "Cuotas",
+      "instalmentOf": "Cuota {{sequence}} de {{total}}",
+      "paidOfTotal": "{{paid}} pagadas · {{pending}} por pagar",
+      "pay": "Pagar",
+      "undo": "Deshacer",
+      "payNext": "Marcar cuota {{sequence}} pagada",
+      "carriedOver": "Incluye {{amount}} de la cuota anterior",
+      "paidSoFar": "Pagado hasta ahora: {{amount}}",
+      "creditCardNotice": "Las cuotas de este plan no generan movimiento: la compra ya está registrada en la facturación de su tarjeta de crédito.",
+      "viewBilling": "Ver facturación"
+    },
+    "frequency": {
+      "DAILY": "Diaria",
+      "WEEKLY": "Semanal",
+      "MONTHLY": "Mensual",
+      "YEARLY": "Anual"
+    },
+    "paid": "Cuota pagada",
+    "unpaid": "Pago deshecho",
+    "preview": {
+      "title": "Así quedará",
+      "perInstallment": "Monto por cuota",
+      "first": "Primera cuota",
+      "last": "Última cuota",
+      "total": "Total del plan",
+      "insufficient": "Completa monto, cuotas y fecha para ver el calendario.",
+      "roundingAdjustment": "La última cuota ajusta el redondeo: {{amount}}.",
+      "financeCharge": "El interés ({{amount}}) se registrará como cargo financiero en la cuenta de esa tarjeta.",
+      "interestNoCard": "El plan incluye {{amount}} de interés."
+    },
+    "immutable": {
+      "title": "No se puede cambiar",
+      "reason": "El calendario y las cuotas ya registradas se construyeron con estos datos. Para cambiarlos, elimina el plan y créalo de nuevo.",
+      "reasonBilled": "La tarjeta se suma a lo anterior: una vez que se facturó la primera cuota, cambiarla dejaría una facturación ya emitida describiendo algo que ya no existe."
+    },
+    "pay": {
+      "eyebrow": "Pagar cuota",
+      "title": "Cuota {{sequence}} de {{total}}",
+      "amount": "Monto a pagar",
+      "owed": "Adeudado por esta cuota",
+      "carriedIn": "Viene de la cuota anterior",
+      "account": "Cuenta de pago",
+      "selectAccount": "Elige una cuenta",
+      "noMovement": "No genera movimiento",
+      "date": "Fecha del pago",
+      "balanceBefore": "Saldo antes",
+      "balanceAfter": "Saldo después",
+      "carriesForward": "Pasa a la próxima cuota",
+      "appliedToNext": "Se descuenta de las próximas cuotas",
+      "differentCurrency": "El plan está en {{planCurrency}} y la cuenta en {{accountCurrency}}. Declara los dos montos: no se convierte ninguno.",
+      "chargedAmount": "Monto del gasto ({{currency}})"
+    },
+    "delete": {
+      "title": "Eliminar «{{title}}»",
+      "summary": "{{paid}} de {{total}} cuotas pagadas",
+      "loadingImpact": "Calculando qué se revierte…",
+      "noMovements": "Este plan no generó movimientos: sólo se elimina el plan y su calendario.",
+      "movements_one": "Se eliminará {{count}} movimiento.",
+      "movements_other": "Se eliminarán {{count}} movimientos.",
+      "restores": "Se restituye: {{restorations}}.",
+      "unknownAccount": "Cuenta desconocida"
+    },
+    "counters": {
+      "scheduled": "{{count}} por facturar",
+      "billed": "{{count}} facturada",
+      "billed_other": "{{count}} facturadas",
+      "paid": "{{count}} pagada",
+      "paid_other": "{{count}} pagadas"
+    },
+    "warning": {
+      "NO_BILLING_DAY": "La cuenta de esta tarjeta no tiene día de facturación, así que sus cuotas no se cobrarán. Configúralo para que empiecen a facturarse.",
+      "CURRENCY_MISMATCH": "Este plan está en otra moneda que la cuenta de la tarjeta. La app no convierte monedas, así que sus cuotas no se incorporan a la facturación.",
+      "CARD_REMOVED": "La tarjeta de este plan fue eliminada, así que no hay cuenta a la que facturar sus cuotas."
+    },
+    "settledByStatement": "Saldada por la facturación del {{date}}",
+    "settledPartially": "Esa facturación se pagó en parte; el resto pasó a la siguiente.",
+    "creditPlanNotice": "Estas cuotas se pagan al pagar la facturación de la tarjeta, no una por una.",
+    "paymentStatus": {
+      "SCHEDULED": "Programada",
+      "BILLED": "Facturada",
+      "PAID": "Pagada"
+    }
+  },
+  "debts": {
+    "title": "Deudas",
+    "empty": "No hay deudas con este filtro.",
+    "emptyHint": "Cambia el filtro o registra una nueva deuda.",
+    "new": "Nueva deuda",
+    "created": "Deuda creada",
+    "subtitle": "{{count}} deudas activas · {{people}} personas",
+    "direction": {
+      "OWED_TO_YOU": "Te deben",
+      "YOU_OWE": "Debes"
+    },
+    "summary": {
+      "youOwe": "Debes",
+      "owedYou": "Te deben",
+      "net": "Balance neto",
+      "shareNote": "{{pct}}% de lo que circula es deuda tuya",
+      "overdueChip": "{{amount}} vencidos"
+    },
+    "card": {
+      "markPaid": "Marcar pagada",
+      "registerPayment": "Registrar abono",
+      "undoPayment": "Deshacer abono",
+      "unsettle": "Reabrir",
+      "settledOn": "Pagada el {{date}}"
+    },
+    "table": {
+      "person": "Persona",
+      "progress": "Avance",
+      "progressPaid": "Pagada",
+      "type": "Tipo",
+      "pending": "Pendiente",
+      "ofTotal": "de {{total}}",
+      "due": "Vence",
+      "actions": "Acciones"
+    },
+    "list": {
+      "metaInstallments": "{{concept}} · {{paid}}/{{total}} cuotas",
+      "metaDirection": "{{concept}} · {{direction}}"
+    },
+    "due": {
+      "inDays_one": "en {{count}} día",
+      "inDays_other": "en {{count}} días",
+      "agoDays_one": "hace {{count}} día",
+      "agoDays_other": "hace {{count}} días",
+      "today": "Vence hoy",
+      "noDate": "Sin plazo definido"
+    },
+    "filters": {
+      "all": "Todas",
+      "overdue": "Vencidas",
+      "active": "Activas",
+      "settled": "Pagadas",
+      "allStatus": "Todas",
+      "sortByDue": "Por vencimiento",
+      "statusLabel": "Estado"
+    },
+    "updated": "Deuda actualizada",
+    "deleted": "Deuda eliminada",
+    "delete": {
+      "description": "Vas a eliminar la deuda con {{name}}. Esta acción no se puede deshacer."
+    },
+    "detail": {
+      "eyebrow": "Detalle de la deuda",
+      "noTitle": "Sin título",
+      "type": "Tipo",
+      "totalAmount": "Monto total",
+      "paidAmount": "Abonado",
+      "pending": "Pendiente",
+      "installments": "Cuotas",
+      "installmentsOf": "{{paid}} de {{total}}",
+      "singlePayment": "Pago único",
+      "due": "Vence",
+      "note": "Notas",
+      "calendar": "Calendario de pagos",
+      "installmentOf": "Abono {{sequence}} de {{total}}",
+      "undo": "Deshacer",
+      "status": {
+        "paid": "Pagado",
+        "next": "Próximo",
+        "pending": "Pendiente"
+      }
+    },
+    "pay": {
+      "eyebrow": "Registrar abono",
+      "subtitleInstallment": "Abono {{sequence}} de {{total}} · {{concept}}",
+      "subtitleSingle": "Pago único · {{concept}}",
+      "amount": "Monto de la cuota",
+      "due": "Vencimiento",
+      "account": "Cuenta de pago",
+      "selectAccount": "Elegir cuenta",
+      "previewTitle": "Después de este abono",
+      "previewProgress": "Avance",
+      "previewPending": "Pendiente restante",
+      "registeredToast": "Abono registrado",
+      "settledToast": "Deuda marcada como pagada"
+    },
+    "form": {
+      "eyebrowCreate": "Nueva deuda",
+      "eyebrowEdit": "Editar deuda",
+      "title": "Título",
+      "notes": "Notas",
+      "notesPlaceholder": "Agrega una nota (opcional)",
+      "amount": "Monto",
+      "currency": "Moneda",
+      "typeLabel": "Tipo",
+      "personOwedToYou": "¿Quién te debe?",
+      "personYouOwe": "¿A quién le debes?",
+      "personPlaceholder": "Nombre",
+      "account": "Cuenta asociada",
+      "noAccount": "Sin cuenta",
+      "installments": "Cuotas",
+      "dueAt": "Primer vencimiento",
+      "frequency": "Periodicidad",
+      "frequencyInterval": "Repetir cada",
+      "intervalUnit": {
+        "DAILY_one": "día",
+        "DAILY_other": "días",
+        "WEEKLY_one": "semana",
+        "WEEKLY_other": "semanas",
+        "MONTHLY_one": "mes",
+        "MONTHLY_other": "meses",
+        "YEARLY_one": "año",
+        "YEARLY_other": "años"
+      },
+      "scheduleNoteSingle": "Se registrará como un pago único en la fecha indicada.",
+      "scheduleNoteMulti": "El calendario de cuotas se genera automáticamente a partir del primer vencimiento y la periodicidad.",
+      "directionOptions": {
+        "OWED_TO_YOU": "Te deben",
+        "YOU_OWE": "Debes"
+      },
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en esta deuda. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios"
+    }
+  },
+  "recurring": {
+    "title": "Recurrentes",
+    "subtitle": "{{active}} activos · {{paused}} pausado(s)",
+    "new": "Nuevo recurrente",
+    "edit": "Editar recurrente",
+    "empty": "Aún no tienes gastos recurrentes",
+    "emptyHint": "Registra una suscripción, el arriendo o cualquier pago que se repite para ver cuánto tienes comprometido.",
+    "created": "Recurrente creado",
+    "updated": "Recurrente actualizado",
+    "deleted": "Recurrente eliminado",
+    "inactive": "Pausado",
+    "next": "Próximo: {{date}}",
+    "frequency": {
+      "WEEKLY": "Semanal",
+      "MONTHLY": "Mensual",
+      "YEARLY": "Anual"
+    },
+    "total": {
+      "label": "Comprometido al mes"
+    },
+    "autoGeneration": {
+      "message": "Los movimientos se generan automáticamente en cada vencimiento."
+    },
+    "groups": {
+      "WEEKLY": "Semanales",
+      "MONTHLY": "Mensuales",
+      "YEARLY": "Anuales",
+      "PAUSED": "Pausados",
+      "activeMeta": "{{count}} activo(s) · {{sum}} al mes",
+      "pausedMeta": "{{count}} · no genera movimientos",
+      "FINISHED": "Finalizados",
+      "finishedMeta": "{{count}} · ya no se cobran"
+    },
+    "due": {
+      "today": "hoy",
+      "tomorrow": "mañana",
+      "inDays": "en {{count}} días"
+    },
+    "row": {
+      "overdueMeta": "Venció {{date}} · sin movimiento",
+      "pausedMeta": "{{frequency}} · pausado desde {{date}}",
+      "finishedMeta": "{{frequency}} · último pago el {{date}}"
+    },
+    "actions": {
+      "pause": "Pausar",
+      "resume": "Reactivar",
+      "edit": "Editar recurrente",
+      "delete": "Eliminar recurrente"
+    },
+    "detail": {
+      "eyebrow": "Detalle del recurrente",
+      "active": "Activo",
+      "amount": "Monto",
+      "perMonth": "Al mes",
+      "next": "Próxima",
+      "pausedSince": "Pausado desde",
+      "every": "cada {{count}} {{unit}}",
+      "generation": "Generación",
+      "automatic": "Automática en cada vencimiento",
+      "suspendedSince": "Suspendida desde {{date}}",
+      "noNotes": "Sin notas",
+      "history": "Historial de ocurrencias",
+      "historyEmpty": "Sin ocurrencias generadas",
+      "historyEmptyHint": "Aún no se ha generado ningún movimiento a partir de este recurrente.",
+      "historyNote": "Movimiento generado automáticamente · {{account}}",
+      "historyBadge": "Generado",
+      "endedOn": "Último pago"
+    },
+    "pause": {
+      "titlePause": "Pausar «{{name}}»",
+      "titleResume": "Reactivar «{{name}}»",
+      "bodyPause": "Dejará de generar movimientos automáticos. Los movimientos ya generados no se modifican.",
+      "bodyResume": "Volverá a generar movimientos automáticamente desde la fecha que indiques.",
+      "pauseFrom": "Pausar desde",
+      "resumeFrom": "Reactivar desde",
+      "hintPause": "Si dejaste de pagarlo antes, ajusta la fecha: no se generarán movimientos posteriores a ese día.",
+      "hintResume": "Si reactivaste antes, ajusta la fecha para recuperar las ocurrencias intermedias.",
+      "pausedToast": "{{name}} pausado",
+      "resumedToast": "{{name}} reactivado"
+    },
+    "delete": {
+      "description": "Se eliminará el recurrente «{{name}}». Esta acción no se puede deshacer."
+    },
+    "form": {
+      "label": "Nombre",
+      "namePlaceholder": "Nombre del recurrente",
+      "amount": "Monto",
+      "currency": "Moneda",
+      "frequency": "Periodicidad",
+      "interval": "Repetir cada",
+      "anchorDate": "Primera ocurrencia",
+      "status": "Estado",
+      "noAccount": "Sin cuenta asociada",
+      "notes": "Nota",
+      "notesPlaceholder": "Agrega una nota (opcional)",
+      "noteActive": "Se generará un movimiento automáticamente cada {{count}} {{unit}}, sin confirmación manual.",
+      "notePaused": "Pausado: no se generarán movimientos hasta reactivarlo.",
+      "noCategory": "Sin categoría",
+      "categoryPlaceholder": "Elegir categoría",
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en este recurrente. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios",
+      "endDate": "Último pago (si terminó)"
+    },
+    "finished": "Finalizado"
+  },
+  "savings": {
+    "title": "Ahorros",
+    "empty": "Aún no tienes metas de ahorro",
+    "emptyHint": "Crea una meta o registra un aporte libre para empezar a ver tu avance.",
+    "subtitle_one": "{{count}} meta abierta · {{missing}} por reunir",
+    "subtitle_other": "{{count}} metas abiertas · {{missing}} por reunir",
+    "freeContribution": "Aporte libre",
+    "new": "Nueva meta",
+    "edit": "Editar meta",
+    "created": "Meta creada",
+    "updated": "Meta actualizada",
+    "reopened": "{{title}} reabierta",
+    "closedToast": "{{title}} cerrada",
+    "deletedGoal": "Meta eliminada",
+    "delete": {
+      "goalDescription": "Se eliminará la meta «{{title}}». Sus aportes ya registrados no se borran: pasan a contarse como ahorro libre.",
+      "entryDescription": "Se eliminará este aporte de {{amount}}. El movimiento y el saldo de la cuenta se revierten."
+    },
+    "total": {
+      "label": "Ahorrado",
+      "note_one": "{{count}} meta abierta · incluye ahorro libre",
+      "note_other": "{{count}} metas abiertas · incluye ahorro libre",
+      "noteWithClosedPrefix_one": "{{count}} meta abierta · incluye ahorro libre · ",
+      "noteWithClosedPrefix_other": "{{count}} metas abiertas · incluye ahorro libre · ",
+      "noteWithClosedSuffix": " en metas cerradas, fuera de este total",
+      "thisMonth": "Este mes",
+      "pace": "Ritmo",
+      "paceValue": "{{amount}}/mes",
+      "missing": "Falta por reunir",
+      "freeSavingsLegend": "Ahorro libre"
+    },
+    "groups": {
+      "live": "En curso",
+      "late": "Fuera de plazo",
+      "done": "Cumplidas",
+      "countPrefix_one": "{{count}} meta · ",
+      "countPrefix_other": "{{count}} metas · ",
+      "countSuffix": " acumulados"
+    },
+    "row": {
+      "registerContribution": "Registrar aporte",
+      "editGoal": "Editar meta",
+      "closeComplete": "Cerrar meta cumplida",
+      "closeIncomplete": "Cerrar meta sin cumplir",
+      "of": "de {{amount}}"
+    },
+    "table": {
+      "goal": "Meta",
+      "progress": "Progreso",
+      "amount": "Monto",
+      "actions": "Acciones"
+    },
+    "status": {
+      "completePrefix": "Meta cumplida · ",
+      "overduePrefix": "Venció el {{date}} · faltan ",
+      "overdueSuffix": "",
+      "shortOnPacePrefix": "A este ritmo llegas en {{eta}}, después de {{deadline}} · sube a ",
+      "shortOnPaceSuffix": "/mes",
+      "onTrackWithDeadline": "A este ritmo llegas en {{eta}} · plazo {{deadline}}",
+      "onTrackNoDeadline": "A este ritmo llegas en {{eta}} · sin plazo",
+      "noContributions": "Sin aportes registrados"
+    },
+    "closedBlock": {
+      "summary_one": "{{count}} meta cerrada · {{amount}} ahorrados en total — no cuentan en el total ni en el ritmo, sí en tu historial.",
+      "summary_other": "{{count}} metas cerradas · {{amount}} ahorrados en total — no cuentan en el total ni en el ritmo, sí en tu historial.",
+      "show": "Mostrar",
+      "hide": "Ocultar",
+      "closedOn": "Cerrada el {{date}} · {{destination}}",
+      "reopen": "Reabrir",
+      "pctOf": "{{pct}}% de {{amount}}",
+      "destinationWithdraw": "Retirado a {{account}}",
+      "destinationFree": "Pasado a ahorro libre",
+      "destinationTransfer": "Traspasado a {{goal}}"
+    },
+    "free": {
+      "eyebrow": "Ahorro libre",
+      "title": "AHORRO LIBRE",
+      "count_one": "{{count}} aporte sin meta",
+      "count_other": "{{count}} aportes sin meta",
+      "noMeta": "Sin meta asignada",
+      "noNote": "Sin nota",
+      "contribute": "Aporte libre",
+      "historyEmpty": "Aún no hay aportes libres registrados."
+    },
+    "insights": {
+      "upcoming": "Próximo vencimiento",
+      "dueIn_one": "Vence en {{count}} mes",
+      "dueIn_other": "Vence en {{count}} meses",
+      "missing": "faltan {{amount}}",
+      "bestPace": "Mejor ritmo",
+      "paceValue": "{{amount}}/mes",
+      "ahead_one": "llegas {{count}} mes antes",
+      "ahead_other": "llegas {{count}} meses antes"
+    },
+    "detail": {
+      "eyebrow": "Meta de ahorro",
+      "saved": "Ahorrado",
+      "target": "Objetivo",
+      "missing": "Falta",
+      "deadline": "Plazo",
+      "noDeadline": "Sin fecha límite",
+      "pace": "Ritmo actual",
+      "paceValue": "{{amount}}/mes",
+      "projection": "Proyección",
+      "noProjection": "Sin proyección",
+      "projectionValue": "Llegas en {{eta}}",
+      "currency": "Moneda",
+      "history": "Historial de aportes",
+      "historyEmpty": "Aún no hay aportes registrados para esta meta.",
+      "entryFallback": "Aporte"
+    },
+    "entryDetail": {
+      "eyebrow": "Aporte",
+      "amount": "Monto",
+      "date": "Fecha",
+      "account": "Cuenta de origen",
+      "noAccount": "Sin cuenta registrada",
+      "goal": "Meta",
+      "noGoal": "Ahorro libre (sin meta)",
+      "note": "Nota",
+      "noNote": "Sin nota"
+    },
+    "form": {
+      "newEyebrow": "Nueva meta",
+      "editEyebrow": "Editar meta",
+      "titlePlaceholder": "Título de la meta",
+      "targetLabel": "Monto objetivo",
+      "deadlineLabel": "Fecha límite",
+      "currencyLabel": "Moneda",
+      "colorLabel": "Color",
+      "colorAuto": "Automático",
+      "colorNames": {
+        "brand": "Verde azulado",
+        "success": "Verde",
+        "accent": "Naranjo",
+        "warning": "Amarillo",
+        "destructive": "Rojo",
+        "primary": "Celeste",
+        "info": "Azul",
+        "muted-foreground": "Gris"
+      },
+      "notesLabel": "Nota",
+      "notesPlaceholder": "Nota (opcional)",
+      "noteWithDeadline": "Con plazo definido puedes ver si tu ritmo alcanza para llegar a tiempo.",
+      "noteWithoutDeadline": "Sin plazo la meta avanza a tu ritmo, sin avisos de retraso.",
+      "currencyLockedHint": "La moneda queda fija una vez que la meta tiene aportes.",
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en esta meta. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios"
+    },
+    "entry": {
+      "eyebrow": "Registrar aporte",
+      "editEyebrow": "Editar aporte",
+      "titleWithGoal": "Aporte a «{{goal}}»",
+      "titleFree": "Aporte sin meta",
+      "freeChip": "Ahorro libre (sin meta)",
+      "titleFieldLabel": "Título",
+      "titleFieldLabelOptional": "Título (opcional)",
+      "titleFieldPlaceholder": "¿Para qué es este aporte?",
+      "dateLabel": "Fecha del aporte",
+      "accountLabel": "Cuenta de origen",
+      "accountPlaceholder": "Elige una cuenta",
+      "noteLabel": "Nota",
+      "notePlaceholder": "Nota (opcional)",
+      "noteWithGoal": "Suma al progreso de la meta y queda como movimiento de traspaso.",
+      "noteWithoutGoal": "Queda registrado como ahorro libre; puedes asignarlo a una meta después.",
+      "submit": "Registrar aporte",
+      "registered": "Aporte registrado",
+      "deleted": "Aporte eliminado",
+      "leaveConfirm": "¿Volver sin guardar?",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en este aporte. Si vuelves ahora se perderán.",
+      "leaveDiscard": "Descartar cambios"
+    },
+    "close": {
+      "eyebrowComplete": "Cerrar meta cumplida",
+      "eyebrowIncomplete": "Cerrar meta sin cumplir",
+      "title": "Cerrar «{{goal}}»",
+      "summaryComplete": "Reuniste el 100% del objetivo. Al cerrarla deja de aparecer en las metas abiertas y en el ritmo mensual.",
+      "summaryIncomplete": "Esta meta venció sin completarse. Al cerrarla deja de aparecer en las metas abiertas y en el ritmo mensual.",
+      "accumulatedLabel": "Monto acumulado",
+      "destinationLabel": "DESTINO DEL MONTO",
+      "withdraw": "Retirar a una cuenta",
+      "withdrawHint": "El monto sale de la meta y entra a tu cuenta como un ingreso real.",
+      "free": "Pasar a ahorro libre",
+      "freeHint": "El monto pasa a contarse como ahorro sin meta asignada.",
+      "transfer": "Traspasar a otra meta",
+      "transferHint": "Los aportes se reasignan a la meta que elijas.",
+      "targetGoalLabel": "Meta de destino",
+      "targetGoalPlaceholder": "Elige una meta",
+      "dateLabel": "Fecha de cierre",
+      "note": "Los aportes ya registrados no se borran: siguen en tu historial y en el total ahorrado del año.",
+      "submit": "Cerrar meta"
+    }
+  },
+  "investments": {
+    "title": "Inversiones"
+  },
+  "import": {
+    "title": "Importar",
+    "pageDescription": "Carga movimientos desde la cartola que exportas de tu banco, en Excel (.xlsx) o CSV.",
+    "pickAccount": "¿A qué cuenta los importas?",
+    "panelTitle": "Importar movimientos",
+    "panelDescription": "Desde la cartola que exportas de tu banco, en Excel (.xlsx) o CSV.",
+    "changeFile": "Cambiar archivo",
+    "submit_one": "Importar {{count}} movimiento",
+    "submit_other": "Importar {{count}} movimientos",
+    "submitting": "Importando…",
+    "success_one": "Se importó {{count}} movimiento",
+    "success_other": "Se importaron {{count}} movimientos",
+    "rowError": "Fila {{row}} del archivo: {{message}}",
+    "pick": {
+      "title": "Elige o arrastra tu archivo",
+      "hint": "Excel (.xlsx) o CSV. Si tu banco entrega .xls, ábrelo en Excel y guárdalo como .xlsx.",
+      "reading": "Leyendo archivo…"
+    },
+    "readError": {
+      "unsupported": "Ese formato no se puede leer. Usa un archivo .xlsx o .csv.",
+      "empty": "El archivo no tiene datos.",
+      "unreadable": "No se pudo leer el archivo. ¿Está dañado o protegido con contraseña?"
+    },
+    "map": {
+      "headerRow": "Fila de encabezados",
+      "unnamed": "(sin nombre)",
+      "roleFor": "Qué es la columna {{column}}",
+      "invertSign": "Invertir signo del monto",
+      "incomplete": "Indica la columna de fecha y la del monto (o las de cargos y abonos)."
+    },
+    "roles": {
+      "ignore": "No importar",
+      "date": "Fecha",
+      "description": "Descripción",
+      "amount": "Monto (con signo)",
+      "debit": "Cargos (gastos)",
+      "credit": "Abonos (ingresos)",
+      "type": "Tipo (cargo/abono)",
+      "category": "Categoría",
+      "card": "Tarjeta (últimos 4)",
+      "observation": "Observación",
+      "emisor": "Emisor",
+      "receptor": "Receptor",
+      "lugar": "Lugar",
+      "financeCharge": "Cargo del emisor (sí/no)"
+    },
+    "preview": {
+      "issues_one": "{{count}} fila no se pudo leer y no se importará: {{rows}}.",
+      "issues_other": "{{count}} filas no se pudieron leer y no se importarán: {{rows}}.",
+      "tooMany": "El archivo tiene más de {{max}} movimientos. Divídelo en partes más chicas.",
+      "cardsUnmatched_one": "{{count}} fila nombra una tarjeta que esta cuenta no tiene; usa la tarjeta por defecto.",
+      "cardsUnmatched_other": "{{count}} filas nombran una tarjeta que esta cuenta no tiene; usan la tarjeta por defecto."
+    },
+    "issue": {
+      "invalidDate": "fecha inválida",
+      "invalidAmount": "monto inválido",
+      "ambiguousAmount": "cargo y abono a la vez",
+      "invalidType": "tipo no reconocido"
+    },
+    "notice": {
+      "balance": "Cada movimiento importado mueve el saldo de la cuenta. Si el saldo inicial ya incluye estos movimientos, se contarán dos veces.",
+      "creditCard": "Los gastos se cargan a la tarjeta principal y a la facturación abierta; los abonos liberan cupo."
+    },
+    "sheets": {
+      "title": "Hojas del archivo",
+      "unnamed": "Hoja {{n}}",
+      "rows_one": "{{count}} fila",
+      "rows_other": "{{count}} filas"
+    },
+    "defaults": {
+      "category": "Categoría",
+      "card": "Tarjeta",
+      "noCard": "Sin tarjeta"
+    },
+    "eyebrow": "{{account}} · Importar",
+    "ready_one": "{{count}} listo",
+    "ready_other": "{{count}} listos",
+    "withIssues_one": "{{count}} con problemas",
+    "withIssues_other": "{{count}} con problemas",
+    "grid": {
+      "hint": "Elige qué es cada columna directamente sobre tu planilla. Las columnas sin asignar se ven apagadas.",
+      "noValue": "sin valor",
+      "unmatched": "No se reconoce: se usa «{{fallback}}»",
+      "categoriesUnmatched_one": "{{count}} categoría no calza con el catálogo → {{fallback}}",
+      "categoriesUnmatched_other": "{{count}} categorías no calzan con el catálogo → {{fallback}}",
+      "truncated": "Se muestran las primeras {{shown}} filas; se importan todas."
+    },
+    "template": {
+      "cardTitle": "Plantilla Cuadra",
+      "cardDescription": "¿Llevas tus finanzas en tu propio Excel? Descarga la plantilla, copia en ella tus movimientos, traspasos, deudas, cuotas, recurrentes y metas, y súbela. Cada hoja dice qué es cada fila, así que no hay nada que adivinar.",
+      "download": "Descargar plantilla",
+      "downloading": "Preparando plantilla…",
+      "upload": "Subir plantilla",
+      "downloadError": "No se pudo generar la plantilla.",
+      "downloadTitle": "Descargar plantilla",
+      "downloadDescription": "¿Cómo la quieres?",
+      "downloadSubmit": "Descargar",
+      "content": {
+        "empty": {
+          "title": "Vacía",
+          "hint": "Lista para llenar, con tus cuentas, tarjetas y categorías en las listas."
+        },
+        "prefilled": {
+          "title": "Con mis datos actuales",
+          "hint": "Trae lo que ya tienes en Cuadra para que sigas desde ahí.",
+          "note": "Tus datos quedan marcados con un ID Cuadra y se saltan al volver a subirla: solo se importan las filas que agregues."
+        }
+      },
+      "existingId": {
+        "header": "ID Cuadra",
+        "help": "Esta fila ya está en Cuadra y no se vuelve a importar. Deja esta columna vacía en las filas nuevas."
+      },
+      "panelTitle": "Importar plantilla Cuadra",
+      "panelDescription": "Sube la plantilla que descargaste desde esta página, ya llena.",
+      "eyebrow": "Importar · Plantilla",
+      "pickTitle": "Elige o arrastra tu plantilla",
+      "pickHint": "El archivo .xlsx que descargaste desde Importar.",
+      "reading": "Leyendo plantilla…",
+      "validating": "Revisando con tus datos…",
+      "changeFile": "Cambiar archivo",
+      "summaryTitle": "Qué se va a importar",
+      "accountsTitle": "Efecto en tus cuentas",
+      "modeIncluded": "Mi saldo ya incluye esto",
+      "modeAdd": "Súmalo a mi saldo",
+      "modeHint": "Si creaste la cuenta con su saldo real de hoy, esos movimientos ya están en él: elige la primera opción para que el saldo no cambie.",
+      "net": "Efecto",
+      "balanceAfter": "Saldo después",
+      "creditUsedAfter": "Cupo usado después",
+      "issuesTitle_one": "{{count}} problema por corregir",
+      "issuesTitle_other": "{{count}} problemas por corregir",
+      "issuesHint": "Corrige el archivo y vuelve a subirlo. No se importará nada hasta que no quede ninguno.",
+      "issueLine": "{{sheet}} · fila {{row}}: {{message}}",
+      "reimportWarning": "Si más adelante vuelves a subir este mismo archivo, todo se creará de nuevo: la plantilla no detecta duplicados.",
+      "submit": "Importar",
+      "submitting": "Importando…",
+      "success": "Plantilla importada",
+      "notTemplate": "Este archivo no es una plantilla de Cuadra. Para una cartola de tu banco usa el importador de cartolas, eligiendo la cuenta en esta página.",
+      "outdated": "Esta plantilla es de una versión anterior. Descarga la plantilla actual y copia en ella tus datos.",
+      "empty": "La plantilla no tiene filas que importar.",
+      "tooMany": "La plantilla tiene más de {{max}} filas. Divídela en varios archivos.",
+      "readError": "No se pudo leer el archivo. ¿Está dañado o protegido con contraseña?",
+      "sheets": {
+        "instructions": "Instrucciones",
+        "movements": "Movimientos",
+        "transfers": "Traspasos",
+        "debts": "Deudas",
+        "debtPayments": "Pagos de deudas",
+        "plans": "Cuotas",
+        "planPayments": "Pagos de cuotas",
+        "recurring": "Recurrentes",
+        "goals": "Metas",
+        "contributions": "Aportes",
+        "reference": "Referencia",
+        "accounts": "Cuentas",
+        "cards": "Tarjetas",
+        "statements": "Facturaciones"
+      },
+      "columns": {
+        "movements": {
+          "date": "Fecha",
+          "type": "Tipo",
+          "amount": "Monto",
+          "currency": "Moneda",
+          "account": "Cuenta",
+          "card": "Tarjeta",
+          "category": "Categoría",
+          "description": "Descripción",
+          "observation": "Observación",
+          "emisor": "Emisor",
+          "receptor": "Receptor",
+          "lugar": "Lugar",
+          "financeCharge": "Cargo del emisor",
+          "recurring": "Recurrente"
+        },
+        "transfers": {
+          "date": "Fecha",
+          "fromAccount": "Cuenta origen",
+          "toAccount": "Cuenta destino",
+          "amount": "Monto",
+          "incomingAmount": "Monto recibido",
+          "description": "Descripción"
+        },
+        "debts": {
+          "ref": "Referencia",
+          "direction": "Dirección",
+          "counterparty": "Contraparte",
+          "title": "Título",
+          "principal": "Monto total",
+          "currency": "Moneda",
+          "openedAt": "Fecha",
+          "dueAt": "Vencimiento",
+          "installments": "Cuotas",
+          "frequency": "Frecuencia",
+          "every": "Cada",
+          "account": "Cuenta asociada",
+          "notes": "Notas"
+        },
+        "debtPayments": {
+          "ref": "Referencia",
+          "date": "Fecha",
+          "account": "Cuenta",
+          "amount": "Monto"
+        },
+        "plans": {
+          "ref": "Referencia",
+          "title": "Descripción",
+          "startDate": "Fecha de compra",
+          "totalPrincipal": "Monto total",
+          "installments": "Cuotas",
+          "currency": "Moneda",
+          "frequency": "Frecuencia",
+          "every": "Cada",
+          "interest": "Interés por período",
+          "card": "Tarjeta",
+          "category": "Categoría",
+          "account": "Cuenta de pago"
+        },
+        "planPayments": {
+          "ref": "Referencia",
+          "sequence": "N° cuota",
+          "date": "Fecha",
+          "account": "Cuenta",
+          "amount": "Monto",
+          "freesCredit": "Libera cupo"
+        },
+        "recurring": {
+          "label": "Nombre",
+          "amount": "Monto",
+          "currency": "Moneda",
+          "frequency": "Frecuencia",
+          "every": "Cada",
+          "anchorDate": "Primera fecha",
+          "account": "Cuenta",
+          "card": "Tarjeta",
+          "category": "Categoría",
+          "notes": "Notas",
+          "ref": "Referencia",
+          "endDate": "Último pago"
+        },
+        "goals": {
+          "ref": "Referencia",
+          "title": "Meta",
+          "targetAmount": "Objetivo",
+          "currency": "Moneda",
+          "deadline": "Fecha límite",
+          "notes": "Notas"
+        },
+        "contributions": {
+          "ref": "Referencia",
+          "date": "Fecha",
+          "amount": "Monto",
+          "account": "Cuenta"
+        },
+        "accounts": {
+          "name": "Nombre",
+          "type": "Tipo",
+          "currency": "Moneda",
+          "institution": "Institución",
+          "accountNumber": "Número de cuenta",
+          "openingBalance": "Saldo inicial",
+          "creditLimit": "Cupo",
+          "creditUsedInitial": "Cupo usado inicial",
+          "overdraftLimit": "Línea de sobregiro",
+          "balanceCeiling": "Saldo máximo",
+          "minimumPaymentPercent": "% pago mínimo",
+          "status": "Estado"
+        },
+        "cards": {
+          "account": "Cuenta",
+          "kind": "Tipo",
+          "last4": "Últimos 4",
+          "expiry": "Vencimiento",
+          "name": "Nombre",
+          "network": "Red",
+          "isVirtual": "Virtual",
+          "isAdditional": "Adicional",
+          "cardholderName": "Titular",
+          "ownLimit": "Tope propio",
+          "extraLimitCurrency": "Moneda tope extra",
+          "extraLimit": "Tope extra",
+          "isActive": "Activa"
+        },
+        "statements": {
+          "account": "Cuenta",
+          "currency": "Moneda",
+          "periodStart": "Inicio",
+          "closedAt": "Cierre",
+          "dueDate": "Vencimiento",
+          "paidAt": "Pagada el",
+          "paidAmount": "Monto pagado",
+          "paidFrom": "Pagada desde"
+        }
+      },
+      "columnHelp": {
+        "movements": {
+          "date": "Día en que ocurrió el movimiento (dd/mm/aaaa).",
+          "type": "Gasto o Ingreso. Define el signo: el Monto siempre va positivo.",
+          "amount": "Monto sin signo (15000 o 15.000), en la Moneda de la fila o, si va vacía, en la de la cuenta.",
+          "currency": "Vacío = la moneda de la cuenta. Otra moneda (ej. USD) solo en una cuenta de tarjeta de crédito cuya tarjeta tenga un tope en esa moneda: el cargo o el pago va contra ese tope, no contra el cupo.",
+          "account": "Cuenta donde ocurrió. Elígela de la lista: son tus cuentas activas.",
+          "card": "Tarjeta con que se pagó; debe ser de esa misma cuenta. En una cuenta de tarjeta de crédito, si la dejas vacía se usa la tarjeta principal.",
+          "category": "Categoría del catálogo. Debe servir para el Tipo: una de gasto para un gasto, una de ingreso para un ingreso.",
+          "description": "Texto corto que identifica el movimiento, por ejemplo el comercio.",
+          "observation": "Nota libre, más larga.",
+          "emisor": "Quién hizo el pago o la transferencia. Solo informativo.",
+          "receptor": "Quién recibió el pago. Solo informativo.",
+          "lugar": "Dónde ocurrió: ciudad, comercio o sitio web. Solo informativo.",
+          "financeCharge": "Sí cuando es un cobro del banco sobre una cuenta de tarjeta de crédito (intereses, comisión de mantención, seguro), copiado del estado de cuenta. Va sin tarjeta. En otras cuentas se ignora.",
+          "recurring": "Si este movimiento paga un recurrente, la Referencia de esa fila en la hoja Recurrentes."
+        },
+        "transfers": {
+          "date": "Día del traspaso.",
+          "fromAccount": "Cuenta de donde sale la plata.",
+          "toAccount": "Cuenta a la que llega. No puede ser una tarjeta de crédito: eso es pagar su facturación.",
+          "amount": "Monto que sale de la cuenta origen, en su moneda.",
+          "incomingAmount": "Monto que llega, solo si la cuenta destino está en otra moneda. Vacío = igual al Monto.",
+          "description": "Texto corto opcional."
+        },
+        "debts": {
+          "ref": "Código corto y único (ej. VICTOR) para unir la deuda con sus pagos.",
+          "direction": "Me deben (alguien te debe a ti) o Debo (tú le debes a alguien).",
+          "counterparty": "Nombre de la otra persona.",
+          "title": "Nombre corto de la deuda, ej. Préstamo auto.",
+          "principal": "Monto total de la deuda.",
+          "currency": "Moneda de la deuda. Sus pagos deben hacerse desde cuentas en esa moneda.",
+          "openedAt": "Día en que nació la deuda. Crearla no mueve dinero: si hubo un préstamo, anótalo aparte en Movimientos.",
+          "dueAt": "Fecha límite para saldarla, si la hay.",
+          "installments": "En cuántas cuotas se paga. Vacío = 1 (un solo pago).",
+          "frequency": "Cada cuánto se paga una cuota. Vacío = Mensual.",
+          "every": "Cada cuántos períodos de esa frecuencia (2 con Mensual = cada 2 meses). Vacío = 1.",
+          "account": "Cuenta sugerida para registrar sus pagos. Solo una preferencia.",
+          "notes": "Nota libre."
+        },
+        "debtPayments": {
+          "ref": "Referencia de la deuda en la hoja Deudas.",
+          "date": "Día del pago. No puede ser anterior a la fecha de la deuda.",
+          "account": "Cuenta donde entra el dinero (si te pagan) o de donde sale (si pagas). No puede ser una tarjeta de crédito y debe estar en la moneda de la deuda.",
+          "amount": "Opcional. Cada fila es una cuota completa (Monto total ÷ Cuotas); si lo escribes, debe coincidir."
+        },
+        "plans": {
+          "ref": "Código corto y único (ej. NOTEBOOK) para unir el plan con sus pagos.",
+          "title": "Qué compraste, ej. Notebook.",
+          "startDate": "Día de la compra. Los vencimientos se calculan desde aquí.",
+          "totalPrincipal": "Precio total, sin intereses.",
+          "installments": "Cantidad de cuotas.",
+          "currency": "Moneda del plan.",
+          "frequency": "Cada cuánto vence una cuota. Vacío = Mensual.",
+          "every": "Cada cuántos períodos de esa frecuencia (2 con Mensual = cada 2 meses). Vacío = 1.",
+          "interest": "Tasa de interés por período, con % (ej. 1,5%). Vacío = sin interés.",
+          "card": "Tarjeta con que se compró. Si es de crédito, la compra se carga a su cupo y las cuotas se facturan en esa cuenta.",
+          "category": "Categoría de gasto del catálogo.",
+          "account": "Cuenta desde la que pagas las cuotas. No aplica a planes con tarjeta de crédito."
+        },
+        "planPayments": {
+          "ref": "Referencia del plan en la hoja Cuotas.",
+          "sequence": "Número de la cuota pagada (1, 2, 3…). Cada cuota se paga una sola vez.",
+          "date": "Día del pago. No puede ser anterior a la compra.",
+          "account": "Cuenta de donde salió el pago. Obligatoria, salvo en planes con tarjeta de crédito, donde va vacía.",
+          "amount": "Monto pagado. Obligatorio, salvo en planes con tarjeta de crédito, donde va vacío. Si pagas menos que la cuota, el resto pasa a la siguiente.",
+          "freesCredit": "Solo planes con tarjeta de crédito. Sí (o vacío): la cuota se pagó fuera de la app y devuelve su parte del cupo. No: el pago de la tarjeta que la cubrió ya está en el archivo (un traspaso a la tarjeta), que ya bajó el cupo."
+        },
+        "recurring": {
+          "ref": "Código corto para vincularle pagos desde la columna Recurrente de Movimientos.",
+          "label": "Nombre del gasto, ej. Spotify.",
+          "amount": "Monto de cada pago.",
+          "currency": "Moneda del gasto.",
+          "frequency": "Semanal, Mensual o Anual.",
+          "every": "Cada cuántos períodos de esa frecuencia (2 con Mensual = cada 2 meses). Vacío = 1.",
+          "anchorDate": "Día del primer pago; desde ahí se calculan los siguientes.",
+          "endDate": "Día del último pago, si ya terminó o tiene fin. Vacío = sigue vigente.",
+          "account": "Cuenta desde la que se paga.",
+          "card": "Tarjeta con que se paga, si no sale directo de la cuenta.",
+          "category": "Categoría de gasto del catálogo.",
+          "notes": "Nota libre."
+        },
+        "goals": {
+          "ref": "Código corto y único (ej. VIAJE) para unir la meta con sus aportes.",
+          "title": "Nombre de la meta.",
+          "targetAmount": "Monto que quieres juntar.",
+          "currency": "Moneda de la meta. Sus aportes deben venir de cuentas en esa moneda.",
+          "deadline": "Fecha para lograrla, si la hay.",
+          "notes": "Nota libre."
+        },
+        "contributions": {
+          "ref": "Referencia de la meta en la hoja Metas.",
+          "date": "Día del aporte.",
+          "amount": "Monto aportado.",
+          "account": "Cuenta de donde sale el aporte: se descuenta de su saldo."
+        },
+        "accounts": {
+          "name": "Nombre de la cuenta, único. Es como la nombran las demás hojas en su columna Cuenta.",
+          "type": "Corriente, Vista, Ahorro, Inversión, Tarjeta de crédito, Prepago o Efectivo.",
+          "currency": "Moneda de la cuenta (CLP, USD o CLF).",
+          "institution": "Banco o emisor, por su nombre (BCI, Banco Estado, MACH…). Si coincide con el catálogo queda enlazado; si no, se guarda como texto.",
+          "accountNumber": "Obligatorio en cuentas corriente, vista, ahorro y prepago.",
+          "openingBalance": "Saldo ANTES del primer movimiento de las demás hojas. Los movimientos se suman a esto. Vacío = 0. No aplica a una tarjeta de crédito (usa Cupo usado inicial).",
+          "creditLimit": "Solo tarjeta de crédito: el cupo total, que es el de su tarjeta principal.",
+          "creditUsedInitial": "Solo tarjeta de crédito: lo que ya debías antes del primer movimiento.",
+          "overdraftLimit": "Solo corriente o vista: cuánto puede bajar el saldo de cero.",
+          "balanceCeiling": "Solo vista, prepago o ahorro: el saldo máximo que permite el banco.",
+          "minimumPaymentPercent": "Solo tarjeta de crédito: % de pago mínimo (ej. 5%).",
+          "status": "Activa o Inactiva. Vacío = Activa. Una inactiva conserva su historial."
+        },
+        "cards": {
+          "account": "Cuenta a la que pertenece la tarjeta, de la hoja Cuentas.",
+          "kind": "Crédito (solo en una cuenta de tarjeta de crédito), Débito (corriente, vista o ahorro) o Prepago (cuenta prepago).",
+          "last4": "Los 4 últimos dígitos. Nunca el número completo.",
+          "expiry": "Mes y año de vencimiento (mm/aaaa).",
+          "name": "Nombre corto opcional, por ejemplo Principal o Digital.",
+          "network": "Visa, Mastercard, Amex, Redcompra u Otra.",
+          "isVirtual": "Sí si no tiene plástico.",
+          "isAdditional": "Sí si está a nombre de otra persona.",
+          "cardholderName": "A nombre de quién está, si es adicional.",
+          "ownLimit": "Solo una tarjeta de crédito que NO es la primera de su cuenta: su tope propio. Vacío = comparte el cupo de la cuenta. La primera tarjeta de crédito usa el Cupo de la cuenta.",
+          "extraLimitCurrency": "Moneda de un tope en otra moneda (ej. USD).",
+          "extraLimit": "Monto de ese tope en otra moneda.",
+          "isActive": "Sí o No. Vacío = Sí."
+        },
+        "statements": {
+          "account": "Cuenta de tarjeta de crédito.",
+          "currency": "Vacío = la moneda de la cuenta. Otra solo si una tarjeta tiene tope en ella.",
+          "periodStart": "Primer día del período, como dice el estado de cuenta.",
+          "closedAt": "Día de cierre (facturación). Entran los movimientos hasta ese día inclusive.",
+          "dueDate": "Fecha de pago (vencimiento).",
+          "paidAt": "Si ya está pagada: el día del pago.",
+          "paidAmount": "Cuánto se pagó. Vacío con Pagada el = el total. Si es menos, el resto pasa a la siguiente facturación.",
+          "paidFrom": "Cuenta desde la que se pagó: crea el pago como el botón Pagar (un gasto ahí). Déjala vacía si el pago ya está como traspaso en la hoja Traspasos."
+        }
+      },
+      "values": {
+        "movementType": {
+          "EXPENSE": "Gasto",
+          "INCOME": "Ingreso"
+        },
+        "direction": {
+          "OWED_TO_YOU": "Me deben",
+          "YOU_OWE": "Debo"
+        },
+        "planFrequency": {
+          "MONTHLY": "Mensual",
+          "WEEKLY": "Semanal",
+          "YEARLY": "Anual",
+          "DAILY": "Diaria"
+        },
+        "recurrenceFrequency": {
+          "MONTHLY": "Mensual",
+          "WEEKLY": "Semanal",
+          "YEARLY": "Anual"
+        },
+        "yesNo": {
+          "YES": "Sí",
+          "NO": "No"
+        },
+        "accountType": {
+          "CHECKING": "Corriente",
+          "SIGHT": "Vista",
+          "SAVINGS": "Ahorro",
+          "INVESTMENT": "Inversión",
+          "CREDIT_CARD": "Tarjeta de crédito",
+          "PREPAID": "Prepago",
+          "CASH": "Efectivo"
+        },
+        "cardKind": {
+          "CREDIT": "Crédito",
+          "DEBIT": "Débito",
+          "PREPAID": "Prepago"
+        },
+        "cardNetwork": {
+          "VISA": "Visa",
+          "MASTERCARD": "Mastercard",
+          "AMEX": "Amex",
+          "REDCOMPRA": "Redcompra",
+          "OTHER": "Otra"
+        },
+        "accountStatus": {
+          "ACTIVE": "Activa",
+          "INACTIVE": "Inactiva"
+        }
+      },
+      "reference": {
+        "accounts": "Cuentas",
+        "cards": "Tarjetas",
+        "categories": "Categorías",
+        "currencies": "Monedas",
+        "type": "Tipo",
+        "currency": "Moneda",
+        "accountTypes": "Tipos de cuenta",
+        "cardKinds": "Tipos de tarjeta",
+        "cardNetworks": "Redes",
+        "accountStatuses": "Estados"
+      },
+      "instructions": {
+        "title": "Plantilla Cuadra",
+        "intro": "Llena una hoja por tipo de dato y sube el archivo desde Importar. Deja vacías las hojas que no uses. Las celdas con lista desplegable solo aceptan tus propias cuentas, tarjetas y categorías; si las escribes a mano, que coincidan.",
+        "rules": "Qué mueve dinero: un movimiento, un traspaso, un pago de deuda, un pago de cuota sin tarjeta de crédito y un aporte mueven el saldo de su cuenta. Crear una deuda, un plan o una meta no mueve dinero. Un pago de cuota de un plan con tarjeta de crédito solo la marca pagada y libera su cupo: esa cuota nunca se facturará.",
+        "refs": "Referencias: escribe un código corto en la columna Referencia de una deuda, cuota, meta o recurrente (por ejemplo VICTOR) y repítelo en sus pagos, aportes o movimientos para unirlos. Debe ser único en su hoja.",
+        "allOrNothing": "Si una fila tiene un problema no se importa nada: verás cada problema con su hoja y su fila.",
+        "reimport": "Subir dos veces el mismo archivo lo importa dos veces.",
+        "prefilled": "Esta plantilla trae tus datos actuales. Las filas con ID Cuadra ya están en la app y se saltan al subirla: agrega lo nuevo debajo. Los pagos de deudas o cuotas que ya existen se registran en la app.",
+        "exampleTitle": "Ejemplos (no se importan)",
+        "examples": {
+          "movements": "Movimientos: 28/11/2025 · Gasto · 15000 · BCI · · Supermercado · Jumbo (si paga un recurrente, su Referencia en la columna Recurrente)",
+          "transfers": "Traspasos: 01/12/2025 · BCI · MACH · 50000",
+          "debts": "Deudas: VICTOR · Me deben · Victor · Préstamo · 200000 · CLP · 14/02/2026 · · 4 · Mensual · 1",
+          "debtPayments": "Pagos de deudas: VICTOR · 14/03/2026 · BCI",
+          "plans": "Cuotas: NOTEBOOK · Notebook · 28/11/2025 · 623992 · 6 · CLP · Mensual · 1 · · BCI Visa · ····4827",
+          "planPayments": "Pagos de cuotas: NOTEBOOK · 1 · 28/12/2025 (con tarjeta de crédito, sin cuenta ni monto)",
+          "recurring": "Recurrentes: SPOTIFY · Spotify · 6990 · CLP · Mensual · 1 · 01/01/2026 · 01/04/2026 · BCI (Último pago vacío si sigue vigente)",
+          "goals": "Metas: VIAJE · Viaje a Japón · 1500000 · CLP · 31/12/2026",
+          "contributions": "Aportes: VIAJE · 01/02/2026 · 50000 · BCI",
+          "accounts": "Cuentas: BCI · Corriente · CLP · BCI · 123456 · 250000",
+          "cards": "Tarjetas: BCI Crédito · Crédito · 7758 · 06/2031 · · Visa",
+          "statements": "Facturaciones: BCI Crédito · · 20/08/2026 · 17/09/2026 · 05/10/2026 · 05/10/2026 · 337241 · BCI"
+        },
+        "columnsTitle": "Qué va en cada columna",
+        "columnsHint": "También puedes ver la descripción de una columna posando el mouse sobre su encabezado (la marca roja de la esquina).",
+        "required": "obligatoria",
+        "optional": "opcional",
+        "accountsSheets": "Cuentas y Tarjetas: lo que agregues ahí se crea al subir la plantilla. Las demás hojas nombran las cuentas por su Nombre y las tarjetas como «Cuenta · ····1234».",
+        "replace": "Reemplazar todo: al subirla puedes elegir que borre todas tus cuentas, tarjetas y registros y los reconstruya desde este archivo, que pasa a ser tu historial completo. Las facturaciones solo se reconstruyen así."
+      },
+      "issues": {
+        "required": "falta {{column}}",
+        "invalidDate": "{{column}} no es una fecha",
+        "invalidAmount": "{{column}} no es un monto",
+        "invalidNumber": "{{column}} no es un número entero",
+        "unknownAccount": "la cuenta «{{value}}» no existe",
+        "ambiguousAccount": "hay dos cuentas llamadas «{{value}}»; cambia el nombre de una",
+        "unknownCard": "la tarjeta «{{value}}» no existe",
+        "unknownCategory": "la categoría «{{value}}» no existe",
+        "unknownValue": "«{{value}}» no es un valor válido para {{column}}",
+        "duplicateRef": "la referencia «{{value}}» se repite en esta hoja",
+        "unknownRef": "no hay ninguna fila con la referencia «{{value}}»"
+      },
+      "ui": {
+        "modeTitle": "¿Qué hacemos con tus datos?",
+        "modeMerge": "Agregar",
+        "modeMergeHint": "Suma lo que traiga el archivo a lo que ya tienes.",
+        "modeReplace": "Reemplazar todo",
+        "modeReplaceHint": "Borra tus cuentas, tarjetas y registros y los reconstruye desde el archivo.",
+        "replaceTitle": "Se borrará",
+        "replaceCounts": "{{accounts}} cuentas, {{cards}} tarjetas, {{movements}} movimientos, {{debts}} deudas, {{plans}} planes de cuotas, {{recurring}} recurrentes, {{goals}} metas y {{statements}} facturaciones.",
+        "replaceWarning": "No se puede deshacer. Los comprobantes adjuntos se pierden. Si el archivo no trae una cuenta de efectivo, se crea una vacía.",
+        "replaceConfirmLabel": "Escribe REEMPLAZAR para confirmar",
+        "replaceConfirmWord": "REEMPLAZAR",
+        "submitReplace": "Reemplazar todo",
+        "newAccount": "nueva"
+      }
+    }
+  },
+  "auth": {
+    "signIn": "Iniciar sesión",
+    "createAccount": "Crear cuenta",
+    "name": "Nombre completo",
+    "rut": "RUT",
+    "email": "Correo",
+    "password": "Contraseña",
+    "birthDate": "Fecha de nacimiento",
+    "placeholders": {
+      "name": "Ej: Juan Pérez",
+      "rut": "12.345.678-9",
+      "email": "tucorreo@ejemplo.com",
+      "password": "Mínimo 8 caracteres",
+      "guardianName": "Ej: María Pérez",
+      "guardianRut": "12.345.678-9"
+    },
+    "sensitiveDataConsentLabel": "Datos sensibles",
+    "sensitiveDataConsent": "Acepto que Cuadra trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la <privacy>Política de Privacidad</privacy>.",
+    "consentRequired": "Marca esta casilla para crear tu cuenta.",
+    "guardian": {
+      "title": "Autorización de tu madre, padre o tutor",
+      "hint": "Como eres menor de edad, necesitamos la autorización de quien te representa legalmente.",
+      "name": "Nombre completo del tutor",
+      "identifierValue": "RUT del tutor",
+      "relationship": {
+        "MOTHER": "Madre",
+        "FATHER": "Padre",
+        "GUARDIAN": "Tutor/a legal",
+        "OTHER": "Otro"
+      },
+      "acceptLabel": "Autorización",
+      "accept": "Autorizo el tratamiento de los datos financieros de mi hijo/a o representado/a en Cuadra.",
+      "acceptRequired": "Falta la autorización del tutor: marca esta casilla.",
+      "relationshipLabel": "Relación"
+    },
+    "logout": "Salir",
+    "mfa": {
+      "title": "Verificación en dos pasos",
+      "hint": "Ingresa el código de tu app autenticadora, o uno de tus códigos de recuperación.",
+      "placeholder": "Código de 6 dígitos o de recuperación",
+      "verify": "Verificar",
+      "back": "Volver",
+      "verifying": "Verificando…",
+      "codeLabel": "Código"
+    },
+    "passkey": {
+      "signIn": "Continuar con llave de acceso",
+      "waiting": "Esperando tu dispositivo…",
+      "notCompleted": "No se completó el ingreso con llave de acceso. Si no tienes una en este dispositivo, entra con tu RUT y contraseña; después puedes crear una en Perfil."
+    },
+    "signingIn": "Ingresando…",
+    "creatingAccount": "Creando cuenta…",
+    "validation": {
+      "required": "Completa este campo",
+      "rut": "RUT inválido: revisa el dígito verificador",
+      "email": "Revisa el correo: falta el @ o el dominio",
+      "passwordLength": "Mínimo {{min}} caracteres",
+      "birthDateFuture": "La fecha no puede ser futura",
+      "passwordLetterNumber": "Usa al menos una letra y un número",
+      "passwordIsRut": "La contraseña no puede ser tu RUT"
+    },
+    "login": {
+      "title": "Entra en un toque",
+      "subtitle": "Con la huella o el rostro de este dispositivo. Sin contraseña y sin segundo factor.",
+      "orWithRut": "o con tu RUT"
+    },
+    "signup": {
+      "title": "Crea tu cuenta",
+      "subtitle": "Después podrás entrar con una llave de acceso.",
+      "rutTaken": "Ese RUT ya tiene una cuenta.",
+      "emailTaken": "Ese correo ya está registrado en otra cuenta."
+    },
+    "firstTime": "¿Primera vez?",
+    "haveAccount": "¿Ya tienes cuenta?",
+    "passwordRules": {
+      "label": "Requisitos de la contraseña",
+      "length": "{{min}} caracteres o más",
+      "letterNumber": "Una letra y un número",
+      "notRut": "No es tu RUT",
+      "met": "cumplido",
+      "pending": "pendiente",
+      "symbolHint": "Recomendado: suma un símbolo para hacerla más difícil de adivinar."
+    },
+    "forgot": {
+      "link": "¿Olvidaste tu contraseña?",
+      "body": "Si tienes una llave de acceso en este dispositivo, entra con ella. Recuperar la contraseña todavía no es posible porque Cuadra no envía correos."
+    }
+  },
+  "profile": {
+    "title": "Perfil",
+    "ageYears": "{{age}} años",
+    "stats": {
+      "accounts": "Cuentas",
+      "monthlyMovements": "Mov./mes",
+      "memberSince": "Miembro"
+    },
+    "personalInfo": {
+      "notSet": "Sin especificar"
+    },
+    "comingSoon": {
+      "list": "Próximamente: notificaciones, exportar movimientos, respaldo automático y foto de perfil."
+    },
+    "financial": {
+      "extraCurrencies": "Monedas extra",
+      "extraCurrenciesHint": "Monedas adicionales que quieres seguir, además de tu moneda principal",
+      "addCurrencyPlaceholder": "Elige una moneda…",
+      "noMoreCurrencies": "No quedan más monedas por agregar",
+      "removeCurrency": "Quitar {{code}}",
+      "noExtraCurrencies": "Sin monedas extra agregadas.",
+      "hideBalances": "Ocultar saldos",
+      "hideBalancesHint": "Difumina montos en el Panel, el saldo de cuenta y Ahorros"
+    },
+    "consents": {
+      "title": "Mis consentimientos",
+      "description": "Registro de los consentimientos que has otorgado para el tratamiento de tus datos (Ley 21.719).",
+      "loading": "Cargando…",
+      "empty": "Sin consentimientos registrados.",
+      "grantedAt": "Otorgado el {{date}} · versión {{version}}",
+      "revokedAt": "revocado el {{date}}",
+      "type": {
+        "sensitiveDataProcessing": "Tratamiento de datos financieros sensibles",
+        "minorGuardianAuthorization": "Autorización de madre/padre/tutor"
+      }
+    },
+    "edit": {
+      "title": "Editar perfil",
+      "name": "Nombre",
+      "email": "Correo",
+      "phone": "Teléfono",
+      "phoneNoCountryHint": "Elige tu país para anteponer el código automáticamente.",
+      "save": "Guardar",
+      "cancel": "Cancelar",
+      "personalInfo": "Información personal",
+      "country": "País",
+      "countryNone": "Sin especificar",
+      "birthDate": "Fecha de nacimiento",
+      "identifierType": "Tipo de identificador",
+      "identifierValue": "Número de identificador",
+      "identifierTypes": {
+        "RUT": "RUT",
+        "DNI": "DNI",
+        "PASSPORT": "Pasaporte",
+        "OTHER": "Otro"
+      },
+      "addressStreet": "Dirección (calle y número)",
+      "addressCity": "Ciudad / comuna",
+      "addressRegion": "Región / estado",
+      "addressPostalCode": "Código postal",
+      "address": "Dirección",
+      "addressStreetShort": "Calle y número",
+      "identifier": "Identificador",
+      "countryHint": "Define el prefijo del teléfono y qué identificadores se ofrecen.",
+      "invalidRut": "El dígito verificador del RUT no cuadra.",
+      "saved": "Guardado",
+      "hintName": "Como aparece en tus documentos.",
+      "hintEmail": "Es el correo con el que inicias sesión.",
+      "hintPhone": "Se antepone el prefijo de tu país.",
+      "hintIdentifier": "Se valida el dígito verificador.",
+      "hintBirthDate": "En tu perfil solo se muestra tu edad, no la fecha.",
+      "hintAddress": "Calle y número, comuna, región y código postal."
+    },
+    "security": {
+      "title": "Seguridad",
+      "password": {
+        "label": "Contraseña",
+        "hint": "Puedes cambiarla cuando quieras.",
+        "hint8": "Usa al menos 8 caracteres.",
+        "change": "Cambiar",
+        "current": "Contraseña actual",
+        "new": "Nueva contraseña",
+        "confirm": "Confirmar nueva contraseña",
+        "minLength": "Mínimo 8 caracteres",
+        "matchOk": "Coinciden",
+        "matchMismatch": "No coinciden",
+        "toggleCurrent": "Mostrar u ocultar contraseña actual",
+        "toggleNew": "Mostrar u ocultar nueva contraseña",
+        "toggleConfirm": "Mostrar u ocultar confirmación",
+        "updated": "Contraseña actualizada",
+        "save": "Guardar"
+      },
+      "twoFactor": {
+        "label": "Verificación en dos pasos",
+        "hint": "Protege tu cuenta con una app autenticadora."
+      },
+      "mfa": {
+        "enabledHint": "Activa · {{count}} código(s) de recuperación disponibles",
+        "enrollTitle": "Activar verificación en dos pasos",
+        "enrollHint": "Escanea el código con tu app autenticadora e ingresa el código generado para confirmar.",
+        "loadingQr": "Generando código QR…",
+        "qrAlt": "Código QR para configurar la verificación en dos pasos",
+        "manualEntry": "¿No puedes escanear? Ingresa este código manualmente:",
+        "codeLabel": "Código de 6 dígitos",
+        "confirm": "Confirmar",
+        "codesTitle": "Guarda tus códigos de recuperación",
+        "codesHint": "Úsalos si pierdes el acceso a tu app autenticadora. No se volverán a mostrar.",
+        "copyAll": "Copiar todos",
+        "codesCopied": "Códigos copiados",
+        "done": "Listo",
+        "disableTitle": "Desactivar verificación en dos pasos",
+        "disableHint": "Ingresa tu contraseña actual para confirmar.",
+        "disableConfirm": "Desactivar",
+        "disablePasswordLabel": "Contraseña actual"
+      },
+      "passkey": {
+        "label": "Llave de acceso (passkey)",
+        "hint": "Face ID · huella · llave física",
+        "configure": "Configurar",
+        "countBadge_one": "{{count}} activa",
+        "countBadge_other": "{{count}} activas",
+        "add": "Agregar llave de acceso",
+        "yourKeys": "Tus llaves · {{count}}",
+        "confirmedTitle": "Dispositivo confirmado",
+        "confirmedHint": "Ponle un nombre para reconocerla después en tu lista.",
+        "nameLabel": "Nombre de la llave",
+        "namePlaceholder": "Ej. MacBook de Ana",
+        "save": "Guardar",
+        "cancel": "Cancelar",
+        "added": "Llave de acceso agregada",
+        "ceremonyFailed": "No se pudo confirmar con el dispositivo. Inténtalo de nuevo.",
+        "loading": "Cargando llaves…",
+        "empty": "Todavía no tienes ninguna llave de acceso registrada.",
+        "created": "Agregada el {{date}}",
+        "lastUsed": "último uso {{date}}",
+        "neverUsed": "nunca usada",
+        "alwaysHavePassword": "Tu contraseña sigue funcionando aunque elimines todas tus llaves — nunca es el único modo de entrar.",
+        "remove": {
+          "button": "Eliminar llave",
+          "title": "Eliminar llave de acceso",
+          "description": "Ya no podrás usar este dispositivo para iniciar sesión sin contraseña. Tu login con email y contraseña no se ve afectado.",
+          "confirm": "Eliminar"
+        },
+        "rename": {
+          "button": "Renombrar llave",
+          "save": "Guardar nombre",
+          "cancel": "Cancelar cambio de nombre"
+        }
+      },
+      "sessions": {
+        "title": "Sesiones y dispositivos",
+        "closeAll": "Cerrar todas",
+        "thisDevice": "Este dispositivo · activo ahora",
+        "close": "Cerrar",
+        "loading": "Cargando sesiones…",
+        "empty": "No tienes sesiones activas.",
+        "unknownDevice": "Dispositivo desconocido",
+        "unknownLocation": "Ubicación desconocida",
+        "lastActive": "última actividad {{date}}",
+        "closed": "Cerrada el {{date}}",
+        "revokeOthersWarning": "Esto cerrará todas tus otras sesiones activas — esta sesión no se verá afectada.",
+        "attribution": "Datos de ubicación por"
+      }
+    },
+    "preferences": {
+      "title": "Preferencias",
+      "currency": "Moneda principal",
+      "language": "Idioma",
+      "blocks": {
+        "appearance": "Apariencia e idioma",
+        "money": "Monedas y montos"
+      }
+    },
+    "danger": {
+      "deactivate": "Eliminar cuenta",
+      "confirmTitle": "¿Eliminar tu cuenta?",
+      "confirmDescription": "Se borrarán tu nombre, correo, contraseña y demás datos personales, y no podrás volver a iniciar sesión. Esta acción no se puede deshacer.",
+      "passwordLabel": "Confirma tu contraseña",
+      "keepHistoryLabel": "Conservar mi historial de forma anónima",
+      "keepHistoryDescription": "Tus cuentas y movimientos se conservan (sin ningún dato que te identifique) para estadísticas. Si no activas esto, se borra todo sin excepción.",
+      "confirmButton": "Eliminar cuenta",
+      "description": "Borra tus datos personales. Puedes conservar tu historial de forma anónima."
+    },
+    "sections": {
+      "summary": {
+        "title": "Resumen"
+      },
+      "personal": {
+        "title": "Información personal",
+        "description": "Cada dato se guarda por separado. En tu perfil solo se muestra tu edad."
+      },
+      "security": {
+        "title": "Seguridad",
+        "description": "Cómo entras a Cuadra y desde qué dispositivos."
+      },
+      "preferences": {
+        "title": "Preferencias",
+        "description": "Cómo se ve Cuadra y en qué monedas trabajas."
+      },
+      "privacy": {
+        "title": "Datos y privacidad",
+        "description": "Lo que aceptaste y cómo irte si lo decides."
+      }
+    },
+    "groups": {
+      "account": "Tu cuenta",
+      "app": "App",
+      "privacy": "Privacidad"
+    },
+    "summary": {
+      "description": "Lo que falta para que tu cuenta esté protegida y completa.",
+      "protection": {
+        "title": "Protección de tu cuenta",
+        "progress": "{{done}} de 3",
+        "stages": {
+          "password": {
+            "title": "Contraseña",
+            "hint": "Lo básico para entrar."
+          },
+          "passkey": {
+            "title": "Llave de acceso",
+            "hint": "Face ID, huella o llave física."
+          },
+          "twoFactor": {
+            "title": "Verificación en dos pasos",
+            "hint": "Un código de tu app autenticadora, además de la contraseña."
+          }
+        },
+        "done": "Lista",
+        "pending": "Pendiente",
+        "notAvailable": "No disponible en este dispositivo",
+        "nextStep": "Siguiente paso",
+        "nextStepBody": {
+          "passkey": "Agrega una llave de acceso para entrar con tu huella, tu cara o una llave física.",
+          "twoFactor": "Activa los dos pasos: si alguien obtiene tu contraseña, igual necesitará el código de tu app."
+        },
+        "actions": {
+          "passkey": "Agregar llave de acceso",
+          "twoFactor": "Activar dos pasos"
+        },
+        "complete": "Tu cuenta tiene las tres protecciones activas.",
+        "noneHere": "Lo que falta no se puede hacer desde este dispositivo."
+      },
+      "data": {
+        "title": "Tus datos",
+        "progress": "{{done}} de 3",
+        "items": {
+          "email": "Correo",
+          "identity": "Identidad",
+          "phone": "Teléfono"
+        },
+        "add": {
+          "email": "Agregar correo",
+          "identity": "Agregar identidad",
+          "phone": "Agregar teléfono"
+        },
+        "complete": "Tus datos de contacto e identidad están completos."
+      },
+      "sessions": {
+        "title": "Sesiones",
+        "open_one": "{{count}} abierta",
+        "open_other": "{{count}} abiertas",
+        "current": "Esta",
+        "more_one": "y {{count}} más",
+        "more_other": "y {{count}} más",
+        "review": "Revisar sesiones"
+      },
+      "quick": {
+        "title": "Ajustes rápidos",
+        "allPreferences": "Todas las preferencias"
+      }
+    },
+    "status": {
+      "summary": {
+        "pending_one": "{{count}} paso pendiente",
+        "pending_other": "{{count}} pasos pendientes",
+        "ok": "Todo en orden"
+      },
+      "personal": {
+        "missing": {
+          "email": "Falta tu correo",
+          "identity": "Falta tu identidad",
+          "phone": "Falta tu teléfono"
+        },
+        "missingMany_one": "Falta {{count}} dato",
+        "missingMany_other": "Faltan {{count}} datos",
+        "complete": "Datos completos"
+      },
+      "security": {
+        "twoFactorOff": "Dos pasos desactivada",
+        "twoFactorOn": "Dos pasos activa",
+        "sessions_one": "{{count}} sesión abierta",
+        "sessions_other": "{{count}} sesiones abiertas"
+      },
+      "preferences": {
+        "language": {
+          "es": "Español",
+          "en": "English"
+        }
+      },
+      "privacy": {
+        "consents_one": "{{count}} consentimiento vigente",
+        "consents_other": "{{count}} consentimientos vigentes",
+        "fallback": "Consentimientos y cuenta"
+      }
+    },
+    "nav": {
+      "label": "Secciones del perfil",
+      "back": "Volver a Perfil",
+      "pending_one": "{{count}} pendiente",
+      "pending_other": "{{count}} pendientes"
+    },
+    "discard": {
+      "title": "¿Descartar cambios?",
+      "description": "Lo que escribiste no se guardará.",
+      "confirm": "Descartar",
+      "cancel": "Seguir editando"
+    },
+    "identity": {
+      "stats": "{{accounts}} cuentas · {{movements}} mov. este mes · desde {{year}}"
+    }
+  },
+  "errors": {
+    "INTERNAL_ERROR": "Ocurrió un error. Inténtalo de nuevo.",
+    "UNAUTHORIZED": "Inicia sesión para continuar.",
+    "NOT_FOUND": "No se encontró el recurso.",
+    "INVALID_CREDENTIALS": "RUT o contraseña incorrectos.",
+    "EMAIL_TAKEN": "Ese correo ya está registrado.",
+    "IDENTIFIER_TAKEN": "Ese RUT ya está registrado.",
+    "INVALID_MFA_CODE": "Código incorrecto. Inténtalo de nuevo.",
+    "MFA_LOCKED": "Demasiados intentos. Espera unos minutos antes de volver a intentarlo.",
+    "MFA_NOT_PENDING": "No hay una activación pendiente que confirmar.",
+    "MFA_ALREADY_ENABLED": "La verificación en dos pasos ya está activa. Desactívala antes de volver a activarla.",
+    "MFA_PENDING_TOKEN_INVALID": "La sesión de verificación expiró. Inicia sesión de nuevo.",
+    "VALIDATION_FAILED": "Revisa los datos ingresados.",
+    "INVALID_ID_FORMAT": "Identificador inválido.",
+    "CARD_REQUIRED": "Selecciona una tarjeta para este gasto.",
+    "CARD_NOT_ALLOWED": "Este movimiento no puede asociarse a una tarjeta.",
+    "ACCOUNT_CANNOT_HAVE_CARD": "Este tipo de cuenta no puede tener tarjetas asociadas.",
+    "ACCOUNT_NUMBER_REQUIRED": "Este tipo de cuenta requiere un número de cuenta.",
+    "INSTALLMENT_PAYMENT_ALREADY_PAID": "Esta cuota ya está pagada.",
+    "INSTALLMENT_PAYMENT_ACCOUNT_REQUIRED": "Elige la cuenta con la que pagas esta cuota.",
+    "INSTALLMENT_CARD_IS_CREDIT": "Las cuotas de este plan no generan movimiento: la deuda ya está en la facturación de su tarjeta de crédito.",
+    "INVALID_PAYMENT_AMOUNT": "Ingresa un monto mayor que cero.",
+    "PAYMENT_CURRENCY_AMBIGUOUS": "La cuenta está en otra moneda que el plan: indica cuánto se cargó realmente a la cuenta.",
+    "INSTALLMENT_PAYMENT_FROM_CREDIT_ACCOUNT": "No puedes pagar una cuota desde una cuenta de tarjeta de crédito.",
+    "TRANSACTION_LINKED_TO_INSTALLMENT": "Este movimiento respalda una cuota. Para cambiarlo, deshaz el pago de la cuota desde su plan.",
+    "CARD_ACCOUNT_MISMATCH": "La tarjeta no pertenece a esa cuenta.",
+    "CARD_LIMIT_EXCEEDED": "El gasto supera el cupo de la tarjeta principal.",
+    "CARD_SUBLIMIT_EXCEEDED": "El gasto supera el sub-tope de la tarjeta secundaria.",
+    "CARD_SUBLIMIT_EXCEEDS_ACCOUNT": "El tope de la tarjeta no puede superar el cupo de la cuenta.",
+    "BALANCE_CEILING_EXCEEDED": "El movimiento supera el saldo máximo que puede tener esta cuenta.",
+    "OVERDRAFT_LIMIT_EXCEEDED": "El movimiento supera la línea de sobregiro de la cuenta.",
+    "PREPAID_INSUFFICIENT_BALANCE": "El saldo de la cuenta prepago no alcanza para este movimiento.",
+    "CARD_LIMIT_REQUIRED": "Ingresa un tope para esta tarjeta de crédito.",
+    "PARENT_CARD_INVALID": "La tarjeta principal seleccionada no es válida.",
+    "INVALID_CURRENT_PASSWORD": "La contraseña actual no es correcta.",
+    "CURRENCY_IN_USE": "No puedes quitar esta moneda: todavía la usa algún registro tuyo.",
+    "ACCOUNT_DISABLED": "Esta cuenta está deshabilitada.",
+    "PAYMENT_EXCEEDS_REMAINING": "El monto supera lo que queda por pagar de esta facturación.",
+    "TRANSFER_SAME_ACCOUNT": "El origen y el destino deben ser cuentas distintas.",
+    "TRANSFER_ACCOUNT_NOT_FOUND": "No se encontró alguna de las cuentas del traspaso.",
+    "TRANSFER_NOT_FOUND": "No se encontró el traspaso.",
+    "TRANSFER_EDIT_AS_PAIR": "Un traspaso se edita completo, desde sus dos lados.",
+    "ATTACHMENT_TYPE_NOT_ALLOWED": "Solo se admiten imágenes JPG, PNG, WebP o archivos PDF.",
+    "ATTACHMENT_TOO_LARGE": "El archivo supera los 5 MB.",
+    "ATTACHMENTS_UNAVAILABLE": "El almacenamiento de comprobantes no está configurado.",
+    "ATTACHMENT_NOT_FOUND": "No se encontró el comprobante.",
+    "CARD_KIND_NOT_ALLOWED_FOR_ACCOUNT": "Ese tipo de tarjeta no corresponde a este tipo de cuenta.",
+    "CREDIT_SETTINGS_NOT_ALLOWED": "Solo una cuenta de línea de crédito tiene cupo y facturación.",
+    "CASH_ACCOUNT_REQUIRED": "Siempre debe quedar una cuenta de efectivo: no se puede eliminar la última.",
+    "ACCOUNT_TYPE_CHANGE_NOT_ALLOWED": "No se puede convertir una cuenta prepago en otro tipo (ni al revés).",
+    "INVALID_ACCOUNT_NUMBER": "El número de cuenta no tiene el formato de ese país.",
+    "INVALID_ACCOUNT_ALIAS": "El alias de transferencia no es válido.",
+    "INVALID_INITIAL_BALANCE": "El saldo inicial no puede ser negativo.",
+    "INSTALLMENT_PLAN_BILLED": "Este plan ya tiene cuotas facturadas: el monto, el número de cuotas, la fecha de inicio y la tarjeta no se pueden cambiar. El título, la categoría y las notas sí.",
+    "INSTALLMENT_PLAN_SCHEDULE_LOCKED": "El calendario de este plan ya no se puede regenerar: tiene cuotas pagadas, facturadas, o intereses calculados al crearlo.",
+    "INSTALLMENT_PLAN_SETTLED": "Este plan tiene cuotas en una facturación ya pagada. Eliminarlo exigiría deshacer un pago real.",
+    "IDEMPOTENCY_KEY_REQUIRED": "No se pudo completar la operación. Intenta de nuevo.",
+    "IDEMPOTENCY_KEY_REUSED": "Esta operación ya se registró con otros datos. Vuelve a intentarlo.",
+    "IDEMPOTENCY_IN_PROGRESS": "Ya estamos procesando esto. Espera un momento y vuelve a intentarlo.",
+    "SAVINGS_ENTRY_NOT_FOUND": "No se encontró el aporte.",
+    "SAVINGS_GOAL_NOT_CLOSEABLE": "Esta meta todavía no se puede cerrar: solo se cierran metas cumplidas o vencidas.",
+    "SAVINGS_GOAL_ALREADY_CLOSED": "Esta meta ya está cerrada.",
+    "SAVINGS_GOAL_NOT_CLOSED": "Esta meta no está cerrada.",
+    "SAVINGS_GOAL_CURRENCY_LOCKED": "No puedes cambiar la moneda de una meta que ya tiene aportes.",
+    "SAVINGS_GOAL_CLOSED": "Esta meta está cerrada. Reábrela para editar o eliminar sus aportes.",
+    "SAVINGS_GOAL_TARGET_NOT_OPEN": "Elige una meta abierta y distinta como destino del traspaso.",
+    "SAVINGS_GOAL_TARGET_CURRENCY_MISMATCH": "La meta de destino debe ser de la misma moneda.",
+    "SAVINGS_ENTRY_CURRENCY_MISMATCH": "La cuenta elegida está en otra moneda que el aporte o la meta.",
+    "SAVINGS_ENTRY_FROM_CREDIT_ACCOUNT": "No puedes aportar ni retirar desde una cuenta de tarjeta de crédito.",
+    "SAVINGS_ENTRY_TITLE_REQUIRED": "Ponle un título a este aporte sin meta.",
+    "DEBT_NOT_FOUND": "No se encontró la deuda.",
+    "DEBT_ALREADY_SETTLED": "Esta deuda ya está liquidada.",
+    "ALL_INSTALLMENTS_PAID": "Ya se registraron todas las cuotas de esta deuda.",
+    "DEBT_NOT_SETTLED": "Esta deuda no está liquidada.",
+    "NO_PAYMENTS_TO_UNDO": "No hay pagos que deshacer en esta deuda.",
+    "DEBT_PAYMENT_CURRENCY_MISMATCH": "La cuenta elegida está en otra moneda que la deuda.",
+    "DEBT_PAYMENT_FROM_CREDIT_ACCOUNT": "No puedes pagar una deuda desde una cuenta de tarjeta de crédito.",
+    "ACCOUNT_NOT_FOUND": "No se encontró la cuenta.",
+    "CATEGORY_NOT_FOUND": "La categoría elegida no existe.",
+    "CATEGORY_NOT_ALLOWED": "Esa categoría no se puede usar para este movimiento.",
+    "CARD_NOT_FOUND": "Esa tarjeta no existe.",
+    "IMPORT_ACCOUNT_INACTIVE": "Esa cuenta está inactiva: actívala antes de importar en ella.",
+    "IMPORT_CURRENCY_MISMATCH": "La moneda no coincide con la de la cuenta.",
+    "IMPORT_DUPLICATE_REF": "Esa referencia se repite en su hoja.",
+    "IMPORT_UNKNOWN_REF": "No hay ninguna fila con esa referencia.",
+    "IMPORT_TOO_MANY_PAYMENTS": "Hay más pagos que cuotas.",
+    "IMPORT_INVALID_SEQUENCE": "Esa cuota no existe o ya tiene un pago.",
+    "IMPORT_PAYMENT_BEFORE_START": "El pago es anterior a la fecha de su deuda o plan.",
+    "IMPORT_PAYMENT_AMOUNT_MISMATCH": "El monto no coincide con el de la cuota.",
+    "IMPORT_PLAN_PAYMENT_FIELDS": "Un pago de cuota con tarjeta de crédito no lleva cuenta ni monto; uno sin tarjeta de crédito lleva ambos.",
+    "RECURRING_END_BEFORE_START": "El último pago no puede ser anterior al primero.",
+    "STATEMENT_NOT_TRANSFERABLE": "Esta facturación no se puede traspasar: solo una facturación en otra moneda, cerrada, vencida y sin liquidar.",
+    "STATEMENT_NOT_TRANSFERRED": "Esta facturación no fue traspasada.",
+    "TRANSFER_ALREADY_BILLED": "No se puede deshacer: la facturación en pesos que recibió el traspaso ya fue pagada.",
+    "STATEMENT_PAYMENT_CURRENCY_AMBIGUOUS": "Indica también cuánto se debitó de la cuenta de origen: está en otra moneda.",
+    "TRANSACTION_LINKED_TO_STATEMENT": "Este movimiento respalda el pago o el traspaso de una facturación. Para cambiarlo, hazlo desde su facturación.",
+    "CARD_LIMIT_HAS_DEBT": "No puedes quitar el tope en esa moneda mientras tenga deuda o una facturación sin liquidar.",
+    "WALLET_FULL": "Tu cartera ya tiene el máximo de 4.",
+    "LOGIN_LOCKED": "Demasiados intentos. Espera 15 minutos antes de volver a intentarlo.",
+    "STATEMENT_GENERATION_NOT_ALLOWED": "Esta cuenta no puede generar facturaciones (debe ser una tarjeta de crédito activa).",
+    "STATEMENT_PERIOD_OVERLAPS": "Las fechas se cruzan con la facturación anterior.",
+    "STATEMENT_DATES_INVALID": "Revisa las fechas: el cierre va después del inicio y el pago no antes del cierre.",
+    "STATEMENT_NOT_CLOSED": "Ese período sigue abierto: todavía no tiene fechas que editar.",
+    "STATEMENT_DATES_LOCKED": "Esas fechas ya no se pueden mover: la facturación está liquidada o hay otra posterior.",
+    "IMPORT_STATEMENT_NOT_CREDIT": "Una facturación solo puede ser de una cuenta de tarjeta de crédito.",
+    "IMPORT_STATEMENTS_REPLACE_ONLY": "Las facturaciones solo se importan al reemplazar todo.",
+    "EXCHANGE_RANGE_TOO_LARGE": "El rango pedido es demasiado largo (máximo 400 días).",
+    "INVALID_DATE_RANGE": "La fecha de inicio no puede ser posterior a la de término.",
+    "CARD_LIMIT_NOT_FOUND": "La tarjeta principal de esta cuenta no tiene un tope en esa moneda."
+  },
+  "exchangeRates": {
+    "title": "Tipos de cambio",
+    "subtitle": "Valor diario de cada moneda, en pesos.",
+    "carried": "Dato arrastrado",
+    "carriedHint": "Último valor publicado, de {{date}}",
+    "estimated": "estimado",
+    "valueOn": "valor del {{date}}",
+    "range": {
+      "30d": "30 días",
+      "1y": "1 año",
+      "label": "Rango del gráfico",
+      "90d": "90 días",
+      "6m": "6 meses",
+      "ytd": "Este año",
+      "custom": "Personalizado",
+      "7d": "7 días",
+      "short": {
+        "7d": "1 S",
+        "30d": "1 M",
+        "90d": "3 M",
+        "6m": "6 M",
+        "1y": "1 A",
+        "ytd": "Año"
+      },
+      "since": {
+        "7d": "últimos 7 días",
+        "30d": "últimos 30 días",
+        "90d": "últimos 90 días",
+        "6m": "últimos 6 meses",
+        "1y": "último año",
+        "ytd": "en lo que va del año",
+        "custom": "del {{from}} al {{to}}"
+      }
+    },
+    "noDataForDate": "Sin dato para esa fecha",
+    "empty": "Aún no hay valores registrados.",
+    "source": "Fuente: mindicador.cl",
+    "carriedShort": "arrastrado",
+    "estimatedOn": "estimado, valor del {{date}}",
+    "estimatedTitle": "Estimación con el último valor del dólar registrado; no es un monto guardado.",
+    "estimatedTotal": "≈ {{amount}} · todo en CLP (estimado, valor del {{date}})",
+    "suggestion": {
+      "estimatedCarried": "Estimado con el último valor publicado, del {{date}} ({{rate}} por dólar). Edítalo con lo que cobró tu banco.",
+      "estimated": "Estimado con el dólar del {{date}} ({{rate}} por dólar). Edítalo con lo que cobró tu banco.",
+      "noRate": "No hay un valor del dólar registrado: escribe lo que cobró tu banco.",
+      "useEstimate": "Usar el estimado"
+    },
+    "stats": {
+      "min": "Mínimo",
+      "max": "Máximo",
+      "average": "Promedio",
+      "dailyMove": "Variación diaria media"
+    },
+    "custom": {
+      "from": "Desde",
+      "to": "Hasta",
+      "inverted": "La fecha de inicio debe ser anterior a la de término."
+    },
+    "compare": {
+      "title": "Comparar dos fechas",
+      "from": "Primera fecha",
+      "to": "Segunda fecha",
+      "between": "Entre el",
+      "and": "y el",
+      "moved": "{{currency}} pasó de {{from}} a {{to}}."
+    },
+    "names": {
+      "USD": "Dólar observado",
+      "CLF": "UF"
+    },
+    "picker": {
+      "label": "Moneda",
+      "search": "Buscar moneda",
+      "change": "Cambiar moneda (ahora {{currency}})",
+      "noResults": "Ninguna moneda coincide"
+    },
+    "valueOnLong": "Valor del {{date}}",
+    "dayBefore": "día anterior {{value}}",
+    "chart": {
+      "today": "hoy",
+      "high": "máx {{value}}"
+    },
+    "inSentence": {
+      "USD": "el dólar",
+      "CLF": "la UF"
+    },
+    "dataSince": "Hay valores registrados desde el {{date}}."
+  }
+}

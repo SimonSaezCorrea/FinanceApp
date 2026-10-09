@@ -36,8 +36,10 @@ export function useTransactions(
  */
 export function useInfiniteTransactions(
   filters?: Omit<transactions.TransactionFilters, "cursor" | "limit">,
+  options?: { enabled?: boolean },
 ) {
   return useInfiniteQuery({
+    enabled: options?.enabled ?? true,
     queryKey: ["transactions", "infinite", filters ?? {}],
     queryFn: ({ pageParam }) =>
       transactionsApi.list({

@@ -21,6 +21,8 @@ export interface UserRepositoryPort {
      * `registerRequestSchema`, not by this port's own type. */
     identifierType?: auth.CurrentUser["identifierType"];
     identifierValue?: string | null;
+    /** The language the account was created in (spec 031) — absent, the column's default. */
+    locale?: auth.CurrentUser["locale"];
   }): Promise<User>;
   /** Persists every profile/preferences/security field this aggregate owns. */
   save(user: User): Promise<void>;

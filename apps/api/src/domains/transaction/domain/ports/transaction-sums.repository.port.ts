@@ -27,7 +27,7 @@ export interface TransactionSumsRepositoryPort {
     cards: { id: string; since: Date | null }[],
   ): Promise<{ cardId: string; currency: string; type: "INCOME" | "EXPENSE"; sum: string }[]>;
   /** Σexpense − Σincome of the movements linked to one credit statement. */
-  netForStatement(statementId: string): Promise<string>;
+  netForStatement(statementId: string, tx?: unknown): Promise<string>;
   /**
    * Σexpense − Σincome of the movements that fall inside a billing period's DATE
    * WINDOW, regardless of which statement they were linked to when created.

@@ -40,8 +40,14 @@ export class PrismaCardLimitRepository implements CardLimitRepositoryPort {
   }
 
   async createForCard(cardId: string, limits: CardLimitPlan[]): Promise<void> {
+    await this.createForCardWithTx(this.prisma, cardId, limits);
+  }
+
+  async createForCardWithTx(tx: unknown, cardId: string, limits: CardLimitPlan[]): Promise<void> {
     if (limits.length === 0) return;
-    await this.prisma.cardLimit.createMany({ data: limits.map((l) => ({ ...l, cardId })) });
+    await (tx as PrismaService).cardLimit.createMany({
+      data: limits.map((l) => ({ ...l, cardId })),
+    });
   }
 
   async replaceForCard(cardId: string, limits: CardLimitPlan[]): Promise<void> {

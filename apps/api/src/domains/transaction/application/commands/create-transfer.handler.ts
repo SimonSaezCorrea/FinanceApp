@@ -123,8 +123,13 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
     };
 
     const result = await this.prisma.$transaction(async (tx) => {
-      const outStatement = await transferLegStatementId(this.statements, tx, context.from);
-      const inStatement = await transferLegStatementId(this.statements, tx, context.to);
+      const outStatement = await transferLegStatementId(
+        this.statements,
+        tx,
+        context.from,
+        occurredAt,
+      );
+      const inStatement = await transferLegStatementId(this.statements, tx, context.to, occurredAt);
       const pair = await this.repo.saveTransferPairWithTx(
         tx,
         userId,

@@ -4,20 +4,22 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import type { savings } from "@finance/contracts";
+import { formatMoney } from "@finance/money";
 
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { useAuth } from "../../auth/hooks/useAuth";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { cn } from "../../../shared/lib/cn";
+import { ApiRequestError } from "@finance/client";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import {
   ASIDE_MIN_WIDTH,
   TABLE_ROW_MIN_WIDTH,
   useElementWidth,
 } from "../../../shared/lib/useElementWidth";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
-import { Button } from "../../../shared/ui/button";
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { PageHeader } from "../../../shared/ui/page-header";
+import { Skeleton } from "../../../shared/ui/skeleton";
 import { ErrorState } from "../../../shared/ui/states";
 import { ClosedGoalsSection } from "../components/ClosedGoalsSection";
 import { FreeSavingsDetailPanel } from "../components/FreeSavingsDetailPanel";
@@ -66,7 +68,7 @@ function errorMessage(error: unknown, t: (key: string) => string): string {
 }
 
 export function SavingsRoute() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const preferredCurrency = user?.preferredCurrency ?? "CLP";
 
@@ -78,10 +80,13 @@ export function SavingsRoute() {
     refetch,
   } = useSavingsGoals();
   const { data: entriesData } = useSavingsEntries();
-  const { data: summaryData } = useSavingsSummary();
+  const { data: summaryData, isLoading: summaryLoading } = useSavingsSummary();
   const mutations = useSavingsMutations();
   const { data: accountsData } = useAccounts();
 
+  // The total card has its own query; waiting for it too keeps the card from sliding in above the
+  // goals after they rendered (a layout shift). A failed summary just leaves the card out.
+  const loading = goalsLoading || summaryLoading;
   const goals = useMemo(() => (goalsError ? [] : (goalsData ?? [])), [goalsData, goalsError]);
   const entries = useMemo(() => entriesData ?? [], [entriesData]);
   const accounts = accountsData ?? [];
@@ -355,15 +360,28 @@ export function SavingsRoute() {
   // Movimientos already share.
   const [goalsColRef, goalsColWidth] = useElementWidth();
   const showTable = goalsColWidth !== null && goalsColWidth >= TABLE_ROW_MIN_WIDTH;
+  // While loading the goals column doesn't exist yet: derive its width from the shell (less the
+  // 300px rail and its 24px gap) so the skeleton takes the same table/list form.
+  const skeletonTable =
+    shellWidth !== null && shellWidth - (isDesktop ? 324 : 0) >= TABLE_ROW_MIN_WIDTH;
 
   return (
     <div ref={shellRef} className="flex flex-col gap-6">
       <PageHeader
         title={t("savings.title")}
         description={
-          !goalsLoading && !goalsError
-            ? t("savings.subtitle", { count: openGoals.length, missing })
-            : undefined
+          // Reserved while loading: the subtitle landing late grew the header a line and pushed
+          // the whole page down (Lighthouse CLS 0.30 on this screen).
+          loading ? (
+            <Skeleton className="mt-1.5 h-[13px] w-56" />
+          ) : !goalsError ? (
+            t("savings.subtitle", {
+              count: openGoals.length,
+              missing: user?.hideBalances
+                ? "••••"
+                : formatMoney(missing, { locale: i18n.language, currency: preferredCurrency }),
+            })
+          ) : undefined
         }
         actions={
           <div className="flex items-center gap-2">
@@ -379,9 +397,11 @@ export function SavingsRoute() {
         }
       />
 
-      {goalsLoading && <SavingsSkeleton label={t("app.loading")} />}
-      {!goalsLoading && goalsError && <ErrorState error={goalsErr} onRetry={() => refetch()} />}
-      {!goalsLoading && isEmpty && (
+      {loading && (
+        <SavingsSkeleton label={t("app.loading")} columns={isDesktop} table={skeletonTable} />
+      )}
+      {!loading && goalsError && <ErrorState error={goalsErr} onRetry={() => refetch()} />}
+      {!loading && isEmpty && (
         <div className="flex flex-col gap-6">
           {summaryData ? (
             <SavingsTotalCard
@@ -405,7 +425,7 @@ export function SavingsRoute() {
         </div>
       )}
 
-      {!goalsLoading && !goalsError && (goals.length > 0 || freeEntries.length > 0) ? (
+      {!loading && !goalsError && (goals.length > 0 || freeEntries.length > 0) ? (
         <div className={cn("flex flex-col gap-6", isDesktop && "flex-row items-start")}>
           <div ref={goalsColRef} className="flex min-w-0 flex-1 flex-col gap-6">
             {summaryData ? (

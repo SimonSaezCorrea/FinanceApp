@@ -1,0 +1,98 @@
+---
+import { ChevronRight, X } from "lucide-react";
+
+import { buttonClasses } from "@finance/ui/src/shared/ui/button-classes";
+
+import { t } from "../../../i18n";
+import { APP_URL } from "../../../lib/config";
+import { type Language, type Page, pagePath } from "../../../lib/language";
+import ThemeSwitch from "./ThemeSwitch.astro";
+
+/**
+ * The phone form of the header: sections, theme and access in one full-screen sheet. A native
+ * `<dialog>` opened with `showModal()` by the header script — it traps focus, closes on Escape and
+ * needs no framework (the one recorded exception to the overlay family, constitution 2.5.0).
+ */
+interface Props {
+  lang: Language;
+  page: Page;
+}
+const { lang, page } = Astro.props;
+const NAV = [
+  { page: "about", key: "landing.nav.about" },
+  { page: "privacy", key: "landing.nav.privacy" },
+  { page: "pricing", key: "landing.nav.pricing" },
+  { page: "faq", key: "landing.nav.faq" },
+] as const;
+const other: Language = lang === "es" ? "en" : "es";
+---
+
+<dialog
+  data-menu
+  aria-label={t(lang, "landing.nav.menu")}
+  class="m-0 h-dvh max-h-none w-screen max-w-none bg-card p-0 pb-[env(safe-area-inset-bottom,0px)] pt-[env(safe-area-inset-top,0px)] text-foreground backdrop:bg-black/60"
+>
+  <div class="flex h-full flex-col">
+    <div class="flex items-center gap-3 border-b px-4 py-3">
+      <button
+        type="button"
+        data-menu-close
+        aria-label={t(lang, "landing.nav.closeMenu")}
+        class="inline-flex h-11 w-11 items-center justify-center rounded-md text-muted-foreground hover:bg-muted"
+      >
+        <X className="h-5 w-5" aria-hidden />
+      </button>
+      <h2 class="text-base font-semibold">{t(lang, "landing.nav.menu")}</h2>
+    </div>
+
+    <div class="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pb-4">
+      <nav aria-label={t(lang, "landing.nav.label")} class="flex flex-col divide-y">
+        {
+          NAV.map((item) => (
+            <a
+              href={pagePath(lang, item.page)}
+              aria-current={item.page === page ? "page" : undefined}
+              class:list={[
+                "flex min-h-14 items-center justify-between text-lg font-semibold tracking-tight transition-colors active:bg-muted/60",
+                item.page === page ? "text-primary" : "text-foreground",
+              ]}
+            >
+              {t(lang, item.key)}
+              <ChevronRight className="h-5 w-5 text-muted-foreground" aria-hidden />
+            </a>
+          ))
+        }
+        <a
+          href={pagePath(other, page)}
+          hreflang={other}
+          lang={other}
+          class="flex min-h-14 items-center justify-between text-lg font-semibold tracking-tight text-muted-foreground"
+        >
+          {t(lang, "landing.nav.otherLanguage")}
+          <ChevronRight className="h-5 w-5" aria-hidden />
+        </a>
+      </nav>
+      <div class="mt-auto pt-8">
+        <ThemeSwitch lang={lang} variant="full" />
+      </div>
+    </div>
+
+    <div data-access-slot="menu" class="flex flex-col gap-2 border-t px-4 py-4">
+      <a href="?acceso=registro" data-access="registro" class={buttonClasses({ size: "lg", className: "w-full" })}>
+        {t(lang, "auth.createAccount")}
+      </a>
+      <a
+        href="?acceso=login"
+        data-access="login"
+        class={buttonClasses({ size: "lg", variant: "outline", className: "w-full" })}
+      >
+        {t(lang, "auth.signIn")}
+      </a>
+      <template data-app-template>
+        <a href={APP_URL + "/"} class={buttonClasses({ size: "lg", className: "w-full" })}>
+          {t(lang, "landing.nav.goToApp")}
+        </a>
+      </template>
+    </div>
+  </div>
+</dialog>

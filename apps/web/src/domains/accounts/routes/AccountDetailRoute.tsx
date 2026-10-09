@@ -1,4 +1,4 @@
-import { AlertTriangle, ChevronRight, Loader2, Pencil, Plus, Power, Trash2 } from "lucide-react";
+import { ChevronRight, Loader2, Pencil, Plus, Power, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,6 +10,7 @@ import type { accounts, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { useAuth } from "../../auth/hooks/useAuth";
+import { ApproxAmount } from "../../exchange-rates/components/ApproxAmount";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { useInfiniteTransactions } from "../../transactions/hooks/useTransactions";
 import { useTransactionMutations } from "../../transactions/hooks/useTransactionMutations";
@@ -18,13 +19,13 @@ import { TransactionDetailModal } from "../../transactions/components/Transactio
 import { TransactionDeleteConfirm } from "../../transactions/components/TransactionDeleteConfirm";
 import { TransactionTable } from "../../transactions/components/TransactionTable";
 import { MovementsTableSkeleton } from "../../transactions/components/MovementsTableSkeleton";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
-import { cn } from "../../../shared/lib/cn";
+import { ApiRequestError } from "@finance/client";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { ASIDE_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { Badge } from "../../../shared/ui/badge";
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { Card } from "../../../shared/ui/card";
-import { ConfirmModal } from "../../../shared/ui/overlay";
+import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { Select } from "../../../shared/ui/select";
 import { Switch } from "../../../shared/ui/switch";
 import { ErrorState } from "../../../shared/ui/states";
@@ -32,7 +33,6 @@ import { AccountDetailSkeleton } from "../components/AccountDetailSkeleton";
 import { AccountEditPanel } from "../components/AccountEditPanel";
 import { Tabs } from "../../../shared/ui/tabs";
 import { BillingSection } from "../components/BillingSection";
-import { BillingSettingsModal } from "../components/BillingSettingsModal";
 import { AccountVisualCard } from "../components/AccountVisualCard";
 import { CardCreateModal } from "../components/CardCreateModal";
 import { CardDetailPanel } from "../components/CardDetailPanel";
@@ -50,7 +50,6 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [billingModalOpen, setBillingModalOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   // Shared by the movements table's own filter and (on desktop) the cards aside:
   // expanding a card there filters this table by it, which is the whole point of
@@ -167,10 +166,6 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
                   >
                     {t(`accounts.status.${acc.status}`)}
                   </Badge>
-                  <BillingNotConfiguredBadge
-                    account={acc}
-                    onConfigure={() => setBillingModalOpen(true)}
-                  />
                 </h1>
                 <p className="text-sm text-muted-foreground">
                   {t(`accounts.type.${acc.type}`)} · {acc.currency}
@@ -307,12 +302,6 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
         onDeleted={() => navigate("/accounts")}
       />
 
-      <BillingSettingsModal
-        account={acc}
-        open={billingModalOpen}
-        onOpenChange={setBillingModalOpen}
-      />
-
       <DeleteAccountConfirm
         account={confirmDelete ? acc : null}
         onOpenChange={setConfirmDelete}
@@ -328,33 +317,6 @@ export function AccountDetailRoute({ editing = false }: Readonly<{ editing?: boo
         }}
       />
     </div>
-  );
-}
-
-/** Small reminder icon next to the account name (not just at creation time) while a
- * credit-pool account still has no billing day configured — click opens a dedicated
- * settings modal (not the full account-edit form). */
-function BillingNotConfiguredBadge({
-  account,
-  onConfigure,
-}: {
-  account: accounts.BankAccount;
-  onConfigure: () => void;
-}) {
-  const { t } = useTranslation();
-  const hasCreditPool =
-    account.type === "CREDIT_CARD" || account.cards.some((c) => c.kind === "CREDIT");
-  if (!hasCreditPool || account.billingCycleDay !== null) return null;
-  return (
-    <button
-      type="button"
-      onClick={onConfigure}
-      title={t("accounts.form.billingNotConfiguredWarning")}
-      aria-label={t("accounts.form.billingNotConfiguredWarning")}
-      className="flex h-6 w-6 items-center justify-center rounded-full bg-warning/15 text-warning hover:bg-warning/25"
-    >
-      <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
-    </button>
   );
 }
 
@@ -391,7 +353,16 @@ function KpiStrip({ account, pct }: { account: accounts.BankAccount; pct: number
       {hasRealBalance ? (
         <Kpi
           label={t("accounts.currentBalance")}
-          value={<MaskedAmount>{fmt(account.currentBalance)}</MaskedAmount>}
+          value={
+            <>
+              <MaskedAmount>{fmt(account.currentBalance)}</MaskedAmount>
+              <ApproxAmount
+                amount={account.currentBalance}
+                currency={account.currency}
+                className="mt-0.5 block text-xs font-normal text-muted-foreground"
+              />
+            </>
+          }
           emphasis
         />
       ) : null}
@@ -818,7 +789,7 @@ function CardsAside({
                       <div className="border-t border-brand/20 bg-card p-4">
                         {inlineEditing ? (
                           <>
-                            <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide text-brand">
+                            <p className="mb-3 text-xs sm:text-[11px] font-semibold uppercase tracking-wide text-brand">
                               {t("cards.detail.editingThis")}
                             </p>
                             <CardForm

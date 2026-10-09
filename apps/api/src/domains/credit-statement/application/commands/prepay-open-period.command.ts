@@ -21,5 +21,8 @@ export class PrepayOpenPeriodCommand implements IdempotentCommand {
     public readonly paidAt?: Date,
     /** Free-text note carried onto the created movement. */
     public readonly reference?: string,
+    /** Spec 030: for a period in ANOTHER currency, what left the source account, in ITS
+     * currency — required when that differs from the period's. */
+    public readonly chargedAmount?: string,
   ) {}
 }

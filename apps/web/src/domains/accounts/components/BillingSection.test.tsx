@@ -20,8 +20,21 @@ vi.mock("../../transactions/components/TransactionCreateModal", () => ({
   TransactionCreateModal: () => null,
 }));
 vi.mock("./StatementDetailPanel", () => ({ StatementDetailPanel: () => null }));
-vi.mock("./PayStatementPanel", () => ({ PayStatementPanel: () => null }));
-vi.mock("./EditStatementPaymentPanel", () => ({ EditStatementPaymentPanel: () => null }));
+// A marker standing for each panel: what these tests check is WHICH one a period's action opens.
+vi.mock("./PayStatementPanel", () => ({
+  PayStatementPanel: ({
+    statement,
+    intent,
+  }: {
+    statement: { id: string } | null;
+    intent?: string;
+  }) =>
+    statement ? <div data-testid="pay-panel">{`${statement.id}:${intent ?? "pay"}`}</div> : null,
+}));
+vi.mock("./EditStatementPaymentPanel", () => ({
+  EditStatementPaymentPanel: ({ statement }: { statement: { id: string } | null }) =>
+    statement ? <div data-testid="edit-payment-panel">{statement.id}</div> : null,
+}));
 
 const account = { id: "a1", currency: "CLP", cards: [] } as unknown as accounts.BankAccount;
 
@@ -108,5 +121,118 @@ describe("BillingSection — one tab per currency (spec 028)", () => {
       expect(screen.getAllByText(money("120000", "CLP")).length).toBeGreaterThan(0),
     );
     expect(screen.queryByRole("tab")).toBeNull();
+  });
+});
+
+describe("BillingSection — the open period is a row of its own", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("lists the open period first, beside a pending statement", async () => {
+    vi.mocked(accountsApi.creditStatements).mockResolvedValue([
+      statement({ id: "pending" }),
+      statement({
+        id: "open",
+        status: "OPEN",
+        periodStart: "2026-08-21T04:00:00.000Z",
+        closedAt: null,
+        amount: "107000",
+        remainingAmount: "107000",
+      }),
+    ]);
+    renderSection();
+    const badges = await screen.findAllByText(
+      new RegExp(
+        `^(${i18n.t("accounts.detail.billingStatusValue.OPEN")}|${i18n.t(
+          "accounts.detail.billingStatusValue.PENDING",
+        )})$`,
+      ),
+    );
+    expect(badges.map((b) => b.textContent)).toEqual([
+      i18n.t("accounts.detail.billingStatusValue.OPEN"),
+      i18n.t("accounts.detail.billingStatusValue.PENDING"),
+    ]);
+    expect(screen.getAllByText(money("107000", "CLP")).length).toBeGreaterThan(0);
+  });
+});
+
+describe("BillingSection — periods in another currency can be settled (spec 030)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  async function openUsdTab() {
+    renderSection();
+    const tabs = await screen.findAllByRole("tab");
+    fireEvent.click(tabs[1]!);
+  }
+
+  const usd = (over: Partial<accounts.CreditStatement>) =>
+    statement({
+      id: "usd",
+      currency: "USD",
+      amount: "50.41",
+      remainingAmount: "50.41",
+      breakdown: { purchases: "50.41", installments: "0", installmentCount: 0 },
+      ...over,
+    });
+
+  it("a closed USD period offers Pagar, which opens the payment panel for that period", async () => {
+    vi.mocked(accountsApi.creditStatements).mockResolvedValue([statement({ id: "clp" }), usd({})]);
+    await openUsdTab();
+
+    fireEvent.click(
+      within(screen.getByRole("tabpanel")).getAllByRole("button", {
+        name: i18n.t("accounts.actions.payCredit"),
+      })[0]!,
+    );
+
+    expect(screen.getByTestId("pay-panel").textContent).toBe("usd:pay");
+  });
+
+  it("the OPEN USD period offers Prepagar, which opens the same panel as a prepayment", async () => {
+    vi.mocked(accountsApi.creditStatements).mockResolvedValue([
+      statement({ id: "clp" }),
+      usd({ id: "usd-open", status: "OPEN", closedAt: null, dueDate: null }),
+    ]);
+    await openUsdTab();
+
+    fireEvent.click(
+      within(screen.getByRole("tabpanel")).getAllByRole("button", {
+        name: i18n.t("transactions.type.PREPAY"),
+      })[0]!,
+    );
+
+    expect(screen.getByTestId("pay-panel").textContent).toBe("usd-open:prepay");
+  });
+
+  it("a USD period settled for less than its total can have its payment corrected", async () => {
+    vi.mocked(accountsApi.creditStatements).mockResolvedValue([
+      statement({ id: "clp" }),
+      usd({
+        id: "usd-short",
+        status: "PARTIALLY_PAID",
+        paidAt: "2026-09-01T00:00:00.000Z",
+        paidAmount: "30",
+        remainingAmount: "0",
+      }),
+    ]);
+    await openUsdTab();
+
+    fireEvent.click(
+      within(screen.getByRole("tabpanel")).getAllByRole("button", {
+        name: i18n.t("accounts.actions.editStatementPayment"),
+      })[0]!,
+    );
+
+    expect(screen.getByTestId("edit-payment-panel").textContent).toBe("usd-short");
+  });
+
+  it("the account-currency periods behave as before: a closed CLP period still opens the payment panel", async () => {
+    vi.mocked(accountsApi.creditStatements).mockResolvedValue([statement({ id: "clp" })]);
+    renderSection();
+
+    fireEvent.click(
+      (await screen.findAllByRole("button", { name: i18n.t("accounts.actions.payCredit") }))[0]!,
+    );
+
+    expect(screen.getByTestId("pay-panel").textContent).toBe("clp:pay");
   });
 });

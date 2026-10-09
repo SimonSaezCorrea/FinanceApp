@@ -8,7 +8,8 @@ import { AuthProvider } from "../../auth/hooks/useAuth";
 import { AccountForm } from "./AccountForm";
 
 const me = vi.fn();
-vi.mock("../../auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: { me: (...args: unknown[]) => me(...args), logout: vi.fn() },
 }));
 

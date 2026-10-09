@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { DetailRow } from "../detail-row";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import { NumberField } from "../number-field";
 
 interface Props {

@@ -1,0 +1,25 @@
+{
+  "name": "@finance/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared es/en catalogs for the app and the public site, with the parity test. Source-only.",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "i18next": "^26.4.2"
+  },
+  "devDependencies": {
+    "@finance/config": "workspace:*",
+    "@typescript-eslint/eslint-plugin": "^8.71.0",
+    "@typescript-eslint/parser": "^8.71.0",
+    "eslint": "^10.11.0",
+    "typescript": "^6.0.3",
+    "vitest": "^5.0.2"
+  }
+}

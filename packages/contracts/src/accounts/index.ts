@@ -267,6 +267,9 @@ export const bankAccountSchema = z.object({
    * transactions and by paying down a CreditStatement (see POST /accounts/:id/pay-credit).
    * "0" for non-credit accounts. No longer derived/recomputed on read. */
   creditUsed: moneyString,
+  /** What was already owed before the first movement in the app (the pool's seed).
+   * "0" for non-credit accounts. Lets an export rebuild the pool from history. */
+  creditUsedInitial: moneyString.optional(),
   /** All credit pools by currency (own currency + primary card's extra currencies, if any). Empty for non-credit accounts. */
   creditPools: z.array(creditPoolSchema),
   /** Statement cut-off, meaning depends on `billingCycleType`: a day-of-month
@@ -639,6 +642,55 @@ export const payCreditStatementSchema = z.object({
 });
 export type PayCreditStatement = z.infer<typeof payCreditStatementSchema>;
 
+/** "Generar facturación": the user declares the period exactly as the bank's
+ * statement prints it — start, close and payment due date — instead of the app
+ * deriving them from a configured cycle (that configuration is deferred, see
+ * `docs/PENDING.md`). Instants, not bare dates: the browser sends the START of
+ * `periodStart`'s day and the END of `closedAt`'s/`dueDate`'s day in the user's
+ * own time zone, so movements (recorded at local midnight) dated on the closing
+ * day fall inside the period, and the next one starts the day after. Every OPEN
+ * period of the account (one per currency) closes with these same dates. */
+export const generateStatementSchema = z
+  .object({
+    periodStart: z.string().datetime(),
+    closedAt: z.string().datetime(),
+    dueDate: z.string().datetime(),
+  })
+  .refine((v) => new Date(v.closedAt).getTime() > new Date(v.periodStart).getTime(), {
+    message: "STATEMENT_CLOSE_BEFORE_START",
+    path: ["closedAt"],
+  })
+  .refine((v) => new Date(v.dueDate).getTime() >= new Date(v.closedAt).getTime(), {
+    message: "STATEMENT_DUE_BEFORE_CLOSE",
+    path: ["dueDate"],
+  });
+export type GenerateStatement = z.infer<typeof generateStatementSchema>;
+
+/** Correct a generated statement's dates — same shape and rules as generating it.
+ * The start and close can only move while the period is unsettled, and the close
+ * only on the account's LATEST statement (the one before the open period); the due
+ * date can always be corrected. */
+export const updateStatementDatesSchema = generateStatementSchema;
+export type UpdateStatementDates = GenerateStatement;
+
+/** The start the "Generar facturación" form proposes: the day after the latest
+ * close among `statements` (any currency — the cycle belongs to the account), or
+ * null when the account was never billed. Returns a local `YYYY-MM-DD`. */
+export function suggestedPeriodStart(
+  statements: ReadonlyArray<{ closedAt: string | null }>,
+): string | null {
+  let latest: Date | null = null;
+  for (const s of statements) {
+    if (!s.closedAt) continue;
+    const d = new Date(s.closedAt);
+    if (!latest || d.getTime() > latest.getTime()) latest = d;
+  }
+  if (!latest) return null;
+  const next = new Date(latest.getFullYear(), latest.getMonth(), latest.getDate() + 1);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${next.getFullYear()}-${pad(next.getMonth() + 1)}-${pad(next.getDate())}`;
+}
+
 /** Prepay (spec 019) against the account's CURRENTLY OPEN period — the tarjeta
  * equivalent of abonar antes de la fecha de corte. Unlike `payCreditStatementSchema`,
  * this NEVER closes the period: it only raises `CreditStatement.prepaidAmount` and
@@ -648,6 +700,10 @@ export type PayCreditStatement = z.infer<typeof payCreditStatementSchema>;
 export const prepayCreditStatementSchema = z.object({
   fromAccountId: rowId,
   amount: moneyString,
+  /** Spec 030: for a period in ANOTHER currency, what left the source account, in ITS
+   * currency — required when that differs from the period's (the two amounts are never
+   * compared). Ignored for a period in the account's own currency. */
+  chargedAmount: moneyString.optional(),
   /** When the abono happened; defaults to now. Dates the created expense too. */
   paidAt: z.string().optional(),
   /** Free-text note carried onto the created movement — same field `pay` already offers. */

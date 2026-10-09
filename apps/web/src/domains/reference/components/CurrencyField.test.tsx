@@ -5,7 +5,8 @@ import { Providers } from "../../../app/providers";
 import { CurrencyField } from "./CurrencyField";
 
 const me = vi.fn();
-vi.mock("../../auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: { me: (...args: unknown[]) => me(...args), logout: vi.fn() },
 }));
 

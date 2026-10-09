@@ -1,0 +1,106 @@
+---
+import { Menu } from "lucide-react";
+
+import { BrandMark } from "@finance/ui/src/shared/ui/brand-mark";
+import { buttonClasses } from "@finance/ui/src/shared/ui/button-classes";
+
+import { t } from "../../../i18n";
+import { APP_URL } from "../../../lib/config";
+import { type Language, type Page, pagePath } from "../../../lib/language";
+import LanguageMenu from "./LanguageMenu.astro";
+import ThemeSwitch from "./ThemeSwitch.astro";
+
+/**
+ * The public site's sticky header — the same three forms the app's landing had, with ONE nav:
+ * below `sm` the nav is hidden and a menu button opens the full-screen menu; `sm`–`lg` the nav drops
+ * to its own scrollable row of 44px tabs; from `lg` everything sits on one line. The access actions
+ * live in `[data-access-slot]`, which the session script swaps for "Ir a la app" when signed in.
+ */
+interface Props {
+  lang: Language;
+  page: Page;
+}
+const { lang, page } = Astro.props;
+const NAV = [
+  { page: "about", key: "landing.nav.about" },
+  { page: "privacy", key: "landing.nav.privacy" },
+  { page: "pricing", key: "landing.nav.pricing" },
+  { page: "faq", key: "landing.nav.faq" },
+] as const;
+---
+
+<header
+  data-landing-header
+  class="sticky top-0 z-40 border-b bg-background/85 pt-[env(safe-area-inset-top,0px)] backdrop-blur"
+>
+  <div
+    class="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-2 px-4 pb-3 pt-3 sm:gap-x-3 sm:pb-0 lg:gap-x-6 lg:pb-3"
+  >
+    <a href={pagePath(lang, "home")} class="mr-auto flex items-center gap-2.5">
+      <BrandMark className="h-8 w-8" />
+      <span class="flex flex-col leading-tight">
+        <span class="text-base font-semibold tracking-tight">{t(lang, "brand.name")}</span>
+        <span class="hidden text-xs text-muted-foreground sm:block">{t(lang, "brand.slogan")}</span>
+      </span>
+    </a>
+
+    <nav
+      class="order-last hidden basis-full gap-7 overflow-x-auto text-sm [scrollbar-width:none] sm:flex lg:order-none lg:basis-auto lg:gap-6 lg:overflow-visible"
+      aria-label={t(lang, "landing.nav.label")}
+    >
+      {
+        NAV.map((item) => (
+          <a
+            href={pagePath(lang, item.page)}
+            aria-current={item.page === page ? "page" : undefined}
+            class:list={[
+              "flex min-h-11 shrink-0 items-center font-medium transition-colors lg:min-h-0",
+              item.page === page
+                ? "text-foreground underline decoration-primary decoration-2 underline-offset-8"
+                : "text-muted-foreground hover:text-foreground",
+            ]}
+          >
+            {t(lang, item.key)}
+          </a>
+        ))
+      }
+    </nav>
+
+    <div class="flex items-center gap-2">
+      <div class="hidden sm:block">
+        <LanguageMenu lang={lang} page={page} />
+      </div>
+      <div class="hidden sm:block">
+        <ThemeSwitch lang={lang} variant="compact" />
+      </div>
+      <div data-access-slot class="flex items-center">
+        <a
+          href="?acceso=login"
+          data-access="login"
+          class={buttonClasses({ className: "h-11 sm:h-10" })}
+        >
+          {t(lang, "auth.signIn")}
+        </a>
+        <template data-app-template>
+          <a href={APP_URL + "/"} class={buttonClasses({ className: "h-11 sm:h-10" })}>
+            {t(lang, "landing.nav.goToApp")}
+          </a>
+        </template>
+      </div>
+      <button
+        type="button"
+        data-menu-open
+        aria-label={t(lang, "landing.nav.openMenu")}
+        aria-haspopup="dialog"
+        class={buttonClasses({ variant: "outline", className: "h-11 w-11 px-0 sm:hidden" })}
+      >
+        <Menu className="h-5 w-5" aria-hidden />
+      </button>
+    </div>
+  </div>
+  <noscript>
+    <p class="mx-auto max-w-[1240px] px-4 pb-3 text-xs text-muted-foreground">
+      {t(lang, "landing.access.noscript")}
+    </p>
+  </noscript>
+</header>

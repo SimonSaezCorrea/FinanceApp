@@ -24,6 +24,11 @@ export interface CardAccountRepositoryPort {
    * own statement, so recording it again would count the debt twice (FR-035). */
   kindForCard(userId: string, cardId: string): Promise<accounts.CardKind | null>;
   create(userId: string, accountId: string, plan: CardPlan): Promise<string>;
+  /** Same, inside the caller's transaction (its limits too). */
+  createWithTx(tx: unknown, userId: string, accountId: string, plan: CardPlan): Promise<string>;
   update(cardId: string, plan: CardPlan): Promise<void>;
   remove(userId: string, accountId: string, cardId: string): Promise<boolean>;
+  /** How many rows of this table the user has: what replacing everything from a
+   * template (specs/027, REPLACE) would delete, shown before confirming. */
+  countForUser(userId: string): Promise<number>;
 }

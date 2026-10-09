@@ -104,7 +104,16 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
   }
 
   async create(userId: string, accountId: string, plan: CardPlan): Promise<string> {
-    const row = await this.prisma.cardAccount.create({
+    return this.createWithTx(this.prisma, userId, accountId, plan);
+  }
+
+  async createWithTx(
+    tx: unknown,
+    userId: string,
+    accountId: string,
+    plan: CardPlan,
+  ): Promise<string> {
+    const row = await (tx as PrismaService).cardAccount.create({
       data: {
         userId,
         accountId,
@@ -122,7 +131,7 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
       },
       select: { id: true },
     });
-    await this.limits.createForCard(row.id, plan.limits);
+    await this.limits.createForCardWithTx(tx, row.id, plan.limits);
     return row.id;
   }
 
@@ -151,5 +160,9 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
       where: { id: cardId, accountId, userId },
     });
     return result.count > 0;
+  }
+
+  async countForUser(userId: string): Promise<number> {
+    return this.prisma.cardAccount.count({ where: { account: { userId } } });
   }
 }

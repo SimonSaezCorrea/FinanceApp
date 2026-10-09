@@ -4,7 +4,7 @@ import { useTranslation } from "react-i18next";
 import type { savings } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { Button } from "../../../shared/ui/button";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { SwipeRow } from "../../../shared/ui/swipe-row";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { goalVisual } from "../lib/goalVisual";
@@ -88,7 +88,7 @@ export function SavingsGoalRow({
             <span className="text-[15px] font-semibold tabular-nums text-foreground">
               <MaskedAmount>{money(goal.savedAmount)}</MaskedAmount>
             </span>
-            <span className="text-[11px] tabular-nums text-muted-foreground">
+            <span className="text-xs sm:text-[11px] tabular-nums text-muted-foreground">
               <MaskedAmount>
                 {t("savings.row.of", { amount: money(goal.targetAmount) })}
               </MaskedAmount>

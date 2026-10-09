@@ -42,14 +42,6 @@ export class PrismaBillingSettingsRepository implements BillingSettingsRepositor
     return rows.map((r) => ({ accountId: r.accountId, ...toProps(r) }));
   }
 
-  async accountIdsWithCycleDay(): Promise<string[]> {
-    const rows = await this.prisma.billingSettings.findMany({
-      where: { billingCycleDay: { not: null } },
-      select: { accountId: true },
-    });
-    return rows.map((r) => r.accountId);
-  }
-
   async upsert(accountId: string, settings: Partial<BillingSettingsProps>): Promise<void> {
     await this.upsertWithTx(this.prisma, accountId, settings);
   }

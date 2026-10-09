@@ -1,4 +1,4 @@
-import { DetailRow } from "../detail-row";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import { Switch } from "../switch";
 
 interface Props {

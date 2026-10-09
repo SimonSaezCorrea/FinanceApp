@@ -161,6 +161,7 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
             input.bankAccountId,
             accountCreatedAt,
             statementCurrency,
+            new Date(input.occurredAt),
           )
         ).id
       : null;

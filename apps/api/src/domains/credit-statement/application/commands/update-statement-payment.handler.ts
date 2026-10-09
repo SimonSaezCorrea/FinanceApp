@@ -2,7 +2,7 @@ import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import type { accounts } from "@finance/contracts";
-import { toMoney } from "@finance/money";
+import { moneyToString, subtractMoney, toMoney } from "@finance/money";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
@@ -17,7 +17,10 @@ import {
   type TransactionWriterRepositoryPort,
 } from "../../../transaction/domain/ports/transaction-writer.repository.port";
 import type { CreditStatement } from "../../domain/credit-statement.aggregate";
-import { StatementNotFoundError } from "../../domain/errors";
+import {
+  StatementNotFoundError,
+  StatementPaymentCurrencyAmbiguousError,
+} from "../../domain/errors";
 import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
@@ -28,9 +31,16 @@ import { UpdateStatementPaymentCommand } from "./update-statement-payment.comman
 interface Context {
   account: BankAccount;
   statement: CreditStatement;
+  /** The account the payment left, when the payment has one (a statement settled in
+   * bookkeeping only — imported — has none). */
+  fromAccount: BankAccount | null;
+  /** What the payment EXPENSE was worth before this correction (its own currency). */
+  oldCharged: string | null;
   breakdown: { purchases: string; installments: string; installmentCount: number };
   /** New minus old: what the payment movement, the source balance and the pool move by. */
   paidDelta: string;
+  /** Spec 030: the corrected debit, in the source account's currency. */
+  newCharged: string | null;
   /** What the period still leaves unpaid AFTER the correction. */
   carryOver: string;
 }
@@ -52,6 +62,11 @@ export type UpdatedStatementPaymentResult = accounts.CreditStatement;
  *
  * Paying the period's full total makes it PAID again; anything less keeps it
  * PARTIALLY_PAID with the remainder carried forward.
+ *
+ * Spec 030: a period in ANOTHER currency was paid with two figures, so it is corrected
+ * with two — `amount` (the period's currency) and `chargedAmount` (what left the source
+ * account, in ITS currency). Both movements move (the pesos EXPENSE and the USD settlement
+ * INCOME), the pool never does, and the two amounts are never compared.
  */
 @Injectable()
 @CommandHandler(UpdateStatementPaymentCommand)
@@ -82,20 +97,55 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
     );
     if (!statement) throw new StatementNotFoundError();
     const breakdown = await this.statementRepo.breakdown(statement.id);
-    return { account, statement, breakdown, paidDelta: "0", carryOver: "0" };
+    const fromId = statement.paidFromAccountId;
+    const fromAccount = fromId ? await this.accountRepo.findById(command.userId, fromId) : null;
+    const paymentId = statement.paidTransactionId;
+    const oldCharged = paymentId
+      ? await this.transactions.amountForTransaction(command.userId, paymentId)
+      : null;
+    return {
+      account,
+      statement,
+      fromAccount,
+      oldCharged,
+      breakdown,
+      paidDelta: "0",
+      newCharged: null,
+      carryOver: "0",
+    };
+  }
+
+  private isForeign(context: Context): boolean {
+    return context.statement.currency !== context.account.snapshot().currency;
   }
 
   protected async handle(
     command: UpdateStatementPaymentCommand,
     context: Context,
   ): Promise<HandleResult<UpdatedStatementPaymentResult>> {
+    const foreign = this.isForeign(context);
+    if (foreign && context.fromAccount && context.statement.paidTransactionId) {
+      // The correction needs the new debit too, unless the source is in the period's own
+      // currency (then it is the same figure). Checked BEFORE anything changes.
+      if (context.fromAccount.snapshot().currency !== context.statement.currency) {
+        if (command.chargedAmount === undefined) throw new StatementPaymentCurrencyAmbiguousError();
+      }
+    }
     // The aggregate is what rejects a non-positive figure, one above the period's
     // total, or a period that was never settled in the first place.
     const { paidDelta, carryOver } = context.statement.changePaidAmount(command.amount);
     context.paidDelta = paidDelta;
     context.carryOver = carryOver;
-    // Paying MORE releases more of the pool; correcting downwards puts it back.
-    context.account.adjustCreditUsed(toMoney(paidDelta).negated().toString());
+    if (foreign) {
+      context.newCharged =
+        context.fromAccount &&
+        context.fromAccount.snapshot().currency !== context.statement.currency
+          ? (command.chargedAmount ?? null)
+          : context.statement.paidAmount;
+    } else {
+      // Paying MORE releases more of the pool; correcting downwards puts it back.
+      context.account.adjustCreditUsed(toMoney(paidDelta).negated().toString());
+    }
     return {
       result: toStatementDto(context.statement, {
         amount: context.statement.amount,
@@ -112,12 +162,34 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
   }
 
   protected override async persist(context: Context): Promise<void> {
-    const delta = toMoney(context.paidDelta);
-    if (delta.isZero()) return;
+    const foreign = this.isForeign(context);
+    // What left the source account changes by the difference of the two debits — for a
+    // period in another currency that is the pesos figure, not the period's own delta.
+    const balanceDelta =
+      foreign && context.newCharged !== null && context.oldCharged !== null
+        ? subtractMoney(context.newCharged, context.oldCharged)
+        : context.paidDelta;
+    if (toMoney(context.paidDelta).isZero() && toMoney(balanceDelta).isZero()) return;
+    // An account-currency correction keeps its historical number format; the new foreign
+    // path writes fixed-scale strings like every other money figure it hands a repository.
+    const fmt = (d: ReturnType<typeof toMoney>): string =>
+      foreign ? moneyToString(d) : d.toString();
     await this.prisma.$transaction(async (tx) => {
       const paymentId = context.statement.paidTransactionId;
       if (paymentId) {
-        await this.transactions.updateAmountWithTx(tx, paymentId, context.statement.paidAmount);
+        await this.transactions.updateAmountWithTx(
+          tx,
+          paymentId,
+          foreign && context.newCharged !== null
+            ? context.newCharged
+            : context.statement.paidAmount,
+        );
+      }
+      // The USD settlement INCOME is what lowers that limit's usage: it follows the paid
+      // amount, in the period's own currency.
+      const settlementId = context.statement.settlementTransactionId;
+      if (foreign && settlementId) {
+        await this.transactions.updateAmountWithTx(tx, settlementId, context.statement.paidAmount);
       }
       // The payment is an EXPENSE on the source account: a bigger payment means a
       // lower balance there. Without this the movement and the balance disagree.
@@ -126,7 +198,7 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
         await this.accountRepo.incrementBalanceWithTx(
           tx,
           fromAccountId,
-          delta.negated().toString(),
+          fmt(toMoney(balanceDelta).negated()),
         );
       }
       // The shortfall is owed in the NEXT period, so correcting the payment has to
@@ -135,10 +207,15 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
       // period originally paid in full recorded no successor.
       const target = await this.resolveCarryOverTarget(tx, context);
       if (target) {
-        await this.statementRepo.addCarriedOverWithTx(tx, target, delta.negated().toString());
+        await this.statementRepo.addCarriedOverWithTx(
+          tx,
+          target,
+          fmt(toMoney(context.paidDelta).negated()),
+        );
       }
       await this.statementRepo.saveWithTx(tx, context.statement);
-      await this.accountRepo.saveWithTx(tx, context.account);
+      // A period in another currency never touched the pool: nothing to save there.
+      if (!foreign) await this.accountRepo.saveWithTx(tx, context.account);
     });
   }
 

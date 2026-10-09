@@ -10,7 +10,8 @@ import i18n from "../../../i18n";
 import { AuthProvider } from "../../auth/hooks/useAuth";
 import { TransactionFormPanel, type TransactionFormValue } from "./TransactionFormPanel";
 
-vi.mock("../../auth/api/authApi", () => ({
+vi.mock("@finance/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: {
     me: () =>
       Promise.resolve({
@@ -63,6 +64,7 @@ const initialValue: TransactionFormValue = {
   bankAccountId: "a1",
   toBankAccountId: "",
   amountIn: "",
+  amountInEdited: false,
   prepayFromAccountId: "",
   cardId: "",
   financeCharge: false,
@@ -129,6 +131,29 @@ describe("TransactionFormPanel", () => {
     expect(screen.getByLabelText(i18n.t("transactions.form.amount"))).toBeDefined();
     // The amount's currency label comes from the account now.
     expect(screen.getByText("USD")).toBeDefined();
+  });
+
+  it("lets a dollar movement have cents, and keeps a peso movement whole", async () => {
+    const usdAccount = account({ id: "a2", name: "Dólares", currency: "USD" });
+    await renderHarness({
+      accounts: [usdAccount],
+      start: { ...initialValue, bankAccountId: "a2", currency: "USD", amount: "" },
+    });
+    const amount = screen.getByTestId("tx-amount") as HTMLInputElement;
+
+    fireEvent.change(amount, { target: { value: "9,06" } });
+    expect(amount.value).toBe("9,06");
+    fireEvent.change(amount, { target: { value: "9,069" } });
+    expect(amount.value).toBe("9,06");
+  });
+
+  it("a peso movement ignores any decimals typed", async () => {
+    await renderHarness({ accounts: [account()], start: { ...initialValue, amount: "" } });
+    const amount = screen.getByTestId("tx-amount") as HTMLInputElement;
+
+    fireEvent.change(amount, { target: { value: "1.234,5" } });
+
+    expect(amount.value).toBe("1.234");
   });
 
   it("shows the category icon beside the value and in every option", async () => {

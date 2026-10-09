@@ -1,4 +1,4 @@
-import { cn } from "../lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 /**
  * Placeholder block for content that hasn't arrived yet.

@@ -65,4 +65,8 @@ export const TEMPLATE_CODES = {
   PAYMENT_BEFORE_START: "IMPORT_PAYMENT_BEFORE_START",
   PAYMENT_AMOUNT_MISMATCH: "IMPORT_PAYMENT_AMOUNT_MISMATCH",
   PLAN_PAYMENT_FIELDS: "IMPORT_PLAN_PAYMENT_FIELDS",
+  /** A billing period on an account that isn't a credit card account. */
+  STATEMENT_NOT_CREDIT: "IMPORT_STATEMENT_NOT_CREDIT",
+  /** Billing periods are rebuilt only when the file replaces everything. */
+  STATEMENTS_REPLACE_ONLY: "IMPORT_STATEMENTS_REPLACE_ONLY",
 } as const;

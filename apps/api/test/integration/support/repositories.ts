@@ -3,6 +3,7 @@ import { PrismaBillingSettingsRepository } from "../../../src/domains/billing-se
 import { PrismaCategoryRepository } from "../../../src/domains/category/infrastructure/prisma-category.repository";
 import { PrismaCardAccountRepository } from "../../../src/domains/card-account/infrastructure/prisma-card-account.repository";
 import { PrismaCardLimitRepository } from "../../../src/domains/card-limit/infrastructure/prisma-card-limit.repository";
+import { PrismaExchangeRateRepository } from "../../../src/domains/exchange-rate/infrastructure/prisma-exchange-rate.repository";
 import { PrismaIdempotencyRecordRepository } from "../../../src/domains/idempotency-record/infrastructure/prisma-idempotency-record.repository";
 import { PrismaInstallmentPaymentRepository } from "../../../src/domains/installment-payment/infrastructure/prisma-installment-payment.repository";
 import { PrismaInstallmentPlanRepository } from "../../../src/domains/installment-plan/infrastructure/prisma-installment-plan.repository";
@@ -114,4 +115,9 @@ export async function categoryIdFor(prisma: PrismaService, code: string): Promis
   const row = await prisma.category.findUnique({ where: { code }, select: { id: true } });
   if (!row) throw new Error(`Category "${code}" is not seeded — run the seed first`);
   return row.id;
+}
+
+/** The real `exchange-rate` adapter (a single table, no graph to compose). */
+export function buildExchangeRateRepo(prisma: PrismaService): PrismaExchangeRateRepository {
+  return new PrismaExchangeRateRepository(prisma);
 }

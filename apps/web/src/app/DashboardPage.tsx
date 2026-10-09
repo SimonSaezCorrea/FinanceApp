@@ -1,4 +1,3 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import { type ReactNode, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -8,6 +7,7 @@ import { AttentionStrip } from "../domains/dashboard/components/AttentionStrip";
 import { CategoryBars } from "../domains/dashboard/components/CategoryBars";
 import { DashboardSkeleton } from "../domains/dashboard/components/DashboardSkeleton";
 import { MonthFlowSummary } from "../domains/dashboard/components/MonthFlowCard";
+import { MonthPicker } from "../shared/ui/month-picker";
 import { NetWorthCard } from "../domains/dashboard/components/NetWorthCard";
 import { UpcomingPayments } from "../domains/dashboard/components/UpcomingPaymentsCard";
 import { WalletCards } from "../domains/dashboard/components/WalletCards";
@@ -19,6 +19,7 @@ import {
   monthFlow,
   netWorth,
   secondaryTotals,
+  seriesStart,
   startOfMonthISO,
   upcomingPayments,
 } from "../domains/dashboard/lib/metrics";
@@ -26,9 +27,9 @@ import { useDebts } from "../domains/debts/hooks/useDebts";
 import { useInstallments } from "../domains/installments/hooks/useInstallments";
 import { useRecurring } from "../domains/recurring/hooks/useRecurring";
 import { useTransactions } from "../domains/transactions/hooks/useTransactions";
-import { cn } from "../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { useElementWidth } from "../shared/lib/useElementWidth";
-import { useMediaQuery } from "../shared/lib/useMediaQuery";
+import { useMediaQuery } from "@finance/ui/src/shared/lib/useMediaQuery";
 import { Card } from "../shared/ui/card";
 import { Segmented } from "../shared/ui/segmented";
 import { ErrorState } from "../shared/ui/states";
@@ -66,13 +67,16 @@ export function DashboardPage() {
 
   const isCurrentMonth =
     viewMonth.getFullYear() === now.getFullYear() && viewMonth.getMonth() === now.getMonth();
-  const shiftMonth = (delta: number) =>
-    setViewMonth((d) => new Date(d.getFullYear(), d.getMonth() + delta, 1));
 
   const accountsQuery = useAccounts();
   const txQuery = useTransactions({
     from: startOfMonthISO(viewMonth),
     to: endOfMonthISO(viewMonth),
+  });
+  // The net-worth chart walks back from today over the last 30 days of movements.
+  const recentQuery = useTransactions({
+    from: seriesStart(now).toISOString(),
+    to: now.toISOString(),
   });
   const installmentsQuery = useInstallments();
   const debtsQuery = useDebts();
@@ -83,10 +87,18 @@ export function DashboardPage() {
   const dueStatements = useDueStatements(accountList);
 
   const worth = useMemo(
-    () => netWorth(accountList, debtsQuery.data ?? []),
+    () =>
+      netWorth(
+        accountList,
+        debtsQuery.data ?? [],
+        recentQuery.data ? { txs: recentQuery.data, now } : null,
+      ),
+    [accountList, debtsQuery.data, recentQuery.data, now],
+  );
+  const secondary = useMemo(
+    () => secondaryTotals(accountList, debtsQuery.data ?? []),
     [accountList, debtsQuery.data],
   );
-  const secondary = useMemo(() => secondaryTotals(accountList), [accountList]);
   const flow = useMemo(() => monthFlow(txs), [txs]);
   const categories = useMemo(() => expensesByCategory(txs), [txs]);
   const upcoming = useMemo(
@@ -102,7 +114,6 @@ export function DashboardPage() {
   const attention = attentionItems(dueStatements, upcoming, now);
 
   const firstName = user?.name?.trim().split(/\s+/)[0];
-  const period = viewMonth.toLocaleDateString(i18n.language, { month: "long", year: "numeric" });
   const monthName = viewMonth.toLocaleDateString(i18n.language, { month: "long" });
   const layout =
     width === null || width < PHONE_MAX ? "phone" : width < WIDE_MIN ? "medium" : "wide";
@@ -159,32 +170,17 @@ export function DashboardPage() {
               {t("dashboard.backToThisMonth")}
             </button>
           )}
-          <div className="flex items-center rounded-md border border-input">
-            <button
-              type="button"
-              aria-label={t("dashboard.prevMonth")}
-              onClick={() => shiftMonth(-1)}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <ChevronLeft className="h-4 w-4" aria-hidden />
-            </button>
-            <span className="inline-block min-w-[8.5rem] px-1 text-center text-sm font-medium first-letter:uppercase">
-              {period}
-            </span>
-            <button
-              type="button"
-              aria-label={t("dashboard.nextMonth")}
-              onClick={() => shiftMonth(1)}
-              className="flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            >
-              <ChevronRight className="h-4 w-4" aria-hidden />
-            </button>
-          </div>
+          <MonthPicker
+            value={viewMonth}
+            onChange={setViewMonth}
+            prevLabel={t("dashboard.prevMonth")}
+            nextLabel={t("dashboard.nextMonth")}
+          />
         </div>
       </header>
 
       {accountsQuery.isLoading ? (
-        <DashboardSkeleton label={t("app.loading")} />
+        <DashboardSkeleton label={t("app.loading")} layout={layout} fit={fit} />
       ) : accountsQuery.isError ? (
         <ErrorState error={accountsQuery.error} onRetry={() => accountsQuery.refetch()} />
       ) : (

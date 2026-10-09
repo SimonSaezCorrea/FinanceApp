@@ -1,6 +1,6 @@
 import type { auth } from "@finance/contracts";
 
-import { apiFetch } from "../../../shared/lib/apiClient";
+import { apiFetch } from "@finance/client";
 
 export const sessionsApi = {
   list: () => apiFetch<auth.ListSessionsResponse>("/auth/sessions"),

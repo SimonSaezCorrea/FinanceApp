@@ -19,6 +19,8 @@ type Row = {
   periodStart: Date;
   closedAt: Date | null;
   paidAt: Date | null;
+  dueDate: Date | null;
+  plannedCloseAt: Date | null;
   amount: { toString(): string } | null;
   paidAmount: { toString(): string } | null;
   carriedOverAmount: { toString(): string } | null;
@@ -43,6 +45,8 @@ function rowToProps(row: Row): CreditStatementProps {
     periodStart: row.periodStart,
     closedAt: row.closedAt,
     paidAt: row.paidAt,
+    dueDate: row.dueDate,
+    plannedCloseAt: row.plannedCloseAt,
     amount: row.amount?.toString() ?? "0",
     paidAmount: row.paidAmount?.toString() ?? "0",
     carriedOverAmount: row.carriedOverAmount?.toString() ?? "0",
@@ -102,8 +106,13 @@ export class PrismaCreditStatementRepository
     return row ? CreditStatement.fromPersistence(rowToProps(row)) : null;
   }
 
-  async findOpenForAccount(accountId: string, currency: string): Promise<CreditStatement | null> {
-    const row = await this.prisma.creditStatement.findFirst({
+  async findOpenForAccount(
+    accountId: string,
+    currency: string,
+    tx?: unknown,
+  ): Promise<CreditStatement | null> {
+    const client = (tx as PrismaService | undefined) ?? this.prisma;
+    const row = await client.creditStatement.findFirst({
       where: { accountId, currency, closedAt: null },
     });
     return row ? CreditStatement.fromPersistence(rowToProps(row)) : null;
@@ -115,6 +124,38 @@ export class PrismaCreditStatementRepository
       orderBy: { currency: "asc" },
     });
     return rows.map((r) => CreditStatement.fromPersistence(rowToProps(r)));
+  }
+
+  async listDueScheduled(now: Date): Promise<
+    {
+      userId: string;
+      accountId: string;
+      periodStart: Date;
+      closedAt: Date;
+      dueDate: Date;
+    }[]
+  > {
+    const rows = await this.prisma.creditStatement.findMany({
+      where: { closedAt: null, plannedCloseAt: { lte: now }, dueDate: { not: null } },
+      select: {
+        accountId: true,
+        periodStart: true,
+        plannedCloseAt: true,
+        dueDate: true,
+        account: { select: { userId: true } },
+      },
+      orderBy: { plannedCloseAt: "asc" },
+    });
+    // The currencies of an account share their dates: one generation per account.
+    const byAccount = new Map<string, (typeof rows)[number]>();
+    for (const r of rows) if (!byAccount.has(r.accountId)) byAccount.set(r.accountId, r);
+    return [...byAccount.values()].map((r) => ({
+      userId: r.account.userId,
+      accountId: r.accountId,
+      periodStart: r.periodStart,
+      closedAt: r.plannedCloseAt!,
+      dueDate: r.dueDate!,
+    }));
   }
 
   async listForAccount(userId: string, accountId: string): Promise<CreditStatement[]> {
@@ -129,12 +170,14 @@ export class PrismaCreditStatementRepository
     accountId: string,
     fallbackPeriodStart: Date,
     currency: string,
+    occurredAt?: Date,
   ): Promise<{ id: string }> {
     return this.findOrCreateOpenForAccountWithTx(
       this.prisma,
       accountId,
       fallbackPeriodStart,
       currency,
+      occurredAt,
     );
   }
 
@@ -143,8 +186,25 @@ export class PrismaCreditStatementRepository
     accountId: string,
     fallbackPeriodStart: Date,
     currency: string,
+    occurredAt?: Date,
   ): Promise<{ id: string }> {
     const client = tx as PrismaService;
+    // A statement generated with a close still ahead: the movements dated inside it
+    // belong to it until that day comes.
+    if (occurredAt) {
+      const scheduled = await client.creditStatement.findFirst({
+        where: {
+          accountId,
+          currency,
+          paidAt: null,
+          transferredAt: null,
+          periodStart: { lte: occurredAt },
+          closedAt: { gte: occurredAt, gt: new Date() },
+        },
+        select: { id: true },
+      });
+      if (scheduled) return scheduled;
+    }
     const open = await client.creditStatement.findFirst({
       where: { accountId, currency, closedAt: null },
       select: { id: true },
@@ -231,7 +291,10 @@ export class PrismaCreditStatementRepository
     await client.creditStatement.update({
       where: { id: state.id },
       data: {
+        periodStart: state.periodStart,
         closedAt: state.closedAt,
+        dueDate: state.dueDate,
+        plannedCloseAt: state.plannedCloseAt ?? null,
         paidAt: state.paidAt,
         // Frozen only once settled; while unpaid the amount stays live (the sum
         // of the period's transactions plus whatever was carried into it).
@@ -253,8 +316,8 @@ export class PrismaCreditStatementRepository
     });
   }
 
-  sumLinkedTransactions(statementId: string): Promise<string> {
-    return this.sums.netForStatement(statementId);
+  sumLinkedTransactions(statementId: string, tx?: unknown): Promise<string> {
+    return this.sums.netForStatement(statementId, tx);
   }
 
   /**
@@ -292,5 +355,9 @@ export class PrismaCreditStatementRepository
       }
     }
     return result;
+  }
+
+  async countForUser(userId: string): Promise<number> {
+    return this.prisma.creditStatement.count({ where: { account: { userId } } });
   }
 }

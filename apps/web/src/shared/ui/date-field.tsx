@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
-import { anchoredPanelRect, type PanelRect } from "../lib/anchoredPanel";
-import { cn } from "../lib/cn";
+import { anchoredPanelRect, type PanelRect } from "@finance/ui/src/shared/lib/anchoredPanel";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 
 const PANEL_WIDTH = 280;
 const PANEL_HEIGHT = 340;
@@ -235,9 +235,11 @@ export function DateField({
         )}
       >
         {selected && sameDay(selected, today) ? (
-          <span className="text-muted-foreground">{t("common.date.today")} ·</span>
+          <span className="whitespace-nowrap text-muted-foreground">
+            {t("common.date.today")} ·
+          </span>
         ) : null}
-        <span className="tabular-nums">{label}</span>
+        <span className="whitespace-nowrap tabular-nums">{label}</span>
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
       </button>
 
@@ -359,7 +361,7 @@ export function DateField({
                   {weekdays.map((w, i) => (
                     <span
                       key={`${w}-${i}`}
-                      className="pb-1 text-[11px] font-medium uppercase text-muted-foreground"
+                      className="pb-1 text-xs sm:text-[11px] font-medium uppercase text-muted-foreground"
                     >
                       {w}
                     </span>

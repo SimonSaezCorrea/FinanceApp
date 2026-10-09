@@ -5,8 +5,8 @@ import { useTranslation } from "react-i18next";
 import type { savings } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
-import { Button } from "../../../shared/ui/button";
-import { cn } from "../../../shared/lib/cn";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { goalPct, sumAmounts } from "../lib/savingsMetrics";
 
 interface Props {
@@ -101,7 +101,7 @@ export function ClosedGoalsSection({
                 <span className="text-[15px] font-medium tabular-nums text-foreground">
                   {money(g.savedAmount)}
                 </span>
-                <span className="text-[11px] tabular-nums text-muted-foreground">
+                <span className="text-xs sm:text-[11px] tabular-nums text-muted-foreground">
                   {t("savings.closedBlock.pctOf", {
                     pct: goalPct(g.savedAmount, g.targetAmount),
                     amount: money(g.targetAmount),

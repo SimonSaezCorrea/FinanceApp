@@ -1,0 +1,110 @@
+---
+import "@fontsource-variable/geist";
+import "@fontsource-variable/inter";
+import "../styles/global.css";
+
+import { PRE_PAINT_SCRIPT } from "@finance/ui/prepaint.mjs";
+
+// Development only: the access panel is React loaded on demand, and @vitejs/plugin-react's Fast
+// Refresh refuses to run a component module unless the page installed its preamble — which Astro
+// only does on pages with hydrated islands, and these have none. Without it the panel never opens
+// under `astro dev` (production builds carry no Fast Refresh code).
+const REACT_REFRESH_PREAMBLE = `import RefreshRuntime from "/@react-refresh";
+RefreshRuntime.injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;
+window.__vite_plugin_react_preamble_installed__ = true;`;
+
+import Footer from "../domains/landing/components/Footer.astro";
+import Header from "../domains/landing/components/Header.astro";
+import MobileMenu from "../domains/landing/components/MobileMenu.astro";
+import { t } from "../i18n";
+import { LANGUAGES, type Language, type Page, pagePath } from "../lib/language";
+
+/**
+ * Every public page (spec 031, contracts/page-metadata.md): its own title, description, canonical,
+ * language alternates (plus x-default = the root that picks one) and social preview, the theme
+ * applied before the first paint, the header/menu/footer, and an empty `#access-root` where the
+ * access panel mounts once someone opens it.
+ */
+interface Props {
+  lang: Language;
+  page: Page;
+  /** The 404 page: its own title, no canonical or alternates, never indexed. */
+  notFound?: boolean;
+}
+const { lang, page, notFound = false } = Astro.props;
+const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
+const url = (l: Language) => `${site}${pagePath(l, page)}`;
+const title = notFound
+  ? `${t(lang, "app.notFound.title")} · Cuadra`
+  : t(lang, `landing.meta.${page}.title`);
+const description = t(lang, `landing.meta.${page}.description`);
+const image = `${site}/og/cuadra-${lang}.png`;
+---
+
+<!doctype html>
+<html lang={lang} data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
+    <meta name="theme-color" content="#0b1518" />
+    <script is:inline set:html={PRE_PAINT_SCRIPT} />
+    {import.meta.env.DEV && <script type="module" is:inline set:html={REACT_REFRESH_PREAMBLE} />}
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    {
+      notFound ? (
+        <meta name="robots" content="noindex" />
+      ) : (
+        <>
+          <link rel="canonical" href={url(lang)} />
+          {LANGUAGES.map((l) => (
+            <link rel="alternate" hreflang={l} href={url(l)} />
+          ))}
+          <link rel="alternate" hreflang="x-default" href={`${site}/`} />
+        </>
+      )
+    }
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Cuadra" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={url(lang)} />
+    <meta property="og:image" content={image} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={t(lang, "landing.meta.imageAlt")} />
+    <meta property="og:locale" content={lang === "es" ? "es_CL" : "en_US"} />
+    <meta name="twitter:card" content="summary_large_image" />
+  </head>
+  <body>
+    <div class="min-h-dvh overflow-x-clip bg-background text-foreground">
+      <a
+        href="#landing-main"
+        class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-foreground focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-background"
+      >
+        {t(lang, "landing.skipToContent")}
+      </a>
+      <Header lang={lang} page={page} />
+      <MobileMenu lang={lang} page={page} />
+      <main id="landing-main" tabindex="-1" class="mx-auto max-w-[1240px] px-4 focus:outline-none">
+        <slot />
+        <Footer lang={lang} />
+      </main>
+      <div id="access-root" data-lang={lang}></div>
+    </div>
+    <script>
+      import "../domains/landing/scripts/header";
+      import { initAccess } from "../domains/landing/scripts/access";
+      import { initSession } from "../domains/landing/scripts/session";
+
+      initAccess();
+      void initSession();
+    </script>
+  </body>
+</html>

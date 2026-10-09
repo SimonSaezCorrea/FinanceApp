@@ -4,8 +4,8 @@ import { I18nextProvider } from "react-i18next";
 import { Toaster } from "sonner";
 
 import { AuthProvider } from "../domains/auth/hooks/useAuth";
-import { ApiRequestError } from "../shared/lib/apiClient";
-import { ThemeProvider } from "../theme/ThemeProvider";
+import { ApiRequestError } from "@finance/client";
+import { ThemeProvider } from "@finance/ui/src/theme/ThemeProvider";
 import i18n from "../i18n";
 
 /** Statuses where retrying is pointless: the answer won't change by asking again. */

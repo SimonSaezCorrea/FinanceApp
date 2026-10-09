@@ -11,6 +11,7 @@ export async function transferLegStatementId(
   statements: Pick<CreditStatementRepositoryPort, "findOrCreateOpenForAccountWithTx">,
   tx: unknown,
   account: TransferAccountContext | null,
+  occurredAt?: Date,
 ): Promise<string | null> {
   if (!account || account.type !== "CREDIT_CARD") return null;
   const period = await statements.findOrCreateOpenForAccountWithTx(
@@ -18,6 +19,7 @@ export async function transferLegStatementId(
     account.id,
     account.createdAt ?? new Date(),
     account.currency ?? "CLP",
+    occurredAt,
   );
   return period.id;
 }

@@ -127,13 +127,6 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
     return this.hydrate(rows);
   }
 
-  async listDueForBilling(): Promise<BankAccount[]> {
-    const accountIds = await this.billing.accountIdsWithCycleDay();
-    if (accountIds.length === 0) return [];
-    const rows = await this.prisma.bankAccount.findMany({ where: { id: { in: accountIds } } });
-    return this.hydrate(rows);
-  }
-
   countByType(userId: string, type: accounts.AccountType): Promise<number> {
     return this.prisma.bankAccount.count({ where: { userId, type } });
   }
@@ -146,7 +139,19 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
   }
 
   async createWithCards(userId: string, plan: CreateAccountPlan): Promise<BankAccount> {
-    const row = await this.prisma.bankAccount.create({
+    const { id } = await this.createWithCardsWithTx(this.prisma, userId, plan);
+    const fresh = await this.findById(userId, id);
+    if (!fresh) throw new Error("account disappeared right after being created");
+    return fresh;
+  }
+
+  async createWithCardsWithTx(
+    tx: unknown,
+    userId: string,
+    plan: CreateAccountPlan & { minimumPaymentPercent?: string | null },
+  ): Promise<{ id: string; cardIds: string[] }> {
+    const client = tx as PrismaService;
+    const row = await client.bankAccount.create({
       data: {
         userId,
         name: plan.name,
@@ -165,19 +170,29 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
         creditUsed: plan.creditUsedInitial,
       },
     });
+    const cardIds: string[] = [];
     for (const card of plan.cards) {
-      await this.cards.create(userId, row.id, card);
+      cardIds.push(await this.cards.createWithTx(tx, userId, row.id, card));
     }
-    await this.billing.upsert(row.id, {
+    await this.billing.upsertWithTx(tx, row.id, {
       billingCycleDay: plan.billingCycleDay,
       cycleType: plan.billingCycleType,
       paymentMethod: plan.paymentMethod,
       paymentDueDay: plan.paymentDueDay,
       paymentDueCycleType: plan.paymentDueCycleType,
+      ...(plan.minimumPaymentPercent != null
+        ? { minimumPaymentPercent: plan.minimumPaymentPercent }
+        : {}),
     });
-    const fresh = await this.findById(userId, row.id);
-    if (!fresh) throw new Error("account disappeared right after being created");
-    return fresh;
+    return { id: row.id, cardIds };
+  }
+
+  async setStatusWithTx(
+    tx: unknown,
+    accountId: string,
+    status: accounts.AccountStatus,
+  ): Promise<void> {
+    await (tx as PrismaService).bankAccount.update({ where: { id: accountId }, data: { status } });
   }
 
   async save(aggregate: BankAccount): Promise<void> {
@@ -281,5 +296,13 @@ export class PrismaBankAccountRepository implements BankAccountRepositoryPort {
 
   removeCard(userId: string, accountId: string, cardId: string): Promise<boolean> {
     return this.cards.remove(userId, accountId, cardId);
+  }
+
+  async countForUser(userId: string): Promise<number> {
+    return this.prisma.bankAccount.count({ where: { userId } });
+  }
+
+  async deleteAllForUserWithTx(tx: unknown, userId: string): Promise<void> {
+    await (tx as PrismaService).bankAccount.deleteMany({ where: { userId } });
   }
 }

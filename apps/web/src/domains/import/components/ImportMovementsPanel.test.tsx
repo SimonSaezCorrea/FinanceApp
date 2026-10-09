@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { accounts } from "@finance/contracts";
 
 import i18n from "../../../i18n";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import { importApi } from "../api/importApi";
 import { ImportMovementsPanel } from "./ImportMovementsPanel";
 

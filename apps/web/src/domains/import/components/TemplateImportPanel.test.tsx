@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { imports } from "@finance/contracts";
 
 import i18n from "../../../i18n";
-import { ApiRequestError } from "../../../shared/lib/apiClient";
+import { ApiRequestError } from "@finance/client";
 import { importApi } from "../api/importApi";
 import type { TemplateRefs } from "../lib/buildTemplate";
 import { TemplateImportPanel } from "./TemplateImportPanel";
@@ -37,7 +37,7 @@ const refs: TemplateRefs = {
 const MARKER = {
   sheet: "_cuadra",
   data: [
-    ["version", 1],
+    ["version", 2],
     ["locale", "es"],
   ],
 };
@@ -48,7 +48,11 @@ const movements = (...rows: unknown[][]) => ({
 
 const valid: imports.TemplatePreviewResponse = {
   valid: true,
+  replaces: null,
   counts: {
+    accounts: 0,
+    cards: 0,
+    statements: 0,
     movements: 1,
     transfers: 0,
     debts: 0,
@@ -212,5 +216,58 @@ describe("TemplateImportPanel", () => {
     renderPanel();
     upload();
     expect(await screen.findByText(/versión anterior/)).toBeTruthy();
+  });
+
+  it("a pre-filled file with nothing new opens as 'Reemplazar todo', which needs the confirmation word", async () => {
+    workbook.sheets = [
+      {
+        sheet: "Cuentas",
+        data: [
+          ["Nombre", "Tipo", "Moneda", "Número de cuenta", "Saldo inicial", "ID Cuadra"],
+          ["BCI", "Corriente", "CLP", "123", 1000, BCI],
+        ],
+      },
+      {
+        sheet: "Movimientos",
+        data: [
+          ["Fecha", "Tipo", "Monto", "Cuenta", "ID Cuadra"],
+          ["28/11/2025", "Gasto", 15000, "BCI", "01890a5d-ac96-774b-bcce-b302099a8099"],
+        ],
+      },
+      MARKER,
+    ];
+    vi.mocked(importApi.previewTemplate).mockResolvedValue({
+      ...valid,
+      accounts: [],
+      replaces: {
+        accounts: 2,
+        cards: 1,
+        movements: 40,
+        debts: 0,
+        plans: 0,
+        recurring: 0,
+        goals: 0,
+        statements: 3,
+      },
+    });
+    renderPanel();
+    upload();
+
+    expect(await screen.findByText("Se borrará")).toBeTruthy();
+    expect(screen.getByText(/2 cuentas, 1 tarjetas, 40 movimientos/)).toBeTruthy();
+    const body = vi.mocked(importApi.previewTemplate).mock.calls[0]![0];
+    expect(body.mode).toBe("REPLACE");
+    // The file's account under a new temporary id; the movement points at it.
+    expect(body.accounts).toHaveLength(1);
+    expect(body.accounts[0]!.id).not.toBe(BCI);
+    expect(body.movements[0]!.bankAccountId).toBe(body.accounts[0]!.id);
+
+    // The mode selector is labelled the same; the footer action is the last one.
+    const submit = screen.getAllByRole("button", { name: "Reemplazar todo" }).at(-1)!;
+    expect(submit.hasAttribute("disabled")).toBe(true);
+    fireEvent.change(screen.getByLabelText("Escribe REEMPLAZAR para confirmar"), {
+      target: { value: "reemplazar" },
+    });
+    expect(submit.hasAttribute("disabled")).toBe(false);
   });
 });

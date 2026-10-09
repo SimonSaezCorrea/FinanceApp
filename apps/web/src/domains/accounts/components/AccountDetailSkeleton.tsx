@@ -2,8 +2,8 @@ import { ChevronRight, Pencil, Plus, Power, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 
-import { cn } from "../../../shared/lib/cn";
-import { Button } from "../../../shared/ui/button";
+import { cn } from "@finance/ui/src/shared/lib/cn";
+import { Button } from "@finance/ui/src/shared/ui/button";
 import { Card } from "../../../shared/ui/card";
 import { Skeleton, SkeletonScreen } from "../../../shared/ui/skeleton";
 // Owned by `transactions` (it's the movements table's own skeleton — every

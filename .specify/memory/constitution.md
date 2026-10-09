@@ -1,4 +1,128 @@
 <!--
+Sync Impact Report — 2026-10-09 (amendment 2.5.0)
+- Version change: 2.4.0 → 2.5.0 (MINOR: the target architecture gains a third app and three shared
+  packages; Principle III's catalog location is redefined; specs/031 separate public site).
+- AMENDED Principle III (i18n parity): the catalogs no longer live in `apps/web`. Shared strings are
+  in `packages/i18n/src/{es,en}.json` (`@finance/i18n`), consumed by the app AND the public site; the
+  public site's own `landing.*` strings are in `apps/landing/src/i18n/{es,en}.json`. Each catalog pair
+  has its own parity test. Navigation wording updated: the app routes with react-router; the public
+  site is static pages under `/es/…` and `/en/…`.
+- AMENDED "Target architecture": three separately deployable apps — `apps/api`, `apps/web` (the
+  signed-in app, `app.cuadra.cl`, not indexed) and **`apps/landing`** (the public site, `cuadra.cl`,
+  Astro static) — plus source-only packages **`@finance/ui`** (tokens, Tailwind preset, theme,
+  breakpoints, shared primitives and the overlay family), **`@finance/client`** (HTTP client, WebAuthn
+  helpers, auth calls, the return-path rule) and **`@finance/i18n`**. One-way deps extended:
+  `landing ↛ web/api`, `web ↛ landing`, enforced by `check:boundaries`.
+- AMENDED "Breakpoint stages" and "One overlay family": their single sources moved to `@finance/ui`
+  (`breakpoints.ts`, `src/shared/ui/overlay/`). The public site's phone menu is a native `<dialog>`
+  (it opens on every page load, where loading React would defeat the site's purpose); everything the
+  public site renders with React (the access panel) still uses the overlay family.
+- ADDED (close of specs/031): approved libraries for the public site — **Astro**, `@astrojs/react`
+  (React rendered at build, never hydrated on arrival), `@astrojs/sitemap`, and dev-only
+  `@astrojs/check` and `@resvg/resvg-js` (Open Graph images); environment variables `CORS_ORIGIN` as
+  a comma-separated list, optional `PASSKEY_RP_ID`, `VITE_LANDING_URL` (web) and `PUBLIC_API_URL`/
+  `PUBLIC_APP_URL`/`PUBLIC_SITE_URL` (landing); the build runtime moves to **Node 22** (Astro needs
+  ≥ 22.12; CI updated). `@finance/contracts` gains zod-free entry points (`/http`, `/auth-rules`) so
+  the access panel loads small. Registration accepts an optional `locale` (FR-010a).
+- ADDED (2026-10-09, after a Lighthouse pass): approved dependency **`compression`** (api, gzip for
+  every response); `GET /auth/session` (always 200 `{ signedIn }`) for the public site's "Ir a la
+  app". No principle text changed.
+-->
+<!--
+Sync Impact Report — 2026-10-08 (amendment 2.4.0)
+- Version change: 2.3.19 → 2.4.0 (MINOR: a normative clause of "Technology & Operational Constraints"
+  is materially amended; specs/030 exchange rates).
+- AMENDED: MVP-scope clause (c). It said the UF "gets no approximate CLP hint, because there is no
+  FX source". Spec 030 adds a daily exchange-rate table (dólar observado and UF, from mindicador.cl),
+  so the premise is gone: a UF amount may enter the net worth's single estimated total, labelled as an
+  estimate with its value date. Unchanged: a UF account shows no per-account CLP hint, the UF is never
+  a payment/transfer suggestion, and no conversion is persisted unless the person confirmed it.
+- ADDED: table-domain **`exchange-rate`** (30th; global reference data, no `userId`, authed and
+  read-only over HTTP — same treatment as `currency`): the daily dólar observado (`USD`) and UF (`CLF`)
+  in pesos, one row per currency and Chile calendar day, `@@unique([currency, date])`; `valueDate` makes
+  a carried value derivable (`valueDate < date`) instead of a stored flag. Its only writer is the system
+  command `RecordExchangeRatesCommand` (`scope: "system"`, a named exception to Principle II like the
+  other crons), dispatched hourly 08:00–20:00 America/Santiago by `ExchangeRateCron` and once at boot.
+  Idempotency (Principle VII) is form (b): an atomic upsert on the natural key that can only raise
+  `valueDate`. Identifier (Principle VIII): UUID v7.
+- CLARIFIED the old "this app has no FX / does not convert" statements (Principle I's neighbours, the
+  transfer and statement rules, `docs/PENDING.md`): the app MAY now SUGGEST a conversion — an editable
+  proposal derived from the recorded rate (`convertAmount` in `@finance/money`, the ONE implementation) —
+  but **no rule of any domain compares or validates amounts of two currencies, and nothing converted is
+  persisted unless the person confirmed the figure they saw.** `TransferPolicy`, `MovementPolicy` and the
+  payment rules still never compare the two sides.
+- ADDED behavior (not a new principle): paying or prepaying a statement in ANOTHER currency than its
+  account's (specs/030, absorbing 028 US2) takes two amounts (`amount` in the statement's currency,
+  `chargedAmount` in the source account's), writes the source EXPENSE plus an INCOME settlement on the
+  account's PRIMARY card (it must hold a limit in that currency), never touches `creditUsed`, and
+  re-reads the statement under a row lock inside the transaction (the precedent of specs/019 R8).
+-->
+<!--
+Sync Impact Report — 2026-10-07 (amendment 2.3.19)
+- Version change: 2.3.18 → 2.3.19 (PATCH: one write endpoint's behavior and one scheduled job; no
+  principle text changed).
+- CHANGED: `PATCH /accounts/:id/credit-statements/:statementId/dates` on the OPEN period now
+  schedules the close (`CreditStatement.plannedCloseAt`) instead of refusing; it closes nothing.
+  Absolute state, so a replay converges (Principle VII form (a)).
+- ADDED: hourly `StatementGenerationCron` → `GenerateScheduledStatementsCommand`
+  (`scope: "system"`, a named exception to Principle II like the other crons), which dispatches the
+  per-user `GenerateStatementsCommand` for each account whose scheduled close has arrived.
+-->
+<!--
+Sync Impact Report — 2026-10-07 (amendment 2.3.18)
+- Version change: 2.3.17 → 2.3.18 (PATCH: a validation removed from two write endpoints; no
+  principle text changed).
+- CHANGED: `POST /accounts/:id/generate-statements` and `PATCH …/credit-statements/:id/dates`
+  accept dates in the future (`STATEMENT_CLOSE_IN_FUTURE` removed). Retry-safety unchanged
+  (form (a): a replay overlaps the close it just recorded). Movements dated inside a period whose
+  close is still ahead link to it, not to the open one.
+-->
+<!--
+Sync Impact Report — 2026-10-07 (amendment 2.3.17)
+- Version change: 2.3.16 → 2.3.17 (PATCH: one write endpoint extended; no principle text changed).
+- CHANGED: `POST /import/template` (+ `/preview`) — template v2 gains a `mode`: `MERGE` (as before)
+  or `REPLACE`, which deletes every account, card and record of the user and rebuilds them from
+  the file, in the SAME transaction as the import and its idempotency record (Principle VII form
+  (c), operation `import.template` unchanged). Each table is emptied through its own port's new
+  `deleteAllForUserWithTx` (Principle VI), and counted for the preview with `countForUser`.
+- IDENTIFIERS (Principle VIII): accounts/cards the file defines carry a browser-minted UUID v7 as a
+  TEMPORARY key only; the API creates the rows with ids of its own (`generateRowId`) and translates
+  every reference. A client-sent id is never stored as a PK.
+-->
+<!--
+Sync Impact Report — 2026-10-07 (amendment 2.3.16)
+- Version change: 2.3.15 → 2.3.16 (PATCH: one write endpoint added; no principle text changed).
+- ADDED: `PATCH /accounts/:id/credit-statements/:statementId/dates` (edit a generated statement's
+  start/close/due date). Retry-safe by form (a)/absolute state: it writes the dates themselves, so
+  replaying the same body converges to the same rows.
+-->
+<!--
+Sync Impact Report — 2026-10-06 (amendment 2.3.15)
+- Version change: 2.3.14 → 2.3.15 (PATCH: one write endpoint changed, one column, one cron
+  removed; no principle text changed).
+- CHANGED: `POST /accounts/:id/generate-statements` now takes the statement's dates
+  (`accounts.generateStatementSchema`: periodStart/closedAt/dueDate) instead of deriving them from
+  `BillingSettings`; new column `CreditStatement.dueDate`. Retry-safety (Principle VII) is form (a):
+  replaying the same dates is refused with `STATEMENT_PERIOD_OVERLAPS`.
+- REMOVED: the daily billing cron (`GenerateAllDueStatementsCommand`, the last `scope: "system"`
+  command in `credit-statement`) and the billing-cycle configuration UI — deferred, see
+  `docs/PENDING.md` (Cuentas — facturación, punto 0).
+-->
+<!--
+Sync Impact Report — 2026-10-06 (amendment 2.3.14)
+- Version change: 2.3.13 → 2.3.14 (PATCH: a routing convention and a wording fix; no principle's
+  meaning changed).
+- ADDED (specs/029, frontend only): a settings-style view gets one route per section under its
+  base path (`/profile`, `/profile/personal|security|preferences|privacy`, unknown child → the
+  base), and decides two panes vs. list → screen by its OWN measured width
+  (`PROFILE_PANES_MIN_WIDTH` = 820, via `useElementWidth`), never a viewport breakpoint — the same
+  container-width rule `CLAUDE.md` already states. Its status lines/pending counts come from pure,
+  tested functions (`domains/profile/lib/profileStatus.ts`). No API, schema or contract change.
+- FIXED (Principle III wording): it still named `messages/*.json` and `@/i18n/navigation` from the
+  retired Next.js app. Now names the real catalogs (`apps/web/src/i18n/{es,en}.json`), the parity
+  test that enforces them, and react-router links. Same rule, same strength.
+-->
+<!--
 Sync Impact Report — 2026-10-06 (amendment 2.3.13)
 - Version change: 2.3.12 → 2.3.13 (PATCH: one write path hardened, two columns; no principle text
   changed).
@@ -1663,10 +1787,13 @@ puede conflarse con "el campo venía vacío".
 
 ### III. i18n Parity (NON-NEGOTIABLE)
 
-Every user-facing string MUST exist in BOTH `messages/es.json` and `messages/en.json` under
-identical keys. Locale-aware navigation MUST use `@/i18n/navigation` (`Link`, `redirect`);
-bare `next/link` for internal routes is FORBIDDEN. Default locale is `es`; `localePrefix` is
-`always`.
+Every user-facing string MUST exist in BOTH languages under identical keys, in the catalog that
+owns it: strings shared by the app and the public site in `packages/i18n/src/{es,en}.json`
+(`@finance/i18n`, parity enforced by `packages/i18n/src/parity.test.ts`); the public site's own
+`landing.*` strings in `apps/landing/src/i18n/{es,en}.json` (its own parity test). The API never
+returns localized text (it answers language-agnostic error codes the web maps to `errors.<CODE>`).
+The app navigates with react-router (`Link`/`NavLink`/`useNavigate`); the public site is static
+pages, one per language under `/es/…` and `/en/…`. Default locale is `es`.
 
 Rationale: the app ships Spanish and English as first-class. A key present in one catalog
 but missing in the other is a user-visible defect (raw key or crash).
@@ -1804,18 +1931,30 @@ identificador adivinable o no.
   defines a catalogue MUST also retire the complement, or an already-seeded database keeps the wider
   scope; (b) **research that leaves the code is written down before it is deleted**
   (`docs/CATALOGO_REGIONAL.md`), so re-expanding is copy-back, not re-research; (c) the **UF is a unit
-  of account, not a spendable currency** — with no FX source, a UF amount is stored and shown in UF and
-  gets no approximate CLP hint, because there is no honest number to write down.
-- **Target architecture (ratified — specs/001):** a **pnpm + Turborepo monorepo** with two
-  separately deployable apps and shared packages:
+  of account, not a spendable currency** — a UF amount is stored and shown in UF, and its account gets
+  NO per-account approximate CLP hint. Since specs/030 there IS a source for the value (the daily
+  `exchange-rate` table, `CLF`), so the ONE place a UF amount is converted is the net worth's single
+  estimated total ("≈ todo en CLP (estimado)", always labelled an estimate and dated with the value it
+  used); the UF is never offered as a payment or transfer suggestion, and nothing converted is ever
+  persisted without the person's confirmation.
+- **Target architecture (ratified — specs/001, extended by specs/031):** a **pnpm + Turborepo
+  monorepo** with three separately deployable apps and shared packages (the third app and the
+  `ui`/`client`/`i18n` packages are described after this list):
   - `apps/api` — **NestJS** backend, **Prisma 7 / PostgreSQL** (sole DB owner, connected via the
     **`@prisma/adapter-pg` driver adapter** + `prisma.config.ts` — Prisma 7 no longer accepts a
     `datasource.url` in `schema.prisma`), domain-first modules; auth issues **JWT access+refresh
     tokens in httpOnly cookies**.
   - `apps/web` — **Vite + React 19 SPA**, domain-first features, consumes the API over HTTP only;
     **owns the es/en i18n catalogs** (the API returns data + language-agnostic error codes).
+  - `apps/landing` — the **public site** (`cuadra.cl`): **Astro**, static output, pages per language
+    (`/es/…`, `/en/…`) with full HTML and per-page metadata. No React runs on page load; the access
+    panel (React) is imported only when opened, signs in against the API and sends the person to the
+    app with a return PATH (never a token in the URL). `apps/web` is then the signed-in app only
+    (`app.cuadra.cl`, `noindex`), redirecting every signed-out visit to the public site's panel.
   - `packages/*` — shared **contracts** (zod schemas + types), **money** (`decimal.js`),
-    config. One-way deps: apps → packages; `api ↛ web`.
+    config, and the source-only **`ui`** (design system), **`client`** (API client, WebAuthn, auth
+    calls, `safeReturnPath`) and **`i18n`** (shared catalogs). One-way deps: apps → packages;
+    `api ↛ web`; `landing ↛ web/api`; `web ↛ landing`.
   - **Testing:** **Vitest** across apps and packages.
 - **Architecture norms (NON-NEGOTIABLE, enforced):**
   - **Domain-first:** both apps organize code under `src/domains/<domain>/`; the backend follows the
@@ -1843,7 +1982,7 @@ identificador adivinable o no.
     per step: base = phone, `sm` (640) = end of phone/start of tablet, `md` (768) = tablet, `lg` (1024)
     = tablet, `xl` (1280) = widest tablet, `2xl` (1536) = desktop.
     Custom screens, arbitrary `min-[NNNpx]:` classes and inline `(min-width: NNNpx)` strings are NOT
-    used; `apps/web/breakpoints.ts` documents the stages and is the single source the JS media queries
+    used; `@finance/ui`'s `breakpoints.ts` (moved from `apps/web`, specs/031) documents the stages and is the single source the JS media queries
     derive from (`minWidth(name)`), so a view's CSS and its structural JS always switch at the same
     width. Rationale: the gap between a CSS breakpoint and a differing JS one is a state nobody
     designed — a shipped instance hid a desktop aside and its mobile tab at once, making the content
@@ -1853,7 +1992,7 @@ identificador adivinable o no.
     element's own measured width (`shared/lib/useElementWidth.ts`) rather than a breakpoint. A media
     query cannot distinguish "1024px with the sidebar collapsed" from "1024px with it expanded", so a
     breakpoint-only rule necessarily gets one of the two wrong.
-  - **One overlay family (web):** every dialog is built from `apps/web/src/shared/ui/overlay/` and
+  - **One overlay family (web):** every dialog is built from `@finance/ui`'s `src/shared/ui/overlay/` (moved from `apps/web`, specs/031; the public site's native phone-menu `<dialog>` is the one recorded exception) and
     MUST NOT hand-roll its own frame. `ResponsiveSurface` is the default (full-screen `Window` below
     420px, centered `Modal` above; the choice is a media query, so only one structure is mounted);
     `ConfirmModal` is **always** a modal — an alert interrupts, may stack on top of another surface,
@@ -2006,7 +2145,10 @@ identificador adivinable o no.
   frontend-only aggregation over these domains. New domains mirror the module skeleton.
 - **Approved frontend libraries:** charts via **Recharts**; toasts via **sonner**; drag-and-drop via
   **@dnd-kit** (`core`/`sortable`/`utilities`); typography **Geist** (`@fontsource-variable/geist`).
-  Design tokens include the **clay `--accent`** channel (HSL, dark/light). Adding a new runtime
+  Design tokens include the **clay `--accent`** channel (HSL, dark/light). The public site
+  (`apps/landing`, specs/031) is built with **Astro** + `@astrojs/react` (render at build only) +
+  `@astrojs/sitemap`; dev-only `@astrojs/check` and `@resvg/resvg-js`. The API compresses its
+  responses with **`compression`** (Express middleware, 2026-10-09). Adding a new runtime
   dependency is a Principle V change (record it here and in `CLAUDE.md` the same session).
 - **Migration status:** the specs/001 monorepo migration has **merged to `main`** (PR #1); the legacy
   single Next.js app is removed. (Principle II was rewritten to the NestJS/CQRS mechanism in 2.0.0.
@@ -2014,8 +2156,10 @@ identificador adivinable o no.
   `@/i18n/navigation` — where the real catalogs are `apps/web/src/i18n/{es,en}.json` and routing is
   react-router v8 with no locale prefix; intent is unchanged and parity is enforced by
   `src/i18n/parity.test.ts`. Pending its own amendment.)
-- **Environment:** per `.env.example` — `DATABASE_URL`, JWT secrets, CORS origin (api), and
-  `VITE_API_URL` (web); optional `GOOGLE_CLIENT_*`, `ALPHA_VANTAGE_API_KEY`. Secrets MUST NOT be
+- **Runtime:** Node **22** (≥ 22.12, required by Astro; CI runs 22).
+- **Environment:** per `.env.example` — `DATABASE_URL`, JWT secrets, `CORS_ORIGIN` (api; a
+  comma-separated list: the public site and the app) and optional `PASSKEY_RP_ID`, `VITE_API_URL`
+  and `VITE_LANDING_URL` (web), `PUBLIC_API_URL`/`PUBLIC_APP_URL`/`PUBLIC_SITE_URL` (landing); optional `GOOGLE_CLIENT_*`, `ALPHA_VANTAGE_API_KEY`. Secrets MUST NOT be
   committed; `.env` stays out of version control.
 - **Major stack changes** (framework, ORM, auth strategy, package manager, monorepo tooling) are
   governance amendments and require a version bump here plus a `CLAUDE.md` update.
@@ -2057,4 +2201,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.3.13 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-06
+**Version**: 2.5.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-09

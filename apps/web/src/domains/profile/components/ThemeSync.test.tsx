@@ -2,8 +2,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { ThemeProvider } from "../../../theme/ThemeProvider";
-import { useTheme } from "../../../theme/useTheme";
+import { ThemeProvider } from "@finance/ui/src/theme/ThemeProvider";
+import { useTheme } from "@finance/ui/src/theme/useTheme";
 import { ThemeSync } from "./ThemeSync";
 
 const updatePreferences = vi.fn().mockResolvedValue(undefined);

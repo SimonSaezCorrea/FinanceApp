@@ -5,6 +5,7 @@ import { UpdateTransactionHandler } from "../../../../../../src/domains/transact
 import { UpdateTransactionCommand } from "../../../../../../src/domains/transaction/application/commands/update-transaction.command";
 import {
   TransactionLinkedToInstallmentError,
+  TransactionLinkedToStatementError,
   TransactionNotFoundError,
 } from "../../../../../../src/domains/transaction/domain/errors";
 import { Transaction } from "../../../../../../src/domains/transaction/domain/transaction.aggregate";
@@ -225,6 +226,22 @@ describe("UpdateTransactionHandler", () => {
     await expect(
       handler.execute(new UpdateTransactionCommand("u1", "tX", { amount: "250000" })),
     ).rejects.toBeInstanceOf(TransactionLinkedToInstallmentError);
+    expect(saveUpdate).not.toHaveBeenCalled();
+  });
+  // Spec 030 (028 R10): the INCOME that settles a statement in another currency, and the
+  // expense of a prepago of it, are corrected from the statement, never edited in place.
+  it("refuses to edit a movement that settles a statement", async () => {
+    const saveUpdate = vi.fn();
+    const handler = makeHandler(
+      fakeRepo({
+        findOne: vi.fn().mockResolvedValue(txFixture({ settlesStatementId: "st1" })),
+        saveUpdate,
+      }),
+      { accountById: () => creditAccount() },
+    );
+    await expect(
+      handler.execute(new UpdateTransactionCommand("u1", "tX", { amount: "250000" })),
+    ).rejects.toBeInstanceOf(TransactionLinkedToStatementError);
     expect(saveUpdate).not.toHaveBeenCalled();
   });
 });

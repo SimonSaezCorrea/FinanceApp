@@ -228,6 +228,7 @@ export function accountToDto(
     currentBalance: moneyToString(snap.currentBalance),
     creditLimit: account.creditLimit,
     creditUsed,
+    creditUsedInitial: account.creditUsedInitial,
     creditPools,
     billingCycleDay: snap.billingCycleDay,
     billingCycleType: snap.billingCycleType,

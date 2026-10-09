@@ -36,12 +36,19 @@ export interface InstallmentPaymentRepositoryPort {
   /** Unbilled instalments (`creditStatementId IS NULL`) due at or before `dueBy`,
    * for the given plans — the raw candidate set `installment-billing.ts`'s pure
    * selection filters further (currency). Spec 014, FR-008/FR-009. */
-  listUnbilledDueForPlans(planIds: string[], dueBy: Date): Promise<InstallmentPaymentRow[]>;
+  listUnbilledDueForPlans(
+    planIds: string[],
+    dueBy: Date,
+    tx?: unknown,
+  ): Promise<InstallmentPaymentRow[]>;
   /** Stamps a set of instalments with the period that just charged them, inside the
    * caller's transaction. `creditStatementId IS NULL` in the WHERE makes this
    * idempotent by construction — a retry that re-selected an already-stamped row
    * would still update zero of it. */
   stampWithTx(tx: unknown, paymentIds: string[], statementId: string): Promise<void>;
+  /** The reverse, when a period's close moves earlier: its unpaid instalments due
+   * after `dueAfter` are no longer charged by it and go back to unbilled. */
+  unstampDueAfterWithTx(tx: unknown, statementId: string, dueAfter: Date): Promise<void>;
   /** Marks every instalment stamped with this statement as PAID (spec 014, FR-014):
    * any payment — full or short — settles the period, so all of them settle
    * together, at the instalment's own scheduled amount regardless of what the
@@ -52,7 +59,10 @@ export interface InstallmentPaymentRepositoryPort {
    * and count of the instalments stamped with it. Composed with the ordinary-
    * movement sum by `credit-statement`'s own adapter, never by `transaction`'s —
    * that table owns the movements, not the schedule. */
-  sumBilledForStatement(statementId: string): Promise<{ amount: string; count: number }>;
+  sumBilledForStatement(
+    statementId: string,
+    tx?: unknown,
+  ): Promise<{ amount: string; count: number }>;
   createForPlan(planId: string, payments: InstallmentPaymentPlan[]): Promise<void>;
   /** Same, inside a transaction the caller owns, returning the rows as written — the
    * caller cannot re-read them through its own client while the transaction is open. */

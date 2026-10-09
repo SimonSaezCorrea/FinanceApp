@@ -3,12 +3,12 @@ import { formatMoney, subtractMoney, toMoney } from "@finance/money";
 import { useTranslation } from "react-i18next";
 
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
-import { cn } from "../../../shared/lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { DateField } from "../../../shared/ui/date-field";
-import { DetailRow } from "../../../shared/ui/detail-row";
-import { FormSurface } from "../../../shared/ui/overlay";
-import { SearchableSelect } from "../../../shared/ui/searchable-select";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
+import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
+import { SearchableSelect } from "@finance/ui/src/shared/ui/searchable-select";
 
 /** Everything the payment form edits. Owned by the caller so it survives a re-render
  *  of the list behind the panel. */

@@ -34,7 +34,8 @@ export async function loadTemplateContext(
   userId: string,
   req: imports.TemplateImportRequest,
 ): Promise<TemplateContext> {
-  const owned = await deps.accounts.listByUser(userId, {});
+  // REPLACE deletes every account first: the file's own are the only ones.
+  const owned = req.mode === "REPLACE" ? [] : await deps.accounts.listByUser(userId, {});
   const lookup: TemplateLookup = {
     accounts: new Map(),
     cards: new Map(),

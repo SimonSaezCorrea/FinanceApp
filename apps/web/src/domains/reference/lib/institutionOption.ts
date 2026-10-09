@@ -1,6 +1,6 @@
 import type { reference } from "@finance/contracts";
 
-import type { SearchableSelectOption } from "../../../shared/ui/searchable-select";
+import type { SearchableSelectOption } from "@finance/ui/src/shared/ui/searchable-select";
 
 /**
  * An institution as a picker option: labelled with the COMMERCIAL name, searchable

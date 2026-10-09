@@ -41,6 +41,7 @@ import {
 import {
   AccountNotFoundError,
   TransactionLinkedToInstallmentError,
+  TransactionLinkedToStatementError,
   TransactionNotFoundError,
   TransferEditAsPairError,
 } from "../../domain/errors";
@@ -129,6 +130,12 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
       (await this.installmentPayments.isLinkedToPayment(userId, id))
     ) {
       throw new TransactionLinkedToInstallmentError();
+    }
+    // Spec 030 (028 R10): the movements that settle a statement in another currency are
+    // corrected from that statement (correct its payment), never edited in place — doing
+    // it here would leave the statement, the source balance and the limit disagreeing.
+    if (current.snapshot().settlesStatementId !== null) {
+      throw new TransactionLinkedToStatementError();
     }
 
     const effectiveType = input.type ?? current.type;
@@ -256,6 +263,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
             oldAccountId,
             accountCreatedAt,
             oldAccount?.currency ?? effective.currency,
+            new Date(input.occurredAt ?? current.snapshot().occurredAt),
           )
         ).id;
       } else if (sameAccount && oldContribution !== "0" && newContribution === "0") {
@@ -267,6 +275,7 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
               effective.bankAccountId,
               accountCreatedAt,
               newAccount?.currency ?? effective.currency,
+              new Date(input.occurredAt ?? current.snapshot().occurredAt),
             )
           ).id;
         } else if (oldContribution !== "0") {

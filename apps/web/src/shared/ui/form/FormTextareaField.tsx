@@ -1,6 +1,6 @@
 import { Pencil } from "lucide-react";
 
-import { cn } from "../../lib/cn";
+import { cn } from "@finance/ui/src/shared/lib/cn";
 import { Textarea } from "../textarea";
 
 interface Props {

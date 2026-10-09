@@ -7,9 +7,9 @@ import { formatMoney, subtractMoney } from "@finance/money";
 import { accountMetaLine } from "../../accounts/lib/accountMeta";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Badge } from "../../../shared/ui/badge";
-import { Button } from "../../../shared/ui/button";
-import { DetailRow } from "../../../shared/ui/detail-row";
-import { SidePanel } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { debtSchedule } from "../lib/debtSchedule";
 import { dueInfo, formatDebtDate, leftAmount } from "../lib/debtMetrics";
 

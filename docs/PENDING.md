@@ -210,6 +210,32 @@ de automatización de navegador.
 
 ## Cuentas — facturación de crédito (períodos dinámicos + generación automática)
 
+### 0. Configuración del ciclo de facturación — retirada de la UI (2026-10-06), pendiente de investigación
+
+La configuración de facturación de una tarjeta de crédito (día/días hábiles de generación, su tipo de
+ciclo, fecha de pago y su tipo, método de pago) **se sacó de la app** porque modelar bien los ciclos
+de cada emisor requiere investigación más profunda. Se eliminaron: la pestaña "Facturación" de
+`AccountForm`, `BillingSettingsModal`, el aviso "facturación sin configurar" junto al nombre de la
+cuenta y en `AccountCreateModal`, y la línea "Factura el día N" de `AccountCard`. El "% de pago
+mínimo" se conservó y pasó a "Más detalles" del formulario de la cuenta. También se eliminó el
+**cron diario** de generación automática (`billing-generation.cron.ts`,
+`GenerateAllDueStatementsCommand`/Handler, `BankAccountRepositoryPort.listDueForBilling`,
+`BillingSettingsRepositoryPort.accountIdsWithCycleDay`): nada se cierra solo.
+
+En su lugar, **"Generar facturación" pide las tres fechas del estado de cuenta del banco** — inicio,
+cierre y fecha de pago (`POST /accounts/:id/generate-statements` con `accounts.generateStatementSchema`).
+El inicio se propone como el día siguiente al cierre de la facturación anterior
+(`accounts.suggestedPeriodStart`). La fecha de pago queda guardada en la nueva columna
+`CreditStatement.dueDate`.
+
+**Lo que sigue en la base sin uso desde la UI**: las columnas de `BillingSettings`
+(`billingCycleDay`, `cycleType`, `paymentDueDay`, `paymentDueCycleType`, `paymentMethod`), los
+campos del contrato que las exponen, y `billing-cycle.ts` (`nextBoundaryAfter`/`paymentDueDate`),
+que solo sirven de respaldo para mostrar `nextClosingDate`/`dueDate` de cuentas configuradas antes.
+**Para retomarlo**: investigar los ciclos reales por emisor (días hábiles vs día fijo, feriados,
+cómo se corre el cierre), y decidir si la app propone las fechas en el panel de generación o vuelve
+a cerrar sola.
+
 ### 1. Fecha de pago de la facturación (`paymentDueDay`) — implementada (días hábiles y día del mes, independiente de la generación), 2026-08-29
 
 `BillingSettings.paymentDueDay` dejó de ser una columna reservada: es la cuenta (según
@@ -244,7 +270,7 @@ facturación, nunca la paga — pagar siempre requiere elegir manualmente una cu
 (ya calculada, punto 1), pague automáticamente eligiendo alguna cuenta
 por defecto para las facturaciones con `paymentMethod: AUTOMATIC`.
 
-### 3. Generación automática de facturación — cron diario + botón manual
+### 3. Generación automática de facturación — cron diario + botón manual (**retirado 2026-10-06**, ver punto 0)
 
 `BillingSettings.cycleType` (`BUSINESS_DAY`, el default para cuentas nuevas, o `CALENDAR_DAY`) decide
 cómo se cuenta `billingCycleDay`: BUSINESS_DAY cuenta días hábiles chilenos (sin sábados, domingos ni
@@ -450,20 +476,22 @@ contrato, pero **ningún endpoint filtra por ella y ningún componente la muestr
 es la taxonomía real del regulador chileno y porque agrupar el selector por ella (bancos /
 sucursales extranjeras / emisores / cooperativas) es la mejora natural cuando el catálogo crezca.
 
-### 7. Sin conversión de moneda
+### 7. Conversión de moneda — solo sugerencias editables desde la spec 030
 
-No existe ninguna tasa de cambio en el sistema. El patrimonio neto y los totales multi-moneda son
-**sumas separadas por moneda**, nunca un único número convertido; los topes de tarjeta en otras
-monedas tampoco se cruzan contra el cupo de la cuenta. Con dos países en el catálogo esto se nota más.
+Desde la spec 030 SÍ existe el valor diario del dólar observado y de la UF (`exchange-rate`, mindicador.cl),
+pero la regla de fondo se mantiene: **ningún dominio compara ni valida montos de monedas distintas**, y
+lo que se guarda es siempre lo que la persona confirmó. Los valores solo alimentan sugerencias (pesos de
+un pago/prepago USD, pesos de un traspaso USD→CLP), el "≈ $" de las cuentas USD y el total estimado del
+patrimonio. Los topes de tarjeta en otras monedas tampoco se cruzan contra el cupo de la cuenta.
 
 Consecuencia concreta en tarjetas: un emisor real opera con **un solo cupo** y convierte la compra en
 moneda extranjera contra él. Aquí los topes por moneda son independientes, así que el disponible que
 muestra la app no coincide con el del banco cuando hay compras en otra moneda. `CardDetailPanel` lo
 advierte en vez de simular la conversión.
 
-**Para hacerlo real**: una fuente de tasas (con su propia caché, como `EtfPriceCache`) y una decisión
-de producto sobre qué tasa usar y con qué fecha — un patrimonio convertido con la tasa de hoy no es
-comparable con el de ayer.
+**Lo que sigue pendiente**: un cupo único multi-moneda como el del emisor (hoy los topes son
+independientes) y un patrimonio histórico convertido (la serie del Panel sigue siendo de la moneda
+principal; el histórico de valores ya existe para hacerlo cuando se decida con qué tasa).
 
 ### 8. "Saldo tras el movimiento" con cobertura parcial
 
@@ -815,3 +843,80 @@ que se decidan. Se exploraron en el lienzo "Cuadra · Precios" (variantes PL2, P
 
 **Para hacerlo real**: decidir nombre, precio y lista; modelo `Plan`/`Subscription` + proveedor de
 pagos (ver Perfil · 5); recién entonces volver a mostrar el plan de pago en `/precios`.
+
+## Tipos de cambio y facturación en otra moneda (spec 030)
+
+### 1. La fuente es un tercero (mindicador.cl), sin SLA
+
+El registro diario depende de `https://mindicador.cl/api`. Si cae, el reintento horario (8:00–20:00,
+hora de Chile) y el arrastre del último valor cubren el día, pero nada avisa a la persona: solo se ve
+"dato arrastrado" en la pantalla Tipos de cambio y en los estimados. Se puede apuntar a otra fuente con
+`EXCHANGE_RATE_SOURCE_URL`; cambiarla de verdad (Banco Central) exige credenciales.
+
+### 2. Un pago parcial en otra moneda no deja el uso del tope al día
+
+Pagar menos de lo adeudado en una facturación USD la liquida y traslada el faltante como
+`carriedOverAmount` del siguiente período USD, pero el **uso del tope USD** se deriva de movimientos y
+esa deuda arrastrada no es un movimiento: el "Crédito · USD" queda subestimado por el faltante hasta que
+se paga el período siguiente. Para pagos por partes conviene **prepagar** (que sí deja el período abierto
+y la deuda a la vista).
+
+### 3. Pago y prepago en otra moneda no se deshacen desde Movimientos
+
+Los dos movimientos de un pago/prepago USD son de solo lectura (`TRANSACTION_LINKED_TO_STATEMENT`). Un
+pago se corrige con "Modificar pago"; **un prepago USD no tiene deshacer** todavía (el prepago en la
+moneda de la cuenta sí se edita/elimina, spec 019).
+
+### 4. Traspasar una facturación USD vencida a pesos (spec 028 US3) sigue pendiente
+
+Pagar y prepagar en USD ya existen (spec 030 absorbió la US2 de la 028). Lo que no existe es el flujo
+del banco que convierte la deuda vencida y la carga a la facturación en pesos: tareas T043–T058 de
+`specs/028-multi-currency-billing/tasks.md`.
+
+### 5. Los valores son uno por día y moneda, no por hora
+
+El dólar observado es el valor oficial del día; el de hoy suele publicarse a media jornada, así que el
+"vigente" de la mañana es el de ayer (marcado arrastrado hasta que llega el real).
+
+## Sitio público separado (spec 031)
+
+La landing es su propia app estática (`apps/landing`, Astro) y la app (`apps/web`) ya no la contiene.
+Lo que el código no puede resolver solo y queda para el despliegue:
+
+### 1. Redirecciones HTTP reales en el hosting
+
+Hoy la raíz (`/` → `/es/` o `/en/` según el idioma del navegador) y las direcciones antiguas
+(`/precios`, `/nosotros`, `/privacidad`, `/preguntas` → `/es/pricing/`, …) se resuelven con una
+página estática (`meta refresh` + script que conserva `?query` y `#hash`). Funciona sin servidor,
+pero para buscadores lo correcto es un **301** para las antiguas y un **302** por idioma en la raíz
+(con `Vary: Accept-Language`), configurados en el hosting (Netlify/Vercel/Cloudflare `_redirects`
+o equivalente). Las páginas de redirección pueden quedar como respaldo.
+
+### 2. El API debe compartir dominio registrable con la landing y la app
+
+El traspaso de sesión funciona porque las cookies del API son `SameSite=Lax` y las tres viven bajo
+el mismo sitio (`cuadra.cl`, `app.cuadra.cl`, `api.cuadra.cl`; en desarrollo, `localhost` con
+puertos distintos). Un API en otro dominio (p. ej. un `*.onrender.com`) rompería el inicio de
+sesión desde la landing: el navegador no enviaría las cookies desde `app.cuadra.cl`. `CORS_ORIGIN`
+debe listar la landing y la app.
+
+### 3. Llaves de acceso con otro `rpId`
+
+Una llave de acceso queda atada al `rpId` con que se registró. Con `PASSKEY_RP_ID` = `cuadra.cl`
+sirve en la landing y en la app; una llave registrada en desarrollo o antes de fijar
+`PASSKEY_RP_ID` (con `rpId` = `localhost` o `app.cuadra.cl`) no funciona en la landing y hay que
+registrarla de nuevo desde Perfil.
+
+### 4. Verificación en navegador y Lighthouse pendientes
+
+Las pruebas automáticas cubren el build (metadatos, hreflang, sitemap, sin React al cargar), el
+panel, el script de sesión y las redirecciones de la app, pero nada se recorrió en un navegador real
+(sin herramienta de automatización en el entorno de desarrollo): faltan los escenarios del
+`quickstart.md` de la spec 031 y el LCP móvil (SC-003).
+
+### 5. ~~La consulta de sesión deja errores en la consola~~ — resuelto (2026-10-09)
+
+La landing consultaba `GET /auth/me` y, ante un 401, `POST /auth/refresh`: para un visitante sin
+sesión eran dos 401 que Chrome registra como errores (Lighthouse "Recomendaciones" 96). Ahora
+consulta **`GET /auth/session`**, sin guard, que siempre responde 200 con `{ signedIn }` (access
+token válido con su sesión viva, o si venció, refresh token válido con la suya; no rota nada).

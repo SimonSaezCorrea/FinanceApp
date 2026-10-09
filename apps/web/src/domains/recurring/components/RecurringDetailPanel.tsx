@@ -8,9 +8,9 @@ import { useCategoryCatalog } from "../../reference/hooks/useCategoryCatalog";
 import { useTransactions } from "../../transactions/hooks/useTransactions";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
 import { Badge } from "../../../shared/ui/badge";
-import { Button } from "../../../shared/ui/button";
-import { DetailRow } from "../../../shared/ui/detail-row";
-import { SidePanel } from "../../../shared/ui/overlay";
+import { Button } from "@finance/ui/src/shared/ui/button";
+import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
+import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { EmptyState } from "../../../shared/ui/states";
 import { formatLongDate, monthlyAmount } from "../lib/recurringMetrics";
 
