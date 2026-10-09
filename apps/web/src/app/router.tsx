@@ -8,18 +8,14 @@ import { AppSplash } from "@finance/ui/src/shared/ui/app-splash";
 import { DocumentTitle } from "./DocumentTitle";
 import { HomeRoute } from "./HomeRoute";
 import {
-  AboutRoute,
   AccountDetailRoute,
   AccountsRoute,
   AppLayout,
   DebtsRoute,
   ExchangeRatesRoute,
-  FaqRoute,
   ImportRoute,
   InstallmentsRoute,
   NotFoundRoute,
-  PricingRoute,
-  PrivacyRoute,
   ProfileLayout,
   RecurringRoute,
   SavingsRoute,
@@ -40,7 +36,7 @@ const protect = (element: ReactElement) => (
   </RequireAuth>
 );
 
-/** A public page: the splash covers the first moment its chunk is on its way. */
+/** A page outside the shell (the 404): the splash covers the moment its chunk is on its way. */
 const page = (element: ReactElement) => <Suspense fallback={<AppSplash />}>{element}</Suspense>;
 
 const handle = (h: TitleHandle) => h;
@@ -50,32 +46,11 @@ export const router = createBrowserRouter([
     element: <DocumentTitle />,
     errorElement: <RouteErrorBoundary />,
     children: [
-      // Access is a side panel over the landing (`/?acceso=login|registro`); these stay as URLs.
+      // Signing in and registering live on the public site (spec 031); these stay as URLs that
+      // send there, so bookmarks and password managers keep working.
       { path: "/login", element: <AuthRedirectRoute mode="login" /> },
       { path: "/register", element: <AuthRedirectRoute mode="register" /> },
-      // Public landing pages (Spanish slugs: the landing is for the Chilean market). `/` itself
-      // is the landing for a visitor and the Panel once signed in — see HomeRoute.
       { path: "/", element: <HomeRoute />, handle: handle({ signedInTitle: "nav.dashboard" }) },
-      {
-        path: "/nosotros",
-        element: page(<AboutRoute />),
-        handle: handle({ title: "landing.nav.about" }),
-      },
-      {
-        path: "/privacidad",
-        element: page(<PrivacyRoute />),
-        handle: handle({ title: "landing.nav.privacy" }),
-      },
-      {
-        path: "/precios",
-        element: page(<PricingRoute />),
-        handle: handle({ title: "landing.nav.pricing" }),
-      },
-      {
-        path: "/preguntas",
-        element: page(<FaqRoute />),
-        handle: handle({ title: "landing.nav.faq" }),
-      },
       {
         path: "/accounts",
         element: protect(<AccountsRoute />),

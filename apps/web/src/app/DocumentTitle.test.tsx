@@ -22,7 +22,7 @@ function renderAt(path: string) {
         element: <DocumentTitle />,
         children: [
           { path: "/", element: <p>home</p>, handle: { signedInTitle: "nav.dashboard" } },
-          { path: "/precios", element: <p>pricing</p>, handle: { title: "landing.nav.pricing" } },
+          { path: "/accounts", element: <p>accounts</p>, handle: { title: "accounts.title" } },
         ],
       },
     ],
@@ -42,13 +42,13 @@ describe("tab title", () => {
   });
 
   it("names the section of the current route", async () => {
-    renderAt("/precios");
+    renderAt("/accounts");
     await waitFor(() =>
-      expect(document.title).toBe(`${i18n.t("brand.name")} · ${i18n.t("landing.nav.pricing")}`),
+      expect(document.title).toBe(`${i18n.t("brand.name")} · ${i18n.t("accounts.title")}`),
     );
   });
 
-  it("shows only the brand on the landing home for a visitor", async () => {
+  it("shows only the brand before the session is known", async () => {
     renderAt("/");
     await waitFor(() => expect(document.title).toBe(i18n.t("brand.name")));
   });

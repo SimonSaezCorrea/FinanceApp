@@ -12,19 +12,9 @@
     <!-- The theme is chosen in the app (data-theme), not only by the OS, so one tag is kept and
          rewritten to the resolved theme's background: below and in ThemeProvider. -->
     <meta name="theme-color" content="#0b1518" />
-    <meta
-      name="description"
-      content="Cuadra, la columna de tus finanzas. Cupo, cuotas y facturación como los lleva tu banco."
-    />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Cuadra" />
-    <meta property="og:title" content="Cuadra" />
-    <meta
-      property="og:description"
-      content="Tus finanzas con las reglas de tu banco: cupo compartido, cierre en días hábiles y cuotas."
-    />
-    <meta property="og:locale" content="es_CL" />
-    <meta name="twitter:card" content="summary" />
+    <!-- The app is not for search engines: the public site (apps/landing) is what gets indexed and
+         shared (spec 031, FR-019), so no description or Open Graph here. -->
+    <meta name="robots" content="noindex, nofollow" />
     <title>Cuadra</title>
     <!-- theme-prepaint: replaced at build/dev by vite.config.ts with @finance/ui/prepaint.mjs -->
   </head>

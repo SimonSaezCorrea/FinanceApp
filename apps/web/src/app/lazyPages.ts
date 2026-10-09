@@ -2,34 +2,14 @@ import { lazy } from "react";
 
 /**
  * Every page and the signed-in shell, loaded only when first visited. The entry bundle keeps just
- * the router, providers and auth: a visitor to the landing no longer downloads the app (charts,
- * accounts, the importer…), and a signed-in user downloads each section the first time they open
- * it. The `import()` paths are what Vite splits into chunks — keep one per page.
+ * the router, providers and auth, and a signed-in user downloads each section the first time they
+ * open it (the public landing is its own site, spec 031). The `import()` paths are what Vite splits into chunks — keep one per page.
  */
 
 // Signed-in shell (sidebar, tab bar, "Nuevo movimiento").
 export const AppLayout = lazy(() => import("./AppLayout").then((m) => ({ default: m.AppLayout })));
 export const DashboardPage = lazy(() =>
   import("./DashboardPage").then((m) => ({ default: m.DashboardPage })),
-);
-
-// Public landing.
-export const LandingHomeRoute = lazy(() =>
-  import("../domains/landing/routes/LandingHomeRoute").then((m) => ({
-    default: m.LandingHomeRoute,
-  })),
-);
-export const AboutRoute = lazy(() =>
-  import("../domains/landing/routes/AboutRoute").then((m) => ({ default: m.AboutRoute })),
-);
-export const PrivacyRoute = lazy(() =>
-  import("../domains/landing/routes/PrivacyRoute").then((m) => ({ default: m.PrivacyRoute })),
-);
-export const PricingRoute = lazy(() =>
-  import("../domains/landing/routes/PricingRoute").then((m) => ({ default: m.PricingRoute })),
-);
-export const FaqRoute = lazy(() =>
-  import("../domains/landing/routes/FaqRoute").then((m) => ({ default: m.FaqRoute })),
 );
 
 // App sections.
@@ -74,7 +54,7 @@ export const ProfileLayout = lazy(() =>
   import("../domains/profile/routes/ProfileLayout").then((m) => ({ default: m.ProfileLayout })),
 );
 
-// The 404 page (it draws the landing chrome for a visitor).
+// The 404 page.
 export const NotFoundRoute = lazy(() =>
   import("./NotFoundRoute").then((m) => ({ default: m.NotFoundRoute })),
 );

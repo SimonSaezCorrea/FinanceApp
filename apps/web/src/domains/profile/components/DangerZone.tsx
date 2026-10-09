@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router";
 
 import { ApiRequestError } from "@finance/client";
 import { Button } from "@finance/ui/src/shared/ui/button";
@@ -9,12 +8,13 @@ import { Field } from "../../../shared/ui/field";
 import { Input } from "@finance/ui/src/shared/ui/input";
 import { Switch } from "../../../shared/ui/switch";
 import { useProfileMutations } from "../hooks/useProfile";
+import { landingHomeUrl } from "../../../shared/lib/landingUrl";
+import { assignLocation } from "../../../shared/lib/leaveApp";
 
 /** "Eliminar cuenta", the last block of "Datos y privacidad" (specs/029) — never next to the user's
  * identity. Signing out lives in the sidebar's user menu, so it isn't repeated here. */
 export function DangerZone() {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { deleteAccount } = useProfileMutations();
   const [confirming, setConfirming] = useState(false);
   const [password, setPassword] = useState("");
@@ -25,7 +25,8 @@ export function DangerZone() {
     setError(null);
     try {
       await deleteAccount.mutateAsync({ password, keepHistory });
-      navigate("/");
+      // The account is gone: the person ends on the public site, not on a gate to sign in again.
+      assignLocation(landingHomeUrl());
     } catch (err) {
       const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
       setError(t(`errors.${code}`));
