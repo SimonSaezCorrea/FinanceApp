@@ -48,21 +48,21 @@ paquetes; 7 componentes de acceso movidos a la landing.
 
 _GATE: Must pass before Phase 0 research. Re-check after Phase 1 design._
 
-| Principio | Estado | Nota |
-|---|---|---|
-| I. Money precision | N/A | No toca dinero. |
-| II. Per-user isolation | ✅ | Sin datos nuevos; el API restringe orígenes con credenciales (FR-018). |
-| III. i18n parity | ✅ (enmienda) | Dos catálogos con paridad testeada: `@finance/i18n` (compartido) y `apps/landing` (`landing.*`). El texto del principio nombra rutas de `apps/web` → enmienda de redacción. |
-| IV. TDD | ✅ | Tests primero por historia (R14). |
-| V. SDD + memoria | ✅ | Este ciclo; constitución y CLAUDE.md se actualizan al cerrar. |
-| VI. Backend DDD+CQRS | ✅ | Solo `user` (registro) e `infra/config`; sin dominio nuevo. |
-| VII. Idempotencia | ✅ | Sin endpoints de escritura nuevos; `POST /auth/register` gana un campo opcional, mecanismo sin cambio. |
-| VIII. Identificadores | ✅ | Sin entidades nuevas. |
-| Monorepo / boundaries | ✅ (enmienda) | Se agrega una app y tres paquetes; `check:boundaries` gana reglas `landing ↛ web/api` y `web ↛ landing`. |
-| Domain-first | ✅ | `apps/landing/src/domains/{landing,auth}`; `src/pages` es el ruteo de Astro. |
-| Breakpoint stages | ✅ | `breakpoints.ts` pasa a `@finance/ui` como única fuente para ambas apps. |
-| One overlay family | ⚠️ justificado | Panel de acceso sigue en `SidePanel`; el menú del teléfono de la landing es `<dialog>` nativo (ver Complexity Tracking). |
-| Librerías aprobadas | ✅ (enmienda) | Astro, `@astrojs/react`, `@astrojs/sitemap`, `@resvg/resvg-js` (dev) se registran. |
+| Principio              | Estado         | Nota                                                                                                                                                                        |
+| ---------------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| I. Money precision     | N/A            | No toca dinero.                                                                                                                                                             |
+| II. Per-user isolation | ✅             | Sin datos nuevos; el API restringe orígenes con credenciales (FR-018).                                                                                                      |
+| III. i18n parity       | ✅ (enmienda)  | Dos catálogos con paridad testeada: `@finance/i18n` (compartido) y `apps/landing` (`landing.*`). El texto del principio nombra rutas de `apps/web` → enmienda de redacción. |
+| IV. TDD                | ✅             | Tests primero por historia (R14).                                                                                                                                           |
+| V. SDD + memoria       | ✅             | Este ciclo; constitución y CLAUDE.md se actualizan al cerrar.                                                                                                               |
+| VI. Backend DDD+CQRS   | ✅             | Solo `user` (registro) e `infra/config`; sin dominio nuevo.                                                                                                                 |
+| VII. Idempotencia      | ✅             | Sin endpoints de escritura nuevos; `POST /auth/register` gana un campo opcional, mecanismo sin cambio.                                                                      |
+| VIII. Identificadores  | ✅             | Sin entidades nuevas.                                                                                                                                                       |
+| Monorepo / boundaries  | ✅ (enmienda)  | Se agrega una app y tres paquetes; `check:boundaries` gana reglas `landing ↛ web/api` y `web ↛ landing`.                                                                    |
+| Domain-first           | ✅             | `apps/landing/src/domains/{landing,auth}`; `src/pages` es el ruteo de Astro.                                                                                                |
+| Breakpoint stages      | ✅             | `breakpoints.ts` pasa a `@finance/ui` como única fuente para ambas apps.                                                                                                    |
+| One overlay family     | ⚠️ justificado | Panel de acceso sigue en `SidePanel`; el menú del teléfono de la landing es `<dialog>` nativo (ver Complexity Tracking).                                                    |
+| Librerías aprobadas    | ✅ (enmienda)  | Astro, `@astrojs/react`, `@astrojs/sitemap`, `@resvg/resvg-js` (dev) se registran.                                                                                          |
 
 **Data gates:**
 
@@ -163,7 +163,7 @@ conserva domain-first (`src/domains/{landing,auth}`) y usa `src/pages` como rute
 
 ## Complexity Tracking
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|---|---|---|
+| Violation                                                                                            | Why Needed                                                                                                   | Simpler Alternative Rejected Because                                                                                                                        |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Menú del teléfono de la landing como `<dialog>` nativo en vez del `Window` de la familia de overlays | Abre al cargar cualquier página; usar `Window` exige React + Radix en todas las visitas, lo que anula SC-002 | Hidratar React al cargar (≈60 KB gzip extra en cada visita) contradice el objetivo de la feature; el panel de acceso, que sí es React, conserva `SidePanel` |
-| Tercera app en el monorepo | El sitio público necesita build estático y despliegue propio | Prerender dentro de la SPA mantiene la landing atada al runtime y al build de la app (research R1) |
+| Tercera app en el monorepo                                                                           | El sitio público necesita build estático y despliegue propio                                                 | Prerender dentro de la SPA mantiene la landing atada al runtime y al build de la app (research R1)                                                          |

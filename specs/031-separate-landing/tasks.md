@@ -30,12 +30,12 @@ Monorepo: `apps/landing/` (nuevo, Astro), `apps/web/` (la app), `apps/api/` (Nes
 
 **Purpose**: esqueletos de los proyectos nuevos y reglas del monorepo. Ningún comportamiento cambia.
 
-- [X] T001 [P] Crear `packages/ui` como paquete de fuente: `package.json` (`name: "@finance/ui"`, `type: "module"`, `exports` → `./src/*` para `.ts/.tsx/.css`, scripts `test`/`typecheck`/`lint`, peerDependencies `react`, `react-dom`, `react-i18next`, `lucide-react`, `@radix-ui/react-dialog`, `tailwindcss`), `tsconfig.json` extendiendo `@finance/config`, `vitest.config.ts` (jsdom) y `src/index.ts` vacío
-- [X] T002 [P] Crear `packages/client` (`@finance/client`) con la misma forma que T001 (sin dependencias de UI; `@finance/contracts` como dependencia) y `src/config.ts` exportando `configureClient({ baseUrl })` / `getBaseUrl()` que lanza si no se configuró
-- [X] T003 [P] Crear `packages/i18n` (`@finance/i18n`) con la misma forma (dependencias `i18next`, `react-i18next`) y `src/index.ts` vacío
+- [x] T001 [P] Crear `packages/ui` como paquete de fuente: `package.json` (`name: "@finance/ui"`, `type: "module"`, `exports` → `./src/*` para `.ts/.tsx/.css`, scripts `test`/`typecheck`/`lint`, peerDependencies `react`, `react-dom`, `react-i18next`, `lucide-react`, `@radix-ui/react-dialog`, `tailwindcss`), `tsconfig.json` extendiendo `@finance/config`, `vitest.config.ts` (jsdom) y `src/index.ts` vacío
+- [x] T002 [P] Crear `packages/client` (`@finance/client`) con la misma forma que T001 (sin dependencias de UI; `@finance/contracts` como dependencia) y `src/config.ts` exportando `configureClient({ baseUrl })` / `getBaseUrl()` que lanza si no se configuró
+- [x] T003 [P] Crear `packages/i18n` (`@finance/i18n`) con la misma forma (dependencias `i18next`, `react-i18next`) y `src/index.ts` vacío
 - [ ] T004 Crear `apps/landing` (`@finance/landing`): `package.json` con `astro`, `@astrojs/react`, `@astrojs/sitemap`, `react`, `react-dom`, `react-i18next`, `i18next`, `@finance/{ui,client,i18n,contracts}`, devDeps `@resvg/resvg-js`, `@astrojs/check`, `vitest`, `jsdom`, `@testing-library/react`, `tailwindcss@3`, `autoprefixer`, `postcss`, `typescript`; scripts `dev` (`astro dev --port 4321`), `build` (`astro build`), `preview`, `test` (`vitest run`), `test:build` (`vitest run --config vitest.build.config.ts`), `typecheck` (`astro check`), `lint`; `astro.config.mjs` (`output: "static"`, `site: process.env.PUBLIC_SITE_URL`, `integrations: [react(), sitemap()]`), `tailwind.config.ts`, `postcss.config.cjs`, `tsconfig.json`, `vitest.config.ts`, `vitest.build.config.ts`, `.env.example` (`PUBLIC_API_URL`, `PUBLIC_APP_URL`, `PUBLIC_SITE_URL`) y `src/pages/es/index.astro` mínima para comprobar que `pnpm --filter @finance/landing build` funciona
-- [X] T005 Enmendar YA `.specify/memory/constitution.md` (antes de mover nada, resuelve C1): Principio III con los catálogos en `packages/i18n/src/{es,en}.json` (compartido) y `apps/landing/src/i18n/{es,en}.json` (`landing.*`), cada uno con su test de paridad; "Target architecture" y "One-way dependencies" con `apps/landing` y `packages/{ui,client,i18n}`; bump MINOR + Sync Impact Report. Luego agregar reglas a `scripts/check-boundaries.mjs`: `apps/landing/src` no puede importar `@finance/(web|api)` ni `apps/`; `apps/web/src` no puede importar `@finance/landing` ni `apps/landing`; incluir `.astro` en las extensiones recorridas para `apps/landing`
-- [X] T006 [P] Agregar `VITE_LANDING_URL=http://localhost:4321` a `apps/web/.env.example` y cambiar `CORS_ORIGIN` en `apps/api/.env.example` a `"http://localhost:4321,http://localhost:5173"` con un comentario que explique la lista y `PASSKEY_RP_ID` opcional; declarar `PUBLIC_API_URL`, `PUBLIC_APP_URL`, `PUBLIC_SITE_URL`, `VITE_LANDING_URL` en `turbo.json` (`build.env`)
+- [x] T005 Enmendar YA `.specify/memory/constitution.md` (antes de mover nada, resuelve C1): Principio III con los catálogos en `packages/i18n/src/{es,en}.json` (compartido) y `apps/landing/src/i18n/{es,en}.json` (`landing.*`), cada uno con su test de paridad; "Target architecture" y "One-way dependencies" con `apps/landing` y `packages/{ui,client,i18n}`; bump MINOR + Sync Impact Report. Luego agregar reglas a `scripts/check-boundaries.mjs`: `apps/landing/src` no puede importar `@finance/(web|api)` ni `apps/`; `apps/web/src` no puede importar `@finance/landing` ni `apps/landing`; incluir `.astro` en las extensiones recorridas para `apps/landing`
+- [x] T006 [P] Agregar `VITE_LANDING_URL=http://localhost:4321` a `apps/web/.env.example` y cambiar `CORS_ORIGIN` en `apps/api/.env.example` a `"http://localhost:4321,http://localhost:5173"` con un comentario que explique la lista y `PASSKEY_RP_ID` opcional; declarar `PUBLIC_API_URL`, `PUBLIC_APP_URL`, `PUBLIC_SITE_URL`, `VITE_LANDING_URL` en `turbo.json` (`build.env`)
 - [ ] T007 `pnpm install` y verificar que `pnpm dev` levanta landing (:4321), web (:5173) y api (:3001)
 
 ---
@@ -47,31 +47,31 @@ varios orígenes. **⚠️ Ninguna historia empieza antes de terminar esta fase.
 
 ### Diseño y tema → `@finance/ui`
 
-- [X] T008 Mover a `packages/ui/src/styles/tokens.css` los bloques de tokens (`:root`, `[data-theme="light"]`, `@media (prefers-color-scheme…)`) de `apps/web/src/styles/index.css`, dejando en la app un `@import "@finance/ui/styles/tokens.css";` y su CSS propio (utilidades `.reveal`, `.ridge-draw`, `scrollbar-gutter`, etc. que use solo la app o la landing se reparten según quién las use)
-- [X] T009 Mover el `theme.extend`, `darkMode`, `future` y plugins de `apps/web/tailwind.config.ts` a `packages/ui/src/tailwind-preset.ts`; `apps/web/tailwind.config.ts` queda con `presets: [preset]` y `content` que incluya `../../packages/ui/src/**/*.{ts,tsx}`
-- [X] T010 Mover `apps/web/breakpoints.ts` a `packages/ui/src/breakpoints.ts` (re-exportado), y `shared/lib/cn.ts`, `shared/lib/useMediaQuery.ts`, `theme/ThemeProvider.tsx`, `theme/useTheme.ts` (+ `ThemeProvider.test.tsx`) a `packages/ui/src/`; extraer el script de pre-pintado de `apps/web/index.html` a `packages/ui/src/theme/prePaint.ts` (string exportado) y usarlo desde un plugin `transformIndexHtml` en `apps/web/vite.config.ts`
-- [X] T011 Mover a `packages/ui/src/components/` la clausura transitiva (todo lo que importan, salvo lo ya movido) de: `shared/ui/button.tsx`, `button-classes.ts`, `brand-mark.tsx`, `app-splash.tsx`, `theme-segmented.tsx`, `theme-toggle.tsx`, `form/FormNotice.tsx`, `form/FormSelectField.tsx`, `form/FormTextField.tsx`, `overlay/*` — con sus tests (`theme-segmented.test.tsx`, los casos de `ui.test.tsx` que les correspondan); exportarlos desde `packages/ui/src/index.ts`
-- [X] T012 Codemod en `apps/web/src`: reemplazar cada import relativo a un archivo movido en T010–T011 por `@finance/ui` (o su subruta), y agregar `@finance/ui` a `apps/web/package.json`
-- [X] T013 Configurar `apps/web/vite.config.ts` y `vitest.config.ts` para que resuelvan los paquetes de fuente (condición `source`/alias si hace falta) y correr `pnpm --filter @finance/ui test`
+- [x] T008 Mover a `packages/ui/src/styles/tokens.css` los bloques de tokens (`:root`, `[data-theme="light"]`, `@media (prefers-color-scheme…)`) de `apps/web/src/styles/index.css`, dejando en la app un `@import "@finance/ui/styles/tokens.css";` y su CSS propio (utilidades `.reveal`, `.ridge-draw`, `scrollbar-gutter`, etc. que use solo la app o la landing se reparten según quién las use)
+- [x] T009 Mover el `theme.extend`, `darkMode`, `future` y plugins de `apps/web/tailwind.config.ts` a `packages/ui/src/tailwind-preset.ts`; `apps/web/tailwind.config.ts` queda con `presets: [preset]` y `content` que incluya `../../packages/ui/src/**/*.{ts,tsx}`
+- [x] T010 Mover `apps/web/breakpoints.ts` a `packages/ui/src/breakpoints.ts` (re-exportado), y `shared/lib/cn.ts`, `shared/lib/useMediaQuery.ts`, `theme/ThemeProvider.tsx`, `theme/useTheme.ts` (+ `ThemeProvider.test.tsx`) a `packages/ui/src/`; extraer el script de pre-pintado de `apps/web/index.html` a `packages/ui/src/theme/prePaint.ts` (string exportado) y usarlo desde un plugin `transformIndexHtml` en `apps/web/vite.config.ts`
+- [x] T011 Mover a `packages/ui/src/components/` la clausura transitiva (todo lo que importan, salvo lo ya movido) de: `shared/ui/button.tsx`, `button-classes.ts`, `brand-mark.tsx`, `app-splash.tsx`, `theme-segmented.tsx`, `theme-toggle.tsx`, `form/FormNotice.tsx`, `form/FormSelectField.tsx`, `form/FormTextField.tsx`, `overlay/*` — con sus tests (`theme-segmented.test.tsx`, los casos de `ui.test.tsx` que les correspondan); exportarlos desde `packages/ui/src/index.ts`
+- [x] T012 Codemod en `apps/web/src`: reemplazar cada import relativo a un archivo movido en T010–T011 por `@finance/ui` (o su subruta), y agregar `@finance/ui` a `apps/web/package.json`
+- [x] T013 Configurar `apps/web/vite.config.ts` y `vitest.config.ts` para que resuelvan los paquetes de fuente (condición `source`/alias si hace falta) y correr `pnpm --filter @finance/ui test`
 
 ### Cliente HTTP → `@finance/client`
 
-- [X] T014 Mover `apps/web/src/shared/lib/apiClient.ts` (+ tests), `shared/lib/webauthn.ts`, `domains/auth/api/authApi.ts` y `domains/auth/api/passkeyApi.ts` a `packages/client/src/`, reemplazando la lectura de `import.meta.env.VITE_API_URL` por `getBaseUrl()`; exportar desde `src/index.ts`
-- [X] T015 En `apps/web/src/main.tsx` llamar `configureClient({ baseUrl: import.meta.env.VITE_API_URL })` antes de montar; codemod de imports en `apps/web/src` a `@finance/client`; setup de tests de la app configura el cliente
+- [x] T014 Mover `apps/web/src/shared/lib/apiClient.ts` (+ tests), `shared/lib/webauthn.ts`, `domains/auth/api/authApi.ts` y `domains/auth/api/passkeyApi.ts` a `packages/client/src/`, reemplazando la lectura de `import.meta.env.VITE_API_URL` por `getBaseUrl()`; exportar desde `src/index.ts`
+- [x] T015 En `apps/web/src/main.tsx` llamar `configureClient({ baseUrl: import.meta.env.VITE_API_URL })` antes de montar; codemod de imports en `apps/web/src` a `@finance/client`; setup de tests de la app configura el cliente
 
 ### Textos → `@finance/i18n` y catálogo de la landing
 
-- [X] T016 Mover `apps/web/src/i18n/{es,en}.json` **completos** (incluidas las `landing.*`, que la landing vieja de la app usa hasta T057) a `packages/i18n/src/{es,en}.json`, y `parity.test.ts` a `packages/i18n/src/`; exportar `createI18n(lang, extraResources?)` y los catálogos desde `packages/i18n/src/index.ts`; `apps/web/src/i18n/index.ts` pasa a usar `createI18n`
+- [x] T016 Mover `apps/web/src/i18n/{es,en}.json` **completos** (incluidas las `landing.*`, que la landing vieja de la app usa hasta T057) a `packages/i18n/src/{es,en}.json`, y `parity.test.ts` a `packages/i18n/src/`; exportar `createI18n(lang, extraResources?)` y los catálogos desde `packages/i18n/src/index.ts`; `apps/web/src/i18n/index.ts` pasa a usar `createI18n`
 - [ ] T017 **Copiar** las claves `landing.*` (es/en) a `apps/landing/src/i18n/{es,en}.json` con su propio `parity.test.ts` (T057 las borra de `@finance/i18n` en el corte)
 
 ### Verificación de la fase de paquetes
 
-- [X] T018 Correr `pnpm check:boundaries`, `pnpm --filter @finance/web typecheck`, `pnpm --filter @finance/web test`, `pnpm --filter @finance/web build` y los tests de los tres paquetes: todo verde y la app sin cambios visibles
+- [x] T018 Correr `pnpm check:boundaries`, `pnpm --filter @finance/web typecheck`, `pnpm --filter @finance/web test`, `pnpm --filter @finance/web build` y los tests de los tres paquetes: todo verde y la app sin cambios visibles
 
 ### API: varios orígenes (TDD)
 
-- [X] T019 [P] Test unitario en `apps/api/test/unit/infra/config/origins.config.spec.ts`: parsea `"a,b"` a arreglo, acepta el valor único de hoy, recorta espacios, rechaza URL con path/barra final/no-http, `rpId` por defecto = hostname del primer origen, `PASSKEY_RP_ID` explícito gana, y falla si algún origen no es el `rpId` ni subdominio de él (casos `cuadra.cl` + `app.cuadra.cl` ✓, `otro.cl` ✗, `localhost:4321` + `localhost:5173` ✓); más un e2e `apps/api/test/e2e/infra/cors.http.spec.ts`: un preflight/GET con `Origin` listado recibe `Access-Control-Allow-Origin` igual al origen y `Access-Control-Allow-Credentials: true`; con `Origin: https://evil.example` no recibe `Access-Control-Allow-Origin` (FR-018)
-- [X] T020 Implementar `apps/api/src/infra/config/origins.config.ts` (`getAllowedOrigins(config)`, `getPasskeyRpId(config)`, validación que lanza al arrancar) y usarlo en `apps/api/src/main.ts` (`enableCors({ origin: getAllowedOrigins(config), credentials: true })`)
+- [x] T019 [P] Test unitario en `apps/api/test/unit/infra/config/origins.config.spec.ts`: parsea `"a,b"` a arreglo, acepta el valor único de hoy, recorta espacios, rechaza URL con path/barra final/no-http, `rpId` por defecto = hostname del primer origen, `PASSKEY_RP_ID` explícito gana, y falla si algún origen no es el `rpId` ni subdominio de él (casos `cuadra.cl` + `app.cuadra.cl` ✓, `otro.cl` ✗, `localhost:4321` + `localhost:5173` ✓); más un e2e `apps/api/test/e2e/infra/cors.http.spec.ts`: un preflight/GET con `Origin` listado recibe `Access-Control-Allow-Origin` igual al origen y `Access-Control-Allow-Credentials: true`; con `Origin: https://evil.example` no recibe `Access-Control-Allow-Origin` (FR-018)
+- [x] T020 Implementar `apps/api/src/infra/config/origins.config.ts` (`getAllowedOrigins(config)`, `getPasskeyRpId(config)`, validación que lanza al arrancar) y usarlo en `apps/api/src/main.ts` (`enableCors({ origin: getAllowedOrigins(config), credentials: true })`)
 
 **Checkpoint**: paquetes listos, la app idéntica, el API acepta landing y app.
 
@@ -161,13 +161,13 @@ inicia sesión, luego redirige a la app con `volver`.
 
 ### Tests for User Story 6 ⚠️
 
-- [X] T047 [P] [US6] Test unitario en `apps/api/test/unit/infra/config/passkey.config.spec.ts`: `getPasskeyExpectedOrigins` devuelve todos los orígenes de `CORS_ORIGIN`; `getPasskeyRpId` respeta `PASSKEY_RP_ID`
-- [X] T048 [P] [US6] Ajustar los tests unitarios de `verify-passkey-login`, `confirm-passkey-registration` y `verify-step-up-passkey` (en `apps/api/test/unit/domains/user/…`) para esperar `expectedOrigin` como arreglo y `expectedRPID` desde la configuración
+- [x] T047 [P] [US6] Test unitario en `apps/api/test/unit/infra/config/passkey.config.spec.ts`: `getPasskeyExpectedOrigins` devuelve todos los orígenes de `CORS_ORIGIN`; `getPasskeyRpId` respeta `PASSKEY_RP_ID`
+- [x] T048 [P] [US6] Ajustar los tests unitarios de `verify-passkey-login`, `confirm-passkey-registration` y `verify-step-up-passkey` (en `apps/api/test/unit/domains/user/…`) para esperar `expectedOrigin` como arreglo y `expectedRPID` desde la configuración
 
 ### Implementation for User Story 6
 
-- [X] T049 [US6] Reescribir `apps/api/src/infra/config/passkey.config.ts` sobre `origins.config.ts`: `getPasskeyExpectedOrigins(config): string[]`, `getPasskeyRpId` re-exportado
-- [X] T050 [US6] Actualizar `start-passkey-registration`, `confirm-passkey-registration`, `start-passkey-login`, `verify-passkey-login`, `start-step-up-passkey` y `verify-step-up-passkey` handlers en `apps/api/src/domains/user/application/commands/` para pasar el arreglo y el `rpId`
+- [x] T049 [US6] Reescribir `apps/api/src/infra/config/passkey.config.ts` sobre `origins.config.ts`: `getPasskeyExpectedOrigins(config): string[]`, `getPasskeyRpId` re-exportado
+- [x] T050 [US6] Actualizar `start-passkey-registration`, `confirm-passkey-registration`, `start-passkey-login`, `verify-passkey-login`, `start-step-up-passkey` y `verify-step-up-passkey` handlers en `apps/api/src/domains/user/application/commands/` para pasar el arreglo y el `rpId`
 - [ ] T051 [US6] Correr la suite unit + e2e de passkeys del API; probar en navegador: registrar llave en la app (:5173), entrar con ella en la landing (:4321) y usarla en la verificación previa a cerrar otra sesión
 
 ---

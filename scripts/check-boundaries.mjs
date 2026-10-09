@@ -87,4 +87,6 @@ if (violations.length > 0) {
   console.error("✗ Architecture boundary violations:\n" + violations.join("\n"));
   process.exit(1);
 }
-console.log("✓ Architecture boundaries OK (web↛api/db/landing, api↛web/landing, landing↛web/api/db, packages↛apps)");
+console.log(
+  "✓ Architecture boundaries OK (web↛api/db/landing, api↛web/landing, landing↛web/api/db, packages↛apps)",
+);

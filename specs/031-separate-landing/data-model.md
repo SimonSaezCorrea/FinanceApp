@@ -5,8 +5,8 @@ app y el API, y un campo opcional en un contrato existente.
 
 ## Contrato: `registerRequestSchema` (`@finance/contracts`, `auth`)
 
-| Campo | Tipo | Cambio | Regla |
-|---|---|---|---|
+| Campo    | Tipo           | Cambio              | Regla                                                                   |
+| -------- | -------------- | ------------------- | ----------------------------------------------------------------------- |
 | `locale` | `"es" \| "en"` | **nuevo, opcional** | Si viene, es el idioma inicial de la cuenta; si falta, `es` (como hoy). |
 
 `User.locale` ya existe; `RegisterHandler` lo inicializa con el valor recibido. Iniciar sesión no lo
@@ -27,28 +27,28 @@ modifica.
 
 ## Configuración: orígenes del API
 
-| Variable | Formato | Default | Validación al arrancar |
-|---|---|---|---|
-| `CORS_ORIGIN` | lista separada por comas de orígenes absolutos | `http://localhost:5173` | cada uno es URL `http(s)://host[:port]` sin path ni barra final |
-| `PASSKEY_RP_ID` | hostname | hostname del primer origen | el host de cada origen es igual al `rpId` o termina en `.${rpId}` |
+| Variable        | Formato                                        | Default                    | Validación al arrancar                                            |
+| --------------- | ---------------------------------------------- | -------------------------- | ----------------------------------------------------------------- |
+| `CORS_ORIGIN`   | lista separada por comas de orígenes absolutos | `http://localhost:5173`    | cada uno es URL `http(s)://host[:port]` sin path ni barra final   |
+| `PASSKEY_RP_ID` | hostname                                       | hostname del primer origen | el host de cada origen es igual al `rpId` o termina en `.${rpId}` |
 
 ## Configuración: URLs entre apps
 
-| App | Variable | Uso |
-|---|---|---|
-| landing | `PUBLIC_API_URL` | base del API para el panel y la comprobación de sesión |
-| landing | `PUBLIC_APP_URL` | destino tras el acceso e "Ir a la app" |
-| landing | `PUBLIC_SITE_URL` | base de `canonical`, `hreflang`, `og:url`, sitemap |
-| web | `VITE_API_URL` | (ya existe) |
-| web | `VITE_LANDING_URL` | destino de acceso sin sesión y de cerrar sesión |
+| App     | Variable           | Uso                                                    |
+| ------- | ------------------ | ------------------------------------------------------ |
+| landing | `PUBLIC_API_URL`   | base del API para el panel y la comprobación de sesión |
+| landing | `PUBLIC_APP_URL`   | destino tras el acceso e "Ir a la app"                 |
+| landing | `PUBLIC_SITE_URL`  | base de `canonical`, `hreflang`, `og:url`, sitemap     |
+| web     | `VITE_API_URL`     | (ya existe)                                            |
+| web     | `VITE_LANDING_URL` | destino de acceso sin sesión y de cerrar sesión        |
 
 ## Página pública
 
-| Atributo | Fuente |
-|---|---|
-| `lang` | segmento de la dirección (`es`, `en`) |
-| `slug` | `""`, `about`, `privacy`, `pricing`, `faq` |
+| Atributo             | Fuente                                                               |
+| -------------------- | -------------------------------------------------------------------- |
+| `lang`               | segmento de la dirección (`es`, `en`)                                |
+| `slug`               | `""`, `about`, `privacy`, `pricing`, `faq`                           |
 | título / descripción | `landing.meta.<page>.{title,description}` del catálogo de la landing |
-| canonical | `PUBLIC_SITE_URL/{lang}/{slug}` |
-| alternativas | `hreflang="es"`, `hreflang="en"`, `hreflang="x-default"` → `/` |
-| imagen OG | `/og/cuadra-{lang}.png` |
+| canonical            | `PUBLIC_SITE_URL/{lang}/{slug}`                                      |
+| alternativas         | `hreflang="es"`, `hreflang="en"`, `hreflang="x-default"` → `/`       |
+| imagen OG            | `/og/cuadra-{lang}.png`                                              |

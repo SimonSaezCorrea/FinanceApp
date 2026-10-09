@@ -6,7 +6,9 @@
   "description": "Cuadra's design system: tokens, Tailwind preset, theme and the primitives shared by the app and the public site. Source-only: consumers compile it.",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
-  "sideEffects": ["*.css"],
+  "sideEffects": [
+    "*.css"
+  ],
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",

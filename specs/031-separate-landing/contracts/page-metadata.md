@@ -3,22 +3,25 @@
 ## Cada página pública (`/{lang}/{slug}`)
 
 ```html
-<html lang="{lang}" data-theme="…">            <!-- pre-pintado de tema antes del primer paint -->
-<title>{landing.meta.<page>.title}</title>
-<meta name="description" content="{landing.meta.<page>.description}">
-<link rel="canonical" href="{SITE}/{lang}/{slug}">
-<link rel="alternate" hreflang="es" href="{SITE}/es/{slug}">
-<link rel="alternate" hreflang="en" href="{SITE}/en/{slug}">
-<link rel="alternate" hreflang="x-default" href="{SITE}/">
-<meta property="og:type" content="website">
-<meta property="og:site_name" content="Cuadra">
-<meta property="og:title" content="{title}">
-<meta property="og:description" content="{description}">
-<meta property="og:url" content="{SITE}/{lang}/{slug}">
-<meta property="og:image" content="{SITE}/og/cuadra-{lang}.png">   <!-- 1200×630 -->
-<meta property="og:locale" content="{es_CL | en_US}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="theme-color" content="…">
+<html lang="{lang}" data-theme="…">
+  <!-- pre-pintado de tema antes del primer paint -->
+  <title>{landing.meta.<page>.title}</title>
+  <meta name="description" content="{landing.meta.<page>.description}" />
+  <link rel="canonical" href="{SITE}/{lang}/{slug}" />
+  <link rel="alternate" hreflang="es" href="{SITE}/es/{slug}" />
+  <link rel="alternate" hreflang="en" href="{SITE}/en/{slug}" />
+  <link rel="alternate" hreflang="x-default" href="{SITE}/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Cuadra" />
+  <meta property="og:title" content="{title}" />
+  <meta property="og:description" content="{description}" />
+  <meta property="og:url" content="{SITE}/{lang}/{slug}" />
+  <meta property="og:image" content="{SITE}/og/cuadra-{lang}.png" />
+  <!-- 1200×630 -->
+  <meta property="og:locale" content="{es_CL | en_US}" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="theme-color" content="…" />
+</html>
 ```
 
 - `page ∈ {home, about, privacy, pricing, faq}`; claves en el catálogo de la landing, es/en.

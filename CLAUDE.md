@@ -189,7 +189,7 @@ paymentDueCycleType)` gained a CALENDAR_DAY branch (the first occurrence of `pay
     `nextClosingDate`/`dueDate` of accounts configured before. **The daily billing cron is removed**
     (`billing-generation.cron.ts`, `GenerateAllDueStatementsCommand`/Handler,
     `listDueForBilling`, `accountIdsWithCycleDay`): nothing closes on its own. **`POST
-    /accounts/:id/generate-statements` now requires a body** (`accounts.generateStatementSchema`:
+/accounts/:id/generate-statements` now requires a body** (`accounts.generateStatementSchema`:
     `periodStart`, `closedAt`, `dueDate` — instants; the web sends the START of the first day and
     the END of the close/due days in the user's zone, so a movement recorded at local midnight on
     the closing day falls inside the window `[periodStart, closedAt)`). `GenerateStatementsHandler`:
@@ -208,7 +208,7 @@ paymentDueCycleType)` gained a CALENDAR_DAY branch (the first occurrence of `pay
     Fecha de pago — required), with local checks mirroring the server's and the open periods'
     accumulated amounts. i18n `accounts.generate.*`.
     Amendment (editing a statement's dates, 2026-10-07): **`PATCH
-    /accounts/:id/credit-statements/:statementId/dates`** (`accounts.updateStatementDatesSchema`,
+/accounts/:id/credit-statements/:statementId/dates`** (`accounts.updateStatementDatesSchema`,
     same shape/rules as generating; answers the whole list) — `UpdateStatementDatesCommand`/Handler.
     Applies to the statement AND its siblings in other currencies (same `closedAt`, generated
     together). The due date can always change; start/close only while none of them is settled
@@ -918,7 +918,7 @@ outgoing, incoming}`). Rules in `transaction/domain/transfer-policy.ts`: two DIF
     to add up each primary account's `balanceSeries` (no card debt, no debts, a credit card
     account's own balance counted, future-dated movements reversed out of today), so its last
     point never matched the hero. `dashboard/lib/metrics.ts`'s **`netWorthSeries(netNow, txs,
-    now)`** walks back `SERIES_DAYS` (30) from the hero: a day's point is the hero minus every
+now)`** walks back `SERIES_DAYS` (30) from the hero: a day's point is the hero minus every
     primary-currency movement after that day ended and up to now (an income raised net worth, an
     expense — a card purchase included — lowered it), skipping internal flows
     (`transactions.isInternalFlow`) and debt payments (`debtId`: cash and debt move together);

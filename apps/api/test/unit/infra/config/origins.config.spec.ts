@@ -67,14 +67,19 @@ describe("assertOriginsMatchRpId", () => {
   it("accepts the rpId itself and its subdomains", () => {
     expect(() =>
       assertOriginsMatchRpId(
-        config({ CORS_ORIGIN: "https://cuadra.cl,https://app.cuadra.cl", PASSKEY_RP_ID: "cuadra.cl" }),
+        config({
+          CORS_ORIGIN: "https://cuadra.cl,https://app.cuadra.cl",
+          PASSKEY_RP_ID: "cuadra.cl",
+        }),
       ),
     ).not.toThrow();
   });
 
   it("accepts localhost on several ports", () => {
     expect(() =>
-      assertOriginsMatchRpId(config({ CORS_ORIGIN: "http://localhost:4321,http://localhost:5173" })),
+      assertOriginsMatchRpId(
+        config({ CORS_ORIGIN: "http://localhost:4321,http://localhost:5173" }),
+      ),
     ).not.toThrow();
   });
 

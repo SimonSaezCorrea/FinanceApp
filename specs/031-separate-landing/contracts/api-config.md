@@ -32,10 +32,14 @@ PASSKEY_RP_ID="cuadra.cl"   # producción
 
 ```jsonc
 {
-  "name": "…", "email": "…", "password": "…", "identifierValue": "…", "birthDate": "…",
+  "name": "…",
+  "email": "…",
+  "password": "…",
+  "identifierValue": "…",
+  "birthDate": "…",
   "sensitiveDataConsent": true,
-  "guardianAuthorization": { /* igual que hoy, solo menores */ },
-  "locale": "en"            // NUEVO, opcional: "es" | "en"
+  "guardianAuthorization": {/* igual que hoy, solo menores */},
+  "locale": "en", // NUEVO, opcional: "es" | "en"
 }
 ```
 

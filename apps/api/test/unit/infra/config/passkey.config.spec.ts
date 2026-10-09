@@ -14,7 +14,10 @@ describe("passkey config", () => {
   });
 
   it("accepts a ceremony from every allowed origin", () => {
-    expect(getPasskeyExpectedOrigins(config)).toEqual(["https://cuadra.cl", "https://app.cuadra.cl"]);
+    expect(getPasskeyExpectedOrigins(config)).toEqual([
+      "https://cuadra.cl",
+      "https://app.cuadra.cl",
+    ]);
   });
 
   it("uses the parent domain as rpId", () => {
