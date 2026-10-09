@@ -5,3 +5,7 @@ build
 pnpm-lock.yaml
 *.generated.ts
 graphify-out
+# Agent skill packs (third-party docs installed by tools, not project code)
+.agents
+.aider-desk
+apps/api/.agents

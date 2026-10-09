@@ -52,3 +52,9 @@ graphify-out/.rebuild.lock
 
 # astro
 apps/landing/.astro
+
+# Prisma agent skills (installed locally by `prisma generate`; symlinks with absolute paths)
+apps/api/.agents/
+apps/api/.claude/
+apps/api/.windsurf/
+apps/api/skills-lock.json
