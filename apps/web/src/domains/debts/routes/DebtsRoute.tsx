@@ -31,6 +31,7 @@ import { DebtsSkeleton } from "../components/DebtsSkeleton";
 import { useDebtMutations } from "../hooks/useDebtMutations";
 import { useDebts } from "../hooks/useDebts";
 import { isOverdue, uniquePeopleCount } from "../lib/debtMetrics";
+import { useLinkedSelection } from "../../../shared/lib/useLinkedSelection";
 
 type DebtDirFilter = "ALL" | "OWED_TO_YOU" | "YOU_OWE" | "OVERDUE";
 type StatusFilter = "active" | "settled" | "all";
@@ -48,7 +49,7 @@ export function DebtsRoute() {
 
   const [debtDir, setDebtDir] = useState<DebtDirFilter>("ALL");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useLinkedSelection("debt");
   const [form, setForm] = useState<{ mode: "create" | "edit"; debtId: string | null } | null>(null);
   // Retained through the close so the panel can play its exit animation
   // instead of vanishing the instant `form` clears — `mode`/`title` would

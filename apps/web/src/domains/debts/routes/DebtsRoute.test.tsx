@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
+import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { debts } from "@finance/contracts";
@@ -72,12 +73,14 @@ function makeDebt(overrides: Partial<debts.Debt> = {}): debts.Debt {
   };
 }
 
-function renderRoute() {
+function renderRoute(path = "/debts") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={client}>
       <I18nextProvider i18n={i18n}>
-        <DebtsRoute />
+        <MemoryRouter initialEntries={[path]}>
+          <DebtsRoute />
+        </MemoryRouter>
       </I18nextProvider>
     </QueryClientProvider>,
   );
@@ -122,6 +125,16 @@ describe("DebtsRoute", () => {
     tapRow(screen.getByText(/Acme Corp/));
 
     await waitFor(() => expect(screen.getByText(i18n.t("debts.detail.eyebrow"))).toBeDefined());
+  });
+
+  it("a link with ?debt=<id> opens that debt's detail, even when the filter hides it", async () => {
+    vi.mocked(debtsApi.list).mockResolvedValue([
+      makeDebt({ id: "d2", counterparty: "Ximena", settledAt: "2026-02-01T00:00:00.000Z" }),
+    ]);
+    renderRoute("/debts?debt=d2");
+
+    await waitFor(() => expect(screen.getByText(i18n.t("debts.detail.eyebrow"))).toBeDefined());
+    expect(screen.getAllByText(/Ximena/).length).toBeGreaterThan(0);
   });
 
   it("opening Editar from the detail panel switches to the edit form", async () => {

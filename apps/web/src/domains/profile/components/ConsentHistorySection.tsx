@@ -2,6 +2,7 @@ import { ShieldCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { useConsentsQuery } from "../hooks/useProfile";
+import { ProfileListRowsSkeleton } from "./ProfileSectionSkeleton";
 
 const CONSENT_TYPE_KEYS: Record<string, string> = {
   SENSITIVE_DATA_PROCESSING: "profile.consents.type.sensitiveDataProcessing",
@@ -42,9 +43,7 @@ export function ConsentHistorySection() {
       </div>
       <div className="overflow-hidden rounded-lg border">
         {isLoading ? (
-          <p className="px-3.5 py-2.5 text-xs text-muted-foreground">
-            {t("profile.consents.loading")}
-          </p>
+          <ProfileListRowsSkeleton label={t("profile.consents.loading")} rows={1} />
         ) : (
           list.map((c, i) => (
             <div key={c.id} className={cnRow(i, list.length)}>

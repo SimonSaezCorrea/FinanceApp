@@ -26,7 +26,7 @@ export class TemplateReadError extends Error {
 export interface TemplateCellRow {
   row: number;
   cells: Record<string, Cell>;
-  /** Carries an "ID Cuadra": it came from a pre-filled template and is already in
+  /** Carries an "ID fik": it came from a pre-filled template and is already in
    * the app. Skipped when adding; the history itself when replacing everything. */
   existing?: boolean;
 }
@@ -40,11 +40,11 @@ export type Labelers = TFunction[];
 const isEmpty = (cell: Cell) => cell === null || cell === undefined || String(cell).trim() === "";
 
 /**
- * Recognises a Cuadra template among the sheets of a workbook and returns each
+ * Recognises a fik template among the sheets of a workbook and returns each
  * data sheet's non-empty rows, cells keyed by column. Sheets and columns are
  * matched by their labels in EVERY language, so what's read never depends on
  * the language the app happens to be in. A column the template doesn't know is
- * ignored; one the user deleted just reads as empty. A row with an "ID Cuadra"
+ * ignored; one the user deleted just reads as empty. A row with an "ID fik"
  * (a pre-filled template's existing data) is flagged `existing`.
  */
 export function parseTemplateSheets(sheets: Sheet[], labelers: Labelers): TemplateSheetsRead {
@@ -94,7 +94,7 @@ export function parseTemplateSheets(sheets: Sheet[], labelers: Labelers): Templa
   return read;
 }
 
-/** Reads an uploaded file as a Cuadra template. */
+/** Reads an uploaded file as a fik template. */
 export async function readTemplate(file: File, labelers: Labelers): Promise<TemplateSheetsRead> {
   let sheets: Sheet[];
   try {

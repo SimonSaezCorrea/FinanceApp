@@ -7,7 +7,7 @@ import { importApi } from "../api/importApi";
 /** Everything a template can create or move — refreshed after an import. */
 const AFFECTED = ["accounts", "transactions", "debts", "installments", "recurring", "savings"];
 
-/** Previewing (a read, despite the POST) and importing a Cuadra template. */
+/** Previewing (a read, despite the POST) and importing a fik template. */
 export function useTemplateImport() {
   const queryClient = useQueryClient();
   const preview = useMutation({

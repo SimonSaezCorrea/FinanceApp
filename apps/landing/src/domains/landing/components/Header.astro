@@ -1,7 +1,7 @@
 ---
 import { Menu } from "lucide-react";
 
-import { BrandMark } from "@finance/ui/src/shared/ui/brand-mark";
+import { BrandLogo } from "@finance/ui/src/shared/ui/brand-logo";
 import { buttonClasses } from "@finance/ui/src/shared/ui/button-classes";
 
 import { t } from "../../../i18n";
@@ -37,11 +37,7 @@ const NAV = [
     class="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-2 px-4 pb-3 pt-3 sm:gap-x-3 sm:pb-0 lg:gap-x-6 lg:pb-3"
   >
     <a href={pagePath(lang, "home")} class="mr-auto flex items-center gap-2.5">
-      <BrandMark className="h-8 w-8" />
-      <span class="flex flex-col leading-tight">
-        <span class="text-base font-semibold tracking-tight">{t(lang, "brand.name")}</span>
-        <span class="hidden text-xs text-muted-foreground sm:block">{t(lang, "brand.slogan")}</span>
-      </span>
+      <BrandLogo className="h-11" title={t(lang, "brand.name")} />
     </a>
 
     <nav

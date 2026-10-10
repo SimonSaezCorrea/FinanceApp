@@ -19,6 +19,7 @@ import { usePasskeysQuery, useProfileMutations, useSessionsQuery } from "../hook
 import { MfaEnrollmentPanel } from "./MfaEnrollmentPanel";
 import { PasskeySection } from "./PasskeySection";
 import { StepUpPanel } from "./StepUpPanel";
+import { ProfileListRowsSkeleton } from "./ProfileSectionSkeleton";
 
 /** A password input with a show/hide toggle — the eye icon reveals it
  * temporarily, same interaction language `MaskedAmount` already uses for
@@ -416,9 +417,7 @@ export function SecuritySection() {
         </div>
         <div className="overflow-hidden rounded-lg border">
           {sessionsLoading ? (
-            <p className="px-3.5 py-2.5 text-xs text-muted-foreground">
-              {t("profile.security.sessions.loading")}
-            </p>
+            <ProfileListRowsSkeleton label={t("profile.security.sessions.loading")} />
           ) : (
             openSessions.map((s, i) => (
               <SessionRow

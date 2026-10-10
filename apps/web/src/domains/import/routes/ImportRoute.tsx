@@ -33,7 +33,7 @@ import { existingRows } from "../lib/templateData";
  * the page first asks which one, then opens the import panel for it. Only active
  * accounts are offered — an inactive one takes no new movements.
  *
- * Above it, the Cuadra template (specs/027): download a spreadsheet built with the
+ * Above it, the fik template (specs/027): download a spreadsheet built with the
  * user's own accounts, cards and categories, fill it, upload it — for bringing a
  * whole personal spreadsheet (debts, instalments, goals…) in one go.
  */

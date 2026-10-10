@@ -10,7 +10,7 @@ import { paint } from "../components/illustrations/paint";
 const P = "landing.about";
 
 /** Not a sequence, so no numbers: each rule is a title beside its explanation and a concrete case
- * from the app, the one thing this page adds over the home's "por qué Cuadra". */
+ * from the app, the one thing this page adds over the home's "por qué fik". */
 const PRINCIPLES = ["noInvented", "reversible", "chileFirst"] as const;
 
 /** The dot is a real state (available / paused / pending), the one case a colored dot earns. */
@@ -63,6 +63,15 @@ export function AboutPage() {
             <p className="max-w-[60ch] text-base leading-relaxed text-muted-foreground sm:text-[17px]">
               {t(`${P}.how.body`)}
             </p>
+            {/* Where the name comes from, as a note in the same voice as the principles' examples. */}
+            <p className="flex max-w-[60ch] flex-col gap-1 border-l-2 border-primary pl-4 text-[15px] leading-relaxed">
+              <span className="font-mono text-xs font-semibold text-primary">
+                {t(`${P}.name.title`)}
+              </span>
+              <span>
+                <span className="font-semibold">{t("brand.slogan")}.</span> {t(`${P}.name.body`)}
+              </span>
+            </p>
           </div>
         </section>
 
@@ -83,7 +92,7 @@ export function AboutPage() {
                   <p className="text-[15px] leading-relaxed text-muted-foreground md:text-base">
                     {t(`${P}.principles.${key}.body`)}
                   </p>
-                  <p className="flex flex-col gap-1 border-l-2 border-primary pl-4 text-[15px] leading-relaxed">
+                  <p className="flex max-w-[60ch] flex-col gap-1 border-l-2 border-primary pl-4 text-[15px] leading-relaxed">
                     <span className="font-mono text-xs font-semibold text-primary">
                       {t(`${P}.inTheApp`)}
                     </span>

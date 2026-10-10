@@ -1,7 +1,7 @@
 {
   "brand": {
-    "name": "Cuadra",
-    "slogan": "La columna de tus finanzas"
+    "name": "fik",
+    "slogan": "La columna que hace cuadrar tus finanzas"
   },
   "app": {
     "loading": "Cargando…",
@@ -21,7 +21,8 @@
       "message": "La página encontró un error inesperado. Puedes recargar o volver al inicio.",
       "reload": "Recargar",
       "home": "Ir al inicio"
-    }
+    },
+    "close": "Cerrar"
   },
   "states": {
     "error": {
@@ -86,7 +87,8 @@
     "decrease": "Disminuir",
     "increase": "Aumentar",
     "hidePassword": "Ocultar contraseña",
-    "showPassword": "Mostrar contraseña"
+    "showPassword": "Mostrar contraseña",
+    "actions": "Acciones"
   },
   "nav": {
     "dashboard": "Panel",
@@ -662,7 +664,9 @@
       "viewDebt": "Ver deuda",
       "viewBilling": "Ver facturación",
       "viewRecurring": "Ver recurrente",
-      "statementLocked": "Este movimiento respalda el pago de una facturación en otra moneda. Para cambiarlo, corrige el pago desde su facturación."
+      "statementLocked": "Este movimiento respalda el pago de una facturación en otra moneda. Para cambiarlo, corrige el pago desde su facturación.",
+      "viewSavings": "Ver aporte",
+      "viewGoal": "Ver meta"
     },
     "source": {
       "MANUAL": "Manual",
@@ -1456,7 +1460,7 @@
       "truncated": "Se muestran las primeras {{shown}} filas; se importan todas."
     },
     "template": {
-      "cardTitle": "Plantilla Cuadra",
+      "cardTitle": "Plantilla fik",
       "cardDescription": "¿Llevas tus finanzas en tu propio Excel? Descarga la plantilla, copia en ella tus movimientos, traspasos, deudas, cuotas, recurrentes y metas, y súbela. Cada hoja dice qué es cada fila, así que no hay nada que adivinar.",
       "download": "Descargar plantilla",
       "downloading": "Preparando plantilla…",
@@ -1472,15 +1476,15 @@
         },
         "prefilled": {
           "title": "Con mis datos actuales",
-          "hint": "Trae lo que ya tienes en Cuadra para que sigas desde ahí.",
-          "note": "Tus datos quedan marcados con un ID Cuadra y se saltan al volver a subirla: solo se importan las filas que agregues."
+          "hint": "Trae lo que ya tienes en fik para que sigas desde ahí.",
+          "note": "Tus datos quedan marcados con un ID fik y se saltan al volver a subirla: solo se importan las filas que agregues."
         }
       },
       "existingId": {
-        "header": "ID Cuadra",
-        "help": "Esta fila ya está en Cuadra y no se vuelve a importar. Deja esta columna vacía en las filas nuevas."
+        "header": "ID fik",
+        "help": "Esta fila ya está en fik y no se vuelve a importar. Deja esta columna vacía en las filas nuevas."
       },
-      "panelTitle": "Importar plantilla Cuadra",
+      "panelTitle": "Importar plantilla fik",
       "panelDescription": "Sube la plantilla que descargaste desde esta página, ya llena.",
       "eyebrow": "Importar · Plantilla",
       "pickTitle": "Elige o arrastra tu plantilla",
@@ -1504,7 +1508,7 @@
       "submit": "Importar",
       "submitting": "Importando…",
       "success": "Plantilla importada",
-      "notTemplate": "Este archivo no es una plantilla de Cuadra. Para una cartola de tu banco usa el importador de cartolas, eligiendo la cuenta en esta página.",
+      "notTemplate": "Este archivo no es una plantilla de fik. Para una cartola de tu banco usa el importador de cartolas, eligiendo la cuenta en esta página.",
       "outdated": "Esta plantilla es de una versión anterior. Descarga la plantilla actual y copia en ella tus datos.",
       "empty": "La plantilla no tiene filas que importar.",
       "tooMany": "La plantilla tiene más de {{max}} filas. Divídela en varios archivos.",
@@ -1860,13 +1864,13 @@
         "accountStatuses": "Estados"
       },
       "instructions": {
-        "title": "Plantilla Cuadra",
+        "title": "Plantilla fik",
         "intro": "Llena una hoja por tipo de dato y sube el archivo desde Importar. Deja vacías las hojas que no uses. Las celdas con lista desplegable solo aceptan tus propias cuentas, tarjetas y categorías; si las escribes a mano, que coincidan.",
         "rules": "Qué mueve dinero: un movimiento, un traspaso, un pago de deuda, un pago de cuota sin tarjeta de crédito y un aporte mueven el saldo de su cuenta. Crear una deuda, un plan o una meta no mueve dinero. Un pago de cuota de un plan con tarjeta de crédito solo la marca pagada y libera su cupo: esa cuota nunca se facturará.",
         "refs": "Referencias: escribe un código corto en la columna Referencia de una deuda, cuota, meta o recurrente (por ejemplo VICTOR) y repítelo en sus pagos, aportes o movimientos para unirlos. Debe ser único en su hoja.",
         "allOrNothing": "Si una fila tiene un problema no se importa nada: verás cada problema con su hoja y su fila.",
         "reimport": "Subir dos veces el mismo archivo lo importa dos veces.",
-        "prefilled": "Esta plantilla trae tus datos actuales. Las filas con ID Cuadra ya están en la app y se saltan al subirla: agrega lo nuevo debajo. Los pagos de deudas o cuotas que ya existen se registran en la app.",
+        "prefilled": "Esta plantilla trae tus datos actuales. Las filas con ID fik ya están en la app y se saltan al subirla: agrega lo nuevo debajo. Los pagos de deudas o cuotas que ya existen se registran en la app.",
         "exampleTitle": "Ejemplos (no se importan)",
         "examples": {
           "movements": "Movimientos: 28/11/2025 · Gasto · 15000 · BCI · · Supermercado · Jumbo (si paga un recurrente, su Referencia en la columna Recurrente)",
@@ -1935,7 +1939,7 @@
       "guardianRut": "12.345.678-9"
     },
     "sensitiveDataConsentLabel": "Datos sensibles",
-    "sensitiveDataConsent": "Acepto que Cuadra trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la <privacy>Política de Privacidad</privacy>.",
+    "sensitiveDataConsent": "Acepto que fik trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la <privacy>Política de Privacidad</privacy>.",
     "consentRequired": "Marca esta casilla para crear tu cuenta.",
     "guardian": {
       "title": "Autorización de tu madre, padre o tutor",
@@ -1949,7 +1953,7 @@
         "OTHER": "Otro"
       },
       "acceptLabel": "Autorización",
-      "accept": "Autorizo el tratamiento de los datos financieros de mi hijo/a o representado/a en Cuadra.",
+      "accept": "Autorizo el tratamiento de los datos financieros de mi hijo/a o representado/a en fik.",
       "acceptRequired": "Falta la autorización del tutor: marca esta casilla.",
       "relationshipLabel": "Relación"
     },
@@ -2003,7 +2007,7 @@
     },
     "forgot": {
       "link": "¿Olvidaste tu contraseña?",
-      "body": "Si tienes una llave de acceso en este dispositivo, entra con ella. Recuperar la contraseña todavía no es posible porque Cuadra no envía correos."
+      "body": "Si tienes una llave de acceso en este dispositivo, entra con ella. Recuperar la contraseña todavía no es posible porque fik no envía correos."
     }
   },
   "profile": {
@@ -2167,7 +2171,18 @@
         "lastActive": "última actividad {{date}}",
         "closed": "Cerrada el {{date}}",
         "revokeOthersWarning": "Esto cerrará todas tus otras sesiones activas — esta sesión no se verá afectada.",
-        "attribution": "Datos de ubicación por"
+        "attribution": "Datos de ubicación por",
+        "closedGroup_one": "{{count}} sesión cerrada",
+        "closedGroup_other": "{{count}} sesiones cerradas"
+      },
+      "stepUp": {
+        "title": "Confirma que eres tú",
+        "description": "Para cerrar la sesión de otro dispositivo, verifica tu identidad. No te lo volveremos a pedir por 5 minutos.",
+        "passwordLabel": "Contraseña",
+        "codeLabel": "Código de tu app de autenticación",
+        "usePasskey": "Usar llave de acceso",
+        "confirm": "Verificar",
+        "passkeyFailed": "No se pudo verificar con la llave de acceso. Inténtalo de nuevo."
       }
     },
     "preferences": {
@@ -2199,11 +2214,11 @@
       },
       "security": {
         "title": "Seguridad",
-        "description": "Cómo entras a Cuadra y desde qué dispositivos."
+        "description": "Cómo entras a fik y desde qué dispositivos."
       },
       "preferences": {
         "title": "Preferencias",
-        "description": "Cómo se ve Cuadra y en qué monedas trabajas."
+        "description": "Cómo se ve fik y en qué monedas trabajas."
       },
       "privacy": {
         "title": "Datos y privacidad",

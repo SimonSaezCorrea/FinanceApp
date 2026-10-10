@@ -35,7 +35,7 @@ const refs: TemplateRefs = {
 };
 
 const MARKER = {
-  sheet: "_cuadra",
+  sheet: "_fik",
   data: [
     ["version", 2],
     ["locale", "es"],
@@ -204,7 +204,7 @@ describe("TemplateImportPanel", () => {
     renderPanel();
     upload();
     expect(
-      await screen.findByText(/no es una plantilla de Cuadra.*importador de cartolas/),
+      await screen.findByText(/no es una plantilla de fik.*importador de cartolas/),
     ).toBeTruthy();
   });
 
@@ -223,14 +223,14 @@ describe("TemplateImportPanel", () => {
       {
         sheet: "Cuentas",
         data: [
-          ["Nombre", "Tipo", "Moneda", "Número de cuenta", "Saldo inicial", "ID Cuadra"],
+          ["Nombre", "Tipo", "Moneda", "Número de cuenta", "Saldo inicial", "ID fik"],
           ["BCI", "Corriente", "CLP", "123", 1000, BCI],
         ],
       },
       {
         sheet: "Movimientos",
         data: [
-          ["Fecha", "Tipo", "Monto", "Cuenta", "ID Cuadra"],
+          ["Fecha", "Tipo", "Monto", "Cuenta", "ID fik"],
           ["28/11/2025", "Gasto", 15000, "BCI", "01890a5d-ac96-774b-bcce-b302099a8099"],
         ],
       },

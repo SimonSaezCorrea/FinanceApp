@@ -21,11 +21,11 @@
       "eyebrow": "Personal finance in Chile",
       "titleLead": "Your finances with",
       "titleAccent": "your bank's own rules",
-      "lead": "A shared credit pool, business-day closings and instalments, the way your bank charges them. No invented figures.",
+      "lead": "Shared credit limits, instalments and statements with your bank's own dates. No made-up figures.",
       "why": {
         "1": {
           "title": "No invented figures",
-          "body": "We don't calculate your bank's interest or convert currencies for you. When a figure is missing, we say so instead of guessing."
+          "body": "We don't calculate your bank's interest. When a currency is converted, you see it's an estimate at that day's rate and you can correct it. If a figure is missing, we say so instead of filling it in."
         },
         "2": {
           "title": "Everything reversible",
@@ -33,7 +33,7 @@
         },
         "3": {
           "title": "Chile first, done properly",
-          "body": "Legal holidays, RUT check digit, the UF, the local bank and cooperative catalogue. Better one country done right than many done halfway."
+          "body": "RUT with its check digit, the UF and the official dollar rate of the day, local banks, credit unions and issuers. One country done properly beats many done halfway."
         },
         "title": "Built so your numbers match your bank's"
       },
@@ -42,16 +42,16 @@
         "titleAccent": "simplify until it breaks",
         "cards": {
           "title": "One shared pool, like your bank's",
-          "body": "The primary card and its add-ons draw from the same pool, unless you give one its own sub-limit per currency. Never an available amount your bank wouldn't recognize."
+          "body": "The main card and its additional cards draw on the same limit. If you give one its own cap, it spends within that cap without going past the account's limit. It never invents an available amount your bank wouldn't recognise."
         },
         "calendar": {
-          "title": "Closes in business days, with Chilean holidays",
-          "body": "You choose how many business days pass until closing, and how many until payment is due. Chile's legal holidays are already counted, so the date matches your real statement."
+          "title": "Statements with the dates on your bank statement",
+          "body": "You generate each period with the start, closing and due dates your statement shows, or schedule the closing and it is generated on that day. Whatever you underpay moves to the next period, as at your bank."
         }
       },
       "currencies": {
-        "title": "Pesos, dollars and UF, each on their own",
-        "body": "Every account lives in its own currency with its own total. No automatic conversion mixing figures that were never meant to add up.",
+        "title": "Pesos, dollars and UF, each in its own currency",
+        "body": "Each account lives in its currency, with its own total. The total in pesos is shown apart, as an estimate with the official dollar rate and the UF of the day.",
         "sample": "Sample",
         "items": {
           "CLP": "Checking account and cash",
@@ -71,6 +71,10 @@
       "receipts": {
         "bank": "Your bank"
       },
+      "name": {
+        "title": "What we are after",
+        "body": "We carry every figure until it matches your bank. If something does not add up, we tell you instead of hiding it."
+      },
       "how": {
         "eyebrow": "How we built it",
         "titleLead": "Rules first,",
@@ -81,7 +85,7 @@
       "principles": {
         "noInvented": {
           "title": "No invented figures",
-          "body": "We don't calculate your bank's interest or convert currencies. When a figure is missing, we say so instead of guessing.",
+          "body": "We don't calculate your bank's interest. When a currency is converted, you see it's an estimate at that day's rate and you can correct it. If a figure is missing, we say so instead of filling it in.",
           "example": "Revolving interest is copied from your statement as a finance charge. The app never calculates a rate."
         },
         "reversible": {
@@ -91,23 +95,23 @@
         },
         "chileFirst": {
           "title": "Chile first, done properly",
-          "body": "Legal holidays, RUT check digit, the UF, the local bank and cooperative catalogue. One country done right, before many done halfway.",
-          "example": "A card that closes every 20 business days skips September 18 and 19 without you fixing the date."
+          "body": "RUT with its check digit, the UF and the official dollar rate of the day, local banks, credit unions and issuers. One complete country before many halfway ones.",
+          "example": "A dollar account shows its equivalent in pesos at the official rate, marked as an estimate and with the date of the rate it used."
         }
       },
       "today": {
         "title": "Where it stands today",
         "available": {
           "title": "Available",
-          "body": "Accounts, cards, movements, billing, instalments, goals, debts and recurring expenses, in pesos, dollars and UF."
+          "body": "Accounts, cards, movements, statements, instalments, goals, debts, recurring expenses, exchange rates and import from Excel or CSV, in pesos, dollars and UF."
         },
         "paused": {
           "title": "Paused",
-          "body": "Investment tracking (returns, prices) is paused: the investment account type still exists, tracking doesn't yet."
+          "body": "Investment accounts and their tracking (returns, prices) are paused: for now they can't be created."
         },
         "pending": {
           "title": "Pending",
-          "body": "Exporting your data and automatic bank sync don't exist yet. The second one may come later."
+          "body": "Attaching receipts to your movements is coming soon. Automatic bank sync doesn't exist yet and may come in the future; meanwhile you import your bank statement or the fik template, which also lets you take your data with you."
         }
       },
       "inTheApp": "In the app"
@@ -133,14 +137,14 @@
         },
         "access": {
           "title": "How you sign in",
-          "lead": "You sign in with your RUT, like at your bank. Email is only for notices.",
+          "lead": "You sign in with your RUT, as at your bank. Your email is only for notices, and five wrong passwords in a row lock access for 15 minutes.",
           "a": {
             "title": "Passkey",
             "body": "If your device supports it, a passkey skips both password and second factor: it's already strong authentication on its own."
           },
           "b": {
             "title": "Second factor",
-            "body": "TOTP with recovery codes. Changing it closes every other session, in the same transaction."
+            "body": "TOTP with recovery codes. Changing your password or turning off the second factor signs out every other session in the same operation."
           }
         },
         "sessions": {
@@ -148,7 +152,7 @@
           "lead": "Closing a session kills its access on the very next request, not on its next refresh.",
           "a": {
             "title": "One device per row",
-            "body": "See where you signed in from and how long ago, and close any of them except the one you're using."
+            "body": "You see where you signed in from and how long ago. To sign out another device you first confirm it's you, so a stolen session can't lock you out of your own."
           },
           "b": {
             "title": "Kept, not erased",
@@ -157,14 +161,14 @@
         },
         "visible": {
           "title": "What only you see",
-          "lead": "A switch in your profile masks the app's amounts, with a one-off reveal whenever you need it.",
+          "lead": "A switch in your profile masks your balances and main amounts, and you can reveal each one when you need it.",
           "a": {
             "title": "Hide balances",
             "body": "Useful for checking your accounts when there's people around."
           },
           "b": {
-            "title": "Your receipts",
-            "body": "Validated by their real content, not their file extension, and opened through a signed link that expires in five minutes."
+            "title": "Your receipts (coming soon)",
+            "body": "Once you can attach them, they will be checked by their real content, not the file extension, and opened with a signed link that expires in five minutes."
           }
         },
         "leave": {
@@ -187,8 +191,8 @@
           "body": "Only the last four digits. The full number never leaves your browser and the CVV is never asked for."
         },
         "estimates": {
-          "title": "We don't calculate or estimate for you",
-          "body": "No interest, no exchange rate, no “projected” expense you never entered."
+          "title": "We don't make up figures for you",
+          "body": "No interest and no “projected” spending you didn't record. The exchange rate is only suggested, marked as an estimate, and you confirm or correct the amount."
         },
         "banks": {
           "title": "We don't connect to your bank",
@@ -205,15 +209,15 @@
       "freeHint": "No tiers, no artificial limits and no locked features.",
       "included": {
         "accounts": "Every account and card you have",
-        "movements": "Movements, transfers and receipts with no cap",
+        "movements": "Unlimited movements and transfers, and soon their receipts too",
         "billing": "Billing, instalments, goals, debts and recurring expenses",
         "security": "Passkey, second factor and session control",
-        "currencies": "Pesos, dollars and UF"
+        "currencies": "Pesos, dollars and UF, with the day's exchange rate"
       },
       "reasons": {
         "whyFree": {
           "title": "Why it doesn't cost anything",
-          "body": "The expensive part of a finance app is connecting to banks: an intermediary is paid for every account. Cuadra doesn't connect, so it doesn't carry that cost."
+          "body": "The expensive part of a finance app is connecting to banks: an intermediary is paid for every account. fik doesn't connect, so it doesn't carry that cost."
         },
         "notYourData": {
           "title": "Your data isn't the price",
@@ -238,7 +242,7 @@
       "items": {
         "bankSync": {
           "q": "Does it connect to my bank?",
-          "a": "No. You record your own accounts and movements. It's more work on day one, and in exchange, no app has read access over your products."
+          "a": "Not today. You record your movements by hand or import the statement you export from your bank, in Excel or CSV. In exchange, no app has read access to your products."
         },
         "setup": {
           "q": "Do I have to set everything up before using it?",
@@ -246,11 +250,11 @@
         },
         "conversion": {
           "q": "Does it convert between pesos, dollars and UF?",
-          "a": "No. Each account lives in its own currency and every total is shown separately, so you never get a sum your bank wouldn't recognize."
+          "a": "It suggests the equivalent with the official dollar rate and the UF of the day, for example when you pay a dollar statement in pesos. It's an estimate you can always correct, and each account keeps its total in its own currency."
         },
         "investments": {
           "q": "Does it work for my investments?",
-          "a": "You can have an investment account and record its movements, but tracking of instruments and returns doesn't exist yet. We'd rather say so than show you an empty screen."
+          "a": "Not yet. Investment accounts and tracking of instruments and returns are paused. We'd rather say so than show you an empty screen."
         },
         "creditBalance": {
           "q": "Why didn't my credit card purchase lower my balance?",
@@ -258,7 +262,7 @@
         },
         "closing": {
           "q": "When does my statement close?",
-          "a": "Whenever you say: you set how many business days pass since the previous close, or a fixed day of the month if your issuer works that way. Chile's holidays are already counted, and the due date is configured separately."
+          "a": "When your bank statement says: you generate the statement with its start, closing and due dates, or schedule the closing and it is generated on that day. Until you pay it, you can correct its dates."
         },
         "partialPayment": {
           "q": "What happens if I pay less than the total?",
@@ -266,7 +270,7 @@
         },
         "additionalCard": {
           "q": "Does an additional card spend from my same pool?",
-          "a": "Yes, same as your bank, unless you give it its own sub-limit, which is still capped by the account's own pool. Each card also shows how much it spent on its own."
+          "a": "Yes, just like at your bank. If you give it its own cap, it spends within that cap without going past the account's limit. And you pay the account, not each card separately."
         },
         "interest": {
           "q": "Does it calculate the interest I'm charged?",
@@ -294,26 +298,26 @@
     "skipToContent": "Skip to content",
     "meta": {
       "home": {
-        "title": "Cuadra · The backbone of your finances",
-        "description": "Personal finance in Chile with your bank's own rules: a shared credit pool, business-day closings and instalments, in pesos, dollars and UF."
+        "title": "fik",
+        "description": "The backbone that keeps your finances balanced. Personal finance in Chile with your bank's rules: shared credit limits, instalments and statements with your bank's dates, in pesos, dollars and UF."
       },
       "about": {
-        "title": "About · Cuadra",
-        "description": "Why we built Cuadra: an app that keeps your credit card, instalments and statements the way your bank does."
+        "title": "About · fik",
+        "description": "Why we built fik: an app that keeps your credit card, instalments and statements the way your bank does."
       },
       "privacy": {
-        "title": "Privacy and data · Cuadra",
+        "title": "Privacy and data · fik",
         "description": "How we protect your balances, movements and debts: five layers, from your consent to deleting your account."
       },
       "pricing": {
-        "title": "Pricing · Cuadra",
-        "description": "Cuadra is free. One plan, no ads, no selling your data."
+        "title": "Pricing · fik",
+        "description": "fik is free. One plan, no ads, no selling your data."
       },
       "faq": {
-        "title": "Frequently asked questions · Cuadra",
-        "description": "Answers about how Cuadra works, your cards and statements, and your data."
+        "title": "Frequently asked questions · fik",
+        "description": "Answers about how fik works, your cards and statements, and your data."
       },
-      "imageAlt": "Cuadra, the backbone of your finances, over a mountain range"
+      "imageAlt": "fik, the backbone that keeps your finances balanced, over a mountain range"
     },
     "access": {
       "noscript": "To sign in or create an account, turn on JavaScript in your browser."

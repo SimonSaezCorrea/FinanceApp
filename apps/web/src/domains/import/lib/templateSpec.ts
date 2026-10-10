@@ -1,7 +1,7 @@
 import { accounts, imports } from "@finance/contracts";
 
 /**
- * The Cuadra template (specs/027), described ONCE: `buildTemplate` writes a
+ * The fik template (specs/027), described ONCE: `buildTemplate` writes a
  * workbook from it and `readTemplate` reads one back with it, so the two can't
  * drift. Sheets and columns are identified by stable keys; what the user sees
  * (sheet names, headers, list values) is i18n under `import.template.*`, and a
@@ -259,8 +259,8 @@ export const FIXED_LISTS: Partial<Record<ListKey, readonly string[]>> = {
   accountStatus: accounts.accountStatus.options,
 };
 
-/** Hidden sheet that marks a file as a Cuadra template. */
-export const MARKER_SHEET = "_cuadra";
+/** Hidden sheet that marks a file as a fik template. */
+export const MARKER_SHEET = "_fik";
 /** Visible sheets that carry no rows. */
 export const INSTRUCTIONS_KEY = "instructions";
 export const REFERENCE_KEY = "reference";

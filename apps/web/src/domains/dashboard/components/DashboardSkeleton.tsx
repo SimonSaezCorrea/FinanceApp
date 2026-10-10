@@ -61,30 +61,14 @@ export function DashboardSkeleton({
   const month = (
     <div className="flex flex-col gap-3">
       <Skeleton className="h-4 w-20" />
-      {[t("dashboard.in"), t("dashboard.out")].map((row) => (
-        <div
-          key={row}
-          className="grid grid-cols-[3.5rem_minmax(0,1fr)_6rem] items-center gap-3 text-sm"
-        >
-          <span className="text-muted-foreground">{row}</span>
-          <Skeleton className="h-2.5 w-3/4" />
-          <Skeleton className="h-4 w-full" />
-        </div>
-      ))}
-      <Skeleton className="h-4 w-52" />
+      <MonthFlowRowsSkeleton />
     </div>
   );
 
   const categories = (
     <div className="flex flex-col gap-3">
       <span className="text-sm font-semibold">{t("dashboard.spendByCategory")}</span>
-      {["w-[90%]", "w-[55%]", "w-[35%]", "w-1/4"].map((w) => (
-        <div key={w} className="grid grid-cols-[6rem_minmax(0,1fr)_6rem] items-center gap-3">
-          <Skeleton className="h-3.5 w-20" />
-          <Skeleton className={cn("h-2 rounded-full", w)} />
-          <Skeleton className="h-3.5 w-full" />
-        </div>
-      ))}
+      <CategoryRowsSkeleton />
     </div>
   );
 
@@ -173,5 +157,41 @@ export function DashboardSkeleton({
         </>
       )}
     </SkeletonScreen>
+  );
+}
+
+/** The month's "Entró / Salió" rows and its one-line verdict while that month's movements load —
+ * also what the loaded Panel shows when only the month changed. */
+export function MonthFlowRowsSkeleton() {
+  const { t } = useTranslation();
+  return (
+    <div aria-hidden className="flex flex-col gap-3">
+      {[t("dashboard.in"), t("dashboard.out")].map((row) => (
+        <div
+          key={row}
+          className="grid grid-cols-[3.5rem_minmax(0,1fr)_6rem] items-center gap-3 text-sm"
+        >
+          <span className="text-muted-foreground">{row}</span>
+          <Skeleton className="h-2.5 w-3/4" />
+          <Skeleton className="h-4 w-full" />
+        </div>
+      ))}
+      <Skeleton className="h-4 w-52" />
+    </div>
+  );
+}
+
+/** The ranked category bars while the month's movements load. */
+export function CategoryRowsSkeleton() {
+  return (
+    <div aria-hidden className="flex flex-col gap-3">
+      {["w-[90%]", "w-[55%]", "w-[35%]", "w-1/4"].map((w) => (
+        <div key={w} className="grid grid-cols-[6rem_minmax(0,1fr)_6rem] items-center gap-3">
+          <Skeleton className="h-3.5 w-20" />
+          <Skeleton className={cn("h-2 rounded-full", w)} />
+          <Skeleton className="h-3.5 w-full" />
+        </div>
+      ))}
+    </div>
   );
 }

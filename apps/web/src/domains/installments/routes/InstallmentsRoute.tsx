@@ -37,6 +37,7 @@ import { useInstallmentMutations } from "../hooks/useInstallmentMutations";
 import { useInstallments } from "../hooks/useInstallments";
 import type { PlanFilter } from "../lib/installmentMetrics";
 import { visiblePlans } from "../lib/installmentMetrics";
+import { useLinkedSelection } from "../../../shared/lib/useLinkedSelection";
 
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
@@ -66,7 +67,7 @@ export function InstallmentsRoute() {
     retainedForm?.mode === "edit" && JSON.stringify(formValue) !== JSON.stringify(formBaseline);
   const [confirmLeaveForm, setConfirmLeaveForm] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useLinkedSelection("plan");
   const [paying, setPaying] = useState<{ planId: string; sequence: number } | null>(null);
   // Never reset to null on close (only re-set by `openPay`): the panel retains
   // it internally to play its exit animation instead of vanishing when

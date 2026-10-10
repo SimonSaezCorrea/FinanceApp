@@ -36,7 +36,7 @@ export class ImportController {
     return this.commandBus.execute(new ImportTransactionsCommand(user.id, body, idempotencyKey));
   }
 
-  /** Validates a Cuadra template without writing (specs/027): counts, the effect
+  /** Validates a fik template without writing (specs/027): counts, the effect
    * on each account, and every problem located on its sheet and row. A POST only
    * because the body is large — it changes nothing, so it needs no idempotency key. */
   @Post("template/preview")
@@ -49,7 +49,7 @@ export class ImportController {
     return this.queryBus.execute(new PreviewTemplateQuery(user.id, body));
   }
 
-  /** Applies a Cuadra template all-or-nothing. */
+  /** Applies a fik template all-or-nothing. */
   @Post("template")
   importTemplate(
     @CurrentUser() user: AuthUser,

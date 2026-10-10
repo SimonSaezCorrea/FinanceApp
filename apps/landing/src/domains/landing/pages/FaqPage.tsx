@@ -35,8 +35,9 @@ const GROUPS: {
 const questionId = (item: string) => `faq-${item}`;
 
 /**
- * "Preguntas frecuentes" (canvas "Cuadra · Preguntas frecuentes", option F1): from `lg`, a sticky
- * column with the title, a topic index and the sign-up card, beside the questions grouped by topic.
+ * "Preguntas frecuentes" (canvas "fik · Preguntas frecuentes", option F1): from `lg`, a fixed
+ * column with the title, a topic index and the sign-up card, beside the questions grouped by topic,
+ * which are all that scrolls.
  * Below `lg` everything stacks and the sign-up card moves after the questions.
  */
 export function FaqPage() {
@@ -52,11 +53,17 @@ function Faq() {
   const lang = useLang();
 
   return (
-    <div className="grid gap-8 pb-16 pt-8 sm:pb-20 sm:pt-10 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start lg:gap-20 lg:pb-28 lg:pt-16">
+    <div className="grid gap-8 pb-16 pt-8 sm:pb-20 sm:pt-10 lg:grid-cols-[22rem_minmax(0,1fr)] lg:items-start lg:gap-20 lg:pb-28 lg:pt-10">
       {/* Below `lg` the aside dissolves (`contents`) so its topic row becomes a child of the page
           grid and can stick under the header for the whole list of questions; inside the aside
-          it would unstick as soon as the title scrolled away. */}
-      <aside className="contents lg:sticky lg:top-24 lg:flex lg:flex-col lg:gap-9">
+          it would unstick as soon as the title scrolled away. From `lg` the whole column is FIXED:
+          it never moves while the questions scroll. Sticky couldn't do that: the column (~760px) is
+          taller than what's left of its row at the end of the page, so it got pushed up there and
+          jumped back down when opening a question made the row grow. `left` stays auto (its static
+          position, the grid's first column). Its height stops above the footer (~6rem at the end of
+          the page, when the footer is in view), so the footer never covers it; it's compact enough
+          to fit whole on a ~900px window and scrolls inside itself on a shorter one. */}
+      <aside className="scrollbar-thin contents lg:fixed lg:top-[calc(var(--landing-header,4.5rem)+2.5rem)] lg:flex lg:max-h-[calc(100dvh-var(--landing-header,4.5rem)-8.5rem)] lg:w-[22rem] lg:flex-col lg:gap-7 lg:overflow-y-auto">
         <div className="flex flex-col gap-4">
           <h1 id="landing-faq-title" tabIndex={-1} className={HERO_TITLE}>
             {t(`${P}.titleLead`)} <span className="text-primary">{t(`${P}.titleAccent`)}</span>
@@ -73,7 +80,7 @@ function Faq() {
             <a
               key={key}
               href={`#faq-${key}`}
-              className="grid min-h-11 shrink-0 snap-start grid-cols-[auto_auto_auto] items-center gap-2 rounded-full border bg-card py-1 pl-1 pr-3.5 text-sm font-medium transition-colors hover:border-border hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:grid-cols-[2.75rem_minmax(0,1fr)_auto] lg:gap-3.5 lg:rounded-2xl lg:border-transparent lg:bg-transparent lg:p-3 lg:text-[15px]"
+              className="grid min-h-11 shrink-0 snap-start grid-cols-[auto_auto_auto] items-center gap-2 rounded-full border bg-card py-1 pl-1 pr-3.5 text-sm font-medium transition-colors hover:border-border hover:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:grid-cols-[2.75rem_minmax(0,1fr)_auto] lg:gap-3.5 lg:rounded-2xl lg:border-transparent lg:bg-transparent lg:p-2.5 lg:text-[15px]"
             >
               <TopicIcon icon={icon} />
               {t(`${P}.groups.${key}`)}
@@ -85,7 +92,8 @@ function Faq() {
         <SignUpCard className="hidden lg:flex" />
       </aside>
 
-      <div className="flex flex-col gap-16">
+      {/* The fixed aside leaves the grid's flow, so the questions name their column. */}
+      <div className="flex flex-col gap-16 lg:col-start-2">
         {GROUPS.map(({ key, icon, items, link }) => (
           <section
             key={key}
@@ -162,7 +170,7 @@ function TopicIcon({ icon: Icon, large }: Readonly<{ icon: LucideIcon; large?: b
 function SignUpCard({ className }: Readonly<{ className?: string }>) {
   const { t } = useTranslation();
   return (
-    <div className={cn("flex-col gap-3 rounded-2xl border bg-card p-6", className)}>
+    <div className={cn("flex-col gap-3 rounded-2xl border bg-card p-5", className)}>
       <p className="text-[17px] font-semibold">{t(`${P}.cta.title`)}</p>
       <p className="text-sm leading-relaxed text-muted-foreground">{t(`${P}.cta.body`)}</p>
       <AccessLink mode="registro" size="lg" className="mt-1.5">

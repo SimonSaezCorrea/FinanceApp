@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 
-import { BrandMark } from "./brand-mark";
+import { BrandLogo } from "./brand-logo";
 
 /**
  * Full-viewport boot screen, shown while the session is being restored — before
@@ -8,8 +8,8 @@ import { BrandMark } from "./brand-mark";
  *
  * It deliberately doesn't reuse `LoadingState` (the dashed-border block used
  * INSIDE a page): here there is no page yet, so a small box floating in the
- * top-left corner reads as a broken render rather than as progress. Same brand
- * mark as the sidebar, so the first frame already looks like the app.
+ * top-left corner reads as a broken render rather than as progress. Same logo as
+ * the sidebar, so the first frame already looks like the app.
  */
 export function AppSplash() {
   const { t } = useTranslation();
@@ -20,21 +20,9 @@ export function AppSplash() {
       aria-live="polite"
       className="flex h-dvh flex-col items-center justify-center gap-6 bg-background px-6"
     >
-      <div className="relative flex items-center justify-center">
-        {/* Halo — decorative only; the mark itself stays perfectly legible if
-            animations are off. */}
-        <span
-          aria-hidden
-          className="absolute h-20 w-20 rounded-full bg-brand/10 motion-safe:animate-ping"
-        />
-        <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-brand/10 ring-1 ring-brand/20">
-          <BrandMark variant="full" className="h-12 w-12" />
-        </span>
-      </div>
+      <BrandLogo className="h-24" title={t("brand.name")} />
 
       <div className="flex flex-col items-center gap-1 text-center">
-        <p className="text-lg font-semibold tracking-tight">{t("brand.name")}</p>
-        <p className="text-sm text-muted-foreground">{t("brand.slogan")}</p>
         <p className="text-xs text-muted-foreground">{t("app.bootstrapping")}</p>
       </div>
 

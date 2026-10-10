@@ -1,6 +1,7 @@
 ---
 import "@fontsource-variable/geist";
 import "@fontsource-variable/inter";
+import "@fontsource/caveat-brush/latin-400.css";
 import "../styles/global.css";
 
 import { PRE_PAINT_SCRIPT } from "@finance/ui/prepaint.mjs";
@@ -37,10 +38,10 @@ const { lang, page, notFound = false } = Astro.props;
 const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
 const url = (l: Language) => `${site}${pagePath(l, page)}`;
 const title = notFound
-  ? `${t(lang, "app.notFound.title")} · Cuadra`
+  ? `${t(lang, "app.notFound.title")} · fik`
   : t(lang, `landing.meta.${page}.title`);
 const description = t(lang, `landing.meta.${page}.description`);
-const image = `${site}/og/cuadra-${lang}.png`;
+const image = `${site}/og/fik-${lang}.png`;
 ---
 
 <!doctype html>
@@ -71,7 +72,7 @@ const image = `${site}/og/cuadra-${lang}.png`;
       )
     }
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Cuadra" />
+    <meta property="og:site_name" content="fik" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={url(lang)} />

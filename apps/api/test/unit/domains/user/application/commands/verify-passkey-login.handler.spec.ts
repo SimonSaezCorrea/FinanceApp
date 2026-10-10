@@ -154,8 +154,8 @@ describe("VerifyPasskeyLoginHandler", () => {
       fakePasskeys(),
       fakeSessionIssuer(),
       new ConfigService({
-        CORS_ORIGIN: "https://cuadra.cl,https://app.cuadra.cl",
-        PASSKEY_RP_ID: "cuadra.cl",
+        CORS_ORIGIN: "https://mifik.cl,https://app.mifik.cl",
+        PASSKEY_RP_ID: "mifik.cl",
       }),
       fakePrisma(),
     );
@@ -164,8 +164,8 @@ describe("VerifyPasskeyLoginHandler", () => {
 
     expect(verifyAuthenticationResponse).toHaveBeenCalledWith(
       expect.objectContaining({
-        expectedOrigin: ["https://cuadra.cl", "https://app.cuadra.cl"],
-        expectedRPID: "cuadra.cl",
+        expectedOrigin: ["https://mifik.cl", "https://app.mifik.cl"],
+        expectedRPID: "mifik.cl",
       }),
     );
   });

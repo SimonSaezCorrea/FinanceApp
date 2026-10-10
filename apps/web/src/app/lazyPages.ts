@@ -61,9 +61,12 @@ export const ProfileLayout = lazy(() =>
   import("../domains/profile/routes/ProfileLayout").then((m) => ({ default: m.ProfileLayout })),
 );
 
-// The 404 page.
+// The 404: on its own (error boundary) and inside the shell (the router's catch-all).
 export const NotFoundRoute = lazy(() =>
   import("./NotFoundRoute").then((m) => ({ default: m.NotFoundRoute })),
+);
+export const NotFoundPage = lazy(() =>
+  import("./NotFoundRoute").then((m) => ({ default: m.NotFoundPage })),
 );
 
 /** The chunk each address opens, for `preloadPage`. Same `import()` paths as above, so the browser
@@ -80,6 +83,12 @@ const PAGE_CHUNKS: [RegExp, () => Promise<unknown>][] = [
   [/^\/exchange-rates/, () => import("../domains/exchange-rates/routes/ExchangeRatesRoute")],
   [/^\/import/, () => import("../domains/import/routes/ImportRoute")],
   [/^\/profile/, () => import("../domains/profile/routes/ProfileLayout")],
+  // The profile's sections (specs/029) are chunks of their own inside its layout.
+  [/^\/profile\/?$/, () => import("../domains/profile/routes/SummaryRoute")],
+  [/^\/profile\/personal/, () => import("../domains/profile/routes/PersonalRoute")],
+  [/^\/profile\/security/, () => import("../domains/profile/routes/SecurityRoute")],
+  [/^\/profile\/preferences/, () => import("../domains/profile/routes/PreferencesRoute")],
+  [/^\/profile\/privacy/, () => import("../domains/profile/routes/PrivacyRoute")],
 ];
 
 /**
@@ -90,6 +99,37 @@ const PAGE_CHUNKS: [RegExp, () => Promise<unknown>][] = [
  */
 export function preloadPage(pathname: string): void {
   void import("./AppLayout").catch(() => undefined);
-  const chunk = PAGE_CHUNKS.find(([pattern]) => pattern.test(pathname));
-  if (chunk) void chunk[1]().catch(() => undefined);
+  // Every chunk the address needs: a profile section also needs the profile's layout.
+  for (const [pattern, load] of PAGE_CHUNKS) {
+    if (pattern.test(pathname)) void load().catch(() => undefined);
+  }
+}
+
+/**
+ * Downloads every section's chunk once the shell is up and the browser is idle, so the first click
+ * on a section finds its code already there instead of an empty content area while it downloads.
+ * One at a time, each on its own idle slot, so it never competes with the page being looked at.
+ * Returns a cancel for the effect that calls it.
+ */
+export function preloadAllPages(): () => void {
+  const idle =
+    globalThis.requestIdleCallback ??
+    ((cb: () => void) => globalThis.setTimeout(cb, 200) as unknown as number);
+  const cancelIdle = globalThis.cancelIdleCallback ?? globalThis.clearTimeout;
+  let handle: number | undefined;
+  let cancelled = false;
+  const next = (i: number) => {
+    const chunk = PAGE_CHUNKS[i];
+    if (cancelled || !chunk) return;
+    handle = idle(() => {
+      void chunk[1]()
+        .catch(() => undefined)
+        .finally(() => next(i + 1));
+    });
+  };
+  next(0);
+  return () => {
+    cancelled = true;
+    if (handle !== undefined) cancelIdle(handle);
+  };
 }

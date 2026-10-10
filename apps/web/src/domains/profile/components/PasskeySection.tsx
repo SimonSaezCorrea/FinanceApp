@@ -10,6 +10,7 @@ import { ConfirmModal, SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { FormTextField } from "../../../shared/ui/form";
 import { SectionLabel } from "../../../shared/ui/section-label";
 import { usePasskeysQuery, useProfileMutations } from "../hooks/useProfile";
+import { Skeleton, SkeletonScreen } from "../../../shared/ui/skeleton";
 
 function lastUsedLabel(
   t: (key: string, opts?: Record<string, unknown>) => string,
@@ -173,9 +174,23 @@ export function PasskeySection({
             </SectionLabel>
             <div className="mt-2.5 flex flex-col gap-2">
               {isLoading ? (
-                <p className="text-sm text-muted-foreground">
-                  {t("profile.security.passkey.loading")}
-                </p>
+                <SkeletonScreen
+                  label={t("profile.security.passkey.loading")}
+                  className="flex flex-col gap-2"
+                >
+                  {[0, 1].map((i) => (
+                    <div
+                      key={i}
+                      className="flex items-center gap-3 rounded-xl border border-border bg-background p-3"
+                    >
+                      <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
+                      <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                        <Skeleton className="h-3.5 w-36" />
+                        <Skeleton className="h-3 w-52 max-w-full" />
+                      </div>
+                    </div>
+                  ))}
+                </SkeletonScreen>
               ) : passkeys && passkeys.length > 0 ? (
                 passkeys.map((p) => (
                   <div

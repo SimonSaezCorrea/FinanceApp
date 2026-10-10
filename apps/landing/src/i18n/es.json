@@ -21,11 +21,11 @@
       "eyebrow": "Finanzas personales en Chile",
       "titleLead": "Tus finanzas con las",
       "titleAccent": "reglas de tu banco",
-      "lead": "Cupo compartido, cierre en días hábiles y cuotas, tal como los cobra tu banco. Sin cifras inventadas.",
+      "lead": "Cupo compartido, cuotas y facturación con las fechas de tu banco. Sin cifras inventadas.",
       "why": {
         "1": {
           "title": "Ninguna cifra inventada",
-          "body": "No calculamos los intereses de tu banco ni convertimos monedas por ti. Cuando falta un dato, lo decimos en vez de rellenarlo con una estimación."
+          "body": "No calculamos los intereses de tu banco. Cuando una moneda se convierte, ves que es un aproximado con el valor del día y puedes corregirlo. Si falta un dato, lo decimos en vez de rellenarlo."
         },
         "2": {
           "title": "Todo reversible",
@@ -33,7 +33,7 @@
         },
         "3": {
           "title": "Chile primero, bien hecho",
-          "body": "Feriados legales, RUT con dígito verificador, UF, bancos y cooperativas del catálogo local. Mejor un país completo que muchos a medias."
+          "body": "RUT con dígito verificador, UF y dólar observado del día, bancos, cooperativas y emisores del catálogo local. Mejor un país completo que muchos a medias."
         },
         "title": "Hecha para que tus números calcen con los del banco"
       },
@@ -42,16 +42,16 @@
         "titleAccent": "simplifican hasta romperlo",
         "cards": {
           "title": "Un cupo compartido, como en tu banco",
-          "body": "La tarjeta titular y sus adicionales descuentan del mismo cupo, salvo que definas un tope propio por moneda. Nunca se inventa un disponible que el banco no reconocería."
+          "body": "La tarjeta titular y sus adicionales descuentan del mismo cupo. Si a una le das un tope propio, gasta dentro de ese tope sin salirse del cupo de la cuenta. Nunca se inventa un disponible que el banco no reconocería."
         },
         "calendar": {
-          "title": "Cierre en días hábiles, con feriados chilenos",
-          "body": "Tú eliges cuántos días hábiles hay hasta el cierre y cuántos hasta el pago. Los feriados legales de Chile ya están contados, así que la fecha calza con la de tu cartola."
+          "title": "Facturación con las fechas de tu estado de cuenta",
+          "body": "Generas cada período con el inicio, el cierre y el pago que trae tu cartola, o dejas el cierre programado y se genera solo ese día. Lo que pagas de menos pasa al período siguiente, como en tu banco."
         }
       },
       "currencies": {
-        "title": "Pesos, dólares y UF, cada uno por su lado",
-        "body": "Cada cuenta vive en su moneda y con su propio total. Sin conversiones automáticas que sumarían peras con manzanas.",
+        "title": "Pesos, dólares y UF, cada uno en su moneda",
+        "body": "Cada cuenta vive en su moneda y con su propio total. El total en pesos se muestra aparte, como aproximado con el dólar observado y la UF del día.",
         "sample": "Ejemplo",
         "items": {
           "CLP": "Cuenta corriente y efectivo",
@@ -71,6 +71,10 @@
       "receipts": {
         "bank": "Tu banco"
       },
+      "name": {
+        "title": "Lo que buscamos",
+        "body": "Llevamos cada cifra hasta que calce con la de tu banco. Si algo no cuadra, te lo decimos en vez de esconderlo."
+      },
       "how": {
         "eyebrow": "Cómo la construimos",
         "titleLead": "Reglas primero,",
@@ -81,7 +85,7 @@
       "principles": {
         "noInvented": {
           "title": "Ninguna cifra inventada",
-          "body": "No calculamos los intereses de tu banco ni convertimos monedas. Cuando falta un dato, lo decimos en vez de rellenarlo con una estimación.",
+          "body": "No calculamos los intereses de tu banco. Cuando una moneda se convierte, ves que es un aproximado con el valor del día y puedes corregirlo. Si falta un dato, lo decimos en vez de rellenarlo.",
           "example": "Los intereses del rotativo se copian de tu estado de cuenta como cargo financiero. La app no calcula ninguna tasa."
         },
         "reversible": {
@@ -91,23 +95,23 @@
         },
         "chileFirst": {
           "title": "Chile primero, bien hecho",
-          "body": "Feriados legales, RUT con dígito verificador, UF, bancos y cooperativas del catálogo local. Antes que muchos países a medias, uno completo.",
-          "example": "Una tarjeta que cierra cada 20 días hábiles se salta el 18 y el 19 de septiembre sin que corrijas la fecha."
+          "body": "RUT con dígito verificador, UF y dólar observado del día, bancos, cooperativas y emisores del catálogo local. Antes que muchos países a medias, uno completo.",
+          "example": "Una cuenta en dólares muestra su equivalente en pesos con el dólar observado, marcado como estimado y con la fecha del valor que usó."
         }
       },
       "today": {
         "title": "En qué está hoy",
         "available": {
           "title": "Disponible",
-          "body": "Cuentas, tarjetas, movimientos, facturación, cuotas, metas, deudas y gastos recurrentes, en pesos, dólares y UF."
+          "body": "Cuentas, tarjetas, movimientos, facturación, cuotas, metas, deudas, gastos recurrentes, tipos de cambio e importación desde Excel o CSV, en pesos, dólares y UF."
         },
         "paused": {
           "title": "En pausa",
-          "body": "El seguimiento de inversiones (rentabilidad, precios) está pausado: la cuenta de inversión existe, el seguimiento todavía no."
+          "body": "Las cuentas de inversión y su seguimiento (rentabilidad, precios) están en pausa: por ahora no se pueden crear."
         },
         "pending": {
           "title": "Pendiente",
-          "body": "Exportar tus datos y sincronizar bancos automáticamente no existen todavía. Lo segundo puede llegar a futuro."
+          "body": "Adjuntar comprobantes a tus movimientos llega pronto. La sincronización automática con bancos no existe todavía y puede llegar a futuro; mientras, importas la cartola de tu banco o la plantilla de fik, que también sirve para llevarte tus datos."
         }
       },
       "inTheApp": "En la app"
@@ -133,14 +137,14 @@
         },
         "access": {
           "title": "Cómo entras",
-          "lead": "Entras con tu RUT, como en tu banco. El correo queda solo para avisos.",
+          "lead": "Entras con tu RUT, como en tu banco. El correo queda solo para avisos, y cinco contraseñas erradas seguidas bloquean el acceso por 15 minutos.",
           "a": {
             "title": "Llave de acceso",
             "body": "Si tu dispositivo la soporta, una passkey salta contraseña y segundo factor: ya es autenticación fuerte por sí misma."
           },
           "b": {
             "title": "Segundo factor",
-            "body": "TOTP con códigos de recuperación. Cambiarlo cierra todas las demás sesiones, en la misma transacción."
+            "body": "TOTP con códigos de recuperación. Cambiar tu contraseña o desactivar el segundo factor cierra todas las demás sesiones en la misma operación."
           }
         },
         "sessions": {
@@ -148,7 +152,7 @@
           "lead": "Cerrar una sesión mata su acceso en la petición siguiente, no en el próximo refresh.",
           "a": {
             "title": "Un dispositivo por fila",
-            "body": "Ves desde dónde entraste y hace cuánto, y puedes cerrar cualquiera menos la que estás usando."
+            "body": "Ves desde dónde entraste y hace cuánto. Para cerrar la sesión de otro dispositivo primero confirmas que eres tú, así un acceso robado no puede sacarte de los tuyos."
           },
           "b": {
             "title": "Se conservan, no desaparecen",
@@ -157,14 +161,14 @@
         },
         "visible": {
           "title": "Lo que ves tú, y solo tú",
-          "lead": "Un interruptor en tu perfil enmascara los montos de la app, con revelado puntual cuando lo necesites.",
+          "lead": "Un interruptor en tu perfil enmascara tus saldos y montos principales, y puedes revelar cada uno cuando lo necesites.",
           "a": {
             "title": "Ocultar saldos",
             "body": "Útil para mirar tus cuentas donde hay más gente alrededor."
           },
           "b": {
-            "title": "Tus comprobantes",
-            "body": "Se validan por su contenido real, no por la extensión del archivo, y se abren con un enlace firmado que caduca en cinco minutos."
+            "title": "Tus comprobantes (próximamente)",
+            "body": "Cuando puedas adjuntarlos, se validarán por su contenido real, no por la extensión del archivo, y se abrirán con un enlace firmado que caduca en cinco minutos."
           }
         },
         "leave": {
@@ -187,8 +191,8 @@
           "body": "Solo los últimos cuatro dígitos. El número completo nunca sale de tu navegador y el CVV no se pide nunca."
         },
         "estimates": {
-          "title": "No calculamos ni estimamos por ti",
-          "body": "Ni intereses, ni tipo de cambio, ni gastos “proyectados” que no hayas anotado."
+          "title": "No inventamos cifras por ti",
+          "body": "Ni intereses ni gastos “proyectados” que no hayas anotado. El tipo de cambio solo se sugiere, marcado como estimado, y tú confirmas o corriges el monto."
         },
         "banks": {
           "title": "No nos conectamos a tu banco",
@@ -205,15 +209,15 @@
       "freeHint": "Sin planes, sin límites artificiales y sin funciones bloqueadas.",
       "included": {
         "accounts": "Todas las cuentas y tarjetas que tengas",
-        "movements": "Movimientos, traspasos y comprobantes sin tope",
+        "movements": "Movimientos y traspasos sin tope, y pronto también sus comprobantes",
         "billing": "Facturación, cuotas, metas, deudas y recurrentes",
         "security": "Llave de acceso, segundo factor y control de sesiones",
-        "currencies": "Pesos, dólares y UF"
+        "currencies": "Pesos, dólares y UF, con el tipo de cambio del día"
       },
       "reasons": {
         "whyFree": {
           "title": "Por qué no cuesta",
-          "body": "Lo caro de una app de finanzas es conectarse a los bancos: se le paga a un intermediario por cada cuenta. Cuadra no se conecta, así que no tiene ese costo."
+          "body": "Lo caro de una app de finanzas es conectarse a los bancos: se le paga a un intermediario por cada cuenta. fik no se conecta, así que no tiene ese costo."
         },
         "notYourData": {
           "title": "Tus datos no son el precio",
@@ -238,7 +242,7 @@
       "items": {
         "bankSync": {
           "q": "¿Se conecta con mi banco?",
-          "a": "Hoy no. Tú registras tus cuentas y tus movimientos a mano. Es más trabajo el primer día y, a cambio, ninguna app tiene permiso de lectura sobre tus productos."
+          "a": "Hoy no. Registras tus movimientos a mano o importas la cartola que exportas de tu banco, en Excel o CSV. A cambio, ninguna app tiene permiso de lectura sobre tus productos."
         },
         "setup": {
           "q": "¿Tengo que configurar todo antes de usarla?",
@@ -246,11 +250,11 @@
         },
         "conversion": {
           "q": "¿Convierte entre pesos, dólares y UF?",
-          "a": "No. Cada cuenta vive en su moneda y cada total se muestra por separado, para no darte una suma que tu banco no reconocería."
+          "a": "Te sugiere el equivalente con el dólar observado y la UF del día, por ejemplo al pagar en pesos una facturación en dólares. Es una estimación que siempre puedes corregir, y cada cuenta mantiene su total en su propia moneda."
         },
         "investments": {
           "q": "¿Sirve para mis inversiones?",
-          "a": "Puedes tener una cuenta de inversión y registrar sus movimientos, pero el seguimiento de instrumentos y rentabilidad todavía no existe. Preferimos decirlo a mostrarte una pantalla vacía."
+          "a": "Todavía no. Las cuentas de inversión y el seguimiento de instrumentos y rentabilidad están en pausa. Preferimos decirlo a mostrarte una pantalla vacía."
         },
         "creditBalance": {
           "q": "¿Por qué mi compra con tarjeta de crédito no bajó mi saldo?",
@@ -258,7 +262,7 @@
         },
         "closing": {
           "q": "¿Cuándo cierra mi facturación?",
-          "a": "Cuando tú digas: configuras cuántos días hábiles pasan desde el corte anterior, o un día fijo del mes si tu emisor trabaja así. Los feriados de Chile ya están contados, y la fecha de pago se configura aparte."
+          "a": "Cuando lo diga tu estado de cuenta: generas la facturación con su fecha de inicio, de cierre y de pago, o programas el cierre y se genera solo ese día. Mientras no la pagues, puedes corregir sus fechas."
         },
         "partialPayment": {
           "q": "¿Qué pasa si pago menos que el total?",
@@ -266,7 +270,7 @@
         },
         "additionalCard": {
           "q": "¿La tarjeta adicional gasta de mi mismo cupo?",
-          "a": "Sí, igual que en tu banco, salvo que le des un tope propio, que de todos modos sigue limitado por el cupo de la cuenta. Cada tarjeta muestra además cuánto gastó ella."
+          "a": "Sí, igual que en tu banco. Si le das un tope propio, gasta dentro de ese tope sin salirse del cupo de la cuenta. Y pagas la cuenta, no cada tarjeta por separado."
         },
         "interest": {
           "q": "¿Calcula los intereses que me cobran?",
@@ -294,26 +298,26 @@
     "skipToContent": "Saltar al contenido",
     "meta": {
       "home": {
-        "title": "Cuadra · La columna de tus finanzas",
-        "description": "Finanzas personales en Chile con las reglas de tu banco: cupo compartido, cierre en días hábiles y cuotas, en pesos, dólares y UF."
+        "title": "fik",
+        "description": "La columna que hace cuadrar tus finanzas. Finanzas personales en Chile con las reglas de tu banco: cupo compartido, cuotas y facturación con las fechas de tu estado de cuenta, en pesos, dólares y UF."
       },
       "about": {
-        "title": "Nosotros · Cuadra",
-        "description": "Por qué hicimos Cuadra: una app que lleva tu tarjeta de crédito, tus cuotas y tu facturación como las lleva tu banco."
+        "title": "Nosotros · fik",
+        "description": "Por qué hicimos fik: una app que lleva tu tarjeta de crédito, tus cuotas y tu facturación como las lleva tu banco."
       },
       "privacy": {
-        "title": "Privacidad y datos · Cuadra",
+        "title": "Privacidad y datos · fik",
         "description": "Cómo protegemos tus saldos, movimientos y deudas: cinco capas, desde tu consentimiento hasta borrar tu cuenta."
       },
       "pricing": {
-        "title": "Precios · Cuadra",
-        "description": "Cuadra es gratis. Un solo plan, sin anuncios ni venta de datos."
+        "title": "Precios · fik",
+        "description": "fik es gratis. Un solo plan, sin anuncios ni venta de datos."
       },
       "faq": {
-        "title": "Preguntas frecuentes · Cuadra",
-        "description": "Respuestas sobre cómo funciona Cuadra, tus tarjetas y facturaciones, y tus datos."
+        "title": "Preguntas frecuentes · fik",
+        "description": "Respuestas sobre cómo funciona fik, tus tarjetas y facturaciones, y tus datos."
       },
-      "imageAlt": "Cuadra, la columna de tus finanzas, sobre una cordillera"
+      "imageAlt": "fik, la columna que hace cuadrar tus finanzas, sobre una cordillera"
     },
     "access": {
       "noscript": "Para iniciar sesión o crear una cuenta, activa JavaScript en tu navegador."

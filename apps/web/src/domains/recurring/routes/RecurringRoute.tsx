@@ -29,6 +29,7 @@ import { RecurringSkeleton } from "../components/RecurringSkeleton";
 import { RecurringTotalCard } from "../components/RecurringTotalCard";
 import { useRecurring, useRecurringMutations } from "../hooks/useRecurring";
 import { FREQUENCY_ORDER, recurringByCurrency } from "../lib/recurringMetrics";
+import { useLinkedSelection } from "../../../shared/lib/useLinkedSelection";
 
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
@@ -48,7 +49,7 @@ export function RecurringRoute() {
   const preferredCurrency = user?.preferredCurrency ?? "CLP";
   const { create, update, remove } = useRecurringMutations();
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useLinkedSelection("recurring");
   const [form, setForm] = useState<{ mode: "create" | "edit"; id: string | null } | null>(null);
   const [formValue, setFormValue] = useState<RecurringFormValue>(() =>
     emptyRecurringForm(todayInput(), preferredCurrency),

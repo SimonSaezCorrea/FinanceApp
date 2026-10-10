@@ -61,9 +61,9 @@ describe("ImportRoute", () => {
     vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
   });
 
-  it("offers the Cuadra template next to the statement importer's account list", async () => {
+  it("offers the fik template next to the statement importer's account list", async () => {
     renderRoute();
-    expect(screen.getByText("Plantilla Cuadra")).toBeTruthy();
+    expect(screen.getByText("Plantilla fik")).toBeTruthy();
     // The statement importer still lists the accounts to import into.
     expect(await screen.findByText("BCI")).toBeTruthy();
   });

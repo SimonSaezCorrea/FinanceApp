@@ -94,10 +94,11 @@ export function CardsVignette({ className }: Readonly<{ className?: string }>) {
 const WEEKDAYS = [0, 1, 2, 3, 4];
 const WEEKS = [0, 1, 2, 3, 4];
 
-/** A calendar page with the cordillera in its header: a holiday dashed out, closing day ringed. */
+/** A calendar page with the cordillera in its header: the period's first day marked, its closing
+ * day ringed (the dates come from the bank statement). */
 export function CalendarVignette({ className }: Readonly<{ className?: string }>) {
   const cell = (col: number, row: number) => ({ x: 204 + col * 27, y: 124 + row * 27 });
-  const holiday = cell(2, 1);
+  const start = cell(2, 1);
   const closing = cell(4, 3);
   return (
     <Tile glow="illus-sun" className={className}>
@@ -138,7 +139,7 @@ export function CalendarVignette({ className }: Readonly<{ className?: string }>
             const { x, y } = cell(col, row);
             if (row === 4 && col > 2 && col < 5) return null;
             const weekend = col >= 5;
-            const isHoliday = x === holiday.x && y === holiday.y;
+            const isStart = x === start.x && y === start.y;
             const isClosing = x === closing.x && y === closing.y;
             return (
               <rect
@@ -148,17 +149,13 @@ export function CalendarVignette({ className }: Readonly<{ className?: string }>
                 width="20"
                 height="20"
                 rx="5"
-                strokeWidth={isHoliday ? 2 : undefined}
-                strokeDasharray={isHoliday ? "3 2" : undefined}
-                style={
-                  isHoliday
-                    ? { fill: "none", stroke: paint("illus-sun-deep") }
-                    : {
-                        fill: isClosing
-                          ? paint("illus-seal")
-                          : paint("illus-print", weekend ? 0.45 : 1),
-                      }
-                }
+                style={{
+                  fill: isClosing
+                    ? paint("illus-seal")
+                    : isStart
+                      ? paint("illus-seal", 0.55)
+                      : paint("illus-print", weekend ? 0.45 : 1),
+                }}
               />
             );
           }),

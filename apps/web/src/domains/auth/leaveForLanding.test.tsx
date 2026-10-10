@@ -2,11 +2,10 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { RouterProvider, createMemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { HomeRoute } from "../../app/HomeRoute";
-import { NotFoundRoute } from "../../app/NotFoundRoute";
+import { AppShell } from "../../app/AppShell";
+import { NotFoundPage } from "../../app/NotFoundRoute";
 import { Providers } from "../../app/providers";
 import { landingAccessUrl, landingHomeUrl } from "../../shared/lib/landingUrl";
-import { RequireAuth } from "./components/RequireAuth";
 import { useAuth } from "./hooks/useAuth";
 import { AuthRedirectRoute } from "./routes/AuthRedirectRoute";
 
@@ -57,22 +56,31 @@ function LogoutButton() {
   );
 }
 
+function Panel() {
+  return <p>panel</p>;
+}
+
 function renderAt(path: string) {
   const router = createMemoryRouter(
     [
-      { path: "/", element: <HomeRoute /> },
       { path: "/login", element: <AuthRedirectRoute mode="login" /> },
       { path: "/register", element: <AuthRedirectRoute mode="register" /> },
       {
-        path: "/accounts",
-        element: (
-          <RequireAuth>
-            <p>cuentas</p>
-            <LogoutButton />
-          </RequireAuth>
-        ),
+        element: <AppShell />,
+        children: [
+          { path: "/", element: <Panel /> },
+          {
+            path: "/accounts",
+            element: (
+              <>
+                <p>cuentas</p>
+                <LogoutButton />
+              </>
+            ),
+          },
+          { path: "*", element: <NotFoundPage /> },
+        ],
       },
-      { path: "*", element: <NotFoundRoute /> },
     ],
     { initialEntries: [path] },
   );

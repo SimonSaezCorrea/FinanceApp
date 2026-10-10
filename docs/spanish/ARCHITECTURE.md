@@ -15,9 +15,9 @@ FinanceApp es un gestor de finanzas personales construido como un **monorepo pnp
 tres aplicaciones **desplegables por separado** y paquetes compartidos:
 
 - **`apps/api`** — backend NestJS, **único dueño de la base de datos**, expone una API HTTP versionada.
-- **`apps/web`** — SPA Vite + React (la app con sesión, `app.cuadra.cl`), consume la API solo por
+- **`apps/web`** — SPA Vite + React (la app con sesión, `app.mifik.cl`), consume la API solo por
   HTTP. `noindex`: no es para buscadores.
-- **`apps/landing`** — el sitio público (`cuadra.cl`, spec 031): páginas Astro estáticas en `/es/…` y
+- **`apps/landing`** — el sitio público (`mifik.cl`, spec 031): páginas Astro estáticas en `/es/…` y
   `/en/…`, renderizadas en el build sin React al cargar; aloja el inicio de sesión y el registro.
 - **`packages/*`** — contratos compartidos (zod), matemática de dinero (decimal.js), el sistema de
   diseño (`ui`), el cliente del API (`client`), los catálogos es/en compartidos (`i18n`) y config de TS.
@@ -221,7 +221,7 @@ finance-app/
   `equalPrincipalSchedule` (amortización de capital constante; la última cuota absorbe el remanente de
   redondeo) y helpers de interés (`simpleFutureValue`, `compoundFutureValue`, `simpleInterestAccrued`,
   `nominalAnnualToMonthlyRate`). Devuelve strings decimales de escala fija (4 decimales).
-- **`@finance/ui`** — el sistema de diseño, solo fuente: preset de Tailwind + tokens `cuadra.css`,
+- **`@finance/ui`** — el sistema de diseño, solo fuente: preset de Tailwind + tokens `fik.css`,
   script de pre-pintado del tema, primitivas `shared/ui` (familia overlay, campos, botón…),
   `ThemeProvider`. Se importa por ruta (`@finance/ui/src/shared/ui/button`).
 - **`@finance/client`** — el cliente del API de ambos frontends: `apiFetch` (refresco silencioso),

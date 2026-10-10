@@ -8,7 +8,7 @@ export interface TitleHandle {
   signedInTitle?: string;
 }
 
-/** Tab title for a section: "Cuadra · Precios"; the brand alone when there is no section. */
+/** Tab title for a section: "fik · Precios"; the brand alone when there is no section. */
 export function tabTitle(brand: string, section?: string | null) {
   return section ? `${brand} · ${section}` : brand;
 }

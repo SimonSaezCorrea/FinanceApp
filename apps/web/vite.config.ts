@@ -23,7 +23,7 @@ export default defineConfig(({ mode }) => {
       {
         // The theme pre-paint script is shared with the public site; inline it here so the first
         // paint already has the stored theme. Also points the browser at the API early.
-        name: "cuadra-index-html",
+        name: "fik-index-html",
         transformIndexHtml: (html: string) =>
           html.replace(
             /<!-- theme-prepaint:[^>]*-->/,

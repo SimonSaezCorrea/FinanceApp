@@ -143,8 +143,26 @@ describe("attentionItems", () => {
     amount: "54990",
     currency: "CLP",
     kind: "installment",
+    sourceId: "plan1",
     inflow: false,
     ...over,
+  });
+
+  it("links a payment to its own plan, debt or series, not just the list", () => {
+    const items = attentionItems(
+      [],
+      [
+        payment(),
+        payment({ id: "d", kind: "debt", sourceId: "debt1", date: day(7) }),
+        payment({ id: "r", kind: "recurring", sourceId: "rec1", date: day(8) }),
+      ],
+      now,
+    );
+    expect(items.map((i) => i.href)).toEqual([
+      "/debts?debt=debt1",
+      "/recurring?recurring=rec1",
+      "/installments?plan=plan1",
+    ]);
   });
 
   it("brings a statement due within a week, linked to its billing tab", () => {
@@ -179,7 +197,7 @@ describe("attentionItems", () => {
       now,
     );
     expect(items.map((i) => i.id)).toEqual(["p1"]);
-    expect(items[0]?.href).toBe("/installments");
+    expect(items[0]?.href).toBe("/installments?plan=plan1");
   });
 
   it("puts what is overdue first, then by date, and keeps at most three", () => {

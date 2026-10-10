@@ -65,14 +65,13 @@
     --prepaid-surface: 197 27% 13%; /* #18262b */
     --prepaid-ink: 190 18% 77%; /* #b9ccd0 */
 
-    /* Brand mark "Cordillera" (design 2A): an outlined receipt whose top edge is the Andes,
-       with printed rows, the total and the amount carried over (arrastre). */
-    --logo-body: 189 44% 11%; /* #10262a boleta */
-    --logo-outline: 184 33% 58%; /* #6fb3b8 cordillera */
-    --logo-cap: 180 17% 92%; /* #e6eeee nieve */
-    --logo-rule: 190 24% 23%; /* #2c4247 */
-    --logo-total: 184 33% 58%; /* #6fb3b8 */
-    --logo-carry: 27 87% 67%; /* #F4A261 arrastre */
+    /* Brand mark "Cuaderno": the Andes as seen from Santiago, outlined in pencil over a ground line,
+       on a rounded tile. */
+    --logo-tile: 189 44% 11%; /* #10262a */
+    --logo-ridge: 184 33% 58%; /* #6fb3b8 cordillera */
+    --logo-ground: 180 17% 92%; /* #e6eeee */
+    /* The full logo: the range sketched above the handwritten name, on the page ground. */
+    --logo-sketch: 184 33% 58%; /* #6fb3b8 */
 
     /* Landing hero "cordillera chart": the chart line is the ridge of a faceted massif (lit face,
        mid crease, shadow face, a far range behind it, snow on the summits). */
@@ -92,7 +91,7 @@
     --illus-sun: 40 90% 68%; /* #f2c369 */
     --illus-sun-cut: 190 43% 10%; /* #0f2226, matches --ridge-far */
     --illus-sun-deep: 12 76% 45%; /* darker clay, for a shaded rim */
-    --illus-paper: 190 24% 23%; /* matches --logo-rule */
+    --illus-paper: 190 24% 23%; /* #2c4247 */
     --illus-print: 175 51% 63%; /* matches --ridge-line */
     --illus-seal: 27 87% 67%; /* matches --illus-sky-warm */
     --illus-coin-edge: 40 90% 68%; /* matches --illus-sun */
@@ -157,12 +156,10 @@
     --prepaid-ink: 197 22% 32%; /* #3f5b64 */
 
     /* Brand mark — light values (see :root). */
-    --logo-body: 0 0% 100%;
-    --logo-outline: 185 62% 15%; /* #0e3b40 */
-    --logo-cap: 185 62% 15%;
-    --logo-rule: 180 15% 82%; /* #c9d6d6 */
-    --logo-total: 184 58% 29%; /* #1f6e74 */
-    --logo-carry: 26 70% 52%; /* #d9772f */
+    --logo-tile: 185 62% 15%; /* #0e3b40 */
+    --logo-ridge: 178 40% 73%; /* #9fd6d4 */
+    --logo-ground: 0 0% 100%;
+    --logo-sketch: 185 62% 15%; /* #0e3b40 */
 
     /* Landing hero ridge — light values (see :root). */
     --ridge-lit: 185 37% 72%; /* #9ccdd1 */

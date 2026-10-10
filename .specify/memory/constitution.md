@@ -1,4 +1,9 @@
 <!--
+Sync Impact Report — 2026-10-10 (amendment 2.5.1)
+- Version change: 2.5.0 → 2.5.1 (PATCH: product rename "Cuadra" → "fik", domain `mifik.cl` /
+  `app.mifik.cl`; new brand mark "Cuaderno" and a handwritten wordmark font, `@fontsource/caveat-brush`,
+  web + landing; no principle text changed).
+
 Sync Impact Report — 2026-10-09 (amendment 2.5.0)
 - Version change: 2.4.0 → 2.5.0 (MINOR: the target architecture gains a third app and three shared
   packages; Principle III's catalog location is redefined; specs/031 separate public site).
@@ -8,7 +13,7 @@ Sync Impact Report — 2026-10-09 (amendment 2.5.0)
   has its own parity test. Navigation wording updated: the app routes with react-router; the public
   site is static pages under `/es/…` and `/en/…`.
 - AMENDED "Target architecture": three separately deployable apps — `apps/api`, `apps/web` (the
-  signed-in app, `app.cuadra.cl`, not indexed) and **`apps/landing`** (the public site, `cuadra.cl`,
+  signed-in app, `app.mifik.cl`, not indexed) and **`apps/landing`** (the public site, `mifik.cl`,
   Astro static) — plus source-only packages **`@finance/ui`** (tokens, Tailwind preset, theme,
   breakpoints, shared primitives and the overlay family), **`@finance/client`** (HTTP client, WebAuthn
   helpers, auth calls, the return-path rule) and **`@finance/i18n`**. One-way deps extended:
@@ -220,7 +225,7 @@ Sync Impact Report — 2026-09-26 (amendment 2.3.7)
 Sync Impact Report — 2026-09-26 (amendment 2.3.6)
 - Version change: 2.3.5 → 2.3.6 (PATCH: a new write endpoint under an existing principle, one
   billing query narrowed, no principle text changed).
-- ADDED (specs/027): the Cuadra template — `POST /import/template/preview` (validates, writes
+- ADDED (specs/027): the fik template — `POST /import/template/preview` (validates, writes
   nothing) and `POST /import/template` (applies movements, transfers, debts + payments, instalment
   plans + payments, recurring series, savings goals + contributions, all-or-nothing in ONE
   `$transaction` with a 60 s timeout).
@@ -1946,11 +1951,11 @@ identificador adivinable o no.
     tokens in httpOnly cookies**.
   - `apps/web` — **Vite + React 19 SPA**, domain-first features, consumes the API over HTTP only;
     **owns the es/en i18n catalogs** (the API returns data + language-agnostic error codes).
-  - `apps/landing` — the **public site** (`cuadra.cl`): **Astro**, static output, pages per language
+  - `apps/landing` — the **public site** (`mifik.cl`): **Astro**, static output, pages per language
     (`/es/…`, `/en/…`) with full HTML and per-page metadata. No React runs on page load; the access
     panel (React) is imported only when opened, signs in against the API and sends the person to the
     app with a return PATH (never a token in the URL). `apps/web` is then the signed-in app only
-    (`app.cuadra.cl`, `noindex`), redirecting every signed-out visit to the public site's panel.
+    (`app.mifik.cl`, `noindex`), redirecting every signed-out visit to the public site's panel.
   - `packages/*` — shared **contracts** (zod schemas + types), **money** (`decimal.js`),
     config, and the source-only **`ui`** (design system), **`client`** (API client, WebAuthn, auth
     calls, `safeReturnPath`) and **`i18n`** (shared catalogs). One-way deps: apps → packages;
@@ -2201,4 +2206,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.5.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-09
+**Version**: 2.5.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-10

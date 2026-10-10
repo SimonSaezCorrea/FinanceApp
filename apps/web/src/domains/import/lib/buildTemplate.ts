@@ -99,13 +99,13 @@ const columnLetter = (index: number): string => {
 const quoted = (name: string) => `'${name.replace(/'/g, "''")}'`;
 
 /**
- * The Cuadra template (specs/027) as an `.xlsx` Blob, in the user's language and
+ * The fik template (specs/027) as an `.xlsx` Blob, in the user's language and
  * with their own accounts, cards and categories in dropdowns. `exceljs` is
  * imported on demand: it only ever loads when someone downloads a template.
  *
  * Data sheets come EMPTY — examples live on the Instructions sheet, where they
  * can never be imported by mistake — unless `existing` is given: then they come
- * pre-filled with the user's current data, each row tagged in a last "ID Cuadra"
+ * pre-filled with the user's current data, each row tagged in a last "ID fik"
  * column that makes the reader skip it (only rows added below get imported).
  */
 export async function buildTemplate(input: {
@@ -117,7 +117,7 @@ export async function buildTemplate(input: {
   const { refs, t, locale, existing } = input;
   const { default: ExcelJS } = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Cuadra";
+  workbook.creator = "fik";
 
   // Instructions first: it's what opens.
   const help = workbook.addWorksheet(t(sheetNameKey(INSTRUCTIONS_KEY)));

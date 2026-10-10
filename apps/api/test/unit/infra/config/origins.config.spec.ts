@@ -12,8 +12,8 @@ const config = (values: Record<string, string>) => new ConfigService(values);
 describe("getAllowedOrigins", () => {
   it("reads a comma-separated list, trimming spaces", () => {
     expect(
-      getAllowedOrigins(config({ CORS_ORIGIN: " https://cuadra.cl , https://app.cuadra.cl " })),
-    ).toEqual(["https://cuadra.cl", "https://app.cuadra.cl"]);
+      getAllowedOrigins(config({ CORS_ORIGIN: " https://mifik.cl , https://app.mifik.cl " })),
+    ).toEqual(["https://mifik.cl", "https://app.mifik.cl"]);
   });
 
   it("still accepts the single origin of before", () => {
@@ -34,11 +34,11 @@ describe("getAllowedOrigins", () => {
   });
 
   it.each([
-    ["a path", "https://cuadra.cl/app"],
-    ["a trailing slash", "https://cuadra.cl/"],
-    ["no scheme", "cuadra.cl"],
-    ["another scheme", "ftp://cuadra.cl"],
-    ["an empty entry", "https://cuadra.cl,,https://app.cuadra.cl"],
+    ["a path", "https://mifik.cl/app"],
+    ["a trailing slash", "https://mifik.cl/"],
+    ["no scheme", "mifik.cl"],
+    ["another scheme", "ftp://mifik.cl"],
+    ["an empty entry", "https://mifik.cl,,https://app.mifik.cl"],
   ])("refuses an origin with %s", (_, value) => {
     expect(() => getAllowedOrigins(config({ CORS_ORIGIN: value }))).toThrow(/CORS_ORIGIN/);
   });
@@ -55,11 +55,11 @@ describe("getPasskeyRpId", () => {
     expect(
       getPasskeyRpId(
         config({
-          CORS_ORIGIN: "https://cuadra.cl,https://app.cuadra.cl",
-          PASSKEY_RP_ID: "cuadra.cl",
+          CORS_ORIGIN: "https://mifik.cl,https://app.mifik.cl",
+          PASSKEY_RP_ID: "mifik.cl",
         }),
       ),
-    ).toBe("cuadra.cl");
+    ).toBe("mifik.cl");
   });
 });
 
@@ -68,8 +68,8 @@ describe("assertOriginsMatchRpId", () => {
     expect(() =>
       assertOriginsMatchRpId(
         config({
-          CORS_ORIGIN: "https://cuadra.cl,https://app.cuadra.cl",
-          PASSKEY_RP_ID: "cuadra.cl",
+          CORS_ORIGIN: "https://mifik.cl,https://app.mifik.cl",
+          PASSKEY_RP_ID: "mifik.cl",
         }),
       ),
     ).not.toThrow();
@@ -86,7 +86,7 @@ describe("assertOriginsMatchRpId", () => {
   it("refuses an origin outside the rpId, where a passkey could never work", () => {
     expect(() =>
       assertOriginsMatchRpId(
-        config({ CORS_ORIGIN: "https://cuadra.cl,https://otro.cl", PASSKEY_RP_ID: "cuadra.cl" }),
+        config({ CORS_ORIGIN: "https://mifik.cl,https://otro.cl", PASSKEY_RP_ID: "mifik.cl" }),
       ),
     ).toThrow(/otro\.cl/);
   });
@@ -94,8 +94,8 @@ describe("assertOriginsMatchRpId", () => {
   it("refuses a lookalike that only ends with the rpId's text", () => {
     expect(() =>
       assertOriginsMatchRpId(
-        config({ CORS_ORIGIN: "https://evilcuadra.cl", PASSKEY_RP_ID: "cuadra.cl" }),
+        config({ CORS_ORIGIN: "https://evilmifik.cl", PASSKEY_RP_ID: "mifik.cl" }),
       ),
-    ).toThrow(/evilcuadra\.cl/);
+    ).toThrow(/evilmifik\.cl/);
   });
 });

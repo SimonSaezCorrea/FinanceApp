@@ -27,7 +27,9 @@ import { ThemeSync } from "../domains/profile/components/ThemeSync";
 import { TransactionCreateModal } from "../domains/transactions/components/TransactionCreateModal";
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { getInitials } from "../shared/lib/initials";
+import { preloadAllPages } from "./lazyPages";
 import { useMediaQuery } from "@finance/ui/src/shared/lib/useMediaQuery";
+import { BrandLogo } from "@finance/ui/src/shared/ui/brand-logo";
 import { BrandMark } from "@finance/ui/src/shared/ui/brand-mark";
 import { Button } from "@finance/ui/src/shared/ui/button";
 
@@ -125,8 +127,7 @@ function SidebarOpen({
   return (
     <>
       <div className="flex items-center gap-2 px-1.5 py-2">
-        <BrandMark className="h-6 w-6" />
-        <span className="text-lg font-semibold">{t("brand.name")}</span>
+        <BrandLogo className="h-10" title={t("brand.name")} />
         {onCollapse ? (
           <button
             type="button"
@@ -407,6 +408,10 @@ export function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
     globalThis.localStorage?.setItem(SIDEBAR_COLLAPSED_KEY, collapsed ? "1" : "0");
   }, [collapsed]);
 
+  // The sections the person hasn't opened yet: fetched in the background so switching never
+  // waits on a download. Not under Vitest: a test that mounts the shell shouldn't import every page.
+  useEffect(() => (import.meta.env.MODE === "test" ? undefined : preloadAllPages()), []);
+
   const openNew = () => setNewOpen(true);
 
   return (
@@ -438,8 +443,7 @@ export function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {isTablet ? null : (
           <header className="flex shrink-0 items-center gap-2 border-b bg-card px-4 py-3">
-            <BrandMark className="h-6 w-6" />
-            <span className="font-semibold">{t("brand.name")}</span>
+            <BrandLogo className="h-9" title={t("brand.name")} />
           </header>
         )}
         <main

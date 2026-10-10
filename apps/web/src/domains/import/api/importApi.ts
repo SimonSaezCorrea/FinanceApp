@@ -11,13 +11,13 @@ export const importApi = {
       body: JSON.stringify(body),
       idempotencyKey,
     }),
-  /** What a Cuadra template would do — writes nothing, so no idempotency key. */
+  /** What a fik template would do — writes nothing, so no idempotency key. */
   previewTemplate: (body: imports.TemplateImportRequest) =>
     apiFetch<imports.TemplatePreviewResponse>("/import/template/preview", {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  /** Applies a Cuadra template all-or-nothing (specs/027), retry-safe. */
+  /** Applies a fik template all-or-nothing (specs/027), retry-safe. */
   importTemplate: (body: imports.TemplateImportRequest, idempotencyKey: string) =>
     apiFetch<imports.TemplateImportResult>("/import/template", {
       method: "POST",

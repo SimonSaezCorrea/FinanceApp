@@ -819,7 +819,7 @@ consumidor externo, cualquier cambio equivalente en el futuro debe resolver esto
 
 La página pública de Precios (`/precios`) muestra **solo el plan gratis** y no menciona ningún plan de
 pago: lo que sigue son supuestos de trabajo, no compromisos, y no deben aparecer en la landing hasta
-que se decidan. Se exploraron en el lienzo "Cuadra · Precios" (variantes PL2, PL2a y PL2b).
+que se decidan. Se exploraron en el lienzo "fik · Precios" (variantes PL2, PL2a y PL2b).
 
 - **Nombre provisorio**: "Cumbre" (sigue la cordillera de la marca; también se barajaron Plus/Pro).
   El plan gratis se llamó "Base" en el lienzo, pero en la página pública no lleva nombre, para no
@@ -895,16 +895,16 @@ o equivalente). Las páginas de redirección pueden quedar como respaldo.
 ### 2. El API debe compartir dominio registrable con la landing y la app
 
 El traspaso de sesión funciona porque las cookies del API son `SameSite=Lax` y las tres viven bajo
-el mismo sitio (`cuadra.cl`, `app.cuadra.cl`, `api.cuadra.cl`; en desarrollo, `localhost` con
+el mismo sitio (`mifik.cl`, `app.mifik.cl`, `api.mifik.cl`; en desarrollo, `localhost` con
 puertos distintos). Un API en otro dominio (p. ej. un `*.onrender.com`) rompería el inicio de
-sesión desde la landing: el navegador no enviaría las cookies desde `app.cuadra.cl`. `CORS_ORIGIN`
+sesión desde la landing: el navegador no enviaría las cookies desde `app.mifik.cl`. `CORS_ORIGIN`
 debe listar la landing y la app.
 
 ### 3. Llaves de acceso con otro `rpId`
 
-Una llave de acceso queda atada al `rpId` con que se registró. Con `PASSKEY_RP_ID` = `cuadra.cl`
+Una llave de acceso queda atada al `rpId` con que se registró. Con `PASSKEY_RP_ID` = `mifik.cl`
 sirve en la landing y en la app; una llave registrada en desarrollo o antes de fijar
-`PASSKEY_RP_ID` (con `rpId` = `localhost` o `app.cuadra.cl`) no funciona en la landing y hay que
+`PASSKEY_RP_ID` (con `rpId` = `localhost` o `app.mifik.cl`) no funciona en la landing y hay que
 registrarla de nuevo desde Perfil.
 
 ### 4. Verificación en navegador y Lighthouse pendientes

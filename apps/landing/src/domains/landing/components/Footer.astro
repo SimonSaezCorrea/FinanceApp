@@ -13,8 +13,14 @@ const LINKS = [
 ] as const;
 ---
 
-<footer class="flex flex-wrap items-center gap-x-6 gap-y-2 border-t py-8 text-xs text-muted-foreground">
-  <span>{t(lang, "landing.footer.tagline")}</span>
+<!-- `relative z-10 bg-background`: slides over the FAQ's fixed column at the end of that page. -->
+<footer
+  class="relative z-10 flex flex-wrap items-center gap-x-6 gap-y-2 border-t bg-background py-8 text-xs text-muted-foreground"
+>
+  <p class="flex flex-col gap-1">
+    <span class="text-sm font-medium text-foreground">{t(lang, "brand.slogan")}</span>
+    <span>{t(lang, "landing.footer.tagline")}</span>
+  </p>
   <nav aria-label={t(lang, "landing.footer.nav")} class="flex flex-wrap gap-x-5 gap-y-1 sm:ml-auto">
     {
       LINKS.map((item) => (

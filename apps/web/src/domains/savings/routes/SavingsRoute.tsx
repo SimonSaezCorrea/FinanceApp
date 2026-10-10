@@ -60,6 +60,7 @@ import {
   useSavingsSummary,
 } from "../hooks/useSavings";
 import { goalStatus, groupGoals, isGoalComplete } from "../lib/savingsMetrics";
+import { useLinkedSelection } from "../../../shared/lib/useLinkedSelection";
 
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
@@ -96,7 +97,7 @@ export function SavingsRoute() {
   const groups = useMemo(() => groupGoals(goals), [goals]);
   const freeEntries = useMemo(() => entries.filter((e) => e.savingsGoalId === null), [entries]);
 
-  const [selectedGoalId, setSelectedGoalId] = useState<string | null>(null);
+  const [selectedGoalId, setSelectedGoalId] = useLinkedSelection("goal");
   const [goalForm, setGoalForm] = useState<{ mode: "create" | "edit"; id: string | null } | null>(
     null,
   );
@@ -116,7 +117,7 @@ export function SavingsRoute() {
   );
   const [entryFormBaseline, setEntryFormBaseline] = useState<SavingsEntryFormValue | null>(null);
   const [confirmLeaveEntryForm, setConfirmLeaveEntryForm] = useState(false);
-  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
+  const [selectedEntryId, setSelectedEntryId] = useLinkedSelection("entry");
   const [freeSavingsOpen, setFreeSavingsOpen] = useState(false);
   // Only one goal row's swipe panel open at a time — opening another closes
   // the previous one for free, since both read off this single id.

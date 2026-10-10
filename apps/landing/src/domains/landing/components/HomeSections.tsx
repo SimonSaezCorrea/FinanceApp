@@ -43,7 +43,7 @@ function SectionTitle({
   );
 }
 
-/** Why Cuadra: a full-width band, the striped sun beside the title and the three reasons in an
+/** Why fik: a full-width band, the striped sun beside the title and the three reasons in an
  * asymmetric row. The reasons aren't a sequence, so they carry a short rule, not a number. */
 export function WhySection() {
   const { t } = useTranslation();

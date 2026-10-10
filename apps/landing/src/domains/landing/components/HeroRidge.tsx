@@ -19,7 +19,7 @@ const HEIGHT = BASELINE - TOP;
 
 /**
  * The hero's background: a line chart whose line is the ridge of a faceted mountain range —
- * Cuadra's cordillera read as a balance climbing to a summit. Purely decorative (`aria-hidden`).
+ * fik's cordillera read as a balance climbing to a summit. Purely decorative (`aria-hidden`).
  *
  * The drawing STRETCHES to whatever box `className` gives it (`preserveAspectRatio="none"`), so
  * the range always runs edge to edge at a height of the caller's choosing; strokes keep their

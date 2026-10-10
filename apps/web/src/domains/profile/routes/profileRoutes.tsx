@@ -1,6 +1,7 @@
 import { type ReactElement, Suspense } from "react";
 import { Navigate, type RouteObject } from "react-router";
 
+import { ProfileSectionSkeleton } from "../components/ProfileSectionSkeleton";
 import {
   PersonalRoute,
   PreferencesRoute,
@@ -9,8 +10,11 @@ import {
   SummaryRoute,
 } from "./profileSections";
 
-/** The profile chrome stays put while a section's chunk arrives. */
-const section = (element: ReactElement) => <Suspense fallback={null}>{element}</Suspense>;
+/** The profile chrome stays put while a section's chunk arrives, with the section's outline in
+ * its place (normally the chunk is already there: `preloadAllPages`). */
+const section = (element: ReactElement) => (
+  <Suspense fallback={<ProfileSectionSkeleton />}>{element}</Suspense>
+);
 
 /** The sections under `/profile` (specs/029, contracts/profile-routes.md). Shared by the app
  * router and the profile's route tests so both exercise the same tree. Each `handle.title` is the

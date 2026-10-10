@@ -51,9 +51,7 @@ describe("public site build", () => {
         });
 
         it("has a preview for social networks", () => {
-          expect(html).toContain(
-            `<meta property="og:image" content="${SITE}/og/cuadra-${lang}.png"`,
-          );
+          expect(html).toContain(`<meta property="og:image" content="${SITE}/og/fik-${lang}.png"`);
           expect(html).toMatch(/<meta property="og:locale" content="(es_CL|en_US)"/);
           expect(html).toContain('<meta name="twitter:card" content="summary_large_image"');
         });
@@ -78,9 +76,13 @@ describe("public site build", () => {
     }
   }
 
-  it("never repeats a title or a description across the ten pages", () => {
+  it("never repeats a title within a language, nor a description across the ten pages", () => {
+    // The home is the brand alone ("fik") in every language; hreflang already pairs them.
+    for (const lang of LANGS) {
+      const titles = PAGES.map(({ slug }) => title(htmlOf(lang, slug)));
+      expect(new Set(titles).size).toBe(titles.length);
+    }
     const all = LANGS.flatMap((lang) => PAGES.map(({ slug }) => htmlOf(lang, slug)));
-    expect(new Set(all.map(title)).size).toBe(all.length);
     expect(new Set(all.map(description)).size).toBe(all.length);
   });
 

@@ -1,7 +1,7 @@
 {
   "brand": {
-    "name": "Cuadra",
-    "slogan": "The backbone of your finances"
+    "name": "fik",
+    "slogan": "The backbone that keeps your finances balanced"
   },
   "app": {
     "loading": "Loading…",
@@ -21,7 +21,8 @@
       "message": "The page hit an unexpected error. You can reload or go back home.",
       "reload": "Reload",
       "home": "Go home"
-    }
+    },
+    "close": "Close"
   },
   "states": {
     "error": {
@@ -86,7 +87,8 @@
     "decrease": "Decrease",
     "increase": "Increase",
     "hidePassword": "Hide password",
-    "showPassword": "Show password"
+    "showPassword": "Show password",
+    "actions": "Actions"
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -662,7 +664,9 @@
       "viewDebt": "View debt",
       "viewBilling": "View statement",
       "viewRecurring": "View recurring",
-      "statementLocked": "This movement backs the payment of a statement in another currency. To change it, correct the payment from its statement."
+      "statementLocked": "This movement backs the payment of a statement in another currency. To change it, correct the payment from its statement.",
+      "viewSavings": "View contribution",
+      "viewGoal": "View goal"
     },
     "source": {
       "MANUAL": "Manual",
@@ -1456,7 +1460,7 @@
       "truncated": "Showing the first {{shown}} rows; all of them are imported."
     },
     "template": {
-      "cardTitle": "Cuadra template",
+      "cardTitle": "fik template",
       "cardDescription": "Keep your finances in your own spreadsheet? Download the template, copy your movements, transfers, debts, instalments, recurring payments and goals into it, and upload it. Each sheet says what its rows are, so nothing has to be guessed.",
       "download": "Download template",
       "downloading": "Preparing template…",
@@ -1472,15 +1476,15 @@
         },
         "prefilled": {
           "title": "With my current data",
-          "hint": "Comes with what you already have in Cuadra, so you can pick up from there.",
-          "note": "Your data is tagged with a Cuadra ID and skipped when you upload it again: only the rows you add get imported."
+          "hint": "Comes with what you already have in fik, so you can pick up from there.",
+          "note": "Your data is tagged with a fik ID and skipped when you upload it again: only the rows you add get imported."
         }
       },
       "existingId": {
-        "header": "Cuadra ID",
-        "help": "This row is already in Cuadra and won't be imported again. Leave this column empty on new rows."
+        "header": "fik ID",
+        "help": "This row is already in fik and won't be imported again. Leave this column empty on new rows."
       },
-      "panelTitle": "Import a Cuadra template",
+      "panelTitle": "Import a fik template",
       "panelDescription": "Upload the template you downloaded from this page, filled in.",
       "eyebrow": "Import · Template",
       "pickTitle": "Choose or drop your template",
@@ -1504,7 +1508,7 @@
       "submit": "Import",
       "submitting": "Importing…",
       "success": "Template imported",
-      "notTemplate": "This file isn't a Cuadra template. For a bank statement use the statement importer, choosing the account on this page.",
+      "notTemplate": "This file isn't a fik template. For a bank statement use the statement importer, choosing the account on this page.",
       "outdated": "This template is from an earlier version. Download the current template and copy your data into it.",
       "empty": "The template has no rows to import.",
       "tooMany": "The template has more than {{max}} rows. Split it into several files.",
@@ -1860,13 +1864,13 @@
         "accountStatuses": "Statuses"
       },
       "instructions": {
-        "title": "Cuadra template",
+        "title": "fik template",
         "intro": "Fill in one sheet per kind of data and upload the file from Import. Leave the sheets you don't use empty. Cells with a dropdown only accept your own accounts, cards and categories; if you type them, make them match.",
         "rules": "What moves money: a movement, a transfer, a debt payment, an instalment payment without a credit card and a contribution move their account's balance. Creating a debt, a plan or a goal moves nothing. An instalment payment of a credit card plan only marks it paid and frees its credit: that instalment will never be billed.",
         "refs": "References: write a short code in the Reference column of a debt, plan, goal or recurring series (for example VICTOR) and repeat it on its payments, contributions or movements to link them. It must be unique in its sheet.",
         "allOrNothing": "If any row has a problem nothing is imported: you'll see every problem with its sheet and row.",
         "reimport": "Uploading the same file twice imports it twice.",
-        "prefilled": "This template comes with your current data. Rows with a Cuadra ID are already in the app and are skipped on upload: add new rows below them. Payments of debts or instalments that already exist are recorded in the app.",
+        "prefilled": "This template comes with your current data. Rows with a fik ID are already in the app and are skipped on upload: add new rows below them. Payments of debts or instalments that already exist are recorded in the app.",
         "exampleTitle": "Examples (not imported)",
         "examples": {
           "movements": "Movements: 28/11/2025 · Expense · 15000 · BCI · · Groceries · Jumbo (if it pays a recurring series, that series' Reference in the Recurring column)",
@@ -1935,7 +1939,7 @@
       "guardianRut": "12.345.678-9"
     },
     "sensitiveDataConsentLabel": "Sensitive data",
-    "sensitiveDataConsent": "I agree that Cuadra processes my financial data (balances, movements, debts) as sensitive data, under the <privacy>Privacy Policy</privacy>.",
+    "sensitiveDataConsent": "I agree that fik processes my financial data (balances, movements, debts) as sensitive data, under the <privacy>Privacy Policy</privacy>.",
     "consentRequired": "Tick this box to create your account.",
     "guardian": {
       "title": "Parent/guardian authorization",
@@ -1949,7 +1953,7 @@
         "OTHER": "Other"
       },
       "acceptLabel": "Authorization",
-      "accept": "I authorize the processing of my child's/dependent's financial data in Cuadra.",
+      "accept": "I authorize the processing of my child's/dependent's financial data in fik.",
       "acceptRequired": "The guardian's authorization is missing: tick this box.",
       "relationshipLabel": "Relationship"
     },
@@ -2003,7 +2007,7 @@
     },
     "forgot": {
       "link": "Forgot your password?",
-      "body": "If you have a passkey on this device, sign in with it. Recovering a password isn't possible yet because Cuadra doesn't send email."
+      "body": "If you have a passkey on this device, sign in with it. Recovering a password isn't possible yet because fik doesn't send email."
     }
   },
   "profile": {
@@ -2167,7 +2171,18 @@
         "lastActive": "last active {{date}}",
         "closed": "Closed on {{date}}",
         "revokeOthersWarning": "This will close all your other active sessions — this session will not be affected.",
-        "attribution": "Location data by"
+        "attribution": "Location data by",
+        "closedGroup_one": "{{count}} closed session",
+        "closedGroup_other": "{{count}} closed sessions"
+      },
+      "stepUp": {
+        "title": "Confirm it's you",
+        "description": "To sign out another device, verify your identity. We won't ask again for 5 minutes.",
+        "passwordLabel": "Password",
+        "codeLabel": "Code from your authenticator app",
+        "usePasskey": "Use a passkey",
+        "confirm": "Verify",
+        "passkeyFailed": "Couldn't verify with your passkey. Try again."
       }
     },
     "preferences": {
@@ -2199,11 +2214,11 @@
       },
       "security": {
         "title": "Security",
-        "description": "How you sign in to Cuadra and from which devices."
+        "description": "How you sign in to fik and from which devices."
       },
       "preferences": {
         "title": "Preferences",
-        "description": "How Cuadra looks and which currencies you work in."
+        "description": "How fik looks and which currencies you work in."
       },
       "privacy": {
         "title": "Data and privacy",

@@ -15,7 +15,7 @@ import { randomValidRut } from "../../support/rut";
 const date = (d: string) => `${d}T00:00:00.000Z`;
 
 /**
- * specs/027 — the Cuadra template through the real HTTP surface: preview writes
+ * specs/027 — the fik template through the real HTTP surface: preview writes
  * nothing, commit applies every sheet all-or-nothing and idempotently, each
  * account's balance mode is honoured, debts/plans/goals end up with their real
  * progress, and a credit-card instalment paid in the template is never billed.

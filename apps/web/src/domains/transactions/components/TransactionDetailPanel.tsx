@@ -12,6 +12,7 @@ import { Badge } from "../../../shared/ui/badge";
 import { Button } from "@finance/ui/src/shared/ui/button";
 import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import { CategoryIcon } from "../../reference/components/CategoryIcon";
+import { linkTo } from "../../../shared/lib/useLinkedSelection";
 
 export function formatLongDate(iso: string, locale: string): string {
   return new Date(iso).toLocaleDateString(locale, {
@@ -86,19 +87,36 @@ export function TransactionDetailPanel({
   const source = transactions.sourceOf(tx);
   const sourceLink =
     source.kind === "INSTALLMENT" || source.kind === "INSTALLMENT_INTEREST"
-      ? { to: "/installments", label: t("transactions.detail.viewPlan") }
+      ? {
+          to: linkTo.installmentPlan(source.installmentPlanId),
+          label: t("transactions.detail.viewPlan"),
+        }
       : source.kind === "DEBT"
-        ? { to: "/debts", label: t("transactions.detail.viewDebt") }
+        ? { to: linkTo.debt(source.debtId), label: t("transactions.detail.viewDebt") }
         : source.kind === "RECURRING"
-          ? { to: "/recurring", label: t("transactions.detail.viewRecurring") }
-          : source.kind === "STATEMENT_PAYMENT" ||
-              source.kind === "CREDIT_CARD_PREPAYMENT" ||
-              source.kind === "STATEMENT_SETTLEMENT"
+          ? {
+              to: linkTo.recurring(source.recurringExpenseId),
+              label: t("transactions.detail.viewRecurring"),
+            }
+          : source.kind === "SAVINGS"
             ? {
-                to: `/accounts/${source.accountId}?tab=billing&statement=${source.statementId}`,
-                label: t("transactions.detail.viewBilling"),
+                to: linkTo.savingsEntry(source.savingsEntryId),
+                label: t("transactions.detail.viewSavings"),
               }
-            : null;
+            : source.kind === "SAVINGS_WITHDRAWAL"
+              ? {
+                  to: linkTo.savingsGoal(source.savingsGoalId),
+                  label: t("transactions.detail.viewGoal"),
+                }
+              : source.kind === "STATEMENT_PAYMENT" ||
+                  source.kind === "CREDIT_CARD_PREPAYMENT" ||
+                  source.kind === "STATEMENT_SETTLEMENT" ||
+                  source.kind === "CURRENCY_TRANSFER"
+                ? {
+                    to: `/accounts/${source.accountId}?tab=billing&statement=${source.statementId}`,
+                    label: t("transactions.detail.viewBilling"),
+                  }
+                : null;
 
   return (
     <div className="flex flex-col gap-5">
@@ -154,7 +172,10 @@ export function TransactionDetailPanel({
           <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <span>
             {t("transactions.detail.installmentLocked")}{" "}
-            <Link to="/installments" className="text-accent underline-offset-2 hover:underline">
+            <Link
+              to={linkTo.installmentPlan(tx.installmentPlanId)}
+              className="text-accent underline-offset-2 hover:underline"
+            >
               {t("transactions.detail.installmentLockedLink")}
             </Link>
           </span>

@@ -13,9 +13,9 @@ FinanceApp is a personal-finance tracker built as a **pnpm + Turborepo monorepo*
 **separately deployable** applications and shared packages:
 
 - **`apps/api`** — NestJS backend, the **sole owner of the database**, exposes a versioned HTTP API.
-- **`apps/web`** — Vite + React SPA (the signed-in app, `app.cuadra.cl`), consumes the API over HTTP
+- **`apps/web`** — Vite + React SPA (the signed-in app, `app.mifik.cl`), consumes the API over HTTP
   only. `noindex`: it is not for search engines.
-- **`apps/landing`** — the public site (`cuadra.cl`, spec 031): static Astro pages in `/es/…` and
+- **`apps/landing`** — the public site (`mifik.cl`, spec 031): static Astro pages in `/es/…` and
   `/en/…`, rendered at build with no React on arrival; hosts signing in and registering.
 - **`packages/*`** — shared contracts (zod), money math (decimal.js), the design system (`ui`), the
   API client (`client`), the shared es/en catalogs (`i18n`), and TS config.
@@ -215,7 +215,7 @@ finance-app/
   (equal-principal amortization, last installment absorbs the rounding remainder), and interest
   helpers (`simpleFutureValue`, `compoundFutureValue`, `simpleInterestAccrued`,
   `nominalAnnualToMonthlyRate`). Returns fixed-scale (4dp) decimal strings.
-- **`@finance/ui`** — the design system, source-only: Tailwind preset + `cuadra.css` tokens, the
+- **`@finance/ui`** — the design system, source-only: Tailwind preset + `fik.css` tokens, the
   pre-paint theme script, `shared/ui` primitives (overlay family, form fields, button…),
   `ThemeProvider`. Imported by path (`@finance/ui/src/shared/ui/button`).
 - **`@finance/client`** — the API client both front ends use: `apiFetch` (silent refresh),

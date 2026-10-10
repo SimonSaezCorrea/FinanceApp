@@ -244,7 +244,7 @@ describe("pre-filled template", () => {
     await wb.xlsx.load(bytes);
     const movements = wb.getWorksheet("Movimientos")!;
     const idColumn = TEMPLATE_SHEETS.find((sh) => sh.key === "movements")!.columns.length + 1;
-    expect(movements.getCell(1, idColumn).value).toBe("ID Cuadra");
+    expect(movements.getCell(1, idColumn).value).toBe("ID fik");
     expect(movements.getCell(2, idColumn).value).toBe("t-1");
     expect(movements.getCell(2, 5).value).toBe("BCI");
     movements.getRow(3).values = [new Date(Date.UTC(2025, 11, 1)), "Gasto", 2000, null, "MACH"];

@@ -10,9 +10,9 @@ import { AppSplash } from "@finance/ui/src/shared/ui/app-splash";
 import { Button } from "@finance/ui/src/shared/ui/button";
 import { AppLayout } from "./lazyPages";
 
-/** Any URL no route claims. A signed-in user gets it inside the app (a dead link shouldn't also drop
- * the navigation); a signed-out visit is sent to sign in first, like any other address of the app
- * (spec 031), and lands back here afterwards. */
+/** The 404 as a page of its own, with its own shell: what `RouteErrorBoundary` renders for a thrown
+ * 404, outside the app's layout route. A signed-out visit is sent to sign in first (spec 031). The
+ * router's catch-all renders `NotFoundPage` inside `AppShell` instead. */
 export function NotFoundRoute() {
   const { user, loading } = useAuth();
   const { pathname, search, hash } = useLocation();
@@ -28,7 +28,8 @@ export function NotFoundRoute() {
   );
 }
 
-function NotFoundPage() {
+/** The 404's content, rendered inside the shell by the app's catch-all route. */
+export function NotFoundPage() {
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const navigate = useNavigate();

@@ -11,7 +11,7 @@ const INCLUDED = ["accounts", "movements", "billing", "security", "currencies"] 
 const REASONS = ["whyFree", "notYourData", "changes"] as const;
 
 /**
- * "Precios" (canvas "Cuadra · Precios", PL2 reduced to the free plan): one plan card beside three
+ * "Precios" (canvas "fik · Precios", PL2 reduced to the free plan): one plan card beside three
  * reasons (not a sequence, so not numbered). It deliberately says nothing about a paid plan — that is an undecided
  * assumption, recorded in docs/PENDING.md ("Monetización"), not something to promise publicly.
  */

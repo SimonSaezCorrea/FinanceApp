@@ -1,9 +1,9 @@
 import animate from "tailwindcss-animate";
 import type { Config } from "tailwindcss";
 
-// Design tokens live as CSS variables in src/styles/cuadra.css, so the whole
+// Design tokens live as CSS variables in src/styles/fik.css, so the whole
 // theme (incl. dark mode) is swappable without touching component classes.
-/** Cuadra Tailwind preset: every app adds only its own `content` globs. */
+/** fik Tailwind preset: every app adds only its own `content` globs. */
 export default {
   darkMode: "class" as const,
   // Compile every `hover:` to `@media (hover: hover)`. Without this a tap on a

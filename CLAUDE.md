@@ -35,7 +35,7 @@ Package manager is **pnpm**; the monorepo is orchestrated by **Turborepo** (root
 - `pnpm db:push` — sync schema to the DB without migrations (this repo has **no `prisma/migrations` folder**; `db push` is the workflow)
 - `pnpm db:reset` — **Docker-based full reset** (`scripts/db-reset.mjs`): tears down the Postgres container + volume (`docker-compose.yml`), recreates it, `db push`, then seeds. Wipes all data (dev only). Requires Docker.
 
-Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, and the optional S3 block for movement attachments — `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`; absent, attachments answer `503 ATTACHMENTS_UNAVAILABLE` and nothing else is affected); `CORS_ORIGIN` is a **comma-separated list** (the public site and the app) and `PASSKEY_RP_ID` is optional (defaults to the first origin's host; in production the shared registrable domain, `cuadra.cl`); `apps/web/.env` (`VITE_API_URL`, `VITE_LANDING_URL`); `apps/landing/.env` (`PUBLIC_API_URL` — scheme+host+port, no `/api/v1` —, `PUBLIC_APP_URL`, `PUBLIC_SITE_URL`). See each app's `.env.example`. After install, generate the Prisma client: `pnpm --filter @finance/api exec prisma generate`.
+Setup: `apps/api/.env` (`DATABASE_URL`, `PORT`, `CORS_ORIGIN`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, and the optional S3 block for movement attachments — `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`; absent, attachments answer `503 ATTACHMENTS_UNAVAILABLE` and nothing else is affected); `CORS_ORIGIN` is a **comma-separated list** (the public site and the app) and `PASSKEY_RP_ID` is optional (defaults to the first origin's host; in production the shared registrable domain, `mifik.cl`); `apps/web/.env` (`VITE_API_URL`, `VITE_LANDING_URL`); `apps/landing/.env` (`PUBLIC_API_URL` — scheme+host+port, no `/api/v1` —, `PUBLIC_APP_URL`, `PUBLIC_SITE_URL`). See each app's `.env.example`. After install, generate the Prisma client: `pnpm --filter @finance/api exec prisma generate`.
 
 ## Architecture (big picture)
 
@@ -1159,13 +1159,13 @@ now)`** walks back `SERIES_DAYS` (30) from the hero: a day's point is the hero m
     capped by its own limit across rows (`CARD_SUBLIMIT_EXCEEDED`); a `cardId` that isn't the
     account's answers `CARD_ACCOUNT_MISMATCH` for that row. `TransactionPlan` gained
     `emisor`/`receptor`/`lugar`.
-    Amendment (the Cuadra template, specs/027, 2026-09-26): for migrating a whole personal
+    Amendment (the fik template, specs/027, 2026-09-26): for migrating a whole personal
     spreadsheet — not just one account's statement — `/import` also offers an official **template**
-    (card "Plantilla Cuadra": download / upload). It is generated **in the browser** with the new
+    (card "Plantilla fik": download / upload). It is generated **in the browser** with the new
     **`exceljs`** dependency (web only, `import()`-ed on demand; the API never returns localized
     text, and the file is all labels), personalized with the user's ACTIVE accounts, their cards
     (`"<account> · ····last4"`) and the selectable categories in dropdowns on a Reference sheet,
-    plus a `veryHidden` `_cuadra` sheet carrying `TEMPLATE_VERSION`. Nine data sheets —
+    plus a `veryHidden` `_fik` sheet carrying `TEMPLATE_VERSION`. Nine data sheets —
     Movimientos, Traspasos, Deudas, Pagos de deudas, Cuotas, Pagos de cuotas, Recurrentes, Metas,
     Aportes — come EMPTY (examples live on Instrucciones so none gets imported by mistake). One spec,
     `domains/import/lib/templateSpec.ts`, drives both `buildTemplate` and `readTemplate` (which
@@ -1218,7 +1218,7 @@ now)`** walks back `SERIES_DAYS` (30) from the hero: a day's point is the hero m
     `existingRows` writes them on their sheets (Movimientos only takes MANUAL/RECURRING/
     FINANCE_CHARGE movements; transfer pairs → Traspasos; debt payments = movements with
     `debtId`; refs generated D1/C1/R1/M1; plan interest left blank, the DTO has no rate). Each
-    such row carries the record's id in a last **"ID Cuadra"** column
+    such row carries the record's id in a last **"ID fik"** column
     (`import.template.existingId.*`), and `parseTemplateSheets` **skips any row with one**, so
     uploading the file again imports only rows added below. Limitation: a new payment row for a
     debt/plan that already exists can't reference it (its row is skipped → `unknownRef`); those
@@ -1273,7 +1273,7 @@ now)`** walks back `SERIES_DAYS` (30) from the hero: a day's point is the hero m
     optional `creditUsedInitial`. Reads take an optional trailing `tx` (`findOpenForAccount`,
     `sumLinkedTransactions`, `netForStatement`, `listBillableForCards`,
     `billedInstallmentsForStatement`, `listUnbilledDueForPlans`, `sumBilledForStatement`) so the
-    rebuild sees its own uncommitted writes. Rows with "ID Cuadra" are no longer dropped by the
+    rebuild sees its own uncommitted writes. Rows with "ID fik" are no longer dropped by the
     reader: flagged `existing`, skipped on MERGE, the history on REPLACE. Web:
     `TemplateImportPanel` gains an Agregar / Reemplazar todo selector (a file with only existing
     rows opens in Reemplazar), shows what gets deleted and enables the destructive submit only
@@ -1456,7 +1456,7 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   CSS variables — plus `StripedSun`, `FeatureVignettes`, `MatchingReceipts`, `PrivacyRings`), backed
   by a new `--illus-*` token set (both theme blocks in `styles/index.css`). Home: `WhySection` +
   `FeaturesSection` (`components/HomeSections.tsx`) replace the old claims/preview blocks —
-  `WhySection` is the striped sun beside three numbered "por qué Cuadra" points
+  `WhySection` is the striped sun beside three numbered "por qué fik" points
   (`landing.home.why.*`), `FeaturesSection` is three alternating illustrated rows
   (`landing.home.features.*`: cards/calendar/currencies). Nosotros: two matching receipts, a ridge
   band under "cómo la construimos", three principles and an honest available/paused/
@@ -1468,7 +1468,7 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   the sessions explanation on the wrong layer. Precios: **shows only the free plan** — a paid tier
   is an unresolved assumption, recorded in `docs/PENDING.md` under "Monetización", never promised
   publicly; one plan card beside three reasons it's free (`landing.pricing.reasons.*`).
-  Preguntas: from `lg` a sticky topic index + sign-up card beside grouped `<details>` questions
+  Preguntas: from `lg` a FIXED column (title, topic index, sign-up card) that never moves while the questions scroll (sticky jumped at the end of the page; the footer slides over it) beside grouped `<details>` questions
   (`landing.faq.groups`/`items.*`), **every question starts collapsed** (no `open` by default).
   Amendment (landing on tablet and phone, 2026-10-06, canvas "Cuadra · Landing responsiva"):
   the landing header used to `flex-wrap` its four sections and broke into 2-3 rows on a phone.
@@ -1576,10 +1576,10 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   must set the multipart boundary), and **`src/i18n/parity.test.ts`** now enforces es/en key parity
   as a test instead of by discipline.
 
-- **`apps/landing`** (specs/031, 2026-10-09) — **the public site, its own static app** (`cuadra.cl`):
+- **`apps/landing`** (specs/031, 2026-10-09) — **the public site, its own static app** (`mifik.cl`):
   **Astro 7** (`output: "static"`, `build.format: "directory"`) + `@astrojs/react` (React components
   render **at build only**, never hydrated on arrival) + `@astrojs/sitemap`; dev `@astrojs/check`,
-  `@resvg/resvg-js` (`scripts/og.mjs` → `public/og/cuadra-{es,en}.png`). Pages
+  `@resvg/resvg-js` (`scripts/og.mjs` → `public/og/fik-{es,en}.png`). Pages
   `src/pages/[lang]/{index,about,privacy,pricing,faq}.astro` → `/es/`, `/en/pricing/`, … (English
   slugs in both languages, trailing slash; `lib/language.ts`'s `pagePath`/`pickLanguage`/
   `legacyTarget`); `/` and the old `/precios`/`/nosotros`/`/privacidad`/`/preguntas` are static
@@ -1641,7 +1641,7 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   (LCP ~5 s on the throttled mobile profile, mostly the data waterfall). A Lighthouse run against
   `vite preview` in VS Code can report "charset too late": the Console Ninja extension injects a
   script ahead of `<meta charset>` — not the build.
-- **`packages/`** — `contracts` (zod schemas + inferred types = the API contract; one module per domain; built to dist CJS + `import` condition → src for Vite; zod-free entry points `@finance/contracts/http` [`API_BASE_PATH`, `IDEMPOTENCY_HEADER`] and `@finance/contracts/auth-rules` [RUT check digit, age, guardian threshold] for pages that must stay small), `money` (`decimal.js`: money helpers, `equalPrincipalSchedule`, interest), `config` (shared `tsconfig.base.json`), and three **source-only** packages (specs/031) imported by path: **`ui`** (Tailwind preset, `src/styles/cuadra.css` tokens, `prepaint.mjs` theme script, `breakpoints.ts`, `src/shared/{ui,lib}` primitives incl. the overlay family, `ThemeProvider`), **`client`** (`configureClient({baseUrl})`, `apiFetch`/`ApiRequestError`/`resetAuthRefresh`, `authApi`, `passkeyApi`, WebAuthn helpers, `safeReturnPath` — the ONE return-path rule) and **`i18n`** (the shared es/en catalogs, `createI18n`, `LANGUAGES` in `src/languages.ts`, parity test). One-way deps: `apps → packages`; `api ↛ web/landing`; `web ↛ landing`; `landing ↛ web/api/db`; `packages ↛ apps` (enforced by `check:boundaries`).
+- **`packages/`** — `contracts` (zod schemas + inferred types = the API contract; one module per domain; built to dist CJS + `import` condition → src for Vite; zod-free entry points `@finance/contracts/http` [`API_BASE_PATH`, `IDEMPOTENCY_HEADER`] and `@finance/contracts/auth-rules` [RUT check digit, age, guardian threshold] for pages that must stay small), `money` (`decimal.js`: money helpers, `equalPrincipalSchedule`, interest), `config` (shared `tsconfig.base.json`), and three **source-only** packages (specs/031) imported by path: **`ui`** (Tailwind preset, `src/styles/fik.css` tokens, `prepaint.mjs` theme script, `breakpoints.ts`, `src/shared/{ui,lib}` primitives incl. the overlay family, `ThemeProvider`), **`client`** (`configureClient({baseUrl})`, `apiFetch`/`ApiRequestError`/`resetAuthRefresh`, `authApi`, `passkeyApi`, WebAuthn helpers, `safeReturnPath` — the ONE return-path rule) and **`i18n`** (the shared es/en catalogs, `createI18n`, `LANGUAGES` in `src/languages.ts`, parity test). One-way deps: `apps → packages`; `api ↛ web/landing`; `web ↛ landing`; `landing ↛ web/api/db`; `packages ↛ apps` (enforced by `check:boundaries`).
 - **Auth:** backend issues **JWT access+refresh tokens in httpOnly cookies** (`domains/auth`); `JwtAuthGuard` validates the access cookie **and** (per-request DB check) that the account's `status` is still `ACTIVE`, rejecting `DISABLED` accounts (`ACCOUNT_DISABLED`) even with an otherwise-valid token. Every endpoint is scoped to the authenticated `userId`. The frontend `AuthProvider`/`useAuth` + `RequireAuth` gate routes.
   - **profile** (specs/008, folded into the `auth` domain — no separate backend module, `User` already lives there): `User` gains `preferredCurrency` (CLP/USD/CLF — las tres del MVP; `CLF` es la UF), `locale` (es/en), `dateFormat`, `theme` (dark/light/system — same preference the sidebar `ThemeToggle` controls, now persisted per-user in addition to `localStorage`), `status` (`UserStatus`: ACTIVE/DISABLED), `createdAt` (→ contract's derived `memberSinceYear`). Endpoints: `PATCH /auth/me` (name/email, unique-email race guarded by catching Prisma `P2002` in addition to the pre-check), `POST /auth/me/password` (current+new, bcrypt), `PATCH /auth/me/preferences`, `POST /auth/me/deactivate` (requires re-entering the password; soft-disables the account — no data is deleted; clears cookies like `logout`). Frontend: new `domains/profile` (route `/profile`, reached by clicking the sidebar user block), `ThemeSync` component reconciles the shared theme preference between `localStorage` and the backend. New error codes `INVALID_CURRENT_PASSWORD`, `ACCOUNT_DISABLED`. 2FA switch + the 3 notification switches shown in the design are **intentionally inert** (local UI state only, no backend capability yet).
     Amendment (personal info): `User` also gains `countryId` (FK → `Country`, `onDelete: SetNull`), `addressStreet`/`addressCity`/`addressRegion`/`addressPostalCode` (all free text), `birthDate`, `identifierType` (`IdentifierType`: RUT/DNI/PASSPORT/OTHER) + `identifierValue`. All optional, purely informational (no billing/KYC flow consumes them yet). `identifierValue` is check-digit validated (`isValidRut`, módulo 11) only when `identifierType === "RUT"` — other types have no universal format to validate. The contract exposes both `birthDate` (ISO date string, for the edit form) and a derived `age`; the Profile view only ever renders `age` (hiding the exact date is a UI choice, not an API one). `packages/contracts` gained its own Vitest suite (`"test": "vitest run"`) for this validator — it previously had none.
@@ -1693,7 +1693,7 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
     (`domains/profile/routes/profileRoutes.tsx`, shared by `router.tsx` and the tests; each child
     has its own tab title). `ProfileLayout` picks its shape by its OWN width (`useElementWidth` vs.
     `PROFILE_PANES_MIN_WIDTH` = 820): two panes or one column. Two panes (hierarchy "A+C", canvas
-    "Cuadra · Perfil, jerarquía", 2026-10-06): a page header (`ProfileIdentity variant="header"`:
+    "fik · Perfil, jerarquía", 2026-10-06): a page header (`ProfileIdentity variant="header"`:
     "Perfil" + name · email · stats on one line), then a text-only secondary index
     (`ProfileSectionNav variant="panel"`: grouped "Tu cuenta / App / Privacidad", status line and
     pending count, no icons, the open section marked by a 2px left bar so it doesn't compete with
@@ -2104,16 +2104,35 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
   #6fb3b8 edge/total, light = white body with a #0e3b40 edge. `compact` (outline + snow + total,
   heavier stroke) is for nav sizes; `full` (printed rows, arrastre arrow) for ~48px and up.
   `apps/web/public/favicon.svg` is the static compact cut (line-only, no fill; switches to deep
-  teal under `prefers-color-scheme: light`). **Product name is "Cuadra"** (was "FinanceApp"),
+  teal under `prefers-color-scheme: light`). **Product name is "fik"** (lowercase, everywhere — renamed from "Cuadra" 2026-10-10, which had replaced "FinanceApp"; domain `mifik.cl` / `app.mifik.cl`; template marker sheet `_fik` and column "ID fik", templates downloaded before the rename are no longer recognised, by decision),
   slogan **"La columna de tus finanzas"** (`brand.name`/`brand.slogan` in es/en; shown in the
   landing header/footer and `AppSplash`). The TOTP issuer (`start-mfa-enrollment.handler.ts`) and
-  the WebAuthn `rp.name` (`start-passkey-registration.handler.ts`) say "Cuadra" too — an MFA entry
-  enrolled before the rename keeps its old "FinanceApp" label in the authenticator app. Package
+  the WebAuthn `rp.name` (`start-passkey-registration.handler.ts`) say "fik" too — an MFA entry
+  enrolled before a rename keeps its old label ("FinanceApp" or "Cuadra") in the authenticator app. Package
   names (`@finance/*`) and the repo folder were deliberately left as they are.
+  Amendment (brand mark "Cuaderno" + handwritten wordmark, 2026-10-10 — supersedes the receipt
+  above; chosen from the "fik en los Andes" artifact, option 3). Two components in
+  `packages/ui/src/shared/ui/`: **`BrandLogo`** (the full logo, wherever the name shows — sidebar,
+  mobile header, landing header, `AppSplash`): the Andes as seen from Santiago (Aconcagua the
+  highest peak) sketched in pencil with snow hatching (an `feTurbulence` displacement makes it
+  read hand-drawn) ABOVE "fik" written in **Caveat Brush** (SVG `<text>`, so it is sized by height
+  only; the range's coordinates are measured against the font's ink at 112px); and
+  **`BrandMark`** (icon only — the collapsed rail, the crash screen, the favicon): a rounded tile
+  with the same range over a ground line; `full` adds hatching. Tokens `--logo-tile`/
+  `--logo-ridge`/`--logo-ground` (tile) and `--logo-sketch` (the logo's range on the page ground),
+  both theme blocks. New dependency `@fontsource/caveat-brush` (latin subset, imported by
+  `apps/web/src/main.tsx` and `PageLayout.astro`) — used only by the logo, never running text.
+  **The slogan no longer sits next to the name.** It is now **"La columna que hace cuadrar tus
+  finanzas"** / "The backbone that keeps your finances balanced" (`brand.slogan`) and appears in the landing footer
+  (above `landing.footer.tagline`), a "Lo que buscamos" note (`landing.about.name.*`) inside Nosotros' "Cómo la construimos" card, the start of the home meta description, the OG image and its alt
+  text. The home tab title is the brand alone ("fik") in both languages, so `build.test.ts`
+  checks title uniqueness per language. Both favicons (`apps/{web,landing}/public/favicon.svg`) are the compact tile.
+  `scripts/og.mjs` draws the same logo, reading `scripts/fonts/CaveatBrush-Regular.ttf` (OFL,
+  committed with its `OFL.txt`) since resvg can't use the woff2 files.
   Amendment (per-route tab titles, a real 404 page, a crash boundary, and a scrollbar-gutter
   fix, 2026-09-25): the router gained a pathless root, **`app/DocumentTitle.tsx`**, that keeps
   `document.title` in step with the deepest matched route's `handle` (`app/tabTitle.ts`'s
-  `tabTitle(brand, section)` → "Cuadra · Precios", or the brand alone with no section) — every
+  `tabTitle(brand, section)` → "fik · Precios", or the brand alone with no section) — every
   route in `router.tsx` now carries a `handle: { title }` (an i18n key) next to its `path`, and `/`
   additionally carries `handle: { signedInTitle: "nav.dashboard" }` since it's the landing for a
   visitor and the Panel for a signed-in user (see `HomeRoute`) with two different tab titles for
@@ -2179,7 +2198,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.3.19**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.5.1**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
 - **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
   `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.
@@ -2247,10 +2266,10 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 <!-- SPECKIT START -->
 
 Current plan (031 — implementado): specs/031-separate-landing/plan.md
-(Separar el sitio público de la app: nueva `apps/landing` Astro estática en cuadra.cl, páginas en
+(Separar el sitio público de la app: nueva `apps/landing` Astro estática en mifik.cl, páginas en
 `/es/…` y `/en/…` con slugs en inglés y metadatos por página, sin React al cargar; el panel de acceso
 [movido desde apps/web] se importa al abrirse e inicia sesión contra el API, luego redirige a
-app.cuadra.cl con `volver` [ruta, nunca token]. Paquetes de fuente nuevos `@finance/ui`,
+app.mifik.cl con `volver` [ruta, nunca token]. Paquetes de fuente nuevos `@finance/ui`,
 `@finance/client`, `@finance/i18n`. API: `CORS_ORIGIN` como lista, `PASSKEY_RP_ID` opcional,
 `locale` opcional al registrarse. La app queda `noindex` y redirige el acceso sin sesión a la landing.
 Ver research.md R1–R14.

@@ -73,9 +73,9 @@ const money = (value: string | null | undefined): number | null =>
   value === null || value === undefined ? null : Number(value);
 
 /**
- * The user's current data as rows of the Cuadra template (specs/027), so a
+ * The user's current data as rows of the fik template (specs/027), so a
  * downloaded template can come pre-filled. Each row keeps the id of the record it
- * came from: `buildTemplate` writes it in the "ID Cuadra" column and the reader
+ * came from: `buildTemplate` writes it in the "ID fik" column and the reader
  * skips such rows, so uploading the file again never creates them twice.
  *
  * Records are joined across sheets by generated references (D1, C1, R1, M1).

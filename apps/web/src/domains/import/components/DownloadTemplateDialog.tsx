@@ -14,7 +14,7 @@ const OPTIONS: { value: TemplateContent; icon: typeof Sheet }[] = [
 
 /**
  * "Descargar plantilla": empty, or pre-filled with what the user already has. A
- * pre-filled one is safe to upload again — its rows carry their "ID Cuadra" and
+ * pre-filled one is safe to upload again — its rows carry their "ID fik" and
  * are skipped — so only the rows added below them get imported.
  */
 export function DownloadTemplateDialog({

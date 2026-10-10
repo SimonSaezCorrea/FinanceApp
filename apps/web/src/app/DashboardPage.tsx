@@ -5,7 +5,11 @@ import { useAccounts } from "../domains/accounts/hooks/useAccounts";
 import { useAuth } from "../domains/auth/hooks/useAuth";
 import { AttentionStrip } from "../domains/dashboard/components/AttentionStrip";
 import { CategoryBars } from "../domains/dashboard/components/CategoryBars";
-import { DashboardSkeleton } from "../domains/dashboard/components/DashboardSkeleton";
+import {
+  CategoryRowsSkeleton,
+  DashboardSkeleton,
+  MonthFlowRowsSkeleton,
+} from "../domains/dashboard/components/DashboardSkeleton";
 import { MonthFlowSummary } from "../domains/dashboard/components/MonthFlowCard";
 import { MonthPicker } from "../shared/ui/month-picker";
 import { NetWorthCard } from "../domains/dashboard/components/NetWorthCard";
@@ -19,6 +23,7 @@ import {
   monthFlow,
   netWorth,
   secondaryTotals,
+  seriesEnd,
   seriesStart,
   startOfMonthISO,
   upcomingPayments,
@@ -73,10 +78,11 @@ export function DashboardPage() {
     from: startOfMonthISO(viewMonth),
     to: endOfMonthISO(viewMonth),
   });
-  // The net-worth chart walks back from today over the last 30 days of movements.
+  // The net-worth chart walks back from today over the last 30 days of movements. Day bounds, so
+  // the query key (and its cache) is the same on every visit during the day.
   const recentQuery = useTransactions({
     from: seriesStart(now).toISOString(),
-    to: now.toISOString(),
+    to: seriesEnd(now).toISOString(),
   });
   const installmentsQuery = useInstallments();
   const debtsQuery = useDebts();
@@ -85,6 +91,19 @@ export function DashboardPage() {
   const accountList = accountsQuery.data ?? [];
   const txs = txQuery.data ?? [];
   const dueStatements = useDueStatements(accountList);
+  // Everything the Panel adds up, except the month's own movements: until ALL of it is here the
+  // whole Panel stays a skeleton. Gating on the accounts alone showed "$0", "nothing due" and a
+  // net worth without debts whenever the accounts were already cached (arriving from another
+  // section) and the rest was still on its way.
+  const loadingTotals =
+    accountsQuery.isLoading ||
+    recentQuery.isLoading ||
+    installmentsQuery.isLoading ||
+    debtsQuery.isLoading ||
+    recurringQuery.isLoading ||
+    dueStatements.loading;
+  // The month's movements load on their own (picking another month): only its block waits.
+  const loadingMonth = txQuery.isLoading;
 
   const worth = useMemo(
     () =>
@@ -111,7 +130,7 @@ export function DashboardPage() {
       ),
     [installmentsQuery.data, debtsQuery.data, recurringQuery.data, now],
   );
-  const attention = attentionItems(dueStatements, upcoming, now);
+  const attention = attentionItems(dueStatements.items, upcoming, now);
 
   const firstName = user?.name?.trim().split(/\s+/)[0];
   const monthName = viewMonth.toLocaleDateString(i18n.language, { month: "long" });
@@ -122,12 +141,12 @@ export function DashboardPage() {
 
   const monthBlock = (
     <Section title={monthName} className="first-letter:uppercase">
-      <MonthFlowSummary flow={flow} />
+      {loadingMonth ? <MonthFlowRowsSkeleton /> : <MonthFlowSummary flow={flow} />}
     </Section>
   );
   const categoriesBlock = (
     <Section title={t("dashboard.spendByCategory")}>
-      <CategoryBars slices={categories} />
+      {loadingMonth ? <CategoryRowsSkeleton /> : <CategoryBars slices={categories} />}
     </Section>
   );
   const paymentsBlock = (
@@ -179,7 +198,7 @@ export function DashboardPage() {
         </div>
       </header>
 
-      {accountsQuery.isLoading ? (
+      {loadingTotals ? (
         <DashboardSkeleton label={t("app.loading")} layout={layout} fit={fit} />
       ) : accountsQuery.isError ? (
         <ErrorState error={accountsQuery.error} onRetry={() => accountsQuery.refetch()} />

@@ -26,6 +26,10 @@ vi.mock("../domains/installments/api/installmentsApi", () => ({
 vi.mock("../domains/debts/api/debtsApi", () => ({
   debtsApi: { list: vi.fn().mockResolvedValue([]) },
 }));
+// The Panel stays a skeleton until every total it adds up has arrived, recurring series included.
+vi.mock("../domains/recurring/api/recurringApi", () => ({
+  recurringApi: { list: vi.fn().mockResolvedValue([]) },
+}));
 
 describe("DashboardPage", () => {
   it("renders the panel with the net-worth summary", async () => {

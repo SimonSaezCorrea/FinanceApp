@@ -4,6 +4,7 @@ import { sumMoney } from "@finance/money";
 
 import { netWorthByCurrency } from "../../accounts/lib/netWorth";
 import { leftAmount } from "../../debts/lib/debtMetrics";
+import { linkTo } from "../../../shared/lib/useLinkedSelection";
 
 /** No FX rates available — the dashboard aggregates only the primary currency. */
 export const PRIMARY_CURRENCY = "CLP";
@@ -51,6 +52,16 @@ export const SERIES_DAYS = 30;
 /** First instant the net-worth chart needs movements from (local midnight). */
 export function seriesStart(now: Date): Date {
   return new Date(now.getFullYear(), now.getMonth(), now.getDate() - (SERIES_DAYS - 1));
+}
+
+/**
+ * Last instant the net-worth chart asks movements up to: the end of today (local), not `now`. A
+ * bound that moves every millisecond made every visit to the Panel a new query key — the chart's
+ * movements were fetched again (and the Panel shown as loading) each time. `netWorthSeries`
+ * already ignores anything after `now`.
+ */
+export function seriesEnd(now: Date): Date {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
 }
 
 /**
@@ -171,6 +182,8 @@ export interface UpcomingPayment {
   amount: string;
   currency: string;
   kind: UpcomingKind;
+  /** The plan, debt or recurring series it belongs to: what a link to it opens. */
+  sourceId: string;
   /** Money coming IN: a debt someone owes you. Everything else is an outflow. */
   inflow: boolean;
 }
@@ -198,6 +211,7 @@ export function upcomingPayments(
         amount: next.amount,
         currency: plan.currency,
         kind: "installment",
+        sourceId: plan.id,
         inflow: false,
       });
     }
@@ -214,6 +228,7 @@ export function upcomingPayments(
       amount: leftAmount(debt),
       currency: debt.currency,
       kind: "debt",
+      sourceId: debt.id,
       inflow: debt.direction === "OWED_TO_YOU",
     });
   }
@@ -229,6 +244,7 @@ export function upcomingPayments(
       amount: rec.amount,
       currency: rec.currency,
       kind: "recurring",
+      sourceId: rec.id,
       inflow: false,
     });
   }
@@ -261,10 +277,11 @@ export interface DueStatement {
 }
 
 const DAY_MS = 86_400_000;
-const PAYMENT_HREF: Record<UpcomingKind, string> = {
-  installment: "/installments",
-  debt: "/debts",
-  recurring: "/recurring",
+/** The item's own detail, not just its list. */
+const PAYMENT_HREF: Record<UpcomingKind, (id: string) => string> = {
+  installment: linkTo.installmentPlan,
+  debt: linkTo.debt,
+  recurring: linkTo.recurring,
 };
 
 /**
@@ -315,7 +332,7 @@ export function attentionItems(
       amount: p.amount,
       currency: p.currency,
       overdue: due < today,
-      href: PAYMENT_HREF[p.kind],
+      href: PAYMENT_HREF[p.kind](p.sourceId),
     });
   }
 

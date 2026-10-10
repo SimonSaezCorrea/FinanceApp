@@ -12,7 +12,7 @@ import {
 } from "../components/HomeSections";
 import { AccessLink } from "../components/AccessLink";
 
-/** Public home: what the app is, a cordillera that doubles as a balance chart, then why Cuadra
+/** Public home: what the app is, a cordillera that doubles as a balance chart, then why fik
  * (a full-width band), what sets it apart (two illustrated rows), one total per currency, and a
  * closing sign-up. */
 export function HomePage() {

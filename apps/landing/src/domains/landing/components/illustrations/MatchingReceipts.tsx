@@ -14,7 +14,7 @@ const BANK = tornPaper(40, 230, 70, 400);
 const APP = tornPaper(290, 480, 70, 400);
 const CROWN = "M290 106 V92 L318 78 L334 88 L352 70 L368 82 L386 66 L404 84 L420 76 L480 94 V106 Z";
 
-/** Two receipts side by side — your bank's statement and Cuadra's — joined row by row by dotted
+/** Two receipts side by side — your bank's statement and fik's — joined row by row by dotted
  * lines, with a check under them: the name, drawn. Nothing on them is a figure. Decorative
  * (`aria-hidden`), captions included — the page's own copy says the same in words. */
 export function MatchingReceipts({

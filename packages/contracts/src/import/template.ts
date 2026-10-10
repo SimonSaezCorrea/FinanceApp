@@ -9,7 +9,7 @@ import { installmentFrequency } from "../installments/index";
 import { recurrenceFrequency } from "../recurring/index";
 
 /**
- * The official Cuadra template (specs/027): a spreadsheet the user downloads with
+ * The official fik template (specs/027): a spreadsheet the user downloads with
  * their own accounts, cards and categories, fills in and uploads back. Unlike the
  * statement importer (`importTransactionsRequestSchema`, ONE account), each sheet
  * says what its rows ARE — movements, transfers, debts and their payments,

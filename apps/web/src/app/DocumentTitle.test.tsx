@@ -37,8 +37,8 @@ function renderAt(path: string) {
 
 describe("tab title", () => {
   it("joins the brand and the section, or shows the brand alone", () => {
-    expect(tabTitle("Cuadra", "Precios")).toBe("Cuadra · Precios");
-    expect(tabTitle("Cuadra", null)).toBe("Cuadra");
+    expect(tabTitle("fik", "Precios")).toBe("fik · Precios");
+    expect(tabTitle("fik", null)).toBe("fik");
   });
 
   it("names the section of the current route", async () => {

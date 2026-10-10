@@ -3,7 +3,8 @@ import { paint } from "./paint";
 /*
  * "Tus datos al centro": five concentric rings around a receipt — one per privacy layer, inside
  * out. `PrivacyRings` is the hero's large drawing with numbered markers; `LayerRings` is the
- * small copy each "capa por capa" row carries, with only its own ring lit.
+ * small copy each "capa por capa" row carries, with only its own ring lit and a lit dot for the
+ * data at its centre (a receipt that small read as a grey block).
  */
 
 export const LAYER_COUNT = 5;
@@ -113,7 +114,7 @@ export function PrivacyRings({
 
 const MINI_RADII = [14, 21, 28, 35, 42];
 
-/** A small copy of the rings with only layer `active` lit (0-based). */
+/** A small copy of the rings with only layer `active` lit (0-based) around a lit core. */
 export function LayerRings({
   active,
   className,
@@ -137,7 +138,7 @@ export function LayerRings({
           />
         );
       })}
-      <rect x="38" y="36" width="12" height="16" rx="1.5" style={{ fill: paint("illus-paper") }} />
+      <circle cx="44" cy="44" r="5" style={{ fill: paint("ridge-line") }} />
     </svg>
   );
 }

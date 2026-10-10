@@ -38,7 +38,7 @@ interface ShownIssue {
 }
 
 /**
- * Uploads a filled Cuadra template (specs/027). The file is read and resolved in
+ * Uploads a filled fik template (specs/027). The file is read and resolved in
  * the browser; the API then validates it for real (`preview`, which writes
  * nothing) and shows what it would do — counts per sheet, the effect on each
  * account under a chosen balance mode — or every problem, on its sheet and row.
