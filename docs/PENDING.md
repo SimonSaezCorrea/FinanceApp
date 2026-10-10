@@ -126,6 +126,15 @@ incluso con una futura sección de suscripción de pago en la app — la geoloca
 de seguridad esencial, nunca parte de un plan pago). Ver `specs/026-ipinfo-geolocation/` para el
 diseño completo.
 
+**Pendiente (2026-10-10): la IP se puede falsear saltándose Cloudflare.** En producción
+`TRUST_PROXY_HOPS=2` confía en dos proxies (Cloudflare y Railway). Quien llame directo al origen en
+Railway cruza uno solo, y la dirección que él mismo escriba en `X-Forwarded-For` queda como su IP:
+puede falsear la ubicación que muestra "Sesiones y dispositivos" (por ejemplo, para que un login
+con credenciales robadas no se vea sospechoso). Hoy `req.ip` solo alimenta esa ubicación. Para
+cerrarlo hay que hacer que el origen solo acepte tráfico de Cloudflare (por ejemplo, un header
+secreto que Cloudflare agregue con una Transform Rule y que el API exija, o un túnel de Cloudflare).
+Hasta entonces, **ninguna decisión de seguridad puede basarse en `req.ip`**.
+
 ### 5. Plan, uso y facturación — **sección retirada del Perfil (2026-09-25)**
 
 Era un placeholder completo: usos fijos de ejemplo ("Cuentas 6/10", "Categorías personalizadas

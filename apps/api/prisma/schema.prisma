@@ -524,7 +524,7 @@ model CreditStatement {
   prepaidAmount     Decimal   @default(0) @db.Decimal(18, 4)
   /// Spec 028: the period's currency. An account whose primary card holds limits in
   /// other currencies keeps one OPEN period per currency. The default only exists so
-  /// `db push` can add this column to rows saved before it (all CLP); every period
+  /// the column could be added to rows saved before it (all CLP); every period
   /// created since is given its currency explicitly.
   currency                String    @default("CLP")
   /// Spec 028: when an overdue period in another currency was converted by the bank

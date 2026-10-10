@@ -69,7 +69,7 @@ describe("AllExceptionsFilter", () => {
     expect(json).toHaveBeenCalledWith({ error: { code: "INTERNAL_ERROR" } });
     expect(message).toContain("GET /api/v1/accounts");
     expect(message).toContain("bank-account.creditUsed");
-    expect(message).toContain("pnpm db:push");
+    expect(message).toContain("pnpm db:migrate");
     // A named Prisma failure needs no stack — the frames are all Prisma internals.
     expect(stack).toBeUndefined();
   });

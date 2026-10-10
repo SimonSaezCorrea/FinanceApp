@@ -58,9 +58,9 @@ function describePrismaError({ code, message, meta }: PrismaError): string {
 
   switch (code) {
     case "P2021":
-      return `${code}: table \`${at("table") ?? "?"}\` does not exist in the database. The schema and the database have drifted — run \`pnpm db:push\`.`;
+      return `${code}: table \`${at("table") ?? "?"}\` does not exist in the database. The schema and the database have drifted — run \`pnpm db:migrate\`.`;
     case "P2022":
-      return `${code}: column \`${at("column") ?? "?"}\` does not exist in the database. The schema and the database have drifted — run \`pnpm db:push\`.`;
+      return `${code}: column \`${at("column") ?? "?"}\` does not exist in the database. The schema and the database have drifted — run \`pnpm db:migrate\`.`;
     case "P2002":
       return `${code}: unique constraint violated on \`${at("target") ?? "?"}\`. A domain error should have caught this first (e.g. EMAIL_TAKEN) — this reached the filter unhandled.`;
     case "P2003":

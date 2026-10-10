@@ -1,4 +1,12 @@
 <!--
+Sync Impact Report — 2026-10-10 (amendment 2.5.3)
+- Version change: 2.5.2 → 2.5.3 (PATCH: operational workflow; no principle text changed).
+- CHANGED: schema changes move from `prisma db push` to Prisma MIGRATIONS
+  (`apps/api/prisma/migrations/`, baseline `20261010000000_init`); CI applies them with
+  `migrate deploy` and fails when `schema.prisma` and the migrations disagree. Production deploys
+  with `db:deploy` (`migrate deploy` + catalogue-only seed, which never creates the demo user on a
+  database that is not local).
+
 Sync Impact Report — 2026-10-10 (amendment 2.5.2)
 - Version change: 2.5.1 → 2.5.2 (PATCH: the optional local MaxMind geolocation source,
   `GEOIP_DB_PATH` and the `maxmind` dependency are removed; IPinfo is the only source of a
@@ -2211,4 +2219,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.5.2 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-10
+**Version**: 2.5.3 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-10

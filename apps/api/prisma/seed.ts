@@ -28,6 +28,17 @@ const prisma = new PrismaClient({
 
 const dec = (s: string) => new Prisma.Decimal(s);
 
+/** True only for a database on this machine (localhost, 127.0.0.1, ::1). An unreadable URL is
+ * NOT local: when in doubt, no demo user. */
+function isLocalDatabase(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    return ["localhost", "127.0.0.1", "[::1]"].includes(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
 /** Demo emails: seed deletes and recreates these rows only. */
 const DEMO_EMAILS = ["demo@finance.local", "partner@finance.local", "test@finance.local"] as const;
 // Note: only test@finance.local (index 2) is seeded — the others are kept for cleanup of legacy data.
@@ -4989,10 +5000,12 @@ async function main() {
     where: { email: { in: [...DEMO_EMAILS] } },
   });
 
-  // Production gets the catalogue only. The demo account's password is published in this repo,
-  // so creating it there would be an open door (and the delete above clears any that slipped in).
-  if (process.env.NODE_ENV === "production") {
-    console.log("Seed OK: catalogue only (production, no demo user)");
+  // The demo account's password is published in this repo, so it is created ONLY on a local
+  // database (fail closed): a remote one — production, staging, a shared dev box — gets the
+  // catalogue alone, whatever NODE_ENV says or forgets to say. The delete above also clears any
+  // demo account that slipped into a remote database before this rule.
+  if (!isLocalDatabase(process.env.DATABASE_URL) || process.env.NODE_ENV === "production") {
+    console.log("Seed OK: catalogue only (not a local database, no demo user)");
     return;
   }
 
