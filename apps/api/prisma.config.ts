@@ -8,6 +8,8 @@ loadEnv({ path: path.join(__dirname, ".env") });
 export default defineConfig({
   schema: "prisma/schema.prisma",
   datasource: {
-    url: env("DATABASE_URL"),
+    // Schema changes go through a direct connection when one is given (Neon's pooled URL sits
+    // behind PgBouncer, which schema operations shouldn't use); the app keeps DATABASE_URL.
+    url: process.env.DIRECT_DATABASE_URL?.trim() || env("DATABASE_URL"),
   },
 });

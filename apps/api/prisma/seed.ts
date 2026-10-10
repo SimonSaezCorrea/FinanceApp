@@ -4989,6 +4989,13 @@ async function main() {
     where: { email: { in: [...DEMO_EMAILS] } },
   });
 
+  // Production gets the catalogue only. The demo account's password is published in this repo,
+  // so creating it there would be an open door (and the delete above clears any that slipped in).
+  if (process.env.NODE_ENV === "production") {
+    console.log("Seed OK: catalogue only (production, no demo user)");
+    return;
+  }
+
   const passwordHash = await hash(DEMO_PASSWORD, 12);
   await seedFullUser(passwordHash);
 

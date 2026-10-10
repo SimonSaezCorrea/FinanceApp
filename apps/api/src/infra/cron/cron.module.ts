@@ -7,9 +7,7 @@ import { IdempotencyRecordModule } from "../../domains/idempotency-record/idempo
 import { IpGeolocationCacheModule } from "../../domains/ip-geolocation-cache/ip-geolocation-cache.module";
 import { UserModule } from "../../domains/user/user.module";
 import { ExchangeRateCron } from "./exchange-rate.cron";
-import { IdempotencyCleanupCron } from "./idempotency-cleanup.cron";
-import { IpGeolocationCachePurgeCron } from "./ip-geolocation-cache-purge.cron";
-import { SessionCleanupCron } from "./session-cleanup.cron";
+import { MaintenanceCron } from "./maintenance.cron";
 import { StatementGenerationCron } from "./statement-generation.cron";
 
 /**
@@ -34,12 +32,6 @@ import { StatementGenerationCron } from "./statement-generation.cron";
     IpGeolocationCacheModule,
     UserModule,
   ],
-  providers: [
-    ExchangeRateCron,
-    IdempotencyCleanupCron,
-    IpGeolocationCachePurgeCron,
-    SessionCleanupCron,
-    StatementGenerationCron,
-  ],
+  providers: [ExchangeRateCron, MaintenanceCron, StatementGenerationCron],
 })
 export class CronModule {}
