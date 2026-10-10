@@ -115,12 +115,11 @@ model Session {
   /// Derived from the login request's User-Agent ONCE, at creation — never reparsed on
   /// read (ex. "Chrome · Windows"). Null if no User-Agent was present to parse.
   deviceLabel String?
-  /// Approximate country resolved from the login IP at creation, via a local GeoLite2
+  /// Approximate country resolved from the login IP at creation, via IPinfo Lite
   /// lookup (optional infra — null whenever it can't be resolved, never a failure).
   country     String?
-  /// Approximate city, same lookup/caveats as `country` — city-level GeoIP is
-  /// meaningfully less reliable (carrier NAT/mobile often resolves to the ISP's own
-  /// city, not the user's), shown as a best-effort extra, never load-bearing.
+  /// Approximate city. Only sessions resolved by the old local GeoLite2 lookup (removed
+  /// 2026-10-10) have one; IPinfo Lite gives the country only, so it is now always null.
   city        String?
 
   createdAt  DateTime  @default(now())
@@ -257,7 +256,7 @@ model IpGeolocationCache {
   /// The real business key — NEVER the PK (Principle VIII). Exact IP as the server saw it,
   /// never a CIDR block.
   ip      String  @unique
-  /// ISO alpha-2 (e.g. "CL"), same format `Session.country` already has via MaxMind. `null`
+  /// ISO alpha-2 (e.g. "CL"), same format as `Session.country`. `null`
   /// means IPinfo answered 2xx without a `country_code` — a genuine result, cached like any
   /// other (unlike a network error/timeout/non-2xx, which is never cached at all).
   country String?

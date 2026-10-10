@@ -36,7 +36,6 @@
     "cookie-parser": "^1.4.7",
     "date-holidays": "^3.35.0",
     "decimal.js": "^10.5.0",
-    "maxmind": "^5.0.7",
     "otpauth": "^9.4.0",
     "qrcode": "^1.5.4",
     "reflect-metadata": "^0.2.2",

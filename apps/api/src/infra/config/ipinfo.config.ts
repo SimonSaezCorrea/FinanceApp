@@ -1,9 +1,8 @@
 import { ConfigService } from "@nestjs/config";
 
 /**
- * Optional, same "inert without config" precedent as `getGeoIpDbPath` — a session's country is a
- * nice-to-have, never required. `null` means `GeoIpLookup` falls back to MaxMind (if
- * `GEOIP_DB_PATH` is set) or resolves no country at all; it must NEVER throw at boot the way
+ * Optional, "inert without config" like the S3 block — a session's country is a nice-to-have,
+ * never required. `null` means `GeoIpLookup` resolves no country at all; it must NEVER throw at boot the way
  * `getOrThrow` does for the required secrets.
  */
 export function getIpinfoToken(config: ConfigService): string | null {

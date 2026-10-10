@@ -9,7 +9,15 @@ let baseUrl = DEFAULT_BASE_URL;
  * `PUBLIC_API_URL`. The client itself never reads environment variables.
  */
 export function configureClient({ baseUrl: url }: { baseUrl: string | undefined }): void {
-  baseUrl = url && url.trim() !== "" ? url.trim().replace(/\/+$/, "") : DEFAULT_BASE_URL;
+  const trimmed = url?.trim() ?? "";
+  baseUrl = trimmed === "" ? DEFAULT_BASE_URL : withoutTrailingSlashes(trimmed);
+}
+
+/** Drops trailing "/" with a plain loop: a `/\/+$/` regex is quadratic on a long run of slashes. */
+function withoutTrailingSlashes(value: string): string {
+  let end = value.length;
+  while (end > 0 && value[end - 1] === "/") end--;
+  return value.slice(0, end);
 }
 
 export function getBaseUrl(): string {

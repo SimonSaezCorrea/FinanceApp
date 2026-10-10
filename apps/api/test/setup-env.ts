@@ -14,6 +14,10 @@ import { config } from "dotenv";
 // Vitest's `root` is `apps/api`, so cwd-relative is the same file the app reads.
 config({ path: resolve(process.cwd(), ".env"), quiet: true });
 
+// A production rpId in someone's local .env (e.g. "mifik.cl") must not leak into tests: they run
+// against localhost origins, and the ones that need an rpId pass it themselves.
+delete process.env.PASSKEY_RP_ID;
+
 if (process.env.TEST_DATABASE_URL) {
   process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 }

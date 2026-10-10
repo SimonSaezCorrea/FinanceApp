@@ -2046,6 +2046,12 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
     cambio de contrato HTTP ni de dependencia nueva (`fetch` nativo de Node 20 — primera
     llamada de red saliente de este backend hacia un servicio de terceros que no es S3).
     Ver `specs/026-ipinfo-geolocation/` para el detalle completo.
+    Amendment (MaxMind eliminado, 2026-10-10): IPinfo es la única fuente. La rama local de
+    MaxMind de `GeoIpLookup`, `infra/config/geoip.config.ts`, la variable `GEOIP_DB_PATH`, la
+    dependencia `maxmind` y la entrada `apps/api/geoip/` de `.gitignore` se eliminaron. Sin
+    `IPINFO_TOKEN` las sesiones no tienen país. `Session.city` queda solo en las sesiones
+    guardadas antes (IPinfo Lite no da ciudad). `test/setup-env.ts` borra `PASSKEY_RP_ID` del
+    `.env` cargado, para que un rpId de producción en el `.env` local no rompa los tests.
 
 - **Errors:** the API returns **language-agnostic codes** `{ error: { code, field? } }` (never localized prose); the frontend maps `code` → `errors.<CODE>` in es/en. `AllExceptionsFilter` (`infra/http`) preserves the specific `code`/`field` thrown on the exception (e.g. `EMAIL_TAKEN`, `CARD_REQUIRED`) and only falls back to a generic status-derived code (`UNAUTHORIZED`, `CONFLICT`, …) when the exception carried none — a prior version of this filter discarded every domain-specific code and must not regress.
 
@@ -2198,7 +2204,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.5.1**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.5.2**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
 - **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
   `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.

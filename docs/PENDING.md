@@ -83,7 +83,7 @@ Ya no es data de ejemplo. Cada login exitoso (password, con/sin MFA, o passkey) 
 `JwtAuthGuard` verifica en cada request que esa sesión siga existiendo (revocación de inmediato, no
 solo en el próximo refresh). `SecuritySection` lista las sesiones reales (`GET /auth/sessions`,
 dispositivo/navegador derivado del User-Agent, país aproximado vía IPinfo si `IPINFO_TOKEN` está
-configurado — ver el punto 4b, cerrado — o vía GeoLite2 local si solo `GEOIP_DB_PATH` lo está) y
+configurado — ver el punto 4b, cerrado) y
 "Cerrar"/"Cerrar todas" llaman de verdad a `DELETE /auth/sessions/:id`/
 `POST /auth/sessions/revoke-others`. Cerrar una sesión estampa `closedAt` (se retiene 3 días, la
 purga un cron diario) — ver la enmienda de `CLAUDE.md` que reemplazó el DELETE inmediato original.
@@ -119,8 +119,8 @@ externa. Ciudad **ya no se resuelve** para sesiones nuevas (Lite no la entrega �
 aceptado de esta migración); las sesiones ya guardadas con ciudad de MaxMind conservan su dato tal
 cual, no se migran. Un fallo transitorio del proveedor (red, timeout, token inválido) nunca se
 cachea, para que se autocorrija en el siguiente login en vez de quedar "envenenado" 60 días. Sin
-`IPINFO_TOKEN`, cae de vuelta a MaxMind local si `GEOIP_DB_PATH` sigue configurado, o sin país si
-tampoco — las dos fuentes nunca se combinan en una misma resolución. Nueva atribución visible en
+`IPINFO_TOKEN` no hay país (la alternativa local con MaxMind/`GEOIP_DB_PATH` se eliminó el
+2026-10-10). Nueva atribución visible en
 Perfil → Seguridad, bajo la lista de sesiones (cumple la condición de la licencia CC BY-SA 4.0,
 incluso con una futura sección de suscripción de pago en la app — la geolocalización es una función
 de seguridad esencial, nunca parte de un plan pago). Ver `specs/026-ipinfo-geolocation/` para el

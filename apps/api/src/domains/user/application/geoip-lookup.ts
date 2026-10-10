@@ -1,8 +1,6 @@
 import { Inject, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { open, type CityResponse, type Reader } from "maxmind";
 
-import { getGeoIpDbPath } from "../../../infra/config/geoip.config";
 import { getIpinfoToken } from "../../../infra/config/ipinfo.config";
 import { planCacheEntry } from "../../ip-geolocation-cache/domain/ip-geolocation-cache.entity";
 import {
@@ -27,18 +25,14 @@ const NO_LOCATION: GeoLocation = { country: null, city: null };
 type IpinfoFetchResult = { ok: true; country: string | null } | { ok: false };
 
 /**
- * IP→location lookup (specs/023 R5, rewritten by specs/026). Public contract unchanged —
- * `SessionIssuer` never sees which of two internal sources answered a given call. Preference
- * order per call: `IPINFO_TOKEN` configured → IPinfo Lite (through the `ip-geolocation-cache`
- * table, never combined with MaxMind as an automatic fallback within the same call — research.md
- * R5); else `GEOIP_DB_PATH` configured → local MaxMind reader (unchanged since specs/023); else no
- * location. Never throws — every failure resolves to `{country: null, city: null}`, a session is
- * created either way.
+ * IP→location lookup (specs/023 R5, rewritten by specs/026). With `IPINFO_TOKEN` configured it asks
+ * IPinfo Lite through the `ip-geolocation-cache` table; without it there is no location. The local
+ * MaxMind (GeoLite2) path and its `GEOIP_DB_PATH` were removed on 2026-10-10. IPinfo Lite gives the
+ * country only, so `city` is always `null` (kept in the shape for sessions stored before). Never
+ * throws — every failure resolves to `{country: null, city: null}`, a session is created either way.
  */
 @Injectable()
 export class GeoIpLookup {
-  private readerPromise: Promise<Reader<CityResponse> | null> | undefined;
-
   constructor(
     private readonly config: ConfigService,
     @Inject(IP_GEOLOCATION_CACHE_REPOSITORY)
@@ -49,7 +43,7 @@ export class GeoIpLookup {
     if (!ip) return NO_LOCATION;
     const effectiveIp = this.resolveEffectiveIp(ip);
     const token = getIpinfoToken(this.config);
-    return token ? this.lookupViaIpinfo(effectiveIp, token) : this.lookupViaMaxMind(effectiveIp);
+    return token ? this.lookupViaIpinfo(effectiveIp, token) : NO_LOCATION;
   }
 
   private resolveEffectiveIp(ip: string): string {
@@ -85,41 +79,6 @@ export class GeoIpLookup {
       return { ok: true, country: body.country_code ?? null };
     } catch {
       return { ok: false };
-    }
-  }
-
-  /**
-   * Local-only IP→location lookup (research.md R5 of specs/023) — never a network call. Opens
-   * the `.mmdb` reader lazily, once, and caches it (or the fact that it's unavailable) for the
-   * process lifetime. Entirely optional: no configured path, a missing/corrupt file, or any
-   * lookup failure all resolve to `{country: null, city: null}`. Expects a GeoLite2-CITY
-   * database (`CityResponse` is a superset of the country-only shape, so a GeoLite2-Country file
-   * still works — `city` just stays `null`).
-   */
-  private load(): Promise<Reader<CityResponse> | null> {
-    if (!this.readerPromise) {
-      const path = getGeoIpDbPath(this.config);
-      this.readerPromise = path
-        ? open<CityResponse>(path).catch(() => null)
-        : Promise.resolve(null);
-    }
-    return this.readerPromise;
-  }
-
-  private async lookupViaMaxMind(ip: string): Promise<GeoLocation> {
-    const reader = await this.load();
-    if (!reader) return NO_LOCATION;
-    try {
-      const result = reader.get(ip);
-      // `country` is the physical-location country; some IPs (notably anycast, e.g.
-      // 1.1.1.1) carry no `country` record at all, only `registered_country` (where
-      // the IP block itself is registered) — falling back to it is still a reasonable
-      // approximation of "where this login came from", better than showing nothing.
-      const country = result?.country?.iso_code ?? result?.registered_country?.iso_code ?? null;
-      const city = result?.city?.names.es ?? result?.city?.names.en ?? null;
-      return { country, city };
-    } catch {
-      return NO_LOCATION;
     }
   }
 }

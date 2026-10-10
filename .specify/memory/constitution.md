@@ -1,4 +1,9 @@
 <!--
+Sync Impact Report — 2026-10-10 (amendment 2.5.2)
+- Version change: 2.5.1 → 2.5.2 (PATCH: the optional local MaxMind geolocation source,
+  `GEOIP_DB_PATH` and the `maxmind` dependency are removed; IPinfo is the only source of a
+  session's country; no principle text changed).
+
 Sync Impact Report — 2026-10-10 (amendment 2.5.1)
 - Version change: 2.5.0 → 2.5.1 (PATCH: product rename "Cuadra" → "fik", domain `mifik.cl` /
   `app.mifik.cl`; new brand mark "Cuaderno" and a handwritten wordmark font, `@fontsource/caveat-brush`,
@@ -2206,4 +2211,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.5.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-10
+**Version**: 2.5.2 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-10

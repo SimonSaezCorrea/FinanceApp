@@ -30,7 +30,7 @@ describe("GeoIpLookup", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns no location when neither IPINFO_TOKEN nor GEOIP_DB_PATH is configured", async () => {
+  it("returns no location when IPINFO_TOKEN is not configured", async () => {
     const lookup = new GeoIpLookup(fakeConfig({}) as never, fakeCache());
 
     const result = await lookup.lookup("8.8.8.8");
@@ -96,7 +96,7 @@ describe("GeoIpLookup", () => {
     expect(cache.upsert).not.toHaveBeenCalled();
   });
 
-  it("without IPINFO_TOKEN, never touches the cache or the network (falls back to MaxMind path)", async () => {
+  it("without IPINFO_TOKEN, never touches the cache or the network", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const cache = fakeCache();
@@ -104,7 +104,6 @@ describe("GeoIpLookup", () => {
 
     const result = await lookup.lookup("8.8.8.8");
 
-    // No GEOIP_DB_PATH either, so the MaxMind reader never opens — resolves to no location.
     expect(result).toEqual({ country: null, city: null });
     expect(fetchMock).not.toHaveBeenCalled();
     expect(cache.findFreshByIp).not.toHaveBeenCalled();
