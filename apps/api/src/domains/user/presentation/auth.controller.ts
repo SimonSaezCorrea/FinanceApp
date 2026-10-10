@@ -19,6 +19,7 @@ import { auth } from "@finance/contracts";
 
 import { ACCESS_COOKIE, JwtAuthGuard, REFRESH_COOKIE } from "../../../infra/auth/jwt-auth.guard";
 import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.decorator";
+import { requiresSecureCookies } from "../../../infra/config/origins.config";
 import { ZodParamsPipe } from "../../../infra/http/zod-params.pipe";
 import { ZodValidationPipe } from "../../../infra/http/zod-validation.pipe";
 import { ChangePasswordCommand } from "../application/commands/change-password.command";
@@ -450,12 +451,14 @@ export class AuthController {
     return { userAgent: req.headers["user-agent"], ip: req.ip };
   }
 
+  /** Every auth cookie: never readable from JavaScript, and `Secure` everywhere except a purely
+   * local `http://localhost` setup (`requiresSecureCookies`) — not tied to `NODE_ENV`, so a
+   * deployment that forgets to set it still sends them over HTTPS only. */
   private cookieBase() {
-    const isProd = this.config.get<string>("NODE_ENV") === "production";
     return {
       httpOnly: true,
       sameSite: "lax" as const,
-      secure: isProd,
+      secure: requiresSecureCookies(this.config),
       path: "/",
     };
   }

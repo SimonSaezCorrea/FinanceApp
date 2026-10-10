@@ -67,7 +67,11 @@ describe("MFA login HTTP (e2e)", () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual({ mfaRequired: true });
     const cookies = res.get("Set-Cookie") ?? [];
-    expect(cookies.some((c) => c.startsWith("mfa_pending_token="))).toBe(true);
+    const pending = cookies.find((c) => c.startsWith("mfa_pending_token="));
+    expect(pending).toBeDefined();
+    // Never readable from JavaScript (code scanning js/client-exposed-cookie can't see through
+    // the `...cookieBase()` spread, so this is where it is proven).
+    expect(pending).toMatch(/;\s*HttpOnly/i);
     expect(cookies.some((c) => c.startsWith("access_token="))).toBe(false);
   });
 

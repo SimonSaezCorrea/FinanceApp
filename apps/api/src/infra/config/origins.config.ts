@@ -6,6 +6,22 @@ const DEFAULT_ORIGIN = "http://localhost:5173";
 /** `scheme://host[:port]` — an origin, never a URL with a path or a trailing slash. */
 const ORIGIN_PATTERN = /^https?:\/\/[^/\s]+$/;
 
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/**
+ * Whether the session cookies must carry `Secure` (only sent over HTTPS). Secure BY DEFAULT: the
+ * only exception is a machine where every allowed origin is plain `http://` on loopback (local
+ * development, the test suites), where a `Secure` cookie would never come back. It deliberately
+ * doesn't depend on `NODE_ENV`: a deployment that forgets to set it must not ship cookies without
+ * `Secure`.
+ */
+export function requiresSecureCookies(config: ConfigService): boolean {
+  return !getAllowedOrigins(config).every((origin) => {
+    const url = new URL(origin);
+    return url.protocol === "http:" && LOOPBACK_HOSTS.has(url.hostname);
+  });
+}
+
 /**
  * Every origin allowed to call the API with credentials (specs/031): the public site and the app.
  * `CORS_ORIGIN` is a comma-separated list; a single origin (the format before specs/031) is a

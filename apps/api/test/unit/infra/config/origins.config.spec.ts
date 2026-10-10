@@ -5,6 +5,7 @@ import {
   assertOriginsMatchRpId,
   getAllowedOrigins,
   getPasskeyRpId,
+  requiresSecureCookies,
 } from "../../../../src/infra/config/origins.config";
 
 const config = (values: Record<string, string>) => new ConfigService(values);
@@ -97,5 +98,33 @@ describe("assertOriginsMatchRpId", () => {
         config({ CORS_ORIGIN: "https://evilmifik.cl", PASSKEY_RP_ID: "mifik.cl" }),
       ),
     ).toThrow(/evilmifik\.cl/);
+  });
+});
+
+describe("requiresSecureCookies", () => {
+  it("is off only when every origin is plain http on loopback (local development)", () => {
+    expect(
+      requiresSecureCookies(
+        config({
+          CORS_ORIGIN: "http://localhost:4321,http://localhost:5173,http://127.0.0.1:3000",
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it("is on for any real deployment, whatever NODE_ENV says", () => {
+    expect(
+      requiresSecureCookies(
+        config({ CORS_ORIGIN: "https://mifik.cl,https://app.mifik.cl", NODE_ENV: "development" }),
+      ),
+    ).toBe(true);
+  });
+
+  it("is on when even one origin is not local http", () => {
+    expect(
+      requiresSecureCookies(config({ CORS_ORIGIN: "http://localhost:5173,https://app.mifik.cl" })),
+    ).toBe(true);
+    expect(requiresSecureCookies(config({ CORS_ORIGIN: "https://localhost:5173" }))).toBe(true);
+    expect(requiresSecureCookies(config({ CORS_ORIGIN: "http://192.168.1.20:5173" }))).toBe(true);
   });
 });

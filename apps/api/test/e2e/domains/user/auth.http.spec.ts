@@ -57,8 +57,10 @@ describe("Auth HTTP (e2e)", () => {
     expect(res.body.email).toBe(email.toLowerCase());
     userId = res.body.id;
     cookies = res.get("Set-Cookie") ?? [];
-    expect(cookies.some((c) => c.startsWith("access_token="))).toBe(true);
-    expect(cookies.some((c) => c.startsWith("refresh_token="))).toBe(true);
+    const access = cookies.find((c) => c.startsWith("access_token="));
+    const refresh = cookies.find((c) => c.startsWith("refresh_token="));
+    expect(access).toMatch(/;\s*HttpOnly/i);
+    expect(refresh).toMatch(/;\s*HttpOnly/i);
   });
 
   it("rejects registering the same email twice (EMAIL_TAKEN)", async () => {
