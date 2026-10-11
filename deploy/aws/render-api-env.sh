@@ -8,8 +8,9 @@
 # change one, create/edit the parameter (SecureString for secrets, String otherwise) and deploy.
 # The exception is the DATABASE_* group, which only builds the two connection strings:
 #   DATABASE_HOST, DATABASE_APP_PASSWORD (user fik_app: the API and the seed, rows only),
-#   DATABASE_MIGRATE_PASSWORD (user fik_migrate: migrations, owns the schema),
-#   DATABASE_ADMIN_PASSWORD (the RDS master: never written here). See db-roles.sql.
+#   DATABASE_MIGRATE_PASSWORD (user fik_migrate: migrations, owns the schema). See db-roles.sql.
+# The RDS master's password lives OUTSIDE this path (/fik/admin/DATABASE_ADMIN_PASSWORD), and the
+# server role explicitly denies reading /fik/admin/* (api-ec2-parameters-policy.json).
 # Parameter Store is also the backup of MFA_ENCRYPTION_KEY and IDENTIFIER_HASH_SECRET: losing
 # either makes stored data unreadable.
 set -euo pipefail

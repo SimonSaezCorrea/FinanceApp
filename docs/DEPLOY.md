@@ -105,7 +105,7 @@ Luego, en _Lifecycle policy_: conservar solo las **últimas 10 imágenes**.
 - `AmazonEC2ContainerRegistryReadOnly` (descargar la imagen del API)
 
 Y una política en línea con `deploy/aws/api-ec2-parameters-policy.json` (reemplazando
-`ACCOUNT_ID`): leer los parámetros `/fik/prod/*`, de donde sale `api.env`.
+`ACCOUNT_ID`): leer los parámetros `/fik/prod/*`, de donde sale `api.env`, y **nunca** `/fik/admin/*`.
 
 Nombre: `fik-api-ec2`.
 
@@ -178,7 +178,10 @@ desplegar**. Si falta una obligatoria, aborta sin tocar el archivo ni el API en 
 
 - El grupo `DATABASE_*` no se copia tal cual: arma las conexiones. `DATABASE_HOST` (endpoint de RDS),
   `DATABASE_APP_PASSWORD` (`fik_app`), `DATABASE_MIGRATE_PASSWORD` (`fik_migrate`) y
-  `DATABASE_ADMIN_PASSWORD` (`fik_admin`, nunca llega al servidor).
+  la del maestro, que vive **fuera** de esta ruta: `/fik/admin/DATABASE_ADMIN_PASSWORD`. El rol del
+  servidor tiene un _Deny_ explícito sobre `/fik/admin/*` (la política administrada
+  `AmazonSSMManagedInstanceCore` le deja leer cualquier parámetro de la cuenta, y un Deny explícito
+  gana).
 - Secretos (cada uno `openssl rand -base64 48`; `MFA_ENCRYPTION_KEY` con `openssl rand -hex 32`),
   **distintos a los de desarrollo**: los de `deploy/api.env.example`. Parameter Store es su
   respaldo: perder `MFA_ENCRYPTION_KEY` o `IDENTIFIER_HASH_SECRET` deja ilegibles datos guardados.
@@ -260,7 +263,7 @@ de build (`VITE_*`, `PUBLIC_*`) están en `deploy.yml`, no en Cloudflare.
    `... db-allow-my-ip.sh --revoke`.
 2. Certificado de la región: `https://truststore.pki.rds.amazonaws.com/us-east-2/us-east-2-bundle.pem`.
 3. DBeaver → PostgreSQL: host `fik-db.cfoeucaao0d1.us-east-2.rds.amazonaws.com`, puerto 5432, base
-   `fik`, usuario `fik_admin` (contraseña: Parameter Store `/fik/prod/DATABASE_ADMIN_PASSWORD`). Pestaña
+   `fik`, usuario `fik_admin` (contraseña: Parameter Store `/fik/admin/DATABASE_ADMIN_PASSWORD`). Pestaña
    **SSL**: _Use SSL_, _Root certificate_ = el archivo del paso 2, _SSL mode_ = `verify-full`.
 4. Es la base de producción con el usuario maestro: lo que se modifique o borre ahí es real.
 

@@ -9,6 +9,20 @@
         "arn:aws:ssm:us-east-2:ACCOUNT_ID:parameter/fik/prod",
         "arn:aws:ssm:us-east-2:ACCOUNT_ID:parameter/fik/prod/*"
       ]
+    },
+    {
+      "Sid": "NeverReadAdminParameters",
+      "Effect": "Deny",
+      "Action": [
+        "ssm:GetParametersByPath",
+        "ssm:GetParameters",
+        "ssm:GetParameter",
+        "ssm:GetParameterHistory"
+      ],
+      "Resource": [
+        "arn:aws:ssm:*:ACCOUNT_ID:parameter/fik/admin",
+        "arn:aws:ssm:*:ACCOUNT_ID:parameter/fik/admin/*"
+      ]
     }
   ]
 }
