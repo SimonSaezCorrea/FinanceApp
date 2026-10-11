@@ -161,6 +161,9 @@ importers:
       eslint:
         specifier: ^10.11.0
         version: 10.11.0(jiti@2.7.0)
+      express:
+        specifier: ^5.2.1
+        version: 5.2.1
       prisma:
         specifier: ^7.10.0
         version: 7.10.0(@types/node@26.1.2)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(magicast@0.5.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)(typescript@6.0.3)
