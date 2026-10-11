@@ -43,11 +43,15 @@ export interface UserProps {
   /** Wrong-password counter for login, same shape as the MFA one (see `recordLoginFailure`). */
   loginFailedAttempts: number;
   loginLockedUntil: Date | null;
+  /** Mirror of the primary `user-email` row's `verifiedAt` (specs/032); null/absent =
+   * unconfirmed. Optional so fixtures that predate it keep compiling. */
+  emailVerifiedAt?: Date | null;
 }
 
+/** `email` is not part of a profile edit (specs/032): it changes only by confirming a pending
+ * address (`confirmPrimaryEmail`). */
 export type ProfilePatch = Partial<{
   name: string;
-  email: string;
   countryId: string | null;
   /** Resolved by the application layer (mirrors `accounts`' `institutionName`
    * lookup) — only meaningful when `countryId` is also present in the patch. */
@@ -169,6 +173,31 @@ export class User {
   get identifierValue(): string | null {
     return this.props.identifierValue;
   }
+  get locale(): auth.CurrentUser["locale"] {
+    return this.props.locale;
+  }
+  /** Whether the primary email is confirmed (specs/032): only then may it recover the password
+   * or receive security notices. */
+  get emailVerified(): boolean {
+    return Boolean(this.props.emailVerifiedAt);
+  }
+
+  /** The primary email becomes `address`, confirmed at `at` (specs/032): either the current one
+   * confirmed in place, or a pending one promoted. The `user-email` rows move in the same
+   * transaction (their own adapter). */
+  confirmPrimaryEmail(address: string, at: Date): void {
+    this.props.email = address;
+    this.props.emailVerifiedAt = at;
+  }
+
+  /** Password recovery (specs/032): a new hash and the login lockout lifted — the lock exists to
+   * stop guessing, and proving control of the confirmed email ends that. The second factor is
+   * deliberately untouched (FR-020). */
+  resetPassword(passwordHash: string): void {
+    this.props.passwordHash = passwordHash;
+    this.props.loginFailedAttempts = 0;
+    this.props.loginLockedUntil = null;
+  }
 
   /** ACCOUNT_DISABLED — a deactivated account may not authenticate (login or
    * refresh), even holding an otherwise-valid credential/token. */
@@ -182,7 +211,6 @@ export class User {
 
   applyProfileUpdate(patch: ProfilePatch): void {
     if (patch.name !== undefined) this.props.name = patch.name;
-    if (patch.email !== undefined) this.props.email = patch.email;
     if (patch.countryId !== undefined) {
       this.props.countryId = patch.countryId;
       this.props.countryName = patch.countryId
@@ -298,6 +326,7 @@ export class User {
     this.props.deletedAt = new Date();
     this.props.status = "DISABLED";
     this.props.email = null;
+    this.props.emailVerifiedAt = null;
     this.props.name = null;
     this.props.passwordHash = null;
     this.props.phone = null;
@@ -353,6 +382,7 @@ export class User {
       budgetAlertThreshold: this.props.budgetAlertThreshold,
       mfaEnabled: this.props.mfaEnabled,
       mfaRecoveryCodesRemaining,
+      emailVerified: this.emailVerified,
     };
   }
 }

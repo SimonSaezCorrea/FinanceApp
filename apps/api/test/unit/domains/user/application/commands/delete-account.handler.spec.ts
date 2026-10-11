@@ -1,9 +1,13 @@
+import type { UserEmailRepositoryPort } from "../../../../../../src/domains/user-email/domain/ports/user-email.repository.port";
+import type { EmailTokenRepositoryPort } from "../../../../../../src/domains/email-token/domain/ports/email-token.repository.port";
 import { hash } from "bcryptjs";
 import { describe, expect, it, vi } from "vitest";
 
 import { DeleteAccountHandler } from "../../../../../../src/domains/user/application/commands/delete-account.handler";
 import { DeleteAccountCommand } from "../../../../../../src/domains/user/application/commands/delete-account.command";
 import { InvalidCurrentPasswordError } from "../../../../../../src/domains/user/domain/errors";
+import { AccountSecurityEvent } from "../../../../../../src/domains/user/domain/events/account-security.event";
+import { UserAccountDeletedEvent } from "../../../../../../src/domains/user/domain/events/user-account-deleted.event";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { SessionRepositoryPort } from "../../../../../../src/domains/session/domain/ports/session.repository.port";
@@ -72,6 +76,7 @@ function fakeSessions(overrides: Partial<SessionRepositoryPort> = {}): SessionRe
     existsForUser: vi.fn(),
     closeAllExceptForUser: vi.fn(),
     closeAllExceptForUserWithTx: vi.fn(),
+    closeAllForUserWithTx: vi.fn().mockResolvedValue(0),
     closeById: vi.fn(),
     markExpiredAsClosed: vi.fn(),
     purgeClosedBefore: vi.fn(),
@@ -126,6 +131,18 @@ function fakePrisma(): PrismaService {
   } as unknown as PrismaService;
 }
 
+function fakeUserEmails(): UserEmailRepositoryPort {
+  return {
+    deleteAllForUserWithTx: vi.fn().mockResolvedValue(undefined),
+  } as unknown as UserEmailRepositoryPort;
+}
+
+function fakeEmailTokens(): EmailTokenRepositoryPort {
+  return {
+    deleteAllForUserWithTx: vi.fn().mockResolvedValue(undefined),
+  } as unknown as EmailTokenRepositoryPort;
+}
+
 function buildHandler(
   overrides: {
     repo?: UserRepositoryPort;
@@ -133,6 +150,8 @@ function buildHandler(
     passkeys?: PasskeyRepositoryPort;
     recoveryCodes?: MfaRecoveryCodeRepositoryPort;
     deletionLog?: AccountDeletionLogRepositoryPort;
+    userEmails?: UserEmailRepositoryPort;
+    emailTokens?: EmailTokenRepositoryPort;
     prisma?: PrismaService;
   } = {},
 ) {
@@ -143,6 +162,8 @@ function buildHandler(
     overrides.passkeys ?? fakePasskeys(),
     overrides.recoveryCodes ?? fakeRecoveryCodes(),
     overrides.deletionLog ?? fakeDeletionLog(),
+    overrides.userEmails ?? fakeUserEmails(),
+    overrides.emailTokens ?? fakeEmailTokens(),
     fakeConfig(),
     overrides.prisma ?? fakePrisma(),
   );
@@ -300,6 +321,8 @@ describe("DeleteAccountHandler", () => {
       fakePasskeys(),
       fakeRecoveryCodes(),
       fakeDeletionLog(),
+      fakeUserEmails(),
+      fakeEmailTokens(),
       fakeConfig(),
       fakePrisma(),
     );
@@ -308,7 +331,29 @@ describe("DeleteAccountHandler", () => {
       new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: true }),
     );
 
-    expect(publish).toHaveBeenCalledTimes(1);
+    // The deletion itself, plus the goodbye notice to the address the account had (specs/032).
+    const published = publish.mock.calls.map(([e]) => e as object);
+    expect(published.some((e) => e instanceof UserAccountDeletedEvent)).toBe(true);
+    const notice = published.find((e) => e instanceof AccountSecurityEvent) as AccountSecurityEvent;
+    expect(notice.kind).toBe("ACCOUNT_DELETED");
+    expect(notice.recipient?.address).toBe(baseProps().email);
+  });
+
+  it("removes every address and link of an anonymized account (FR-012e)", async () => {
+    const passwordHash = await hash("correct-pw", 1);
+    const repo = fakeRepo({
+      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
+    });
+    const userEmails = fakeUserEmails();
+    const emailTokens = fakeEmailTokens();
+    const handler = buildHandler({ repo, userEmails, emailTokens });
+
+    await handler.execute(
+      new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: true }),
+    );
+
+    expect(userEmails.deleteAllForUserWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
+    expect(emailTokens.deleteAllForUserWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
   });
 
   it("rolls back the whole change when hard-deleting sessions fails (keepHistory=true)", async () => {

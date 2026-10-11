@@ -8,6 +8,7 @@ import {
 } from "../../../passkey/domain/ports/passkey.repository.port";
 import { PasskeyNotFoundError } from "../../domain/errors";
 import { RemovePasskeyCommand } from "./remove-passkey.command";
+import { AccountSecurityEvent } from "../../domain/events/account-security.event";
 
 @Injectable()
 @CommandHandler(RemovePasskeyCommand)
@@ -24,8 +25,17 @@ export class RemovePasskeyHandler extends BaseCommandHandler<RemovePasskeyComman
   }
 
   protected async handle(command: RemovePasskeyCommand): Promise<HandleResult<void>> {
-    const deleted = await this.passkeys.deleteOwned(command.userId, command.passkeyId);
-    if (!deleted) throw new PasskeyNotFoundError();
-    return { result: undefined, events: [] };
+    // Read first: the notice names the passkey that went away (specs/032).
+    const passkey = await this.passkeys.findByIdOwned(command.userId, command.passkeyId);
+    const deleted = passkey
+      ? await this.passkeys.deleteOwned(command.userId, command.passkeyId)
+      : false;
+    if (!passkey || !deleted) throw new PasskeyNotFoundError();
+    return {
+      result: undefined,
+      events: [
+        new AccountSecurityEvent(command.userId, "PASSKEY_REMOVED", new Date(), passkey.name),
+      ],
+    };
   }
 }

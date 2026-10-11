@@ -22,12 +22,14 @@ import { TransactionAttachmentModule } from "./domains/transaction-attachment/tr
 import { WalletItemDashboardModule } from "./domains/wallet-item-dashboard/wallet-item-dashboard.module";
 import { HandlerLoggingInterceptor } from "./infra/cqrs/handler-logging.interceptor";
 import { CronModule } from "./infra/cron/cron.module";
+import { EmailModule } from "./infra/email/email.module";
 import { PrismaModule } from "./infra/prisma/prisma.module";
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     PrismaModule,
+    EmailModule,
     HealthModule,
     IdempotencyRecordModule,
     UserModule,

@@ -147,13 +147,19 @@ export const currentUserSchema = z.object({
   /** How many single-use recovery codes are still unused — never the codes themselves, which
    * are shown exactly once, at activation confirmation. Always 0 when mfaEnabled is false. */
   mfaRecoveryCodesRemaining: z.number().int().min(0),
+  /** Whether the primary email was confirmed through its link (specs/032). Unconfirmed, the app
+   * shows a "confirm your email" notice and the password can't be recovered by email. A pending
+   * change of address is read from `GET /auth/me/emails`. */
+  emailVerified: z.boolean(),
 });
 export type CurrentUser = z.infer<typeof currentUserSchema>;
 
+/** `email` is not editable here (specs/032): changing it goes through `POST /auth/me/emails`,
+ * which leaves the new address pending until confirmed. `.strict()` so sending it is a
+ * validation error instead of being silently dropped. */
 export const updateProfileRequestSchema = z
   .object({
     name: z.string().trim().min(1).max(120).optional(),
-    email: z.string().email().optional(),
     countryId: rowId.nullable().optional(),
     addressStreet: z.string().trim().max(200).nullable().optional(),
     addressCity: z.string().trim().max(120).nullable().optional(),
@@ -164,6 +170,7 @@ export const updateProfileRequestSchema = z
     identifierValue: z.string().trim().max(30).nullable().optional(),
     phone: z.string().trim().max(30).nullable().optional(),
   })
+  .strict()
   .refine(
     (data) =>
       data.identifierType !== "RUT" || !data.identifierValue || isValidRut(data.identifierValue),
@@ -201,6 +208,56 @@ export const deleteAccountRequestSchema = z.object({
   keepHistory: z.boolean(),
 });
 export type DeleteAccountRequest = z.infer<typeof deleteAccountRequestSchema>;
+
+// ---- Account emails (specs/032) ----
+
+/** The token from an email link. Loose on purpose: any malformed, unknown, expired or used token
+ * gets the same `EMAIL_TOKEN_INVALID` from the server, never a format-specific validation error. */
+export const emailLinkTokenSchema = z.string().trim().min(1).max(200);
+
+/** `POST /auth/email/verify` (no session): confirms an address with its link's token. */
+export const verifyEmailRequestSchema = z.object({ token: emailLinkTokenSchema });
+export type VerifyEmailRequest = z.infer<typeof verifyEmailRequestSchema>;
+
+/** `POST /auth/password/forgot` (no session). Same leniency as `loginRequestSchema`: the answer is
+ * identical whatever the RUT, so a malformed one isn't singled out either. */
+export const forgotPasswordRequestSchema = z.object({
+  identifierValue: z.string().trim().min(1).max(20),
+});
+export type ForgotPasswordRequest = z.infer<typeof forgotPasswordRequestSchema>;
+
+/** `POST /auth/password/reset` (no session). Same password rules as registration. */
+export const resetPasswordRequestSchema = z.object({
+  token: emailLinkTokenSchema,
+  newPassword: z.string().min(8).max(200),
+});
+export type ResetPasswordRequest = z.infer<typeof resetPasswordRequestSchema>;
+
+/** One address in the account's email list: the primary (receives email, recovers the password),
+ * the pending one (a requested change awaiting its link) or history. */
+export const userEmailStatusSchema = z.enum(["PRIMARY", "PENDING", "PAST"]);
+export type UserEmailStatus = z.infer<typeof userEmailStatusSchema>;
+
+export const userEmailSchema = z.object({
+  id: rowId,
+  address: z.string(),
+  status: userEmailStatusSchema,
+  verifiedAt: z.string().nullable(),
+  createdAt: z.string(),
+  replacedAt: z.string().nullable(),
+});
+export type UserEmail = z.infer<typeof userEmailSchema>;
+
+/** `GET /auth/me/emails`: primary first, then the pending one, then history newest first. */
+export const listUserEmailsResponseSchema = z.object({ items: z.array(userEmailSchema) });
+export type ListUserEmailsResponse = z.infer<typeof listUserEmailsResponseSchema>;
+
+/** `POST /auth/me/emails`: asks to change the email; the address stays pending until confirmed. */
+export const requestEmailChangeSchema = z.object({ address: z.string().trim().email().max(254) });
+export type RequestEmailChange = z.infer<typeof requestEmailChangeSchema>;
+
+export const userEmailResponseSchema = z.object({ item: userEmailSchema });
+export type UserEmailResponse = z.infer<typeof userEmailResponseSchema>;
 
 // ---- MFA (specs/021) ----
 

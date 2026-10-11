@@ -30,9 +30,16 @@ function mockUser(overrides: Record<string, unknown> = {}) {
 }
 
 const me = vi.fn();
+const listEmails = vi.fn().mockResolvedValue({ items: [] });
+const requestEmailChange = vi.fn();
 vi.mock("@finance/client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@finance/client")>()),
-  authApi: { me: (...args: unknown[]) => me(...args), logout: vi.fn() },
+  authApi: {
+    me: (...args: unknown[]) => me(...args),
+    logout: vi.fn(),
+    listEmails: (...args: unknown[]) => listEmails(...args),
+    requestEmailChange: (...args: unknown[]) => requestEmailChange(...args),
+  },
 }));
 
 const updateProfile = vi.fn();
@@ -203,5 +210,43 @@ describe("PersonalInfoSection", () => {
 
     // No click: the address asked for that row.
     expect(await screen.findByLabelText(i18n.t("profile.edit.phone"))).toBeDefined();
+  });
+
+  it("changing the email asks for a pending change instead of saving it (specs/032)", async () => {
+    me.mockResolvedValue(mockUser());
+    requestEmailChange.mockResolvedValue({
+      item: { id: "e2", address: "new@b.com", status: "PENDING" },
+    });
+    renderRouted(
+      <Providers>
+        <PersonalInfoSection />
+      </Providers>,
+    );
+    await openRow("a@b.com");
+    fireEvent.change(screen.getByLabelText(i18n.t("profile.edit.email")), {
+      target: { value: "new@b.com" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("common.save") }));
+
+    await waitFor(() => expect(requestEmailChange).toHaveBeenCalledWith({ address: "new@b.com" }));
+    expect(updateProfile).not.toHaveBeenCalled();
+  });
+
+  it("shows a pending change under the email row", async () => {
+    me.mockResolvedValue(mockUser());
+    listEmails.mockResolvedValueOnce({
+      items: [
+        { id: "e1", address: "a@b.com", status: "PRIMARY" },
+        { id: "e2", address: "new@b.com", status: "PENDING" },
+      ],
+    });
+    renderRouted(
+      <Providers>
+        <PersonalInfoSection />
+      </Providers>,
+    );
+    expect(
+      await screen.findByText(i18n.t("profile.edit.emailPending", { address: "new@b.com" })),
+    ).toBeDefined();
   });
 });

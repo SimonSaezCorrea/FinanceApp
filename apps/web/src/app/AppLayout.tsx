@@ -27,6 +27,7 @@ import { ThemeSync } from "../domains/profile/components/ThemeSync";
 import { TransactionCreateModal } from "../domains/transactions/components/TransactionCreateModal";
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { getInitials } from "../shared/lib/initials";
+import { EmailVerificationBanner } from "./EmailVerificationBanner";
 import { preloadAllPages } from "./lazyPages";
 import { useMediaQuery } from "@finance/ui/src/shared/lib/useMediaQuery";
 import { BrandLogo } from "@finance/ui/src/shared/ui/brand-logo";
@@ -452,7 +453,10 @@ export function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
             !isTablet && "pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))]",
           )}
         >
-          <div className="container py-6">{children}</div>
+          <div className="container py-6">
+            <EmailVerificationBanner />
+            {children}
+          </div>
         </main>
       </div>
 

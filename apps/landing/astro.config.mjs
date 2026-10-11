@@ -9,6 +9,9 @@ const site = process.env.PUBLIC_SITE_URL ?? "http://localhost:4321";
 // Pages that only redirect: the root (picks the language) and the old Spanish addresses.
 const REDIRECT_PAGES = new Set(["/", "/precios/", "/nosotros/", "/privacidad/", "/preguntas/"]);
 
+// Pages an email link opens (specs/032): never indexed, never in the sitemap.
+const EMAIL_LINK_PAGES = /^\/(es|en)\/(verify-email|reset-password)\/$/;
+
 export default defineConfig({
   site,
   output: "static",
@@ -17,7 +20,10 @@ export default defineConfig({
   integrations: [
     react(),
     sitemap({
-      filter: (page) => !REDIRECT_PAGES.has(new URL(page).pathname),
+      filter: (page) => {
+        const path = new URL(page).pathname;
+        return !REDIRECT_PAGES.has(path) && !EMAIL_LINK_PAGES.test(path);
+      },
       i18n: { defaultLocale: "es", locales: { es: "es-CL", en: "en-US" } },
     }),
   ],

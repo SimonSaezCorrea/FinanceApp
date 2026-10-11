@@ -68,6 +68,7 @@ function fakeSessions(overrides: Partial<SessionRepositoryPort> = {}): SessionRe
     existsForUser: vi.fn(),
     closeAllExceptForUser: vi.fn(),
     closeAllExceptForUserWithTx: vi.fn().mockResolvedValue(1),
+    closeAllForUserWithTx: vi.fn().mockResolvedValue(0),
     closeById: vi.fn(),
     markExpiredAsClosed: vi.fn(),
     purgeClosedBefore: vi.fn(),
@@ -171,6 +172,7 @@ describe("ChangePasswordHandler", () => {
     });
     const sessions = fakeSessions({
       closeAllExceptForUserWithTx: vi.fn().mockRejectedValue(new Error("db down")),
+      closeAllForUserWithTx: vi.fn().mockResolvedValue(0),
     });
     const prisma = {
       $transaction: vi.fn(async (fn: (tx: unknown) => Promise<void>) => fn({})),

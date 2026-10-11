@@ -99,11 +99,10 @@ completo.
 **Sigue pendiente, fuera de alcance de specs/024** (decisión explícita, no un hueco encontrado
 después):
 
-- **Correo/notificación avisando el cierre**: no existe ningún proveedor de envío de correo
-  transaccional en el proyecto (ver la sección "Envío de correos transaccionales" de este mismo
-  documento) — sin esa infraestructura, no hay dónde enganchar el aviso.
-- **Notificación de "nuevo dispositivo"** al iniciar sesión — requiere la misma infraestructura de
-  correo que el punto anterior.
+- ~~Correo avisando el cierre~~ — **resuelto por specs/032**: cambiar la contraseña o desactivar el
+  segundo factor envía un aviso de seguridad al correo confirmado.
+- **Notificación de "nuevo dispositivo"** al iniciar sesión — la infraestructura de correo ya existe
+  (specs/032); falta decidir qué cuenta como "nuevo".
 - **Límite de sesiones simultáneas** y **revocación automática por comportamiento sospechoso** —
   ambas son decisiones de producto propias (qué límite, qué cuenta como sospechoso) que no se
   asumieron en specs/023 ni en specs/024 (ver `specs/023-real-sessions/spec.md`, sección
@@ -604,39 +603,31 @@ Editar un plan no puede mostrarla ni recalcular nada con ella, que es coherente 
 sea inmutable, pero significa que el interés de un plan ya creado sólo se deduce comparando la suma de
 sus cuotas con su principal.
 
-## Envío de correos transaccionales (no implementado)
+## Correos de cuenta y de seguridad (specs/032, 2026-10-11)
 
-La app no envía ningún correo hoy — ni verificación de cuenta al registrarse, ni recuperación de
-contraseña, ni alertas de seguridad (cambio de password, `deactivate`), ni el aviso de
-`budgetAlertThreshold` (que ya existe como campo pero está inerte, ver sección de Perfil). No hay
-proveedor configurado, no hay `EmailPort`, no hay endpoint de forgot-password.
+**Implementado**: verificación del correo al registrarse y al cambiarlo (registro de correos por
+cuenta, `user-email`), recuperación de contraseña por RUT (enlace de 30 min, cierra todas las
+sesiones, no salta el segundo factor) y avisos de seguridad (contraseña cambiada o recuperada, segundo
+factor activado o desactivado, llave agregada o eliminada, correo cambiado — a la dirección anterior
+— y cuenta eliminada), solo a direcciones confirmadas. Envío por Resend solo en producción
+(`NODE_ENV=production` + `RESEND_API_KEY`); en cualquier otro caso no se envía nada y los endpoints
+que dependen de un correo responden `503 EMAIL_UNAVAILABLE` (el resto funciona igual). Para probar
+un envío real en local se invierte a mano la condición de `production` en `email.config.ts`.
 
-**Plataforma elegida para el MVP: Resend** (evaluado 2026-09-11 contra SES, SendGrid, Brevo,
-SendPulse). Motivo: 100% transaccional (sin ruido de marketing/newsletter, que no se necesita acá),
-mejor DX de los evaluados, free tier de 3,000 correos/mes suficiente para esta etapa. AWS SES queda
-descartado para el arranque por el modo sandbox (requiere pedir "production access" a AWS y
-verificar dominio con más fricción) pero es la opción a reconsiderar si el volumen escala fuerte
-(≈$0.10 por 1,000 correos, sin techo real) — decisión ya evaluada, no una que nadie vio.
+**Queda fuera, por decisión** (no un hueco encontrado después):
 
-**Diseño previsto, mismo patrón que `ObjectStoragePort`/S3**: un puerto `EmailPort` en
-`infra/email/` con un adapter `ResendEmailAdapter` atrás; sin `RESEND_API_KEY`/`EMAIL_FROM`
-configurados la feature queda inerte (mismo espíritu que `503 ATTACHMENTS_UNAVAILABLE`), para que
-cambiar de proveedor a futuro (ej. migrar a SES por volumen, o agregar failover multi-proveedor) sea
-solo un adapter nuevo, sin tocar el resto de la app.
-
-**Casos de uso a cablear cuando se implemente** (ninguno empezado):
-
-1. Verificación de cuenta al registrarse (engancha en `RegisterHandler`).
-2. Recuperación de contraseña — requiere flujo nuevo: token de reset con expiración,
-   `POST /auth/forgot-password` + `POST /auth/reset-password` (no existen hoy).
-3. Alertas de seguridad sobre acciones ya existentes en `auth.controller.ts` (cambio de password,
-   `deactivate`).
-
-**Fuera de alcance del MVP, explícitamente diferido**: colas asíncronas (BullMQ/similar) para batch
-de envío, rate limiting propio, failover multi-proveedor, tabla `email-log` para auditoría propia,
-y volumen alto (100k+ usuarios activos) — todo eso solo se justifica si el volumen real lo exige;
-ver conversación de referencia para el análisis completo de costos/límites por proveedor a esa
-escala.
+- **Aviso de inicio de sesión desde un dispositivo nuevo.** La infraestructura ya existe; falta decidir
+  qué cuenta como "nuevo" (navegador, país, IP) sin llenar de falsos positivos a quien usa varias
+  redes.
+- **Notificaciones financieras** (facturación por vencer, pagos próximos, el umbral de
+  `budgetAlertThreshold`): exigen un cron por usuario y preferencias de envío.
+- **Preferencias para silenciar correos** y **correos de marketing**: no existen.
+- **Colas, reintentos y registro propio de envíos** (`email-log`): un envío que falla se registra en
+  el log del API y no se reintenta; el aviso de "Confirma tu correo" ofrece reenviar.
+- **Regenerar el enlace al vencer sin entrar a la app**: un enlace de verificación vencido se pide de
+  nuevo desde el aviso o desde Perfil (con sesión); uno de recuperación, desde "¿Olvidaste tu
+  contraseña?".
+- **Cambiar de proveedor** (SES por volumen): un adaptador nuevo en `infra/email/senders/`.
 
 ## Deuda de conformidad con la constitución v2.0.0 (identificadores, idempotencia, aislamiento)
 

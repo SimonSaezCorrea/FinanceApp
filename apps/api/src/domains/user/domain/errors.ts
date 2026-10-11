@@ -10,7 +10,7 @@
 export class DomainError extends Error {
   constructor(
     public readonly code: string,
-    public readonly httpStatus: 400 | 401 | 403 | 404 | 409 | 429 = 400,
+    public readonly httpStatus: 400 | 401 | 403 | 404 | 409 | 429 | 503 = 400,
     public readonly field?: string,
   ) {
     super(code);
@@ -151,7 +151,7 @@ export class SessionNotFoundError extends DomainError {
 /** Step-up (2026-09-25): closing another session or revoking the others needs a TOTP, passkey or
  * (only when the user has neither) password verification from THIS session within
  * `STEP_UP_WINDOW_MINUTES`. 403, never 401: the caller IS authenticated, it just hasn't
- * re-proved it recently — and a 401 would read as "session gone". */
+ * re-proved it recently — and apublic readonly httpStatus: 400 | 401 | 403 | 404 | 409 | 429 | 503 = 400,would read as "session gone". */
 export class StepUpRequiredError extends DomainError {
   constructor() {
     super("STEP_UP_REQUIRED", 403);
@@ -163,5 +163,52 @@ export class StepUpRequiredError extends DomainError {
 export class StepUpMethodNotAllowedError extends DomainError {
   constructor() {
     super("STEP_UP_METHOD_NOT_ALLOWED", 400, "method");
+  }
+}
+
+// ---- Account emails (specs/032) ----
+
+/** The link (verification or password reset) doesn't exist, expired, was used, or a newer one
+ * replaced it — one code for all four on purpose: the caller can only ask for a new link. */
+export class EmailTokenInvalidError extends DomainError {
+  constructor() {
+    super("EMAIL_TOKEN_INVALID", 400, "token");
+  }
+}
+
+export class EmailAlreadyVerifiedError extends DomainError {
+  constructor() {
+    super("EMAIL_ALREADY_VERIFIED", 409);
+  }
+}
+
+export class EmailAlreadyPrimaryError extends DomainError {
+  constructor() {
+    super("EMAIL_ALREADY_PRIMARY", 409, "address");
+  }
+}
+
+export class EmailRateLimitedError extends DomainError {
+  constructor() {
+    super("EMAIL_RATE_LIMITED", 429);
+  }
+}
+
+export class EmailNotFoundError extends DomainError {
+  constructor() {
+    super("EMAIL_NOT_FOUND", 404);
+  }
+}
+
+export class EmailPrimaryNotDeletableError extends DomainError {
+  constructor() {
+    super("EMAIL_PRIMARY_NOT_DELETABLE", 409);
+  }
+}
+
+/** Production without an email provider configured: sending is off, not broken (FR-005). */
+export class EmailUnavailableError extends DomainError {
+  constructor() {
+    super("EMAIL_UNAVAILABLE", 503);
   }
 }

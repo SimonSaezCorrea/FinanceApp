@@ -16,6 +16,7 @@ import { InvalidCurrentPasswordError } from "../../domain/errors";
 import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { DisableMfaCommand } from "./disable-mfa.command";
+import { AccountSecurityEvent } from "../../domain/events/account-security.event";
 
 interface Context {
   user: User;
@@ -51,7 +52,10 @@ export class DisableMfaHandler extends BaseCommandHandler<DisableMfaCommand, voi
     context: Context,
   ): Promise<HandleResult<void>> {
     context.user.disableMfa();
-    return { result: undefined, events: [] };
+    return {
+      result: undefined,
+      events: [new AccountSecurityEvent(context.user.id, "MFA_DISABLED", new Date())],
+    };
   }
 
   protected override async persist(context: Context): Promise<void> {

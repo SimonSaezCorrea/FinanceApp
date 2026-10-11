@@ -33,14 +33,18 @@ interface Props {
   page: Page;
   /** The 404 page: its own title, no canonical or alternates, never indexed. */
   notFound?: boolean;
+  /** A page an email link opens (specs/032): its own title, never indexed, out of the sitemap. */
+  utility?: "verifyEmail" | "resetPassword";
 }
-const { lang, page, notFound = false } = Astro.props;
+const { lang, page, notFound = false, utility } = Astro.props;
+const unindexed = notFound || utility !== undefined;
 const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
 const url = (l: Language) => `${site}${pagePath(l, page)}`;
+const metaKey = utility ?? page;
 const title = notFound
   ? `${t(lang, "app.notFound.title")} · fik`
-  : t(lang, `landing.meta.${page}.title`);
-const description = t(lang, `landing.meta.${page}.description`);
+  : t(lang, `landing.meta.${metaKey}.title`);
+const description = t(lang, `landing.meta.${metaKey}.description`);
 const image = `${site}/og/fik-${lang}.png`;
 ---
 
@@ -59,7 +63,7 @@ const image = `${site}/og/fik-${lang}.png`;
     <title>{title}</title>
     <meta name="description" content={description} />
     {
-      notFound ? (
+      unindexed ? (
         <meta name="robots" content="noindex" />
       ) : (
         <>

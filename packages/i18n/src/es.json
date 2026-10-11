@@ -22,7 +22,14 @@
       "reload": "Recargar",
       "home": "Ir al inicio"
     },
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "emailVerification": {
+      "title": "Confirma tu correo",
+      "body": "Te enviamos un enlace a {{address}}. Mientras no lo abras, no podrás recuperar tu contraseña por correo ni recibir avisos de seguridad.",
+      "resend": "Reenviar correo",
+      "sending": "Enviando…",
+      "sent": "Listo. Revisa {{address}} (y la carpeta de spam)."
+    }
   },
   "states": {
     "error": {
@@ -2007,7 +2014,11 @@
     },
     "forgot": {
       "link": "¿Olvidaste tu contraseña?",
-      "body": "Si tienes una llave de acceso en este dispositivo, entra con ella. Recuperar la contraseña todavía no es posible porque fik no envía correos."
+      "body": "Escribe tu RUT arriba y te enviaremos un enlace al correo confirmado de tu cuenta para elegir una contraseña nueva.",
+      "send": "Enviar enlace",
+      "sending": "Enviando…",
+      "sent": "Si ese RUT tiene una cuenta con correo confirmado, te llegará un enlace en unos minutos. Vence en 30 minutos.",
+      "failed": "No pudimos conectarnos. Inténtalo de nuevo."
     }
   },
   "profile": {
@@ -2077,11 +2088,12 @@
       "invalidRut": "El dígito verificador del RUT no cuadra.",
       "saved": "Guardado",
       "hintName": "Como aparece en tus documentos.",
-      "hintEmail": "Es el correo con el que inicias sesión.",
+      "hintEmail": "Te enviaremos un enlace a la dirección nueva. El cambio se hace cuando lo abras.",
       "hintPhone": "Se antepone el prefijo de tu país.",
       "hintIdentifier": "Se valida el dígito verificador.",
       "hintBirthDate": "En tu perfil solo se muestra tu edad, no la fecha.",
-      "hintAddress": "Calle y número, comuna, región y código postal."
+      "hintAddress": "Calle y número, comuna, región y código postal.",
+      "emailPending": "Cambio pendiente a {{address}}: abre el enlace que te enviamos."
     },
     "security": {
       "title": "Seguridad",
@@ -2341,6 +2353,25 @@
     },
     "identity": {
       "stats": "{{accounts}} cuentas · {{movements}} mov. este mes · desde {{year}}"
+    },
+    "emails": {
+      "title": "Correos de la cuenta",
+      "description": "El principal es al que llegan los avisos y la recuperación de contraseña. Puedes borrar los demás.",
+      "loading": "Cargando correos",
+      "usedUntil": "Usado hasta el {{date}}",
+      "confirmedOn": "Confirmado el {{date}}",
+      "unconfirmed": "Sin confirmar",
+      "status": {
+        "PRIMARY": "Principal",
+        "PENDING": "Pendiente",
+        "PAST": "Anterior"
+      },
+      "resend": "Reenviar enlace",
+      "resent": "Te enviamos el enlace de nuevo.",
+      "remove": "Borrar {{address}}",
+      "removeTitle": "¿Borrar este correo?",
+      "removeDescription": "{{address}} deja de aparecer en tu cuenta. Si estaba pendiente, su enlace deja de servir.",
+      "removeConfirm": "Borrar"
     }
   },
   "errors": {
@@ -2451,7 +2482,14 @@
     "IMPORT_STATEMENTS_REPLACE_ONLY": "Las facturaciones solo se importan al reemplazar todo.",
     "EXCHANGE_RANGE_TOO_LARGE": "El rango pedido es demasiado largo (máximo 400 días).",
     "INVALID_DATE_RANGE": "La fecha de inicio no puede ser posterior a la de término.",
-    "CARD_LIMIT_NOT_FOUND": "La tarjeta principal de esta cuenta no tiene un tope en esa moneda."
+    "CARD_LIMIT_NOT_FOUND": "La tarjeta principal de esta cuenta no tiene un tope en esa moneda.",
+    "EMAIL_TOKEN_INVALID": "Este enlace ya no sirve: venció, ya se usó o pediste uno más nuevo.",
+    "EMAIL_ALREADY_VERIFIED": "Tu correo ya está confirmado.",
+    "EMAIL_ALREADY_PRIMARY": "Ese ya es tu correo principal.",
+    "EMAIL_RATE_LIMITED": "Pediste varios correos seguidos. Espera un rato e inténtalo de nuevo.",
+    "EMAIL_UNAVAILABLE": "El envío de correos no está disponible en este momento.",
+    "EMAIL_NOT_FOUND": "Ese correo no está en tu registro.",
+    "EMAIL_PRIMARY_NOT_DELETABLE": "No puedes borrar tu correo principal."
   },
   "exchangeRates": {
     "title": "Tipos de cambio",

@@ -22,7 +22,14 @@
       "reload": "Reload",
       "home": "Go home"
     },
-    "close": "Close"
+    "close": "Close",
+    "emailVerification": {
+      "title": "Confirm your email",
+      "body": "We sent a link to {{address}}. Until you open it, you can’t recover your password by email or get security notices.",
+      "resend": "Send it again",
+      "sending": "Sending…",
+      "sent": "Done. Check {{address}} (and your spam folder)."
+    }
   },
   "states": {
     "error": {
@@ -2007,7 +2014,11 @@
     },
     "forgot": {
       "link": "Forgot your password?",
-      "body": "If you have a passkey on this device, sign in with it. Recovering a password isn't possible yet because fik doesn't send email."
+      "body": "Type your RUT above and we’ll email a link to your account’s confirmed address to choose a new password.",
+      "send": "Send link",
+      "sending": "Sending…",
+      "sent": "If that RUT has an account with a confirmed email, a link will arrive in a few minutes. It expires in 30 minutes.",
+      "failed": "We couldn’t connect. Please try again."
     }
   },
   "profile": {
@@ -2077,11 +2088,12 @@
       "invalidRut": "The RUT check digit doesn't match.",
       "saved": "Saved",
       "hintName": "As it appears on your documents.",
-      "hintEmail": "This is the email you sign in with.",
+      "hintEmail": "We’ll send a link to the new address. The change happens when you open it.",
       "hintPhone": "Your country's calling code is prefixed automatically.",
       "hintIdentifier": "The check digit is validated.",
       "hintBirthDate": "Your profile only shows your age, not the date.",
-      "hintAddress": "Street and number, city, region and postal code."
+      "hintAddress": "Street and number, city, region and postal code.",
+      "emailPending": "Pending change to {{address}}: open the link we sent you."
     },
     "security": {
       "title": "Security",
@@ -2341,6 +2353,25 @@
     },
     "identity": {
       "stats": "{{accounts}} accounts · {{movements}} movements this month · since {{year}}"
+    },
+    "emails": {
+      "title": "Account emails",
+      "description": "The primary one gets the notices and password recovery. You can delete the others.",
+      "loading": "Loading emails",
+      "usedUntil": "Used until {{date}}",
+      "confirmedOn": "Confirmed on {{date}}",
+      "unconfirmed": "Not confirmed",
+      "status": {
+        "PRIMARY": "Primary",
+        "PENDING": "Pending",
+        "PAST": "Previous"
+      },
+      "resend": "Resend link",
+      "resent": "We sent the link again.",
+      "remove": "Delete {{address}}",
+      "removeTitle": "Delete this email?",
+      "removeDescription": "{{address}} stops showing on your account. If it was pending, its link stops working.",
+      "removeConfirm": "Delete"
     }
   },
   "errors": {
@@ -2451,7 +2482,14 @@
     "IMPORT_STATEMENTS_REPLACE_ONLY": "Statements are only imported when replacing everything.",
     "EXCHANGE_RANGE_TOO_LARGE": "The requested range is too long (400 days at most).",
     "INVALID_DATE_RANGE": "The start date cannot be after the end date.",
-    "CARD_LIMIT_NOT_FOUND": "This account's main card has no limit in that currency."
+    "CARD_LIMIT_NOT_FOUND": "This account's main card has no limit in that currency.",
+    "EMAIL_TOKEN_INVALID": "This link no longer works: it expired, was already used or you asked for a newer one.",
+    "EMAIL_ALREADY_VERIFIED": "Your email is already confirmed.",
+    "EMAIL_ALREADY_PRIMARY": "That is already your main email.",
+    "EMAIL_RATE_LIMITED": "You asked for several emails in a row. Wait a while and try again.",
+    "EMAIL_UNAVAILABLE": "Sending emails is not available right now.",
+    "EMAIL_NOT_FOUND": "That email is not in your list.",
+    "EMAIL_PRIMARY_NOT_DELETABLE": "You cannot delete your main email."
   },
   "exchangeRates": {
     "title": "Exchange rates",

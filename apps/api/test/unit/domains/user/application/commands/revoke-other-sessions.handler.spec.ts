@@ -15,6 +15,7 @@ function fakeSessions(overrides: Partial<SessionRepositoryPort> = {}): SessionRe
     existsForUser: vi.fn(),
     closeAllExceptForUser: vi.fn().mockResolvedValue(2),
     closeAllExceptForUserWithTx: vi.fn(),
+    closeAllForUserWithTx: vi.fn().mockResolvedValue(0),
     closeById: vi.fn(),
     markExpiredAsClosed: vi.fn(),
     purgeClosedBefore: vi.fn(),

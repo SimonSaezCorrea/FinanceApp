@@ -12,6 +12,7 @@ import { InvalidCurrentPasswordError } from "../../domain/errors";
 import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { ChangePasswordCommand } from "./change-password.command";
+import { AccountSecurityEvent } from "../../domain/events/account-security.event";
 
 interface Context {
   user: User;
@@ -50,7 +51,10 @@ export class ChangePasswordHandler extends BaseCommandHandler<
   ): Promise<HandleResult<void>> {
     context.user.changePasswordHash(await hash(command.input.newPassword, 12));
     this.logger.log(`password changed: ${command.userId}`);
-    return { result: undefined, events: [] };
+    return {
+      result: undefined,
+      events: [new AccountSecurityEvent(command.userId, "PASSWORD_CHANGED", new Date())],
+    };
   }
 
   /** A password change is a signal the user wants to invalidate earlier access

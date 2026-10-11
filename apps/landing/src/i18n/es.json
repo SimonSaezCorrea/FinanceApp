@@ -317,10 +317,41 @@
         "title": "Preguntas frecuentes · fik",
         "description": "Respuestas sobre cómo funciona fik, tus tarjetas y facturaciones, y tus datos."
       },
-      "imageAlt": "fik, la columna que hace cuadrar tus finanzas, sobre una cordillera"
+      "imageAlt": "fik, la columna que hace cuadrar tus finanzas, sobre una cordillera",
+      "verifyEmail": {
+        "title": "Confirma tu correo · fik",
+        "description": "Confirma la dirección de correo de tu cuenta de fik."
+      },
+      "resetPassword": {
+        "title": "Contraseña nueva · fik",
+        "description": "Elige una contraseña nueva para tu cuenta de fik."
+      }
     },
     "access": {
       "noscript": "Para iniciar sesión o crear una cuenta, activa JavaScript en tu navegador."
+    },
+    "verifyEmail": {
+      "title": "Confirma tu correo",
+      "loading": "Confirmando tu correo…",
+      "success": "Listo, tu correo quedó confirmado. Ya puedes recuperar tu contraseña por correo y recibirás los avisos de seguridad.",
+      "invalid": "Este enlace no sirve: venció, ya se usó o pediste uno más nuevo. Entra a fik y pide otro desde el aviso o desde Perfil.",
+      "error": "No pudimos conectarnos. Recarga la página para intentarlo de nuevo.",
+      "toApp": "Ir a fik"
+    },
+    "resetPassword": {
+      "title": "Elige una contraseña nueva",
+      "description": "Al guardarla se cierran todas tus sesiones abiertas. Si tienes verificación en dos pasos, te la seguiremos pidiendo.",
+      "password": "Contraseña nueva",
+      "hint": "Al menos 8 caracteres.",
+      "confirmation": "Repite la contraseña",
+      "submit": "Guardar contraseña",
+      "tooShort": "La contraseña necesita al menos 8 caracteres.",
+      "mismatch": "Las dos contraseñas no coinciden.",
+      "error": "No pudimos conectarnos. Inténtalo de nuevo.",
+      "success": "Tu contraseña cambió y cerramos todas tus sesiones. Inicia sesión con la nueva.",
+      "signIn": "Iniciar sesión",
+      "invalid": "Este enlace no sirve: venció (dura 30 minutos), ya se usó o pediste uno más nuevo.",
+      "again": "Pedir otro enlace"
     }
   }
 }

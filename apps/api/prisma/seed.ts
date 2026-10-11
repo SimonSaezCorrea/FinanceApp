@@ -186,6 +186,16 @@ async function seedFullUser(passwordHash: string) {
       // Roberto's debt) — without this, every currency selector in the app would
       // collapse to a static CLP field despite the user genuinely holding USD.
       extraCurrencies: ["USD"],
+      // A confirmed address (specs/032): the demo account sees no "Confirma tu correo" notice and
+      // can recover its password.
+      emailVerified: new Date("2026-01-01T00:00:00Z"),
+      emails: {
+        create: {
+          address: "test@finance.local",
+          status: "PRIMARY",
+          verifiedAt: new Date("2026-01-01T00:00:00Z"),
+        },
+      },
     },
   });
 

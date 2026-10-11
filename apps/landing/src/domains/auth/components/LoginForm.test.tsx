@@ -8,12 +8,14 @@ import { LoginForm } from "./LoginForm";
 const login = vi.fn();
 const verifyMfaLogin = vi.fn();
 const register = vi.fn();
+const forgotPassword = vi.fn();
 vi.mock("@finance/client", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@finance/client")>()),
   authApi: {
     login: (...args: unknown[]) => login(...args),
     verifyMfaLogin: (...args: unknown[]) => verifyMfaLogin(...args),
     register: (...args: unknown[]) => register(...args),
+    forgotPassword: (...args: unknown[]) => forgotPassword(...args),
     me: vi.fn().mockRejectedValue(new Error("not signed in")),
     logout: vi.fn(),
   },
@@ -348,5 +350,28 @@ describe("LoginForm", () => {
 
       await waitFor(() => expect(verifyLogin).toHaveBeenCalled());
     });
+  });
+});
+
+describe("LoginForm — forgot password (specs/032)", () => {
+  it("sends the typed RUT and always answers the same", async () => {
+    forgotPassword.mockResolvedValue({});
+    renderLogin();
+    fireEvent.change(screen.getByLabelText(i18n.t("auth.rut")), {
+      target: { value: "12345678-5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.forgot.link") }));
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.forgot.send") }));
+
+    expect(await screen.findByText(i18n.t("auth.forgot.sent"))).toBeDefined();
+    expect(forgotPassword).toHaveBeenCalledWith({ identifierValue: "12.345.678-5" });
+  });
+
+  it("asks for a valid RUT before sending", async () => {
+    forgotPassword.mockClear();
+    renderLogin();
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.forgot.link") }));
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.forgot.send") }));
+    await waitFor(() => expect(forgotPassword).not.toHaveBeenCalled());
   });
 });

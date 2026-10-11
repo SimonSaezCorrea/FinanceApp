@@ -6,6 +6,7 @@ import { PurgeExpiredRecordsCommand } from "../../domains/idempotency-record/app
 import { PurgeExpiredCacheCommand } from "../../domains/ip-geolocation-cache/application/commands/purge-expired-cache.command";
 import { CloseExpiredSessionsCommand } from "../../domains/user/application/commands/close-expired-sessions.command";
 import { PurgeClosedSessionsCommand } from "../../domains/user/application/commands/purge-closed-sessions.command";
+import { PurgeStaleEmailTokensCommand } from "../../domains/user/application/commands/purge-stale-email-tokens.command";
 
 /**
  * Daily housekeeping at 03:00 Chile time — one trigger for what used to be three crons (3, 4 and
@@ -16,6 +17,7 @@ import { PurgeClosedSessionsCommand } from "../../domains/user/application/comma
  * 2. Sessions: stamp `closedAt` on the naturally expired ones, THEN purge those closed past the
  *    3-day retention — in this order, so one that just expired starts its retention today.
  * 3. IP→country cache rows past their 60-day TTL (specs/026).
+ * 4. Email links expired or used more than 7 days ago (specs/032).
  *
  * Each step runs on its own: one failing is logged and never stops the others.
  */
@@ -47,6 +49,12 @@ export class MaintenanceCron {
         new PurgeExpiredCacheCommand(),
       );
       return `purged ${deleted} expired rows`;
+    });
+    await this.step("email links", async () => {
+      const deleted = await this.commandBus.execute<PurgeStaleEmailTokensCommand, number>(
+        new PurgeStaleEmailTokensCommand(),
+      );
+      return `purged ${deleted} expired or used`;
     });
   }
 

@@ -121,6 +121,15 @@ export class PrismaSessionRepository
     return result.count;
   }
 
+  async closeAllForUserWithTx(tx: unknown, userId: string): Promise<number> {
+    const client = tx as PrismaService;
+    const result = await client.session.updateMany({
+      where: { userId, closedAt: null },
+      data: { closedAt: new Date() },
+    });
+    return result.count;
+  }
+
   async closeById(id: string): Promise<void> {
     await this.prisma.session.updateMany({
       where: { id, closedAt: null },

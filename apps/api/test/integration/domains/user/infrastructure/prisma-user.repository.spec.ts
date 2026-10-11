@@ -70,8 +70,9 @@ describe("PrismaUserRepository (integration)", () => {
       passwordHash: "x",
       birthDate: new Date("1990-01-01"),
     });
-    // emailA is already taken by another row — forcing a P2002 on update.
-    created.applyProfileUpdate({ email: emailA });
+    // emailA is already taken by another row — forcing a P2002 on update (the email now changes
+    // only by confirming a pending address, specs/032).
+    created.confirmPrimaryEmail(emailA, new Date());
     await expect(repo.save(created)).rejects.toBeInstanceOf(EmailTakenError);
   });
 });

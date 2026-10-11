@@ -102,7 +102,22 @@ describe("public site build", () => {
       }
     }
     expect(xml).not.toContain(`${SITE}/precios`);
+    expect(xml).not.toContain("verify-email");
+    expect(xml).not.toContain("reset-password");
   });
+
+  // The pages an email link opens (specs/032): never indexed, no canonical, no React on arrival.
+  for (const lang of LANGS) {
+    for (const slug of ["verify-email", "reset-password"]) {
+      it(`/${lang}/${slug}/ is noindex with its own title`, () => {
+        const html = htmlOf(lang, slug);
+        expect(html).toContain(`<meta name="robots" content="noindex"`);
+        expect(html).not.toContain(`rel="canonical"`);
+        expect(title(html)).toMatch(/· fik$/);
+        expect(html).toContain("data-state=");
+      });
+    }
+  }
 
   it("redirects the root and the old addresses", () => {
     expect(readFileSync(join(DIST, "index.html"), "utf8")).toMatch(

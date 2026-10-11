@@ -14,6 +14,14 @@
 
 **⚠️ Mecanismo formal pendiente**: hoy no existe un documento firmado/aceptado con IPinfo que incorpore las cláusulas contractuales modelo chilenas — solo se usan sus Términos de Servicio genéricos (orientados a GDPR/EE.UU.). Acción: revisar los términos de IPinfo y, si no cubren el mecanismo chileno, anexar estas cláusulas modelo por referencia en el DPA (`21719-dpa.md`).
 
+## Transferencia activa: Resend (correos de cuenta y de seguridad, specs/032)
+
+- **Importador de datos:** Resend, Inc. (EE.UU., `api.resend.com`), encargado del envío de correos transaccionales.
+- **Datos transferidos:** la dirección de correo del titular y el contenido del correo: enlace de verificación o de recuperación (un token de un solo uso, 48 h / 30 min), o un aviso de seguridad (qué cambió y cuándo). **Nunca** montos, cuentas ni movimientos.
+- **Cuándo:** solo en producción (`NODE_ENV=production` y `RESEND_API_KEY`); en desarrollo los correos se guardan en disco local y no salen.
+- **Minimización ya implementada:** el contenido de los correos no lleva datos financieros; los avisos solo van a direcciones confirmadas; el remitente es `no-reply@mifik.cl`.
+- **⚠️ Mecanismo formal pendiente:** igual que IPinfo, revisar el DPA de Resend y anexar las cláusulas contractuales modelo chilenas antes de abrir a usuarios reales.
+
 ## Transferencia potencial: almacenamiento S3 de adjuntos
 
 **Hoy inerte** (sin `S3_BUCKET` configurado, la función de adjuntos está deshabilitada — `503 ATTACHMENTS_UNAVAILABLE`). Si en el futuro se activa con:

@@ -18,6 +18,10 @@ import {
   type MfaRecoveryCodeRepositoryPort,
 } from "../../../mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
 import {
+  EMAIL_TOKEN_REPOSITORY,
+  type EmailTokenRepositoryPort,
+} from "../../../email-token/domain/ports/email-token.repository.port";
+import {
   PASSKEY_REPOSITORY,
   type PasskeyRepositoryPort,
 } from "../../../passkey/domain/ports/passkey.repository.port";
@@ -25,8 +29,12 @@ import {
   SESSION_REPOSITORY,
   type SessionRepositoryPort,
 } from "../../../session/domain/ports/session.repository.port";
+import {
+  USER_EMAIL_REPOSITORY,
+  type UserEmailRepositoryPort,
+} from "../../../user-email/domain/ports/user-email.repository.port";
 import { InvalidCurrentPasswordError } from "../../domain/errors";
-import type { UserAccountDeletedEvent } from "../../domain/events/user-account-deleted.event";
+import { AccountSecurityEvent } from "../../domain/events/account-security.event";
 import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { DeleteAccountCommand } from "./delete-account.command";
@@ -40,6 +48,9 @@ interface Context {
   /** Captured BEFORE `handle()` scrubs the aggregate — the only chance to hash it for the
    * compliance log. Never persisted anywhere in the clear past this point. */
   identifierValueAtRequest: string | null;
+  /** Same reason: the address (and its language/confirmation) the deletion notice goes to, read
+   * before the row loses it (specs/032). */
+  emailAtRequest: { address: string; locale: string; verified: boolean } | null;
 }
 
 @Injectable()
@@ -56,6 +67,8 @@ export class DeleteAccountHandler extends BaseCommandHandler<DeleteAccountComman
     private readonly recoveryCodes: MfaRecoveryCodeRepositoryPort,
     @Inject(ACCOUNT_DELETION_LOG_REPOSITORY)
     private readonly deletionLog: AccountDeletionLogRepositoryPort,
+    @Inject(USER_EMAIL_REPOSITORY) private readonly userEmails: UserEmailRepositoryPort,
+    @Inject(EMAIL_TOKEN_REPOSITORY) private readonly emailTokens: EmailTokenRepositoryPort,
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
   ) {
@@ -71,6 +84,9 @@ export class DeleteAccountHandler extends BaseCommandHandler<DeleteAccountComman
       user,
       keepHistory: command.input.keepHistory,
       identifierValueAtRequest: user.identifierValue,
+      emailAtRequest: user.email
+        ? { address: user.email, locale: user.locale, verified: user.emailVerified }
+        : null,
     };
   }
 
@@ -83,7 +99,20 @@ export class DeleteAccountHandler extends BaseCommandHandler<DeleteAccountComman
     // never calls `saveWithTx` on this scrubbed copy, only `deleteWithTx`.
     const event = context.user.delete();
     this.logger.log(`account deleted (keepHistory=${context.keepHistory}): ${context.user.id}`);
-    const events: UserAccountDeletedEvent[] = event ? [event] : [];
+    const events: object[] = event ? [event] : [];
+    // The goodbye notice (specs/032 FR-021) goes to the address the account had; the listener
+    // applies the "confirmed only" rule.
+    if (event && context.emailAtRequest) {
+      events.push(
+        new AccountSecurityEvent(
+          context.user.id,
+          "ACCOUNT_DELETED",
+          new Date(),
+          undefined,
+          context.emailAtRequest,
+        ),
+      );
+    }
     return { result: undefined, events };
   }
 
@@ -102,6 +131,9 @@ export class DeleteAccountHandler extends BaseCommandHandler<DeleteAccountComman
         await this.sessions.deleteAllForUserWithTx(tx, context.user.id);
         await this.passkeys.deleteAllForUserWithTx(tx, context.user.id);
         await this.recoveryCodes.deleteAllForUserWithTx(tx, context.user.id);
+        // Addresses identify the person: none survives an anonymized account (FR-012e).
+        await this.userEmails.deleteAllForUserWithTx(tx, context.user.id);
+        await this.emailTokens.deleteAllForUserWithTx(tx, context.user.id);
       } else {
         // Hard delete: removing the User row cascades to every table via its own
         // `onDelete: Cascade` on `userId` — sessions/passkeys/recovery codes included, so no

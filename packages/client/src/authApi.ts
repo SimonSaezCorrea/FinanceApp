@@ -39,4 +39,36 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+
+  // Account emails (specs/032). verifyEmail/forgotPassword/resetPassword are public (the site).
+  verifyEmail: (body: auth.VerifyEmailRequest) =>
+    apiFetch<{ verified: true }>("/auth/email/verify", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  resendVerification: () =>
+    apiFetch<Record<string, never>>("/auth/email/verification", { method: "POST" }),
+
+  listEmails: () => apiFetch<auth.ListUserEmailsResponse>("/auth/me/emails"),
+
+  requestEmailChange: (body: auth.RequestEmailChange) =>
+    apiFetch<auth.UserEmailResponse>("/auth/me/emails", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  removeEmail: (id: string) => apiFetch<void>(`/auth/me/emails/${id}`, { method: "DELETE" }),
+
+  forgotPassword: (body: auth.ForgotPasswordRequest) =>
+    apiFetch<Record<string, never>>("/auth/password/forgot", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  resetPassword: (body: auth.ResetPasswordRequest) =>
+    apiFetch<Record<string, never>>("/auth/password/reset", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };

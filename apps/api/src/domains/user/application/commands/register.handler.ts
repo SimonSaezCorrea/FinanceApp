@@ -19,6 +19,11 @@ import {
   CONSENT_RECORD_REPOSITORY,
   type ConsentRecordRepositoryPort,
 } from "../../../consent-record/domain/ports/consent-record.repository.port";
+import {
+  USER_EMAIL_REPOSITORY,
+  type UserEmailRepositoryPort,
+} from "../../../user-email/domain/ports/user-email.repository.port";
+import { AccountEmailService } from "../account-emails";
 import { EmailTakenError, IdentifierTakenError } from "../../domain/errors";
 import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
@@ -44,9 +49,11 @@ export class RegisterHandler extends BaseCommandHandler<RegisterCommand, AuthRes
     @Inject(USER_REPOSITORY) private readonly repo: UserRepositoryPort,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
     @Inject(CONSENT_RECORD_REPOSITORY) private readonly consents: ConsentRecordRepositoryPort,
+    @Inject(USER_EMAIL_REPOSITORY) private readonly userEmails: UserEmailRepositoryPort,
     private readonly sessionIssuer: SessionIssuer,
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
+    private readonly accountEmails: AccountEmailService,
   ) {
     super(eventBus);
   }
@@ -69,6 +76,13 @@ export class RegisterHandler extends BaseCommandHandler<RegisterCommand, AuthRes
   ): Promise<HandleResult<AuthResult>> {
     const plan = User.planRegistration({ ...command.input, passwordHash: context.passwordHash });
     const user = await this.repo.create(plan);
+    // The account's first address: its primary, unconfirmed until the link below (specs/032).
+    const primary = await this.userEmails.createPrimaryWithTx(
+      this.prisma,
+      user.id,
+      plan.email,
+      null,
+    );
     // The user has no currency preference yet at registration time; CLP is the
     // app default (the same one `User.preferredCurrency` starts with).
     await this.createCashAccount(user.id, "CLP");
@@ -106,6 +120,9 @@ export class RegisterHandler extends BaseCommandHandler<RegisterCommand, AuthRes
       { id: user.id, email: user.email },
       { userAgent: command.device?.userAgent, ip: command.device?.ip },
     );
+    // "Confirma tu correo" (FR-007). Never fails the registration: an email that can't go out is
+    // logged, and the app's notice offers to send it again (FR-006).
+    await this.accountEmails.sendVerification({ userId: user.id, locale: plan.locale }, primary);
     return { result: { tokens, user: user.toContract() }, events: [] };
   }
 

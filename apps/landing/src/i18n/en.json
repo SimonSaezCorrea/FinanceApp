@@ -317,10 +317,41 @@
         "title": "Frequently asked questions · fik",
         "description": "Answers about how fik works, your cards and statements, and your data."
       },
-      "imageAlt": "fik, the backbone that keeps your finances balanced, over a mountain range"
+      "imageAlt": "fik, the backbone that keeps your finances balanced, over a mountain range",
+      "verifyEmail": {
+        "title": "Confirm your email · fik",
+        "description": "Confirm the email address of your fik account."
+      },
+      "resetPassword": {
+        "title": "New password · fik",
+        "description": "Choose a new password for your fik account."
+      }
     },
     "access": {
       "noscript": "To sign in or create an account, turn on JavaScript in your browser."
+    },
+    "verifyEmail": {
+      "title": "Confirm your email",
+      "loading": "Confirming your email…",
+      "success": "Done, your email is confirmed. You can now recover your password by email and you’ll get security notices.",
+      "invalid": "This link doesn’t work: it expired, was already used, or you asked for a newer one. Sign in to fik and ask for another from the notice or from Profile.",
+      "error": "We couldn’t connect. Reload the page to try again.",
+      "toApp": "Go to fik"
+    },
+    "resetPassword": {
+      "title": "Choose a new password",
+      "description": "Saving it signs you out everywhere. If you use two-step verification, we’ll keep asking for it.",
+      "password": "New password",
+      "hint": "At least 8 characters.",
+      "confirmation": "Repeat the password",
+      "submit": "Save password",
+      "tooShort": "The password needs at least 8 characters.",
+      "mismatch": "The two passwords don’t match.",
+      "error": "We couldn’t connect. Please try again.",
+      "success": "Your password changed and we signed you out everywhere. Sign in with the new one.",
+      "signIn": "Sign in",
+      "invalid": "This link doesn’t work: it expired (it lasts 30 minutes), was already used, or you asked for a newer one.",
+      "again": "Ask for another link"
     }
   }
 }

@@ -41,6 +41,9 @@ export interface SessionRepositoryPort {
    * `ChangePasswordHandler`/`DisableMfaHandler` so a failure here rolls back the
    * credential change too. */
   closeAllExceptForUserWithTx(tx: unknown, userId: string, exceptId: string): Promise<number>;
+  /** Closes EVERY open session of a user, inside the caller's transaction (specs/032): a
+   * password recovered by email has no "current" session to keep. Returns how many. */
+  closeAllForUserWithTx(tx: unknown, userId: string): Promise<number>;
   /** Best-effort close by id alone (no ownership check — used by `logout`, which
    * already trusts a cryptographically-verified refresh token for the id/user pairing
    * and must never fail just because there was nothing left to close). */

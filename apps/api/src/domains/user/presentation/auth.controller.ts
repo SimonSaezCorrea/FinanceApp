@@ -48,6 +48,14 @@ import { VerifyMfaLoginCommand } from "../application/commands/verify-mfa-login.
 import { VerifyPasskeyLoginCommand } from "../application/commands/verify-passkey-login.command";
 import { VerifyStepUpPasskeyCommand } from "../application/commands/verify-step-up-passkey.command";
 import { VerifyStepUpCommand } from "../application/commands/verify-step-up.command";
+import { ForgotPasswordCommand } from "../application/commands/forgot-password.command";
+import { RemoveUserEmailCommand } from "../application/commands/remove-user-email.command";
+import { RequestEmailChangeCommand } from "../application/commands/request-email-change.command";
+import { ResendVerificationCommand } from "../application/commands/resend-verification.command";
+import { ResetPasswordCommand } from "../application/commands/reset-password.command";
+import { VerifyEmailCommand } from "../application/commands/verify-email.command";
+import { ListUserEmailsQuery } from "../application/queries/list-user-emails.query";
+import { userEmailIdParamsSchema } from "./dto/user-email-id.params";
 import { PasskeyChallengeInvalidError } from "../domain/errors";
 import { PasskeyChallengeToken } from "../application/passkey-challenge-token";
 import { TokenIssuer, type TokenPair } from "../application/token-issuer";
@@ -443,6 +451,74 @@ export class AuthController {
     await this.commandBus.execute(new DeleteAccountCommand(user.id, body));
     res.clearCookie(ACCESS_COOKIE, this.cookieBase());
     res.clearCookie(REFRESH_COOKIE, this.cookieBase());
+  }
+
+  // --- Account emails (specs/032) -------------------------------------------------------------
+
+  /** Public: the link in "Confirma tu correo" lands on the site, which posts its token here. */
+  @Post("email/verify")
+  @HttpCode(200)
+  async verifyEmail(
+    @Body(new ZodValidationPipe(auth.verifyEmailRequestSchema)) body: auth.VerifyEmailRequest,
+  ): Promise<{ verified: true }> {
+    await this.commandBus.execute(new VerifyEmailCommand(body.token));
+    return { verified: true };
+  }
+
+  @Post("email/verification")
+  @HttpCode(202)
+  @UseGuards(JwtAuthGuard)
+  async resendVerification(@CurrentUser() user: AuthUser): Promise<Record<string, never>> {
+    await this.commandBus.execute(new ResendVerificationCommand(user.id));
+    return {};
+  }
+
+  @Get("me/emails")
+  @UseGuards(JwtAuthGuard)
+  listEmails(@CurrentUser() user: AuthUser): Promise<auth.ListUserEmailsResponse> {
+    return this.queryBus.execute(new ListUserEmailsQuery(user.id));
+  }
+
+  @Post("me/emails")
+  @UseGuards(JwtAuthGuard)
+  async requestEmailChange(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(auth.requestEmailChangeSchema)) body: auth.RequestEmailChange,
+  ): Promise<auth.UserEmailResponse> {
+    const item: auth.UserEmail = await this.commandBus.execute(
+      new RequestEmailChangeCommand(user.id, body.address),
+    );
+    return { item };
+  }
+
+  @Delete("me/emails/:id")
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  removeEmail(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(userEmailIdParamsSchema)) params: { id: string },
+  ): Promise<void> {
+    return this.commandBus.execute(new RemoveUserEmailCommand(user.id, params.id));
+  }
+
+  /** Public, and always the same answer whether or not the RUT exists (research.md R9). */
+  @Post("password/forgot")
+  @HttpCode(202)
+  async forgotPassword(
+    @Body(new ZodValidationPipe(auth.forgotPasswordRequestSchema))
+    body: auth.ForgotPasswordRequest,
+  ): Promise<Record<string, never>> {
+    await this.commandBus.execute(new ForgotPasswordCommand(body.identifierValue));
+    return {};
+  }
+
+  @Post("password/reset")
+  @HttpCode(200)
+  async resetPassword(
+    @Body(new ZodValidationPipe(auth.resetPasswordRequestSchema)) body: auth.ResetPasswordRequest,
+  ): Promise<Record<string, never>> {
+    await this.commandBus.execute(new ResetPasswordCommand(body.token, body.newPassword));
+    return {};
   }
 
   /** Extracts what a session's `deviceLabel`/`country` are later derived from — the only

@@ -16,6 +16,7 @@ import {
 } from "../../../passkey/domain/ports/passkey.repository.port";
 import { PasskeyChallengeInvalidError } from "../../domain/errors";
 import { ConfirmPasskeyRegistrationCommand } from "./confirm-passkey-registration.command";
+import { AccountSecurityEvent } from "../../domain/events/account-security.event";
 
 @Injectable()
 @CommandHandler(ConfirmPasskeyRegistrationCommand)
@@ -72,7 +73,7 @@ export class ConfirmPasskeyRegistrationHandler extends BaseCommandHandler<
         createdAt: created.createdAt,
         lastUsedAt: null,
       },
-      events: [],
+      events: [new AccountSecurityEvent(command.userId, "PASSKEY_ADDED", new Date(), created.name)],
     };
   }
 }

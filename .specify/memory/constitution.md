@@ -1,4 +1,24 @@
 <!--
+Sync Impact Report — 2026-10-11 (amendment 2.6.0)
+- Version change: 2.5.4 → 2.6.0 (MINOR: two new table-domains and a new cross-cutting module;
+  specs/032 account and security emails).
+- ADDED: table-domains **`user-email`** (31st; the account's address registry — one PRIMARY, at most
+  one PENDING, history PAST; partial unique indexes; `User.email`/`emailVerified` mirror the
+  primary and are written by the user adapter in the same transaction) and **`email-token`**
+  (32nd; email links stored ONLY as a SHA-256 hash, consumed by a
+  conditional UPDATE — Principle VII form (a) — and at most one active per account and purpose, a
+  partial unique index — form (b)). Both are minimal domains with no `presentation/`, composed by
+  `user`.
+- ADDED: cross-cutting `apps/api/src/infra/email/` (`EMAIL_SENDER` port; Resend over native
+  `fetch` only when `NODE_ENV=production` AND `RESEND_API_KEY`; disabled otherwise — nothing is
+  sent, link endpoints answer `503 EMAIL_UNAVAILABLE`). New env vars
+  `RESEND_API_KEY`, `PUBLIC_SITE_URL`, `EMAIL_FROM`, `EMAIL_REPLY_TO`.
+- CHANGED Principle VIII count: **32 tablas** (the two above plus `exchange-rate`, which the
+  body never counted; it said 29).
+- RULE recorded (Principle II): a public endpoint that could reveal whether an account exists
+  (`POST /auth/password/forgot`) answers identically for every input and does its work after
+  responding. A security notice goes only to a CONFIRMED address and never fails the action.
+
 Sync Impact Report — 2026-10-10 (amendment 2.5.4)
 - Version change: 2.5.3 → 2.5.4 (PATCH: deployment target defined; no principle text changed).
 - ADDED: production runs on Cloudflare Pages (landing, app) and AWS São Paulo (API on EC2 behind
@@ -1926,7 +1946,7 @@ Rationale: en una app de finanzas un timeout de red reintentado no puede cobrar 
 ### VIII. Identificadores (NON-NEGOTIABLE)
 
 Existe UN formato de identificador de fila para todo el esquema, declarado en la constitución y
-uniforme en las 29 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
+uniforme en las 32 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
 localidad de índice en Postgres, estándar RFC 9562). Está prohibido que dos formatos convivan en la
 misma columna.
 
@@ -2225,4 +2245,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.5.4 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-10
+**Version**: 2.6.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-11

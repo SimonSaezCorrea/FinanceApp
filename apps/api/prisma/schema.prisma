@@ -11,7 +11,9 @@ datasource db {
 model User {
   id                   String          @id @default(uuid(7))
   name                 String?
+  /// Mirror of the PRIMARY `UserEmail.address` (specs/032), kept in the same transaction.
   email                String?         @unique
+  /// Mirror of the PRIMARY `UserEmail.verifiedAt` (specs/032); null = unconfirmed.
   emailVerified        DateTime?
   image                String?
   passwordHash         String?
@@ -93,6 +95,8 @@ model User {
   passkeys           Passkey[]
   sessions           Session[]
   consentRecords     ConsentRecord[]
+  emails             UserEmail[]
+  emailTokens        EmailToken[]
 
   @@index([countryId])
   @@map("user")
@@ -196,6 +200,65 @@ model Passkey {
 
   @@index([userId])
   @@map("passkey")
+}
+
+/// The email addresses an account has had or asked to have (specs/032). Exactly one `PRIMARY`
+/// per account — the one that receives emails and recovers the password, mirrored on
+/// `User.email`/`User.emailVerified` — at most one `PENDING` (a requested change awaiting its
+/// link), and any number of `PAST` (history). Both limits are partial unique indexes written in
+/// the migration SQL (Prisma cannot express them). The user can delete any row but the primary.
+model UserEmail {
+  id         String          @id @default(uuid(7))
+  userId     String
+  /// Trimmed and lower-cased.
+  address    String
+  status     UserEmailStatus
+  /// When this address was confirmed through its link; null = unconfirmed.
+  verifiedAt DateTime?
+  createdAt  DateTime        @default(now())
+  /// When it stopped being `PRIMARY` or `PENDING`.
+  replacedAt DateTime?
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokens EmailToken[]
+
+  @@index([userId])
+  @@index([address])
+  @@map("user-email")
+}
+
+enum UserEmailStatus {
+  PRIMARY
+  PENDING
+  PAST
+}
+
+/// A single-use link sent by email (specs/032): confirm an address or reset the password. Only the
+/// SHA-256 of the link's token is stored. At most one unused token per (user, purpose) — a
+/// partial unique index in the migration SQL — so issuing a new one replaces the previous and two
+/// concurrent requests can never both leave a valid link (Constitution VII, form b).
+model EmailToken {
+  id          String            @id @default(uuid(7))
+  userId      String
+  purpose     EmailTokenPurpose
+  /// The address a `VERIFY_EMAIL` token confirms; null for `RESET_PASSWORD`.
+  userEmailId String?
+  tokenHash   String            @unique
+  expiresAt   DateTime
+  /// Consumed, or replaced by a newer token of the same purpose.
+  usedAt      DateTime?
+  createdAt   DateTime          @default(now())
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userEmail UserEmail? @relation(fields: [userEmailId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, createdAt])
+  @@map("email-token")
+}
+
+enum EmailTokenPurpose {
+  VERIFY_EMAIL
+  RESET_PASSWORD
 }
 
 /// One ATTEMPT by the user, so a retry can be told apart from a new operation

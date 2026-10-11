@@ -1,0 +1,46 @@
+---
+import { buttonClasses } from "@finance/ui/src/shared/ui/button-classes";
+
+import PageLayout from "../../layouts/PageLayout.astro";
+import { t } from "../../i18n";
+import { type Language, LANGUAGES, pagePath } from "../../lib/language";
+
+export function getStaticPaths() {
+  return LANGUAGES.map((lang) => ({ params: { lang } }));
+}
+
+const lang = Astro.params.lang as Language;
+const k = (key: string) => t(lang, `landing.verifyEmail.${key}`);
+const signIn = `${pagePath(lang, "home")}?acceso=login`;
+---
+
+<PageLayout lang={lang} page="home" utility="verifyEmail">
+  <section class="mx-auto flex max-w-[34rem] flex-col items-center gap-4 py-20 text-center">
+    <h1 class="text-3xl font-bold leading-tight tracking-tight sm:text-4xl">{k("title")}</h1>
+
+    <div data-state="loading" aria-live="polite">
+      <p class="text-base text-muted-foreground">{k("loading")}</p>
+    </div>
+    <div data-state="success" hidden aria-live="polite" class="flex flex-col items-center gap-6">
+      <p class="text-base text-muted-foreground">{k("success")}</p>
+      <a href={signIn} data-access="login" class={buttonClasses({ variant: "primary" })}>
+        {k("toApp")}
+      </a>
+    </div>
+    <div data-state="invalid" hidden aria-live="polite" class="flex flex-col items-center gap-6">
+      <p class="text-base text-muted-foreground">{k("invalid")}</p>
+      <a href={signIn} data-access="login" class={buttonClasses({ variant: "outline" })}>
+        {k("toApp")}
+      </a>
+    </div>
+    <div data-state="error" hidden aria-live="polite">
+      <p class="text-base text-muted-foreground">{k("error")}</p>
+    </div>
+  </section>
+</PageLayout>
+
+<script>
+  import { initVerifyEmail } from "../../domains/auth/scripts/verify-email";
+
+  void initVerifyEmail();
+</script>

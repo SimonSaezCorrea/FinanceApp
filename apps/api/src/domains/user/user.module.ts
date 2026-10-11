@@ -18,6 +18,18 @@ import { SavingsEntryDataModule } from "../savings-entry/savings-entry.data.modu
 import { SavingsGoalDataModule } from "../savings-goal/savings-goal.data.module";
 import { SessionDataModule } from "../session/session.data.module";
 import { TransactionDataModule } from "../transaction/transaction.data.module";
+import { EmailTokenDataModule } from "../email-token/email-token.data.module";
+import { UserEmailDataModule } from "../user-email/user-email.data.module";
+import { AccountEmailService } from "./application/account-emails";
+import { ForgotPasswordHandler } from "./application/commands/forgot-password.handler";
+import { RemoveUserEmailHandler } from "./application/commands/remove-user-email.handler";
+import { RequestEmailChangeHandler } from "./application/commands/request-email-change.handler";
+import { ResendVerificationHandler } from "./application/commands/resend-verification.handler";
+import { PurgeStaleEmailTokensHandler } from "./application/commands/purge-stale-email-tokens.handler";
+import { ResetPasswordHandler } from "./application/commands/reset-password.handler";
+import { VerifyEmailHandler } from "./application/commands/verify-email.handler";
+import { SendSecurityNoticeListener } from "./application/listeners/send-security-notice.listener";
+import { ListUserEmailsQueryHandler } from "./application/queries/list-user-emails.handler";
 import { ChangePasswordHandler } from "./application/commands/change-password.handler";
 import { CloseExpiredSessionsHandler } from "./application/commands/close-expired-sessions.handler";
 import { CloseSessionHandler } from "./application/commands/close-session.handler";
@@ -82,6 +94,13 @@ const commandHandlers = [
   RevokeOtherSessionsHandler,
   CloseExpiredSessionsHandler,
   PurgeClosedSessionsHandler,
+  VerifyEmailHandler,
+  ResendVerificationHandler,
+  RequestEmailChangeHandler,
+  RemoveUserEmailHandler,
+  ForgotPasswordHandler,
+  ResetPasswordHandler,
+  PurgeStaleEmailTokensHandler,
 ];
 
 const queryHandlers = [
@@ -90,6 +109,7 @@ const queryHandlers = [
   ListPasskeysQueryHandler,
   ListSessionsQueryHandler,
   ListConsentsQueryHandler,
+  ListUserEmailsQueryHandler,
 ];
 
 @Module({
@@ -113,6 +133,8 @@ const queryHandlers = [
     IpGeolocationCacheDataModule,
     ConsentRecordDataModule,
     AccountDeletionLogDataModule,
+    UserEmailDataModule,
+    EmailTokenDataModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -122,6 +144,8 @@ const queryHandlers = [
     PasskeyChallengeToken,
     GeoIpLookup,
     SessionIssuer,
+    AccountEmailService,
+    SendSecurityNoticeListener,
     { provide: USER_REPOSITORY, useClass: PrismaUserRepository },
     JwtAuthGuard,
   ],

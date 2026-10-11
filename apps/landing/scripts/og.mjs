@@ -106,3 +106,31 @@ for (const [lang, copy] of Object.entries(COPY)) {
   writeFileSync(join(outDir, `fik-${lang}.png`), png);
   console.log(`og/fik-${lang}.png ${png.length} bytes`);
 }
+
+// The logo at the top of every email (specs/032): the same drawing, light palette (most inboxes
+// are white), transparent background, 2x the 120px it is shown at.
+const emailDir = join(root, "public/email");
+mkdirSync(emailDir, { recursive: true });
+const emailLogo = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="270" viewBox="-10 -138 128 144">
+  <defs>
+    <filter id="pencil" x="-5%" y="-5%" width="110%" height="110%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="2" seed="3" result="n"/>
+      <feDisplacementMap in="SourceGraphic" in2="n" scale="2.5"/>
+    </filter>
+  </defs>
+  <g filter="url(#pencil)" fill="none" stroke="#0e3b40" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="${LOGO_RIDGE}" stroke-width="4"/>
+    <path d="${LOGO_SNOW}" stroke-width="2"/>
+  </g>
+  <text x="0" y="0" font-family="Caveat Brush" font-size="112" fill="#0e1f22">fik</text>
+</svg>`;
+const logoPng = new Resvg(emailLogo, {
+  font: {
+    fontFiles: [join(root, "scripts/fonts/CaveatBrush-Regular.ttf")],
+    loadSystemFonts: false,
+  },
+})
+  .render()
+  .asPng();
+writeFileSync(join(emailDir, "logo.png"), logoPng);
+console.log(`email/logo.png ${logoPng.length} bytes`);

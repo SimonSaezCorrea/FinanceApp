@@ -2,10 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { UpdateProfileHandler } from "../../../../../../src/domains/user/application/commands/update-profile.handler";
 import { UpdateProfileCommand } from "../../../../../../src/domains/user/application/commands/update-profile.command";
-import {
-  EmailTakenError,
-  UnauthorizedError,
-} from "../../../../../../src/domains/user/domain/errors";
+import { UnauthorizedError } from "../../../../../../src/domains/user/domain/errors";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
 import type { MfaRecoveryCodeRepositoryPort } from "../../../../../../src/domains/mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
@@ -86,32 +83,17 @@ describe("UpdateProfileHandler", () => {
     );
   });
 
-  it("rejects an email already taken by another account", async () => {
-    const repo = fakeRepo({
-      findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ id: "other-user" }))),
-    });
+  it("never changes the email: that goes through the pending-change flow (specs/032)", async () => {
+    const repo = fakeRepo();
     const handler = new UpdateProfileHandler(
       { publish: vi.fn() } as never,
       repo,
       fakeRecoveryCodeRepo(),
     );
-    await expect(
-      handler.execute(new UpdateProfileCommand("u1", { email: "taken@b.com" })),
-    ).rejects.toThrow(EmailTakenError);
-  });
-
-  it("accepts renaming to the user's own current email (no-op, not a conflict)", async () => {
-    const repo = fakeRepo({
-      findByEmail: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ id: "u1" }))),
-    });
-    const handler = new UpdateProfileHandler(
-      { publish: vi.fn() } as never,
-      repo,
-      fakeRecoveryCodeRepo(),
-    );
-    const result = await handler.execute(new UpdateProfileCommand("u1", { email: "a@b.com" }));
-    expect(result.email).toBe("a@b.com");
-    expect(repo.save).toHaveBeenCalled();
+    const result = await handler.execute(new UpdateProfileCommand("u1", { name: "Nuevo" }));
+    expect(result.name).toBe("Nuevo");
+    expect(result.email).toBe(baseProps().email);
+    expect(repo.findByEmail).not.toHaveBeenCalled();
   });
 
   it("resolves the linked country's name when countryId is set", async () => {

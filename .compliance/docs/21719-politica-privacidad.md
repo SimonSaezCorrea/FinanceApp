@@ -35,6 +35,7 @@ FinanceApp (proyecto en etapa temprana, sin constitución societaria formal — 
 
 - **Almacenamiento de comprobantes** (S3-compatible: AWS S3, MinIO, R2 o Backblaze, según configuración): hoy **no está activo** — sin esa configuración, la función de adjuntos está deshabilitada y ningún archivo sale de nuestra infraestructura.
 - **IPinfo.io** (geolocalización aproximada de IP de sesión), cuando está configurado: procesa fuera de Chile. Esta transferencia se ampara en las **cláusulas contractuales modelo aprobadas por el Ministerio de Economía** (ver `21719-anexo-transferencias.md`). Su licencia de datos (CC BY-SA 4.0) exige atribución visible, que mostramos en Perfil → Seguridad.
+- **Resend** (envío de correos de cuenta y de seguridad: confirmar tu correo, recuperar tu contraseña y avisos cuando cambia algo sensible de tu cuenta): procesa fuera de Chile, recibe tu dirección de correo y el contenido de esos correos, nunca tus datos financieros. Misma base que la anterior (ver `21719-anexo-transferencias.md`).
 - No vendemos ni compartimos tus datos con fines de publicidad. No tenemos hoy ningún proveedor de analítica o marketing integrado.
 
 ## 5. Por cuánto tiempo

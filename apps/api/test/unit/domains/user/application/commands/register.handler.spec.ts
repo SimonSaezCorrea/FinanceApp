@@ -14,6 +14,8 @@ import type { UserRepositoryPort } from "../../../../../../src/domains/user/doma
 import type { ConsentRecordRepositoryPort } from "../../../../../../src/domains/consent-record/domain/ports/consent-record.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
 import type { ConfigService } from "@nestjs/config";
+import type { UserEmailRepositoryPort } from "../../../../../../src/domains/user-email/domain/ports/user-email.repository.port";
+import type { AccountEmailService } from "../../../../../../src/domains/user/application/account-emails";
 
 const ADULT_BIRTHDATE = new Date("1990-01-01T00:00:00Z");
 const MINOR_BIRTHDATE = new Date(new Date().getFullYear() - 10, 0, 1); // always ~10 years old
@@ -94,12 +96,36 @@ function fakePrisma(): PrismaService {
   return {} as unknown as PrismaService;
 }
 
+const PRIMARY = {
+  id: "01a128bd-a70c-7e03-b071-0d9afd8d9c5f",
+  userId: "u1",
+  address: "a@b.com",
+  status: "PRIMARY" as const,
+  verifiedAt: null,
+  createdAt: new Date(),
+  replacedAt: null,
+};
+
+function fakeUserEmails(): UserEmailRepositoryPort {
+  return {
+    createPrimaryWithTx: vi.fn().mockResolvedValue(PRIMARY),
+  } as unknown as UserEmailRepositoryPort;
+}
+
+function fakeAccountEmails(): AccountEmailService {
+  return {
+    sendVerification: vi.fn().mockResolvedValue("sent"),
+  } as unknown as AccountEmailService;
+}
+
 function buildHandler(
   overrides: {
     repo?: UserRepositoryPort;
     accounts?: ReturnType<typeof fakeBankAccountRepo>;
     consents?: ConsentRecordRepositoryPort;
     sessionIssuer?: SessionIssuer;
+    userEmails?: UserEmailRepositoryPort;
+    accountEmails?: AccountEmailService;
   } = {},
 ) {
   return new RegisterHandler(
@@ -107,9 +133,11 @@ function buildHandler(
     overrides.repo ?? fakeRepo(),
     overrides.accounts ?? fakeBankAccountRepo({ createWithCards: vi.fn() }),
     overrides.consents ?? fakeConsents(),
+    overrides.userEmails ?? fakeUserEmails(),
     overrides.sessionIssuer ?? fakeSessionIssuer(),
     fakePrisma(),
     fakeConfig(),
+    overrides.accountEmails ?? fakeAccountEmails(),
   );
 }
 
@@ -141,6 +169,38 @@ describe("RegisterHandler", () => {
     // cash expense can be recorded on day one without inventing an account first.
     const cash = (accounts.createWithCards as ReturnType<typeof vi.fn>).mock.calls[0]![1];
     expect(cash).toMatchObject({ type: "CASH", name: "Efectivo" });
+  });
+
+  it("records the email as the unconfirmed primary and sends its confirmation link (specs/032)", async () => {
+    const create = vi.fn().mockResolvedValue(User.fromPersistence(baseProps()));
+    const repo = fakeRepo({ findByEmail: vi.fn().mockResolvedValue(null), create });
+    const userEmails = fakeUserEmails();
+    const accountEmails = fakeAccountEmails();
+    const handler = buildHandler({ repo, userEmails, accountEmails });
+
+    const result = await handler.execute(
+      new RegisterCommand({
+        name: "Test User",
+        email: "A@B.com",
+        password: "password123",
+        identifierValue: "12.345.678-5",
+        birthDate: ADULT_BIRTHDATE,
+        sensitiveDataConsent: true,
+        locale: "en",
+      }),
+    );
+
+    expect(userEmails.createPrimaryWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(String),
+      "a@b.com",
+      null,
+    );
+    expect(accountEmails.sendVerification).toHaveBeenCalledWith(
+      expect.objectContaining({ locale: "en" }),
+      PRIMARY,
+    );
+    expect(result.user.emailVerified).toBe(false);
   });
 
   it("creates the account in the language it was registered from, Spanish when none is sent", async () => {

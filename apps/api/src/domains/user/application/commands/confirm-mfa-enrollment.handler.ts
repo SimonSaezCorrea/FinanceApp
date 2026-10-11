@@ -21,6 +21,7 @@ import { User } from "../../domain/user.aggregate";
 import { USER_REPOSITORY, type UserRepositoryPort } from "../../domain/ports/user.repository.port";
 import { generateRecoveryCodes } from "../recovery-code-generator";
 import { ConfirmMfaEnrollmentCommand } from "./confirm-mfa-enrollment.command";
+import { AccountSecurityEvent } from "../../domain/events/account-security.event";
 
 interface Context {
   user: User;
@@ -78,7 +79,10 @@ export class ConfirmMfaEnrollmentHandler extends BaseCommandHandler<
     context.recoveryCodeHashes = await Promise.all(
       plainCodes.map((code) => hash(code, RECOVERY_CODE_BCRYPT_ROUNDS)),
     );
-    return { result: { recoveryCodes: plainCodes }, events: [] };
+    return {
+      result: { recoveryCodes: plainCodes },
+      events: [new AccountSecurityEvent(user.id, "MFA_ENABLED", new Date())],
+    };
   }
 
   protected override async persist(context: Context): Promise<void> {

@@ -151,6 +151,12 @@ Para `api.env`:
   datos guardados.
 - `DATABASE_URL` y `DIRECT_DATABASE_URL` con el endpoint, usuario y contraseña de RDS.
 - `IPINFO_TOKEN` si se quiere el país de cada sesión.
+- `RESEND_API_KEY`: una clave **Sending access** restringida al dominio `mifik.cl` (nunca Full
+  access). Sin ella el API arranca igual, pero no envía correos: verificar el correo y recuperar la
+  contraseña responden `503 EMAIL_UNAVAILABLE`.
+- `PUBLIC_SITE_URL=https://mifik.cl`: los enlaces de los correos abren páginas del sitio público
+  (`/es/verify-email/`, `/es/reset-password/`). `EMAIL_FROM`/`EMAIL_REPLY_TO` tienen valores por
+  defecto (`fik <no-reply@mifik.cl>` / `contacto@mifik.cl`).
 
 ## 9. GitHub: despliegue automático
 
@@ -192,7 +198,9 @@ _Workers & Pages → Create → Pages → Connect to Git_ → este repo. Dos pro
 3. En `https://mifik.cl`: crear una cuenta, iniciar sesión, llegar a `app.mifik.cl`.
 4. En el navegador, las cookies `access_token`/`refresh_token` dicen **Secure** y **HttpOnly**.
 5. Perfil → Seguridad muestra la sesión con su país (si hay `IPINFO_TOKEN`).
-6. _Tipos de cambio_ tiene datos (el API los registra al arrancar y a las 8/12/16/20 h).
+6. Registrarse con un correo propio: llega "Confirma tu correo" desde `no-reply@mifik.cl` y su
+   enlace abre `mifik.cl/es/verify-email/` y confirma la dirección.
+7. _Tipos de cambio_ tiene datos (el API los registra al arrancar y a las 8/12/16/20 h).
 
 ## Mantenimiento
 

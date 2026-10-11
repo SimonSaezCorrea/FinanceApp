@@ -2,7 +2,7 @@ import { KeyRound, ShieldCheck } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ApiRequestError } from "@finance/client";
+import { ApiRequestError, authApi } from "@finance/client";
 import { formatRutInput } from "@finance/ui/src/shared/lib/formatRut";
 import { Button } from "@finance/ui/src/shared/ui/button";
 import { FormNotice } from "@finance/ui/src/shared/ui/form/FormNotice";
@@ -48,6 +48,8 @@ export function LoginForm({
    * on this device — the browser reports both the same way, so the copy covers both). */
   const [passkeyNotice, setPasskeyNotice] = useState(false);
   const [forgotOpen, setForgotOpen] = useState(false);
+  /** "¿Olvidaste tu contraseña?" (specs/032 US2): sends a link to the account behind the RUT. */
+  const [forgot, setForgot] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [touched, setTouched] = useState({ rut: false, password: false });
   const [submitted, setSubmitted] = useState(false);
   const conditionalAbortRef = useRef<AbortController | null>(null);
@@ -73,6 +75,23 @@ export function LoginForm({
     code && (submitted || (fieldTouched && code !== "required"))
       ? t(`auth.validation.${code}`)
       : null;
+
+  /** Always the same answer whatever the RUT (the API never says whether it exists); only a RUT
+   * that is not a RUT at all is stopped here, on its own field. */
+  async function onForgot() {
+    if (rutError) {
+      setTouched((prev) => ({ ...prev, rut: true }));
+      setSubmitted(true);
+      return;
+    }
+    setForgot("sending");
+    try {
+      await authApi.forgotPassword({ identifierValue });
+      setForgot("sent");
+    } catch {
+      setForgot("error");
+    }
+  }
 
   function setStep(next: LoginStep) {
     setStepState(next);
@@ -246,7 +265,34 @@ export function LoginForm({
         >
           {t("auth.forgot.link")}
         </button>
-        {forgotOpen ? <FormNotice>{t("auth.forgot.body")}</FormNotice> : null}
+        {forgotOpen ? (
+          <FormNotice>
+            <span className="flex flex-col gap-2">
+              {forgot === "sent" ? (
+                <span role="status">{t("auth.forgot.sent")}</span>
+              ) : (
+                <>
+                  <span>{t("auth.forgot.body")}</span>
+                  {forgot === "error" ? (
+                    <span role="alert" className="text-destructive">
+                      {t("auth.forgot.failed")}
+                    </span>
+                  ) : null}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="self-start"
+                    disabled={forgot === "sending"}
+                    onClick={() => void onForgot()}
+                  >
+                    {forgot === "sending" ? t("auth.forgot.sending") : t("auth.forgot.send")}
+                  </Button>
+                </>
+              )}
+            </span>
+          </FormNotice>
+        ) : null}
         {error ? (
           <p role="alert" className="-mt-1 text-sm text-destructive">
             {error}

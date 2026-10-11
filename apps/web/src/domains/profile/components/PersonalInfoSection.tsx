@@ -20,6 +20,7 @@ import {
 } from "../hooks/useCountryCallingCode";
 import { useAvailableIdentifierTypes } from "../hooks/useIdentifierTypes";
 import { useProfileMutations } from "../hooks/useProfile";
+import { pendingEmail, useUserEmailMutations, useUserEmails } from "../hooks/useUserEmails";
 
 /** One datum = one row. Clicking a row opens it; each row saves on its own. */
 export type PersonalFieldKey =
@@ -138,6 +139,8 @@ export function PersonalInfoSection() {
   const { user } = useAuth();
   const { data: countries } = useCountries();
   const { updateProfile } = useProfileMutations();
+  const { requestChange: requestEmailChange } = useUserEmailMutations();
+  const pending = pendingEmail(useUserEmails().data?.items);
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [editing, setEditing] = useState<PersonalFieldKey | null>(null);
@@ -202,12 +205,10 @@ export function PersonalInfoSection() {
     setDraft((current) => ({ ...current, [part]: value }));
   }
 
-  function payloadFor(field: PersonalFieldKey): auth.UpdateProfileRequest {
+  function payloadFor(field: Exclude<PersonalFieldKey, "email">): auth.UpdateProfileRequest {
     switch (field) {
       case "name":
         return { name: draft.name };
-      case "email":
-        return { email: draft.email };
       case "phone":
         return { phone: combinePhone(draft.phone, callingCode) || null };
       case "identifier":
@@ -253,7 +254,9 @@ export function PersonalInfoSection() {
     }
     setError(null);
     try {
-      await updateProfile.mutateAsync(payloadFor(field));
+      // The address only changes once the link sent to the new one is opened (specs/032).
+      if (field === "email") await requestEmailChange.mutateAsync(draft.email);
+      else await updateProfile.mutateAsync(payloadFor(field));
       setEditing(null);
       setSaved(field);
       clearTimeout(savedTimer.current);
@@ -341,6 +344,8 @@ export function PersonalInfoSection() {
     label: string;
     value: string | null;
     hint: string;
+    /** Shown under the closed row (a pending email change). */
+    note?: string;
     lines: ReactNode;
   }[] = [
     {
@@ -359,6 +364,7 @@ export function PersonalInfoSection() {
       label: t("profile.edit.email"),
       value: user.email,
       hint: t("profile.edit.hintEmail"),
+      note: pending ? t("profile.edit.emailPending", { address: pending.address }) : undefined,
       lines: (
         <FieldLine label={t("profile.edit.email")}>
           {lineInput("email", "email", t("profile.edit.email"), { type: "email" })}
@@ -489,7 +495,7 @@ export function PersonalInfoSection() {
                   </Button>
                   <Button
                     size="sm"
-                    disabled={updateProfile.isPending}
+                    disabled={updateProfile.isPending || requestEmailChange.isPending}
                     onClick={() => save(row.key)}
                   >
                     {t("common.save")}
@@ -529,6 +535,9 @@ export function PersonalInfoSection() {
                 </span>
               </button>
             )}
+            {row.note && editing !== row.key ? (
+              <p className="-mt-1.5 px-5 pb-3 text-xs text-warning">{row.note}</p>
+            ) : null}
           </div>
         ))}
       </div>
