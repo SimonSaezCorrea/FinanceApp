@@ -1,7 +1,7 @@
 # Despliegue de fik en producción
 
 Guía paso a paso para publicar fik en `mifik.cl`. Los archivos que usa viven en `deploy/` y el
-despliegue automático en `.github/workflows/deploy-api.yml`.
+despliegue automático en `.github/workflows/deploy.yml`.
 
 ## Arquitectura
 
@@ -16,7 +16,7 @@ EC2 t4g.small, AWS Ohio (us-east-2)
    Docker: Caddy (TLS) → API NestJS
    │ red privada de AWS, TLS
    ▼
-RDS PostgreSQL 16 db.t4g.micro (us-east-2), sin acceso público
+RDS PostgreSQL 16 db.t4g.micro (us-east-2): 5432 solo para el servidor y las IP admitidas
 ```
 
 - **Solo Cloudflare llega al servidor:** el security group abre el puerto 443 solo a las IP de
@@ -65,19 +65,30 @@ consultar mindicador.cl e IPinfo.
 - Identificador: `fik-db`. Usuario maestro: `fik_admin`, contraseña generada y guardada en un gestor
   de contraseñas.
 - Instancia: **db.t4g.micro**. Almacenamiento: **gp3, 20 GB**, autoescalado hasta 50 GB.
-- Conectividad: VPC por defecto, **Public access: No**, security group **`fik-db`** (quitar el
-  `default`).
+- Conectividad: VPC por defecto, security group **`fik-db`** (quitar el `default`). Se creó con
+  **Public access: No** y el 2026-10-11 pasó a **Yes** para administrarla desde un PC (DBeaver,
+  psql): el security group igual solo abre el 5432 al servidor y a las IP agregadas con
+  `deploy/aws/db-allow-my-ip.sh`, y RDS exige TLS (una conexión sin cifrar se rechaza). Ver
+  "Ver la base desde un PC" más abajo.
 - Nombre inicial de la base: **`fik`**.
-- Respaldos automáticos: **7 días**. Cifrado: **activado**. **Deletion protection: activado**.
-  En el **plan gratuito** de AWS (cuentas nuevas desde 2025, con créditos) el máximo es **1 día**
-  (`FreeTierRestrictionError`): la base se creó así el 2026-10-11 (PostgreSQL 16.15). Al pasar al
-  plan pagado, subirlo a 7 con `aws rds modify-db-instance` (`--db-instance-identifier fik-db
---backup-retention-period 7 --apply-immediately`).
+- Respaldos automáticos: **1 día**, por decisión (2026-10-11): restauración a cualquier minuto de
+  las últimas 24 h; subirlo si hace falta (`aws rds modify-db-instance --db-instance-identifier
+fik-db --backup-retention-period 7 --apply-immediately`, requiere el plan pagado de AWS: el
+  gratuito lo limita a 1). Cifrado: **activado**. **Deletion protection: activado**. PostgreSQL
+  16.15.
 
 Al terminar, copiar el **endpoint** (`fik-db.xxxx.us-east-2.rds.amazonaws.com`).
 
-> Más adelante conviene crear un usuario `fik_app` con permisos solo sobre la base `fik` y que el API
-> use ese en vez de `fik_admin`. Para el primer despliegue puede usarse el maestro.
+**Usuarios de la base** (2026-10-11, `deploy/aws/db-roles.sql`, correrlo una vez como `fik_admin`
+con las contraseñas de Parameter Store):
+
+| Usuario       | Lo usa                                         | Puede                                         |
+| ------------- | ---------------------------------------------- | --------------------------------------------- |
+| `fik_app`     | el API y el seed del catálogo (`DATABASE_URL`) | leer y escribir filas; no crear/borrar tablas |
+| `fik_migrate` | las migraciones (`DIRECT_DATABASE_URL`)        | dueño del esquema y de todas las tablas       |
+| `fik_admin`   | administración (DBeaver); nunca el servidor    | todo (usuario maestro de RDS)                 |
+
+Las tablas que creen migraciones futuras le dan permisos a `fik_app` solas (default privileges).
 
 ## 4. Registro de imágenes (ECR)
 
@@ -92,6 +103,9 @@ Luego, en _Lifecycle policy_: conservar solo las **últimas 10 imágenes**.
 
 - `AmazonSSMManagedInstanceCore` (entrar por Session Manager y recibir los despliegues)
 - `AmazonEC2ContainerRegistryReadOnly` (descargar la imagen del API)
+
+Y una política en línea con `deploy/aws/api-ec2-parameters-policy.json` (reemplazando
+`ACCOUNT_ID`): leer los parámetros `/fik/prod/*`, de donde sale `api.env`.
 
 Nombre: `fik-api-ec2`.
 
@@ -155,50 +169,61 @@ Con Session Manager (o `aws ssm send-command`), crear en `/opt/fik`:
 | `deploy.env`         | `deploy/deploy.env.example` | con el registry de ECR              |
 | `render-api-env.sh`  | `deploy/aws/`               | escribe `api.env` (ver abajo)       |
 
-**`api.env` no se escribe a mano**: los secretos viven cifrados en **Parameter Store**
-(`/fik/prod/<NOMBRE>`, SecureString, gratis) y `sudo bash /opt/fik/render-api-env.sh <endpoint-rds>`
-arma `/opt/fik/api.env` (chmod 600) con ellos; si falta uno obligatorio, aborta sin tocar el archivo.
+**`api.env` no se escribe a mano.** Las variables del API viven en **Parameter Store**
+(Systems Manager → Parameter Store → Ohio, gratis): **cada parámetro `/fik/prod/<NOMBRE>` es una
+variable del API con ese nombre**: _SecureString_ para secretos, _String_ para el resto.
+`render-api-env.sh` las lee todas y escribe `/opt/fik/api.env` (chmod 600); `deploy.sh` lo corre
+antes de cada despliegue, así que **agregar o cambiar una variable = crear o editar el parámetro y
+desplegar**. Si falta una obligatoria, aborta sin tocar el archivo ni el API en marcha.
 
-- Obligatorios: `DATABASE_PASSWORD` y los siete de `deploy/api.env.example` (cada uno
-  `openssl rand -base64 48`; `MFA_ENCRYPTION_KEY` con `openssl rand -hex 32`), **distintos a los de
-  desarrollo**. Parameter Store es su respaldo: perder `MFA_ENCRYPTION_KEY` o
-  `IDENTIFIER_HASH_SECRET` deja ilegibles datos guardados.
+- El grupo `DATABASE_*` no se copia tal cual: arma las conexiones. `DATABASE_HOST` (endpoint de RDS),
+  `DATABASE_APP_PASSWORD` (`fik_app`), `DATABASE_MIGRATE_PASSWORD` (`fik_migrate`) y
+  `DATABASE_ADMIN_PASSWORD` (`fik_admin`, nunca llega al servidor).
+- Secretos (cada uno `openssl rand -base64 48`; `MFA_ENCRYPTION_KEY` con `openssl rand -hex 32`),
+  **distintos a los de desarrollo**: los de `deploy/api.env.example`. Parameter Store es su
+  respaldo: perder `MFA_ENCRYPTION_KEY` o `IDENTIFIER_HASH_SECRET` deja ilegibles datos guardados.
+- Configuración (_String_): `CORS_ORIGIN`, `PASSKEY_RP_ID`, `TRUST_PROXY_HOPS`, `PUBLIC_SITE_URL`,
+  `JWT_ACCESS_EXPIRES`, `JWT_REFRESH_EXPIRES`, `EMAIL_FROM`, `EMAIL_REPLY_TO`.
 - `IPINFO_TOKEN` (opcional) si se quiere el país de cada sesión.
 - `RESEND_API_KEY`: una clave **Sending access** restringida al dominio `mifik.cl` (nunca Full
   access). Sin ella el API arranca igual, pero no envía correos: verificar el correo y recuperar la
   contraseña responden `503 EMAIL_UNAVAILABLE`.
 - `PUBLIC_SITE_URL=https://mifik.cl`: los enlaces de los correos abren páginas del sitio público
-  (`/es/verify-email/`, `/es/reset-password/`). `EMAIL_FROM`/`EMAIL_REPLY_TO` tienen valores por
-  defecto (`fik <no-reply@mifik.cl>` / `contacto@mifik.cl`).
+  (`/es/verify-email/`, `/es/reset-password/`). `EMAIL_FROM`/`EMAIL_REPLY_TO`: hoy ambos
+  `contacto@mifik.cl` (sin el parámetro, el API usa `fik <no-reply@mifik.cl>` / `contacto@mifik.cl`).
 
-## 9. GitHub: despliegue automático
+## 9. Despliegue automático (GitHub Actions)
+
+**Ramas:** se trabaja en **`dev`** (el CI corre en cada push, nunca despliega) y se integra a
+**`main`** con merge: eso es lo único que publica. `.github/workflows/deploy.yml` corre cuando el
+**CI pasa en `main`** y despliega **solo lo que cambió** desde el último despliegue exitoso:
+
+| Destino | Se despliega si cambia                            | Cómo                                                      |
+| ------- | ------------------------------------------------- | --------------------------------------------------------- |
+| API     | `apps/api/`, `packages/{contracts,money,config}/` | imagen ARM → ECR → `deploy.sh` en EC2 por SSM             |
+| App     | `apps/web/`, `packages/`                          | build en GitHub → `wrangler pages deploy` a `fik-app`     |
+| Landing | `apps/landing/`, `packages/`                      | build en GitHub → `wrangler pages deploy` a `fik-landing` |
+
+`package.json`, `pnpm-lock.yaml`, `turbo.json` o el propio workflow despliegan los tres. A mano:
+_Actions → Deploy → Run workflow_ con `changed` / `all` / `api` / `web` / `landing`. **No despliega
+`deploy/`**: los archivos del servidor (`/opt/fik`) se copian aparte (sección 8).
 
 1. _Settings → Environments → New environment_: **`production`**, y en _Deployment branches and
    tags_ → **Selected branches and tags** → solo `main`. Es obligatorio: así ni un despliegue manual
    desde otra rama ni código ajeno llegan a producción (el rol de AWS solo confía en este
    environment). Opcional: _Required reviewers_, para aprobar cada despliegue a mano.
-2. _Settings → Secrets and variables → Actions → Variables_ (variables, no secrets: no son
-   secretos):
-   - `AWS_DEPLOY_ROLE_ARN` = ARN del rol `fik-github-deploy`
-   - `AWS_API_INSTANCE_ID` = `i-...`
-3. _Actions → Deploy API → Run workflow_. Construye la imagen ARM (la primera vez tarda ~15 min por
-   la emulación), la sube a ECR y corre `deploy.sh` en el servidor: descarga la imagen, aplica
-   migraciones y catálogo, reinicia y espera a que el API responda sano.
-
-Desde ahí, cada push a `main` que pase CI se despliega solo.
+2. _Settings → Secrets and variables → Actions_:
+   - Variables: `AWS_DEPLOY_ROLE_ARN` (ARN de `fik-github-deploy`), `AWS_API_INSTANCE_ID` (`i-...`),
+     `CLOUDFLARE_ACCOUNT_ID`.
+   - Secret: `CLOUDFLARE_API_TOKEN`, un token de cuenta con **Cloudflare Pages · Edit** y nada más.
+3. La primera imagen del API tarda ~15 min (emulación ARM); después usa caché.
 
 ## 10. Landing y app (Cloudflare Pages)
 
-_Workers & Pages → Create → Pages → Connect to Git_ → este repo. Dos proyectos:
-
-|                  | Landing                                                                                                                                                         | App                                                                                                                    |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| Nombre           | `fik-landing`                                                                                                                                                   | `fik-app`                                                                                                              |
-| Rama             | `main`                                                                                                                                                          | `main`                                                                                                                 |
-| Build command    | `pnpm exec turbo run build --filter=@finance/landing`                                                                                                           | `pnpm exec turbo run build --filter=@finance/web`                                                                      |
-| Output directory | `apps/landing/dist`                                                                                                                                             | `apps/web/dist`                                                                                                        |
-| Variables        | `NODE_VERSION=22` · `PNPM_VERSION=10.15.1` · `PUBLIC_API_URL=https://api.mifik.cl` · `PUBLIC_APP_URL=https://app.mifik.cl` · `PUBLIC_SITE_URL=https://mifik.cl` | `NODE_VERSION=22` · `PNPM_VERSION=10.15.1` · `VITE_API_URL=https://api.mifik.cl` · `VITE_LANDING_URL=https://mifik.cl` |
-| Dominio          | _Custom domains_ → `mifik.cl`                                                                                                                                   | _Custom domains_ → `app.mifik.cl`                                                                                      |
+Dos proyectos, **`fik-landing`** (_Custom domains_ → `mifik.cl`) y **`fik-app`** (`app.mifik.cl`),
+rama de producción `main`. Están conectados al repo, pero con **los builds automáticos de Cloudflare
+apagados**: los construye y sube el workflow de la sección 9, solo con el CI en verde. Las variables
+de build (`VITE_*`, `PUBLIC_*`) están en `deploy.yml`, no en Cloudflare.
 
 - La app es una SPA: sin `404.html` en su salida, Pages sirve `index.html` para cualquier ruta.
 - Las URL **no llevan** `/api/v1` ni barra final.
@@ -215,12 +240,36 @@ _Workers & Pages → Create → Pages → Connect to Git_ → este repo. Dos pro
    enlace abre `mifik.cl/es/verify-email/` y confirma la dirección.
 7. _Tipos de cambio_ tiene datos (el API los registra al arrancar y a las 8/12/16/20 h).
 
+## Dónde ver cada cosa
+
+| Qué                              | Dónde                                                                                                |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Estado de la base (CPU, espacio) | AWS → RDS → Ohio → `fik-db`                                                                          |
+| Datos de la base                 | DBeaver/psql desde un PC (sección siguiente)                                                         |
+| Variables del API                | AWS → Systems Manager → Parameter Store → Ohio → `/fik/prod/*`                                       |
+| `api.env` en uso                 | EC2 → `fik-api` → Connect → Session Manager → `sudo cat /opt/fik/api.env` (se genera, no se edita)   |
+| Despliegues (API, app, landing)  | GitHub → Actions → Deploy                                                                            |
+| Versiones publicadas de Pages    | Cloudflare → Workers & Pages → `fik-landing` / `fik-app` → Deployments                               |
+| Logs del API                     | Session Manager → `sudo docker logs --tail 200 fik-api-1`                                            |
+| Costos                           | AWS → Billing → Bills (y el presupuesto `fik-monthly`, US$45, que avisa a `mifik.general@gmail.com`) |
+
+## Ver la base desde un PC
+
+1. Abrir el 5432 a tu IP actual (repetirlo cada vez que cambie tu IP; borra la anterior):
+   `AWS_PROFILE=fik bash deploy/aws/db-allow-my-ip.sh <tu-nombre>`. Para cerrar todo acceso de PC:
+   `... db-allow-my-ip.sh --revoke`.
+2. Certificado de la región: `https://truststore.pki.rds.amazonaws.com/us-east-2/us-east-2-bundle.pem`.
+3. DBeaver → PostgreSQL: host `fik-db.cfoeucaao0d1.us-east-2.rds.amazonaws.com`, puerto 5432, base
+   `fik`, usuario `fik_admin` (contraseña: Parameter Store `/fik/prod/DATABASE_ADMIN_PASSWORD`). Pestaña
+   **SSL**: _Use SSL_, _Root certificate_ = el archivo del paso 2, _SSL mode_ = `verify-full`.
+4. Es la base de producción con el usuario maestro: lo que se modifique o borre ahí es real.
+
 ## Mantenimiento
 
 - **Logs:** Session Manager → `cd /opt/fik && sudo docker compose logs --tail 200 api`.
 - **Desplegar a mano o volver a una versión anterior:** `sudo /opt/fik/deploy.sh <tag>` (los tags
   son el commit corto; ver ECR). Ojo: una migración ya aplicada no se deshace sola.
-- **Respaldos:** RDS guarda 7 días con restauración a cualquier minuto. Antes de una migración
+- **Respaldos:** RDS guarda 1 día con restauración a cualquier minuto. Antes de una migración
   riesgosa, tomar un _snapshot_ manual.
 - **IP de Cloudflare:** volver a correr `cloudflare-sg.sh` cada pocos meses.
 - **Si `prisma migrate deploy` rechaza el certificado de RDS:** `DIRECT_DATABASE_URL` verifica la
@@ -228,10 +277,10 @@ _Workers & Pages → Create → Pages → Connect to Git_ → este repo. Dos pro
   de ese archivo: con el paquete global de RDS fallaba (`P1011 ... self-signed certificate in
 certificate chain`, 2026-10-11), por eso `bootstrap-ec2.sh` extrae la raíz de la región a `rds-ca.pem`. No bajarlo a
   `accept_invalid_certs` sin entender por qué falla (ruta del certificado, versión de Prisma).
-- **Cambiar un secreto o agregar uno opcional** (`IPINFO_TOKEN`, `RESEND_API_KEY`):
-  `aws ssm put-parameter --name /fik/prod/<NOMBRE> --type SecureString --overwrite --value ...`, y
-  en el servidor `sudo bash /opt/fik/render-api-env.sh <endpoint-rds>` +
-  `cd /opt/fik && sudo docker compose up -d api`.
+- **Agregar o cambiar una variable del API:** crear/editar `/fik/prod/<NOMBRE>` en Parameter Store
+  (consola o `aws ssm put-parameter --name /fik/prod/<NOMBRE> --type SecureString --overwrite
+--value ...`) y desplegar el API (_Actions → Deploy → api_), o en el servidor
+  `sudo bash /opt/fik/render-api-env.sh && cd /opt/fik && sudo docker compose up -d api`.
 - **Ley 21.719:** los datos quedan en Estados Unidos: antes de tener usuarios reales, aceptar con AWS el
   mecanismo de transferencia (cláusulas contractuales modelo) y declararlo en la política de
   privacidad (`.compliance/docs/21719-anexo-transferencias.md`). Lo mismo con Resend.

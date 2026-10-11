@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, dev]
   pull_request:
 
 # The job only checks out, installs, builds and tests: it never writes to the repo, so the

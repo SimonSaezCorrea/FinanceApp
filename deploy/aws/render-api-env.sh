@@ -1,82 +1,74 @@
 #!/usr/bin/env bash
-# Writes /opt/fik/api.env on the EC2 server from AWS Systems Manager Parameter Store, so no secret
-# is ever pasted by hand or committed. Run as root ON the server (Session Manager or SSM
-# send-command):
-#   sudo bash render-api-env.sh <rds-endpoint>
-# The secrets live as SecureString parameters under /fik/prod/ (encrypted with the account's
-# aws/ssm key; the instance role's AmazonSSMManagedInstanceCore can read them). They are also the
-# backup of MFA_ENCRYPTION_KEY and IDENTIFIER_HASH_SECRET: losing either makes stored data
-# unreadable. Required: DATABASE_PASSWORD, JWT_ACCESS_SECRET, JWT_REFRESH_SECRET,
-# CURSOR_SIGNING_SECRET, MFA_ENCRYPTION_KEY, MFA_PENDING_TOKEN_SECRET, PASSKEY_CHALLENGE_SECRET,
-# IDENTIFIER_HASH_SECRET. Optional: IPINFO_TOKEN, RESEND_API_KEY (absent = empty).
-# Restart the API afterwards for a change to apply: cd /opt/fik && docker compose up -d api
+# Writes /opt/fik/api.env on the EC2 server from AWS Systems Manager Parameter Store, so no value is
+# ever pasted by hand or committed. deploy.sh runs it before every deploy; by hand (root, on the
+# server):
+#   sudo bash /opt/fik/render-api-env.sh && cd /opt/fik && sudo docker compose up -d api
+#
+# EVERY parameter under /fik/prod/ becomes a variable of the API with the same name. To add or
+# change one, create/edit the parameter (SecureString for secrets, String otherwise) and deploy.
+# The exception is the DATABASE_* group, which only builds the two connection strings:
+#   DATABASE_HOST, DATABASE_APP_PASSWORD (user fik_app: the API and the seed, rows only),
+#   DATABASE_MIGRATE_PASSWORD (user fik_migrate: migrations, owns the schema),
+#   DATABASE_ADMIN_PASSWORD (the RDS master: never written here). See db-roles.sql.
+# Parameter Store is also the backup of MFA_ENCRYPTION_KEY and IDENTIFIER_HASH_SECRET: losing
+# either makes stored data unreadable.
 set -euo pipefail
 
-DB_HOST="${1:?usage: render-api-env.sh <rds-endpoint>}"
-DB_USER="${DB_USER:-fik_admin}"
 REGION="${AWS_REGION:-us-east-2}"
 PREFIX="/fik/prod"
 OUT="/opt/fik/api.env"
+REQUIRED=(DATABASE_HOST DATABASE_APP_PASSWORD DATABASE_MIGRATE_PASSWORD JWT_ACCESS_SECRET
+  JWT_REFRESH_SECRET CURSOR_SIGNING_SECRET MFA_ENCRYPTION_KEY MFA_PENDING_TOKEN_SECRET
+  PASSKEY_CHALLENGE_SECRET IDENTIFIER_HASH_SECRET CORS_ORIGIN PUBLIC_SITE_URL)
 
-param() {
-  aws ssm get-parameter --region "$REGION" --with-decryption --name "${PREFIX}/$1" \
-    --query Parameter.Value --output text
-}
+# One paginated read of the whole path (the CLI follows NextToken). Output: NAME<TAB>VALUE lines.
+# If the call fails, set -e stops here and api.env is left untouched.
+raw="$(aws ssm get-parameters-by-path --region "$REGION" --path "$PREFIX" --with-decryption \
+  --query 'Parameters[].[Name,Value]' --output text)"
 
-# Every value is read BEFORE the file is written: a command substitution inside the heredoc below
-# would not stop the script on failure (set -e ignores it) and would write an empty secret.
-REQUIRED=(DATABASE_PASSWORD JWT_ACCESS_SECRET JWT_REFRESH_SECRET CURSOR_SIGNING_SECRET
-  MFA_ENCRYPTION_KEY MFA_PENDING_TOKEN_SECRET PASSKEY_CHALLENGE_SECRET IDENTIFIER_HASH_SECRET)
 declare -A V
-for name in "${REQUIRED[@]}"; do
-  V[$name]="$(param "$name")"
-  if [ -z "${V[$name]}" ] || [ "${V[$name]}" = "None" ]; then
-    echo "Missing ${PREFIX}/${name}; api.env left untouched." >&2
+while IFS=$'\t' read -r name value; do
+  [ -n "$name" ] || continue
+  key="${name#"${PREFIX}/"}"
+  if [[ ! "$key" =~ ^[A-Z][A-Z0-9_]*$ ]]; then
+    echo "Skipping ${name}: not a valid variable name." >&2
+    continue
+  fi
+  # api.env is read by docker compose: a quote, a dollar sign or a line break would be mangled.
+  if [[ "$value" == *"'"* || "$value" == *'"'* || "$value" == *'$'* || "$value" == *$'\n'* ]]; then
+    echo "${name} contains a quote, \$ or a line break; api.env left untouched." >&2
     exit 1
   fi
-done
-for name in IPINFO_TOKEN RESEND_API_KEY; do
-  # Optional: only "parameter not found" means absent; any other error stops the script.
-  if out="$(param "$name" 2>&1)"; then
-    V[$name]="$out"
-  elif grep -q ParameterNotFound <<<"$out"; then
-    V[$name]=""
-  else
-    echo "$out" >&2
+  V[$key]="$value"
+done <<<"$raw"
+
+for key in "${REQUIRED[@]}"; do
+  if [ -z "${V[$key]:-}" ]; then
+    echo "Missing ${PREFIX}/${key}; api.env left untouched." >&2
     exit 1
   fi
 done
 
-DB_BASE="postgresql://${DB_USER}:${V[DATABASE_PASSWORD]}@${DB_HOST}:5432/fik"
+DB="${V[DATABASE_HOST]}:5432/fik"
+# The API and the seed use node-postgres: verify-full against NODE_EXTRA_CA_CERTS (compose).
 # Only the Prisma CLI (migrations) reads DIRECT_DATABASE_URL, with Prisma's own TLS parameters:
 # sslcert is the CA to trust and sslaccept=strict makes it verify the chain. Prisma reads only the
 # first certificate of that file, hence the single root (bootstrap-ec2.sh), not the global bundle.
-# The app and the seed use DATABASE_URL (node-postgres, verify-full against NODE_EXTRA_CA_CERTS).
-RDS_CA="/certs/rds-ca.pem"
+APP_URL="postgresql://fik_app:${V[DATABASE_APP_PASSWORD]}@${DB}?sslmode=verify-full"
+MIGRATE_URL="postgresql://fik_migrate:${V[DATABASE_MIGRATE_PASSWORD]}@${DB}?sslmode=require&sslcert=/certs/rds-ca.pem&sslaccept=strict"
 
 umask 077
 tmp="$(mktemp "${OUT}.XXXX")"
-cat >"$tmp" <<EOF
-# Generated by render-api-env.sh on $(date -u +%FT%TZ) from Parameter Store ${PREFIX}/. Do not edit:
-# change the parameter and run the script again.
-DATABASE_URL="${DB_BASE}?sslmode=verify-full"
-DIRECT_DATABASE_URL="${DB_BASE}?sslmode=require&sslcert=${RDS_CA}&sslaccept=strict"
-CORS_ORIGIN="https://mifik.cl,https://app.mifik.cl"
-PASSKEY_RP_ID="mifik.cl"
-TRUST_PROXY_HOPS=1
-JWT_ACCESS_SECRET="${V[JWT_ACCESS_SECRET]}"
-JWT_REFRESH_SECRET="${V[JWT_REFRESH_SECRET]}"
-JWT_ACCESS_EXPIRES="15m"
-JWT_REFRESH_EXPIRES="30d"
-CURSOR_SIGNING_SECRET="${V[CURSOR_SIGNING_SECRET]}"
-MFA_ENCRYPTION_KEY="${V[MFA_ENCRYPTION_KEY]}"
-MFA_PENDING_TOKEN_SECRET="${V[MFA_PENDING_TOKEN_SECRET]}"
-PASSKEY_CHALLENGE_SECRET="${V[PASSKEY_CHALLENGE_SECRET]}"
-IDENTIFIER_HASH_SECRET="${V[IDENTIFIER_HASH_SECRET]}"
-IPINFO_TOKEN="${V[IPINFO_TOKEN]}"
-RESEND_API_KEY="${V[RESEND_API_KEY]}"
-PUBLIC_SITE_URL="https://mifik.cl"
-EOF
+{
+  echo "# Generated by render-api-env.sh on $(date -u +%FT%TZ) from Parameter Store ${PREFIX}/."
+  echo "# Do not edit: change the parameter and deploy (or run the script again)."
+  echo "DATABASE_URL=\"${APP_URL}\""
+  echo "DIRECT_DATABASE_URL=\"${MIGRATE_URL}\""
+  for key in $(printf '%s\n' "${!V[@]}" | sort); do
+    [[ "$key" == DATABASE_* ]] && continue
+    echo "${key}=\"${V[$key]}\""
+  done
+} >"$tmp"
 chmod 600 "$tmp"
 mv "$tmp" "$OUT"
-echo "Wrote ${OUT} ($(grep -c '=' "$OUT") variables; empty optional: $(grep -cE '^(IPINFO_TOKEN|RESEND_API_KEY)=""' "$OUT"))."
+echo "Wrote ${OUT}: $(grep -c '=' "$OUT") variables ($(grep -oE '^[A-Z0-9_]+' "$OUT" | grep -vE '^DATABASE_|^DIRECT_' | tr '\n' ' '))."

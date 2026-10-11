@@ -1,0 +1,220 @@
+name: Deploy
+
+# After CI passes on main (or by hand): deploy ONLY what changed since the last successful deploy.
+#   api      -> build the ARM image, push it to ECR, run /opt/fik/deploy.sh on EC2 through SSM
+#               (GitHub OIDC, no stored AWS keys).
+#   web      -> build apps/web here and upload it to Cloudflare Pages (fik-app, app.mifik.cl).
+#   landing  -> build apps/landing here and upload it to Cloudflare Pages (fik-landing, mifik.cl).
+# Cloudflare's own Git builds are switched off: nothing reaches production without a green CI on
+# main. Work happens on `dev` (CI runs there too, never deploys); merging into main deploys.
+# Third-party actions are pinned to a commit SHA (version in the comment).
+# Needs: repo variables AWS_DEPLOY_ROLE_ARN, AWS_API_INSTANCE_ID, CLOUDFLARE_ACCOUNT_ID and the
+# secret CLOUDFLARE_API_TOKEN (Account > Cloudflare Pages > Edit) — see docs/DEPLOY.md.
+run-name: Deploy ${{ github.event.workflow_run.head_sha || github.sha }}
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      targets:
+        description: "What to deploy"
+        type: choice
+        options: [changed, all, api, web, landing]
+        default: changed
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+env:
+  AWS_REGION: us-east-2
+  ECR_REPOSITORY: fik-api
+  SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+  WRANGLER: wrangler@4.149.0
+
+jobs:
+  changes:
+    # `branches: [main]` above matches a branch NAME — a pull request from a fork whose branch is
+    # also called "main" would match it too. Deploy only a CI run that came from a push to main of
+    # THIS repository (or a manual run, which needs write access and the production environment).
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main' &&
+       github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read # list previous Deploy runs to find the baseline
+    outputs:
+      api: ${{ steps.pick.outputs.api }}
+      web: ${{ steps.pick.outputs.web }}
+      landing: ${{ steps.pick.outputs.landing }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+          fetch-depth: 0
+
+      - id: pick
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TARGETS: ${{ inputs.targets || 'changed' }}
+        run: |
+          set -euo pipefail
+          out() {
+            printf 'api=%s\nweb=%s\nlanding=%s\n' "$1" "$2" "$3" >>"$GITHUB_OUTPUT"
+            echo "api=$1 web=$2 landing=$3"
+          }
+          case "$TARGETS" in
+            all) out true true true; exit 0 ;;
+            api) out true false false; exit 0 ;;
+            web) out false true false; exit 0 ;;
+            landing) out false false true; exit 0 ;;
+          esac
+          # Baseline = the commit of the last SUCCESSFUL deploy (its run-name carries the SHA it
+          # deployed). A failed run never moves it, so its changes are retried next time.
+          base=""
+          for s in $(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy.yml/runs?status=success&per_page=30" \
+              --jq '.workflow_runs[].display_title | select(startswith("Deploy ")) | ltrimstr("Deploy ")'); do
+            if git merge-base --is-ancestor "$s" "$SHA" 2>/dev/null; then base="$s"; break; fi
+          done
+          if [ -z "$base" ]; then echo "No previous deploy found: deploying everything."; out true true true; exit 0; fi
+          echo "Changes since ${base}:"
+          files="$(git diff --name-only "$base" "$SHA")"
+          echo "$files"
+          shared='^(package\.json|pnpm-lock\.yaml|pnpm-workspace\.yaml|turbo\.json|\.github/workflows/deploy\.yml)$'
+          has() { grep -qE "$1" <<<"$files" && echo true || echo false; }
+          api=$(has "^(apps/api/|packages/(contracts|money|config)/|\.dockerignore$)|${shared}")
+          web=$(has "^(apps/web/|packages/)|${shared}")
+          landing=$(has "^(apps/landing/|packages/)|${shared}")
+          out "$api" "$web" "$landing"
+
+  api:
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      id-token: write # GitHub OIDC -> the fik-github-deploy AWS role
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - id: ecr
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
+
+      - id: tag
+        run: echo "value=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_OUTPUT"
+
+      # The server is Graviton (ARM): emulate it to build.
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: .
+          file: apps/api/Dockerfile
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ steps.tag.outputs.value }}
+            ${{ steps.ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+          cache-from: type=gha,scope=fik-api-main
+          cache-to: type=gha,scope=fik-api-main,mode=max
+
+      - name: Deploy on the server
+        env:
+          INSTANCE_ID: ${{ vars.AWS_API_INSTANCE_ID }}
+          TAG: ${{ steps.tag.outputs.value }}
+        run: |
+          command_id="$(aws ssm send-command \
+            --instance-ids "$INSTANCE_ID" \
+            --document-name AWS-RunShellScript \
+            --comment "fik-api ${TAG}" \
+            --parameters "commands=[\"/opt/fik/deploy.sh ${TAG}\"],executionTimeout=[\"900\"]" \
+            --query Command.CommandId --output text)"
+          echo "SSM command ${command_id}"
+          for _ in $(seq 1 120); do
+            status="$(aws ssm get-command-invocation --command-id "$command_id" \
+              --instance-id "$INSTANCE_ID" --query Status --output text 2>/dev/null || echo Pending)"
+            case "$status" in
+              Success) break ;;
+              Failed|Cancelled|TimedOut|Cancelling) break ;;
+            esac
+            sleep 10
+          done
+          aws ssm get-command-invocation --command-id "$command_id" --instance-id "$INSTANCE_ID" \
+            --query '{status:Status,output:StandardOutputContent,errors:StandardErrorContent}' \
+            --output json
+          [ "$status" = "Success" ]
+
+  web:
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build the app
+        run: pnpm exec turbo run build --filter=@finance/web
+        env:
+          VITE_API_URL: https://api.mifik.cl
+          VITE_LANDING_URL: https://mifik.cl
+      - name: Upload to Cloudflare Pages (fik-app)
+        run: npx --yes "$WRANGLER" pages deploy apps/web/dist --project-name=fik-app --branch=main --commit-hash="$SHA" --commit-dirty=true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+
+  landing:
+    needs: changes
+    if: needs.changes.outputs.landing == 'true'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ env.SHA }}
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build the public site
+        run: pnpm exec turbo run build --filter=@finance/landing
+        env:
+          PUBLIC_API_URL: https://api.mifik.cl
+          PUBLIC_APP_URL: https://app.mifik.cl
+          PUBLIC_SITE_URL: https://mifik.cl
+      - name: Upload to Cloudflare Pages (fik-landing)
+        run: npx --yes "$WRANGLER" pages deploy apps/landing/dist --project-name=fik-landing --branch=main --commit-hash="$SHA" --commit-dirty=true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

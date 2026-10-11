@@ -14,6 +14,10 @@ source ./deploy.env
 export API_IMAGE="${ECR_REGISTRY}/fik-api:${TAG}"
 echo "Deploying ${API_IMAGE}"
 
+# api.env from Parameter Store /fik/prod/: a parameter added or changed there reaches the API on
+# the next deploy. If it can't be rendered, stop before touching the running API.
+bash ./render-api-env.sh
+
 # The instance role grants read access to ECR: no stored credentials.
 aws ecr get-login-password --region "$AWS_REGION" \
   | docker login --username AWS --password-stdin "$ECR_REGISTRY"

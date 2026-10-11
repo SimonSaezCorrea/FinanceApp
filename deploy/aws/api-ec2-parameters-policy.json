@@ -1,0 +1,14 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadFikProdParameters",
+      "Effect": "Allow",
+      "Action": ["ssm:GetParametersByPath", "ssm:GetParameters", "ssm:GetParameter"],
+      "Resource": [
+        "arn:aws:ssm:us-east-2:ACCOUNT_ID:parameter/fik/prod",
+        "arn:aws:ssm:us-east-2:ACCOUNT_ID:parameter/fik/prod/*"
+      ]
+    }
+  ]
+}
