@@ -20,8 +20,16 @@ vi.mock("../../profile/components/MaskedAmount", () => ({
   MaskedAmount: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
 vi.mock("../../accounts/components/AccountVisualCard", () => ({
-  AccountVisualCard: ({ account }: { account: accounts.BankAccount }) => (
-    <div data-testid="tile">{account.name}</div>
+  AccountVisualCard: ({
+    account,
+    accountOnly,
+  }: {
+    account: accounts.BankAccount;
+    accountOnly?: boolean;
+  }) => (
+    <div data-testid="tile" data-account-only={String(Boolean(accountOnly))}>
+      {account.name}
+    </div>
   ),
 }));
 
@@ -52,6 +60,22 @@ describe("WalletCards", () => {
     vi.mocked(accountsApi.list).mockResolvedValue([MACH]);
     vi.mocked(walletApi.list).mockResolvedValue([]);
     vi.mocked(walletApi.replace).mockResolvedValue(SAVED);
+  });
+
+  it("draws a pinned ACCOUNT as the account, never as its first card", async () => {
+    vi.mocked(walletApi.list).mockResolvedValue(SAVED);
+    const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+    render(
+      <QueryClientProvider client={qc}>
+        <I18nextProvider i18n={i18n}>
+          <MemoryRouter>
+            <WalletCards accountList={[MACH]} />
+          </MemoryRouter>
+        </I18nextProvider>
+      </QueryClientProvider>,
+    );
+    const tile = await screen.findByTestId("tile");
+    expect(tile.getAttribute("data-account-only")).toBe("true");
   });
 
   it("shows what was saved as soon as the editor saves, without a reload", async () => {

@@ -8,6 +8,8 @@ import {
   EXISTING_ID_HEADER_KEY,
   MARKER_SHEET,
   TEMPLATE_SHEETS,
+  LEGACY_COLUMN_NAMES,
+  LEGACY_SHEET_NAMES,
   TEMPLATE_VERSION,
   columnKey,
   sheetNameKey,
@@ -58,7 +60,10 @@ export function parseTemplateSheets(sheets: Sheet[], labelers: Labelers): Templa
   ) as TemplateSheetsRead;
 
   for (const spec of TEMPLATE_SHEETS) {
-    const names = new Set(labelers.map((t) => normalize(t(sheetNameKey(spec.key)))));
+    const names = new Set([
+      ...labelers.map((t) => normalize(t(sheetNameKey(spec.key)))),
+      ...(LEGACY_SHEET_NAMES[spec.key] ?? []).map(normalize),
+    ]);
     const sheet = sheets.find((s) => names.has(normalize(s.name)));
     if (!sheet || sheet.matrix.length === 0) continue;
 
@@ -69,8 +74,10 @@ export function parseTemplateSheets(sheets: Sheet[], labelers: Labelers): Templa
     const columnAt = new Map<number, string>();
     header.forEach((cell, index) => {
       const text = normalize(cell);
-      const column = spec.columns.find((c) =>
-        labelers.some((t) => normalize(t(columnKey(spec.key, c.key))) === text),
+      const column = spec.columns.find(
+        (c) =>
+          labelers.some((t) => normalize(t(columnKey(spec.key, c.key))) === text) ||
+          (LEGACY_COLUMN_NAMES[`${spec.key}.${c.key}`] ?? []).some((n) => normalize(n) === text),
       );
       if (column) columnAt.set(index, column.key);
     });

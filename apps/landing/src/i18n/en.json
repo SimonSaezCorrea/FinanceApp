@@ -108,7 +108,7 @@
         "title": "Where it stands today",
         "available": {
           "title": "Available",
-          "body": "Accounts, cards, movements, statements, instalments, goals, debts, recurring expenses, exchange rates and import from Excel or CSV, in pesos, dollars and UF."
+          "body": "Accounts, cards, movements, statements, instalments, goals, debts, fixed expenses, exchange rates and import from Excel or CSV, in pesos, dollars and UF."
         },
         "paused": {
           "title": "Paused",
@@ -215,7 +215,7 @@
       "included": {
         "accounts": "Every account and card you have",
         "movements": "Unlimited movements and transfers, and soon their receipts too",
-        "billing": "Billing, instalments, goals, debts and recurring expenses",
+        "billing": "Billing, instalments, goals, debts and fixed expenses",
         "security": "Passkey, second factor and session control",
         "currencies": "Pesos, dollars and UF, with the day's exchange rate"
       },

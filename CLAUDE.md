@@ -985,6 +985,22 @@ now)`** walks back `SERIES_DAYS` (30) from the hero: a day's point is the hero m
     linked). The template (specs/027) gains Recurrentes `Referencia` + `Último pago` and a
     Movimientos `Recurrente` column naming the series a movement pays. Not done on purpose: warning
     about missing occurrences ("esperaba 4, hay 3").
+  - **"Recurrentes" is called "Gastos fijos" in the UI** (2026-10-11; en "Fixed expenses"): every
+    label, the nav, the import template's sheet ("Gastos fijos") and its Movimientos column ("Gasto
+    fijo"). Code, routes (`/recurring`), the table-domain (`recurring-expense`) and i18n KEYS keep
+    "recurring". `templateSpec.ts`'s `LEGACY_SHEET_NAMES`/`LEGACY_COLUMN_NAMES` keep reading a template
+    downloaded before the rename ("Recurrentes"/"Recurrente", "Recurring").
+  - **First-steps guide** (2026-10-11): three steps — an account other than cash, any movement,
+    anything pinned to the wallet (`accounts/lib/onboarding.ts`'s `firstStepsDone`/`nextFirstStep`,
+    read by `hooks/useFirstSteps`). `FirstStepsCard` ticks each step off and gives the current one its
+    button: on the Panel "Crear mi primera cuenta" goes to `/accounts?nueva=1` (opens
+    `AccountCreateModal` on arrival, then drops the parameter), "Registrar un movimiento" opens the
+    Panel's own `TransactionCreateModal`, "Armar mi cartera" opens the wallet editor (`WalletCards`'
+    `editorRef`). It stays until all three are done or "Ocultar guía"; either way it is closed ON THE ACCOUNT —
+    `User.onboardingClosedAt` (migration `20261011065831_onboarding_closed`), `POST
+/auth/me/onboarding/close` (idempotent, keeps the first date), `CurrentUser.onboardingClosed` —
+    so it never shows again on any device, nor after undoing a step; Cuentas shows it only while the account step is pending.
+    i18n `accounts.onboarding.*`.
   - **debt** (person-to-person debts, "Deudas"): `Debt` gains **`paymentAccountId`** (nullable FK → `BankAccount`, `onDelete: SetNull`) — the payment panel's DEFAULT suggestion for which account a payment moves on. Ownership-verified before persisting (create/update, via the lightweight `BankAccountLookupPort.accountOwned`, same pattern `recurring-expense` uses) — `AccountNotFoundError` if the id isn't the caller's own. `null`/absent is valid (a debt need not name one). Web: `DebtFormPanel` has a "Cuenta asociada" row (`SearchableSelect`, explicit "Sin cuenta" `""` option); `DebtDetailPanel` shows the linked account's name/type/institution/number when set.
     Amendment (settle/register-payment move real money, 2026-09-05): answers "¿No genera
     movimiento marcarla como pagada?" — **`POST /debts/:id/settle` and `/register-payment` now
@@ -2259,7 +2275,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.6.0**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.6.1**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
 - **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
   `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.

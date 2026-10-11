@@ -1,8 +1,14 @@
-import { type ReactNode, useMemo, useState } from "react";
+import { type ReactNode, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { useAccounts } from "../domains/accounts/hooks/useAccounts";
 import { useAuth } from "../domains/auth/hooks/useAuth";
+import { useNavigate } from "react-router";
+
+import { FirstStepsCard } from "../domains/accounts/components/FirstStepsCard";
+import { useFirstSteps } from "../domains/accounts/hooks/useFirstSteps";
+import { NEW_ACCOUNT_PARAM } from "../domains/accounts/lib/onboarding";
+import { TransactionCreateModal } from "../domains/transactions/components/TransactionCreateModal";
 import { AttentionStrip } from "../domains/dashboard/components/AttentionStrip";
 import { CategoryBars } from "../domains/dashboard/components/CategoryBars";
 import {
@@ -75,6 +81,11 @@ export function DashboardPage() {
     viewMonth.getFullYear() === now.getFullYear() && viewMonth.getMonth() === now.getMonth();
 
   const accountsQuery = useAccounts();
+  const navigate = useNavigate();
+  // The guided first steps: each step's button opens what it needs right here.
+  const firstSteps = useFirstSteps();
+  const [newMovementOpen, setNewMovementOpen] = useState(false);
+  const walletEditor = useRef<{ open: () => void }>(null);
   const txQuery = useTransactions({
     from: startOfMonthISO(viewMonth),
     to: endOfMonthISO(viewMonth),
@@ -138,7 +149,9 @@ export function DashboardPage() {
   const layout =
     width === null || width < PHONE_MAX ? "phone" : width < WIDE_MIN ? "medium" : "wide";
   // Wide AND tall enough: the whole Panel fits one screen, each column scrolling inside itself.
-  const fit = layout === "wide" && tallEnough;
+  // Not while the first-steps guide is up: it takes height the one-screen split needs, and the
+  // net-worth chart came out squashed — the Panel flows and scrolls normally until it goes.
+  const fit = layout === "wide" && tallEnough && !firstSteps.show;
 
   const monthBlock = (
     <Section title={monthName} className="first-letter:uppercase">
@@ -156,7 +169,12 @@ export function DashboardPage() {
     </Section>
   );
   const walletBlock = (
-    <WalletCards accountList={accountList} holder={user?.name ?? undefined} fill={fit} />
+    <WalletCards
+      accountList={accountList}
+      holder={user?.name ?? undefined}
+      fill={fit}
+      editorRef={walletEditor}
+    />
   );
 
   return (
@@ -210,6 +228,18 @@ export function DashboardPage() {
         <ErrorState error={accountsQuery.error} onRetry={() => accountsQuery.refetch()} />
       ) : (
         <>
+          {firstSteps.show ? (
+            <FirstStepsCard
+              done={firstSteps.done}
+              onHide={firstSteps.hide}
+              actions={{
+                account: () => navigate(`/accounts?${NEW_ACCOUNT_PARAM}=1`),
+                movement: () => setNewMovementOpen(true),
+                wallet: () => walletEditor.current?.open(),
+              }}
+            />
+          ) : null}
+          <TransactionCreateModal open={newMovementOpen} onOpenChange={setNewMovementOpen} />
           <AttentionStrip
             items={attention}
             now={now}

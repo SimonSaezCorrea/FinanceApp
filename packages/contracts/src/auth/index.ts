@@ -151,6 +151,8 @@ export const currentUserSchema = z.object({
    * shows a "confirm your email" notice and the password can't be recovered by email. A pending
    * change of address is read from `GET /auth/me/emails`. */
   emailVerified: z.boolean(),
+  /** The first-steps guide was finished or closed: the app never shows it again. */
+  onboardingClosed: z.boolean(),
 });
 export type CurrentUser = z.infer<typeof currentUserSchema>;
 

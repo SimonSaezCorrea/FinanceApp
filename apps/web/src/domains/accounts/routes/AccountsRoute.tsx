@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
 
 import { formatMoney } from "@finance/money";
@@ -12,6 +13,9 @@ import { Skeleton } from "../../../shared/ui/skeleton";
 import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { AccountCard } from "../components/AccountCard";
 import { AccountCreateModal } from "../components/AccountCreateModal";
+import { FirstStepsCard } from "../components/FirstStepsCard";
+import { useFirstSteps } from "../hooks/useFirstSteps";
+import { NEW_ACCOUNT_PARAM } from "../lib/onboarding";
 import { AccountsSkeleton } from "../components/AccountsSkeleton";
 import { useDebts } from "../../debts/hooks/useDebts";
 import { AccountsSummary } from "../components/AccountsSummary";
@@ -28,8 +32,23 @@ export function AccountsRoute() {
   const primaryCurrency = user?.preferredCurrency ?? "CLP";
   const [filter, setFilter] = useState<StatusFilter>("all");
   const [groupBy, setGroupBy] = useState<GroupBy>("currency");
-  const [modalOpen, setModalOpen] = useState(false);
+  // Arriving from the guide (`/accounts?nueva=1`) opens the form; the parameter is then dropped
+  // so a reload or "back" doesn't open it again.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [modalOpen, setModalOpen] = useState(() => searchParams.has(NEW_ACCOUNT_PARAM));
+  useEffect(() => {
+    if (!searchParams.has(NEW_ACCOUNT_PARAM)) return;
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.delete(NEW_ACCOUNT_PARAM);
+        return next;
+      },
+      { replace: true },
+    );
+  }, [searchParams, setSearchParams]);
   const { data: debtList } = useDebts();
+  const firstSteps = useFirstSteps();
   const { data, isLoading, isError, error, refetch } = useAccounts(
     filter === "all" ? undefined : { status: filter },
   );
@@ -111,6 +130,16 @@ export function AccountsRoute() {
         onOpenChange={setModalOpen}
         holder={user?.name ?? undefined}
       />
+
+      {/* Here only while the first step — an account — is pending: it's what this page is for. */}
+      {firstSteps.show && !firstSteps.done.account ? (
+        <FirstStepsCard
+          done={firstSteps.done}
+          onHide={firstSteps.hide}
+          actions={{ account: () => setModalOpen(true) }}
+          className="mb-6"
+        />
+      ) : null}
 
       {isLoading ? (
         <AccountsSkeleton

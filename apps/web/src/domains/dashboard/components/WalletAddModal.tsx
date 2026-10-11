@@ -154,13 +154,16 @@ export function WalletAddModal({
                 );
               }
               return (
-                <div key={key} className="relative">
+                <div key={key} className="flex flex-col gap-2">
+                  {/* A pinned ACCOUNT is drawn as the account, never as its first card. */}
                   <AccountVisualCard
                     account={resolved.account}
                     card={resolved.card}
+                    accountOnly={!resolved.card}
                     holder={holder}
                   />
-                  <div className="absolute right-2 top-2 flex gap-1">
+                  {/* Below the tile, never over it: on top they covered its type chip. */}
+                  <div className="flex justify-end gap-1">
                     <SlotButton
                       label={t("wallet.editor.moveEarlier")}
                       disabled={index === 0}
@@ -309,7 +312,7 @@ function SlotButton({
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="flex h-8 w-8 items-center justify-center rounded-md bg-background/70 text-foreground backdrop-blur-sm transition-colors hover:bg-background/90 disabled:opacity-40"
+      className="flex h-8 w-8 items-center justify-center rounded-md border bg-card text-foreground transition-colors hover:bg-muted disabled:opacity-40"
     >
       {children}
     </button>

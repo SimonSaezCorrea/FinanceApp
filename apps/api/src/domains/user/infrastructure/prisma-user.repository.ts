@@ -66,6 +66,7 @@ function rowToProps(row: Row, mfaEncryptionKey: string): UserProps {
     loginFailedAttempts: row.loginFailedAttempts,
     loginLockedUntil: row.loginLockedUntil,
     emailVerifiedAt: row.emailVerified,
+    onboardingClosedAt: row.onboardingClosedAt,
   };
 }
 
@@ -177,6 +178,7 @@ export class PrismaUserRepository implements UserRepositoryPort {
           // Written only when the aggregate knows it (fixtures that predate specs/032 leave it
           // undefined, which Prisma treats as "don't touch").
           emailVerified: snap.emailVerifiedAt,
+          onboardingClosedAt: snap.onboardingClosedAt,
         },
       });
     } catch (err) {

@@ -46,6 +46,8 @@ export interface UserProps {
   /** Mirror of the primary `user-email` row's `verifiedAt` (specs/032); null/absent =
    * unconfirmed. Optional so fixtures that predate it keep compiling. */
   emailVerifiedAt?: Date | null;
+  /** The first-steps guide was finished or closed (it never shows again). */
+  onboardingClosedAt?: Date | null;
 }
 
 /** `email` is not part of a profile edit (specs/032): it changes only by confirming a pending
@@ -180,6 +182,22 @@ export class User {
    * or receive security notices. */
   get emailVerified(): boolean {
     return Boolean(this.props.emailVerifiedAt);
+  }
+
+  get onboardingClosed(): boolean {
+    return Boolean(this.props.onboardingClosedAt);
+  }
+
+  get onboardingClosedAt(): Date | null {
+    return this.props.onboardingClosedAt ?? null;
+  }
+
+  /** Closes the first-steps guide for good. Closing it again keeps the first date (Principle VII
+   * form a: the replay changes nothing). Returns whether anything changed. */
+  closeOnboarding(at: Date): boolean {
+    if (this.props.onboardingClosedAt) return false;
+    this.props.onboardingClosedAt = at;
+    return true;
   }
 
   /** The primary email becomes `address`, confirmed at `at` (specs/032): either the current one
@@ -378,6 +396,7 @@ export class User {
       identifierValue: this.props.identifierValue,
       phone: this.props.phone,
       hideBalances: this.props.hideBalances,
+      onboardingClosed: this.onboardingClosed,
       extraCurrencies: this.props.extraCurrencies,
       budgetAlertThreshold: this.props.budgetAlertThreshold,
       mfaEnabled: this.props.mfaEnabled,

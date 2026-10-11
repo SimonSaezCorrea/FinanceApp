@@ -63,7 +63,7 @@ describe("DeleteAccountConfirm", () => {
     vi.mocked(accountsApi.deletionImpact).mockResolvedValue(impact());
     renderConfirm();
     expect(await screen.findByText("3 movimientos")).toBeTruthy();
-    expect(screen.getByText("2 recurrentes")).toBeTruthy();
+    expect(screen.getByText("2 gastos fijos")).toBeTruthy();
     expect(screen.queryByText(/planes? de cuotas/)).toBeNull();
     expect(await screen.findByText(/Devuelve a Origen/)).toBeTruthy();
     expect(screen.getByText(/1 deuda asociada/)).toBeTruthy();
@@ -72,7 +72,7 @@ describe("DeleteAccountConfirm", () => {
   it("sends movements by default and whatever else was switched on", async () => {
     vi.mocked(accountsApi.deletionImpact).mockResolvedValue(impact());
     const { onDeleted } = renderConfirm();
-    fireEvent.click(await screen.findByRole("switch", { name: "2 recurrentes" }));
+    fireEvent.click(await screen.findByRole("switch", { name: "2 gastos fijos" }));
     fireEvent.click(screen.getByRole("button", { name: /eliminar/i }));
     await waitFor(() =>
       expect(accountsApi.remove).toHaveBeenCalledWith("a1", {

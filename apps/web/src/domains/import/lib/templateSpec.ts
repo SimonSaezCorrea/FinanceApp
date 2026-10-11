@@ -273,6 +273,17 @@ export const EXISTING_ID_HEADER_KEY = "import.template.existingId.header";
 export const EXISTING_ID_HELP_KEY = "import.template.existingId.help";
 
 /** i18n key of a sheet's visible name. */
+/**
+ * Names a sheet or column had before it was renamed, still recognised when reading a file — a
+ * template downloaded earlier keeps importing. ("Recurrentes" became "Gastos fijos", 2026-10-11.)
+ */
+export const LEGACY_SHEET_NAMES: Partial<Record<string, string[]>> = {
+  recurring: ["Recurrentes", "Recurring"],
+};
+export const LEGACY_COLUMN_NAMES: Partial<Record<string, string[]>> = {
+  "movements.recurring": ["Recurrente", "Recurring"],
+};
+
 export const sheetNameKey = (sheet: string) => `import.template.sheets.${sheet}`;
 /** i18n key of a column's header. */
 export const columnKey = (sheet: string, column: string) =>

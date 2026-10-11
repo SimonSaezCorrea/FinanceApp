@@ -1,4 +1,9 @@
 <!--
+Sync Impact Report — 2026-10-11 (amendment 2.6.1)
+- Version change: 2.6.0 → 2.6.1 (PATCH: one nullable column, `User.onboardingClosedAt`, and
+  `POST /auth/me/onboarding/close` — the first-steps guide closed on the account, not the browser;
+  idempotent by form (a): closing again keeps the first date. No principle text changed).
+
 Sync Impact Report — 2026-10-11 (amendment 2.6.0)
 - Version change: 2.5.4 → 2.6.0 (MINOR: two new table-domains and a new cross-cutting module;
   specs/032 account and security emails).
@@ -2245,4 +2250,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.6.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-11
+**Version**: 2.6.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-11

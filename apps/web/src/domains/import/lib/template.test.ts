@@ -102,7 +102,7 @@ describe("buildTemplate → readTemplate (real .xlsx round trip)", () => {
       "Pagos de deudas",
       "Cuotas",
       "Pagos de cuotas",
-      "Recurrentes",
+      "Gastos fijos",
       "Metas",
       "Aportes",
       "Facturaciones",
@@ -437,7 +437,28 @@ describe("resolveTemplate", () => {
     expect(request.plans[0]!.aprPerPeriod).toBe("0.015");
   });
 
-  it("a recurring series with its last payment, and movements that name it", () => {
+  it("a fixed expense with its last payment, and movements that name it", () => {
+    const { request, issues } = resolveTemplate(
+      read({
+        "Gastos fijos": [
+          ["Referencia", "Nombre", "Monto", "Moneda", "Frecuencia", "Primera fecha", "Último pago"],
+          ["SPOTIFY", "Spotify", 6990, "CLP", "Mensual", "01/01/2026", "01/04/2026"],
+        ],
+        Movimientos: [
+          ["Fecha", "Tipo", "Monto", "Cuenta", "Gasto fijo"],
+          ["01/01/2026", "Gasto", 6990, "BCI", "spotify"],
+        ],
+      }),
+      refs,
+      labelers,
+    );
+    expect(issues).toEqual([]);
+    expect(request.recurring[0]).toMatchObject({ ref: "SPOTIFY" });
+    expect(request.movements).toEqual([expect.objectContaining({ recurringRef: "spotify" })]);
+  });
+
+  // A template downloaded before "Recurrentes" became "Gastos fijos" (2026-10-11) still reads.
+  it("still reads the old sheet and column names (Recurrentes / Recurrente)", () => {
     const { request, issues } = resolveTemplate(
       read({
         Recurrentes: [

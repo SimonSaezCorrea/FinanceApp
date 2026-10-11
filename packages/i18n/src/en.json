@@ -138,8 +138,8 @@
       "restores": "Gives back to {{restorations}}",
       "installmentPlans_one": "{{count}} instalment plan",
       "installmentPlans_other": "{{count}} instalment plans",
-      "recurring_one": "{{count}} recurring series",
-      "recurring_other": "{{count}} recurring series",
+      "recurring_one": "{{count}} fixed expense",
+      "recurring_other": "{{count}} fixed expenses",
       "savingsEntries_one": "{{count}} savings contribution",
       "savingsEntries_other": "{{count}} savings contributions",
       "linkedDebts_one": "{{count}} debt tied to this account stays, without the account.",
@@ -379,6 +379,41 @@
       "prepayHint": "Pays ahead of the close: the period stays open.",
       "prepaySuccess": "Prepayment recorded",
       "prepayCreatesMovement": "An expense will be recorded on the selected account and a dollar credit on your card; the period stays open."
+    },
+    "onboarding": {
+      "title": {
+        "account": "Start with your first account",
+        "movement": "Now record a movement",
+        "wallet": "Last, build your wallet"
+      },
+      "description": {
+        "account": "Your cash account is ready. Add your bank account or credit card so fik keeps track of your balances and your credit limit.",
+        "movement": "Write down an expense or an income, or import your bank statement to bring your history in one go.",
+        "wallet": "Choose which accounts and cards to always see on the Panel, with their balance and limit."
+      },
+      "progress": "{{done}} of {{total}}",
+      "hide": "Hide guide",
+      "stepDone": "Done",
+      "import": "Import from Excel",
+      "cta": {
+        "account": "Create my first account",
+        "movement": "Record a movement",
+        "wallet": "Build my wallet"
+      },
+      "steps": {
+        "account": {
+          "title": "Add an account",
+          "body": "Checking, savings, prepaid or a credit card."
+        },
+        "movement": {
+          "title": "Record your movements",
+          "body": "One by one, or import your bank statement."
+        },
+        "wallet": {
+          "title": "Build your wallet",
+          "body": "Choose which accounts and cards to see on the Panel."
+        }
+      }
     }
   },
   "cards": {
@@ -494,7 +529,7 @@
     "upcomingKind": {
       "installment": "Installment plan",
       "debt": "Debt",
-      "recurring": "Recurring expense",
+      "recurring": "Fixed expense",
       "debtOwedToYou": "Owed to you"
     },
     "greeting": "Hi, {{name}}",
@@ -622,7 +657,7 @@
       "leaveConfirm": "Leave without saving?",
       "leaveConfirmDescription": "You have unsaved changes on this movement. Leaving now will discard them.",
       "leaveDiscard": "Discard changes",
-      "recurring": "Recurring",
+      "recurring": "Fixed expense",
       "noRecurring": "None"
     },
     "kpi": {
@@ -671,7 +706,7 @@
       "viewPlan": "View plan",
       "viewDebt": "View debt",
       "viewBilling": "View statement",
-      "viewRecurring": "View recurring",
+      "viewRecurring": "View fixed expense",
       "statementLocked": "This movement backs the payment of a statement in another currency. To change it, correct the payment from its statement.",
       "viewSavings": "View contribution",
       "viewGoal": "View goal"
@@ -685,7 +720,7 @@
       "DEBT": "Debt",
       "STATEMENT_PAYMENT": "Statement payment",
       "CREDIT_CARD_PREPAYMENT": "Card prepayment",
-      "RECURRING": "Recurring",
+      "RECURRING": "Fixed expense",
       "STATEMENT_SETTLEMENT": "Statement settlement",
       "CURRENCY_TRANSFER": "Currency transfer"
     },
@@ -1078,15 +1113,15 @@
     }
   },
   "recurring": {
-    "title": "Recurring",
+    "title": "Fixed expenses",
     "subtitle": "{{active}} active · {{paused}} paused",
-    "new": "New recurring",
-    "edit": "Edit recurring",
-    "empty": "No recurring expenses yet",
+    "new": "New fixed expense",
+    "edit": "Edit fixed expense",
+    "empty": "No fixed expenses yet",
     "emptyHint": "Add a subscription, rent or any payment that repeats to see how much is committed.",
-    "created": "Recurring created",
-    "updated": "Recurring updated",
-    "deleted": "Recurring deleted",
+    "created": "Fixed expense created",
+    "updated": "Fixed expense updated",
+    "deleted": "Fixed expense deleted",
     "inactive": "Paused",
     "next": "Next: {{date}}",
     "frequency": {
@@ -1123,11 +1158,11 @@
     "actions": {
       "pause": "Pause",
       "resume": "Resume",
-      "edit": "Edit recurring",
-      "delete": "Delete recurring"
+      "edit": "Edit fixed expense",
+      "delete": "Delete fixed expense"
     },
     "detail": {
-      "eyebrow": "Recurring detail",
+      "eyebrow": "Fixed expense detail",
       "active": "Active",
       "amount": "Amount",
       "perMonth": "Per month",
@@ -1140,7 +1175,7 @@
       "noNotes": "No notes",
       "history": "Occurrence history",
       "historyEmpty": "No generated occurrences",
-      "historyEmptyHint": "No movement has been generated from this recurring yet.",
+      "historyEmptyHint": "No movement has been generated from this fixed expense yet.",
       "historyNote": "Movement generated automatically · {{account}}",
       "historyBadge": "Generated",
       "endedOn": "Last payment"
@@ -1158,11 +1193,11 @@
       "resumedToast": "{{name}} resumed"
     },
     "delete": {
-      "description": "This will delete the recurring «{{name}}». This action can't be undone."
+      "description": "This will delete the fixed expense «{{name}}». This action can't be undone."
     },
     "form": {
       "label": "Name",
-      "namePlaceholder": "Recurring name",
+      "namePlaceholder": "Fixed expense name",
       "amount": "Amount",
       "currency": "Currency",
       "frequency": "Frequency",
@@ -1177,7 +1212,7 @@
       "noCategory": "No category",
       "categoryPlaceholder": "Choose category",
       "leaveConfirm": "Leave without saving?",
-      "leaveConfirmDescription": "You have unsaved changes on this recurring series. Leaving now will discard them.",
+      "leaveConfirmDescription": "You have unsaved changes on this fixed expense. Leaving now will discard them.",
       "leaveDiscard": "Discard changes",
       "endDate": "Last payment (if it ended)"
     },
@@ -1469,7 +1504,7 @@
     },
     "template": {
       "cardTitle": "fik template",
-      "cardDescription": "Keep your finances in your own spreadsheet? Download the template, copy your movements, transfers, debts, instalments, recurring payments and goals into it, and upload it. Each sheet says what its rows are, so nothing has to be guessed.",
+      "cardDescription": "Keep your finances in your own spreadsheet? Download the template, copy your movements, transfers, debts, instalments, fixed expense payments and goals into it, and upload it. Each sheet says what its rows are, so nothing has to be guessed.",
       "download": "Download template",
       "downloading": "Preparing template…",
       "upload": "Upload template",
@@ -1529,7 +1564,7 @@
         "debtPayments": "Debt payments",
         "plans": "Instalments",
         "planPayments": "Instalment payments",
-        "recurring": "Recurring",
+        "recurring": "Fixed expenses",
         "goals": "Goals",
         "contributions": "Contributions",
         "reference": "Reference",
@@ -1552,7 +1587,7 @@
           "receptor": "Payee",
           "lugar": "Place",
           "financeCharge": "Issuer charge",
-          "recurring": "Recurring"
+          "recurring": "Fixed expense"
         },
         "transfers": {
           "date": "Date",
@@ -1688,7 +1723,7 @@
           "receptor": "Who received the payment. Informational only.",
           "lugar": "Where it happened: city, store or website. Informational only.",
           "financeCharge": "Yes when it's a charge from the bank on a credit card account (interest, maintenance fee, insurance), copied from the statement. It goes without a card. Ignored on other accounts.",
-          "recurring": "If this transaction pays a recurring expense, that row's Reference on the Recurring sheet."
+          "recurring": "If this transaction pays a fixed expense, that row's Reference on the Fixed expenses sheet."
         },
         "transfers": {
           "date": "Day of the transfer.",
@@ -1742,7 +1777,7 @@
           "freesCredit": "Credit card plans only. Yes (or empty): the instalment was paid outside the app and gives its share of the limit back. No: the card payment that covered it is already in the file (a transfer to the card), which already lowered the credit used."
         },
         "recurring": {
-          "ref": "Short code for linking payments to it from the Recurring column in Transactions.",
+          "ref": "Short code for linking payments to it from the Fixed expense column in Transactions.",
           "label": "Name of the expense, e.g. Spotify.",
           "amount": "Amount of each payment.",
           "currency": "Currency of the expense.",
@@ -1875,19 +1910,19 @@
         "title": "fik template",
         "intro": "Fill in one sheet per kind of data and upload the file from Import. Leave the sheets you don't use empty. Cells with a dropdown only accept your own accounts, cards and categories; if you type them, make them match.",
         "rules": "What moves money: a movement, a transfer, a debt payment, an instalment payment without a credit card and a contribution move their account's balance. Creating a debt, a plan or a goal moves nothing. An instalment payment of a credit card plan only marks it paid and frees its credit: that instalment will never be billed.",
-        "refs": "References: write a short code in the Reference column of a debt, plan, goal or recurring series (for example VICTOR) and repeat it on its payments, contributions or movements to link them. It must be unique in its sheet.",
+        "refs": "References: write a short code in the Reference column of a debt, plan, goal or fixed expense (for example VICTOR) and repeat it on its payments, contributions or movements to link them. It must be unique in its sheet.",
         "allOrNothing": "If any row has a problem nothing is imported: you'll see every problem with its sheet and row.",
         "reimport": "Uploading the same file twice imports it twice.",
         "prefilled": "This template comes with your current data. Rows with a fik ID are already in the app and are skipped on upload: add new rows below them. Payments of debts or instalments that already exist are recorded in the app.",
         "exampleTitle": "Examples (not imported)",
         "examples": {
-          "movements": "Movements: 28/11/2025 · Expense · 15000 · BCI · · Groceries · Jumbo (if it pays a recurring series, that series' Reference in the Recurring column)",
+          "movements": "Movements: 28/11/2025 · Expense · 15000 · BCI · · Groceries · Jumbo (if it pays a fixed expense, that series' Reference in the Fixed expense column)",
           "transfers": "Transfers: 01/12/2025 · BCI · MACH · 50000",
           "debts": "Debts: VICTOR · Owed to me · Victor · Loan · 200000 · CLP · 14/02/2026 · · 4 · Monthly · 1",
           "debtPayments": "Debt payments: VICTOR · 14/03/2026 · BCI",
           "plans": "Instalments: NOTEBOOK · Notebook · 28/11/2025 · 623992 · 6 · CLP · Monthly · 1 · · BCI Visa · ····4827",
           "planPayments": "Instalment payments: NOTEBOOK · 1 · 28/12/2025 (credit card: no account or amount)",
-          "recurring": "Recurring: SPOTIFY · Spotify · 6990 · CLP · Monthly · 1 · 01/01/2026 · 01/04/2026 · BCI (leave Last payment empty if it's still running)",
+          "recurring": "Fixed expenses: SPOTIFY · Spotify · 6990 · CLP · Monthly · 1 · 01/01/2026 · 01/04/2026 · BCI (leave Last payment empty if it's still running)",
           "goals": "Goals: TRIP · Trip to Japan · 1500000 · CLP · 31/12/2026",
           "contributions": "Contributions: TRIP · 01/02/2026 · 50000 · BCI",
           "accounts": "Accounts: BCI · Checking · CLP · BCI · 123456 · 250000",
@@ -1921,7 +1956,7 @@
         "modeReplace": "Replace everything",
         "modeReplaceHint": "Deletes your accounts, cards and records and rebuilds them from the file.",
         "replaceTitle": "This will delete",
-        "replaceCounts": "{{accounts}} accounts, {{cards}} cards, {{movements}} movements, {{debts}} debts, {{plans}} instalment plans, {{recurring}} recurring payments, {{goals}} goals and {{statements}} statements.",
+        "replaceCounts": "{{accounts}} accounts, {{cards}} cards, {{movements}} movements, {{debts}} debts, {{plans}} instalment plans, {{fixed expense}} fixed expense payments, {{goals}} goals and {{statements}} statements.",
         "replaceWarning": "This can't be undone. Attached receipts are lost. If the file has no cash account, an empty one is created.",
         "replaceConfirmLabel": "Type REPLACE to confirm",
         "replaceConfirmWord": "REPLACE",

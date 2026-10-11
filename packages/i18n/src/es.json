@@ -138,8 +138,8 @@
       "restores": "Devuelve a {{restorations}}",
       "installmentPlans_one": "{{count}} plan de cuotas",
       "installmentPlans_other": "{{count}} planes de cuotas",
-      "recurring_one": "{{count}} recurrente",
-      "recurring_other": "{{count}} recurrentes",
+      "recurring_one": "{{count}} gasto fijo",
+      "recurring_other": "{{count}} gastos fijos",
       "savingsEntries_one": "{{count}} aporte de ahorro",
       "savingsEntries_other": "{{count}} aportes de ahorro",
       "linkedDebts_one": "{{count}} deuda asociada a esta cuenta se mantiene, sin la cuenta.",
@@ -379,6 +379,41 @@
       "prepayHint": "Abona antes del cierre: no cierra el período.",
       "prepaySuccess": "Prepago registrado",
       "prepayCreatesMovement": "Se registrará un gasto en la cuenta seleccionada y un abono en dólares en tu tarjeta; el período sigue abierto."
+    },
+    "onboarding": {
+      "title": {
+        "account": "Empieza por tu primera cuenta",
+        "movement": "Ahora registra un movimiento",
+        "wallet": "Por último, arma tu cartera"
+      },
+      "description": {
+        "account": "Tu cuenta de efectivo ya está lista. Agrega la cuenta de tu banco o tu tarjeta de crédito para que fik lleve tus saldos y tu cupo.",
+        "movement": "Anota un gasto o un ingreso, o importa la cartola de tu banco para traer tu historial de una vez.",
+        "wallet": "Elige qué cuentas y tarjetas quieres ver siempre en el Panel, con su saldo y su cupo."
+      },
+      "progress": "{{done}} de {{total}}",
+      "hide": "Ocultar guía",
+      "stepDone": "Listo",
+      "import": "Importar desde Excel",
+      "cta": {
+        "account": "Crear mi primera cuenta",
+        "movement": "Registrar un movimiento",
+        "wallet": "Armar mi cartera"
+      },
+      "steps": {
+        "account": {
+          "title": "Agrega una cuenta",
+          "body": "Cuenta corriente, vista, ahorro, prepago o tarjeta de crédito."
+        },
+        "movement": {
+          "title": "Registra tus movimientos",
+          "body": "Uno a uno, o importa la cartola de tu banco."
+        },
+        "wallet": {
+          "title": "Arma tu cartera",
+          "body": "Elige qué cuentas y tarjetas ver en el Panel."
+        }
+      }
     }
   },
   "cards": {
@@ -494,7 +529,7 @@
     "upcomingKind": {
       "installment": "Plan en cuotas",
       "debt": "Deuda",
-      "recurring": "Gasto recurrente",
+      "recurring": "Gasto fijo",
       "debtOwedToYou": "Te deben"
     },
     "greeting": "Hola, {{name}}",
@@ -622,7 +657,7 @@
       "leaveConfirm": "¿Volver sin guardar?",
       "leaveConfirmDescription": "Tienes cambios sin guardar en este movimiento. Si vuelves ahora se perderán.",
       "leaveDiscard": "Descartar cambios",
-      "recurring": "Recurrente",
+      "recurring": "Gasto fijo",
       "noRecurring": "Ninguno"
     },
     "kpi": {
@@ -671,7 +706,7 @@
       "viewPlan": "Ver plan",
       "viewDebt": "Ver deuda",
       "viewBilling": "Ver facturación",
-      "viewRecurring": "Ver recurrente",
+      "viewRecurring": "Ver gasto fijo",
       "statementLocked": "Este movimiento respalda el pago de una facturación en otra moneda. Para cambiarlo, corrige el pago desde su facturación.",
       "viewSavings": "Ver aporte",
       "viewGoal": "Ver meta"
@@ -685,7 +720,7 @@
       "DEBT": "Deuda",
       "STATEMENT_PAYMENT": "Pago de facturación",
       "CREDIT_CARD_PREPAYMENT": "Prepago de tarjeta",
-      "RECURRING": "Recurrente",
+      "RECURRING": "Gasto fijo",
       "STATEMENT_SETTLEMENT": "Liquidación de facturación",
       "CURRENCY_TRANSFER": "Traspaso de moneda"
     },
@@ -1078,15 +1113,15 @@
     }
   },
   "recurring": {
-    "title": "Recurrentes",
+    "title": "Gastos fijos",
     "subtitle": "{{active}} activos · {{paused}} pausado(s)",
-    "new": "Nuevo recurrente",
-    "edit": "Editar recurrente",
-    "empty": "Aún no tienes gastos recurrentes",
+    "new": "Nuevo gasto fijo",
+    "edit": "Editar gasto fijo",
+    "empty": "Aún no tienes gastos fijos",
     "emptyHint": "Registra una suscripción, el arriendo o cualquier pago que se repite para ver cuánto tienes comprometido.",
-    "created": "Recurrente creado",
-    "updated": "Recurrente actualizado",
-    "deleted": "Recurrente eliminado",
+    "created": "Gasto fijo creado",
+    "updated": "Gasto fijo actualizado",
+    "deleted": "Gasto fijo eliminado",
     "inactive": "Pausado",
     "next": "Próximo: {{date}}",
     "frequency": {
@@ -1123,11 +1158,11 @@
     "actions": {
       "pause": "Pausar",
       "resume": "Reactivar",
-      "edit": "Editar recurrente",
-      "delete": "Eliminar recurrente"
+      "edit": "Editar gasto fijo",
+      "delete": "Eliminar gasto fijo"
     },
     "detail": {
-      "eyebrow": "Detalle del recurrente",
+      "eyebrow": "Detalle del gasto fijo",
       "active": "Activo",
       "amount": "Monto",
       "perMonth": "Al mes",
@@ -1140,7 +1175,7 @@
       "noNotes": "Sin notas",
       "history": "Historial de ocurrencias",
       "historyEmpty": "Sin ocurrencias generadas",
-      "historyEmptyHint": "Aún no se ha generado ningún movimiento a partir de este recurrente.",
+      "historyEmptyHint": "Aún no se ha generado ningún movimiento a partir de este gasto fijo.",
       "historyNote": "Movimiento generado automáticamente · {{account}}",
       "historyBadge": "Generado",
       "endedOn": "Último pago"
@@ -1158,11 +1193,11 @@
       "resumedToast": "{{name}} reactivado"
     },
     "delete": {
-      "description": "Se eliminará el recurrente «{{name}}». Esta acción no se puede deshacer."
+      "description": "Se eliminará el gasto fijo «{{name}}». Esta acción no se puede deshacer."
     },
     "form": {
       "label": "Nombre",
-      "namePlaceholder": "Nombre del recurrente",
+      "namePlaceholder": "Nombre del gasto fijo",
       "amount": "Monto",
       "currency": "Moneda",
       "frequency": "Periodicidad",
@@ -1177,7 +1212,7 @@
       "noCategory": "Sin categoría",
       "categoryPlaceholder": "Elegir categoría",
       "leaveConfirm": "¿Volver sin guardar?",
-      "leaveConfirmDescription": "Tienes cambios sin guardar en este recurrente. Si vuelves ahora se perderán.",
+      "leaveConfirmDescription": "Tienes cambios sin guardar en este gasto fijo. Si vuelves ahora se perderán.",
       "leaveDiscard": "Descartar cambios",
       "endDate": "Último pago (si terminó)"
     },
@@ -1469,7 +1504,7 @@
     },
     "template": {
       "cardTitle": "Plantilla fik",
-      "cardDescription": "¿Llevas tus finanzas en tu propio Excel? Descarga la plantilla, copia en ella tus movimientos, traspasos, deudas, cuotas, recurrentes y metas, y súbela. Cada hoja dice qué es cada fila, así que no hay nada que adivinar.",
+      "cardDescription": "¿Llevas tus finanzas en tu propio Excel? Descarga la plantilla, copia en ella tus movimientos, traspasos, deudas, cuotas, gastos fijos y metas, y súbela. Cada hoja dice qué es cada fila, así que no hay nada que adivinar.",
       "download": "Descargar plantilla",
       "downloading": "Preparando plantilla…",
       "upload": "Subir plantilla",
@@ -1529,7 +1564,7 @@
         "debtPayments": "Pagos de deudas",
         "plans": "Cuotas",
         "planPayments": "Pagos de cuotas",
-        "recurring": "Recurrentes",
+        "recurring": "Gastos fijos",
         "goals": "Metas",
         "contributions": "Aportes",
         "reference": "Referencia",
@@ -1552,7 +1587,7 @@
           "receptor": "Receptor",
           "lugar": "Lugar",
           "financeCharge": "Cargo del emisor",
-          "recurring": "Recurrente"
+          "recurring": "Gasto fijo"
         },
         "transfers": {
           "date": "Fecha",
@@ -1688,7 +1723,7 @@
           "receptor": "Quién recibió el pago. Solo informativo.",
           "lugar": "Dónde ocurrió: ciudad, comercio o sitio web. Solo informativo.",
           "financeCharge": "Sí cuando es un cobro del banco sobre una cuenta de tarjeta de crédito (intereses, comisión de mantención, seguro), copiado del estado de cuenta. Va sin tarjeta. En otras cuentas se ignora.",
-          "recurring": "Si este movimiento paga un recurrente, la Referencia de esa fila en la hoja Recurrentes."
+          "recurring": "Si este movimiento paga un gasto fijo, la Referencia de esa fila en la hoja Gastos fijos."
         },
         "transfers": {
           "date": "Día del traspaso.",
@@ -1742,7 +1777,7 @@
           "freesCredit": "Solo planes con tarjeta de crédito. Sí (o vacío): la cuota se pagó fuera de la app y devuelve su parte del cupo. No: el pago de la tarjeta que la cubrió ya está en el archivo (un traspaso a la tarjeta), que ya bajó el cupo."
         },
         "recurring": {
-          "ref": "Código corto para vincularle pagos desde la columna Recurrente de Movimientos.",
+          "ref": "Código corto para vincularle pagos desde la columna Gasto fijo de Movimientos.",
           "label": "Nombre del gasto, ej. Spotify.",
           "amount": "Monto de cada pago.",
           "currency": "Moneda del gasto.",
@@ -1875,19 +1910,19 @@
         "title": "Plantilla fik",
         "intro": "Llena una hoja por tipo de dato y sube el archivo desde Importar. Deja vacías las hojas que no uses. Las celdas con lista desplegable solo aceptan tus propias cuentas, tarjetas y categorías; si las escribes a mano, que coincidan.",
         "rules": "Qué mueve dinero: un movimiento, un traspaso, un pago de deuda, un pago de cuota sin tarjeta de crédito y un aporte mueven el saldo de su cuenta. Crear una deuda, un plan o una meta no mueve dinero. Un pago de cuota de un plan con tarjeta de crédito solo la marca pagada y libera su cupo: esa cuota nunca se facturará.",
-        "refs": "Referencias: escribe un código corto en la columna Referencia de una deuda, cuota, meta o recurrente (por ejemplo VICTOR) y repítelo en sus pagos, aportes o movimientos para unirlos. Debe ser único en su hoja.",
+        "refs": "Referencias: escribe un código corto en la columna Referencia de una deuda, cuota, meta o gasto fijo (por ejemplo VICTOR) y repítelo en sus pagos, aportes o movimientos para unirlos. Debe ser único en su hoja.",
         "allOrNothing": "Si una fila tiene un problema no se importa nada: verás cada problema con su hoja y su fila.",
         "reimport": "Subir dos veces el mismo archivo lo importa dos veces.",
         "prefilled": "Esta plantilla trae tus datos actuales. Las filas con ID fik ya están en la app y se saltan al subirla: agrega lo nuevo debajo. Los pagos de deudas o cuotas que ya existen se registran en la app.",
         "exampleTitle": "Ejemplos (no se importan)",
         "examples": {
-          "movements": "Movimientos: 28/11/2025 · Gasto · 15000 · BCI · · Supermercado · Jumbo (si paga un recurrente, su Referencia en la columna Recurrente)",
+          "movements": "Movimientos: 28/11/2025 · Gasto · 15000 · BCI · · Supermercado · Jumbo (si paga un gasto fijo, su Referencia en la columna Gasto fijo)",
           "transfers": "Traspasos: 01/12/2025 · BCI · MACH · 50000",
           "debts": "Deudas: VICTOR · Me deben · Victor · Préstamo · 200000 · CLP · 14/02/2026 · · 4 · Mensual · 1",
           "debtPayments": "Pagos de deudas: VICTOR · 14/03/2026 · BCI",
           "plans": "Cuotas: NOTEBOOK · Notebook · 28/11/2025 · 623992 · 6 · CLP · Mensual · 1 · · BCI Visa · ····4827",
           "planPayments": "Pagos de cuotas: NOTEBOOK · 1 · 28/12/2025 (con tarjeta de crédito, sin cuenta ni monto)",
-          "recurring": "Recurrentes: SPOTIFY · Spotify · 6990 · CLP · Mensual · 1 · 01/01/2026 · 01/04/2026 · BCI (Último pago vacío si sigue vigente)",
+          "recurring": "Gastos fijos: SPOTIFY · Spotify · 6990 · CLP · Mensual · 1 · 01/01/2026 · 01/04/2026 · BCI (Último pago vacío si sigue vigente)",
           "goals": "Metas: VIAJE · Viaje a Japón · 1500000 · CLP · 31/12/2026",
           "contributions": "Aportes: VIAJE · 01/02/2026 · 50000 · BCI",
           "accounts": "Cuentas: BCI · Corriente · CLP · BCI · 123456 · 250000",
@@ -1921,7 +1956,7 @@
         "modeReplace": "Reemplazar todo",
         "modeReplaceHint": "Borra tus cuentas, tarjetas y registros y los reconstruye desde el archivo.",
         "replaceTitle": "Se borrará",
-        "replaceCounts": "{{accounts}} cuentas, {{cards}} tarjetas, {{movements}} movimientos, {{debts}} deudas, {{plans}} planes de cuotas, {{recurring}} recurrentes, {{goals}} metas y {{statements}} facturaciones.",
+        "replaceCounts": "{{accounts}} cuentas, {{cards}} tarjetas, {{movements}} movimientos, {{debts}} deudas, {{plans}} planes de cuotas, {{recurring}} gastos fijos, {{goals}} metas y {{statements}} facturaciones.",
         "replaceWarning": "No se puede deshacer. Los comprobantes adjuntos se pierden. Si el archivo no trae una cuenta de efectivo, se crea una vacía.",
         "replaceConfirmLabel": "Escribe REEMPLAZAR para confirmar",
         "replaceConfirmWord": "REEMPLAZAR",

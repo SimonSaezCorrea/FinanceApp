@@ -48,6 +48,7 @@ import { VerifyMfaLoginCommand } from "../application/commands/verify-mfa-login.
 import { VerifyPasskeyLoginCommand } from "../application/commands/verify-passkey-login.command";
 import { VerifyStepUpPasskeyCommand } from "../application/commands/verify-step-up-passkey.command";
 import { VerifyStepUpCommand } from "../application/commands/verify-step-up.command";
+import { CloseOnboardingCommand } from "../application/commands/close-onboarding.command";
 import { ForgotPasswordCommand } from "../application/commands/forgot-password.command";
 import { RemoveUserEmailCommand } from "../application/commands/remove-user-email.command";
 import { RequestEmailChangeCommand } from "../application/commands/request-email-change.command";
@@ -451,6 +452,14 @@ export class AuthController {
     await this.commandBus.execute(new DeleteAccountCommand(user.id, body));
     res.clearCookie(ACCESS_COOKIE, this.cookieBase());
     res.clearCookie(REFRESH_COOKIE, this.cookieBase());
+  }
+
+  /** The first-steps guide was finished or closed: it never shows again, on any device. */
+  @Post("me/onboarding/close")
+  @HttpCode(204)
+  @UseGuards(JwtAuthGuard)
+  closeOnboarding(@CurrentUser() user: AuthUser): Promise<void> {
+    return this.commandBus.execute(new CloseOnboardingCommand(user.id));
   }
 
   // --- Account emails (specs/032) -------------------------------------------------------------

@@ -29,7 +29,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useState, useImperativeHandle, type Ref } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -83,9 +83,12 @@ export function WalletCards({
   accountList,
   holder,
   fill = false,
+  editorRef,
 }: {
   accountList: accounts.BankAccount[];
   holder?: string;
+  /** Lets the Panel open the "Arma tu cartera" editor (the first-steps guide). */
+  editorRef?: Ref<{ open: () => void }>;
   /** Take the parent's full height and scroll the tiles inside it (the Panel's one-screen
    * desktop layout), instead of capping at a fixed height. */
   fill?: boolean;
@@ -100,6 +103,7 @@ export function WalletCards({
     setEditorSession((n) => n + 1);
     setAddOpen(true);
   };
+  useImperativeHandle(editorRef, () => ({ open: openEditor }));
   const [organizing, setOrganizing] = useState(false);
 
   const items = walletItems ?? [];
@@ -185,7 +189,12 @@ export function WalletCards({
           <div className={GRID}>
             {resolved.map((r) => (
               <Link key={r.item.id} to={`/accounts/${r.account.id}`} className="block">
-                <AccountVisualCard account={r.account} card={r.card} holder={holder} />
+                <AccountVisualCard
+                  account={r.account}
+                  card={r.card}
+                  accountOnly={!r.card}
+                  holder={holder}
+                />
               </Link>
             ))}
             {full ? null : (
@@ -289,7 +298,12 @@ function WalletOrganizer({
       <DragOverlay dropAnimation={dropAnimation}>
         {active ? (
           <div className="rounded-2xl shadow-2xl ring-2 ring-primary">
-            <AccountVisualCard account={active.account} card={active.card} holder={holder} />
+            <AccountVisualCard
+              account={active.account}
+              card={active.card}
+              accountOnly={!active.card}
+              holder={holder}
+            />
           </div>
         ) : null}
       </DragOverlay>
@@ -327,7 +341,12 @@ function SortableCard({
         {...listeners}
         className="cursor-grab touch-none rounded-2xl ring-2 ring-primary/50 active:cursor-grabbing"
       >
-        <AccountVisualCard account={resolved.account} card={resolved.card} holder={holder} />
+        <AccountVisualCard
+          account={resolved.account}
+          card={resolved.card}
+          accountOnly={!resolved.card}
+          holder={holder}
+        />
         <span className="absolute left-2 top-2 rounded-md bg-black/40 p-1 text-white">
           <GripVertical className="h-4 w-4" aria-hidden />
         </span>

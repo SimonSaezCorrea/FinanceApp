@@ -108,7 +108,7 @@
         "title": "En qué está hoy",
         "available": {
           "title": "Disponible",
-          "body": "Cuentas, tarjetas, movimientos, facturación, cuotas, metas, deudas, gastos recurrentes, tipos de cambio e importación desde Excel o CSV, en pesos, dólares y UF."
+          "body": "Cuentas, tarjetas, movimientos, facturación, cuotas, metas, deudas, gastos fijos, tipos de cambio e importación desde Excel o CSV, en pesos, dólares y UF."
         },
         "paused": {
           "title": "En pausa",
@@ -215,7 +215,7 @@
       "included": {
         "accounts": "Todas las cuentas y tarjetas que tengas",
         "movements": "Movimientos y traspasos sin tope, y pronto también sus comprobantes",
-        "billing": "Facturación, cuotas, metas, deudas y recurrentes",
+        "billing": "Facturación, cuotas, metas, deudas y gastos fijos",
         "security": "Llave de acceso, segundo factor y control de sesiones",
         "currencies": "Pesos, dólares y UF, con el tipo de cambio del día"
       },

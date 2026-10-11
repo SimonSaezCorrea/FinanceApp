@@ -30,6 +30,7 @@ import { ResetPasswordHandler } from "./application/commands/reset-password.hand
 import { VerifyEmailHandler } from "./application/commands/verify-email.handler";
 import { SendSecurityNoticeListener } from "./application/listeners/send-security-notice.listener";
 import { ListUserEmailsQueryHandler } from "./application/queries/list-user-emails.handler";
+import { CloseOnboardingHandler } from "./application/commands/close-onboarding.handler";
 import { ChangePasswordHandler } from "./application/commands/change-password.handler";
 import { CloseExpiredSessionsHandler } from "./application/commands/close-expired-sessions.handler";
 import { CloseSessionHandler } from "./application/commands/close-session.handler";
@@ -101,6 +102,7 @@ const commandHandlers = [
   ForgotPasswordHandler,
   ResetPasswordHandler,
   PurgeStaleEmailTokensHandler,
+  CloseOnboardingHandler,
 ];
 
 const queryHandlers = [

@@ -148,3 +148,17 @@ describe("User aggregate", () => {
     });
   });
 });
+
+describe("User.closeOnboarding (2026-10-11)", () => {
+  it("closes the first-steps guide once and keeps the first date", () => {
+    const user = User.fromPersistence(baseProps());
+    expect(user.onboardingClosed).toBe(false);
+    expect(user.toContract().onboardingClosed).toBe(false);
+
+    const first = new Date("2026-10-11T10:00:00Z");
+    expect(user.closeOnboarding(first)).toBe(true);
+    expect(user.closeOnboarding(new Date("2026-10-12T10:00:00Z"))).toBe(false);
+    expect(user.onboardingClosedAt).toEqual(first);
+    expect(user.toContract().onboardingClosed).toBe(true);
+  });
+});

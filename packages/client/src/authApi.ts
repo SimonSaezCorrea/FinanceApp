@@ -71,4 +71,7 @@ export const authApi = {
       method: "POST",
       body: JSON.stringify(body),
     }),
+
+  /** The first-steps guide was finished or closed: it never shows again, on any device. */
+  closeOnboarding: () => apiFetch<void>("/auth/me/onboarding/close", { method: "POST" }),
 };
