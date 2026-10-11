@@ -5,7 +5,7 @@
 > Actualizado el 2026-10-11 con la infraestructura real de producción (`docs/DEPLOY.md`).
 
 - **Exportador de datos (todas las transferencias):** fik (antes "FinanceApp"), proyecto operado por Simón Sáez como persona natural, RUT 20.640.480-9, Chile.
-- **Resumen:** cuatro encargados extranjeros activos. AWS y Cloudflare reciben **todos** los datos de la app (AWS los guarda; Cloudflare los ve en tránsito); Resend recibe correos y contenido de los avisos; IPinfo recibe solo IPs.
+- **Resumen:** cinco encargados extranjeros activos (el quinto, Google, solo para el buzón de contacto). AWS y Cloudflare reciben **todos** los datos de la app (AWS los guarda; Cloudflare los ve en tránsito); Resend recibe correos y contenido de los avisos; IPinfo recibe solo IPs.
 
 | Encargado  | País donde se tratan          | Qué datos                               | Garantía hoy (DPA leído el 2026-10-11)               | Mecanismo chileno |
 | ---------- | ----------------------------- | --------------------------------------- | ---------------------------------------------------- | ----------------- |
@@ -91,6 +91,14 @@
   - borra o devuelve los datos al terminar el servicio.
 - **Mecanismo chileno:** no incorpora las cláusulas modelo chilenas, pero su DPA se somete a la ley aplicable de cualquier país.
 
+## 5. Google (buzón de `contacto@mifik.cl`)
+
+- **Importador de datos:** Google LLC (EE.UU.), servicio Gmail.
+- **Cómo llegan los datos:** Cloudflare Email Routing reenvía todo correo a `contacto@mifik.cl` a la cuenta **`mifik.general@gmail.com`** (regla verificada el 2026-10-11), desde donde se lee y se responde.
+- **Datos transferidos:** lo que escriba quien contacta: su correo, su nombre y el contenido (por ejemplo, solicitudes para ejercer derechos sobre sus datos). No hay datos de la app salvo los que la persona escriba.
+- **Garantía contractual hoy:** los términos de Gmail para cuentas personales. **No hay un DPA**: Google ofrece acuerdo de tratamiento de datos solo en Google Workspace (de pago). Es la garantía más débil de la lista, mitigada porque el volumen es bajo y solo contiene lo que la persona decide escribir.
+- **Mejora posible:** pasar `contacto@mifik.cl` a Google Workspace u otro proveedor de correo con DPA cuando haya usuarios reales.
+
 ## Transferencia potencial: almacenamiento S3 de adjuntos
 
 **Hoy inerte** (sin `S3_BUCKET` configurado, la función de adjuntos está deshabilitada: `503 ATTACHMENTS_UNAVAILABLE`). Si en el futuro se activa:
@@ -120,7 +128,7 @@ Esto no reemplaza una revisión legal; deja el riesgo identificado y documentado
 ## Pendientes para cerrar este anexo
 
 1. ~~Exportador~~: Simón Sáez, persona natural, RUT 20.640.480-9 (sin razón social).
-2. ~~DPA de los cuatro proveedores~~ (leídos y guardados el 2026-10-11 en `.compliance/proveedores/`). Opcional: descargar la versión ejecutada del DPA de Resend desde su panel (Settings → Documents).
+2. ~~DPA y términos de servicio de cada proveedor~~ (leídos y guardados el 2026-10-11 en `.compliance/proveedores/<proveedor>/`: el DPA más los términos que lo incorporan; de Google, solo sus condiciones generales, porque una cuenta personal de Gmail no tiene DPA). Repetir la descarga una vez al año, con fecha nueva y sin borrar las anteriores. Opcional: descargar la versión ejecutada del DPA de Resend desde su panel (Settings → Documents).
 3. Revisión legal: no hay presupuesto hoy; ver la sección anterior.
 4. ~~Actualizar la política de privacidad~~ (hecho el 2026-10-11).
 

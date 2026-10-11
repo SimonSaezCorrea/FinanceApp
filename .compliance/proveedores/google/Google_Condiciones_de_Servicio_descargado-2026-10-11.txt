@@ -1,0 +1,349 @@
+Copia de texto de https://policies.google.com/terms?hl=es (Condiciones de Servicio de Google, aplican a Gmail personal), descargada el 2026-10-11.
+
+Términos del Servicio de Google – Privacidad y Condiciones – Google                      Ir al contenido principal
+Privacidad y Términos   Privacidad y Términos
+Privacidad y Condiciones
+Descripción general
+Política de Privacidad
+Términos del Servicio
+Tecnologías
+Preguntas frecuentes
+Cuenta de Google
+Descripción general
+Política de Privacidad
+Términos del Servicio
+Tecnologías
+Preguntas frecuentes
+Privacidad y Condiciones
+Descripción general
+Política de Privacidad
+Términos del Servicio    Actualizaciones
+Definiciones
+Lista de servicios y términos adicionales específicos de cada servicio
+Cómo gestiona Google las solicitudes gubernamentales de información sobre usuarios
+Tecnologías
+Preguntas frecuentes
+Términos    Introducción
+Tu relación con Google
+Usar los servicios de Google
+Contenido en los servicios de Google
+Software en los servicios de Google
+En caso de problemas o discrepancias
+Sobre estos términos
+Actualizaciones
+Definiciones
+Lista de servicios y términos adicionales específicos de cada servicio
+Cómo gestiona Google las solicitudes gubernamentales de información sobre usuarios
+Términos del Servicio de Google
+Fecha de entrada en vigor: 30 de julio de 2026  |   Versiones archivadas    |     Descargar PDF
+Versión específica de país:  Chile
+Qué se trata en estos términos
+Sabemos que es tentador saltarse estos Términos del Servicio, pero es importante determinar qué puedes esperar de nosotros al usar los  servicios  de Google y qué esperamos nosotros de ti.
+Estos Términos del Servicio reflejan  la forma de trabajar de Google como empresa , las leyes por las que nos regimos y  determinados aspectos que siempre hemos creído que son ciertos . Por ello, estos Términos del Servicio ayudan a definir la relación que tiene Google contigo cuando interactúas con nuestros servicios. Por ejemplo, estos términos incluyen las siguientes secciones:
+Qué puedes esperar de nosotros , donde se describe cómo proporcionamos y desarrollamos nuestros servicios.
+Lo que esperamos de ti , donde se establecen ciertas reglas para utilizar nuestros servicios.
+Contenido en los servicios de Google , donde se describen los derechos de propiedad intelectual relacionados con el contenido que aparece en nuestros servicios, ya sea propiedad tuya, de Google o de terceros.
+En caso de problemas o discrepancias , donde se describen otros derechos legales que tienes y las consecuencias de infringir estos términos.
+Es importante que entiendas estos términos porque, al acceder a nuestros servicios o utilizarlos, aceptas estos términos.
+Además de estos términos, también publicamos una  Política de Privacidad . Aunque no forme parte de estos términos, te recomendamos que la leas para entender mejor cómo puedes  actualizar, gestionar, exportar y eliminar tu información .
+Términos
+Proveedor de servicios
+Los  servicios  de Google los proporciona y se contratan con:
+Google LLC
+Empresa que se rige por las leyes del estado de Delaware (EE. UU.) y que opera bajo la legislación estadounidense
+1600 Amphitheatre Parkway
+Mountain View, California, 94043
+EE. UU.
+Requisitos de edad mínima
+Si no tienes la  edad mínima para poder gestionar tu propia cuenta de Google , debes contar con el permiso de tu padre, madre o tutor legal para utilizar una cuenta de Google. Pide a tu padre, madre o tutor legal que lea estos términos contigo.
+Si eres padre, madre o tutor legal y permites a tu hijo/a que utilice los  servicios , se te aplican estos términos y eres responsable de la actividad que realice en los servicios.
+Algunos servicios de Google tienen requisitos de edad mínima adicionales, como se describe en sus  términos y políticas adicionales específicos .
+Índice
+Introducción
+Tu relación con Google
+Usar los servicios de Google
+Contenido en los servicios de Google
+Software en los servicios de Google
+En caso de problemas o discrepancias
+Sobre estos términos
+Tu relación con Google
+Estos términos ayudan a definir tu relación con Google. Cuando hablamos de "Google", "nosotros", "nos" o "nuestro/a", hacemos referencia a Google LLC y a sus  entidades asociadas . A grandes rasgos, te damos permiso para que accedas a nuestros  servicios  y los utilices si aceptas cumplir estos términos, que reflejan  la forma en la que trabajamos como empresa y cómo ganamos dinero .
+Qué puedes esperar de nosotros
+Ofrecer una amplia gama de servicios útiles
+Ofrecemos una amplia gama de servicios sujetos a estos términos, entre los que se incluyen:   Aplicaciones y sitios web, como el buscador y Maps
+Plataformas, como Google Shopping
+Servicios integrados, como Maps insertado en aplicaciones o sitios de otras empresas
+Dispositivos, como Google Nest y Pixel
+Muchos de estos servicios también incluyen contenido que puedes ver en streaming o con el que puedes interactuar.
+Nuestros servicios están diseñados para funcionar conjuntamente con el fin de que puedas pasar fácilmente de una tarea a otra. Por ejemplo, si tienes un evento de Calendar que incluye una dirección, puedes hacer clic en ella y Maps puede mostrarte cómo llegar.
+Desarrollar, mejorar y actualizar los servicios de Google
+Desarrollamos constantemente nuevas tecnologías y funciones para mejorar nuestros servicios. Por ejemplo, usamos la inteligencia artificial y el aprendizaje automático para ofrecerte traducciones simultáneas, y para detectar y bloquear mejor el spam y el software malicioso. Como parte de esta mejora continua, a veces añadimos o quitamos características y funciones, aumentamos o reducimos los límites de nuestros servicios, y comenzamos a ofrecer nuevos servicios o dejamos de ofrecer antiguos. Si un servicio requiere o incluye software que se puede descargar o que está precargado, ese software a veces puede actualizarse automáticamente en tu dispositivo cuando haya versiones o funciones nuevas disponibles. Algunos servicios te permiten configurar los ajustes de actualización automática.
+Si hacemos algún cambio sustancial que impacte negativamente en tu uso de nuestros servicios, o si dejamos de ofrecer un servicio, te lo notificaremos con una antelación razonable excepto en situaciones de urgencia, como en las que se busca prevenir abusos, cumplir con obligaciones legales o resolver problemas de seguridad y funcionamiento. También te daremos la oportunidad de exportar  tu contenido  de tu cuenta de Google a través de  Google Takeout , de conformidad con las leyes y políticas aplicables.
+Lo que esperamos de ti
+Cumple estos términos y los términos adicionales específicos de los servicios que utilizas
+El permiso que te damos para que accedas a nuestros  servicios  y los utilices tiene vigencia mientras cumplas con:   Estos términos
+Los términos adicionales específicos de los servicios  , que pueden incluir, por ejemplo, requisitos de edad mínima adicionales
+También ponemos a tu disposición varias políticas, centros de ayuda y otros recursos para ofrecerte respuestas a preguntas habituales, y para que sepas qué puedes esperar al utilizar nuestros servicios. Entre estos recursos se incluyen nuestra  Política de Privacidad , el  Centro de Ayuda sobre derechos de autor , el  Centro de Seguridad , el  Centro de Transparencia  y otras páginas a las que puedes acceder desde nuestro  sitio web de políticas . Por último, podemos proporcionar instrucciones específicas y advertencias en nuestros servicios, como cuadros de diálogo que te avisan de información importante.
+Aunque te autorizamos a usar nuestros servicios, conservamos los  derechos de propiedad intelectual  sobre ellos.
+Respeta a los demás
+Queremos mantener un entorno respetuoso para todos y, por ello, debes seguir estas normas de conducta básicas:  Cumplir la legislación aplicable, incluidas las leyes de control de exportaciones, las de sanciones y las de tráfico de personas.
+Respetar los derechos de los demás, incluidos los de privacidad y propiedad intelectual.
+No abusar o causar daños a otras personas ni a uno mismo (ni coaccionar o fomentar tales conductas), por ejemplo, mediante el engaño, el fraude, la suplantación ilegal, la difamación, el acoso, la intimidación o el hostigamiento.
+Nuestros  términos y políticas adicionales específicos de cada servicio , como nuestra  Política de Usos Prohibidos de la IA Generativa , ofrecen detalles adicionales sobre la conducta apropiada que cualquiera que use los servicios debe seguir. Si crees que hay otros usuarios que no están siguiendo estas normas, muchos de nuestros servicios te permiten  denunciar el uso inadecuado . Si tomamos medidas respecto a una denuncia por uso inadecuado, lo haremos mediante el proceso descrito en la sección   Medidas que tomamos en caso de problemas  .
+No abuses de nuestros servicios
+La mayoría de las personas que acceden a nuestros servicios o los utilizan conocen las normas generales que mantienen Internet como un espacio seguro y abierto. Lamentablemente, un número reducido de personas no respeta dichas normas, por lo que las describimos aquí para proteger nuestros servicios y a nuestros usuarios frente a abusos. En ese sentido:
+No debes abusar, dañar, interferir ni interrumpir nuestros servicios o sistemas; por ejemplo, de estos modos:  introduciendo malware
+enviando spam, hackeando o eludiendo nuestros sistemas o medidas de protección
+mediante jailbreaking, peticiones adversas o inyección de peticiones, excepto como parte de nuestros  programas de pruebas de errores y seguridad
+accediendo o usando nuestros servicios o contenidos de formas fraudulentas o engañosas, como:
+phishing
+crear cuentas o contenido falsos, incluidas las reseñas falsas
+engañar a otras personas para que piensen que el contenido de IA generativa ha sido creado por una persona
+proporcionar servicios que parecen provenir de ti (o de otra persona) cuando realmente los proporcionamos nosotros
+proporcionando servicios que parecen provenir de nosotros cuando no es así
+usando nuestros servicios (incluido el contenido que proporcionen) para infringir derechos legales de cualquier otra persona, como los derechos de propiedad intelectual o de privacidad
+realizando ingeniería inversa de nuestros servicios o la tecnología subyacente, como nuestros modelos de aprendizaje automático, para extraer secretos comerciales u otra información de propiedad exclusiva, excepto en los casos permitidos por la legislación aplicable
+utilizando medios automatizados para acceder al contenido de cualquiera de nuestros servicios incumpliendo las instrucciones legibles por máquinas de nuestras páginas web (por ejemplo, archivos robots.txt que prohíben el rastreo, el entrenamiento u otras actividades)
+usando contenido generado por IA de nuestros servicios para desarrollar modelos de aprendizaje automático o tecnología de IA relacionada
+ocultando o dando información engañosa sobre tu identidad para infringir estos términos
+ofreciendo servicios que animen a otros usuarios a infringir estos términos
+Permiso para usar tu contenido
+Algunos de nuestros servicios se han diseñado para que puedas subir, transferir, almacenar, enviar, recibir o compartir  tu contenido . No tienes ninguna obligación de proporcionar ningún contenido a nuestros servicios, y puedes elegir libremente el contenido que quieres facilitarnos. Si decides subir o compartir contenido, asegúrate de que tienes los derechos necesarios para ello y de que dicho contenido no incumple la ley.
+Licencia
+Tu contenido  sigue siendo tuyo, lo que significa que seguirás siendo titular de los  derechos de propiedad intelectual  que tengas sobre él. Por ejemplo, tienes derechos de propiedad intelectual sobre el contenido que creas, como las reseñas que escribes. O puede que tengas el derecho a compartir el contenido que otro usuario ha creado si te ha dado permiso para hacerlo.
+Necesitamos tu permiso si tus derechos de propiedad intelectual restringen nuestro uso de tu contenido. Concedes a Google este permiso a través de esta licencia.
+Qué cubre la licencia
+Esta licencia cubre  tu contenido  si dicho contenido está protegido por derechos de propiedad intelectual.
+Contenido que no cubre la licencia
+Esta licencia no afecta a tus derechos de privacidad; solo tiene que ver con los derechos de propiedad intelectual.
+Esta licencia no cubre los siguientes tipos de contenido:  Información objetiva y disponible públicamente que proporciones, como una corrección de la dirección de una empresa local. Esta información no requiere de licencia porque se considera conocimiento común que todos los usuarios pueden utilizar.
+Comentarios que nos envías, como sugerencias para mejorar nuestros servicios. Para consultar más información sobre los comentarios, consulta la sección   Comunicaciones relacionadas con un servicio   que aparece más abajo.
+Ámbito
+Esta licencia es:  Mundial, lo que quiere decir que es válida en todo el mundo.
+No exclusiva, lo que quiere decir que puedes conceder una licencia de tu contenido a terceros.
+Libre de royalties, lo que quiere decir que no hay que pagar una tarifa por esta licencia.
+Derechos
+Esta licencia permite a Google hacer lo siguiente:
+Alojar, reproducir, distribuir, comunicar y usar tu contenido; por ejemplo, para guardarlo en nuestros sistemas y permitir que puedas acceder a él desde cualquier lugar.
+Publicar, ejecutar o mostrar públicamente tu contenido, si has hecho que sea visible para otros usuarios.
+Modificar o crear obras derivadas que estén basadas en tu contenido; por ejemplo, mediante un cambio de formato o una traducción.
+Sublicenciar estos derechos a:  Otros usuarios, para permitir que los servicios funcionen tal y como se han diseñado. Por ejemplo, para permitir que compartas fotos con los usuarios que elijas.
+Nuestros contratistas, que han firmado contratos con nosotros de acuerdo con los presentes términos, únicamente para las finalidades específicas que se describen más adelante en la sección   Finalidades
+Finalidades
+Google usará los derechos que le confiere esta licencia únicamente con el fin de:
+Gestionar y mejorar los servicios , es decir, para permitir que los servicios funcionen con normalidad y crear funciones nuevas. Esto incluye el uso de sistemas automatizados y de algoritmos para analizar tu contenido y poder hacer lo siguiente:  Comprobar si hay spam, software malicioso o contenido ilegal.
+Reconocer patrones en los datos, como determinar cuándo se debe sugerir un nuevo álbum en Google Fotos que agrupe todas las fotos relacionadas.
+Ofrecerte servicios personalizados, como recomendaciones, resultados de búsqueda, contenido y anuncios personalizados (que puedes modificar o desactivar en  Configuración de anuncios ).
+Este análisis se realiza cuando el contenido se envía, se recibe y cuando se almacena.
+Utilizar contenido que has compartido de forma pública para promover los servicios.  Por ejemplo, para promocionar una aplicación de Google, podríamos citar una reseña que hayas escrito. O para promocionar Google Play, podríamos mostrar una captura de pantalla de la aplicación que ofreces en Play Store.
+Desarrollar nuevas tecnologías y servicios  para Google de acuerdo con estos términos.
+Duración
+Esta licencia tiene validez durante el tiempo por el que tu contenido esté protegido por derechos de propiedad intelectual.
+Si retiras de nuestros servicios cualquier contenido cubierto por esta licencia, nuestros sistemas harán que tu contenido deje de estar disponible públicamente en un periodo de tiempo razonable. Hay dos excepciones:
+Si ya has compartido tu contenido con otras personas antes de retirarlo. Por ejemplo, si has compartido una foto con un amigo y este hace una copia de ella o la vuelve a compartir, dicha foto puede seguir apareciendo en la cuenta de Google de tu amigo aunque tú la hayas retirado de la tuya.
+Si haces que tu contenido esté disponible públicamente a través de los servicios de otras empresas, es posible que los buscadores, incluido el buscador de Google, puedan continuar encontrando y mostrando tu contenido en sus resultados de búsqueda.
+Usar los servicios de Google
+Tu cuenta de Google
+Si cumples con los requisitos de edad mínima , puedes  crear una cuenta de Google . Para que funcionen algunos  servicios , es obligatorio tener una cuenta de Google. Por ejemplo, para utilizar Gmail necesitas una cuenta de Google, porque así tendrás un lugar desde el que enviar y recibir tus correos electrónicos.
+Eres responsable de lo que haces con tu cuenta de Google, y esto incluye tomar las medidas necesarias para mantener tu cuenta protegida. Te recomendamos que uses periódicamente la  Revisión de Seguridad .
+Usar los servicios de Google en nombre de una organización o empresa
+Muchas  organizaciones , como empresas, organizaciones sin ánimo de lucro y centros educativos, utilizan nuestros  servicios . Para usar nuestros servicios en nombre de una organización:  Es necesario que un representante autorizado de dicha organización acepte los presentes términos.
+El administrador de tu organización puede asignarte una cuenta de Google. Dicho administrador puede exigirte el cumplimiento de otras normas, y puede tener la capacidad de acceder a tu cuenta de Google o de inhabilitarla.
+Comunicaciones relacionadas con un servicio
+Para proporcionarte nuestros servicios, a veces te enviamos anuncios de servicio y otro tipo de información. Si quieres obtener más información sobre las distintas formas de comunicación que empleamos, consulta nuestra  Política de Privacidad .
+Si decides enviarnos comentarios como, por ejemplo, sugerencias para mejorar nuestros servicios, podemos considerarlos sin que ello suponga una obligación contigo.
+Costes de conexión de redes móviles, Wi-Fi y otras redes
+Los servicios de Google pueden usar Internet con frecuencia cuando no estás usando activamente los servicios ni tu dispositivo. Google usa Internet de esta forma con una amplia variedad de fines, como proporcionar actualizaciones de software y mejorar sus servicios, su seguridad, la experiencia de usuario o sus operaciones, incluida la publicidad. Estos usos dependen de tus conexiones de redes móviles, Wi-Fi u otras redes, y pueden descontarse de la cuota de datos que tengas contratada con tus proveedores de Internet o de telefonía móvil. Eres responsable de todos estos usos de la red y de los costes asociados. Te recomendamos que compruebes tu plan de servicios de telefonía móvil o de Internet, así como la configuración de tu dispositivo y de la red.
+Contenido en los servicios de Google
+Tu contenido
+Algunos de nuestros  servicios  te permiten generar contenido original. Google no reclamará la propiedad de ese contenido. Es posible que parte del contenido no sea adecuado para todos los usuarios.
+Algunos de nuestros  servicios  te dan la oportunidad de hacer que tu contenido esté disponible públicamente. Por ejemplo, puedes publicar una reseña que hayas escrito sobre un producto o un restaurante, o una entrada de blog que hayas creado.
+Consulta la sección   Permiso para usar tu contenido   para obtener más información acerca de los derechos que tienes sobre  tu contenido  y conocer el uso que hacemos de él en nuestros servicios.
+Consulta la sección   Retirar tu contenido   para conocer los motivos por los que podemos retirar de nuestros servicios contenido generado por usuarios y la manera en la que lo hacemos.
+Si crees que alguien está infringiendo tus  derechos de propiedad intelectual , puedes  notificárnoslo  y tomaremos las medidas oportunas. Por ejemplo, podemos suspender o cancelar las cuentas de Google de los usuarios que hayan infringido varias veces  derechos de autor , tal como se describe en nuestro  Centro de Ayuda sobre derechos de autor .
+Contenido de Google
+Algunos de nuestros  servicios  incluyen contenido que es propiedad de Google, como muchas de las ilustraciones visuales que puedes ver en Google Maps. Puedes usar nuestro contenido de acuerdo con estos términos y los  términos adicionales específicos de los servicios que utilizas , pero somos titulares de los derechos de propiedad intelectual asociados a dicho contenido. No elimines, ocultes ni alteres nuestras marcas, logotipos o avisos legales. Si quieres utilizar nuestras marcas o logotipos, consulta la página sobre las  directrices de uso de las marcas de Google .
+Otros tipos de contenido
+Algunos de nuestros  servicios  te ofrecen acceso a contenido que es propiedad de otras personas u  organizaciones , como la descripción que el propietario de una tienda hace de su negocio o el artículo de un periódico que haya aparecido en Google Noticias. No puedes usar este contenido sin el permiso de esa persona u organización o si no hay ningún mecanismo legal que te autorice a hacerlo. Las opiniones expresadas en tal contenido pertenecen a sus respectivos propietarios y no reflejan necesariamente las opiniones de Google.
+Software en los servicios de Google
+Algunos de nuestros  servicios  incluyen software que se puede descargar o que está precargado. Te autorizamos a usar dicho software como parte de los servicios.
+Esta licencia que te otorgamos es:  Mundial, lo que quiere decir que es válida en todo el mundo.
+No exclusiva, lo que quiere decir que podemos licenciar el software a terceros.
+Libre de royalties, lo que quiere decir que no hay que pagar una tarifa por esta licencia.
+Personal, lo que quiere decir que no es extensible a nadie más.
+Intransmisible, lo que quiere decir que tienes prohibido cederla a terceros.
+Algunos de nuestros servicios incluyen software que se ofrece con una licencia de código abierto que ponemos a tu disposición. A veces, estas licencias pueden incluir disposiciones que prevalecen expresamente sobre parte de estos términos, así que asegúrate de leer con atención dichas licencias.
+No puedes copiar, modificar, distribuir, vender ni alquilar ninguna parte de nuestros servicios o software.
+En caso de problemas o discrepancias
+Tanto la ley como estos términos te dan derecho a (1) una cierta calidad de servicio; y (2) tener a tu disposición medios para solucionar problemas si surgen.
+Garantía
+Ofrecemos nuestros  servicios  con un nivel de competencia y diligencia razonable. Te pedimos que, si no mantenemos el nivel de calidad que se describe en esta  garantía , nos lo comuniques y trabajaremos contigo para intentar resolver el problema.
+Renuncias de responsabilidad
+Los únicos compromisos que hacemos en relación con nuestros  servicios  (incluido el contenido de los servicios, sus funciones específicas, su fiabilidad, su disponibilidad o su capacidad para satisfacer tus necesidades) son los que se recogen en (1) la sección   Garantía  ; (2) los  términos adicionales específicos de los servicios ; y las (3) leyes que no pueden limitarse por estos términos.
+A menos que se permita explícitamente en los  términos adicionales específicos de los servicios , no utilices los servicios para obtener asesoramiento médico, jurídico, financiero o profesional de ningún tipo. El contenido relacionado con estas materias se ofrece únicamente con fines informativos, no constituye un diagnóstico o tratamiento médico y no sustituye los consejos de un profesional cualificado.
+Responsabilidades
+Para todos los usuarios
+Tanto la ley como estos términos intentan lograr un equilibrio respecto a lo que Google o tú podéis reclamaros mutuamente en caso de problemas. Por este motivo, la ley exige que todo el mundo se haga cargo de determinadas  responsabilidades  (pero no de otras) mediante estos términos.
+Estos términos solo limitan nuestras responsabilidades en la medida en que lo permita la legislación aplicable. Estos términos no limitan la responsabilidad en caso de:  fraude o información engañosa y fraudulenta
+muerte o lesiones personales causadas por negligencia
+negligencia grave
+conducta dolosa
+Exceptuando las responsabilidades descritas anteriormente, Google solo será responsable por su incumplimiento de los presentes términos o de los  términos adicionales específicos de los servicios  que sean aplicables, de conformidad con la ley aplicable.
+Solo para usuarios empresariales y organizaciones
+Si eres un  usuario empresarial  o una  organización :
+En la medida en que la legislación aplicable lo permita,  indemnizarás  a Google y a sus directivos, administradores, empleados y contratistas por las demandas de terceros (incluidas las acciones que lleven a cabo las autoridades gubernamentales) que se puedan derivar o estén relacionados con tu uso ilícito de los  servicios  o la infracción de los presentes términos o de los  términos adicionales específicos de los servicios . Esta indemnización cubre cualquier responsabilidad o gasto que se derive de reclamaciones, pérdidas, daños, sentencias, multas, costes procesales y honorarios por servicios jurídicos, excepto en la medida en que una responsabilidad o gasto esté causado por el incumplimiento, la negligencia o la conducta dolosa de Google.
+Si estás legalmente exento de ciertas responsabilidades, incluida la  indemnización , dichas responsabilidades no se te aplican. Por ejemplo, las Naciones Unidas gozan de inmunidad frente a ciertas obligaciones legales, y estos términos no prevalecen sobre esa inmunidad.
+Salvo que se indique lo contrario en la sección   Para todos los usuarios   anterior, Google no tendrá  responsabilidad  por:  Lucro cesante, ingresos, oportunidades de negocio, fondo de comercio o ahorros previstos
+Pérdidas indirectas o derivadas
+Daños punitivos
+Salvo que se indique lo contrario en la sección   Para todos los usuarios   anterior, la responsabilidad total de Google que se derive o esté relacionada con los presentes términos se limita al importe que sea mayor entre estos dos: (1) 500 USD o (2) el 125 % de las tarifas que hayas pagado para usar los servicios en cuestión durante los 12 meses anteriores al incumplimiento.
+Medidas que tomamos en caso de problemas
+Antes de tomar las medidas que se indican más abajo, te avisaremos con suficiente antelación cuando sea razonablemente posible, te explicaremos los motivos de nuestras acciones y te daremos la oportunidad de aclarar y abordar el problema, a menos que tengamos razones suficientes para pensar que hacerlo podría:
+Provocar daños o incurrir en  responsabilidades  para un usuario, un tercero o Google.
+Infringir la ley o una orden de una autoridad judicial.
+Poner en peligro una investigación.
+Poner en peligro el funcionamiento, integridad o seguridad de nuestros  servicios .
+Retirar tu contenido
+Si tenemos razones suficientes para creer que alguno de  tus contenidos  (1) incumple estos términos, o bien  las políticas o los términos adicionales específicos de los servicios ; (2) infringe la legislación aplicable; o (3) podría dañar a nuestros usuarios, a terceros o a Google, nos reservamos el derecho de retirar parte o la totalidad de dicho contenido de acuerdo con la legislación aplicable. Algunos ejemplos son: la pornografía infantil, el contenido que facilita el tráfico de personas o el acoso, el contenido de carácter terrorista, y el contenido que infringe los  derechos de propiedad intelectual  de otro individuo.
+Suspender o cancelar tu acceso a los servicios de Google
+Sin limitar ninguno de nuestros otros derechos, Google puede suspender o cancelar tu acceso a los servicios o eliminar tu cuenta de Google en cualquiera de estos casos:
+Incumples de forma sustancial o repetida estos términos, los  términos adicionales específicos de los servicios o las políticas .
+Si estamos obligados a hacerlo para cumplir un requisito legal o una orden judicial.
+Si tenemos razones suficientes para creer que tu conducta (por ejemplo, hacking, suplantación de identidad, acoso, envío de spam, engaño o copia de contenido del que no eres el propietario) provoca daños o incurre en  responsabilidades  para un usuario, un tercero o Google.
+Para obtener más información sobre el motivo por el cual inhabilitamos cuentas y sobre lo que ocurre cuando lo hacemos, consulta esta  página del Centro de Ayuda . Si crees que tu cuenta de Google ha sido suspendida o cancelada por error,  puedes apelar  la decisión.
+Naturalmente, puedes dejar de usar nuestros servicios cuando quieras. Si lo haces,  te agradeceríamos que nos dijeras por qué  para poder seguir mejorando los servicios.
+Solucionar disputas, legislación aplicable y tribunales
+Para obtener más información sobre cómo ponerte en contacto con Google, accede a la  página de contacto .
+Las leyes del estado de California (Estados Unidos) rigen estos términos y cualquier disputa que se derive de estos términos o esté relacionada con ellos, los  términos adicionales específicos de los servicios  u otros  servicios  relacionados, con independencia de las normas de leyes en conflicto. Tanto Google como tú aceptáis someteros a la jurisdicción exclusiva de los tribunales federales o estatales del condado de Santa Clara (California) para solucionar estas disputas.
+En la medida en que la legislación local aplicable prohíba resolver ciertas disputas en un tribunal de California, puedes presentarlas ante tus tribunales locales. Asimismo, si la legislación local aplicable prohíbe a tus tribunales locales aplicar la ley de California para resolver las disputas, estas se regirán por la legislación local aplicable de tu país, estado u otro lugar de residencia.
+Sobre estos términos
+La ley te otorga determinados derechos que no se pueden limitar mediante un contrato como los presentes términos del servicio. El objetivo de los presentes términos no es en ningún caso el de restringir estos derechos.
+Estos términos describen la relación entre tú y Google. No crean ningún derecho legal para otras personas u  organizaciones , aunque estas se vean beneficiadas por dicha relación en virtud de los presentes términos.
+Queremos que estos términos sean fáciles de entender, así que hemos utilizado ejemplos sobre nuestros  servicios . Aunque es posible que algunos de los servicios que mencionemos no estén disponibles en tu país.
+En caso de conflicto entre los presentes términos y los  términos adicionales específicos de un servicio , prevalecerán estos últimos.
+En el caso de que un término determinado no sea válido o ejecutable, el resto de términos no se verán afectados.
+Si no cumples estos términos o los  términos adicionales específicos de los servicioss  y no tomamos ninguna medida al respecto de forma inmediata, no se entenderá que renunciamos a los derechos de los que podamos disponer como, por ejemplo, llevar a cabo acciones en el futuro.
+Google puede actualizar los presentes términos y los  términos adicionales específicos de sus servicios  (1) para reflejar las modificaciones que se producen en sus servicios o en su forma de hacer negocios; por ejemplo, cuando añade servicios, funciones, tecnologías, precios o ventajas (o elimina los que han quedado obsoletos); (2) por motivos legales, regulatorios o de seguridad; o (3) para evitar abusos o daños.
+Si modificamos de forma sustancial estos términos o  términos adicionales específicos de los servicios , te lo notificaremos con la debida antelación y te daremos la oportunidad de revisar los cambios, excepto (1) cuando lancemos un nuevo servicio o una nueva función; o (2) en situaciones urgentes, como en las que se busca prevenir abusos o responder a requisitos legales. Si no estás conforme con los nuevos términos, debes retirar  tu contenido  y dejar de usar los servicios correspondientes. También puedes poner fin en cualquier momento a la relación que mantienes con nosotros  cancelando tu cuenta de Google .
+Definiciones
+consumidor
+Individuo que utiliza los servicios de Google para fines personales, no comerciales y no relacionados con su actividad comercial, empresa, oficio o profesión. (Consulta la definición de "usuario empresarial")
+derechos de autor
+Un derecho legal que permite al creador de una obra original (como una entrada de blog, una foto o un vídeo) decidir si otros individuos pueden utilizar dicha obra y la forma en la que pueden hacerlo, de conformidad con ciertas limitaciones y excepciones (como el "uso legítimo").
+derechos de propiedad intelectual (derechos de IP)
+Derechos sobre las creaciones del ingenio humano, como inventos (derechos de patentes), obras artísticas y literarias (derechos de autor), diseños (derechos de diseño) y símbolos, nombres e imágenes comerciales (marcas). Los derechos de propiedad intelectual pueden ser propiedad tuya, de otro individuo o de una organización.
+entidad asociada
+Una entidad que pertenece al grupo de empresas de Google (es decir, Google LLC y sus filiales), incluidas las siguientes empresas que ofrecen servicios para consumidores en la UE: Google Ireland Limited, Google Commerce Limited y Google Dialer Inc.
+garantía
+Una promesa que asegura que un producto o servicio funcionará de acuerdo con ciertos parámetros.
+indemnizar o indemnización
+Obligación contractual que tiene un individuo o una organización de compensar las pérdidas que ha sufrido otro individuo u otra organización debido a un procedimiento legal como, por ejemplo, una demanda.
+marca
+Símbolos, nombres e imágenes comerciales que puedan distinguir los productos o servicios de un individuo o una organización de los de otro.
+organización
+Una entidad legal (como una empresa, una organización sin ánimo de lucro o un centro educativo), y no un individuo.
+renuncia de responsabilidad
+Una declaración que limita las responsabilidades legales de una persona.
+responsabilidad
+Pérdidas resultantes de cualquier tipo de reclamación legal, ya esté basada en un contrato, en culpa (incluida la negligencia) o en otras razones, y con independencia de si estas pérdidas se podrían haber o no previsto de forma razonable.
+servicios
+Los servicios de Google sujetos a estos términos son los productos y servicios que se indican en  https://policies.google.com/terms/service-specific , entre los que se incluyen:
+Aplicaciones y sitios web (como el buscador y Maps)
+Plataformas (como Google Shopping)
+Servicios integrados, como Maps insertado en aplicaciones o sitios web de otras empresas
+Dispositivos y otros bienes (como Google Nest)
+Muchos de estos servicios también incluyen contenido que puedes ver en streaming o con el que puedes interactuar.
+tu contenido
+Cosas que creas, subes, almacenas, envías, recibes o compartes con Google utilizando nuestros servicios como, por ejemplo:
+Documentos, hojas de cálculo y presentaciones que creas
+Entradas de blog que subes a través de Blogger
+Reseñas que envías a través de Maps
+Vídeos que almacenas en Drive
+Correos electrónicos que envías y recibes a través de Gmail
+Imágenes que compartes con amigos a través de Fotos
+Itinerarios de viajes que compartes con Google
+usuario empresarial
+Individuo o entidad que no es un consumidor (consulta la definición de "consumidor").
+versión específica de país
+Si tienes una cuenta de Google, la asociamos con un país (o territorio) para poder determinar lo siguiente:
+La  entidad asociada  de Google que te ofrece los  servicios  y trata tu información cuando los usas
+La versión específica de los términos que rige nuestra relación
+Si no inicias sesión, la versión específica de país se determina a partir de la ubicación en la que estés usando los servicios de Google. Si tienes una cuenta, puedes  iniciar sesión  y consultar estos términos para saber el país al que están asociados.
+close
+close
+Se abre en una nueva pestaña  (abre una nota a pie de página)
+Google
+Acerca de Google
+Privacidad
+Términos
+Centro de Transparencia
+Español
+Afrikaans
+Bahasa Indonesia
+Bahasa Melayu
+Català
+Čeština
+Dansk
+Deutsch
+Eesti
+English
+English (India)
+English (United Kingdom)
+Español
+Español (Latinoamérica)
+Euskara
+Filipino
+Français
+Français (Canada)
+Gaeilge
+Galego
+Hrvatski
+Isizulu
+Íslenska
+Italiano
+Kiswahili
+Latviešu
+Lietuvių
+Magyar
+Malti
+Nederlands
+Norsk
+Polski
+Português (Brasil)
+Português (Portugal)
+Română
+Slovenčina
+Slovenščina
+Srpski
+Suomi
+Svenska
+Tiếng Việt
+Türkçe
+অসমীয়া
+Ελληνικά
+Български
+ଓଡିଆ
+Русский
+Српски
+Українська
+‫עברית‬
+‫اردو‬
+‫العربية‬
+‫فارسی‬
+አማርኛ
+मराठी
+हिन्दी
+বাংলা
+ગુજરાતી
+தமிழ்
+తెలుగు
+ಕನ್ನಡ
+മലയാളം
+ไทย
+한국어
+中文 (香港)
+中文（简体中文）
+中文（繁體中文）
+日本語
+Aplicaciones de Google
+Menú principal

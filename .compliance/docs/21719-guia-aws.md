@@ -15,19 +15,13 @@ Lo que tiene AWS:
 
 - El **AWS GDPR Data Processing Addendum (DPA)**: AWS actúa como encargado del tratamiento
   ("processor") y se obliga a proteger los datos, notificar brechas, no usarlos para otros fines, etc.
-- **No se firma nada**: los Service Terms de AWS incluyen el DPA siempre que AWS trata datos del
-  cliente (§1.14.1).
-- **Ojo (leído el 2026-10-11):** el DPA también incorpora las Cláusulas Contractuales Tipo (SCC)
-  europeas, pero **solo se aplican a datos sujetos al RGPD que salen del Espacio Económico Europeo**
-  (DPA §12.2; Service Terms §1.14.3). No cubren los datos de fik. Lo que sí rige para fik son las
-  obligaciones de encargado del resto del DPA (resumidas en `21719-anexo-transferencias.md`).
+- Dentro del DPA, las **Cláusulas Contractuales Tipo (SCC)** de la Comisión Europea (versión 2021).
+- **No se firma nada**: AWS declara que el DPA y las SCC forman parte de sus términos de servicio
+  (Service Terms) y _"se aplican automáticamente siempre que un cliente usa los servicios de AWS"_.
 
-**Ojo: las SCC son europeas, y Chile ya tiene sus propias Cláusulas Contractuales Modelo**
-(Ministerio de Economía, Resolución RAEX202503748, Diario Oficial 19-12-2025; ver
-`21719-anexo-transferencias.md`). El DPA de AWS es el respaldo que existe hoy, pero no es el
-modelo chileno. Lo que habría que resolver con un abogado es si el DPA de AWS cubre las obligaciones
-de las cláusulas chilenas o si hay que anexarlas por referencia en `21719-dpa.md` (sin presupuesto para abogado hoy: ver "Cómo se aborda sin abogado" en el anexo). Los pasos de
-esta guía dejan reunida la evidencia para esa revisión.
+Las SCC son europeas. La Agencia de Protección de Datos chilena puede aprobar sus propios modelos
+de cláusulas; mientras no existan, las SCC del DPA de AWS son el respaldo disponible. Esto es lo
+que conviene confirmar con un abogado.
 
 ## Paso 1. Descargar el DPA (5 minutos)
 
@@ -35,7 +29,7 @@ esta guía dejan reunida la evidencia para esa revisión.
    (verificado el 2026-10-11: responde, versión publicada el 27-10-2023).
 2. Guárdalo en el repo como `.compliance/proveedores/aws/AWS_GDPR_DPA_descargado-AAAA-MM-DD.pdf`
    (con la fecha del día). La fecha en el nombre es la evidencia de qué versión regía.
-3. **Hecho el 2026-10-11:** guardado en `.compliance/proveedores/aws/` (idéntico al publicado por AWS).
+3. Ábrelo y confirma que trae las cláusulas: busca "Standard Contractual Clauses" o "SCC".
 
 Si el enlace dejara de funcionar: busca **"AWS GDPR Center"** en aws.amazon.com/compliance y descarga
 el "AWS GDPR Data Processing Addendum" desde ahí.
@@ -54,10 +48,8 @@ AWS Artifact es el portal de documentos de cumplimiento, dentro de la consola.
 
 1. Consola de AWS → busca **Artifact**.
 2. **Contratos → Acuerdos de la cuenta:** escribe "Data Processing" en el filtro.
-   - **Comprobado en la cuenta de fik (2026-10-11): no aparece.** El filtro "data" solo muestra el
-     _Australian_ y el _New Zealand Notifiable Data Breach Addendum_ y el _Healthcare and Life
-     Sciences BAA Addendum_. Es lo esperado: el DPA no se acepta aquí, ya rige por los Service Terms
-     (Pasos 1 y 2). No hay nada que aceptar en esta sección.
+   - Si aparece un "GDPR Data Processing Addendum", ábrelo y descárgalo también.
+   - Si no aparece, es normal: el DPA ya rige por los Service Terms (Paso 1).
    - **No aceptes** los demás acuerdos de esa lista: el _Business Associate Addendum (BAA)_ es para
      datos de salud de EE. UU. (HIPAA) y el _Australian/New Zealand Notifiable Data Breach Addendum_
      es para esos países. No aplican a fik.
@@ -68,8 +60,7 @@ AWS Artifact es el portal de documentos de cumplimiento, dentro de la consola.
 
 ## Paso 4. Anotar qué servicios y datos usa fik en AWS
 
-**Hecho el 2026-10-11:** quedó en `21719-anexo-transferencias.md`, sección 1, junto con Cloudflare,
-Resend e IPinfo. Si algo cambia (un servicio nuevo, otra región), actualizarlo ahí. Resumen:
+Completa en `21719-anexo-transferencias.md` (sección AWS):
 
 | Dato          | Valor                                                                                                                                                        |
 | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -77,14 +68,14 @@ Resend e IPinfo. Si algo cambia (un servicio nuevo, otra región), actualizarlo 
 | País / región | Estados Unidos, US East (Ohio) `us-east-2`                                                                                                                   |
 | Servicios     | EC2 (API), RDS PostgreSQL (base de datos), ECR (imágenes), Systems Manager / Parameter Store (configuración y secretos)                                      |
 | Datos         | Todos los datos de la cuenta del usuario: identificación (RUT, nombre, correo), datos financieros (cuentas, movimientos, deudas), sesiones (IP, dispositivo) |
-| Garantía      | AWS DPA (obligaciones de encargado), incluido en los Service Terms (Pasos 1 y 2)                                                                             |
+| Garantía      | AWS GDPR DPA + SCC, incorporados a los Service Terms (Pasos 1 y 2)                                                                                           |
 | Cifrado       | En tránsito (TLS) y en reposo (RDS y discos cifrados)                                                                                                        |
 | Evidencia     | `.compliance/proveedores/aws/`                                                                                                                               |
 
 ## Paso 5. Declararlo en la política de privacidad
 
 `21719-politica-privacidad.md` debe decir, en la sección de transferencias internacionales, que los
-datos se alojan en AWS en Estados Unidos, bajo el acuerdo de tratamiento de datos de AWS (**hecho el 2026-10-11**).
+datos se alojan en AWS en Estados Unidos, bajo cláusulas contractuales.
 
 ## Mantención
 
