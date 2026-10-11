@@ -12,11 +12,11 @@ Cloudflare ─── mifik.cl ─────► Cloudflare Pages (landing, apps
    │       └── app.mifik.cl ─► Cloudflare Pages (app, apps/web)
    │ HTTPS · certificado de origen · Authenticated Origin Pulls
    ▼ api.mifik.cl
-EC2 t4g.small, AWS São Paulo (sa-east-1)
+EC2 t4g.small, AWS Ohio (us-east-2)
    Docker: Caddy (TLS) → API NestJS
    │ red privada de AWS, TLS
    ▼
-RDS PostgreSQL 16 db.t4g.micro (sa-east-1), sin acceso público
+RDS PostgreSQL 16 db.t4g.micro (us-east-2), sin acceso público
 ```
 
 - **Solo Cloudflare llega al servidor:** el security group abre el puerto 443 solo a las IP de
@@ -24,8 +24,15 @@ RDS PostgreSQL 16 db.t4g.micro (sa-east-1), sin acceso público
   se entra con AWS Systems Manager (Session Manager).
 - **Sin load balancer ni NAT Gateway** (cada uno sumaría ~US$16–32/mes).
 - **ARM (Graviton):** ~20% más barato; GitHub Actions construye la imagen para `linux/arm64`.
-- **Costo aproximado:** EC2 ~US$15 + RDS ~US$15–18 + disco/respaldos ~US$3–5 + IP pública ~US$4
-  ≈ **US$35–40/mes**. Confírmalo en la calculadora de AWS para `sa-east-1`.
+- **Costo (precios de AWS, 2026-10-11, 730 h/mes):** EC2 US$12,3 + disco 20 GB US$1,6 + IP pública
+  US$3,7 + RDS US$11,7 + disco RDS 20 GB US$2,3 ≈ **US$32/mes**. Todo se cobra por hora de existencia,
+  no por uso.
+- **Por qué Ohio y no São Paulo (2026-10-11):** São Paulo costaba ≈ US$55/mes con el mismo diseño
+  (EC2 US$0,0268/h y RDS US$0,034/h contra US$0,0168 y US$0,016). Medido desde Chile, Ohio suma
+  ~100 ms por llamada (~170 ms contra ~66 ms); Virginia cuesta lo mismo con ~10 ms menos, pero es la
+  región con más caídas grandes. México no conviene (mismo precio, más latencia). AWS aún no abre
+  Santiago. Mudarse después: réplica de RDS entre regiones + promover, servidor recreado con estos
+  scripts, IP nueva en Cloudflare.
 
 ## 1. Cuenta de AWS
 
@@ -33,8 +40,9 @@ RDS PostgreSQL 16 db.t4g.micro (sa-east-1), sin acceso público
 2. **MFA en el usuario raíz** (_Security credentials → Assign MFA device_).
 3. Un **usuario administrador** aparte para el día a día (IAM Identity Center o IAM). El raíz
    queda solo para facturación.
-4. **Alerta de presupuesto:** _Billing → Budgets_ → US$40/mes, aviso al 80% y al 100%.
-5. Región arriba a la derecha: **South America (São Paulo) `sa-east-1`**. Todo va ahí.
+4. **Alerta de presupuesto:** _Billing → Budgets_ → US$45/mes, aviso al 80% y al 100% (y al 100%
+   proyectado). Es una alarma, no un tope: AWS sigue cobrando.
+5. Región arriba a la derecha: **US East (Ohio) `us-east-2`**. Todo va ahí.
 
 ## 2. Red y firewalls (VPC por defecto)
 
@@ -61,8 +69,12 @@ consultar mindicador.cl e IPinfo.
   `default`).
 - Nombre inicial de la base: **`fik`**.
 - Respaldos automáticos: **7 días**. Cifrado: **activado**. **Deletion protection: activado**.
+  En el **plan gratuito** de AWS (cuentas nuevas desde 2025, con créditos) el máximo es **1 día**
+  (`FreeTierRestrictionError`): la base se creó así el 2026-10-11 (PostgreSQL 16.15). Al pasar al
+  plan pagado, subirlo a 7 con `aws rds modify-db-instance` (`--db-instance-identifier fik-db
+  --backup-retention-period 7 --apply-immediately`).
 
-Al terminar, copiar el **endpoint** (`fik-db.xxxx.sa-east-1.rds.amazonaws.com`).
+Al terminar, copiar el **endpoint** (`fik-db.xxxx.us-east-2.rds.amazonaws.com`).
 
 > Más adelante conviene crear un usuario `fik_app` con permisos solo sobre la base `fik` y que el API
 > use ese en vez de `fik_admin`. Para el primer despliegue puede usarse el maestro.
@@ -213,7 +225,9 @@ _Workers & Pages → Create → Pages → Connect to Git_ → este repo. Dos pro
 - **Si `prisma migrate deploy` rechaza el certificado de RDS** en el primer despliegue: probar
   `DIRECT_DATABASE_URL` con `?sslmode=require&sslaccept=accept_invalid_certs` (sigue cifrado, dentro
   de la red privada de AWS) y anotar el resultado aquí.
-- **Ley 21.719:** los datos quedan en Brasil: antes de tener usuarios reales, aceptar con AWS el
+- **Ley 21.719:** los datos quedan en Estados Unidos: antes de tener usuarios reales, aceptar con AWS el
   mecanismo de transferencia (cláusulas contractuales modelo) y declararlo en la política de
   privacidad (`.compliance/docs/21719-anexo-transferencias.md`). Lo mismo con Resend.
-- **Región Santiago:** cuando AWS la abra, mover la base con una réplica entre regiones y promoverla.
+- **Región Santiago (o volver a São Paulo):** cuando AWS la abra, mover la base con una réplica
+  entre regiones y promoverla (minutos de corte), recrear el servidor con estos scripts y cambiar la
+  IP de `api` en Cloudflare.
