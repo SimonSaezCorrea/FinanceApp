@@ -13,6 +13,8 @@ export interface UserEmailRepositoryPort {
   /** Ownership-scoped: null when the row doesn't exist or belongs to another user. */
   findOwned(userId: string, id: string): Promise<UserEmailProps | null>;
   findById(id: string): Promise<UserEmailProps | null>;
+  /** Same, inside a transaction: what a verification link reads before acting on the row. */
+  findByIdWithTx(tx: unknown, id: string): Promise<UserEmailProps | null>;
   /** The account's first address (registration). */
   createPrimaryWithTx(
     tx: unknown,
@@ -28,11 +30,14 @@ export interface UserEmailRepositoryPort {
     address: string,
     now: Date,
   ): Promise<UserEmailProps>;
-  /** Confirms the current primary in place. */
-  markVerifiedWithTx(tx: unknown, id: string, at: Date): Promise<void>;
+  /** Confirms the primary in place, only if it is still the unconfirmed primary. Returns
+   * whether it did (false = it changed meanwhile: the caller rolls back). */
+  markVerifiedWithTx(tx: unknown, id: string, at: Date): Promise<boolean>;
   /** Confirms a pending address: the current primary moves to history, then the pending one
-   * becomes the confirmed primary (in that order, for the one-primary index). */
-  promotePendingWithTx(tx: unknown, userId: string, pendingId: string, at: Date): Promise<void>;
+   * becomes the confirmed primary (in that order, for the one-primary index) — only if it is
+   * still PENDING. Returns whether it did (false = it was replaced or removed meanwhile: the
+   * caller rolls back, which also restores the primary). */
+  promotePendingWithTx(tx: unknown, userId: string, pendingId: string, at: Date): Promise<boolean>;
   /** Deletes a row that is not the primary; returns whether one was deleted. */
   removeOwned(userId: string, id: string): Promise<boolean>;
   /** Account deletion: every address of the account goes (they identify the person). */

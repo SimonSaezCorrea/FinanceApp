@@ -2371,7 +2371,8 @@
       "remove": "Delete {{address}}",
       "removeTitle": "Delete this email?",
       "removeDescription": "{{address}} stops showing on your account. If it was pending, its link stops working.",
-      "removeConfirm": "Delete"
+      "removeConfirm": "Delete",
+      "stepUp": "To change or delete an email of your account, confirm it’s you. We won’t ask again for 5 minutes."
     }
   },
   "errors": {
@@ -2489,7 +2490,8 @@
     "EMAIL_RATE_LIMITED": "You asked for several emails in a row. Wait a while and try again.",
     "EMAIL_UNAVAILABLE": "Sending emails is not available right now.",
     "EMAIL_NOT_FOUND": "That email is not in your list.",
-    "EMAIL_PRIMARY_NOT_DELETABLE": "You cannot delete your main email."
+    "EMAIL_PRIMARY_NOT_DELETABLE": "You cannot delete your main email.",
+    "STEP_UP_REQUIRED": "Confirm it’s you to make this change."
   },
   "exchangeRates": {
     "title": "Exchange rates",

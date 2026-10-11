@@ -2078,7 +2078,14 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
     `AccountEmailService` is the ONE place that issues links and sends; it never throws. Endpoints:
     `POST /auth/email/verify` (public), `POST /auth/email/verification` (resend, 202),
     `GET/POST /auth/me/emails` (request a change = add a PENDING row + send its link; the address
-    only changes when that link is opened, and the old confirmed address is told), `POST
+    only changes when that link is opened, and the old confirmed address is told; **changing or
+    deleting an address needs a recent step-up** of the caller's session — the same 5-minute one
+    closing another session uses: TOTP or a passkey when the account has one, the password only
+    when it has neither — checked BEFORE anything else, so a stolen session can't change the email
+    and then recover the password, nor learn which addresses are taken; web: `useStepUp` reopens
+    `StepUpPanel` on `STEP_UP_REQUIRED` and retries; verifying a link reads the address and writes
+    inside one transaction, the account row locked, with conditional updates, and replacing a
+    pending address voids its links), `POST
 /auth/password/forgot` (public, **always 202 `{}`**, the lookup by RUT happens after answering;
     only a confirmed address of an ACTIVE account gets a link), `POST /auth/password/reset` (public;
     one transaction: consume, new hash, `User.resetPassword` clears the login lockout, closes EVERY

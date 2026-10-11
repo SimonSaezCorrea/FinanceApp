@@ -51,6 +51,10 @@ createdAt: string, replacedAt: string | null }`
 
 ### `POST /auth/me/emails`
 
+> Requiere una verificación reciente de la sesión (la misma de cerrar otra sesión, 5 min): TOTP o
+> llave de acceso si la cuenta tiene, contraseña solo si no tiene ninguna. Sin ella: `403
+STEP_UP_REQUIRED`, antes de cualquier otra validación.
+
 Pide cambiar el correo: registra la dirección como pendiente y le envía el enlace.
 
 - Body: `{ address: string }` (email válido)
@@ -61,6 +65,8 @@ Pide cambiar el correo: registra la dirección como pendiente y le envía el enl
 - `503 EMAIL_UNAVAILABLE`
 
 ### `DELETE /auth/me/emails/:id`
+
+> Misma verificación reciente que `POST /auth/me/emails` (`403 STEP_UP_REQUIRED`).
 
 - `:id` validado con `rowId`
 - `204`

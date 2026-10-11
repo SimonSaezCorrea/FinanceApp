@@ -23,10 +23,13 @@ export function StepUpPanel({
   open,
   onOpenChange,
   onVerified,
+  description,
 }: Readonly<{
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onVerified: (verifiedUntil: Date) => void;
+  /** Why it is asked (defaults to closing another session's wording). */
+  description?: string;
 }>) {
   const { t } = useTranslation();
   const { user } = useAuth();
@@ -108,7 +111,7 @@ export function StepUpPanel({
       onOpenChange={close}
       onConfirm={() => void submitCodeOrPassword()}
       title={t("profile.security.stepUp.title")}
-      description={t("profile.security.stepUp.description")}
+      description={description ?? t("profile.security.stepUp.description")}
       confirmLabel={t("profile.security.stepUp.confirm")}
       destructive={false}
       loading={submitting}

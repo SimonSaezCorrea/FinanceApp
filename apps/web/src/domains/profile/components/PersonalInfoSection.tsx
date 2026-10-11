@@ -20,6 +20,7 @@ import {
 } from "../hooks/useCountryCallingCode";
 import { useAvailableIdentifierTypes } from "../hooks/useIdentifierTypes";
 import { useProfileMutations } from "../hooks/useProfile";
+import { useStepUp } from "../hooks/useStepUp";
 import { pendingEmail, useUserEmailMutations, useUserEmails } from "../hooks/useUserEmails";
 
 /** One datum = one row. Clicking a row opens it; each row saves on its own. */
@@ -141,6 +142,8 @@ export function PersonalInfoSection() {
   const { updateProfile } = useProfileMutations();
   const { requestChange: requestEmailChange } = useUserEmailMutations();
   const pending = pendingEmail(useUserEmails().data?.items);
+  // Changing the email can lead to taking the account: the API asks for a recent step-up.
+  const { needsStepUp, stepUpPanel } = useStepUp(t("profile.emails.stepUp"));
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [editing, setEditing] = useState<PersonalFieldKey | null>(null);
@@ -262,6 +265,7 @@ export function PersonalInfoSection() {
       clearTimeout(savedTimer.current);
       savedTimer.current = setTimeout(() => setSaved(null), SAVED_BADGE_MS);
     } catch (err) {
+      if (needsStepUp(err, () => void save(field))) return;
       const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
       setError(t(`errors.${code}`));
     }
@@ -541,6 +545,7 @@ export function PersonalInfoSection() {
           </div>
         ))}
       </div>
+      {stepUpPanel}
       <ConfirmModal
         open={blocker.state === "blocked"}
         onOpenChange={(open) => {

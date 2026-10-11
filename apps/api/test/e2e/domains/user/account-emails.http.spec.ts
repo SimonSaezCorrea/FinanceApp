@@ -106,6 +106,32 @@ describe("Account emails HTTP (e2e)", () => {
     expect(res.status).toBe(400);
   });
 
+  it("changing or deleting an address needs a recent step-up, and says nothing before it", async () => {
+    const change = await request(app.getHttpServer())
+      .post("/api/v1/auth/me/emails")
+      .set("Cookie", cookies)
+      .send({ address: otherEmail });
+    // Not EMAIL_TAKEN: without the step-up, nothing reveals which addresses exist.
+    expect(change.status).toBe(403);
+    expect(change.body.error.code).toBe("STEP_UP_REQUIRED");
+
+    const list = await request(app.getHttpServer())
+      .get("/api/v1/auth/me/emails")
+      .set("Cookie", cookies);
+    const remove = await request(app.getHttpServer())
+      .delete(`/api/v1/auth/me/emails/${list.body.items[0].id}`)
+      .set("Cookie", cookies);
+    expect(remove.status).toBe(403);
+    expect(remove.body.error.code).toBe("STEP_UP_REQUIRED");
+
+    // This account has no second factor, so its password is the step-up.
+    const stepUp = await request(app.getHttpServer())
+      .post("/api/v1/auth/sessions/step-up")
+      .set("Cookie", cookies)
+      .send({ method: "password", password });
+    expect(stepUp.status).toBe(200);
+  });
+
   it("asking for the current primary or another account's address is refused", async () => {
     const same = await request(app.getHttpServer())
       .post("/api/v1/auth/me/emails")

@@ -64,6 +64,27 @@ describe("PrismaUserEmailRepository (integration)", () => {
     expect(await repo.findPending(userId)).toBeNull();
   });
 
+  it("doesn't promote a pending address replaced meanwhile, and the rollback keeps the primary", async () => {
+    const primaryBefore = await repo.findPrimary(userId);
+    const stale = await prisma.$transaction((tx) =>
+      repo.addPendingWithTx(tx, userId, "stale@test.local", new Date()),
+    );
+    // A newer request replaces it before its link is used.
+    await prisma.$transaction((tx) =>
+      repo.addPendingWithTx(tx, userId, "newer@test.local", new Date()),
+    );
+
+    await expect(
+      prisma.$transaction(async (tx) => {
+        if (!(await repo.promotePendingWithTx(tx, userId, stale.id, new Date()))) {
+          throw new Error("not promoted");
+        }
+      }),
+    ).rejects.toThrow("not promoted");
+    expect((await repo.findPrimary(userId))?.id).toBe(primaryBefore!.id);
+    expect((await repo.findById(stale.id))?.status).toBe("PAST");
+  });
+
   it("removes only a non-primary address of its owner", async () => {
     const primary = await repo.findPrimary(userId);
     expect(await repo.removeOwned(userId, primary!.id)).toBe(false);

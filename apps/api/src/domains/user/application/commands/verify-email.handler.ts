@@ -53,29 +53,38 @@ export class VerifyEmailHandler extends BaseCommandHandler<VerifyEmailCommand, v
         now,
       );
       if (!token?.userEmailId) throw new EmailTokenInvalidError();
-      const target = await this.emails.findById(token.userEmailId);
-      if (!target || target.userId !== token.userId || !isConfirmable(target)) {
-        throw new EmailTokenInvalidError();
-      }
+      // Everything below reads and writes inside this transaction, the account row locked first,
+      // so a change requested or an address removed meanwhile can't be acted on halfway.
       const user = await this.users.findByIdForUpdateWithTx(tx, token.userId);
       if (!user) throw new EmailTokenInvalidError();
+      const target = await this.emails.findByIdWithTx(tx, token.userEmailId);
+      if (!target || target.userId !== user.id || !isConfirmable(target)) {
+        throw new EmailTokenInvalidError();
+      }
 
       if (target.status === "PRIMARY") {
-        await this.emails.markVerifiedWithTx(tx, target.id, now);
+        if (!(await this.emails.markVerifiedWithTx(tx, target.id, now))) {
+          throw new EmailTokenInvalidError();
+        }
         user.confirmPrimaryEmail(target.address, now);
         await this.users.saveWithTx(tx, user);
         return null;
       }
 
-      const previous = await this.emails.findPrimary(user.id);
-      await this.emails.promotePendingWithTx(tx, user.id, target.id, now);
+      // The previous primary, read from the locked account row (it mirrors the PRIMARY row).
+      const previous = user.email ? { address: user.email, verified: user.emailVerified } : null;
+      // Conditional: false when the pending address was replaced or removed meanwhile — throwing
+      // rolls back the primary's demotion too.
+      if (!(await this.emails.promotePendingWithTx(tx, user.id, target.id, now))) {
+        throw new EmailTokenInvalidError();
+      }
       user.confirmPrimaryEmail(target.address, now);
       await this.users.saveWithTx(tx, user);
       return previous
         ? new AccountSecurityEvent(user.id, "EMAIL_CHANGED", now, target.address, {
             address: previous.address,
             locale: user.locale,
-            verified: previous.verifiedAt !== null,
+            verified: previous.verified,
           })
         : null;
     });

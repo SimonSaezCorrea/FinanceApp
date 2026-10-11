@@ -20,6 +20,7 @@ import {
   EmailTakenError,
   EmailTokenInvalidError,
   EmailUnavailableError,
+  StepUpRequiredError,
 } from "../../../../../../src/domains/user/domain/errors";
 import type { AccountSecurityEvent } from "../../../../../../src/domains/user/domain/events/account-security.event";
 import type { UserEmailProps } from "../../../../../../src/domains/user-email/domain/user-email.entity";
@@ -67,14 +68,13 @@ function accountEmails(outcome: LinkOutcome = "sent", available = true) {
 const prisma = { $transaction: (fn: (tx: unknown) => unknown) => fn({}) } as never;
 
 describe("VerifyEmailHandler", () => {
-  function setup(target: UserEmailProps | null, consumed = true, previous?: UserEmailProps) {
+  function setup(target: UserEmailProps | null, consumed = true, stillValid = true) {
     const u = user();
     const publish = vi.fn();
     const emails = {
-      findById: vi.fn().mockResolvedValue(target),
-      findPrimary: vi.fn().mockResolvedValue(previous ?? null),
-      markVerifiedWithTx: vi.fn(),
-      promotePendingWithTx: vi.fn(),
+      findByIdWithTx: vi.fn().mockResolvedValue(target),
+      markVerifiedWithTx: vi.fn().mockResolvedValue(stillValid),
+      promotePendingWithTx: vi.fn().mockResolvedValue(stillValid),
     };
     const tokens = {
       consumeWithTx: vi
@@ -101,9 +101,8 @@ describe("VerifyEmailHandler", () => {
   });
 
   it("promotes a pending address and tells the previous confirmed one", async () => {
-    const previous = address({ id: "e0", verifiedAt: new Date() });
     const pending = address({ id: "e2", address: "new@test.local", status: "PENDING" });
-    const { handler, emails, publish } = setup(pending, true, previous);
+    const { handler, emails, publish } = setup(pending);
     await handler.execute(new VerifyEmailCommand(TOKEN));
     expect(emails.promotePendingWithTx).toHaveBeenCalledWith({}, "u1", "e2", expect.any(Date));
     const event = publish.mock.calls[0]![0] as AccountSecurityEvent;
@@ -116,6 +115,16 @@ describe("VerifyEmailHandler", () => {
     await expect(handler.execute(new VerifyEmailCommand(TOKEN))).rejects.toThrow(
       EmailTokenInvalidError,
     );
+  });
+
+  it("refuses a pending address replaced or removed while the link was being used", async () => {
+    const pending = address({ id: "e2", address: "new@test.local", status: "PENDING" });
+    const { handler, u, publish } = setup(pending, true, false);
+    await expect(handler.execute(new VerifyEmailCommand(TOKEN))).rejects.toThrow(
+      EmailTokenInvalidError,
+    );
+    expect(u.confirmPrimaryEmail).not.toHaveBeenCalled();
+    expect(publish).not.toHaveBeenCalled();
   });
 
   it("refuses a link whose address already left the registry", async () => {
@@ -173,8 +182,21 @@ describe("ResendVerificationHandler", () => {
 });
 
 describe("RequestEmailChangeHandler", () => {
-  function setup(opts: { owner?: unknown; available?: boolean; existing?: UserEmailProps } = {}) {
+  function setup(
+    opts: {
+      owner?: unknown;
+      available?: boolean;
+      existing?: UserEmailProps;
+      steppedUpAt?: Date | null;
+    } = {},
+  ) {
     const mail = accountEmails("sent", opts.available ?? true);
+    const tokens = { revokeActiveWithTx: vi.fn() };
+    const stepUp = {
+      steppedUpAt: vi
+        .fn()
+        .mockResolvedValue(opts.steppedUpAt === undefined ? new Date() : opts.steppedUpAt),
+    };
     const emails = {
       findPending: vi.fn().mockResolvedValue(opts.existing ?? null),
       addPendingWithTx: vi
@@ -188,23 +210,44 @@ describe("RequestEmailChangeHandler", () => {
         findByEmail: vi.fn().mockResolvedValue(opts.owner ?? null),
       } as never,
       emails as never,
+      tokens as never,
+      stepUp as never,
       mail,
       prisma,
     );
-    return { handler, emails, mail };
+    return { handler, emails, mail, tokens };
   }
 
   it("adds a pending address and sends its link", async () => {
-    const { handler, emails, mail } = setup();
-    const result = await handler.execute(new RequestEmailChangeCommand("u1", " New@Test.local "));
+    const { handler, emails, mail, tokens } = setup();
+    const result = await handler.execute(
+      new RequestEmailChangeCommand("u1", " New@Test.local ", "s1"),
+    );
     expect(emails.addPendingWithTx).toHaveBeenCalledWith(
       {},
       "u1",
       "new@test.local",
       expect.any(Date),
     );
+    // A link still pointing at a replaced pending address stops working.
+    expect(tokens.revokeActiveWithTx).toHaveBeenCalledWith(
+      {},
+      "u1",
+      "VERIFY_EMAIL",
+      expect.any(Date),
+    );
     expect(mail.sendVerification).toHaveBeenCalled();
     expect(result).toMatchObject({ address: "new@test.local", status: "PENDING" });
+  });
+
+  it("needs a recent step-up, checked before anything else", async () => {
+    for (const steppedUpAt of [null, new Date(Date.now() - 6 * 60 * 1000)]) {
+      const { handler, emails } = setup({ steppedUpAt, owner: { id: "u2" } });
+      await expect(
+        handler.execute(new RequestEmailChangeCommand("u1", "x@test.local", "s1")),
+      ).rejects.toThrow(StepUpRequiredError);
+      expect(emails.addPendingWithTx).not.toHaveBeenCalled();
+    }
   });
 
   it("reuses a pending address asked for seconds ago", async () => {
@@ -215,22 +258,22 @@ describe("RequestEmailChangeHandler", () => {
       createdAt: new Date(),
     });
     const { handler, emails } = setup({ existing });
-    await handler.execute(new RequestEmailChangeCommand("u1", "new@test.local"));
+    await handler.execute(new RequestEmailChangeCommand("u1", "new@test.local", "s1"));
     expect(emails.addPendingWithTx).not.toHaveBeenCalled();
   });
 
   it("refuses the current primary, another account's address, and a missing provider", async () => {
     await expect(
-      setup().handler.execute(new RequestEmailChangeCommand("u1", "ANA@test.local")),
+      setup().handler.execute(new RequestEmailChangeCommand("u1", "ANA@test.local", "s1")),
     ).rejects.toThrow(EmailAlreadyPrimaryError);
     await expect(
       setup({ owner: { id: "u2" } }).handler.execute(
-        new RequestEmailChangeCommand("u1", "x@test.local"),
+        new RequestEmailChangeCommand("u1", "x@test.local", "s1"),
       ),
     ).rejects.toThrow(EmailTakenError);
     const unavailable = setup({ available: false });
     await expect(
-      unavailable.handler.execute(new RequestEmailChangeCommand("u1", "x@test.local")),
+      unavailable.handler.execute(new RequestEmailChangeCommand("u1", "x@test.local", "s1")),
     ).rejects.toThrow(EmailUnavailableError);
     expect(unavailable.emails.addPendingWithTx).not.toHaveBeenCalled();
   });

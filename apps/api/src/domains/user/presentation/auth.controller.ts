@@ -486,7 +486,7 @@ export class AuthController {
     @Body(new ZodValidationPipe(auth.requestEmailChangeSchema)) body: auth.RequestEmailChange,
   ): Promise<auth.UserEmailResponse> {
     const item: auth.UserEmail = await this.commandBus.execute(
-      new RequestEmailChangeCommand(user.id, body.address),
+      new RequestEmailChangeCommand(user.id, body.address, user.sessionId),
     );
     return { item };
   }
@@ -498,7 +498,7 @@ export class AuthController {
     @CurrentUser() user: AuthUser,
     @Param(new ZodParamsPipe(userEmailIdParamsSchema)) params: { id: string },
   ): Promise<void> {
-    return this.commandBus.execute(new RemoveUserEmailCommand(user.id, params.id));
+    return this.commandBus.execute(new RemoveUserEmailCommand(user.id, params.id, user.sessionId));
   }
 
   /** Public, and always the same answer whether or not the RUT exists (research.md R9). */

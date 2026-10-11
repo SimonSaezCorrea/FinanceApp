@@ -77,9 +77,18 @@ export class PrismaUserEmailRepository implements UserEmailRepositoryPort {
     return rowToProps(row);
   }
 
-  async markVerifiedWithTx(tx: unknown, id: string, at: Date): Promise<void> {
+  async findByIdWithTx(tx: unknown, id: string): Promise<UserEmailProps | null> {
+    const row = await (tx as PrismaService).userEmail.findUnique({ where: { id } });
+    return row ? rowToProps(row) : null;
+  }
+
+  async markVerifiedWithTx(tx: unknown, id: string, at: Date): Promise<boolean> {
     const client = tx as PrismaService;
-    await client.userEmail.update({ where: { id }, data: { verifiedAt: at } });
+    const result = await client.userEmail.updateMany({
+      where: { id, status: "PRIMARY", verifiedAt: null },
+      data: { verifiedAt: at },
+    });
+    return result.count === 1;
   }
 
   async promotePendingWithTx(
@@ -87,16 +96,18 @@ export class PrismaUserEmailRepository implements UserEmailRepositoryPort {
     userId: string,
     pendingId: string,
     at: Date,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const client = tx as PrismaService;
     await client.userEmail.updateMany({
       where: { userId, status: "PRIMARY" },
       data: { status: "PAST", replacedAt: at },
     });
-    await client.userEmail.update({
-      where: { id: pendingId },
+    // Conditional: a pending row replaced or removed since the link was opened is not promoted.
+    const promoted = await client.userEmail.updateMany({
+      where: { id: pendingId, userId, status: "PENDING" },
       data: { status: "PRIMARY", verifiedAt: at },
     });
+    return promoted.count === 1;
   }
 
   async removeOwned(userId: string, id: string): Promise<boolean> {

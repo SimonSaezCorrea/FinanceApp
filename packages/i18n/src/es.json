@@ -2371,7 +2371,8 @@
       "remove": "Borrar {{address}}",
       "removeTitle": "¿Borrar este correo?",
       "removeDescription": "{{address}} deja de aparecer en tu cuenta. Si estaba pendiente, su enlace deja de servir.",
-      "removeConfirm": "Borrar"
+      "removeConfirm": "Borrar",
+      "stepUp": "Para cambiar o borrar un correo de tu cuenta, confirma que eres tú. No te lo volveremos a pedir por 5 minutos."
     }
   },
   "errors": {
@@ -2489,7 +2490,8 @@
     "EMAIL_RATE_LIMITED": "Pediste varios correos seguidos. Espera un rato e inténtalo de nuevo.",
     "EMAIL_UNAVAILABLE": "El envío de correos no está disponible en este momento.",
     "EMAIL_NOT_FOUND": "Ese correo no está en tu registro.",
-    "EMAIL_PRIMARY_NOT_DELETABLE": "No puedes borrar tu correo principal."
+    "EMAIL_PRIMARY_NOT_DELETABLE": "No puedes borrar tu correo principal.",
+    "STEP_UP_REQUIRED": "Confirma que eres tú para hacer este cambio."
   },
   "exchangeRates": {
     "title": "Tipos de cambio",

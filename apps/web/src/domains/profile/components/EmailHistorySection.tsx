@@ -8,6 +8,7 @@ import { ApiRequestError } from "@finance/client";
 import { Badge } from "../../../shared/ui/badge";
 import { Button } from "@finance/ui/src/shared/ui/button";
 import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
+import { useStepUp } from "../hooks/useStepUp";
 import { useUserEmailMutations, useUserEmails } from "../hooks/useUserEmails";
 import { ProfileListRowsSkeleton } from "./ProfileSectionSkeleton";
 
@@ -27,6 +28,7 @@ export function EmailHistorySection() {
   const { remove, resend } = useUserEmailMutations();
   const [toRemove, setToRemove] = useState<auth.UserEmail | null>(null);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const { needsStepUp, stepUpPanel } = useStepUp(t("profile.emails.stepUp"));
   const items = data?.items ?? [];
 
   const date = (iso: string) => new Date(iso).toLocaleDateString(i18n.language);
@@ -46,12 +48,17 @@ export function EmailHistorySection() {
   async function confirmRemove() {
     if (!toRemove) return;
     setMessage(null);
+    const target = toRemove;
+    setToRemove(null);
+    await removeEmail(target);
+  }
+
+  async function removeEmail(target: auth.UserEmail) {
     try {
-      await remove.mutateAsync(toRemove.id);
+      await remove.mutateAsync(target.id);
     } catch (err) {
+      if (needsStepUp(err, () => void removeEmail(target))) return;
       setMessage({ tone: "error", text: errorText(err) });
-    } finally {
-      setToRemove(null);
     }
   }
 
@@ -129,6 +136,7 @@ export function EmailHistorySection() {
         </p>
       ) : null}
 
+      {stepUpPanel}
       <ConfirmModal
         open={toRemove !== null}
         onOpenChange={(open) => {

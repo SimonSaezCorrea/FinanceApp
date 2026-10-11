@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { ApiRequestError } from "@finance/client";
+
 import { Providers } from "../../../app/providers";
 import i18n from "../../../i18n";
 import { EmailHistorySection } from "./EmailHistorySection";
@@ -98,5 +100,21 @@ describe("EmailHistorySection", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: i18n.t("profile.emails.resend") }));
     expect(await screen.findByText(i18n.t("profile.emails.resent"))).toBeDefined();
+  });
+
+  it("asks to confirm it's you when the API wants a recent step-up", async () => {
+    listEmails.mockResolvedValue({ items });
+    removeEmail.mockRejectedValueOnce(new ApiRequestError("STEP_UP_REQUIRED", 403));
+    renderSection();
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: i18n.t("profile.emails.remove", { address: "old@test.local" }),
+      }),
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: i18n.t("profile.emails.removeConfirm") }),
+    );
+    expect(await screen.findByText(i18n.t("profile.emails.stepUp"))).toBeDefined();
   });
 });
