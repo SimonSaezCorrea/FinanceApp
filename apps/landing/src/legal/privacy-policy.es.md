@@ -16,6 +16,7 @@ Si más adelante se constituye una sociedad, esta política se actualizará con 
 - **Datos financieros:** las cuentas que registras, saldos, movimientos de ingreso y gasto, categorías, tarjetas (solo los últimos 4 dígitos, nunca el número completo), deudas, compras en cuotas, gastos fijos, metas de ahorro y facturación de tarjetas de crédito.
 - **Seguridad de la sesión:** dirección IP, tipo de dispositivo y navegador, y el país aproximado desde donde inicias sesión.
 - **Correos:** si abriste los correos que te enviamos (ver sección 4).
+- **Visitas al sitio público** (mifik.cl, no la app): estadísticas agregadas de qué páginas se visitan, desde qué sitio llegaste, país, tipo de dispositivo y navegador, y qué tan rápido cargó la página. No usan cookies ni sirven para identificarte (ver sección 4).
 
 **Tratamos datos sensibles.** Según el artículo 2 letra g) de la Ley 21.719, la **situación socioeconómica** de una persona es un dato personal sensible, y eso es justamente lo que registras en _fik_. Por eso pedimos tu **consentimiento expreso**, separado del resto, para tratar tus datos financieros.
 
@@ -30,6 +31,7 @@ Si más adelante se constituye una sociedad, esta política se actualizará con 
 | Proteger tu cuenta (detectar accesos desde lugares o dispositivos nuevos, impedir accesos indebidos) | Interés legítimo                                                |
 | Enviarte correos sobre tu cuenta: confirmar tu correo, recuperar tu contraseña y avisos de seguridad | Ejecución del contrato                                          |
 | Saber si abriste esos correos                                                                        | Interés legítimo (confirmar que los avisos de seguridad llegan) |
+| Contar las visitas al sitio público y medir su velocidad                                             | Interés legítimo (saber si el sitio sirve y mejorarlo)          |
 
 **No enviamos publicidad** ni usamos tus datos para ningún fin distinto de los de esta tabla.
 
@@ -47,8 +49,9 @@ Para funcionar, _fik_ usa proveedores que tratan tus datos **por encargo nuestro
 
 - **Garantías:** cada proveedor se obliga, en su acuerdo de tratamiento de datos, a tratar tus datos solo según nuestras instrucciones, mantener medidas de seguridad, imponer las mismas obligaciones a sus subcontratistas, avisarnos sin demora de cualquier brecha y borrar los datos al terminar el servicio.
 - **Seguimiento de aperturas:** los correos llevan una imagen invisible que le avisa a Resend cuándo se abren. **No rastreamos en qué enlaces haces clic**: los enlaces para confirmar tu correo o recuperar tu contraseña van directo a mifik.cl.
+- **Estadísticas de visitas:** en el sitio público (no en la app) usamos Cloudflare Web Analytics, que cuenta visitas de forma agregada **sin cookies** y sin seguirte entre sitios. Nunca corre en las páginas de los enlaces que te enviamos por correo.
 - **IPinfo** distribuye sus datos con licencia CC BY-SA 4.0, que exige mostrar la atribución: está en Perfil → Seguridad.
-- **No vendemos** tus datos ni los compartimos con fines de publicidad. No usamos herramientas de analítica ni de marketing.
+- **No vendemos** tus datos ni los compartimos con fines de publicidad. No usamos herramientas de marketing ni analítica dentro de la app.
 
 ## 5. Por cuánto tiempo los guardamos
 

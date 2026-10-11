@@ -50,6 +50,12 @@ const title = notFound
   : t(lang, `landing.meta.${metaKey}.title`);
 const description = t(lang, `landing.meta.${metaKey}.description`);
 const image = `${site}/og/fik-${lang}.png`;
+// Visit statistics (Cloudflare Web Analytics: aggregated, no cookies), declared in the privacy
+// policy. Added here by hand instead of Cloudflare's automatic injection so it runs ONLY on the
+// public pages: never on the pages an email link opens (their address carries a one-time token
+// the beacon would send along with the URL), never on the 404, never in the app.
+const analyticsToken = import.meta.env.PUBLIC_CF_WEB_ANALYTICS_TOKEN?.trim();
+const analytics = analyticsToken && !unindexed ? JSON.stringify({ token: analyticsToken }) : null;
 // Structured data on the home page (both languages): tells Google the site is called "fik"
 // (also searched as "mifik") so brand searches show that name and lead here.
 const structuredData =
@@ -118,6 +124,16 @@ const structuredData =
     <meta property="og:locale" content={lang === "es" ? "es_CL" : "en_US"} />
     <meta name="twitter:card" content="summary_large_image" />
     {structuredData && <script type="application/ld+json" set:html={structuredData} />}
+    {
+      analytics && (
+        <script
+          is:inline
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon={analytics}
+        />
+      )
+    }
   </head>
   <body>
     <div class="min-h-dvh overflow-x-clip bg-background text-foreground">

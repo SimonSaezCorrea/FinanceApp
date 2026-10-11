@@ -18,6 +18,7 @@ If a company is incorporated later, this policy will be updated with its legal n
 - **Financial data:** the accounts you register, balances, income and expense movements, categories, cards (only the last 4 digits, never the full number), debts, instalment purchases, fixed expenses, savings goals and credit card statements.
 - **Session security:** IP address, device and browser type, and the approximate country you sign in from.
 - **Emails:** whether you opened the emails we send you (see section 4).
+- **Visits to the public site** (mifik.cl, not the app): aggregated statistics of which pages are visited, which site you came from, country, device and browser type, and how fast the page loaded. They use no cookies and cannot identify you (see section 4).
 
 **We process sensitive data.** Under article 2(g) of Law 21.719, a person's **socioeconomic situation** is sensitive personal data, and that is exactly what you record in _fik_. That is why we ask for your **express consent**, separate from everything else, to process your financial data.
 
@@ -25,13 +26,14 @@ If a company is incorporated later, this policy will be updated with its legal n
 
 ## 3. What we use it for, and on what basis
 
-| Purpose                                                                                     | Legal basis                                               |
-| ------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| Creating and managing your account                                                          | Performance of the contract                               |
-| Recording and showing your accounts, movements, cards, debts and savings (sensitive)        | Your express consent                                      |
-| Protecting your account (spotting sign-ins from new places or devices, stopping misuse)     | Legitimate interest                                       |
-| Emailing you about your account: confirming your email, password recovery, security notices | Performance of the contract                               |
-| Knowing whether you opened those emails                                                     | Legitimate interest (making sure security notices arrive) |
+| Purpose                                                                                     | Legal basis                                                           |
+| ------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Creating and managing your account                                                          | Performance of the contract                                           |
+| Recording and showing your accounts, movements, cards, debts and savings (sensitive)        | Your express consent                                                  |
+| Protecting your account (spotting sign-ins from new places or devices, stopping misuse)     | Legitimate interest                                                   |
+| Emailing you about your account: confirming your email, password recovery, security notices | Performance of the contract                                           |
+| Knowing whether you opened those emails                                                     | Legitimate interest (making sure security notices arrive)             |
+| Counting visits to the public site and measuring its speed                                  | Legitimate interest (knowing whether the site works and improving it) |
 
 **We do not send advertising** or use your data for anything other than the purposes in this table.
 
@@ -49,8 +51,9 @@ To work, _fik_ uses providers that process your data **on our behalf**: they may
 
 - **Safeguards:** in its data processing agreement, each provider commits to process your data only on our instructions, keep security measures, bind its subcontractors to the same obligations, tell us without delay about any breach and delete the data when the service ends.
 - **Open tracking:** our emails carry an invisible image that tells Resend when they are opened. **We do not track which links you click**: the links to confirm your email or recover your password go straight to mifik.cl.
+- **Visit statistics:** on the public site (not in the app) we use Cloudflare Web Analytics, which counts visits in aggregate **without cookies** and without following you across sites. It never runs on the pages of the links we email you.
 - **IPinfo** licenses its data under CC BY-SA 4.0, which requires showing the attribution: it is in Profile → Security.
-- **We do not sell** your data or share it for advertising. We use no analytics or marketing tools.
+- **We do not sell** your data or share it for advertising. We use no marketing tools, and no analytics inside the app.
 
 ## 5. How long we keep it
 

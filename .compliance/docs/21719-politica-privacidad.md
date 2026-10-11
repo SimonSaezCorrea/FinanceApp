@@ -48,7 +48,8 @@ Para funcionar, fik usa proveedores que tratan tus datos **por encargo nuestro**
 - **Seguimiento de aperturas:** los correos llevan una imagen invisible que le avisa a Resend cuándo se abren. No rastreamos en qué enlaces haces clic: los enlaces de confirmación y de recuperación van directo a `mifik.cl`.
 - **Comprobantes adjuntos** (almacenamiento de archivos): hoy **no está activo**. Si se activa, los archivos se guardarían en AWS, junto al resto de tus datos.
 - **IPinfo** tiene licencia de datos CC BY-SA 4.0, que exige atribución visible: la mostramos en Perfil → Seguridad.
-- No vendemos ni compartimos tus datos con fines de publicidad. No usamos herramientas de analítica ni de marketing.
+- **Estadísticas de visitas:** en el sitio público (no en la app), Cloudflare Web Analytics, agregado y sin cookies; nunca en las páginas de los enlaces de correo. Declarado también en las secciones 2 y 3 de la versión publicada.
+- No vendemos ni compartimos tus datos con fines de publicidad. No usamos herramientas de marketing ni analítica dentro de la app.
 
 ## 5. Por cuánto tiempo
 

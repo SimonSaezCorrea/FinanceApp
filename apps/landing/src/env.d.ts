@@ -5,6 +5,9 @@ interface ImportMetaEnv {
   readonly PUBLIC_API_URL?: string;
   readonly PUBLIC_APP_URL?: string;
   readonly PUBLIC_SITE_URL?: string;
+  /** Cloudflare Web Analytics site token (public by design: it ships in the page). Absent = no
+   * analytics at all (local, tests, previews). */
+  readonly PUBLIC_CF_WEB_ANALYTICS_TOKEN?: string;
 }
 
 interface ImportMeta {

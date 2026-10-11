@@ -142,6 +142,8 @@ describe("public site build", () => {
         expect(title(html)).toMatch(/· fik$/);
         expect(html).toContain("data-state=");
         expect(html).toContain(`<meta name="referrer" content="no-referrer"`);
+        // Visit statistics never run where the address carries a one-time token.
+        expect(html).not.toContain("cloudflareinsights");
       });
     }
   }

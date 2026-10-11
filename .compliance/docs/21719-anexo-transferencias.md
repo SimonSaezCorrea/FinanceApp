@@ -44,7 +44,7 @@
 - **Dónde:** red global de Cloudflare (el tráfico desde Chile normalmente entra por su nodo en Santiago, pero la empresa y parte del procesamiento están fuera de Chile).
 - **Servicios:** Cloudflare Pages (`mifik.cl`, `app.mifik.cl`), proxy y DNS de `api.mifik.cl`, reenvío de correo entrante de `@mifik.cl`.
 - **Datos transferidos:** la IP y el navegador de cada visita, y **todo el contenido de cada llamada al API**: Cloudflare termina el HTTPS en su borde y vuelve a cifrar hacia el servidor, así que ve en tránsito los datos financieros y las credenciales que viajan en esas llamadas. También los correos que llegan a `contacto@mifik.cl`.
-- **Finalidad:** entregar los sitios, proteger el API (solo Cloudflare puede llegar al servidor) y reenviar el correo de contacto.
+- **Finalidad:** entregar los sitios, proteger el API (solo Cloudflare puede llegar al servidor), reenviar el correo de contacto y, en el sitio público solamente, **contar visitas** (Cloudflare Web Analytics: página, origen, país, dispositivo y velocidad, agregados y sin cookies; nunca en la app ni en las páginas con token).
 - **Medidas ya implementadas:** HTTPS obligatorio (TLS 1.2 mínimo, 1.3 disponible); conexión Cloudflare → servidor con certificado de origen y autenticación mutua (Authenticated Origin Pulls).
 - **Garantía contractual hoy (leída el 2026-10-11):** el **Cloudflare Data Processing Addendum v6.4** (vigente desde el 3-04-2026), que forma parte del Self-Serve Subscription Agreement que acepta toda cuenta. Evidencia: `.compliance/proveedores/cloudflare/`. Lo más relevante para fik:
   - define la ley aplicable como **todas** las leyes de protección de datos que apliquen al tratamiento (no solo la europea o la de EE.UU.), así que cubre la Ley 21.719;
