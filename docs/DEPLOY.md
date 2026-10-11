@@ -224,7 +224,9 @@ _Workers & Pages → Create → Pages → Connect to Git_ → este repo. Dos pro
   riesgosa, tomar un _snapshot_ manual.
 - **IP de Cloudflare:** volver a correr `cloudflare-sg.sh` cada pocos meses.
 - **Si `prisma migrate deploy` rechaza el certificado de RDS:** `DIRECT_DATABASE_URL` verifica la
-  cadena (`sslcert=/certs/rds-global-bundle.pem&sslaccept=strict`). No bajarlo a
+  cadena (`sslcert=/certs/rds-ca.pem&sslaccept=strict`). Prisma lee solo el **primer** certificado
+  de ese archivo: con el paquete global de RDS fallaba (`P1011 ... self-signed certificate in
+certificate chain`, 2026-10-11), por eso `bootstrap-ec2.sh` extrae la raíz de la región a `rds-ca.pem`. No bajarlo a
   `accept_invalid_certs` sin entender por qué falla (ruta del certificado, versión de Prisma).
 - **Cambiar un secreto o agregar uno opcional** (`IPINFO_TOKEN`, `RESEND_API_KEY`):
   `aws ssm put-parameter --name /fik/prod/<NOMBRE> --type SecureString --overwrite --value ...`, y

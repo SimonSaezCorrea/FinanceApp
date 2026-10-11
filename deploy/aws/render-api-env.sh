@@ -49,9 +49,10 @@ done
 
 DB_BASE="postgresql://${DB_USER}:${V[DATABASE_PASSWORD]}@${DB_HOST}:5432/fik"
 # Only the Prisma CLI (migrations) reads DIRECT_DATABASE_URL, with Prisma's own TLS parameters:
-# sslcert is the CA to trust and sslaccept=strict makes it verify the chain. The app and the seed
-# use DATABASE_URL (node-postgres, verify-full against NODE_EXTRA_CA_CERTS).
-RDS_CA="/certs/rds-global-bundle.pem"
+# sslcert is the CA to trust and sslaccept=strict makes it verify the chain. Prisma reads only the
+# first certificate of that file, hence the single root (bootstrap-ec2.sh), not the global bundle.
+# The app and the seed use DATABASE_URL (node-postgres, verify-full against NODE_EXTRA_CA_CERTS).
+RDS_CA="/certs/rds-ca.pem"
 
 umask 077
 tmp="$(mktemp "${OUT}.XXXX")"

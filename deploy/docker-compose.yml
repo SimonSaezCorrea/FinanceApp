@@ -32,6 +32,8 @@ services:
       NODE_EXTRA_CA_CERTS: /certs/rds-global-bundle.pem
     volumes:
       - ./certs/rds-global-bundle.pem:/certs/rds-global-bundle.pem:ro
+      # The single root CA Prisma's migration engine verifies against (see bootstrap-ec2.sh).
+      - ./certs/rds-ca.pem:/certs/rds-ca.pem:ro
     command:
       ["sh", "-c", "npx --no-install prisma migrate deploy && npx --no-install tsx prisma/seed.ts"]
     profiles: ["tools"]
