@@ -11,9 +11,10 @@
  *   4. Push the Prisma schema (creates every table from scratch).
  *   5. Run the seed.
  *
- * Nothing is in production, so wiping the volume is intentional and safe.
+ * It only ever touches the LOCAL Docker database (production lives on AWS RDS), so wiping the
+ * volume is intentional and safe.
  * Requires Docker (Desktop/Engine) running. Credentials live in docker-compose.yml
- * and must match apps/api/.env (postgres/simon789 @ localhost:5432/financeApp).
+ * and must match apps/api/.env (postgres/simon789 @ localhost:5432/fik).
  */
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -81,7 +82,7 @@ runSafe("docker compose down -v --remove-orphans");
 run("docker compose up -d db");
 
 // 3: wait until Postgres accepts connections.
-waitForHealthy("financeapp-db");
+waitForHealthy("fik-db");
 
 // 4: create the schema fresh by applying every migration (apps/api/prisma/migrations).
 run("pnpm --filter @finance/api exec prisma migrate deploy");
