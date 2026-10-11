@@ -1,5 +1,5 @@
 # Local PostgreSQL for fik dev. Credentials match apps/api/.env
-# (postgres/simon789 @ localhost:5432, db "fik"). The volume keeps its original name
+# (postgres/fik_123_docker_local @ localhost:5432, db "fik"). The volume keeps its original name
 # (financeapp-pgdata) so existing local data survives the 2026-10-11 rename.
 # Reset from scratch with: pnpm db:reset  (see scripts/db-reset.mjs)
 services:
@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: simon789
+      POSTGRES_PASSWORD: fik_123_docker_local
       POSTGRES_DB: fik
     ports:
       - "5432:5432"

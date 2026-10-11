@@ -14,7 +14,7 @@
  * It only ever touches the LOCAL Docker database (production lives on AWS RDS), so wiping the
  * volume is intentional and safe.
  * Requires Docker (Desktop/Engine) running. Credentials live in docker-compose.yml
- * and must match apps/api/.env (postgres/simon789 @ localhost:5432/fik).
+ * and must match apps/api/.env (postgres/fik_123_docker_local @ localhost:5432/fik).
  */
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";

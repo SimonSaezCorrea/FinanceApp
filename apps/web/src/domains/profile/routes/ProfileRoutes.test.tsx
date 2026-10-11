@@ -148,9 +148,12 @@ describe("two panes or one column, by the profile's own width", () => {
 });
 
 describe("leaving a section with an unsaved edit", () => {
+  // The section is a lazy route: on a loaded CI runner it took longer than findBy's default 1 s
+  // (failed once on main, 2026-10-11, passing 5/5 locally), so give it a realistic margin.
+  const SLOW = { timeout: 5000 };
   async function startEditingPhone() {
-    fireEvent.click(await screen.findByText(i18n.t("profile.edit.phone")));
-    return screen.findByLabelText(i18n.t("profile.edit.phone"));
+    fireEvent.click(await screen.findByText(i18n.t("profile.edit.phone"), undefined, SLOW));
+    return screen.findByLabelText(i18n.t("profile.edit.phone"), undefined, SLOW);
   }
   const securityLink = () =>
     screen.getByRole("link", { name: new RegExp(i18n.t("profile.sections.security.title")) });
