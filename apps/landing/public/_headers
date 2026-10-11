@@ -4,3 +4,15 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
+
+# The pages an email link opens carry a one-time token in the address (specs/032): never cached,
+# and never sent on in a Referer (the page also says so in a <meta>).
+/:lang/verify-email/
+  ! Referrer-Policy
+  Referrer-Policy: no-referrer
+  Cache-Control: no-store
+
+/:lang/reset-password/
+  ! Referrer-Policy
+  Referrer-Policy: no-referrer
+  Cache-Control: no-store

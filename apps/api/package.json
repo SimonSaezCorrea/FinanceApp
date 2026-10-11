@@ -12,6 +12,7 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:seed": "tsx prisma/seed.ts",
+    "email:preview": "tsx scripts/email-preview.ts",
     "db:deploy": "prisma migrate deploy && tsx prisma/seed.ts",
     "test:unit": "vitest run test/unit",
     "test:integration": "vitest run test/integration",

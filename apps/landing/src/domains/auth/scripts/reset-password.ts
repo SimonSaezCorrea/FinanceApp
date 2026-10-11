@@ -1,4 +1,4 @@
-import { postLink, showState, tokenFromLocation } from "./email-link";
+import { forgetTokenInAddress, postLink, showState, tokenFromLocation } from "./email-link";
 
 /** The API's own floor for a password (same as registration). */
 export const MIN_PASSWORD_LENGTH = 8;
@@ -21,8 +21,10 @@ export function initResetPassword(
   root: ParentNode = document,
   search: string = location.search,
   post: typeof postLink = postLink,
+  forget: () => void = forgetTokenInAddress,
 ): void {
   const token = tokenFromLocation(search);
+  forget();
   if (!token) {
     showState(root, "invalid");
     return;

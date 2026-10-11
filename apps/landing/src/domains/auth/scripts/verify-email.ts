@@ -1,4 +1,4 @@
-import { postLink, showState, tokenFromLocation } from "./email-link";
+import { forgetTokenInAddress, postLink, showState, tokenFromLocation } from "./email-link";
 
 /**
  * "Confirma tu correo" landing (specs/032 US1): the page opens, confirms the address with the
@@ -8,8 +8,10 @@ export async function initVerifyEmail(
   root: ParentNode = document,
   search: string = location.search,
   post: typeof postLink = postLink,
+  forget: () => void = forgetTokenInAddress,
 ): Promise<void> {
   const token = tokenFromLocation(search);
+  forget();
   if (!token) {
     showState(root, "invalid");
     return;

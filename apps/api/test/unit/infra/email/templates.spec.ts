@@ -37,6 +37,7 @@ describe("email templates", () => {
     expect(out.subject).toBe(es.verifyEmail.subject);
     expect(out.html).toContain(`href="${link}"`);
     expect(out.html).toContain('lang="es"');
+    expect(out.html).toContain('src="cid:fik-logo"');
     expect(out.text).toContain(link);
     expect(out.text).toContain("simon@mifik.cl");
     expect(out.text).not.toMatch(/<[a-z]/i);

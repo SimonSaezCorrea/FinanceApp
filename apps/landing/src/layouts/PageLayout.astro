@@ -62,6 +62,8 @@ const image = `${site}/og/fik-${lang}.png`;
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
     <meta name="description" content={description} />
+    {/* An email link carries a one-time token in the address: never pass it on (specs/032). */}
+    {utility && <meta name="referrer" content="no-referrer" />}
     {
       unindexed ? (
         <meta name="robots" content="noindex" />

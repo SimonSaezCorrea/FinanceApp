@@ -1,11 +1,20 @@
 import { ConfigService } from "@nestjs/config";
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { readEmailConfig } from "../../../../src/infra/email/email.config";
 
 const config = (values: Record<string, string>) => new ConfigService(values);
 
 describe("readEmailConfig", () => {
+  // ConfigService falls back to process.env, which the test setup fills from apps/api/.env: blank
+  // these so a developer's own values never change what the defaults look like here.
+  beforeEach(() => {
+    for (const key of ["EMAIL_FROM", "EMAIL_REPLY_TO", "PUBLIC_SITE_URL", "RESEND_API_KEY"]) {
+      vi.stubEnv(key, "");
+    }
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
   it("delivers for real only in production with a Resend key", () => {
     const c = readEmailConfig(config({ NODE_ENV: "production", RESEND_API_KEY: "re_key" }));
     expect(c.delivery).toBe("resend");

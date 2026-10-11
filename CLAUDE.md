@@ -32,6 +32,7 @@ Package manager is **pnpm**; the monorepo is orchestrated by **Turborepo** (root
 - `pnpm check:boundaries` — enforce import boundaries (`scripts/check-boundaries.mjs`)
 - CI (`.github/workflows/ci.yml`) also gates on `pnpm format:check`, `turbo run lint` and **`pnpm audit --audit-level=high`** — advisories are fixed with `pnpm.overrides` in the root `package.json` (today: `postcss`, `brace-expansion`, `fast-uri`, `find-my-way`, `deepmerge-ts`, `moment` [via `date-holidays`], `exceljs>uuid` [the node build; the browser one ships its own bundled copy and only calls `v4`]) or, when a finding genuinely doesn't apply to this app, added to `pnpm.auditConfig.ignoreGhsas` with a reason — e.g. **GHSA-rj75-hqrm-r3gf** (`postcss-selector-parser` < 7.1.6, quadratic selector parsing): Tailwind 3 pins `^6.1.2` and only parses this repo's own CSS at build time, so there is no untrusted input to exhaust; it goes away with Tailwind 4. CI runs a **`postgres:16-alpine` service** so `test:integration`/`test:e2e` hit a real DB (`prisma migrate deploy` before the tests, then `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code`, which fails when `schema.prisma` changed without its migration); `DATABASE_URL` is declared in `turbo.json`'s `test` task `env` because Turborepo hides undeclared env vars from tasks
 - **Schema changes are Prisma MIGRATIONS** (`apps/api/prisma/migrations/`, since 2026-10-10; `db push` and `pnpm db:push` are gone). Change `schema.prisma`, then `pnpm db:migrate` (`prisma migrate dev`): it writes a new `migrations/<timestamp>_<name>/migration.sql` and applies it locally — commit that SQL with the schema change, and edit it by hand when a change needs data moved (a rename is otherwise a drop + add). `20261010000000_init` is the baseline of the schema as it was; a database created earlier with `db push` is adopted with `pnpm --filter @finance/api exec prisma migrate resolve --applied 20261010000000_init` (only after `prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma` says "No difference detected").
+- `pnpm --filter @finance/api email:preview` — renders every account email (specs/032) in es/en with sample data into `<tmp>/fik-email-preview/` (+ `index.html` listing them) and prints the path; sends nothing, touches no database (`apps/api/scripts/email-preview.ts`, run with `tsx`)
 - `pnpm db:seed` — seed in `apps/api` (the sole DB owner)
 - `pnpm db:reset` — **Docker-based full reset** (`scripts/db-reset.mjs`): tears down the Postgres container + volume (`docker-compose.yml`), recreates it, applies the migrations (`prisma migrate deploy`), then seeds. Wipes all data (dev only). Requires Docker.
 - `pnpm --filter @finance/api db:deploy` — production schema + catalogue: `prisma migrate deploy` (applies the pending migrations, never generates one) then the seed, which loads ONLY the catalogue on any database that is not on this machine (or with `NODE_ENV=production`) (country, currencies, institutions, categories, exchange rates) and never the demo user (`test@finance.local`, whose password is in the repo). Schema changes use `DIRECT_DATABASE_URL` when set (a pooler such as Neon's `-pooler` host must not run them), else `DATABASE_URL`. Behind proxies set `TRUST_PROXY_HOPS` (`infra/http/trust-proxy.ts`, a count, never `true`) so `req.ip` is the visitor. Both Dockerfiles use Node 22.
@@ -2071,8 +2072,9 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
     to try a real send locally, flip the `production` check in `email.config.ts` by hand (no
     local file capture, by decision 2026-10-11); `InMemoryEmailSender` for tests (`test/e2e/support/email-outbox.ts`). Templates
     are code (`templates/{layout,verify-email,reset-password,security-notice}.ts`, es/en in
-    `infra/email/i18n`, HTML + text, every value escaped, no financial data), logo
-    `apps/landing/public/email/logo.png`. `user/application/account-emails.ts`'s
+    `infra/email/i18n`, HTML + text, every value escaped, no financial data); the logo is an INLINE image (`cid:fik-logo`) the Resend sender attaches to
+    every email, from `templates/logo.generated.ts` (base64, written by `apps/landing/scripts/og.mjs`)
+    — never a link to the site, which a mail client may not load. `user/application/account-emails.ts`'s
     `AccountEmailService` is the ONE place that issues links and sends; it never throws. Endpoints:
     `POST /auth/email/verify` (public), `POST /auth/email/verification` (resend, 202),
     `GET/POST /auth/me/emails` (request a change = add a PENDING row + send its link; the address
@@ -2091,7 +2093,10 @@ DANGEROUS_AI_ACTION`), confirmado no ser producción.
     Información personal's email row asks for a change (shows "Cambio pendiente a …"),
     `EmailHistorySection` (registry, delete, resend). Landing: `/{es,en}/verify-email/` and
     `/{es,en}/reset-password/` (noindex, no canonical, out of the sitemap — `PageLayout`'s
-    `utility` prop; plain scripts in `domains/auth/scripts/`, no React), and "¿Olvidaste tu
+    `utility` prop; plain scripts in `domains/auth/scripts/`, no React). The token rides in the address, so those pages
+    drop it from the bar once read (`forgetTokenInAddress`, `history.replaceState`; a reload then shows
+    "enlace inválido"), declare `<meta name="referrer" content="no-referrer">`, and
+    `public/_headers` serves them `Cache-Control: no-store` + `Referrer-Policy: no-referrer`, and "¿Olvidaste tu
     contraseña?" in `LoginForm` now sends the typed RUT. Seed: the demo user's address is
     confirmed. Out of scope (see `docs/PENDING.md`): new-device notices, financial notifications,
     mute preferences.

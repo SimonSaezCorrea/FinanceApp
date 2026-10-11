@@ -1,4 +1,6 @@
 import type { EmailSenderPort, OutgoingEmail } from "../email-sender.port";
+import { EMAIL_LOGO_CONTENT_ID } from "../templates/layout";
+import { EMAIL_LOGO_PNG_BASE64 } from "../templates/logo.generated";
 
 const RESEND_URL = "https://api.resend.com/emails";
 const TIMEOUT_MS = 10_000;
@@ -33,6 +35,15 @@ export class ResendEmailSender implements EmailSenderPort {
         html: email.html,
         text: email.text,
         tags: [{ name: "kind", value: email.kind }],
+        // The layout's logo travels inside the email (`cid:`), not as a link to the site.
+        attachments: [
+          {
+            filename: "fik.png",
+            content: EMAIL_LOGO_PNG_BASE64,
+            content_type: "image/png",
+            content_id: EMAIL_LOGO_CONTENT_ID,
+          },
+        ],
       }),
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });

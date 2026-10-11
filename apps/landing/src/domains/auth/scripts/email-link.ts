@@ -15,6 +15,17 @@ export function tokenFromLocation(search: string = location.search): string | nu
   return token ? token : null;
 }
 
+/**
+ * Drops the token from the address bar once it has been read, so it stays out of the history, a
+ * bookmark or a copied link (specs/032). Only the address changes; the page doesn't reload.
+ */
+export function forgetTokenInAddress(): void {
+  const url = new URL(location.href);
+  if (!url.searchParams.has("token")) return;
+  url.searchParams.delete("token");
+  history.replaceState(history.state, "", url);
+}
+
 /** Shows exactly one `[data-state]` block of `root`. */
 export function showState(root: ParentNode, state: LinkPageState): void {
   for (const el of root.querySelectorAll<HTMLElement>("[data-state]")) {

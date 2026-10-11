@@ -86,6 +86,15 @@ describe("public site build", () => {
     expect(new Set(all.map(description)).size).toBe(all.length);
   });
 
+  it("never caches or refers on the email-link pages", () => {
+    const headers = readFileSync(join(DIST, "_headers"), "utf8");
+    for (const page of ["verify-email", "reset-password"]) {
+      const rule = headers.split(/\n\s*\n/).find((block) => block.includes(`/:lang/${page}/`));
+      expect(rule).toContain("Cache-Control: no-store");
+      expect(rule).toContain("Referrer-Policy: no-referrer");
+    }
+  });
+
   it("publishes robots.txt pointing at the sitemap", () => {
     const robots = readFileSync(join(DIST, "robots.txt"), "utf8");
     expect(robots).toContain(`Sitemap: ${SITE}/sitemap-index.xml`);
@@ -115,6 +124,7 @@ describe("public site build", () => {
         expect(html).not.toContain(`rel="canonical"`);
         expect(title(html)).toMatch(/· fik$/);
         expect(html).toContain("data-state=");
+        expect(html).toContain(`<meta name="referrer" content="no-referrer"`);
       });
     }
   }

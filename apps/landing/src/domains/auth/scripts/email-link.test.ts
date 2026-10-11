@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { postLink } from "./email-link";
+import { forgetTokenInAddress, postLink } from "./email-link";
 import { initResetPassword, passwordProblem } from "./reset-password";
 import { initVerifyEmail } from "./verify-email";
 
@@ -103,6 +103,31 @@ describe("reset-password page", () => {
     initResetPassword(refused, `?token=${TOKEN}`, vi.fn().mockResolvedValue("invalid"));
     fill(refused, "Nuev4Clave!x", "Nuev4Clave!x");
     await vi.waitFor(() => expect(visible(refused)).toEqual(["invalid"]));
+  });
+});
+
+describe("forgetTokenInAddress", () => {
+  it("drops the token from the address and keeps the rest", () => {
+    history.replaceState(null, "", `/es/reset-password/?token=${TOKEN}&acceso=login#top`);
+    forgetTokenInAddress();
+    expect(location.pathname + location.search + location.hash).toBe(
+      "/es/reset-password/?acceso=login#top",
+    );
+  });
+
+  it("is called by both pages once the token is read", async () => {
+    const forgetVerify = vi.fn();
+    await initVerifyEmail(
+      statesRoot(),
+      `?token=${TOKEN}`,
+      vi.fn().mockResolvedValue("ok"),
+      forgetVerify,
+    );
+    expect(forgetVerify).toHaveBeenCalledOnce();
+
+    const forgetReset = vi.fn();
+    initResetPassword(statesRoot(), `?token=${TOKEN}`, vi.fn(), forgetReset);
+    expect(forgetReset).toHaveBeenCalledOnce();
   });
 });
 

@@ -154,7 +154,7 @@ apps/web/src/
 packages/contracts/src/auth/                  # esquemas nuevos + CurrentUser.emailVerified
 packages/client/src/authApi.ts                # llamadas nuevas
 packages/i18n/src/{es,en}.json                # errores y textos de la app
-apps/landing/public/email/logo.png            # logo del correo (scripts/og.mjs lo genera)
+apps/api/src/infra/email/templates/logo.generated.ts  # logo del correo en base64, adjunto inline (cid:); scripts/og.mjs lo genera
 ```
 
 **Structure Decision**: monorepo actual. El transporte de correo es infraestructura transversal

@@ -36,6 +36,8 @@ describe("ResendEmailSender", () => {
       subject: email.subject,
       html: email.html,
       text: email.text,
+      // The logo travels inside the email, referenced by the layout as cid:fik-logo.
+      attachments: [{ filename: "fik.png", content_type: "image/png", content_id: "fik-logo" }],
     });
     expect(init.signal).toBeInstanceOf(AbortSignal);
   });
