@@ -68,7 +68,7 @@ Además:
 
 Puedes ejercer **acceso, rectificación, supresión, oposición, portabilidad y bloqueo**, y **retirar tu consentimiento** cuando quieras, escribiendo a contacto@mifik.cl. Respondemos en **30 días corridos** (prorrogables una sola vez por 30 días más). La rectificación, supresión y oposición son siempre gratuitas; el acceso es gratuito al menos una vez por trimestre.
 
-> ⚠️ **Estado real hoy**: puedes rectificar tus datos de perfil desde la app y **eliminar tu cuenta** (Perfil → Datos y privacidad → Eliminar cuenta): la eliminación es real (se borran todos tus datos) salvo que elijas conservar un historial anonimizado. **No existe todavía** una exportación de datos desde la app (portabilidad): mientras tanto, se atiende por correo. Ver hallazgo `data-derechos` en `RESUMEN.md`.
+> ⚠️ **Estado real hoy**: puedes rectificar tus datos de perfil desde la app y **eliminar tu cuenta** (Perfil → Datos y privacidad → Eliminar cuenta): la eliminación es real (se borran todos tus datos) salvo que elijas conservar un historial anonimizado. **Portabilidad (parcial, desde la app):** Importar → Plantilla fik → Descargar plantilla → Con mis datos actuales exporta todos los datos financieros en un `.xlsx` reimportable (cuentas, tarjetas, facturaciones, movimientos, traspasos, deudas y pagos, cuotas y pagos, gastos fijos, metas y aportes). No incluye perfil, sesiones ni consentimientos: eso se atiende por correo. Ver hallazgo `data-derechos` en `RESUMEN.md`.
 
 ## 7. Decisiones automatizadas
 

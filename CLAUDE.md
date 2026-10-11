@@ -1876,7 +1876,7 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
       Compliance posture this closes (see `.compliance/RESUMEN.md`/`state.json`): hallazgo #1
       (no consentimiento reforzado — **now closed**) and hallazgo #3 (desactivar ≠ eliminar —
       **now closed**, real supresión exists). Still open: hallazgo #2 (no age-minimum check at
-      registration), portabilidad/export (no `GET /auth/me/export` yet), and the seudonimización
+      registration), portabilidad/export (partial: the pre-filled import template exports every financial record as a re-importable `.xlsx` — declared in the published privacy policy; profile/sessions/consents still by email, no `GET /auth/me/export`), and the seudonimización
       caveat above.
   - **session** (specs/023, "Sesiones y dispositivos reales", 2026-09-19): `Session`
     (table `session`) is a dominio-tabla propio sin `presentation/` (mismo trato que

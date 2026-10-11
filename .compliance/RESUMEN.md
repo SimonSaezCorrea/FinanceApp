@@ -70,7 +70,7 @@ La **supervisión externa anual del Modelo de Prevención de Delitos** (Ley 21.5
 Hallazgos #1, #2 y #3 quedaron resueltos el 2026-09-20 (ver arriba) — los tres hallazgos originalmente priorizados están cerrados. Lo que sigue, en orden de prioridad:
 
 1. **Confirmar con abogado** el umbral de edad usado (18 años) para el régimen reforzado de menores — es un supuesto de trabajo, no una cita verificada de la ley.
-2. **Portabilidad**: `GET /auth/me/export` (JSON/CSV) — no implementado.
+2. **Portabilidad**: parcial desde 2026-09 — la plantilla prellenada de Importar ("Con mis datos actuales") exporta todos los datos financieros en `.xlsx` reimportable; perfil, sesiones y consentimientos siguen por correo (no hay `GET /auth/me/export`).
 3. Publicar la política de privacidad en una ruta real (`gov-politicas`/`data-info`, siguen en `fail`).
 
 ---

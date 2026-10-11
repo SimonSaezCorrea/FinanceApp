@@ -68,8 +68,11 @@ Además:
 
 Puedes pedir **acceso, rectificación, supresión, oposición, portabilidad y bloqueo** de tus datos, y **retirar tu consentimiento** cuando quieras.
 
-- **Desde la app:** puedes corregir tus datos personales (Perfil → Información personal) y eliminar tu cuenta (sección 5).
-- **Por correo, a contacto@mifik.cl:** cualquier otra solicitud, incluida una copia de tus datos (todavía no existe una exportación automática desde la app).
+- **Desde la app:**
+  - corregir tus datos personales (Perfil → Información personal);
+  - **descargar una copia de tus datos financieros** en una planilla Excel, que además puedes volver a importar (Importar → Plantilla _fik_ → Descargar plantilla → Con mis datos actuales). Incluye tus cuentas, tarjetas, facturaciones, movimientos, traspasos, deudas, compras en cuotas, gastos fijos, metas y aportes, con sus pagos;
+  - eliminar tu cuenta (sección 5).
+- **Por correo, a contacto@mifik.cl:** cualquier otra solicitud, incluida una copia de lo que la planilla no trae (tus datos de perfil, sesiones y consentimientos).
 
 Respondemos en un plazo de **30 días corridos**, prorrogable una sola vez por otros 30. La rectificación, la supresión y la oposición son siempre gratuitas, y el acceso es gratuito al menos una vez por trimestre.
 

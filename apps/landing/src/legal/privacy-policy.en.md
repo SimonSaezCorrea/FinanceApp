@@ -70,8 +70,11 @@ Also:
 
 You can ask for **access, rectification, erasure, objection, portability and blocking** of your data, and **withdraw your consent** at any time.
 
-- **In the app:** you can correct your personal details (Profile → Personal information) and delete your account (section 5).
-- **By email, to contacto@mifik.cl:** any other request, including a copy of your data (there is no automatic export in the app yet).
+- **In the app:**
+  - correct your personal details (Profile → Personal information);
+  - **download a copy of your financial data** as an Excel spreadsheet that you can also import again (Import → _fik_ template → Download template → With my current data). It includes your accounts, cards, statements, movements, transfers, debts, instalment purchases, fixed expenses, goals and contributions, with their payments;
+  - delete your account (section 5).
+- **By email, to contacto@mifik.cl:** any other request, including a copy of what the spreadsheet leaves out (your profile details, sessions and consents).
 
 We answer within **30 calendar days**, which may be extended once by another 30. Rectification, erasure and objection are always free, and access is free at least once per quarter.
 
