@@ -112,6 +112,16 @@ describe("public site build", () => {
     expect(htmlOf("es", "faq")).not.toContain("application/ld+json");
   });
 
+  // RFC 9116: where security researchers look for a contact. "Expires" is mandatory and at most a
+  // year ahead: renew it (apps/landing/public/.well-known/security.txt) before it lapses.
+  it("publishes a current security.txt", () => {
+    const txt = readFileSync(join(DIST, ".well-known", "security.txt"), "utf8");
+    expect(txt).toMatch(/^Contact: /m);
+    expect(txt).toMatch(/^Policy: /m);
+    const expires = new Date(txt.match(/^Expires: (.+)$/m)?.[1] ?? "");
+    expect(expires.getTime()).toBeGreaterThan(Date.now());
+  });
+
   it("publishes robots.txt pointing at the sitemap", () => {
     const robots = readFileSync(join(DIST, "robots.txt"), "utf8");
     expect(robots).toContain(`Sitemap: ${SITE}/sitemap-index.xml`);

@@ -292,6 +292,9 @@ de build (`VITE_*`, `PUBLIC_*`) están en `deploy.yml`, no en Cloudflare.
 - **Respaldos:** RDS guarda 1 día con restauración a cualquier minuto. Antes de una migración
   riesgosa, tomar un _snapshot_ manual.
 - **IP de Cloudflare:** volver a correr `cloudflare-sg.sh` cada pocos meses.
+- **`security.txt` vence el 2027-10-11:** antes de esa fecha, correr `Expires` un año más en
+  `apps/landing/public/.well-known/security.txt` (el test de build falla si está vencido). La política
+  de seguridad para reportar vulnerabilidades es `SECURITY.md`, en la raíz del repo.
 - **Si `prisma migrate deploy` rechaza el certificado de RDS:** `DIRECT_DATABASE_URL` verifica la
   cadena (`sslcert=/certs/rds-ca.pem&sslaccept=strict`). Prisma lee solo el **primer** certificado
   de ese archivo: con el paquete global de RDS fallaba (`P1011 ... self-signed certificate in

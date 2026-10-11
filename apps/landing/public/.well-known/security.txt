@@ -1,0 +1,6 @@
+Contact: https://github.com/SimonSaezCorrea/FinanceApp/security/advisories/new
+Contact: mailto:contacto@mifik.cl
+Expires: 2027-10-11T00:00:00.000Z
+Policy: https://github.com/SimonSaezCorrea/FinanceApp/security/policy
+Preferred-Languages: es, en
+Canonical: https://mifik.cl/.well-known/security.txt
