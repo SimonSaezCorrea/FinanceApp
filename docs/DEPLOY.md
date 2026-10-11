@@ -145,24 +145,25 @@ Después:
 
 ## 8. Archivos del servidor (`/opt/fik`)
 
-Con Session Manager, crear en `/opt/fik` (con `sudo tee <archivo>` y pegar el contenido):
+Con Session Manager (o `aws ssm send-command`), crear en `/opt/fik`:
 
-| Archivo              | Desde                       | Notas                                 |
-| -------------------- | --------------------------- | ------------------------------------- |
-| `docker-compose.yml` | `deploy/docker-compose.yml` | tal cual                              |
-| `Caddyfile`          | `deploy/Caddyfile`          | tal cual                              |
-| `deploy.sh`          | `deploy/deploy.sh`          | `sudo chmod 700 /opt/fik/deploy.sh`   |
-| `deploy.env`         | `deploy/deploy.env.example` | con el registry de ECR                |
-| `api.env`            | `deploy/api.env.example`    | **secretos reales**, `sudo chmod 600` |
+| Archivo              | Desde                       | Notas                               |
+| -------------------- | --------------------------- | ----------------------------------- |
+| `docker-compose.yml` | `deploy/docker-compose.yml` | tal cual                            |
+| `Caddyfile`          | `deploy/Caddyfile`          | tal cual                            |
+| `deploy.sh`          | `deploy/deploy.sh`          | `sudo chmod 700 /opt/fik/deploy.sh` |
+| `deploy.env`         | `deploy/deploy.env.example` | con el registry de ECR              |
+| `render-api-env.sh`  | `deploy/aws/`               | escribe `api.env` (ver abajo)       |
 
-Para `api.env`:
+**`api.env` no se escribe a mano**: los secretos viven cifrados en **Parameter Store**
+(`/fik/prod/<NOMBRE>`, SecureString, gratis) y `sudo bash /opt/fik/render-api-env.sh <endpoint-rds>`
+arma `/opt/fik/api.env` (chmod 600) con ellos; si falta uno obligatorio, aborta sin tocar el archivo.
 
-- Cada secreto con `openssl rand -base64 48` (en el mismo servidor o en CloudShell);
-  `MFA_ENCRYPTION_KEY` con `openssl rand -hex 32`. **Distintos a los de desarrollo** y guardados en
-  un gestor de contraseñas: perder `MFA_ENCRYPTION_KEY` o `IDENTIFIER_HASH_SECRET` deja ilegibles
-  datos guardados.
-- `DATABASE_URL` y `DIRECT_DATABASE_URL` con el endpoint, usuario y contraseña de RDS.
-- `IPINFO_TOKEN` si se quiere el país de cada sesión.
+- Obligatorios: `DATABASE_PASSWORD` y los siete de `deploy/api.env.example` (cada uno
+  `openssl rand -base64 48`; `MFA_ENCRYPTION_KEY` con `openssl rand -hex 32`), **distintos a los de
+  desarrollo**. Parameter Store es su respaldo: perder `MFA_ENCRYPTION_KEY` o
+  `IDENTIFIER_HASH_SECRET` deja ilegibles datos guardados.
+- `IPINFO_TOKEN` (opcional) si se quiere el país de cada sesión.
 - `RESEND_API_KEY`: una clave **Sending access** restringida al dominio `mifik.cl` (nunca Full
   access). Sin ella el API arranca igual, pero no envía correos: verificar el correo y recuperar la
   contraseña responden `503 EMAIL_UNAVAILABLE`.
@@ -222,9 +223,13 @@ _Workers & Pages → Create → Pages → Connect to Git_ → este repo. Dos pro
 - **Respaldos:** RDS guarda 7 días con restauración a cualquier minuto. Antes de una migración
   riesgosa, tomar un _snapshot_ manual.
 - **IP de Cloudflare:** volver a correr `cloudflare-sg.sh` cada pocos meses.
-- **Si `prisma migrate deploy` rechaza el certificado de RDS** en el primer despliegue: probar
-  `DIRECT_DATABASE_URL` con `?sslmode=require&sslaccept=accept_invalid_certs` (sigue cifrado, dentro
-  de la red privada de AWS) y anotar el resultado aquí.
+- **Si `prisma migrate deploy` rechaza el certificado de RDS:** `DIRECT_DATABASE_URL` verifica la
+  cadena (`sslcert=/certs/rds-global-bundle.pem&sslaccept=strict`). No bajarlo a
+  `accept_invalid_certs` sin entender por qué falla (ruta del certificado, versión de Prisma).
+- **Cambiar un secreto o agregar uno opcional** (`IPINFO_TOKEN`, `RESEND_API_KEY`):
+  `aws ssm put-parameter --name /fik/prod/<NOMBRE> --type SecureString --overwrite --value ...`, y
+  en el servidor `sudo bash /opt/fik/render-api-env.sh <endpoint-rds>` +
+  `cd /opt/fik && sudo docker compose up -d api`.
 - **Ley 21.719:** los datos quedan en Estados Unidos: antes de tener usuarios reales, aceptar con AWS el
   mecanismo de transferencia (cláusulas contractuales modelo) y declararlo en la política de
   privacidad (`.compliance/docs/21719-anexo-transferencias.md`). Lo mismo con Resend.
