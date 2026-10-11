@@ -844,6 +844,40 @@ que se decidan. Se exploraron en el lienzo "fik · Precios" (variantes PL2, PL2a
 **Para hacerlo real**: decidir nombre, precio y lista; modelo `Plan`/`Subscription` + proveedor de
 pagos (ver Perfil · 5); recién entonces volver a mostrar el plan de pago en `/precios`.
 
+## Cumplimiento y operación — requiere financiamiento (registrado 2026-10-11)
+
+Cosas identificadas al poner fik en producción que **implican costo** y por eso esperan a que exista
+una fuente de ingresos (ver "Monetización") que permita mantener el proyecto por su cuenta. Ninguna
+bloquea operar hoy con pocos usuarios conocidos; todas conviene resolverlas **antes de abrir a
+usuarios reales** o, a más tardar, del **1-12-2026** (entrada en vigencia de la Ley 21.719).
+
+1. **Revisión legal (abogado).** Lo que quedó documentado como riesgo, no resuelto:
+   - Si los DPA de los proveedores bastan o hay que incorporar las **cláusulas contractuales modelo
+     chilenas** (Res. RAEX202503748): hoy ninguno las incorpora (`.compliance/docs/21719-anexo-transferencias.md`,
+     "Cómo se aborda sin abogado").
+   - El umbral de **18 años** para exigir autorización de tutor, supuesto no verificado contra el texto
+     de la ley.
+   - La **anonimización** al eliminar la cuenta con historial: es discutible que sea anonimización y no
+     seudonimización (el `userId` sigue correlacionando los registros).
+   - Revisar la política de privacidad publicada antes de abrir a usuarios.
+2. **Correo de contacto con DPA.** `contacto@mifik.cl` llega a un Gmail personal, sin contrato de
+   encargado. Opción: Google Workspace (o similar) para `@mifik.cl`. Costo: suscripción mensual por
+   usuario.
+3. **Sociedad (SpA).** Hoy el responsable de los datos es Simón Sáez como persona natural, con su RUT
+   publicado en la política. Una SpA separa la identidad y el patrimonio personales del proyecto.
+   Costo: constitución (gratuita en "Empresa en un Día") más contabilidad e impuestos mensuales.
+4. **Marca "fik" en INAPI.** Pendiente desde la elección del nombre; presentarla antes del lanzamiento
+   público. Costo: tasas de solicitud y de registro por clase.
+5. **Plan pagado de AWS.** La cuenta está en el plan gratuito (con créditos), que limita los respaldos
+   de la base a 1 día y se cierra al vencer los créditos o a los 6 meses si no se pasa al plan pagado.
+   Costo: ≈ US$32/mes de infraestructura (`docs/DEPLOY.md`), hoy cubierto por los créditos.
+6. **Correos sobre la cuota gratuita de Resend.** Si el volumen crece, activar _Pay-as-you-go_
+   (US$0,90 por cada 1.000 correos extra) para que la verificación de correo y la recuperación de
+   contraseña no dejen de llegar.
+
+Revisar además, antes del 1-12-2026, si la Agencia de Protección de Datos publicó guías sobre cómo
+aplicar las cláusulas modelo con proveedores de nube (eso no cuesta, pero puede cambiar el punto 1).
+
 ## Tipos de cambio y facturación en otra moneda (spec 030)
 
 ### 1. La fuente es un tercero (mindicador.cl), sin SLA

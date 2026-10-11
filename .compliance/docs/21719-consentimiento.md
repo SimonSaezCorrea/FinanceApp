@@ -1,39 +1,48 @@
-# Consentimiento y avisos en el punto de captura — FinanceApp
+# Consentimiento y avisos en el punto de captura — fik
 
 > Art. 12 de la Ley 21.719: el consentimiento debe ser **previo, libre, específico, informado e
 > inequívoco**, mediante un **acto afirmativo** (casilla NO premarcada), y **revocable** por un medio
-> expedito, gratuito y permanente.
+> expedito, gratuito y permanente. Actualizado el 2026-10-11 con el estado real.
 
-> ⚠️ **Estado real hoy: ❌ no implementado.** `apps/web/src/domains/auth` (registro/login) no tiene ningún checkbox de consentimiento ni enlace a política de privacidad — verificado por grep, cero coincidencias de "terms/consent/acepto". Este texto está listo para integrarse al formulario de registro (`RegisterRoute`).
+## 1. Estado: ✅ implementado (desde 2026-09-20)
 
-## 1. Aviso corto (en el punto de captura, junto al formulario de registro)
+- **Formulario de registro** (`apps/landing/src/domains/auth/components/RegisterForm.tsx`, panel de
+  acceso del sitio público): una casilla **no premarcada** "Datos sensibles" con el texto _"Acepto que
+  fik trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la Política
+  de Privacidad"_, que enlaza a la política publicada (`/es/privacy-policy/`, en una pestaña nueva
+  para no perder el formulario).
+- **Sin la casilla no hay registro:** el contrato exige `sensitiveDataConsent: true`
+  (`registerRequestSchema`, `z.literal(true)`); el API rechaza el registro si falta.
+- **Menores de 18:** además, el registro exige la autorización del tutor (nombre, RUT, parentesco y su
+  propia casilla), registrada como un segundo consentimiento.
 
-> Tus datos (nombre, correo, teléfono, RUT) los trata FinanceApp para crear y administrar tu cuenta. Puedes ejercer tus derechos en simon.alejandro.saez@gmail.com. Más detalles en nuestra [Política de Privacidad](/legal/privacidad).
+## 2. Registro del consentimiento (prueba): ✅
 
-## 2. Consentimiento general (checkbox, NO premarcado)
+Cada consentimiento es una fila `ConsentRecord` (tabla `consent-record`):
 
-> ☐ Acepto que FinanceApp trate mis datos para crear y administrar mi cuenta, según su [Política de Privacidad](/legal/privacidad).
+- `type`: `SENSITIVE_DATA_PROCESSING`, y `MINOR_GUARDIAN_AUTHORIZATION` cuando aplica.
+- `policyVersion`: fijada por el servidor (`CURRENT_PRIVACY_POLICY_VERSION`,
+  `apps/api/src/domains/user/application/privacy-policy-version.ts`), nunca por el cliente.
+  **"2026-10-11"** desde la publicación de la política; los registros anteriores dicen "2026-09-20".
+  Subirla a mano cada vez que la política o el texto del consentimiento cambien de forma relevante.
+- Fecha y hora; para el tutor, nombre y parentesco en claro y su RUT solo como HMAC.
+- El titular ve su historial en Perfil → Datos y privacidad (`GET /auth/me/consents`).
 
-FinanceApp no envía marketing hoy (no hay proveedor de correo integrado), así que no aplica un segundo checkbox de marketing por ahora.
+## 3. Consentimiento general y marketing
 
-## 3. Datos financieros sensibles (Art. 16 — consentimiento reforzado)
-
-Este es el checkbox **crítico** para FinanceApp, dado que registrar saldos/movimientos/deudas es tratar tu "situación socioeconómica" (dato sensible, Art. 2 letra g):
-
-> ☐ Autorizo expresamente a FinanceApp a tratar mis datos financieros (cuentas, saldos, movimientos, tarjetas, deudas, ahorros) para prestarme el servicio de gestión financiera personal, según su [Política de Privacidad](/legal/privacidad).
-
-Debe presentarse **separado** del checkbox general (2), con su propio acto afirmativo — no se puede inferir de "aceptar los términos" en general.
+No hay casilla separada de "términos generales": el tratamiento de los datos de cuenta se basa en la
+ejecución del contrato. **No se envía marketing**: los únicos correos son los de cuenta y de seguridad
+(Resend), que no requieren consentimiento aparte. Si algún día se envía marketing, hará falta una
+casilla propia, separada y opcional.
 
 ## 4. Revocación
 
-Hoy no existe un botón "retirar consentimiento" independiente — la única acción disponible es `POST /auth/me/deactivate`, que desactiva la cuenta pero no revoca específicamente el consentimiento de datos sensibles ni borra los datos. Recomendación: agregar en Perfil → Privacidad un control explícito de revocación.
-
-## 5. Registro del consentimiento (prueba)
-
-> ⚠️ **No implementado.** No existe hoy ninguna columna en `User` (`apps/api/prisma/schema.prisma`) que registre qué se aceptó, cuándo, ni la versión de política vigente al momento del registro. La carga de la prueba del consentimiento es del responsable (Art. 12) — sin este registro, FinanceApp no podría demostrar que un usuario consintió si se lo exige la Agencia.
-
-**Remediación sugerida** (ver `references/build/` de la skill): agregar `User.privacyConsentAt` / `User.financialConsentAt` (timestamp) + `User.consentPolicyVersion`, poblados al registrar los checkboxes de la sección 2 y 3.
+El consentimiento para datos financieros es la condición del servicio: revocarlo equivale a eliminar
+la cuenta (Perfil → Datos y privacidad → Eliminar cuenta, gratuito y permanente). No hay un botón de
+"retirar consentimiento" separado porque no existiría un servicio que prestar sin esos datos. Una
+revocación pedida por correo se atiende igual (ver `21719-canal-derechos.md`).
 
 ---
 
-_Borrador generado con compliance-cl (pack ley-21719). No constituye asesoría legal; revisar con un abogado._
+_Borrador generado con compliance-cl (pack ley-21719), actualizado a mano el 2026-10-11. No constituye
+asesoría legal._
