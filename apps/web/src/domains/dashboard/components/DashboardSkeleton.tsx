@@ -46,15 +46,16 @@ export function DashboardSkeleton({
   const chartHeight =
     layout === "phone" ? "h-[110px]" : layout === "wide" && !fit ? "h-[200px]" : "h-[170px]";
   const netWorth = (
-    <Card className="flex flex-col gap-2 p-5">
+    <Card className={cn("flex flex-col gap-2 p-5", fit && "h-full [&>*]:shrink-0")}>
       <span className="text-sm font-medium text-muted-foreground">
         {t("dashboard.netWorth")} · {PRIMARY_CURRENCY}
       </span>
       <Skeleton className="h-9 w-60" />
       <Skeleton className="h-4 w-48" />
       <Skeleton className="h-6 w-56 rounded-full" />
-      {/* The chart's own band, so nothing below shifts when it arrives. */}
-      <Skeleton className={cn("mt-2 w-full", chartHeight)} />
+      {/* The chart's own band, so nothing below shifts when it arrives. On the one-screen Panel
+          it takes what the text leaves, like the real chart. */}
+      <Skeleton className={cn("mt-2 w-full", fit ? "min-h-24 !flex-1" : chartHeight)} />
     </Card>
   );
 
@@ -109,12 +110,12 @@ export function DashboardSkeleton({
   return (
     <SkeletonScreen
       label={label}
-      className={cn("flex flex-col", fit ? "min-h-0 flex-1 gap-4" : "gap-5")}
+      className={cn("flex flex-col", fit ? "min-h-0 !shrink gap-4" : "gap-5")}
     >
       {attention}
       {fit ? (
-        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.85fr)] grid-rows-[auto_minmax(0,1fr)] gap-4">
-          <div className="col-span-2">{netWorth}</div>
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.85fr)] grid-rows-[minmax(0,1.3fr)_minmax(14rem,1fr)] gap-4">
+          <div className="col-span-2 min-h-0 overflow-hidden">{netWorth}</div>
           <div className="row-span-2 flex min-h-0 flex-col">{wallet}</div>
           <Card className="flex min-h-0 flex-col gap-5 overflow-hidden p-5">
             {month}

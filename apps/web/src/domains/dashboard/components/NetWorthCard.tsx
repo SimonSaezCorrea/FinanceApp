@@ -27,17 +27,25 @@ const DAY_MS = 86_400_000;
  * faint grid, an emphasized "today" and the value of any day on hover. `compact` (phone) drops
  * the axes and keeps only the first and last dates. With "ocultar saldos" on, the chart shows
  * the shape but no amounts.
+ *
+ * `fill` (the one-screen Panel): the card takes its grid cell's height and the chart takes
+ * whatever the text leaves (`chartHeight` is ignored) — taller on a tall screen, down to
+ * `MIN_FILL_CHART` on a short one; the other-currency chips and the estimate share one line.
  */
+const MIN_FILL_CHART = 96;
+
 export function NetWorthCard({
   worth,
   secondary,
   compact = false,
   chartHeight = 180,
+  fill = false,
 }: Readonly<{
   worth: ReturnType<typeof netWorth>;
   secondary: ReturnType<typeof secondaryTotals>;
   compact?: boolean;
   chartHeight?: number;
+  fill?: boolean;
 }>) {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
@@ -64,7 +72,7 @@ export function NetWorthCard({
   });
 
   return (
-    <Card className="flex flex-col gap-2 p-5">
+    <Card className={cn("flex flex-col gap-2 p-5", fill && "h-full min-h-0 [&>*]:shrink-0")}>
       <span className="text-sm font-medium text-muted-foreground">
         {t("dashboard.netWorth")} · {PRIMARY_CURRENCY}
       </span>
@@ -90,34 +98,36 @@ export function NetWorthCard({
         </span>
       ) : null}
 
-      {secondary.length > 0 ? (
-        <div className="mt-1 flex flex-wrap items-center gap-1.5">
-          {secondary.map((s) => (
-            <span
-              key={s.currency}
-              className="rounded-full bg-muted px-2.5 py-1 text-xs tabular-nums text-muted-foreground"
-            >
-              <MaskedAmount>
-                <span className="font-semibold text-foreground">{fmt(s.total, s.currency)}</span>
-              </MaskedAmount>
-            </span>
-          ))}
-          <span className="text-xs text-muted-foreground">{t("dashboard.otherCurrencies")}</span>
-        </div>
-      ) : null}
-      {/* Spec 030: the one estimated total in pesos, beside (never replacing) the figures above. */}
-      <EstimatedTotalLine
-        nets={[
-          { currency: PRIMARY_CURRENCY, net: String(worth.total) },
-          ...secondary.map((s) => ({ currency: s.currency, net: String(s.total) })),
-        ]}
-        className="text-xs text-muted-foreground"
-      />
+      <div className={cn(fill ? "flex flex-wrap items-center gap-x-3 gap-y-1" : "contents")}>
+        {secondary.length > 0 ? (
+          <div className={cn("flex flex-wrap items-center gap-1.5", !fill && "mt-1")}>
+            {secondary.map((s) => (
+              <span
+                key={s.currency}
+                className="rounded-full bg-muted px-2.5 py-1 text-xs tabular-nums text-muted-foreground"
+              >
+                <MaskedAmount>
+                  <span className="font-semibold text-foreground">{fmt(s.total, s.currency)}</span>
+                </MaskedAmount>
+              </span>
+            ))}
+            <span className="text-xs text-muted-foreground">{t("dashboard.otherCurrencies")}</span>
+          </div>
+        ) : null}
+        {/* Spec 030: the one estimated total in pesos, beside (never replacing) the figures above. */}
+        <EstimatedTotalLine
+          nets={[
+            { currency: PRIMARY_CURRENCY, net: String(worth.total) },
+            ...secondary.map((s) => ({ currency: s.currency, net: String(s.total) })),
+          ]}
+          className="text-xs text-muted-foreground"
+        />
+      </div>
 
       {points.length >= 2 ? (
         <div
           className="mt-2"
-          style={{ height: chartHeight }}
+          style={fill ? { flex: "1 1 0%", minHeight: MIN_FILL_CHART } : { height: chartHeight }}
           role="img"
           aria-label={t("dashboard.netWorthChart", {
             from: dayLabel(points[0]!.t, { day: "numeric", month: "long" }),

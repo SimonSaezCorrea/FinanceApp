@@ -46,7 +46,8 @@ const WIDE_MIN = 1100;
 const PHONE_MAX = 640;
 /** Viewport height from which the wide Panel fits one screen without scrolling. Below it the
  * chart and lists would be squeezed flat, so the page scrolls as usual. A height, not one of
- * the width breakpoints in `breakpoints.ts`. */
+ * the width breakpoints in `breakpoints.ts`. On a short window the net-worth chart shrinks so
+ * the month and payments boxes keep 14rem (title + about four rows). */
 const FIT_QUERY = "(min-height: 720px)";
 
 type PhoneTab = "month" | "payments" | "wallet";
@@ -161,9 +162,14 @@ export function DashboardPage() {
   return (
     <div
       ref={ref}
-      // One screen on a wide, tall-enough view: the page is exactly the main area's height
-      // (100dvh less the shell's own py-6) and the bottom row takes what's left.
-      className={cn("flex flex-col", fit ? "h-[calc(100dvh-3rem)] gap-4" : "gap-5")}
+      // One screen on a wide, tall-enough view: never taller than the main area (100dvh less the
+      // shell's own py-6), otherwise as tall as its content — the grid's tallest column, usually
+      // the wallet, so on a tall window every box shows whole with no scroll inside and the
+      // Panel stops there instead of stretching. Only the grid gives way on a shorter window.
+      className={cn(
+        "flex flex-col",
+        fit ? "max-h-[calc(100dvh-3rem)] gap-4 [&>*]:shrink-0" : "gap-5",
+      )}
     >
       <header className="flex shrink-0 flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
@@ -215,10 +221,13 @@ export function DashboardPage() {
           {fit ? (
             // Net worth across two columns (a line chart reads best wide and low, never
             // stretched tall), the month and the payments under it, the wallet down the right.
-            // Rows: the chart's own height, then whatever is left — each box scrolls inside.
-            <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.85fr)] grid-rows-[auto_minmax(0,1fr)] gap-4">
-              <div className="col-span-2">
-                <NetWorthCard worth={worth} secondary={secondary} chartHeight={170} />
+            // Rows: the height is split 1.3 : 1 between net worth (its chart takes whatever its
+            // text leaves) and the month/payments row, which never goes under 14rem (title +
+            // about four rows) — on a short window the chart gives way, on a tall one both grow
+            // instead of the bottom boxes stretching empty. Each box scrolls inside.
+            <div className="grid min-h-0 !shrink grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.85fr)] grid-rows-[minmax(0,1.3fr)_minmax(14rem,1fr)] gap-4">
+              <div className="col-span-2 min-h-0">
+                <NetWorthCard worth={worth} secondary={secondary} fill />
               </div>
               <div className="row-span-2 flex min-h-0 flex-col">{walletBlock}</div>
               <Card className="flex min-h-0 flex-col p-5">
