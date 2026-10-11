@@ -14,6 +14,7 @@ const PAGES = [
   { slug: "", h1: "landing-home-title" },
   { slug: "about", h1: "landing-about-title" },
   { slug: "privacy", h1: "landing-privacy-title" },
+  { slug: "privacy-policy", h1: "landing-privacy-policy-title" },
   { slug: "pricing", h1: "landing-pricing-title" },
   { slug: "faq", h1: "landing-faq-title" },
 ] as const;
@@ -100,7 +101,7 @@ describe("public site build", () => {
     expect(robots).toContain(`Sitemap: ${SITE}/sitemap-index.xml`);
   });
 
-  it("lists the ten pages in the sitemap, and not the redirects", () => {
+  it("lists the twelve pages in the sitemap, and not the redirects", () => {
     const files = readdirSync(DIST).filter((f) => /^sitemap-\d+\.xml$/.test(f));
     const xml = files.map((f) => readFileSync(join(DIST, f), "utf8")).join("\n");
     for (const lang of LANGS) {

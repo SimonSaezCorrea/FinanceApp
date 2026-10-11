@@ -291,6 +291,12 @@ certificate chain`, 2026-10-11), por eso `bootstrap-ec2.sh` extrae la raíz de l
   (consola o `aws ssm put-parameter --name /fik/prod/<NOMBRE> --type SecureString --overwrite
 --value ...`) y desplegar el API (_Actions → Deploy → api_), o en el servidor
   `sudo bash /opt/fik/render-api-env.sh && cd /opt/fik && sudo docker compose up -d api`.
+- **Resend (dominio `mifik.cl`, Configuration), 2026-10-11:** _Open tracking_ encendido con el
+  subdominio `links.mifik.cl` (CNAME → `links2.resend-dns.com`, nube gris en Cloudflare);
+  **_Click tracking_ apagado a propósito**: reescribiría los enlaces de verificar correo y recuperar
+  contraseña para pasar por Resend, dejando su token en un tercero (las páginas de la landing borran el
+  token y usan `no-referrer` justamente para que no salga). _TLS_: **Enforced**. _Enable Receiving_
+  apagado: el correo entrante de `@mifik.cl` lo recibe Cloudflare Email Routing (MX).
 - **Ley 21.719:** los datos quedan en Estados Unidos: antes de tener usuarios reales, aceptar con AWS el
   mecanismo de transferencia (cláusulas contractuales modelo) y declararlo en la política de
   privacidad (`.compliance/docs/21719-anexo-transferencias.md`). Lo mismo con Resend.

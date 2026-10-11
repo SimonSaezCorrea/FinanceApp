@@ -1,0 +1,258 @@
+Copia de texto de https://ipinfo.io/data-processing-agreement (IPinfo Inc., Self-Serve Online Data Processing Agreement), versión 'Last updated: 11 August 2026', descargada el 2026-10-11.
+
+Self-Serve Online Data Processing Agreement
+Effective for accounts created or renewed on or after the date of posting
+Last updated: 11 August 2026
+1. Definitions
+"California Personal Information" means Personal Data that is subject to the protection of the CCPA.
+"CCPA" means California Civil Code Sec. 1798.100 et seq. and its implementing regulations as amended (also known as the California Consumer Privacy Act of 2018).
+"Consumer", "Business", "Sell," "Share," and "Service Provider" will have the meanings given to them in the CCPA.
+"Controller" means the natural or legal person, public authority, agency or other body which, alone or jointly with others, determines the purposes and means of the Processing of Personal Data.
+"Data Protection Laws" means all applicable worldwide legislation relating to data protection and privacy which applies to the respective party in the role of Processing Personal Data in question under the Agreement, including without limitation European Data Protection Laws, the CCPA and the data protection and privacy laws of Australia and Singapore; in each case as amended, repealed, consolidated or replaced from time to time.
+"Data Subject" means the individual to whom Personal Data relates.
+"Europe" means the European Union, the European Economic Area and/or their member states, Switzerland and the United Kingdom.
+"European Data" means Personal Data that is subject to the protection of European Data Protection Laws.
+"European Data Protection Laws" means data protection laws applicable in Europe, including: (i) Regulation 2016/679 ("GDPR"); (ii) Directive 2002/58/EC concerning the processing of personal data and the protection of privacy in the electronic communications sector; (iii) applicable national implementations of (i) and (ii); (iii) GDPR as it forms part of United Kingdom domestic law by virtue of Section 3 of the European Union (Withdrawal) Act 2018 ("UK GDPR"); and (iv) the Swiss Federal Data Protection Act of 19 June 1992 and its Ordinance ("Swiss DPA"); in each case, as may be amended, superseded or replaced.
+"Instructions" means the written, documented instructions issued by a Controller to a Processor, directing the same to perform a specific or general action with regard to Personal Data (including, but not limited to, depersonalizing, blocking, deletion, making available).
+"Permitted Affiliates" means any of your Affiliates that (i) are permitted to use the Service pursuant to the Agreement, but have not signed up for their own separate account and are not a "Customer" as defined under the Agreement, (ii) qualify as a Controller of Personal Data Processed by us, and (iii) are subject to European Data Protection Laws.
+"Personal Data" means any information relating to an identified or identifiable individual where (i) such information is contained within Customer Data; and (ii) is protected similarly as personal data, personal information or personally identifiable information under applicable Data Protection Laws.
+"Personal Data Breach" means a breach of security leading to the accidental or unlawful destruction, loss, alteration, unauthorized disclosure of, or access to, Personal Data transmitted, stored or otherwise Processed by us and/or our Sub-Processors in connection with the provision of the Service. "Personal Data Breach" will not include unsuccessful attempts or activities that do not compromise the security of Personal Data, including unsuccessful log-in attempts, pings, port scans, denial of service attacks, and other network attacks on firewalls or networked systems.
+"Processing" means any operation or set of operations performed on Personal Data, encompassing the collection, recording, organization, structuring, storage, adaptation or alteration, retrieval, consultation, use, disclosure by transmission, dissemination or otherwise making available, alignment or combination, restriction or erasure of Personal Data. "Process", "Processes" and "Processed" will be construed accordingly.
+"Processor" means a natural or legal person, public authority, agency or other body which Processes Personal Data on behalf of the Controller.
+"Standard Contractual Clauses" means the standard contractual clauses annexed to the European Commission's Decision (EU) 2021/914 of 4 June 2021, currently found at the  European Commission's website , as may be amended, superseded or replaced.
+"Sub-Processor" means any Processor engaged by us or our Affiliates to assist in fulfilling our obligations with respect to the provision of the Service under the Agreement. Sub-Processors may include third parties or our Affiliates but exclude any IPinfo employee or consultant.
+"UK Addendum" means the International Data Transfer Addendum issued by the UK Information Commissioner under section 119A(1) of the Data Protection Act 2018, currently found at the  ICO's website , as may be amended, superseded, or replaced.
+2. Customer Responsibilities
+a. Compliance with Laws.  Within the scope of the Agreement and in the use of the Service, you will be responsible for complying with all requirements that apply to you under applicable Data Protection Laws with respect to Personal Data and your Instructions to us.
+In particular, but without prejudice to the generality of the foregoing, you acknowledge and agree that you will be solely responsible for:
+the accuracy, quality, and legality of Customer Data and the means by which you acquired Personal Data;
+complying with all necessary transparency and lawfulness requirements under applicable Data Protection Laws for the collection and use of Personal Data, including obtaining any necessary consents and authorizations (such as use by Customer for marketing purposes);
+ensuring you have the right to transfer, or provide access to, the Personal Data to us for Processing in accordance with the terms of the Agreement (including this DPA);
+ensuring that your Instructions to us regarding the Processing of Personal Data comply with applicable laws, including Data Protection Laws; and
+complying with all laws (including Data Protection Laws) applicable to any emails or other content created, sent or managed through the Service, including those relating to obtaining consents (where required) to send emails, the content of the emails, and email deployment practices.
+You will inform us without undue delay if you are not able to comply with your responsibilities under this Section or applicable Data Protection Laws.
+b. Controller Instructions.  The parties agree that the Agreement (including this DPA), together with your use of the Service in accordance with the Agreement, constitute your complete Instructions to us in relation to the Processing of Personal Data, so long as you may provide additional instructions during the subscription term that are consistent with the Agreement and the nature and lawful use of the Service. For self-serve accounts, such additional instructions may be given through the in-Service settings, configurations, and controls made available to you, or in writing to  support@ipinfo.io .
+c. Security.  You are responsible for independently determining whether the data security provided for in the Service adequately meets your obligations under applicable Data Protection Laws. You are also responsible for your secure use of the Service, including protecting the security of Personal Data in transit to and from the Service (including to securely backup or encrypt any such Personal Data).
+3. IPinfo Obligations
+a. Compliance with Instructions.  We will only Process Personal Data for the purposes described in this DPA or as otherwise agreed within the scope of your lawful Instructions, except where and to the extent otherwise required by applicable law. We are not responsible for compliance with any Data Protection Laws applicable to you or your industry that are not generally applicable to us.
+b. Conflict of Laws.  If we become aware that we cannot Process Personal Data in accordance with your Instructions due to a legal requirement under any applicable law, we will (i) promptly notify you of that legal requirement to the extent permitted by applicable law; and (ii) where necessary, cease all Processing (other than merely storing and maintaining the security of the affected Personal Data) until such time as you issue new Instructions with which we are able to comply. If this provision is invoked, we will not be liable to you under the Agreement for any failure to perform the applicable Service until such time as you issue new lawful Instructions with regard to the Processing.
+c. Security.  We will implement and maintain appropriate technical and organizational measures to protect Personal Data from Personal Data Breaches, as described in Annex 2 to this DPA ("Security Measures"). Notwithstanding any provision to the contrary, we may modify or update the Security Measures at our discretion provided that such modification or update does not result in a material degradation in the protection offered by the Security Measures.
+d. Confidentiality.  We will ensure that any personnel whom we authorize to Process Personal Data on our behalf is subject to appropriate confidentiality obligations (whether a contractual or statutory duty) with respect to that Personal Data.
+e. Personal Data Breaches.  We will notify you without undue delay after we become aware of any Personal Data Breach and will provide timely information relating to the Personal Data Breach as it becomes known or is reasonably requested by you. At your request, we will promptly provide you with such reasonable assistance as necessary to enable you to notify competent authorities and/or affected Data Subjects of Personal Data Breaches, if you are required to do so under Data Protection Laws. Notice under this Section will be sent to the email address associated with your account, so it is important to keep your account contact details current.
+f. Deletion or Return of Personal Data.  We will delete or return all Customer Data, including Personal Data (including copies thereof) Processed pursuant to this DPA, on termination or expiration of your Service in accordance with the Agreement. This will not apply where we are required by applicable law to retain some or all of the Customer Data, or where we have archived Customer Data on back-up systems, which data we will securely isolate and protect from any further Processing and delete in accordance with our deletion practices.
+4. Data Subject Requests
+The Service provides you with a number of controls that you can use to retrieve, correct, delete or restrict Personal Data, which you can use in connection with your obligations under Data Protection Laws, including your obligations relating to responding to requests from Data Subjects to exercise their rights under applicable Data Protection Laws ("Data Subject Requests").
+To the extent that you are unable to independently address a Data Subject Request through the Service, then upon your written request to  support@ipinfo.io  we will provide reasonable assistance to you to respond to any Data Subject Requests or requests from data protection authorities relating to the Processing of Personal Data under the Agreement. You will reimburse us for the commercially reasonable costs arising from this assistance.
+If a Data Subject Request or other communication regarding the Processing of Personal Data under the Agreement is made directly to us, we will promptly inform you and will advise the Data Subject to submit their request to you. You will be solely responsible for responding substantively to any such Data Subject Requests or communications involving Personal Data.
+5. Sub-Processors
+You agree that we may engage Sub-Processors to Process Personal Data on your behalf. We have currently appointed, as Sub-Processors, the third parties listed in Annex 3 to this DPA. We will notify you if we add or replace any Sub-Processors listed in Annex 3 at least 30 days prior to any such changes, if you opt in to receive such notifications by contacting us at  support@ipinfo.io , or, where available, by subscribing to Sub-Processor update notifications through your account settings.
+Where we engage Sub-Processors, we will impose data protection terms on the Sub-Processors that provide at least the same level of protection for Personal Data as those in this DPA (including, where appropriate, the Standard Contractual Clauses and the CCPA), to the extent applicable to the nature of the Service provided by such Sub-Processors. We will remain responsible for each Sub-Processor's compliance with the obligations of this DPA and for any acts or omissions of such Sub-Processor that cause us to breach any of our obligations under this DPA.
+6. Data Transfers
+You acknowledge and agree that we may access and Process Personal Data on a global basis as necessary to provide the Service in accordance with the Agreement, and in particular that Personal Data may be transferred to and Processed by IPinfo in the United States and to other jurisdictions where IPinfo affiliates and Sub-Processors have operations. Wherever Personal Data is transferred outside its country of origin, each party will ensure such transfers are made in compliance with the requirements of Data Protection Laws.
+7. Additional Provisions for European Data
+a. Scope.  This 'Additional Provisions for European Data' section will apply only with respect to European Data.
+b. Roles of the Parties.  When Processing European Data in accordance with your Instructions, the parties acknowledge and agree that you are the Controller of European Data and we are the Processor.
+c. Instructions.  If we believe that your Instruction infringes European Data Protection Laws (where applicable), we will inform you without delay.
+d. Objection to New Sub-Processors.  We will give you the opportunity to object to the engagement of new Sub-Processors on reasonable grounds relating to the protection of Personal Data within 30 days of notifying you in accordance with the 'Sub-Processors' section. If you notify us of such an objection, the parties will discuss your concerns in good faith with a view to achieving a commercially reasonable resolution. If no such resolution can be reached, we will, at our sole discretion, either not appoint the new Sub-Processor, or permit you to suspend or terminate the affected Service in accordance with the termination provisions of the Agreement without liability to either party (but without prejudice to any fees incurred by you prior to suspension or termination). The parties agree that by complying with this sub-section (d), IPinfo fulfills its obligations under Clause 9 of the Standard Contractual Clauses.
+e. Sub-Processor Agreements.  For the purposes of Clause 9(c) of the Standard Contractual Clauses, you acknowledge that we may be restricted from disclosing Sub-Processor agreements, but we will use reasonable efforts to require any Sub-Processor we appoint to permit disclosure of the Sub-Processor agreement to you, and will provide (on a confidential basis) all information we reasonably can.
+f. Data Protection Impact Assessments and Consultation with Supervisory Authorities.  To the extent that the required information is reasonably available to us, and you do not otherwise have access to the required information, we will provide reasonable assistance to you with any data protection impact assessments, and prior consultations with supervisory authorities (for example, the French Data Protection Agency (CNIL), the Berlin Data Protection Authority (BlnBDI) and the UK Information Commissioner's Office (ICO)) or other competent data privacy authorities to the extent required by European Data Protection Laws.
+g. Transfer Mechanisms for Data Transfers.
+(A) IPinfo will not transfer European Data to any country or recipient not recognized as providing an adequate level of protection for Personal Data (within the meaning of applicable European Data Protection Laws), unless it first takes all such measures as are necessary to ensure the transfer is in compliance with applicable European Data Protection Laws. Such measures may include (without limitation) transferring such data to a recipient that is covered by a suitable framework or other legally adequate transfer mechanism recognized by the relevant authorities or courts as providing an adequate level of protection for Personal Data, to a recipient that has achieved binding corporate rules authorization in accordance with European Data Protection Laws, or to a recipient that has executed appropriate standard contractual clauses in each case as adopted or approved in accordance with applicable European Data Protection Laws.
+(B) You acknowledge that in connection with the performance of the Service, IPinfo is a recipient of European Data in the United States. Subject to sub-sections (C) and (D), the parties agree that the Standard Contractual Clauses will be incorporated by reference and form part of the Agreement as follows:
+(a) EEA Transfers. In relation to European Data that is subject to the GDPR (i) Customer is the "data exporter" and IPinfo is the "data importer"; (ii) the Module Two terms apply to the extent Customer is a Controller of European Data and the Module Three terms apply to the extent Customer is a Processor of European Data; (iii) in Clause 7, the optional docking clause applies; (iv) in Clause 9, Option 2 applies and changes to Sub-Processors will be notified in accordance with the 'Sub-Processors' section of this DPA; (v) in Clause 11, the optional language is deleted; (vi) in Clauses 17 and 18, the parties agree that the governing law and forum for disputes for the Standard Contractual Clauses will be the Republic of Ireland (without reference to conflicts of law principles); (vii) the Annexes of the Standard Contractual Clauses will be deemed completed with the information set out in the Annexes of this DPA; and (viii) if and to the extent the Standard Contractual Clauses conflict with any provision of this DPA, the Standard Contractual Clauses will prevail to the extent of such conflict.
+(b) UK Transfers. In relation to European Data that is subject to the UK GDPR, the Standard Contractual Clauses will apply in accordance with sub-section (a) and the following modifications: (i) the Standard Contractual Clauses will be modified and interpreted in accordance with the UK Addendum, which will be incorporated by reference and form an integral part of the Agreement; (ii) Tables 1, 2 and 3 of the UK Addendum will be deemed completed with the information set out in the Annexes of this DPA and Table 4 will be deemed completed by selecting "neither party"; and (iii) any conflict between the terms of the Standard Contractual Clauses and the UK Addendum will be resolved in accordance with Section 10 and Section 11 of the UK Addendum.
+(c) Swiss Transfers. In relation to European Data that is subject to the Swiss DPA, the Standard Contractual Clauses will apply in accordance with sub-section (a) and the following modifications: (i) references to "Regulation (EU) 2016/679" will be interpreted as references to the Swiss DPA; (ii) references to "EU", "Union" and "Member State law" will be interpreted as references to Swiss law; and (iii) references to the "competent supervisory authority" and "competent courts" will be replaced with the "Swiss Federal Data Protection and Information Commissioner" and the "relevant courts in Switzerland."
+(C) If IPinfo cannot comply with its obligations under the Standard Contractual Clauses or is in breach of any warranties under the Standard Contractual Clauses or UK Addendum (as applicable) for any reason, and you intend to suspend the transfer of European Data to IPinfo or terminate the Standard Contractual Clauses or UK Addendum, you agree to provide us with reasonable notice to enable us to cure such non-compliance and reasonably cooperate with us to identify what additional safeguards, if any, may be implemented to remedy such non-compliance. If we have not or cannot cure the non-compliance, you may suspend or terminate the affected part of the Service in accordance with the Agreement without liability to either party (but without prejudice to any fees you have incurred prior to such suspension or termination).
+h. Demonstration of Compliance.  We will make all information reasonably necessary to demonstrate compliance with this DPA available to you and allow for and contribute to audits, including inspections conducted by you or your auditor, in order to assess compliance with this DPA to the extent required by Data Protection Laws. For self-serve accounts, we will make available a summary of our current certifications, attestations, and Security Measures (as described in Annex 2) upon written request to  support@ipinfo.io , and any on-site or hands-on audit beyond documentary review is subject to reasonable advance notice, confidentiality protections, and may be subject to a reasonable fee to cover our costs.
+8. Additional Provisions for California Personal Information
+a. Scope.  This 'Additional Provisions for California Personal Information' section will apply only with respect to California Personal Information.
+b. Roles of the Parties.  When processing California Personal Information in accordance with your Instructions, the parties acknowledge and agree that you are a Business and we are a Service Provider for the purposes of the CCPA.
+c. Responsibilities.  The parties agree that we will Process California Personal Information as a Service Provider strictly for the purpose of performing the Services described in the Agreement, which may include some or all of the following: performing services on behalf of you, maintaining or servicing accounts, providing customer service, processing or fulfilling orders and transactions, verifying information, processing payments, providing analytic services, providing storage, or providing similar services on your behalf under the Agreement or as otherwise permitted by the CCPA, including as described in the 'Usage Data' section of our Privacy Policy (the "Business Purpose"). You are only disclosing the California Personal Information to us for the limited and specific Business Purpose, and we will not retain, use or disclose the California Personal Information for any purpose other than the Business Purpose, including any other commercial purpose, unless expressly permitted by the CCPA or its implementing regulations. We will not "sell" or "share" Personal Information as those terms are described in the CCPA, or combine the Personal Information with personal information obtained from sources other than you, except to the extent necessary to perform the Agreement. We will not retain, use, or disclose the Personal Information outside our direct business relationship with you, unless expressly permitted by the CCPA. We will comply with all applicable sections of the CCPA, including providing the same level of privacy protection as required of Businesses. We will implement reasonable security procedures and practices appropriate to the nature of the California Personal Information to protect it from unauthorized or illegal access, destruction, use, modification, or disclosure in accordance with California Civil Code section 1798.81.5. We will notify you if we can no longer meet our obligations under the CCPA. We will enable you to respond to Data Subject Requests as set forth in Section 4. If we subcontract any of our obligations under this DPA, then we will enter into a contract with the subcontractor that complies with the CCPA and its implementing regulations.
+d. Demonstration of Compliance; Remediation.  You may take reasonable and appropriate steps to ensure that we use the Personal Information consistent with the CCPA. If you discover unauthorized use of Personal Information by us, you may, upon notice, take reasonable and appropriate steps to stop and remediate our unauthorized use of Personal Information.
+9. General Provisions
+a. Updates to this DPA.  We reserve the right to make updates and changes to this DPA from time to time, including to reflect changes in Data Protection Laws, our Sub-Processors, or our Service, provided that no such update will result in a material degradation of the protections provided to Customer's Personal Data under this DPA. We will post the updated DPA at this URL and update the "Last updated" date above; where required by applicable law, we will provide additional notice (such as by email to your account contact or in-Service notification). Your continued use of the Service after an updated DPA takes effect constitutes acceptance of the update. This Section 9(a) does not limit the 'Compliance with Instructions' or 'Security' sections of this DPA.
+b. Severability.  If any individual provisions of this DPA are determined to be invalid or unenforceable, the validity and enforceability of the other provisions of this DPA will not be affected.
+c. Limitation of Liability.  Each party's and each of their Affiliates' liability, taken in aggregate, arising out of or related to this DPA (and any other DPAs between the parties) and the Standard Contractual Clauses (where applicable), whether in contract, tort or under any other theory of liability, will be subject to the limitations and exclusions of liability set out in the Agreement, and any reference in the Agreement to the liability of a party means the aggregate liability of that party and all of its Affiliates under the Agreement (including this DPA). The foregoing applies to the maximum extent permitted by applicable law.
+d. Governing Law.  This DPA will be governed by the law of the jurisdiction identified in the 'Transfer Mechanisms for Data Transfers' section (without regard to conflict of laws provisions), unless required otherwise by Data Protection Laws.
+e. Order of Precedence.  This DPA is not intended to, and does not, replace or supersede any data processing terms in a separately negotiated and countersigned master agreement or order form between the parties. If Customer has a separately executed data processing agreement with IPinfo that by its terms applies to the Service, that separately executed agreement will govern and this online DPA will not apply.
+10. Parties to this DPA
+a. Permitted Affiliates.  By agreeing to this DPA, you enter into this DPA (including, where applicable, the Standard Contractual Clauses) on behalf of yourself and in the name and on behalf of your Permitted Affiliates, if any. For the purposes of this DPA only, and except where indicated otherwise, the terms "Customer", "you" and "your" will include you and such Permitted Affiliates.
+b. Authorization.  The individual or legal entity agreeing to this DPA as Customer represents that it is authorized to agree to and enter into this DPA for and on behalf of itself and, as applicable, each of its Permitted Affiliates.
+c. Remedies.  The parties agree that (i) solely the Customer entity that agreed to this DPA will exercise any right or seek any remedy any Permitted Affiliate may have under this DPA on behalf of its Affiliates, and (ii) that Customer entity will exercise any such rights under this DPA not separately for each Permitted Affiliate individually but in a combined manner for itself and all of its Permitted Affiliates together. The Customer entity that agreed to this DPA is responsible for coordinating all Instructions, authorizations and communications with us under the DPA and will be entitled to make and receive any communications related to this DPA on behalf of its Permitted Affiliates.
+Annex 1 - Details of Processing
+A. List of Parties
+Data exporter (Customer):  The entity or individual identified by the account name, billing details, and primary contact email address associated with Customer's self-serve account, as maintained in IPinfo's account records from time to time.
+Contact person's name, position and contact details:  The primary account contact and email address on file for Customer's account.
+Activities relevant to the data transferred under these Clauses:  IPinfo will process Customer's Personal Data as necessary to provide the Service under the Agreement, for the purposes specified in the Agreement and this DPA, and in accordance with Customer's instructions as set forth in this DPA.
+Data importer:  IPinfo Inc
+Address:  300 Lenora Street #516, Seattle, WA 98121, USA
+Contact person's name, position and contact details:  Tariro Chipato;  support@ipinfo.io
+Activities relevant to the data transferred under these Clauses:  Processing of Personal Data in connection with Customer's use of the IPinfo Service under the Agreement between the parties.
+Role (controller/processor):  Processor
+B. Description of Transfer
+Categories of Data Subjects whose Personal Data is Transferred:  Data Subjects may include Customer's own customers and employees.
+Categories of Personal Data Transferred:  Customer may submit Personal Data to the Service, the extent of which is determined and controlled by Customer in its sole discretion, and which may include but is not limited to the following categories of Personal Data:
+Contact Information, including name and email address; credit card information.
+Any other Personal Data submitted by, sent to, or received by Customer or Customer's end users, via the Service.
+IP Addresses. The parties agree to handle IP addresses under the provisions of this DPA even though there is no definitive determination that they constitute personal information under Data Protection Laws.
+Sensitive Data transferred and applied restrictions or safeguards:  The parties do not anticipate the transfer of sensitive data.
+Frequency of the transfer:  Continuous
+Nature of the Processing:  Personal Data will be Processed in accordance with the Agreement (including this DPA) and may be subject to the following Processing activities: (1) storage and other Processing necessary to provide, maintain and improve the Service provided to you; and/or (2) disclosure in accordance with the Agreement (including this DPA) and/or as compelled by applicable laws.
+Purpose of the transfer and further processing:  We will Process Personal Data as necessary to provide the Service pursuant to the Agreement, as further specified during account setup or in-Service configuration, and as further instructed by you in your use of the Service.
+Period for which Personal Data will be retained:  Subject to the 'Deletion or Return of Personal Data' section of this DPA, we will Process Personal Data for the duration of the Agreement, unless otherwise agreed in writing.
+C. Competent Supervisory Authority
+For the purposes of the Standard Contractual Clauses, the supervisory authority that will act as competent supervisory authority will be determined in accordance with the 'Transfer Mechanisms for Data Transfers' section of this DPA.
+Annex 2 - Security Measures
+We currently observe the Security Measures described in this Annex 2. All capitalized terms not otherwise defined herein will have the meanings set forth in the Agreement.
+a) Access Control
+i) Preventing Unauthorized Access
+Outsourced processing:  We host our Service with outsourced cloud infrastructure providers. Additionally, we maintain contractual relationships with vendors in order to provide the Service in accordance with our DPA. We rely on contractual agreements, privacy policies, and vendor compliance programs to protect data processed or stored by these vendors.
+Physical and environmental security:  We host our product infrastructure with multi-tenant, outsourced infrastructure providers. We do not own or maintain hardware located at the outsourced infrastructure providers' data centers. Production servers and client-facing applications are logically and physically secured from our internal corporate information systems.
+Authentication:  We implement a uniform password policy for our customer products. Customers who interact with the products via the user interface must authenticate before accessing non-public customer data.
+Authorization:  Customer Data is stored in multi-tenant storage systems accessible to Customers via only application user interfaces and application programming interfaces. Customers are not allowed direct access to the underlying application infrastructure. The authorization model in each of our products is designed to ensure that only appropriately assigned individuals can access relevant features, views, and customization options. Authorization to data sets is performed through validating the user's permissions against the attributes associated with each data set.
+API access:  Public product APIs may be accessed using an API key.
+ii) Preventing Unauthorized Product Use
+We implement industry-standard access controls and detection capabilities for the internal networks that support our products.
+Access controls:  Network access control mechanisms are designed to prevent network traffic using unauthorized protocols from reaching the product infrastructure. The technical measures implemented differ between infrastructure providers and include Virtual Private Cloud (VPC) implementations, security group assignment, and traditional firewall rules.
+Intrusion detection and prevention:  We implement solutions to protect internet-accessible applications from intrusion by mitigating common web vulnerabilities published by the Open Web Application Security Project ("OWASP") Top 10. We store and analyze audit logs of critical systems accesses and key operations.
+Static code analysis:  Code stored in our source code repositories is checked for best practices and identifiable software flaws using automated tooling.
+iii) Limitations of Privilege & Authorization Requirements
+Product access:  A subset of our employees have access to the products and to customer data via controlled interfaces, to provide effective customer support, product development and research, troubleshoot potential problems, detect and respond to security incidents, and implement data security. Access is enabled through "just in time" (JITA) requests for access; all such requests are logged. Employees are granted access by role, and reviews of high-risk privilege grants are initiated daily. Administrative or high-risk access permissions are reviewed at least once every six months.
+Employees:  All IPinfo employees are required to conduct themselves in a manner consistent with company guidelines, non-disclosure requirements, and ethical standards.
+b) Transmission Control
+In-transit:  We require HTTPS encryption (also referred to as SSL or TLS) on all login interfaces and for free on every customer site hosted on the IPinfo products. Our HTTPS implementation uses industry-standard algorithms and certificates.
+At-rest:  We store user passwords following policies consistent with industry-standard security practices. We have implemented technologies to ensure that stored data is encrypted at rest.
+c) Input Control
+Detection:  We designed our infrastructure to log extensive information about system behavior, traffic received, system authentication, and other application requests. Internal systems aggregate log data and alert appropriate employees of malicious, unintended, or anomalous activities. Our personnel, including security, operations, and support personnel, are responsive to known incidents.
+Response and tracking:  We maintain a record of known security incidents that includes description, dates and times of relevant activities, and incident disposition. Suspected and confirmed security incidents are investigated by security, operations, or support personnel, and appropriate resolution steps are identified and documented. For any confirmed incidents, we will take appropriate steps to minimize product and Customer damage or unauthorized disclosure. Notification to you will be in accordance with the terms of the Agreement.
+d) Availability Control
+Infrastructure availability:  Our infrastructure providers use commercially reasonable efforts to ensure a minimum uptime stated in the Agreement. The providers maintain a minimum of N+1 redundancy to power, network, and heating, ventilation and air conditioning (HVAC) service.
+Fault tolerance:  Backup and replication strategies are designed to ensure redundancy and fail-over protections during a significant processing failure. Customer data is backed up to multiple durable data stores and replicated across multiple availability zones.
+Online replicas and backups:  Where feasible, production databases are designed to replicate data between no less than one primary and one secondary database. All databases are backed up and maintained using at least industry-standard methods.
+Disaster Recovery Plans:  We maintain and regularly test disaster recovery plans to help ensure availability of information following interruption to, or failure of, critical business processes. Our products are designed to ensure redundancy and seamless failover, with server instances architected to prevent single points of failure. This design assists our operations in maintaining and updating the product applications and backend while limiting downtime.
+e) Additional Measures
+Measures of pseudonymisation and encryption of Personal Data:  We apply pseudonymization techniques, including separating data from direct identifiers to avoid linking to data subjects without additional information. All Personal Data is processed in secure compute environments with at-rest and in-transit encryption. Data from real data subjects present in production environments is not used in test and development environments.
+Measures for ensuring ongoing confidentiality, integrity, availability and resilience of processing systems and Service:  Access to data necessary for the performance of a particular task is ensured within systems and applications by a corresponding role and authorization concept. In accordance with the "least privilege" and "need-to-know" principles, each role has only those rights necessary for the fulfillment of the individual's assigned task. State-of-the-art encryption technology is applied to Personal Data itself where deemed appropriate to protect sensitive data based on risk.
+Measures for ensuring the ability to restore availability and access to Personal Data in a timely manner following an incident:  All applications are deployed using automated scripts and infrastructure-as-code technologies, enabling recreation across different geographical regions and/or cloud providers. Data is stored in multiple availability zones, and data centers can be switched in the event of flooding, earthquake, fire, or other physical destruction or power outage. Stateful components, such as critical data in Google Cloud Storage buckets or databases, are replicated or backed up to a backup location in a different availability zone. Backups are maintained daily and retained per our backup procedures; critical services may have custom retention periods that expand beyond default retention periods.
+Processes for regularly testing, assessing and evaluating the effectiveness of technical and organizational measures:  We conduct regular internal audits and strive to automate audits, with the majority of infrastructure monitoring automated and running continuously.
+Measures for user identification and authorization:  Remote access to data processing systems requires all employees to use authenticated access with multi-factor authentication wherever possible. Strong and unique passwords are enforced where such authentication is not possible. After successful authentication, authorization is performed by evaluating the user against a set of assigned permissions depending on the system being accessed. All access attempts, successful and unsuccessful, are logged.
+Measures for the protection of data during transmission:  Data in transit is protected by Transport Layer Security (TLS 1.2 or higher).
+Measures for the protection of data during storage:  Personal Data is retained internally and on third-party data center servers covered by our cloud infrastructure provider's security policies and certifications. All data is encrypted at rest using AES-256-bit encryption, and data in transit is protected by TLS.
+Measures for ensuring physical security of locations at which Personal Data is processed:  Our services are hosted on Google Cloud. Physical servers are located within Google Cloud's data centers, and access to them is managed by Google. We utilize Google Cloud regions that maintain current ISO 27001 certifications and/or SSAE 18 / ISAE 3402 Type II or SOC 2 Attestation Reports, and will not use third-party data centers lacking such certifications or substantially equivalent alternatives.
+Measures for ensuring events logging:  System inputs are recorded in log files, making it possible to review retroactively whether and by whom Personal Data was entered, altered, or deleted.
+Measures for ensuring system configuration, including default configuration:  System configuration is applied and maintained by software tools that ensure configurations do not deviate from specifications.
+Measures for internal IT and IT security governance and management:  Employees are instructed to collect, process and use Personal Data only within the framework and for the purposes of their duties. At a technical level, multi-client capability includes separation of functions and appropriate separation of testing and production systems. Customer Personal Data is stored in a way that logically separates it from other customer data.
+Measures for certification/assurance of processes and products:  We utilize third-party data centers that maintain current ISO 27001 certifications and/or SSAE 16 SOC 1 Type II or SOC 2 Attestation Reports, and will not use third-party data centers lacking such certifications or substantially equivalent alternatives.
+Measures for ensuring data minimization:  We collect only the minimum data required for the Services to function. Personal Data no longer required for the purposes for which it was processed is deleted promptly, subject to a brief lock-then-delete delay designed to prevent accidental or intentional damage.
+Measures for ensuring data quality:  We validate key data at the time of entry and use, and run regular checks to confirm stored data remains correct.
+Measures for ensuring limited data retention:  We use a data classification scheme for all stored data. When a record containing Personal Data is deleted, it is permanently removed from our active databases; data is retained in backups only until superseded by more recent backups.
+Measures for ensuring accountability:  We internally review our information security policies annually to confirm they remain relevant and are being followed. Employees handling sensitive data must acknowledge our information security policies and are retrained annually. A disciplinary policy applies to employees who do not adhere to information security policies.
+Measures for allowing data portability and ensuring erasure:  The Service includes built-in tools allowing Customer to export and permanently erase data, and we provide an API supporting create, read, update, and delete actions on core account data, with API access levels mirroring the user's web-app access.
+Measures applicable to transfers to (sub-)processors:  Personal Data is transferred to a third party (e.g., customers, sub-contractors, service providers) only where a corresponding contract exists and only for specific defined purposes. Where Personal Data is transferred to companies located outside the EEA, we ensure that an adequate level of data protection exists at the target location or organization consistent with applicable European Union data protection requirements, including by employing contracts based on the EU Standard Contractual Clauses.
+Annex 3 - List of Sub-Processors
+If you would like to receive notice when we make updates to this Annex 3, please contact us at  support@ipinfo.io , or, where available, enable Sub-Processor update notifications in your account settings.
+Sub-Processor
+Address
+Contact
+Description of Processing
+Country
+Google LLC/Google Cloud
+1600 Amphitheatre Parkway, Mountain View, California 94043, United States
+legal-notices@google.com .
+Data storage; support for performance of this Agreement
+US
+Stripe, Inc.
+354 Oyster Point Boulevard, South San Francisco, California, 94080.
+info@stripe.com
+Payment processing
+US
+Amplitude, Inc.
+201 Third Street, Suite 200, San Francisco, California 94103, United States
+privacy@amplitude.com
+Product analytics
+US
+Salesforce
+415 Mission Street, 3rd Floor, San Francisco, CA 94105.
+support@salesforce.com  +353 14403500.
+Support for performance of this Agreement
+US
+Cloudflare, Inc
+101 Townsend Street, San Francisco, CA 94107, United States
+privacyquestions@cloudflare.com
+Content delivery network; storage and distribution of data files
+US
+Hubspot Inc
+Two Canal Park, Cambridge, MA 02141
+privacy@hubspot.com
+Support for performance of this Agreement
+US
+Mailgun Technologies, Inc
+112 E. Pecan Street #1135 San Antonio, Texas 78205, United States of America
+privacy@mailgun.com
+Transactional email delivery, email address validation
+US
+Posthog Inc
+2261 Market Street #4008 San Francisco, California 94114, United States
+privacy@posthog.com
+Product Analytics
+US
+Retool Inc
+1550 Bryant Street, San Francisco, California 94105, United States
+dpo@retool.com
+Internal administration and support tooling
+US
+Slack Technologies LLC
+50 Fremont Street, San Francisco, California, 94105, United States
+privacy@slack.com
+Internal Operational Notifications (e.g account and billing events)
+US
+Zendesk Inc
+181 Fremont Street, San Francisco, California, 94105, United States
+privacy@zendesk.com
+Customer support ticketing
+US
+Products   Products     IPinfo Lite
+IPinfo Core
+IPinfo Max
+IPinfo Enterprise
+Custom Solutions
+Data   Data     IP to Geolocation
+ASN
+Privacy Detection
+Residential Proxy
+Places  New
+Device Count  New
+RPKI  New
+IP to Mobile Carrier
+Hosted Domains
+IP to Company
+Abuse Contact
+IP Whois
+IP Ranges
+Why IPinfo?   Why IPinfo?     Pricing
+About Us
+Research
+Data
+Our Community
+ProbeNet
+Customers Stories
+Use Cases
+Compare
+Events
+Resources   Resources     Help Center
+Support
+Blog
+Evaluate
+Reports  New
+E-books & Presentations
+Press
+Tools
+Docs
+For AI Agents
+Become an Ambassador
+Copyright ©  2026  IPinfo®
+Terms & Conditions
+Privacy Policy
+Acceptable Use Policy
+Data Processing Agreement
+Your Privacy Choices

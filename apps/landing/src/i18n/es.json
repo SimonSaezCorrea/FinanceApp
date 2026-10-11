@@ -16,7 +16,8 @@
       "appUnavailableTitle": "La app no está respondiendo",
       "appUnavailableRetry": "Reintentar",
       "appUnavailableClose": "Cerrar aviso",
-      "appChecking": "Comprobando…"
+      "appChecking": "Comprobando…",
+      "privacyPolicy": "Política de privacidad"
     },
     "footer": {
       "tagline": "Hecha en Chile para pesos, dólares y UF.",
@@ -204,7 +205,8 @@
           "body": "No existe sincronización automática ni permiso de lectura sobre tus productos. Nada entra que no registres tú."
         }
       },
-      "layersIndex": "Capas"
+      "layersIndex": "Capas",
+      "fullPolicy": "Lee la política de privacidad completa"
     },
     "pricing": {
       "titleLead": "Un plan,",
@@ -330,6 +332,10 @@
       "resetPassword": {
         "title": "Contraseña nueva · fik",
         "description": "Elige una contraseña nueva para tu cuenta de fik."
+      },
+      "privacyPolicy": {
+        "title": "Política de privacidad · fik",
+        "description": "La política de privacidad de fik: qué datos tratamos, con qué proveedores, cuánto tiempo los guardamos y cómo ejerces tus derechos."
       }
     },
     "access": {
@@ -357,6 +363,9 @@
       "signIn": "Iniciar sesión",
       "invalid": "Este enlace no sirve: venció (dura 30 minutos), ya se usó o pediste uno más nuevo.",
       "again": "Pedir otro enlace"
+    },
+    "privacyPolicy": {
+      "title": "Política de privacidad"
     }
   }
 }

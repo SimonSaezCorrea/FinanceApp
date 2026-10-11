@@ -16,7 +16,8 @@
       "appUnavailableTitle": "The app isn’t responding",
       "appUnavailableRetry": "Try again",
       "appUnavailableClose": "Close notice",
-      "appChecking": "Checking…"
+      "appChecking": "Checking…",
+      "privacyPolicy": "Privacy policy"
     },
     "footer": {
       "tagline": "Made in Chile for pesos, dollars and UF.",
@@ -204,7 +205,8 @@
           "body": "There's no automatic sync and no read permission over your products. Nothing enters that you didn't record yourself."
         }
       },
-      "layersIndex": "Layers"
+      "layersIndex": "Layers",
+      "fullPolicy": "Read the full privacy policy"
     },
     "pricing": {
       "titleLead": "One plan,",
@@ -330,6 +332,10 @@
       "resetPassword": {
         "title": "New password · fik",
         "description": "Choose a new password for your fik account."
+      },
+      "privacyPolicy": {
+        "title": "Privacy policy · fik",
+        "description": "fik's privacy policy: what data we process, which providers we use, how long we keep it and how you exercise your rights."
       }
     },
     "access": {
@@ -357,6 +363,9 @@
       "signIn": "Sign in",
       "invalid": "This link doesn’t work: it expired (it lasts 30 minutes), was already used, or you asked for a newer one.",
       "again": "Ask for another link"
+    },
+    "privacyPolicy": {
+      "title": "Privacy policy"
     }
   }
 }

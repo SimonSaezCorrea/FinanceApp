@@ -6,7 +6,10 @@ import { HomePage } from "./HomePage";
 import { PricingPage } from "./PricingPage";
 import { PrivacyPage } from "./PrivacyPage";
 
-const CONTENT: Record<Page, () => React.JSX.Element> = {
+/** The pages written in React. The privacy policy is Markdown rendered by its own Astro page. */
+type ReactPage = Exclude<Page, "privacyPolicy">;
+
+const CONTENT: Record<ReactPage, () => React.JSX.Element> = {
   home: HomePage,
   about: AboutPage,
   privacy: PrivacyPage,
@@ -19,7 +22,7 @@ const CONTENT: Record<Page, () => React.JSX.Element> = {
  * of a framework component separately, so wrapping `<I18nRoot>` around a page in `.astro` would
  * leave the page outside the provider. Rendered at build time only — never hydrated.
  */
-export function LandingPage({ lang, page }: Readonly<{ lang: Language; page: Page }>) {
+export function LandingPage({ lang, page }: Readonly<{ lang: Language; page: ReactPage }>) {
   const Content = CONTENT[page];
   return (
     <I18nRoot lang={lang}>

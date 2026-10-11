@@ -1,6 +1,8 @@
-import { ArrowDown, X } from "lucide-react";
+import { ArrowDown, ArrowRight, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
+import { useLang } from "../../../i18n";
+import { pagePath } from "../../../lib/language";
 import { HERO_TITLE } from "../components/bits";
 import { ClosingCta } from "../components/HomeSections";
 import { LayerRings, PrivacyRings } from "../components/illustrations/PrivacyRings";
@@ -21,6 +23,7 @@ const layerId = (key: string) => `privacy-layer-${key}`;
  */
 export function PrivacyPage() {
   const { t } = useTranslation();
+  const lang = useLang();
 
   return (
     <>
@@ -36,6 +39,14 @@ export function PrivacyPage() {
             <p className="text-base leading-relaxed text-muted-foreground sm:text-[17px]">
               {t(`${P}.lead`)}
             </p>
+            {/* This page explains; the legal text (Ley 21.719) lives on its own page. */}
+            <a
+              href={pagePath(lang, "privacyPolicy")}
+              className="inline-flex min-h-11 items-center gap-1.5 self-start text-sm font-medium text-primary underline-offset-4 hover:underline"
+            >
+              {t(`${P}.fullPolicy`)}
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </a>
           </div>
           <PrivacyRings
             centerLabel={t(`${P}.center`)}

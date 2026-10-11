@@ -1,0 +1,77 @@
+Copia de texto de https://resend.com/legal/subprocessors, descargada el 2026-10-11.
+
+Subprocessors · Resend
+Open main menu
+Features
+Company
+Enterprise
+Help
+Docs
+AI
+Pricing
+Log in  Get started
+Subprocessors
+Last update:   August 27th, 2026
+Ask AI to explain
+Get a quick, plain-language summary of this page without all the jargon.
+ChatGPT       Claude       Gemini       Perplexity
+List of Subprocessors
+Amazon Web Services, Inc. (USA) : Third party hosting and sending provider
+Anthropic, PBC (USA) : Artificial Intelligence
+Attio Limited (USA) : Customer relationship management
+Cloudflare, Inc. (USA) : Web application firewall
+Datadog, Inc. (USA) : Infrastructure monitoring
+Elastic N.V. (USA) : In-app search
+Estuary Technologies, Inc. (USA) : Data pipeline
+Google, Inc. (USA) : Email communications and analytics
+Inngest Inc (USA) : Background jobs
+Liveblocks, Inc. (USA) : In-app collaboration
+Metabase, Inc. (USA) : Product analytics
+Not Just Tickets Limited (USA) : Support platform (Plain)
+PlanetScale, Inc. (USA) : Database hosting
+Retool, Inc. (USA) : Internal admin tools
+RunPod, Inc. (USA) : Self-hosted LLMs
+Salesforce, Inc. (USA) : Team communication (Slack)
+Snowflake Inc. (USA) : Data warehouse
+Stripe, Inc. (USA) : Payment processing
+Supabase, Inc (USA) : Database and user authentication
+Svix Inc. (USA) : Webhook services
+Tinybird Inc. (USA) : Data analytics
+Vercel Inc. (USA) : Server hosting
+2261 Market Street #5039 San Francisco, CA 94114
+Status unknown
+Features
+Automations
+Audiences
+Broadcasts
+Inbound
+Templates
+Webhooks
+Dedicated IPs
+Resources
+Changelog
+Pricing
+Enterprise
+Security
+SOC 2
+GDPR
+Brand
+Company
+About
+Blog
+Careers
+Clubs
+Customers
+Humans
+Philosophy
+Help
+Support
+Status
+Migrate
+Knowledge base
+Legal policies
+Community
+Events
+Insiders
+Open source
+Wallpapers

@@ -260,6 +260,6 @@ describe("RegisterForm — the page's language", () => {
   it("links the privacy policy in the page's language", () => {
     renderRegister();
     const link = screen.getByRole("link", { name: /privacidad/i });
-    expect(link.getAttribute("href")).toBe("/es/privacy/");
+    expect(link.getAttribute("href")).toBe("/es/privacy-policy/");
   });
 });

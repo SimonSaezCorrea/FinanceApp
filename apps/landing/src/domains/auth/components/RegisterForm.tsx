@@ -326,7 +326,7 @@ export function RegisterForm({
             privacy: (
               // A new tab: following it in place would throw away the half-filled form.
               <a
-                href={pagePath(lang, "privacy")}
+                href={pagePath(lang, "privacyPolicy")}
                 target="_blank"
                 rel="noreferrer"
                 className="font-medium text-primary underline-offset-2 hover:underline"

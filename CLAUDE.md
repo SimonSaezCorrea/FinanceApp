@@ -1599,7 +1599,7 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   **Astro 7** (`output: "static"`, `build.format: "directory"`) + `@astrojs/react` (React components
   render **at build only**, never hydrated on arrival) + `@astrojs/sitemap`; dev `@astrojs/check`,
   `@resvg/resvg-js` (`scripts/og.mjs` → `public/og/fik-{es,en}.png`). Pages
-  `src/pages/[lang]/{index,about,privacy,pricing,faq}.astro` → `/es/`, `/en/pricing/`, … (English
+  `src/pages/[lang]/{index,about,privacy,pricing,faq}.astro` + `privacy-policy.astro` (the LEGAL privacy policy, Ley 21.719, added 2026-10-11: Markdown in `src/legal/privacy-policy.{es,en}.md`, Spanish binding, English a declared translation; `Page` "privacyPolicy", slug `privacy-policy`; linked from the footer, the plain-language Privacy page and the sign-up consent; the internal draft with notes is `.compliance/docs/21719-politica-privacidad.md`) → `/es/`, `/en/pricing/`, … (English
   slugs in both languages, trailing slash; `lib/language.ts`'s `pagePath`/`pickLanguage`/
   `legacyTarget`); `/` and the old `/precios`/`/nosotros`/`/privacidad`/`/preguntas` are static
   redirect pages (`RedirectLayout`, keep `?query#hash`); `404.astro`; `robots.txt.ts`.

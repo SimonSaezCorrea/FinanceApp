@@ -3,13 +3,15 @@ import { DEFAULT_LANGUAGE, LANGUAGES, type Language } from "@finance/i18n/src/la
 export { DEFAULT_LANGUAGE, LANGUAGES, type Language };
 
 /** The public pages, by the (English) slug they use in BOTH languages (spec 031, clarify Q1). */
-export const PAGES = ["home", "about", "privacy", "pricing", "faq"] as const;
+export const PAGES = ["home", "about", "privacy", "privacyPolicy", "pricing", "faq"] as const;
 export type Page = (typeof PAGES)[number];
 
 const SLUG: Record<Page, string> = {
   home: "",
   about: "about",
   privacy: "privacy",
+  // The legal privacy policy (Ley 21.719); "privacy" is the plain-language explanation.
+  privacyPolicy: "privacy-policy",
   pricing: "pricing",
   faq: "faq",
 };
