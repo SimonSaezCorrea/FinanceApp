@@ -96,6 +96,22 @@ describe("public site build", () => {
     }
   });
 
+  // Brand searches ("fik", "mifik"): the home pages say what the site is called.
+  for (const lang of LANGS) {
+    it(`/${lang}/ declares the site name for search engines`, () => {
+      const json = attr(htmlOf(lang, ""), /<script type="application\/ld\+json">([^<]*)<\/script>/);
+      expect(json).toBeTruthy();
+      const data = JSON.parse(json ?? "[]") as { "@type": string; name: string; url: string }[];
+      const site = data.find((d) => d["@type"] === "WebSite");
+      expect(site?.name).toBe("fik");
+      expect(site?.url).toBe(`${SITE}/`);
+    });
+  }
+
+  it("keeps structured data off the other pages", () => {
+    expect(htmlOf("es", "faq")).not.toContain("application/ld+json");
+  });
+
   it("publishes robots.txt pointing at the sitemap", () => {
     const robots = readFileSync(join(DIST, "robots.txt"), "utf8");
     expect(robots).toContain(`Sitemap: ${SITE}/sitemap-index.xml`);

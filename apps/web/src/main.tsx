@@ -6,7 +6,7 @@ import { configureClient } from "@finance/client";
 
 import "@fontsource-variable/geist";
 import "@fontsource-variable/inter";
-import "@fontsource/caveat-brush/latin-400.css";
+import "@finance/ui/src/styles/brand-font.css";
 
 import { preloadPage } from "./app/lazyPages";
 import { Providers } from "./app/providers";

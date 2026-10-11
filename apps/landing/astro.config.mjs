@@ -16,7 +16,9 @@ export default defineConfig({
   site,
   output: "static",
   trailingSlash: "ignore",
-  build: { format: "directory" },
+  // The site's CSS (~11 KB) goes inside each page instead of a separate file: it was the one
+  // render-blocking request Lighthouse flagged (~200-330 ms on mobile).
+  build: { format: "directory", inlineStylesheets: "always" },
   integrations: [
     react(),
     sitemap({

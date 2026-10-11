@@ -1,10 +1,13 @@
 ---
 import "@fontsource-variable/geist";
 import "@fontsource-variable/inter";
-import "@fontsource/caveat-brush/latin-400.css";
+import "@finance/ui/src/styles/brand-font.css";
 import "../styles/global.css";
 
 import { PRE_PAINT_SCRIPT } from "@finance/ui/prepaint.mjs";
+// The body font, requested right away instead of after the stylesheet is parsed (Lighthouse's
+// "network dependency tree"). Same hashed file the @font-face points at, so it's fetched once.
+import geistLatin from "@fontsource-variable/geist/files/geist-latin-wght-normal.woff2?url";
 import { brandHtml } from "@finance/ui/src/shared/lib/brand";
 
 // Development only: the access panel is React loaded on demand, and @vitejs/plugin-react's Fast
@@ -47,6 +50,30 @@ const title = notFound
   : t(lang, `landing.meta.${metaKey}.title`);
 const description = t(lang, `landing.meta.${metaKey}.description`);
 const image = `${site}/og/fik-${lang}.png`;
+// Structured data on the home page (both languages): tells Google the site is called "fik"
+// (also searched as "mifik") so brand searches show that name and lead here.
+const structuredData =
+  page === "home" && !unindexed
+    ? JSON.stringify([
+        {
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "fik",
+          alternateName: ["mifik", "mifik.cl"],
+          url: `${site}/`,
+          inLanguage: lang === "es" ? "es-CL" : "en-US",
+        },
+        {
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: "fik",
+          alternateName: "mifik",
+          url: `${site}/`,
+          email: "contacto@mifik.cl",
+          slogan: t(lang, "brand.slogan"),
+        },
+      ])
+    : null;
 ---
 
 <!doctype html>
@@ -60,6 +87,7 @@ const image = `${site}/og/fik-${lang}.png`;
     <meta name="theme-color" content="#0b1518" />
     <script is:inline set:html={PRE_PAINT_SCRIPT} />
     {import.meta.env.DEV && <script type="module" is:inline set:html={REACT_REFRESH_PREAMBLE} />}
+    <link rel="preload" href={geistLatin} as="font" type="font/woff2" crossorigin />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>{title}</title>
     <meta name="description" content={description} />
@@ -89,6 +117,7 @@ const image = `${site}/og/fik-${lang}.png`;
     <meta property="og:image:alt" content={t(lang, "landing.meta.imageAlt")} />
     <meta property="og:locale" content={lang === "es" ? "es_CL" : "en_US"} />
     <meta name="twitter:card" content="summary_large_image" />
+    {structuredData && <script type="application/ld+json" set:html={structuredData} />}
   </head>
   <body>
     <div class="min-h-dvh overflow-x-clip bg-background text-foreground">
