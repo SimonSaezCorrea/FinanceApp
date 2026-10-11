@@ -1,0 +1,19 @@
+# What a Docker build of this repo never needs. Above all: no secrets (.env) and no host
+# node_modules (they're reinstalled inside the image for its own platform).
+**/node_modules
+**/dist
+**/.turbo
+**/coverage
+.git
+.github
+**/.env
+**/.env.*
+!**/.env.example
+graphify-out
+specs
+docs
+.specify
+.claude
+.agents
+.compliance
+**/*.log

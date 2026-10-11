@@ -1,0 +1,56 @@
+# Production stack on the EC2 server (/opt/fik). `deploy.sh` sets API_IMAGE and runs it; by hand:
+#   API_IMAGE=<registry>/fik-api:<tag> docker compose up -d
+name: fik
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  api:
+    image: ${API_IMAGE:?set API_IMAGE to the image to run}
+    env_file: ./api.env
+    environment:
+      PORT: "3001"
+      # Lets Node trust the RDS certificate authority, so the database link can be verified.
+      NODE_EXTRA_CA_CERTS: /certs/rds-global-bundle.pem
+    volumes:
+      - ./certs/rds-global-bundle.pem:/certs/rds-global-bundle.pem:ro
+    expose:
+      - "3001"
+    restart: unless-stopped
+    logging: *logging
+
+  # One-off: applies pending migrations, then loads the catalogue (never the demo user: the
+  # database is not local). `deploy.sh` runs it before restarting the API.
+  migrate:
+    image: ${API_IMAGE:?set API_IMAGE to the image to run}
+    env_file: ./api.env
+    environment:
+      NODE_EXTRA_CA_CERTS: /certs/rds-global-bundle.pem
+    volumes:
+      - ./certs/rds-global-bundle.pem:/certs/rds-global-bundle.pem:ro
+    command:
+      ["sh", "-c", "npx --no-install prisma migrate deploy && npx --no-install tsx prisma/seed.ts"]
+    profiles: ["tools"]
+    logging: *logging
+
+  # TLS in front of the API with the Cloudflare origin certificate; only Cloudflare may connect
+  # (security group + Authenticated Origin Pulls). See deploy/Caddyfile.
+  caddy:
+    image: caddy:2.8-alpine
+    ports:
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+      - caddy_data:/data
+    depends_on:
+      - api
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  caddy_data:

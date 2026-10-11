@@ -1,0 +1,5 @@
+# Files that run on Linux (the EC2 server, Docker images) must keep LF line endings even when
+# checked out on Windows — a CRLF shell script fails with "bad interpreter".
+*.sh text eol=lf
+Dockerfile text eol=lf
+deploy/** text eol=lf

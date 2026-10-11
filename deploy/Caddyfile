@@ -1,0 +1,25 @@
+# HTTPS in front of the API, on the EC2 server. Three locks keep anyone but Cloudflare out:
+#  1. the security group only opens 443 to Cloudflare's IP ranges (deploy/aws/cloudflare-sg.sh);
+#  2. Authenticated Origin Pulls: Cloudflare presents a client certificate and Caddy refuses any
+#     connection without it (client_auth below);
+#  3. the server certificate is a Cloudflare Origin Certificate, valid for Cloudflare only
+#     (SSL/TLS mode "Full (strict)").
+# With those in place CF-Connecting-IP is the visitor's real address, so it becomes the one
+# X-Forwarded-For entry the API sees (TRUST_PROXY_HOPS=1: Caddy is the only proxy it trusts).
+{
+	admin off
+	auto_https disable_redirects
+}
+
+api.mifik.cl {
+	tls /certs/origin.pem /certs/origin.key {
+		client_auth {
+			mode require_and_verify
+			trust_pool file /certs/origin-pull-ca.pem
+		}
+	}
+
+	reverse_proxy api:3001 {
+		header_up X-Forwarded-For {http.request.header.CF-Connecting-IP}
+	}
+}

@@ -1,4 +1,10 @@
 <!--
+Sync Impact Report — 2026-10-10 (amendment 2.5.4)
+- Version change: 2.5.3 → 2.5.4 (PATCH: deployment target defined; no principle text changed).
+- ADDED: production runs on Cloudflare Pages (landing, app) and AWS São Paulo (API on EC2 behind
+  Caddy, RDS PostgreSQL 16, private), deployed by GitHub Actions through OIDC + SSM; only
+  Cloudflare can reach the origin (security group + Authenticated Origin Pulls). See docs/DEPLOY.md.
+
 Sync Impact Report — 2026-10-10 (amendment 2.5.3)
 - Version change: 2.5.2 → 2.5.3 (PATCH: operational workflow; no principle text changed).
 - CHANGED: schema changes move from `prisma db push` to Prisma MIGRATIONS
@@ -2219,4 +2225,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.5.3 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-10
+**Version**: 2.5.4 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-10

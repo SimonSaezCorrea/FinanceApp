@@ -126,14 +126,14 @@ incluso con una futura sección de suscripción de pago en la app — la geoloca
 de seguridad esencial, nunca parte de un plan pago). Ver `specs/026-ipinfo-geolocation/` para el
 diseño completo.
 
-**Pendiente (2026-10-10): la IP se puede falsear saltándose Cloudflare.** En producción
-`TRUST_PROXY_HOPS=2` confía en dos proxies (Cloudflare y Railway). Quien llame directo al origen en
-Railway cruza uno solo, y la dirección que él mismo escriba en `X-Forwarded-For` queda como su IP:
-puede falsear la ubicación que muestra "Sesiones y dispositivos" (por ejemplo, para que un login
-con credenciales robadas no se vea sospechoso). Hoy `req.ip` solo alimenta esa ubicación. Para
-cerrarlo hay que hacer que el origen solo acepte tráfico de Cloudflare (por ejemplo, un header
-secreto que Cloudflare agregue con una Transform Rule y que el API exija, o un túnel de Cloudflare).
-Hasta entonces, **ninguna decisión de seguridad puede basarse en `req.ip`**.
+**Resuelto por diseño en el despliegue a AWS (2026-10-10): la IP no se puede falsear saltándose
+Cloudflare.** Con Railway, `TRUST_PROXY_HOPS=2` dejaba que quien llamara directo al origen falseara
+su IP (y con ella la ubicación de "Sesiones y dispositivos"). En AWS (`deploy/`) el único proxy
+frente al API es Caddy, que reemplaza `X-Forwarded-For` por el `CF-Connecting-IP` de Cloudflare
+(`TRUST_PROXY_HOPS=1`), y nadie más que Cloudflare puede llegar a Caddy: el security group solo
+abre el 443 a los rangos de Cloudflare (`deploy/aws/cloudflare-sg.sh`) y Caddy exige el certificado
+de cliente de Cloudflare (Authenticated Origin Pulls). Si alguna de esas dos barreras se quitara,
+**ninguna decisión de seguridad podría basarse en `req.ip`**.
 
 ### 5. Plan, uso y facturación — **sección retirada del Perfil (2026-09-25)**
 

@@ -1,0 +1,211 @@
+# Despliegue de fik en producción
+
+Guía paso a paso para publicar fik en `mifik.cl`. Los archivos que usa viven en `deploy/` y el
+despliegue automático en `.github/workflows/deploy-api.yml`.
+
+## Arquitectura
+
+```
+Usuario (Chile)
+   │ HTTPS
+Cloudflare ─── mifik.cl ─────► Cloudflare Pages (landing, apps/landing)
+   │       └── app.mifik.cl ─► Cloudflare Pages (app, apps/web)
+   │ HTTPS · certificado de origen · Authenticated Origin Pulls
+   ▼ api.mifik.cl
+EC2 t4g.small, AWS São Paulo (sa-east-1)
+   Docker: Caddy (TLS) → API NestJS
+   │ red privada de AWS, TLS
+   ▼
+RDS PostgreSQL 16 db.t4g.micro (sa-east-1), sin acceso público
+```
+
+- **Solo Cloudflare llega al servidor:** el security group abre el puerto 443 solo a las IP de
+  Cloudflare, y Caddy exige el certificado de cliente de Cloudflare. No hay puerto SSH: al servidor
+  se entra con AWS Systems Manager (Session Manager).
+- **Sin load balancer ni NAT Gateway** (cada uno sumaría ~US$16–32/mes).
+- **ARM (Graviton):** ~20% más barato; GitHub Actions construye la imagen para `linux/arm64`.
+- **Costo aproximado:** EC2 ~US$15 + RDS ~US$15–18 + disco/respaldos ~US$3–5 + IP pública ~US$4
+  ≈ **US$35–40/mes**. Confírmalo en la calculadora de AWS para `sa-east-1`.
+
+## 1. Cuenta de AWS
+
+1. Crear la cuenta con `mifik.general@gmail.com` (Gmail con verificación en dos pasos).
+2. **MFA en el usuario raíz** (_Security credentials → Assign MFA device_).
+3. Un **usuario administrador** aparte para el día a día (IAM Identity Center o IAM). El raíz
+   queda solo para facturación.
+4. **Alerta de presupuesto:** _Billing → Budgets_ → US$40/mes, aviso al 80% y al 100%.
+5. Región arriba a la derecha: **South America (São Paulo) `sa-east-1`**. Todo va ahí.
+
+## 2. Red y firewalls (VPC por defecto)
+
+En **EC2 → Security Groups** crear dos grupos en la VPC por defecto:
+
+| Nombre    | Entrada                                               | Para        |
+| --------- | ----------------------------------------------------- | ----------- |
+| `fik-api` | (vacío por ahora; el paso 6 abre el 443 a Cloudflare) | El servidor |
+| `fik-db`  | PostgreSQL (5432) desde el security group `fik-api`   | La base     |
+
+La salida de ambos queda como viene (todo permitido): el servidor necesita descargar imágenes y
+consultar mindicador.cl e IPinfo.
+
+## 3. Base de datos (RDS)
+
+**RDS → Create database:**
+
+- Standard create · **PostgreSQL 16** (la misma versión que CI y local).
+- Plantilla: **Free tier** o **Dev/Test**, **Single-AZ**.
+- Identificador: `fik-db`. Usuario maestro: `fik_admin`, contraseña generada y guardada en un gestor
+  de contraseñas.
+- Instancia: **db.t4g.micro**. Almacenamiento: **gp3, 20 GB**, autoescalado hasta 50 GB.
+- Conectividad: VPC por defecto, **Public access: No**, security group **`fik-db`** (quitar el
+  `default`).
+- Nombre inicial de la base: **`fik`**.
+- Respaldos automáticos: **7 días**. Cifrado: **activado**. **Deletion protection: activado**.
+
+Al terminar, copiar el **endpoint** (`fik-db.xxxx.sa-east-1.rds.amazonaws.com`).
+
+> Más adelante conviene crear un usuario `fik_app` con permisos solo sobre la base `fik` y que el API
+> use ese en vez de `fik_admin`. Para el primer despliegue puede usarse el maestro.
+
+## 4. Registro de imágenes (ECR)
+
+**ECR → Create repository:** privado, nombre **`fik-api`**, _Scan on push_ activado.
+Luego, en _Lifecycle policy_: conservar solo las **últimas 10 imágenes**.
+
+## 5. Permisos (IAM)
+
+### 5a. Rol del servidor
+
+**IAM → Roles → Create role** → _AWS service_ → **EC2**. Políticas administradas:
+
+- `AmazonSSMManagedInstanceCore` (entrar por Session Manager y recibir los despliegues)
+- `AmazonEC2ContainerRegistryReadOnly` (descargar la imagen del API)
+
+Nombre: `fik-api-ec2`.
+
+### 5b. GitHub Actions sin claves (OIDC)
+
+1. **IAM → Identity providers → Add provider:** OpenID Connect,
+   URL `https://token.actions.githubusercontent.com`, audience `sts.amazonaws.com`.
+2. **IAM → Roles → Create role → Custom trust policy:** pegar
+   `deploy/aws/github-deploy-trust-policy.json` reemplazando `ACCOUNT_ID` (12 dígitos, arriba a la
+   derecha en la consola). Solo el environment `production` de este repo puede asumirlo.
+3. Agregar una política en línea con `deploy/aws/github-deploy-permissions-policy.json`,
+   reemplazando `ACCOUNT_ID` e `INSTANCE_ID` (este último se conoce en el paso 6; se puede volver a
+   editar). Permite subir solo la imagen `fik-api` y enviar el comando de despliegue solo a ese
+   servidor.
+4. Nombre: `fik-github-deploy`. Copiar su **ARN**.
+
+## 6. Servidor (EC2)
+
+**EC2 → Launch instance:**
+
+- Nombre `fik-api`. AMI **Amazon Linux 2023**, arquitectura **64-bit (Arm)**.
+- Tipo **t4g.small** (2 GB de RAM).
+- Key pair: **Proceed without a key pair** (no se usa SSH).
+- Red: VPC por defecto, subred pública, **auto-assign public IP: Enable**, security group
+  **`fik-api`**.
+- Disco: **gp3, 20 GB**, cifrado.
+- _Advanced → IAM instance profile:_ **`fik-api-ec2`**.
+
+Después:
+
+1. **Elastic IP** (_EC2 → Elastic IPs → Allocate_ → _Associate_ a `fik-api`), para que la IP no
+   cambie si el servidor se reinicia. Copiar la IP y el **instance ID** (`i-...`).
+2. **Abrir el 443 solo a Cloudflare:** desde **AWS CloudShell** (ícono `>_` arriba), subir
+   `deploy/aws/cloudflare-sg.sh` y correr `bash cloudflare-sg.sh <id-del-sg-fik-api>`.
+3. **Entrar al servidor:** _EC2 → la instancia → Connect → Session Manager → Connect_.
+4. Preparar el servidor: crear `bootstrap-ec2.sh` con el contenido de `deploy/aws/bootstrap-ec2.sh`
+   (por ejemplo `sudo tee /tmp/bootstrap-ec2.sh` y pegar) y correr `sudo bash /tmp/bootstrap-ec2.sh`.
+   Instala Docker y Compose y descarga a `/opt/fik/certs` los certificados de RDS y de Cloudflare.
+
+## 7. Cloudflare: `api.mifik.cl`
+
+1. **Certificado de origen:** _SSL/TLS → Origin Server → Create Certificate_ → RSA, hostnames
+   `api.mifik.cl`, validez 15 años. Guardar el certificado en el servidor como
+   `/opt/fik/certs/origin.pem` y la clave como `/opt/fik/certs/origin.key`
+   (`sudo chmod 600 /opt/fik/certs/origin.key`). **La clave no se vuelve a mostrar** y nunca va al
+   repo.
+2. **Authenticated Origin Pulls:** _SSL/TLS → Origin Server → Authenticated Origin Pulls_ →
+   **activado** (a nivel de zona).
+3. **DNS:** registro **A** `api` → la Elastic IP, con la nube **naranja** (proxied).
+4. El modo SSL/TLS ya está en **Completo (Estricto)** y "Usar siempre HTTPS" activado.
+
+## 8. Archivos del servidor (`/opt/fik`)
+
+Con Session Manager, crear en `/opt/fik` (con `sudo tee <archivo>` y pegar el contenido):
+
+| Archivo              | Desde                       | Notas                                 |
+| -------------------- | --------------------------- | ------------------------------------- |
+| `docker-compose.yml` | `deploy/docker-compose.yml` | tal cual                              |
+| `Caddyfile`          | `deploy/Caddyfile`          | tal cual                              |
+| `deploy.sh`          | `deploy/deploy.sh`          | `sudo chmod 700 /opt/fik/deploy.sh`   |
+| `deploy.env`         | `deploy/deploy.env.example` | con el registry de ECR                |
+| `api.env`            | `deploy/api.env.example`    | **secretos reales**, `sudo chmod 600` |
+
+Para `api.env`:
+
+- Cada secreto con `openssl rand -base64 48` (en el mismo servidor o en CloudShell);
+  `MFA_ENCRYPTION_KEY` con `openssl rand -hex 32`. **Distintos a los de desarrollo** y guardados en
+  un gestor de contraseñas: perder `MFA_ENCRYPTION_KEY` o `IDENTIFIER_HASH_SECRET` deja ilegibles
+  datos guardados.
+- `DATABASE_URL` y `DIRECT_DATABASE_URL` con el endpoint, usuario y contraseña de RDS.
+- `IPINFO_TOKEN` si se quiere el país de cada sesión.
+
+## 9. GitHub: despliegue automático
+
+1. _Settings → Environments → New environment_: **`production`**, y en _Deployment branches and
+   tags_ → **Selected branches and tags** → solo `main`. Es obligatorio: así ni un despliegue manual
+   desde otra rama ni código ajeno llegan a producción (el rol de AWS solo confía en este
+   environment). Opcional: _Required reviewers_, para aprobar cada despliegue a mano.
+2. _Settings → Secrets and variables → Actions → Variables_ (variables, no secrets: no son
+   secretos):
+   - `AWS_DEPLOY_ROLE_ARN` = ARN del rol `fik-github-deploy`
+   - `AWS_API_INSTANCE_ID` = `i-...`
+3. _Actions → Deploy API → Run workflow_. Construye la imagen ARM (la primera vez tarda ~15 min por
+   la emulación), la sube a ECR y corre `deploy.sh` en el servidor: descarga la imagen, aplica
+   migraciones y catálogo, reinicia y espera a que el API responda sano.
+
+Desde ahí, cada push a `main` que pase CI se despliega solo.
+
+## 10. Landing y app (Cloudflare Pages)
+
+_Workers & Pages → Create → Pages → Connect to Git_ → este repo. Dos proyectos:
+
+|                  | Landing                                                                                                                                                         | App                                                                                                                    |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Nombre           | `fik-landing`                                                                                                                                                   | `fik-app`                                                                                                              |
+| Rama             | `main`                                                                                                                                                          | `main`                                                                                                                 |
+| Build command    | `pnpm exec turbo run build --filter=@finance/landing`                                                                                                           | `pnpm exec turbo run build --filter=@finance/web`                                                                      |
+| Output directory | `apps/landing/dist`                                                                                                                                             | `apps/web/dist`                                                                                                        |
+| Variables        | `NODE_VERSION=22` · `PNPM_VERSION=10.15.1` · `PUBLIC_API_URL=https://api.mifik.cl` · `PUBLIC_APP_URL=https://app.mifik.cl` · `PUBLIC_SITE_URL=https://mifik.cl` | `NODE_VERSION=22` · `PNPM_VERSION=10.15.1` · `VITE_API_URL=https://api.mifik.cl` · `VITE_LANDING_URL=https://mifik.cl` |
+| Dominio          | _Custom domains_ → `mifik.cl`                                                                                                                                   | _Custom domains_ → `app.mifik.cl`                                                                                      |
+
+- La app es una SPA: sin `404.html` en su salida, Pages sirve `index.html` para cualquier ruta.
+- Las URL **no llevan** `/api/v1` ni barra final.
+- `public/_headers` agrega cabeceras de seguridad en ambos sitios.
+
+## 11. Verificación
+
+1. `https://api.mifik.cl/api/v1/health` responde `{"status":"ok"}`.
+2. Llamar directo a la IP del servidor no responde (solo pasa Cloudflare).
+3. En `https://mifik.cl`: crear una cuenta, iniciar sesión, llegar a `app.mifik.cl`.
+4. En el navegador, las cookies `access_token`/`refresh_token` dicen **Secure** y **HttpOnly**.
+5. Perfil → Seguridad muestra la sesión con su país (si hay `IPINFO_TOKEN`).
+6. _Tipos de cambio_ tiene datos (el API los registra al arrancar y a las 8/12/16/20 h).
+
+## Mantenimiento
+
+- **Logs:** Session Manager → `cd /opt/fik && sudo docker compose logs --tail 200 api`.
+- **Desplegar a mano o volver a una versión anterior:** `sudo /opt/fik/deploy.sh <tag>` (los tags
+  son el commit corto; ver ECR). Ojo: una migración ya aplicada no se deshace sola.
+- **Respaldos:** RDS guarda 7 días con restauración a cualquier minuto. Antes de una migración
+  riesgosa, tomar un _snapshot_ manual.
+- **IP de Cloudflare:** volver a correr `cloudflare-sg.sh` cada pocos meses.
+- **Si `prisma migrate deploy` rechaza el certificado de RDS** en el primer despliegue: probar
+  `DIRECT_DATABASE_URL` con `?sslmode=require&sslaccept=accept_invalid_certs` (sigue cifrado, dentro
+  de la red privada de AWS) y anotar el resultado aquí.
+- **Ley 21.719:** los datos quedan en Brasil: antes de tener usuarios reales, aceptar con AWS el
+  mecanismo de transferencia (cláusulas contractuales modelo) y declararlo en la política de
+  privacidad (`.compliance/docs/21719-anexo-transferencias.md`). Lo mismo con Resend.
+- **Región Santiago:** cuando AWS la abra, mover la base con una réplica entre regiones y promoverla.
