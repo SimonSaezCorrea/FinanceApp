@@ -72,7 +72,7 @@ consultar mindicador.cl e IPinfo.
   En el **plan gratuito** de AWS (cuentas nuevas desde 2025, con créditos) el máximo es **1 día**
   (`FreeTierRestrictionError`): la base se creó así el 2026-10-11 (PostgreSQL 16.15). Al pasar al
   plan pagado, subirlo a 7 con `aws rds modify-db-instance` (`--db-instance-identifier fik-db
-  --backup-retention-period 7 --apply-immediately`).
+--backup-retention-period 7 --apply-immediately`).
 
 Al terminar, copiar el **endpoint** (`fik-db.xxxx.us-east-2.rds.amazonaws.com`).
 
