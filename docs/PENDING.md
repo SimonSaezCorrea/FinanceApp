@@ -603,6 +603,28 @@ Editar un plan no puede mostrarla ni recalcular nada con ella, que es coherente 
 sea inmutable, pero significa que el interés de un plan ya creado sólo se deduce comparando la suma de
 sus cuotas con su principal.
 
+## Deudas
+
+### 1. El pago de una cuota no deja escribir el monto que llegó de verdad (encontrado 2026-10-11)
+
+`POST /debts/:id/register-payment` y `/settle` calculan el monto en el servidor
+(`Debt.nextInstallmentAmount()` / `pendingAmount()`) y la app no permite cambiarlo. Con cuotas
+iguales, la última absorbe el redondeo (64.990 en 3 = 21.663 + 21.663 + **21.664**), pero en la vida
+real la otra persona suele pagar el mismo monto redondeado todas las veces (21.663). Resultado
+real: la cuenta que recibió el pago quedó con **1 peso de más** (MACH, deuda "Compra zapatillas" de
+Ximena Correa, cuota 3/3 del 06-10-2026), sin que el usuario pudiera evitarlo.
+
+- **Arreglo puntual (manual):** editar ese ingreso en Movimientos de 21.664 a 21.663. Queda un
+  detalle: `Debt.lastPaymentAmount` sigue en 21.664, así que "deshacer pago" devolvería un peso de
+  más; no importa mientras no se deshaga (la deuda está liquidada).
+- **Arreglo de fondo (pendiente):** que el panel de pago (`DebtPayPanel`) proponga el monto calculado
+  pero permita cambiarlo, como ya hacen el pago de una cuota de compra (`PayInstallmentPanel`) y el de
+  una facturación. Si pagan de menos, la diferencia queda pendiente en la deuda; si pagan de más, se
+  descuenta de lo que falta, sin pasar de lo adeudado. El movimiento, el saldo de la cuenta y
+  `lastPayment*` (lo que usa "deshacer pago") deben salir del mismo monto escrito. Toca el contrato
+  (`payDebtSchema` con `amount` opcional), `Debt.registerPayment/settle`, sus handlers idempotentes y
+  la app.
+
 ## Correos de cuenta y de seguridad (specs/032, 2026-10-11)
 
 **Implementado**: verificación del correo al registrarse y al cambiarlo (registro de correos por
