@@ -5,13 +5,83 @@ on:
     branches: [main, dev]
   pull_request:
 
-# The job only checks out, installs, builds and tests: it never writes to the repo, so the
-# GITHUB_TOKEN gets read access to the code and nothing else.
+# The jobs only check out, install, build and test: they never write to the repo, so the
+# GITHUB_TOKEN gets read access to the code (and, for `gate`, to the list of previous runs).
 permissions:
   contents: read
 
+# Three jobs on three runners, in parallel: the api's database tests no longer share a machine
+# with the frontend's (that contention made two jsdom tests time out on 2026-10-11), and the
+# slowest job sets the wall time instead of the sum of all of them.
 jobs:
-  build-test:
+  # A push to main of a commit that ALREADY passed CI on dev (the usual "dev → main"
+  # fast-forward) is not tested twice: the other jobs are skipped, the run still ends in success
+  # and Deploy fires. Any other commit on main (a merge commit, a hotfix) runs everything.
+  gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      tested: ${{ steps.check.outputs.tested }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tested=false
+          if [ "$GITHUB_EVENT_NAME" = "push" ] && [ "$GITHUB_REF_NAME" = "main" ]; then
+            count="$(gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${GITHUB_SHA}&event=push&status=success&branch=dev" --jq '.total_count')"
+            [ "${count:-0}" -gt 0 ] && tested=true
+          fi
+          echo "tested=$tested" >> "$GITHUB_OUTPUT"
+          echo "Already passed on dev: $tested"
+
+  # Repo-wide checks that need no database and no build.
+  checks:
+    needs: gate
+    if: needs.gate.outputs.tested != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      # Node 22: the public site (apps/landing, Astro 7) needs >= 22.12 (spec 031).
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # Architecture boundaries: web↛api/db/landing, api↛web/landing, landing↛web/api/db,
+      # packages↛apps (SC-004/SC-007, spec 031).
+      - run: pnpm check:boundaries
+
+      - name: Audit (informational)
+        run: pnpm audit || true
+      - name: Audit (block on high/critical)
+        run: pnpm audit --audit-level=high
+
+      # Prettier only re-checks files that changed since the cached run.
+      - name: Prettier cache
+        uses: actions/cache@v6
+        with:
+          path: node_modules/.cache/prettier
+          key: prettier-${{ runner.os }}-${{ github.sha }}
+          restore-keys: prettier-${{ runner.os }}-
+      - run: pnpm format:check
+
+      - name: Turbo cache
+        uses: actions/cache@v6
+        with:
+          path: .turbo
+          key: turbo-checks-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-checks-${{ runner.os }}-
+      - run: pnpm exec turbo run lint
+
+  # The api: real PostgreSQL for its integration and e2e tiers.
+  api:
+    needs: gate
+    if: needs.gate.outputs.tested != 'true'
     runs-on: ubuntu-latest
     env:
       # Prisma 7's prisma.config.ts resolves DATABASE_URL eagerly for every CLI
@@ -53,29 +123,21 @@ jobs:
           --health-retries 20
     steps:
       - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0 # needed for turbo affected detection
-
-      - uses: pnpm/action-setup@v6.1.0
-
-      # Node 22: the public site (apps/landing, Astro 7) needs >= 22.12 (spec 031).
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
       - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: pnpm
-
       - run: pnpm install --frozen-lockfile
 
-      - name: Cache Turbo outputs
+      - name: Turbo cache
         uses: actions/cache@v6
         with:
           path: .turbo
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: |
-            turbo-${{ runner.os }}-
+          key: turbo-api-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-api-${{ runner.os }}-
 
       - run: pnpm --filter @finance/api exec prisma validate
-
       - run: pnpm --filter @finance/api exec prisma generate
 
       # prisma/seed.ts imports @finance/money by its built dist (package.json's
@@ -102,26 +164,36 @@ jobs:
       - name: Seed reference data
         run: pnpm --filter @finance/api prisma:seed
 
-      # Architecture boundaries: web↛api/db/landing, api↛web/landing, landing↛web/api/db,
-      # packages↛apps (SC-004/SC-007, spec 031).
-      - run: pnpm check:boundaries
+      - run: pnpm exec turbo run typecheck test build --filter=@finance/api
 
-      - name: Audit (informational)
-        run: pnpm audit || true
+  # Everything else: the app, the public site and the shared packages (no database).
+  front:
+    needs: gate
+    if: needs.gate.outputs.tested != 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # needed for turbo affected detection on pull requests
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
 
-      - name: Audit (block on high/critical)
-        run: pnpm audit --audit-level=high
+      - name: Turbo cache
+        uses: actions/cache@v6
+        with:
+          path: .turbo
+          key: turbo-front-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-front-${{ runner.os }}-
 
-      - run: pnpm format:check
-
-      - run: pnpm exec turbo run lint
-
-      # Build shared packages + apps. Turbo only rebuilds what changed; on PRs we
-      # scope to the apps affected since origin/main so api/web build independently.
-      - run: pnpm exec turbo run typecheck test build --filter="...[origin/main]"
+      # On pull requests only what the change affects since origin/main; on pushes, everything
+      # (turbo still skips what its cache already built and tested).
+      - run: pnpm exec turbo run typecheck test build --filter="...[origin/main]" --filter='!@finance/api'
         if: github.event_name == 'pull_request'
-
-      - run: pnpm exec turbo run typecheck test build
+      - run: pnpm exec turbo run typecheck test build --filter='!@finance/api'
         if: github.event_name != 'pull_request'
 
       # The public site (spec 031): build it with throwaway public origins and check the static
