@@ -39,6 +39,10 @@ export default defineConfig(({ mode }) => {
     test: {
       globals: true,
       environment: "jsdom",
+      // Builds the jsdom environment once per worker instead of once per file (it was a third of
+      // the run: 97 files, ~150 s on CI) while still isolating each file in its own VM context.
+      // Measured locally 2026-10-11: 68 s -> 17 s, 678/678 passing, stable over three runs.
+      pool: "vmThreads",
       passWithNoTests: true,
       setupFiles: ["./src/test/setup.ts"],
       // Inline these so they resolve through Vite's React dedupe (else a 2nd React
