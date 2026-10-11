@@ -76,7 +76,12 @@ function SummaryCard({
 function DetailsCard({
   user,
 }: Readonly<{
-  user: { email: string | null; identifierValue?: string | null; phone?: string | null };
+  user: {
+    email: string | null;
+    emailVerified?: boolean;
+    identifierValue?: string | null;
+    phone?: string | null;
+  };
 }>) {
   const { t } = useTranslation();
   const completeness = contactCompleteness(user);
@@ -108,6 +113,9 @@ function DetailsCard({
               />
             )}
             {t(`profile.summary.data.items.${item.key}`)}
+            {item.unconfirmed ? (
+              <span className="text-xs text-warning">{t("profile.summary.data.unconfirmed")}</span>
+            ) : null}
           </li>
         ))}
       </ul>
@@ -116,14 +124,18 @@ function DetailsCard({
           {missing.map((item) => (
             <Link
               key={item.key}
-              to={`/profile/personal?edit=${item.editField}`}
+              to={
+                item.unconfirmed ? "/profile/personal" : `/profile/personal?edit=${item.editField}`
+              }
               className={buttonClasses({
                 variant: "outline",
                 size: "sm",
                 className: "h-10 sm:h-9",
               })}
             >
-              {t(`profile.summary.data.add.${item.key}`)}
+              {item.unconfirmed
+                ? t("profile.summary.data.confirmEmail")
+                : t(`profile.summary.data.add.${item.key}`)}
             </Link>
           ))}
         </div>

@@ -2,8 +2,9 @@ import { KeyRound, ShieldCheck } from "lucide-react";
 import { type FormEvent, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { ApiRequestError, authApi } from "@finance/client";
+import { ApiRequestError, authApi, failureCode } from "@finance/client";
 import { formatRutInput } from "@finance/ui/src/shared/lib/formatRut";
+import { withBrand } from "@finance/ui/src/shared/lib/brand";
 import { Button } from "@finance/ui/src/shared/ui/button";
 import { FormNotice } from "@finance/ui/src/shared/ui/form/FormNotice";
 import { useAuth } from "../hooks/useAuth";
@@ -50,6 +51,7 @@ export function LoginForm({
   const [forgotOpen, setForgotOpen] = useState(false);
   /** "¿Olvidaste tu contraseña?" (specs/032 US2): sends a link to the account behind the RUT. */
   const [forgot, setForgot] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [forgotError, setForgotError] = useState<string | null>(null);
   const [touched, setTouched] = useState({ rut: false, password: false });
   const [submitted, setSubmitted] = useState(false);
   const conditionalAbortRef = useRef<AbortController | null>(null);
@@ -88,9 +90,15 @@ export function LoginForm({
     try {
       await authApi.forgotPassword({ identifierValue });
       setForgot("sent");
-    } catch {
+    } catch (err) {
+      setForgotError(errorText(err));
       setForgot("error");
     }
+  }
+
+  /** What failed, in words: the API's own reason, "couldn't reach fik", or a server error. */
+  function errorText(err: unknown): string {
+    return t(`errors.${failureCode(err)}`, { defaultValue: t("errors.INTERNAL_ERROR") });
   }
 
   function setStep(next: LoginStep) {
@@ -136,8 +144,7 @@ export function LoginForm({
         reportSuccess();
       }
     } catch (err) {
-      const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
-      setError(t(`errors.${code}`));
+      setError(errorText(err));
     } finally {
       setBusy(false);
     }
@@ -160,11 +167,16 @@ export function LoginForm({
       reportSuccess();
     } catch (err) {
       // The ceremony didn't finish (closed prompt, no passkey here, or the server didn't match it):
-      // not "wrong credentials" — say what to do instead. Anything else (network…) is an error.
-      if (!(err instanceof ApiRequestError) || err.code === "INVALID_CREDENTIALS") {
-        setPasskeyNotice(true);
+      // not "wrong credentials" — say what to do instead. No answer from the server, or any other
+      // server error, is said as such.
+      const code = failureCode(err);
+      if (
+        code === "NETWORK_ERROR" ||
+        (err instanceof ApiRequestError && code !== "INVALID_CREDENTIALS")
+      ) {
+        setError(errorText(err));
       } else {
-        setError(t(`errors.${err.code}`, { defaultValue: t("errors.INTERNAL_ERROR") }));
+        setPasskeyNotice(true);
       }
     } finally {
       setPasskeyBusy(false);
@@ -186,7 +198,7 @@ export function LoginForm({
         />
         {error ? (
           <p role="alert" className="-mt-2 text-sm text-destructive">
-            {error}
+            {error ? withBrand(error) : null}
           </p>
         ) : null}
         <div className="flex flex-col gap-2">
@@ -275,7 +287,7 @@ export function LoginForm({
                   <span>{t("auth.forgot.body")}</span>
                   {forgot === "error" ? (
                     <span role="alert" className="text-destructive">
-                      {t("auth.forgot.failed")}
+                      {forgotError ? withBrand(forgotError) : null}
                     </span>
                   ) : null}
                   <Button
@@ -295,7 +307,7 @@ export function LoginForm({
         ) : null}
         {error ? (
           <p role="alert" className="-mt-1 text-sm text-destructive">
-            {error}
+            {error ? withBrand(error) : null}
           </p>
         ) : null}
         <Button type="submit" variant="outline" size="lg" disabled={busy} className="w-full">

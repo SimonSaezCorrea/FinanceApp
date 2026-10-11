@@ -27,7 +27,6 @@ import { ThemeSync } from "../domains/profile/components/ThemeSync";
 import { TransactionCreateModal } from "../domains/transactions/components/TransactionCreateModal";
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { getInitials } from "../shared/lib/initials";
-import { EmailVerificationBanner } from "./EmailVerificationBanner";
 import { preloadAllPages } from "./lazyPages";
 import { useMediaQuery } from "@finance/ui/src/shared/lib/useMediaQuery";
 import { BrandLogo } from "@finance/ui/src/shared/ui/brand-logo";
@@ -80,21 +79,36 @@ function UserAvatar({
   name,
   email,
   className,
+  attention = false,
 }: Readonly<{
   name: string | null | undefined;
   email: string | null | undefined;
   className?: string;
+  /** The account's email isn't confirmed yet (specs/032): a dot on the avatar, and the Profile
+   * explains it — instead of a banner on every page. */
+  attention?: boolean;
 }>) {
   return (
-    <span
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground",
-        className,
-      )}
-      aria-hidden
-    >
-      {getInitials(name ?? null, email ?? null)}
+    <span className="relative inline-flex shrink-0" aria-hidden>
+      <span
+        className={cn(
+          "flex shrink-0 items-center justify-center rounded-full bg-primary font-semibold text-primary-foreground",
+          className,
+        )}
+      >
+        {getInitials(name ?? null, email ?? null)}
+      </span>
+      {attention ? <AttentionDot className="-right-0.5 -top-0.5" /> : null}
     </span>
+  );
+}
+
+/** The amber dot that says "something to look at in your Profile". */
+function AttentionDot({ className }: Readonly<{ className?: string }>) {
+  return (
+    <span
+      className={cn("absolute h-2.5 w-2.5 rounded-full bg-warning ring-2 ring-card", className)}
+    />
   );
 }
 
@@ -125,6 +139,7 @@ function SidebarOpen({
 }: Readonly<{ onCollapse?: () => void; onNew: () => void }>) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const needsVerification = user?.emailVerified === false;
   return (
     <>
       <div className="flex items-center gap-2 px-1.5 py-2">
@@ -189,12 +204,23 @@ function SidebarOpen({
             )
           }
         >
-          <UserAvatar name={user?.name} email={user?.email} className="h-7 w-7 text-xs" />
+          <UserAvatar
+            name={user?.name}
+            email={user?.email}
+            className="h-7 w-7 text-xs"
+            attention={needsVerification}
+          />
           <span className="min-w-0 flex-1 text-left leading-tight">
             <span className="block truncate text-sm font-medium text-foreground">
               {user?.name || user?.email}
             </span>
-            {user?.name ? <span className="block truncate">{user?.email}</span> : null}
+            {needsVerification ? (
+              <span className="block truncate text-warning">
+                {t("app.emailVerification.short")}
+              </span>
+            ) : user?.name ? (
+              <span className="block truncate">{user?.email}</span>
+            ) : null}
           </span>
         </NavLink>
         <button
@@ -215,6 +241,10 @@ function SidebarOpen({
 function SidebarRail({ onExpand, onNew }: Readonly<{ onExpand?: () => void; onNew: () => void }>) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const needsVerification = user?.emailVerified === false;
+  const profileLabel = needsVerification
+    ? `${t("profile.title")} · ${t("app.emailVerification.short")}`
+    : t("profile.title");
   return (
     <>
       <span className="flex h-10 items-center justify-center">
@@ -270,9 +300,14 @@ function SidebarRail({ onExpand, onNew }: Readonly<{ onExpand?: () => void; onNe
       </nav>
 
       <div className="mt-auto flex flex-col items-center gap-1 border-t pt-3">
-        <NavLink to="/profile" aria-label={t("profile.title")} className={RAIL_BUTTON}>
-          <UserAvatar name={user?.name} email={user?.email} className="h-8 w-8 text-xs" />
-          <RailTip>{t("profile.title")}</RailTip>
+        <NavLink to="/profile" aria-label={profileLabel} className={RAIL_BUTTON}>
+          <UserAvatar
+            name={user?.name}
+            email={user?.email}
+            className="h-8 w-8 text-xs"
+            attention={needsVerification}
+          />
+          <RailTip>{profileLabel}</RailTip>
         </NavLink>
         <button
           type="button"
@@ -292,6 +327,7 @@ function SidebarRail({ onExpand, onNew }: Readonly<{ onExpand?: () => void; onNe
 function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
   const { t } = useTranslation();
   const { user, logout } = useAuth();
+  const needsVerification = user?.emailVerified === false;
   const { pathname } = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
   const inSheet = [...SHEET_ITEMS.map((i) => i.to), "/profile"].some((to) =>
@@ -338,8 +374,14 @@ function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
           aria-haspopup="dialog"
           className={tab(inSheet)}
         >
-          <MoreHorizontal className="h-5 w-5" aria-hidden />
+          <span className="relative">
+            <MoreHorizontal className="h-5 w-5" aria-hidden />
+            {needsVerification ? <AttentionDot className="-right-1 -top-0.5" /> : null}
+          </span>
           {t("nav.more")}
+          {needsVerification ? (
+            <span className="sr-only">{t("app.emailVerification.short")}</span>
+          ) : null}
         </button>
       </nav>
 
@@ -363,14 +405,24 @@ function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
                       )
                     }
                   >
-                    <Icon className="h-5 w-5 text-primary" aria-hidden />
+                    <span className="relative">
+                      <Icon className="h-5 w-5 text-primary" aria-hidden />
+                      {to === "/profile" && needsVerification ? (
+                        <AttentionDot className="-right-1 -top-0.5" />
+                      ) : null}
+                    </span>
                     {t(key)}
                   </NavLink>
                 ),
               )}
             </div>
             <div className="flex items-center gap-2 border-t pt-3">
-              <UserAvatar name={user?.name} email={user?.email} className="h-8 w-8 text-xs" />
+              <UserAvatar
+                name={user?.name}
+                email={user?.email}
+                className="h-8 w-8 text-xs"
+                attention={needsVerification}
+              />
               <span className="min-w-0 flex-1 truncate text-sm">{user?.name || user?.email}</span>
               <button
                 type="button"
@@ -453,10 +505,7 @@ export function AppLayout({ children }: Readonly<{ children: ReactNode }>) {
             !isTablet && "pb-[calc(4.75rem+env(safe-area-inset-bottom,0px))]",
           )}
         >
-          <div className="container py-6">
-            <EmailVerificationBanner />
-            {children}
-          </div>
+          <div className="container py-6">{children}</div>
         </main>
       </div>
 

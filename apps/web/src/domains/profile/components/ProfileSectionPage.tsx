@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { withBrand } from "@finance/ui/src/shared/lib/brand";
 
 /** The frame every profile section shares (specs/029): its own `h1` (focus target when the
  * section opens) and an optional one-line description, then the section's blocks. */
@@ -19,7 +20,9 @@ export function ProfileSectionPage({
         >
           {title}
         </h1>
-        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
+        {description ? (
+          <p className="text-sm text-muted-foreground">{withBrand(description)}</p>
+        ) : null}
       </header>
       {children}
     </section>

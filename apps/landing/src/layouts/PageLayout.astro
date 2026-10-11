@@ -5,6 +5,7 @@ import "@fontsource/caveat-brush/latin-400.css";
 import "../styles/global.css";
 
 import { PRE_PAINT_SCRIPT } from "@finance/ui/prepaint.mjs";
+import { brandHtml } from "@finance/ui/src/shared/lib/brand";
 
 // Development only: the access panel is React loaded on demand, and @vitejs/plugin-react's Fast
 // Refresh refuses to run a component module unless the page installed its preamble — which Astro
@@ -104,13 +105,68 @@ const image = `${site}/og/fik-${lang}.png`;
         <Footer lang={lang} />
       </main>
       <div id="access-root" data-lang={lang}></div>
+      {/* "Ir a la app" found the app down: right under the header, by the button that was just
+          pressed, and it stays until closed or retried (a self-hiding toast went unseen). */}
+      <div
+        data-app-down
+        role="alert"
+        hidden
+        class="fixed inset-x-4 top-[calc(var(--landing-header,64px)+0.75rem)] z-50 mx-auto flex max-w-[1240px] justify-end sm:px-4"
+      >
+        <div class="flex w-full max-w-sm gap-3 rounded-xl border border-warning/50 bg-card p-4 shadow-xl ring-1 ring-warning/20">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            class="mt-0.5 size-5 shrink-0 text-warning"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3" />
+            <path d="M12 9v4" />
+            <path d="M12 17h.01" />
+          </svg>
+          <div class="flex min-w-0 flex-1 flex-col gap-1">
+            <p class="text-sm font-semibold text-foreground">
+              {t(lang, "landing.nav.appUnavailableTitle")}
+            </p>
+            <p
+              class="text-sm text-muted-foreground"
+              set:html={brandHtml(t(lang, "landing.nav.appUnavailable"))}
+            />
+            <div class="mt-2 flex gap-2">
+              <button
+                type="button"
+                data-app-down-retry
+                class="rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+              >
+                {t(lang, "landing.nav.appUnavailableRetry")}
+              </button>
+            </div>
+          </div>
+          <button
+            type="button"
+            data-app-down-close
+            aria-label={t(lang, "landing.nav.appUnavailableClose")}
+            class="-m-1 grid size-8 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground"
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M18 6 6 18" />
+              <path d="m6 6 12 12" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
     <script>
       import "../domains/landing/scripts/header";
       import { initAccess } from "../domains/landing/scripts/access";
-      import { initSession } from "../domains/landing/scripts/session";
+      import { initGoToApp, initSession } from "../domains/landing/scripts/session";
 
       initAccess();
+      initGoToApp();
       void initSession();
     </script>
   </body>

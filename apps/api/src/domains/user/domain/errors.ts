@@ -151,7 +151,7 @@ export class SessionNotFoundError extends DomainError {
 /** Step-up (2026-09-25): closing another session or revoking the others needs a TOTP, passkey or
  * (only when the user has neither) password verification from THIS session within
  * `STEP_UP_WINDOW_MINUTES`. 403, never 401: the caller IS authenticated, it just hasn't
- * re-proved it recently — and apublic readonly httpStatus: 400 | 401 | 403 | 404 | 409 | 429 | 503 = 400,would read as "session gone". */
+ * re-proved it recently — and a 401 would read as "session gone". */
 export class StepUpRequiredError extends DomainError {
   constructor() {
     super("STEP_UP_REQUIRED", 403);

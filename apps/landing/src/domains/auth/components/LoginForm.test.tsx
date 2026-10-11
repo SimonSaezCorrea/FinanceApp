@@ -67,6 +67,13 @@ async function submitCredentials() {
   fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.signIn") }));
 }
 
+/** Finds the element whose visible text matches, even when "fik" sits in its own <i>. */
+const byText = (pattern: RegExp | string) => (_: string, el: Element | null) => {
+  const test = (t: string | null | undefined) =>
+    typeof pattern === "string" ? t === pattern : pattern.test(t ?? "");
+  return !!el && test(el.textContent) && ![...el.children].some((c) => test(c.textContent));
+};
+
 describe("LoginForm", () => {
   beforeEach(() => {
     login.mockReset();
@@ -373,5 +380,13 @@ describe("LoginForm — forgot password (specs/032)", () => {
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.forgot.link") }));
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.forgot.send") }));
     await waitFor(() => expect(forgotPassword).not.toHaveBeenCalled());
+  });
+
+  it("says the server couldn't be reached instead of a generic error", async () => {
+    forgotPassword.mockClear();
+    login.mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    renderLogin();
+    await submitCredentials();
+    expect(await screen.findByText(byText(i18n.t("errors.NETWORK_ERROR")))).toBeDefined();
   });
 });

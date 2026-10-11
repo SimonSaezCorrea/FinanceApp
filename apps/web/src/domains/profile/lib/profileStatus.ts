@@ -73,7 +73,14 @@ export type ContactItemKey = "email" | "identity" | "phone";
 export type PersonalEditField = "email" | "identifier" | "phone";
 
 export interface ContactCompleteness {
-  items: { key: ContactItemKey; done: boolean; editField: PersonalEditField }[];
+  items: {
+    key: ContactItemKey;
+    done: boolean;
+    editField: PersonalEditField;
+    /** The email is on file but its link hasn't been opened yet (specs/032): pending, with its
+     * own wording ("Confirma tu correo"), not "missing". */
+    unconfirmed?: boolean;
+  }[];
   done: number;
   total: 3;
 }
@@ -84,11 +91,18 @@ const filled = (value: string | null | undefined) => Boolean(value && value.trim
  * way to upload one (FR-011). */
 export function contactCompleteness(user: {
   email?: string | null;
+  emailVerified?: boolean;
   identifierValue?: string | null;
   phone?: string | null;
 }): ContactCompleteness {
+  const emailUnconfirmed = filled(user.email) && user.emailVerified === false;
   const items: ContactCompleteness["items"] = [
-    { key: "email", done: filled(user.email), editField: "email" },
+    {
+      key: "email",
+      done: filled(user.email) && !emailUnconfirmed,
+      editField: "email",
+      unconfirmed: emailUnconfirmed,
+    },
     { key: "identity", done: filled(user.identifierValue), editField: "identifier" },
     { key: "phone", done: filled(user.phone), editField: "phone" },
   ];
@@ -134,6 +148,7 @@ export function sectionStatuses(
     user: {
       mfaEnabled: boolean;
       email?: string | null;
+      emailVerified?: boolean;
       identifierValue?: string | null;
       phone?: string | null;
       preferredCurrency: string;
@@ -161,7 +176,11 @@ export function sectionStatuses(
     missing.length === 0
       ? t("profile.status.personal.complete")
       : missing.length === 1
-        ? t(`profile.status.personal.missing.${missing[0]!.key}`)
+        ? t(
+            missing[0]!.unconfirmed
+              ? "profile.status.personal.emailUnconfirmed"
+              : `profile.status.personal.missing.${missing[0]!.key}`,
+          )
         : t("profile.status.personal.missingMany", { count: missing.length });
 
   const securityLine = !input.user.mfaEnabled

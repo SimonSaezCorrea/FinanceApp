@@ -1,6 +1,7 @@
 import type { auth } from "@finance/contracts";
 import { API_BASE_PATH } from "@finance/contracts/http";
 
+import { isAppReachable } from "../../../lib/appReachable";
 import { API_URL } from "../../../lib/config";
 
 /**
@@ -37,4 +38,61 @@ export function showGoToApp(root: ParentNode = document): void {
 
 export async function initSession(check: () => Promise<boolean> = hasSession): Promise<void> {
   if (await check()) showGoToApp();
+}
+
+/**
+ * "Ir a la app" asks the app first (same probe as after signing in): when it doesn't answer, the
+ * page says so — a notice right under the header, by the button, that stays until closed or
+ * retried — instead of letting the browser show its own error page. While asking, the link reads
+ * "Comprobando…". A modified click (new tab, …) is left to the browser.
+ */
+export function initGoToApp(
+  probe: () => Promise<boolean> = () => isAppReachable(),
+  navigate: (url: string) => void = (url) => location.assign(url),
+  root: Document = document,
+): void {
+  const notice = () => root.querySelector<HTMLElement>("[data-app-down]");
+  let lastHref: string | null = null;
+
+  async function go(href: string, link: HTMLAnchorElement | null) {
+    lastHref = href;
+    const label = link?.textContent ?? null;
+    if (link) {
+      link.setAttribute("aria-busy", "true");
+      link.textContent = link.dataset.checkingLabel ?? label;
+    }
+    const retry = root.querySelector<HTMLButtonElement>("[data-app-down-retry]");
+    if (retry) retry.disabled = true;
+    const reachable = await probe();
+    if (link) {
+      link.removeAttribute("aria-busy");
+      link.textContent = label;
+    }
+    if (retry) retry.disabled = false;
+    const box = notice();
+    if (reachable) {
+      if (box) box.hidden = true;
+      navigate(href);
+    } else if (box) {
+      box.hidden = false;
+    }
+  }
+
+  root.addEventListener("click", (event) => {
+    const target = event.target as Element | null;
+    if (target?.closest("[data-app-down-close]")) {
+      const box = notice();
+      if (box) box.hidden = true;
+      return;
+    }
+    if (target?.closest("[data-app-down-retry]")) {
+      if (lastHref) void go(lastHref, null);
+      return;
+    }
+    const link = target?.closest<HTMLAnchorElement>("a[data-go-app]");
+    if (!link || event.defaultPrevented || event.button !== 0) return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    void go(link.href, link);
+  });
 }

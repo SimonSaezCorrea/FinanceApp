@@ -11,7 +11,12 @@
       "openMenu": "Abrir menú",
       "otherLanguage": "English",
       "closeMenu": "Cerrar menú",
-      "language": "Idioma"
+      "language": "Idioma",
+      "appUnavailable": "No pudimos abrir la app de fik. Inténtalo de nuevo en unos minutos.",
+      "appUnavailableTitle": "La app no está respondiendo",
+      "appUnavailableRetry": "Reintentar",
+      "appUnavailableClose": "Cerrar aviso",
+      "appChecking": "Comprobando…"
     },
     "footer": {
       "tagline": "Hecha en Chile para pesos, dólares y UF.",

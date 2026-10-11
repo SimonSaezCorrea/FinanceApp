@@ -23,6 +23,7 @@ import {
 } from "../lib/readTemplate";
 import { resolveTemplate, type LocalIssue } from "../lib/resolveTemplate";
 import { columnKey, sheetNameKey } from "../lib/templateSpec";
+import { withBrand } from "@finance/ui/src/shared/lib/brand";
 
 interface Props {
   open: boolean;
@@ -220,7 +221,7 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
     failure === "tooMany"
       ? t("import.template.tooMany", { max: imports.TEMPLATE_IMPORT_MAX_ROWS })
       : failure
-        ? t(`import.template.${failure === "unreadable" ? "readError" : failure}`)
+        ? withBrand(t(`import.template.${failure === "unreadable" ? "readError" : failure}`))
         : null;
 
   return (
@@ -229,7 +230,7 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
       onOpenChange={close}
       className="max-w-3xl"
       eyebrow={t("import.template.eyebrow")}
-      title={fileName ?? t("import.template.panelTitle")}
+      title={fileName ?? withBrand(t("import.template.panelTitle"))}
       description={fileName ? undefined : t("import.template.panelDescription")}
       footer={
         request ? (

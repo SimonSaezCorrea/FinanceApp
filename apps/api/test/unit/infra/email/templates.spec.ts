@@ -38,6 +38,10 @@ describe("email templates", () => {
     expect(out.html).toContain(`href="${link}"`);
     expect(out.html).toContain('lang="es"');
     expect(out.html).toContain('src="cid:fik-logo"');
+    // The product name as a word goes in italics in the HTML body, never in the plain text.
+    expect(out.html).toContain("<i>fik</i>");
+    expect(out.html).not.toContain("mi<i>fik</i>");
+    expect(out.text).not.toContain("<i>");
     expect(out.text).toContain(link);
     expect(out.text).toContain("simon@mifik.cl");
     expect(out.text).not.toMatch(/<[a-z]/i);

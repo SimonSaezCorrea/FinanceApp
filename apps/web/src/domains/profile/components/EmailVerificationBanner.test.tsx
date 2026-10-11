@@ -3,9 +3,9 @@ import { describe, expect, it, vi } from "vitest";
 
 import { ApiRequestError } from "@finance/client";
 
-import i18n from "../i18n";
+import i18n from "../../../i18n";
 import { EmailVerificationBanner } from "./EmailVerificationBanner";
-import { Providers } from "./providers";
+import { Providers } from "../../../app/providers";
 
 const me = vi.fn();
 const resendVerification = vi.fn();

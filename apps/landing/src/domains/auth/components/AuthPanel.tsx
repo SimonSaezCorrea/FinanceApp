@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 
+import { withBrand } from "@finance/ui/src/shared/lib/brand";
 import { Button } from "@finance/ui/src/shared/ui/button";
 import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import type { AuthPanelMode } from "../lib/authRedirect";
@@ -17,6 +18,9 @@ interface AuthPanelProps {
   onModeChange: (mode: AuthPanelMode | null) => void;
   /** A session exists (login, passkey, MFA or a fresh registration). */
   onAuthenticated: () => void;
+  /** Signed in, but the app didn't answer: the panel says so instead of sending the person to
+   * a browser error page. `checking` while a retry is asking again. */
+  appUnavailable?: { checking: boolean; onRetry: () => void } | null;
 }
 
 /**
@@ -25,7 +29,12 @@ interface AuthPanelProps {
  * control, and each view leads with its own heading. Login and sign-up switch through a link
  * at the foot of each; the RUT typed in one is kept in the other.
  */
-export function AuthPanel({ mode, onModeChange, onAuthenticated }: Readonly<AuthPanelProps>) {
+export function AuthPanel({
+  mode,
+  onModeChange,
+  onAuthenticated,
+  appUnavailable,
+}: Readonly<AuthPanelProps>) {
   const { t } = useTranslation();
   const [loginStep, setLoginStep] = useState<LoginStep>("credentials");
   const [identifierValue, setIdentifierValue] = useState("");
@@ -72,7 +81,7 @@ export function AuthPanel({ mode, onModeChange, onAuthenticated }: Readonly<Auth
       // Each view carries its own visible heading; the dialog still needs a name.
       title={<span className="sr-only">{title}</span>}
       footer={
-        isLogin ? undefined : (
+        isLogin || appUnavailable ? undefined : (
           <div className="flex flex-col gap-3">
             <Button
               type="submit"
@@ -89,7 +98,24 @@ export function AuthPanel({ mode, onModeChange, onAuthenticated }: Readonly<Auth
       }
     >
       <div className="mx-auto flex w-full max-w-lg flex-col gap-8 py-2 sm:py-6">
-        {isLogin ? (
+        {appUnavailable ? (
+          <div role="alert" className="flex flex-col items-center gap-4 pt-6 text-center">
+            <h2 className="text-2xl font-bold tracking-tight">{t("auth.appUnavailable.title")}</h2>
+            <p className="max-w-[40ch] text-sm leading-relaxed text-muted-foreground">
+              {withBrand(t("auth.appUnavailable.body"))}
+            </p>
+            <Button
+              size="lg"
+              className="w-full"
+              disabled={appUnavailable.checking}
+              onClick={appUnavailable.onRetry}
+            >
+              {appUnavailable.checking
+                ? t("auth.appUnavailable.checking")
+                : t("auth.appUnavailable.retry")}
+            </Button>
+          </div>
+        ) : isLogin ? (
           <LoginForm
             onSuccess={onAuthenticated}
             onStepChange={setLoginStep}
@@ -106,7 +132,7 @@ export function AuthPanel({ mode, onModeChange, onAuthenticated }: Readonly<Auth
             onSwitchToLogin={() => onModeChange("login")}
           />
         )}
-        {isLogin && loginStep === "credentials" ? switchLink : null}
+        {isLogin && loginStep === "credentials" && !appUnavailable ? switchLink : null}
       </div>
     </SidePanel>
   );

@@ -5,7 +5,7 @@ import { Trans, useTranslation } from "react-i18next";
 import type { auth } from "@finance/contracts";
 import * as authRules from "@finance/contracts/auth-rules";
 
-import { ApiRequestError } from "@finance/client";
+import { failureCode } from "@finance/client";
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { formatRutInput } from "@finance/ui/src/shared/lib/formatRut";
 import { Button } from "@finance/ui/src/shared/ui/button";
@@ -27,6 +27,7 @@ import {
 } from "../lib/validation";
 import { CheckCard } from "./CheckCard";
 import { UnderlineField } from "./UnderlineField";
+import { withBrand } from "@finance/ui/src/shared/lib/brand";
 
 const GUARDIAN_RELATIONSHIP_OPTIONS: { value: auth.GuardianAuthorization["relationship"] }[] = [
   { value: "MOTHER" },
@@ -201,7 +202,7 @@ export function RegisterForm({
       });
       onSuccess();
     } catch (err) {
-      const code = err instanceof ApiRequestError ? err.code : "INTERNAL_ERROR";
+      const code = failureCode(err);
       // A taken RUT/email belongs to its field, not to a message at the bottom.
       if (code === "IDENTIFIER_TAKEN") {
         setTakenRut(identifierValue);
@@ -321,6 +322,7 @@ export function RegisterForm({
         <Trans
           i18nKey="auth.sensitiveDataConsent"
           components={{
+            brand: <i />,
             privacy: (
               // A new tab: following it in place would throw away the half-filled form.
               <a
@@ -374,14 +376,14 @@ export function RegisterForm({
             error={guardianAcceptMissing ? t("auth.guardian.acceptRequired") : null}
             ref={refFor("guardianAccept")}
           >
-            {t("auth.guardian.accept")}
+            {withBrand(t("auth.guardian.accept"))}
           </CheckCard>
         </div>
       ) : null}
 
       {error ? (
         <p role="alert" className="text-sm text-destructive">
-          {error}
+          {error ? withBrand(error) : null}
         </p>
       ) : null}
       {formId ? null : (

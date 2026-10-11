@@ -23,6 +23,25 @@ export class ApiRequestError extends Error {
   }
 }
 
+/**
+ * The error code to show for a failed request, so a screen can say WHAT happened:
+ * - the API's own code when it answered (`INVALID_CREDENTIALS`, `LOGIN_LOCKED`…);
+ * - when no answer came at all (`fetch` rejects with a TypeError), which side failed:
+ *   `OFFLINE` when the device knows it has no network (`navigator.onLine === false`: Wi-Fi
+ *   off, airplane mode — reliable), else `NETWORK_ERROR`: the device has a network, so the
+ *   server is most likely the one not answering (it can't be proved from the browser);
+ * - `INTERNAL_ERROR` for anything else.
+ */
+export function failureCode(error: unknown): string {
+  if (error instanceof ApiRequestError) return error.code;
+  if (error instanceof TypeError) {
+    return typeof navigator !== "undefined" && navigator.onLine === false
+      ? "OFFLINE"
+      : "NETWORK_ERROR";
+  }
+  return "INTERNAL_ERROR";
+}
+
 function buildUrl(path: string): string {
   return `${getBaseUrl()}${API_BASE_PATH}${path}`;
 }
@@ -79,8 +98,21 @@ export function resetAuthRefresh(): void {
   refreshInFlight = null;
 }
 
+const REFRESH_PATH = "/auth/refresh";
+
+/** The `{ error: { code } }` of an error response, read from a clone so the original body stays
+ * available to `parseResponse`. Null when the body isn't that shape. */
+async function errorCodeOf(res: Response): Promise<string | null> {
+  try {
+    const body = (await res.clone().json()) as { error?: { code?: unknown } };
+    return typeof body.error?.code === "string" ? body.error.code : null;
+  } catch {
+    return null;
+  }
+}
+
 function refreshSession(): Promise<boolean> {
-  refreshInFlight ??= rawFetch("/auth/refresh", { method: "POST" })
+  refreshInFlight ??= rawFetch(REFRESH_PATH, { method: "POST" })
     .then((res) => {
       if (!res.ok) refreshExhausted = true;
       return res.ok;
@@ -114,10 +146,19 @@ export async function apiFetch<T>(path: string, init: ApiRequestInit = {}): Prom
 
   let res = await rawFetch(path, request);
 
-  // Silent refresh: intercept 401 on non-auth paths, attempt token rotation,
-  // then retry the original request once. Concurrent callers share the single
-  // in-flight refresh instead of each starting one.
-  if (res.status === 401 && !path.startsWith("/auth/") && !refreshExhausted) {
+  // Silent refresh: a 401 that means "no live session" (`UNAUTHORIZED`, what the guard answers
+  // when the access token expired) rotates the tokens and retries the request once — on ANY path,
+  // `/auth/me` included: excluding every `/auth/*` path made an expired access token look signed
+  // out on startup while the refresh token was still good. A 401 with its own code is a wrong
+  // credential (INVALID_CURRENT_PASSWORD, INVALID_CREDENTIALS, INVALID_MFA_CODE…) and is never
+  // retried, or each failed attempt would count twice against its lockout. Concurrent callers
+  // share the single in-flight refresh instead of each starting one.
+  if (
+    res.status === 401 &&
+    path !== REFRESH_PATH &&
+    !refreshExhausted &&
+    (await errorCodeOf(res)) === "UNAUTHORIZED"
+  ) {
     const refreshed = await refreshSession();
     if (refreshed) {
       res = await rawFetch(path, request);

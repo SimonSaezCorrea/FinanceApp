@@ -78,7 +78,7 @@ const NAV = [
           {t(lang, "auth.signIn")}
         </a>
         <template data-app-template>
-          <a href={APP_URL + "/"} class={buttonClasses({ className: "h-11 sm:h-10" })}>
+          <a href={APP_URL + "/"} data-go-app data-checking-label={t(lang, "landing.nav.appChecking")} class={buttonClasses({ className: "h-11 sm:h-10" })}>
             {t(lang, "landing.nav.goToApp")}
           </a>
         </template>

@@ -8,6 +8,7 @@ import { configureClient } from "@finance/client";
 import { LangProvider } from "../../i18n/lang";
 import { API_URL } from "../../lib/config";
 import type { Language } from "../../lib/language";
+import { isAppReachable } from "../../lib/appReachable";
 import { appUrl } from "../../lib/returnTo";
 import { AuthPanel } from "./components/AuthPanel";
 import { AccessProvider } from "./hooks/useAuth";
@@ -34,6 +35,8 @@ interface MountOptions {
   returnTo: () => string | null;
   /** Navigation seam for tests. */
   navigate?: (url: string) => void;
+  /** Seam for tests: whether the app answers before navigating to it. */
+  isAppReachable?: () => Promise<boolean>;
 }
 
 /** The panel's strings in the page's language only — never the whole app catalog, nor the other
@@ -61,6 +64,19 @@ export async function mountAccessPanel(
 
   function AccessPanelRoot() {
     const [mode, setMode] = useState<AuthPanelMode | null>(options.initialMode);
+    // Signed in but the app didn't answer: `checking` while asking (again).
+    const [appDown, setAppDown] = useState<{ checking: boolean } | null>(null);
+
+    async function goToApp() {
+      setAppDown((current) => (current ? { checking: true } : current));
+      const reachable = await (options.isAppReachable ?? isAppReachable)();
+      if (!reachable) {
+        setAppDown({ checking: false });
+        return;
+      }
+      const navigate = options.navigate ?? ((url: string) => location.assign(url));
+      navigate(appUrl(options.returnTo()));
+    }
 
     useEffect(() => {
       setModeFromOutside = setMode;
@@ -80,10 +96,10 @@ export async function mountAccessPanel(
                 setMode(next);
                 options.onModeChange(next);
               }}
-              onAuthenticated={() => {
-                const navigate = options.navigate ?? ((url: string) => location.assign(url));
-                navigate(appUrl(options.returnTo()));
-              }}
+              onAuthenticated={() => void goToApp()}
+              appUnavailable={
+                appDown ? { checking: appDown.checking, onRetry: () => void goToApp() } : null
+              }
             />
           </AccessProvider>
         </LangProvider>

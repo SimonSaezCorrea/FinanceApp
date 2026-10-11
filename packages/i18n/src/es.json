@@ -28,7 +28,8 @@
       "body": "Te enviamos un enlace a {{address}}. Mientras no lo abras, no podrás recuperar tu contraseña por correo ni recibir avisos de seguridad.",
       "resend": "Reenviar correo",
       "sending": "Enviando…",
-      "sent": "Listo. Revisa {{address}} (y la carpeta de spam)."
+      "sent": "Listo. Revisa {{address}} (y la carpeta de spam).",
+      "short": "Confirma tu correo"
     }
   },
   "states": {
@@ -1946,7 +1947,7 @@
       "guardianRut": "12.345.678-9"
     },
     "sensitiveDataConsentLabel": "Datos sensibles",
-    "sensitiveDataConsent": "Acepto que fik trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la <privacy>Política de Privacidad</privacy>.",
+    "sensitiveDataConsent": "Acepto que <brand>fik</brand> trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la <privacy>Política de Privacidad</privacy>.",
     "consentRequired": "Marca esta casilla para crear tu cuenta.",
     "guardian": {
       "title": "Autorización de tu madre, padre o tutor",
@@ -2019,6 +2020,12 @@
       "sending": "Enviando…",
       "sent": "Si ese RUT tiene una cuenta con correo confirmado, te llegará un enlace en unos minutos. Vence en 30 minutos.",
       "failed": "No pudimos conectarnos. Inténtalo de nuevo."
+    },
+    "appUnavailable": {
+      "title": "Iniciaste sesión",
+      "body": "Pero la app de fik no está respondiendo en este momento. Tu sesión quedó abierta: inténtalo de nuevo en unos minutos.",
+      "retry": "Reintentar",
+      "checking": "Comprobando…"
     }
   },
   "profile": {
@@ -2289,7 +2296,9 @@
           "identity": "Agregar identidad",
           "phone": "Agregar teléfono"
         },
-        "complete": "Tus datos de contacto e identidad están completos."
+        "complete": "Tus datos de contacto e identidad están completos.",
+        "unconfirmed": "sin confirmar",
+        "confirmEmail": "Confirmar correo"
       },
       "sessions": {
         "title": "Sesiones",
@@ -2319,7 +2328,8 @@
         },
         "missingMany_one": "Falta {{count}} dato",
         "missingMany_other": "Faltan {{count}} datos",
-        "complete": "Datos completos"
+        "complete": "Datos completos",
+        "emailUnconfirmed": "Confirma tu correo"
       },
       "security": {
         "twoFactorOff": "Dos pasos desactivada",
@@ -2376,7 +2386,7 @@
     }
   },
   "errors": {
-    "INTERNAL_ERROR": "Ocurrió un error. Inténtalo de nuevo.",
+    "INTERNAL_ERROR": "Algo falló de nuestro lado. Inténtalo de nuevo en unos minutos.",
     "UNAUTHORIZED": "Inicia sesión para continuar.",
     "NOT_FOUND": "No se encontró el recurso.",
     "INVALID_CREDENTIALS": "RUT o contraseña incorrectos.",
@@ -2491,7 +2501,9 @@
     "EMAIL_UNAVAILABLE": "El envío de correos no está disponible en este momento.",
     "EMAIL_NOT_FOUND": "Ese correo no está en tu registro.",
     "EMAIL_PRIMARY_NOT_DELETABLE": "No puedes borrar tu correo principal.",
-    "STEP_UP_REQUIRED": "Confirma que eres tú para hacer este cambio."
+    "STEP_UP_REQUIRED": "Confirma que eres tú para hacer este cambio.",
+    "NETWORK_ERROR": "fik no está respondiendo en este momento. Inténtalo de nuevo en unos minutos.",
+    "OFFLINE": "No tienes conexión a internet. Revisa tu wifi o tus datos móviles e inténtalo de nuevo."
   },
   "exchangeRates": {
     "title": "Tipos de cambio",

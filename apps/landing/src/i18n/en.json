@@ -11,7 +11,12 @@
       "openMenu": "Open menu",
       "otherLanguage": "Español",
       "closeMenu": "Close menu",
-      "language": "Language"
+      "language": "Language",
+      "appUnavailable": "We couldn’t open the fik app. Please try again in a few minutes.",
+      "appUnavailableTitle": "The app isn’t responding",
+      "appUnavailableRetry": "Try again",
+      "appUnavailableClose": "Close notice",
+      "appChecking": "Checking…"
     },
     "footer": {
       "tagline": "Made in Chile for pesos, dollars and UF.",

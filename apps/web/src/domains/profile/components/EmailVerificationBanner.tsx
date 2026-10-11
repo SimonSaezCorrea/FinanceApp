@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { ApiRequestError, authApi } from "@finance/client";
 import { Button } from "@finance/ui/src/shared/ui/button";
 
-import { useAuth } from "../domains/auth/hooks/useAuth";
+import { useAuth } from "../../auth/hooks/useAuth";
 
 /**
  * "Confirma tu correo" (specs/032 US1): shown while the account's address is unconfirmed. The app
@@ -40,7 +40,7 @@ export function EmailVerificationBanner() {
     <div
       role="region"
       aria-label={t("app.emailVerification.title")}
-      className="mb-5 flex flex-col gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
+      className="flex flex-col gap-2 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 sm:flex-row sm:items-center sm:gap-4"
     >
       <MailWarning className="hidden size-5 shrink-0 text-warning sm:block" aria-hidden />
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">

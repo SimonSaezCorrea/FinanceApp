@@ -27,6 +27,7 @@ import { ImportMovementsPanel } from "../components/ImportMovementsPanel";
 import { TemplateImportPanel } from "../components/TemplateImportPanel";
 import { buildTemplate, type TemplateRefs } from "../lib/buildTemplate";
 import { existingRows } from "../lib/templateData";
+import { withBrand } from "@finance/ui/src/shared/lib/brand";
 
 /**
  * The "Importar" section: a spreadsheet is always imported into ONE account, so
@@ -144,7 +145,7 @@ export function ImportRoute() {
           <FileSpreadsheet className="h-5 w-5" aria-hidden />
         </span>
         <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <h2 className="text-sm font-medium">{t("import.template.cardTitle")}</h2>
+          <h2 className="text-sm font-medium">{withBrand(t("import.template.cardTitle"))}</h2>
           <p className="text-sm text-muted-foreground">{t("import.template.cardDescription")}</p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">

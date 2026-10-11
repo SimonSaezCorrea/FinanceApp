@@ -1,4 +1,5 @@
 ---
+import { brandHtml } from "@finance/ui/src/shared/lib/brand";
 import { buttonClasses } from "@finance/ui/src/shared/ui/button-classes";
 
 import PageLayout from "../../layouts/PageLayout.astro";
@@ -24,13 +25,13 @@ const signIn = `${pagePath(lang, "home")}?acceso=login`;
     <div data-state="success" hidden aria-live="polite" class="flex flex-col items-center gap-6">
       <p class="text-base text-muted-foreground">{k("success")}</p>
       <a href={signIn} data-access="login" class={buttonClasses({ variant: "primary" })}>
-        {k("toApp")}
+        <Fragment set:html={brandHtml(k("toApp"))} />
       </a>
     </div>
     <div data-state="invalid" hidden aria-live="polite" class="flex flex-col items-center gap-6">
-      <p class="text-base text-muted-foreground">{k("invalid")}</p>
+      <p class="text-base text-muted-foreground" set:html={brandHtml(k("invalid"))} />
       <a href={signIn} data-access="login" class={buttonClasses({ variant: "outline" })}>
-        {k("toApp")}
+        <Fragment set:html={brandHtml(k("toApp"))} />
       </a>
     </div>
     <div data-state="error" hidden aria-live="polite">

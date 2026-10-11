@@ -89,7 +89,7 @@ const other: Language = lang === "es" ? "en" : "es";
         {t(lang, "auth.signIn")}
       </a>
       <template data-app-template>
-        <a href={APP_URL + "/"} class={buttonClasses({ size: "lg", className: "w-full" })}>
+        <a href={APP_URL + "/"} data-go-app data-checking-label={t(lang, "landing.nav.appChecking")} class={buttonClasses({ size: "lg", className: "w-full" })}>
           {t(lang, "landing.nav.goToApp")}
         </a>
       </template>

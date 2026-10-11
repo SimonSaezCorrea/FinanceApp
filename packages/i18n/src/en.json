@@ -28,7 +28,8 @@
       "body": "We sent a link to {{address}}. Until you open it, you can’t recover your password by email or get security notices.",
       "resend": "Send it again",
       "sending": "Sending…",
-      "sent": "Done. Check {{address}} (and your spam folder)."
+      "sent": "Done. Check {{address}} (and your spam folder).",
+      "short": "Confirm your email"
     }
   },
   "states": {
@@ -1946,7 +1947,7 @@
       "guardianRut": "12.345.678-9"
     },
     "sensitiveDataConsentLabel": "Sensitive data",
-    "sensitiveDataConsent": "I agree that fik processes my financial data (balances, movements, debts) as sensitive data, under the <privacy>Privacy Policy</privacy>.",
+    "sensitiveDataConsent": "I agree that <brand>fik</brand> processes my financial data (balances, movements, debts) as sensitive data, under the <privacy>Privacy Policy</privacy>.",
     "consentRequired": "Tick this box to create your account.",
     "guardian": {
       "title": "Parent/guardian authorization",
@@ -2019,6 +2020,12 @@
       "sending": "Sending…",
       "sent": "If that RUT has an account with a confirmed email, a link will arrive in a few minutes. It expires in 30 minutes.",
       "failed": "We couldn’t connect. Please try again."
+    },
+    "appUnavailable": {
+      "title": "You’re signed in",
+      "body": "But the fik app isn’t responding right now. Your session is open: please try again in a few minutes.",
+      "retry": "Try again",
+      "checking": "Checking…"
     }
   },
   "profile": {
@@ -2289,7 +2296,9 @@
           "identity": "Add identity",
           "phone": "Add phone"
         },
-        "complete": "Your contact and identity details are complete."
+        "complete": "Your contact and identity details are complete.",
+        "unconfirmed": "not confirmed",
+        "confirmEmail": "Confirm email"
       },
       "sessions": {
         "title": "Sessions",
@@ -2319,7 +2328,8 @@
         },
         "missingMany_one": "{{count}} detail missing",
         "missingMany_other": "{{count}} details missing",
-        "complete": "Details complete"
+        "complete": "Details complete",
+        "emailUnconfirmed": "Confirm your email"
       },
       "security": {
         "twoFactorOff": "Two-step is off",
@@ -2376,7 +2386,7 @@
     }
   },
   "errors": {
-    "INTERNAL_ERROR": "Something went wrong. Please try again.",
+    "INTERNAL_ERROR": "Something went wrong on our side. Please try again in a few minutes.",
     "UNAUTHORIZED": "Sign in to continue.",
     "NOT_FOUND": "Resource not found.",
     "INVALID_CREDENTIALS": "Incorrect RUT or password.",
@@ -2491,7 +2501,9 @@
     "EMAIL_UNAVAILABLE": "Sending emails is not available right now.",
     "EMAIL_NOT_FOUND": "That email is not in your list.",
     "EMAIL_PRIMARY_NOT_DELETABLE": "You cannot delete your main email.",
-    "STEP_UP_REQUIRED": "Confirm it’s you to make this change."
+    "STEP_UP_REQUIRED": "Confirm it’s you to make this change.",
+    "NETWORK_ERROR": "fik isn’t responding right now. Please try again in a few minutes.",
+    "OFFLINE": "You’re offline. Check your Wi-Fi or mobile data and try again."
   },
   "exchangeRates": {
     "title": "Exchange rates",

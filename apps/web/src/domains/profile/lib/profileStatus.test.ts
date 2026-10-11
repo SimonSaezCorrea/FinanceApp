@@ -180,6 +180,24 @@ describe("nextProtectionStep", () => {
 });
 
 describe("contactCompleteness", () => {
+  it("keeps an unconfirmed email pending, as 'confirm' rather than 'missing' (specs/032)", () => {
+    const result = contactCompleteness({
+      email: "ana@correo.cl",
+      emailVerified: false,
+      identifierValue: "123456785",
+      phone: "+56911111111",
+    });
+    const email = result.items.find((i) => i.key === "email")!;
+    expect(email).toMatchObject({ done: false, unconfirmed: true });
+    expect(result.done).toBe(2);
+
+    const confirmed = contactCompleteness({ email: "ana@correo.cl", emailVerified: true });
+    expect(confirmed.items.find((i) => i.key === "email")).toMatchObject({
+      done: true,
+      unconfirmed: false,
+    });
+  });
+
   it("counts email, identity and phone out of three — never the photo", () => {
     const result = contactCompleteness({
       email: "ana@correo.cl",

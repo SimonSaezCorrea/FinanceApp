@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
+import { withBrand } from "@finance/ui/src/shared/lib/brand";
 
 export type TemplateContent = "empty" | "prefilled";
 
@@ -90,10 +91,10 @@ export function DownloadTemplateDialog({
                 </span>
                 <span className="flex flex-col gap-1">
                   <span className="text-sm font-medium">
-                    {t(`import.template.content.${value}.title`)}
+                    {withBrand(t(`import.template.content.${value}.title`))}
                   </span>
                   <span className="text-xs leading-relaxed text-muted-foreground">
-                    {t(`import.template.content.${value}.hint`)}
+                    {withBrand(t(`import.template.content.${value}.hint`))}
                   </span>
                 </span>
               </button>
@@ -104,7 +105,7 @@ export function DownloadTemplateDialog({
         {content === "prefilled" ? (
           <p className="flex gap-2 rounded-lg bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
             <Info className="mt-px h-4 w-4 shrink-0" aria-hidden />
-            {t("import.template.content.prefilled.note")}
+            {withBrand(t("import.template.content.prefilled.note"))}
           </p>
         ) : null}
       </div>

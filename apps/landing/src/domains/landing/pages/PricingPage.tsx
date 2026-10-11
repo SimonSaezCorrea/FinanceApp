@@ -5,6 +5,7 @@ import { cn } from "@finance/ui/src/shared/lib/cn";
 import { HERO_TITLE } from "../components/bits";
 import { paint } from "../components/illustrations/paint";
 import { AccessLink } from "../components/AccessLink";
+import { withBrand } from "@finance/ui/src/shared/lib/brand";
 
 const P = "landing.pricing";
 const INCLUDED = ["accounts", "movements", "billing", "security", "currencies"] as const;
@@ -66,7 +67,7 @@ export function PricingPage() {
                   {t(`${P}.reasons.${key}.title`)}
                 </h2>
                 <p className="text-[15px] leading-relaxed text-muted-foreground">
-                  {t(`${P}.reasons.${key}.body`)}
+                  {withBrand(t(`${P}.reasons.${key}.body`))}
                 </p>
               </li>
             ))}

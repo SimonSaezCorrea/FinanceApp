@@ -93,6 +93,13 @@ function upload() {
   });
 }
 
+/** Finds the element whose visible text matches, even when "fik" sits in its own <i>. */
+const byText = (pattern: RegExp | string) => (_: string, el: Element | null) => {
+  const test = (t: string | null | undefined) =>
+    typeof pattern === "string" ? t === pattern : pattern.test(t ?? "");
+  return !!el && test(el.textContent) && ![...el.children].some((c) => test(c.textContent));
+};
+
 describe("TemplateImportPanel", () => {
   beforeEach(async () => {
     await i18n.changeLanguage("es");
@@ -204,7 +211,7 @@ describe("TemplateImportPanel", () => {
     renderPanel();
     upload();
     expect(
-      await screen.findByText(/no es una plantilla de fik.*importador de cartolas/),
+      await screen.findByText(byText(/no es una plantilla de fik.*importador de cartolas/)),
     ).toBeTruthy();
   });
 

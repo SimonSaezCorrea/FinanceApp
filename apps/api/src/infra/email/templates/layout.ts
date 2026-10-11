@@ -1,6 +1,6 @@
 import type { EmailLocale } from "../email-sender.port";
 import { catalogFor } from "../i18n";
-import { escapeHtml, fill } from "./escape";
+import { bodyHtml, escapeHtml, fill } from "./escape";
 
 export interface RenderedEmail {
   subject: string;
@@ -34,7 +34,7 @@ const CARD = "#f4f7f8";
 const FONT = "-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 
 function paragraph(text: string, size = 15, color = INK): string {
-  return `<p style="margin:0 0 16px;font:${size}px/1.55 ${FONT};color:${color}">${escapeHtml(text)}</p>`;
+  return `<p style="margin:0 0 16px;font:${size}px/1.55 ${FONT};color:${color}">${bodyHtml(text)}</p>`;
 }
 
 /** The content id of the logo attached to every email (the sender attaches it). */
@@ -50,7 +50,7 @@ export function renderLayout(input: LayoutInput): RenderedEmail {
 
   const button = input.button
     ? `<table role="presentation" cellpadding="0" cellspacing="0" style="margin:8px 0 24px"><tr><td style="background:${BRAND};border-radius:10px">
-<a href="${escapeHtml(input.button.url)}" style="display:inline-block;padding:13px 22px;font:600 15px ${FONT};color:#ffffff;text-decoration:none">${escapeHtml(input.button.label)}</a>
+<a href="${escapeHtml(input.button.url)}" style="display:inline-block;padding:13px 22px;font:600 15px ${FONT};color:#ffffff;text-decoration:none">${bodyHtml(input.button.label)}</a>
 </td></tr></table>
 ${paragraph(t.buttonFallback, 13, MUTED)}
 <p style="margin:0 0 20px;font:13px/1.5 ${FONT};word-break:break-all"><a href="${escapeHtml(input.button.url)}" style="color:${BRAND}">${escapeHtml(input.button.url)}</a></p>`
@@ -64,7 +64,7 @@ ${paragraph(t.buttonFallback, 13, MUTED)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:${CARD};border:1px solid ${LINE};border-radius:14px">
 <tr><td style="padding:28px 32px 8px"><img src="${escapeHtml(logo)}" width="120" alt="fik" style="display:block;border:0;height:auto"></td></tr>
 <tr><td style="padding:8px 32px 8px">
-<h1 style="margin:0 0 16px;font:700 22px/1.3 ${FONT};color:${INK}">${escapeHtml(input.title)}</h1>
+<h1 style="margin:0 0 16px;font:700 22px/1.3 ${FONT};color:${INK}">${bodyHtml(input.title)}</h1>
 ${input.paragraphs.map((p) => paragraph(p)).join("\n")}
 ${button}
 ${(input.notes ?? []).map((n) => paragraph(n, 13, MUTED)).join("\n")}

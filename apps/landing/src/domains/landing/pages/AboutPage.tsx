@@ -6,6 +6,7 @@ import { Eyebrow, HERO_TITLE } from "../components/bits";
 import { ClosingCta } from "../components/HomeSections";
 import { MatchingReceipts } from "../components/illustrations/MatchingReceipts";
 import { paint } from "../components/illustrations/paint";
+import { withBrand } from "@finance/ui/src/shared/lib/brand";
 
 const P = "landing.about";
 
@@ -125,7 +126,7 @@ export function AboutPage() {
                   {t(`${P}.today.${key}.title`)}
                 </span>
                 <p className="text-[15px] leading-relaxed text-muted-foreground">
-                  {t(`${P}.today.${key}.body`)}
+                  {withBrand(t(`${P}.today.${key}.body`))}
                 </p>
               </div>
             ))}
