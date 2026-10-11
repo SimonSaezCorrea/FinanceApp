@@ -7,7 +7,7 @@
 set -euo pipefail
 
 SG_ID="${1:?usage: cloudflare-sg.sh <security-group-id> [region]}"
-REGION="${2:-sa-east-1}"
+REGION="${2:-us-east-2}"
 
 add_range() {
   local family="$1" cidr="$2" out

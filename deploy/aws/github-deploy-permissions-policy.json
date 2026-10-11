@@ -19,15 +19,15 @@
         "ecr:CompleteLayerUpload",
         "ecr:PutImage"
       ],
-      "Resource": "arn:aws:ecr:sa-east-1:ACCOUNT_ID:repository/fik-api"
+      "Resource": "arn:aws:ecr:us-east-2:ACCOUNT_ID:repository/fik-api"
     },
     {
       "Sid": "RunTheDeployCommandOnTheApiServerOnly",
       "Effect": "Allow",
       "Action": "ssm:SendCommand",
       "Resource": [
-        "arn:aws:ec2:sa-east-1:ACCOUNT_ID:instance/INSTANCE_ID",
-        "arn:aws:ssm:sa-east-1::document/AWS-RunShellScript"
+        "arn:aws:ec2:us-east-2:ACCOUNT_ID:instance/INSTANCE_ID",
+        "arn:aws:ssm:us-east-2::document/AWS-RunShellScript"
       ]
     },
     {
