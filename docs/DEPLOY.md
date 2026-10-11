@@ -277,6 +277,16 @@ de build (`VITE_*`, `PUBLIC_*`) están en `deploy.yml`, no en Cloudflare.
 ## Mantenimiento
 
 - **Logs:** Session Manager → `cd /opt/fik && sudo docker compose logs --tail 200 api`.
+- **Despliegue sin corte (2026-10-11):** `deploy.sh` arranca el API nuevo junto al viejo, espera a
+  que esté sano y recién entonces apaga el viejo (SIGTERM, hasta 30 s para terminar lo que tiene en
+  curso). Si el nuevo no queda sano, lo borra y el viejo sigue atendiendo. Caddy reparte entre todos
+  los contenedores `api` y reintenta en otro una conexión rechazada. Medido: 1.322 de 1.322 consultas
+  bien durante un despliegue. **Dos reglas que lo hacen posible:** (1) una migración corre antes del
+  cambio, así que no puede borrar ni renombrar algo que la versión anterior usa (primero agregar,
+  quitar en un despliegue siguiente); (2) la app se publica antes que el API, así que un cambio de
+  contrato debe aceptar clientes viejos y nuevos. Cambios al Caddyfile: `deploy.sh` lo recarga sin
+  reiniciar Caddy. Durante ~1 minuto corren los dos contenedores: evitar desplegar justo a las 00:00
+  (hora de Chile), cuando corre el cierre de facturaciones programadas.
 - **Desplegar a mano o volver a una versión anterior:** `sudo /opt/fik/deploy.sh <tag>` (los tags
   son el commit corto; ver ECR). Ojo: una migración ya aplicada no se deshace sola.
 - **Respaldos:** RDS guarda 1 día con restauración a cualquier minuto. Antes de una migración

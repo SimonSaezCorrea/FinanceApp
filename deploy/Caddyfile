@@ -7,7 +7,8 @@
 # With those in place CF-Connecting-IP is the visitor's real address, so it becomes the one
 # X-Forwarded-For entry the API sees (TRUST_PROXY_HOPS=1: Caddy is the only proxy it trusts).
 {
-	admin off
+	# The admin API stays on its default, localhost:2019 INSIDE the container (never published):
+	# deploy.sh uses it to reload this file without dropping connections.
 	auto_https disable_redirects
 }
 
@@ -19,7 +20,19 @@ api.mifik.cl {
 		}
 	}
 
-	reverse_proxy api:3001 {
+	# Zero-downtime deploys (deploy.sh): during a deploy there are TWO api containers, the old and
+	# the new. Every one Docker's DNS lists for "api" is an upstream (re-read each second), so the
+	# new one starts receiving traffic as soon as it listens. A request whose connection is refused
+	# (a container still booting, or one shutting down) is retried on another for up to 10 s: it
+	# never reached the API, so retrying is safe even for a POST.
+	reverse_proxy {
+		dynamic a api 3001 {
+			refresh 1s
+		}
+		lb_policy round_robin
+		lb_try_duration 10s
+		lb_try_interval 250ms
+		fail_duration 5s
 		header_up X-Forwarded-For {http.request.header.CF-Connecting-IP}
 	}
 }

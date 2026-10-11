@@ -32,6 +32,11 @@ async function bootstrap() {
   // The public site and the app (CORS_ORIGIN, comma-separated) — specs/031.
   useCors(app);
 
+  // Zero-downtime deploys (deploy/deploy.sh): the old container gets SIGTERM only once the new one
+  // is healthy. With the hooks, Nest then stops accepting connections, lets the requests in
+  // progress finish and disconnects Prisma, instead of Node dying mid-request.
+  app.enableShutdownHooks();
+
   const port = config.get<number>("PORT") ?? 3001;
   await app.listen(port);
   Logger.log(`API listening on http://localhost:${port}/api/v1`, "Bootstrap");

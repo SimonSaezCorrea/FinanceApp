@@ -20,6 +20,23 @@ services:
       - ./certs/rds-global-bundle.pem:/certs/rds-global-bundle.pem:ro
     expose:
       - "3001"
+    # Zero-downtime deploys (deploy.sh) wait for the NEW container to report healthy before
+    # stopping the old one: check every 2 s while it boots instead of the image's 30 s.
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3001/api/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 60s
+      start_interval: 2s
+    # Time the old container gets, after SIGTERM, to finish the requests in progress.
+    stop_grace_period: 30s
     restart: unless-stopped
     logging: *logging
 
