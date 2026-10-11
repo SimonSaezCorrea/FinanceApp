@@ -18,9 +18,17 @@ import {
   type PublishedValue,
 } from "../src/domains/exchange-rate/domain/exchange-rate.entity";
 import { MindicadorSource } from "../src/domains/exchange-rate/infrastructure/mindicador-source";
+import { assertProductionDatabaseOnlyInProduction } from "../src/infra/config/production-database";
 
 // tsx doesn't load apps/api/.env on its own.
 loadEnv({ path: path.join(__dirname, "..", ".env") });
+
+// The production database is seeded only by the server's own deploy (NODE_ENV=production).
+assertProductionDatabaseOnlyInProduction(
+  [process.env.DATABASE_URL],
+  process.env.NODE_ENV,
+  "the seed",
+);
 
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),

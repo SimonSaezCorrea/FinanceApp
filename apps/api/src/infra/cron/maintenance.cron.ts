@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { CommandBus } from "@nestjs/cqrs";
 import { Cron } from "@nestjs/schedule";
 
+import { CronSwitch } from "../config/cron.config";
 import { PurgeExpiredRecordsCommand } from "../../domains/idempotency-record/application/commands/purge-expired-records.command";
 import { PurgeExpiredCacheCommand } from "../../domains/ip-geolocation-cache/application/commands/purge-expired-cache.command";
 import { CloseExpiredSessionsCommand } from "../../domains/user/application/commands/close-expired-sessions.command";
@@ -25,10 +26,14 @@ import { PurgeStaleEmailTokensCommand } from "../../domains/user/application/com
 export class MaintenanceCron {
   private readonly logger = new Logger(MaintenanceCron.name);
 
-  constructor(private readonly commandBus: CommandBus) {}
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly crons: CronSwitch,
+  ) {}
 
   @Cron("0 3 * * *", { timeZone: "America/Santiago" })
   async run(): Promise<void> {
+    if (!this.crons.enabled) return;
     await this.step("idempotency records", async () => {
       const deleted = await this.commandBus.execute<PurgeExpiredRecordsCommand, number>(
         new PurgeExpiredRecordsCommand(),

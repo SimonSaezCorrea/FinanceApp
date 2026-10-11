@@ -80,7 +80,7 @@ fik-db --backup-retention-period 7 --apply-immediately`, requiere el plan pagado
 Al terminar, copiar el **endpoint** (`fik-db.xxxx.us-east-2.rds.amazonaws.com`).
 
 **Usuarios de la base** (2026-10-11, `deploy/aws/db-roles.sql`, correrlo una vez como `fik_admin`
-con las contraseñas de Parameter Store):
+con las contraseñas de Parameter Store; volver a correrlo es seguro):
 
 | Usuario       | Lo usa                                         | Puede                                         |
 | ------------- | ---------------------------------------------- | --------------------------------------------- |
@@ -263,9 +263,16 @@ de build (`VITE_*`, `PUBLIC_*`) están en `deploy.yml`, no en Cloudflare.
    `... db-allow-my-ip.sh --revoke`.
 2. Certificado de la región: `https://truststore.pki.rds.amazonaws.com/us-east-2/us-east-2-bundle.pem`.
 3. DBeaver → PostgreSQL: host `fik-db.cfoeucaao0d1.us-east-2.rds.amazonaws.com`, puerto 5432, base
-   `fik`, usuario `fik_admin` (contraseña: Parameter Store `/fik/admin/DATABASE_ADMIN_PASSWORD`). Pestaña
-   **SSL**: _Use SSL_, _Root certificate_ = el archivo del paso 2, _SSL mode_ = `verify-full`.
-4. Es la base de producción con el usuario maestro: lo que se modifique o borre ahí es real.
+   `fik`, usuario **`fik_readonly`** (contraseña: Parameter Store
+   `/fik/admin/DATABASE_READONLY_PASSWORD`). Pestaña **SSL**: _Use SSL_, _Root certificate_ = el
+   archivo del paso 2, _SSL mode_ = `verify-full`.
+4. `fik_readonly` solo mira: toda transacción suya es de solo lectura y no tiene permiso de
+   escritura sobre ninguna tabla. Para corregir algo a propósito, una **segunda conexión** con
+   `fik_admin` (`/fik/admin/DATABASE_ADMIN_PASSWORD`): lo que se modifique o borre ahí es real.
+5. **Nada del repo se conecta a producción desde un PC:** el API, el CLI de Prisma (toda migración,
+   incluido `migrate dev`) y el seed se niegan a arrancar si la URL apunta a RDS y
+   `NODE_ENV` no es `production` (`apps/api/src/infra/config/production-database.ts`). Para hacer
+   algo deliberado contra producción hay que escribir `NODE_ENV=production` a propósito.
 
 ## Mantenimiento
 

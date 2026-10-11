@@ -2,27 +2,33 @@
 -- and again after restoring a snapshot into a new instance. Re-running is safe (it only resets
 -- passwords and re-applies grants). Passwords come from Parameter Store, never from this file:
 --   psql "<fik_admin URL>" -v app_pw="$(...DATABASE_APP_PASSWORD)" \
---        -v migrate_pw="$(...DATABASE_MIGRATE_PASSWORD)" -f db-roles.sql
+--        -v migrate_pw="$(...DATABASE_MIGRATE_PASSWORD)" \
+--        -v readonly_pw="$(.../fik/admin/DATABASE_READONLY_PASSWORD)" -f db-roles.sql
 --
 --  fik_migrate  owns the schema and every table: `prisma migrate deploy` (DIRECT_DATABASE_URL).
 --  fik_app      reads and writes ROWS only (SELECT/INSERT/UPDATE/DELETE): the running API and the
 --               catalogue seed (DATABASE_URL). It cannot drop, alter or create tables, nor roles.
---  fik_admin    the RDS master: kept out of the server, for administration only.
+--  fik_readonly looks only (SELECT, every session read-only): day-to-day DBeaver from a PC. Its
+--               password lives in /fik/admin/, which the server cannot read.
+--  fik_admin    the RDS master: kept out of the server, for deliberate fixes only.
 \set ON_ERROR_STOP on
 
 SELECT format('CREATE ROLE %I LOGIN', r)
-FROM unnest(ARRAY['fik_migrate', 'fik_app']) AS r
+FROM unnest(ARRAY['fik_migrate', 'fik_app', 'fik_readonly']) AS r
 WHERE NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = r) \gexec
 
 ALTER ROLE fik_migrate WITH LOGIN PASSWORD :'migrate_pw' NOCREATEDB NOCREATEROLE;
 ALTER ROLE fik_app WITH LOGIN PASSWORD :'app_pw' NOCREATEDB NOCREATEROLE;
+ALTER ROLE fik_readonly WITH LOGIN PASSWORD :'readonly_pw' NOCREATEDB NOCREATEROLE;
+-- Even a stray UPDATE typed by hand fails: every transaction of this user starts read-only.
+ALTER ROLE fik_readonly SET default_transaction_read_only = on;
 
 -- The master must be a member to hand ownership over (and to keep administering the objects).
 GRANT fik_migrate TO fik_admin;
 GRANT fik_app TO fik_admin;
 
 REVOKE ALL ON DATABASE fik FROM PUBLIC;
-GRANT CONNECT ON DATABASE fik TO fik_migrate, fik_app;
+GRANT CONNECT ON DATABASE fik TO fik_migrate, fik_app, fik_readonly;
 
 ALTER SCHEMA public OWNER TO fik_migrate;
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
@@ -45,5 +51,9 @@ ALTER DEFAULT PRIVILEGES FOR ROLE fik_migrate IN SCHEMA public
   GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO fik_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE fik_migrate IN SCHEMA public
   GRANT USAGE, SELECT ON SEQUENCES TO fik_app;
+GRANT USAGE ON SCHEMA public TO fik_readonly;
+GRANT SELECT ON ALL TABLES IN SCHEMA public TO fik_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE fik_migrate IN SCHEMA public
+  GRANT SELECT ON TABLES TO fik_readonly;
 -- Prisma's migration history is none of the API's business.
 REVOKE ALL ON public."_prisma_migrations" FROM fik_app;

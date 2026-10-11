@@ -7,7 +7,11 @@ import { PurgeExpiredCacheCommand } from "../../../../src/domains/ip-geolocation
 import { CloseExpiredSessionsCommand } from "../../../../src/domains/user/application/commands/close-expired-sessions.command";
 import { PurgeClosedSessionsCommand } from "../../../../src/domains/user/application/commands/purge-closed-sessions.command";
 import { PurgeStaleEmailTokensCommand } from "../../../../src/domains/user/application/commands/purge-stale-email-tokens.command";
+import type { CronSwitch } from "../../../../src/infra/config/cron.config";
 import { MaintenanceCron } from "../../../../src/infra/cron/maintenance.cron";
+
+const ON = { enabled: true } as CronSwitch;
+const OFF = { enabled: false } as CronSwitch;
 
 function busRunning(behaviour: (command: unknown) => Promise<number>): {
   bus: CommandBus;
@@ -30,7 +34,7 @@ describe("MaintenanceCron", () => {
     vi.spyOn(Logger.prototype, "log").mockImplementation(() => undefined);
     const { bus, ran } = busRunning(() => Promise.resolve(0));
 
-    await new MaintenanceCron(bus).run();
+    await new MaintenanceCron(bus, ON).run();
 
     expect(ran).toEqual([
       PurgeExpiredRecordsCommand.name,
@@ -50,11 +54,19 @@ describe("MaintenanceCron", () => {
         : Promise.resolve(0),
     );
 
-    await expect(new MaintenanceCron(bus).run()).resolves.toBeUndefined();
+    await expect(new MaintenanceCron(bus, ON).run()).resolves.toBeUndefined();
 
     expect(ran).toContain(PurgeExpiredCacheCommand.name);
     expect(ran).toContain(PurgeClosedSessionsCommand.name);
     expect(ran).toContain(PurgeStaleEmailTokensCommand.name);
     expect(error).toHaveBeenCalledWith(expect.stringContaining("idempotency records failed"));
+  });
+
+  it("does nothing while scheduled jobs are off", async () => {
+    const { bus, ran } = busRunning(() => Promise.resolve(0));
+
+    await new MaintenanceCron(bus, OFF).run();
+
+    expect(ran).toEqual([]);
   });
 });

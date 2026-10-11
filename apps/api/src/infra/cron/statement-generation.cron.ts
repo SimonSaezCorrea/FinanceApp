@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { CommandBus } from "@nestjs/cqrs";
 import { Cron } from "@nestjs/schedule";
 
+import { CronSwitch } from "../config/cron.config";
 import { GenerateScheduledStatementsCommand } from "../../domains/credit-statement/application/commands/generate-scheduled-statements.command";
 
 /** Daily at 00:00 Chile time: generates the statements whose scheduled close has arrived. A
@@ -13,10 +14,14 @@ import { GenerateScheduledStatementsCommand } from "../../domains/credit-stateme
 export class StatementGenerationCron {
   private readonly logger = new Logger(StatementGenerationCron.name);
 
-  constructor(private readonly commandBus: CommandBus) {}
+  constructor(
+    private readonly commandBus: CommandBus,
+    private readonly crons: CronSwitch,
+  ) {}
 
   @Cron("0 0 * * *", { timeZone: "America/Santiago" })
   async run(): Promise<void> {
+    if (!this.crons.enabled) return;
     const generated = await this.commandBus.execute(new GenerateScheduledStatementsCommand());
     if (generated > 0) this.logger.log(`Generated ${generated} scheduled statement(s)`);
   }
