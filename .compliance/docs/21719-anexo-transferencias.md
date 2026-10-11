@@ -128,7 +128,7 @@ Esto no reemplaza una revisión legal; deja el riesgo identificado y documentado
 ## Pendientes para cerrar este anexo
 
 1. ~~Exportador~~: Simón Sáez, persona natural, RUT 20.640.480-9 (sin razón social).
-2. ~~DPA y términos de servicio de cada proveedor~~ (leídos y guardados el 2026-10-11 en `.compliance/proveedores/<proveedor>/`: el DPA más los términos que lo incorporan; de Google, solo sus condiciones generales, porque una cuenta personal de Gmail no tiene DPA). Repetir la descarga una vez al año, con fecha nueva y sin borrar las anteriores. Opcional: descargar la versión ejecutada del DPA de Resend desde su panel (Settings → Documents).
+2. ~~DPA y términos de servicio de cada proveedor~~ (leídos y guardados el 2026-10-11 en `.compliance/proveedores/<proveedor>/`: el DPA más los términos que lo incorporan; de Google, solo sus condiciones generales, porque una cuenta personal de Gmail no tiene DPA). Repetir la descarga una vez al año, con fecha nueva y sin borrar las anteriores. El DPA de Resend firmado por Resend (DocuSign, 14-01-2026; los datos del cliente quedan en blanco porque rige al aceptar los términos) se descargó del panel y está guardado.
 3. Revisión legal: no hay presupuesto hoy; ver la sección anterior.
 4. ~~Actualizar la política de privacidad~~ (hecho el 2026-10-11).
 
