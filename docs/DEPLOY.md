@@ -253,7 +253,7 @@ de build (`VITE_*`, `PUBLIC_*`) están en `deploy.yml`, no en Cloudflare.
 | `api.env` en uso                 | EC2 → `fik-api` → Connect → Session Manager → `sudo cat /opt/fik/api.env` (se genera, no se edita)   |
 | Despliegues (API, app, landing)  | GitHub → Actions → Deploy                                                                            |
 | Versiones publicadas de Pages    | Cloudflare → Workers & Pages → `fik-landing` / `fik-app` → Deployments                               |
-| Logs del API                     | Session Manager → `sudo docker logs --tail 200 fik-api-1`                                            |
+| Logs del API                     | Session Manager → ver Mantenimiento (Logs)                                                           |
 | Costos                           | AWS → Billing → Bills (y el presupuesto `fik-monthly`, US$45, que avisa a `mifik.general@gmail.com`) |
 
 ## Ver la base desde un PC
@@ -276,7 +276,13 @@ de build (`VITE_*`, `PUBLIC_*`) están en `deploy.yml`, no en Cloudflare.
 
 ## Mantenimiento
 
-- **Logs:** Session Manager → `cd /opt/fik && sudo docker compose logs --tail 200 api`.
+- **Logs:** EC2 → `fik-api` → Conectar → **Administrador de sesiones de SSM** (no "Conexión de la
+  instancia EC2": esa usa SSH y el puerto 22 está cerrado a propósito) →
+  `sudo docker logs -f --tail 200 $(sudo docker ps -qf label=com.docker.compose.service=api)`.
+  El contenedor se busca por etiqueta porque su nombre cambia en cada despliegue (`fik-api-1`,
+  `-2`…), y `docker compose logs` no sirve sin exportar `API_IMAGE`. Caddy: `sudo docker logs --tail
+100 fik-caddy-1`. En producción el API registra `log`/`warn`/`error`, no el `debug` de cada
+  petición; para verlo un rato, el parámetro `/fik/prod/LOG_LEVEL` = `debug` y desplegar.
 - **Despliegue sin corte (2026-10-11):** `deploy.sh` arranca el API nuevo junto al viejo, espera a
   que esté sano y recién entonces apaga el viejo (SIGTERM, hasta 30 s para terminar lo que tiene en
   curso). Si el nuevo no queda sano, lo borra y el viejo sigue atendiendo. Caddy reparte entre todos

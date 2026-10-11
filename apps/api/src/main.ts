@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import { Logger } from "@nestjs/common";
+import { Logger, type LogLevel } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { NestFactory } from "@nestjs/core";
 import type { NestExpressApplication } from "@nestjs/platform-express";
@@ -13,8 +13,24 @@ import { useCors } from "./infra/http/cors";
 import { useJsonBodyLimit } from "./infra/http/body-limit";
 import { useTrustProxy } from "./infra/http/trust-proxy";
 
+/**
+ * Production logs only what someone should read: errors, warnings (every failed command/query)
+ * and the normal messages (boot, exchange rates, the nightly sweeps). The per-request "ok in N ms"
+ * lines are `debug` and stay out — on 2026-10-11 they buried everything else, one per health
+ * check. Anywhere else, every level. `LOG_LEVEL=debug` (a Parameter Store /fik/prod/LOG_LEVEL
+ * parameter in production, then a deploy) brings them back while investigating something.
+ */
+function logLevels(nodeEnv: string | undefined, override: string | undefined): LogLevel[] {
+  const all: LogLevel[] = ["fatal", "error", "warn", "log", "debug", "verbose"];
+  const wanted = override?.trim().toLowerCase() || (nodeEnv === "production" ? "log" : "verbose");
+  const index = all.indexOf(wanted as LogLevel);
+  return index === -1 ? all : all.slice(0, index + 1);
+}
+
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    logger: logLevels(process.env.NODE_ENV, process.env.LOG_LEVEL),
+  });
   const config = app.get(ConfigService);
 
   // Behind Cloudflare + Railway: read the visitor's IP, not the last proxy's (TRUST_PROXY_HOPS).
