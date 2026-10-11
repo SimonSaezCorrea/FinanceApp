@@ -3,6 +3,8 @@ name: Deploy API
 # After CI passes on main (or by hand): build the API image for ARM, push it to ECR and tell the
 # EC2 server to run it through AWS Systems Manager. No long-lived AWS keys: GitHub authenticates
 # with OIDC and assumes a role that can only push this image and send this one command.
+# Third-party actions are pinned to a commit SHA (version in the comment); Dependabot's
+# github-actions updates keep them current.
 # Inert until the repository variables below exist (see docs/DEPLOY.md):
 #   AWS_DEPLOY_ROLE_ARN, AWS_API_INSTANCE_ID
 on:
@@ -44,22 +46,22 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      - uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - id: ecr
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2.1.7
 
       - id: tag
         run: echo "value=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_OUTPUT"
 
       # The server is Graviton (ARM): emulate it to build.
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: apps/api/Dockerfile
