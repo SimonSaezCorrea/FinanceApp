@@ -605,7 +605,14 @@ sus cuotas con su principal.
 
 ## Deudas
 
-### 1. El pago de una cuota no deja escribir el monto que llegó de verdad (encontrado 2026-10-11)
+### 1. ~~El pago de una cuota no deja escribir el monto que llegó de verdad~~ (resuelto 2026-10-12)
+
+**Resuelto**: el panel de pago propone lo que queda de la cuota y deja cambiarlo; lo que falte queda
+pendiente en la deuda (`Debt.paidAmount`) y se sugiere en el próximo pago. También se puede cerrar una
+deuda sin pago ("Dar por perdida" / "Condonada"), reversible. El caso de MACH de abajo ya estaba
+liquidado y no se migra. Lo que sigue es el registro original.
+
+#### Registro original (encontrado 2026-10-11)
 
 `POST /debts/:id/register-payment` y `/settle` calculan el monto en el servidor
 (`Debt.nextInstallmentAmount()` / `pendingAmount()`) y la app no permite cambiarlo. Con cuotas

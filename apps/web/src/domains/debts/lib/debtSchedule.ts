@@ -1,7 +1,9 @@
 import type { debts } from "@finance/contracts";
 import { equalPrincipalSchedule, toMoney } from "@finance/money";
 
-export type DebtInstallmentStatus = "paid" | "next" | "pending";
+/** `partial`: the next instalment, with part of it already paid. `lost`: not
+ * covered on a debt closed unpaid — it will never be. */
+export type DebtInstallmentStatus = "paid" | "partial" | "next" | "pending" | "lost";
 
 export interface DebtInstallment {
   /** 1-based. */
@@ -10,6 +12,8 @@ export interface DebtInstallment {
   dueDate: Date | null;
   amount: string;
   status: DebtInstallmentStatus;
+  /** What already arrived toward a "next" instalment paid in part; "0.0000" otherwise. */
+  paidPart: string;
 }
 
 /**
@@ -32,22 +36,41 @@ export function debtSchedule(debt: debts.Debt): DebtInstallment[] {
   const amounts = debtInstallmentAmounts(debt);
   const start = debt.dueAt ? new Date(debt.dueAt) : debt.openedAt ? new Date(debt.openedAt) : null;
 
+  // Payments may be for any amount: an instalment is paid once what arrived
+  // covers it, and the first one not covered is "next" — with whatever part of
+  // it already arrived in `paidPart`.
+  const paid = toMoney(debt.paidAmount);
+  let before = toMoney(0);
+  let nextFound = false;
+
   return Array.from({ length: count }, (_, index) => {
     const dueDate = start ? addPeriod(start, index, debt.frequency, debt.frequencyInterval) : null;
-    const status: DebtInstallmentStatus =
-      debt.settledAt !== null || index < debt.paidInstallments
-        ? "paid"
-        : index === debt.paidInstallments
-          ? "next"
-          : "pending";
+    const after = before.plus(amounts[index]!);
+    const covered = debt.settledAt !== null || after.lte(paid);
+    let status: DebtInstallmentStatus = "paid";
+    let paidPart = "0.0000";
+    if (!covered) {
+      if (!nextFound && paid.gt(before)) paidPart = paid.minus(before).toFixed(4);
+      if (debt.writtenOffAt !== null) status = "lost";
+      else if (nextFound) status = "pending";
+      else status = paidPart !== "0.0000" ? "partial" : "next";
+      nextFound = true;
+    }
+    before = after;
 
     return {
       sequence: index + 1,
       dueDate,
       amount: amounts[index]!,
       status,
+      paidPart,
     };
   });
+}
+
+/** True when one instalment has part of it paid — "2/3" alone would hide it. */
+export function hasPartialInstallment(debt: debts.Debt): boolean {
+  return debtSchedule(debt).some((r) => r.paidPart !== "0.0000");
 }
 
 /**

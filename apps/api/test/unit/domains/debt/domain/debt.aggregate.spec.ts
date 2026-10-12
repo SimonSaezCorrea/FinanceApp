@@ -5,6 +5,11 @@ import {
   AllInstallmentsPaidError,
   DebtAlreadySettledError,
   DebtNotSettledError,
+  DebtNotWrittenOffError,
+  DebtPaymentExceedsPendingError,
+  DebtTotalBelowPaidError,
+  DebtWrittenOffError,
+  InvalidDebtPaymentAmountError,
   NoPaymentsToUndoError,
   TotalInstallmentsBelowPaidError,
 } from "../../../../../src/domains/debt/domain/errors";
@@ -32,6 +37,8 @@ function makeDebt(overrides: Partial<Parameters<typeof Debt.fromPersistence>[0]>
     lastPaymentTransactionId: null,
     lastPaymentAccountId: null,
     lastPaymentAmount: null,
+    paidAmount: null,
+    writtenOffAt: null,
     createdAt: new Date("2026-01-01T00:00:00Z"),
     updatedAt: new Date("2026-01-02T00:00:00Z"),
     ...overrides,
@@ -81,6 +88,8 @@ describe("Debt.toContract", () => {
       lastPaymentTransactionId: null,
       lastPaymentAccountId: null,
       lastPaymentAmount: null,
+      paidAmount: "0.0000",
+      writtenOffAt: null,
       createdAt: "2026-01-01T00:00:00.000Z",
       updatedAt: "2026-01-02T00:00:00.000Z",
     });
@@ -278,5 +287,91 @@ describe("Debt.undoPayment", () => {
     debt.undoPayment();
     expect(debt.paidInstallments).toBe(1);
     expect(debt.settledAt).toEqual(settledAt);
+  });
+});
+
+describe("Debt — payments for any amount", () => {
+  const record = (amount: string) => ({ transactionId: "t", accountId: "a", amount });
+
+  it("leaves the difference pending when the last instalment is paid short", () => {
+    const debt = makeDebt({
+      principal: "64990",
+      currency: "CLP",
+      totalInstallments: 3,
+      paidInstallments: 0,
+    });
+    debt.registerPayment(record("21663"));
+    debt.registerPayment(record("21663"));
+    expect(debt.nextInstallmentAmount()).toBe("21664.0000");
+    debt.registerPayment(record("21663"));
+    expect(debt.settledAt).toBeNull();
+    expect(debt.paidInstallments).toBe(2);
+    expect(debt.pendingAmount()).toBe("1.0000");
+    expect(debt.nextInstallmentAmount()).toBe("1.0000");
+    debt.registerPayment(record("1"));
+    expect(debt.settledAt).not.toBeNull();
+    expect(debt.paidInstallments).toBe(3);
+    expect(debt.toContract().paidAmount).toBe("64990.0000");
+  });
+
+  it("an overpayment counts toward the next instalments, never past the total", () => {
+    const debt = makeDebt({ principal: "1200", totalInstallments: 3, paidInstallments: 0 });
+    debt.registerPayment(record("500"));
+    expect(debt.paidInstallments).toBe(1);
+    expect(debt.nextInstallmentAmount()).toBe("300.0000");
+    expect(() => debt.registerPayment(record("700.01"))).toThrow(DebtPaymentExceedsPendingError);
+    expect(() => debt.registerPayment(record("0"))).toThrow(InvalidDebtPaymentAmountError);
+  });
+
+  it("undo takes back exactly the recorded amount", () => {
+    const debt = makeDebt({ principal: "1200", totalInstallments: 3, paidInstallments: 0 });
+    debt.registerPayment(record("350"));
+    expect(debt.undoPayment()).toEqual(record("350"));
+    expect(debt.toContract().paidAmount).toBe("0.0000");
+    expect(debt.paidInstallments).toBe(0);
+  });
+
+  it("a debt from before amounts were stored reads its paid amount from the counter", () => {
+    const debt = makeDebt({ principal: "1200", totalInstallments: 3, paidInstallments: 2 });
+    expect(debt.toContract().paidAmount).toBe("800.0000");
+    expect(debt.pendingAmount()).toBe("400.0000");
+  });
+
+  it("settle pays everything pending and unsettle reverses it", () => {
+    const debt = makeDebt({ principal: "1200", totalInstallments: 3, paidInstallments: 0 });
+    debt.registerPayment(record("100"));
+    debt.settle(record(debt.pendingAmount()));
+    expect(debt.toContract().paidAmount).toBe("1200.0000");
+    expect(debt.unsettle()).toEqual(record("1100.0000"));
+    expect(debt.toContract().paidAmount).toBe("100.0000");
+  });
+
+  it("refuses new terms below what was already paid", () => {
+    const debt = makeDebt({ principal: "1200", totalInstallments: 3, paidInstallments: 0 });
+    debt.registerPayment(record("900"));
+    expect(() => debt.applyUpdate({ principal: "800" })).toThrow(DebtTotalBelowPaidError);
+    debt.applyUpdate({ principal: "1800" });
+    expect(debt.paidInstallments).toBe(1);
+  });
+});
+
+describe("Debt — write off", () => {
+  it("refuses payments while written off and accepts them again once reinstated", () => {
+    const debt = makeDebt({ principal: "1200", totalInstallments: 3, paidInstallments: 1 });
+    debt.writeOff();
+    expect(debt.toContract().writtenOffAt).not.toBeNull();
+    expect(() => debt.writeOff()).toThrow(DebtWrittenOffError);
+    expect(() => debt.registerPayment()).toThrow(DebtWrittenOffError);
+    expect(() => debt.settle()).toThrow(DebtWrittenOffError);
+    expect(debt.toContract().paidAmount).toBe("400.0000");
+    debt.reinstate();
+    expect(() => debt.reinstate()).toThrow(DebtNotWrittenOffError);
+    debt.registerPayment();
+    expect(debt.paidInstallments).toBe(2);
+  });
+
+  it("a settled debt has nothing to write off", () => {
+    const debt = makeDebt({ settledAt: new Date() });
+    expect(() => debt.writeOff()).toThrow(DebtAlreadySettledError);
   });
 });

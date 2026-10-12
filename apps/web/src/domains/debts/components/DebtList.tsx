@@ -7,7 +7,14 @@ import { formatMoney } from "@finance/money";
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { ErrorState } from "../../../shared/ui/states";
 import { SwipeRow } from "../../../shared/ui/swipe-row";
-import { dueInfo, formatDebtDate, initials, isOverdue, leftAmount } from "../lib/debtMetrics";
+import {
+  calcRemaining,
+  dueInfo,
+  formatDebtDate,
+  initials,
+  isOverdue,
+  leftAmount,
+} from "../lib/debtMetrics";
 import { DebtEmptyRow } from "./DebtEmptyRow";
 
 interface DebtListProps {
@@ -63,7 +70,8 @@ export function DebtList({
         const isSettled = debt.settledAt !== null;
         const overdue = isOverdue(debt, now);
         const hasInstallments = debt.totalInstallments > 1;
-        const left = leftAmount(debt);
+        const isWrittenOff = debt.writtenOffAt !== null;
+        const left = isWrittenOff ? calcRemaining(debt) : leftAmount(debt);
         const due = dueInfo(debt.dueAt, now);
 
         const meta = hasInstallments
@@ -79,13 +87,17 @@ export function DebtList({
 
         const dueNote = isSettled
           ? t("debts.card.settledOn", { date: formatDebtDate(debt.settledAt!, i18n.language) })
-          : debt.dueAt
-            ? overdue
-              ? t("debts.due.agoDays", { count: due.days ?? 0 })
-              : due.days === 0
-                ? t("debts.due.today")
-                : t("debts.due.inDays", { count: due.days ?? 0 })
-            : t("debts.due.noDate");
+          : debt.writtenOffAt !== null
+            ? t(`debts.writeOff.on.${debt.direction}`, {
+                date: formatDebtDate(debt.writtenOffAt, i18n.language),
+              })
+            : debt.dueAt
+              ? overdue
+                ? t("debts.due.agoDays", { count: due.days ?? 0 })
+                : due.days === 0
+                  ? t("debts.due.today")
+                  : t("debts.due.inDays", { count: due.days ?? 0 })
+              : t("debts.due.noDate");
 
         return (
           <li key={debt.id}>
@@ -122,10 +134,14 @@ export function DebtList({
                   <span
                     className={cn(
                       "text-[15px] font-medium tabular-nums",
-                      isOwedToYou ? "text-success" : "text-destructive",
+                      isWrittenOff
+                        ? "text-muted-foreground line-through"
+                        : isOwedToYou
+                          ? "text-success"
+                          : "text-destructive",
                     )}
                   >
-                    {isOwedToYou ? "+" : "−"}
+                    {isWrittenOff ? "" : isOwedToYou ? "+" : "−"}
                     {formatMoney(left, { locale: i18n.language, currency: debt.currency })}
                   </span>
                   <span className="text-xs sm:text-[11px] text-muted-foreground">{dueNote}</span>

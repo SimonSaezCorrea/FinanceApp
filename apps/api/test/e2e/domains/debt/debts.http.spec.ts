@@ -225,6 +225,60 @@ describe("Debts HTTP (e2e)", () => {
     expect(res.body.error.code).toBe("DEBT_NOT_SETTLED");
   });
 
+  it("registers a payment for a different amount and keeps the rest pending", async () => {
+    const res = await request(app.getHttpServer())
+      .post(`/api/v1/debts/${debtId}/register-payment`)
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({ accountId, amount: "399" });
+    expect(res.status).toBe(200);
+    expect(res.body.paidAmount).toBe("399.0000");
+    expect(res.body.paidInstallments).toBe(0);
+    expect(res.body.lastPaymentAmount).toBe("399.0000");
+
+    const tx = await prisma.transaction.findUnique({
+      where: { id: res.body.lastPaymentTransactionId },
+    });
+    expect(tx?.amount.toString()).toBe("399");
+
+    const over = await request(app.getHttpServer())
+      .post(`/api/v1/debts/${debtId}/register-payment`)
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({ accountId, amount: "802" });
+    expect(over.status).toBe(409);
+    expect(over.body.error.code).toBe("DEBT_PAYMENT_EXCEEDS_PENDING");
+  });
+
+  it("writes the debt off, refuses payments, and reinstates it", async () => {
+    const off = await request(app.getHttpServer())
+      .post(`/api/v1/debts/${debtId}/write-off`)
+      .set("Cookie", cookies);
+    expect(off.status).toBe(200);
+    expect(off.body.writtenOffAt).not.toBeNull();
+    expect(off.body.paidAmount).toBe("399.0000");
+
+    const pay = await request(app.getHttpServer())
+      .post(`/api/v1/debts/${debtId}/register-payment`)
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({ accountId });
+    expect(pay.status).toBe(409);
+    expect(pay.body.error.code).toBe("DEBT_WRITTEN_OFF");
+
+    const again = await request(app.getHttpServer())
+      .post(`/api/v1/debts/${debtId}/write-off`)
+      .set("Cookie", cookies);
+    expect(again.status).toBe(409);
+    expect(again.body.error.code).toBe("DEBT_WRITTEN_OFF");
+
+    const back = await request(app.getHttpServer())
+      .post(`/api/v1/debts/${debtId}/reinstate`)
+      .set("Cookie", cookies);
+    expect(back.status).toBe(200);
+    expect(back.body.writtenOffAt).toBeNull();
+  });
+
   it("updates the debt's scalar fields", async () => {
     const res = await request(app.getHttpServer())
       .patch(`/api/v1/debts/${debtId}`)

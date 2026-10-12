@@ -26,6 +26,7 @@ import { SettleDebtCommand } from "../application/commands/settle-debt.command";
 import { UndoDebtPaymentCommand } from "../application/commands/undo-debt-payment.command";
 import { UnsettleDebtCommand } from "../application/commands/unsettle-debt.command";
 import { UpdateDebtCommand } from "../application/commands/update-debt.command";
+import { WriteOffDebtCommand } from "../application/commands/write-off-debt.command";
 import { GetDebtQuery } from "../application/queries/get-debt.query";
 import { ListDebtsQuery } from "../application/queries/list-debts.query";
 import { debtIdParamsSchema } from "./dto/debt-id.params";
@@ -119,6 +120,26 @@ export class DebtsController {
   ): Promise<debts.Debt> {
     const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
     return this.commandBus.execute(new UndoDebtPaymentCommand(user.id, params.id, idempotencyKey));
+  }
+
+  /** Gives up on what is still pending ("no se pagará") — no money moves. */
+  @Post(":id/write-off")
+  @HttpCode(200)
+  writeOff(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(debtIdParamsSchema)) params: { id: string },
+  ): Promise<debts.Debt> {
+    return this.commandBus.execute(new WriteOffDebtCommand(user.id, params.id, true));
+  }
+
+  /** Undoes `write-off`: what was pending is owed again. */
+  @Post(":id/reinstate")
+  @HttpCode(200)
+  reinstate(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(debtIdParamsSchema)) params: { id: string },
+  ): Promise<debts.Debt> {
+    return this.commandBus.execute(new WriteOffDebtCommand(user.id, params.id, false));
   }
 
   @Delete(":id")

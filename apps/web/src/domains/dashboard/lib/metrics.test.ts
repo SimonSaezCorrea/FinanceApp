@@ -11,6 +11,7 @@ import {
   monthFlow,
   netWorth,
 } from "./metrics";
+import { withPaidAmount } from "../../debts/testing/debtFixture";
 
 const tx = (over: Partial<transactions.Transaction>): transactions.Transaction => ({
   id: "t1",
@@ -79,7 +80,7 @@ describe("netWorth con deuda", () => {
       ...over,
     }) as accounts.BankAccount;
   const debt = (over: Partial<debts.Debt> = {}): debts.Debt =>
-    ({
+    withPaidAmount({
       direction: "YOU_OWE",
       principal: "50000",
       currency: "CLP",
@@ -88,7 +89,7 @@ describe("netWorth con deuda", () => {
       paidInstallments: 0,
       installmentAmount: null,
       ...over,
-    }) as debts.Debt;
+    } as debts.Debt);
 
   it("resta el cupo ya usado: la deuda rotativa es deuda", () => {
     expect(netWorth([account({ creditUsed: "30000" })]).total).toBe("70000.0000");

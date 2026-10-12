@@ -1,7 +1,7 @@
 import { exchangeRates, type accounts, type debts } from "@finance/contracts";
 import { moneyToString, subtractMoney, sumMoney, toMoney } from "@finance/money";
 
-import { leftAmount } from "../../debts/lib/debtMetrics";
+import { isOpen, leftAmount } from "../../debts/lib/debtMetrics";
 import { accountAssets } from "./grouping";
 
 /** Net worth in ONE currency: what it is made of and the result. */
@@ -44,7 +44,7 @@ export function netWorthByCurrency(
     bucket(a.currency).cardDebt.push(a.creditUsed);
   }
   for (const d of debtList) {
-    if (d.settledAt !== null) continue;
+    if (!isOpen(d)) continue;
     const left = leftAmount(d);
     bucket(d.currency).debts.push(d.direction === "YOU_OWE" ? subtractMoney("0", left) : left);
   }

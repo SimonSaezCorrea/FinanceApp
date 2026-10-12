@@ -5,14 +5,18 @@ import type { debts } from "@finance/contracts";
 import {
   calcRemaining,
   dueInfo,
+  isOpen,
   isOverdue,
+  isWrittenOff,
   leftAmount,
+  nextPaymentAmount,
   summarizeDebts,
   summarizeDebtsByCurrency,
 } from "./debtMetrics";
+import { withPaidAmount } from "../testing/debtFixture";
 
 function makeDebt(overrides: Partial<debts.Debt> = {}): debts.Debt {
-  return {
+  return withPaidAmount({
     id: "d1",
     direction: "YOU_OWE",
     counterparty: "Test",
@@ -36,7 +40,7 @@ function makeDebt(overrides: Partial<debts.Debt> = {}): debts.Debt {
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
     ...overrides,
-  };
+  } as debts.Debt);
 }
 
 describe("summarizeDebtsByCurrency", () => {
@@ -224,5 +228,46 @@ describe("summarizeDebts", () => {
     const list = [makeDebt({ direction: "OWED_TO_YOU", principal: "100.0000", currency: "USD" })];
     const [summary] = summarizeDebts(list, now);
     expect(summary!.oweSharePct).toBe(0);
+  });
+});
+
+describe("payments for any amount", () => {
+  it("keeps the peso a short last payment left pending, and suggests it next", () => {
+    const debt = makeDebt({
+      principal: "64990.0000",
+      totalInstallments: 3,
+      paidInstallments: 2,
+      paidAmount: "64989.0000",
+    });
+    expect(calcRemaining(debt)).toBe("1.0000");
+    expect(nextPaymentAmount(debt)).toBe("1.0000");
+    expect(leftAmount(debt)).toBe("1.0000");
+  });
+
+  it("an overpayment counts toward the next instalment", () => {
+    const debt = makeDebt({
+      principal: "1200.0000",
+      totalInstallments: 3,
+      paidInstallments: 1,
+      paidAmount: "500.0000",
+    });
+    expect(nextPaymentAmount(debt)).toBe("300.0000");
+    expect(calcRemaining(debt)).toBe("700.0000");
+  });
+});
+
+describe("written-off debts", () => {
+  it("owe nothing and are left out of the summary and of overdue", () => {
+    const debt = makeDebt({
+      direction: "OWED_TO_YOU",
+      dueAt: "2026-01-02T00:00:00.000Z",
+      writtenOffAt: "2026-02-01T00:00:00.000Z",
+    });
+    expect(isWrittenOff(debt)).toBe(true);
+    expect(isOpen(debt)).toBe(false);
+    expect(leftAmount(debt)).toBe("0.0000");
+    expect(calcRemaining(debt)).toBe("1000.0000");
+    expect(isOverdue(debt, new Date("2026-03-01"))).toBe(false);
+    expect(summarizeDebts([debt])).toEqual([]);
   });
 });

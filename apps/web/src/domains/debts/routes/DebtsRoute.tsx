@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
 import type { debts } from "@finance/contracts";
+import { formatMoney } from "@finance/money";
 
 import { useAccounts } from "../../accounts/hooks/useAccounts";
 import { useAuth } from "../../auth/hooks/useAuth";
@@ -30,21 +31,28 @@ import { DebtTable } from "../components/DebtTable";
 import { DebtsSkeleton } from "../components/DebtsSkeleton";
 import { useDebtMutations } from "../hooks/useDebtMutations";
 import { useDebts } from "../hooks/useDebts";
-import { isOverdue, uniquePeopleCount } from "../lib/debtMetrics";
+import { amountToInput } from "../../../shared/lib/amountInput";
+import {
+  calcRemaining,
+  isOpen,
+  isOverdue,
+  nextPaymentAmount,
+  uniquePeopleCount,
+} from "../lib/debtMetrics";
 import { useLinkedSelection } from "../../../shared/lib/useLinkedSelection";
 
 type DebtDirFilter = "ALL" | "OWED_TO_YOU" | "YOU_OWE" | "OVERDUE";
-type StatusFilter = "active" | "settled" | "all";
+type StatusFilter = "active" | "settled" | "writtenOff" | "all";
 
 const todayInput = () => new Date().toISOString().slice(0, 10);
 
 export function DebtsRoute() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { data, isLoading, isError, error, refetch } = useDebts();
   const { data: accounts } = useAccounts();
   const { user } = useAuth();
   const preferredCurrency = user?.preferredCurrency ?? "CLP";
-  const { create, update, settle, unsettle, registerPayment, undoPayment, remove } =
+  const { create, update, unsettle, registerPayment, undoPayment, writeOff, reinstate, remove } =
     useDebtMutations();
 
   const [debtDir, setDebtDir] = useState<DebtDirFilter>("ALL");
@@ -69,6 +77,9 @@ export function DebtsRoute() {
   // Which account settle/register-payment moves the real money on/from — sent
   // as the mutation's own `accountId` body field (see `useDebtMutations`).
   const [payAccountId, setPayAccountId] = useState("");
+  // What actually arrived/left — editable, prefilled with the instalment's rest.
+  const [payAmount, setPayAmount] = useState("");
+  const [writeOffId, setWriteOffId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
   const returnFocusRef = useRef<HTMLElement | null>(null);
@@ -87,7 +98,7 @@ export function DebtsRoute() {
   // it as empty whenever the CURRENT state is an error, same guard the other
   // redesigned views use.
   const list = useMemo(() => (isError ? [] : (data ?? [])), [data, isError]);
-  const activeDebts = useMemo(() => list.filter((d) => d.settledAt === null), [list]);
+  const activeDebts = useMemo(() => list.filter(isOpen), [list]);
   const accountList = useMemo(() => accounts ?? [], [accounts]);
 
   const filtered = useMemo(() => {
@@ -99,8 +110,9 @@ export function DebtsRoute() {
         return d.direction === debtDir;
       })
       .filter((d) => {
-        if (statusFilter === "active") return d.settledAt === null;
+        if (statusFilter === "active") return isOpen(d);
         if (statusFilter === "settled") return d.settledAt !== null;
+        if (statusFilter === "writtenOff") return d.writtenOffAt !== null;
         return true;
       })
       .sort((a, b) => {
@@ -114,6 +126,7 @@ export function DebtsRoute() {
   const selectedDebt = list.find((d) => d.id === selectedId) ?? null;
   const payingDebt = list.find((d) => d.id === payingId) ?? null;
   const deletingDebt = list.find((d) => d.id === deleteId) ?? null;
+  const writingOffDebt = list.find((d) => d.id === writeOffId) ?? null;
 
   const debtDirOptions: { value: DebtDirFilter; label: string }[] = [
     { value: "ALL", label: t("debts.filters.all") },
@@ -168,42 +181,48 @@ export function DebtsRoute() {
         eligible[0]?.id ??
         "",
     );
+    const suggested = nextPaymentAmount(debt);
+    setPayAmount(amountToInput(suggested === "0.0000" ? calcRemaining(debt) : suggested));
     setPayingId(debt.id);
   }
 
   function confirmPay() {
-    if (!payingDebt || !payAccountId) return;
-    const hasInstallments = payingDebt.totalInstallments > 1;
-    const allPaidAfterThis = payingDebt.paidInstallments + 1 >= payingDebt.totalInstallments;
-
-    if (!hasInstallments || allPaidAfterThis) {
-      settle.mutate(
-        {
-          id: payingDebt.id,
-          idempotencyKey: crypto.randomUUID(),
-          body: { accountId: payAccountId },
-        },
-        {
-          onSuccess: () => {
-            toast.success(t("debts.pay.settledToast"));
-            setPayingId(null);
-          },
-          onError: (err: unknown) => toast.error(errorMessage(err, t)),
-        },
-      );
-      return;
-    }
-
+    if (!payingDebt || !payAccountId || !payAmount) return;
+    // Always `register-payment` with the amount typed: it settles the debt by
+    // itself when that amount covers everything pending.
+    const settles = Number(payAmount) >= Number(calcRemaining(payingDebt));
     registerPayment.mutate(
-      { id: payingDebt.id, idempotencyKey: crypto.randomUUID(), body: { accountId: payAccountId } },
+      {
+        id: payingDebt.id,
+        idempotencyKey: crypto.randomUUID(),
+        body: { accountId: payAccountId, amount: payAmount },
+      },
       {
         onSuccess: () => {
-          toast.success(t("debts.pay.registeredToast"));
+          toast.success(t(settles ? "debts.pay.settledToast" : "debts.pay.registeredToast"));
           setPayingId(null);
         },
         onError: (err: unknown) => toast.error(errorMessage(err, t)),
       },
     );
+  }
+
+  function confirmWriteOff() {
+    if (!writeOffId) return;
+    writeOff.mutate(writeOffId, {
+      onSuccess: () => {
+        toast.success(t("debts.writeOff.done"));
+        setWriteOffId(null);
+      },
+      onError: (err: unknown) => toast.error(errorMessage(err, t)),
+    });
+  }
+
+  function handleReinstate(id: string) {
+    reinstate.mutate(id, {
+      onSuccess: () => toast.success(t("debts.writeOff.reinstated")),
+      onError: (err: unknown) => toast.error(errorMessage(err, t)),
+    });
   }
 
   function handleUnsettle(id: string) {
@@ -319,6 +338,7 @@ export function DebtsRoute() {
               >
                 <option value="active">{t("debts.filters.active")}</option>
                 <option value="settled">{t("debts.filters.settled")}</option>
+                <option value="writtenOff">{t("debts.filters.writtenOff")}</option>
                 <option value="all">{t("debts.filters.allStatus")}</option>
               </select>
             </div>
@@ -365,6 +385,9 @@ export function DebtsRoute() {
         onDelete={() => selectedDebt && setDeleteId(selectedDebt.id)}
         onUnsettle={() => selectedDebt && handleUnsettle(selectedDebt.id)}
         onUndoPayment={() => selectedDebt && handleUndoPayment(selectedDebt.id)}
+        onWriteOff={() => selectedDebt && setWriteOffId(selectedDebt.id)}
+        onReinstate={() => selectedDebt && handleReinstate(selectedDebt.id)}
+        reinstatePending={reinstate.isPending}
         unsettlePending={unsettle.isPending}
         undoPaymentPending={undoPayment.isPending}
       />
@@ -374,11 +397,13 @@ export function DebtsRoute() {
         accounts={accountList}
         payAccountId={payAccountId}
         onPayAccountChange={setPayAccountId}
+        amount={payAmount}
+        onAmountChange={setPayAmount}
         onOpenChange={(open) => {
           if (!open) setPayingId(null);
         }}
         onConfirm={confirmPay}
-        submitting={settle.isPending || registerPayment.isPending}
+        submitting={registerPayment.isPending}
       />
 
       <DebtFormPanel
@@ -405,6 +430,26 @@ export function DebtsRoute() {
           setConfirmLeaveForm(false);
           setForm(null);
         }}
+      />
+
+      <ConfirmModal
+        open={writingOffDebt !== null}
+        onOpenChange={(v) => !v && setWriteOffId(null)}
+        title={t("debts.writeOff.confirmTitle")}
+        description={
+          writingOffDebt
+            ? t(`debts.writeOff.confirmDescription.${writingOffDebt.direction}`, {
+                name: writingOffDebt.counterparty,
+                amount: formatMoney(calcRemaining(writingOffDebt), {
+                  locale: i18n.language,
+                  currency: writingOffDebt.currency,
+                }),
+              })
+            : undefined
+        }
+        confirmLabel={t("debts.writeOff.confirm")}
+        loading={writeOff.isPending}
+        onConfirm={confirmWriteOff}
       />
 
       <DebtDeleteConfirm

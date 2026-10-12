@@ -1,4 +1,12 @@
 <!--
+Sync Impact Report — 2026-10-12 (amendment 2.6.2)
+- Version change: 2.6.1 → 2.6.2 (PATCH: two nullable `debt` columns, `paidAmount` and
+  `writtenOffAt`, and `POST /debts/:id/write-off` + `/reinstate`; no principle text changed).
+- A debt payment takes the amount that really arrived (`payDebtSchema.amount`): a short one
+  leaves the rest pending, `paidInstallments` is derived from `paidAmount`. A legacy row (null
+  `paidAmount`) derives it from the counter, so the migration is expand-only. Write-off/reinstate
+  move no money and are retry-safe by form (a) (`DEBT_WRITTEN_OFF`/`DEBT_NOT_WRITTEN_OFF`).
+
 Sync Impact Report — 2026-10-11 (amendment 2.6.1)
 - Version change: 2.6.0 → 2.6.1 (PATCH: one nullable column, `User.onboardingClosedAt`, and
   `POST /auth/me/onboarding/close` — the first-steps guide closed on the account, not the browser;
@@ -2250,4 +2258,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.6.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-11
+**Version**: 2.6.2 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-12

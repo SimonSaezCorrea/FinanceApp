@@ -40,20 +40,30 @@ export const debtSchema = z.object({
   lastPaymentTransactionId: rowId.nullable(),
   lastPaymentAccountId: rowId.nullable(),
   lastPaymentAmount: moneyString.nullable(),
+  /** What has actually been paid so far, in the debt's currency. Payments may
+   * be for any amount, so what is still owed is the total of the instalments
+   * less this — a short payment leaves the rest pending. */
+  paidAmount: moneyString,
+  /** Set when the debt was given up on ("no se pagará"): what was still
+   * pending no longer counts as owed, and no payment is accepted until
+   * `POST /debts/:id/reinstate`. */
+  writtenOffAt: z.string().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
 export type Debt = z.infer<typeof debtSchema>;
 
-/** Body for `POST /debts/:id/register-payment` and `/settle` — both now move
+/** Body for `POST /debts/:id/register-payment` and `/settle` — both move
  * real money (INCOME on an `OWED_TO_YOU` debt, EXPENSE on `YOU_OWE`) out of
- * or into a real account, so both require one. The amount is never supplied
- * here: it is derived server-side (one instalment's worth for
- * register-payment, everything still owed for settle) from the debt's own
- * schedule, the same figures the "Registrar abono" panel already previews. */
+ * or into a real account, so both require one. `amount` (register-payment
+ * only) is what actually arrived or left: omitted, the rest of the current
+ * instalment; less than that leaves the difference pending, more eats into the
+ * next instalments, never past what is still owed
+ * (`DEBT_PAYMENT_EXCEEDS_PENDING`). `settle` always moves everything pending. */
 export const payDebtSchema = z.object({
   accountId: rowId,
   paidAt: z.string().datetime().optional(),
+  amount: moneyString.optional(),
 });
 export type PayDebt = z.infer<typeof payDebtSchema>;
 

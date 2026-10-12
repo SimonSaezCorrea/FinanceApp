@@ -3,9 +3,10 @@ import { describe, expect, it } from "vitest";
 import type { debts } from "@finance/contracts";
 
 import { debtSchedule } from "./debtSchedule";
+import { withPaidAmount } from "../testing/debtFixture";
 
 function makeDebt(overrides: Partial<debts.Debt> = {}): debts.Debt {
-  return {
+  return withPaidAmount({
     id: "d1",
     direction: "YOU_OWE",
     counterparty: "Test",
@@ -34,7 +35,7 @@ function makeDebt(overrides: Partial<debts.Debt> = {}): debts.Debt {
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
     ...overrides,
-  };
+  } as debts.Debt);
 }
 
 describe("debtSchedule", () => {
@@ -91,5 +92,37 @@ describe("debtSchedule", () => {
       }),
     );
     expect(schedule.map((s) => s.amount)).toEqual(["21663.0000", "21663.0000", "21664.0000"]);
+  });
+});
+
+describe("debtSchedule — partial payments", () => {
+  it("marks an instalment paid in part as partial, with what already arrived", () => {
+    const schedule = debtSchedule(
+      makeDebt({
+        principal: "1200.0000",
+        totalInstallments: 3,
+        paidInstallments: 1,
+        paidAmount: "500.0000",
+      }),
+    );
+    expect(schedule.map((r) => r.status)).toEqual(["paid", "partial", "pending"]);
+    expect(schedule[1]!.paidPart).toBe("100.0000");
+    expect(schedule[2]!.paidPart).toBe("0.0000");
+  });
+});
+
+describe("debtSchedule — closed unpaid", () => {
+  it("marks every instalment not covered as lost", () => {
+    const schedule = debtSchedule(
+      makeDebt({
+        principal: "1200.0000",
+        totalInstallments: 3,
+        paidInstallments: 1,
+        paidAmount: "500.0000",
+        writtenOffAt: "2026-03-01T00:00:00.000Z",
+      }),
+    );
+    expect(schedule.map((r) => r.status)).toEqual(["paid", "lost", "lost"]);
+    expect(schedule[1]!.paidPart).toBe("100.0000");
   });
 });

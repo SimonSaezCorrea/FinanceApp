@@ -3,7 +3,7 @@ import { transactions as transactionsContract } from "@finance/contracts";
 import { sumMoney } from "@finance/money";
 
 import { netWorthByCurrency } from "../../accounts/lib/netWorth";
-import { leftAmount } from "../../debts/lib/debtMetrics";
+import { isOpen, leftAmount } from "../../debts/lib/debtMetrics";
 import { linkTo } from "../../../shared/lib/useLinkedSelection";
 
 /** No FX rates available — the dashboard aggregates only the primary currency. */
@@ -218,7 +218,7 @@ export function upcomingPayments(
   }
 
   for (const debt of debtList) {
-    if (debt.settledAt !== null || debt.dueAt === null) continue;
+    if (!isOpen(debt) || debt.dueAt === null) continue;
     if (new Date(debt.dueAt).getTime() < todayMs) continue;
     out.push({
       id: debt.id,

@@ -45,13 +45,16 @@ interface Context {
 /**
  * Registers one more paid instalment AND its real money — see
  * `SettleDebtHandler`'s docstring for the rationale (same conversation,
- * "¿No genera movimiento marcarla como pagada?"). The amount here is always
- * ONE instalment's worth (`Debt.nextInstallmentAmount()`) — the whole-balance
- * case (a single-payment debt, or the last instalment of one in cuotas) goes
- * through `settle` instead, which the frontend already calls for both.
+ * "¿No genera movimiento marcarla como pagada?"). The amount is the body's
+ * `amount` — what actually arrived/left, which may differ from the instalment
+ * — or, omitted, the rest of the current instalment
+ * (`Debt.nextInstallmentAmount()`). A short payment leaves the difference
+ * pending; the movement, the balance and the undo record all use this one
+ * figure.
  *
- * The aggregate enforces `DEBT_ALREADY_SETTLED`/`ALL_INSTALLMENTS_PAID` and
- * auto-settles once the schedule completes.
+ * The aggregate enforces `DEBT_ALREADY_SETTLED`/`DEBT_WRITTEN_OFF`/
+ * `ALL_INSTALLMENTS_PAID`/`DEBT_PAYMENT_EXCEEDS_PENDING` and auto-settles once
+ * everything owed has been paid.
  *
  * `paidInstallments += 1` is exactly the kind of write Constitution Principle
  * VII names as never idempotent on its own — the reservation protects a
@@ -106,7 +109,7 @@ export class RegisterDebtPaymentHandler extends BaseIdempotentCommandHandler<
       if (!debt) throw new DebtNotFoundError();
       if (debt.currency !== account.currency) throw new DebtPaymentCurrencyMismatchError();
 
-      const amount = debt.nextInstallmentAmount();
+      const amount = command.input.amount ?? debt.nextInstallmentAmount();
       const type = debt.direction === "OWED_TO_YOU" ? ("INCOME" as const) : ("EXPENSE" as const);
       MovementPolicy.assertWithinPrepaidBalance({ type, amount }, account);
       MovementPolicy.assertWithinOverdraft({ type, amount }, account);

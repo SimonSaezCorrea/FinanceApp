@@ -28,6 +28,8 @@ function rowToProps(row: DebtRow): DebtProps {
     lastPaymentTransactionId: row.lastPaymentTransactionId,
     lastPaymentAccountId: row.lastPaymentAccountId,
     lastPaymentAmount: row.lastPaymentAmount ? row.lastPaymentAmount.toString() : null,
+    paidAmount: row.paidAmount !== null ? row.paidAmount.toString() : null,
+    writtenOffAt: row.writtenOffAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -79,6 +81,8 @@ export class PrismaDebtRepository implements DebtRepositoryPort {
       lastPaymentTransactionId: plan.lastPaymentTransactionId,
       lastPaymentAccountId: plan.lastPaymentAccountId,
       lastPaymentAmount: plan.lastPaymentAmount,
+      paidAmount: plan.paidAmount,
+      writtenOffAt: plan.writtenOffAt,
     };
     const row = await client.debt.create({ data });
     return Debt.fromPersistence(rowToProps(row));
@@ -115,6 +119,8 @@ export class PrismaDebtRepository implements DebtRepositoryPort {
       lastPaymentTransactionId: snap.lastPaymentTransactionId,
       lastPaymentAccountId: snap.lastPaymentAccountId,
       lastPaymentAmount: snap.lastPaymentAmount,
+      paidAmount: snap.paidAmount,
+      writtenOffAt: snap.writtenOffAt,
     };
     await client.debt.updateMany({ where: { id: snap.id, userId: snap.userId }, data });
   }

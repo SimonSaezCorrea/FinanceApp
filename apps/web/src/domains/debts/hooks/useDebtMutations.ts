@@ -47,6 +47,10 @@ export function useDebtMutations() {
         debtsApi.undoPayment(vars.id, vars.idempotencyKey),
       onSuccess: invalidateMoney,
     }),
+    // Giving up on a debt moves no money, but it changes what counts as owed
+    // (net worth, upcoming payments) — those read the debts query too.
+    writeOff: useMutation({ mutationFn: debtsApi.writeOff, onSuccess: invalidate }),
+    reinstate: useMutation({ mutationFn: debtsApi.reinstate, onSuccess: invalidate }),
     remove: useMutation({ mutationFn: debtsApi.remove, onSuccess: invalidate }),
   };
 }

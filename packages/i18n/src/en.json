@@ -1010,7 +1010,8 @@
       "pending": "Pending",
       "ofTotal": "of {{total}}",
       "due": "Due",
-      "actions": "Actions"
+      "actions": "Actions",
+      "progressPartial": "{{paid}}/{{total}} · partial"
     },
     "list": {
       "metaInstallments": "{{concept}} · {{paid}}/{{total}} installments",
@@ -1031,7 +1032,8 @@
       "settled": "Paid",
       "allStatus": "All",
       "sortByDue": "By due date",
-      "statusLabel": "Status"
+      "statusLabel": "Status",
+      "writtenOff": "Closed unpaid"
     },
     "updated": "Debt updated",
     "deleted": "Debt deleted",
@@ -1056,8 +1058,12 @@
       "status": {
         "paid": "Paid",
         "next": "Next",
-        "pending": "Pending"
-      }
+        "pending": "Pending",
+        "partial": "Partial",
+        "lost": "Won't be paid"
+      },
+      "paidPart": "Paid {{paid}}",
+      "installmentsOfPartial": "{{paid}} of {{total}} · one paid in part"
     },
     "pay": {
       "eyebrow": "Register payment",
@@ -1071,7 +1077,10 @@
       "previewProgress": "Progress",
       "previewPending": "Remaining balance",
       "registeredToast": "Payment registered",
-      "settledToast": "Debt marked as paid"
+      "settledToast": "Debt marked as paid",
+      "amountHint": "What's left of this instalment: {{suggested}}. Change it if a different amount was paid.",
+      "amountShort": "{{rest}} of this instalment will stay pending, to collect later.",
+      "amountTooHigh": "It's more than what is left to pay ({{pending}})."
     },
     "form": {
       "eyebrowCreate": "New debt",
@@ -1110,6 +1119,33 @@
       "leaveConfirm": "Leave without saving?",
       "leaveConfirmDescription": "You have unsaved changes on this debt. Leaving now will discard them.",
       "leaveDiscard": "Discard changes"
+    },
+    "writeOff": {
+      "action": {
+        "OWED_TO_YOU": "Write off",
+        "YOU_OWE": "Mark as forgiven"
+      },
+      "badge": {
+        "OWED_TO_YOU": "Won't be paid",
+        "YOU_OWE": "Forgiven"
+      },
+      "lost": {
+        "OWED_TO_YOU": "Written off",
+        "YOU_OWE": "Forgiven"
+      },
+      "on": {
+        "OWED_TO_YOU": "Written off on {{date}}",
+        "YOU_OWE": "Forgiven on {{date}}"
+      },
+      "confirmTitle": "Close this debt unpaid?",
+      "confirmDescription": {
+        "OWED_TO_YOU": "{{name}} won't pay you the {{amount}} left. It stops counting in your net worth and upcoming payments; what they already paid stays. You can reinstate it later.",
+        "YOU_OWE": "You won't pay {{name}} the {{amount}} left. It stops counting in your net worth and upcoming payments; what you already paid stays. You can reinstate it later."
+      },
+      "confirm": "Close unpaid",
+      "done": "Debt closed unpaid.",
+      "reinstate": "Reinstate",
+      "reinstated": "Debt reinstated: what was pending counts again."
     }
   },
   "recurring": {
@@ -2538,7 +2574,11 @@
     "EMAIL_PRIMARY_NOT_DELETABLE": "You cannot delete your main email.",
     "STEP_UP_REQUIRED": "Confirm it’s you to make this change.",
     "NETWORK_ERROR": "fik isn’t responding right now. Please try again in a few minutes.",
-    "OFFLINE": "You’re offline. Check your Wi-Fi or mobile data and try again."
+    "OFFLINE": "You’re offline. Check your Wi-Fi or mobile data and try again.",
+    "DEBT_PAYMENT_EXCEEDS_PENDING": "The amount is more than what's left to pay on this debt.",
+    "DEBT_WRITTEN_OFF": "This debt was closed unpaid. Reinstate it to record payments.",
+    "DEBT_NOT_WRITTEN_OFF": "This debt isn't closed unpaid.",
+    "DEBT_TOTAL_BELOW_PAID": "The new amount is less than what's already been paid on this debt."
   },
   "exchangeRates": {
     "title": "Exchange rates",

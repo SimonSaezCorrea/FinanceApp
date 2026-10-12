@@ -70,3 +70,38 @@ export class DebtPaymentFromCreditAccountError extends DomainError {
     super("DEBT_PAYMENT_FROM_CREDIT_ACCOUNT", 409);
   }
 }
+
+/** A payment of zero or less — there is nothing to record. */
+export class InvalidDebtPaymentAmountError extends DomainError {
+  constructor() {
+    super("INVALID_PAYMENT_AMOUNT", 400, "amount");
+  }
+}
+
+/** A payment larger than what is still pending: the rest is never owed, so it
+ * can't be paid (it would be money nobody asked for). */
+export class DebtPaymentExceedsPendingError extends DomainError {
+  constructor() {
+    super("DEBT_PAYMENT_EXCEEDS_PENDING", 409, "amount");
+  }
+}
+
+/** The debt was given up on ("no se pagará"): no payment until it is reinstated. */
+export class DebtWrittenOffError extends DomainError {
+  constructor() {
+    super("DEBT_WRITTEN_OFF", 409);
+  }
+}
+
+export class DebtNotWrittenOffError extends DomainError {
+  constructor() {
+    super("DEBT_NOT_WRITTEN_OFF", 409);
+  }
+}
+
+/** An edit would make the debt's total smaller than what was already paid. */
+export class DebtTotalBelowPaidError extends DomainError {
+  constructor() {
+    super("DEBT_TOTAL_BELOW_PAID", 409, "principal");
+  }
+}

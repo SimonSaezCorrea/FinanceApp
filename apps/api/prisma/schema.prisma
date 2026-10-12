@@ -995,6 +995,16 @@ model Debt {
   lastPaymentTransactionId String?
   lastPaymentAccountId     String?
   lastPaymentAmount        Decimal?             @db.Decimal(18, 4)
+  /// What has actually been paid so far, in the debt's currency — a payment may
+  /// be for any amount, so a short one leaves the rest pending. Null on a debt
+  /// no payment touched since this column exists: the aggregate then derives it
+  /// from `paidInstallments` (the schedule's first N rows, or the whole debt
+  /// when it was settled with a recorded payment).
+  paidAmount               Decimal?             @db.Decimal(18, 4)
+  /// Set when the debt is given up on ("no se pagará"): nothing still pending
+  /// counts anywhere, payments are refused until it is reinstated. Payments
+  /// already made stay as they are.
+  writtenOffAt             DateTime?
   createdAt                DateTime             @default(now())
   updatedAt                DateTime             @updatedAt
 

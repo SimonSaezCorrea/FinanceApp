@@ -1010,7 +1010,8 @@
       "pending": "Pendiente",
       "ofTotal": "de {{total}}",
       "due": "Vence",
-      "actions": "Acciones"
+      "actions": "Acciones",
+      "progressPartial": "{{paid}}/{{total}} · parcial"
     },
     "list": {
       "metaInstallments": "{{concept}} · {{paid}}/{{total}} cuotas",
@@ -1031,7 +1032,8 @@
       "settled": "Pagadas",
       "allStatus": "Todas",
       "sortByDue": "Por vencimiento",
-      "statusLabel": "Estado"
+      "statusLabel": "Estado",
+      "writtenOff": "Cerradas sin pago"
     },
     "updated": "Deuda actualizada",
     "deleted": "Deuda eliminada",
@@ -1056,8 +1058,12 @@
       "status": {
         "paid": "Pagado",
         "next": "Próximo",
-        "pending": "Pendiente"
-      }
+        "pending": "Pendiente",
+        "partial": "Parcial",
+        "lost": "No se pagará"
+      },
+      "paidPart": "Pagado {{paid}}",
+      "installmentsOfPartial": "{{paid}} de {{total}} · una pagada en parte"
     },
     "pay": {
       "eyebrow": "Registrar abono",
@@ -1071,7 +1077,10 @@
       "previewProgress": "Avance",
       "previewPending": "Pendiente restante",
       "registeredToast": "Abono registrado",
-      "settledToast": "Deuda marcada como pagada"
+      "settledToast": "Deuda marcada como pagada",
+      "amountHint": "Lo que queda de esta cuota: {{suggested}}. Puedes cambiarlo si pagaron otro monto.",
+      "amountShort": "Quedarán {{rest}} pendientes de esta cuota, para cobrar después.",
+      "amountTooHigh": "Supera lo que queda por pagar ({{pending}})."
     },
     "form": {
       "eyebrowCreate": "Nueva deuda",
@@ -1110,6 +1119,33 @@
       "leaveConfirm": "¿Volver sin guardar?",
       "leaveConfirmDescription": "Tienes cambios sin guardar en esta deuda. Si vuelves ahora se perderán.",
       "leaveDiscard": "Descartar cambios"
+    },
+    "writeOff": {
+      "action": {
+        "OWED_TO_YOU": "Dar por perdida",
+        "YOU_OWE": "Marcar como condonada"
+      },
+      "badge": {
+        "OWED_TO_YOU": "No se pagará",
+        "YOU_OWE": "Condonada"
+      },
+      "lost": {
+        "OWED_TO_YOU": "Dado por perdido",
+        "YOU_OWE": "Condonado"
+      },
+      "on": {
+        "OWED_TO_YOU": "Dada por perdida el {{date}}",
+        "YOU_OWE": "Condonada el {{date}}"
+      },
+      "confirmTitle": "¿Cerrar esta deuda sin pago?",
+      "confirmDescription": {
+        "OWED_TO_YOU": "{{name}} no te pagará los {{amount}} que faltan. Dejan de contar en tu patrimonio y en los próximos pagos; lo que ya te pagó se mantiene. Puedes reactivarla después.",
+        "YOU_OWE": "Ya no le pagarás a {{name}} los {{amount}} que faltan. Dejan de contar en tu patrimonio y en los próximos pagos; lo que ya pagaste se mantiene. Puedes reactivarla después."
+      },
+      "confirm": "Cerrar sin pago",
+      "done": "Deuda cerrada sin pago.",
+      "reinstate": "Reactivar",
+      "reinstated": "Deuda reactivada: lo pendiente vuelve a contar."
     }
   },
   "recurring": {
@@ -2538,7 +2574,11 @@
     "EMAIL_PRIMARY_NOT_DELETABLE": "No puedes borrar tu correo principal.",
     "STEP_UP_REQUIRED": "Confirma que eres tú para hacer este cambio.",
     "NETWORK_ERROR": "fik no está respondiendo en este momento. Inténtalo de nuevo en unos minutos.",
-    "OFFLINE": "No tienes conexión a internet. Revisa tu wifi o tus datos móviles e inténtalo de nuevo."
+    "OFFLINE": "No tienes conexión a internet. Revisa tu wifi o tus datos móviles e inténtalo de nuevo.",
+    "DEBT_PAYMENT_EXCEEDS_PENDING": "El monto supera lo que queda por pagar de esta deuda.",
+    "DEBT_WRITTEN_OFF": "Esta deuda está cerrada sin pago. Reactívala para registrar pagos.",
+    "DEBT_NOT_WRITTEN_OFF": "Esta deuda no está cerrada sin pago.",
+    "DEBT_TOTAL_BELOW_PAID": "El nuevo monto es menor que lo que ya se pagó de esta deuda."
   },
   "exchangeRates": {
     "title": "Tipos de cambio",

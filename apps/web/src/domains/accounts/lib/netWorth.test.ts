@@ -4,6 +4,7 @@ import type { accounts, debts } from "@finance/contracts";
 
 import { netWorth, secondaryTotals } from "../../dashboard/lib/metrics";
 import { estimatedTotalClp, netWorthByCurrency, type CurrencyNetWorth } from "./netWorth";
+import { withPaidAmount } from "../../debts/testing/debtFixture";
 
 const acc = (over: Partial<accounts.BankAccount>) =>
   ({
@@ -17,7 +18,7 @@ const acc = (over: Partial<accounts.BankAccount>) =>
   }) as accounts.BankAccount;
 
 const debt = (over: Partial<debts.Debt>) =>
-  ({
+  withPaidAmount({
     id: "d",
     direction: "YOU_OWE",
     currency: "CLP",
@@ -27,7 +28,7 @@ const debt = (over: Partial<debts.Debt>) =>
     paidInstallments: 0,
     installmentAmount: null,
     ...over,
-  }) as unknown as debts.Debt;
+  } as unknown as debts.Debt);
 
 const list = [
   acc({ currentBalance: "1000000" }),

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import type { accounts, debts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
+import { isOpen } from "../../debts/lib/debtMetrics";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { netWorthByCurrency } from "../lib/netWorth";
 import { EstimatedTotalLine } from "./EstimatedTotalLine";
@@ -43,7 +44,7 @@ export function AccountsSummary({
     unavailable ? [] : debtList,
     heroCurrency,
   );
-  const hasDebts = debtList.some((d) => d.settledAt === null && d.currency === heroCurrency);
+  const hasDebts = debtList.some((d) => isOpen(d) && d.currency === heroCurrency);
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl border bg-card px-4 py-5 sm:px-6">

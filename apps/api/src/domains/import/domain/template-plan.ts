@@ -590,16 +590,18 @@ export function planTemplateImport(
       continue;
     }
     if (!sameCurrency("debtPayments", p.row, acct.currency, debt.plan.currency)) continue;
-    if (debt.sim.paidInstallments >= debt.sim.totalInstallments) {
+    if (toMoney(debt.sim.pendingAmount()).lte(0)) {
       issues.add("debtPayments", p.row, TEMPLATE_CODES.TOO_MANY_PAYMENTS);
       continue;
     }
-    const amount = debt.sim.nextInstallmentAmount();
-    if (p.amount && !toMoney(p.amount).equals(toMoney(amount))) {
-      issues.add("debtPayments", p.row, TEMPLATE_CODES.PAYMENT_AMOUNT_MISMATCH, 400, "amount");
+    // What actually arrived/left — may differ from the instalment: a short
+    // payment leaves the rest pending, exactly like paying it in the app.
+    const amount = p.amount ? moneyToString(p.amount) : debt.sim.nextInstallmentAmount();
+    if (toMoney(amount).gt(toMoney(debt.sim.pendingAmount()))) {
+      issues.add("debtPayments", p.row, "DEBT_PAYMENT_EXCEEDS_PENDING", 409, "amount");
       continue;
     }
-    debt.sim.registerPayment();
+    debt.sim.registerPayment({ transactionId: "sim", accountId: p.accountId, amount });
     const type = debt.plan.direction === "OWED_TO_YOU" ? "INCOME" : "EXPENSE";
     const snap = debt.sim.snapshot();
     const write = movement({

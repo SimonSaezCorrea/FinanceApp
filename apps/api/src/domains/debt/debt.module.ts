@@ -12,6 +12,7 @@ import { RegisterDebtPaymentHandler } from "./application/commands/register-debt
 import { RemoveDebtHandler } from "./application/commands/remove-debt.handler";
 import { SettleDebtHandler } from "./application/commands/settle-debt.handler";
 import { UndoDebtPaymentHandler } from "./application/commands/undo-debt-payment.handler";
+import { WriteOffDebtHandler } from "./application/commands/write-off-debt.handler";
 import { UnsettleDebtHandler } from "./application/commands/unsettle-debt.handler";
 import { UpdateDebtHandler } from "./application/commands/update-debt.handler";
 import { GetDebtQueryHandler } from "./application/queries/get-debt.handler";
@@ -26,6 +27,7 @@ const commandHandlers = [
   UnsettleDebtHandler,
   RegisterDebtPaymentHandler,
   UndoDebtPaymentHandler,
+  WriteOffDebtHandler,
   RemoveDebtHandler,
 ];
 

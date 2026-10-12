@@ -9,6 +9,7 @@ import type { debts } from "@finance/contracts";
 import i18n from "../../../i18n";
 import { debtsApi } from "../api/debtsApi";
 import { DebtsRoute } from "./DebtsRoute";
+import { withPaidAmount } from "../testing/debtFixture";
 
 vi.mock("../api/debtsApi", () => ({
   debtsApi: {
@@ -17,6 +18,8 @@ vi.mock("../api/debtsApi", () => ({
     unsettle: vi.fn(),
     registerPayment: vi.fn(),
     undoPayment: vi.fn(),
+    writeOff: vi.fn(),
+    reinstate: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
@@ -46,7 +49,7 @@ vi.mock("../../auth/hooks/useAuth", () => ({
 }));
 
 function makeDebt(overrides: Partial<debts.Debt> = {}): debts.Debt {
-  return {
+  return withPaidAmount({
     id: "d1",
     direction: "YOU_OWE",
     counterparty: "Acme Corp",
@@ -70,7 +73,7 @@ function makeDebt(overrides: Partial<debts.Debt> = {}): debts.Debt {
     createdAt: "2026-01-01T00:00:00.000Z",
     updatedAt: "2026-01-01T00:00:00.000Z",
     ...overrides,
-  };
+  } as debts.Debt);
 }
 
 function renderRoute(path = "/debts") {
@@ -150,5 +153,52 @@ describe("DebtsRoute", () => {
     await waitFor(() =>
       expect(screen.getByRole("button", { name: i18n.t("common.saveChanges") })).toBeDefined(),
     );
+  });
+
+  it("pays a different amount than the instalment: what is typed is what is sent", async () => {
+    const debt = makeDebt({ totalInstallments: 3, principal: "1200.0000" });
+    vi.mocked(debtsApi.list).mockResolvedValue([debt]);
+    vi.mocked(debtsApi.registerPayment).mockResolvedValue(debt);
+    renderRoute();
+
+    await waitFor(() => expect(screen.getByText(/Acme Corp/)).toBeDefined());
+    tapRow(screen.getByText(/Acme Corp/));
+    await waitFor(() => expect(screen.getByText(i18n.t("debts.detail.eyebrow"))).toBeDefined());
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("debts.card.registerPayment") }));
+
+    const input = await screen.findByLabelText(i18n.t("debts.pay.amount"));
+    expect((input as HTMLInputElement).value).toBe("400");
+    fireEvent.change(input, { target: { value: "399" } });
+    expect(screen.getByText(/pendientes de esta cuota/)).toBeDefined();
+
+    const submit = screen.getAllByRole("button", { name: i18n.t("debts.card.registerPayment") });
+    fireEvent.click(submit[submit.length - 1]!);
+
+    await waitFor(() =>
+      expect(debtsApi.registerPayment).toHaveBeenCalledWith("d1", expect.any(String), {
+        accountId: "acc1",
+        amount: "399",
+      }),
+    );
+  });
+
+  it("closes a debt unpaid after confirming", async () => {
+    const debt = makeDebt();
+    vi.mocked(debtsApi.list).mockResolvedValue([debt]);
+    vi.mocked(debtsApi.writeOff).mockResolvedValue({
+      ...debt,
+      writtenOffAt: "2026-03-01T00:00:00.000Z",
+    });
+    renderRoute();
+
+    await waitFor(() => expect(screen.getByText(/Acme Corp/)).toBeDefined());
+    tapRow(screen.getByText(/Acme Corp/));
+    await waitFor(() => expect(screen.getByText(i18n.t("debts.detail.eyebrow"))).toBeDefined());
+
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("debts.writeOff.action.YOU_OWE") }));
+    fireEvent.click(await screen.findByRole("button", { name: i18n.t("debts.writeOff.confirm") }));
+
+    await waitFor(() => expect(debtsApi.writeOff).toHaveBeenCalled());
+    expect(vi.mocked(debtsApi.writeOff).mock.calls[0]![0]).toBe("d1");
   });
 });

@@ -37,5 +37,9 @@ export const debtsApi = {
   undoPayment: (id: string, idempotencyKey: string) =>
     apiFetch<debts.Debt>(`/debts/${id}/undo-payment`, { method: "POST", idempotencyKey }),
 
+  writeOff: (id: string) => apiFetch<debts.Debt>(`/debts/${id}/write-off`, { method: "POST" }),
+
+  reinstate: (id: string) => apiFetch<debts.Debt>(`/debts/${id}/reinstate`, { method: "POST" }),
+
   remove: (id: string) => apiFetch<void>(`/debts/${id}`, { method: "DELETE" }),
 };

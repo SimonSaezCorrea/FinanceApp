@@ -1042,6 +1042,33 @@ now)`** walks back `SERIES_DAYS` (30) from the hero: a day's point is the hero m
     it, and `DebtDetailPanel`'s existing "Notas" row — which used to just repeat the title
     redundantly — now shows the real thing. No migration: dev data only, `db push` dropped the old
     column and added both new ones.
+    Amendment (pay any amount + "cerrar sin pago", 2026-10-12): **a payment takes the amount that
+    really arrived** — `payDebtSchema.amount` (optional, `register-payment` only; omitted = the rest of
+    the current instalment, `Debt.nextInstallmentAmount()`). New column **`Debt.paidAmount`**
+    (nullable): what was actually paid; the pending amount is the sum of the instalments
+    (`totalAmount()`) less it, so paying 21.663 on a 21.664 instalment keeps $1 pending, which the
+    next payment suggests. `paidInstallments` is now DERIVED (the instalments `paidAmount` fully
+    covers), the debt auto-settles once nothing is pending, an overpayment counts toward the next
+    instalments but never past the total (`DEBT_PAYMENT_EXCEEDS_PENDING`), `INVALID_PAYMENT_AMOUNT`
+    for ≤ 0, and an edit can't ask for less than what was paid (`DEBT_TOTAL_BELOW_PAID`). A row
+    written before the column (null) derives it from the counter (the whole debt when settled by a
+    recorded payment) — no backfill, and the previous code can still run beside it during a deploy.
+    `undoPayment`/`unsettle` take back exactly `lastPaymentAmount` (without a record, only down to the
+    previous instalment boundary). **"Cerrar sin pago"**: new **`Debt.writtenOffAt`** + `POST
+/debts/:id/write-off` / `/reinstate` (`WriteOffDebtCommand`, no money moves, form (a): a repeat
+    answers `DEBT_WRITTEN_OFF`/`DEBT_NOT_WRITTEN_OFF`); a settled debt can't be written off. While
+    written off, payments/settle answer `DEBT_WRITTEN_OFF`; what was paid stays. Web: `isOpen`
+    (`debtMetrics`) = neither settled nor written off — net worth, upcoming payments, the KPI strip,
+    `leftAmount` and overdue all use it; `DebtPayPanel` has an editable amount (says what stays
+    pending or that it's too much) and the route always calls `register-payment` with it (`settle`
+    stays in the API, the app no longer calls it); `DebtDetailPanel` gains "Dar por perdida" /
+    "Marcar como condonada" (by direction, with a `ConfirmModal` naming the amount) and "Reactivar",
+    shows what was given up and an instalment paid in part as "Parcial" (what is still missing, "de" its amount, "Pagado X" under it); the uncovered ones of a debt closed unpaid read "No se pagará"/"Condonada", and the table bar follows the money (`paidPercent`), labels "2/3 · parcial" and strikes through what was given up; the
+    status filter gains "Cerradas sin pago". The template importer accepts any amount ≤ pending on a
+    debt payment (was `IMPORT_PAYMENT_AMOUNT_MISMATCH`). Migration
+    `20261012120000_debt_partial_payments_write_off`. i18n `debts.writeOff.*`,
+    `debts.pay.amount{Hint,Short,TooHigh}`. Not done: writing off from the template, and undoing more
+    than the last payment with its money.
   - **savings-goal / savings-entry** (specs/018, 2026-09-07, "Ahorros con progreso real"):
     `SavingsGoal` gains **`notes`** and a two-state lifecycle — **`closedAt`** (`null` = abierta) +
     **`closeDestination`** (`SavingsGoalCloseDestination`: `WITHDRAW_TO_ACCOUNT`/`FREE_SAVINGS`/
@@ -2275,7 +2302,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.6.1**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.6.2**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
 - **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
   `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.

@@ -466,13 +466,29 @@ describe("planTemplateImport — debts (US3)", () => {
     expect(Number(effect(result, BCI).netCash)).toBe(-200000);
   });
 
-  it("refuses a wrong amount, too many payments, an unknown or duplicate ref, a payment before the debt and one from a credit card", () => {
+  it("takes a payment for less than the instalment and leaves the rest pending", () => {
+    const result = planTemplateImport(
+      req({
+        debts: [victor({ totalInstallments: 1 })],
+        debtPayments: [
+          debtPayment(2, "2026-03-01", { amount: "199999" }),
+          debtPayment(3, "2026-03-02"),
+        ],
+      }),
+      lookup(),
+      options(),
+    );
+    expect(codes(result)).toEqual([]);
+    expect(result.movements.map((m) => Number(m.amount))).toEqual([199999, 1]);
+  });
+
+  it("refuses an amount over what is pending, too many payments, an unknown or duplicate ref, a payment before the debt and one from a credit card", () => {
     const result = planTemplateImport(
       req({
         debts: [victor({ totalInstallments: 1 }), victor({ row: 3 })],
         debtPayments: [
           debtPayment(2, "2026-01-01"),
-          debtPayment(3, "2026-03-01", { amount: "1" }),
+          debtPayment(3, "2026-03-01", { amount: "999999999" }),
           debtPayment(4, "2026-03-02"),
           debtPayment(5, "2026-03-03"),
           debtPayment(6, "2026-03-04", { debtRef: "NOBODY" }),
@@ -485,7 +501,7 @@ describe("planTemplateImport — debts (US3)", () => {
     expect(codes(result)).toEqual([
       "debts:3:IMPORT_DUPLICATE_REF",
       "debtPayments:2:IMPORT_PAYMENT_BEFORE_START",
-      "debtPayments:3:IMPORT_PAYMENT_AMOUNT_MISMATCH",
+      "debtPayments:3:DEBT_PAYMENT_EXCEEDS_PENDING",
       "debtPayments:5:IMPORT_TOO_MANY_PAYMENTS",
       "debtPayments:6:IMPORT_UNKNOWN_REF",
       "debtPayments:7:DEBT_PAYMENT_FROM_CREDIT_ACCOUNT",

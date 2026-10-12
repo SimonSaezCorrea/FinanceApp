@@ -12,7 +12,7 @@ export interface DebtKpi {
 }
 
 export function summarizeDebtsByCurrency(list: debts.Debt[]): DebtKpi[] {
-  const active = list.filter((d) => d.settledAt === null);
+  const active = list.filter(isOpen);
   const map = new Map<string, { owedToYou: Decimal; youOwe: Decimal }>();
 
   for (const d of active) {
@@ -36,31 +36,80 @@ export function summarizeDebtsByCurrency(list: debts.Debt[]): DebtKpi[] {
   }));
 }
 
-/** The instalments not yet paid — the same rows the server's `pendingAmount()` sums,
- * so an evenly split debt left with its last whole-peso instalment shows exactly that. */
-export function calcRemaining(debt: debts.Debt): string {
-  const pending = Math.max(debt.totalInstallments - debt.paidInstallments, 0);
-  if (pending === 0) return "0.0000";
+/** Everything the debt asks for: the sum of its instalments (the server's
+ * `Debt.totalAmount()`). */
+export function debtTotal(debt: debts.Debt): string {
   return debtInstallmentAmounts(debt)
-    .slice(-pending)
     .reduce((acc, a) => acc.plus(a), new Decimal(0))
     .toFixed(4);
 }
 
-/** What is genuinely still owed: zero once the debt is settled — `calcRemaining`
- * alone doesn't know about `settledAt`, and a debt marked paid in one shot
- * (single instalment) always has `paidInstallments < totalInstallments` be
- * false-but-irrelevant once settled. */
+/** The total less what was actually paid, never negative — the server's
+ * `pendingAmount()`. Payments may be for any amount, so a short one leaves the
+ * difference here (a single peso, even). */
+export function calcRemaining(debt: debts.Debt): string {
+  const left = new Decimal(debtTotal(debt)).minus(new Decimal(debt.paidAmount));
+  return (left.isNegative() ? new Decimal(0) : left).toFixed(4);
+}
+
+/** What the next payment suggests: the rest of the current instalment (the
+ * server's `nextInstallmentAmount()`) — 1 after paying 21.663 on a 21.664
+ * instalment. */
+export function nextPaymentAmount(debt: debts.Debt): string {
+  const paid = new Decimal(debt.paidAmount);
+  let acc = new Decimal(0);
+  for (const amount of debtInstallmentAmounts(debt)) {
+    acc = acc.plus(amount);
+    if (acc.gt(paid)) return acc.minus(paid).toFixed(4);
+  }
+  return "0.0000";
+}
+
+/** Paid / total as a whole percentage (100 once settled) — the progress bar
+ * follows the money, so a payment short by a peso doesn't look like a missing
+ * instalment. */
+export function paidPercent(debt: debts.Debt): number {
+  if (debt.settledAt !== null) return 100;
+  const total = new Decimal(debtTotal(debt));
+  if (total.isZero()) return 0;
+  const pct = new Decimal(debt.paidAmount).dividedBy(total).times(100);
+  return Math.min(100, Math.floor(pct.toNumber()));
+}
+
+/** How many instalments `paid` fully covers — the server's `paidInstallments`
+ * after a payment brings the total paid to that figure. */
+export function coveredInstallments(debt: debts.Debt, paid: string): number {
+  const total = new Decimal(paid);
+  let acc = new Decimal(0);
+  let covered = 0;
+  for (const amount of debtInstallmentAmounts(debt)) {
+    acc = acc.plus(amount);
+    if (acc.gt(total)) break;
+    covered += 1;
+  }
+  return covered;
+}
+
+/** Given up on ("no se pagará"): what was pending no longer counts. */
+export function isWrittenOff(debt: debts.Debt): boolean {
+  return debt.writtenOffAt !== null;
+}
+
+/** Still expected: neither settled nor written off. */
+export function isOpen(debt: debts.Debt): boolean {
+  return debt.settledAt === null && debt.writtenOffAt === null;
+}
+
+/** What is genuinely still owed: zero once the debt is settled or written off
+ * — `calcRemaining` alone knows about neither. */
 export function leftAmount(debt: debts.Debt): string {
-  if (debt.settledAt !== null) return "0.0000";
+  if (!isOpen(debt)) return "0.0000";
   return calcRemaining(debt);
 }
 
 /** Overdue = still open, has a due date, and that date is in the past. */
 export function isOverdue(debt: debts.Debt, now: Date = new Date()): boolean {
-  return (
-    debt.settledAt === null && debt.dueAt !== null && new Date(debt.dueAt).getTime() < now.getTime()
-  );
+  return isOpen(debt) && debt.dueAt !== null && new Date(debt.dueAt).getTime() < now.getTime();
 }
 
 export interface DebtSummary {
@@ -84,7 +133,7 @@ export interface DebtSummary {
  * card (same convention `summarizeDebtsByCurrency`/`planKpis` already use).
  */
 export function summarizeDebts(list: debts.Debt[], now: Date = new Date()): DebtSummary[] {
-  const active = list.filter((d) => d.settledAt === null);
+  const active = list.filter(isOpen);
   const map = new Map<string, { youOwe: Decimal; owedYou: Decimal; overdue: Decimal }>();
 
   for (const d of active) {

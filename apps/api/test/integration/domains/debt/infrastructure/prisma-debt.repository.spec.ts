@@ -51,6 +51,8 @@ describe("PrismaDebtRepository (integration)", () => {
       lastPaymentTransactionId: null,
       lastPaymentAccountId: null,
       lastPaymentAmount: null,
+      paidAmount: null,
+      writtenOffAt: null,
     });
     debtId = created.id;
     expect(created.toContract().counterparty).toBe("Acme Corp");

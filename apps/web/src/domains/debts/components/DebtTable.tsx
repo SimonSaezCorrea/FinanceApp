@@ -10,7 +10,16 @@ import { Button } from "@finance/ui/src/shared/ui/button";
 import { Card } from "../../../shared/ui/card";
 import { ErrorState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
-import { dueInfo, formatDebtDate, initials, isOverdue, leftAmount } from "../lib/debtMetrics";
+import {
+  calcRemaining,
+  dueInfo,
+  formatDebtDate,
+  initials,
+  isOverdue,
+  leftAmount,
+  paidPercent,
+} from "../lib/debtMetrics";
+import { hasPartialInstallment } from "../lib/debtSchedule";
 import { DebtEmptyRow } from "./DebtEmptyRow";
 
 interface DebtTableProps {
@@ -78,17 +87,22 @@ export function DebtTable({
           {list.map((debt) => {
             const isOwedToYou = debt.direction === "OWED_TO_YOU";
             const isSettled = debt.settledAt !== null;
+            const isWrittenOff = debt.writtenOffAt !== null;
             const overdue = isOverdue(debt, now);
             const hasInstallments = debt.totalInstallments > 1;
             const allPaid = debt.paidInstallments >= debt.totalInstallments;
-            const left = leftAmount(debt);
+            // Closed unpaid: show what was given up (struck through), not "$0".
+            const left = isWrittenOff ? calcRemaining(debt) : leftAmount(debt);
             const due = dueInfo(debt.dueAt, now);
-            const progressPct = isSettled
-              ? 100
-              : Math.round((debt.paidInstallments / debt.totalInstallments) * 100);
+            const progressPct = paidPercent(debt);
             const progressLabel = isSettled
               ? t("debts.table.progressPaid")
-              : `${debt.paidInstallments}/${debt.totalInstallments}`;
+              : hasPartialInstallment(debt)
+                ? t("debts.table.progressPartial", {
+                    paid: debt.paidInstallments,
+                    total: debt.totalInstallments,
+                  })
+                : `${debt.paidInstallments}/${debt.totalInstallments}`;
 
             return (
               <TR
@@ -123,7 +137,10 @@ export function DebtTable({
                   <div className="flex items-center gap-3">
                     <span className="h-1.5 w-24 overflow-hidden rounded-full bg-track">
                       <span
-                        className="block h-full rounded-full bg-primary transition-all"
+                        className={cn(
+                          "block h-full rounded-full transition-all",
+                          isWrittenOff ? "bg-muted-foreground/40" : "bg-primary",
+                        )}
                         style={{ width: `${progressPct}%` }}
                       />
                     </span>
@@ -134,19 +151,28 @@ export function DebtTable({
                 </TD>
 
                 <TD>
-                  <Badge variant={isOwedToYou ? "success" : "danger"}>
-                    {t(`debts.direction.${debt.direction}`)}
-                  </Badge>
+                  <span className="flex flex-wrap items-center gap-1.5">
+                    <Badge variant={isOwedToYou ? "success" : "danger"}>
+                      {t(`debts.direction.${debt.direction}`)}
+                    </Badge>
+                    {isWrittenOff ? (
+                      <Badge variant="neutral">{t(`debts.writeOff.badge.${debt.direction}`)}</Badge>
+                    ) : null}
+                  </span>
                 </TD>
 
                 <TD numeric>
                   <span
                     className={cn(
                       "font-medium tabular-nums",
-                      isOwedToYou ? "text-success" : "text-destructive",
+                      isWrittenOff
+                        ? "text-muted-foreground line-through"
+                        : isOwedToYou
+                          ? "text-success"
+                          : "text-destructive",
                     )}
                   >
-                    {isOwedToYou ? "+" : "−"}
+                    {isWrittenOff ? "" : isOwedToYou ? "+" : "−"}
                     {formatMoney(left, { locale: i18n.language, currency: debt.currency })}
                   </span>
                   <span className="block text-xs tabular-nums text-muted-foreground">
@@ -164,6 +190,12 @@ export function DebtTable({
                     <span className="text-muted-foreground">
                       {t("debts.card.settledOn", {
                         date: formatDebtDate(debt.settledAt!, i18n.language),
+                      })}
+                    </span>
+                  ) : isWrittenOff ? (
+                    <span className="text-muted-foreground">
+                      {t(`debts.writeOff.on.${debt.direction}`, {
+                        date: formatDebtDate(debt.writtenOffAt!, i18n.language),
                       })}
                     </span>
                   ) : debt.dueAt ? (
@@ -189,7 +221,7 @@ export function DebtTable({
                     className="flex items-center justify-end gap-0.5"
                     onClick={(e) => e.stopPropagation()}
                   >
-                    {!isSettled ? (
+                    {!isSettled && !isWrittenOff ? (
                       <Button
                         variant="ghost"
                         size="sm"
