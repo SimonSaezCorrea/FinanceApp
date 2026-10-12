@@ -10,6 +10,7 @@
     "dev:landing": "pnpm --filter @finance/landing dev",
     "build": "turbo run build",
     "test": "turbo run test",
+    "test:integration:local": "bash scripts/test-integration-local.sh",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "check:boundaries": "node scripts/check-boundaries.mjs",

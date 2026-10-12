@@ -1,0 +1,20 @@
+# Disposable PostgreSQL for `pnpm test:integration:local` (scripts/test-integration-local.sh):
+# its own port, project and tmpfs storage, so it never touches the dev database (fik-db, 5432)
+# and leaves nothing behind once the script tears it down. Same image as CI.
+name: fik-test
+services:
+  db-test:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fik_test
+      POSTGRES_PASSWORD: fik_test
+      POSTGRES_DB: fik_test
+    ports:
+      - "5433:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fik_test -d fik_test"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
