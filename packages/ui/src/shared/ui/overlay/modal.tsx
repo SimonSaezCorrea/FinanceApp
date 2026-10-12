@@ -2,6 +2,7 @@ import * as RadixDialog from "@radix-ui/react-dialog";
 
 import { cn } from "../../lib/cn";
 import { type SurfaceContent, SurfaceChrome } from "./chrome";
+import { keepOpenOnToast } from "./toast-passthrough";
 
 export interface ModalProps extends SurfaceContent {
   open: boolean;
@@ -49,6 +50,7 @@ export function Modal({ open, onOpenChange, className, ...content }: Readonly<Mo
           scroll area's scrollable overflow (no double scrollbar).
         */}
         <RadixDialog.Content
+          onInteractOutside={keepOpenOnToast}
           style={{ zIndex: 1460 }}
           className={cn(
             "fixed left-1/2 top-1/2 w-[95vw] max-w-2xl -translate-x-1/2 -translate-y-1/2",

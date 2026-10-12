@@ -1,6 +1,7 @@
 import * as RadixDialog from "@radix-ui/react-dialog";
 import { cn } from "../../lib/cn";
 import { type SurfaceContent, SurfaceChrome } from "./chrome";
+import { keepOpenOnToast } from "./toast-passthrough";
 
 export interface WindowProps extends SurfaceContent {
   open: boolean;
@@ -22,6 +23,7 @@ export function Window({ open, onOpenChange, className, ...content }: Readonly<W
             still has to exist for Radix's dismissable-layer/scroll-lock. */}
         <RadixDialog.Overlay className="fixed inset-0 z-overlay bg-background data-[state=open]:animate-in data-[state=open]:fade-in data-[state=closed]:animate-out data-[state=closed]:fade-out" />
         <RadixDialog.Content
+          onInteractOutside={keepOpenOnToast}
           className={cn(
             "fixed inset-0 z-modal focus:outline-none",
             "data-[state=open]:animate-in data-[state=open]:slide-in-from-bottom-2 data-[state=open]:fade-in",

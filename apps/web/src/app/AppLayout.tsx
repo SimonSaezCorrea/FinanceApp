@@ -32,6 +32,7 @@ import { useMediaQuery } from "@finance/ui/src/shared/lib/useMediaQuery";
 import { BrandLogo } from "@finance/ui/src/shared/ui/brand-logo";
 import { BrandMark } from "@finance/ui/src/shared/ui/brand-mark";
 import { Button } from "@finance/ui/src/shared/ui/button";
+import { keepOpenOnToast } from "@finance/ui/src/shared/ui/overlay";
 
 interface NavItem {
   to: string;
@@ -388,7 +389,10 @@ function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
       <RadixDialog.Root open={moreOpen} onOpenChange={setMoreOpen}>
         <RadixDialog.Portal>
           <RadixDialog.Overlay className="fixed inset-0 z-overlay bg-black/50" />
-          <RadixDialog.Content className="fixed inset-x-0 bottom-0 z-modal flex flex-col gap-3 rounded-t-2xl border-t bg-card px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 focus:outline-none">
+          <RadixDialog.Content
+            onInteractOutside={keepOpenOnToast}
+            className="fixed inset-x-0 bottom-0 z-modal flex flex-col gap-3 rounded-t-2xl border-t bg-card px-4 pb-[calc(1rem+env(safe-area-inset-bottom,0px))] pt-3 focus:outline-none"
+          >
             <span className="mx-auto h-1 w-9 rounded-full bg-border2" aria-hidden />
             <RadixDialog.Title className="sr-only">{t("nav.moreSections")}</RadixDialog.Title>
             <div className="grid grid-cols-3 gap-2">

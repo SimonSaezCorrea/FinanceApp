@@ -2,6 +2,7 @@ import * as RadixDialog from "@radix-ui/react-dialog";
 
 import { cn } from "../../lib/cn";
 import { type SurfaceContent, SurfaceChrome } from "./chrome";
+import { keepOpenOnToast } from "./toast-passthrough";
 
 export interface DrawerProps extends SurfaceContent {
   open: boolean;
@@ -68,6 +69,7 @@ export function Drawer({
           )}
         />
         <RadixDialog.Content
+          onInteractOutside={keepOpenOnToast}
           style={layer && { zIndex: layer.content }}
           className={cn(
             "fixed inset-y-0 right-0 min-w-[320px] focus:outline-none",

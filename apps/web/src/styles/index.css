@@ -1,2 +1,37 @@
 /* Every token, base rule and shared utility lives in @finance/ui (one source with the public site). */
 @import "@finance/ui/src/styles/fik.css";
+
+/* Toasts (sonner). Radix sets `pointer-events: none` on <body> while a dialog is
+   open; the toaster takes them back so its "×" works over a modal (the dialogs
+   pass `keepOpenOnToast` so that click doesn't close them). The "×" sits INSIDE
+   the toast, on the right and large, instead of sonner's small badge hanging
+   off the corner. Sonner injects its own CSS, hence the extra attribute in each
+   selector and `!important` for the colors its rich-color rules set. */
+[data-sonner-toaster] {
+  pointer-events: auto;
+}
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
+  padding-right: 3.25rem;
+}
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] {
+  left: auto;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+  color: inherit !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  opacity: 0.75;
+}
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button]:hover,
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button]:focus-visible {
+  opacity: 1;
+  background: hsl(var(--foreground) / 0.1) !important;
+}
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] [data-close-button] svg {
+  width: 1.125rem;
+  height: 1.125rem;
+}

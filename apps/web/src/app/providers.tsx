@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { I18nextProvider } from "react-i18next";
+import { I18nextProvider, useTranslation } from "react-i18next";
 import { Toaster } from "sonner";
 
 import { AuthProvider } from "../domains/auth/hooks/useAuth";
@@ -31,9 +31,24 @@ export function Providers({ children }: { children: ReactNode }) {
       <QueryClientProvider client={queryClient}>
         <I18nextProvider i18n={i18n}>
           <AuthProvider>{children}</AuthProvider>
-          <Toaster theme="system" richColors position="bottom-right" />
+          <AppToaster />
         </I18nextProvider>
       </QueryClientProvider>
     </ThemeProvider>
+  );
+}
+
+/** Every toast can be dismissed by hand ("×"), not only by waiting it out — even
+ * over an open dialog. Its look lives in `styles/index.css` ("Toasts"). */
+function AppToaster() {
+  const { t } = useTranslation();
+  return (
+    <Toaster
+      theme="system"
+      richColors
+      closeButton
+      position="bottom-right"
+      toastOptions={{ closeButtonAriaLabel: t("app.close") }}
+    />
   );
 }

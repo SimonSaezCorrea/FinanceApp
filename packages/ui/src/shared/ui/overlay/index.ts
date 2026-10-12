@@ -6,3 +6,4 @@ export { Modal, type ModalProps } from "./modal";
 export { SidePanel } from "./side-panel";
 export { ResponsiveSurface, SHEET_QUERY } from "./surface";
 export { Window, WindowScreen } from "./window";
+export { keepOpenOnToast } from "./toast-passthrough";
