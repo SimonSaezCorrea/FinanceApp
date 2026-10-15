@@ -1,5 +1,3 @@
-import type { UserEmailRepositoryPort } from "../../../../../../src/domains/user-email/domain/ports/user-email.repository.port";
-import type { EmailTokenRepositoryPort } from "../../../../../../src/domains/email-token/domain/ports/email-token.repository.port";
 import { hash } from "bcryptjs";
 import { describe, expect, it, vi } from "vitest";
 
@@ -10,9 +8,6 @@ import { AccountSecurityEvent } from "../../../../../../src/domains/user/domain/
 import { UserAccountDeletedEvent } from "../../../../../../src/domains/user/domain/events/user-account-deleted.event";
 import { User, type UserProps } from "../../../../../../src/domains/user/domain/user.aggregate";
 import type { UserRepositoryPort } from "../../../../../../src/domains/user/domain/ports/user.repository.port";
-import type { SessionRepositoryPort } from "../../../../../../src/domains/session/domain/ports/session.repository.port";
-import type { PasskeyRepositoryPort } from "../../../../../../src/domains/passkey/domain/ports/passkey.repository.port";
-import type { MfaRecoveryCodeRepositoryPort } from "../../../../../../src/domains/mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
 import type { AccountDeletionLogRepositoryPort } from "../../../../../../src/domains/account-deletion-log/domain/ports/account-deletion-log.repository.port";
 import type { PrismaService } from "../../../../../../src/infra/prisma/prisma.service";
 import type { ConfigService } from "@nestjs/config";
@@ -67,51 +62,6 @@ function fakeRepo(overrides: Partial<UserRepositoryPort> = {}): UserRepositoryPo
   };
 }
 
-function fakeSessions(overrides: Partial<SessionRepositoryPort> = {}): SessionRepositoryPort {
-  return {
-    create: vi.fn(),
-    listByUser: vi.fn(),
-    touch: vi.fn(),
-    closeOwned: vi.fn(),
-    existsForUser: vi.fn(),
-    closeAllExceptForUser: vi.fn(),
-    closeAllExceptForUserWithTx: vi.fn(),
-    closeAllForUserWithTx: vi.fn().mockResolvedValue(0),
-    closeById: vi.fn(),
-    markExpiredAsClosed: vi.fn(),
-    purgeClosedBefore: vi.fn(),
-    deleteAllForUserWithTx: vi.fn().mockResolvedValue(undefined),
-    ...overrides,
-  };
-}
-
-function fakePasskeys(overrides: Partial<PasskeyRepositoryPort> = {}): PasskeyRepositoryPort {
-  return {
-    createWithTx: vi.fn(),
-    findByUserId: vi.fn(),
-    findByCredentialId: vi.fn(),
-    findByIdOwned: vi.fn(),
-    renameOwned: vi.fn(),
-    updateCounterAndLastUsedWithTx: vi.fn(),
-    deleteOwned: vi.fn(),
-    deleteAllForUserWithTx: vi.fn().mockResolvedValue(undefined),
-    ...overrides,
-  };
-}
-
-function fakeRecoveryCodes(
-  overrides: Partial<MfaRecoveryCodeRepositoryPort> = {},
-): MfaRecoveryCodeRepositoryPort {
-  return {
-    createManyWithTx: vi.fn(),
-    countUnused: vi.fn(),
-    findUnusedByUser: vi.fn(),
-    markUsedWithTx: vi.fn(),
-    deleteAllForUserWithTx: vi.fn().mockResolvedValue(undefined),
-    ...overrides,
-  };
-}
-
 function fakeDeletionLog(
   overrides: Partial<AccountDeletionLogRepositoryPort> = {},
 ): AccountDeletionLogRepositoryPort {
@@ -131,205 +81,106 @@ function fakePrisma(): PrismaService {
   } as unknown as PrismaService;
 }
 
-function fakeUserEmails(): UserEmailRepositoryPort {
-  return {
-    deleteAllForUserWithTx: vi.fn().mockResolvedValue(undefined),
-  } as unknown as UserEmailRepositoryPort;
-}
-
-function fakeEmailTokens(): EmailTokenRepositoryPort {
-  return {
-    deleteAllForUserWithTx: vi.fn().mockResolvedValue(undefined),
-  } as unknown as EmailTokenRepositoryPort;
-}
-
 function buildHandler(
   overrides: {
     repo?: UserRepositoryPort;
-    sessions?: SessionRepositoryPort;
-    passkeys?: PasskeyRepositoryPort;
-    recoveryCodes?: MfaRecoveryCodeRepositoryPort;
     deletionLog?: AccountDeletionLogRepositoryPort;
-    userEmails?: UserEmailRepositoryPort;
-    emailTokens?: EmailTokenRepositoryPort;
     prisma?: PrismaService;
+    publish?: ReturnType<typeof vi.fn>;
   } = {},
 ) {
   return new DeleteAccountHandler(
-    { publish: vi.fn() } as never,
+    { publish: overrides.publish ?? vi.fn() } as never,
     overrides.repo ?? fakeRepo(),
-    overrides.sessions ?? fakeSessions(),
-    overrides.passkeys ?? fakePasskeys(),
-    overrides.recoveryCodes ?? fakeRecoveryCodes(),
     overrides.deletionLog ?? fakeDeletionLog(),
-    overrides.userEmails ?? fakeUserEmails(),
-    overrides.emailTokens ?? fakeEmailTokens(),
     fakeConfig(),
     overrides.prisma ?? fakePrisma(),
   );
 }
 
+async function userWithPassword(overrides: Partial<UserProps> = {}) {
+  const passwordHash = await hash("correct-pw", 1);
+  return fakeRepo({
+    findById: vi
+      .fn()
+      .mockResolvedValue(User.fromPersistence(baseProps({ passwordHash, ...overrides }))),
+  });
+}
+
 describe("DeleteAccountHandler", () => {
   it("rejects an incorrect password and changes nothing", async () => {
-    const passwordHash = await hash("correct-pw", 1);
-    const repo = fakeRepo({
-      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
-    });
+    const repo = await userWithPassword();
     const handler = buildHandler({ repo });
 
     await expect(
-      handler.execute(new DeleteAccountCommand("u1", { password: "wrong", keepHistory: false })),
+      handler.execute(new DeleteAccountCommand("u1", { password: "wrong" })),
     ).rejects.toThrow(InvalidCurrentPasswordError);
     expect(repo.saveWithTx).not.toHaveBeenCalled();
     expect(repo.deleteWithTx).not.toHaveBeenCalled();
   });
 
-  describe("keepHistory=false (hard delete)", () => {
-    it("deletes the User row itself, never scrubs-and-saves it", async () => {
-      const passwordHash = await hash("correct-pw", 1);
-      const repo = fakeRepo({
-        findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
-      });
-      const handler = buildHandler({ repo });
+  it("deletes the User row itself (the cascade takes everything else), never scrubs-and-saves it", async () => {
+    const repo = await userWithPassword();
+    const prisma = fakePrisma();
+    const handler = buildHandler({ repo, prisma });
 
-      await handler.execute(
-        new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: false }),
-      );
+    await handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }));
 
-      expect(repo.deleteWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
-      expect(repo.saveWithTx).not.toHaveBeenCalled();
-    });
-
-    it("never calls the security-artifact ports directly — cascade handles them", async () => {
-      const passwordHash = await hash("correct-pw", 1);
-      const repo = fakeRepo({
-        findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
-      });
-      const sessions = fakeSessions();
-      const passkeys = fakePasskeys();
-      const recoveryCodes = fakeRecoveryCodes();
-      const handler = buildHandler({ repo, sessions, passkeys, recoveryCodes });
-
-      await handler.execute(
-        new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: false }),
-      );
-
-      expect(sessions.deleteAllForUserWithTx).not.toHaveBeenCalled();
-      expect(passkeys.deleteAllForUserWithTx).not.toHaveBeenCalled();
-      expect(recoveryCodes.deleteAllForUserWithTx).not.toHaveBeenCalled();
-    });
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(repo.deleteWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
+    expect(repo.saveWithTx).not.toHaveBeenCalled();
   });
 
-  describe("keepHistory=true (anonymize)", () => {
-    it("scrubs every PII field and sets status=DISABLED, keeping only id/createdAt", async () => {
-      const passwordHash = await hash("correct-pw", 1);
-      const repo = fakeRepo({
-        findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
-      });
-      const handler = buildHandler({ repo });
+  it("ignores a deprecated keepHistory=true from an old client: still deletes everything", async () => {
+    const repo = await userWithPassword();
+    const deletionLog = fakeDeletionLog();
+    const handler = buildHandler({ repo, deletionLog });
 
-      await handler.execute(
-        new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: true }),
-      );
+    await handler.execute(
+      new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: true }),
+    );
 
-      const saved = (repo.saveWithTx as ReturnType<typeof vi.fn>).mock.calls[0]![1] as User;
-      expect(saved.status).toBe("DISABLED");
-      expect(saved.name).toBeNull();
-      expect(saved.email).toBeNull();
-      expect(saved.passwordHash).toBeNull();
-      expect(saved.id).toBe("u1");
-      expect(repo.deleteWithTx).not.toHaveBeenCalled();
-    });
-
-    it("still hard-deletes sessions, passkeys and recovery codes — they only let someone log back in", async () => {
-      const passwordHash = await hash("correct-pw", 1);
-      const repo = fakeRepo({
-        findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
-      });
-      const sessions = fakeSessions();
-      const passkeys = fakePasskeys();
-      const recoveryCodes = fakeRecoveryCodes();
-      const handler = buildHandler({ repo, sessions, passkeys, recoveryCodes });
-
-      await handler.execute(
-        new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: true }),
-      );
-
-      expect(sessions.deleteAllForUserWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
-      expect(passkeys.deleteAllForUserWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
-      expect(recoveryCodes.deleteAllForUserWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
-    });
+    expect(repo.deleteWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
+    expect(repo.saveWithTx).not.toHaveBeenCalled();
+    expect(deletionLog.createWithTx).toHaveBeenCalledWith(expect.anything(), false, null);
   });
 
   describe("account-deletion compliance log", () => {
     it("writes a log row with identifierHash=null when the user had no identifier set", async () => {
-      const passwordHash = await hash("correct-pw", 1);
-      const repo = fakeRepo({
-        findById: vi
-          .fn()
-          .mockResolvedValue(
-            User.fromPersistence(baseProps({ passwordHash, identifierValue: null })),
-          ),
-      });
+      const repo = await userWithPassword({ identifierValue: null });
       const deletionLog = fakeDeletionLog();
       const handler = buildHandler({ repo, deletionLog });
 
-      await handler.execute(
-        new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: false }),
-      );
+      await handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }));
 
       expect(deletionLog.createWithTx).toHaveBeenCalledWith(expect.anything(), false, null);
     });
 
     it("hashes the identifier (never the raw RUT) when one was set", async () => {
-      const passwordHash = await hash("correct-pw", 1);
-      const repo = fakeRepo({
-        findById: vi
-          .fn()
-          .mockResolvedValue(
-            User.fromPersistence(
-              baseProps({ passwordHash, identifierType: "RUT", identifierValue: "11.111.111-1" }),
-            ),
-          ),
+      const repo = await userWithPassword({
+        identifierType: "RUT",
+        identifierValue: "11.111.111-1",
       });
       const deletionLog = fakeDeletionLog();
       const handler = buildHandler({ repo, deletionLog });
 
-      await handler.execute(
-        new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: true }),
-      );
+      await handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }));
 
       const [, keepHistoryArg, identifierHash] = (
         deletionLog.createWithTx as ReturnType<typeof vi.fn>
       ).mock.calls[0]!;
-      expect(keepHistoryArg).toBe(true);
+      expect(keepHistoryArg).toBe(false);
       expect(identifierHash).not.toBeNull();
       expect(identifierHash).not.toBe("11.111.111-1");
     });
   });
 
   it("publishes UserAccountDeletedEvent on a genuine deletion", async () => {
-    const passwordHash = await hash("correct-pw", 1);
-    const repo = fakeRepo({
-      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
-    });
+    const repo = await userWithPassword();
     const publish = vi.fn();
-    const handler = new DeleteAccountHandler(
-      { publish } as never,
-      repo,
-      fakeSessions(),
-      fakePasskeys(),
-      fakeRecoveryCodes(),
-      fakeDeletionLog(),
-      fakeUserEmails(),
-      fakeEmailTokens(),
-      fakeConfig(),
-      fakePrisma(),
-    );
+    const handler = buildHandler({ repo, publish });
 
-    await handler.execute(
-      new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: true }),
-    );
+    await handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" }));
 
     // The deletion itself, plus the goodbye notice to the address the account had (specs/032).
     const published = publish.mock.calls.map(([e]) => e as object);
@@ -339,39 +190,15 @@ describe("DeleteAccountHandler", () => {
     expect(notice.recipient?.address).toBe(baseProps().email);
   });
 
-  it("removes every address and link of an anonymized account (FR-012e)", async () => {
-    const passwordHash = await hash("correct-pw", 1);
-    const repo = fakeRepo({
-      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
-    });
-    const userEmails = fakeUserEmails();
-    const emailTokens = fakeEmailTokens();
-    const handler = buildHandler({ repo, userEmails, emailTokens });
-
-    await handler.execute(
-      new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: true }),
-    );
-
-    expect(userEmails.deleteAllForUserWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
-    expect(emailTokens.deleteAllForUserWithTx).toHaveBeenCalledWith(expect.anything(), "u1");
-  });
-
-  it("rolls back the whole change when hard-deleting sessions fails (keepHistory=true)", async () => {
-    const passwordHash = await hash("correct-pw", 1);
-    const repo = fakeRepo({
-      findById: vi.fn().mockResolvedValue(User.fromPersistence(baseProps({ passwordHash }))),
-    });
-    const sessions = fakeSessions({
-      deleteAllForUserWithTx: vi.fn().mockRejectedValue(new Error("db down")),
-    });
-    const prisma = fakePrisma();
-    const handler = buildHandler({ repo, sessions, prisma });
+  it("rolls back the whole change when deleting the row fails", async () => {
+    const repo = await userWithPassword();
+    (repo.deleteWithTx as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("db down"));
+    const deletionLog = fakeDeletionLog();
+    const handler = buildHandler({ repo, deletionLog });
 
     await expect(
-      handler.execute(
-        new DeleteAccountCommand("u1", { password: "correct-pw", keepHistory: true }),
-      ),
+      handler.execute(new DeleteAccountCommand("u1", { password: "correct-pw" })),
     ).rejects.toThrow("db down");
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(deletionLog.createWithTx).not.toHaveBeenCalled();
   });
 });

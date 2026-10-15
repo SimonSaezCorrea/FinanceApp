@@ -37,9 +37,7 @@ describe("Auth HTTP (e2e)", () => {
   });
 
   afterAll(async () => {
-    // The delete-account test below (keepHistory=true) scrubs the email, so cleanup is by id
-    // (captured at registration), not by the now-gone email — an anonymized row is expected to
-    // still exist and is dev-DB test debris, not a leak, but we still don't want it lingering.
+    // The delete-account test below removes the row; this only cleans up if a test failed first.
     await prisma.user.deleteMany({ where: { id: userId } });
     await app.close();
   });
@@ -178,24 +176,17 @@ describe("Auth HTTP (e2e)", () => {
     cookies = fresh;
   });
 
-  it("POST /auth/me/delete-account (keepHistory=true) scrubs PII, keeps the row, clears cookies and blocks further login", async () => {
+  it("POST /auth/me/delete-account deletes everything even when an old client still asks to keep its history", async () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/me/delete-account")
       .set("Cookie", cookies)
       .send({ password: "newpassword123", keepHistory: true });
     expect(res.status).toBe(204);
 
-    // The row survives (Ley 21.719 Art. 11 opt-in: "conservar mi historial anonimizado") but
-    // every PII field is null.
-    const row = await prisma.user.findUniqueOrThrow({ where: { id: userId } });
-    expect(row.email).toBeNull();
-    expect(row.name).toBeNull();
-    expect(row.passwordHash).toBeNull();
-    expect(row.deletedAt).not.toBeNull();
+    // The "keep an anonymized history" option is gone (2026-10-14): `keepHistory` is ignored.
+    expect(await prisma.user.findUnique({ where: { id: userId } })).toBeNull();
 
-    // The RUT itself was scrubbed — the old value no longer resolves to any account, so this
-    // is now indistinguishable from a wrong RUT (never a `ACCOUNT_DISABLED` special case, which
-    // would leak that the account still exists under it).
+    // The RUT no longer resolves to any account: indistinguishable from a wrong RUT.
     const loginAttempt = await request(app.getHttpServer())
       .post("/api/v1/auth/login")
       .send({ identifierValue: rut, password: "newpassword123" });

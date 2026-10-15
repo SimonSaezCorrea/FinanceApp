@@ -1,4 +1,11 @@
 <!--
+Sync Impact Report — 2026-10-14 (amendment 2.6.4)
+- Version change: 2.6.3 → 2.6.4 (PATCH: no principle text changed).
+- Deleting an account always deletes everything: the opt-in "keep an anonymized history"
+  (`keepHistory: true`) is removed — it kept pseudonymized personal data with no legal basis.
+  `keepHistory` stays optional and ignored in the contract for old clients (expand/contract).
+  Privacy policy version 2026-10-14. The 18-year guardian threshold is kept as an accepted risk.
+
 Sync Impact Report — 2026-10-14 (amendment 2.6.3)
 - Version change: 2.6.2 → 2.6.3 (PATCH: local git hooks enforce gates that already existed; no
   principle text changed).
@@ -2270,4 +2277,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.6.3 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-14
+**Version**: 2.6.4 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-14

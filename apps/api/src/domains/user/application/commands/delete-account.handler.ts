@@ -13,26 +13,6 @@ import {
   ACCOUNT_DELETION_LOG_REPOSITORY,
   type AccountDeletionLogRepositoryPort,
 } from "../../../account-deletion-log/domain/ports/account-deletion-log.repository.port";
-import {
-  MFA_RECOVERY_CODE_REPOSITORY,
-  type MfaRecoveryCodeRepositoryPort,
-} from "../../../mfa-recovery-code/domain/ports/mfa-recovery-code.repository.port";
-import {
-  EMAIL_TOKEN_REPOSITORY,
-  type EmailTokenRepositoryPort,
-} from "../../../email-token/domain/ports/email-token.repository.port";
-import {
-  PASSKEY_REPOSITORY,
-  type PasskeyRepositoryPort,
-} from "../../../passkey/domain/ports/passkey.repository.port";
-import {
-  SESSION_REPOSITORY,
-  type SessionRepositoryPort,
-} from "../../../session/domain/ports/session.repository.port";
-import {
-  USER_EMAIL_REPOSITORY,
-  type UserEmailRepositoryPort,
-} from "../../../user-email/domain/ports/user-email.repository.port";
 import { InvalidCurrentPasswordError } from "../../domain/errors";
 import { AccountSecurityEvent } from "../../domain/events/account-security.event";
 import { User } from "../../domain/user.aggregate";
@@ -41,10 +21,6 @@ import { DeleteAccountCommand } from "./delete-account.command";
 
 interface Context {
   user: User;
-  /** The user's own explicit choice (a checkbox, unchecked by default) — never a system
-   * default. `true` anonymizes (keeps financial history under the same userId); `false`
-   * hard-deletes every row this user owns, everywhere. */
-  keepHistory: boolean;
   /** Captured BEFORE `handle()` scrubs the aggregate — the only chance to hash it for the
    * compliance log. Never persisted anywhere in the clear past this point. */
   identifierValueAtRequest: string | null;
@@ -61,14 +37,8 @@ export class DeleteAccountHandler extends BaseCommandHandler<DeleteAccountComman
   constructor(
     eventBus: EventBus,
     @Inject(USER_REPOSITORY) private readonly repo: UserRepositoryPort,
-    @Inject(SESSION_REPOSITORY) private readonly sessions: SessionRepositoryPort,
-    @Inject(PASSKEY_REPOSITORY) private readonly passkeys: PasskeyRepositoryPort,
-    @Inject(MFA_RECOVERY_CODE_REPOSITORY)
-    private readonly recoveryCodes: MfaRecoveryCodeRepositoryPort,
     @Inject(ACCOUNT_DELETION_LOG_REPOSITORY)
     private readonly deletionLog: AccountDeletionLogRepositoryPort,
-    @Inject(USER_EMAIL_REPOSITORY) private readonly userEmails: UserEmailRepositoryPort,
-    @Inject(EMAIL_TOKEN_REPOSITORY) private readonly emailTokens: EmailTokenRepositoryPort,
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
   ) {
@@ -82,7 +52,6 @@ export class DeleteAccountHandler extends BaseCommandHandler<DeleteAccountComman
     }
     return {
       user,
-      keepHistory: command.input.keepHistory,
       identifierValueAtRequest: user.identifierValue,
       emailAtRequest: user.email
         ? { address: user.email, locale: user.locale, verified: user.emailVerified }
@@ -94,11 +63,10 @@ export class DeleteAccountHandler extends BaseCommandHandler<DeleteAccountComman
     _command: DeleteAccountCommand,
     context: Context,
   ): Promise<HandleResult<void>> {
-    // Scrubs the in-memory aggregate either way (harmless when the row is about to be
-    // hard-deleted entirely) — what matters for keepHistory=false is `persist()` below, which
-    // never calls `saveWithTx` on this scrubbed copy, only `deleteWithTx`.
+    // Only marks the in-memory aggregate deleted and yields its event: `persist()` below deletes
+    // the row itself, never saves this copy.
     const event = context.user.delete();
-    this.logger.log(`account deleted (keepHistory=${context.keepHistory}): ${context.user.id}`);
+    this.logger.log(`account deleted: ${context.user.id}`);
     const events: object[] = event ? [event] : [];
     // The goodbye notice (specs/032 FR-021) goes to the address the account had; the listener
     // applies the "confirmed only" rule.
@@ -122,27 +90,14 @@ export class DeleteAccountHandler extends BaseCommandHandler<DeleteAccountComman
       : null;
 
     await this.prisma.$transaction(async (tx) => {
-      if (context.keepHistory) {
-        // Anonymize: only the User row is scrubbed — financial rows elsewhere keep pointing at
-        // this same userId (Ley 21.719 Art. 11, the "keep my history" opt-in). Security
-        // artifacts are hard-deleted regardless — they only ever exist to let someone log back
-        // in, and this account never will again.
-        await this.repo.saveWithTx(tx, context.user);
-        await this.sessions.deleteAllForUserWithTx(tx, context.user.id);
-        await this.passkeys.deleteAllForUserWithTx(tx, context.user.id);
-        await this.recoveryCodes.deleteAllForUserWithTx(tx, context.user.id);
-        // Addresses identify the person: none survives an anonymized account (FR-012e).
-        await this.userEmails.deleteAllForUserWithTx(tx, context.user.id);
-        await this.emailTokens.deleteAllForUserWithTx(tx, context.user.id);
-      } else {
-        // Hard delete: removing the User row cascades to every table via its own
-        // `onDelete: Cascade` on `userId` — sessions/passkeys/recovery codes included, so no
-        // separate calls are needed here.
-        await this.repo.deleteWithTx(tx, context.user.id);
-      }
-      // Compliance evidence either way — see `AccountDeletionLog`'s doc-comment for why this
-      // never carries a raw identifier or an FK to `User`.
-      await this.deletionLog.createWithTx(tx, context.keepHistory, identifierHash);
+      // Always a hard delete (the "keep an anonymized history" option was removed 2026-10-14):
+      // removing the User row cascades to every table via its own `onDelete: Cascade` on
+      // `userId` — sessions, passkeys, recovery codes, addresses and every financial row.
+      await this.repo.deleteWithTx(tx, context.user.id);
+      // Compliance evidence — see `AccountDeletionLog`'s doc-comment for why this never carries
+      // a raw identifier or an FK to `User`. `keepHistory` is always false now (column kept for
+      // the rows written before).
+      await this.deletionLog.createWithTx(tx, false, identifierHash);
     });
   }
 }

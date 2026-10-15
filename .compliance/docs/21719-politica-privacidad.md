@@ -1,6 +1,6 @@
 # Política de Privacidad — fik
 
-**Última actualización:** 2026-10-11
+**Última actualización:** 2026-10-14
 
 > ✅ **Publicada el 2026-10-11** en `mifik.cl/es/privacy-policy/` (y su traducción en `/en/privacy-policy/`), enlazada desde el pie de página, la página de Privacidad y el consentimiento del registro. **El texto público vive en `apps/landing/src/legal/privacy-policy.es.md`** (y `.en.md`): cualquier cambio se hace ahí. Este archivo conserva el borrador con notas internas; mantener ambos en línea.
 
@@ -53,12 +53,9 @@ Para funcionar, fik usa proveedores que tratan tus datos **por encargo nuestro**
 
 ## 5. Por cuánto tiempo
 
-Conservamos tus datos **mientras tu cuenta esté activa**. Cuando eliminas tu cuenta (Perfil → Datos y privacidad → Eliminar cuenta), eliges qué pasa con ellos:
+Conservamos tus datos **mientras tu cuenta esté activa**. Cuando eliminas tu cuenta (Perfil → Datos y privacidad → Eliminar cuenta), **se borra todo de inmediato**: tu identidad, tus cuentas, movimientos, deudas, ahorros, consentimientos, sesiones, llaves de acceso, códigos de recuperación, direcciones de correo y todo lo demás. No conservamos ningún historial, ni siquiera sin tu nombre: un historial financiero detallado puede llegar a relacionarse con una persona por sus patrones.
 
-- **Borrar todo (la opción por defecto):** tus datos se eliminan **de inmediato**: tu identidad, tus cuentas, movimientos, deudas, ahorros, consentimientos y todo lo demás.
-- **Conservar el historial anonimizado (si lo eliges):** borramos de inmediato todo lo que te identifica (nombre, correo, RUT, teléfono, dirección, fecha de nacimiento, segundo factor), pero **no borramos** tus registros financieros: quedan guardados sin ningún dato que te identifique. Ten presente que un historial financiero detallado, aun sin nombre, podría llegar a relacionarse con una persona por sus patrones; si eso te preocupa, elige borrar todo.
-
-En ambos casos se eliminan de inmediato tus sesiones, llaves de acceso, códigos de recuperación y direcciones de correo, y guardamos solo un **registro de que pediste la eliminación** (la fecha y tu RUT convertido en un código cifrado irreversible, nunca el RUT en claro), como prueba de que cumplimos tu solicitud.
+Solo guardamos un **registro de que pediste la eliminación** (la fecha y tu RUT convertido en un código cifrado irreversible, nunca el RUT en claro), como prueba de que cumplimos tu solicitud.
 
 Además:
 
@@ -70,7 +67,7 @@ Además:
 
 Puedes ejercer **acceso, rectificación, supresión, oposición, portabilidad y bloqueo**, y **retirar tu consentimiento** cuando quieras, escribiendo a contacto@mifik.cl. Respondemos en **30 días corridos** (prorrogables una sola vez por 30 días más). La rectificación, supresión y oposición son siempre gratuitas; el acceso es gratuito al menos una vez por trimestre.
 
-> ⚠️ **Estado real hoy**: puedes rectificar tus datos de perfil desde la app y **eliminar tu cuenta** (Perfil → Datos y privacidad → Eliminar cuenta): la eliminación es real (se borran todos tus datos) salvo que elijas conservar un historial anonimizado. **Portabilidad (parcial, desde la app):** Importar → Plantilla fik → Descargar plantilla → Con mis datos actuales exporta todos los datos financieros en un `.xlsx` reimportable (cuentas, tarjetas, facturaciones, movimientos, traspasos, deudas y pagos, cuotas y pagos, gastos fijos, metas y aportes). No incluye perfil, sesiones ni consentimientos: eso se atiende por correo. Ver hallazgo `data-derechos` en `RESUMEN.md`.
+> ⚠️ **Estado real hoy**: puedes rectificar tus datos de perfil desde la app y **eliminar tu cuenta** (Perfil → Datos y privacidad → Eliminar cuenta): la eliminación es real: se borran todos tus datos (desde el 2026-10-14 ya no existe la opción de conservar un historial anonimizado). **Portabilidad (parcial, desde la app):** Importar → Plantilla fik → Descargar plantilla → Con mis datos actuales exporta todos los datos financieros en un `.xlsx` reimportable (cuentas, tarjetas, facturaciones, movimientos, traspasos, deudas y pagos, cuotas y pagos, gastos fijos, metas y aportes). No incluye perfil, sesiones ni consentimientos: eso se atiende por correo. Ver hallazgo `data-derechos` en `RESUMEN.md`.
 
 ## 7. Decisiones automatizadas
 

@@ -33,8 +33,8 @@ Routing reenvía a `mifik.general@gmail.com`.
      correo se cambia con verificación (`/auth/me/emails`: se confirma la dirección nueva por enlace
      y se avisa a la anterior).
    - **Supresión:** ✅ `POST /auth/me/delete-account` (Perfil → Datos y privacidad → Eliminar
-     cuenta), con contraseña: borrado inmediato de todo, o, si el titular lo elige, anonimización
-     (se borra todo lo identificatorio y se conserva el historial financiero sin identidad). Deja un
+     cuenta), con contraseña: borrado inmediato de todo (la opción de conservar un historial
+     anonimizado se eliminó el 2026-10-14: era seudonimización, no anonimización). Deja un
      registro de la solicitud con el RUT como HMAC (`account-deletion-log`).
    - **Oposición:** ⚠️ sin mecanismo en la app para oponerse a un tratamiento puntual manteniendo la
      cuenta. Los tratamientos por interés legítimo son la seguridad de la sesión y el seguimiento de

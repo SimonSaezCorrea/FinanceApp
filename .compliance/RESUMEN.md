@@ -37,12 +37,12 @@ La Ley 21.719 (Art. 2 letra g) incluye la **situación socioeconómica** dentro 
 El modelo `User` tenía `birthDate` pero el registro no exigía ni validaba edad. La decisión de producto fue explícita: **no limitar la app a mayores de edad** — un menor puede usarla, pero con el mecanismo de consentimiento distinto que la ley exige.
 → **Implementado**: `birthDate` ahora es obligatorio en el registro (antes se pedía después, en Perfil — sin eso no se puede evaluar edad desde el día uno). Si el titular es menor de 18 años, el registro exige además un bloque de autorización del padre/madre/tutor (nombre + RUT + relación + checkbox), registrado como un segundo `ConsentRecord` (`MINOR_GUARDIAN_AUTHORIZATION`) — nunca reemplaza el consentimiento del propio titular, se suma a él. El RUT del tutor se guarda solo como HMAC, nunca en claro (mismo mecanismo que el log de borrado de cuenta).
 → **Límite honesto, no resuelto ni resoluble sin un flujo de verificación de identidad**: esto es declarativo — nada confirma que quien completa el bloque es realmente el tutor. Es el mismo límite que tiene cualquier app de consumo sin KYC.
-→ **Pendiente de confirmar con abogado**: el umbral usado (18 años, mayoría de edad chilena) es un supuesto de trabajo de los documentos que generó compliance-cl — no se verificó contra el texto exacto de la ley si el régimen reforzado aplica desde los 14, 16 o 18 años.
+→ **Riesgo aceptado (decisión 2026-10-14)**: el umbral (18 años, mayoría de edad chilena) no se verificó contra el texto exacto de la ley, que distingue tramos de 14 y 16 años. Se mantiene 18 a propósito: es el umbral más estricto posible, así que cualquier umbral menor de la ley queda cubierto; el único efecto es pedir tutor a adolescentes que quizás podrían consentir solos, nunca dejar a un menor sin autorización.
 
 ### 3. ⚠️ PARCIALMENTE RESUELTO (2026-09-20) — "Desactivar cuenta" no era "eliminar mis datos" — y sigue sin forma de exportarlos
 
 El derecho de **supresión** y **portabilidad** (Art. 11) no estaban implementados: `POST /auth/me/deactivate` solo desactivaba (`User.status: DISABLED`), no borraba nada; no existe ningún endpoint de exportación.
-→ **Supresión: implementada de verdad.** `POST /auth/me/delete-account` reemplaza `/deactivate` y exige una elección explícita, `keepHistory` (checkbox desmarcado por defecto): `false` = borrado total en cascada real (`prisma.user.delete()`); `true` = anonimización opt-in (PII scrubbeado, historial financiero conservado bajo el mismo `userId` — límite legal documentado en `data-pseudonym`, no es anonimización plena). Queda registro de auditoría del borrado (tabla `account-deletion-log`, sin RUT en claro — solo un HMAC).
+→ **Supresión: implementada de verdad.** `POST /auth/me/delete-account` reemplaza `/deactivate`: borrado total en cascada real (`prisma.user.delete()`). La opción opt-in de "conservar historial anonimizado" (`keepHistory`) **se eliminó el 2026-10-14** (deja de aplicar a la eliminación; `data-pseudonym` sigue abierto por los datos en vida activa): el historial conservado tenía números de cuenta, texto libre que nombraba a terceros y un patrón reidentificable, o sea seudonimización sin base legal. Queda registro de auditoría del borrado (tabla `account-deletion-log`, sin RUT en claro — solo un HMAC).
 → **Portabilidad: sigue sin implementar.** No existe `GET /auth/me/export`. Si llega una solicitud ARCO de acceso/portabilidad hoy, se resuelve manualmente contra la base de datos.
 → Documento: `21719-canal-derechos.md`. Remediación pendiente: implementar exportación (JSON/CSV).
 
@@ -69,7 +69,7 @@ La **supervisión externa anual del Modelo de Prevención de Delitos** (Ley 21.5
 
 Hallazgos #1, #2 y #3 quedaron resueltos el 2026-09-20 (ver arriba) — los tres hallazgos originalmente priorizados están cerrados. Lo que sigue, en orden de prioridad:
 
-1. **Confirmar con abogado** el umbral de edad usado (18 años) para el régimen reforzado de menores — es un supuesto de trabajo, no una cita verificada de la ley.
+1. ~~Confirmar con abogado el umbral de edad~~: riesgo aceptado el 2026-10-14 (18 es el umbral más estricto; ver arriba).
 2. **Portabilidad**: parcial desde 2026-09 — la plantilla prellenada de Importar ("Con mis datos actuales") exporta todos los datos financieros en `.xlsx` reimportable; perfil, sesiones y consentimientos siguen por correo (no hay `GET /auth/me/export`).
 3. Publicar la política de privacidad en una ruta real (`gov-politicas`/`data-info`, siguen en `fail`).
 

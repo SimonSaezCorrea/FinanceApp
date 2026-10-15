@@ -6,7 +6,6 @@ import { Button } from "@finance/ui/src/shared/ui/button";
 import { ConfirmModal } from "@finance/ui/src/shared/ui/overlay";
 import { Field } from "../../../shared/ui/field";
 import { Input } from "@finance/ui/src/shared/ui/input";
-import { Switch } from "../../../shared/ui/switch";
 import { useProfileMutations } from "../hooks/useProfile";
 import { landingHomeUrl } from "../../../shared/lib/landingUrl";
 import { assignLocation } from "../../../shared/lib/leaveApp";
@@ -18,13 +17,14 @@ export function DangerZone() {
   const { deleteAccount } = useProfileMutations();
   const [confirming, setConfirming] = useState(false);
   const [password, setPassword] = useState("");
-  const [keepHistory, setKeepHistory] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleDelete() {
     setError(null);
     try {
-      await deleteAccount.mutateAsync({ password, keepHistory });
+      // Always a full deletion. `keepHistory: false` is still sent so an API deployed before this
+      // app (which still requires the field) accepts it; drop it once that API is gone.
+      await deleteAccount.mutateAsync({ password, keepHistory: false });
       // The account is gone: the person ends on the public site, not on a gate to sign in again.
       assignLocation(landingHomeUrl());
     } catch (err) {
@@ -49,7 +49,6 @@ export function DangerZone() {
         className="h-11 border-destructive/40 text-destructive hover:bg-destructive/15 sm:h-10"
         onClick={() => {
           setPassword("");
-          setKeepHistory(false);
           setError(null);
           setConfirming(true);
         }}
@@ -79,21 +78,6 @@ export function DangerZone() {
             aria-label={t("profile.danger.passwordLabel")}
           />
         </Field>
-        <div className="mt-4 flex items-start justify-between gap-3 rounded-lg border border-border bg-muted/30 p-3">
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {t("profile.danger.keepHistoryLabel")}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {t("profile.danger.keepHistoryDescription")}
-            </p>
-          </div>
-          <Switch
-            checked={keepHistory}
-            onCheckedChange={setKeepHistory}
-            aria-label={t("profile.danger.keepHistoryLabel")}
-          />
-        </div>
       </ConfirmModal>
     </section>
   );

@@ -2288,12 +2288,10 @@
     "danger": {
       "deactivate": "Delete account",
       "confirmTitle": "Delete your account?",
-      "confirmDescription": "Your name, email, password and other personal data will be erased, and you won't be able to sign in again. This action cannot be undone.",
+      "confirmDescription": "Your account and all your data will be deleted: accounts, movements, debts, savings and personal data. You won't be able to sign in again. This action cannot be undone.",
       "passwordLabel": "Confirm your password",
-      "keepHistoryLabel": "Keep my history anonymized",
-      "keepHistoryDescription": "Your accounts and movements are kept (with no data that identifies you) for statistics. If you leave this off, everything is deleted with no exception.",
       "confirmButton": "Delete account",
-      "description": "Erases your personal data. You can keep your history anonymously."
+      "description": "Deletes your account and all your data, with no exceptions."
     },
     "sections": {
       "summary": {

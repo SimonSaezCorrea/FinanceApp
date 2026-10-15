@@ -54,7 +54,7 @@ describe("DangerZone — delete account (Ley 21.719 Art. 11 supresión)", () => 
     expect(deleteAccount).toHaveBeenCalledWith({ password: "wrong", keepHistory: false });
   });
 
-  it("defaults to keepHistory=false (hard delete) when the switch is left untouched", async () => {
+  it("deletes everything: there is no option to keep a history", async () => {
     deleteAccount.mockResolvedValue(undefined);
     renderDangerZone();
 
@@ -62,28 +62,11 @@ describe("DangerZone — delete account (Ley 21.719 Art. 11 supresión)", () => 
     fireEvent.change(await screen.findByLabelText(i18n.t("profile.danger.passwordLabel")), {
       target: { value: "correct-pw" },
     });
+    expect(screen.queryByRole("switch")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.danger.confirmButton") }));
 
     await waitFor(() =>
       expect(deleteAccount).toHaveBeenCalledWith({ password: "correct-pw", keepHistory: false }),
-    );
-  });
-
-  it("sends keepHistory=true once the 'keep my history' switch is turned on", async () => {
-    deleteAccount.mockResolvedValue(undefined);
-    renderDangerZone();
-
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.danger.deactivate") }));
-    fireEvent.change(await screen.findByLabelText(i18n.t("profile.danger.passwordLabel")), {
-      target: { value: "correct-pw" },
-    });
-    fireEvent.click(
-      screen.getByRole("switch", { name: i18n.t("profile.danger.keepHistoryLabel") }),
-    );
-    fireEvent.click(screen.getByRole("button", { name: i18n.t("profile.danger.confirmButton") }));
-
-    await waitFor(() =>
-      expect(deleteAccount).toHaveBeenCalledWith({ password: "correct-pw", keepHistory: true }),
     );
   });
 });

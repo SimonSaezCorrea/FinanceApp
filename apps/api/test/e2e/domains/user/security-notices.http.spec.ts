@@ -102,7 +102,7 @@ describe("Security notices HTTP (e2e)", () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/me/delete-account")
       .set("Cookie", cookies)
-      .send({ password, keepHistory: false });
+      .send({ password });
     expect(res.status).toBe(204);
     await waitForEmail(outbox, email, "security-notice", "Eliminaste tu cuenta");
   });

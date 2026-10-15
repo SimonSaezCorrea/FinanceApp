@@ -880,15 +880,22 @@ una fuente de ingresos (ver "Monetización") que permita mantener el proyecto po
 bloquea operar hoy con pocos usuarios conocidos; todas conviene resolverlas **antes de abrir a
 usuarios reales** o, a más tardar, del **1-12-2026** (entrada en vigencia de la Ley 21.719).
 
-1. **Revisión legal (abogado).** Lo que quedó documentado como riesgo, no resuelto:
-   - Si los DPA de los proveedores bastan o hay que incorporar las **cláusulas contractuales modelo
-     chilenas** (Res. RAEX202503748): hoy ninguno las incorpora (`.compliance/docs/21719-anexo-transferencias.md`,
-     "Cómo se aborda sin abogado").
-   - El umbral de **18 años** para exigir autorización de tutor, supuesto no verificado contra el texto
-     de la ley.
-   - La **anonimización** al eliminar la cuenta con historial: es discutible que sea anonimización y no
-     seudonimización (el `userId` sigue correlacionando los registros).
-   - Revisar la política de privacidad publicada antes de abrir a usuarios.
+1. **Revisión legal (abogado).** Estado de cada punto (revisado el 2026-10-14):
+   - **Cláusulas contractuales modelo chilenas** (Res. RAEX202503748) con los proveedores: hoy ningún
+     DPA las incorpora y con AWS, Cloudflare o Resend no se negocia un contrato propio. **Nada que
+     hacer por ahora**: se espera a que la Agencia publique cómo aplicarlas con proveedores de nube
+     (revisar antes del 1-12-2026). Evidencia y decisión en `.compliance/docs/21719-anexo-transferencias.md`.
+   - ~~Umbral de **18 años** para exigir tutor~~ — **riesgo aceptado (2026-10-14)**. No se verificó
+     contra el texto de la ley (que distingue tramos de 14 y 16), pero 18 es el umbral más estricto:
+     cubre cualquier umbral menor y solo puede pedir tutor de más, nunca de menos. Se mantiene.
+   - ~~**Anonimización** al eliminar la cuenta con historial~~ — **resuelto (2026-10-14)**: la opción
+     "conservar mi historial de forma anónima" se eliminó. Era seudonimización (mismo `userId`,
+     números de cuenta, texto libre que nombraba a terceros, patrón reidentificable) sin base legal
+     una vez pedida la supresión. Eliminar la cuenta borra todo; `keepHistory` sigue aceptado e
+     ignorado en el contrato para clientes viejos (quitarlo cuando ninguno lo envíe). Política de
+     privacidad actualizada (versión `2026-10-14`).
+   - **Revisión de la política de privacidad publicada** por un abogado: **para cuando haya
+     presupuesto**, antes de abrir a usuarios que no sean conocidos.
 2. **Correo de contacto con DPA.** `contacto@mifik.cl` llega a un Gmail personal, sin contrato de
    encargado. Opción: Google Workspace (o similar) para `@mifik.cl`. Costo: suscripción mensual por
    usuario.
@@ -900,9 +907,12 @@ usuarios reales** o, a más tardar, del **1-12-2026** (entrada en vigencia de la
 5. **Plan pagado de AWS.** La cuenta está en el plan gratuito (con créditos), que limita los respaldos
    de la base a 1 día y se cierra al vencer los créditos o a los 6 meses si no se pasa al plan pagado.
    Costo: ≈ US$32/mes de infraestructura (`docs/DEPLOY.md`), hoy cubierto por los créditos.
+   **Decisión (2026-10-14):** se resuelve cuando se consuman los créditos del plan gratuito.
 6. **Correos sobre la cuota gratuita de Resend.** Si el volumen crece, activar _Pay-as-you-go_
    (US$0,90 por cada 1.000 correos extra) para que la verificación de correo y la recuperación de
    contraseña no dejen de llegar.
+
+**Puntos 2, 3, 4 y 6: para después** (decisión 2026-10-14), cuando haya financiamiento.
 
 Revisar además, antes del 1-12-2026, si la Agencia de Protección de Datos publicó guías sobre cómo
 aplicar las cláusulas modelo con proveedores de nube (eso no cuesta, pero puede cambiar el punto 1).

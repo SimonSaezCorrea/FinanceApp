@@ -196,18 +196,16 @@ export const updatePreferencesRequestSchema = z.object({
 });
 export type UpdatePreferencesRequest = z.infer<typeof updatePreferencesRequestSchema>;
 
-/** Ley 21.719 Art. 11 supresión. The account can never log in again either way — `keepHistory`
- * is the user's own explicit choice, made at deletion time, never a default:
- * - `false` (hard delete): every row this user owns, across every table, is deleted (the
- *   existing `onDelete: Cascade` on every `userId` FK does the actual removal).
- * - `true` (anonymize): only this `User` row is scrubbed of PII (see `User.delete()`'s
- *   doc-comment) — financial history stays, under the same userId, for the user's own
- *   statistics/history. Security artifacts (sessions/passkeys/recovery codes) are hard-deleted
- *   either way — they only ever exist to let someone log back in.
- * Replaces the old `deactivateRequestSchema`, which never actually deleted anything. */
+/** Ley 21.719 Art. 11 supresión: every row this user owns, across every table, is deleted (the
+ * `onDelete: Cascade` on every `userId` FK does the actual removal).
+ * `keepHistory` is DEPRECATED and ignored (2026-10-14): the "keep an anonymized history" option
+ * was removed — the history it kept still held account numbers, free text naming third parties
+ * and a pattern that re-identifies a person, i.e. pseudonymized personal data with no legal basis
+ * once the person asked to be deleted. Still accepted so a cached app keeps working during a
+ * deploy; drop it once no client sends it. */
 export const deleteAccountRequestSchema = z.object({
   password: z.string().min(1),
-  keepHistory: z.boolean(),
+  keepHistory: z.boolean().optional(),
 });
 export type DeleteAccountRequest = z.infer<typeof deleteAccountRequestSchema>;
 

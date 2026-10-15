@@ -1,4 +1,4 @@
-**Última actualización:** 11 de octubre de 2026
+**Última actualización:** 14 de octubre de 2026
 
 Esta política explica qué datos personales trata _fik_, para qué, con quién los comparte, cuánto tiempo los guarda y cómo ejerces tus derechos, conforme a la Ley 19.628 y la Ley 21.719 sobre protección de datos personales.
 
@@ -55,12 +55,9 @@ Para funcionar, _fik_ usa proveedores que tratan tus datos **por encargo nuestro
 
 ## 5. Por cuánto tiempo los guardamos
 
-Guardamos tus datos **mientras tu cuenta esté activa**. Cuando eliminas tu cuenta (Perfil → Datos y privacidad → Eliminar cuenta), eliges qué pasa con ellos:
+Guardamos tus datos **mientras tu cuenta esté activa**. Cuando eliminas tu cuenta (Perfil → Datos y privacidad → Eliminar cuenta), **se borra todo de inmediato**: tu identidad, tus cuentas, movimientos, deudas, ahorros, consentimientos, sesiones, llaves de acceso, códigos de recuperación, direcciones de correo y todo lo demás. No conservamos ningún historial, ni siquiera sin tu nombre: un historial financiero detallado puede llegar a relacionarse con una persona por sus patrones.
 
-- **Borrar todo (la opción por defecto):** tus datos se eliminan **de inmediato**: tu identidad, tus cuentas, movimientos, deudas, ahorros, consentimientos y todo lo demás.
-- **Conservar el historial anonimizado (si lo eliges):** borramos de inmediato todo lo que te identifica (nombre, correo, RUT, teléfono, dirección, fecha de nacimiento, segundo factor), pero **no borramos** tus registros financieros: quedan guardados sin ningún dato que te identifique. Ten presente que un historial financiero detallado, aun sin nombre, podría llegar a relacionarse con una persona por sus patrones; si eso te preocupa, elige borrar todo.
-
-En ambos casos se eliminan de inmediato tus sesiones, llaves de acceso, códigos de recuperación y direcciones de correo, y guardamos solo un **registro de que pediste la eliminación**: la fecha y tu RUT convertido en un código cifrado irreversible (nunca el RUT en claro), como prueba de que cumplimos tu solicitud.
+Solo guardamos un **registro de que pediste la eliminación**: la fecha y tu RUT convertido en un código cifrado irreversible (nunca el RUT en claro), como prueba de que cumplimos tu solicitud.
 
 Además:
 

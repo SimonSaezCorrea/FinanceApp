@@ -12,8 +12,7 @@ import { PrismaService } from "../../../../src/infra/prisma/prisma.service";
 import { randomValidRut } from "../../support/rut";
 
 /**
- * E2E test: `POST /auth/me/delete-account` with `keepHistory: false` — the user's own explicit
- * choice to NOT keep an anonymized history. Verifies the `User` row and everything the
+ * E2E test: `POST /auth/me/delete-account` (always a hard delete since 2026-10-14). Verifies the `User` row and everything the
  * `onDelete: Cascade` FKs cover (here: a BankAccount) are genuinely gone, not just scrubbed.
  */
 describe("Auth HTTP (e2e) — delete-account hard delete", () => {
@@ -64,7 +63,7 @@ describe("Auth HTTP (e2e) — delete-account hard delete", () => {
     const res = await request(app.getHttpServer())
       .post("/api/v1/auth/me/delete-account")
       .set("Cookie", cookies)
-      .send({ password, keepHistory: false });
+      .send({ password });
     expect(res.status).toBe(204);
 
     const row = await prisma.user.findUnique({ where: { id: userId } });

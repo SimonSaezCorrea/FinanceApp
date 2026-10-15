@@ -1,4 +1,4 @@
-**Last updated:** October 11, 2026
+**Last updated:** October 14, 2026
 
 _This is a translation for convenience. The [Spanish version](/es/privacy-policy/) is the one that legally applies._
 
@@ -57,12 +57,9 @@ To work, _fik_ uses providers that process your data **on our behalf**: they may
 
 ## 5. How long we keep it
 
-We keep your data **while your account is active**. When you delete your account (Profile → Data and privacy → Delete account), you choose what happens to it:
+We keep your data **while your account is active**. When you delete your account (Profile → Data and privacy → Delete account), **everything is deleted immediately**: your identity, accounts, movements, debts, savings, consents, sessions, passkeys, recovery codes, email addresses and everything else. We keep no history, not even without your name: a detailed financial history can be linked back to a person through its patterns.
 
-- **Delete everything (the default):** your data is deleted **immediately**: your identity, accounts, movements, debts, savings, consents and everything else.
-- **Keep an anonymized history (if you choose it):** we immediately delete everything that identifies you (name, email, RUT, phone, address, date of birth, second factor), but we **do not delete** your financial records: they stay stored with no data that identifies you. Bear in mind that a detailed financial history, even without a name, could be linked back to a person through its patterns; if that worries you, delete everything.
-
-Either way, your sessions, passkeys, recovery codes and email addresses are deleted immediately, and we keep only a **record that you asked for the deletion**: the date and your RUT turned into an irreversible encrypted code (never the RUT in plain text), as proof that we honoured your request.
+We keep only a **record that you asked for the deletion**: the date and your RUT turned into an irreversible encrypted code (never the RUT in plain text), as proof that we honoured your request.
 
 Also:
 

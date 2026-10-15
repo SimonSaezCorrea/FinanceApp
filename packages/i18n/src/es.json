@@ -2288,12 +2288,10 @@
     "danger": {
       "deactivate": "Eliminar cuenta",
       "confirmTitle": "¿Eliminar tu cuenta?",
-      "confirmDescription": "Se borrarán tu nombre, correo, contraseña y demás datos personales, y no podrás volver a iniciar sesión. Esta acción no se puede deshacer.",
+      "confirmDescription": "Se borrarán tu cuenta y todos tus datos: cuentas, movimientos, deudas, ahorros y datos personales. No podrás volver a iniciar sesión. Esta acción no se puede deshacer.",
       "passwordLabel": "Confirma tu contraseña",
-      "keepHistoryLabel": "Conservar mi historial de forma anónima",
-      "keepHistoryDescription": "Tus cuentas y movimientos se conservan (sin ningún dato que te identifique) para estadísticas. Si no activas esto, se borra todo sin excepción.",
       "confirmButton": "Eliminar cuenta",
-      "description": "Borra tus datos personales. Puedes conservar tu historial de forma anónima."
+      "description": "Borra tu cuenta y todos tus datos, sin excepción."
     },
     "sections": {
       "summary": {

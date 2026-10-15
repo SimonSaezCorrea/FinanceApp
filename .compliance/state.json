@@ -91,8 +91,8 @@
     },
     "data-eipd": {
       "status": "pass",
-      "evidence": "resuelto 2026-09-20: los dos riesgos que la EIPD marcaba como Alto (falta de consentimiento reforzado, tratamiento de datos de un menor sin autorización de representante) ya tienen control real — registerRequestSchema exige sensitiveDataConsent + guardianAuthorization cuando corresponde. NOTA: MINOR_GUARDIAN_THRESHOLD_AGE=18 es un supuesto de trabajo de los docs generados por compliance-cl, no verificado contra el texto exacto de la ley — pendiente de revisión legal antes de producción",
-      "remediation": "Confirmar con un abogado que el umbral de 18 años (mayoría de edad) es el correcto para el régimen reforzado de menores del Art. 2/línea 984, no un umbral distinto (ej. 14 o 16)"
+      "evidence": "resuelto 2026-09-20: los dos riesgos que la EIPD marcaba como Alto (falta de consentimiento reforzado, tratamiento de datos de un menor sin autorización de representante) ya tienen control real — registerRequestSchema exige sensitiveDataConsent + guardianAuthorization cuando corresponde. NOTA: MINOR_GUARDIAN_THRESHOLD_AGE=18 es un supuesto de trabajo de los docs generados por compliance-cl, no verificado contra el texto exacto de la ley — riesgo aceptado el 2026-10-14: 18 es el umbral más estricto posible, cubre cualquier umbral menor que fije la ley",
+      "remediation": ""
     },
     "data-privacy-by-design": {
       "status": "pass",
@@ -101,7 +101,7 @@
     },
     "data-pseudonym": {
       "status": "fail",
-      "evidence": "sin seudonimización de datos identificatorios en vida activa (nombre/RUT/dirección se guardan en claro en Postgres); solo secretos MFA y passwords están protegidos criptográficamente. La opción de anonimizar al eliminar cuenta (2026-09-20, keepHistory:true) es un caso distinto y no resuelve esto — mientras la cuenta está activa el dato sigue en claro, y esa anonimización en sí es seudonimización (mismo userId enlaza todo), no anonimización plena",
+      "evidence": "sin seudonimización de datos identificatorios en vida activa (nombre/RUT/dirección se guardan en claro en Postgres); solo secretos MFA y passwords están protegidos criptográficamente. La opción de conservar un historial 'anonimizado' al eliminar la cuenta (keepHistory) se eliminó el 2026-10-14: era seudonimización (mismo userId, números de cuenta, texto libre con terceros); hoy eliminar la cuenta borra todo",
       "remediation": "Evaluar seudonimización para futuros usos de analítica/backups; no crítico para el MVP actual"
     },
     "sec-tls": {

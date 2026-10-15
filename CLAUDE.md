@@ -1801,6 +1801,16 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
       the same `userId` correlating dozens of financial rows is arguably seudonimización, not
       true anonymization (re-identification by behavioral pattern isn't structurally
       impossible) — this was an explicit product trade-off, not a compliance sign-off.
+      **Superseded (2026-10-14): deleting the account ALWAYS deletes everything.** The
+      `keepHistory: true` path is gone — what it kept (account numbers, free text naming third
+      parties, debt titles, a re-identifying pattern) was pseudonymized personal data with no legal
+      basis once the person asked to be deleted. `DeleteAccountHandler` only runs
+      `deleteWithTx` (cascade) + the deletion log (`keepHistory` always `false`, column kept);
+      `deleteAccountRequestSchema.keepHistory` is now optional and IGNORED (accepted so a cached app
+      keeps working during a deploy; the web still sends `false` for an older API — drop both later).
+      `DangerZone` lost its switch (i18n `profile.danger.keepHistory*` removed); the published privacy
+      policy §5 says so (`CURRENT_PRIVACY_POLICY_VERSION` = `2026-10-14`). The 18-year guardian
+      threshold below is kept on purpose: the strictest possible, an accepted risk.
       Two new table-domains, both minimal (no `presentation/` of their own — composed into
       `user`'s own `AuthController`/handlers, same treatment as `mfa-recovery-code`/`passkey`):
     - **`consent-record`**: one row per explicit, versioned consent (Ley 21.719 Art. 16
@@ -1906,7 +1916,7 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
       (no consentimiento reforzado — **now closed**) and hallazgo #3 (desactivar ≠ eliminar —
       **now closed**, real supresión exists). Still open: hallazgo #2 (no age-minimum check at
       registration), portabilidad/export (partial: the pre-filled import template exports every financial record as a re-importable `.xlsx` — declared in the published privacy policy; profile/sessions/consents still by email, no `GET /auth/me/export`), and the seudonimización
-      caveat above.
+      caveat above (moot for deletion since 2026-10-14: nothing is kept).
   - **session** (specs/023, "Sesiones y dispositivos reales", 2026-09-19): `Session`
     (table `session`) is a dominio-tabla propio sin `presentation/` (mismo trato que
     `passkey`/`mfa-recovery-code` — sus comandos/queries viven en `user`'s application
@@ -2304,7 +2314,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.6.3**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.6.4**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
 - **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
   `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.
