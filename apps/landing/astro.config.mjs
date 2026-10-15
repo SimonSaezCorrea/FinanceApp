@@ -32,5 +32,18 @@ export default defineConfig({
   vite: {
     // One React for the whole page (pnpm can surface a second copy through workspace packages).
     resolve: { dedupe: ["react", "react-dom"] },
+    // The access panel is a dynamic import (scripts/access.ts), so Vite's startup scan never sees
+    // its dependencies: in `dev`, the first click discovered them, re-optimized mid-session and the
+    // import failed with 504 "Outdated Optimize Dep" — the panel never opened. Bundle them upfront.
+    optimizeDeps: {
+      include: [
+        "i18next",
+        "react-i18next",
+        "clsx",
+        "tailwind-merge",
+        "lucide-react",
+        "@radix-ui/react-dialog",
+      ],
+    },
   },
 });
