@@ -1,0 +1,27 @@
+# Normas: a main solo llega lo que ya está en dev (y pasó su CI). Lee las refs que se empujan.
+zero=0000000000000000000000000000000000000000
+pushed_dev=""
+to_main=""
+while read -r local_ref local_sha remote_ref remote_sha; do
+  [ "$local_sha" = "$zero" ] && continue
+  case "$remote_ref" in
+    refs/heads/dev) pushed_dev="$local_sha" ;;
+    refs/heads/main) to_main="$local_sha" ;;
+  esac
+done
+
+if [ -n "$to_main" ]; then
+  if ! git merge-base --is-ancestor "$to_main" refs/remotes/origin/dev 2>/dev/null \
+    && ! { [ -n "$pushed_dev" ] && git merge-base --is-ancestor "$to_main" "$pushed_dev"; }; then
+    echo "✖ Ese commit no está en dev: a main solo se empuja lo que ya pasó por dev." >&2
+    exit 1
+  fi
+fi
+
+# Lint + typecheck de lo que cambió respecto del remoto (los tests quedan para CI).
+base="$(git rev-parse --verify -q '@{upstream}' || git rev-parse --verify -q refs/remotes/origin/dev || true)"
+if [ -n "$base" ]; then
+  TURBO_SCM_BASE="$base" pnpm exec turbo run lint typecheck --affected --output-logs=errors-only
+else
+  pnpm exec turbo run lint typecheck --output-logs=errors-only
+fi

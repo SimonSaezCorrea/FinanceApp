@@ -1,0 +1,19 @@
+# Conventional Commits, como el historial: tipo(scope opcional)!?: descripción
+header="$(head -n1 "$1")"
+
+case "$header" in
+  Merge\ *|Revert\ *|fixup!\ *|squash!\ *|amend!\ *) exit 0 ;;
+esac
+
+types='feat|fix|docs|test|ci|chore|perf|refactor|style|build|revert'
+if ! printf '%s' "$header" | grep -qE "^($types)(\([a-z0-9,./-]+\))?!?: [^ ].*"; then
+  echo "✖ Mensaje no sigue Conventional Commits: \"$header\"" >&2
+  echo "  Formato: <tipo>(<scope>): <descripción>   tipos: $(printf %s "$types" | sed "s/|/, /g")" >&2
+  echo "  Ej.: feat(debts): pay any amount" >&2
+  exit 1
+fi
+
+if [ "${#header}" -gt 120 ]; then
+  echo "✖ Primera línea de ${#header} caracteres (máx. 120)." >&2
+  exit 1
+fi

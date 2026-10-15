@@ -1,4 +1,12 @@
 <!--
+Sync Impact Report — 2026-10-14 (amendment 2.6.3)
+- Version change: 2.6.2 → 2.6.3 (PATCH: local git hooks enforce gates that already existed; no
+  principle text changed).
+- Husky + lint-staged: pre-commit (no commits on `main`, no real `.env`, `schema.prisma` only with
+  its migration, Prettier on staged files, `check:boundaries`), commit-msg (Conventional Commits,
+  header ≤ 120), pre-push (`main` only receives commits already on `dev`; lint + typecheck of what
+  changed). Tests stay in CI.
+
 Sync Impact Report — 2026-10-12 (amendment 2.6.2)
 - Version change: 2.6.1 → 2.6.2 (PATCH: two nullable `debt` columns, `paidAmount` and
   `writtenOffAt`, and `POST /debts/:id/write-off` + `/reinstate`; no principle text changed).
@@ -2228,6 +2236,10 @@ identificador adivinable o no.
   before `/speckit-implement`.
 - **Definition of done:** `pnpm check:boundaries`, `pnpm typecheck`, `pnpm test`, and `pnpm build`
   MUST pass; money/finance logic in `packages/money` is covered by tests.
+- **Local hooks (Husky):** `.husky/` enforces on every machine what CI and these conventions
+  already require — commits never land on `main`, messages follow Conventional Commits, a
+  `schema.prisma` change carries its migration, and `main` only receives commits already on `dev`.
+  `--no-verify` exists for emergencies; CI remains the authority.
 - **Ambiguity:** when scope, a tech choice, or acceptance criteria are unknown, STOP and ask
   the user — do not guess. (Enforced by the `/sdd` orchestrator.)
 - **Memory sync:** every cycle ends by reconciling this constitution and `CLAUDE.md` with what
@@ -2258,4 +2270,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.6.2 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-12
+**Version**: 2.6.3 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-14

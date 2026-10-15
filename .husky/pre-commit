@@ -1,0 +1,26 @@
+# Normas del repo (CLAUDE.md): se trabaja en `dev`; `main` solo recibe lo que ya pasó por dev.
+branch="$(git symbolic-ref --short HEAD 2>/dev/null || true)"
+if [ "$branch" = "main" ]; then
+  echo "✖ No se commitea directo en main: trabaja en dev (merge a main es lo que publica)." >&2
+  exit 1
+fi
+
+staged="$(git diff --cached --name-only --diff-filter=ACMR)"
+
+# Secretos: ningún .env real entra al repo (solo los .env.example).
+envs="$(printf '%s\n' "$staged" | grep -E '(^|/)\.env($|\.)' | grep -vE '\.env\.example$' || true)"
+if [ -n "$envs" ]; then
+  echo "✖ Archivo .env en el commit (solo se versiona .env.example):" >&2
+  printf '  %s\n' $envs >&2
+  exit 1
+fi
+
+# Un cambio de schema.prisma va con su migración en el mismo commit.
+if printf '%s\n' "$staged" | grep -qx 'apps/api/prisma/schema.prisma' \
+  && ! printf '%s\n' "$staged" | grep -q '^apps/api/prisma/migrations/'; then
+  echo "✖ schema.prisma cambió sin migración: corre \`pnpm db:migrate\` y agrega su migration.sql." >&2
+  exit 1
+fi
+
+pnpm exec lint-staged
+pnpm -s check:boundaries
