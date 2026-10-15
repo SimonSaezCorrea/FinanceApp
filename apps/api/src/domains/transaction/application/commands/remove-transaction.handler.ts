@@ -60,6 +60,8 @@ interface Context {
   /** Spec 019: set only when this movement is a prepago — see
    * `update-transaction.handler.ts`'s own field of the same name. */
   prepaymentReversal: { accountId: string; statementId: string; oldAmount: string } | null;
+  /** A prepayment in another currency: its two legs, undone together. */
+  settlementPair: { expense: Transaction; income: Transaction } | null;
 }
 
 /**
@@ -105,9 +107,24 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
     ) {
       throw new TransactionLinkedToInstallmentError();
     }
-    // Spec 030 (028 R10): a statement's settlement is undone from the statement, not here.
-    if (current.snapshot().settlesStatementId !== null) {
+    // Spec 028 US3: the account-currency charge of a transfer is undone from its statement
+    // ("Deshacer traspaso"), never edited or deleted here.
+    if ((await this.statements.transferInfoFor([command.id])).has(command.id)) {
       throw new TransactionLinkedToStatementError();
+    }
+    // Spec 030 (028 R10): a statement's settlement is undone from the statement, not here —
+    // except a prepayment in another currency, whose two legs this deletes as a pair (below).
+    if (current.snapshot().settlesStatementId !== null) {
+      const pairId = current.snapshot().settlementPairId ?? null;
+      const pair = pairId ? await this.repo.findSettlementPair(command.userId, pairId) : null;
+      if (!pair) throw new TransactionLinkedToStatementError();
+      return {
+        current,
+        creditUsedDelta: null,
+        cashReversal: "0",
+        prepaymentReversal: null,
+        settlementPair: pair,
+      };
     }
 
     // A transfer leg is deleted as a PAIR (FR-015): the user deletes from the row
@@ -119,6 +136,7 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
         // A transfer never involves a card and is settled below as a pair.
         cashReversal: reverseBalanceDelta(current.type, current.amount),
         prepaymentReversal: null,
+        settlementPair: null,
       };
     }
 
@@ -178,6 +196,7 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
       creditUsedDelta,
       cashReversal: cashReversal ?? reverseBalanceDelta(current.type, current.amount),
       prepaymentReversal,
+      settlementPair: null,
     };
   }
 
@@ -186,6 +205,10 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
     context: Context,
   ): Promise<HandleResult<void>> {
     const { current } = context;
+    if (context.settlementPair) {
+      await this.undoForeignPrepayment(command.userId, context.settlementPair);
+      return { result: undefined, events: [] };
+    }
     if (current.isTransferLeg) {
       const pair = await this.repo.findTransferGroup(command.userId, current.transferGroupId!);
       if (!pair) throw new TransactionNotFoundError();
@@ -250,5 +273,50 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
     );
     if (!ok) throw new TransactionNotFoundError();
     return { result: undefined, events: [] };
+  }
+
+  /**
+   * Undoes a prepayment in another currency (spec 030): both legs go, the pesos come back to the
+   * source account, and the period's `prepaidAmount` drops by the dollars it had settled — the
+   * exact mirror of `PrepayOpenPeriodHandler`, in one `$transaction`. Only while that period is
+   * not settled yet (neither paid nor transferred): a settled period's figures are frozen, and is
+   * corrected from the statement instead. The pool in the account's currency never moved, so it
+   * doesn't move back either.
+   */
+  private async undoForeignPrepayment(
+    userId: string,
+    pair: { expense: Transaction; income: Transaction },
+  ): Promise<void> {
+    const { expense, income } = pair;
+    const accountId = income.bankAccountId;
+    const statementId = income.snapshot().settlesStatementId;
+    if (!accountId || !statementId || !expense.bankAccountId) {
+      throw new TransactionLinkedToStatementError();
+    }
+    await this.prisma.$transaction(async (tx) => {
+      // Locked, like the prepayment itself: a concurrent prepay or pay serializes here.
+      const statement = await this.statements.findByIdForUpdateWithTx(
+        tx,
+        userId,
+        accountId,
+        statementId,
+      );
+      if (!statement || statement.paidAt !== null || statement.transferredAt !== null) {
+        throw new TransactionLinkedToStatementError();
+      }
+      const breakdown = await this.statements.breakdown(statement.id);
+      const grossTotal = statement.grossTotalFor(breakdown.purchases, breakdown.installments);
+      statement.changePrepayment(grossTotal, income.amount, "0");
+      await this.statements.saveWithTx(tx, statement);
+
+      const removedExpense = await this.repo.removeWithTx(tx, expense.id, null, [
+        {
+          accountId: expense.bankAccountId!,
+          delta: reverseBalanceDelta("EXPENSE", expense.amount),
+        },
+      ]);
+      const removedIncome = await this.repo.removeWithTx(tx, income.id, null, []);
+      if (!removedExpense || !removedIncome) throw new TransactionNotFoundError();
+    });
   }
 }

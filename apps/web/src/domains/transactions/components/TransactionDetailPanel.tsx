@@ -184,10 +184,22 @@ export function TransactionDetailPanel({
 
       {/* Spec 030: this row settles a statement in another currency. It is corrected
           from that statement (its payment), never here — saying so beats a missing button. */}
+      {(tx.transferStatementId ?? null) !== null && (
+        <p className="flex gap-2 rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
+          <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <span>{t("transactions.detail.transferLocked")}</span>
+        </p>
+      )}
       {tx.settlesStatementId !== null && (
         <p className="flex gap-2 rounded-md bg-muted/60 p-3 text-xs text-muted-foreground">
           <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-          <span>{t("transactions.detail.statementLocked")}</span>
+          <span>
+            {t(
+              (tx.settlementPairId ?? null) !== null
+                ? "transactions.detail.foreignPrepaymentLocked"
+                : "transactions.detail.statementLocked",
+            )}
+          </span>
         </p>
       )}
 

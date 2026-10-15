@@ -26,6 +26,10 @@ import {
 import type { BankAccountRepositoryPort } from "../../../../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CreditStatementRepositoryPort } from "../../../../../../src/domains/credit-statement/domain/ports/credit-statement.repository.port";
 import type { InstallmentPlanRepositoryPort } from "../../../../../../src/domains/installment-plan/domain/ports/installment-plan.repository.port";
+import {
+  OverdraftLimitExceededError,
+  PrepaidInsufficientBalanceError,
+} from "../../../../../../src/domains/transaction/domain/errors";
 
 function accountProps(overrides: Partial<BankAccountProps> = {}): BankAccountProps {
   return {
@@ -118,6 +122,8 @@ function fakeStatementRepo(
   overrides: Partial<CreditStatementRepositoryPort> = {},
 ): CreditStatementRepositoryPort {
   const merged: CreditStatementRepositoryPort = {
+    carriedOverOwed: vi.fn(async () => new Map()),
+    transferInfoFor: vi.fn(async () => new Map()),
     listDueScheduled: vi.fn(async () => []),
     countForUser: vi.fn(async () => 0),
     paymentTransactionIdsFromOtherAccounts: vi.fn(async () => []),
@@ -683,5 +689,68 @@ describe("PayCreditStatementHandler — statement in another currency", () => {
     });
 
     await expect(pay(undefined, "49394")).rejects.toThrow(StatementAlreadyPaidError);
+  });
+});
+
+describe("PayCreditStatementHandler — the source account's own rules", () => {
+  function payFrom(source: Partial<BankAccountProps>) {
+    const creditAccount = BankAccount.fromPersistence(accountProps());
+    const fromAccount = BankAccount.fromPersistence(
+      accountProps({ id: "acc_2", creditLimit: "0", creditUsed: "0", ...source }),
+    );
+    const statement = CreditStatement.fromPersistence(statementProps());
+    const accountRepo = fakeAccountRepo({
+      findById: vi.fn(async (_userId: string, id: string) =>
+        id === "acc_1" ? creditAccount : fromAccount,
+      ),
+    });
+    const statementRepo = fakeStatementRepo({
+      findById: vi.fn(async () => statement),
+      breakdown: vi.fn(async () => ({
+        purchases: "10000",
+        installments: "0",
+        installmentCount: 0,
+      })),
+    });
+    const transactions = fakeTransactionWriterRepo();
+    const handler = new PayCreditStatementHandler(
+      { publish: vi.fn() } as never,
+      fakeIdempotencyRecordRepo(),
+      accountRepo,
+      statementRepo,
+      transactions,
+      fakePlanRepo(),
+      fakePrisma() as never,
+      fakeCategoryLookup(),
+    );
+    const run = () =>
+      handler.execute(
+        new PayCreditStatementCommand("u1", "acc_1", "st_1", "acc_2", "test-key-0000000000009"),
+      );
+    return { run, transactions, accountRepo };
+  }
+
+  it("refuses paying from a prepaid account that doesn't have the money, writing nothing", async () => {
+    const { run, transactions, accountRepo } = payFrom({ type: "PREPAID", currentBalance: "5000" });
+    await expect(run()).rejects.toThrow(PrepaidInsufficientBalanceError);
+    expect(transactions.createWithTx).not.toHaveBeenCalled();
+    expect(accountRepo.incrementBalanceWithTx).not.toHaveBeenCalled();
+  });
+
+  it("refuses a payment that would go past the source's declared overdraft", async () => {
+    const { run } = payFrom({ type: "CHECKING", currentBalance: "2000", overdraftLimit: "5000" });
+    await expect(run()).rejects.toThrow(OverdraftLimitExceededError);
+  });
+
+  it("lets a checking account with no overdraft declared go negative (the bank may allow it)", async () => {
+    const { run, transactions } = payFrom({ type: "CHECKING", currentBalance: "0" });
+    await run();
+    expect(transactions.createWithTx).toHaveBeenCalled();
+  });
+
+  it("pays from a prepaid account that has exactly enough", async () => {
+    const { run, transactions } = payFrom({ type: "PREPAID", currentBalance: "10000" });
+    await run();
+    expect(transactions.createWithTx).toHaveBeenCalled();
   });
 });

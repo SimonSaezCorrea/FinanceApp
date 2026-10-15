@@ -138,7 +138,12 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
 
   protected async loadContext(command: ImportTemplateCommand): Promise<Context> {
     const { lookup, createdAt } = await loadTemplateContext(
-      { accounts: this.accounts, movements: this.movements, categories: this.categories },
+      {
+        accounts: this.accounts,
+        movements: this.movements,
+        categories: this.categories,
+        statements: this.statements,
+      },
       command.userId,
       command.input,
     );

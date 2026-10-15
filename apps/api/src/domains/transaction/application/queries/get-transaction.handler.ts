@@ -42,8 +42,10 @@ export class GetTransactionQueryHandler extends BaseQueryHandler<
   ): Promise<transactions.Transaction> {
     const dto = row.toContract();
     const info = (await this.statements.paymentInfoFor([dto.id])).get(dto.id);
-    return info
+    const transferred = (await this.statements.transferInfoFor([dto.id])).get(dto.id);
+    const withPayment = info
       ? { ...dto, paidStatementId: info.statementId, paidStatementAccountId: info.accountId }
       : dto;
+    return transferred ? { ...withPayment, transferStatementId: transferred } : withPayment;
   }
 }

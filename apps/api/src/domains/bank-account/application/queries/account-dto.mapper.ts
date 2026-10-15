@@ -1,6 +1,7 @@
 import type { accounts, installments } from "@finance/contracts";
 import { addMoney, moneyToString, subtractMoney, toMoney } from "@finance/money";
 
+import type { CreditStatementLookupPort } from "../../../credit-statement/domain/ports/credit-statement-lookup.port";
 import type { TransactionSumsRepositoryPort } from "../../../transaction/domain/ports/transaction-sums.repository.port";
 import type { BankAccount } from "../../domain/bank-account.aggregate";
 
@@ -20,6 +21,7 @@ export async function accountsToDtos(
   userId: string,
   rows: BankAccount[],
   plansRepo: PlanDebtSource,
+  statements: Pick<CreditStatementLookupPort, "carriedOverOwed">,
 ): Promise<accounts.BankAccount[]> {
   if (rows.length === 0) return [];
   const now = new Date();
@@ -33,12 +35,11 @@ export async function accountsToDtos(
     bucket.push(t);
     byAccount.set(t.bankAccountId, bucket);
   }
-  // No `since` window: `creditUsed` is a persisted, never-time-scoped total (2026-07-25
-  // amendment) — a card's own contribution must add up against that same all-time total,
-  // not a billing-cycle slice of it, or its tile's usage bar disagrees with the account's.
-  const cardsInfo = rows.flatMap((r) => r.cards.map((c) => ({ id: c.id, since: null })));
+  // No time window: `creditUsed` is a persisted, never-time-scoped total (2026-07-25
+  // amendment) — a card's own contribution must add up against that same all-time total.
+  const cardIds = rows.flatMap((r) => r.cards.map((c) => c.id));
   const cardSums: CardSums = new Map();
-  for (const s of await sumsRepo.sumsByCard(userId, cardsInfo)) {
+  for (const s of await sumsRepo.sumsByCard(userId, cardIds)) {
     if (!s.cardId) continue;
     const key = `${s.cardId}:${s.currency}`;
     const entry = cardSums.get(key) ?? { income: "0", expense: "0" };
@@ -50,12 +51,14 @@ export async function accountsToDtos(
     rows.flatMap((r) => r.cards.filter((c) => c.kind === "CREDIT").map((c) => c.id)),
   );
   const planDebt = await planDebtByCard(plansRepo, userId, creditCardIds);
+  const carried = await statements.carriedOverOwed(ids);
   return rows.map((row) =>
     accountToDto(
       row,
       computeSeries(row.currentBalance, byAccount.get(row.id) ?? [], now),
       cardSums,
       planDebt,
+      carried,
     ),
   );
 }
@@ -172,6 +175,24 @@ export function cardToDto(
   };
 }
 
+/**
+ * A limit in ANOTHER currency (the USD one of a CLP card) is paid through the primary card, and a
+ * short payment carries the rest into the next period of that currency as `carriedOverAmount` —
+ * not a movement, so the movement-derived usage would forget it until that period is paid. It is
+ * still owed: it is added back here, on the primary card (the one the settlement lands on). The
+ * account's own currency needs nothing: its carry-over is already inside `creditUsed`.
+ */
+export function foreignLimitWithCarry(
+  limit: accounts.Card["limits"][number],
+  accountId: string,
+  accountCurrency: string,
+  carriedOver?: ReadonlyMap<string, string>,
+): accounts.Card["limits"][number] {
+  if (limit.currency === accountCurrency) return limit;
+  const carry = carriedOver?.get(`${accountId}:${limit.currency}`);
+  return carry ? { ...limit, used: moneyToString(addMoney(limit.used, carry)) } : limit;
+}
+
 /** Maps a `BankAccount` aggregate + its read-model extras (series, card sums)
  * to the public `accounts.BankAccount` DTO — never an aggregate instance,
  * never a Prisma row, shaped only for this read (FR-003). */
@@ -180,6 +201,7 @@ export function accountToDto(
   series: { series: string[]; balanceChangePct: string | null },
   cardSums?: CardSums,
   planDebt?: ReadonlyMap<string, string>,
+  carriedOver?: ReadonlyMap<string, string>,
 ): accounts.BankAccount {
   const snap = account.snapshot();
   const creditUsed = account.hasCreditPool ? account.creditUsed : "0";
@@ -197,7 +219,13 @@ export function accountToDto(
         const othersOwnUsed = rawCardsDto
           .filter((other) => other.kind === "CREDIT" && !other.isPrimary)
           .reduce((sum, other) => addMoney(sum, other.ownUsed), "0");
-        return { ...c, ownUsed: subtractMoney(creditUsed, othersOwnUsed) };
+        return {
+          ...c,
+          ownUsed: subtractMoney(creditUsed, othersOwnUsed),
+          limits: c.limits.map((l) =>
+            foreignLimitWithCarry(l, snap.id, snap.currency, carriedOver),
+          ),
+        };
       })
     : rawCardsDto;
   const primaryDto = cardsDto.find((c) => c.isPrimary);

@@ -44,6 +44,7 @@ import {
   type CreditStatementRepositoryPort,
 } from "../../domain/ports/credit-statement.repository.port";
 import { planForeignSettlement } from "../foreign-settlement";
+import { assertSourceCovers } from "../source-funds";
 import { toStatementDto } from "../statement-dto.mapper";
 import { PayCreditStatementCommand } from "./pay-credit-statement.command";
 
@@ -212,6 +213,9 @@ export class PayCreditStatementHandler extends BaseIdempotentCommandHandler<
         context.occurredAt,
         settlement ? context.settlementTransactionId : null,
       );
+      // What leaves the source must fit its rules (prepaid never negative, overdraft floor),
+      // exactly like paying an instalment — checked before anything is written.
+      assertSourceCovers(context.fromAccount, settlement ? settlement.charged : amount);
       // Only what was actually paid comes off the credit pool: paying the minimum
       // frees exactly that, and the shortfall stays used — it is still owed, just
       // in the next period now.

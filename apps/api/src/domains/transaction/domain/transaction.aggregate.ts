@@ -47,6 +47,9 @@ export interface TransactionProps {
   /** Spec 028: the foreign-currency statement this INCOME settles (written only by
    * the statement pay/transfer commands, through the writer port). */
   settlesStatementId: string | null;
+  /** The two legs of a prepayment in another currency share it — deleting one deletes both.
+   * Optional so the many places that build a plain movement don't have to spell it out. */
+  settlementPairId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -136,6 +139,7 @@ export class Transaction {
       prepaymentStatementId: null,
       prepaymentAccountId: null,
       settlesStatementId: null,
+      settlementPairId: null,
     };
   }
 
@@ -228,6 +232,7 @@ export class Transaction {
       prepaymentStatementId: this.props.prepaymentStatementId,
       prepaymentAccountId: this.props.prepaymentAccountId,
       settlesStatementId: this.props.settlesStatementId,
+      settlementPairId: this.props.settlementPairId ?? null,
       // Resolved by the query handler, like `paidStatementId`.
       transferStatementId: null,
       createdAt: this.props.createdAt.toISOString(),

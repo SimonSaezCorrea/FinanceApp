@@ -4,7 +4,6 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import type { accounts } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
-import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import {
   TRANSACTION_SUMS_REPOSITORY,
   type TransactionSumsRepositoryPort,
@@ -89,12 +88,7 @@ export class UpdateCardHandler extends BaseCommandHandler<
     if (!account) throw new CardNotFoundError();
     const updated = account.cards.find((c) => c.id === command.cardId);
     if (!updated) throw new CardNotFoundError();
-    const sums = await this.sumsRepo.sumsByCard(command.userId, [
-      {
-        id: updated.id,
-        since: currentCycleStart(account.billingCycleDay, account.billingCycleType, new Date()),
-      },
-    ]);
+    const sums = await this.sumsRepo.sumsByCard(command.userId, [updated.id]);
     const sumsMap = new Map<string, { income: string; expense: string }>();
     for (const s of sums) {
       if (!s.cardId) continue;

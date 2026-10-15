@@ -14,7 +14,6 @@ import {
   RECURRING_EXPENSE_REPOSITORY,
   type RecurringExpenseRepositoryPort,
 } from "../../../recurring-expense/domain/ports/recurring-expense.repository.port";
-import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import { cashDelta, reverseCashDelta } from "../../domain/balance-delta";
@@ -60,6 +59,7 @@ import {
   type TransactionWriterRepositoryPort,
 } from "../../domain/ports/transaction-writer.repository.port";
 import { loadAccountContext } from "../account-context.loader";
+import { cardLimitUsage } from "../card-limit-usage";
 import { reconcilePrepaymentWithTx } from "./reconcile-prepayment";
 import { UpdateTransactionCommand } from "./update-transaction.command";
 
@@ -137,6 +137,10 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     if (current.snapshot().settlesStatementId !== null) {
       throw new TransactionLinkedToStatementError();
     }
+    // Spec 028 US3: the account-currency charge of a transfer belongs to its statement too.
+    if ((await this.statements.transferInfoFor([id])).has(id)) {
+      throw new TransactionLinkedToStatementError();
+    }
 
     const effectiveType = input.type ?? current.type;
     // Only a CHANGED category is validated: re-sending the one the movement already
@@ -212,16 +216,20 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
         card?.kind === "CREDIT"
           ? await this.cardLimits.findForCardCurrency(userId, effective.cardId!, effective.currency)
           : null;
-      const cardUsage = cardLimit
-        ? await this.repo.sumsForCard(
-            userId,
-            effective.cardId!,
-            effective.currency,
-            currentCycleStart(account.billingCycleDay, account.billingCycleType, new Date()),
-            id,
-            effective.currency === account.currency,
-          )
-        : { income: "0", expense: "0" };
+      const cardUsage =
+        cardLimit && card
+          ? await cardLimitUsage(
+              { movements: this.repo, statements: this.statements },
+              {
+                userId,
+                accountId: effective.bankAccountId,
+                accountCurrency: account.currency ?? effective.currency,
+                card,
+                currency: effective.currency,
+                excludeTxId: id,
+              },
+            )
+          : { income: "0", expense: "0" };
       newContribution = MovementPolicy.validate(
         effective,
         account,

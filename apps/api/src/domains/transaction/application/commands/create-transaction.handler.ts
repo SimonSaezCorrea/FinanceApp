@@ -13,7 +13,6 @@ import {
   RECURRING_EXPENSE_REPOSITORY,
   type RecurringExpenseRepositoryPort,
 } from "../../../recurring-expense/domain/ports/recurring-expense.repository.port";
-import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import type { HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
   BaseIdempotentCommandHandler,
@@ -50,6 +49,7 @@ import {
   type TransactionRepositoryPort,
 } from "../../domain/ports/transaction.repository.port";
 import { loadAccountContext } from "../account-context.loader";
+import { cardLimitUsage } from "../card-limit-usage";
 import { CreateTransactionCommand } from "./create-transaction.command";
 
 interface Context {
@@ -122,16 +122,19 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
       card?.kind === "CREDIT"
         ? await this.cardLimits.findForCardCurrency(command.userId, input.cardId!, input.currency)
         : null;
-    const cardUsage = cardLimit
-      ? await this.repo.sumsForCard(
-          command.userId,
-          input.cardId!,
-          input.currency,
-          currentCycleStart(account.billingCycleDay, account.billingCycleType, new Date()),
-          undefined,
-          input.currency === account.currency,
-        )
-      : { income: "0", expense: "0" };
+    const cardUsage =
+      cardLimit && card
+        ? await cardLimitUsage(
+            { movements: this.repo, statements: this.statements },
+            {
+              userId: command.userId,
+              accountId: input.bankAccountId,
+              accountCurrency: account.currency ?? input.currency,
+              card,
+              currency: input.currency,
+            },
+          )
+        : { income: "0", expense: "0" };
 
     const contribution = MovementPolicy.validate(
       {

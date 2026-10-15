@@ -414,6 +414,24 @@
           "body": "Choose which accounts and cards to see on the Panel."
         }
       }
+    },
+    "transfer": {
+      "eyebrow": "Transfer to {{currency}}",
+      "action": "Transfer to {{currency}}",
+      "description": "The bank converted this overdue debt and charged it to your next {{currency}} statement. Type the charge as it appears on your statement.",
+      "owed": "Debt being transferred",
+      "amountLabel": "Charge in {{currency}}",
+      "amountHint": "Suggested with today's dollar rate; use the one on your statement.",
+      "consequence": "An issuer charge is recorded on the open {{currency}} statement and this statement becomes transferred. You can undo it while that statement isn't paid.",
+      "submit": "Transfer",
+      "success": "Statement transferred",
+      "transferredOn": "Transferred on {{date}}",
+      "transferredLabel": "Transferred",
+      "became": "became {{amount}}",
+      "undo": "Undo transfer",
+      "undoConfirm": "Undo the transfer?",
+      "undoConfirmDescription": "This statement owes {{restored}} again and the {{removed}} charge is removed from the {{currency}} statement.",
+      "undoSuccess": "Transfer undone"
     }
   },
   "cards": {
@@ -601,6 +619,7 @@
     "deleted": "Transaction deleted",
     "deleteConfirm": "Delete this transaction?",
     "deleteConfirmDescription": "It will be permanently removed and the account's balance (and used credit, where it applies) will adjust back.",
+    "deleteForeignPrepaymentDescription": "The whole prepayment will be undone: both of its movements are deleted, the amount goes back to the source account and the statement owes what was prepaid again.",
     "empty": "You don't have any transactions yet.",
     "emptyHint": "Movements you record in this account will show up here.",
     "uncategorized": "Uncategorized",
@@ -709,7 +728,9 @@
       "viewRecurring": "View fixed expense",
       "statementLocked": "This movement backs the payment of a statement in another currency. To change it, correct the payment from its statement.",
       "viewSavings": "View contribution",
-      "viewGoal": "View goal"
+      "viewGoal": "View goal",
+      "foreignPrepaymentLocked": "This movement is part of a prepayment in another currency. It can't be edited; deleting it undoes the whole prepayment (both movements), as long as its statement isn't paid.",
+      "transferLocked": "This charge is the transfer to pesos of a statement in another currency. To remove it, undo the transfer from its statement."
     },
     "source": {
       "MANUAL": "Manual",

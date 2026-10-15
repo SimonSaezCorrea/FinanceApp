@@ -90,7 +90,12 @@ export class PreviewTemplateQueryHandler extends BaseQueryHandler<
 
   protected loadContext(query: PreviewTemplateQuery): Promise<TemplateContext> {
     return loadTemplateContext(
-      { accounts: this.accounts, movements: this.movements, categories: this.categories },
+      {
+        accounts: this.accounts,
+        movements: this.movements,
+        categories: this.categories,
+        statements: this.statements,
+      },
       query.userId,
       query.input,
     );

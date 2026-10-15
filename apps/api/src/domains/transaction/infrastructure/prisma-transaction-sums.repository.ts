@@ -31,12 +31,20 @@ export const EXCLUDE_SETTLEMENTS = { settlesStatementId: null } as const;
  * already PAID: its purchases (the debt left the pool at payment time) AND, since spec 030, the
  * settlement INCOME that paid it — the two cancel, so keeping only one of them would leave a
  * negative usage. A settlement of a period still unpaid (a prepago of the open period) keeps
- * counting: it really did lower what is owed so far.
+ * counting: it really did lower what is owed so far. A period TRANSFERRED to the account's
+ * currency (spec 028 US3) is settled the same way: its charges and its settlement both drop out.
  */
 export const STILL_OWED: Prisma.TransactionWhereInput = {
   AND: [
-    { OR: [{ creditStatementId: null }, { creditStatement: { paidAt: null } }] },
-    { OR: [{ settlesStatementId: null }, { settlesStatement: { paidAt: null } }] },
+    {
+      OR: [{ creditStatementId: null }, { creditStatement: { paidAt: null, transferredAt: null } }],
+    },
+    {
+      OR: [
+        { settlesStatementId: null },
+        { settlesStatement: { paidAt: null, transferredAt: null } },
+      ],
+    },
   ],
 };
 
@@ -82,17 +90,16 @@ export class PrismaTransactionSumsRepository implements TransactionSumsRepositor
 
   async sumsByCard(
     userId: string,
-    cards: { id: string; since: Date | null }[],
+    cardIds: string[],
   ): Promise<{ cardId: string; currency: string; type: "INCOME" | "EXPENSE"; sum: string }[]> {
     const result: { cardId: string; currency: string; type: "INCOME" | "EXPENSE"; sum: string }[] =
       [];
-    for (const card of cards) {
+    for (const cardId of cardIds) {
       const grouped = await this.prisma.transaction.groupBy({
         by: ["currency", "type"],
         where: {
           userId,
-          cardId: card.id,
-          ...(card.since ? { occurredAt: { gte: card.since } } : {}),
+          cardId,
           // A card's own tally must mean "still owed", same as the persisted pool
           // (`creditUsed`) it's a breakdown of. Once a statement is PAID, its debt
           // already left the pool — leaving these rows in would count it forever,
@@ -108,7 +115,7 @@ export class PrismaTransactionSumsRepository implements TransactionSumsRepositor
       });
       for (const g of grouped) {
         result.push({
-          cardId: card.id,
+          cardId,
           currency: g.currency,
           type: g.type,
           sum: g._sum.amount?.toString() ?? "0",

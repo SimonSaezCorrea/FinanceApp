@@ -48,6 +48,9 @@ export interface TransactionPlan {
   /** Spec 028: the foreign-currency statement this INCOME settles — set only by
    * the statement pay/transfer commands. */
   settlesStatementId?: string | null;
+  /** The two movements of a prepayment in another currency share it (the expense's id) — see
+   * `Transaction.settlementPairId` in the schema. */
+  settlementPairId?: string | null;
 }
 
 /** One movement this app recorded on behalf of an instalment plan. */

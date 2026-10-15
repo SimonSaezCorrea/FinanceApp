@@ -83,6 +83,8 @@ export function planForeignSettlement(input: ForeignSettlementInput): ForeignSet
       // Names the CREDIT account the settlement belongs to, so a link from this movement
       // lands on the right billing tab (the movement itself sits on the source account).
       prepaymentAccountId: input.markExpenseAsSettlement ? input.account.id : null,
+      // A prepago's two legs are undone together (deleting either from Movimientos).
+      settlementPairId: input.markExpenseAsSettlement ? input.expenseId : null,
     },
     income: {
       id: input.incomeId,
@@ -98,6 +100,7 @@ export function planForeignSettlement(input: ForeignSettlementInput): ForeignSet
       cardId,
       creditStatementId: null,
       settlesStatementId: input.statementId,
+      settlementPairId: input.markExpenseAsSettlement ? input.expenseId : null,
     },
   };
 }

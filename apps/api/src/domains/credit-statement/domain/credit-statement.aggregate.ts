@@ -7,6 +7,8 @@ import {
   StatementNotClosedError,
   StatementNotOpenError,
   StatementNotPaidError,
+  StatementNotTransferableError,
+  StatementNotTransferredError,
 } from "./errors";
 import { StatementClosedEvent } from "./events/statement-closed.event";
 import { StatementPaidEvent } from "./events/statement-paid.event";
@@ -384,6 +386,88 @@ export class CreditStatement {
       ),
       carryOver: subtractMoney(periodAmount, amount),
     };
+  }
+
+  /**
+   * Spec 028 (research R6): the bank converts an overdue period in another currency into a
+   * charge on the account's own currency. What the period still owed (`remainingFor`) is
+   * settled, its total freezes, and it becomes TRANSFERRED — terminal, like PAID, but with
+   * `paidAt` left null so no payment logic ever reads it as paid from an account. The caller
+   * writes the two movements (the settlement in this currency, the charge in the account's)
+   * with the ids recorded here.
+   *
+   * Only from PENDING (`canTransfer`); the currency and due-date parts of the rule are the
+   * caller's (`accounts.canTransferStatement`). `transferredAmount` is the account-currency
+   * figure the bank charged — never compared with what it settled (no exchange rate decides it).
+   */
+  transferTowards(
+    periodAmount: string,
+    transferredAmount: string,
+    ids: { settlementTransactionId: string; transferTransactionId: string; toStatementId: string },
+    when: Date,
+  ): { settled: string } {
+    if (!this.state.canTransfer()) throw new StatementNotTransferableError();
+    if (toMoney(transferredAmount).lessThanOrEqualTo(0)) throw new InvalidPaymentAmountError();
+    const settled = this.remainingFor(periodAmount);
+    if (!toMoney(settled).greaterThan(0)) throw new StatementNotTransferableError();
+    this.props.amount = moneyToString(periodAmount);
+    this.props.transferredAt = when;
+    this.props.transferredAmount = moneyToString(transferredAmount);
+    this.props.settlementTransactionId = ids.settlementTransactionId;
+    this.props.transferTransactionId = ids.transferTransactionId;
+    this.props.transferredToId = ids.toStatementId;
+    return { settled };
+  }
+
+  /**
+   * Exactly what "Deshacer traspaso" reverts, computed ONLY from what the transfer stored — the
+   * DTO shows it in the confirmation and `UndoTransferStatementHandler` applies it, so what the
+   * person is told and what happens can never differ (Constitution Principle I). Null unless
+   * TRANSFERRED.
+   */
+  transferReversal(accountCurrency: string): {
+    restoredAmount: string;
+    restoredCurrency: string;
+    removedAmount: string;
+    removedCurrency: string;
+    receivingStatementId: string;
+    settlementTransactionId: string;
+    transferTransactionId: string;
+  } | null {
+    const p = this.props;
+    if (
+      !p.transferredAt ||
+      p.transferredAmount === null ||
+      !p.transferredToId ||
+      !p.settlementTransactionId ||
+      !p.transferTransactionId
+    ) {
+      return null;
+    }
+    return {
+      restoredAmount: this.remainingFor(p.amount),
+      restoredCurrency: p.currency,
+      removedAmount: moneyToString(p.transferredAmount),
+      removedCurrency: accountCurrency,
+      receivingStatementId: p.transferredToId,
+      settlementTransactionId: p.settlementTransactionId,
+      transferTransactionId: p.transferTransactionId,
+    };
+  }
+
+  /** Undoes a transfer: back to PENDING (the five transfer fields cleared), returning the same
+   * `transferReversal` the caller must apply to the movements and the pool. */
+  undoTransfer(
+    accountCurrency: string,
+  ): NonNullable<ReturnType<CreditStatement["transferReversal"]>> {
+    const reversal = this.transferReversal(accountCurrency);
+    if (!reversal) throw new StatementNotTransferredError();
+    this.props.transferredAt = null;
+    this.props.transferredAmount = null;
+    this.props.settlementTransactionId = null;
+    this.props.transferTransactionId = null;
+    this.props.transferredToId = null;
+    return reversal;
   }
 
   /**

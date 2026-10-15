@@ -360,4 +360,36 @@ export class PrismaCreditStatementRepository
   async countForUser(userId: string): Promise<number> {
     return this.prisma.creditStatement.count({ where: { account: { userId } } });
   }
+  async transferInfoFor(transactionIds: string[]): Promise<Map<string, string>> {
+    if (transactionIds.length === 0) return new Map();
+    const rows = await this.prisma.creditStatement.findMany({
+      where: { transferTransactionId: { in: transactionIds } },
+      select: { id: true, transferTransactionId: true },
+    });
+    const result = new Map<string, string>();
+    for (const row of rows) {
+      if (row.transferTransactionId) result.set(row.transferTransactionId, row.id);
+    }
+    return result;
+  }
+
+  async carriedOverOwed(accountIds: string[]): Promise<Map<string, string>> {
+    if (accountIds.length === 0) return new Map();
+    const rows = await this.prisma.creditStatement.groupBy({
+      by: ["accountId", "currency"],
+      where: {
+        accountId: { in: accountIds },
+        paidAt: null,
+        transferredAt: null,
+        carriedOverAmount: { gt: 0 },
+      },
+      _sum: { carriedOverAmount: true },
+    });
+    const result = new Map<string, string>();
+    for (const row of rows) {
+      const sum = row._sum.carriedOverAmount;
+      if (sum) result.set(`${row.accountId}:${row.currency}`, sum.toString());
+    }
+    return result;
+  }
 }

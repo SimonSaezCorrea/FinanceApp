@@ -10,6 +10,8 @@ import {
   StatementAlreadyPaidError,
   StatementNotOpenError,
   StatementNotPaidError,
+  StatementNotTransferableError,
+  StatementNotTransferredError,
 } from "../../../../../src/domains/credit-statement/domain/errors";
 import { StatementClosedEvent } from "../../../../../src/domains/credit-statement/domain/events/statement-closed.event";
 import { StatementPaidEvent } from "../../../../../src/domains/credit-statement/domain/events/statement-paid.event";
@@ -387,5 +389,60 @@ describe("CreditStatement aggregate (State pattern)", () => {
       paid.payTowards("100", "100", "acc_1", "tx_1", new Date());
       expect(paid.state.canPrepay()).toBe(false);
     });
+  });
+});
+
+describe("CreditStatement transfer (spec 028 US3)", () => {
+  const ids = {
+    settlementTransactionId: "tx_in",
+    transferTransactionId: "tx_clp",
+    toStatementId: "st_clp",
+  };
+  const pending = () =>
+    CreditStatement.fromPersistence(
+      baseProps({ currency: "USD", closedAt: new Date("2026-02-01"), amount: "0" }),
+    );
+
+  it("settles what the period still owes, freezes its total and becomes TRANSFERRED", () => {
+    const s = pending();
+    const { settled } = s.transferTowards("70.72", "66052", ids, new Date("2026-03-01"));
+    expect(settled).toBe("70.7200");
+    expect(s.state.name).toBe("TRANSFERRED");
+    expect(s.amount).toBe("70.7200");
+    expect(s.paidAt).toBeNull();
+    expect(s.transferredAmount).toBe("66052.0000");
+    expect(s.transferredToId).toBe("st_clp");
+  });
+
+  it("only from PENDING, and only for a positive charge", () => {
+    const open = CreditStatement.fromPersistence(baseProps({ currency: "USD" }));
+    expect(() => open.transferTowards("70", "66000", ids, new Date())).toThrow(
+      StatementNotTransferableError,
+    );
+    expect(() => pending().transferTowards("70", "0", ids, new Date())).toThrow(
+      InvalidPaymentAmountError,
+    );
+  });
+
+  it("the reversal is computed from what the transfer stored, and undo applies exactly it", () => {
+    const s = pending();
+    s.transferTowards("70.72", "66052", ids, new Date());
+    const shown = s.transferReversal("CLP");
+    expect(shown).toMatchObject({
+      restoredAmount: "70.7200",
+      restoredCurrency: "USD",
+      removedAmount: "66052.0000",
+      removedCurrency: "CLP",
+      receivingStatementId: "st_clp",
+      settlementTransactionId: "tx_in",
+      transferTransactionId: "tx_clp",
+    });
+    expect(s.undoTransfer("CLP")).toEqual(shown);
+    expect(s.state.name).toBe("PENDING");
+    expect(s.transferReversal("CLP")).toBeNull();
+  });
+
+  it("undoing needs a transferred period", () => {
+    expect(() => pending().undoTransfer("CLP")).toThrow(StatementNotTransferredError);
   });
 });

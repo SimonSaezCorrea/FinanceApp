@@ -54,12 +54,15 @@ export class ListTransactionsQueryHandler extends BaseQueryHandler<
     // One batched lookup per page (never per row) — almost always an empty
     // result, since only a statement's own payment movement ever matches.
     const paymentInfo = await this.statements.paymentInfoFor(items.map((i) => i.id));
+    const transferInfo = await this.statements.transferInfoFor(items.map((i) => i.id));
     return {
       items: items.map((i) => {
         const info = paymentInfo.get(i.id);
-        return info
+        const withPayment = info
           ? { ...i, paidStatementId: info.statementId, paidStatementAccountId: info.accountId }
           : i;
+        const transferred = transferInfo.get(i.id);
+        return transferred ? { ...withPayment, transferStatementId: transferred } : withPayment;
       }),
       nextCursor: page.nextCursor ? encodeCursor(page.nextCursor, this.cursorSecret) : null,
     };

@@ -787,6 +787,10 @@ model Transaction {
   /// to a period (`creditStatementId` stays null), is excluded from every period sum
   /// and from "Sincronizar pagos", and is read-only in Movimientos.
   settlesStatementId    String?
+  /// The two movements of a prepayment in another currency (the pesos that left the source and
+  /// the settlement INCOME on the card) share this id — the expense's own id — so deleting either
+  /// one from Movimientos undoes the pair. Plain, no FK: it names a pair, not a row to cascade.
+  settlementPairId      String?
   createdAt             DateTime        @default(now())
   updatedAt             DateTime        @updatedAt
 
@@ -824,6 +828,7 @@ model Transaction {
   @@index([savingsGoalId])
   @@index([prepaymentStatementId])
   @@index([settlesStatementId])
+  @@index([settlementPairId])
   @@map("transaction")
 }
 

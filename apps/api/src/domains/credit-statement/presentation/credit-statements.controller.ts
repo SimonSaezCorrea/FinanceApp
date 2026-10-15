@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Headers, Param, Patch, Post, UseGuards } from "@nestjs/common";
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
 
 import { accounts, idempotency } from "@finance/contracts";
@@ -13,6 +23,8 @@ import { GenerateStatementsCommand } from "../application/commands/generate-stat
 import { PayCreditStatementCommand } from "../application/commands/pay-credit-statement.command";
 import { PrepayOpenPeriodCommand } from "../application/commands/prepay-open-period.command";
 import { SyncStatementCommand } from "../application/commands/sync-statement.command";
+import { TransferStatementCommand } from "../application/commands/transfer-statement.command";
+import { UndoTransferStatementCommand } from "../application/commands/undo-transfer-statement.command";
 import { UpdateStatementDatesCommand } from "../application/commands/update-statement-dates.command";
 import { UpdateStatementPaymentCommand } from "../application/commands/update-statement-payment.command";
 import { ListCreditStatementsQuery } from "../application/queries/list-credit-statements.query";
@@ -106,6 +118,42 @@ export class CreditStatementsController {
         body.reference,
         body.chargedAmount,
       ),
+    );
+  }
+
+  /** Spec 028 US3: the bank converted an overdue period in another currency into a charge on
+   * the account's own currency. `amount` is that charge, in the account's currency. */
+  @Post(":id/credit-statements/:statementId/transfer")
+  transferStatement(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(statementParamsSchema)) params: { id: string; statementId: string },
+    @Body(new ZodValidationPipe(accounts.transferStatementSchema))
+    body: accounts.TransferStatement,
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
+  ): Promise<accounts.CreditStatement> {
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(
+      new TransferStatementCommand(
+        user.id,
+        params.id,
+        params.statementId,
+        body.amount,
+        idempotencyKey,
+        body.transferredAt ? new Date(body.transferredAt) : undefined,
+      ),
+    );
+  }
+
+  /** Undoes a transfer while the period that received the charge isn't settled. */
+  @Delete(":id/credit-statements/:statementId/transfer")
+  undoTransferStatement(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(statementParamsSchema)) params: { id: string; statementId: string },
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
+  ): Promise<accounts.CreditStatement> {
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(
+      new UndoTransferStatementCommand(user.id, params.id, params.statementId, idempotencyKey),
     );
   }
 

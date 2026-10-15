@@ -31,6 +31,10 @@ vi.mock("./PayStatementPanel", () => ({
   }) =>
     statement ? <div data-testid="pay-panel">{`${statement.id}:${intent ?? "pay"}`}</div> : null,
 }));
+vi.mock("./TransferStatementPanel", () => ({
+  TransferStatementPanel: ({ statement }: { statement: { id: string } | null }) =>
+    statement ? <div data-testid="transfer-panel">{statement.id}</div> : null,
+}));
 vi.mock("./EditStatementPaymentPanel", () => ({
   EditStatementPaymentPanel: ({ statement }: { statement: { id: string } | null }) =>
     statement ? <div data-testid="edit-payment-panel">{statement.id}</div> : null,
@@ -234,5 +238,70 @@ describe("BillingSection — periods in another currency can be settled (spec 03
     );
 
     expect(screen.getByTestId("pay-panel").textContent).toBe("clp:pay");
+  });
+});
+
+describe("BillingSection — transfer to the account's currency (spec 028 US3)", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  const usd = (over: Partial<accounts.CreditStatement>) =>
+    statement({ id: "usd", currency: "USD", amount: "50", remainingAmount: "50", ...over });
+  const showUsd = async () => {
+    fireEvent.click((await screen.findAllByRole("tab"))[1]!);
+  };
+
+  it("offers Traspasar only when the server says the period can be transferred", async () => {
+    vi.mocked(accountsApi.creditStatements).mockResolvedValue([
+      statement({ id: "clp" }),
+      usd({ canTransfer: false }),
+    ]);
+    renderSection();
+    await showUsd();
+    const label = i18n.t("accounts.transfer.action", { currency: "CLP" });
+    expect(screen.queryAllByRole("button", { name: label })).toHaveLength(0);
+  });
+
+  it("opens the transfer panel for an overdue period", async () => {
+    vi.mocked(accountsApi.creditStatements).mockResolvedValue([
+      statement({ id: "clp" }),
+      usd({ canTransfer: true }),
+    ]);
+    renderSection();
+    await showUsd();
+    const label = i18n.t("accounts.transfer.action", { currency: "CLP" });
+    fireEvent.click((await screen.findAllByRole("button", { name: label }))[0]!);
+    expect(screen.getByTestId("transfer-panel").textContent).toBe("usd");
+  });
+
+  it("the undo confirmation says exactly what transferReversal says", async () => {
+    vi.mocked(accountsApi.creditStatements).mockResolvedValue([
+      statement({ id: "clp" }),
+      usd({
+        status: "TRANSFERRED",
+        transferredAt: "2026-09-10T00:00:00.000Z",
+        transferredAmount: "47000.0000",
+        remainingAmount: "0",
+        transferReversal: {
+          restoredAmount: "50.0000",
+          restoredCurrency: "USD",
+          removedAmount: "47000.0000",
+          removedCurrency: "CLP",
+        },
+      }),
+    ]);
+    renderSection();
+    await showUsd();
+    fireEvent.click(
+      (await screen.findAllByRole("button", { name: i18n.t("accounts.transfer.undo") }))[0]!,
+    );
+    expect(
+      await screen.findByText(
+        i18n.t("accounts.transfer.undoConfirmDescription", {
+          restored: money("50", "USD"),
+          removed: money("47000", "CLP"),
+          currency: "CLP",
+        }),
+      ),
+    ).toBeDefined();
   });
 });

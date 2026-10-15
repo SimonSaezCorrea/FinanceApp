@@ -19,4 +19,16 @@ export interface CreditStatementLookupPort {
   paymentInfoFor(
     transactionIds: string[],
   ): Promise<Map<string, { statementId: string; accountId: string }>>;
+
+  /** What each account still owes as a CARRIED-OVER shortfall, per currency — keyed
+   * `accountId:currency`. A short payment settles its period and moves the rest onto the next
+   * one as `carriedOverAmount`, which is not a movement: a card's usage derived from movements
+   * would never see it. Summed over every period not settled yet (neither paid nor transferred);
+   * accounts/currencies with nothing carried are absent. */
+  carriedOverOwed(accountIds: string[]): Promise<Map<string, string>>;
+
+  /** Spec 028 US3: for every id that is the account-currency CHARGE of some transfer
+   * (`CreditStatement.transferTransactionId`), the transferred statement's id. Read-only in
+   * Movimientos, and linked back to that statement. */
+  transferInfoFor(transactionIds: string[]): Promise<Map<string, string>>;
 }

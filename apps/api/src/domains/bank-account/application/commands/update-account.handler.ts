@@ -5,6 +5,10 @@ import type { accounts } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import {
+  CREDIT_STATEMENT_LOOKUP,
+  type CreditStatementLookupPort,
+} from "../../../credit-statement/domain/ports/credit-statement-lookup.port";
+import {
   INSTALLMENT_PLAN_REPOSITORY,
   type InstallmentPlanRepositoryPort,
 } from "../../../installment-plan/domain/ports/installment-plan.repository.port";
@@ -34,6 +38,7 @@ export class UpdateAccountHandler extends BaseCommandHandler<
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
     @Inject(TRANSACTION_SUMS_REPOSITORY) private readonly sumsRepo: TransactionSumsRepositoryPort,
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly plansRepo: InstallmentPlanRepositoryPort,
+    @Inject(CREDIT_STATEMENT_LOOKUP) private readonly statements: CreditStatementLookupPort,
   ) {
     super(eventBus);
   }
@@ -99,7 +104,13 @@ export class UpdateAccountHandler extends BaseCommandHandler<
       const event = account.setStatus(input.status);
       if (event) events.push(event);
     }
-    const [dto] = await accountsToDtos(this.sumsRepo, command.userId, [account], this.plansRepo);
+    const [dto] = await accountsToDtos(
+      this.sumsRepo,
+      command.userId,
+      [account],
+      this.plansRepo,
+      this.statements,
+    );
     return { result: dto, events };
   }
 

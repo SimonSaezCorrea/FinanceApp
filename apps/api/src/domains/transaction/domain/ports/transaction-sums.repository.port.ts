@@ -21,10 +21,12 @@ export interface TransactionSumsRepositoryPort {
   ): Promise<
     { bankAccountId: string | null; type: "INCOME" | "EXPENSE"; amount: string; occurredAt: Date }[]
   >;
-  /** Σ amount by (card, currency, type), each card optionally scoped to its cycle start. */
+  /** Σ amount by (card, currency, type) of what each card still owes: never time-scoped — a
+   * card's tally is a breakdown of the persisted, all-time `creditUsed`, and paying a statement
+   * (not a date) is what frees it. */
   sumsByCard(
     userId: string,
-    cards: { id: string; since: Date | null }[],
+    cardIds: string[],
   ): Promise<{ cardId: string; currency: string; type: "INCOME" | "EXPENSE"; sum: string }[]>;
   /** Σexpense − Σincome of the movements linked to one credit statement. */
   netForStatement(statementId: string, tx?: unknown): Promise<string>;

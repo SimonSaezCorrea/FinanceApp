@@ -72,7 +72,14 @@ export function TransactionDetailModal({
   // only produce an error. The panel says why and where to go instead.
   // Spec 030 adds the movements that settle a statement in another currency: they are
   // corrected from their statement, so they get no buttons here either.
-  const isInstallmentPayment = tx.installmentPlanId !== null || tx.settlesStatementId !== null;
+  // Spec 028 US3: a transfer's charge in pesos is undone from its statement as well.
+  const isInstallmentPayment =
+    tx.installmentPlanId !== null ||
+    tx.settlesStatementId !== null ||
+    (tx.transferStatementId ?? null) !== null;
+  // A prepayment in another currency can't be edited, but deleting either of its two movements
+  // undoes it (the server deletes the pair while its period is unsettled).
+  const isForeignPrepayment = (tx.settlementPairId ?? null) !== null;
 
   const balanceAfter =
     index >= 0 ? balanceAfterTransaction({ items, index, account, dateFiltered }) : null;
@@ -147,7 +154,7 @@ export function TransactionDetailModal({
               {t("common.edit")}
             </Button>
           ) : null}
-          {onDelete && !isInstallmentPayment ? (
+          {onDelete && (!isInstallmentPayment || isForeignPrepayment) ? (
             <Button variant="ghost" aria-label={t("common.delete")} onClick={() => onDelete(tx)}>
               <Trash2 className="h-4 w-4 text-destructive" aria-hidden />
             </Button>

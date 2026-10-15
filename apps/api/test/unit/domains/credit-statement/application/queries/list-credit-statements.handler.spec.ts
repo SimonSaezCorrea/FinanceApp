@@ -105,6 +105,8 @@ function fakeStatementRepo(
   overrides: Partial<CreditStatementRepositoryPort> = {},
 ): CreditStatementRepositoryPort {
   return {
+    carriedOverOwed: vi.fn(async () => new Map()),
+    transferInfoFor: vi.fn(async () => new Map()),
     listDueScheduled: vi.fn(async () => []),
     countForUser: vi.fn(async () => 0),
     paymentTransactionIdsFromOtherAccounts: vi.fn(async () => []),

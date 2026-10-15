@@ -69,6 +69,33 @@ export const accountsApi = {
       idempotencyKey,
     }),
 
+  /** Spec 028 US3: the bank converted an overdue period in another currency into a charge on
+   * the account's own currency — `body.amount` is that charge. */
+  transferCreditStatement: (
+    id: string,
+    statementId: string,
+    body: accounts.TransferStatement,
+    idempotencyKey: string,
+  ) =>
+    apiFetch<accounts.CreditStatement>(
+      `/accounts/${id}/credit-statements/${statementId}/transfer`,
+      {
+        method: "POST",
+        body: JSON.stringify(body),
+        idempotencyKey,
+      },
+    ),
+
+  /** Undoes a transfer while the period that received the charge isn't settled. */
+  undoTransferCreditStatement: (id: string, statementId: string, idempotencyKey: string) =>
+    apiFetch<accounts.CreditStatement>(
+      `/accounts/${id}/credit-statements/${statementId}/transfer`,
+      {
+        method: "DELETE",
+        idempotencyKey,
+      },
+    ),
+
   /** Correct what was PAID on a settled period (its total is only ever synced). */
   updateStatementPayment: (
     id: string,

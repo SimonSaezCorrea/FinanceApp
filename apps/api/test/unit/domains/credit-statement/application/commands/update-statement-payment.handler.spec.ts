@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { PrepaidInsufficientBalanceError } from "../../../../../../src/domains/transaction/domain/errors";
 
 import {
   BankAccount,
@@ -80,6 +81,7 @@ function setup(
     fromCurrency?: string;
     statement?: Partial<CreditStatementProps>;
     oldCharged?: string | null;
+    from?: Partial<BankAccountProps>;
   } = {},
 ) {
   const account = BankAccount.fromPersistence(accountProps());
@@ -89,6 +91,7 @@ function setup(
       type: "CHECKING",
       currency: opts.fromCurrency ?? "CLP",
       cards: [],
+      ...opts.from,
     }),
   );
   const statement = CreditStatement.fromPersistence(paidUsd(opts.statement));
@@ -211,5 +214,21 @@ describe("UpdateStatementPaymentHandler — statement in another currency (spec 
     expect(transactions.updateAmountWithTx).not.toHaveBeenCalled();
     expect(accountRepo.incrementBalanceWithTx).not.toHaveBeenCalled();
     expect(statementRepo.saveWithTx).toHaveBeenCalled();
+  });
+});
+
+describe("UpdateStatementPaymentHandler — the source account's own rules", () => {
+  it("refuses raising the debit past what a prepaid source has (counting its old debit back)", async () => {
+    // 49.394 already left; 5.000 remain: the most this payment can become is 54.394.
+    const { update, accountRepo } = setup({ from: { type: "PREPAID", currentBalance: "5000" } });
+    await expect(update("50.41", "60000")).rejects.toThrow(PrepaidInsufficientBalanceError);
+    expect(accountRepo.incrementBalanceWithTx).not.toHaveBeenCalled();
+  });
+
+  it("allows raising it within that, and lowering it always", async () => {
+    const { update } = setup({ from: { type: "PREPAID", currentBalance: "5000" } });
+    await update("50.41", "54000");
+    const second = setup({ from: { type: "PREPAID", currentBalance: "0" } });
+    await second.update("40", "39200");
   });
 });

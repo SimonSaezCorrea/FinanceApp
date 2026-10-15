@@ -7,8 +7,16 @@ import { PayCreditStatementCommand } from "../../../../../src/domains/credit-sta
 import { PayCreditStatementHandler } from "../../../../../src/domains/credit-statement/application/commands/pay-credit-statement.handler";
 import { PrepayOpenPeriodCommand } from "../../../../../src/domains/credit-statement/application/commands/prepay-open-period.command";
 import { PrepayOpenPeriodHandler } from "../../../../../src/domains/credit-statement/application/commands/prepay-open-period.handler";
+import { TransferStatementCommand } from "../../../../../src/domains/credit-statement/application/commands/transfer-statement.command";
+import { TransferStatementHandler } from "../../../../../src/domains/credit-statement/application/commands/transfer-statement.handler";
+import { UndoTransferStatementCommand } from "../../../../../src/domains/credit-statement/application/commands/undo-transfer-statement.command";
+import { UndoTransferStatementHandler } from "../../../../../src/domains/credit-statement/application/commands/undo-transfer-statement.handler";
 import { StatementPaymentCurrencyAmbiguousError } from "../../../../../src/domains/credit-statement/domain/errors";
 import { PrismaTransactionSumsRepository } from "../../../../../src/domains/transaction/infrastructure/prisma-transaction-sums.repository";
+import { RemoveTransactionCommand } from "../../../../../src/domains/transaction/application/commands/remove-transaction.command";
+import { RemoveTransactionHandler } from "../../../../../src/domains/transaction/application/commands/remove-transaction.handler";
+import { cardLimitUsage } from "../../../../../src/domains/transaction/application/card-limit-usage";
+import { PrismaTransactionRepository } from "../../../../../src/domains/transaction/infrastructure/prisma-transaction.repository";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
 import {
   buildBankAccountRepo,
@@ -314,9 +322,7 @@ describe("Settling a statement in another currency (integration)", () => {
   /** What the card's USD limit counts as used: purchases minus settlements still owed. */
   async function usdUsage(): Promise<string> {
     const sums = new PrismaTransactionSumsRepository(prisma);
-    const rows = (await sums.sumsByCard(userId, [{ id: cardId, since: null }])).filter(
-      (r) => r.currency === "USD",
-    );
+    const rows = (await sums.sumsByCard(userId, [cardId])).filter((r) => r.currency === "USD");
     const sum = (type: "INCOME" | "EXPENSE") =>
       Number(rows.find((r) => r.type === type)?.sum ?? "0");
     return (sum("EXPENSE") - sum("INCOME")).toFixed(2);
@@ -337,5 +343,177 @@ describe("Settling a statement in another currency (integration)", () => {
     await pay(statementId, undefined, "29400");
     // The purchases leave with the paid period AND so does the settlement that paid it.
     expect(await usdUsage()).toBe("0.00");
+  });
+
+  const movements = () => new PrismaTransactionRepository(prisma, accountRepo);
+  const removeHandler = () =>
+    new RemoveTransactionHandler(
+      { publish: vi.fn() } as never,
+      movements(),
+      accountRepo,
+      {} as never,
+      {} as never,
+      statementRepo,
+      { isLinkedToPayment: vi.fn(async () => false) } as never,
+      writer,
+      prisma,
+    );
+  const limitUsage = async () => {
+    const u = await cardLimitUsage(
+      { movements: movements(), statements: statementRepo },
+      {
+        userId,
+        accountId: creditAccountId,
+        accountCurrency: "CLP",
+        card: { id: cardId, isPrimary: true },
+        currency: "USD",
+      },
+    );
+    return Number(u.expense) - Number(u.income);
+  };
+
+  it("deleting either leg of a USD prepayment undoes both: pesos back, prepaidAmount down, rows gone", async () => {
+    await reset();
+    const statementId = await usdPeriod(false);
+    await prepay(statementId, "20", "19600");
+    const legs = await prisma.transaction.findMany({
+      where: { userId, settlesStatementId: statementId },
+    });
+    expect(legs).toHaveLength(2);
+    expect(new Set(legs.map((l) => l.settlementPairId)).size).toBe(1);
+    expect(await balanceOfSource()).toBe("980400");
+
+    const income = legs.find((l) => l.type === "INCOME")!;
+    await removeHandler().execute(new RemoveTransactionCommand(userId, income.id));
+
+    expect(
+      await prisma.transaction.count({ where: { userId, settlesStatementId: statementId } }),
+    ).toBe(0);
+    expect(await balanceOfSource()).toBe("1000000");
+    const st = await prisma.creditStatement.findUniqueOrThrow({ where: { id: statementId } });
+    expect(st.prepaidAmount.toFixed(0)).toBe("0");
+    expect(await limitUsage()).toBe(50);
+  });
+
+  it("a USD prepayment of a period already paid can't be undone from Movimientos", async () => {
+    await reset();
+    const statementId = await usdPeriod(false);
+    await prepay(statementId, "20", "19600");
+    await prisma.creditStatement.update({
+      where: { id: statementId },
+      data: { closedAt: new Date(), paidAt: new Date(), amount: "50", paidAmount: "30" },
+    });
+    const expense = await prisma.transaction.findFirstOrThrow({
+      where: { userId, settlesStatementId: statementId, type: "EXPENSE" },
+    });
+    await expect(
+      removeHandler().execute(new RemoveTransactionCommand(userId, expense.id)),
+    ).rejects.toMatchObject({ code: "TRANSACTION_LINKED_TO_STATEMENT" });
+    expect(await balanceOfSource()).toBe("980400");
+  });
+
+  it("a short USD payment keeps the rest in the card's USD usage until the next period settles it", async () => {
+    await reset();
+    const statementId = await usdPeriod(true);
+    await pay(statementId, "30", "29400");
+    // Paid period: its charges and its settlement drop out; the US$20 short is carried over.
+    expect(await limitUsage()).toBe(20);
+  });
+
+  const transfer = (statementId: string, amount: string) =>
+    new TransferStatementHandler(
+      { publish: vi.fn() } as never,
+      buildIdempotencyRecordRepo(prisma),
+      accountRepo,
+      statementRepo,
+      writer,
+      prisma,
+      buildCategoryLookup(prisma),
+    ).execute(
+      new TransferStatementCommand(userId, creditAccountId, statementId, amount, randomUUID()),
+    );
+  const undoTransfer = (statementId: string) =>
+    new UndoTransferStatementHandler(
+      { publish: vi.fn() } as never,
+      buildIdempotencyRecordRepo(prisma),
+      accountRepo,
+      statementRepo,
+      writer,
+      prisma,
+    ).execute(new UndoTransferStatementCommand(userId, creditAccountId, statementId, randomUUID()));
+  const creditUsed = async () =>
+    (
+      await prisma.bankAccount.findUniqueOrThrow({ where: { id: creditAccountId } })
+    ).creditUsed.toFixed(0);
+  async function overdueUsdPeriod(): Promise<string> {
+    const id = await usdPeriod(true);
+    await prisma.creditStatement.update({
+      where: { id },
+      data: { dueDate: new Date(Date.now() - 864e5) },
+    });
+    return id;
+  }
+
+  it("transfers an overdue USD period to pesos: settlement + issuer charge, pool up, limit freed", async () => {
+    await reset();
+    const statementId = await overdueUsdPeriod();
+    const dto = await transfer(statementId, "47000");
+
+    expect(dto.status).toBe("TRANSFERRED");
+    expect(dto.remainingAmount).toBe("0.0000");
+    expect(dto.transferReversal).toMatchObject({
+      restoredAmount: "50.0000",
+      removedAmount: "47000.0000",
+    });
+    expect(await creditUsed()).toBe("47000");
+    expect(await limitUsage()).toBe(0);
+
+    const charge = await prisma.transaction.findFirstOrThrow({
+      where: { userId, currency: "CLP", financeCharge: true },
+    });
+    expect(charge.amount.toFixed(0)).toBe("47000");
+    const receiving = await prisma.creditStatement.findUniqueOrThrow({
+      where: { id: charge.creditStatementId! },
+    });
+    expect(receiving.currency).toBe("CLP");
+    expect(receiving.closedAt).toBeNull();
+  });
+
+  it("refuses a USD period that isn't overdue yet", async () => {
+    await reset();
+    const statementId = await usdPeriod(true);
+    await expect(transfer(statementId, "47000")).rejects.toMatchObject({
+      code: "STATEMENT_NOT_TRANSFERABLE",
+    });
+  });
+
+  it("undoing restores exactly what the transfer did", async () => {
+    await reset();
+    const statementId = await overdueUsdPeriod();
+    await transfer(statementId, "47000");
+    const dto = await undoTransfer(statementId);
+
+    expect(dto.status).toBe("PENDING");
+    expect(await creditUsed()).toBe("0");
+    expect(await limitUsage()).toBe(50);
+    expect(await prisma.transaction.count({ where: { userId, financeCharge: true } })).toBe(0);
+    expect(
+      await prisma.transaction.count({ where: { userId, settlesStatementId: statementId } }),
+    ).toBe(0);
+  });
+
+  it("can't undo once the pesos period that received the charge is paid", async () => {
+    await reset();
+    const statementId = await overdueUsdPeriod();
+    await transfer(statementId, "47000");
+    const st = await prisma.creditStatement.findUniqueOrThrow({ where: { id: statementId } });
+    await prisma.creditStatement.update({
+      where: { id: st.transferredToId! },
+      data: { closedAt: new Date(), paidAt: new Date(), amount: "47000", paidAmount: "47000" },
+    });
+    await expect(undoTransfer(statementId)).rejects.toMatchObject({
+      code: "TRANSFER_ALREADY_BILLED",
+    });
+    expect(await creditUsed()).toBe("47000");
   });
 });

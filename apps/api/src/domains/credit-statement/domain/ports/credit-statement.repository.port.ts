@@ -100,4 +100,9 @@ export interface CreditStatementRepositoryPort {
   /** How many rows of this table the user has: what replacing everything from a
    * template (specs/027, REPLACE) would delete, shown before confirming. */
   countForUser(userId: string): Promise<number>;
+  /** See `CreditStatementLookupPort.carriedOverOwed` — the same query, on this port for the
+   * handlers that already hold it (a card's usage in another currency, `cardLimitUsage`). */
+  carriedOverOwed(accountIds: string[]): Promise<Map<string, string>>;
+  /** See `CreditStatementLookupPort.transferInfoFor`. */
+  transferInfoFor(transactionIds: string[]): Promise<Map<string, string>>;
 }

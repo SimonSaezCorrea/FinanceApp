@@ -5,6 +5,10 @@ import type { accounts } from "@finance/contracts";
 
 import { BaseQueryHandler } from "../../../../infra/cqrs/base-query.handler";
 import {
+  CREDIT_STATEMENT_LOOKUP,
+  type CreditStatementLookupPort,
+} from "../../../credit-statement/domain/ports/credit-statement-lookup.port";
+import {
   INSTALLMENT_PLAN_REPOSITORY,
   type InstallmentPlanRepositoryPort,
 } from "../../../installment-plan/domain/ports/installment-plan.repository.port";
@@ -32,6 +36,7 @@ export class GetAccountQueryHandler extends BaseQueryHandler<
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accountRepo: BankAccountRepositoryPort,
     @Inject(TRANSACTION_SUMS_REPOSITORY) private readonly sumsRepo: TransactionSumsRepositoryPort,
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly plansRepo: InstallmentPlanRepositoryPort,
+    @Inject(CREDIT_STATEMENT_LOOKUP) private readonly statements: CreditStatementLookupPort,
   ) {
     super();
   }
@@ -46,7 +51,13 @@ export class GetAccountQueryHandler extends BaseQueryHandler<
     query: GetAccountQuery,
     account: BankAccount,
   ): Promise<accounts.BankAccount> {
-    const [dto] = await accountsToDtos(this.sumsRepo, query.userId, [account], this.plansRepo);
+    const [dto] = await accountsToDtos(
+      this.sumsRepo,
+      query.userId,
+      [account],
+      this.plansRepo,
+      this.statements,
+    );
     return dto;
   }
 }

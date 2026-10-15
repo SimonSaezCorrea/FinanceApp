@@ -71,6 +71,10 @@ export const transactionSchema = z.object({
    * another account, or transferred) — lowers its card's own-limit usage, belongs
    * to no period and is read-only. Null for every other movement. */
   settlesStatementId: rowId.nullable(),
+  /** The two movements of a prepayment in another currency (the pesos that left and the
+   * settlement on the card) share this id: deleting either one undoes the prepayment, both rows.
+   * Null for every other movement. Optional: an API deployed before it omits the field. */
+  settlementPairId: rowId.nullable().optional(),
   /** Spec 028: the statement in another currency whose transfer this charge IS —
    * resolved server-side from `CreditStatement.transferTransactionId`, like
    * `paidStatementId`. Null for every other movement. */

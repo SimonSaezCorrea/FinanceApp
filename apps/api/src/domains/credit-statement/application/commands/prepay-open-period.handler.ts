@@ -36,6 +36,7 @@ import {
   type CreditStatementRepositoryPort,
 } from "../../domain/ports/credit-statement.repository.port";
 import { planForeignSettlement } from "../foreign-settlement";
+import { assertSourceCovers } from "../source-funds";
 import { toStatementDto } from "../statement-dto.mapper";
 import { PrepayOpenPeriodCommand } from "./prepay-open-period.command";
 
@@ -178,6 +179,7 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
           incomeId: context.settlementTransactionId,
           markExpenseAsSettlement: true,
         });
+        assertSourceCovers(context.fromAccount, settlement.charged);
         await this.transactions.createWithTx(tx, settlement.expense);
         await this.transactions.createWithTx(tx, settlement.income);
         await this.accountRepo.incrementBalanceWithTx(
@@ -186,6 +188,8 @@ export class PrepayOpenPeriodHandler extends BaseIdempotentCommandHandler<
           subtractMoney("0", settlement.charged),
         );
       } else {
+        // Same source rules as any other EXPENSE (prepaid never negative, overdraft floor).
+        assertSourceCovers(context.fromAccount, command.amount);
         await this.transactions.createWithTx(tx, {
           id: context.paymentTransactionId,
           userId: context.account.userId,

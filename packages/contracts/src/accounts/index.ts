@@ -627,6 +627,17 @@ export type CreditStatement = z.infer<typeof creditStatementSchema>;
  * next period as its `carriedOverAmount`. Paying more than what's owed is
  * rejected (`PAYMENT_EXCEEDS_REMAINING`) rather than silently capped — a wrong
  * figure in a money form must not be quietly "corrected". */
+/** Spec 028 US3: transfer an overdue period in another currency to the account's own — the
+ * bank converted it and charged it to the next statement. `amount` is that charge, in the
+ * ACCOUNT's currency, read off the bank's statement (a suggestion from the recorded rate is
+ * only ever a suggestion — the domain never compares the two currencies). */
+export const transferStatementSchema = z.object({
+  amount: moneyString,
+  /** When the bank charged it; defaults to now. Dates the charge. */
+  transferredAt: z.string().optional(),
+});
+export type TransferStatement = z.infer<typeof transferStatementSchema>;
+
 export const payCreditStatementSchema = z.object({
   fromAccountId: rowId,
   /** In the STATEMENT's currency. */

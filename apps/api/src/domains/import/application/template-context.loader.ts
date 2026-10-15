@@ -1,9 +1,10 @@
 import type { imports } from "@finance/contracts";
 
-import { currentCycleStart } from "../../billing-settings/domain/billing-cycle";
 import type { BankAccountRepositoryPort } from "../../bank-account/domain/ports/bank-account.repository.port";
 import { assertSelectableCategory } from "../../category/domain/category-policy";
 import type { CategoryLookupPort } from "../../category/domain/ports/category-lookup.port";
+import type { CreditStatementRepositoryPort } from "../../credit-statement/domain/ports/credit-statement.repository.port";
+import { cardLimitUsage } from "../../transaction/application/card-limit-usage";
 import type { TransactionRepositoryPort } from "../../transaction/domain/ports/transaction.repository.port";
 import type { TemplateCard, TemplateLookup } from "../domain/template-plan";
 
@@ -30,6 +31,7 @@ export async function loadTemplateContext(
     accounts: BankAccountRepositoryPort;
     movements: TransactionRepositoryPort;
     categories: CategoryLookupPort;
+    statements: Pick<CreditStatementRepositoryPort, "carriedOverOwed">;
   },
   userId: string,
   req: imports.TemplateImportRequest,
@@ -42,7 +44,6 @@ export async function loadTemplateContext(
     categoryErrors: new Map(),
   };
   const createdAt = new Map<string, Date>();
-  const now = new Date();
 
   for (const account of owned) {
     const snap = account.snapshot();
@@ -64,7 +65,6 @@ export async function loadTemplateContext(
     });
     createdAt.set(snap.id, snap.createdAt);
 
-    const since = currentCycleStart(snap.billingCycleDay, snap.billingCycleType, now);
     for (const card of account.cards) {
       // A CREDIT card with its own sub-limit in the account's currency is capped by
       // it AND by the account's pool, which its spending still uses — same inputs a
@@ -74,7 +74,7 @@ export async function loadTemplateContext(
           ? (card.limits.find((l) => l.currency === snap.currency) ?? null)
           : null;
       const usage = own
-        ? await deps.movements.sumsForCard(userId, card.id, snap.currency, since, undefined, true)
+        ? await deps.movements.sumsForCard(userId, card.id, snap.currency, undefined, true)
         : { income: "0", expense: "0" };
       // Its limits in other currencies (a CLP card's USD one): a movement in that
       // currency goes against them, never the account's pool.
@@ -83,7 +83,14 @@ export async function loadTemplateContext(
         for (const l of card.limits.filter((x) => x.currency !== snap.currency)) {
           otherLimits[l.currency] = {
             limit: { limitAmount: l.limitAmount, usedInitial: l.usedInitial },
-            usage: await deps.movements.sumsForCard(userId, card.id, l.currency, since),
+            // Same figure a single movement is checked against (`cardLimitUsage`).
+            usage: await cardLimitUsage(deps, {
+              userId,
+              accountId: snap.id,
+              accountCurrency: snap.currency,
+              card,
+              currency: l.currency,
+            }),
           };
         }
       }

@@ -1,4 +1,13 @@
 <!--
+Sync Impact Report — 2026-10-15 (amendment 2.6.5)
+- Version change: 2.6.4 → 2.6.5 (PATCH: one nullable column, `Transaction.settlementPairId`
+  (expand-only, backfilled), and `POST`/`DELETE /accounts/:id/credit-statements/:id/transfer`; no
+  principle text changed).
+- Spec 028 US3 (transfer an overdue foreign statement to pesos, and undo it — Principle I: the undo
+  applies the same `transferReversal` the confirmation shows); undoing a USD prepayment; a short USD
+  payment's carry-over counted in the limit's usage; paying a statement checks the source account's
+  prepaid/overdraft rules. Both new writes are idempotent by form (c).
+
 Sync Impact Report — 2026-10-14 (amendment 2.6.4)
 - Version change: 2.6.3 → 2.6.4 (PATCH: no principle text changed).
 - Deleting an account always deletes everything: the opt-in "keep an anonymized history"
@@ -2277,4 +2286,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.6.4 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-14
+**Version**: 2.6.5 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-15

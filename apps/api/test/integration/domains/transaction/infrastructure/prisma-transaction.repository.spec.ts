@@ -176,4 +176,45 @@ describe("PrismaTransactionRepository (integration)", () => {
     expect(after?.creditUsed).toBe(String(Number(before!.creditUsed) - 10000) + ".0000");
     expect(await txRepo.findOne(userId, created.id)).toBeNull();
   });
+
+  it("sumsForCard counts an old charge of a closed, unpaid period — until that period is paid", async () => {
+    const card = await prisma.cardAccount.findFirstOrThrow({
+      where: { accountId: creditAccountId },
+    });
+    const day = 24 * 60 * 60 * 1000;
+    const owed = async () =>
+      Number((await txRepo.sumsForCard(userId, card.id, "CLP", undefined, true)).expense);
+    const before = await owed();
+
+    // A period that closed two months ago and was never paid: its charges are still owed, no
+    // matter how long ago they happened (no billing-cycle window, 2026-10-14).
+    const statement = await prisma.creditStatement.create({
+      data: {
+        accountId: creditAccountId,
+        currency: "CLP",
+        periodStart: new Date(Date.now() - 100 * day),
+        closedAt: new Date(Date.now() - 60 * day),
+      },
+    });
+    await prisma.transaction.create({
+      data: {
+        userId,
+        bankAccountId: creditAccountId,
+        cardId: card.id,
+        type: "EXPENSE",
+        amount: "50000",
+        currency: "CLP",
+        occurredAt: new Date(Date.now() - 90 * day),
+        creditStatementId: statement.id,
+      },
+    });
+    expect(await owed()).toBe(before + 50000);
+
+    // Paying the account's statement frees it: the card's sub-limit follows the account.
+    await prisma.creditStatement.update({
+      where: { id: statement.id },
+      data: { paidAt: new Date(), paidAmount: "50000", amount: "50000" },
+    });
+    expect(await owed()).toBe(before);
+  });
 });

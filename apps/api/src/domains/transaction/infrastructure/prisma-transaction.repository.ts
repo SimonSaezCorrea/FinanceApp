@@ -114,6 +114,7 @@ function rowToProps(row: Row): TransactionProps {
     prepaymentStatementId: row.prepaymentStatementId,
     prepaymentAccountId: row.prepaymentAccountId,
     settlesStatementId: row.settlesStatementId,
+    settlementPairId: row.settlementPairId,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -251,7 +252,6 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     userId: string,
     cardId: string,
     currency: string,
-    since: Date | null,
     excludeTxId?: string,
     openOnly = false,
   ): Promise<{ income: string; expense: string }> {
@@ -261,7 +261,6 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
         userId,
         cardId,
         currency,
-        ...(since ? { occurredAt: { gte: since } } : {}),
         ...(excludeTxId ? { id: { not: excludeTxId } } : {}),
         ...(openOnly ? STILL_OWED : {}),
       },
@@ -430,6 +429,20 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
       );
     }
     await this.applyBalanceDeltas(tx, balanceDeltas);
+  }
+
+  async findSettlementPair(
+    userId: string,
+    settlementPairId: string,
+  ): Promise<{ expense: Transaction; income: Transaction } | null> {
+    const rows = await this.prisma.transaction.findMany({ where: { userId, settlementPairId } });
+    const expense = rows.find((r) => r.type === "EXPENSE");
+    const income = rows.find((r) => r.type === "INCOME");
+    if (rows.length !== 2 || !expense || !income) return null;
+    return {
+      expense: Transaction.fromPersistence(rowToProps(expense)),
+      income: Transaction.fromPersistence(rowToProps(income)),
+    };
   }
 
   async findTransferGroup(userId: string, transferGroupId: string): Promise<TransferPair | null> {

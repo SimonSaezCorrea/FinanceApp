@@ -231,4 +231,65 @@ describe("Statements in another currency (e2e)", () => {
     expect(res.body.prepaidAmount).toBe("10.0000");
     expect(await sourceBalance()).toBe(before - 9800);
   });
+
+  const creditUsed = async () =>
+    Number(
+      (await http().get(`/api/v1/accounts/${creditAccountId}`).set("Cookie", cookies)).body
+        .creditUsed,
+    );
+
+  it("transfers an overdue USD statement to pesos (idempotent), and undoes it (spec 028 US3)", async () => {
+    // Close the open USD period with dates already past: it is overdue now.
+    const generated = await http()
+      .post(`/api/v1/accounts/${creditAccountId}/generate-statements`)
+      .set("Cookie", cookies)
+      .send({
+        periodStart: "2026-10-01T00:00:00.000Z",
+        closedAt: "2026-10-05T23:59:59.999Z",
+        dueDate: "2026-10-10T23:59:59.999Z",
+      });
+    expect(generated.status).toBe(201);
+    const overdue = generated.body.find(
+      (s: { currency: string; status: string }) => s.currency === "USD" && s.status === "PENDING",
+    );
+    expect(overdue?.canTransfer).toBe(true);
+    const before = await creditUsed();
+
+    const key = randomUUID();
+    const send = () =>
+      http()
+        .post(`/api/v1/accounts/${creditAccountId}/credit-statements/${overdue.id}/transfer`)
+        .set("Cookie", cookies)
+        .set("Idempotency-Key", key)
+        .send({ amount: "19000" });
+    const first = await send();
+    expect(first.status).toBe(201);
+    expect(first.body.status).toBe("TRANSFERRED");
+    expect(first.body.transferReversal.removedAmount).toBe("19000.0000");
+    const replay = await send();
+    expect(replay.body).toEqual(first.body);
+    expect(await creditUsed()).toBe(before + 19000);
+
+    const undone = await http()
+      .delete(`/api/v1/accounts/${creditAccountId}/credit-statements/${overdue.id}/transfer`)
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID());
+    expect(undone.status).toBe(200);
+    expect(undone.body.status).toBe("PENDING");
+    expect(await creditUsed()).toBe(before);
+  });
+
+  it("refuses to transfer a statement in the account's own currency", async () => {
+    const list = await http()
+      .get(`/api/v1/accounts/${creditAccountId}/credit-statements`)
+      .set("Cookie", cookies);
+    const clp = list.body.find((s: { currency: string }) => s.currency === "CLP");
+    const res = await http()
+      .post(`/api/v1/accounts/${creditAccountId}/credit-statements/${clp.id}/transfer`)
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({ amount: "1000" });
+    expect(res.status).toBe(409);
+    expect(res.body.error.code).toBe("STATEMENT_NOT_TRANSFERABLE");
+  });
 });

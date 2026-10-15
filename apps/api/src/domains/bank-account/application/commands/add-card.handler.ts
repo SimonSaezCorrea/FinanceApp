@@ -4,7 +4,6 @@ import { CommandHandler, EventBus } from "@nestjs/cqrs";
 import type { accounts } from "@finance/contracts";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
-import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import {
   TRANSACTION_SUMS_REPOSITORY,
   type TransactionSumsRepositoryPort,
@@ -84,14 +83,7 @@ export class AddCardHandler extends BaseCommandHandler<AddCardCommand, accounts.
         c.isPrimary === context.plan.isPrimary,
     );
     const currency = account.snapshot().currency;
-    const sums = created
-      ? await this.sumsRepo.sumsByCard(command.userId, [
-          {
-            id: created.id,
-            since: currentCycleStart(account.billingCycleDay, account.billingCycleType, new Date()),
-          },
-        ])
-      : [];
+    const sums = created ? await this.sumsRepo.sumsByCard(command.userId, [created.id]) : [];
     const sumsMap = new Map<string, { income: string; expense: string }>();
     for (const s of sums) {
       if (!s.cardId) continue;

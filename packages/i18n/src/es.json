@@ -414,6 +414,24 @@
           "body": "Elige qué cuentas y tarjetas ver en el Panel."
         }
       }
+    },
+    "transfer": {
+      "eyebrow": "Traspasar a {{currency}}",
+      "action": "Traspasar a {{currency}}",
+      "description": "El banco convirtió esta deuda vencida y la cargó a tu próxima facturación en {{currency}}. Escribe el cargo tal como aparece en tu estado de cuenta.",
+      "owed": "Deuda que se traspasa",
+      "amountLabel": "Cargo en {{currency}}",
+      "amountHint": "Sugerido con el valor del dólar de hoy; usa el de tu estado de cuenta.",
+      "consequence": "Se registra un cargo del emisor en la facturación abierta en {{currency}} y esta facturación queda traspasada. Puedes deshacerlo mientras esa facturación no esté pagada.",
+      "submit": "Traspasar",
+      "success": "Facturación traspasada",
+      "transferredOn": "Traspasada el {{date}}",
+      "transferredLabel": "Traspasada",
+      "became": "pasó a {{amount}}",
+      "undo": "Deshacer traspaso",
+      "undoConfirm": "¿Deshacer el traspaso?",
+      "undoConfirmDescription": "Esta facturación vuelve a deber {{restored}} y se elimina el cargo de {{removed}} de la facturación en {{currency}}.",
+      "undoSuccess": "Traspaso deshecho"
     }
   },
   "cards": {
@@ -601,6 +619,7 @@
     "deleted": "Movimiento eliminado",
     "deleteConfirm": "¿Eliminar este movimiento?",
     "deleteConfirmDescription": "Se eliminará de forma permanente y el saldo de la cuenta (y el cupo usado, si aplica) volverá a ajustarse.",
+    "deleteForeignPrepaymentDescription": "Se deshará el prepago completo: se eliminan sus dos movimientos, el monto vuelve a la cuenta de origen y la facturación vuelve a deber lo prepagado.",
     "empty": "Aún no tienes movimientos.",
     "emptyHint": "Los movimientos que registres en esta cuenta aparecerán aquí.",
     "uncategorized": "Sin categoría",
@@ -709,7 +728,9 @@
       "viewRecurring": "Ver gasto fijo",
       "statementLocked": "Este movimiento respalda el pago de una facturación en otra moneda. Para cambiarlo, corrige el pago desde su facturación.",
       "viewSavings": "Ver aporte",
-      "viewGoal": "Ver meta"
+      "viewGoal": "Ver meta",
+      "foreignPrepaymentLocked": "Este movimiento es parte de un prepago en otra moneda. No se puede editar; si lo eliminas se deshace el prepago completo (los dos movimientos), mientras su facturación no esté pagada.",
+      "transferLocked": "Este cargo es el traspaso a pesos de una facturación en otra moneda. Para quitarlo, deshaz el traspaso desde su facturación."
     },
     "source": {
       "MANUAL": "Manual",

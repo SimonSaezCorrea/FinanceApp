@@ -1,4 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
+import {
+  OverdraftLimitExceededError,
+  PrepaidInsufficientBalanceError,
+} from "../../../../../../src/domains/transaction/domain/errors";
 
 import {
   BankAccount,
@@ -106,6 +110,7 @@ function setup(
     cards?: ReturnType<typeof card>[];
     fromCurrency?: string;
     owed?: string;
+    from?: Partial<BankAccountProps>;
   } = {},
 ) {
   const creditAccount = BankAccount.fromPersistence(
@@ -120,6 +125,7 @@ function setup(
       currency: opts.fromCurrency ?? "CLP",
       name: "Cuenta corriente",
       cards: [],
+      ...opts.from,
     }),
   );
   const statement = CreditStatement.fromPersistence(statementProps(opts.statement));
@@ -295,5 +301,25 @@ describe("PrepayOpenPeriodHandler — period in the account's own currency (unch
       "-40000.0000",
     );
     expect(creditAccount.creditUsed).toBe("300000.0000");
+  });
+});
+
+describe("PrepayOpenPeriodHandler — the source account's own rules", () => {
+  it("refuses prepaying from a prepaid account without the money, writing nothing", async () => {
+    const { prepay, transactions } = setup({
+      statement: { currency: "CLP" },
+      owed: "100000",
+      from: { type: "PREPAID", currentBalance: "10000" },
+    });
+    await expect(prepay("40000")).rejects.toThrow(PrepaidInsufficientBalanceError);
+    expect(transactions.createWithTx).not.toHaveBeenCalled();
+  });
+
+  it("checks the pesos that leave, not the dollars, on a period in another currency", async () => {
+    const { prepay } = setup({
+      owed: "100",
+      from: { type: "CHECKING", currentBalance: "1000", overdraftLimit: "10000" },
+    });
+    await expect(prepay("20", "19600")).rejects.toThrow(OverdraftLimitExceededError);
   });
 });

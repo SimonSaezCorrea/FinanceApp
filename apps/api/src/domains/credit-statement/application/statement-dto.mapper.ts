@@ -93,7 +93,8 @@ export function toStatementDto(
       input.accountCurrency,
       input.today ?? new Date(),
     ),
-    transferReversal: null,
+    // The same figures `UndoTransferStatementHandler` applies (Constitution Principle I).
+    transferReversal: transferReversalDto(statement, input.accountCurrency),
     periodStart: statement.periodStart.toISOString(),
     closedAt,
     paidAt,
@@ -116,6 +117,21 @@ export function toStatementDto(
     createdAt: statement.createdAt.toISOString(),
     updatedAt: statement.updatedAt.toISOString(),
   };
+}
+
+function transferReversalDto(
+  statement: CreditStatement,
+  accountCurrency: string,
+): accounts.CreditStatement["transferReversal"] {
+  const r = statement.transferReversal(accountCurrency);
+  return r
+    ? {
+        restoredAmount: r.restoredAmount,
+        restoredCurrency: r.restoredCurrency,
+        removedAmount: r.removedAmount,
+        removedCurrency: r.removedCurrency,
+      }
+    : null;
 }
 
 /**

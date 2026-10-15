@@ -106,6 +106,11 @@ describe("GetAccountQueryHandler", () => {
       accountRepo,
       fakeTransactionSumsRepo(),
       fakePlanRepo(),
+      {
+        paymentInfoFor: vi.fn(async () => new Map()),
+        carriedOverOwed: vi.fn(async () => new Map()),
+        transferInfoFor: vi.fn(async () => new Map()),
+      },
     );
 
     const dto = await handler.execute(new GetAccountQuery("u1", "acc_1"));
@@ -121,6 +126,11 @@ describe("GetAccountQueryHandler", () => {
       accountRepo,
       fakeTransactionSumsRepo(),
       fakePlanRepo(),
+      {
+        paymentInfoFor: vi.fn(async () => new Map()),
+        carriedOverOwed: vi.fn(async () => new Map()),
+        transferInfoFor: vi.fn(async () => new Map()),
+      },
     );
 
     await expect(handler.execute(new GetAccountQuery("u1", "missing"))).rejects.toThrow(

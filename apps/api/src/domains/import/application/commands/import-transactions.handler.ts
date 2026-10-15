@@ -16,7 +16,6 @@ import {
   CARD_LIMIT_REPOSITORY,
   type CardLimitRepositoryPort,
 } from "../../../card-limit/domain/ports/card-limit.repository.port";
-import { currentCycleStart } from "../../../billing-settings/domain/billing-cycle";
 import {
   TRANSACTION_REPOSITORY,
   type TransactionRepositoryPort,
@@ -35,7 +34,6 @@ import {
 } from "../../../idempotency-record/domain/ports/idempotency-record.repository.port";
 import { loadAccountContext } from "../../../transaction/application/account-context.loader";
 import { AccountNotFoundError } from "../../../transaction/domain/errors";
-import type { AccountContext } from "../../../transaction/domain/movement-policy";
 import {
   TRANSACTION_WRITER_REPOSITORY,
   type TransactionWriterRepositoryPort,
@@ -118,7 +116,7 @@ export class ImportTransactionsHandler extends BaseIdempotentCommandHandler<
     }
 
     const currency = account.snapshot().currency;
-    const cards = await this.accountCards(userId, input.bankAccountId, currency, loaded.context);
+    const cards = await this.accountCards(userId, input.bankAccountId, currency);
     const plan = planImport(input.rows, { ...loaded.context, currency }, cards);
 
     const creditStatementId = plan.rows.some((r) => r.drawsOnCredit)
@@ -180,18 +178,16 @@ export class ImportTransactionsHandler extends BaseIdempotentCommandHandler<
   /**
    * Every card of the account, with what the movement rules need to judge a row
    * charged to it: a CREDIT card's own sub-limit in the account's currency (when it
-   * has one) and what it has used against it this cycle — the same inputs
+   * has one) and what it still owes against it — the same inputs
    * `CreateTransactionHandler` loads for a single movement.
    */
   private async accountCards(
     userId: string,
     accountId: string,
     currency: string,
-    account: Pick<AccountContext, "billingCycleDay" | "billingCycleType">,
   ): Promise<ImportCard[]> {
     const cards = await this.cards.listByAccounts([accountId]);
     const limits = await this.cardLimits.listByCards(cards.map((c) => c.id));
-    const since = currentCycleStart(account.billingCycleDay, account.billingCycleType, new Date());
     return Promise.all(
       cards.map(async (c) => {
         const own = limits.find((l) => l.cardId === c.id && l.currency === currency) ?? null;
@@ -200,7 +196,7 @@ export class ImportTransactionsHandler extends BaseIdempotentCommandHandler<
             ? { limitAmount: own.limitAmount, usedInitial: own.usedInitial }
             : null;
         const usage = limit
-          ? await this.movements.sumsForCard(userId, c.id, currency, since, undefined, true)
+          ? await this.movements.sumsForCard(userId, c.id, currency, undefined, true)
           : { income: "0", expense: "0" };
         return { id: c.id, kind: c.kind, isPrimary: c.isPrimary, limit, usage };
       }),

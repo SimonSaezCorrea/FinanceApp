@@ -1,8 +1,19 @@
 import { useEffect, useState } from "react";
-import { Banknote, CalendarDays, CreditCard, Inbox, Pencil, RefreshCw } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Banknote,
+  CalendarDays,
+  CreditCard,
+  Inbox,
+  Pencil,
+  RefreshCw,
+  Undo2,
+} from "lucide-react";
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
+
+import { ApiRequestError } from "@finance/client";
 
 import { accounts as accountsContract, type accounts } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
@@ -19,7 +30,9 @@ import { TransactionCreateModal } from "../../transactions/components/Transactio
 import { useAccountMutations, useCreditStatements } from "../hooks/useAccounts";
 import { EditStatementPaymentPanel } from "./EditStatementPaymentPanel";
 import { GenerateStatementPanel } from "./GenerateStatementPanel";
+import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
 import { PayStatementPanel } from "./PayStatementPanel";
+import { TransferStatementPanel } from "./TransferStatementPanel";
 import { StatementDetailPanel } from "./StatementDetailPanel";
 import { STATEMENT_STATUS_VARIANT, statementsByCurrency } from "../lib/statementStatus";
 
@@ -133,7 +146,8 @@ export function BillingSection({
   // rows as if the load had succeeded, hiding the error and its retry action
   // entirely. Treat it as empty whenever the CURRENT state is an error.
   const statements = isError ? undefined : rawStatements;
-  const { syncStatement } = useAccountMutations();
+  const { syncStatement, undoTransferStatement } = useAccountMutations();
+  const undoTransferKey = useIdempotencyKey();
   const [payTarget, setPayTarget] = useState<accounts.CreditStatement | null>(null);
   // Spec 019: the OPEN period is never "paid" from here anymore — `payTowards`
   // would liquidate/close it, which is not what abonar early means. It opens
@@ -143,6 +157,11 @@ export function BillingSection({
   const [prepayTarget, setPrepayTarget] = useState<accounts.CreditStatement | null>(null);
   const [syncTarget, setSyncTarget] = useState<accounts.CreditStatement | null>(null);
   const [editPaymentTarget, setEditPaymentTarget] = useState<accounts.CreditStatement | null>(null);
+  // Spec 028 US3: transfer an overdue period in another currency to the account's own, and back.
+  const [transferTarget, setTransferTarget] = useState<accounts.CreditStatement | null>(null);
+  const [undoTransferTarget, setUndoTransferTarget] = useState<accounts.CreditStatement | null>(
+    null,
+  );
   const [detailTarget, setDetailTarget] = useState<accounts.CreditStatement | null>(null);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [editDatesTarget, setEditDatesTarget] = useState<accounts.CreditStatement | null>(null);
@@ -339,7 +358,8 @@ export function BillingSection({
    * - PENDING: pay;
    * - OPEN in another currency (spec 030): prepagar, in the payment panel itself — the
    *   transaction form is bound to the credit account's own currency;
-   * - transferring an overdue period to pesos arrives with spec 028's US3.
+   * - an overdue period in another currency also offers "Traspasar" (spec 028 US3); a
+   *   TRANSFERRED one, "Deshacer traspaso".
    */
   function PeriodAction({
     statement: s,
@@ -353,13 +373,23 @@ export function BillingSection({
       tone: "accent" | "ghost";
     };
     if (isSettled(s)) {
-      if (s.status !== "PARTIALLY_PAID") return none;
-      action = {
-        label: t("accounts.actions.editStatementPayment"),
-        icon: Pencil,
-        onClick: () => setEditPaymentTarget(s),
-        tone: "ghost",
-      };
+      if (s.status === "TRANSFERRED") {
+        action = {
+          label: t("accounts.transfer.undo"),
+          icon: Undo2,
+          onClick: () => setUndoTransferTarget(s),
+          tone: "ghost",
+        };
+      } else if (s.status === "PARTIALLY_PAID") {
+        action = {
+          label: t("accounts.actions.editStatementPayment"),
+          icon: Pencil,
+          onClick: () => setEditPaymentTarget(s),
+          tone: "ghost",
+        };
+      } else {
+        return none;
+      }
     } else if (s.status === "OPEN") {
       action = {
         label: t("transactions.type.PREPAY"),
@@ -376,27 +406,56 @@ export function BillingSection({
         tone: "accent",
       };
     }
+    // An overdue period in another currency can also be transferred to the account's own
+    // (the same rule the server applies, `canTransfer`), beside paying it.
+    const transfer = s.canTransfer
+      ? {
+          label: t("accounts.transfer.action", { currency: account.currency }),
+          onClick: () => setTransferTarget(s),
+        }
+      : null;
     if (variant === "card") {
       return (
-        <Button variant="secondary" className="flex-1" onClick={action.onClick}>
-          {action.label}
-        </Button>
+        <>
+          {transfer ? (
+            <Button variant="outline" className="flex-1" onClick={transfer.onClick}>
+              {transfer.label}
+            </Button>
+          ) : null}
+          <Button variant="secondary" className="flex-1" onClick={action.onClick}>
+            {action.label}
+          </Button>
+        </>
       );
     }
     const Icon = action.icon;
     return (
-      // Tinted (not a plain ghost icon) when it moves money forward, same
-      // reasoning as the accent "Nuevo" buttons elsewhere.
-      <Button
-        variant={action.tone}
-        size="sm"
-        className="w-8 px-0"
-        aria-label={action.label}
-        title={action.label}
-        onClick={action.onClick}
-      >
-        <Icon className="h-3.5 w-3.5" aria-hidden />
-      </Button>
+      <>
+        {transfer ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-8 px-0"
+            aria-label={transfer.label}
+            title={transfer.label}
+            onClick={transfer.onClick}
+          >
+            <ArrowRightLeft className="h-3.5 w-3.5" aria-hidden />
+          </Button>
+        ) : null}
+        {/* Tinted (not a plain ghost icon) when it moves money forward, same reasoning as the
+            accent "Nuevo" buttons elsewhere. */}
+        <Button
+          variant={action.tone}
+          size="sm"
+          className="w-8 px-0"
+          aria-label={action.label}
+          title={action.label}
+          onClick={action.onClick}
+        >
+          <Icon className="h-3.5 w-3.5" aria-hidden />
+        </Button>
+      </>
     );
   }
 
@@ -431,7 +490,9 @@ export function BillingSection({
                   <p className="text-xs text-muted-foreground">
                     {s.paidAt
                       ? t("accounts.detail.billingPaidOn", { date: date(s.paidAt) })
-                      : t(`accounts.detail.billingStatusValue.${s.status}`)}
+                      : s.transferredAt
+                        ? t("accounts.transfer.transferredOn", { date: date(s.transferredAt) })
+                        : t(`accounts.detail.billingStatusValue.${s.status}`)}
                   </p>
                   {/* Only when the payment fell short: on a fully paid period
                       "pagado X de X" says nothing the amount doesn't. */}
@@ -469,6 +530,14 @@ export function BillingSection({
         <div className="leading-tight">
           <p className="tabular-nums">{shortDate(s.paidAt)}</p>
           <p className="text-xs text-muted-foreground">{t("accounts.detail.billingPaidLabel")}</p>
+        </div>
+      );
+    }
+    if (s.transferredAt) {
+      return (
+        <div className="leading-tight">
+          <p className="tabular-nums">{shortDate(s.transferredAt)}</p>
+          <p className="text-xs text-muted-foreground">{t("accounts.transfer.transferredLabel")}</p>
         </div>
       );
     }
@@ -553,6 +622,11 @@ export function BillingSection({
                   {/* Muted, not coloured: the badge beside it already carries the
                       colour, and two warning-toned things in one row read as an
                       error. Only the covered figure — the total is right above. */}
+                  {s.transferredAmount !== null ? (
+                    <span className="block truncate text-xs font-normal tabular-nums text-muted-foreground">
+                      {t("accounts.transfer.became", { amount: fmt(s.transferredAmount) })}
+                    </span>
+                  ) : null}
                   {s.status === "PARTIALLY_PAID" ? (
                     <span className="block truncate text-xs font-normal tabular-nums text-muted-foreground">
                       {t("accounts.detail.billingPaidAmount", {
@@ -746,6 +820,57 @@ export function BillingSection({
         defaultBankAccountId={account.id}
         lockAccount
         initialMode="PREPAY"
+      />
+      <TransferStatementPanel
+        account={account}
+        statement={transferTarget}
+        onOpenChange={(v) => !v && setTransferTarget(null)}
+      />
+      {/* Built ONLY from `transferReversal`: the same figures the server reverts. */}
+      <ConfirmModal
+        open={undoTransferTarget !== null}
+        onOpenChange={(v) => !v && setUndoTransferTarget(null)}
+        title={t("accounts.transfer.undoConfirm")}
+        description={
+          undoTransferTarget?.transferReversal
+            ? t("accounts.transfer.undoConfirmDescription", {
+                restored: fmt(
+                  undoTransferTarget.transferReversal.restoredAmount,
+                  undoTransferTarget.transferReversal.restoredCurrency,
+                ),
+                removed: fmt(
+                  undoTransferTarget.transferReversal.removedAmount,
+                  undoTransferTarget.transferReversal.removedCurrency,
+                ),
+                currency: undoTransferTarget.transferReversal.removedCurrency,
+              })
+            : undefined
+        }
+        confirmLabel={t("accounts.transfer.undo")}
+        loading={undoTransferStatement.isPending}
+        onConfirm={() => {
+          if (!undoTransferTarget) return;
+          undoTransferStatement.mutate(
+            {
+              id: account.id,
+              statementId: undoTransferTarget.id,
+              idempotencyKey: undoTransferKey.current(),
+            },
+            {
+              onSuccess: () => {
+                undoTransferKey.reset();
+                toast.success(t("accounts.transfer.undoSuccess"));
+                setUndoTransferTarget(null);
+              },
+              onError: (e) =>
+                toast.error(
+                  t(`errors.${e instanceof ApiRequestError ? e.code : "INTERNAL_ERROR"}`, {
+                    defaultValue: t("errors.INTERNAL_ERROR"),
+                  }),
+                ),
+            },
+          );
+        }}
       />
       <ConfirmModal
         open={syncTarget !== null}

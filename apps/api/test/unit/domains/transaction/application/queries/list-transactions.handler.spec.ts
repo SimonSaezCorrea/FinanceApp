@@ -22,6 +22,8 @@ const fakeConfig = () => ({ getOrThrow: () => "test-cursor-secret" }) as unknown
 
 const fakeStatementLookup = (): CreditStatementLookupPort => ({
   paymentInfoFor: vi.fn().mockResolvedValue(new Map()),
+  carriedOverOwed: vi.fn().mockResolvedValue(new Map()),
+  transferInfoFor: vi.fn().mockResolvedValue(new Map()),
 });
 
 function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): TransactionRepositoryPort {
@@ -36,6 +38,7 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     saveUpdateWithTx: vi.fn(),
     removeWithCreditAdjustment: vi.fn(),
     removeWithTx: vi.fn(),
+    findSettlementPair: vi.fn(async () => null),
     findTransferGroup: vi.fn(async () => null),
     saveTransferPair: vi.fn(),
     saveTransferPairWithTx: vi.fn(),

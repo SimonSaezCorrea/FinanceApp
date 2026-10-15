@@ -65,16 +65,16 @@ export interface TransactionRepositoryPort {
     internalCategoryIds?: string[],
   ): Promise<TransactionSummaryResult>;
   findOne(userId: string, id: string): Promise<Transaction | null>;
-  /** Σ income/expense for one card in one currency, optionally scoped to a
-   * billing cycle (`since`) and excluding one tx (for edits). `openOnly`: leave
-   * out rows on an already-PAID statement — for a sub-limit in the account's own
-   * currency, whose purchases are billed with the account and freed by paying it
-   * (a payment goes to the account, never to one plastic). */
+  /** Σ income/expense for one card in one currency, excluding one tx (for edits). Never
+   * time-scoped (2026-10-14: the old billing-cycle `since` window left a closed but unpaid
+   * period's charges out of the sub-limit). `openOnly`: leave out rows on an already-PAID
+   * statement — for a sub-limit in the account's own currency, whose purchases are billed with
+   * the account and freed by paying it (a payment goes to the account, never to one plastic).
+   * In another currency, charges and their payments net out over all time. */
   sumsForCard(
     userId: string,
     cardId: string,
     currency: string,
-    since: Date | null,
     excludeTxId?: string,
     openOnly?: boolean,
   ): Promise<{ income: string; expense: string }>;
@@ -150,6 +150,13 @@ export interface TransactionRepositoryPort {
 
   /** Both legs of a transfer, or `null` if the group doesn't exist for the user. */
   findTransferGroup(userId: string, transferGroupId: string): Promise<TransferPair | null>;
+  /** The two legs of a prepayment in another currency (`settlementPairId`), the user's own only:
+   * the EXPENSE that left the source account and the INCOME settlement on the card. Null unless
+   * both are there. */
+  findSettlementPair(
+    userId: string,
+    settlementPairId: string,
+  ): Promise<{ expense: Transaction; income: Transaction } | null>;
   saveTransferPair(
     userId: string,
     outgoing: Omit<TransactionProps, "id" | "createdAt" | "updatedAt">,

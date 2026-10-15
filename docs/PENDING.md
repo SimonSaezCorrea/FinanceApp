@@ -11,18 +11,18 @@ Cuando una feature nueva agregue un placeholder o una cobertura parcial, se agre
 
 ## Perfil de usuario (specs/008) — `Perfil.dc.html`
 
-### 1. Verificación real de datos (`AccountStatusSection` — "Estado de tu cuenta")
+### 1. Verificación real de datos — el correo ya se verifica (specs/032); teléfono e identidad no
 
-El anillo de completitud y los checks de "Correo", "Identidad (RUT)" y "Teléfono" reflejan **si el
-dato está lleno**, no si fue verificado de verdad. No existe:
+`AccountStatusSection` ya no existe (specs/029 lo reemplazó por el Resumen de Perfil). El **correo
+sí se verifica de verdad** desde specs/032 (enlace por correo, `User.emailVerified`; el Resumen lo
+cuenta como pendiente mientras no se confirme). Lo que sigue sin existir:
 
-- Envío de email de confirmación (no hay proveedor SMTP integrado).
-- Envío de SMS/OTP para verificar el teléfono (no hay proveedor tipo Twilio integrado).
-- Verificación de identidad contra un registro real (SII/Registro Civil u homólogo).
+- Verificar el **teléfono** por SMS/OTP (no hay proveedor tipo Twilio integrado).
+- Verificar la **identidad** contra un registro real (SII/Registro Civil u homólogo): el RUT solo se
+  valida por su dígito verificador.
 
-**Para hacerlo real**: integrar un proveedor de email transaccional + uno de SMS, agregar
-`emailVerifiedAt`/`phoneVerifiedAt` al modelo `User`, flujos de token de confirmación con expiración,
-y (opcional) un proveedor de verificación de identidad de terceros.
+**Para hacerlo real**: un proveedor de SMS + `phoneVerifiedAt` con su flujo de código, y (opcional)
+un proveedor de verificación de identidad de terceros.
 
 ### 2. Foto de perfil
 
@@ -307,29 +307,23 @@ cerrar), no se retro-particiona en varios períodos — se cierra un solo bounda
 vencido) con todo lo acumulado desde la última vez. No es un problema esperado en producción normal
 (el cron corre a diario), solo si el proceso backend estuvo apagado por semanas.
 
-### 4. Topes propios de tarjeta (`CardLimit.used`) — no migrados al modelo de facturación
+### 4. ~~Topes propios de tarjeta (`CardLimit.used`) — no migrados al modelo de facturación~~ — resuelto por diseño (2026-09-27, limpieza 2026-10-14)
 
-El modelo de facturación (períodos, enlazado de movimientos, cierre, pago) solo cubre el **cupo
-compartido de la cuenta** (`BankAccount.creditUsed`). El tope propio de una tarjeta adicional
-(`CardLimit.used`, "tope propio" en vez de "cupo de la cuenta") **sigue siendo derivado** de los
-movimientos (todo el tiempo, sin acotar por ciclo, sin períodos ni pagos) — no tiene su propia
-facturación, botón de pago, ni registro `CreditStatement`.
+Este punto describía el modelo viejo, donde el tope propio de una tarjeta adicional era un cupo
+aparte. **Desde el 2026-09-27** el tope propio en la moneda de la cuenta es un **sub-tope dentro del
+cupo del titular**: cada compra de la adicional sube el `creditUsed` de la cuenta y entra en la
+**misma facturación**, que se paga entera desde la cuenta (nunca por tarjeta, porque es un solo
+monto para el titular). El uso del sub-tope cuenta lo que la tarjeta todavía debe — sus cargos que
+no están en una facturación pagada (`STILL_OWED`) —, así que pagar la facturación de la cuenta
+también libera el sub-tope. No falta una facturación ni un botón de pago por tarjeta: no deben
+existir.
 
-**Para hacerlo real**: extender el mismo mecanismo (enlazado de movimientos + generación + pago) a
-`CardLimit`, y agregar una pestaña de facturación por tarjeta en `CardDetailModal`.
-
-**Consecuencia del punto 3 (días hábiles) sobre este límite conocido**: `currentCycleStart` —lo único
-que sigue acotando `CardLimit.used` a una ventana de tiempo (el `since` de `sumsForCard`, ver
-`create-transaction.handler.ts`/`update-transaction.handler.ts`/`add-card.handler.ts`/
-`update-card.handler.ts`)— solo sabe reconstruir el inicio del ciclo actual para `cycleType:
-CALENDAR_DAY` (un día fijo del mes es reconstruible desde `now`). Para `BUSINESS_DAY` no hay un
-día fijo del que partir — el cierre depende de cuándo terminó el período anterior, algo que no vive
-en `BillingSettings` — así que `currentCycleStart` devuelve `null` para esas cuentas y el tope propio
-de la tarjeta deja de acotarse a un ciclo (vuelve a ser todo-el-tiempo, igual que antes de que
-existiera esta ventana). No es una regresión del cupo COMPARTIDO de la cuenta (`creditUsed`, que ya
-era un total persistido sin ventana de tiempo desde 2026-07-25) — solo del tope INDEPENDIENTE de una
-tarjeta adicional con `CardLimit` propio en `BUSINESS_DAY`, un caso limitado dentro de un límite ya
-documentado en este mismo punto.
+**Limpieza 2026-10-14**: ese uso se seguía recortando además al "ciclo actual"
+(`currentCycleStart`) cuando la cuenta tenía un día de facturación de la configuración vieja; un
+cargo de un período cerrado y sin pagar quedaba fuera y la tarjeta mostraba más disponible del real.
+Se quitó el recorte (`sumsForCard`/`sumsByCard` ya no reciben `since`; `currentCycleStart` se
+eliminó): manda solo la regla de "no pagado". En otra moneda (el tope USD de una tarjeta CLP) los
+cargos y sus pagos se netean sin ventana de tiempo, como ya pasaba sin día configurado.
 
 ### 4b. `Card.ownUsed` — la PRINCIPAL absorbe el residuo, las tarjetas siempre suman `creditUsed` (fix, 2026-08-23)
 
@@ -541,25 +535,24 @@ los movimientos como si se hubieran creado a mano (saldo, cupo, reglas, todo o n
 
 ## Inversiones
 
-### 1. La vista de inversiones es una lista de solo lectura
+### 1. Seguimiento de inversiones — eliminado (2026-09-07), diseño congelado en spec 012
 
-`/investments` lista etiqueta y tipo de cada `Investment` y nada más: **sin montos, sin crear,
-editar ni eliminar** (`InvestmentsRoute.tsx`, 36 líneas). El modelo detrás también está a medias —
-`InvestmentKind` solo tiene `ETF` y `REMUNERATED_ACCOUNT`, no existe el depósito a plazo, el APV, el
-fondo mutuo, las acciones ni la cuenta de ahorro para la vivienda — y **nada de lo invertido entra
-al patrimonio neto**, que solo cuenta saldos de cuentas menos deuda.
+La tabla `investment`, su vista `/investments` y el caché de cotizaciones se **eliminaron** el
+2026-09-07 (no se usaban). Hoy solo queda `AccountType.INVESTMENT` como tipo de cuenta, deshabilitado
+al crear o editar ("Próximamente"). Nada de lo invertido entra al patrimonio neto más allá del saldo
+de esa cuenta.
 
-**Diseño ya acordado, congelado en `specs/012-investment-tracking/spec.md`** (estado _Deferred_,
-2026-08-15): la plata siempre vive en una cuenta, así que un depósito a plazo se abre con un
-traspaso desde la cuenta de origen y se liquida devolviendo capital + el interés que el usuario lee
-de su cartola (**la app nunca lo calcula**, igual que `financeCharge`); renovar es una sola acción
-que no toca ninguna cuenta; una cuenta remunerada es una `BankAccount` con tasa declarada, no una
-fila aparte; y el patrimonio separa lo verificado por movimientos de la línea **declarada por el
-usuario** = Σ(valor declarado − capital aportado), que evita contar dos veces el mismo peso.
+**Diseño ya acordado, congelado en `specs/012-investment-tracking/spec.md`** (estado _Deferred_): la
+plata siempre vive en una cuenta, así que un depósito a plazo se abre con un traspaso desde la cuenta
+de origen y se liquida devolviendo capital + el interés que el usuario lee de su cartola (**la app
+nunca lo calcula**, igual que `financeCharge`); renovar es una sola acción que no toca ninguna cuenta;
+una cuenta remunerada es una `BankAccount` con tasa declarada; y el patrimonio separa lo verificado
+por movimientos de la línea **declarada por el usuario** = Σ(valor declarado − capital aportado).
 
-**Qué falta decidir antes de implementar** (por eso quedó diferida): si una cuenta de inversión
-alberga un instrumento o varios — en Fintual el usuario ve UNA cuenta con varios fondos adentro — y
-si esa cuenta la crea la app al registrar el instrumento o la elige el usuario.
+**Qué falta decidir antes de implementar**: si una cuenta de inversión alberga un instrumento o
+varios — en Fintual el usuario ve UNA cuenta con varios fondos adentro — y si esa cuenta la crea la
+app al registrar el instrumento o la elige el usuario. Revivir el código borrado es desde el historial
+de git.
 
 ### 2. Cotización en vivo de ETF
 
@@ -569,23 +562,15 @@ instrumento — que es exactamente lo que asume la spec 012.
 
 ## Cuotas (specs/013, 014)
 
-### 1. Pagar una facturación no valida saldo prepago ni sobregiro
+### 1. ~~Pagar una facturación no valida saldo prepago ni sobregiro~~ — resuelto (2026-10-15)
 
-Pagar una **cuota** valida la cuenta de origen con `MovementPolicy.assertWithinPrepaidBalance` y
-`assertWithinOverdraft`: un cargo que dejaría una cuenta prepago en negativo, o que pasaría la línea
-de sobregiro, se rechaza sin marcar la cuota. **Pagar una facturación de crédito
-(`POST /accounts/:id/credit-statements/:id/pay`) no hace ninguna de las dos comprobaciones** — crea el
-gasto y descuenta el saldo sin preguntar.
-
-Son dos caminos que crean el mismo tipo de movimiento sobre el mismo tipo de cuenta y deberían validar
-igual. No se unificó aquí para no cambiar el comportamiento de un dominio que esta feature no tocaba;
-el arreglo es mover ambas guardas al pago de facturación, no relajarlas en el de cuotas.
-
-**Spec 014 amplió el alcance de este hueco, sin cerrarlo**: ahora el mismo endpoint es también el
-único camino por el que se liquida una cuota de un plan con tarjeta de crédito (`settleForStatementWithTx`
-corre en la misma transacción cruzada de `PayCreditStatementHandler`), así que la falta de estas dos
-comprobaciones alcanza igual a esas cuotas. Sigue pendiente la misma solución: mover las guardas al
-pago de facturación.
+Pagar, prepagar y corregir el pago de una facturación ahora aplican a la cuenta de origen las mismas
+reglas que pagar una cuota o cualquier gasto (`credit-statement/application/source-funds.ts`'s
+`assertSourceCovers`): una cuenta prepago nunca queda en negativo (`PREPAID_INSUFFICIENT_BALANCE`) y
+una cuenta con sobregiro declarado no pasa de su piso (`OVERDRAFT_LIMIT_EXCEEDED`). En otra moneda se
+valida lo que sale de la cuenta (los pesos), no los dólares; una corrección que sube el pago se valida
+contra el saldo como estaba antes de su propio cargo anterior. Alcanza también a las cuotas de planes
+con tarjeta de crédito, que se liquidan con ese mismo pago.
 
 ### 2. La previsualización repite el paso de fechas del agregado
 
@@ -926,25 +911,36 @@ hora de Chile) y el arrastre del último valor cubren el día, pero nada avisa a
 "dato arrastrado" en la pantalla Tipos de cambio y en los estimados. Se puede apuntar a otra fuente con
 `EXCHANGE_RATE_SOURCE_URL`; cambiarla de verdad (Banco Central) exige credenciales.
 
-### 2. Un pago parcial en otra moneda no deja el uso del tope al día
+### 2. ~~Un pago parcial en otra moneda no deja el uso del tope al día~~ — resuelto (2026-10-15)
 
-Pagar menos de lo adeudado en una facturación USD la liquida y traslada el faltante como
-`carriedOverAmount` del siguiente período USD, pero el **uso del tope USD** se deriva de movimientos y
-esa deuda arrastrada no es un movimiento: el "Crédito · USD" queda subestimado por el faltante hasta que
-se paga el período siguiente. Para pagos por partes conviene **prepagar** (que sí deja el período abierto
-y la deuda a la vista).
+Lo que un pago parcial deja sin cubrir viaja como `carriedOverAmount` al período siguiente de esa
+moneda, que no es un movimiento. Ahora se suma al uso del tope en otra moneda de la tarjeta
+**principal** (donde cae toda liquidación), tanto al mostrarlo (`account-dto.mapper.ts`'s
+`foreignLimitWithCarry`, el KPI "Crédito · USD") como al validar una compra
+(`transaction/application/card-limit-usage.ts`'s `cardLimitUsage`, usado por crear/editar movimiento
+y por la plantilla), vía `CreditStatementLookupPort.carriedOverOwed`. Las dos rutas cuentan ahora lo
+mismo: solo lo no liquidado (`STILL_OWED`, que además trata un período traspasado como liquidado).
 
-### 3. Pago y prepago en otra moneda no se deshacen desde Movimientos
+### 3. ~~Pago y prepago en otra moneda no se deshacen desde Movimientos~~ — prepago resuelto (2026-10-15)
 
-Los dos movimientos de un pago/prepago USD son de solo lectura (`TRANSACTION_LINKED_TO_STATEMENT`). Un
-pago se corrige con "Modificar pago"; **un prepago USD no tiene deshacer** todavía (el prepago en la
-moneda de la cuenta sí se edita/elimina, spec 019).
+Un prepago en otra moneda son dos movimientos unidos por la columna nueva
+**`Transaction.settlementPairId`** (migración `20261015120000_settlement_pair`, que empareja los
+prepagos ya existentes). Eliminar cualquiera de los dos desde Movimientos deshace el par: borra
+ambos, devuelve los pesos a la cuenta de origen y baja `prepaidAmount`, mientras su facturación no
+esté liquidada (después responde `TRANSACTION_LINKED_TO_STATEMENT`). No se editan. Un PAGO en otra
+moneda sigue corrigiéndose con "Modificar pago", sin deshacer.
 
-### 4. Traspasar una facturación USD vencida a pesos (spec 028 US3) sigue pendiente
+### 4. ~~Traspasar una facturación USD vencida a pesos (spec 028 US3)~~ — resuelto (2026-10-15)
 
-Pagar y prepagar en USD ya existen (spec 030 absorbió la US2 de la 028). Lo que no existe es el flujo
-del banco que convierte la deuda vencida y la carga a la facturación en pesos: tareas T043–T058 de
-`specs/028-multi-currency-billing/tasks.md`.
+`POST`/`DELETE /accounts/:id/credit-statements/:statementId/transfer` (idempotentes). Traspasar una
+facturación en otra moneda, cerrada, vencida y sin liquidar (`canTransferStatement`) registra la
+liquidación en USD en la tarjeta principal, un cargo del emisor en pesos (`financeCharge`, categoría
+`CURRENCY_TRANSFER`) en la facturación abierta en pesos, sube `creditUsed` y deja el período
+TRANSFERRED. Deshacer aplica exactamente `transferReversal` (lo mismo que muestra la confirmación) y
+se rechaza si la facturación en pesos que recibió el cargo ya está pagada (`TRANSFER_ALREADY_BILLED`).
+Web: "Traspasar a CLP" en la fila (`TransferStatementPanel`, monto sugerido con el dólar del día y
+editable), la fila traspasada muestra a cuánto pasó, y "Deshacer traspaso". El cargo en pesos es de
+solo lectura en Movimientos.
 
 ### 5. Los valores son uno por día y moneda, no por hora
 

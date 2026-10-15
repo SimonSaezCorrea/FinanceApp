@@ -50,40 +50,6 @@ export function addBusinessDays(anchor: Date, count: number): Date {
 }
 
 /**
- * Given a credit account's statement cut-off day and the current moment,
- * returns the start of the CURRENT billing cycle — the most recent occurrence
- * of that day-of-month on or before `now` (this month's, or last month's if
- * this month's hasn't happened yet). `1`-`28` only (never 29-31) so every
- * month has that day — no end-of-month clamping needed, matching the same
- * range already used by the (separately unrelated, user-level) profile field
- * `User.billingCycleStartDay`.
- *
- * `null` when no billing day is configured (usage stays all-time), and ALSO
- * for a BUSINESS_DAY cycle: that mode has no fixed day-of-month to anchor
- * on — it closes N business days after whenever the previous period happened
- * to end, which isn't reconstructable from `now` alone. This is the same
- * "no time-window scoping" fallback `billingCycleDay` already answers with
- * when unconfigured; only a card's own independent `CardLimit` sub-limit still
- * consumes this (the account-level pool is a persisted, never-time-scoped
- * total — see CLAUDE.md), and it simply stops scoping to a window for a
- * BUSINESS_DAY account (a documented limitation, not a bug).
- */
-export function currentCycleStart(
-  billingCycleDay: number | null,
-  cycleType: accounts.BillingCycleType,
-  now: Date,
-): Date | null {
-  if (billingCycleDay == null || cycleType === "BUSINESS_DAY") return null;
-  const year = now.getUTCFullYear();
-  const month = now.getUTCMonth();
-  const day = now.getUTCDate();
-  if (day >= billingCycleDay) {
-    return new Date(Date.UTC(year, month, billingCycleDay));
-  }
-  return new Date(Date.UTC(year, month - 1, billingCycleDay));
-}
-
-/**
  * The boundary at which an OPEN `CreditStatement` starting on `periodStart`
  * should be closed by `BillingGenerationService`. Two cycle types:
  * - CALENDAR_DAY (the original behavior): the first occurrence of

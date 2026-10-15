@@ -26,6 +26,7 @@ import {
   type CreditStatementRepositoryPort,
 } from "../../domain/ports/credit-statement.repository.port";
 import { toStatementDto } from "../statement-dto.mapper";
+import { assertSourceCovers } from "../source-funds";
 import { UpdateStatementPaymentCommand } from "./update-statement-payment.command";
 
 interface Context {
@@ -145,6 +146,17 @@ export class UpdateStatementPaymentHandler extends BaseCommandHandler<
     } else {
       // Paying MORE releases more of the pool; correcting downwards puts it back.
       context.account.adjustCreditUsed(toMoney(paidDelta).negated().toString());
+    }
+    // Paying MORE takes more out of the source: it must still fit that account's rules
+    // (prepaid never negative, overdraft floor), checked against the balance as it was before
+    // this payment's own old debit. Correcting downwards only gives money back.
+    if (context.fromAccount && context.statement.paidTransactionId) {
+      const newDebit =
+        foreign && context.newCharged !== null ? context.newCharged : context.statement.paidAmount;
+      const oldDebit = context.oldCharged ?? subtractMoney(context.statement.paidAmount, paidDelta);
+      if (toMoney(newDebit).greaterThan(toMoney(oldDebit))) {
+        assertSourceCovers(context.fromAccount, newDebit, oldDebit);
+      }
     }
     return {
       result: toStatementDto(context.statement, {
