@@ -1628,8 +1628,13 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   `@resvg/resvg-js` (`scripts/og.mjs` → `public/og/fik-{es,en}.png`). Pages
   `src/pages/[lang]/{index,about,privacy,pricing,faq}.astro` + `privacy-policy.astro` (the LEGAL privacy policy, Ley 21.719, added 2026-10-11: Markdown in `src/legal/privacy-policy.{es,en}.md`, Spanish binding, English a declared translation; `Page` "privacyPolicy", slug `privacy-policy`; linked from the footer, the plain-language Privacy page and the sign-up consent; the internal draft with notes is `.compliance/docs/21719-politica-privacidad.md`); **visit statistics** (2026-10-11): Cloudflare Web Analytics added BY HAND in `PageLayout.astro` (not Cloudflare's automatic injection, which must stay off) only when `PUBLIC_CF_WEB_ANALYTICS_TOKEN` is set (deploy.yml, repo variable `CF_WEB_ANALYTICS_TOKEN`), `defer`, never on the pages an email link opens (one-time token in the URL), the 404 or the app; declared in the privacy policy; home pages carry WebSite/Organization JSON-LD (name "fik", alternate "mifik"); the site's CSS is inlined (`build.inlineStylesheets: "always"`) and the logo font is a 5.5 KB f/i/k subset (`packages/ui/src/styles/brand-font.css`) → `/es/`, `/en/pricing/`, … (English
   slugs in both languages, trailing slash; `lib/language.ts`'s `pagePath`/`pickLanguage`/
-  `legacyTarget`); `/` and the old `/precios`/`/nosotros`/`/privacidad`/`/preguntas` are static
-  redirect pages (`RedirectLayout`, keep `?query#hash`); `404.astro`; `robots.txt.ts`.
+  `legacyTarget`); on Cloudflare Pages the old `/precios`/`/nosotros`/`/privacidad`/`/preguntas`
+  answer a **301** (`public/_redirects`, kept equal to `LEGACY_REDIRECTS` by a test) and `/` a
+  **302** to `/es/` or `/en/` by `Accept-Language` with `Vary` (a Pages Function,
+  `functions/index.ts` → `src/lib/rootRedirect.ts`; `deploy.yml` runs `wrangler pages deploy dist`
+  FROM `apps/landing` so `functions/` is uploaded), both keeping the query (2026-10-15); the static
+  redirect pages (`RedirectLayout`, `noindex`, keep `?query#hash`) remain only as the fallback
+  where no host rules run (`astro preview`); `404.astro`; `robots.txt.ts`.
   `layouts/PageLayout.astro` writes title/description/canonical/hreflang/OG per page
   (`landing.meta.*`) and the inline pre-paint script; one React wrapper per page (`LandingPage` +
   `I18nRoot`, since Astro renders React children separately). Header/menu/footer/theme switch are
@@ -1913,7 +1918,7 @@ MaskedAmount.tsx`, wired into `NetWorthCard`/`AccountVisualCard`; **partial cove
       Compliance posture this closes (see `.compliance/RESUMEN.md`/`state.json`): hallazgo #1
       (no consentimiento reforzado — **now closed**) and hallazgo #3 (desactivar ≠ eliminar —
       **now closed**, real supresión exists). Still open: hallazgo #2 (no age-minimum check at
-      registration), portabilidad/export (partial: the pre-filled import template exports every financial record as a re-importable `.xlsx` — declared in the published privacy policy; profile/sessions/consents still by email, no `GET /auth/me/export`), and the seudonimización
+      registration), portabilidad/export (**resolved 2026-10-15, web only**: Perfil → Datos y privacidad → "Descargar mis datos" (`profile/components/PersonalDataExportSection`, `profile/lib/personalData.ts`) builds in the browser, from the app's own endpoints, either **Excel** = the pre-filled import template (re-importable) + Perfil/Correos/Consentimientos/Sesiones/Llaves sheets (`buildTemplate`'s new `extraSheets`), or **JSON** = every record as the API returns it (`format: "fik-personal-data"`, `version` 1, plus the categories its ids point at); the financial fetch is shared with the template (`import/lib/loadExistingData.ts`: `loadExistingData`, `templateRefs`); no new endpoint; the published privacy policy §6 says so, `CURRENT_PRIVACY_POLICY_VERSION` = `2026-10-15`), and the seudonimización
       caveat above (moot for deletion since 2026-10-14: nothing is kept).
   - **session** (specs/023, "Sesiones y dispositivos reales", 2026-09-19): `Session`
     (table `session`) is a dominio-tabla propio sin `presentation/` (mismo trato que

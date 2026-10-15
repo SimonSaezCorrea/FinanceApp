@@ -13,21 +13,17 @@ import { Skeleton, SkeletonScreen } from "../../../shared/ui/skeleton";
 import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { accountMetaLine } from "../../accounts/lib/accountMeta";
 import { ACCOUNT_ICON, isCreditType } from "../../accounts/components/accountVisuals";
-import { accountsApi } from "../../accounts/api/accountsApi";
 import { useAccounts } from "../../accounts/hooks/useAccounts";
-import { debtsApi } from "../../debts/api/debtsApi";
-import { installmentsApi } from "../../installments/api/installmentsApi";
-import { recurringApi } from "../../recurring/api/recurringApi";
-import { savingsApi } from "../../savings/api/savingsApi";
-import { transactionsApi } from "../../transactions/api/transactionsApi";
 import { useAllowedCurrencies } from "../../reference/hooks/useAllowedCurrencies";
 import { useCategories, useInstitutions } from "../../reference/hooks/useReference";
 import { DownloadTemplateDialog, type TemplateContent } from "../components/DownloadTemplateDialog";
 import { ImportMovementsPanel } from "../components/ImportMovementsPanel";
 import { TemplateImportPanel } from "../components/TemplateImportPanel";
 import { buildTemplate, type TemplateRefs } from "../lib/buildTemplate";
+import { loadExistingData, templateRefs } from "../lib/loadExistingData";
 import { existingRows } from "../lib/templateData";
 import { withBrand } from "@finance/ui/src/shared/lib/brand";
+import { saveFile } from "../../../shared/lib/saveFile";
 
 /**
  * The "Importar" section: a spreadsheet is always imported into ONE account, so
@@ -58,58 +54,19 @@ export function ImportRoute() {
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
   const refs = useMemo<TemplateRefs>(
-    () => ({
-      accounts: list.map((a) => ({ id: a.id, name: a.name, type: a.type, currency: a.currency })),
-      cards: list.flatMap((a) =>
-        (a.cards ?? []).map((c) => ({
-          id: c.id,
-          accountId: a.id,
-          accountName: a.name,
-          last4: c.last4,
-        })),
-      ),
-      categories: categories.data ?? [],
-      // The user's own currencies plus any an account already uses.
-      currencies: [
-        ...new Set([...allowedCurrencies.map((c) => c.code), ...list.map((a) => a.currency)]),
-      ],
-      institutions: (institutions.data ?? []).map((i) => ({ id: i.id, name: i.name })),
-    }),
+    () =>
+      templateRefs({
+        accounts: list,
+        categories: categories.data ?? [],
+        currencies: allowedCurrencies.map((c) => c.code),
+        institutions: (institutions.data ?? []).map((i) => ({ id: i.id, name: i.name })),
+      }),
     [list, categories.data, allowedCurrencies, institutions.data],
   );
 
   /** Everything the user has, fetched only when a pre-filled template is asked for. */
   async function loadExisting() {
-    const [allAccounts, txPage, debtList, plans, series, goals, entries] = await Promise.all([
-      accountsApi.list(),
-      transactionsApi.list(),
-      debtsApi.list(),
-      installmentsApi.list(),
-      recurringApi.list(),
-      savingsApi.listGoals(),
-      savingsApi.listEntries(),
-    ]);
-    const statements = (
-      await Promise.all(
-        allAccounts
-          .filter((a) => a.type === "CREDIT_CARD")
-          .map((a) => accountsApi.creditStatements(a.id)),
-      )
-    ).flat();
-    return existingRows(
-      {
-        statements,
-        accounts: allAccounts,
-        transactions: txPage.items,
-        debts: debtList,
-        plans,
-        recurring: series,
-        goals,
-        entries,
-        categories: categories.data ?? [],
-      },
-      t,
-    );
+    return existingRows(await loadExistingData(categories.data ?? []), t);
   }
 
   async function download(content: TemplateContent) {
@@ -117,12 +74,7 @@ export function ImportRoute() {
     try {
       const existing = content === "prefilled" ? await loadExisting() : undefined;
       const blob = await buildTemplate({ refs, t, locale: i18n.language, existing });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${t("import.template.cardTitle")}.xlsx`;
-      link.click();
-      URL.revokeObjectURL(url);
+      saveFile(blob, `${t("import.template.cardTitle")}.xlsx`);
       setDownloadOpen(false);
     } catch {
       toast.error(t("import.template.downloadError"));

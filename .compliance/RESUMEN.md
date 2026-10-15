@@ -70,7 +70,7 @@ La **supervisión externa anual del Modelo de Prevención de Delitos** (Ley 21.5
 Hallazgos #1, #2 y #3 quedaron resueltos el 2026-09-20 (ver arriba) — los tres hallazgos originalmente priorizados están cerrados. Lo que sigue, en orden de prioridad:
 
 1. ~~Confirmar con abogado el umbral de edad~~: riesgo aceptado el 2026-10-14 (18 es el umbral más estricto; ver arriba).
-2. **Portabilidad**: parcial desde 2026-09 — la plantilla prellenada de Importar ("Con mis datos actuales") exporta todos los datos financieros en `.xlsx` reimportable; perfil, sesiones y consentimientos siguen por correo (no hay `GET /auth/me/export`).
+2. **Portabilidad**: completa desde 2026-10-15 — Perfil → Datos y privacidad → "Descargar mis datos" exporta perfil, correos, consentimientos, sesiones, llaves y todos los datos financieros, en Excel (reimportable) o JSON a elección. Se arma en el navegador con los endpoints de la app (sin `GET /auth/me/export`).
 3. Publicar la política de privacidad en una ruta real (`gov-politicas`/`data-info`, siguen en `fail`).
 
 ---

@@ -1,4 +1,4 @@
-**Last updated:** October 14, 2026
+**Last updated:** October 15, 2026
 
 _This is a translation for convenience. The [Spanish version](/es/privacy-policy/) is the one that legally applies._
 
@@ -73,9 +73,9 @@ You can ask for **access, rectification, erasure, objection, portability and blo
 
 - **In the app:**
   - correct your personal details (Profile → Personal information);
-  - **download a copy of your financial data** as an Excel spreadsheet that you can also import again (Import → _fik_ template → Download template → With my current data). It includes your accounts, cards, statements, movements, transfers, debts, instalment purchases, fixed expenses, goals and contributions, with their payments;
+  - **download a copy of all your data** (Profile → Data and privacy → Download my data), in the format you choose: an **Excel** spreadsheet you can also import into _fik_ again, or a **JSON** file to take it to another program. It includes your profile details, emails, consents, sessions and passkeys, and your accounts, cards, statements, movements, transfers, debts, instalment purchases, fixed expenses, goals and contributions, with their payments. It doesn't include your password or the secrets of your sign-in methods, which never leave our servers;
   - delete your account (section 5).
-- **By email, to contacto@mifik.cl:** any other request, including a copy of what the spreadsheet leaves out (your profile details, sessions and consents).
+- **By email, to contacto@mifik.cl:** any other request.
 
 We answer within **30 calendar days**, which may be extended once by another 30. Rectification, erasure and objection are always free, and access is free at least once per quarter.
 

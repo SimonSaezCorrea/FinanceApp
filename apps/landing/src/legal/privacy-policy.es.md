@@ -1,4 +1,4 @@
-**Última actualización:** 14 de octubre de 2026
+**Última actualización:** 15 de octubre de 2026
 
 Esta política explica qué datos personales trata _fik_, para qué, con quién los comparte, cuánto tiempo los guarda y cómo ejerces tus derechos, conforme a la Ley 19.628 y la Ley 21.719 sobre protección de datos personales.
 
@@ -71,9 +71,9 @@ Puedes pedir **acceso, rectificación, supresión, oposición, portabilidad y bl
 
 - **Desde la app:**
   - corregir tus datos personales (Perfil → Información personal);
-  - **descargar una copia de tus datos financieros** en una planilla Excel, que además puedes volver a importar (Importar → Plantilla _fik_ → Descargar plantilla → Con mis datos actuales). Incluye tus cuentas, tarjetas, facturaciones, movimientos, traspasos, deudas, compras en cuotas, gastos fijos, metas y aportes, con sus pagos;
+  - **descargar una copia de todos tus datos** (Perfil → Datos y privacidad → Descargar mis datos), en el formato que elijas: una planilla **Excel**, que además puedes volver a importar en _fik_, o un archivo **JSON** para llevarlos a otro programa. Incluye tus datos de perfil, correos, consentimientos, sesiones y llaves de acceso, y tus cuentas, tarjetas, facturaciones, movimientos, traspasos, deudas, compras en cuotas, gastos fijos, metas y aportes, con sus pagos. No incluye tu contraseña ni los secretos de tus métodos de acceso, que nunca salen de nuestros servidores;
   - eliminar tu cuenta (sección 5).
-- **Por correo, a contacto@mifik.cl:** cualquier otra solicitud, incluida una copia de lo que la planilla no trae (tus datos de perfil, sesiones y consentimientos).
+- **Por correo, a contacto@mifik.cl:** cualquier otra solicitud.
 
 Respondemos en un plazo de **30 días corridos**, prorrogable una sola vez por otros 30. La rectificación, la supresión y la oposición son siempre gratuitas, y el acceso es gratuito al menos una vez por trimestre.
 

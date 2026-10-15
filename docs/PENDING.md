@@ -156,8 +156,12 @@ historial de facturas desde el proveedor. Recién entonces reconstruir la secci�
   sincronización con bancos no existe y su formato —incluido si sería de pago— está sin decidir: ver
   "Monetización — plan de pago". No hay integración de open banking (tipo Plaid/Belvo); las cuentas se
   cargan siempre a mano. Si se implementa, esta vista se reconstruye con conexiones reales.
-- **Exportar movimientos** (CSV/Excel/PDF): botones deshabilitados. Es lo más tratable de esta sección
-  a futuro (los datos ya existen vía `transactions`), pero no se implementó en esta pasada.
+- ~~**Exportar movimientos**~~ — **resuelto (2026-10-15)**: Perfil → Datos y privacidad → "Descargar mis
+  datos" entrega TODO (perfil, correos, consentimientos, sesiones, llaves y todos los registros
+  financieros) en **Excel** (la plantilla prellenada, reimportable, más hojas de perfil) o **JSON**
+  (cada registro tal como lo devuelve el API). Se arma en el navegador con los endpoints de la app,
+  sin endpoint nuevo. La §6 de la política de privacidad lo dice (versión
+  `2026-10-15`).
 - **Respaldo automático mensual**: switch local, sin ningún job de respaldo real corriendo.
 
 ### 7. Personalización financiera — resuelto en specs/020 (2026-09-18)
@@ -952,14 +956,17 @@ El dólar observado es el valor oficial del día; el de hoy suele publicarse a m
 La landing es su propia app estática (`apps/landing`, Astro) y la app (`apps/web`) ya no la contiene.
 Lo que el código no puede resolver solo y queda para el despliegue:
 
-### 1. Redirecciones HTTP reales en el hosting
+### 1. ~~Redirecciones HTTP reales en el hosting~~ — resuelto (2026-10-15)
 
-Hoy la raíz (`/` → `/es/` o `/en/` según el idioma del navegador) y las direcciones antiguas
-(`/precios`, `/nosotros`, `/privacidad`, `/preguntas` → `/es/pricing/`, …) se resuelven con una
-página estática (`meta refresh` + script que conserva `?query` y `#hash`). Funciona sin servidor,
-pero para buscadores lo correcto es un **301** para las antiguas y un **302** por idioma en la raíz
-(con `Vary: Accept-Language`), configurados en el hosting (Netlify/Vercel/Cloudflare `_redirects`
-o equivalente). Las páginas de redirección pueden quedar como respaldo.
+Las direcciones antiguas (`/precios`, `/nosotros`, `/privacidad`, `/preguntas`, con y sin barra
+final) responden **301** a su página en `/es/` desde `apps/landing/public/_redirects` (un test lo
+mantiene igual a `LEGACY_REDIRECTS`). La raíz `/` responde **302** a `/es/` o `/en/` según
+`Accept-Language`, con `Vary: Accept-Language`, desde una Pages Function
+(`apps/landing/functions/index.ts` → `src/lib/rootRedirect.ts`); el deploy sube la landing desde
+`apps/landing` para que wrangler la incluya. Ambas conservan la query (`?acceso=…&volver=…`) y el
+navegador conserva el `#hash`. Verificado con `wrangler pages dev`. Las páginas de redirección
+estáticas (con `noindex`) siguen en el build solo como respaldo donde no corren reglas del hosting.
+Antes, Search Console las reportaba como "Excluida por una etiqueta noindex".
 
 ### 2. El API debe compartir dominio registrable con la landing y la app
 

@@ -2332,7 +2332,7 @@
       },
       "privacy": {
         "title": "Data and privacy",
-        "description": "What you agreed to, and how to leave if you decide to."
+        "description": "Your data, what you agreed to, and how to leave if you decide to."
       }
     },
     "groups": {
@@ -2474,6 +2474,76 @@
       "removeDescription": "{{address}} stops showing on your account. If it was pending, its link stops working.",
       "removeConfirm": "Delete",
       "stepUp": "To change or delete an email of your account, confirm it’s you. We won’t ask again for 5 minutes."
+    },
+    "export": {
+      "title": "Download my data",
+      "description": "Everything fik keeps about you in one file: your profile, emails, consents, sessions and passkeys, plus all your accounts, cards, movements, statements, debts, instalments, fixed expenses and savings. It doesn't include your password or your sign-in secrets, which never leave the server.",
+      "formatLabel": "File format",
+      "formats": {
+        "xlsx": {
+          "label": "Excel",
+          "hint": "For you to read. It's the import template with your data plus profile, emails, consents, sessions and passkeys sheets; it can be uploaded to fik again."
+        },
+        "json": {
+          "label": "JSON",
+          "hint": "For another program: every record exactly as fik stores it, with no detail lost."
+        }
+      },
+      "download": "Download",
+      "downloading": "Preparing file…",
+      "error": "We couldn't prepare the file. Please try again.",
+      "fileName": "my-fik-data",
+      "yes": "Yes",
+      "no": "No",
+      "sheets": {
+        "profile": "Profile",
+        "emails": "Emails",
+        "consents": "Consents",
+        "sessions": "Sessions",
+        "passkeys": "Passkeys"
+      },
+      "columns": {
+        "field": "Field",
+        "value": "Value",
+        "address": "Address",
+        "status": "Status",
+        "verifiedAt": "Confirmed on",
+        "createdAt": "Created on",
+        "replacedAt": "Replaced on",
+        "consent": "Consent",
+        "policyVersion": "Policy version",
+        "grantedAt": "Granted on",
+        "revokedAt": "Revoked on",
+        "guardianName": "Guardian's name",
+        "guardianRelationship": "Guardian's relationship",
+        "device": "Device",
+        "country": "Country",
+        "city": "City",
+        "lastUsedAt": "Last used",
+        "closedAt": "Closed on",
+        "name": "Name"
+      },
+      "fields": {
+        "name": "Name",
+        "email": "Email",
+        "emailVerified": "Email confirmed",
+        "identifierType": "Identifier type",
+        "identifierValue": "Identifier",
+        "birthDate": "Birth date",
+        "phone": "Phone",
+        "country": "Country",
+        "addressStreet": "Address",
+        "addressCity": "City",
+        "addressRegion": "Region",
+        "addressPostalCode": "Postal code",
+        "preferredCurrency": "Primary currency",
+        "extraCurrencies": "Extra currencies",
+        "locale": "Language",
+        "theme": "Theme",
+        "hideBalances": "Hide balances",
+        "mfaEnabled": "Two-step verification",
+        "memberSinceYear": "Member since"
+      }
     }
   },
   "errors": {

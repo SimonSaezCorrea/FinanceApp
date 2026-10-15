@@ -1,3 +1,4 @@
+import type { Workbook } from "exceljs";
 import type { TFunction } from "i18next";
 
 import { reference, type accounts } from "@finance/contracts";
@@ -113,8 +114,12 @@ export async function buildTemplate(input: {
   t: TFunction;
   locale: string;
   existing?: ExistingRows;
+  /** More sheets after the template's own (Perfil → "Descargar mis datos" adds the profile,
+   * emails, consents, sessions and passkeys). The importer reads only the sheets it knows, so
+   * the file can still be uploaded again. */
+  extraSheets?: (workbook: Workbook) => void;
 }): Promise<Blob> {
-  const { refs, t, locale, existing } = input;
+  const { refs, t, locale, existing, extraSheets } = input;
   const { default: ExcelJS } = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "fik";
@@ -282,6 +287,8 @@ export async function buildTemplate(input: {
       }
     });
   }
+
+  extraSheets?.(workbook);
 
   // What marks the file as ours, and which version of the layout it follows.
   const marker = workbook.addWorksheet(MARKER_SHEET, { state: "veryHidden" });

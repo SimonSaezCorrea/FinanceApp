@@ -2332,7 +2332,7 @@
       },
       "privacy": {
         "title": "Datos y privacidad",
-        "description": "Lo que aceptaste y cómo irte si lo decides."
+        "description": "Tus datos, lo que aceptaste y cómo irte si lo decides."
       }
     },
     "groups": {
@@ -2474,6 +2474,76 @@
       "removeDescription": "{{address}} deja de aparecer en tu cuenta. Si estaba pendiente, su enlace deja de servir.",
       "removeConfirm": "Borrar",
       "stepUp": "Para cambiar o borrar un correo de tu cuenta, confirma que eres tú. No te lo volveremos a pedir por 5 minutos."
+    },
+    "export": {
+      "title": "Descargar mis datos",
+      "description": "Todo lo que fik guarda sobre ti en un archivo: tu perfil, correos, consentimientos, sesiones y llaves de acceso, y todas tus cuentas, tarjetas, movimientos, facturaciones, deudas, cuotas, gastos fijos y ahorros. No incluye tu contraseña ni los secretos de tus factores de acceso, que nunca salen del servidor.",
+      "formatLabel": "Formato del archivo",
+      "formats": {
+        "xlsx": {
+          "label": "Excel",
+          "hint": "Para leerlo tú. Es la plantilla de importación con tus datos más hojas de perfil, correos, consentimientos, sesiones y llaves; se puede volver a subir a fik."
+        },
+        "json": {
+          "label": "JSON",
+          "hint": "Para llevarlo a otro programa: cada registro tal como lo guarda fik, sin perder detalle."
+        }
+      },
+      "download": "Descargar",
+      "downloading": "Preparando archivo…",
+      "error": "No pudimos preparar el archivo. Intenta de nuevo.",
+      "fileName": "mis-datos-fik",
+      "yes": "Sí",
+      "no": "No",
+      "sheets": {
+        "profile": "Perfil",
+        "emails": "Correos",
+        "consents": "Consentimientos",
+        "sessions": "Sesiones",
+        "passkeys": "Llaves de acceso"
+      },
+      "columns": {
+        "field": "Dato",
+        "value": "Valor",
+        "address": "Dirección",
+        "status": "Estado",
+        "verifiedAt": "Confirmado el",
+        "createdAt": "Creado el",
+        "replacedAt": "Reemplazado el",
+        "consent": "Consentimiento",
+        "policyVersion": "Versión de la política",
+        "grantedAt": "Otorgado el",
+        "revokedAt": "Revocado el",
+        "guardianName": "Nombre del tutor",
+        "guardianRelationship": "Relación del tutor",
+        "device": "Dispositivo",
+        "country": "País",
+        "city": "Ciudad",
+        "lastUsedAt": "Último uso",
+        "closedAt": "Cerrada el",
+        "name": "Nombre"
+      },
+      "fields": {
+        "name": "Nombre",
+        "email": "Correo",
+        "emailVerified": "Correo confirmado",
+        "identifierType": "Tipo de identificador",
+        "identifierValue": "Identificador",
+        "birthDate": "Fecha de nacimiento",
+        "phone": "Teléfono",
+        "country": "País",
+        "addressStreet": "Dirección",
+        "addressCity": "Ciudad",
+        "addressRegion": "Región",
+        "addressPostalCode": "Código postal",
+        "preferredCurrency": "Moneda principal",
+        "extraCurrencies": "Monedas extra",
+        "locale": "Idioma",
+        "theme": "Tema",
+        "hideBalances": "Ocultar saldos",
+        "mfaEnabled": "Verificación en dos pasos",
+        "memberSinceYear": "Miembro desde"
+      }
     }
   },
   "errors": {

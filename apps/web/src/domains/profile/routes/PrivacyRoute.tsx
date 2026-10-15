@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next";
 
 import { ConsentHistorySection } from "../components/ConsentHistorySection";
 import { DangerZone } from "../components/DangerZone";
+import { PersonalDataExportSection } from "../components/PersonalDataExportSection";
 import { ProfileSectionPage } from "../components/ProfileSectionPage";
 
 export function PrivacyRoute() {
@@ -12,6 +13,7 @@ export function PrivacyRoute() {
       title={t("profile.sections.privacy.title")}
       description={t("profile.sections.privacy.description")}
     >
+      <PersonalDataExportSection />
       <ConsentHistorySection />
       <DangerZone />
     </ProfileSectionPage>
