@@ -1,0 +1,11 @@
+# Cloudflare Pages redirects (copied as-is into the build output). The Spanish addresses the
+# site had before specs/031, permanently moved (LEGACY_REDIRECTS in src/lib/language.ts, kept in
+# step by a test). The root "/" is a Pages Function (functions/index.ts): it depends on the language.
+/precios /es/pricing/ 301
+/precios/ /es/pricing/ 301
+/nosotros /es/about/ 301
+/nosotros/ /es/about/ 301
+/privacidad /es/privacy/ 301
+/privacidad/ /es/privacy/ 301
+/preguntas /es/faq/ 301
+/preguntas/ /es/faq/ 301

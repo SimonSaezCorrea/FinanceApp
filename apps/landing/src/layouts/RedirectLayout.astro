@@ -3,7 +3,9 @@
  * A page that only sends the visitor on (spec 031, contracts/routes.md): the script keeps the
  * query (`?acceso=…&volver=…`) and the anchor (`#faq-minors`), which a meta refresh would drop;
  * the meta refresh covers a visitor without JavaScript; the canonical tells a crawler where the
- * content lives. A real HTTP redirect configured on the host should replace this in production.
+ * content lives. In production these pages are never served: Cloudflare Pages answers first with
+ * real redirects (`public/_redirects` = 301 for the old addresses, `functions/index.ts` = 302 by
+ * language for the root). They stay as the fallback where no host rules run (`astro preview`).
  */
 interface Props {
   /** Where to go; for the root, the Spanish home (the script may pick English instead). */

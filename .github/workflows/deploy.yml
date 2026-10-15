@@ -216,7 +216,10 @@ jobs:
           # Visit statistics on the public pages only (empty = none); see PageLayout.astro.
           PUBLIC_CF_WEB_ANALYTICS_TOKEN: ${{ vars.CF_WEB_ANALYTICS_TOKEN }}
       - name: Upload to Cloudflare Pages (fik-landing)
-        run: npx --yes "$WRANGLER" pages deploy apps/landing/dist --project-name=fik-landing --branch=main --commit-hash="$SHA" --commit-dirty=true
+        # From apps/landing: wrangler compiles the Pages Functions of the CURRENT directory's
+        # `functions/` (the root's language redirect) and uploads them with `dist`.
+        working-directory: apps/landing
+        run: npx --yes "$WRANGLER" pages deploy dist --project-name=fik-landing --branch=main --commit-hash="$SHA" --commit-dirty=true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}

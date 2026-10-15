@@ -4,7 +4,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 
 export default [
   {
-    files: ["src/**/*.{ts,tsx}", "test/**/*.ts"],
+    files: ["src/**/*.{ts,tsx}", "test/**/*.ts", "functions/**/*.ts"],
     plugins: { "@typescript-eslint": tseslint, "react-hooks": reactHooks },
     languageOptions: { parser: tsparser },
     rules: {

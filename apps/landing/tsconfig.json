@@ -6,6 +6,6 @@
     "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true
   },
-  "include": [".astro/types.d.ts", "src", "test", "scripts", "*.config.*"],
+  "include": [".astro/types.d.ts", "src", "test", "scripts", "functions", "*.config.*"],
   "exclude": ["dist"]
 }
