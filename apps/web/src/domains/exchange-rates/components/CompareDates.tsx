@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 
 import type { exchangeRates } from "@finance/contracts";
 
-import { DateField } from "../../../shared/ui/date-field";
+import { DateField } from "@finance/ui/src/shared/ui/date-field";
 import { useRateOn } from "../hooks/useExchangeRates";
 import { daysBefore } from "../lib/day";
 import { formatPercentChange, formatRateChange } from "../lib/formatChange";

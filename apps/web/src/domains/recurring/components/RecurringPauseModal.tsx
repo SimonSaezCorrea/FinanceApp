@@ -2,7 +2,7 @@ import { Pause } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@finance/ui/src/shared/ui/button";
-import { DateField } from "../../../shared/ui/date-field";
+import { DateField } from "@finance/ui/src/shared/ui/date-field";
 import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import { Modal } from "@finance/ui/src/shared/ui/overlay";
 

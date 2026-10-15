@@ -36,6 +36,10 @@ const GUARDIAN_RELATIONSHIP_OPTIONS: { value: auth.GuardianAuthorization["relati
   { value: "OTHER" },
 ];
 
+/** With no date picked, the birth-date calendar opens on the years around a 25-year-old's, not on
+ * today's month: a birth date is decades back, never this month. */
+const BIRTH_CALENDAR_START = localIsoDate(new Date(new Date().getFullYear() - 25, 0, 1));
+
 type Field = "name" | "rut" | "email" | "password" | "birthDate" | "guardianName" | "guardianRut";
 
 /** Top-to-bottom order of everything that can be wrong: where focus goes after a failed submit. */
@@ -102,8 +106,8 @@ export function RegisterForm({
   const [takenEmail, setTakenEmail] = useState<string | null>(null);
   // Each focusable input, filled by its ref callback. A stable Map (not a ref read during
   // render): only the callbacks and the submit handler ever touch it.
-  const [fieldEls] = useState(() => new Map<Focusable, HTMLInputElement | null>());
-  const refFor = (key: Focusable) => (el: HTMLInputElement | null) => {
+  const [fieldEls] = useState(() => new Map<Focusable, HTMLElement | null>());
+  const refFor = (key: Focusable) => (el: HTMLElement | null) => {
     fieldEls.set(key, el);
   };
 
@@ -308,8 +312,8 @@ export function RegisterForm({
         {...fieldProps("birthDate")}
         type="date"
         max={localIsoDate(new Date())}
-        autoComplete="bday"
-        numeric
+        defaultMonth={BIRTH_CALENDAR_START}
+        placeholder={t("auth.placeholders.birthDate")}
       />
 
       <CheckCard

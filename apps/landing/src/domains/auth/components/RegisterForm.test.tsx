@@ -23,8 +23,34 @@ function renderRegister(onSwitchToLogin?: () => void) {
   );
 }
 
+/** Picks a birth date the way a person does: the calendar opens on years, then month, then day. */
+function pickBirthDate(value: string, t: typeof i18n = i18n) {
+  const [year, month, day] = value.split("-").map(Number) as [number, number, number];
+  fireEvent.click(screen.getByLabelText(t.t("auth.birthDate")));
+  while (!screen.queryByRole("button", { name: String(year) })) {
+    const shown = Number(screen.getAllByRole("button", { name: /^\d{4}$/ })[0]!.textContent);
+    const label = year < shown ? "common.date.previousYears" : "common.date.nextYears";
+    fireEvent.click(screen.getByLabelText(t.t(label)));
+  }
+  fireEvent.click(screen.getByRole("button", { name: String(year) }));
+  const monthName = new Date(2024, month - 1, 1)
+    .toLocaleDateString(t.language, { month: "short" })
+    .replace(".", "")
+    .slice(0, 3);
+  fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${monthName}$`, "i") }));
+  // Days of the neighbouring months share numbers with this one's; they are the dimmed cells.
+  const cell = screen
+    .getAllByRole("button", { name: String(day) })
+    .find((b) => !b.className.includes("text-muted-foreground/50"));
+  fireEvent.click(cell!);
+}
+
+function localDay(date: Date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function fillBirthDate(value = "1990-05-20") {
-  fireEvent.change(screen.getByLabelText(i18n.t("auth.birthDate")), { target: { value } });
+  pickBirthDate(value);
 }
 
 function fillCommonFields() {
@@ -52,9 +78,7 @@ describe("RegisterForm — field validation", () => {
     fireEvent.change(screen.getByLabelText(i18n.t("auth.password")), {
       target: { value: "short" },
     });
-    fireEvent.change(screen.getByLabelText(i18n.t("auth.birthDate")), {
-      target: { value: "1990-01-01" },
-    });
+    pickBirthDate("1990-01-01");
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.createAccount") }));
 
     expect(await screen.findByText(i18n.t("auth.validation.email"))).toBeDefined();
@@ -69,9 +93,7 @@ describe("RegisterForm — field validation", () => {
     fireEvent.change(screen.getByLabelText(i18n.t("auth.password")), {
       target: { value: "a12345678" },
     });
-    fireEvent.change(screen.getByLabelText(i18n.t("auth.birthDate")), {
-      target: { value: "1990-01-01" },
-    });
+    pickBirthDate("1990-01-01");
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.createAccount") }));
 
     expect(await screen.findByText(i18n.t("auth.validation.passwordIsRut"))).toBeDefined();
@@ -85,9 +107,7 @@ describe("RegisterForm — field validation", () => {
     fireEvent.change(screen.getByLabelText(i18n.t("auth.password")), {
       target: { value: "solamente-letras" },
     });
-    fireEvent.change(screen.getByLabelText(i18n.t("auth.birthDate")), {
-      target: { value: "1990-01-01" },
-    });
+    pickBirthDate("1990-01-01");
     fireEvent.click(screen.getByRole("button", { name: i18n.t("auth.createAccount") }));
 
     expect(await screen.findByText(i18n.t("auth.validation.passwordLetterNumber"))).toBeDefined();
@@ -100,9 +120,7 @@ describe("RegisterForm — field validation", () => {
     fillCommonFields();
     const tenYearsAgo = new Date();
     tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
-    fireEvent.change(screen.getByLabelText(i18n.t("auth.birthDate")), {
-      target: { value: tenYearsAgo.toISOString().slice(0, 10) },
-    });
+    pickBirthDate(localDay(tenYearsAgo));
     fireEvent.change(await screen.findByLabelText(i18n.t("auth.guardian.name")), {
       target: { value: "Ana Madre" },
     });
@@ -121,9 +139,7 @@ describe("RegisterForm — minor guardian authorization", () => {
   it("does not show the guardian block for an adult birthDate", () => {
     renderRegister();
     fillCommonFields();
-    fireEvent.change(screen.getByLabelText(i18n.t("auth.birthDate")), {
-      target: { value: "1990-01-01" },
-    });
+    pickBirthDate("1990-01-01");
 
     expect(screen.queryByText(i18n.t("auth.guardian.title"))).toBeNull();
   });
@@ -134,9 +150,7 @@ describe("RegisterForm — minor guardian authorization", () => {
     fillCommonFields();
     const tenYearsAgo = new Date();
     tenYearsAgo.setFullYear(tenYearsAgo.getFullYear() - 10);
-    fireEvent.change(screen.getByLabelText(i18n.t("auth.birthDate")), {
-      target: { value: tenYearsAgo.toISOString().slice(0, 10) },
-    });
+    pickBirthDate(localDay(tenYearsAgo));
 
     expect(await screen.findByText(i18n.t("auth.guardian.title"))).toBeDefined();
 
@@ -247,9 +261,7 @@ describe("RegisterForm — the page's language", () => {
     fireEvent.change(screen.getByLabelText(en.t("auth.password")), {
       target: { value: "password123" },
     });
-    fireEvent.change(screen.getByLabelText(en.t("auth.birthDate")), {
-      target: { value: "1990-01-01" },
-    });
+    pickBirthDate("1990-01-01", en);
     fireEvent.click(screen.getByRole("checkbox", { name: en.t("auth.sensitiveDataConsentLabel") }));
     fireEvent.click(screen.getByRole("button", { name: en.t("auth.createAccount") }));
 

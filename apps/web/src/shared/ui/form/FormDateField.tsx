@@ -1,7 +1,7 @@
 import { CalendarDays } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-import { DateField, type DateValue } from "../date-field";
+import { DateField, type DateValue } from "@finance/ui/src/shared/ui/date-field";
 import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 
 interface Props {

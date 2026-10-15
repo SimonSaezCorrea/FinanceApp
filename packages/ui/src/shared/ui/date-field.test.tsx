@@ -3,7 +3,7 @@ import { useState } from "react";
 import { I18nextProvider } from "react-i18next";
 import { describe, expect, it } from "vitest";
 
-import i18n from "../../i18n";
+import i18n from "../../test/i18n";
 import { DateField } from "./date-field";
 
 function Harness({ start = "2026-08-12" }: { start?: string }) {
@@ -96,6 +96,45 @@ describe("DateField", () => {
     open();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByText("agosto de 2026")).toBeNull();
+    expect(screen.getByTestId("value").textContent).toBe("2026-08-12");
+  });
+  it("for a birth date: opens on years, hides 'Hoy' and blocks anything after max", () => {
+    function Birth() {
+      const [value, setValue] = useState("");
+      return (
+        <I18nextProvider i18n={i18n}>
+          <DateField
+            value={value}
+            onChange={setValue}
+            aria-label="nacimiento"
+            openTo="years"
+            defaultMonth="2001-01-01"
+            max="2026-08-12"
+            todayShortcut={false}
+            placeholder="Elige el día"
+          />
+          <output data-testid="value">{value}</output>
+        </I18nextProvider>
+      );
+    }
+    render(<Birth />);
+    expect(screen.getByText("Elige el día")).toBeDefined();
+    fireEvent.click(screen.getByLabelText("nacimiento"));
+    expect(screen.getByText("1992 – 2003")).toBeDefined();
+    expect(screen.queryByText(i18n.t("common.date.today"))).toBeNull();
+
+    fireEvent.click(screen.getByLabelText(i18n.t("common.date.nextYears")));
+    fireEvent.click(screen.getByLabelText(i18n.t("common.date.nextYears")));
+    expect((screen.getByRole("button", { name: "2027" }) as HTMLButtonElement).disabled).toBe(true);
+    expect(
+      (screen.getByLabelText(i18n.t("common.date.nextYears")) as HTMLButtonElement).disabled,
+    ).toBe(true);
+
+    fireEvent.click(screen.getByRole("button", { name: "2026" }));
+    expect((screen.getByRole("button", { name: "sep" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "ago" }));
+    expect((screen.getByRole("button", { name: "13" }) as HTMLButtonElement).disabled).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "12" }));
     expect(screen.getByTestId("value").textContent).toBe("2026-08-12");
   });
 });

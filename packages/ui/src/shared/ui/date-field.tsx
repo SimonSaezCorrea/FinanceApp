@@ -1,11 +1,11 @@
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { type Ref, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 
-import { anchoredPanelRect, type PanelRect } from "@finance/ui/src/shared/lib/anchoredPanel";
-import { cn } from "@finance/ui/src/shared/lib/cn";
+import { anchoredPanelRect, type PanelRect } from "../lib/anchoredPanel";
+import { cn } from "../lib/cn";
 
 const PANEL_WIDTH = 280;
 const PANEL_HEIGHT = 340;
@@ -49,7 +49,8 @@ function yearPageStart(year: number): number {
  * (days → months → years); picking a cell steps back DOWN, so jumping to a date
  * years away is three clicks instead of dozens of month arrows.
  */
-type View = "days" | "months" | "years";
+export type DateFieldView = "days" | "months" | "years";
+type View = DateFieldView;
 
 /** The 42 cells of a month grid, weeks starting on Monday. */
 function monthGrid(month: Date): Date[] {
@@ -69,8 +70,27 @@ interface Props {
   id?: string;
   value: DateValue;
   onChange: (value: DateValue) => void;
-  /** Rendered as a borderless label/value row control instead of a form field. */
-  variant?: "control" | "inline";
+  /** `control`: a boxed form field. `inline`: a borderless label/value row control. `bare`: just
+   * the value at full width and the field's own text size, for a field that draws its own line
+   * (the access panel's `UnderlineField`). */
+  variant?: "control" | "inline" | "bare";
+  /** Latest pickable day (`yyyy-mm-dd`, inclusive): later days, months and years are disabled. */
+  max?: DateValue;
+  /** The view the calendar opens on while nothing is picked — `years` for a date far from today
+   * (a birth date), so it's a few clicks, not dozens of month arrows. */
+  openTo?: DateFieldView;
+  /** The month shown on opening while nothing is picked (`yyyy-mm-dd`). Defaults to today's. */
+  defaultMonth?: DateValue;
+  /** Whether the footer offers "Hoy". Off where today is never the answer (a birth date). */
+  todayShortcut?: boolean;
+  /** Shown while nothing is picked. Defaults to "Elegir fecha". */
+  placeholder?: string;
+  /** Marks the trigger invalid (the caller shows the message, linked by `aria-describedby`). */
+  invalid?: boolean;
+  "aria-describedby"?: string;
+  onBlur?: () => void;
+  /** The trigger button, so a form can move focus to it. */
+  ref?: Ref<HTMLButtonElement>;
   disabled?: boolean;
   className?: string;
   /** Allows clearing the date (adds a "Borrar" action). */
@@ -99,7 +119,16 @@ export function DateField({
   className,
   clearable = false,
   icon: Icon = ChevronDown,
+  max,
+  openTo = "days",
+  defaultMonth,
+  todayShortcut = true,
+  placeholder,
+  invalid,
+  onBlur,
+  ref,
   "aria-label": ariaLabel,
+  "aria-describedby": ariaDescribedBy,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -113,6 +142,12 @@ export function DateField({
   const containerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const today = new Date();
+  const maxDate = max ? parse(max) : null;
+  const afterMax = (date: Date) => maxDate !== null && date > maxDate;
+  const emptyMonth = () => {
+    const base = (defaultMonth ? parse(defaultMonth) : null) ?? today;
+    return new Date(base.getFullYear(), base.getMonth(), 1);
+  };
 
   function updatePosition() {
     const el = containerRef.current;
@@ -137,17 +172,21 @@ export function DateField({
       if (containerRef.current?.contains(target) || panelRef.current?.contains(target)) return;
       setOpen(false);
     }
+    // Escape closes the calendar, not the dialog it sits in: Radix listens on `document` in the
+    // capture phase, so this listens one step earlier (`window`, capture) and stops it there.
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      setOpen(false);
     }
     document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
+    globalThis.addEventListener("keydown", handleKeyDown, true);
     // capture:true so scrolling inside the Dialog's own container is caught too.
     globalThis.addEventListener("scroll", updatePosition, true);
     globalThis.addEventListener("resize", updatePosition);
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
+      globalThis.removeEventListener("keydown", handleKeyDown, true);
       globalThis.removeEventListener("scroll", updatePosition, true);
       globalThis.removeEventListener("resize", updatePosition);
     };
@@ -156,8 +195,8 @@ export function DateField({
 
   function openPanel() {
     if (disabled) return;
-    setMonth(selected ?? new Date(today.getFullYear(), today.getMonth(), 1));
-    setView("days");
+    setMonth(selected ?? emptyMonth());
+    setView(selected ? "days" : openTo);
     setOpen(true);
   }
 
@@ -172,7 +211,7 @@ export function DateField({
         month: "2-digit",
         year: "numeric",
       })
-    : t("common.date.choose");
+    : (placeholder ?? t("common.date.choose"));
 
   const year = month.getFullYear();
   const pageStart = yearPageStart(year);
@@ -205,6 +244,15 @@ export function DateField({
     },
   }[view];
 
+  // Nothing pickable lies past `max`, so the "next" arrow stops at the page that contains it.
+  const nextBlocked =
+    maxDate !== null &&
+    {
+      days: new Date(year, month.getMonth() + 1, 1) > maxDate,
+      months: year + 1 > maxDate.getFullYear(),
+      years: pageStart + YEARS_PER_PAGE > maxDate.getFullYear(),
+    }[view];
+
   const monthNames = Array.from({ length: 12 }, (_, i) =>
     // Three letters each: es abbreviates September as "sept", which breaks the grid.
     new Date(2024, i, 1)
@@ -223,14 +271,22 @@ export function DateField({
       <button
         type="button"
         id={id}
+        ref={ref}
         disabled={disabled}
         onClick={() => (open ? setOpen(false) : openPanel())}
+        onBlur={onBlur}
         aria-label={ariaLabel}
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-invalid={invalid ? true : undefined}
+        aria-describedby={ariaDescribedBy}
         className={cn(
-          "flex items-center gap-1.5 text-sm",
-          variant === "control"
-            ? "h-10 w-full justify-between rounded-md border border-input bg-background px-3 text-left focus-visible:ring-2 focus-visible:ring-ring"
-            : "h-8 justify-end font-medium",
+          "flex items-center gap-1.5",
+          variant === "control" &&
+            "h-10 w-full justify-between rounded-md border border-input bg-background px-3 text-left text-sm focus-visible:ring-2 focus-visible:ring-ring",
+          variant === "inline" && "h-8 justify-end text-sm font-medium",
+          variant === "bare" &&
+            "w-full justify-between rounded-sm p-0 text-left text-base font-medium text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:text-sm",
           "focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
         )}
       >
@@ -239,7 +295,14 @@ export function DateField({
             {t("common.date.today")} ·
           </span>
         ) : null}
-        <span className="whitespace-nowrap tabular-nums">{label}</span>
+        <span
+          className={cn(
+            "whitespace-nowrap tabular-nums",
+            !selected && variant === "bare" && "font-normal text-dim",
+          )}
+        >
+          {label}
+        </span>
         <Icon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
       </button>
 
@@ -285,7 +348,8 @@ export function DateField({
                   <button
                     type="button"
                     aria-label={header.nextLabel}
-                    className="rounded-md p-1 text-muted-foreground hover:bg-muted"
+                    disabled={nextBlocked}
+                    className="rounded-md p-1 text-muted-foreground hover:bg-muted disabled:pointer-events-none disabled:opacity-35"
                     onClick={() => header.step(1)}
                   >
                     <ChevronRight className="h-4 w-4" aria-hidden />
@@ -303,6 +367,7 @@ export function DateField({
                       <button
                         key={name}
                         type="button"
+                        disabled={afterMax(new Date(year, i, 1))}
                         onClick={() => {
                           setMonth(new Date(year, i, 1));
                           setView("days");
@@ -310,7 +375,7 @@ export function DateField({
                         className={cn(
                           "capitalize",
                           cn(
-                            "h-[52px] rounded-md text-sm hover:bg-muted",
+                            "h-[52px] rounded-md text-sm hover:bg-muted disabled:pointer-events-none disabled:opacity-35",
                             isCurrent && !isSelected && "ring-1 ring-inset ring-border",
                             isSelected &&
                               "bg-accent font-semibold text-accent-foreground hover:bg-accent",
@@ -334,6 +399,7 @@ export function DateField({
                       <button
                         key={y}
                         type="button"
+                        disabled={maxDate !== null && y > maxDate.getFullYear()}
                         onClick={() => {
                           setMonth(new Date(y, month.getMonth(), 1));
                           setView("months");
@@ -341,7 +407,7 @@ export function DateField({
                         className={cn(
                           "tabular-nums",
                           cn(
-                            "h-[52px] rounded-md text-sm hover:bg-muted",
+                            "h-[52px] rounded-md text-sm hover:bg-muted disabled:pointer-events-none disabled:opacity-35",
                             isCurrent && !isSelected && "ring-1 ring-inset ring-border",
                             isSelected &&
                               "bg-accent font-semibold text-accent-foreground hover:bg-accent",
@@ -374,9 +440,10 @@ export function DateField({
                       <button
                         key={day.toISOString()}
                         type="button"
+                        disabled={afterMax(day)}
                         onClick={() => pick(day)}
                         className={cn(
-                          "h-8 rounded-md text-sm tabular-nums hover:bg-muted",
+                          "h-8 rounded-md text-sm tabular-nums hover:bg-muted disabled:pointer-events-none disabled:opacity-35",
                           outside && "text-muted-foreground/50",
                           isToday && !isSelected && "ring-1 ring-inset ring-border",
                           isSelected &&
@@ -391,29 +458,34 @@ export function DateField({
                 </div>
               ) : null}
 
-              <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
-                {clearable ? (
-                  <button
-                    type="button"
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                    onClick={() => {
-                      onChange("");
-                      setOpen(false);
-                    }}
-                  >
-                    {t("common.date.clear")}
-                  </button>
-                ) : (
-                  <span />
-                )}
-                <button
-                  type="button"
-                  className="text-sm font-medium text-brand hover:underline"
-                  onClick={() => pick(new Date())}
-                >
-                  {t("common.date.today")}
-                </button>
-              </div>
+              {clearable || todayShortcut ? (
+                <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
+                  {clearable ? (
+                    <button
+                      type="button"
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        onChange("");
+                        setOpen(false);
+                      }}
+                    >
+                      {t("common.date.clear")}
+                    </button>
+                  ) : (
+                    <span />
+                  )}
+                  {todayShortcut ? (
+                    <button
+                      type="button"
+                      disabled={afterMax(today)}
+                      className="text-sm font-medium text-brand hover:underline disabled:opacity-35"
+                      onClick={() => pick(new Date())}
+                    >
+                      {t("common.date.today")}
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>,
             portalTarget,
           )

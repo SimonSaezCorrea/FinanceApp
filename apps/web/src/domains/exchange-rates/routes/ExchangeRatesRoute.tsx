@@ -7,7 +7,7 @@ import { exchangeRates } from "@finance/contracts";
 
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { useElementWidth } from "../../../shared/lib/useElementWidth";
-import { DateField } from "../../../shared/ui/date-field";
+import { DateField } from "@finance/ui/src/shared/ui/date-field";
 import { Skeleton } from "../../../shared/ui/skeleton";
 import { EmptyState, ErrorState } from "../../../shared/ui/states";
 import { CompareDates } from "../components/CompareDates";

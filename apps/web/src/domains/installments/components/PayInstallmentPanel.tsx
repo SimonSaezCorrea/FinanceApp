@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { formatAmountDisplay, groupingLocaleFor } from "../../../shared/lib/amountInput";
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { useLastNonNull } from "../../../shared/lib/useLastNonNull";
-import { DateField } from "../../../shared/ui/date-field";
+import { DateField } from "@finance/ui/src/shared/ui/date-field";
 import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import { FormSurface } from "@finance/ui/src/shared/ui/overlay";
 import { SearchableSelect } from "@finance/ui/src/shared/ui/searchable-select";

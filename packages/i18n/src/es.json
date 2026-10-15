@@ -2015,7 +2015,8 @@
       "email": "tucorreo@ejemplo.com",
       "password": "Mínimo 8 caracteres",
       "guardianName": "Ej: María Pérez",
-      "guardianRut": "12.345.678-9"
+      "guardianRut": "12.345.678-9",
+      "birthDate": "Elige el día"
     },
     "sensitiveDataConsentLabel": "Datos sensibles",
     "sensitiveDataConsent": "Acepto que <brand>fik</brand> trate mis datos financieros (saldos, movimientos, deudas) como dato sensible, según la <privacy>Política de Privacidad</privacy>.",

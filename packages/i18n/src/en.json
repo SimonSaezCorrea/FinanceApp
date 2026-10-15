@@ -2015,7 +2015,8 @@
       "email": "you@example.com",
       "password": "At least 8 characters",
       "guardianName": "e.g. Jane Smith",
-      "guardianRut": "12.345.678-9"
+      "guardianRut": "12.345.678-9",
+      "birthDate": "Choose the day"
     },
     "sensitiveDataConsentLabel": "Sensitive data",
     "sensitiveDataConsent": "I agree that <brand>fik</brand> processes my financial data (balances, movements, debts) as sensitive data, under the <privacy>Privacy Policy</privacy>.",
