@@ -10,6 +10,7 @@ import {
   StatementAlreadyPaidError,
   StatementNotOpenError,
   StatementNotPaidError,
+  StatementPaymentNotUndoableError,
   StatementNotTransferableError,
   StatementNotTransferredError,
 } from "../../../../../src/domains/credit-statement/domain/errors";
@@ -110,6 +111,64 @@ describe("CreditStatement aggregate (State pattern)", () => {
     const statement = CreditStatement.fromPersistence(baseProps());
     statement.payTowards("100", "100", "acc_1", "tx_1", new Date());
     expect(() => statement.close(new Date())).toThrow(StatementAlreadyPaidError);
+  });
+
+  describe("undoing a payment (Deshacer pago)", () => {
+    const closed = () =>
+      CreditStatement.fromPersistence(baseProps({ closedAt: new Date("2026-01-31") }));
+
+    it("a full payment in the account's currency: back to PENDING, giving the pool back", () => {
+      const statement = closed();
+      statement.payTowards("1000", "1000", "acc_2", "tx_1", new Date("2026-02-05"));
+      const reversal = statement.undoPayment("CLP");
+      expect(reversal).toEqual({
+        paidAmount: "1000.0000",
+        currency: "CLP",
+        fromAccountId: "acc_2",
+        paymentTransactionId: "tx_1",
+        settlementTransactionId: null,
+        carryOver: "0.0000",
+        carriedToId: null,
+        restoresCredit: true,
+      });
+      expect(statement.state.name).toBe("PENDING");
+      expect(statement.paidAt).toBeNull();
+      expect(statement.paidAmount).toBe("0.0000");
+      expect(statement.paidFromAccountId).toBeNull();
+      expect(statement.paidTransactionId).toBeNull();
+      // Undoing a payment never reopens the period.
+      expect(statement.closedAt).toEqual(new Date("2026-01-31"));
+      expect(statement.paymentReversal("CLP")).toBeNull();
+    });
+
+    it("a short payment also takes its carry-over back from the next period", () => {
+      const statement = closed();
+      statement.payTowards("1000", "400", "acc_2", "tx_1", new Date("2026-02-05"));
+      statement.markCarriedTo("st_2");
+      const reversal = statement.undoPayment("CLP");
+      expect(reversal.carryOver).toBe("600.0000");
+      expect(reversal.carriedToId).toBe("st_2");
+      expect(statement.carriedToId).toBeNull();
+    });
+
+    it("a period in another currency: its settlement goes too, and the pool never moves", () => {
+      const statement = CreditStatement.fromPersistence(
+        baseProps({ currency: "USD", closedAt: new Date("2026-01-31"), amount: "50" }),
+      );
+      statement.payTowards("50", "50", "acc_2", "tx_1", new Date("2026-02-05"), "tx_settle");
+      const reversal = statement.undoPayment("CLP");
+      expect(reversal.settlementTransactionId).toBe("tx_settle");
+      expect(reversal.restoresCredit).toBe(false);
+      expect(statement.settlementTransactionId).toBeNull();
+    });
+
+    it("refuses an unpaid period, and one imported as paid (no payment of the app's own)", () => {
+      expect(() => closed().undoPayment("CLP")).toThrow(StatementNotPaidError);
+      const imported = closed();
+      imported.settleImported("1000", "1000", new Date("2026-02-05"));
+      expect(imported.paymentReversal("CLP")).toBeNull();
+      expect(() => imported.undoPayment("CLP")).toThrow(StatementPaymentNotUndoableError);
+    });
   });
 
   describe("syncAmount (reconciling a period against its own movements)", () => {

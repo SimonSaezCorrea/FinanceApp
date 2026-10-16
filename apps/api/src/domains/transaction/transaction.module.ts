@@ -11,6 +11,7 @@ import { CardLimitDataModule } from "../card-limit/card-limit.data.module";
 import { CreditStatementDataModule } from "../credit-statement/credit-statement.data.module";
 import { IdempotencyRecordDataModule } from "../idempotency-record/idempotency-record.data.module";
 import { InstallmentPaymentDataModule } from "../installment-payment/installment-payment.data.module";
+import { InstallmentPlanDataModule } from "../installment-plan/installment-plan.data.module";
 import { CreateTransactionHandler } from "./application/commands/create-transaction.handler";
 import { CreateTransferHandler } from "./application/commands/create-transfer.handler";
 import { RemoveTransferHandler } from "./application/commands/remove-transfer.handler";
@@ -62,6 +63,8 @@ const queryHandlers = [
     // A movement backing an instalment is read-only here: it is corrected by undoing
     // and re-paying the instalment, never edited in place (FR-028a).
     InstallmentPaymentDataModule,
+    // Deleting a statement's payment undoes it, and that unpays the instalments it settled.
+    InstallmentPlanDataModule,
     // Retry-safety for `create`/`createTransfer` (Constitution Principle VII).
     IdempotencyRecordDataModule,
     // A movement may name the recurring series it pays — ownership-checked here.

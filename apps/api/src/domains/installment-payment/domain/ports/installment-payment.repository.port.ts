@@ -55,6 +55,11 @@ export interface InstallmentPaymentRepositoryPort {
    * period as a whole received (the shortfall lives in the period's carry-over,
    * never doubled onto the instalment — Constitution I). */
   settleForStatementWithTx(tx: unknown, statementId: string, paidAt: Date): Promise<void>;
+  /** The exact reverse, when that period's payment is undone ("Deshacer pago"): every
+   * instalment it charged goes back to BILLED (unpaid, still stamped with the period). Only a
+   * credit-card plan's instalments are ever stamped with a period, and those are only ever
+   * settled by it, so no other payment is touched. */
+  unsettleForStatementWithTx(tx: unknown, statementId: string): Promise<void>;
   /** What a statement is made of on the instalment side (spec 014, FR-011): the sum
    * and count of the instalments stamped with it. Composed with the ordinary-
    * movement sum by `credit-statement`'s own adapter, never by `transaction`'s —

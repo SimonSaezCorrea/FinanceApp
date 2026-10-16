@@ -356,6 +356,7 @@ describe("Settling a statement in another currency (integration)", () => {
       statementRepo,
       { isLinkedToPayment: vi.fn(async () => false) } as never,
       writer,
+      {} as never,
       prisma,
     );
   const limitUsage = async () => {
@@ -515,5 +516,39 @@ describe("Settling a statement in another currency (integration)", () => {
       code: "TRANSFER_ALREADY_BILLED",
     });
     expect(await creditUsed()).toBe("47000");
+  });
+
+  it("deleting the settlement of a USD payment from Movimientos undoes the whole payment", async () => {
+    await reset();
+    const statementId = await usdPeriod(true);
+    // Short: US$30 of 50, for 29.636 pesos; US$20 carried into the next USD period.
+    const paid = await pay(statementId, "30", "29636");
+    expect(paid.paymentReversal).toMatchObject({ currency: "USD", restoresCredit: false });
+    expect(await balanceOfSource()).toBe("970364");
+    const settlement = await prisma.transaction.findFirstOrThrow({
+      where: { userId, settlesStatementId: statementId },
+    });
+
+    await removeHandler().execute(new RemoveTransactionCommand(userId, settlement.id));
+
+    const statement = await prisma.creditStatement.findUniqueOrThrow({
+      where: { id: statementId },
+    });
+    expect(statement.paidAt).toBeNull();
+    expect(statement.settlementTransactionId).toBeNull();
+    expect(statement.carriedToId).toBeNull();
+    const successor = await prisma.creditStatement.findFirstOrThrow({
+      where: { accountId: creditAccountId, currency: "USD", id: { not: statementId } },
+    });
+    expect(successor.carriedOverAmount.toFixed(0)).toBe("0");
+    // Both movements gone, the pesos back, the CLP pool never touched.
+    expect(
+      await prisma.transaction.count({
+        where: { userId, id: { in: [settlement.id, paid.paidTransactionId!] } },
+      }),
+    ).toBe(0);
+    expect(await balanceOfSource()).toBe("1000000");
+    const credit = await prisma.bankAccount.findUniqueOrThrow({ where: { id: creditAccountId } });
+    expect(credit.creditUsed.toFixed(0)).toBe("0");
   });
 });

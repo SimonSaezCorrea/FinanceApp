@@ -86,6 +86,13 @@ export const accountsApi = {
       },
     ),
 
+  /** "Deshacer pago": undoes a statement's payment (back to PENDING). */
+  undoCreditStatementPayment: (id: string, statementId: string, idempotencyKey: string) =>
+    apiFetch<accounts.CreditStatement>(`/accounts/${id}/credit-statements/${statementId}/payment`, {
+      method: "DELETE",
+      idempotencyKey,
+    }),
+
   /** Undoes a transfer while the period that received the charge isn't settled. */
   undoTransferCreditStatement: (id: string, statementId: string, idempotencyKey: string) =>
     apiFetch<accounts.CreditStatement>(

@@ -114,6 +114,14 @@ export class PrismaInstallmentPaymentRepository
     }
   }
 
+  async unsettleForStatementWithTx(tx: unknown, statementId: string): Promise<void> {
+    const client = tx as PrismaService;
+    await client.installmentPayment.updateMany({
+      where: { creditStatementId: statementId, paidAt: { not: null } },
+      data: { paidAt: null, paidAmount: "0" },
+    });
+  }
+
   async sumBilledForStatement(
     statementId: string,
     tx?: unknown,

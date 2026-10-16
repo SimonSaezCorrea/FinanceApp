@@ -24,6 +24,7 @@ import { PayCreditStatementCommand } from "../application/commands/pay-credit-st
 import { PrepayOpenPeriodCommand } from "../application/commands/prepay-open-period.command";
 import { SyncStatementCommand } from "../application/commands/sync-statement.command";
 import { TransferStatementCommand } from "../application/commands/transfer-statement.command";
+import { UndoStatementPaymentCommand } from "../application/commands/undo-statement-payment.command";
 import { UndoTransferStatementCommand } from "../application/commands/undo-transfer-statement.command";
 import { UpdateStatementDatesCommand } from "../application/commands/update-statement-dates.command";
 import { UpdateStatementPaymentCommand } from "../application/commands/update-statement-payment.command";
@@ -141,6 +142,20 @@ export class CreditStatementsController {
         idempotencyKey,
         body.transferredAt ? new Date(body.transferredAt) : undefined,
       ),
+    );
+  }
+
+  /** "Deshacer pago": undoes a statement's payment (back to PENDING) while the period that
+   * received its shortfall, if any, isn't settled. */
+  @Delete(":id/credit-statements/:statementId/payment")
+  undoStatementPayment(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(statementParamsSchema)) params: { id: string; statementId: string },
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
+  ): Promise<accounts.CreditStatement> {
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(
+      new UndoStatementPaymentCommand(user.id, params.id, params.statementId, idempotencyKey),
     );
   }
 

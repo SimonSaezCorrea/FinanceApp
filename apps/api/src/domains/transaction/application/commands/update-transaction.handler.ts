@@ -141,6 +141,11 @@ export class UpdateTransactionHandler extends BaseCommandHandler<
     if ((await this.statements.transferInfoFor([id])).has(id)) {
       throw new TransactionLinkedToStatementError();
     }
+    // A statement's payment: editing it here would move the source balance while the statement
+    // kept its paid figure. It is corrected with "Modificar pago" or undone (deleting it).
+    if ((await this.statements.paymentInfoFor([id])).has(id)) {
+      throw new TransactionLinkedToStatementError();
+    }
 
     const effectiveType = input.type ?? current.type;
     // Only a CHANGED category is validated: re-sending the one the movement already

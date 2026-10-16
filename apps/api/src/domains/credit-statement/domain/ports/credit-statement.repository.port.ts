@@ -103,6 +103,11 @@ export interface CreditStatementRepositoryPort {
   /** See `CreditStatementLookupPort.carriedOverOwed` — the same query, on this port for the
    * handlers that already hold it (a card's usage in another currency, `cardLimitUsage`). */
   carriedOverOwed(accountIds: string[]): Promise<Map<string, string>>;
+  /** See `CreditStatementLookupPort.paymentInfoFor` — deleting a statement's payment from
+   * Movimientos undoes the payment, and editing it is refused. */
+  paymentInfoFor(
+    transactionIds: string[],
+  ): Promise<Map<string, { statementId: string; accountId: string }>>;
   /** See `CreditStatementLookupPort.transferInfoFor`. */
   transferInfoFor(transactionIds: string[]): Promise<Map<string, string>>;
 }

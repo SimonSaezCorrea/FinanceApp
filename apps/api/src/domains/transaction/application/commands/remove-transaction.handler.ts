@@ -26,6 +26,11 @@ import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
 } from "../../../credit-statement/domain/ports/credit-statement.repository.port";
+import { undoStatementPaymentWithTx } from "../../../credit-statement/application/statement-payment-undo";
+import {
+  INSTALLMENT_PLAN_REPOSITORY,
+  type InstallmentPlanRepositoryPort,
+} from "../../../installment-plan/domain/ports/installment-plan.repository.port";
 import {
   INSTALLMENT_PAYMENT_LOOKUP,
   type InstallmentPaymentLookupPort,
@@ -62,6 +67,9 @@ interface Context {
   prepaymentReversal: { accountId: string; statementId: string; oldAmount: string } | null;
   /** A prepayment in another currency: its two legs, undone together. */
   settlementPair: { expense: Transaction; income: Transaction } | null;
+  /** A statement's payment (its source EXPENSE, or the settlement INCOME of a period in another
+   * currency): deleting either undoes the whole payment, like "Deshacer pago". */
+  statementPayment: { accountId: string; statementId: string } | null;
 }
 
 /**
@@ -87,6 +95,7 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
     private readonly installmentPayments: InstallmentPaymentLookupPort,
     @Inject(TRANSACTION_WRITER_REPOSITORY)
     private readonly transactionWriter: TransactionWriterRepositoryPort,
+    @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly plans: InstallmentPlanRepositoryPort,
     private readonly prisma: PrismaService,
   ) {
     super(eventBus);
@@ -112,18 +121,39 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
     if ((await this.statements.transferInfoFor([command.id])).has(command.id)) {
       throw new TransactionLinkedToStatementError();
     }
-    // Spec 030 (028 R10): a statement's settlement is undone from the statement, not here —
-    // except a prepayment in another currency, whose two legs this deletes as a pair (below).
+    const none = { prepaymentReversal: null, settlementPair: null, statementPayment: null };
+    // A statement's payment EXPENSE: deleting it undoes the payment (below), never just the row —
+    // that left the statement paid with its money already back in the source account.
+    const paid = (await this.statements.paymentInfoFor([command.id])).get(command.id);
+    if (paid) {
+      return { ...none, current, creditUsedDelta: null, cashReversal: "0", statementPayment: paid };
+    }
+    // Spec 030 (028 R10): a statement's settlement INCOME. A prepayment in another currency is
+    // deleted as a pair; a payment's settlement undoes that payment; anything else is refused.
     if (current.snapshot().settlesStatementId !== null) {
       const pairId = current.snapshot().settlementPairId ?? null;
       const pair = pairId ? await this.repo.findSettlementPair(command.userId, pairId) : null;
-      if (!pair) throw new TransactionLinkedToStatementError();
+      if (pair) {
+        return { ...none, current, creditUsedDelta: null, cashReversal: "0", settlementPair: pair };
+      }
+      const statementId = current.snapshot().settlesStatementId!;
+      const accountId = current.bankAccountId;
+      const statement = accountId
+        ? await this.statements.findById(command.userId, accountId, statementId)
+        : null;
+      if (
+        !statement ||
+        statement.paidAt === null ||
+        statement.settlementTransactionId !== command.id
+      ) {
+        throw new TransactionLinkedToStatementError();
+      }
       return {
+        ...none,
         current,
         creditUsedDelta: null,
         cashReversal: "0",
-        prepaymentReversal: null,
-        settlementPair: pair,
+        statementPayment: { accountId: accountId!, statementId },
       };
     }
 
@@ -137,6 +167,7 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
         cashReversal: reverseBalanceDelta(current.type, current.amount),
         prepaymentReversal: null,
         settlementPair: null,
+        statementPayment: null,
       };
     }
 
@@ -197,6 +228,7 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
       cashReversal: cashReversal ?? reverseBalanceDelta(current.type, current.amount),
       prepaymentReversal,
       settlementPair: null,
+      statementPayment: null,
     };
   }
 
@@ -205,6 +237,10 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
     context: Context,
   ): Promise<HandleResult<void>> {
     const { current } = context;
+    if (context.statementPayment) {
+      await this.undoStatementPayment(command.userId, context.statementPayment);
+      return { result: undefined, events: [] };
+    }
     if (context.settlementPair) {
       await this.undoForeignPrepayment(command.userId, context.settlementPair);
       return { result: undefined, events: [] };
@@ -273,6 +309,28 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
     );
     if (!ok) throw new TransactionNotFoundError();
     return { result: undefined, events: [] };
+  }
+
+  /** Deleting a statement's payment from Movimientos = "Deshacer pago": the same
+   * `undoStatementPaymentWithTx` the statement's own button runs, so both undo the same things. */
+  private async undoStatementPayment(
+    userId: string,
+    target: { accountId: string; statementId: string },
+  ): Promise<void> {
+    const account = await this.accounts.findById(userId, target.accountId);
+    if (!account) throw new TransactionNotFoundError();
+    await this.prisma.$transaction((tx) =>
+      undoStatementPaymentWithTx(
+        {
+          statements: this.statements,
+          accounts: this.accounts,
+          transactions: this.transactionWriter,
+          plans: this.plans,
+        },
+        tx,
+        { userId, ...target, accountCurrency: account.snapshot().currency },
+      ),
+    );
   }
 
   /**

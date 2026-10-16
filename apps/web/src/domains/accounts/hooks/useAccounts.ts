@@ -129,6 +129,18 @@ export function useAccountMutations() {
         qc.invalidateQueries({ queryKey: ["transactions"] });
       },
     }),
+    undoStatementPayment: useMutation({
+      mutationFn: (vars: { id: string; statementId: string; idempotencyKey: string }) =>
+        accountsApi.undoCreditStatementPayment(vars.id, vars.statementId, vars.idempotencyKey),
+      onSuccess: (_, vars) => {
+        // The payment's movements, the source balance, the pool, the next period's carry-over
+        // and the instalments it settled all move.
+        invalidate();
+        qc.invalidateQueries({ queryKey: ["accounts", vars.id, "credit-statements"] });
+        qc.invalidateQueries({ queryKey: ["transactions"] });
+        qc.invalidateQueries({ queryKey: ["installments"] });
+      },
+    }),
     undoTransferStatement: useMutation({
       mutationFn: (vars: { id: string; statementId: string; idempotencyKey: string }) =>
         accountsApi.undoTransferCreditStatement(vars.id, vars.statementId, vars.idempotencyKey),

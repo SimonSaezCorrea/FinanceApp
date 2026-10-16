@@ -9,6 +9,7 @@ import { Button } from "@finance/ui/src/shared/ui/button";
 import { SidePanel } from "@finance/ui/src/shared/ui/overlay";
 import { balanceAfterTransaction } from "../lib/balanceAfter";
 import { panelNavigation } from "../lib/panelNavigation";
+import { movementActions } from "../lib/movementActions";
 import { AttachmentsSection } from "./AttachmentsSection";
 import { TransactionDetailPanel } from "./TransactionDetailPanel";
 
@@ -68,18 +69,10 @@ export function TransactionDetailModal({
   const nav =
     index >= 0 ? panelNavigation({ index, loaded: items.length, total, hasNextPage }) : null;
   const account = tx.bankAccountId ? accounts.find((a) => a.id === tx.bankAccountId) : undefined;
-  // The API refuses to edit or delete this row (FR-028a); offering the buttons would
-  // only produce an error. The panel says why and where to go instead.
-  // Spec 030 adds the movements that settle a statement in another currency: they are
-  // corrected from their statement, so they get no buttons here either.
-  // Spec 028 US3: a transfer's charge in pesos is undone from its statement as well.
-  const isInstallmentPayment =
-    tx.installmentPlanId !== null ||
-    tx.settlesStatementId !== null ||
-    (tx.transferStatementId ?? null) !== null;
-  // A prepayment in another currency can't be edited, but deleting either of its two movements
-  // undoes it (the server deletes the pair while its period is unsettled).
-  const isForeignPrepayment = (tx.settlementPairId ?? null) !== null;
+  // What the API accepts on this movement — the rule shared with the table (`movementActions`).
+  // When neither is offered, the panel says why and where to go instead.
+  const allowed = movementActions(tx);
+  const canEdit = allowed.edit;
 
   const balanceAfter =
     index >= 0 ? balanceAfterTransaction({ items, index, account, dateFiltered }) : null;
@@ -148,13 +141,13 @@ export function TransactionDetailModal({
       // repeated here.
       footer={
         <div className="flex items-center justify-end gap-2">
-          {onEdit && !isInstallmentPayment ? (
+          {onEdit && canEdit ? (
             <Button variant="accent" onClick={() => onEdit(tx)}>
               <Pencil className="h-4 w-4" aria-hidden />
               {t("common.edit")}
             </Button>
           ) : null}
-          {onDelete && (!isInstallmentPayment || isForeignPrepayment) ? (
+          {onDelete && allowed.delete ? (
             <Button variant="ghost" aria-label={t("common.delete")} onClick={() => onDelete(tx)}>
               <Trash2 className="h-4 w-4 text-destructive" aria-hidden />
             </Button>
@@ -166,7 +159,7 @@ export function TransactionDetailModal({
         transaction={tx}
         accounts={accounts}
         balanceAfter={balanceAfter}
-        onAddDetails={onEdit && !isInstallmentPayment ? () => onEdit(tx) : undefined}
+        onAddDetails={onEdit && canEdit ? () => onEdit(tx) : undefined}
       >
         <AttachmentsSection transactionId={tx.id} />
         {children}

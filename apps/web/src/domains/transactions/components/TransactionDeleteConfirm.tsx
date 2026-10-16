@@ -45,9 +45,11 @@ export function TransactionDeleteConfirm({
       onOpenChange={onOpenChange}
       title={t("transactions.deleteConfirm")}
       description={t(
-        (transaction?.settlementPairId ?? null) !== null
-          ? "transactions.deleteForeignPrepaymentDescription"
-          : "transactions.deleteConfirmDescription",
+        (transaction?.paidStatementId ?? null) !== null
+          ? "transactions.deleteStatementPaymentDescription"
+          : (transaction?.settlementPairId ?? null) !== null
+            ? "transactions.deleteForeignPrepaymentDescription"
+            : "transactions.deleteConfirmDescription",
       )}
       confirmLabel={t("common.delete")}
       loading={loading}

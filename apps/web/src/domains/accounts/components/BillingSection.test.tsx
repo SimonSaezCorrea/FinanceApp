@@ -12,7 +12,12 @@ import { accountsApi } from "../api/accountsApi";
 import { BillingSection } from "./BillingSection";
 
 vi.mock("../api/accountsApi", () => ({
-  accountsApi: { creditStatements: vi.fn() },
+  accountsApi: {
+    creditStatements: vi.fn(),
+    // Names the account a payment came from, in "Deshacer pago"'s confirmation.
+    list: vi.fn(async () => [{ id: "src", name: "BCI Corriente" }]),
+    undoCreditStatementPayment: vi.fn(),
+  },
 }));
 // The panels opened from here have data needs of their own; this spec is about
 // what the section itself lists.
@@ -68,6 +73,7 @@ function statement(over: Partial<accounts.CreditStatement>): accounts.CreditStat
     transferredToId: null,
     canTransfer: false,
     transferReversal: null,
+    paymentReversal: null,
     createdAt: "2026-07-20T00:00:00.000Z",
     updatedAt: "2026-07-20T00:00:00.000Z",
     ...over,
@@ -303,5 +309,101 @@ describe("BillingSection — transfer to the account's currency (spec 028 US3)",
         }),
       ),
     ).toBeDefined();
+  });
+
+  /** The confirmation's description is one sentence after another: match the element holding it. */
+  const textIncludes = (text: string) => (_: string, el: Element | null) =>
+    !!el && el.children.length === 0 && (el.textContent ?? "").includes(text);
+
+  const paidClp = (over: Partial<accounts.CreditStatement> = {}) =>
+    statement({
+      id: "paid",
+      status: "PAID",
+      paidAt: "2026-08-25T00:00:00.000Z",
+      paidAmount: "120000",
+      remainingAmount: "0",
+      paidFromAccountId: "src",
+      paidTransactionId: "0190f3a2-7b1c-7000-8000-000000000001",
+      paymentReversal: {
+        paidAmount: "120000.0000",
+        currency: "CLP",
+        fromAccountId: "src",
+        carryOver: "0.0000",
+        restoresCredit: true,
+      },
+      ...over,
+    });
+
+  it("a paid period offers Deshacer pago; the confirmation says what paymentReversal says", async () => {
+    vi.mocked(accountsApi.creditStatements).mockResolvedValue([paidClp()]);
+    vi.mocked(accountsApi.undoCreditStatementPayment).mockResolvedValue(paidClp());
+    renderSection();
+
+    fireEvent.click(
+      (await screen.findAllByRole("button", { name: i18n.t("accounts.undoPayment.action") }))[0]!,
+    );
+    const refund = i18n.t("accounts.undoPayment.refund", {
+      amount: money("120000", "CLP"),
+      account: "BCI Corriente",
+    });
+    expect(await screen.findByText(textIncludes(refund))).toBeDefined();
+    expect(
+      screen.getByText(textIncludes(i18n.t("accounts.undoPayment.restoresCredit"))),
+    ).toBeDefined();
+
+    // The confirmation's own button is the last "Deshacer pago" on screen.
+    const buttons = screen.getAllByRole("button", { name: i18n.t("accounts.undoPayment.action") });
+    fireEvent.click(buttons[buttons.length - 1]!);
+    await waitFor(() =>
+      expect(accountsApi.undoCreditStatementPayment).toHaveBeenCalledWith(
+        "a1",
+        "paid",
+        expect.any(String),
+      ),
+    );
+  });
+
+  it("a period paid short offers both Modificar pago and Deshacer pago", async () => {
+    vi.mocked(accountsApi.creditStatements).mockResolvedValue([
+      paidClp({
+        status: "PARTIALLY_PAID",
+        paidAmount: "100000",
+        carriedToId: "0190f3a2-7b1c-7000-8000-000000000002",
+        paymentReversal: {
+          paidAmount: "100000.0000",
+          currency: "CLP",
+          fromAccountId: "src",
+          carryOver: "20000.0000",
+          restoresCredit: true,
+        },
+      }),
+    ]);
+    renderSection();
+
+    expect(
+      (
+        await screen.findAllByRole("button", {
+          name: i18n.t("accounts.actions.editStatementPayment"),
+        })
+      ).length,
+    ).toBeGreaterThan(0);
+    fireEvent.click(
+      screen.getAllByRole("button", { name: i18n.t("accounts.undoPayment.action") })[0]!,
+    );
+    expect(
+      await screen.findByText(
+        textIncludes(i18n.t("accounts.undoPayment.carryOver", { amount: money("20000", "CLP") })),
+      ),
+    ).toBeDefined();
+  });
+
+  it("a period imported as paid (no paymentReversal) offers nothing to undo", async () => {
+    vi.mocked(accountsApi.creditStatements).mockResolvedValue([paidClp({ paymentReversal: null })]);
+    renderSection();
+
+    await screen.findAllByText(money("120000", "CLP"));
+    expect(
+      screen.queryByRole("button", { name: i18n.t("accounts.undoPayment.action") }),
+    ).toBeNull();
   });
 });

@@ -615,6 +615,20 @@ export const creditStatementSchema = z.object({
       removedCurrency: z.string(),
     })
     .nullable(),
+  /** Only while settled by a payment of the app's own: exactly what "Deshacer pago" will
+   * revert, from the same function the server applies (Constitution Principle I). The money
+   * that left `fromAccountId` goes back to it (for a period in another currency, the pesos it
+   * cost); `restoresCredit` = the paid amount goes back onto the account's pool (a period in the
+   * account's own currency); `carryOver` leaves the next period. */
+  paymentReversal: z
+    .object({
+      paidAmount: moneyString,
+      currency: z.string(),
+      fromAccountId: rowId,
+      carryOver: moneyString,
+      restoresCredit: z.boolean(),
+    })
+    .nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

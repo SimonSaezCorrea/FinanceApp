@@ -115,6 +115,8 @@ function makeHandler(
       isLinkedToPayment: vi.fn(async () => opts.linkedToInstallment ?? false),
     }),
     fakeTransactionWriterRepo(),
+    // Unused unless the movement is a statement's payment (none in this file are).
+    {} as never,
     // Unused unless a fixture carries `prepaymentStatementId` (none in this file do).
     {} as never,
   );

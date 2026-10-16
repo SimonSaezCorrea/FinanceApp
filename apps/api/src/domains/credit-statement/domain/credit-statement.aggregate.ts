@@ -7,6 +7,7 @@ import {
   StatementNotClosedError,
   StatementNotOpenError,
   StatementNotPaidError,
+  StatementPaymentNotUndoableError,
   StatementNotTransferableError,
   StatementNotTransferredError,
 } from "./errors";
@@ -386,6 +387,63 @@ export class CreditStatement {
       ),
       carryOver: subtractMoney(periodAmount, amount),
     };
+  }
+
+  /**
+   * Exactly what "Deshacer pago" reverts, from what `payTowards` stored — the DTO shows it in
+   * the confirmation and `undoStatementPaymentWithTx` applies it, so what the person is told and
+   * what happens can never differ (Constitution Principle I). Null unless the period was settled
+   * by a payment of the app's own (an imported one has no `paidFromAccountId`).
+   *
+   * `paymentTransactionId` can be null on a payment whose movement was deleted before deleting it
+   * meant undoing the payment (the FK is SetNull): its money already went back, so only the
+   * period's own state is undone then.
+   */
+  paymentReversal(accountCurrency: string): {
+    /** What was paid, in the period's currency. */
+    paidAmount: string;
+    currency: string;
+    fromAccountId: string;
+    paymentTransactionId: string | null;
+    /** Spec 030: the settlement INCOME of a period in another currency. */
+    settlementTransactionId: string | null;
+    /** The shortfall rolled into `carriedToId` ("0" when paid in full). */
+    carryOver: string;
+    carriedToId: string | null;
+    /** Only a period in the account's own currency drew on the pool `creditUsed`. */
+    restoresCredit: boolean;
+  } | null {
+    const p = this.props;
+    if (!p.paidAt || !p.paidFromAccountId) return null;
+    return {
+      paidAmount: moneyToString(p.paidAmount),
+      currency: p.currency,
+      fromAccountId: p.paidFromAccountId,
+      paymentTransactionId: p.paidTransactionId,
+      settlementTransactionId: p.settlementTransactionId,
+      carryOver: p.carriedToId ? subtractMoney(p.amount, p.paidAmount) : moneyToString("0"),
+      carriedToId: p.carriedToId,
+      restoresCredit: p.currency === accountCurrency,
+    };
+  }
+
+  /** Undoes a payment: back to PENDING (the payment's fields cleared, `paidAmount` "0"),
+   * returning the same `paymentReversal` the caller must apply to the movements, the source
+   * account, the pool and the successor's carry-over. The close stays: undoing a payment
+   * never reopens a period, even one the payment itself had closed. */
+  undoPayment(
+    accountCurrency: string,
+  ): NonNullable<ReturnType<CreditStatement["paymentReversal"]>> {
+    if (!this.props.paidAt) throw new StatementNotPaidError();
+    const reversal = this.paymentReversal(accountCurrency);
+    if (!reversal) throw new StatementPaymentNotUndoableError();
+    this.props.paidAt = null;
+    this.props.paidAmount = moneyToString("0");
+    this.props.paidFromAccountId = null;
+    this.props.paidTransactionId = null;
+    this.props.settlementTransactionId = null;
+    this.props.carriedToId = null;
+    return reversal;
   }
 
   /**

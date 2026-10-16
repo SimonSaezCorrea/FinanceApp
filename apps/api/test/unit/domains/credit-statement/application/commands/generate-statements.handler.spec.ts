@@ -128,6 +128,7 @@ function fakeStatementRepo(
   return {
     carriedOverOwed: vi.fn(async () => new Map()),
     transferInfoFor: vi.fn(async () => new Map()),
+    paymentInfoFor: vi.fn(async () => new Map()),
     listDueScheduled: vi.fn(async () => []),
     countForUser: vi.fn(async () => 0),
     paymentTransactionIdsFromOtherAccounts: vi.fn(async () => []),
@@ -170,6 +171,7 @@ function fakePlanRepo(
     stampBillableWithTx: vi.fn(),
     unstampDueAfterWithTx: vi.fn(),
     settleForStatementWithTx: vi.fn(),
+    unsettleForStatementWithTx: vi.fn(),
     billedInstallmentsForStatement: vi.fn(async () => ({ amount: "0", count: 0 })),
     save: vi.fn(),
     saveScheduleWithTx: vi.fn(),

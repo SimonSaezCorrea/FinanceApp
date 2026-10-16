@@ -95,6 +95,7 @@ function fakeRepo(
     stampBillableWithTx: vi.fn(),
     unstampDueAfterWithTx: vi.fn(),
     settleForStatementWithTx: vi.fn(),
+    unsettleForStatementWithTx: vi.fn(),
     billedInstallmentsForStatement: vi.fn(async () => ({ amount: "0", count: 0 })),
     save: vi.fn(),
     saveScheduleWithTx: vi.fn(),

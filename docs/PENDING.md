@@ -925,14 +925,18 @@ moneda, que no es un movimiento. Ahora se suma al uso del tope en otra moneda de
 y por la plantilla), vía `CreditStatementLookupPort.carriedOverOwed`. Las dos rutas cuentan ahora lo
 mismo: solo lo no liquidado (`STILL_OWED`, que además trata un período traspasado como liquidado).
 
-### 3. ~~Pago y prepago en otra moneda no se deshacen desde Movimientos~~ — prepago resuelto (2026-10-15)
+### 3. ~~Pago y prepago en otra moneda no se deshacen desde Movimientos~~ — resuelto (2026-10-15)
 
-Un prepago en otra moneda son dos movimientos unidos por la columna nueva
-**`Transaction.settlementPairId`** (migración `20261015120000_settlement_pair`, que empareja los
-prepagos ya existentes). Eliminar cualquiera de los dos desde Movimientos deshace el par: borra
-ambos, devuelve los pesos a la cuenta de origen y baja `prepaidAmount`, mientras su facturación no
-esté liquidada (después responde `TRANSACTION_LINKED_TO_STATEMENT`). No se editan. Un PAGO en otra
-moneda sigue corrigiéndose con "Modificar pago", sin deshacer.
+Un prepago en otra moneda son dos movimientos unidos por **`Transaction.settlementPairId`**: eliminar
+cualquiera de los dos desde Movimientos deshace el par mientras su facturación no esté liquidada.
+
+**Deshacer pago**, en ambas monedas: el botón "Deshacer pago" de la facturación
+(`DELETE …/credit-statements/:id/payment`) o eliminar el movimiento del pago en Movimientos deshacen
+el pago entero con la misma función: borra sus movimientos, devuelve a la cuenta de origen lo que
+salió, en pesos devuelve el cupo y deja las cuotas facturadas sin pagar, y quita el arrastre del
+período siguiente (se rechaza si ese ya está pagado). Antes, el gasto de un pago se podía editar o
+eliminar solo, dejando la facturación pagada con la plata ya devuelta; ahora editarlo se rechaza.
+Queda fuera: una facturación importada como pagada no tiene pago que deshacer.
 
 ### 4. ~~Traspasar una facturación USD vencida a pesos (spec 028 US3)~~ — resuelto (2026-10-15)
 

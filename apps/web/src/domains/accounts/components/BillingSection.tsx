@@ -27,7 +27,7 @@ import { ErrorState } from "../../../shared/ui/states";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
 import { TABLE_ROW_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
 import { TransactionCreateModal } from "../../transactions/components/TransactionCreateModal";
-import { useAccountMutations, useCreditStatements } from "../hooks/useAccounts";
+import { useAccountMutations, useAccounts, useCreditStatements } from "../hooks/useAccounts";
 import { EditStatementPaymentPanel } from "./EditStatementPaymentPanel";
 import { GenerateStatementPanel } from "./GenerateStatementPanel";
 import { useIdempotencyKey } from "../../../shared/hooks/useIdempotencyKey";
@@ -146,8 +146,13 @@ export function BillingSection({
   // rows as if the load had succeeded, hiding the error and its retry action
   // entirely. Treat it as empty whenever the CURRENT state is an error.
   const statements = isError ? undefined : rawStatements;
-  const { syncStatement, undoTransferStatement } = useAccountMutations();
+  const { syncStatement, undoTransferStatement, undoStatementPayment } = useAccountMutations();
   const undoTransferKey = useIdempotencyKey();
+  const undoPaymentKey = useIdempotencyKey();
+  // Names the account a payment came from, in its undo confirmation.
+  const { data: allAccounts } = useAccounts();
+  const accountNameOf = (id: string) =>
+    allAccounts?.find((a) => a.id === id)?.name ?? t("accounts.undoPayment.unknownAccount");
   const [payTarget, setPayTarget] = useState<accounts.CreditStatement | null>(null);
   // Spec 019: the OPEN period is never "paid" from here anymore — `payTowards`
   // would liquidate/close it, which is not what abonar early means. It opens
@@ -162,6 +167,8 @@ export function BillingSection({
   const [undoTransferTarget, setUndoTransferTarget] = useState<accounts.CreditStatement | null>(
     null,
   );
+  // "Deshacer pago": back to PENDING, exactly what `paymentReversal` says.
+  const [undoPaymentTarget, setUndoPaymentTarget] = useState<accounts.CreditStatement | null>(null);
   const [detailTarget, setDetailTarget] = useState<accounts.CreditStatement | null>(null);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [editDatesTarget, setEditDatesTarget] = useState<accounts.CreditStatement | null>(null);
@@ -359,13 +366,24 @@ export function BillingSection({
    * - OPEN in another currency (spec 030): prepagar, in the payment panel itself — the
    *   transaction form is bound to the credit account's own currency;
    * - an overdue period in another currency also offers "Traspasar" (spec 028 US3); a
-   *   TRANSFERRED one, "Deshacer traspaso".
+   *   TRANSFERRED one, "Deshacer traspaso";
+   * - a period settled by a payment of the app's own offers "Deshacer pago" (`paymentReversal`):
+   *   as its only action when paid in full, beside "Modificar pago" when paid short.
    */
   function PeriodAction({
     statement: s,
     variant,
   }: Readonly<{ statement: accounts.CreditStatement; variant: "card" | "row" }>) {
     const none = variant === "row" ? <ActionSlot /> : null;
+    // A second, quieter action beside the main one: "Traspasar" or "Deshacer pago".
+    let secondary: { label: string; icon: typeof Banknote; onClick: () => void } | null = null;
+    const undoPayment = s.paymentReversal
+      ? {
+          label: t("accounts.undoPayment.action"),
+          icon: Undo2,
+          onClick: () => setUndoPaymentTarget(s),
+        }
+      : null;
     let action: {
       label: string;
       icon: typeof Banknote;
@@ -387,6 +405,9 @@ export function BillingSection({
           onClick: () => setEditPaymentTarget(s),
           tone: "ghost",
         };
+        secondary = undoPayment;
+      } else if (undoPayment) {
+        action = { ...undoPayment, tone: "ghost" };
       } else {
         return none;
       }
@@ -408,18 +429,19 @@ export function BillingSection({
     }
     // An overdue period in another currency can also be transferred to the account's own
     // (the same rule the server applies, `canTransfer`), beside paying it.
-    const transfer = s.canTransfer
-      ? {
-          label: t("accounts.transfer.action", { currency: account.currency }),
-          onClick: () => setTransferTarget(s),
-        }
-      : null;
+    if (s.canTransfer) {
+      secondary = {
+        label: t("accounts.transfer.action", { currency: account.currency }),
+        icon: ArrowRightLeft,
+        onClick: () => setTransferTarget(s),
+      };
+    }
     if (variant === "card") {
       return (
         <>
-          {transfer ? (
-            <Button variant="outline" className="flex-1" onClick={transfer.onClick}>
-              {transfer.label}
+          {secondary ? (
+            <Button variant="outline" className="flex-1" onClick={secondary.onClick}>
+              {secondary.label}
             </Button>
           ) : null}
           <Button variant="secondary" className="flex-1" onClick={action.onClick}>
@@ -429,18 +451,19 @@ export function BillingSection({
       );
     }
     const Icon = action.icon;
+    const SecondaryIcon = secondary?.icon;
     return (
       <>
-        {transfer ? (
+        {secondary && SecondaryIcon ? (
           <Button
             variant="ghost"
             size="sm"
             className="w-8 px-0"
-            aria-label={transfer.label}
-            title={transfer.label}
-            onClick={transfer.onClick}
+            aria-label={secondary.label}
+            title={secondary.label}
+            onClick={secondary.onClick}
           >
-            <ArrowRightLeft className="h-3.5 w-3.5" aria-hidden />
+            <SecondaryIcon className="h-3.5 w-3.5" aria-hidden />
           </Button>
         ) : null}
         {/* Tinted (not a plain ghost icon) when it moves money forward, same reasoning as the
@@ -861,6 +884,58 @@ export function BillingSection({
                 undoTransferKey.reset();
                 toast.success(t("accounts.transfer.undoSuccess"));
                 setUndoTransferTarget(null);
+              },
+              onError: (e) =>
+                toast.error(
+                  t(`errors.${e instanceof ApiRequestError ? e.code : "INTERNAL_ERROR"}`, {
+                    defaultValue: t("errors.INTERNAL_ERROR"),
+                  }),
+                ),
+            },
+          );
+        }}
+      />
+      {/* Built ONLY from `paymentReversal`: the same figures the server reverts. */}
+      <ConfirmModal
+        open={undoPaymentTarget !== null}
+        onOpenChange={(v) => !v && setUndoPaymentTarget(null)}
+        title={t("accounts.undoPayment.confirm")}
+        description={(() => {
+          const r = undoPaymentTarget?.paymentReversal;
+          if (!r) return undefined;
+          const from = accountNameOf(r.fromAccountId);
+          const parts = [
+            t(
+              r.restoresCredit
+                ? "accounts.undoPayment.refund"
+                : "accounts.undoPayment.refundForeign",
+              { amount: fmt(r.paidAmount, r.currency), account: from },
+            ),
+          ];
+          if (r.restoresCredit) parts.push(t("accounts.undoPayment.restoresCredit"));
+          if (Number(r.carryOver) > 0) {
+            parts.push(
+              t("accounts.undoPayment.carryOver", { amount: fmt(r.carryOver, r.currency) }),
+            );
+          }
+          parts.push(t("accounts.undoPayment.pending"));
+          return parts.join(" ");
+        })()}
+        confirmLabel={t("accounts.undoPayment.action")}
+        loading={undoStatementPayment.isPending}
+        onConfirm={() => {
+          if (!undoPaymentTarget) return;
+          undoStatementPayment.mutate(
+            {
+              id: account.id,
+              statementId: undoPaymentTarget.id,
+              idempotencyKey: undoPaymentKey.current(),
+            },
+            {
+              onSuccess: () => {
+                undoPaymentKey.reset();
+                toast.success(t("accounts.undoPayment.success"));
+                setUndoPaymentTarget(null);
               },
               onError: (e) =>
                 toast.error(

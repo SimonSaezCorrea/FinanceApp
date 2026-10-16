@@ -17,6 +17,7 @@ import { InfiniteScrollSentinel } from "../../../shared/ui/infinite-scroll-senti
 import { ErrorState } from "../../../shared/ui/states";
 import { SwipeRow } from "../../../shared/ui/swipe-row";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
+import { movementActions } from "../lib/movementActions";
 
 interface TransactionTableProps {
   transactions: transactions.Transaction[];
@@ -300,7 +301,7 @@ export function TransactionTable({
                     // amount column instead of sitting inside their own cell.
                     <TD className="px-3">
                       <span className="flex justify-end gap-1">
-                        {onEdit ? (
+                        {onEdit && movementActions(tx).edit ? (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -313,7 +314,7 @@ export function TransactionTable({
                             <Pencil className="h-4 w-4" aria-hidden />
                           </Button>
                         ) : null}
-                        {onDelete ? (
+                        {onDelete && movementActions(tx).delete ? (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -373,8 +374,8 @@ export function TransactionTable({
                 key={tx.id}
                 open={openSwipeId === tx.id}
                 onOpenChange={(o) => setOpenSwipeId(o ? tx.id : null)}
-                onEdit={onEdit ? () => onEdit(tx) : undefined}
-                onDelete={onDelete ? () => onDelete(tx) : undefined}
+                onEdit={onEdit && movementActions(tx).edit ? () => onEdit(tx) : undefined}
+                onDelete={onDelete && movementActions(tx).delete ? () => onDelete(tx) : undefined}
                 onTap={onRowClick ? () => onRowClick(tx) : undefined}
               >
                 <div
@@ -433,8 +434,10 @@ export function TransactionTable({
                     // tap on the row (which would open the detail sheet behind it).
                     <span data-swipe-action className="hidden w-8 shrink-0 sm:block">
                       <RowActionsMenu
-                        onEdit={onEdit ? () => onEdit(tx) : undefined}
-                        onDelete={onDelete ? () => onDelete(tx) : undefined}
+                        onEdit={onEdit && movementActions(tx).edit ? () => onEdit(tx) : undefined}
+                        onDelete={
+                          onDelete && movementActions(tx).delete ? () => onDelete(tx) : undefined
+                        }
                       />
                     </span>
                   ) : null}

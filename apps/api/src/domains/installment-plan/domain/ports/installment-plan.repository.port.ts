@@ -53,6 +53,8 @@ export interface InstallmentPlanRepositoryPort {
   unstampDueAfterWithTx(tx: unknown, statementId: string, dueAfter: Date): Promise<void>;
   /** Settles every instalment a period charged, once that period is paid (FR-014). */
   settleForStatementWithTx(tx: unknown, statementId: string, paidAt: Date): Promise<void>;
+  /** Undoes `settleForStatementWithTx` when that period's payment is undone. */
+  unsettleForStatementWithTx(tx: unknown, statementId: string): Promise<void>;
   /** Composes `installment-payment`'s sum for the statement breakdown (FR-011) —
    * `credit-statement` calls this rather than reaching past this domain. */
   billedInstallmentsForStatement(

@@ -76,6 +76,7 @@ describe("PrepayOpenPeriodHandler (integration)", () => {
       statementRepo,
       installmentPaymentLookup,
       transactionWriter,
+      {} as never,
       prisma,
     );
   }

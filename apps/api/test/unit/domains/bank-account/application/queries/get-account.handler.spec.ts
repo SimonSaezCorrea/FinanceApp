@@ -26,6 +26,7 @@ function fakePlanRepo(
     stampBillableWithTx: vi.fn(),
     unstampDueAfterWithTx: vi.fn(),
     settleForStatementWithTx: vi.fn(),
+    unsettleForStatementWithTx: vi.fn(),
     billedInstallmentsForStatement: vi.fn(),
     save: vi.fn(),
     saveScheduleWithTx: vi.fn(),

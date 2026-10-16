@@ -16,6 +16,7 @@ import { GenerateStatementsHandler } from "./application/commands/generate-state
 import { PayCreditStatementHandler } from "./application/commands/pay-credit-statement.handler";
 import { PrepayOpenPeriodHandler } from "./application/commands/prepay-open-period.handler";
 import { TransferStatementHandler } from "./application/commands/transfer-statement.handler";
+import { UndoStatementPaymentHandler } from "./application/commands/undo-statement-payment.handler";
 import { UndoTransferStatementHandler } from "./application/commands/undo-transfer-statement.handler";
 import { LogStatementPaidListener } from "./application/events/log-statement-paid.listener";
 import { ListCreditStatementsQueryHandler } from "./application/queries/list-credit-statements.handler";
@@ -27,6 +28,7 @@ const commandHandlers = [
   PrepayOpenPeriodHandler,
   TransferStatementHandler,
   UndoTransferStatementHandler,
+  UndoStatementPaymentHandler,
   GenerateStatementsHandler,
   GenerateScheduledStatementsHandler,
   SyncStatementHandler,

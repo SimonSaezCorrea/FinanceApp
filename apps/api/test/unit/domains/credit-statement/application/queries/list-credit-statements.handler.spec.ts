@@ -107,6 +107,7 @@ function fakeStatementRepo(
   return {
     carriedOverOwed: vi.fn(async () => new Map()),
     transferInfoFor: vi.fn(async () => new Map()),
+    paymentInfoFor: vi.fn(async () => new Map()),
     listDueScheduled: vi.fn(async () => []),
     countForUser: vi.fn(async () => 0),
     paymentTransactionIdsFromOtherAccounts: vi.fn(async () => []),

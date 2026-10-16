@@ -8,6 +8,12 @@ import { GenerateStatementsCommand } from "../../../../../src/domains/credit-sta
 import { GenerateStatementsHandler } from "../../../../../src/domains/credit-statement/application/commands/generate-statements.handler";
 import { PayCreditStatementCommand } from "../../../../../src/domains/credit-statement/application/commands/pay-credit-statement.command";
 import { PayCreditStatementHandler } from "../../../../../src/domains/credit-statement/application/commands/pay-credit-statement.handler";
+import { UndoStatementPaymentCommand } from "../../../../../src/domains/credit-statement/application/commands/undo-statement-payment.command";
+import { UndoStatementPaymentHandler } from "../../../../../src/domains/credit-statement/application/commands/undo-statement-payment.handler";
+import { PaymentCarryOverSettledError } from "../../../../../src/domains/credit-statement/domain/errors";
+import { RemoveTransactionCommand } from "../../../../../src/domains/transaction/application/commands/remove-transaction.command";
+import { RemoveTransactionHandler } from "../../../../../src/domains/transaction/application/commands/remove-transaction.handler";
+import { PrismaTransactionRepository } from "../../../../../src/domains/transaction/infrastructure/prisma-transaction.repository";
 import { UpdateStatementPaymentCommand } from "../../../../../src/domains/credit-statement/application/commands/update-statement-payment.command";
 import { UpdateStatementPaymentHandler } from "../../../../../src/domains/credit-statement/application/commands/update-statement-payment.handler";
 import { PrismaService } from "../../../../../src/infra/prisma/prisma.service";
@@ -244,5 +250,148 @@ describe("PayCreditStatementHandler settles instalments (integration)", () => {
     expect(after?.paidAt).toEqual(before?.paidAt);
     expect(after?.paidAmount?.toString()).toBe(before?.paidAmount?.toString());
     expect(after?.creditStatementId).toBe(before?.creditStatementId);
+  });
+
+  // "Deshacer pago" — after the two cases above the period is settled SHORT: paid 100.000 of
+  // 130.000, the other 30.000 carried into the next period, its instalment marked paid.
+  const sourceBalance = async () =>
+    (
+      await prisma.bankAccount.findUniqueOrThrow({ where: { id: fromAccountId } })
+    ).currentBalance.toFixed(0);
+  const undoHandler = () =>
+    new UndoStatementPaymentHandler(
+      { publish: () => undefined } as never,
+      buildIdempotencyRecordRepo(prisma),
+      accountRepo,
+      statementRepo,
+      buildTransactionWriterRepo(prisma),
+      planRepo,
+      prisma,
+    );
+  const payAll = () =>
+    new PayCreditStatementHandler(
+      { publish: () => undefined } as never,
+      buildIdempotencyRecordRepo(prisma),
+      accountRepo,
+      statementRepo,
+      buildTransactionWriterRepo(prisma),
+      planRepo,
+      prisma,
+      buildCategoryLookup(prisma),
+    ).execute(
+      new PayCreditStatementCommand(
+        userId,
+        creditAccountId,
+        statementId,
+        fromAccountId,
+        randomUUID(),
+      ),
+    );
+
+  async function expectFullyUndone(successorId: string) {
+    const statement = await prisma.creditStatement.findUniqueOrThrow({
+      where: { id: statementId },
+    });
+    expect(statement.paidAt).toBeNull();
+    expect(statement.paidAmount.toFixed(0)).toBe("0");
+    expect(statement.paidTransactionId).toBeNull();
+    expect(statement.carriedToId).toBeNull();
+    expect(statement.closedAt).not.toBeNull();
+    const successor = await prisma.creditStatement.findUniqueOrThrow({
+      where: { id: successorId },
+    });
+    expect(successor.carriedOverAmount.toFixed(0)).toBe("0");
+    // Back to where it was before any payment: pool, source balance, instalment.
+    expect((await accountRepo.findById(userId, creditAccountId))?.creditUsed).toBe("1120000.0000");
+    expect(await sourceBalance()).toBe("1000000");
+    const instalment1 = await prisma.installmentPayment.findFirstOrThrow({
+      where: { installmentPlanId: planId, sequence: 1 },
+    });
+    expect(instalment1.paidAt).toBeNull();
+    expect(instalment1.paidAmount?.toFixed(0)).toBe("0");
+    expect(instalment1.creditStatementId).toBe(statementId); // still BILLED
+    expect(
+      await prisma.transaction.count({
+        where: { userId, bankAccountId: fromAccountId },
+      }),
+    ).toBe(0);
+  }
+
+  it("undoing the payment puts back the pool, the source, the carry-over and the instalment", async () => {
+    const paid = await prisma.creditStatement.findUniqueOrThrow({ where: { id: statementId } });
+    const successorId = paid.carriedToId!;
+    expect(successorId).toBeTruthy();
+    expect(await sourceBalance()).toBe("900000"); // 1.000.000 − 100.000
+
+    const result = await undoHandler().execute(
+      new UndoStatementPaymentCommand(userId, creditAccountId, statementId, randomUUID()),
+    );
+
+    expect(result.status).toBe("PENDING");
+    expect(result.paymentReversal).toBeNull();
+    await expectFullyUndone(successorId);
+  });
+
+  it("deleting the payment from Movimientos undoes it exactly the same way", async () => {
+    const paid = await payAll();
+    expect(paid.paymentReversal).toMatchObject({ fromAccountId, restoresCredit: true });
+
+    await new RemoveTransactionHandler(
+      { publish: () => undefined } as never,
+      new PrismaTransactionRepository(prisma, accountRepo),
+      accountRepo,
+      {} as never,
+      {} as never,
+      statementRepo,
+      { isLinkedToPayment: async () => false } as never,
+      buildTransactionWriterRepo(prisma),
+      planRepo,
+      prisma,
+    ).execute(new RemoveTransactionCommand(userId, paid.paidTransactionId!));
+
+    const successor = await prisma.creditStatement.findFirstOrThrow({
+      where: { accountId: creditAccountId, id: { not: statementId } },
+    });
+    await expectFullyUndone(successor.id);
+  });
+
+  it("refuses once the period that received the shortfall is settled itself", async () => {
+    const paid = await prisma.creditStatement.findUniqueOrThrow({ where: { id: statementId } });
+    expect(paid.paidAt).toBeNull();
+    // Pay short again (the carry goes to the successor), then settle the successor by hand.
+    await new PayCreditStatementHandler(
+      { publish: () => undefined } as never,
+      buildIdempotencyRecordRepo(prisma),
+      accountRepo,
+      statementRepo,
+      buildTransactionWriterRepo(prisma),
+      planRepo,
+      prisma,
+      buildCategoryLookup(prisma),
+    ).execute(
+      new PayCreditStatementCommand(
+        userId,
+        creditAccountId,
+        statementId,
+        fromAccountId,
+        randomUUID(),
+        "100000",
+      ),
+    );
+    const carried = await prisma.creditStatement.findUniqueOrThrow({ where: { id: statementId } });
+    await prisma.creditStatement.update({
+      where: { id: carried.carriedToId! },
+      data: { closedAt: new Date(), paidAt: new Date(), paidAmount: "30000", amount: "30000" },
+    });
+
+    await expect(
+      undoHandler().execute(
+        new UndoStatementPaymentCommand(userId, creditAccountId, statementId, randomUUID()),
+      ),
+    ).rejects.toThrow(PaymentCarryOverSettledError);
+    // Nothing moved.
+    expect(
+      (await prisma.creditStatement.findUniqueOrThrow({ where: { id: statementId } })).paidAt,
+    ).not.toBeNull();
   });
 });

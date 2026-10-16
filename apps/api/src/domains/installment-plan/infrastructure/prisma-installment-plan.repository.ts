@@ -267,6 +267,10 @@ export class PrismaInstallmentPlanRepository implements InstallmentPlanRepositor
     return this.payments.settleForStatementWithTx(tx, statementId, paidAt);
   }
 
+  unsettleForStatementWithTx(tx: unknown, statementId: string): Promise<void> {
+    return this.payments.unsettleForStatementWithTx(tx, statementId);
+  }
+
   billedInstallmentsForStatement(
     statementId: string,
     tx?: unknown,

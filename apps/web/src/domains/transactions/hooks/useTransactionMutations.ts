@@ -23,6 +23,13 @@ export function useTransactionMutations() {
         transactionsApi.update(vars.id, vars.body),
       onSuccess: invalidate,
     }),
-    remove: useMutation({ mutationFn: transactionsApi.remove, onSuccess: invalidate }),
+    // Deleting a statement's payment undoes it, which also unpays the instalments it settled.
+    remove: useMutation({
+      mutationFn: transactionsApi.remove,
+      onSuccess: () => {
+        invalidate();
+        void qc.invalidateQueries({ queryKey: ["installments"] });
+      },
+    }),
   };
 }

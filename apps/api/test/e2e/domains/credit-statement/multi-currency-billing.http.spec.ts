@@ -178,21 +178,22 @@ describe("Statements in another currency (e2e)", () => {
     expect(settlements).toBe(1);
   });
 
-  it("keeps the settlement INCOME read-only in Movimientos", async () => {
+  it("never edits the payment's movements in Movimientos (deleting one undoes it, tested below)", async () => {
     const income = await prisma.transaction.findFirstOrThrow({
       where: { settlesStatementId: usdStatementId, type: "INCOME" },
     });
+    const statement = await prisma.creditStatement.findUniqueOrThrow({
+      where: { id: usdStatementId },
+    });
 
-    const patched = await http()
-      .patch(`/api/v1/transactions/${income.id}`)
-      .set("Cookie", cookies)
-      .send({ amount: "1" });
-    const deleted = await http().delete(`/api/v1/transactions/${income.id}`).set("Cookie", cookies);
-
-    expect(patched.status).toBe(409);
-    expect(patched.body.error.code).toBe("TRANSACTION_LINKED_TO_STATEMENT");
-    expect(deleted.status).toBe(409);
-    expect(deleted.body.error.code).toBe("TRANSACTION_LINKED_TO_STATEMENT");
+    for (const id of [income.id, statement.paidTransactionId!]) {
+      const patched = await http()
+        .patch(`/api/v1/transactions/${id}`)
+        .set("Cookie", cookies)
+        .send({ amount: "1" });
+      expect(patched.status).toBe(409);
+      expect(patched.body.error.code).toBe("TRANSACTION_LINKED_TO_STATEMENT");
+    }
   });
 
   it("corrects the payment with both amounts, moving the pesos balance by the difference", async () => {
@@ -291,5 +292,57 @@ describe("Statements in another currency (e2e)", () => {
       .send({ amount: "1000" });
     expect(res.status).toBe(409);
     expect(res.body.error.code).toBe("STATEMENT_NOT_TRANSFERABLE");
+  });
+
+  it("undoes the USD payment from its statement (idempotent), giving the pesos back", async () => {
+    const before = await sourceBalance();
+    const key = randomUUID();
+    const send = () =>
+      http()
+        .delete(`/api/v1/accounts/${creditAccountId}/credit-statements/${usdStatementId}/payment`)
+        .set("Cookie", cookies)
+        .set("Idempotency-Key", key);
+
+    const first = await send();
+    expect(first.status).toBe(200);
+    expect(first.body.status).toBe("PENDING");
+    expect(first.body.paymentReversal).toBeNull();
+    const replay = await send();
+    expect(replay.body).toEqual(first.body);
+    // The corrected payment had taken 39.200 pesos.
+    expect(await sourceBalance()).toBe(before + 39200);
+    expect(await prisma.transaction.count({ where: { settlesStatementId: usdStatementId } })).toBe(
+      0,
+    );
+
+    const again = await http()
+      .delete(`/api/v1/accounts/${creditAccountId}/credit-statements/${usdStatementId}/payment`)
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID());
+    expect(again.status).toBe(400);
+    expect(again.body.error.code).toBe("STATEMENT_NOT_PAID");
+  });
+
+  it("deleting a payment's movement from Movimientos undoes the payment the same way", async () => {
+    const before = await sourceBalance();
+    const paid = await http()
+      .post(`/api/v1/accounts/${creditAccountId}/credit-statements/${usdStatementId}/pay`)
+      .set("Cookie", cookies)
+      .set("Idempotency-Key", randomUUID())
+      .send({ fromAccountId, chargedAmount: "49394" });
+    expect(paid.status).toBe(201);
+    expect(paid.body.paymentReversal).toMatchObject({ currency: "USD", restoresCredit: false });
+    expect(await sourceBalance()).toBe(before - 49394);
+
+    const deleted = await http()
+      .delete(`/api/v1/transactions/${paid.body.paidTransactionId}`)
+      .set("Cookie", cookies);
+
+    expect(deleted.status).toBe(204);
+    expect(await sourceBalance()).toBe(before);
+    const statement = await prisma.creditStatement.findUniqueOrThrow({
+      where: { id: usdStatementId },
+    });
+    expect(statement.paidAt).toBeNull();
   });
 });

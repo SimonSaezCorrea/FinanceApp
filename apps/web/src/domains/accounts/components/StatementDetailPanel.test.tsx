@@ -57,6 +57,7 @@ const statement = {
   transferredToId: null,
   canTransfer: false,
   transferReversal: null,
+  paymentReversal: null,
 } as unknown as accounts.CreditStatement;
 
 const page = (names: string[], nextCursor: string | null): transactions.TransactionPage =>

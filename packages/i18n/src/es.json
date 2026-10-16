@@ -432,6 +432,17 @@
       "undoConfirm": "¿Deshacer el traspaso?",
       "undoConfirmDescription": "Esta facturación vuelve a deber {{restored}} y se elimina el cargo de {{removed}} de la facturación en {{currency}}.",
       "undoSuccess": "Traspaso deshecho"
+    },
+    "undoPayment": {
+      "action": "Deshacer pago",
+      "confirm": "¿Deshacer este pago?",
+      "refund": "Se eliminan el pago de {{amount}} y su movimiento, y la plata vuelve a {{account}}.",
+      "refundForeign": "Se eliminan el pago de {{amount}} y sus dos movimientos, y los pesos que costó vuelven a {{account}}.",
+      "restoresCredit": "Ese monto vuelve a contar como cupo usado, y las cuotas que liquidó quedan facturadas sin pagar.",
+      "carryOver": "El saldo de {{amount}} que pasó a la próxima facturación se quita de ella.",
+      "pending": "La facturación vuelve a quedar pendiente de pago.",
+      "success": "Pago deshecho",
+      "unknownAccount": "la cuenta de origen"
     }
   },
   "cards": {
@@ -759,7 +770,8 @@
       "open": "Abrir",
       "comingSoon": "Próximamente",
       "comingSoonReason": "Los comprobantes estarán disponibles cuando se habilite el almacenamiento de archivos."
-    }
+    },
+    "deleteStatementPaymentDescription": "Este movimiento es el pago de una facturación: eliminarlo deshace el pago completo. La plata vuelve a la cuenta, el cupo y las cuotas vuelven a como estaban antes de pagar, y la facturación queda pendiente."
   },
   "categories": {
     "SUPERMARKET": "Supermercado",
@@ -2668,7 +2680,9 @@
     "DEBT_PAYMENT_EXCEEDS_PENDING": "El monto supera lo que queda por pagar de esta deuda.",
     "DEBT_WRITTEN_OFF": "Esta deuda está cerrada sin pago. Reactívala para registrar pagos.",
     "DEBT_NOT_WRITTEN_OFF": "Esta deuda no está cerrada sin pago.",
-    "DEBT_TOTAL_BELOW_PAID": "El nuevo monto es menor que lo que ya se pagó de esta deuda."
+    "DEBT_TOTAL_BELOW_PAID": "El nuevo monto es menor que lo que ya se pagó de esta deuda.",
+    "STATEMENT_PAYMENT_NOT_UNDOABLE": "Esta facturación se importó como pagada: no tiene un pago de fik que deshacer.",
+    "PAYMENT_CARRY_OVER_SETTLED": "No se puede deshacer: lo que este pago dejó pendiente ya se pagó en la facturación siguiente. Deshaz primero ese pago."
   },
   "exchangeRates": {
     "title": "Tipos de cambio",

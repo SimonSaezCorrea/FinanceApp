@@ -432,6 +432,17 @@
       "undoConfirm": "Undo the transfer?",
       "undoConfirmDescription": "This statement owes {{restored}} again and the {{removed}} charge is removed from the {{currency}} statement.",
       "undoSuccess": "Transfer undone"
+    },
+    "undoPayment": {
+      "action": "Undo payment",
+      "confirm": "Undo this payment?",
+      "refund": "The {{amount}} payment and its movement are deleted, and the money goes back to {{account}}.",
+      "refundForeign": "The {{amount}} payment and its two movements are deleted, and the pesos it cost go back to {{account}}.",
+      "restoresCredit": "That amount counts as used credit again, and the instalments it settled are billed and unpaid again.",
+      "carryOver": "The {{amount}} balance it carried into the next statement is taken out of it.",
+      "pending": "The statement is pending payment again.",
+      "success": "Payment undone",
+      "unknownAccount": "the source account"
     }
   },
   "cards": {
@@ -759,7 +770,8 @@
       "open": "Open",
       "comingSoon": "Coming soon",
       "comingSoonReason": "Receipts will be available once file storage is enabled."
-    }
+    },
+    "deleteStatementPaymentDescription": "This movement is a statement payment: deleting it undoes the whole payment. The money goes back to the account, the credit and the instalments go back to how they were before paying, and the statement is pending again."
   },
   "categories": {
     "SUPERMARKET": "Groceries",
@@ -2668,7 +2680,9 @@
     "DEBT_PAYMENT_EXCEEDS_PENDING": "The amount is more than what's left to pay on this debt.",
     "DEBT_WRITTEN_OFF": "This debt was closed unpaid. Reinstate it to record payments.",
     "DEBT_NOT_WRITTEN_OFF": "This debt isn't closed unpaid.",
-    "DEBT_TOTAL_BELOW_PAID": "The new amount is less than what's already been paid on this debt."
+    "DEBT_TOTAL_BELOW_PAID": "The new amount is less than what's already been paid on this debt.",
+    "STATEMENT_PAYMENT_NOT_UNDOABLE": "This statement was imported as paid: it has no fik payment to undo.",
+    "PAYMENT_CARRY_OVER_SETTLED": "It can't be undone: what this payment left owing was already paid in the next statement. Undo that payment first."
   },
   "exchangeRates": {
     "title": "Exchange rates",

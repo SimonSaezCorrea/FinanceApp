@@ -90,6 +90,22 @@ export class TransferAlreadyBilledError extends DomainError {
   }
 }
 
+/** A settled period whose payment can't be undone: it was imported as already paid
+ * (template REPLACE), so no payment of the app's own exists to take back. */
+export class StatementPaymentNotUndoableError extends DomainError {
+  constructor() {
+    super("STATEMENT_PAYMENT_NOT_UNDOABLE", 409);
+  }
+}
+
+/** Undoing a payment that carried a shortfall forward, once the period that received it is
+ * settled itself: that money was already paid, and undoing would rewrite a closed period. */
+export class PaymentCarryOverSettledError extends DomainError {
+  constructor() {
+    super("PAYMENT_CARRY_OVER_SETTLED", 409);
+  }
+}
+
 /** Spec 028: paying a statement in another currency from an account in yet another
  * one needs what left that account too — the two are never compared. */
 export class StatementPaymentCurrencyAmbiguousError extends DomainError {
