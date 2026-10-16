@@ -983,12 +983,21 @@ sirve en la landing y en la app; una llave registrada en desarrollo o antes de f
 `PASSKEY_RP_ID` (con `rpId` = `localhost` o `app.mifik.cl`) no funciona en la landing y hay que
 registrarla de nuevo desde Perfil.
 
-### 4. Verificación en navegador y Lighthouse pendientes
+### 4. Verificación en navegador — Lighthouse hecho en producción (2026-10-15), faltan los flujos de acceso
 
-Las pruebas automáticas cubren el build (metadatos, hreflang, sitemap, sin React al cargar), el
-panel, el script de sesión y las redirecciones de la app, pero nada se recorrió en un navegador real
-(sin herramienta de automatización en el entorno de desarrollo): faltan los escenarios del
-`quickstart.md` de la spec 031 y el LCP móvil (SC-003).
+**Lighthouse 12.8 móvil contra `https://mifik.cl`** (Chrome sin interfaz, 2026-10-15): `/es/`,
+`/es/about/`, `/es/privacy/`, `/es/pricing/` y `/es/faq/` dan Accesibilidad, Recomendaciones y SEO
+100, Rendimiento 97–99, TBT ≤ 10 ms, CLS ≤ 0,013 y **LCP 1,9 s** (meta SC-003: ≤ 2 s; una corrida
+aislada de `/es/about/` dio 2,4 s, tres repeticiones dieron 1,9 s). El elemento LCP es el `<h1>`:
+~800 ms de respuesta del servidor + ~1,1 s de render (CSS y fuente), sin margen si la página crece.
+Comprobado también con `curl`: título propio, `canonical`, `hreflang` es/en/x-default, `og:image`,
+y la app con `noindex, nofollow`.
+
+**Falta, a mano en un navegador real** (escenarios del `quickstart.md` de la spec 031): entrar con
+RUT + clave, con segundo factor y con llave de acceso desde la landing; registrarse desde `/en/`;
+volver a la dirección protegida tras iniciar sesión; `app.mifik.cl/login`; `volver=//evil.com`;
+"Ir a la app" con sesión; cerrar sesión. Y, después de desplegar las redirecciones (commit
+`8407eab0`), `/precios#x` → `/es/pricing/#x` y `/` en inglés → `/en/`.
 
 ### 5. ~~La consulta de sesión deja errores en la consola~~ — resuelto (2026-10-09)
 
