@@ -140,6 +140,20 @@ describe("the app without its landing", () => {
       expect(replace).not.toHaveBeenCalled();
     });
 
+    it("/login and /register go into the app instead of the access panel", async () => {
+      renderAt("/login");
+      expect(await screen.findByText("panel")).toBeDefined();
+      expect(replace).not.toHaveBeenCalled();
+    });
+
+    it("/login keeps a safe `volver` and drops an outside one", async () => {
+      renderAt("/register?volver=%2Faccounts");
+      expect(await screen.findByText("cuentas")).toBeDefined();
+      renderAt("/login?volver=%2F%2Fevil.com");
+      expect(await screen.findByText("panel")).toBeDefined();
+      expect(replace).not.toHaveBeenCalled();
+    });
+
     it("an unknown address shows the app's 404", async () => {
       renderAt("/nope");
       expect(await screen.findByText("/nope")).toBeDefined();
