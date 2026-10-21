@@ -1,0 +1,183 @@
+---
+import type { ExchangeRate } from "@finance/contracts/exchange-rate-rules";
+import { isCarried } from "@finance/contracts/exchange-rate-rules";
+import { formatRate } from "@finance/money/rate-format";
+
+import { t } from "../../../i18n";
+import type { Language } from "../../../lib/language";
+import { formatDay } from "../lib/chileDay";
+import { chartGeometry } from "../lib/rateChart";
+
+/**
+ * History and a chosen date (spec 033, US3): two SVG charts drawn at build time (30 days, 1 year,
+ * switched with plain radios — CSS alone shows the right one), the 30-day table in the HTML (the
+ * 1-year table is filled by the script on first use, to keep the page light), and a native date
+ * input whose day travels in `?fecha=`/`?date=`.
+ */
+interface Props {
+  lang: Language;
+  /** "la UF", "the dólar observado"… */
+  name: string;
+  /** Rows of this currency, newest first (up to a year). */
+  rows: ExchangeRate[];
+  today: string;
+  first: string | null;
+}
+const { lang, name, rows, today, first } = Astro.props;
+
+const W = 600;
+const H = 180;
+const PAD = 12;
+const ascending = [...rows].reverse();
+const series = (list: ExchangeRate[]) =>
+  list.map((r) => ({ date: r.date, value: Number(r.value), carried: isCarried(r) }));
+const charts = [
+  { period: "30", list: ascending.slice(-30), dots: true },
+  { period: "365", list: ascending, dots: false },
+].map((c) => ({ ...c, geometry: chartGeometry(series(c.list), { width: W, height: H, padY: PAD }) }));
+const recent = rows.slice(0, 30);
+const fmt = (v: number) => formatRate(String(v), lang);
+---
+
+<section aria-labelledby="rate-history-title" class="rate-history flex flex-col gap-5 border-t py-12 lg:py-16">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <h2 id="rate-history-title" class="text-2xl font-semibold tracking-tight">
+      {t(lang, "landing.rates.history.title")}
+    </h2>
+    <fieldset class="flex rounded-lg border bg-card p-1 text-sm">
+      <legend class="sr-only">{t(lang, "landing.rates.history.period")}</legend>
+      {
+        [
+          { value: "30", label: t(lang, "landing.rates.history.days30") },
+          { value: "365", label: t(lang, "landing.rates.history.year") },
+        ].map((o) => (
+          <label class="cursor-pointer rounded-md px-3 py-1.5 font-medium text-muted-foreground has-[:checked]:bg-primary/15 has-[:checked]:text-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring">
+            <input
+              type="radio"
+              name="rate-period"
+              value={o.value}
+              checked={o.value === "30"}
+              class="sr-only"
+            />
+            {o.label}
+          </label>
+        ))
+      }
+    </fieldset>
+  </div>
+
+  {
+    charts.map(
+      (c) =>
+        c.geometry && (
+          <figure data-period={c.period} class="flex flex-col gap-2">
+            <div class="relative h-48 sm:h-56">
+            <svg
+              viewBox={`0 0 ${W} ${H}`}
+              preserveAspectRatio="none"
+              role="img"
+              data-rate-chart
+              aria-label={t(lang, "landing.rates.history.chartLabel", {
+                name,
+                from: formatDay(c.list[0]!.date, lang),
+                to: formatDay(c.list[c.list.length - 1]!.date, lang),
+                min: fmt(c.geometry.min.value),
+                max: fmt(c.geometry.max.value),
+              })}
+              class="absolute inset-0 h-full w-full overflow-visible"
+            >
+              <path d={c.geometry.area} class="fill-primary/10" />
+              <path
+                d={c.geometry.line}
+                fill="none"
+                vector-effect="non-scaling-stroke"
+                stroke-width="2"
+                class="stroke-primary"
+              />
+            </svg>
+            {c.dots && (
+              <div class="absolute inset-0" aria-hidden="true">
+                {c.geometry.dots.map((d) => (
+                  <span
+                    class:list={[
+                      "absolute size-2 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-primary",
+                      d.carried ? "bg-background" : "bg-primary",
+                    ]}
+                    style={`left:${(d.x / W) * 100}%;top:${(d.y / H) * 100}%`}
+                  />
+                ))}
+              </div>
+            )}
+            </div>
+            <figcaption class="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
+              <span>
+                {formatDay(c.list[0]!.date, lang, "short")} · {formatDay(c.list[c.list.length - 1]!.date, lang, "short")}
+              </span>
+              <span>
+                min {fmt(c.geometry.min.value)} · max {fmt(c.geometry.max.value)}
+              </span>
+            </figcaption>
+          </figure>
+        ),
+    )
+  }
+
+  <div class="flex flex-col gap-2 rounded-2xl border bg-card p-5 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4">
+    <label class="flex flex-col gap-1.5 text-sm font-medium">
+      {t(lang, "landing.rates.date.label")}
+      <input
+        data-rate-date-input
+        type="date"
+        min={first ?? undefined}
+        max={today || undefined}
+        class="rounded-lg border border-input bg-background px-3 py-2 text-base text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm"
+      />
+    </label>
+    <button
+      type="button"
+      data-rate-today
+      hidden
+      class="inline-flex min-h-11 items-center rounded-lg border px-3 text-sm font-medium hover:bg-muted sm:min-h-0 sm:py-2"
+    >
+      {t(lang, "landing.rates.date.backToToday")}
+    </button>
+    <p data-rate-notice hidden role="status" class="text-sm text-muted-foreground sm:basis-full"></p>
+  </div>
+
+  <div class="overflow-x-auto">
+    <table class="w-full text-sm">
+      <caption class="sr-only">{t(lang, "landing.rates.history.caption", { name })}</caption>
+      <thead class="text-left text-xs text-muted-foreground">
+        <tr>
+          <th scope="col" class="py-2 pr-4 font-medium">{t(lang, "landing.rates.history.date")}</th>
+          <th scope="col" class="py-2 pr-4 text-right font-medium">{t(lang, "landing.rates.history.value")}</th>
+          <th scope="col" class="py-2 font-medium">{t(lang, "landing.rates.history.state")}</th>
+        </tr>
+      </thead>
+      <tbody data-period="30" class="divide-y">
+        {
+          recent.map((r) => (
+            <tr>
+              <td class="py-2 pr-4">{formatDay(r.date, lang, "short")}</td>
+              <td class="py-2 pr-4 text-right tabular-nums">{formatRate(r.value, lang)}</td>
+              <td class:list={["py-2", isCarried(r) ? "text-warning" : "text-muted-foreground"]}>
+                {isCarried(r)
+                  ? t(lang, "landing.rates.history.carried")
+                  : t(lang, "landing.rates.history.published")}
+              </td>
+            </tr>
+          ))
+        }
+      </tbody>
+      <tbody data-period="365" data-year-rows class="divide-y"></tbody>
+    </table>
+  </div>
+  <p class="text-xs text-muted-foreground">{t(lang, "landing.rates.history.carriedHint")}</p>
+</section>
+
+<style>
+  .rate-history:has(input[value="365"]:checked) [data-period="30"],
+  .rate-history:not(:has(input[value="365"]:checked)) [data-period="365"] {
+    display: none;
+  }
+</style>

@@ -26,4 +26,7 @@ export interface ExchangeRateRepositoryPort {
 
   /** `date` of the newest row of that currency, or null. */
   lastDate(currency: RateCurrency): Promise<string | null>;
+
+  /** `date` of the OLDEST row of that currency, or null (spec 033: where a date picker starts). */
+  firstDate(currency: RateCurrency): Promise<string | null>;
 }

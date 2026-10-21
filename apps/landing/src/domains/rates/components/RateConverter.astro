@@ -1,0 +1,50 @@
+---
+import type { ExchangeRate } from "@finance/contracts/exchange-rate-rules";
+import { formatRate } from "@finance/money/rate-format";
+
+import { t } from "../../../i18n";
+import type { Language } from "../../../lib/language";
+import { formatDay } from "../lib/chileDay";
+
+/**
+ * Pesos ↔ unit (spec 033, US2). Two plain inputs; `scripts/rates.ts` converts as you type with the
+ * value of the day or of the chosen date, and says which one it used.
+ */
+interface Props {
+  lang: Language;
+  unitLabel: string;
+  row: ExchangeRate | null;
+}
+const { lang, unitLabel, row } = Astro.props;
+const field =
+  "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base tabular-nums text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm";
+---
+
+<section aria-labelledby="rate-converter-title" class="flex flex-col gap-4 rounded-2xl border bg-card p-5 sm:p-6">
+  <h2 id="rate-converter-title" class="text-lg font-semibold">
+    {t(lang, "landing.rates.converter.title")}
+  </h2>
+  <div class="grid gap-3">
+    <label class="flex flex-col gap-1.5 text-sm font-medium">
+      {unitLabel}
+      <input data-conv-unit type="text" inputmode="decimal" autocomplete="off" class={field} />
+    </label>
+    <label class="flex flex-col gap-1.5 text-sm font-medium">
+      {t(lang, "landing.rates.converter.pesos")}
+      <input data-conv-pesos type="text" inputmode="decimal" autocomplete="off" class={field} />
+    </label>
+  </div>
+  <p data-conv-error hidden role="alert" class="text-sm text-destructive">
+    {t(lang, "landing.rates.converter.invalid")}
+  </p>
+  <p data-conv-using aria-live="polite" class="text-xs text-muted-foreground">
+    {
+      row
+        ? t(lang, "landing.rates.converter.using", {
+            date: formatDay(row.date, lang),
+            value: formatRate(row.value, lang),
+          })
+        : ""
+    }
+  </p>
+</section>

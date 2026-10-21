@@ -1391,6 +1391,17 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
     (rounds to `currencyScale`). The static `shared/lib/fx.ts` table is **gone**. The amount inputs now take the
     cents a currency has (`parseTypedAmount`/`formatTypedAmount`/`amountToInput`/`limitDecimals`: USD 2, CLP 0),
     and editing a movement no longer truncates them.
+    Amendment (public read, specs/033, 2026-10-21): **`GET /public/exchange-rates`**
+    (`presentation/public-exchange-rates.controller.ts`) — the SAME query, handler and response as
+    the authed route, with NO guard, `Cache-Control: public, max-age=300`, no cookie read: the named
+    exception of Principle II (constitution 2.7.0) for public reads of global reference data. The
+    public site's indicator pages are built from it and refresh with it. Both routes now also answer
+    **`first: { USD, CLF }`** (oldest recorded day per currency, new port method `firstDate`), optional
+    in `listExchangeRatesResponseSchema` so an older API still parses. `isCarried`/`rateOn` and the
+    range constants moved to the zod-free `packages/contracts/src/exchange-rates/rules.ts`
+    (`@finance/contracts/exchange-rate-rules`, re-exported from `exchangeRates`), and
+    `formatRate`/`formatRateChange`/`formatPercentChange` moved from `apps/web` to `@finance/money/rate-format`
+    (no `decimal.js`; the web's `lib/formatRate.ts`/`formatChange.ts` re-export them).
   - **Paying/prepaying a statement in another currency (specs/030, absorbing 028 US2, 2026-10-08)**: until now
     `POST …/pay` ignored `chargedAmount` and the billing table showed no action on a foreign period. Now a period
     whose currency differs from its account's takes **two amounts** — `amount` (the period's) and `chargedAmount`
@@ -1667,32 +1678,62 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   `useAuth` keeps only `user/loading/logout/refreshUser/clearUser`; `index.html` is
   `noindex, nofollow` with no description/OG. Hosting-level 301/302s, the shared registrable domain
   and re-registering dev passkeys are in `docs/PENDING.md` ("Sitio público separado").
-  Amendment (Lighthouse pass on the app, 2026-10-09): measured on the production build, mobile
-  profile, signed in. **Language:** only Spanish ships in the entry bundle — `apps/web/src/i18n`
-  builds its own instance with `es.json` and `setLanguage(lang)`/`loadLanguage(lang)` fetch the
-  other catalog through `@finance/i18n/src/load.ts`'s `loadCatalog` (its own chunk); the
-  importer's lazy chunk also loads English (it reads names in both); test setup adds English up
-  front. **`AuthProvider` now applies `user.locale` before the splash leaves** — the app used to
-  start in Spanish whatever the account said (only Preferences switched it), so a sign-up from
-  `/en/` landed in Spanish. **Startup:** `main.tsx` calls `primeSession()` (`/auth/me` starts
-  before React renders) and `preloadPage(location.pathname)` (`lazyPages.ts`'s `PAGE_CHUNKS`: the
-  shell and the page's chunk download while the session is asked); `vite.config.ts` adds a
-  `preconnect` to `VITE_API_URL`'s origin; `public/robots.txt` allows crawling on purpose (a
-  crawler must fetch a page to see its `noindex`). **API:** responses are gzip-compressed
-  (`compression`, `infra/http/compression.ts`'s `useCompression`, in `main.ts` — an e2e that
-  builds its own app doesn't need it): `GET /transactions` 221 KB → 14 KB. **Layout shifts:**
-  Savings waits for its summary too and reserves the subtitle line (CLS 0.30 → 0); Installments
-  reserves its subtitle; the Movimientos KPI strip renders one row per currency of the person
-  (`preferredCurrency` + `extraCurrencies`, "—" when a currency has no movement) from the first
-  paint and stacks on a phone (CLS 0.15 → 0). **A11y:** the Movimientos/Deudas filter selects have
-  names (`transactions.filters.accountLabel`/`cardLabel`, `debts.filters.statusLabel`) and the
-  MonthPicker button is named by its visible month + an sr-only "Elegir mes". **Type size:** every
-  `text-[10px]`/`[10.5px]`/`[11px]`/`[11.5px]` is now `text-xs sm:text-[Npx]` (12px on a phone,
-  unchanged from `sm`). Result: Accessibility 100 on every screen, CLS ≤ 0.03, Performance 69–77
-  (LCP ~5 s on the throttled mobile profile, mostly the data waterfall). A Lighthouse run against
-  `vite preview` in VS Code can report "charset too late": the Console Ninja extension injects a
-  script ahead of `<meta charset>` — not the build.
-- **`packages/`** — `contracts` (zod schemas + inferred types = the API contract; one module per domain; built to dist CJS + `import` condition → src for Vite; zod-free entry points `@finance/contracts/http` [`API_BASE_PATH`, `IDEMPOTENCY_HEADER`] and `@finance/contracts/auth-rules` [RUT check digit, age, guardian threshold] for pages that must stay small), `money` (`decimal.js`: money helpers, `equalPrincipalSchedule`, interest), `config` (shared `tsconfig.base.json`), and three **source-only** packages (specs/031) imported by path: **`ui`** (Tailwind preset, `src/styles/fik.css` tokens, `prepaint.mjs` theme script, `breakpoints.ts`, `src/shared/{ui,lib}` primitives incl. the overlay family and `DateField` — the app's own calendar, moved from `apps/web` on 2026-10-14 so the sign-up's birth date uses it too [`max`, `openTo="years"`, `defaultMonth`, `todayShortcut`, `variant="bare"`; Escape closes the calendar, never the dialog around it], `ThemeProvider`), **`client`** (`configureClient({baseUrl})`, `apiFetch`/`ApiRequestError`/`resetAuthRefresh`, `authApi`, `passkeyApi`, WebAuthn helpers, `safeReturnPath` — the ONE return-path rule) and **`i18n`** (the shared es/en catalogs, `createI18n`, `LANGUAGES` in `src/languages.ts`, parity test). One-way deps: `apps → packages`; `api ↛ web/landing`; `web ↛ landing`; `landing ↛ web/api/db`; `packages ↛ apps` (enforced by `check:boundaries`).
+  Amendment (UF and dólar observado pages, specs/033, 2026-10-21): four public pages,
+  **`/es/valor-uf/`, `/es/dolar-observado/`, `/en/uf-value/`, `/en/dollar-rate/`** — the deliberate
+  exception to "English slugs in both languages": `language.ts`'s `RATE_PAGES` (page → currency) and
+  `RATE_SLUGS` (slug per language), `pagePath`/`slugOf(page, lang)` use them; the sitemap's
+  `serialize` (astro.config.mjs, `RATE_PAIRS`, same table) rewrites their alternates to the real pair.
+  One route, `src/pages/[lang]/[rate].astro`, plus a home block (`domains/rates/components/HomeRates.tsx`,
+  React at build, after the currencies strip) and footer links on every page. New frontend domain
+  **`src/domains/rates/`**: Astro components (`RateHeadline`: value of the day with two decimals via
+  `formatRate`, change vs the previous recorded day, carried notice, source mindicador.cl;
+  `RateConverter`; `RateHistory`: two SVGs drawn at build by `lib/rateChart.ts`'s `chartGeometry`
+  [30 days with hollow dots on carried days, 1 year], switched by radios in CSS (`:has`), 30-day
+  table in HTML, 1-year table filled by the script, native `<input type="date">` with `min` = first
+  recorded day; `RateCta` = `?acceso=registro`), pure libs (`chileDay`, `rateChange`, `rateDate`
+  [`?fecha=`/`?date=`, never in the canonical], `converter` [parse by page language, unit→pesos =
+  `convertAmount`, pesos→unit with the inverse rate]) and **`scripts/rates.ts`** (`initRatePage`/
+  `initRatesHome`, ~7 KB: arrival refresh of the last week from the PUBLIC endpoint, again on
+  `visibilitychange` on a later Chile day; date picker; converter importing `decimal.js` only on the
+  first keystroke). Each page carries a JSON island `#rates-data` (its year of rows + the templates
+  the script fills, `domains/rates/lib/island.ts`) and JSON-LD `WebPage` + `ExchangeRateSpecification`
+  - `BreadcrumbList`; the title/description carry the value and date (`PageLayout` gained `title`/
+    `description` props and a `head` slot). **Build-time data**: `src/lib/exchangeRates.ts`'s
+    `buildRatesSnapshot()` reads `GET /public/exchange-rates` (last 365 days, both currencies) ONCE per
+    build; on failure it builds without values ("No pudimos obtener el valor ahora", the script fills
+    them in) unless **`EXCHANGE_RATES_REQUIRED=true`** (then the build fails); **`EXCHANGE_RATES_SNAPSHOT=<path>`**
+    reads a JSON file instead (`test/fixtures/rates-snapshot.json`, used by CI's landing build and
+    `test:build`). Both are declared in `turbo.json`'s build `env`. **Scheduled rebuild**:
+    `.github/workflows/landing-rates.yml` builds and uploads ONLY the landing from `main` at 00:20 and
+    12:20 UTC with `EXCHANGE_RATES_REQUIRED=true`, a separate workflow so it never moves `deploy.yml`'s
+    baseline, sharing its `deploy` concurrency group (docs/DEPLOY.md §10). Local Lighthouse mobile:
+    100/100/100/100 on the four pages, LCP 1,7 s. i18n `landing.rates.*`, `landing.meta.{ufValue,dollarRate}.*`.
+    Amendment (Lighthouse pass on the app, 2026-10-09): measured on the production build, mobile
+    profile, signed in. **Language:** only Spanish ships in the entry bundle — `apps/web/src/i18n`
+    builds its own instance with `es.json` and `setLanguage(lang)`/`loadLanguage(lang)` fetch the
+    other catalog through `@finance/i18n/src/load.ts`'s `loadCatalog` (its own chunk); the
+    importer's lazy chunk also loads English (it reads names in both); test setup adds English up
+    front. **`AuthProvider` now applies `user.locale` before the splash leaves** — the app used to
+    start in Spanish whatever the account said (only Preferences switched it), so a sign-up from
+    `/en/` landed in Spanish. **Startup:** `main.tsx` calls `primeSession()` (`/auth/me` starts
+    before React renders) and `preloadPage(location.pathname)` (`lazyPages.ts`'s `PAGE_CHUNKS`: the
+    shell and the page's chunk download while the session is asked); `vite.config.ts` adds a
+    `preconnect` to `VITE_API_URL`'s origin; `public/robots.txt` allows crawling on purpose (a
+    crawler must fetch a page to see its `noindex`). **API:** responses are gzip-compressed
+    (`compression`, `infra/http/compression.ts`'s `useCompression`, in `main.ts` — an e2e that
+    builds its own app doesn't need it): `GET /transactions` 221 KB → 14 KB. **Layout shifts:**
+    Savings waits for its summary too and reserves the subtitle line (CLS 0.30 → 0); Installments
+    reserves its subtitle; the Movimientos KPI strip renders one row per currency of the person
+    (`preferredCurrency` + `extraCurrencies`, "—" when a currency has no movement) from the first
+    paint and stacks on a phone (CLS 0.15 → 0). **A11y:** the Movimientos/Deudas filter selects have
+    names (`transactions.filters.accountLabel`/`cardLabel`, `debts.filters.statusLabel`) and the
+    MonthPicker button is named by its visible month + an sr-only "Elegir mes". **Type size:** every
+    `text-[10px]`/`[10.5px]`/`[11px]`/`[11.5px]` is now `text-xs sm:text-[Npx]` (12px on a phone,
+    unchanged from `sm`). Result: Accessibility 100 on every screen, CLS ≤ 0.03, Performance 69–77
+    (LCP ~5 s on the throttled mobile profile, mostly the data waterfall). A Lighthouse run against
+    `vite preview` in VS Code can report "charset too late": the Console Ninja extension injects a
+    script ahead of `<meta charset>` — not the build.
+- **`packages/`** — `contracts` (zod schemas + inferred types = the API contract; one module per domain; built to dist CJS + `import` condition → src for Vite; zod-free entry points `@finance/contracts/http` [`API_BASE_PATH`, `IDEMPOTENCY_HEADER`], `@finance/contracts/auth-rules` [RUT check digit, age, guardian threshold] and `@finance/contracts/exchange-rate-rules` [`isCarried`, `rateOn`, specs/033] for pages that must stay small), `money` (`decimal.js`: money helpers, `equalPrincipalSchedule`, interest; `@finance/money/rate-format` = `formatRate`/`formatRateChange`/`formatPercentChange` with no `decimal.js`, specs/033), `config` (shared `tsconfig.base.json`), and three **source-only** packages (specs/031) imported by path: **`ui`** (Tailwind preset, `src/styles/fik.css` tokens, `prepaint.mjs` theme script, `breakpoints.ts`, `src/shared/{ui,lib}` primitives incl. the overlay family and `DateField` — the app's own calendar, moved from `apps/web` on 2026-10-14 so the sign-up's birth date uses it too [`max`, `openTo="years"`, `defaultMonth`, `todayShortcut`, `variant="bare"`; Escape closes the calendar, never the dialog around it], `ThemeProvider`), **`client`** (`configureClient({baseUrl})`, `apiFetch`/`ApiRequestError`/`resetAuthRefresh`, `authApi`, `passkeyApi`, WebAuthn helpers, `safeReturnPath` — the ONE return-path rule) and **`i18n`** (the shared es/en catalogs, `createI18n`, `LANGUAGES` in `src/languages.ts`, parity test). One-way deps: `apps → packages`; `api ↛ web/landing`; `web ↛ landing`; `landing ↛ web/api/db`; `packages ↛ apps` (enforced by `check:boundaries`).
 - **Auth:** backend issues **JWT access+refresh tokens in httpOnly cookies** (`domains/auth`); every auth cookie is `Secure` unless ALL `CORS_ORIGIN` origins are plain `http://` on loopback (`origins.config.ts`'s `requiresSecureCookies`, 2026-10-10) — secure by default, never tied to `NODE_ENV`, so a deployment that forgets `NODE_ENV=production` still sends them over HTTPS only; `JwtAuthGuard` validates the access cookie **and** (per-request DB check) that the account's `status` is still `ACTIVE`, rejecting `DISABLED` accounts (`ACCOUNT_DISABLED`) even with an otherwise-valid token. Every endpoint is scoped to the authenticated `userId`. The frontend `AuthProvider`/`useAuth` + `RequireAuth` gate routes.
   - **profile** (specs/008, folded into the `auth` domain — no separate backend module, `User` already lives there): `User` gains `preferredCurrency` (CLP/USD/CLF — las tres del MVP; `CLF` es la UF), `locale` (es/en), `dateFormat`, `theme` (dark/light/system — same preference the sidebar `ThemeToggle` controls, now persisted per-user in addition to `localStorage`), `status` (`UserStatus`: ACTIVE/DISABLED), `createdAt` (→ contract's derived `memberSinceYear`). Endpoints: `PATCH /auth/me` (name/email, unique-email race guarded by catching Prisma `P2002` in addition to the pre-check), `POST /auth/me/password` (current+new, bcrypt), `PATCH /auth/me/preferences`, `POST /auth/me/deactivate` (requires re-entering the password; soft-disables the account — no data is deleted; clears cookies like `logout`). Frontend: new `domains/profile` (route `/profile`, reached by clicking the sidebar user block), `ThemeSync` component reconciles the shared theme preference between `localStorage` and the backend. New error codes `INVALID_CURRENT_PASSWORD`, `ACCOUNT_DISABLED`. 2FA switch + the 3 notification switches shown in the design are **intentionally inert** (local UI state only, no backend capability yet).
     Amendment (personal info): `User` also gains `countryId` (FK → `Country`, `onDelete: SetNull`), `addressStreet`/`addressCity`/`addressRegion`/`addressPostalCode` (all free text), `birthDate`, `identifierType` (`IdentifierType`: RUT/DNI/PASSPORT/OTHER) + `identifierValue`. All optional, purely informational (no billing/KYC flow consumes them yet). `identifierValue` is check-digit validated (`isValidRut`, módulo 11) only when `identifierType === "RUT"` — other types have no universal format to validate. The contract exposes both `birthDate` (ISO date string, for the edit form) and a derived `age`; the Profile view only ever renders `age` (hiding the exact date is a UI choice, not an API one). `packages/contracts` gained its own Vitest suite (`"test": "vitest run"`) for this validator — it previously had none.
@@ -2317,7 +2358,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.6.5**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.7.0**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
 - **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
   `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.
@@ -2384,7 +2425,15 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (032 — implementado): specs/032-account-emails/plan.md
+Current plan (033 — implementado): specs/033-public-exchange-rates/plan.md
+(Valor UF y dólar observado públicos en mifik.cl: 4 páginas estáticas [`/es/valor-uf/`,
+`/es/dolar-observado/`, `/en/uf-value/`, `/en/dollar-rate/`] + bloque en el home, construidas con los
+valores de un endpoint público nuevo de solo lectura `GET /public/exchange-rates` [mismo handler que el
+de la app, sin guard, `Cache-Control` público, campo aditivo `first`]; rebuild programado del landing
+dos veces al día [`landing-rates.yml`] y refresco del titular al abrir. Ver research.md R1–R10.
+**Verificado** (2026-10-21): contracts [154], money [40], api unit/integration/e2e de `exchange-rate` [60, incluye la ruta pública sin sesión y la autenticada aún 401], web `exchange-rates` [26] + typecheck, landing [124 unit + 115 de build, con fixture y contra la API local], `astro check` 0 errores, lint, `format:check`, `check:boundaries`; build sin API (aviso) y con `EXCHANGE_RATES_REQUIRED=true` (falla); Lighthouse móvil local 100/100/100/100 en las 4 páginas. **No verificado**: el workflow programado en GitHub y las páginas en producción.)
+
+Prior plan (032 — implementado): specs/032-account-emails/plan.md
 (Correos de cuenta y de seguridad: verificación del correo al registrarse y al cambiarlo [registro de
 correos por cuenta `user-email`: principal/pendiente/historial, borrable salvo el principal],
 recuperación de contraseña por RUT [respuesta idéntica, enlace de 30 min, cierra sesiones, no salta el

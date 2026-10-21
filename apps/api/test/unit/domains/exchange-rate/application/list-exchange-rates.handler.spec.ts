@@ -70,6 +70,20 @@ describe("ListExchangeRatesQueryHandler", () => {
     expect(result.latest.CLF).toBeNull();
   });
 
+  it("returns `first`: the oldest day of each currency (spec 033's date picker starts there)", async () => {
+    const result = await handler().execute(new ListExchangeRatesQuery({}, TODAY));
+
+    expect(result.first).toEqual({ USD: "2026-08-01", CLF: "2026-10-07" });
+  });
+
+  it("returns a null `first` for a currency with no rows", async () => {
+    const result = await handler([entry("USD", "2026-10-08", "979.85")]).execute(
+      new ListExchangeRatesQuery({}, TODAY),
+    );
+
+    expect(result.first).toEqual({ USD: "2026-10-08", CLF: null });
+  });
+
   it("exposes the carried value date, so a client can mark the row", async () => {
     const result = await handler().execute(new ListExchangeRatesQuery({ currency: "CLF" }, TODAY));
 

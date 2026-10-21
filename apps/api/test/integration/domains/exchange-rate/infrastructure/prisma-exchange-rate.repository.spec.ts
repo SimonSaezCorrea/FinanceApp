@@ -100,6 +100,16 @@ describe("PrismaExchangeRateRepository (integration)", () => {
     expect(await repo.lastDate("CLF")).toBe(`${FAR_FUTURE}05`);
   });
 
+  it("firstDate answers the OLDEST day of that currency (2001 is older than any real row)", async () => {
+    await repo.upsertMany([
+      { currency: "CLF", date: `${FAR_PAST}04`, value: "1.0000", valueDate: `${FAR_PAST}04` },
+      { currency: "CLF", date: `${FAR_PAST}03`, value: "1.0000", valueDate: `${FAR_PAST}03` },
+      { currency: "USD", date: `${FAR_PAST}07`, value: "1.0000", valueDate: `${FAR_PAST}07` },
+    ]);
+    expect(await repo.firstDate("CLF")).toBe(`${FAR_PAST}03`);
+    expect(await repo.firstDate("USD")).toBe(`${FAR_PAST}07`);
+  });
+
   it("a date column round-trips as a plain calendar day, whatever the server's time zone", async () => {
     const date = `${FAR_PAST}20`;
     await repo.upsert({ currency: "USD", date, value: "1.0000", valueDate: date });

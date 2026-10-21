@@ -9,6 +9,11 @@
       "types": "./dist/index.d.ts",
       "import": "./src/index.ts",
       "default": "./dist/index.js"
+    },
+    "./rate-format": {
+      "types": "./dist/rateFormat.d.ts",
+      "import": "./src/rateFormat.ts",
+      "default": "./dist/rateFormat.js"
     }
   },
   "scripts": {

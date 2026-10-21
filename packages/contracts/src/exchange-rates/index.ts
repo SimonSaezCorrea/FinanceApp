@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { moneyString } from "../common/money";
+import { EXCHANGE_DEFAULT_RANGE_DAYS } from "./rules";
 
 /**
  * Exchange rates (spec 030): the daily value of the dólar observado (USD) and the UF (CLF), in
@@ -32,33 +33,7 @@ export const exchangeRateSchema = z
   });
 export type ExchangeRate = z.infer<typeof exchangeRateSchema>;
 
-/** "Dato arrastrado": the day has the last known value because nothing newer was published. */
-export function isCarried(rate: Pick<ExchangeRate, "date" | "valueDate">): boolean {
-  return rate.valueDate < rate.date;
-}
-
-/**
- * The rate that applies on `day`: the row with the greatest `date` that is not later than it, or
- * null when there is none that old. Pure, so a payment form, a net-worth total and the rates
- * screen all pick the same row.
- */
-export function rateOn(
-  rows: readonly ExchangeRate[],
-  currency: ExchangeCurrency,
-  day: string,
-): ExchangeRate | null {
-  let best: ExchangeRate | null = null;
-  for (const r of rows) {
-    if (r.currency !== currency || r.date > day) continue;
-    if (best === null || r.date > best.date) best = r;
-  }
-  return best;
-}
-
-/** Most days one `GET /exchange-rates` may span. */
-export const EXCHANGE_RANGE_MAX_DAYS = 400;
-/** What the API answers with when no range is given. */
-export const EXCHANGE_DEFAULT_RANGE_DAYS = 30;
+export { EXCHANGE_DEFAULT_RANGE_DAYS, EXCHANGE_RANGE_MAX_DAYS, isCarried, rateOn } from "./rules";
 
 export const listExchangeRatesQuerySchema = z.object({
   currency: exchangeCurrency.optional(),
@@ -75,6 +50,14 @@ export const listExchangeRatesResponseSchema = z.object({
     USD: exchangeRateSchema.nullable(),
     CLF: exchangeRateSchema.nullable(),
   }),
+  /** The oldest `date` of each currency (spec 033): where a date picker starts. Null on an empty
+   * table. Optional: an API deployed before spec 033 doesn't send it. */
+  first: z
+    .object({
+      USD: isoDay.nullable(),
+      CLF: isoDay.nullable(),
+    })
+    .optional(),
 });
 export type ListExchangeRatesResponse = z.infer<typeof listExchangeRatesResponseSchema>;
 

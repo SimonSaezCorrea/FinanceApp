@@ -1,13 +1,15 @@
 import { I18nRoot } from "../../../i18n";
-import type { Language, Page } from "../../../lib/language";
+import type { Language, Page, RatePage } from "../../../lib/language";
+import { HomeRates, type HomeRatesProps } from "../../rates/components/HomeRates";
 import { AboutPage } from "./AboutPage";
 import { FaqPage } from "./FaqPage";
 import { HomePage } from "./HomePage";
 import { PricingPage } from "./PricingPage";
 import { PrivacyPage } from "./PrivacyPage";
 
-/** The pages written in React. The privacy policy is Markdown rendered by its own Astro page. */
-type ReactPage = Exclude<Page, "privacyPolicy">;
+/** The pages written in React. The privacy policy is Markdown rendered by its own Astro page, and
+ * the indicator pages (spec 033) are Astro pages with plain scripts. */
+type ReactPage = Exclude<Page, "privacyPolicy" | RatePage>;
 
 const CONTENT: Record<ReactPage, () => React.JSX.Element> = {
   home: HomePage,
@@ -22,11 +24,19 @@ const CONTENT: Record<ReactPage, () => React.JSX.Element> = {
  * of a framework component separately, so wrapping `<I18nRoot>` around a page in `.astro` would
  * leave the page outside the provider. Rendered at build time only — never hydrated.
  */
-export function LandingPage({ lang, page }: Readonly<{ lang: Language; page: ReactPage }>) {
+export function LandingPage({
+  lang,
+  page,
+  homeRates,
+}: Readonly<{ lang: Language; page: ReactPage; homeRates?: HomeRatesProps }>) {
   const Content = CONTENT[page];
   return (
     <I18nRoot lang={lang}>
-      <Content />
+      {page === "home" ? (
+        <HomePage rates={homeRates ? <HomeRates {...homeRates} /> : null} />
+      ) : (
+        <Content />
+      )}
     </I18nRoot>
   );
 }

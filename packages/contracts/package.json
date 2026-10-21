@@ -20,6 +20,11 @@
       "import": "./src/auth/rules.ts",
       "default": "./dist/auth/rules.js"
     },
+    "./exchange-rate-rules": {
+      "types": "./dist/exchange-rates/rules.d.ts",
+      "import": "./src/exchange-rates/rules.ts",
+      "default": "./dist/exchange-rates/rules.js"
+    },
     "./http": {
       "types": "./dist/http.d.ts",
       "import": "./src/http.ts",

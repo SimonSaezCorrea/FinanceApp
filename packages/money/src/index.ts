@@ -119,4 +119,5 @@ export function convertAmount(amount: MoneyInput, rate: MoneyInput, toCurrency: 
 }
 
 export * from "./installments";
+export * from "./rateFormat";
 export * from "./interest";

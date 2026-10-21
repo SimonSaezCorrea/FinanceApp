@@ -228,6 +228,15 @@ rama de producción `main`. Están conectados al repo, pero con **los builds aut
 apagados**: los construye y sube el workflow de la sección 9, solo con el CI en verde. Las variables
 de build (`VITE_*`, `PUBLIC_*`) están en `deploy.yml`, no en Cloudflare.
 
+- **Rebuild programado del landing** (spec 033, `.github/workflows/landing-rates.yml`): dos veces
+  al día (00:20 y 12:20 UTC, después de los registros de las 08:00 y 20:00 de Chile) construye el
+  landing desde `main` y lo sube a `fik-landing`, para que el HTML de `/es/valor-uf/`,
+  `/es/dolar-observado/` (y sus pares en inglés) y el bloque del home lleven el valor del día que
+  leen los buscadores. Corre con `EXCHANGE_RATES_REQUIRED=true`: si la API no responde, el build
+  **falla** y queda publicado el sitio anterior (un deploy normal, en cambio, construye sin valores y
+  la página los pide al abrirse). Comparte el grupo de concurrencia `deploy` y es un workflow aparte
+  para no mover la línea base de `deploy.yml`. Usa las mismas variables y secreto. Se puede correr a
+  mano desde Actions → "Landing rates".
 - La app es una SPA: sin `404.html` en su salida, Pages sirve `index.html` para cualquier ruta.
 - Las URL **no llevan** `/api/v1` ni barra final.
 - `public/_headers` agrega cabeceras de seguridad en ambos sitios.

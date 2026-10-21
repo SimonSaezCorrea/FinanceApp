@@ -138,3 +138,39 @@ describe("exchangeRangeDays", () => {
     expect(EXCHANGE_RANGE_MAX_DAYS).toBe(400);
   });
 });
+
+describe("zod-free rules entry (spec 033)", () => {
+  it("re-exports the same isCarried/rateOn the schema module uses", async () => {
+    const rules = await import("./rules");
+    expect(rules.isCarried).toBe(isCarried);
+    expect(rules.rateOn).toBe(rateOn);
+    expect(rules.EXCHANGE_RANGE_MAX_DAYS).toBe(EXCHANGE_RANGE_MAX_DAYS);
+  });
+});
+
+describe("listExchangeRatesResponseSchema.first (spec 033)", () => {
+  const base = { items: [], latest: { USD: null, CLF: null } };
+
+  it("accepts the oldest day per currency, or null", async () => {
+    const { listExchangeRatesResponseSchema } = await import("./index");
+    expect(
+      listExchangeRatesResponseSchema.safeParse({
+        ...base,
+        first: { USD: "2025-10-08", CLF: null },
+      }).success,
+    ).toBe(true);
+  });
+
+  it("is optional, so a response from an API older than spec 033 still parses", async () => {
+    const { listExchangeRatesResponseSchema } = await import("./index");
+    expect(listExchangeRatesResponseSchema.safeParse(base).success).toBe(true);
+  });
+
+  it("rejects a malformed day", async () => {
+    const { listExchangeRatesResponseSchema } = await import("./index");
+    expect(
+      listExchangeRatesResponseSchema.safeParse({ ...base, first: { USD: "ayer", CLF: null } })
+        .success,
+    ).toBe(false);
+  });
+});

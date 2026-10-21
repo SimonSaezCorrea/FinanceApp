@@ -1,0 +1,132 @@
+---
+import { formatRate } from "@finance/money/rate-format";
+
+import { HERO_TITLE } from "../../domains/landing/components/bits";
+import RateConverter from "../../domains/rates/components/RateConverter.astro";
+import RateCta from "../../domains/rates/components/RateCta.astro";
+import RateHeadline from "../../domains/rates/components/RateHeadline.astro";
+import RateHistory from "../../domains/rates/components/RateHistory.astro";
+import { formatDay } from "../../domains/rates/lib/chileDay";
+import { islandJson, ratesIsland } from "../../domains/rates/lib/island";
+import { rateChange } from "../../domains/rates/lib/rateChange";
+import { t } from "../../i18n";
+import PageLayout from "../../layouts/PageLayout.astro";
+import { buildRatesSnapshot } from "../../lib/exchangeRates";
+import {
+  type Language,
+  LANGUAGES,
+  pagePath,
+  RATE_PAGES,
+  RATE_SLUGS,
+  type RatePage,
+} from "../../lib/language";
+
+/**
+ * The indicator pages (spec 033): `/es/valor-uf/`, `/en/uf-value/`, `/es/dolar-observado/`,
+ * `/en/dollar-rate/`. Built with the rates of the build (`buildRatesSnapshot`), so the value of
+ * the day is in the HTML a crawler reads; `scripts/rates.ts` keeps it current in the browser.
+ */
+export function getStaticPaths() {
+  return LANGUAGES.flatMap((lang) =>
+    (Object.keys(RATE_SLUGS) as RatePage[]).map((page) => ({
+      params: { lang, rate: RATE_SLUGS[page][lang] },
+      props: { page },
+    })),
+  );
+}
+
+const lang = Astro.params.lang as Language;
+const { page } = Astro.props as { page: RatePage };
+const currency = RATE_PAGES[page];
+const other: RatePage = page === "ufValue" ? "dollarRate" : "ufValue";
+
+const snapshot = await buildRatesSnapshot();
+const island = ratesIsland(lang, snapshot, currency);
+const row = snapshot?.latest[currency] ?? null;
+const change = row ? rateChange(island.rows, row) : null;
+const name = t(lang, `landing.rates.${page}.name`);
+const unit = t(lang, `landing.rates.${page}.unit`);
+
+const vars = row ? { date: formatDay(row.date, lang, "short"), value: formatRate(row.value, lang) } : null;
+const title = vars
+  ? t(lang, `landing.meta.${page}.titleWithValue`, vars)
+  : t(lang, `landing.meta.${page}.title`);
+const description = vars
+  ? t(lang, `landing.meta.${page}.descriptionWithValue`, {
+      ...vars,
+      date: formatDay(row!.date, lang),
+    })
+  : t(lang, `landing.meta.${page}.description`);
+
+const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
+const url = `${site}${pagePath(lang, page)}`;
+const structuredData = JSON.stringify([
+  {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: t(lang, `landing.rates.${page}.title`),
+    url,
+    inLanguage: lang === "es" ? "es-CL" : "en-US",
+    ...(row ? { dateModified: row.date } : {}),
+  },
+  ...(row
+    ? [
+        {
+          "@context": "https://schema.org",
+          "@type": "ExchangeRateSpecification",
+          currency,
+          currentExchangeRate: {
+            "@type": "UnitPriceSpecification",
+            price: Number(row.value),
+            priceCurrency: "CLP",
+            validFrom: row.valueDate,
+          },
+        },
+      ]
+    : []),
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "fik", item: `${site}${pagePath(lang, "home")}` },
+      { "@type": "ListItem", position: 2, name: t(lang, `landing.rates.nav.${page}`), item: url },
+    ],
+  },
+]);
+---
+
+<PageLayout lang={lang} page={page} title={title} description={description}>
+  <script slot="head" type="application/ld+json" set:html={structuredData} />
+
+  <section aria-labelledby="rate-title" class="flex flex-col gap-8 py-10 lg:py-16">
+    <div class="flex max-w-[60ch] flex-col gap-3">
+      <h1 id="rate-title" tabindex="-1" class={HERO_TITLE}>{t(lang, `landing.rates.${page}.title`)}</h1>
+      <p class="text-lg leading-relaxed text-muted-foreground">{t(lang, `landing.rates.${page}.lead`)}</p>
+    </div>
+    <div class="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+      <RateHeadline lang={lang} currency={currency} unit={unit} row={row} change={change} />
+      <RateConverter lang={lang} unitLabel={t(lang, `landing.rates.${page}.unitLong`)} row={row} />
+    </div>
+  </section>
+
+  {
+    island.rows.length > 0 && (
+      <RateHistory lang={lang} name={name} rows={island.rows} today={island.today} first={island.first} />
+    )
+  }
+
+  <div class="flex flex-col gap-6 border-t py-12">
+    <RateCta lang={lang} />
+    <a href={pagePath(lang, other)} class="self-start text-sm font-medium text-primary underline-offset-4 hover:underline">
+      {t(lang, `landing.rates.other.${other}`)}
+    </a>
+  </div>
+
+  <script type="application/json" id="rates-data" set:html={islandJson(island)} />
+</PageLayout>
+
+<script>
+  import { initRatePage } from "../../domains/rates/scripts/rates";
+
+  initRatePage();
+</script>

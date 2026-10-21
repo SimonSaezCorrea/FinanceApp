@@ -385,6 +385,10 @@ export function fakeExchangeRateRepo(
       sorted(currency).filter((r) => r.date >= from && r.date <= to),
     ),
     lastDate: vi.fn(async (currency: RateCurrency) => sorted(currency)[0]?.date ?? null),
+    firstDate: vi.fn(async (currency: RateCurrency) => {
+      const rows = sorted(currency);
+      return rows[rows.length - 1]?.date ?? null;
+    }),
     ...overrides,
   };
 }

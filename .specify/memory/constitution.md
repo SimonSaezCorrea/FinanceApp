@@ -1,4 +1,22 @@
 <!--
+Sync Impact Report — 2026-10-21 (amendment 2.7.0)
+- Version change: 2.6.5 → 2.7.0 (MINOR: Principle II gains a named exception; specs/033 public
+  exchange rates).
+- AMENDED Principle II: a read-only `GET` of GLOBAL reference data — a table with no `userId`, whose
+  rows describe no person — MAY be public (no `JwtAuthGuard`) when it lives on its own route under
+  `/public/…`, reads no cookie, writes nothing and returns nothing about any account. The only such
+  route is `GET /public/exchange-rates` (the daily dólar observado and UF, same query and handler as
+  the authed `GET /exchange-rates`, which keeps its guard). Auth flows that must run without a
+  session (`/auth/login`, `/auth/session`, password reset…) were already public and are unchanged.
+- ADDED (close of specs/033): a scheduled workflow (`.github/workflows/landing-rates.yml`) rebuilds and
+  uploads ONLY the public site from `main` twice a day, so the indicator pages' HTML carries the
+  value of the day; it fails instead of publishing when the API can't be read
+  (`EXCHANGE_RATES_REQUIRED=true`). Build-time env vars `EXCHANGE_RATES_SNAPSHOT`/
+  `EXCHANGE_RATES_REQUIRED` (declared in `turbo.json`). Zod-free entry points
+  `@finance/contracts/exchange-rate-rules` and `@finance/money/rate-format`. The four indicator pages
+  are the one exception to the public site's "English slugs in both languages" (their address is the
+  search). No new dependency, no schema change.
+
 Sync Impact Report — 2026-10-15 (amendment 2.6.5)
 - Version change: 2.6.4 → 2.6.5 (PATCH: one nullable column, `Transaction.settlementPairId`
   (expand-only, backfilled), and `POST`/`DELETE /accounts/:id/credit-statements/:id/transfer`; no
@@ -1856,6 +1874,13 @@ aggregate) — never as a check performed after an unscoped read. No query may r
 mutation may touch, another user's data. A `scope: "system"` command (the billing cron's batch
 generation) is the ONLY exception and MUST be named and typed as such at its call site.
 
+Public reads of global reference data (2.7.0): a `GET` that reads ONLY a table with no `userId`,
+whose rows describe no person, MAY skip `JwtAuthGuard` when it lives on its own route under
+`/public/…`, reads no cookie, writes nothing, and its authed counterpart (if any) keeps its guard.
+Each such route MUST be named here. Today: `GET /public/exchange-rates` (specs/033). The auth flows
+that work before a session exists (sign-in, session status, password reset, email links) are a
+separate, pre-existing category and are not covered by this clause.
+
 Rationale: financial data is sensitive and personal. A single unscoped query is a data
 breach. Isolation is enforced at every entry point, not assumed.
 
@@ -2286,4 +2311,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.6.5 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-15
+**Version**: 2.7.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-21

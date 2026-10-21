@@ -1,0 +1,4823 @@
+{
+  "today": "2026-10-21",
+  "items": [
+    {
+      "currency": "CLF",
+      "date": "2026-10-21",
+      "value": "39882.6800",
+      "valueDate": "2026-10-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-21",
+      "value": "941.6632",
+      "valueDate": "2026-10-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-20",
+      "value": "39879.2233",
+      "valueDate": "2026-10-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-20",
+      "value": "941.6632",
+      "valueDate": "2026-10-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-19",
+      "value": "39875.7666",
+      "valueDate": "2026-10-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-19",
+      "value": "943.3060",
+      "valueDate": "2026-10-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-18",
+      "value": "39872.3099",
+      "valueDate": "2026-10-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-18",
+      "value": "947.9112",
+      "valueDate": "2026-10-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-17",
+      "value": "39868.8532",
+      "valueDate": "2026-10-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-17",
+      "value": "947.9112",
+      "valueDate": "2026-10-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-16",
+      "value": "39865.3965",
+      "valueDate": "2026-10-16"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-16",
+      "value": "947.9112",
+      "valueDate": "2026-10-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-15",
+      "value": "39861.9398",
+      "valueDate": "2026-10-15"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-15",
+      "value": "949.2755",
+      "valueDate": "2026-10-15"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-14",
+      "value": "39858.4831",
+      "valueDate": "2026-10-14"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-14",
+      "value": "950.5255",
+      "valueDate": "2026-10-14"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-13",
+      "value": "39855.0264",
+      "valueDate": "2026-10-13"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-13",
+      "value": "951.6456",
+      "valueDate": "2026-10-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-12",
+      "value": "39851.5697",
+      "valueDate": "2026-10-12"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-12",
+      "value": "952.6221",
+      "valueDate": "2026-10-12"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-11",
+      "value": "39848.1130",
+      "valueDate": "2026-10-11"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-11",
+      "value": "954.5791",
+      "valueDate": "2026-10-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-10",
+      "value": "39844.6563",
+      "valueDate": "2026-10-10"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-10",
+      "value": "954.5791",
+      "valueDate": "2026-10-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-09",
+      "value": "39841.1996",
+      "valueDate": "2026-10-09"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-09",
+      "value": "954.5791",
+      "valueDate": "2026-10-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-08",
+      "value": "39837.7429",
+      "valueDate": "2026-10-08"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-08",
+      "value": "954.8804",
+      "valueDate": "2026-10-08"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-07",
+      "value": "39834.2862",
+      "valueDate": "2026-10-07"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-07",
+      "value": "954.9983",
+      "valueDate": "2026-10-07"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-06",
+      "value": "39830.8295",
+      "valueDate": "2026-10-06"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-06",
+      "value": "954.9311",
+      "valueDate": "2026-10-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-05",
+      "value": "39827.3728",
+      "valueDate": "2026-10-05"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-05",
+      "value": "954.6798",
+      "valueDate": "2026-10-05"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-04",
+      "value": "39823.9161",
+      "valueDate": "2026-10-04"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-04",
+      "value": "952.8632",
+      "valueDate": "2026-10-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-03",
+      "value": "39820.4594",
+      "valueDate": "2026-10-03"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-03",
+      "value": "952.8632",
+      "valueDate": "2026-10-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-02",
+      "value": "39817.0027",
+      "valueDate": "2026-10-02"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-02",
+      "value": "952.8632",
+      "valueDate": "2026-10-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-10-01",
+      "value": "39813.5460",
+      "valueDate": "2026-10-01"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-10-01",
+      "value": "951.9283",
+      "valueDate": "2026-10-01"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-30",
+      "value": "39810.0893",
+      "valueDate": "2026-09-30"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-30",
+      "value": "950.8463",
+      "valueDate": "2026-09-30"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-29",
+      "value": "39806.6326",
+      "valueDate": "2026-09-29"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-29",
+      "value": "949.6305",
+      "valueDate": "2026-09-29"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-28",
+      "value": "39803.1759",
+      "valueDate": "2026-09-28"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-28",
+      "value": "948.2960",
+      "valueDate": "2026-09-28"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-27",
+      "value": "39799.7192",
+      "valueDate": "2026-09-27"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-27",
+      "value": "943.7503",
+      "valueDate": "2026-09-25"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-26",
+      "value": "39796.2625",
+      "valueDate": "2026-09-26"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-26",
+      "value": "943.7503",
+      "valueDate": "2026-09-25"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-25",
+      "value": "39792.8058",
+      "valueDate": "2026-09-25"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-25",
+      "value": "943.7503",
+      "valueDate": "2026-09-25"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-24",
+      "value": "39789.3491",
+      "valueDate": "2026-09-24"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-24",
+      "value": "942.1168",
+      "valueDate": "2026-09-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-23",
+      "value": "39785.8924",
+      "valueDate": "2026-09-23"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-23",
+      "value": "940.4572",
+      "valueDate": "2026-09-23"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-22",
+      "value": "39782.4357",
+      "valueDate": "2026-09-22"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-22",
+      "value": "938.7919",
+      "valueDate": "2026-09-22"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-21",
+      "value": "39778.9790",
+      "valueDate": "2026-09-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-21",
+      "value": "937.1415",
+      "valueDate": "2026-09-21"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-20",
+      "value": "39775.5223",
+      "valueDate": "2026-09-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-20",
+      "value": "932.4808",
+      "valueDate": "2026-09-18"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-19",
+      "value": "39772.0656",
+      "valueDate": "2026-09-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-19",
+      "value": "932.4808",
+      "valueDate": "2026-09-18"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-18",
+      "value": "39768.6089",
+      "valueDate": "2026-09-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-18",
+      "value": "932.4808",
+      "valueDate": "2026-09-18"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-17",
+      "value": "39765.1522",
+      "valueDate": "2026-09-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-17",
+      "value": "931.0880",
+      "valueDate": "2026-09-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-16",
+      "value": "39761.6955",
+      "valueDate": "2026-09-16"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-16",
+      "value": "929.8051",
+      "valueDate": "2026-09-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-15",
+      "value": "39758.2388",
+      "valueDate": "2026-09-15"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-15",
+      "value": "928.6480",
+      "valueDate": "2026-09-15"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-14",
+      "value": "39754.7821",
+      "valueDate": "2026-09-14"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-14",
+      "value": "927.6308",
+      "valueDate": "2026-09-14"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-13",
+      "value": "39751.3254",
+      "valueDate": "2026-09-13"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-13",
+      "value": "925.5352",
+      "valueDate": "2026-09-11"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-12",
+      "value": "39747.8687",
+      "valueDate": "2026-09-12"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-12",
+      "value": "925.5352",
+      "valueDate": "2026-09-11"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-11",
+      "value": "39744.4120",
+      "valueDate": "2026-09-11"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-11",
+      "value": "925.5352",
+      "valueDate": "2026-09-11"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-10",
+      "value": "39740.9553",
+      "valueDate": "2026-09-10"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-10",
+      "value": "925.1841",
+      "valueDate": "2026-09-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-09",
+      "value": "39737.4986",
+      "valueDate": "2026-09-09"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-09",
+      "value": "925.0157",
+      "valueDate": "2026-09-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-08",
+      "value": "39734.0419",
+      "valueDate": "2026-09-08"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-08",
+      "value": "925.0321",
+      "valueDate": "2026-09-08"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-07",
+      "value": "39730.5852",
+      "valueDate": "2026-09-07"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-07",
+      "value": "925.2330",
+      "valueDate": "2026-09-07"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-06",
+      "value": "39727.1285",
+      "valueDate": "2026-09-06"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-06",
+      "value": "926.9076",
+      "valueDate": "2026-09-04"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-05",
+      "value": "39723.6718",
+      "valueDate": "2026-09-05"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-05",
+      "value": "926.9076",
+      "valueDate": "2026-09-04"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-04",
+      "value": "39720.2151",
+      "valueDate": "2026-09-04"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-04",
+      "value": "926.9076",
+      "valueDate": "2026-09-04"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-03",
+      "value": "39716.7584",
+      "valueDate": "2026-09-03"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-03",
+      "value": "927.8001",
+      "valueDate": "2026-09-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-02",
+      "value": "39713.3017",
+      "valueDate": "2026-09-02"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-02",
+      "value": "928.8430",
+      "valueDate": "2026-09-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-09-01",
+      "value": "39709.8450",
+      "valueDate": "2026-09-01"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-09-01",
+      "value": "930.0235",
+      "valueDate": "2026-09-01"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-31",
+      "value": "39706.3883",
+      "valueDate": "2026-08-31"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-31",
+      "value": "931.3270",
+      "valueDate": "2026-08-31"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-30",
+      "value": "39702.9316",
+      "valueDate": "2026-08-30"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-30",
+      "value": "935.8088",
+      "valueDate": "2026-08-28"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-29",
+      "value": "39699.4749",
+      "valueDate": "2026-08-29"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-29",
+      "value": "935.8088",
+      "valueDate": "2026-08-28"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-28",
+      "value": "39696.0182",
+      "valueDate": "2026-08-28"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-28",
+      "value": "935.8088",
+      "valueDate": "2026-08-28"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-27",
+      "value": "39692.5615",
+      "valueDate": "2026-08-27"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-27",
+      "value": "937.4316",
+      "valueDate": "2026-08-27"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-26",
+      "value": "39689.1048",
+      "valueDate": "2026-08-26"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-26",
+      "value": "939.0861",
+      "valueDate": "2026-08-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-25",
+      "value": "39685.6481",
+      "valueDate": "2026-08-25"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-25",
+      "value": "940.7519",
+      "valueDate": "2026-08-25"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-24",
+      "value": "39682.1914",
+      "valueDate": "2026-08-24"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-24",
+      "value": "942.4084",
+      "valueDate": "2026-08-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-23",
+      "value": "39678.7347",
+      "valueDate": "2026-08-23"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-23",
+      "value": "947.1201",
+      "valueDate": "2026-08-21"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-22",
+      "value": "39675.2780",
+      "valueDate": "2026-08-22"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-22",
+      "value": "947.1201",
+      "valueDate": "2026-08-21"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-21",
+      "value": "39671.8213",
+      "valueDate": "2026-08-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-21",
+      "value": "947.1201",
+      "valueDate": "2026-08-21"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-20",
+      "value": "39668.3646",
+      "valueDate": "2026-08-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-20",
+      "value": "948.5401",
+      "valueDate": "2026-08-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-19",
+      "value": "39664.9079",
+      "valueDate": "2026-08-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-19",
+      "value": "949.8548",
+      "valueDate": "2026-08-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-18",
+      "value": "39661.4512",
+      "valueDate": "2026-08-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-18",
+      "value": "951.0479",
+      "valueDate": "2026-08-18"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-17",
+      "value": "39657.9945",
+      "valueDate": "2026-08-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-17",
+      "value": "952.1048",
+      "valueDate": "2026-08-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-16",
+      "value": "39654.5378",
+      "valueDate": "2026-08-16"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-16",
+      "value": "954.3370",
+      "valueDate": "2026-08-14"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-15",
+      "value": "39651.0811",
+      "valueDate": "2026-08-15"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-15",
+      "value": "954.3370",
+      "valueDate": "2026-08-14"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-14",
+      "value": "39647.6244",
+      "valueDate": "2026-08-14"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-14",
+      "value": "954.3370",
+      "valueDate": "2026-08-14"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-13",
+      "value": "39644.1677",
+      "valueDate": "2026-08-13"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-13",
+      "value": "954.7376",
+      "valueDate": "2026-08-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-12",
+      "value": "39640.7110",
+      "valueDate": "2026-08-12"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-12",
+      "value": "954.9565",
+      "valueDate": "2026-08-12"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-11",
+      "value": "39637.2543",
+      "valueDate": "2026-08-11"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-11",
+      "value": "954.9909",
+      "valueDate": "2026-08-11"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-10",
+      "value": "39633.7976",
+      "valueDate": "2026-08-10"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-10",
+      "value": "954.8404",
+      "valueDate": "2026-08-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-09",
+      "value": "39630.3409",
+      "valueDate": "2026-08-09"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-09",
+      "value": "953.3094",
+      "valueDate": "2026-08-07"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-08",
+      "value": "39626.8842",
+      "valueDate": "2026-08-08"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-08",
+      "value": "953.3094",
+      "valueDate": "2026-08-07"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-07",
+      "value": "39623.4275",
+      "valueDate": "2026-08-07"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-07",
+      "value": "953.3094",
+      "valueDate": "2026-08-07"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-06",
+      "value": "39619.9708",
+      "valueDate": "2026-08-06"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-06",
+      "value": "952.4602",
+      "valueDate": "2026-08-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-05",
+      "value": "39616.5141",
+      "valueDate": "2026-08-05"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-05",
+      "value": "951.4574",
+      "valueDate": "2026-08-05"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-04",
+      "value": "39613.0574",
+      "valueDate": "2026-08-04"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-04",
+      "value": "950.3133",
+      "valueDate": "2026-08-04"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-03",
+      "value": "39609.6007",
+      "valueDate": "2026-08-03"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-03",
+      "value": "949.0419",
+      "valueDate": "2026-08-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-02",
+      "value": "39606.1440",
+      "valueDate": "2026-08-02"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-02",
+      "value": "944.6282",
+      "valueDate": "2026-07-31"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-08-01",
+      "value": "39602.6873",
+      "valueDate": "2026-08-01"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-08-01",
+      "value": "944.6282",
+      "valueDate": "2026-07-31"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-31",
+      "value": "39599.2306",
+      "valueDate": "2026-07-31"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-31",
+      "value": "944.6282",
+      "valueDate": "2026-07-31"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-30",
+      "value": "39595.7739",
+      "valueDate": "2026-07-30"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-30",
+      "value": "943.0176",
+      "valueDate": "2026-07-30"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-29",
+      "value": "39592.3172",
+      "valueDate": "2026-07-29"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-29",
+      "value": "941.3698",
+      "valueDate": "2026-07-29"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-28",
+      "value": "39588.8605",
+      "valueDate": "2026-07-28"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-28",
+      "value": "939.7050",
+      "valueDate": "2026-07-28"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-27",
+      "value": "39585.4038",
+      "valueDate": "2026-07-27"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-27",
+      "value": "938.0439",
+      "valueDate": "2026-07-27"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-26",
+      "value": "39581.9471",
+      "valueDate": "2026-07-26"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-26",
+      "value": "933.2856",
+      "valueDate": "2026-07-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-25",
+      "value": "39578.4904",
+      "valueDate": "2026-07-25"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-25",
+      "value": "933.2856",
+      "valueDate": "2026-07-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-24",
+      "value": "39575.0337",
+      "valueDate": "2026-07-24"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-24",
+      "value": "933.2856",
+      "valueDate": "2026-07-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-23",
+      "value": "39571.5770",
+      "valueDate": "2026-07-23"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-23",
+      "value": "931.8397",
+      "valueDate": "2026-07-23"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-22",
+      "value": "39568.1203",
+      "valueDate": "2026-07-22"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-22",
+      "value": "930.4944",
+      "valueDate": "2026-07-22"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-21",
+      "value": "39564.6636",
+      "valueDate": "2026-07-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-21",
+      "value": "929.2664",
+      "valueDate": "2026-07-21"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-20",
+      "value": "39561.2069",
+      "valueDate": "2026-07-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-20",
+      "value": "928.1708",
+      "valueDate": "2026-07-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-19",
+      "value": "39557.7502",
+      "valueDate": "2026-07-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-19",
+      "value": "925.8041",
+      "valueDate": "2026-07-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-18",
+      "value": "39554.2935",
+      "valueDate": "2026-07-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-18",
+      "value": "925.8041",
+      "valueDate": "2026-07-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-17",
+      "value": "39550.8368",
+      "valueDate": "2026-07-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-17",
+      "value": "925.8041",
+      "valueDate": "2026-07-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-16",
+      "value": "39547.3801",
+      "valueDate": "2026-07-16"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-16",
+      "value": "925.3544",
+      "valueDate": "2026-07-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-15",
+      "value": "39543.9234",
+      "valueDate": "2026-07-15"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-15",
+      "value": "925.0853",
+      "valueDate": "2026-07-15"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-14",
+      "value": "39540.4667",
+      "valueDate": "2026-07-14"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-14",
+      "value": "925.0001",
+      "valueDate": "2026-07-14"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-13",
+      "value": "39537.0100",
+      "valueDate": "2026-07-13"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-13",
+      "value": "925.1000",
+      "valueDate": "2026-07-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-12",
+      "value": "39533.5533",
+      "valueDate": "2026-07-12"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-12",
+      "value": "926.4859",
+      "valueDate": "2026-07-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-11",
+      "value": "39530.0966",
+      "valueDate": "2026-07-11"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-11",
+      "value": "926.4859",
+      "valueDate": "2026-07-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-10",
+      "value": "39526.6399",
+      "valueDate": "2026-07-10"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-10",
+      "value": "926.4859",
+      "valueDate": "2026-07-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-09",
+      "value": "39523.1832",
+      "valueDate": "2026-07-09"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-09",
+      "value": "927.2910",
+      "valueDate": "2026-07-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-08",
+      "value": "39519.7265",
+      "valueDate": "2026-07-08"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-08",
+      "value": "928.2529",
+      "valueDate": "2026-07-08"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-07",
+      "value": "39516.2698",
+      "valueDate": "2026-07-07"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-07",
+      "value": "929.3596",
+      "valueDate": "2026-07-07"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-06",
+      "value": "39512.8131",
+      "valueDate": "2026-07-06"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-06",
+      "value": "930.5975",
+      "valueDate": "2026-07-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-05",
+      "value": "39509.3564",
+      "valueDate": "2026-07-05"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-05",
+      "value": "934.9391",
+      "valueDate": "2026-07-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-04",
+      "value": "39505.8997",
+      "valueDate": "2026-07-04"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-04",
+      "value": "934.9391",
+      "valueDate": "2026-07-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-03",
+      "value": "39502.4430",
+      "valueDate": "2026-07-03"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-03",
+      "value": "934.9391",
+      "valueDate": "2026-07-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-02",
+      "value": "39498.9863",
+      "valueDate": "2026-07-02"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-02",
+      "value": "936.5360",
+      "valueDate": "2026-07-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-07-01",
+      "value": "39495.5296",
+      "valueDate": "2026-07-01"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-07-01",
+      "value": "938.1756",
+      "valueDate": "2026-07-01"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-30",
+      "value": "39492.0729",
+      "valueDate": "2026-06-30"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-30",
+      "value": "939.8378",
+      "valueDate": "2026-06-30"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-29",
+      "value": "39488.6162",
+      "valueDate": "2026-06-29"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-29",
+      "value": "941.5019",
+      "valueDate": "2026-06-29"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-28",
+      "value": "39485.1595",
+      "valueDate": "2026-06-28"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-28",
+      "value": "946.3025",
+      "valueDate": "2026-06-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-27",
+      "value": "39481.7028",
+      "valueDate": "2026-06-27"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-27",
+      "value": "946.3025",
+      "valueDate": "2026-06-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-26",
+      "value": "39478.2461",
+      "valueDate": "2026-06-26"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-26",
+      "value": "946.3025",
+      "valueDate": "2026-06-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-25",
+      "value": "39474.7894",
+      "valueDate": "2026-06-25"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-25",
+      "value": "947.7729",
+      "valueDate": "2026-06-25"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-24",
+      "value": "39471.3327",
+      "valueDate": "2026-06-24"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-24",
+      "value": "949.1475",
+      "valueDate": "2026-06-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-23",
+      "value": "39467.8760",
+      "valueDate": "2026-06-23"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-23",
+      "value": "950.4093",
+      "valueDate": "2026-06-23"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-22",
+      "value": "39464.4193",
+      "valueDate": "2026-06-22"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-22",
+      "value": "951.5427",
+      "valueDate": "2026-06-22"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-21",
+      "value": "39460.9626",
+      "valueDate": "2026-06-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-21",
+      "value": "954.0417",
+      "valueDate": "2026-06-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-20",
+      "value": "39457.5059",
+      "valueDate": "2026-06-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-20",
+      "value": "954.0417",
+      "valueDate": "2026-06-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-19",
+      "value": "39454.0492",
+      "valueDate": "2026-06-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-19",
+      "value": "954.0417",
+      "valueDate": "2026-06-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-18",
+      "value": "39450.5925",
+      "valueDate": "2026-06-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-18",
+      "value": "954.5401",
+      "valueDate": "2026-06-18"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-17",
+      "value": "39447.1358",
+      "valueDate": "2026-06-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-17",
+      "value": "954.8591",
+      "valueDate": "2026-06-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-16",
+      "value": "39443.6791",
+      "valueDate": "2026-06-16"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-16",
+      "value": "954.9949",
+      "valueDate": "2026-06-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-15",
+      "value": "39440.2224",
+      "valueDate": "2026-06-15"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-15",
+      "value": "954.9458",
+      "valueDate": "2026-06-15"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-14",
+      "value": "39436.7657",
+      "valueDate": "2026-06-14"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-14",
+      "value": "953.7062",
+      "valueDate": "2026-06-12"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-13",
+      "value": "39433.3090",
+      "valueDate": "2026-06-13"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-13",
+      "value": "953.7062",
+      "valueDate": "2026-06-12"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-12",
+      "value": "39429.8523",
+      "valueDate": "2026-06-12"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-12",
+      "value": "953.7062",
+      "valueDate": "2026-06-12"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-11",
+      "value": "39426.3956",
+      "valueDate": "2026-06-11"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-11",
+      "value": "952.9459",
+      "valueDate": "2026-06-11"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-10",
+      "value": "39422.9389",
+      "valueDate": "2026-06-10"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-10",
+      "value": "952.0260",
+      "valueDate": "2026-06-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-09",
+      "value": "39419.4822",
+      "valueDate": "2026-06-09"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-09",
+      "value": "950.9577",
+      "valueDate": "2026-06-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-08",
+      "value": "39416.0255",
+      "valueDate": "2026-06-08"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-08",
+      "value": "949.7543",
+      "valueDate": "2026-06-08"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-07",
+      "value": "39412.5688",
+      "valueDate": "2026-06-07"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-07",
+      "value": "945.4889",
+      "valueDate": "2026-06-05"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-06",
+      "value": "39409.1121",
+      "valueDate": "2026-06-06"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-06",
+      "value": "945.4889",
+      "valueDate": "2026-06-05"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-05",
+      "value": "39405.6554",
+      "valueDate": "2026-06-05"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-05",
+      "value": "945.4889",
+      "valueDate": "2026-06-05"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-04",
+      "value": "39402.1987",
+      "valueDate": "2026-06-04"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-04",
+      "value": "943.9072",
+      "valueDate": "2026-06-04"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-03",
+      "value": "39398.7420",
+      "valueDate": "2026-06-03"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-03",
+      "value": "942.2773",
+      "valueDate": "2026-06-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-02",
+      "value": "39395.2853",
+      "valueDate": "2026-06-02"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-02",
+      "value": "940.6193",
+      "valueDate": "2026-06-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-06-01",
+      "value": "39391.8286",
+      "valueDate": "2026-06-01"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-06-01",
+      "value": "938.9536",
+      "valueDate": "2026-06-01"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-31",
+      "value": "39388.3719",
+      "valueDate": "2026-05-31"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-31",
+      "value": "934.1153",
+      "valueDate": "2026-05-29"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-30",
+      "value": "39384.9152",
+      "valueDate": "2026-05-30"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-30",
+      "value": "934.1153",
+      "valueDate": "2026-05-29"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-29",
+      "value": "39381.4585",
+      "valueDate": "2026-05-29"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-29",
+      "value": "934.1153",
+      "valueDate": "2026-05-29"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-28",
+      "value": "39378.0018",
+      "valueDate": "2026-05-28"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-28",
+      "value": "932.6217",
+      "valueDate": "2026-05-28"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-27",
+      "value": "39374.5451",
+      "valueDate": "2026-05-27"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-27",
+      "value": "931.2190",
+      "valueDate": "2026-05-27"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-26",
+      "value": "39371.0884",
+      "valueDate": "2026-05-26"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-26",
+      "value": "929.9247",
+      "valueDate": "2026-05-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-25",
+      "value": "39367.6317",
+      "valueDate": "2026-05-25"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-25",
+      "value": "928.7547",
+      "valueDate": "2026-05-25"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-24",
+      "value": "39364.1750",
+      "valueDate": "2026-05-24"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-24",
+      "value": "926.1256",
+      "valueDate": "2026-05-22"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-23",
+      "value": "39360.7183",
+      "valueDate": "2026-05-23"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-23",
+      "value": "926.1256",
+      "valueDate": "2026-05-22"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-22",
+      "value": "39357.2616",
+      "valueDate": "2026-05-22"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-22",
+      "value": "926.1256",
+      "valueDate": "2026-05-22"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-21",
+      "value": "39353.8049",
+      "valueDate": "2026-05-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-21",
+      "value": "925.5790",
+      "valueDate": "2026-05-21"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-20",
+      "value": "39350.3482",
+      "valueDate": "2026-05-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-20",
+      "value": "925.2103",
+      "valueDate": "2026-05-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-19",
+      "value": "39346.8915",
+      "valueDate": "2026-05-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-19",
+      "value": "925.0240",
+      "valueDate": "2026-05-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-18",
+      "value": "39343.4348",
+      "valueDate": "2026-05-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-18",
+      "value": "925.0223",
+      "valueDate": "2026-05-18"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-17",
+      "value": "39339.9781",
+      "valueDate": "2026-05-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-17",
+      "value": "926.1145",
+      "valueDate": "2026-05-15"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-16",
+      "value": "39336.5214",
+      "valueDate": "2026-05-16"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-16",
+      "value": "926.1145",
+      "valueDate": "2026-05-15"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-15",
+      "value": "39333.0647",
+      "valueDate": "2026-05-15"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-15",
+      "value": "926.1145",
+      "valueDate": "2026-05-15"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-14",
+      "value": "39329.6080",
+      "valueDate": "2026-05-14"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-14",
+      "value": "926.8292",
+      "valueDate": "2026-05-14"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-13",
+      "value": "39326.1513",
+      "valueDate": "2026-05-13"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-13",
+      "value": "927.7064",
+      "valueDate": "2026-05-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-12",
+      "value": "39322.6946",
+      "valueDate": "2026-05-12"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-12",
+      "value": "928.7352",
+      "valueDate": "2026-05-12"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-11",
+      "value": "39319.2379",
+      "valueDate": "2026-05-11"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-11",
+      "value": "929.9029",
+      "valueDate": "2026-05-11"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-10",
+      "value": "39315.7812",
+      "valueDate": "2026-05-10"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-10",
+      "value": "934.0882",
+      "valueDate": "2026-05-08"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-09",
+      "value": "39312.3245",
+      "valueDate": "2026-05-09"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-09",
+      "value": "934.0882",
+      "valueDate": "2026-05-08"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-08",
+      "value": "39308.8678",
+      "valueDate": "2026-05-08"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-08",
+      "value": "934.0882",
+      "valueDate": "2026-05-08"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-07",
+      "value": "39305.4111",
+      "valueDate": "2026-05-07"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-07",
+      "value": "935.6533",
+      "valueDate": "2026-05-07"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-06",
+      "value": "39301.9544",
+      "valueDate": "2026-05-06"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-06",
+      "value": "937.2719",
+      "valueDate": "2026-05-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-05",
+      "value": "39298.4977",
+      "valueDate": "2026-05-05"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-05",
+      "value": "938.9243",
+      "valueDate": "2026-05-05"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-04",
+      "value": "39295.0410",
+      "valueDate": "2026-05-04"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-04",
+      "value": "940.5898",
+      "valueDate": "2026-05-04"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-03",
+      "value": "39291.5843",
+      "valueDate": "2026-05-03"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-03",
+      "value": "945.4615",
+      "valueDate": "2026-05-01"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-02",
+      "value": "39288.1276",
+      "valueDate": "2026-05-02"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-02",
+      "value": "945.4615",
+      "valueDate": "2026-05-01"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-05-01",
+      "value": "39284.6709",
+      "valueDate": "2026-05-01"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-05-01",
+      "value": "945.4615",
+      "valueDate": "2026-05-01"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-30",
+      "value": "39281.2142",
+      "valueDate": "2026-04-30"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-30",
+      "value": "946.9769",
+      "valueDate": "2026-04-30"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-29",
+      "value": "39277.7575",
+      "valueDate": "2026-04-29"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-29",
+      "value": "948.4062",
+      "valueDate": "2026-04-29"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-28",
+      "value": "39274.3008",
+      "valueDate": "2026-04-28"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-28",
+      "value": "949.7319",
+      "valueDate": "2026-04-28"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-27",
+      "value": "39270.8441",
+      "valueDate": "2026-04-27"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-27",
+      "value": "950.9376",
+      "valueDate": "2026-04-27"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-26",
+      "value": "39267.3874",
+      "valueDate": "2026-04-26"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-26",
+      "value": "953.6942",
+      "valueDate": "2026-04-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-25",
+      "value": "39263.9307",
+      "valueDate": "2026-04-25"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-25",
+      "value": "953.6942",
+      "valueDate": "2026-04-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-24",
+      "value": "39260.4740",
+      "valueDate": "2026-04-24"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-24",
+      "value": "953.6942",
+      "valueDate": "2026-04-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-23",
+      "value": "39257.0173",
+      "valueDate": "2026-04-23"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-23",
+      "value": "954.2885",
+      "valueDate": "2026-04-23"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-22",
+      "value": "39253.5606",
+      "valueDate": "2026-04-22"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-22",
+      "value": "954.7065",
+      "valueDate": "2026-04-22"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-21",
+      "value": "39250.1039",
+      "valueDate": "2026-04-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-21",
+      "value": "954.9432",
+      "valueDate": "2026-04-21"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-20",
+      "value": "39246.6472",
+      "valueDate": "2026-04-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-20",
+      "value": "954.9956",
+      "valueDate": "2026-04-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-19",
+      "value": "39243.1905",
+      "valueDate": "2026-04-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-19",
+      "value": "954.0520",
+      "valueDate": "2026-04-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-18",
+      "value": "39239.7338",
+      "valueDate": "2026-04-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-18",
+      "value": "954.0520",
+      "valueDate": "2026-04-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-17",
+      "value": "39236.2771",
+      "valueDate": "2026-04-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-17",
+      "value": "954.0520",
+      "valueDate": "2026-04-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-16",
+      "value": "39232.8204",
+      "valueDate": "2026-04-16"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-16",
+      "value": "953.3835",
+      "valueDate": "2026-04-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-15",
+      "value": "39229.3637",
+      "valueDate": "2026-04-15"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-15",
+      "value": "952.5498",
+      "valueDate": "2026-04-15"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-14",
+      "value": "39225.9070",
+      "valueDate": "2026-04-14"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-14",
+      "value": "951.5614",
+      "valueDate": "2026-04-14"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-13",
+      "value": "39222.4503",
+      "valueDate": "2026-04-13"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-13",
+      "value": "950.4305",
+      "valueDate": "2026-04-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-12",
+      "value": "39218.9936",
+      "valueDate": "2026-04-12"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-12",
+      "value": "946.3292",
+      "valueDate": "2026-04-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-11",
+      "value": "39215.5369",
+      "valueDate": "2026-04-11"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-11",
+      "value": "946.3292",
+      "valueDate": "2026-04-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-10",
+      "value": "39212.0802",
+      "valueDate": "2026-04-10"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-10",
+      "value": "946.3292",
+      "valueDate": "2026-04-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-09",
+      "value": "39208.6235",
+      "valueDate": "2026-04-09"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-09",
+      "value": "944.7823",
+      "valueDate": "2026-04-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-08",
+      "value": "39205.1668",
+      "valueDate": "2026-04-08"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-08",
+      "value": "943.1763",
+      "valueDate": "2026-04-08"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-07",
+      "value": "39201.7101",
+      "valueDate": "2026-04-07"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-07",
+      "value": "941.5312",
+      "valueDate": "2026-04-07"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-06",
+      "value": "39198.2534",
+      "valueDate": "2026-04-06"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-06",
+      "value": "939.8672",
+      "valueDate": "2026-04-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-05",
+      "value": "39194.7967",
+      "valueDate": "2026-04-05"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-05",
+      "value": "934.9668",
+      "valueDate": "2026-04-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-04",
+      "value": "39191.3400",
+      "valueDate": "2026-04-04"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-04",
+      "value": "934.9668",
+      "valueDate": "2026-04-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-03",
+      "value": "39187.8833",
+      "valueDate": "2026-04-03"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-03",
+      "value": "934.9668",
+      "valueDate": "2026-04-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-02",
+      "value": "39184.4266",
+      "valueDate": "2026-04-02"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-02",
+      "value": "933.4310",
+      "valueDate": "2026-04-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-04-01",
+      "value": "39180.9699",
+      "valueDate": "2026-04-01"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-04-01",
+      "value": "931.9763",
+      "valueDate": "2026-04-01"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-31",
+      "value": "39177.5132",
+      "valueDate": "2026-03-31"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-31",
+      "value": "930.6205",
+      "valueDate": "2026-03-31"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-30",
+      "value": "39174.0565",
+      "valueDate": "2026-03-30"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-30",
+      "value": "929.3803",
+      "valueDate": "2026-03-30"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-29",
+      "value": "39170.5998",
+      "valueDate": "2026-03-29"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-29",
+      "value": "926.4987",
+      "valueDate": "2026-03-27"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-28",
+      "value": "39167.1431",
+      "valueDate": "2026-03-28"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-28",
+      "value": "926.4987",
+      "valueDate": "2026-03-27"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-27",
+      "value": "39163.6864",
+      "valueDate": "2026-03-27"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-27",
+      "value": "926.4987",
+      "valueDate": "2026-03-27"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-26",
+      "value": "39160.2297",
+      "valueDate": "2026-03-26"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-26",
+      "value": "925.8573",
+      "valueDate": "2026-03-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-25",
+      "value": "39156.7730",
+      "valueDate": "2026-03-25"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-25",
+      "value": "925.3903",
+      "valueDate": "2026-03-25"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-24",
+      "value": "39153.3163",
+      "valueDate": "2026-03-24"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-24",
+      "value": "925.1034",
+      "valueDate": "2026-03-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-23",
+      "value": "39149.8596",
+      "valueDate": "2026-03-23"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-23",
+      "value": "925.0003",
+      "valueDate": "2026-03-23"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-22",
+      "value": "39146.4029",
+      "valueDate": "2026-03-22"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-22",
+      "value": "925.7946",
+      "valueDate": "2026-03-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-21",
+      "value": "39142.9462",
+      "valueDate": "2026-03-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-21",
+      "value": "925.7946",
+      "valueDate": "2026-03-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-20",
+      "value": "39139.4895",
+      "valueDate": "2026-03-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-20",
+      "value": "925.7946",
+      "valueDate": "2026-03-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-19",
+      "value": "39136.0328",
+      "valueDate": "2026-03-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-19",
+      "value": "926.4163",
+      "valueDate": "2026-03-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-18",
+      "value": "39132.5761",
+      "valueDate": "2026-03-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-18",
+      "value": "927.2056",
+      "valueDate": "2026-03-18"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-17",
+      "value": "39129.1194",
+      "valueDate": "2026-03-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-17",
+      "value": "928.1527",
+      "valueDate": "2026-03-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-16",
+      "value": "39125.6627",
+      "valueDate": "2026-03-16"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-16",
+      "value": "929.2458",
+      "valueDate": "2026-03-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-15",
+      "value": "39122.2060",
+      "valueDate": "2026-03-15"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-15",
+      "value": "933.2593",
+      "valueDate": "2026-03-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-14",
+      "value": "39118.7493",
+      "valueDate": "2026-03-14"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-14",
+      "value": "933.2593",
+      "valueDate": "2026-03-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-13",
+      "value": "39115.2926",
+      "valueDate": "2026-03-13"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-13",
+      "value": "933.2593",
+      "valueDate": "2026-03-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-12",
+      "value": "39111.8359",
+      "valueDate": "2026-03-12"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-12",
+      "value": "934.7867",
+      "valueDate": "2026-03-12"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-11",
+      "value": "39108.3792",
+      "valueDate": "2026-03-11"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-11",
+      "value": "936.3784",
+      "valueDate": "2026-03-11"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-10",
+      "value": "39104.9225",
+      "valueDate": "2026-03-10"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-10",
+      "value": "938.0147",
+      "valueDate": "2026-03-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-09",
+      "value": "39101.4658",
+      "valueDate": "2026-03-09"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-09",
+      "value": "939.6756",
+      "valueDate": "2026-03-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-08",
+      "value": "39098.0091",
+      "valueDate": "2026-03-08"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-08",
+      "value": "944.6002",
+      "valueDate": "2026-03-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-07",
+      "value": "39094.5524",
+      "valueDate": "2026-03-07"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-07",
+      "value": "944.6002",
+      "valueDate": "2026-03-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-06",
+      "value": "39091.0957",
+      "valueDate": "2026-03-06"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-06",
+      "value": "944.6002",
+      "valueDate": "2026-03-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-05",
+      "value": "39087.6390",
+      "valueDate": "2026-03-05"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-05",
+      "value": "946.1549",
+      "valueDate": "2026-03-05"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-04",
+      "value": "39084.1823",
+      "valueDate": "2026-03-04"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-04",
+      "value": "947.6337",
+      "valueDate": "2026-03-04"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-03",
+      "value": "39080.7256",
+      "valueDate": "2026-03-03"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-03",
+      "value": "949.0184",
+      "valueDate": "2026-03-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-02",
+      "value": "39077.2689",
+      "valueDate": "2026-03-02"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-02",
+      "value": "950.2919",
+      "valueDate": "2026-03-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-03-01",
+      "value": "39073.8122",
+      "valueDate": "2026-03-01"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-03-01",
+      "value": "953.2958",
+      "valueDate": "2026-02-27"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-28",
+      "value": "39070.3555",
+      "valueDate": "2026-02-28"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-28",
+      "value": "953.2958",
+      "valueDate": "2026-02-27"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-27",
+      "value": "39066.8988",
+      "valueDate": "2026-02-27"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-27",
+      "value": "953.2958",
+      "valueDate": "2026-02-27"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-26",
+      "value": "39063.4421",
+      "valueDate": "2026-02-26"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-26",
+      "value": "953.9838",
+      "valueDate": "2026-02-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-25",
+      "value": "39059.9854",
+      "valueDate": "2026-02-25"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-25",
+      "value": "954.4993",
+      "valueDate": "2026-02-25"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-24",
+      "value": "39056.5287",
+      "valueDate": "2026-02-24"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-24",
+      "value": "954.8361",
+      "valueDate": "2026-02-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-23",
+      "value": "39053.0720",
+      "valueDate": "2026-02-23"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-23",
+      "value": "954.9898",
+      "valueDate": "2026-02-23"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-22",
+      "value": "39049.6153",
+      "valueDate": "2026-02-22"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-22",
+      "value": "954.3456",
+      "valueDate": "2026-02-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-21",
+      "value": "39046.1586",
+      "valueDate": "2026-02-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-21",
+      "value": "954.3456",
+      "valueDate": "2026-02-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-20",
+      "value": "39042.7019",
+      "valueDate": "2026-02-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-20",
+      "value": "954.3456",
+      "valueDate": "2026-02-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-19",
+      "value": "39039.2452",
+      "valueDate": "2026-02-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-19",
+      "value": "953.7713",
+      "valueDate": "2026-02-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-18",
+      "value": "39035.7885",
+      "valueDate": "2026-02-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-18",
+      "value": "953.0271",
+      "valueDate": "2026-02-18"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-17",
+      "value": "39032.3318",
+      "valueDate": "2026-02-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-17",
+      "value": "952.1222",
+      "valueDate": "2026-02-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-16",
+      "value": "39028.8751",
+      "valueDate": "2026-02-16"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-16",
+      "value": "951.0679",
+      "valueDate": "2026-02-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-15",
+      "value": "39025.4184",
+      "valueDate": "2026-02-15"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-15",
+      "value": "947.1460",
+      "valueDate": "2026-02-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-14",
+      "value": "39021.9617",
+      "valueDate": "2026-02-14"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-14",
+      "value": "947.1460",
+      "valueDate": "2026-02-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-13",
+      "value": "39018.5050",
+      "valueDate": "2026-02-13"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-13",
+      "value": "947.1460",
+      "valueDate": "2026-02-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-12",
+      "value": "39015.0483",
+      "valueDate": "2026-02-12"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-12",
+      "value": "945.6396",
+      "valueDate": "2026-02-12"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-11",
+      "value": "39011.5916",
+      "valueDate": "2026-02-11"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-11",
+      "value": "944.0636",
+      "valueDate": "2026-02-11"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-10",
+      "value": "39008.1349",
+      "valueDate": "2026-02-10"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-10",
+      "value": "942.4375",
+      "valueDate": "2026-02-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-09",
+      "value": "39004.6782",
+      "valueDate": "2026-02-09"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-09",
+      "value": "940.7813",
+      "valueDate": "2026-02-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-08",
+      "value": "39001.2215",
+      "valueDate": "2026-02-08"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-08",
+      "value": "935.8371",
+      "valueDate": "2026-02-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-07",
+      "value": "38997.7648",
+      "valueDate": "2026-02-07"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-07",
+      "value": "935.8371",
+      "valueDate": "2026-02-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-06",
+      "value": "38994.3081",
+      "valueDate": "2026-02-06"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-06",
+      "value": "935.8371",
+      "valueDate": "2026-02-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-05",
+      "value": "38990.8514",
+      "valueDate": "2026-02-05"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-05",
+      "value": "934.2648",
+      "valueDate": "2026-02-05"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-04",
+      "value": "38987.3947",
+      "valueDate": "2026-02-04"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-04",
+      "value": "932.7633",
+      "valueDate": "2026-02-04"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-03",
+      "value": "38983.9380",
+      "valueDate": "2026-02-03"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-03",
+      "value": "931.3511",
+      "valueDate": "2026-02-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-02",
+      "value": "38980.4813",
+      "valueDate": "2026-02-02"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-02",
+      "value": "930.0455",
+      "valueDate": "2026-02-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-02-01",
+      "value": "38977.0246",
+      "valueDate": "2026-02-01"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-02-01",
+      "value": "926.9220",
+      "valueDate": "2026-01-30"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-31",
+      "value": "38973.5679",
+      "valueDate": "2026-01-31"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-31",
+      "value": "926.9220",
+      "valueDate": "2026-01-30"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-30",
+      "value": "38970.1112",
+      "valueDate": "2026-01-30"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-30",
+      "value": "926.9220",
+      "valueDate": "2026-01-30"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-29",
+      "value": "38966.6545",
+      "valueDate": "2026-01-29"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-29",
+      "value": "926.1881",
+      "valueDate": "2026-01-29"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-28",
+      "value": "38963.1978",
+      "valueDate": "2026-01-28"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-28",
+      "value": "925.6245",
+      "valueDate": "2026-01-28"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-27",
+      "value": "38959.7411",
+      "valueDate": "2026-01-27"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-27",
+      "value": "925.2382",
+      "valueDate": "2026-01-27"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-26",
+      "value": "38956.2844",
+      "valueDate": "2026-01-26"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-26",
+      "value": "925.0340",
+      "valueDate": "2026-01-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-25",
+      "value": "38952.8277",
+      "valueDate": "2026-01-25"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-25",
+      "value": "925.5275",
+      "valueDate": "2026-01-23"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-24",
+      "value": "38949.3710",
+      "valueDate": "2026-01-24"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-24",
+      "value": "925.5275",
+      "valueDate": "2026-01-23"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-23",
+      "value": "38945.9143",
+      "valueDate": "2026-01-23"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-23",
+      "value": "925.5275",
+      "valueDate": "2026-01-23"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-22",
+      "value": "38942.4576",
+      "valueDate": "2026-01-22"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-22",
+      "value": "926.0539",
+      "valueDate": "2026-01-22"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-21",
+      "value": "38939.0009",
+      "valueDate": "2026-01-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-21",
+      "value": "926.7523",
+      "valueDate": "2026-01-21"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-20",
+      "value": "38935.5442",
+      "valueDate": "2026-01-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-20",
+      "value": "927.6142",
+      "valueDate": "2026-01-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-19",
+      "value": "38932.0875",
+      "valueDate": "2026-01-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-19",
+      "value": "928.6287",
+      "valueDate": "2026-01-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-18",
+      "value": "38928.6308",
+      "valueDate": "2026-01-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-18",
+      "value": "932.4554",
+      "valueDate": "2026-01-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-17",
+      "value": "38925.1741",
+      "valueDate": "2026-01-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-17",
+      "value": "932.4554",
+      "valueDate": "2026-01-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-16",
+      "value": "38921.7174",
+      "valueDate": "2026-01-16"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-16",
+      "value": "932.4554",
+      "valueDate": "2026-01-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-15",
+      "value": "38918.2607",
+      "valueDate": "2026-01-15"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-15",
+      "value": "933.9394",
+      "valueDate": "2026-01-15"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-14",
+      "value": "38914.8040",
+      "valueDate": "2026-01-14"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-14",
+      "value": "935.4982",
+      "valueDate": "2026-01-14"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-13",
+      "value": "38911.3473",
+      "valueDate": "2026-01-13"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-13",
+      "value": "937.1126",
+      "valueDate": "2026-01-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-12",
+      "value": "38907.8906",
+      "valueDate": "2026-01-12"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-12",
+      "value": "938.7625",
+      "valueDate": "2026-01-12"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-11",
+      "value": "38904.4339",
+      "valueDate": "2026-01-11"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-11",
+      "value": "943.7218",
+      "valueDate": "2026-01-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-10",
+      "value": "38900.9772",
+      "valueDate": "2026-01-10"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-10",
+      "value": "943.7218",
+      "valueDate": "2026-01-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-09",
+      "value": "38897.5205",
+      "valueDate": "2026-01-09"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-09",
+      "value": "943.7218",
+      "valueDate": "2026-01-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-08",
+      "value": "38894.0638",
+      "valueDate": "2026-01-08"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-08",
+      "value": "945.3101",
+      "valueDate": "2026-01-08"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-07",
+      "value": "38890.6071",
+      "valueDate": "2026-01-07"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-07",
+      "value": "946.8329",
+      "valueDate": "2026-01-07"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-06",
+      "value": "38887.1504",
+      "valueDate": "2026-01-06"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-06",
+      "value": "948.2714",
+      "valueDate": "2026-01-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-05",
+      "value": "38883.6937",
+      "valueDate": "2026-01-05"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-05",
+      "value": "949.6079",
+      "valueDate": "2026-01-05"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-04",
+      "value": "38880.2370",
+      "valueDate": "2026-01-04"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-04",
+      "value": "952.8480",
+      "valueDate": "2026-01-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-03",
+      "value": "38876.7803",
+      "valueDate": "2026-01-03"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-03",
+      "value": "952.8480",
+      "valueDate": "2026-01-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-02",
+      "value": "38873.3236",
+      "valueDate": "2026-01-02"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-02",
+      "value": "952.8480",
+      "valueDate": "2026-01-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2026-01-01",
+      "value": "38869.8669",
+      "valueDate": "2026-01-01"
+    },
+    {
+      "currency": "USD",
+      "date": "2026-01-01",
+      "value": "953.6272",
+      "valueDate": "2026-01-01"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-31",
+      "value": "38866.4102",
+      "valueDate": "2025-12-31"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-31",
+      "value": "954.2383",
+      "valueDate": "2025-12-31"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-30",
+      "value": "38862.9535",
+      "valueDate": "2025-12-30"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-30",
+      "value": "954.6738",
+      "valueDate": "2025-12-30"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-29",
+      "value": "38859.4968",
+      "valueDate": "2025-12-29"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-29",
+      "value": "954.9283",
+      "valueDate": "2025-12-29"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-28",
+      "value": "38856.0401",
+      "valueDate": "2025-12-28"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-28",
+      "value": "954.5860",
+      "valueDate": "2025-12-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-27",
+      "value": "38852.5834",
+      "valueDate": "2025-12-27"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-27",
+      "value": "954.5860",
+      "valueDate": "2025-12-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-26",
+      "value": "38849.1267",
+      "valueDate": "2025-12-26"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-26",
+      "value": "954.5860",
+      "valueDate": "2025-12-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-25",
+      "value": "38845.6700",
+      "valueDate": "2025-12-25"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-25",
+      "value": "954.1079",
+      "valueDate": "2025-12-25"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-24",
+      "value": "38842.2133",
+      "valueDate": "2025-12-24"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-24",
+      "value": "953.4559",
+      "valueDate": "2025-12-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-23",
+      "value": "38838.7566",
+      "valueDate": "2025-12-23"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-23",
+      "value": "952.6380",
+      "valueDate": "2025-12-23"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-22",
+      "value": "38835.2999",
+      "valueDate": "2025-12-22"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-22",
+      "value": "951.6641",
+      "valueDate": "2025-12-22"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-21",
+      "value": "38831.8432",
+      "valueDate": "2025-12-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-21",
+      "value": "947.9362",
+      "valueDate": "2025-12-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-20",
+      "value": "38828.3865",
+      "valueDate": "2025-12-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-20",
+      "value": "947.9362",
+      "valueDate": "2025-12-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-19",
+      "value": "38824.9298",
+      "valueDate": "2025-12-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-19",
+      "value": "947.9362",
+      "valueDate": "2025-12-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-18",
+      "value": "38821.4731",
+      "valueDate": "2025-12-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-18",
+      "value": "946.4759",
+      "valueDate": "2025-12-18"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-17",
+      "value": "38818.0164",
+      "valueDate": "2025-12-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-17",
+      "value": "944.9357",
+      "valueDate": "2025-12-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-16",
+      "value": "38814.5597",
+      "valueDate": "2025-12-16"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-16",
+      "value": "943.3347",
+      "valueDate": "2025-12-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-15",
+      "value": "38811.1030",
+      "valueDate": "2025-12-15"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-15",
+      "value": "941.6925",
+      "valueDate": "2025-12-15"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-14",
+      "value": "38807.6463",
+      "valueDate": "2025-12-14"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-14",
+      "value": "936.7228",
+      "valueDate": "2025-12-12"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-13",
+      "value": "38804.1896",
+      "valueDate": "2025-12-13"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-13",
+      "value": "936.7228",
+      "valueDate": "2025-12-12"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-12",
+      "value": "38800.7329",
+      "valueDate": "2025-12-12"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-12",
+      "value": "936.7228",
+      "valueDate": "2025-12-12"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-11",
+      "value": "38797.2762",
+      "valueDate": "2025-12-11"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-11",
+      "value": "935.1199",
+      "valueDate": "2025-12-11"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-10",
+      "value": "38793.8195",
+      "valueDate": "2025-12-10"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-10",
+      "value": "933.5773",
+      "valueDate": "2025-12-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-09",
+      "value": "38790.3628",
+      "valueDate": "2025-12-09"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-09",
+      "value": "932.1138",
+      "valueDate": "2025-12-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-08",
+      "value": "38786.9061",
+      "valueDate": "2025-12-08"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-08",
+      "value": "930.7476",
+      "valueDate": "2025-12-08"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-07",
+      "value": "38783.4494",
+      "valueDate": "2025-12-07"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-07",
+      "value": "927.3939",
+      "valueDate": "2025-12-05"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-06",
+      "value": "38779.9927",
+      "valueDate": "2025-12-06"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-06",
+      "value": "927.3939",
+      "valueDate": "2025-12-05"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-05",
+      "value": "38776.5360",
+      "valueDate": "2025-12-05"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-05",
+      "value": "927.3939",
+      "valueDate": "2025-12-05"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-04",
+      "value": "38773.0793",
+      "valueDate": "2025-12-04"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-04",
+      "value": "926.5702",
+      "valueDate": "2025-12-04"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-03",
+      "value": "38769.6226",
+      "valueDate": "2025-12-03"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-03",
+      "value": "925.9122",
+      "valueDate": "2025-12-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-02",
+      "value": "38766.1659",
+      "valueDate": "2025-12-02"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-02",
+      "value": "925.4279",
+      "valueDate": "2025-12-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-12-01",
+      "value": "38762.7092",
+      "valueDate": "2025-12-01"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-12-01",
+      "value": "925.1233",
+      "valueDate": "2025-12-01"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-30",
+      "value": "38759.2525",
+      "valueDate": "2025-11-30"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-30",
+      "value": "925.3141",
+      "valueDate": "2025-11-28"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-29",
+      "value": "38755.7958",
+      "valueDate": "2025-11-29"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-29",
+      "value": "925.3141",
+      "valueDate": "2025-11-28"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-28",
+      "value": "38752.3391",
+      "valueDate": "2025-11-28"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-28",
+      "value": "925.3141",
+      "valueDate": "2025-11-28"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-27",
+      "value": "38748.8824",
+      "valueDate": "2025-11-27"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-27",
+      "value": "925.7433",
+      "valueDate": "2025-11-27"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-26",
+      "value": "38745.4257",
+      "valueDate": "2025-11-26"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-26",
+      "value": "926.3483",
+      "valueDate": "2025-11-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-25",
+      "value": "38741.9690",
+      "valueDate": "2025-11-25"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-25",
+      "value": "927.1217",
+      "valueDate": "2025-11-25"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-24",
+      "value": "38738.5123",
+      "valueDate": "2025-11-24"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-24",
+      "value": "928.0539",
+      "valueDate": "2025-11-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-23",
+      "value": "38735.0556",
+      "valueDate": "2025-11-23"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-23",
+      "value": "931.6795",
+      "valueDate": "2025-11-21"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-22",
+      "value": "38731.5989",
+      "valueDate": "2025-11-22"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-22",
+      "value": "931.6795",
+      "valueDate": "2025-11-21"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-21",
+      "value": "38728.1422",
+      "valueDate": "2025-11-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-21",
+      "value": "931.6795",
+      "valueDate": "2025-11-21"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-20",
+      "value": "38724.6855",
+      "valueDate": "2025-11-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-20",
+      "value": "933.1147",
+      "valueDate": "2025-11-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-19",
+      "value": "38721.2288",
+      "valueDate": "2025-11-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-19",
+      "value": "934.6349",
+      "valueDate": "2025-11-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-18",
+      "value": "38717.7721",
+      "valueDate": "2025-11-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-18",
+      "value": "936.2211",
+      "valueDate": "2025-11-18"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-17",
+      "value": "38714.3154",
+      "valueDate": "2025-11-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-17",
+      "value": "937.8540",
+      "valueDate": "2025-11-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-16",
+      "value": "38710.8587",
+      "valueDate": "2025-11-16"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-16",
+      "value": "942.8296",
+      "valueDate": "2025-11-14"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-15",
+      "value": "38707.4020",
+      "valueDate": "2025-11-15"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-15",
+      "value": "942.8296",
+      "valueDate": "2025-11-14"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-14",
+      "value": "38703.9453",
+      "valueDate": "2025-11-14"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-14",
+      "value": "942.8296",
+      "valueDate": "2025-11-14"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-13",
+      "value": "38700.4886",
+      "valueDate": "2025-11-13"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-13",
+      "value": "944.4455",
+      "valueDate": "2025-11-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-12",
+      "value": "38697.0319",
+      "valueDate": "2025-11-12"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-12",
+      "value": "946.0066",
+      "valueDate": "2025-11-12"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-11",
+      "value": "38693.5752",
+      "valueDate": "2025-11-11"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-11",
+      "value": "947.4937",
+      "valueDate": "2025-11-11"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-10",
+      "value": "38690.1185",
+      "valueDate": "2025-11-10"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-10",
+      "value": "948.8883",
+      "valueDate": "2025-11-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-09",
+      "value": "38686.6618",
+      "valueDate": "2025-11-09"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-09",
+      "value": "952.3525",
+      "valueDate": "2025-11-07"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-08",
+      "value": "38683.2051",
+      "valueDate": "2025-11-08"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-08",
+      "value": "952.3525",
+      "valueDate": "2025-11-07"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-07",
+      "value": "38679.7484",
+      "valueDate": "2025-11-07"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-07",
+      "value": "952.3525",
+      "valueDate": "2025-11-07"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-06",
+      "value": "38676.2917",
+      "valueDate": "2025-11-06"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-06",
+      "value": "953.2199",
+      "valueDate": "2025-11-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-05",
+      "value": "38672.8350",
+      "valueDate": "2025-11-05"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-05",
+      "value": "953.9243",
+      "valueDate": "2025-11-05"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-04",
+      "value": "38669.3783",
+      "valueDate": "2025-11-04"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-04",
+      "value": "954.4569",
+      "valueDate": "2025-11-04"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-03",
+      "value": "38665.9216",
+      "valueDate": "2025-11-03"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-03",
+      "value": "954.8113",
+      "valueDate": "2025-11-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-02",
+      "value": "38662.4649",
+      "valueDate": "2025-11-02"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-02",
+      "value": "954.7721",
+      "valueDate": "2025-10-31"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-11-01",
+      "value": "38659.0082",
+      "valueDate": "2025-11-01"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-11-01",
+      "value": "954.7721",
+      "valueDate": "2025-10-31"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-31",
+      "value": "38655.5515",
+      "valueDate": "2025-10-31"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-31",
+      "value": "954.7721",
+      "valueDate": "2025-10-31"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-30",
+      "value": "38652.0948",
+      "valueDate": "2025-10-30"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-30",
+      "value": "954.3922",
+      "valueDate": "2025-10-30"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-29",
+      "value": "38648.6381",
+      "valueDate": "2025-10-29"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-29",
+      "value": "953.8348",
+      "valueDate": "2025-10-29"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-28",
+      "value": "38645.1814",
+      "valueDate": "2025-10-28"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-28",
+      "value": "953.1067",
+      "valueDate": "2025-10-28"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-27",
+      "value": "38641.7247",
+      "valueDate": "2025-10-27"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-27",
+      "value": "952.2171",
+      "valueDate": "2025-10-27"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-26",
+      "value": "38638.2680",
+      "valueDate": "2025-10-26"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-26",
+      "value": "948.6970",
+      "valueDate": "2025-10-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-25",
+      "value": "38634.8113",
+      "valueDate": "2025-10-25"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-25",
+      "value": "948.6970",
+      "valueDate": "2025-10-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-24",
+      "value": "38631.3546",
+      "valueDate": "2025-10-24"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-24",
+      "value": "948.6970",
+      "valueDate": "2025-10-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-23",
+      "value": "38627.8979",
+      "valueDate": "2025-10-23"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-23",
+      "value": "947.2882",
+      "valueDate": "2025-10-23"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-22",
+      "value": "38624.4412",
+      "valueDate": "2025-10-22"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-22",
+      "value": "945.7896",
+      "valueDate": "2025-10-22"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-21",
+      "value": "38620.9845",
+      "valueDate": "2025-10-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-21",
+      "value": "944.2195",
+      "valueDate": "2025-10-21"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-20",
+      "value": "38617.5278",
+      "valueDate": "2025-10-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-20",
+      "value": "942.5974",
+      "valueDate": "2025-10-20"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-19",
+      "value": "38614.0711",
+      "valueDate": "2025-10-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-19",
+      "value": "937.6207",
+      "valueDate": "2025-10-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-18",
+      "value": "38610.6144",
+      "valueDate": "2025-10-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-18",
+      "value": "937.6207",
+      "valueDate": "2025-10-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-17",
+      "value": "38607.1577",
+      "valueDate": "2025-10-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-17",
+      "value": "937.6207",
+      "valueDate": "2025-10-17"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-16",
+      "value": "38603.7010",
+      "valueDate": "2025-10-16"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-16",
+      "value": "935.9932",
+      "valueDate": "2025-10-16"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-15",
+      "value": "38600.2443",
+      "valueDate": "2025-10-15"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-15",
+      "value": "934.4151",
+      "valueDate": "2025-10-15"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-14",
+      "value": "38596.7876",
+      "valueDate": "2025-10-14"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-14",
+      "value": "932.9058",
+      "valueDate": "2025-10-14"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-13",
+      "value": "38593.3309",
+      "valueDate": "2025-10-13"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-13",
+      "value": "931.4841",
+      "valueDate": "2025-10-13"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-12",
+      "value": "38589.8742",
+      "valueDate": "2025-10-12"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-12",
+      "value": "927.9126",
+      "valueDate": "2025-10-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-11",
+      "value": "38586.4175",
+      "valueDate": "2025-10-11"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-11",
+      "value": "927.9126",
+      "valueDate": "2025-10-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-10",
+      "value": "38582.9608",
+      "valueDate": "2025-10-10"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-10",
+      "value": "927.9126",
+      "valueDate": "2025-10-10"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-09",
+      "value": "38579.5041",
+      "valueDate": "2025-10-09"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-09",
+      "value": "927.0022",
+      "valueDate": "2025-10-09"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-08",
+      "value": "38576.0474",
+      "valueDate": "2025-10-08"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-08",
+      "value": "926.2522",
+      "valueDate": "2025-10-08"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-07",
+      "value": "38572.5907",
+      "valueDate": "2025-10-07"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-07",
+      "value": "925.6717",
+      "valueDate": "2025-10-07"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-06",
+      "value": "38569.1340",
+      "valueDate": "2025-10-06"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-06",
+      "value": "925.2679",
+      "valueDate": "2025-10-06"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-05",
+      "value": "38565.6773",
+      "valueDate": "2025-10-05"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-05",
+      "value": "925.1554",
+      "valueDate": "2025-10-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-04",
+      "value": "38562.2206",
+      "valueDate": "2025-10-04"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-04",
+      "value": "925.1554",
+      "valueDate": "2025-10-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-03",
+      "value": "38558.7639",
+      "valueDate": "2025-10-03"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-03",
+      "value": "925.1554",
+      "valueDate": "2025-10-03"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-02",
+      "value": "38555.3072",
+      "valueDate": "2025-10-02"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-02",
+      "value": "925.4857",
+      "valueDate": "2025-10-02"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-10-01",
+      "value": "38551.8505",
+      "valueDate": "2025-10-01"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-10-01",
+      "value": "925.9950",
+      "valueDate": "2025-10-01"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-30",
+      "value": "38548.3938",
+      "valueDate": "2025-09-30"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-30",
+      "value": "926.6770",
+      "valueDate": "2025-09-30"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-29",
+      "value": "38544.9371",
+      "valueDate": "2025-09-29"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-29",
+      "value": "927.5234",
+      "valueDate": "2025-09-29"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-28",
+      "value": "38541.4804",
+      "valueDate": "2025-09-28"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-28",
+      "value": "930.9346",
+      "valueDate": "2025-09-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-27",
+      "value": "38538.0237",
+      "valueDate": "2025-09-27"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-27",
+      "value": "930.9346",
+      "valueDate": "2025-09-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-26",
+      "value": "38534.5670",
+      "valueDate": "2025-09-26"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-26",
+      "value": "930.9346",
+      "valueDate": "2025-09-26"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-25",
+      "value": "38531.1103",
+      "valueDate": "2025-09-25"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-25",
+      "value": "932.3156",
+      "valueDate": "2025-09-25"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-24",
+      "value": "38527.6536",
+      "valueDate": "2025-09-24"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-24",
+      "value": "933.7914",
+      "valueDate": "2025-09-24"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-23",
+      "value": "38524.1969",
+      "valueDate": "2025-09-23"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-23",
+      "value": "935.3438",
+      "valueDate": "2025-09-23"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-22",
+      "value": "38520.7402",
+      "valueDate": "2025-09-22"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-22",
+      "value": "936.9536",
+      "valueDate": "2025-09-22"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-21",
+      "value": "38517.2835",
+      "valueDate": "2025-09-21"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-21",
+      "value": "941.9269",
+      "valueDate": "2025-09-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-20",
+      "value": "38513.8268",
+      "valueDate": "2025-09-20"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-20",
+      "value": "941.9269",
+      "valueDate": "2025-09-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-19",
+      "value": "38510.3701",
+      "valueDate": "2025-09-19"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-19",
+      "value": "941.9269",
+      "valueDate": "2025-09-19"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-18",
+      "value": "38506.9134",
+      "valueDate": "2025-09-18"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-18",
+      "value": "943.5644",
+      "valueDate": "2025-09-18"
+    },
+    {
+      "currency": "CLF",
+      "date": "2025-09-17",
+      "value": "38503.4567",
+      "valueDate": "2025-09-17"
+    },
+    {
+      "currency": "USD",
+      "date": "2025-09-17",
+      "value": "945.1581",
+      "valueDate": "2025-09-17"
+    }
+  ],
+  "latest": {
+    "USD": {
+      "currency": "USD",
+      "date": "2026-10-21",
+      "value": "941.6632",
+      "valueDate": "2026-10-20"
+    },
+    "CLF": {
+      "currency": "CLF",
+      "date": "2026-10-21",
+      "value": "39882.6800",
+      "valueDate": "2026-10-21"
+    }
+  },
+  "first": {
+    "USD": "2025-09-17",
+    "CLF": "2025-09-17"
+  }
+}

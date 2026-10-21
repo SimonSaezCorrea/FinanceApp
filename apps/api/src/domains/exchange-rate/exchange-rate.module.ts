@@ -9,16 +9,18 @@ import { ListExchangeRatesQueryHandler } from "./application/queries/list-exchan
 import { ExchangeRateDataModule } from "./exchange-rate.data.module";
 import { MindicadorSource } from "./infrastructure/mindicador-source";
 import { ExchangeRatesController } from "./presentation/exchange-rates.controller";
+import { PublicExchangeRatesController } from "./presentation/public-exchange-rates.controller";
 
 /**
  * Orchestration module for the `exchange-rate` table (spec 030): the daily dólar observado and
  * UF. Global, read-only reference data over HTTP — authed but NOT user-scoped, the same
- * documented exception to Principle II the other reference tables carry. The only writer is
+ * documented exception to Principle II the other reference tables carry; `GET /public/exchange-rates`
+ * (spec 033) is the same read with no session, Principle II's named public-read exception. The only writer is
  * the system command `RecordExchangeRatesCommand`, dispatched by `ExchangeRateCron`.
  */
 @Module({
   imports: [CqrsModule, JwtModule.register({}), ExchangeRateDataModule],
-  controllers: [ExchangeRatesController],
+  controllers: [ExchangeRatesController, PublicExchangeRatesController],
   providers: [
     ListExchangeRatesQueryHandler,
     RecordExchangeRatesHandler,

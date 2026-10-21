@@ -997,11 +997,11 @@ aislada de `/es/about/` dio 2,4 s, tres repeticiones dieron 1,9 s). El elemento 
 Comprobado también con `curl`: título propio, `canonical`, `hreflang` es/en/x-default, `og:image`,
 y la app con `noindex, nofollow`.
 
-**Falta, a mano en un navegador real** (escenarios del `quickstart.md` de la spec 031): entrar con
-RUT + clave, con segundo factor y con llave de acceso desde la landing; registrarse desde `/en/`;
-volver a la dirección protegida tras iniciar sesión; `app.mifik.cl/login`; `volver=//evil.com`;
-"Ir a la app" con sesión; cerrar sesión. Y, después de desplegar las redirecciones (commit
-`8407eab0`), `/precios#x` → `/es/pricing/#x` y `/` en inglés → `/en/`.
+**Navegador real (2026-10-20):** verificados a mano en producción los escenarios 4–11, 13 y 15 del
+`quickstart.md` de la spec 031. El 12 (`volver=//evil.com`) falló con sesión activa: la landing abría
+el panel de login en vez de ir a la app. Corregido en `scripts/access.ts` (commit `a5274710`: con
+`?acceso=` y sesión, va directo a `appUrl(volver)`). **Falta** repetir el 12 en producción, con
+sesión y en incógnito, cuando ese commit esté desplegado.
 
 ### 5. ~~La consulta de sesión deja errores en la consola~~ — resuelto (2026-10-09)
 
@@ -1009,3 +1009,19 @@ La landing consultaba `GET /auth/me` y, ante un 401, `POST /auth/refresh`: para 
 sesión eran dos 401 que Chrome registra como errores (Lighthouse "Recomendaciones" 96). Ahora
 consulta **`GET /auth/session`**, sin guard, que siempre responde 200 con `{ signedIn }` (access
 token válido con su sesión viva, o si venció, refresh token válido con la suya; no rota nada).
+
+## SEO del sitio público (card ClickUp 17tgmdxpadg)
+
+Plan completo en la card: ganar búsquedas específicas que fik ya resuelve en vez de competir de
+frente por "finanzas personales". Hecho: **Valor UF y dólar observado** (spec 033: 4 páginas, bloque
+en el home, endpoint público, rebuild programado). Pendiente:
+
+1. **Más herramientas públicas**: conversor UF ↔ CLP ↔ USD como página propia, simulador de compra
+   en cuotas (`equalPrincipalSchedule`), calculadora de pago mínimo.
+2. **Guías** (colección de contenido en el landing): cupo con tarjetas adicionales, facturación y
+   fecha de pago, cuotas sin interés, pago en dólares, línea de crédito vs tarjeta, CuentaRUT.
+3. **Señales de confianza**: autor con nombre, fuentes citadas y fecha de revisión en cada guía,
+   enlaces externos a mifik.cl.
+4. **Medir**: Lighthouse móvil en producción de las 4 páginas de indicadores (local: 100/100/100/100,
+   LCP 1,7 s) y, en Search Console, impresiones de "uf"/"dólar" a las 8 semanas (SC-006).
+5. Las páginas de indicadores no tienen página por mes ni por día (fuera de alcance de la spec 033).

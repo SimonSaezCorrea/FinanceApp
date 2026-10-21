@@ -336,6 +336,18 @@
       "privacyPolicy": {
         "title": "Política de privacidad · fik",
         "description": "La política de privacidad de fik: qué datos tratamos, con qué proveedores, cuánto tiempo los guardamos y cómo ejerces tus derechos."
+      },
+      "ufValue": {
+        "title": "Valor UF hoy · fik",
+        "titleWithValue": "Valor UF hoy {{date}}: {{value}} · fik",
+        "description": "Valor de la UF hoy en pesos chilenos, con el historial de 30 días y del año y un conversor de UF a pesos. Datos del Banco Central de Chile.",
+        "descriptionWithValue": "Valor UF hoy, {{date}}: {{value}}. Historial de 30 días y del año y conversor de UF a pesos. Datos del Banco Central de Chile."
+      },
+      "dollarRate": {
+        "title": "Dólar observado hoy · fik",
+        "titleWithValue": "Dólar observado hoy {{date}}: {{value}} · fik",
+        "description": "Valor del dólar observado hoy en pesos chilenos, con el historial de 30 días y del año y un conversor de dólares a pesos. Datos del Banco Central de Chile.",
+        "descriptionWithValue": "Dólar observado hoy, {{date}}: {{value}}. Historial de 30 días y del año y conversor de dólares a pesos. Datos del Banco Central de Chile."
       }
     },
     "access": {
@@ -366,6 +378,80 @@
     },
     "privacyPolicy": {
       "title": "Política de privacidad"
+    },
+    "rates": {
+      "nav": {
+        "ufValue": "Valor UF hoy",
+        "dollarRate": "Dólar observado hoy",
+        "label": "Indicadores"
+      },
+      "ufValue": {
+        "title": "Valor de la UF hoy",
+        "name": "la UF",
+        "unit": "UF",
+        "unitLong": "Unidades de fomento",
+        "lead": "Cuánto vale una unidad de fomento en pesos chilenos, día a día."
+      },
+      "dollarRate": {
+        "title": "Dólar observado hoy",
+        "name": "el dólar observado",
+        "unit": "USD",
+        "unitLong": "Dólares",
+        "lead": "El valor del dólar que publica el Banco Central de Chile cada día hábil, en pesos."
+      },
+      "headline": {
+        "valueOf": "Valor del {{date}}",
+        "perUnit": "por 1 {{unit}}",
+        "carried": "El valor de hoy todavía no se publica. Este es el último publicado, del {{date}}.",
+        "change": "{{amount}} ({{percent}}) respecto del {{date}}",
+        "noChange": "Sin cambio respecto del {{date}}",
+        "unavailable": "No pudimos obtener el valor ahora. Vuelve a intentarlo en unos minutos.",
+        "source": "Fuente: Banco Central de Chile, vía"
+      },
+      "history": {
+        "title": "Historial",
+        "period": "Período",
+        "days30": "30 días",
+        "year": "1 año",
+        "chartLabel": "Valor de {{name}} del {{from}} al {{to}}: mínimo {{min}}, máximo {{max}}.",
+        "caption": "Valor de {{name}} por día",
+        "date": "Fecha",
+        "value": "Valor",
+        "state": "Estado",
+        "published": "Publicado",
+        "carried": "Arrastrado",
+        "carriedHint": "Arrastrado: ese día no hubo publicación y rige el último valor publicado."
+      },
+      "date": {
+        "label": "Ver el valor de otra fecha",
+        "valueOn": "Valor del {{date}}",
+        "noData": "Sin dato para esa fecha.",
+        "invalid": "La fecha del enlace no es válida. Te mostramos el valor de hoy.",
+        "future": "Esa fecha todavía no llega. Te mostramos el valor de hoy.",
+        "backToToday": "Volver a hoy",
+        "loading": "Buscando el valor de esa fecha…",
+        "failed": "No pudimos buscar esa fecha ahora. Inténtalo de nuevo."
+      },
+      "converter": {
+        "title": "Conversor",
+        "pesos": "Pesos chilenos",
+        "using": "Con el valor del {{date}}: {{value}}",
+        "invalid": "Escribe un monto mayor que cero."
+      },
+      "cta": {
+        "title": "Tus cuentas en dólares y en UF, en pesos",
+        "body": "fik usa estos mismos valores para mostrarte cuánto suman en pesos tus cuentas en dólares y en UF, sin hacer la cuenta a mano.",
+        "action": "Crear cuenta"
+      },
+      "other": {
+        "ufValue": "Ver el valor de la UF hoy",
+        "dollarRate": "Ver el dólar observado hoy"
+      },
+      "home": {
+        "title": "La UF y el dólar de hoy",
+        "body": "Los mismos valores que usa fik, con historial y conversor.",
+        "see": "Ver historial y conversor"
+      }
     }
   }
 }
