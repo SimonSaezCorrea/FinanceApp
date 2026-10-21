@@ -7,19 +7,27 @@ import {
   authModeParam,
 } from "../../auth/lib/authRedirect";
 import { isLanguage } from "../../../lib/language";
+import { appUrl } from "../../../lib/returnTo";
+import { hasSession } from "./session";
 
 /**
  * Opens the access panel without shipping it (spec 031, R7): every "Iniciar sesión" / "Crear cuenta"
  * is a plain link to `?acceso=…`, so it works with no script at all; with script, a click is
  * caught here, the address gains the parameter, and the panel's module — React and the forms — is
  * imported only then. An address that already carries `?acceso=` (the app sending a signed-out
- * visitor, a bookmark) opens it on load.
+ * visitor, a bookmark) opens it on load — unless this browser is already signed in: then there is
+ * nothing to sign in to, and it goes straight to the app at `volver` (made safe by `appUrl`). The
+ * session is asked while the panel downloads, so a signed-out visitor waits no longer than before.
  */
 type Loader = () => Promise<typeof import("../../auth/mountAccessPanel")>;
 
 const defaultLoader: Loader = () => import("../../auth/mountAccessPanel");
 
-export function initAccess(loader: Loader = defaultLoader): void {
+export function initAccess(
+  loader: Loader = defaultLoader,
+  check: () => Promise<boolean> = hasSession,
+  navigate: (url: string) => void = (url) => location.replace(url),
+): void {
   const root = document.getElementById("access-root");
   if (!root) return;
   const lang = isLanguage(root.dataset.lang) ? root.dataset.lang : "es";
@@ -41,8 +49,8 @@ export function initAccess(loader: Loader = defaultLoader): void {
     else history.replaceState(null, "", url);
   };
 
-  const panel = (initialMode: AuthPanelMode | null) => {
-    controller ??= loader()
+  const panel = (initialMode: AuthPanelMode | null, loading = loader()) => {
+    controller ??= loading
       .then(({ mountAccessPanel }) =>
         mountAccessPanel(root, {
           lang,
@@ -87,5 +95,12 @@ export function initAccess(loader: Loader = defaultLoader): void {
   });
 
   const initial = modeInAddress();
-  if (initial) void panel(initial);
+  if (!initial) return;
+  const loading = loader();
+  // Unhandled until `panel` takes it; a failed download must not surface while the session is asked.
+  loading.catch(() => undefined);
+  void check().then((signedIn) => {
+    if (signedIn) navigate(appUrl(new URLSearchParams(location.search).get(RETURN_PARAM)));
+    else if (!controller) void panel(initial, loading);
+  });
 }
