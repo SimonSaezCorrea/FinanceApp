@@ -39,16 +39,21 @@ interface Props {
   notFound?: boolean;
   /** A page an email link opens (specs/032): its own title, never indexed, out of the sitemap. */
   utility?: "verifyEmail" | "resetPassword";
+  /** Title/description built by the page itself (spec 033: they carry the value of the day). */
+  title?: string;
+  description?: string;
 }
 const { lang, page, notFound = false, utility } = Astro.props;
 const unindexed = notFound || utility !== undefined;
 const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
 const url = (l: Language) => `${site}${pagePath(l, page)}`;
 const metaKey = utility ?? page;
-const title = notFound
-  ? `${t(lang, "app.notFound.title")} · fik`
-  : t(lang, `landing.meta.${metaKey}.title`);
-const description = t(lang, `landing.meta.${metaKey}.description`);
+const title =
+  Astro.props.title ??
+  (notFound
+    ? `${t(lang, "app.notFound.title")} · fik`
+    : t(lang, `landing.meta.${metaKey}.title`));
+const description = Astro.props.description ?? t(lang, `landing.meta.${metaKey}.description`);
 const image = `${site}/og/fik-${lang}.png`;
 // Visit statistics (Cloudflare Web Analytics: aggregated, no cookies), declared in the privacy
 // policy. Added here by hand instead of Cloudflare's automatic injection so it runs ONLY on the
@@ -124,6 +129,7 @@ const structuredData =
     <meta property="og:locale" content={lang === "es" ? "es_CL" : "en_US"} />
     <meta name="twitter:card" content="summary_large_image" />
     {structuredData && <script type="application/ld+json" set:html={structuredData} />}
+    <slot name="head" />
     {
       analytics && (
         <script

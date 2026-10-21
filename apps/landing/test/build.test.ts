@@ -158,6 +158,118 @@ describe("public site build", () => {
     }
   }
 
+  // Spec 033: the indicator pages. With EXCHANGE_RATES_SNAPSHOT set (CI builds with the fixture),
+  // the exact value of the day is checked; without it, the page must show a value or the notice.
+  describe("indicator pages (spec 033)", () => {
+    const fixturePath = process.env.EXCHANGE_RATES_SNAPSHOT;
+    const fixture = fixturePath
+      ? (JSON.parse(readFileSync(join(import.meta.dirname, "..", fixturePath), "utf8")) as {
+          latest: Record<"USD" | "CLF", { value: string; date: string; valueDate: string }>;
+        })
+      : null;
+    const RATE_PAGES = [
+      { currency: "CLF", es: "valor-uf", en: "uf-value" },
+      { currency: "USD", es: "dolar-observado", en: "dollar-rate" },
+    ] as const;
+    const shown = (value: string, lang: string) =>
+      `$${new Intl.NumberFormat(lang === "es" ? "es-CL" : "en-US", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }).format(Number(value))}`;
+
+    for (const lang of LANGS) {
+      for (const p of RATE_PAGES) {
+        const slug = p[lang];
+        const other = lang === "es" ? "en" : "es";
+        describe(`/${lang}/${slug}/`, () => {
+          const html = htmlOf(lang, slug);
+
+          it("has its own title, description, canonical without a query, and its real pair", () => {
+            expect(html).toMatch(new RegExp(`<html[^>]* lang="${lang}"`));
+            expect(title(html)).toMatch(/· fik$/);
+            expect(description(html)).toBeTruthy();
+            expect(html).toContain(`<link rel="canonical" href="${SITE}/${lang}/${slug}/"`);
+            expect(html).toContain(`hreflang="${other}" href="${SITE}/${other}/${p[other]}/"`);
+            expect(html).toMatch(/<h1[^>]*id="rate-title"/);
+          });
+
+          it("carries the value of the day in the HTML (FR-005)", () => {
+            if (!fixture) {
+              expect(html).toMatch(
+                /data-rate-value[^>]*>\$[\d.,]+|data-rate-unavailable(?![^>]*hidden)/,
+              );
+              return;
+            }
+            const row = fixture.latest[p.currency];
+            expect(html).toContain(shown(row.value, lang));
+            expect(title(html)).toContain(shown(row.value, lang));
+            const carried = row.valueDate < row.date;
+            expect(/data-rate-carried(?![^>]*hidden)/.test(html)).toBe(carried);
+          });
+
+          it("declares the rate for search engines", () => {
+            const json =
+              attr(html, /<script type="application\/ld\+json">([^<]*)<\/script>/) ?? "[]";
+            const types = (JSON.parse(json) as { "@type": string }[]).map((d) => d["@type"]);
+            expect(types).toContain("BreadcrumbList");
+            if (fixture) expect(types).toContain("ExchangeRateSpecification");
+          });
+
+          it("cites the source, links the other indicator and invites to sign up (FR-012)", () => {
+            expect(html).toContain('href="https://mindicador.cl"');
+            expect(html).toMatch(/href="\?acceso=registro"[^>]*data-access="registro"/);
+            const otherPage = RATE_PAGES.find((o) => o !== p)!;
+            expect(html).toContain(`href="/${lang}/${otherPage[lang]}/"`);
+          });
+
+          it("ships the history, the date input and the converter (FR-008/009/010)", () => {
+            if (fixture) {
+              expect(html.match(/<svg[^>]*data-rate-chart/g)?.length).toBe(2);
+              expect(html).toMatch(/<tbody data-period="30"[^>]*>\s*<tr[\s>]/);
+              expect(html).toMatch(/<input[^>]*data-rate-date-input[^>]*min="\d{4}-\d{2}-\d{2}"/);
+              expect(html).toContain('id="rates-data"');
+            }
+            expect(html).toContain("data-conv-unit");
+            expect(html).toContain("data-conv-pesos");
+          });
+
+          it("loads no React on arrival", () => {
+            const scripts = [...html.matchAll(/<script[^>]*src="([^"]+)"/g)].map((m) => m[1]!);
+            for (const src of scripts) {
+              const code = readFileSync(join(DIST, src), "utf8");
+              expect(code, src).not.toMatch(/react-dom|__reactFiber|react\.production/);
+            }
+          });
+        });
+      }
+
+      it(`/${lang}/ shows today's UF and dollar, linking to their pages (FR-013)`, () => {
+        const html = htmlOf(lang, "");
+        for (const p of RATE_PAGES) {
+          expect(html).toContain(`href="/${lang}/${p[lang]}/"`);
+          if (fixture) expect(html).toContain(shown(fixture.latest[p.currency].value, lang));
+        }
+      });
+
+      it(`every /${lang}/ page links to both indicators in its footer`, () => {
+        for (const slug of ["about", "faq", "pricing"]) {
+          const html = htmlOf(lang, slug);
+          for (const p of RATE_PAGES) expect(html).toContain(`href="/${lang}/${p[lang]}/"`);
+        }
+      });
+    }
+
+    it("lists the four pages in the sitemap with their real language pair", () => {
+      const files = readdirSync(DIST).filter((f) => /^sitemap-\d+\.xml$/.test(f));
+      const xml = files.map((f) => readFileSync(join(DIST, f), "utf8")).join("\n");
+      for (const p of RATE_PAGES) {
+        for (const lang of LANGS) expect(xml).toContain(`<loc>${SITE}/${lang}/${p[lang]}/</loc>`);
+        expect(xml).not.toContain(`${SITE}/en/${p.es}/`);
+        expect(xml).not.toContain(`${SITE}/es/${p.en}/`);
+      }
+    });
+  });
+
   it("redirects the root and the old addresses", () => {
     expect(readFileSync(join(DIST, "index.html"), "utf8")).toMatch(
       /http-equiv="refresh"[^>]*\/es\//,

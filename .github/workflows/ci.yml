@@ -205,6 +205,9 @@ jobs:
           PUBLIC_API_URL: "https://api.example.test"
           PUBLIC_APP_URL: "https://app.example.test"
           PUBLIC_SITE_URL: "https://example.test"
+          # The indicator pages (spec 033) build with a fixed set of rates instead of calling an
+          # API, and test:build checks that exact value of the day is in the HTML.
+          EXCHANGE_RATES_SNAPSHOT: test/fixtures/rates-snapshot.json
         run: |
           pnpm --filter @finance/landing build
           pnpm --filter @finance/landing test:build

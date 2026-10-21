@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { LEGACY_REDIRECTS, legacyTarget, pagePath, pickLanguage } from "./language";
+import { LEGACY_REDIRECTS, RATE_PAGES, legacyTarget, pagePath, pickLanguage } from "./language";
 
 describe("pickLanguage", () => {
   it("picks English when the browser prefers it first", () => {
@@ -44,5 +44,23 @@ describe("legacyTarget", () => {
       "/preguntas",
       "/privacidad",
     ]);
+  });
+});
+
+describe("pagePath for the indicator pages (spec 033, clarify Q2)", () => {
+  it("uses the slug of each language", () => {
+    expect(pagePath("es", "ufValue")).toBe("/es/valor-uf/");
+    expect(pagePath("en", "ufValue")).toBe("/en/uf-value/");
+    expect(pagePath("es", "dollarRate")).toBe("/es/dolar-observado/");
+    expect(pagePath("en", "dollarRate")).toBe("/en/dollar-rate/");
+  });
+
+  it("leaves every other page on its single English slug", () => {
+    expect(pagePath("es", "about")).toBe("/es/about/");
+    expect(pagePath("en", "privacyPolicy")).toBe("/en/privacy-policy/");
+  });
+
+  it("maps each indicator page to its currency", () => {
+    expect(RATE_PAGES).toEqual({ ufValue: "CLF", dollarRate: "USD" });
   });
 });

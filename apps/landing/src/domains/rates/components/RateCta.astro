@@ -1,0 +1,29 @@
+---
+import { t } from "../../../i18n";
+import type { Language } from "../../../lib/language";
+
+/** Spec 033, US4: what fik does with these values, and the sign-up (the site's access panel). */
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+---
+
+<section
+  aria-labelledby="rate-cta-title"
+  class="flex flex-col items-start gap-4 rounded-2xl border bg-surface2 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8"
+>
+  <div class="flex max-w-[56ch] flex-col gap-2">
+    <h2 id="rate-cta-title" class="text-xl font-semibold tracking-tight">
+      {t(lang, "landing.rates.cta.title")}
+    </h2>
+    <p class="text-base leading-relaxed text-muted-foreground">{t(lang, "landing.rates.cta.body")}</p>
+  </div>
+  <a
+    href="?acceso=registro"
+    data-access="registro"
+    class="inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.97] sm:w-auto"
+  >
+    {t(lang, "landing.rates.cta.action")}
+  </a>
+</section>

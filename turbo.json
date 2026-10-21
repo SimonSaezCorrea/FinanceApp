@@ -10,7 +10,9 @@
         "VITE_LANDING_URL",
         "PUBLIC_API_URL",
         "PUBLIC_APP_URL",
-        "PUBLIC_SITE_URL"
+        "PUBLIC_SITE_URL",
+        "EXCHANGE_RATES_SNAPSHOT",
+        "EXCHANGE_RATES_REQUIRED"
       ]
     },
     "dev": {

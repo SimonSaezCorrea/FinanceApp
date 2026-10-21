@@ -1,0 +1,72 @@
+---
+import type { ExchangeCurrency, ExchangeRate } from "@finance/contracts/exchange-rate-rules";
+import { isCarried } from "@finance/contracts/exchange-rate-rules";
+import { formatPercentChange, formatRate, formatRateChange } from "@finance/money/rate-format";
+
+import { t } from "../../../i18n";
+import type { Language } from "../../../lib/language";
+import { formatDay } from "../lib/chileDay";
+import type { RateChange } from "../lib/rateChange";
+
+/**
+ * The value of the day (spec 033, US1): value, its date, the change against the previous recorded
+ * day, the carried notice and the source — all in the HTML (FR-005), with the `[data-rate-*]` hooks
+ * the arrival script rewrites when a newer row exists. Without a value: a notice, never a number.
+ */
+interface Props {
+  lang: Language;
+  currency: ExchangeCurrency;
+  unit: string;
+  row: ExchangeRate | null;
+  change: RateChange | null;
+}
+const { lang, currency, unit, row, change } = Astro.props;
+const changeText = !change
+  ? ""
+  : Number(change.change) === 0
+    ? t(lang, "landing.rates.headline.noChange", { date: formatDay(change.previous.date, lang) })
+    : t(lang, "landing.rates.headline.change", {
+        amount: formatRateChange(change.change, lang),
+        percent: formatPercentChange(change.percent, lang),
+        date: formatDay(change.previous.date, lang),
+      });
+---
+
+<div data-rate-root data-currency={currency} class="flex flex-col gap-2 rounded-2xl border bg-card p-5 sm:p-6">
+  <p data-rate-label class="text-sm text-muted-foreground">
+    {row ? t(lang, "landing.rates.headline.valueOf", { date: formatDay(row.date, lang) }) : ""}
+  </p>
+  <div data-rate-body hidden={!row}>
+    <p class="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+      <span data-rate-value class="text-4xl font-semibold tabular-nums tracking-tight sm:text-5xl">
+        {row ? formatRate(row.value, lang) : ""}
+      </span>
+      <span class="text-sm text-muted-foreground">
+        {t(lang, "landing.rates.headline.perUnit", { unit })}
+      </span>
+    </p>
+  </div>
+  <p data-rate-unavailable hidden={!!row} class="text-base text-muted-foreground">
+    {t(lang, "landing.rates.headline.unavailable")}
+  </p>
+  <p data-rate-change hidden={!change} class="text-sm text-foreground">{changeText}</p>
+  <p
+    data-rate-carried
+    hidden={!row || !isCarried(row)}
+    class="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-sm text-foreground"
+  >
+    {
+      row && isCarried(row)
+        ? t(lang, "landing.rates.headline.carried", { date: formatDay(row.valueDate, lang) })
+        : ""
+    }
+  </p>
+  <p class="mt-2 text-xs text-muted-foreground">
+    {t(lang, "landing.rates.headline.source")}{" "}
+    <a
+      href="https://mindicador.cl"
+      rel="noopener"
+      class="underline underline-offset-2 hover:text-foreground">mindicador.cl</a
+    >
+  </p>
+</div>

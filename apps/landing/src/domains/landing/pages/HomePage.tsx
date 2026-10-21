@@ -15,15 +15,15 @@ import { AccessLink } from "../components/AccessLink";
 /** Public home: what the app is, a cordillera that doubles as a balance chart, then why fik
  * (a full-width band), what sets it apart (two illustrated rows), one total per currency, and a
  * closing sign-up. */
-export function HomePage() {
+export function HomePage({ rates = null }: Readonly<{ rates?: React.ReactNode }> = {}) {
   return (
     <>
-      <LandingHome />
+      <LandingHome rates={rates} />
     </>
   );
 }
 
-function LandingHome() {
+function LandingHome({ rates }: Readonly<{ rates: React.ReactNode }>) {
   const { t } = useTranslation();
 
   return (
@@ -65,6 +65,7 @@ function LandingHome() {
       <FeaturesSection />
 
       <CurrenciesStrip />
+      {rates}
 
       <ClosingCta />
     </>

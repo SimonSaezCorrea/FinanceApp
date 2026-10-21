@@ -45,14 +45,17 @@ export class ListExchangeRatesQueryHandler extends BaseQueryHandler<
       throw new ExchangeRangeTooLargeError();
     }
 
-    const [items, usd, clf] = await Promise.all([
+    const [items, usd, clf, firstUsd, firstClf] = await Promise.all([
       this.repo.findRange(query.filters.currency, from, to),
       this.repo.findLatest("USD"),
       this.repo.findLatest("CLF"),
+      this.repo.firstDate("USD"),
+      this.repo.firstDate("CLF"),
     ]);
     return {
       items: items.map(toDto),
       latest: { USD: usd ? toDto(usd) : null, CLF: clf ? toDto(clf) : null },
+      first: { USD: firstUsd, CLF: firstClf },
     };
   }
 }

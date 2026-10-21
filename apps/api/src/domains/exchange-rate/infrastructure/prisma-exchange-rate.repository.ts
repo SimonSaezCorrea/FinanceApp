@@ -83,4 +83,12 @@ export class PrismaExchangeRateRepository implements ExchangeRateRepositoryPort 
     const latest = await this.findLatest(currency);
     return latest ? latest.date : null;
   }
+
+  async firstDate(currency: RateCurrency): Promise<string | null> {
+    const row = await this.prisma.exchangeRate.findFirst({
+      where: { currency },
+      orderBy: { date: "asc" },
+    });
+    return row ? toEntry(row).date : null;
+  }
 }
