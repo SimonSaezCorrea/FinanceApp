@@ -1,5 +1,5 @@
 ---
-import type { ExchangeRate } from "@finance/contracts/exchange-rate-rules";
+import type { ExchangeCurrency, ExchangeRate } from "@finance/contracts/exchange-rate-rules";
 import { formatRate } from "@finance/money/rate-format";
 
 import { t } from "../../../i18n";
@@ -12,12 +12,23 @@ import { formatDay } from "../lib/chileDay";
  */
 interface Props {
   lang: Language;
+  currency: ExchangeCurrency;
   unitLabel: string;
   row: ExchangeRate | null;
 }
-const { lang, unitLabel, row } = Astro.props;
-const field =
-  "w-full rounded-lg border border-input bg-background px-3 py-2.5 text-base tabular-nums text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:text-sm";
+const { lang, currency, unitLabel, row } = Astro.props;
+// The sign each amount is written with, shown inside its field, the same in both languages: "$"
+// for pesos and dollars alike (each field's label says which), and the UF, which has no symbol of
+// its own, by its name.
+const SYMBOLS: Record<ExchangeCurrency | "CLP", string> = { CLP: "$", USD: "$", CLF: "UF" };
+const symbols = { unit: SYMBOLS[currency], pesos: SYMBOLS.CLP };
+// The box is the field; the input inside it has no border of its own, so the sign and the number
+// read as one control and a wider sign ("US$") never overlaps what is typed.
+const box =
+  "flex items-center gap-2 rounded-lg border border-input bg-background px-3 focus-within:ring-2 focus-within:ring-ring";
+const sign = "shrink-0 text-base font-medium text-muted-foreground sm:text-sm";
+const input =
+  "min-w-0 flex-1 bg-transparent py-2.5 text-base tabular-nums text-foreground outline-none sm:text-sm";
 ---
 
 <section aria-labelledby="rate-converter-title" class="flex flex-col gap-4 rounded-2xl border bg-card p-5 sm:p-6">
@@ -27,15 +38,24 @@ const field =
   <div class="grid gap-3">
     <label class="flex flex-col gap-1.5 text-sm font-medium">
       {unitLabel}
-      <input data-conv-unit type="text" inputmode="decimal" autocomplete="off" class={field} />
+      <span class={box}>
+        <span aria-hidden="true" class={sign}>{symbols.unit}</span>
+        <input data-conv-unit  type="text" inputmode="decimal" autocomplete="off" class={input} />
+      </span>
     </label>
     <label class="flex flex-col gap-1.5 text-sm font-medium">
       {t(lang, "landing.rates.converter.pesos")}
-      <input data-conv-pesos type="text" inputmode="decimal" autocomplete="off" class={field} />
+      <span class={box}>
+        <span aria-hidden="true" class={sign}>{symbols.pesos}</span>
+        <input data-conv-pesos  type="text" inputmode="decimal" autocomplete="off" class={input} />
+      </span>
     </label>
   </div>
   <p data-conv-error hidden role="alert" class="text-sm text-destructive">
     {t(lang, "landing.rates.converter.invalid")}
+  </p>
+  <p data-conv-norate hidden role="status" class="text-sm text-muted-foreground">
+    {t(lang, "landing.rates.converter.noRate")}
   </p>
   <p data-conv-using aria-live="polite" class="text-xs text-muted-foreground">
     {

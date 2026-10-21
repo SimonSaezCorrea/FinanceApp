@@ -208,11 +208,69 @@ describe("converter (FR-010/FR-011)", () => {
     expect(unit.value).toBe("2,5");
   });
 
+  it("groups thousands while typing, before the field loses focus", async () => {
+    const { d } = deps();
+    initRatePage(document, d, fakeWindow());
+    const unit = document.querySelector<HTMLInputElement>("[data-conv-unit]")!;
+    unit.value = "150000000";
+    unit.setSelectionRange(9, 9);
+    unit.dispatchEvent(new Event("input"));
+    expect(unit.value).toBe("150.000.000");
+    expect(unit.selectionStart).toBe(11);
+    await flush();
+    expect(document.querySelector<HTMLInputElement>("[data-conv-pesos]")!.value).toBe(
+      "6.000.000.000.000",
+    );
+  });
+
+  it("leaving a field groups what was typed, but never rounds it", async () => {
+    const { d } = deps();
+    initRatePage(document, d, fakeWindow());
+    const unit = document.querySelector<HTMLInputElement>("[data-conv-unit]")!;
+    unit.value = "15000";
+    unit.dispatchEvent(new Event("blur"));
+    await flush();
+    expect(unit.value).toBe("15.000");
+
+    unit.value = "3,123456";
+    unit.dispatchEvent(new Event("blur"));
+    await flush();
+    expect(unit.value).toBe("3,123456");
+  });
+
+  it("fills pesos live while typing a dollar-style decimal in Spanish", async () => {
+    const { d } = deps();
+    initRatePage(document, d, fakeWindow());
+    const unit = document.querySelector<HTMLInputElement>("[data-conv-unit]")!;
+    unit.value = "1.";
+    unit.setSelectionRange(2, 2);
+    unit.dispatchEvent(new InputEvent("input", { data: ".", inputType: "insertText" }));
+    unit.value += "5";
+    unit.setSelectionRange(3, 3);
+    unit.dispatchEvent(new InputEvent("input", { data: "5", inputType: "insertText" }));
+    await flush();
+    expect(document.querySelector<HTMLInputElement>("[data-conv-pesos]")!.value).toBe("60.000");
+  });
+
+  it("says there is no value to convert with when the page has none and the API is down", async () => {
+    mount({ rows: [] });
+    document.body.insertAdjacentHTML("beforeend", "<p data-conv-norate hidden></p>");
+    const { d } = deps(() => new Error("down"));
+    initRatePage(document, d, fakeWindow());
+    await flush();
+    const unit = document.querySelector<HTMLInputElement>("[data-conv-unit]")!;
+    unit.value = "3";
+    unit.dispatchEvent(new Event("input"));
+    await flush();
+    expect(hidden("[data-conv-norate]")).toBe(false);
+    expect(document.querySelector<HTMLInputElement>("[data-conv-pesos]")!.value).toBe("");
+  });
+
   it("shows no result and a short message for an invalid amount", async () => {
     const { d } = deps();
     initRatePage(document, d, fakeWindow());
     const unit = document.querySelector<HTMLInputElement>("[data-conv-unit]")!;
-    unit.value = "-3";
+    unit.value = "0";
     unit.dispatchEvent(new Event("input"));
     await flush();
     expect(document.querySelector<HTMLInputElement>("[data-conv-pesos]")!.value).toBe("");

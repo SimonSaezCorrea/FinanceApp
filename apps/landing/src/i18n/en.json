@@ -436,7 +436,8 @@
         "title": "Converter",
         "pesos": "Chilean pesos",
         "using": "Using the value for {{date}}: {{value}}",
-        "invalid": "Enter an amount greater than zero."
+        "invalid": "Enter an amount greater than zero.",
+        "noRate": "We don't have the value to convert with yet. Try again in a few minutes."
       },
       "cta": {
         "title": "Your dollar and UF accounts, in pesos",

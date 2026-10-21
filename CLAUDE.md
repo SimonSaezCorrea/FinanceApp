@@ -1691,8 +1691,12 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   [30 days with hollow dots on carried days, 1 year], switched by radios in CSS (`:has`), 30-day
   table in HTML, 1-year table filled by the script, native `<input type="date">` with `min` = first
   recorded day; `RateCta` = `?acceso=registro`), pure libs (`chileDay`, `rateChange`, `rateDate`
-  [`?fecha=`/`?date=`, never in the canonical], `converter` [parse by page language, unit→pesos =
-  `convertAmount`, pesos→unit with the inverse rate]) and **`scripts/rates.ts`** (`initRatePage`/
+  [`?fecha=`/`?date=`, never in the canonical], `converter` [parse by page language; FULL precision,
+  never rounded to the currency — unit→pesos the exact product, pesos→unit the division at
+  `decimal.js`'s 20 significant digits, no exponent], `typing` [`formatWhileTyping`: thousands grouped
+  on every keystroke keeping the caret, any number of decimals, a typed "." is the decimal point in
+  Spanish, the lone-dot rule only for pasted text]; each field shows its sign inside it, "$" for pesos
+  and dollars, "UF") and **`scripts/rates.ts`** (`initRatePage`/
   `initRatesHome`, ~7 KB: arrival refresh of the last week from the PUBLIC endpoint, again on
   `visibilitychange` on a later Chile day; date picker; converter importing `decimal.js` only on the
   first keystroke). Each page carries a JSON island `#rates-data` (its year of rows + the templates

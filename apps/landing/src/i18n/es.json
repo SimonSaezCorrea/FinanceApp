@@ -436,7 +436,8 @@
         "title": "Conversor",
         "pesos": "Pesos chilenos",
         "using": "Con el valor del {{date}}: {{value}}",
-        "invalid": "Escribe un monto mayor que cero."
+        "invalid": "Escribe un monto mayor que cero.",
+        "noRate": "Todavía no tenemos el valor para convertir. Vuelve a intentarlo en unos minutos."
       },
       "cta": {
         "title": "Tus cuentas en dólares y en UF, en pesos",

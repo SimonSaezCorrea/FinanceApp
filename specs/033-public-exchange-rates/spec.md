@@ -15,6 +15,7 @@
 - Q: ¿Qué tan fresco ve el valor la persona que entra? → A: El documento trae el valor del día (para buscadores) y, al abrirse, la página lo reemplaza si hay uno más nuevo registrado, sin esperar a cargar para mostrarse.
 - Q: ¿Cómo se llaman las URLs? → A: Un nombre por idioma con las palabras que se buscan: `/es/valor-uf/`, `/es/dolar-observado/`, `/en/uf-value/`, `/en/dollar-rate/` (excepción deliberada a la convención de nombres en inglés del sitio).
 - Q: ¿Dónde se enlazan las páginas dentro del sitio? → A: En el pie de página de todo el sitio y en un bloque del home que muestra el valor del día de cada indicador y lleva a su página; el encabezado no cambia.
+- Q (después de implementar): ¿Con cuántos decimales se muestra el resultado de la conversión? → A: Precisión completa: los campos aceptan decimales sin límite y el resultado no se redondea a la moneda (ver FR-010).
 - Q: ¿La fecha elegida queda en la URL? → A: Sí, como parámetro (`?fecha=AAAA-MM-DD` en español, `?date=YYYY-MM-DD` en inglés): se puede compartir y recargar; para buscadores es la misma página (la URL canónica no lleva la fecha).
 
 ## User Scenarios & Testing _(mandatory)_
@@ -168,11 +169,12 @@ de la página.
   o recargar ese enlace muestre esa fecha y el conversor la use; la URL canónica de la página MUST NOT
   llevar el parámetro.
 - **FR-010**: Cada página MUST ofrecer un conversor en ambos sentidos (pesos ↔ UF o pesos ↔ dólares) con
-  el valor vigente o el de la fecha elegida, indicando qué fecha usa. De unidad a pesos, el resultado
-  MUST coincidir con la conversión que hace la app para el mismo monto y la misma fecha; de pesos a
-  unidad (que la app no ofrece) MUST usar la misma regla con el valor inverso. Precisión y redondeo
-  de destino: pesos 0 decimales, dólar 2, UF 4. Los montos se escriben con el formato numérico del
-  idioma de la página.
+  el valor vigente o el de la fecha elegida, indicando qué fecha usa. Ambos campos aceptan tantos
+  decimales como se escriban y el resultado se muestra a precisión completa, sin redondear a la
+  moneda: de unidad a pesos, el producto exacto (monto × valor, el mismo valor que usa la app); de
+  pesos a unidad, la división con 20 dígitos significativos; sin ceros sobrantes ni notación
+  exponencial. Los montos se escriben con el formato numérico del idioma de la página y los miles se
+  agrupan mientras se escribe.
 - **FR-011**: El conversor MUST NOT mostrar resultado para entradas vacías, no numéricas, negativas o
   cero.
 - **FR-012**: Cada página MUST incluir una invitación a crear cuenta en fik que explique el uso de
@@ -204,8 +206,9 @@ de la página.
   coinciden con los de la pantalla "Tipos de cambio" de la app en el 100 % de las comprobaciones.
 - **SC-002**: El documento de cada página, leído sin ejecutar código, contiene el valor del día y su
   fecha.
-- **SC-003**: Para 10 montos y fechas de prueba, el conversor de unidad a pesos da exactamente el mismo
-  resultado que la app, y el de pesos a unidad redondea a la precisión de la moneda de destino.
+- **SC-003**: Para 10 montos y fechas de prueba, el conversor de unidad a pesos da exactamente monto ×
+  valor del día que muestra la app, y el de pesos a unidad, multiplicado de vuelta por ese valor,
+  recupera el monto con un error menor a una millonésima.
 - **SC-004**: En la medición móvil estándar, las 4 páginas obtienen 100 en Accesibilidad,
   Recomendaciones y SEO, y al menos 95 en Rendimiento.
 - **SC-005**: Las 4 páginas figuran en el sitemap y quedan indexadas dentro de las 4 semanas siguientes

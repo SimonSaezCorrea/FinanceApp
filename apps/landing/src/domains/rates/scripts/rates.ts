@@ -6,6 +6,7 @@ import { API_URL } from "../../../lib/config";
 import type { Language } from "../../../lib/language";
 import { chileDay, daysBefore, formatDay } from "../lib/chileDay";
 import { type DateNotice, lookupDay, readDateParam, withDateParam } from "../lib/rateDate";
+import { formatWhileTyping } from "../lib/typing";
 
 /**
  * The indicator pages and the home block, in the browser (spec 033). The HTML already shows the
@@ -354,12 +355,19 @@ function initConverter(
     }
   };
 
+  const noRate = doc.querySelector<HTMLElement>("[data-conv-norate]");
+
   const compute = async (from: "unit" | "pesos") => {
     lastEdited = from;
     const source = from === "unit" ? unit : pesos;
     const target = from === "unit" ? pesos : unit;
     const r = rate();
-    if (!r) return;
+    // Nothing to convert with (the API couldn't be read): say so instead of staying silent.
+    if (noRate) noRate.hidden = r !== null || source.value.trim() === "";
+    if (!r) {
+      target.value = "";
+      return;
+    }
     const conv = await deps.loadConverter();
     const amount = conv.parseAmount(source.value, data.lang);
     if (error) error.hidden = amount !== null || source.value.trim() === "";
@@ -369,13 +377,37 @@ function initConverter(
     }
     target.value =
       from === "unit"
-        ? conv.formatAmountInput(conv.toPesos(amount, r.value), "CLP", data.lang)
-        : conv.formatAmountInput(conv.fromPesos(amount, r.value, currency), currency, data.lang);
+        ? conv.formatAmountInput(conv.toPesos(amount, r.value), data.lang)
+        : conv.formatAmountInput(conv.fromPesos(amount, r.value), data.lang);
     showUsing();
   };
 
-  unit.addEventListener("input", () => void compute("unit"));
-  pesos.addEventListener("input", () => void compute("pesos"));
+  // Leaving a field writes it the way the other side reads ("15000" → "15.000"; a dangling decimal
+  // point, "1.500,", is dropped). Nothing is rounded: the amount never changes behind the person.
+  const tidy = (field: HTMLInputElement) => {
+    const { value } = formatWhileTyping(field.value, field.value.length, data.lang);
+    field.value = value.replace(/[.,]$/, "");
+  };
+
+  // Thousands are grouped as you type, and the caret stays put (no `decimal.js` needed for that).
+  const onInput = (field: HTMLInputElement, side: "unit" | "pesos") => (event: Event) => {
+    const caret = field.selectionStart ?? field.value.length;
+    const { data: typed, inputType } = event as InputEvent;
+    const next = formatWhileTyping(field.value, caret, data.lang, {
+      typedPoint: typed === ".",
+      pasted: inputType === "insertFromPaste" || inputType === "insertFromDrop",
+    });
+    if (next.value !== field.value) {
+      field.value = next.value;
+      field.setSelectionRange(next.caret, next.caret);
+    }
+    void compute(side);
+  };
+
+  unit.addEventListener("input", onInput(unit, "unit"));
+  pesos.addEventListener("input", onInput(pesos, "pesos"));
+  unit.addEventListener("blur", () => tidy(unit));
+  pesos.addEventListener("blur", () => tidy(pesos));
   return {
     recompute: () => {
       showUsing();

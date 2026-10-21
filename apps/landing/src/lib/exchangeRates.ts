@@ -71,11 +71,16 @@ function toSnapshot(body: unknown, today: string): RatesSnapshot {
 
 let cached: Promise<RatesSnapshot | null> | null = null;
 
-/** The snapshot of THIS build, read once and shared by every page that needs it. */
+/** The snapshot of THIS build, read once and shared by every page that needs it. A failure is not
+ * kept: under `astro dev` the process lives on, and the next page request must try again instead
+ * of rendering without values until a restart. */
 export function buildRatesSnapshot(): Promise<RatesSnapshot | null> {
   cached ??= loadRatesSnapshot({
     snapshotPath: process.env.EXCHANGE_RATES_SNAPSHOT || undefined,
     required: process.env.EXCHANGE_RATES_REQUIRED === "true",
+  }).then((snapshot) => {
+    if (snapshot === null) cached = null;
+    return snapshot;
   });
   return cached;
 }

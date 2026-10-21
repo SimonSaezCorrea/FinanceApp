@@ -105,7 +105,7 @@ const structuredData = JSON.stringify([
     </div>
     <div class="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
       <RateHeadline lang={lang} currency={currency} unit={unit} row={row} change={change} />
-      <RateConverter lang={lang} unitLabel={t(lang, `landing.rates.${page}.unitLong`)} row={row} />
+      <RateConverter lang={lang} currency={currency} unitLabel={t(lang, `landing.rates.${page}.unitLong`)} row={row} />
     </div>
   </section>
 
