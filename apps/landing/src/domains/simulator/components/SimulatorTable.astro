@@ -1,0 +1,49 @@
+---
+import { t } from "../../../i18n";
+import type { Language } from "../../../lib/language";
+import type { SimulatorView } from "../lib/view";
+
+/** Month by month (spec 034, US3): scrolls inside its own box on a phone, never the page. */
+interface Props {
+  lang: Language;
+  view: SimulatorView;
+}
+const { lang, view } = Astro.props;
+const k = (key: string) => t(lang, `landing.simulator.table.${key}`);
+const columns = ["principal", "interest", "costs", "payment", "balance"] as const;
+const cell = "px-3 py-2 text-right tabular-nums";
+---
+
+<section data-sim-table class="flex flex-col gap-3">
+  <div class="overflow-x-auto rounded-2xl border bg-card">
+    <table class="w-full min-w-[36rem] border-collapse text-sm">
+      <caption class="px-4 pb-1 pt-4 text-left text-lg font-semibold">{k("caption")}</caption>
+      <thead class="bg-muted/50">
+        <tr>
+          <th scope="col" class="px-3 py-2 text-left font-medium">{k("number")}</th>
+          {columns.map((c) => <th scope="col" class="px-3 py-2 text-right font-medium">{k(c)}</th>)}
+        </tr>
+      </thead>
+      <tbody data-sim-rows>
+        {
+          view.rows.map((r) => (
+            <tr class="border-t">
+              <th scope="row" class="px-3 py-2 text-left font-normal tabular-nums">{r.n}</th>
+              {columns.map((c) => <td class={cell}>{r[c]}</td>)}
+            </tr>
+          ))
+        }
+      </tbody>
+      <tfoot class="border-t font-semibold">
+        <tr>
+          <th scope="row" class="px-3 py-2 text-left">{k("total")}</th>
+          <td data-sim-total="principal" class={cell}>{view.totals.principal}</td>
+          <td data-sim-total="interest" class={cell}>{view.totals.interest}</td>
+          <td data-sim-total="costs" class={cell}>{view.totals.costs}</td>
+          <td data-sim-total="payment" class={cell}>{view.totals.payment}</td>
+          <td class={cell}></td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+</section>

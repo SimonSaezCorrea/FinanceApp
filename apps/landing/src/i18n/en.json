@@ -348,6 +348,10 @@
         "titleWithValue": "US dollar to Chilean peso, {{date}}: {{value}} · fik",
         "description": "Today's dólar observado, the official US dollar rate in Chilean pesos, with a 30-day and one-year history and a converter. Data from the Central Bank of Chile.",
         "descriptionWithValue": "Dólar observado, {{date}}: {{value}}. 30-day and one-year history and a dollars to pesos converter. Data from the Central Bank of Chile."
+      },
+      "installmentSimulator": {
+        "title": "Installment calculator with CAE · fik",
+        "description": "Simulate an instalment purchase with or without interest: instalment amount, total paid, stamp tax, CAE and the month-by-month detail. Free, no account needed."
       }
     },
     "access": {
@@ -452,6 +456,116 @@
         "title": "Today's UF and dollar",
         "body": "The same values fik uses, with history and a converter.",
         "see": "See history and converter"
+      }
+    },
+    "simulator": {
+      "nav": "Installment calculator",
+      "title": "Installment calculator",
+      "lead": "Enter the price, how many instalments and the monthly rate you are offered. See the instalment, the total you pay and the CAE to compare offers, right away.",
+      "form": {
+        "title": "Your purchase",
+        "price": "Price",
+        "currency": "Currency",
+        "currencies": {
+          "CLP": "Pesos (CLP)",
+          "CLF": "UF",
+          "USD": "Dollars (USD)"
+        },
+        "installments": "Number of instalments",
+        "installmentsHint": "From 1 to 60",
+        "rate": "Monthly interest rate",
+        "rateHint": "0 if interest-free",
+        "system": "Calculation method",
+        "fixed": "Fixed instalment",
+        "fixedHint": "What banks and stores quote",
+        "constant": "Constant principal",
+        "constantHint": "The instalment goes down every month",
+        "costsTitle": "Credit costs",
+        "stampTax": "Stamp tax (impuesto de timbres y estampillas)",
+        "stampTaxHint": "Legal rate for {{count}} instalments: {{rate}}%",
+        "stampTaxDiffers": "It differs from the legal rate ({{rate}}%).",
+        "useLegal": "Use the legal rate",
+        "fee": "Fee or insurance (fixed amount, optional)",
+        "cashPrice": "Cash price (optional)",
+        "cashPriceHint": "If you get a discount for paying cash"
+      },
+      "results": {
+        "title": "Result",
+        "payment": "Instalment",
+        "times": "{{count}} instalments",
+        "timesOne": "1 instalment",
+        "lastDiffers": "The last one is {{amount}} because of rounding.",
+        "first": "First instalment",
+        "last": "Last instalment",
+        "totalPaid": "Total paid",
+        "interest": "Interest",
+        "costs": "Tax and fee",
+        "cae": "CAE",
+        "caeHint": "The CAE (carga anual equivalente) puts interest and costs into one yearly rate. It is the figure Chilean law requires lenders to disclose so credits can be compared: lower is cheaper.",
+        "incomplete": "Fill in the details to see the result.",
+        "summary": "Instalment of {{payment}}, total paid {{total}}, CAE {{cae}}."
+      },
+      "system": {
+        "fixedName": "fixed instalments",
+        "constantName": "constant principal",
+        "less": "With {{system}} you would pay {{amount}} less in total.",
+        "more": "With {{system}} you would pay {{amount}} more in total.",
+        "same": "With {{system}} you would pay the same in total."
+      },
+      "cash": {
+        "title": "Cash vs instalments",
+        "same": "You pay the same as in cash: it really is interest-free.",
+        "costsOnly": "Not quite interest-free: you pay {{amount}} more than in cash ({{percent}}) for tax and fees.",
+        "more": "In instalments you pay {{amount}} more than in cash ({{percent}} more)."
+      },
+      "table": {
+        "caption": "Month by month",
+        "number": "No.",
+        "principal": "Principal",
+        "interest": "Interest",
+        "costs": "Costs",
+        "payment": "Instalment",
+        "balance": "Balance",
+        "total": "Total"
+      },
+      "errors": {
+        "required": "Fill in this field.",
+        "invalid": "Enter a number.",
+        "integer": "Enter a whole number.",
+        "positive": "Must be greater than zero.",
+        "notNegative": "Cannot be negative.",
+        "maxInstallments": "Up to {{max}} instalments.",
+        "maxRate": "Up to {{max}}% a month.",
+        "maxTax": "Up to {{max}}%.",
+        "maxAmount": "The amount is too high.",
+        "noDecimals": "Pesos have no decimals.",
+        "decimals": "Up to {{count}} decimals.",
+        "aboveCash": "Cannot be higher than the instalment price."
+      },
+      "method": {
+        "title": "How it is calculated",
+        "fixed": "Fixed instalment (French system): you pay the same amount every month. At first most of it is interest and at the end, principal. It is the instalment banks and stores quote.",
+        "constant": "Constant principal: every month you pay the same share of the principal plus the interest on the balance, so the instalment goes down month by month. It is how fik splits your instalment plans.",
+        "tax": "Stamp tax (impuesto de timbres y estampillas): 0.066% per month of term, at most 0.8%, on the price.",
+        "taxSource": "See the law at the SII",
+        "costs": "The tax and the fee are added to the price and paid within the instalments, as in most consumer credits.",
+        "cae": "CAE: the monthly rate that equals what you receive with everything you pay, multiplied by 12, as defined by Chile's Decree 43 of 2012.",
+        "caeSource": "See Decree 43",
+        "rounding": "Amounts are rounded to whole pesos (cents in dollars, 4 decimals in UF) and the last instalment absorbs the difference.",
+        "disclaimer": "This is an estimate. The real terms (rate, insurance, fees and dates) come from the institution offering you the credit.",
+        "exampleTitle": "Example",
+        "example": "{{price}} in {{count}} instalments at {{rate}}% a month, with the legal tax: instalment of {{payment}}, total paid {{total}} and CAE {{cae}}."
+      },
+      "cta": {
+        "title": "Keep track of your real instalments",
+        "body": "In fik you record every instalment purchase with its card, see what is billed each month and how much is left to pay.",
+        "action": "Create account"
+      },
+      "home": {
+        "title": "How much do you pay in instalments?",
+        "body": "Simulate a purchase with or without interest and see the instalment, the total and the CAE.",
+        "example": "{{price}} in {{count}} instalments at {{rate}}%: instalment of {{payment}}",
+        "see": "Simulate my instalments"
       }
     }
   }

@@ -6,7 +6,7 @@ import { API_URL } from "../../../lib/config";
 import type { Language } from "../../../lib/language";
 import { chileDay, daysBefore, formatDay } from "../lib/chileDay";
 import { type DateNotice, lookupDay, readDateParam, withDateParam } from "../lib/rateDate";
-import { formatWhileTyping } from "../lib/typing";
+import { formatWhileTyping } from "../../../lib/typing";
 
 /**
  * The indicator pages and the home block, in the browser (spec 033). The HTML already shows the

@@ -9,12 +9,14 @@ const site = process.env.PUBLIC_SITE_URL ?? "http://localhost:4321";
 // Pages that only redirect: the root (picks the language) and the old Spanish addresses.
 const REDIRECT_PAGES = new Set(["/", "/precios/", "/nosotros/", "/privacidad/", "/preguntas/"]);
 
-// The indicator pages (spec 033) have a different slug per language; the sitemap's i18n option
-// pairs pages by swapping the language segment, so their alternates are rewritten from this table.
-// Same table as RATE_SLUGS in src/lib/language.ts (test/build.test.ts checks the sitemap).
-const RATE_PAIRS = [
+// The indicator pages (spec 033) and the installment simulator (spec 034) have a different slug
+// per language; the sitemap's i18n option pairs pages by swapping the language segment, so their
+// alternates are rewritten from this table. Same table as LOCALIZED_SLUGS in src/lib/language.ts
+// (test/build.test.ts checks the sitemap).
+const LOCALIZED_PAIRS = [
   { es: "/es/valor-uf/", en: "/en/uf-value/" },
   { es: "/es/dolar-observado/", en: "/en/dollar-rate/" },
+  { es: "/es/simulador-cuotas/", en: "/en/installment-calculator/" },
 ];
 
 // Pages an email link opens (specs/032): never indexed, never in the sitemap.
@@ -37,7 +39,7 @@ export default defineConfig({
       i18n: { defaultLocale: "es", locales: { es: "es-CL", en: "en-US" } },
       serialize(item) {
         const path = new URL(item.url).pathname;
-        const pair = RATE_PAIRS.find((p) => p.es === path || p.en === path);
+        const pair = LOCALIZED_PAIRS.find((p) => p.es === path || p.en === path);
         if (pair) {
           item.links = [
             { url: new URL(pair.es, site).href, lang: "es-CL" },

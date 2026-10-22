@@ -1,7 +1,7 @@
 import { toMoney } from "@finance/money";
 
 import type { Language } from "../../../lib/language";
-import { groupDecimal } from "./typing";
+import { groupDecimal } from "../../../lib/typing";
 
 /**
  * The indicator pages' converter (spec 033, FR-010/FR-011). Loaded on the first keystroke (it

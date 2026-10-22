@@ -1,0 +1,45 @@
+---
+/**
+ * One labelled field of the simulator (spec 034): the sign or unit inside the box, a hint and an
+ * error line the script fills (`aria-describedby` points at both).
+ */
+interface Props {
+  id: string;
+  field: string;
+  label: string;
+  value: string;
+  hint?: string;
+  prefix?: string;
+  suffix?: string;
+  inputmode?: "decimal" | "numeric";
+}
+const { id, field, label, value, hint, prefix, suffix, inputmode = "decimal" } = Astro.props;
+const hintId = `${id}-hint`;
+const errorId = `${id}-error`;
+const box =
+  "flex items-center gap-2 rounded-lg border border-input bg-background px-3 focus-within:ring-2 focus-within:ring-ring has-[[aria-invalid=true]]:border-destructive";
+const sign = "shrink-0 text-base font-medium text-muted-foreground sm:text-sm";
+const input =
+  "min-h-11 min-w-0 flex-1 bg-transparent py-2.5 text-base tabular-nums text-foreground outline-none sm:text-sm";
+---
+
+<div class="flex flex-col gap-1.5">
+  <label for={id} class="text-sm font-medium">{label}</label>
+  <span class={box}>
+    {prefix && <span aria-hidden="true" data-sim-prefix={field} class={sign}>{prefix}</span>}
+    <input
+      id={id}
+      data-sim-field={field}
+      type="text"
+      inputmode={inputmode}
+      autocomplete="off"
+      value={value}
+      aria-describedby={hint ? `${hintId} ${errorId}` : errorId}
+      class={input}
+    />
+    {suffix && <span aria-hidden="true" class={sign}>{suffix}</span>}
+  </span>
+  {hint && <p id={hintId} data-sim-hint={field} class="text-xs text-muted-foreground">{hint}</p>}
+  <p id={errorId} data-sim-error={field} hidden class="text-sm text-destructive"></p>
+  <slot />
+</div>

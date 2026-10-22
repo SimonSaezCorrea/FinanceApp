@@ -1,4 +1,16 @@
 <!--
+Sync Impact Report — 2026-10-22 (amendment 2.8.0)
+- Version change: 2.7.0 → 2.8.0 (MINOR: Principle I names a second schedule implementation;
+  specs/034 public installment simulator).
+- AMENDED Principle I: besides `equalPrincipalSchedule` (capital constante, the split every app
+  aggregate uses), `fixedPaymentSchedule` in `@finance/money` is the ONE implementation of the cuota
+  fija (French) system, with the same rounding rule (currency scale, last instalment absorbs). Only
+  the public simulator uses it today; app aggregates keep `equalPrincipalSchedule`.
+- NOTED: the simulator pages (`/es/simulador-cuotas/`, `/en/installment-calculator/`) are a second
+  exception, after the indicator pages, to the public site's "English slugs in both languages"
+  convention (their address is what people search for). No new dependency, no schema change, no API.
+-->
+<!--
 Sync Impact Report — 2026-10-21 (amendment 2.7.0)
 - Version change: 2.6.5 → 2.7.0 (MINOR: Principle II gains a named exception; specs/033 public
   exchange rates).
@@ -1833,6 +1845,12 @@ instalment absorbing the remainder so they sum exactly to the total: 64.990 CLP 
 `equalPrincipalSchedule({ …, currency })` in `@finance/money`, called by the server aggregates
 and by every client preview alike.
 
+**One implementation per amortization system.** The cuota fija (French) system — the fixed
+instalment Chilean lenders quote — has exactly one implementation too, `fixedPaymentSchedule` in
+`@finance/money`, under the same rounding rule (each instalment and its interest at the currency's
+minor unit, the LAST instalment absorbing the remainder). A screen that offers both systems calls
+these two functions; it never re-implements either.
+
 **An unpaid remainder is a figure, never a rewrite.** When a payment fails to cover what was owed,
 the shortfall MUST be carried onto the next unpaid item as a column of its own
 (`CreditStatement.carriedOverAmount`, `InstallmentPayment.carriedOverAmount`); the SCHEDULE — the
@@ -2311,4 +2329,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.7.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-21
+**Version**: 2.8.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-22

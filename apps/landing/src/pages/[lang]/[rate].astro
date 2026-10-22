@@ -17,7 +17,7 @@ import {
   LANGUAGES,
   pagePath,
   RATE_PAGES,
-  RATE_SLUGS,
+  LOCALIZED_SLUGS,
   type RatePage,
 } from "../../lib/language";
 
@@ -28,8 +28,8 @@ import {
  */
 export function getStaticPaths() {
   return LANGUAGES.flatMap((lang) =>
-    (Object.keys(RATE_SLUGS) as RatePage[]).map((page) => ({
-      params: { lang, rate: RATE_SLUGS[page][lang] },
+    (Object.keys(RATE_PAGES) as RatePage[]).map((page) => ({
+      params: { lang, rate: LOCALIZED_SLUGS[page][lang] },
       props: { page },
     })),
   );

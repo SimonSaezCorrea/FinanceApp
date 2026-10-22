@@ -1712,6 +1712,30 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
     12:20 UTC with `EXCHANGE_RATES_REQUIRED=true`, a separate workflow so it never moves `deploy.yml`'s
     baseline, sharing its `deploy` concurrency group (docs/DEPLOY.md §10). Local Lighthouse mobile:
     100/100/100/100 on the four pages, LCP 1,7 s. i18n `landing.rates.*`, `landing.meta.{ufValue,dollarRate}.*`.
+    Amendment (installment simulator, specs/034, 2026-10-22): **`/es/simulador-cuotas/` and
+    `/en/installment-calculator/`** — a public "¿cuánto pago en N cuotas?" tool, no account, no API.
+    Naming per layer: page key `installmentSimulator`, frontend domain and i18n `simulator`
+    (`landing.simulator.*`, `landing.meta.installmentSimulator.*`). The per-language slug exception of
+    spec 033 is now general: `language.ts`'s `RATE_SLUGS` → **`LOCALIZED_SLUGS`** (+ `LocalizedPage`,
+    `isLocalizedPage`; `RATE_PAGES`/`isRatePage` stay for the indicators) and astro.config's
+    `RATE_PAIRS` → `LOCALIZED_PAIRS`; route `src/pages/[lang]/[simulator].astro` (beside `[rate].astro`,
+    same level, both built). Inputs: price, currency (CLP/UF/USD, never converted), 1–60 cuotas, monthly
+    rate 0–10 %, cuota fija (default) or capital constante, stamp tax pre-filled with the legal rate
+    (0,066 %/month, cap 0,8 %, SII) that follows the term until edited ("Usar la tasa legal" restores
+    it), optional fixed fee, optional cash price. Costs are FINANCED (price + tax + fee, on which
+    interest runs); the CAE follows DS 43/2012 (monthly IRR × 12, received = the price). Results:
+    cuota (or first/last), total, interest, costs, CAE, the other system's difference, cash vs
+    cuotas (SAME / COSTS_ONLY / MORE) and the month-by-month table. ALL arithmetic is the new
+    `@finance/money/installment-simulation`; the page solves `DEFAULT_INPUT` (CLP 300.000, 6, 2 %,
+    legal tax → cuota $53.770, CAE 25,41 %) AT BUILD so it is in the HTML, and the browser loads the
+    same module on idle or first keystroke (`domains/simulator/scripts/simulator.ts`, ~7,5 KB entry,
+    no `decimal.js` until then); one pure view model (`lib/view.ts`) renders both; the page's message
+    templates travel in `#simulator-data` (`lib/island.ts` at build, `lib/translate.ts` in the
+    browser, so the catalogs/React never reach the bundle). Nothing fetched or stored. Home block
+    `HomeSimulator.tsx` (after the rates block) and a footer link on every page; JSON-LD
+    `WebApplication` + `BreadcrumbList`; CTA in a `[data-access-slot]` (signed in → "Ir a la app").
+    `apps/landing/src/lib/typing.ts` (moved from `domains/rates/lib/`) now serves both pages.
+    Local Lighthouse mobile: 100/100/96*/100, LCP 1,7 s, CLS 0 (*the local session probe only).
     Amendment (Lighthouse pass on the app, 2026-10-09): measured on the production build, mobile
     profile, signed in. **Language:** only Spanish ships in the entry bundle — `apps/web/src/i18n`
     builds its own instance with `es.json` and `setLanguage(lang)`/`loadLanguage(lang)` fetch the
@@ -1737,7 +1761,7 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
     (LCP ~5 s on the throttled mobile profile, mostly the data waterfall). A Lighthouse run against
     `vite preview` in VS Code can report "charset too late": the Console Ninja extension injects a
     script ahead of `<meta charset>` — not the build.
-- **`packages/`** — `contracts` (zod schemas + inferred types = the API contract; one module per domain; built to dist CJS + `import` condition → src for Vite; zod-free entry points `@finance/contracts/http` [`API_BASE_PATH`, `IDEMPOTENCY_HEADER`], `@finance/contracts/auth-rules` [RUT check digit, age, guardian threshold] and `@finance/contracts/exchange-rate-rules` [`isCarried`, `rateOn`, specs/033] for pages that must stay small), `money` (`decimal.js`: money helpers, `equalPrincipalSchedule`, interest; `@finance/money/rate-format` = `formatRate`/`formatRateChange`/`formatPercentChange` with no `decimal.js`, specs/033), `config` (shared `tsconfig.base.json`), and three **source-only** packages (specs/031) imported by path: **`ui`** (Tailwind preset, `src/styles/fik.css` tokens, `prepaint.mjs` theme script, `breakpoints.ts`, `src/shared/{ui,lib}` primitives incl. the overlay family and `DateField` — the app's own calendar, moved from `apps/web` on 2026-10-14 so the sign-up's birth date uses it too [`max`, `openTo="years"`, `defaultMonth`, `todayShortcut`, `variant="bare"`; Escape closes the calendar, never the dialog around it], `ThemeProvider`), **`client`** (`configureClient({baseUrl})`, `apiFetch`/`ApiRequestError`/`resetAuthRefresh`, `authApi`, `passkeyApi`, WebAuthn helpers, `safeReturnPath` — the ONE return-path rule) and **`i18n`** (the shared es/en catalogs, `createI18n`, `LANGUAGES` in `src/languages.ts`, parity test). One-way deps: `apps → packages`; `api ↛ web/landing`; `web ↛ landing`; `landing ↛ web/api/db`; `packages ↛ apps` (enforced by `check:boundaries`).
+- **`packages/`** — `contracts` (zod schemas + inferred types = the API contract; one module per domain; built to dist CJS + `import` condition → src for Vite; zod-free entry points `@finance/contracts/http` [`API_BASE_PATH`, `IDEMPOTENCY_HEADER`], `@finance/contracts/auth-rules` [RUT check digit, age, guardian threshold] and `@finance/contracts/exchange-rate-rules` [`isCarried`, `rateOn`, specs/033] for pages that must stay small), `money` (`decimal.js`: money helpers, `equalPrincipalSchedule`, interest; `@finance/money/rate-format` = `formatRate`/`formatRateChange`/`formatPercentChange` with no `decimal.js`, specs/033; `@finance/money/installment-simulation` = `fixedPaymentSchedule` [cuota fija, the ONE French-system implementation, Principle I], `stampTaxRate`, `caePercent`, `validateSimulationInput`, `simulateInstallments`, specs/034), `config` (shared `tsconfig.base.json`), and three **source-only** packages (specs/031) imported by path: **`ui`** (Tailwind preset, `src/styles/fik.css` tokens, `prepaint.mjs` theme script, `breakpoints.ts`, `src/shared/{ui,lib}` primitives incl. the overlay family and `DateField` — the app's own calendar, moved from `apps/web` on 2026-10-14 so the sign-up's birth date uses it too [`max`, `openTo="years"`, `defaultMonth`, `todayShortcut`, `variant="bare"`; Escape closes the calendar, never the dialog around it], `ThemeProvider`), **`client`** (`configureClient({baseUrl})`, `apiFetch`/`ApiRequestError`/`resetAuthRefresh`, `authApi`, `passkeyApi`, WebAuthn helpers, `safeReturnPath` — the ONE return-path rule) and **`i18n`** (the shared es/en catalogs, `createI18n`, `LANGUAGES` in `src/languages.ts`, parity test). One-way deps: `apps → packages`; `api ↛ web/landing`; `web ↛ landing`; `landing ↛ web/api/db`; `packages ↛ apps` (enforced by `check:boundaries`).
 - **Auth:** backend issues **JWT access+refresh tokens in httpOnly cookies** (`domains/auth`); every auth cookie is `Secure` unless ALL `CORS_ORIGIN` origins are plain `http://` on loopback (`origins.config.ts`'s `requiresSecureCookies`, 2026-10-10) — secure by default, never tied to `NODE_ENV`, so a deployment that forgets `NODE_ENV=production` still sends them over HTTPS only; `JwtAuthGuard` validates the access cookie **and** (per-request DB check) that the account's `status` is still `ACTIVE`, rejecting `DISABLED` accounts (`ACCOUNT_DISABLED`) even with an otherwise-valid token. Every endpoint is scoped to the authenticated `userId`. The frontend `AuthProvider`/`useAuth` + `RequireAuth` gate routes.
   - **profile** (specs/008, folded into the `auth` domain — no separate backend module, `User` already lives there): `User` gains `preferredCurrency` (CLP/USD/CLF — las tres del MVP; `CLF` es la UF), `locale` (es/en), `dateFormat`, `theme` (dark/light/system — same preference the sidebar `ThemeToggle` controls, now persisted per-user in addition to `localStorage`), `status` (`UserStatus`: ACTIVE/DISABLED), `createdAt` (→ contract's derived `memberSinceYear`). Endpoints: `PATCH /auth/me` (name/email, unique-email race guarded by catching Prisma `P2002` in addition to the pre-check), `POST /auth/me/password` (current+new, bcrypt), `PATCH /auth/me/preferences`, `POST /auth/me/deactivate` (requires re-entering the password; soft-disables the account — no data is deleted; clears cookies like `logout`). Frontend: new `domains/profile` (route `/profile`, reached by clicking the sidebar user block), `ThemeSync` component reconciles the shared theme preference between `localStorage` and the backend. New error codes `INVALID_CURRENT_PASSWORD`, `ACCOUNT_DISABLED`. 2FA switch + the 3 notification switches shown in the design are **intentionally inert** (local UI state only, no backend capability yet).
     Amendment (personal info): `User` also gains `countryId` (FK → `Country`, `onDelete: SetNull`), `addressStreet`/`addressCity`/`addressRegion`/`addressPostalCode` (all free text), `birthDate`, `identifierType` (`IdentifierType`: RUT/DNI/PASSPORT/OTHER) + `identifierValue`. All optional, purely informational (no billing/KYC flow consumes them yet). `identifierValue` is check-digit validated (`isValidRut`, módulo 11) only when `identifierType === "RUT"` — other types have no universal format to validate. The contract exposes both `birthDate` (ISO date string, for the edit form) and a derived `age`; the Profile view only ever renders `age` (hiding the exact date is a UI choice, not an API one). `packages/contracts` gained its own Vitest suite (`"test": "vitest run"`) for this validator — it previously had none.
@@ -2429,7 +2453,17 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (033 — implementado): specs/033-public-exchange-rates/plan.md
+Current plan (034 — implementado): specs/034-installment-simulator/plan.md
+(Simulador público de compra en cuotas en mifik.cl: `/es/simulador-cuotas/` y
+`/en/installment-calculator/`, sin cuenta ni API. Cuota fija [francés, `fixedPaymentSchedule`, nueva]
+o capital constante [`equalPrincipalSchedule` de la app], impuesto de timbres prellenado con la tasa
+legal [0,066%/mes, tope 0,8%] y editable, comisión fija opcional, costos financiados, CAE según DS 43
+[TIR mensual × 12], contado vs cuotas y tabla mes a mes. Todo el cálculo en el módulo puro nuevo
+`@finance/money/installment-simulation`, usado en el build [ejemplo resuelto en el HTML] y en el
+navegador [cargado en idle]. Enmienda el Principio I (constitución 2.8.0). Ver research.md R1–R10.
+**Verificado** (2026-10-22): money [80, incluye 10+ casos de referencia calculados aparte en Python `decimal`], landing [172 unit + 130 de build con el fixture], `astro check` 0 errores, lint, `format:check`, `check:boundaries`; Lighthouse móvil local en las 2 páginas: rendimiento/accesibilidad/SEO 100, recomendaciones 96 (solo el error de consola de la API local apagada), LCP 1,7 s, CLS 0. **No verificado**: tipear en un navegador real con CPU limitada (sin automatización de navegador) ni las páginas en producción.)
+
+Prior plan (033 — implementado): specs/033-public-exchange-rates/plan.md
 (Valor UF y dólar observado públicos en mifik.cl: 4 páginas estáticas [`/es/valor-uf/`,
 `/es/dolar-observado/`, `/en/uf-value/`, `/en/dollar-rate/`] + bloque en el home, construidas con los
 valores de un endpoint público nuevo de solo lectura `GET /public/exchange-rates` [mismo handler que el

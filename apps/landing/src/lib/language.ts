@@ -3,8 +3,8 @@ import { DEFAULT_LANGUAGE, LANGUAGES, type Language } from "@finance/i18n/src/la
 export { DEFAULT_LANGUAGE, LANGUAGES, type Language };
 
 /** The public pages. Most use ONE (English) slug in both languages (spec 031, clarify Q1); the
- * indicator pages are the deliberate exception (spec 033, clarify Q2): their address is what people
- * search for, so it is in the page's own language. */
+ * indicator pages (spec 033, clarify Q2) and the installment simulator (spec 034) are the deliberate
+ * exceptions: their address is what people search for, so it is in the page's own language. */
 export const PAGES = [
   "home",
   "about",
@@ -14,6 +14,7 @@ export const PAGES = [
   "faq",
   "ufValue",
   "dollarRate",
+  "installmentSimulator",
 ] as const;
 export type Page = (typeof PAGES)[number];
 
@@ -21,17 +22,25 @@ export type Page = (typeof PAGES)[number];
 export const RATE_PAGES = { ufValue: "CLF", dollarRate: "USD" } as const;
 export type RatePage = keyof typeof RATE_PAGES;
 
-/** Slug per language of the indicator pages. */
-export const RATE_SLUGS: Record<RatePage, Record<Language, string>> = {
+/** The pages whose slug is in the page's own language. */
+export type LocalizedPage = RatePage | "installmentSimulator";
+
+/** Slug per language of the localized pages. Same pairs as `LOCALIZED_PAIRS` in astro.config.mjs. */
+export const LOCALIZED_SLUGS: Record<LocalizedPage, Record<Language, string>> = {
   ufValue: { es: "valor-uf", en: "uf-value" },
   dollarRate: { es: "dolar-observado", en: "dollar-rate" },
+  installmentSimulator: { es: "simulador-cuotas", en: "installment-calculator" },
 };
+
+export function isLocalizedPage(page: Page): page is LocalizedPage {
+  return page in LOCALIZED_SLUGS;
+}
 
 export function isRatePage(page: Page): page is RatePage {
   return page in RATE_PAGES;
 }
 
-const SLUG: Record<Exclude<Page, RatePage>, string> = {
+const SLUG: Record<Exclude<Page, LocalizedPage>, string> = {
   home: "",
   about: "about",
   privacy: "privacy",
@@ -49,7 +58,7 @@ export function pagePath(lang: Language, page: Page): string {
 }
 
 export function slugOf(page: Page, lang: Language = DEFAULT_LANGUAGE): string {
-  return isRatePage(page) ? RATE_SLUGS[page][lang] : SLUG[page];
+  return isLocalizedPage(page) ? LOCALIZED_SLUGS[page][lang] : SLUG[page];
 }
 
 export function isLanguage(value: unknown): value is Language {

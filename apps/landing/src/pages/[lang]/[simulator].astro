@@ -1,0 +1,101 @@
+---
+import { simulateInstallments, stampTaxRate } from "@finance/money/installment-simulation";
+
+import { HERO_TITLE } from "../../domains/landing/components/bits";
+import SimulatorCta from "../../domains/simulator/components/SimulatorCta.astro";
+import SimulatorForm from "../../domains/simulator/components/SimulatorForm.astro";
+import SimulatorMethod from "../../domains/simulator/components/SimulatorMethod.astro";
+import SimulatorResults from "../../domains/simulator/components/SimulatorResults.astro";
+import SimulatorTable from "../../domains/simulator/components/SimulatorTable.astro";
+import { DEFAULT_INPUT } from "../../domains/simulator/lib/defaults";
+import { formatAmount, formatPercent } from "../../domains/simulator/lib/format";
+import { islandJson, simulatorIsland } from "../../domains/simulator/lib/island";
+import { simulatorView } from "../../domains/simulator/lib/view";
+import { t } from "../../i18n";
+import PageLayout from "../../layouts/PageLayout.astro";
+import { type Language, LANGUAGES, LOCALIZED_SLUGS, pagePath } from "../../lib/language";
+
+/**
+ * The installment simulator (spec 034): `/es/simulador-cuotas/`, `/en/installment-calculator/`.
+ * The example is solved HERE, at build, with the same module the browser loads later, so the
+ * result is in the HTML a crawler reads and on screen before any script runs.
+ */
+export function getStaticPaths() {
+  return LANGUAGES.map((lang) => ({
+    params: { lang, simulator: LOCALIZED_SLUGS.installmentSimulator[lang] },
+  }));
+}
+
+const lang = Astro.params.lang as Language;
+const page = "installmentSimulator";
+const input = DEFAULT_INPUT;
+const installments = input.installments!;
+const result = simulateInstallments(input);
+const tr = (key: string, params?: Record<string, string | number>) =>
+  t(lang, `landing.simulator.${key}`, params);
+const view = simulatorView(result, { currency: input.currency, installments, system: input.system }, lang, tr);
+const example = tr("method.example", {
+  price: formatAmount(input.price, input.currency, lang),
+  count: installments,
+  rate: formatPercent(input.monthlyRatePercent, lang, 0).replace(/\s?%$/, ""),
+  payment: formatAmount(result.regularPayment, input.currency, lang),
+  total: formatAmount(result.totalPaid, input.currency, lang),
+  cae: formatPercent(result.caePercent, lang),
+});
+
+const site = (Astro.site?.toString() ?? "http://localhost:4321/").replace(/\/+$/, "");
+const url = `${site}${pagePath(lang, page)}`;
+const structuredData = JSON.stringify([
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    name: tr("title"),
+    url,
+    inLanguage: lang === "es" ? "es-CL" : "en-US",
+    applicationCategory: "FinanceApplication",
+    operatingSystem: "Any",
+    isAccessibleForFree: true,
+    offers: { "@type": "Offer", price: 0, priceCurrency: "CLP" },
+  },
+  {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      { "@type": "ListItem", position: 1, name: "fik", item: `${site}${pagePath(lang, "home")}` },
+      { "@type": "ListItem", position: 2, name: tr("nav"), item: url },
+    ],
+  },
+]).replace(/</g, "\\u003c");
+---
+
+<PageLayout lang={lang} page={page}>
+  <script slot="head" type="application/ld+json" set:html={structuredData} />
+
+  <section aria-labelledby="sim-title" class="flex flex-col gap-8 py-10 lg:py-16">
+    <div class="flex max-w-[60ch] flex-col gap-3">
+      <h1 id="sim-title" tabindex="-1" class={HERO_TITLE}>{tr("title")}</h1>
+      <p class="text-lg leading-relaxed text-muted-foreground">{tr("lead")}</p>
+    </div>
+    <div class="grid items-start gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <SimulatorForm lang={lang} input={input} legalTax={stampTaxRate(installments)} />
+      <div class="lg:sticky lg:top-[calc(var(--landing-header,4rem)+1rem)]">
+        <SimulatorResults lang={lang} view={view} />
+      </div>
+    </div>
+    <SimulatorTable lang={lang} view={view} />
+  </section>
+
+  <SimulatorMethod lang={lang} example={example} />
+
+  <div class="border-t py-12">
+    <SimulatorCta lang={lang} />
+  </div>
+
+  <script type="application/json" id="simulator-data" set:html={islandJson(simulatorIsland(lang))} />
+</PageLayout>
+
+<script>
+  import { initSimulator } from "../../domains/simulator/scripts/simulator";
+
+  initSimulator();
+</script>

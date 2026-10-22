@@ -1,0 +1,71 @@
+---
+import { t } from "../../../i18n";
+import type { Language } from "../../../lib/language";
+import type { SimulatorView } from "../lib/view";
+
+/**
+ * The result (spec 034, US1–US4): written at build for the example, rewritten by the script on
+ * every keystroke. Only the summary line is announced (`aria-live`), never the whole block.
+ */
+interface Props {
+  lang: Language;
+  view: SimulatorView;
+}
+const { lang, view } = Astro.props;
+const k = (key: string) => t(lang, `landing.simulator.${key}`);
+const row = "flex items-baseline justify-between gap-4 border-t py-2.5 text-sm";
+---
+
+<section aria-labelledby="sim-results-title" class="flex flex-col gap-4 rounded-2xl border bg-card p-5 sm:p-6">
+  <h2 id="sim-results-title" class="text-lg font-semibold">{k("results.title")}</h2>
+  <p data-sim-live aria-live="polite" class="sr-only">{view.summary}</p>
+  <p data-sim-incomplete hidden class="rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">
+    {k("results.incomplete")}
+  </p>
+
+  <div data-sim-results class="flex flex-col gap-4">
+    <div>
+      <dl data-sim-payments class="flex flex-wrap gap-x-8 gap-y-2">
+        {
+          view.payments.map((p) => (
+            <div class="flex flex-col">
+              <dt class="text-sm text-muted-foreground">{p.label}</dt>
+              <dd class="text-3xl font-semibold tabular-nums tracking-tight sm:text-4xl">{p.value}</dd>
+            </div>
+          ))
+        }
+      </dl>
+      <p class="mt-1 text-sm text-muted-foreground">
+        <span data-sim-out="count">{view.count ?? ""}</span>
+        <span data-sim-out="lastNote">{view.lastNote ?? ""}</span>
+      </p>
+    </div>
+
+    <dl class="flex flex-col">
+      <div class={row}>
+        <dt class="text-muted-foreground">{k("results.totalPaid")}</dt>
+        <dd data-sim-out="totalPaid" class="font-semibold tabular-nums">{view.totalPaid}</dd>
+      </div>
+      <div class={row}>
+        <dt class="text-muted-foreground">{k("results.interest")}</dt>
+        <dd data-sim-out="interest" class="tabular-nums">{view.interest}</dd>
+      </div>
+      <div class={row}>
+        <dt class="text-muted-foreground">{k("results.costs")}</dt>
+        <dd data-sim-out="costs" class="tabular-nums">{view.costs}</dd>
+      </div>
+      <div class={row}>
+        <dt class="font-medium">{k("results.cae")}</dt>
+        <dd data-sim-out="cae" class="text-lg font-semibold tabular-nums">{view.cae}</dd>
+      </div>
+    </dl>
+    <p class="text-xs leading-relaxed text-muted-foreground">{k("results.caeHint")}</p>
+
+    <p data-sim-out="system" class="rounded-lg bg-surface2 px-4 py-3 text-sm">{view.system}</p>
+
+    <div class="flex flex-col gap-1 border-t pt-4">
+      <h3 class="text-sm font-semibold">{k("cash.title")}</h3>
+      <p data-sim-out="cash" class="text-sm">{view.cash}</p>
+    </div>
+  </div>
+</section>

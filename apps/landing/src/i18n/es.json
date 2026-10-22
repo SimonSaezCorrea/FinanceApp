@@ -348,6 +348,10 @@
         "titleWithValue": "Dólar observado hoy {{date}}: {{value}} · fik",
         "description": "Valor del dólar observado hoy en pesos chilenos, con el historial de 30 días y del año y un conversor de dólares a pesos. Datos del Banco Central de Chile.",
         "descriptionWithValue": "Dólar observado hoy, {{date}}: {{value}}. Historial de 30 días y del año y conversor de dólares a pesos. Datos del Banco Central de Chile."
+      },
+      "installmentSimulator": {
+        "title": "Simulador de cuotas con CAE · fik",
+        "description": "Simula una compra en cuotas con o sin interés: valor cuota, total pagado, impuesto de timbres, CAE y el detalle mes a mes. Gratis y sin crear cuenta."
       }
     },
     "access": {
@@ -452,6 +456,116 @@
         "title": "La UF y el dólar de hoy",
         "body": "Los mismos valores que usa fik, con historial y conversor.",
         "see": "Ver historial y conversor"
+      }
+    },
+    "simulator": {
+      "nav": "Simulador de cuotas",
+      "title": "Simulador de cuotas",
+      "lead": "Escribe el precio, en cuántas cuotas y la tasa mensual que te ofrecen. Ves al instante la cuota, el total que pagas y la CAE para comparar ofertas.",
+      "form": {
+        "title": "Tu compra",
+        "price": "Precio",
+        "currency": "Moneda",
+        "currencies": {
+          "CLP": "Pesos (CLP)",
+          "CLF": "UF",
+          "USD": "Dólares (USD)"
+        },
+        "installments": "Número de cuotas",
+        "installmentsHint": "Entre 1 y 60",
+        "rate": "Tasa de interés mensual",
+        "rateHint": "0 si es sin interés",
+        "system": "Sistema de cálculo",
+        "fixed": "Cuota fija",
+        "fixedHint": "La que cotizan bancos y tiendas",
+        "constant": "Capital constante",
+        "constantHint": "La cuota baja cada mes",
+        "costsTitle": "Costos del crédito",
+        "stampTax": "Impuesto de timbres y estampillas",
+        "stampTaxHint": "Tasa legal para {{count}} cuotas: {{rate}} %",
+        "stampTaxDiffers": "Es distinto de la tasa legal ({{rate}} %).",
+        "useLegal": "Usar la tasa legal",
+        "fee": "Comisión o seguro (monto fijo, opcional)",
+        "cashPrice": "Precio contado (opcional)",
+        "cashPriceHint": "Si te hacen descuento por pagar al contado"
+      },
+      "results": {
+        "title": "Resultado",
+        "payment": "Valor cuota",
+        "times": "{{count}} cuotas",
+        "timesOne": "1 cuota",
+        "lastDiffers": "La última es de {{amount}} por el redondeo.",
+        "first": "Primera cuota",
+        "last": "Última cuota",
+        "totalPaid": "Total pagado",
+        "interest": "Intereses",
+        "costs": "Impuesto y comisión",
+        "cae": "CAE",
+        "caeHint": "La carga anual equivalente junta intereses y costos en una sola tasa anual. Es la cifra que la ley obliga a informar para comparar créditos: más baja, más barato.",
+        "incomplete": "Completa los datos para ver el resultado.",
+        "summary": "Cuota de {{payment}}, total pagado {{total}}, CAE {{cae}}."
+      },
+      "system": {
+        "fixedName": "cuota fija",
+        "constantName": "capital constante",
+        "less": "Con {{system}} pagarías {{amount}} menos en total.",
+        "more": "Con {{system}} pagarías {{amount}} más en total.",
+        "same": "Con {{system}} pagarías lo mismo en total."
+      },
+      "cash": {
+        "title": "Contado vs cuotas",
+        "same": "Pagas lo mismo que al contado: es sin interés de verdad.",
+        "costsOnly": "No es del todo sin interés: pagas {{amount}} más que al contado ({{percent}}) por impuesto y comisión.",
+        "more": "En cuotas pagas {{amount}} más que al contado ({{percent}} más)."
+      },
+      "table": {
+        "caption": "Detalle mes a mes",
+        "number": "N°",
+        "principal": "Capital",
+        "interest": "Interés",
+        "costs": "Costos",
+        "payment": "Cuota",
+        "balance": "Saldo",
+        "total": "Total"
+      },
+      "errors": {
+        "required": "Completa este dato.",
+        "invalid": "Escribe un número.",
+        "integer": "Escribe un número entero.",
+        "positive": "Debe ser mayor que cero.",
+        "notNegative": "No puede ser negativo.",
+        "maxInstallments": "Hasta {{max}} cuotas.",
+        "maxRate": "Hasta {{max}} % mensual.",
+        "maxTax": "Hasta {{max}} %.",
+        "maxAmount": "El monto es demasiado alto.",
+        "noDecimals": "Los pesos no llevan decimales.",
+        "decimals": "Hasta {{count}} decimales.",
+        "aboveCash": "No puede ser mayor que el precio en cuotas."
+      },
+      "method": {
+        "title": "Cómo se calcula",
+        "fixed": "Cuota fija (sistema francés): pagas el mismo monto cada mes. Al principio la mayor parte es interés y al final, capital. Es la cuota que te cotizan bancos y tiendas.",
+        "constant": "Capital constante: cada mes pagas la misma parte del capital más el interés del saldo, así que la cuota baja mes a mes. Es el reparto que usa fik para tus planes de cuotas.",
+        "tax": "Impuesto de timbres y estampillas: 0,066 % por cada mes de plazo, con un máximo de 0,8 %, calculado sobre el precio.",
+        "taxSource": "Ver la ley en el SII",
+        "costs": "El impuesto y la comisión se suman al precio y se pagan dentro de las cuotas, como en la mayoría de los créditos de consumo.",
+        "cae": "CAE: la tasa mensual que iguala lo que recibes con todo lo que pagas, multiplicada por 12, como define el Decreto 43 de 2012.",
+        "caeSource": "Ver el Decreto 43",
+        "rounding": "Los montos se redondean a pesos (centavos en dólares, 4 decimales en UF) y la última cuota absorbe la diferencia.",
+        "disclaimer": "Es una simulación referencial. Las condiciones reales (tasa, seguros, comisiones y fechas) las informa la institución que te ofrece el crédito.",
+        "exampleTitle": "Ejemplo",
+        "example": "{{price}} en {{count}} cuotas al {{rate}} % mensual, con el impuesto legal: cuota de {{payment}}, total pagado {{total}} y CAE {{cae}}."
+      },
+      "cta": {
+        "title": "Lleva el control de tus cuotas reales",
+        "body": "En fik anotas cada compra en cuotas con su tarjeta, ves qué se factura cada mes y cuánto te queda por pagar.",
+        "action": "Crear cuenta"
+      },
+      "home": {
+        "title": "¿Cuánto pagas en cuotas?",
+        "body": "Simula una compra con o sin interés y ve la cuota, el total y la CAE.",
+        "example": "{{price}} en {{count}} cuotas al {{rate}} %: cuota de {{payment}}",
+        "see": "Simular mis cuotas"
       }
     }
   }

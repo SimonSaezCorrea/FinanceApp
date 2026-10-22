@@ -1,0 +1,137 @@
+---
+import type { SimulationInput } from "@finance/money/installment-simulation";
+
+import { t } from "../../../i18n";
+import type { Language } from "../../../lib/language";
+import { CURRENCY_PREFIX, formatPercent, toInputText } from "../lib/format";
+import SimulatorField from "./SimulatorField.astro";
+
+/** The simulator's inputs (spec 034, US1–US4), filled with the example the page is built with. */
+interface Props {
+  lang: Language;
+  input: SimulationInput;
+  /** The legal stamp tax for the example's term, in percent ("0.396"). */
+  legalTax: string;
+}
+const { lang, input, legalTax } = Astro.props;
+const k = (key: string, params?: Record<string, unknown>) => t(lang, `landing.simulator.${key}`, params);
+const currencies = ["CLP", "CLF", "USD"] as const;
+const radio =
+  "flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border border-input bg-background px-3 py-2.5 has-[:checked]:border-primary has-[:checked]:bg-primary/5 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring";
+---
+
+<section aria-labelledby="sim-form-title" class="flex flex-col gap-5 rounded-2xl border bg-card p-5 sm:p-6">
+  <h2 id="sim-form-title" class="text-lg font-semibold">{k("form.title")}</h2>
+
+  <div class="grid gap-4 sm:grid-cols-[minmax(0,1fr)_10rem]">
+    <SimulatorField
+      id="sim-price"
+      field="price"
+      label={k("form.price")}
+      value={toInputText(input.price, lang)}
+      prefix={CURRENCY_PREFIX[input.currency].trim()}
+    />
+    <div class="flex flex-col gap-1.5">
+      <label for="sim-currency" class="text-sm font-medium">{k("form.currency")}</label>
+      <select
+        id="sim-currency"
+        data-sim-currency
+        class="min-h-11 rounded-lg border border-input bg-background px-3 text-base sm:text-sm"
+      >
+        {
+          currencies.map((c) => (
+            <option value={c} selected={c === input.currency}>
+              {k(`form.currencies.${c}`)}
+            </option>
+          ))
+        }
+      </select>
+    </div>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    <SimulatorField
+      id="sim-installments"
+      field="installments"
+      label={k("form.installments")}
+      value={String(input.installments ?? "")}
+      hint={k("form.installmentsHint")}
+      inputmode="numeric"
+    />
+    <SimulatorField
+      id="sim-rate"
+      field="monthlyRatePercent"
+      label={k("form.rate")}
+      value={toInputText(input.monthlyRatePercent, lang)}
+      hint={k("form.rateHint")}
+      suffix="%"
+    />
+  </div>
+
+  <fieldset class="flex flex-col gap-2">
+    <legend class="mb-2 text-sm font-medium">{k("form.system")}</legend>
+    <div class="grid gap-2 sm:grid-cols-2">
+      {
+        (["FIXED", "CONSTANT"] as const).map((system) => (
+          <label class={radio}>
+            <input
+              type="radio"
+              name="sim-system"
+              value={system}
+              checked={system === input.system}
+              data-sim-system
+              class="mt-1 size-4 accent-primary"
+            />
+            <span class="flex flex-col">
+              <span class="text-sm font-medium">{k(system === "FIXED" ? "form.fixed" : "form.constant")}</span>
+              <span class="text-xs text-muted-foreground">
+                {k(system === "FIXED" ? "form.fixedHint" : "form.constantHint")}
+              </span>
+            </span>
+          </label>
+        ))
+      }
+    </div>
+  </fieldset>
+
+  <fieldset class="flex flex-col gap-4 border-t pt-5">
+    <legend class="sr-only">{k("form.costsTitle")}</legend>
+    <p aria-hidden="true" class="text-sm font-semibold">{k("form.costsTitle")}</p>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <SimulatorField
+        id="sim-tax"
+        field="stampTaxPercent"
+        label={k("form.stampTax")}
+        value={toInputText(legalTax, lang)}
+        hint={k("form.stampTaxHint", { count: input.installments, rate: formatPercent(legalTax, lang, 3).replace(/\s?%$/, "") })}
+        suffix="%"
+      >
+        <div data-sim-tax-notice hidden class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+          <span data-sim-tax-notice-text class="text-muted-foreground"></span>
+          <button
+            type="button"
+            data-sim-use-legal
+            class="min-h-11 font-medium text-primary underline-offset-4 hover:underline sm:min-h-0"
+          >
+            {k("form.useLegal")}
+          </button>
+        </div>
+      </SimulatorField>
+      <SimulatorField
+        id="sim-fee"
+        field="fee"
+        label={k("form.fee")}
+        value={input.fee ? toInputText(input.fee, lang) : ""}
+        prefix={CURRENCY_PREFIX[input.currency].trim()}
+      />
+    </div>
+    <SimulatorField
+      id="sim-cash"
+      field="cashPrice"
+      label={k("form.cashPrice")}
+      value={input.cashPrice ? toInputText(input.cashPrice, lang) : ""}
+      hint={k("form.cashPriceHint")}
+      prefix={CURRENCY_PREFIX[input.currency].trim()}
+    />
+  </fieldset>
+</section>

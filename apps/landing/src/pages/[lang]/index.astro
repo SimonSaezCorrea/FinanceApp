@@ -1,6 +1,10 @@
 ---
+import { simulateInstallments } from "@finance/money/installment-simulation";
+
 import { LandingPage } from "../../domains/landing/pages/LandingPage";
 import { islandJson, ratesIsland } from "../../domains/rates/lib/island";
+import { DEFAULT_INPUT } from "../../domains/simulator/lib/defaults";
+import { formatAmount, formatPercent } from "../../domains/simulator/lib/format";
 import PageLayout from "../../layouts/PageLayout.astro";
 import { buildRatesSnapshot } from "../../lib/exchangeRates";
 import { type Language, LANGUAGES, pagePath } from "../../lib/language";
@@ -20,10 +24,21 @@ const homeRates = {
   latest: snapshot?.latest ?? { USD: null, CLF: null },
   links: { CLF: pagePath(lang, "ufValue"), USD: pagePath(lang, "dollarRate") },
 };
+// The simulator block (spec 034, FR-017): the page's example, solved at build like the page itself.
+const example = simulateInstallments(DEFAULT_INPUT);
+const homeSimulator = {
+  link: pagePath(lang, "installmentSimulator"),
+  example: {
+    price: formatAmount(DEFAULT_INPUT.price, DEFAULT_INPUT.currency, lang),
+    count: DEFAULT_INPUT.installments!,
+    rate: formatPercent(DEFAULT_INPUT.monthlyRatePercent, lang, 0).replace(/\s?%$/, ""),
+    payment: formatAmount(example.regularPayment, DEFAULT_INPUT.currency, lang),
+  },
+};
 ---
 
 <PageLayout lang={lang} page="home">
-  <LandingPage lang={lang} page="home" homeRates={homeRates} />
+  <LandingPage lang={lang} page="home" homeRates={homeRates} homeSimulator={homeSimulator} />
   <script type="application/json" id="rates-data" set:html={islandJson(island)} />
 </PageLayout>
 

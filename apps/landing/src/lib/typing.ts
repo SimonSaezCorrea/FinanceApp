@@ -1,4 +1,4 @@
-import type { Language } from "../../../lib/language";
+import type { Language } from "./language";
 
 const separators = (lang: Language) =>
   lang === "es" ? { dec: ",", grp: "." } : { dec: ".", grp: "," };

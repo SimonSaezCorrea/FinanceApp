@@ -1,0 +1,38 @@
+---
+import { t } from "../../../i18n";
+import { APP_URL } from "../../../lib/config";
+import type { Language } from "../../../lib/language";
+
+/**
+ * Spec 034, US5: what fik does with real instalments, and the sign-up. Signed in, the session
+ * script swaps the slot for "Ir a la app" (same mechanism as the header).
+ */
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const button =
+  "inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.97] sm:w-auto";
+---
+
+<section
+  aria-labelledby="sim-cta-title"
+  class="flex flex-col items-start gap-4 rounded-2xl border bg-surface2 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8"
+>
+  <div class="flex max-w-[56ch] flex-col gap-2">
+    <h2 id="sim-cta-title" class="text-xl font-semibold tracking-tight">
+      {t(lang, "landing.simulator.cta.title")}
+    </h2>
+    <p class="text-base leading-relaxed text-muted-foreground">{t(lang, "landing.simulator.cta.body")}</p>
+  </div>
+  <div data-access-slot class="flex w-full sm:w-auto">
+    <a href="?acceso=registro" data-access="registro" class={button}>
+      {t(lang, "landing.simulator.cta.action")}
+    </a>
+    <template data-app-template>
+      <a href={APP_URL + "/"} data-go-app data-checking-label={t(lang, "landing.nav.appChecking")} class={button}>
+        {t(lang, "landing.nav.goToApp")}
+      </a>
+    </template>
+  </div>
+</section>

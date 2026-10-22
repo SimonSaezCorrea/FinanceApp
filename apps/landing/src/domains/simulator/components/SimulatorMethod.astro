@@ -1,0 +1,38 @@
+---
+import { t } from "../../../i18n";
+import type { Language } from "../../../lib/language";
+
+/**
+ * "Cómo se calcula" (spec 034, FR-016/FR-019): the method, the sources (SII for the stamp tax,
+ * LeyChile for the CAE) and the "simulación referencial" notice, readable without any script.
+ */
+interface Props {
+  lang: Language;
+  /** The example, already solved, in one sentence. */
+  example: string;
+}
+const { lang, example } = Astro.props;
+const k = (key: string) => t(lang, `landing.simulator.method.${key}`);
+const link = "font-medium text-primary underline-offset-4 hover:underline";
+const SII = "https://www.sii.cl/normativa_legislacion/leyimpuestoyestampillas.pdf";
+const DS43 = "https://www.bcn.cl/leychile/navegar?idNorma=1041744";
+---
+
+<section aria-labelledby="sim-method-title" class="flex max-w-[70ch] flex-col gap-4 py-10">
+  <h2 id="sim-method-title" class="text-2xl font-semibold tracking-tight">{k("title")}</h2>
+  <p class="leading-relaxed">{k("fixed")}</p>
+  <p class="leading-relaxed">{k("constant")}</p>
+  <p class="leading-relaxed">
+    {k("tax")} <a href={SII} class={link} rel="noopener" target="_blank">{k("taxSource")}</a>
+  </p>
+  <p class="leading-relaxed">{k("costs")}</p>
+  <p class="leading-relaxed">
+    {k("cae")} <a href={DS43} class={link} rel="noopener" target="_blank">{k("caeSource")}</a>
+  </p>
+  <p class="leading-relaxed">{k("rounding")}</p>
+  <div class="rounded-2xl border bg-surface2 p-5">
+    <h3 class="text-sm font-semibold">{k("exampleTitle")}</h3>
+    <p class="mt-1 text-sm leading-relaxed">{example}</p>
+  </div>
+  <p class="text-sm text-muted-foreground">{k("disclaimer")}</p>
+</section>

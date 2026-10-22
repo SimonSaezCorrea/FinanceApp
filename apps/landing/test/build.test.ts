@@ -270,6 +270,88 @@ describe("public site build", () => {
     });
   });
 
+  // Spec 034: the installment simulator. Its example is solved at build (CLP 300.000, 6 cuotas, 2%,
+  // legal stamp tax), so the result is in the HTML a crawler reads (contracts/pages.md).
+  describe("installment simulator (spec 034)", () => {
+    const SIM = { es: "simulador-cuotas", en: "installment-calculator" } as const;
+    const EXAMPLE = {
+      es: { payment: "$53.770", cae: "25,41 %" },
+      en: { payment: "$53,770", cae: "25.41%" },
+    };
+
+    for (const lang of LANGS) {
+      const other = lang === "es" ? "en" : "es";
+      describe(`/${lang}/${SIM[lang]}/`, () => {
+        const html = htmlOf(lang, SIM[lang]);
+
+        it("has its own title, description, canonical and its real pair", () => {
+          expect(html).toMatch(new RegExp(`<html[^>]* lang="${lang}"`));
+          expect(title(html)).toMatch(/· fik$/);
+          expect(description(html)).toBeTruthy();
+          expect(html).toContain(`<link rel="canonical" href="${SITE}/${lang}/${SIM[lang]}/"`);
+          expect(html).toContain(`hreflang="${other}" href="${SITE}/${other}/${SIM[other]}/"`);
+          expect(html).toMatch(/<h1[^>]*id="sim-title"/);
+        });
+
+        it("carries the solved example, its table and the method in the HTML (FR-016)", () => {
+          expect(html).toContain(EXAMPLE[lang].payment);
+          expect(html).toContain(EXAMPLE[lang].cae);
+          expect(
+            html.match(/<tbody data-sim-rows[^>]*>([\s\S]*?)<\/tbody>/)?.[1]?.match(/<tr/g),
+          ).toHaveLength(6);
+          expect(html).toMatch(/id="sim-method-title"/);
+          expect(html).toContain(
+            'href="https://www.sii.cl/normativa_legislacion/leyimpuestoyestampillas.pdf"',
+          );
+          expect(html).toContain('href="https://www.bcn.cl/leychile/navegar?idNorma=1041744"');
+          expect(html).toContain('id="simulator-data"');
+        });
+
+        it("declares itself for search engines", () => {
+          const json = attr(html, /<script type="application\/ld\+json">([^<]*)<\/script>/) ?? "[]";
+          const types = (JSON.parse(json) as { "@type": string }[]).map((d) => d["@type"]);
+          expect(types).toEqual(["WebApplication", "BreadcrumbList"]);
+        });
+
+        it("invites to sign up, or to the app when signed in (FR-018)", () => {
+          expect(html).toMatch(
+            /data-access-slot[^>]*>\s*<a href="\?acceso=registro" data-access="registro"[\s\S]*?<template data-app-template>/,
+          );
+        });
+
+        it("loads no React and no decimal.js on arrival", () => {
+          const scripts = [...html.matchAll(/<script[^>]*src="([^"]+)"/g)].map((m) => m[1]!);
+          for (const src of scripts) {
+            const code = readFileSync(join(DIST, src), "utf8");
+            expect(code, src).not.toMatch(/react-dom|__reactFiber|react\.production/);
+            expect(code, src).not.toMatch(/\[DecimalError\]/);
+          }
+        });
+      });
+
+      it(`/${lang}/ links to the simulator with its example`, () => {
+        const html = htmlOf(lang, "");
+        expect(html).toContain(`href="/${lang}/${SIM[lang]}/"`);
+        expect(html).toContain(EXAMPLE[lang].payment);
+      });
+
+      it(`every /${lang}/ page links to the simulator in its footer`, () => {
+        for (const slug of ["about", "faq", "pricing", SIM[lang]]) {
+          expect(htmlOf(lang, slug)).toContain(`href="/${lang}/${SIM[lang]}/"`);
+        }
+      });
+    }
+
+    it("lists both pages in the sitemap with their real language pair", () => {
+      const files = readdirSync(DIST).filter((f) => /^sitemap-\d+\.xml$/.test(f));
+      const xml = files.map((f) => readFileSync(join(DIST, f), "utf8")).join("\n");
+      for (const lang of LANGS) expect(xml).toContain(`<loc>${SITE}/${lang}/${SIM[lang]}/</loc>`);
+      expect(xml).toContain(`hreflang="en-US" href="${SITE}/en/${SIM.en}/"`);
+      expect(xml).not.toContain(`${SITE}/en/${SIM.es}/`);
+      expect(xml).not.toContain(`${SITE}/es/${SIM.en}/`);
+    });
+  });
+
   it("redirects the root and the old addresses", () => {
     expect(readFileSync(join(DIST, "index.html"), "utf8")).toMatch(
       /http-equiv="refresh"[^>]*\/es\//,
