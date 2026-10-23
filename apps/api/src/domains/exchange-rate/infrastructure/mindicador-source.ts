@@ -7,8 +7,8 @@ import {
   type ExchangeRateSourcePort,
 } from "../application/exchange-rate-source";
 import type { PublishedValue, RateCurrency } from "../domain/exchange-rate.entity";
+import { fetchJson } from "./fetch-json";
 
-const TIMEOUT_MS = 10_000;
 /** mindicador's own indicator codes. */
 const INDICATOR: Record<RateCurrency, string> = { USD: "dolar", CLF: "uf" };
 
@@ -30,8 +30,8 @@ function toValue(quote: Quote | undefined): PublishedValue {
   return { valueDate: instant.toISOString().slice(0, 10), value: String(quote.valor) };
 }
 
-/** Adapter for mindicador.cl, over native `fetch` (same approach as `GeoIpLookup`). Any failure
- * becomes `ExchangeRateSourceUnavailableError`; it never returns partial data. */
+/** Adapter for mindicador.cl, over `fetchJson` (native `fetch`, retried). Any failure becomes
+ * `ExchangeRateSourceUnavailableError`; it never returns partial data. */
 @Injectable()
 export class MindicadorSource implements ExchangeRateSourcePort {
   private readonly baseUrl: string;
@@ -55,18 +55,7 @@ export class MindicadorSource implements ExchangeRateSourcePort {
     return body.serie.map(toValue);
   }
 
-  private async get(url: string): Promise<unknown> {
-    let res: Response;
-    try {
-      res = await fetch(url, { signal: AbortSignal.timeout(TIMEOUT_MS) });
-    } catch (err) {
-      throw new ExchangeRateSourceUnavailableError(`request failed: ${String(err)}`);
-    }
-    if (!res.ok) throw new ExchangeRateSourceUnavailableError(`status ${res.status}`);
-    try {
-      return await res.json();
-    } catch {
-      throw new ExchangeRateSourceUnavailableError("invalid JSON");
-    }
+  private get(url: string): Promise<unknown> {
+    return fetchJson(url);
   }
 }

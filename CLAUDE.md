@@ -1371,14 +1371,33 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
     contract helpers `isCarried`/`rateOn`) and the real value replacing it just raises `valueDate`.
     **Recording**: `ExchangeRateCron` (thin trigger, `infra/cron`) → `RecordExchangeRatesCommand`
     (`scope: "system"`) every hour **08:00–20:00 America/Santiago** and once at boot (skipped when
-    `NODE_ENV=test`): it reads mindicador.cl through `ExchangeRateSourcePort` (`MindicadorSource`, native
-    `fetch`, 10 s timeout; base URL overridable with the optional **`EXCHANGE_RATE_SOURCE_URL`**), seeds 365 days
+    `NODE_ENV=test`): it reads the source through `ExchangeRateSourcePort`, seeds 365 days
     on an empty table (current AND previous year's series, discarding entries dated after the day being
     filled — the UF is published ahead), fills any gap from the series, and a failed call **writes nothing**;
     only the 20:00 tick copies the last known value forward. The dollar of the day is rarely published at
     08:00, so the later ticks are how the real value replaces a carried one. Writes are one atomic
     `INSERT … ON CONFLICT DO UPDATE … WHERE valueDate >=` (Principle VII form (b)). **The rule it amends**:
     the app may SUGGEST a conversion, but no domain rule compares amounts of two currencies and nothing
+    Amendment (two sources, retries and repair, 2026-10-23 — after 2026-10-22, when the four ticks
+    then in place [08/12/16/20] all timed out against mindicador.cl and the day was carried): **the
+    Banco Central de Chile is the primary source** — `BcchSource` (its statistics API, BDE REST
+    `GetSeries`, series `F073.TCO.PRE.Z.D` dólar observado and `F073.UFF.PRE.Z.D` UF; dates come as
+    `DD-MM-YYYY`, days without publication as `statusCode: "ND"` and are skipped) — with
+    `MindicadorSource` behind it (`FallbackExchangeRateSource`: the next source only on
+    `ExchangeRateSourceUnavailableError`, any other error surfaces). Wired by a factory in
+    `exchange-rate.module.ts` only when the optional **`BCCH_API_TOKEN`** is set (Parameter Store
+    `/fik/prod/BCCH_API_TOKEN`; a free BDE account's API Key Token, **valid ONE year** — renew it there
+    and in Parameter Store); without it, mindicador alone as before. Both adapters go through
+    `infrastructure/fetch-json.ts` (2 attempts × 15 s, 1 s apart; retries timeouts, network errors and
+    5xx, never 4xx or bad JSON; the URL, which carries the token, is never logged). The cron ticks
+    **every hour 08:00–20:00** again (`0 8-20 * * *`): a tick returns without calling anyone once
+    today's real values are stored. **Carried days are repaired**: a stored day is never a "gap"
+    again, so the handler's `repairCarried` re-checks the carried rows of the last 7 days against
+    the source's history on every run that reaches it and takes any value published on the day
+    itself; weekends and holidays have nothing newer and stay carried (USD weekend days are not even
+    asked about; the UF is published every day). Public pages cite "Banco Central de Chile, Base de
+    Datos Estadísticos" (link `https://si3.bcentral.cl/Siete/`) and say the data are the Bank's
+    property, as the BDE terms require.
     converted is persisted unless the person confirmed what they saw (Constitution 2.4.0). Web: the
     "Tipos de cambio" screen (`/exchange-rates`, sidebar "Tu dinero": today's values, 30-day/1-year chart,
     table by date, one-day jump); `useRateOn`/`useLatestRates`; **`useAmountSuggestion`/`useSuggestedAmount`**
@@ -1686,7 +1705,7 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
   One route, `src/pages/[lang]/[rate].astro`, plus a home block (`domains/rates/components/HomeRates.tsx`,
   React at build, after the currencies strip) and footer links on every page. New frontend domain
   **`src/domains/rates/`**: Astro components (`RateHeadline`: value of the day with two decimals via
-  `formatRate`, change vs the previous recorded day, carried notice, source mindicador.cl;
+  `formatRate`, change vs the previous recorded day, carried notice, source Banco Central de Chile (BDE) as the Bank's property;
   `RateConverter`; `RateHistory`: two SVGs drawn at build by `lib/rateChart.ts`'s `chartGeometry`
   [30 days with hollow dots on carried days, 1 year], switched by radios in CSS (`:has`), 30-day
   table in HTML, 1-year table filled by the script, native `<input type="date">` with `min` = first
@@ -2347,6 +2366,9 @@ NumberFormat("es", …)` has no currency-symbol mapping for CLP and fell back to
   Amendment (dark-theme repaint from design handoff, 2026-07-17): `--background`/`--card`/`--border`/`--input`/`--muted`/`--muted-foreground`/`--primary-foreground`/`--destructive` were replaced with the exact hex from the handoff palette (`#0b1518`/`#0f1e21`/`#1e2e32`/`#283c41`/`#22343a`/`#8aa0a2`/`#08181b`/`#e08a8a` respectively); `--brand`/`--accent`/`--success` already matched and only got sub-degree hue rounding fixes. `--destructive-foreground` (dark) changed from white to a dark ink (`0 45% 10%`) because the handoff's danger red is light enough that white text on a _solid_ `bg-destructive` button would fail contrast — mirrors how `--primary`/`--accent` already pair a light base color with a dark "ink" foreground; the ~40 `text-destructive`/low-opacity-fill usages elsewhere were unaffected. New tokens from the same handoff, defined in both themes but **not yet consumed by any component** (available for future use — grep before assuming something already uses them): `--surface-2`/`--chip`/`--track`/`--border-2`/`--text-dim` (dark-named concepts; dark values are the handoff hex. **Light values were MISSING until 2026-08-13** — the light theme inherited `:root`'s dark ones, so `bg-chip`/`bg-surface2`/`bg-track`/`border-border2`/`text-dim` painted dark blocks with unreadable text in light mode, e.g. the account cards' icon tiles and type chips; every one of these now has an explicit `[data-theme="light"]` value. Any NEW token must be defined in BOTH blocks) and `--panel-bg`/`--viewer-bg` (light-named concepts from the handoff; dark theme falls back to `--surface-2`/`--card`). Exposed via Tailwind as `surface2`/`chip`/`track`/`border2`/`dim`/`panel`/`viewer`. Explicit hover hex (`primary-hover`/`accent-hover`) from the light-theme handoff were **not** wired in — `Button` still uses the `hover:bg-primary/90` opacity approach.
 - **Boundaries:** keep the one-way dep rule; run `pnpm check:boundaries`. New domain → mirror an existing one (see `apps/api/README.md` / `apps/web/README.md` skeletons).
 - **Commits:** only when the user explicitly asks.
+- **`.env.example`:** lists EVERY variable the app reads, none commented out — required ones with an
+  example value, optional ones EMPTY with the example in the comment above (empty must behave as
+  unset in the code that reads it). A new variable is added there in the same change.
 - **Markdown:** don't add `.md` files unless requested.
 
 **Deferred (not yet implemented):** reading the old binary `.xls` in the importer (only `.xlsx`/`.csv`), duplicate detection on import, and remembering a confirmed column mapping per bank — see `docs/PENDING.md` (Movimientos §10). Also deferred: the credit-card billing-cycle configuration (statements are generated with the dates the user types) — `docs/PENDING.md` (Cuentas — facturación §0).

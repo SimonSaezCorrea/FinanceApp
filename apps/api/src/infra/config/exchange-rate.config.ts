@@ -8,3 +8,11 @@ export function getExchangeRateSourceUrl(config: ConfigService): string {
 }
 
 const DEFAULT_URL = "https://mindicador.cl/api";
+
+/** API Key Token of the Banco Central de Chile's statistics API (BDE). Optional: set, the BCCh is
+ * the primary source with mindicador.cl behind it; absent, mindicador.cl alone (as before). The
+ * token lasts one year: renew it in the BDE account and in Parameter Store. */
+export function getBcchApiToken(config: ConfigService): string | null {
+  const value = config.get<string>("BCCH_API_TOKEN")?.trim();
+  return value ? value : null;
+}

@@ -23,10 +23,11 @@ function chileHour(now: Date): number {
  * Records the daily dólar observado and UF (spec 030). A thin trigger: it only dispatches the
  * system command.
  *
- * Four times a day, Chile time: 08:00, 12:00, 16:00 and 20:00. Both values are published once a
- * day and the dólar of the day usually not by 08:00, so the later ticks are how the real value
- * replaces the carried one; the 20:00 tick is the last chance, after which a dead source leaves
- * the day with the last known value. (Hourly until 2026-10-10: more calls, no fresher data.)
+ * Every hour from 08:00 to 20:00, Chile time. Once today's real values are stored a tick returns
+ * without calling anyone, so the extra ticks only cost something while the source is failing —
+ * which is exactly when they matter: on 2026-10-22 the four ticks then in place (08/12/16/20)
+ * all timed out and the day was carried. The 20:00 tick is the last chance, after which a dead
+ * source leaves the day with the last known value (repaired by the next run that reaches it).
  *
  * It also runs once at boot, so a fresh install seeds its history at start-up
  * instead of waiting for the next tick; the handler is idempotent, so that is always safe.
@@ -48,7 +49,7 @@ export class ExchangeRateCron implements OnApplicationBootstrap {
     );
   }
 
-  @Cron("0 8,12,16,20 * * *", { timeZone: "America/Santiago" })
+  @Cron("0 8-20 * * *", { timeZone: "America/Santiago" })
   async run(): Promise<void> {
     if (!this.crons.enabled) return;
     await this.record(new Date());

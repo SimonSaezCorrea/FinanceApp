@@ -251,4 +251,80 @@ describe("RecordExchangeRatesHandler", () => {
 
     expect(repo.rows.get(`USD|${TODAY}`)).toEqual(entry("USD", TODAY, "979.85"));
   });
+
+  describe("(i) repairs carried days of the last week (a source that failed all day)", () => {
+    // TODAY is Thursday 2026-10-08. 3-4 Oct is a weekend; 5 Oct plays a holiday (no publication).
+    const SERIES = [
+      { valueDate: "2026-10-02", value: "972.60" },
+      { valueDate: "2026-10-06", value: "977.25" },
+      { valueDate: "2026-10-07", value: "967.79" },
+    ];
+    const week = () =>
+      fakeExchangeRateRepo([
+        entry("USD", "2026-10-02", "972.60"),
+        entry("USD", "2026-10-03", "972.60", "2026-10-02"),
+        entry("USD", "2026-10-04", "972.60", "2026-10-02"),
+        entry("USD", "2026-10-05", "972.60", "2026-10-02"),
+        entry("USD", "2026-10-06", "977.25"),
+        // Every tick of Wednesday failed: its row was carried from Tuesday at 20:00.
+        entry("USD", "2026-10-07", "977.25", "2026-10-06"),
+        entry("CLF", "2026-10-07", "41100", "2026-10-06"),
+      ]);
+
+    it("replaces a carried weekday with the value the series now has", async () => {
+      const repo = week();
+      await run(
+        handlerFor(
+          repo,
+          fakeSource({
+            series: { USD: SERIES, CLF: [{ valueDate: "2026-10-07", value: "41110" }] },
+          }),
+        ),
+      );
+      expect(repo.rows.get("USD|2026-10-07")).toEqual(entry("USD", "2026-10-07", "967.79"));
+      expect(repo.rows.get("CLF|2026-10-07")).toEqual(entry("CLF", "2026-10-07", "41110"));
+    });
+
+    it("leaves weekends and holidays carried: there is nothing newer to take", async () => {
+      const repo = week();
+      await run(handlerFor(repo, fakeSource({ series: { USD: SERIES, CLF: [] } })));
+      for (const day of ["2026-10-03", "2026-10-04", "2026-10-05"]) {
+        expect(repo.rows.get(`USD|${day}`)).toEqual(entry("USD", day, "972.60", "2026-10-02"));
+      }
+    });
+
+    it("asks for no series when the last week has nothing carried on a weekday", async () => {
+      const repo = fakeExchangeRateRepo([
+        entry("USD", "2026-10-03", "972.60", "2026-10-02"),
+        entry("USD", "2026-10-04", "972.60", "2026-10-02"),
+        entry("USD", "2026-10-07", "967.79"),
+        entry("CLF", "2026-10-07", "41110"),
+      ]);
+      const source = fakeSource();
+      await run(handlerFor(repo, source));
+      expect(source.series).not.toHaveBeenCalled();
+    });
+
+    it("never touches a carried day older than a week", async () => {
+      const repo = fakeExchangeRateRepo([
+        entry("USD", "2026-09-30", "950", "2026-09-29"),
+        entry("USD", "2026-10-07", "967.79"),
+        entry("CLF", "2026-10-07", "41110"),
+      ]);
+      const source = fakeSource({ series: { USD: [{ valueDate: "2026-09-30", value: "951" }] } });
+      await run(handlerFor(repo, source));
+      expect(repo.rows.get("USD|2026-09-30")).toEqual(
+        entry("USD", "2026-09-30", "950", "2026-09-29"),
+      );
+    });
+
+    it("a failing history call never blocks recording today", async () => {
+      const repo = week();
+      await run(handlerFor(repo, fakeSource({ failSeries: true })));
+      expect(repo.rows.get(`USD|${TODAY}`)).toEqual(entry("USD", TODAY, "979.85"));
+      expect(repo.rows.get("USD|2026-10-07")).toEqual(
+        entry("USD", "2026-10-07", "977.25", "2026-10-06"),
+      );
+    });
+  });
 });

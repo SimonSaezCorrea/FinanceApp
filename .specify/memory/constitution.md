@@ -1,4 +1,14 @@
 <!--
+Sync Impact Report — 2026-10-23 (amendment 2.7.1)
+- Version change: 2.7.0 → 2.7.1 (PATCH: operational; no principle text changed).
+- ADDED: the Banco Central de Chile's statistics API (BDE) is the primary exchange-rate source,
+  mindicador.cl the fallback; optional env var `BCCH_API_TOKEN` (valid one year, Parameter Store
+  `/fik/prod/BCCH_API_TOKEN`). Public pages attribute the data to the Bank as its property (BDE terms).
+- ADDED: carried exchange-rate days of the last week are repaired from the source's history; the
+  cron ticks hourly 08:00–20:00 Chile again; source calls are retried (fetch-json.ts).
+- ADDED convention: `.env.example` lists every variable uncommented (optional ones empty).
+-->
+<!--
 Sync Impact Report — 2026-10-21 (amendment 2.7.0)
 - Version change: 2.6.5 → 2.7.0 (MINOR: Principle II gains a named exception; specs/033 public
   exchange rates).
@@ -2311,4 +2321,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.7.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-21
+**Version**: 2.7.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-23
