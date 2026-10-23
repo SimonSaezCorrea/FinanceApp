@@ -28,6 +28,15 @@ import { RecordExchangeRatesCommand } from "./record-exchange-rates.command";
 /** How much history an empty table is seeded with, today included. */
 const SEED_DAYS = 365;
 
+/** How far back a carried day is re-checked against the source's history (see `repairCarried`). */
+const REPAIR_DAYS = 7;
+
+/** Saturday or Sunday (`YYYY-MM-DD`, read as a plain calendar date). */
+function isWeekend(day: string): boolean {
+  const weekday = new Date(`${day}T00:00:00Z`).getUTCDay();
+  return weekday === 0 || weekday === 6;
+}
+
 export type RecordOutcome =
   /** Today's real value was already stored for both currencies: nothing to do. */
   | "complete"
@@ -102,6 +111,7 @@ export class RecordExchangeRatesHandler extends BaseCommandHandler<
     let written = 0;
     for (const currency of RATE_CURRENCIES) {
       written += await this.fillGap(currency, today);
+      written += await this.repairCarried(currency, today);
       written += await this.recordToday(currency, today, latest[currency]);
     }
     this.logger.log(`Exchange rates recorded for ${today} (${written} row(s) written)`);
@@ -132,6 +142,45 @@ export class RecordExchangeRatesHandler extends BaseCommandHandler<
     }
     await this.repo.upsertMany(entries);
     return entries.length;
+  }
+
+  /**
+   * A day whose every tick failed was carried at 20:00 and, being stored, is never a "gap" again:
+   * without this it would keep the previous day's value forever. Each run that reaches the source
+   * re-checks the carried days of the last week against its history and takes any value published
+   * on the day itself (the upsert only ever raises `valueDate`). A weekend or holiday has nothing
+   * newer in the history, so it stays carried, as it should. The dólar is never published on a
+   * Saturday or Sunday, so those are not even asked about; the UF is published every day.
+   */
+  private async repairCarried(currency: RateCurrency, today: string): Promise<number> {
+    const yesterday = addDays(today, -1);
+    const rows = await this.repo.findRange(currency, addDays(today, -REPAIR_DAYS), yesterday);
+    const carried = rows.filter(
+      (r) => r.valueDate < r.date && !(currency === "USD" && isWeekend(r.date)),
+    );
+    if (carried.length === 0) return 0;
+
+    let published: PublishedValue[];
+    try {
+      const oldest = carried.reduce((min, r) => (r.date < min ? r.date : min), yesterday);
+      published = await this.seriesCovering(currency, oldest, yesterday);
+    } catch (err) {
+      if (!(err instanceof ExchangeRateSourceUnavailableError)) throw err;
+      this.logger.warn(`Exchange-rate history unavailable for ${currency}: ${err.message}`);
+      return 0;
+    }
+
+    const repaired: ExchangeRateEntry[] = [];
+    for (const row of carried) {
+      const value = latestPublishedOn(published, row.date);
+      if (value && value.valueDate > row.valueDate)
+        repaired.push({ currency, date: row.date, ...value });
+    }
+    if (repaired.length > 0) {
+      await this.repo.upsertMany(repaired);
+      this.logger.log(`Repaired ${repaired.length} carried ${currency} day(s)`);
+    }
+    return repaired.length;
   }
 
   private async recordToday(

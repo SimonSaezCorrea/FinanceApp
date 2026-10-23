@@ -216,7 +216,11 @@ describe("public site build", () => {
           });
 
           it("cites the source, links the other indicator and invites to sign up (FR-012)", () => {
-            expect(html).toContain('href="https://mindicador.cl"');
+            // The BDE terms: say the data are the Banco Central's property, every time they are published.
+            expect(html).toContain('href="https://si3.bcentral.cl/Siete/"');
+            expect(html).toMatch(
+              /propiedad del Banco Central de Chile|property of the Central Bank of Chile/,
+            );
             expect(html).toMatch(/href="\?acceso=registro"[^>]*data-access="registro"/);
             const otherPage = RATE_PAGES.find((o) => o !== p)!;
             expect(html).toContain(`href="/${lang}/${otherPage[lang]}/"`);

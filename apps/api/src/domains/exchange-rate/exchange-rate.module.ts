@@ -1,12 +1,16 @@
 import { Module } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { CqrsModule } from "@nestjs/cqrs";
 import { JwtModule } from "@nestjs/jwt";
 
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
+import { getBcchApiToken } from "../../infra/config/exchange-rate.config";
 import { RecordExchangeRatesHandler } from "./application/commands/record-exchange-rates.handler";
 import { EXCHANGE_RATE_SOURCE } from "./application/exchange-rate-source";
 import { ListExchangeRatesQueryHandler } from "./application/queries/list-exchange-rates.handler";
 import { ExchangeRateDataModule } from "./exchange-rate.data.module";
+import { BcchSource } from "./infrastructure/bcch-source";
+import { FallbackExchangeRateSource } from "./infrastructure/fallback-source";
 import { MindicadorSource } from "./infrastructure/mindicador-source";
 import { ExchangeRatesController } from "./presentation/exchange-rates.controller";
 import { PublicExchangeRatesController } from "./presentation/public-exchange-rates.controller";
@@ -24,7 +28,16 @@ import { PublicExchangeRatesController } from "./presentation/public-exchange-ra
   providers: [
     ListExchangeRatesQueryHandler,
     RecordExchangeRatesHandler,
-    { provide: EXCHANGE_RATE_SOURCE, useClass: MindicadorSource },
+    {
+      // The Banco Central first when its token is configured, mindicador.cl behind it; without
+      // the token, mindicador.cl alone.
+      provide: EXCHANGE_RATE_SOURCE,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) =>
+        getBcchApiToken(config)
+          ? new FallbackExchangeRateSource([new BcchSource(config), new MindicadorSource(config)])
+          : new MindicadorSource(config),
+    },
     JwtAuthGuard,
   ],
   exports: [ExchangeRateDataModule],

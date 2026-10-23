@@ -406,7 +406,9 @@
         "change": "{{amount}} ({{percent}}) respecto del {{date}}",
         "noChange": "Sin cambio respecto del {{date}}",
         "unavailable": "No pudimos obtener el valor ahora. Vuelve a intentarlo en unos minutos.",
-        "source": "Fuente: Banco Central de Chile, vía"
+        "source": "Fuente:",
+        "sourceName": "Banco Central de Chile, Base de Datos Estadísticos",
+        "sourceOwnership": "Los datos son propiedad del Banco Central de Chile."
       },
       "history": {
         "title": "Historial",

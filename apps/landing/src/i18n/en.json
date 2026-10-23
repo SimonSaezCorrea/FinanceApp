@@ -406,7 +406,9 @@
         "change": "{{amount}} ({{percent}}) since {{date}}",
         "noChange": "No change since {{date}}",
         "unavailable": "We couldn't get the value right now. Try again in a few minutes.",
-        "source": "Source: Central Bank of Chile, via"
+        "source": "Source:",
+        "sourceName": "Central Bank of Chile, Statistics Database",
+        "sourceOwnership": "The data are the property of the Central Bank of Chile."
       },
       "history": {
         "title": "History",
