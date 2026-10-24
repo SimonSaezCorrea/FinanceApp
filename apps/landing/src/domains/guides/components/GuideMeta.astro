@@ -1,0 +1,26 @@
+---
+import { t } from "../../../i18n";
+import type { Language } from "../../../lib/language";
+import { formatDay } from "../../rates/lib/chileDay";
+import { isoDay } from "../lib/dates";
+
+/** Published · reviewed · author (spec 035, FR-007), both dates always shown (the review date is
+ * what tells a reader the sources were checked), as `<time>` for crawlers. */
+interface Props {
+  lang: Language;
+  publishedAt: Date;
+  reviewedAt: Date;
+  author: string;
+}
+const { lang, publishedAt, reviewedAt, author } = Astro.props;
+const published = isoDay(publishedAt);
+const reviewed = isoDay(reviewedAt);
+---
+
+<p class="flex flex-wrap gap-x-2 gap-y-1 text-sm text-muted-foreground">
+  <time datetime={published}>{t(lang, "landing.guides.published", { date: formatDay(published, lang) })}</time>
+  <span aria-hidden="true">·</span>
+  <time datetime={reviewed}>{t(lang, "landing.guides.reviewed", { date: formatDay(reviewed, lang) })}</time>
+  <span aria-hidden="true">·</span>
+  <span>{author}</span>
+</p>

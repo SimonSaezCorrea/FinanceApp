@@ -16,8 +16,10 @@ import ThemeSwitch from "./ThemeSwitch.astro";
 interface Props {
   lang: Language;
   page: Page;
+  /** Per-language address when it is not `pagePath` (spec 035 guides); see PageLayout. */
+  paths?: Partial<Record<Language, string>>;
 }
-const { lang, page } = Astro.props;
+const { lang, page, paths } = Astro.props;
 const NAV = [
   { page: "about", key: "landing.nav.about" },
   { page: "privacy", key: "landing.nav.privacy" },
@@ -63,7 +65,7 @@ const other: Language = lang === "es" ? "en" : "es";
           ))
         }
         <a
-          href={pagePath(other, page)}
+          href={paths?.[other] ?? pagePath(other, page)}
           hreflang={other}
           lang={other}
           class="flex min-h-14 items-center justify-between text-lg font-semibold tracking-tight text-muted-foreground"

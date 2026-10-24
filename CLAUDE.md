@@ -1791,6 +1791,37 @@ code)` (integration/e2e — needs a SEEDED DB). No migration beyond `db push` + 
     12:20 UTC with `EXCHANGE_RATES_REQUIRED=true`, a separate workflow so it never moves `deploy.yml`'s
     baseline, sharing its `deploy` concurrency group (docs/DEPLOY.md §10). Local Lighthouse mobile:
     100/100/100/100 on the four pages, LCP 1,7 s. i18n `landing.rates.*`, `landing.meta.{ufValue,dollarRate}.*`.
+    Amendment (guides section, specs/035, 2026-10-23): **`/es/guias/` and `/en/guides/`** (index) and
+    one page per guide under them, built from an Astro **content collection** (`src/content.config.ts`,
+    `glob` loader): one folder per guide, one Markdown file per language,
+    `src/content/guides/<guide>/{es,en}.md` — the folder name pairs the languages and never reaches an
+    address. Frontmatter, validated at build: `title`, `description` (≤ 160), **`address`** (the URL
+    segment; NOT `slug`, which Astro's loader reserves as the entry id), `publishedAt`, `reviewedAt`,
+    `sources[]` (`name`, `title`, https `url`, ≥ 1). `domains/guides/lib/guides.ts` (pure, tested)
+    adds the set rules — one address per language, review not before publication, only `es`/`en`
+    files — and a failure STOPS the build naming the file; `lib/load.ts` reads `astro:content`.
+    **Publishing a guide = adding its files** (index, sitemap pair, metadata and language switch
+    derive from them; `lib/sitemapPairs.mjs` reads each file's `address:` for astro.config, which runs
+    before the content layer). A guide page: answer-first body (`[data-guide-body]`, class
+    **`prose-fik`** — the long-form text style, extracted from the privacy policy into `global.css`),
+    meta line (published · reviewed · "Equipo fik", `<time>`), a closed native `<details>` table of
+    contents from the body's `h2`s (so the answer stays above the fold on a phone), sources, the
+    "información general, no asesoría" notice, a "Cómo lo haces en _fik_" section in the Markdown and
+    the sign-up CTA in a `[data-access-slot]`; JSON-LD `Article` + `BreadcrumbList` (index:
+    `CollectionPage` + `ItemList`). No script of its own. `PageLayout`, `Header`, `LanguageMenu` and
+    `MobileMenu` take an optional **`paths`** (address per language) so a guide's canonical, hreflang
+    and language switch point to its pair, and a one-language guide gets no broken alternate (its
+    switch falls back to the other language's index). Per-language slugs generalized as on branch 034:
+    `RATE_SLUGS` → **`LOCALIZED_SLUGS`** (+ `LocalizedPage`, `isLocalizedPage`; page key `guides`),
+    astro.config `RATE_PAIRS` → `LOCALIZED_PAIRS`. Links: footer of every page and a line in Preguntas
+    (`landing.faq.guidesLink`). Content rules: examples use a generic issuer ("tu banco"), never a real
+    institution's cycle or rate; the English version is for foreigners in Chile (local terms with the
+    Spanish name in parentheses); "how in fik" is text steps, no app screenshots; the owner reviews a
+    guide before it is merged. First guide: "Fecha de cierre y fecha de pago de la tarjeta de crédito" /
+    "Credit card closing date and payment due date in Chile" (sources: CMF statement page, SERNAC's
+    D.S. 44/2012 page, D.S. 75/2025 in the Diario Oficial — the new credit-card information regulation,
+    in force 2028-02-06). Local Lighthouse mobile on the index and both guides: 100/100/96*/100,
+    LCP 1,5 s, CLS 0 (*the local session probe only). i18n `landing.guides.*`, `landing.meta.guides.*`.
     Amendment (Lighthouse pass on the app, 2026-10-09): measured on the production build, mobile
     profile, signed in. **Language:** only Spanish ships in the entry bundle — `apps/web/src/i18n`
     builds its own instance with `es.json` and `setLanguage(lang)`/`loadLanguage(lang)` fetch the
@@ -2444,7 +2475,7 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
   whole lifecycle end to end (crafts the specify prompt with the user, runs each
   command in order, holds review gates, asks when unsure). Don't run `implement`
   without an approved spec/plan/tasks chain.
-- **Project principles** live in `.specify/memory/constitution.md` (**v2.8.0**). It supersedes
+- **Project principles** live in `.specify/memory/constitution.md` (**v2.8.1**). It supersedes
   ad-hoc practices; honor it in every plan and implementation.
 - **Constitution v2.3.4 (2026-09-25) — `category` table-domain added** (global catalogue +
   `categoryId` FKs; Principle VIII's table count corrected to 29). See the `category` bullet above.
@@ -2511,7 +2542,16 @@ This repo uses **GitHub Spec Kit** for feature work. Structure lives in `.specif
 
 <!-- SPECKIT START -->
 
-Current plan (036 — implementado): specs/036-custom-fields/plan.md
+Current plan (035 — implementado, pendiente de revisión del contenido): specs/035-chile-guides/plan.md
+(Guías de finanzas personales para Chile: sección pública `/es/guias/` + `/en/guides/` en el landing,
+una colección de contenido de Astro [una carpeta por guía, un Markdown por idioma, frontmatter validado
+al construir], índice de secciones, fuentes oficiales, fechas, "Equipo fik", aviso de información
+general, CTA y JSON-LD `Article`. Primera guía: fecha de cierre y fecha de pago de la tarjeta (emisor
+genérico, versión en inglés para extranjeros en Chile). Sin API ni dependencias nuevas. Ver
+research.md R1–R9.
+**Verificado** (2026-10-23): landing [154 unit + 133 de build], `astro check` 0 errores, lint, `format:check`, `check:boundaries`; publicar una guía de prueba sin `sources` detiene el build nombrando el archivo, completa aparece en índice y sitemap, y una dirección repetida falla; Lighthouse móvil local (índice y ambas guías) 100/100/96/100, LCP 1,5 s; a 360×640 la respuesta se ve sin scroll. **Pendiente**: revisión del texto por el dueño del producto (FR-017).)
+
+Prior plan (036 — implementado): specs/036-custom-fields/plan.md
 (Campos personalizados en los movimientos: tablas-dominio nuevas `custom-field` [4 capas, agregado
 dueño de tipo/opciones/alcance/default] y `transaction-field-value` [valores tipados, "sin valor" =
 sin fila]; filtro por campo en `GET /transactions`/`summary` resuelto por conjuntos de ids, nunca

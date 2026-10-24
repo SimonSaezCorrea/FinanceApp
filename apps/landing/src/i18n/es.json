@@ -300,7 +300,8 @@
         "title": "¿Te quedó otra duda?",
         "body": "Crear la cuenta toma un minuto y no te compromete a nada: el primer gasto lo puedes anotar en efectivo."
       },
-      "morePrivacy": "Más sobre esto en Privacidad y datos"
+      "morePrivacy": "Más sobre esto en Privacidad y datos",
+      "guidesLink": "¿Buscas algo más detallado? Lee nuestras guías"
     },
     "skipToContent": "Saltar al contenido",
     "meta": {
@@ -348,6 +349,10 @@
         "titleWithValue": "Dólar observado hoy {{date}}: {{value}} · fik",
         "description": "Valor del dólar observado hoy en pesos chilenos, con el historial de 30 días y del año y un conversor de dólares a pesos. Datos del Banco Central de Chile.",
         "descriptionWithValue": "Dólar observado hoy, {{date}}: {{value}}. Historial de 30 días y del año y conversor de dólares a pesos. Datos del Banco Central de Chile."
+      },
+      "guides": {
+        "title": "Guías de finanzas personales para Chile · fik",
+        "description": "Guías claras sobre tarjetas de crédito, cuentas y facturación en Chile, con ejemplos en pesos y fuentes oficiales (CMF, SERNAC, Banco Central)."
       }
     },
     "access": {
@@ -454,6 +459,26 @@
         "title": "La UF y el dólar de hoy",
         "body": "Los mismos valores que usa fik, con historial y conversor.",
         "see": "Ver historial y conversor"
+      }
+    },
+    "guides": {
+      "nav": "Guías",
+      "title": "Guías de finanzas personales",
+      "lead": "Respuestas claras a preguntas concretas sobre tarjetas, cuentas y facturación en Chile, con ejemplos y fuentes oficiales.",
+      "empty": "Aún no hay guías en este idioma.",
+      "published": "Publicada el {{date}}",
+      "reviewed": "Revisada el {{date}}",
+      "author": "Equipo fik",
+      "reviewedShort": "Revisada el {{date}}",
+      "toc": "En esta guía",
+      "sources": "Fuentes",
+      "notice": "Esta guía es información general y no es asesoría financiera. Las condiciones de tu tarjeta las fija tu emisor y aparecen en tu contrato y en tu estado de cuenta.",
+      "backToIndex": "Ver todas las guías",
+      "breadcrumb": "Guías",
+      "cta": {
+        "title": "Lleva el control de tus tarjetas en fik",
+        "body": "Anota tus compras, genera cada facturación con las fechas de tu estado de cuenta y sabe siempre cuánto debes pagar y cuándo.",
+        "action": "Crear cuenta"
       }
     }
   }
