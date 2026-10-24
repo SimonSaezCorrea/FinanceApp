@@ -3,6 +3,7 @@ import { z } from "zod";
 import { cardKind, cardNetwork, accountStatus } from "../accounts/index";
 import { accountType } from "../common/account-type";
 import { moneyString } from "../common/money";
+import { customFieldValueSchema } from "../common/custom-field-value";
 import { rowId } from "../common/row-id";
 import { debtDirection } from "../debts/index";
 import { installmentFrequency } from "../installments/index";
@@ -55,6 +56,9 @@ const excelRow = z.number().int().min(2);
 const currency = z.string().trim().length(3);
 const ref = z.string().trim().min(1).max(80);
 const text = (max: number) => z.string().trim().max(max).optional();
+/** The person's custom field values of a row (specs/036), by field id. Left out =
+ * the field's default when it applies; `null` = no value. */
+const customFieldValues = z.record(rowId, customFieldValueSchema.nullable()).optional();
 
 export const templateMovementSchema = z.object({
   row: excelRow,
@@ -75,6 +79,7 @@ export const templateMovementSchema = z.object({
   financeCharge: z.boolean().optional(),
   /** The `ref` of a row in the Recurring sheet this movement is a payment of. */
   recurringRef: ref.optional(),
+  customFields: customFieldValues,
 });
 export type TemplateMovement = z.infer<typeof templateMovementSchema>;
 
@@ -86,6 +91,8 @@ export const templateTransferSchema = z.object({
   outgoingAmount: positiveMoney,
   incomingAmount: positiveMoney,
   description: text(500),
+  /** Written on both legs, each where the field applies to it. */
+  customFields: customFieldValues,
 });
 export type TemplateTransfer = z.infer<typeof templateTransferSchema>;
 

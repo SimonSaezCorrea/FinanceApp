@@ -99,6 +99,8 @@ model User {
   consentRecords     ConsentRecord[]
   emails             UserEmail[]
   emailTokens        EmailToken[]
+  customFields       CustomField[]
+  fieldValues        TransactionFieldValue[]
 
   @@index([countryId])
   @@map("user")
@@ -814,6 +816,8 @@ model Transaction {
   /// what makes this movement read-only from the Movements view: it is corrected by
   /// undoing and re-paying the installment, never edited in place.
   installmentPayments InstallmentPayment[]
+  /// Values of the person's own custom fields on this movement (specs/036).
+  customFieldValues   TransactionFieldValue[]
 
   @@index([userId])
   @@index([bankAccountId])
@@ -830,6 +834,96 @@ model Transaction {
   @@index([settlesStatementId])
   @@index([settlementPairId])
   @@map("transaction")
+}
+
+/// What a custom field holds (specs/036).
+enum CustomFieldType {
+  BOOLEAN
+  TEXT
+  NUMBER
+  DATE
+  OPTION
+}
+
+/// The kind of movement a custom field's scope names. TRANSFER = either leg of a
+/// transfer (`transferGroupId` set), which does not count as EXPENSE/INCOME here.
+enum CustomFieldMovementKind {
+  EXPENSE
+  INCOME
+  TRANSFER
+}
+
+/// A field a person defines for their own movements (specs/036) — "Transferido",
+/// "Reembolsable", "Viaje"… Its type, options, scope and default are the rules every
+/// value is checked against; the values themselves live in `transaction-field-value`.
+model CustomField {
+  id                    String                    @id @default(uuid(7))
+  userId                String
+  name                  String
+  /// `name` lower-cased, without accents and with spaces collapsed: what makes two
+  /// names "the same" for the uniqueness rule.
+  nameKey               String
+  type                  CustomFieldType
+  /// `[{ id: uuidv7, label }]` — only for OPTION. A value stores the option's id, so
+  /// renaming an option never touches the values.
+  options               Json                      @default("[]")
+  /// Empty = every kind.
+  scopeMovementKinds    CustomFieldMovementKind[]
+  /// With true and an empty `scopeAccountIds` the field applies to nothing (every
+  /// account it named was deleted) — kept apart so that never silently means "all".
+  scopeRestrictAccounts Boolean                   @default(false)
+  /// Ids of the person's `BankAccount`s (not a FK: an array). Deleting an account
+  /// removes it from here in the same transaction.
+  scopeAccountIds       String[]
+  /// Empty = no restriction; with values, a movement without a card does not apply.
+  scopeCardKinds        CardKind[]
+  /// `{ "value": <typed> }` or null.
+  defaultValue          Json?
+  showAsColumn          Boolean                   @default(false)
+  sortOrder             Int                       @default(0)
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  user   User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  values TransactionFieldValue[]
+
+  @@unique([userId, nameKey])
+  @@index([userId, sortOrder])
+  @@map("custom-field")
+}
+
+/// The value of one custom field on one movement (specs/036). Exactly one value
+/// column is set — the one of the field's type. "No value" is the ABSENCE of a row.
+model TransactionFieldValue {
+  id                       String    @id @default(uuid(7))
+  userId                   String
+  transactionId            String
+  customFieldId            String
+  booleanValue             Boolean?
+  textValue                String?
+  numberValue              Decimal?  @db.Decimal(24, 8)
+  dateValue                DateTime? @db.Date
+  optionId                 String?
+  /// The transfer ("Transferir pendientes") that covered this movement — a group id,
+  /// not a row, hence no FK. Cleared by any manual edit of the value.
+  coveredByTransferGroupId String?
+  /// `{ "value": <typed> | null }`: what the value was before that transfer, restored
+  /// if the transfer is deleted (null inside = there was no value).
+  coverPreviousValue       Json?
+  updatedAt                DateTime  @updatedAt
+
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  customField CustomField @relation(fields: [customFieldId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, customFieldId])
+  @@index([userId])
+  @@index([customFieldId, booleanValue])
+  @@index([customFieldId, optionId])
+  @@index([customFieldId, numberValue])
+  @@index([customFieldId, dateValue])
+  @@index([userId, coveredByTransferGroupId])
+  @@map("transaction-field-value")
 }
 
 /// A receipt/voucher file attached to a movement. The bytes live in object storage

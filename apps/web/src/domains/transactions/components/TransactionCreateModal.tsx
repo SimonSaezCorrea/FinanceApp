@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { accounts as accountsContract } from "@finance/contracts";
-import type { transactions } from "@finance/contracts";
+import type { customFields, transactions } from "@finance/contracts";
 
 import {
   useAccountMutations,
@@ -19,6 +19,15 @@ import { ConfirmModal, FormSurface } from "@finance/ui/src/shared/ui/overlay";
 import { transactionsApi } from "../api/transactionsApi";
 import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { useTransferMutations } from "../hooks/useTransferMutations";
+import { CustomFieldInputs } from "../../custom-fields/components/CustomFieldInputs";
+import { useCustomFields, useFieldValueMutations } from "../../custom-fields/hooks/useCustomFields";
+import {
+  creationPayload,
+  defaultsFor,
+  fieldsFor,
+  sendable,
+  shapeOf,
+} from "../../custom-fields/lib/fieldValues";
 import { AttachmentsSection } from "./AttachmentsSection";
 import { TransactionFormPanel, type TransactionFormValue } from "./TransactionFormPanel";
 
@@ -50,6 +59,7 @@ const emptyForm = (date: string): TransactionFormValue => ({
   receptor: "",
   lugar: "",
   date,
+  customFields: null,
 });
 
 /**
@@ -116,6 +126,8 @@ export function TransactionCreateModal({
   // reject the second record as a duplicate of the first (FR-002).
   const idempotencyKey = useIdempotencyKey();
   const { data: accountList } = useAccounts();
+  const { data: fieldList } = useCustomFields();
+  const { setValues } = useFieldValueMutations();
   const editing = Boolean(initial);
 
   const [form, setForm] = useState<TransactionFormValue>(() => emptyForm(todayInput()));
@@ -301,10 +313,48 @@ export function TransactionCreateModal({
       emisor: "",
       receptor: "",
       lugar: "",
+      customFields: null,
     }));
     // Back to the amount, which is where the next movement starts.
     document.querySelector<HTMLInputElement>('[data-testid="tx-amount"]')?.focus();
   }
+
+  // Custom fields (specs/036). Untouched (`null`): a new movement shows the defaults
+  // that apply to what's being written, an edit or a duplicate what the source holds.
+  const fields = fieldList ?? [];
+  const legShape = (bankAccountId: string) => ({
+    kind: "TRANSFER" as const,
+    bankAccountId,
+    cardKind: null,
+  });
+  const fieldShape = isTransfer
+    ? legShape(form.bankAccountId)
+    : shapeOf(
+        {
+          type: form.mode === "INCOME" ? "INCOME" : "EXPENSE",
+          bankAccountId: form.bankAccountId || null,
+          cardId: form.cardId || null,
+        },
+        accounts,
+      );
+  const sourceValues = (initial ?? duplicateFrom)?.customFields;
+  const fieldValues =
+    form.customFields ?? (sourceValues ? { ...sourceValues } : defaultsFor(fields, fieldShape));
+  const shownFields = isPrepay
+    ? []
+    : isTransfer
+      ? fields.filter(
+          (f) =>
+            fieldsFor([f], legShape(form.bankAccountId), fieldValues).length > 0 ||
+            fieldsFor([f], legShape(form.toBankAccountId), fieldValues).length > 0,
+        )
+      : fieldsFor(fields, fieldShape, editing ? fieldValues : undefined);
+  const setFieldValue = (fieldId: string, value: customFields.CustomFieldValue | null) => {
+    const next = { ...fieldValues };
+    if (value === null) delete next[fieldId];
+    else next[fieldId] = value;
+    patch({ customFields: next });
+  };
 
   function submit(keepOpen = false) {
     const done = (saved?: { id?: string }) => {
@@ -350,6 +400,8 @@ export function TransactionCreateModal({
         emisor: form.emisor || undefined,
         receptor: form.receptor || undefined,
         lugar: form.lugar || undefined,
+        outgoingCustomFields: creationPayload(fields, legShape(form.bankAccountId), fieldValues),
+        incomingCustomFields: creationPayload(fields, legShape(form.toBankAccountId), fieldValues),
       } satisfies transactions.CreateTransfer;
 
       // A transfer's own surface has no attachment step, so it just closes.
@@ -357,7 +409,13 @@ export function TransactionCreateModal({
       // An edit sends `null` to CLEAR the category; a create just omits it.
       if (groupId)
         transfer.update.mutate(
-          { groupId, body: { ...body, categoryId: form.categoryId || null } },
+          {
+            groupId,
+            body: (({ outgoingCustomFields: _o, incomingCustomFields: _i, ...rest }) => ({
+              ...rest,
+              categoryId: form.categoryId || null,
+            }))(body),
+          },
           transferHandlers,
         );
       else
@@ -408,7 +466,24 @@ export function TransactionCreateModal({
       lugar: form.lugar || undefined,
     } satisfies transactions.CreateTransaction;
 
-    if (editing && initial)
+    if (editing && initial) {
+      // The movement's own fields and its custom field values are saved apart: the
+      // values go through their own endpoint (specs/036), only when they changed.
+      const before = initial.customFields ?? {};
+      const changes: Record<string, customFields.CustomFieldValue | null> = {};
+      if (form.customFields) {
+        for (const f of fields) {
+          const next = sendable(f, fieldValues[f.id] ?? null);
+          if ((before[f.id] ?? null) !== next) changes[f.id] = next;
+        }
+      }
+      const saveValues = (saved?: { id?: string }) => {
+        if (Object.keys(changes).length === 0) return done(saved);
+        setValues.mutate(
+          { transactionId: initial.id, values: changes },
+          { onSuccess: () => done(saved), onError: handlers.onError },
+        );
+      };
       update.mutate(
         {
           id: initial.id,
@@ -418,9 +493,16 @@ export function TransactionCreateModal({
             recurringExpenseId: form.recurringExpenseId || null,
           },
         },
+        { ...handlers, onSuccess: saveValues },
+      );
+    } else
+      create.mutate(
+        {
+          body: { ...body, customFields: creationPayload(fields, fieldShape, fieldValues) },
+          idempotencyKey: idempotencyKey.current(),
+        },
         handlers,
       );
-    else create.mutate({ body, idempotencyKey: idempotencyKey.current() }, handlers);
   }
 
   return (
@@ -477,6 +559,15 @@ export function TransactionCreateModal({
           // destination is a choice.
           accountLocked={lockAccount && !!form.bankAccountId}
           original={initial ?? null}
+          customFields={
+            shownFields.length > 0 ? (
+              <CustomFieldInputs
+                fields={shownFields}
+                values={fieldValues}
+                onChange={setFieldValue}
+              />
+            ) : null
+          }
           // Offered from inside an account too: the whole pair can be created
           // from here (this account is just the source, pre-filled), and
           // `accountLocked` above already reveals the selector in transfer mode

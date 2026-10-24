@@ -2,7 +2,7 @@ import { ArrowLeftRight, Inbox, Pencil, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import type { accounts, transactions } from "@finance/contracts";
+import type { accounts, customFields, transactions } from "@finance/contracts";
 import { formatMoney } from "@finance/money";
 
 import { RowActionsMenu } from "./RowActionsMenu";
@@ -18,6 +18,7 @@ import { ErrorState } from "../../../shared/ui/states";
 import { SwipeRow } from "../../../shared/ui/swipe-row";
 import { Table, TD, TH, THead, TR } from "../../../shared/ui/table";
 import { movementActions } from "../lib/movementActions";
+import { displayValue } from "../../custom-fields/lib/fieldValues";
 
 interface TransactionTableProps {
   transactions: transactions.Transaction[];
@@ -49,6 +50,12 @@ interface TransactionTableProps {
   hasMore?: boolean;
   isLoadingMore?: boolean;
   onLoadMore?: () => void;
+  /** Custom fields shown as columns (specs/036, "mostrar como columna"): one column
+   * each in the full table, "Nombre: valor" in the compact list. */
+  columnFields?: readonly customFields.CustomField[];
+  /** Selection mode (bulk actions, specs/036): a checkbox per row, and a tap on a
+   * row toggles it instead of opening the detail. */
+  selection?: { selected: ReadonlySet<string>; onToggle: (id: string) => void };
 }
 
 /**
@@ -89,10 +96,33 @@ export function TransactionTable({
   onLoadMore,
   error,
   onRetry,
+  columnFields = [],
+  selection,
 }: TransactionTableProps) {
   const { t, i18n } = useTranslation();
   const { nameOf: categoryName } = useCategoryCatalog();
-  const showActions = Boolean(onEdit || onDelete);
+  const showActions = Boolean(onEdit || onDelete) && !selection;
+  const rowClick = selection
+    ? (tx: transactions.Transaction) => selection.onToggle(tx.id)
+    : onRowClick;
+  const fieldText = (tx: transactions.Transaction, field: customFields.CustomField) =>
+    displayValue(field, tx.customFields?.[field.id], t, i18n.language);
+  const fieldLine = (tx: transactions.Transaction) =>
+    columnFields
+      .filter((f) => tx.customFields?.[f.id] !== undefined)
+      .map((f) => ` · ${f.name}: ${fieldText(tx, f)}`)
+      .join("");
+  const checkbox = (tx: transactions.Transaction) =>
+    selection ? (
+      <input
+        type="checkbox"
+        className="h-5 w-5 shrink-0 accent-[hsl(var(--primary))]"
+        checked={selection.selected.has(tx.id)}
+        onChange={() => selection.onToggle(tx.id)}
+        onClick={(e) => e.stopPropagation()}
+        aria-label={`${t("customFields.bulk.selectRow")}: ${tx.description ?? formatDate(tx.occurredAt, i18n.language)}`}
+      />
+    ) : null;
   // Only one row's swipe panel open at a time — opening another closes the
   // previous one for free, since both read off this single id.
   const [openSwipeId, setOpenSwipeId] = useState<string | null>(null);
@@ -182,6 +212,7 @@ export function TransactionTable({
         <Table ref={setScrollWrapEl} className="table-fixed">
           <THead className="bg-muted/50">
             <TR>
+              {selection ? <TH className="w-10" /> : null}
               <TH className="w-8" />
               <TH>{t("transactions.form.description")}</TH>
               {showCategoryColumn ? (
@@ -194,6 +225,11 @@ export function TransactionTable({
               {showCardColumn ? (
                 <TH className="w-28 whitespace-nowrap">{t("transactions.form.card")}</TH>
               ) : null}
+              {columnFields.map((f) => (
+                <TH key={f.id} className="w-28 truncate">
+                  {f.name}
+                </TH>
+              ))}
               <TH className="w-28 whitespace-nowrap">{t("transactions.form.date")}</TH>
               <TH numeric className="w-32">
                 {t("transactions.form.amount")}
@@ -223,15 +259,17 @@ export function TransactionTable({
                   key={tx.id}
                   className={cn(
                     "hover:bg-muted/40",
-                    onRowClick && "cursor-pointer",
+                    rowClick && "cursor-pointer",
+                    selection?.selected.has(tx.id) && "bg-primary/5",
                     // `border-b-accent/40` too: the row's own separator paints
                     // ON TOP of the inset ring's bottom edge, so without it the
                     // highlight looks open at the bottom (three sides, not four).
                     tx.id === highlighted &&
                       "border-b-accent/40 bg-accent/10 ring-1 ring-inset ring-accent/40",
                   )}
-                  onClick={() => onRowClick?.(tx)}
+                  onClick={() => rowClick?.(tx)}
                 >
+                  {selection ? <TD className="w-10">{checkbox(tx)}</TD> : null}
                   <TD>
                     <span
                       className={`flex h-8 w-8 items-center justify-center rounded-full ${iconWrapColor}`}
@@ -283,6 +321,11 @@ export function TransactionTable({
                       {card ? `••••${card.last4}` : <span className="opacity-40">—</span>}
                     </TD>
                   ) : null}
+                  {columnFields.map((f) => (
+                    <TD key={f.id} className="w-28 truncate text-muted-foreground">
+                      {fieldText(tx, f) || <span className="opacity-40">—</span>}
+                    </TD>
+                  ))}
                   {/* `whitespace-nowrap`: at narrow table widths the browser was
                       wrapping the date word-by-word ("14 / ago / 2026") instead of
                       shrinking a different column — the date reads better fixed-width. */}
@@ -376,15 +419,17 @@ export function TransactionTable({
                 onOpenChange={(o) => setOpenSwipeId(o ? tx.id : null)}
                 onEdit={onEdit && movementActions(tx).edit ? () => onEdit(tx) : undefined}
                 onDelete={onDelete && movementActions(tx).delete ? () => onDelete(tx) : undefined}
-                onTap={onRowClick ? () => onRowClick(tx) : undefined}
+                onTap={rowClick ? () => rowClick(tx) : undefined}
               >
                 <div
                   className={cn(
                     "flex min-h-14 items-center gap-3 px-4 py-2",
-                    onRowClick && "cursor-pointer",
+                    rowClick && "cursor-pointer",
+                    selection?.selected.has(tx.id) && "bg-primary/5",
                     tx.id === highlighted && "bg-accent/10 ring-1 ring-inset ring-accent/40",
                   )}
                 >
+                  {selection ? <span data-swipe-action>{checkbox(tx)}</span> : null}
                   <span
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full ${iconWrapColor}`}
                   >
@@ -403,6 +448,7 @@ export function TransactionTable({
                       {category}
                       {card ? ` · ••••${card.last4}` : ""} ·{" "}
                       {formatDate(tx.occurredAt, i18n.language)}
+                      {fieldLine(tx)}
                     </p>
                     {/* Tablet subdescription: cuenta · categoría · tarjeta · tipo — the
                         date gets its own column here instead. `showAccountColumn`
@@ -416,6 +462,7 @@ export function TransactionTable({
                       {showAccountColumn ? `${accountName} · ` : ""}
                       {category}
                       {card ? ` · ••••${card.last4}` : ""} · {t(`transactions.type.${tx.type}`)}
+                      {fieldLine(tx)}
                     </p>
                   </div>
 

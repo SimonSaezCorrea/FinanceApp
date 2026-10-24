@@ -50,6 +50,10 @@ import {
 import { BaseQueryHandler } from "../../../../infra/cqrs/base-query.handler";
 import { generateRowId } from "../../../../infra/id/generate-row-id";
 import { planTemplateImport } from "../../domain/template-plan";
+import {
+  CUSTOM_FIELD_REPOSITORY,
+  type CustomFieldRepositoryPort,
+} from "../../../custom-field/domain/ports/custom-field.repository.port";
 import { loadTemplateContext, type TemplateContext } from "../template-context.loader";
 import { countReplacement } from "../template-replacement";
 import { PreviewTemplateQuery } from "./preview-template.query";
@@ -84,6 +88,7 @@ export class PreviewTemplateQueryHandler extends BaseQueryHandler<
     private readonly recurring: RecurringExpenseRepositoryPort,
     @Inject(SAVINGS_GOAL_REPOSITORY) private readonly goals: SavingsGoalRepositoryPort,
     @Inject(SAVINGS_ENTRY_REPOSITORY) private readonly entries: SavingsEntryRepositoryPort,
+    @Inject(CUSTOM_FIELD_REPOSITORY) private readonly fields: CustomFieldRepositoryPort,
   ) {
     super();
   }
@@ -95,6 +100,7 @@ export class PreviewTemplateQueryHandler extends BaseQueryHandler<
         movements: this.movements,
         categories: this.categories,
         statements: this.statements,
+        fields: this.fields,
       },
       query.userId,
       query.input,
@@ -123,6 +129,7 @@ export class PreviewTemplateQueryHandler extends BaseQueryHandler<
               recurring: this.recurring,
               goals: this.goals,
               entries: this.entries,
+              fields: this.fields,
             },
             query.userId,
           )

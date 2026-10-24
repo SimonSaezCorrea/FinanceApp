@@ -1,9 +1,10 @@
 import type { Workbook } from "exceljs";
 import type { TFunction } from "i18next";
 
-import { reference, type accounts } from "@finance/contracts";
+import { reference, type accounts, type customFields } from "@finance/contracts";
 
 import type { ExistingRows } from "./templateData";
+import { customColumnKey, customColumnNote, fieldsForSheet } from "./templateCustomFields";
 import {
   EXISTING_ID_HEADER_KEY,
   EXISTING_ID_HELP_KEY,
@@ -30,6 +31,8 @@ export interface TemplateRefs {
   currencies: string[];
   /** The institution catalogue, to link an account's Institution by name. */
   institutions?: { id: string; name: string }[];
+  /** The person's custom fields (specs/036): one extra column each. */
+  customFields?: customFields.CustomField[];
 }
 
 /** Rows of Accounts/Cards the Reference dropdowns follow (rows added later too). */
@@ -237,6 +240,38 @@ export async function buildTemplate(input: {
   });
 
   for (const { spec, sheet } of dataSheets) {
+    // Custom fields (specs/036) go after the "ID fik" column, headed by their name.
+    const custom = fieldsForSheet(refs.customFields ?? [], spec.key);
+    custom.forEach((field, j) => {
+      const index = spec.columns.length + 2 + j;
+      const header = sheet.getCell(1, index);
+      header.value = field.name;
+      header.font = { bold: true };
+      header.note = customColumnNote(field, t);
+      const col = sheet.getColumn(index);
+      col.width = 18;
+      if (field.type === "DATE") col.numFmt = "dd/mm/yyyy";
+      const letter = columnLetter(index - 1);
+      const yesNo = ranges.get("yesNo");
+      const labels = field.options.map((o) => o.label);
+      const inline =
+        field.type === "OPTION" && labels.every((l) => !l.includes(",") && !l.includes('"'))
+          ? `"${labels.join(",")}"`
+          : null;
+      const formula = field.type === "BOOLEAN" ? yesNo : inline;
+      if (formula && formula.length <= 255) {
+        (sheet as unknown as RangeValidations).dataValidations.add(
+          `${letter}2:${letter}${DATA_ROWS + 1}`,
+          { type: "list", allowBlank: true, formulae: [formula], showErrorMessage: false },
+        );
+      }
+      for (const [r, row] of (existing?.[spec.key] ?? []).entries()) {
+        const value = row.cells[customColumnKey(field.id)];
+        if (value !== null && value !== undefined && value !== "") {
+          sheet.getRow(r + 2).getCell(index).value = value;
+        }
+      }
+    });
     if (existing) {
       const rows = existing[spec.key];
       const idColumn = spec.columns.length + 1;

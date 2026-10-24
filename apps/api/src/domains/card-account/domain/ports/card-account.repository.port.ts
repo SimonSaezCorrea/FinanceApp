@@ -23,6 +23,9 @@ export interface CardAccountRepositoryPort {
    * installments records a real movement: a CREDIT card's purchase is already in its
    * own statement, so recording it again would count the debt twice (FR-035). */
   kindForCard(userId: string, cardId: string): Promise<accounts.CardKind | null>;
+  /** Every card of the user with its kind — what a custom field's card-kind scope
+   * (specs/036) is checked and translated against. A person has a handful of cards. */
+  kindsForUser(userId: string): Promise<Map<string, accounts.CardKind>>;
   create(userId: string, accountId: string, plan: CardPlan): Promise<string>;
   /** Same, inside the caller's transaction (its limits too). */
   createWithTx(tx: unknown, userId: string, accountId: string, plan: CardPlan): Promise<string>;

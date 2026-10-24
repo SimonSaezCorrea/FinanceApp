@@ -3,6 +3,7 @@ import type { imports } from "@finance/contracts";
 import type { BankAccountRepositoryPort } from "../../bank-account/domain/ports/bank-account.repository.port";
 import type { CardAccountRepositoryPort } from "../../card-account/domain/ports/card-account.repository.port";
 import type { CreditStatementRepositoryPort } from "../../credit-statement/domain/ports/credit-statement.repository.port";
+import type { CustomFieldRepositoryPort } from "../../custom-field/domain/ports/custom-field.repository.port";
 import type { DebtRepositoryPort } from "../../debt/domain/ports/debt.repository.port";
 import type { InstallmentPlanRepositoryPort } from "../../installment-plan/domain/ports/installment-plan.repository.port";
 import type { RecurringExpenseRepositoryPort } from "../../recurring-expense/domain/ports/recurring-expense.repository.port";
@@ -22,6 +23,9 @@ export interface ReplacementPorts {
   recurring: RecurringExpenseRepositoryPort;
   goals: SavingsGoalRepositoryPort;
   entries: SavingsEntryRepositoryPort;
+  /** Custom fields stay (they are configuration), but no scope may keep naming a
+   * deleted account (specs/036). */
+  fields: CustomFieldRepositoryPort;
 }
 
 /** What a REPLACE would delete — shown in the preview before confirming. */
@@ -65,4 +69,5 @@ export async function purgeUserDataWithTx(
   await ports.entries.deleteAllForUserWithTx(tx, userId);
   await ports.goals.deleteAllForUserWithTx(tx, userId);
   await ports.accounts.deleteAllForUserWithTx(tx, userId);
+  await ports.fields.clearAccountScopesWithTx(tx, userId);
 }

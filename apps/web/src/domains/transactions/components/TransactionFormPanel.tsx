@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 
 import { accounts as accountsContract } from "@finance/contracts";
-import type { accounts, transactions } from "@finance/contracts";
+import type { accounts, customFields, transactions } from "@finance/contracts";
 import { currencyScale, formatMoney } from "@finance/money";
 
 import { accountMetaLine, cardMetaLine } from "../../accounts/lib/accountMeta";
@@ -67,6 +67,9 @@ export interface TransactionFormValue {
   receptor: string;
   lugar: string;
   date: string;
+  /** Custom field values (specs/036); `null` = untouched, the shell then shows the
+   * defaults (new movement) or what the source holds (edit, duplicate). */
+  customFields: Record<string, customFields.CustomFieldValue> | null;
 }
 
 /** Amount/sign color per selected nav tab — the same red/green/blue the type
@@ -104,6 +107,8 @@ interface Props {
   allowTransfer?: boolean;
   /** Attachments section, injected by the shell. */
   attachments?: ReactNode;
+  /** The person's custom field rows (specs/036), injected by the shell. */
+  customFields?: ReactNode;
 }
 
 /**
@@ -122,6 +127,7 @@ export function TransactionFormPanel({
   original,
   allowTransfer = false,
   attachments,
+  customFields,
 }: Readonly<Props>) {
   const { t, i18n } = useTranslation();
   const { data: currencies } = useCurrencies();
@@ -533,6 +539,8 @@ export function TransactionFormPanel({
       {noCardsAvailable ? (
         <p className="-mt-2 text-xs text-destructive">{t("transactions.form.noCardsHint")}</p>
       ) : null}
+
+      {customFields}
 
       <FormMoreDetails
         defaultOpen={optionalDetails.some((field) => (value[field.key] as string).trim() !== "")}

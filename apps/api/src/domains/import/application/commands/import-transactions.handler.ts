@@ -43,6 +43,15 @@ import {
   BaseIdempotentCommandHandler,
   type CompleteFn,
 } from "../../../../infra/cqrs/base-idempotent-command.handler";
+import { generateRowId } from "../../../../infra/id/generate-row-id";
+import {
+  CUSTOM_FIELD_REPOSITORY,
+  type CustomFieldRepositoryPort,
+} from "../../../custom-field/domain/ports/custom-field.repository.port";
+import {
+  TRANSACTION_FIELD_VALUE_REPOSITORY,
+  type TransactionFieldValueRepositoryPort,
+} from "../../../transaction-field-value/domain/ports/transaction-field-value.repository.port";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import { planImport, type ImportCard, type ImportPlan } from "../../domain/import-plan";
 import { ImportTransactionsCommand } from "./import-transactions.command";
@@ -88,6 +97,9 @@ export class ImportTransactionsHandler extends BaseIdempotentCommandHandler<
     @Inject(TRANSACTION_WRITER_REPOSITORY)
     private readonly transactions: TransactionWriterRepositoryPort,
     @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
+    @Inject(CUSTOM_FIELD_REPOSITORY) private readonly fields: CustomFieldRepositoryPort,
+    @Inject(TRANSACTION_FIELD_VALUE_REPOSITORY)
+    private readonly fieldValues: TransactionFieldValueRepositoryPort,
     private readonly prisma: PrismaService,
   ) {
     super(eventBus, records);
@@ -117,7 +129,12 @@ export class ImportTransactionsHandler extends BaseIdempotentCommandHandler<
 
     const currency = account.snapshot().currency;
     const cards = await this.accountCards(userId, input.bankAccountId, currency);
-    const plan = planImport(input.rows, { ...loaded.context, currency }, cards);
+    const plan = planImport(
+      input.rows,
+      { ...loaded.context, currency },
+      cards,
+      await this.fields.listForUser(userId),
+    );
 
     const creditStatementId = plan.rows.some((r) => r.drawsOnCredit)
       ? (
@@ -140,10 +157,13 @@ export class ImportTransactionsHandler extends BaseIdempotentCommandHandler<
     const { userId, input } = command;
     const { plan } = context;
 
+    // Ids minted here so the custom field values can name their movement.
+    const ids = plan.rows.map(() => generateRowId());
     const result = await this.prisma.$transaction(async (tx) => {
       const imported = await this.transactions.createManyWithTx(
         tx,
-        plan.rows.map((r) => ({
+        plan.rows.map((r, i) => ({
+          id: ids[i],
           userId,
           bankAccountId: input.bankAccountId,
           type: r.type,
@@ -160,6 +180,11 @@ export class ImportTransactionsHandler extends BaseIdempotentCommandHandler<
           financeCharge: r.financeCharge,
           creditStatementId: r.drawsOnCredit ? context.creditStatementId : null,
         })),
+      );
+      await this.fieldValues.upsertManyWithTx(
+        tx,
+        userId,
+        plan.rows.flatMap((r, i) => r.customFields.map((v) => ({ ...v, transactionId: ids[i]! }))),
       );
       if (Number(plan.cashTotal) !== 0) {
         await this.accounts.incrementBalanceWithTx(tx, input.bankAccountId, plan.cashTotal);

@@ -1,4 +1,18 @@
 <!--
+Sync Impact Report — 2026-10-24 (amendment 2.8.0)
+- Version change: 2.7.1 → 2.8.0 (MINOR: two table-domains added; specs/036 custom fields).
+- ADDED table-domains `custom-field` (four layers; the `CustomField` aggregate owns type, options,
+  scope and default) and `transaction-field-value` (domain + infrastructure only; values written only
+  after the aggregate validated them). Table count 32 → 34 (Principles VI, VIII).
+- CLARIFIED Principle VI with its first filter that crosses domains: `transaction` never reads
+  `transaction-field-value`; a filter by a custom field reaches it as a set of ids resolved by that
+  domain's port. A Prisma relation filter (`some`/`none`) or a raw `EXISTS` across the two would be a
+  violation.
+- Principle VII applied per endpoint in specs/036 research R9: bulk assignment and "Transferir
+  pendientes" use form (c); one movement's values form (b) on `@@unique([transactionId,
+  customFieldId])`; the undo of a bulk assignment is a compare-and-set (a).
+-->
+<!--
 Sync Impact Report — 2026-10-23 (amendment 2.7.1)
 - Version change: 2.7.0 → 2.7.1 (PATCH: operational; no principle text changed).
 - ADDED: the Banco Central de Chile's statistics API (BDE) is the primary exchange-rate source,
@@ -1941,13 +1955,15 @@ Rationale: the spec is the shared contract; skipping it produces code nobody agr
 The constitution and `CLAUDE.md` are the project's durable memory — if they drift from
 reality, every future decision is made on false information.
 
-### VI. Backend DDD + CQRS Architecture (one table = one domain, 24 domains)
+### VI. Backend DDD + CQRS Architecture (one table = one domain, 34 tables)
 
 **One table, one domain, one adapter.** Every table in `apps/api/prisma/schema.prisma` MUST own
 exactly one folder `src/domains/<table>/` (kebab-case, matching its `@@map`), and exactly one Prisma
 adapter may query that table. No adapter, handler or controller may read or write a table owned by
 another domain: it goes through that domain's port. A folder that owns no table is allowed only when
-it owns no data either (`import`, `health`).
+it owns no data either (`import`, `health`). A filter over one table by data that lives in another
+(e.g. movements by a custom field's value, specs/036) reaches the first table's adapter as a set of
+ids resolved through the second table's port — never as a relation filter or a join.
 
 This does NOT dissolve aggregates. A table whose rows exist only inside another aggregate
 (`card-account`, `card-limit`, `billing-settings`, `installment-payment`, `savings-entry`) owns its
@@ -2018,7 +2034,7 @@ Rationale: en una app de finanzas un timeout de red reintentado no puede cobrar 
 ### VIII. Identificadores (NON-NEGOTIABLE)
 
 Existe UN formato de identificador de fila para todo el esquema, declarado en la constitución y
-uniforme en las 32 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
+uniforme en las 34 tablas: **UUID v7** (ratificado por specs/016 — ordenable por tiempo, mejora
 localidad de índice en Postgres, estándar RFC 9562). Está prohibido que dos formatos convivan en la
 misma columna.
 
@@ -2321,4 +2337,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.7.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-23
+**Version**: 2.8.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-24

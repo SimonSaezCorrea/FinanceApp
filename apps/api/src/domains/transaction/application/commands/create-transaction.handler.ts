@@ -22,6 +22,15 @@ import {
   IDEMPOTENCY_RECORD_REPOSITORY,
   type IdempotencyRecordRepositoryPort,
 } from "../../../idempotency-record/domain/ports/idempotency-record.repository.port";
+import {
+  CUSTOM_FIELD_REPOSITORY,
+  type CustomFieldRepositoryPort,
+} from "../../../custom-field/domain/ports/custom-field.repository.port";
+import {
+  TRANSACTION_FIELD_VALUE_REPOSITORY,
+  type TransactionFieldValueRepositoryPort,
+} from "../../../transaction-field-value/domain/ports/transaction-field-value.repository.port";
+import { resolveCreationValues, valuesRecord, type CreationValue } from "../custom-field-values";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import { cashDelta } from "../../domain/balance-delta";
 import {
@@ -58,6 +67,7 @@ interface Context {
   cardLimit: CardLimitContext | null;
   contribution: string;
   creditStatementId: string | null;
+  fieldValues: CreationValue[];
 }
 
 /**
@@ -93,6 +103,9 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
     @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
     @Inject(RECURRING_EXPENSE_REPOSITORY)
     private readonly recurring: RecurringExpenseRepositoryPort,
+    @Inject(CUSTOM_FIELD_REPOSITORY) private readonly customFieldsRepo: CustomFieldRepositoryPort,
+    @Inject(TRANSACTION_FIELD_VALUE_REPOSITORY)
+    private readonly fieldValuesRepo: TransactionFieldValueRepositoryPort,
   ) {
     super(eventBus, records);
   }
@@ -169,7 +182,14 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
         ).id
       : null;
 
-    return { account, card, cardLimit, contribution, creditStatementId };
+    // Custom fields (specs/036): the defaults that apply plus what the body names.
+    const fieldValues = resolveCreationValues(
+      await this.customFieldsRepo.listForUser(command.userId),
+      { kind: input.type, bankAccountId: input.bankAccountId, cardKind: card?.kind ?? null },
+      input.customFields,
+    );
+
+    return { account, card, cardLimit, contribution, creditStatementId, fieldValues };
   }
 
   protected async handleIdempotent(
@@ -213,7 +233,12 @@ export class CreateTransactionHandler extends BaseIdempotentCommandHandler<
         // nothing leaves the account until its statement is paid (`cashDelta`).
         cashBalance !== "0" ? [{ accountId: input.bankAccountId, delta: cashBalance }] : [],
       );
-      const contract = row.toContract();
+      await this.fieldValuesRepo.upsertManyWithTx(
+        tx,
+        command.userId,
+        context.fieldValues.map((v) => ({ ...v, transactionId: row.id })),
+      );
+      const contract = { ...row.toContract(), customFields: valuesRecord(context.fieldValues) };
       // MUST be in this same transaction: it is what makes a crash between the
       // write and this mark impossible to observe as "applied but un-marked".
       await complete(tx, contract);

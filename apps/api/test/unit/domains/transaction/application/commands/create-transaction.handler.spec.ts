@@ -1,4 +1,13 @@
-import { fakeCategoryLookup } from "../../../../support/fake-ports";
+import {
+  CustomField,
+  type CustomFieldProps,
+} from "../../../../../../src/domains/custom-field/domain/custom-field.aggregate";
+import { CustomFieldNotApplicableError } from "../../../../../../src/domains/custom-field/domain/errors";
+import {
+  fakeCategoryLookup,
+  fakeCustomFieldRepo,
+  fakeFieldValueRepo,
+} from "../../../../support/fake-ports";
 import { describe, expect, it, vi } from "vitest";
 
 import { CreateTransactionCommand } from "../../../../../../src/domains/transaction/application/commands/create-transaction.command";
@@ -50,11 +59,42 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     saveTransferPairWithTx: vi.fn(),
     updateTransferPair: vi.fn(),
     removeTransferPair: vi.fn(async () => true),
+    removeTransferPairWithTx: vi.fn(async () => true),
     ...overrides,
   };
 }
 
 const base = { currency: "CLP", occurredAt: "2026-03-01T00:00:00.000Z" } as const;
+
+const TRANSFERIDO = "019a0000-0000-7000-8000-0000000000f1";
+const INCOME_ONLY = "019a0000-0000-7000-8000-0000000000f2";
+const noScope = { movementKinds: [], restrictAccounts: false, accountIds: [], cardKinds: [] };
+const field = (props: Partial<CustomFieldProps> & Pick<CustomFieldProps, "id">) =>
+  CustomField.fromPersistence({
+    userId: "u1",
+    name: props.id,
+    nameKey: props.id,
+    type: "BOOLEAN",
+    options: [],
+    scope: noScope,
+    defaultValue: null,
+    showAsColumn: false,
+    sortOrder: 0,
+    ...props,
+  });
+const transferido = () =>
+  field({
+    id: TRANSFERIDO,
+    scope: { ...noScope, movementKinds: ["EXPENSE"], cardKinds: ["CREDIT"] },
+    defaultValue: false,
+  });
+const incomeOnly = () =>
+  field({
+    id: INCOME_ONLY,
+    type: "TEXT",
+    scope: { ...noScope, movementKinds: ["INCOME"] },
+    defaultValue: "x",
+  });
 
 const creditAccount = () =>
   accountAggregate({ id: "aC", type: "CREDIT_CARD", creditLimit: "3000000", creditUsed: "0" });
@@ -85,6 +125,8 @@ function makeHandler(
     statements?: ReturnType<typeof fakeCreditStatementRepo>;
     /** The card's own limit in the movement's currency (spec 028: its USD one). */
     cardLimit?: { limitAmount: string; usedInitial: string } | null;
+    customFields?: ReturnType<typeof fakeCustomFieldRepo>;
+    fieldValues?: ReturnType<typeof fakeFieldValueRepo>;
   } = {},
 ) {
   const accounts = fakeBankAccountRepo({ findById: vi.fn(async () => opts.account ?? null) });
@@ -105,6 +147,8 @@ function makeHandler(
     fakePrismaTransaction() as unknown as PrismaService,
     fakeCategoryLookup(),
     { findOne: vi.fn(async () => null) } as never,
+    opts.customFields ?? fakeCustomFieldRepo(),
+    opts.fieldValues ?? fakeFieldValueRepo(),
   );
 }
 
@@ -189,6 +233,56 @@ describe("CreateTransactionHandler", () => {
       // when the statement is paid. Charging it here too counted it twice.
       [],
     );
+  });
+
+  it("is born with the default of every custom field that applies (specs/036)", async () => {
+    const saveNewWithTx = vi.fn().mockImplementation(async (_tx, userId, plan) =>
+      Transaction.fromPersistence({
+        id: "t1",
+        userId,
+        ...plan,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      }),
+    );
+    const fieldValues = fakeFieldValueRepo();
+    const handler = makeHandler(fakeRepo({ saveNewWithTx }), {
+      account: creditAccount(),
+      card: creditCard,
+      customFields: fakeCustomFieldRepo({
+        listForUser: vi.fn(async () => [transferido(), incomeOnly()]),
+      }),
+      fieldValues,
+    });
+    const result = await handler.execute(
+      cmd({ ...base, type: "EXPENSE", amount: "1000", bankAccountId: "aC", cardId: "cC" }),
+    );
+    expect(result.customFields).toEqual({ [TRANSFERIDO]: false });
+    expect(fieldValues.upsertManyWithTx).toHaveBeenCalledWith(expect.anything(), "u1", [
+      { customFieldId: TRANSFERIDO, type: "BOOLEAN", value: false, transactionId: "t1" },
+    ]);
+  });
+
+  it("refuses a custom field value for a field that doesn't apply, before writing", async () => {
+    const saveNewWithTx = vi.fn();
+    const handler = makeHandler(fakeRepo({ saveNewWithTx }), {
+      account: creditAccount(),
+      card: creditCard,
+      customFields: fakeCustomFieldRepo({ listForUser: vi.fn(async () => [incomeOnly()]) }),
+    });
+    await expect(
+      handler.execute(
+        cmd({
+          ...base,
+          type: "EXPENSE",
+          amount: "1000",
+          bankAccountId: "aC",
+          cardId: "cC",
+          customFields: { [INCOME_ONLY]: "x" },
+        }),
+      ),
+    ).rejects.toBeInstanceOf(CustomFieldNotApplicableError);
+    expect(saveNewWithTx).not.toHaveBeenCalled();
   });
 
   it("rejects a credit-line expense that exceeds the persisted pool", async () => {

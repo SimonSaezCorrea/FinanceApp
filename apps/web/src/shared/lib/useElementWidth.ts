@@ -68,3 +68,10 @@ export const TABLE_ROW_MIN_WIDTH = 760;
  * column) and ~900px with it collapsed (two panes).
  */
 export const PROFILE_PANES_MIN_WIDTH = 820;
+
+/**
+ * Width "Columnas propias" needs to show its list beside the open column's detail: 280px of list
+ * + 24px gap + ~520px of detail, the least at which a values table with two currencies fits.
+ * Below it the list opens each column as its own screen, like the profile.
+ */
+export const CUSTOM_FIELDS_PANES_MIN_WIDTH = 820;

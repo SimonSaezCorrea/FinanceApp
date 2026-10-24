@@ -7,6 +7,9 @@ import {
 import type { BankAccountRepositoryPort } from "../../../src/domains/bank-account/domain/ports/bank-account.repository.port";
 import type { CardAccountRepositoryPort } from "../../../src/domains/card-account/domain/ports/card-account.repository.port";
 import type { CategoryLookupPort } from "../../../src/domains/category/domain/ports/category-lookup.port";
+import type { CustomFieldRepositoryPort } from "../../../src/domains/custom-field/domain/ports/custom-field.repository.port";
+import type { TransactionFieldValueRepositoryPort } from "../../../src/domains/transaction-field-value/domain/ports/transaction-field-value.repository.port";
+import type { TransactionScopeLookupPort } from "../../../src/domains/transaction/domain/ports/transaction-scope-lookup.port";
 import type {
   ExchangeRateEntry,
   RateCurrency,
@@ -170,6 +173,7 @@ export function fakeCardAccountRepo(
     existsForUser: vi.fn(async () => true),
     accountIdForCard: vi.fn(async () => null),
     kindForCard: vi.fn(async () => null),
+    kindsForUser: vi.fn(async () => new Map()),
     create: vi.fn(),
     update: vi.fn(),
     remove: vi.fn(),
@@ -389,6 +393,58 @@ export function fakeExchangeRateRepo(
       const rows = sorted(currency);
       return rows[rows.length - 1]?.date ?? null;
     }),
+    ...overrides,
+  };
+}
+
+/** Custom fields (specs/036): by default the person has none. */
+export function fakeCustomFieldRepo(
+  overrides: Partial<CustomFieldRepositoryPort> = {},
+): CustomFieldRepositoryPort {
+  return {
+    listForUser: vi.fn(async () => []),
+    findOwned: vi.fn(async () => null),
+    countForUser: vi.fn(async () => 0),
+    createWithTx: vi.fn(),
+    save: vi.fn(async () => undefined),
+    remove: vi.fn(async () => true),
+    removeAccountFromScopesWithTx: vi.fn(async () => undefined),
+    clearAccountScopesWithTx: vi.fn(async () => undefined),
+    ...overrides,
+  };
+}
+
+/** Custom field values (specs/036): by default no movement holds any. */
+export function fakeFieldValueRepo(
+  overrides: Partial<TransactionFieldValueRepositoryPort> = {},
+): TransactionFieldValueRepositoryPort {
+  return {
+    listForTransactions: vi.fn(async () => new Map()),
+    countByField: vi.fn(async () => new Map()),
+    usedOptionIds: vi.fn(async () => new Set<string>()),
+    idsMatching: vi.fn(async () => []),
+    valuesFor: vi.fn(async () => new Map()),
+    upsertManyWithTx: vi.fn(async () => undefined),
+    setManyWithTx: vi.fn(async () => undefined),
+    deleteManyWithTx: vi.fn(async () => undefined),
+    revertIfUnchangedWithTx: vi.fn(async () => ({ restored: 0, kept: 0 })),
+    lockForCoverWithTx: vi.fn(async () => new Map()),
+    coverWithTx: vi.fn(async () => undefined),
+    revertCoverWithTx: vi.fn(async () => 0),
+    coveredCount: vi.fn(async () => 0),
+    ...overrides,
+  };
+}
+
+/** What a scope or a filter covers (specs/036): nothing by default. */
+export function fakeScopeLookup(
+  overrides: Partial<TransactionScopeLookupPort> = {},
+): TransactionScopeLookupPort {
+  return {
+    countInScope: vi.fn(async () => 0),
+    idsInScope: vi.fn(async () => []),
+    idsForFilter: vi.fn(async () => []),
+    factsFor: vi.fn(async () => []),
     ...overrides,
   };
 }

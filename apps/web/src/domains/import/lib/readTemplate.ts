@@ -1,9 +1,10 @@
 import type { TFunction } from "i18next";
 
-import { imports } from "@finance/contracts";
+import { imports, type customFields } from "@finance/contracts";
 
 import { normalize, type Cell, type Sheet } from "./importParsing";
 import { readSpreadsheet, SpreadsheetReadError } from "./readSpreadsheet";
+import { customColumnKey, fieldForHeader, fieldsForSheet } from "./templateCustomFields";
 import {
   EXISTING_ID_HEADER_KEY,
   MARKER_SHEET,
@@ -49,7 +50,13 @@ const isEmpty = (cell: Cell) => cell === null || cell === undefined || String(ce
  * ignored; one the user deleted just reads as empty. A row with an "ID fik"
  * (a pre-filled template's existing data) is flagged `existing`.
  */
-export function parseTemplateSheets(sheets: Sheet[], labelers: Labelers): TemplateSheetsRead {
+export function parseTemplateSheets(
+  sheets: Sheet[],
+  labelers: Labelers,
+  /** The person's custom fields (specs/036): a column headed by a field's name is read
+   * under `cf:<fieldId>`. */
+  fields: readonly customFields.CustomField[] = [],
+): TemplateSheetsRead {
   const marker = sheets.find((s) => s.name === MARKER_SHEET);
   if (!marker) throw new TemplateReadError("notTemplate");
   const versionRow = marker.matrix.find((r) => normalize(r[0] ?? null) === "version");
@@ -79,7 +86,12 @@ export function parseTemplateSheets(sheets: Sheet[], labelers: Labelers): Templa
           labelers.some((t) => normalize(t(columnKey(spec.key, c.key))) === text) ||
           (LEGACY_COLUMN_NAMES[`${spec.key}.${c.key}`] ?? []).some((n) => normalize(n) === text),
       );
-      if (column) columnAt.set(index, column.key);
+      if (column) {
+        columnAt.set(index, column.key);
+        return;
+      }
+      const field = fieldForHeader(fieldsForSheet(fields, spec.key), cell);
+      if (field) columnAt.set(index, customColumnKey(field.id));
     });
 
     sheet.matrix.slice(1).forEach((cells, i) => {
@@ -102,7 +114,11 @@ export function parseTemplateSheets(sheets: Sheet[], labelers: Labelers): Templa
 }
 
 /** Reads an uploaded file as a fik template. */
-export async function readTemplate(file: File, labelers: Labelers): Promise<TemplateSheetsRead> {
+export async function readTemplate(
+  file: File,
+  labelers: Labelers,
+  fields: readonly customFields.CustomField[] = [],
+): Promise<TemplateSheetsRead> {
   let sheets: Sheet[];
   try {
     sheets = await readSpreadsheet(file);
@@ -119,5 +135,5 @@ export async function readTemplate(file: File, labelers: Labelers): Promise<Temp
     }
     throw error;
   }
-  return parseTemplateSheets(sheets, labelers);
+  return parseTemplateSheets(sheets, labelers, fields);
 }

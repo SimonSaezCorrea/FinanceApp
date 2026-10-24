@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { imports } from "@finance/contracts";
 
+import { CustomField } from "../../../../../src/domains/custom-field/domain/custom-field.aggregate";
 import { TemplateRowRejectedError } from "../../../../../src/domains/import/domain/errors";
 import {
   planTemplateImport,
@@ -733,6 +734,45 @@ describe("planTemplateImport — recurring with an end and its payments", () => 
     expect(codes(result)).toEqual([
       "recurring:2:RECURRING_END_BEFORE_START",
       "movements:2:IMPORT_UNKNOWN_REF",
+    ]);
+  });
+});
+
+describe("planTemplateImport — custom fields (specs/036)", () => {
+  const FIELD = "019a0000-0000-7000-8000-0000000000f1";
+  const field = CustomField.fromPersistence({
+    id: FIELD,
+    userId: "u1",
+    name: "Transferido",
+    nameKey: "transferido",
+    type: "BOOLEAN",
+    options: [],
+    scope: { movementKinds: ["EXPENSE"], restrictAccounts: false, accountIds: [], cardKinds: [] },
+    defaultValue: false,
+    showAsColumn: false,
+    sortOrder: 0,
+  });
+
+  it("writes the row's value or the default, and reports a bad one on its row", () => {
+    const result = planTemplateImport(
+      req({
+        movements: [
+          movement({ row: 2, customFields: { [FIELD]: true } }),
+          movement({ row: 3 }),
+          movement({ row: 4, customFields: { [FIELD]: "tal vez" } }),
+          movement({ row: 5, type: "INCOME", customFields: { [FIELD]: true } }),
+        ],
+      }),
+      lookup({ fields: [field] }),
+      options(),
+    );
+    expect(codes(result)).toEqual([
+      "movements:4:CUSTOM_FIELD_INVALID_VALUE",
+      "movements:5:CUSTOM_FIELD_NOT_APPLICABLE",
+    ]);
+    expect(result.movements.map((m) => m.customFields?.map((v) => v.value))).toEqual([
+      [true],
+      [false],
     ]);
   });
 });

@@ -107,11 +107,13 @@
       "money": "Your money",
       "commitments": "Commitments",
       "goals": "Goals",
-      "indicators": "Indicators"
+      "indicators": "Indicators",
+      "settings": "Settings"
     },
     "more": "More",
     "moreSections": "More sections",
-    "exchangeRates": "Exchange rates"
+    "exchangeRates": "Exchange rates",
+    "customFields": "Custom columns"
   },
   "theme": {
     "label": "Theme",
@@ -2031,7 +2033,8 @@
         "replaceConfirmWord": "REPLACE",
         "submitReplace": "Replace everything",
         "newAccount": "new"
-      }
+      },
+      "customFieldHelp": "Your own column ({{type}}). {{options}}"
     }
   },
   "auth": {
@@ -2682,7 +2685,19 @@
     "DEBT_NOT_WRITTEN_OFF": "This debt isn't closed unpaid.",
     "DEBT_TOTAL_BELOW_PAID": "The new amount is less than what's already been paid on this debt.",
     "STATEMENT_PAYMENT_NOT_UNDOABLE": "This statement was imported as paid: it has no fik payment to undo.",
-    "PAYMENT_CARRY_OVER_SETTLED": "It can't be undone: what this payment left owing was already paid in the next statement. Undo that payment first."
+    "PAYMENT_CARRY_OVER_SETTLED": "It can't be undone: what this payment left owing was already paid in the next statement. Undo that payment first.",
+    "CUSTOM_FIELD_NOT_FOUND": "That column doesn’t exist.",
+    "CUSTOM_FIELD_NAME_TAKEN": "You already have a column with that name.",
+    "CUSTOM_FIELD_LIMIT_REACHED": "You reached the maximum of 20 custom columns.",
+    "CUSTOM_FIELD_TYPE_LOCKED": "The type can no longer change: some movements hold a value.",
+    "CUSTOM_FIELD_OPTION_IN_USE": "Some movement uses that option: it can’t be removed.",
+    "CUSTOM_FIELD_INVALID_VALUE": "That value doesn’t fit the column’s type.",
+    "CUSTOM_FIELD_NOT_APPLICABLE": "That column doesn’t apply to this movement.",
+    "CUSTOM_FIELD_ASSIGNMENT_TOO_LARGE": "Too many movements at once: narrow the filter to 5,000 or fewer.",
+    "CUSTOM_FIELD_FILTER_INVALID": "That column filter can’t be applied.",
+    "COVER_FIELD_NOT_BOOLEAN": "Only the pending movements of a Yes / No column can be transferred.",
+    "COVER_SELECTION_INVALID": "Choose movements of one type and one currency, that of both accounts, that the column applies to.",
+    "COVER_SELECTION_CHANGED": "Some movement changed meanwhile. Refresh the list and try again."
   },
   "exchangeRates": {
     "title": "Exchange rates",
@@ -2771,5 +2786,174 @@
       "CLF": "the UF"
     },
     "dataSince": "Values are recorded since {{date}}."
+  },
+  "customFields": {
+    "title": "Custom columns",
+    "subtitle": "Your own data on your movements: filter, add up and mark in bulk.",
+    "new": "New column",
+    "edit": "Edit column",
+    "empty": {
+      "title": "You have no custom columns yet",
+      "description": "Create one to tag your movements your way, for example “Transferred” to know which credit card expenses you already moved to your savings account."
+    },
+    "type": {
+      "BOOLEAN": "Yes / No",
+      "TEXT": "Text",
+      "NUMBER": "Number",
+      "DATE": "Date",
+      "OPTION": "List"
+    },
+    "form": {
+      "name": "Name",
+      "namePlaceholder": "E.g. Transferred",
+      "type": "Type",
+      "typeLocked_one": "The type can no longer change: 1 movement holds a value.",
+      "typeLocked_other": "The type can no longer change: {{count}} movements hold a value.",
+      "options": "Options",
+      "optionPlaceholder": "New option",
+      "addOption": "Add option",
+      "removeOption": "Remove option",
+      "scope": "Applies to",
+      "scopeHint": "With nothing ticked, it applies to everything.",
+      "movementKinds": "Movement type",
+      "accounts": "Accounts",
+      "allAccounts": "All accounts",
+      "cardKinds": "Card used",
+      "anyCard": "With or without a card",
+      "default": "Default value",
+      "noDefault": "No default value",
+      "showAsColumn": "Show in the Movements table",
+      "applyExisting_one": "Give the default to the movement that already exists",
+      "applyExisting_other": "Give the default to the {{count}} movements that already exist",
+      "applyExistingNone": "No existing movement falls in this scope."
+    },
+    "kind": {
+      "EXPENSE": "Expenses",
+      "INCOME": "Income",
+      "TRANSFER": "Transfers"
+    },
+    "cardKind": {
+      "CREDIT": "Credit",
+      "DEBIT": "Debit",
+      "PREPAID": "Prepaid"
+    },
+    "values": {
+      "yes": "Yes",
+      "no": "No",
+      "empty": "No value",
+      "hasValue": "Has a value"
+    },
+    "scopeBroken": "This column only applied to accounts that no longer exist: edit it to choose others.",
+    "summary": {
+      "movements_one": "{{count}} movement",
+      "movements_other": "{{count}} movements",
+      "open": "See in Movements",
+      "loading": "Working it out…"
+    },
+    "delete": {
+      "title": "Delete “{{name}}”?",
+      "description_one": "The value of 1 movement will be erased. The movements don’t change.",
+      "description_other": "The values of {{count}} movements will be erased. The movements don’t change.",
+      "descriptionNone": "No movement holds a value in this column.",
+      "confirm": "Delete column"
+    },
+    "toast": {
+      "created": "Column created",
+      "updated": "Column saved",
+      "deleted": "Column deleted",
+      "saved": "Values saved"
+    },
+    "filter": {
+      "label": "Column",
+      "none": "No column filter",
+      "value": "Value",
+      "text": "Contains",
+      "min": "From",
+      "max": "To",
+      "clear": "Remove filter"
+    },
+    "bulk": {
+      "select": "Select",
+      "cancel": "Cancel",
+      "selected_one": "{{count}} selected",
+      "selected_other": "{{count}} selected",
+      "selectRow": "Select movement",
+      "allFiltered_one": "Select the movement of the filter",
+      "allFiltered_other": "Select the {{count}} of the filter",
+      "allFilteredOn_one": "The movement of the filter",
+      "allFilteredOn_other": "The {{count}} movements of the filter",
+      "field": "Column",
+      "value": "Value",
+      "apply": "Apply",
+      "confirmTitle": "Change {{count}} movements?",
+      "confirmOther_one": "1 holds another value, which will be replaced.",
+      "confirmOther_other": "{{count}} hold another value, which will be replaced.",
+      "confirmSkipped_one": "1 is left out: the column doesn’t apply to it.",
+      "confirmSkipped_other": "{{count}} are left out: the column doesn’t apply to them.",
+      "done_one": "1 movement updated",
+      "done_other": "{{count}} movements updated",
+      "nothingChanged": "No movement changed",
+      "skipped_one": "1 was left out: the column doesn’t apply to it.",
+      "skipped_other": "{{count}} were left out: the column doesn’t apply to them.",
+      "undo": "Undo",
+      "undone": "Change undone",
+      "noFields": "Create a column in Custom columns to mark movements."
+    },
+    "cover": {
+      "action": "Transfer pending",
+      "title": "Transfer pending",
+      "description_one": "One transfer for the chosen movement; it then reads “{{value}}”.",
+      "description_other": "One transfer for the sum of the {{count}} movements; they then read “{{value}}”.",
+      "from": "From",
+      "to": "To",
+      "amount": "Transfer amount",
+      "movements": "Movements",
+      "markAs": "They become",
+      "confirm": "Transfer",
+      "done_one": "Transfer created: 1 movement marked",
+      "done_other": "Transfer created: {{count}} movements marked",
+      "needsBoolean": "Filter by a Yes / No column to transfer its pending movements.",
+      "coveredOnDelete_one": "1 movement will get back the value it had before.",
+      "coveredOnDelete_other": "{{count}} movements will get back the value they had before."
+    },
+    "listLabel": "Your columns",
+    "count_one": "{{count}} with a value",
+    "count_other": "{{count}} with a value",
+    "limit": "{{count}} of {{max}} columns",
+    "back": "All columns",
+    "scopeText": {
+      "allMovements": "All movements",
+      "kinds": {
+        "EXPENSE": "expenses",
+        "INCOME": "income",
+        "TRANSFER": "transfers"
+      },
+      "withCards": "with a {{list}} card",
+      "cards": {
+        "CREDIT": "credit",
+        "DEBIT": "debit",
+        "PREPAID": "prepaid"
+      },
+      "allAccounts": "in every account",
+      "someAccounts": "only in {{list}}",
+      "sentence": "{{what}}, {{where}}.",
+      "default": "Starts as “{{value}}”."
+    },
+    "detail": {
+      "edit": "Edit",
+      "value": "Value",
+      "movements": "Movements",
+      "view": "View",
+      "noValues": "No movement holds a value yet.",
+      "type": "Type",
+      "default": "Default value",
+      "noDefault": "No value",
+      "column": "In the Movements table",
+      "columnShown": "Shown",
+      "columnHidden": "Hidden",
+      "pending_one": "1 movement is still “{{value}}”",
+      "pending_other": "{{count}} movements are still “{{value}}”",
+      "pendingHint": "Open them in Movements already selected and make one transfer for their sum: they become “{{other}}”. Deleting the transfer undoes it."
+    }
   }
 }

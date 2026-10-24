@@ -5,6 +5,7 @@ import { toMoney } from "@finance/money";
 import { PrismaService } from "../../../infra/prisma/prisma.service";
 import { excludeInternalFlows } from "../application/queries/transaction-list-filter";
 import { STILL_OWED } from "./prisma-transaction-sums.repository";
+import { buildTransactionWhere } from "./transaction-where";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
@@ -153,20 +154,7 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
 
   /** Shared `where` builder so a page and its summary can never disagree. */
   private buildWhere(userId: string, where: TransactionListFilter): Prisma.TransactionWhereInput {
-    const prismaWhere: Prisma.TransactionWhereInput = { userId };
-    if (where.type) prismaWhere.type = where.type;
-    if (where.bankAccountId) prismaWhere.bankAccountId = where.bankAccountId;
-    if (where.cardId) prismaWhere.cardId = where.cardId;
-    if (where.creditStatementId) prismaWhere.creditStatementId = where.creditStatementId;
-    if (where.recurringExpenseId) prismaWhere.recurringExpenseId = where.recurringExpenseId;
-    if (where.categoryId) prismaWhere.categoryId = where.categoryId;
-    if (where.occurredFrom || where.occurredTo) {
-      prismaWhere.occurredAt = {
-        ...(where.occurredFrom ? { gte: where.occurredFrom } : {}),
-        ...(where.occurredTo ? { lte: where.occurredTo } : {}),
-      };
-    }
-    return prismaWhere;
+    return buildTransactionWhere(userId, where);
   }
 
   /**
@@ -538,12 +526,22 @@ export class PrismaTransactionRepository implements TransactionRepositoryPort {
     transferGroupId: string,
     balanceDeltas: LegDelta[],
   ): Promise<boolean> {
-    return this.prisma.$transaction(async (tx) => {
-      const result = await tx.transaction.deleteMany({ where: { userId, transferGroupId } });
-      if (result.count === 0) return false;
-      await this.applyBalanceDeltas(tx, balanceDeltas);
-      return true;
-    });
+    return this.prisma.$transaction((tx) =>
+      this.removeTransferPairWithTx(tx, userId, transferGroupId, balanceDeltas),
+    );
+  }
+
+  async removeTransferPairWithTx(
+    tx: unknown,
+    userId: string,
+    transferGroupId: string,
+    balanceDeltas: LegDelta[],
+  ): Promise<boolean> {
+    const client = tx as PrismaService;
+    const result = await client.transaction.deleteMany({ where: { userId, transferGroupId } });
+    if (result.count === 0) return false;
+    await this.applyBalanceDeltas(client, balanceDeltas);
+    return true;
   }
 
   /** Sorts the two rows of a group into their roles. */

@@ -1,9 +1,11 @@
 import { Module } from "@nestjs/common";
 
 import { TRANSACTION_CURRENCY_USAGE } from "./domain/ports/currency-usage-lookup.port";
+import { TRANSACTION_SCOPE_LOOKUP } from "./domain/ports/transaction-scope-lookup.port";
 import { TRANSACTION_SUMS_REPOSITORY } from "./domain/ports/transaction-sums.repository.port";
 import { TRANSACTION_WRITER_REPOSITORY } from "./domain/ports/transaction-writer.repository.port";
 import { PrismaTransactionCurrencyUsageLookupRepository } from "./infrastructure/prisma-transaction-currency-usage-lookup.repository";
+import { PrismaTransactionScopeLookupRepository } from "./infrastructure/prisma-transaction-scope-lookup.repository";
 import { PrismaTransactionSumsRepository } from "./infrastructure/prisma-transaction-sums.repository";
 import { PrismaTransactionWriterRepository } from "./infrastructure/prisma-transaction-writer.repository";
 
@@ -23,7 +25,14 @@ import { PrismaTransactionWriterRepository } from "./infrastructure/prisma-trans
       provide: TRANSACTION_CURRENCY_USAGE,
       useClass: PrismaTransactionCurrencyUsageLookupRepository,
     },
+    // What a custom field's scope or a bulk action covers (specs/036).
+    { provide: TRANSACTION_SCOPE_LOOKUP, useClass: PrismaTransactionScopeLookupRepository },
   ],
-  exports: [TRANSACTION_SUMS_REPOSITORY, TRANSACTION_WRITER_REPOSITORY, TRANSACTION_CURRENCY_USAGE],
+  exports: [
+    TRANSACTION_SUMS_REPOSITORY,
+    TRANSACTION_WRITER_REPOSITORY,
+    TRANSACTION_CURRENCY_USAGE,
+    TRANSACTION_SCOPE_LOOKUP,
+  ],
 })
 export class TransactionDataModule {}

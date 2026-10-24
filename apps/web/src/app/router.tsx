@@ -7,6 +7,7 @@ import { DocumentTitle } from "./DocumentTitle";
 import {
   AccountDetailRoute,
   AccountsRoute,
+  CustomFieldsRoute,
   DashboardPage,
   DebtsRoute,
   ExchangeRatesRoute,
@@ -84,6 +85,11 @@ export const router = createBrowserRouter([
             path: "/exchange-rates",
             element: <ExchangeRatesRoute />,
             handle: handle({ title: "nav.exchangeRates" }),
+          },
+          {
+            path: "/custom-fields",
+            element: <CustomFieldsRoute />,
+            handle: handle({ title: "nav.customFields" }),
           },
           {
             path: "/import",

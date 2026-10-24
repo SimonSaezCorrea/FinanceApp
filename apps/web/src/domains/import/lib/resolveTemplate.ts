@@ -1,4 +1,4 @@
-import { imports, reference } from "@finance/contracts";
+import { imports, reference, type customFields as customFieldsContract } from "@finance/contracts";
 
 import type { TemplateRefs } from "./buildTemplate";
 import {
@@ -11,6 +11,7 @@ import {
 } from "./importParsing";
 import type { Labelers, TemplateCellRow, TemplateSheetsRead } from "./readTemplate";
 import { tempRowId } from "./tempRowId";
+import { customColumnKey, fieldsForSheet, parseCustomCell } from "./templateCustomFields";
 import { FIXED_LISTS, TEMPLATE_SHEETS, cardLabel, valueKey, type ListKey } from "./templateSpec";
 
 type Sheet = imports.TemplateSheetKey;
@@ -106,6 +107,31 @@ export function resolveTemplate(
     fixed.set(list, map);
   }
   const currencies = new Set(refs.currencies);
+  const fields = refs.customFields ?? [];
+
+  /** A row's custom field values (specs/036): an empty cell is left out (its default
+   * then applies), an unreadable one is an issue on its column. */
+  const customValuesOf = (sheet: Sheet, r: TemplateCellRow) => {
+    const values: Record<string, customFieldsContract.CustomFieldValue> = {};
+    let ok = true;
+    for (const field of fieldsForSheet(fields, sheet)) {
+      const cell = r.cells[customColumnKey(field.id)] ?? null;
+      if (cell === null || String(cell).trim() === "") continue;
+      const parsed = parseCustomCell(field, cell, labelers);
+      if (parsed.ok) values[field.id] = parsed.value;
+      else {
+        issues.push({
+          sheet,
+          row: r.row,
+          code: "unknownValue",
+          column: customColumnKey(field.id),
+          value: String(cell),
+        });
+        ok = false;
+      }
+    }
+    return { ok, values: Object.keys(values).length > 0 ? values : undefined };
+  };
 
   /** Per-row reader: each getter records its own issue and returns undefined. */
   const reader = (sheet: Sheet, r: TemplateCellRow) => {
@@ -361,7 +387,9 @@ export function resolveTemplate(
       financeCharge: get.list("financeCharge", "yesNo") === "YES" || undefined,
       recurringRef: get.str("recurring"),
     };
-    if (checkRef("movements", r, recurringRefs, "recurring") && !get.failed) {
+    const custom = customValuesOf("movements", r);
+    if (custom.values) Object.assign(row, { customFields: custom.values });
+    if (checkRef("movements", r, recurringRefs, "recurring") && !get.failed && custom.ok) {
       request.movements.push(row as imports.TemplateMovement);
     }
   }
@@ -378,7 +406,9 @@ export function resolveTemplate(
       incomingAmount: get.money("incomingAmount") ?? amount,
       description: get.str("description"),
     };
-    if (!get.failed) request.transfers.push(row as imports.TemplateTransfer);
+    const custom = customValuesOf("transfers", r);
+    if (custom.values) Object.assign(row, { customFields: custom.values });
+    if (!get.failed && custom.ok) request.transfers.push(row as imports.TemplateTransfer);
   }
 
   const debtRefs = refsOf("debts", read.debts);

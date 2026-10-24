@@ -537,6 +537,24 @@ los movimientos como si se hubieran creado a mano (saldo, cupo, reglas, todo o n
 - **Categoría por fila en la vista previa**: hoy la categoría sale de una columna del archivo o de la
   categoría por defecto; no se puede corregir fila por fila antes de importar.
 
+### 11. Campos personalizados (specs/036) — lo que quedó fuera
+
+- **Límite del filtro por campo**: `transaction` no lee la tabla de valores (una tabla = un dominio),
+  así que el filtro llega como una lista de ids (`id IN …` / `NOT IN …`). Postgres acepta ~65.535
+  parámetros: con más de ~30.000 movimientos con valor en un mismo campo habría que pasar a una tabla
+  temporal o a una excepción documentada. Hoy nadie se acerca.
+- **Solo en movimientos**: cuotas, deudas, gastos fijos y metas no llevan campos.
+- **Un campo a la vez** en el filtro de Movimientos, y solo en la pantalla principal: la pestaña
+  Movimientos del detalle de una cuenta no tiene el filtro.
+- **Sin campos obligatorios**, fórmulas, campos calculados ni reglas automáticas entre campos.
+- **Valores por defecto solo en lo que crea la persona** (a mano, duplicado, traspaso, importación):
+  los movimientos que el sistema genera (pago de facturación, cuota, deuda, aporte, el propio traspaso
+  de "Transferir pendientes") nacen sin valor.
+- **La importación de cartola** acepta `customFields` por fila en la API, pero el panel de mapeo de
+  columnas todavía no ofrece mapear una columna a un campo propio; la plantilla oficial sí.
+- **Editar los valores de un traspaso** se hace desde el detalle de cada lado, no desde el formulario
+  de edición del traspaso.
+
 ## Inversiones
 
 ### 1. Seguimiento de inversiones — eliminado (2026-09-07), diseño congelado en spec 012

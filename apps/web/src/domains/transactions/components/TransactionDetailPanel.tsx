@@ -12,6 +12,7 @@ import { Badge } from "../../../shared/ui/badge";
 import { Button } from "@finance/ui/src/shared/ui/button";
 import { DetailRow } from "@finance/ui/src/shared/ui/detail-row";
 import { CategoryIcon } from "../../reference/components/CategoryIcon";
+import { TransactionCustomFieldsSection } from "../../custom-fields/components/TransactionCustomFieldsSection";
 import { linkTo } from "../../../shared/lib/useLinkedSelection";
 
 export function formatLongDate(iso: string, locale: string): string {
@@ -273,6 +274,8 @@ export function TransactionDetailPanel({
           </p>
         )}
       </section>
+
+      <TransactionCustomFieldsSection key={tx.id} transaction={tx} accounts={accounts} />
 
       {children}
     </div>

@@ -103,6 +103,14 @@ export class PrismaCardAccountRepository implements CardAccountRepositoryPort {
     return row?.kind ?? null;
   }
 
+  async kindsForUser(userId: string): Promise<Map<string, accounts.CardKind>> {
+    const rows = await this.prisma.cardAccount.findMany({
+      where: { userId },
+      select: { id: true, kind: true },
+    });
+    return new Map(rows.map((r) => [r.id, r.kind]));
+  }
+
   async create(userId: string, accountId: string, plan: CardPlan): Promise<string> {
     return this.createWithTx(this.prisma, userId, accountId, plan);
   }

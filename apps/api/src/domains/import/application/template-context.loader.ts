@@ -3,6 +3,7 @@ import type { imports } from "@finance/contracts";
 import type { BankAccountRepositoryPort } from "../../bank-account/domain/ports/bank-account.repository.port";
 import { assertSelectableCategory } from "../../category/domain/category-policy";
 import type { CategoryLookupPort } from "../../category/domain/ports/category-lookup.port";
+import type { CustomFieldRepositoryPort } from "../../custom-field/domain/ports/custom-field.repository.port";
 import type { CreditStatementRepositoryPort } from "../../credit-statement/domain/ports/credit-statement.repository.port";
 import { cardLimitUsage } from "../../transaction/application/card-limit-usage";
 import type { TransactionRepositoryPort } from "../../transaction/domain/ports/transaction.repository.port";
@@ -32,6 +33,8 @@ export async function loadTemplateContext(
     movements: TransactionRepositoryPort;
     categories: CategoryLookupPort;
     statements: Pick<CreditStatementRepositoryPort, "carriedOverOwed">;
+    /** The person's custom fields (specs/036). */
+    fields: Pick<CustomFieldRepositoryPort, "listForUser">;
   },
   userId: string,
   req: imports.TemplateImportRequest,
@@ -42,6 +45,7 @@ export async function loadTemplateContext(
     accounts: new Map(),
     cards: new Map(),
     categoryErrors: new Map(),
+    fields: await deps.fields.listForUser(userId),
   };
   const createdAt = new Map<string, Date>();
 

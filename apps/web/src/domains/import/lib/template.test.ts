@@ -484,3 +484,99 @@ describe("resolveTemplate", () => {
     ]);
   });
 });
+
+describe("custom field columns (specs/036)", () => {
+  const FIELD = "01890a5d-ac96-774b-bcce-b302099a80f1";
+  const transferido = {
+    id: FIELD,
+    name: "Transferido",
+    type: "BOOLEAN" as const,
+    options: [],
+    scope: { movementKinds: ["EXPENSE" as const], accountIds: [], cardKinds: [] },
+    scopeBroken: false,
+    defaultValue: false,
+    showAsColumn: true,
+    sortOrder: 0,
+    valueCount: 0,
+  };
+  const withField: TemplateRefs = { ...refs, customFields: [transferido] };
+
+  it("adds a column per field and reads its values back; an unreadable one is an issue", async () => {
+    const bytes = await bytesOf(await buildTemplate({ refs: withField, t: es, locale: "es" }));
+    const { default: ExcelJS } = await import("exceljs");
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(bytes);
+    const movements = wb.getWorksheet("Movimientos")!;
+    const header = movements.getRow(1).values as unknown[];
+    const column = header.indexOf("Transferido");
+    expect(column).toBeGreaterThan(0);
+    // Expense-only fields don't go on Traspasos.
+    expect(
+      (wb.getWorksheet("Traspasos")!.getRow(1).values as unknown[]).includes("Transferido"),
+    ).toBe(false);
+
+    const row = (r: number, value: string | null) => {
+      const cells: unknown[] = [new Date(Date.UTC(2026, 0, r)), "Gasto", 1000, null, "BCI"];
+      cells[column - 1] = value;
+      movements.getRow(r).values = cells as never;
+    };
+    row(2, "Sí");
+    row(3, "No");
+    row(4, null);
+    row(5, "tal vez");
+    const filled = await wb.xlsx.writeBuffer();
+    const read = await readTemplate(xlsxFile(filled as ArrayBuffer), labelers, [transferido]);
+    const { request, issues } = resolveTemplate(read, withField, labelers);
+    expect(issues).toEqual([
+      { sheet: "movements", row: 5, code: "unknownValue", column: `cf:${FIELD}`, value: "tal vez" },
+    ]);
+    expect(request.movements.map((m) => m.customFields)).toEqual([
+      { [FIELD]: true },
+      { [FIELD]: false },
+      undefined,
+    ]);
+  });
+
+  it("the pre-filled template writes each movement's value", () => {
+    const data = {
+      accounts: [
+        { id: BCI, name: "BCI", type: "CHECKING", currency: "CLP", status: "ACTIVE", cards: [] },
+      ],
+      transactions: [
+        {
+          id: "t1",
+          type: "EXPENSE",
+          amount: "1000",
+          currency: "CLP",
+          occurredAt: "2026-01-02T00:00:00.000Z",
+          bankAccountId: BCI,
+          cardId: null,
+          categoryId: null,
+          transferGroupId: null,
+          financeCharge: false,
+          installmentPlanId: null,
+          debtId: null,
+          recurringExpenseId: null,
+          savingsEntryId: null,
+          savingsGoalId: null,
+          paidStatementId: null,
+          paidStatementAccountId: null,
+          prepaymentStatementId: null,
+          prepaymentAccountId: null,
+          settlesStatementId: null,
+          transferStatementId: null,
+          customFields: { [FIELD]: true },
+        },
+      ],
+      debts: [],
+      plans: [],
+      recurring: [],
+      goals: [],
+      entries: [],
+      categories: [],
+      statements: [],
+    } as unknown as ExistingData;
+    const rows = existingRows(data, es, [transferido]);
+    expect(rows.movements[0]?.cells[`cf:${FIELD}`]).toBe(es("import.template.values.yesNo.YES"));
+  });
+});

@@ -51,6 +51,7 @@ export function templateRefs(input: {
   categories: reference.Category[];
   currencies: string[];
   institutions: { id: string; name: string }[];
+  customFields?: TemplateRefs["customFields"];
 }): TemplateRefs {
   const active = input.accounts.filter((a) => a.status !== "INACTIVE");
   return {
@@ -67,5 +68,6 @@ export function templateRefs(input: {
     // The user's own currencies plus any an account already uses.
     currencies: [...new Set([...input.currencies, ...active.map((a) => a.currency)])],
     institutions: input.institutions,
+    customFields: input.customFields ?? [],
   };
 }

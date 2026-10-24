@@ -21,6 +21,7 @@ import { ImportMovementsPanel } from "../components/ImportMovementsPanel";
 import { TemplateImportPanel } from "../components/TemplateImportPanel";
 import { buildTemplate, type TemplateRefs } from "../lib/buildTemplate";
 import { loadExistingData, templateRefs } from "../lib/loadExistingData";
+import { useCustomFields } from "../../custom-fields/hooks/useCustomFields";
 import { existingRows } from "../lib/templateData";
 import { withBrand } from "@finance/ui/src/shared/lib/brand";
 import { saveFile } from "../../../shared/lib/saveFile";
@@ -50,6 +51,8 @@ export function ImportRoute() {
   const categories = useCategories();
   const institutions = useInstitutions("CL");
   const allowedCurrencies = useAllowedCurrencies();
+  // The person's custom fields (specs/036): one extra template column each.
+  const customFieldList = useCustomFields();
   const [templateOpen, setTemplateOpen] = useState(false);
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -60,13 +63,14 @@ export function ImportRoute() {
         categories: categories.data ?? [],
         currencies: allowedCurrencies.map((c) => c.code),
         institutions: (institutions.data ?? []).map((i) => ({ id: i.id, name: i.name })),
+        customFields: customFieldList.data ?? [],
       }),
-    [list, categories.data, allowedCurrencies, institutions.data],
+    [list, categories.data, allowedCurrencies, institutions.data, customFieldList.data],
   );
 
   /** Everything the user has, fetched only when a pre-filled template is asked for. */
   async function loadExisting() {
-    return existingRows(await loadExistingData(categories.data ?? []), t);
+    return existingRows(await loadExistingData(categories.data ?? []), t, refs.customFields);
   }
 
   async function download(content: TemplateContent) {

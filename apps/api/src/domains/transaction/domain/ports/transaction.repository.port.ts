@@ -1,6 +1,7 @@
 import type { transactions } from "@finance/contracts";
 
 import type { LegDelta } from "../balance-delta";
+import type { ScopeWhere } from "../scope-where";
 import type { Transaction, TransactionProps } from "../transaction.aggregate";
 
 export const TRANSACTION_REPOSITORY = Symbol("TRANSACTION_REPOSITORY");
@@ -17,6 +18,14 @@ export interface TransactionListFilter {
   occurredFrom?: Date;
   occurredTo?: Date;
   categoryId?: string;
+  /** Only these movements — a custom field's value filter, resolved to the ids that
+   * hold it by the `transaction-field-value` port (specs/036): this table never reads
+   * that one (Principle VI). */
+  ids?: string[];
+  /** None of these movements (a custom field's "no value" filter). */
+  excludeIds?: string[];
+  /** Only movements in a custom field's scope. */
+  scope?: ScopeWhere;
 }
 
 /** Decoded keyset cursor — the last row of the previous page. */
@@ -180,6 +189,14 @@ export interface TransactionRepositoryPort {
     balanceDeltas: LegDelta[],
   ): Promise<TransferPair | null>;
   removeTransferPair(
+    userId: string,
+    transferGroupId: string,
+    balanceDeltas: LegDelta[],
+  ): Promise<boolean>;
+  /** Same, inside the caller's transaction — so whatever else deleting a transfer
+   * undoes (the custom field values it covered, specs/036) commits with it. */
+  removeTransferPairWithTx(
+    tx: unknown,
     userId: string,
     transferGroupId: string,
     balanceDeltas: LegDelta[],

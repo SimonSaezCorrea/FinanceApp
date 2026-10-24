@@ -5,6 +5,7 @@ import {
   reference,
   transactions as transactionsContract,
   type accounts,
+  type customFields,
   type debts,
   type installments,
   type recurring,
@@ -13,6 +14,7 @@ import {
 } from "@finance/contracts";
 
 import type { Cell } from "./importParsing";
+import { customCell, customColumnKey, fieldsForSheet } from "./templateCustomFields";
 import { cardLabel, valueKey, type ListKey } from "./templateSpec";
 
 /** Everything the user already has, as the API returns it. */
@@ -85,7 +87,19 @@ const money = (value: string | null | undefined): number | null =>
  * with "Pagar" carries its payment (date, amount, source account) instead of a
  * movement; a prepayment becomes a transfer to the card account.
  */
-export function existingRows(data: ExistingData, t: TFunction): ExistingRows {
+export function existingRows(
+  data: ExistingData,
+  t: TFunction,
+  /** The person's custom fields (specs/036): each movement's values in their columns. */
+  fields: readonly customFields.CustomField[] = [],
+): ExistingRows {
+  const customCells = (sheet: "movements" | "transfers", tx: transactions.Transaction) =>
+    Object.fromEntries(
+      fieldsForSheet(fields, sheet).map((f) => [
+        customColumnKey(f.id),
+        customCell(f, tx.customFields?.[f.id], t),
+      ]),
+    );
   const accountById = new Map(data.accounts.map((a) => [a.id, a]));
   const cardById = new Map(
     data.accounts.flatMap((a) =>
@@ -138,6 +152,7 @@ export function existingRows(data: ExistingData, t: TFunction): ExistingRows {
           recurring: tx.recurringExpenseId
             ? (recurringRef.get(tx.recurringExpenseId) ?? null)
             : null,
+          ...customCells("movements", tx),
         },
       };
     });
@@ -162,6 +177,7 @@ export function existingRows(data: ExistingData, t: TFunction): ExistingRows {
           // Only when it differs: the two legs can be in different currencies.
           incomingAmount: into.amount === out.amount ? null : money(into.amount),
           description: out.description,
+          ...customCells("transfers", out),
         },
       },
     ];

@@ -1,3 +1,4 @@
+import { PrismaTransactionFieldValueRepository } from "../../../../../src/domains/transaction-field-value/infrastructure/prisma-transaction-field-value.repository";
 import { randomUUID } from "node:crypto";
 
 import { ConfigService } from "@nestjs/config";
@@ -358,6 +359,7 @@ describe("Settling a statement in another currency (integration)", () => {
       writer,
       {} as never,
       prisma,
+      new PrismaTransactionFieldValueRepository(prisma),
     );
   const limitUsage = async () => {
     const u = await cardLimitUsage(
