@@ -2,10 +2,15 @@ import { Inject, Injectable } from "@nestjs/common";
 import { CommandHandler, EventBus } from "@nestjs/cqrs";
 
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
+import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {
   BANK_ACCOUNT_REPOSITORY,
   type BankAccountRepositoryPort,
 } from "../../../bank-account/domain/ports/bank-account.repository.port";
+import {
+  TRANSACTION_FIELD_VALUE_REPOSITORY,
+  type TransactionFieldValueRepositoryPort,
+} from "../../../transaction-field-value/domain/ports/transaction-field-value.repository.port";
 import { reverseTransferLegDelta } from "../../domain/balance-delta";
 import { TransferNotFoundError } from "../../domain/errors";
 import {
@@ -17,7 +22,9 @@ import { loadTransferAccounts } from "./create-transfer.handler";
 import { netDeltas } from "./update-transfer.handler";
 import { RemoveTransferCommand } from "./remove-transfer.command";
 
-/** Deletes both legs of a transfer and gives both accounts their money back. */
+/** Deletes both legs of a transfer and gives both accounts their money back. A
+ * transfer made by "Transferir pendientes" also gives the movements it covered their
+ * previous custom field value back, in the same transaction (specs/036, FR-025). */
 @Injectable()
 @CommandHandler(RemoveTransferCommand)
 export class RemoveTransferHandler extends BaseCommandHandler<
@@ -29,6 +36,9 @@ export class RemoveTransferHandler extends BaseCommandHandler<
     eventBus: EventBus,
     @Inject(TRANSACTION_REPOSITORY) private readonly repo: TransactionRepositoryPort,
     @Inject(BANK_ACCOUNT_REPOSITORY) private readonly accounts: BankAccountRepositoryPort,
+    @Inject(TRANSACTION_FIELD_VALUE_REPOSITORY)
+    private readonly fieldValues: TransactionFieldValueRepositoryPort,
+    private readonly prisma: PrismaService,
   ) {
     super(eventBus);
   }
@@ -55,11 +65,17 @@ export class RemoveTransferHandler extends BaseCommandHandler<
       ...(legs.to ? [reverseTransferLegDelta("INCOME", pair.incoming.amount, legs.to)] : []),
     ]);
 
-    const removed = await this.repo.removeTransferPair(
-      command.userId,
-      command.transferGroupId,
-      deltas,
-    );
+    const removed = await this.prisma.$transaction(async (tx) => {
+      const ok = await this.repo.removeTransferPairWithTx(
+        tx,
+        command.userId,
+        command.transferGroupId,
+        deltas,
+      );
+      if (ok)
+        await this.fieldValues.revertCoverWithTx(tx, command.userId, [command.transferGroupId]);
+      return ok;
+    });
     if (!removed) throw new TransferNotFoundError();
     return { result: undefined, events: [] };
   }

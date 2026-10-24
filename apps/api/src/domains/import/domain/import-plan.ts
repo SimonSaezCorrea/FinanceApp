@@ -11,6 +11,11 @@ import type {
 } from "../../transaction/domain/movement-policy";
 import { MovementPolicy } from "../../transaction/domain/movement-policy";
 import { ImportRowRejectedError } from "./errors";
+import type { CustomField } from "../../custom-field/domain/custom-field.aggregate";
+import {
+  resolveCreationValues,
+  type CreationValue,
+} from "../../transaction/application/custom-field-values";
 
 /** One card of the account being imported into, with what its own rules need. */
 export interface ImportCard extends CardContext {
@@ -38,6 +43,8 @@ export interface PlannedImportRow {
   /** Whether it draws on the credit pool — the caller links those rows to the
    * account's open billing period. */
   drawsOnCredit: boolean;
+  /** Custom field values to write with it, defaults included (specs/036). */
+  customFields: CreationValue[];
 }
 
 export interface ImportPlan {
@@ -69,6 +76,9 @@ export function planImport(
   rows: imports.ImportRow[],
   account: AccountContext & { currency: string },
   cards: ImportCard[],
+  /** The person's custom fields (specs/036): a row's values are checked against
+   * them and a field it leaves out gets its default when it applies. */
+  fields: readonly CustomField[] = [],
 ): ImportPlan {
   // Running copies: each row is validated against what the previous ones left.
   const running: AccountContext = { ...account };
@@ -82,6 +92,7 @@ export function planImport(
     const financeCharge = row.financeCharge ?? false;
     let card: ImportCard | null = null;
     let contribution: string;
+    let customFields: CreationValue[];
     try {
       if (row.cardId) {
         card = cards.find((c) => c.id === row.cardId) ?? null;
@@ -103,6 +114,11 @@ export function planImport(
         card,
         card?.kind === "CREDIT" ? card.limit : null,
         usage,
+      );
+      customFields = resolveCreationValues(
+        fields,
+        { kind: row.type, bankAccountId: account.id, cardKind: card?.kind ?? null },
+        row.customFields,
       );
     } catch (error) {
       throw ImportRowRejectedError.from(error, index);
@@ -133,6 +149,7 @@ export function planImport(
       cardId: card?.id ?? null,
       financeCharge,
       drawsOnCredit: Number(contribution) !== 0,
+      customFields,
     });
   });
 

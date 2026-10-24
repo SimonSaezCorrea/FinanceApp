@@ -1,3 +1,4 @@
+import { PrismaTransactionFieldValueRepository } from "../../../../../src/domains/transaction-field-value/infrastructure/prisma-transaction-field-value.repository";
 import { buildCategoryLookup } from "../../../support/repositories";
 import { randomUUID } from "node:crypto";
 
@@ -78,6 +79,7 @@ describe("PrepayOpenPeriodHandler (integration)", () => {
       transactionWriter,
       {} as never,
       prisma,
+      new PrismaTransactionFieldValueRepository(prisma),
     );
   }
 

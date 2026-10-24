@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor } from "@testing-library/react";
 import { I18nextProvider } from "react-i18next";
+import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { transactions as contract } from "@finance/contracts";
@@ -42,16 +43,18 @@ vi.mock("../api/transactionsApi", () => ({
 
 const emptySummary = { total: 0, currencyTotals: [], categoryIds: [] };
 
-function renderRoute() {
+function renderRoute(path = "/transactions") {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <QueryClientProvider client={client}>
-      <I18nextProvider i18n={i18n}>
-        <AuthProvider>
-          <TransactionsRoute />
-        </AuthProvider>
-      </I18nextProvider>
-    </QueryClientProvider>,
+    <MemoryRouter initialEntries={[path]}>
+      <QueryClientProvider client={client}>
+        <I18nextProvider i18n={i18n}>
+          <AuthProvider>
+            <TransactionsRoute />
+          </AuthProvider>
+        </I18nextProvider>
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -132,5 +135,15 @@ describe("TransactionsRoute", () => {
     vi.mocked(transactionsApi.summary).mockResolvedValue(emptySummary);
     renderRoute();
     expect(await screen.findByText(i18n.t("transactions.empty"))).toBeDefined();
+  });
+
+  it("takes a custom field filter from the URL and drops the month (specs/036)", async () => {
+    vi.mocked(transactionsApi.list).mockResolvedValue({ items: [], nextCursor: null });
+    vi.mocked(transactionsApi.summary).mockResolvedValue(emptySummary);
+    renderRoute("/transactions?cf=019a0000-0000-7000-8000-0000000000f1&cfv=false");
+    await waitFor(() => expect(transactionsApi.list).toHaveBeenCalled());
+    const filters = vi.mocked(transactionsApi.list).mock.calls[0]![0]!;
+    expect(filters).toMatchObject({ cf: "019a0000-0000-7000-8000-0000000000f1", cfv: "false" });
+    expect(filters.from).toBeUndefined();
   });
 });

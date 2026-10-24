@@ -5,10 +5,12 @@ import { JwtModule } from "@nestjs/jwt";
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
 import { CardAccountDataModule } from "../card-account/card-account.data.module";
 import { CreditStatementDataModule } from "../credit-statement/credit-statement.data.module";
+import { CustomFieldDataModule } from "../custom-field/custom-field.data.module";
 import { DebtDataModule } from "../debt/debt.data.module";
 import { InstallmentPlanDataModule } from "../installment-plan/installment-plan.data.module";
 import { RecurringExpenseDataModule } from "../recurring-expense/recurring-expense.data.module";
 import { SavingsEntryDataModule } from "../savings-entry/savings-entry.data.module";
+import { TransactionFieldValueDataModule } from "../transaction-field-value/transaction-field-value.data.module";
 import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { BankAccountDataModule } from "./bank-account.data.module";
 import { AddCardHandler } from "./application/commands/add-card.handler";
@@ -57,6 +59,10 @@ const queryHandlers = [
     RecurringExpenseDataModule,
     SavingsEntryDataModule,
     DebtDataModule,
+    // Deleting an account leaves every custom field scope that named it, and gives
+    // back the previous value of movements its deleted transfers covered (specs/036).
+    CustomFieldDataModule,
+    TransactionFieldValueDataModule,
   ],
   controllers: [AccountsController],
   providers: [...commandHandlers, ...queryHandlers, AccountDeletionScopeLoader, JwtAuthGuard],

@@ -18,7 +18,10 @@ import {
   accountAggregate,
   fakeBankAccountRepo,
   fakeCreditStatementRepo,
+  fakeCustomFieldRepo,
+  fakeFieldValueRepo,
   fakePrismaTransaction,
+  fakeScopeLookup,
   fakeSavingsEntryRepo,
   fakeTransactionWriterRepo,
 } from "../../../../support/fake-ports";
@@ -88,6 +91,8 @@ function setup(
     savings,
     debts as never,
   );
+  const customFields = fakeCustomFieldRepo();
+  const fieldValues = fakeFieldValueRepo();
   const handler = new RemoveAccountHandler(
     { publish: vi.fn() } as never,
     fakePrismaTransaction() as never,
@@ -98,8 +103,33 @@ function setup(
     recurring as never,
     savings,
     debts as never,
+    customFields,
+    fieldValues,
+    fakeScopeLookup({
+      factsFor: vi.fn(async () => [
+        {
+          id: "t1",
+          type: "EXPENSE" as const,
+          transferGroupId: "g1",
+          bankAccountId: "a1",
+          cardId: null,
+          currency: "CLP",
+          amount: "1",
+        },
+      ]),
+    }),
   );
-  return { handler, accountsRepo, transactions, plans, recurring, savings, debts };
+  return {
+    handler,
+    customFields,
+    fieldValues,
+    accountsRepo,
+    transactions,
+    plans,
+    recurring,
+    savings,
+    debts,
+  };
 }
 
 describe("RemoveAccountHandler", () => {
@@ -149,6 +179,17 @@ describe("RemoveAccountHandler", () => {
       "u1",
       "a1",
     );
+  });
+
+  it("leaves custom field scopes and undoes the covers of the transfers it deletes (specs/036)", async () => {
+    const { handler, customFields, fieldValues } = setup({});
+    await handler.execute(new RemoveAccountCommand("u1", "a1", { ...NONE, movements: true }));
+    expect(customFields.removeAccountFromScopesWithTx).toHaveBeenCalledWith(
+      expect.anything(),
+      "u1",
+      "a1",
+    );
+    expect(fieldValues.revertCoverWithTx).toHaveBeenCalledWith(expect.anything(), "u1", ["g1"]);
   });
 
   it("with its movements, gives the other accounts their money back", async () => {

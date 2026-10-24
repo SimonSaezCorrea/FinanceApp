@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router";
 
 import { toast } from "sonner";
 
@@ -19,7 +20,18 @@ import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { endOfMonth, isFullMonthRange, startOfMonth } from "../lib/transactionMetrics";
 import type { TransactionViewFilters } from "../lib/transactionMetrics";
 import type { transactions } from "@finance/contracts";
+import { sumMoney } from "@finance/money";
 import { formatDateRangeLabel } from "../components/DateRangeButton";
+import { BulkAssignBar } from "../components/BulkAssignBar";
+import { CoverTransferPanel } from "../components/CoverTransferPanel";
+import { CustomFieldFilter } from "../components/CustomFieldFilter";
+import { useCustomFields } from "../../custom-fields/hooks/useCustomFields";
+import {
+  filterFromSearchParams,
+  toApiFilter,
+  writeSearchParams,
+  type CustomFieldFilter as FieldFilter,
+} from "../lib/customFieldFilter";
 
 const now = new Date();
 
@@ -46,8 +58,67 @@ export function TransactionsRoute() {
   const [savedId, setSavedId] = useState<string | null>(null);
   const [deleteTx, setDeleteTx] = useState<transactions.Transaction | null>(null);
   const [detailTx, setDetailTx] = useState<transactions.Transaction | null>(null);
-  const [filters, setFilters] = useState<TransactionViewFilters>(DEFAULT_FILTERS);
+  // The custom field filter lives in the URL (the "Columnas propias" summary links to it).
+  // Arriving with one, the list is not narrowed to this month: what is pending is
+  // pending whenever it happened.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [fieldFilter, setFieldFilterState] = useState<FieldFilter | undefined>(() =>
+    filterFromSearchParams(searchParams),
+  );
+  const [filters, setFilters] = useState<TransactionViewFilters>(() =>
+    filterFromSearchParams(searchParams)
+      ? { ...DEFAULT_FILTERS, from: undefined, to: undefined }
+      : DEFAULT_FILTERS,
+  );
   const { remove } = useTransactionMutations();
+  const { data: fieldList } = useCustomFields();
+  const fields = fieldList ?? [];
+  const columnFields = fields.filter((f) => f.showAsColumn);
+
+  // Selection mode (specs/036): bulk assignment and "Transferir pendientes".
+  // `transferir=1` (from a column's "Transferir pendientes"): arrive selecting every movement
+  // the field filter shows, so the action is one click away.
+  const arrivesToCover = searchParams.get("transferir") === "1";
+  const [selecting, setSelecting] = useState(arrivesToCover);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [allFiltered, setAllFiltered] = useState(arrivesToCover);
+  // Read once: drop it from the address so a reload or Back doesn't select again.
+  useEffect(() => {
+    if (!arrivesToCover) return;
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        params.delete("transferir");
+        return params;
+      },
+      { replace: true },
+    );
+  }, [arrivesToCover, setSearchParams]);
+  const [coverOpen, setCoverOpen] = useState(false);
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+    setAllFiltered(false);
+  };
+  const stopSelecting = () => {
+    clearSelection();
+    setSelecting(false);
+  };
+  const setFieldFilter = (next: FieldFilter | undefined) => {
+    setFieldFilterState(next);
+    clearSelection();
+    setSearchParams(
+      (prev) => {
+        const params = new URLSearchParams(prev);
+        writeSearchParams(params, next);
+        return params;
+      },
+      { replace: true },
+    );
+  };
+  const changeFilters = (next: TransactionViewFilters) => {
+    setFilters(next);
+    clearSelection();
+  };
 
   // Fetch all accounts once; FiltersBar handles active/inactive grouping
   const accountsQuery = useAccounts();
@@ -63,6 +134,7 @@ export function TransactionsRoute() {
     from: filters.from,
     to: filters.to,
     categoryId: filters.categoryId || undefined,
+    ...toApiFilter(fieldFilter),
   };
   const txQuery = useInfiniteTransactions(apiFilters);
   // Count, per-currency totals and the category options describe the whole
@@ -76,6 +148,38 @@ export function TransactionsRoute() {
   );
 
   const categoryIds = summaryQuery.data?.categoryIds ?? [];
+
+  // "Transferir pendientes" needs a yes/no field filtered by one of its values; the
+  // movements then take the other one.
+  const coverField =
+    fieldFilter?.mode === "value"
+      ? fields.find((f) => f.id === fieldFilter.fieldId && f.type === "BOOLEAN")
+      : undefined;
+  const coverValue = fieldFilter?.mode === "value" ? fieldFilter.value !== "true" : true;
+  const filteredTotal = summaryQuery.data?.total ?? 0;
+  const coverCount = allFiltered ? filteredTotal : selectedIds.size;
+  const coverAmount = (() => {
+    if (allFiltered) {
+      const totals = summaryQuery.data?.currencyTotals ?? [];
+      const [only] = totals;
+      if (totals.length !== 1 || !only) return null;
+      const income = Number(only.income) !== 0;
+      const expense = Number(only.expense) !== 0;
+      if (income === expense) return null;
+      return { value: income ? only.income : only.expense, currency: only.currency };
+    }
+    const chosen = visibleTxs.filter((tx) => selectedIds.has(tx.id));
+    if (
+      chosen.length === 0 ||
+      new Set(chosen.map((tx) => tx.currency)).size !== 1 ||
+      new Set(chosen.map((tx) => tx.type)).size !== 1
+    ) {
+      return null;
+    }
+    return { value: sumMoney(chosen.map((tx) => tx.amount)), currency: chosen[0]!.currency };
+  })();
+  // Every movement the filter shows, without paging: what "todos los del filtro" means.
+  const bulkFilter = apiFilters;
 
   const periodLabel = useMemo(() => {
     const count = summaryQuery.data?.total ?? 0;
@@ -129,8 +233,12 @@ export function TransactionsRoute() {
         description={periodLabel}
         actions={
           <div className="flex gap-2">
-            <Button variant="ghost" disabled>
-              {t("transactions.table.import")}
+            <Button
+              variant="outline"
+              aria-pressed={selecting}
+              onClick={() => (selecting ? stopSelecting() : setSelecting(true))}
+            >
+              {selecting ? t("customFields.bulk.cancel") : t("customFields.bulk.select")}
             </Button>
             <Button
               variant="accent"
@@ -163,11 +271,37 @@ export function TransactionsRoute() {
 
         <TransactionFiltersBar
           filters={filters}
-          onChange={setFilters}
+          onChange={changeFilters}
           accounts={accounts}
           categoryIds={categoryIds}
         />
+        <CustomFieldFilter fields={fields} value={fieldFilter} onChange={setFieldFilter} />
       </div>
+
+      {selecting ? (
+        <BulkAssignBar
+          fields={fields}
+          selectedIds={[...selectedIds]}
+          allFiltered={allFiltered}
+          filter={bulkFilter}
+          filteredTotal={filteredTotal}
+          onSelectAllFiltered={() => setAllFiltered(true)}
+          onDone={clearSelection}
+          onCancel={stopSelecting}
+          extra={
+            coverField ? (
+              <Button
+                variant="accent"
+                size="sm"
+                disabled={coverCount === 0}
+                onClick={() => setCoverOpen(true)}
+              >
+                {t("customFields.cover.action")}
+              </Button>
+            ) : null
+          }
+        />
+      ) : null}
 
       {txQuery.isLoading ? (
         <MovementsTableSkeleton showCategoryColumn={false} showTypeColumn={false} />
@@ -191,8 +325,38 @@ export function TransactionsRoute() {
           onLoadMore={() => void txQuery.fetchNextPage()}
           error={txQuery.error}
           onRetry={() => txQuery.refetch()}
+          columnFields={columnFields}
+          selection={
+            selecting
+              ? {
+                  selected: allFiltered ? new Set(visibleTxs.map((tx) => tx.id)) : selectedIds,
+                  onToggle: (id) => {
+                    const base = allFiltered ? new Set(visibleTxs.map((tx) => tx.id)) : selectedIds;
+                    const next = new Set(base);
+                    if (next.has(id)) next.delete(id);
+                    else next.add(id);
+                    setAllFiltered(false);
+                    setSelectedIds(next);
+                  },
+                }
+              : undefined
+          }
         />
       )}
+
+      {coverField ? (
+        <CoverTransferPanel
+          open={coverOpen}
+          onOpenChange={setCoverOpen}
+          field={coverField}
+          value={coverValue}
+          target={allFiltered ? { filter: bulkFilter } : { ids: [...selectedIds] }}
+          count={coverCount}
+          amount={coverAmount}
+          accounts={accounts}
+          onDone={stopSelecting}
+        />
+      ) : null}
 
       {/* Opened from the table or the "+ Nuevo movimiento" button: the detail
           panel isn't open, so this renders at the top level like any other

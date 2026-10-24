@@ -23,6 +23,7 @@ import {
 } from "../lib/readTemplate";
 import { resolveTemplate, type LocalIssue } from "../lib/resolveTemplate";
 import { columnKey, sheetNameKey } from "../lib/templateSpec";
+import { fieldIdOf, isCustomColumn } from "../lib/templateCustomFields";
 import { withBrand } from "@finance/ui/src/shared/lib/brand";
 
 interface Props {
@@ -131,7 +132,7 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
     reset();
     setReading(true);
     try {
-      const file_ = await readTemplate(file, labelers);
+      const file_ = await readTemplate(file, labelers, refs.customFields);
       setFileName(file.name);
       setRead(file_);
       // A pre-filled template with nothing added: only replacing makes sense.
@@ -197,7 +198,9 @@ export function TemplateImportPanel({ open, onOpenChange, refs }: Readonly<Props
       sheet: i.sheet,
       row: i.row,
       message: t(`import.template.issues.${i.code}`, {
-        column: t(columnKey(i.sheet, i.column)),
+        column: isCustomColumn(i.column)
+          ? (refs.customFields?.find((f) => f.id === fieldIdOf(i.column))?.name ?? i.column)
+          : t(columnKey(i.sheet, i.column)),
         value: i.value ?? "",
       }),
     })),

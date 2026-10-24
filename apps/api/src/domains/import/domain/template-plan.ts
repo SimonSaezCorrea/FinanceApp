@@ -3,6 +3,12 @@ import { addMoney, moneyToString, subtractMoney, sumMoney, toMoney } from "@fina
 import { accounts as accountRules, imports } from "@finance/contracts";
 
 import { BankAccount } from "../../bank-account/domain/bank-account.aggregate";
+import type { CustomField } from "../../custom-field/domain/custom-field.aggregate";
+import { CustomFieldNotApplicableError } from "../../custom-field/domain/errors";
+import {
+  resolveCreationValues,
+  type CreationValue,
+} from "../../transaction/application/custom-field-values";
 import {
   AccountNumberRequiredError,
   CreditSettingsNotAllowedError,
@@ -63,6 +69,9 @@ export interface TemplateLookup {
   /** `"<categoryId>|<INCOME|EXPENSE>"` → the refusal code, for categories that
    * can't be used for that movement type. Absent = fine. */
   categoryErrors: Map<string, { code: string; status: Status }>;
+  /** The person's custom fields (specs/036): what a row's values are checked
+   * against, and whose defaults a row without one gets. */
+  fields?: CustomField[];
 }
 
 /** One movement to insert, including transfer legs and the movements a payment
@@ -93,6 +102,8 @@ export interface TemplateMovementWrite {
    * movement against a card's own limit; null when it belongs to no period. */
   statementCurrency: string | null;
   transferGroupId: string | null;
+  /** Custom field values to write once the movement exists (specs/036). */
+  customFields?: CreationValue[];
   link:
     | { kind: "debt"; index: number }
     | { kind: "plan"; index: number }
@@ -232,6 +243,7 @@ class Issues {
   constructor(private readonly mode: "collect" | "throw") {}
 
   add(sheet: Sheet, row: number, code: string, status: Status = 400, field?: string): void {
+    // (`field` is only kept in collect mode: in throw mode the row is the field.)
     if (this.mode === "throw") throw new TemplateRowRejectedError(code, status, sheet, row);
     this.list.push({ code, sheet, row, status, ...(field ? { field } : {}) });
   }
@@ -244,20 +256,24 @@ class Issues {
     } catch (error) {
       const coded = asCoded(error);
       if (!coded) throw error; // not a domain rule: a real bug, surfaced as-is
-      this.add(sheet, row, coded.code, coded.status);
+      this.add(sheet, row, coded.code, coded.status, coded.field);
       return false;
     }
   }
 }
 
-function asCoded(error: unknown): { code: string; status: Status } | null {
+function asCoded(error: unknown): { code: string; status: Status; field?: string } | null {
   if (
     error instanceof Error &&
     typeof (error as { code?: unknown }).code === "string" &&
     typeof (error as { httpStatus?: unknown }).httpStatus === "number"
   ) {
-    const { code, httpStatus } = error as unknown as { code: string; httpStatus: Status };
-    return { code, status: httpStatus };
+    const { code, httpStatus, field } = error as unknown as {
+      code: string;
+      httpStatus: Status;
+      field?: string;
+    };
+    return { code, status: httpStatus, ...(field ? { field } : {}) };
   }
   return null;
 }
@@ -297,7 +313,9 @@ export function planTemplateImport(
     accounts: new Map(base.accounts),
     cards: new Map(base.cards),
     categoryErrors: base.categoryErrors,
+    fields: base.fields,
   };
+  const fields = base.fields ?? [];
   const newAccounts = planDefinitions(req, lookup, issues);
   const events: MoneyEvent[] = [];
   const movements: TemplateMovementWrite[] = [];
@@ -446,6 +464,15 @@ export function planTemplateImport(
       continue;
     }
     if (!categoryOk("movements", m.row, m.categoryId, m.type)) continue;
+    let customFields: CreationValue[] = [];
+    const valuesOk = issues.guard("movements", m.row, () => {
+      customFields = resolveCreationValues(
+        fields,
+        { kind: m.type, bankAccountId: m.bankAccountId, cardKind: used?.kind ?? null },
+        m.customFields,
+      );
+    });
+    if (!valuesOk) continue;
     const write = movement({
       ...blank,
       accountId: m.bankAccountId,
@@ -462,6 +489,7 @@ export function planTemplateImport(
       cardId: used?.id ?? null,
       financeCharge,
       link: recurringIndex === undefined ? null : { kind: "recurring", index: recurringIndex },
+      customFields,
     });
     push({
       date: write.occurredAt,
@@ -498,6 +526,37 @@ export function planTemplateImport(
       ),
     );
     if (!ok) continue;
+    // One set of values for the row, written on each leg the field applies to.
+    let outValues: CreationValue[] = [];
+    let inValues: CreationValue[] = [];
+    const valuesOk = issues.guard("transfers", t.row, () => {
+      const leg = (accountId: string) => ({
+        kind: "TRANSFER" as const,
+        bankAccountId: accountId,
+        cardKind: null,
+      });
+      const given = t.customFields ?? {};
+      const onLeg = (accountId: string) =>
+        Object.fromEntries(
+          Object.entries(given).filter(([id]) => {
+            const field = fields.find((f) => f.id === id);
+            return !field || field.appliesTo(leg(accountId));
+          }),
+        );
+      for (const id of Object.keys(given)) {
+        const field = fields.find((f) => f.id === id);
+        if (
+          field &&
+          !field.appliesTo(leg(t.fromAccountId)) &&
+          !field.appliesTo(leg(t.toAccountId))
+        ) {
+          throw new CustomFieldNotApplicableError(`customFields.${id}`);
+        }
+      }
+      outValues = resolveCreationValues(fields, leg(t.fromAccountId), onLeg(t.fromAccountId));
+      inValues = resolveCreationValues(fields, leg(t.toAccountId), onLeg(t.toAccountId));
+    });
+    if (!valuesOk) continue;
     const transferGroupId = newId();
     const occurredAt = new Date(t.occurredAt);
     const shared = { ...blank, occurredAt, description: text(t.description), transferGroupId };
@@ -507,6 +566,7 @@ export function planTemplateImport(
       type: "EXPENSE",
       amount: t.outgoingAmount,
       currency: from.currency,
+      customFields: outValues,
     });
     const inWrite = movement({
       ...shared,
@@ -514,6 +574,7 @@ export function planTemplateImport(
       type: "INCOME",
       amount: t.incomingAmount,
       currency: to.currency,
+      customFields: inValues,
     });
     const base = { date: occurredAt, sheet: "transfers" as const, row: t.row, card: null };
     push({

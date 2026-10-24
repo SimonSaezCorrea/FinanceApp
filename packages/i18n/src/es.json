@@ -107,11 +107,13 @@
       "money": "Tu dinero",
       "commitments": "Compromisos",
       "goals": "Metas",
-      "indicators": "Indicadores"
+      "indicators": "Indicadores",
+      "settings": "Configuración"
     },
     "more": "Más",
     "moreSections": "Más secciones",
-    "exchangeRates": "Tipos de cambio"
+    "exchangeRates": "Tipos de cambio",
+    "customFields": "Columnas propias"
   },
   "theme": {
     "label": "Tema",
@@ -2031,7 +2033,8 @@
         "replaceConfirmWord": "REEMPLAZAR",
         "submitReplace": "Reemplazar todo",
         "newAccount": "nueva"
-      }
+      },
+      "customFieldHelp": "Columna propia ({{type}}). {{options}}"
     }
   },
   "auth": {
@@ -2682,7 +2685,19 @@
     "DEBT_NOT_WRITTEN_OFF": "Esta deuda no está cerrada sin pago.",
     "DEBT_TOTAL_BELOW_PAID": "El nuevo monto es menor que lo que ya se pagó de esta deuda.",
     "STATEMENT_PAYMENT_NOT_UNDOABLE": "Esta facturación se importó como pagada: no tiene un pago de fik que deshacer.",
-    "PAYMENT_CARRY_OVER_SETTLED": "No se puede deshacer: lo que este pago dejó pendiente ya se pagó en la facturación siguiente. Deshaz primero ese pago."
+    "PAYMENT_CARRY_OVER_SETTLED": "No se puede deshacer: lo que este pago dejó pendiente ya se pagó en la facturación siguiente. Deshaz primero ese pago.",
+    "CUSTOM_FIELD_NOT_FOUND": "Esa columna no existe.",
+    "CUSTOM_FIELD_NAME_TAKEN": "Ya tienes una columna con ese nombre.",
+    "CUSTOM_FIELD_LIMIT_REACHED": "Llegaste al máximo de 20 columnas propias.",
+    "CUSTOM_FIELD_TYPE_LOCKED": "El tipo ya no se puede cambiar porque hay movimientos con un valor.",
+    "CUSTOM_FIELD_OPTION_IN_USE": "Esa opción la usa algún movimiento: no se puede quitar.",
+    "CUSTOM_FIELD_INVALID_VALUE": "Ese valor no corresponde al tipo de la columna.",
+    "CUSTOM_FIELD_NOT_APPLICABLE": "Esa columna no aplica a este movimiento.",
+    "CUSTOM_FIELD_ASSIGNMENT_TOO_LARGE": "Son demasiados movimientos a la vez: acota el filtro a 5.000 o menos.",
+    "CUSTOM_FIELD_FILTER_INVALID": "Ese filtro por columna no se puede aplicar.",
+    "COVER_FIELD_NOT_BOOLEAN": "Solo se pueden transferir los pendientes de una columna Sí / No.",
+    "COVER_SELECTION_INVALID": "Elige movimientos de un solo tipo y una sola moneda, la de ambas cuentas, a los que la columna aplique.",
+    "COVER_SELECTION_CHANGED": "Algún movimiento cambió mientras tanto. Actualiza la lista e inténtalo de nuevo."
   },
   "exchangeRates": {
     "title": "Tipos de cambio",
@@ -2771,5 +2786,174 @@
       "CLF": "la UF"
     },
     "dataSince": "Hay valores registrados desde el {{date}}."
+  },
+  "customFields": {
+    "title": "Columnas propias",
+    "subtitle": "Datos propios para tus movimientos: filtra, suma y marca en bloque.",
+    "new": "Nueva columna",
+    "edit": "Editar columna",
+    "empty": {
+      "title": "Todavía no tienes columnas propias",
+      "description": "Crea uno para marcar tus movimientos a tu manera, por ejemplo «Transferido» para saber qué gastos con crédito ya pasaste a tu cuenta de ahorro."
+    },
+    "type": {
+      "BOOLEAN": "Sí / No",
+      "TEXT": "Texto",
+      "NUMBER": "Número",
+      "DATE": "Fecha",
+      "OPTION": "Lista"
+    },
+    "form": {
+      "name": "Nombre",
+      "namePlaceholder": "Ej. Transferido",
+      "type": "Tipo",
+      "typeLocked_one": "El tipo ya no se puede cambiar: 1 movimiento tiene un valor.",
+      "typeLocked_other": "El tipo ya no se puede cambiar: {{count}} movimientos tienen un valor.",
+      "options": "Opciones",
+      "optionPlaceholder": "Nueva opción",
+      "addOption": "Agregar opción",
+      "removeOption": "Quitar opción",
+      "scope": "Aplica a",
+      "scopeHint": "Sin marcar nada, aplica a todos.",
+      "movementKinds": "Tipo de movimiento",
+      "accounts": "Cuentas",
+      "allAccounts": "Todas las cuentas",
+      "cardKinds": "Tarjeta usada",
+      "anyCard": "Con o sin tarjeta",
+      "default": "Valor por defecto",
+      "noDefault": "Sin valor por defecto",
+      "showAsColumn": "Mostrar en la tabla de Movimientos",
+      "applyExisting_one": "Aplicar el valor por defecto al movimiento que ya existe",
+      "applyExisting_other": "Aplicar el valor por defecto a los {{count}} movimientos que ya existen",
+      "applyExistingNone": "Ningún movimiento existente entra en este alcance."
+    },
+    "kind": {
+      "EXPENSE": "Gastos",
+      "INCOME": "Ingresos",
+      "TRANSFER": "Traspasos"
+    },
+    "cardKind": {
+      "CREDIT": "Crédito",
+      "DEBIT": "Débito",
+      "PREPAID": "Prepago"
+    },
+    "values": {
+      "yes": "Sí",
+      "no": "No",
+      "empty": "Sin valor",
+      "hasValue": "Con valor"
+    },
+    "scopeBroken": "Esta columna solo aplicaba a cuentas que ya no existen: edítala para elegir otras.",
+    "summary": {
+      "movements_one": "{{count}} movimiento",
+      "movements_other": "{{count}} movimientos",
+      "open": "Ver en Movimientos",
+      "loading": "Calculando…"
+    },
+    "delete": {
+      "title": "¿Eliminar «{{name}}»?",
+      "description_one": "Se borrará el valor de 1 movimiento. Los movimientos no cambian.",
+      "description_other": "Se borrarán los valores de {{count}} movimientos. Los movimientos no cambian.",
+      "descriptionNone": "Ningún movimiento tiene un valor en esta columna.",
+      "confirm": "Eliminar columna"
+    },
+    "toast": {
+      "created": "Columna creada",
+      "updated": "Columna guardada",
+      "deleted": "Columna eliminada",
+      "saved": "Valores guardados"
+    },
+    "filter": {
+      "label": "Columna",
+      "none": "Sin filtro por columna",
+      "value": "Valor",
+      "text": "Contiene",
+      "min": "Desde",
+      "max": "Hasta",
+      "clear": "Quitar filtro"
+    },
+    "bulk": {
+      "select": "Seleccionar",
+      "cancel": "Cancelar",
+      "selected_one": "{{count}} seleccionado",
+      "selected_other": "{{count}} seleccionados",
+      "selectRow": "Seleccionar movimiento",
+      "allFiltered_one": "Seleccionar el movimiento del filtro",
+      "allFiltered_other": "Seleccionar los {{count}} del filtro",
+      "allFilteredOn_one": "El movimiento del filtro",
+      "allFilteredOn_other": "Los {{count}} movimientos del filtro",
+      "field": "Columna",
+      "value": "Valor",
+      "apply": "Aplicar",
+      "confirmTitle": "¿Cambiar {{count}} movimientos?",
+      "confirmOther_one": "1 tiene otro valor, que se reemplazará.",
+      "confirmOther_other": "{{count}} tienen otro valor, que se reemplazará.",
+      "confirmSkipped_one": "1 queda fuera: la columna no le aplica.",
+      "confirmSkipped_other": "{{count}} quedan fuera: la columna no les aplica.",
+      "done_one": "1 movimiento actualizado",
+      "done_other": "{{count}} movimientos actualizados",
+      "nothingChanged": "Ningún movimiento cambió",
+      "skipped_one": "1 quedó fuera: la columna no le aplica.",
+      "skipped_other": "{{count}} quedaron fuera: la columna no les aplica.",
+      "undo": "Deshacer",
+      "undone": "Cambio deshecho",
+      "noFields": "Crea una columna en Columnas propias para marcar movimientos."
+    },
+    "cover": {
+      "action": "Transferir pendientes",
+      "title": "Transferir pendientes",
+      "description_one": "Un traspaso por el movimiento elegido; después queda en «{{value}}».",
+      "description_other": "Un traspaso por la suma de los {{count}} movimientos; después quedan en «{{value}}».",
+      "from": "Desde",
+      "to": "Hacia",
+      "amount": "Monto del traspaso",
+      "movements": "Movimientos",
+      "markAs": "Quedan en",
+      "confirm": "Transferir",
+      "done_one": "Traspaso creado: 1 movimiento marcado",
+      "done_other": "Traspaso creado: {{count}} movimientos marcados",
+      "needsBoolean": "Filtra por una columna Sí / No para transferir sus pendientes.",
+      "coveredOnDelete_one": "1 movimiento volverá al valor que tenía antes.",
+      "coveredOnDelete_other": "{{count}} movimientos volverán al valor que tenían antes."
+    },
+    "listLabel": "Tus columnas",
+    "count_one": "{{count}} con valor",
+    "count_other": "{{count}} con valor",
+    "limit": "{{count}} de {{max}} columnas",
+    "back": "Todas las columnas",
+    "scopeText": {
+      "allMovements": "Todos los movimientos",
+      "kinds": {
+        "EXPENSE": "gastos",
+        "INCOME": "ingresos",
+        "TRANSFER": "traspasos"
+      },
+      "withCards": "con tarjeta de {{list}}",
+      "cards": {
+        "CREDIT": "crédito",
+        "DEBIT": "débito",
+        "PREPAID": "prepago"
+      },
+      "allAccounts": "en todas las cuentas",
+      "someAccounts": "solo en {{list}}",
+      "sentence": "{{what}}, {{where}}.",
+      "default": "Nace en «{{value}}»."
+    },
+    "detail": {
+      "edit": "Editar",
+      "value": "Valor",
+      "movements": "Movimientos",
+      "view": "Ver",
+      "noValues": "Ningún movimiento tiene un valor todavía.",
+      "type": "Tipo",
+      "default": "Valor por defecto",
+      "noDefault": "Sin valor",
+      "column": "En la tabla de Movimientos",
+      "columnShown": "Se muestra",
+      "columnHidden": "No se muestra",
+      "pending_one": "1 movimiento sigue en «{{value}}»",
+      "pending_other": "{{count}} movimientos siguen en «{{value}}»",
+      "pendingHint": "Ábrelos en Movimientos ya seleccionados y haz un traspaso por su suma: quedan en «{{other}}». Se deshace borrando el traspaso."
+    }
   }
 }

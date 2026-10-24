@@ -1,6 +1,14 @@
 import type { transactions } from "@finance/contracts";
 
+import type { CardAccountRepositoryPort } from "../../../card-account/domain/ports/card-account.repository.port";
+import type { CustomFieldRepositoryPort } from "../../../custom-field/domain/ports/custom-field.repository.port";
+import {
+  CustomFieldFilterInvalidError,
+  CustomFieldNotFoundError,
+} from "../../../custom-field/domain/errors";
+import type { TransactionFieldValueRepositoryPort } from "../../../transaction-field-value/domain/ports/transaction-field-value.repository.port";
 import type { TransactionListFilter } from "../../domain/ports/transaction.repository.port";
+import { scopeWhere } from "../../domain/scope-where";
 
 /**
  * Contract filters -> the port's pre-parsed filter shape. Shared by the list
@@ -52,4 +60,105 @@ export function toListFilter(filters: transactions.TransactionFilters): Transact
     occurredFrom: filters.from ? new Date(filters.from) : undefined,
     occurredTo: filters.to ? new Date(filters.to) : undefined,
   };
+}
+
+/** What resolving a custom field filter needs (specs/036): the field (its type and
+ * scope), the ids holding a value, and the person's cards for a card-kind scope. */
+export interface CustomFieldFilterDeps {
+  fields: CustomFieldRepositoryPort;
+  values: TransactionFieldValueRepositoryPort;
+  cards: CardAccountRepositoryPort;
+}
+
+/** The predicate a custom field filter asks for, or `CUSTOM_FIELD_FILTER_INVALID`. */
+async function customFieldClauses(
+  deps: CustomFieldFilterDeps,
+  userId: string,
+  filters: transactions.TransactionFilters,
+): Promise<Pick<TransactionListFilter, "ids" | "excludeIds" | "scope">> {
+  const field = await deps.fields.findOwned(userId, filters.cf!);
+  if (!field) throw new CustomFieldNotFoundError();
+  const hasRange = filters.cfMin !== undefined || filters.cfMax !== undefined;
+  const predicates = [
+    filters.cfv !== undefined,
+    filters.cfEmpty === "true",
+    filters.cfHasValue === "true",
+    filters.cfText !== undefined,
+    hasRange,
+  ];
+  if (predicates.filter(Boolean).length !== 1) throw new CustomFieldFilterInvalidError();
+
+  const parse = (raw: unknown) => {
+    try {
+      return field.parseValue(raw, "cf");
+    } catch {
+      throw new CustomFieldFilterInvalidError();
+    }
+  };
+
+  if (filters.cfv !== undefined) {
+    const raw =
+      field.type === "BOOLEAN"
+        ? filters.cfv === "true"
+          ? true
+          : filters.cfv === "false"
+            ? false
+            : null
+        : filters.cfv;
+    const value = parse(raw);
+    return {
+      ids: await deps.values.idsMatching(userId, field.id, {
+        kind: "equals",
+        type: field.type,
+        value,
+      }),
+    };
+  }
+  if (filters.cfEmpty === "true") {
+    // "No value" means within the field's scope: a movement it doesn't apply to has
+    // no value either, but it isn't pending anything.
+    const [withValue, cards] = await Promise.all([
+      deps.values.idsMatching(userId, field.id, { kind: "any" }),
+      deps.cards.kindsForUser(userId),
+    ]);
+    return { excludeIds: withValue, scope: scopeWhere(field.scope, cards) };
+  }
+  if (filters.cfHasValue === "true") {
+    return { ids: await deps.values.idsMatching(userId, field.id, { kind: "any" }) };
+  }
+  if (filters.cfText !== undefined) {
+    if (field.type !== "TEXT") throw new CustomFieldFilterInvalidError();
+    return {
+      ids: await deps.values.idsMatching(userId, field.id, {
+        kind: "contains",
+        text: filters.cfText,
+      }),
+    };
+  }
+  if (field.type !== "NUMBER" && field.type !== "DATE") throw new CustomFieldFilterInvalidError();
+  const min = filters.cfMin !== undefined ? (parse(filters.cfMin) as string) : undefined;
+  const max = filters.cfMax !== undefined ? (parse(filters.cfMax) as string) : undefined;
+  return {
+    ids: await deps.values.idsMatching(userId, field.id, {
+      kind: "range",
+      type: field.type,
+      min,
+      max,
+    }),
+  };
+}
+
+/**
+ * `toListFilter` plus the custom field filter (specs/036), resolved through the
+ * owners' ports into ids and a scope — the list, its summary and every bulk action
+ * over "the movements of this filter" go through here.
+ */
+export async function resolveListFilter(
+  deps: CustomFieldFilterDeps,
+  userId: string,
+  filters: transactions.TransactionFilters,
+): Promise<TransactionListFilter> {
+  const base = toListFilter(filters);
+  if (!filters.cf) return base;
+  return { ...base, ...(await customFieldClauses(deps, userId, filters)) };
 }

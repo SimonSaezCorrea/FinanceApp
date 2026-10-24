@@ -8,6 +8,8 @@ import { BankAccountDataModule } from "../bank-account/bank-account.data.module"
 import { CardAccountDataModule } from "../card-account/card-account.data.module";
 import { CardLimitDataModule } from "../card-limit/card-limit.data.module";
 import { CreditStatementDataModule } from "../credit-statement/credit-statement.data.module";
+import { CustomFieldDataModule } from "../custom-field/custom-field.data.module";
+import { TransactionFieldValueDataModule } from "../transaction-field-value/transaction-field-value.data.module";
 import { IdempotencyRecordDataModule } from "../idempotency-record/idempotency-record.data.module";
 import { TransactionDataModule } from "../transaction/transaction.data.module";
 import { TRANSACTION_REPOSITORY } from "../transaction/domain/ports/transaction.repository.port";
@@ -41,6 +43,9 @@ const queryHandlers = [PreviewTemplateQueryHandler];
     RecurringExpenseDataModule,
     SavingsGoalDataModule,
     SavingsEntryDataModule,
+    // Custom field values of imported movements (specs/036).
+    CustomFieldDataModule,
+    TransactionFieldValueDataModule,
   ],
   controllers: [ImportController],
   providers: [

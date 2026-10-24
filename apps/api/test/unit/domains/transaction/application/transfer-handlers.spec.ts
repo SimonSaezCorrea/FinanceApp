@@ -1,4 +1,8 @@
-import { fakeCategoryLookup } from "../../../support/fake-ports";
+import {
+  fakeCategoryLookup,
+  fakeCustomFieldRepo,
+  fakeFieldValueRepo,
+} from "../../../support/fake-ports";
 import { EventBus } from "@nestjs/cqrs";
 import { describe, expect, it, vi } from "vitest";
 
@@ -93,6 +97,7 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     saveTransferPairWithTx: vi.fn(async () => pair),
     updateTransferPair: vi.fn(async () => pair),
     removeTransferPair: vi.fn(async () => true),
+    removeTransferPairWithTx: vi.fn(async () => true),
     ...overrides,
   } as TransactionRepositoryPort;
 }
@@ -126,6 +131,8 @@ describe("CreateTransferHandler", () => {
       prisma,
       fakeCategoryLookup(),
       statements,
+      fakeCustomFieldRepo(),
+      fakeFieldValueRepo(),
     );
 
     await handler.execute(transferCmd(input));
@@ -153,6 +160,8 @@ describe("CreateTransferHandler", () => {
       prisma,
       fakeCategoryLookup(),
       statements,
+      fakeCustomFieldRepo(),
+      fakeFieldValueRepo(),
     );
 
     await handler.execute(transferCmd(input));
@@ -175,6 +184,8 @@ describe("CreateTransferHandler", () => {
       prisma,
       fakeCategoryLookup(),
       statements,
+      fakeCustomFieldRepo(),
+      fakeFieldValueRepo(),
     );
     await expect(handler.execute(transferCmd(input))).rejects.toThrow(/TRANSFER_ACCOUNT_NOT_FOUND/);
   });
@@ -228,11 +239,13 @@ describe("RemoveTransferHandler", () => {
       eventBus,
       repo,
       fakeAccounts({ a1: "CHECKING", a2: "SAVINGS" }),
+      fakeFieldValueRepo(),
+      prisma,
     );
 
     await handler.execute(new RemoveTransferCommand("u1", "g1"));
 
-    expect(vi.mocked(repo.removeTransferPair).mock.calls[0]![2]).toEqual([
+    expect(vi.mocked(repo.removeTransferPairWithTx).mock.calls[0]![3]).toEqual([
       { accountId: "a1", delta: "1000.0000" },
       { accountId: "a2", delta: "-1000.0000" },
     ]);
@@ -244,11 +257,13 @@ describe("RemoveTransferHandler", () => {
       eventBus,
       repo,
       fakeAccounts({ a1: "CHECKING", a2: "CREDIT_CARD" }),
+      fakeFieldValueRepo(),
+      prisma,
     );
 
     await handler.execute(new RemoveTransferCommand("u1", "g1"));
 
-    expect(vi.mocked(repo.removeTransferPair).mock.calls[0]![2]).toEqual([
+    expect(vi.mocked(repo.removeTransferPairWithTx).mock.calls[0]![3]).toEqual([
       { accountId: "a1", delta: "1000.0000" },
       { accountId: "a2", delta: "1000.0000", pool: true },
     ]);

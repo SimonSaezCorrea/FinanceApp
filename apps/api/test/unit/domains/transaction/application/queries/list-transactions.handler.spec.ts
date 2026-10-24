@@ -1,4 +1,9 @@
-import { fakeCategoryLookup } from "../../../../support/fake-ports";
+import {
+  fakeCardAccountRepo,
+  fakeCategoryLookup,
+  fakeCustomFieldRepo,
+  fakeFieldValueRepo,
+} from "../../../../support/fake-ports";
 import type { ConfigService } from "@nestjs/config";
 import { describe, expect, it, vi } from "vitest";
 
@@ -44,6 +49,7 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     saveTransferPairWithTx: vi.fn(),
     updateTransferPair: vi.fn(),
     removeTransferPair: vi.fn(async () => true),
+    removeTransferPairWithTx: vi.fn(async () => true),
     ...overrides,
   };
 }
@@ -83,6 +89,9 @@ describe("ListTransactionsQueryHandler", () => {
     const handler = new ListTransactionsQueryHandler(
       fakeRepo({ list: vi.fn().mockResolvedValue({ items: [row], nextCursor: null }) }),
       fakeStatementLookup(),
+      fakeCustomFieldRepo(),
+      fakeFieldValueRepo(),
+      fakeCardAccountRepo(),
       fakeConfig(),
     );
     const page = await handler.execute(new ListTransactionsQuery("u1", {}));
@@ -95,6 +104,9 @@ describe("ListTransactionsQueryHandler", () => {
     const handler = new ListTransactionsQueryHandler(
       fakeRepo({ list }),
       fakeStatementLookup(),
+      fakeCustomFieldRepo(),
+      fakeFieldValueRepo(),
+      fakeCardAccountRepo(),
       fakeConfig(),
     );
     await handler.execute(new ListTransactionsQuery("u1", { bankAccountId: "aC", cardId: "cS" }));
@@ -111,6 +123,9 @@ describe("ListTransactionsQueryHandler", () => {
     const handler = new ListTransactionsQueryHandler(
       fakeRepo({ list }),
       fakeStatementLookup(),
+      fakeCustomFieldRepo(),
+      fakeFieldValueRepo(),
+      fakeCardAccountRepo(),
       fakeConfig(),
     );
 
@@ -131,6 +146,9 @@ describe("ListTransactionsQueryHandler", () => {
     const handler = new ListTransactionsQueryHandler(
       fakeRepo(),
       fakeStatementLookup(),
+      fakeCustomFieldRepo(),
+      fakeFieldValueRepo(),
+      fakeCardAccountRepo(),
       fakeConfig(),
     );
     await expect(
@@ -143,6 +161,9 @@ describe("ListTransactionsQueryHandler", () => {
     const handler = new ListTransactionsQueryHandler(
       fakeRepo({ list }),
       fakeStatementLookup(),
+      fakeCustomFieldRepo(),
+      fakeFieldValueRepo(),
+      fakeCardAccountRepo(),
       fakeConfig(),
     );
     await handler.execute(new ListTransactionsQuery("u1", {}));
@@ -158,6 +179,9 @@ describe("SummarizeTransactionsQueryHandler", () => {
     const handler = new SummarizeTransactionsQueryHandler(
       fakeRepo({ summary }),
       fakeCategoryLookup(),
+      fakeCustomFieldRepo(),
+      fakeFieldValueRepo(),
+      fakeCardAccountRepo(),
     );
 
     const result = await handler.execute(
@@ -179,6 +203,7 @@ describe("GetTransactionQueryHandler", () => {
     const handler = new GetTransactionQueryHandler(
       fakeRepo({ findOne: vi.fn().mockResolvedValue(null) }),
       fakeStatementLookup(),
+      fakeFieldValueRepo(),
     );
     await expect(handler.execute(new GetTransactionQuery("u1", "nope"))).rejects.toBeInstanceOf(
       TransactionNotFoundError,
@@ -189,6 +214,7 @@ describe("GetTransactionQueryHandler", () => {
     const handler = new GetTransactionQueryHandler(
       fakeRepo({ findOne: vi.fn().mockResolvedValue(row) }),
       fakeStatementLookup(),
+      fakeFieldValueRepo(),
     );
     const tx = await handler.execute(new GetTransactionQuery("u1", "t1"));
     expect(tx.id).toBe("t1");

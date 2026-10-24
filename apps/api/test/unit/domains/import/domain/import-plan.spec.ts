@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { imports } from "@finance/contracts";
 
+import { CustomField } from "../../../../../src/domains/custom-field/domain/custom-field.aggregate";
 import { planImport, type ImportCard } from "../../../../../src/domains/import/domain/import-plan";
 import type { AccountContext } from "../../../../../src/domains/transaction/domain/movement-policy";
 
@@ -184,5 +185,49 @@ describe("planImport", () => {
       lugar: null,
       categoryId: "cat-1",
     });
+  });
+});
+
+describe("planImport — custom fields (specs/036)", () => {
+  const FIELD = "019a0000-0000-7000-8000-0000000000f1";
+  const transferido = CustomField.fromPersistence({
+    id: FIELD,
+    userId: "u1",
+    name: "Transferido",
+    nameKey: "transferido",
+    type: "BOOLEAN",
+    options: [],
+    scope: { movementKinds: ["EXPENSE"], restrictAccounts: false, accountIds: [], cardKinds: [] },
+    defaultValue: false,
+    showAsColumn: false,
+    sortOrder: 0,
+  });
+
+  it("gives every row the default that applies, or the value it names", () => {
+    const plan = planImport(
+      [
+        row("EXPENSE", "1000"),
+        { ...row("EXPENSE", "2000"), customFields: { [FIELD]: true } },
+        row("INCOME", "5"),
+      ],
+      account(),
+      [],
+      [transferido],
+    );
+    expect(plan.rows.map((r) => r.customFields.map((v) => v.value))).toEqual([[false], [true], []]);
+  });
+
+  it("an unreadable value fails the import naming its row", () => {
+    expect(() =>
+      planImport(
+        [
+          row("EXPENSE", "1000"),
+          { ...row("EXPENSE", "1000"), customFields: { [FIELD]: "tal vez" } },
+        ],
+        account(),
+        [],
+        [transferido],
+      ),
+    ).toThrow(expect.objectContaining({ code: "CUSTOM_FIELD_INVALID_VALUE", field: "rows.1" }));
   });
 });

@@ -23,6 +23,18 @@ import {
   TRANSACTION_WRITER_REPOSITORY,
   type TransactionWriterRepositoryPort,
 } from "../../../transaction/domain/ports/transaction-writer.repository.port";
+import {
+  CUSTOM_FIELD_REPOSITORY,
+  type CustomFieldRepositoryPort,
+} from "../../../custom-field/domain/ports/custom-field.repository.port";
+import {
+  TRANSACTION_FIELD_VALUE_REPOSITORY,
+  type TransactionFieldValueRepositoryPort,
+} from "../../../transaction-field-value/domain/ports/transaction-field-value.repository.port";
+import {
+  TRANSACTION_SCOPE_LOOKUP,
+  type TransactionScopeLookupPort,
+} from "../../../transaction/domain/ports/transaction-scope-lookup.port";
 import { AccountNotFoundError, CashAccountRequiredError } from "../../domain/errors";
 import {
   BANK_ACCOUNT_REPOSITORY,
@@ -69,6 +81,10 @@ export class RemoveAccountHandler extends BaseCommandHandler<RemoveAccountComman
     private readonly recurring: RecurringExpenseRepositoryPort,
     @Inject(SAVINGS_ENTRY_REPOSITORY) private readonly savings: SavingsEntryRepositoryPort,
     @Inject(DEBT_REPOSITORY) private readonly debts: DebtRepositoryPort,
+    @Inject(CUSTOM_FIELD_REPOSITORY) private readonly fields: CustomFieldRepositoryPort,
+    @Inject(TRANSACTION_FIELD_VALUE_REPOSITORY)
+    private readonly fieldValues: TransactionFieldValueRepositoryPort,
+    @Inject(TRANSACTION_SCOPE_LOOKUP) private readonly movementFacts: TransactionScopeLookupPort,
   ) {
     super(eventBus);
   }
@@ -112,6 +128,14 @@ export class RemoveAccountHandler extends BaseCommandHandler<RemoveAccountComman
       // A debt's last payment moved money on this account: undoing it later can't
       // reverse a balance that no longer exists.
       await this.debts.clearLastPaymentForAccountWithTx(tx, userId, accountId);
+      // A transfer of "Transferir pendientes" going away gives the movements it
+      // covered their previous value back (specs/036, FR-025).
+      const facts = await this.movementFacts.factsFor(userId, [...movementIds], tx);
+      const groups = [
+        ...new Set(facts.map((f) => f.transferGroupId).filter((g): g is string => !!g)),
+      ];
+      await this.fieldValues.revertCoverWithTx(tx, userId, groups);
+      await this.fields.removeAccountFromScopesWithTx(tx, userId, accountId);
       await this.transactions.deleteManyWithTx(tx, [...movementIds]);
       for (const { accountId: other, delta } of netByAccount(balances, accountId)) {
         await this.accountRepo.incrementBalanceWithTx(tx, other, delta);

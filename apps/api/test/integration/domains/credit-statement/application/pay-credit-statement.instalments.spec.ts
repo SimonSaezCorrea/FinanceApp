@@ -1,3 +1,4 @@
+import { PrismaTransactionFieldValueRepository } from "../../../../../src/domains/transaction-field-value/infrastructure/prisma-transaction-field-value.repository";
 import { buildCategoryLookup } from "../../../support/repositories";
 import { randomUUID } from "node:crypto";
 
@@ -347,6 +348,7 @@ describe("PayCreditStatementHandler settles instalments (integration)", () => {
       buildTransactionWriterRepo(prisma),
       planRepo,
       prisma,
+      new PrismaTransactionFieldValueRepository(prisma),
     ).execute(new RemoveTransactionCommand(userId, paid.paidTransactionId!));
 
     const successor = await prisma.creditStatement.findFirstOrThrow({

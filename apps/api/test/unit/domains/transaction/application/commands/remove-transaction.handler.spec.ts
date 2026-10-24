@@ -19,6 +19,7 @@ import {
   fakeCreditStatementRepo,
   fakeInstallmentPaymentLookup,
   fakeTransactionWriterRepo,
+  fakeFieldValueRepo,
 } from "../../../../support/fake-ports";
 
 function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): TransactionRepositoryPort {
@@ -39,6 +40,7 @@ function fakeRepo(overrides: Partial<TransactionRepositoryPort> = {}): Transacti
     saveTransferPairWithTx: vi.fn(),
     updateTransferPair: vi.fn(),
     removeTransferPair: vi.fn(async () => true),
+    removeTransferPairWithTx: vi.fn(async () => true),
     ...overrides,
   };
 }
@@ -119,6 +121,7 @@ function makeHandler(
     {} as never,
     // Unused unless a fixture carries `prepaymentStatementId` (none in this file do).
     {} as never,
+    fakeFieldValueRepo(),
   );
 }
 

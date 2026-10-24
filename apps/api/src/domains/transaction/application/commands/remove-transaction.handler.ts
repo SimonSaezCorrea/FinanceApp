@@ -6,6 +6,10 @@ import { subtractMoney } from "@finance/money";
 import { BaseCommandHandler, type HandleResult } from "../../../../infra/cqrs/base-command.handler";
 import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import {
+  TRANSACTION_FIELD_VALUE_REPOSITORY,
+  type TransactionFieldValueRepositoryPort,
+} from "../../../transaction-field-value/domain/ports/transaction-field-value.repository.port";
+import {
   reverseBalanceDelta,
   reverseCashDelta,
   reverseTransferLegDelta,
@@ -97,6 +101,8 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
     private readonly transactionWriter: TransactionWriterRepositoryPort,
     @Inject(INSTALLMENT_PLAN_REPOSITORY) private readonly plans: InstallmentPlanRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(TRANSACTION_FIELD_VALUE_REPOSITORY)
+    private readonly fieldValues: TransactionFieldValueRepositoryPort,
   ) {
     super(eventBus);
   }
@@ -255,16 +261,17 @@ export class RemoveTransactionHandler extends BaseCommandHandler<
         pair.outgoing.bankAccountId ?? undefined,
         pair.incoming.bankAccountId ?? undefined,
       );
-      const removed = await this.repo.removeTransferPair(
-        command.userId,
-        current.transferGroupId!,
-        netDeltas([
-          ...(legs.from
-            ? [reverseTransferLegDelta("EXPENSE", pair.outgoing.amount, legs.from)]
-            : []),
-          ...(legs.to ? [reverseTransferLegDelta("INCOME", pair.incoming.amount, legs.to)] : []),
-        ]),
-      );
+      const deltas = netDeltas([
+        ...(legs.from ? [reverseTransferLegDelta("EXPENSE", pair.outgoing.amount, legs.from)] : []),
+        ...(legs.to ? [reverseTransferLegDelta("INCOME", pair.incoming.amount, legs.to)] : []),
+      ]);
+      const groupId = current.transferGroupId!;
+      // Deleting one leg deletes the pair — and undoes what it covered (specs/036, FR-025).
+      const removed = await this.prisma.$transaction(async (tx) => {
+        const ok = await this.repo.removeTransferPairWithTx(tx, command.userId, groupId, deltas);
+        if (ok) await this.fieldValues.revertCoverWithTx(tx, command.userId, [groupId]);
+        return ok;
+      });
       if (!removed) throw new TransactionNotFoundError();
       return { result: undefined, events: [] };
     }

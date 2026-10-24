@@ -13,6 +13,7 @@ import {
   PiggyBank,
   Plus,
   Repeat,
+  SlidersHorizontal,
   Upload,
   UserRound,
   Wallet,
@@ -45,6 +46,11 @@ const PANEL: NavItem = { to: "/", key: "nav.dashboard", icon: LayoutDashboard, e
 const ACCOUNTS: NavItem = { to: "/accounts", key: "accounts.title", icon: Wallet };
 const MOVEMENTS: NavItem = { to: "/transactions", key: "transactions.title", icon: ArrowLeftRight };
 const IMPORT: NavItem = { to: "/import", key: "import.title", icon: Upload };
+const CUSTOM_FIELDS: NavItem = {
+  to: "/custom-fields",
+  key: "nav.customFields",
+  icon: SlidersHorizontal,
+};
 const INSTALLMENTS: NavItem = { to: "/installments", key: "installments.title", icon: CreditCard };
 const DEBTS: NavItem = { to: "/debts", key: "debts.title", icon: HandCoins };
 const RECURRING: NavItem = { to: "/recurring", key: "recurring.title", icon: Repeat };
@@ -56,7 +62,8 @@ const EXCHANGE_RATES: NavItem = {
 };
 
 /** Grouped by what each section IS for the user: their money, what they've committed to, their
- * goals, and the economic indicators (reference data, not theirs — dólar, UF, and later others).
+ * goals, the economic indicators (reference data, not theirs — dólar, UF, and later others), and
+ * settings (how the app records their movements, not money itself).
  * Investments is left out until it exists (an item that leads nowhere is daily noise). */
 const GROUPS: { key: string | null; items: NavItem[] }[] = [
   { key: null, items: [PANEL] },
@@ -64,11 +71,20 @@ const GROUPS: { key: string | null; items: NavItem[] }[] = [
   { key: "nav.groups.commitments", items: [INSTALLMENTS, DEBTS, RECURRING] },
   { key: "nav.groups.goals", items: [SAVINGS] },
   { key: "nav.groups.indicators", items: [EXCHANGE_RATES] },
+  { key: "nav.groups.settings", items: [CUSTOM_FIELDS] },
 ];
 
 /** Phone: four destinations and "+" in the tab bar; everything else in the "Más" sheet. */
 const TAB_ITEMS: NavItem[] = [PANEL, ACCOUNTS, MOVEMENTS];
-const SHEET_ITEMS: NavItem[] = [INSTALLMENTS, DEBTS, RECURRING, SAVINGS, IMPORT, EXCHANGE_RATES];
+const SHEET_ITEMS: NavItem[] = [
+  INSTALLMENTS,
+  DEBTS,
+  RECURRING,
+  SAVINGS,
+  IMPORT,
+  EXCHANGE_RATES,
+  CUSTOM_FIELDS,
+];
 
 const SIDEBAR_COLLAPSED_KEY = "finance.sidebarCollapsed";
 

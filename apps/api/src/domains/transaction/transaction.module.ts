@@ -4,6 +4,8 @@ import { JwtModule } from "@nestjs/jwt";
 
 import { RecurringExpenseDataModule } from "../recurring-expense/recurring-expense.data.module";
 import { CategoryDataModule } from "../category/category.data.module";
+import { CustomFieldDataModule } from "../custom-field/custom-field.data.module";
+import { TransactionFieldValueDataModule } from "../transaction-field-value/transaction-field-value.data.module";
 import { JwtAuthGuard } from "../../infra/auth/jwt-auth.guard";
 import { BankAccountDataModule } from "../bank-account/bank-account.data.module";
 import { CardAccountDataModule } from "../card-account/card-account.data.module";
@@ -13,6 +15,7 @@ import { IdempotencyRecordDataModule } from "../idempotency-record/idempotency-r
 import { InstallmentPaymentDataModule } from "../installment-payment/installment-payment.data.module";
 import { InstallmentPlanDataModule } from "../installment-plan/installment-plan.data.module";
 import { CreateTransactionHandler } from "./application/commands/create-transaction.handler";
+import { CoverWithTransferHandler } from "./application/commands/cover-with-transfer.handler";
 import { CreateTransferHandler } from "./application/commands/create-transfer.handler";
 import { RemoveTransferHandler } from "./application/commands/remove-transfer.handler";
 import { UpdateTransferHandler } from "./application/commands/update-transfer.handler";
@@ -21,6 +24,7 @@ import { RemoveTransactionHandler } from "./application/commands/remove-transact
 import { UpdateTransactionHandler } from "./application/commands/update-transaction.handler";
 import { GetTransactionQueryHandler } from "./application/queries/get-transaction.handler";
 import { ListTransactionsQueryHandler } from "./application/queries/list-transactions.handler";
+import { SummarizeByFieldQueryHandler } from "./application/queries/summarize-by-field.handler";
 import { SummarizeTransactionsQueryHandler } from "./application/queries/summarize-transactions.handler";
 import { TRANSACTION_REPOSITORY } from "./domain/ports/transaction.repository.port";
 import { PrismaTransactionRepository } from "./infrastructure/prisma-transaction.repository";
@@ -34,11 +38,13 @@ const commandHandlers = [
   CreateTransferHandler,
   UpdateTransferHandler,
   RemoveTransferHandler,
+  CoverWithTransferHandler,
 ];
 
 const queryHandlers = [
   ListTransactionsQueryHandler,
   SummarizeTransactionsQueryHandler,
+  SummarizeByFieldQueryHandler,
   GetTransactionQueryHandler,
   GetTransferQueryHandler,
 ];
@@ -69,6 +75,9 @@ const queryHandlers = [
     IdempotencyRecordDataModule,
     // A movement may name the recurring series it pays — ownership-checked here.
     RecurringExpenseDataModule,
+    // Custom fields (specs/036): defaults on creation, values on reads, the filter.
+    CustomFieldDataModule,
+    TransactionFieldValueDataModule,
   ],
   controllers: [TransactionsController],
   providers: [

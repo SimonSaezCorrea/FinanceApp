@@ -27,8 +27,16 @@ import {
   CREDIT_STATEMENT_REPOSITORY,
   type CreditStatementRepositoryPort,
 } from "../../../credit-statement/domain/ports/credit-statement.repository.port";
-import { transferLegDelta } from "../../domain/balance-delta";
-import { transferLegStatementId } from "../transfer-legs";
+import {
+  CUSTOM_FIELD_REPOSITORY,
+  type CustomFieldRepositoryPort,
+} from "../../../custom-field/domain/ports/custom-field.repository.port";
+import {
+  TRANSACTION_FIELD_VALUE_REPOSITORY,
+  type TransactionFieldValueRepositoryPort,
+} from "../../../transaction-field-value/domain/ports/transaction-field-value.repository.port";
+import { resolveCreationValues, valuesRecord } from "../custom-field-values";
+import { writeTransferPairWithTx } from "../transfer-legs";
 import { TransferPolicy, type TransferAccountContext } from "../../domain/transfer-policy";
 import {
   TRANSACTION_REPOSITORY,
@@ -71,6 +79,9 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
     @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
     @Inject(CREDIT_STATEMENT_REPOSITORY)
     private readonly statements: CreditStatementRepositoryPort,
+    @Inject(CUSTOM_FIELD_REPOSITORY) private readonly customFieldsRepo: CustomFieldRepositoryPort,
+    @Inject(TRANSACTION_FIELD_VALUE_REPOSITORY)
+    private readonly fieldValuesRepo: TransactionFieldValueRepositoryPort,
   ) {
     super(eventBus, records);
   }
@@ -98,63 +109,45 @@ export class CreateTransferHandler extends BaseIdempotentCommandHandler<
     TransferPolicy.validate(input, context.from, context.to);
 
     const transferGroupId = generateRowId();
-    const occurredAt = new Date(input.occurredAt);
-    const shared = {
-      userId,
-      occurredAt,
-      categoryId: input.categoryId ?? null,
-      description: input.description ?? null,
-      observation: input.observation ?? null,
-      emisor: input.emisor ?? null,
-      receptor: input.receptor ?? null,
-      lugar: input.lugar ?? null,
-      cardId: null,
-      financeCharge: false,
-      installmentPlanId: null,
-      creditStatementId: null,
-      transferGroupId,
-      debtId: null,
-      recurringExpenseId: null,
-      savingsEntryId: null,
-      savingsGoalId: null,
-      prepaymentStatementId: null,
-      prepaymentAccountId: null,
-      settlesStatementId: null,
-    };
+    const fields = await this.customFieldsRepo.listForUser(userId);
+    const leg = (accountId: string) => ({
+      kind: "TRANSFER" as const,
+      bankAccountId: accountId,
+      cardKind: null,
+    });
+    const outgoingValues = resolveCreationValues(
+      fields,
+      leg(input.fromBankAccountId),
+      input.outgoingCustomFields,
+      "outgoingCustomFields",
+    );
+    const incomingValues = resolveCreationValues(
+      fields,
+      leg(input.toBankAccountId),
+      input.incomingCustomFields,
+      "incomingCustomFields",
+    );
 
     const result = await this.prisma.$transaction(async (tx) => {
-      const outStatement = await transferLegStatementId(
-        this.statements,
-        tx,
-        context.from,
-        occurredAt,
-      );
-      const inStatement = await transferLegStatementId(this.statements, tx, context.to, occurredAt);
-      const pair = await this.repo.saveTransferPairWithTx(
+      const pair = await writeTransferPairWithTx(
+        { repo: this.repo, statements: this.statements },
         tx,
         userId,
-        {
-          ...shared,
-          type: "EXPENSE",
-          amount: input.amountOut,
-          currency: input.currencyOut,
-          bankAccountId: input.fromBankAccountId,
-          creditStatementId: outStatement,
-        },
-        {
-          ...shared,
-          type: "INCOME",
-          amount: input.amountIn,
-          currency: input.currencyIn,
-          bankAccountId: input.toBankAccountId,
-          creditStatementId: inStatement,
-        },
-        [
-          transferLegDelta("EXPENSE", input.amountOut, context.from!),
-          transferLegDelta("INCOME", input.amountIn, context.to!),
-        ],
+        transferGroupId,
+        { ...input, occurredAt: new Date(input.occurredAt) },
+        context.from!,
+        context.to!,
       );
-      const contract = toTransferContract(pair);
+      await this.fieldValuesRepo.upsertManyWithTx(tx, userId, [
+        ...outgoingValues.map((v) => ({ ...v, transactionId: pair.outgoing.id })),
+        ...incomingValues.map((v) => ({ ...v, transactionId: pair.incoming.id })),
+      ]);
+      const base = toTransferContract(pair);
+      const contract = {
+        ...base,
+        outgoing: { ...base.outgoing, customFields: valuesRecord(outgoingValues) },
+        incoming: { ...base.incoming, customFields: valuesRecord(incomingValues) },
+      };
       await complete(tx, contract);
       return contract;
     });

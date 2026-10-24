@@ -147,3 +147,27 @@ export class TransactionLinkedToStatementError extends DomainError {
     super("TRANSACTION_LINKED_TO_STATEMENT", 409);
   }
 }
+
+/** "Transferir pendientes" (specs/036) works only on a yes/no field. */
+export class CoverFieldNotBooleanError extends DomainError {
+  constructor() {
+    super("COVER_FIELD_NOT_BOOLEAN", 400, "fieldId");
+  }
+}
+
+/** The chosen movements can't be covered by one transfer: `reason` says why —
+ * `empty`, `transferLegs`, `outOfScope`, `mixedTypes`, `mixedCurrencies` or
+ * `currencyMismatch` (not the currency of both accounts). */
+export class CoverSelectionInvalidError extends DomainError {
+  constructor(reason: string) {
+    super("COVER_SELECTION_INVALID", 400, reason);
+  }
+}
+
+/** Some chosen movement already holds the value, or another transfer covered it,
+ * since the selection was made. */
+export class CoverSelectionChangedError extends DomainError {
+  constructor() {
+    super("COVER_SELECTION_CHANGED", 409);
+  }
+}

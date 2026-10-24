@@ -19,6 +19,7 @@ import { TransactionDetailModal } from "../../transactions/components/Transactio
 import { TransactionDeleteConfirm } from "../../transactions/components/TransactionDeleteConfirm";
 import { TransactionTable } from "../../transactions/components/TransactionTable";
 import { MovementsTableSkeleton } from "../../transactions/components/MovementsTableSkeleton";
+import { useCustomFields } from "../../custom-fields/hooks/useCustomFields";
 import { ApiRequestError } from "@finance/client";
 import { cn } from "@finance/ui/src/shared/lib/cn";
 import { ASIDE_MIN_WIDTH, useElementWidth } from "../../../shared/lib/useElementWidth";
@@ -486,6 +487,14 @@ function MovementsSection({
   });
   const { isLoading, isError } = txQuery;
   const { remove } = useTransactionMutations();
+  // Same columns as Movimientos, minus fields restricted to other accounts.
+  const { data: fieldList } = useCustomFields();
+  const columnFields = (fieldList ?? []).filter(
+    (f) =>
+      f.showAsColumn &&
+      !f.scopeBroken &&
+      (f.scope.accountIds.length === 0 || f.scope.accountIds.includes(account.id)),
+  );
   const [modalOpen, setModalOpen] = useState(false);
   const [editTx, setEditTx] = useState<transactions.Transaction | null>(null);
   const [deleteTx, setDeleteTx] = useState<transactions.Transaction | null>(null);
@@ -565,6 +574,7 @@ function MovementsSection({
             showAccountColumn={false}
             showCategoryColumn={false}
             showTypeColumn={false}
+            columnFields={columnFields}
             onEdit={(tx) => {
               setEditTx(tx);
               setDuplicateTx(null);

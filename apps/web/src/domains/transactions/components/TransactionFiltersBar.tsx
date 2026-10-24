@@ -18,7 +18,7 @@ interface TransactionFiltersBarProps {
   categoryIds: string[];
 }
 
-function PillSelect({
+export function PillSelect({
   value,
   onChange,
   children,

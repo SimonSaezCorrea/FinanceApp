@@ -12,8 +12,9 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { CommandBus, QueryBus } from "@nestjs/cqrs";
+import { z } from "zod";
 
-import { idempotency, transactions } from "@finance/contracts";
+import { customFields, idempotency, rowId, transactions } from "@finance/contracts";
 
 import { CurrentUser, type AuthUser } from "../../../infra/auth/current-user.decorator";
 import { JwtAuthGuard } from "../../../infra/auth/jwt-auth.guard";
@@ -26,6 +27,10 @@ import { RemoveTransferCommand } from "../application/commands/remove-transfer.c
 import { UpdateTransferCommand } from "../application/commands/update-transfer.command";
 import { GetTransferQuery } from "../application/queries/get-transfer.query";
 import { transferGroupParamsSchema } from "./dto/transfer-group.params";
+import { CoverWithTransferCommand } from "../application/commands/cover-with-transfer.command";
+import { SummarizeByFieldQuery } from "../application/queries/summarize-by-field.query";
+
+const fieldIdParamsSchema = z.object({ fieldId: rowId });
 import { RemoveTransactionCommand } from "../application/commands/remove-transaction.command";
 import { UpdateTransactionCommand } from "../application/commands/update-transaction.command";
 import { GetTransactionQuery } from "../application/queries/get-transaction.query";
@@ -64,6 +69,27 @@ export class TransactionsController {
     filters: transactions.TransactionFilters,
   ): Promise<transactions.TransactionSummary> {
     return this.queryBus.execute(new SummarizeTransactionsQuery(user.id, filters));
+  }
+
+  /** Per value of one custom field, how many movements and their totals (specs/036).
+   * Declared BEFORE `:id`, like `summary`. */
+  @Get("summary/by-field/:fieldId")
+  summaryByField(
+    @CurrentUser() user: AuthUser,
+    @Param(new ZodParamsPipe(fieldIdParamsSchema)) params: { fieldId: string },
+  ): Promise<customFields.FieldSummary> {
+    return this.queryBus.execute(new SummarizeByFieldQuery(user.id, params.fieldId));
+  }
+
+  /** "Transferir pendientes" (specs/036): declared before `transfers/:groupId`. */
+  @Post("transfers/cover")
+  coverWithTransfer(
+    @CurrentUser() user: AuthUser,
+    @Body(new ZodValidationPipe(transactions.coverTransferSchema)) body: transactions.CoverTransfer,
+    @Headers(idempotency.IDEMPOTENCY_HEADER) rawIdempotencyKey: unknown,
+  ): Promise<transactions.CoverTransferResponse> {
+    const idempotencyKey = requireIdempotencyKey(rawIdempotencyKey);
+    return this.commandBus.execute(new CoverWithTransferCommand(user.id, body, idempotencyKey));
   }
 
   /* Transfers. Declared BEFORE `:id` for the same reason `summary` is: Nest

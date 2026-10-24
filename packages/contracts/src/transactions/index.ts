@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { customFieldValueSchema } from "../common/custom-field-value";
 import { moneyString } from "../common/money";
 import { rowId } from "../common/row-id";
 
@@ -79,6 +80,10 @@ export const transactionSchema = z.object({
    * resolved server-side from `CreditStatement.transferTransactionId`, like
    * `paidStatementId`. Null for every other movement. */
   transferStatementId: rowId.nullable(),
+  /** The person's own custom fields this movement holds a value for (specs/036), by
+   * field id; a field with no value is absent. Optional: an API deployed before it
+   * omits the key. */
+  customFields: z.record(rowId, customFieldValueSchema).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -245,7 +250,12 @@ const transactionFieldsSchema = z.object({
   recurringExpenseId: rowId.optional(),
 });
 
+/** Custom field values to write with a new movement (specs/036), by field id. A
+ * field left out gets its default when it applies; `null` = no value on purpose. */
+export const customFieldValuesInput = z.record(rowId, customFieldValueSchema.nullable());
+
 export const createTransactionSchema = transactionFieldsSchema
+  .extend({ customFields: customFieldValuesInput.optional() })
   .refine((t) => !t.financeCharge || t.type === "EXPENSE", {
     message: "a finance charge is always an expense",
     path: ["financeCharge"],
@@ -295,13 +305,16 @@ const transferFieldsSchema = z.object({
   lugar: z.string().trim().max(200).optional(),
 });
 
-export const createTransferSchema = transferFieldsSchema.refine(
-  (t) => t.fromBankAccountId !== t.toBankAccountId,
-  {
+export const createTransferSchema = transferFieldsSchema
+  .extend({
+    /** Custom field values of each leg (specs/036); see `customFieldValuesInput`. */
+    outgoingCustomFields: customFieldValuesInput.optional(),
+    incomingCustomFields: customFieldValuesInput.optional(),
+  })
+  .refine((t) => t.fromBankAccountId !== t.toBankAccountId, {
     message: "a transfer needs two different accounts",
     path: ["toBankAccountId"],
-  },
-);
+  });
 export type CreateTransfer = z.infer<typeof createTransferSchema>;
 
 export const updateTransferSchema = transferFieldsSchema
@@ -323,6 +336,9 @@ export const transferSchema = z.object({
   outgoing: transactionSchema,
   /** INCOME on the destination account. */
   incoming: transactionSchema,
+  /** Movements this transfer covered through "Transferir pendientes" (specs/036):
+   * deleting it gives them back their previous value. Optional: older APIs omit it. */
+  coveredCount: z.number().int().nonnegative().optional(),
 });
 export type Transfer = z.infer<typeof transferSchema>;
 
@@ -344,6 +360,18 @@ export const transactionFiltersSchema = z.object({
   /** Exact category. Server-side because the list is paginated — filtering the
    * loaded page in the browser would only ever search the rows already fetched. */
   categoryId: rowId.optional(),
+  /** A custom field (specs/036) plus ONE predicate on it: `cfv` an exact value
+   * (`true`/`false`, an option id), `cfEmpty` no value (within the field's scope),
+   * `cfHasValue` any value,
+   * `cfText` text containing, `cfMin`/`cfMax` a number or date range. */
+  cf: rowId.optional(),
+  cfv: z.string().max(200).optional(),
+  cfEmpty: z.enum(["true", "false"]).optional(),
+  /** Any value at all (text, number, date fields' "con valor"). */
+  cfHasValue: z.enum(["true", "false"]).optional(),
+  cfText: z.string().trim().min(1).max(200).optional(),
+  cfMin: z.string().max(40).optional(),
+  cfMax: z.string().max(40).optional(),
   /**
    * Page size. **Omit to get every match in one response** (no pagination),
    * which is what the aggregate-only consumers rely on (e.g. the dashboard's
@@ -354,6 +382,34 @@ export const transactionFiltersSchema = z.object({
   cursor: z.string().optional(),
 });
 export type TransactionFilters = z.infer<typeof transactionFiltersSchema>;
+
+/** `POST /transactions/transfers/cover` ("Transferir pendientes", specs/036): one
+ * transfer for the sum of the chosen movements, which then take `value` in the
+ * yes/no field `fieldId`. All of them one type and one currency, that of both
+ * accounts. */
+export const coverTransferSchema = z
+  .object({
+    fieldId: rowId,
+    target: z.union([
+      z.object({ ids: z.array(rowId).min(1).max(5000) }),
+      z.object({ filter: transactionFiltersSchema.omit({ limit: true, cursor: true }) }),
+    ]),
+    value: z.boolean(),
+    fromBankAccountId: rowId,
+    toBankAccountId: rowId,
+    occurredAt: z.string().datetime().optional(),
+    description: z.string().trim().max(500).optional(),
+  })
+  .refine((t) => t.fromBankAccountId !== t.toBankAccountId, {
+    message: "a transfer needs two different accounts",
+    path: ["toBankAccountId"],
+  });
+export type CoverTransfer = z.infer<typeof coverTransferSchema>;
+export const coverTransferResponseSchema = z.object({
+  transfer: transferSchema,
+  covered: z.number().int().nonnegative(),
+});
+export type CoverTransferResponse = z.infer<typeof coverTransferResponseSchema>;
 
 /**
  * One page of movements. `nextCursor` is `null` on the last page (and always

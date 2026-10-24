@@ -50,6 +50,7 @@ const BASE: TransactionFormValue = {
   receptor: "",
   lugar: "",
   date: "2026-10-08",
+  customFields: null,
 };
 
 const usd = (date: string, value: string, valueDate = date) => ({

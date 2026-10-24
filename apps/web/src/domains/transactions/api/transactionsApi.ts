@@ -12,6 +12,16 @@ function toQuery(filters: transactions.TransactionFilters = {}): string {
   if (filters.from) params.set("from", filters.from);
   if (filters.to) params.set("to", filters.to);
   if (filters.categoryId) params.set("categoryId", filters.categoryId);
+  // A custom field and ONE predicate on it (specs/036).
+  if (filters.cf) {
+    params.set("cf", filters.cf);
+    if (filters.cfv !== undefined) params.set("cfv", filters.cfv);
+    if (filters.cfEmpty) params.set("cfEmpty", filters.cfEmpty);
+    if (filters.cfHasValue) params.set("cfHasValue", filters.cfHasValue);
+    if (filters.cfText) params.set("cfText", filters.cfText);
+    if (filters.cfMin) params.set("cfMin", filters.cfMin);
+    if (filters.cfMax) params.set("cfMax", filters.cfMax);
+  }
   if (filters.limit !== undefined) params.set("limit", String(filters.limit));
   if (filters.cursor) params.set("cursor", filters.cursor);
   const qs = params.toString();
@@ -61,6 +71,14 @@ export const transactionsApi = {
 
     remove: (groupId: string) =>
       apiFetch<void>(`/transactions/transfers/${groupId}`, { method: "DELETE" }),
+
+    /** "Transferir pendientes" (specs/036). */
+    cover: (body: transactions.CoverTransfer, idempotencyKey: string) =>
+      apiFetch<transactions.CoverTransferResponse>("/transactions/transfers/cover", {
+        method: "POST",
+        body: JSON.stringify(body),
+        idempotencyKey,
+      }),
   },
 
   attachments: {

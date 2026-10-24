@@ -65,6 +65,14 @@ import { PrismaService } from "../../../../infra/prisma/prisma.service";
 import { TemplateRowRejectedError } from "../../domain/errors";
 import { planTemplateImport, type TemplatePlanResult } from "../../domain/template-plan";
 import { loadTemplateContext } from "../template-context.loader";
+import {
+  CUSTOM_FIELD_REPOSITORY,
+  type CustomFieldRepositoryPort,
+} from "../../../custom-field/domain/ports/custom-field.repository.port";
+import {
+  TRANSACTION_FIELD_VALUE_REPOSITORY,
+  type TransactionFieldValueRepositoryPort,
+} from "../../../transaction-field-value/domain/ports/transaction-field-value.repository.port";
 import { purgeUserDataWithTx, type ReplacementPorts } from "../template-replacement";
 import { ImportTemplateCommand } from "./import-template.command";
 
@@ -128,6 +136,9 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
     @Inject(CATEGORY_LOOKUP) private readonly categories: CategoryLookupPort,
     @Inject(CARD_ACCOUNT_REPOSITORY) private readonly cards: CardAccountRepositoryPort,
     private readonly prisma: PrismaService,
+    @Inject(CUSTOM_FIELD_REPOSITORY) private readonly fields: CustomFieldRepositoryPort,
+    @Inject(TRANSACTION_FIELD_VALUE_REPOSITORY)
+    private readonly fieldValues: TransactionFieldValueRepositoryPort,
   ) {
     super(eventBus, records);
   }
@@ -143,6 +154,7 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
         movements: this.movements,
         categories: this.categories,
         statements: this.statements,
+        fields: this.fields,
       },
       command.userId,
       command.input,
@@ -176,6 +188,7 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
       recurring: this.recurring,
       goals: this.goals,
       entries: this.entries,
+      fields: this.fields,
     };
   }
 
@@ -347,6 +360,14 @@ export class ImportTemplateHandler extends BaseIdempotentCommandHandler<
                 ? (entryIds.get(`${m.link.goalIndex}|${m.link.contributionIndex}`) ?? null)
                 : null,
           })),
+        );
+        // Custom field values (specs/036), defaults included, now that the rows exist.
+        await this.fieldValues.upsertManyWithTx(
+          tx,
+          userId,
+          plan.movements.flatMap((m) =>
+            (m.customFields ?? []).map((v) => ({ ...v, transactionId: m.id })),
+          ),
         );
 
         // 3. State that records which movement paid what.

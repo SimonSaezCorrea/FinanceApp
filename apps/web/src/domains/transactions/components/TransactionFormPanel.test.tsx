@@ -76,6 +76,7 @@ const initialValue: TransactionFormValue = {
   receptor: "",
   lugar: "",
   date: "2026-08-01",
+  customFields: null,
 };
 
 function Harness({
