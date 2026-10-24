@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import type { INestApplication } from "@nestjs/common";
+import type { NestExpressApplication } from "@nestjs/platform-express";
 import { Test } from "@nestjs/testing";
 import cookieParser from "cookie-parser";
 import request from "supertest";
@@ -18,7 +18,7 @@ import { randomValidRut } from "../../support/rut";
  * SC-004: 2.000 rows with a field take at most ~1,2× the same rows without one.
  */
 describe("Import with custom fields (e2e)", () => {
-  let app: INestApplication;
+  let app: NestExpressApplication;
   let prisma: PrismaService;
   const email = `e2e_${randomUUID()}@test.local`;
   let cookies: string[] = [];
@@ -42,7 +42,7 @@ describe("Import with custom fields (e2e)", () => {
 
   beforeAll(async () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
-    app = moduleRef.createNestApplication();
+    app = moduleRef.createNestApplication<NestExpressApplication>();
     app.setGlobalPrefix("api/v1");
     app.use(cookieParser());
     useJsonBodyLimit(app);
