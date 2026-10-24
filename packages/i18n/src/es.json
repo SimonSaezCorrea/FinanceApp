@@ -2794,7 +2794,7 @@
     "edit": "Editar columna",
     "empty": {
       "title": "Todavía no tienes columnas propias",
-      "description": "Crea uno para marcar tus movimientos a tu manera, por ejemplo «Transferido» para saber qué gastos con crédito ya pasaste a tu cuenta de ahorro."
+      "description": "Una columna propia es un dato tuyo en cada movimiento: márcalo, fíltralo y suma lo que tiene cada valor. Empieza con un ejemplo o créala desde cero."
     },
     "type": {
       "BOOLEAN": "Sí / No",
@@ -2953,6 +2953,37 @@
       "pending_one": "1 movimiento sigue en «{{value}}»",
       "pending_other": "{{count}} movimientos siguen en «{{value}}»",
       "pendingHint": "Ábrelos en Movimientos ya seleccionados y haz un traspaso por su suma: quedan en «{{other}}». Se deshace borrando el traspaso."
+    },
+    "examples": {
+      "title": "Ejemplos para empezar",
+      "fromScratch": "Crear desde cero",
+      "previewCaption": "Así se ve en Movimientos",
+      "previewDescription": "Descripción",
+      "previewAmount": "Monto",
+      "previewHint": "Después filtras por «No» y transfieres todos de una vez.",
+      "rows": {
+        "groceries": "Supermercado",
+        "fuel": "Bencina",
+        "streaming": "Streaming"
+      },
+      "transferred": {
+        "name": "Transferido",
+        "hint": "Gastos con crédito que ya pasaste a tu ahorro"
+      },
+      "refundable": {
+        "name": "Reembolsable",
+        "hint": "Lo que te devuelve la empresa"
+      },
+      "trip": {
+        "name": "Viaje",
+        "hint": "Suma un viaje sin importar la categoría"
+      },
+      "paidBy": {
+        "name": "Quién pagó",
+        "hint": "Gastos compartidos en la casa",
+        "me": "Yo",
+        "partner": "Pareja"
+      }
     }
   }
 }

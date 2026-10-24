@@ -16,7 +16,9 @@ import {
   useElementWidth,
 } from "../../../shared/lib/useElementWidth";
 import { PageHeader } from "../../../shared/ui/page-header";
-import { EmptyState, ErrorState } from "../../../shared/ui/states";
+import { ErrorState } from "../../../shared/ui/states";
+import { CustomFieldsEmpty } from "../components/CustomFieldsEmpty";
+import { exampleForm } from "../lib/examples";
 import { CustomFieldsSkeleton } from "../components/CustomFieldsSkeleton";
 import { CustomFieldDetail } from "../components/CustomFieldDetail";
 import {
@@ -74,11 +76,11 @@ export function CustomFieldsRoute() {
     if (!panes) window.scrollTo?.({ top: 0 });
   }, [open?.id, requestedId, panes]);
 
-  const openCreate = () => {
-    const blank = emptyCustomFieldForm();
+  // A new column, blank or filled with one of the empty state's examples.
+  const openCreate = (start: CustomFieldFormValue = emptyCustomFieldForm()) => {
     setEditing(null);
-    setForm(blank);
-    setBaseline(blank);
+    setForm(start);
+    setBaseline(start);
     setFormOpen(true);
   };
   const openEdit = (field: customFields.CustomField) => {
@@ -136,7 +138,7 @@ export function CustomFieldsRoute() {
         title={t("customFields.title")}
         description={t("customFields.subtitle")}
         actions={
-          <Button variant="accent" onClick={openCreate}>
+          <Button variant="accent" onClick={() => openCreate()}>
             <Plus className="h-4 w-4" aria-hidden />
             {t("customFields.new")}
           </Button>
@@ -146,9 +148,9 @@ export function CustomFieldsRoute() {
       {isLoading ? <CustomFieldsSkeleton panes={panes} /> : null}
       {!isLoading && isError ? <ErrorState error={error} onRetry={() => refetch()} /> : null}
       {!isLoading && !isError && fields.length === 0 ? (
-        <EmptyState
-          title={t("customFields.empty.title")}
-          message={t("customFields.empty.description")}
+        <CustomFieldsEmpty
+          onExample={(key) => openCreate(exampleForm(key, t))}
+          onCreate={() => openCreate()}
         />
       ) : null}
       <div className={cn("flex gap-6", !panes && "flex-col")}>

@@ -71,6 +71,16 @@ describe("CustomFieldsRoute (specs/036)", () => {
     expect(await screen.findByText(i18n.t("customFields.empty.title"))).toBeTruthy();
   });
 
+  it("opens the form already filled from an example", async () => {
+    api.list.mockResolvedValue([]);
+    api.scopeCount.mockResolvedValue({ count: 0 });
+    renderRoute();
+    fireEvent.click(await screen.findByRole("button", { name: /^Quién pagó/ }));
+    const name = await screen.findByLabelText(i18n.t("customFields.form.name"));
+    expect((name as HTMLInputElement).value).toBe("Quién pagó");
+    expect(screen.getByDisplayValue("Pareja")).toBeTruthy();
+  });
+
   it("shows each field's summary per value, each linked to Movimientos filtered by it", async () => {
     api.list.mockResolvedValue([transferido]);
     api.summary.mockResolvedValue({

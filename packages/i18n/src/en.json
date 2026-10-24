@@ -2794,7 +2794,7 @@
     "edit": "Edit column",
     "empty": {
       "title": "You have no custom columns yet",
-      "description": "Create one to tag your movements your way, for example “Transferred” to know which credit card expenses you already moved to your savings account."
+      "description": "A custom column is your own data on each movement: mark it, filter by it and add up what each value holds. Start from an example or from scratch."
     },
     "type": {
       "BOOLEAN": "Yes / No",
@@ -2953,6 +2953,37 @@
       "pending_one": "1 movement is still “{{value}}”",
       "pending_other": "{{count}} movements are still “{{value}}”",
       "pendingHint": "Open them in Movements already selected and make one transfer for their sum: they become “{{other}}”. Deleting the transfer undoes it."
+    },
+    "examples": {
+      "title": "Examples to start with",
+      "fromScratch": "Start from scratch",
+      "previewCaption": "How it looks in Movements",
+      "previewDescription": "Description",
+      "previewAmount": "Amount",
+      "previewHint": "Then filter by “No” and transfer them all at once.",
+      "rows": {
+        "groceries": "Groceries",
+        "fuel": "Fuel",
+        "streaming": "Streaming"
+      },
+      "transferred": {
+        "name": "Transferred",
+        "hint": "Credit card expenses you already moved to savings"
+      },
+      "refundable": {
+        "name": "Refundable",
+        "hint": "What your company pays you back"
+      },
+      "trip": {
+        "name": "Trip",
+        "hint": "Add up a trip whatever the category"
+      },
+      "paidBy": {
+        "name": "Paid by",
+        "hint": "Shared household expenses",
+        "me": "Me",
+        "partner": "Partner"
+      }
     }
   }
 }
