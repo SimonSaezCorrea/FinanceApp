@@ -13,8 +13,10 @@ import { LANGUAGES, type Language, type Page, pagePath } from "../../../lib/lang
 interface Props {
   lang: Language;
   page: Page;
+  /** Per-language address when it is not `pagePath` (spec 035 guides); see PageLayout. */
+  paths?: Partial<Record<Language, string>>;
 }
-const { lang, page } = Astro.props;
+const { lang, page, paths } = Astro.props;
 const NAMES: Record<Language, string> = { es: "Español", en: "English" };
 ---
 
@@ -35,7 +37,7 @@ const NAMES: Record<Language, string> = { es: "Español", en: "English" };
       LANGUAGES.map((code) => (
         <li>
           <a
-            href={pagePath(code, page)}
+            href={paths?.[code] ?? pagePath(code, page)}
             hreflang={code}
             lang={code}
             aria-current={code === lang ? "true" : undefined}

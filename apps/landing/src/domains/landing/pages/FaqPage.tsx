@@ -69,6 +69,14 @@ function Faq() {
             {t(`${P}.titleLead`)} <span className="text-primary">{t(`${P}.titleAccent`)}</span>
           </h1>
           <p className="text-base leading-relaxed text-muted-foreground">{t(`${P}.subtitle`)}</p>
+          {/* Spec 035: the longer answers live in the guides (FR-013). */}
+          <a
+            data-faq-guides=""
+            href={pagePath(lang, "guides")}
+            className="inline-flex min-h-11 items-center self-start text-sm font-medium text-primary underline-offset-4 hover:underline"
+          >
+            {t(`${P}.guidesLink`)}
+          </a>
         </div>
 
         {/* Phone and tablet: a sticky row of chips that scrolls sideways. Desktop: the column. */}

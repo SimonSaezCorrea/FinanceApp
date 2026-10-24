@@ -1,4 +1,12 @@
 <!--
+Sync Impact Report — 2026-10-23 (amendment 2.7.2)
+- Version change: 2.7.1 → 2.7.2 (PATCH: no principle text changed; specs/035 guides section).
+- ADDED: the public site has a content collection (Astro core, no new dependency) for the guides;
+  publishing a guide is adding its Markdown files, validated at build. The guides section is a
+  third exception to "English slugs in both languages" (`/es/guias/`), after the indicator pages
+  and the simulator (branch 034).
+-->
+<!--
 Sync Impact Report — 2026-10-23 (amendment 2.7.1)
 - Version change: 2.7.0 → 2.7.1 (PATCH: operational; no principle text changed).
 - ADDED: the Banco Central de Chile's statistics API (BDE) is the primary exchange-rate source,
@@ -2321,4 +2329,4 @@ the principle wins, or the principle is formally amended — not silently ignore
   recorded here so it is a decision that was postponed, not one that was never noticed. Amending
   Principle VIII or any contract shape while consumers exist WILL require this clause first.
 
-**Version**: 2.7.1 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-23
+**Version**: 2.7.2 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-10-23

@@ -1,0 +1,41 @@
+---
+import { brandHtml } from "@finance/ui/src/shared/lib/brand";
+
+import { t } from "../../../i18n";
+import { APP_URL } from "../../../lib/config";
+import type { Language } from "../../../lib/language";
+
+/** Spec 035, FR-008: the sign-up at the end of a guide. Signed in, the session script swaps the
+ * slot for "Ir a la app" (same mechanism as the header). Text above the button at every width: the
+ * guide is a reading column (46rem), too narrow for the side-by-side layout of the full-width pages. */
+interface Props {
+  lang: Language;
+}
+const { lang } = Astro.props;
+const button =
+  "inline-flex min-h-11 w-full shrink-0 items-center justify-center rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:scale-[0.97] sm:w-auto";
+---
+
+<section
+  aria-labelledby="guide-cta-title"
+  class="flex flex-col items-start gap-4 rounded-2xl border bg-surface2 p-6 sm:p-8"
+>
+  <div class="flex flex-col gap-2">
+    <h2
+      id="guide-cta-title"
+      class="text-xl font-semibold tracking-tight"
+      set:html={brandHtml(t(lang, "landing.guides.cta.title"))}
+    />
+    <p class="text-base leading-relaxed text-muted-foreground">{t(lang, "landing.guides.cta.body")}</p>
+  </div>
+  <div data-access-slot class="flex w-full sm:w-auto">
+    <a href="?acceso=registro" data-access="registro" class={button}>
+      {t(lang, "landing.guides.cta.action")}
+    </a>
+    <template data-app-template>
+      <a href={APP_URL + "/"} data-go-app data-checking-label={t(lang, "landing.nav.appChecking")} class={button}>
+        {t(lang, "landing.nav.goToApp")}
+      </a>
+    </template>
+  </div>
+</section>

@@ -19,8 +19,10 @@ import ThemeSwitch from "./ThemeSwitch.astro";
 interface Props {
   lang: Language;
   page: Page;
+  /** Per-language address when it is not `pagePath` (spec 035 guides); see PageLayout. */
+  paths?: Partial<Record<Language, string>>;
 }
-const { lang, page } = Astro.props;
+const { lang, page, paths } = Astro.props;
 const NAV = [
   { page: "about", key: "landing.nav.about" },
   { page: "privacy", key: "landing.nav.privacy" },
@@ -64,7 +66,7 @@ const NAV = [
 
     <div class="flex items-center gap-2">
       <div class="hidden sm:block">
-        <LanguageMenu lang={lang} page={page} />
+        <LanguageMenu lang={lang} page={page} paths={paths} />
       </div>
       <div class="hidden sm:block">
         <ThemeSwitch lang={lang} variant="compact" />

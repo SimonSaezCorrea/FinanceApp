@@ -300,7 +300,8 @@
         "title": "Still have a question?",
         "body": "Creating an account takes a minute and commits you to nothing: you can log your first expense in cash."
       },
-      "morePrivacy": "More on this in Privacy and data"
+      "morePrivacy": "More on this in Privacy and data",
+      "guidesLink": "Looking for more detail? Read our guides"
     },
     "skipToContent": "Skip to content",
     "meta": {
@@ -348,6 +349,10 @@
         "titleWithValue": "US dollar to Chilean peso, {{date}}: {{value}} · fik",
         "description": "Today's dólar observado, the official US dollar rate in Chilean pesos, with a 30-day and one-year history and a converter. Data from the Central Bank of Chile.",
         "descriptionWithValue": "Dólar observado, {{date}}: {{value}}. 30-day and one-year history and a dollars to pesos converter. Data from the Central Bank of Chile."
+      },
+      "guides": {
+        "title": "Personal finance guides for Chile · fik",
+        "description": "Clear guides on credit cards, accounts and billing in Chile for residents and newcomers, with examples in pesos and official sources."
       }
     },
     "access": {
@@ -454,6 +459,26 @@
         "title": "Today's UF and dollar",
         "body": "The same values fik uses, with history and a converter.",
         "see": "See history and converter"
+      }
+    },
+    "guides": {
+      "nav": "Guides",
+      "title": "Personal finance guides",
+      "lead": "Clear answers to specific questions about cards, accounts and billing in Chile, with examples and official sources.",
+      "empty": "There are no guides in this language yet.",
+      "published": "Published on {{date}}",
+      "reviewed": "Reviewed on {{date}}",
+      "author": "Equipo fik (the fik team)",
+      "reviewedShort": "Reviewed on {{date}}",
+      "toc": "In this guide",
+      "sources": "Sources",
+      "notice": "This guide is general information, not financial advice. Your card's terms are set by your issuer and appear in your contract and your statement.",
+      "backToIndex": "See all guides",
+      "breadcrumb": "Guides",
+      "cta": {
+        "title": "Keep track of your cards in fik",
+        "body": "Record your purchases, generate each statement with the dates on your bank statement and always know how much to pay and when.",
+        "action": "Create account"
       }
     }
   }

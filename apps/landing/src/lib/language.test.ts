@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { LEGACY_REDIRECTS, RATE_PAGES, legacyTarget, pagePath, pickLanguage } from "./language";
+import {
+  isLocalizedPage,
+  isRatePage,
+  LEGACY_REDIRECTS,
+  legacyTarget,
+  LOCALIZED_SLUGS,
+  pagePath,
+  pickLanguage,
+  RATE_PAGES,
+} from "./language";
 
 describe("pickLanguage", () => {
   it("picks English when the browser prefers it first", () => {
@@ -62,5 +71,18 @@ describe("pagePath for the indicator pages (spec 033, clarify Q2)", () => {
 
   it("maps each indicator page to its currency", () => {
     expect(RATE_PAGES).toEqual({ ufValue: "CLF", dollarRate: "USD" });
+  });
+});
+
+describe("pagePath for the guides section (spec 035)", () => {
+  it("uses the slug of each language", () => {
+    expect(pagePath("es", "guides")).toBe("/es/guias/");
+    expect(pagePath("en", "guides")).toBe("/en/guides/");
+  });
+
+  it("is a localized page but not an indicator page", () => {
+    expect(LOCALIZED_SLUGS.guides).toEqual({ es: "guias", en: "guides" });
+    expect(isLocalizedPage("guides")).toBe(true);
+    expect(isRatePage("guides")).toBe(false);
   });
 });
