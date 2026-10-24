@@ -2847,8 +2847,7 @@
     "summary": {
       "movements_one": "{{count}} movimiento",
       "movements_other": "{{count}} movimientos",
-      "open": "Ver en Movimientos",
-      "loading": "Calculando…"
+      "open": "Ver en Movimientos"
     },
     "delete": {
       "title": "¿Eliminar «{{name}}»?",

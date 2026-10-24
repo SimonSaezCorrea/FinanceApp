@@ -10,6 +10,7 @@ import { buttonClasses } from "@finance/ui/src/shared/ui/button-classes";
 import { FormNotice } from "../../../shared/ui/form";
 import { MaskedAmount } from "../../profile/components/MaskedAmount";
 import { useFieldSummary } from "../hooks/useCustomFields";
+import { ValueRowsSkeleton } from "./CustomFieldsSkeleton";
 import { displayValue } from "../lib/fieldValues";
 
 interface Props {
@@ -139,11 +140,7 @@ export function CustomFieldDetail({ field, accounts, onEdit, onDelete }: Readonl
             ))}
             <span />
           </div>
-          {summary.isLoading ? (
-            <p className="border-t border-border px-4 py-3 text-muted-foreground">
-              {t("customFields.summary.loading")}
-            </p>
-          ) : null}
+          {summary.isLoading ? <ValueRowsSkeleton /> : null}
           {!summary.isLoading && buckets.length === 0 ? (
             <p className="border-t border-border px-4 py-3 text-muted-foreground">
               {t("customFields.detail.noValues")}

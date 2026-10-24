@@ -16,7 +16,8 @@ import {
   useElementWidth,
 } from "../../../shared/lib/useElementWidth";
 import { PageHeader } from "../../../shared/ui/page-header";
-import { EmptyState, ErrorState, LoadingState } from "../../../shared/ui/states";
+import { EmptyState, ErrorState } from "../../../shared/ui/states";
+import { CustomFieldsSkeleton } from "../components/CustomFieldsSkeleton";
 import { CustomFieldDetail } from "../components/CustomFieldDetail";
 import {
   CustomFieldFormPanel,
@@ -130,7 +131,7 @@ export function CustomFieldsRoute() {
   };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div ref={measure} className="flex flex-col gap-6">
       <PageHeader
         title={t("customFields.title")}
         description={t("customFields.subtitle")}
@@ -142,7 +143,7 @@ export function CustomFieldsRoute() {
         }
       />
 
-      {isLoading ? <LoadingState title={t("app.loading")} /> : null}
+      {isLoading ? <CustomFieldsSkeleton panes={panes} /> : null}
       {!isLoading && isError ? <ErrorState error={error} onRetry={() => refetch()} /> : null}
       {!isLoading && !isError && fields.length === 0 ? (
         <EmptyState
@@ -150,7 +151,7 @@ export function CustomFieldsRoute() {
           message={t("customFields.empty.description")}
         />
       ) : null}
-      <div ref={measure} className={cn("flex gap-6", !panes && "flex-col")}>
+      <div className={cn("flex gap-6", !panes && "flex-col")}>
         {fields.length > 0 && (panes || !open) ? (
           <nav
             aria-label={t("customFields.listLabel")}

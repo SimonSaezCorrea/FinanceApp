@@ -2847,8 +2847,7 @@
     "summary": {
       "movements_one": "{{count}} movement",
       "movements_other": "{{count}} movements",
-      "open": "See in Movements",
-      "loading": "Working it out…"
+      "open": "See in Movements"
     },
     "delete": {
       "title": "Delete “{{name}}”?",
