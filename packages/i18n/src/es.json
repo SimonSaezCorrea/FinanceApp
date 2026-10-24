@@ -2896,7 +2896,8 @@
       "skipped_other": "{{count}} quedaron fuera: la columna no les aplica.",
       "undo": "Deshacer",
       "undone": "Cambio deshecho",
-      "noFields": "Crea una columna en Columnas propias para marcar movimientos."
+      "noFields": "Crea una columna en Columnas propias para marcar movimientos.",
+      "allFilteredExcept": "{{count}} de los {{total}} del filtro"
     },
     "cover": {
       "action": "Transferir pendientes",
@@ -2916,10 +2917,10 @@
       "coveredOnDelete_other": "{{count}} movimientos volverán al valor que tenían antes."
     },
     "listLabel": "Tus columnas",
-    "count_one": "{{count}} con valor",
-    "count_other": "{{count}} con valor",
+    "count_one": "1 movimiento marcado",
+    "count_other": "{{count}} movimientos marcados",
     "limit": "{{count}} de {{max}} columnas",
-    "back": "Todas las columnas",
+    "back": "Columnas propias",
     "scopeText": {
       "allMovements": "Todos los movimientos",
       "kinds": {
@@ -2952,7 +2953,8 @@
       "columnHidden": "No se muestra",
       "pending_one": "1 movimiento sigue en «{{value}}»",
       "pending_other": "{{count}} movimientos siguen en «{{value}}»",
-      "pendingHint": "Ábrelos en Movimientos ya seleccionados y haz un traspaso por su suma: quedan en «{{other}}». Se deshace borrando el traspaso."
+      "pendingHint": "Ábrelos en Movimientos ya seleccionados y haz un traspaso por su suma: quedan en «{{other}}». Se deshace borrando el traspaso.",
+      "values": "Valores"
     },
     "examples": {
       "title": "Ejemplos para empezar",

@@ -2896,7 +2896,8 @@
       "skipped_other": "{{count}} were left out: the column doesn’t apply to them.",
       "undo": "Undo",
       "undone": "Change undone",
-      "noFields": "Create a column in Custom columns to mark movements."
+      "noFields": "Create a column in Custom columns to mark movements.",
+      "allFilteredExcept": "{{count}} of the {{total}} in the filter"
     },
     "cover": {
       "action": "Transfer pending",
@@ -2916,10 +2917,10 @@
       "coveredOnDelete_other": "{{count}} movements will get back the value they had before."
     },
     "listLabel": "Your columns",
-    "count_one": "{{count}} with a value",
-    "count_other": "{{count}} with a value",
+    "count_one": "1 movement marked",
+    "count_other": "{{count}} movements marked",
     "limit": "{{count}} of {{max}} columns",
-    "back": "All columns",
+    "back": "Custom columns",
     "scopeText": {
       "allMovements": "All movements",
       "kinds": {
@@ -2952,7 +2953,8 @@
       "columnHidden": "Hidden",
       "pending_one": "1 movement is still “{{value}}”",
       "pending_other": "{{count}} movements are still “{{value}}”",
-      "pendingHint": "Open them in Movements already selected and make one transfer for their sum: they become “{{other}}”. Deleting the transfer undoes it."
+      "pendingHint": "Open them in Movements already selected and make one transfer for their sum: they become “{{other}}”. Deleting the transfer undoes it.",
+      "values": "Values"
     },
     "examples": {
       "title": "Examples to start with",

@@ -26,6 +26,8 @@ export interface TransactionListFilter {
   excludeIds?: string[];
   /** Only movements in a custom field's scope. */
   scope?: ScopeWhere;
+  /** Only movements in another field's scope (`inScopeOf`), on top of `scope`. */
+  inScope?: ScopeWhere;
 }
 
 /** Decoded keyset cursor — the last row of the previous page. */

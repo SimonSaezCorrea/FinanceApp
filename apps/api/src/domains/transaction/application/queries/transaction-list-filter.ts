@@ -8,7 +8,7 @@ import {
 } from "../../../custom-field/domain/errors";
 import type { TransactionFieldValueRepositoryPort } from "../../../transaction-field-value/domain/ports/transaction-field-value.repository.port";
 import type { TransactionListFilter } from "../../domain/ports/transaction.repository.port";
-import { scopeWhere } from "../../domain/scope-where";
+import { scopeWhere, type ScopeWhere } from "../../domain/scope-where";
 
 /**
  * Contract filters -> the port's pre-parsed filter shape. Shared by the list
@@ -159,6 +159,23 @@ export async function resolveListFilter(
   filters: transactions.TransactionFilters,
 ): Promise<TransactionListFilter> {
   const base = toListFilter(filters);
-  if (!filters.cf) return base;
-  return { ...base, ...(await customFieldClauses(deps, userId, filters)) };
+  const [clauses, inScope] = await Promise.all([
+    filters.cf ? customFieldClauses(deps, userId, filters) : {},
+    filters.inScopeOf ? scopeOfField(deps, userId, filters.inScopeOf) : undefined,
+  ]);
+  return { ...base, ...clauses, ...(inScope ? { inScope } : {}) };
+}
+
+/** Where a field applies (`inScopeOf`): its scope, whatever value the movements hold. */
+async function scopeOfField(
+  deps: CustomFieldFilterDeps,
+  userId: string,
+  fieldId: string,
+): Promise<ScopeWhere> {
+  const [field, cards] = await Promise.all([
+    deps.fields.findOwned(userId, fieldId),
+    deps.cards.kindsForUser(userId),
+  ]);
+  if (!field) throw new CustomFieldNotFoundError();
+  return scopeWhere(field.scope, cards);
 }

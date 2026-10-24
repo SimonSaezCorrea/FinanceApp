@@ -372,6 +372,9 @@ export const transactionFiltersSchema = z.object({
   cfText: z.string().trim().min(1).max(200).optional(),
   cfMin: z.string().max(40).optional(),
   cfMax: z.string().max(40).optional(),
+  /** Only the movements a custom field applies to (its scope), whatever their value — what
+   * selection mode shows while a bulk action targets that field. Combines with `cf`. */
+  inScopeOf: rowId.optional(),
   /**
    * Page size. **Omit to get every match in one response** (no pagination),
    * which is what the aggregate-only consumers rely on (e.g. the dashboard's
@@ -392,7 +395,11 @@ export const coverTransferSchema = z
     fieldId: rowId,
     target: z.union([
       z.object({ ids: z.array(rowId).min(1).max(5000) }),
-      z.object({ filter: transactionFiltersSchema.omit({ limit: true, cursor: true }) }),
+      z.object({
+        filter: transactionFiltersSchema.omit({ limit: true, cursor: true }),
+        // Unticked after "todos los del filtro" (optional: an older client sends none).
+        exceptIds: z.array(rowId).max(5000).optional(),
+      }),
     ]),
     value: z.boolean(),
     fromBankAccountId: rowId,

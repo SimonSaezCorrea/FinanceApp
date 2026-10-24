@@ -246,6 +246,24 @@ describe("Custom fields HTTP (e2e)", () => {
       .send({ appliedValue: true, restore: first.body.previous });
     expect(undo.body).toEqual({ restored: 2, kept: 0 });
     expect((await summary(`cf=${fieldId}&cfv=false`)).total).toBe(2);
+
+    // "Todos los del filtro" less one unticked afterwards: the filter minus `exceptIds`.
+    const pending = await api()
+      .get(`/api/v1/transactions?cf=${fieldId}&cfv=false`)
+      .set("Cookie", cookies);
+    const [unticked] = (pending.body.items as { id: string }[]).map((t) => t.id);
+    const except = await api()
+      .post(`/api/v1/custom-fields/${fieldId}/assignments/preview`)
+      .set("Cookie", cookies)
+      .send({ target: { ...target, exceptIds: [unticked] }, value: true });
+    expect(except.body).toEqual({ inScope: 1, outOfScope: 0, withOtherValue: 1 });
+
+    // `inScopeOf`: every movement the field applies to = those with a value + those without.
+    const inScope = (await summary(`inScopeOf=${fieldId}`)).total;
+    const withValue = (await summary(`cf=${fieldId}&cfHasValue=true`)).total;
+    const empty = (await summary(`cf=${fieldId}&cfEmpty=true`)).total;
+    expect(inScope).toBe(withValue + empty);
+    expect(inScope).toBeLessThan((await summary("")).total);
   });
 
   it("summarises the field by value", async () => {

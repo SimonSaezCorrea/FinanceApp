@@ -48,6 +48,7 @@ export function buildTransactionWhere(
   if (where.excludeIds && where.excludeIds.length > 0)
     and.push({ id: { notIn: where.excludeIds } });
   if (where.scope) and.push(...scopeClauses(where.scope));
+  if (where.inScope) and.push(...scopeClauses(where.inScope));
   if (and.length > 0) prismaWhere.AND = and;
   return prismaWhere;
 }

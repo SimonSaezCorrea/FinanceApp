@@ -19,6 +19,7 @@ vi.mock("sonner", () => ({
 
 const api = vi.mocked(customFieldsApi);
 const FIELD = "019a0000-0000-7000-8000-0000000000f1";
+const OTHER_TX = "019a0000-0000-7000-8000-0000000000a9";
 const field: customFields.CustomField = {
   id: FIELD,
   name: "Transferido",
@@ -40,9 +41,12 @@ function renderBar(props: Partial<React.ComponentProps<typeof BulkAssignBar>> = 
       <I18nextProvider i18n={i18n}>
         <BulkAssignBar
           fields={[field]}
+          fieldId={FIELD}
+          onFieldChange={vi.fn()}
           selectedIds={["t1", "t2"]}
           allFiltered={false}
-          filter={{ cf: FIELD, cfv: "false" }}
+          target={{ ids: ["t1", "t2"] }}
+          count={2}
           filteredTotal={2}
           onSelectAllFiltered={vi.fn()}
           onDone={onDone}
@@ -100,14 +104,19 @@ describe("BulkAssignBar (specs/036, US4)", () => {
   it("asks first above 20 movements, saying how many hold another value", async () => {
     api.previewAssignment.mockResolvedValue({ inScope: 300, outOfScope: 4, withOtherValue: 30 });
     api.assign.mockResolvedValue({ changed: 300, skipped: 4, previous: [] });
-    renderBar({ allFiltered: true, filteredTotal: 304 });
+    // Every movement of the filter, less one unticked afterwards.
+    const target = { filter: { cf: FIELD, cfv: "false" }, exceptIds: [OTHER_TX] };
+    renderBar({ allFiltered: true, target, count: 303, filteredTotal: 304 });
+    expect(
+      screen.getByText(i18n.t("customFields.bulk.allFilteredExcept", { count: 303, total: 304 })),
+    ).toBeTruthy();
     pickYes();
     fireEvent.click(screen.getByRole("button", { name: i18n.t("customFields.bulk.apply") }));
     expect(
       await screen.findByText(i18n.t("customFields.bulk.confirmTitle", { count: 300 })),
     ).toBeTruthy();
     expect(api.previewAssignment.mock.calls[0]![1]).toEqual({
-      target: { filter: { cf: FIELD, cfv: "false" } },
+      target,
       value: true,
     });
     expect(api.assign).not.toHaveBeenCalled();

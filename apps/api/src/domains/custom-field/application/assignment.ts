@@ -48,7 +48,10 @@ export async function planAssignment(
       userId,
       target.filter,
     );
-    ids = await deps.movements.idsForFilter(userId, where, max + 1);
+    const except = new Set(target.exceptIds ?? []);
+    ids = (await deps.movements.idsForFilter(userId, where, max + 1 + except.size)).filter(
+      (id) => !except.has(id),
+    );
   }
   if (ids.length > max) throw new CustomFieldAssignmentTooLargeError();
 

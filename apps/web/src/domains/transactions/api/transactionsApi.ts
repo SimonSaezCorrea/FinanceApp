@@ -22,6 +22,8 @@ function toQuery(filters: transactions.TransactionFilters = {}): string {
     if (filters.cfMin) params.set("cfMin", filters.cfMin);
     if (filters.cfMax) params.set("cfMax", filters.cfMax);
   }
+  // Only what a field applies to (selection mode's bulk field), independent of `cf`.
+  if (filters.inScopeOf) params.set("inScopeOf", filters.inScopeOf);
   if (filters.limit !== undefined) params.set("limit", String(filters.limit));
   if (filters.cursor) params.set("cursor", filters.cursor);
   const qs = params.toString();

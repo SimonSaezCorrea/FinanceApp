@@ -113,10 +113,14 @@ export type ScopeCountRequest = z.infer<typeof scopeCountRequestSchema>;
 export const scopeCountResponseSchema = z.object({ count: z.number().int().nonnegative() });
 
 /** The movements a bulk action works on: picked one by one, or every movement the
- * current Movimientos filter shows (paging keys are ignored). */
+ * current Movimientos filter shows (paging keys are ignored) except the ones unticked
+ * after "todos los del filtro" (`exceptIds`; optional, an older client sends none). */
 export const assignmentTargetSchema = z.union([
   z.object({ ids: z.array(rowId).min(1).max(CUSTOM_FIELD_ASSIGNMENT_MAX) }),
-  z.object({ filter: transactionFiltersSchema.omit({ limit: true, cursor: true }) }),
+  z.object({
+    filter: transactionFiltersSchema.omit({ limit: true, cursor: true }),
+    exceptIds: z.array(rowId).max(CUSTOM_FIELD_ASSIGNMENT_MAX).optional(),
+  }),
 ]);
 export type AssignmentTarget = z.infer<typeof assignmentTargetSchema>;
 

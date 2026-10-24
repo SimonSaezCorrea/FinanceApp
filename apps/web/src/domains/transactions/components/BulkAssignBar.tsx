@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 
-import { customFields as rules, type customFields, type transactions } from "@finance/contracts";
+import { customFields as rules, type customFields } from "@finance/contracts";
 
 import { ApiRequestError } from "@finance/client";
 import { Button } from "@finance/ui/src/shared/ui/button";
@@ -17,13 +17,19 @@ type Value = customFields.CustomFieldValue;
 
 interface Props {
   fields: readonly customFields.CustomField[];
+  /** The field the action gives a value to. The route owns it: while selecting, the list
+   * only shows the movements this field applies to. */
+  fieldId: string;
+  onFieldChange: (fieldId: string) => void;
   /** Movements picked one by one. Ignored while `allFiltered`. */
   selectedIds: readonly string[];
   /** "Seleccionar todos los del filtro": the action covers every movement the
-   * current filter shows, loaded or not. */
+   * current filter shows, loaded or not, less any unticked afterwards. */
   allFiltered: boolean;
-  /** The current Movimientos filter — what `allFiltered` means. */
-  filter: Omit<transactions.TransactionFilters, "limit" | "cursor">;
+  /** What the action covers: the picked ids, or the filter with its exceptions. */
+  target: customFields.AssignmentTarget;
+  /** How many movements `target` holds. */
+  count: number;
   /** The filter's movement count (its summary). */
   filteredTotal: number;
   onSelectAllFiltered: () => void;
@@ -31,6 +37,18 @@ interface Props {
   onCancel: () => void;
   /** Extra actions for the current selection ("Transferir pendientes"). */
   extra?: React.ReactNode;
+}
+
+/** "Los 70 movimientos del filtro", "69 de los 70 del filtro" or "19 seleccionados". */
+function selectionLabel(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  allFiltered: boolean,
+  count: number,
+  filteredTotal: number,
+): string {
+  if (!allFiltered) return t("customFields.bulk.selected", { count });
+  if (count === filteredTotal) return t("customFields.bulk.allFilteredOn", { count });
+  return t("customFields.bulk.allFilteredExcept", { count, total: filteredTotal });
 }
 
 const errorText = (err: unknown, t: (k: string) => string) =>
@@ -44,9 +62,12 @@ const errorText = (err: unknown, t: (k: string) => string) =>
  */
 export function BulkAssignBar({
   fields,
+  fieldId,
+  onFieldChange,
   selectedIds,
   allFiltered,
-  filter,
+  target,
+  count,
   filteredTotal,
   onSelectAllFiltered,
   onDone,
@@ -56,11 +77,9 @@ export function BulkAssignBar({
   const { t } = useTranslation();
   const { assign, revert } = useFieldValueMutations();
   const idempotencyKey = useIdempotencyKey();
-  const [fieldId, setFieldId] = useState(fields[0]?.id ?? "");
   const [raw, setRaw] = useState("");
   const [confirm, setConfirm] = useState<customFields.AssignmentPreview | null>(null);
   const field = fields.find((f) => f.id === fieldId);
-  const count = allFiltered ? filteredTotal : selectedIds.length;
 
   if (fields.length === 0) {
     return (
@@ -79,7 +98,7 @@ export function BulkAssignBar({
     return sendable(field, raw);
   };
   const body = (): customFields.AssignValuesRequest => ({
-    target: allFiltered ? { filter } : { ids: [...selectedIds] },
+    target,
     value: value(),
   });
 
@@ -139,9 +158,7 @@ export function BulkAssignBar({
       className="flex flex-wrap items-center gap-2 rounded-xl border border-primary/40 bg-card p-3"
     >
       <span className="text-sm font-medium">
-        {allFiltered
-          ? t("customFields.bulk.allFilteredOn", { count: filteredTotal })
-          : t("customFields.bulk.selected", { count })}
+        {selectionLabel(t, allFiltered, count, filteredTotal)}
       </span>
       {!allFiltered && filteredTotal > selectedIds.length ? (
         <Button variant="ghost" size="sm" onClick={onSelectAllFiltered}>
@@ -152,7 +169,7 @@ export function BulkAssignBar({
       <PillSelect
         value={fieldId}
         onChange={(id) => {
-          setFieldId(id);
+          onFieldChange(id);
           setRaw("");
         }}
         label={t("customFields.bulk.field")}

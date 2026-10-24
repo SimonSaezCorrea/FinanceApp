@@ -20,7 +20,7 @@ import { useTransactionMutations } from "../hooks/useTransactionMutations";
 import { endOfMonth, isFullMonthRange, startOfMonth } from "../lib/transactionMetrics";
 import type { TransactionViewFilters } from "../lib/transactionMetrics";
 import type { transactions } from "@finance/contracts";
-import { sumMoney } from "@finance/money";
+import { subtractMoney, sumMoney } from "@finance/money";
 import { formatDateRangeLabel } from "../components/DateRangeButton";
 import { BulkAssignBar } from "../components/BulkAssignBar";
 import { CoverTransferPanel } from "../components/CoverTransferPanel";
@@ -95,9 +95,20 @@ export function TransactionsRoute() {
     );
   }, [arrivesToCover, setSearchParams]);
   const [coverOpen, setCoverOpen] = useState(false);
+  // With "todos los del filtro" on, what the person unticks afterwards: the action covers the
+  // filter except these (the unloaded rows stay selected).
+  const [exceptIds, setExceptIds] = useState<Set<string>>(new Set());
+  // The field the bulk action targets: the one picked in its bar, else the one the list is
+  // filtered by, else the first.
+  const [pickedBulkField, setPickedBulkField] = useState("");
+  const bulkFieldId =
+    [pickedBulkField, fieldFilter?.fieldId, fields[0]?.id].find(
+      (id) => id && fields.some((f) => f.id === id),
+    ) ?? "";
   const clearSelection = () => {
     setSelectedIds(new Set());
     setAllFiltered(false);
+    setExceptIds(new Set());
   };
   const stopSelecting = () => {
     clearSelection();
@@ -135,6 +146,9 @@ export function TransactionsRoute() {
     to: filters.to,
     categoryId: filters.categoryId || undefined,
     ...toApiFilter(fieldFilter),
+    // While selecting, only the movements the bulk action's field applies to: the rest
+    // can't take its value, so they are neither listed nor counted in "todos los del filtro".
+    ...(selecting && bulkFieldId ? { inScopeOf: bulkFieldId } : {}),
   };
   const txQuery = useInfiniteTransactions(apiFilters);
   // Count, per-currency totals and the category options describe the whole
@@ -157,12 +171,22 @@ export function TransactionsRoute() {
       : undefined;
   const coverValue = fieldFilter?.mode === "value" ? fieldFilter.value !== "true" : true;
   const filteredTotal = summaryQuery.data?.total ?? 0;
-  const coverCount = allFiltered ? filteredTotal : selectedIds.size;
+  const coverCount = allFiltered ? Math.max(0, filteredTotal - exceptIds.size) : selectedIds.size;
   const coverAmount = (() => {
     if (allFiltered) {
-      const totals = summaryQuery.data?.currencyTotals ?? [];
-      const [only] = totals;
-      if (totals.length !== 1 || !only) return null;
+      // The filter's totals less what was unticked (always loaded rows, so known here).
+      const totals = (summaryQuery.data?.currencyTotals ?? []).map((c) => {
+        let { income, expense } = c;
+        for (const tx of visibleTxs) {
+          if (!exceptIds.has(tx.id) || tx.currency !== c.currency) continue;
+          if (tx.type === "INCOME") income = subtractMoney(income, tx.amount);
+          else expense = subtractMoney(expense, tx.amount);
+        }
+        return { currency: c.currency, income, expense };
+      });
+      const left = totals.filter((c) => Number(c.income) !== 0 || Number(c.expense) !== 0);
+      const [only] = left;
+      if (left.length !== 1 || !only) return null;
       const income = Number(only.income) !== 0;
       const expense = Number(only.expense) !== 0;
       if (income === expense) return null;
@@ -180,6 +204,9 @@ export function TransactionsRoute() {
   })();
   // Every movement the filter shows, without paging: what "todos los del filtro" means.
   const bulkFilter = apiFilters;
+  const bulkTarget = allFiltered
+    ? { filter: bulkFilter, ...(exceptIds.size > 0 ? { exceptIds: [...exceptIds] } : {}) }
+    : { ids: [...selectedIds] };
 
   const periodLabel = useMemo(() => {
     const count = summaryQuery.data?.total ?? 0;
@@ -281,11 +308,20 @@ export function TransactionsRoute() {
       {selecting ? (
         <BulkAssignBar
           fields={fields}
+          fieldId={bulkFieldId}
+          onFieldChange={(id) => {
+            setPickedBulkField(id);
+            clearSelection();
+          }}
           selectedIds={[...selectedIds]}
           allFiltered={allFiltered}
-          filter={bulkFilter}
+          target={bulkTarget}
+          count={coverCount}
           filteredTotal={filteredTotal}
-          onSelectAllFiltered={() => setAllFiltered(true)}
+          onSelectAllFiltered={() => {
+            setAllFiltered(true);
+            setExceptIds(new Set());
+          }}
           onDone={clearSelection}
           onCancel={stopSelecting}
           extra={
@@ -329,14 +365,20 @@ export function TransactionsRoute() {
           selection={
             selecting
               ? {
-                  selected: allFiltered ? new Set(visibleTxs.map((tx) => tx.id)) : selectedIds,
+                  selected: allFiltered
+                    ? new Set(visibleTxs.map((tx) => tx.id).filter((id) => !exceptIds.has(id)))
+                    : selectedIds,
                   onToggle: (id) => {
-                    const base = allFiltered ? new Set(visibleTxs.map((tx) => tx.id)) : selectedIds;
-                    const next = new Set(base);
-                    if (next.has(id)) next.delete(id);
-                    else next.add(id);
-                    setAllFiltered(false);
-                    setSelectedIds(next);
+                    const toggle = (set: Set<string>) => {
+                      const next = new Set(set);
+                      if (next.has(id)) next.delete(id);
+                      else next.add(id);
+                      return next;
+                    };
+                    // Unticking under "todos los del filtro" excludes that one; it never
+                    // narrows the selection to the rows that happen to be loaded.
+                    if (allFiltered) setExceptIds(toggle(exceptIds));
+                    else setSelectedIds(toggle(selectedIds));
                   },
                 }
               : undefined
@@ -350,7 +392,7 @@ export function TransactionsRoute() {
           onOpenChange={setCoverOpen}
           field={coverField}
           value={coverValue}
-          target={allFiltered ? { filter: bulkFilter } : { ids: [...selectedIds] }}
+          target={bulkTarget}
           count={coverCount}
           amount={coverAmount}
           accounts={accounts}

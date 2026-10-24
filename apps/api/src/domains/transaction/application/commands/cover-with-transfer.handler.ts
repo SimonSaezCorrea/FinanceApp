@@ -156,7 +156,10 @@ export class CoverWithTransferHandler extends BaseIdempotentCommandHandler<
       userId,
       input.target.filter,
     );
-    const ids = await this.movements.idsForFilter(userId, where, max + 1);
+    const except = new Set(input.target.exceptIds ?? []);
+    const ids = (await this.movements.idsForFilter(userId, where, max + 1 + except.size)).filter(
+      (id) => !except.has(id),
+    );
     if (ids.length > max) throw new CustomFieldAssignmentTooLargeError();
     return ids;
   }
