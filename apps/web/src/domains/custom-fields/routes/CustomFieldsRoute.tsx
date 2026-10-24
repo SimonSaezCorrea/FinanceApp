@@ -1,4 +1,4 @@
-import { ChevronLeft, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useSearchParams } from "react-router";
@@ -132,18 +132,24 @@ export function CustomFieldsRoute() {
     });
   };
 
+  // One column with a column open: the detail is its own screen, with the way back on top
+  // instead of the page header and its "Nueva columna".
+  const detailScreen = !panes && open !== undefined;
+
   return (
     <div ref={measure} className="flex flex-col gap-6">
-      <PageHeader
-        title={t("customFields.title")}
-        description={t("customFields.subtitle")}
-        actions={
-          <Button variant="accent" onClick={() => openCreate()}>
-            <Plus className="h-4 w-4" aria-hidden />
-            {t("customFields.new")}
-          </Button>
-        }
-      />
+      {detailScreen ? null : (
+        <PageHeader
+          title={t("customFields.title")}
+          description={t("customFields.subtitle")}
+          actions={
+            <Button variant="accent" onClick={() => openCreate()}>
+              <Plus className="h-4 w-4" aria-hidden />
+              {t("customFields.new")}
+            </Button>
+          }
+        />
+      )}
 
       {isLoading ? <CustomFieldsSkeleton panes={panes} /> : null}
       {!isLoading && isError ? <ErrorState error={error} onRetry={() => refetch()} /> : null}
@@ -157,7 +163,7 @@ export function CustomFieldsRoute() {
         {fields.length > 0 && (panes || !open) ? (
           <nav
             aria-label={t("customFields.listLabel")}
-            className={cn("flex flex-col gap-1", panes && "w-72 shrink-0")}
+            className={cn("flex flex-col", panes ? "w-72 shrink-0 gap-1" : "gap-2")}
           >
             {fields.map((field) => {
               const active = panes && field.id === open?.id;
@@ -168,23 +174,25 @@ export function CustomFieldsRoute() {
                   replace={panes}
                   aria-current={active ? "page" : undefined}
                   className={cn(
-                    "flex min-h-14 items-center justify-between gap-3 rounded-xl px-4 py-3 hover:bg-surface2",
+                    "flex min-h-14 items-center gap-3 rounded-xl px-4 py-3 hover:bg-surface2",
+                    !panes && "border border-border bg-card",
                     active && "bg-surface2 shadow-[inset_3px_0_0_hsl(var(--primary))]",
                   )}
                 >
-                  <span className="flex min-w-0 flex-col gap-0.5">
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                     <span className="truncate font-semibold">{field.name}</span>
                     <span className="text-xs text-muted-foreground">
-                      {t(`customFields.type.${field.type}`)}
+                      {t(`customFields.type.${field.type}`)} ·{" "}
+                      {t("customFields.count", { count: field.valueCount })}
                     </span>
                   </span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {t("customFields.count", { count: field.valueCount })}
-                  </span>
+                  {panes ? null : (
+                    <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden />
+                  )}
                 </Link>
               );
             })}
-            <p className="px-4 pt-2 text-xs text-dim">
+            <p className={cn("pt-2 text-xs text-dim", panes && "px-4")}>
               {t("customFields.limit", {
                 count: fields.length,
                 max: customFields.CUSTOM_FIELD_MAX_FIELDS,
@@ -208,6 +216,7 @@ export function CustomFieldsRoute() {
               accounts={allAccounts ?? []}
               onEdit={() => openEdit(open)}
               onDelete={() => setDeleting(open)}
+              asScreen={!panes}
             />
           </div>
         ) : null}

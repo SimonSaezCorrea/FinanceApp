@@ -420,7 +420,8 @@ function PhoneNav({ onNew }: Readonly<{ onNew: () => void }>) {
                     onClick={() => setMoreOpen(false)}
                     className={({ isActive }) =>
                       cn(
-                        "flex flex-col items-center gap-1.5 rounded-xl px-1 py-3 text-xs font-medium transition-colors",
+                        // A two-line label ("Columnas propias") stays centred, and every tile keeps one height.
+                        "flex min-h-[4.75rem] flex-col items-center justify-center gap-1.5 rounded-xl px-1 py-3 text-center text-xs font-medium leading-tight transition-colors",
                         isActive ? "bg-primary/10 text-primary" : "bg-muted text-foreground",
                       )
                     }
