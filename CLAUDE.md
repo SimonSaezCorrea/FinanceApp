@@ -598,7 +598,8 @@ paymentDueCycleType)` gained a CALENDAR_DAY branch (the first occurrence of `pay
     pasaría del piso (**`OVERDRAFT_LIMIT_EXCEEDED`**) **solo cuando hay línea configurada**: sin línea
     declarada la app no tiene base para rechazar un movimiento que de verdad ocurrió (el banco pudo
     permitirlo). Un edit se valida contra el saldo ANTES de su propio cargo previo, igual que prepago.
-    Ojo al leer: `"0"` significa _sin_ sobregiro, no "tiene uno de cero" — el primer refine que escribí
+    Se pide al crear la cuenta (`AccountCreateModal`, "Más detalles · opcional", solo corriente/vista,
+    2026-10-25) y al editarla (`AccountForm`). Ojo al leer: `"0"` significa _sin_ sobregiro, no "tiene uno de cero" — el primer refine que escribí
     trataba `"0"` como truthy y rompía la creación de cuentas prepago. El renombre tocó 58 archivos
     (incluidas las llaves i18n `accounts.type.*`); los Sync Impact Reports viejos de la constitución
     conservan el nombre anterior por ser historia.

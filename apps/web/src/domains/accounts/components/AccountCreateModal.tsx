@@ -77,6 +77,9 @@ export function AccountCreateModal({
   // The primary card's limits in other currencies (its USD one), sent with it.
   const [extraLimits, setExtraLimits] = useState<CurrencyLimitDraft[]>([]);
   const [creditUsedInitial, setCreditUsedInitial] = useState("0");
+  // The bank's credit line on a checking/sight account (an agreed overdraft):
+  // how far below zero the balance may go. Asked here too, not only on edit.
+  const [overdraftLimit, setOverdraftLimit] = useState("0");
   // For a CREDIT_CARD account, these identify its PRIMARY card directly (in
   // place of a bank "account number", which doesn't apply — there's no
   // account behind a standalone credit card, only the card itself). Its limit
@@ -89,6 +92,7 @@ export function AccountCreateModal({
   const [cards, setCards] = useState<accounts.CreateCard[]>([]);
   const [addingCard, setAddingCard] = useState(false);
   const isCreditLineType = type === "CREDIT_CARD";
+  const hasOverdraft = accountsContract.allowsOverdraft(type);
   // Only a CREDIT_CARD account has a cupo at all — since the "credit card is its
   // own account" redesign, CHECKING/SIGHT/SAVINGS/PREPAID can never carry a
   // CREDIT card (`ALLOWED_CARD_KINDS`), so there is no "additional CREDIT card on
@@ -110,6 +114,7 @@ export function AccountCreateModal({
     setCreditLimit("0");
     setExtraLimits([]);
     setCreditUsedInitial("0");
+    setOverdraftLimit("0");
     setPrimaryLast4("");
     setPrimaryExpiry("");
     setPrimaryLast4Error(null);
@@ -203,6 +208,7 @@ export function AccountCreateModal({
         initialBalance: isCreditLineType ? "0" : initialBalance || "0",
         creditLimit: isCreditLineType ? creditLimit || "0" : undefined,
         creditUsedInitial: isCreditLineType ? creditUsedInitial || "0" : undefined,
+        overdraftLimit: hasOverdraft ? overdraftLimit || "0" : undefined,
         cards: allCards.length > 0 ? allCards : undefined,
       },
       {
@@ -237,7 +243,7 @@ export function AccountCreateModal({
     accountNumber: accountNumber || null,
     accountAlias: accountAlias.trim() || null,
     initialBalance: initialBalance || "0",
-    overdraftLimit: "0",
+    overdraftLimit: hasOverdraft ? overdraftLimit || "0" : "0",
     balanceCeiling: null,
     currentBalance: initialBalance || "0",
     creditLimit: creditLimit || "0",
@@ -453,10 +459,11 @@ export function AccountCreateModal({
             </>
           ) : null}
 
-          {/* Cupo usado inicial only makes sense for a credit line — every other
-              account type has no cupo to seed a starting balance for. Same
-              "Más detalles" heading `AccountForm`'s edit view uses. */}
-          {isCreditLineType ? (
+          {/* Más detalles, the same heading `AccountForm`'s edit view uses: a
+              checking/sight account's credit line (overdraft floor), or a credit
+              card account's seeded starting usage — every other account type has
+              neither. */}
+          {hasOverdraft || isCreditLineType ? (
             <FormMoreDetails
               className="mt-2"
               title={
@@ -468,16 +475,30 @@ export function AccountCreateModal({
                 </>
               }
             >
-              <FormTextField
-                id="m-cused"
-                label={t("accounts.form.creditUsedInitial")}
-                value={formatAmountDisplay(
-                  creditUsedInitial,
-                  groupingLocaleFor(currency, i18n.language),
-                )}
-                onChange={(v) => setCreditUsedInitial(v.replace(/\D/g, ""))}
-                showEditIcon
-              />
+              {hasOverdraft ? (
+                <FormTextField
+                  id="m-overdraft"
+                  label={t("accounts.form.overdraftLimit")}
+                  value={formatAmountDisplay(
+                    overdraftLimit,
+                    groupingLocaleFor(currency, i18n.language),
+                  )}
+                  hint={t("accounts.form.overdraftLimitHint")}
+                  onChange={(v) => setOverdraftLimit(v.replace(/\D/g, ""))}
+                  showEditIcon
+                />
+              ) : (
+                <FormTextField
+                  id="m-cused"
+                  label={t("accounts.form.creditUsedInitial")}
+                  value={formatAmountDisplay(
+                    creditUsedInitial,
+                    groupingLocaleFor(currency, i18n.language),
+                  )}
+                  onChange={(v) => setCreditUsedInitial(v.replace(/\D/g, ""))}
+                  showEditIcon
+                />
+              )}
             </FormMoreDetails>
           ) : null}
         </div>

@@ -106,3 +106,37 @@ describe("AccountCreateModal — CREDIT_CARD primary card shortcut", () => {
     expect(screen.getByText(i18n.t("cards.errors.last4"))).toBeDefined();
   });
 });
+
+describe("AccountCreateModal — credit line (overdraft) at creation", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("asks a checking account for its credit line and sends it", async () => {
+    await renderModal();
+
+    fireEvent.change(screen.getByLabelText(i18n.t("accounts.form.name")), {
+      target: { value: "Cuenta Corriente" },
+    });
+    fireEvent.change(screen.getByLabelText(i18n.t("accounts.form.accountNumber")), {
+      target: { value: "001-2345678-90" },
+    });
+    fireEvent.click(screen.getByText(i18n.t("accounts.form.moreDetails")));
+    fireEvent.change(screen.getByLabelText(i18n.t("accounts.form.overdraftLimit")), {
+      target: { value: "300.000" },
+    });
+    fireEvent.click(screen.getByText(i18n.t("accounts.form.createSubmit")));
+
+    await waitFor(() => expect(accountsApi.create).toHaveBeenCalledTimes(1));
+    expect(vi.mocked(accountsApi.create).mock.calls[0]![0].overdraftLimit).toBe("300000");
+  });
+
+  it("doesn't offer it on a credit card account, and sends none", async () => {
+    await renderModal();
+
+    fireEvent.click(screen.getByLabelText(i18n.t("accounts.form.type")));
+    fireEvent.click(screen.getByRole("button", { name: i18n.t("accounts.type.CREDIT_CARD") }));
+    fireEvent.click(screen.getByText(i18n.t("accounts.form.moreDetails")));
+
+    expect(screen.queryByLabelText(i18n.t("accounts.form.overdraftLimit"))).toBeNull();
+    expect(screen.getByLabelText(i18n.t("accounts.form.creditUsedInitial"))).toBeDefined();
+  });
+});
